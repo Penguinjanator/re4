@@ -84,6 +84,7 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
+// Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -96,6 +97,7 @@ static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 
 static inline void SatSet(cSat*& d, cSat* v) { d = v; }
 
+// Rotate a model from three components (inline owning the Vec).
 static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -125,6 +127,7 @@ cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, i
 static inline u32* DoorUnlockFlags() { return (u32*) ((u8*) pG + 0x51DC); }
 static inline u32* DoorUnlockWord(int no) { return (u32*) ((((u32) no >> 5) << 2) + (u32) DoorUnlockFlags()); }
 
+// Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
 {
     EffectEspDelete(a, b, 0, 0);
@@ -209,6 +212,11 @@ void R31bKanaamiTrans(u8 room, u8 no, int on);
 void R31bKanaamiRoom03Trans(int no, int on);
 extern "C" void Evt_R31BS00_Func(Event* e);
 
+// Room init (the U-3 cage corridor): the three cage rooms in turn — each not yet passed (Room_flg bits
+// 2/5/8) gets its two lattice switch areas, its exit door area and its collision / lattice objects,
+// else it is hidden as fallen (R31bSmdTransOff); room 3 also the escape (area 0x22) and U-3's
+// appearance (area 0x23, bit 0xB); the gondola areas 0xF/0x10 posed by bit 0xD; the s00 event on area 4
+// until bit 0xC; the start camera, the lights and the U-3 handle.
 void R31bInit()
 {
     cEm* sw0;
@@ -431,6 +439,8 @@ void R31bInit()
     }
 }
 
+// Per frame (debug): trigger 1 before U-3 is out (Room_flg bit 0xC) spawns it (0x14, cEm32) in phase 2
+// at a fixed spot; the count-down check while the timer runs.
 void R31bMain()
 {
     if (DebugTrg(1) && RsfCheck(G_ROOM_ID, 0xC) == 0) {
@@ -539,6 +549,7 @@ static void R31bStartCameraMain()
     }
 }
 
+// Cancel path of the start camera: fade reset, its stream stopped, a 10-frame fade-in, then the common end.
 static void R31bStartCameraCancel()
 {
     FadeSetW(0, 0, 0, 0);
@@ -550,12 +561,14 @@ static void R31bStartCameraCancel()
     R31bStartCameraEnd();
 }
 
+// End of the start camera: camera back, SceEventEnd.
 void R31bStartCameraEnd()
 {
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
 
+// Lattice switch `no` (0..5): dispatch to R31bExecSwitchMainSub with the switch's flag, its area and camera cut.
 static void R31bExecSwitchMain(int no)
 {
     if (no == 0) {
@@ -624,6 +637,7 @@ void R31bExecSwitchMainSub(int no, int flagNo, int count, int atNo, int cut)
     }
 }
 
+// End of lattice switch `no`: dispatch to R31bExecSwitchEndSub with the room, flag, U-3 mode, light set and effect.
 static void R31bExecSwitchEnd(int no)
 {
     if (no == 0) {
@@ -646,6 +660,9 @@ static void R31bExecSwitchEnd(int no)
     }
 }
 
+// End of a switch press: the switch light off; when `count` switches of the pair are down the shutter
+// flag is set, the light set changed, the switch effect dropped and the shutter opens (U-3 gets
+// `emMode`); camera back, SceEventEnd.
 void R31bExecSwitchEndSub(int no, int room, int flagNo, int count, int emMode, int light, int esp, int smdOff)
 {
     cEm32* em;
@@ -694,6 +711,8 @@ void R31bExecSwitchEndSub(int no, int room, int flagNo, int count, int emMode, i
     SceExit();
 }
 
+// Shutter `no` (0..5): dispatch to R31bExecShutterOpenMainSub with its flag, object, collision slot,
+// lamp, lattice, light kind, cut and area.
 static void R31bExecShutterOpenMain(int no)
 {
     if (no == 0) {
@@ -776,6 +795,7 @@ void R31bExecShutterOpenMainSub(int no, int flagNo, u32 objId, int satNo, u32 la
     }
 }
 
+// End of shutter `no`: dispatch to R31bExecShutterOpenEndSub.
 static void R31bExecShutterOpenEnd(int no)
 {
     if (no == 0) {
@@ -798,6 +818,8 @@ static void R31bExecShutterOpenEnd(int no)
     }
 }
 
+// End of a shutter opening (also its cancel path): the shutter snapped to y 3000 with its collision
+// pieces following, SE 5, the passage area on, camera back, SceEventEnd.
 void R31bExecShutterOpenEndSub(int no, int atNo, u32 objId, int satNo)
 {
     cObj* obj = SmdGetObjPtr(objId);
@@ -823,6 +845,7 @@ void R31bExecShutterOpenEndSub(int no, int atNo, u32 objId, int satNo)
     }
 }
 
+// The death timer of cage room `no` (0..2): 900 frames with the room's light set.
 static void R31bExecDeathTimerMain(int no)
 {
     if (no == 0) {
@@ -876,6 +899,8 @@ void R31bExecDeathTimerMainSub(int no, int light, int frames)
     }
 }
 
+// Exit door of cage room `no` (0..2): dispatch to R31bExecDoorMainSub with its flags, area, cuts, light
+// set, door objects and effect.
 static void R31bExecDoorMain(int no)
 {
     if (no == 0) {
@@ -995,6 +1020,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
     }
 }
 
+// End of the exit door of room `no`: dispatch to R31bExecDoorEndSub.
 static void R31bExecDoorEnd(int no)
 {
     if (no == 0) {
@@ -1008,6 +1034,8 @@ static void R31bExecDoorEnd(int no)
     }
 }
 
+// End of a door opening (also its cancel path): both door halves snapped open (z -2723) with their
+// collision following, the light set, U-3's mode, camera back, SceEventEnd.
 void R31bExecDoorEndSub(int no, int emMode, int light, u32 objId0, u32 objId1, int satNo)
 {
     cObj* obj0 = SmdGetObjPtr(objId0);
@@ -1042,6 +1070,7 @@ void R31bExecDoorEndSub(int no, int emMode, int light, u32 objId0, u32 objId1, i
     SceExit();
 }
 
+// Cage room `no` (0..2) falls: dispatch to R31bExecFallMainSub with its flag and camera cut.
 static void R31bExecFallMain(int no)
 {
     if (no == 0) {
@@ -1123,6 +1152,7 @@ void R31bExecFallRoom(int no, f32 spd)
     }
 }
 
+// End of the fall of room `no`: dispatch to R31bExecFallEndSub.
 static void R31bExecFallEnd(int no)
 {
     if (no == 0) {
@@ -1136,6 +1166,8 @@ static void R31bExecFallEnd(int no)
     }
 }
 
+// End of a room fall (also its cancel path): the room flag set, the room hidden, its collision moved
+// to the fallen position, the light set, SceEventEnd.
 void R31bExecFallEndSub(int no, u32 objId, int satNo, int flagNo)
 {
     cObj* obj;
@@ -1309,6 +1341,8 @@ static void R31bExecEscapeMain()
     }
 }
 
+// End of the escape from room 3 (also its cancel path): stream stopped, the room hidden, the battle
+// stream off, the player's motion reset, U-3 placed for the next phase, the room flag set.
 static void R31bExecEscapeEnd()
 {
     cEm* em;
@@ -1386,6 +1420,7 @@ static void R31bExecRoom01U3Main()
     }
 }
 
+// End of U-3's room-1 shutter lift (also its cancel path): the shutter snapped, U-3 into its next phase, camera back.
 static void R31bExecRoom01U3End()
 {
     cObj* obj;
@@ -1442,6 +1477,7 @@ static void R31bExecRoom02U3Main()
     }
 }
 
+// End of U-3's room-2 appearance (also its cancel path): U-3 released into its next phase, camera back, SceEventEnd.
 static void R31bExecRoom02U3End()
 {
     cEm32* em;
@@ -1526,6 +1562,8 @@ static void R31bExecRoom03U3Main()
     }
 }
 
+// End of the room-3 catch cut (also its cancel path): the shutter snapped down, U-3 and the player
+// released, the fight in room 3 begins.
 static void R31bExecRoom03U3End()
 {
     cObj* obj;
@@ -1602,6 +1640,7 @@ static void R31bExecRoom03U3DieMain()
     }
 }
 
+// End of U-3's death cut: the shutter lifted, the count-down off, the exit gondola available.
 void R31bExecRoom03U3DieEnd()
 {
     cObj* obj = SmdGetObjPtr(0xEA);
@@ -1777,6 +1816,8 @@ static void R31bExecGondolaMain(int dir)
     R31bExecGondolaEnd(dir);
 }
 
+// End of the gondola ride (dir): the gondola and player snapped to the arrival side, the areas swapped
+// (Room_flg bit 0xD), camera back, SceEventEnd.
 static void R31bExecGondolaEnd(int dir)
 {
     cObj* obj = SmdGetObjPtr(0xA3);
@@ -1800,6 +1841,7 @@ static void R31bExecGondolaEnd(int dir)
     SceExit();
 }
 
+// Collision planes of cage room `no`'s door halves (both objects).
 void R31bDoorSat(int no)
 {
     if (no == 0) {
@@ -1827,6 +1869,7 @@ void R31bDoorSatSub(int no, u32 objId, int satNo)
     }
 }
 
+// Collision planes and switch-lamp hit enemies of cage room `no`'s two shutters.
 void R31bKoushiSat(int no)
 {
     if (no == 0) {
@@ -1922,6 +1965,7 @@ void R31bKoushiSatCk2(int no, int flagNo, int koushiNo)
     }
 }
 
+// One frame in: the U-3 handle is attached to the live boss (revisit / debug).
 static void R31bEmSetMain()
 {
     cEm32* em;
@@ -1935,6 +1979,7 @@ static void R31bEmSetMain()
     }
 }
 
+// Turn all 27 light kinds on.
 void R31bLightAllOn()
 {
     int i;
@@ -1944,6 +1989,7 @@ void R31bLightAllOn()
     }
 }
 
+// Light set `no`: all kinds on, then the kinds the set turns off (per room / shutter state).
 void R31bLight(int no)
 {
     R31bLightAllOn();
@@ -2069,6 +2115,7 @@ void R31bLight(int no)
     }
 }
 
+// Show / hide lattice `no` (0..24) of cage room `room` (0..2) from r31b_kanaamiTbl.
 void R31bKanaamiTrans(u8 room, u8 no, int on)
 {
     int r = room;
@@ -2079,6 +2126,7 @@ void R31bKanaamiTrans(u8 room, u8 no, int on)
     }
 }
 
+// Room 3's lattices: swap the intact (a) and broken (b) object of lattice `no` (0..5).
 void R31bKanaamiRoom03Trans(int no, int on)
 {
     if (no <= 5) {
@@ -2092,6 +2140,8 @@ void R31bKanaamiRoom03Trans(int no, int on)
     }
 }
 
+// Event r31bs00 callback (U-3 breaks in): the entrance effect dropped and scroll objects 0x82/0x6B/0xF4
+// swapped; pl0010 (Leon) ot_type 2 and evma300's light mask on cut 0.
 void Evt_R31BS00_Func(Event* e)
 {
     switch (e->funcMode) {

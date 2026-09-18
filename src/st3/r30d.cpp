@@ -114,6 +114,11 @@ static void funcAshleySwitch(cEm* p);
 static void funcAshleyShutter(cEm* p);
 static void SceBgmCheck();
 
+// Room init: Scenario_flg[0] 0x400; the two coop switches (etc 8/9) linked to each other and to the
+// barred gate 0xC; the power shutter (area 0x14) and the front shutter Ashley crawls under (area 0x18)
+// per the save record's bits 0x10000000 / 0x08000000; the coop gate (areas 0x10/0x11 with area 1 = the
+// door check) until door_unlock[0] 0x400; three treasure item events; two Ganados (0x5E/0x5C) per flags;
+// the battle stream.
 void R30dInit()
 {
     Vec v;
@@ -257,6 +262,7 @@ void R30dMain()
     }
 }
 
+// Item-event "already opened": pose the chest of item `id` (0x80 double lid, 0x81 / 0x87 single) open.
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x80) {
@@ -270,6 +276,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: animate the chest of item `id` open.
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x80) {
@@ -345,6 +352,7 @@ static void R30dShutterPowerMain()
     R30dShutterPowerEnd();
 }
 
+// End of the power shutter rise (also its cancel path): the shutter (barred 0xD) snapped to y 800, camera back, SceEventEnd, task exit.
 static void R30dShutterPowerEnd()
 {
     Vec p;
@@ -442,6 +450,7 @@ static void R30dShutterFrontEvent()
     SubCharCtrl(1, 0);
 }
 
+// Area 1, the coop gate: up-cut 0/2 while locked (door_unlock[0] 0x400 clear), else run the door area.
 static void R30dDoorCheck()
 {
     if (!(pG->door_unlock[0] & 0x400)) {
@@ -714,6 +723,7 @@ static void R30dTimerDisp()
     }
 }
 
+// Ashley's aux routine at the coop lever: just advance her motion while she exists.
 static void funcAshleySwitch(cEm* p)
 {
     if (pSUB) {
@@ -763,6 +773,7 @@ static void funcAshleyShutter(cEm* p)
     pSUB->atari.setPriority(3);
 }
 
+// Battle stream on while a Ganado has found the player, off when none does.
 static void SceBgmCheck()
 {
     int on = 0;

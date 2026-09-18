@@ -126,6 +126,7 @@ struct R202CatapultData {
 // Reference store: the following `RsfCheck` keeps its `lwz pG` below the `stw sat` (a plain member store lets
 // the scalar-global load float above it).
 static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
+// Fill a Vec from three components.
 static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
 {
     v->x = x;
@@ -160,6 +161,10 @@ static void r202_setRock(cCatapult* c);
 static void r202_throwRock(cCatapult* c);
 void r202_getTargetPos(Vec* out);
 
+// Room init (the castle wall: catapults, the wall crank and the cannon). Before the wall is passed (Room_flg
+// bit 1): the four catapults; area 5 = the gate-catapult event until bit 2 (else the wall shown fallen,
+// the stream task, the gate Ganado 0x2A alerted); the patrols, the crank, the cannon, the show view and
+// second wave areas. Afterwards the cleared layout. Box item events.
 void R202Init()
 {
 #line 58 "D:/Bio4/Prog/r202.cpp"
@@ -254,10 +259,12 @@ void R202Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R202Main()
 {
 }
 
+// End of the show view: stream faded (200 frames), camera back, SceEventEnd.
 static void r202_execShowView_end()
 {
     SndStrReq(r202_work.p->strId, 4, 200, 0);
@@ -331,11 +338,13 @@ void r202_openBox_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose box `no` open.
 static void r202_openedBox(int no)
 {
     r202_openBox_main(no, 1);
 }
 
+// Item-event opener: animate box `no` open.
 static void r202_openBox(int no)
 {
     r202_openBox_main(no, 0);
@@ -359,6 +368,7 @@ static void r202_checkBgmPlay(int skip)
     SndRoomStrStop(3);
 }
 
+// Advance to the other of the two patrol points and return it.
 void cPatrol::getNextTarget(Vec* out)
 {
     cur++;
@@ -368,6 +378,8 @@ void cPatrol::getNextTarget(Vec* out)
     *out = pos[cur];
 }
 
+// Task: walks patrol `p`'s Ganado between its two points (goto mode 6) until the wall is passed (Room_flg
+// bit 1), the Ganado dies or it spots the player.
 static void r202_checkEmPatrol(cPatrol* p)
 {
     Vec t;
@@ -392,6 +404,7 @@ static void r202_checkEmPatrol(cPatrol* p)
     }
 }
 
+// The two patrolling Ganados (0x2C / 0x32, list 2) on the wall walk with their point pairs.
 void r202_initEmPatrol()
 {
     Vec p0 = {13401.0f, 3073.0f, -22270.0f};
@@ -713,6 +726,10 @@ static void r202_waitRockImpact(cEm* rock)
     SndCall(6, 0xB, 0, 0, 0, 0);
 }
 
+// End of the gate-catapult cutscene (also its cancel path, Room_flg[0] 0x02000000 = cancelled): unless
+// cancelled the gate Ganado is alerted, catapult 2 set to launch and the rock-impact watcher started;
+// the actors may suspend, the catapult task resumes, camera back, SceEventEnd; a second later the
+// fixed target is dropped.
 static void r202_CatapultGo_end()
 {
     if (!(pG->Room_flg[0] & 0x02000000)) {
@@ -766,6 +783,8 @@ static void r202_CatapultGo()
     r202_CatapultGo_end();
 }
 
+// The four catapults from the table (object, yaw, operator list entry): state 0, fire areas per
+// catapult (player area -> target area), catapult 2 aimed at the wall; then the per-frame task.
 void r202_initCatapult()
 {
     R202CatapultData tbl[4] = {
@@ -817,6 +836,7 @@ void r202_initCatapult()
     r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Add a (player area -> target area) pair to the catapult's fire table (max 4).
 void cCatapult::setNewArea(int a, int b)
 {
     if (nArea < 4) {
@@ -866,6 +886,7 @@ static void r202_checkCatapult()
     }
 }
 
+// The cannon shot: destroy every catapult's rock and kill their load / throw tasks.
 void r202_destroyCatapult()
 {
     u32 i;
@@ -881,6 +902,7 @@ void r202_destroyCatapult()
     }
 }
 
+// Let every catapult fire as soon as the player is in range.
 void r202_setFireAll()
 {
     u32 i;
@@ -890,6 +912,9 @@ void r202_setFireAll()
     }
 }
 
+// Per-frame catapult state machine (while the operator lives): 0 wait timer, 1 order a rock loaded
+// (r202_setRock task), 2 wait for it, 3/4 wait for the player in a fire area (with the shared throwWait
+// gap), 5 launch (r202_throwRock task), 6 wait for the rock to land, then a random reload delay.
 void cCatapult::move()
 {
     if (em.isActive() == 0) {

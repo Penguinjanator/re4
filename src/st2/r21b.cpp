@@ -71,6 +71,9 @@ static void r21b_StrPlay();
 static void r21b_HalfWaySwitchMove();
 static void r21b_HalfWaySwitchMoveEndProc();
 
+// Room init (the mine cart ride): the trolley object with its nine motions, the Ganado tables, the two
+// switch hit boxes (start / half-way), the collision piece riding along; the dragon-ball item (0x80)
+// event and the door once it was taken (Room_flg bit 0); the ride stream watcher.
 void R21bInit()
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -115,6 +118,8 @@ void R21bInit()
     r21b_work.p->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &pos, 7);
 }
 
+// Per frame: the start switch hit by anything but a knife / grenade weapon type (0xD/0xE/0x12/0x13)
+// starts the cart; at the half-way stop the second switch likewise restarts it.
 void R21bMain()
 {
     if (r21b_work.p->hit[0]->ckStatus() == 1) {
@@ -261,6 +266,8 @@ static void r21b_SwitchMove(int no)
     }
 }
 
+// Item area 0x80 (the dragon ball): once taken, Room_flg bit 0 and camera cut 1 while the wall object
+// 0xB9 slides open (-50 x a frame to -203450) with SE; player-cancellable.
 static void r21b_GetDragonBall()
 {
     cObj* obj = SmdGetObjPtr(0xB9);
@@ -288,6 +295,7 @@ static void r21b_GetDragonBall()
     r21b_GetDragonBallEndProc();
 }
 
+// End of the wall slide (also its cancel path): the wall shown at rest, area 2 off, camera back, SceEventEnd.
 static void r21b_GetDragonBallEndProc()
 {
     cObj* obj = SmdGetObjPtr(0xB9);
@@ -299,6 +307,7 @@ static void r21b_GetDragonBallEndProc()
     SceEventEnd(0);
 }
 
+// The gate object 0xAF slides open (-60 x a frame to -203800) with SE; areas 4 then 3 off.
 static void r21b_DoorOpen()
 {
     cObj* obj = SmdGetObjPtr(0xAF);
@@ -360,6 +369,8 @@ static void r21b_HalfWaySwitchMove()
     r21b_HalfWaySwitchMoveEndProc();
 }
 
+// End of the half-way switch cutscene (also its cancel path): SE stopped, the lever 0xC9 levelled,
+// camera back, SEs unpaused, SceEventEnd.
 static void r21b_HalfWaySwitchMoveEndProc()
 {
     cObj* obj = SmdGetObjPtr(0xC9);

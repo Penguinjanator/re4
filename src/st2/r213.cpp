@@ -183,10 +183,12 @@ void R213Init()
     SetSstAddAreaFlag(0x800);
 }
 
+// Per-frame room main: nothing.
 void R213Main()
 {
 }
 
+// Item-event "already opened": pose the chest / drawer of item `id` open (0x81 chest, 0x84 / 0x90 drawers -Z).
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x81) {
@@ -200,6 +202,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: animate the chest / drawer of item `id` open.
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x81) {
@@ -410,6 +413,8 @@ static void R213EventSuBreakMain()
     }
 }
 
+// End of the statue collapse (also its cancel path): stream stopped, the broken model shown, effects
+// dropped, camera back, SceEventEnd, task exit.
 static void R213EventSuBreakEnd()
 {
     SndStrReq(r213_work.p->str, 8, 0, 0);
@@ -446,6 +451,9 @@ void R213EmSet()
     }
 }
 
+// The drawbridge: area 4 = the switch until pulled (Room_flg bit 1), the two chains (objects 0x40/0x41,
+// hit boxes 1/2, flags 3/4), the broken count; while the bridge has not fallen (bit 7) the chain watcher
+// runs with the bridge up (bit 1 clear) or held by the chains, else the bridge lies down.
 void R213BridgeInit()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -469,6 +477,7 @@ void R213BridgeInit()
     }
 }
 
+// Chain `no`: created; intact and switch pulled -> its hit box; broken (flagNo) -> falling (bridge up) or gone (bridge down).
 void R213ChainInit(int no, u32 objId, int hitNo, int flagNo)
 {
     R213StatusSetChain(0, no, objId, hitNo, flagNo);
@@ -826,6 +835,7 @@ void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo)
     }
 }
 
+// breakNum = the number of broken chains (Room_flg bits 3/4).
 void R213ChainBreakNumCalc()
 {
     IntSet(r213_work.p->breakNum, 0);
@@ -932,6 +942,8 @@ static void R213EventSwitchMain()
     }
 }
 
+// End of the switch event (also its cancel path): the lever posed pulled, Room_flg bit 8, the intact
+// chains get their hit boxes, the bridge rests on the chains, effect dropped, camera back, SceEventEnd.
 static void R213EventSwitchEnd()
 {
     R213StatusSetSwitch(1);
@@ -971,6 +983,7 @@ static void R213EventChainBreakMove(int which)
     R213EventChainBreakEnd();
 }
 
+// End of a chain-break drop: bridge state 1 (on the chains); both chains gone -> the bridge-down event.
 static void R213EventChainBreakEnd()
 {
     R213StatusSetBridge(1);
@@ -1005,6 +1018,7 @@ static void R213EventBridgeDownMain()
     }
 }
 
+// End of the bridge fall: bridge state 2 (down), effect dropped, both chain objects removed, SceEventEnd.
 static void R213EventBridgeDownEnd()
 {
     R213StatusSetBridge(2);
@@ -1051,6 +1065,9 @@ static void R213Event()
     }
 }
 
+// Event r213s00 callback: sea area flag 0x800 during the event; cut 0 shows the boss model em2d00,
+// drops the room effect and pauses the statue render target; later cuts set the near clip (200) and
+// the models' flags; the end restores the render target.
 extern "C" void Evt_R213S00_Func(Event* e)
 {
     f32 clip = 200.0f;

@@ -116,6 +116,8 @@ static void r221_fadeoutBonbe(cObj* o);
 static void r201_throwBonbe(int no);
 static void setTexRender();
 
+// Room init (the boss arena): the boss / shutter / switchboard / elevator setup (r221_initInsectboss),
+// the gas bombs (r201_initBonbe) and the floor render target.
 void R221Init()
 {
 #line 48 "D:/Bio4/Prog/r221.cpp"
@@ -125,10 +127,12 @@ void R221Init()
     setTexRender();
 }
 
+// Per-frame room main: nothing.
 void R221Main()
 {
 }
 
+// The boss (ESL 0x8C) attacks again: alerted, Room_flg[0] 0x00200000, the boss BGM task.
 static void r221_appearBoss2nd()
 {
     cEmWrap em;
@@ -139,6 +143,7 @@ static void r221_appearBoss2nd()
     SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Swap the shutter's effect: on = 1 the open-shutter effect 0xE, else the closed one 0xF.
 void r221_setShutterEff(int on)
 {
     EffectEspDelete(0, r221_work.p->eff, 0, 0);
@@ -151,6 +156,7 @@ void r221_setShutterEff(int on)
     }
 }
 
+// End of the shutter re-open (also its cancel path): Room_flg bit 11, SE stopped, the shutter snapped open, camera back, SceEventEnd.
 static void r221_checkShutterOpen_end()
 {
     RsfSet(G_ROOM_ID, 11);
@@ -193,6 +199,9 @@ void r221_checkShutterOpen()
     r221_checkShutterOpen_end();
 }
 
+// End of the shutter switch event: if the boss was due (Room_flg[0] 0x00400000, bit 3 once) it appears
+// now; all messages cleared, the shutter effect on, camera back, SceEventEnd, Room_flg bit 8, then the
+// shutter re-open watcher.
 static void r221_checkShutter_end()
 {
     int i;
@@ -292,6 +301,8 @@ void r221_moveShutter(int a, int b)
     CamCtrl.Comeback(0);
 }
 
+// The shutter (object 0x46): a 90-frame move1 up to y 4386 (posed open) and a move3 gravity drop with
+// bounce for the slam; its effect kind; effect on when already shut (Room_flg bit 8).
 void r221_initShutter()
 {
     cObj* o = SmdGetObjPtr(0x46);
@@ -315,6 +326,7 @@ void r221_initShutter()
     }
 }
 
+// Area 0 (Japanese only): message 7 at the door to r229.
 static void r221_checkDoor229()
 {
     if (pSys->language == 0) {
@@ -547,6 +559,7 @@ static void r221_moveElevator(int dir)
     }
 }
 
+// Start elevator effect `no` (0..8 -> effect types 0x18 down to 0x10): the wire sparks and the boss's attacks on the cage.
 void r221_setElevatorEff(int no)
 {
     switch ((u32) no) {
@@ -580,6 +593,9 @@ void r221_setElevatorEff(int no)
     }
 }
 
+// End of the elevator ride (also its cancel path, Room_flg[0] 0x20000000): the last effect, the cage
+// object 0x41 snapped to elvY and shown, SEs stopped, wires stopped, the doors opened, the boss dealt
+// with, camera back, SceEventEnd.
 static void r221_checkElevatorArrive_end()
 {
     int i;
@@ -747,6 +763,9 @@ static void r221_playBossBgm()
     SndStrReq(r221_work.p->str1C, 4, 200, 0);
 }
 
+// End of the boss appearance (also its cancel path): camera back, SceEventEnd, Status_flg[2]
+// 0x02000000 off, boss points reset; when cancelled the event boss is destroyed and ESL 0x8C's death
+// bit / set byte cleared so it respawns fresh, then the fight state is set.
 static void r221_checkBossAppear_end()
 {
     cEmWrap em;
@@ -835,6 +854,7 @@ static void r221_checkBossAppear()
     }
 }
 
+// The switchboard lever (object 0x3A): a 7-frame move1 down by 407 units.
 void r221_initSwitchboardLever()
 {
     cObj* o = SmdGetObjPtr(0x3A);
@@ -846,6 +866,7 @@ void r221_initSwitchboardLever()
     }
 }
 
+// Pull the lever: a = 1 snaps it down, else SE 2 and the move1 plays out.
 void r221_moveSwitchboardLever(int a)
 {
     if (SmdGetObjPtr(0x3A) == 0) {
@@ -861,6 +882,9 @@ void r221_moveSwitchboardLever(int a)
     }
 }
 
+// End of the switchboard event (also its cancel path, Room_flg[0] 0x20000000): lever down, shutter
+// closed with its effect, SE stopped, the wires start moving (unless 0x10000000), the elevator SE, then
+// the elevator call becomes available and the boss appearance is armed.
 static void r221_checkSwitchboard_end()
 {
     int i;
@@ -1006,6 +1030,7 @@ static void r221_checkElevator()
     }
 }
 
+// Arm area 0xA with the boss's ceiling appearance unless it already happened (Room_flg bit 4).
 static void r221_appearBosstail1_sub()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
@@ -1013,6 +1038,9 @@ static void r221_appearBosstail1_sub()
     }
 }
 
+// The boss arena setup: the switchboard lever (area 0xD until pulled, bit 5), the shutter, the door
+// to r229 (breaks on area 0x1A until bit 9, then the Japanese message), the elevator and its doors /
+// wires per the saved state, the boss appearance areas and the boss BGM / fight state per the flags.
 void r221_initInsectboss()
 {
     u32 id;
@@ -1125,6 +1153,9 @@ cObj* r201_setBonbe(int id, f32 ang)
     return 0;
 }
 
+// The four gas bombs (objects 0x1E/0x20/0x1F/0x21 at their yaws) as throwable scroll dummies; their
+// throw areas 1/2/3/0x10 use action button kind 1 (before the boss, Room_flg bit 3) or 0x35, areas
+// 4/5/6/0x11 off; the bombs already thrown (per flags) are removed.
 void r201_initBonbe()
 {
     r221_work.p->bonbe[0] = r201_setBonbe(0x1E, 0.15280247f);
@@ -1192,6 +1223,7 @@ static void r221_callBonbeSe(int no)
     SndCall(6, 0xA, 0, 0, 0, 0);
 }
 
+// Task: the boss's landing footsteps (SE 0xD then 0xE) 162 frames in.
 static void r221_callFootSe()
 {
     SceSleep(162);
@@ -1383,6 +1415,7 @@ static void r201_throwBonbe(int no)
     SceExec(0x12, (TaskFunc) r221_fadeoutBonbe, (int) bonbe, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// The floor render target blended over object 0x28 (refraction shader 2).
 static void setTexRender()
 {
     cObj* obj;

@@ -54,6 +54,9 @@ static void r304_DuraluminCaseOpened(int no);
 static void r304_LockerOpen(int no);
 static void r304_LockerOpened(int no);
 
+// Room init: the s00 callback; until seen (Room_flg bit 0) area 2 = the event (pre-loaded with the enemy
+// of ESL 0x28), the room effect 0 and the windows 0x19..0x1F unbreakable; else the attribute sound off and
+// effect 1. Area 3 = the two Ganados until bit 1; case / locker item events; the two monitor render targets.
 void R304Init()
 {
     cEm* win;
@@ -102,6 +105,7 @@ void R304Init()
     TexRenderInit(&r304_work->tex2, 0, 1);
 }
 
+// Per-frame room main: nothing.
 void R304Main()
 {
 }
@@ -288,21 +292,25 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     }
 }
 
+// Item-event opener: the duralumin case (type 7) opens.
 static void r304_DuraluminCaseOpen(int no)
 {
     OpenBoxMain(7, 0, 0x18, no, -1, -1);
 }
 
+// Item-event "already opened": the case posed open.
 static void r304_DuraluminCaseOpened(int no)
 {
     OpenBoxMain(7, 1, 0x18, no, -1, -1);
 }
 
+// Item-event opener: the locker (type 2) opens.
 static void r304_LockerOpen(int no)
 {
     OpenBoxMain(2, 0, 0x1C, no, -1, -1);
 }
 
+// Item-event "already opened": the locker posed open.
 static void r304_LockerOpened(int no)
 {
     OpenBoxMain(2, 1, 0x1C, no, -1, -1);

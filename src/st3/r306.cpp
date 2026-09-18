@@ -62,6 +62,11 @@ static inline void r306_setEmPos(int no, EmListData* l, f32& ry)
     r306_work->em[0].setAng(&ang);
 }
 
+// Room init: doors 0x14/0x15 paired; area 4 = the locked 308 door until door_unlock[0] 0x2000 (else
+// area 6 off) with its key-use watcher; area 5 = the 30B door until 0x100; the room effect by item flag
+// 0x20. After Scenario_flg[0] 0x1000 the two Ganados 0x30/0x31 (list 6) are set, placed at their r30B
+// list positions when the player came from there, the battle BGM table and stream watcher; else the
+// plain stream. Case / shelf item events.
 void R306Init()
 {
 #line 48 "D:/Bio4/Prog/r306.cpp"
@@ -107,16 +112,19 @@ void R306Init()
     SceSetItemEvent(0xD, 0x83, 2, 7, r306_TanaOpen, (void (*)()) r306_TanaOpened, 0x1B, 0);
 }
 
+// Item-event opener: the duralumin case (type 7) opens.
 static void r306_DuraluminCaseOpen(int no)
 {
     OpenBoxMain(7, 0, 0x18, no, -1, -1);
 }
 
+// Item-event "already opened": the case posed open.
 static void r306_DuraluminCaseOpened(int no)
 {
     OpenBoxMain(7, 1, -1, no, -1, -1);
 }
 
+// Item-event opener: shelf `no` (object pair 0x19/0x1A or 0x1B/0x1C) swings open.
 static void r306_TanaOpen(int no)
 {
     if (no == 0x19) {
@@ -126,6 +134,7 @@ static void r306_TanaOpen(int no)
     }
 }
 
+// Item-event "already opened": shelf `no` posed open.
 static void r306_TanaOpened(int no)
 {
     if (no == 0x19) {
@@ -135,6 +144,7 @@ static void r306_TanaOpened(int no)
     }
 }
 
+// Per-frame room main: nothing.
 void R306Main()
 {
 }

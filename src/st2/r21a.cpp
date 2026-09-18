@@ -99,6 +99,7 @@ static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Set a model's rotation from three components (inline owning the Vec).
 static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -109,6 +110,10 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setAng(&v);
 }
 
+// Room init (the storage house): four shelf item events (items 0x84/0x85/0x88/0x89), window 0x12
+// pre-broken and hidden; until the door is unlocked (Room_flg bit 0) area 5 = the door check with the
+// key-use watcher, else area 3 off and the bolt object 0x19 hidden; the roof supports' hit boxes and the
+// roof state per the saved flags; the Ganado waves and patrol; the battle stream.
 void R21aInit()
 {
     cEm* win;
@@ -177,10 +182,12 @@ void R21aInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R21aMain()
 {
 }
 
+// Item-event "already opened": pose the shelf of item `no` slid open (+X 500).
 static void r21a_movedShelf(int no)
 {
     if (no == 0x84) {
@@ -197,6 +204,7 @@ static void r21a_movedShelf(int no)
     }
 }
 
+// Item-event opener: dust effect (0xF for the first shelf, 0x11 for the others) and the shelf slides open.
 static void r21a_moveShelf(int no)
 {
     if (no == 0x84) {
@@ -302,6 +310,7 @@ static void R21aEmSetMain()
     }
 }
 
+// Area 5, the locked door: up-cut 1/8; with the key (item 0x7B) held the item screen opens to use it.
 static void R21aDoorCheck()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -361,6 +370,7 @@ static void R21aDoorMain()
     }
 }
 
+// End of the door unlock: area 3 off, the bolt object 0x19 hidden, camera back, SceEventEnd, autosave.
 static void R21aDoorEnd()
 {
     SceAtSetEnable(3, 0);
@@ -440,6 +450,9 @@ static void R21aFallRoofStartMain()
     R21aFallRoofStartEnd();
 }
 
+// End of the roof-fire start (also its cancel path): area 8 on, the fallen lamp object 0x41 shown at
+// its rest pose, the roof 0x3F at its start height with the fire SE, door 5 close-locked, then the roof
+// task and the Ganado group.
 static void R21aFallRoofStartEnd()
 {
     cObj* obj;
@@ -526,6 +539,7 @@ static void R21aFallRoofDie(int no)
     }
 }
 
+// One flag-word test kept as its own `and` (fold-const would merge two tests of one word).
 static inline u32 flagBit(u32 f, u32 bit)
 {
     return f & bit;
@@ -540,6 +554,7 @@ static inline u32 evtFlagBase()
 {
     return (u32) &pG->Room_flg[0];
 }
+// Set event flag `no` in the pG->flags_174 words (the roof Ganados' death is remembered there).
 static inline void EvtFlagOn(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) |= 0x80000000 >> (no & 31);
@@ -738,6 +753,8 @@ static void R21aFallRoofEndMain()
     R21aFallRoofEndEnd();
 }
 
+// End of the roof collapse: the roof object levelled, its stream stopped, areas 6/4 off, the burning
+// roof object 0x40 hidden, SceEventEnd, task exit.
 static void R21aFallRoofEndEnd()
 {
     cObj* obj = SmdGetObjPtr(0x3F);
@@ -759,6 +776,7 @@ static void R21aFallRoofEndEnd()
     SceExit();
 }
 
+// Battle stream while a Ganado has found the player; ends once Room_flg[0] 0x00800000 (the roof fell).
 static void SceBgmCheck()
 {
     int playing = 0;

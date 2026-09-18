@@ -87,6 +87,10 @@ static void r11e_str_check();
 static void r11e_checkDoor102KeyUse();
 static void r11e_checkDoor();
 
+// Room init: giant (0x2B) pre-read; area 1 = the locked door until door_unlock[0] 0x00080000 (with the
+// key-use watcher); the hut/fence collapse watcher; collision and attribute pieces for huts A/B and
+// fences A/B; the pieces already destroyed per Room_flg bits 0..3 are removed; the boulders on the
+// props, the giant's appearance area and the battle stream.
 void R11eInit()
 {
     cEm* door;
@@ -167,6 +171,7 @@ extern "C" void funcAshley(cModel* m)
     m->ang.y += Muku(&m->pos, &r11e_ashleyTarget, m->ang.y, 0.62831855f);
 }
 
+// Per frame: once the giant fight started (Room_flg bit 6) and no giant (0x2B) is alive, camera area 1 off.
 void R11eMain()
 {
     if (RsfCheck(G_ROOM_ID, 6) && SceCountEmAlive(0x2B, -1) == 0) {
@@ -198,6 +203,7 @@ static void koya_destroy_check()
     }
 }
 
+// Hut A is smashed by the giant: crash SE, debris effect, models and collision removed.
 extern "C" void koyaA_destroy()
 {
     Vec pos = {13370.0f, -70.0f, 38135.0f};
@@ -208,6 +214,7 @@ extern "C" void koyaA_destroy()
     koyaA_delete();
 }
 
+// Hut B is smashed by the giant (see koyaA_destroy).
 extern "C" void koyaB_destroy()
 {
     Vec pos = {20500.0f, -60.0f, 36273.0f};
@@ -218,6 +225,7 @@ extern "C" void koyaB_destroy()
     koyaB_delete();
 }
 
+// Remove hut A: collision pieces, scroll objects 4/5, item areas 0x80..0x84 off.
 extern "C" void koyaA_delete()
 {
     SatMgr.destroy(r11e_work->sat[0]);
@@ -231,6 +239,7 @@ extern "C" void koyaA_delete()
     SceAtSetEnable(0x84, 0);
 }
 
+// Remove hut B: collision pieces, scroll objects 6/7, item areas 0x85..0x8B off.
 extern "C" void koyaB_delete()
 {
     SatMgr.destroy(r11e_work->sat[1]);
@@ -246,6 +255,7 @@ extern "C" void koyaB_delete()
     SceAtSetEnable(0x8B, 0);
 }
 
+// Fence A is broken through: crash SE, debris effect, door 0xE breaks toward its target, fence removed.
 extern "C" void sakuA_destroy()
 {
     Vec pos = {1329.0f, 0.0f, 35360.0f};
@@ -260,6 +270,7 @@ extern "C" void sakuA_destroy()
     sakuA_delete();
 }
 
+// Fence B is broken through (door 0xF), see sakuA_destroy.
 extern "C" void sakuB_destroy()
 {
     Vec pos = {44629.0f, 0.0f, 37658.0f};
@@ -274,6 +285,7 @@ extern "C" void sakuB_destroy()
     sakuB_delete();
 }
 
+// Remove fence A: collision pieces, scroll objects 0xE/0xF/0x10.
 extern "C" void sakuA_delete()
 {
     SatMgr.destroy(r11e_work->sat[2]);
@@ -283,6 +295,7 @@ extern "C" void sakuA_delete()
     SmdSetTrans(0x10, 0);
 }
 
+// Remove fence B: collision pieces, scroll objects 0x11/0x12/0x13.
 extern "C" void sakuB_delete()
 {
     SatMgr.destroy(r11e_work->sat[3]);
@@ -501,6 +514,7 @@ static void r11e_checkDoor102KeyUse()
     SceAtDataReset(1);
 }
 
+// Area 1, the locked door: the up-cut message; with the key (item 0x8B) held the item screen opens to use it.
 static void r11e_checkDoor()
 {
     SceUpCut(0, -1, 4, 0);

@@ -68,6 +68,10 @@ static void gameResult();
 extern "C" void Evt_R40ES00_Func(Event* e);
 void EvtTexRenderCamTrans(Event* e, int cut);
 
+// Room init: the elevator; until the fight is over (Room_flg bit 2) area 4 = the enemy's appearance
+// (bit 1) or the death watcher, the elevator posed at the top (reverse), area 5 on; the s00 (and s99)
+// callback with area 3 = the event until bit 0 (pre-loaded with the enemy of ESL 0xDD); the event
+// render target; the show view once (bit 3).
 void R40eInit()
 {
 #line 60 "D:/Bio4/Prog/r40e.cpp"
@@ -96,10 +100,12 @@ void R40eInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R40eMain()
 {
 }
 
+// End of the show view: stream faded (50 frames), camera back, SceEventEnd.
 static void r40e_execShowView_end()
 {
     SndStrReq(r40e_work->str, 4, 50, 0);
@@ -110,6 +116,7 @@ static void r40e_execShowView_end()
 // Area 3: the camera shows the room (cut 11) with its stream.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Show view once (Room_flg bit 3): stream 0x33 with camera cut 0xB; player-cancellable.
 static void r40e_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
@@ -247,6 +254,8 @@ static void r40e_moveElevator(u32 dir)
     SceEventEnd(0);
 }
 
+// The elevator: areas 1/2 = ride up / down; object 9 gets a 210-frame move1 of 11656 up with 20 % accel /
+// decel and a shake.
 void r40e_initElevator()
 {
     SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r40e_moveElevator, 0, 1);
@@ -257,6 +266,9 @@ void r40e_initElevator()
     r40e_work->elv.setVibration(8, 8, 2.0f, 0.5f, 2.0f);
 }
 
+// End of the enemy's appearance (also its cancel path): SceEventEnd, Status_flg[2] 0x02000000 off,
+// camera back, the enemy (0xDD) and the player may suspend, ESL 0xDD rewritten from 0xDE and marked
+// alive, the death watcher starts.
 static void r40e_execEmAppear_end()
 {
     SceEventEnd(0);
@@ -428,6 +440,9 @@ static void gameResult()
     pG->System_flg |= 0x04000000;
 }
 
+// Event r40es00 callback (Assignment Ada's ending): far clip pushed out, Status_flg[1] 0x800; cut 0
+// sets the pl0d00 / pl0c00 / evmb900 light masks and shows Ada's chained child; cuts 3/5/7 feed the
+// render-to-texture pass with the evmc100 model; the end restores.
 extern "C" void Evt_R40ES00_Func(Event* e)
 {
     void* mod;

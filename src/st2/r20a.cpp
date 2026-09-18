@@ -53,6 +53,10 @@ static void r20a_TreasureBoxOpen(int id);
 static void r20a_TreasureBoxOpened(int id);
 static void r20a_DoorLock();
 
+// Room init: until Room_flg bit 0 door 0x11 is close-locked and area 2 gives the locked message (the
+// shoulder-carry prompt follows when Ashley is with Leon); else areas 2/5 off. The padlocked second door
+// task, the refracting render-textured object, five treasure-box item events; area 0xD (with action
+// colour) only once Scenario_flg[0] 0x10000000, else area 0 is used.
 void R20aInit()
 {
 #line 42 "D:/Bio4/Prog/r20a.cpp"
@@ -84,6 +88,7 @@ void R20aInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R20aMain()
 {
 }
@@ -148,6 +153,9 @@ static void r20a_CarryOnShoulder()
     r20a_CarryOnShoulderEndProc();
 }
 
+// End of the shoulder-carry event: Leon and Ashley may suspend, Ashley placed behind the door facing
+// like Leon and back to follow mode, SceEventEnd, the door becomes a normal door, door_flags_51CC
+// 0x40000 (unlocked), area 2 off.
 static void r20a_CarryOnShoulderEndProc()
 {
     Vec pos = {-31142.0f, 1977.0f, -62155.0f};
@@ -180,6 +188,8 @@ static void r20a_AshleyPosCheck()
     }
 }
 
+// Area 2, the locked door: up-cut message 6/3; with Ashley following (Status_flg[3] 0x04000000) arm the
+// distance check on area 5.
 static void r20a_DoorLockMessage()
 {
     SceUpCut(0, 6, 3, 0);
@@ -188,6 +198,7 @@ static void r20a_DoorLockMessage()
     }
 }
 
+// The render-textured object 0x1C: a render target blended over it (refraction shader 2).
 void setTexRender()
 {
     cObj* obj;
@@ -214,6 +225,7 @@ void setTexRender()
     obj->invisible_factor = 0.7f;
 }
 
+// Item-event opener: chest `id` opens (lid up -X for 0x21, +Z for 0x23/0x26/0x27; 0x2A slides +X 500).
 static void r20a_TreasureBoxOpen(int id)
 {
     switch ((u32) id) {
@@ -231,6 +243,7 @@ static void r20a_TreasureBoxOpen(int id)
     }
 }
 
+// Item-event "already opened": pose chest `id` open (the 0x5B chests still animate: vendor copy).
 static void r20a_TreasureBoxOpened(int id)
 {
     switch ((u32) id) {

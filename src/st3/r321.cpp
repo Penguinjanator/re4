@@ -22,7 +22,9 @@
 #include "TexRender.h"
 #include "db_log.h"
 
-// Room 3-21 (D:/Bio4/Prog/r321.cpp): the helicopter crash event (s00) and the wreck it leaves.
+// Room 3-21 (D:/Bio4/Prog/r321.cpp): the yard where the support helicopter is shot down (event
+// r321s00 on area 2, Scenario_flg[1] bit 31): afterwards the wreck model with its smoke and a fire
+// render target, four Ganados and a typewriter.
 
 struct R321Work {
     TexRenderMng* tex;   // 0x0  render target of the wreck's fire
@@ -33,6 +35,7 @@ static R321Work* r321_work;
 
 static void r321_heri_down();
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -43,6 +46,7 @@ static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Rotate a model about Y only.
 static inline void setAngY(cModel* m, f32 y)
 {
     Vec v;
@@ -56,6 +60,9 @@ extern "C" void Evt_R321S00_Func(Event* e);
 void setTexRender();
 void break_heri_set();
 
+// Room init: Debug_flg[1] 0x00200000; the wreck fire render target; until the crash (Room_flg bit 0)
+// area 2 = the helicopter crash event (pre-loaded to MRAM), else object 0xF hidden and the wreck placed;
+// the s00 callback.
 void R321Init()
 {
     pG->Debug_flg[1] |= 0x00200000;
@@ -72,10 +79,13 @@ void R321Init()
     EvtMgr.SetFunc("evt_r321s00_func", (void*) Evt_R321S00_Func);
 }
 
+// Per-frame room main: nothing.
 void R321Main()
 {
 }
 
+// Area 2: Room_flg bit 0, Scenario_flg[1] bit 31 (the helicopter is lost), event r321s00, Leon placed
+// at the crash site facing 1.663 rad, the typewriter 0x16, the wreck, four Ganados (0x67..0x6A).
 static void r321_heri_down()
 {
     RsfSet(G_ROOM_ID, 0);
@@ -91,6 +101,9 @@ static void r321_heri_down()
     setEm(0x6A, -1, 1, 1, 1);
 }
 
+// Event r321s00 callback (the helicopter is shot down): scroll object 0x17 hidden; cut 1 parents the
+// kind-1 light to Leon; the helicopter / wreck event models are positioned and swapped per cut; the
+// end restores the room.
 extern "C" void Evt_R321S00_Func(Event* e)
 {
     Vec pos;

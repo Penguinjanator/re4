@@ -92,6 +92,7 @@ void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 // The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
 void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
+// Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -152,6 +153,9 @@ extern "C" void Evt_R317S12_Func(Event* e);
 extern "C" void Evt_R317S13_Func(Event* e);
 extern "C" void Evt_R317S14_Func(Event* e);
 
+// Room init (the Krauser knife fight): hard mode after more than one continue (r_continue_cnt); a larger
+// shadow pool; the two-gear elevator (areas 6/7 up / down); the fifteen event callbacks; the fight chain
+// on area 8 (or at once after a continue) until Room_flg bit 0; the continue point on area 9 (bit 1).
 void R317Init()
 {
     R317Work*& wp = r317_work.p;
@@ -200,10 +204,12 @@ void R317Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R317Main()
 {
 }
 
+// Area 9 once (Room_flg bit 1): area off and a checkpoint save (GameSaveSave2).
 static void R317ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -552,6 +558,8 @@ void SceElevator2Main(SceElevator2Data* d)
     SceElevator2End(d);
 }
 
+// End of the two-gear elevator ride: fade killed, the cage and the player snapped to the arrival
+// positions, the gear UV scroll stopped, the motor sound stopped with the stop SE.
 void SceElevator2End(SceElevator2Data* d)
 {
     cObj* obj = SmdGetObjPtr(d->objId);
@@ -583,31 +591,37 @@ static void R317EventS00Action()
     pG->Room_flg[0] &= ~0x80000000;
 }
 
+// Action button of s07 pressed in time: clear its "missed" bit (Room_flg[0] 0x40000000).
 static void R317EventS07Action()
 {
     pG->Room_flg[0] &= ~0x40000000;
 }
 
+// Action button of s09: clear Room_flg[0] 0x20000000.
 static void R317EventS09Action()
 {
     pG->Room_flg[0] &= ~0x20000000;
 }
 
+// Action button of s11: clear Room_flg[0] 0x10000000.
 static void R317EventS11Action()
 {
     pG->Room_flg[0] &= ~0x10000000;
 }
 
+// Action button of s01: clear Room_flg[0] 0x08000000.
 static void R317EventS01Action()
 {
     pG->Room_flg[0] &= ~0x08000000;
 }
 
+// Action button of s03: clear Room_flg[0] 0x04000000.
 static void R317EventS03Action()
 {
     pG->Room_flg[0] &= ~0x04000000;
 }
 
+// Show every scroll object the fight cuts hide (the arena props).
 void R317SmdAllOn()
 {
     SmdSetTrans(0xA, 1);
@@ -623,6 +637,9 @@ void R317SmdAllOn()
     SmdSetTrans(0x25, 1);
 }
 
+// Event r317s00 callback (the fight's first cut): "missed" bit 31 preset, a coin toss (0x00200000) picks
+// the button variant, status 3 with cancel cut 3; the action-button window on its cut clears the bit
+// through R317EventS00Action; the Leon / Krauser / knife models' parts per cut.
 void Evt_R317S00_Func(Event* e)
 {
     int on = 0;
@@ -712,6 +729,7 @@ void Evt_R317S00_Func(Event* e)
     }
 }
 
+// Event r317s01 callback: as s00 with the missed bit 0x08000000, coin toss 0x00020000, cancel cut 6.
 void Evt_R317S01_Func(Event* e)
 {
     int on = 0;
@@ -786,6 +804,7 @@ void Evt_R317S01_Func(Event* e)
     }
 }
 
+// Event r317s02 callback (no button): the Leon model's part 6 hidden, evmd200 drawn with ot_type 1.
 void Evt_R317S02_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -824,6 +843,8 @@ void Evt_R317S02_Func(Event* e)
     }
 }
 
+// Event r317s03 callback: after the fight was continued (Room_flg bit 2) it starts at cut 5 of stream
+// 0x75; missed bit 0x04000000, coin toss 0x00010000; the Krauser (em3900) parts per cut.
 void Evt_R317S03_Func(Event* e)
 {
     int on = 0;
@@ -946,6 +967,7 @@ void Evt_R317S03_Func(Event* e)
     }
 }
 
+// Event r317s04 callback (no button): Leon's part 6 and Krauser's part 7 hidden on cut 0.
 void Evt_R317S04_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -971,6 +993,8 @@ void Evt_R317S04_Func(Event* e)
     }
 }
 
+// Event r317s05 callback (no button): the hard-mode Krauser model em3900h's part 7 hidden; per-cut
+// model flags and effects.
 void Evt_R317S05_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1075,6 +1099,7 @@ void Evt_R317S05_Func(Event* e)
     }
 }
 
+// Event r317s06 callback (no button): Leon's part 6 and em3900h's part 7 hidden on cut 0.
 void Evt_R317S06_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1100,6 +1125,8 @@ void Evt_R317S06_Func(Event* e)
     }
 }
 
+// Event r317s07 callback: missed bit 0x40000000, coin toss 0x00100000, cancel cut 7; the button window
+// clears the bit via R317EventS07Action.
 void Evt_R317S07_Func(Event* e)
 {
     int on = 0;
@@ -1188,6 +1215,7 @@ void Evt_R317S07_Func(Event* e)
     }
 }
 
+// Event r317s08 callback (no button): Leon's part 6 and Krauser's part 7 hidden, per-cut flags.
 void Evt_R317S08_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1220,6 +1248,7 @@ void Evt_R317S08_Func(Event* e)
     }
 }
 
+// Event r317s09 callback: missed bit 0x20000000 with its coin toss and cancel cut; button via R317EventS09Action.
 void Evt_R317S09_Func(Event* e)
 {
     int on = 0;
@@ -1296,6 +1325,7 @@ void Evt_R317S09_Func(Event* e)
     }
 }
 
+// Event r317s10 callback (no button): Leon's part 6 hidden, evmd400 (the knife) drawn.
 void Evt_R317S10_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1325,6 +1355,7 @@ void Evt_R317S10_Func(Event* e)
     }
 }
 
+// Event r317s11 callback: missed bit 0x10000000, coin toss 0x00040000, cancel cut 2; button via R317EventS11Action.
 void Evt_R317S11_Func(Event* e)
 {
     int on = 0;
@@ -1386,6 +1417,8 @@ void Evt_R317S11_Func(Event* e)
     }
 }
 
+// Event r317s12 callback (the button-mash cut): counts the presses into W->btnCount; Leon's part 6 and
+// evmd400 per cut.
 void Evt_R317S12_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1522,6 +1555,7 @@ void Evt_R317S13_Func(Event* e)
     }
 }
 
+// Event r317s14 callback (the fight's last cut): Leon's part 6 / evmd400 per cut; the end restores the arena.
 void Evt_R317S14_Func(Event* e)
 {
     switch (e->funcMode) {

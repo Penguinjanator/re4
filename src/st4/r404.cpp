@@ -124,6 +124,9 @@ static void r404_execEmSetCheck();
 static void setTexRender();
 static void slide_move();
 
+// Room init (Mercenaries: the castle courtyard): the enemy count task, the reflecting floor render
+// target, the banister slide object (Ada's or Leon's motion) with area 0; the Mercenaries system with
+// the room's messages and a random start; three treasure case item events.
 void R404Init()
 {
 #line 45 "D:/Bio4/Prog/r404.cpp"
@@ -185,6 +188,7 @@ void R404Init()
     SceSetItemEvent(0x1B, 0x93, 0xF, -1, r404_openBox, (void (*)()) r404_openedBox, 3, 0);
 }
 
+// Per frame: debug lines only.
 void R404Main()
 {
     SceDebugDisp("");
@@ -210,11 +214,13 @@ void r404_openBox_main(int no, int mode)
     }
 }
 
+// Item-event "already opened": case `no` posed open.
 static void r404_openedBox(int no)
 {
     r404_openBox_main(no, 1);
 }
 
+// Item-event opener: animate case `no` open.
 static void r404_openBox(int no)
 {
     r404_openBox_main(no, 0);
@@ -307,6 +313,7 @@ int r404_setEm(u32 no, int force)
     return 1;
 }
 
+// Wave 1/4 (area 9): list entries 0xF0..0xF2, 0xE6..0xE8 while fewer than 10 are alive; counts the sets.
 void r404_setEm1_4()
 {
     if (r404_setEm(0xF0, 0) == 1) {
@@ -326,6 +333,7 @@ void r404_setEm1_4()
     }
 }
 
+// Wave 2/5 (area 0xA): 0xDC..0xDE, 0xEB..0xED.
 void r404_setEm2_5()
 {
     if (r404_setEm(0xDC, 0) == 1) {
@@ -345,6 +353,7 @@ void r404_setEm2_5()
     }
 }
 
+// Wave 3 (area 0xC): 0xF6..0xFB.
 void r404_setEm3()
 {
     if (r404_setEm(0xF6, 0) == 1) {
@@ -364,6 +373,7 @@ void r404_setEm3()
     }
 }
 
+// Wave 6: 0xE1..0xE6.
 void r404_setEm6()
 {
     if (r404_setEm(0xE1, 0) == 1) {
@@ -383,6 +393,7 @@ void r404_setEm6()
     }
 }
 
+// Wave 13 (area 0x17): 0xAF..0xB4.
 void r404_setEm13()
 {
     if (r404_setEm(0xAF, 0) == 1) {
@@ -402,6 +413,7 @@ void r404_setEm13()
     }
 }
 
+// Wave 14 (area 0x16): 0xD3..0xD8.
 void r404_setEm14()
 {
     if (r404_setEm(0xD3, 0) == 1) {
@@ -421,6 +433,7 @@ void r404_setEm14()
     }
 }
 
+// Wave 15 (area 0x18): 0xD2, 0xD8..0xDC.
 void r404_setEm15()
 {
     if (r404_setEm(0xD2, 0) == 1) {
@@ -452,6 +465,7 @@ void r404_setEm7()
     }
 }
 
+// One-shot wave 8 (Room_flg bit 8, area 0x10): 0xBC..0xBE forced.
 void r404_setEm8()
 {
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
@@ -462,6 +476,7 @@ void r404_setEm8()
     }
 }
 
+// One-shot wave 9 (bit 9, area 0x11 or the door area 0x15): 0xB9/0xBA and more forced.
 void r404_setEm9()
 {
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
@@ -477,6 +492,7 @@ void r404_setEm9()
     }
 }
 
+// One-shot wave 10 (bit 10, area 0x12): 0xFC..0xFE forced.
 void r404_setEm10()
 {
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -487,6 +503,7 @@ void r404_setEm10()
     }
 }
 
+// One-shot wave 11 (bit 11, area 0x13): 0xC4/0xC5 forced.
 void r404_setEm11()
 {
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
@@ -496,6 +513,7 @@ void r404_setEm11()
     }
 }
 
+// One-shot wave 12 (bit 12, area 0x14): 0xC0..0xC2 forced.
 void r404_setEm12()
 {
     if (RsfCheck(G_ROOM_ID, 12) == 0) {
@@ -506,6 +524,7 @@ void r404_setEm12()
     }
 }
 
+// The chainsaw sister once (bit 6) after enough kills: 0xF5 or 0xFB by the start side.
 void r404_setEmChainSaw()
 {
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -532,6 +551,7 @@ static void r404_checkEmSetA()
     }
 }
 
+// Area poll: wave 2/5 keeps refilling while Leon stands in area 0xA (up to its set cap).
 static void r404_checkEmSetB()
 {
     for (;;) {
@@ -545,6 +565,7 @@ static void r404_checkEmSetB()
     }
 }
 
+// Area poll: wave 3 while in area 0xC.
 static void r404_checkEmSetC()
 {
     for (;;) {
@@ -558,6 +579,7 @@ static void r404_checkEmSetC()
     }
 }
 
+// Area poll: wave 13 while in area 0x17.
 static void r404_checkEmSetD()
 {
     for (;;) {
@@ -571,6 +593,7 @@ static void r404_checkEmSetD()
     }
 }
 
+// Area poll: wave 14 while in area 0x16.
 static void r404_checkEmSetK()
 {
     for (;;) {
@@ -584,6 +607,7 @@ static void r404_checkEmSetK()
     }
 }
 
+// Area poll: wave 15 while in area 0x18.
 static void r404_checkEmSetL()
 {
     for (;;) {
@@ -597,6 +621,7 @@ static void r404_checkEmSetL()
     }
 }
 
+// Area poll: wave 6 (its area).
 static void r404_checkEmSetM()
 {
     for (;;) {
@@ -610,6 +635,7 @@ static void r404_checkEmSetM()
     }
 }
 
+// Area poll: one-shot wave 7 when in area 0xF with 10 or fewer alive.
 void r404_checkEmSetE()
 {
     if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0xF) == 1) {
@@ -617,6 +643,7 @@ void r404_checkEmSetE()
     }
 }
 
+// Area poll: one-shot wave 8 when in area 0x10 with 10 or fewer alive.
 void r404_checkEmSetF()
 {
     if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0x10) == 1) {
@@ -624,6 +651,7 @@ void r404_checkEmSetF()
     }
 }
 
+// Area poll: one-shot wave 9 when in area 0x11 (or 0x15 with the door open).
 void r404_checkEmSetG()
 {
     cEm* door;
@@ -636,6 +664,7 @@ void r404_checkEmSetG()
     }
 }
 
+// Area poll: one-shot wave 10 when in area 0x12 with 10 or fewer alive.
 void r404_checkEmSetH()
 {
     if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0x12) == 1) {
@@ -643,6 +672,7 @@ void r404_checkEmSetH()
     }
 }
 
+// Area poll: one-shot wave 11 when in area 0x13 with 15 or fewer alive.
 void r404_checkEmSetI()
 {
     if (r404_work.p->cnt <= 0xF && SceAtHitCheck(0x13) == 1) {
@@ -650,6 +680,7 @@ void r404_checkEmSetI()
     }
 }
 
+// Area poll: one-shot wave 12 when in area 0x14 with 15 or fewer alive.
 void r404_checkEmSetJ()
 {
     if (r404_work.p->cnt <= 0xF && SceAtHitCheck(0x14) == 1) {

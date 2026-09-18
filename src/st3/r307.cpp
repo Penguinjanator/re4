@@ -144,6 +144,9 @@ static void r307_execEmCut();
 void r307_setEmAppear();
 static void r307_appearEm();
 
+// Room init: windows 0xA/0xB without fences; area 3 = the regenerator camera cut until Room_flg bit 1;
+// area 4 = the item on the terminal until bit 0 (afterwards the item's table objects hidden, area 2 off,
+// the stream if the regenerator 0x32 still lives, areas 7/8 off); the rotation puzzle.
 void R307Init()
 {
     cEm* win;
@@ -181,6 +184,7 @@ void R307Init()
     r307_initPuzzle();
 }
 
+// Per-frame room main: nothing.
 void R307Main()
 {
 }
@@ -271,6 +275,7 @@ void r307_turnPiece(int no)
     }
 }
 
+// Drop every piece / frame effect and the terminal effect (before the effects are redrawn or the puzzle ends).
 void r307_delPiece()
 {
     u32 k;
@@ -388,6 +393,8 @@ static void r307_checkPuzzleTerminal()
     }
 }
 
+// The puzzle: the barred door 0x32 lock-locked with its effect and area 5 = the terminal until solved
+// (Room_flg bit 2), the per-piece effect kinds pulled; solved -> area 9 off and the open-door effect.
 void r307_initPuzzle()
 {
     void* zero = 0;
@@ -439,6 +446,7 @@ static void r307_getItem()
     r307_setEmAppear();
 }
 
+// Battle stream 3 while the regenerator (0x36) lives.
 static void r307_checkBgm()
 {
     SndRoomStrStart(1, 3, 1);
@@ -449,6 +457,8 @@ static void r307_checkBgm()
     SndRoomStrStop(3);
 }
 
+// End of the regenerator cut (also its cancel path): camera back, stream faded (200 frames), the
+// regenerator (0x32) may suspend, SceEventEnd.
 static void r307_execEmCut_end()
 {
     CamCtrl.Comeback(0);
@@ -477,6 +487,7 @@ static void r307_execEmCut()
     r307_execEmCut_end();
 }
 
+// After the item is taken: area 1 = the regenerator's release, and its cEm36 virtual 0x50 (wake) is called.
 void r307_setEmAppear()
 {
     SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r307_appearEm, 0, 1);

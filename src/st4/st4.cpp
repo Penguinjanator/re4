@@ -54,12 +54,14 @@ void R410Main();
 void R411Init();
 void R411Main();
 
+// Store one room's Init/Main pair into the DOL's St4_data_tbl (index = room number & 0xFF).
 void set(int no, void (*init)(), void (*main)())
 {
     St4_data_tbl[no].init = init;
     St4_data_tbl[no].main = main;
 }
 
+// Fill the stage table with every room this module compiles (missing indices are rooms that do not exist).
 void setTbl()
 {
     set(0, R400Init, R400Main);
@@ -78,6 +80,7 @@ void setTbl()
     set(17, R411Init, R411Main);
 }
 
+// REL entry point (called by the loader after linking): run the static constructors, then register the rooms.
 extern "C" void _prolog()
 {
     void (**p)(void);
@@ -89,6 +92,7 @@ extern "C" void _prolog()
     OSReport("prolog...\n");
 }
 
+// REL exit point (before unlinking): run the static destructors.
 extern "C" void _epilog()
 {
     void (**p)(void);
@@ -99,6 +103,7 @@ extern "C" void _epilog()
     OSReport("epilog...\n");
 }
 
+// Stub the loader binds unresolved imports to: reports and halts (the HALT line number is baked in).
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");

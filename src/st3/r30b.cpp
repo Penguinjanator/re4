@@ -128,6 +128,11 @@ static inline void r30b_setObjPos(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&p);
 }
 
+// Room init (the crane hall): the s00 callback. With Ashley along (Status_flg[3] 0x04000000): area 3 =
+// the s00 escape event until Room_flg bit 0, area 2 off; without her: area 4 = the crane puzzle and area
+// 0x10 = its end until bit 2. The crane / magnet / cable objects, the four crane Ganados with their
+// patrols and routes, or the return layout (R30bEmReset); area 9 = the door opening from the other side
+// until bit 3, area 8 = the door switch; the door posed per bit 5; the shelf item event; the stream.
 void R30bInit()
 {
 #line 63 "D:/Bio4/Prog/r30b.cpp"
@@ -228,6 +233,7 @@ void R30bInit()
     SceSetItemEvent(5, 0x80, 1, 4, r30b_moveShelf, (void (*)()) r30b_movedShelf, 0x80, 0);
 }
 
+// Per-frame room main: nothing.
 void R30bMain()
 {
 }
@@ -240,6 +246,7 @@ static void r30b_movedShelf(int no)
     }
 }
 
+// Item-event opener: the shelf locker (object 0x1D, type 2) opens.
 static void r30b_moveShelf(int no)
 {
     if (no == 0x80) {
@@ -288,6 +295,7 @@ static void R30bDoorEvent00Main()
     }
 }
 
+// End of the door event (also its cancel path): the door snapped open, Ganado em[9] may suspend, camera back, SceEventEnd, task exit.
 static void R30bDoorEvent00End()
 {
     R30bDoorOpened(1);
@@ -338,6 +346,8 @@ static void R30bDoorSwitchMain()
     }
 }
 
+// End of the door switch event (also its cancel path): the door snapped shut; the first time (Room_flg
+// bit 6) the three guards (em[4..6]) are alerted and released; camera back, SceEventEnd, task exit.
 static void R30bDoorSwitchEnd()
 {
     R30bDoorOpened(0);
@@ -416,6 +426,8 @@ void R30bDoorOpen(int open, int emGoto)
     }
 }
 
+// Snap the door (object 0x15) open (y 0, areas 0xD/0xF on, Room_flg bit 5) or closed (its rest height,
+// the areas off, bit 5 cleared).
 void R30bDoorOpened(int open)
 {
     cObj* door = SmdGetObjPtr(0x15);
@@ -1095,6 +1107,7 @@ void SetCatchEm(int no)
     }
 }
 
+// 1 when crane Ganado `no` (0..3) has been caught (Room_flg[0] bits 0x20000000 >> no).
 int CkCatchEm(int no)
 {
     if (no == 0 && (pG->Room_flg[0] & 0x20000000)) {

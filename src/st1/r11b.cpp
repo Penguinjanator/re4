@@ -77,6 +77,12 @@ static void r11b_str_check();
 extern "C" void Evt_R11BS00_Func(Event* e);
 static void r11b_bort_pos_chk();
 
+// Room init (the lake shore / boat dock): System_flg 0x800; JumpPoint 1 (arriving by boat) marks the
+// s00 event seen (Room_flg bit 0); Item_find_flg 8 / 2, Scenario_flg[0] 0x01000000, three door flags
+// cleared. Water hit effects, thunder task; the boat enemy (ESL 0x3C) placed at the pier the return
+// position flag (bit 2) says; the s00 event on the first visit (bit 0), else the shore Ganado list is
+// rewritten (EmSetChange); until bit 1 area 3 = the shore ambush and the battle stream; the two water
+// render targets on the lake and shore objects; the floating islands.
 void R11bInit()
 {
     Vec pos;
@@ -220,10 +226,12 @@ void R11bInit()
     FlrAtSetDefVal(0, 0, 3);
 }
 
+// Per-frame room main: nothing.
 void R11bMain()
 {
 }
 
+// Placeholder task (a single SceSleep): the BGM check of this room was compiled out.
 static void R11b_bgm_ck()
 {
     SceSleep(1);
@@ -237,6 +245,7 @@ static void r11b_ThunderFlagOn()
     SmdGetObjPtr(0x2B)->pModelInfo->color[2] = 0xFF;
 }
 
+// Lightning off: the sky object 0x2B back to its dark colour (0x18/0x19/0x1A).
 static void r11b_ThunderFlagOff()
 {
     SmdGetObjPtr(0x2B)->pModelInfo->color[0] = 0x18;
@@ -271,6 +280,8 @@ static void r11b_ThunderMove()
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
 #define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
+// Rewrite ESL entries 0x40/0x41/0x3E/0x3F (the shore Ganados) to their post-event positions near the
+// pier, un-set and alive, so they spawn there on later visits.
 extern "C" void EmSetChange()
 {
     EmListData* l;
@@ -302,6 +313,8 @@ extern "C" void EmSetChange()
     l->pos[2] = -2932;
 }
 
+// End of the ambush cutscene: swap the seven event Ganados for the four repositioned list entries,
+// drop the effect, camera back, SceEventEnd.
 static void r11b_EmEvent_exit()
 {
     EmSetChange();
@@ -327,6 +340,8 @@ static void r11b_EmEvent_exit()
 static inline void r11b_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
 static inline void r11b_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
 
+// Area 3 once (Room_flg bit 1): the shore ambush cutscene — seven Ganados (ESL 0x40..0x46) with torches
+// appear while stream 0x24 plays and Leon is placed at the shore; player-cancellable.
 static void r11b_EmEvent()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -468,6 +483,7 @@ static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
     }
 }
 
+// Drop the event's water effects bound to the two render targets' masks.
 static inline void r11b_evtEffDelete()
 {
     EffectEspDelete(r11b_work.p->tex[0]->mask | 0x3001, 0, 0, 0);
@@ -478,6 +494,9 @@ static inline void r11b_evtEffDelete()
     EffectEfmDelete(r11b_work.p->tex[1]->mask | 0x3001, 0, 0);
 }
 
+// Event r11bs00 callback (two Ganados dump the officer's body in the lake; Del Lago takes them): hides
+// object 0x7C; fade-in on cut 0 unless skipped; per-cut splash / ripple effects (skipped when the event
+// is being skipped) and the water render setup on the player stand-in; the end restores the shore.
 extern "C" void Evt_R11BS00_Func(Event* e)
 {
     void* mod;

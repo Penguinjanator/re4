@@ -119,6 +119,7 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
+// Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -135,6 +136,7 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
+// Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
 {
     EffectEspDelete(a, b, 0, 0);
@@ -167,6 +169,10 @@ static void playerEscape03(cPlayer* pl);
 static void playerEscape04(cPlayer* pl);
 static void playerDie(cPlayer* pl);
 
+// Room init (the laser corridor): areas 0xA/0xB/0xF off; until the corridor was cleared (Room_flg bit
+// 0) area 8 = the laser start event and area 9 = the far switch; the three automatic doors' tasks;
+// area 1 = the elevator to r31a (arriving from r31a plays its arrival); area 0xE = the bench rest once
+// (bit 1); the fifteen laser emitter objects (SetObjSmd with the per-frame callback, hidden).
 void R318Init()
 {
     void* zero = 0;
@@ -211,6 +217,7 @@ void R318Init()
     r318_work.p->laserSnd = 0;
 }
 
+// Per-frame room main: nothing.
 void R318Main()
 {
 }
@@ -255,6 +262,8 @@ static void R318ExecSitMain()
     R318ExecSitEnd();
 }
 
+// End of the bench rest (also its cancel path): Leon placed beside the bench facing -1.57 rad, out of
+// event mode with collision and weapon back, the stream stopped, SceEventEnd.
 static void R318ExecSitEnd()
 {
     cPlayer* pl = pPL;
@@ -315,6 +324,8 @@ void R318LaserCallBackFunc(cObj* obj)
     }
 }
 
+// Draw one laser beam from a to b: three effect sprites (set 1 kind 0xA) stretched along the segment
+// with the given RGBA scaling.
 void DrawLaserLine(Vec* a, Vec* b, int r, int g, int b_, int alpha, f32 len)
 {
     Vec d;
@@ -339,6 +350,7 @@ void DrawLaserLine(Vec* a, Vec* b, int r, int g, int b_, int alpha, f32 len)
     }
 }
 
+// Task per automatic door `no`: door 0 (flag 0x40, halves 0xC/0xD), 1 (0x41, 0xE/0xF), 2 (0x42, 0x11/0x10).
 static void R318AutoDoorMgr(int no)
 {
     if (no == 0) {
@@ -352,6 +364,8 @@ static void R318AutoDoorMgr(int no)
     }
 }
 
+// Automatic door `no`: the two half objects (script-moved), their closed z, and a collision / attribute
+// piece per half (3000 tall, polygons along z).
 void R318AutoDoorInit(int no, u32 id1, u32 id0)
 {
     R318Door* d = &r318_work.p->door[no];
@@ -381,6 +395,7 @@ void R318AutoDoorInit(int no, u32 id1, u32 id0)
     }
 }
 
+// Snap automatic door `no` closed: halves back at their closed z with their pieces following, flags cleared.
 void R318AutoDoorReset(int no)
 {
     R318Door* d = &r318_work.p->door[no];
@@ -591,6 +606,8 @@ static void R318ExecSwitchCheck()
     }
 }
 
+// End of the far switch event (also its cancel path): Leon solid and out of event mode at the saved
+// position / rotation, the switch effect dropped, facing -PI/2.
 void R318ExecSwitchCheckEnd()
 {
     AtariOnRaw(&pPL->atari, 0x300);
@@ -677,6 +694,8 @@ static void R318EventLaserStMain()
     }
 }
 
+// End of the corridor entry event: the laser manager task starts, door 0 reset shut, the entry effect
+// dropped, the first three emitters lit once (Room_flg[0] 0x20, SE 3), the corridor effect, areas 0xA/0xB on.
 static void R226EventLaserStEnd()
 {
     void* zero = 0;
@@ -753,6 +772,7 @@ void R318LaserEspInit(int n, int type, int kind)
     }
 }
 
+// Leon touched a beam: Room_flg[0] 0x00040000, rumble + quake, the death routine (playerDie).
 static inline void LaserHit()
 {
     BitOn(pG->Room_flg[0], 0x00040000);

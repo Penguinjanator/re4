@@ -84,6 +84,10 @@ static void Evt_R310S00_Func(Event* e);
 // GetEmIdFromList returns int here: the event functions take its low byte (r308).
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
+// Room init: JumpPoint 1/2 marks the S00 event seen (save record bit 31); Ashley initialised as the
+// follower; the event pre-loaded (enemy of ESL 0x5A) and run on a first visit; the two lever pairs
+// (etc switches 1/2 and 3/4) each linked to their barred door; the lever watcher, the stream, the
+// crates, door 4's exit hook (save bit 0x20000000), the two hiding spots (areas 8/9).
 void R310Init()
 {
     cEmSwitch* sw0;
@@ -134,6 +138,7 @@ void R310Init()
     SceAtDataSet_hide(9, r310_execHide1);
 }
 
+// Per-frame room main: nothing.
 void R310Main()
 {
 }
@@ -215,16 +220,19 @@ void r310_execHide_main(int on, int no)
     }
 }
 
+// Hiding spot 0 (area 8): lid object 8.
 static void r310_execHide0(int on)
 {
     r310_execHide_main(on, 8);
 }
 
+// Hiding spot 1 (area 9): lid object 10.
 static void r310_execHide1(int on)
 {
     r310_execHide_main(on, 10);
 }
 
+// Door 4's exit hook: save record bit 0x20000000 (the room was left through it).
 static void r310_onFlag()
 {
     R310_SAVE_FLAGS |= 0x20000000;
@@ -569,6 +577,9 @@ end:
     SubCharCtrl(1, 0);
 }
 
+// Leon's side of the crate-1 push: event mode, hands free, he slides 500 units to the crate's -x side
+// (goal z by area 2) over 12 frames, pushes while Ashley pushes too, then (unless the crate already
+// fell) waits, releases and leaves event mode.
 static void r310_pushBox1_leon()
 {
     Vec d;
@@ -679,6 +690,9 @@ static void r310_pushBox1()
     SceAtSetEnable(1, 1);
 }
 
+// The two crates: crate 1 (object 3) with its push area 1 and the areas riding on it, unless it already
+// fell (save bit 0x40000000: posed fallen on its side, areas off); crate 2 (object 4) likewise with area
+// 6 / save bit 0x10000000.
 void r310_initBoxPush()
 {
     PSetObj(r310_work->box1, SmdGetObjPtr(3));
@@ -719,6 +733,7 @@ void r310_initBoxPush()
     }
 }
 
+// Battle stream 3 from a Ganado spotting the player until no regenerator (0x36) is alive, repeatedly.
 static void r310_checkBgm()
 {
     for (;;) {
@@ -813,6 +828,8 @@ static void R310EventS00()
     }
 }
 
+// Event r310s00 callback: cut 0 fades in (unless skipped) and flags the pl0100 model's status 0x40;
+// frame 50 fades again.
 static void Evt_R310S00_Func(Event* e)
 {
     if (e->funcMode == 1 && e->NowCut == 0) {

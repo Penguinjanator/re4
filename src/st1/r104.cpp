@@ -102,10 +102,12 @@ static inline u32 evtFlagBase()
 {
     return (u32) &pG->Room_flg[0];
 }
+// Test event flag `no` in the pG->flags_174 words (bit 31 - (no & 31) of word no >> 5).
 static inline u32 EvtFlagChk(u32 base, u32 no)
 {
     return *(u32*) (((no >> 5) << 2) + base) & (0x80000000 >> (no & 31));
 }
+// Set event flag `no` (the reset waves remember they were spawned once).
 static inline void EvtFlagOn(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) |= 0x80000000 >> (no & 31);
@@ -145,6 +147,12 @@ static void r104_succeedAction();
 static void Evt_R104S00_Func(Event* e);
 static void Evt_R104S01_Func(Event* e);
 
+// Room init: doors 1/2 paired as a double door with be_flag 8 and an ambient boost; the s00/s01 event
+// callbacks. First visit (Room_flg bit 1 clear, debug trigger 1 skips) runs the arrival event, else the
+// kill-count reset waves and the patrols start at once. Area 0x11 = event s10 once (bit 21), area 0x12 =
+// event s20 once (bit 22, pre-loaded after s00). Item area 0x97 is the door-107 key, hidden until
+// door_unlock[0] 0x00400000 (area 0 = locked door message + key-use watcher). Area 0xA = the view once
+// (bit 14), area 0xE = the dash-in wave once (bit 15); three shelf and two box item events; BGM task.
 void R104Init()
 {
     cModel* m;
@@ -214,6 +222,7 @@ void R104Init()
     SceExec(0x12, (TaskFunc) r104_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R104Main()
 {
 }
@@ -285,6 +294,7 @@ extern "C" void r104_openBox_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose box `no` open (no comes in r3 untouched, see the note).
 static void r104_openedBox()
 {
     int no; // uninitialised in the original: the item event passes `no` in r3 and the void-parameter
@@ -292,6 +302,7 @@ static void r104_openedBox()
     r104_openBox_main(no, 1);
 }
 
+// Item-event opener: animate box `no` open.
 static void r104_openBox(int no)
 {
     r104_openBox_main(no, 0);
@@ -339,17 +350,20 @@ extern "C" void r104_openShelf_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose shelf `no` open.
 static void r104_openedShelf()
 {
     int no; // same as r104_openedBox
     r104_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate shelf `no` open.
 static void r104_openShelf(int no)
 {
     r104_openShelf_main(no, 0);
 }
 
+// Advance the two-point patrol to its next way point (wraps) and return that position.
 extern "C" void cPatrol104_getNextTarget(cPatrol104* p, Vec* out)
 {
     p->cur++;
@@ -359,6 +373,8 @@ extern "C" void cPatrol104_getNextTarget(cPatrol104* p, Vec* out)
     *out = p->pos[p->cur];
 }
 
+// Bind a patrol to the Ganado of table entry d: way points = its spawn position and d->pos; starts it
+// walking (goto mode 6) toward the table point. Inactive if the enemy is not alive.
 extern "C" void cPatrol104_init(cPatrol104* p, R104PatrolData* d)
 {
     cEmWrapSetPtrI(&p->em, d->no, -1, 0);
@@ -374,6 +390,8 @@ extern "C" void cPatrol104_init(cPatrol104* p, R104PatrolData* d)
     }
 }
 
+// Per-frame patrol step: stops (active = 0) when the enemy dies or spots the player; otherwise, each time
+// the goto finished, walks to the other way point.
 extern "C" void cPatrol104_move(cPatrol104* p)
 {
     Vec t;
@@ -410,6 +428,7 @@ static void r104_initEmPatrol()
     }
 }
 
+// End of the view event: stream faded out over 50 frames, camera back, SceEventEnd.
 static void r104_execShowView_end()
 {
     SndStrReq(r104_work->strId, 4, 50, 0);
@@ -420,6 +439,8 @@ static void r104_execShowView_end()
 // Show the farm: camera cut 4 with the stream.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Area 0xA once (Room_flg bit 14): stream 0x15 with camera cut 4 (the look over the area), clearing
+// Status_flg[1] 0x10000000, until the camera motion ends; player-cancellable.
 static void r104_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
@@ -689,6 +710,7 @@ static void r104_execEvent20()
     SubScreenOpen(SS_OPEN_SHOP, 0);
 }
 
+// Area 0x11 once (Room_flg bit 21): sets Scenario_flg[0] 0x20000000 and plays event r104s10 (slot 0x13).
 static void r104_execEvent10()
 {
     BitOn(pG->Scenario_flg[0], 0x20000000);
@@ -768,11 +790,15 @@ static void r104_execEvent00()
     DC.setAramSort(1);
 }
 
+// Action-button success callback of the s00 event: Room_flg[0] bit 31 (the event's QTE passed).
 static void r104_succeedAction()
 {
     pG->Room_flg[0] |= 0x80000000;
 }
 
+// Event r104s00 callback: funcMode 0 marks status 3 and sets the cancel cut 0x1E; cuts 0/1/3 parent the
+// kind-1 light to the event model evm4200; later cuts set the fade and the draw / CMF flags of the event
+// models per cut.
 static void Evt_R104S00_Func(Event* e)
 {
     void* mod;
@@ -859,6 +885,7 @@ static void Evt_R104S00_Func(Event* e)
     }
 }
 
+// Event r104s01 callback: on its first frame make the event model evm4500 draw with be_flag 0x10.
 static void Evt_R104S01_Func(Event* e)
 {
     void* mod;

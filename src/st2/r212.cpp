@@ -128,18 +128,22 @@ static inline u32 evtFlagBase()
 {
     return (u32) &pG->Room_flg[0];
 }
+// The door / item flag words at pG->Item_find_flg, as an integer base for FlagChk/On/Off.
 static inline u32 doorFlagBase()
 {
     return (u32) &pG->Item_find_flg;
 }
+// Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).
 static inline u32 FlagChk(u32 base, u32 no)
 {
     return *(u32*) (((no >> 5) << 2) + base) & (0x80000000 >> (no & 31));
 }
+// Set flag `no` in the word array at `base`.
 static inline void FlagOn(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) |= 0x80000000 >> (no & 31);
 }
+// Clear flag `no` in the word array at `base`.
 static inline void FlagOff(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) &= ~(0x80000000 >> (no & 31));
@@ -173,6 +177,8 @@ static void r212_DoorLock();
 static void r212_TreasureBoxOpen(int id);
 static void r212_TreasureBoxOpened(int id);
 
+// Room init (Ashley's section: the switch room): the three shutter doors (0x1B first, 0x16 roof-trap
+// room, 0x22 exit; the last two start open), the trap setup, the entrance lock task, two treasure item events.
 void R212Init()
 {
 #line 58 "D:/Bio4/Prog/r212.cpp"
@@ -188,6 +194,9 @@ void R212Init()
     SceSetItemEvent(0xC, 0x80, 4, 0xB, r212_TreasureBoxOpen, (void (*)()) r212_TreasureBoxOpened, 0x3E, 0);
 }
 
+// The trap room: its attribute piece; until the trap ran (Room_flg bit 0) area 1 = the roof trap event
+// (r212s00 pre-loaded) and the roof hit-box watcher; the switch puzzle / racks per bit 1; the drill
+// Ganados and the exit per bits 2/3.
 void r212_TrapInit()
 {
     cObj* o = SmdGetObjPtr(0x1A);
@@ -271,6 +280,7 @@ void r212_TrapInit()
     }
 }
 
+// Per frame: read the floor switches, step the three doors, keep the attribute piece on object 0xC.
 void R212Main()
 {
     cObj* o = SmdGetObjPtr(0xC);
@@ -364,6 +374,8 @@ static void r212_Puzzle()
     r212_PuzzleEndProc();
 }
 
+// End of the switch puzzle (also its cancel path): the first door snapped open, camera back, the two
+// racks hidden, SceEventEnd, autosave.
 static void r212_PuzzleEndProc()
 {
     if (pG->Room_flg[0] & 0x40000000) {
@@ -425,6 +437,8 @@ static void r212_EventTrap()
     SceEventEnd(0);
 }
 
+// Event r212s00 callback (the roof trap closes in): objects 0x1B/0xC shown for the event, light mask
+// 0x40 on pl0100, then hidden again.
 void Evt_R212S00_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -560,6 +574,7 @@ static void r212_RoofTrapWatcher()
     r212_work.p->door[1].setOpen();
 }
 
+// Area 0xA, the shut roof-room door: message 2; the first time Ashley's pointing task starts.
 static void r212_MesRoofDoor()
 {
     SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -628,6 +643,7 @@ static void r212_AshleyPointTo(cEm* sub)
     sub->ang.y += Muku(&sub->pos, &o->pos, sub->ang.y, 0.39269908f);
 }
 
+// 150 frames after the door message, message 3 and Ashley points at the door (unless a trap part is already stopped).
 static void r212_AshleyPointToCheck()
 {
     SceSleep(150);
@@ -697,6 +713,9 @@ static void r212_DrillAppearCheck()
     r212_DrillAppearCheckEndProc();
 }
 
+// End of the drill cutscene (also its cancel path): the exit door snapped shut, the drill object
+// shown with its SE, Ashley placed at the far wall facing 3.09 rad, the drill Ganados alerted, the
+// end-check task.
 static void r212_DrillAppearCheckEndProc()
 {
     Vec v;
@@ -860,6 +879,7 @@ static void r212_AshleyDrillAction(cEm* sub)
     }
 }
 
+// The locked entrance: common message 0x67.
 static void r212_DoorMessage()
 {
     SceUpCut(0x67, -1, -1, UP_CUT_ATTR_MES_COMMON);
@@ -881,6 +901,8 @@ static void r212_DoorLock()
     }
 }
 
+// Bind door `id_` (0x1B / 0x16 / 0x22): the object, its rest position, opening height and flag; door
+// 0x16 also arms area 0xA with the shut-door message.
 void cR212Door::init(u32 id_)
 {
     valid = 0;
@@ -908,6 +930,7 @@ void cR212Door::init(u32 id_)
     }
 }
 
+// Per-frame step: run the current mode (wait / open / close) of r212_doorTbl.
 void cR212Door::move()
 {
     if (valid != 0) {
@@ -915,10 +938,13 @@ void cR212Door::move()
     }
 }
 
+// Mode 0: idle.
 void cR212Door::wait()
 {
 }
 
+// Mode 1: the door's open SE (per door), rises 30 units a frame to pos0 + openH; on arrival its
+// collision areas go off and status 1.
 void cR212Door::open()
 {
     int se;
@@ -967,6 +993,7 @@ void cR212Door::open()
     }
 }
 
+// Mode 2: the door's close SE, its area on, drops with growing speed to pos0, then a short shake; status 0.
 void cR212Door::close()
 {
     int se = 0;
@@ -1028,6 +1055,7 @@ void cR212Door::close()
     }
 }
 
+// Request opening (mode 1) unless open / opening; status 4 = moving.
 void cR212Door::setOpen()
 {
     if (valid == 0) {
@@ -1044,6 +1072,7 @@ void cR212Door::setOpen()
     step = 0;
 }
 
+// Request closing (mode 2) unless closed / closing.
 void cR212Door::setClose()
 {
     if (valid == 0) {
@@ -1060,6 +1089,7 @@ void cR212Door::setClose()
     step = 0;
 }
 
+// Snap the door open (its collision areas off, SE stopped).
 void cR212Door::setOpened()
 {
     if (valid == 0) {
@@ -1084,6 +1114,7 @@ void cR212Door::setOpened()
     }
 }
 
+// Snap the door closed (its collision areas on, SE stopped).
 void cR212Door::setClosed()
 {
     if (valid == 0) {
@@ -1107,6 +1138,7 @@ void cR212Door::setClosed()
     }
 }
 
+// 0 closed, 1 opened, 4 moving; -1 when the door has no object.
 int cR212Door::getStatus()
 {
     if (valid != 0) {
@@ -1115,6 +1147,7 @@ int cR212Door::getStatus()
     return -1;
 }
 
+// Item-event opener: chest 6 (lid up -X) or drawer 0x3E (slides +Z).
 static void r212_TreasureBoxOpen(int id)
 {
     switch (id) {
@@ -1127,6 +1160,7 @@ static void r212_TreasureBoxOpen(int id)
     }
 }
 
+// Item-event "already opened": pose the chest / drawer open.
 static void r212_TreasureBoxOpened(int id)
 {
     switch (id) {

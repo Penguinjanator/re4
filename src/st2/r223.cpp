@@ -109,6 +109,12 @@ static void r223_StrCheck();
         m_->setAng(&(v));           \
     }
 
+// Room init (the mine cart start / lift platform): Debug_flg[1] 0x20000 (silence cEmWrap errors);
+// JumpPoint 1 presets the lift state by debug trigger 1; Room_flg bit 6 (cart available) set; areas 3/4
+// = levers 2/3, area 5 = the escape check; the cart and lift objects; the initial Ganados (list 5) and
+// the wave task; item area 0x80 (the lift key item) enabled once the lift came down (bit 9); area 0x11
+// = using item 0x8D on the platform until bit 10 (else the bomb areas are off); the ambient stream; the
+// lift group posed by bits 7/9 (cart gone / lift down); two more Ganados 0xE0/0xE1.
 void R223Init()
 {
     f32 h;
@@ -203,6 +209,7 @@ void R223Init()
                    ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25));
 }
 
+// Per-frame room main: nothing.
 void R223Main()
 {
 }
@@ -263,6 +270,9 @@ extern "C" void reva_common_move__FP4cObjiiff(cObj* obj, int axis, f32 lo, f32 h
     }
 }
 
+// End of the lift descent (also its cancel path): drop the effect, snap the lift group (objects 0xC,
+// 0x5B, the cart, the platform, 0x16) to the bottom heights, stop the SEs, show the platform, item area
+// 0x80 on, camera back, SceEventEnd.
 static void reva2_use_after_reva3_exit()
 {
     cObj* o12;
@@ -289,6 +299,8 @@ static void reva2_use_after_reva3_exit()
     SceEventEnd(0);
 }
 
+// Lever 2 after lever 3 (Room_flg bit 9): the lever swings, then the lift group rides down to the bottom
+// (dai_down_end) as a cancellable event.
 void reva2_use_after_reva3()
 {
     RsfSet(G_ROOM_ID, 9);
@@ -303,6 +315,9 @@ void reva2_use_after_reva3()
     reva2_use_after_reva3_exit();
 }
 
+// End of the cart ride (also its cancel path): stream stopped, the cart-stand 0x16 and platform snapped
+// to the far position, the cart hidden, lever 3 object 0x19 raised, the lift objects 0xC/0x5B at their
+// middle heights, effects dropped.
 static void toroko_go_and_stop_exit()
 {
     Vec pos;
@@ -343,6 +358,7 @@ static void toroko_go_and_stop_exit()
     r223_work.p->em[18].setEm(0xD1, 5, 1, 1, 1);
 }
 
+// Lever 2 the first time (bit 7): the cart rolls off (toroko_move1) and the lift drops to the middle stop.
 static void toroko_go_and_stop()
 {
     SceEventStart(1);
@@ -353,6 +369,8 @@ static void toroko_go_and_stop()
     toroko_go_and_stop_exit();
 }
 
+// Lever 2 before lever 3: the lever swings; message 3 if the cart is not there (bit 6 clear), the cart
+// ride once (bit 7), message 5 afterwards.
 void reva2_use_pre_reva3()
 {
     reva_common_move(SmdGetObjPtr(0x18), 1, 1, reva2_lo, reva2_hi);
@@ -370,6 +388,8 @@ void reva2_use_pre_reva3()
     SceEventEnd(0);
 }
 
+// Area 3, lever 2: camera cut 0xA; message 4 if already used at the bottom (bit 9), else the yes/no
+// message 2 and the pre- / post-lever-3 action.
 static void reva2_move()
 {
     SceEventStart(1);
@@ -393,6 +413,8 @@ static void reva2_move()
     }
 }
 
+// Area 4, lever 3: camera cut 0xB; message 7 unless the cart went and the lever is unused (bits 7 set,
+// 8 clear); yes -> bit 8, the lever object 0x19 drops with SE and effects, then toroko_move2.
 static void reva3_move()
 {
     SceEventStart(1);
@@ -418,6 +440,8 @@ static void reva3_move()
     SceEventEnd(0);
 }
 
+// The cart rolls out: stream 1, the cart motion with a dust effect, camera cuts 8 and 9, then the
+// cart-stand 0x16 and platform are moved to the far end and the cart hidden.
 void toroko_move1()
 {
     Vec pos;
@@ -442,10 +466,12 @@ void toroko_move1()
     SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
 }
 
+// Second cart move: empty in this build.
 void toroko_move2()
 {
 }
 
+// Area 5: empty in this build.
 static void r223_GanadoEscapeCheck()
 {
 }
@@ -473,6 +499,7 @@ int isZouenGo()
     return n > 1;
 }
 
+// 1 once lever 3 was used (Room_flg bit 8).
 int isZouenGo2()
 {
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
@@ -481,6 +508,7 @@ int isZouenGo2()
     return 1;
 }
 
+// Alert a Ganado (flag bit 0 = start hostile) if the handle holds a live Ganado.
 void setFlagStart(cEmWrap* em)
 {
     if (em->isAlive() == 1 && em->isNormalGanade() == 1) {
@@ -521,6 +549,7 @@ int setChange(int mode, int flagNo, int oldNo, int newNo, int emId)
     return 0;
 }
 
+// End of the Ganado 0xCC entrance cutscene: it may suspend again, camera back, SceEventEnd, Status_flg[2] 0x02000000 off.
 static void r223_EmApper_exit()
 {
     r223_work.p->em[13].setNoSuspend(0);
@@ -529,6 +558,7 @@ static void r223_EmApper_exit()
     pG->Status_flg[2] &= ~0x02000000;
 }
 
+// Cutscene: Ganado 0xCC (list 5) appears alerted under camera cuts 0x12 and 0x13; player-cancellable.
 static void r223_EmApper()
 {
     SceEventStart(1);
@@ -737,6 +767,7 @@ void dai_down_end()
     SceSleep(15);
 }
 
+// Item area 0x80 (on the lowered platform): re-arm and run it, then wait until the item is taken.
 static void r223_ItemGet()
 {
     SceAtDataReset(0x80);
@@ -746,6 +777,8 @@ static void r223_ItemGet()
     }
 }
 
+// Task: waits for item 0x8D (the dynamite) to be used, places it on the platform (Room_flg bit 10) and
+// starts the bomb task.
 static void r223_ItemUse_exec()
 {
     Vec pos;
@@ -759,6 +792,7 @@ static void r223_ItemUse_exec()
     SceExec(0x12, (TaskFunc) r223_Bomb, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Area 0x11: the up-cut 8/0xC look; with item 0x8D held the item screen opens to use it.
 static void r223_ItemUse()
 {
     SceUpCut(8, 0xC, -1, 0);
@@ -767,6 +801,9 @@ static void r223_ItemUse()
     }
 }
 
+// The dynamite: fuse SE and effect for 150 frames, then the blast (effect 0x1F, SE 8, a 6000-radius
+// player-weapon hit of type 0x12), the platform item hidden, areas 0x12/0x13 off, Ganados em[21]/em[22]
+// alerted and made hostile.
 static void r223_Bomb()
 {
     Vec pos = {-2039.0f, 525.0f, -31894.0f};

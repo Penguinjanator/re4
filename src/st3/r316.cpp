@@ -68,6 +68,11 @@ static void R316EventS00();
 static void R316EventSXX();
 extern "C" void Evt_R316S00_Func(Event* e);
 
+// Room init: System_flg 0x400 off, Debug_flg[1] 0x00040000; JumpPoint 1 skips the event (Room_flg bits
+// 0/1); Ashley no longer following. Until the event (bit 0) it runs at once (pre-loaded with the enemy of
+// ESL 0); else, until the room was left through door 1 (bit 2), the wave refills run and door 1's exit
+// hook clears the enemies. Door 0xD close-locked, the heat and falling-item watchers, the furnace
+// objects, one shelf item event.
 void R316Init()
 {
     cEm* door;
@@ -121,10 +126,12 @@ void R316Init()
     SceSetItemEvent(7, 0x84, 3, 2, r316_openShelf, (void (*)()) r316_openedShelf, 0, 0);
 }
 
+// Per-frame room main: nothing.
 void R316Main()
 {
 }
 
+// Shelf 0 (object 0x3F, locker type 2) opens (mode 1: snap).
 void r316_openShelf_main(int no, int mode)
 {
     if (no == 0) {
@@ -132,11 +139,13 @@ void r316_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r316_openedShelf(int no)
 {
     r316_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate the shelf open.
 static void r316_openShelf(int no)
 {
     r316_openShelf_main(no, 0);
@@ -188,6 +197,7 @@ static void r316_checkHeatEffect()
     }
 }
 
+// Door 1's exit hook (toward r317): Room_flg bit 2, every Ganado removed, ESL entries 3/8/9 marked alive again.
 static void r316_exitDoorTo317()
 {
     RsfSet(G_ROOM_ID, 2);
@@ -239,6 +249,8 @@ static void r316_checkEmReset()
     }
 }
 
+// Once (Room_flg bit 0): System_flg 0x400, event r316s00 (Ashley is taken away by Saddler's men),
+// chapter 5-2 ends (SceSetChapterEnd(CHAPTER_5_2)), the wave refills start, fade-in and the inventory opens.
 static void R316EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -285,6 +297,8 @@ static void R316EventSXX()
     }
 }
 
+// Event r316s00 callback: swaps the door objects 0x3D/0x3E (closed / open) on cuts 0 and 5/0xB, sets the
+// event models' flags per cut; the end restores the room.
 void Evt_R316S00_Func(Event* e)
 {
     switch (e->funcMode) {

@@ -63,11 +63,17 @@ extern "C" cEm* R405_EmSetEvent(EmListData* d);
 static void em_set3();
 static void r405_StrCheck();
 
+// Room exit hook: BGM table 0x405 set 3 for the next room.
 static void snd_tbl_set()
 {
     SndBgmTblSet(0x405, 3);
 }
 
+// Room init (Assignment Ada starts here): the Ada game flag (st4_initAdaGame), game points reset, the
+// s00 / s99 callback; areas 6/8 = the first wave until Room_flg bit 1, area 9 = the second until bit 2;
+// the s00 event on the first visit (pre-loaded with the enemy of ESL 0); water hit effects; Ada's
+// (pl_type 2) or Leon's room motions; the water render targets; the exit hook; coming from r406 the
+// gate 0x42 is posed raised.
 void R405Init()
 {
 #line 69 "D:/Bio4/Prog/r405.cpp"
@@ -104,6 +110,9 @@ void R405Init()
     }
 }
 
+// Per frame after the first wave (Room_flg bit 1): up to five refills — every 240 frames, with eight
+// or fewer alive, two alerted Ganados from the list pair of the zone the player is in (Room_flg[2]
+// 0x20000000 / 0x10000000 / 0x40000000).
 void R405Main()
 {
     if (RsfCheck(G_ROOM_ID, 1)) {
@@ -170,6 +179,8 @@ void setTexRender()
     obj->pModelInfo->setBlendType(1);
 }
 
+// Once (Room_flg bit 0): System_flg 0x400, event r405s00 (Ada's arrival), the stream, BGM table 0x405
+// set 2 with both BGMs, message 0.
 static void R405ExecEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -188,6 +199,7 @@ static void R405ExecEventS00()
     }
 }
 
+// Event r405s00 callback: the Ada model pl0c00 gets light mask 1 and its chained child object shown on cut 0.
 extern "C" void Evt_R405S00_Func(Event* e)
 {
     void* mod;
@@ -253,6 +265,7 @@ static void em_set()
     }
 }
 
+// EmSetEvent that returns the Ganado already alerted (setFindPL).
 extern "C" cEm* R405_EmSetEvent(EmListData* d)
 {
     cEm* em = EmSetEvent(d);

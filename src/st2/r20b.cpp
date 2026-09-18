@@ -93,6 +93,12 @@ static void R20bEventS00();
 extern "C" void Evt_R20BS00_Func(Event* e);
 void EvtTexRenderCamTrans(Event* e, int cut);
 
+// Room init (the great hall): s00/s99 callbacks, Room_flg[0] bit 31 (lower floor) cleared, the upper
+// floor objects shown, doors 3/8 paired; until s00 (Room_flg bit 0) it is pre-loaded with the enemy of
+// list entry 0x11 and area 2 runs it (objects 0x51..0x53 swapped afterwards); doors 6/7 get lock models;
+// item area 0x8C (the key) hidden until used; until bit 1 area 4 = the locked door with the key watcher,
+// else area 5 off / insignia object 0x8F hidden; five treasure item events; the terminal once (bit 17);
+// the entry camera once (bit 21); waves, stream and floor render target.
 void R20bInit()
 {
     cEm* door0;
@@ -172,6 +178,8 @@ void R20bInit()
     r20b_work.p->str = zero;
 }
 
+// Per frame: switch between the upper and lower floor object sets (Room_flg[0] bit 31) from the
+// player's height (y <= 100) or Room_flg[2] 0x00080000.
 void R20bMain()
 {
     if ((pG->Room_flg[2] & 0x00080000) || pPL->pos.y <= 100.0f) {
@@ -204,6 +212,7 @@ static void R20bStartCameraMain()
     }
 }
 
+// Cancel path of the entry camera: fade reset, its stream stopped, a 10-frame fade-in, then the common end.
 static void R20bStartCameraCancel()
 {
     FadeSetW(0, 0, 0, 0);
@@ -215,6 +224,7 @@ static void R20bStartCameraCancel()
     R20bStartCameraEnd();
 }
 
+// End of the entry camera: camera back, SceEventEnd.
 void R20bStartCameraEnd()
 {
     CamCtrl.Comeback(0);
@@ -262,6 +272,7 @@ void R20bScrTrans(int on)
     }
 }
 
+// Area 0x16 once (Room_flg bit 17): typewriter terminal 0xF at its fixed spot.
 static void R20bOpenTerm()
 {
     SceAtSetEnable(0x16, 0);
@@ -269,6 +280,7 @@ static void R20bOpenTerm()
     OpeSetOpenTerm(0xF, 34050.0f, 4000.0f, -7340.0f, 2.45f);
 }
 
+// Item-event "already opened": pose the chest / shelf of item `id` open (per-item lid direction).
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x86) {
@@ -288,6 +300,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: animate the chest / shelf of item `id` open.
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x86) {
@@ -538,6 +551,7 @@ static void R20bEmSetMain()
     }
 }
 
+// Number of the 18 wave enemies currently active.
 int R20bCalcActiveEmWarp()
 {
     int cnt = 0;
@@ -628,6 +642,7 @@ static void R20bDoorEventMain()
     R20bDoorEventEnd();
 }
 
+// End of the key event: area 5 off, the insignia object 0x8F hidden, item area 0x8C off, camera back, SceEventEnd.
 static void R20bDoorEventEnd()
 {
     SceAtSetEnable(5, 0);
@@ -675,6 +690,8 @@ static void setTexRender()
     }
 }
 
+// Area 2 once (Room_flg bit 0): destroys the 0x22 enemies, plays r20bs00 and ends chapter 3-2
+// (SceSetChapterEnd(CHAPTER_3_2)).
 static void R20bEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -687,6 +704,10 @@ static void R20bEventS00()
     }
 }
 
+// Event r20bs00 (and s99) callback: swaps the ev0202 model's texture palette to the r20b variant for
+// cuts after 0x21 (and back), the evm9300 palette per cut, feeds the two render-to-texture passes on
+// cuts 0x21 / 0x24 (TexRenderModSet on the stand-in models, released after), and sets the event models'
+// flags per cut; the end restores the palettes.
 extern "C" void Evt_R20BS00_Func(Event* e)
 {
     void* mod;

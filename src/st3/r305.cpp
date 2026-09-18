@@ -66,6 +66,10 @@ static void r305_ItemBoxOpen(u32 no);
 static void r305_ItemBoxOpened(u32 no);
 static void r305_ShutterCtrl();
 
+// Room init: the shutter (posed open once Room_flg bit 1, else area 3 = the bomber Ganado's shutter
+// control); after the first wave is done (bit 0) two Ganados (0x47/0x48, list 6), else the shutter
+// collision, the five first-wave Ganados (list 6) with their start poses saved and the death watcher;
+// the exit hook; three item boxes.
 void R305Init()
 {
 #line 37 "D:/Bio4/Prog/r305.cpp"
@@ -100,6 +104,7 @@ void R305Init()
     SceSetItemEvent(8, 0x86, 4, 3, (void (*)(int)) r305_ItemBoxOpen, (void (*)()) r305_ItemBoxOpened, 0x17, 0);
 }
 
+// Per frame: step the shutter state machine.
 void R305Main()
 {
     r305_work->shutter.move();
@@ -132,11 +137,13 @@ static void r305_GanadoDieCheck()
     RsfSet(G_ROOM_ID, 1);
 }
 
+// Room exit hook: Room_flg bit 0 (the first wave counts as done).
 static void r305_RoomExitFunc()
 {
     RsfSet(G_ROOM_ID, 0);
 }
 
+// Item-event opener: box `no` (0x14 double door, 0x17 / 0x16 lidded boxes with their items) opens.
 static void r305_ItemBoxOpen(u32 no)
 {
     switch (no) {
@@ -152,6 +159,7 @@ static void r305_ItemBoxOpen(u32 no)
     }
 }
 
+// Item-event "already opened": box `no` posed open.
 static void r305_ItemBoxOpened(u32 no)
 {
     switch (no) {
@@ -263,6 +271,8 @@ static void r305_ShutterCtrl()
     SatMgr.destroy(r305_work->sat);
 }
 
+// The shutter (scroll object 2): base position, 2700-unit travel, its own collision / attribute pieces
+// (archive 5 / 0x12 set 1) and blocking area 4 on.
 void cR305Shutter::init()
 {
     Vec zero = {0.0f, 0.0f, 0.0f};
@@ -282,6 +292,7 @@ void cR305Shutter::init()
     }
 }
 
+// Per-frame step: run the current mode (wait / open / close) of r305_shutter_tbl.
 void cR305Shutter::move()
 {
     if (enable) {
@@ -289,10 +300,13 @@ void cR305Shutter::move()
     }
 }
 
+// Mode 0: idle.
 void cR305Shutter::wait()
 {
 }
 
+// Mode 1: SE 3, rises 200 units a frame to base + height, then its collision off / area 4 off, SE 4 and
+// 5 frames of shake; status 1.
 void cR305Shutter::open()
 {
     switch (step) {
@@ -328,6 +342,7 @@ void cR305Shutter::open()
     }
 }
 
+// Mode 2: collision on / area 4 on, SE 5, drops with growing speed (40/frame^2) to the base, SE 6 and a shake; status 0.
 void cR305Shutter::close()
 {
     switch (step) {
@@ -372,6 +387,7 @@ void cR305Shutter::close()
     }
 }
 
+// Request opening (mode 1) unless open / opening / disabled (status 2/3); status 4 = moving.
 void cR305Shutter::setOpen()
 {
     if (!enable) {
@@ -394,6 +410,7 @@ void cR305Shutter::setOpen()
     step = 0;
 }
 
+// Request closing (mode 2) unless closed / closing / disabled.
 void cR305Shutter::setClose()
 {
     if (!enable) {
@@ -416,6 +433,7 @@ void cR305Shutter::setClose()
     step = 0;
 }
 
+// 0 closed, 1 opened, 4 moving; -1 when there is no shutter object.
 int cR305Shutter::getStatus()
 {
     if (enable) {
@@ -424,6 +442,7 @@ int cR305Shutter::getStatus()
     return -1;
 }
 
+// Snap the shutter open (collision off, area 4 off, SE stopped).
 void cR305Shutter::setOpened()
 {
     if (enable) {

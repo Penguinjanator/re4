@@ -91,6 +91,11 @@ static void r113_checkAshleyPos();
 static void r113_DoorCheck();
 static void r113_ThunderMove();
 
+// Room init (Ashley with Leon, storm): thunder task, rain effects on the player, Status_flg[1] 0x400
+// (raining); area 2 = front door check; area 3 = the window shoulder-ride prompt while the door is still
+// locked (door_unlock[0] 0x08000000 clear) and Ashley is following (Status_flg[3] 0x04000000); the shared
+// r103 cesspit, sub-mission target 8, rack 6 range, three shelf item events (items 0x8E/0x8F/0x8B), the
+// closet hide spot (area 4), and the glowing file item at area 0x82 until item_flags[0] 0x800 is taken.
 void R113Init()
 {
     cEm* rack;
@@ -126,6 +131,7 @@ void R113Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R113Main()
 {
 }
@@ -179,6 +185,7 @@ static void r113_execHide(int mode)
     }
 }
 
+// End of the shoulder-ride event: stop its stream, re-arm and run collision area 2 (the door check), SceEventEnd.
 static void r113_EventRideShoulder_end()
 {
     if (r113_work->strId != 0) {

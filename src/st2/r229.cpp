@@ -51,6 +51,9 @@ static void r221_execEmCamera1_end();
 static void r221_execEmCamera1();
 static void setTexRender();
 
+// Room init (the sewer): System_flg 0x400 cleared; area 3 = the Ganado-in-the-water camera event until
+// Room_flg bit 0; the typewriter once (bit 2); the water render targets, the water splash effect table,
+// player OT type 5 (wading), Scenario_flg[1] 0x02000000.
 void R229Init()
 {
     R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
@@ -70,6 +73,7 @@ void R229Init()
     pG->Scenario_flg[1] |= 0x02000000;
 }
 
+// Per-frame room main: nothing.
 void R229Main()
 {
 }
@@ -77,18 +81,22 @@ void R229Main()
 // Dead-stripped by the original link (its strings survive after R229Init's): the s00 event setup
 // the room never registered.
 extern "C" void Evt_R229S00_Func(Event* e);
+// Pre-load r229s00 and register its callback (unused by the room's Init in this build).
 static void r229_evtSetup()
 {
     EvtMgr.EvtReadAram("event/evd/r229s00.evd", 0, 0, 0, 0);
     EvtMgr.SetFunc("evt_r229s00_func", (void*) Evt_R229S00_Func);
 }
 
+// Once (Room_flg bit 2): open typewriter terminal 0x11.
 static void r229_openTerm()
 {
     RsfSet(G_ROOM_ID, 2);
     OpeSetOpenTerm(0x11, 0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+// End of the camera event: the player may suspend again, its effect dropped, its stream faded (200 frames),
+// SceEventEnd, the sea area flag cleared.
 static void r221_execEmCamera1_end()
 {
     pPL->setNoSuspend(0);

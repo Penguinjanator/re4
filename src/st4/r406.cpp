@@ -22,7 +22,9 @@
 #include "cSceObj.h"
 #include "db_log.h"
 
-// Room 4-06 (D:/Bio4/Prog/r406.cpp): the enemy waves of the mine, the rock wall and a shelf.
+// Room 4-06 (D:/Bio4/Prog/r406.cpp): the mine of Assignment Ada (Leon's motion set on a normal game):
+// the Ganado waves keyed to the item, areas 2 / 3 / 8 and the alert areas 0xB / 0xC (counting the dead
+// of the list), the rock wall only the mine explosives break, the water render target and a shelf.
 
 struct R406Work {
     TexRenderMng* tex;   // 0x00
@@ -73,6 +75,10 @@ static void r406_checkEmSet3();
 static void r406_checkEmSet4();
 void setTexRender();
 
+// Room init (the mine, Assignment Ada): the water render target; Ada's (pl_type 2) or Leon's room
+// motions; water hit effects; the enemy waves — wave 1 on the item (Room_flg bit 0), waves 2/3 on
+// areas 2/3 (bits 1/2), the alert areas 0xB/0xC (bits 6/7), wave 4 on area 8 (bit 5); the rock wall
+// until bit 3 (else area 5 off); the shelf mover and item event.
 void R406Init()
 {
     cObj* obj;
@@ -128,10 +134,12 @@ void R406Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R406Main()
 {
 }
 
+// Shelf 0 (chest 0x2E, parts lid up +Z) opens (mode 1: snap).
 void r406_openShelf_main(int no, int mode)
 {
     if (no == 0) {
@@ -139,11 +147,13 @@ void r406_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event opener: animate the shelf open.
 static void r406_openShelf(int no)
 {
     r406_openShelf_main(no, 0);
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r406_openedShelf(int no)
 {
     r406_openShelf_main(no, 1);
@@ -194,6 +204,7 @@ static void r406_checkRockWall()
     }
 }
 
+// Area 0xB: Ganado 0x35 notices the player.
 static void r406_setFindPL1()
 {
     cEmWrap em;
@@ -202,6 +213,7 @@ static void r406_setFindPL1()
     em.setFindPL();
 }
 
+// Area 0xC: Ganado 0x34 notices the player and turns hostile.
 static void r406_setFindPL2()
 {
     cEmWrap em;
@@ -211,6 +223,7 @@ static void r406_setFindPL2()
     em.setFlag(1);
 }
 
+// Wave 1: once item 0x82 is taken (Room_flg bit 0), with two of list 40..42 dead, Ganados 0x3A/0x3B come.
 static void r406_checkEmSet1()
 {
     u32 cnt;
@@ -235,6 +248,7 @@ static void r406_checkEmSet1()
     }
 }
 
+// Area 2 (Room_flg bit 1): counts the dead of list 40..45; enough -> Ganado 0x2E walks to area 4's centre.
 static void r406_checkEmSet2()
 {
     u32 cnt;
@@ -276,6 +290,7 @@ static void r406_checkEmSet2()
     }
 }
 
+// Area 3 (Room_flg bit 2): counts the dead of list 47..52; more than two -> Ganados 0x37/0x38/0x39.
 static void r406_checkEmSet3()
 {
     u32 cnt;
@@ -310,6 +325,7 @@ static void r406_checkEmSet3()
     }
 }
 
+// Task: when the player stands in area 8 with two of list 40..42 dead, Ganado 0x36 comes (Room_flg bit 5).
 static void r406_checkEmSet4()
 {
     cEmWrap em;

@@ -50,6 +50,13 @@ static void r118_ThunderFlagOn();
 static void r118_ThunderFlagOff();
 static void r118_ThunderMove();
 
+// Room init (storm): clears System_flg 0x800, hides the lit-window object 0,
+// thunder task, rain on the player, Status_flg[1] 0x400. Item area 0x80 is the door-117 key model,
+// disabled until door_unlock[0] 0x10000000 (area 4 = the locked door message, plus the key-use watcher).
+// With Item_find_flg 0x00100000 (Ashley rescued): drops ESL 0x82..0x84, spawns Ganados 0x79..0x7F and
+// the dog 0x78, starts stream 1/5, the show-view event once (Room_flg bit 0), Ashley's call on area 9,
+// else the alternate layout (object 0x1B hidden, areas 8/2 off). Then the BGM task and r108's symbol
+// puzzle on dials 0x31/0x32/0x33 with message 2.
 void R118Init()
 {
     cModel* m;
@@ -105,10 +112,12 @@ void R118Init()
     FlrAtSetDefVal(0, 0, 3);
 }
 
+// Per-frame room main: nothing.
 void R118Main()
 {
 }
 
+// End of the show view: fade the stream out over 50 frames, camera back to the player, SceEventEnd.
 static void r118_execShowView_end()
 {
     SndStrReq(r118_work->strId, 4, 50, 0);
@@ -120,6 +129,8 @@ static void r118_execShowView_end()
 // OPEN (as r108 execShowView): the original issues the stream's `lfs f1, 0.0` after the RsfSet store.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// One-shot event (Room_flg bit 0): start stream 0xE0, play camera cut 0xA (the show view),
+// clearing Status_flg[1] 0x10000000, until the camera motion ends; cancellable by the player.
 static void r118_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
@@ -235,6 +246,7 @@ static void r118_ThunderFlagOn()
     SmdGetObjPtr(0x64)->pModelInfo->color[2] = 0xFF;
 }
 
+// Lightning off: hide the lit window object 0 and restore object 0x64's dim sky colour (0x5F/0x61/0x67).
 static void r118_ThunderFlagOff()
 {
     SmdGetObjPtr(0)->be_flag &= ~2;

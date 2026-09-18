@@ -93,6 +93,7 @@ static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Set a model's rotation from three components (inlined helper, see SetPosXYZ).
 static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -127,6 +128,10 @@ static void OpenedBoxTreasure();
 static void OpenBoxTreasure();
 static void SceBgmCheck();
 
+// Room init (the cage trap room): the painting's shot target (a hit cube on object 8), the painting /
+// barred door state (R20cExecShootInit), the list-3 enemy pre-read when Ashley is not along; the cage
+// collision piece with the cage raised, or dropped (Room_flg bit 3) with its enemies placed at once;
+// area 3 = the cage trap; one treasure item event.
 void R20cInit()
 {
     cObj* obj;
@@ -174,6 +179,8 @@ void R20cInit()
     SceSetItemEvent(0xA, 0x85, 4, 0xD, (void (*)(int)) OpenBoxTreasure, OpenedBoxTreasure, 0, 0);
 }
 
+// Per frame, while the barred door is still closed (Room_flg bit 0) and the painting closed (Room_flg[0]
+// 0x00800000 clear): a destroyed shot target starts the painting-open event.
 void R20cMain()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -365,6 +372,9 @@ static void R20cExecCageMain()
     }
 }
 
+// End of the cage drop (also its cancel path): the cage and doors down and locked, Leon put inside
+// facing 1.27 rad, the eleven enemies may suspend again, the first four run to their posts, the reset
+// counter starts.
 static void R20cExecCageEnd()
 {
     int i;
@@ -529,6 +539,7 @@ void R20cKaigaMove(int mode)
     }
 }
 
+// The shot target was hit (once, Room_flg[0] 0x00800000): SE, camera cut 0xB while the painting swings open; player-cancellable.
 static void R20cExecShootKaigaOpenMain()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -551,6 +562,7 @@ static void R20cExecShootKaigaOpenMain()
     }
 }
 
+// End of the painting opening: pose it open, start the two-target watcher behind it, SceEventEnd, task exit.
 static void R20cExecShootKaigaOpenEnd()
 {
     R20cKaigaMoved(1);
@@ -559,6 +571,9 @@ static void R20cExecShootKaigaOpenEnd()
     SceExit();
 }
 
+// Painting setup: door already open (Room_flg bit 0) -> barred door opened, painting posed open, object
+// 9 hidden, ambient effect; else the barred door closed, area 9 = open the painting, the two hit cubes
+// behind the painting (objects 7 and the second target) for the door puzzle.
 void R20cExecShootInit()
 {
     void* zero = 0;
@@ -615,6 +630,8 @@ found:
     pG->Room_flg[0] &= ~0x00800000;
 }
 
+// Both targets behind the painting destroyed (once, Room_flg bit 0): their hp zeroed, area 9 off,
+// camera cut 0xE while the bar object 9 drops with SE / effect and the barred door opens; cancellable.
 static void R20cDoorOpenMain()
 {
     cEm* barred;
@@ -654,6 +671,7 @@ static void R20cDoorOpenMain()
     }
 }
 
+// Cancel / end path of the door opening: snap the barred door open, then the common end (mode 1 saves).
 static void R20cDoorOpenCancel(int mode)
 {
     cEm* barred;
@@ -665,6 +683,7 @@ static void R20cDoorOpenCancel(int mode)
     R20cDoorOpenEnd(mode);
 }
 
+// End of the door opening (mode 1): SceEventEnd, autosave, task exit.
 void R20cDoorOpenEnd(int mode)
 {
     if (mode) {
@@ -674,11 +693,13 @@ void R20cDoorOpenEnd(int mode)
     }
 }
 
+// Item-event "already opened": the chest (object 0x11) posed open.
 static void OpenedBoxTreasure()
 {
     OpenBoxMain(OpenBoxUpZM, 1, 0x5B, 0x11, -1, -1);
 }
 
+// Item-event opener: the chest (object 0x11) lid up (-Z).
 static void OpenBoxTreasure()
 {
     OpenBoxMain(OpenBoxUpZM, 0, 0x5B, 0x11, -1, -1);

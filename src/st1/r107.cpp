@@ -37,6 +37,9 @@ static void r104_openedKiln(int type);
 static void r104_openKiln(int type);
 static void r107_checkBgmPlay();
 
+// Room init: pairs door 0 with door 0x15 (double door), starts the battle-BGM task, sets Room_flg bit 0
+// on first visit, registers the two kiln item events (item 0x92 at area 3 -> kiln 0, 0x93 at area 5 ->
+// kiln 1, reusing r104's opener), the water hit effects and the fish height task.
 void R107Init()
 {
     cEm* door0;
@@ -58,6 +61,7 @@ void R107Init()
     SceExec(0x12, (TaskFunc) r107_setFish, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per frame: switch the player's footstep/OT type to the water variant.
 void R107Main()
 {
     setPlWaterOtType();
@@ -120,11 +124,13 @@ void r104_openKiln_main(int type, int opened)
     }
 }
 
+// Item-event "already opened" callback: put kiln `type`'s doors in the open pose without animating.
 static void r104_openedKiln(int type)
 {
     r104_openKiln_main(type, 1);
 }
 
+// Item-event opener callback: animate kiln `type` open (30-frame swing) when the item is taken.
 static void r104_openKiln(int type)
 {
     r104_openKiln_main(type, 0);

@@ -17,7 +17,9 @@
 #include "shadow.h"
 #include "fade.h"
 
-// Room 2-15 (D:/Bio4/Prog/r215.cpp): the s00/s01 event chain and its Evt_*_Func handlers.
+// Room 2-15 (D:/Bio4/Prog/r215.cpp): an event-only room: on the first visit R215_Event plays r215s00
+// (a QTE; success clears Room_flg[0] bit 31), then r215s01 (passed: Leon placed at the exit) or the
+// r215s02 death event. The Evt_R215Sxx_Func callbacks set the event models' light masks per cut.
 
 struct R215Work {
     u8 dummy;
@@ -58,6 +60,8 @@ static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
         ((cModel*) mod)->be_flag |= 0x80;               \
     }
 
+// Room init: JumpPoint 1 marks the event seen (Room_flg bit 0); registers the three callbacks and, on
+// the first visit, pre-loads r215s00 to MRAM and starts the event task.
 void R215Init()
 {
 #line 44 "D:/Bio4/Prog/r215.cpp"
@@ -74,10 +78,13 @@ void R215Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R215Main()
 {
 }
 
+// Once (Room_flg bit 0): plays r215s00 (its QTE clears Room_flg[0] bit 31 on success); passed -> r215s01
+// and Leon is placed at the exit facing +X; failed -> the r215s02 death event and the task sleeps forever.
 extern "C" void R215_Event()
 {
     SceEventStart(0);
@@ -113,11 +120,15 @@ extern "C" void R215_Event()
     }
 }
 
+// QTE success callback: clears Room_flg[0] bit 31 (R215_Event reads it after s00).
 static void r215_succeedAction()
 {
     pG->Room_flg[0] &= ~0x80000000;
 }
 
+// Event r215s00 callback: status 3 with cancel cut 9; shadow camera size zeroed on cut 3; cut 0 assigns
+// light masks to the pl0100 / em3700 / evm* event models and be_flag 0x80 to some; cut 0xA and the end
+// modes 2/3 handle the QTE window and cleanup.
 extern "C" void Evt_R215S00_Func(Event* e)
 {
     void* mod;
@@ -185,6 +196,8 @@ extern "C" void Evt_R215S00_Func(Event* e)
     }
 }
 
+// Event r215s01 callback: shadow camera size zeroed on cut 0x10; scroll objects 0x2C/0x2E hidden during
+// cut 0x11; per-cut light masks / flags on the event models.
 extern "C" void Evt_R215S01_Func(Event* e)
 {
     void* mod;
@@ -251,6 +264,7 @@ extern "C" void Evt_R215S01_Func(Event* e)
     }
 }
 
+// Event r215s02 callback (the failure event): nothing to do.
 extern "C" void Evt_R215S02_Func(Event* e)
 {
 }

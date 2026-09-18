@@ -73,6 +73,10 @@ static void r301_openShelf(int no);
 static void r301_openedShelf(int no);
 static void setTexRender();
 
+// Room init (the beach): Debug_flg[1] 0x40000, water hit effects, the first-Ganado watcher; area 3 = the
+// bowgun Ganados until Room_flg bit 1, area 5 = the rocket launcher Ganado until bit 3; the water render
+// target, the player's room motions (the rock climb); the rock wall until bit 0; the continue-point rock;
+// the shelf item event; the battle stream.
 void R301Init()
 {
     cObj* obj;
@@ -108,6 +112,7 @@ void R301Init()
     SceExec(0x12, (TaskFunc) r301_checkBgm, 0, 0, 2, 0);
 }
 
+// Per-frame room main: nothing.
 void R301Main()
 {
 }
@@ -189,6 +194,8 @@ static void r301_execContinuePoint()
     }
 }
 
+// The continue-point rock (object 0x3C): a 90-frame move1 of 3270 up with a shake; area 0xF = the
+// continue prompt until used (Room_flg bit 5), else posed open with areas 0x10/0x11 off.
 void r301_initContinuePoint()
 {
     cObj* obj = SmdGetObjPtr(0x3C);
@@ -208,6 +215,7 @@ void r301_initContinuePoint()
     }
 }
 
+// After the rocket launcher: the first reset wave 90 frames later, the second 300 frames after that.
 static void r301_setRocketLauncher_sub()
 {
     SceSleep(90);
@@ -265,6 +273,8 @@ static void r301_setRocketLauncher()
     }
 }
 
+// The second bowgun group: Ganado 0x12 alerted at once; 3 seconds later 0x22 and 0xF walk to areas 6 / 8
+// and turn hostile on arrival.
 static void r301_setEmBowgun2()
 {
     cEmWrap em0;
@@ -422,6 +432,8 @@ static void r301_checkEmReset1()
     }
 }
 
+// Reset wave 2 (after Room_flg[0] bit 31): when Ganado 0x11 / 0x12 die, the replacements 0x13 / 0x1C /
+// 0x1D walk in (goto 0xB) to their posts and then after the player.
 static void r301_checkEmReset2()
 {
     while ((int) pG->Room_flg[0] >= 0) {
@@ -472,6 +484,7 @@ static void r301_checkEmReset2()
     }
 }
 
+// Reset wave 3 (after Room_flg[0] bit 31): when Ganado 0xF dies, 5 seconds later 0x10 / 0x15 walk in to its post.
 static void r301_checkEmReset3()
 {
     while ((int) pG->Room_flg[0] >= 0) {
@@ -632,6 +645,7 @@ static void r301_checkRockWall()
     }
 }
 
+// Shelf 0 (chest 0x2E, type 0x5B lid style 9) opens (mode 1: snap).
 void r301_openShelf_main(int no, int mode)
 {
     if (no == 0) {
@@ -639,11 +653,13 @@ void r301_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event opener: animate the shelf open.
 static void r301_openShelf(int no)
 {
     r301_openShelf_main(no, 0);
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r301_openedShelf(int no)
 {
     r301_openShelf_main(no, 1);

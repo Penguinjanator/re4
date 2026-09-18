@@ -113,6 +113,12 @@ static inline int r333_evtSkip(Event* e)
     return skip;
 }
 
+// Room init (the jet ski escape, the last room): the result id data; a fresh entry marks Ashley as
+// following and gives the jet ski key (item 0x88); JumpPoint 2 skips to the escape event. Area 0xE =
+// the key prompt with its use watcher, the (empty) shake and wind tasks; area 1 = the ride start (s00)
+// until Room_flg bit 0, area 2 = the escape (s10) until bit 1, area 4 = the way collapsing until bit 3,
+// area 0x11 = continue point until bit 2; the cave-fall effect areas (0, 0x10, 6, 8, 0xA, 0xC); the
+// collapsed objects hidden; the water render target.
 void R333Init()
 {
     int zero;
@@ -208,6 +214,8 @@ void R333Init()
     r333_work->se = SndCall(6, 6, 0, 0, 0, 0);
 }
 
+// Per frame: the escape count-down until the escape event ran (Room_flg bit 1); the exit area 0xF only
+// while Ashley can come along; debug trigger 0 plays the death camera.
 void R333Main()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -275,6 +283,9 @@ void R333EventS10()
     }
 }
 
+// Event r333s00 callback (the ride starts): the jet ski object 3 hidden and the count-down remembered;
+// cuts 0/1 set the event flags and the Leon / Ashley (pl0100) models' parts; the end shows the jet ski
+// and restarts the count-down with the event's length subtracted.
 extern "C" void Evt_R333S00_Func(Event* e)
 {
     void* mod;
@@ -317,6 +328,9 @@ extern "C" void Evt_R333S00_Func(Event* e)
     }
 }
 
+// Event r333s10 callback (the escape from the collapsing island): drops the cave effects 0xC..0x2B,
+// hides the jet ski; per cut the wall object 0xCE, the Leon / Ashley / evm8100 models and the screen
+// capture filter (alpha fading from 230 over 50 frames) on cuts 0xD/0xE; the end leads into the result.
 extern "C" void Evt_R333S10_Func(Event* e)
 {
     static int alpha = 230;
@@ -447,6 +461,7 @@ static void setTexRender()
     obj->Refract_ratio = 0x80;
 }
 
+// End of the collapse cut: camera back, SceEventEnd, area 5 (the exit) on.
 static void exec_no_ret_exit()
 {
     CamCtrl.Comeback(0);
@@ -473,18 +488,21 @@ static void exec_no_ret()
     exec_no_ret_exit();
 }
 
+// Area 0: a rock-fall effect (kind 7) with its SE.
 static void fall_eff()
 {
     SndCall(6, 0, 0, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
 }
 
+// Area 0x10: a rock-fall effect (kind 0xA) with its SE.
 static void fall_eff2()
 {
     SndCall(6, 0, 0, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
 }
 
+// Area 6: cave section A collapses (effect 5, SE 4 then 5 after 47 frames).
 static void fall_a()
 {
     EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
@@ -493,6 +511,7 @@ static void fall_a()
     SndCall(6, 5, 0, 0, 0, 0);
 }
 
+// Area 8: cave section B collapses (effect 4).
 static void fall_b()
 {
     EstSet(0, -1, 0, 0, 1, 4, 1, 0, 0, 0);
@@ -501,6 +520,7 @@ static void fall_b()
     SndCall(6, 5, 0, 0, 0, 0);
 }
 
+// Area 0xA: cave section C collapses (effect 2).
 static void fall_c()
 {
     EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
@@ -509,6 +529,7 @@ static void fall_c()
     SndCall(6, 5, 0, 0, 0, 0);
 }
 
+// Area 0xC: cave section D collapses (effect 3).
 static void fall_d()
 {
     EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
@@ -526,6 +547,8 @@ static void r333_use_exec()
     ride();
 }
 
+// Area 0xE, the jet ski: with Ashley along and the key (item 0x88) held the item screen opens to use it;
+// without Ashley the message 0x67.
 static void r333_useMes()
 {
     if (CheckDoorJumpWithAshley() == 1) {
@@ -568,6 +591,9 @@ static inline void r333_fadeWait(int no)
     }
 }
 
+// After the escape: the ending movie (movie/ending.sfd), then the GameResult screen from
+// SS/<lang>/result.dat (the unlock / omake pages when earned, the choice message) and the return to the
+// title; the Stop_flg / Disp_flg words are saved and restored around it.
 static void gameResult()
 {
     static int FADE_TIME = 15;
@@ -707,6 +733,7 @@ static void gameResult()
     pG->System_flg |= 0x04000000;
 }
 
+// Area 0x11 once (Room_flg bit 2): autosave.
 static void exec_continue()
 {
     RsfSet(G_ROOM_ID, 2);
@@ -740,6 +767,7 @@ static void exec_die()
     EffectEfmDelete(1, 4, 0);
 }
 
+// The shake task: empty in this build.
 static void yure_task()
 {
 }
@@ -756,6 +784,7 @@ static void kazekiri_task()
     }
 }
 
+// Load the result id file SS/<lang>/id333.dat (blocking DVD read) into W->idData.
 void read_id_data()
 {
     static char id_name[] = "SS/___/id333.dat";
@@ -776,6 +805,7 @@ void disp_id_data()
     IdSys.set((void*) (d->ofsId + (u32) d), 0xFF, 0x28, 0x13, 6, 0);
 }
 
+// Drop the result id table (owner 7 textures, id table 0x28).
 void erase_id_data()
 {
     IdTexRelease(7);

@@ -15,7 +15,8 @@
 #include "fade.h"
 #include "cSceObj.h"
 
-// Room 2-20 (D:/Bio4/Prog/r220.cpp): the elevator and its two doors.
+// Room 2-20 (D:/Bio4/Prog/r220.cpp): the castle elevator: two cSceObj door halves (r220_moveElevatoDoor)
+// and the ride (r220_moveElevator) up on the lever (area 3) or down when arriving from r221 / r22B.
 
 struct R220Work {
     cSceObj door[2];   // 0x000  the two door halves
@@ -34,6 +35,7 @@ static void r220_moveElevator(int dir);
 static void r220_operateElevator();
 void r220_initElevator();
 
+// Room init: clears System_flg 0x400 (room changes allowed again) and sets the elevator up.
 void R220Init()
 {
     pG->System_flg &= ~0x400;
@@ -42,6 +44,7 @@ void R220Init()
     r220_initElevator();
 }
 
+// Per-frame room main: nothing.
 void R220Main()
 {
 }
@@ -161,12 +164,15 @@ static void r220_moveElevator(int dir)
     }
 }
 
+// Area 3, the elevator lever: stop room stream 3 and ride up (dir 0).
 static void r220_operateElevator()
 {
     SndRoomStrStop(3);
     r220_moveElevator(0);
 }
 
+// Arriving from r221 / r22B (above) on a normal transition (System_flg 0x100 / 0x80000 clear): doors
+// closed and ride down (dir 1); otherwise the doors open. Area 3 becomes the elevator control (action colour).
 void r220_initElevator()
 {
     if ((pG->room_id_prev == 0x221 || pG->room_id_prev == 0x22B) && flagBit(pG->System_flg, 0x100) == 0

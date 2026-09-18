@@ -112,6 +112,9 @@ static void slide_move();
 static void setTexRender();
 static void setLadderMotion(int no);
 
+// Room init (Mercenaries: the castle): Ada's ladder motions, window 0x1E pre-broken and hidden, the
+// window break motions, the banister slide object with its motion (area 0xB); the Mercenaries system
+// with the room's messages; three duralumin case item events.
 void R403Init()
 {
     cEm* win;
@@ -210,11 +213,13 @@ void R403Init()
     SceSetItemEvent(0x2C, 0x83, 6, -1, r403_DuraluminCaseOpen, (void (*)()) r403_DuraluminCaseOpened, 0x17, 0);
 }
 
+// Item-event opener: case `no` (lid up -X) opens.
 static void r403_DuraluminCaseOpen(int no)
 {
     OpenBoxMain(OpenBoxPartsUpXM, 0, 0x5B, no, -1, -1);
 }
 
+// Item-event "already opened": case `no` posed open.
 static void r403_DuraluminCaseOpened(int no)
 {
     OpenBoxMain(OpenBoxPartsUpXM, 1, -1, no, -1, -1);
@@ -238,6 +243,7 @@ static int em_reset(int no, int chk)
     return 1;
 }
 
+// Reset group of area zone 0 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_40()
 {
     SceDebugDisp("RESET_AREA[0]");
@@ -248,6 +254,7 @@ static void reset_40()
     em_reset(0xA, 1);
 }
 
+// Reset group of area zone 1 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_41()
 {
     SceDebugDisp("RESET_AREA[1]");
@@ -258,6 +265,7 @@ static void reset_41()
     em_reset(0x10, 1);
 }
 
+// Reset group of area zone 2 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_42()
 {
     SceDebugDisp("RESET_AREA[2]");
@@ -268,6 +276,7 @@ static void reset_42()
     em_reset(0x16, 1);
 }
 
+// Reset group of area zone 3 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_43()
 {
     SceDebugDisp("RESET_AREA[3]");
@@ -278,6 +287,7 @@ static void reset_43()
     em_reset(0x1C, 1);
 }
 
+// Reset group of area zone 4 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_44()
 {
     SceDebugDisp("RESET_AREA[4]");
@@ -288,6 +298,7 @@ static void reset_44()
     em_reset(0x22, 1);
 }
 
+// Reset group of area zone 5 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_45()
 {
     SceDebugDisp("RESET_AREA[5]");
@@ -298,6 +309,7 @@ static void reset_45()
     em_reset(0x28, 1);
 }
 
+// Reset group of area zone 6 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 static void reset_46()
 {
     SceDebugDisp("RESET_AREA[6]");
@@ -308,6 +320,7 @@ static void reset_46()
     em_reset(0x2E, 1);
 }
 
+// Reset group of area zone 7 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_47()
 {
     SceDebugDisp("RESET_AREA[7]");
@@ -316,6 +329,7 @@ void reset_47()
     em_reset(0x32, 1);
 }
 
+// Reset group of area zone 8 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_48()
 {
     SceDebugDisp("RESET_AREA[8]");
@@ -326,6 +340,7 @@ void reset_48()
     em_reset(0x38, 1);
 }
 
+// Reset group of area zone 9 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_49()
 {
     SceDebugDisp("RESET_AREA[9]");
@@ -336,6 +351,7 @@ void reset_49()
     em_reset(0x3E, 1);
 }
 
+// Reset group of area zone a (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4a()
 {
     SceDebugDisp("RESET_AREA[a]");
@@ -345,6 +361,7 @@ void reset_4a()
     em_reset(0x43, 1);
 }
 
+// Reset group of area zone b (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4b()
 {
     SceDebugDisp("RESET_AREA[b]");
@@ -355,6 +372,7 @@ void reset_4b()
     em_reset(0x4A, 1);
 }
 
+// Reset group of area zone c (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4c()
 {
     SceDebugDisp("RESET_AREA[c]");
@@ -365,6 +383,7 @@ void reset_4c()
     em_reset(0x50, 1);
 }
 
+// Reset group of area zone d (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4d()
 {
     SceDebugDisp("RESET_AREA[d]");
@@ -374,6 +393,7 @@ void reset_4d()
     em_reset(0x55, 1);
 }
 
+// Reset group of area zone e (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4e()
 {
     SceDebugDisp("RESET_AREA[e]");
@@ -384,6 +404,7 @@ void reset_4e()
     em_reset(0x5C, 1);
 }
 
+// Reset group of area zone f (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_4f()
 {
     SceDebugDisp("RESET_AREA[f]");
@@ -394,6 +415,7 @@ void reset_4f()
     em_reset(0x62, 1);
 }
 
+// Reset group of area zone 10 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_50()
 {
     SceDebugDisp("RESET_AREA[10]");
@@ -404,6 +426,7 @@ void reset_50()
     em_reset(0x87, 1);
 }
 
+// Reset group of area zone 11 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_51()
 {
     SceDebugDisp("RESET_AREA[11]");
@@ -415,6 +438,7 @@ void reset_51()
     em_reset(0x6F, 1);
 }
 
+// Reset group of area zone 12 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_52()
 {
     SceDebugDisp("RESET_AREA[12]");
@@ -424,6 +448,7 @@ void reset_52()
     em_reset(0x67, 1);
 }
 
+// Reset group of area zone 13 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_53()
 {
     SceDebugDisp("RESET_AREA[13]");
@@ -434,6 +459,7 @@ void reset_53()
     em_reset(0x75, 1);
 }
 
+// Reset group of area zone 14 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_54()
 {
     SceDebugDisp("RESET_AREA[14]");
@@ -443,6 +469,7 @@ void reset_54()
     em_reset(0x7A, 1);
 }
 
+// Reset group of area zone 15 (a Room_flg[2] bit): its list entries re-set while fewer than 10 enemies are alive.
 void reset_55()
 {
     SceDebugDisp("RESET_AREA[15]");
@@ -515,6 +542,9 @@ void emset_gatling(int no)
     em.setAng(&ang);
 }
 
+// Per frame while the game runs: counts the alive Ganados (the base on the first frame), em_destroy
+// every 300 frames, the time points; the reset group of each zone the player is in (Room_flg[2] bits
+// 31 down to 10) refills; after 20 kills the first gatling gunner (0x89), after 45 the second (0x8A).
 void R403Main()
 {
     SceDebugDisp("");

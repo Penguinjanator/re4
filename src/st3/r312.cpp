@@ -7,7 +7,8 @@
 #include "sce.h"
 #include "sce_sys.h"
 
-// Room 3-12 (D:/Bio4/Prog/r312.cpp): one treasure chest.
+// Room 3-12 (D:/Bio4/Prog/r312.cpp): a small island room with a single treasure chest item event
+// (item 0x82, area 6); nothing else is scripted.
 
 struct R312Work {
     u8 dummy;
@@ -18,6 +19,7 @@ static R312Work* r312_work;
 static void OpenBoxTreasure(int id);
 static void OpenedBoxTreasure(int id);
 
+// Room init: one treasure chest item event (item 0x82 at area 6).
 void R312Init()
 {
 #line 44 "D:/Bio4/Prog/r312.cpp"
@@ -25,10 +27,12 @@ void R312Init()
     SceSetItemEvent(6, 0x82, 2, 5, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x82, 0);
 }
 
+// Per-frame room main: nothing.
 void R312Main()
 {
 }
 
+// Item-event "already opened": the chest (object 0x38, type 0x1C) posed open.
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x82) {
@@ -36,6 +40,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: the chest lid swings open.
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x82) {

@@ -33,16 +33,19 @@ static void em_set();
 static void em_set2();
 static void first_init();
 
+// Item-event opener: the duralumin case (lid up +X) opens.
 static void r40a_DuraluminCaseOpen(int id)
 {
     OpenBoxMain(OpenBoxPartsUpXP, 0, 0x18, id, 0xFFFFFFFF, -1);
 }
 
+// Item-event "already opened": the case posed open.
 static void r40a_DuraluminCaseOpened(int id)
 {
     OpenBoxMain(OpenBoxPartsUpXP, 1, -1, id, 0xFFFFFFFF, -1);
 }
 
+// Item-event opener: cabinet `id` (object pair 0x19/0x1A or 0x1B/0x1C) swings open.
 static void r40a_TanaOpen(int id)
 {
     if (id == 0x19) {
@@ -52,6 +55,7 @@ static void r40a_TanaOpen(int id)
     }
 }
 
+// Item-event "already opened": cabinet `id` posed open.
 static void r40a_TanaOpened(int id)
 {
     if (id == 0x19) {
@@ -61,6 +65,9 @@ static void r40a_TanaOpened(int id)
     }
 }
 
+// Room init (Assignment Ada, the storage room): Debug_flg[1] 0x00020000, enemy 0x1F pre-read; area 5 =
+// the Ganado group and the item-taken watcher; coming from r407 Ganado 0x65 waits alerted, coming from
+// r406 the first-visit setup; the case and two cabinet item events.
 void R40aInit()
 {
 #line 74 "D:/Bio4/Prog/r40a.cpp"
@@ -83,6 +90,7 @@ void R40aInit()
     SceSetItemEvent(0xA, 0x83, 3, 7, r40a_TanaOpen, (void (*)()) r40a_TanaOpened, 0x1B, 0);
 }
 
+// Per-frame room main: nothing.
 void R40aMain()
 {
 }

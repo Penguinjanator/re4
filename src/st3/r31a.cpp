@@ -10,7 +10,8 @@
 #include "sce_at.h"
 #include "esp.h"
 
-// Room 3-1a (D:/Bio4/Prog/r31a.cpp): the elevator between r318 and this floor.
+// Room 3-1a (D:/Bio4/Prog/r31a.cpp): the upper floor of the elevator from r318 (the laser corridor):
+// sce_com's SceElevator with the arrive / leave data tables, area 0 rides back down.
 
 struct R31aWork {
     u8 dummy;
@@ -40,6 +41,8 @@ static R31aWork* r31a_work;
 static SceElevatorData r31a_elvArrive = {2, 0, {3250.0f, -578.0f, 0.0f}, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 1, 0, 2, 0, 1, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 0x318};
 static SceElevatorData r31a_elvLeave = {3, 0, {3250.0f, -578.0f, 0.0f}, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 1, 0, 0, 0, 1, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 0x318};
 
+// Room init: no water splashes; area 0 = the elevator back down to r318 (SceElevator, action colour);
+// arriving from r318 by a normal transition plays the elevator's arrival ride.
 void R31aInit()
 {
 #line 63 "D:/Bio4/Prog/r31a.cpp"
@@ -52,6 +55,7 @@ void R31aInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R31aMain()
 {
 }

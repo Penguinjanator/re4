@@ -109,6 +109,13 @@ static void (*r105_markTbl[4])() = {
     r105_markEnd,
 };
 
+// Room init (debug trigger 1 re-arms the dial puzzle). Registers the s00/s10/s99 event callbacks, five
+// shelf/box item events (items 0x92/0x93/0x94/0x88/0x8B), the key-item camera show at area 0x1A once
+// (Room_flg bit 12), BGM task, floor hit effects; area 1 = the locked front door until door_unlock[0]
+// 0x02000000 (else object 0x23 hidden); the dial puzzle on area 6 until Room_flg bit 0 (else the door
+// parts are removed). Bit 1 = s00 seen (else pre-load r105s00), bit 2 = s10 seen (window 5 broken, area
+// 0x17 on; else pre-load r105s10 after s00); after s00 the Ganado wave (r105_EmSet) and the terminal
+// once (bit 11). Window 5 takes no damage; door 1 light mask 4; then the cesspit setup.
 void R105Init()
 {
     cEm* win;
@@ -181,6 +188,8 @@ void R105Init()
     SceExec(0x12, r105_initCesspit, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per frame: when the key item (item_flags[0] 0x20000000) is picked up for the first time
+// (Room_flg[0] 0x40000000), arm area 8 with the s00/s10 event and close-lock door 1.
 void R105Main()
 {
     cEm* door;
@@ -198,6 +207,8 @@ void R105Main()
     }
 }
 
+// Item-event "already opened": pose the shelf/box of item `id` open (OpenBoxMain per item: 0x92 shelf
+// type 0x19, 0x94/0x8B type 0x1A, 0x88 drawer down, 0x93 slide -500 X).
 static void r105_movedShelf(int id)
 {
     if (id == 0x92) {
@@ -217,6 +228,7 @@ static void r105_movedShelf(int id)
     }
 }
 
+// Item-event opener: animate the shelf/box of item `id` open (same table as r105_movedShelf).
 static void r105_moveShelf(int id)
 {
     if (id == 0x92) {
@@ -263,6 +275,7 @@ static void r105_mark()
     }
 }
 
+// Dial puzzle state 0: event start, camera cut 1 on the door emblem, the "turn?" message (0x20), -> state 1.
 static void r105_markInit()
 {
     R105Mark* mk = &r105_work->mk;
@@ -279,6 +292,9 @@ static void r105_markInit()
     r105_work->sub = 0;
 }
 
+// Dial puzzle state 1. sub 0: message 0x220/0x2A0 asks the turn direction (1/2 = about X +/-, 3/4 =
+// about Y -/+; -1/5/6 = leave -> state 3). sub 1: turn the emblem 4 degrees a frame to 90, then bake the
+// matrix; r105_markOpenCk true (emblem upright or half-turned) -> message 3/0x20 and state 2 (open).
 static void r105_markMain()
 {
     R105Mark* mk = &r105_work->mk;
@@ -401,6 +417,8 @@ extern "C" int r105_markOpenCk()
     return 0;
 }
 
+// Dial puzzle state 2: camera cut 5 with the door SE, the four door parts slide 22.2 units a frame
+// (sub 1) until the door is out of the way, then remove them, set Room_flg bit 0, wait for the camera.
 static void r105_markOpen()
 {
     R105Mark* mk = &r105_work->mk;
@@ -455,12 +473,14 @@ static void r105_markOpen()
     }
 }
 
+// Dial puzzle state 3: end the event and kill the puzzle task.
 static void r105_markEnd()
 {
     SceEventEnd(0);
     SceExit();
 }
 
+// Door already solved: hide the four door parts (smd 0x20/0x21/0x22/0x32) and disable area 7.
 extern "C" void r105_markDoorOpen()
 {
     SmdSetTrans(0x20, 0);
@@ -470,6 +490,8 @@ extern "C" void r105_markDoorOpen()
     SceAtSetEnable(7, 0);
 }
 
+// Puzzle setup: the emblem objects (smd 0x21/0x22) get a rest matrix rotated 90 deg about Y then -90 deg
+// about X, copied into their l_mat / mat.
 extern "C" void r105_markMtxInit()
 {
     R105Mark* mk = &r105_work->mk;
@@ -508,6 +530,7 @@ extern "C" void r105_markMtxInit()
         (v) = 0.0f;       \
     }
 
+// Snap the 3x3 rotation of `m` to exact 0 / +-1 after a 90 degree turn (kills float drift).
 extern "C" void r105_markMtxClean(cObj* obj, Mtx m)
 {
     R105_MTX_CLEAN(m[0][0]);
@@ -567,12 +590,15 @@ static void r105_Event()
     }
 }
 
+// Once (Room_flg bit 11): open the typewriter terminal 5 at the fixed position/angle.
 static void r105_openTerm()
 {
     RsfSet(G_ROOM_ID, 11);
     OpeSetOpenTerm(5, 6630.0f, 6344.0f, 2664.0f, -0.58f);
 }
 
+// The Ganado wave after the s00 event: ESL 0x64..0x66, 0x68, 0x69, 0x6B..0x6E, 0x59 into em[], plus the
+// battle-stream task.
 extern "C" void r105_EmSet()
 {
     r105_work->em[0].setEm(0x64, -1, 0, 1, 1);
@@ -591,6 +617,8 @@ extern "C" void r105_EmSet()
 // Battle stream: starts while an enemy sees the player, fades out otherwise.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Battle stream task: Room_flg[0] 0x10000000 mirrors SceCkFindPL; on the rising edge start stream 2
+// (stopping the room BGM if 0x20000000 says it plays), on the falling edge fade it out over 600 frames.
 static void r105_StreanChk()
 {
     static const f32 vol = 0.0f;
@@ -622,6 +650,7 @@ static void r105_StreanChk()
     }
 }
 
+// Marks Room_flg[0] 0x20000000 (room BGM) off at start (the stream task uses it).
 static void r105_bgmCheck()
 {
     pG->Room_flg[0] &= ~0x20000000;
@@ -644,6 +673,8 @@ static void r105_checkDoor()
     SceEventEnd(0);
 }
 
+// Event r105s00 callback: funcMode 0 shows etc model 1; cuts 0xA..0xC toggle model info 3 (a held item)
+// of the Leon model pl0000 off / on.
 extern "C" void Evt_R105S00_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -685,6 +716,9 @@ extern "C" void Evt_R105S00_Func(Event* e)
     }
 }
 
+// Event r105s10 (and s99) callback, Ashley (pl0200): her model info 5 hidden on cut 0 frame 15 and shown
+// from cut 1; cut 0 shows etc model 1 and evm2500; cuts 0x13/0x14 swap Ashley's parts (the alternate
+// costume model pl8200 when game_costume == 1); funcMode 2 (end) restores etc model 1's display.
 extern "C" void Evt_R105S10_Func(Event* e)
 {
     void* mod;
@@ -884,6 +918,9 @@ static inline void r105_setItemModel(SceAtWork* at)
     }
 }
 
+// Cesspit state 0 (cover still on, Room_flg bit 4 clear): once the item is found (bit 5) move its model
+// onto the lid; when the cover comes off, retarget the find SE, enable area 0x11, arm the cover-open
+// prompt on area 0xC and fall through to state 1.
 extern "C" void r105_checkCesspit0()
 {
     SceAtWork* at = SceAtPtr(0x8D);
@@ -909,6 +946,9 @@ extern "C" void r105_checkCesspit0()
     r105_checkCesspit1();
 }
 
+// Cesspit state 1 (cover off, lid closed, bit 3 clear): toggles the open prompt (area 0xC) with the item
+// found / taken flags (Room_flg[0] 0x04000000 / 0x02000000); when the lid opens (bit 3) the item sits on
+// the lid; exits if the item is already taken, else state 2.
 extern "C" void r105_checkCesspit1()
 {
     SceAtWork* at = SceAtPtr(0x8D);
@@ -947,6 +987,7 @@ extern "C" void r105_checkCesspit1()
     r105_checkCesspit2();
 }
 
+// Cesspit state 2 (lid open): waits for the item to be found and moves its model onto the lid once (bit 5).
 extern "C" void r105_checkCesspit2()
 {
     SceAtWork* at = SceAtPtr(0x8D);
@@ -961,6 +1002,8 @@ extern "C" void r105_checkCesspit2()
     }
 }
 
+// Cesspit setup from the saved state: bit 4 clear -> cover on (hit box + state 0 task); bit 4 set, bit 3
+// clear -> cover off, lid closed (open prompt, state 1); bit 3 set -> lid open (state 2).
 static void r105_initCesspit()
 {
     SceAtWork* at = SceAtPtr(0x8D);

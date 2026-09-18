@@ -118,6 +118,12 @@ static void r205_TreasureBoxOpen(int id);
 static void r205_TreasureBoxOpened(int id);
 static void r205_ContinuePointSet();
 
+// Room init (the pendulum pit): Status_flg[1] 0x400; area 0x1C = continue point once (Room_flg bit 12);
+// the render-textured object; until the drain (bit 0) area 8 = the drain lever with the flooded layout
+// and water hit effects, else the drained layout; area 3 = the first enemy cutscene once (bit 9); the
+// pendulum task and the four blade death areas (6/0xA/0xB/0x12); the two starting Ganados 0x6C/0x6D and
+// the already-spawned waves per r205_rsfTbl; doors 0x13/0x14 close-locked until their wave (bits 7/2);
+// battle stream; treasure boxes.
 void R205Init()
 {
     // The work address is taken before the calloc call (`lis` above the `bl`, as the plain-pointer
@@ -202,6 +208,9 @@ void R205Init()
     SceSetItemEvent(5, 0x8E, 0xB, 0xB, r205_TreasureBoxOpen, (void (*)()) r205_TreasureBoxOpened, 0x8B, 0);
 }
 
+// Per frame: player OT type 5 (water); marks each wave Ganado dead once it stops being active; records
+// the player's zone in Room_flg[2] (0x20000000 area 0xC, 0x40000000 areas 0xD/0xE, 0x80000000 areas
+// 0xF/0x10) and runs the five wave checks.
 void R205Main()
 {
     u32 i;
@@ -243,6 +252,7 @@ void R205Main()
     }
 }
 
+// Wave 0x69 (Room_flg bit 2): once Ganado 0x6C is dead, spawn it alerted and have door 0x14 open toward it; area 0x22 while pending.
 void r205_Em105AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -260,6 +270,7 @@ void r205_Em105AppearCheck()
     }
 }
 
+// Wave 0x6A (bit 3): in the far zone (Room_flg[2] bit 31) once Ganados 0x68 and 0x6D are dead.
 void r205_Em106AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -272,6 +283,7 @@ void r205_Em106AppearCheck()
     }
 }
 
+// Wave 0x6B (bit 4): in the middle zone (0x40000000) after waves 2 and 7, when at most one enemy stands in areas 0xD/0xE.
 void r205_Em107AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
@@ -286,6 +298,7 @@ void r205_Em107AppearCheck()
     }
 }
 
+// Wave 0x6E (bit 6): in the near zone (0x20000000) after the drain, when at most one enemy stands in area 0xC.
 void r205_Em110AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -300,6 +313,8 @@ void r205_Em110AppearCheck()
     }
 }
 
+// Wave 0x6F (bit 7): after the drain, with Room_flg[0] bit 31, once Ganado 0x6C is dead: spawn alerted
+// and door 0x13 opens toward it; area 0x21 while pending.
 void r205_Em111AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
@@ -321,6 +336,7 @@ void r205_Em111AppearCheck()
     }
 }
 
+// Area 0x1B after the drain (bit 8): Ganado 0x58 spawns alerted.
 static void r205_Em88Appear()
 {
     RsfSet(G_ROOM_ID, 8);
@@ -479,6 +495,9 @@ static void r205_ExecDieDemo(R205Pend* p)
     CamCtrl.be_flag |= 4;
 }
 
+// Area 8, the drain lever: camera cut 2 and the yes/no message 0; yes -> Room_flg bit 0, the lever
+// areas off, camera cut 7 with stream 0 while the water drains (effects, sea display flags swapped);
+// player-cancellable via r205_DrainEventEnd.
 static void r205_DrainEvent()
 {
     SceEventStart(0);
@@ -513,6 +532,8 @@ static void r205_DrainEvent()
     }
 }
 
+// End of the drain: drop the effect, camera back, SceEventEnd, Room_flg bit 1, Ganado 0x68 spawns, area
+// 0x11 on, stream volume restored, area 0x15 off, area 0x1B = the 0x58 wave.
 static void r205_DrainEventEnd()
 {
     EffectEspDelete(1, 3, 0, 0);
@@ -553,6 +574,7 @@ static void r205_StrCheck()
     }
 }
 
+// The render target blended over scroll object 0 (the water) with refraction shader 2.
 static void setTexRender()
 {
     cObj* obj;
@@ -577,6 +599,8 @@ static void setTexRender()
     obj->Refract_ratio = 0x40;
 }
 
+// Area 3 once (Room_flg bit 9), after the player finished his action: cutscene camera cut 9 with an
+// effect showing the enemy (Stop_flg / Disp_flg bits cleared); player-cancellable.
 static void r205_EnemyAppear()
 {
     void* zero;
@@ -600,6 +624,7 @@ static void r205_EnemyAppear()
     r205_EnemyAppearEndProc();
 }
 
+// End of the enemy cutscene: drop the effect, camera back, SceEventEnd, Ganado 0x70 spawns.
 static void r205_EnemyAppearEndProc()
 {
     EffectEspDelete(1, 3, 0, 0);
@@ -611,21 +636,25 @@ static void r205_EnemyAppearEndProc()
     setEm(0x70, -1, 1, 1, 1);
 }
 
+// Room exit hook: select BGM table 0x204 for the next room.
 static void r205_RoomExitFunc()
 {
     SndBgmTblSet(0x204, 1);
 }
 
+// Item-event opener: chest `id` lid up (-X).
 static void r205_TreasureBoxOpen(int id)
 {
     OpenBoxMain(OpenBoxUpXM, 0, 0x5B, id, -1, -1);
 }
 
+// Item-event "already opened": chest `id` posed open.
 static void r205_TreasureBoxOpened(int id)
 {
     OpenBoxMain(OpenBoxUpXM, 1, 0x5B, id, -1, -1);
 }
 
+// Area 0x1C once (Room_flg bit 12): autosave (continue point).
 static void r205_ContinuePointSet()
 {
     RsfSet(G_ROOM_ID, 12);

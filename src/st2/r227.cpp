@@ -100,6 +100,11 @@ static void Evt_R227S00_Func(Event* e);
 static void Evt_R227S01_Func(Event* e);
 static void Evt_R227S02_Func(Event* e);
 
+// Room init: JumpPoint 2 skips the entrance event (Room_flg bit 0); the lever (etc switch 4) is a
+// barrel-type auto-open switch; debug trigger 1 replays the event. First visit: a coin toss (Room_flg[0]
+// 0x40000000) picks which follow-up event (s01 / s02) the entrance QTE leads to, the three evd files
+// are pre-loaded and the event task starts; else the enemies (r227_setEm1) and, unless bit 6, the
+// return layout. The gondola, the cargo lift, two shelf item events.
 void R227Init()
 {
 #line 57 "D:/Bio4/Prog/r227.cpp"
@@ -146,10 +151,12 @@ void R227Init()
     SceSetItemEvent(0x12, 0x85, 5, 0xA, r227_openShelf, (void (*)()) r227_openedShelf, 1, 0);
 }
 
+// Per-frame room main: nothing.
 void R227Main()
 {
 }
 
+// Shelf `id` (chest 0xBC / 0xA1, parts lid up -X) opens (opened: snap).
 void r227_openShelf_main(int id, int opened)
 {
     switch (id) {
@@ -162,11 +169,13 @@ void r227_openShelf_main(int id, int opened)
     }
 }
 
+// Item-event opener: animate shelf `id` open.
 static void r227_openShelf(int id)
 {
     r227_openShelf_main(id, 0);
 }
 
+// Item-event "already opened": pose shelf `id` open.
 static void r227_openedShelf(int id)
 {
     r227_openShelf_main(id, 1);
@@ -254,6 +263,7 @@ static void r227_checkBox1Fall()
     cEmRackSetBreakV((cEmRack*) r227_work.p->rack[1], &r227_work.p->rack[1]->pos);
 }
 
+// Clear the list of enemies watched for falling off the lift.
 void r227_initEmFall()
 {
     u32 i;
@@ -263,6 +273,7 @@ void r227_initEmFall()
     }
 }
 
+// Add a live enemy to the fall watch list (first free of 16 slots).
 void r227_setEmFall(cEm* em)
 {
     if (em) {
@@ -307,6 +318,7 @@ static void r227_checkEmFall()
     }
 }
 
+// If the enemy may be reset, reset it onto the lift, count it and wait half a second; 1 when it was.
 int r227_resetEmOnElv2(cEmWrap* em)
 {
     if (em->ckResetEnable() == 0) {
@@ -512,6 +524,9 @@ static void r227_operateElv()
     SceAtSetEnable(0x10, 0);
 }
 
+// The cargo lift: the platform 0xE3 and cage 0xD6 (script-moved, start heights kept), areas 0x13 and
+// 0xA..0xD parented to the platform, its collision / attribute pieces, the crates riding it and the
+// two crate racks, then the lever area and the lift state per the saved flags.
 void r227_initCargoElv()
 {
     r227_work.p->elv = SmdGetObjPtr(0xE3);
@@ -709,6 +724,8 @@ static void r227_setEm2()
     }
 }
 
+// The room's enemies after the event: module 0x14 pre-read; area 4 = the lever-side group until Room_flg
+// bit 7, area 9 = the far-side group until bit 8 (else the far side is set at once).
 void r227_setEm1()
 {
     EmReadSearch(0x14, 0, 0);
@@ -722,6 +739,8 @@ void r227_setEm1()
     }
 }
 
+// The gondola (object 0xA2): a cSceObj move1 of 6850 up over 140 frames with 20 % accel / decel and a
+// shake; areas 5/6 = ride each way; arriving from r228 (or by jump) it starts at the top (reverse).
 void r227_initGondola()
 {
     cObj* obj;
@@ -876,11 +895,15 @@ static void r227_execEvent00()
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 
+// QTE success callback of the entrance event: Room_flg[0] bit 31.
 static void r227_succeedAction()
 {
     pG->Room_flg[0] |= 0x80000000;
 }
 
+// Event r227s00 callback (the entrance): status 3, cancel cut 10; cut 0 light masks on evm5100 /
+// evmd900; cut 0xB starts the action-button QTE (0x25, variant by the coin toss) whose success sets
+// Room_flg[0] bit 31; later cuts set the models' flags.
 static void Evt_R227S00_Func(Event* e)
 {
     int v;
@@ -980,6 +1003,8 @@ static void Evt_R227S00_Func(Event* e)
     }
 }
 
+// Event r227s01 callback (the QTE passed): cut 0 swaps scroll objects 0xA -> 0xF8 and hands 0xF8
+// (scr0000) to the event; per-cut model flags; the end restores the objects.
 static void Evt_R227S01_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -1054,6 +1079,8 @@ static void Evt_R227S01_Func(Event* e)
     }
 }
 
+// Event r227s02 callback (the QTE failed, Leon dies): Leon's parts 2/6 hidden on cuts 0/1; the end
+// (StatusFlag 0x4000 clear) runs the death demo.
 static void Evt_R227S02_Func(Event* e)
 {
     void* mod;

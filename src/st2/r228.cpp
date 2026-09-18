@@ -86,6 +86,8 @@ static inline int r228_evtSkip(Event* e)
     return skip;
 }
 
+// Room init (Salazar's throne room): the two room render targets, the s00/s01/s02 callbacks, the fight
+// effect kind, the event chain / fight setup (r228_initEvent00), and an event render target with its effect.
 void R228Init()
 {
 #line 57 "D:/Bio4/Prog/r228.cpp"
@@ -100,6 +102,7 @@ void R228Init()
     EstSet(0, -1, 0, 0, 1, 3, r228_work.p->texEvt->mask | 0x3001, 0, 0, 0);
 }
 
+// Per-frame room main: nothing.
 void R228Main()
 {
 }
@@ -281,6 +284,10 @@ static void r228_execEvent00()
     SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Fetch the throne-room objects 0x76..0x79. Before the event (Room_flg bit 0): pre-load r228s00 to MRAM,
+// area 7 = the event, area 8 off, objects 1/0x76/0x78 shown (the intact throne), item area 0x8C off.
+// After it: area 8 on, objects 0x77/0x79 (the transformed set) shown, and unless bit 1 (boss dead) the
+// fight watcher and Salazar's look-down.
 void r228_initEvent00()
 {
     r228_work.p->obj76 = SmdGetObjPtr(0x76);
@@ -345,6 +352,9 @@ static inline void r228_evtEffectSet()
     }
 }
 
+// Event r228s00 callback (Salazar's speech, part 1): the shared effect setup; cut 0 hides object 1 and
+// flags evma400a (shadow camera zeroed), frame 1 pre-loads r228s01 (Room_flg[0] 0x00200000); fades near
+// the ends of cuts 2 and later; the end mode hands over to s01.
 extern "C" void Evt_R228S00_Func(Event* e)
 {
     void* mod;
@@ -429,6 +439,8 @@ extern "C" void Evt_R228S00_Func(Event* e)
     }
 }
 
+// Event r228s01 callback (part 2): as s00 for cut 0 (pre-loads r228s02, Room_flg[0] 0x00100000) with
+// fade in/out at frames 0/1; the end hands over to s02.
 extern "C" void Evt_R228S01_Func(Event* e)
 {
     void* mod;
@@ -477,6 +489,9 @@ extern "C" void Evt_R228S01_Func(Event* e)
     }
 }
 
+// Event r228s02 callback (part 3, the throne transforms): object 0x25 hidden during cut 5; cut 0 hands
+// scroll object 1 (scr0000) to the event; later cuts swap the throne objects 0x76/0x78 -> 0x77/0x79 and
+// set the event models' flags; the end restores the room for the fight.
 extern "C" void Evt_R228S02_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -579,6 +594,7 @@ extern "C" void Evt_R228S02_Func(Event* e)
     obj->pModelInfo->setTexBlendTbl(tbl);         \
     obj->pModelInfo->setBlendRatio(0xFF);
 
+// The two render targets blended over scroll objects 2 and 3 (R228_TEX_OBJ), with their capture effects.
 void setTexRender()
 {
     cObj* obj;

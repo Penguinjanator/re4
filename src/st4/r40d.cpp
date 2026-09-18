@@ -54,6 +54,11 @@ void r40d_setDoorEff(int no, int on);
 static void r40d_execDoorLock_end();
 static void r40d_execDoorLock();
 
+// Room init (the terminal room): the two barred doors and three effect kinds; until the terminal was
+// used (Room_flg bit 0) both doors show the locked effect, area 2 = the terminal, areas 3/4 off; after
+// it door 1's exit hook switches the next room's enemies (bit 5), the door effects per bits 1/2, the
+// waves A/B/C per bits 2/3/4 and the terminal SE; the key item (area 0x81, camera on area 7) until
+// taken; the shelf item event.
 void R40dInit()
 {
 #line 35 "D:/Bio4/Prog/r40d.cpp"
@@ -108,10 +113,12 @@ void R40dInit()
     SceSetItemEvent(8, 0x83, 6, 5, r40d_openShelf, (void (*)()) r40d_openedShelf, 1, 0);
 }
 
+// Per-frame room main: nothing.
 void R40dMain()
 {
 }
 
+// Shelf 1 (duralumin case 0x30, lid up +Z) opens (mode 1: snap).
 void r40d_openShelf_main(int no, int mode)
 {
     if (no == 1) {
@@ -119,11 +126,13 @@ void r40d_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r40d_openedShelf(int no)
 {
     r40d_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate the shelf open.
 static void r40d_openShelf(int no)
 {
     r40d_openShelf_main(no, 0);
@@ -164,6 +173,7 @@ static void r40d_getItem()
     SceEventEnd(0);
 }
 
+// Wave A once (Room_flg bit 2): four alerted Ganados (0x95..0x98) after the terminal.
 void r40d_setEmA()
 {
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -175,6 +185,7 @@ void r40d_setEmA()
     }
 }
 
+// Wave B once (bit 3): three Ganados (0x9A..0x9C) after the doors lock.
 void r40d_setEmB()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -185,6 +196,7 @@ void r40d_setEmB()
     }
 }
 
+// Wave C once (bit 4): three Ganados (0x90..0x92) when the player reaches area 5.
 void r40d_setEmC()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
@@ -195,6 +207,7 @@ void r40d_setEmC()
     }
 }
 
+// Task: wave C when the player enters area 5.
 static void r40d_checkEmSetC()
 {
     while (SceAtHitCheck(5) != 1) {
@@ -203,6 +216,8 @@ static void r40d_checkEmSetC()
     r40d_setEmC();
 }
 
+// End of the terminal event (also its cancel path): both door effects to "locked", camera back, the SE
+// task killed, SceEventEnd, wave A and the wave-C watcher.
 static void r40d_operateTerminal_end()
 {
     r40d_setDoorEff(0, 1);
@@ -270,6 +285,7 @@ static void r40d_operateTerminal()
     }
 }
 
+// Task: the terminal's beep (SE 9) every 30 frames at its position.
 static void r40d_callTerminalSe()
 {
     SceSleep(1);
@@ -316,6 +332,8 @@ void r40d_setDoorEff(int no, int on)
     }
 }
 
+// End of the door-lock event (also its cancel path): both door effects to "open", camera back,
+// SceEventEnd, wave B, the terminal SE task.
 static void r40d_execDoorLock_end()
 {
     r40d_setDoorEff(0, 0);

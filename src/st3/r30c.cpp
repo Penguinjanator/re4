@@ -79,6 +79,11 @@ static void r30c_ItemBoxOpened(int no);
 static void r30c_StrStart();
 static void r30c_StrCheck();
 
+// Room init (Ashley's cell): door 1 takes key item 0x13; until unlocked (door_unlock[0] 0x1000) area 3 =
+// the cell door with its key watcher. Until the s00 event (Room_flg bit 0): it is pre-loaded (enemy of
+// ESL 0x40), Ashley initialised and locked in the cell (mode 5) with her shout task and, on the first
+// visit of the stage, the cell cut on area 5; after it: until the plane crashed (bit 3) area 6 = the
+// plane with its stream; the battle stream. One item box; the plane's item area 0x82 only after the crash.
 void R30cInit()
 {
     // The store's address is computed before the calloc call (a reference bound first): the `li r5`
@@ -158,6 +163,7 @@ void R30cInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R30cMain()
 {
 }
@@ -173,6 +179,7 @@ static void r30c_checkImprisonDoorKeyUse()
     SceUpCut(1, -1, 1, 0);
 }
 
+// Area 3, the cell door: up-cut 0 without the key; with the key (item 0x83) up-cut 3 and the item screen to use it.
 static void r30c_checkImprisonDoor()
 {
     if (ItemMgr.num(0x83) == 0) {
@@ -227,6 +234,7 @@ static void R30cEventS00()
     }
 }
 
+// Event r30cs00 callback: the pl0100 model's status flag 0x40 on for cut 0 and off from cut 1.
 void Evt_R30CS00_Func(Event* e)
 {
     if (e->funcMode == 1) {
@@ -275,6 +283,8 @@ static void r30c_EventCut()
     r30c_EventCutEndProc();
 }
 
+// End of the cell cut: camera back, Ashley and the two Ganados may suspend, SceEventEnd, the shout
+// task resumes, Scenario_flg[1] 0x00080000.
 static void r30c_EventCutEndProc()
 {
     CamCtrl.Comeback(0);
@@ -371,6 +381,9 @@ static void r30c_PlaneMove()
     r30c_PlaneMoveEndProc(obj);
 }
 
+// End of the plane crash (also its cancel path, Room_flg[0] bit 31 = snap the plane to its last motion
+// frame): camera back, SceEventEnd, the item area 0x82 inside the plane enabled and linked to it, five
+// Ganados (list 6) spawn, area 8 = start the battle stream.
 static void r30c_PlaneMoveEndProc(cObj* obj)
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -401,16 +414,19 @@ void r30c_LinkObjItemAt(int no, cObj* obj)
     }
 }
 
+// Item-event opener: the box (objects 0xF/0x10, type 6) swings open.
 static void r30c_ItemBoxOpen(int no)
 {
     OpenBoxMain(0, 0, 6, 0xF, 0x10, -1);
 }
 
+// Item-event "already opened": the box posed open.
 static void r30c_ItemBoxOpened(int no)
 {
     OpenBoxMain(0, 1, 6, 0xF, 0x10, -1);
 }
 
+// Area 8: start the battle-stream watcher.
 static void r30c_StrStart()
 {
     SceExec(0x12, (TaskFunc) r30c_StrCheck, 0, 0, 2, 0);

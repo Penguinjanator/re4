@@ -50,6 +50,9 @@ static inline int r331_evtSkip(Event* e)
     return skip;
 }
 
+// Room init: the s00 / s10 callbacks; until Room_flg bit 0 area 3 = the s00 event (pre-loaded). With
+// Scenario_flg[0] 0x200 (the count-down phase): BGM table 0x331 set 2 and the s10 event task, the
+// count-down resumed; else BGM table 3 enabled.
 void R331Init()
 {
 #line 58 "D:/Bio4/Prog/r331.cpp"
@@ -70,11 +73,14 @@ void R331Init()
     }
 }
 
+// Per frame: the island count-down check (time over -> the death demo).
 void R331Main()
 {
     st3_checkCountDown();
 }
 
+// Area 3 once (Room_flg bit 0): event r331s00 (Leon and Ashley board the mine cart): Ashley marked as
+// separated (Status_flg[3] bit 31, following off), then a room jump to r332 at the cart start.
 static void R331ExecEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -96,6 +102,8 @@ static void R331ExecEventS00()
     }
 }
 
+// Once (Room_flg bit 1) in the count-down phase: event r331s10, Ashley following again, BGM table
+// 0x331 set 1 with both BGMs started, then a room jump to r333.
 static void R331ExecEventS10()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -119,6 +127,8 @@ static void R331ExecEventS10()
     }
 }
 
+// Event r331s00 callback: cut 0 hands scroll object 0x24 (scr0000) to the event; cut 4 fades out unless
+// the event is skipped; the end restores the object.
 extern "C" void Evt_R331S00_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -164,6 +174,9 @@ extern "C" void Evt_R331S00_Func(Event* e)
     }
 }
 
+// Event r331s10 callback: remembers the count-down at the start; cut 0 hands scroll object 0x24 to the
+// event with a fade-in, cut 2 fades out; the end restores the object and restarts the count-down with
+// the event's length subtracted.
 extern "C" void Evt_R331S10_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};

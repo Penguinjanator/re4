@@ -112,6 +112,10 @@ extern "C" void Evt_R10BSXX_Func_Pl0f(Event* e);
 extern "C" void Evt_R10BSXX_Func_Em2f(Event* e);
 static void r10b_setEm();
 
+// Room init (the lake, Del Lago): System_flg 0x800, the water-follow task, water hit effects; area 4 =
+// the cliff event once (Room_flg bit 0); event units 1..4 pre-read into the boss module's block; the
+// s00/s10/s20/s21/s22 callbacks; the four floating islands and the six tentacle-head objects are
+// created at fixed positions; the boat enemy (ESL 0xA2), the boss module and the death watcher.
 void R10bInit()
 {
     void* zero = 0;
@@ -205,6 +209,7 @@ void R10bInit()
     r10b_setEm();
 }
 
+// Per-frame room main: nothing.
 void R10bMain()
 {
 }
@@ -256,6 +261,8 @@ fail:
     return 0;
 }
 
+// Release event unit `no`: swap the boss (0x2F) module's archive back over the event data it had been
+// loaded into, pop the effect data swap, and clear the unit.
 extern "C" void freeEvent(int no)
 {
     if (r10b_work->evt[no] != 0) {
@@ -326,6 +333,7 @@ static void R10b_chkEmDie()
     }
 }
 
+// Drop the room's effect kind `kind` in all three effect systems (esp / espgen / efm).
 static inline void r10b_effDelete(int kind)
 {
     EffectEspDelete(0, kind, 0, 0);
@@ -445,6 +453,10 @@ static void r10b_GakeEvent()
     }
 }
 
+// Event r10bs00 callback (the boat trip out, the boss shows itself): funcMode 0 keeps islands 0/2
+// updating; cut 0 sets up the boat player and boss stand-ins; cuts 1/3/7 create the binocular view
+// (IdBinocular + FocusAnimation) once per Status_flg[0] 0x400 and point it at the cut's target; the
+// end releases them.
 extern "C" void Evt_R10BS00_Func(Event* e)
 {
     void* mod;
@@ -582,6 +594,9 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
     }
 }
 
+// Event r10bs10 callback (the boss death / harpoon finish): funcMode 0 optionally clears the boat
+// effects (debug flag); cut 3 parents the kind-1 light to Leon; the tentacle heads are animated by
+// em2fTentacleMove per cut; the end restores the room state.
 extern "C" void Evt_R10BS10_Func(Event* e)
 {
     void* mod;
@@ -670,6 +685,9 @@ extern "C" void Evt_R10BS10_Func(Event* e)
     }
 }
 
+// Event r10bs20 callback (the boss drags the boat: the rope QTE): status 3, cancel cut 9; cut 0 sets the
+// stand-ins and hides Leon's parts 2/6; cut 9 frame 100 starts the action-button prompt 0x29 that the
+// count in W->count scores; the outcome selects s21 (escaped) or s22 (pulled under).
 extern "C" void Evt_R10BS20_Func(Event* e)
 {
     void* mod;
@@ -719,6 +737,8 @@ extern "C" void Evt_R10BS20_Func(Event* e)
     }
 }
 
+// Event r10bs21 callback (QTE passed: Leon cuts the rope): boat stand-in setup on cut 0, sea area flag
+// 0x800 restored at the end.
 extern "C" void Evt_R10BS21_Func(Event* e)
 {
     void* mod;
@@ -751,6 +771,8 @@ extern "C" void Evt_R10BS21_Func(Event* e)
     }
 }
 
+// Event r10bs22 callback (QTE failed: Leon is pulled into the lake, game over): hides object 0x59, the
+// boat stand-in on cut 0, Leon's parts per cut.
 extern "C" void Evt_R10BS22_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -818,6 +840,7 @@ extern "C" void Evt_R10BSXX_Func_Pl0f(Event* e)
     }
 }
 
+// Fetch the boss event model em2f00 (the lookup registers it with the event; the pointer is unused).
 extern "C" void Evt_R10BSXX_Func_Em2f(Event* e)
 {
     void* mod;

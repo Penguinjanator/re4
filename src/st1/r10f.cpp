@@ -76,6 +76,11 @@ static void r10f_LockerOpened(int id);
 static void r10f_TreasureBoxOpen(int id);
 static void r10f_TreasureBoxOpened(int id);
 
+// Room init: the three locked doors (area 2 = the false-eye door with its key-use watcher, area 0 -> door
+// 0x11D, area 3 -> 0x11E, each until its door_unlock[0] bit), ten cObjGondola cars with their loop
+// motions phase-shifted by 0x1C2 frames and per-car sub-motion works; area 7/8 = get on (side 0/1);
+// until Room_flg bit 0 (the ride done) area 9 = get off at side 1 and Ganados 0x32/0x35 get their
+// gondola-riding motions. Window 0xC starts broken; three locker item events and one treasure box.
 void R10fInit()
 {
     Vec pos;
@@ -146,6 +151,7 @@ void R10fInit()
     SceSetItemEvent(0xE, 0x87, 4, 0x10, (void (*)(int)) r10f_TreasureBoxOpen, (void (*)()) r10f_TreasureBoxOpened, 0x5E, 0);
 }
 
+// Per-frame room main: nothing.
 void R10fMain()
 {
 }
@@ -514,6 +520,7 @@ static void r10f_DoorOpenCamera()
     }
 }
 
+// Task: waits until the player uses the False Eye (item 0x3D) and runs the door-opening event.
 static void r10f_checkFalseEyeUse()
 {
     while (ItemMgr.check(0x3D) != 1) {
@@ -544,21 +551,25 @@ static void r10f_DoorClose(u32 no)
     }
 }
 
+// Item-event opener: the locker (OpenBoxMain type 0x1C) swings open for item `id`.
 static void r10f_LockerOpen(int id)
 {
     OpenBoxMain(0, 0, 0x1C, 0xFFFFFFFF, id, -1);
 }
 
+// Item-event "already opened": pose the locker open without the animation.
 static void r10f_LockerOpened(int id)
 {
     OpenBoxMain(0, 1, 0x1C, 0xFFFFFFFF, id, -1);
 }
 
+// Item-event opener: the treasure chest (type 0x5B, upward lid) opens for item `id`.
 static void r10f_TreasureBoxOpen(int id)
 {
     OpenBoxMain(OpenBoxUpXP, 0, 0x5B, id, 0xFFFFFFFF, -1);
 }
 
+// Item-event "already opened": pose the chest open.
 static void r10f_TreasureBoxOpened(int id)
 {
     OpenBoxMain(OpenBoxUpXP, 1, 0x5B, id, 0xFFFFFFFF, -1);

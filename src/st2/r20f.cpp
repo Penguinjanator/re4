@@ -77,6 +77,10 @@ void R20fEmResetB0();
 void R20fEmResetB1();
 static void R20fEmWanderingSet();
 
+// Room init: three collision pieces (archive 5 sets 1..3) and two attribute pieces for the platform
+// levels; ESL 0xF stays dead when its list-4 death bit says so; door 0xF gets lock models; the lever
+// (objects 0x18/0x19) and platform posed by Room_flg bit 1 (already raised: waves task, else area 5 =
+// the lever); the patrol / guard Ganados; the battle-stream task.
 void R20fInit()
 {
     u32 i;
@@ -169,6 +173,7 @@ void R20fInit()
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R20fMain()
 {
 }
@@ -252,6 +257,8 @@ static void R20fSwitchMain()
     }
 }
 
+// End of the lever event (evt: cancelled): drop the dust effect, snap the platform 0x18 to y 3500 and
+// the lever 0x19 to 90 degrees, switch the collision pieces to the raised layout, Room_flg bit 1.
 static void R20fSwitchEnd(int evt)
 {
     cObj* obj0 = SmdGetObjPtr(0x18);
@@ -363,6 +370,7 @@ static void R20fEmSetMain()
     }
 }
 
+// Reset wave A0: two Ganados (0xE5/0xE6) spawn with a shout SE at the platform's far side.
 void R20fEmResetA0()
 {
     Vec pos = {49000.0f, 3500.0f, 26500.0f};
@@ -378,6 +386,8 @@ static int R20fCkEmGuard(cEmWrap* em)
     return pPL->pos.y < 3000.0f;
 }
 
+// Reset wave B0: Ganados 0xE9/0xEA spawn and stand guard at guardPos0/1 facing PI until the player is
+// below the platform level (R20fCkEmGuard).
 void R20fEmResetB0()
 {
     r20f_work.p->em[9].setEm(0xE9, -1, 0, 1, 1);
@@ -386,12 +396,14 @@ void R20fEmResetB0()
     r20f_work.p->guard[1].SetGuard(0xEA, &r20f_guardPos1, 1, R20fCkEmGuard, PI, 0, 1);
 }
 
+// Reset wave B1: Ganado 0xED spawns and guards guardPos2.
 void R20fEmResetB1()
 {
     r20f_work.p->em[13].setEm(0xED, -1, 0, 1, 1);
     r20f_work.p->guard[2].SetGuard(0xED, &r20f_guardPos2, 1, R20fCkEmGuard, PI, 0, 1);
 }
 
+// The initial Ganados: 0xDC / 0xE1 / 0xE2 patrol the three route tables, 0xDF / 0xE0 are just tracked.
 static void R20fEmWanderingSet()
 {
     r20f_work.p->patrol[0].SetPatrol(0xDC, r20f_patrolTbl0, 4, 0, 0);

@@ -43,6 +43,9 @@ static void r30a_execEvent10();
 static void R30aEventS00();
 extern "C" void Evt_R30AS00_Func(Event* e);
 
+// Room init: the s00 (and s98) callback. In the escape phase (Scenario_flg[0] 0x800, consumed here):
+// BGM table 3 off and the s00 escape event once (Room_flg bit 0). Otherwise area 3 = the s10 event once
+// (bit 1, pre-loaded to MRAM) and the lift.
 void R30aInit()
 {
 #line 54 "D:/Bio4/Prog/r30a.cpp"
@@ -65,6 +68,7 @@ void R30aInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R30aMain()
 {
 }
@@ -213,6 +217,8 @@ static void r30a_moveElevator(u32 dir)
     SceEventEnd(0);
 }
 
+// The lift: areas 1/2 = ride down / up, area 5 off, 6 on; object 9 gets a 210-frame move1 of 11656 up
+// with 20 % accel / decel and a shake.
 void r30a_initElevator()
 {
     SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r30a_moveElevator, 0, 1);

@@ -28,6 +28,7 @@ void R40cOpenBoxMain(int type, int mode, int se, int id1, int id2, int itemNo, i
 static void OpenBoxTreasure(int id);
 static void OpenedBoxTreasure(int id);
 
+// Room init: one treasure chest item event (item 0x80 at area 1, with the lid animation).
 void R40cInit()
 {
 #line 53 "D:/Bio4/Prog/r40c.cpp"
@@ -35,6 +36,7 @@ void R40cInit()
     SceSetItemEvent(1, 0x80, 1, 3, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x80, 1);
 }
 
+// Per-frame room main: nothing.
 void R40cMain()
 {
 }
@@ -94,6 +96,7 @@ void R40cOpenBoxMain(int type, int mode, int se, int id1, int id2, int itemNo, i
     }
 }
 
+// Item-event "already opened": the chest lid (0x15 on box 0x14) posed open.
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x80) {
@@ -101,6 +104,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: the chest lid swings open (40 frames, SE 10 / 9).
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x80) {

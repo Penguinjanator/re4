@@ -40,9 +40,9 @@
 #include "datactrl.h"
 #include "db_log.h"
 
-// Room 2-09 (D:/Bio4/Prog/r209.cpp): the village chief's house / salon: the leader Ganado that
-// lures the player through the doors, the gatling and bowgun battles, the panel puzzle and the
-// picture behind which the treasure sits.
+// Room 2-09 (D:/Bio4/Prog/r209.cpp): the castle gallery / salon (Salazar's picture gallery): the
+// leader Ganado that lures the player through the doors, the gatling and bowgun battles, the four-
+// panel picture puzzle that extends the bridge, and the picture behind which the treasure sits.
 
 // The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
 // an asm-labelled free declaration reproduces the call.
@@ -150,10 +150,12 @@ static inline u32 doorFlagBase()
 {
     return (u32) &pG->Item_find_flg;
 }
+// Set door flag `no` in the words at `base` (pG+0x51BC).
 static inline void FlagOn(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) |= 0x80000000 >> (no & 31);
 }
+// Clear door flag `no` in the words at `base`.
 static inline void FlagOff(u32 base, u32 no)
 {
     *(u32*) (((no >> 5) << 2) + base) &= ~(0x80000000 >> (no & 31));
@@ -277,6 +279,12 @@ static void r209_StrPlayCk();
 extern "C" int r209_InPlaceCheck(cModel* m);
 extern "C" int r209_GanadoSnipeCheck(cEmWrap* w);
 
+// Room init (the gallery): the seven room doors (four balcony doors 0xB3..0xB6, salon doors 2/3, the
+// picture lift 0xA1), the salon key door (area 2 + key watcher until Room_flg bit 2), the second battle
+// (bit 4), the leader chase until bit 3 (the leader 0x7D and its escorts, list 3; areas 0xA = it points
+// at the player, 0x16 = its escape, 0xD = stream stop; the gatling item hidden), the bridge panels and
+// their puzzle (bit 6 = solved, area 0x1E + the four panel messages), the stage flag / picture / pot
+// areas, the item events and the battle stream.
 void R209Init()
 {
     u32 i;
@@ -393,6 +401,9 @@ void R209Init()
     SceSetItemEvent(0x17, 0x82, 0xA, 0x17, r209_TreasureBoxOpen, (void (*)()) r209_TreasureBoxOpened, 0xB7, 0);
 }
 
+// Per frame during the bowgun battle (stage flag 3): builds the occupancy bits of the eight balcony
+// areas 0x26..0x2D (player / each bowgun Ganado) with their on/off edges and runs the bowgun
+// controller (r209_BowgunCtrl); also steps the seven doors.
 void R209Main()
 {
     u32 i;
@@ -532,6 +543,8 @@ extern "C" int r209_GanadoSnipeCheck(cEmWrap* w)
     return 0;
 }
 
+// Task: keeps the leader alerted until Room_flg bit 1; while the player's laser is on it, it dodges to
+// the next r209_leaderPoint.
 static void r209_LeaderAction()
 {
     R209Work* wp = r209_work.p;
@@ -559,6 +572,8 @@ static void r209_LeaderAction()
     }
 }
 
+// Area 0xA: once door 1 has been opened, a cutscene in which the leader (with its escorts kept
+// updating) points at the player and the escorts 6/7 turn hostile; player-cancellable.
 static void r209_LeaderPointAtPlayer()
 {
     cEm* door;
@@ -593,6 +608,8 @@ static void r209_LeaderPointAtPlayer()
     r209_LeaderPointAtPlayerEndProc();
 }
 
+// End of the pointing cutscene (also its cancel path): camera back, the actors may suspend, escorts
+// 6/7 alerted, SceEventEnd; waits for the leader's goto 8 to end and sends it on.
 static void r209_LeaderPointAtPlayerEndProc()
 {
     CamCtrl.Comeback(0);
@@ -612,12 +629,14 @@ static void r209_LeaderPointAtPlayerEndProc()
     SceExec(0x12, (TaskFunc) r209_LeaderAction, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Send the leader to r209_leaderPoint[no] with goto mode `flag` (1 run, 8 taunt walk).
 extern "C" void r209_LeaderMoveToPoint(int no, int flag)
 {
     r209_work.p->leaderPointNo = no;
     r209_work.p->leader.setGoto(&r209_leaderPoint[no], flag);
 }
 
+// The leader's first-floor route: points 1, 0, then 2 (running).
 static void r209_ToPoint1F()
 {
     r209_LeaderMoveToPoint(1, 1);
@@ -631,11 +650,14 @@ static void r209_ToPoint1F()
     r209_LeaderMoveToPoint(2, 1);
 }
 
+// The leader runs out of the second floor to point 4.
 static void r209_ToPoint2FOut()
 {
     r209_LeaderMoveToPoint(4, 1);
 }
 
+// Balcony door area `no` on the first floor: the leader (if alive) opens the door ahead of the player
+// and runs on (area 0x1A: only once it is in place), the escorts follow.
 static void r209_DoorOpen1F(int no)
 {
     Vec ang;
@@ -707,6 +729,7 @@ inPlace:
     SceAtSetEnable(no, 1);
 }
 
+// Door area `no` on the second floor: as r209_DoorOpen1F; area 0x1D also spawns Ganado 0x79.
 static void r209_DoorOpen2F(int no)
 {
     Vec ang;
@@ -773,6 +796,8 @@ inPlace:
     SceAtSetEnable(no, 1);
 }
 
+// Area 0x16: once the player is idle, the leader runs to the exit door D (object 0xAC) and through
+// it in a cutscene; player-cancellable.
 static void r209_LeaderEscapeToD()
 {
     Vec pos0 = {-41412.0f, 4000.0f, 10379.0f};
@@ -828,6 +853,8 @@ static void r209_LeaderEscapeToD()
     r209_LeaderEscapeToDEndProc();
 }
 
+// End of the escape cutscene (also its cancel path, Room_flg[0] 0x00100000): the leader placed behind
+// door D facing 1.11 rad and the room flags for the next phase set.
 static void r209_LeaderEscapeToDEndProc()
 {
     cEmWrap* w = &r209_work.p->leader;
@@ -868,6 +895,7 @@ static void r209_LeaderEscapeToDEndProc()
     r209_LeaderMoveToPoint(1, 1);
 }
 
+// Area 2, the locked salon door: up-cut 0/1; with the salon key (item 0xA3) held the item screen opens.
 static void r209_DoorMessage()
 {
     SceUpCut(0, -1, 1, UP_CUT_ATTR_CUT_FIX);
@@ -878,6 +906,8 @@ static void r209_DoorMessage()
     }
 }
 
+// Task: waits for the salon key (item 0xA3) to be used, then Room_flg bit 2, door_flags_51C8 0x1000,
+// door 9 becomes normal, message up-cut 1/2.
 static void r209_CheckUseSalonKey()
 {
     while (ItemMgr.check(0xA3) == 0) {
@@ -890,6 +920,8 @@ static void r209_CheckUseSalonKey()
     SceUpCut(1, -1, 2, 0);
 }
 
+// The gatling Ganado's entrance (if the leader lives): the leader with the gatling (cObjGatling) rises
+// on the lift in a cutscene with SE; player-cancellable.
 static void r209_GatlingAppear()
 {
     Vec pos;
@@ -940,6 +972,9 @@ static void r209_GatlingAppear()
     r209_GatlingAppearEndProc();
 }
 
+// End of the gatling entrance (also its cancel path, Room_flg[0] 0x00100000): SE stopped, the gatling
+// snapped to y 3250, camera back, the actors may suspend, SceEventEnd, the leader alerted, the
+// gatling end watcher starts.
 static void r209_GatlingAppearEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
@@ -956,6 +991,7 @@ static void r209_GatlingAppearEndProc()
     SceExec(0x12, (TaskFunc) r209_GatlingEndCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Task: when the leader (gatling) dies, a cutscene shows the key item 0x8F it drops; cancellable.
 static void r209_GatlingEndCheck()
 {
     cModel* m;
@@ -981,6 +1017,7 @@ static void r209_GatlingEndCheck()
     r209_GatlingEndCheckEndProc();
 }
 
+// End of the gatling-death cut: camera back, the item model may suspend, SceEventEnd.
 static void r209_GatlingEndCheckEndProc()
 {
     cModel* m = SceAtItemModelPtr(0x8F);
@@ -994,6 +1031,8 @@ static void r209_GatlingEndCheckEndProc()
     }
 }
 
+// Task: once door 4 is opened (Room_flg bit 3) the second battle event r209s00 plays from the event
+// data unit, then the bowgun battle is set up (r209_2ndBattleEmSet).
 static void r209_2ndBattle()
 {
     ReadModule* m = SearchEmModule(0x1A);
@@ -1063,6 +1102,8 @@ static void r209_2ndBattle()
     SceExec(0x12, (TaskFunc) r209_StrPlayCk, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Task: the second battle's stepped enemy waves (bowgun Ganados on the balconies, the rotating doors)
+// until Room_flg bit 4.
 static void r209_2ndBattleEmSet()
 {
     int arg = 0;
@@ -1145,6 +1186,8 @@ static void r209_2ndBattleEmSet()
     }
 }
 
+// Cutscene: the three balcony doors rotate open (r209_RotateDoor tasks) under camera cut 0x12 as the
+// bowgun Ganados appear; player-cancellable.
 static void r209_2ndBattleBowgunAppear()
 {
     R209Work* wp = r209_work.p;   // one load for the four task stores (pointer stores alias the work pointer)
@@ -1172,6 +1215,7 @@ static void r209_2ndBattleBowgunAppear()
     r209_2ndBattleBowgunAppearEndProc();
 }
 
+// End of the bowgun entrance (also its cancel path): the door tasks killed and the doors snapped, camera back, SceEventEnd.
 static void r209_2ndBattleBowgunAppearEndProc()
 {
     R209EmSet tbl[4] = {{9, 0x98, 3}, {0xB, 0x9A, 1}, {0xC, 0x9B, 0}, {0xA, 0x99, 2}};
@@ -1195,6 +1239,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
     SceExec(0x12, (TaskFunc) r209_BowgunMove, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Item area 0x82 taken (the battle's prize): camera cut 4 while salon door 3 (door[5]) opens; cancellable.
 static void r209_2ndBattleFinish()
 {
     SceAtDataReset(0x82);
@@ -1219,6 +1264,7 @@ static void r209_2ndBattleFinish()
     r209_2ndBattleFinishEndProc();
 }
 
+// End of the finish cut: door[5] snapped open, camera back, SceEventEnd, Room_flg bit 4.
 static void r209_2ndBattleFinishEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
@@ -1234,6 +1280,7 @@ static void r209_2ndBattleFinishEndProc()
     RsfSet(G_ROOM_ID, 4);
 }
 
+// Task: once (Room_flg bit 5) when the condition is met, camera cut 6 shows the bridge switch appearing; cancellable.
 static void r209_SwitchAppearCheck()
 {
     cObj* obj1 = SmdGetObjPtr(1);
@@ -1278,6 +1325,7 @@ static void r209_SwitchAppearCheck()
     }
 }
 
+// End of the switch appearance: the switch snapped up, camera back, SceEventEnd.
 static void r209_SwitchAppearCheckEnd()
 {
     cObj* obj1 = SmdGetObjPtr(1);
@@ -1303,6 +1351,7 @@ static void r209_SwitchAppearCheckEnd()
     SceAtSetEnable(0x15, 0);
 }
 
+// Task: waits for the pot (a hit box) to be broken, then arms area 0x1B with the bridge appearance.
 static void r209_PotBreakCheck()
 {
     cEm* box;
@@ -1315,6 +1364,8 @@ static void r209_PotBreakCheck()
     SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r209_BridgeAppearCheck, 0, 1);
 }
 
+// Area 0x1B after the switch (bits 5 set, 8 clear): camera cut 0xE while the bridge object slides out
+// (pos.z to its limit) with SE; cancellable.
 static void r209_BridgeAppearCheck()
 {
     cObj* obj = SmdGetObjPtr(0xAD);
@@ -1354,6 +1405,7 @@ static void r209_BridgeAppearCheck()
     }
 }
 
+// End of the bridge appearance: the bridge and its four panels snapped, camera back, SceEventEnd, the panel puzzle armed.
 static void r209_BridgeAppearCheckEnd()
 {
     cObj* obj = SmdGetObjPtr(0xAD);
@@ -1393,6 +1445,8 @@ static void r209_BridgeAppearCheckEnd()
     }
 }
 
+// Picture `no` (0..2) chosen: the two Ganados hidden behind it (list 3 pairs 0x9D/0x9E, 0x9F/0xA0,
+// 0xA1/0xA2) are set, camera cut 0xF while the picture lift (door[6]) opens; cancellable.
 static void r209_OpenPicture(int no)
 {
     pG->Room_flg[0] |= 0x04000000;
@@ -1431,6 +1485,7 @@ static void r209_OpenPicture(int no)
     r209_OpenPictureEndProc();
 }
 
+// End of the picture opening: the lift snapped open, camera back, SceEventEnd.
 static void r209_OpenPictureEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
@@ -1446,6 +1501,7 @@ static void r209_OpenPictureEndProc()
     SceExec(0x12, (TaskFunc) r209_ClosePicture, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// The picture lift (door[6]) closes again and the task waits for it.
 static void r209_ClosePicture()
 {
     r209_work.p->door[6].setClose();
@@ -1606,6 +1662,8 @@ extern "C" void r209_BowgunActionSet1(int i, int flag, int pt)
     e->path[cnt] = &r209_bowgunPos[pt];
 }
 
+// Bowgun Ganado `i` (snipeIdx) gets path variant 2 toward balcony point `pt`: the way points of
+// r209_bowgunPos2 / r209_bowgunPos chosen by which side `pt` is on; the path restarts.
 extern "C" void r209_BowgunActionSet2(int i, int flag, int pt)
 {
     R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
@@ -1635,6 +1693,7 @@ extern "C" void r209_BowgunActionSet2(int i, int flag, int pt)
     e->path[cnt] = &r209_bowgunPos[pt];
 }
 
+// Bowgun Ganado `i` gets path variant 3 toward `pt` (the other side's way points).
 extern "C" void r209_BowgunActionSet3(int i, int flag, int pt)
 {
     R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
@@ -1674,6 +1733,7 @@ extern "C" void r209_BowgunActionSet3(int i, int flag, int pt)
     e->path[cnt] = &r209_bowgunPos[pt];
 }
 
+// Bowgun Ganado `i` gets path variant 4 toward `pt`.
 extern "C" void r209_BowgunActionSet4(int i, int flag, int pt)
 {
     R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
@@ -1944,6 +2004,8 @@ extern "C" void r209_PanelPazzleEnd()
     r209_PanelPazzleEndEndProc();
 }
 
+// End of the panel puzzle (also its cancel path): the bridge object snapped to z 14530 with its four
+// panels re-attached, the puzzle areas (0x1E, 0x21, 0x2E..0x31) off.
 extern "C" void r209_PanelPazzleEndEndProc()
 {
     u32 i;
@@ -2032,12 +2094,14 @@ static void r209_RotateDoor(int no)
     e->w.setNoSuspend(0);
 }
 
+// Item-event opener: chest `id` lid up (+X); its item area 0x82 then triggers the battle finish.
 static void r209_TreasureBoxOpen(int id)
 {
     OpenBoxMain(OpenBoxUpXP, 0, 0x5B, id, -1, -1);
     SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r209_2ndBattleFinish, 0, 1);
 }
 
+// Item-event "already opened": chest `id` posed open.
 static void r209_TreasureBoxOpened(int id)
 {
     OpenBoxMain(OpenBoxUpXP, 1, 0x5B, id, -1, -1);
@@ -2058,6 +2122,8 @@ static void r209_StrPlayCk()
     }
 }
 
+// Bind door `id`: the four balcony doors rotate about Y (with a collision piece), doors 2/3 and the
+// lift 0xA1 rise; the closed pose, opening height and door flag bit are set per id.
 void cR209Door::init(u32 id_)
 {
     Vec zero = {0.0f, 0.0f, 0.0f};
@@ -2101,6 +2167,7 @@ void cR209Door::init(u32 id_)
     }
 }
 
+// Per-frame step: run the current mode (wait / open / close) of r209_doorTbl.
 void cR209Door::move()
 {
     if (valid != 0) {
@@ -2108,10 +2175,13 @@ void cR209Door::move()
     }
 }
 
+// Mode 0: idle.
 void cR209Door::wait()
 {
 }
 
+// Mode 1: open SE; a rotating door turns to +-90 degrees, a rising one climbs to pos0 + openH; on
+// arrival its collision / area follow and status 1.
 void cR209Door::open()
 {
     int se;
@@ -2219,6 +2289,7 @@ void cR209Door::open()
     }
 }
 
+// Mode 2: close SE; rotate back / drop with growing speed to the closed pose, then a short shake; status 0.
 void cR209Door::close()
 {
     int se;
@@ -2326,6 +2397,7 @@ void cR209Door::close()
     }
 }
 
+// Request opening (mode 1) unless open / opening; status 4 = moving.
 void cR209Door::setOpen()
 {
     if (valid == 0) {
@@ -2342,6 +2414,7 @@ void cR209Door::setOpen()
     step = 0;
 }
 
+// Request closing (mode 2) unless closed / closing.
 void cR209Door::setClose()
 {
     if (valid == 0) {
@@ -2358,6 +2431,7 @@ void cR209Door::setClose()
     step = 0;
 }
 
+// Snap the door open (pose, collision, door flag set, SE stopped).
 void cR209Door::setOpened()
 {
     if (valid == 0) {
@@ -2387,6 +2461,7 @@ void cR209Door::setOpened()
     }
 }
 
+// Snap the door closed (pose, collision, door flag cleared, SE stopped).
 void cR209Door::setClosed()
 {
     if (valid == 0) {
@@ -2416,6 +2491,7 @@ void cR209Door::setClosed()
     }
 }
 
+// 0 closed, 1 open, 4 moving; -1 when the door has no object.
 int cR209Door::getStatus()
 {
     if (valid != 0) {

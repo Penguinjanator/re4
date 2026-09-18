@@ -104,6 +104,11 @@ void em_reset();
     r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
     YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1)
 
+// Room init (the dragon hall): Debug_flg[1] 0x20000, Status_flg[1] bit 0, no water splashes, the moving
+// objects marked script-moved. Per dragon (Room_flg bits 0/1/2 = fallen): fallen -> its collision
+// pieces and the boxes it revealed, else its two shot-target hit boxes (r222_setHit) and the dragon enemy
+// (0x16 / 0x14 / 0x15). The entrance cut once (bit 4), the side dragons on area 6 until bit 5, the
+// dragon watcher, item area 0x80 and the treasure box item events.
 void R222Init()
 {
     cModel* m;
@@ -229,11 +234,13 @@ void R222Init()
     SceSetItemEvent(0xA, 0x81, 8, 0xF, (void (*)(int)) r222_TreasureBox2Open, (void (*)()) r222_TreasureBox2Opened, 7, 0);
 }
 
+// Item-event opener: chest `id` lid up (+Z).
 static void r222_TreasureBoxOpen(int id)
 {
     OpenBoxMain(OpenBoxUpZP, 0, 0x5B, id, -1, -1);
 }
 
+// Item-event "already opened": chest `id` posed open.
 static void r222_TreasureBoxOpened(int id)
 {
     OpenBoxMain(OpenBoxUpZP, 1, 0x5B, id, -1, -1);
@@ -250,6 +257,7 @@ asm(".section \".rodata\"\n\t.align 2\nr222_k212:\n\t.long 0x4007b8a5\n\t.sectio
 extern const f32 r222_k212;
 extern const f32 r222_k212_v asm("r222_k212");
 
+// A revealed box's lid (parts ang.x) swings to 2.12 rad in 0.05 steps with its SE, or snaps there when opened == 1.
 void r222_BoxMove(cObj* obj, int opened)
 {
     SndCall(6, 0x5B, &obj->pos, 0, 0, 0);
@@ -284,11 +292,13 @@ void r222_BoxMove(cObj* obj, int opened)
     }
 }
 
+// Item-event opener for the risen boxes: object `id`'s lid swings open.
 static void r222_TreasureBox2Open(u32 id)
 {
     r222_BoxMove(SmdGetObjPtr(id), 0);
 }
 
+// Item-event "already opened": object `id`'s lid posed open.
 static void r222_TreasureBox2Opened(u32 id)
 {
     r222_BoxMove(SmdGetObjPtr(id), 1);
@@ -314,6 +324,10 @@ void Hit(int no)
     SndCall(6, 0xF, &r222_work.p->hit[no]->pos, 0, 0, 0);
 }
 
+// Per frame (debug trigger 0 drops the main dragon): reads the rotating platform's angle (object 1's
+// parts) and, per dragon zone flag in Room_flg[2], toggles Status_flg[0] bit 3 and the fire areas 8 / 7
+// when the platform faces a dragon's mouth (the angle windows r222_angA*/B*); moves the platform
+// collision with the angle; a random creak SE every 30 frames.
 void R222Main()
 {
     f32 ry;
@@ -387,6 +401,9 @@ void R222Main()
         SceExec(0x12, (TaskFunc) down, 0, 0, SCE_PRIO_DEF_2, 0);                                     \
     }
 
+// Task: per dragon not yet fallen, keep its shot targets on their objects, apply hits, and start its
+// fall when a target is destroyed, when the dragon may be reset, or when it dropped below y -10000;
+// the main dragon's wake-up cut once Room_flg[0] bit 31 (bit 3); enemy resets while bit 31.
 static void dragon_down_ck()
 {
     for (;;) {
@@ -419,6 +436,7 @@ static void dragon_down_ck()
     }
 }
 
+// End of the main dragon's fall (also its cancel path): the pit object 0x2E snapped to fallY, SceEventEnd, effect dropped.
 static void dragon_down_exit()
 {
     SmdGetObjPtr(0x2E)->pos.y = r222_work.p->fallY;
@@ -499,6 +517,8 @@ static void dragon_down()
     dragon_down_exit();
 }
 
+// End of the first box rise (also its cancel path): the box objects 0x25/8/9 snapped to their final
+// heights, Room_flg[0] 0x20000000 off, camera back, SceEventEnd, item area 9 on.
 static void box_appear1_exit()
 {
     SmdGetObjPtr(0x25)->pos.y = r222_work.p->boxY1[0];
@@ -592,6 +612,7 @@ static void dragon_down2()
     SceExec(0x12, (TaskFunc) box_appear1, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// End of the second box rise: objects 0x29/6/7 snapped up, Room_flg[0] 0x10000000 off, camera back, item area 0xA on.
 static void box_appear2_exit()
 {
     SmdGetObjPtr(0x29)->pos.y = r222_work.p->boxY2[0];
@@ -685,12 +706,14 @@ static void dragon_down3()
     SceExec(0x12, (TaskFunc) box_appear2, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// End of the dragon wake-up cut: SceEventEnd, the dragon may suspend again.
 static void dragon_appear_exit()
 {
     SceEventEnd(0);
     r222_work.p->dragon.setNoSuspend(0);
 }
 
+// Cutscene: camera cut 2 on the main dragon waking (effect 0xA); player-cancellable.
 static void dragon_appear()
 {
     SceEventStart(0);
@@ -705,6 +728,8 @@ static void dragon_appear()
     dragon_appear_exit();
 }
 
+// End of the entrance cut: SceEventEnd, the dragons' mouth objects hidden, the stream stopped when the
+// cut was skipped (Room_flg[2] 0x20000000).
 static void first_cut_exit()
 {
     SceEventEnd(0);
@@ -743,6 +768,7 @@ static void first_cut()
     first_cut_exit();
 }
 
+// End of the side dragons' appearance: they may suspend again, SceEventEnd.
 static void em_appear_exit()
 {
     r222_work.p->em1.setNoSuspend(0);
@@ -804,6 +830,7 @@ static void setResetNum(int n)
     }
 }
 
+// The enemy reset counter (0..31) read back from room save flags 9..13.
 static int getResetNum()
 {
     int n = 0;
@@ -826,6 +853,7 @@ static int getResetNum()
     return n;
 }
 
+// Advance the reset counter (saturates at 31).
 static void incResetNum()
 {
     if (getResetNum() != 0x1F) {

@@ -57,6 +57,9 @@ static void r309_openedShelf(int no);
 static void r309_openShelf(int no);
 static void r309_checkBgm();
 
+// Room init: until the regenerator appeared (Room_flg bit 1) enemy 0x36 is pre-read, area 3 = the
+// appearance event and window 0x1C takes no damage; afterwards the glow effect rides on the regenerator
+// (0x34) while it lives. The stream watcher, two shelf item events, the BGM table rewrite once (bit 4).
 void R309Init()
 {
     cEm* win;
@@ -84,6 +87,7 @@ void R309Init()
     }
 }
 
+// Per frame: once the key item (item_flags[0] 0x40) is taken and item 0x83 is no longer saved, set Scenario_flg[1] 0x00040000.
 void R309Main()
 {
     if (!(pG->Scenario_flg[1] & 0x00040000) && (pG->item_flags[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
@@ -108,6 +112,9 @@ static void r309_checkBgmTblRewrite()
     }
 }
 
+// End of the appearance event (also its cancel path): the regenerator set alerted with its glow if the
+// event had not, ESL 0x34 rewritten from 0x66 and marked alive, the flash effect dropped, SceEventEnd,
+// window 0x1C breakable again.
 static void r309_execEmAppear_end()
 {
     cEm* win;
@@ -227,11 +234,13 @@ void r309_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event "already opened": shelf `no` posed open.
 static void r309_openedShelf(int no)
 {
     r309_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate shelf `no` open.
 static void r309_openShelf(int no)
 {
     r309_openShelf_main(no, 0);

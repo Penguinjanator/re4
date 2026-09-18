@@ -444,6 +444,7 @@ void ScoreClear();
 void ScoreMove();
 }
 
+// One flag-word test kept as its own `and` (fold-const would merge two tests of one word).
 static inline u32 flagBit(u32 f, u32 bit)
 {
     return f & bit;
@@ -451,6 +452,11 @@ static inline u32 flagBit(u32 f, u32 bit)
 
 #define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
+// Room init (the shooting range): the result screen data file, the floating scores, the target enemy
+// (0x3E) pre-read; the game level (A..D) from the room the player came from (r204 / r211 / ... each
+// range entrance is a level); the range keeper and gate tasks, area 0 = start the game, area 7 = the
+// high-score board, area 2 = the exit door; the two range doors paired and close-locked; Ashley's wait
+// task; the bottle caps owned are counted.
 void R22cInit()
 {
 #line 1978 "D:/Bio4/Prog/r22c.cpp"
@@ -514,11 +520,13 @@ void R22cInit()
 
 static const char* r22c_levelName[5] = {"-", "A", "B", "C", "D"};
 
+// Per frame: debug-print the level letter and game state.
 void R22cMain()
 {
     eprintf(0x130, 0x1A4, 0, 0, "LEVEL:%s-%d", r22c_levelName[r22c_work.p->level], r22c_work.p->state);
 }
 
+// Background gag: the birds fly off (effect 3, SE 0xE / 0xF) for 8 seconds.
 static void r22c_BirdsFly()
 {
     EstSet(0, -1, 0, 0, 1, 3, 0, 0x3F, 0, 0);
@@ -527,6 +535,7 @@ static void r22c_BirdsFly()
     SndCall(6, 0xF, 0, 0, 0, 0);
 }
 
+// Background gag: the bees (effect 1, SE 0x10 / 0x11) for 20 seconds.
 static void r22c_BeeFly()
 {
     EstSet(0, -1, 0, 0, 1, 1, 0, 0x3F, 0, 0);
@@ -535,6 +544,7 @@ static void r22c_BeeFly()
     SndCall(6, 0x11, 0, 0, 0, 0);
 }
 
+// Background gag: fireworks (effect 5) worth 300 points at the range's far end.
 static void r22c_FireWorks()
 {
     Vec pos = {1000.0f, 3000.0f, -25200.0f};
@@ -546,6 +556,7 @@ static void r22c_FireWorks()
     SndCall(6, 0x13, 0, 0, 0, 0);
 }
 
+// Background gag: a shooting star (effect 4) that then drops a bonus object across the range.
 static void r22c_ShootingStar()
 {
     Vec pos;
@@ -677,6 +688,7 @@ static void r22c_talkWepMan()
     SceAtSetEnable(1, 1);
 }
 
+// The exit door prompt: message 0xD yes (1) -> leave the game (gameEnd), no (2) -> stay.
 void r22c_exitDoor()
 {
     SceMesSet(0xD, 0, 1, 0x64, MES_Y);
@@ -714,6 +726,8 @@ cObj* getCap(int a, int b, int c, int d, int e)
     return 0;
 }
 
+// After a game: pick the bottle cap prize for the level / difficulty / score (0xF0 = the special one at
+// 4000+ on the hard set, else the first unowned of the level's five caps above the score threshold).
 void checkBottleCap()
 {
     int cap = 0;
@@ -757,6 +771,8 @@ void checkBottleCap()
     }
 }
 
+// Give the caps in cap[] (debug: L+R+Y grants all 24) as items 0xDC.. and update the owned counts; a
+// message when a whole set is complete.
 void getBottleCap()
 {
     int i;
@@ -786,6 +802,8 @@ void getBottleCap()
     r22c_work.p->score = 0;
 }
 
+// The weapon choice (sel 0 asks with message 4: handgun / TMP / rifle; 3 = cancel with SE 5): equips
+// the range weapon with full ammo into the player and remembers the previous weapon.
 int weaponSelect(int sel)
 {
     cPlayer* pl = pPL;
@@ -842,6 +860,8 @@ int weaponSelect(int sel)
     return sel;
 }
 
+// Entering the game: remember the player's weapon, Room_flg[0] bit 31 (in game), area 9 off, the doors
+// normal, and back the whole inventory up (ItemMgr.save into itemSaveBuf).
 void itemSave()
 {
     r22c_work.p->wepNo = pG->weapon_no;
@@ -878,6 +898,8 @@ void itemSave()
         }                                                                   \
     }
 
+// The set-completion bonuses: for each cap set (base 0xDC/0xE2/0xE8/0xEE) not yet rewarded
+// (Scenario_flg[0] bits 8/4/2/1) with all six caps owned, a message and the flag.
 void getBonus()
 {
     int n;
@@ -889,6 +911,8 @@ void getBonus()
     R22C_BONUS(1, 0xEE, 0x11, 0x83)
 }
 
+// Leaving the game: fade, restore the backed-up inventory (ItemMgr.load) and the previous weapon,
+// free the buffer, the doors locked again, Room_flg[0] bit 31 off.
 void gameEnd()
 {
     cPlayer* pl = pPL;
@@ -1073,6 +1097,8 @@ static void r22c_startShootingGame()
     }
 }
 
+// Game step 0: area 0 off, the weapon chosen and reloaded, all counters zeroed, the level script
+// selected (r22c_tbl by level / state), the range lights, the stream, the counter display.
 static void shootInit()
 {
     SceAtSetEnable(0, 0);
@@ -1159,6 +1185,8 @@ static const char* r22c_startMsg = "START";
     ((((w)->level == 2 || (w)->level == 3) && (w)->state == 2) || ((w)->level == 4 && (w)->state == 1) || \
      ((w)->level == 4 && (w)->state == 2))
 
+// Game step 1: the "start" text after 30 frames, the game runs from frame 60 (step 2); Room_flg[0]
+// 0x10000000 = the hard set (R22C_HARD_MODE).
 static void shootReady()
 {
     r22c_work.p->timer++;
@@ -1176,6 +1204,9 @@ static void shootReady()
     }
 }
 
+// Game step 2: the level script's records are spawned as cEmMark targets when their time comes
+// (pauses via `{time, 0xFE}`, the UFO wait), hits are scored, the time counts down; the game ends
+// into step 3 when the script is exhausted / cancelled.
 static void shootMain()
 {
     if (r22c_work.p->ufoWait == 0 && r22c_work.p->pause != 0) {
@@ -1266,6 +1297,8 @@ static void shootMain()
     eprintf(0x20, 0x7E, 0, 0, "%d", r22c_work.p->ufoWait / 30);
 }
 
+// Game step 3: once no target is left, the score is registered and the bottle cap picked, then the
+// result screen (ResultScreen) is shown until the player dismisses it, with the cap / bonus messages.
 static void shootResult()
 {
     switch (r22c_work.p->resultStep) {
@@ -1318,6 +1351,7 @@ static void shootResult()
     r22c_work.p->timer++;
 }
 
+// Game step 4: stream faded, lights back, Stop_flg bit 31 / Room_flg[0] 0x20000000 off, area 0 on, task exit.
 static void shootEnd()
 {
     SndStrReq(r22c_work.p->strId, 4, 0xC8, 0);
@@ -1354,6 +1388,8 @@ int countMark()
     return n;
 }
 
+// Called by a hit target (emmark.cpp): score `pt` by type / kind (kind 4 = 200 points), the combo
+// and hit counters, a floating score number at `pos`.
 void R22cHitMark(int type, int kind, Vec* pos, int hit, int age)
 {
     int pt;
@@ -1414,6 +1450,7 @@ static void funcUfo()
     pG->Room_flg[0] &= ~0x40000000;
 }
 
+// Knock down every live target (id 0x3E, types 0..9) when the game ends.
 void deleteAllMark()
 {
     cEm* em;
@@ -1578,6 +1615,7 @@ int isWepmanAlive()
     return RsfCheck(G_ROOM_ID, no) == 0;
 }
 
+// The range keeper was killed: room save flag `level - 1`.
 void setWepmanKilled()
 {
     int no;
@@ -1678,6 +1716,7 @@ void R22cHitEffect(int no)
 // The language directory is patched into the path at run time.
 static char r22c_fname[] = "SS/___/id22c.dat";
 
+// Load the result screen file SS/<lang>/id22c.dat (blocking DVD read).
 void ResultScreen::read()
 {
     void* p;
@@ -1688,6 +1727,7 @@ void ResultScreen::read()
     data = (R22cResultData*) p;
 }
 
+// Show the "reload" text (id table 0x2C) with its textures during a script pause.
 void ResultScreen::reloadtime()
 {
     IdTexRelease(TEX_OWNER_ID_EVENT);
@@ -1696,6 +1736,7 @@ void ResultScreen::reloadtime()
     IdSys.set(RES_PTR(data, ofsIdReload), 0xFF, 0x2C, 0x13, 6, 0);
 }
 
+// Show the high-score variant of the result board with `score` split into seven digits.
 void ResultScreen::highscore(int score)
 {
     int digit[7];
@@ -1731,6 +1772,7 @@ void ResultScreen::highscore(int score)
     }
 }
 
+// Show the result board (id table 0x28); SE 8 with a cap won, 0xA without.
 void ResultScreen::init()
 {
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
@@ -1744,6 +1786,8 @@ void ResultScreen::init()
     }
 }
 
+// Per-frame result board: fills the digit units (score, hits, time), animates them in, waits for the
+// button; returns 1 when the board is dismissed.
 int ResultScreen::move(int flag)
 {
     int ret = 0;
@@ -1832,18 +1876,21 @@ int ResultScreen::move(int flag)
     return ret;
 }
 
+// Close the board: cockpit ids re-initialised and stepped once.
 void ResultScreen::quit()
 {
     Cckpt.roomInit();
     Cckpt.move();
 }
 
+// The floating score numbers: their own IDSystem (0x80 units) and cleared timers.
 void ScoreInit()
 {
     r22c_work.p->score2.gameInit(0x80);
     ScoreClear();
 }
 
+// Kill all floating score numbers (timers zeroed, id system re-initialised).
 void ScoreClear()
 {
     u32 i;
@@ -1854,6 +1901,7 @@ void ScoreClear()
     r22c_work.p->score2.roomInit();
 }
 
+// Per frame: count the eight floating score slots down and kill the expired ones (id 0x40 + slot); step / draw them.
 void ScoreMove()
 {
     int i;

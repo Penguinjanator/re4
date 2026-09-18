@@ -91,6 +91,7 @@ struct FadeColors {
     u32 pad;
 };
 
+// FadeSet with two packed RGBA colour words over 30 frames.
 static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
 {
     FadeColors c;
@@ -114,6 +115,10 @@ static void first_cut_exit();
 static void first_cut();
 extern "C" void SceElevator_r225(SceElevatorData* d);
 
+// Room init: until the crank was turned (Room_flg bit 0) area 4 = the crank with areas 5/6 off and 0xA
+// on, else the raised layout (plate object 0x27 moved); until the key door is open (bit 1) area 0xC =
+// its message with the key-use watcher and area 0xD, else the door posed open; the grave slab, the
+// first look (area 0x10 once), the elevator data and its area.
 void R225Init()
 {
 #line 81 "D:/Bio4/Prog/r225.cpp"
@@ -191,6 +196,7 @@ void R225Init()
     pG->Scenario_flg[1] |= 0x01000000;
 }
 
+// Per-frame room main: nothing.
 void R225Main()
 {
 }
@@ -501,6 +507,7 @@ static void r225_checkGrave()
     SceAtExecute(0);
 }
 
+// End of the first look: SceEventEnd; the room stream stopped if it had started (Room_flg[0] 0x40000000).
 static void first_cut_exit()
 {
     SceEventEnd(0);

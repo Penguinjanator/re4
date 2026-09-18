@@ -96,6 +96,10 @@ void R402EmSetSub(int no, int list, int findPl);
 static void R402EmSetMain();
 int R402CalcActiveEmWarp();
 
+// Room init (Mercenaries: the waterworld): three treasure case item events; doors 0x18/0x19 paired;
+// the starting enemies (R402EmSetSub), the wave task, door 02 with its collision, areas 0xF/0x10 = the
+// door events, area 0x11 off; the ladders 0x15/0x1E with Ada's motions; the Mercenaries system with
+// the room's messages; the two boat event areas.
 void R402Init()
 {
     cEm* door0;
@@ -163,6 +167,7 @@ void R402Init()
     }
 }
 
+// Per frame: debug lines; every 300 frames the out-of-range enemies are removed (em_destroy).
 void R402Main()
 {
     SceDebugDisp("");
@@ -230,6 +235,7 @@ static void OpenedBoxTreasure(int no)
     }
 }
 
+// Item-event opener: the case of item `no` (0x80 -> chest 0x3D, 0x81 -> 0x3E, 0x82 -> 0x3C) lid up +Z.
 static void OpenBoxTreasure(int no)
 {
     if (no == 0x80) {
@@ -288,6 +294,8 @@ static void R402ExecEvent01Main()
     R402ExecEvent01End();
 }
 
+// End of the door-02 event (also its cancel path): the door slides open (task), the three enemies
+// placed at their goto points and released, camera back, SceEventEnd, task exit.
 static void R402ExecEvent01End()
 {
     SceExec(0x12, (TaskFunc) R402MoveDoor02, 0, 2, SCE_PRIO_DEF_2, 0);
@@ -330,6 +338,7 @@ static void R402ExecEvent02Main()
 // COMPILER-DIFF: #1 (the original issues `fmr f1,h` before the `li 0x40; li 0x100` argument moves)
 cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
 
+// Door 02's two halves (objects 0x40/0x41): a 5000-tall collision and attribute plane each (SatMgrCreateF).
 void R402InitDoor02()
 {
     Vec poly[4] = {{0.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, 200.0f}, {0.0f, -2495.0f, 200.0f}};
@@ -448,6 +457,7 @@ static void R402ExecEvent03Main00()
     R402ExecEvent03End00();
 }
 
+// End of boat event A (also its cancel path): area 0x12 off, the boat objects snapped to their arrival z, the enemies released.
 static void R402ExecEvent03End00()
 {
     int i;
@@ -474,6 +484,8 @@ static void R402ExecEvent03End00()
     SceExit();
 }
 
+// Area 0x13: boat event B — Room_flg[0] 0x100, enemy slot 0x30 (list 0xAA) set, camera cut 0xD while
+// the second boat (objects 0x44/0x45) drifts in over 30 frames with its SE; player-cancellable.
 static void R402ExecEvent03Main01()
 {
     cObj* obj;
@@ -517,6 +529,7 @@ static void R402ExecEvent03Main01()
     R402ExecEvent03End01();
 }
 
+// End of boat event B (also its cancel path): area 0x13 off, the boat objects snapped, the enemy released.
 static void R402ExecEvent03End01()
 {
     int i;

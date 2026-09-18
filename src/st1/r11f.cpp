@@ -83,6 +83,10 @@ static void r11f_Eventxxx();
 static void r11f_EventS11();
 static void r11f_AshleyRunUp();
 
+// Room init (the chief's barn, Mendez): before the meeting (Room_flg bit 0) pre-load evd r11fs00,
+// area 0x18 = the s00 event, the five event callbacks, the intact doors shown, Ashley initialised as the
+// following partner (Status_flg[3] 0x04000000), area 8 off; afterwards the broken doors (DoorReplace)
+// and the post-fight layout. The dram (etc 9) and window (etc 0xB) handles, a hit piece.
 void R11fInit()
 {
     Vec pos;
@@ -160,6 +164,7 @@ extern "C" void r11f_DoorReplace()
     BitOn(obj->be_flag, 0x1000);
 }
 
+// Per frame: item area 7 (on the dram) is disabled once the dram is broken (hp <= 0) or missing.
 void R11fMain()
 {
     if (r11f_work->dram) {
@@ -213,11 +218,15 @@ static void r11f_EventS00()
     }
 }
 
+// Action-button success callback of the s00 event: Room_flg[0] bit 31.
 static void r11f_EventS00_Act()
 {
     pG->Room_flg[0] |= 0x80000000;
 }
 
+// Event r11fs00 callback (Mendez confronts Leon): funcMode 0 picks the QTE variant (actNo 3 or 4 at
+// random), status 3, cancel cut 0x10, hides objects 1/2; from cut 5 the Mendez / Leon event models
+// evm7000 / evm8300 are swapped in (CMF), later cuts run the action prompt and its pass / fail branches.
 extern "C" void Evt_R11FS00_Func(Event* e)
 {
     void* mod;
@@ -340,6 +349,8 @@ extern "C" void Evt_R11FS00_Func(Event* e)
     }
 }
 
+// Event r11fs01 callback (the QTE dodge variant): hides the barn wall objects 0xD/0xE/0x12 on cuts
+// 2/4/5, shows them otherwise.
 extern "C" void Evt_R11FS01_Func(Event* e)
 {
     if (e->funcMode == 1) {
@@ -361,6 +372,8 @@ extern "C" void Evt_R11FS01_Func(Event* e)
     }
 }
 
+// Event r11fs02 callback (the other QTE variant): et1200 shown on cut 0, the fire effects re-set on cut
+// 0xB, the knife model wep0200 shown from cut 7.
 extern "C" void Evt_R11FS02_Func(Event* e)
 {
     void* mod;
@@ -403,6 +416,7 @@ extern "C" void Evt_R11FS02_Func(Event* e)
     }
 }
 
+// Event r11fs10 callback (Mendez transforms): light mask 2 on evm3500 and evm0600 drawn on cut 0.
 extern "C" void Evt_R11FS10_Func(Event* e)
 {
     void* mod;
@@ -421,6 +435,9 @@ extern "C" void Evt_R11FS10_Func(Event* e)
     }
 }
 
+// Event r11fs11 callback (the escape from the burning barn): cut 2 hides the wall objects and swaps the
+// door objects 0x14 -> 0x15/0x16 (broken), with a fire effect; other cuts show the walls; the end
+// restores.
 extern "C" void Evt_R11FS11_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -498,12 +515,16 @@ static void r11f_EventS10()
     r11f_EventS10EndProc();
 }
 
+// Cancel path of the transform event: tells the boss (cEm2b virtual 0x58) the event was skipped, then the common end.
 static void r11f_EventS10CancelEndProc()
 {
     ((cEm2b*) r11f_work->em0.getPtr())->v58();
     r11f_EventS10EndProc();
 }
 
+// End of the transform event: stop the stream if Room_flg[0] 0x20000000 says it plays, camera back,
+// put Leon at the fixed fight position facing -0.25 rad, SceEventEnd, point the life meter at the boss
+// and start the fight watcher (r11f_Eventxxx).
 static void r11f_EventS10EndProc()
 {
     Vec pos = {36459.0f, -8000.0f, -63991.0f};
@@ -598,6 +619,7 @@ static void r11f_EventS11()
     SceExec(0x12, r11f_AshleyRunUp, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// After the escape event: half a second later Ashley (pSubEm) runs back to Leon (chase) with her SE.
 static void r11f_AshleyRunUp()
 {
     SceSleep(30);

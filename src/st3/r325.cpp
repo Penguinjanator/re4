@@ -32,6 +32,8 @@ void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 void R325EventS00();
 extern "C" void Evt_R325S00_Func(Event* e);
 
+// Room init: the s00 (and s99) callback; until seen (Room_flg bit 0) area 3 = the event, pre-loaded
+// to ARAM; two 224-pixel render targets for the Leon model's parts 6 / 7 during the event.
 void R325Init()
 {
 #line 35 "D:/Bio4/Prog/r325.cpp"
@@ -46,10 +48,12 @@ void R325Init()
     TexRenderInit(&r325_work->tex[1], 0xE0, 2);
 }
 
+// Per-frame room main: nothing.
 void R325Main()
 {
 }
 
+// Area 3 once (Room_flg bit 0): area off and event r325s00 plays (Ashley is taken away).
 void R325EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -59,6 +63,10 @@ void R325EventS00()
     }
 }
 
+// Event r325s00 callback: etc model 0 hidden; Leon's jacket flag (o18 be_flag 0x40) on for cut 7 only;
+// cut 4 / later cuts route his parts 6 / 7 through the render targets (TexRenderModSet / Res) and hide
+// part 6; the ev0002 model's texture palette is swapped to the red-eye variant on cut 7 and restored
+// after (the original palette kept in W->tpl on the first sight, Room_flg[0] bit 31).
 extern "C" void Evt_R325S00_Func(Event* e)
 {
     void* mod;

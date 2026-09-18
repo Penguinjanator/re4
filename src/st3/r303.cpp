@@ -46,6 +46,9 @@ static void oneshot_bgm();
 static void door_down();
 void setTexRender();
 
+// Room init: the water render target, no splashes; until Room_flg bit 0 area 3 = the door-fall event,
+// else the door object 0xB posed fallen; shelf / duralumin case / dust box item events; a one-shot
+// stream on area 6 (bit 3); Scenario_flg[1] 0x00200000.
 void R303Init()
 {
 #line 52 "D:/Bio4/Prog/r303.cpp"
@@ -93,36 +96,43 @@ void r303_TanaMove(int mode)
     }
 }
 
+// Item-event opener: the shelf swings open.
 static void r303_openTana(int no)
 {
     r303_TanaMove(0);
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r303_openedTana(int no)
 {
     r303_TanaMove(1);
 }
 
+// Item-event opener: the duralumin case (OpenBoxMain type 7) opens.
 static void r303_DuraluminCaseOpen(int no)
 {
     OpenBoxMain(7, 0, 0x18, no, -1, -1);
 }
 
+// Item-event "already opened": the case posed open.
 static void r303_DuraluminCaseOpened(int no)
 {
     OpenBoxMain(7, 1, -1, no, -1, -1);
 }
 
+// Item-event opener: the dust box (type 8) lid opens.
 static void r303_DustBoxOpen(int no)
 {
     OpenBoxMain(8, 0, 4, no, -1, -1);
 }
 
+// Item-event "already opened": the dust box posed open.
 static void r303_DustBoxOpened(int no)
 {
     OpenBoxMain(8, 1, -1, no, -1, -1);
 }
 
+// Per-frame room main: nothing.
 void R303Main()
 {
 }
@@ -130,6 +140,7 @@ void R303Main()
 // Area 6: the one-shot stream.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Area 6 once (Room_flg bit 3): stream 0x34 plays once.
 static void oneshot_bgm()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never

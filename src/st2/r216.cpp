@@ -117,6 +117,9 @@ static void r216_BattleEnd();
 static void r216_BattleEndEndProc();
 static void r216_ArmorDispOnOff(int on);
 
+// Room init (the hall of the living armors): the exit door and three poles set up, door open; the fight
+// done (Room_flg bit 0) -> poles posed open; else area 0x80 = the battle start, the four display armors
+// (0xE5..0xE8) and areas 5/6 that show / hide them.
 void R216Init()
 {
     u32 i;
@@ -143,6 +146,7 @@ void R216Init()
     }
 }
 
+// Per frame: step the door and the three pole state machines.
 void R216Main()
 {
     r216_work.p->door.move();
@@ -206,6 +210,9 @@ static void r216_BattleStart()
     r216_BattleStartEndProc();
 }
 
+// End of the battle-start cutscene (also its cancel path, Room_flg[0] 0x20000000 set = cancelled early:
+// kill the camera task, snap the poles open with their first armors alerted, door closed, drop the
+// effect): camera back, start the end watcher, the armors may suspend again.
 static void r216_BattleStartEndProc()
 {
     u32 i;
@@ -311,6 +318,7 @@ static void r216_BattleEndCheck()
     }
 }
 
+// All six armors beaten: half a second later camera cut 1 while the door rises; player-cancellable.
 static void r216_BattleEnd()
 {
     SceSleep(0x1E);
@@ -329,6 +337,7 @@ static void r216_BattleEnd()
     r216_BattleEndEndProc();
 }
 
+// End of the battle-end cutscene (cancel path snaps the door open): camera back, Room_flg bit 0, SceEventEnd.
 static void r216_BattleEndEndProc()
 {
     if (pG->Room_flg[0] & 0x20000000) {
@@ -339,6 +348,7 @@ static void r216_BattleEndEndProc()
     SceEventEnd(0);
 }
 
+// Areas 5/6: show (on = 1) / hide the four display armors (draw distance culling by hand).
 static void r216_ArmorDispOnOff(int on)
 {
     r216_work.p->armor[0].em.setTrans(on);
@@ -347,6 +357,7 @@ static void r216_ArmorDispOnOff(int on)
     r216_work.p->armor[3].em.setTrans(on);
 }
 
+// Pole `no`: its three scroll objects (r216_pole_obj) marked script-moved.
 void cR216Pole::init(int no)
 {
     u32 i;
@@ -359,6 +370,7 @@ void cR216Pole::init(int no)
     }
 }
 
+// Per-frame step: run the current mode (wait / open / close) of r216_pole_tbl.
 void cR216Pole::move()
 {
     if (enable) {
@@ -366,6 +378,7 @@ void cR216Pole::move()
     }
 }
 
+// Mode 0: idle.
 void cR216Pole::wait()
 {
 }
@@ -438,6 +451,7 @@ void cR216Pole::close()
     }
 }
 
+// Request the turn-out (mode 1) unless already open / turning out; status 2 = moving.
 void cR216Pole::setOpen()
 {
     if (!enable) {
@@ -454,6 +468,7 @@ void cR216Pole::setOpen()
     step = 0;
 }
 
+// Request the turn-in (mode 2) unless already closed / turning in.
 void cR216Pole::setClose()
 {
     if (!enable) {
@@ -514,6 +529,7 @@ void cR216Pole::setClosed()
     }
 }
 
+// 0 closed, 1 opened, 2 moving; -1 when the pole has no objects.
 int cR216Pole::getStatus()
 {
     if (enable) {
@@ -544,6 +560,7 @@ void cR216Pole::setEm(cEmWrap* em)
     em->setAng(&v);
 }
 
+// The exit door: scroll object 0xA marked script-moved, base position kept, opens by rising 2400 units.
 void cR216Door::init()
 {
     enable = 0;
@@ -557,6 +574,7 @@ void cR216Door::init()
     }
 }
 
+// Per-frame step: run the current mode (wait / open / close) of r216_door_tbl.
 void cR216Door::move()
 {
     if (enable) {
@@ -564,10 +582,13 @@ void cR216Door::move()
     }
 }
 
+// Mode 0: idle.
 void cR216Door::wait()
 {
 }
 
+// Mode 1: SE 0x24, the bar object 0xB shown, the door rises 22 units a frame to base + height; on arrival
+// SE 0x25, collision area 1 off, status 1.
 void cR216Door::open()
 {
     switch (step) {
@@ -588,6 +609,8 @@ void cR216Door::open()
     }
 }
 
+// Mode 2: SE 0x26, collision area 1 on, the door drops with growing speed; on hitting the base SE 0x27,
+// the bar 0xB hidden, then 5 frames of shake around the base position, status 0.
 void cR216Door::close()
 {
     switch (step) {
@@ -622,6 +645,7 @@ void cR216Door::close()
     }
 }
 
+// Request the door to open (mode 1) unless already open / opening.
 void cR216Door::setOpen()
 {
     if (!enable) {
@@ -638,6 +662,7 @@ void cR216Door::setOpen()
     step = 0;
 }
 
+// Request the door to close (mode 2) unless already closed / closing.
 void cR216Door::setClose()
 {
     if (!enable) {
@@ -653,6 +678,7 @@ void cR216Door::setClose()
     step = 0;
 }
 
+// 0 closed, 1 opened, 2 moving; -1 when there is no door object.
 int cR216Door::getStatus()
 {
     if (enable) {
@@ -661,6 +687,7 @@ int cR216Door::getStatus()
     return -1;
 }
 
+// Snap the door open (raised, area 1 off, bar shown, SE stopped).
 void cR216Door::setOpened()
 {
     if (enable) {
@@ -674,6 +701,7 @@ void cR216Door::setOpened()
     }
 }
 
+// Snap the door closed (at base, area 1 on, bar hidden, SE stopped).
 void cR216Door::setClosed()
 {
     if (enable) {

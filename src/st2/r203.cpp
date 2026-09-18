@@ -64,6 +64,11 @@ static void r203_ShelfOpened();
 static void r203_StreamCheck();
 extern "C" void Evt_R203S00_Func(Event* e);
 
+// Room init: once the key item was taken (Item_find_flg 0x00010000) two Ganados (0x27/0x29) plus three
+// wanderers (0x34..0x36, list 2); otherwise the nine Ganados of the table (list 2), area 0x8A = the key
+// pickup wave and the key-carrier's escape. Area 1 = the locked door with the key-use watcher until
+// door_unlock[0] 0x00020000. Until Room_flg bit 3: Ashley initialised as follower, r203s00 pre-loaded,
+// area 3 = the reunion event. Battle stream, one chest and one shelf item event.
 void R203Init()
 {
     int tbl[9][2] = {
@@ -114,6 +119,7 @@ void R203Init()
     SceSetItemEvent(8, 0x88, 6, 4, (void (*)(int)) r203_ShelfOpen, r203_ShelfOpened, 0, 0);
 }
 
+// Per-frame room main: nothing.
 void R203Main()
 {
 }
@@ -129,6 +135,8 @@ static void r203_LockDoor()
     }
 }
 
+// Task: waits for key item 0xA7 to be used, then unlocks the door (door_unlock[0] 0x00020000, area 1
+// re-armed) with message up-cut 1/4. (Named after r209's copy.)
 static void r209_CheckUseKey()
 {
     while (ItemMgr.check(0xA7) == 0) {
@@ -280,21 +288,25 @@ static void r203_EventMeetAgain()
     asm("" : : "r"(pin), "f"(fpin));
 }
 
+// Item-event opener: chest `id` lid up (+Z).
 static void r203_TreasureBoxOpen(int id)
 {
     OpenBoxMain(OpenBoxUpZP, 0, 0x5B, id, -1, -1);
 }
 
+// Item-event "already opened": chest `id` posed open.
 static void r203_TreasureBoxOpened(int id)
 {
     OpenBoxMain(OpenBoxUpZP, 1, 0x5B, id, -1, -1);
 }
 
+// Item-event opener: the shelf (objects 0x1B/0x1A) swings open.
 static void r203_ShelfOpen()
 {
     OpenBoxMain(0, 0, 0x1A, 0x1B, 0x1A, -1);
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r203_ShelfOpened()
 {
     OpenBoxMain(0, 1, 0x1A, 0x1B, 0x1A, -1);
@@ -339,6 +351,7 @@ static void r203_StreamCheck()
     }
 }
 
+// Event r203s00 callback: light mask 2 on the pl0400 model on its first frame.
 extern "C" void Evt_R203S00_Func(Event* e)
 {
     if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {

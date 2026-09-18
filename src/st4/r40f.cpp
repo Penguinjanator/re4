@@ -46,6 +46,9 @@ static void R40fDoorSwitchMain();
 static void R40fDoorSwitchEnd();
 void R40fDoorOpened(int on);
 
+// Room init: area 9 = the guard opening the door from outside until Room_flg bit 3; area 8 = the lever;
+// the door posed open (bit 5, open effect) or shut; area 0xE = the bomb carriers until bit 7; object
+// 0x15 hidden.
 void R40fInit()
 {
     void* model = NULL;
@@ -69,6 +72,7 @@ void R40fInit()
     SmdSetTrans(0x15, 0);
 }
 
+// Per-frame room main: nothing.
 void R40fMain()
 {
 }
@@ -109,6 +113,8 @@ void R40fDoorEventEmMove()
     }
 }
 
+// Area 9 once (Room_flg bit 3, door still shut): camera cut 6 while the guard walks up and the door
+// opens (effect swapped), the message camera set 9/8/5; player-cancellable.
 static void R40fDoorEvent00Main()
 {
     if (RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -131,6 +137,8 @@ static void R40fDoorEvent00Main()
     }
 }
 
+// End of the door event (also its cancel path): the door snapped open with its effect, the guard may
+// suspend, camera back, SceEventEnd, task exit.
 static void R40fDoorEvent00End()
 {
     R40fDoorOpened(1);
@@ -217,6 +225,8 @@ static void R40fDoorSwitchMain()
     }
 }
 
+// End of the lever event (also its cancel path): the first time (Room_flg bit 6) the five guards are
+// alerted and released; the door shut with its effect, camera back, SceEventEnd.
 static void R40fDoorSwitchEnd()
 {
     void* model = NULL;
@@ -244,6 +254,7 @@ static void R40fDoorSwitchEnd()
     SceExit();
 }
 
+// Snap the barred door open (area 0xD on, area 1 off, Room_flg bit 5) or shut (the reverse).
 void R40fDoorOpened(int on)
 {
     if (on == 1) {

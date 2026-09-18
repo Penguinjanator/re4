@@ -142,6 +142,11 @@ static void em_set2();
 static void gate_open();
 }
 
+// Room init (the bulldozer ride): the lift adjust vector zeroed; enemy 0x1F pre-read; area 0x17 rides
+// on object 0x1E; area layout 1; most areas off, area 0xF = the lift-yard Ganados. JumpPoint 1..4
+// skips ahead to that gate (the area layouts and gates already broken); otherwise the ride task starts
+// and the bulldozer (cObjBull, SetBull) is created with its motions; the truck hit boxes, the lift
+// objects and the rest of the setup follow.
 void R30fInit()
 {
     R30fWork*& wp = r30f_work;   // reference: `lis work@ha` before the call (the Debug_alloc idiom)
@@ -264,6 +269,10 @@ cEm* setem(u8 no, int force)
     return r30f_work->em[no].getPtr();
 }
 
+// Per frame (the ride script): debug displays; at the bulldozer's goal the exit area 0 runs; every 30
+// frames of driving the Ganados too far behind are recycled; at fixed move frames of routines 2 and 4
+// the list Ganados (setem) jump aboard / appear, the Ganado boarding cut (em_set) plays, the truck
+// starts (track_move) and the gates break (doorN_break) as the bulldozer reaches them.
 void R30fMain()
 {
     cPlayer* pl;
@@ -570,6 +579,7 @@ void reva_common_move(cObj* obj, f32 lo, f32 hi)
     }
 }
 
+// Rebuild a model's matrix (rotation, translation, scale) and its parts after a manual pose change.
 void EmHitUpdate(cModel* m)
 {
     RotMatrix(m->mat, &m->ang);
@@ -635,6 +645,7 @@ static void track_destroy()
     SceEventEnd(0);
 }
 
+// 80 frames later Leon takes the guard hit (PlSetDamage type 9): the truck's ramming.
 static void pl_gurd()
 {
     SceSleep(0x50);
@@ -1013,6 +1024,8 @@ static void plemRide(cPlayer* p)
     }
 }
 
+// Put Leon back on the bulldozer's cab position (part offset rotated by 1.572 rad) after the lift ride,
+// with the ride motion routine.
 static void R30f_ride2()
 {
     Vec p;
@@ -1172,6 +1185,7 @@ void setArea1()
     SmdSetTrans(0x24, 0);
 }
 
+// Scroll block layout for section 2 (objects 0x20/0x21 shown).
 void setArea2()
 {
     SmdSetTrans(0x1F, 0);
@@ -1182,6 +1196,7 @@ void setArea2()
     SmdSetTrans(0x24, 0);
 }
 
+// Scroll block layout for section 3 (objects 0x21..0x23 shown).
 void setArea3()
 {
     SmdSetTrans(0x1F, 0);
@@ -1192,6 +1207,7 @@ void setArea3()
     SmdSetTrans(0x24, 0);
 }
 
+// Scroll block layout for section 4 (objects 0x22..0x24 shown).
 void setArea4()
 {
     SmdSetTrans(0x1F, 0);
@@ -1202,6 +1218,7 @@ void setArea4()
     SmdSetTrans(0x24, 1);
 }
 
+// Scroll block layout for section 5 (objects 0x23/0x24 shown).
 void setArea5()
 {
     SmdSetTrans(0x1F, 0);
@@ -1212,6 +1229,8 @@ void setArea5()
     SmdSetTrans(0x24, 1);
 }
 
+// Switch to section `no` of the ride: the scroll block layout and the collision pieces (created /
+// destroyed as the bulldozer advances).
 void AreaSet(u32 no)
 {
     switch (no) {
@@ -1258,6 +1277,7 @@ void em_destroy_area(int at)
     }
 }
 
+// Destroy every live list Ganado that may be reset (out of sight and idle).
 void em_destroy()
 {
     u32 i;
@@ -1504,6 +1524,7 @@ static void r30f_switch()
     SceEventEnd(0);
 }
 
+// Move a model by `add` (setPos of pos + add).
 void addPos(Vec* add, cModel* m)
 {
     Vec p;

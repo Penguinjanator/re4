@@ -102,6 +102,9 @@ static const AtEffInfo r311_effInfo = {
 // Enemy list entries of the door wave (setPtr numbers).
 static const u8 r311_emList[8] = {0xF3, 0xF4, 0xF5, 0xF6, 0xFB, 0xFC, 0xFD, 0};
 
+// Room init (the crane hall): Ashley initialised as the follower; water hit effects; the enemy reset
+// task; the sliding door and the iron ball / crane; the stream; doors 4/5 paired; the kidnap and the
+// enemy goal-point tasks.
 void R311Init()
 {
     cEmDoor* door4;
@@ -124,6 +127,7 @@ void R311Init()
     SceExec(0x12, (TaskFunc) r311_checkEmMoveCtrl, 0, 0, 2, 0);
 }
 
+// Per-frame room main: nothing.
 void R311Main()
 {
 }
@@ -260,6 +264,8 @@ void r311_initEmDoor()
     }
 }
 
+// Task: the sliding door 0x9C goes up (open = 1: area 6 off, SE 6 then 7, the up move1) or comes down
+// (SE 8, the drop move3, area 6 on).
 static void r311_moveEmDoor(int open)
 {
     cObj* o = SmdGetObjPtr(0x9C);
@@ -489,6 +495,7 @@ static void r311_checkEmReset()
     }
 }
 
+// Battle stream 3 from a Ganado spotting the player until no Ganado (0x10..0x20) is alive, repeatedly.
 static void r311_checkBgm()
 {
     for (;;) {
@@ -525,6 +532,7 @@ static void r311_checkAshleyKidnap()
     }
 }
 
+// The ball's impact SE 59 frames into the swing (SE 3 on the third, gate-breaking throw, else SE 2).
 static void r311_throwIronBall_se()
 {
     SceSleep(59);

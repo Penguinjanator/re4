@@ -40,6 +40,9 @@ static void r102_execEvent00();
 void r102_checkBgm();
 static void r102_openCover();
 
+// Room init: rain without water splashes; the well cover event on area 3 unless Room_flg bit 0 says it
+// was already opened (then scroll object 0x25's lid is posed open); the r102s00 event on area 5 unless
+// Room_flg bit 1 (its evd file is pre-loaded and enemy 0x18 read ahead); then the BGM task.
 void R102Init()
 {
 #line 39 "D:/Bio4/Prog/r102.cpp"
@@ -61,6 +64,7 @@ void R102Init()
     SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R102Main()
 {
 }

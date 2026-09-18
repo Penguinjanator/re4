@@ -24,8 +24,10 @@
 #include "snd.h"
 #include "merchant.h"
 
-// Room 2-00 (D:/Bio4/Prog/r200.cpp): the village entrance after the chapter break — the show-view
-// pan, the s00 event (the truck), the Ganado wave and the event handler.
+// Room 2-00 (D:/Bio4/Prog/r200.cpp): the castle approach (the first stage-2 room, end of chapter 2-3):
+// the show-view pan over the castle, the truck event (a Ganado drives the truck at the gate) with its
+// Ganado wave, the s00 event that ends chapter 2-3 (Leon and Ashley enter the castle; the merchant's
+// stage-2 stock is added) and its event handler.
 
 struct R200Work {
     u8 pad_0[8];
@@ -63,6 +65,10 @@ static void r200_execTruckEvent_end();
 static void r200_execTruckEvent();
 extern "C" void Evt_R200S00_Func(Event* e);
 
+// Room init: JumpPoint 1 skips the view and the s00 event (Room_flg bits 4/2). The show view once (bit
+// 4); until s00 (bit 2): area 4 = the event (pre-loaded, enemies 3/0x12/0x3B pre-read) and, until the
+// truck came (bit 0), area 0 = the truck event with item area 0x8A off; after s00 the gate objects 8/9
+// are posed open. Then the door lock, the box item event and the battle stream.
 void R200Init()
 {
 #line 51 "D:/Bio4/Prog/r200.cpp"
@@ -110,6 +116,7 @@ void R200Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R200Main()
 {
 }
@@ -145,16 +152,19 @@ void r200_openBox_main(int id, int mode)
     }
 }
 
+// Item-event "already opened": the box lid posed open.
 static void r200_openedBox(int id)
 {
     r200_openBox_main(id, 1);
 }
 
+// Item-event opener: the box lid swings open.
 static void r200_openBox(int id)
 {
     r200_openBox_main(id, 0);
 }
 
+// End of the show view: stream faded (200 frames), camera back, SceEventEnd, its effect dropped.
 static void r200_execShowView_end()
 {
     SndStrReq(r200_work.p->snd, 4, 200, 0);
@@ -168,6 +178,8 @@ static void r200_execShowView_end()
 // The camera pans over the village on the first visit.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Show view once (Room_flg bit 4, and only once per game via System_flg 0x40): stream 0x18, camera cut
+// 5 panning over the castle with an ambient effect; player-cancellable.
 static void r200_execShowView()
 {
     // The 0.0 is loaded after the BitOn store: a pool constant would move above it (pool loads never
@@ -190,7 +202,7 @@ static void r200_execShowView()
     }
 }
 
-// Area 4: the s00 event; chapter 2-1 ends.
+// Area 4: the s00 event (Leon and Ashley enter the castle); chapter 2-3 ends (SceSetChapterEnd(CHAPTER_2_3)).
 static void r200_execEvent00()
 {
     RsfSet(G_ROOM_ID, 2);
@@ -209,11 +221,13 @@ static void r200_execEvent00()
     SceSetChapterEnd(CHAPTER_2_3, 9);
 }
 
+// Area 2: the gate is shut — up-cut message 0.
 static void r200_checkDoor()
 {
     SceUpCut(0, -1, 0, 0);
 }
 
+// Lock the gate (area 2 = the message) and clear the item save area (0x1000 bytes) for the new stage.
 void r200_lockDoor()
 {
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r200_checkDoor, 0, 1);
@@ -263,6 +277,9 @@ found:
 // COMPILER-DIFF: 11 -- a 16-byte `ang` makes the merged free slot of the first block (12 + 16 = 28)
 // large enough for assign_stack_temp to split it, so the second block's Vecs reuse both slots (frame 0x50).
 struct R200Vec4 { Vec v; f32 pad; };
+// End of the truck event: Leon placed beside the road facing 1.352 rad, camera back, effect dropped,
+// SceEventEnd; unless cancelled (Room_flg[0] bit 31) the driver gets a burning effect; both Ganados may
+// suspend again and the wave watcher starts.
 static void r200_execTruckEvent_end()
 {
     {
@@ -346,6 +363,9 @@ static void r200_execTruckEvent()
     r200_execTruckEvent_end();
 }
 
+// Event r200s00 callback (the gate opens, Leon and Ashley enter): funcMode 0 lets the gate objects
+// suspend, drops the room effect and hides the broken etc model 6; per cut the Leon / Ashley models'
+// ot_type and the gate / truck objects are set; the end restores the room.
 extern "C" void Evt_R200S00_Func(Event* e)
 {
     switch (e->funcMode) {

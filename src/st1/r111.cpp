@@ -27,6 +27,9 @@ static R111Work* r111_work;
 
 static void r111_ThunderMove();
 
+// Room init: sets the three rack (cEmRack, etc_model) trigger ranges (moving rack 0x11 to a fixed
+// position), starts the thunder task, attaches the rain effects to the player (EstSet 1/3/0x23),
+// sets Status_flg[1] 0x400 (raining), pre-breaks windows 0 and 0x13, and default floor attribute 3.
 void R111Init()
 {
     cEm* rack;
@@ -65,6 +68,7 @@ void R111Init()
     FlrAtSetDefVal(0, 0, 3);
 }
 
+// Per-frame room main: nothing.
 void R111Main()
 {
 }

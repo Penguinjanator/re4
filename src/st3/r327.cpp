@@ -121,6 +121,11 @@ static void r327_StrCheck();
 static void r327_BoxOpen(u32 id);
 static void r327_BoxOpened(u32 id);
 
+// Room init (the Ganado camp): on a return after Scenario_flg[1] 0x40000000 the room's 0x1D enemies are
+// dropped from the list, else the first-visit tables set the eleven camp Ganados; the two lamp switches
+// (areas 4/3 until Room_flg bits 0/1, both -> the gate open), area 6 = the door check, the card reader
+// (area 0x18 + card key 0x74 watcher until bit 11), the gatling Ganado until bit 2, the goto and
+// enemy-refill tasks, seven box item events, the continue point (area 0x1B), the stream.
 void R327Init()
 {
     u32 i;
@@ -200,6 +205,8 @@ void R327Init()
     SceExec(0x12, (TaskFunc) r327_EnemySet2nd, 0, 0, 2, 0);
 }
 
+// Per frame: each active camp enemy on a route keeps hunting the player and steps its route; inactive
+// ones that may be reset are destroyed; debug count of 0x1D enemies.
 void R327Main()
 {
     int i;
@@ -388,6 +395,7 @@ static void r327_GatlingGanadoSet()
     r327_GatlingGanadoSetEndProc(idx);
 }
 
+// End of the gatling Ganado's cut: camera back, it may suspend, SceEventEnd.
 static void r327_GatlingGanadoSetEndProc(int idx)
 {
     CamCtrl.Comeback(0);
@@ -442,6 +450,7 @@ static void r327_LampSet(int no)
     r327_LampSetEndProc();
 }
 
+// End of a lamp cut: camera back, SceEventEnd; with both lamps lit (Room_flg bits 0/1) the gate opens.
 void r327_LampSetEndProc()
 {
     CamCtrl.Comeback(0);
@@ -501,6 +510,8 @@ static void r327_GanadoAppearCut()
     r327_GanadoAppearCutEndProc(side != 0 ? 1 : 0);
 }
 
+// End of the appearance cut: the four Ganados of side 0 (and side 1 when `side`) are set from
+// r327_appearTbl if not yet, released and alerted; camera back, SceEventEnd.
 static void r327_GanadoAppearCutEndProc(int side)
 {
     // The table pointer is a two-set variable (the dead `t = t2` below): its first value is not folded
@@ -539,6 +550,7 @@ static void r327_GanadoAppearCutEndProc(int side)
     SceExec(0x12, (TaskFunc) r327_EnemySet, 0, 0, 2, 0);
 }
 
+// Area 6: once the switch was pulled out (Room_flg bit 13) the door message, else the Ganado disables the switch.
 static void r327_CheckDoor()
 {
     if (RsfCheck(G_ROOM_ID, 13)) {
@@ -572,6 +584,8 @@ static void r327_DoorOpen()
     r327_DoorOpenEndProc(se);
 }
 
+// End of the gate rise (also its cancel path, Room_flg[0] bit 31): the gate 0x52 snapped to y 9400 with
+// its SE stopped, camera back, areas 5/6 off, door_unlock[1] 0x00400000, SceEventEnd.
 static void r327_DoorOpenEndProc(int se)
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -625,6 +639,8 @@ static void r327_GanadoGotoCheck()
     }
 }
 
+// Area 0x18, the card reader: up-cut 6 (after the switch was disabled, bit 12) or 5; with the card key
+// (item 0x74) held the item screen opens.
 static void r327_CheckCardReader()
 {
     if (RsfCheck(G_ROOM_ID, 12)) {
@@ -639,6 +655,8 @@ static void r327_CheckCardReader()
     }
 }
 
+// Task: waits for the card key (item 0x74) to be used, Room_flg bit 11, the reader effect swapped,
+// up-cut 3, area 0x18 off, then the switch re-enable cut.
 static void r327_CheckUseCardKey()
 {
     while (ItemMgr.check(0x74) == 0) {
@@ -689,6 +707,7 @@ static void r327_SetSwitchEnable()
     r327_SetSwitchEnableEndProc();
 }
 
+// End of the re-enable cut (cancelled: the lamp effects swapped to the lit ones): camera back, SceEventEnd.
 static void r327_SetSwitchEnableEndProc()
 {
     int zero = 0;
@@ -784,6 +803,8 @@ static void r327_SetSwitchDisable()
     r327_SetSwitchDisableEndProc();
 }
 
+// End of the disable cut (cancelled: the lamp / reader effects swapped to the dead ones): the
+// switch-pulling Ganado destroyed, camera back, SceEventEnd, then the appearance groups.
 static void r327_SetSwitchDisableEndProc()
 {
     int zero = 0;
@@ -828,6 +849,7 @@ static void r327_EnemySet2nd()
     }
 }
 
+// Area 0x1B once (Room_flg bit 15): autosave.
 static void r327_ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
@@ -851,6 +873,7 @@ static void r327_StrCheck()
     }
 }
 
+// Item-event opener: box `id` (duralumin 0x68 type 8, lockers type 1, double door 0x6A) opens.
 static void r327_BoxOpen(u32 id)
 {
     switch (id) {
@@ -872,6 +895,7 @@ static void r327_BoxOpen(u32 id)
     }
 }
 
+// Item-event "already opened": box `id` posed open (0x6A still animates: vendor copy).
 static void r327_BoxOpened(u32 id)
 {
     switch (id) {
@@ -893,6 +917,7 @@ static void r327_BoxOpened(u32 id)
     }
 }
 
+// Bind the runner to enemy `no` with an n-point route; run = 1 starts Move stepping it.
 int cEmRun::SetRoute(s16 no, Vec* tbl, int n)
 {
     if (SetControl(no, tbl, n, 0) == 0) {

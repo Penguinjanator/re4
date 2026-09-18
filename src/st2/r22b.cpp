@@ -8,7 +8,8 @@
 #include "sce_sys.h"
 #include "fade.h"
 
-// Room 2-2B (D:/Bio4/Prog/r22b.cpp): the s00 event (end of chapter 2-3) and its fades.
+// Room 2-2B (D:/Bio4/Prog/r22b.cpp): the s00 event that ends chapter 4-1 (SceSetChapterEnd(CHAPTER_4_1))
+// and its fades; nothing else is in the room.
 
 struct R22bWork {
     u8 dummy;
@@ -30,6 +31,7 @@ static inline int r22b_evtSkip(Event* e)
     return skip;
 }
 
+// Room init: registers the s00 callback and, unless Room_flg bit 0 (seen), pre-loads r22bs00 and starts the event task.
 void R22bInit()
 {
 #line 33 "D:/Bio4/Prog/r22b.cpp"
@@ -41,10 +43,12 @@ void R22bInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R22bMain()
 {
 }
 
+// Once (Room_flg bit 0): System_flg 0x400 (no pause / no room change), play r22bs00, then end chapter 4-1.
 extern "C" void R22bEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -56,6 +60,7 @@ extern "C" void R22bEventS00()
     }
 }
 
+// Event r22bs00 callback: fade-outs / fade-ins at fixed frames of cuts 0 and 1 (skipped when the event is skipped).
 extern "C" void Evt_R22bS00_Func(Event* e)
 {
     if (e->funcMode == 1) {

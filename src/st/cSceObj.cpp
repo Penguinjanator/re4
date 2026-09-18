@@ -93,6 +93,7 @@ inline void cSceObj::addRot(Vec* d)
     }
 }
 
+// Place obj (and attached models) at an absolute position via addPos of the difference.
 inline void cSceObj::setPosTo(Vec* target)
 {
     Vec d;
@@ -103,6 +104,7 @@ inline void cSceObj::setPosTo(Vec* target)
     }
 }
 
+// Place obj (or, with flags bit 2, its parts parent) at an absolute rotation via addRot of the difference.
 inline void cSceObj::setRotTo(Vec* target)
 {
     Vec d;
@@ -140,6 +142,8 @@ inline void cSceObj::moveTo(Vec* tp, Vec* tr)
     }
 }
 
+// Per-frame step, called by the room's task each frame: dispatches on `mode` (0 move1 accel/const/decel,
+// 1 move2 no-op, 2 move3 gravity drop). Returns 1 while moving, 0 once the destination is reached.
 int cSceObj::move()
 {
     if (obj == NULL) {
@@ -332,6 +336,7 @@ int cSceObj::move1()
     }
 }
 
+// Mode 1: no movement (always "still running").
 int cSceObj::move2()
 {
     return 1;
@@ -388,6 +393,8 @@ int cSceObj::move3()
     }
 }
 
+// Bind a scroll object and start a position-only move1 of `dp` over nFrame frames (acc/dec in percent of
+// the duration); records the object's current pos/ang as base and marks it be_flag 0x20 (moved by script).
 void cSceObj::initMove1_pos(cModel* o, u32 nFrame, Vec* dp, f32 acc, f32 dec)
 {
     if (o) {
@@ -399,11 +406,14 @@ void cSceObj::initMove1_pos(cModel* o, u32 nFrame, Vec* dp, f32 acc, f32 dec)
     setMove1_pos(nFrame, dp, acc, dec);
 }
 
+// Restart a position-only move1 (dp relative to basePos, rotation kept at baseRot) on the bound object.
 void cSceObj::setMove1_pos(u32 nFrame, Vec* dp, f32 acc, f32 dec)
 {
     setMove1_all(nFrame, dp, &baseRot, acc, dec, 1);
 }
 
+// Bind a scroll object and start a rotation-only move1 of `dr` radians over nFrame frames; flg bit 2
+// rotates the parts parent instead of the object itself.
 void cSceObj::initMove1_ang(cModel* o, u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg)
 {
     flg |= 2;
@@ -420,6 +430,7 @@ void cSceObj::initMove1_ang(cModel* o, u32 nFrame, Vec* dr, f32 acc, f32 dec, in
     setMove1_ang(nFrame, dr, acc, dec, flg);
 }
 
+// Restart a rotation-only move1 (dr relative to baseRot) on the bound object.
 void cSceObj::setMove1_ang(u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg)
 {
     setMove1_all(nFrame, &basePos, dr, acc, dec, flg | 2);
@@ -464,6 +475,8 @@ void cSceObj::setMove1_all(u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int f
     setStartPos();
 }
 
+// Bind a scroll object and start a move3 gravity drop: initial velocity v, gravity grav per frame,
+// destination height h relative to base, bounce factor bnc.
 void cSceObj::initMove3_y(cModel* o, Vec* v, f32 grav, f32 h, f32 bnc)
 {
     if (o) {
@@ -475,6 +488,7 @@ void cSceObj::initMove3_y(cModel* o, Vec* v, f32 grav, f32 h, f32 bnc)
     setMove3_y(v, grav, h, bnc);
 }
 
+// Set up the move3 parameters on the bound object (mode 2, flags 0x10 bounce) and put it at the start.
 void cSceObj::setMove3_y(Vec* v, f32 grav, f32 h, f32 bnc)
 {
     mode = 2;
@@ -528,6 +542,7 @@ void cSceObj::getVibrationValue(Vec* vp, Vec* vr)
     }
 }
 
+// Compute srcPos/Rot and dstPos/Rot from base + delta; `reverse` swaps them (run the move backwards).
 void cSceObj::setSrcDstPos()
 {
     if (reverse == 1) {
@@ -543,24 +558,28 @@ void cSceObj::setSrcDstPos()
     }
 }
 
+// Snap the object to the move's start pose.
 void cSceObj::setStartPos()
 {
     setPosTo(&srcPos);
     setRotTo(&srcRot);
 }
 
+// Snap the object to the move's end pose (used to skip a move, e.g. when a flag says it already happened).
 void cSceObj::setEndPos()
 {
     setPosTo(&dstPos);
     setRotTo(&dstRot);
 }
 
+// Snap to the start pose and rewind the mover (step 0) so move() replays it.
 void cSceObj::setStart()
 {
     setStartPos();
     step = 0;
 }
 
+// Choose direction (rev = 1: end -> start), swapping the accel/decel ratios, then rewind to the new start pose.
 void cSceObj::setReverse(int rev)
 {
     if (rev == 1) {
@@ -580,6 +599,8 @@ void cSceObj::setReverse(int rev)
     setStartPos();
 }
 
+// Enable position/rotation shake (flags bit 3) between frames start..end of the move with the three
+// amplitude coefficients used by getVibrationValue.
 void cSceObj::setVibration(u16 start, u16 end, f32 amp0, f32 amp1, f32 amp2)
 {
     flags |= 8;

@@ -77,6 +77,7 @@ static void asl_wait()
     SceAtSetEnable(9, 0);
 }
 
+// Area 0xA: Ashley follows Leon again (swap the wait / follow areas).
 static void asl_chase()
 {
     SubCharCtrl(SCC_CHASE, 0);
@@ -84,6 +85,11 @@ static void asl_chase()
     SceAtSetEnable(9, 1);
 }
 
+// Room init (the mine lift and cart platform): on a fresh entry Ashley counts as following; when she
+// is, she is initialised in chase mode. Coming from r222 (the lower level) normally she is placed at the
+// lift; area 0 = the door back (takes Ashley), 9/0xA = wait / follow, 3/4 = ride the left / right cart
+// to r212, a return from r210 itself (Part 1/2) arrives by cart; areas 5/6 = lift down / up, 7/8 re-arm
+// the lift.
 void R210Init()
 {
 #line 53 "D:/Bio4/Prog/r210.cpp"
@@ -152,6 +158,7 @@ void R210Init()
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r222_dai_set, 0, 1);
 }
 
+// Per frame: once Leon is past z -20000 (on the lift side) Ashley stops following (Item_find_flg 0x80).
 void R210Main()
 {
     if (pPL->pos.z < -20000.0f) {
@@ -171,6 +178,7 @@ static void r222_DummyDoorProc()
     SceAtExecute(0);
 }
 
+// Areas 7/8: re-enable the lift areas 5/6; clears Room_flg[0] bit 31 (lift in use) and Item_find_flg 0x80.
 static void r222_dai_set()
 {
     SceAtSetEnable(5, 1);
@@ -363,6 +371,9 @@ static void r222_dai_ret()
 
 // Areas 3/4: the cart ride to r212 (dir 0: left cart, 1: right cart).
 static inline f32 FCRef(const f32& v) { return v; }
+// Areas 3/4 (dir 0/1: left / right cart): refused with message 0x67 unless Ashley can jump with Leon;
+// else the cart object is created, both board it (Leon's hand / weapon put away, Ashley's aux motion),
+// stream 0xE4 plays and the cart rolls out to r212 (Part 1/2 tells r212 which cart).
 static void toroko_go(int dir)
 {
     cPlayer* pl = pPL;

@@ -46,6 +46,7 @@ static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
     p->r_no_3 = ff;
 }
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -75,6 +76,8 @@ static void r315_DuraluminCaseOpened(int no);
 static void r315_TanaOpen(int no);
 static void r315_TanaOpened(int no);
 
+// Room init: a fresh entry marks Ashley as following and initialises her at Leon; the first-entry cut
+// once (Room_flg bit 0); the duralumin case and two shelf item events; door 6 loses light select bit 4.
 void R315Init()
 {
     cEm* door;
@@ -100,6 +103,7 @@ void R315Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R315Main()
 {
 }
@@ -173,11 +177,13 @@ static void first_in()
     }
 }
 
+// Item-event opener: the duralumin case (type 7) opens.
 static void r315_DuraluminCaseOpen(int no)
 {
     OpenBoxMain(7, 0, 0x18, no, 0xFFFFFFFF, -1);
 }
 
+// Item-event "already opened": the case posed open.
 static void r315_DuraluminCaseOpened(int no)
 {
     OpenBoxMain(7, 1, -1, no, 0xFFFFFFFF, -1);
@@ -201,6 +207,7 @@ static void r315_TanaOpen(int no)
     }
 }
 
+// Item-event "already opened": the shelf `no` posed slid aside (800 units, the 0x1F one the other way).
 static void r315_TanaOpened(int no)
 {
     f32 step;

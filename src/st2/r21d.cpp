@@ -170,6 +170,9 @@ static inline void r21d_FadeSetW(int no, u32 time, u32 z, int late)
     FadeSet(no, &col.start, &col.end, time, z, late);
 }
 
+// Room init: JumpPoint 1/2 presets the fence and both switches done (Room_flg bits 0/7/8); the enemy
+// reset scheduling, the two laser switches, the fence, area 0xC = the grave lift (arriving from r225
+// normally rides it down first); the player's room motions; the seal render target.
 void R21dInit()
 {
     R21dWork*& wp = r21d_work.p;   // the pG load that follows stays below the store
@@ -193,6 +196,7 @@ void R21dInit()
     SceExec(0x12, (TaskFunc) r21d_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R21dMain()
 {
 }
@@ -351,6 +355,7 @@ static void r21d_setEmFinal()
     r21d_work.p->final = 0;
 }
 
+// The last three enemies (0x25..0x27), counted into emSetCount.
 void r21d_setEm4()
 {
     setEm(0x25, -1, 0, 1, 1);
@@ -359,6 +364,7 @@ void r21d_setEm4()
     r21d_work.p->emSetCount += 3;
 }
 
+// Two more list entries (0x15/0x18) into the wraps; the alive cap rises by two.
 void r21d_setEm3()
 {
     r21d_addEmSet(0x15);
@@ -366,6 +372,7 @@ void r21d_setEm3()
     r21d_work.p->emMax += 2;
 }
 
+// Areas 0xD/0x10 once (Room_flg bit 5): four more list entries (0x1B..0x1E) join the reset pool.
 static void r21d_setEm2()
 {
     RsfSet(G_ROOM_ID, 5);
@@ -377,6 +384,8 @@ static void r21d_setEm2()
     r21d_addEmSet(0x1E);
 }
 
+// The reset scheduler: alive cap 4, 450-frame reset wait, 15 enemies in all; the first four list
+// entries (0x14/0x16/0x17/0x19), the reset task, and areas 0xD/0x10 = the second group.
 void r21d_initEmSet()
 {
     u32 i;
@@ -627,6 +636,8 @@ yes:
     r21d_operateSwitch_end(count);
 }
 
+// The two laser switches (objects 0x23/0x24): 2-frame move1 presses; each not yet thrown (Room_flg
+// bits 7/8) gets its area (0xE/0xF), else is posed down with its laser; both done -> the seal opens.
 void r21d_initSwitch()
 {
     cObj* o23;
@@ -740,6 +751,9 @@ yes:
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 
+// The two fence halves (objects 0x13/0x21): 60-frame move1 up by 2800. Not yet raised (Room_flg bit
+// 0): area 0x13 = the fence event; else posed raised, area 0x12 off, the death-trap pistons run, and the
+// second-switch lever unless bit 9.
 void r21d_initFence()
 {
     Vec d = {0.0f, 2800.0f, 0.0f};
@@ -845,6 +859,7 @@ static void r21d_checkBgmPlay()
     SndRoomStrStop(3);
 }
 
+// Hold this piston at the top (v = 1) or let it cycle again.
 void TRAP::stop(int v)
 {
     stopFlag = v;
@@ -994,6 +1009,8 @@ static void r21d_moveDeathTrap()
     }
 }
 
+// End of the lever event (also its cancel path, Room_flg[0] bit 31): the lever snapped, the second
+// switch's pistons stop at the top unless already (0x40000000), camera back, SceEventEnd.
 static void r21d_checkDeathTrapSwitch_end()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1043,6 +1060,8 @@ yes:
     r21d_checkDeathTrapSwitch_end();
 }
 
+// The piston lever (object 0x26): an 8-frame move1 turn of 1.3 rad about Z on its parts parent, with a
+// shake; posed thrown when Room_flg bit 9.
 void r21d_initDeathTrapSwitch()
 {
     Vec r = {0.0f, 0.0f, 1.3f};

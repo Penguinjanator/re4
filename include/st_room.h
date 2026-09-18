@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-// Shared by the stage room scripts (src/st1/, src/st2/, src/st4/). Nothing here emits code or data
+// Shared by the stage room scripts (src/st1/, src/st2/, src/st3/, src/st4/). Nothing here emits code or data
 // into .text/.rodata; the original room headers are unknown.
 
 // Every original stage module carries a 0x34-byte COMMON block: uninitialised static data members

@@ -45,6 +45,10 @@ static inline void setVec(Vec* v, f32 x, f32 y, f32 z)
 static void R329EventS00();
 extern "C" void Evt_R329S00_Func(Event* e);
 
+// Room init: the s00 (and s99) callback. Before the reunion (Room_flg bit 0): r329s00 pre-loaded with
+// the enemy of ESL 0x95, Ashley marked as following, the event task (unless debug trigger 1), the
+// pre-event scroll objects (0x30/0x31 shown, 0x2E/0x2F hidden) and the attribute sounds off; after it
+// the post-event objects.
 void R329Init()
 {
 #line 41 "D:/Bio4/Prog/r329.cpp"
@@ -75,10 +79,14 @@ void R329Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R329Main()
 {
 }
 
+// Once (Room_flg bit 0): two door_unlock[1] bits cleared, event r329s00 (Leon and Ashley reunited),
+// a fade-in, Leon placed at the fixed spot, Ashley initialised beside him in chase mode, Scenario_flg[1]
+// 0x40000000, the post-event objects.
 static void R329EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -140,6 +148,9 @@ static void R329EventS00()
     }
 }
 
+// Event r329s00 callback: Status_flg[1] 0x800 and the pre-event object set at start; per cut the Leon
+// model's flags, the et1200 / et1210 etc models (CMF on) and hand-offs of scroll objects; the end
+// restores the room.
 extern "C" void Evt_R329S00_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};

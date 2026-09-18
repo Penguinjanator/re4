@@ -220,6 +220,7 @@ static void setResetNum(int n)
     }
 }
 
+// The enemy reset counter (0..31) read back from room save flags 15..19.
 static u32 getResetNum()
 {
     int n = 0;
@@ -242,6 +243,7 @@ static u32 getResetNum()
     return n;
 }
 
+// Advance the reset counter (saturates at 31).
 static void incResetNum()
 {
     if (getResetNum() != 0x1F) {
@@ -249,6 +251,12 @@ static void incResetNum()
     }
 }
 
+// Room init (the courtyard with the water mill): hit effects, the initial Ganados (list 2; extras on
+// Game_level > 6), the group reset areas (6/7 -> A, 8/9 -> B, 0x15 -> D), Ashley's pointing on area
+// 0x10 once (Room_flg bit 14); JumpPoint presets. The bridge collision; the wall crank raised (bit 5:
+// objects 0x4E/0x4F shown, area 2 = the crank until the bridge is down, bit 6) else hidden with the
+// first Ganados walking in; the carry-over areas 0xE/0x16 until bit 9; footings A/B per bits 10/11;
+// the render target; continue point (bit 12) after a save-jump.
 void R208Init()
 {
 #line 157 "D:/Bio4/Prog/r208.cpp"
@@ -363,12 +371,18 @@ void R208Init()
     }
 }
 
+// One frame in: remove every Ganado (0x10..0x20) — the return visit's clean-up.
 static void em_all_destroy_task()
 {
     SceSleep(1);
     SceDestroyEm(0x10, 0x20);
 }
 
+// Per frame: the stream check; the wall crank rises (once, bit 5) when both crank flags (Room_flg[0]
+// 0x02000000 / 0x01000000) are set or debug trigger 0; the two barred gates open on their Room_flg[2]
+// bits; while the crank is up and the bridge not down, enemies are fed over the wall every 320 / 590
+// frames from the list (R208_EmSetEvent) alternating sides while the reset count allows; with more than
+// five alive, the farthest Ganado is periodically sent to a new courtyard point (r208_gotoPos).
 void R208Main()
 {
     u32 alive;
@@ -938,6 +952,7 @@ static void setEmGo()
     SceSleep(1);
 }
 
+// Areas 6/7: group B1 when three or fewer Ganados are alive and Room_flg[2] 0x10000000.
 static void atari_exec_A()
 {
     if ((u32) SceCountEmAlive(0x10, 0x20) <= 3 && (pG->Room_flg[2] & 0x10000000)) {
@@ -945,6 +960,7 @@ static void atari_exec_A()
     }
 }
 
+// Areas 8/9: group B2 when five or fewer are alive and Room_flg[2] 0x20000000.
 static void atari_exec_B()
 {
     if ((u32) SceCountEmAlive(0x10, 0x20) <= 5 && (pG->Room_flg[2] & 0x20000000)) {
@@ -952,6 +968,7 @@ static void atari_exec_B()
     }
 }
 
+// Area 0x15: group D (behind the gates) when five or fewer are alive.
 static void atari_exec_D()
 {
     if ((u32) SceCountEmAlive(0x10, 0x20) <= 5) {
@@ -988,6 +1005,7 @@ extern "C" void emGroupeA_reset()
     }
 }
 
+// Group B1: only marks Room_flg bit 2 (its spawns were removed from this build).
 extern "C" void emGroupeB1_reset()
 {
     if (RsfCheck(G_ROOM_ID, 2)) {
@@ -996,6 +1014,7 @@ extern "C" void emGroupeB1_reset()
     RsfSet(G_ROOM_ID, 2);
 }
 
+// Group B2: only marks Room_flg bit 2 (same as B1).
 extern "C" void emGroupeB2_reset()
 {
     if (RsfCheck(G_ROOM_ID, 2)) {
@@ -1004,6 +1023,7 @@ extern "C" void emGroupeB2_reset()
     RsfSet(G_ROOM_ID, 2);
 }
 
+// Group C once (Room_flg bit 3): five Ganados 0xAA..0xAE (list 2).
 extern "C" void emGroupeC_reset()
 {
     if (RsfCheck(G_ROOM_ID, 3)) {
@@ -1139,6 +1159,8 @@ static void brige1_down()
     pPL->setPos(&plPos);
 }
 
+// End of the crank-rise cutscene (also its cancel path): the crank objects 0x4E/0x4F snapped up, SE
+// stopped, camera back, SceEventEnd, then group A.
 static void crank_set_exit()
 {
     SmdGetObjPtr(0x4E)->pos.y = 4984.0f;
@@ -1342,6 +1364,7 @@ extern "C" cEm* R208_setEm(s16 no)
     return setEm(no, 2, 1, 1, 1);
 }
 
+// EmSetEvent only while enemy list 2 (the courtyard list) is the loaded one.
 extern "C" cEm* R208_EmSetEvent(EmListData* d)
 {
     if (pG->em_list_no == 2) {
@@ -1350,6 +1373,7 @@ extern "C" cEm* R208_EmSetEvent(EmListData* d)
     return NULL;
 }
 
+// Number of the enemies below the footings still active.
 extern "C" u32 getUnderEmNum()
 {
     u32 n = 0;
@@ -1363,6 +1387,7 @@ extern "C" u32 getUnderEmNum()
     return n;
 }
 
+// One more under[] slot in use.
 extern "C" void addUnderEmCnt()
 {
     W->underCnt++;
@@ -1636,6 +1661,8 @@ extern "C" void r208_StrCheck()
     }
 }
 
+// End of footing A's rise (also its cancel path): object 0x57 snapped to y 5400, SE stopped, camera
+// back, SceEventEnd, its collision / attribute pieces created, dust effect dropped.
 static void footingA_up_exit()
 {
     SmdGetObjPtr(0x57)->pos.y = 5400.0f;
@@ -1679,6 +1706,7 @@ static void footingA_up()
     footingA_up_exit();
 }
 
+// End of footing B's rise: as footingA_up_exit for object 0x58 (pieces 2 / 4).
 static void footingB_up_exit()
 {
     SmdGetObjPtr(0x58)->pos.y = 5400.0f;
@@ -1764,6 +1792,7 @@ static void SubUnderCrankExec()
     }
 }
 
+// Continue point (Room_flg bit 12): autosave.
 extern "C" void r208_continue()
 {
     RsfSet(G_ROOM_ID, 12);

@@ -32,6 +32,9 @@ static Vec r109_rot2 = {0.0f, -4.00204f, 0.0f};
 
 static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
+// Room init: re-orients scroll objects 0x21/0x22 (fallen props), creates three extra collision (SAT) and
+// hit-attribute (EAT) pieces from room archive entries 0x1F/0x20 at the three hut positions, deletes the
+// three room torches, runs koya_init and hides scroll object 0x2C.
 void R109Init()
 {
     cObj* obj;
@@ -68,6 +71,7 @@ void R109Init()
     SmdSetTrans(0x2C, 0);
 }
 
+// Per-frame room main: nothing.
 void R109Main()
 {
 }

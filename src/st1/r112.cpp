@@ -10,7 +10,9 @@
 #include "esp.h"
 #include "rnd.h"
 
-// Room 1-12 (D:/Bio4/Prog/r112.cpp): the farm in the storm; r102's BGM task and the thunder task.
+// Room 1-12 (D:/Bio4/Prog/r112.cpp): the farm at night in the storm (the chapter 2-2 return through
+// the village). Entry R112Init: rain without splashes, the thunder flash task (r112_ThunderMove) and
+// r102's shared BGM task (the farm music lives in r102.cpp, same module).
 
 struct R112Work {
     u8 pad[1];
@@ -21,6 +23,8 @@ static R112Work* r112_work;
 void r102_checkBgm();
 static void r112_ThunderMove();
 
+// Room init: no water on the espgen42 (rain) effect, then the thunder task and r102's shared BGM
+// check task (the farm music logic lives in r102.cpp).
 void R112Init()
 {
 #line 37 "D:/Bio4/Prog/r112.cpp"
@@ -31,6 +35,7 @@ void R112Init()
     SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R112Main()
 {
 }

@@ -21,7 +21,9 @@
 #include "snd.h"
 #include "fade.h"
 
-// Room 2-19 (D:/Bio4/Prog/r219.cpp): the mine cart ride (toroko) out of the room and back, a shelf.
+// Room 2-19 (D:/Bio4/Prog/r219.cpp): the mine cart (toroko) platform: areas 2 / 3 board the cart from
+// the near / far platform and ride out (toroko_go), a return from r219 itself (pG->Part 1 / 2) arrives
+// by cart (toroko_ret). Ashley is placed on the cart with Leon. One shelf item event.
 
 struct R219Work {
     u8 dummy;
@@ -40,6 +42,10 @@ void r219_openShelf_main(int no, int mode);
 static void r219_openShelf(int no);
 static void r219_openedShelf(int no);
 
+// Room init (the mine cart): System_flg 0x800 off; a fresh entry marks Ashley as following; the water
+// object's refraction; areas 2/3 = ride out from the near / far platform; coming back from r219 itself
+// (Part 1 / 2) arrive at the far / near platform; BGM when arriving from r201 or at the near platform;
+// one shelf item event.
 void R219Init()
 {
     pG->System_flg &= ~0x800;
@@ -76,6 +82,7 @@ static inline void torokoPlace(cModel* m, Vec* pos, Vec* ang)
     m->setAng(ang);
 }
 
+// Fill a Vec (x, y, z) and return it, for the cart placement calls.
 static inline Vec* VecSet(Vec* v, f32 x, f32 y, f32 z)
 {
     v->x = x;
@@ -84,6 +91,7 @@ static inline Vec* VecSet(Vec* v, f32 x, f32 y, f32 z)
     return v;
 }
 
+// Fill a Vec as a Y-only rotation and return it.
 static inline Vec* AngSetY(Vec* v, f32 y)
 {
     v->x = 0.0f;
@@ -254,10 +262,13 @@ static void toroko_ret(int dir)
     }
 }
 
+// Per-frame room main: nothing.
 void R219Main()
 {
 }
 
+// The shelf (object 0x17) falls open (OpenBoxFall type 0x15, mode 0 animate / 1 snap) and is then
+// pinned at its fallen position / rotation.
 void r219_openShelf_main(int no, int mode)
 {
     cObj* obj;
@@ -282,11 +293,13 @@ void r219_openShelf_main(int no, int mode)
     }
 }
 
+// Item-event opener: the shelf falls.
 static void r219_openShelf(int no)
 {
     r219_openShelf_main(no, 0);
 }
 
+// Item-event "already opened": the shelf posed fallen.
 static void r219_openedShelf(int no)
 {
     r219_openShelf_main(no, 1);

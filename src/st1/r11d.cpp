@@ -83,6 +83,12 @@ static void r11d_checkEmReset();
 static void r11d_ThunderMove();
 static void r11d_str_check();
 
+// Room init (the village at night, the Bella sisters): rain on the player, Status_flg[1] 0x400; the
+// enemy waves start on area 2 the first time (Room_flg bit 0) else at once; area 1 = the locked front
+// door until door_unlock[0] 0x00010000; the sister effect data; closets 3/4/5 as hide spots; the show
+// view once (bit 2) else thunder at once; area 6 = the sisters' appearance until bit 3 else they are
+// re-set from flags; the iron door (etc 0x26, key item 0xB) on area 8 with its key-use watcher until
+// door_unlock[0] 0x00100000; five two-point patrols between area pairs 0xA..0x13; ladder 1 camera 0xC.
 void R11dInit()
 {
     void* zero = 0;
@@ -151,6 +157,7 @@ void R11dInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R11dMain()
 {
 }
@@ -244,6 +251,10 @@ extern "C" void r11d_appearLittleSister()
     EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, (void*) zero);
 }
 
+// End of the sisters' appearance: set them from flags, drop the flash effect, let them suspend, camera
+// back, SceEventEnd, clear Status_flg[2] 0x02000000 / Room_flg[0] 0x20000000; destroy the first-wave
+// Ganados that are not carrying Ashley away (ckTakeAway) and spawn the second list (9 entries); a ladder
+// left in state 4 is reset.
 static void r11d_execEmAppear_end()
 {
     u32 i;
@@ -347,6 +358,8 @@ extern "C" void r11d_setEmSister()
     }
 }
 
+// End of the show view: drop its effect, fade the stream (50 frames), camera back, SceEventEnd, then
+// start the battle-stream and thunder tasks and autosave.
 static void r11d_execShowView_end()
 {
     EffectEspDelete(0, r11d_work->eff2, 0, 0);
@@ -363,6 +376,8 @@ static void r11d_execShowView_end()
 // Show the room: camera cuts 2 and 3 with the stream and the glow.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// One-shot (Room_flg bit 2) on entry: stream 0x16, event start, camera cuts 2 then 3 over the village
+// with a rain effect; player-cancellable.
 static void r11d_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
@@ -447,11 +462,13 @@ static void r11d_execHide0(int mode)
     r11d_execHide_main(mode, 0x23);
 }
 
+// Closet 4 hide spot: door object 0x27.
 static void r11d_execHide1(int mode)
 {
     r11d_execHide_main(mode, 0x27);
 }
 
+// Closet 5 hide spot: door object 0x25.
 static void r11d_execHide2(int mode)
 {
     r11d_execHide_main(mode, 0x25);

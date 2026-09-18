@@ -150,6 +150,12 @@ static const R214CatapultData r214_catTbl[3] = {
 };
 static const Vec r214_rockOfs = {0.0f, 800.0f, -2400.0f};
 
+// Room init (the castle wall with the three catapults): JumpPoint 1 skips ahead (Scenario_flg[0]
+// 0x40000000, Room_flg bits 2/5); the s00 callback; both barred gates (etc 0x11/0x12) closed. Part 2
+// (arriving on the rotating bridge) plays the bridge rotation. Before the catapults are silenced
+// (Scenario_flg[0] 0x40000000): the s00 event area once (bit 5), the two patrols (0xEC/0xED between areas
+// 0xF..0x11), area 9 = the catapult crew event until bit 0, the catapults; the third wave behind the
+// gates on area 0xD until bit 1 with the reset task (bit 4); the battle stream.
 void R214Init()
 {
     cEm* barred;
@@ -258,6 +264,7 @@ void R214Init()
     SceExec(0x12, (TaskFunc) r214_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per frame: debug trigger 0 (once, Room_flg[1] 0x40000000) squares the bridge halves and plays the rotation.
 void R214Main()
 {
     if (DebugTrg(0) == 1) {
@@ -272,6 +279,7 @@ void R214Main()
     }
 }
 
+// Area 0x12 once (Room_flg bit 5): typewriter 0x12 opened, then event r214s00 with the enemy of ESL 0xE4.
 static void r214_execEvent00()
 {
     RsfSet(G_ROOM_ID, 5);
@@ -347,6 +355,9 @@ static void r214_checkEmReset()
     RsfSet(G_ROOM_ID, 4);
 }
 
+// End of the third-wave cutscene (also its cancel path): the wave Ganados and Leon may suspend, the five
+// em5 are put back at their saved positions / yaws, the three em3b and two em2 likewise, SceEventEnd,
+// the reset task starts.
 static void r214_exec3rdEmSet_end()
 {
     Vec ang;
@@ -448,6 +459,9 @@ static inline void r214_emRestore(cEmWrap* w, Vec* pos, f32 y)
     w->setAng(&v);
 }
 
+// Area 0xD once (Room_flg bit 1): both barred gates open, the wave Ganados (list 4: 0xF0..0xF2, 0xF8,
+// 0xF9 and more) are spawned, their positions saved, then posed for the camera cuts of the cutscene
+// while Leon is frozen; player-cancellable.
 static void r214_exec3rdEmSet()
 {
     RsfSet(G_ROOM_ID, 1);
@@ -532,6 +546,8 @@ static void r214_exec3rdEmSet()
     r214_exec3rdEmSet_end();
 }
 
+// End of the crew cutscene: the three crew Ganados back at their saved poses and free to suspend,
+// SceEventEnd, the catapults initialised, the crew leader walks to area 0xF.
 static void r214_execCatapult_end()
 {
     Vec pos;
@@ -569,6 +585,7 @@ static inline void r214_emPosAngY(cEmWrap* w, Vec* v, f32 x, f32 y, f32 z, f32 r
     w->setAng(v);
 }
 
+// Position an enemy from three components through the caller's Vec.
 static inline void r214_emPosV(cEmWrap* w, Vec* v, f32 x, f32 y, f32 z)
 {
     v->x = x;
@@ -577,6 +594,9 @@ static inline void r214_emPosV(cEmWrap* w, Vec* v, f32 x, f32 y, f32 z)
     w->setPos(v);
 }
 
+// Area 9 once (Room_flg bit 3): whichever patrol Ganado (0xEC / 0xED) is alive becomes the crew leader
+// (0xE0) and its patrol ends; the crew Ganados are posed at the catapults for the cutscene and the
+// binocular view; player-cancellable.
 static void r214_execCatapult()
 {
     static const Vec gotoPos = {-15330.0f, 8021.0f, -12526.0f};   // local static: output before the pool
@@ -647,6 +667,7 @@ static void r214_execCatapult()
     r214_execCatapult_end();
 }
 
+// Order all three catapults to fire and set Room_flg[0] 0x40000000 (catapults active).
 void r214_setFireAll()
 {
     u32 i;
@@ -657,6 +678,8 @@ void r214_setFireAll()
     pG->Room_flg[0] |= 0x40000000;
 }
 
+// The three catapults from r214_catTbl: model, yaw, crew list entry, an 8000-unit parabola, the three
+// fire areas (0xE->0xA, 0xB->0xB, 0xC->0xC); then fire-all and the catapult task.
 void r214_initCatapult(R214CatapultData* tbl)
 {
     int i;
@@ -681,6 +704,7 @@ void r214_initCatapult(R214CatapultData* tbl)
     r214_work.p->catTask = SceExec(0x12, (TaskFunc) r214_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Add a (player area -> target area) pair to the catapult's fire table (max 4).
 void cCatapult214::setNewArea(s8 a, s8 at)
 {
     if (nArea > 3) {
@@ -710,6 +734,10 @@ static void r214_checkCatapult()
     }
 }
 
+// Per-frame catapult state machine (while its crew lives): 0 wait timer, 1 order the crew to load a
+// rock (r214_setRock task), 2 wait for it and for the catapults being active, 3/4 wait for the player
+// in a fire area (with the shared hitWait gap of 15 frames), 5/6 aim, 7 launch (r214_throwRock task),
+// 8 wait for the rock to land then a random reload delay.
 void cCatapult214::move()
 {
     if (em.isActive() == 0 || em.checkStatus(EM_STATUS_ACTIVE) == 0 || active == 0) {
@@ -954,6 +982,9 @@ static void r214_BridgeRotate()
     r214_BridgeRotateEndProc();
 }
 
+// End of the bridge rotation (also its cancel path): both halves 0x15/0x16 snapped to 90 degrees,
+// camera back, SceEventEnd, the screenshot debug mode restored if it was on; when the rotation was
+// started from the entrance the door area 8 runs.
 static void r214_BridgeRotateEndProc()
 {
     cObj* o15 = SmdGetObjPtr(0x15);
@@ -976,6 +1007,7 @@ static void r214_BridgeRotateEndProc()
     }
 }
 
+// Camera cuts 3..5 during the bridge rotation, then Room_flg[0] bit 31 (the camera part is over).
 static void r214_BridgeRotateCamera()
 {
     u32 cut;
@@ -990,6 +1022,8 @@ static void r214_BridgeRotateCamera()
     pG->Room_flg[0] |= 0x80000000;
 }
 
+// Event r214s00 callback: scroll object 0x18 hidden; light mask 8 on evma900; cut 0 closes the
+// binocular view if it was up (Status_flg[0] 0x400); later cuts set model flags.
 void Evt_R214S00_Func(Event* e)
 {
     void* mod;

@@ -106,6 +106,10 @@ void door_close();
 static void r224_door_mes();
 static void r224_str_check();
 
+// Room init (the Novistador water hall): area 3 = the cart ride, area 4 = the lever; water hit effects;
+// the cart object with its motion paused and an ambient boost; a bare collision object for the grate;
+// the lever / grate / lid / door posed per Room_flg bits (fight done, grate open); the two Novistador
+// handles and the battle stream.
 void R224Init()
 {
     cObj* yagura;
@@ -181,6 +185,8 @@ void R224Init()
     }
 }
 
+// Per frame: while Room_flg[0] 0x20000000 (standing at the cart) show action button 0x1B; pressing it
+// (Key.trg 0x00080000) starts the cart ride.
 void R224Main()
 {
     if (pG->Room_flg[0] & 0x20000000) {
@@ -198,6 +204,7 @@ void R224Main()
     }
 }
 
+// Camera task of the enemy event: cut 6, then cut 7 unless the fight is already over (Room_flg[0] 0x04000000).
 static void r224_cam_task()
 {
     CamCtrl.CutCall(6);
@@ -212,6 +219,9 @@ static void r224_cam_task()
     }
 }
 
+// End of the Novistador entrance: door_flags_51CC 0x00400000 (exit) off, SEs stopped, the door 0x16
+// snapped shut, both Novistadors made solid (atari 0x300) and placed on the floor alerted, Room_flg[0]
+// 0x04000000, area 0 = the shut-door message, the death watcher, boss points reset.
 static void r224_em_set_exit()
 {
     Vec v;
@@ -379,6 +389,7 @@ asm(".section \".rodata\"\n\t.align 2\nr224_zero:\n\t.long 0\n\t.section \".text
 extern const f32 r224_zero;
 extern const f32 r224_zero_v asm("r224_zero");
 
+// The lever handle (smd 0x3F) slides between reva_low and reva_high with acceleration reva_acc and its SE.
 static void reva_common_move()
 {
     cObj* obj = SmdGetObjPtr(0x3F);
@@ -488,6 +499,8 @@ static void futa_move()
     }
 }
 
+// The floor grate halves (smd 0x13/0x14) swing open to 1.3 rad with growing speed (SE 0xA); the grate
+// collision goes solid, area 4 off, areas 5/6 on, 7 off.
 static void gnd_open()
 {
     f32 spd = 0.01f;
@@ -515,6 +528,7 @@ static void gnd_open()
     }
 }
 
+// The grate halves swing shut (SE 0xB) and snap to 0.
 void gnd_close()
 {
     f32 spd = 0.01f;
@@ -634,6 +648,7 @@ static void reva_move()
     }
 }
 
+// Task: when no Novistador (0x2B) is alive, Room_flg bit 1, 270 frames later the doors open and the exit unlocks.
 static void em_die_ck()
 {
     while (SceCountEmAlive(0x2B, -1) != 0) {
@@ -645,6 +660,8 @@ static void em_die_ck()
     pG->door_flags_51CC |= 0x00400000;
 }
 
+// The exit door 0x16 (and, with no == 0, the grille 0x12 at double speed) rise 100 units a frame under
+// camera cut 6 with dust; area 0 reset, area 8 off.
 void door_open(int no)
 {
     f32 spd;
@@ -678,6 +695,8 @@ void door_open(int no)
     SceEventEnd(0);
 }
 
+// The exit door and grille drop (50 / 150 units a frame) to their closed heights; area 0 = the shut
+// message, area 8 on.
 void door_close()
 {
     SndCall(6, 2, &SmdGetObjPtr(0x16)->pos, 0, 0, 0);
@@ -714,6 +733,7 @@ void door_close()
     SndCall(6, 7, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
 }
 
+// Area 0 while the door is shut: knock SE and message 1.
 static void r224_door_mes()
 {
     SndCall(6, 1, 0, 0, 0, 0);

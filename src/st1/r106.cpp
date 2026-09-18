@@ -29,7 +29,7 @@
 #include "rnd.h"
 
 // Room 1-06 (D:/Bio4/Prog/r106.cpp): the village hall; the boulder, the two Ganado waves, the
-// shelves, the shaking closet and the r106s00 event that ends chapter 1-1.
+// shelves, the shaking closet (Luis tied up inside) and the r106s00 event that ends chapter 1-1.
 
 struct R106Work {
     int x0;
@@ -70,6 +70,11 @@ static void r106_setCloset();
 extern "C" void Evt_R106S00_Func(Event* ev);
 extern "C" void r106_setEm();
 
+// Room init: Item_find_flg 0x800, the r106s00 event callback, floor hit effects, door 8 gets the lock
+// models; two shelf item events (items 0x85/0x86). Until Item_find_flg 0x00200000 (Luis found): area 2
+// = the closet event, evd pre-loaded to ARAM, enemies 0x12/0x29/0x2A/0x2E pre-read, areas 4/5 = battle
+// stream on/off, the shaking closet; otherwise area 0xE off. Areas 8/9 post two Ganados; the boulder
+// unless Room_flg bit 2; the six hall Ganados; rack 0 range; a fixed hit piece at the far wall.
 void R106Init()
 {
     Vec pos;
@@ -124,6 +129,7 @@ void R106Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R106Main()
 {
 }
@@ -314,11 +320,13 @@ extern "C" void r106_openShelf_main(int type, int opened)
     }
 }
 
+// Item-event "already opened": pose shelf `type` open.
 static void r106_openedShelf(int type)
 {
     r106_openShelf_main(type, 1);
 }
 
+// Item-event opener: animate shelf `type` open.
 static void r106_openShelf(int type)
 {
     r106_openShelf_main(type, 0);
@@ -450,7 +458,7 @@ static void r106_shakeClosetDoorL(cModel* m)
     }
 }
 
-// The closet Ashley hides in: created, then it shakes every 5..260 frames until the event.
+// The closet Luis is tied up in: created, then it shakes every 5..260 frames until the event.
 static void r106_setCloset()
 {
     Vec pos = {158202.0f, -9297.0f, -43582.0f};

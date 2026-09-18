@@ -19,7 +19,10 @@
 #include "math_sub.h"
 #include "snd.h"
 
-// Room 2-18 (D:/Bio4/Prog/r218.cpp): the two bells and the chainsaw sisters dropping from the ceiling.
+// Room 2-18 (D:/Bio4/Prog/r218.cpp): the castle room where the two caged chainsaw sisters drop from
+// the ceiling (area 3, r218_appearClawMan); the exit stays barred (door_flags_51C8 0x20) until both are
+// dead, then the cages rise again (r218_checkClawManDead) and a Ganado wave follows (area 4). The two
+// bells (cObjBell) are hit targets whose destruction is saved in Room_flg bits 1 / 2.
 
 struct R218Work {
     cObjBell* bell[2];   // 0x00
@@ -60,6 +63,10 @@ static inline u32 r218_emDead(int no)
     return v;
 }
 
+// Room init: doors 3/4 paired; area 2 off; until the sisters are dead (Room_flg bit 0) the chainsaw
+// enemy (0x1C) is pre-read and the cage-drop task starts, else the cage objects 0x28/0x29 are shown
+// raised; the follow-up Ganado wave until bit 3; each bell still intact (bits 1/2) is created as a
+// cObjBell at its fixed position and the break watcher runs.
 void R218Init()
 {
     Vec pos;
@@ -111,6 +118,7 @@ void R218Init()
     SceExec(0x12, (TaskFunc) r218_checkBellBreak, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Per-frame room main: nothing.
 void R218Main()
 {
 }
@@ -135,6 +143,7 @@ static void r218_checkEmSet()
     setEm(0x13, -1, 1, 1, 1);
 }
 
+// Task: records each bell's destruction (cObjBell::ckBreak) in Room_flg bits 1 / 2; ends when both are broken.
 static void r218_checkBellBreak()
 {
     RsfCheck(G_ROOM_ID, 1);
@@ -153,6 +162,9 @@ static void r218_checkBellBreak()
     }
 }
 
+// End of the cages-rising cutscene (also the cancel path, Room_flg[0] bit 31 = cancelled while the
+// second cage rose): stop its SE, snap cage 0x29 up, camera back, SceEventEnd, stream 3 off, then cage
+// 0x28 rises 40 units a frame to rest + 2500.
 static void r218_checkClawManDead_end()
 {
     cObj* o29;
@@ -188,6 +200,8 @@ static void r218_checkClawManDead_end()
     }
 }
 
+// Task: waits until both sisters (list 0/1) are gone, sets Room_flg bit 0 and door_flags_51C8 0x20 (the
+// exit opens), area 0 on / 2 off, then camera cut 1 while cage 0x29 rises (SE 6/0); player-cancellable.
 static void r218_checkClawManDead()
 {
     cEmWrap em0;
@@ -232,6 +246,8 @@ static void r218_checkClawManDead()
     r218_checkClawManDead_end();
 }
 
+// End of the cage-drop cutscene (cancel path snaps both cages to their rest heights and stops the SE):
+// camera back, SceEventEnd, start the death watcher, door_flags_51C8 0x20 off (exit barred).
 static void r218_appearClawMan_end()
 {
     if ((int) pG->Room_flg[0] < 0) {

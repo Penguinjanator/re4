@@ -141,6 +141,11 @@ extern "C" void Evt_R117S00_Func(Event* e);
 extern "C" void Evt_R117S10_Func(Event* e);
 static void R117S0_WhiteFade();
 
+// Room init (the church interior, chapter 2-1): thunder task, the chandelier rope object (SetObjSmd from
+// room archive 0x1F/0x20), the light mechanism state. Until Ashley is found (Item_find_flg 0x00100000):
+// door 0 close-locked, evd r117s00 pre-loaded to ARAM, r117s10 registered with module 3 pre-read, area 7
+// = the Ashley event, area 4 = the chandelier swing, the two event callbacks. Afterwards: two Ganados
+// (ESL 0x50/0x51) on a fresh visit in Part 0, and the upstairs objects shown.
 void R117Init()
 {
 #line 63 "D:/Bio4/Prog/r117.cpp"
@@ -331,6 +336,8 @@ extern "C" void r117_LightSet(int n)
     }
 }
 
+// Per frame, once the mechanism was started (Room_flg bit 2): debug-print the three quarter turns and
+// keep the three light objects turned toward their beams.
 void R117Main()
 {
     if (RsfCheck(G_ROOM_ID, 2)) {
@@ -466,6 +473,8 @@ static void r117_LightMechanism()
     }
 }
 
+// Mechanism step 0: event start; the first time (Room_flg bit 2) camera cut 4 shows the beams lighting
+// up (LightSet(1), four effects, SE 0xF); then camera cut 2 on the dials and -> step 1 (Move).
 static void r117_LightMechanismInit()
 {
     SceEventStart(1);
@@ -661,6 +670,8 @@ extern "C" void r117_LightRotate(int no, f32 dir)
     W->light[no]->matUpdate();
 }
 
+// The lights are solved: areas 9/0xA/0xC/0xD/3/4 off, the gate objects 1/2 hidden (the way up opens),
+// area 5 (the stairs) on.
 extern "C" void r117_MechanismDisarm()
 {
     SceAtSetEnable(9, 0);
@@ -795,6 +806,7 @@ static void r117_EventChandelier()
     END_EVENT(W->smd, 0);
 }
 
+// Lightning on: the window object 0 to the bright colour (0x5F/0x87/0x9B).
 static void r117_ThunderFlagOn()
 {
     SmdGetObjPtr(0)->pModelInfo->color[0] = 0x5F;
@@ -802,6 +814,7 @@ static void r117_ThunderFlagOn()
     SmdGetObjPtr(0)->pModelInfo->color[2] = 0x9B;
 }
 
+// Lightning off: the window object 0 back to its dim colour (0x32/0x35/0x35).
 static void r117_ThunderFlagOff()
 {
     u8 c = 0x35;

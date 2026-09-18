@@ -83,6 +83,10 @@ extern "C" void r103_checkCesspit2(R103Cesspit* c);
 extern "C" void r103_initCesspit(R103Cesspit* c);
 static void r103_BgmStartCheck();
 
+// Room init (in st1_1 and st1_3): the ten corpse models only outside region 0 (Japan hides them and
+// area 0xB), Item_find_flg 0x1000, battle-stream timer, the cesspit and its sub-mission target on
+// object 8, floor hit effects, rack 6 range, three shelf item events (items 0x92/0x81/0x83), and the
+// glowing file at area 0x80 until item_flags[0] 0x800.
 void R103Init()
 {
     cEm* rack;
@@ -118,6 +122,7 @@ void R103Init()
     SceAtSetActColor(2, 1);
 }
 
+// Per-frame room main: nothing.
 void R103Main()
 {
 }
@@ -176,11 +181,13 @@ extern "C" void r103_openShelf_main(R103Shelf* s, int opened)
     }
 }
 
+// Item-event "already opened": pose shelf `s` open without the animation.
 extern "C" void r103_openedShelf(R103Shelf* s)
 {
     r103_openShelf_main(s, 1);
 }
 
+// Item-event opener: animate shelf `s` open when its item is taken.
 extern "C" void r103_openShelf(R103Shelf* s)
 {
     r103_openShelf_main(s, 0);

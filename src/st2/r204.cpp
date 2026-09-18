@@ -102,6 +102,12 @@ static const Vec r204_chandRot0 = {0.0f, -1.5707964f, 0.0f};
 static const Vec r204_chandRot1 = {0.0f, 1.5707964f, 0.0f};
 static const Vec r204_chandOfs = {0.0f, 5826.0f, 5610.0f};
 
+// Room init (the chandelier hall): Debug_flg[1] 0x20000; JumpPoint 1 fakes an entry from r205 Part 1.
+// The s00 callback, area 2 = the chapter-end event, the terminal once the event ran (bits 0/7), the
+// switch / barred door handles, areas 5/6 = the two chandelier swings. Arriving from r205 upstairs
+// (Part 1) starts the mob chase (first cut once, bit 1); once the chase is on (bit 1) and not yet
+// escaped (bit 2): the eleven Ganados with their torch heads and flame effects, the death watcher and
+// the chase task (nige_check); else the calm layout. Areas, the water render target, box / shelf items.
 void R204Init()
 {
     R204Work** wp;
@@ -271,11 +277,14 @@ void R204Init()
     SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Clears Room_flg bit 8 (the door-5 state) — a small area hook.
 static void door_rsf_off()
 {
     RsfClear(G_ROOM_ID, 8);
 }
 
+// The water render target blended over object 0x18; also links item areas 8 / 0x16 to etc deaths and
+// registers the box / shelf item events.
 static void setTexRender()
 {
     cObj* obj;
@@ -302,6 +311,9 @@ static void setTexRender()
     SceSetItemEvent(0x17, 0x87, 5, 7, (void (*)(int)) r204_openTana, r204_openedTana, 0, 0);
 }
 
+// Per frame during the chase (Room_flg bit 1): when barred door 1 opens (Room_flg[0] bit 31 once) every
+// Ganado is alerted and six run to the door; the escape counter (cnt2, Room_flg[2] 0x40000000) is
+// debug-printed and ends the chase (bit 2) when it runs out.
 void R204Main()
 {
     u32 i;
@@ -351,6 +363,7 @@ void R204Main()
     }
 }
 
+// Item-event opener: box 0 (object 0x36) lid swings, box 1 (object 0x37) tilts open.
 static void r204_openBox(int id)
 {
     if (id == 0) {
@@ -361,6 +374,7 @@ static void r204_openBox(int id)
     }
 }
 
+// Item-event "already opened": pose box `id` open.
 static void r204_openedBox(int id)
 {
     if (id == 0) {
@@ -371,11 +385,13 @@ static void r204_openedBox(int id)
     }
 }
 
+// Item-event opener: the shelf (tana) doors swing open.
 static void r204_openTana()
 {
     r204_TanaMove(0);
 }
 
+// Item-event "already opened": the shelf posed open.
 static void r204_openedTana()
 {
     r204_TanaMove(1);
@@ -409,6 +425,7 @@ void r204_BoxMove(cObj* obj, int opened)
     }
 }
 
+// The tilting box: ang.x turns to -1.73 rad in -0.05 steps with the lid SE (opened == 1 snaps).
 void r204_BoxMove2(cObj* obj, int opened)
 {
     if (opened == 0) {
@@ -435,6 +452,7 @@ void r204_BoxMove2(cObj* obj, int opened)
     }
 }
 
+// The shelf doors (objects 0x34/0x35) swing apart to +-2.83 rad in 0.09 steps with SE (opened == 1 snaps).
 void r204_TanaMove(int opened)
 {
     cObj* a;
@@ -466,6 +484,8 @@ void r204_TanaMove(int opened)
     }
 }
 
+// End of the chase's first cut (also its cancel path): camera back, up-cut ended, Stop_flg bits off,
+// the Ganados may suspend again.
 static void r204_first_cut_exit()
 {
     u32 i;
@@ -479,6 +499,7 @@ static void r204_first_cut_exit()
     }
 }
 
+// Entering from upstairs: up-cut camera cut 2 shows the mob below (keys locked, Stop_flg 0x10000000); cancellable.
 static void r204_first_cut()
 {
     u32 i;
@@ -500,6 +521,11 @@ static void r204_first_cut()
 
 static inline int r204_isDead(cEm* em) { return (em->flags_324 & 0xFFFF0000) ? 1 : 0; }
 
+// The chase task ("nige" = escape): counts frames from the mob's first move; camera cuts 0xF/0x10 as
+// the Ganado with the torch (em[7]) charges, scripted run orders to the far points at fixed counts, the
+// mob follows the player down; after count 0x12C the door object 0x39 lowers and door5_close runs when
+// it drops below 1800 (or after 0x1C1 frames with a Ganado far back); once all are dead the survivors'
+// orders end and the exit flags are set; the escape-through-the-door checks the player's position.
 static void r204_nige_check()
 {
     int started = 0;
@@ -685,6 +711,9 @@ static void r204_nige_check()
     }
 }
 
+// The exit portcullis (object 0x39) drops under camera cut 0xC with SE (Room_flg[0] 0x20000000): far
+// Ganados stop updating, the item area 0x19 models are pushed clear at fixed frames, the chandeliers
+// resume; ends the chase phase.
 static void door5_close()
 {
     u32 i;
@@ -904,6 +933,8 @@ struct PlPtr {
         postLoop                                                                                                   \
     }
 
+// Area 5: swing across on the first chandelier (CHANDELIER macro, chandPos0/Rot0): Leon grabs it, both
+// play the swing motions, the camera follows, Leon lands on the far side.
 static void r204_EventChandelier1()
 {
     /* COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 21 dead pool labels, see CHANDELIER */
@@ -931,6 +962,7 @@ static void r204_EventChandelier1()
     CHANDELIER(0, r204_chandPos0, r204_chandRot0, 5927.0f, 258.0f, 1964.0f, -606.0f, 926.0f, -647.0f, ;)
 }
 
+// Area 6: swing on the second chandelier (chandPos1/Rot1); landing alerts all eleven Ganados.
 static void r204_EventChandelier2()
 {
     CHANDELIER(1, r204_chandPos1, r204_chandRot1, -5927.0f, -258.0f, -1964.0f, 606.0f, -926.0f, 647.0f, {
@@ -941,6 +973,9 @@ static void r204_EventChandelier2()
     })
 }
 
+// Area 2 once (Room_flg bit 0): Scenario_flg[0] 0x40000, event r204s00 (slot 0x14) with the BGM ducked,
+// the partner (Ashley) removed from following, then chapter 3-1 ends (SceSetChapterEnd(CHAPTER_3_1))
+// and the terminal opens.
 static void r204_EventExec()
 {
     if (!RsfCheck(G_ROOM_ID, 0)) {
@@ -958,12 +993,15 @@ static void r204_EventExec()
     }
 }
 
+// Once (Room_flg bit 7): typewriter terminal 0xE.
 static void r204_openTerm()
 {
     RsfSet(G_ROOM_ID, 7);
     OpeSetOpenTerm(0xE, 0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+// Event r204s00 callback: cut 0 hides scroll object 0xC and sets the pl0100 / evm6500 / evm0200 models'
+// light mask / draw flags; later cuts hand objects to the event and swap models; the end restores them.
 void Evt_R204S00_Func(Event* e)
 {
     void* mod;
@@ -1036,6 +1074,7 @@ void Evt_R204S00_Func(Event* e)
     }
 }
 
+// Task: when a torch-carrying Ganado stops being active, its torch head object is hidden and its flame effect removed.
 static void r204_checkEmDead()
 {
     u32 i;
@@ -1054,6 +1093,8 @@ static void r204_checkEmDead()
     }
 }
 
+// The switch (etc 8) is used: camera cut 0xD, barred door 1 re-closes then opens (setOpen), cut 0xE; the
+// player is frozen (Stop_flg bit 31) meanwhile.
 static void door_move()
 {
     SceEventStart(1);

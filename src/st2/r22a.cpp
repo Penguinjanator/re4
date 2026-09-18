@@ -46,6 +46,9 @@ static void r22a_EleUp();
 // pPL stores through references: the pPL reload after each one.
 static inline void FSetP(f32& d, f32 v) { d = v; }
 
+// Room init: areas 2/3 = climb down / up the rope; the s00 (and s99) callback; until Room_flg bit 0 area
+// 6 = the s00 event (pre-loaded), else off; object 0x50 hidden; areas 4/5 = the lift down / up; arriving
+// by a jump (System_flg 0x100) the lift cage 0x4F starts at the bottom (y -8500).
 void R22aInit()
 {
 #line 50 "D:/Bio4/Prog/r22a.cpp"
@@ -70,6 +73,7 @@ void R22aInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R22aMain()
 {
 }
@@ -208,6 +212,7 @@ extern "C" void R22A_Event()
     }
 }
 
+// Event r22as00 callback: the knife model wep0200 shown on cut 0 and hidden from cut 1.
 extern "C" void Evt_R22AS00_Func(Event* e)
 {
     void* mod;

@@ -16,7 +16,9 @@
 #include "etc_model.h"
 #include "cam_ctrl.h"
 
-// Room 4-0B (D:/Bio4/Prog/r40b.cpp): the item on the pedestal and the Ganado behind the bars.
+// Room 4-0B (D:/Bio4/Prog/r40b.cpp): an Assignment Ada room: the item on the pedestal (area 1 shows
+// it with camera cut 6, then item area 0x81) and the Ganados behind the bars that appear when the
+// player reaches area 2 (Room_flg bit 0).
 
 struct R40bWork {
     u8 dummy;
@@ -27,6 +29,8 @@ static R40bWork* r40b_work;
 static void r40b_getItem();
 static void r40b_checkEmSet1();
 
+// Room init: windows 0xA/0xB without fences, object 6 shown; the Ganados behind the bars until Room_flg
+// bit 0; the pedestal item (area 0x81, kept updating) with its camera show on area 1 until item_flags[0] 8.
 void R40bInit()
 {
     cEm* win;
@@ -61,6 +65,7 @@ void R40bInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R40bMain()
 {
 }

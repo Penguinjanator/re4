@@ -206,6 +206,7 @@ void setResetNum(int n)
     }
 }
 
+// The enemy reset counter (0..7) read back from room save flags 10..12.
 int getResetNum()
 {
     int n = 0;
@@ -222,6 +223,7 @@ int getResetNum()
     return n;
 }
 
+// Advance the reset counter.
 void incResetNum()
 {
     setResetNum(getResetNum() + 1);
@@ -231,6 +233,7 @@ void incResetNum()
 // without an `extsh`.
 cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 
+// Spawn list entry `no` (any list) already alerted; the raw enemy pointer.
 cEm* emset(int no)
 {
     cEm* em = setEmI(no, -1, 1, 1, 1);
@@ -241,6 +244,8 @@ cEm* emset(int no)
     return em;
 }
 
+// The reset wave: one more alerted Ganado per reset count (0x44, 0x3C, 0xA, 0x3E, ... in order), then
+// the counter advances.
 void R300emReset()
 {
     cEm* em = 0;
@@ -287,6 +292,7 @@ static inline void r300_setEmAngR(cEmWrap* em, f32 ry)
     em->setAng(&ang);
 }
 
+// An ESL entry's position (1/10 units -> world) and yaw (rot[1] in 1/32768 turns -> degrees).
 static inline void r300_getListPos(EmListData* l, Vec* pos, f32& ry)
 {
     pos->x = (f32) l->pos[0] * 10.0f;
@@ -295,6 +301,7 @@ static inline void r300_getListPos(EmListData* l, Vec* pos, f32& ry)
     ry = (f32) (l->rot[1] * 360 / 32768);
 }
 
+// Set an enemy's rotation to a Y-only yaw through the caller's Vec.
 static inline void r300_setEmAng(cEmWrap* em, Vec* ang, f32 ry)
 {
     ang->x = 0.0f;
@@ -303,6 +310,12 @@ static inline void r300_setEmAng(cEmWrap* em, Vec* ang, f32 ry)
     em->setAng(ang);
 }
 
+// Room init (the island landing): Debug_flg[1] 0x20000; JumpPoint skips the landing event; the s00
+// (and s99) callback; two door_unlock[1] bits; the water render targets; the player's room motions;
+// the searchlight objects and the dropping rock (until Room_flg bit 4); the landing event once (bit
+// 0); area 1 = Ashley carried through the gate (bit 3), area 0xF = the camera post (bit 2); the gate
+// already burnt open (bit 5) or the two mirrors (areas 6/7) and the laser start (area 0xB) / the laser
+// look areas (bit 7); the gate Ganado events (areas 13/14/16), the reset waves and the stream.
 void R300Init()
 {
 #line 185 "D:/Bio4/Prog/r300.cpp"
@@ -487,6 +500,10 @@ void R300Init()
     modelLoad();
 }
 
+// Per frame: with exactly three Ganados alive and the rock still hanging, the rock is dropped when the
+// player is under it (flag bit 0); the searchlight target sweeps between the sweep points until the
+// camera found the player (Room_flg bit 2), then follows the player (Room_flg[2] bit 31) or stays;
+// the light and beam objects are aimed at the smoothed target.
 void R300Main()
 {
     Vec v0;
@@ -766,6 +783,8 @@ static void R300_Event()
     SndBgmTblSet(0x300, 3);
 }
 
+// Event r300s00 callback (the landing by boat): System_flg 0x800 off; the evm4000 boat and the other
+// event models' draw flags per cut; the end restores the room.
 static void Evt_R300S00_Func(Event* e)
 {
     void* mod;
@@ -840,6 +859,7 @@ static void Evt_R300S00_Func(Event* e)
     }
 }
 
+// Task: whenever seven or fewer Ganados are alive, the next reset enemy comes (R300emReset).
 static void r300_em_reset_task()
 {
     for (;;) {
@@ -977,6 +997,9 @@ void setAslPos(cObj* obj)
     r300_wk->asl->ang.y = LIMIT_ANGLE(r300_wk->asl->ang.y);
 }
 
+// End of the Ashley scene (also its cancel path): the stream stopped unless it ended itself, the
+// carrying Ganado and Ashley's model destroyed, SEs stopped, the gate 0x42 back down, area 8 on,
+// Room_flg bit 3, the player released, camera back, SceEventEnd.
 static void r300_asl_exit()
 {
     if (!(pG->Room_flg[0] & 0x02000000)) {
@@ -1043,6 +1066,7 @@ static void r300_asl()
     r300_asl_exit();
 }
 
+// The alarm siren SE at the camera post every 360 frames (the loop body runs once: i == 0 is never true again).
 static void r300_find_siren()
 {
     u32 i;
@@ -1265,6 +1289,8 @@ static void r300_mirb_exec()
     SceEventEnd(0);
 }
 
+// End of the gate opening (also its cancel path): door_unlock[0] 0x80, the laser effects dropped, the
+// gate 0x42 snapped down to y -8825, Room_flg bit 5, the mirror / laser / gate areas off, camera back.
 static void DoorOpen_exit()
 {
     pG->door_unlock[0] |= 0x80;
@@ -1346,6 +1372,8 @@ void DrawLaserLine(Vec* from, Vec* to, int r, int g, int b, int a, int type, f32
     }
 }
 
+// End of the laser start cut: camera back, SceEventEnd, areas 9/0xA = the laser look messages, 0xC =
+// the gate message, area 0xB off.
 static void r300_laser_start_exit()
 {
     CamCtrl.Comeback(0);
@@ -1376,6 +1404,7 @@ static void r300_laser_start()
     r300_laser_start_exit();
 }
 
+// Area 9: camera cut 0x13 on the laser with message 1.
 static void r300_laser_exec()
 {
     SceEventStart(1);
@@ -1386,6 +1415,7 @@ static void r300_laser_exec()
     SceEventEnd(0);
 }
 
+// Area 0xA: camera cut 0x14 on the second beam with message 2.
 static void r300_laser2_exec()
 {
     SceEventStart(1);
@@ -1396,11 +1426,15 @@ static void r300_laser2_exec()
     SceEventEnd(0);
 }
 
+// Area 0xC: message 3 (the gate must be burnt open).
 static void r300_laser_door_exec()
 {
     SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// End of the gate Ganado event (also its cancel path): the event Ganado em[20] swapped for the list
+// Ganado 0xBF (alerted), Room_flg bit 8, camera back, SceEventEnd, Status_flg[2] 0x02000000 off, the
+// player put back, the reset task starts.
 static void r300_em_set_exit()
 {
     r300_wk->em[20].destroy();
@@ -1510,6 +1544,8 @@ void modelLoad()
     r300_wk->data[5]->setCommand(1, 0, 1);
 }
 
+// Ashley's carried model: SetObjSmd from the loaded model files with her motion and the extra model
+// infos (hair / costume parts) added.
 void modelSet()
 {
     Vec zero;

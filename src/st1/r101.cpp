@@ -117,6 +117,7 @@ static inline void r101_emListOn(int no)
     EM_LIST(no)->be_flag |= 1;
 }
 
+// Clear the death bit of list entry `no` in the loaded enemy list's death words (pG+0x501C + list*0x20).
 static inline void r101_emDeadClear(int no)
 {
     int list = pG->em_list_no;
@@ -126,6 +127,13 @@ static inline void r101_emDeadClear(int no)
     }
 }
 
+// Room init (the village, chapter 1-1): the ten reset-wave handles; first visit (Item_find_flg 0x2000)
+// = typewriter + save; s21/s30 callbacks, floor hit effects, door 0xB lock models, rack ranges. Before
+// the bell (Room_flg bit 7): until the fight starts (bit 6) the find-player watcher, the Ganado voices
+// (area 0x13), the s00 binocular event (area 7), the kill counter, the door messages (areas 0/2); the
+// house event s21 on area 8 with the door watcher unless bit 8; the tower siege, chicken and terminal
+// tasks. After the bell: the post-fight layout, the stream watcher. Doors: area 1 until door_unlock[0]
+// 0x02000000, area 0x19 (door 102 with its key) until 0x20000000; item area 0xA3.
 void R101Init()
 {
     cEm* door;
@@ -276,6 +284,7 @@ void R101Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R101Main()
 {
 }
@@ -579,6 +588,7 @@ static void r101_execOperator2()
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 
+// Once (Room_flg bit 10): the typewriter terminal 2 with the overwrite type.
 static void r101_execOperator()
 {
     RsfSet(G_ROOM_ID, 10);
@@ -758,6 +768,8 @@ static void r101_checkEmReset2()
     r101_work->emNum += 5;
 }
 
+// End of a reset-wave cutscene: camera back, the five new Ganados of `side` may suspend again, the
+// kill target grows by 5, SceEventEnd.
 static void r101_checkEmReset_end(int side)
 {
     if (side == 0) {
@@ -840,12 +852,14 @@ static void r101_checkEmReset()
     r101_checkEmReset_end(side);
 }
 
+// Area 0: the door back to r100 is barred — knock SE and message 0.
 static void r101_DoorDontOpen100()
 {
     SndCall(6, 0x26, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// Area 2: the door to r103 is barred — knock SE and message 0.
 static void r101_DoorDontOpen103()
 {
     SndCall(6, 0x29, 0, 0, 0, 0);
@@ -875,6 +889,7 @@ static void r101_checkDoor102()
     }
 }
 
+// Area 1: the locked door — knock SE and message 2.
 static void r101_DoorDontOpen3()
 {
     SndCall(6, 0x27, 0, 0, 0, 0);
@@ -899,6 +914,7 @@ static void r101_checkFindPlayer(int mode)
     }
 }
 
+// Battle stream 3 (mode 1, after the bell) while any Ganado (ids 0x10..0x20) is alive.
 static void r101_FindPlayer2()
 {
     SndRoomStrStart(1, 3, 1);
@@ -1058,6 +1074,7 @@ static void r101_callGanadoVoice()
     }
 }
 
+// Event r101s21 callback: fetch the etc model et0800 on the first frame (registers it with the event).
 extern "C" void Evt_R101S21_Func(Event* e)
 {
     void* mod;
@@ -1067,6 +1084,8 @@ extern "C" void Evt_R101S21_Func(Event* e)
     }
 }
 
+// Event r101s30 callback (the church bell rings, the Ganados leave): hides the ladders during the event,
+// hands scroll object 0x39 (scr0000) to the event on cut 0 and puts it back at the end.
 extern "C" void Evt_R101S30_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};

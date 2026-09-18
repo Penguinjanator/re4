@@ -106,6 +106,13 @@ static void r201_checkSwitch(int on);
 static void r201_execEvent00();
 static void r201_execEvent00_sub();
 
+// Room init: JumpPoint 2 skips ahead (entrance seen, switch pulled, claw-man dead, reset wave). The
+// altar (r201_initAltar); the picture item 0x80 at area 0x20 until taken; the claw-man up-cut on area
+// 0xF once (Room_flg bit 2) and its appearance on area 0x10 until it is dead (bit 0), then the reset
+// wave; the battle-area door (object 0x53) locked until the dungeon key (door_unlock[0] 0x8000) with
+// area 0xB + key watcher; the switch and barred door per bit 5; the entrance event r201s00 on area 8
+// until Item_find_flg 0x10000 (area 9 = its knock reminder until bit 4); the two bells (bits 10/11);
+// two shelf item events.
 void R201Init()
 {
 #line 52 "D:/Bio4/Prog/r201.cpp"
@@ -236,6 +243,7 @@ void R201Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R201Main()
 {
 }
@@ -287,11 +295,13 @@ void r201_openShelf_main(int no, int opened)
     }
 }
 
+// Item-event opener: animate shelf `no` open.
 static void r201_openShelf(int no)
 {
     r201_openShelf_main(no, 0);
 }
 
+// Item-event "already opened": pose shelf `no` open.
 static void r201_openedShelf(int no)
 {
     r201_openShelf_main(no, 1);
@@ -332,6 +342,7 @@ static void r201_checkBellBreak()
     }
 }
 
+// Area 0x20: all lights on, camera cut 0xC on the picture until the item behind it (area 0x80) is taken.
 static void r201_checkPicture()
 {
     SceEventStart(0);
@@ -348,6 +359,8 @@ static void r201_checkPicture()
     SceEventEnd(0);
 }
 
+// End of the altar closing (also its cancel path, Room_flg[0] 0x20000000): SE / effect stopped, the
+// altar snapped to its end pose, area 0x1A on; camera back, SceEventEnd.
 static void r201_closeAltar_end()
 {
     if (pG->Room_flg[0] & 0x20000000) {
@@ -362,6 +375,8 @@ static void r201_closeAltar_end()
     SceEventEnd(0);
 }
 
+// Area 0x22 once (Room_flg bit 9): door_flags_51C8 0x2000 off, camera cut 0xA while the altar rises
+// closed (r201_moveAltarObj); player-cancellable.
 static void r201_closeAltar()
 {
     RsfSet(G_ROOM_ID, 9);
@@ -381,6 +396,9 @@ static void r201_closeAltar()
     r201_closeAltar_end();
 }
 
+// The gem altar: not yet closed (bit 9) -> posed open and area 0x22 closes it; closed with all three
+// gems set (bits 6/7/8) -> open pose with the gem areas off (done); else posed closed with the gem
+// items, the gem-use watcher and area 0x1B = the altar look.
 void r201_initAltar()
 {
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
@@ -559,6 +577,8 @@ int r201_setGem(int no)
     return done;
 }
 
+// End of the altar opening (also its cancel path): SE / effect stopped, altar snapped, area 0x1A off;
+// the three gem models shown; camera back, SceEventEnd.
 static void r201_checkSetGem_end()
 {
     if (pG->Room_flg[0] & 0x20000000) {
@@ -650,6 +670,8 @@ int r201_checkAltarObj()
     return 0;
 }
 
+// Area 0x1B, the altar: camera cut 0xD, the gem count message; with a gem item (0x1E/0x1F/0x39) held
+// the item screen opens to use it.
 static void r201_checkAltar()
 {
     SceEventStart(0);
@@ -691,6 +713,7 @@ static void r201_checkDungeonKeyUse()
     r201_setBattleArea(1, 0);
 }
 
+// Area 0xB, the locked battle-area door: up-cut 0; with the dungeon key (item 0xC3) held the item screen opens.
 static void r201_checkDoor()
 {
     SceUpCut(0, -1, 0, UP_CUT_ATTR_CUT_FIX);
@@ -701,6 +724,7 @@ static void r201_checkDoor()
     }
 }
 
+// Camera cut 5 while the battle-area door lowers (r201_setBattleArea(0, 0)).
 static void r201_closeBattleArea()
 {
     SceEventStart(1);
@@ -825,6 +849,8 @@ static void r201_execEmReset_sub()
     r201_work.p->em[2].setGoto(&pos, 1);
 }
 
+// The reset wave: Ganados 0x57/0x5B/0x5C (list 2) walk in through the side areas (0xD, 0x18, 0x17)
+// with goto orders, the side watcher task running alongside.
 static void r201_execEmReset()
 {
     Vec pos;
@@ -851,6 +877,8 @@ static void r201_execEmReset()
     r201_work.p->em2[0].setFlag(0x10);
 }
 
+// End of the switch event: switch SE / environment on unless already, camera back, SceEventEnd, the
+// player may suspend; once the claw-man is dead (bit 0) area 0xC arms the reset wave.
 static void r201_disarmTrap_end()
 {
     if (!(pG->Room_flg[0] & 0x10000000)) {
@@ -889,6 +917,7 @@ static void r201_disarmTrap()
     r201_disarmTrap_end();
 }
 
+// End of the claw-man up-cut (also its cancel path): the claw-man (0x56) may suspend, the stream faded (200 frames), camera back, SceEventEnd.
 static void r201_execClawManUpCut_end()
 {
     cEmWrap em;
@@ -900,6 +929,8 @@ static void r201_execClawManUpCut_end()
     SceEventEnd(0);
 }
 
+// Area 0xF once (Room_flg bit 2): stream 0x1E and camera cut 9 on the chained claw-man (0x56, list
+// 2); player-cancellable.
 static void r201_execClawManUpCut()
 {
     SceSetEventCancel(1, (TaskFunc) r201_execClawManUpCut_end, 0, -1, 1);
@@ -1038,6 +1069,8 @@ void r201_setSwitchEnv(int on)
     }
 }
 
+// Task: switch SE / environment per `on`; while the switch is unpulled, wait for the player to pull it
+// (cEmSwitch::ckOpen), then SE 0x23 and the barred-door event (r201_disarmTrap).
 static void r201_checkSwitch(int on)
 {
     r201_work.p->effKind = EspPullCoreKind();
@@ -1082,6 +1115,7 @@ static void r201_execEvent00()
     OpeOwTypeSet(4);
 }
 
+// Area 9 (once, Room_flg bit 4): a knock SE, another 2 seconds later unless the entrance event ran meanwhile.
 static void r201_execEvent00_sub()
 {
     int i;

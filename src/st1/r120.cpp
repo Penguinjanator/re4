@@ -39,6 +39,9 @@ extern "C" void Evt_R120S01_Func(Event* e);
 extern "C" void EventCarInit(Event* e);
 extern "C" void EvtTexRenderCamTrans(Event* e, int cut);
 
+// Room init (the intro): registers the two event callbacks by name for the evd scripts, starts the
+// R120Event task unless debug trigger 1 skips it, and sets up the 256x256 render-to-texture used for
+// the car's rear-view mirror.
 void R120Init()
 {
 #line 58 "D:/Bio4/Prog/r120.cpp"
@@ -51,6 +54,7 @@ void R120Init()
     TexRenderInit(&r120_work->mgr, 0x100, 1);
 }
 
+// Per-frame room main: nothing.
 void R120Main()
 {
 }
@@ -124,6 +128,12 @@ static inline void r120_setTrans(int on)
     }
 }
 
+// Per-frame callback of event r120s00 (the drive to the village: Leon in the back of the police car).
+// funcMode 0 = setup (hide the replaced scroll objects, ID display 0x21 off); funcMode 1 = per cut/frame:
+// parents the headlight (kind-1 light) to car model obm3000c on cuts 1/8, feeds the mirror render on cut
+// 0, and sets draw flags / ot_type / CMF on the Leon model pl0010, the car interior obm3010f and the
+// villager obm1a00 per cut; the first frame of cut 0 fades in unless the event was skipped (StatusFlag
+// 0x40000000).
 extern "C" void Evt_R120S00_Func(Event* e)
 {
     void* lmod;
@@ -256,6 +266,11 @@ extern "C" void Evt_R120S00_Func(Event* e)
     }
 }
 
+// Per-frame callback of event r120s01 (the car stops at the village road, Leon gets out). funcMode 0
+// hides scroll objects 0x17..0x1A; funcMode 1 shows the car parts obm3000a/b/e/f (CMF on, be_flag draw)
+// on cuts 3/5/0xE, sets Leon / interior / evm0000 (the officers) flags per cut and feeds the mirror render
+// on cuts 2/6; funcMode 2 (end) restores the scroll objects, clears Disp_flg 0x08000000 and sets
+// System_flg 0x400; funcMode 3 sets Scenario_flg[0] bit 0x10 (intro seen).
 extern "C" void Evt_R120S01_Func(Event* e)
 {
     void* mod;

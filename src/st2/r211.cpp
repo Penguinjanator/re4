@@ -21,7 +21,10 @@
 #include "est.h"
 #include "snd.h"
 
-// Room 2-11 (D:/Bio4/Prog/r211.cpp): the two statue cups, the grate they open and two shelves.
+// Room 2-11 (D:/Bio4/Prog/r211.cpp): the castle room with the two statues that take the cup items
+// (0x6E / 0x6F): each statue can be inspected (areas 4 / 5) and a task waits for its cup to be used;
+// once both are placed the grate (smd 0x1B) rises (r211_GrateOpen, Room_flg bit 2) and opens the way.
+// Two shelf item events. Room_flg bits 0 / 1 remember the placed cups.
 
 struct R211Work {
     u32 se;   // 0x0  RoomSeCall handle of the grate
@@ -47,6 +50,9 @@ static void r211_GrateOpenEndProc();
 static void r211_ShelfOpen(int no);
 static void r211_ShelfOpened(int no);
 
+// Room init: each statue cup already placed (Room_flg bit 0 / 1) is shown as a scroll model with its area
+// (4 / 5) off and the Room_flg[0] bit 31 / 30 set; otherwise the statue can be inspected and a task waits
+// for the cup item (0x6E / 0x6F) to be used; the grate is open when bit 2; two shelf item events.
 void R211Init()
 {
 #line 42 "D:/Bio4/Prog/r211.cpp"
@@ -102,15 +108,19 @@ void R211Init()
     SceSetItemEvent(8, 0x84, 4, 5, r211_ShelfOpen, (void (*)()) r211_ShelfOpened, 1, 0);
 }
 
+// Per-frame room main: nothing.
 void R211Main()
 {
 }
 
+// The grate door while closed: up-cut 3 with message 2.
 static void r211_DoorMessage()
 {
     SceUpCut(3, -1, 2, 0);
 }
 
+// Area 4 / 5 (statue `no`): the look message (up-cut 8 / 7); with the matching cup item held the item
+// screen opens so it can be used.
 static void r211_InspectStatue(int no)
 {
     switch (no) {
@@ -129,6 +139,8 @@ static void r211_InspectStatue(int no)
     }
 }
 
+// Task per statue: waits until cup item 0x6E / 0x6F is used, places the cup model (Room_flg bit 0 / 1,
+// message), and when both cups are placed opens the grate after half a second.
 static void r211_CheckUseCup(int no)
 {
     u16 item = no != 0 ? 0x6F : 0x6E;
@@ -161,6 +173,8 @@ static void r211_CheckUseCup(int no)
     }
 }
 
+// The grate (smd 0x1B) rises 30 units a frame to y = 4600 under camera cut 4 with its SE and dust
+// effect; player-cancellable via r211_GrateOpenEndProc.
 void r211_GrateOpen()
 {
     cObj* obj = SmdGetObjPtr(0x1B);
@@ -184,6 +198,8 @@ void r211_GrateOpen()
     r211_GrateOpenEndProc();
 }
 
+// End of the grate opening: the grate object stays shown, SE / effect cleanup when cancelled early,
+// camera back, Room_flg bit 2 and door_flags_51C8 0x10 (the way is open), collision area 0 re-armed.
 static void r211_GrateOpenEndProc()
 {
     cObj* obj = SmdGetObjPtr(0x1B);
@@ -202,6 +218,7 @@ static void r211_GrateOpenEndProc()
     SceEventEnd(0);
 }
 
+// Item-event opener: shelf `no` (OpenBoxMain type 0x1A) swings open.
 static void r211_ShelfOpen(int no)
 {
     switch (no) {
@@ -214,6 +231,7 @@ static void r211_ShelfOpen(int no)
     }
 }
 
+// Item-event "already opened": pose shelf `no` open.
 static void r211_ShelfOpened(int no)
 {
     switch (no) {

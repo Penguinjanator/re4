@@ -159,6 +159,10 @@ static void r20d_execRoundSwitch();
 void r20d_initRoundSwitch();
 static void r20d_execThrough(int no);
 
+// Room init (Ashley's section, pl_type 1): the throwable lanterns from the room archive, the three
+// fences and their cranks, the enemy clean-up, the round switch (opened / not per Room_flg bit 0), the
+// ten pass-through areas (6..9, 2..5, 0x1C/0x1D), area 0x10 = the exit door check; the round switch and
+// picture wall; one shelf and three drawer item events; the battle stream; action colour on 0x1B.
 void R20dInit()
 {
 #line 55 "D:/Bio4/Prog/r20d.cpp"
@@ -207,10 +211,12 @@ void R20dInit()
     SceAtSetActColor(0x1B, 1);
 }
 
+// Per-frame room main: nothing.
 void R20dMain()
 {
 }
 
+// Battle stream 3 from the first Ganado that spots Ashley until none (ids 0x10..0x20) is alive.
 static void r20d_checkBgmPlay()
 {
     while (SceCkFindPL(0) != 1) {
@@ -260,11 +266,13 @@ void r20d_openShelf_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose shelf `no` open.
 static void r20d_openedShelf(int no)
 {
     r20d_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate shelf `no` open.
 static void r20d_openShelf(int no)
 {
     r20d_openShelf_main(no, 0);
@@ -321,16 +329,20 @@ void r20d_openDrawer_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose drawer `no` slid out.
 static void r20d_openedDrawer(int no)
 {
     r20d_openDrawer_main(no, 1);
 }
 
+// Item-event opener: animate drawer `no` sliding out.
 static void r20d_openDrawer(int no)
 {
     r20d_openDrawer_main(no, 0);
 }
 
+// Area 0x10, the exit door: once unlocked (door_unlock[0] 0x00200000) sets Scenario_flg[0] 0x02000000
+// and switches control back to Leon (PlSelect(0)) before running the door area.
 static void r20d_checkDoor()
 {
     if (!(pG->door_unlock[0] & 0x00200000)) {
@@ -342,6 +354,7 @@ static void r20d_checkDoor()
     }
 }
 
+// One frame in: if the key item (item_flags[0] 0x4000) was already taken, remove every Ganado (0x10..0x20).
 static void r20d_setEm()
 {
     SceSleep(1);
@@ -435,6 +448,8 @@ static void r20d_checkSwitch(int opened)
     }
 }
 
+// The three crank objects at their fixed spots; each fence not yet raised (Room_flg bits 0/1/8) gets its
+// crank area (0/1/0xE) as the operate task, else the fence is posed raised.
 void r20d_initCrank()
 {
     Vec rot = {0.0f, 1.5707964f, 0.0f};
@@ -654,6 +669,8 @@ void cFence::move(f32 t)
     sat->setCoord(&obj->pos, &rot);
 }
 
+// Bind fence data: the scroll object (script-moved), lowered position, raise vector, and a 4-corner
+// collision piece (SAT) around it sized from the data's w/d.
 void cFence::init(R20dFenceData* d)
 {
     f32 hz;
@@ -673,6 +690,7 @@ void cFence::init(R20dFenceData* d)
     sat = SatMgr.create(&obj->pos, &rot, v, 0x40, 0, 4100.0f);
 }
 
+// Area 0x19: marks all three fences raised (Room_flg bits 0/1/8) — the exit shortcut after the puzzle.
 static void r20d_execFlagOn()
 {
     RsfSet(G_ROOM_ID, 0);
@@ -680,6 +698,7 @@ static void r20d_execFlagOn()
     RsfSet(G_ROOM_ID, 8);
 }
 
+// Initialise the three fences from r20d_fenceData and arm the area-0x19 flag setter.
 void r20d_initFence()
 {
     u32 i;
@@ -691,6 +710,7 @@ void r20d_initFence()
     SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r20d_execFlagOn, 0, 1);
 }
 
+// Death trap area: Ashley dies (death demo 0).
 static void r20d_execDeathTrap()
 {
     DiedemoExec(0, 0);
@@ -756,6 +776,8 @@ static void r20d_dbgWall(int frame)
     pPL->pos.y = y * rate;
 }
 
+// The round switch put the pictures right: the wall rises, Room_flg bit 2, door_flags_51C8 4 (the way
+// on opens), the switch area 0xD off.
 void r20d_checkPictureCombination()
 {
     SceExec(0x12, (TaskFunc) r20d_moveWall, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -764,6 +786,8 @@ void r20d_checkPictureCombination()
     SceAtSetEnable(0xD, 0);
 }
 
+// Task: waits for the Salazar crest (item 0xF) to be used at the switch, then Room_flg bit 3, camera
+// cut 0x3C, SE, the crest model (item area 0x85) shown, message 2.
 static void r20d_checkSalazarCrestUse()
 {
     while (ItemMgr.check(0xF) != 1) {
@@ -844,6 +868,9 @@ yes:
     }
 }
 
+// The round switch object and its state; the crest slot model (item area 0x85) shown only once the
+// crest is in (Room_flg bit 3); in Ashley's section area 0xD = the switch until the puzzle is solved
+// (bit 2), with the crest-use watcher.
 void r20d_initRoundSwitch()
 {
     Vec pos = {3926.0f, 0.0f, 13987.0f};
@@ -1006,6 +1033,7 @@ void cLantern::initLantern(void* arc, void* m1, void* m2, void* m3, void* m4, vo
     SceExec(0x12, (TaskFunc) cLantern::checkLantern, (int) this, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Task over all lantern units: state 0 checks the pickup prompt, 1 is being thrown, 2 destroys the unit.
 void cLantern::checkLantern(cLantern* p)
 {
     for (;;) {
@@ -1031,6 +1059,7 @@ void cLantern::checkLantern(cLantern* p)
     }
 }
 
+// Remove the lantern enemy and deactivate the unit.
 void cLanternUnit::destroy()
 {
     if (em) {

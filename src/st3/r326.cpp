@@ -16,7 +16,9 @@
 #include "snd.h"
 #include "vec.h"
 
-// Room 3-26 (D:/Bio4/Prog/r326.cpp): the corpse bag hanging from the ceiling and the three item boxes.
+// Room 3-26 (D:/Bio4/Prog/r326.cpp): the island cold-storage room: the corpse bag hanging from the
+// ceiling (a SetObjSmd with the dark light set until the lights come on, then it drops with a hit box),
+// three item boxes, Ashley's room motions and the door message while she is along.
 
 struct R326Work {
     int x0;
@@ -38,6 +40,8 @@ void r326_openBox_main(u32 id, int opened);
 static void r326_openedBox(int id);
 static void r326_openBox(int id);
 
+// Room init: the corpse bag task, three box item events (items 0x80/0x81 and a flagless third), the
+// player's room motions, Ashley's motions a frame later.
 void R326Init()
 {
 #line 36 "D:/Bio4/Prog/r326.cpp"
@@ -50,10 +54,12 @@ void R326Init()
     SceExec(0x12, (TaskFunc) r326_setSubCharMotion, 0, 0, 2, 0);
 }
 
+// Per-frame room main: nothing.
 void R326Main()
 {
 }
 
+// A frame in, if Ashley (pSUB) is along: register her room motions and area 0 = the door message.
 static void r326_setSubCharMotion()
 {
     SceSleep(1);
@@ -63,6 +69,7 @@ static void r326_setSubCharMotion()
     }
 }
 
+// Area 0 (with Ashley): up-cut 1 (the door does not open).
 static void r326_DoorLock()
 {
     SceUpCut(1, -1, -1, 0);
@@ -78,6 +85,9 @@ void set_bag_eid()
     }
 }
 
+// Task: the corpse bag (SetObjSmd at the ceiling); done if Room_flg bit 3. Area 6 off; until the lights
+// are on (bit 2) and for 90 frames after, the bag uses the dark light set; then its drop SE, the fall
+// motion and a hit box on it.
 static void r326_setCorpseBag()
 {
     Vec pos = {-3142.0f, 3863.0f, -1793.0f};
@@ -186,11 +196,13 @@ void r326_openBox_main(u32 id, int opened)
     }
 }
 
+// Item-event "already opened": box `id` posed open.
 static void r326_openedBox(int id)
 {
     r326_openBox_main(id, 1);
 }
 
+// Item-event opener: animate box `id` open.
 static void r326_openBox(int id)
 {
     r326_openBox_main(id, 0);

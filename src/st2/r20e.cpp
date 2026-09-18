@@ -178,6 +178,10 @@ void r20e_openShelf_main(int no, int opened);
 static void r20e_openedShelf(int no);
 static void r20e_openShelf(int no);
 
+// Room init (the maze / puzzle room of Ashley's section): larger shadow pool, the sliding picture
+// puzzle; in Ashley's section (pl_type 1) area 6 = taking the Salazar crest (item 0x80, lit) until it
+// is taken, the snake item 0x85 scaled down; the crest door, the armor statues and knights per the saved
+// flags; the maze fences and switches; shelf / box item events.
 void R20eInit()
 {
     cObj* obj;
@@ -235,10 +239,13 @@ void R20eInit()
     r20e_work->effKind = EspPullCoreKind();
 }
 
+// Per-frame room main: nothing.
 void R20eMain()
 {
 }
 
+// Per-frame fence step while active: state 1 rises 50 units a frame to base + 2200 (then its area off),
+// state 0 drops with growing speed back to base (then its area on).
 void cFence20e::move()
 {
     if (obj && active) {
@@ -270,6 +277,8 @@ void cFence20e::move()
     }
 }
 
+// Request state `no` (1 up / 0 down); frc = 1 snaps on the next move. Mirrors the state into the room
+// save flag flagNo and re-enables the fence's collision area when lowering.
 void cFence20e::set(int no, int frc)
 {
     force = frc;
@@ -286,21 +295,25 @@ void cFence20e::set(int no, int frc)
     }
 }
 
+// The fence's target state (1 up, 0 down).
 int cFence20e::check()
 {
     return state;
 }
 
+// 1 while the fence is still moving.
 int cFence20e::checkActive()
 {
     return active;
 }
 
+// The camera cut that shows this fence moving.
 int cFence20e::getCamNo()
 {
     return camNo;
 }
 
+// Bind a maze fence from its table entry (object, area, camera cut, save flag) and snap it to the saved state.
 void cFence20e::init(const R20eFenceData* d)
 {
     obj = SmdGetObjPtr(d->objId);
@@ -341,6 +354,8 @@ void r20e_getFenceNo(int sw, int* up, int* down)
     }
 }
 
+// End of a switch operation (also its cancel path): the raised / lowered fences snapped, the SE stopped,
+// Ashley may suspend, camera back, SceEventEnd.
 static void r20e_checkSwitch_end(int sw)
 {
     int up = 0;
@@ -359,6 +374,8 @@ static void r20e_checkSwitch_end(int sw)
     SceEventEnd(0);
 }
 
+// Maze switch `sw` (areas 9/0xA/0xB): yes/no message 3; yes -> the switch's fence pair moves (one up, one
+// down) under their camera cuts with SEs; player-cancellable.
 static void r20e_checkSwitch(int sw)
 {
     SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -451,6 +468,7 @@ static void r20e_checkEnableSwitch3()
     }
 }
 
+// The three switch areas, the switch-3 enable watcher and the three fences from r20e_fenceTbl.
 void r20e_initMaze()
 {
     u32 i;
@@ -644,6 +662,8 @@ void r20d_moveArmorStatue(int noAnim)
     }
 }
 
+// Area 6 after the crest: camera cut 7 while the armor statue's box opens and the snake item (0x85) is
+// taken; then the statues turn and the knights wake.
 static void r20d_getSnakeObject()
 {
     cModel* m;
@@ -717,6 +737,8 @@ void r20e_startArmor()
     em6.setBeFlag(0x10000, 1);
 }
 
+// End of the crest pickup event (also its cancel path, Room_flg[0] bit 31): drop the effect, stop the
+// SE, snap the armor statues 0x23/0x24 turned (PI) and the crest door up; camera back, SceEventEnd.
 static void r20d_getSalazarCrest_end()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -752,6 +774,8 @@ static void r20d_getSalazarCrest_end()
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r20d_getSnakeObject, 0, 1);
 }
 
+// Area 6: camera cut 7, the crest item 0x80 is taken, then the armor statues turn with SE / effect and
+// the crest door opens; player-cancellable.
 static void r20d_getSalazarCrest()
 {
     cModel* m;
@@ -789,6 +813,8 @@ static void r20d_getSalazarCrest()
     r20d_getSalazarCrest_end();
 }
 
+// End of the final-piece event (also its cancel path): effect / SE dropped, area 5 off, the crest door
+// 0x16 snapped up 3000; camera back, SceEventEnd.
 static void r20e_checkFinalPieceUse_end()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -854,6 +880,8 @@ static void r20e_checkFinalPieceUse()
     r20e_checkFinalPieceUse_end();
 }
 
+// The puzzle from outside: the look up-cut 1/5, or with the final piece (item 0x1D) held camera cut 5
+// and the item screen to use it.
 static void r20d_checkPuzzle2()
 {
     if (ItemMgr.num(0x1D) == 0) {
@@ -1182,6 +1210,9 @@ static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, R20eCell* cs, s8 
         }                                                                  \
     }
 
+// The 3x3 sliding picture puzzle: the nine piece objects on their cells (r20e_pieceObjId), the empty
+// cell, the solved layout; already solved (saved flag) -> pieces posed solved, else the cursor / slide
+// state and the puzzle area.
 void r20e_initPuzzle()
 {
     R20ePuzzle* p = &r20e_work->puzzle;
@@ -1303,11 +1334,13 @@ void r20e_openBox_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose box `no` open.
 static void r20e_openedBox(int no)
 {
     r20e_openBox_main(no, 1);
 }
 
+// Item-event opener: animate box `no` open.
 static void r20e_openBox(int no)
 {
     r20e_openBox_main(no, 0);
@@ -1355,11 +1388,13 @@ void r20e_openShelf_main(int no, int opened)
     }
 }
 
+// Item-event "already opened": pose shelf `no` open.
 static void r20e_openedShelf(int no)
 {
     r20e_openShelf_main(no, 1);
 }
 
+// Item-event opener: animate shelf `no` open.
 static void r20e_openShelf(int no)
 {
     r20e_openShelf_main(no, 0);

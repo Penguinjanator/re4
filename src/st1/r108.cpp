@@ -58,14 +58,17 @@ static inline u32 evtFlagBase()
 {
     return (u32) &pG->Room_flg[0];
 }
+// Test event flag `no` in the pG->flags_174 words (bit 31 - (no & 31) of word no >> 5).
 static inline u32 EvtFlagChk(u32 base, int no)
 {
     return *(u32*) (((no >> 5) << 2) + base) & (0x80000000 >> (no & 31));
 }
+// Toggle event flag `no` (the symbol dial flips a symbol's flag each turn).
 static inline void EvtFlagXor(u32 base, int no)
 {
     *(u32*) (((no >> 5) << 2) + base) ^= 0x80000000 >> (no & 31);
 }
+// Clear event flag `no`.
 static inline void EvtFlagOff(u32 base, int no)
 {
     *(u32*) (((no >> 5) << 2) + base) &= ~(0x80000000 >> (no & 31));
@@ -77,6 +80,7 @@ static inline void r108_setObj(cObj*& o, u32 id)
     o = SmdGetObjPtr(id);
     BitOn(o->be_flag, 0x20);
 }
+// Fetch two scroll objects and mark both script-moved (be_flag 0x20), all pointer loads before the stores.
 static inline void r108_setObj2(cObj*& a, cObj*& b, u32 idA, u32 idB)
 {
     a = SmdGetObjPtr(idA);
@@ -99,6 +103,10 @@ extern "C" void r108_openCover();
 static void r108_execPuzzle();
 static void r108_str_check();
 
+// Room init: clears System_flg 0x800, battle-stream and BGM tasks, the symbol
+// puzzle on dials 0x31/0x32/0x33 with message 2, area 4 = front door check, the bell hit target, enemy
+// 0x17 pre-read; area 6 = the dial terminal until Room_flg bit 0, area 0x12 = the show view once
+// (Room_flg bit 1); action colour on area 4.
 void R108Init()
 {
     pG->System_flg &= ~0x800;
@@ -120,10 +128,12 @@ void R108Init()
     SceAtSetActColor(4, 1);
 }
 
+// Per-frame room main: nothing.
 void R108Main()
 {
 }
 
+// End of the show view: camera back, stream faded out over 200 frames, SceEventEnd.
 static void r108_execShowView_end()
 {
     CamCtrl.Comeback(0);
@@ -134,6 +144,8 @@ static void r108_execShowView_end()
 // Show the altar: camera cut 11 with its stream.
 static inline f32 FCRef(const f32& v) { return v; }
 
+// One-shot event (Room_flg bit 1): stream 0x33 and camera cut 0xB (the show view) until the camera
+// motion ends; player-cancellable.
 static void r108_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
@@ -163,6 +175,8 @@ static void r108_operator()
 
 // Ringing the bell: re-create up to three of the outside Ganados when few are left.
 cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");   // COMPILER-DIFF: 4 (no int->s16 truncation at the call)
+// Called from the module's other rooms: when 7 or fewer Ganados (ids 0x10..0x20) are alive, respawn up to
+// three of the eleven listed ESL entries as reinforcements.
 extern "C" void r108_checkEmReset()
 {
     int list[11] = {1, 2, 0x2D, 0x47, 0x4B, 0x4D, 0x33, 0x35, 0x3B, 0x67, 0x6A};
@@ -270,6 +284,7 @@ static void r108_checkBgm()
     }
 }
 
+// The item behind the covers was taken: run item area 0x82 and disable area 0xA.
 static void r108_getItem()
 {
     SceAtExecute(0x82);

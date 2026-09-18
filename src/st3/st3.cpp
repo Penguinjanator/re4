@@ -100,12 +100,14 @@ void R332Main();
 void R333Init();
 void R333Main();
 
+// Store one room's Init/Main pair into the DOL's St3_data_tbl (index = room number & 0xFF).
 void set(int no, void (*init)(), void (*main)())
 {
     St3_data_tbl[no].init = init;
     St3_data_tbl[no].main = main;
 }
 
+// Fill the stage table with every room this module compiles (missing indices are rooms that do not exist).
 void setTbl()
 {
     set(0, R300Init, R300Main);
@@ -147,6 +149,7 @@ void setTbl()
     set(51, R333Init, R333Main);
 }
 
+// REL entry point (called by the loader after linking): run the static constructors, then register the rooms.
 extern "C" void _prolog()
 {
     void (**p)(void);
@@ -158,6 +161,7 @@ extern "C" void _prolog()
     OSReport("prolog...\n");
 }
 
+// REL exit point (before unlinking): run the static destructors.
 extern "C" void _epilog()
 {
     void (**p)(void);
@@ -168,6 +172,7 @@ extern "C" void _epilog()
     OSReport("epilog...\n");
 }
 
+// Stub the loader binds unresolved imports to: reports and halts (the HALT line number is baked in).
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");
@@ -211,6 +216,7 @@ void st3_setCountDownTimer(int frame)
     SetFree(2, cd->getFrame());
 }
 
+// Frames left on the cockpit count-down.
 int st3_getCountDownTimer()
 {
     return Cckpt.getCountDown()->getFrame();
@@ -227,6 +233,8 @@ static inline void st3_resumeCountDown()
     cd->frameIn();
 }
 
+// Start (or resume after a room change) the island escape count-down: Scenario_flg[0] 0x80 = running,
+// Scenario_flg[1] 0x200 (time-over handled) cleared; the frame count lives in free word 2 across rooms.
 void st3_startCountDown()
 {
     BitOff(pG->Scenario_flg[1], 0x200);
@@ -259,6 +267,8 @@ void st3_checkCountDown()
     }
 }
 
+// Time over: black screen, count-down off, all data / events dropped, sounds stopped, the r333_ev movie
+// (the island explodes) queued, Leon's hp zeroed with Status_flg[3] 0x01000000, then the death demo.
 void st3_dieDemoEvent()
 {
     int i;
@@ -286,6 +296,7 @@ void st3_dieDemoEvent()
     SceEventEnd(0);
 }
 
+// Stop and hide the count-down (Scenario_flg[0] 0x80 off).
 void st3_endCountDown()
 {
     CountDown* cd = Cckpt.getCountDown();

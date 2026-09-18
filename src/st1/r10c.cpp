@@ -108,6 +108,13 @@ static void hako_down(cObj* obj);
 static void r10c_ItemGet();
 extern "C" void eat_swap();
 
+// Room init: pre-reads Ganado 0x12; JumpPoint 1 (arriving from below) sets Room_flg[0] 0x04000000 (the
+// lower bank). Creates the pool water attribute, rain on the player, thunder and water-wheel tasks, the
+// water render target; areas 3/4 = the ladder climb between banks; area 5 = the drain switch until
+// Room_flg bit 5 (then the lever is posed pulled); area 1 = the axe-thrower event until bit 1; the crate
+// hit boxes and battle-stream tasks; area 0x80 = the key item. Bit 8 / bit 5 set: the drained layout
+// (gates open, drained water attribute, ambush on area 8 unless bit 9), else the full pool with its
+// attribute sounds. Bits 11..13: the fallen crates' collision. Areas 0xC/0xD only in Japanese.
 void R10cInit()
 {
 #line 113 "D:/Bio4/Prog/r10c.cpp"
@@ -215,6 +222,8 @@ void R10cInit()
     }
 }
 
+// Per frame: counts frames, mirrors item_flags[0] 0x00400000 (the key taken) into Item_find_flg 0x100,
+// and keeps the three crate collision pieces on their swinging scroll objects 0x61..0x63.
 void R10cMain()
 {
     U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
@@ -354,6 +363,9 @@ static void r10c_TestPosMove(int side)
 static inline void r10c_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
 static inline void r10c_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
 
+// End of the axe event: destroys the event Ganado, drops its effects, camera back, SceEventEnd, clears
+// Status_flg[2] 0x02000000, spawns ESL 3 and 4 (the real enemies of the bank), puts Leon at the ladder
+// foot and clears Room_flg[0] 0x08000000.
 static void r10c_EmEvent_exit()
 {
     EmMgr.destroy(r10c_work.p->em);
@@ -447,10 +459,12 @@ static void r10c_StrCheck()
     }
 }
 
+// Lightning on: nothing in this room (outdoors, no lit window object).
 static void r10c_ThunderFlagOn()
 {
 }
 
+// Lightning off: nothing.
 static void r10c_ThunderFlagOff()
 {
 }
@@ -548,6 +562,10 @@ extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur)
     return 0;
 }
 
+// End of the drain-switch event: stops the machinery sounds, disables the pool areas 0x11/0x12, arms the
+// ambush on area 8, camera back, SceEventEnd, drops the water effects, sets Room_flg bit 7 (drained),
+// swaps the water attribute (eat_swap) and re-arranges the gate/water scroll objects and areas for the
+// drained layout.
 static void chkSwitchA_exit()
 {
     SndStop(r10c_work.p->seWheelB[0], 0);
@@ -688,6 +706,7 @@ static void chkSwitchA()
     }
 }
 
+// End of the ambush cutscene: camera back, SceEventEnd, the seven Ganados may suspend again.
 static void r10c_EmSet_exit()
 {
     CamCtrl.Comeback(0);
@@ -704,6 +723,8 @@ static void r10c_EmSet_exit()
 // Area 8: the ambush on the drained pool floor (camera cut 0x1B).
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Area 8 after the drain (once, Room_flg bit 9): 30 frames later stream 7 and camera cut 0x1B show the
+// seven Ganados (ESL 6..0xC) arriving; player-cancellable.
 static void r10c_EmSet()
 {
     // The 0.0 is loaded after the flags_174 store: a pool constant would move above it (pool loads

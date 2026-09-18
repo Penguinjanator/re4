@@ -81,6 +81,9 @@ void emset_boss(int no, int dir);
 int em_reset(int no, int chk);
 void em_destroy();
 
+// Room init (Mercenaries: the village): Ada's ladder motions on the four ladders, the window break
+// motions, window 0 pre-broken; the Mercenaries system with a random one of three start positions and
+// the room's messages (MercSysInitRoom); three treasure box item events.
 void R400Init()
 {
     R400MercInit init;
@@ -127,16 +130,19 @@ void R400Init()
     SceSetItemEvent(0xE, 0x9B, 5, -1, r400_TreasureBoxOpen, (void (*)()) r400_TreasureBoxOpened, 0x48, 0);
 }
 
+// Item-event opener: chest `no` lid up (+X).
 static void r400_TreasureBoxOpen(int no)
 {
     OpenBoxMain(OpenBoxUpXP, 0, 0x5B, no, -1, -1);
 }
 
+// Item-event "already opened": chest `no` posed open.
 static void r400_TreasureBoxOpened(int no)
 {
     OpenBoxMain(OpenBoxUpXP, 1, 0x5B, no, -1, -1);
 }
 
+// Reset group for area zone 0 (Room_flg[2] bit 31): its 16 list entries re-set while fewer than 10 are alive.
 void reset_40()
 {
     em_reset(0xB, 1);
@@ -157,6 +163,7 @@ void reset_40()
     em_reset(0x13, 1);
 }
 
+// Reset group for zone 1 (Room_flg[2] 0x40000000): 12 list entries.
 void reset_41()
 {
     em_reset(0x24, 1);
@@ -173,6 +180,7 @@ void reset_41()
     em_reset(0x3F, 1);
 }
 
+// Reset group for zone 2 (0x20000000): the list entries around the centre.
 void reset_42()
 {
     em_reset(0x64, 1);
@@ -212,6 +220,7 @@ void reset_42()
     em_reset(0xC4, 1);
 }
 
+// Reset group for zone 3 (0x10000000): 13 list entries.
 void reset_43()
 {
     em_reset(0x20, 1);
@@ -229,6 +238,7 @@ void reset_43()
     em_reset(0x73, 1);
 }
 
+// Reset group for zone 4 (0x08000000): 6 list entries.
 void reset_44()
 {
     em_reset(0x5A, 1);
@@ -239,6 +249,7 @@ void reset_44()
     em_reset(0x5F, 1);
 }
 
+// Reset group for zone 5 (0x04000000): 14 list entries.
 void reset_45()
 {
     em_reset(0x55, 1);
@@ -257,6 +268,7 @@ void reset_45()
     em_reset(0x75, 1);
 }
 
+// Reset group for zone 6 (0x02000000): 8 list entries.
 void reset_46()
 {
     em_reset(0x2C, 1);
@@ -269,6 +281,7 @@ void reset_46()
     em_reset(0x33, 1);
 }
 
+// Reset group around treasure box 0: 3 list entries.
 void reset_item0()
 {
     em_reset(0x3C, 1);
@@ -276,6 +289,7 @@ void reset_item0()
     em_reset(0x3E, 1);
 }
 
+// Reset group around treasure box 1: 5 list entries.
 void reset_item1()
 {
     em_reset(0x35, 1);
@@ -285,6 +299,7 @@ void reset_item1()
     em_reset(0x39, 1);
 }
 
+// Reset group around treasure box 2: 3 list entries.
 void reset_item2()
 {
     em_reset(0x28, 1);
@@ -292,6 +307,10 @@ void reset_item2()
     em_reset(0x2A, 1);
 }
 
+// Per frame while the game runs (Status_flg[0] 0x1000 clear): counts the alive Ganados, the base count
+// on the first frame, em_destroy every 300 frames, the time points; after 450 frames (Room_flg[0]
+// 0x40000000) the reset groups of the zone the player is in (Room_flg[2] bits) and of the box he is
+// near refill; after 10 kills the boss pair (0x11/0x12), after 25 kills boss 0x61.
 void R400Main()
 {
     SceDebugDisp("");

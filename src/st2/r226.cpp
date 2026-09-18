@@ -125,6 +125,7 @@ static inline void PSetRobo(cObjRobo*& d, cObjRobo* v) { d = v; }
 // below the store (wep_mod.h AtariFlagsAndV).
 static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -135,6 +136,7 @@ static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Rotate a model from three components (inline owning the Vec).
 static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -152,11 +154,13 @@ static inline u32* eventFlags()
     return &pG->Room_flg[0];
 }
 
+// Test event flag `no` in pG->flags_174.
 static inline u32 evtFlag(u32 no)
 {
     return eventFlags()[no >> 5] & (0x80000000 >> (no & 31));
 }
 
+// Set event flag `no` in pG->flags_174.
 static inline void evtFlagSet(u32 no)
 {
     eventFlags()[no >> 5] |= 0x80000000 >> (no & 31);
@@ -168,6 +172,7 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
+// Euclidean distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
     return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
@@ -221,6 +226,12 @@ static inline void r226_setEmAll(int noSuspend)
     }
 }
 
+// Room init (the giant Salazar statue chase): JumpPoint 1 clears every room flag then presets the
+// switches / statue-awake flags. Area 0 = the elevator out (SceElevator leave data); arriving by the
+// elevator plays its arrival. Statue state per flags: awake (bit 9) -> the cObjRobo is created and, until
+// the passage walk is done (bit 13), area 5 = the walk start, 0x22 = the tower look, 0x24 = continue
+// point, the enemies; else the two passage switch areas 0x12/0x13 (bits 7/8) and area 0x17 = the statue
+// waking; area 0x18 = the statue watching once (bit 10); the chase BGM task.
 void R226Init()
 {
     cEm* door;
@@ -400,6 +411,9 @@ void R226Init()
     pG->Scenario_flg[1] |= 0x800000;
 }
 
+// Per frame: after the door opened (Room_flg[1] 0x08000000) and before the bridge (bit 14) a 600-frame
+// MoveTimer kills the dawdling player (R226EventRoboWalkDoorDie); debug pad 2 buttons replay the
+// switch events and the statue walk.
 void R226Main()
 {
     if ((pG->Room_flg[1] & 0x08000000) && RsfCheck(G_ROOM_ID, 14) == 0) {
@@ -431,6 +445,7 @@ void R226Main()
     }
 }
 
+// One frame in: set the 13 chase enemies from the list.
 static void R226EmSetMain()
 {
     SceSleep(1);
@@ -462,6 +477,7 @@ static void R226EventRoboWatchMain()
     R226EventRoboWatchEnd();
 }
 
+// Cancel path of the statue-watch cut: stop its stream, then the common end.
 static void R226EventRoboWatchCancel()
 {
     if (r226_work.p->str) {
@@ -471,6 +487,7 @@ static void R226EventRoboWatchCancel()
     R226EventRoboWatchEnd();
 }
 
+// End of the statue-watch cut: the statue leaves event mode, camera back, SceEventEnd, task exit.
 void R226EventRoboWatchEnd()
 {
     cObjRoboSetEndEvent(r226_work.p->robo, 0);
@@ -573,6 +590,9 @@ static void R226EventRoboStartMainSub(int id)
     }
 }
 
+// End of the statue-awakening cutscene (also its cancel path): stream stopped, the chase BGM started
+// once (Room_flg[1] 0x10000000), the switch objects sunk, the statue put in its walking state and the
+// passage areas armed.
 static void R226EventRoboStartEnd()
 {
     cObjRobo* robo = r226_work.p->robo;
@@ -723,6 +743,8 @@ static void R226EventPassageSwitchMain(int side)
     R226EventPassageSwitchEnd(side);
 }
 
+// End of passage switch `side` (also its cancel path): the switch object sunk / turned, its area off,
+// the far gate's effect piece and collision swapped, the room flag (7 / 8) set.
 static void R226EventPassageSwitchEnd(int side)
 {
     int atNo;
@@ -913,6 +935,7 @@ static void R226EventTowerLookMain()
     R226EventTowerLookEnd();
 }
 
+// End of the tower look: start the statue's bridge walk, SceEventEnd, task exit.
 static void R226EventTowerLookEnd()
 {
     SceExec(0x12, (TaskFunc) R226EventRoboWalkBridgeStart, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -1018,6 +1041,7 @@ static void r226_dbgCam()
     }
 }
 
+// Area 0x24: with both switches thrown (bits 7/8), once (bit 17) disable the area and autosave.
 static void R226ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 7) && RsfCheck(G_ROOM_ID, 8) && RsfCheck(G_ROOM_ID, 17) == 0) {
@@ -1081,6 +1105,7 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
     return ret;
 }
 
+// Number of the 22 chase enemies currently active.
 int R226CalcActiveEmWarp()
 {
     int n = 0;
@@ -1349,6 +1374,8 @@ static void playerRunMoveBridge(cPlayer* pl)
     }
 }
 
+// The statue caught the player: rumble + quake, then the crush death routine for the passage (which 0)
+// or the bridge (which 1) via SetPlDamage.
 void playerRunDieSet(int type, int which)
 {
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
@@ -1406,6 +1433,7 @@ static void playerRunDieBridge(cPlayer* pl)
     }
 }
 
+// Reset the bridge chase camera offsets to their initial values.
 void playerRunCamInitBridge()
 {
     r226_work.p->camPos = r226_camPosInit;
@@ -1433,6 +1461,7 @@ void playerRunCamMovePassage(cPlayer* pl, f32 t)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// The bridge chase camera: offsets chased towards r226_camOfsPos/At at r226_camSpd*, FOV r226_fovyBridge.
 void playerRunCamMoveBridge(cPlayer* pl, f32 t)
 {
     Camera* cam = &r226_cam;
@@ -1461,6 +1490,7 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// The death camera in the passage: a fixed view (FOV r226_fovyDie) looking at the crushed player.
 void playerRunCamDiePassage(cPlayer* pl)
 {
     Camera* cam = &r226_cam;

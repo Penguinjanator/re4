@@ -157,6 +157,7 @@ void SceKill(void (*func)(int));
 
 static inline u32* DoorUnlockWord(int no) { return (u32*) ((((u32) no >> 5) << 2) + (u32) DoorUnlockFlags()); }
 
+// Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -167,6 +168,7 @@ static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Rotate a model from three components (inline owning the Vec).
 static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -177,6 +179,7 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setAng(&v);
 }
 
+// Rotate a model about Y only.
 static inline void SetAngY(cModel* m, f32 ry)
 {
     Vec v;
@@ -243,6 +246,7 @@ static inline void FadeWait(int no)
 // Pointer store through a reference: the pG load of the next call stays below it (r102 idiom).
 static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 
+// Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
 {
     EffectEspDelete(a, b, 0, 0);
@@ -303,6 +307,11 @@ static void Evt_R31CS01_Func(Event* e);
 static void Evt_R31CS02_Func(Event* e);
 static void r31c_KrauserCorpseMes();
 
+// Room init (the ruins, Krauser's arena): the nine sliding doors (0x78 the crest door, 0x79 open,
+// 0x7B..0x80, 0x6D) and the eight shootable posts; the crest door state (the crests already set, the
+// crest-use watcher), the timer door and the tower per the room flags; the Novistador groups per
+// area, Krauser's talks / battles, the levers, the count-down, the s00/s01/s02 callbacks and their
+// areas; the continue points.
 void R31cInit()
 {
     Vec zero = {0, 0, 0};
@@ -464,6 +473,7 @@ void R31cInit()
     }
 }
 
+// Per frame: step the eight posts and the nine doors.
 void R31cMain()
 {
     u32 i;
@@ -550,6 +560,8 @@ static void r31c_DoorCheck()
     }
 }
 
+// All three crests set: door_unlock[0] 0x200, Scenario_flg[1] 0x1000, area 0 on / 0x10 off, camera cut
+// 0x18 while the crest door (door[0]) slides open with its effect; player-cancellable.
 static void r31c_CrestDoorOpen()
 {
     void* model = NULL;
@@ -574,6 +586,7 @@ static void r31c_CrestDoorOpen()
     r31c_CrestDoorOpenEndProc();
 }
 
+// End of the crest door opening (also its cancel path): the door snapped open, effect dropped, camera back, SceEventEnd.
 static void r31c_CrestDoorOpenEndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -703,6 +716,7 @@ static void r31c_SeekerAppearCut(int no)
     r31c_SeekerAppearCutEndProc(no);
 }
 
+// End of a Novistador appearance cut: the pair (slots 11/12 for cut 0, 0/1 for cut 1) released to hunt, camera back.
 static void r31c_SeekerAppearCutEndProc(int no)
 {
     int a = -1;
@@ -811,6 +825,8 @@ static void r31c_TalktoKrauser(int no)
     r31c_TalktoKrauserEndProc(no);
 }
 
+// End of a Krauser talk (also its cancel path): SE stopped, the player and Krauser may suspend, camera
+// back, SceEventEnd, Krauser's talk motion cancelled (talk 1 or 2) into the fight state.
 void r31c_TalktoKrauserEndProc(int no)
 {
     cEm39* em = (cEm39*) r31c_work.p->krauser.getPtr();
@@ -835,6 +851,7 @@ void r31c_TalktoKrauserEndProc(int no)
     }
 }
 
+// Action button of the talk: Room_flg[0] 0x08000000 (the player answered).
 static void r31c_TalkToKrauserActBtnSet()
 {
     pG->Room_flg[0] |= 0x08000000;
@@ -864,6 +881,9 @@ static void r31c_KrauserDieCheck(cEm39* em)
     r31c_KrauserDieCheckEndProc(em);
 }
 
+// End of Krauser's death cut (also its cancel path): his death motion cancelled, Leon placed facing
+// 1.88 rad, camera back, Krauser may suspend, Status_flg[2] 0x02000000 off, the bomb count-down and
+// the corpse's crest item set up.
 static void r31c_KrauserDieCheckEndProc(cEm39* em)
 {
     Vec at[4];
@@ -939,6 +959,8 @@ static void r31c_GetSnakeCrest()
     r31c_GetSnakeCrestEndProc();
 }
 
+// End of the snake crest pickup (also its cancel path): the timer door closed and doors 3/7 opened,
+// effect dropped, camera back, Room_flg bit 0x18, Status_flg[2] 0x00020000 off.
 static void r31c_GetSnakeCrestEndProc()
 {
     Vec zero = {0, 0, 0};
@@ -968,6 +990,8 @@ static void r31c_Krauser1stBattle()
     }
 }
 
+// The first battle's timer: 2700 frames while Krauser is out; if he hides the door opens early; at
+// zero the door cut plays.
 static void r31c_TimerDoorCountDown()
 {
     int t = 2700;
@@ -1006,6 +1030,8 @@ static void r31c_TimerDoorCountDown()
     r31c_TimerDoorCountDownEndProc();
 }
 
+// End of the timer door cut: door 8 normal again, camera back, area 0x11 off, Krauser told the first
+// door is clear, SceEventEnd, area 0x17 = continue point, Room_flg[0] 0x20000000.
 void r31c_TimerDoorCountDownEndProc()
 {
     cEm39* em;
@@ -1042,6 +1068,8 @@ static void r31c_TimerDoorCancelCheck()
     r31c_TimerDoorCancel();
 }
 
+// Krauser hid before the timer ran out: the timer effect swapped, door 8 normal, area 0x11 off,
+// Krauser told the first door is clear, the continue point armed, Room_flg[0] 0x20000000.
 void r31c_TimerDoorCancel()
 {
     cEm39* em;
@@ -1098,6 +1126,8 @@ static void r31c_Krauser2ndBattle()
     r31c_Krauser2ndBattleEndProc();
 }
 
+// End of the second battle's opening (also its cancel path): SE stopped, the wall 0x69 shown, the
+// rack and floor 0x6A raised to y 5200, camera back, SceEventEnd; the player moved off the rack if on it.
 static void r31c_Krauser2ndBattleEndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1154,6 +1184,7 @@ static void r31c_SwitchPushCheck()
     }
 }
 
+// End of the switch-push cut (also its cancel path): doors 4/5 snapped open, effect dropped, camera back.
 static void r31c_SwitchPushCheckEndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1227,6 +1258,7 @@ static void r31c_LeverCheck()
     ((cEmSwitch*) r31c_work.p->sw[1])->setActButton(0);
 }
 
+// Lever `no`: camera cut 0x13 / 0x14 while door 1 / door 6 slides open with its effect; player-cancellable.
 static void r31c_LeverOperate(int no)
 {
     void* model = NULL;
@@ -1256,6 +1288,7 @@ static void r31c_LeverOperate(int no)
     r31c_LeverOperateEndProc(no);
 }
 
+// End of lever `no` (also its cancel path): its door snapped open, effect dropped, camera back, SceEventEnd.
 static void r31c_LeverOperateEndProc(int no)
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1289,6 +1322,8 @@ static void r31c_CountDownEnd()
     }
 }
 
+// The bomb count-down task: starts the cockpit count-down and waits for time-out, then the tower
+// explodes and Status_flg[2] 0x00020000 clears.
 static void r31c_CountDownThread()
 {
     SceCTask()->task->flag &= ~2;
@@ -1328,6 +1363,7 @@ static void r31c_TowerEntranceClose()
     r31c_TowerEntranceCloseEndProc();
 }
 
+// End of the tower entrance closing (also its cancel path): the door snapped shut, camera back, SceEventEnd.
 static void r31c_TowerEntranceCloseEndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1341,6 +1377,7 @@ static void r31c_TowerEntranceCloseEndProc()
     ((cEmSwitch*) r31c_work.p->sw[1])->setClosed();
 }
 
+// Time out: the explosion cut (camera, effects, quake), the tower swapped for its ruin model.
 static void r31c_TowerExplode()
 {
     Vec zero = {0, 0, 0};
@@ -1369,6 +1406,8 @@ static void r31c_TowerExplode()
     r31c_TowerExplodeEndProc();
 }
 
+// End of the explosion cut (also its cancel path): the ruin shown, effects dropped, camera back, the
+// player placed, SceEventEnd, the chapter end.
 static void r31c_TowerExplodeEndProc()
 {
     int die = 0;
@@ -1418,6 +1457,7 @@ static void r31c_TowerCoverClose()
     r31c_TowerCoverCloseEndProc();
 }
 
+// End of the tower cover closing (also its cancel path): the crest door snapped shut, camera back, SceEventEnd.
 static void r31c_TowerCoverCloseEndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1458,6 +1498,7 @@ static void r31c_BombCutSet(cEm39* em)
     r31c_BombCutSetEndProc();
 }
 
+// End of the bomb-planting cut: camera back, SceEventEnd.
 static void r31c_BombCutSetEndProc()
 {
     CamCtrl.Comeback(0);
@@ -1487,6 +1528,7 @@ void r31c_TowerExplodeModelSet(int no, int on)
     }
 }
 
+// Once (Room_flg bit 0x14): chapter 5-3 ends (SceSetChapterEnd(0x10)) after the tower.
 static void r31c_SetChapterEnd()
 {
     if (RsfCheck(G_ROOM_ID, 0x14) == 0) {
@@ -1574,6 +1616,8 @@ static void r31cEventS01()
     r31cEventS01EndProc();
 }
 
+// End of the knife-fight event: the follow-up enemy list entry's set byte by the fight result
+// (Room_flg[0] 0x10000000 = the button was hit), area 0x1C = the tower cover, the room state.
 void r31cEventS01EndProc()
 {
     EmListData* l;
@@ -1632,6 +1676,7 @@ static void r31cEventS02()
     }
 }
 
+// End of the s02 event (also its cancel path): door 1 snapped shut; area 0x81 re-arms the s01 event.
 static void r31cEventS02EndProc()
 {
     if ((int) pG->Room_flg[0] < 0) {
@@ -1648,6 +1693,8 @@ static void r31cEventS02EndProc()
     SndRoomStrStart(1, 0, 0);
 }
 
+// Event r31cs00 callback: the two crest item models kept updating during the event and released after;
+// the end sets Room_flg[0] bit 31.
 static void Evt_R31CS00_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1667,6 +1714,7 @@ static void Evt_R31CS00_Func(Event* e)
     }
 }
 
+// Action button of the knife fight hit: Room_flg[0] 0x10000000.
 static void r31c_EventS01Act()
 {
     pG->Room_flg[0] |= 0x10000000;
@@ -1675,6 +1723,8 @@ static void r31c_EventS01Act()
 // 1 while the knife fight's action button is offered (cut 0xB frames 0x66..0x78).
 static int r31c_evtS01Flag = 0;
 
+// Event r31cs01 callback (the knife fight): cut 0xB frames 0x66..0x78 offer the action button
+// (r31c_evtS01Flag); per-cut model flags; the end records the outcome.
 static void Evt_R31CS01_Func(Event* e)
 {
     void* mod;
@@ -1756,6 +1806,7 @@ static void Evt_R31CS01_Func(Event* e)
     }
 }
 
+// Event r31cs02 callback (Krauser takes the crest): per-cut flags; the end sets Room_flg[0] bit 31.
 static void Evt_R31CS02_Func(Event* e)
 {
     // The empty arms keep their own compare-tree nodes: two of them return, one breaks.
@@ -1797,6 +1848,7 @@ static Vec r31c_postRot[8] = {
 };
 static int r31c_postFlag[8] = {7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE};
 
+// Post `no`: its object at r31c_postPos/Rot, hp, the room flag it sets when it falls, collision pieces (atari_set).
 void cR31CPost::init(u32 no)
 {
     Vec zero = {0, 0, 0};
@@ -1848,11 +1900,13 @@ void cR31CPost::init(u32 no)
 // The routine table (.data): dmg_ck / die by `mode`.
 static void (cR31CPost::*r31c_postTbl[2])() = {&cR31CPost::dmg_ck, &cR31CPost::die};
 
+// Per-frame step: run the current mode (dmg_ck / die) of r31c_postTbl.
 void cR31CPost::move()
 {
     (this->*r31c_postTbl[mode])();
 }
 
+// The post's collision and attribute pieces (a hit box the player can shoot).
 void cR31CPost::atari_set()
 {
     Vec zero = {0, 0, 0};
@@ -1876,6 +1930,7 @@ void cR31CPost::atari_set()
     hit->setParent(obj, 0, 0);
 }
 
+// Mode 0: apply weapon hits to the post (250 hp per hit, the type remembered); at 0 hp -> die.
 void cR31CPost::dmg_ck()
 {
     if (hit == 0) {
@@ -1920,6 +1975,7 @@ void cR31CPost::dmg_ck()
     }
 }
 
+// Mode 1: the post topples (rotation over frames, the collision released), its room flag set.
 void cR31CPost::die()
 {
     if (step == 0) {
@@ -2015,6 +2071,7 @@ void cR31CDoor::init(u32 id)
 // The routine table (.data): wait / open / close by `mode`.
 static void (cR31CDoor::*r31c_doorTbl[3])() = {&cR31CDoor::wait, &cR31CDoor::open, &cR31CDoor::close};
 
+// Per-frame step: run the current mode (wait / open / close) of r31c_doorTbl.
 void cR31CDoor::move()
 {
     if (init_) {
@@ -2022,6 +2079,7 @@ void cR31CDoor::move()
     }
 }
 
+// Mode 0: idle.
 void cR31CDoor::wait()
 {
 }
@@ -2275,6 +2333,7 @@ void cR31CDoor::close()
     }
 }
 
+// Request opening (mode 1) unless open / opening.
 void cR31CDoor::setOpen()
 {
     if (init_ == 0 || status == 1 || mode == 1) {
@@ -2285,6 +2344,7 @@ void cR31CDoor::setOpen()
     step = 0;
 }
 
+// Request closing (mode 2) unless closed / closing.
 void cR31CDoor::setClose()
 {
     if (init_ == 0 || status == 0 || mode == 2) {
@@ -2294,6 +2354,7 @@ void cR31CDoor::setClose()
     step = 0;
 }
 
+// 0 closed, 1 open, 4 moving; -1 when the door has no object.
 int cR31CDoor::getStatus()
 {
     if (init_) {
@@ -2302,6 +2363,7 @@ int cR31CDoor::getStatus()
     return -1;
 }
 
+// Snap the door open (its slide axis at the open offset, collision following, areas set).
 void cR31CDoor::setOpened()
 {
     if (init_) {
@@ -2346,6 +2408,7 @@ void cR31CDoor::setOpened()
     }
 }
 
+// Snap the door closed (back at `pos`, collision following, areas set).
 void cR31CDoor::setClosed()
 {
     if (init_) {
@@ -2387,6 +2450,7 @@ void cR31CCountDown::countStart()
     running = 1;
 }
 
+// Stop the cockpit count-down (state bit 0 off, the display slides out); state 0.
 void cR31CCountDown::countEnd()
 {
     Cckpt.countDown.m_state &= ~1;
@@ -2396,6 +2460,7 @@ void cR31CCountDown::countEnd()
     running = 0;
 }
 
+// Pause (on = 1: cockpit count-down state bit 3, state 2) or resume (state 1) the count-down.
 void cR31CCountDown::setPause(int on)
 {
     if (on == 1) {
@@ -2407,6 +2472,7 @@ void cR31CCountDown::setPause(int on)
     }
 }
 
+// Show (frameIn) or hide (frameOut) the count-down display.
 void cR31CCountDown::setDisp(int on)
 {
     Cockpit* ck = &Cckpt;
@@ -2418,6 +2484,7 @@ void cR31CCountDown::setDisp(int on)
     }
 }
 
+// 1 when the count-down runs and its frame count reached 0.
 int cR31CCountDown::isTimeOut()
 {
     if (running == 1) {

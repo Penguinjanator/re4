@@ -115,6 +115,7 @@ static inline void PSet(void*& d, void* v) { d = v; }
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -125,6 +126,7 @@ static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Rotate a model from three components (inline owning the Vec).
 static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -137,6 +139,7 @@ static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
+// Rotate a model from three components written y, x, z (the store order the original has).
 static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
 {
     Vec v;
@@ -268,6 +271,7 @@ void setMisileUseNum(int num)
     }
 }
 
+// Rockets the helicopter has fired so far (0..7), from save record bits 0x1000/0x800/0x400.
 int getMisileUseNum()
 {
     int num = 0;
@@ -284,6 +288,7 @@ int getMisileUseNum()
     return num;
 }
 
+// One more rocket fired (saturates at 7).
 void addMisileUseNum()
 {
     if (getMisileUseNum() != 7) {
@@ -291,6 +296,11 @@ void addMisileUseNum()
     }
 }
 
+// Room init (the base yard with the support helicopter): larger shadow pool, the item areas 0x94..0x96
+// off, Debug_flg[1] 0x00200000; the helicopter (em3d, ESL 0x64) unless the room state is past it; the
+// gates / levers / gatling towers / gun turrets posed from the save record bits; the seven appearance
+// areas (8..15, 20), the lever areas, the cable slide, the tower door, the radio, the stream, the s00/
+// s01 callbacks.
 void R320Init()
 {
     cEm* win;
@@ -628,6 +638,7 @@ void R320Init()
     }
 }
 
+// One frame in: remove every Ganado (0x10..0x20) — the return visit's clean-up.
 static void em_all_destroy_task()
 {
     SceSleep(1);
@@ -661,6 +672,7 @@ static void r320_heri_event()
     SceExec(0x12, (TaskFunc) r320_StrCheck, 0, 0, 2, 0);
 }
 
+// Hide the gun-tower scroll objects (0x16/0x17/0x18) and the yard props 0x12/0x32/0x33 (for the events).
 void scr_delete()
 {
     SmdSetTrans(0x16, 0);
@@ -671,6 +683,7 @@ void scr_delete()
     SmdSetTrans(0x33, 0);
 }
 
+// Show the gun towers still standing (save record bits 0x04000000/0x02000000/0x01000000 = destroyed) and the props.
 void scr_set()
 {
     if ((R320_SAVE_FLAGS & 0x04000000) == 0) {
@@ -722,6 +735,9 @@ u32 getHeriTimeWait(int no)
     return t;
 }
 
+// Per frame (the helicopter AI): while the helicopter can pick a target, after its wait it takes the
+// next standing gun tower (save bits) or an enemy (SetHeriTargetEm); the attack counter versus
+// getHeriTimeWait(rockets fired) fires the next rocket; the yard's phases advance by the save bits.
 void R320Main()
 {
     cEm3d* heri;
@@ -1073,6 +1089,8 @@ void SetHeriTargetEm()
 #define R320_EM_OFS(n) ((n) * sizeof(cEmWrap) + 0xC)
 #define R320_EM(ofs) (*(cEmWrap*) ((u8*) r320_work + (ofs)))
 
+// Replace enemy slot idx2 (list no2) by slot idx (list no) once the old one may be reset, unless more
+// than 9 are alive or the new entry is not spawned yet; 1 when the swap happened.
 int setChange(int idx, int no, int idx2, int no2)
 {
     if (r320_work->emAlive > 9) {
@@ -1145,6 +1163,7 @@ static void appear_a()
     FSet(r320_work->gatling[0]->pParts->pParts->pParts->ang.x, 0.35561f);
 }
 
+// End of the area-9 cut: camera back, SceEventEnd, Ganados em[2..5] may suspend.
 static void appear_b_exit()
 {
     CamCtrl.Comeback(0);
@@ -1190,6 +1209,7 @@ static void appear_b()
     }
 }
 
+// End of the area-10 cut: camera back, SceEventEnd, Status_flg[2] 0x02000000 off, em[9..0xD] may suspend.
 static void appear_c_exit()
 {
     CamCtrl.Comeback(0);
@@ -1310,6 +1330,7 @@ static void appear_e()
     emset(0x17, 0x28);
 }
 
+// End of the area-15 cut: camera back, SceEventEnd, Status_flg[2] off, em[0x1A] may suspend.
 static void appear_f_exit()
 {
     CamCtrl.Comeback(0);
@@ -1514,11 +1535,13 @@ void reva_common_move(cObj* obj, f32 from, f32 to)
     }
 }
 
+// Lever B (object 0x2F) swings from -1.24 to -0.59 rad.
 static void reva_b_down()
 {
     reva_common_move(SmdGetObjPtr(0x2F), -1.24f, -0.59f);
 }
 
+// Lever C (object 0x30) swings from -1.24 to -0.59 rad.
 static void reva_c_down()
 {
     reva_common_move(SmdGetObjPtr(0x30), -1.24f, -0.59f);
@@ -1620,6 +1643,8 @@ static void switch2_move()
     SceEventEnd(0);
 }
 
+// The third lever: save bit 0x4000, camera cut 0x14 while the lever (0x30) swings back with its effect
+// and SE, then the following gate.
 static void switch3_move()
 {
     int zero = 0;
@@ -1716,6 +1741,7 @@ void gate1_open(int no)
     SceAtSetEnable(0x27, 0);
 }
 
+// Gate 1 (object 0x2A) drops 100 units a frame to y 8124 under camera cut 0x17 with SE; the player frozen meanwhile.
 void gate1_close()
 {
     cObj* o;
@@ -1738,6 +1764,8 @@ void gate1_close()
     SceEventEnd(0);
 }
 
+// Gate 2 (object 0x2B) rises 100 units a frame to y 10961 under camera cut 0x16 with SE; door_unlock[1]
+// 0x00200000 and Room_flg[1] 0x08000000.
 void gate2_open()
 {
     cObj* o;
@@ -1826,6 +1854,7 @@ static void attack_heri0()
     addMisileUseNum();
 }
 
+// Rocket attack on gun tower 1: the helicopter targets it (setTarget(1, 24000)) after the common setup.
 static void attack_heri1()
 {
     if ((R320_SAVE_FLAGS & 0x40000000) == 0) {
@@ -1842,6 +1871,7 @@ static void attack_heri1()
     }
 }
 
+// Rocket attack on gun tower 2.
 static void attack_heri2()
 {
     if ((R320_SAVE_FLAGS & 0x40000000) == 0) {
@@ -1857,6 +1887,7 @@ static void attack_heri2()
     }
 }
 
+// Rocket attack on target 3.
 static void attack_heri3()
 {
     cEm3d* heri = (cEm3d*) r320_work->heri.getPtr();
@@ -1868,6 +1899,7 @@ static void attack_heri3()
     addMisileUseNum();
 }
 
+// Rocket attack on target 4 (with its own camera and enemy handling).
 static void attack_heri4()
 {
     cEm3d* heri = (cEm3d*) r320_work->heri.getPtr();
@@ -1937,6 +1969,7 @@ static void destroy_0()
     }
 }
 
+// Gun tower 1 destroyed: its collision off, explosion effect under a camera cut, blast damage around it, save bit set.
 static void destroy_1()
 {
     while ((int) pG->Room_flg[0] >= 0) {
@@ -1972,6 +2005,7 @@ static void destroy_1()
     SceAtDataSet_exec(0x30, 0x12, 0, (TaskFunc) appear_b, 0, 1);
 }
 
+// Gun tower 2 destroyed (as destroy_1).
 static void destroy_2()
 {
     SceAtWork* at;
@@ -2022,6 +2056,7 @@ static void destroy_2()
     r320_work->heriWait = 0x96;
 }
 
+// Target 3 destroyed (as destroy_1).
 static void destroy_3()
 {
     cEm* door;
@@ -2063,6 +2098,7 @@ static void destroy_3()
     r320_work->heriWait = 0x96;
 }
 
+// Target 4 destroyed (as destroy_1).
 static void destroy_4()
 {
     BitOn(pG->Room_flg[0], 0x10000000);
@@ -2103,6 +2139,7 @@ static void destroy_4()
     }
 }
 
+// Target 5 destroyed (as destroy_1).
 static void destroy_5()
 {
     BitOn(pG->Room_flg[0], 0x08000000);
@@ -2136,6 +2173,7 @@ static void destroy_5()
     r320_work->heriWait = 0x96;
 }
 
+// Target 6 destroyed (as destroy_1); the last one frees the way to the tower.
 static void destroy_6()
 {
     BitOn(pG->Room_flg[0], 0x04000000);
@@ -2263,6 +2301,8 @@ static void Evt_R320S00_Func(Event* e)
     }
 }
 
+// Event r320s01 callback (the helicopter lands at the tower): props 0x25/0x27 shown for the event, the
+// evm7900 / evm8000 models per cut; the end restores the yard.
 static void Evt_R320S01_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -2460,6 +2500,7 @@ void deleteFarEm(int keep)
     }
 }
 
+// The last two Ganados of the yard (slots 0x35 / 0x33 from list entries 0x2D / 0x36).
 static void em_lastset()
 {
     emset(0x35, 0x2D);
@@ -2497,6 +2538,7 @@ static void door_open()
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 
+// The tower door already open: area 0x2C off, its parts slid aside by 1140, the open-door effect.
 static void door_opened()
 {
     SceSleep(1);
@@ -2527,6 +2569,7 @@ static void r320_StrCheck()
     }
 }
 
+// Three frames later: the tower explosion stream 0xEE.
 static void tower_explode()
 {
     SceSleep(3);

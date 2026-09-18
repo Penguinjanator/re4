@@ -114,6 +114,11 @@ static void r207_ShelfOpen(int id);
 static void r207_ShelfOpened(int id);
 static void r207_StrCheck();
 
+// Room init (the two-swords hall): first visit presets Room_flg bits 0/5/6 (the swords start on the
+// right-hand mounts); the wall sword offset. Wall open (bit 1): the wall object 0x18 posed open, item
+// areas off; else the sword mounts: the use-from-inventory watcher, areas 0xF/2 = the empty mount
+// prompts, 0xD/0xE = take a sword, each sword item model (slots 0x80 / 0x87) placed on the mount its
+// flags (4/5, 6/7) say. Then the enemy event, patrol / stream tasks, two shelf item events, the terminal.
 void R207Init()
 {
     // One pointer local for the sword item models: NULL for the wall-open state, the at item
@@ -210,6 +215,8 @@ void R207Init()
     }
 }
 
+// Per frame: for the four hall areas (at 5/6/8/7) build the occupancy bitmask (bit 0 the player, bit 4+k
+// enemy k) and its on/off edges, then run the patrol orders (r207_EmMoveCk).
 void R207Main()
 {
     int at[4] = {5, 6, 8, 7};
@@ -239,6 +246,7 @@ void R207Main()
     }
 }
 
+// Once (Room_flg bit 10): typewriter terminal 0xD and autosave.
 static void r207_openTerm()
 {
     RsfSet(G_ROOM_ID, 10);
@@ -353,6 +361,7 @@ int r207_CkDist()
     return best;
 }
 
+// Number of the hall enemies (slots 0..9 except 2) still active.
 int r207_CountEmAlive()
 {
     int cnt = 0;
@@ -433,6 +442,7 @@ static void r207_GotoPos(R207Em* e)
     e->moving = 0;
 }
 
+// Send enemy `e` to waypoint `no` (5 = the player) with goto mode 0xD and wait until it arrives.
 void r207_ToPos(R207Em* e, int no)
 {
     if (no == 5) {
@@ -780,6 +790,8 @@ static void r207_WallMove()
     r207_WallMoveEndProc();
 }
 
+// End of the wall slide (also its cancel path): the wall 0x18 snapped open, collision area 1 on,
+// door_flags_51CC 0x20000000 (the passage is open), camera back, SceEventEnd.
 static void r207_WallMoveEndProc()
 {
     SmdGetObjPtr(0x18)->pos.z = -9500.0f;
@@ -812,6 +824,7 @@ void r207_ItemModelSet(cModel* m, int mode)
     SceAtSetEnable(at, 1);
 }
 
+// Item-event opener: shelf `id` (objects 7/8 or 4/5) swings open.
 static void r207_ShelfOpen(int id)
 {
     switch (id) {
@@ -824,6 +837,7 @@ static void r207_ShelfOpen(int id)
     }
 }
 
+// Item-event "already opened": shelf `id` posed open.
 static void r207_ShelfOpened(int id)
 {
     switch (id) {

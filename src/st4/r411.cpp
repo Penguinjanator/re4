@@ -15,7 +15,9 @@
 #include "player.h"
 #include "cam_ctrl.h"
 
-// Room 4-11 (D:/Bio4/Prog/r411.cpp): the locked door and the three Ganado waves.
+// Room 4-11 (D:/Bio4/Prog/r411.cpp): an Assignment Ada room: the exit door stays close-locked until
+// the first wave's leader is gone (r411_checkDoorUnlock, Room_flg bit 3); three Ganado waves (area
+// 0xF with a camera cut, area 2, and the last two once the first wave is down to nine).
 
 struct R411Work {
     u8 dummy;
@@ -33,6 +35,9 @@ static void r411_checkEmSet1();
 static void r411_checkEmSet2();
 static void r411_checkEmSet3();
 
+// Room init: before the first wave (Room_flg bit 0) the door is locked and area 0xF = the wave; after
+// it but before the unlock (bit 3) the door stays locked with the unlock watcher; else area 0xF off.
+// Area 2 = the second wave until bit 1.
 void R411Init()
 {
 #line 33 "D:/Bio4/Prog/r411.cpp"
@@ -51,6 +56,7 @@ void R411Init()
     }
 }
 
+// Per-frame room main: nothing.
 void R411Main()
 {
 }
@@ -74,6 +80,7 @@ static void r411_checkDoorUnlock()
     SceExec(0x12, (TaskFunc) r411_checkEmSet3, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
+// Close-lock door 1 and enable its area 0xF.
 extern "C" void r411_lockDoor()
 {
     cEm* door;
@@ -84,6 +91,7 @@ extern "C" void r411_lockDoor()
     SceAtSetEnable(0xF, 1);
 }
 
+// End of the first wave cut (also its cancel path): the five Ganados (0xE1..0xE5) set / released, camera back, SceEventEnd.
 static void r411_checkEmSet1_end()
 {
     cEmWrap em0;

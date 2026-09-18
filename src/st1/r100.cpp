@@ -126,6 +126,14 @@ public:
     R100Em() asm("__3cEm");
 };
 
+// Room init (the village approach: Leon leaves the police car). JumpPoint 1 / debug trigger 1 skips to
+// the after state (Room_flg bits 10/3/13). Outside region 0 the hanging-corpse objects are built from the
+// Ganado module (Japan hides them, area 0x17 off). Before the officers' death (bit 10): events 5/7/8/9
+// pre-read, the s03 Ganado hand-placed (EmSetEvent) with its death hook (r100_Sce_zombi_dead), the
+// police car with the two officer motion models, the officer talk areas 0x19/0x1A and the truck message
+// area 0xC; after it: the car down in the ravine, the ravine look (area 1, s40), the bridge message and
+// the ambush. Area 0xA = the look at the car (s03) once bit 3 is set; areas 0x15 (house Ganado), 0xB
+// (door), 0x1B (bridge officers); the door / window / stream watchers; the pond render target.
 void R100Init()
 {
     cObj* o;
@@ -368,6 +376,10 @@ void R100Init()
 
 static inline f32 FCRef(const f32& v) { return v; }
 
+// Per frame: area 6 first hit pre-reads events 0/3 (bit 0); areas 7/8 set bit 1; once past area 0xD in
+// the after state (bit 3) the three battle streams fade out (bit 12). Before the officers' death the
+// A button (Key.trg 0x80) near the car makes an officer talk (motion 0x35 / 0x36 by Room_flg[2]
+// 0x40000000, SE 6 / 5) with message 0x33, and they return to idle when the motion ends.
 void R100Main()
 {
     static const f32 vol = 0.0f;
@@ -486,6 +498,8 @@ fail:
     return 0;
 }
 
+// Release event unit `no`; with `swap` (events 0/4/9 live in the Ganado module's block) swap the
+// module's archive back over it and pop the effect data swap.
 extern "C" void freeEvent(int no, int swap)
 {
     if (W->evt[no] != 0) {
@@ -711,6 +725,7 @@ static void r100_WindowBreakCk()
     }
 }
 
+// End of the house Ganado event: destroy it, clear Status_flg[1] 0x800, camera back, SceEventEnd.
 static void r100_HouseEvent_exit()
 {
     pPL->setNoSuspend(0);
@@ -1067,17 +1082,20 @@ extern "C" void r100_trap_set()
     }
 }
 
+// Area 0xB: the locked door — knock SE and message 0xB.
 static void r100_MesDoor()
 {
     SndCall(6, 0x29, 0, 0, 0, 0);
     SceMesSet(0xB, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// Area 0xC: message 0xC about the truck blocking the road.
 static void r100_MesTruck()
 {
     SceMesSet(0xC, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// Look-down camera on the first Ganado with message 0xD (the "pardon me" line), as a short event.
 static void r100_MesGanado()
 {
     CamCtrl.StartLookDownEm(W->em);
@@ -1146,6 +1164,8 @@ static void r100_MesCar01()
     pG->Status_flg[1] &= ~0x800;
 }
 
+// Area 0x18, the bridge: before the officers' death message 0xF; after it the ravine event once
+// (bit 14), later camera cut 8 with message 0xE looking down at the car.
 static void r100_MesBrige()
 {
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -1227,6 +1247,9 @@ extern "C" void setTexRender()
     R100_TEX_OBJ(1, 0xF0, 0x80, 2, 0x1E);
 }
 
+// Event r100s40 callback (the officers at the ravine / car): Status_flg[1] 0x02000000 during the event,
+// the car event models set up on the first frame (EventCarInit, r120's); funcMode 3 sets Scenario_flg[0]
+// bit 0x10.
 extern "C" void Evt_R100S40_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1246,6 +1269,8 @@ extern "C" void Evt_R100S40_Func(Event* e)
     }
 }
 
+// Event r100s20 callback (the truck pushes the car into the ravine): the truck model obm2d00 shown on
+// cut 0; cut 2 keeps ambush Ganados 1/2 updating (unless the debug flag hides them).
 extern "C" void Evt_R100S20_Func(Event* e)
 {
     void* mod;
@@ -1271,6 +1296,8 @@ extern "C" void Evt_R100S20_Func(Event* e)
     }
 }
 
+// Event r100s03 callback (Leon shoots the first Ganado): the knife model wep0200 is hidden (be_flag 2)
+// on cuts 0..4 and 13..20 and shown on the others.
 extern "C" void Evt_R100S03_Func(Event* e)
 {
     void* mod;
@@ -1324,6 +1351,8 @@ static void r100_mes_gaikotu_bgm()
     SndRoomStrVolSet(0x2D, 200);
 }
 
+// The skull (gaikotu) examine: voice stream task, up-cut 0x2F with message 0xB; Room_flg[0] 0x20000000
+// tells the BGM task the message is over.
 static void r100_mes_gaikotu()
 {
     pG->Room_flg[0] &= ~0x20000000;
@@ -1332,11 +1361,13 @@ static void r100_mes_gaikotu()
     pG->Room_flg[0] |= 0x20000000;
 }
 
+// Ducks the room stream to 0x2D over 400 frames (used around the skull message).
 static void r100_mes_gaikotu_bgm_down()
 {
     SndRoomStrVolSet(0x2D, 400);
 }
 
+// Restores the room stream volume over 400 frames.
 static void r100_mes_gaikotu_bgm_up()
 {
     SndRoomStrVolReset(400);

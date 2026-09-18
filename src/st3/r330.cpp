@@ -61,6 +61,7 @@ void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 // The list id is masked to a byte at the EvtRead calls: the room build's prototype returned int.
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -76,6 +77,9 @@ void R330EventS00End();
 extern "C" void Evt_R330S00_Func(Event* e);
 void EvtTexRenderCamTrans(Event* e, int cut);
 
+// Room init: the barred doors 0xA/0xB paired; the s00 callback; until seen (Room_flg bit 0) area 3 =
+// the event (pre-loaded with the enemy of ESL 0xA0) and both doors lock-locked; the two screen render
+// targets; scroll objects 0x28/0x29 hidden.
 void R330Init()
 {
 #line 48 "D:/Bio4/Prog/r330.cpp"
@@ -115,10 +119,13 @@ void R330Init()
     SmdSetTrans(0x29, 0);
 }
 
+// Per-frame room main: nothing.
 void R330Main()
 {
 }
 
+// Area 3 once (Room_flg bit 0), only with Ashley able to come along (else message 0x67): the doors
+// unlocked, camera cut 1, then event r330s00 with the HUD (idR330); player-cancellable.
 void R330EventS00Main()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -170,6 +177,9 @@ void R330EventS00Main()
     }
 }
 
+// End of the s00 event (also its cancel path): both barred doors closed, Leon and Ashley out of event
+// mode and placed at the far side facing -1.66 rad, camera back, SceEventEnd, Scenario_flg[1] 0x800,
+// chapter 5-4 ends (SceSetChapterEnd(0x11)).
 void R330EventS00End()
 {
     {
@@ -212,6 +222,8 @@ void R330EventS00End()
     SeAtSndCall(0);
 }
 
+// Event r330s00 callback: the pre-event objects hidden / shown, the two screen render passes fed on
+// their cuts (EvtTexRenderCamTrans), the idR330 HUD driven by the event mode, per-cut model flags.
 extern "C" void Evt_R330S00_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -461,6 +473,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     }
 }
 
+// The event HUD: id table 0x2C from room archive 0x22 / 0x20 / 0x21 by `no`, textures from 0x1F.
 void idR330::init(u32 no)
 {
     mode = no;
@@ -511,6 +524,8 @@ void idR330::init(u32 no)
         u->tex_flag |= 2;                                           \
     }
 
+// Per frame: scroll the five background units (ids 9, 0x10..0x13) at r330_scrollTbl rates and count
+// the percentage digit pairs up with `cnt`.
 void idR330::move()
 {
     IdUnit* u;
@@ -572,6 +587,7 @@ void idR330::move()
     R330_SET_NUMBER(b, 5);
 }
 
+// Close the HUD: cockpit ids back, display 0x21 off.
 void idR330::quit()
 {
     Cckpt.roomInit();

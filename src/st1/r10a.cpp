@@ -33,6 +33,7 @@ static const AtEffInfo r10a_eff_info = {
 static void r10a_StrStart();
 static void r10a_zouen_ck();
 
+// Spawn the base Ganado wave: enemy list entries 0xB1..0xBA into em[0..9].
 extern "C" void EmSetNormal()
 {
     r10a_work->em[0].setEm(0xB1, 0, 0, 1, 1);
@@ -47,6 +48,7 @@ extern "C" void EmSetNormal()
     r10a_work->em[9].setEm(0xBA, 0, 0, 1, 1);
 }
 
+// Spawn reinforcement wave A (list 0xAE, 0xC4..0xC7) into em[10..14]; recorded in Room_flg bit 0.
 extern "C" void EmSetZouenA()
 {
     r10a_work->em[10].setEm(0xAE, 0, 0, 1, 1);
@@ -56,6 +58,7 @@ extern "C" void EmSetZouenA()
     r10a_work->em[14].setEm(0xC7, 0, 0, 1, 1);
 }
 
+// Spawn reinforcement wave B (list 0x72, 0x73, 0x85, 0x86, 0x9F) into em[15..19]; Room_flg bit 1.
 extern "C" void EmSetZouenB()
 {
     r10a_work->em[15].setEm(0x72, 0, 0, 1, 1);
@@ -65,6 +68,11 @@ extern "C" void EmSetZouenB()
     r10a_work->em[19].setEm(0x9F, 0, 0, 1, 1);
 }
 
+// Room init: water hit effects; areas 4/5 start the battle stream, area 2 the reinforcement check. Unless
+// Room_flg bit 2 (rock already fell): loads the IWA effect data, creates the cEmRock boulder at the top
+// of the slope with the 16 player crush/dodge motions from the room archive, and places three event
+// Ganados (id 0x12, types 1/0/3) pushing it. Then spawns the base wave and, per Room_flg bits 0/1,
+// the reinforcement waves already triggered.
 void R10aInit()
 {
 #line 92 "D:/Bio4/Prog/r10a.cpp"
@@ -173,6 +181,8 @@ void R10aInit()
     }
 }
 
+// Per frame: water OT type; once the boulder's flag bit 0 (landed / finished) is set, record Room_flg bit 2
+// so it is not re-created.
 void R10aMain()
 {
     setPlWaterOtType();

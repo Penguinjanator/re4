@@ -9,7 +9,9 @@
 #include "em_set.h"
 #include "em_wrap.h"
 
-// Room 3-0E (D:/Bio4/Prog/r30e.cpp): the enemy set after the item flag, and the room stream.
+// Room 3-0E (D:/Bio4/Prog/r30e.cpp): an island corridor whose enemy set switches once the key item
+// (item_flags[0] 0x40) is taken (the first six list entries die, the second six appear) and whose
+// stream changes from the plain room stream to the find-player battle stream.
 
 struct R30eWork {
     u8 dummy;
@@ -21,6 +23,8 @@ static void r30e_checkEmSet();
 static void r30e_checkBgm();
 static void r30e_checkBgm2();
 
+// Room init: the enemy set by the item flag; the plain stream before the item (item_flags[0] 0x40) is
+// taken, the find-player stream afterwards.
 void R30eInit()
 {
 #line 30 "D:/Bio4/Prog/r30e.cpp"
@@ -33,6 +37,7 @@ void R30eInit()
     }
 }
 
+// Per-frame room main: nothing.
 void R30eMain()
 {
 }
@@ -54,6 +59,7 @@ static void r30e_checkEmSet()
     }
 }
 
+// Before the item: room stream 3 plays at once.
 static void r30e_checkBgm()
 {
     SndRoomStrStart(1, 3, 1);

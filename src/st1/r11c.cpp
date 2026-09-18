@@ -136,6 +136,11 @@ extern "C" void Evt_R11CS00_Func(Event* e);
 extern "C" void Evt_R11CS10_Func(Event* e);
 extern "C" void Evt_R11CS20_Func(Event* e);
 
+// Room init: thunder task, rain on the player, Status_flg[1] 0x400, the four etc ladders (all down
+// before the siege event, else only those the save block's bits 21..24 remember as knocked down); until
+// the siege is done (save flags bit 25) area 3 starts it and Luis (ESL 0xC8) waits outside; afterwards
+// areas 8/9 are off, the merchant stock (stock_r11c / _after_event) is added, area 0xC is the typewriter
+// and the gates follow the chosen route (r11c_initGate). Bonfires, room ambience effect, rack ranges.
 void R11cInit()
 {
     cEm* rack;
@@ -278,6 +283,9 @@ void R11cMain()
     }
 }
 
+// Before the siege: pre-load evd r11cs00 to ARAM and register r11cs10, pre-read enemy modules 0x13 and 3
+// (Luis), mark Ashley as following (Status_flg[3] 0x04000000), init the partner at Leon's position in
+// chase mode, and keep module 3 for the event-data swap.
 extern "C" void r11c_eventInit()
 {
     W->evd0 = DC.setData(EvtMgr.NameChange("evd/r11cs00.evd"));
@@ -727,6 +735,8 @@ extern "C" void r11c_initGate()
     }
 }
 
+// Task: raise gate `id` (smd 0x33 / 0x34) by 3600 units over 80 frames with a rattle, gate effect and
+// sound; sets Room_flg[2] bit 31 (a gate is open).
 extern "C" void r11c_openGate(u32 id)
 {
     cObj* g = SmdGetObjPtr(id);
@@ -758,6 +768,7 @@ extern "C" void r11c_openGate(u32 id)
     SceSleep(10);
 }
 
+// Task: drop gate `id` 3600 units with acceleration 20/frame^2, then clears the task handle W->closeGate.
 static void r11c_closeGate(u32 id)
 {
     cObj* g = SmdGetObjPtr(id);
@@ -1124,6 +1135,7 @@ extern "C" void setFire()
     }
 }
 
+// Destroy the three bonfire objects (the s20 event replaces them).
 extern "C" void deleteFire()
 {
     ObjMgr.destroy(W->fire[0]);

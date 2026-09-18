@@ -6,7 +6,8 @@
 #include "global.h"
 #include "sce.h"
 
-// Room 4-10 (D:/Bio4/Prog/r410.cpp): the two item boxes.
+// Room 4-10 (D:/Bio4/Prog/r410.cpp): an Assignment Ada room with two item box events (items 0x82 /
+// 0x80); nothing else is scripted.
 
 struct R410Work {
     u8 dummy;
@@ -17,6 +18,7 @@ static R410Work* r410_work;
 static void r410_ItemBoxOpen(int id);
 static void r410_ItemBoxOpened(int id);
 
+// Room init (Assignment Ada): two item box events (items 0x82 / 0x80).
 void R410Init()
 {
 #line 28 "D:/Bio4/Prog/r410.cpp"
@@ -25,10 +27,12 @@ void R410Init()
     SceSetItemEvent(3, 0x80, 1, 4, r410_ItemBoxOpen, (void (*)()) r410_ItemBoxOpened, 0x14, 0);
 }
 
+// Per-frame room main: nothing.
 void R410Main()
 {
 }
 
+// Item-event opener: the box of item `id` (0xF double door, else a duralumin case lid up +Z) opens.
 static void r410_ItemBoxOpen(int id)
 {
     if (id == 0xF) {
@@ -38,6 +42,7 @@ static void r410_ItemBoxOpen(int id)
     }
 }
 
+// Item-event "already opened": the box of item `id` posed open.
 static void r410_ItemBoxOpened(int id)
 {
     if (id == 0xF) {

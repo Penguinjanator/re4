@@ -166,11 +166,13 @@ static inline u32 r332_flgCk(u32* f, int no)
     return f[(u32) no >> 5] & (0x80000000 >> (no & 31));
 }
 
+// Set bit `no` of the room's flag words (pG->flags_174 on).
 static inline void r332_flgOn(u32* f, int no)
 {
     f[(u32) no >> 5] |= 0x80000000 >> (no & 31);
 }
 
+// Clear bit `no` of the room's flag words.
 static inline void r332_flgOff(u32* f, int no)
 {
     f[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
@@ -232,6 +234,7 @@ static inline void PSet(cObj*& d, cObj* v) { d = v; }
 static inline void PSet(cEmHit*& d, cEmHit* v) { d = v; }
 static inline void PSet(cObjPillar*& d, cObjPillar* v) { d = v; }
 
+// Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -242,6 +245,7 @@ static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setPos(&v);
 }
 
+// Rotate a model from three components (inline owning the Vec).
 static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 {
     Vec v;
@@ -263,6 +267,11 @@ static inline int r332_evtSkip(Event* e)
     return skip;
 }
 
+// Room init (the final battle arena): Ashley marked separated; area 0 = the elevator out; the s00/s10/
+// s20 callbacks. Until the boss appeared (Room_flg bit 0) the s00 event task runs and the arena is set
+// for it; after the boss is dead (bits 1/4) the revisit layout (R332EmSetMain); the special rocket area
+// 0x84 only once earned (bit 2). Both bridges posed open, the two cranes (beams still hanging per the
+// per-crane flags) with their lever areas 1/2, the render target.
 void R332Init()
 {
     int i;
@@ -408,6 +417,10 @@ void R332Init()
     setTexRender();
 }
 
+// Per frame during the fight (bit 0 set, bits 1/3/4 clear): the special rocket hit (Room_flg[0]
+// 0x08000000) or the boss's hp reaching 0 starts the rocket cut (type 0 / 1, bits 3 / 4); the special
+// rocket is thrown (s20, bit 2) when the boss allows it; the crane beam knocks it down (bit 5); the
+// bridges close when the fight state asks; after the fight both bridges are shut.
 void R332Main()
 {
     if (RsfCheck(G_ROOM_ID, 0) && RsfCheck(G_ROOM_ID, 1) == 0 && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -645,6 +658,7 @@ int R332ChkNearBridge()
     return ret;
 }
 
+// Bridge `no`: open state and cycle counter reset.
 void R332BridgeInit(int no, int open)
 {
     R332_BRIDGE_SET(open, no, open);
@@ -965,6 +979,8 @@ static void R332BossDown()
     R332BossDownEnd();
 }
 
+// End of the down cut (also its cancel path): both boss handles may suspend, the down motion cancelled
+// on the boss, camera back, SceEventEnd, task exit.
 static void R332BossDownEnd()
 {
     cEm31* em;
@@ -1138,6 +1154,8 @@ static void R332RocketShootMain(int type)
     R332RocketShootEnd(type);
 }
 
+// End of the rocket cut (also its cancel path): System_flg 0x400, the boss's death cancelled into its
+// dead pose, the rocket object destroyed, the arena restored and the s10 event queued.
 static void R332RocketShootEnd(int type)
 {
     cEm31* em;
@@ -1192,11 +1210,13 @@ static void R332RocketShootEnd(int type)
     SceExit();
 }
 
+// Crane `no`'s lever slides down (the player took it).
 static void R332RevaCommonMoveDw(int no)
 {
     R332RevaCommonMove(no, 0);
 }
 
+// Crane `no`'s lever slides back up and its area (1 / 2) is re-enabled.
 static void R332RevaCommonMoveUp(int no)
 {
     int atNo;
@@ -1459,6 +1479,7 @@ static void R332ExecCrane(int no)
     r332_flgOff(R332_FLAGS, flgNo);
 }
 
+// End of a crane use: the player's damage state cleared, out of event mode, walk state 0xC, collision back.
 void R332ExecCraneEnd(int no, int atNo)
 {
     cPlayer* pl = pPL;
@@ -1509,6 +1530,7 @@ static void R332EventS00()
     }
 }
 
+// Cancel path of the s00 event: BGM table 0x332 set 0 and the fight stream started, then the common end.
 static void R332EventS00Cancel()
 {
     SndBgmTblSet(0x332, 0);
@@ -1516,6 +1538,8 @@ static void R332EventS00Cancel()
     R332EventS00End();
 }
 
+// End of the s00 event: both boss handles may suspend and leave their appearance motion, the boss
+// registered for the life meter (PlRegistBoss), the bridges reset closed, the fight begins.
 void R332EventS00End()
 {
     cEm31* em;
@@ -1695,6 +1719,8 @@ void R332ScrTrans(int on)
         }                                                             \
     }
 
+// Event r332s00 callback (Saddler appears): scroll object 0xA hidden; fades and the evmc200 / pl8200 /
+// evmd100 / Ashley (pl0200) models' flags per cut; the end shows 0xA again.
 void Evt_R332S00_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -1793,6 +1819,9 @@ void Evt_R332S00_Func(Event* e)
     }
 }
 
+// Event r332s10 callback (after the kill): the pillar state, the obm3d00 / evma500 / evmb500 / evm9500
+// models per cut, the dead boss models darkened (R332Em32RocketDie), the arena scroll objects swapped;
+// cut 0xD starts the escape count-down (0x1518 frames); the end sets it to 0x127D and restarts it.
 void Evt_R332S10_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -1920,6 +1949,7 @@ void Evt_R332S10_Func(Event* e)
     }
 }
 
+// Event r332s20 callback (the special rocket is thrown down): per-cut model flags for the rocket case.
 void Evt_R332S20_Func(Event* e)
 {
     void* mod;
@@ -1956,6 +1986,7 @@ void Evt_R332S20_Func(Event* e)
     }
 }
 
+// The render target blended over the arena's water object.
 static void setTexRender()
 {
     cObj* obj;

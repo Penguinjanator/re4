@@ -61,6 +61,10 @@ static void R308SwitchEnd();
 static void R308DoorCheck();
 static void SceBgmCheck();
 
+// Room init: the sample container as a treasure item event (item 0x80, area 3); until the switch was
+// used (Room_flg bit 0) area 1 = the switch, item area 3 off, area 2 on, the closed-container effect
+// and hum; else open. The giant (ESL 0x58) pre-read; until it was set loose (bit 2) the sample-taken
+// watcher; the card key door (area 4 + key watcher) and the barred door per flags; the battle stream.
 void R308Init()
 {
     void* zero = 0;
@@ -100,6 +104,7 @@ void R308Init()
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
 }
 
+// Per-frame room main: nothing.
 void R308Main()
 {
 }
@@ -159,6 +164,7 @@ void R308OpenBoxMain(int type, int mode, int se, int id1, int id2, int itemNo, i
     }
 }
 
+// Item-event "already opened": the container lid (0x15 on box 0x14) posed open.
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x80) {
@@ -166,6 +172,7 @@ static void OpenedBoxTreasure(int id)
     }
 }
 
+// Item-event opener: the container lid swings open (40 frames, SE 10 / 9).
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x80) {
@@ -216,6 +223,8 @@ static void R308EnemySetCheck()
     }
 }
 
+// Once (Room_flg bit 2): battle stream, Status_flg[2] 0x02000000, area 0 = the door message; up-cut
+// 5/4/6 and camera cut 5 while the container hands open, the giant (0x58) is set alerted, cut 7; cancellable.
 static void R308EnemySetMain()
 {
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -245,6 +254,8 @@ static void R308EnemySetMain()
     }
 }
 
+// End of the giant's release (also its cancel path): the giant set alerted and free to suspend, its
+// ESL set byte cleared, the fight timer task, the hands open, SceEventEnd, Status_flg[2] bit off.
 static void R308EnemySetEnd()
 {
     r308_work->em.setEm(0x58, -1, 0, 1, 1);
@@ -312,6 +323,8 @@ static void R308EnemyDieCheck()
     SceExec(0x12, (TaskFunc) R308EnemyDieMain, 0, 0, 2, 0);
 }
 
+// The fight is over: once the player is idle, the message camera set 7 (time ran out at 1800 frames)
+// or 6 (the giant died), then the common end.
 static void R308EnemyDieMain()
 {
     cPlayer* pl = pPL;
@@ -328,6 +341,7 @@ static void R308EnemyDieMain()
     R308EnemyDieEnd();
 }
 
+// End of the fight: area 0 reset, camera back, SceEventEnd.
 void R308EnemyDieEnd()
 {
     SceAtDataReset(0);
@@ -399,6 +413,8 @@ static void R308SwitchMain()
     }
 }
 
+// End of the switch event (also its cancel path): item area 3 on / 2 off, the container effects swapped
+// to the open one, the hum stopped, the sample model may suspend, camera back, SceEventEnd, task exit.
 static void R308SwitchEnd()
 {
     cModel* m;
@@ -422,6 +438,7 @@ static void R308SwitchEnd()
     SceExit();
 }
 
+// Area 0 during the fight: up-cut 4/4/8 (the door is sealed).
 static void R308DoorCheck()
 {
     SceUpCut(4, 4, 8, 0);

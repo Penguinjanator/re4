@@ -83,6 +83,7 @@ static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // Upper half of the damage flags set = the enemy is dead (db_cam idiom); the inline's result is
 // materialised as 0/1 before the test.
 static inline int isDeadEm(cEm* em) { return (em->flags_324 & 0xFFFF0000) != 0; }
+// Set an enemy's four routine bytes (r_no_0..3) at once — Ashley's aux-routine steps.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
     p->r_no_0 = fc;
@@ -152,6 +153,11 @@ static f32 r206_subCube2Y = 0.0f;
 static f32 r206_subCube2Z = 0.0f;
 static Vec r206_ashleyGoal = {5250.0f, 0.0f, -19342.0f};
 
+// Room init: the shelf item event; before the sniper sequence is done (Room_flg bit 0) Ashley is
+// initialised at the far end facing -PI and the snipe / gate tasks run, else Luis' body is laid out.
+// Returning after Ashley's section (from r20d, bit 4 once) plays the reunion event; the item take-over
+// (bit 9) when the reunion happened; the three event callbacks; door areas 7/6 with their messages, the
+// key item area removed after the reunion, Ashley's call on area 8 once (bit 6), the debug snipe-end task.
 void R206Init()
 {
 #line 102 "D:/Bio4/Prog/r206.cpp"
@@ -199,10 +205,12 @@ void R206Init()
     TexRenderInit(&r206_work.p->tex, 0, 2);
 }
 
+// Per-frame room main: nothing.
 void R206Main()
 {
 }
 
+// Luis' death: event r206s00 (slot 0x11), r206s10 pre-loaded, chapter 3-3 ends (SceSetChapterEnd(CHAPTER_3_3)).
 void r206_die_event()
 {
     EvtMgr.EvtReadExec("event/evd/r206s00.evd", 0x11, 0);
@@ -210,6 +218,8 @@ void r206_die_event()
     SceSetChapterEnd(CHAPTER_3_3, -1);
 }
 
+// The reunion ("gouryuu") after Ashley's section: door flags opened, event r206s20, chapter 3-4 ends
+// (SceSetChapterEnd(CHAPTER_3_4)), then the item take-over.
 static void r206_gouryuu_event()
 {
     BitOn(pG->door_flags_51C8, 1);
@@ -221,6 +231,8 @@ static void r206_gouryuu_event()
     item_chk();
 }
 
+// After the reunion (Room_flg bit 9): Ashley's items are merged into Leon's inventory (ItemMgr.takeOver,
+// the banked pesetas added), the inventory opens in Ashley mode, then the typewriter.
 static void item_chk()
 {
     u32 zero = 0;
@@ -234,6 +246,7 @@ static void item_chk()
     r206_openTerm();
 }
 
+// Once (Room_flg bit 7): typewriter terminal 0x10.
 void r206_openTerm()
 {
     RsfSet(G_ROOM_ID, 7);
@@ -254,6 +267,8 @@ SceAtWork* GetKeyItemAtari()
     return NULL;
 }
 
+// Task: the two barred gates (etc 0x10/0x11) start closed and open / close with Room_flg[2] bit 31
+// (the sniper sequence's gate control).
 static void r206_auto_door_ck()
 {
     cEm* gate0;
@@ -290,6 +305,9 @@ static void r206_auto_door_ck()
     }
 }
 
+// Event r206s00 callback (Saddler kills Luis): etc model 0x11 hidden; per cut the sample model
+// obm5500's parts, the Luis model ev0401's texture palette (normal / bloodied variant) and evmc800's
+// flags; the end restores etc 0x11.
 static void Evt_R206S00_Func(Event* e)
 {
     void* mod;
@@ -386,6 +404,7 @@ static void Evt_R206S00_Func(Event* e)
     }
 }
 
+// Event r206s10 callback: hides scroll objects 0xC/0xD/0xE and etc model 0x11 for the event, restores them after.
 static void Evt_R206S10_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -403,6 +422,7 @@ static void Evt_R206S10_Func(Event* e)
     }
 }
 
+// Event r206s20 callback (the reunion): scroll object 0x12 hidden during the event.
 static void Evt_R206S20_Func(Event* e)
 {
     switch (e->funcMode) {
@@ -461,6 +481,7 @@ static void funcAshley(cEm* p)
     p->ang.y = 2.35f;
 }
 
+// Ashley's aux routine 2: play motion 0x19 of archive 0x27 (no collision meanwhile), then back to following.
 static void funcAshley2(cEm* p)
 {
     if (p->r_no_2 == 0) {
@@ -475,6 +496,7 @@ static void funcAshley2(cEm* p)
     }
 }
 
+// Ashley's aux routine 3: motion 0x19 of archive 0x31, a 30-frame pause, then back to following.
 static void funcAshley3(cEm* p)
 {
     int step = p->r_no_2;
@@ -504,6 +526,7 @@ static void funcAshley3(cEm* p)
     }
 }
 
+// Number of live, active Ganados (ids 0x10..0x20) in the enemy manager.
 int chkAliveGanadeNum()
 {
     int cnt = 0;
@@ -519,6 +542,7 @@ int chkAliveGanadeNum()
     return cnt;
 }
 
+// Task: once the leader's item (area 0x82) is taken, hide its head object and drop the head fire effect.
 static void r206_checkEmDead()
 {
     while (SceAtItemFlgCk(0x82) == 0) {
@@ -530,6 +554,7 @@ static void r206_checkEmDead()
     EffectEfmDelete(0, r206_work.p->esp, 0);
 }
 
+// 1 when Ashley stands in a fire / explosion damage area (DmgMgr kinds 1 / 7).
 int fire_die_ck()
 {
     Vec out;
@@ -542,6 +567,10 @@ int fire_die_ck()
     return 1;
 }
 
+// The sniper sequence task: Ashley runs the hall in stages (aux motions funcAshley*) while the
+// Ganado waves (first wave, the four chasers with the leader, the extra pairs) come at her; the player
+// covers her from the balcony; the hit boxes on the doors, the gates and the taunt SEs are driven here;
+// ends with Room_flg bit 0 and Luis' death event.
 static void r206_snipe()
 {
     cObj* obj0;
@@ -994,16 +1023,19 @@ static void chkReaderMove()
     }
 }
 
+// Area 7: reset the door area (the door is usable).
 static void r206_checkDoor()
 {
     SceAtDataReset(7);
 }
 
+// Area 7 before the reunion: message 0x67 (Ashley is not with Leon; cannot leave).
 static void r206_checkDoorToR20c()
 {
     cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
 }
 
+// Area 8 once: Ashley calls out (SE 6/5) under camera cut 9.
 static void r206_asl_call()
 {
     r206_work.p->timer = 0x5A;
@@ -1025,11 +1057,13 @@ static void r206_asl_call()
     RsfSet(G_ROOM_ID, 6);
 }
 
+// Area 6 after the reunion: message 6.
 static void r206_checkDoor2()
 {
     SceMesSet(6, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// Debug task: on debug trigger 0 switch control to Ashley (PlSelect(1)) and run area 0.
 static void r206_snipe_end()
 {
     for (;;) {
@@ -1076,6 +1110,7 @@ void luis_set()
     SceAtSetEnable(0xB, 1);
 }
 
+// The shelf (object 9) falls open (OpenBoxFall type 0x15) and is pinned at its fallen pose.
 void r206_openShelf_main(int no, int opened)
 {
     cObj* obj;
@@ -1099,16 +1134,19 @@ void r206_openShelf_main(int no, int opened)
     }
 }
 
+// Item-event opener: the shelf falls.
 static void r206_openShelf(int no)
 {
     r206_openShelf_main(no, 0);
 }
 
+// Item-event "already opened": the shelf posed fallen.
 static void r206_openedShelf(int no)
 {
     r206_openShelf_main(no, 1);
 }
 
+// After the reunion: disable the key item's area (it was taken in Ashley's section).
 static void destroy_key_atari()
 {
     SceAtWork* at;

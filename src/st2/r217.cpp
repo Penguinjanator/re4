@@ -108,6 +108,11 @@ static inline int r217_emDead(cEm* e)
     return dead;
 }
 
+// Room init: Room_flg bits 2/3 preset (beams 0/1 count as done); each beam hit box (Room_flg bits 2..6
+// clear) is a cEmHit cube on scroll object 0x83+i, else the beam is hidden; the 76 scaffold objects'
+// scales saved. Before the scaffold dropped (Scenario_flg[0] 0x40000000): area 5 = the lever puzzle,
+// enemy 0x11 pre-read, area 1 = the closed-door message; after: the lever posed, the third wave area 9,
+// the first three Ganados, the door object 0x26 raised.
 void R217Init()
 {
 #line 174 "D:/Bio4/Prog/r217.cpp"
@@ -151,6 +156,11 @@ void R217Init()
     }
 }
 
+// Per frame: after the drop, the second wave when Room_flg[2] bit 31 (once, bit 1); each beam hit box
+// that was shot (or debug trigger 1) is marked (bits 2..6) with SE / effect and its beam hidden, all five
+// -> bit 8. Then the crossbow Ganados' repositioning: em[0]/em[2] hop between the r217_pos tables after
+// two / three shots at the player's level, em[1] alternates sides every 240 frames, all three re-alerted
+// every 360 frames.
 void R217Main()
 {
     u32 i;
@@ -281,6 +291,9 @@ void R217Main()
 // The second wave: the camera shows the enemies arriving (cuts 4 / 9) while the player is held.
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
+// The second wave: shout SEs, Ganados em[3..9] (table entries 3..9) spawn alerted; em[3] runs at the
+// player, em[7] runs to a fixed point under camera cut 4, then cut 9 while em[8] is turned to face 2.99
+// rad; cutscene ends after the camera motions.
 static void r217_2nd_set()
 {
     SndCall(6, 6, 0, 0, 0, 0);
@@ -343,6 +356,7 @@ static void r217_2nd_set()
     pPL->dmg.clear();
 }
 
+// Area 0xA after the drop: the first three Ganados (table entries 0..2, the crossbow men on the beams).
 static void r217_1st_set()
 {
     u32 i;
@@ -352,10 +366,12 @@ static void r217_1st_set()
     }
 }
 
+// Area 9 (the third wave): empty in this build.
 static void r217_3rd_set()
 {
 }
 
+// Area 1 before the drop: message 2 (the door will not open).
 static void r217_close_door()
 {
     SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -393,6 +409,10 @@ void KakuzaiMove(f32 dy)
     }
 }
 
+// End of the lever puzzle: camera back, SceEventEnd; when the scaffold dropped (Scenario_flg[0]
+// 0x40000000): door_flags_51C8 0x40, the door object 0x26 raised to y 6790, the attribute sounds back
+// on, the scaffold objects restored to their saved scale, areas 0xA/9 = the waves, area 5 off, autosave,
+// then the two shout SEs.
 static void r217_Puzzle_exit()
 {
     u32 i;
