@@ -6,7 +6,7 @@ were moved here when every unit matched. Units without an entry matched without 
 cited are explained in `docs/matching.md` (lever catalogue) and, pass by pass, in `docs/research/`.
 Notes that describe an asm-emitted instruction or a hard-register `asm { }` pin record how the unit was
 first closed; on 2026-09-17 every such construct in the game code and all but one in the CRI libraries
-were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Those lines are marked
+were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has the recipe per site). Those lines are marked
 "superseded"; the source comments at each site describe the C shape now in the tree.
 
 ## `Tools/db_mod.cpp`
@@ -27,7 +27,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `game/Espgen43.cpp`
 
-- 11/11: AddSandPower 3 -> 0: `stfs Add_power` is an asm with a `"r"` input pinned to r11 (COMPILER-DIFF: asm-emitted stfs, sched2 slot): after reload the asm is anti-dependent on `lwz r11, 8(r7)` (prio 5 + 1 = 6 -> first cycle, second slot, ahead of `lis Chk_pos@ha` prio 5); before reload the load writes a pseudo, so sched1 (stfs at cycle 3 slot 2, prio 3) and the local-alloc order W0 > W4 > W8 > high > addi are unchanged. The plain C store has identical dependences in both passes (the `*pos` loads are exempt as fixed scalar vs varying struct), so no C spelling separates the two schedules — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- 11/11: AddSandPower 3 -> 0: `stfs Add_power` is an asm with a `"r"` input pinned to r11 (COMPILER-DIFF: asm-emitted stfs, sched2 slot): after reload the asm is anti-dependent on `lwz r11, 8(r7)` (prio 5 + 1 = 6 -> first cycle, second slot, ahead of `lis Chk_pos@ha` prio 5); before reload the load writes a pseudo, so sched1 (stfs at cycle 3 slot 2, prio 3) and the local-alloc order W0 > W4 > W8 > high > addi are unchanged. The plain C store has identical dependences in both passes (the `*pos` loads are exempt as fixed scalar vs varying struct), so no C spelling separates the two schedules — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `game/EtcModel.cpp`
 
@@ -220,7 +220,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `game/espgen10.cpp`
 
-- EspgenDataSet: EspEvModList high/low as pinned r9/r11 asm insns + pinned r9 index (#13: REG_EQUIV high and mem never allocated in the original) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- EspgenDataSet: EspEvModList high/low as pinned r9/r11 asm insns + pinned r9 index (#13: REG_EQUIV high and mem never allocated in the original) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `game/espgen44.cpp`
 
@@ -374,7 +374,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `game/pad.cpp`
 
-- PadRead: `register int dead asm("r16")` set by a volatile asm `li` (#17/#13): the hoist keeps r17, the li is the block's first insn — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- PadRead: `register int dead asm("r16")` set by a volatile asm `li` (#17/#13): the hoist keeps r17, the li is the block's first insn — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `game/pendulum.cpp`
 
@@ -515,7 +515,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/adx_bsc.c`
 
-- CRI pass 18b: EvokeDecode arms `pcm = pcmbuf; pcm += wr_pos` (pcmbuf is the in-place add destination = r6); `asm { add ofst, x70, ofst }` operand-order pins in ExecOneAdx/EvokeDecode (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- CRI pass 18b: EvokeDecode arms `pcm = pcmbuf; pcm += wr_pos` (pcmbuf is the in-place add destination = r6); `asm { add ofst, x70, ofst }` operand-order pins in ExecOneAdx/EvokeDecode (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/adx_bwav.c`
 
@@ -528,11 +528,11 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 ## `lib/adx_dcd5.c`
 
 - CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
-- 4/4: ADX_DecodeSte4AsMono 2 -> 0 (`nfrm / 2` add temp r0 vs r12 + the two pool `lis`). Tags: M1 (neighbour pin `asm { mr r6, l1 }` in both Ste/Mono), M1 (kept parameter copies `mr r6, c1/c2`), M1 (neighbour copy `asm { mr x, t }`, Ste), M1 (dead conditional in the l1 clamp, Mono), M1 (dead consumers, entry-block order, Mono: `register x = c2 + *ps; y = (Sint32)scl + smul;` + `asm { mr r6, y } asm { mr r6, nblk } asm { mr r6, x }` — the B1 slot read of the address-taken addend is the CSE target of the loop's hoisted load (a backend temp, level r0) and is scheduled after the pool `lis` (base pair -> spill picks, magic r20 / table r21) and before the `srawi` (add temp adjacent to sadd -> r12); all dead defs deleted by the RA, size exact) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- 4/4: ADX_DecodeSte4AsMono 2 -> 0 (`nfrm / 2` add temp r0 vs r12 + the two pool `lis`). Tags: M1 (neighbour pin `asm { mr r6, l1 }` in both Ste/Mono), M1 (kept parameter copies `mr r6, c1/c2`), M1 (neighbour copy `asm { mr x, t }`, Ste), M1 (dead conditional in the l1 clamp, Mono), M1 (dead consumers, entry-block order, Mono: `register x = c2 + *ps; y = (Sint32)scl + smul;` + `asm { mr r6, y } asm { mr r6, nblk } asm { mr r6, x }` — the B1 slot read of the address-taken addend is the CSE target of the loop's hoisted load (a backend temp, level r0) and is scheduled after the pool `lis` (base pair -> spill picks, magic r20 / table r21) and before the `srawi` (add temp adjacent to sadd -> r12); all dead defs deleted by the RA, size exact) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/adx_sjd.c`
 
-- adxsjd_decode_prep: `asm { lwz r5, ck.len; mr len, r5 }` pins the post-call single-use length to r5 (hard-register asm pin, COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- adxsjd_decode_prep: `asm { lwz r5, ck.len; mr len, r5 }` pins the post-call single-use length to r5 (hard-register asm pin, COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/adx_sje.c`
 
@@ -611,7 +611,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/mfci.c`
 
-- mfCiReqRd: asm-defined `register` copy of the mfci parameter (coalesced into the prologue mr.) ranks it r29 above buf r28 (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- mfCiReqRd: asm-defined `register` copy of the mfci parameter (coalesced into the prologue mr.) ranks it r29 above buf r28 (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/mps_dec.c`
 
@@ -631,11 +631,11 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/mpv_dec.c`
 
-- MPVDEC_END: ck.data as an asm-defined `register` local so q stays in r4 and the load takes r8 (COMPILER-DIFF: M1); `(Uint8)val` skip lengths (zero-code) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- MPVDEC_END: ck.data as an asm-defined `register` local so q stays in r4 and the load takes r8 (COMPILER-DIFF: M1); `(Uint8)val` skip lengths (zero-code) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/mpv_frm.c`
 
-- MPV_SkipFrmSj/MPV_DecodeFrmSj: asm-defined `register` copy of hn ranks mpv r31 above the other parameters and locals (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- MPV_SkipFrmSj/MPV_DecodeFrmSj: asm-defined `register` copy of hn ranks mpv r31 above the other parameters and locals (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/mpv_hdec.c`
 
@@ -676,7 +676,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/mwsfdsfx.c`
 
-- CnvFrmInfToSfx: parameter pins r27/r30/r31 + plane-1 loads as asm-defined register locals (COMPILER-DIFF: M1); tag strings named and declared before mwsftag_GetAinfFromSj for the .rodata order (COMPILER-DIFF: M3) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- CnvFrmInfToSfx: parameter pins r27/r30/r31 + plane-1 loads as asm-defined register locals (COMPILER-DIFF: M1); tag strings named and declared before mwsftag_GetAinfFromSj for the .rodata order (COMPILER-DIFF: M3) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/mwsfdsvr.c`
 
@@ -696,11 +696,11 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/rna_res.c`
 
-- RNARES_Init: the hoisted 0x1000 and ptr+ofs named as asm-defined `register` locals -> volatiles in declaration order ofs, half, sum, ptr, res (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- RNARES_Init: the hoisted 0x1000 and ptr+ofs named as asm-defined `register` locals -> volatiles in declaration order ofs, half, sum, ptr, res (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_adxt.c`
 
-- 28/28: sfadxt_ExecServerSub 59 -> 0 with one M1 hard pin of the handle (`asm { mr r31, obj; mr sfd, r31 }`): the target colours sfd r31 above err (Transfer's coalesced @ret chain) r30 / len r29; the pass-35 helper split gave every other register — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- 28/28: sfadxt_ExecServerSub 59 -> 0 with one M1 hard pin of the handle (`asm { mr r31, obj; mr sfd, r31 }`): the target colours sfd r31 above err (Transfer's coalesced @ret chain) r30 / len r29; the pass-35 helper split gave every other register — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_buf.c`
 
@@ -717,7 +717,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/sfd_lib.c`
 
-- SFD_Init: the two SFD_INIT_PRM word loads as `asm { lwz p1, 4(prm) }` / `asm { lwz tbl, 0(prm) }` on register locals (COMPILER-DIFF: M1, word 4 loaded first) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- SFD_Init: the two SFD_INIT_PRM word loads as `asm { lwz p1, 4(prm) }` / `asm { lwz tbl, 0(prm) }` on register locals (COMPILER-DIFF: M1, word 4 loaded first) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_mps.c`
 
@@ -733,15 +733,15 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/sfd_pts.c`
 
-- SFPTS_ReadPtsQue: eight hard-register asm pins (hn/-1 r7, rd r12, idx r4, st r3, cnt-i r3, &ent[idx] r3) (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- SFPTS_ReadPtsQue: eight hard-register asm pins (hn/-1 r7, rd r12, idx r4, st r3, cnt-i r3, &ent[idx] r3) (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_see.c`
 
-- SFSEE_ExecServer: hard-register asm pins for the inlined wk/req (r29/r30) and the CalcByteRate wk reload (r29) (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- SFSEE_ExecServer: hard-register asm pins for the inlined wk/req (r29/r30) and the CalcByteRate wk reload (r29) (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_set.c`
 
-- SFD_SetCond: id*4 as an asm-defined `register` local (takes the dead sfd register r28), hn declared first (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- SFD_SetCond: id*4 as an asm-defined `register` local (takes the dead sfd register r28), hn declared first (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfd_tim.c`
 
@@ -762,7 +762,7 @@ were replaced by C (`docs/research/asm-removal.md` has the recipe per site). Tho
 
 ## `lib/sfx_alp.c`
 
-- SFXA_Create: constants, the sfxa_work address and the r0 temporaries (also the inlined search's) pinned with hard-register asm (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/asm-removal.md).
+- SFXA_Create: constants, the sfxa_work address and the r0 temporaries (also the inlined search's) pinned with hard-register asm (COMPILER-DIFF: M1) — superseded 2026-09-17: the asm-emitted form is gone, the unit is C (docs/research/compiler.md ("Asm-removal pass")).
 
 ## `lib/sfx_cnv.c`
 

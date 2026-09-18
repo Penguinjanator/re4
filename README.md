@@ -62,7 +62,7 @@ marked and lists the instructions that came from a template — the only hits ar
 below (TOTAL 231; the eight asm-bodied units are reported on their own line and kept out of that
 number). An earlier state of this tree had ~100 hand-placed instructions (`asm("li %0,0")`,
 `asm("lis/addi")`, `asm("mr")`) in the game code and ~100 register-pinning `asm { }` blocks in the CRI
-libraries; they were replaced by C on 2026-09-17 (`docs/research/asm-removal.md` records the recipe
+libraries; they were replaced by C on 2026-09-17 (`docs/research/compiler.md`, section "Asm-removal pass", records the recipe
 and the compiler mechanism per site). Each tag's mechanism is documented in `docs/matching.md` and
 `docs/research/`.
 
