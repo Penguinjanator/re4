@@ -13,10 +13,10 @@
 #define LIST_MAX 0xFF
 
 // ItemWork::x6 tune levels (the exclusive nibble is read as a byte)
-#define LV_FIRE(it) ((it)->x6 >> 12)
-#define LV_MAG(it) (((it)->x6 >> 8) & 0xF)
-#define LV_SPEED(it) (((it)->x6 >> 4) & 0xF)
-#define LV_EX(it) ((u8) (it)->x6 & 0xF)
+#define LV_FIRE(it) ((it)->lv >> 12)
+#define LV_MAG(it) (((it)->lv >> 8) & 0xF)
+#define LV_SPEED(it) (((it)->lv >> 4) & 0xF)
+#define LV_EX(it) ((u8) (it)->lv & 0xF)
 
 MerchantInfo merchant_info_A = {0, -10, -10, -10, -10, 10000, 5, 10, 10, 10, 20, 30, 70, 30, 10};
 
@@ -726,11 +726,11 @@ void Merchant2ndRoundInit()
 void MerchantRoomInit()
 {
     if (pG->game_cnt != 0) {
-        if (pSys->x4 & 0x20000000) {
+        if (pSys->unlock_flg & 0x20000000) {
             levelDataAdd(merchantData, level_ext_sw500);
             stockDataAdd(merchantData, stock_ext_sw500);
         }
-        if (pSys->x4 & 0x10000000) {
+        if (pSys->unlock_flg & 0x10000000) {
             levelDataAdd(merchantData, level_ext_tompson);
             stockDataAdd(merchantData, stock_ext_tompson);
         }
@@ -1554,7 +1554,7 @@ int Merchant::buyupPrice(ItemWork* item, int num)
 
     itemInfo(item->id, &info);
     if (info.type == 1 && num == 1) {
-        price += buyupPrice(WeaponId2BulletId(item->id, item->x8 >> 13), item->x8 & 0x1FFF);
+        price += buyupPrice(WeaponId2BulletId(item->id, item->bullet >> 13), item->bullet & 0x1FFF);
         for (type = 0; type <= 3; type++) {
             int lvMax = 0;
 
@@ -1583,7 +1583,7 @@ int Merchant::buyupPrice(ItemWork* item, int num)
             if (price == 0) {
                 num = 0;
             }
-            if (item->x8 == 0) {
+            if (item->bullet == 0) {
                 num = 1;
             }
         }
@@ -1599,7 +1599,7 @@ int Merchant::buyup(ItemWork* item, int num, int* money)
     stockAdd(item->id, num);
     itemInfo(item->id, &ii);
     if (ii.type == 1 && num == 1) {
-        stockAdd(WeaponId2BulletId(item->id, item->x8 >> 13), item->x8 & 0x1FFF);
+        stockAdd(WeaponId2BulletId(item->id, item->bullet >> 13), item->bullet & 0x1FFF);
     }
     favor += m_p_info->buyFavor;
     favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);

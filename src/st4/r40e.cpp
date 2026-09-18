@@ -379,11 +379,11 @@ static void gameResult()
     systemVISetBlack(1);
     FadeKill(FADE_NO_ROOM);
     ScreenReSize(0x200, 0x1C0);
-    if (!(pSys->x4 & 0x00200000)) {
-        pSys->x4 |= 0x00200000;
+    if (!(pSys->unlock_flg & 0x00200000)) {
+        pSys->unlock_flg |= 0x00200000;
         Sofdec.Initialize("movie/adaend_m.sfd", 0);
     } else {
-        pSys->x4 &= ~0x00200000;
+        pSys->unlock_flg &= ~0x00200000;
         Sofdec.Initialize("movie/adaend_c.sfd", 0);
     }
     SceSleep(1);
@@ -399,8 +399,8 @@ static void gameResult()
     } while (0);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
-    if (!(pSys->x4 & 0x20000000)) {
-        pSys->x4 |= 0x20000000;
+    if (!(pSys->unlock_flg & 0x20000000)) {
+        pSys->unlock_flg |= 0x20000000;
         SceEventStart(0);
         setLangExt3(data_name + 3);
         Dvd.FileExistCheck(data_name, &size);

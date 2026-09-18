@@ -1023,7 +1023,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
             item = p->item;
             pzzlItemInfo(item->id, &info);
             if (info.type == 1) {
-                u32 x8 = item->x8;
+                u32 x8 = item->bullet;
                 u32 num = x8 & 0x1FFF;
 
                 if ((x8 >> 13) == 1) {
@@ -2465,7 +2465,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
             case 3: {
                 ItemInfo info;
 
-                pzzl_sel->item->x6 = 0;
+                pzzl_sel->item->lv = 0;
                 used = 1;
                 itemInfo(ItemMgr.m_wep_id, &info);
                 if (info.type == 1) {
@@ -2718,7 +2718,7 @@ int itemCommandType(ItemWork* item)
     case 4:
         return 7;
     case 9:
-        if (item->x6 != 0) {
+        if (item->lv != 0) {
             return 6;
         }
         return 3;

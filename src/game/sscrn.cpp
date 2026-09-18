@@ -621,7 +621,7 @@ void SubScreenExit()
             wepNo = WeaponId2WeaponNo(ItemMgr.m_wep_id);
             wepType = WeaponId2WeaponType(ItemMgr.m_wep_id);
             if (ItemMgr.pArm) {
-                wepLv = ItemMgr.pArm->x8 >> 13;
+                wepLv = ItemMgr.pArm->bullet >> 13;
             } else {
                 wepLv = 0;
             }

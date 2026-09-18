@@ -167,12 +167,12 @@ RESTART:
             U8Set(pSys->language, pRK->language);
             U8Set(pSys->region, pRK->region);
             U8Set(pG->language, pRK->game_language);
-            U32Set(pSys->x4, pRK->sys_x4);
+            U32Set(pSys->unlock_flg, pRK->sys_unlock_flg);
             for (i = 0; i < 16; i += 4) {
-                U32SetOfs(pSys->x10, i, U32GetOfs(pRK->sys_x10, i));
+                U32SetOfs(pSys->merc_stage, i, U32GetOfs(pRK->sys_merc_stage, i));
             }
             for (j = 0; j < 2; j++) {
-                U32SetOfs(pSys->x20, j * 4, pRK->sys_x20[j]);
+                U32SetOfs(pSys->merc_rank, j * 4, pRK->sys_merc_rank[j]);
             }
             if ((s32) pRK->g_flags_54 < 0) {
                 pG->System_flg |= 0x80000000;
@@ -519,13 +519,13 @@ void systemResetCommon()
     U8Set(pRK->language, pSys->language);
     U8Set(pRK->region, pSys->region);
     U8Set(pRK->game_language, pG->language);
-    U32Set(pRK->sys_x4, pSys->x4);
+    U32Set(pRK->sys_unlock_flg, pSys->unlock_flg);
     U32Set(pRK->g_flags_54, pG->System_flg);
     for (i = 0; i < 4; i++) {
-        U32SetOfs(pRK->sys_x10, i * 4, pSys->x10[i]);
+        U32SetOfs(pRK->sys_merc_stage, i * 4, pSys->merc_stage[i]);
     }
     for (i = 0; i < 2; i++) {
-        U32SetOfs(pRK->sys_x20, i * 4, pSys->x20[i]);
+        U32SetOfs(pRK->sys_merc_rank, i * 4, pSys->merc_rank[i]);
     }
     U32Set(pRK->card_checked, pG->CardStatus >> 31);
     U8Set(pRK->valid, 1);

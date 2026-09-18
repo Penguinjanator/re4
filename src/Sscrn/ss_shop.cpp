@@ -1960,13 +1960,13 @@ static inline int itemTuneLevel(ItemWork* item, int type)
 {
     switch (type) {
     case 0:
-        return item->x6 >> 12;
+        return item->lv >> 12;
     case 1:
-        return (item->x6 >> 8) & 0xF;
+        return (item->lv >> 8) & 0xF;
     case 2:
-        return (item->x6 >> 4) & 0xF;
+        return (item->lv >> 4) & 0xF;
     case 3:
-        return item->x6b[1] & 0xF;
+        return item->lv8[1] & 0xF;
     }
     return 0;
 }
@@ -2067,16 +2067,16 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             bar->be_flag |= 8;
             switch (type) {
             case 0:
-                lv = (item->x6 >> 12) + 2;
+                lv = (item->lv >> 12) + 2;
                 break;
             case 1:
-                lv = ((item->x6 >> 8) & 0xF) + 2;
+                lv = ((item->lv >> 8) & 0xF) + 2;
                 break;
             case 2:
-                lv = ((item->x6 >> 4) & 0xF) + 2;
+                lv = ((item->lv >> 4) & 0xF) + 2;
                 break;
             case 3:
-                lv = (item->x6b[1] & 0xF) + 2;
+                lv = (item->lv8[1] & 0xF) + 2;
                 break;
             }
             max = m->levelMax(item->id, type);
@@ -2378,16 +2378,16 @@ void LvUpItemSelect::move(SUB_SCREEN* wk)
 
             switch (sw->lvType) {
             case 0:
-                lv = (item->x6 >> 12) + 2;
+                lv = (item->lv >> 12) + 2;
                 break;
             case 1:
-                lv = ((item->x6 >> 8) & 0xF) + 2;
+                lv = ((item->lv >> 8) & 0xF) + 2;
                 break;
             case 2:
-                lv = ((item->x6 >> 4) & 0xF) + 2;
+                lv = ((item->lv >> 4) & 0xF) + 2;
                 break;
             case 3:
-                lv = (item->x6b[1] & 0xF) + 2;
+                lv = (item->lv8[1] & 0xF) + 2;
                 break;
             }
             mx = m->levelMax(item->id, sw->lvType);
@@ -2441,10 +2441,10 @@ void LvUpConfirm::init(SUB_SCREEN* wk)
     Merchant* m = wk->merchant;
     IdUnit* u;
 
-    cur[0] = (sw->item->x6 >> 12) + 1;
-    cur[1] = ((sw->item->x6 >> 8) & 0xF) + 1;
-    cur[2] = ((sw->item->x6 >> 4) & 0xF) + 1;
-    cur[3] = (sw->item->x6b[1] & 0xF) + 1;
+    cur[0] = (sw->item->lv >> 12) + 1;
+    cur[1] = ((sw->item->lv >> 8) & 0xF) + 1;
+    cur[2] = ((sw->item->lv >> 4) & 0xF) + 1;
+    cur[3] = (sw->item->lv8[1] & 0xF) + 1;
     max[0] = m->levelMax(sw->item->id, 0);
     max[1] = m->levelMax(sw->item->id, 1);
     max[2] = m->levelMax(sw->item->id, 2);
@@ -2504,7 +2504,7 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
         case 1: {
             TuneLevel* t;
 
-            t = (TuneLevel*) &sw->item->x6;
+            t = (TuneLevel*) &sw->item->lv;
             // COMPILER-DIFF: 12 (combine). The target keeps `extsb` before `addi -1; clrlwi 24; slwi 12`;
             // our combine strips the sign extension under the u8 truncation. The volatile launder hides
             // the extended value from combine.
@@ -2519,22 +2519,22 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
             // `lbz` first where sched2 ties (nibble 4).
             {
                 int v = (s8) sw->lv[1];
-                t = (TuneLevel*) &sw->item->x6;
+                t = (TuneLevel*) &sw->item->lv;
                 t->mag = v - 1;
             }
             {
                 int v = (s8) sw->lv[2];
-                t = (TuneLevel*) &sw->item->x6;
+                t = (TuneLevel*) &sw->item->lv;
                 t->speed = v - 1;
             }
             {
                 int v = (s8) sw->lv[3];
-                t = (TuneLevel*) &sw->item->x6;
+                t = (TuneLevel*) &sw->item->lv;
                 t->ex = v - 1;
             }
             if (sw->lvType == 3 || sw->lvType == 4) {
                 ItemWork* item = sw->item;
-                item->x8 = (item->x8 & 0xE000) | (WeaponId2ChargeNumI(item->id, (item->x6b[1] & 0xF) + 1) & 0x1FFF);
+                item->bullet = (item->bullet & 0xE000) | (WeaponId2ChargeNumI(item->id, (item->lv8[1] & 0xF) + 1) & 0x1FFF);
             }
             if (ItemMgr.pArm == sw->item) {
                 ItemMgr.arm(ItemMgr.pArm);
@@ -2594,16 +2594,16 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
         if (item) {
             switch (type) {
             case 0:
-                lv = (item->x6 >> 12) + 1;
+                lv = (item->lv >> 12) + 1;
                 break;
             case 1:
-                lv = ((item->x6 >> 8) & 0xF) + 1;
+                lv = ((item->lv >> 8) & 0xF) + 1;
                 break;
             case 2:
-                lv = ((item->x6 >> 4) & 0xF) + 1;
+                lv = ((item->lv >> 4) & 0xF) + 1;
                 break;
             case 3:
-                lv = (item->x6b[1] & 0xF) + 1;
+                lv = (item->lv8[1] & 0xF) + 1;
                 break;
             }
         } else {

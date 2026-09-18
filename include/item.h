@@ -10,11 +10,11 @@ struct ItemWork {
     u8 flags;      // 0x04  bit0 in use
     u8 type;       // 0x05  inventory type (cItemMgr::type selects the visible set)
     union {
-        u16 x6;    // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
-                   //       weapon parts (type 9): 1 = attached; files (type 0xA): x6b[0] = countFiles()
-        u8 x6b[2];
+        u16 lv;    // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
+                   //       weapon parts (type 9): 1 = attached; files (type 0xA): lv8[0] = countFiles()
+        u8 lv8[2]; // 0x06  the same two bytes
     };
-    u16 x8;        // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->wep_x4FB2), low 13: bullets loaded
+    u16 bullet;    // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->bullet_type), low 13: bullets loaded
                    //       weapon parts (type 9): slot index of the weapon it is attached to (0xFFFF = none)
     s8 x;          // 0x0A  case position (cells * 2) and orientation (puzzle pzlPlayer::save)
     s8 y;          // 0x0B
@@ -31,8 +31,7 @@ struct ItemOrder {
 
 // itemInfo() result (game/item.cpp).
 struct ItemInfo {
-    u8 x0;
-    u8 x1;
+    u16 id;        // 0x00  item id (PS2 ITEM_INFO id)
     u8 type;       // 0x02  1 weapon, 2 ammo, 3 = weapon with a magazine (sscrn: empty check), 5/0xC treasure, 9 weapon part, 0xA file ...
     u8 defNum;         // 0x03  default count when get(id, 0)
     u16 maxNum;        // 0x04  max count per slot
@@ -41,8 +40,8 @@ struct ItemInfo {
 // One saved slot (cItemMgr::save/load, 12 bytes; 0x180 of them after the 4-byte header).
 struct ItemSaveWork {
     u16 id;        // 0x00  item id, bit 15 = ItemWork::type 1; 0xFFFF = empty
-    u16 x2;        // 0x02  num (weapons/parts: x6)
-    u16 x4;        // 0x04  weapons/parts: x8; files: x6b[0]
+    u16 num;       // 0x02  num (weapons/parts: lv)
+    u16 bullet;    // 0x04  weapons/parts: bullet; files: lv8[0]
     u8 pad_6[2];
     s8 x;          // 0x08
     s8 y;          // 0x09

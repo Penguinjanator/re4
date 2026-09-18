@@ -19,9 +19,9 @@ struct RK {
     u8 title_shown;   // 0x17  1 once the title menu has been shown (title: skips the logos on the next visit)
     u32 sys_flags;    // 0x18  pSys->flags
     u32 g_flags_54;   // 0x1C  pG->flags_54 (bits 31/30 restored)
-    u32 sys_x4;       // 0x20  pSys->x4
-    u32 sys_x10[4];   // 0x24  pSys->x10[]
-    u32 sys_x20[2];   // 0x34  pSys->x20[]
+    u32 sys_unlock_flg;  // 0x20  pSys->unlock_flg
+    u32 sys_merc_stage[4];  // 0x24  pSys->merc_stage[]
+    u32 sys_merc_rank[2];   // 0x34  pSys->merc_rank[]
     u32 card_checked; // 0x3C  pG->CardStatus >> 31 (first card check done; card.cpp)
 };
 
@@ -53,15 +53,15 @@ extern KeyWork Key;
 // System work (main.cpp `pSys`); only the fields other units read are named.
 struct SystemWork {
     u32 flags;     // 0x00  bit 30 = progressive/60Hz screen scaling, 0x08000000 = vibration on
-    u32 x4;        // 0x04  (saved into pRK->sys_x4)
+    u32 unlock_flg;  // 0x04  unlock bits (mercenaries characters / stages / extra content; title charBit table); kept in pRK->sys_unlock_flg
     u8 language;   // 0x08  0 JP, 1/2/7 EN, 3 DE, 4 FR, 5 ES, 6 IT (dvd error messages)
     u8 region;     // 0x09  1 US, 2..6 EU, 7 ? (dvd: disc id game name)
     u8 brightness; // 0x0A  background brightness (Render_done -> Bg_brightness_set)
     u8 key_type;   // 0x0B  Key_type_tbl row (controller layout)
     u8 sound_mode; // 0x0C  0 mono, 1 stereo, 2 DPL2 (Snd_get_sound_mode / SndSetOutputMode)
     u8 pad_D[3];
-    u32 x10[4];    // 0x10  (saved into pRK->sys_x10)
-    u32 x20[2];    // 0x20  (saved into pRK->sys_x20)
+    u32 merc_stage[4];  // 0x10  mercenaries record per stage: score / 10 | mode << 28 | new << 31 (mercenaries save/load)
+    u32 merc_rank[2];   // 0x20  mercenaries rank bits: 3 per (stage, character) (flagCk MSB first)
     u8 pad_28[0x38 - 0x28];
 };
 extern SystemWork* pSys;

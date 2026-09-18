@@ -317,7 +317,7 @@ void gameStageInit()
     } else {
         BitOff(pG->System_flg, 0x80);
     }
-    if ((s32) pSys->x4 < 0) {
+    if ((s32) pSys->unlock_flg < 0) {
         if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000) && pG->room_id == 0x120 &&
             ((pG->System_flg & 0x2000) || pG->SaveKind == 3)) {
             Message* m;

@@ -108,7 +108,7 @@ struct IdTool {
     u8 level;           // 0x1E
     s8 editSel;         // 0x1F
     u8 no;              // 0x20
-    u8 x21;             // 0x21
+    u8 listTop;         // 0x21  first row of the 8-row unit list shown
     u8 pad_22[2];
     int x24;            // 0x24
     u8 parentNo;        // 0x28

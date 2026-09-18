@@ -71,7 +71,7 @@ public:
 #define MF_ADD_TIME 0x00040000
 #define MF_ALL_RANK 0x02000000
 
-// Bit `no` of the u32 array `tbl`, MSB first (pSys->x4 / pSys->x20 / MercSysWork::flags).
+// Bit `no` of the u32 array `tbl`, MSB first (pSys->unlock_flg / pSys->merc_rank / MercSysWork::flags).
 static inline u32 flagCk(u32* tbl, u32 no)
 {
     return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
@@ -99,14 +99,14 @@ static inline int fadeIsOn(FadeWork* f)
     return f->flags & 1;
 }
 
-#define SYS_FLAG_TBL ((u32*) &pSys->x4)
+#define SYS_FLAG_TBL ((u32*) &pSys->unlock_flg)
 
 // Struct-member view of pSys (the pLog trick): its load stays below preceding stores through `wk`.
 struct SystemWorkPtr {
     SystemWork* p;
 };
 #define pSysS (((SystemWorkPtr*) &pSys)->p)
-#define SYS_FLAG_TBL_S ((u32*) &pSysS->x4)
+#define SYS_FLAG_TBL_S ((u32*) &pSysS->unlock_flg)
 #define MID (&mercId._idSys)
 
 MercSysWork MercSysWk;
@@ -122,7 +122,7 @@ static int BonusTimerFlash = 120;
 
 // bit of MercSysWork::flags set when the stage record is unlocked
 u32 mercSysGetFlag[4] = {2, 3, 4, 5};
-// pSys->x4 bit per stage: extra content unlocked
+// pSys->unlock_flg bit per stage: extra content unlocked
 u32 extFlagTbl[4] = {4, 6, 5, 7};
 // score thresholds per stage and rank
 u32 RankTbl[4][6] = {
@@ -602,8 +602,8 @@ int MercSysResultInit(MercSysWork* wk)
                 }
             }
         }
-        if (!(pSys->x4 & 0x20000000) && cnt > 19) {
-            pSys->x4 |= 0x20000000;
+        if (!(pSys->unlock_flg & 0x20000000) && cnt > 19) {
+            pSys->unlock_flg |= 0x20000000;
             wk->flags |= MF_ALL_RANK;
         }
     }
@@ -718,7 +718,7 @@ void MercSysGetSaveWork(MercSaveWork* save)
     // written `SysRef(pSys)->x10[i]` neither operand is flagged, `i*4` becomes BASE_REGS and its
     // longer life drags the rank-pointer giv init to the block end (r8 instead of r12).
     for (i = 0; i < 4; i++) {
-        u32* tbl = SysRef(pSys)->x10;
+        u32* tbl = SysRef(pSys)->merc_stage;
         u32 w = tbl[i];
 
         save->stage[i].score = (w & 0x0FFFFFFF) * 10;
@@ -727,13 +727,13 @@ void MercSysGetSaveWork(MercSaveWork* save)
         for (j = 0; j < 5; j++) {
             int r = 0;
 
-            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3)) {
+            if (flagCk(SysRef(pSys)->merc_rank, i * 15 + j * 3)) {
                 r = 4;
             }
-            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3 + 1)) {
+            if (flagCk(SysRef(pSys)->merc_rank, i * 15 + j * 3 + 1)) {
                 r |= 2;
             }
-            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3 + 2)) {
+            if (flagCk(SysRef(pSys)->merc_rank, i * 15 + j * 3 + 2)) {
                 r |= 1;
             }
             save->rank[j][i] = r;
@@ -756,19 +756,19 @@ void MercSysSetSaveWork(MercSaveWork* save)
             u32 w;
             sc = (sc / 10) & 0x0FFFFFFF;
             w = (sc | ((save->stage[i].mode & 7) << 28)) | (save->stage[i].newFlag << 31);
-            SysRef(pSys)->x10[i] = w;
+            SysRef(pSys)->merc_stage[i] = w;
         }
         for (j = 0; j < 5; j++) {
             int r = save->rank[j][i];
 
             if (r & 4) {
-                flagOn(SysRef(pSys)->x20, i * 15 + j * 3);
+                flagOn(SysRef(pSys)->merc_rank, i * 15 + j * 3);
             }
             if (r & 2) {
-                flagOn(SysRef(pSys)->x20, i * 15 + j * 3 + 1);
+                flagOn(SysRef(pSys)->merc_rank, i * 15 + j * 3 + 1);
             }
             if (r & 1) {
-                flagOn(SysRef(pSys)->x20, i * 15 + j * 3 + 2);
+                flagOn(SysRef(pSys)->merc_rank, i * 15 + j * 3 + 2);
             }
         }
     }

@@ -27,11 +27,11 @@ extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
 extern f32 PlShotFrameTbl[][5];         // pl_class
 extern f32 PlReloadSpeedTbl[][3];       // pl_class
 
-// One weapon (22 bytes): item id, x8 attribute, weapon number/type, bullet item id, magazine size per
+// One weapon (22 bytes): item id, bullet attribute, weapon number/type, bullet item id, magazine size per
 // exclusive tune level (1..7).
 struct WepInfo {
     u16 id;         // 0x00
-    u8 attr;        // 0x02  ItemWork::x8 >> 13 this row applies to
+    u8 attr;        // 0x02  ItemWork::bullet >> 13 this row applies to
     u8 no;          // 0x03  weapon number (pG->wep_no)
     u8 type;        // 0x04  weapon type (pG->wep_type)
     u8 x5;
@@ -58,19 +58,19 @@ struct ItemSet {
     u16 num;
 };
 
-// ItemWork::x6 tune level nibbles
-#define LV_EX(p) ((u8) (p)->x6 & 0xF)
-#define LV_FIRE_SET(p, v) ((p)->x6 = ((p)->x6 & 0x0FFF) | ((v) << 12))
-#define LV_MAG_SET(p, v) ((p)->x6 = ((p)->x6 & 0xF0FF) | ((v) << 8))
-#define LV_SPEED_SET(p, v) ((p)->x6 = ((p)->x6 & 0xFF0F) | ((v) << 4))
-#define LV_EX_SET(p, v) ((p)->x6 = ((p)->x6 & 0xFFF0) | (v))
-// ItemWork::x8: 3-bit attribute and 13-bit bullet count
-#define ATTR(p) ((p)->x8 >> 13)
-#define BULLET(p) ((p)->x8 & 0x1FFF)
+// ItemWork::lv tune level nibbles
+#define LV_EX(p) ((u8) (p)->lv & 0xF)
+#define LV_FIRE_SET(p, v) ((p)->lv = ((p)->lv & 0x0FFF) | ((v) << 12))
+#define LV_MAG_SET(p, v) ((p)->lv = ((p)->lv & 0xF0FF) | ((v) << 8))
+#define LV_SPEED_SET(p, v) ((p)->lv = ((p)->lv & 0xFF0F) | ((v) << 4))
+#define LV_EX_SET(p, v) ((p)->lv = ((p)->lv & 0xFFF0) | (v))
+// ItemWork::bullet: 3-bit attribute and 13-bit bullet count
+#define ATTR(p) ((p)->bullet >> 13)
+#define BULLET(p) ((p)->bullet & 0x1FFF)
 
 static inline void setBullet(ItemWork* p, u16 n)
 {
-    p->x8 = (p->x8 & 0xE000) | (n & 0x1FFF);
+    p->bullet = (p->bullet & 0xE000) | (n & 0x1FFF);
 }
 
 static inline void U16Set(u16& d, u16 v) { d = v; }
@@ -417,8 +417,8 @@ int cItemMgr::set_ada(int no)
         p = search(0x2F);
         LV_SET(p, 5, 0, 1, 1);
         CHARGE(p);
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(search(0x21));
     }
     return 0;
@@ -470,8 +470,8 @@ int cItemMgr::set_char(int no)
         p = search(0x2F);
         LV_SET(p, 5, 1, 1, 1);
         CHARGE(p);
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(search(0x21));
         break;
     }
@@ -518,8 +518,8 @@ int cItemMgr::set_char(int no)
         p = search(0x23);
         LV_SET(p, 6, 2, 2, 5);
         CHARGE(p);
-        search(0x3F)->x8 = searchAt(p);
-        search(0x3F)->x6 = 1;
+        search(0x3F)->bullet = searchAt(p);
+        search(0x3F)->lv = 1;
         p = search(0x2A);
         LV_SET(p, 1, 0, 1, 1);
         CHARGE(p);
@@ -579,8 +579,8 @@ int cItemMgr::set_stage1(int no)
         p = search(0x2E);
         LV_EX_SET(p, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        search(0x44)->x8 = searchAt(p);
-        search(0x44)->x6 = on;
+        search(0x44)->bullet = searchAt(p);
+        search(0x44)->lv = on;
         search(0x30);
         search(0x25);
         search(0x01)->num = 5;
@@ -620,16 +620,16 @@ int cItemMgr::set_stage2(int no)
         p = search(0x30);
         LV_SET(p, 2, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x30, 3));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2C);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2C, 3));
         p = search(0x2E);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        search(0x44)->x8 = searchAt(p);
-        search(0x44)->x6 = on;
+        search(0x44)->bullet = searchAt(p);
+        search(0x44)->lv = on;
         arm(ItemMgr.search(0x25));
         pG->peseta = 40000;
         break;
@@ -732,8 +732,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -743,8 +743,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(ItemMgr.search(0x27));
         pG->peseta = 40000;
         break;
@@ -770,8 +770,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -781,8 +781,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        search(0xC5)->x8 = searchAt(p);
-        search(0xC5)->x6 = on;
+        search(0xC5)->bullet = searchAt(p);
+        search(0xC5)->lv = on;
         arm(ItemMgr.search(0x27));
         pG->peseta = 40000;
         break;
@@ -947,8 +947,8 @@ int cItemMgr::set_debug(int no)
         on = 1;
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x36, LV_EX(p) + 1));
-        search(0xAA)->x8 = searchAt(p);
-        search(0xAA)->x6 = on;
+        search(0xAA)->bullet = searchAt(p);
+        search(0xAA)->lv = on;
         arm(ItemMgr.search(0x36));
         break;
     }
@@ -1591,15 +1591,15 @@ void cItemMgr::construct(ItemWork* p, u16 id)
             asm volatile("");
             break;
         }
-        p->x8 = BULLET(p);
+        p->bullet = BULLET(p);
         setBullet(p, WeaponId2ChargeNum(id, 1));
     }
     if (ITEM_TYPE(id) == 9) {
-        p->x6 = 0;
-        p->x8 = 0xFFFF;
+        p->lv = 0;
+        p->bullet = 0xFFFF;
     }
     if (ITEM_TYPE(id) == 10) {
-        p->x6b[0] = countFiles();
+        p->lv8[0] = countFiles();
     }
 }
 
@@ -2057,9 +2057,9 @@ void cItemMgr::erase(ItemWork* p)
 
         for (i = 0; i < nItems; i++, q++) {
             if (itemUse(q, type)) {
-                if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
-                    q->x6 = 0;
-                    q->x8 = 0xFFFF;
+                if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
+                    q->lv = 0;
+                    q->bullet = 0xFFFF;
                 }
             }
         }
@@ -2233,7 +2233,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (b->num == 0) {
                         erase(b);
                     }
-                    a->x8 = (inv << 13) | (n & 0x1FFF);
+                    a->bullet = (inv << 13) | (n & 0x1FFF);
                     {
                         register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
 
@@ -2273,7 +2273,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (a->num == 0) {
                         erase(a);
                     }
-                    b->x8 = (inv << 13) | (n & 0x1FFF);
+                    b->bullet = (inv << 13) | (n & 0x1FFF);
                     {
                         register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
 
@@ -2346,12 +2346,12 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     if (ret != 0) {
         ItemInfo info;
 
-        if (part->x6 != 0) {
-        part->x6 = 0;
-        if (pArm != 0 && pArm == at(part->x8)) {
+        if (part->lv != 0) {
+        part->lv = 0;
+        if (pArm != 0 && pArm == at(part->bullet)) {
             m_wep_id = weaponId(pArm);
         }
-        part->x8 = 0xFFFF;
+        part->bullet = 0xFFFF;
     }
     p = pItems;
     idx = searchAt(wep);
@@ -2363,7 +2363,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         lp = list;
         do {
             if (itemUse(p, type)) {
-                if (ITEM_TYPE(p->id) == 9 && p->x6 == 1 && idx == p->x8) {
+                if (ITEM_TYPE(p->id) == 9 && p->lv == 1 && idx == p->bullet) {
                     *lp++ = p;
                     n++;
                 }
@@ -2373,20 +2373,20 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     }
     for (int j = 0; j < n; j++) {
         if (list[j]->id == part->id) {
-            list[j]->x6 = 0;
-            list[j]->x8 = 0xFFFF;
+            list[j]->lv = 0;
+            list[j]->bullet = 0xFFFF;
             list[j] = 0;
         }
     }
     if (n == 1) {
         if (list[0] != 0) {
-            list[0]->x6 = 0;
-            list[0]->x8 = 0xFFFF;
+            list[0]->lv = 0;
+            list[0]->bullet = 0xFFFF;
             list[0] = 0;
         }
     }
-        part->x8 = searchAt(wep);
-        part->x6 = 1;
+        part->bullet = searchAt(wep);
+        part->lv = 1;
         if (pArm != 0 && pArm == wep) {
             m_wep_id = weaponId(wep);
         }
@@ -2437,11 +2437,11 @@ int cItemMgr::arm(ItemWork* p)
     if (ITEM_TYPE(p->id) == 1 || ITEM_TYPE(p->id) == 3 || ITEM_TYPE(p->id) == 6) {
         pArm = p;
         m_wep_id = weaponId(p);
-        pArm->x8 = BULLET(pArm);
+        pArm->bullet = BULLET(pArm);
         if (ITEM_TYPE(p->id) == 1) {
-            pG->weapon_lv_power = p->x6 >> 12;
-            pG->weapon_lv_speed = (p->x6 >> 8) & 0xF;
-            pG->weapon_lv_reload = (p->x6 >> 4) & 0xF;
+            pG->weapon_lv_power = p->lv >> 12;
+            pG->weapon_lv_speed = (p->lv >> 8) & 0xF;
+            pG->weapon_lv_reload = (p->lv >> 4) & 0xF;
             pG->weapon_lv_blt = LV_EX(p);
         }
         goto ok;
@@ -2517,7 +2517,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
         if (ItemMgr.bulletNum() == 0 && ItemMgr.num(bid) == 0) {
             {
                 int z = ATTR(p) == 0;
-                p->x8 = BULLET(p) | (z << 13);
+                p->bullet = BULLET(p) | (z << 13);
             }
             bid = WeaponId2BulletId(p->id, ATTR(p));
             if (p == pArm) {
@@ -2554,7 +2554,7 @@ int reload_main(ItemWork* wep, ItemWork* ammo, int max)
     } else {
         m = n;
     }
-    wep->x8 = (wep->x8 & 0xE000) | ((have + m) & 0x1FFF);
+    wep->bullet = (wep->bullet & 0xE000) | ((have + m) & 0x1FFF);
     ammo->num -= m;
     return 1;
 }
@@ -2637,7 +2637,7 @@ u16 cItemMgr::weaponId(ItemWork* p)
     }
     for (i = 0; i < nItems; i++, q++) {
         if (itemUse(q, type)) {
-            if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
+            if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 itemCombine(id, q->id, &id);
             }
         }
@@ -2658,7 +2658,7 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
     }
     for (i = 0; i < nItems; i++, q++) {
         if (itemUse(q, type)) {
-            if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
+            if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 if (cnt++ == no) {
                     return q;
                 }
@@ -2786,15 +2786,15 @@ void cItemMgr::save(void* dst)
             switch (ITEM_TYPE(p->id)) {
             case 1:
             case 9:
-                s[i].x2 = p->x6;
-                s[i].x4 = p->x8;
+                s[i].num = p->lv;
+                s[i].bullet = p->bullet;
                 break;
             case 10:
-                s[i].x2 = p->num;
-                s[i].x4 = p->x6b[0];
+                s[i].num = p->num;
+                s[i].bullet = p->lv8[0];
                 break;
             default:
-                s[i].x2 = p->num;
+                s[i].num = p->num;
                 break;
             }
             s[i].x = p->x;
@@ -2833,21 +2833,21 @@ void cItemMgr::load(void* src)
             }
             switch (ITEM_TYPE(p->id)) {
             case 1:
-                p->x6 = s[i].x2;
-                p->x8 = s[i].x4;
+                p->lv = s[i].num;
+                p->bullet = s[i].bullet;
                 p->num = 1;
                 break;
             case 9:
-                p->x6 = s[i].x2;
-                p->x8 = s[i].x4;
+                p->lv = s[i].num;
+                p->bullet = s[i].bullet;
                 p->num = 1;
                 break;
             case 10:
-                p->num = s[i].x2;
-                p->x6b[0] = s[i].x4;
+                p->num = s[i].num;
+                p->lv8[0] = s[i].bullet;
                 break;
             default:
-                p->num = s[i].x2;
+                p->num = s[i].num;
                 break;
             }
             p->x = s[i].x;

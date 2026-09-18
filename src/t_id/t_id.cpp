@@ -904,7 +904,7 @@ int idEditId(IdTool* w, int x, int y)
             w->parentNo = d->unitNo;
             w->level++;
             toolIdFocusReset(w, d);
-            w->x21 = n;
+            w->listTop = n;
             w->no = n;
             return 0;
         }
@@ -2342,10 +2342,10 @@ void toolIdEditDisp(IdTool* w)
     if (w->dispTop == 0) {
         row = 0x14;
     }
-    if (w->x21 + 7 < w->no) {
-        w->x21 = w->no + 0xF9;
-    } else if (w->x21 > w->no) {
-        w->x21 = w->no;
+    if (w->listTop + 7 < w->no) {
+        w->listTop = w->no + 0xF9;
+    } else if (w->listTop > w->no) {
+        w->listTop = w->no;
     }
     y = row * 0xE;
     for (i = 0; i <= 7; i++) {
@@ -2353,7 +2353,7 @@ void toolIdEditDisp(IdTool* w)
 
         if (i == w->editSel) {
             if (w->editMode != 0 || (w->cnt & 0x18)) {
-                int top = w->x21 - 1;
+                int top = w->listTop - 1;
                 int yy = (row + (w->no - top)) * 0xE;
 
                 eprintf((cx - 1) << 3, yy, 0x16, 0, ">");
@@ -2407,7 +2407,7 @@ static int editDispNo(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "No");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "--");
@@ -2437,7 +2437,7 @@ static int editDispId(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "Id");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "--");
@@ -2473,7 +2473,7 @@ static int editDispPos(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "-------POS-------");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         Vec* p = &d->pos;
 
@@ -2505,7 +2505,7 @@ static int editDispSize(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "-SIZE--");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "--- ---");
@@ -2536,7 +2536,7 @@ static int editDispColor(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "-COL-");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "-- --");
@@ -2571,7 +2571,7 @@ static int editDispRot(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "-----ROT------");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "---- ---- ----");
@@ -2601,7 +2601,7 @@ static int editDispTrans(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "TRNS");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "- --");
@@ -2631,7 +2631,7 @@ static int editDispMark(IdTool* w, int x, int y)
 
     eprintf(x, y, 5, 0, "Mk");
     y += 0xE;
-    for (i = w->x21; i < w->x21 + 8; i++, y += 0xE) {
+    for (i = w->listTop; i < w->listTop + 8; i++, y += 0xE) {
         d = toolIdGetPtrPR(w->parentNo, (u8) i);
         if (d == 0) {
             eprintf(x, y, 0x14, 0, "--");

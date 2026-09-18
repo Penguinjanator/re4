@@ -64,10 +64,10 @@ static inline void BSet(u8& d, u8 v)
     d = v;
 }
 
-// Mercenaries character unlock bits live in pSys->x4 (bit numbers from the charBit table).
+// Mercenaries character unlock bits live in pSys->unlock_flg (bit numbers from the charBit table).
 static inline u32 omkFlagChk(u32 no)
 {
-    u32* tbl = &pSys->x4;
+    u32* tbl = &pSys->unlock_flg;
     return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
 }
 
@@ -157,7 +157,7 @@ void titleInit(TitleWork* w)
 void titleSet(TitleWork* w, int time)
 {
     IdSys.kill(0xFF, ID_TITLE);
-    if (!(pSys->x4 & 0x40000000)) {
+    if (!(pSys->unlock_flg & 0x40000000)) {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 6), 0xFF, ID_TITLE, 0x13, 6, 0);
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, ID_TITLE, 0x13, 6, 0);
@@ -394,7 +394,7 @@ void titleLogo(TitleWork* w)
 void titleMenuInit(TitleWork* w)
 {
     IdSys.kill(0xFF, ID_MENU);
-    if (pSys->x4 & 0x40000000) {
+    if (pSys->unlock_flg & 0x40000000) {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, ID_MENU, 0x13, 5, 0);
         w->menu_num = 5;
         w->menu[0] = IdSys.unitPtr(1, ID_MENU);
@@ -456,7 +456,7 @@ int titleMenuSelect(TitleWork* w)
     int ret = 0;
 
     if (Key.trg & KEY_A) {
-        if (pSys->x4 & 0x40000000) {
+        if (pSys->unlock_flg & 0x40000000) {
             switch (w->cursor) {
             case 0:
                 ret = 6;
@@ -559,7 +559,7 @@ void titleMain(TitleWork* w)
     FadeColor c1;
 
     pRK->title_shown = 1;
-    if (!(pG->System_flg & 0x100) && (pSys->x4 & 0x40000000)) {
+    if (!(pG->System_flg & 0x100) && (pSys->unlock_flg & 0x40000000)) {
         titleLoop(w);
     }
     switch (w->Rno1) {
@@ -905,16 +905,16 @@ void titleSub(TitleWork* w)
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
         if (pG->System_flg & 0x40000000) {
-            if (!(pSys->x4 & 0x08000000)) {
+            if (!(pSys->unlock_flg & 0x08000000)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->x4 & 0x02000000)) {
+            if (!(pSys->unlock_flg & 0x02000000)) {
                 IdSys.unitPtr(1, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->x4 & 0x04000000)) {
+            if (!(pSys->unlock_flg & 0x04000000)) {
                 IdSys.unitPtr(2, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->x4 & 0x01000000)) {
+            if (!(pSys->unlock_flg & 0x01000000)) {
                 IdSys.unitPtr(3, ID_OMAKE_BG)->be_flag &= ~8;
             }
         }
@@ -938,8 +938,8 @@ void titleSub(TitleWork* w)
                     w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
                 } else if (pG->System_flg & 0x40000000) {
-                    if (!(pSys->x4 & 0x00400000)) {
-                        pSys->x4 |= 0x00400000;
+                    if (!(pSys->unlock_flg & 0x00400000)) {
+                        pSys->unlock_flg |= 0x00400000;
                         {
                             int ofs;
                             for (ofs = 0; ofs < 0x10; ofs += 4) {
@@ -959,10 +959,10 @@ void titleSub(TitleWork* w)
                         }
                     }
                     if (DebugTrg(1)) {
-                        BitOff(pSys->x4, 0x08000000);
-                        BitOff(pSys->x4, 0x02000000);
-                        BitOff(pSys->x4, 0x04000000);
-                        BitOff(pSys->x4, 0x01000000);
+                        BitOff(pSys->unlock_flg, 0x08000000);
+                        BitOff(pSys->unlock_flg, 0x02000000);
+                        BitOff(pSys->unlock_flg, 0x04000000);
+                        BitOff(pSys->unlock_flg, 0x01000000);
                     }
                     // Every fade of this function is the FadeSetW inline (its own colour pair at 32/36):
                     // here `&col.start` is PRE'd across the loops (`addi r29,r1,32`, `mr r4,r29`) while
@@ -1035,29 +1035,29 @@ void titleSub(TitleWork* w)
         break;
     }
     case 8: {
-        if (!(pSys->x4 & 0x08000000)) {
+        if (!(pSys->unlock_flg & 0x08000000)) {
             id_color_copy(0xFD, 1, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 1, ID_OMAKE);
         }
-        if (!(pSys->x4 & 0x02000000)) {
+        if (!(pSys->unlock_flg & 0x02000000)) {
             id_color_copy(0xFD, 2, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 2, ID_OMAKE);
         }
-        if (!(pSys->x4 & 0x04000000)) {
+        if (!(pSys->unlock_flg & 0x04000000)) {
             id_color_copy(0xFD, 3, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 3, ID_OMAKE);
         }
-        if (!(pSys->x4 & 0x01000000)) {
+        if (!(pSys->unlock_flg & 0x01000000)) {
             id_color_copy(0xFD, 4, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 4, ID_OMAKE);
         }
         if ((Key.on & 0x20000) && w->omk_char_no != 0) {
             u32 bit = charBit[w->omk_char_no];
-            u32* tbl = &pSys->x4;
+            u32* tbl = &pSys->unlock_flg;
             BitOn(tbl[bit >> 5], 0x80000000 >> (bit & 0x1F));
         }
         if (Key.trg & KEY_B) {
@@ -1067,7 +1067,7 @@ void titleSub(TitleWork* w)
         } else if (Key.trg & KEY_A) {
             if (w->omk_char_no != 0) {
                 u32 bit = charBit[w->omk_char_no];
-                u32* tbl = &pSys->x4;
+                u32* tbl = &pSys->unlock_flg;
                 if (!(tbl[bit >> 5] & (0x80000000 >> (bit & 0x1F)))) {
                     SndCall(0, 5, 0, 0, 0, 0);
                     break;
@@ -1247,7 +1247,7 @@ int stageSelect(TitleWork* w)
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
-        if (pSys->x4 & 0x08000000) {
+        if (pSys->unlock_flg & 0x08000000) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1255,7 +1255,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 0;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(2, ID_OMAKE);
-        if (pSys->x4 & 0x02000000) {
+        if (pSys->unlock_flg & 0x02000000) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1263,7 +1263,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 1;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(3, ID_OMAKE);
-        if (pSys->x4 & 0x04000000) {
+        if (pSys->unlock_flg & 0x04000000) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1271,7 +1271,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 2;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(4, ID_OMAKE);
-        if (pSys->x4 & 0x01000000) {
+        if (pSys->unlock_flg & 0x01000000) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1379,7 +1379,7 @@ void titleExit(TitleWork* w)
             pG->pl_type = 0;
             break;
         case 0x12:
-            BitOn(pSys->x4, 0x40000000);
+            BitOn(pSys->unlock_flg, 0x40000000);
             pG->System_flg |= 0x04000000;
             return;
         }

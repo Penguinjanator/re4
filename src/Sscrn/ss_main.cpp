@@ -493,8 +493,8 @@ void SsItemExamine::move(SUB_SCREEN* wk)
             exam_id = ItemMgr.weaponId(wk->p_exam_item);
             break;
         case 9:
-            if (wk->p_exam_item->x6 == 1) {
-                exam_id = ItemMgr.weaponId(ItemMgr.at(wk->p_exam_item->x8));
+            if (wk->p_exam_item->lv == 1) {
+                exam_id = ItemMgr.weaponId(ItemMgr.at(wk->p_exam_item->bullet));
             } else {
                 exam_id = wk->p_exam_item->id;
             }
@@ -576,11 +576,11 @@ void SsItemExamine::move(SUB_SCREEN* wk)
                 w = wk->p_exam_item;
                 break;
             case 9:
-                w = ItemMgr.at(wk->p_exam_item->x8);
+                w = ItemMgr.at(wk->p_exam_item->bullet);
                 break;
             }
             if (w) {
-                _itemExam.level((w->x6 >> 12) + 1, ((w->x6 >> 8) & 0xF) + 1, ((w->x6 >> 4) & 0xF) + 1, (w->x6b[1] & 0xF) + 1);
+                _itemExam.level((w->lv >> 12) + 1, ((w->lv >> 8) & 0xF) + 1, ((w->lv >> 4) & 0xF) + 1, (w->lv8[1] & 0xF) + 1);
             }
         }
         ssItemInfo(exam_id, &info);
