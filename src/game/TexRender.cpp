@@ -1,4 +1,8 @@
-// game/TexRender: render-to-texture manager and helpers (D:/Bio4/Prog/TexRender.cpp).
+// game/TexRender.cpp: render-to-texture. Up to 8 TexRenderMng targets per frame: each owns an
+// EFB copy buffer, an effect texture id (0xF8 + slot) and an OT the callers queue their draws
+// into; TransTexRenderMgr schedules the copy after each target's pass. Models show a target
+// through their texture blend table (TexRenderModSet), and TexRenderCam* render a pass from an
+// event camera motion.
 #include "types.h"
 #include "global.h"
 #include "event.h"
@@ -26,11 +30,13 @@ u32 g_RndMgrNum;
 static int g_draw = 0;
 int g_TexUse = 0;
 
+// Render target `no` (0..7).
 TexRenderMng* GetTexRenderMgrAddr(int no)
 {
     return &g_RndMgr[no];
 }
 
+// Boot: clears the 8 render targets.
 void TexRenderMgrInit()
 {
     u32 i;
@@ -42,6 +48,7 @@ void TexRenderMgrInit()
     g_draw = 0;
 }
 
+// Room start: clears the 8 render targets (their buffers belong to the room heap).
 void TexRenderMgrRoomInit()
 {
     u32 i;
@@ -53,6 +60,9 @@ void TexRenderMgrRoomInit()
     g_draw = 0;
 }
 
+// Claims the next free render target: allocates its buffer, assigns its effect texture id
+// (0xF8 + slot, the ids the esp Tool_flg 0x10000 effects draw into) and its OT mask bit
+// (8 << slot). 0 with an error when all 8 are used or memory is short.
 int GetTexRenderMgr(TexRenderMng** out)
 {
     if (g_RndMgrNum == 8) {
@@ -101,6 +111,9 @@ void RenderTexRenderMgr(TexRenderMng* m)
     GXSetScissor(ofs >> 1, 0, m->m_W_size << 1, m->m_H_size << 1);
 }
 
+// OT callback (slot's OT, after its render pass): copies the EFB into the target's buffer at
+// half size, initialises the texture object with the wrap mode (0 mirror, 1 repeat, 2 clamp)
+// and restores the screen size.
 void CopyTexRenderMgr(TexRenderMng* m)
 {
     static u8 vfilter[7] __attribute__((aligned(32))) = {32, 0, 0, 0, 0, 0, 32};
@@ -165,6 +178,8 @@ void CopyTexRenderMgr(TexRenderMng* m)
     }
 }
 
+// Draw registration: for every used target queues its clear / render pass and the EFB copy
+// (CopyTexRenderMgr) in the target's own OT, so the textures are ready before the world pass.
 void TransTexRenderMgr()
 {
     u32 i;
@@ -184,11 +199,13 @@ void TransTexRenderMgr()
     }
 }
 
+// A cleared, unused target.
 TexRenderMng::TexRenderMng()
 {
     Init();
 }
 
+// Resets the target: unused, no buffer, 128 x 128, mirror wrap.
 void TexRenderMng::Init()
 {
     used = 0;
@@ -201,6 +218,7 @@ void TexRenderMng::Init()
     m_Rep_type = 0;
 }
 
+// Allocates the target's RGBA8 buffer (w x h x 4); 0 with an error when memory is short.
 int TexRenderMng::AllocBuf()
 {
 #line 323 "D:/Bio4/Prog/TexRender.cpp"
@@ -212,6 +230,7 @@ int TexRenderMng::AllocBuf()
     return 1;
 }
 
+// Frees and re-allocates the buffer after a size change.
 void TexRenderMng::ReAllocBuf()
 {
     if (buf != NULL) {
@@ -220,6 +239,8 @@ void TexRenderMng::ReAllocBuf()
     AllocBuf();
 }
 
+// Claims a target of `size` x `size` (0 = default 128) with wrap mode repType and (re)allocates
+// its buffer.
 void TexRenderInit(TexRenderMng** out, int size, int repType)
 {
     if (!GetTexRenderMgr(out)) {
@@ -234,6 +255,9 @@ void TexRenderInit(TexRenderMng** out, int size, int repType)
     (*out)->m_Rep_type = repType;
 }
 
+// Makes parts `parts` of model `m` show the render target: installs `tbl` as the parts' texture
+// blend table with the target's texture id, blend ratio 0xFF (blend type 1 unless kept), and
+// turns the reflection mapping on for that parts only (unless kept); alpha into the model.
 void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepBlendType, int keepRefrect, int keepD6, int keep12C, f32 alpha)
 {
     cModelInfo* info;
@@ -275,6 +299,7 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
     m->invisible_factor = alpha;
 }
 
+// Undoes TexRenderModSet on every parts of the model (blend ratio 0, default blend table).
 void TexRenderModRes(cModel* m)
 {
     cModelInfo* info;
@@ -295,6 +320,8 @@ void TexRenderModRes(cModel* m)
     m->Refract_ratio = 0x90;
 }
 
+// Queues the model's normal render (ModelRender) into render target OT `ot` (the model drawn
+// into the texture).
 void TexRenderModAddOt(int ot, cModel* m)
 {
     pG->Status_flg[1] |= 0x08000000;
@@ -308,6 +335,7 @@ void TexRenderModAddOt(int ot, cModel* m)
     }
 }
 
+// Queues the model's mirror render (MirrorDraw2) for the texture.
 void TexRenderModAddOtMirror(int ot, cModel* m)
 {
     pG->Status_flg[1] |= 0x08000000;
@@ -326,6 +354,8 @@ void TexRenderModAddOtMirror(int ot, cModel* m)
     m->invisible_factor = 0.4f;
 }
 
+// Queues a camera swap around render target OT `ot`: CamRenderPrev before its passes and
+// CamRenderAfter after them, using the event's camera motion `data`.
 void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data)
 {
     pWk->pEvt = evt;
@@ -338,11 +368,15 @@ struct F32S {
     f32 v;
 };
 
+// Event flag test.
 static inline bool evtFlag(TexRenderEvt* e, u32 bit)
 {
     return (e->flags & bit) != 0;
 }
 
+// Before the render-to-texture passes: builds a CameraMotion at the event's frame (frameB with
+// flag 0x40000000, the last frame with 0x08000000), saves pG->Cam and installs the motion camera
+// with its projection / view matrices.
 void CamRenderPrev(TexRenderCam* pWk)
 {
     TexRenderEvt* e = pWk->pEvt;
@@ -362,6 +396,7 @@ void CamRenderPrev(TexRenderCam* pWk)
     C_MTXLookAt(pG->Cam.v_mat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
 }
 
+// After the passes: restores pG->Cam.
 void CamRenderAfter(TexRenderCam* pWk)
 {
     pG->Cam = pWk->save;

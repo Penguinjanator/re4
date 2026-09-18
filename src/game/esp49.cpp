@@ -1,3 +1,7 @@
+// game/esp49.cpp: effect id 0x49, a sprite that sinks into water. Once its position is more than
+// `fade_height` (Vec0.z) below the water surface its alpha fades, and below `del_height`
+// (Vec0.x) it dies, optionally (Work8[2]) spawning est Work8[1] of owner Work8[0] there.
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -20,11 +24,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x49] factory.
 cEsp* Esp49_Create()
 {
     return new cEsp49;
 }
 
+// Restores the unfaded alpha, runs the base update/animation, then compares the depth below the
+// water surface (GetWaterHeight at m_Pos): deeper than del_height releases the effect (after the
+// optional EstSet), between del_height and fade_height scales m_Col_a linearly.
 void cEsp49::move()
 {
     Esp49Work* w = &m_Free;
@@ -61,6 +69,8 @@ void cEsp49::move()
     }
 }
 
+// Depth thresholds from Vec0.x / Vec0.z (fade never below delete), est owner/id from Work8[0..1],
+// est enable Work8[2] (0/1, else fails); remembers the initial alpha.
 int cEsp49::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp49Work* w = &m_Free;

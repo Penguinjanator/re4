@@ -1,3 +1,7 @@
+// game/cam_motion.cpp: CameraMotion, a Camera driven by a camera motion file (cutscene cameras):
+// the file holds Hermite key tracks for position, target, roll and fov; move() evaluates them at
+// the current frame and CameraSequenceCtrl advances / loops / ends the sequence.
+
 #include "types.h"
 #include "vec.h"
 #include "camera.h"
@@ -11,6 +15,8 @@ void* memset(void* dst, int c, unsigned int n);
 
 #define PI 3.1415927f
 
+// Binds the motion file: frame count, parts (track) table, key offsets relocated to pointers,
+// key history cleared; blend frames `hokan`, flags (bit2 loop, bit3 pause) and the start frame.
 CameraMotion::CameraMotion(void* data, int hokan, int flags, f32 frame)
 {
     CameraMotionWork* w = &m_info;
@@ -44,11 +50,15 @@ CameraMotion::CameraMotion(void* data, int hokan, int flags, f32 frame)
     end = 0;
 }
 
+// Poisons the object (memset 9) so a stale pointer is caught.
 CameraMotion::~CameraMotion()
 {
     memset(this, 9, 0x200);
 }
 
+// Evaluates the pos / at / roll / fov tracks at the current frame (Hermite), sets the camera
+// parameters (fov track in radians -> degrees), applies the optional base matrix (event
+// placed in the room), and sets `end` when the sequence finished.
 void CameraMotion::move()
 {
     HermitePrm prm;
@@ -98,11 +108,14 @@ void CameraMotion::move()
     }
 }
 
+// Radians to degrees.
 static f32 rad2deg(f32 r)
 {
     return r * 180.0f / PI;
 }
 
+// Advances the frame unless paused (flags bit3); past the last frame either loops (flags bit2,
+// state 1) or ends (state 4). Returns the state.
 u32 CameraSequenceCtrl(CameraMotionWork* w)
 {
     if (!(w->flags & 8)) {

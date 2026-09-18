@@ -1,13 +1,21 @@
+// game/ctrl.cpp: the control work manager (CtrlMgr). A cCtrl is a small per-room helper object
+// (0x214 bytes) with a virtual move / trans, specialised by id at construction: 0 / 1 light
+// path controls, 0x10, 0x11 shared SE handles, 0x12 shared timers / counters / texture render
+// targets, 0x14 the dragon head statue. CtrlMgr.move runs every live control each frame.
+
 #include "types.h"
 #include "cManager.h"
 #include "ctrl.h"
 #include "light.h"
 
+// A cManager<cCtrl> pool (type 2).
 cCtrlMgr::cCtrlMgr() : cManager<cCtrl>(sizeof(cCtrl), 2)
 {
     setName("cCtrlMgr");
 }
 
+// Places the cCtrl subclass for `id` into the fresh work (unknown ids get the base class) and
+// marks it live.
 int cCtrlMgr::construct(cCtrl* p, u32 id)
 {
     p->Id = id;
@@ -44,6 +52,7 @@ int cCtrlMgr::construct(cCtrl* p, u32 id)
     return 1;
 }
 
+// Per-frame: dieCheck, then move() on every live control.
 void cCtrlMgr::move()
 {
     u32 i;
@@ -57,6 +66,7 @@ void cCtrlMgr::move()
     }
 }
 
+// Draw registration: trans() on every live control.
 int cCtrlMgr::trans()
 {
     u32 i;
@@ -70,10 +80,12 @@ int cCtrlMgr::trans()
     return 1;
 }
 
+// Base control: nothing per frame.
 void cCtrl::move()
 {
 }
 
+// Base control: nothing to draw.
 void cCtrl::trans()
 {
 }

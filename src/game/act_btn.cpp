@@ -1,3 +1,9 @@
+// game/act_btn.cpp: the action button prompt (ActBtn). Game code offers actions each frame with
+// set() (message kind, button, callback); move() shows the highest-priority prompt through the
+// message system / cockpit and, when the player presses the button, runs its callback directly,
+// as a scenario task or as a scenario area action. Prompts are one-frame: everything is cleared
+// again at the end of move().
+
 #include "atari.h"
 #include "act_btn.h"
 #include "global.h"
@@ -15,6 +21,8 @@ cActionButton ActBtn;
 
 typedef void (*ActBtnFunc)(int arg, int d);
 
+// Clears the prompt table and this frame's flags; remembers whether prompts are disabled
+// (Stop_flg 0x100).
 void cActionButton::init()
 {
     int stop;
@@ -30,6 +38,10 @@ void cActionButton::init()
     this->m_stop_flag_old = stop;
 }
 
+// Per-frame: walks the prompts from the highest slot, skips those the player state refuses,
+// shows the first valid one (unless Disp_flg 0x1000 hides prompts or flags bit3) and, when its
+// button test passes, runs the action (type 0 call, 1 SceExec task, 2 scenario area action
+// with its exec flag / one-shot disable); then clears the table.
 void cActionButton::move()
 {
     u32 tag;
@@ -86,6 +98,8 @@ void cActionButton::move()
     init();
 }
 
+// Shows the prompt: the message (kind + 0x16) at the layout position for the button icon, and
+// tells the cockpit which button icon to draw.
 void cActionButton::disp(ActBtnWork* w)
 {
     int col = 0;
@@ -130,6 +144,9 @@ void cActionButton::disp(ActBtnWork* w)
     Cckpt.action.no = btn;
 }
 
+// 1 when the prompt's button is pressed this frame: by button kind, trigger or hold (flags
+// bit4), honouring the exclusive (bit6) and no-trigger (bit1) flags and the "button already
+// consumed" bit Status_flg[0] 0x4000.
 // Every failing test `break`s to the one `return 0` after the switch (a plain `return 0` in a two-way
 // leaf gets its `li r3,0` hoisted into a conditional return by jump1; a jump to the shared block does
 // not), and the `(u64) key & ~mask` test is written in each leaf (jump2 cross-jumps the two `!(flags &
@@ -288,6 +305,9 @@ int cActionButton::checkButton(ActBtnWork* w)
     return 0;
 }
 
+// 1 when the live player may take the action (actCheck, or flags bit1 skips it); some button
+// kinds need the player to be aiming (PlGetStatus 0x10), with flags bit0 marking Status_flg[0]
+// 0x200000.
 int cActionButton::checkPLStatus(ActBtnWork* w)
 {
     if (pPL->hp > 0) {
@@ -312,6 +332,7 @@ int cActionButton::checkPLStatus(ActBtnWork* w)
     return 0;
 }
 
+// Next free prompt work of this frame (NULL when the 8 are used).
 ActBtnWork* cActionButton::pullWork()
 {
     ActBtnWork* w;
@@ -324,6 +345,8 @@ ActBtnWork* cActionButton::pullWork()
     return w;
 }
 
+// Offers an action for this frame: message kind, priority slot 0..15, callback and its
+// arguments, flags, button kind and call type.
 void cActionButton::set(int kind, int slot, int func, int arg, int flags, int btn, int type, int d)
 {
     ActBtnWork* w = pullWork();

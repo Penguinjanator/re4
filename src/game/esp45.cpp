@@ -1,3 +1,9 @@
+// game/esp45.cpp: effect id 0x45, a lens glow / light bloom. Nothing is drawn as geometry: the
+// effect's world (or screen) position is projected and handed to Filter00 as an additive radial
+// spread of the effect colour, with power m_Size_plus and spread type Work8[0]. The alpha is
+// reduced with camera distance (Vec0.z) and, when Vec1.x is set, by a 24-sample Z-buffer
+// visibility test around the screen position run after the frame is rendered.
+
 #include "atari.h"
 #include "global.h"
 #include "esp.h"
@@ -45,11 +51,14 @@ static f32 GetDistAlpha(cEsp45* esp);
 void Esp45_HideCheck(cEsp* esp);
 }
 
+// EspCreateTbl[0x45] factory.
 cEsp* Esp45_Create()
 {
     return new cEsp45;
 }
 
+// Base update with the scale fade disabled; latches alpha and power, records the view depth of
+// the world position and queues Esp45_HideCheck in the after-render OT.
 void cEsp45::move()
 {
     Esp45Work* w = &m_Free;
@@ -69,6 +78,10 @@ void cEsp45::move()
     }
 }
 
+// EspTransTbl[0x45]: screen sprites feed their pixel position straight to Filter00SetAddSpread;
+// world sprites compute wld_pos (parent parts matrix), project it, scale the alpha by the
+// visibility and distance factors, call the filter and remember the screen position for the
+// next visibility test.
 void Esp45_Trans(cEsp* esp0)
 {
     cEsp45* esp = (cEsp45*) esp0;
@@ -244,6 +257,8 @@ void Esp45_HideCheck(cEsp* esp0)
     }
 }
 
+// Spread type Work8[0], rate Blend_type, distance fade Vec0.z, visibility test radius Vec1.x
+// (enables flg bit1).
 int cEsp45::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp45Work* w = &m_Free;

@@ -1,3 +1,8 @@
+// game/cons.cpp: per-room constants ("cons" table): the work pool sizes the room start uses
+// (game.cpp: 0 enemies, 1 objects, 2 esp, 3 espgen, 4 ctrl, 5 lights, 6 / 7 model and parts
+// pools, 8 primitives, 10 / 11 collision pieces). A room may override entries; the rest come
+// from ConsRoomDefault.
+
 #include "types.h"
 #include "db_log.h"
 
@@ -14,6 +19,7 @@ static u32 ConsRoomDefault[12] = {
 
 ConsRoom* pConsRoom;
 
+// Pointer check of the original table loader (unused here, see above).
 static inline int ConsInitCore(void* p)
 {
     if (p == 0) {
@@ -23,12 +29,15 @@ static inline int ConsInitCore(void* p)
     return 1;
 }
 
+// Installs the room's constants table (NULL = defaults only).
 int ConsInitRoom(ConsRoom* p)
 {
     pConsRoom = p;
     return 1;
 }
 
+// Constant `no`: the room's value when its table has the entry (validity bit set), else the
+// default.
 u32 ConsGetRoomValue(u32 no)
 {
     ConsRoom* r = pConsRoom;

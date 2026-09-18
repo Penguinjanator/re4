@@ -1,3 +1,11 @@
+// game/atari.cpp: the scenario collision ("atari") system. cSat is one collision piece: a SAT
+// file of triangles (floors, slopes, walls; each with a 24-bit attribute word) partitioned into
+// XZ blocks, placed by a matrix. SatMgr holds the room's pieces and the ones objects create,
+// EatMgr the effect-collision set (what bullets, thrown objects and effects hit). Queries:
+// check / checkAir push a character's body out of the scenery (scrAtCheckSphere, at_sub.cpp
+// primitives), hitCheck traces a line for the nearest polygon, getFloor probes the floor,
+// adjust sweeps a sphere; disp draws the polygons for the debug pages.
+
 #include "atari.h"
 #include "atariInfo.h"
 #include "global.h"
@@ -54,6 +62,10 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h);
 static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h);
 void at_pos_calc(cModel* m, Vec* vec);
 
+// Model-vs-scenario collision for a character (its cAtariInfo, m_flag 0x100 = collision on):
+// the rectangle form (m_flag bit1: 12 edge probes, checkRect) or the sphere form for the info
+// and every extra info chained on m_pList (scrAtCheckSphere: walls then floor). 1 when the
+// model was pushed.
 int cSatMgr::check(cModel* m, int flag)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
@@ -78,6 +90,9 @@ int cSatMgr::check(cModel* m, int flag)
     return ret;
 }
 
+// Rectangle collision: 12 horizontal probes from the model centre / its long axis to the box
+// corners (m_radius x m_radius2) against the walls at pos.y + 300; each hit pushes the model
+// back along the surface normal. 1 when any probe moved it.
 int cSatMgr::checkRect(cModel* m)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
@@ -172,6 +187,8 @@ int cSatMgr::checkRect(cModel* m)
     return ret;
 }
 
+// Airborne variant of check(): sphere collision without the floor snap (scrAtCheckSphereAir) for
+// the info and its chained infos.
 int cSatMgr::checkAir(cModel* m, int flag)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
@@ -355,6 +372,10 @@ void cSatMgr::wallAdjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int m
     }
 }
 
+// Moves a sphere of radius `r` from oldPos to pos through the scenario: with flag bit0 a line
+// hit is resolved first (pos pushed r along the normal), then the swept-sphere polygon check
+// (polySphereCk) and a final line hit. The last contact normal is returned in *nrm (zero when
+// nothing was hit). Used by rolling / thrown objects.
 void cSatMgr::adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask)
 {
     Vec hit;
@@ -387,6 +408,9 @@ void cSatMgr::adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask)
     }
 }
 
+// Floor height under `pos`: casts from pos.y + up to pos.y - down against floor polygons
+// (0x40) and returns the hit y with its attribute word in *attr; -100000 when nothing is below
+// (0 when Debug_flg[1] 0x10000000 disables scenery).
 f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
 {
     Vec top;
@@ -408,6 +432,7 @@ f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
     return hit.y;
 }
 
+// cManager log hook: warnings through pLog.
 void cSatMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -416,11 +441,13 @@ void cSatMgr::log(const char* fmt, ...)
     pLog->vwarn(0, 0, fmt, ap);
 }
 
+// Marks polygon `no` as already tested in this query (polyBit, 0x2000 polygons).
 void polyBitSet(u32 no)
 {
     polyBit[no >> 3] |= 1 << (no & 7);
 }
 
+// Non-zero when polygon `no` was already tested in this query.
 int polyBitCk(u32 no)
 {
     return polyBit[no >> 3] & (1 << (no & 7));
@@ -556,16 +583,20 @@ int cSatBlock::hitCheckSphere(Vec* pos0, Vec* pos1, f32 r)
     return 0;
 }
 
+// The room scenario collision manager (SatMgr): a pool of cSat pieces.
 cSatMgr::cSatMgr() : cManager<cSat>(sizeof(cSat), 2)
 {
     setName("cSatMgr");
 }
 
+// The effect collision manager (EatMgr): the pieces bullets, thrown objects and effects test.
 cEatMgr::cEatMgr()
 {
     setName("cEatMgr");
 }
 
+// Clears the 8 surface effect tables (AtEffInfo per attribute type): every effect pair set to
+// "none" (0xD2), all types off.
 void cEatMgr::initEffInfo()
 {
     int i;
@@ -623,6 +654,8 @@ void cEatMgr::registEffInfo(int type, AtEffInfo* src)
     }
 }
 
+// The surface effect table of attribute type `type` (bullet hit sparks, footsteps, splashes);
+// NULL when the room registered none.
 AtEffInfo* cEatMgr::getEffInfo(int type)
 {
     if (effOn[type] != 0) {
@@ -631,6 +664,7 @@ AtEffInfo* cEatMgr::getEffInfo(int type)
     return 0;
 }
 
+// cManager log hook: warnings through pLog.
 void cEatMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -639,6 +673,8 @@ void cEatMgr::log(const char* fmt, ...)
     pLog->vwarn(0, 0, fmt, ap);
 }
 
+// Creates a collision piece from SAT file data (a multi-SAT header selects entry `type`) placed
+// at pos / rot; NULL when the pool is full.
 cSat* cSatMgr::create(void* data, int flag, Vec* pos, Vec* rot, u8 type)
 {
     cSat* sat = cManager<cSat>::create();
@@ -655,6 +691,9 @@ cSat* cSatMgr::create(void* data, int flag, Vec* pos, Vec* rot, u8 type)
     return sat;
 }
 
+// Creates a collision piece from a quad: a floor slab (flag 0x200), a closed box of height h
+// (flag 0x100) or open side walls (else), all with attribute `attr`; the built file is freed
+// with the piece (m_Flag bit1).
 cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h)
 {
     cSatFile* f;
@@ -731,6 +770,9 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
     return ret;
 }
 
+// Swept sphere through the block chain: recurses into child blocks (m_Flag bit0) whose box the
+// sweep overlaps, tests the polygons of leaf blocks; pos1 is pushed out of every hit polygon.
+// 1 when anything was hit.
 int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask)
 {
     int ret = 0;
@@ -752,6 +794,9 @@ int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int 
     return ret;
 }
 
+// Sphere test of one block's polygons: floors + slopes (flag 0x40), walls (flag 0x80) or all;
+// every polygon is tested once per query (polyBit); a hit adjusts pos1 and returns the polygon's
+// normal; Debug_flg[0] 0x08000000 highlights hit polygons.
 int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask)
 {
     int ret = 0;
@@ -790,6 +835,9 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, 
     return ret;
 }
 
+// Line pos0 -> pos1 against every live piece: the nearest hit in *hit, its world normal in
+// *nrm; returns the hit polygon's attribute word (0 = no hit). flag selects floors / walls,
+// `mask` attribute bits to ignore.
 int cSatMgr::hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask)
 {
     u32 pn;
@@ -849,6 +897,8 @@ int cSatMgr::hitCheck2(Vec* pos0, Vec* pos1, Vec* hit, u32* attr, int flag, int 
     return ret;
 }
 
+// Line test through the block chain: descends into blocks whose box the segment overlaps and
+// keeps the nearest hit (position, normal pointer in *pn). Returns the attribute of that hit.
 int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn)
 {
     static int new_line_check = 1;
@@ -902,6 +952,8 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int
     return ret;
 }
 
+// Line test of one block's polygons (floor / wall subset by flag), each once per query; keeps
+// the hit closest to pos0 and its normal.
 int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn)
 {
     Vec h;
@@ -951,6 +1003,7 @@ int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag,
     return ret;
 }
 
+// Releases a piece (freeing a file built by create(poly)); an invalid pointer is an error.
 void cSatMgr::destroy(cSat* p)
 {
     if (!VALID_PTR(p)) {
@@ -963,6 +1016,7 @@ void cSatMgr::destroy(cSat* p)
     cManager<cSat>::destroy(p);
 }
 
+// cManager hook: constructs a fresh cSat in the pool slot.
 int cSatMgr::construct(cSat* p, u32 id)
 {
     // the alive flag before, the active flag after the constructor: keeps the vptr store last
@@ -1038,6 +1092,8 @@ void cSatMgr::disp(int flag)
     }
 }
 
+// Binds the piece to SAT file `f` (table pointers via operator=), places it and links the block
+// tree; m_Flag bit2 (active) set.
 void cSat::init(cSatFile* f, Vec* pos, Vec* rot)
 {
     if (!VALID_PTR(f)) {
@@ -1053,6 +1109,7 @@ void cSat::init(cSatFile* f, Vec* pos, Vec* rot)
     blockInit(block_p);
 }
 
+// Places the piece: mat from rot / pos and its inverse for world -> local queries.
 void cSat::setCoord(Vec* pos, Vec* rot)
 {
     RotMatrix(mat, rot);
@@ -1060,6 +1117,7 @@ void cSat::setCoord(Vec* pos, Vec* rot)
     PSMTXInverse(mat, imat);
 }
 
+// Places the piece with a full matrix (and its inverse).
 void cSat::setMatrix(Mtx m)
 {
     memcpy(mat, m, sizeof(Mtx));
@@ -1171,16 +1229,19 @@ void cSat::disp(int no, u32 color, int zupd)
     Draw_line3d_local(&p[0], &p[1], m, color, 0);
 }
 
+// The vertex table right after the file header.
 Vec* cSatFile::getVertexPtr()
 {
     return (Vec*) (this + 1);
 }
 
+// Sanity check: at most 0x1FFF polygons (the polyBit table size).
 int cSatFile::dataCheck()
 {
     return m_nPolygon <= 0x1FFF;
 }
 
+// SAT `no` of a multi-SAT archive (offset table after the header).
 cSatFile* cSatHeader::getSat(int no)
 {
     u32* tbl = ofs;
@@ -1230,6 +1291,8 @@ static cSatFile* createSat2(cSat* sat, Vec* v, u32 attr, f32 h)
     return f;
 }
 
+// Dead-stripped variant of createBoxSat with precomputed (scaled) normals; only its tables
+// survive in .rodata.
 static cSatFile* createBoxSat2(cSat* sat, Vec* v, u32 attr, f32 h)
 {
     static const AtPoly poly0[12] = {
@@ -1274,6 +1337,7 @@ static cSatFile* createBoxSat2(cSat* sat, Vec* v, u32 attr, f32 h)
     return f;
 }
 
+// Dead-stripped variant of createFloorSat; only its tables survive.
 static cSatFile* createFloorSat2(cSat* sat, Vec* v, u32 attr, f32 h)
 {
     static const AtPoly poly0[2] = {

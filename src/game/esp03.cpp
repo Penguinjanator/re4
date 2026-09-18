@@ -1,3 +1,8 @@
+// game/esp03.cpp: effect id 0x03, a line trail. The last 4 positions are kept in a ring buffer
+// and drawn as a GX line strip of `maxPoints` (4 - Work8[0], 2..6) points with width
+// Size_base_x * Size_mul / 33; Work8[0] == 10 instead draws a single camera-facing diamond quad
+// of Size_base_x at the newest point. Work8[1] bit0 kills the trail when it hits a wall.
+
 #include "atari.h"
 #include "gx.h"
 #include "global.h"
@@ -25,11 +30,14 @@ public:
 
 extern "C" void Esp03_HitWall(cEsp03* esp);
 
+// EspCreateTbl[0x03] factory.
 cEsp* Esp03_Create()
 {
     return new cEsp03;
 }
 
+// Own update: release from parent, optional wall check, integrates speed into the next ring
+// buffer slot, applies scale and colour fades and life, and advances the ring index (mod 4).
 void cEsp03::move()
 {
     Esp03Work* w = &m_Free;
@@ -68,6 +76,8 @@ void cEsp03::move()
     }
 }
 
+// EspTransTbl[0x03]: GX line state in the parent * local matrix; draws the diamond quad
+// (maxPoints 10) or the line strip through the last maxPoints history points, newest first.
 extern "C" void Esp03_Trans(cEsp03* esp)
 {
     Esp03Work* w = &esp->m_Free;
@@ -153,6 +163,7 @@ extern "C" void Esp03_Trans(cEsp03* esp)
     }
 }
 
+// Point count from Work8[0] (10 = quad mode), wall flag Work8[1] (0/1), never Z-culled.
 int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp03Work* w = &m_Free;
@@ -181,6 +192,8 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
     return 1;
 }
 
+// Casts the next step (current point + speed) against the wall collision (EatMgr); on a hit the
+// life is set to expire this frame.
 void Esp03_HitWall(cEsp03* esp)
 {
     Esp03Work* w = &esp->m_Free;

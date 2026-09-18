@@ -48,6 +48,11 @@ static inline int emBarredCanClose(EmBarredWork* w)
     return !(w->be_flag & 1);
 }
 
+// Creates a barred gate enemy (id 0x4E) from a model / TPL at pos / rot unless room etc flag
+// `flagNo` bit0 says it was destroyed. type 1..9 selects the gate size (atari cylinder, hit
+// boxes, Height / Width of the lifting frame): 5 / 6 / 8 / 9 are the automatic gates that rise
+// when someone comes near (start closed, Status 2), the others start open (Status 1) and are
+// scripted; type 6 also has shootable bars (Rno1 3 Break). 1000 hp. NULL on failure.
 cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int type)
 {
     cEmBarred* em;
@@ -254,6 +259,9 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     return em;
 }
 
+// Weapon hit reaction: on the type 6 gate a hit on the bar hit box (hitInfo) knocks the bar out
+// (est 3 of Eff_id facing the shooter, parts 1 hidden, SE, etc flag bit1); otherwise plays the
+// spark est (1 near / 0 far) by weapon class.
 void emBarredDmCk(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -371,6 +379,8 @@ void emBarredDmCk(cEmBarred* em)
     }
 }
 
+// Per-frame: hit check, the Rno1 routine (0 Set, 1 Open, 2 Close, 3 Break), the model-vs-player
+// atari and the effect collision quads of the frame / bars.
 void cEmBarred::move()
 {
     emBarredDmCk(this);
@@ -380,6 +390,8 @@ void cEmBarred::move()
     emBarredEatSet(this);
 }
 
+// Script entry: starts raising the gate (Rno1 1) unless already open / opening / broken; mode
+// (Rno3) 1 = silent (the paired gate of setDouble).
 void cEmBarred::setOpen(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -401,6 +413,7 @@ void cEmBarred::setOpen(int mode)
     r_no_3 = mode;
 }
 
+// Script entry: starts lowering the gate (Rno1 2) unless already closed / closing / broken.
 void cEmBarred::setClose(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -422,6 +435,7 @@ void cEmBarred::setClose(int mode)
     r_no_3 = mode;
 }
 
+// Script entry: snaps the gate to fully open (2500 above pos0) without animation.
 void cEmBarred::setOpened()
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -438,6 +452,7 @@ void cEmBarred::setOpened()
     }
 }
 
+// Script entry: snaps the gate shut at pos0.
 void cEmBarred::setClosed()
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -454,16 +469,19 @@ void cEmBarred::setClosed()
     }
 }
 
+// Lock_mode != 0 disables the automatic open / close of the proximity gates.
 void cEmBarred::setLockMode(u8 mode)
 {
     EMBARRED_WK(this)->Lock_mode = mode;
 }
 
+// Gate status: 0 moving, 1 open, 2 closed.
 int cEmBarred::ckStatus()
 {
     return EMBARRED_WK(this)->Status;
 }
 
+// 1 when the gate is open or opening (Open_flag).
 int cEmBarred::ckOpen()
 {
     if (EMBARRED_WK(this)->Open_flag) {
@@ -472,6 +490,9 @@ int cEmBarred::ckOpen()
     return 0;
 }
 
+// Rno1 == 0: resting gate. The proximity types (5 / 6 / 8 / 9) open when the player or a live
+// character comes near (emBarredNearCk) and close again 30 frames after everyone left, unless
+// locked or setNoClose; a setDouble partner is driven along.
 void emBarred_R1_Set(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -512,6 +533,8 @@ void emBarred_R1_Set(cEmBarred* em)
     }
 }
 
+// Rno1 == 1: raises the gate: chain SE (unless Rno3 1), then pos.y climbs 100 / frame (50 for
+// type 4; types 5 / 6 slide sideways instead) to pos0.y + Height, a 5 frame rattle, then Status 1.
 void emBarred_R1_Open(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -626,6 +649,8 @@ void emBarred_R1_Open(cEmBarred* em)
     em->matUpdate();
 }
 
+// Rno1 == 2: drops the gate with gravity (spd -10 / -15 per frame) to pos0.y; anyone under it
+// (emBarredUnderCk) is hit; slam SE, a short rattle, then Status 2.
 void emBarred_R1_Close(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -762,6 +787,8 @@ void emBarred_R1_Close(cEmBarred* em)
     }
 }
 
+// Rno1 == 3: destroyed (setBreak): hides the gate, clears ACTIVE, lets everyone through and sets
+// bit0 of the etc flag.
 void emBarred_R1_Break(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -780,6 +807,9 @@ void emBarred_R1_Break(cEmBarred* em)
     }
 }
 
+// Keeps the gate's effect collision in place: a quad for the bars (pEat, follows the lifting
+// position) and four for the fixed frame posts / lintel (pEatFrame), sized by type; a broken
+// gate only deactivates them and lets the player through.
 void emBarredEatSet(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -967,6 +997,8 @@ void emBarredEatSet(cEmBarred* em)
     }
 }
 
+// Proximity test of the automatic gates: 1 when the player or any live character (id <= 0x3F) is
+// within 2500 units of pos0 (3500 while open, hysteresis); 0 for other types or when locked.
 int emBarredNearCk(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
@@ -1018,11 +1050,13 @@ int emBarredNearCk(cEmBarred* em)
     return 0;
 }
 
+// Est id used for the spark / bar-break effects.
 void cEmBarred::setEff(u8 eff)
 {
     EMBARRED_WK(this)->Eff_id = eff;
 }
 
+// Script / explosion entry: blows the gate out toward `target` (est 3 of Eff_id) and goes to Break.
 void cEmBarred::setBreak(Vec* target)
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -1049,11 +1083,13 @@ void cEmBarred::setBreak(Vec* target)
     }
 }
 
+// The proximity gate stays open once opened (be_flag bit0).
 void cEmBarred::setNoClose()
 {
     EMBARRED_WK(this)->be_flag |= 1;
 }
 
+// Pairs two gates so the proximity logic of one opens / closes the other.
 void cEmBarred::setDouble(cEmBarred* other)
 {
     EmBarredWork* w = EMBARRED_WK(this);
@@ -1064,11 +1100,15 @@ void cEmBarred::setDouble(cEmBarred* other)
     }
 }
 
+// Enables the "someone is under the closing gate" test (be_flag bit1).
 void cEmBarred::setUnderCk()
 {
     EMBARRED_WK(this)->be_flag |= 2;
 }
 
+// 1 when the player, the partner or a live visible character stands in the gate's slot (within
+// Width x 200 of pos0 at floor level) while the gate is less than 2200 up; only with setUnderCk
+// and not for the proximity types.
 int emBarredUnderCk(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);

@@ -49,6 +49,8 @@ int DB_quads_num = 0;
 int DB_tri_num = 0;
 int DB_strip_num = 0;
 
+// Boot: allocates the sphere / circle / cylinder / cone display lists from the debug heap and
+// builds them.
 void init_dbmodule()
 {
     sphere_buff = Debug_alloc(0x3040, 1);
@@ -65,12 +67,14 @@ void init_dbmodule()
     init_corn();
 }
 
+// Writes one 2D vertex position into the GX FIFO.
 static inline void Pos2s16(s16 x, s16 y)
 {
     GXWGFifo->s16 = x;
     GXWGFifo->s16 = y;
 }
 
+// OT callback of Draw_tile: draws the filled screen rectangle (ortho 512 x 448, no blending).
 void Render_tile(void* data)
 {
     TileWork* t = (TileWork*) data;
@@ -116,6 +120,7 @@ void Render_tile(void* data)
     GXColor4u8(color >> 24, color >> 16, color >> 8, color);
 }
 
+// Queues a filled screen-space rectangle (pixels) in OT 13 for this frame.
 void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
 {
     TileWork* t = (TileWork*) GetPrimBuff(sizeof(TileWork));
@@ -129,6 +134,7 @@ void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
     }
 }
 
+// Immediate 2D line between two screen points (ortho projection, ARGB colour).
 void Draw_line(Vec* p0, Vec* b, u32 color)
 {
     Mtx44 proj;
@@ -172,6 +178,7 @@ void Draw_line(Vec* p0, Vec* b, u32 color)
     GXColor4u8(cg, cb, ca, cr);
 }
 
+// Immediate 2D filled quad at `pos` of `size` (screen pixels).
 void Draw_quad(Vec* pos, Vec* size, u32 color)
 {
     Mtx44 proj;
@@ -219,11 +226,14 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
     GXColor4u8(cg, cb, ca, cr);
 }
 
+// Immediate world-space line (current camera view matrix); blend 1 = additive.
 void Draw_line3d(Vec* p0, Vec* b, u32 color, int blend)
 {
     Draw_line3d_local(p0, b, pG->Cam.v_mat, color, blend);
 }
 
+// Immediate line in the space of matrix `mtx` (view * local): sets the line GX state, draws the
+// 2 vertices and restores the state. Alpha 0xFE in the colour skips the Z test.
 void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
 {
     u8 cr, cg, cb;
@@ -263,6 +273,7 @@ void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
     GXColor4u8(cr, cg, cb, 0xFF);
 }
 
+// Sets the GX state for a batch of debug lines (callers then emit GXBegin lines themselves).
 void Draw_line3d_init()
 {
     GXColor black;
@@ -292,16 +303,19 @@ void Draw_line3d_init()
     GXLoadPosMtxImm(pG->Cam.v_mat, 0);
 }
 
+// Restores the GX state after a Draw_line3d_init batch.
 void Draw_line3d_end()
 {
     LightMgr.setFog();
 }
 
+// Immediate world-space filled triangle p[0..2]; zupd 0 leaves the Z buffer alone.
 void Draw_poly(Vec* p, u32 color, int zupd)
 {
     Draw_poly_local(p, pG->Cam.v_mat, color, zupd);
 }
 
+// Immediate filled triangle in matrix `mtx` space with alpha blending.
 void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
 {
     u8 cr, cg, cb, ca;
@@ -345,6 +359,7 @@ void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
     GXColor4u8(cg, cb, ca, cr);
 }
 
+// Wire sphere (16 x 16 display list) of radius r at `pos`; zcmp / zupd select the Z test / write.
 void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
 {
     Mtx m;
@@ -384,6 +399,7 @@ void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
     GXCallDisplayList(sphere_buff, 0x3040);
 }
 
+// Wire cylinder of radius r and height h standing on `pos` (world space).
 void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
 {
     Mtx m;
@@ -411,6 +427,7 @@ void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
     GXCallDisplayList(cylinder_buff, 0x4C0);
 }
 
+// Wire cylinder placed through matrix `mtx` (only the first display list vertices: a circle).
 void Draw_cylinderMtx(Mtx mtx, Vec* pos, f32 r, f32 h, u32 color)
 {
     Mtx m;
@@ -442,6 +459,7 @@ void Draw_cylinderMtx(Mtx mtx, Vec* pos, f32 r, f32 h, u32 color)
     GXCallDisplayList(cylinder_buff, 4);
 }
 
+// Wire cone from `pos` along `dir` (its length) with base radius r.
 void Draw_corn3(Vec* pos, Vec* dir, f32 r, u32 color)
 {
     Vec rot;
@@ -460,6 +478,7 @@ void Draw_corn3(Vec* pos, Vec* dir, f32 r, u32 color)
     Draw_corn(pos, &rot, len, r, color);
 }
 
+// Wire cone (display list) of length len / radius r at `pos` rotated by `rot`.
 void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
 {
     Mtx m;
@@ -492,6 +511,8 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
     GXCallDisplayList(corn_buff, 0x3040);
 }
 
+// Wire view cone: apex `pos`, axis `dir`, length len, half angle `ang` in degrees (16 rim
+// lines and the rim circle); used for the eye trigger / enemy sight displays.
 void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
 {
     Vec axis;
@@ -566,6 +587,7 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
     Draw_line3d(pos, &axis, 0xB0B000B0, 0);
 }
 
+// Box from its 8 corners: flag 0 filled faces (12 triangles), else the 12 edges.
 void Draw_box(Vec* v, u32 color, int flag)
 {
     static u8 ptbl[36] = {
@@ -598,11 +620,13 @@ void Draw_box(Vec* v, u32 color, int flag)
     }
 }
 
+// Position marker in world space: a red x axis line and white / green y / z lines of `size`.
 void Draw_pos(Vec* pos, int size)
 {
     Draw_local_pos(pos, size, pG->Cam.v_mat);
 }
 
+// Position marker in matrix `mtx` space.
 void Draw_local_pos(Vec* pos, int size, Mtx mtx)
 {
     Vec p;
@@ -659,6 +683,7 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
     }
 }
 
+// Ground grid of (2n + 1) lines each way, `step` units apart, on the y = 0 plane.
 void Draw_floor(int step, int n, u32 color)
 {
     Vec a;
@@ -683,6 +708,7 @@ void Draw_floor(int step, int n, u32 color)
     }
 }
 
+// Builds the sphere display list (16 latitude x 16 longitude line loops).
 void init_sphere()
 {
     static const f32 tbl[15] = {
@@ -726,6 +752,7 @@ void init_sphere()
     GXEndDisplayList();
 }
 
+// Builds the unit circle display list (16 segments).
 void init_circle()
 {
     Vec v0;
@@ -749,6 +776,7 @@ void init_circle()
     GXEndDisplayList();
 }
 
+// Builds the unit cylinder display list (two rings and 16 vertical lines).
 void init_cylinder()
 {
     Vec v0;
@@ -776,6 +804,7 @@ void init_cylinder()
     GXEndDisplayList();
 }
 
+// Builds the unit cone display list.
 void init_corn()
 {
     Vec v0;
@@ -1064,6 +1093,7 @@ void DrawObjWireframe(cObj* obj, int color)
     Draw_line3d_end();
 }
 
+// Debug: draws every live scroll object as a wireframe and counts the primitives (DB_*_num).
 void DrawRoomWireframe()
 {
     cObj* obj;
@@ -1083,6 +1113,8 @@ void DrawRoomWireframe()
     eprintf(32, 392, 0, 0, "Strip   = %06d (Line White)", DB_strip_num);
 }
 
+// Prints `time` (frames, 30 / s) as hh:mm:ss:ff; flag bits 8 / 4 / 2 / 1 select hours /
+// minutes / seconds / frames.
 void DispTime(s16 x, int y, int color, int time, int flag)
 {
     int frame, sec, min, hour;
@@ -1132,6 +1164,7 @@ void DispTime(s16 x, int y, int color, int time, int flag)
     }
 }
 
+// The pad array for the bugcheck tool (pad 0).
 JOY* GetBugCheckController()
 {
     return Joy;

@@ -113,11 +113,16 @@ static inline void TblBitOn(u32* tbl, u32 no)
     tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
 }
 
+// Clears bit `no` of the bit table.
 static inline void TblBitOff(u32* tbl, u32 no)
 {
     tbl[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
 }
 
+// Creates a window / fence enemy (id 0x46) from a model / TPL at pos / rot: `type` indexes
+// WindowData (size, hp rule, break model, collision form), `etcNo` the room etc flag that
+// remembers the broken state, `arc` the etc archive holding the break model and jump motions.
+// NULL when no work or init fails.
 cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcNo, void* arc)
 {
     cEmWindow* em;
@@ -133,6 +138,11 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
     return em;
 }
 
+// Window crossing test for a character moving pos0 -> pos1: the target field (SceAtCheckFieldInfo
+// at pos1) must be field `id` of a window that allows this kind of fence user (player /
+// partners: kind 1, enemies: kind 2; the player cannot cross an intact type 1 window; NPCs need a
+// ladder-style approach), and the move must cross the window plane. Returns 1 with the crossing
+// direction (window -z or +z in world), the window position, its status word and the window.
 int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
 {
     SceAtFieldInfo* info;
@@ -210,6 +220,10 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
     return 0;
 }
 
+// Work setup: model, WindowData sizes, a hit box, scenario / effect collision quads (lowSat /
+// satType forms), 1000 hp, unlockable, and for `field` windows the floor probe plus two scenario
+// jump fields (SceAtCreateFieldAt, one on each side, 3000 reach, 80 degree cone). A window whose
+// etc flag says broken loads its break model at once.
 int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 etcNo, void* arc)
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -339,6 +353,9 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     return 1;
 }
 
+// Per-frame: damage check and the object base move; Rno0 0 records the rest rotation and lights
+// the intact window's ambient effect (est 8 of eff, Core_kind 0x31), Rno0 1 applies the shake
+// (random +-1 degree yaw for `shake` frames), Rno0 4 plays a motion.
 void cEmWindow::move()
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -379,6 +396,10 @@ void cEmWindow::move()
     }
 }
 
+// Damage check: a damage volume hit or a registered weapon hit (not knife / grenades, and only
+// while damage is enabled) takes hp by the window's hpType and the weapon size group (group 0
+// small arms: instant / -500 / -250, groups 1 / 2 always break); at hp 0 breaks the window
+// (SetBreakAll toward the hit), otherwise a crack SE and the hit est 5.
 void cEmWindow::DmCk()
 {
     int a = 0;
@@ -480,6 +501,10 @@ void cEmWindow::DmCk()
     }
 }
 
+// The jump-through event: picks the player's window motion (pl00537 / 538 / 536.fcv, or the
+// stage 4 Ada set) by ChkBreakDir (1 from the front, 2 no floor behind, 0 default), runs it under
+// SceEventStart with the ladder-style camera, breaks the window at the right frame (SetBreakAll
+// size 1, event style) and moves the player through; returns 1 when done.
 int cEmWindow::ExeWindowEvent()
 {
     EmWindowWork* w;
@@ -638,6 +663,8 @@ int cEmWindow::ExeWindowEvent()
     return 1;
 }
 
+// Probes the floor 2000 units on both sides of the window; `floor` = 1 when one side drops more
+// than 3000 (a jump down, not a walk through).
 void cEmWindow::CalFloor()
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -674,11 +701,14 @@ void cEmWindow::CalFloor()
     }
 }
 
+// 1 when there is no floor behind the window (CalFloor).
 u8 cEmWindow::GetFloor()
 {
     return EMWINDOW_WK(this)->floor;
 }
 
+// Break direction for a body at `p`: 1 in front of the window, else 2 when there is no floor
+// behind it, else 0.
 int cEmWindow::ChkBreakDir(Vec* p)
 {
     if (Front_check(this, p, PI / 2) != 0) {
@@ -687,6 +717,7 @@ int cEmWindow::ChkBreakDir(Vec* p)
     return GetFloor() == 1 ? 2 : 0;
 }
 
+// The window's room etc flag word (bit0 = broken); 0 when it has none.
 int cEmWindow::ChkStatus()
 {
     u16* flg;
@@ -698,6 +729,7 @@ int cEmWindow::ChkStatus()
     return 0;
 }
 
+// ORs `f` into the window's etc flag word.
 void cEmWindow::SetStatus(u16 f)
 {
     u16* flg;
@@ -708,6 +740,7 @@ void cEmWindow::SetStatus(u16 f)
     }
 }
 
+// A body bumped the window: rattle SE, 10 frames of shake, -50 hp (never below 1).
 int cEmWindow::SetShake()
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -725,6 +758,8 @@ int cEmWindow::SetShake()
     return 1;
 }
 
+// Breaks the window (unless flag 3 says already broken): break SE by type, the shard est for the
+// direction of `p` / size / event style, then the broken model and collision removal.
 int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
 {
     if (ChkEtcFlag(3) == 0) {
@@ -745,6 +780,8 @@ int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
     return 1;
 }
 
+// Swaps in the WindowData break model (or hides the model when none), spawns the optional est 9,
+// removes the collision, sets etc bit0 (broken) and deletes the ambient effects (Core_kind 0x31).
 int cEmWindow::SetBreakModel()
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -767,6 +804,7 @@ int cEmWindow::SetBreakModel()
     return 1;
 }
 
+// Re-initialises the model from another bin / TPL; 0 on failure.
 int cEmWindow::SetChangeModel(void* bin, void* tpl)
 {
     if (modelInit(bin, tpl) == 0) {
@@ -776,6 +814,7 @@ int cEmWindow::SetChangeModel(void* bin, void* tpl)
     return 1;
 }
 
+// Removes the window's collision (atari, scenario and effect quads), hp 0, damage re-enabled.
 int cEmWindow::SetAtariOff()
 {
     atari.m_flag &= ~0x300;
@@ -786,6 +825,8 @@ int cEmWindow::SetAtariOff()
     return 1;
 }
 
+// Spawns the shard est of `eff`: id from tblA (weapon break) or tblB (event break) by direction
+// (0..3) and size kind (0 small / 1 large), at the window origin with its rotation.
 int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
 {
     Vec p;
@@ -826,6 +867,7 @@ int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
     EstSet(0, -1, &p, &r, eff, (u8) id, 0x801, 0, 0, 0);
 }
 
+// Enables / disables weapon damage (etc bit 0 = disabled).
 void cEmWindow::SetEnableDamage(int on)
 {
     int v = 1;
@@ -836,6 +878,7 @@ void cEmWindow::SetEnableDamage(int on)
     SetEtcFlag(0, v);
 }
 
+// 1 when weapon damage is enabled.
 int cEmWindow::ChkEnableDamage()
 {
     if (ChkEtcFlag(0) == 1) {
@@ -844,6 +887,8 @@ int cEmWindow::ChkEnableDamage()
     return 1;
 }
 
+// Sets / clears bit `no` of the window's own flag table (0 damage off, 1 / 2 fence kinds off, 3
+// broken).
 void cEmWindow::SetEtcFlag(u32 no, int on)
 {
     if (on == 1) {
@@ -853,6 +898,7 @@ void cEmWindow::SetEtcFlag(u32 no, int on)
     }
 }
 
+// Bit `no` of the window's own flag table.
 int cEmWindow::ChkEtcFlag(u32 no)
 {
     u32* flg = EMWINDOW_WK(this)->etcFlag;
@@ -863,6 +909,7 @@ int cEmWindow::ChkEtcFlag(u32 no)
     return 0;
 }
 
+// Allows / forbids crossing for fence users of `kind` (1 player side, 2 enemy side, 0 both).
 int cEmWindow::SetEnableFence(int on, int kind)
 {
     EmWindowWork* w = EMWINDOW_WK(this);
@@ -884,6 +931,7 @@ int cEmWindow::SetEnableFence(int on, int kind)
     return 1;
 }
 
+// 1 when fence users of `kind` (1 / 2) may cross this window.
 int cEmWindow::ChkEnableFence(int kind)
 {
     u32 t;

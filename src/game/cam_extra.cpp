@@ -1,3 +1,9 @@
+// game/cam_extra.cpp: the special cCamera implementations the camera controller switches to:
+// CameraAttachedToMotion (a camera track inside a model's motion), CameraScope (rifle scope
+// with zoom, pitch and reticle ids), CameraBinocular (with its HUD ids), CameraPushObject,
+// CameraLookAt (item examine) and CameraLookDownEm, plus the FocusAnimation blur used by the
+// scope and binoculars.
+
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -70,11 +76,15 @@ CameraAttachedToMotion::CameraAttachedToMotion(cModel* m)
     m_pModel = m;
 }
 
+// Poisons the object (memset 9) so a stale pointer is caught.
 CameraAttachedToMotion::~CameraAttachedToMotion()
 {
     memset(this, 9, 0x200);
 }
 
+// Per-frame: reads the model's attached camera track (pAttachCam: pos / at / roll / fov keys of
+// the motion) and, unless the motion is flagged world-space (Mot_attr 0x200), transforms them
+// from the model's frame into the world; rebuilds the orientation with roll.
 void CameraAttachedToMotion::move()
 {
     AttachCamera* ac = MOTION(m_pModel)->pAttachCam;
@@ -144,6 +154,9 @@ void FocusAnimation::init(int id)
     m_counter = (int) m_focus_frame;
 }
 
+// Focus blur animation step: dir 1 ramps the counter up to m_focus_frame (blur in while zooming),
+// dir 0 ramps it down (blur out), then sets the filter0a mask alpha or the Filter01 level from
+// counter / m_focus_frame. m_anim_on: 0 idle, 1 rising, 2 falling.
 void FocusAnimation::move(int dir)
 {
     static int _filter0a_flag = 0;
@@ -197,6 +210,7 @@ void FocusAnimation::move(int dir)
     }
 }
 
+// Ends the animation: disables the filter0a mask and clears the state.
 void FocusAnimation::quit()
 {
     use_filter0a = 0;
@@ -204,6 +218,7 @@ void FocusAnimation::quit()
     filter0a_mask_id = 0;
 }
 
+// Resets the animation state and parameters to the defaults.
 void FocusAnimation::clear()
 {
     m_anim_on = 0;
@@ -237,6 +252,9 @@ struct PlayerPtr {
     cPlayer* p;
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
+// The rifle scope camera: the eye offset and look direction come from pos / at in the player's
+// frame (type picks the scope reticle set by the equipped rifle), fov 45, pitch limited to
+// +-70 degrees, zoom 0, and the reticle ids are created.
 CameraScope::CameraScope(Vec* pos, Vec* at)
 {
     Mtx inv;
@@ -290,6 +308,7 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
     m_focus.init(0x9A);
 }
 
+// Removes the reticle ids and the focus filter, poisons the object.
 CameraScope::~CameraScope()
 {
     m_id.quit(0);
@@ -297,6 +316,7 @@ CameraScope::~CameraScope()
     memset(this, 9, 0x200);
 }
 
+// Restores zoom (0..1) and pitch (radians) - the weapon keeps them between scope uses.
 void CameraScope::setParam(f32 zoom_ratio, f32 x_radian)
 {
     zoom = zoom_ratio;
@@ -304,6 +324,7 @@ void CameraScope::setParam(f32 zoom_ratio, f32 x_radian)
     m_focus.clear();
 }
 
+// Reads back zoom and pitch.
 void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
 {
     *zoom_ratio = zoom;
@@ -340,6 +361,11 @@ static inline f32 scopeClamp01(f32 v)
     return v;
 }
 
+// Per-frame scope view: C-stick Y zooms (fov 45 down to the scope's limit), the main stick / D-pad
+// turns the player (yaw goes into pPL->ang.y) and pitches within the limits with a gain that
+// shrinks with zoom, a breathing sway (m_rnd) is added while aiming, the camera is placed at the
+// eye offset in the player's frame, the reticle ids update and the focus blur follows zoom
+// changes.
 void CameraScope::move()
 {
     static f32 ZOOM_LIMIT_0 = 9.0f;
@@ -488,6 +514,7 @@ void IdScope::init(void* type)
     }
 }
 
+// Reticle ids per frame: positions the zoom indicator (unit 0x25 ids 1 / 2) from *zoom.
 void IdScope::move(void* p)
 {
     f32* zoom = (f32*) p;
@@ -528,12 +555,14 @@ static int IdScopeZoomDisp(f32* zoom)
     return (int) ((*zoom + 0.5f) * 100000.0f);
 }
 
+// Saves the reticle id timers (unit 0x25 ids 0 / 0x10) across a scope re-entry.
 void IdScope::save(int)
 {
     save_a = (s16) IdSys.unitPtr(0, 0x25)->timer[0];
     save_b = (s16) IdSys.unitPtr(0x10, 0x25)->timer[1];
 }
 
+// Restores the saved reticle id timers (ids 0, 0x10..0x13).
 void IdScope::load(int)
 {
     IdSys.unitPtr(0, 0x25)->timer[0] = save_a;
@@ -543,6 +572,7 @@ void IdScope::load(int)
     IdSys.unitPtr(0x13, 0x25)->timer[1] = save_b;
 }
 
+// Kills the reticle ids (unit 0x25).
 void IdScope::quit(void*)
 {
     IdTexRelease(TEX_OWNER_ID_SCOPE);
@@ -612,6 +642,7 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     m_focus.init(-1);
 }
 
+// Ends the binocular ids and the focus filter, poisons the object.
 CameraBinocular::~CameraBinocular()
 {
     id.quit(this);
@@ -619,6 +650,7 @@ CameraBinocular::~CameraBinocular()
     memset(this, 9, 0x200);
 }
 
+// Limits the binocular pitch (x) / yaw (y) angles (radians; default +-60 degrees).
 void CameraBinocular::setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
     m_rad_low.x = x_low;
@@ -627,6 +659,9 @@ void CameraBinocular::setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
     m_rad_up.y = y_up;
 }
 
+// Per-frame binocular view: C-stick Y zooms (fov 45 down to 3), stick / D-pad turns yaw / pitch
+// within the range with a zoom-dependent gain; mode != 0 places pos / at / up from the stored
+// player-relative vectors, mode 0 keeps them; the focus blur follows zoom changes.
 void CameraBinocular::move()
 {
     static f32 zoom_limit = 3.0f;
@@ -771,6 +806,8 @@ void IdBinocular::cutin()
     }
 }
 
+// Binocular HUD per frame: the heading scale (compass digits scrolled by the view yaw), the zoom
+// gauge height from the fov, and the distance readout.
 void IdBinocular::move(void* p)
 {
     Camera* cam = (Camera*) p;
@@ -909,6 +946,7 @@ void IdBinocular::move(void* p)
     m_fovy_old = cam->param.fovy;
 }
 
+// Removes the binocular HUD ids (unit 0x24), releases the pause stop flag and the mask texture.
 void IdBinocular::quit(void*)
 {
     IdUnit* u = IdSys.unitPtr(0x35, 0x24);
@@ -939,11 +977,15 @@ CameraPushObject::CameraPushObject()
 {
 }
 
+// Poisons the object.
 CameraPushObject::~CameraPushObject()
 {
     memset(this, 9, 0x200);
 }
 
+// Camera while the player pushes an object: 2000 behind / 2000 above the player looking at his
+// chest, swung 90 degrees to the side when a door / wall / window (ids 0x41 / 0x44 / 0x46) is in
+// the way, pulled in front of scenery / characters by cameraHitCheck.
 void CameraPushObject::move()
 {
     static f32 default_ofs[8] = {0.0f, 2000.0f, -2000.0f, 0.0f, 800.0f, 800.0f, 0.0f, 45.0f};
@@ -1056,11 +1098,14 @@ CameraLookAt::CameraLookAt(Camera* cam)
     }
 }
 
+// Poisons the object.
 CameraLookAt::~CameraLookAt()
 {
     memset(this, 9, 0x200);
 }
 
+// Keeps the target on the tracked hand parts and pulls the camera in front of anything blocking
+// the view (item examine close-up).
 void CameraLookAt::move()
 {
     Vec hit;
@@ -1089,11 +1134,13 @@ CameraLookDownEm::CameraLookDownEm(void* e, Vec* pos)
     param.fovy = 45.0f;
 }
 
+// Poisons the object.
 CameraLookDownEm::~CameraLookDownEm()
 {
     memset(this, 9, 0x200);
 }
 
+// Fixed camera (set in the constructor at `pos` looking at the enemy's chest); nothing per frame.
 void CameraLookDownEm::move()
 {
 }

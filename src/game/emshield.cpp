@@ -45,6 +45,9 @@ static EmShieldFunc EmShield_R1_move_tbl[5] = {
     emShield_R1_Fall,
 };
 
+// Creates a shield enemy (id 0x50, at the back of the pool) from a model / TPL: a body hit cube
+// plus 9 plank hit boxes (parts 2..10), 1000 hp, unlockable and ignored by Ashley, SE / effect
+// ids cleared, random plank hit count. Starts in Rno1 0 Set. NULL on failure.
 cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cEmShield* em;
@@ -148,6 +151,7 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     return em;
 }
 
+// Event start: a shield nobody carries is destroyed.
 void cEmShield::beginEvent()
 {
     if (EMSHIELD_WK(this)->pParent == 0) {
@@ -168,6 +172,11 @@ void cEmShield::beginEvent()
 // weighted ref (global-alloc priority above `w`: r26/r25) and the void result keeps `li r3,8`
 // ahead of the other argument `li`s inside the notes (u32 SndCall issues it last there).
 void SndCallV(u16, u16, Vec*, int, int, cUnit*) asm("SndCall__FUsUsP3VeciiP5cUnit");
+// Weapon hit reaction (see the note above): plays the shield hit SE on the carrier, and by weapon
+// class either counts hits toward knocking off the hit plank (est 0x10/0x61, or 0x63 for parts 5,
+// the plank is scaled to 0 and its hit box disabled), breaks the whole shield on the fourth plank
+// or a heavy / explosive weapon (est 0x10/0x62, hp 0, Rno1 2 Lost), or (shotguns) decides by hit
+// distance; a body hit only spawns blood.
 void emShieldDmCk(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
@@ -357,6 +366,9 @@ void emShieldDmCk(cEmShield* em)
     }
 }
 
+// Per-frame: damage check and the Rno0 routine, then mirrors the carrier's visibility and fade
+// factors, fires the periodic "always" est on its parts, dies with the carrier's hp and is
+// destroyed when the carrier work is gone.
 void cEmShield::move()
 {
     EmShieldWork* w = EMSHIELD_WK(this);
@@ -397,6 +409,7 @@ void cEmShield::move()
     }
 }
 
+// Rno0 == 0: resets to the Set state.
 void emShield_R0_Init(cEmShield* em)
 {
     em->r_no_0 = 1;
@@ -405,11 +418,13 @@ void emShield_R0_Init(cEmShield* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 LostWait, 2 Lost, 3 Parent, 4 Fall).
 void emShield_R0_Move(cEmShield* em)
 {
     EmShield_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: free-standing shield; plays its motion or rebuilds the matrices from pos / ang.
 void emShield_R1_Set(cEmShield* em)
 {
     if (em->pMotion) {
@@ -423,6 +438,8 @@ void emShield_R1_Set(cEmShield* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 1: a dropped shield at rest; after 90 frames fades out (invisible_factor -0.1 / frame),
+// or at once when it leaves the screen, then Rno1 2.
 void emShield_R1_LostWait(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
@@ -465,6 +482,8 @@ void emShield_R1_LostWait(cEmShield* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: removes the shield: hides it, deletes its effects (Core_kind estNo) and destroys the
+// work.
 void emShield_R1_Lost(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
@@ -482,6 +501,8 @@ void emShield_R1_Lost(cEmShield* em)
     }
 }
 
+// Rno1 == 3: carried: follows parts `partsNo` of the carrier (rotation re-normalised unless
+// Be_flg bit0), plays its own motion when it has one, and counts Fall_wait down to setFall.
 void emShield_R1_Parent(cEmShield* em)
 {
     Mtx m;
@@ -548,6 +569,10 @@ void emShield_R1_Parent(cEmShield* em)
     }
 }
 
+// Rno1 == 4: the dropped shield tumbles as a 3-node rope: gravity, 30 relaxation passes of the
+// edge constraints, floor contact with the landing SE / est and effect deletion, random bounce
+// damping; the matrix is rebuilt from the three nodes. Comes to rest (Rno1 1) when the node
+// speeds are small; entering water spawns the water est and SE once.
 void emShield_R1_Fall(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
@@ -713,6 +738,7 @@ void emShield_R1_Fall(cEmShield* em)
     }
 }
 
+// Hands the shield to `parent` parts `partsNo` (Rno1 3); flag skips the matrix normalisation.
 void cEmShield::setParent(cModel* parent, int partsNo, int flag)
 {
     EmShieldWork* w = EMSHIELD_WK(this);
@@ -730,6 +756,8 @@ void cEmShield::setParent(cModel* parent, int partsNo, int flag)
     r_no_3 = 0;
 }
 
+// Drops the shield (Rno1 4): remembers the carrier as pOldParent, gives the three rope nodes the
+// initial speed `spd` (rotated +-90 degrees for nodes 1 / 2) or random speeds, stops the motion.
 // Drops the shield: node speeds from `spd` (node 0 as is, nodes 1 / 2 rotated +-90 degrees around Y)
 // or random when NULL.
 void cEmShield::setFall(f32 gravity, Vec* spd)

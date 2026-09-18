@@ -1,12 +1,18 @@
+// game/cMotBase.cpp: cMotBase, the motion base follower: a target pose (pos / ang) integrated
+// from the model's motion speed so the model can be blended toward where its animation says it
+// should be (root motion), over `cnt` frames (0xFF = inactive).
+
 #include "cMotBase.h"
 #include "math_sub.h"
 
+// Inactive, no model.
 cMotBase::cMotBase()
 {
     cnt = 0xFF;
     pModel = 0;
 }
 
+// Starts following: model, start pose p / r (also the "old" pose), blend over `c` frames.
 void cMotBase::set(cMotModel* m, MotionData* data, Vec* p, Vec* r, u8 c)
 {
     pModel = m;
@@ -17,6 +23,8 @@ void cMotBase::set(cMotModel* m, MotionData* data, Vec* p, Vec* r, u8 c)
     cnt = c;
 }
 
+// Same with the model's current motion; clears Mot_attr bit0 (the motion does not move the
+// model itself while the base drives it).
 void cMotBase::set(cMotModel* m, Vec* p, Vec* r, u8 hokan0)
 {
     set(m, m->Motion.pMot, p, r, hokan0);
@@ -36,6 +44,9 @@ void cMotBase::adjust()
     ang.y += pModel->ang.y - ang_old.y;
 }
 
+// Per-frame: advances the target pose by the motion's translation / rotation speed (in model
+// space), then either blends the model toward it over the remaining frames (setting Mot_attr
+// bit0 back when done) or, at cnt 0, pins the model to it. Remembers the model pose for adjust.
 void cMotBase::move()
 {
     Vec spd;

@@ -1,3 +1,9 @@
+// game/esp09.cpp: effect id 0x09, a position trail of maxPoints (4 - Work8[0], 2..6) points kept
+// in a ring buffer, fading along its length. Without a texture (Tex_id 0xFF) it is a GX line
+// strip of width Size_base_x * Size_mul * 0.03 (thinner with distance); with a texture, a strip of
+// quads facing the camera. flg (Work8[1]) bit0 keeps the points in screen space (2D trail,
+// blanked by a Z-buffer test after the render), bit1 records a point only every other frame.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -40,6 +46,7 @@ f32 GetVecLen(Vec* a, Vec* b);
 void Esp09_HideCheck(cEsp* esp);
 }
 
+// EspCreateTbl[0x09] factory.
 cEsp* Esp09_Create()
 {
     return new cEsp09;
@@ -75,6 +82,10 @@ void Esp09_ClearPrevPos(cEsp09* esp)
     }
 }
 
+// Base update, then Rno0 0 (first frame) fills the history with the current position, Rno0 1
+// advances the ring index (every frame or every other with flg bit1; m_Type != 0 uses only 3
+// slots) and stores the current world (or screen, flg bit0) position. Recomputes the line width
+// for untextured trails and queues Esp09_HideCheck after the render.
 void cEsp09::move()
 {
     Esp09Work* w = &m_Free;
@@ -136,6 +147,8 @@ void cEsp09::move()
     }
 }
 
+// EspTransTbl[0x09]: common GX setup, then the textured quad strip, the 2D line strip or the 3D
+// line strip depending on Tex_id and flg bit0.
 extern "C" void Esp09_Trans(cEsp09* esp)
 {
     Esp09Work* w = &esp->m_Free;
@@ -156,6 +169,8 @@ extern "C" void Esp09_Trans(cEsp09* esp)
     GXSetLineWidth(6, 0);
 }
 
+// Colour channel / TEV setup for the trail: vertex colour only; Tool_flg 0x80 adds the raster
+// colour with a x4 scale (bright additive trail).
 void EspChannelSet09(cEsp09* esp)
 {
     GXSetTevOp(0, 0);
@@ -167,6 +182,8 @@ void EspChannelSet09(cEsp09* esp)
     GXSetChanCtrl(4, 0, 0, 1, 0, 0, 2);
 }
 
+// Z / cull / TEV state, ortho projection with identity matrix (2D) or the camera view matrix
+// (3D), blend mode and the position + colour (+ texcoord when textured) vertex format.
 void Esp09_Trans_Setup(cEsp09* esp)
 {
     Esp09Work* w = &esp->m_Free;
@@ -206,6 +223,8 @@ void Esp09_Trans_Setup(cEsp09* esp)
     }
 }
 
+// Screen-space line strip through the ring buffer, newest first, alpha stepping down to 0 at
+// the tail; skipped while the trail is hidden behind geometry.
 void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
     Esp09Work* w = &esp->m_Free;
@@ -232,6 +251,7 @@ void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     }
 }
 
+// World-space line strip through the ring buffer, newest first, alpha fading toward the tail.
 void Esp09_3DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
     Esp09Work* w = &esp->m_Free;
@@ -254,6 +274,10 @@ void Esp09_3DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     }
 }
 
+// Textured trail: for each consecutive pair of history points builds a quad perpendicular to
+// the segment and the camera (or the screen plane in 2D, scaled by 500 / depth), width
+// interpolated Size_base_x -> Size_base_y (x 0.1) and shrunk by Size_plus per segment, and
+// draws it with Esp09_StripDrawPoly.
 void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
     Esp09Work* w = &esp->m_Free;
@@ -344,6 +368,8 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     p = s;  // dead: keeps s as cse's canonical register (the giv init copies from s, not p)
 }
 
+// Emits quad `no` of the textured trail with texture slice no / maxPoints along t, and steps the
+// caller's alpha down by one fade step for the far edge.
 void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
 {
     Esp09Work* w = &esp->m_Free;
@@ -383,6 +409,7 @@ void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
     GXTexCoord2f32(t0, s2);
 }
 
+// Distance between two points.
 f32 GetVecLen(Vec* a, Vec* b)
 {
     Vec d;
@@ -441,6 +468,7 @@ void Esp09_HideCheck(cEsp* esp0)
     }
 }
 
+// Point count 4 - Work8[0] clamped to 2..6, flags from Work8[1].
 int cEsp09::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp09Work* w = &m_Free;

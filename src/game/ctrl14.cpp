@@ -1,3 +1,8 @@
+// game/ctrl14.cpp: control 0x14, the dragon head statues of the stage 4 fire trap room: the
+// scroll models of base, head and jaws of dragon `type` (0..2) with their collision pieces, moved
+// along the rail (addWidth / addHeight) and turned (addDir) by the em10 ganados that operate
+// them, and their flame (setFire: 30 frame wind-up, 60 frame jet) that burns the player.
+
 #include "types.h"
 #include "vec.h"
 #include "cManager.h"
@@ -17,6 +22,9 @@ u8 EspPullCoreKind();
 void EffectEspgenDelete(int Core_flg, int kind, cModel* obj);
 }
 
+// Creates the control for dragon `type` from the room's scroll objects (base / head / jaws, ids
+// 0xA.., 0xF.., 0x14..), gives it an effect Core_kind and three collision pieces from room
+// collision file 5. NULL when the objects or a work are missing.
 cCtrl* GetCtrlDragon(u32 type)
 {
     cModel* obj[5];
@@ -79,6 +87,9 @@ create:
     return c;
 }
 
+// Per-frame: the flame wind-up / jet timers (est 1/2 jet start, 1/4 jet end, SEs), keeps the
+// collision pieces on the head, and plays the start / stop movement SEs (per dragon) when the
+// moving flag (bit1, set by addWidth / addHeight this frame) changes.
 void cCtrl14::move()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -143,6 +154,7 @@ void cCtrl14::move()
     w->flags &= ~2;
 }
 
+// Matrix of piece `idx` (0 base, 1 head, ...).
 void cCtrl14::getBaseMtx(Mtx m, int idx)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -153,6 +165,7 @@ void cCtrl14::getBaseMtx(Mtx m, int idx)
     }
 }
 
+// The head's position.
 void cCtrl14::getPos(Vec* out)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -163,6 +176,7 @@ void cCtrl14::getPos(Vec* out)
     }
 }
 
+// The head's yaw.
 f32 cCtrl14::getDir()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -174,6 +188,7 @@ f32 cCtrl14::getDir()
     return o->ang.y;
 }
 
+// The head's yaw relative to the base (how far it is turned).
 f32 cCtrl14::getDir2()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -187,6 +202,8 @@ f32 cCtrl14::getDir2()
     return ret;
 }
 
+// Slides the whole dragon by `x` along the base's local x, clamped to the rail limits of its
+// type (type 2 does not slide); marks it moving.
 void cCtrl14::addWidth(f32 x)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -237,6 +254,7 @@ void cCtrl14::addWidth(f32 x)
     }
 }
 
+// Raises / lowers the whole dragon by `y` (upper limits per type); marks it moving.
 void cCtrl14::addHeight(f32 y)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -268,6 +286,7 @@ void cCtrl14::addHeight(f32 y)
     }
 }
 
+// Turns the base by `add` radians; the head follows within +-45 degrees of the base.
 void cCtrl14::addDir(f32 add)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -282,6 +301,7 @@ void cCtrl14::addDir(f32 add)
     }
 }
 
+// Sets the head's yaw relative to the base.
 void cCtrl14::setDir(f32 dir)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -292,6 +312,7 @@ void cCtrl14::setDir(f32 dir)
     }
 }
 
+// Eases the head back to the base's direction (0.35 degrees per frame).
 void cCtrl14::resetDir()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -302,6 +323,7 @@ void cCtrl14::resetDir()
     }
 }
 
+// Starts a flame: cancels a running jet, 30 frame wind-up est (1/3) with the SE, then the jet.
 void cCtrl14::setFire()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -319,6 +341,8 @@ void cCtrl14::setFire()
     }
 }
 
+// 1 when the jet is burning and `p` lies in the flame box in head space (5000..15000 ahead,
+// +-1500 wide, +-5000 high).
 int cCtrl14::ckHitFire(Vec* p)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
@@ -355,6 +379,8 @@ int cCtrl14::ckHitFire(Vec* p)
     return 1;
 }
 
+// 1 when a wall (effect collision, attribute 0x400000) stands between the head and the player
+// at chest height, so the flame does not reach him.
 int cCtrl14::ckHitFireBlocked()
 {
     Ctrl14Work* w = (Ctrl14Work*) work;

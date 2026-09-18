@@ -1,4 +1,9 @@
-// game/block.cpp: room block streaming (see block.h).
+// game/block.cpp: room block streaming. Large rooms are split into blocks ("st%x/r%03x_%02x.dat"
+// cSmd data units) and the room's BLK file lists trigger areas plus, per area, which blocks must
+// be in MRAM (displayed), parked in ARAM or dropped. cBlock::check (game loop) finds the area
+// the player stands in and issues per-block commands; cBlockUnit runs the load / create /
+// ARAM / delete state machine through cDataUnit, driven by checkCommand / checkCondition from
+// the main task each frame. While a block loads to MRAM the game is frozen (Stop_flg forced on).
 
 #include "atari.h"
 #include "block.h"
@@ -26,31 +31,37 @@ void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 cBlock Block;
 
+// Bit `no` of a block set (bit 31 - n of the word).
 static inline int bitChk(u32* set, u32 no)
 {
     return set[no >> 5] & (0x80000000 >> (no & 0x1F));
 }
 
+// Sets bit `no` of a block set.
 static inline void bitOn(u32* set, u32 no)
 {
     set[no >> 5] |= 0x80000000 >> (no & 0x1F);
 }
 
+// Clears bit `no` of a block set.
 static inline void bitOff(u32* set, u32 no)
 {
     set[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
 }
 
+// 1 when a table entry is unused (bit0 clear).
 static inline int isFree(u8 flags)
 {
     return !(flags & 1);
 }
 
+// Rewinds the trigger-area ordering table cursor to the last (highest priority) slot.
 void cBlock::setOtStart()
 {
     pOt = &ot[7];
 }
 
+// Next trigger area in ordering-table order (slots 7..0, each a linked list); NULL at the end.
 u32* cBlock::getOtAddr()
 {
     u32 v;
@@ -64,6 +75,10 @@ u32* cBlock::getOtAddr()
     return 0;
 }
 
+// Room start with the BLK file `data` (NULL = no streaming: everything stays resident): validates
+// the header, resolves the tables, allocates the per-block units (debug heap under the t_block
+// tool), links the areas into the ordering table, registers each block's data unit
+// (getBlockWork) and sizes the shared model memory (checkBlockMemory).
 void cBlock::roomInit(void* data)
 {
     BlockHeader* h = (BlockHeader*) data;
@@ -140,6 +155,8 @@ void cBlock::roomInit(void* data)
     check(1);
 }
 
+// Sizes the block model pool: the largest total of the MRAM block sizes over all connect entries;
+// allocates it (memTop / memEnd). 0 when nothing is needed or the allocation failed.
 int cBlock::checkBlockMemory()
 {
     u32 max = 0;
@@ -175,6 +192,7 @@ int cBlock::checkBlockMemory()
     return 1;
 }
 
+// Debug: swaps the block pool for a debug heap allocation of `size` (on) or restores it.
 void cBlock::useDebugMemory(int on, u32 size)
 {
     if (debugMem == 1) {
@@ -194,6 +212,8 @@ void cBlock::useDebugMemory(int on, u32 size)
     }
 }
 
+// Debug ("BLOCK ALL DISP"): loads and creates every block at once in debug memory (on), or
+// deletes them all and returns to normal streaming (off).
 void cBlock::dispAllBlock(int on)
 {
     u32 size;
@@ -246,6 +266,10 @@ void cBlock::dispAllBlock(int on)
     }
 }
 
+// Per-frame streaming decision (game loop): finds the player's trigger area (debug mode 0x12 in
+// room 5: a random one on Y), and when it changed computes the wanted MRAM / ARAM block sets for
+// that area and commands every block (MRAM load / ARAM load / delete); blocks heading to ARAM or
+// deletion are hidden at once. Then the debug info page.
 void cBlock::check(int arg)
 {
     cBlockUnit* u;
@@ -301,6 +325,8 @@ void cBlock::check(int arg)
     dispDebugInfo();
 }
 
+// The trigger area containing `pos` (+200 y), highest priority first; ties keep the current area
+// `now`; `now` when none matches.
 s8 cBlock::checkBlockArea(Vec* pos, int now)
 {
     Vec p;
@@ -335,6 +361,9 @@ s8 cBlock::checkBlockArea(Vec* pos, int now)
     return ret;
 }
 
+// Block sets for connect entry `c`: MRAM = the area's block plus its neighbours (link table),
+// ARAM = the neighbours of those minus the MRAM set, then the entry's explicit mram[] additions
+// and aram[] removals.
 void cBlock::checkBlockConnect(BlockConnect* c, BlockLink* link, u32* mram, u32* aram)
 {
     u32 i;
@@ -368,6 +397,7 @@ void cBlock::checkBlockConnect(BlockConnect* c, BlockLink* link, u32* mram, u32*
     }
 }
 
+// Adds every neighbour of block `blk` (both directions of the link table) to `set`.
 void cBlock::checkBlockConnect_sub(u8 blk, BlockLink* link, u32* set)
 {
     u32 i;
@@ -391,12 +421,14 @@ void cBlock::checkBlockConnect_sub(u8 blk, BlockLink* link, u32* set)
     }
 }
 
+// Queues a BLOCK_CMD for the block with argument `a` (passed on to the data unit).
 void cBlockUnit::setBlockCommand(int cmd, int a)
 {
     command = cmd;
     arg = a;
 }
 
+// Shows / hides every scroll object (cObj id 2) that belongs to this block.
 void cBlockUnit::setTrans(int on)
 {
     u32 i;
@@ -413,6 +445,8 @@ void cBlockUnit::setTrans(int on)
     }
 }
 
+// Applies the MRAM load command: from NO_DATA / ARAM_OK enters MRAM_LOAD_SET; already loading or
+// created just drops the command; ARAM / delete transitions in flight are left to finish.
 void cBlockUnit::setBlockLoadToMram()
 {
     switch (state) {
@@ -434,6 +468,8 @@ void cBlockUnit::setBlockLoadToMram()
     }
 }
 
+// Applies the ARAM load command: a created block is destroyed first (models released), then
+// ARAM_LOAD_SET; MRAM transitions in flight are left to finish.
 void cBlockUnit::setBlockLoadToAram()
 {
     switch (state) {
@@ -458,6 +494,8 @@ void cBlockUnit::setBlockLoadToAram()
     }
 }
 
+// Applies the delete command: a created block is destroyed, then DELETE; loads in flight are
+// left to finish.
 void cBlockUnit::setBlockDelete()
 {
     switch (state) {
@@ -479,6 +517,9 @@ void cBlockUnit::setBlockDelete()
     }
 }
 
+// MRAM_LOAD_SET step: when the data unit is idle, grabs pool memory (unless noMemCtrl) and issues
+// its MRAM load, moving to MRAM_LOAD; an ARAM-resident unit is transferred instead. Freezes the
+// game (stopFlagSet) while it waits. 1 while busy.
 int cBlockUnit::checkBlockLoadToMramSet()
 {
     void* p;
@@ -511,6 +552,8 @@ int cBlockUnit::checkBlockLoadToMramSet()
     return 1;
 }
 
+// MRAM_LOAD step: once the data is in MRAM creates the block's scroll models (BlockCreate) and
+// enters CREATE (running one ObjMgr move so they appear); 1 while still loading.
 int cBlockUnit::checkBlockLoadToMram()
 {
     switch (pData->getCondition()) {
@@ -531,6 +574,8 @@ int cBlockUnit::checkBlockLoadToMram()
     return 0;
 }
 
+// ARAM_LOAD_SET step: issues the ARAM load on an idle unit (or notes it is already there), then
+// ARAM_LOAD.
 int cBlockUnit::checkBlockLoadToAramSet()
 {
     int ret = 0;
@@ -556,6 +601,7 @@ int cBlockUnit::checkBlockLoadToAramSet()
     return ret;
 }
 
+// ARAM_LOAD step: ARAM_OK once the unit reports the data in ARAM; 1 while busy.
 int cBlockUnit::checkBlockLoadToAram()
 {
     switch (pData->getCondition()) {
@@ -569,6 +615,7 @@ int cBlockUnit::checkBlockLoadToAram()
     return 0;
 }
 
+// DELETE step: once the unit is idle clears it and returns to NO_DATA; 1 while busy.
 int cBlockUnit::checkBlockDelete()
 {
     int ret = 0;
@@ -592,6 +639,8 @@ int cBlockUnit::checkBlockDelete()
     return ret;
 }
 
+// Shifts the model data pointers of this block's scroll objects by `ofs` (after the block data
+// moved in memory).
 void cBlockUnit::recalcModelAddr(int ofs)
 {
     cObj* o;
@@ -603,6 +652,8 @@ void cBlockUnit::recalcModelAddr(int ofs)
     }
 }
 
+// Moves the block's data to `dst` (pool compaction), flushes the cache and fixes the model
+// pointers.
 void cBlockUnit::moveBlockData(void* dst)
 {
     int ofs;
@@ -615,6 +666,7 @@ void cBlockUnit::moveBlockData(void* dst)
     ((cSmd*) GetDataExt(dst, "SMD", 0))->slide(ofs);
 }
 
+// The unit of block `no`; NULL out of range.
 cBlockUnit* cBlock::getUnitPtr(u8 no)
 {
     if (no >= nBlock) {
@@ -623,6 +675,8 @@ cBlockUnit* cBlock::getUnitPtr(u8 no)
     return &pUnit[no];
 }
 
+// Registers block `no`'s file ("st%x/r%03x_%02x.dat") as a data unit with the data controller;
+// 0 when missing.
 int cBlock::getBlockWork(u8 no)
 {
     char name[64];
@@ -642,6 +696,7 @@ int cBlock::getBlockWork(u8 no)
     return 1;
 }
 
+// Main task, every frame: applies each block's queued command to its state machine.
 void cBlock::checkCommand()
 {
     cBlockUnit* u;
@@ -670,6 +725,9 @@ void cBlock::checkCommand()
     }
 }
 
+// Main task, every frame: restores Stop_flg saved by a previous freeze, steps every block's
+// state machine, compacts the pool when a block finished creating, and re-freezes the game
+// (Stop_flg = all bits) while a block is still loading to MRAM.
 void cBlock::checkCondition()
 {
     cBlockUnit* u;
@@ -730,6 +788,7 @@ void cBlock::checkCondition()
     }
 }
 
+// Compacts the block pool: moves every created block's data down to fill gaps and resets memCur.
 void cBlock::checkBlockMemSort()
 {
     cBlockUnit* u;
@@ -774,6 +833,7 @@ void cBlock::checkBlockMemSort()
     }
 }
 
+// Bump-allocates `size` bytes from the block pool; NULL with an error when it does not fit.
 void* cBlock::getBlockMemFree(u32 size)
 {
     u8* p = (u8*) memCur;
@@ -786,6 +846,8 @@ void* cBlock::getBlockMemFree(u32 size)
     return p;
 }
 
+// Debug page 18: area number, Stop_flg, and per block its command / state and the data unit's
+// command / condition / addresses.
 void cBlock::dispDebugInfo()
 {
     cBlockUnit* u;

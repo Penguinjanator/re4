@@ -1,3 +1,8 @@
+// game/esp11.cpp: effect id 0x11, a light source. SetFreeWork creates a cLight (Work8[0] kind,
+// Work8[1] cut / type, Work8[2] number) flagged be_flag 0x40 (owned by an effect); with Type
+// (Work8[3]) == 1 the light's position, radius (size x 10) and colour follow the sprite every
+// frame, otherwise the sprite only counts its life. Destroying the effect destroys the light.
+
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -29,11 +34,14 @@ void EffSetToolState(int state);
 void Esp11_SetParam(cEsp11* esp);
 }
 
+// EspCreateTbl[0x11] factory.
 cEsp* Esp11_Create()
 {
     return new cEsp11;
 }
 
+// Publishes ToolState (WorkSp8[0]) to the effect tool state; releases itself when the light died
+// elsewhere. Type 1: base update then Esp11_SetParam; other types: plain life countdown.
 void cEsp11::move()
 {
     Esp11Work* w = &m_Free;
@@ -57,10 +65,12 @@ void cEsp11::move()
     }
 }
 
+// EspTransTbl[0x11]: draws nothing (the light itself is rendered by the light manager).
 void Esp11_Trans(cEsp* esp)
 {
 }
 
+// Destroys the owned cLight if it is still alive.
 void cEsp11::Destruct()
 {
     cLight* l = m_Free.pLi;
@@ -70,6 +80,8 @@ void cEsp11::Destruct()
     }
 }
 
+// Copies the sprite state into the light: world position, Radius = size x 10, colour =
+// Base_col x sprite colour / 255, alpha = Base_col.a x sprite alpha / 2.
 void Esp11_SetParam(cEsp11* esp)
 {
     Esp11Work* w = &esp->m_Free;
@@ -90,6 +102,9 @@ void Esp11_SetParam(cEsp11* esp)
     w->pLi->Col.a = (u8)(w->Base_col.a * alpha * 0.5f);
 }
 
+// Kind 0/1 creates the light (Kind 2 = fixed cut 8 light 0 following the sprite, Kind 3 = no
+// light), records its base colour and applies Type 1 at once. Fails on missing light data or bad
+// Kind/Type. In the effect tool it also clears Stop_flg 0x01000000 so lights keep moving.
 int cEsp11::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp11Work* w = &m_Free;

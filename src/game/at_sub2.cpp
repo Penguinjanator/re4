@@ -1,6 +1,13 @@
+// game/at_sub2.cpp: the surface effect lookup for weapon hits. AtEffInfo (one per scenario
+// attribute type, registered by the room) lists effect id pairs per weapon class; getWepEff
+// picks the pair for a weapon id.
+
 #include "atari.h"
 #include "at_sub2.h"
 
+// Effect (owner / est id) pair for a hit of weapon `wepId` on this surface: guns share effGun,
+// 0x13 / 0x16 / 0x17 / 0xD (explosive, grenade types, mine) have their own. 0 with an error for
+// weapons without a surface effect.
 int AtEffInfo::getWepEff(int wepId, u32* eff1, u32* eff2)
 {
     int ret = 1;

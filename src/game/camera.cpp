@@ -1,3 +1,9 @@
+// game/camera.cpp: the game camera front end. pG->Cam is the Camera used for rendering; CameraMove
+// (game loop) lets the camera controller (CamCtrl, cam_ctrl.cpp) compute the frame's camera,
+// applies the quake offset and the debug camera, rebuilds the projection / view matrices and
+// updates the view frustum. Also small helpers: stick direction in camera space, up / look
+// vectors, screen point to world ray.
+
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -49,6 +55,8 @@ extern f32 ORTHO_R;
 
 int ProjType = 1;
 
+// Loads pG->Cam's projection into GX: type 1 perspective, type 2 orthographic (ProjType
+// remembers it for CameraCurrentProjection).
 void CameraSetProjection(int type)
 {
     ProjType = type;
@@ -62,16 +70,19 @@ void CameraSetProjection(int type)
     }
 }
 
+// Re-loads the current projection (effects and debug draws restore it after their own).
 void CameraCurrentProjection()
 {
     CameraSetProjection(ProjType);
 }
 
+// The current projection type (1 perspective, 2 ortho).
 int CameraGetProjection()
 {
     return ProjType;
 }
 
+// Game start: a default camera (1000 up, 2000 back, fov 50), perspective projection, room init.
 void CameraGameInit()
 {
     Vec at = {0.0f, 0.0f, 0.0f};
@@ -83,11 +94,18 @@ void CameraGameInit()
     CameraRoomInit();
 }
 
+// Room start: resets the debug camera move gain.
 void CameraRoomInit()
 {
     CamDbg.m_move_gain = 1.0f;
 }
 
+// Per-frame camera update (game loop): CamCtrl.Check / Move produce the frame's camera, copied
+// into pG->Cam when the camera is live (Status_flg[0] 0x100) and not overridden by the debug
+// camera (Debug_flg[0] 0x10000000; an extra camera pointer wins), then the quake offset (unless
+// Stop_flg 0x10000), the debug camera pad handling, projection (fovy 0 is an error -> 50), dist,
+// the look-at matrix, the view frustum and the camera debug text. Stop_flg 0x40000000 freezes
+// the controller.
 void CameraMove()
 {
     Camera* cam = &pG->Cam;
@@ -125,6 +143,9 @@ void CameraMove()
     CameraDebugInformation();
 }
 
+// Analog stick as a world-space move direction: rotated by the camera matrix, or by the previous
+// camera's matrix while the stick is held through a camera cut (so the run direction does not
+// flip on a cut).
 void CamStick2World(Camera* cam, JOY* joy, Vec* out)
 {
     static Mtx mat_prev;
@@ -150,21 +171,25 @@ void CamStick2World(Camera* cam, JOY* joy, Vec* out)
     }
 }
 
+// The world-space view frustum of the current camera (View.worldFull).
 ViewFrustum* CameraViewFrustumPtr(Camera* cam)
 {
     return &View.worldFull;
 }
 
+// The camera's up vector.
 void CameraGetUpVec(Camera* cam, Vec* up)
 {
     *up = cam->up;
 }
 
+// The camera's look vector (pos - at, normalised: points backwards).
 void CameraGetLookVec(Camera* cam, Vec* look)
 {
     *look = cam->Look;
 }
 
+// The forward view direction (-Look).
 void CameraGetLookVecInverse(Camera* cam, Vec* look)
 {
     look->x = -cam->Look.x;
@@ -184,6 +209,9 @@ static f32 ScrnY2Ratio(int y)
     return r;
 }
 
+// World-space ray direction through screen pixel (sx, sy): the pixel offset from the screen
+// centre in 640 x 480 units, z from the vertical fov, rotated by the camera matrix (aiming /
+// picking).
 void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
 {
     f32 ang = pG->Cam.param.fovy;

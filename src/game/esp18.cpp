@@ -1,3 +1,10 @@
+// game/esp18.cpp: effect id 0x18, the heat shimmer / radial blur sprite. Its trans copies the
+// frame buffer (temp buffer 1, or 2 with Tool_flg 0x1000) at half resolution and redraws the
+// sprite quad esp18_lp (8) times with the copy projected onto it, each layer a little more
+// scaled (blur_rate = -Vec0.x) and offset on a circle, alpha 1 / (i + 2), with the sprite's own
+// texture as an indirect-texture distortion map. Used for heat haze, explosions and the
+// underwater / poison screen wobble.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -33,11 +40,13 @@ void Esp18_Trans(cEsp18* esp);
 int GetDrawTmpBufType();       // game/TmpBuf.cpp (C++ linkage)
 extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
+// EspCreateTbl[0x18] factory.
 cEsp* Esp18_Create()
 {
     return new cEsp18;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp18::move()
 {
     if (CommonMove()) {
@@ -47,6 +56,7 @@ void cEsp18::move()
     }
 }
 
+// Remembers the spawn position and takes the blur strength from -Vec0.x.
 int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp18Work* w = &m_Free;
@@ -64,6 +74,10 @@ int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
     ((ESP_PARTS_SCREEN(esp) && !((esp)->m_Tool_flg & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->m_Tool_flg & 4)))
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 
+// EspTransTbl[0x18]: sprite matrix (screen ortho / camera-facing / rotated with Tool_flg bit0),
+// then per layer: copy the frame (first layer only), build the projective texture matrix with
+// the layer's scale and circular offset, bind the sprite texture as the indirect map, and draw
+// the quad with 2 TEV stages. Tool_flg 0x20000 doubles the indirect alpha. Restores the GX state.
 void Esp18_Trans(cEsp18* esp)
 {
     Esp18Work* w = &esp->m_Free;

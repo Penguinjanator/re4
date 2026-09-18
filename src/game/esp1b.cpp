@@ -1,3 +1,7 @@
+// game/esp1b.cpp: effect id 0x1B, a spline (curved ribbon) sprite. The generator's Vec0..Vec2 are
+// the curve control offsets (scaled by esp1b_scale), Work8[0] + 4 the number of points; the
+// geometry is built and drawn by Esp1b_SpTrans in esp_sub.cpp.
+
 #include "atari.h"
 #include "esp.h"
 
@@ -21,11 +25,13 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x1B] factory.
 cEsp* Esp1b_Create()
 {
     return new cEsp1b;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp1b::move()
 {
     if (CommonMove()) {
@@ -35,6 +41,8 @@ void cEsp1b::move()
     }
 }
 
+// Point count = Work8[0] + 4 clamped to 2..0x40 (out of range is reported), control vectors from
+// Vec0..Vec2 x esp1b_scale; sets m_Flg 0x10 (spline sprite) for the trans function.
 int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp1bWork* w = &m_Free;

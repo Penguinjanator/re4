@@ -1,3 +1,6 @@
+// game/esp4b.cpp: effect id 0x4B, a sprite frozen on one animation pattern: Work8[0] selects the
+// pattern (0xFF = random) and the animation is never advanced.
+
 #include "atari.h"
 #include "light.h"
 #include "rnd.h"
@@ -12,16 +15,20 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x4B] factory.
 cEsp* Esp4b_Create()
 {
     return new cEsp4b;
 }
 
+// Base motion/colour/life only; the pattern chosen at spawn stays.
 void cEsp4b::move()
 {
     CommonMove();
 }
 
+// Sets m_Ptn_no from Work8[0] (0xFF: random pattern of the texture animation). Fails (0) when the
+// texture id has no animation data or the pattern is out of range.
 int cEsp4b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     EspAnmData* anm;

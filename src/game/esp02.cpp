@@ -1,3 +1,8 @@
+// game/esp02.cpp: effect id 0x02, a one-segment ribbon (strip) sprite: a quad of length
+// Size_base_x along the effect's local -x and width Size_base_y, always turned to face the
+// camera, with the alpha fading as the segment points at the camera. When the effect leaves its
+// parent it keeps the parent matrix (ParMat) so its local motion stays in that frame.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -27,11 +32,15 @@ void EspStrip02_setup(cEsp02* esp);
 void esp02Trans_sub(cEsp02* esp);
 }
 
+// EspCreateTbl[0x02] factory.
 cEsp* Esp02_Create()
 {
     return new cEsp02;
 }
 
+// Own update (no position integration): captures the parent matrix on release, applies the scale
+// and colour fades and life, advances the animation and rebuilds m_Mat = ParMat * Rot(m_Ang) *
+// Trans(BasePos); m_Pos becomes the transformed base position.
 void cEsp02::move()
 {
     Esp02Work* w = &m_Free;
@@ -66,12 +75,15 @@ void cEsp02::move()
     }
 }
 
+// EspTransTbl[0x02]: GX setup then the strip geometry.
 extern "C" void Esp02_Trans(cEsp02* esp)
 {
     EspStrip02_setup(esp);
     esp02Trans_sub(esp);
 }
 
+// Builds the view-space matrix (view * parent * ParMat * local) into m_Mat, binds the texture
+// pattern, blend mode and vertex formats for the strip. Screen-mode Parts_no is an error.
 void EspStrip02_setup(cEsp02* esp)
 {
     Esp02Work* w = &esp->m_Free;
@@ -105,6 +117,9 @@ void EspStrip02_setup(cEsp02* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
 }
 
+// Builds the segment from the origin to -Size_base_x in m_Mat space, widens it by Size_base_y / 2
+// perpendicular to the view, sets the material colour with alpha x (1 - |dir.z|^8) and draws it
+// through EspStrip_draw_poly.
 void esp02Trans_sub(cEsp02* esp)
 {
     Vec dir;
@@ -177,6 +192,7 @@ void esp02Trans_sub(cEsp02* esp)
     }
 }
 
+// Records the base position and an identity ParMat; screen-mode Parts_no is rejected.
 int cEsp02::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp02Work* w = &m_Free;

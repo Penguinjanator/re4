@@ -36,6 +36,10 @@ static EmItemFunc EmItem_R1_move_tbl[5] = {
     emItem_R1_Break,
 };
 
+// Creates an item enemy (id 0x4C) from a model / TPL at pos / rot. type 0: a hanging pick-up
+// object (200 x 300 hit box) that drops to the floor when shot; type 1: a shootable medal
+// (100 x 200 x 10) tied to room etc flag `etcNo` (already collected when its bit0 is set -> starts
+// broken). Random swing phases / speeds are drawn for the medal rotation. NULL on failure.
 cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
 {
     cEmItem* em;
@@ -143,6 +147,9 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     return em;
 }
 
+// Damage check per frame: a damage volume hit (DmgMgr types 1/4/5/7) or a registered weapon hit
+// (not knife / grenades) knocks type 0 down (Rno1 3 Drop, spark est 0x57 at the hit) or breaks
+// the medal (Rno1 4 Break, its Eff_id est and SE 0x2E). Status 3 marks a weapon hit this frame.
 void emItemDmCk(cEmItem* em)
 {
     EmItemWork* w = EMITEM_WK(em);
@@ -227,6 +234,7 @@ void emItemDmCk(cEmItem* em)
     }
 }
 
+// Per-frame: damage check, clear the hit-box-only flag, run the Rno0 routine.
 void cEmItem::move()
 {
     emItemDmCk(this);
@@ -234,6 +242,7 @@ void cEmItem::move()
     EmItem_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: resets to the Set state (medals: MedalSet).
 void emItem_R0_Init(cEmItem* em)
 {
     if (em->type != 1) {
@@ -249,11 +258,13 @@ void emItem_R0_Init(cEmItem* em)
     }
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 MedalSet, 2 Parent, 3 Drop, 4 Break).
 void emItem_R0_Move(cEmItem* em)
 {
     EmItem_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: static object; builds the matrices once, then stays a hit-box-only work.
 void emItem_R1_Set(cEmItem* em)
 {
     if (em->r_no_2 == 0) {
@@ -267,6 +278,7 @@ void emItem_R1_Set(cEmItem* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 1: the medal in place: rebuilds the matrices every frame and applies the swing.
 void emItem_R1_MedalSet(cEmItem* em)
 {
     RotMatrix(em->mat, &em->ang);
@@ -277,6 +289,8 @@ void emItem_R1_MedalSet(cEmItem* em)
     emItemRotMove(em);
 }
 
+// Rno1 == 2: follows parts `partsNo` of pParent (setParent), re-normalising the rotation unless
+// noNormalize, plays its own motion when it has one, then applies the swing.
 void emItem_R1_Parent(cEmItem* em)
 {
     Mtx m;
@@ -338,6 +352,9 @@ void emItem_R1_Parent(cEmItem* em)
     emItemRotMove(em);
 }
 
+// Rno1 == 3: the shot object falls: Rno2 0 takes the world position from the matrix, 1 falls with
+// gravity 10/frame until the effect collision floor (Status 1 on landing), 2 rests as a hit-box-
+// only work.
 void emItem_R1_Drop(cEmItem* em)
 {
     EmItemWork* w = EMITEM_WK(em);
@@ -374,6 +391,8 @@ void emItem_R1_Drop(cEmItem* em)
     }
 }
 
+// Rno1 == 4: the medal is destroyed: hides the model, hp 0, Status 2, sets bit0 of its etc flag so
+// it stays collected; then hit-box-only.
 void emItem_R1_Break(cEmItem* em)
 {
     EmItemWork* w = EMITEM_WK(em);
@@ -395,6 +414,8 @@ void emItem_R1_Break(cEmItem* em)
     }
 }
 
+// Hit box by type: a cube around the object's centre (type 0) or, for the medal, a cylinder
+// placed 1000 below (type 1).
 void emItemYarareInit(cEmItem* em)
 {
     EmItemWork* w = EMITEM_WK(em);
@@ -410,16 +431,20 @@ void emItemYarareInit(cEmItem* em)
     }
 }
 
+// Est id spawned when the medal breaks.
 void cEmItem::setEff(u8 eff)
 {
     EMITEM_WK(this)->Eff_id = eff;
 }
 
+// Frame status: 1 landed, 2 broken, 3 hit by a weapon.
 int cEmItem::ckStatus()
 {
     return EMITEM_WK(this)->Status;
 }
 
+// Attaches the item to parts `partsNo` of `parent` (Rno1 2) and disables the parent's atari flag
+// 0x200 so shots reach the item.
 void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
 {
     EmItemWork* w = EMITEM_WK(this);
@@ -434,11 +459,14 @@ void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
     ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
+// Swing mode: 1 = medal swing on x/z with a y wobble, 2 = fixed rotation from ang, 0 = none.
 void cEmItem::setRotType(u8 type)
 {
     EMITEM_WK(this)->rotType = type;
 }
 
+// Applies the swing to parts 0: mode 1 rotates by sin(rotAng) * rotAmp per axis and advances
+// rotAng by rotSpd, mode 2 sets the parts rotation from em->ang.
 void emItemRotMove(cEmItem* em)
 {
     EmItemWork* w = EMITEM_WK(em);

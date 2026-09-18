@@ -1,3 +1,10 @@
+// game/esp08.cpp: effect id 0x08, a scrolling tiled texture sprite (water flow, fog sheets, energy
+// fields). The quad is covered by Div_x x Div_y (Work8[0..1] / 10 + 1) copies of the texture,
+// scrolled by Spd_x / Spd_y (prm 0xCC / 0xD0 x 0.001) per frame and drawn tile by tile so the
+// scroll wraps; Tool_flg 0x4000 adds a mask texture (Mask_type Work8[2]), Work8[3] fades the sprite
+// out while the player is in a weather-off area. Esp08_TransShimmer is the same tiling drawn
+// through the frame-buffer copy as a heat shimmer (used by EspCommonTransShimmer in esp_sub).
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -355,11 +362,15 @@ extern f32 ZFAR;
         GXSetVtxAttrFmt(0, 0xE, 1, 4, 0);                                                         \
     }
 
+// EspCreateTbl[0x08] factory.
 cEsp* Esp08_Create()
 {
     return new cEsp08;
 }
 
+// Base update / animation, advances the scroll offsets (wrapped to 0..1) and, with Room_del_frame,
+// fades the alpha toward 0 over that many frames while Status_flg[1] 0x02000000 (indoor area) is
+// set and back when it clears.
 void cEsp08::move()
 {
     Esp08Work* w = &m_Free;
@@ -406,6 +417,10 @@ void cEsp08::move()
     }
 }
 
+// EspTransTbl[0x08]: sprite matrix (screen ortho / camera-facing / rotated), texture (+ optional
+// mask on stage 1), then the ESP08_TILES grid: the wrapping corner tile, the wrapping column and
+// row, and the full grid of Div_x x Div_y quads with the scroll offset applied to the texture
+// coordinates.
 void Esp08_Trans(cEsp08* esp)
 {
     Esp08Work* w = &esp->m_Free;
@@ -762,6 +777,8 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     LightMgr.setFog();
 }
 
+// Repeat counts from Work8[0..1] (min 1), scroll speeds from prm 0xCC / 0xD0, indoor fade frames
+// Work8[3], mask type Work8[2] (0/1, else fails); remembers the initial alpha.
 int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp08Work* w = &m_Free;

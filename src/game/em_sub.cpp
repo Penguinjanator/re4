@@ -83,11 +83,13 @@ static inline void PSet(EmHitInfo*& d, EmHitInfo* v)
     d = v;
 }
 
+// Reference store helpers (see PSet above): keep the store after preceding loads in the target order.
 static inline void ISet(int& d, int v)
 {
     d = v;
 }
 
+// u16 store through a reference (same purpose as ISet).
 static inline void HSet(u16& d, int v)
 {
     d = v;
@@ -127,6 +129,8 @@ static inline cEm* emWork(u32 no)
     return (cEm*) ((u8*) m->pArray + m->size * no);
 }
 
+// Shared Rno0 routine of the object classes (emdoor / emrack tables): the "scenario" state where an
+// event script drives the object; just advances the current motion.
 void Em_R0_Scenario(cEm* em)
 {
     MotionMove(em, 0);
@@ -1935,6 +1939,7 @@ static int emYarareDead(f32 v)
     return v != 0.0;
 }
 
+// Runs the per-enemy scenario hook (em->pScenario) when the room event installed one.
 void EmScenario(cEm* em)
 {
     if (em->pScenario) {
@@ -1942,6 +1947,7 @@ void EmScenario(cEm* em)
     }
 }
 
+// LifeDownSet2 without the random spread: take `dmg` life from `em`, flag bit0 keeps 1 point.
 int LifeDownSet(cEm* em, int dmg, int flag)
 {
     return LifeDownSet2(em, dmg, flag, 0);
@@ -3209,6 +3215,10 @@ static inline void RandomHandgunAmmo(u32& num, int base, int big)
     }
 }
 
+// Random enemy drop table by enemy id: rolls whether enemy `id` drops anything (ganados ~20%
+// handgun ammo, then a ~60% chance of a table item with a "no drop" streak breaker No_drop_cnt;
+// flag bit0 forces a drop) and picks the item id / count from the ammo (GetBulletPoint) and
+// recovery (GetRecoveryPoint) point budgets. 1 and *outId / *outNum when something drops.
 int RandomItemCk(int id, int* outId, int* outNum, int flag)
 {
     u8 r;
@@ -3478,6 +3488,7 @@ int BullItemSetCk(Vec* pos, u16 id, int num)
     return 0;
 }
 
+// Sets the offset VehicleAdjust adds to positions on the bulldozer stage.
 void adjust_add_set(Vec* v)
 {
     adjust_add = *v;

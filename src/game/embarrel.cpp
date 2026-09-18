@@ -62,6 +62,9 @@ static inline const Vec* barrelLightOfs()
     return &ofs;
 }
 
+// Creates an explosive barrel enemy (id 0x48) from a model / TPL at pos / rot: type 0 / 2 the red
+// explosive barrels (a solid atari cylinder the player bumps into, 1000 hp, break state saved in
+// room etc flag `etcNo`), type 1 the rolling barrel layout. NULL on failure.
 cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 {
     cEmBarrel* em;
@@ -149,6 +152,8 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     return em;
 }
 
+// Room 227 only: creates the burning barrel (type 1) from the room archive models 0x20 / 0x21 and
+// starts it rolling (Rno1 2) with its own effect Core_kind. NULL outside room 227 or on failure.
 cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
 {
     cEmBarrel* em;
@@ -206,6 +211,9 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     return em;
 }
 
+// Explosive barrel damage check: a damage volume hit or any registered weapon hit (not knife /
+// grenades) blows the barrel up, with the break style from the weapon class (shotguns by
+// distance).
 void emBarrelDmCk(cEmBarrel* em)
 {
     u8 wep;
@@ -298,6 +306,9 @@ void emBarrelDmCk(cEmBarrel* em)
     }
 }
 
+// Rolling barrel damage check: a damage volume hit explodes it; a weapon hit takes damage by
+// weapon class (shotguns by distance) and explodes it when the hp is gone, else spawns the hit
+// est (owner 1, est 2).
 void emBarrelDmCk2(cEmBarrel* em)
 {
     EmHitInfo* part;
@@ -445,6 +456,10 @@ void emBarrelDmCk2(cEmBarrel* em)
     }
 }
 
+// Destroys the barrel: hp 0, hidden, rolling SE stopped; explosive barrels run the blast
+// (emBarrelSetBomb), the rolling barrel deletes its fire effects and either bursts with the
+// smaller blast (when it was the burning variant, est 1/5) or just breaks (est 1/6). Then
+// Rno1 1 Break.
 void emBarrelSetBreak(cEmBarrel* em, int kind)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -475,6 +490,10 @@ void emBarrelSetBreak(cEmBarrel* em, int kind)
     em->r_no_3 = 0;
 }
 
+// Per-frame: the type's damage check, the Rno0 routine, then while live the model-vs-player
+// atari, the effect collision quad, and the delayed blast: Bomb_wait counts down to a
+// PlWepHitCheck2 explosion (type 0x13) of radius Bomb_r at Bomb_pos (Status_flg[0] 0x00800000
+// marks a barrel explosion this frame).
 void cEmBarrel::move()
 {
     EmBarrelWork* w = EMBARREL_WK(this);
@@ -500,6 +519,7 @@ void cEmBarrel::move()
     }
 }
 
+// Rno0 == 0: resets to the Set state.
 void emBarrel_R0_Init(cEmBarrel* em)
 {
     em->r_no_0 = 1;
@@ -508,11 +528,13 @@ void emBarrel_R0_Init(cEmBarrel* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Break, 2 R227Roll).
 void emBarrel_R0_Move(cEmBarrel* em)
 {
     EmBarrel_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: intact barrel; builds the matrices once, then stays a hit-box-only work.
 void emBarrel_R1_Set(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -529,6 +551,8 @@ void emBarrel_R1_Set(cEmBarrel* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 1: destroyed; on entry saves the etc flag (types 0 / 2), hides, drops the atari and
+// ACTIVE; the rolling barrel destroys its work after 10 frames.
 void emBarrel_R1_Break(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -558,6 +582,11 @@ void emBarrel_R1_Break(cEmBarrel* em)
     }
 }
 
+// Rno1 == 2: the room 227 barrel rolls down the EMI route (type 6 entries): Rno2 0 finds the
+// route (one in four barrels burns and loops the fire SE), then each frame steers toward the next
+// waypoint, falls with gravity 10 and bounces on the floor (dust est / SE on hard bounces), turns
+// and spins with the travelled distance, runs the player over (emBarrelRollHitCk -> explode) or
+// kills ganados in its path; the route end or a lost route destroys it.
 void emBarrel_R1_R227Roll(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -647,6 +676,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
     }
 }
 
+// Finds the first EMI route entry of type 6 as the roll start waypoint; 0 when there is none.
 int emBarrelSetRollRoute(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -679,6 +709,8 @@ int emBarrelSetRollRoute(cEmBarrel* em)
     return 1;
 }
 
+// Steers the roll: when within 500 units of the waypoint advances to the next type-6 entry
+// (1 = route finished), then points Roll_spd (50..150 units / frame, accelerating by 1) at it.
 int emBarrelSetRollSpd(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -733,6 +765,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
     return 0;
 }
 
+// Est id of the explosion.
 void cEmBarrel::setEff(u8 eff)
 {
     EmBarrelWork* w = EMBARREL_WK(this);
@@ -740,6 +773,9 @@ void cEmBarrel::setEff(u8 eff)
     w->Eff_id = eff;
 }
 
+// The explosion: hides the barrel, plays the type's blast SE (room 404 has its own), spawns est
+// Eff_id, schedules the 6000 radius damage check 2 frames later at pos + 500 y and shakes the
+// camera with a power falling off with distance (10 .. 4 within 20000 units).
 void emBarrelSetBomb(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -793,6 +829,8 @@ void emBarrelSetBomb(cEmBarrel* em)
     }
 }
 
+// The smaller blast of the burning rolling barrel: same as emBarrelSetBomb without the est and
+// with a 4000 radius damage check.
 void emBarrelSetBomb2(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -841,6 +879,8 @@ void emBarrelSetBomb2(cEmBarrel* em)
     }
 }
 
+// Keeps an intact explosive barrel's effect collision quad (660 wide, 1250 high, attribute
+// 0x400000) at its position; the rolling barrel has none.
 void emBarrelEatSet(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
@@ -877,6 +917,9 @@ void emBarrelEatSet(cEmBarrel* em)
     }
 }
 
+// Rolling barrel vs player: when the live player stands inside the barrel's box (2500 x 700 x
+// 1400 in barrel space) takes 600 life, starts damage motion 8, vibrates and shakes the camera;
+// returns 1 (the barrel then explodes).
 int emBarrelRollHitCk(cEmBarrel* em)
 {
     Mtx inv;
@@ -920,6 +963,8 @@ int emBarrelRollHitCk(cEmBarrel* em)
     return 1;
 }
 
+// Rolling barrel vs enemies: every live ganado (ids 0x10..0x20) inside the barrel's box is killed
+// outright (hp 0, Rno0 3 / Rno1 4 death routine).
 void emBarrelRunDownCk(cEmBarrel* em)
 {
     Mtx inv;

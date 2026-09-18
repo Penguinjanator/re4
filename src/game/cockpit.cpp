@@ -1,4 +1,8 @@
-// game/cockpit: HUD (life meter, bullet counter, count-down, action button) (D:/Bio4/Prog/cockpit.cpp).
+// game/cockpit.cpp: the in-game HUD (Cckpt): the life meter (player and partner, with the
+// green / yellow / red colour templates), the ammo counter with the bullet type icon, the
+// count-down timer of the timed sections and the action button icon. Everything is drawn
+// through id sprites (IdSys); the cockpit only updates their textures, colours and rotations.
+// Original source: D:/Bio4/Prog/cockpit.cpp.
 #include "types.h"
 #include "global.h"
 #include "atari.h"
@@ -29,11 +33,14 @@ int g_boss_bar_flag = 0;
 
 static int dispBulletDigit(u8 no);
 
+// Game start: resets the id (HUD sprite) system.
 void Cockpit::gameInit()
 {
     IdSys.roomInit();
 }
 
+// Room start: resets the id system, creates the HUD frame ids (ID_FRAME) and the sub-displays,
+// kills a leftover message window.
 void Cockpit::roomInit()
 {
     IdSys.roomInit();
@@ -47,6 +54,8 @@ void Cockpit::roomInit()
     countDown.roomInit();
 }
 
+// Per-frame HUD update: life meter, bullet counter, count-down and action button when the HUD
+// is created (ID_LIFE set).
 void Cockpit::move()
 {
     if ((s32) pG->Debug_flg[0] < 0 && !(pG->Debug_flg[0] & 0x02000000)) {
@@ -62,6 +71,7 @@ void Cockpit::move()
     }
 }
 
+// mode 1 shows the message window backdrop ids (ID_MSG), 0 removes them.
 void Cockpit::msgWindow(int mode)
 {
     switch (mode) {
@@ -76,6 +86,7 @@ void Cockpit::msgWindow(int mode)
     }
 }
 
+// Shows (1) or hides (0) the life meter ids.
 void Cockpit::lifeMeterDisp(int sw)
 {
     switch (sw) {
@@ -102,11 +113,15 @@ static f32 a_ratio = 0.9f;
 // after every store (the original reloads it per statement); a plain v[i] hoists it out of the loop
 // and a reference parameter turns the address into a stepping pointer.
 #define FIDX(p, i) (*(f32*) ((u8*) (p) + (i) * 4))
+// Moves colour component i of v one step toward the target t (smoothed colour changes).
 static inline void approachIdx(f32* v, f32* t, int i)
 {
     FIDX(v, i) = a_ratio * FIDX(v, i) + (1.0f - a_ratio) * t[i];
 }
 
+// Creates the life meter ids (player, and the partner's when Ashley is present), reads the
+// colour templates (units 0x0F..0x11: fine / caution / danger) and starts the smoothed values at
+// the current life.
 void LifeMeter::roomInit()
 {
     IdUnit* u;
@@ -163,6 +178,10 @@ void LifeMeter::roomInit()
 #define METER_ANGLE(lv, max, range, base) ((f32) (lv) * (range) / (max) + (base))
 #define METER_ROT(base, rate, lo) ((base) - ((rate) - (lo)) * 45.0f)
 
+// Per-frame: hides / shows the partner meter, computes the life levels (20 segments for the
+// player from pl_life_max, 5 for the partner), turns the meter needles by the smoothed life
+// ratio, picks the colour template by life level (green / yellow / red) and eases the meter
+// colours toward it, then writes them into the meter ids.
 void LifeMeter::move()
 {
     f32 a[4];
@@ -391,6 +410,7 @@ void LifeMeter::move()
     }
 }
 
+// Stops (sw 0) or restarts (sw 1) the meter's id animation timer.
 void LifeMeter::fix(int sw)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
@@ -408,6 +428,7 @@ void LifeMeter::fix(int sw)
     }
 }
 
+// Shows (1) / hides (0) the meter root id.
 void LifeMeter::disp(int sw)
 {
     IdUnit* u;
@@ -426,6 +447,7 @@ void LifeMeter::disp(int sw)
     }
 }
 
+// Starts the meter's slide-out animation (rev_flag) when the HUD leaves.
 void LifeMeter::frameOut()
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
@@ -434,6 +456,7 @@ void LifeMeter::frameOut()
     u->be_flag |= 8;
 }
 
+// Starts the meter's slide-in animation.
 void LifeMeter::frameIn()
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
@@ -452,6 +475,8 @@ void ActionButton::roomInit()
     no = 0;
 }
 
+// Per-frame: when the prompt button `no` (set by ActBtn) changed, rebuilds the action button ids
+// (frame + the icon for A / B / X / Y / L / R / Z / stick...).
 void ActionButton::move()
 {
     if (no != m_disp_flag_old) {
@@ -521,6 +546,9 @@ void BulletInfo::roomInit()
     markNo = -1;
 }
 
+// Per-frame ammo display: the equipped weapon's loaded count as three digit ids (leading zeros
+// hidden; the "empty" id when 0), and the bullet type icon (ID_BULLET) for the weapon, parented
+// to the HUD frame; hidden for weapons without a counter (knife, infinite launchers).
 void BulletInfo::move()
 {
     u8 digit[3];
@@ -600,6 +628,8 @@ void BulletInfo::move()
     }
 }
 
+// 1 when weapon number `no` shows an ammo count (guns), 0 for the knife / thrown / special
+// weapons and while the player is in the no-weapon states.
 static int dispBulletDigit(u8 no)
 {
     if (pG->pl_type == 1) {
@@ -639,6 +669,8 @@ static int dispBulletDigit(u8 no)
     return 0;
 }
 
+// Bullet icon (ID_BULLET id) for weapon number `no`: handgun / shotgun / rifle / magnum / TMP /
+// launcher / mine... ammo pictures; 0xFF none.
 u8 dispBulletIconMarkNo(u8 no)
 {
     if (pG->pl_type == 1) {
@@ -708,6 +740,7 @@ struct Digits {
     u8 lo;
 };
 
+// d += v through a reference (keeps the load / store order of the original).
 static inline void U32Add(u32& d, u32 v)
 {
     d += v;
@@ -719,6 +752,11 @@ static inline u32 chkFlag5014(u32 b)
     return pG->Status_flg[2] & b;
 }
 
+// Per-frame count-down (mercenaries / timed events): pauses during events / stops, adds the
+// bonus seconds queued in pG->cdown_add_sec, counts m_frame down (unless Debug_flg[1] 0x10000
+// or Status_flg[0] 0x40000 freeze it), switches the digits to the warning colour below
+// m_warn_frame, and writes minutes / seconds / hundredths into the digit ids (the hundredths
+// jitter through a small table so they look busy).
 void CountDown::move()
 {
     f32 tbl[6] = {0.0f, 1.0f, -1.0f, 0.0f, 1.5f, -0.5f};
@@ -818,6 +856,7 @@ void CountDown::move()
     p->tex_flag |= 2;
 }
 
+// Shows (1) / hides (0) the count-down ids (m_state bit4 = hidden).
 void CountDown::disp(int sw)
 {
     IdUnit* u;
@@ -838,6 +877,7 @@ void CountDown::disp(int sw)
     }
 }
 
+// Slide-in animation of the count-down frame (30 frames).
 void CountDown::frameIn()
 {
     IdUnit* u = IdSys.unitPtr(0x10, ID_CDOWN);
@@ -847,6 +887,7 @@ void CountDown::frameIn()
     IdSys.setTime(u, 0x1E);
 }
 
+// Slide-out animation of the count-down frame.
 void CountDown::frameOut()
 {
     IdSys.unitPtr(0x10, ID_CDOWN)->rev_flag |= 0xF;
@@ -854,6 +895,7 @@ void CountDown::frameOut()
 
 #define TIME_FRAME(m, s, c) ((u32) ((((f32) (m) * 60.0f + (f32) (s)) * 100.0f + (f32) (c)) * 3.0f / 10.0f + 0.5f))
 
+// Sets the remaining time from minutes / seconds / hundredths and starts the count-down.
 void CountDown::initTime(int m, int s, int c)
 {
     IdUnit* u;
@@ -870,11 +912,13 @@ void CountDown::initTime(int m, int s, int c)
     u->col0[3] = 0xFF;
 }
 
+// Sets the remaining time in frames (30 / s).
 void CountDown::initTimeFrame(u32 f)
 {
     m_frame = f;
 }
 
+// The remaining time below which the digits turn to the warning colour.
 void CountDown::warnTime(int m, int s, int c)
 {
     m_warn_frame = TIME_FRAME(m, s, c);
@@ -886,6 +930,7 @@ static u32 cockpit_dead_time(int m, int s, int c)
     return TIME_FRAME(m, s, c);
 }
 
+// Current minutes / seconds / hundredths.
 void CountDown::getTime(int* m, int* s, int* c)
 {
     *m = m_minute;
@@ -893,11 +938,13 @@ void CountDown::getTime(int* m, int* s, int* c)
     *c = cs;
 }
 
+// Remaining frames.
 u32 CountDown::getFrame()
 {
     return m_frame;
 }
 
+// Saves the display state (before an event hides the HUD).
 void CountDown::saveDisp()
 {
     int run;
@@ -912,6 +959,7 @@ void CountDown::saveDisp()
     }
 }
 
+// Restores the saved display state.
 void CountDown::loadDisp()
 {
     int run = 1;

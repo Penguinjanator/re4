@@ -1,3 +1,10 @@
+// game/esp0c.cpp: effect id 0x0C, an est (effect set) spawner. It never draws: on its first move
+// it starts est id Work8[1] of owner Work8[0] at its position (or the water variant prm 0xD3 /
+// 0xCF when the point was raised onto the water surface) with a control block that adds the
+// sprite's speed and multiplies size (x 0.005) and colour, then releases itself. Work8[2] snaps
+// the position to the floor (1) or floor / water (2); Work8[3] == 1 discards points inside the
+// room's effect area.
+
 #include "atari.h"
 #include "light.h"
 #include "main_mem.h"
@@ -34,11 +41,15 @@ public:
 
 extern "C" int EffAreaCheckInRoom(Vec* pos);
 
+// EspCreateTbl[0x0C] factory.
 cEsp* Esp0c_Create()
 {
     return new cEsp0c;
 }
 
+// First (and only) update: builds the ESPSEQ_CONTROL (Add_flg speed, Mul_flg size + colour) from
+// the sprite's own parameters, calls EstSet with the normal or on-water est owner/id, and pushes
+// itself.
 void cEsp0c::move()
 {
     Esp0cWork* w = &m_Free;
@@ -62,11 +73,14 @@ void cEsp0c::move()
     PushEsp(this);
 }
 
+// EspTransTbl[0x0C]: never expected to run (the effect dies in its first move); logs an error.
 extern "C" void Esp0c_Trans(cEsp* esp)
 {
     pLog->err(0, 0, "ESP0C : Invalid Trans.");
 }
 
+// Reads the est owner/id pairs, detaches from the parent into world space, applies the Work8[2]
+// floor / water snap (+65 units, + Vec0.y) and the Work8[3] in-room check; unknown modes fail.
 int cEsp0c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0cWork* w = &m_Free;

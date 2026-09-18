@@ -41,6 +41,10 @@ EmRackFunc EmRack_R1_move_tbl[4] = {
     emRack_R1_Shock,
 };
 
+// Creates a rack enemy (id 0x45) from a model / TPL at pos / rot. type 0 shelf, 1 tall shelf
+// (2000 high, extra hit boxes, can be pushed over), 2 / 3 / 5 pillars and posts, 4 the large
+// wardrobe (breaks with a scenario Rno). 1000 hp; tied to room etc flag `etcNo` (bit0 = already
+// down / broken -> starts in Break with Rno3 4, no effects). NULL on failure.
 cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 {
     cEmRack* em;
@@ -156,6 +160,11 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     return em;
 }
 
+// Damage check: a damage volume hit breaks types 0 / 1; a registered weapon hit (not knife /
+// grenades, and only when the rack's flag bit31 is clear) either spawns the hit est (types
+// without breakage), knocks a shelf plank off (parts scaled to 0), breaks the rack (heavy /
+// explosive weapons, or a close shotgun blast: Rno1 2 with the style in Rno3), or for handgun /
+// knife hits topples it toward the hit position (setDown).
 void emRackDmCk(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -304,6 +313,8 @@ void emRackDmCk(cEmRack* em)
     }
 }
 
+// Per-frame: damage check, the Rno0 routine (0 Init, 1 Move, 4 scenario), the model-vs-player
+// atari while intact, and the effect collision quads.
 void cEmRack::move()
 {
     emRackDmCk(this);
@@ -315,6 +326,7 @@ void cEmRack::move()
     emRackSatSet(this);
 }
 
+// Rno0 == 0: resets to the Set state.
 void emRack_R0_Init(cEmRack* em)
 {
     em->r_no_0 = 1;
@@ -323,11 +335,14 @@ void emRack_R0_Init(cEmRack* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Down, 2 Break, 3 Shock).
 void emRack_R0_Move(cEmRack* em)
 {
     EmRack_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: standing rack; when its motion crosses frame 2 (the push motion) spawns the dust est
+// (5, or 7 for the tall shelf), then updates the matrices.
 void emRack_R1_Set(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -344,6 +359,8 @@ void emRack_R1_Set(cEmRack* em)
     em->matUpdate();
 }
 
+// Rno1 == 1: topples over: rotates parts 0 about x or z (direction Rno3 0..3) with growing speed
+// until 72 degrees, then Rno1 2 Break with style 1.
 void emRack_R1_Down(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -401,6 +418,9 @@ void emRack_R1_Down(cEmRack* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: broken / fallen; on entry hides the model, sets bit0 of the etc flag, spawns the break
+// est chosen by Rno3 (0 shot, 1 fell, 2 explosion, 3 shotgun, 4 silent restore, 5 wardrobe
+// script) with the crash SE, and disables the collision.
 void emRack_R1_Break(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -480,6 +500,8 @@ void emRack_R1_Break(cEmRack* em)
     }
 }
 
+// Rno1 == 3: kicked: takes 50 hp (never below 1), plays the rattle SE and shakes parts 0 for 7
+// frames, then back to Set.
 void emRack_R1_Shock(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -518,6 +540,9 @@ void emRack_R1_Shock(cEmRack* em)
     em->partsWorldCalc();
 }
 
+// Keeps the rack's effect collision (EatMgr quads, attribute 0x400000) in place while intact and
+// the player is within 15000 units: one quad of the rack's footprint and, for the tall shelf,
+// two more shelves at 1000 / 1500 height. Also enables the atari flag 0x200 (blocks the player).
 void emRackSatSet(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -590,6 +615,7 @@ void emRackSatSet(cEmRack* em)
     }
 }
 
+// Deactivates the rack's collision quads and the atari blocking flag.
 void emRackSatClear(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -606,6 +632,8 @@ void emRackSatClear(cEmRack* em)
     }
 }
 
+// Hit boxes by type: the body cube; the tall shelf adds the top board, both sides and an inner
+// cube (parts 2); pillars use flag 0x41 boxes.
 void emRackYarareInit(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
@@ -635,6 +663,7 @@ void emRackYarareInit(cEmRack* em)
     }
 }
 
+// Script entry: breaks the rack (wardrobe type 4 with its own style 5).
 void cEmRack::setBreak()
 {
     if (type == 4) {
@@ -650,6 +679,9 @@ void cEmRack::setBreak()
     }
 }
 
+// Topples an intact rack away from `target` (player / hit position): picks the fall axis from the
+// angle (front / back / left / right); only the tall shelf actually falls (Rno1 1), others break
+// at once.
 void cEmRack::setDown(Vec* target)
 {
     f32 ang;
@@ -683,6 +715,7 @@ void cEmRack::setDown(Vec* target)
     }
 }
 
+// Script / kick entry: the shake reaction (Rno1 3).
 void cEmRack::setShock()
 {
     r_no_0 = 1;
@@ -691,6 +724,7 @@ void cEmRack::setShock()
     r_no_3 = 0;
 }
 
+// Est id used for the hit / break / dust effects.
 void cEmRack::setEff(u8 eff)
 {
     EmRackWork* w = EMRACK_WK(this);
@@ -698,6 +732,8 @@ void cEmRack::setEff(u8 eff)
     w->eff = eff;
 }
 
+// Defines how far the rack may be pushed from its start position in its local north / east /
+// south / west directions (negative = 0) and enables the range clamp (rackFlags 0x10).
 void cEmRack::setRange(f32 n, f32 e, f32 s, f32 w)
 {
     RotMatrix(rackMat, &ang);
@@ -726,6 +762,8 @@ void cEmRack::setRange(f32 n, f32 e, f32 s, f32 w)
     rackFlags |= 0x10;
 }
 
+// Player push (pl_push): clamps pos to the push range in direction `dir` (0 south, 1 east, 2
+// north, 3 west, in rack space); 1 when the rack was stopped at its limit.
 int cEmRack::adjustRange(u8 dir)
 {
     Vec v;

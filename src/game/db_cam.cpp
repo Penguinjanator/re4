@@ -1,3 +1,9 @@
+// game/db_cam.cpp: the debug camera tool (CamDbg), driven from CameraMove with pad 1. Any input
+// takes the camera away from the game (Debug_flg[0] 0x10000000, B gives it back); two control
+// layouts orbit / dolly / zoom it, A snaps the target onto the selected enemy / object / player,
+// Z opens a menu with pages for debug flags, camera cut playback, hit display switches and the
+// shoulder camera offset editor (adjust_qFPS, shared with the t_camera tool).
+
 #include "types.h"
 #include "vec.h"
 #include "atari.h"
@@ -94,6 +100,11 @@ static inline void getColumn(Mtx m, int c, Vec* v)
     (m)[0][2] = (c2).x; (m)[1][2] = (c2).y; (m)[2][2] = (c2).z;                               \
     (m)[0][3] = (c3).x; (m)[1][3] = (c3).y; (m)[2][3] = (c3).z
 
+// Per-frame: Z toggles the menu (pauses the debug page), the menu page runs when open; otherwise
+// input claims the camera (Debug_flg[0] 0x10000000, B releases unless `flag` bit0), the target
+// type (EM / OBJ / PL / ORG) with A snaps the look-at to the selected work (Left / Right pick it,
+// R + A steps its motion), the layout's control routine runs, and the camera info / target cross
+// are drawn.
 void debugCamera::move(Camera* cam, JOY* joy, int flag)
 {
     static void (debugCamera::*camera_type_tbl[4])(Camera*, JOY*) = {
@@ -303,6 +314,9 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     }
 }
 
+// Layout 0: L / R zoom (distance, or the ortho extents), main stick orbits the target, D-pad
+// (+X) dollies forward / back / up / down along the camera or world axes, C-stick turns the
+// camera in place. All scaled by m_move_gain.
 void debugCamera::camera_type_00(Camera* cam, JOY* joy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
@@ -398,6 +412,7 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     }
 }
 
+// Layout 1: L / R zoom, C-stick dollies sideways / up, main stick orbits the target.
 void debugCamera::camera_type_01(Camera* cam, JOY* joy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
@@ -455,6 +470,9 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
     }
 }
 
+// The Z menu: runs the current page (0 flags, 1 camera cuts, 2 hit display, 3 shoulder adjust),
+// L / R change pages, and applies the CAMERA MODE selection (0 area cameras .. 5 bird's eye) to
+// the camera controller when it changes.
 void debugCamera::menu(Camera* cam, JOY* joy)
 {
     static int (debugCamera::*sel0_menu_tbl[4])(JOY*) = {
@@ -570,6 +588,8 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     old_cam_mode = m_cam_mode;
 }
 
+// Page 1: pick a camera cut number and area with the D-pad, A plays it (CutCall), X toggles
+// its area on / off; prints the current area / camera numbers. -1 closes the menu (B).
 int debugCamera::menuCamera(JOY* joy)
 {
     static const char* str[4] = {"Roll", "FOVy", "Gain", "Play"};
@@ -694,6 +714,8 @@ int debugCamera::menuCamera(JOY* joy)
     return 0;
 }
 
+// Page 0: a list of debug switches (camera lock, target type, info display, axis mode, rail
+// display, camera mode...) toggled with Left / Right on the selected line.
 int debugCamera::menuFlag(JOY* joy)
 {
     static const char* menu_str[7] = {"DBG_DBG_CAM", "KEY TYPE", "TARGET SEARCH", "INFO_DISP",
@@ -858,6 +880,8 @@ int debugCamera::menuFlag(JOY* joy)
     return 0;
 }
 
+// Page 2: the collision display switches (Debug_flg[0] bits: scenery polygons, hit boxes,
+// bodies, effect collision) toggled per line.
 int debugCamera::menuHitDisp(JOY* joy)
 {
     static int view_mode = 0;
@@ -934,6 +958,7 @@ int debugCamera::menuHitDisp(JOY* joy)
     return 0;
 }
 
+// Page 3: the shoulder camera offset editor (adjust_qFPS at 240 / 294).
 int debugCamera::menuAdjust(JOY* joy)
 {
     static void (debugCamera::*camera_type_tbl[4])(Camera*, JOY*) = {
@@ -974,6 +999,8 @@ int debugCamera::menuAdjust(JOY* joy)
     return ret;
 }
 
+// Draws the target cross at the camera's look-at point (red, green up) while the draw timer
+// runs.
 void CameraDrawTarget(Camera* cam, int flag)
 {
     Vec v[2];
@@ -1057,6 +1084,8 @@ void CameraDrawTarget(Camera* cam, int flag)
 #undef b
 }
 
+// Debug text: the game camera and the debug camera pos / target / roll / fov, and the target
+// cross; only with the info display on.
 void CameraDebugInformation()
 {
     CameraControl* cc = &CamCtrl;
@@ -1074,6 +1103,8 @@ void CameraDebugInformation()
     eprintf(176, 378, 0, 15, "FOVy : %.2f", cam->param.fovy);
 }
 
+// Maps a stick / dolly vector given in camera axes onto the world XZ plane (camera right and the
+// horizontal part of forward) with the y kept.
 void moveOnPlaneXZ(Vec* in, Vec* out)
 {
     Camera* cam = &pG->Cam;
@@ -1124,6 +1155,7 @@ void moveOnPlaneXZ(Vec* in, Vec* out)
     }
 }
 
+// Draws a reference grid on the ground plane (1000 or 10000 unit cells) with the axes in white.
 void drawGround(int big)
 {
     const f32 unit = 1000.0f;
@@ -1178,6 +1210,12 @@ void drawGround(int big)
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
 }
 
+// The shoulder camera offset editor: a menu (Select Site, Symmetry, Follow Grnd, Fovy, Reset)
+// over the 2 x 3 (left / right x up / mid / down) ready and transition offset tables; the stick
+// moves the selected site's camera / close / target points in player space (mirrored to the
+// other side with Symmetry), edits go into the area override tables through
+// CameraQuasiFPS::setAreaData. flag bit0 resets the editor state. Returns 1 while a value was
+// changed, -1 on exit.
 int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
 {
     static const char* menu_str[5] = {"Select Site", "Symmetry", "Follow Grnd", "Fovy", "Reset"};

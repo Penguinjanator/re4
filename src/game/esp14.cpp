@@ -1,3 +1,8 @@
+// game/esp14.cpp: effect id 0x14, a vertical light shaft sprite. Each frame the beam is turned to
+// face the camera about the vertical axis and its length is stretched with the horizontal camera
+// distance (Work8[0] x 0.05 + 0.25 per unit), damped by the eighth power of the view elevation,
+// and clipped to an x/z box (Vec0 half extents around -Vec1) so it never leaves its room.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -20,11 +25,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x14] factory.
 cEsp* Esp14_Create()
 {
     return new cEsp14;
 }
 
+// Texture animation only (no base motion); sets m_Ang to face the camera, m_Size_base_y = len *
+// Mul * (1 - |sin elevation|)^8 + Base_y, shortens it where the beam end would cross the clip
+// box, and marks the effect as never Z-culled (huge m_Radius, m_Flg bit1).
 void cEsp14::move()
 {
     Esp14Work* w = &m_Free;
@@ -105,6 +114,8 @@ void cEsp14::move()
     }
 }
 
+// Length factor from Work8[0], clip box from Vec0 (extents) and Vec1 (centre offset); fails when
+// the box is inconsistent or has a y component. Sets Tool_flg bit0.
 int cEsp14::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp14Work* w = &m_Free;

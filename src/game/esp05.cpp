@@ -1,3 +1,7 @@
+// game/esp05.cpp: effect id 0x05, a fluttering sprite (falling leaf, feather, ash): the position
+// wobbles by Pow (Vec0.x) along sin / cos of a random phase advanced by Spd (Vec0.y x 0.05) with
+// random speed jitter; Vec0.z randomises both by up to 10% per unit.
+
 #include "light.h"
 #include "atari.h"
 #include "math_sub.h"
@@ -19,11 +23,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x05] factory.
 cEsp* Esp05_Create()
 {
     return new cEsp05;
 }
 
+// Base update, then the wobble: x by Pow sin(Theta), z by Pow cos(1.7 Theta), y by 0.3 Pow
+// cos(1.9 Theta), Theta advancing by Spd x (0.2 .. 1.2). Released when the animation ends.
 void cEsp05::move()
 {
     Esp05Work* w = &m_Free;
@@ -39,6 +46,7 @@ void cEsp05::move()
     }
 }
 
+// Amplitude / speed from Vec0.x / Vec0.y (x 0.05), each randomised by Vec0.z x 10%, random phase.
 int cEsp05::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp05Work* w = &m_Free;

@@ -1,4 +1,8 @@
-// game/emdata.cpp: enemy effect data swap (per enemy id effect data slot).
+// game/emdata.cpp: enemy effect data swap. Each enemy module (em1x..em3x) carries an ".EFF" file
+// registered under an effect owner id (owner_name_tbl EM10.., GetEmEffId maps the enemy id to
+// it). Room events that temporarily need the effect tables for other data call
+// EspEmDataSwapPush to release an enemy's effect data and EspEmDataSwapPop to re-register it
+// from the module archive afterwards.
 
 #include "atari.h"
 #include "light.h"
@@ -18,6 +22,8 @@ void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 }
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
+// Effect owner id of enemy module `id` (enemy 0x11..0x20 -> EM10 owner 0x10, 0x2B -> 0x23, ...);
+// -1 with an error for enemies without effect data.
 int GetEmEffId(int id)
 {
     int ret = -1;
@@ -69,6 +75,7 @@ int GetEmEffId(int id)
     return ret;
 }
 
+// Releases (reference-counted) the effect data registered by enemy `id`'s module.
 void EspEmDataSwapPush(int id)
 {
     int eff = GetEmEffId(id);
@@ -80,6 +87,7 @@ void EspEmDataSwapPush(int id)
     }
 }
 
+// Re-registers enemy `id`'s effect data from the "EFF" entry of its module archive.
 void EspEmDataSwapPop(int id)
 {
     int eff = GetEmEffId(id);

@@ -243,6 +243,7 @@ static cEtcTbl g_EtcTbl[0x40];
 u32 g_Etc_das_addr[0x68];
 
 
+// Debug: prints each live etc model's list number at its screen position.
 void EtcModelDebugDisp()
 {
     cEtcTbl* t = g_EtcTbl;   // the dead initializer keeps `&g_EtcTbl` live past the loop pointer's init (`mr r31, r9`)
@@ -262,6 +263,8 @@ void EtcModelDebugDisp()
     }
 }
 
+// The etc model in slot `no` when it has etc id `id`: 1 and *out; 0 (an error when flag == 1)
+// for an empty slot or another id.
 int getRoomEtc(int no, int id, cEm** out, int flag)
 {
     cEtcTbl* t = &g_EtcTbl[no];
@@ -283,6 +286,7 @@ int getRoomEtc(int no, int id, cEm** out, int flag)
     return 1;
 }
 
+// The etc model in slot `no` whatever its id; 0 (error when flag) for an empty slot.
 int getRoomEtc2(int no, cEm** out, int flag)
 {
     cEtcTbl* t = &g_EtcTbl[no];
@@ -298,6 +302,7 @@ int getRoomEtc2(int no, cEm** out, int flag)
     return 1;
 }
 
+// Etc id of slot `no`; 0x68 (none) with an error for an empty slot.
 int getRoomEtcID(int no)
 {
     cEtcTbl* t = &g_EtcTbl[no];
@@ -309,6 +314,8 @@ int getRoomEtcID(int no)
     return t->pData->id;
 }
 
+// Data of file `name` in an etc archive (linear search of the file headers); NULL with an error
+// when missing.
 void* GetEtcAddr(void* arc, const char* name)
 {
     EtcArc* a = (EtcArc*) arc;
@@ -325,6 +332,7 @@ void* GetEtcAddr(void* arc, const char* name)
     return 0;
 }
 
+// Boot: clears the 64 slots, the per-id archive table and the list bookkeeping.
 void EtcModelInit()
 {
     int i;
@@ -342,6 +350,7 @@ void EtcModelInit()
     g_addr = 0;
 }
 
+// Room start: same reset (the room's etc models are re-created from its list).
 void EtcModelRoomInit()
 {
     int i;
@@ -359,6 +368,7 @@ void EtcModelRoomInit()
     g_addr = 0;
 }
 
+// Installs the room's etc archive table (per etc id); disabled by Debug_flg[3] 0x800.
 int EtcModelDataLoad(void* addr)
 {
     if (pG->Debug_flg[3] & 0x800) {
@@ -368,11 +378,13 @@ int EtcModelDataLoad(void* addr)
     return 1;
 }
 
+// Highest slot number the room list created.
 int EtcModelGetLastNo()
 {
     return g_LastNo;
 }
 
+// Creates every record of the room's etc list (EtcModelSet) and remembers the highest slot.
 int EtcModelListSet(EtcList* list)
 {
     EtcSetData* d;
@@ -392,6 +404,8 @@ int EtcModelListSet(EtcList* list)
     return 1;
 }
 
+// Etc id 01: creates a box enemy (cEmBox) box type 0 from et0100.bin with effect data et01.eff,
+// effect owner 0x55. d->type is the etc flag number; 1 on success.
 int Et01_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -415,6 +429,8 @@ int Et01_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 02: creates a box enemy (cEmBox) box type 1 from et0200.bin with effect data et02.eff,
+// effect owner 0x56. d->type is the etc flag number; 1 on success.
 int Et02_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -438,6 +454,8 @@ int Et02_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 03: creates a door enemy (cEmDoor) door type 0 from et0300.bin with effect data et03.eff,
+// obm2b.eff, effect owner 0x57; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et03_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -463,6 +481,8 @@ int Et03_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 04: creates a rack enemy (cEmRack) rack type 0 from et0400.bin with effect data et04.eff,
+// effect owner 0x58. d->type is the etc flag number; 1 on success.
 static int Et04_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -486,6 +506,8 @@ static int Et04_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 05: creates a rack enemy (cEmRack) rack type 1 from et0500.bin with effect data et05.eff,
+// effect owner 0x59. d->type is the etc flag number; 1 on success.
 int Et05_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -509,6 +531,8 @@ int Et05_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 15: creates a rack enemy (cEmRack) rack type 2 from et1500.bin with effect data et15.eff,
+// effect owner 0x69. d->type is the etc flag number; 1 on success.
 int Et15_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -529,6 +553,8 @@ int Et15_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 06: creates a ladder object (cObjLadder) from et0600.bin with effect data et06.eff; the
+// player motions it uses. d->type is the etc flag number; 1 on success.
 int Et06_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -571,6 +597,8 @@ int Et06_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 08: creates a ladder object (cObjLadder) from et0800.bin with effect data et08.eff; the
+// player motions it uses. d->type is the etc flag number; 1 on success.
 int Et08_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -613,6 +641,9 @@ int Et08_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 09: creates a door enemy (cEmDoor) door type 3 from et0900.bin, obm4c00.bin with effect
+// data et09.eff, obm4c.eff, effect owner 0x5D; with a chain (obm4c). d->type is the etc flag
+// number; 1 on success.
 int Et09_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -637,6 +668,8 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0A: creates a torch enemy (cEmTorch) torch type 5 from et0a00.bin with effect data
+// et0a.eff, effect owner 0x5E. d->type is the etc flag number; 1 on success.
 int Et0a_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -660,6 +693,8 @@ int Et0a_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0B: creates a torch enemy (cEmTorch) torch type 1 from et0b00.bin with effect data
+// et0b.eff, effect owner 0x5F. d->type is the etc flag number; 1 on success.
 int Et0b_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -683,6 +718,8 @@ int Et0b_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0C: creates a torch enemy (cEmTorch) torch type 2 from et0c00.bin with effect data
+// et0c.eff, effect owner 0x60. d->type is the etc flag number; 1 on success.
 int Et0c_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -703,6 +740,8 @@ int Et0c_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0D: creates a door enemy (cEmDoor) door type 1 from et0d00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x61. d->type is the etc flag number; 1 on success.
 int Et0d_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -724,6 +763,8 @@ int Et0d_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 10: creates a torch enemy (cEmTorch) torch type 4 from et1000.bin with effect data
+// et10.eff, effect owner 0x64. d->type is the etc flag number; 1 on success.
 int Et10_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -747,6 +788,8 @@ int Et10_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0E: creates a lever switch (cEmSwitch) from et0e00.bin with effect data (none). d->type is
+// the etc flag number; 1 on success.
 int Et0e_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -765,6 +808,8 @@ int Et0e_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 0F: creates a barred gate (cEmBarred) gate type 1 from et0f00.bin with effect data
+// et0f.eff, effect owner 0x63. d->type is the etc flag number; 1 on success.
 int Et0f_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -784,6 +829,8 @@ int Et0f_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 11: creates a box enemy (cEmBox) box type 3 from et1100.bin with effect data et11.eff,
+// effect owner 0x65. d->type is the etc flag number; 1 on success.
 int Et11_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -807,6 +854,8 @@ int Et11_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 12: creates a barrel enemy (cEmBarrel) barrel type 0 from et1200.bin with effect data
+// et12.eff, effect owner 0x66. d->type is the etc flag number; 1 on success.
 int Et12_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -830,6 +879,8 @@ int Et12_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 13: creates a door enemy (cEmDoor) door type 0 from et1300.bin with effect data et13.eff,
+// obm2b.eff, effect owner 0x67; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et13_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -855,6 +906,8 @@ int Et13_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 14: creates a torch enemy (cEmTorch) torch type 0 from et1400.bin with effect data
+// et14.eff, effect owner 0x68. d->type is the etc flag number; 1 on success.
 int Et14_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -875,6 +928,8 @@ int Et14_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 16: creates a door enemy (cEmDoor) door type 1 from et1600.bin with effect data et16.eff,
+// obm2b.eff, effect owner 0x6A. d->type is the etc flag number; 1 on success.
 static int Et16_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -896,6 +951,8 @@ static int Et16_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 17: creates a door enemy (cEmDoor) door type 1 from et1700.bin with effect data et17.eff,
+// obm2b.eff, effect owner 0x6B. d->type is the etc flag number; 1 on success.
 int Et17_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -917,6 +974,8 @@ int Et17_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 18: creates a door enemy (cEmDoor) door type 0 from et1800.bin with effect data et18.eff,
+// obm2b.eff, effect owner 0x6C; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et18_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -942,6 +1001,8 @@ int Et18_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 19: creates a torch enemy (cEmTorch) torch type 0 from et1400.bin with effect data
+// et19.eff, effect owner 0x6D. d->type is the etc flag number; 1 on success.
 int Et19_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -962,6 +1023,8 @@ int Et19_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 1A: creates a item enemy (cEmItem) emitem type 1 from et1a00.bin with effect data
+// et1a.eff, effect owner 0x6E. d->type is the etc flag number; 1 on success.
 int Et1a_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -982,6 +1045,8 @@ int Et1a_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 1B: creates a barred gate (cEmBarred) gate type 0 from et1b00.bin with effect data
+// et0f.eff, effect owner 0x63. d->type is the etc flag number; 1 on success.
 int Et1b_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1001,6 +1066,8 @@ int Et1b_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 1C: creates a torch enemy (cEmTorch) torch type 2 from et1c00.bin with effect data
+// et1c.eff, effect owner 0x70. d->type is the etc flag number; 1 on success.
 int Et1c_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1021,6 +1088,8 @@ int Et1c_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 1E: creates a box enemy (cEmBox) box type 5 from et1e00.bin with effect data et11.eff,
+// effect owner 0x65. d->type is the etc flag number; 1 on success.
 int Et1e_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1044,6 +1113,8 @@ int Et1e_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 1F: creates a box enemy (cEmBox) box type 4 from et1f00.bin with effect data et1f.eff,
+// effect owner 0x73. d->type is the etc flag number; 1 on success.
 int Et1f_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1064,6 +1135,8 @@ int Et1f_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 20: creates a door enemy (cEmDoor) door type 0 from et2000.bin with effect data et20.eff,
+// obm2b.eff, effect owner 0x74; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et20_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1089,6 +1162,8 @@ int Et20_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 21: creates a door enemy (cEmDoor) door type 1 from et2100.bin with effect data et21.eff,
+// obm2b.eff, effect owner 0x75. d->type is the etc flag number; 1 on success.
 int Et21_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1110,6 +1185,8 @@ int Et21_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 22: creates a door enemy (cEmDoor) door type 0 from et2200.bin with effect data et22.eff,
+// obm2b.eff, effect owner 0x76; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et22_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1135,6 +1212,8 @@ int Et22_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 23: creates a door enemy (cEmDoor) door type 2 from et2300.bin with effect data et23.eff,
+// obm2b.eff, effect owner 0x77. d->type is the etc flag number; 1 on success.
 int Et23_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1156,6 +1235,8 @@ int Et23_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 24: creates a door enemy (cEmDoor) door type 1 from et2400.bin with effect data et24.eff,
+// obm2b.eff, effect owner 0x78. d->type is the etc flag number; 1 on success.
 int Et24_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1177,6 +1258,8 @@ int Et24_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 26: creates a barred gate (cEmBarred) gate type 2 from et2600.bin with effect data
+// et0f.eff, effect owner 0x63. d->type is the etc flag number; 1 on success.
 int Et26_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1196,6 +1279,8 @@ int Et26_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 27: creates a door enemy (cEmDoor) door type 6 from et2700.bin with effect data et27.eff,
+// obm2b.eff, effect owner 0x7B. d->type is the etc flag number; 1 on success.
 int Et27_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1217,6 +1302,8 @@ int Et27_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 28: creates a barred gate (cEmBarred) gate type 3 from et2800.bin with effect data
+// et0f.eff, effect owner 0x63. d->type is the etc flag number; 1 on success.
 int Et28_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1236,6 +1323,8 @@ int Et28_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 2A: creates a door enemy (cEmDoor) door type 1 from et2a00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x7E. d->type is the etc flag number; 1 on success.
 int Et2a_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1257,6 +1346,8 @@ int Et2a_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 2B: creates a door enemy (cEmDoor) door type 1 from et2b00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x7F. d->type is the etc flag number; 1 on success.
 int Et2b_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1278,6 +1369,8 @@ int Et2b_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 2D: creates a barrel enemy (cEmBarrel) barrel type 2 from et2d00.bin with effect data
+// et2d.eff, effect owner 0x81. d->type is the etc flag number; 1 on success.
 int Et2d_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1301,6 +1394,8 @@ int Et2d_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 30: creates a rack enemy (cEmRack) rack type 3 from et3000.bin with effect data et30.eff,
+// effect owner 0x84. d->type is the etc flag number; 1 on success.
 int Et30_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1321,6 +1416,9 @@ int Et30_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 2E: creates a box enemy (cEmBox) box type 6 from et2e00.bin, et2e01.bin with effect data
+// et2e.eff, effect owner 0x82; with a separate break model. d->type is the etc flag number; 1 on
+// success.
 static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1346,6 +1444,9 @@ static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 2F: creates a box enemy (cEmBox) box type 7 from et2f00.bin, et2f01.bin with effect data
+// et2f.eff, effect owner 0x83; with a separate break model. d->type is the etc flag number; 1 on
+// success.
 int Et2f_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1371,6 +1472,8 @@ int Et2f_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 31: creates a door enemy (cEmDoor) door type 2 from et3100.bin with effect data et31.eff,
+// obm2b.eff, effect owner 0x85. d->type is the etc flag number; 1 on success.
 int Et31_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1392,6 +1495,8 @@ int Et31_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 32: creates a door enemy (cEmDoor) door type 4 from et3200.bin with effect data et32.eff,
+// obm2b.eff, effect owner 0x86; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et32_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1414,6 +1519,8 @@ int Et32_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 33: creates a door enemy (cEmDoor) door type 1 from et3300.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x87; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et33_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1436,6 +1543,8 @@ int Et33_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 34: creates a door enemy (cEmDoor) door type 1 from et3400.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x88. d->type is the etc flag number; 1 on success.
 int Et34_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1457,6 +1566,8 @@ int Et34_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 37: creates a door enemy (cEmDoor) door type 2 from et3700.bin with effect data et37.eff,
+// effect owner 0x8B. d->type is the etc flag number; 1 on success.
 int Et37_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1477,6 +1588,8 @@ int Et37_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 38: creates a torch enemy (cEmTorch) torch type 2 from et0c00.bin with effect data
+// et38.eff, effect owner 0x8C. d->type is the etc flag number; 1 on success.
 int Et38_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1497,6 +1610,8 @@ int Et38_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 39: creates a door enemy (cEmDoor) door type 5 from et3900.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x8D. d->type is the etc flag number; 1 on success.
 int Et39_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1518,6 +1633,8 @@ int Et39_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3A: creates a barred gate (cEmBarred) gate type 4 from et3a00.bin with effect data
+// et3a.eff, effect owner 0x8E. d->type is the etc flag number; 1 on success.
 int Et3a_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1537,6 +1654,8 @@ int Et3a_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3B: creates a door enemy (cEmDoor) door type 1 from et3b00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x8F. d->type is the etc flag number; 1 on success.
 int Et3b_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1558,6 +1677,8 @@ int Et3b_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3C: creates a barrel enemy (cEmBarrel) barrel type 2 from et3c00.bin with effect data
+// et3c.eff, effect owner 0x90. d->type is the etc flag number; 1 on success.
 int Et3c_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1581,6 +1702,8 @@ int Et3c_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3D: creates a door enemy (cEmDoor) door type 0 from et3d00.bin with effect data et3d.eff,
+// obm2b.eff, effect owner 0x91; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et3d_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1606,6 +1729,8 @@ int Et3d_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3E: creates a door enemy (cEmDoor) door type 1 from et3e00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x92. d->type is the etc flag number; 1 on success.
 int Et3e_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1627,6 +1752,8 @@ int Et3e_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 3F: creates a door enemy (cEmDoor) door type 1 from et3f00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x93. d->type is the etc flag number; 1 on success.
 int Et3f_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1648,6 +1775,8 @@ int Et3f_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 40: creates a door enemy (cEmDoor) door type 0 from et4000.bin with effect data et40.eff,
+// obm2b.eff, effect owner 0x94; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et40_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1673,6 +1802,8 @@ int Et40_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 41: creates a door enemy (cEmDoor) door type 7 from et4100.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x95. d->type is the etc flag number; 1 on success.
 int Et41_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1694,6 +1825,8 @@ int Et41_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 42: creates a wooden bar (cEmBar) from et4200.bin with effect data et42.eff, effect owner
+// 0x96; the player motions it uses. d->type is the etc flag number; 1 on success.
 int Et42_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1718,6 +1851,8 @@ int Et42_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 43: creates a barred gate (cEmBarred) gate type 5 from et4300.bin with effect data
+// et43.eff, effect owner 0x97. d->type is the etc flag number; 1 on success.
 int Et43_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1737,6 +1872,8 @@ int Et43_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 45: creates a door enemy (cEmDoor) door type 7 from et4500.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x99. d->type is the etc flag number; 1 on success.
 int Et45_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1758,6 +1895,8 @@ int Et45_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 46: creates a door enemy (cEmDoor) door type 4 from et4600.bin with effect data et46.eff,
+// obm2b.eff, effect owner 0x9A; pane hit boxes. d->type is the etc flag number; 1 on success.
 int Et46_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1780,6 +1919,8 @@ int Et46_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 47: creates a door enemy (cEmDoor) door type 7 from et4700.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x9B. d->type is the etc flag number; 1 on success.
 int Et47_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1801,6 +1942,8 @@ int Et47_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 49: creates a door enemy (cEmDoor) door type 1 from et4900.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0x9D. d->type is the etc flag number; 1 on success.
 int Et49_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1822,6 +1965,8 @@ int Et49_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 4B: creates a barred gate (cEmBarred) gate type 6 from et4b00.bin with effect data
+// et4b.eff, effect owner 0x9F. d->type is the etc flag number; 1 on success.
 int Et4b_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1841,6 +1986,8 @@ int Et4b_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 4C: creates a barred gate (cEmBarred) gate type 7 from et4c00.bin with effect data
+// et4c.eff, effect owner 0xA0. d->type is the etc flag number; 1 on success.
 int Et4c_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1860,6 +2007,8 @@ int Et4c_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 4D: creates a door enemy (cEmDoor) door type 1 from et4d00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0xA1. d->type is the etc flag number; 1 on success.
 static int Et4d_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1881,6 +2030,8 @@ static int Et4d_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 4E: creates a door enemy (cEmDoor) door type 5 from et4e00.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0xA2. d->type is the etc flag number; 1 on success.
 int Et4e_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1902,6 +2053,8 @@ int Et4e_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 4F: creates a barred gate (cEmBarred) gate type 6 from et4f00.bin with effect data
+// et4b.eff, effect owner 0xA3. d->type is the etc flag number; 1 on success.
 int Et4f_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1921,6 +2074,8 @@ int Et4f_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 59: creates a door enemy (cEmDoor) door type 1 from et5900.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0xAD. d->type is the etc flag number; 1 on success.
 int Et59_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1942,6 +2097,8 @@ int Et59_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 61: creates a barred gate (cEmBarred) gate type 8 from et6100.bin with effect data
+// et61.eff, effect owner 0xB5. d->type is the etc flag number; 1 on success.
 int Et61_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1961,6 +2118,8 @@ int Et61_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 62: creates a door enemy (cEmDoor) door type 7 from et6200.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0xB6. d->type is the etc flag number; 1 on success.
 int Et62_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -1982,6 +2141,8 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 63: creates a door enemy (cEmDoor) door type 1 from et6300.bin with effect data et0d.eff,
+// obm2b.eff, effect owner 0xB7. d->type is the etc flag number; 1 on success.
 int Et63_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -2003,6 +2164,8 @@ int Et63_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 66: creates a rack enemy (cEmRack) rack type 5 from et6600.bin with effect data et66.eff,
+// effect owner 0xBA. d->type is the etc flag number; 1 on success.
 int Et66_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -2023,6 +2186,8 @@ int Et66_init(void* arc, EtcSetData* d, cModel** out)
     return 1;
 }
 
+// Etc id 67: creates a barred gate (cEmBarred) gate type 8 from et6700.bin with effect data
+// et67.eff, effect owner 0xBB. d->type is the etc flag number; 1 on success.
 int Et67_init(void* arc, EtcSetData* d, cModel** out)
 {
     void* bin;
@@ -2043,6 +2208,9 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 }
 
 
+// Creates one etc model record: looks up the etc id's archive (EtcGetDasAddr), runs the id's
+// Et??_init (the window ids from et00.cpp with their variant index), and registers the model in
+// slot pDat->no (max 0x3F). 1 on success, errors logged.
 int EtcModelSet(EtcSetData* pDat)
 {
     void* arc;
@@ -2381,6 +2549,7 @@ int EtcModelSet(EtcSetData* pDat)
     return ret;
 }
 
+// The etc archive registered for etc id `id`; 0 when none.
 int EtcGetDasAddr(int id, void** out)
 {
     if (g_addr == 0) {
@@ -2391,6 +2560,8 @@ int EtcGetDasAddr(int id, void** out)
     return 1;
 }
 
+// The persistent flag word of etc slot `no` in room `room`'s save record (broken / opened /
+// collected bits the object classes keep); NULL for a bad slot or a room without a record.
 u16* GetEtcFlgPtr(int no, int room)
 {
     u8* p;
@@ -2416,6 +2587,8 @@ static inline void etcDispSet(cUnit* u, int on)
     }
 }
 
+// The breakable etc object in slot `no` of any kind (window, box, door, torch, rack, drum); 0
+// (error when flag) when it is none of those.
 int getRoomEtcBreak(int no, cEm** out, int flag)
 {
     if (getRoomEtcWindow(no, out, 0) == 1) {
@@ -2442,6 +2615,8 @@ int getRoomEtcBreak(int no, cEm** out, int flag)
     return 0;
 }
 
+// Shows / hides etc slot `no` (breakable objects through their own display logic, others by the
+// model flag); 0 with an error for an empty slot.
 int setRoomEtcDisp(int no, int on, int flag)
 {
     cEm* em;
@@ -2459,6 +2634,7 @@ int setRoomEtcDisp(int no, int on, int flag)
     return 0;
 }
 
+// Shows / hides a breakable etc object.
 static int setRoomEtcBreakDisp(int no, int on, int flag)
 {
     cEm* em;
@@ -2475,6 +2651,7 @@ static int setRoomEtcBreakDisp(int no, int on, int flag)
     return 0;
 }
 
+// The torch (light-bearing etc) in slot `id`.
 int getRoomEtcOnLight(u32 id, cModel** out, int flag)
 {
     if (getRoomEtcTorch(id, (cEm**) out, 0)) {
@@ -2486,6 +2663,7 @@ int getRoomEtcOnLight(u32 id, cModel** out, int flag)
     return 0;
 }
 
+// The window (any of the et00.cpp window ids) in slot `no`.
 int getRoomEtcWindow(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x00, out, 0) == 1) {
@@ -2581,6 +2759,7 @@ int getRoomEtcWindow(int no, cEm** out, int flag)
     return 0;
 }
 
+// The box / vase / crate (box etc ids) in slot `no`.
 int getRoomEtcBox(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x01, out, 0) == 1) {
@@ -2610,6 +2789,7 @@ int getRoomEtcBox(int no, cEm** out, int flag)
     return 0;
 }
 
+// The door (any door etc id) in slot `no`.
 int getRoomEtcDoor(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x03, out, 0) == 1) {
@@ -2726,6 +2906,7 @@ int getRoomEtcDoor(int no, cEm** out, int flag)
     return 0;
 }
 
+// The rack / pillar (rack etc ids) in slot `no`.
 int getRoomEtcRack(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x04, out, 0) == 1) {
@@ -2749,6 +2930,7 @@ int getRoomEtcRack(int no, cEm** out, int flag)
     return 0;
 }
 
+// The ladder (ids 06 / 08) in slot `no`.
 int getRoomEtcLadder(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x06, out, 0) == 1) {
@@ -2763,6 +2945,7 @@ int getRoomEtcLadder(int no, cEm** out, int flag)
     return 0;
 }
 
+// The torch / lamp (torch etc ids) in slot `no`.
 int getRoomEtcTorch(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x14, out, 0) == 1) {
@@ -2795,6 +2978,7 @@ int getRoomEtcTorch(int no, cEm** out, int flag)
     return 0;
 }
 
+// The lever switch (id 0E) in slot `no`.
 int getRoomEtcSwitch(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x0E, out, 0) == 1) {
@@ -2806,6 +2990,7 @@ int getRoomEtcSwitch(int no, cEm** out, int flag)
     return 0;
 }
 
+// The barred gate (gate etc ids) in slot `no`.
 int getRoomEtcBarred(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x0F, out, 0) == 1) {
@@ -2847,6 +3032,7 @@ int getRoomEtcBarred(int no, cEm** out, int flag)
     return 0;
 }
 
+// The barrel / drum (ids 12 / 2D / 3C) in slot `no`.
 int getRoomEtcDram(int no, cEm** out, int flag)
 {
     if (getRoomEtc(no, 0x12, out, 0) == 1) {
@@ -2864,6 +3050,7 @@ int getRoomEtcDram(int no, cEm** out, int flag)
     return 0;
 }
 
+// The shootable item medal (id 1A) in slot `no`.
 int getRoomEtcItem(int no, EtcItem** out, int flag)
 {
     if (getRoomEtc(no, 0x1A, (cEm**) out, 0) == 1) {
@@ -2913,6 +3100,8 @@ int GetEtcAmbType()
     }
 }
 
+// 1 when the ganados' glowing eye effect may be shown in the current room (off in the bright
+// village rooms 102 / 106 / 108 / 109 / 10A / 119).
 int GetEm10EyeEffectEnable()
 {
     if (pG->room_id == 0x108) {
@@ -2979,6 +3168,8 @@ EtcAmbRgb etc_day4_rgb[17] = {
     {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
 };
 
+// Applies the room's additive ambient colour for etc ambient kind `no` (the etc classes pass
+// their kind) from the day / night / variant tables chosen by the room id (GetEtcAmbType).
 void EtcSetAddAmb(cModel* m, int no)
 {
     u8 r = 0;

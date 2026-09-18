@@ -14,6 +14,7 @@ extern "C" {
 void SubScreenAramRead();
 }
 
+// Nothing swapped yet.
 cDataSwap::cDataSwap()
 {
     m_be_flag = 0;
@@ -22,10 +23,15 @@ cDataSwap::cDataSwap()
     m_SwapSize = 0;
 }
 
+// (the room code calls SwapIn explicitly)
 cDataSwap::~cDataSwap()
 {
 }
 
+// Frees `size` bytes at `addr` (room data) for reuse: copies them to a heap block (be_flag bit0)
+// or, when MRAM is short, DMAs them to ARAM (bit1: the data controller's free ARAM, the caller's
+// `aram`, or the subscreen area 0xD00000 for blocks under 3 MB), then creates heap 11 over the
+// range and makes it current. 1 when the range is available.
 int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
 {
     int ret = 0;
@@ -67,6 +73,8 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
     return ret;
 }
 
+// Undoes SwapOut: destroys heap 11, DMAs the data back from ARAM (re-reading the subscreen ARAM
+// data when its area was used), restores the previous heap and frees the heap copy.
 void cDataSwap::SwapIn()
 {
     if (m_be_flag != 0) {

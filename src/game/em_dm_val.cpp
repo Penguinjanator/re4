@@ -1,4 +1,6 @@
-// game/em_dm_val.cpp: weapon damage value per enemy type and weapon level.
+// game/em_dm_val.cpp: weapon damage values. Dmg_tbl_* give the base damage of each weapon id
+// (0..0x2D) against an enemy class (ganado, dog, ... by enemy id), WeaponLevelTbl / ShotGun the
+// firepower upgrade multiplier per weapon and level; GetWepDmVal combines them for a hit.
 
 #include "atari.h"
 #include "em.h"
@@ -115,6 +117,10 @@ f32 WeaponLevelTblShotGun[3][7] = {
     { 2.5f, 2.8f, 3.0f, 3.3f, 3.5f, 4.0f, 8.0f },
 };
 
+// Damage of weapon `wep` hitting enemy `em`: the enemy class table value x the firepower level
+// multiplier (pG->weapon_lv_power, 0..7). flag == 0 is a body hit (shotguns 7 / 8 / 0x21 use
+// their own pellet rate table), non-zero a head / special hit. Weapon 0x14 (knife) gets x2 / x5
+// / x10 for the mercenary player types 2 / 3 / 4-5. Unknown weapons count as id 2.
 int GetWepDmVal(cEm* em, u32 wep, int flag)
 {
     int val;

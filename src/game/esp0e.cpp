@@ -1,3 +1,10 @@
+// game/esp0e.cpp: effect id 0x0E, a lens-flare style glow sprite. The world position (parent
+// parts + m_Pos) is projected every frame and the sprite is drawn as a screen sprite there,
+// jittered by R_pos; the alpha is the product of a screen-centre falloff (Vec0.x %), the facing
+// cone test (Vec2: x/y direction in degrees, z cone angle), the camera distance fade (Vec0.z)
+// and a 12-sample Z-buffer visibility test of radius Vec1.x run after the frame is rendered.
+// Vec0.y is how much the alpha also shrinks the sprite.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -42,11 +49,16 @@ static f32 GetDirAlpha(cEsp0e* esp, Vec* dir);
 void Esp0e_HideCheck(cEsp* esp);
 }
 
+// EspCreateTbl[0x0E] factory.
 cEsp* Esp0e_Create()
 {
     return new cEsp0e;
 }
 
+// Base update and animation, then computes wld_pos and the facing direction from the parent
+// parts, projects to screen (scr), and evaluates `alpha` = centre falloff x direction x distance
+// x visibility (0 when behind the camera). A camera cut (Status_flg[2] 0x10000000) blanks the
+// visibility for 2 frames. Queues Esp0e_HideCheck after the render.
 void cEsp0e::move()
 {
     Esp0eWork* w = &m_Free;
@@ -137,6 +149,8 @@ void cEsp0e::move()
     }
 }
 
+// EspTransTbl[0x0E]: when alpha > 0.01 draws a one-frame screen-sprite copy (Parts_no 0xF8) at
+// scr + random R_pos jitter with the colour alpha and size scaled by `alpha`, via EspCommonTrans.
 extern "C" void Esp0e_Trans(cEsp0e* esp)
 {
     Esp0eWork* w = &esp->m_Free;
@@ -317,6 +331,9 @@ void Esp0e_HideCheck(cEsp* esp0)
     }
 }
 
+// Builds dir_vec / dir_ang from Vec2 (enables the direction test), the centre and size ratios
+// from Vec0, the distance fade Vec0.z and the visibility radius Vec1.x; m_Flg bit3 marks the
+// screen-glow OT layer. Attached effects with Release_time 0 are kept attached forever.
 int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0eWork* w = &m_Free;

@@ -56,12 +56,15 @@ void (*PlInitFunc)(cEm* em);
 
 static u32 battleCheckFlag;
 
+// The character manager: a cManager<cEm> pool of 0xDE0 byte works (type 2), one serial (Guid)
+// counter for the works it hands out.
 cEmMgr::cEmMgr() : cManager<cEm>(sizeof(cEm), 2)
 {
     setName("cEmMgr");
     Guid = 0;
 }
 
+// cManager log hook: routes the manager's messages to pLog as level-6 warnings.
 void cEmMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -70,6 +73,12 @@ void cEmMgr::log(const char* fmt, ...)
     pLog->vwarn(6, 0, fmt, ap);
 }
 
+// Places the class for character `id` into the fresh work: id 0 the player (cPlLeon / cPlAshley
+// by pG->pl_type, other player types through PlInitFunc), 1..0xE and every enemy id through the
+// loaded enemy module (EmReadSearch + EmInitFunc; 0 when the module is not loaded), 0x40..0x51
+// the object classes (door, weapon, box, rack, window, torch, barrel, tree, rock, switch, item,
+// hit, barred, mine, shield, bar), 0xFF a bare cEm. Then assigns the serial, be_flag 0x40 |
+// 0x02000000, emset_no 0xFF and stores the read table entry.
 int cEmMgr::construct(cEm* p, u32 id)
 {
     switch (id) {
@@ -202,6 +211,7 @@ int cEmMgr::construct(cEm* p, u32 id)
     return 1;
 }
 
+// Allocates the pool of `n` character works and clears the player / partner pointers.
 int cEmMgr::arrayAlloc(u32 n)
 {
     cManager<cEm>::arrayAlloc(n);
@@ -210,6 +220,9 @@ int cEmMgr::arrayAlloc(u32 n)
     return 1;
 }
 
+// Per-frame character update (game loop): dieCheck, the enemy route check, then emMove on every
+// live work. Under Stop_flg 0x20000000 (characters frozen) only the partner (pSUB) moves, and
+// not when Stop_flg 0x1000 freezes her too.
 void cEmMgr::move()
 {
     cEm* p;
@@ -231,6 +244,8 @@ void cEmMgr::move()
     }
 }
 
+// Releases a character work: validates the pointer and its live flags (be_flag 0x201 == 1),
+// runs the work's push() cleanup and returns it to the pool.
 void cEmMgr::destroy(cEm* p)
 {
     if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF || (p->be_flag & 0x201) != 1) {
@@ -241,6 +256,8 @@ void cEmMgr::destroy(cEm* p)
     cManager<cEm>::destroy(p);
 }
 
+// 1 when any live character has EM_STATUS_ATTACKING set (used for the battle music / save
+// prompt rules).
 int cEmMgr::isBattle()
 {
     cEm* p;
@@ -259,6 +276,7 @@ int cEmMgr::isBattle()
     return battleCheckFlag;
 }
 
+// isBattle helper: raises battleCheckFlag for a character with EM_STATUS_ATTACKING.
 void battleCheck(cEm* em)
 {
     if (em->checkStatus(0)) {
@@ -266,6 +284,7 @@ void battleCheck(cEm* em)
     }
 }
 
+// destroyAll helper: destroys every character except the player (id 0).
 void killEm(cEm* em)
 {
     if (em->id != 0) {
@@ -273,6 +292,7 @@ void killEm(cEm* em)
     }
 }
 
+// Destroys every live character except the player (room change).
 void cEmMgr::destroyAll()
 {
     cEm* p;
@@ -288,6 +308,7 @@ void cEmMgr::destroyAll()
     }
 }
 
+// Next live character with `id` after `start` (from the head when start is NULL); NULL when none.
 cEm* cEmMgr::getEmPtr(int id, cEm* start)
 {
     cEm* p;
@@ -307,22 +328,26 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
     return 0;
 }
 
+// Base character constructor: builds the damage info and the default work (initWork).
 cEm::cEm()
 {
     new (&dmg) cDmgInfo;
     initWork();
 }
 
+// Sets EM_STATUS bit `bit` in `status`.
 void cEm::setStatus(int bit)
 {
     status |= 1 << bit;
 }
 
+// Clears EM_STATUS bit `bit`.
 void cEm::clearStatus(int bit)
 {
     status &= ~(1 << bit);
 }
 
+// 1 when EM_STATUS bit `bit` is set.
 int cEm::checkStatus(int bit)
 {
     if (status & (1 << bit)) {
@@ -331,11 +356,14 @@ int cEm::checkStatus(int bit)
     return 0;
 }
 
+// Virtual: can this character be thrown / knocked by the player? Base: never (0).
 int cEm::checkThrow()
 {
     return 0;
 }
 
+// Assigns the item the character drops when destroyed / killed (id, count, item flags, auto
+// pickup flags, item effect type); EmSetDropItem spawns it.
 void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff)
 {
     Item_id = item_id;
@@ -345,6 +373,7 @@ void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item
     itemFlag = item_eff;
 }
 
+// Clears the drop item (Item_id 0xFFFF).
 void cEm::setNoItem()
 {
     Item_id = 0xFFFF;
@@ -354,6 +383,11 @@ void cEm::setNoItem()
     itemFlag = 0;
 }
 
+// Per-character frame step for every work but the player: skips hidden works during an event
+// pause (Status_flg[1] 0x10000000 unless be_flag 0x800) and the frozen partner; caches the
+// squared distance to the player (plDist2), ticks the damage info, runs the virtual move(), then
+// the shape (skeleton) update, the queued SE (seNo), old position update, hit box debug display
+// and bounding boxes, and resets invisible_factor2.
 void emMove(cEm* em)
 {
     f32 dx;
@@ -402,10 +436,12 @@ void emMove(cEm* em)
     em->invisible_factor2 = 1.0f;
 }
 
+// Virtual per-frame behaviour; the base character does nothing.
 void cEm::move()
 {
 }
 
+// Default work state: be_flag 0x21 (alive, ...), kindid 0.
 int cEm::initWork()
 {
     be_flag = 0x21;
@@ -413,11 +449,15 @@ int cEm::initWork()
     return 1;
 }
 
+// Damage info starts cleared.
 cDmgInfo::cDmgInfo()
 {
     clear();
 }
 
+// Registers a hit on the character: stat = flag | 1 (a hit is pending), lifetime `timer` frames
+// (bit7 = hold until cleared), damage kind, hit position / radius and the hit box that was hit.
+// The character's own move reads and clears it.
 void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
 {
     stat = flag | 1;
@@ -428,18 +468,22 @@ void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
     part = prt;
 }
 
+// Sets only the state byte and the timer (player damage motions).
 void cDmgInfo::set(int flag, int timer)
 {
     stat = flag;
     m_Timer = timer;
 }
 
+// Forgets the registered hit.
 void cDmgInfo::clear()
 {
     stat = 0;
     m_Timer = 0;
 }
 
+// Per-frame: counts the timer down (unless bit7 holds it) and clears the hit state when it
+// reaches 0, so an unhandled hit expires.
 void cDmgInfo::move()
 {
     if (m_Timer & 0x80) {

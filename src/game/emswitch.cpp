@@ -29,6 +29,8 @@ static EmSwitchFunc EmSwitch_R1_move_tbl[3] = {
     emSwitch_R1_Close,
 };
 
+// Weapon hit reaction: spawns the spark est (0x62, variant 1 when the shot was close) and, when
+// Damage_ck is on, toggles the lever (open <-> close) like the action button would.
 static void emSwitchDmCk(cEmSwitch* em)
 {
     EmSwitchWork* w = EMSWITCH_WK(em);
@@ -115,6 +117,9 @@ static void emSwitchDmCk(cEmSwitch* em)
     }
 }
 
+// Creates a lever switch enemy (id 0x4B, at the back of the pool) from a model / TPL at pos / rot,
+// unless room etc flag `flagNo` bit0 marks it removed. Starts open (state 1) with the action
+// button enabled, hit toggling on and a 1500 unit reach. NULL when no work is free.
 cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
 {
     cEmSwitch* em;
@@ -180,6 +185,8 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     return em;
 }
 
+// Per-frame: Barrel_wait countdown, hit check, the Rno1 routine (0 Set, 1 Open, 2 Close), the
+// model-vs-player atari.
 void cEmSwitch::move()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -192,12 +199,15 @@ void cEmSwitch::move()
     EmAtCheck(this);
 }
 
+// Rno1 == 0: idle lever; updates the matrix and offers the action button.
 void emSwitch_R1_Set(cEmSwitch* em)
 {
     em->matUpdate();
     emSwitchOperationActEvtCk(em);
 }
 
+// Rno1 == 1: pulls the lever up (parts 1 x angle -10 degrees / frame to 0) with the lever SE, then
+// opens the linked gate(s) and settles in state 1 (Mode 2: immediately closes again).
 void emSwitch_R1_Open(cEmSwitch* em)
 {
     EmSwitchWork* w = EMSWITCH_WK(em);
@@ -238,6 +248,9 @@ void emSwitch_R1_Open(cEmSwitch* em)
     em->matUpdate();
 }
 
+// Rno1 == 2: pushes the lever down (to 78 degrees), then closes the linked gate(s); with setBarrel
+// (room 227) also releases a rolling barrel every 150 frames; settles in state 2 (Mode 3
+// setAutoOpen: swings back open at once).
 void emSwitch_R1_Close(cEmSwitch* em)
 {
     EmSwitchWork* w = EMSWITCH_WK(em);
@@ -291,11 +304,13 @@ void emSwitch_R1_Close(cEmSwitch* em)
     em->matUpdate();
 }
 
+// Lever state: 0 moving, 1 open, 2 closed.
 int cEmSwitch::ckSwitch()
 {
     return EMSWITCH_WK(this)->state;
 }
 
+// 1 when the lever is in (or moving to) the open position.
 int cEmSwitch::ckOpen()
 {
     if (EMSWITCH_WK(this)->opened) {
@@ -304,6 +319,7 @@ int cEmSwitch::ckOpen()
     return 0;
 }
 
+// Starts opening a closed lever (Rno1 1) and forwards to the connected switch.
 void cEmSwitch::setOpen()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -321,6 +337,8 @@ void cEmSwitch::setOpen()
     }
 }
 
+// Starts closing an open lever (Rno1 2) unless Mode 1 (open-only); forwards to the connected
+// switch.
 void cEmSwitch::setClose()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -338,6 +356,7 @@ void cEmSwitch::setClose()
     }
 }
 
+// Snaps the lever to the open position (no gate update).
 void cEmSwitch::setOpened()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -347,6 +366,7 @@ void cEmSwitch::setOpened()
     w->opened = 1;
 }
 
+// Snaps the lever to the closed position.
 void cEmSwitch::setClosed()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -356,6 +376,7 @@ void cEmSwitch::setClosed()
     w->opened = 0;
 }
 
+// Links the primary gate the lever drives and matches its current open / closed state.
 void cEmSwitch::setBarred(cEmBarred* b)
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -369,6 +390,7 @@ void cEmSwitch::setBarred(cEmBarred* b)
     }
 }
 
+// Links a second gate driven together with the first.
 void cEmSwitch::setBarred2nd(cEmBarred* pBarred)
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -382,6 +404,7 @@ void cEmSwitch::setBarred2nd(cEmBarred* pBarred)
     }
 }
 
+// Links another lever that mirrors this one's operation.
 void cEmSwitch::setConnectSwitch(cEmSwitch* s)
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
@@ -395,11 +418,15 @@ void cEmSwitch::setConnectSwitch(cEmSwitch* s)
     }
 }
 
+// Enables / disables the action button prompt.
 void cEmSwitch::setActButton(int on)
 {
     EMSWITCH_WK(this)->actButton = on;
 }
 
+// Offers action button 0x14 (pull / push lever) when the lever is at rest and the player stands
+// within Ck_dis, at lever height, facing it (and, for type != 1, in front of it): opens a closed
+// lever, closes an open one unless Mode 1.
 void emSwitchOperationActEvtCk(cEmSwitch* em)
 {
     EmSwitchWork* w = EMSWITCH_WK(em);
@@ -438,31 +465,37 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
     }
 }
 
+// Action button callback: open.
 void emSwitchActOpen(cEmSwitch* em)
 {
     em->setOpen();
 }
 
+// Action button callback: close.
 void emSwitchActClose(cEmSwitch* em)
 {
     em->setClose();
 }
 
+// Mode 1: the lever can only be opened.
 void cEmSwitch::setOpenOnly()
 {
     EMSWITCH_WK(this)->Mode = 1;
 }
 
+// Mode 3: the lever springs back open after closing (one-shot pulls).
 void cEmSwitch::setAutoOpen()
 {
     EMSWITCH_WK(this)->Mode = 3;
 }
 
+// Room 227: closing the lever releases a rolling barrel (SetR227Barrel).
 void cEmSwitch::setBarrel()
 {
     EMSWITCH_WK(this)->Barrel_ck = 1;
 }
 
+// Extends the action button reach to 2000 units.
 void cEmSwitch::setLongCk()
 {
     EMSWITCH_WK(this)->Ck_dis = 2000.0f;

@@ -372,6 +372,9 @@ u8 header_save[0x800] __attribute__((aligned(32)));
 DvdHeader* pFilehead[2];
 static DvdHeader* pFilehead_save[2];
 
+// Queues a read of FileTbl entry `fileNo` (optionally `length` bytes from `ofs`) to `dst` / ARAM
+// `aram` with the DvdReqWork mode bits; the caller's file / line are kept for the error screen.
+// Returns the request number for ReadCheck.
 int DvdRead(int fileNo, void* dst, u32 aram, u32 ofs, u32 length, int mode, const char* file, int line)
 {
     DvdReq* w = &DvdReqWork;
@@ -389,6 +392,8 @@ int DvdRead(int fileNo, void* dst, u32 aram, u32 ofs, u32 length, int mode, cons
     return Dvd.ReadReq();
 }
 
+// Same for a file given by path (mode 3 = allocate the destination on the main heap, bit 0x10 =
+// through the data controller, 0x11 debug heap). Every unit's DVD_READ_N / DvdReadN goes here.
 int DvdReadN(const char* name, void* dst, int a, int b, int c, int mode, const char* file, int line)
 {
     DvdReq* w = &DvdReqWork;
@@ -407,6 +412,8 @@ int DvdReadN(const char* name, void* dst, int a, int b, int c, int mode, const c
     return Dvd.ReadReq();
 }
 
+// Exchanges `size` bytes between MRAM and ARAM in 64 KB pieces through the DVD scratch buffers
+// (synchronous DMAs), after letting a running read finish its current piece.
 void MemorySwap(void* mram, u32 aram, u32 size)
 {
     u8* p;
@@ -440,6 +447,7 @@ void MemorySwap(void* mram, u32 aram, u32 size)
     DCFlushRange(mram, size);
 }
 
+// Part transfer: copies the read piece from the DVD buffer to its MRAM destination.
 void cDvdQueue::trans2mram(void* buf, u32 addr, u32 size)
 {
     memcpy((void*) addr, buf, size);
@@ -447,6 +455,7 @@ void cDvdQueue::trans2mram(void* buf, u32 addr, u32 size)
     DCFlushRange((void*) addr, size);
 }
 
+// ARQ callback: the queue's MRAM -> ARAM DMA finished (clears busy bit 0x01000000).
 void trans2aram_cb(u32 req)
 {
     ARQRequest* r = (ARQRequest*) req;
@@ -456,6 +465,7 @@ void trans2aram_cb(u32 req)
     q->aramSize += r->length;
 }
 
+// Part transfer: DMAs the read piece from the DVD buffer to its ARAM destination.
 void cDvdQueue::trans2aram(void* buf, u32 addr, u32 size)
 {
     u32 n = ALIGN32(size);
@@ -465,6 +475,8 @@ void cDvdQueue::trans2aram(void* buf, u32 addr, u32 size)
     ARQPostRequest(&m_ArqReq, (u32) this, ARQ_TYPE_MRAM_TO_ARAM, 1, (u32) buf, addr, n, trans2aram_cb);
 }
 
+// DVD callback: the queue's read finished (clears 0x02000000); result -3 = cancelled (0x100000),
+// other negatives = read error (0x200000).
 void dvdread_callback(s32 result, DVDFileInfo* fi)
 {
     cDvdQueue* q = (cDvdQueue*) fi->cb.userData;
@@ -477,6 +489,9 @@ void dvdread_callback(s32 result, DVDFileInfo* fi)
     }
 }
 
+// Rno0 == 0: opens the file and reads the 1 KB part header (headered files, and nested headers
+// for type 4 parts) or fakes a one-part header for a plain file; type 3 headers allocate the
+// whole destination up front. Errors go to Rno0 3 (exit).
 void cDvdQueue::readInit()
 {
     u32 size;
@@ -609,6 +624,10 @@ void cDvdQueue::readInit()
     }
 }
 
+// Rno0 == 1: walks the header parts: for each part decides the destination (MRAM / ARAM / sound
+// block / explicit address / nested header), reads it in DVD_BUFF sized pieces, transfers each
+// piece (trans2mram / trans2aram / the sound data readers) and records the part address / size
+// in addrTbl / sizeTbl; the end marker sets "all parts done" (0x04000000) and Rno0 3.
 void cDvdQueue::readMain()
 {
     static void (cDvdQueue::*trans_proc_tbl[])(void*, u32, u32) = {
@@ -803,6 +822,7 @@ void cDvdQueue::readMain()
     }
 }
 
+// Rno0 == 2: waits for the cancelled DVD command to return, then exit.
 void cDvdQueue::readCancelWait()
 {
     if (chk(0x100000)) {
@@ -810,6 +830,8 @@ void cDvdQueue::readCancelWait()
     }
 }
 
+// Rno0 == 3: closes the file, frees the destination on a cancelled / failed allocating read,
+// logs the cancel, marks the slot finished (0x400000).
 void cDvdQueue::readExit()
 {
     fileClose();
@@ -826,6 +848,7 @@ void cDvdQueue::readExit()
     m_be_flag |= 0x400000;
 }
 
+// One step of the queue's routine (Rno0 table); 1 while the read is still in progress.
 int cDvdQueue::Read()
 {
     static void (cDvdQueue::*func_tbl[])() = {
@@ -856,6 +879,9 @@ int cDvdQueue::Read()
     return ret;
 }
 
+// Fills the slot from the DvdReqWork of the current request: entry number (table or path),
+// name, destinations, priority, and the flag bits from `mode` (sync, interrupt task, headered,
+// heap, keep).
 void cDvdQueue::Initialize()
 {
     DvdReq* w = &DvdReqWork;
@@ -915,6 +941,8 @@ void cDvdQueue::Initialize()
     pcMode = pc;
 }
 
+// Inserts the slot into the pending list ordered by priority (higher first); returns its
+// request number.
 int cDvdQueue::LinkQueue()
 {
     cDvdQueue* p;
@@ -951,11 +979,13 @@ int cDvdQueue::LinkQueue()
     return m_Id;
 }
 
+// Frees the slot.
 void cDvdQueue::PushQueue()
 {
     m_be_flag &= ~1;
 }
 
+// Frees the MRAM the slot allocated for a read that failed / was cancelled.
 void cDvdQueue::ErrMemFree()
 {
     if (chk(0x6)) {
@@ -970,6 +1000,7 @@ void cDvdQueue::ErrMemFree()
     }
 }
 
+// Opens the file by entry number; 0 when it is not on the disc.
 int cDvdQueue::fileOpen()
 {
     int ret = 1;
@@ -982,11 +1013,13 @@ int cDvdQueue::fileOpen()
     return ret;
 }
 
+// The open file's length.
 int cDvdQueue::fileGetLength()
 {
     return fileInfo.length;
 }
 
+// Starts an asynchronous read of `size` bytes at `ofs` into `buf` (busy bit 0x02000000).
 int cDvdQueue::fileReadAsync(void* buf, u32 size, u32 ofs)
 {
     fileInfo.cb.userData = this;
@@ -994,6 +1027,7 @@ int cDvdQueue::fileReadAsync(void* buf, u32 size, u32 ofs)
     return DVDReadAsyncPrio(&fileInfo, buf, ALIGN32(size), ofs, dvdread_callback, 2);
 }
 
+// Closes the file.
 int cDvdQueue::fileClose()
 {
     int ret = 0;
@@ -1005,6 +1039,8 @@ int cDvdQueue::fileClose()
     return ret;
 }
 
+// Queues an ARAM DMA (type 0 MRAM -> ARAM, 1 ARAM -> MRAM) of `len` bytes; wait 1 runs it now
+// and blocks, else it is appended to the list. Returns the request slot, -1 when full.
 int cAram::DmaTransReq(int type, u32 src, u32 dst, u32 len, int wait)
 {
     int no;
@@ -1036,6 +1072,7 @@ int cAram::DmaTransReq(int type, u32 src, u32 dst, u32 len, int wait)
     return no;
 }
 
+// A free ARAM request slot (marked in use) and its index.
 AramReq* cAram::pullAramQueue(int* no)
 {
     int i;
@@ -1053,6 +1090,7 @@ AramReq* cAram::pullAramQueue(int* no)
     return 0;
 }
 
+// ARQ callback: marks the request done and frees the current pointer.
 void aram_cb(u32 req)
 {
     AramReq* r = (AramReq*) ((ARQRequest*) req)->owner;
@@ -1061,6 +1099,7 @@ void aram_cb(u32 req)
     Aram.pCur = 0;
 }
 
+// Posts the request to the ARQ; with wait spins until done and frees the slot.
 void cAram::DmaTrans(AramReq* r, int wait)
 {
     r->len = ALIGN32(r->len);
@@ -1072,6 +1111,7 @@ void cAram::DmaTrans(AramReq* r, int wait)
     }
 }
 
+// 1 when request `no` finished (the slot is freed).
 int cAram::TransCheck(int no)
 {
     AramReq* r = &AramQueue[no];
@@ -1083,6 +1123,7 @@ int cAram::TransCheck(int no)
     return 0;
 }
 
+// Removes pending request `no` from the list (the running one cannot be cancelled: 1).
 int cAram::DmaCancel(int no)
 {
     AramReq* p;
@@ -1105,6 +1146,7 @@ int cAram::DmaCancel(int no)
     return ret;
 }
 
+// Drops every queued request and flushes the ARQ.
 void cAram::DmaCancelAll()
 {
     int i;
@@ -1124,6 +1166,8 @@ void cAram::DmaCancelAll()
     ARQFlushQueue();
 }
 
+// Boot: resolves the file table entry numbers, resets the queues, reads the size table and
+// records the memory above the FST.
 void cDvd::Init()
 {
     u32 size;
@@ -1142,6 +1186,7 @@ void cDvd::Init()
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
+// Loads the file size table (used by FileExistCheck) once its read completes.
 #line 98 "D:/Bio4/Prog/dvd.cpp"
 void cDvd::SizeTableRead()
 {
@@ -1153,11 +1198,14 @@ void cDvd::SizeTableRead()
     }
 }
 
+// Task entry: the DVD read pump.
 void DvdReadProc()
 {
     Dvd.ReadProc();
 }
 
+// Read pump: drives the current request until it finishes (readProcMain) and reports errors;
+// then the slot is released unless kept.
 void cDvd::ReadProc()
 {
     cDvdQueue* q = pCur_queue;
@@ -1184,6 +1232,7 @@ void cDvd::ReadProc()
     }
 }
 
+// Steps request `q` until it is done, running the disc error check when the read fails.
 void cDvd::readProcMain(cDvdQueue* q)
 {
     while (q->Read() == 1) {
@@ -1197,6 +1246,8 @@ void cDvd::readProcMain(cDvdQueue* q)
     }
 }
 
+// Turns pending request `no` into a blocking read: pulls it from the current / pending list and
+// runs blockRead on it (a unit needs its data now).
 void cDvd::ReadNblk2Blk(int no)
 {
     cDvdQueue* q = getQueuePtr(no);
@@ -1238,6 +1289,7 @@ void cDvd::ReadNblk2Blk(int no)
     }
 }
 
+// Resolves every FileTbl name to its disc entry number (-1 when absent).
 void cDvd::FileTblExistCheck()
 {
     int i;
@@ -1247,6 +1299,7 @@ void cDvd::FileTblExistCheck()
     }
 }
 
+// Entry number of `name` (and its length in *pLength); negative when not on the disc.
 int cDvd::FileExistCheck(const char* name, u32* pLength)
 {
     DVDFileInfo fi;
@@ -1265,6 +1318,9 @@ int cDvd::FileExistCheck(const char* name, u32* pLength)
     return ret;
 }
 
+// Creates a queue slot for the pending DvdReqWork: synchronous requests are read to completion
+// here (blockRead), others are linked into the pending list. Returns the request number, -2
+// when no slot is free.
 int cDvd::ReadReq()
 {
     cDvdQueue* q = pullReadQueue();
@@ -1282,6 +1338,8 @@ int cDvd::ReadReq()
     return q->LinkQueue();
 }
 
+// Runs request `q` to completion right now (a running request finishes its piece first and is
+// resumed afterwards).
 void cDvd::blockRead(cDvdQueue* q)
 {
     cDvdQueue* save = 0;
@@ -1303,6 +1361,8 @@ void cDvd::blockRead(cDvdQueue* q)
     }
 }
 
+// Per-frame: when idle, starts the highest-priority pending request (interrupt-task requests get
+// their own task), then the disc error check.
 void cDvd::Watcher()
 {
     if (pCur_queue == 0 && pQueue_list) {
@@ -1328,6 +1388,7 @@ void cDvd::Watcher()
     DiscReadInfo();
 }
 
+// DVD callback of a cancelled read.
 void readcancel_cb(s32 result, DVDCommandBlock* cb)
 {
     cDvdQueue* q = (cDvdQueue*) cb->userData;
@@ -1335,6 +1396,8 @@ void readcancel_cb(s32 result, DVDCommandBlock* cb)
     q->m_be_flag |= 0x100000;
 }
 
+// Cancels request `no`: pending ones are dropped, the running one gets DVDCancelAsync and waits
+// (Rno0 2); mode 0x40 keeps the slot for a ReadCheck. Returns 1 when something was cancelled.
 int cDvd::ReadCancel(int no, int mode)
 {
     cDvdQueue* q;
@@ -1383,6 +1446,7 @@ int cDvd::ReadCancel(int no, int mode)
     return ret;
 }
 
+// Cancels every request and the running DVD command.
 void cDvd::ReadCancelAll()
 {
     if (pCur_queue) {
@@ -1398,6 +1462,8 @@ void cDvd::ReadCancelAll()
     pQueue_list = 0;
 }
 
+// A free queue slot marked in use with a fresh request number (1..255, never 0); NULL when the
+// 16 are busy.
 cDvdQueue* cDvd::pullReadQueue()
 {
     int i;
@@ -1418,6 +1484,8 @@ cDvdQueue* cDvd::pullReadQueue()
     return 0;
 }
 
+// Polls request `req`: 1 when done (result word / total size / first destination through the
+// pointers, the slot released unless kept), 0 while reading, negative on cancel / error.
 int cDvd::ReadCheck(int req, int* result, int* size, void** addr)
 {
     DvdReadInfo info;
@@ -1435,6 +1503,7 @@ int cDvd::ReadCheck(int req, int* result, int* size, void** addr)
     }
 }
 
+// Poll variant used by read.cpp that also fills a DvdReadInfo (see the header note).
 int cDvd::ReadCheck(int req)
 {
     DvdReadInfo* info;
@@ -1442,6 +1511,8 @@ int cDvd::ReadCheck(int req)
     return readCheckMain(req, info);
 }
 
+// The poll: by slot status (READ pending, COMPLETE copies the part address / size tables and
+// releases, CANCEL / ERROR release with a negative result).
 int cDvd::readCheckMain(int req, DvdReadInfo* info)
 {
     cDvdQueue* q;
@@ -1489,6 +1560,7 @@ int cDvd::readCheckMain(int req, DvdReadInfo* info)
     return ret;
 }
 
+// The slot with request number `no`; NULL when none.
 cDvdQueue* cDvd::getQueuePtr(u8 no)
 {
     int i;
@@ -1503,6 +1575,10 @@ cDvdQueue* cDvd::getQueuePtr(u8 no)
 
 static const GXColor BkBlack = {0, 0, 0, 0};
 
+// The disc error handler: polls the drive state and, for cover open / no disc / wrong disc /
+// retry / fatal, freezes the game and shows the system message (RomFontMessage or the message
+// system when available) until the state clears; handles the disc 1 / 2 change (DiscChange).
+// Returns 1 when an error screen was shown.
 int cDvd::ErrCheck(int disc, int flag)
 {
     int cont = 1;
@@ -1644,6 +1720,7 @@ static u16 mes_pos[8][9][2] = {
     {{0, 0}, {0x3C, 0x78}, {0x32, 0x78}, {0x32, 0xAA}, {0x64, 0x64}, {0x37, 0x8C}, {0x32, 0x64}, {0, 0}, {0, 0}},
 };
 
+// Shows disc error message `msg` (disc-specific variants for "insert disc N") through cMes.
 void MesSysMessage(int msg, int disc)
 {
     int f = 1;
@@ -1670,6 +1747,7 @@ void MesSysMessage(int msg, int disc)
     }
 }
 
+// Prints a string with the IPL ROM font (used before the game font is loaded).
 void RomFontPrint(int x, int y, const char* str)
 {
     RomFont* font = new RomFont(pG->pFont);
@@ -1687,6 +1765,7 @@ void RomFontPrint(int x, int y, const char* str)
     delete font;
 }
 
+// The disc error messages in the ROM font, per region language.
 void RomFontMessage(u32 msg, int disc)
 {
     switch (msg) {
@@ -1878,6 +1957,7 @@ static inline int SysRegionIs(int r)
     return pSys->region == r;
 }
 
+// 1 for the European regions.
 static inline int SysIsEurope()
 {
     if (SysRegionIs(2) || SysRegionIs(3) || SysRegionIs(4) || SysRegionIs(5) || SysRegionIs(6)) {
@@ -1886,6 +1966,8 @@ static inline int SysIsEurope()
     return 0;
 }
 
+// Requests the swap to `disc` (1 / 2): builds the disc id for the region's game code and starts
+// DVDChangeDiskAsync, then runs ErrCheck until the right disc is in. 1 when started.
 int cDvd::DiscChange(int disc)
 {
     DVDDiskID id;
@@ -1912,6 +1994,7 @@ int cDvd::DiscChange(int disc)
     return 1;
 }
 
+// The current disc number (from the disc id, or the pending change).
 int cDvd::GetDiscNo()
 {
     int no = DVDGetCurrentDiskID()->diskNumber;
@@ -1922,6 +2005,7 @@ int cDvd::GetDiscNo()
     return no;
 }
 
+// Loads the IPL ROM font into pG->pFont for the error screens.
 void RomFontSetting()
 {
     if (OSGetFontEncode() == 1) {
@@ -1934,6 +2018,7 @@ void RomFontSetting()
 
 char* queue_stat[] = {"PUSH", "READ", "COMPLETE", "CANCEL", "ERROR"};
 
+// Debug page 0x15: every queue slot's status and file, the running request and the pending list.
 void cDvd::queueStatusDisp()
 {
     cDvdQueue* p;
@@ -1982,6 +2067,7 @@ void cDvd::queueStatusDisp()
     }
 }
 
+// Debug text: the running read's error code, name, disc address / length and transfer progress.
 void cDvd::DiscReadInfo()
 {
     cDvdQueue* q = pCur_queue;

@@ -1,3 +1,6 @@
+// game/ctrl10.cpp: control 0x10 (cCtrl10). No code survives in the shipped build; only the
+// ctrl.h range-check string is in its .rodata.
+
 #include "types.h"
 #include "cManager.h"
 #include "ctrl.h"

@@ -1,4 +1,8 @@
-// game/at_mod.cpp: character-to-character collision (see at_mod.h) and the hit box ("yarare") setup.
+// game/at_mod.cpp: character-to-character collision and the hit box ("yarare") setup. EmAtCheck
+// pushes a character's cAtariInfo body (cylinder or yaw-aligned box) out of every other
+// character's and object's body by push priority; EmHitCheck / ObjHitCheck trace a line against
+// those bodies (camera, aiming). The Yarare* functions build the EmHitInfo chain of hit boxes
+// weapons test (em_sub.cpp).
 
 #include "atari.h"
 #include "at_mod.h"
@@ -50,6 +54,8 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
         } while (i_-- != 0);             \
     }
 
+// Fills one hit box: offset, width (radius) / height, the parts it follows (1-based, 0 = model),
+// flags; not linked.
 void yarareInit0(EmHitInfo* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
     y->ofs.x = x;
@@ -62,11 +68,13 @@ void yarareInit0(EmHitInfo* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 f
     y->next = 0;
 }
 
+// Sets the character's primary hit box (cEm::hitInfo) as a cylinder of radius w / height h.
 void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
     yarareInit0(&em->hitInfo, x, y, z, w, h, no, flags);
 }
 
+// Sets the primary hit box as a box (flags bit3): half sizes w (x) / h (y) / extent (z).
 void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags)
 {
     yarareInit0(&em->hitInfo, x, y, z, w, h, no, flags);
@@ -74,6 +82,7 @@ void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 
     em->hitInfo.flags |= 8;
 }
 
+// Appends a cylinder hit box to the character's hit box chain (error when already linked).
 void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
     EmHitInfo* p = &em->hitInfo;
@@ -92,6 +101,7 @@ void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 n
     p->next = box;
 }
 
+// Appends a box hit box to the chain.
 void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags)
 {
     EmHitInfo* p;
@@ -111,6 +121,10 @@ void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f
     }
 }
 
+// Character-vs-character collision for `em` (called from its move): refreshes every collidable
+// body's world position (m_flag 0x200, non-zero radius), pushes `em` against every other
+// character and then every object (__em_at_core), stores the old positions and recomputes the
+// parts world positions. A body without collision only marks m_stat bit0.
 void EmAtCheck(cEm* em)
 {
     cEm* m;
@@ -154,6 +168,8 @@ void EmAtCheck(cEm* em)
     em->atari.m_stat &= ~1;
 }
 
+// 1 when pMod's push priority (m_flag bits 3-4) is non-zero and not below pMod2's, i.e. pMod is
+// not the one to be pushed.
 static int priorityCheck(cEm* pMod, cEm* pMod2)
 {
     u8 pa = pMod->atari.m_flag & 0x18;
@@ -165,6 +181,8 @@ static int priorityCheck(cEm* pMod, cEm* pMod2)
     return 0;
 }
 
+// Pushes pMod out of pMod2 unless priority says otherwise, choosing the box-box, sphere-box or
+// sphere-sphere test by the bodies' m_flag bit1.
 void __em_at_core(cEm* pMod, cEm* pMod2)
 {
     if (priorityCheck(pMod, pMod2) == 1) {
@@ -185,6 +203,8 @@ void __em_at_core(cEm* pMod, cEm* pMod2)
     }
 }
 
+// Box vs box (both yaw-aligned): when the XZ boxes overlap, the moving one is pushed out along
+// the axis it moved on (x or z), the other when pMod has priority. 1 when pMod moved >= 1 unit.
 int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
 {
     Vec ra;
@@ -265,6 +285,8 @@ int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
     return ret;
 }
 
+// Box vs box with rotation: tests pMod's four corners against pMod2's box and pushes it out of
+// the deepest one.
 int em_rect2_ck_sub(cEm* pMod, cEm* pMod2)
 {
     Vec v;
@@ -340,6 +362,8 @@ int em_rect2_ck_sub(cEm* pMod, cEm* pMod2)
     return ret;
 }
 
+// Sphere (character) vs box (object): with overlapping heights pushes the sphere out of the box
+// along the nearest face (sphereRectCk in the box's yaw frame); 1 on contact.
 int At_em_sphere_rect_ck(cEm* sph, cEm* rect)
 {
     Vec ps;
@@ -418,6 +442,8 @@ int At_em_sphere_rect_ck(cEm* sph, cEm* rect)
     return hit;
 }
 
+// Sphere of radius `rad` at box-space point `p` against the box `info`: moves *p to the nearest
+// face; 1 when it was inside.
 static int sphereRectCk(cAtariInfo* info, Vec* p, f32 rad)
 {
     Vec corner;
@@ -507,6 +533,8 @@ static int sphereRectCk(cAtariInfo* info, Vec* p, f32 rad)
     return hit;
 }
 
+// Cylinder vs cylinder: with overlapping heights and XZ distance below the radii sum, pushes
+// pMod (and its m_pMod companion, or pMod2's) apart by the overlap; 1 on contact.
 int At_em_sphere_sphere_ck(cEm* pMod, cEm* pMod2)
 {
     Vec pa;
@@ -567,6 +595,8 @@ static int atModIsZero(f32 x)
     return x == 0.0;
 }
 
+// Line pos0 -> pos1 against every collidable character body (the player only with flag bit2):
+// nearest hit and normal; 1 when hit. The camera uses it to keep characters in view.
 int EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
 {
     Vec h;
@@ -604,6 +634,7 @@ int EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
     return ret;
 }
 
+// Same against every live object (except id 2): nearest hit / normal.
 int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
 {
     Vec h;
@@ -641,6 +672,8 @@ int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
     return ret;
 }
 
+// Line against one body: a box body (flag bit0 required) through emLineCubeCrossCk in its
+// parts / model matrix, a cylinder body (flag bit1) through ObaLineHitChk. 1 on a hit.
 int ComnHitCheck(Vec* hit, Vec* nrm, cEm* m, Vec* pos0, Vec* pos1, int flag)
 {
     Mtx mat;
@@ -671,6 +704,7 @@ int ComnHitCheck(Vec* hit, Vec* nrm, cEm* m, Vec* pos0, Vec* pos1, int flag)
     return 0;
 }
 
+// Debug draw of the character's body and every chained info (Debug_flg[2] 0x10000000).
 void DrawOba(cEm* m)
 {
     cAtariInfo* info;
@@ -684,6 +718,8 @@ void DrawOba(cEm* m)
     }
 }
 
+// Line a -> b against the cylinder body treated as a sphere of radius m_radius2 at the body's
+// position: nearest entry point in *hit, outward normal in *nrm; 1 on a hit.
 int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
 {
     Vec p0;

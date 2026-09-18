@@ -72,6 +72,11 @@ static EmMineFunc EmMine_R1_move_tbl[9] = {
     emMine_R1_Lost,
 };
 
+// Creates a mine / arrow enemy (id 0x4F) from a model / TPL at `pos` flying with speed `spd`
+// (NULL: a random forward throw). type 0 mine, 1 homing mine (picks its target at once), 2
+// crossbow arrow; a firepower level above 2 forces em->type to 1 whatever was asked. Records the weapon
+// level for the blast radius, a Core_kind for the trail effects and the default explosion est
+// 0x36 / SE. Starts in Rno1 0 Shot (mine) or 1 ShotArrow. NULL on failure.
 cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
 {
     cEmMine* em;
@@ -178,11 +183,13 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     return em;
 }
 
+// Event start: mines and arrows in flight are removed.
 void cEmMine::beginEvent()
 {
     EmMgr.destroy(this);
 }
 
+// A weapon hit (not knife / grenades) detonates the mine at once.
 void emMineDmCk(cEmMine* em)
 {
     u8 wep;
@@ -209,12 +216,14 @@ void emMineDmCk(cEmMine* em)
     em->setBomb();
 }
 
+// Per-frame: hit check, then the Rno0 routine (0 Init -> Lost, 1 Move).
 void cEmMine::move()
 {
     emMineDmCk(this);
     EmMine_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: an uninitialised mine is discarded (Lost).
 void emMine_R0_Init(cEmMine* em)
 {
     em->r_no_0 = 1;
@@ -223,11 +232,18 @@ void emMine_R0_Init(cEmMine* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Shot, 1 ShotArrow, 2 Set, 3 SetWater, 4 Parent, 5 BombWait,
+// 6 BombWait2, 7 Fall, 8 Lost).
 void emMine_R0_Move(cEmMine* em)
 {
     EmMine_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: the mine in flight: starts the trail est 0x38, explodes after 210 frames, homes on
+// its target every frame (type 1, retargeting every Homing_wait frames), moves by Spd; hitting an
+// enemy sticks the mine to it (emMineHitCk -> Parent), hitting the scenery sticks it there (Set,
+// with the surface effect and the explosion est / SE chosen by the surface's AtEffInfo; attribute
+// 0x40 surfaces detonate at once), landing in water sinks it (SetWater with a splash).
 void emMine_R1_Shot(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -399,6 +415,8 @@ void emMine_R1_Shot(cEmMine* em)
     }
 }
 
+// Rno1 == 1: the arrow in flight (trail est 0x4C, lost after 210 frames): same hit handling as
+// the mine but it sticks silently and never explodes.
 void emMine_R1_ShotArrow(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -548,6 +566,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
     }
 }
 
+// Picks the homing target: the live, visible, targetable enemy (ids 0x10..0x3F minus animals /
+// vehicles) closest to the flight direction (dot product above 0; mode 1 allows up to 135
+// degrees off, mode 0 also requires 15000 units) with a clear line of sight. Keeps the current
+// target while it lives.
 void emMineSearchEm(cEmMine* em, int mode)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -632,6 +654,8 @@ void emMineSearchEm(cEmMine* em, int mode)
     }
 }
 
+// Turns Spd toward the homing target's parts 0 (by a fixed step about the perpendicular axis)
+// while the target is visible, unobstructed, more than 100 units away and within 145 degrees.
 void emMineHomingEm(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -681,6 +705,8 @@ void emMineHomingEm(cEmMine* em)
     }
 }
 
+// Rno1 == 2: stuck to the scenery: mines beep (est 0x37 + SE 5 at the mine's nose) at a
+// shrinking interval (17 -> 5 frames) and explode when Bomb_wait runs out; arrows fall instead.
 void emMine_R1_Set(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -735,6 +761,7 @@ void emMine_R1_Set(cEmMine* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 3: sunk in water: hidden, then explodes (mine) after 150 frames.
 void emMine_R1_SetWater(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -765,6 +792,9 @@ void emMine_R1_SetWater(cEmMine* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 4: stuck to enemy `pEm_oya` parts `oya_parts`: follows the parts matrix, beeps like
+// Set, and explodes (mine) / falls (arrow) when the enemy dies, is hidden, or the timer runs out;
+// a vanished enemy loses the mine.
 void emMine_R1_Parent(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -882,6 +912,8 @@ void emMine_R1_Parent(cEmMine* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 5: 4 frame fuse for a mine stuck to the scenery; then moves the blast 1000 units out
+// along the surface normal and detonates (setBomb without Norm_ck).
 void emMine_R1_BombWait(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -911,6 +943,8 @@ void emMine_R1_BombWait(cEmMine* em)
     }
 }
 
+// Rno1 == 6: 2 frames after the explosion effect: applies the blast damage (PlWepHitCheck2 type
+// 0x13) with radius 2000 / 4000 / 6000 by firepower level at the mine's nose, then Lost.
 void emMine_R1_BombWait2(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -950,6 +984,8 @@ void emMine_R1_BombWait2(cEmMine* em)
     }
 }
 
+// Rno1 == 7: the arrow drops as a 3-node rope (gravity `grav`, floor contact 50 above the effect
+// collision floor, water splash once), matrix rebuilt from the nodes; lost when it comes to rest.
 void emMine_R1_Fall(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -1091,6 +1127,7 @@ void emMine_R1_Fall(cEmMine* em)
     }
 }
 
+// Rno1 == 8: removes the work: hidden, trail effects deleted, destroyed.
 void emMine_R1_Lost(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
@@ -1106,6 +1143,7 @@ void emMine_R1_Lost(cEmMine* em)
     }
 }
 
+// Sticks the mine / arrow to `parent` parts `partsNo_` (Rno1 4).
 void cEmMine::setParent(cEm* parent, int partsNo_)
 {
     EmMineWork* w = EMMINE_WK(this);
@@ -1118,6 +1156,7 @@ void cEmMine::setParent(cEm* parent, int partsNo_)
     r_no_3 = 0;
 }
 
+// Hides the mine and goes to Lost.
 void cEmMine::setLost()
 {
     hp = 0;
@@ -1128,6 +1167,10 @@ void cEmMine::setLost()
     r_no_3 = 0;
 }
 
+// Detonates: a mine stuck to a surface first goes through BombWait (Rno1 5); otherwise spawns
+// the explosion est / SE at the nose, splashes water, deletes the trail, flags the explosion
+// (Status_flg[0] 0x800000, Status_flg[1] 0x20000000) and stores the blast position as the noise
+// source (bell_pos / bell_stat, alerts enemies), then BombWait2 for the damage.
 void cEmMine::setBomb()
 {
     EmMineWork* w = EMMINE_WK(this);
@@ -1173,6 +1216,7 @@ void cEmMine::setBomb()
     asm("" : "=m"(hp) : "r"(hit));
 }
 
+// Starts the arrow's fall (Rno1 7): random upward node speeds, gravity 15, detached.
 void cEmMine::setFall()
 {
     EmMineWork* w = EMMINE_WK(this);
@@ -1199,6 +1243,11 @@ void cEmMine::setFall()
     r_no_3 = 0;
 }
 
+// Enemy hit test along the last move (GetWepTargetList2 with weapon type 0xE mine / 0x1C
+// arrow): registers the hit on the enemy's damage info, embeds the projectile in the hit part
+// (aimed 50 units back along the hit direction; objects use the flight direction), doubles its
+// scale, plays the stick SE (0x50 on objects, 0x54 for arrows on flesh) and parents it. 1 when
+// something was hit.
 int emMineHitCk(cEmMine* em)
 {
     Vec hit;

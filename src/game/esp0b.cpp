@@ -1,3 +1,8 @@
+// game/esp0b.cpp: effect id 0x0B, a sprite jittering in the camera plane. Each frame a new random
+// offset of up to prm.x sideways and prm.y up (camera axes) plus prm.z toward the camera replaces
+// the previous one. Core_flg 0x8000 effects (moving during pauses) apply the jitter only inside
+// the trans function so the stored position stays clean.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -20,11 +25,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x0B] factory.
 cEsp* Esp0b_Create()
 {
     return new cEsp0b;
 }
 
+// Removes last frame's offset, runs the base update/animation, then computes the new camera-plane
+// offset (in parent space when attached) and adds it to m_Pos. Skipped for Core_flg 0x8000.
 void cEsp0b::move()
 {
     Esp0bWork* w = &m_Free;
@@ -73,6 +81,8 @@ void cEsp0b::move()
     }
 }
 
+// EspTransTbl[0x0B]: for Core_flg 0x8000 effects computes the jitter here, draws with the offset
+// applied and removes it again; otherwise a plain EspCommonTrans.
 extern "C" void Esp0b_Trans(cEsp0b* esp)
 {
     Vec look;
@@ -118,6 +128,7 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
     }
 }
 
+// Jitter amplitudes from Vec0; Work8[0..1] must be 0 (reported, not fatal).
 int cEsp0b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     m_Free.prm = *(Vec*)&gen->Vec0.x;

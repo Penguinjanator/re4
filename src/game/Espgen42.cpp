@@ -1,3 +1,8 @@
+// game/Espgen42.cpp: effect controller 42, the room water surface (see the class note below):
+// a height field simulated every frame, lit and drawn with a bump-mapped display list, with
+// the AddWaterPower / GetWaterHeight / GetWaterCrossPos entry points the rest of the game uses
+// for splashes, floating effects and bullet hits on water.
+
 #include "light.h"
 #include "atari.h"
 #include "global.h"
@@ -53,6 +58,8 @@ static inline void ISet(int& d, int v) { d = v; }
 static inline f32 FGet(f32& d) { return d; }
 static inline int IGet(int& d) { return d; }
 
+// Room start: forgets both water generators (42 room water, 45 weather water), resets the
+// Espgen45 override state and clears the no-water debug switch.
 void EspWaterInit()
 {
     Estgen45SetTargetCamera(1);
@@ -223,6 +230,7 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
     }
 }
 
+// Applies the pending Add_power at Chk_pos to generator `w` (id 0x42 or 0x45 layout).
 void AddWaterPowerSub(EspgenWork* w)
 {
     if (w->id == 0x42) {
@@ -232,6 +240,9 @@ void AddWaterPowerSub(EspgenWork* w)
     }
 }
 
+// Public splash entry (footsteps, bullets, bodies): pushes the water height field down by
+// power x 5 at `pos` on every live water surface. No-op unless a water surface exists this frame
+// (Status_flg[0] 0x200).
 void AddWaterPower(Vec* pos, f32 power)
 {
     if (pG->Status_flg[0] & 0x200) {
@@ -275,6 +286,7 @@ static inline void GetWaterHeightCore(EspgenWork* w, Vec v)
     Height_find = 1;
 }
 
+// Runs the height test for Chk_pos on generator `w` (only ids 0x42 / 0x45).
 void GetWaterHeightSub(EspgenWork* w)
 {
     if (w->id == 0x42) {
@@ -284,11 +296,15 @@ void GetWaterHeightSub(EspgenWork* w)
     }
 }
 
+// Debug switch: makes GetWaterHeight report "no water" everywhere.
 void Espgen42SetNoWater(int on)
 {
     g_bNoWater = on;
 }
 
+// Surface height under `pos`: 1 and *height when the point (in grid space) lies inside the room
+// water or the weather water (an unbounded weather surface answers its plane height); 0 when no
+// live water covers it or no water exists this frame.
 int GetWaterHeight(Vec* pos, f32* height)
 {
     if (!(pG->Status_flg[0] & 0x200)) {
@@ -327,6 +343,8 @@ int GetWaterHeight(Vec* pos, f32* height)
     return Height_find;
 }
 
+// Intersects the segment Cross_Chk_pos -> Cross_Chk_dest with the room water plane (id 0x42)
+// and stores the hit in Cross_Ret_pos when it lies inside the grid.
 void GetWaterCrossPosSub(EspgenWork* w)
 {
     Espgen42Work* p;
@@ -397,6 +415,8 @@ void GetWaterCrossPosSub(EspgenWork* w)
     }
 }
 
+// Where the segment pos -> pos + dir crosses a live water surface: 1 and *out on a hit
+// (bullet splashes, item drops), 0 otherwise.
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 {
     if (!(pG->Status_flg[0] & 0x200)) {
@@ -441,6 +461,11 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 // is one pseudo, the function-level `n`.
 #define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p), "m"(*(p)))
 
+// Step 0, every frame: the wave simulation. Sets Status_flg[0] 0x200 (water present), then for
+// every interior grid point integrates the two height buffers (neighbour sum spring, damping
+// 0.92) plus the frame's noise texture (0xFE, 60 frames), writes the vertex heights, the
+// normals and the I8 bump texture (tilted by grid position so the edges shade flat). Mode 1 is
+// the cheaper single-pass variant; in the effect tool the B button drops the whole surface.
 void Espgen42_Move00(EspgenWork* w)
 {
     static f32 wt_pow = 10.0f;
@@ -682,6 +707,7 @@ void Espgen42_Move00(EspgenWork* w)
     }
 }
 
+// Espgen move entry for id 0x42: runs the step function unless Stop_flg 0x40000 freezes water.
 void Espgen42_Move(EspgenWork* w)
 {
     static void (*Espgen42MoveTbl[])(EspgenWork*) = {Espgen42_Move00};
@@ -692,6 +718,8 @@ void Espgen42_Move(EspgenWork* w)
     Espgen42MoveTbl[w->step](w);
 }
 
+// Queues Espgen42_TransSub in the world OT (0x10, layer 1, priority 0x80) while the generator is
+// live and not suspended.
 void Espgen42_Trans(EspgenWork* w)
 {
     if ((w->flag & 1) && !(w->flag & 2)) {
@@ -699,6 +727,7 @@ void Espgen42_Trans(EspgenWork* w)
     }
 }
 
+// Loads indirect texture matrix 1 with the bump scale (indS x 0.001 + 0.01, indT x 0.007 + 0.07).
 void SetIndMtx(Espgen42Work* p)
 {
     f32 m[2][3];
@@ -712,6 +741,10 @@ void SetIndMtx(Espgen42Work* p)
     GXSetIndTexMtx(1, m, 1);
 }
 
+// Draws the water: sets up a temporary model with 5 lights (commonWaterLightSet), the material /
+// ambient colours, position and normal matrices, the water texture (texId) with the bump map as
+// an indirect stage plus `stages` extra TEV stages, then calls the pre-built display list of
+// triangle strips; restores the TEV state afterwards.
 void Espgen42_TransSub(EspgenWork* w)
 {
     GxStageWork* st;
@@ -889,6 +922,10 @@ static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 ra
     return SetWaterWork(w, pos, rot, size, nx, ny, rate);
 }
 
+// Builds an nx x ny water grid of cell `size` at pos / rot (y scaled by size x 0.05 + 100, then
+// `rate`): allocates the height, position, normal, bump buffers and the display list of
+// (nx + 1) x 2 strip vertices per row with texture coordinates, and fills the flat start state.
+// Returns NULL (and releases the generator) on memory failure.
 EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
@@ -1087,6 +1124,7 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     return w;
 }
 
+// Frees all grid buffers and forgets the room water generator.
 void Espgen42_Destruct(EspgenWork* w)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
@@ -1118,6 +1156,11 @@ void Espgen42_Destruct(EspgenWork* w)
     g_pWater = NULL;
 }
 
+// Espgen SetFreeWork for id 0x42 (room water from the room's effect data): grid size WorkSp8[0..1]
+// (default 64, max 184, rounded down to 8), height rate WorkSp8[2], colours / ambient from the
+// record, mode Work8[0] (2: damp / spread from Work8[1..2]), texture Tex_id, bump parameters
+// prm 0xCE / 0xD2, extra TEV stages Work8[3]. Requires the noise texture 0xFE. Runs one move
+// step at once.
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {

@@ -1,3 +1,9 @@
+// game/esp16.cpp: effect id 0x16, a rope / chain of Num (Work8[0] + 2) points simulated with
+// distance constraints (segment length Vec0.x, damping Vec0.y %, constraint feedback Vec0.z %,
+// gravity Vec1, jitter Vec2). Point 0 follows the effect; with Work8[1] the last point is
+// pinned to model parts Work8[1] - 1 and the chain is relaxed from that end too. Positions and
+// speeds live in two esp3f buffers; the trans draws a camera-facing textured strip through them.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -30,11 +36,17 @@ public:
     virtual void Destruct();
 };
 
+// EspCreateTbl[0x16] factory.
 cEsp* Esp16_Create()
 {
     return new cEsp16;
 }
 
+// Base update / animation, then one relaxation pass from the head: each point moves by its speed,
+// is pulled back to max_len from its predecessor (with the along-segment speed cancelled), gets
+// the random jitter, the nen feedback split between neighbours, gravity and damping; then the
+// head is set to the effect position and, when pinned, the tail to the parts and a second pass
+// runs from the tail toward the head.
 void cEsp16::move()
 {
     Esp16Work* w = &m_Free;
@@ -125,6 +137,9 @@ void cEsp16::move()
     }
 }
 
+// EspTransTbl[0x16]: draws min(Life_time + 1, Num) points as a triangle strip of width
+// interpolated Size_base_x -> Size_base_y, widened perpendicular to segment and view; Tool_flg
+// bit1 flips s, bit2 runs t backwards.
 extern "C" void Esp16_Trans(cEsp16* esp)
 {
     Esp16Work* w = &esp->m_Free;
@@ -252,6 +267,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     }
 }
 
+// Releases the position and speed esp3f buffers.
 void cEsp16::Destruct()
 {
     Esp16Work* w = &m_Free;
@@ -267,6 +283,8 @@ void cEsp16::Destruct()
     }
 }
 
+// Reads the point count, optional tail parts, physics parameters, allocates both buffers (fails
+// when the pool is short) and starts every point at the effect's world position with zero speed.
 int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp16Work* w = &m_Free;

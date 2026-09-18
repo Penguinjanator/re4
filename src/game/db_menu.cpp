@@ -1,3 +1,9 @@
+// game/db_menu.cpp: the debug tool menu (Start + Z style entry through DbMenuExec). Lists the
+// debug tools (`menu` table: name, the REL module that holds the tool or a built-in function,
+// and the tool id); selecting one loads the REL from disc, links it and runs the tool as a task
+// while the game is frozen (Stop_flg); DbMenuExitAfterCheck returns to the game and unlinks the
+// module.
+
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -116,6 +122,7 @@ void init(struct test* t);
 static void exit(struct test* t);
 void move(struct test* t);
 
+// Menu index of the tool called `name`; -1 when unknown.
 int dbMenuGetMenuNo(const char* name)
 {
     int i;
@@ -128,6 +135,7 @@ int dbMenuGetMenuNo(const char* name)
     return -1;
 }
 
+// The menu task: init, then move() every frame.
 void MenuTask()
 {
     struct test* t = &test;
@@ -139,6 +147,8 @@ void MenuTask()
     }
 }
 
+// Opens the menu: sets Debug_flg[0] bit31 (menu active), freezes the game (Stop_flg saved),
+// switches debug_mode to the menu page and starts MenuTask.
 void DbMenuExec()
 {
     struct test* t = &test;
@@ -159,6 +169,9 @@ void DbMenuExec()
     TaskExec(2, MenuTask, 0);
 }
 
+// Main loop hook: when the menu / tool has ended (Debug_flg[0] bit31 cleared) restores the
+// debug page, unlinks the tool module and, when a tool was queued by DbMenuSetExecTool, re-opens
+// the menu to run it.
 void DbMenuExitAfterCheck()
 {
     struct test* t = &test;
@@ -190,6 +203,7 @@ void DbMenuExitAfterCheck()
     }
 }
 
+// Queues tool `name` to be started by the next menu open (other debug code jumps into a tool).
 void DbMenuSetExecTool(const char* name)
 {
     struct test* t = &test;
@@ -197,6 +211,7 @@ void DbMenuSetExecTool(const char* name)
     t->exec_tool = 1;
 }
 
+// 1 while the menu or a tool is active.
 int DbMenuActiveCheck()
 {
     if (test.exit_wait > 0) {
@@ -205,6 +220,7 @@ int DbMenuActiveCheck()
     return 0;
 }
 
+// Restores the Stop_flg saved when the menu opened (the tool runs the game underneath).
 void DbMenuRestoreStopFlag()
 {
     struct test* t = &test;
@@ -215,12 +231,14 @@ void DbMenuRestoreStopFlag()
     }
 }
 
+// Room start: forgets a queued tool.
 void DbMenuRoomInit()
 {
     test.exit_wait = 0;
     test.exec_tool = 0;
 }
 
+// Menu setup: cursor / position, and a queued tool selects itself.
 void init(struct test* t)
 {
     int no;
@@ -245,6 +263,7 @@ void init(struct test* t)
     }
 }
 
+// Closes the menu: Stop_flg restored, menu flag cleared, task ends.
 static void exit(struct test* t)
 {
     BitSet(pG->Stop_flg, t->stop_bak);
@@ -252,6 +271,9 @@ static void exit(struct test* t)
     TaskExit();
 }
 
+// Menu per frame: draws the tool list with the cursor, C-stick / D-pad moves it, B closes, A (or
+// a queued tool) starts the tool: a REL tool is read from "tools/<name>" into the debug heap,
+// linked and its prolog run; a built-in tool is chained as the task.
 void move(struct test* t)
 {
     JOY* joy;
@@ -334,6 +356,7 @@ void move(struct test* t)
     }
 }
 
+// Unlinks and frees the loaded tool REL (and its bss).
 void DbmenuModuleInit()
 {
     if (pModule != NULL) {

@@ -1,3 +1,11 @@
+// game/cam_ctrl.cpp: the camera controller (CamCtrl). The room's camera data (B40x file: trigger
+// areas -> camera cuts, plus interpolation records) selects a cut when the player enters an area
+// (areaHitCheck, with calm / battle attribute variants); each cut type maps to an r0 routine
+// (fixed, pan, rail track / pan / behind, free, camera motion, shoulder camera = CameraQuasiFPS
+// in cam_qfps.cpp) and the extras (scope, binoculars, push object, look-down, attached motion
+// cameras in cam_extra.cpp) plug in as cCamera objects. Move() produces the frame's camera
+// through the cut interpolation and smoothing; CameraMove (camera.cpp) copies it into pG->Cam.
+
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -193,6 +201,8 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
     return p - buf;
 }
 
+// 1 during the frame the camera cut changed (m_state_flag bit1); CamStick2World and the
+// visibility tests use it.
 int CameraControl::IsChangeCamera()
 {
     if (m_state_flag & 2) {
@@ -201,6 +211,8 @@ int CameraControl::IsChangeCamera()
     return 0;
 }
 
+// Returns control to the area cameras after a forced cut / event camera: clears the "cut held"
+// flag, re-enables the area check and drops the motion-camera flag.
 void CameraControl::Comeback(int)
 {
     data = (CameraDataHeader*) pG->pCamRoom;
@@ -212,12 +224,14 @@ void CameraControl::Comeback(int)
     Check();
 }
 
+// Stops the controller (r0 Wait, area check off); the room / event drives pG->Cam itself.
 void CameraControl::Disable()
 {
     r0 = 0;
     m_system_flag |= 8;
 }
 
+// mode 0 disables the per-frame area check (the current camera stays), else re-enables it.
 void CameraControl::AreaCheckOnOff(int mode)
 {
     switch (mode) {
@@ -230,21 +244,25 @@ void CameraControl::AreaCheckOnOff(int mode)
     }
 }
 
+// Number of camera areas in the room data.
 u8 CameraControl::AreaNum()
 {
     return data->numArea;
 }
 
+// Area number of the active camera (-1 none).
 int CameraControl::CurrentAreaNo()
 {
     return areaNo;
 }
 
+// Camera number of the active cut (-1 none).
 int CameraControl::CurrentCameraNo()
 {
     return cameraNo;
 }
 
+// The cut record with camera_no `no` (the last record when not found).
 CameraCut* CameraControl::DataSearch(int no)
 {
     CameraAreaRec* rec = (CameraAreaRec*) (data + 1);
@@ -259,6 +277,8 @@ CameraCut* CameraControl::DataSearch(int no)
     return cut;
 }
 
+// The interpolation record for the transition from one area / camera to another; NULL when the
+// data has none (a hard cut).
 CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_to, int cam_to)
 {
     CameraAreaRec* rec = (CameraAreaRec*) (data + 1);
@@ -276,6 +296,9 @@ CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_
     return NULL;
 }
 
+// Relocates a camera data file in place ("B400".."B404": file offsets -> pointers for the area
+// polygons and the cut key arrays); older versions get their attr 8 promoted to 0x20. Returns
+// the buffer, or unchanged when already relocated / unknown.
 CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 {
     int ver2;
@@ -332,17 +355,21 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
     return pBuff;
 }
 
+// Installs the room's camera data (relocated).
 void CameraControl::RoomDataRead(CameraDataHeader* room)
 {
     G_ROOM_CAM_DATA = calcAddr(room);
     data = (CameraDataHeader*) pG->pCamRoom;
 }
 
+// Installs the core (shared) camera data.
 void CameraControl::CoreDataRead(CameraDataHeader* core)
 {
     pG->pCamCore = calcAddr(core);
 }
 
+// Line of sight test for cameras: from -> to against characters, objects and the scenery (walls
+// only, camera-ignored attributes masked); the nearest hit in *pos / *nrm. 1 when blocked.
 int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
 {
     static f32 R_GAIN = 1.1f;
@@ -462,6 +489,7 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
     return ret;
 }
 
+// Copies the cut's first key (pos / at / roll / fov) into a Camera and rebuilds its orientation.
 void CameraSetCutData(Camera* cam, CameraCut* cut)
 {
     cam->param.pos = *cut->pos;
@@ -471,6 +499,7 @@ void CameraSetCutData(Camera* cam, CameraCut* cut)
     CameraSetOrientationRoll(cam);
 }
 
+// Script: enables / disables the camera area (area_no, camera_no) for the area check.
 void CameraControl::AreaOnOff(int area_no, int camera_no, int on)
 {
     CameraDataHeader* d = data;
@@ -485,6 +514,7 @@ void CameraControl::AreaOnOff(int area_no, int camera_no, int on)
     }
 }
 
+// Script: ORs `attr` bits into the area's attribute (0x20 normal, 1 / 2 calm / battle...).
 void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
 {
     CameraDataHeader* d = data;
@@ -499,6 +529,7 @@ void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
     }
 }
 
+// Script: clears `attr` bits of the area's attribute.
 void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
 {
     CameraDataHeader* d = data;
@@ -513,6 +544,8 @@ void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
     }
 }
 
+// Script: forces camera cut `no` (its first area record) and holds it (m_state_flag bit2) until
+// Comeback.
 void CameraControl::CutCall(int no)
 {
     CameraDataHeader* d = data;
@@ -537,6 +570,11 @@ void CameraControl::CutCall(int no)
     }
 }
 
+// Activates the area record: sets up the lerp from the current camera when the data has one,
+// updates the room light area unless the area says not to, remembers area / camera numbers and
+// picks the routine from the cut type: 0 Fix, 1 Pan, 2 Track, 3 RailPan, 4 RailBehind, 5 Free,
+// 6 / 7 a CameraMotion from the room motion buffer (Motion / UpCut), 8 the shoulder camera with
+// the area's offsets (bindAreaCamera).
 void CameraControl::switchCamera(CameraAreaRec* rec)
 {
     CameraAreaInfo* area = rec->area;
@@ -669,6 +707,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     m_system_flag &= ~0x10;
 }
 
+// 1 when the area is enabled and matches both attribute masks.
 int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2)
 {
     if ((area->enable & 1) && (area->attr & attr) && (area->attr2 & attr2)) {
@@ -677,6 +716,8 @@ int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2)
     return 0;
 }
 
+// 1 when `pos` is inside the area polygon (and, with attr 0x40, the facing `dir` is within 135
+// degrees of the area's direction).
 int areaHit(Vec* pos, CameraAreaInfo* area, f32 dir)
 {
     int ret;
@@ -711,6 +752,7 @@ int areaHit(Vec* pos, CameraAreaInfo* area, f32 dir)
     return ret;
 }
 
+// Point in a convex area polygon of up to 4 points (height band base_y .. base_y + height).
 int area_hit_p3(Vec* pos, CameraAreaInfo* area)
 {
     Vec* p[3];  // the three corner pointers live in memory (stw/lwz around the calls)
@@ -746,6 +788,7 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
     return 1;
 }
 
+// Point in an area polygon of more than 4 points (fan of triangles).
 int area_hit_pN(Vec* pos, CameraAreaInfo* area)
 {
     f32 y = pos->y + 100.0f;
@@ -832,6 +875,11 @@ int area_hit_pN(Vec* pos, CameraAreaInfo* area)
     return 0;
 }
 
+// Per-frame area check: decides the cut attribute (1 calm / 2 battle, from EmMgr.isBattle with a
+// Battle_delay, or forced by debug), and on an attribute change or when the player left the
+// current area finds the first enabled area (normal 0x20 first, then the attribute-specific
+// ones) containing the player and switches to it; with no area the shoulder camera (0xA) with
+// the default offsets takes over.
 void CameraControl::areaHitCheck()
 {
     static u8 blink = 0;
@@ -986,6 +1034,9 @@ void CameraControl::areaHitCheck()
     }
 }
 
+// Room start: installs the room / core camera data (be_flag bit0 when present), resets to the
+// shoulder camera with default offsets, no area, the behind-camera tuning constants, clears the
+// attach cameras; rooms without data start in Wait with the area check off.
 void CameraControl::roomInit()
 {
     s8 ver;
@@ -1061,6 +1112,10 @@ void CameraControl::roomInit()
     g_pToolCamData = NULL;
 }
 
+// Per-frame, before Move: runs the area check (unless disabled), then handles the fall / drop
+// cases: while the player's hip is more than 500 units above his feet (falling, ladder) the
+// controller switches to an event-driven camera state (0xB) and back when he lands, unless an
+// extra / boss camera or a held cut is active.
 void CameraControl::Check()
 {
     Vec d;
@@ -1113,6 +1168,11 @@ void CameraControl::Check()
     }
 }
 
+// Per-frame camera computation: refreshes the aim point from the cut, runs the r0 routine (0
+// Wait, 1 Fix, 2 Pan, 3 Track, 4 RailPan, 5 Motion, 6 RailBehind, 7 Free, 8 Debug, 9 UpCut,
+// 0xA shoulder, 0xB.. the cCamera extras: 0xC binocular, 0xD look-down, 0xF push object, 0x10
+// scope, 0x11 attached motion) into `cur`, applies the cut interpolation and the smoothing, and
+// rebuilds `camera`.
 void CameraControl::Move()
 {
     static f32 gain = 2.0f;
@@ -1220,6 +1280,7 @@ void CameraControl::Move()
     }
 }
 
+// The aim point: player position + the cut's aim offset (flags bit0) or the default (1000 up).
 void CameraControl::CalcAim(CameraCut* cut)
 {
     static Vec offset0 = {0.0f, 1000.0f, 0.0f};
@@ -1240,17 +1301,21 @@ void CameraControl::CalcAim(CameraCut* cut)
     }
 }
 
+// Always 0 (unused pitch query).
 f32 CameraControl::getCameraPitch()
 {
     return 0.0f;
 }
 
+// Starts an interpolation of `f` frames from camera parameters `p`.
 void CameraInterpolation::set(int f, CameraParam* p)
 {
     frame = f;
     param = *p;
 }
 
+// One step toward the target parameters `p`: param moves 1 / frame of the remaining distance
+// each frame; when frame reaches 0 it snaps to `p`.
 void CameraInterpolation::move(CameraParam* p)
 {
     CameraParam tmp;
@@ -1279,11 +1344,14 @@ void CameraInterpolation::move(CameraParam* p)
     }
 }
 
+// Resets the smoothing state to `p`.
 void CameraSmooth::init(CameraParam* p)
 {
     param = *p;
 }
 
+// Exponential smoothing: param = m_ratio * old + (1 - m_ratio) * p (the quake offset is removed
+// from the old value first); a set reinit flag snaps to `p`.
 void CameraSmooth::move(CameraParam* p)
 {
     Vec tmp;
@@ -1307,10 +1375,13 @@ void CameraSmooth::move(CameraParam* p)
     param.fovy = p->fovy * (1.0f - m_ratio) + param.fovy;
 }
 
+// r0 == 0: idle (an event / room owns pG->Cam).
 void CameraControl::r0_Wait()
 {
 }
 
+// r0 == 8: the debug behind camera (Debug_flg): a fixed offset behind / above the player, pulled
+// in front of walls.
 void CameraControl::r0_Debug()
 {
     Vec a;
@@ -1380,6 +1451,8 @@ void CameraControl::r0_Debug()
     }
 }
 
+// r0 == 1: fixed camera at the cut's key looking at the aim point (keeps the previous roll / fov
+// when the cut has no key).
 void CameraControl::r0_Fix()
 {
     Camera cam;
@@ -1401,6 +1474,8 @@ static inline void smoothStart(f32 ratio)
     CamSmth.m_flag = f | 1;
 }
 
+// r0 == 2: fixed position panning to follow the aim point; a multi-key cut turns into a rail
+// (Parametrize + searchRail + BSpline).
 void CameraControl::r0_Pan()
 {
     CameraParam p;
@@ -1425,6 +1500,8 @@ void CameraControl::r0_Pan()
     }
 }
 
+// r0 == 3: the camera slides along the cut's B-spline rail to the point nearest the aim and looks
+// at the aim.
 void CameraControl::r0_Track()
 {
     Camera cam;
@@ -1451,6 +1528,7 @@ void CameraControl::r0_Track()
     }
 }
 
+// r0 == 4: rail camera whose target is the aim point (rail evaluated every frame).
 void CameraControl::r0_RailPan()
 {
     Camera cam;
@@ -1479,6 +1557,7 @@ void CameraControl::r0_RailPan()
     }
 }
 
+// r0 == 9: placeholder (the up-cut camera is the CameraMotion extra started by switchCamera).
 void CameraControl::r0_UpCut()
 {
 }
@@ -1489,6 +1568,10 @@ static inline void VecLinComb(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
     VecLinearCombination(a, b, s, t, out);
 }
 
+// r0 == 6: the behind-the-player camera on a rail: C-stick looks around within the h / v angle
+// limits (quick snap to a limit with a short tap), the camera slides along the rail behind the
+// player with side / back play zones, fov m_behind_fovy, smoothing m_behind_A_ratio, pulled in
+// by cameraHitCheck.
 void CameraControl::r0_RailBehind()
 {
     static Camera camera_old;
@@ -1792,12 +1875,15 @@ static inline u32 JoyOn(JOY* j, u32 bit)
     return j->on & bit;
 }
 
+// Button trigger test on a pad.
 static inline u32 JoyTrg(JOY* j, u32 bit)
 {
     return j->trg & bit;
 }
 
 
+// r0 == 7: the free behind camera: orbits the player at a fixed distance with C-stick yaw /
+// pitch, recentres behind him when idle, fov m_behind_fovy, pulled in by cameraHitCheck.
 void CameraControl::r0_Free()
 {
     static Vec campos_ofs0 = {0.0f, 1800.0f, -1200.0f};
@@ -1929,17 +2015,20 @@ void CameraControl::r0_Free()
     }
 }
 
+// Shoulder camera: delay before it snaps to the stored player matrix (search frames).
 void CamCtrlShoulderSetSearchFrame(s16 frame)
 {
     CamCtrl.m_QuasiFPS.m_search_frame = frame;
     CamCtrl.m_QuasiFPS.m_search_cnt = 0;
 }
 
+// Shoulder camera: the aim point used during the search delay.
 void CamCtrlShoulderSetAim(Vec* aim)
 {
     CamCtrl.m_QuasiFPS.m_Aim = *aim;
 }
 
+// Shoulder camera: clears the C-stick look angles.
 void CameraControl::resetCameraAngle()
 {
     CameraQuasiFPS* q = &CamCtrl.m_QuasiFPS;
@@ -1948,6 +2037,7 @@ void CameraControl::resetCameraAngle()
     q->angle_x = 0.0f;
 }
 
+// Shoulder camera: returns and clears the yaw look angle (the player turns by it).
 f32 CameraControl::getCameraDirection()
 {
     f32 dir = CamCtrl.m_QuasiFPS.angle_x;
@@ -1955,6 +2045,8 @@ f32 CameraControl::getCameraDirection()
     return dir;
 }
 
+// Fits the cut's keys (pos, at, roll, fov) with a B-spline of degree min(2, num - 1): solves the
+// de Boor-Cox basis matrix for the control points (temporary MEM_ALLOC buffers).
 void Parametrize(CameraCut* cut, CameraBSpline* bs)
 {
     int i;
@@ -2021,6 +2113,7 @@ void Parametrize(CameraCut* cut, CameraBSpline* bs)
     }
 }
 
+// Evaluates the rail at parameter bs->t into the camera's pos / at / roll / fov.
 void BSpline(CameraBSpline* bs, Camera* cam, int)
 {
     int i;
@@ -2039,6 +2132,8 @@ void BSpline(CameraBSpline* bs, Camera* cam, int)
     }
 }
 
+// Finds the rail parameter nearest the aim point: projects the aim on every key segment of the
+// cut's `at` polyline (falls back to the nearest key), storing t and the segment.
 void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
 {
     Vec d;
@@ -2111,6 +2206,7 @@ void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
     }
 }
 
+// Debug: draws the cut's rail (spline samples) and its keys.
 void CameraControl::debugDrawRail(CameraCut* cut)
 {
     static Vec Fc_old;
@@ -2150,6 +2246,8 @@ CameraControl CamCtrl;
 CameraBSpline CamBSpline;
 CameraSmooth CamSmth;
 
+// Stores the up-cut placement (sel 0 position, 1 angles, 2 scale) used by the up-cut motion
+// camera.
 void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
 {
     switch (sel) {
@@ -2172,6 +2270,7 @@ void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
     CutCall(no);
 }
 
+// Enters the push-object camera (r0 0xF, CameraPushObject extra).
 void CameraControl::startPushObject()
 {
     extra = new (m_Free) CameraPushObject();
@@ -2179,6 +2278,7 @@ void CameraControl::startPushObject()
     AreaCheckOnOff(0);
 }
 
+// Leaves the push-object camera and returns to the area cameras.
 void CameraControl::endPushObject()
 {
     if (extra) {
@@ -2187,6 +2287,8 @@ void CameraControl::endPushObject()
     Comeback(0);
 }
 
+// Enters the look-down camera on enemy `em` (r0 0xD) from above the player; hides the HUD
+// (Status_flg[0] 0x2000000 off).
 void CameraControl::StartLookDownEm(void* em)
 {
     Vec c;
@@ -2202,6 +2304,7 @@ void CameraControl::StartLookDownEm(void* em)
     BitOff(pG->Status_flg[0], 0x2000000);
 }
 
+// Leaves the look-down camera, HUD back on.
 void CameraControl::EndLookDownEm()
 {
     if (extra) {
@@ -2211,6 +2314,7 @@ void CameraControl::EndLookDownEm()
     BitOn(pG->Status_flg[0], 0x2000000);
 }
 
+// Enters the rifle scope camera (r0 0x10; Status_flg[0] 0x40 scope, 0x8000 first-person view).
 void CameraControl::startScope(Vec* pos, Vec* at)
 {
     if (!(pG->Status_flg[0] & 0x40)) {
@@ -2223,6 +2327,7 @@ void CameraControl::startScope(Vec* pos, Vec* at)
     }
 }
 
+// Leaves the scope camera.
 void CameraControl::endScope()
 {
     if (pG->Status_flg[0] & 0x40) {
@@ -2236,6 +2341,7 @@ void CameraControl::endScope()
     }
 }
 
+// While scoped: the scope camera's pos / at (the rifle's shot line).
 void CameraControl::getTrajectory(Vec* pos, Vec* at)
 {
     if (pG->Status_flg[0] & 0x40) {
@@ -2245,23 +2351,28 @@ void CameraControl::getTrajectory(Vec* pos, Vec* at)
     }
 }
 
+// Saves the scope zoom / pitch and reticle timers before the scope is closed.
 void CameraControl::saveScopeParam()
 {
     ((CameraScope*) extra)->getParam(&m_scope_zoom, &m_scope_ang_x);
     ((CameraScope*) extra)->m_id.save(0);
 }
 
+// Restores them when the scope is re-opened.
 void CameraControl::loadScopeParam()
 {
     ((CameraScope*) extra)->setParam(m_scope_zoom, m_scope_ang_x);
     ((CameraScope*) extra)->m_id.load(0);
 }
 
+// Limits the binocular view angles.
 void CameraControl::SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
     ((CameraBinocular*) extra)->setRange(x_low, x_up, y_low, y_up);
 }
 
+// Enters the binocular camera (r0 0xC; Status_flg[0] 0x400 binocular, 0x8000 first person) with
+// its HUD data.
 void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 {
     BitOn(pG->Status_flg[0], 0x400);
@@ -2272,6 +2383,7 @@ void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
     AreaCheckOnOff(0);
 }
 
+// Leaves the binocular camera.
 void CameraControl::LowerBinocular()
 {
     BitOff(pG->Status_flg[0], 0x400);
@@ -2283,12 +2395,15 @@ void CameraControl::LowerBinocular()
     Comeback(0);
 }
 
+// The binocular HUD data pointers.
 void CameraControl::GetBinocularIDAddr(void** eff_addr, void** uwf_addr)
 {
     *eff_addr = ((CameraBinocular*) extra)->id_a;
     *uwf_addr = ((CameraBinocular*) extra)->id_b;
 }
 
+// Plays a camera motion file (cutscene camera, r0 5) interpolating from the current camera over
+// `frame` frames; flags the event camera (m_system_flag 0x28, Status_flg[2] 0x10000000).
 void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 {
     BitOn(m_system_flag, 0x28);
@@ -2299,6 +2414,7 @@ void CameraControl::MotionSet(void* motion, int frame, f32 speed)
     interp.set(frame, &pG->Cam.param);
 }
 
+// 1 while a camera motion is playing (m_system_flag 0x20).
 int CameraControl::IsMotionSet()
 {
     if (m_system_flag & 0x20) {
@@ -2307,6 +2423,7 @@ int CameraControl::IsMotionSet()
     return 0;
 }
 
+// 1 when no camera motion is set or the current one reached its end.
 int CameraControl::IsMotionEnd()
 {
     if (r0 != 5) {
@@ -2315,16 +2432,19 @@ int CameraControl::IsMotionEnd()
     return ((CameraMotion*) extra)->end == 1;
 }
 
+// Places the camera motion in the world through `mat` (event position).
 void CameraControl::setMotionBaseMatPtr(Mtx* mat)
 {
     ((CameraMotion*) extra)->base_mat = mat;
 }
 
+// The playing camera motion's work (frame / state).
 void* CameraControl::getMotionInfoPtr()
 {
     return &((CameraMotion*) extra)->m_info;
 }
 
+// Forgets all registered attach cameras (motion-driven cameras of models).
 void CameraControl::clearAttachCamera()
 {
     int i;
@@ -2337,6 +2457,7 @@ void CameraControl::clearAttachCamera()
     }
 }
 
+// Registers (or replaces) the attach camera of `model` (up to 3).
 void CameraControl::registAttachCamera(AttachCamera* cam, cModel* model)
 {
     int i;
@@ -2358,6 +2479,7 @@ void CameraControl::registAttachCamera(AttachCamera* cam, cModel* model)
     pLog->err(0, 0, "registAttachCamera(): lack of ptr table.");
 }
 
+// Unregisters the attach camera of `model`.
 void CameraControl::deleteAttachCamera(AttachCamera* cam, cModel* model)
 {
     int i;
@@ -2372,6 +2494,7 @@ void CameraControl::deleteAttachCamera(AttachCamera* cam, cModel* model)
     }
 }
 
+// The model whose attach camera is active (any when `model` is NULL, else `model` if registered).
 cModel* CameraControl::getAttachModel(cModel* model)
 {
     int i;
@@ -2392,6 +2515,7 @@ cModel* CameraControl::getAttachModel(cModel* model)
     return NULL;
 }
 
+// The active attach camera (any when `model` is NULL, else that model's).
 AttachCamera* CameraControl::getAttachCamera(cModel* model)
 {
     int i;
@@ -2416,6 +2540,9 @@ AttachCamera* CameraControl::getAttachCamera(cModel* model)
 // reloads pG and `extra` after every one of the four param copies below
 extern GlobalWorkPtr pGW asm("pG");
 
+// Per-frame: when a registered model's motion has an active camera track, switches to the
+// attached-motion camera (r0 0x11, interpolating over the track's frame count) and back to the
+// area cameras when it ends. Not while the scope is up.
 void CameraControl::checkAttachCamera()
 {
     static int inter_frame;
@@ -2468,6 +2595,7 @@ void CameraControl::checkAttachCamera()
     m_p_attach_model_old = model;
 }
 
+// The numeric version of a camera data file ("B40x" -> x); -1 when not camera data.
 int cameraDataVersion(char* data)
 {
     if (strncmp(data, "B404", 4) == 0) {

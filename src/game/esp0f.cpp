@@ -1,3 +1,9 @@
+// game/esp0f.cpp: effect id 0x0F, a screen-distortion (refraction) sprite. Its trans copies the
+// current frame buffer at half resolution into temp buffer 3 and draws the sprite quad with that
+// copy projected onto it (projective texgen, or the screen matrix for screen sprites),
+// modulated by the sprite's own texture as an alpha mask; Pow (Work8[0], 0..2) is the TEV
+// brightness scale (x1, x2, x4) of the copied frame. Used for heat haze and shock rings.
+
 #include "light.h"
 #include "atari.h"
 #include "gx.h"
@@ -23,11 +29,13 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x0F] factory.
 cEsp* Esp0f_Create()
 {
     return new cEsp0f;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp0f::move()
 {
     if (CommonMove()) {
@@ -37,6 +45,9 @@ void cEsp0f::move()
     }
 }
 
+// EspTransTbl[0x0F]: builds the sprite matrix (screen ortho / camera-facing / fully rotated with
+// Tool_flg bit0), copies the frame buffer into a half-size texture, sets up 3 TEV stages (frame
+// copy scaled by Pow, sprite texture as alpha) and draws the quad; then restores the GX state.
 extern "C" void Esp0f_Trans(cEsp0f* esp)
 {
     static Mtx Matrix = {
@@ -207,6 +218,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     LightMgr.setFog();
 }
 
+// Brightness scale Pow from Work8[0] (0..2, else fails).
 int cEsp0f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     m_Free.Pow = gen->Work8[0];

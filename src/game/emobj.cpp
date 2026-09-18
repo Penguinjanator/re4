@@ -16,6 +16,8 @@ void YarareInitCube(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h
 // build issued the FP argument first).
 cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
 
+// Constructor-time defaults of an object enemy: no motion / collision flags, no collision
+// pieces, effect and etc ids 0xFF.
 void cEmObj::EmObjInit()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -27,6 +29,9 @@ void cEmObj::EmObjInit()
     w->etc = 0xFF;
 }
 
+// Shared per-frame step of the object classes: rebuilds mat from ang / pos / scale, advances the
+// motion (m_Work0 bit0) or just recomputes the parts matrices, then updates the world parts and
+// re-seats the registered scenario (bit1) / effect (bit2) collision quads at the new coordinate.
 void cEmObj::EmObjMove()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -49,6 +54,9 @@ void cEmObj::EmObjMove()
     }
 }
 
+// Registers a scenario (walkable / blocking) collision quad of half size sx / sz and height sy at
+// model-space `pos` (kept when NULL) with cSatMgr::create attribute `n` and `flag`; m_Work0 bit1
+// keeps it following the object.
 void cEmObj::setSat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -65,6 +73,8 @@ void cEmObj::setSat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
     setSatMain();
 }
 
+// (Re)creates or re-activates the scenario collision piece at the object's pos / ang from the
+// stored quad parameters.
 void cEmObj::setSatMain()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -93,6 +103,7 @@ void cEmObj::setSatMain()
     }
 }
 
+// Deactivates the scenario collision piece (m_Flag bit2 off) and stops following it.
 void cEmObj::clrSat()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -103,6 +114,8 @@ void cEmObj::clrSat()
     m_Work0 &= ~2;
 }
 
+// Registers an effect collision quad (EatMgr: bullets, effects, thrown objects) like setSat;
+// m_Work0 bit2 keeps it following the object.
 void cEmObj::setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -119,6 +132,7 @@ void cEmObj::setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
     setEatMain();
 }
 
+// (Re)creates or re-activates the effect collision piece at the object's pos / ang.
 void cEmObj::setEatMain()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -147,6 +161,7 @@ void cEmObj::setEatMain()
     }
 }
 
+// Deactivates the effect collision piece and stops following it.
 void cEmObj::clrEat()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -157,6 +172,8 @@ void cEmObj::clrEat()
     m_Work0 &= ~4;
 }
 
+// Adds hit box `no` to the object: a cylinder (cube == 0: YarareInitCube with radius `rad`) or a
+// box of width `w` / height `h` at model-space `pos` (origin when NULL); flag bit0 is always set.
 void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 rad)
 {
     Vec p;
@@ -196,21 +213,25 @@ static void emObjPosClear(Vec* p)
     p->z = 0.0f;
 }
 
+// Sets the object's effect id byte (per class: effect / est number used on break).
 void cEmObj::setEff(u8 v)
 {
     EMOBJ_WK(this)->eff = v;
 }
 
+// The object's effect id byte.
 u8 cEmObj::getEff()
 {
     return EMOBJ_WK(this)->eff;
 }
 
+// Sets the object's extra parameter byte (per class meaning).
 void cEmObj::setEtc(u8 v)
 {
     EMOBJ_WK(this)->etc = v;
 }
 
+// The object's extra parameter byte.
 u8 cEmObj::getEtc()
 {
     return EMOBJ_WK(this)->etc;

@@ -1,3 +1,9 @@
+// game/esp04.cpp: effect id 0x04, a screen-space tiled texture overlay (rain sheets, dust,
+// static). The sprite must be a screen sprite; its trans draws a grid of Size_base_x x
+// Size_base_y quads in a 512 x 448 orthographic projection, repeated across the screen on the
+// axes enabled by flag (Work8[0]) so scrolling m_Pos wraps seamlessly. Work8[1..2] jitter the
+// position randomly each frame, prm 0xCF / Work8[3] give an alpha ramp and its start delay.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -30,11 +36,13 @@ void move10(cEsp04* esp);
 
 static void (*func_tbl[])(cEsp04*) = { move00, move10 };
 
+// EspCreateTbl[0x04] factory.
 cEsp* Esp04_Create()
 {
     return new cEsp04;
 }
 
+// Colour fade and life only (no speed integration), then the Rno0 step from func_tbl.
 void cEsp04::move()
 {
     if (ColorUpdate()) {
@@ -47,12 +55,16 @@ void cEsp04::move()
     }
 }
 
+// Rno0 == 0: records the spawn position as the jitter centre and moves to Rno0 1.
 void move00(cEsp04* esp)
 {
     esp->m_Free.base_pos = esp->m_Pos;
     esp->m_Rno0 = 1;
 }
 
+// Rno0 == 1: wraps m_Pos back into the screen by whole tiles, applies the random x/y jitter
+// around base_pos, ramps the alpha by a_rate per frame after a_wait frames, and advances the
+// animation (released when it ends).
 void move10(cEsp04* esp)
 {
     Esp04Work* w = &esp->m_Free;
@@ -148,6 +160,8 @@ void move10(cEsp04* esp)
     }
 }
 
+// EspTransTbl[0x04]: ortho projection, then draws the quad grid (542 / sx + 2 columns and / or
+// 448 / sy + 2 rows when repeating, starting one tile off screen) with the whole texture per tile.
 extern "C" void Esp04_Trans(cEsp04* esp)
 {
     Esp04Work* w = &esp->m_Free;
@@ -232,6 +246,8 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     }
 }
 
+// Repeat flags, jitter ranges, alpha delay and rate from the record; tile sizes are clamped to
+// at least 0.1. Warns when the parent is not a screen layer.
 int cEsp04::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp04Work* w = &m_Free;

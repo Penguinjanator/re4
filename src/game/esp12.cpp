@@ -1,3 +1,9 @@
+// game/esp12.cpp: effect id 0x12, a textured ribbon trail. The last Num (Work8[0] + 2, max 125)
+// world positions live in an esp3f vector buffer; each frame the history shifts down and the
+// current position enters slot 0. The trans draws a camera-facing triangle strip through the
+// points, tapering from Size_base_x at the head to Size_base_y at the tail, with the texture's t
+// running along the ribbon.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -21,11 +27,14 @@ public:
     virtual void Destruct();
 };
 
+// EspCreateTbl[0x12] factory.
 cEsp* Esp12_Create()
 {
     return new cEsp12;
 }
 
+// Base update/animation, then shifts the position history by one and stores the current world
+// position at index 0. Never Z-culled (huge m_Radius).
 void cEsp12::move()
 {
     Esp12Work* w = &m_Free;
@@ -54,6 +63,9 @@ void cEsp12::move()
     }
 }
 
+// EspTransTbl[0x12]: draws min(Life_time + 1, Num) history points as a strip of 2 vertices each,
+// widened perpendicular to the segment and the camera direction, width interpolated head -> tail,
+// in view space rotated by m_Ang.
 extern "C" void Esp12_Trans(cEsp12* esp)
 {
     Esp12Work* w = &esp->m_Free;
@@ -161,6 +173,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     }
 }
 
+// Releases the esp3f history buffer.
 void cEsp12::Destruct()
 {
     cEsp* b = (cEsp*)m_Free.pBuf;
@@ -170,6 +183,8 @@ void cEsp12::Destruct()
     }
 }
 
+// Num = Work8[0] + 2 (Work8[0] <= 123), allocates the esp3f buffer and fills every slot with the
+// current world position; never Z-culled (m_Flg bit1). Fails when the buffer cannot be pulled.
 int cEsp12::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp12Work* w = &m_Free;

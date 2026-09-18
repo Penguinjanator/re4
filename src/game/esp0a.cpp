@@ -1,3 +1,9 @@
+// game/esp0a.cpp: effect id 0x0A, motion-trail sprites. Type (Work8[2]) 0: at spawn the effect
+// simulates itself 50 frames ahead and leaves a static id-0 sprite (life Work8[0]) at every
+// step, then dies. Type 1: a rim-lit sprite whose alpha drops when its speed direction lines up
+// with the view direction in front of the camera; its trans draws the trail of 50 one-frame
+// ghost copies along the predicted path each frame.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -41,11 +47,15 @@ static inline cCoord* RefCoordP(cCoord*& p)
     return p;
 }
 
+// EspCreateTbl[0x0A] factory.
 cEsp* Esp0a_Create()
 {
     return new cEsp0a;
 }
 
+// Type 0 releases itself (its copies were made in SetFreeWork). Type 1 computes the view-space
+// speed direction and position and fades m_Col_a from Base_alpha when the sprite is near the view
+// axis (vpos.z < -0.9) and moving along it (|dot| beyond 0.6).
 void cEsp0a::move()
 {
     Esp0aWork* w = &m_Free;
@@ -83,6 +93,8 @@ void cEsp0a::move()
     }
 }
 
+// EspTransTbl[0x0A]: Type 1 pulls a scratch copy, steps it with CommonMove 50 times and queues a
+// one-frame id-0 ghost sprite (Esp0a_Trans2) at each position, Z-sorted by world position.
 void Esp0a_Trans(cEsp0a* esp)
 {
     Esp0aWork* w = &esp->m_Free;
@@ -135,11 +147,14 @@ void Esp0a_Trans(cEsp0a* esp)
     }
 }
 
+// Draw callback of the ghost copies: plain EspCommonTrans.
 void Esp0a_Trans2(cEsp* esp)
 {
     EspCommonTrans(esp);
 }
 
+// Type 0: pulls a scratch copy and lays down up to 50 frozen id-0 sprites (life Work8[0]) along
+// its simulated path. Type 1: Tool_flg 0x400 (pre-world layer) and m_Flg bit1. Work8[1] must be 0.
 int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0aWork* w = &m_Free;

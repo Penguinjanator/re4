@@ -1,3 +1,6 @@
+// game/cString.cpp: a minimal owning string (cString) used by the debug tools: heap copies made
+// with new[], the empty string shared as the literal "".
+
 #include "types.h"
 #include "cString.h"
 
@@ -7,11 +10,13 @@ char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
 }
 
+// Empty string.
 cString::cString()
 {
     m_str = "";
 }
 
+// Copy of `s` (NULL / empty stays the shared empty string).
 cString::cString(const char* s)
 {
     m_str = "";
@@ -22,11 +27,13 @@ cString::cString(const char* s)
     }
 }
 
+// Frees the copy.
 cString::~cString()
 {
     clear();
 }
 
+// Replaces the contents with a copy of `o`.
 cString& cString::operator=(const cString& o)
 {
     if (this != &o) {
@@ -38,6 +45,7 @@ cString& cString::operator=(const cString& o)
     return *this;
 }
 
+// Appends `o` (rebuilds the buffer).
 cString& cString::operator+=(const cString& o)
 {
     u32 len = size() + ((cString&) o).size();
@@ -51,6 +59,7 @@ cString& cString::operator+=(const cString& o)
     return *this;
 }
 
+// Appends a C string.
 cString& cString::operator+=(const char* s)
 {
     cString tmp(s);
@@ -58,16 +67,19 @@ cString& cString::operator+=(const char* s)
     return *this += tmp;
 }
 
+// The C string.
 char* cString::c_str()
 {
     return m_str;
 }
 
+// Length in bytes.
 u32 cString::size()
 {
     return strlen(m_str);
 }
 
+// Frees the copy and returns to the empty string.
 void cString::clear()
 {
     if (m_str != "") {
@@ -76,6 +88,7 @@ void cString::clear()
     }
 }
 
+// Takes a fresh heap copy of `s` (the previous buffer must already be cleared).
 void cString::copy(const char* s)
 {
     char* p = new char[strlen(s) + 1];

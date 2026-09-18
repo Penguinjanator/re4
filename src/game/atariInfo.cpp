@@ -1,3 +1,9 @@
+// game/atariInfo.cpp: cAtariInfo, the collision body every character / object carries (cEm::atari):
+// a vertical cylinder (radius m_radius2, half height m_height) or, with m_flag bit1, a box
+// (m_radius x m_radius2) offset from the model or one of its parts. m_flag 0x100 = collides with
+// the scenario, 0x200 = collides with other characters, bits 3-4 the push priority. The size can
+// be interpolated toward a new one over m_hokan frames (crouching / dying characters).
+
 #include "atariInfo.h"
 #include "atari.h"
 #include "model.h"
@@ -6,11 +12,15 @@
 #include "dbmodule.h"
 #include "main_mem.h"
 
+// Zeroed info (no collision until init).
 cAtariInfo::cAtariInfo()
 {
     memclr_asm(this, sizeof(cAtariInfo));
 }
 
+// Full setup: offset x / y / z, size rx (x radius) / rz (z radius) / w (radius3) / hh (half
+// height), the parts it follows (0 = the model), interpolation frames and flags | 0x300 (scenery
+// and character collision on).
 void cAtariInfo::init0(int parts, int hokan, int flag, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
 {
     m_offset.x = x;
@@ -29,12 +39,15 @@ void cAtariInfo::init0(int parts, int hokan, int flag, f32 x, f32 y, f32 z, f32 
     m_stat = 1;
 }
 
+// init0 with the argument order most callers use, plus m_flag bit0.
 void cAtariInfo::init(int parts, int flag, int hokan, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
 {
     init0(parts, hokan, flag, x, y, z, rx, rz, w, hh);
     m_flag |= 1;
 }
 
+// Changes the size: mode 0 sets radius / radius2 to a / b at once; mode > 0 interpolates toward
+// a / b over `mode` frames; mode < 0 snaps to 100 / 100 first and interpolates over -mode frames.
 void cAtariInfo::set(int mode, f32 a, f32 b)
 {
     if (mode < 0) {
@@ -63,6 +76,8 @@ static f32 atariInfoRange(f32 v)
     return 100000.0f;
 }
 
+// World positions of the body's centre this frame and last frame (parts world / world_old, or
+// the model pos / pos_old), at model height + radius; the sweep the scenery test uses.
 void cAtariInfo::getSpeedVector(cModel* m, Vec* oldPos, Vec* newPos)
 {
     Vec v;
@@ -87,6 +102,7 @@ void cAtariInfo::getSpeedVector(cModel* m, Vec* oldPos, Vec* newPos)
     }
 }
 
+// Per-frame size interpolation toward m_radius_n / m_radius2_n over the remaining m_hokan frames.
 void cAtariInfo::move()
 {
     if (m_hokan != 0) {
@@ -97,6 +113,7 @@ void cAtariInfo::move()
     }
 }
 
+// World position of the body: the rotated offset added to the parts (or model) position.
 void cAtariInfo::getPos(cModel* m, Vec* out)
 {
     Vec v;
@@ -109,6 +126,8 @@ void cAtariInfo::getPos(cModel* m, Vec* out)
     }
 }
 
+// Push priority 0..3 (m_flag bits 3-4): the lower priority body gets pushed when two characters
+// overlap (PRI_LV3 objects never move).
 void cAtariInfo::setPriority(int prio)
 {
     m_flag &= ~0x18;
@@ -127,6 +146,7 @@ void cAtariInfo::setPriority(int prio)
     }
 }
 
+// Debug draw: the cylinder or the box.
 void cAtariInfo::disp(cModel* m)
 {
     if (m_flag & 2) {
@@ -139,6 +159,7 @@ void cAtariInfo::disp(cModel* m)
     }
 }
 
+// Debug draw of the box form: 12 triangles of the offset box in the parts / model yaw frame.
 void cAtariInfo::dispRect(cModel* m)
 {
     static u8 ptbl[36] = {

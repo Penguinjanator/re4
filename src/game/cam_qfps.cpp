@@ -1,3 +1,10 @@
+// game/cam_qfps.cpp: the over-the-shoulder ("quasi FPS") camera, the default camera of the game.
+// Per player character / weapon / state a table of QfpsOfs offsets (camera position, a close
+// point the camera may not pass, target, roll, fov; left / right x up / mid / down sites) is
+// applied in the player's frame, blended between tables on a type change, tilted by the floor
+// slope, aimed by the C-stick, and pulled in front of the scenery / characters by hitCheck. Rooms
+// may override the tables through a camera area cut (setAreaData).
+
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -320,11 +327,15 @@ void CameraQuasiFPS::LRinfo(void* p)
     lr_info = p;
 }
 
+// Left / right shoulder check placeholder: always 0 (right shoulder).
 int CameraQuasiFPS::LRcheck()
 {
     return 0;
 }
 
+// Aim angles while ready: with a weapon the pitch ratio comes from the weapon's pitch, otherwise
+// from the C-stick Y (clamped -1..1) and the yaw from the C-stick X within the left / right
+// limits; both decay by 0.9 per frame when not aiming.
 void CameraQuasiFPS::calcDepressionRatio()
 {
     static f32 ANGLE_LEFT_LIMIT = 1.0471976f;
@@ -357,12 +368,14 @@ void CameraQuasiFPS::calcDepressionRatio()
     }
 }
 
+// Stores the player matrix and floor normal pointer the base matrix is built from.
 void CameraQuasiFPS::setPlayerLocation(Mtx m, Vec* nrm)
 {
     PSMTXCopy(m, m_pl_mat);
     m_p_floor_norm = nrm;
 }
 
+// Column `c` of a matrix as a vector.
 static inline void getColumn(Mtx m, int c, Vec* v)
 {
     v->x = m[0][c];
@@ -370,6 +383,7 @@ static inline void getColumn(Mtx m, int c, Vec* v)
     v->z = m[2][c];
 }
 
+// Builds a matrix from four column vectors.
 static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)
 {
     m[0][0] = c0->x; m[1][0] = c0->y; m[2][0] = c0->z;
@@ -378,6 +392,10 @@ static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)
     m[0][3] = c3->x; m[1][3] = c3->y; m[2][3] = c3->z;
 }
 
+// The player-space frame the shoulder offsets are applied in: the player's matrix (or the
+// stored one after the search delay), one-shot translation / look-direction overrides, the up
+// axis tilted toward the floor normal by the floor ratio while not aiming, and the crouch drop
+// (g_crouch_cam_y_down / z_back) when the player is crouching.
 void CameraQuasiFPS::calcBaseMatrix(Mtx m)
 {
     static f32 s_ratio = 0.33333334f;
@@ -451,6 +469,8 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
     }
 }
 
+// Which shoulder site the stick asks for: 0 default, 1 left, 2 right far, 3 left far (from the
+// player's move direction relative to the camera); 0 while not moving.
 int CameraQuasiFPS::checkFBLR()
 {
     cPlayer* pl = pPL;
@@ -471,11 +491,13 @@ int CameraQuasiFPS::checkFBLR()
     }
 }
 
+// Sets the offset blend ratio directly (1 = old offsets, 0 = current).
 void CameraQuasiFPS::setBlendRatio(f32 r)
 {
     blend_ratio = r;
 }
 
+// Starts a blend from the old offsets to the current ones over `n` frames (m_state bit2).
 void CameraQuasiFPS::setBlendCount(int n)
 {
     m_blend_count = n;
@@ -483,16 +505,23 @@ void CameraQuasiFPS::setBlendCount(int n)
     m_state |= 4;
 }
 
+// How much the camera up axis follows the floor slope (0..1).
 f32 CameraQuasiFPS::getFloorRatio()
 {
     return m_floor_ratio;
 }
 
+// Sets the floor-follow ratio.
 void CameraQuasiFPS::setFloorRatio(f32 ratio)
 {
     m_floor_ratio = ratio;
 }
 
+// Picks the offset tables for this frame: the transition type from the player character
+// (Leon / Ashley / Ada / mercenaries, or the partner state), then the ready type from the
+// weapon in hand (none, handgun / shotgun by weapon_type, rifle, grenade, knife / special,
+// mine thrower...) and the special states (Status_flg[3] 0x800000 -> 0xA). A type change starts
+// an offset blend from the previous table (setBlendData) unless blending is frozen.
 void CameraQuasiFPS::checkCameraType()
 {
     if (SubCharGetStatus() & 0x20000000) {
@@ -606,6 +635,9 @@ void CameraQuasiFPS::checkCameraType()
     }
 }
 
+// The frame's shoulder offset: blends old -> current tables by blend_ratio (counting the blend
+// down), picks the up / mid / down site by the pitch ratio angle_y (interpolating toward the
+// up or down entry), copies roll / fov, and rotates the result about y by the yaw angle_x.
 void CameraQuasiFPS::calcOffset(QfpsOfs* out)
 {
     Vec a;
@@ -696,6 +728,11 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
     }
 }
 
+// Places the camera in the world from the offset: transforms Campos / campos2 / target by the
+// base matrix, casts from the close point toward the camera position against the scenery,
+// characters and objects (cameraHitCheck / EmHitCheck / ObjHitCheck) and pulls the camera in to
+// the nearest hit (never closer than the close point); also probes the frustum edges so walls
+// do not clip the view. Fills the camera parameters.
 void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
 {
     static f32 OFFSET_GAIN = 1.0f;
@@ -873,6 +910,8 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
     }
 }
 
+// Copies the outgoing ready / transition tables into the blend-from slots (g_readyOfs[15],
+// g_transOfs[6]).
 void CameraQuasiFPS::setBlendData(void* src, void* dst)
 {
     QfpsOfs (*s)[3] = (QfpsOfs (*)[3]) src;
@@ -888,6 +927,7 @@ void CameraQuasiFPS::setBlendData(void* src, void* dst)
     }
 }
 
+// Reads the per-area override tables (g_readyOfs[14], g_transOfs[5]) for the debug camera editor.
 void CameraQuasiFPS::getAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
 {
     int i;
@@ -901,6 +941,7 @@ void CameraQuasiFPS::getAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     }
 }
 
+// Writes the per-area override tables.
 void CameraQuasiFPS::setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
 {
     int i;
@@ -936,6 +977,9 @@ void CameraQuasiFPS::setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
         }                                  \
     }
 
+// Loads a camera area cut's shoulder offsets into the override tables: starts from the defaults,
+// takes the cut's floor ratio, then per left / right x up / mid / down entry the ready (flags
+// 0x30) and transition (not 0x20) camera / target / roll / fov and close points.
 void CameraQuasiFPS::setAreaData(CameraCut* cut)
 {
     int i;
@@ -990,6 +1034,8 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
     }
 }
 
+// Keeps the close point at least 320 units behind the player along the camera direction so the
+// shoulder camera cannot start inside the model.
 void offsetCorrection(QfpsOfs* o)
 {
     static f32 GAIN = 0.8f;
@@ -1008,6 +1054,7 @@ void offsetCorrection(QfpsOfs* o)
     }
 }
 
+// offsetCorrection on the three sites of one side.
 static void offsetArrayCorrection(QfpsOfs (*o)[3])
 {
     int i;
@@ -1017,6 +1064,7 @@ static void offsetArrayCorrection(QfpsOfs (*o)[3])
     }
 }
 
+// Corrects every default ready (0..13) and transition (0..4) table at init.
 void CameraQuasiFPS::offsetCorrection()
 {
     int i;
@@ -1029,6 +1077,7 @@ void CameraQuasiFPS::offsetCorrection()
     }
 }
 
+// Points the type -> table slots at the built-in default tables.
 void CameraQuasiFPS::bindDefaultCamera()
 {
     ready_tbl[0] = g_readyOfs[0];
@@ -1053,6 +1102,9 @@ void CameraQuasiFPS::bindDefaultCamera()
     trans_tbl[5] = g_transOfs[4];
 }
 
+// Points the type slots at the area override table (g_readyOfs[14]) for the types the area cut
+// overrides (its flags decide the normal and the partner-carry type separately), the defaults
+// for the rest.
 void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
 {
     CameraCut* cut;
@@ -1163,6 +1215,10 @@ void CameraQuasiFPS::init()
     setBlendCount(0);
 }
 
+// Per-frame shoulder camera: table selection, base matrix, shoulder site from the stick (kept
+// while the stick is held), aim angles, the blended offset, the collision-corrected camera, and
+// the smoothing (CamSmth: ratio m_walk_ratio while walking, snapped on the first frame after a
+// reset); the result lands in cam.param for CameraControl.
 void CameraQuasiFPS::move()
 {
     static Vec campos_aim_eff;

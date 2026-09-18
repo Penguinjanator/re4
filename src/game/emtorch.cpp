@@ -38,6 +38,11 @@ EmTorchFunc EmTorch_R1_move_tbl[4] = {
     emTorch_R1_Fall,
 };
 
+// Creates a torch enemy (id 0x47) from a model / TPL at pos / rot. type: 0 brazier (1000 hp,
+// hit box only, vanishes when broken), 1 / 4 standing candle / lamp (1 hp, vanishes), 2 / 3 wall
+// lamp (1 hp, no hit box, only the flame goes out), 5 hanging lamp (1 hp, falls and burns the
+// floor). Tied to room etc flag `etcNo` (bit0 = already broken -> starts in Break). NULL on
+// failure.
 cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
 {
     cEmTorch* em;
@@ -161,6 +166,9 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     return em;
 }
 
+// Weapon hit reaction: consumes the registered hit (ignoring knife / grenades), takes 999 or 9999
+// damage by weapon class (shotguns by distance), spawns the hit est (parameter 1) or plays the
+// hit SE, and when the hp is gone breaks the torch with the style decided by the weapon.
 void emTorchDmCk(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -303,6 +311,9 @@ void emTorchDmCk(cEmTorch* em)
     }
 }
 
+// Puts the torch out: deletes its flame effects (Core_kind EffKindId) and spawns the break est
+// (parameter 2, or 3 for kind 2 = melee), then by type hides the model and plays the break SE
+// (0, 1, 4 -> Rno1 2 Break), only plays the SE (2, 3), or starts the fall (5 -> Rno1 3).
 void emTorchSetBreak(cEmTorch* em, u32 kind)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -358,6 +369,7 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     }
 }
 
+// Per-frame: weapon hit check, clear the hit-box-only flag, run the Rno0 routine.
 void cEmTorch::move()
 {
     emTorchDmCk(this);
@@ -365,6 +377,7 @@ void cEmTorch::move()
     EmTorch_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: resets to the Set state.
 void emTorch_R0_Init(cEmTorch* em)
 {
     em->r_no_0 = 1;
@@ -373,11 +386,13 @@ void emTorch_R0_Init(cEmTorch* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Parent, 2 Break, 3 Fall).
 void emTorch_R0_Move(cEmTorch* em)
 {
     EmTorch_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: a fixed torch; builds the matrices once, then stays a hit-box-only work.
 void emTorch_R1_Set(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -394,6 +409,8 @@ void emTorch_R1_Set(cEmTorch* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 1: carried torch: follows parts `partsNo` of pParent (rotation re-normalised unless
+// Be_flg bit0) and plays its own motion when it has one.
 void emTorch_R1_Parent(cEmTorch* em)
 {
     Mtx m;
@@ -454,6 +471,7 @@ void emTorch_R1_Parent(cEmTorch* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: broken; on entry sets bit0 of the etc flag, hp 0, hides the model; then hit-box-only.
 void emTorch_R1_Break(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -472,6 +490,9 @@ void emTorch_R1_Break(cEmTorch* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 3: the hanging lamp drops (gravity 20 / frame) until the effect collision floor, where
+// it deletes its flame, spawns the break est, plays the crash SE, sets a 2500 radius fire damage
+// volume (DmgMgr type 5) for 1500 frames and hides.
 void emTorch_R1_Fall(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -525,6 +546,8 @@ void emTorch_R1_Fall(cEmTorch* em)
     }
 }
 
+// Hit box by type: a cube around the origin (0 / 4), below it (1), further below (5); wall lamps
+// (2 / 3) have none.
 void emTorchYarareInit(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
@@ -547,6 +570,7 @@ void emTorchYarareInit(cEmTorch* em)
     }
 }
 
+// Script entry: puts out an intact torch as if shot (style 0).
 void cEmTorch::setBreak()
 {
     if (hp > 0) {
@@ -554,6 +578,7 @@ void cEmTorch::setBreak()
     }
 }
 
+// Script entry: jumps to the Break state without effects.
 void cEmTorch::setDelete()
 {
     r_no_0 = 1;
@@ -562,6 +587,8 @@ void cEmTorch::setDelete()
     r_no_3 = 0;
 }
 
+// Sets the est id of the flame / break effects and lights the flame (est parameter 0, Core_kind
+// EffKindId) on an intact torch.
 void cEmTorch::setEff(u8 eff)
 {
     EmTorchWork* w = EMTORCH_WK(this);
@@ -572,6 +599,8 @@ void cEmTorch::setEff(u8 eff)
     }
 }
 
+// Attaches the torch to parts `partsNo` of `parent` (Rno1 1); flag skips the matrix
+// normalisation.
 void cEmTorch::setParent(cModel* parent, int partsNo, int flag)
 {
     EmTorchWork* w = EMTORCH_WK(this);

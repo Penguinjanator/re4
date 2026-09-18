@@ -43,6 +43,9 @@ static EmBarFunc EmBar_R1_move_tbl[2] = {
     emBar_R1_Break,
 };
 
+// Creates a wooden bar enemy (id 0x51) from a model / TPL at pos / rot: a 3500 wide, 400 high board
+// with 1000 hp tied to room etc flag `flagNo` (bit0 set = already broken -> starts in Break).
+// NULL when no work or the model fails.
 cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
 {
     cEmBar* em;
@@ -110,6 +113,9 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     return em;
 }
 
+// Weapon hit check: consumes the registered hit (ignoring knife / grenades), decides the break
+// style from the weapon (0 shot, 1 heavy / explosive, shotguns 7 / 8 / 0x21 by hit distance) and
+// breaks the bar.
 void emBarDmCk(cEmBar* em)
 {
     u8 wep;
@@ -208,6 +214,8 @@ void emBarDmCk(cEmBar* em)
     }
 }
 
+// Breaks the bar: spawns est Eff_id with parameter `type` (0 shot, 1 blast, 2 melee / explosion
+// with a different SE), hides the model and moves to Rno1 1 Break.
 void emBarSetBreak(cEmBar* em, u32 type)
 {
     EmBarWork* w = EMBAR_WK(em);
@@ -238,6 +246,7 @@ void emBarSetBreak(cEmBar* em, u32 type)
     em->r_no_3 = 0;
 }
 
+// Per-frame: weapon hit check, clear the hit-box-only flag, run the Rno0 routine.
 void cEmBar::move()
 {
     emBarDmCk(this);
@@ -245,6 +254,7 @@ void cEmBar::move()
     EmBar_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: resets to the Set state.
 void emBar_R0_Init(cEmBar* em)
 {
     em->r_no_0 = 1;
@@ -253,11 +263,15 @@ void emBar_R0_Init(cEmBar* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Break).
 void emBar_R0_Move(cEmBar* em)
 {
     EmBar_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: the intact bar; builds the matrices once, then every frame offers the action button
+// 0x25 (climb / squeeze through) when the player is within 5000 units in front of it and has not
+// used it yet (Act_ck), and runs the melee / explosion hit check.
 void emBar_R1_Set(cEmBar* em)
 {
     EmBarWork* w = EMBAR_WK(em);
@@ -286,12 +300,16 @@ void emBar_R1_Set(cEmBar* em)
     emBarHitCk(em);
 }
 
+// Action button callback: marks the bar used and starts the player damage-style motion
+// plemEscape that plays the bar's escape motion.
 void emBarActEscape(cEmBar* em)
 {
     EMBAR_WK(em)->Act_ck = 1;
     SetPlDamage((int) em, plemEscape);
 }
 
+// Player damage routine while passing the bar: plays the bar's `motion` on the player (with the
+// bar's read table entry) and ends the damage state when it finishes.
 void plemEscape(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -313,6 +331,8 @@ void plemEscape(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Rno1 == 1: broken; on entry sets bit0 of the etc flag (stays broken on re-entry), hp 0, hides the
+// model; then hit-box-only.
 void emBar_R1_Break(cEmBar* em)
 {
     EmBarWork* w = EMBAR_WK(em);
@@ -331,6 +351,7 @@ void emBar_R1_Break(cEmBar* em)
     em->be_flag |= 0x4000;
 }
 
+// Hit box: a cube of the bar's size centred half its height below the origin.
 void emBarYarareInit(cEmBar* em)
 {
     EmBarWork* w = EMBAR_WK(em);
@@ -338,16 +359,20 @@ void emBarYarareInit(cEmBar* em)
     YarareInitCube((cEmHit*) em, 0.0f, -w->size.y * 0.5f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
 }
 
+// Est id spawned when the bar breaks (0xFF = none).
 void cEmBar::setEff(u8 no)
 {
     EMBAR_WK(this)->Eff_id = no;
 }
 
+// The player motion used to pass through the bar.
 void cEmBar::setMotion(void* mot)
 {
     EMBAR_WK(this)->motion = mot;
 }
 
+// Melee / explosion check at the bar centre and +-400 along its length (radius 500): a grenade
+// blast or a knife / melee hit (PlWepHitCheck2 type 0x12) breaks the bar (style 2) and returns 1.
 // em / p (= &parts->mat): global.c priority is floor_log2(refs)*refs/live_length, ours em 6 refs /
 // 83 insns (1445) vs p 4 / 53 (1509) would give p r31. The `do {} while (0)` around emBarSetBreak
 // doubles that em ref's weight (7 refs -> 1686) and em takes r31 like the original; no code changes.

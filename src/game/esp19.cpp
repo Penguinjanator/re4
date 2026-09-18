@@ -1,3 +1,7 @@
+// game/esp19.cpp: effect id 0x19, a 3D line from the effect position to the fixed world point Vec0,
+// at most `max_laser_dist` (Vec1.x, default 12000) long, whose far end fades to black in
+// proportion to the length used. Used for laser sight style beams and tracers.
+
 #include "atari.h"
 #include "gx.h"
 #include "global.h"
@@ -19,11 +23,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x19] factory.
 cEsp* Esp19_Create()
 {
     return new cEsp19;
 }
 
+// Base update only (no texture animation); marks the effect as never Z-culled (huge m_Radius,
+// m_Flg bit1) since the line can span the whole view.
 void cEsp19::move()
 {
     if (CommonMove()) {
@@ -32,6 +39,7 @@ void cEsp19::move()
     }
 }
 
+// End point from Vec0, maximum length from Vec1.x (0 -> 12000 units).
 int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp19Work* w = &m_Free;
@@ -45,6 +53,9 @@ int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
     return 1;
 }
 
+// Draws a 2-vertex GX line from p0 toward p1 in view matrix `mtx`, clipped to `len`, with the
+// effect's blend mode; the end vertex colour is scaled by 1 - d / len. Alpha byte 0xFE in
+// `color` disables the Z test.
 static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* esp, f32 len)
 {
     Vec end;
@@ -98,6 +109,8 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     GXColor4u8((u8)(r * rate), (u8)(g * rate), (u8)(b * rate), (u8)(a * rate));
 }
 
+// EspTransTbl[0x19]: packs the current colour and draws the line from m_Pos (plus the camera
+// quake offset) to Vec0.
 extern "C" void Esp19_Trans(cEsp19* esp)
 {
     Esp19Work* w = &esp->m_Free;

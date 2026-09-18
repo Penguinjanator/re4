@@ -106,6 +106,11 @@ static EmAtkInfo emRockAtk = { 1500.0f, 8, 9999, 0, 10, 0 };
 // Event camera of the escape / drop scenes (CamCtrl.x250 points at it while they run).
 static Camera emRockCam = { 0 };
 
+// Creates a rolling rock enemy (id 0x4A, at the back of the pool) from a model / TPL at pos / rot.
+// type 0 the boulder El Gigante / room events throw, 1 the big (scale 4.2) rolling boulder of
+// the chase rooms (starts rolling on its own, Roll), 3 the room 11E / 300 event rocks (no atari,
+// radius 2000). 1000 hp, unlockable, its own Core_kind for the trail effects. Starts in Rno1 0
+// Set. NULL on failure.
 cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
     cEmRock* em;
@@ -239,10 +244,12 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     return em;
 }
 
+// Event start hook: nothing to do for rocks.
 void cEmRock::beginEvent()
 {
 }
 
+// Rocks take no weapon damage: the registered hit is simply cleared.
 void emRockDmCk(cEmRock* em)
 {
     if (em->dmHit == 0) {
@@ -251,6 +258,9 @@ void emRockDmCk(cEmRock* em)
     em->dmHit = 0;
 }
 
+// Per-frame: hit clear, the Rno0 routine, then the model-vs-player atari, mirroring the parent's
+// visibility / fade while hanging on it (Be_flg bit1 forces hidden), and the room 11E collision
+// piece.
 void cEmRock::move()
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -277,6 +287,7 @@ void cEmRock::move()
     emRockSatSet(this);
 }
 
+// Rno0 == 0: resets to the Set state.
 void emRock_R0_Init(cEmRock* em)
 {
     em->r_no_0 = 1;
@@ -285,11 +296,15 @@ void emRock_R0_Init(cEmRock* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Lost, 2 Parent, 3 Fall, 4 Throw, 5 Throw2, 6 Roll,
+// 7 Drop, 8 Drop2).
 void emRock_R0_Move(cEmRock* em)
 {
     EmRock_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: resting rock; plays its motion or rebuilds the matrices; the type 1 boulder starts
+// rolling (Rno1 6) when emRockRollStartCk fires (player crosses the trigger).
 void emRock_R1_Set(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -322,6 +337,7 @@ void emRock_R1_Set(cEmRock* em)
     }
 }
 
+// Rno1 == 1: hides the rock, drops ACTIVE and its effects, destroys the work 30 frames later.
 void emRock_R1_Lost(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -344,6 +360,8 @@ void emRock_R1_Lost(cEmRock* em)
     }
 }
 
+// Rno1 == 2: held: follows parts `oya_parts` of pEm_oya (rotation re-normalised unless Be_flg
+// bit0) and plays its own motion when it has one; lost when the holder vanishes.
 void emRock_R1_Parent(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -404,6 +422,9 @@ void emRock_R1_Parent(cEmRock* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 3: dropped straight down with `Gravity`, sliding along the scenery (EatMgr.adjust with
+// Radius): a scenery contact ends it with the dust est 1/8 (hidden, Lost); hits the player through
+// pAtk (emRockAtkCk); spins with the travelled distance; gives up after 60 frames.
 void emRock_R1_Fall(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -492,6 +513,9 @@ void emRock_R1_Fall(cEmRock* em)
     emRockAtkScrCk(em);
 }
 
+// Rno1 == 4: the thrown boulder: flies with gravity, loops the whoosh SE, bounces off the scenery
+// (speed reflected x 0.99; a hard landing plays seFall / effFall and shakes the camera), hits the
+// player through pAtk, and stops (dust est, Lost) after 60 frames or when it comes to rest.
 void emRock_R1_Throw(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -609,6 +633,9 @@ void emRock_R1_Throw(cEmRock* em)
     emRockAtkScrCk(em);
 }
 
+// Rno1 == 5: the event boulder thrown at the player (room 202 / 214): same flight, but the first
+// scenery contact after 180 frames ends it with a crash SE and the big break est (1/1 when the
+// player still has more than 500 life, else 1/2).
 void emRock_R1_Throw2(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -720,6 +747,10 @@ void emRock_R1_Throw2(cEmRock* em)
     emRockAtkScrCk(em);
 }
 
+// Rno1 == 6: the chase boulder: waits 75 frames (starting the player's escape routine
+// plemRockEscape and the rumble SE), then follows the EMI route (type 6 points) with gravity 10,
+// bouncing on the floor with dust, accelerating along the route; reaching the end (or losing the
+// route) breaks it (SE, est 1/0x1F, Lost).
 void emRock_R1_Roll(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -856,6 +887,9 @@ void emRock_R1_Roll(cEmRock* em)
     }
 }
 
+// Rno1 == 7: the ceiling rock of setDropMot: plays the loosening motions (mot0 / mot1) with dust
+// and creak SEs, then drops on the player: plemDropFind makes him notice it, and it either kills
+// him (plemDropDie) or the escape succeeds; ends in Lost.
 void emRock_R1_Drop(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -910,6 +944,9 @@ void emRock_R1_Drop(cEmRock* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 8: the setDropMot2 variant with the action-button escape: after the loosening motion
+// a 31 frame window offers button 0x25 (randomly variant 3 or 4); no press kills the player
+// (plemDropDie), a press plays the escape motion (plemDropEscape).
 void emRock_R1_Drop2(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -997,6 +1034,7 @@ void emRock_R1_Drop2(cEmRock* em)
     em->partsWorldCalc();
 }
 
+// Action button callback of Drop2: marks the escape and starts the player's escape damage routine.
 void plemDropEscAction(cEmRock* em)
 {
     EMROCK_WK(em)->Act_ck = 1;
@@ -1089,6 +1127,8 @@ int emRockRollHitCk(cEmRock* em)
     return 1;
 }
 
+// Hangs the rock on parts `partsNo_` of `parent` (Rno1 2); flag skips the matrix normalisation.
+// Clears the holder's atari flag 0x200.
 void cEmRock::setParent(cEm* parent, int partsNo_, int flag)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -1255,6 +1295,7 @@ static void emRockSpdClear(cEmRock* em)
     w->spd.z = 0.0f;
 }
 
+// SE (block / number / volume) played when the thrown rock lands hard (0xFF = none).
 void cEmRock::setSeFall(u8 blk, u8 no, u8 vol)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -1265,6 +1306,7 @@ void cEmRock::setSeFall(u8 blk, u8 no, u8 vol)
     w->seFall[3] = 0;
 }
 
+// Est spawned at the floor when the thrown rock lands hard (0xFF = none).
 void cEmRock::setEffFall(u8 id, u8 type)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -1273,11 +1315,14 @@ void cEmRock::setEffFall(u8 id, u8 type)
     w->effFall[1] = type;
 }
 
+// Attaches a continuous est (trail / glow) to the rock under its Core_kind.
 void cEmRock::setEffAlways(int id, int type)
 {
     EstSet((int) this, -1, 0, 0, id, type, 0, EMROCK_WK(this)->espKind, (u32) this, 0);
 }
 
+// Gives the rock a hit box (offset `size` or 400 below the origin) of x / y / z so it can be
+// shot (hp 1, e.g. the r300 rock that must be broken).
 void cEmRock::setYarareCube(Vec* size, f32 x, f32 y, f32 z)
 {
     if (size) {
@@ -1288,6 +1333,7 @@ void cEmRock::setYarareCube(Vec* size, f32 x, f32 y, f32 z)
     hp = 1;
 }
 
+// on == 0 keeps the rock hidden (Be_flg bit1), on != 0 shows it.
 void cEmRock::setTransMode(int on)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -1699,6 +1745,7 @@ void plemRockEscape(cPlayer* pl)
     pl->x378 = pl->x37C;
 }
 
+// Stores the 16 player motions of the boulder chase escape (plemRockEscape steps).
 void cEmRock::setPlMotion(void** mot)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -1721,6 +1768,7 @@ void cEmRock::setPlMotion(void** mot)
     w->plMot[15] = *mot++;
 }
 
+// Uniform scale and the matching collision radius (s x 600).
 void cEmRock::setScale(f32 s)
 {
     scale.z = s;
@@ -1783,6 +1831,7 @@ int plemRockEscapeCk(cPlayer* pl)
     return 1;
 }
 
+// Action button callback of the boulder chase: marks the press and advances the escape step.
 void plemRockEscAction(cEmRock* em)
 {
     EMROCK_WK(em)->Act_ck = 1;
@@ -2171,6 +2220,8 @@ void emRockPushCk(cEmRock* em, int frame)
     }
 }
 
+// Ceiling drop setup (Rno1 7): loosening motions a / b, player death motion c, partner death
+// motion d.
 void cEmRock::setDropMot(void* a, void* b, void* c, void* d)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -2185,6 +2236,8 @@ void cEmRock::setDropMot(void* a, void* b, void* c, void* d)
     r_no_3 = 0;
 }
 
+// Ceiling drop with escape (Rno1 8): loosening motion a, player death b, escape c, notice d, and
+// three escape player motions e / f / g.
 void cEmRock::setDropMot2(void* a, void* b, void* c, void* d, void* e, void* f, void* g)
 {
     EmRockWork* w = EMROCK_WK(this);
@@ -2374,6 +2427,7 @@ void cEmRock::setBreakR11E()
     EffectEspgenDelete(0, w->espKind, this);
 }
 
+// Room 11E type 3 rocks: deactivates the rock's scenario collision piece.
 void emRockSatClear(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
@@ -2390,6 +2444,8 @@ void emRockSatClear(cEmRock* em)
     w->pSat->m_Flag &= ~4;
 }
 
+// Room 11E type 3 rocks: keeps a scenario collision piece at the rock's parts 0 while visible
+// (the boulders the player must climb around).
 void emRockSatSet(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);

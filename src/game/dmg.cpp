@@ -1,15 +1,21 @@
-// game/dmg: damage volumes (D:/Bio4/Prog/dmg.cpp).
+// game/dmg.cpp: damage volumes (DmgMgr). Fire, explosions and traps register a cylinder or an
+// XZ quad with a damage kind and a lifetime; the objects (boxes, doors, items...) and characters
+// poll DmgMgr.hitCheck with their position each frame and react to the kind (1 / 4 / 5 / 7 break
+// the breakable objects, 5 is fire). Volumes expire on their own.
+// Original source: D:/Bio4/Prog/dmg.cpp.
 #include "types.h"
 #include "global.h"
 #include "dmg.h"
 #include "dbmodule.h"
 #include "math_sub.h"
 
+// A cManager<cDmg> pool of 0x118 byte works.
 cDmgMgr::cDmgMgr() : cManager<cDmg>(0x118, 2)
 {
     setName("cDmgMgr");
 }
 
+// Places a cylinder (id 0) or quad (id 1) volume into the fresh work.
 int cDmgMgr::construct(cDmg* p, int id)
 {
     switch (id) {
@@ -27,11 +33,13 @@ int cDmgMgr::construct(cDmg* p, int id)
     return 1;
 }
 
+// cManager hook (unsigned id).
 int cDmgMgr::construct(cDmg* p, u32 id)
 {
     return construct(p, (int) id);
 }
 
+// Per-frame: counts every live volume's lifetime down and destroys it at 0.
 void cDmgMgr::move()
 {
     u32 i;
@@ -47,6 +55,8 @@ void cDmgMgr::move()
     }
 }
 
+// Registers a cylinder volume (centre, radius, half height) of `kind` for `time` frames; 1 when
+// a work was free.
 int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
 {
     cDmgCyl* p = (cDmgCyl*) create(0);
@@ -62,6 +72,7 @@ int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
     return 1;
 }
 
+// Registers an XZ quad volume (4 corners, half height) of `kind` for `time` frames.
 int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
 {
     cDmgP4* p = (cDmgP4*) create(1);
@@ -79,6 +90,7 @@ int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
     return 1;
 }
 
+// The kind of the first live volume containing `pos` (its centre in *out); 0 when none.
 int cDmgMgr::hitCheck(Vec* pos, Vec* out)
 {
     u32 i;
@@ -94,6 +106,8 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
     return 0;
 }
 
+// Point in cylinder (height band +-m_Height, XZ radius); *out = centre. Debug_flg[2] 0x10000000
+// draws the volume.
 int cDmgCyl::hitCheck(Vec* p, Vec* out)
 {
     if (pG->Debug_flg[2] & 0x10000000) {
@@ -114,6 +128,7 @@ int cDmgCyl::hitCheck(Vec* p, Vec* out)
     return kind;
 }
 
+// Point in the XZ quad; *out = the corners' mean.
 int cDmgP4::hitCheck(Vec* p, Vec* out)
 {
     u32 i;
@@ -133,6 +148,7 @@ int cDmgP4::hitCheck(Vec* p, Vec* out)
     return 0;
 }
 
+// Event start: damage volumes are removed.
 void cDmg::beginEvent()
 {
     DmgMgr.destroy(this);
@@ -144,6 +160,7 @@ cDmgMgr DmgMgr;
 // at the next 32-byte boundary and ngcld does not pad for it. A zero-initialised static referenced
 // only by a never-called inline is emitted after DmgMgr (first-declaration order) without a body.
 static u8 dmg_pad[16];
+// Never called: only keeps dmg_pad emitted (see above).
 static inline u8* dmgPad()
 {
     return dmg_pad;

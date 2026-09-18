@@ -1,3 +1,6 @@
+// game/esp44.cpp: effect id 0x44, room sound trigger. Spawning it plays room SE number Work8[0]
+// at the effect position through the room's SE callback; the effect itself lives zero frames.
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -11,15 +14,19 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x44] factory.
 cEsp* Esp44_Create()
 {
     return new cEsp44;
 }
 
+// Nothing to update: the effect is released by SetFreeWork returning 0.
 void cEsp44::move()
 {
 }
 
+// Plays room SE Work8[0] at m_Pos (skipped while the generator loop pre-runs so the sound is not
+// replayed) and returns 0 so the sprite is released immediately.
 int cEsp44::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     if (EspGenGetMoveLoop() == 0) {

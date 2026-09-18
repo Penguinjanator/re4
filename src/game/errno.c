@@ -4,6 +4,7 @@
 
 int errno;
 
+/* Address of the reentrant errno (the newlib errno macro expands to *__errno()). */
 int *__errno()
 {
     return &_REENT->_errno;

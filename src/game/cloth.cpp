@@ -29,6 +29,7 @@ f32 G_PARAM = 0.5f;   // gravity
 f32 T_PARAM = 0.06f;  // time step
 static f32 D_PARAM = 0.006f;  // unused (the 0.006 word after T_PARAM in .sdata; name unknown)
 
+// Boot: marks the 8 cloth works free.
 void ClothInit()
 {
     int i;
@@ -38,6 +39,7 @@ void ClothInit()
     }
 }
 
+// Room start: frees every live cloth's grid memory and marks the works free.
 void ClothRoomInit()
 {
     ClothInit();
@@ -54,6 +56,10 @@ static Vec* clothAllocNormal(Vec* dir)
     return v;
 }
 
+// Builds an nx x ny cloth: allocates the vertex / normal / speed grids, lays the points out w
+// apart horizontally and h vertically hanging from the top row at pos_ / ang, binds the texture
+// (and TLUT) and the owner pointer p_; be_flag 0x31 = live, drawn. The top row (or the top four
+// rows in the alternate pin mode) stays fixed.
 void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h, void* p_, f32 d, GXTlutObj* tlut_,
                 int flag_)
 {
@@ -124,18 +130,21 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     x74 = 0;
 }
 
+// Moves the cloth's hanging matrix.
 void Cloth::SetPosAng(Vec ang, Vec pos_)
 {
     RotMatrix(mat, &ang);
     TransMatrix(mat, &pos_);
 }
 
+// Frees the grid memory and the work.
 void Cloth::Destroy()
 {
     Mem_free(m_pMem);
     be_flag = 0;
 }
 
+// Relocates an in-file TPL in place (descriptor / image / CLUT offsets -> pointers), once.
 void ClothCalcTplAddr(void* tpl)
 {
     TEXPalette* pal = (TEXPalette*) tpl;
@@ -160,6 +169,7 @@ void ClothCalcTplAddr(void* tpl)
     }
 }
 
+// Initialises a GXTexObj (and TLUT for CI formats) from texture `no` of the TPL; 1 on success.
 int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut)
 {
     TEXDescriptor* d;
@@ -182,6 +192,8 @@ int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut)
     return ret;
 }
 
+// One simulation step of the speeds: spring forces (K_PARAM) toward each neighbour's rest
+// distance (Wgap / Hgap), gravity G_PARAM, then the speed scaled by `damping`.
 void Cloth::calcSpeed(f32 damping)
 {
     Vec v;
@@ -238,6 +250,7 @@ void Cloth::calcSpeed(f32 damping)
     }
 }
 
+// A free cloth work in *out; 0 when all 8 are used.
 int PullCloth(Cloth** out)
 {
     Cloth* c = ClothWk;
@@ -254,6 +267,8 @@ int PullCloth(Cloth** out)
     return 0;
 }
 
+// Integrates the speeds into the vertex positions (time step T_PARAM), skipping the pinned top
+// row(s).
 void Cloth::move()
 {
     Vec v;
@@ -276,6 +291,7 @@ void Cloth::move()
     }
 }
 
+// Recomputes the vertex normals from the neighbouring points for lighting.
 void Cloth::calcNormal()
 {
     Vec a;
@@ -304,6 +320,7 @@ void Cloth::calcNormal()
     }
 }
 
+// Pushes grid point (x, y): adds `power` to its z speed and half to y (bullets / wind).
 void Cloth::disturbance(f32 power, u32 x, u32 y)
 {
     u32 idx = x + divH * y;
@@ -312,6 +329,7 @@ void Cloth::disturbance(f32 power, u32 x, u32 y)
     pSpd[idx].y += power * 0.5f;
 }
 
+// Draw registration: queues clothTrans in OT 13 for every cloth flagged drawn (be_flag 0x20).
 void ClothDraw()
 {
     Cloth* c = ClothWk;
@@ -324,6 +342,8 @@ void ClothDraw()
     }
 }
 
+// Draws the cloth: a temporary cModel picks up the room lights (commonClothLightSet), then one
+// two-sided textured triangle strip per row with the vertex normals.
 void clothTrans(Cloth* pCL)
 {
     Mtx texMtx;

@@ -1,3 +1,8 @@
+// game/esp4c.cpp: effect id 0x4C, the controller for est generator 45 (Espgen45: rain / snow /
+// dust weather particles around the camera). It is invisible; every frame it feeds its position,
+// size, colour and fade into the generator through the Estgen45Set* interface, and with Tool_flg
+// bit0 also the extended parameter block (reflection type, shimmer, spread/damp, mask texture).
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -41,11 +46,15 @@ public:
     virtual void Destruct();
 };
 
+// EspCreateTbl[0x4C] factory.
 cEsp* Esp4c_Create()
 {
     return new cEsp4c;
 }
 
+// Runs the base update but restores the colour (the generator does its own fading), then pushes
+// target position (m_Pos x/z; y only with Tool_flg bit1), size, colour + fade steps and, with
+// Tool_flg bit0, the Esp4cWork parameter block into Espgen45.
 void cEsp4c::move()
 {
     Esp4cWork* w = &m_Free;
@@ -82,14 +91,19 @@ void cEsp4c::move()
     }
 }
 
+// Nothing to release.
 void cEsp4c::Destruct()
 {
 }
 
+// EspTransTbl[0x4C]: draws nothing.
 void Esp4c_Trans()
 {
 }
 
+// Fills Esp4cWork from the record: Type Work8[0] (2 = spread/damp from Work8[1..2]), specular
+// texture Tex_id, shimmer powers prm 0xCE/0xD2, reflection type Work8[3], angles (degrees ->
+// radians), mask texture when Tool_flg 0x4000; then applies the first frame at once.
 int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4cWork* w = &m_Free;

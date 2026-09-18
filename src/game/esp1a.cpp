@@ -1,3 +1,8 @@
+// game/esp1a.cpp: effect id 0x1A, a camera-plane jitter sprite (like esp0b) that is spawned along
+// the axis of a model part: the +y axis of parts Work8[0] gives the direction, R_pos.x / .y the
+// min / max distance along it and R_pos.z the radius of a random disc around it. The sprite is
+// detached into world space at spawn; Vec0 gives the per-frame jitter amplitudes.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -20,11 +25,14 @@ public:
 
 extern "C" void get_angle(Vec* v, f32* rx, f32* ry);
 
+// EspCreateTbl[0x1A] factory.
 cEsp* Esp1a_Create()
 {
     return new cEsp1a;
 }
 
+// Removes last frame's jitter, runs the base update/animation, then adds a new random offset of
+// Dist.x sideways / Dist.y up in the camera plane and Dist.z toward the camera.
 void cEsp1a::move()
 {
     Esp1aWork* w = &m_Free;
@@ -86,6 +94,9 @@ void get_angle(Vec* v, f32* rx, f32* ry)
     }
 }
 
+// Requires a parent model: places m_Pos at gen->Pos + random disc offset (radius R_pos.z) +
+// a random fraction (R_pos.x..R_pos.y) of the parts' y axis, rotates speed / acceleration by the
+// model's angles, then detaches into world space. Fails without a parent or a bad parts number.
 int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp1aWork* w = &m_Free;

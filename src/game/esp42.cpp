@@ -1,3 +1,6 @@
+// game/esp42.cpp: effect id 0x42, a sprite with an explicit GX blend mode: Work8[0] / Work8[1]
+// pick the source / destination blend factors (bl1 / bl2 tables, GXBlendFactor order).
+
 #include "atari.h"
 #include "esp.h"
 
@@ -10,11 +13,13 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x42] factory.
 cEsp* Esp42_Create()
 {
     return new cEsp42;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp42::move()
 {
     if (CommonMove()) {
@@ -24,6 +29,8 @@ void cEsp42::move()
     }
 }
 
+// Stores GX_BM_BLEND with the source factor bl1[Work8[0]] and destination factor bl2[Work8[1]] in
+// xA4..xA7 (read by EspCommonTrans). Fails when either index is above 8.
 int cEsp42::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     static u32 bl1[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };

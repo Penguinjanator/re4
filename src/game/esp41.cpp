@@ -1,3 +1,7 @@
+// game/esp41.cpp: effect id 0x41, a sprite attracted to the player. Like esp0d but the target is
+// pPL->pos + Vec0 (enemy 0 in the effect tool); range Work8[0] x 100 units, strength
+// Work8[1] x 0.00005; Tool_flg bit0 keeps the pull horizontal.
+
 #include "atari.h"
 #include "global.h"
 #include "player.h"
@@ -21,11 +25,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x41] factory.
 cEsp* Esp41_Create()
 {
     return new cEsp41;
 }
 
+// Base update and animation, then (Type 0) adds (Dist - dist) * Pow along the direction from the
+// target to the sprite into m_Speed while inside Dist. In the effect tool (Debug_flg[1]
+// 0x00800000) the target is EmMgrWork(0) and nothing happens while that enemy is not alive.
 void cEsp41::move()
 {
     Esp41Work* w = &m_Free;
@@ -63,6 +71,7 @@ void cEsp41::move()
     }
 }
 
+// Range / strength from Work8[0..1], target offset from Vec0, Type from WorkSp8[0] (only 0 valid).
 int cEsp41::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp41Work* w = &m_Free;

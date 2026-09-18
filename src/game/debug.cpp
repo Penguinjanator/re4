@@ -1,4 +1,7 @@
-// game/debug: debug overlays, process timing bars, debug/config.txt (D:/Bio4/Prog/debug.cpp).
+// game/debug.cpp: debug build helpers: the per-frame DebugControl overlays (heap usage, the
+// process time bar from ProcessTickGet marks, primitive buffer usage, pad monitor, data
+// controller page), the frame tick list, and ConfigSet, which reads debug/config.txt at boot for
+// the direct room start settings (stage, room, player, flags, sound).
 #include "types.h"
 #include "global.h"
 #include "atari.h"
@@ -63,6 +66,9 @@ struct OSClock {
     u32 busClock;   // 0xF8
 };
 
+// Main loop debug hook: with Debug_flg[2] 0x40000000 shows the heap usage, the process time bar,
+// the primitive buffer usage and the data controller page; Debug_flg[2] 0x8000 the pad monitor;
+// pad 3 combination 0x1600 halts; then the tool menu exit check.
 #line 66 "D:/Bio4/Prog/debug.cpp"
 
 void DebugControl()
@@ -80,6 +86,7 @@ void DebugControl()
     DbMenuExitAfterCheck();
 }
 
+// Pad 0 monitor: one character per button bit (I held, o triggered, _ off).
 void debugPadInfoDisp()
 {
     u32 i;
@@ -115,6 +122,8 @@ static inline SystemWork* SysRef(SystemWork*& p) { return p; }
 #define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 100.0f)
 #define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 1000.0f)
 
+// The frame time bar: the ProcessTickGet marks of the frame as coloured segments scaled to the
+// 60 Hz frame, with the section names and the total in % of a frame / ms.
 void processBarDisp()
 {
     static DbgTile tile[6];
@@ -304,6 +313,7 @@ void ProcessTickGet(int no, const char* name)
     }
 }
 
+// Frame start: resets the process tick list (called before the game loop).
 void ProcessTickInit()
 {
     zero_tick = OSGetTick();
@@ -318,6 +328,7 @@ struct PrimBuffView {
     f32 rate;   // pG->prim_rate
 };
 
+// Primitive (GX display list) buffer usage of the frame as a bar; warns in red above 90%.
 void PrimitiveBuffDisp()
 {
     static DbgTile tile[6];
@@ -399,6 +410,9 @@ static inline void KeyTypeSet(int v) { CamDbg.m_key_type = v; }   // the SCR sto
 #define CFG_ON(p) (strncmp(p, "ON", 2) == 0)
 #define CFG_OFF3(p) (strncmp(p, "OFF", 3) == 0)
 
+// Boot: reads "debug/config.txt" from disc and applies its [KEY] value lines (USER, BRIGHTNESS,
+// STAGE, ROOM, JUMP_POINT, PRINT_PAGE, PLAYER, BGM, SE, SCENARIO, ...) into pG (start room,
+// debug flags, player type, sound switches) for the debug build's direct room start.
 #line 817 "D:/Bio4/Prog/debug.cpp"
 void ConfigSet()
 {
@@ -666,6 +680,8 @@ void ConfigSet()
     PlMode = 3;
 }
 
+// Config parser: 1 when the text at *p is the token `sym` (up to `]` or whitespace); advances
+// past it, the closing `]` and following whitespace / comments.
 int symbol_check(char** p, const char* sym)
 {
     int len = strlen(sym);
@@ -684,6 +700,7 @@ int symbol_check(char** p, const char* sym)
     return 0;
 }
 
+// Config parser: skips whitespace and comments.
 char* space_skip(char* p)
 {
     do {
@@ -694,6 +711,7 @@ char* space_skip(char* p)
     return p;
 }
 
+// Config parser: skips one [[ ]], /* */ or // comment at *pp; -1 when one was skipped, 0 if not.
 int comment_check(char** pp)
 {
     char* p = *pp;
@@ -722,6 +740,7 @@ int comment_check(char** pp)
     return -1;
 }
 
+// Config parser: reads a decimal (or 0x hex) number at *p and advances past it.
 int num_get(char** p)
 {
     *p = space_skip(*p);

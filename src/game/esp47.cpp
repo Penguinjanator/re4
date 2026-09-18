@@ -1,3 +1,8 @@
+// game/esp47.cpp: effect id 0x47, a screen-space sprite that wraps around the screen: its
+// position is kept inside the 480 x 448 screen (with a 32 pixel left margin) and, when the
+// sprite overlaps an edge, it is drawn a second (and for corners a third) time shifted by 448
+// so the wrap is seamless. Used for full-screen scrolling overlays (rain, dust).
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -15,11 +20,13 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x47] factory.
 cEsp* Esp47_Create()
 {
     return new cEsp47;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp47::move()
 {
     if (CommonMove()) {
@@ -29,6 +36,9 @@ void cEsp47::move()
     }
 }
 
+// EspTransTbl[0x47]: wraps m_Pos into the screen, computes the sprite's pixel extent from the
+// animation's Cx/Cy pivot, draws it with EspCommonTrans and repeats the draw shifted by 448 on
+// every edge (and corner) it overlaps.
 void Esp47_Trans(cEsp* pEsp)
 {
     EspAnmData* anm;
@@ -126,6 +136,7 @@ void Esp47_Trans(cEsp* pEsp)
     }
 }
 
+// No extra parameters.
 int cEsp47::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     return 1;

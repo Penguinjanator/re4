@@ -35,6 +35,7 @@ public:
     cDataUnit() {}
     ~cDataUnit() {}
 
+    // 1 when any of `bit` is set in m_be_flag (bit0 in use, bit1 the unit allocated its memory).
     int chk(u32 bit) {
         if (m_be_flag & bit) {
             return 1;

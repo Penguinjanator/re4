@@ -1,3 +1,8 @@
+// game/esp3f.cpp: effect id 0x3F, not a visible effect but a vector buffer carved out of the esp
+// pool. Esp3f_Alloc pulls one parent esp plus up to 0x12 child esps (Rno0 == 1) whose 0x58 byte
+// work areas hold `nElem` Vecs each; esp12/esp16 use it for their per-particle position/speed
+// arrays. Releasing the parent releases the children.
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -27,15 +32,18 @@ public:
     Vec vec[1];  // 0xF8
 };
 
+// EspCreateTbl[0x3F] factory (used for both the parent and the child buffers).
 cEsp* Esp3f_Create()
 {
     return new cEsp3f;
 }
 
+// Nothing to update: the buffer's life is managed by its owner effect.
 void cEsp3f::move()
 {
 }
 
+// Parent (Rno0 == 0) release: pushes every still-live child buffer esp.
 void cEsp3f::Destruct()
 {
     if (m_Rno0 == 0) {
@@ -50,6 +58,9 @@ void cEsp3f::Destruct()
     }
 }
 
+// Allocates a buffer of `num` elements of `size` bytes: `per` elements fit one child (0x58 bytes),
+// so num / per + 1 children are pulled (max 0x12, else an error). Returns 1 and the parent in
+// *out; on any pool failure everything pulled so far is released and 0 returned.
 int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
 {
     cEsp* dmy = EspGetDmyPtr();
@@ -95,6 +106,7 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
     return 1;
 }
 
+// Address of element `no` (child no / per, slot no % per); NULL with an error when out of range.
 Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
 {
     Esp3fWork* w = &p->m_Free;
@@ -115,6 +127,7 @@ Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
     return 0;
 }
 
+// No generator parameters (buffers are only created through Esp3f_Alloc).
 int cEsp3f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     return 1;

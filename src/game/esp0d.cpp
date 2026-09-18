@@ -1,3 +1,7 @@
+// game/esp0d.cpp: effect id 0x0D, a sprite attracted to its parent coordinate. Within `Dist`
+// (Work8[0] x 100 units) of the target it accelerates toward it with strength `Pow`
+// (Work8[1] x 0.00005) proportional to the remaining gap; Tool_flg bit0 keeps the pull horizontal.
+
 #include "atari.h"
 #include "math_sub.h"
 #include "esp.h"
@@ -18,11 +22,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x0D] factory.
 cEsp* Esp0d_Create()
 {
     return new cEsp0d;
 }
 
+// Base update and animation, then (Type 0) adds (Dist - len) * Pow along the unit vector from the
+// target's world position to the sprite into m_Speed while len < Dist.
 void cEsp0d::move()
 {
     Esp0dWork* w = &m_Free;
@@ -54,6 +61,8 @@ void cEsp0d::move()
     }
 }
 
+// Range / strength from Work8[0..1], Type from WorkSp8[0] (only 0 is valid); the target is the
+// attached model's parts (Tool_flg 0x20) or the parent coordinate.
 int cEsp0d::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0dWork* w = &m_Free;

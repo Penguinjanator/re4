@@ -1,3 +1,6 @@
+// game/esp48.cpp: effect id 0x48, a sprite whose rotation oscillates: each axis swings by a sine of
+// its own amplitude (Vec0/1/2.x in 10ths) and frequency (Vec0/1/2.y) around the base rotation.
+
 #include "atari.h"
 #include "rnd.h"
 #include "math_sub.h"
@@ -23,11 +26,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x48] factory.
 cEsp* Esp48_Create()
 {
     return new cEsp48;
 }
 
+// Removes last frame's swing from m_Ang, runs the base update, advances the timer by 0.01 and adds
+// the new per-axis sine offsets. Released when the animation ends.
 void cEsp48::move()
 {
     Esp48Work* w = &m_Free;
@@ -45,6 +51,7 @@ void cEsp48::move()
     }
 }
 
+// Amplitudes (x 0.1) and frequencies per axis from Vec0..Vec2; the timer starts at a random phase.
 int cEsp48::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp48Work* w = &m_Free;

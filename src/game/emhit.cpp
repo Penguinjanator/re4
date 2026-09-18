@@ -33,6 +33,10 @@ EmHitFunc EmHit_R1_move_tbl[4] = {
     emHit_R1_Beetle,
 };
 
+// Creates a hit-only enemy (id 0x4D) from a model / TPL at pos / rot: an unlockable, invisible-to-
+// Ashley damage receiver with a 200 unit hit cylinder, 1000 hp and a 700 x 400 atari cylinder.
+// `type` picks the damage reaction (0 break, 1 report only, 2 hp to 0). Starts in Rno0 1 /
+// Rno1 0 (emHit_R1_Set). NULL when no work or the model fails.
 cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
 {
     cEmHit* em;
@@ -92,6 +96,9 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     return em;
 }
 
+// Damage check at the top of every frame: consumes the registered hit (dmHit / dmWep), ignores
+// the knife, grenades and other non-bullet weapons, then by type: 0 dies (Rno1 2 Break), 1 only
+// raises Status for the owner to read, 2 sets hp to 0.
 void emHitDmCk(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
@@ -142,6 +149,7 @@ void emHitDmCk(cEmHit* em)
     }
 }
 
+// Per-frame: clears Status, runs the damage check and the Rno0 routine (0 Init, 1 Move).
 void cEmHit::move()
 {
     EmHitWork* w = EMHIT_WK(this);
@@ -152,6 +160,7 @@ void cEmHit::move()
     EmHit_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: resets the routine numbers to the Set state.
 void emHit_R0_Init(cEmHit* em)
 {
     em->r_no_0 = 1;
@@ -160,11 +169,14 @@ void emHit_R0_Init(cEmHit* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Parent, 2 Break, 3 Beetle).
 void emHit_R0_Move(cEmHit* em)
 {
     EmHit_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: a static hit target; builds the matrices once (Rno2 0 -> 1) and marks itself
+// be_flag 0x4000 (hit box only, not drawn) every frame.
 void emHit_R1_Set(cEmHit* em)
 {
     if (em->r_no_2 == 0) {
@@ -178,6 +190,9 @@ void emHit_R1_Set(cEmHit* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 1: follows parts `partsNo` of pParent (setParent): mat = parent parts matrix * own
+// matrix, with the rotation columns re-normalised unless noNormalize; plays its own motion when
+// it has one.
 void emHit_R1_Parent(cEmHit* em)
 {
     Mtx m;
@@ -238,6 +253,8 @@ void emHit_R1_Parent(cEmHit* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: the object was shot (type 0): hides the model (be_flag bit1 off), hp 0, Status 1 on
+// the first frame, then stays as a hit-box-only work.
 void emHit_R1_Break(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
@@ -254,6 +271,9 @@ void emHit_R1_Break(cEmHit* em)
     }
 }
 
+// Rno1 == 3: the beetle (setBeetle): Rno2 0/1 idle motion until shot or until the player faces
+// it within 1500 units, 2/3 startle motion, 4/5 flies away (fly motion, speed decaying toward
+// 4 up / 4 forward) for 300 frames then fades out and hides.
 void emHit_R1_Beetle(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
@@ -309,6 +329,7 @@ void emHit_R1_Beetle(cEmHit* em)
     em->partsWorldCalc();
 }
 
+// Default hit box: a cube of the work's size (x/z half + 50, y full) at the origin.
 void emHitYarareInit(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
@@ -316,11 +337,13 @@ void emHitYarareInit(cEmHit* em)
     YarareInitCube(em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
 }
 
+// 1 during the frame the target was hit (Status).
 int cEmHit::ckStatus()
 {
     return EMHIT_WK(this)->Status;
 }
 
+// The weapon id that hit the target this frame; 0 when none.
 int cEmHit::ckDmgWeapon()
 {
     if (EMHIT_WK(this)->Status == 0) {
@@ -329,6 +352,8 @@ int cEmHit::ckDmgWeapon()
     return dmWep;
 }
 
+// Attaches the hit target to parts `partsNo` of `parent` (Rno1 1) and disables the parent's own
+// atari flag 0x200 so the hit target takes the shots.
 void cEmHit::setParent(cModel* parent, int partsNo, int noNormalize)
 {
     EmHitWork* w = EMHIT_WK(this);
@@ -343,6 +368,8 @@ void cEmHit::setParent(cModel* parent, int partsNo, int noNormalize)
     ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
+// Turns the target into the beetle: idle / startle / fly motions, a 50 x 100 hit box, hp 1 and
+// Rno1 3. Ignored when any motion is missing.
 void cEmHit::setBeetle(void* mot0, void* mot1, void* mot2)
 {
     EmHitWork* w = EMHIT_WK(this);

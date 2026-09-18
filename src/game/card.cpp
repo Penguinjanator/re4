@@ -1,4 +1,9 @@
-// game/card: memory card save/load screen (D:/Bio4/Prog/card.cpp).
+// game/card.cpp: the memory card save / load screen and the boot-time card check. cCard runs a
+// state machine (MainLoop) per mode - load, save (game file or the system / options file) and
+// first check - over the async CARD SDK steps (probe, mount, check, free space, open, read,
+// write, create, delete, format), builds and verifies the 20 save files ("bh4_data%02d", CRC-32
+// protected) and shows the messages / errors; CardID drives the screen's id sprites (file list,
+// cursor). The dev kit's host disk is slot 2.
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -249,11 +254,13 @@ static void* g_p_spln_org[1];
 // Free blocks of a slot (free bytes rounded up to the sector size).
 #define FREE_BLOCKS(s) (((s).sectorSize ? ROUNDUP((s).freeBytes, (s).sectorSize) : 0) / (s).sectorSize)
 
+// Language id test.
 static inline int isLang(u8 lang, int n)
 {
     return lang == n;
 }
 
+// 1 for the European languages (2..6).
 static inline int isEurope(u8 lang)
 {
     if (isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6)) {
@@ -262,6 +269,7 @@ static inline int isEurope(u8 lang)
     return 0;
 }
 
+// Removes every message window.
 static inline void deleteAllMes()
 {
     MessageControl* m = &cMes;
@@ -271,6 +279,7 @@ static inline void deleteAllMes()
     }
 }
 
+// Dev mode: prints the slot list (CARD SLOT A / HARD DISK) with the selected one highlighted.
 void debugInfoDisp(int slot, int type)
 {
     static u8 col_tbl[2] = { 0x14, 0x05 };
@@ -281,14 +290,17 @@ void debugInfoDisp(int slot, int type)
     }
 }
 
+// (empty)
 cCard::cCard()
 {
 }
 
+// (empty)
 cCard::~cCard()
 {
 }
 
+// Boot: initialises the CARD library and the CRC table, resets the card serial.
 void CardInit()
 {
     CARDInit();
@@ -296,6 +308,8 @@ void CardInit()
     pG->card_serial = 1;
 }
 
+// Rno0 == 0 (load / save): picks the slot: on the retail build slot A at once, in dev mode the
+// player chooses slot A or the host disk; B cancels (exit). Shows the "checking card" message.
 void cCard::slotSelect()
 {
     int i;
@@ -342,6 +356,8 @@ void cCard::slotSelect()
     }
 }
 
+// Rno0 == 1: the card check chain on the chosen slot: existCheck -> mount -> verifyCheck ->
+// saveFileCheck (-> systemFileCheck), each an async step; any CARD error goes to errorDisp.
 void cCard::inSlotCheck()
 {
     int ret;
@@ -464,6 +480,9 @@ void cCard::inSlotCheck()
     }
 }
 
+// Rno0 == 2: the save slot list: shows the 20 files' headers (dispSaveInfo through CardID),
+// Up / Down select, A confirms (load / save / overwrite prompt), B exits; a mismatching card
+// serial or a corrupt header marks the file. Dev mode prints the card statistics.
 void cCard::dataSelect()
 {
     int i;
@@ -663,6 +682,9 @@ void cCard::dataSelect()
     m_SaveNo = m_SaveNo < 0 ? 0 : (m_SaveNo > 19 ? 19 : m_SaveNo);
 }
 
+// Rno0 == 3 (load): opens "bh4_data%02d" (or the host file), reads the whole block, verifies the
+// CRCs and version, and restores the game save (GameSaveLoad), room data, subscreen and merchant
+// state; errors -0x202 (version) / -0x204 (open) go to errorDisp.
 void cCard::loadMain()
 {
     u8* buf = pSaveBuf;
@@ -770,6 +792,9 @@ void cCard::loadMain()
     }
 }
 
+// Builds the save file image in pSaveBuf: banner / icons / comment strings ("biohazard4 FILE%02d"),
+// the header (mode, serial, play time...), then the game save blocks (GameSaveSave, room data,
+// subscreen, merchant) and both CRCs.
 void cCard::makeSaveData()
 {
     int i;
@@ -825,6 +850,7 @@ void cCard::makeSaveData()
     DCFlushRange(pSaveBuf, SAVE_SIZE);
 }
 
+// Builds the system file image (banner / icons, the system flags) with its CRC.
 void cCard::makeSystemSaveData()
 {
     int i;
@@ -861,6 +887,10 @@ void cCard::makeSystemSaveData()
     DCFlushRange(pSaveBuf, SYS_SIZE);
 }
 
+// Rno0 == 3 (save) / 8: writes a save or the system file: builds the image, opens or creates
+// the card file (fileCreate for the needed blocks), writes it, sets its status (icons, comment
+// offsets), verifies by reading back and updates the file list; the "saving" message and error
+// handling around it.
 void cCard::saveMain()
 {
     void (cCard::*makeFunc)();
@@ -1109,6 +1139,8 @@ void cCard::saveMain()
     }
 }
 
+// Rno0 == 4: leaves the card screen: unmounts, fades, restores the messages and the swapped
+// memory, and for the first check records the card status bits in pG->CardStatus.
 void cCard::exit()
 {
     u32 i;
@@ -1174,6 +1206,7 @@ void cCard::exit()
     }
 }
 
+// Frees the CARD work areas and the save / system / info buffers.
 void cCard::workDestroy()
 {
     if (slotw[0].workArea) {
@@ -1194,6 +1227,8 @@ void cCard::workDestroy()
     m_DataSwap.SwapIn();
 }
 
+// Rno0 == 6: the format dialog: asks, formats the card (CARDFormatAsync) with the "formatting"
+// message, then back to the check (or the first-check flow) / error.
 void cCard::format()
 {
     int noCard = 0;
@@ -1335,6 +1370,8 @@ void cCard::format()
     }
 }
 
+// Rno0 == 7: deletes the selected save file (or the corrupt system file in the first check)
+// after confirmation; then back to the list / errorDisp.
 void cCard::fileDelete()
 {
     int ret;
@@ -1428,6 +1465,9 @@ void cCard::fileDelete()
     }
 }
 
+// Rno0 == 5: shows the message for m_ErrCode (no card, wrong device, broken, no space, wrong
+// version...) and offers the recovery (retry, format, delete, continue without saving); the
+// first-check flow continues into the game on cancel.
 void cCard::errorDisp()
 {
     static int cardcheck;
@@ -1699,6 +1739,7 @@ void cCard::errorDisp()
     eprintf(470, 10, 0, 0, "%d", m_ErrCode);
 }
 
+// Records the error code and switches to errorDisp.
 void cCard::errorSet(int code)
 {
     m_ErrCode = code;
@@ -1706,6 +1747,9 @@ void cCard::errorSet(int code)
     m_Rno1 = 0;
 }
 
+// Card screen setup for `type` (0 load, 1 save, 2 first check): saves the stop / display flags,
+// swaps out the room heap for the card buffers (cDataSwap), allocates the works, loads the
+// screen ids and messages. 0 when memory could not be made.
 int cCard::initialize(int type)
 {
     u32 c0;
@@ -1800,6 +1844,7 @@ int cCard::initialize(int type)
     return 1;
 }
 
+// Common per-run state reset (slot, file numbers, timers, status).
 int cCard::initSub()
 {
     if (workAlloc() == 0) {
@@ -1821,6 +1866,8 @@ int cCard::initSub()
     return 1;
 }
 
+// Allocates the CARD mount work area (slot A), the 20 save headers, the save and system file
+// buffers; 0 on failure.
 int cCard::workAlloc()
 {
     int i;
@@ -1857,6 +1904,7 @@ int cCard::workAlloc()
     return 1;
 }
 
+// Total memory the card screen needs (used to size the heap swap).
 u32 cCard::getUseMemSize()
 {
     u32 size;
@@ -1880,6 +1928,8 @@ u32 cCard::getUseMemSize()
     return size;
 }
 
+// Async step: creates `fileName` with `blocks` x 8 KB on the card; 1 when done, negative CARD
+// result on failure.
 int cCard::fileCreate(u8* sub, int blocks, CardSlot* s)
 {
     int ret = 0;
@@ -1940,6 +1990,8 @@ void cCard::makeCardStatus(CardSlot* s)
     DCFlushRange(&s->stat, sizeof(CardStat));
 }
 
+// Rno0 == 0 (first check at boot): walks slot A (and the host disk in dev mode): unmount, exist,
+// mount, verify, free space, then the save / system file checks.
 void cCard::firstCheck00()
 {
     int ret;
@@ -2017,6 +2069,8 @@ void cCard::firstCheck00()
     }
 }
 
+// Rno0 == 1 (first check): reads the system file (sysfileRead) and applies its settings; a
+// missing / broken one leads to the create-system-file prompt or the error screen.
 void cCard::firstCheck10()
 {
     u8* buf = pSysBuf;
@@ -2068,6 +2122,9 @@ void cCard::firstCheck10()
     }
 }
 
+// Rno0 == 2 (first check): decides from the slot flags: errors (-3 no card, -0x20A / -0x20B space,
+// -0x201 broken, -5 / -6 / -2 device) to errorDisp, no system file to createSysfile (Rno0 8),
+// otherwise done.
 void cCard::firstCheck20()
 {
     u32 f = slotw[0].flags;
@@ -2099,16 +2156,22 @@ void cCard::firstCheck20()
     }
 }
 
+// Rno0 == 3 (first check): done, exit.
 void cCard::firstCheck30()
 {
     m_Rno0 = 4;
 }
 
+// 1 once the boot card check has finished (pG->CardStatus bit31).
 int CardCheckDone()
 {
     return (pG->CardStatus & 0x80000000) != 0;
 }
 
+// The card screen task body: initialise for mode `arg` (0 load, 1 save, 2 first check), then run
+// the Rno0 state of the mode's column every frame (slotSelect / inSlotCheck / dataSelect /
+// load-save / exit / errorDisp / format / fileDelete / system save) until exitFlag, with the id
+// (CardID) animation and message updates.
 void cCard::MainLoop(int arg)
 {
     static void (cCard::*tbl[9][3])() = {
@@ -2145,6 +2208,8 @@ void cCard::MainLoop(int arg)
     }
 }
 
+// Task entry of the card screen: creates the cCard and CardID, loads the language font and the
+// memcard message layouts, runs MainLoop, tears everything down.
 void CardMainTask(int mode)
 {
     BitOn(pG->System_flg, 0x1000);
@@ -2173,6 +2238,7 @@ void CardMainTask(int mode)
     TaskExit();
 }
 
+// Starts the load screen as a task and waits for it; 1 when a file was loaded.
 int CardLoad()
 {
     int ret = 0;
@@ -2187,6 +2253,7 @@ int CardLoad()
     return ret;
 }
 
+// Starts the save screen (save slot `no` preselected, `f` the save flags) and waits for it.
 void CardSave(int no, int f)
 {
     if (f & 2) {
@@ -2209,6 +2276,7 @@ void CardSave(int no, int f)
     TaskSleep(1);
 }
 
+// Saves the system file (options) through the save task and waits.
 void CardSysSave()
 {
     BitOn(pG->CardStatus, 0x98);
@@ -2216,6 +2284,7 @@ void CardSysSave()
     TaskSleep(1);
 }
 
+// Boot: chains the first-check card screen.
 void CardFirstCheck()
 {
     if (pRK->valid != 0 && pRK->card_checked == 1) {
@@ -2225,6 +2294,8 @@ void CardFirstCheck()
     TaskChain((TaskFunc) CardMainTask, 2);
 }
 
+// Probes slot `chan` (CARDProbeEx): records size / sector size or the error flag (no card, wrong
+// device, fatal, bad sector size). 1 when a usable card is there (the host disk always).
 int cCard::existCheck(int chan, CardSlot* s)
 {
     int ret = 0;
@@ -2260,6 +2331,8 @@ int cCard::existCheck(int chan, CardSlot* s)
     return ret;
 }
 
+// Async step: mounts the card (CARDMountAsync), setting the slot's error flags on failure. 1 when
+// mounted.
 int cCard::mount(u8* sub, CardSlot* s)
 {
     int ret = 0;
@@ -2305,6 +2378,7 @@ int cCard::mount(u8* sub, CardSlot* s)
     return ret;
 }
 
+// Unmounts slot `chan`; 1 when done.
 int cCard::unmount(int chan)
 {
     int ret = 0;
@@ -2330,6 +2404,7 @@ int cCard::unmount(int chan)
     return ret;
 }
 
+// Async step: CARDCheckAsync (file system check); broken -> flag 0x10.
 int cCard::verifyCheck(u8* sub, CardSlot* s)
 {
     int ret = 0;
@@ -2374,6 +2449,8 @@ int cCard::verifyCheck(u8* sub, CardSlot* s)
     return ret;
 }
 
+// Reads the free blocks / files of the card and flags "no space" (0x4 with 0x400 / 0x800 for
+// which file) when a save or the system file would not fit.
 int cCard::freeCheck(u8* sub, CardSlot* s)
 {
     int ret = 0;
@@ -2441,6 +2518,7 @@ int cCard::freeCheck(u8* sub, CardSlot* s)
     return ret;
 }
 
+// Opens `fileName` on the slot; 1 when open, error flags otherwise.
 int cCard::fileOpen(CardSlot* s)
 {
     int ret = 0;
@@ -2469,6 +2547,7 @@ int cCard::fileOpen(CardSlot* s)
     return ret;
 }
 
+// Closes the slot's open file.
 int cCard::fileClose(CardSlot* s)
 {
     int ret = 0;
@@ -2492,6 +2571,9 @@ int cCard::fileClose(CardSlot* s)
     return ret;
 }
 
+// Async step over the 20 save files: opens each, reads its 0x200 header into pInfo[], verifies
+// the header CRC / version (fileFlag bits 1 exists, 2 corrupt, 4 wrong version) and records the
+// card serial. 1 when all files were checked.
 int cCard::saveFileCheck(u8* sub, CardSlot* s)
 {
     int ret = 0;
@@ -2626,6 +2708,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
     return ret;
 }
 
+// Async step: looks for the system file (flag 0x200 when present) and reads its status.
 int cCard::systemFileCheck(u8* sub, CardSlot* s)
 {
     int ret = 0;
@@ -2670,6 +2753,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
     return ret;
 }
 
+// Async step: reads `len` bytes at `ofs` of the open file; 1 done, negative on error.
 int cCard::fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s)
 {
     int ret = 0;
@@ -2698,6 +2782,7 @@ int cCard::fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s)
     return ret;
 }
 
+// Async step: writes `blocks` x 8 KB from `buf` to the open file; 1 done.
 int cCard::fileWrite(u8* sub, void* buf, int blocks, CardSlot* s)
 {
     int ret = 0;
@@ -2725,6 +2810,8 @@ int cCard::fileWrite(u8* sub, void* buf, int blocks, CardSlot* s)
     return ret;
 }
 
+// Reads and validates the system file (status, CRC, version) into pSysBuf and applies the saved
+// options (sysFlags); errMode selects how failures are reported. 1 when read.
 int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
 {
     int ret = 0;
@@ -2845,6 +2932,8 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
     return ret;
 }
 
+// Rno0 == 8 (first check): asks whether to create the system file, then creates and writes it
+// (saveMain with isSystem), or continues without one.
 void cCard::createSysfile()
 {
     int noCard = 0;
@@ -2988,6 +3077,7 @@ void cCard::createSysfile()
     }
 }
 
+// Debug: prints the state numbers (dev mode).
 void cCard::screenTrans()
 {
     if (type != 2) {
@@ -3001,12 +3091,14 @@ void cCard::screenTrans()
     }
 }
 
+// Shows memcard message `no` from the message table at its layout position in window `slot`.
 void cCard::cardMesSet(int no, int slot, u32 attr)
 {
     MesPos* p = &mes_pos_tbl[pSys->language][no];
     cMes.MesSet(p->no, p->x, p->y, attr | 0x01020051, slot, 0, 4);
 }
 
+// Relocates an in-file TPL in place (offsets -> pointers).
 void cCard::calcTplAddr(TEXPalette* tpl)
 {
     u32 i;
@@ -3031,6 +3123,7 @@ void cCard::calcTplAddr(TEXPalette* tpl)
     }
 }
 
+// Shows / hides the message window backdrop ids.
 void cCard::setMsgWindow(int a, int sw)
 {
     if (type != 2) {
@@ -3042,6 +3135,7 @@ void cCard::setMsgWindow(int a, int sw)
     }
 }
 
+// Builds the CRC-32 table used for the save file checksums.
 void CRCInit()
 {
     u32 i;
@@ -3060,6 +3154,7 @@ void CRCInit()
     }
 }
 
+// CRC-32 of `len` bytes.
 u32 CRCCalc(u8* data, u32 len)
 {
     u32 crc = 0;
@@ -3071,6 +3166,7 @@ u32 CRCCalc(u8* data, u32 len)
     return crc;
 }
 
+// 1 when the CRC of the data matches `saved` (logs both on mismatch).
 int CRCVerify(u8* data, u32 len, u32 saved)
 {
     u32 crc = CRCCalc(data, len);
@@ -3081,6 +3177,8 @@ int CRCVerify(u8* data, u32 len, u32 saved)
     return 0;
 }
 
+// Dev mode: allocates the debug copy of the 20 save headers (so the host disk saves show their
+// info).
 void CardDbgCacheSet()
 {
     u8* p;
@@ -3114,6 +3212,8 @@ void CardDbgCacheSet()
         }                                                 \
     }
 
+// Fills save slot `no`'s list entry ids: chapter / difficulty / play time / save count digits
+// from the header (or the "broken" / "no data" variants).
 void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 {
     IDSystem* id = &g_id->m_IdSave;
@@ -3276,6 +3376,7 @@ skip:
     }
 }
 
+// Refreshes every list entry from the card's file flags / headers.
 void CardID::updateSaveInfo(cCard* pCard)
 {
     int i;
@@ -3309,6 +3410,8 @@ void CardID::updateSaveInfo(cCard* pCard)
     }
 }
 
+// Creates the card screen ids (background, list, cursor) from the save screen archive for mode
+// `type`, killing the HUD ids.
 void CardID::init(int type, CardArc* data)
 {
     int i;
@@ -3382,6 +3485,8 @@ void CardID::init(int type, CardArc* data)
     rno3 = 0;
 }
 
+// Per-frame id animation: runs the current mode (wait / start / normal / up_down / save) and the
+// error-screen dimming.
 void CardID::move(cCard* pCard)
 {
     static void (CardID::*tbl[6])(cCard*) = {
@@ -3417,6 +3522,7 @@ void CardID::move(cCard* pCard)
     }
 }
 
+// Id mode: idle list; applies a pending action (highlight / hide) to the cursor ids.
 void CardID::wait(cCard* pCard)
 {
     IdUnit* a;
@@ -3444,6 +3550,7 @@ void CardID::wait(cCard* pCard)
     }
 }
 
+// Id mode: the list slides in, then normal.
 void CardID::start(cCard* pCard)
 {
     rno0 = 2;
@@ -3452,6 +3559,7 @@ void CardID::start(cCard* pCard)
     }
 }
 
+// Id mode: cursor on the selected file, Up / Down start the scroll animation (up_down).
 void CardID::normal(cCard* pCard)
 {
     IdUnit* u;
@@ -3476,6 +3584,7 @@ void CardID::normal(cCard* pCard)
     }
 }
 
+// Id mode: animates the list scroll by one entry and updates the cursor / entry ids.
 void CardID::up_down(cCard* pCard)
 {
     IdUnit* a;
@@ -3550,6 +3659,7 @@ void CardID::up_down(cCard* pCard)
     }
 }
 
+// Id mode during a save / load: the selected entry blinks, then returns to normal.
 void CardID::save(cCard* pCard)
 {
     IdUnit* u = IdSys.unitPtr(1, 0x10);
@@ -3585,6 +3695,7 @@ void CardID::save(cCard* pCard)
     }
 }
 
+// Kills the card screen ids.
 void CardID::quit()
 {
     m_IdSave.free();
@@ -3593,11 +3704,13 @@ void CardID::quit()
     }
 }
 
+// Queues a cursor action (bit0 show, bit1 hide, bit2 highlight) for the id modes.
 void CardID::setAction(int a)
 {
     action = a;
 }
 
+// Shows / hides the message backdrop id `a`.
 void setMsgBG(int a, int flag)
 {
     IdUnit* u;

@@ -1,3 +1,10 @@
+// game/esp15.cpp: effect id 0x15, a camera-relative weather particle (rain, snow, dust). The
+// sprite lives in a box of size Range (R_pos.z) around the camera: whenever it drifts out on the
+// camera's side / up axes it is wrapped back by 1.2 x Range, along the view axis by Range. The
+// alpha fades over the far Del_ratio (Work8[2] %) part of the box, and fades out over
+// Room_del_frame frames while the player is in a weather-off area (Status_flg[1] 0x02000000).
+// Vec0.x is a floor height the particle may not fall below.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -23,11 +30,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x15] factory.
 cEsp* Esp15_Create()
 {
     return new cEsp15;
 }
 
+// Restores the base alpha, runs the base update/animation, applies the indoor fade counter, wraps
+// the position into the camera box on the three camera axes, fades the alpha with view distance
+// and keeps the particle above Min_y.
 void cEsp15::move()
 {
     Esp15Work* w = &m_Free;
@@ -132,6 +143,9 @@ void cEsp15::move()
     }
 }
 
+// Delete distances from Work8[0..1] (x 10), fade ratio Work8[2] (%), indoor fade frames Work8[3],
+// box size R_pos.z (position randomised inside it), floor Vec0.x. Starts fully faded when the
+// player is already indoors.
 int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp15Work* w = &m_Free;

@@ -1,4 +1,8 @@
-// game/em_set.cpp: enemy creation from the room enemy list (ESL) and the per-list death bits.
+// game/em_set.cpp: enemy creation from the room enemy list (ESL). pG->Em_list holds 256 EmListData
+// entries (id, type, set, flag, hp, position in 10 unit steps, rotation in 1/16384 turns, stage /
+// room); EmSetFromList creates every entry of the current room at room start and event code
+// creates single entries with EmSetFromList2. Killed list enemies are recorded per list in the
+// pG->em_dead bit tables so they stay dead when the room is re-entered.
 
 #include "atari.h"
 #include "light.h"
@@ -16,6 +20,7 @@ static int emSetDummy = 0;
 // it with byte arithmetic: the row offset is added to pG before the table offset.
 #define EM_DEAD_TBL() ((u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C))
 
+// Death bit of list entry `no` in the current list (pG->em_list_no); 0 when no list is loaded.
 static inline u32 EmSetDieCk(u32 no)
 {
     u32 v;
@@ -30,6 +35,7 @@ static inline u32 EmSetDieCk(u32 no)
     return v;
 }
 
+// Sets the death bit of list entry `no` in the current list.
 static inline void EmSetDieOn(u32 no)
 {
     if (pG->em_list_no >= 0) {
@@ -45,6 +51,8 @@ static inline void CntInc(u32& c) { c++; }
 // While flags_68 bit21 is set only the enemies 3 and 4 may be created.
 #define EM_SET_ID_NG(id) ((pG->Debug_flg[2] & 0x00200000) && ((id) != 3 && (id) != 4))
 
+// Pulls an enemy work for `id`: the partner (0xF) and the parasite (0x25) are created at the back
+// of the pool so they move after the others.
 static inline cEm* EmCreate(u8 id)
 {
     if (id == 0xF || id == 0x25) {
@@ -129,6 +137,7 @@ static inline cEm* emSetWork(u32 no)
     return (cEm*) ((u8*) m->pArray + m->size * no);
 }
 
+// 1 when no live enemy already carries list entry `no` (0xFF: always 1).
 int checkListId(int no)
 {
     u32 i;
@@ -146,6 +155,10 @@ int checkListId(int no)
     return 1;
 }
 
+// Room start: creates every list entry that is alive (be_flag bit0), not yet set (bit1), not
+// recorded dead, belongs to the current stage / room, has an id and is not blocked by the debug
+// filter; copies the entry into the work, marks it set (bit1, toggling bits 2/3), computes the
+// player distance and runs the first move.
 void EmSetFromList()
 {
     u32 i;
@@ -199,6 +212,8 @@ void EmSetFromList()
     }
 }
 
+// Creates list entry `no` on demand (room event scripts): same checks as EmSetFromList, the
+// death bit only with chkDead. Returns the enemy, or errEm when nothing was created.
 cEm* EmSetFromList2(int no, int chkDead)
 {
     EmListData* d = EM_LIST(no);
@@ -267,6 +282,7 @@ cEm* EmSetEvent(EmListData* d)
     return em;
 }
 
+// The live enemy created from list entry `no`; NULL when none (or no == 0xFF).
 cEm* GetEmPtrFromList(int no)
 {
     u32 i;
@@ -284,6 +300,7 @@ cEm* GetEmPtrFromList(int no)
     return 0;
 }
 
+// The list entry an enemy was created from; NULL for enemies not from the list (emset_no 0xFF).
 EmListData* GetListPtrFromEm(cEm* em)
 {
     if (em->emset_no == 0xFF) {
@@ -292,6 +309,7 @@ EmListData* GetListPtrFromEm(cEm* em)
     return EM_LIST(em->emset_no);
 }
 
+// Enemy id of list entry `no` (0xFF for an invalid index).
 u8 GetEmIdFromList(u32 no)
 {
     EmListData* list;
@@ -303,6 +321,8 @@ u8 GetEmIdFromList(u32 no)
     return list[no].id;
 }
 
+// Sets / clears the alive bit (be_flag bit0) of list entry `no`, only for entries of the current
+// stage / room.
 void EmListSetAlive(int no, int on)
 {
     EmListData* d = EM_LIST(no);
@@ -320,6 +340,8 @@ void EmListSetAlive(int no, int on)
     }
 }
 
+// Records the death of a list enemy in the current death bit table (so it is not re-created),
+// except in stage 4 rooms and under the debug flags that keep enemies respawning.
 void EmSetDie(cEm* em)
 {
     if (pG->Debug_flg[2] & 0x04000000) {
@@ -337,12 +359,14 @@ void EmSetDie(cEm* em)
     EmSetDieOn(em->emset_no);
 }
 
+// Counts a kill in the chapter and game kill counters (results screen).
 void EmSetDieCnt()
 {
     CntInc(pG->c_kill_cnt);
     CntInc(pG->g_kill_cnt);
 }
 
+// Room change: clears the "set" bit of every list entry so the new room can create its enemies.
 void EmSetRoomInit()
 {
     int i;
@@ -354,6 +378,8 @@ void EmSetRoomInit()
     }
 }
 
+// Every 30 frames: intended to delete waiting list enemies; the loop body is empty in the
+// shipped game.
 void EmListWaitDelete()
 {
     int i;

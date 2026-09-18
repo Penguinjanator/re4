@@ -1,3 +1,7 @@
+// game/esp43.cpp: effect id 0x43, a delayed sprite gated on the effect tool. Outside the tool the
+// sprite is held at life 0 until `started` is set; once running it spawns est Work8[0] (owner 1)
+// on the frame the colour fade-in ends, then behaves like a plain sprite.
+
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -20,6 +24,7 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x43] factory.
 cEsp* Esp43_Create()
 {
     return new cEsp43;
@@ -34,6 +39,9 @@ static void Esp43_SetPos(cEsp* esp)
     }
 }
 
+// While not started: holds m_Life_time at 0 (m_Col_start_cnt forced to 1). In the effect tool
+// (Debug_flg[1] 0x00800000) it starts at once. Once started: fires EstSet(owner 1, EstNo) when
+// m_Life_time reaches m_Col_start_cnt, then the base update; released when the animation ends.
 void cEsp43::move()
 {
     Esp43Work* w = &m_Free;
@@ -60,6 +68,7 @@ void cEsp43::move()
     }
 }
 
+// Remembers the est id (Work8[0], 0xFF = none) to spawn on start.
 int cEsp43::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     m_Free.EstNo = gen->Work8[0];

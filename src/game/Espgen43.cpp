@@ -1,3 +1,8 @@
+// game/Espgen43.cpp: effect controller 43, a deformable sand / mud surface. An nx x ny height
+// grid (Vec per point) rendered as lit triangle strips through a display list; AddSandPower
+// dents the surface at a point (footprints, impacts) with three widening rings, GetSandHeight
+// reports the surface height. Status_flg[0] bit1 marks that a sand surface exists this frame.
+
 #include "light.h"
 #include "atari.h"
 #include "global.h"
@@ -51,6 +56,8 @@ static int Height_find;
 static inline void ISet(int& d, int v) { d = v; }
 static inline f32 FGet(f32& d) { return d; }
 
+// Applies Add_power at Chk_pos to sand generator `w`: raises the hit point and lowers rings of
+// radius 3 / 2 / 1 around it by 2% / 10% / 30% of the power, then smooths the grid.
 void AddSandPowerSub(EspgenWork* w)
 {
     Espgen43Work* p;
@@ -124,6 +131,8 @@ void AddSandPowerSub(EspgenWork* w)
     }
 }
 
+// Public dent entry: deforms every live sand surface at `pos` by `power`; no-op unless a sand
+// surface exists this frame (Status_flg[0] bit1).
 void AddSandPower(Vec* pos, f32 power)
 {
     if (pG->Status_flg[0] & 2) {
@@ -150,6 +159,8 @@ void AddSandPower(Vec* pos, f32 power)
     }
 }
 
+// Height test of Chk_pos on sand generator `w`: inside the grid, the surface plane height (the
+// grid is treated as flat) is stored in Height_ret.
 void GetSandHeightSub(EspgenWork* w)
 {
     Espgen43Work* p;
@@ -181,6 +192,7 @@ void GetSandHeightSub(EspgenWork* w)
     Height_find = 1;
 }
 
+// Surface height under `pos` on any live sand generator: 1 and *height, 0 when none covers it.
 int GetSandHeight(Vec* pos, f32* height)
 {
     if (!(pG->Status_flg[0] & 2)) {
@@ -194,6 +206,8 @@ int GetSandHeight(Vec* pos, f32* height)
     return Height_find;
 }
 
+// Step 0, every frame: sets Status_flg[0] bit1 and recomputes the vertex normals from the
+// neighbouring heights, flushing both buffers for the GP.
 #line 246 "D:/Bio4/Prog/Espgen43.cpp"
 void Espgen43_Move00(EspgenWork* w)
 {
@@ -222,6 +236,7 @@ void Espgen43_Move00(EspgenWork* w)
     DCStoreRange(p->pNorBuf, n);
 }
 
+// Espgen move entry for id 0x43: dispatches on w->step.
 void Espgen43_Move(EspgenWork* w)
 {
     static void (*Espgen43MoveTbl[])(EspgenWork*) = {Espgen43_Move00};
@@ -229,6 +244,7 @@ void Espgen43_Move(EspgenWork* w)
     Espgen43MoveTbl[w->step](w);
 }
 
+// Queues Espgen43_TransSub in the world OT (0x10, layer 1, priority 0x80) while live.
 void Espgen43_Trans(EspgenWork* w)
 {
     if ((w->flag & 1) && !(w->flag & 2)) {
@@ -236,6 +252,8 @@ void Espgen43_Trans(EspgenWork* w)
     }
 }
 
+// Draws the sand grid: lights from commonClothLightSet, material / ambient colours, texture
+// TexNo, then the pre-built display list of triangle strips.
 void Espgen43_TransSub(EspgenWork* w)
 {
     GxStageWork* st;
@@ -340,6 +358,9 @@ static int SetSand(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         (v) = 2.0f - (v);                                                                           \
     }
 
+// Builds the grid at pos / rot with cell `size` (height axis scaled by sizeRate): allocates the
+// height and normal buffers and the display list (texture repeated texRep times across the
+// grid). Returns NULL (and releases the generator) on memory failure.
 EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny)
 {
     Espgen43Work* p = (Espgen43Work*) w->work;
@@ -519,6 +540,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
     return w;
 }
 
+// Frees the height, normal and display list buffers.
 void Espgen43_Destruct(EspgenWork* w)
 {
     Espgen43Work* p = (Espgen43Work*) w->work;
@@ -537,6 +559,9 @@ void Espgen43_Destruct(EspgenWork* w)
     }
 }
 
+// Espgen SetFreeWork for id 0x43: grid size prm 0xCC / 0xD0 (default 64, max 256), colours /
+// ambient from the record, texture Tex_id, repeat 2^Work8[0], height scale Size_plus + 1; runs
+// one move step at once.
 int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {

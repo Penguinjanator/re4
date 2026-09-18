@@ -113,6 +113,10 @@ CLOTH_AT_SET emWepAt[3] = {
     { 0, 2, 2, 1.0f, 250.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
 };
 
+// Creates a weapon enemy (id 0x42, at the back of the pool) from a model / TPL at pos / rot: the
+// hand weapons, projectiles and thrown items of the enemies. type 1 marks a weapon that vanishes
+// when hidden (Set). No hp (not shootable unless setYarare), a small solid atari, all SE / effect
+// ids cleared, Core_kind 50 for its effects. Starts in Rno1 0 Set. NULL on failure.
 cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
     cEmWep* em;
@@ -219,6 +223,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     return em;
 }
 
+// Event start: an unowned type 0 weapon lying around is removed.
 void cEmWep::beginEvent()
 {
     if (EMWEP_WK(this)->pEm_oya == 0 && type == 0) {
@@ -226,6 +231,11 @@ void cEmWep::beginEvent()
     }
 }
 
+// The weapon was shot (setYarare weapons, not by knife / grenades): a carried / falling weapon is
+// knocked out of the hand (setFall away from the shooter) with the damage SE / est; a thrown
+// dynamite (Rno1 9) explodes early (blast est, SE, damage on the thrower); a flying grenade
+// (Rno1 0xC) is shot down: point bonus, explosion at its position, Status_flg[1] 0x20000; any
+// scenario attribute tied to the weapon (At_no) is destroyed.
 void emWepDmCk(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -344,6 +354,9 @@ void emWepDmCk(cEmWep* em)
     }
 }
 
+// Per-frame: hit check, the Rno0 routine, then while live: the cloth chain, mirroring the
+// holder's visibility / fade (Be_flg bit1 hides), the periodic "always" est and SE, and
+// destruction when the holder's work vanished.
 void cEmWep::move()
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -391,6 +404,7 @@ void cEmWep::move()
     }
 }
 
+// Rno0 == 0: resets to the Set state.
 void emWep_R0_Init(cEmWep* em)
 {
     em->r_no_0 = 1;
@@ -399,11 +413,15 @@ void emWep_R0_Init(cEmWep* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 LostWait, 2 Lost, 3 Parent, 4 Fall, 5 Throw, 6 Shot,
+// 7 ShotArrow, 8 Rocket, 9 BombThrow, 0xA ThrowScythe, 0xB FlashThrow, 0xC GrenadeThrow).
 void emWep_R0_Move(cEmWep* em)
 {
     EmWep_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: a free weapon lying in the room; plays its motion or rebuilds the matrices (type 1
+// freezes its matrix after 3 frames and is lost as soon as it is hidden).
 void emWep_R1_Set(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -438,6 +456,8 @@ void emWep_R1_Set(cEmWep* em)
     }
 }
 
+// Rno1 == 1: a dropped weapon at rest; after 90 frames (1 for type 1), or at once off screen,
+// fades out and goes to Lost.
 void emWep_R1_LostWait(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -484,6 +504,7 @@ void emWep_R1_LostWait(cEmWep* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: removes the weapon: hidden, its effects (Core_kind espKind) deleted, work destroyed.
 void emWep_R1_Lost(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -503,6 +524,8 @@ void emWep_R1_Lost(cEmWep* em)
     }
 }
 
+// Rno1 == 3: held by pEm_oya: follows its parts (setParentMatCalc) and drops after timer4 frames
+// (setWaitDrop).
 static void emWep_R1_Parent(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -516,6 +539,10 @@ static void emWep_R1_Parent(cEmWep* em)
     }
 }
 
+// Rno1 == 4: the dropped weapon tumbles as a 3-node rope (node offsets by fall_type: long,
+// pole, small, flat): gravity `grav`, 30 relaxation passes, floor contact with the landing SE /
+// est and random bounce damping, matrix rebuilt from the nodes; rests (LostWait) when the node
+// speeds are small; a water entry plays the splash est / SE once.
 void emWep_R1_Fall(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -692,6 +719,9 @@ void emWep_R1_Fall(cEmWep* em)
     }
 }
 
+// Rno1 == 5: a thrown hand weapon (axe, sickle, hatchet): flies with gravity spinning end over
+// end, looping seThrow; a scenery hit drops it (seHitWall), a player hit (EmAtkHitCk with pAtk)
+// deals damage with blood, SE, quake and drops it; water entry splashes.
 void emWep_R1_Throw(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -775,6 +805,8 @@ void emWep_R1_Throw(cEmWep* em)
     }
 }
 
+// Rno1 == 0xA: the thrown scythe (Garrador / zealot): like Throw but spinning flat about its
+// vertical axis; a head hit decapitates the player (emWepPlHeadLost).
 void emWep_R1_ThrowScythe(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -836,6 +868,10 @@ void emWep_R1_ThrowScythe(cEmWep* em)
     }
 }
 
+// Rno1 == 6: a straight projectile (thrown knife / bolt) for at most 90 frames: a scenery hit
+// (attribute 0x404000) stops it in place (rests, then drops), a player or partner hit
+// (EmAtkLineHitCk / Sub) deals the pAtk damage; when the hit part is flagged 0x4000 the weapon
+// stays stuck in that parts for timer4 frames (setParent) before dropping.
 void emWep_R1_Shot(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1008,6 +1044,9 @@ void emWep_R1_Shot(cEmWep* em)
     }
 }
 
+// Rno1 == 7: the crossbow's explosive arrow: trail est 0x2F/7, flies straight; a scenery hit
+// (after the first 3 frames) plants it (est 0x2F/8) with a 63 frame beeping fuse, then
+// emWepArrowBomb; a body hit sticks and explodes the same way.
 void emWep_R1_ShotArrow(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1139,6 +1178,9 @@ fly:
     }
 }
 
+// Rno1 == 8: the RPG rocket: accelerates to 30 units / frame along its heading (looping the
+// engine SE), explodes on the scenery (after 2 frames), within 500 units of the player's or the
+// partner's chest, or after 500 frames.
 void emWep_R1_Rocket(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1207,6 +1249,8 @@ void emWep_R1_Rocket(cEmWep* em)
     em->partsWorldCalc();
 }
 
+// Rocket explosion: blast est (0x10/0x48, or 0x41 on a flat floor hit) at the rocket, the
+// thrower's explosion SE, 5000 radius damage (PlWepHitCheck2 type 0x13), then Lost.
 void emWepRocketBobm(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1246,6 +1290,7 @@ void emWepRocketBobm(cEmWep* em)
     em->setLost();
 }
 
+// Explosive arrow detonation: blast ests 0/0xD + 0/0x1A, SE, 5000 radius damage, then Lost.
 void emWepArrowBomb(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1269,6 +1314,9 @@ void emWepArrowBomb(cEmWep* em)
     em->setLost();
 }
 
+// Rno1 == 9: thrown dynamite: tumbles with gravity, ticking SE every 6 frames, bounces off the
+// scenery (EatMgr.adjust, first bounce SE), explodes when Bomb_wait (the fuse) runs out (blast
+// est, SE, 5000 radius damage, Lost); landing in water drowns it (splash, Fall).
 void emWep_R1_BombThrow(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1391,6 +1439,9 @@ void emWep_R1_BombThrow(cEmWep* em)
     }
 }
 
+// Rno1 == 0xB: a thrown flash grenade: tumbles and bounces like the dynamite; when the fuse ends
+// spawns the flash ests (0x2F/5 + 6), the SE and blinds the player (a white-out) when he is
+// alive, then Lost.
 void emWep_R1_FlashThrow(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1483,6 +1534,9 @@ void emWep_R1_FlashThrow(cEmWep* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 0xC: a thrown hand grenade: tumbles and bounces; explodes (blast, SE, 5000 radius
+// damage) when the fuse ends. In its last 24 frames, with the player within 6000 units, offers
+// the escape action button 0x25 (emWepEscapeAction) once.
 void emWep_R1_GrenadeThrow(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
@@ -1766,6 +1820,7 @@ void emWepEscapeCamMove(cEmWep* em)
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
+// Puts the weapon in `parent`'s parts `partsNo_` (Rno1 3); flag skips the matrix normalisation.
 void cEmWep::setParent(cEm* parent, int partsNo_, int flag)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2251,6 +2306,7 @@ void cEmWep::setGrenadeThrow(Vec* spd, int fuse, void* motEscape, void* motEscap
     r_no_3 = 0;
 }
 
+// SE played when the falling weapon lands (0xFF = none).
 void cEmWep::setSeFall(u8 blk, u8 no, u8 vol)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2261,6 +2317,7 @@ void cEmWep::setSeFall(u8 blk, u8 no, u8 vol)
     w->seFall[3] = 0;
 }
 
+// SE played when the weapon is shot out of the hand.
 void cEmWep::setSeDamage(u8 blk, u8 no, u8 vol)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2270,6 +2327,7 @@ void cEmWep::setSeDamage(u8 blk, u8 no, u8 vol)
     w->seDamage[2] = vol;
 }
 
+// SE played when the thrown weapon hits the player.
 void cEmWep::setSeHit(u8 blk, u8 no, u8 vol)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2279,6 +2337,7 @@ void cEmWep::setSeHit(u8 blk, u8 no, u8 vol)
     w->seHit[2] = vol;
 }
 
+// SE played when the thrown weapon hits the scenery.
 void cEmWep::setSeHitWall(u8 blk, u8 no, u8 vol)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2288,6 +2347,7 @@ void cEmWep::setSeHitWall(u8 blk, u8 no, u8 vol)
     w->seHitWall[2] = vol;
 }
 
+// Flying SE restarted every `wait` frames while thrown / shot.
 void cEmWep::setSeThrow(u8 blk, u8 no, u8 vol, u8 wait)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2298,6 +2358,7 @@ void cEmWep::setSeThrow(u8 blk, u8 no, u8 vol, u8 wait)
     w->seThrow[3] = wait;
 }
 
+// SE played every `wait` frames at parts 0 while the weapon is visible (chainsaw idle).
 void cEmWep::setSeAlways(u8 blk, u8 no, u8 vol, u8 wait)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2309,6 +2370,7 @@ void cEmWep::setSeAlways(u8 blk, u8 no, u8 vol, u8 wait)
     w->alwaysWait = wait;
 }
 
+// Est spawned when the fall ends.
 void cEmWep::setEffFall(u8 id, u8 type_)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2317,6 +2379,7 @@ void cEmWep::setEffFall(u8 id, u8 type_)
     w->effFall[1] = type_;
 }
 
+// Est spawned when the weapon is shot out of the hand.
 void cEmWep::setEffDamage(u8 id, u8 type_)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2325,6 +2388,7 @@ void cEmWep::setEffDamage(u8 id, u8 type_)
     w->effDamage[1] = type_;
 }
 
+// Blood est arguments when the thrown weapon hits the player.
 void cEmWep::setEffHit(u8 id, u8 type_)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2333,6 +2397,7 @@ void cEmWep::setEffHit(u8 id, u8 type_)
     w->effHit[1] = type_;
 }
 
+// Est spawned when the weapon enters water.
 void cEmWep::setEffWater(u8 id, u8 type_)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2341,11 +2406,13 @@ void cEmWep::setEffWater(u8 id, u8 type_)
     w->eff_id_always2[1] = type_;
 }
 
+// Attaches a continuous est (torch flame, chainsaw smoke) to the weapon under its Core_kind.
 void cEmWep::setEffAlways(int id, int type_)
 {
     EstSet((int) this, -1, 0, 0, id, type_, 0x800, EMWEP_WK(this)->espKind, (u32) this, 0);
 }
 
+// A repeating est spawned every `wait` frames at `ofs` in parts `parts` while visible.
 void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2358,6 +2425,8 @@ void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
     w->always2_offset = *ofs;
 }
 
+// Makes the weapon shootable: a cylinder hit box (offset `size` or the origin) of width w /
+// height h, hp 1.
 void cEmWep::setYarare(Vec* size, f32 w, f32 h)
 {
     if (size) {
@@ -2368,6 +2437,7 @@ void cEmWep::setYarare(Vec* size, f32 w, f32 h)
     hp = 1;
 }
 
+// Makes the weapon shootable with a box hit box (offset `size` or 400 below the origin).
 void cEmWep::setYarareCube(Vec* size, f32 x, f32 y, f32 z)
 {
     if (size) {
@@ -2378,6 +2448,7 @@ void cEmWep::setYarareCube(Vec* size, f32 x, f32 y, f32 z)
     hp = 1;
 }
 
+// on == 0 keeps the weapon hidden (Be_flg bit1), on != 0 shows it.
 void cEmWep::setTransMode(int on)
 {
     EmWepWork* w = EMWEP_WK(this);
@@ -2390,11 +2461,13 @@ void cEmWep::setTransMode(int on)
     }
 }
 
+// Scenario attribute (SceAt) destroyed together with the weapon (-1 = none).
 void cEmWep::setAtNo(int no)
 {
     EMWEP_WK(this)->At_no = no;
 }
 
+// Hides the weapon and goes to Lost.
 void cEmWep::setLost()
 {
     r_no_0 = 1;
@@ -2405,6 +2478,7 @@ void cEmWep::setLost()
     r_no_3 = 0;
 }
 
+// Drops a held weapon that has a pending drop timer (doors opening, holder staggered).
 void cEmWep::setWaitDrop()
 {
     if (EMWEP_WK(this)->timer4) {
@@ -2622,6 +2696,9 @@ void cEmWep::setCloth(cModel* owner)
     w->Be_flg |= 4;
 }
 
+// Per-frame chain simulation (setCloth weapons: flails / chains): PenClothMove2 on the 10-link
+// chain, then the parts' local matrices are rebuilt from the simulated world matrices; a
+// vanished collision target is forgotten.
 void cEmWep::moveCloth()
 {
     EmWepWork* w = EMWEP_WK(this);

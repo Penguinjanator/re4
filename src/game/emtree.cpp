@@ -46,6 +46,9 @@ EmTreeFunc EmTree_R1_move_tbl[7] = {
 
 EmAtkInfo emTreeAtk = { 200.0f, 8, 400, 0, 10, 0 };
 
+// Creates a tree enemy (id 0x49, at the back of the pool) from a model / TPL at pos / rot: the
+// trunk El Gigante (r119) tears out and throws. Hit boxes, a solid atari, unlockable, SE / effect
+// ids cleared, Core_kind 50 for its effects. Starts in Rno1 0 Set. NULL on failure.
 cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cEmTree* em;
@@ -130,10 +133,12 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     return em;
 }
 
+// Event start hook: nothing to do for trees.
 void cEmTree::beginEvent()
 {
 }
 
+// A weapon hit only spawns the wood-splinter est (owner 1, est 12) at the hit.
 void emTreeDmCk(cEmTree* em)
 {
     u8 wep;
@@ -149,6 +154,8 @@ void emTreeDmCk(cEmTree* em)
     EmDmBloodSet2(em, 1, 12, 0, 0, 0);
 }
 
+// Per-frame: damage check, the Rno0 routine, then the model-vs-player atari and mirroring of the
+// parent's visibility / fade while attached; Be_flg bit1 hides the tree.
 void cEmTree::move()
 {
     EmTreeWork* w = EMTREE_WK(this);
@@ -174,6 +181,7 @@ void cEmTree::move()
     }
 }
 
+// Rno0 == 0: resets to the Set state.
 void emTree_R0_Init(cEmTree* em)
 {
     em->r_no_0 = 1;
@@ -182,11 +190,13 @@ void emTree_R0_Init(cEmTree* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 LostWait, 2 Lost, 3 Parent, 4 Fall, 5 Throw, 6 Shot).
 static void emTree_R0_Move(cEmTree* em)
 {
     EmTree_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: a standing tree; plays its motion or rebuilds the matrices from pos / ang.
 void emTree_R1_Set(cEmTree* em)
 {
     if (em->pMotion) {
@@ -200,6 +210,8 @@ void emTree_R1_Set(cEmTree* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 1: a fallen trunk at rest; after 90 frames (or at once when off screen) fades out and
+// goes to Lost.
 void emTree_R1_LostWait(cEmTree* em)
 {
     EmTreeWork* w = EMTREE_WK(em);
@@ -241,6 +253,7 @@ void emTree_R1_LostWait(cEmTree* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 2: hides the tree, drops its collision and destroys the work 30 frames later.
 void emTree_R1_Lost(cEmTree* em)
 {
     EmTreeWork* w = EMTREE_WK(em);
@@ -262,6 +275,9 @@ void emTree_R1_Lost(cEmTree* em)
     }
 }
 
+// Rno1 == 3: carried: follows parts `oya_parts` of pParent (rotation re-normalised unless
+// Be_flg bit0), plays its motion when it has one, and counts fallTimer down to setFall (a tree
+// stuck in the player).
 void emTree_R1_Parent(cEmTree* em)
 {
     Mtx m;
@@ -328,6 +344,10 @@ void emTree_R1_Parent(cEmTree* em)
     }
 }
 
+// Rno1 == 4: the trunk tumbles as a 3-node rope (top, base, side point): gravity, 30 relaxation
+// passes, floor contact with the landing SE / est and effect deletion, random bounce damping; the
+// matrix is rebuilt from the nodes and the tree comes to rest (Rno1 1) when the node speeds are
+// small.
 void emTree_R1_Fall(cEmTree* em)
 {
     EmTreeWork* w = EMTREE_WK(em);
@@ -490,6 +510,9 @@ void emTree_R1_Fall(cEmTree* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 5: the thrown trunk flies with gravity 15 spinning end over end (36 degrees / frame
+// about the axis perpendicular to its path), looping the whoosh SE; hitting the scenery or the
+// player (EmAtkHitCk with pAtk: damage, vibration, quake, blood) makes it fall.
 void emTree_R1_Throw(cEmTree* em)
 {
     EmTreeWork* w = EMTREE_WK(em);
@@ -562,6 +585,10 @@ void emTree_R1_Throw(cEmTree* em)
     em->partsWorldCalc();
 }
 
+// Rno1 == 6: the trunk launched straight (no gravity) for at most 90 frames; a scenery hit stops
+// it in place (Rno2 2: rests 60 frames then falls), a player hit deals the pAtk damage and either
+// makes it fall or, when the hit part is flagged 0x4000, impales the player: the tree is parented
+// to that parts and drops after 30 frames (at once when the player is dead).
 void emTree_R1_Shot(cEmTree* em)
 {
     EmTreeWork* w = EMTREE_WK(em);
@@ -663,6 +690,8 @@ void emTree_R1_Shot(cEmTree* em)
     }
 }
 
+// Attaches the tree to parts `partsNo` of `parent` (Rno1 3); flag skips the matrix normalisation.
+// Clears the parent's atari flag 0x200.
 void cEmTree::setParent(cModel* parent, int partsNo, int flag)
 {
     EmTreeWork* w = EMTREE_WK(this);
@@ -681,6 +710,7 @@ void cEmTree::setParent(cModel* parent, int partsNo, int flag)
     ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
+// Detaches the tree and returns it to the Set state.
 void cEmTree::clearParent()
 {
     EmTreeWork* w = EMTREE_WK(this);
@@ -692,6 +722,8 @@ void cEmTree::clearParent()
     r_no_3 = 0;
 }
 
+// Drops the trunk (Rno1 4): random upward node speeds, detached, hp 0, pose taken from the
+// current matrix.
 void cEmTree::setFall()
 {
     EmTreeWork* w = EMTREE_WK(this);
@@ -766,6 +798,9 @@ void cEmTree::setThrow(Vec* spd, EmAtkInfo* atk)
     r_no_3 = 0;
 }
 
+// Launches the trunk straight at the player (Rno1 6) with speed `spd` (default: forward + a
+// little up in the parent's frame) and attack info `atk` (default emTreeAtk: 200 range, 400
+// damage); the trunk is laid horizontal along its path.
 void cEmTree::setShot(Vec* spd, EmAtkInfo* atk)
 {
     EmTreeWork* w = EMTREE_WK(this);
@@ -807,16 +842,19 @@ void cEmTree::setShot(Vec* spd, EmAtkInfo* atk)
     r_no_3 = 0;
 }
 
+// 1 while the tree has not been caught yet (setCatch not called).
 int cEmTree::ckCatch()
 {
     return EMTREE_WK(this)->caught == 0;
 }
 
+// Marks the tree as caught (El Gigante grabbed it).
 void cEmTree::setCatch()
 {
     EMTREE_WK(this)->caught = 1;
 }
 
+// Script entry: hides the tree and removes it (Rno1 2).
 void cEmTree::setLost()
 {
     be_flag &= ~2;

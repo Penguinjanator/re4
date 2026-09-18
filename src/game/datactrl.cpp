@@ -48,6 +48,7 @@ struct DcTile {
 
 cDataCtrl DC;
 
+// Stores the unit's file name (at most 31 chars; longer is a fatal error), "" for NULL.
 #line 52 "D:/Bio4/Prog/datactrl.cpp"
 inline void cDataUnit::setName(char* s)
 {
@@ -62,6 +63,9 @@ inline void cDataUnit::setName(char* s)
     }
 }
 
+// Queues a command (1 load to MRAM, 2 load to ARAM, 3 clear, 4 delete) with the destination
+// address `arg` (0 = allocate) and the synchronous flag `wait`; executed at once unless the
+// controller holds commands back (m_nblock_read_stop).
 void cDataUnit::setCommand(int cmd, u32 arg, u8 wait)
 {
     m_command = cmd;
@@ -72,21 +76,25 @@ void cDataUnit::setCommand(int cmd, u32 arg, u8 wait)
     }
 }
 
+// The pending command.
 int cDataUnit::getCommand()
 {
     return m_command;
 }
 
+// Sets the unit state (see the condition codes in datactrl.h).
 void cDataUnit::setCondition(int c)
 {
     m_condition = c;
 }
 
+// The unit state: 0 none, 1 / 2 MRAM loading / ok, 3 / 4 ARAM loading / ok, 5..8 transfers.
 int cDataUnit::getCondition()
 {
     return m_condition;
 }
 
+// Frees the MRAM block the unit allocated for itself (m_be_flag bit1), if any.
 void cDataUnit::checkMallocRelease()
 {
     if (chk(2) == 1) {
@@ -99,6 +107,7 @@ void cDataUnit::checkMallocRelease()
     }
 }
 
+// Records (on) or forgets the unit-owned allocation `p` and its heap.
 void cDataUnit::setMallocInfo(int on, void* p)
 {
     if (chk(2) == 1) {
@@ -117,11 +126,13 @@ void cDataUnit::setMallocInfo(int on, void* p)
     }
 }
 
+// Pins the MRAM destination: loads go to `a` instead of allocating.
 void cDataUnit::fixMramAddr(u32 a)
 {
     m_fix_addr = a;
 }
 
+// 1 when the data is in MRAM and usable (condition 2); 0 while idle or elsewhere.
 int cDataUnit::isUseOk()
 {
     if (m_condition == 0 && m_command == 0) {
@@ -131,6 +142,7 @@ int cDataUnit::isUseOk()
     return getCondition() == 2;
 }
 
+// Blocks (TaskSleep) until the data is in MRAM; 0 when the unit is idle or the wait failed.
 int cDataUnit::waitUseOk()
 {
     if (m_condition == 0 && m_command == 0) {
@@ -150,6 +162,7 @@ int cDataUnit::waitUseOk()
     return 1;
 }
 
+// 1 when the data is resident in MRAM or ARAM (condition 2 or 4).
 int cDataUnit::isLoadOk()
 {
     if (m_condition == 0 && m_command == 0) {
@@ -162,6 +175,7 @@ int cDataUnit::isLoadOk()
     return 0;
 }
 
+// Blocks until the data is resident somewhere.
 int cDataUnit::waitLoadOk()
 {
     if (m_condition == 0 && m_command == 0) {
@@ -178,6 +192,10 @@ int cDataUnit::waitLoadOk()
     return 1;
 }
 
+// Executes "load to MRAM": from idle starts the DVD read into the fixed / given / allocated
+// destination (condition 1; in dev mode a dummy.dat read is issued alongside), from ARAM starts
+// the ARAM -> MRAM DMA (condition 5); already in MRAM just clears the command; transfers in
+// flight are left alone.
 void cDataUnit::setLoadToMram()
 {
     int no;
@@ -289,6 +307,9 @@ void cDataUnit::setLoadToMram()
     }
 }
 
+// Executes "load to ARAM": from idle a DVD read straight to ARAM (condition 3, address from
+// getAramFree), from MRAM the MRAM -> ARAM DMA (condition 6) freeing the MRAM copy afterwards;
+// already in ARAM clears the command.
 void cDataUnit::setLoadToAram()
 {
     int no;
@@ -388,6 +409,8 @@ void cDataUnit::setLoadToAram()
     }
 }
 
+// Executes "clear": waits out a running DVD read, frees the unit's MRAM allocation and returns
+// to condition 0 (the ARAM space is reclaimed by the sort).
 int cDataUnit::setClear()
 {
     m_command = 0;
@@ -421,6 +444,7 @@ ret:
     return 1;
 }
 
+// Executes "delete": clear plus the unit itself is freed (m_be_flag bit0 off).
 int cDataUnit::setDelete()
 {
     setClear();
@@ -430,6 +454,7 @@ int cDataUnit::setDelete()
     return 1;
 }
 
+// Condition 1 step: when the DVD read finished the data is in MRAM (condition 2).
 void cDataUnit::checkLoadToMram()
 {
     int ret;
@@ -450,6 +475,7 @@ void cDataUnit::checkLoadToMram()
     }
 }
 
+// Condition 3 step: when the DVD read finished the data is in ARAM (condition 4).
 void cDataUnit::checkLoadToAram()
 {
     int ret;
@@ -470,6 +496,7 @@ void cDataUnit::checkLoadToAram()
     }
 }
 
+// Condition 5 step: when the DMA finished the data is in MRAM (condition 2).
 void cDataUnit::checkAramToMram()
 {
     int done = 0;
@@ -487,6 +514,8 @@ void cDataUnit::checkAramToMram()
     }
 }
 
+// Condition 6 step: when the DMA finished the data is in ARAM (condition 4) and the MRAM copy is
+// freed.
 void cDataUnit::checkMramToAram()
 {
     int done = 0;
@@ -505,6 +534,8 @@ void cDataUnit::checkMramToAram()
     }
 }
 
+// Condition 7 step (ARAM repack through MRAM): when the ARAM -> MRAM half finished, starts the
+// MRAM -> new ARAM half (condition 6).
 void cDataUnit::checkAramToAram()
 {
     int done = 0;
@@ -530,10 +561,13 @@ void cDataUnit::checkAramToAram()
     }
 }
 
+// Condition 8: nothing to do (MRAM moves are immediate).
 void cDataUnit::checkMramToMram()
 {
 }
 
+// Runs the pending command against the current condition (setLoadToMram / setLoadToAram /
+// setClear / setDelete).
 void cDataUnit::checkCommand()
 {
     switch (getCommand()) {
@@ -554,6 +588,7 @@ void cDataUnit::checkCommand()
     }
 }
 
+// Advances the running transfer of the unit (the check* step for its condition).
 void cDataUnit::checkCondition()
 {
     switch (getCondition()) {
@@ -589,6 +624,8 @@ struct AramArea {
     u32 size;
 };
 
+// An ARAM address for `size` bytes: the first gap between the resident ARAM units (sorted by
+// address) that fits, else the end of the used area; 0 when it would pass ARAM_END.
 u32 cDataCtrl::getAramFree(u32 size)
 {
     AramArea tbl[32];
@@ -662,6 +699,8 @@ u32 cDataCtrl::getAramFree(u32 size)
     return ARAM_FREE_BASE;
 }
 
+// Boot: allocates the dummy read buffer and the debug bar tiles, resets the units and the ARAM
+// allocator.
 void cDataCtrl::init()
 {
     initDataUnit();
@@ -669,6 +708,7 @@ void cDataCtrl::init()
     dispBuf = Debug_alloc(0x400, 1);
 }
 
+// Clears all 32 units and the ARAM allocator (room start).
 void cDataCtrl::initDataUnit()
 {
     cDataUnit* u;
@@ -690,6 +730,7 @@ void cDataCtrl::initDataUnit()
     initDummyId();
 }
 
+// Deletes every unit (frees MRAM allocations).
 void cDataCtrl::deleteAll()
 {
     u32 i;
@@ -699,6 +740,8 @@ void cDataCtrl::deleteAll()
     }
 }
 
+// Registers file `name` as a new unit (size from the DVD file table); NULL when the file does
+// not exist or the 32 units are used.
 cDataUnit* cDataCtrl::setData(char* name)
 {
     u32 len;
@@ -717,6 +760,7 @@ cDataUnit* cDataCtrl::setData(char* name)
     return u;
 }
 
+// The first free unit, cleared and marked in use; NULL with an error when none.
 cDataUnit* cDataCtrl::getNewUnit()
 {
     cDataUnit* u;
@@ -739,11 +783,15 @@ cDataUnit* cDataCtrl::getNewUnit()
     return NULL;
 }
 
+// Requests a repack of the ARAM units (after deletions left gaps).
 void cDataCtrl::setAramSort(int on)
 {
     aramSort = on;
 }
 
+// Per-frame repack: when requested and no transfer is running, moves the resident ARAM units
+// down to close gaps (one ARAM -> ARAM transfer per call, condition 7) and lowers m_aram_free;
+// 1 while a move was started.
 int cDataCtrl::checkAramSort()
 {
     cDataUnit* tbl[32];
@@ -807,6 +855,8 @@ int cDataCtrl::checkAramSort()
     return 0;
 }
 
+// Debug page 0x17 "ARAM DATA DISP": a bar of the ARAM area with each resident unit's span and
+// the per-unit name / condition / address list.
 void cDataCtrl::dispDebug()
 {
     static DcTile tile[2];
@@ -903,6 +953,7 @@ void cDataCtrl::dispDebug()
     AddPrim(&MainOt[1], (u32*) p);
 }
 
+// Clears the dummy.dat request slots (dev mode reads that mirror each data read).
 void cDataCtrl::initDummyId()
 {
     int i;
@@ -912,6 +963,7 @@ void cDataCtrl::initDummyId()
     }
 }
 
+// Records a dummy.dat request id to be waited on.
 void cDataCtrl::setDummyId(int id)
 {
     int i;
@@ -927,6 +979,7 @@ void cDataCtrl::setDummyId(int id)
     }
 }
 
+// Retires finished dummy.dat requests.
 void cDataCtrl::checkDummyId()
 {
     int i;
@@ -946,6 +999,8 @@ void cDataCtrl::checkDummyId()
     }
 }
 
+// Main task, every frame: unless the sub screen owns the ARAM area or commands are held, runs
+// every unit's pending command and transfer step, the dummy requests and the ARAM repack.
 void cDataCtrl::check()
 {
     cDataUnit* u;

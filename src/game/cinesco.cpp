@@ -1,4 +1,6 @@
-// game/cinesco: cinema-scope letterbox bars.
+// game/cinesco.cpp: the cinema-scope letterbox bars. Events / rooms leave Status_flg[0]
+// 0x1000000 set to request them; the bars fade in / out over 15 frames and Draw_cinesco paints
+// the two black strips at the end of the frame.
 #include "types.h"
 #include "global.h"
 #include "vec.h"
@@ -15,6 +17,8 @@ void cine_on_move(CineWork* w);
 void cine_off_move(CineWork* w);
 }
 
+// Per-frame: marks the letterbox request bit (Status_flg[0] 0x1000000; the room / event code
+// clears it to turn the bars off) and runs the fade state (0 polling, 1 fading in, 2 fading out).
 void CinescoMove(void)
 {
     static void (*cine_tbl[])(CineWork*) = {
@@ -27,6 +31,7 @@ void CinescoMove(void)
     cine_tbl[cine_work.rno0](&cine_work);
 }
 
+// Rno0 == 0: watches the request bit and starts a 15 frame fade in / out when it changes.
 void cine_polling(CineWork* w)
 {
     int on;
@@ -48,6 +53,7 @@ void cine_polling(CineWork* w)
     }
 }
 
+// Rno0 == 1: alpha ramps 0 -> 255 over 15 frames.
 void cine_on_move(CineWork* w)
 {
     w->timer0 -= 1.0f;
@@ -58,6 +64,7 @@ void cine_on_move(CineWork* w)
     }
 }
 
+// Rno0 == 2: alpha ramps 255 -> 0 over 15 frames.
 void cine_off_move(CineWork* w)
 {
     w->timer0 -= 1.0f;
@@ -68,6 +75,8 @@ void cine_off_move(CineWork* w)
     }
 }
 
+// Draws the two black bars (rows 0..56 and 393..449 of the 512 x 448 screen) with the current
+// alpha in an ortho projection; nothing when alpha is 0.
 void Draw_cinesco(void)
 {
     Mtx44 proj;
@@ -119,6 +128,7 @@ void Draw_cinesco(void)
     GXColor4u8(0, 0, 0, a);
 }
 
+// Clears the letterbox state.
 void CinescoInit(void)
 {
     memclr_asm(&cine_work, sizeof(CineWork));

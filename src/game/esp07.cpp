@@ -1,3 +1,9 @@
+// game/esp07.cpp: effect id 0x07, a bouncing particle (debris, shells, drops). Every frame it
+// tests the floor (HitType 0: height probed once and cached, 1: probed every frame) or the
+// walls (HitType 2, a ray along the speed); on contact it plays SE `SeType`, then per EstCall:
+// 0 bounce with damping RefRate (Vec0 x 0.1), 1 spawn the floor / wall est and die, 2 spawn and
+// bounce, 3 die. A bounce below 10 units/frame stops the particle for good.
+
 #include "atari.h"
 #include "global.h"
 #include "math_sub.h"
@@ -32,11 +38,16 @@ void Esp07_HitGnd(cEsp07* esp);
 void Esp07_HitWall(cEsp07* esp);
 }
 
+// EspCreateTbl[0x07] factory.
 cEsp* Esp07_Create()
 {
     return new cEsp07;
 }
 
+// Floor contact test against `floorY` using half the sprite height: on contact snaps the sprite
+// onto the floor, plays the SE (SeType 3 always, others within 8000 of the camera), spawns the
+// ground est facing the travel direction (EstCall 1/2), releases (EstCall 1/3) or reflects the
+// speed (x/z by RefRate.x, y by -RefRate.y) and freezes the particle when it is nearly at rest.
 void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
 {
     Esp07Work* w = &esp->m_Free;
@@ -91,6 +102,7 @@ void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
     }
 }
 
+// HitType 0: probes the floor height once (Flg bit1 caches it) and runs Esp07_ChkGnd.
 void Esp07_HitGndLight(cEsp07* esp)
 {
     Esp07Work* w = &esp->m_Free;
@@ -103,6 +115,7 @@ void Esp07_HitGndLight(cEsp07* esp)
     Esp07_ChkGnd(esp, w->GndHeight);
 }
 
+// HitType 1: probes the floor under the sprite every frame (600 up / 100000 down) and checks it.
 void Esp07_HitGnd(cEsp07* esp)
 {
     u32 attr;
@@ -110,6 +123,9 @@ void Esp07_HitGnd(cEsp07* esp)
     Esp07_ChkGnd(esp, SatMgr.getFloor(&esp->m_Pos, 600.0f, 100000.0f, &attr, 0));
 }
 
+// HitType 2: casts pos -> pos + speed against the scenery; on a hit moves onto the surface,
+// plays the SE, spawns the ground est (normal.y > 0.98) or the wall est, then releases or
+// reflects the speed about the normal scaled by RefRate.y and reverses most of the spin.
 void Esp07_HitWall(cEsp07* esp)
 {
     Esp07Work* w = &esp->m_Free;
@@ -159,6 +175,8 @@ void Esp07_HitWall(cEsp07* esp)
     }
 }
 
+// Base update, then the HitType collision handler unless the particle has stopped (Flg bit0);
+// released when the animation ends.
 void cEsp07::move()
 {
     Esp07Work* w = &m_Free;
@@ -187,6 +205,8 @@ void cEsp07::move()
     }
 }
 
+// Damping from Vec0 x 0.1, est owner/id pairs from Work8[0..3], HitType / EstCall / SeType from
+// WorkSp8[0..2] (range-checked, else fails); a zero life becomes 0x80 frames.
 int cEsp07::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp07Work* w = &m_Free;

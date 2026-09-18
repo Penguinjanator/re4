@@ -1,3 +1,8 @@
+// game/db_log.cpp: the on-screen debug log (pLog). Every unit reports through pLog->err / warn /
+// mes; lines go into a 100 entry ring (also echoed to the console), duplicates of the newest
+// line are collapsed, and the window (position / duration / line count from modeSet) shows the
+// last lines for m_DispTime frames after a new one (Start + Z re-opens it).
+
 #include "types.h"
 #include "global.h"
 #include "joy.h"
@@ -19,6 +24,7 @@ char* strncpy(char* dst, const char* src, unsigned int n);
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
+// Debug break with the source location.
 #line 20 "D:/Bio4/Prog/db_log.cpp"
 static inline void logHalt()
 {
@@ -27,6 +33,7 @@ static inline void logHalt()
 
 cLogPtr pLog;
 
+// Allocates the log from the debug heap and initialises it (boot).
 void LogInit()
 {
     cLog* p = (cLog*) Debug_alloc(sizeof(cLog), 1);
@@ -34,12 +41,14 @@ void LogInit()
     p->init();
 }
 
+// Default window and an empty ring.
 void cLog::init()
 {
     modeReset();
     clear();
 }
 
+// Adds a plain message line in colour `col` (printf format).
 void cLog::mes(int flag, int col, const char* fmt, ...)
 {
     va_list ap;
@@ -48,6 +57,7 @@ void cLog::mes(int flag, int col, const char* fmt, ...)
     va_end(ap);
 }
 
+// Adds an error line (red, 0x16); `errId` is a duplicate key (0 = none).
 void cLog::err(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
@@ -56,6 +66,7 @@ void cLog::err(int flag, int errId, const char* fmt, ...)
     va_end(ap);
 }
 
+// Adds a warning line (yellow, 0x10).
 void cLog::warn(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
@@ -64,6 +75,7 @@ void cLog::warn(int flag, int errId, const char* fmt, ...)
     va_end(ap);
 }
 
+// va_list form of mes (suppressed entirely by Debug_flg[3] 0x04000000).
 void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
 {
     if (!(pG->Debug_flg[3] & 0x04000000)) {
@@ -72,6 +84,7 @@ void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
     }
 }
 
+// va_list form of err.
 void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
 {
     if (!(pG->Debug_flg[3] & 0x04000000)) {
@@ -80,6 +93,7 @@ void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
     }
 }
 
+// va_list form of warn.
 void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
 {
     if (!(pG->Debug_flg[3] & 0x04000000)) {
@@ -88,6 +102,7 @@ void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
     }
 }
 
+// Empties the ring and hides the window.
 void cLog::clear()
 {
     cLogWork* w;
@@ -98,6 +113,7 @@ void cLog::clear()
     }
 }
 
+// The default window: x 160, y 378, 90 frames, 5 lines, no scroll.
 int cLog::modeReset()
 {
     modeSet(160, 378, 90, 5);
@@ -106,6 +122,7 @@ int cLog::modeReset()
     return 1;
 }
 
+// Window position, display duration (frames, 0xFF = always) and visible line count.
 int cLog::modeSet(int x, int y, int time, int lines)
 {
     cLog* l = pLog.p;
@@ -116,6 +133,8 @@ int cLog::modeSet(int x, int y, int time, int lines)
     return 1;
 }
 
+// Draws the window while its timer runs: the last m_DispNum lines (scrolled by m_ScrOfs) and a
+// blinking `+` / `*` marker when a line was added this frame, `>` when it was a duplicate.
 void cLog::disp()
 {
     static int disp_rep_cnt = 0;
@@ -156,6 +175,7 @@ void cLog::disp()
     m_Flag &= ~2;
 }
 
+// Debug tool: prints the ring index of each visible line (t_log).
 int cLog::dispLineNum(int x, int y)
 {
     int i;
@@ -166,12 +186,14 @@ int cLog::dispLineNum(int x, int y)
     return 1;
 }
 
+// Shows the window for `flag` frames (0xFF = until cleared).
 int cLog::on(int flag)
 {
     timer = flag;
     return 1;
 }
 
+// Scrolls the window by `n` lines, clamped to the ring.
 int cLog::scrSet(s8 n)
 {
     int s = m_ScrOfs + n;
@@ -185,6 +207,10 @@ int cLog::scrSet(s8 n)
     return 1;
 }
 
+// Formats the line; when it repeats the newest entry (same text or same non-zero key) only the
+// duplicate marker is raised, else it is appended to the ring (64 chars) and printed to the
+// console (unless LOG_NO_PRINTF). Restarts the display timer unless LOG_NO_SHOW (LOG_DUP_QUIET
+// for duplicates). Returns the entry so the caller can set its colour.
 cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
 {
     char buf[256];
@@ -221,11 +247,13 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
     return w;
 }
 
+// Draws the line with eprintf in its colour.
 void cLogWork::print(int x, int y)
 {
     eprintf(x, y, m_Col, 0, m_Str);
 }
 
+// Empties the line.
 void cLogWork::clear()
 {
     m_Col = 0;

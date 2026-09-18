@@ -1,3 +1,7 @@
+// game/ctrl12.cpp: control 0x12, shared room state for the enemy modules: 13 countdown timers,
+// 6 counters, a per-frame flag word and the texture render targets (TexRenderMng) the em2b /
+// em2c / em32 bosses draw their special textures with.
+
 #include "types.h"
 #include "vec.h"
 #include "cManager.h"
@@ -7,6 +11,7 @@
 #include "TexRender.h"
 #include "esp.h"
 
+// Per-frame: counts the timers down and clears the frame flags.
 void cCtrl12::move()
 {
     Ctrl12Work* w = (Ctrl12Work*) work;
@@ -23,6 +28,7 @@ void cCtrl12::move()
     }
 }
 
+// The room's single ctrl12 (created at the back of the pool on first use); NULL when full.
 cCtrl* GetCtrlCtrl12()
 {
     cCtrl* c;
@@ -42,6 +48,7 @@ cCtrl* GetCtrlCtrl12()
     return c;
 }
 
+// Sets timer `idx` (0..12) to `val` frames.
 void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val)
 {
     Ctrl12Work* w;
@@ -59,6 +66,7 @@ void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val)
     w->timer[idx] = val;
 }
 
+// 1 while timer `idx` is running.
 int Ctrl12Ck(cCtrl* pCtrl, int idx)
 {
     Ctrl12Work* w;
@@ -79,6 +87,7 @@ int Ctrl12Ck(cCtrl* pCtrl, int idx)
     return 0;
 }
 
+// Adds `add` to counter `idx` (0..5), saturating at 0xFFFF.
 void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add)
 {
     Ctrl12Work* w;
@@ -98,6 +107,7 @@ void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add)
     w->cnt[idx] = v + add;
 }
 
+// 1 when counter `idx` has reached `val`.
 int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val)
 {
     Ctrl12Work* w;
@@ -115,6 +125,8 @@ int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val)
     return w->cnt[idx] >= val;
 }
 
+// The em2b (El Gigante) texture render target, allocated on first use together with its est
+// (owner 1, est 0x42) that renders into it.
 TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* pCtrl)
 {
     Ctrl12Work* w;
@@ -137,6 +149,7 @@ TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* pCtrl)
     return w->tex2b;
 }
 
+// The em2c texture render target, allocated on first use.
 TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* pCtrl)
 {
     Ctrl12Work* w;
@@ -154,6 +167,7 @@ TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* pCtrl)
     return w->tex2c;
 }
 
+// The em32 (U3) texture render target, allocated on first use.
 TexRenderMng* Ctrl12GetTexRenderEm32(cCtrl* pCtrl)
 {
     Ctrl12Work* w;

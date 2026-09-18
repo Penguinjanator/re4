@@ -1,3 +1,9 @@
+// game/esp01.cpp: effect id 0x01, a motion-trail strip. The sprite itself never moves its stored
+// position: the trans re-integrates speed / acceleration / D_speed for Life_time frames from
+// pos0 and samples Wari_num + 1 (15 - Work8[0], max 15) points `interval + 1` (Work8[1]) frames
+// apart, then draws a camera-facing textured strip through them tapering from Size_base_x to
+// Size_base_y. EspStrip_draw_poly is the quad emitter shared with esp02.
+
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -29,11 +35,15 @@ void EspStrip01_setup(cEsp01* esp);
 void esp01Trans_sub(cEsp01* esp);
 }
 
+// EspCreateTbl[0x01] factory.
 cEsp* Esp01_Create()
 {
     return new cEsp01;
 }
 
+// Own update: on release from the parent captures pos0 in world space; applies scale / colour
+// fade / life / animation but leaves m_Pos untouched (the trail is rebuilt from the speed).
+// Never Z-culled.
 void cEsp01::move()
 {
     Esp01Work* w = &m_Free;
@@ -66,12 +76,15 @@ void cEsp01::move()
     }
 }
 
+// EspTransTbl[0x01]: GX setup then the strip.
 extern "C" void Esp01_Trans(cEsp01* esp)
 {
     EspStrip01_setup(esp);
     esp01Trans_sub(esp);
 }
 
+// Builds m_Mat = view * parent * Rot(m_Ang) * Trans(pos0), binds texture pattern, blend mode and
+// the position + texcoord vertex format. Screen-mode Parts_no releases the effect.
 void EspStrip01_setup(cEsp01* esp)
 {
     Esp01Work* w = &esp->m_Free;
@@ -104,6 +117,9 @@ void EspStrip01_setup(cEsp01* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
 }
 
+// Computes the trail points by replaying the motion in m_Mat space (a shared 48-entry table
+// when the sampled frame range fits, else per point), then builds each segment's quad
+// perpendicular to the view and draws it with the texture's t split across the segments.
 void esp01Trans_sub(cEsp01* esp)
 {
     static Vec tmp_poss[48];
@@ -219,6 +235,8 @@ void esp01Trans_sub(cEsp01* esp)
     }
 }
 
+// Emits segment `no` of a strip as a 4-vertex quad (v[0], v[1], v[3], v[2]) with texture slice
+// no / texRepeat along t (flag 0) or s (flag 1); Tool_flg bit1 mirrors s, bit2 mirrors t.
 void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
 {
     EspAnmData* anm;
@@ -376,6 +394,8 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
     }
 }
 
+// Segment count 15 - Work8[0] (2 when Work8[0] > 12, max 15), point interval Work8[1], and the
+// spawn position as pos0.
 int cEsp01::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp01Work* w = &m_Free;

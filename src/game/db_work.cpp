@@ -1,3 +1,7 @@
+// game/db_work.cpp: debug page 11, the "MODEL WORK VIEWER": browses the enemy, object and light
+// work pools with the D-pad and prints the selected work's fields (be_flag, position, angles,
+// routine numbers, ids, lights...) with a position marker and bounding boxes.
+
 #include "types.h"
 #include "atari.h"
 #include "event.h"
@@ -24,11 +28,14 @@ struct DbObj18Work {
     char name[0x30]; // 0x78
 };
 
+// Starts on enemy 0.
 cDbWork::cDbWork()
 {
     wkNo = mode = 0;
 }
 
+// Per-frame on debug page 11: Up / Down cycle the pool (0 enemies, 1 objects, 2 lights), then
+// the pool's display.
 void cDbWork::move()
 {
     if (pG->debug_mode != 11) {
@@ -74,6 +81,8 @@ void cDbWork::move()
     }
 }
 
+// Enemy view: Left / Right select the work; prints the model fields plus hp, hp_max, distance to
+// the player and the list entry, marks the position.
 void cDbWork::dispEm()
 {
     cEm* em;
@@ -97,6 +106,7 @@ void cDbWork::dispEm()
     }
 }
 
+// Object view: the model fields plus the scroll attribute / id (id 2) or the obj18 name / type.
 void cDbWork::dispObj()
 {
     cObj* obj;
@@ -137,6 +147,8 @@ void cDbWork::dispObj()
     }
 }
 
+// Common model dump at text column x / row y; A inverts the model colour, X squashes it, the C-
+// stick up / down moves it +-1000 in y; draws the bounding boxes.
 void cDbWork::dispModel(cModel* m, int x, int y)
 {
     int color;
@@ -206,6 +218,7 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     m->drawAllBoundingBox(m->pModelInfo);
 }
 
+// Light view: be_flag, position, attribute, and a sphere of its radius.
 void cDbWork::dispLit()
 {
     cLight* l;

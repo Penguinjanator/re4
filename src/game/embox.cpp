@@ -48,6 +48,10 @@ EmBoxFunc EmBox_R1_move_tbl[2] = {
     emBox_R1_Break,
 };
 
+// Creates a box enemy (id 0x43) from a model / TPL at pos / rot. type 0..7 selects the size,
+// ambient tint and collision: 0 / 2 crate, 1 large crate, 3 / 5 / 7 barrels and vases with a
+// solid atari cylinder the player bumps into, 4 / 6 cabinet-like. 1000 hp; tied to room etc flag
+// `etcNo` (bit0 = already broken -> starts in Break, not ACTIVE). NULL on failure.
 cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 {
     cEmBox* em;
@@ -232,6 +236,10 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     return em;
 }
 
+// Damage check per frame: a damage volume hit (DmgMgr types 1/4/5/7) breaks the box; a registered
+// weapon hit (not knife / grenades) takes 999 / 9999 damage by weapon class (shotguns by
+// distance) and breaks it with the matching style when the hp is gone, else spawns the hit
+// (blood-style) est 3 of Eff_id.
 void emBoxDmCk(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -392,6 +400,10 @@ void emBoxDmCk(cEmBox* em)
         EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, 0, (u32) em, 0);           \
     }
 
+// Breaks the box: hides the model, spawns the break est of Eff_id (kind 0 shot / 1 blast / 2
+// melee; barrels use 5..7; a plain fallback debris est when no break model is set), places the
+// break model (setBreakModel) when there is one, plays the type's break SE, disables the
+// collision, drops the set item and moves to Rno1 1 Break.
 void emBoxSetBreak(cEmBox* em, u32 kind)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -464,6 +476,8 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
     em->r_no_3 = 0;
 }
 
+// Per-frame: (debug pad 3 Y: ambient tweak), damage check, the Rno0 routine, the model-vs-player
+// atari, then the action button check for the kick.
 void cEmBox::move()
 {
     if (Joy[2].on & 0x10) {
@@ -487,6 +501,7 @@ void cEmBox::move()
     emBoxActEvtCk(this);
 }
 
+// Rno0 == 0: resets to the Set state.
 void emBox_R0_Init(cEmBox* em)
 {
     em->r_no_0 = 1;
@@ -495,11 +510,13 @@ void emBox_R0_Init(cEmBox* em)
     em->r_no_3 = 0;
 }
 
+// Rno0 == 1: dispatches on Rno1 (0 Set, 1 Break).
 void emBox_R0_Move(cEmBox* em)
 {
     EmBox_R1_move_tbl[em->r_no_1](em);
 }
 
+// Rno1 == 0: intact box; builds the matrices once, then stays a hit-box-only work.
 void emBox_R1_Set(cEmBox* em)
 {
     if (em->r_no_2 == 0) {
@@ -513,6 +530,8 @@ void emBox_R1_Set(cEmBox* em)
     em->be_flag |= 0x4000;
 }
 
+// Rno1 == 1: broken; on entry sets bit0 of the etc flag, hp 0, hides the model, clears ACTIVE and
+// lets the player walk through; then hit-box-only.
 void emBox_R1_Break(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -533,6 +552,7 @@ void emBox_R1_Break(cEmBox* em)
     em->be_flag |= 0x4000;
 }
 
+// Deactivates the box's scenario / effect collision pieces.
 void emBoxSatClear(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -563,6 +583,7 @@ static void emBoxSatSet(cEmBox* em)
     emBoxSatClear(em);
 }
 
+// Hit boxes: the full-size cube plus a smaller inner cube (hit) for the precise hit.
 void emBoxYarareInit(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -571,6 +592,8 @@ void emBoxYarareInit(cEmBox* em)
     YarareAddCube((cEmHit*) em, &w->hit, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f * 0.5f, w->size.y * 0.8f, w->size.z * 0.5f * 0.8f, 0, 1);
 }
 
+// Sets the break / hit est id; on an already broken box (room re-entry) places the debris est 4
+// (8 for type 5) or the break model at once.
 void cEmBox::setEff(u8 eff)
 {
     EmBoxWork* w = EMBOX_WK(this);
@@ -591,6 +614,7 @@ void cEmBox::setEff(u8 eff)
     }
 }
 
+// The item (id, count, item flags, auto flags) dropped when the box breaks (-1 = none).
 void cEmBox::setItem(int no, int num, u16 c, u16 d)
 {
     EmBoxWork* w = EMBOX_WK(this);
@@ -601,6 +625,9 @@ void cEmBox::setItem(int no, int num, u16 c, u16 d)
     w->Auto_item_flg = d;
 }
 
+// Offers the action button 1 (kick / break) when the player faces the intact box within its
+// extended bounds and no wall is between them; only in village rooms 0x100 / 0x101 / 0x103 /
+// 0x106 (the tutorial hint rooms).
 void emBoxActEvtCk(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -647,6 +674,8 @@ void emBoxActEvtCk(cEmBox* em)
     }
 }
 
+// 1 when another intact barrel (room etc kinds 0x11 / 0x1E) stands within 1500 units (the hint
+// message then mentions several barrels).
 int checkNearOtherBarrel(cEmBox* em)
 {
     u32 i;
@@ -662,6 +691,8 @@ int checkNearOtherBarrel(cEmBox* em)
     return 0;
 }
 
+// Action button callback: shows the tutorial message (3 for boxes, 4 / 5 for a single / several
+// barrels) telling the player to shoot them.
 void emBoxAction(cEmBox* em)
 {
     switch (em->type) {
@@ -685,6 +716,7 @@ void emBoxAction(cEmBox* em)
     }
 }
 
+// Spawns the set item at the box position (SceAtCreateItemAt).
 void emBoxSetItem(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -694,6 +726,7 @@ void emBoxSetItem(cEmBox* em)
     }
 }
 
+// The debris model placed when the box breaks (instead of the fallback est).
 void cEmBox::setBreakModel(void* bin, void* tpl)
 {
     EmBoxWork* w = EMBOX_WK(this);

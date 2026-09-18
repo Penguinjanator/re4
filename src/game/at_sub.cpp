@@ -1,3 +1,7 @@
+// game/at_sub.cpp: the collision primitives under atari.cpp / at_mod.cpp: plane / triangle vs
+// line and swept sphere (At_poly_*), point / rect / box / sphere / capsule overlap tests, the
+// polygon attribute word and its effect type, plus debug drawing of capsules and boxes.
+
 #include "atari.h"
 #include "at_sub.h"
 #include "math_sub.h"
@@ -10,6 +14,8 @@ Vec BoxTmp[16];
 #define SQ_DIST(a, b) \
     (((a)->x - (b)->x) * ((a)->x - (b)->x) + ((a)->y - (b)->y) * ((a)->y - (b)->y) + ((a)->z - (b)->z) * ((a)->z - (b)->z))
 
+// Segment point1 -> point2 against the plane through `a` with normal `n`: 1 and the crossing
+// point in *out when the ends lie on opposite sides; else *out = point2 and 0.
 int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2)
 {
     f32 d0;
@@ -29,6 +35,7 @@ int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2)
     return 0;
 }
 
+// 1 when the point `p` (assumed on the triangle's plane) lies inside triangle `poly`.
 int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p)
 {
     int next[3] = { 1, 2, 0 };
@@ -48,6 +55,7 @@ int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p)
     return 1;
 }
 
+// 1 when the sphere (p, r) touches the axis-aligned box given by its min / max corners.
 int At_box_sphere_ck(Vec* box, Vec* p, f32 r)
 {
     static int ptbl[6][3] = {
@@ -71,6 +79,7 @@ int At_box_sphere_ck(Vec* box, Vec* p, f32 r)
     return 1;
 }
 
+// Unit normal of triangle `tri` (cross of its two edges).
 void Get_normal(Vec* tri, Vec* out)
 {
     Vec a;
@@ -88,6 +97,8 @@ static f32 At_half(f32 v)
     return v * 0.5f;
 }
 
+// Capsule (p0 - p1, radius r) vs axis box: samples spheres along the segment every 2r; 1 on
+// any overlap.
 u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
 {
     Vec dir;
@@ -122,6 +133,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
     return 0;
 }
 
+// Capsule (p0 - p1, radius r) vs sphere (c, r2): sampled spheres along the segment; 1 on overlap.
 u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
 {
     Vec dir;
@@ -164,6 +176,7 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
     return 0;
 }
 
+// Debug draw of a capsule: spheres at both ends and 4 side lines.
 void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
 {
     Vec dir;
@@ -191,6 +204,7 @@ void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
     }
 }
 
+// Debug draw of a box of half sizes sx / sy / sz at `pos` in matrix `m` (12 edges).
 void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color)
 {
     Mtx mat;
@@ -247,6 +261,10 @@ void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color)
     Draw_line3d(&v[3], &v[7], color, 0);
 }
 
+// Segment vert0 -> vert1 against one collision triangle: plane crossing, the three edge-side
+// tests, then the attribute filter (flag bits 0x400..0x8000 skip polygon classes 0x40 / 0x400 /
+// 0x4000 / 0x8000 / 0x400000 / 0x800000, `mask` bits skip directly). Returns the polygon's
+// attribute word (never 0 on a hit) and the hit point in *out; 0 when missed.
 u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask)
 {
     Vec d0;
@@ -353,6 +371,7 @@ static f32 At_line_rate(f32 a, f32 b)
     return b / a;
 }
 
+// Gathers the triangle's vertices / normal / attribute and runs At_poly_sphere_ck2.
 u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask)
 {
     Vec tri[3];
@@ -375,6 +394,10 @@ u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r
     return At_poly_sphere_ck2(tri, &n, attr, oldPos, pos, r, flag, mask);
 }
 
+// Swept sphere (oldPos -> pos, radius r) against a front-facing triangle: a sphere ending
+// within r of the plane over the face is pushed out along the normal, a rim contact along the
+// nearest edge; *pos is adjusted in place. Same attribute filter as the line test. Returns the
+// attribute word (0 = no contact).
 u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask)
 {
     Vec hp;
@@ -508,11 +531,13 @@ static f32 At_zero_one(f64 a)
     return (f32) a;
 }
 
+// The 24-bit attribute word of a polygon (attrHi << 16 | attrLo).
 u32 Get_poly_attr(AtPoly* poly)
 {
     return (poly->attrHi << 16) | poly->attrLo;
 }
 
+// 1 when `p` is inside the XZ quadrilateral rect[0..3] (edge cross products from corners 0 and 2).
 int At_rect_point_ck(Vec* rect, Vec* p)
 {
     f32 x0 = rect[0].x;
@@ -553,6 +578,7 @@ int At_rect_point_ck(Vec* rect, Vec* p)
     return 1;
 }
 
+// 1 when two XZ quads overlap: a corner of either inside the other, or ra's centre inside rb.
 int At_rect_rect_ck(Vec* ra, Vec* rb)
 {
     Vec c;
@@ -581,6 +607,7 @@ int At_rect_rect_ck(Vec* ra, Vec* rb)
     return 0;
 }
 
+// Quadrant of a relative angle: 0 front (|ang| <= 45 degrees), 1 left, 3 right, 2 behind.
 int Get_ang_dir(f32 ang)
 {
     if (ang > 2.3561945f || ang < -2.3561945f) {
@@ -612,6 +639,7 @@ static int At_rect_default_ck(Vec* p)
     return At_rect_point_ck(rect, p);
 }
 
+// Linear blend: out = a * t + b * (1 - t).
 void InterVectorXYZ(Vec* out, Vec* a, Vec* b, f32 t)
 {
     Vec tmp;
@@ -622,6 +650,8 @@ void InterVectorXYZ(Vec* out, Vec* a, Vec* b, f32 t)
     PSVECAdd(out, &tmp, out);
 }
 
+// Surface effect type 0..7 of an attribute word from its bits 0x800000 (1), 0x8000 (2) and
+// 0x80 (4): indexes the room's AtEffInfo table.
 int EatGetEffectType(u32 attr)
 {
     int type = 0;
@@ -638,6 +668,7 @@ int EatGetEffectType(u32 attr)
     return type;
 }
 
+// Signed distance of `p` from the plane through `a` with unit normal `n`.
 f32 At_surface_point_rel(Vec* a, Vec* n, Vec* p)
 {
     return PSVECDotProduct(n, p) - PSVECDotProduct(n, a);

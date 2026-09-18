@@ -1,3 +1,9 @@
+// game/eprintf.cpp: the debug text printer. eprintf(x, y, colour, page, fmt...) buffers a string
+// for this frame (up to 0x300 messages / 0x4000 bytes, only when `page` is 0 or the current
+// debug page); EprintfDrawing renders them at the end of the frame with the 8 x 16 font texture
+// "etc/moji8.tpl" in an ortho projection, then the buffer is cleared. Nothing is drawn while
+// debug_mode is 0 or the font failed to load.
+
 #include "types.h"
 #include "vec.h"
 #include "gx.h"
@@ -68,6 +74,8 @@ void EprintfFlush();
 void EprintfInit();
 }
 
+// Spreads the 8 bits of `bits` into the 8 hex digits of the result (for printing a byte as
+// "01010101" with %08X).
 int BtoX(int bits)
 {
     int i;
@@ -79,11 +87,14 @@ int BtoX(int bits)
     return x;
 }
 
+// The current text environment number.
 int EprintfSetCurrentNo()
 {
     return Moji.cur_no;
 }
 
+// Buffers a formatted line at screen pixel (x, y) in palette colour `color` (color_data) for
+// debug page `p` (0 = every page), 8 x 16 font.
 void eprintf(int x, int y, int color, int p, const char* fmt, ...)
 {
     va_list ap;
@@ -95,6 +106,7 @@ void eprintf(int x, int y, int color, int p, const char* fmt, ...)
     }
 }
 
+// Same with an explicit character cell size w x h.
 void eprintf2(int w, int h, int x, int y, int color, int p, const char* fmt, ...)
 {
     va_list ap;
@@ -106,6 +118,7 @@ void eprintf2(int w, int h, int x, int y, int color, int p, const char* fmt, ...
     }
 }
 
+// Sets the text environment (position, colour, page) used by the next eprintf_main.
 void EprintfSetEnv(int x, int y, int color, int page, int a)
 {
     Moji.x = x;
@@ -115,6 +128,7 @@ void EprintfSetEnv(int x, int y, int color, int page, int a)
     Moji.color = color;
 }
 
+// Formats the string (vsprintf) and buffers it when its page is the current debug page or 0.
 void eprintf_main(int w, int h, const char* fmt, va_list ap)
 {
     char buf[512];
@@ -132,6 +146,7 @@ void eprintf_main(int w, int h, const char* fmt, va_list ap)
     }
 }
 
+// Maps the special characters (Japanese punctuation bytes) to their font cells.
 int Sp_char_ck(int c)
 {
     switch (c) {
@@ -147,6 +162,7 @@ int Sp_char_ck(int c)
     return c;
 }
 
+// Empties the message buffer (frame end).
 void EprintfBufferClear()
 {
     int i;
@@ -156,6 +172,7 @@ void EprintfBufferClear()
     mess_keep_ptr = mess_keep_buffer;
 }
 
+// Appends one message record (x, y, colour, cell size, text) to the buffer; dropped when full.
 void EprintfBuffering(int w, int h, char* str)
 {
     char* dst = NULL;
@@ -191,6 +208,8 @@ void EprintfBuffering(int w, int h, char* str)
     }
 }
 
+// Draws one character cell of `str` at (x, y) as a textured quad from the font texture (8 x 16
+// texels per glyph, colour from color_data).
 void font_draw(char* str, int color, int y, int x, int z, int w, int h)
 {
     int c;
@@ -236,6 +255,8 @@ void font_draw(char* str, int color, int y, int x, int z, int w, int h)
     GXTexCoord2s16(u, v + 16);
 }
 
+// Renders every buffered message: ortho projection, font texture and blend state, one quad per
+// character (cells scaled for the 60 Hz / progressive screen); skipped when debug_mode is 0.
 void EprintfDrawing()
 {
     Mtx44 proj;
@@ -307,12 +328,15 @@ void EprintfDrawing()
     }
 }
 
+// Draws and clears the buffer (frame end).
 void EprintfFlush()
 {
     EprintfDrawing();
     EprintfBufferClear();
 }
 
+// Boot: loads the font TPL from disc, builds its texture object / matrix and allocates the
+// message buffers from the debug heap; eprintf_init stays 0 on failure (no text).
 void EprintfInit()
 {
     eprintf_init = 0;

@@ -1,3 +1,10 @@
+// game/esp.cpp: the effect sprite (cEsp) pool. A cEsp is one live effect particle/sprite; the pool
+// (g_pEspSys->pEspBuf, nEsp slots of 0x150 bytes) is allocated per room from the cons value and
+// handed out by cEsp::operator new / PullEsp, returned by PushEsp. EspMove (game loop, after
+// EspgenMove) runs every active effect's move(); EspTrans (trans.cpp) sorts them into the ordering
+// tables by Tool_flg / Parts_no / Core_flg. Per-id create and trans functions live in
+// EspCreateTbl / EspTransTbl, filled by the esp??.cpp units through EspFuncTblSet.
+
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -27,12 +34,16 @@ int EspArrayPush(u32 n);
 int EspArrayPop();
 }
 
+// Default EspTransTbl entry: an effect whose id has no registered trans function is reported and
+// released.
 void EspDummyTrans(cEsp* esp)
 {
     pLog->err(0, 0, "ESP_TRANS : ESP_ID[%x] invalid.", esp->m_Id);
     PushEsp(esp);
 }
 
+// Resets both per-id tables (0xFF ids) to "unregistered"; called once from the effect system init
+// (eff_sys.cpp) before the esp units register themselves.
 void EspFuncTblInit()
 {
     int i;
@@ -43,12 +54,16 @@ void EspFuncTblInit()
     }
 }
 
+// Registers the factory and draw function for effect id `id` (each esp??.cpp calls this at init).
 void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans)
 {
     EspCreateTbl[id] = create;
     EspTransTbl[id] = trans;
 }
 
+// 1 when `esp` is in use and should move/draw this frame. Under Status_flg[1] 0x10000000
+// (event pause) only effects with Core_flg bit0 count, and an effect attached to a model only
+// when that model carries be_flag 0x800 (moves during events, see emMove).
 int ESP_IsActive(cEsp* esp)
 {
     if (!(esp->m_Be_flg & 1)) {
@@ -71,6 +86,9 @@ int ESP_IsActive(cEsp* esp)
     return 1;
 }
 
+// Allocates an effect of id `id`: runs its registered create (operator new picks a free slot),
+// marks it live (m_Be_flg bit0), stores the id and bumps ActiveEspNum. Returns 1 on success;
+// on a bad id or a full pool *out is the dummy esp (pDmyEsp) and 0 is returned.
 int PullEsp(cEsp** out, int id)
 {
     cEspSystem* sys = g_pEspSys;
@@ -96,6 +114,9 @@ int PullEsp(cEsp** out, int id)
     return ret;
 }
 
+// Pool slot search: scans the pool from the last hit (wrapping) for a free slot; if none, steals the
+// first live slot flagged Tool_flg 0x40000 (low-priority, may be recycled) after releasing it.
+// The found slot is zeroed. Returns pDmyEsp when nothing is available.
 // The target's third loop has `mr r9,r10` (a copy of the sys+0x10000 base) before the loop and in
 // its latch, with the pEspBuf load reading r9. That is cse_around_loop (cse.c): it only runs on a
 // loop with LOOP_BEG/END notes whose latch jumps straight back to the header, and it rewrites the
@@ -182,6 +203,8 @@ found:
 
 u32 tubo_amb = 0;
 
+// Releases a live effect: clears m_Be_flg bits 0-1, decrements ActiveEspNum and runs Destruct().
+// Pushing a slot that is not live only warns.
 void PushEsp(cEsp* esp)
 {
     if (esp->m_Be_flg & 1) {
@@ -193,6 +216,9 @@ void PushEsp(cEsp* esp)
     }
 }
 
+// Per-frame update of all effects (game loop, after EspgenMove). Drops effects whose attached model
+// died or was re-used (be_flag / serial mismatch); during the pause (Status_flg[1] bit1) only
+// Core_flg 0x8000 effects move. Prints the live count (debug page 0xE also lists per-owner counts).
 int EspMove()
 {
     cEspSystem* sys = g_pEspSys;
@@ -266,16 +292,24 @@ int EspMove()
     return 1;
 }
 
+// Camera yaw in degrees as computed by the last EspTrans (used by the sprite transforms).
 f32 EspGetCameraPan()
 {
     return g_pEspSys->CameraPan;
 }
 
+// Camera pitch in degrees as computed by the last EspTrans.
 f32 EspGetCameraPan2()
 {
     return g_pEspSys->CameraPan2;
 }
 
+// Draw registration (trans.cpp, once per frame): computes the camera pan/pitch, then queues every
+// active effect's trans function into the ordering tables: screen sprites (Parts_no 0xF8..0xFD) go
+// to fixed OT slots, Tool_flg 0x10000 selects a texture-render target by Core_flg, 0x1000/0x400/
+// 0x800/0x400000 pick the pre/post-world layers, everything else is Z-sorted by world position
+// (with m_Radius when set). Tool_flg 0x100 hides an effect in the first-person (scope /
+// binocular) view (Status_flg[0] 0x8000), 0x200 hides it outside that view.
 int EspTrans()
 {
     cEspSystem* sys = g_pEspSys;
@@ -474,6 +508,7 @@ int EspTrans()
     return 1;
 }
 
+// Debug page 12 "EP" row: current / peak / total esp slot usage.
 int EspDispInfo()
 {
     static u32 max = 0;
@@ -500,6 +535,8 @@ int EspDispInfo()
 
 u32 esp_dmy_amb = 0;
 
+// Allocates the esp pool with `n` slots (game.cpp room start, count from the cons table); frees
+// the previous pool first. Returns 1 on success.
 int EspArrayAlloc(u32 n)
 {
     cEspSystem* sys = g_pEspSys;
@@ -522,6 +559,7 @@ int EspArrayAlloc(u32 n)
     return 1;
 }
 
+// Frees the esp pool. Returns 0 when there was none.
 int EspArrayFree()
 {
     cEspSystem* sys = g_pEspSys;
@@ -534,6 +572,8 @@ int EspArrayFree()
     return 1;
 }
 
+// Debug tools: swaps in a Debug_alloc'd pool of `n` slots, saving the game pool. 0 if one is
+// already pushed.
 int EspArrayPush(u32 n)
 {
     cEspSystem* sys = g_pEspSys;
@@ -548,6 +588,7 @@ int EspArrayPush(u32 n)
     return 1;
 }
 
+// Debug tools: restores the pool saved by EspArrayPush. 0 if none was pushed.
 int EspArrayPop()
 {
     cEspSystem* sys = g_pEspSys;
@@ -562,6 +603,7 @@ int EspArrayPop()
     return 1;
 }
 
+// Releases every live effect in the pool (room change, est.cpp).
 void EspArrayClear()
 {
     cEspSystem* sys = g_pEspSys;
@@ -576,11 +618,14 @@ void EspArrayClear()
     }
 }
 
+// The dummy esp that PullEsp hands out when it fails; callers compare against it.
 cEsp* EspGetDmyPtr()
 {
     return g_pEspSys->pDmyEsp;
 }
 
+// Queues `func(esp)` in the after-render OT (0x16) so an effect can read the depth buffer (the
+// HideCheck occlusion tests of esp09/esp0e/esp45). Skipped while the generator loop pre-runs.
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*))
 {
     if (EspGenGetMoveLoop() == 0) {

@@ -1,3 +1,7 @@
+// game/esp40.cpp: effect id 0x40, a sprite riding the water surface (Espgen42 water). Each frame
+// the world position is re-projected onto the water height plus `Ofs_y` (generator Pos.y) plus
+// a bobbing offset integrated from the y speed; the parent-space position is cached in Base_Pos.
+
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -19,11 +23,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x40] factory.
 cEsp* Esp40_Create()
 {
     return new cEsp40;
 }
 
+// While attached to a parent: restores Base_Pos, runs the base update, integrates the bob
+// (Pos_y / Speed_y / Speed_plus_y, damped by m_D_speed) and sets the world y to water height +
+// Ofs_y + Pos_y, converting back into parent space. Released when the animation ends.
 void cEsp40::move()
 {
     Vec wpos;
@@ -54,6 +62,8 @@ void cEsp40::move()
     }
 }
 
+// A parent with Release_time 0 is dropped to world space at once. Attached effects record Ofs_y,
+// Base_Pos and the y speeds; world-space effects are simply placed at water height + Pos.y.
 int cEsp40::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     f32 h;

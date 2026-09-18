@@ -1,4 +1,10 @@
-// game/area: trigger volume hit tests and the debug editor/display for them (D:/Bio4/Prog/area.cpp).
+// game/area.cpp: trigger volumes (AreaData). An area is an XZ quadrilateral with floor / height
+// (AREA_TYPE_XZ4), a vertical cylinder (AREA_TYPE_CYLINDER) or a view-cone trigger
+// (AREA_TYPE_EYE). AreaHitCheck / AreaViewCheck are the game-side tests (effect areas, light
+// areas, floor attribute areas, scenario triggers); the rest is the debug tool editor and display
+// used by the Tools/t_* screens (pad-driven point / radius / height editing, wireframe drawing,
+// value and help text).
+// Original source: D:/Bio4/Prog/area.cpp.
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -33,6 +39,8 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color);
 
 #define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."
 
+// 1 when `pos` is inside area (quad or cylinder types; the eye type never hits). Unknown types
+// warn and return 0.
 int AreaHitCheck(void* area, Vec* pos)
 {
     AreaData* a = (AreaData*) area;
@@ -55,6 +63,8 @@ int AreaHitCheck(void* area, Vec* pos)
     return ret;
 }
 
+// Point-in-quad test: pos.y must be within [floor - 100, floor + height) and the point on the
+// inner side of all four edges (cross products against edges 0-3, 0-1, 2-3, 2-1).
 int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pos)
 {
     f32 dz, dx;
@@ -73,6 +83,7 @@ int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pos)
     return 1;
 }
 
+// Point-in-cylinder test: same height band, XZ distance from the centre below radius.
 int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pos)
 {
     f32 dx, dz;
@@ -85,6 +96,9 @@ int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pos)
     return SQRTF(dx * dx + dz * dz) < pCld->radius;
 }
 
+// Eye trigger test: 1 when the trigger point (floor + height / 2), looking along ang_x / ang_y,
+// sees the view cone `cone` (collision_point_cone_rev_play_face with the trigger's radius and
+// opening angle). Quad / cylinder areas return 0.
 int AreaViewCheck(AreaData* area, GeoCone* cone)
 {
     Vec pos;
@@ -125,6 +139,7 @@ int AreaViewCheck(AreaData* area, GeoCone* cone)
     return ret;
 }
 
+// Centre of the area at floor height (quad: mean of the 4 points).
 void AreaGetCenterPos(Vec* out, AreaData* area)
 {
     switch (area->type) {
@@ -149,6 +164,8 @@ void AreaGetCenterPos(Vec* out, AreaData* area)
     }
 }
 
+// A random point inside the area at floor height (bilinear on the quad; the centre for
+// cylinder / eye) - enemy spawn points inside an area.
 void AreaGetInsidePos(Vec* out, AreaData* area)
 {
     switch (area->type) {
@@ -196,6 +213,8 @@ void AreaGetInsidePos(Vec* out, AreaData* area)
     }
 }
 
+// Builds a default area of `type` around `pos`: a size x size square, a cylinder of radius
+// size / 2, or an eye trigger with cone length size / 2 and a 60 degree opening.
 void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height)
 {
     area->Be_flag = 1;
@@ -255,6 +274,7 @@ void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height)
     }
 }
 
+// Debug draw helper: sphere at `pos` (transformed by mtx when given).
 void area_Draw_sphere(Vec pos, f32 r, u32 color, Mtx mtx)
 {
     if (mtx) {
@@ -263,6 +283,7 @@ void area_Draw_sphere(Vec pos, f32 r, u32 color, Mtx mtx)
     Draw_sphere(&pos, r, color, 0, 0);
 }
 
+// Debug draw helper: line between two points (transformed by mtx when given).
 void area_Draw_line(Vec pos1, Vec pos2, u32 color, Mtx mtx)
 {
     if (mtx) {
@@ -274,6 +295,9 @@ void area_Draw_line(Vec pos1, Vec pos2, u32 color, Mtx mtx)
     GXSetLineWidth(6, 0);
 }
 
+// Debug tool editor step: Y + X cycles the area type (rebuilding a 4000 unit default at the old
+// centre), computes the camera-relative move axes and stick deltas (scaled by `rate`), then runs
+// the type's editor and draws it in `color`.
 void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
 {
     Vec vx;
@@ -368,6 +392,8 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
 // The split object's .sdata (sel/Rcnt below) is 8-byte aligned.
 asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");
 
+// Quad editor: L / R select a point, A moves the selected point, X moves all four, Y moves the
+// floor, Y + B changes the height, Z rotates the quad about its centre; then draws it.
 void area_xz4_Edit(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     static u32 sel = 0;
@@ -490,6 +516,8 @@ void area_xz4_Edit(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx, u32 mode, Vec vx
     area_xz4_Disp(pXz4, color, flag, mtx);
 }
 
+// Cylinder editor: A / X move the centre, B changes the radius, Y the floor, Y + B the height;
+// then draws it.
 void area_cylinder_Edit(AreaCylinder* pCld, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     Vec p;
@@ -588,6 +616,8 @@ void area_cylinder_Edit(AreaCylinder* pCld, u32 color, int flag, Mtx mtx, u32 mo
     area_cylinder_Disp(pCld, color, flag, mtx);
 }
 
+// Eye trigger editor: A / X move the point, B changes the cone length, Y the floor / height, Z
+// turns the view direction and R the opening angle; then draws it.
 void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     Vec p;
@@ -690,6 +720,7 @@ void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u
     area_eye_trigger_Disp(pEtg, color, flag, mtx);
 }
 
+// Debug wireframe of the area in `color` (flag: filled / outline variant) by type.
 void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx)
 {
     switch (area->type) {
@@ -711,6 +742,7 @@ void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx)
     }
 }
 
+// Draws the quad prism: the four side polygons from floor to floor + height and the edges.
 void area_xz4_Disp(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx)
 {
     Vec v[5];
@@ -780,6 +812,7 @@ void area_xz4_Disp(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx)
     }
 }
 
+// Draws the cylinder as a 16-segment ring at the floor and the top with vertical edges.
 void area_cylinder_Disp(AreaCylinder* pCld, u32 color, int flag, Mtx mtx)
 {
     Vec tri2[3];
@@ -847,6 +880,7 @@ void area_cylinder_Disp(AreaCylinder* pCld, u32 color, int flag, Mtx mtx)
     }
 }
 
+// Draws the eye trigger: its point and the view cone (Draw_corn2) of its length / opening.
 void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx)
 {
     Vec c;
@@ -872,6 +906,8 @@ void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx)
     }
 }
 
+// Debug text: the area's numeric parameters (points / centre, radius, floor, height, angles)
+// printed from screen position x / y.
 void AreaDataInfoDisp(AreaData* area, int x, s16 y)
 {
     Vec pos;
@@ -962,6 +998,7 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
         eprintf(x, y, 5, 0, str);     \
     }
 
+// Debug text: the pad help of the current editor, highlighting the buttons being held.
 void AreaDataHelpDisp(AreaData* area, int x, s16 y)
 {
     switch (area->type) {

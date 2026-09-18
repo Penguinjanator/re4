@@ -1,3 +1,8 @@
+// game/esp10.cpp: effect id 0x10, a ground decal. At spawn the sprite is detached from its parent
+// and snapped 65 units + Vec0.y above the floor found by a collision ray (600 up / 100000 down);
+// Work8[3] selects the extra rule: 1 = discard when the point is inside the room's effect area,
+// 2 = never below the water surface.
+
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -14,11 +19,13 @@ public:
 
 extern "C" int EffAreaCheckInRoom(Vec* pos);
 
+// EspCreateTbl[0x10] factory.
 cEsp* Esp10_Create()
 {
     return new cEsp10;
 }
 
+// Standard sprite update; released when the animation ends.
 void cEsp10::move()
 {
     if (CommonMove()) {
@@ -28,6 +35,9 @@ void cEsp10::move()
     }
 }
 
+// Floor height under `pos`: casts a ray from pos.y + up down to pos.y - down against the scenery
+// collision (SatMgr.hitCheck2, mask 0x40) and returns the hit y and its attribute in *attr;
+// -100000 when nothing is hit (or Debug_flg[1] 0x10000000 disables the probe: returns 0).
 f32 getFloor_attr(Vec* pos, u32* attr, int x, f32 up, f32 down)
 {
     Vec top;
@@ -51,6 +61,8 @@ f32 getFloor_attr(Vec* pos, u32* attr, int x, f32 up, f32 down)
     return -100000.0f;
 }
 
+// Moves the effect into world space, sets m_Pos.y to floor + 65 + Vec0.y (0 in the effect tool),
+// then applies the Work8[3] rule (0 none, 1 in-room check, 2 water clamp); other values fail.
 int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     u32 attr;

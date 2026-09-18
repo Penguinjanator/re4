@@ -1,3 +1,7 @@
+// game/esp4a.cpp: effect id 0x4A, an invisible camera-shake source. Each frame it requests a
+// QuakeExec of the type chosen by Work8[0] with a power of 2 x the current alpha, attenuated
+// linearly to zero over `range` (Vec0.z) from the camera. Nothing is drawn.
+
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -20,11 +24,14 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// EspCreateTbl[0x4A] factory.
 cEsp* Esp4a_Create()
 {
     return new cEsp4a;
 }
 
+// Base update, then QuakeExec(type, power) with power = 2 * m_Col_a scaled by
+// (range - camera distance) / range (zero beyond range; unattenuated when range == 0).
 void cEsp4a::move()
 {
     Esp4aWork* w = &m_Free;
@@ -44,10 +51,12 @@ void cEsp4a::move()
     }
 }
 
+// EspTransTbl[0x4A]: draws nothing.
 void Esp4a_Trans()
 {
 }
 
+// Maps Work8[0] 0/1/2 to quake type 2/1/3 (anything else fails), fade range from Vec0.z.
 int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4aWork* w = &m_Free;

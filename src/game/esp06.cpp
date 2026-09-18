@@ -1,3 +1,9 @@
+// game/esp06.cpp: effect id 0x06, a sprite riding an effect path (EspGetPathAddr owner Work8[0],
+// id Work8[1]). Dist advances by PathSpeed (prm 0xCC, +- xD4 random, accelerated by 0xD0 / 10)
+// each frame; at the path end Flg (Work8[2]) bit0 loops (pausing StopFrame + random frames),
+// bit1 parks at the end, else the sprite dies. Vec1 (degrees) / Vec0 (scale in 10ths) build
+// PathMat, a transform applied to the path; Vec2 gives a start fraction along it.
+
 #include "atari.h"
 #include "light.h"
 #include "math_sub.h"
@@ -39,11 +45,14 @@ void esp06_Move01(cEsp06* esp);
 
 static void (*Esp06MoveTbl[])(cEsp06*) = { esp06_Move00, esp06_Move01 };
 
+// EspCreateTbl[0x06] factory.
 cEsp* Esp06_Create()
 {
     return new cEsp06;
 }
 
+// Samples the path at Dist into m_Pos (weighted paths attached to a model use PathGetPosEm).
+// Returns 0 when Dist is past either end.
 int Esp06GetPathPos(cEsp06* esp)
 {
     Esp06Work* w = &esp->m_Free;
@@ -61,6 +70,10 @@ int Esp06GetPathPos(cEsp06* esp)
     return ret;
 }
 
+// The full per-frame update: on release from the parent bakes the parent matrix into LocalPos,
+// speeds, angles and PathMat; integrates LocalPos (the path origin) with the base speed, applies
+// scale / colour / life / animation, advances Dist (or counts down `wait`), handles the path end
+// (loop / stop / die) and sets m_Pos = PathMat * path point + LocalPos.
 void esp06_CommonMove(cEsp06* esp)
 {
     Esp06Work* w = &esp->m_Free;
@@ -143,22 +156,29 @@ void esp06_CommonMove(cEsp06* esp)
     }
 }
 
+// Rno0 == 0: first frame; runs the common update and moves to Rno0 1.
 void esp06_Move00(cEsp06* esp)
 {
     esp06_CommonMove(esp);
     esp->m_Rno0 = 1;
 }
 
+// Rno0 == 1: steady state, the common update.
 void esp06_Move01(cEsp06* esp)
 {
     esp06_CommonMove(esp);
 }
 
+// Dispatches on m_Rno0 through Esp06MoveTbl.
 void cEsp06::move()
 {
     Esp06MoveTbl[m_Rno0](this);
 }
 
+// Resolves the path (fails when missing), reads speed / acceleration / wait parameters, forces
+// the speed sign to match prm 0xCC, builds PathMat from Vec1 rotation and Vec0 scale, and picks
+// the start distance from Vec2 (percent + random percent, wrapped) or the far end for a negative
+// speed.
 int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp06Work* w = &m_Free;
