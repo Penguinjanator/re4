@@ -1,0 +1,844 @@
+#include "types.h"
+#include "main_mem.h"
+#include "st_room.h"
+#include "event.h"
+#include "atari.h"
+#include "flag_rsf.h"
+#include "global.h"
+#include "main.h"
+#include "sce.h"
+#include "sce_sys.h"
+#include "sce_at.h"
+#include "scroll.h"
+#include "obj.h"
+#include "em.h"
+#include "emswitch.h"
+#include "emBarred.h"
+#include "em_set.h"
+#include "em_wrap.h"
+#include "etc_model.h"
+#include "player.h"
+#include "pl_npc.h"
+#include "pl_sub.h"
+#include "cam_ctrl.h"
+#include "motion.h"
+#include "room_data.h"
+#include "st_mgr_event.h"
+#include "mes.h"
+#include "fade.h"
+#include "snd.h"
+#include "esp.h"
+#include "est.h"
+#include "math_sub.h"
+#include "vec.h"
+
+// Room 3-10 (D:/Bio4/Prog/r310.cpp): the two crates Leon and Ashley push together, the lever pairs
+// with their barred doors, the hiding spots and the S00 event with the Ganado that stands up.
+
+struct R310Work {
+    cObj* box1;         // 0x00  scroll object 3, pushed towards -x, then falls
+    cObj* box2;         // 0x04  scroll object 4, pushed towards +x
+    ScePrim* pushTask;  // 0x08  the Leon push task (r310_pushBoxN_leon)
+    ScePrim* subTask;   // 0x0C  the Ashley push task (r310_pushBoxN_ashley)
+    int pad_10;
+    u32 se;             // 0x14  crate sliding sound (SndCall handle)
+};
+
+static R310Work* r310_work;
+
+// The room bits live in the second word of the room's save record (RoomData).
+#define R310_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
+
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+// Pointer stores through a reference: the work and the field are reloaded after them (r102 idiom).
+static inline void PSetObj(cObj*& d, cObj* v) { d = v; }
+static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
+// Enemy list entry copy (0x20 bytes).
+static inline void EmListCopy(int dst, int src) { *EM_LIST(dst) = *EM_LIST(src); }
+
+// The event player model's per-model work word (cEm+0x328) the S00 event flags.
+struct R310EvtModel {
+    u8 pad_0[0x328];
+    u32 flags;
+};
+
+static void r310_checkEmSwitch();
+void r310_execHide_main(int on, int no);
+static void r310_execHide0(int on);
+static void r310_execHide1(int on);
+static void r310_onFlag();
+void r310_stopBoxSe(Vec* pos);
+static void r310_pushBox2_ashley();
+static void r310_pushBox2_leon();
+static void r310_pushBox2();
+static void r310_fallBox1();
+static void r310_pushBox1_ashley();
+static void r310_pushBox1_leon();
+static void r310_pushBox1();
+void r310_initBoxPush();
+static void r310_checkBgm();
+static void r310_checkEmStandUp_end();
+static void r310_checkEmStandUp();
+static void R310EventS00();
+static void Evt_R310S00_Func(Event* e);
+// GetEmIdFromList returns int here: the event functions take its low byte (r308).
+int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
+
+void R310Init()
+{
+    cEmSwitch* sw0;
+    cEmSwitch* sw1;
+    cEmBarred* bar;
+
+#line 52 "D:/Bio4/Prog/r310.cpp"
+    r310_work = (R310Work*) MEM_CALLOC(sizeof(R310Work), 1, 0xd);
+    if (pG->x4F9F >= 1 && pG->x4F9F <= 2) {
+        R310_SAVE_FLAGS |= 0x80000000;
+    }
+    SubCharInit(1, &pPL->pos, pPL->rot.y);
+    pG->flags_5018 |= 0x04000000;
+    EvtMgr.SetFunc("evt_r310s00_func", (void*) Evt_R310S00_Func);
+    if ((int) R310_SAVE_FLAGS >= 0) {
+        EvtMgr.EvtReadAram("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0, 1, 0);
+        SceExec(0x12, (TaskFunc) R310EventS00, 0, 2, 2, 0);
+    }
+    getRoomEtcSwitch(1, (cEm**) &sw0, 1);
+    getRoomEtcSwitch(2, (cEm**) &sw1, 1);
+    getRoomEtcBarred(0, (cEm**) &bar, 1);
+    if (sw0 && sw1 && bar) {
+        sw0->setBarred(bar);
+        sw0->setConnectSwitch(sw1);
+        sw1->setBarred(bar);
+        sw1->setConnectSwitch(sw0);
+        sw0->setClosed();
+        sw1->setClosed();
+        bar->setClosed();
+    }
+    getRoomEtcSwitch(4, (cEm**) &sw0, 1);
+    getRoomEtcSwitch(5, (cEm**) &sw1, 1);
+    getRoomEtcBarred(3, (cEm**) &bar, 1);
+    if (sw0 && sw1 && bar) {
+        sw0->setBarred(bar);
+        sw0->setConnectSwitch(sw1);
+        sw1->setBarred(bar);
+        sw1->setConnectSwitch(sw0);
+        sw0->setClosed();
+        sw1->setClosed();
+        bar->setClosed();
+    }
+    SceExec(0x12, (TaskFunc) r310_checkEmSwitch, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r310_checkBgm, 0, 0, 2, 0);
+    r310_initBoxPush();
+    SceAtSetDoorFunc(4, (TaskFunc) r310_onFlag, 0);
+    SceAtDataSet_hide(8, r310_execHide0);
+    SceAtDataSet_hide(9, r310_execHide1);
+}
+
+void R310Main()
+{
+}
+
+// A lever held closed for 450 frames while the player stands in its area reopens.
+static void r310_checkEmSwitch()
+{
+    cEmSwitch* sw1;
+    cEmSwitch* sw4;
+    u32 cnt1 = 0;
+    u32 cnt4 = 0;
+
+    getRoomEtcSwitch(1, (cEm**) &sw1, 1);
+    getRoomEtcSwitch(4, (cEm**) &sw4, 1);
+    for (;;) {
+        if (sw1) {
+            if (sw1->ckOpen() == 0 && SceAtHitCheck(0xB) == 1) {
+                cnt1++;
+                if (cnt1 > 0x1C1) {
+                    sw1->setOpen();
+                }
+            } else {
+                cnt1 = 0;
+            }
+        }
+        if (sw4) {
+            if (sw4->ckOpen() == 0 && SceAtHitCheck(0xA) == 1) {
+                cnt4++;
+                if (cnt4 > 0x1C1) {
+                    sw4->setOpen();
+                }
+            } else {
+                cnt4 = 0;
+            }
+        }
+        SceSleep(1);
+    }
+}
+
+// The hiding spot lids (scroll objects 8 / 10): the lid swings down (on == 0) or back up.
+void r310_execHide_main(int on, int no)
+{
+    cObj* o = SmdGetObjPtr(no);
+
+    o->be_flag |= 0x20;
+    if (on == 0) {
+        f32 lim;
+
+        if (no == 8) {
+            lim = -2.0948f;
+        } else {
+            lim = -1.745f;
+        }
+        // `const add` before `spd`: pool order 0.1, 0.0 (r11d).
+        const f32 add = 0.1f;
+        f32 spd = 0.0f;
+
+        SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
+        // The exit store on the break path: peeled exit test (docs/matching.md COMPILER-DIFF #7/#9).
+        for (;;) {
+            o->pParts->rot.z -= spd;
+            spd += add;
+            if (o->pParts->rot.z < lim) {
+                o->pParts->rot.z = lim;
+                break;
+            }
+            SceSleep(1);
+        }
+    } else {
+        SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
+        for (;;) {
+            o->pParts->rot.z += 0.2f;
+            if (o->pParts->rot.z > 0.0f) {
+                o->pParts->rot.z = 0.0f;
+                break;
+            }
+            SceSleep(1);
+        }
+    }
+}
+
+static void r310_execHide0(int on)
+{
+    r310_execHide_main(on, 8);
+}
+
+static void r310_execHide1(int on)
+{
+    r310_execHide_main(on, 10);
+}
+
+static void r310_onFlag()
+{
+    R310_SAVE_FLAGS |= 0x20000000;
+}
+
+// Stops the crate sliding sound (with the stop sound at `pos` when given).
+void r310_stopBoxSe(Vec* pos)
+{
+    if (r310_work->se) {
+        if (pos) {
+            SndCall(6, 1, pos, 0, 0, 0);
+            SceSleep(5);
+        }
+        SndStop(r310_work->se, 2);
+        r310_work->se = 0;
+    }
+}
+
+// Ashley joins Leon at crate 2 (the +x push): she walks to the far side and pushes while he does.
+static void r310_pushBox2_ashley()
+{
+    Vec subPos;
+    Vec plPos;
+    Vec goal;
+    Vec d;
+    Vec start;
+    u32 i;
+
+    if (pSUB == NULL) {
+        r310_work->subTask = 0;
+        return;
+    }
+    for (i = 0; i < 90; i++) {
+        if (PSVECSquareDistance(&pSUB->pos, &pPL->pos) < 16000000.0f) {
+            goto near;
+        }
+        SceSleep(1);
+    }
+    if (pSys->language == 0) {
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        // COMPILER-DIFF: #12 fallthrough-arm form. A literal 0 here is cse's known-zero `language` register (kept in
+        // r30 across SceMesSet); the original's arm stored a fresh `li 0`. `(work & 4) >> 3` is 0 only to combine.
+        r310_work->subTask = (ScePrim*) (((u32) r310_work & 4) >> 3);
+    }
+    SceExit();
+near:
+    plPos = pPL->pos;
+    goal = pPL->pos;
+    plPos.x += 1000.0f;
+    if (SceAtHitCheck(7) == 1) {
+        goal.z -= 800.0f;
+    } else {
+        goal.z += 800.0f;
+    }
+    if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
+        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        while ((SubCharGetStatus() & 0x00800000) == 0) {
+            SceSleep(1);
+        }
+    }
+    while ((SubCharGetStatus() & 1) == 0 && (SubCharGetStatus() & 2) == 0) {
+        SceSleep(1);
+    }
+    // `const ang` here: the pool order 193, pi/2, 500 (pi/2's entry before the push offset).
+    const f32 ang = 1.5707964f;
+    SubCharCtrl(5, 0);
+    Vec t = {0.0f, 0.0f, 0.0f};
+    t.x = pSUB->pos.x + 500.0f;
+    t.y = pSUB->pos.y;
+    t.z = pSUB->pos.z;
+    start = t;
+    PSVECSubtract(&start, &pSUB->pos, &d);
+    PSVECScale(&d, &d, 1.0f / 12.0f);
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 1, 0);
+    while (MotionGetState(pSUB) != 4) {
+        cSubChar* sub;
+
+        if ((SubCharGetStatus() & 0x80) || (SubCharGetStatus() & 0x02000000)) {
+            goto end;
+        }
+        PSVECAdd(&pSUB->pos, &d, &pSUB->pos);
+        FSet(pSUB->rot.y, pSUB->rot.y + Muku2(pSUB->rot.y, ang, 0.17453292f));
+        sub = pSUB;
+        sub->setPos(&sub->pos);
+        sub->setAng(&sub->rot);
+        asm("" : : "r"(sub)); // COMPILER-DIFF: 12 (regmove operand pick, r20d)
+        SceSleep(1);
+    }
+    FSet(pSUB->rot.y, ang);
+    pSUB->setAng(&pSUB->rot);
+    subPos = pSUB->pos;
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 5, 0);
+    pG->flags_174 |= 0x40000000;
+    while ((SubCharGetStatus() & 0x80) == 0 && (SubCharGetStatus() & 0x02000000) == 0) {
+        FSet(pSUB->pos.z, subPos.z);
+        pSUB->setPos(&pSUB->pos);
+        SceSleep(1);
+    }
+end:
+    BitOff(pG->flags_174, 0x40000000);
+    r310_work->subTask = 0;
+    SubCharCtrl(1, 0);
+}
+
+// Leon pushes crate 2 towards +x while the push button is held; Ashley's task is started once he
+// is in position.
+static void r310_pushBox2_leon()
+{
+    Vec d;
+    Vec goal;
+
+    ((cUnitEventView*) pPL)->beginEvent(0);
+    AtariFlagsOr(&pPL->atari, 0x100);
+    PlSetHand(1, 0);
+    Vec plPos = {0.0f, 0.0f, 0.0f};
+    plPos.x = pPL->pos.x + 500.0f;
+    plPos.y = pPL->pos.y;
+    plPos.z = pPL->pos.z;
+    goal = plPos;
+    if (SceAtHitCheck(7) == 1) {
+        goal.z = -16400.0f;
+    } else {
+        goal.z = -17100.0f;
+    }
+    PSVECSubtract(&goal, &pPL->pos, &d);
+    PSVECScale(&d, &d, 1.0f / 12.0f);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 10, 0, 1, 0);
+    while (MotionGetState(pPL) != 4) {
+        cPlayer* pl;
+
+        if (!(PlGetStatus() & 0x00020000)) {
+            goto done;
+        }
+        PSVECAdd(&pPL->pos, &d, &pPL->pos);
+        FSet(pPL->rot.y, pPL->rot.y + Muku2(pPL->rot.y, +1.5707964f, 0.17453292f));
+        pl = pPL;
+        pl->setPos(&pl->pos);
+        pl->setAng(&pl->rot);
+        asm("" : : "r"(pl)); // COMPILER-DIFF: 12 (regmove operand pick, r20d): `pl` must not die at the
+                             // `addi r4,pl,0xa0` argument insn.
+        SceSleep(1);
+    }
+    FSet(pPL->rot.y, +1.5707964f);
+    pPL->setAng(&pPL->rot);
+    plPos = pPL->pos;
+    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 5, 0);
+    pG->flags_174 |= 0x80000000;
+    while (PlGetStatus() & 0x00020000) {
+        if (R310_SAVE_FLAGS & 0x20000000) {
+            goto done;
+        }
+        if (r310_work->subTask == 0) {
+            goto finish;
+        }
+        if (!(Key.on & 0x00080000)) {
+            BitOff(pG->flags_174, 0x80000000);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+            while (MotionGetState(pPL) != 4 && (PlGetStatus() & 0x00020000)) {
+                FSet(pPL->pos.z, plPos.z);
+                pPL->setPos(&pPL->pos);
+                SceSleep(1);
+            }
+            goto done;
+        }
+        FSet(pPL->pos.z, plPos.z);
+        pPL->setPos(&pPL->pos);
+        SceSleep(1);
+    }
+done:
+    if (r310_work->subTask) {
+        ScePrim* none = 0;
+
+        BitOff(pG->flags_174, 0x40000000);
+        SceKill(r310_work->subTask);
+        r310_work->subTask = none;
+        SubCharCtrl(1, 0);
+    }
+finish:
+    PlSetHand(0, 0);
+    ((cUnitEventView*) pPL)->endEvent(2);
+    r310_work->pushTask = 0;
+}
+
+// Crate 2 (area 6): moves while both push, done when it passes -12500.
+static void r310_pushBox2()
+{
+    SceAtSetEnable(6, 0);
+    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
+    r310_stopBoxSe(0);
+    while (r310_work->pushTask != 0) {
+        if ((int) pG->flags_174 < 0 && (pG->flags_174 & 0x40000000)) {
+            FSet(r310_work->box2->pos.x, r310_work->box2->pos.x + 10.0f);
+            if (r310_work->se == 0) {
+                r310_work->se = SndCall(6, 0x55, &r310_work->box2->pos, 0, 0, 0);
+            }
+            if (r310_work->box2->pos.x > -13200.0f) {
+                SceAtSetEnable(0xE, 0);
+            }
+            if (r310_work->box2->pos.x > -12500.0f) {
+                r310_stopBoxSe(&r310_work->box2->pos);
+                R310_SAVE_FLAGS |= 0x20000000;
+                SceExit();
+            }
+        } else {
+            r310_stopBoxSe(&r310_work->box2->pos);
+        }
+        SceSleep(1);
+    }
+    r310_stopBoxSe(&r310_work->box2->pos);
+    SceAtSetEnable(6, 1);
+}
+
+// Crate 1 tips over the edge and falls.
+static void r310_fallBox1()
+{
+    f32 da;
+    f32 dy;
+    f32 y0;
+
+    for (;;) {
+        FSet(r310_work->box1->rot.z, r310_work->box1->rot.z + 0.034906585f);
+        if (r310_work->box1->rot.z > 0.7853982f) {
+            break;
+        }
+        SceSleep(1);
+    }
+    // Pool order 13, 1000, pi/2, 0.0, 0.01: the single-use constants declared first (r103 idiom).
+    const f32 grav = 13.0f;
+    const f32 fall = 1000.0f;
+    const f32 lim = PI / 2;
+    da = 0.034906585f;
+    y0 = r310_work->box1->pos.y;
+    dy = 0.0f;
+    // Un-rotated: the sleep in the `if` arm, the exit in its `else`.
+    for (;;) {
+        da += 0.01f;
+        if (r310_work->box1->rot.z < lim) {
+            r310_work->box1->rot.z += da;
+        } else {
+            r310_work->box1->rot.z = lim;
+        }
+        FSet(r310_work->box1->pos.y, r310_work->box1->pos.y - dy);
+        dy += grav;
+        if (!(y0 - r310_work->box1->pos.y > fall)) {
+            SceSleep(1);
+        } else {
+            break;
+        }
+    }
+    do { } while (0); // ends the cse path: the exit block re-forms high(r310_work) (loop-exit form)
+    EstSet(0, -1, 0, 0, 1, 0, 0, 0, 0, 0);
+    SndCall(6, 0, &r310_work->box1->pos, 0, 0, 0);
+    SceAtSetEnable(0, 0);
+    SceAtSetEnable(0xC, 0);
+    SceAtSetEnable(3, 0);
+}
+
+// Ashley at crate 1 (the -x push): the same as crate 2 mirrored.
+static void r310_pushBox1_ashley()
+{
+    Vec subPos;
+    Vec plPos;
+    Vec goal;
+    Vec d;
+    Vec start;
+    u32 i;
+
+    if (pSUB == NULL) {
+        r310_work->subTask = 0;
+        return;
+    }
+    for (i = 0; i < 90; i++) {
+        if (PSVECSquareDistance(&pSUB->pos, &pPL->pos) < 16000000.0f) {
+            goto near;
+        }
+        SceSleep(1);
+    }
+    if (pSys->language == 0) {
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        // COMPILER-DIFF: #12 fallthrough-arm form. A literal 0 here is cse's known-zero `language` register (kept in
+        // r30 across SceMesSet); the original's arm stored a fresh `li 0`. `(work & 4) >> 3` is 0 only to combine.
+        r310_work->subTask = (ScePrim*) (((u32) r310_work & 4) >> 3);
+    }
+    SceExit();
+near:
+    plPos = pPL->pos;
+    goal = pPL->pos;
+    plPos.x += 1000.0f;
+    if (SceAtHitCheck(2) == 1) {
+        goal.z += 800.0f;
+    } else {
+        goal.z -= 800.0f;
+    }
+    if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
+        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        while ((SubCharGetStatus() & 0x00800000) == 0) {
+            SceSleep(1);
+        }
+    }
+    while ((SubCharGetStatus() & 1) == 0 && (SubCharGetStatus() & 2) == 0) {
+        SceSleep(1);
+    }
+    // `const ang` here: the pool order 193, pi/2, 500 (pi/2's entry before the push offset).
+    const f32 ang = -1.5707964f;
+    SubCharCtrl(5, 0);
+    Vec t = {0.0f, 0.0f, 0.0f};
+    t.x = pSUB->pos.x - 500.0f;
+    t.y = pSUB->pos.y;
+    t.z = pSUB->pos.z;
+    start = t;
+    PSVECSubtract(&start, &pSUB->pos, &d);
+    PSVECScale(&d, &d, 1.0f / 12.0f);
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 1, 0);
+    while (MotionGetState(pSUB) != 4) {
+        cSubChar* sub;
+
+        if ((SubCharGetStatus() & 0x80) || (SubCharGetStatus() & 0x02000000)) {
+            goto end;
+        }
+        PSVECAdd(&pSUB->pos, &d, &pSUB->pos);
+        FSet(pSUB->rot.y, pSUB->rot.y + Muku2(pSUB->rot.y, ang, 0.17453292f));
+        sub = pSUB;
+        sub->setPos(&sub->pos);
+        sub->setAng(&sub->rot);
+        asm("" : : "r"(sub)); // COMPILER-DIFF: 12 (regmove operand pick, r20d)
+        SceSleep(1);
+    }
+    FSet(pSUB->rot.y, ang);
+    pSUB->setAng(&pSUB->rot);
+    subPos = pSUB->pos;
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 5, 0);
+    pG->flags_174 |= 0x40000000;
+    while ((SubCharGetStatus() & 0x80) == 0 && (SubCharGetStatus() & 0x02000000) == 0) {
+        FSet(pSUB->pos.z, subPos.z);
+        pSUB->setPos(&pSUB->pos);
+        SceSleep(1);
+    }
+end:
+    BitOff(pG->flags_174, 0x40000000);
+    r310_work->subTask = 0;
+    SubCharCtrl(1, 0);
+}
+
+static void r310_pushBox1_leon()
+{
+    Vec d;
+    Vec goal;
+
+    ((cUnitEventView*) pPL)->beginEvent(0);
+    AtariFlagsOr(&pPL->atari, 0x100);
+    PlSetHand(1, 0);
+    Vec plPos = {0.0f, 0.0f, 0.0f};
+    plPos.x = pPL->pos.x - 500.0f;
+    plPos.y = pPL->pos.y;
+    plPos.z = pPL->pos.z;
+    goal = plPos;
+    if (SceAtHitCheck(2) == 1) {
+        goal.z = -26400.0f;
+    } else {
+        goal.z = -25600.0f;
+    }
+    PSVECSubtract(&goal, &pPL->pos, &d);
+    PSVECScale(&d, &d, 1.0f / 12.0f);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 10, 0, 1, 0);
+    while (MotionGetState(pPL) != 4) {
+        cPlayer* pl;
+
+        if (!(PlGetStatus() & 0x00020000)) {
+            goto done;
+        }
+        PSVECAdd(&pPL->pos, &d, &pPL->pos);
+        FSet(pPL->rot.y, pPL->rot.y + Muku2(pPL->rot.y, -1.5707964f, 0.17453292f));
+        pl = pPL;
+        pl->setPos(&pl->pos);
+        pl->setAng(&pl->rot);
+        asm("" : : "r"(pl)); // COMPILER-DIFF: 12 (regmove operand pick, r20d): `pl` must not die at the
+                             // `addi r4,pl,0xa0` argument insn.
+        SceSleep(1);
+    }
+    FSet(pPL->rot.y, -1.5707964f);
+    pPL->setAng(&pPL->rot);
+    plPos = pPL->pos;
+    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 5, 0);
+    pG->flags_174 |= 0x80000000;
+    while (PlGetStatus() & 0x00020000) {
+        if (R310_SAVE_FLAGS & 0x40000000) {
+            goto done;
+        }
+        if (r310_work->subTask == 0) {
+            goto finish;
+        }
+        if (!(Key.on & 0x00080000)) {
+            BitOff(pG->flags_174, 0x80000000);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+            while (MotionGetState(pPL) != 4 && (PlGetStatus() & 0x00020000)) {
+                FSet(pPL->pos.z, plPos.z);
+                pPL->setPos(&pPL->pos);
+                SceSleep(1);
+            }
+            goto done;
+        }
+        FSet(pPL->pos.z, plPos.z);
+        pPL->setPos(&pPL->pos);
+        SceSleep(1);
+    }
+done:
+    if (r310_work->subTask) {
+        ScePrim* none = 0;
+
+        BitOff(pG->flags_174, 0x40000000);
+        SceKill(r310_work->subTask);
+        r310_work->subTask = none;
+        SubCharCtrl(1, 0);
+    }
+finish:
+    PlSetHand(0, 0);
+    ((cUnitEventView*) pPL)->endEvent(2);
+    r310_work->pushTask = 0;
+}
+
+// Crate 1 (area 1): moves towards -x while both push; past -23300 it falls and the Ganado of list
+// entry 0x69 (copied from 0x7D) appears.
+static void r310_pushBox1()
+{
+    SceAtSetEnable(1, 0);
+    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
+    r310_stopBoxSe(0);
+    while (r310_work->pushTask != 0) {
+        if ((int) pG->flags_174 < 0 && (pG->flags_174 & 0x40000000)) {
+            FSet(r310_work->box1->pos.x, r310_work->box1->pos.x - 10.0f);
+            if (r310_work->se == 0) {
+                r310_work->se = SndCall(6, 0x55, &r310_work->box1->pos, 0, 0, 0);
+            }
+            if (r310_work->box1->pos.x < -23300.0f) {
+                r310_stopBoxSe(&r310_work->box1->pos);
+                R310_SAVE_FLAGS |= 0x40000000;
+                SceExec(0x12, (TaskFunc) r310_fallBox1, 0, 0, 2, 0);
+                SceSleep(30);
+                setEm(0x69, -1, 1, 1, 1);
+                EmListCopy(0x69, 0x7D);
+                EmListSetAlive(0x69, 1);
+                SceExit();
+            }
+        } else {
+            r310_stopBoxSe(&r310_work->box1->pos);
+        }
+        SceSleep(1);
+    }
+    r310_stopBoxSe(&r310_work->box1->pos);
+    SceAtSetEnable(1, 1);
+}
+
+void r310_initBoxPush()
+{
+    PSetObj(r310_work->box1, SmdGetObjPtr(3));
+    if (r310_work->box1) {
+        BitOn(r310_work->box1->be_flag, 0x20);
+        if (!(R310_SAVE_FLAGS & 0x40000000)) {
+            SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r310_pushBox1, 0, 1);
+            SceAtSetParent(1, r310_work->box1, 0);
+            SceAtSetParent(0, r310_work->box1, 0);
+            SceAtSetParent(0xC, r310_work->box1, 0);
+            SceAtSetParent(2, r310_work->box1, 0);
+        } else {
+            SceAtSetEnable(0, 0);
+            SceAtSetEnable(0xC, 0);
+            SceAtSetEnable(3, 0);
+            Vec pos = {-23300.0f, -1008.0f, -25845.0f};
+            Vec rot = {0.0f, 0.0f, 1.5707964f};
+            cObj* o = r310_work->box1;
+            o->setPos(&pos);
+            o->setAng(&rot);
+        }
+    }
+    PSetObj(r310_work->box2, SmdGetObjPtr(4));
+    if (r310_work->box2) {
+        BitOn(r310_work->box2->be_flag, 0x20);
+        if (!(R310_SAVE_FLAGS & 0x20000000)) {
+            SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r310_pushBox2, 0, 1);
+            SceAtSetParent(6, r310_work->box2, 0);
+            SceAtSetParent(5, r310_work->box2, 0);
+            SceAtSetParent(0xD, r310_work->box2, 0);
+            SceAtSetParent(7, r310_work->box2, 0);
+        } else {
+            SceAtSetParent(5, r310_work->box2, 0);
+            SceAtSetParent(0xD, r310_work->box2, 0);
+            SceAtSetEnable(0xE, 0);
+            r310_work->box2->pos.x = -12500.0f;
+        }
+    }
+}
+
+static void r310_checkBgm()
+{
+    for (;;) {
+        while (SceCkFindPL(0) == 0) {
+            SceSleep(1);
+        }
+        SndRoomStrStart(1, 3, 1);
+        while (SceCountEmAlive(0x36, -1) != 0) {
+            SceSleep(1);
+        }
+        SndRoomStrStop(3);
+        SceSleep(90);
+    }
+}
+
+// The Ganado that stood up (list entry 0x5A) becomes a normal enemy; skipped, it is rebuilt from
+// entry 0xBE with the key item, else from 0x7C.
+static void r310_checkEmStandUp_end()
+{
+    SceEventEnd(0);
+    pG->flags_5014 &= ~0x02000000;
+    CamCtrl.Comeback(0);
+    cEmWrap em;
+    em.setEm(0x5A, -1, 1, 1, 1);
+    em.setNoSuspend(0);
+    if (pG->flags_174 & 0x20000000) {
+        em.destroy();
+        if (pG->emlist_no >= 0) {
+            u32* tbl = (u32*) (pG->emlist_no * 0x20 + (u32) pG + 0x501C);
+
+            tbl[2] &= ~0x20;
+        }
+        EmListCopy(0x5A, 0xBE);
+        em.setEm(0x5A, -1, 1, 1, 1);
+        if (em.getPtr() != 0) {
+            SceAtSetEmItem(em.getPtr(), 0x85);
+        }
+    }
+    SndCall(6, 2, 0, 0, 0, 0);
+    EmListCopy(0x5A, 0x7C);
+    EmListSetAlive(0x5A, 1);
+}
+
+// Once lever 1 opens, the camera shows the Ganado standing up.
+static void r310_checkEmStandUp()
+{
+    cEmWrap em;
+    cEmSwitch* sw;
+
+    em.setEm(0x5A, -1, 1, 1, 1);
+    getRoomEtcSwitch(1, (cEm**) &sw, 1);
+    if (sw) {
+        while (sw->ckOpen() == 0) {
+            SceSleep(1);
+        }
+        SceSleep(30);
+        SceSetEventCancel(1, (TaskFunc) r310_checkEmStandUp_end, 0, 2, 1);
+        SceEventStart(1);
+        pG->flags_5014 |= 0x02000000;
+        em.setPtr(0x5A, -1, 1);
+        em.setFlag(1);
+        em.setNoSuspend(1);
+        if (em.getPtr() != 0) {
+            while (MotionGetState(em.getPtr()) == 0) {
+                SceSleep(1);
+            }
+        }
+        SceSetEventCancel(0, 0, 0, -1, 1);
+        r310_checkEmStandUp_end();
+    }
+}
+
+// The S00 event (first visit): Leon put at the door, the crates' Ganado set, the stage BGM.
+static void R310EventS00()
+{
+    Vec p;
+    if ((int) R310_SAVE_FLAGS >= 0) {
+        R310_SAVE_FLAGS |= 0x80000000;
+        pG->flags_54 |= 0x400;
+        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0);
+        cPlayer* pl = pPL;
+        p.x = -6877.0f;
+        p.y = 0.0f;
+        p.z = -25923.0f;
+        pl->setPos(&p);
+        BitOn(pPL->be_flag, 0x00200000);
+        if (pSUB) {
+            pSUB->be_flag |= 0x00200000;
+        }
+        SceExec(0x12, (TaskFunc) r310_checkEmStandUp, 0, 0, 2, 0);
+        SndBgmTblSet(0x310, 1);
+    }
+}
+
+static void Evt_R310S00_Func(Event* e)
+{
+    if (e->funcMode == 1 && e->cut == 0) {
+        if (e->frame == 0) {
+            void* mod;
+            int skip = 1;
+
+            if ((e->status & 0x40000000) == 0) {
+                skip = 0;
+            }
+            if (skip == 0) {
+                FadeSetW(2, 0, 0, 0);
+            }
+            if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
+                ((R310EvtModel*) mod)->flags |= 0x40;
+            }
+        }
+        if (e->frame == 50) {
+            int skip = 1;
+
+            if ((e->status & 0x40000000) == 0) {
+                skip = 0;
+            }
+            if (skip == 0) {
+                FadeSetW(0x80000002, 40, 0, 0);
+            }
+        }
+    }
+}

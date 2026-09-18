@@ -11,6 +11,7 @@
 #include "pl_cloth.h"
 #include "camera.h"
 #include "obj.h"
+#include "objBull.h"
 
 // Shared Ganado enemy library (em10.cpp, D:/Bio4/Prog/em10.cpp): the same object is linked into the
 // 16 Ganado modules em10..em17, em19..em1f, em20 (config/G4BE08/modules.py). The per-enemy files of
@@ -350,11 +351,6 @@ public:
 
 // game/obj14.cpp: creates the bell object (st2 r218).
 cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot);
-
-class cObjBull : public cObj {
-public:
-    int ckBullRide(Vec* pos, u8* a, Vec* b);
-};
 
 // Hanging object (game/obj12.cpp): the Ganado's sack / lantern hangs on it.
 class cObj12 : public cObj {

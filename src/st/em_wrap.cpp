@@ -41,6 +41,21 @@ int cEmControl::SetControl(s16 no, Vec* tbl, int n, int errOn)
     return 1;
 }
 
+#ifdef EM_WRAP_ROUTE
+int cEmControl::SetControl(s16 no, EmControlPoint* tbl, int n, int errOn)
+{
+    if (em.setPtr(no, -1, errOn) == 0) {
+        if (errOn == 1) {
+            pLog->err(0, 0, "cEmControl::SetPatrol");
+        }
+        return 0;
+    }
+    active = 1;
+    SetTargetTbl(tbl, n);
+    return 1;
+}
+#endif
+
 void cEmControl::SetTargetPos(Vec* tbl, int n)
 {
     int i;
@@ -56,6 +71,24 @@ void cEmControl::SetTargetPos(Vec* tbl, int n)
         point[i].pos = tbl[i];
     }
 }
+
+#ifdef EM_WRAP_ROUTE
+void cEmControl::SetTargetTbl(EmControlPoint* tbl, int n)
+{
+    int i;
+
+    prev = 0;
+    cur = 0;
+    memset(&point[0], 0, sizeof(EmControlPoint));
+    nPoint = n;
+    if (n > 15) {
+        nPoint = 15;
+    }
+    for (i = 0; i < nPoint; i++) {
+        point[i] = tbl[i];
+    }
+}
+#endif
 
 void cEmControl::EndControl()
 {
@@ -109,6 +142,72 @@ void cEmPatrol::TaskMove(cEmPatrol* p)
         SceSleep(1);
     }
 }
+
+#ifdef EM_WRAP_ROUTE
+int cEmRouteRun::SetRouteRun(s16 no, Vec* tbl, int n, u8 prio, int errOn)
+{
+    if (SetControl(no, tbl, n, errOn) == 0) {
+        return 0;
+    }
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    return 1;
+}
+
+void cEmRouteRun::TaskMove(cEmRouteRun* p)
+{
+    cEmWrap* em = &p->em;
+
+    while (p->active != 0 && em->isActive() != 0) {
+        if (em->ckGoto() != 1) {
+            Vec* pos = &p->point[p->cur].pos;
+            int cur;
+            int next;
+
+            em->setGoto(pos, 1);
+            cur = p->cur;
+            next = cur + 1;
+            p->prev = cur;
+            p->cur = next;
+            if (next >= p->nPoint) {
+                em->setGoto(pos, 0xB);
+                break;
+            }
+        }
+        SceSleep(1);
+    }
+}
+
+int cEmRouteExec::SetRouteExec(s16 no, EmControlPoint* tbl, int n, u8 prio, int errOn)
+{
+    if (SetControl(no, tbl, n, errOn) == 0) {
+        return 0;
+    }
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    return 1;
+}
+
+void cEmRouteExec::TaskMove(cEmRouteExec* p)
+{
+    cEmWrap* em = &p->em;
+
+    while (p->active != 0 && em->isActive() != 0) {
+        if (em->ckGoto() != p->point[p->prev].mode) {
+            int cur;
+            int next;
+
+            em->setGoto(&p->point[p->cur].pos, p->point[p->cur].mode);
+            cur = p->cur;
+            next = cur + 1;
+            p->prev = cur;
+            p->cur = next;
+            if (next >= p->nPoint) {
+                break;
+            }
+        }
+        SceSleep(1);
+    }
+}
+#endif
 
 int cEmGuard::SetGuard(s16 no, Vec* tbl, int n, int (*check)(cEmWrap*), f32 ang, u8 prio, int errOn)
 {
@@ -230,10 +329,10 @@ cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
 {
     cEmWrap em;
 
-    if (em.setEm(no, list, errOn, chkDead, setAlive) != 1) {
-        return 0;
+    if (em.setEm(no, list, errOn, chkDead, setAlive) == 1) {
+        return em.getPtr();
     }
-    return em.getPtr();
+    return 0;
 }
 
 int cEmWrap::setPtr(s16 no, s8 list, int errOn)

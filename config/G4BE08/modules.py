@@ -319,6 +319,85 @@ UNITS = {
         # st4.cpp includes map_obj.h/light.h/widget.h/atari.h (their strings + its cManager<cLight> block)
         ("st4_0/" + _ST4[0], *_ST4[1:], {".rodata": 0x21AC}),
     ],
+    # st3_0 (disc 2): em_wrap.cpp (third revision, src/st/em_wrap_v3.cpp: cEmRouteRun/cEmRouteExec), cSceObj.cpp (stripped: no
+    # *Move3_y/setStart members), then 13 rooms. r300.cpp starts at setResetNum (the reset
+    # counter helpers precede R300Init, like st2_0's r208) and owns the module's named cManager<cLight> pair;
+    # r304's group starts with event.h, r30c's with map_obj.h, r30e has no cFlag.set()/atari.h string
+    # ([HALT][flag_rsf.h][r30e.cpp]). st3.cpp (src/st3/st3.cpp): map_obj.h/light.h/widget.h/sofdec.h/event.h
+    # strings, "movie/r333_ev.sfd" (a never-called inline), a nameless cLight block after _unresolved.
+    "st3_0": [
+        ("st3_0/em_wrap.cpp", None, "st/em_wrap_v3.cpp", {".rodata": 0x0}),
+        ("st3_0/cSceObj.cpp", "cSceObj::move", "st/cSceObj.cpp", {".rodata": 0xae8}),
+        ("st3_0/r300.cpp", "setResetNum", "st3/r300.cpp", {".rodata": 0xb80}),
+        ("st3_0/r301.cpp", "R301Init", "st3/r301.cpp", {".rodata": 0x1060}),
+        ("st3_0/r303.cpp", "R303Init", "st3/r303.cpp", {".rodata": 0x12cc}),
+        ("st3_0/r304.cpp", "R304Init", "st3/r304.cpp", {".rodata": 0x1470}),
+        ("st3_0/r305.cpp", "R305Init", "st3/r305.cpp", {".rodata": 0x175c}),
+        ("st3_0/r306.cpp", "R306Init", "st3/r306.cpp", {".rodata": 0x1810}),
+        ("st3_0/r307.cpp", "R307Init", "st3/r307.cpp", {".rodata": 0x19b0}),
+        ("st3_0/r308.cpp", "R308Init", "st3/r308.cpp", {".rodata": 0x1bdc}),
+        ("st3_0/r309.cpp", "R309Init", "st3/r309.cpp", {".rodata": 0x1dac}),
+        ("st3_0/r30a.cpp", "R30aInit", "st3/r30a.cpp", {".rodata": 0x1e48}),
+        ("st3_0/r30b.cpp", "R30bInit", "st3/r30b.cpp", {".rodata": 0x2080}),
+        ("st3_0/r30c.cpp", "R30cInit", "st3/r30c.cpp", {".rodata": 0x2390}),
+        ("st3_0/r30e.cpp", "R30eInit", "st3/r30e.cpp", {".rodata": 0x2598}),
+        ("st3_0/st3.cpp", "set", "st3/st3.cpp", {".rodata": 0x25e4}),
+    ],
+    # st3_1 (disc 2): em_wrap.cpp (first revision, "cEmControl::SetPatrol"), cSceObj.cpp, r30d, r30f (includes
+    # map_obj.h/light.h/widget.h: the module's named cManager<cLight> pair after gate_open), r310, r311 (event.h
+    # first; nameless cLight block fn_st3_1_E73C), r312, then st3.cpp (map_obj.h/light.h/widget.h/sofdec.h/event.h
+    # strings + "movie/r333_ev.sfd" + its cLight block after _unresolved).
+    "st3_1": [
+        ("st3_1/em_wrap.cpp", None, "st/em_wrap.cpp", {".rodata": 0x0}),
+        ("st3_1/cSceObj.cpp", "cSceObj::move", "st/cSceObj.cpp", {".rodata": 0xae8}),
+        ("st3_1/r30d.cpp", "R30dInit", "st3/r30d.cpp", {".rodata": 0xb80}),
+        ("st3_1/r30f.cpp", "R30fInit", "st3/r30f.cpp", {".rodata": 0xcb0}),
+        ("st3_1/r310.cpp", "R310Init", "st3/r310.cpp", {".rodata": 0xfa8}),
+        ("st3_1/r311.cpp", "R311Init", "st3/r311.cpp", {".rodata": 0x1158}),
+        ("st3_1/r312.cpp", "R312Init", "st3/r312.cpp", {".rodata": 0x13d0}),
+        ("st3_1/st3.cpp", "set", "st3/st3.cpp", {".rodata": 0x144c}),
+    ],
+    # Disc 2 island stage module st3_2 (r315..r31d). em_wrap.cpp is the first revision (has the
+    # "cEmControl::SetPatrol" string); cSceObj.cpp keeps move1/move2/move3/getVibrationValue/setStartPos.
+    # r316/r317/r31a/r31b/r31c include light.h (cManager<cLight> block after each); r31b's block is
+    # followed by the named CountDown::checkState linkonce copy (r31c's copy is nameless in its block).
+    # st3.cpp includes map_obj.h/light.h/widget.h/sofdec.h/event.h (header strings + a cLight block).
+    "st3_2": [
+        ("st3_2/em_wrap.cpp", None, "st/em_wrap.cpp", {".rodata": 0x0}),
+        ("st3_2/cSceObj.cpp", "cSceObj::move1", "st/cSceObj.cpp", {".rodata": 0xae8}),
+        ("st3_2/r315.cpp", "R315Init", "st3/r315.cpp", {".rodata": 0xb80}),
+        ("st3_2/r316.cpp", "R316Init", "st3/r316.cpp", {".rodata": 0xc2c}),
+        ("st3_2/r317.cpp", "R317Init", "st3/r317.cpp", {".rodata": 0xe28}),
+        ("st3_2/r318.cpp", "R318Init", "st3/r318.cpp", {".rodata": 0x12f8}),
+        ("st3_2/r31a.cpp", "R31aInit", "st3/r31a.cpp", {".rodata": 0x1488}),
+        ("st3_2/r31b.cpp", "R31bInit", "st3/r31b.cpp", {".rodata": 0x15e8}),
+        ("st3_2/r31c.cpp", "R31cInit", "st3/r31c.cpp", {".rodata": 0x1b28}),
+        ("st3_2/r31d.cpp", "R31dInit", "st3/r31d.cpp", {".rodata": 0x1f18}),
+        ("st3_2/st3.cpp", "set", "st3/st3.cpp", {".rodata": 0x1f58}),
+    ],
+    # Disc 2 island stage module st3_3 (r320, r321, r325..r333). em_wrap.cpp is the first revision
+    # ("cEmControl::SetPatrol"); cSceObj.cpp keeps move/move1/move2/move3/initMove1_all/setMove1_all/
+    # getVibrationValue/setSrcDstPos/setStartPos. r320 includes map_obj.h/light.h/widget.h and owns the
+    # module's named cManager<cLight> pair; r321/r327/r331/r332/r333 have nameless cLight blocks
+    # (r321/r327/r331/r333 start with map_obj.h/light.h/widget.h before the cFlag.set() string); r328 has
+    # no cFlag.set()/atari.h string, its group is [HALT][flag_rsf.h][r328.cpp]. st3.cpp includes
+    # map_obj.h/light.h/widget.h/sofdec.h/event.h (header strings + its cLight block after the CountDown code).
+    "st3_3": [
+        ("st3_3/em_wrap.cpp", None, "st/em_wrap.cpp", {".rodata": 0x0}),
+        ("st3_3/cSceObj.cpp", "cSceObj::move", "st/cSceObj.cpp", {".rodata": 0xae8}),
+        ("st3_3/r320.cpp", "emset", "st3/r320.cpp", {".rodata": 0xb80}),
+        ("st3_3/r321.cpp", "R321Init", "st3/r321.cpp", {".rodata": 0x10a8}),
+        ("st3_3/r325.cpp", "R325Init", "st3/r325.cpp", {".rodata": 0x12f0}),
+        ("st3_3/r326.cpp", "R326Init", "st3/r326.cpp", {".rodata": 0x140c}),
+        ("st3_3/r327.cpp", "R327Init", "st3/r327.cpp", {".rodata": 0x14c8}),
+        ("st3_3/r328.cpp", "R328Init", "st3/r328.cpp", {".rodata": 0x16f8}),
+        ("st3_3/r329.cpp", "R329Init", "st3/r329.cpp", {".rodata": 0x1738}),
+        ("st3_3/r330.cpp", "R330Init", "st3/r330.cpp", {".rodata": 0x18a0}),
+        ("st3_3/r331.cpp", "R331Init", "st3/r331.cpp", {".rodata": 0x1a78}),
+        ("st3_3/r332.cpp", "R332Init", "st3/r332.cpp", {".rodata": 0x1ca8}),
+        ("st3_3/r333.cpp", "R333Init", "st3/r333.cpp", {".rodata": 0x21f8}),
+        ("st3_3/st3.cpp", "set", "st3/st3.cpp", {".rodata": 0x24b0}),
+    ],
     # Debug tool modules: <tool>.cpp, then the tool library objects t_prim.cpp / t_util.cpp (the full
     # versions of the DOL's game/t_prim, game/t_util, which the DOL link dead-stripped), then the shared
     # tools.cpp (D:/Bio4/Prog/tools.cpp: _prolog runs the ctors and ToolsTask, which dispatches
@@ -493,7 +572,7 @@ UNITS = {
 
 # Units whose compiled object does not yet match: linked from the original bytes instead.
 # Disc 2 island stage modules (added 2026-09-18): linked from the split original objects until matched.
-NON_MATCHING = {f"st3_{i}/st3_{i}.cpp" for i in range(4)}
+NON_MATCHING = set()
 # The 16 Ganado modules (em10..em20) are three objects. (1) The same em10.cpp ("D:/Bio4/Prog/em10.cpp":
 # cEm10 and its em10*/em1c*/plem10* helpers, .text 0-0x43518, .rodata 0-0x1D40, all of .data/.bss,
 # byte-identical in every module). (2) A header-only object whose name is not in the binary
@@ -550,8 +629,12 @@ UNIT_CFLAGS = {
 }
 
 STRIP_UNUSED = {
-    f"{_m}/em_wrap.cpp" for _m in ["st1_0", "st1_1", "st1_2", "st1_3", "st2_0", "st2_1", "st2_2", "st2_3", "st2_4", "st4_0"]
-} | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {
+    f"{_m}/em_wrap.cpp" for _m in ["st1_0", "st1_1", "st1_2", "st1_3", "st2_0", "st2_1", "st2_2", "st2_3", "st2_4", "st4_0", "st3_0", "st3_1", "st3_2", "st3_3"]
+} | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0", "st3_0", "st3_1", "st3_2", "st3_3"]} | {
+    # st3.cpp's count-down helpers (st3_setCountDownTimer .. st3_endCountDown, CountDown::checkState) survive only
+    # in st3_3 (r331 calls them); the other island modules' links dropped them (strings kept: "movie/r333_ev.sfd").
+    f"{_m}/st3.cpp" for _m in ["st3_0", "st3_1", "st3_2"]
+} | {
     # rooms whose original object lost a never-called static function (strings and pool kept)
     "st2_3/r229.cpp",
     "st2_3/r226.cpp",
@@ -603,6 +686,10 @@ STRIP_UNUSED = {
 # the class instance (tools/ngccc.py place_linkonce_module keeps such copies nameless by default):
 # wep14.cpp / wep17.cpp include light.h (header string in .rodata) but their modules have no cLight block.
 LINKONCE_DROP = {
+    # st3.cpp: only st3_3 keeps st3_checkCountDown, the caller of the header inline CountDown::checkState.
+    # st3_0/st3_1 dropped the inline's body; st3_2 kept it as a nameless 0x18 tail (.text+0x888), like st3_3.
+    "st3_0/st3.cpp": ["checkState__9CountDownUl"],
+    "st3_1/st3.cpp": ["checkState__9CountDownUl"],
     "wep17/wep17.cpp": [
         "log__t8cManager1Z6cLightPCce",
         "countActiveWork__t8cManager1Z6cLight",

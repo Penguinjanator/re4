@@ -1,0 +1,219 @@
+#include "types.h"
+#include "main_mem.h"
+#include "st_room.h"
+#include "atari.h"
+#include "light.h"
+#include "map_obj.h"
+#include "widget.h"
+#include "flag_rsf.h"
+#include "event.h"
+#include "global.h"
+#include "sce.h"
+#include "sce_sys.h"
+#include "sce_at.h"
+#include "scroll.h"
+#include "obj.h"
+#include "em.h"
+#include "player.h"
+#include "pl_sub.h"
+#include "snd.h"
+#include "fade.h"
+
+// Room 3-31 (D:/Bio4/Prog/r331.cpp): the s00 event (into the mine cart) and the s10 event (the count-down
+// start) with their room jumps.
+
+struct R331Work {
+    int timer;   // 0x0  count-down frames when the s10 event started
+};
+
+static R331Work* r331_work;
+
+// st3.cpp's count-down helpers
+void st3_setCountDownTimer(int frame);
+int st3_getCountDownTimer();
+void st3_startCountDown();
+void st3_checkCountDown();
+
+static void R331ExecEventS00();
+static void R331ExecEventS10();
+extern "C" void Evt_R331S00_Func(Event* e);
+extern "C" void Evt_R331S10_Func(Event* e);
+
+// 1 while the event is being skipped (EVT status bit 30).
+static inline int r331_evtSkip(Event* e)
+{
+    int skip = 1;
+
+    if ((e->status & 0x40000000) == 0) {
+        skip = 0;
+    }
+    return skip;
+}
+
+void R331Init()
+{
+#line 58 "D:/Bio4/Prog/r331.cpp"
+    r331_work = (R331Work*) MEM_CALLOC(sizeof(R331Work), 1, 0xd);
+    EvtMgr.SetFunc("evt_r331s00_func", (void*) Evt_R331S00_Func);
+    EvtMgr.SetFunc("evt_r331s10_func", (void*) Evt_R331S10_Func);
+    if (RsfCheck(G_ROOM_ID, 0) == 0) {
+        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R331ExecEventS00, 0, 1);
+        EvtMgr.EvtReadAram("event/evd/r331s00.evd", 0, 0, 0, 0);
+    }
+    if (pG->flags_51C0 & 0x200) {
+        SndBgmTblSetDisable(3, 0);
+        SndBgmTblSet(0x331, 2);
+        SceExec(0x12, (TaskFunc) R331ExecEventS10, 0, 2, 2, 0);
+        st3_startCountDown();
+    } else {
+        SndBgmTblSetEnable(3, 0);
+    }
+}
+
+void R331Main()
+{
+    st3_checkCountDown();
+}
+
+static void R331ExecEventS00()
+{
+    if (RsfCheck(G_ROOM_ID, 0) == 0) {
+        RsfSet(G_ROOM_ID, 0);
+        SceAtSetEnable(3, 0);
+        SceEventStart(0);
+        EvtMgr.EvtReadExec("event/evd/r331s00.evd", 0, 0);
+        SceEventEnd(0);
+        pG->flags_5018 |= 0x80000000;
+        SubCharCtrl(2, 0);
+        BitOff(pG->flags_5018, 0x04000000);
+        pG->flags_54 |= 0x400;
+        {
+            Vec pos = {-42000.0f, 15800.0f, 46900.0f};
+            Vec rot = {0.0f, 0.0f, 0.0f};
+
+            SceAtExecRoomJump(0x332, &pos, &rot, 0);
+        }
+    }
+}
+
+static void R331ExecEventS10()
+{
+    if (RsfCheck(G_ROOM_ID, 1) == 0) {
+        RsfSet(G_ROOM_ID, 1);
+        pG->flags_54 |= 0x400;
+        SceSleep(1);
+        SceEventStart(0);
+        EvtMgr.EvtReadExec("event/evd/r331s10.evd", 0, 0);
+        SceEventEnd(0);
+        pG->flags_5018 |= 0x04000000;
+        SndBgmTblSet(0x331, 1);
+        SndRoomBgmStart(0, 0);
+        SndRoomBgmStart(1, 0);
+        pG->flags_54 |= 0x400;
+        {
+            Vec pos = {-646166.0f, -12718.0f, -588290.0f};
+            Vec rot = {0.0f, -1.78f, 0.0f};
+
+            SceAtExecRoomJump(0x333, &pos, &rot, 0);
+        }
+    }
+}
+
+extern "C" void Evt_R331S00_Func(Event* e)
+{
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
+    cObj* obj;
+    SmdWork* w;
+
+    switch (e->funcMode) {
+    case 0:
+        break;
+    case 1:
+        switch (e->cut) {
+        case 0:
+            if (e->frame == 0) {
+                if ((obj = SmdGetObjPtr(0x24)) != 0) {
+                    e->SetMod("scr0000", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
+            }
+            break;
+        case 4:
+            if (e->frame == e->maxFrame - 40) {
+                int skip = r331_evtSkip(e);
+
+                if (skip == 0) {
+                    FadeSetW(2, 40, 0, 0);
+                }
+            }
+            break;
+        }
+        break;
+    case 2:
+        w = SmdGetWorkPtr(0x24);
+        if ((obj = SmdGetObjPtr(0x24)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        pG->flags_54 |= 0x400;
+        break;
+    }
+}
+
+extern "C" void Evt_R331S10_Func(Event* e)
+{
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
+    cObj* obj;
+    SmdWork* w;
+
+    switch (e->funcMode) {
+    case 0:
+        r331_work->timer = st3_getCountDownTimer();
+        break;
+    case 1:
+        switch (e->cut) {
+        case 0:
+            if (e->frame == 0) {
+                int skip;
+
+                if ((obj = SmdGetObjPtr(0x24)) != 0) {
+                    e->SetMod("scr0000", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
+                skip = r331_evtSkip(e);
+                if (skip == 0) {
+                    FadeSetW(0x80000002, 40, 0, 0);
+                }
+            }
+            break;
+        case 2:
+            if (e->frame == e->maxFrame - 40) {
+                int skip = r331_evtSkip(e);
+
+                if (skip == 0) {
+                    FadeSetW(2, 40, 0, 0);
+                }
+            }
+            break;
+        }
+        break;
+    case 2:
+        w = SmdGetWorkPtr(0x24);
+        if ((obj = SmdGetObjPtr(0x24)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        st3_setCountDownTimer(r331_work->timer - e->maxTotalFrame);
+        st3_startCountDown();
+        pG->flags_54 |= 0x400;
+        break;
+    }
+}

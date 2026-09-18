@@ -4351,7 +4351,7 @@ address	size	section	unit	scope	name	demangled
 0x80132EE8	0x7C	.text	game/EtcModel.cpp	global	GetEtcFlgPtr__Fii	GetEtcFlgPtr
 0x80132F64	0x110	.text	game/EtcModel.cpp	global	getRoomEtcBreak	getRoomEtcBreak
 0x80133074	0xB4	.text	game/EtcModel.cpp	global	setRoomEtcDisp	setRoomEtcDisp
-0x80133128	0xB8	.text	game/EtcModel.cpp	local	setRoomEtcBreakDisp	setRoomEtcBreakDisp
+0x80133128	0xB8	.text	game/EtcModel.cpp	global	setRoomEtcBreakDisp__Fiii	setRoomEtcBreakDisp
 0x801331E0	0x80	.text	game/EtcModel.cpp	global	getRoomEtcOnLight	getRoomEtcOnLight
 0x80133260	0x40C	.text	game/EtcModel.cpp	global	getRoomEtcWindow	getRoomEtcWindow
 0x8013366C	0x14C	.text	game/EtcModel.cpp	global	getRoomEtcBox	getRoomEtcBox

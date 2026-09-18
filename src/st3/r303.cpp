@@ -1,0 +1,210 @@
+#include "types.h"
+#include "main_mem.h"
+#include "st_room.h"
+#include "atari.h"
+#include "light.h"
+#include "flag_rsf.h"
+#include "global.h"
+#include "sce.h"
+#include "sce_sys.h"
+#include "sce_at.h"
+#include "scroll.h"
+#include "obj.h"
+#include "em.h"
+#include "em_wrap.h"
+#include "esp.h"
+#include "snd.h"
+#include "TexRender.h"
+#include "db_log.h"
+
+// Room 3-03 (D:/Bio4/Prog/r303.cpp): the water render target, the shelf, the boxes and the door that
+// falls in once the Ganado of the corridor is set.
+
+struct R303Work {
+    TexRenderMng* tex;   // 0x00
+};
+
+// One-member struct: every store through the work reloads the pointer (setTexRender).
+struct R303WorkPtr {
+    R303Work* p;
+};
+
+static u8 r303_texTbl[0x20];
+static R303WorkPtr r303_work;
+
+Vec r303_doorPos = {-15576.0f, 156.0f, 12168.0f};
+Vec r303_doorAng = {-0.0644f, 0.1753f, 1.57095f};
+
+void r303_TanaMove(int mode);
+static void r303_openTana(int no);
+static void r303_openedTana(int no);
+static void r303_DuraluminCaseOpen(int no);
+static void r303_DuraluminCaseOpened(int no);
+static void r303_DustBoxOpen(int no);
+static void r303_DustBoxOpened(int no);
+static void oneshot_bgm();
+static void door_down();
+void setTexRender();
+
+void R303Init()
+{
+#line 52 "D:/Bio4/Prog/r303.cpp"
+    r303_work.p = (R303Work*) MEM_CALLOC(sizeof(R303Work), 1, 0xd);
+    setTexRender();
+    Espgen42SetNoWater(1);
+    if (RsfCheck(G_ROOM_ID, 0) == 0) {
+        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) door_down, 0, 1);
+    } else {
+        SmdGetObjPtr(0xB)->setPos(&r303_doorPos);
+        SmdGetObjPtr(0xB)->setAng(&r303_doorAng);
+    }
+    SceSetItemEvent(5, 0x80, 2, 1, r303_openTana, (void (*)()) r303_openedTana, 0, 0);
+    SceSetItemEvent(7, 0x81, 4, 3, r303_DuraluminCaseOpen, (void (*)()) r303_DuraluminCaseOpened, 0x19, 0);
+    SceSetItemEvent(8, 0x83, 5, 2, r303_DustBoxOpen, (void (*)()) r303_DustBoxOpened, 0x1B, 0);
+    if (RsfCheck(G_ROOM_ID, 3) == 0) {
+        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) oneshot_bgm, 0, 1);
+    }
+    pG->flags_51C4 |= 0x00200000;
+}
+
+// The shelf swings open (mode 1: already open).
+void r303_TanaMove(int mode)
+{
+    cObj* obj = SmdGetObjPtr(0x17);
+
+    obj->be_flag |= 0x20;
+    // r204_BoxMove idiom: the `const f32` limit declared before the if (its pool high shared by the arm
+    // and the loop entry in a callee-saved register), the step inside the loop body.
+    const f32 lim = 2.83f;
+    if (mode == 1) {
+        obj->rot.z = lim;
+    } else {
+        SndCall(6, 0x1C, &obj->pos, 0, 0, 0);
+        while (1) {
+            const f32 spd = 0.09f;
+
+            obj->rot.y += spd;
+            if (obj->rot.y > lim) {
+                obj->rot.y = lim;
+                break;
+            }
+            SceSleep(1);
+        }
+    }
+}
+
+static void r303_openTana(int no)
+{
+    r303_TanaMove(0);
+}
+
+static void r303_openedTana(int no)
+{
+    r303_TanaMove(1);
+}
+
+static void r303_DuraluminCaseOpen(int no)
+{
+    OpenBoxMain(7, 0, 0x18, no, -1, -1);
+}
+
+static void r303_DuraluminCaseOpened(int no)
+{
+    OpenBoxMain(7, 1, -1, no, -1, -1);
+}
+
+static void r303_DustBoxOpen(int no)
+{
+    OpenBoxMain(8, 0, 4, no, -1, -1);
+}
+
+static void r303_DustBoxOpened(int no)
+{
+    OpenBoxMain(8, 1, -1, no, -1, -1);
+}
+
+void R303Main()
+{
+}
+
+// Area 6: the one-shot stream.
+static inline f32 FCRef(const f32& v) { return v; }
+
+static void oneshot_bgm()
+{
+    // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (r40e idiom).
+    static const f32 vol = 0.0f;
+
+    RsfSet(G_ROOM_ID, 3);
+    SndStrReq(0, 0x34, 0x80000003, 0, 0, FCRef(vol));
+}
+
+// Area 3: the door falls over while a Ganado steps through it.
+static void door_down()
+{
+    Vec pos;
+    Vec ang;
+    cEm* em;
+    u32 cnt;
+    f32 t;
+    u8 zero = 0;
+
+    RsfSet(G_ROOM_ID, 0);
+    SmdGetObjPtr(0xB)->type = zero;
+    em = setEm(0x24, -1, 1, 1, 1);
+    em->flags_3C8 |= 1;
+    EstSet((int) em, -1, 0, 0, 1, 0x10, 0, 0, (u32) em, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 2, 0, 0, zero, (void*) zero);
+    t = 0.01f;
+    cnt = 0;
+    SndCall(6, 2, &SmdGetObjPtr(0xB)->pos, 0, 0, 0);
+    for (;;) {
+        if (cnt > 60) {
+            em->hp = 0;
+        } else {
+            cnt++;
+        }
+        pos = SmdGetObjPtr(0xB)->pos;
+        ang = SmdGetObjPtr(0xB)->rot;
+        pos.x += (r303_doorPos.x - pos.x) * 0.4f;
+        pos.y += (r303_doorPos.y - pos.y) * 0.4f;
+        pos.z += (r303_doorPos.z - pos.z) * 0.4f;
+        ang.x += (r303_doorAng.x - ang.x) * 0.05f;
+        ang.y += (r303_doorAng.y - ang.y) * 0.05f;
+        ang.z += t;
+        if (ang.z > r303_doorAng.z) {
+            ang.z = r303_doorAng.z;
+        }
+        t += 0.03f;
+        SmdGetObjPtr(0xB)->setPos(&pos);
+        SmdGetObjPtr(0xB)->setAng(&ang);
+        SceSleep(1);
+    }
+}
+
+// The water surface: a render target blended into the two water objects.
+void setTexRender()
+{
+    cObj* obj;
+    u8* tbl = r303_texTbl;
+
+    if (GetTexRenderMgr(&r303_work.p->tex)) {
+        tbl[0] = 1;
+        tbl[1] = 0;
+        tbl[4] = 0xF7;
+        tbl[5] = r303_work.p->tex->texId;
+        r303_work.p->tex->repType = 1;
+        EstSet(0, -1, 0, 0, 1, 0, r303_work.p->tex->mask | 1, 0, 0, 0);
+    } else {
+        pLog->err(0, 0, "SetTexrender() : Manager alloc failed!!");
+    }
+    obj = SmdGetObjPtr(0xC);
+    obj->pInfo->setTexBlendTbl(tbl);
+    obj->pInfo->setBlendRatio(0xFF);
+    obj->pInfo->setBlendType(2);
+    obj = SmdGetObjPtr(0x10);
+    obj->pInfo->setTexBlendTbl(tbl);
+    obj->pInfo->setBlendRatio(0xFF);
+    obj->pInfo->setBlendType(2);
+}

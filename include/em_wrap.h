@@ -19,6 +19,7 @@ public:
     int errOn;   // 0x8  1: report failures through pLog
 
     cEmWrap();
+    ~cEmWrap() {}   // trivial: only the array destructor loop of the rooms' local cEmWrap arrays (r311)
     void initWork();
     void err(const char* msg, int no);
     int setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive);
@@ -137,7 +138,7 @@ public:
 // guard task built on it.
 struct EmControlPoint {
     Vec pos;
-    int pad;
+    int mode;                   // 0xC   setGoto mode of the point (the st3 route tables; 0 in the Vec tables)
 };
 
 class cEmControl {
@@ -150,7 +151,9 @@ public:
     int active;                 // 0x118
 
     int SetControl(s16 no, Vec* tbl, int n, int errOn);
+    int SetControl(s16 no, EmControlPoint* tbl, int n, int errOn);  // st3 revision (src/st/em_wrap_v3.cpp)
     void SetTargetPos(Vec* tbl, int n);
+    void SetTargetTbl(EmControlPoint* tbl, int n);                   // st3 revision
     void EndControl();
 };
 
@@ -158,6 +161,20 @@ class cEmPatrol : public cEmControl {
 public:
     int SetPatrol(s16 no, Vec* tbl, int n, u8 prio, int errOn);
     static void TaskMove(cEmPatrol* p);
+};
+
+// st3 revision only: run the way points once (setGoto mode 1, the last with mode 0xB), or run them with
+// each point's own mode (the table's mode field), ending after the last point.
+class cEmRouteRun : public cEmControl {
+public:
+    int SetRouteRun(s16 no, Vec* tbl, int n, u8 prio, int errOn);
+    static void TaskMove(cEmRouteRun* p);
+};
+
+class cEmRouteExec : public cEmControl {
+public:
+    int SetRouteExec(s16 no, EmControlPoint* tbl, int n, u8 prio, int errOn);
+    static void TaskMove(cEmRouteExec* p);
 };
 
 class cEmGuard : public cEmControl {

@@ -118,6 +118,7 @@ public:
     void setMove1_pos(u32 nFrame, Vec* dp, f32 acc, f32 dec);
     void initMove1_ang(cModel* o, u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg);
     void setMove1_ang(u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg);
+    void initMove1_all(cModel* o, u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int flg);
     void setMove1_all(u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int flg);
     void initMove3_y(cModel* o, Vec* v, f32 grav, f32 h, f32 bnc);
     void setMove3_y(Vec* v, f32 grav, f32 h, f32 bnc);

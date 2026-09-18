@@ -425,6 +425,22 @@ void cSceObj::setMove1_ang(u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg)
     setMove1_all(nFrame, &basePos, dr, acc, dec, flg | 2);
 }
 
+// Both position and angle from `o` (st3_3 r320/r332 use it; the other modules' links dropped it).
+void cSceObj::initMove1_all(cModel* o, u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int flg)
+{
+    if (o) {
+        obj = o;
+        basePos = o->pos;
+        if (flg & 4) {
+            baseRot = o->pParts->rot;
+        } else {
+            baseRot = o->rot;
+        }
+        obj->be_flag |= 0x20;
+    }
+    setMove1_all(nFrame, dp, dr, acc, dec, flg);
+}
+
 static inline f32 FCRef(const f32& v) { return v; }
 
 // The 0.01 load is issued after the two Vec copies: a constant-pool load (RTX_UNCHANGING_P) never
