@@ -37,7 +37,7 @@ static inline void scopeOn(cPlayer* pl)
 {
     BitOn(pl->flags_420, 0x10);
     if (pG->weapon_type == 2 || pG->weapon_no == 0x1D) {
-        pG->flags_5010 |= 0x04000000;
+        pG->Status_flg[1] |= 0x04000000;
         pl->flags_420 |= 0x200;
         LightMgr.setThermo();
     }

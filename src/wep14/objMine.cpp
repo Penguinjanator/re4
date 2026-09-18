@@ -106,7 +106,7 @@ void cObjMine::moveFire()
         setBullet();
         MotionSetCore(this, &Motion, WEP_ARC_PTR(0x1E), 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
-        BitOn(pG->flags_500C, 0x00800000);
+        BitOn(pG->Status_flg[0], 0x00800000);
         if (pG->weapon_type == 0) {
             EstSet((int) this, -1, 0, 0, 0x48, 0, 0, 0xA, 0, 0);
         }

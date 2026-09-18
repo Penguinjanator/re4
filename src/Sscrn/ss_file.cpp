@@ -661,7 +661,7 @@ void FileSelect::move(SUB_SCREEN* wk)
             if (Key.rep & 0x04000000) {
                 fw->cat++;
             }
-            if (pG->x4F8E != 0) {
+            if (pG->game_cnt != 0) {
                 fw->cat = fw->cat < 0 ? 0 : (fw->cat > 2 ? 2 : fw->cat);
             } else {
                 int st = (s8) wk->stage;

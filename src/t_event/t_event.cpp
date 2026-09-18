@@ -362,7 +362,7 @@ ToolEvt::ToolEvt()
     if (FileListInit(&DbgFileList, path, "x:\\soft\\room\\event\\evd\\") == 0) {
         EtcFlag |= 0x80000000;
     }
-    pG->flags_60 |= 0x02000000;
+    pG->Debug_flg[0] |= 0x02000000;
     pEvd = Debug_alloc(8000000, 1);
     memclr_asm(pEvd, 4);
     pSctrl = (DbSctrlWork*) Debug_alloc(1000000, 1);
@@ -389,7 +389,7 @@ ToolEvt::ToolEvt()
 ToolEvt::~ToolEvt()
 {
     delete pLightTool;
-    BitOff(pG->flags_60, 0x02000000);
+    BitOff(pG->Debug_flg[0], 0x02000000);
     ((cUnitEventView*) pPL)->endEvent(0);
     EvtTaskSignal(0);
     TutilQuitDefault();
@@ -450,7 +450,7 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
             MessDeleteAll();
             ev->RunTool(1, 0);
         } else if (t->pJoy0->on & 0x10000) {
-            pG->flags_64 |= 0x01000000;
+            pG->Debug_flg[1] |= 0x01000000;
             ev->RunTool(0, 2);
         } else if (ev->Run() == 0) {
             pLog->err(0, 0, "EventMgr::Run : failed");
@@ -681,7 +681,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             sp = &ev->StatusFlag;
             *sp &= ~0x40000000;
         }
-        pG->flags_64 &= ~0x01000000;
+        pG->Debug_flg[1] &= ~0x01000000;
         if (t->EtcFlag & 0x40000000) {
             t->RunStop(t, ev);
         }
@@ -1001,7 +1001,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
     if (DebugCameraFlag != 0) {
         if (pJoy0->trg & 0x1000) {
             DebugCameraFlag = 0;
-            if (!(pG->flags_60 & 0x10000000)) {
+            if (!(pG->Debug_flg[0] & 0x10000000)) {
                 pG->Stop_flg &= ~0x40000000;
             }
         } else {
@@ -1034,11 +1034,11 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
     if (sw == 1) {
         MessDeleteAll();
         EvtDebug.FlagEtc |= 0x20000000;
-        pG->flags_60 |= 0x20000000;
+        pG->Debug_flg[0] |= 0x20000000;
     } else {
         EvtDebug.FlagEtc &= ~0x20000000;
         BitOff(pG->Stop_flg, 0x40000000);
-        pG->flags_60 &= ~0x20000000;
+        pG->Debug_flg[0] &= ~0x20000000;
         TaskSleep(1);
     }
     SubToolIn(t, sw, 13);

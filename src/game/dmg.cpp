@@ -96,7 +96,7 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
 
 int cDmgCyl::hitCheck(Vec* p, Vec* out)
 {
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         Draw_cylinder(&m_Pos, m_Radius, m_Height, 0xFFFFFFFF);
     }
     if (p->y > m_Pos.y + m_Height) {

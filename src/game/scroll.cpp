@@ -344,8 +344,8 @@ cObj* SmdGetObjPtr(u32 id)
     cObj* obj;
 
     if (id > 0xF9) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 return NULL;
             }
         }
@@ -360,8 +360,8 @@ cObj* SmdGetObjPtr(u32 id)
     }
     obj = scrObjTbl[id];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 return NULL;
             }
         }
@@ -527,8 +527,8 @@ cObj* SmdGetGroupObjPtr(u32 id)
     cObj* obj;
 
     if (id > 0xF9) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 goto ng;
             }
         }
@@ -540,8 +540,8 @@ cObj* SmdGetGroupObjPtr(u32 id)
     }
     obj = scrObjTbl[id];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 goto ng;
             }
         }

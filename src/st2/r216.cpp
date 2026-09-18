@@ -175,7 +175,7 @@ static void r216_BattleStart()
     }
     cModel* mdl = NULL;   // the zero of the EstSet stack arguments (r30, set before CutCall)
     CamCtrl.CutCall(1);
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r216_BattleStartEndProc, 0, 2, 1);
     EstSet(0, -1, NULL, NULL, 1, 6, 1, 5, 0, mdl);
     r216_work.p->door.setClose();
@@ -185,7 +185,7 @@ static void r216_BattleStart()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    pG->flags_174 &= ~0x08000000;
+    pG->Room_flg[0] &= ~0x08000000;
     r216_work.p->prim = SceExec(0x12, (TaskFunc) r216_ArmorAppearCamera, 0, 0, SCE_PRIO_DEF_2, NULL);
     r216_work.p->pole[0].setOpen();
     r216_work.p->pole[1].setOpen();
@@ -199,7 +199,7 @@ static void r216_BattleStart()
         e->em.setFlag(1);
         e->set = 1;
     }
-    while (!(pG->flags_174 & 0x08000000)) {
+    while (!(pG->Room_flg[0] & 0x08000000)) {
         SceSleep(1);
     }
     SceSetEventCancel(0, NULL, 0, -1, 1);
@@ -210,7 +210,7 @@ static void r216_BattleStartEndProc()
 {
     u32 i;
 
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         if (r216_work.p->prim) {
             SceKill(r216_work.p->prim);
         }
@@ -248,7 +248,7 @@ static void r216_ArmorAppearCamera()
             SceSleep(1);
         }
     }
-    pG->flags_174 |= 0x08000000;
+    pG->Room_flg[0] |= 0x08000000;
 }
 
 // The second set of armors: the poles turn back, take the next armors and turn out again.
@@ -302,8 +302,8 @@ static void r216_BattleEndCheck()
             SceExec(0x12, (TaskFunc) r216_BattleEnd, 0, 0, SCE_PRIO_DEF_2, NULL);
             SceExit();
         } else if (dead == 3) {
-            if (!(pG->flags_174 & 0x10000000)) {
-                pG->flags_174 |= 0x10000000;
+            if (!(pG->Room_flg[0] & 0x10000000)) {
+                pG->Room_flg[0] |= 0x10000000;
                 SceExec(0x12, (TaskFunc) r216_2ndArmorAppear, 0, 0, SCE_PRIO_DEF_2, NULL);
             }
         }
@@ -316,7 +316,7 @@ static void r216_BattleEnd()
     SceSleep(0x1E);
     SceEventStart(0);
     CamCtrl.CutCall(1);
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r216_BattleEndEndProc, 0, -1, 1);
     r216_work.p->door.setOpen();
     while (r216_work.p->door.getStatus() != 1) {
@@ -331,7 +331,7 @@ static void r216_BattleEnd()
 
 static void r216_BattleEndEndProc()
 {
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         r216_work.p->door.setOpened();
     }
     CamCtrl.Comeback(0);

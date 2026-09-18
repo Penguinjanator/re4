@@ -499,7 +499,7 @@ void emRack_R1_Shock(cEmRack* em)
         if (w->Timer != 0) {
             w->Timer--;
             p->ang.x = 0.0f;
-            if (pGS->flags_51E4 & 1) {
+            if (pGS->Frame_cnt & 1) {
                 p->ang.x = fRand0_1() * 0.024543693f + 0.024543693f;
             }
         } else {

@@ -150,7 +150,7 @@ void cObj05::move()
                 f32 floor = EatMgr.getFloor(&p->world, 600.0f, 100000.0f, &attr, 0);
                 f32 ofs = (f32) w->groundOfs;
 
-                if ((pG->flags_64 & 0x800000) && !(pG->flags_60 & 0x10000)) {
+                if ((pG->Debug_flg[1] & 0x800000) && !(pG->Debug_flg[0] & 0x10000)) {
                     floor = 0.0f;
                 }
                 if (p->world.y - ofs < floor) {

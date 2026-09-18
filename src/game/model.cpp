@@ -1484,7 +1484,7 @@ void cModel::error()
 {
     Vec v;
 
-    if (pG->flags_6C & 0x400000) {
+    if (pG->Debug_flg[3] & 0x400000) {
         be_flag |= 0x80000000;
         v.x = pos.x;
         v.y = pos.y + 50000.0f;

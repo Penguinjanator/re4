@@ -139,9 +139,9 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
         ssModInfoMgr.dispWorkNum(0x1A0, 0x70, 0, 0);
     }
     if (wk->x34C & 0x20) {
-        pG->flags_68 |= 0x40000000;
+        pG->Debug_flg[2] |= 0x40000000;
     } else {
-        pG->flags_68 &= ~0x40000000;
+        pG->Debug_flg[2] &= ~0x40000000;
     }
 }
 
@@ -172,9 +172,9 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
     int x;
     int y;
 
-    if ((s32) pG->flags_6C < 0) {
+    if ((s32) pG->Debug_flg[3] < 0) {
         m_bllt_no = 2;
-    } else if (pG->flags_68 & 0x00400000) {
+    } else if (pG->Debug_flg[2] & 0x00400000) {
         m_bllt_no = 1;
     } else {
         m_bllt_no = 0;
@@ -231,14 +231,14 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             m_bllt_no++;
         }
         m_bllt_no = m_bllt_no < 0 ? 2 : (m_bllt_no > 2 ? 0 : m_bllt_no);
-        BitOff(pG->flags_68, 0x00400000);
-        BitOff(pG->flags_6C, 0x80000000);
+        BitOff(pG->Debug_flg[2], 0x00400000);
+        BitOff(pG->Debug_flg[3], 0x80000000);
         switch (m_bllt_no) {
         case 2:
-            BitOn(pG->flags_6C, 0x80000000);
+            BitOn(pG->Debug_flg[3], 0x80000000);
             break;
         case 1:
-            BitOn(pG->flags_68, 0x00400000);
+            BitOn(pG->Debug_flg[2], 0x00400000);
             break;
         }
         break;
@@ -280,14 +280,14 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             step = 10000;
         }
         if (joy->rep2 & 0x10001) {
-            pG->x4F98 -= step;
+            pG->peseta -= step;
         }
         if (joy->rep2 & 0x20002) {
-            pG->x4F98 += step;
+            pG->peseta += step;
         }
         {
             GlobalWork* g = pG;
-            int p = g->x4F98;
+            int p = g->peseta;
             if (p >= 0) {
                 if (p > 100000000) {
                     p = 100000000;
@@ -295,7 +295,7 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             } else {
                 p = 0;
             }
-            g->x4F98 = p;
+            g->peseta = p;
         }
         break;
     }
@@ -386,7 +386,7 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             }
             case 3: {
                 int c = i == m_menu_no ? 0x16 : 0;
-                eprintf((x + 11) * 8, (y + i) * 14, c, 0, "%d", pG->x4F98);
+                eprintf((x + 11) * 8, (y + i) * 14, c, 0, "%d", pG->peseta);
                 break;
             }
             case 4: {

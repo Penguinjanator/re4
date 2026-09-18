@@ -90,7 +90,7 @@ void cObjMachinegun::moveFire()
             mot = WEP_ARC_PTR(0x2D);
         }
         MotionSetCore(this, &this->Motion, mot, 0, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        pG->Status_flg[0] |= 0x00800000;
         SndCall(2, 0x18, &pos, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);

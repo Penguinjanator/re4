@@ -1262,7 +1262,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         nrm->y = 0.0f;
         nrm->z = 0.0f;
     }
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_line3d(p0, hit, 0xFFFFFFFF, 0);
     }
     PSVECSubtract(p1, p0, &d);
@@ -1484,7 +1484,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PlBombHitCk(pos, r);
         break;
     }
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
     cnt = 0;
@@ -1883,7 +1883,7 @@ void EmYarareDisp(cEm* em)
     cModel* parts;
     u32 color;
 
-    if (!(pG->flags_60 & 0x1000)) {
+    if (!(pG->Debug_flg[0] & 0x1000)) {
         return;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
@@ -1966,7 +1966,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life <= 0) {
             return 0;
         }
-        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        rate = (f32) pG->Game_level * 0.1f + 0.5f;
         if (PlIsArmor()) {
             rate *= 0.7f;
         }
@@ -1978,7 +1978,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
-        if (pG->x4F88 <= 2 && (s16) pG->pl_life > 300) {
+        if (pG->Game_level <= 2 && (s16) pG->pl_life > 300) {
             flag |= 1;
         }
         if ((s16) pG->pl_life > 300 && (Rnd() & 3) == 0) {
@@ -1996,10 +1996,10 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 HSet(pG->pl_life, 0);
             }
         }
-        if (pG->flags_68 & 0x800000) {
+        if (pG->Debug_flg[2] & 0x800000) {
             HSet(pG->pl_life, pG->pl_life_max);
         }
-        if ((pG->flags_6C & 0x400) && (s16) pG->pl_life <= 1) {
+        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->pl_life <= 1) {
             HSet(pG->pl_life, 2);
         }
         ret = (s16) pG->pl_life;
@@ -2007,7 +2007,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->ashley_life <= 0) {
             return 0;
         }
-        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        rate = (f32) pG->Game_level * 0.1f + 0.5f;
         dmg = (int) ((f32) dmg * rate);
         if (dmg > 100) {
             if (dmg > 500) {
@@ -2028,15 +2028,15 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 HSet(pG->ashley_life, 0);
             }
         }
-        if (pG->flags_68 & 0x800000) {
+        if (pG->Debug_flg[2] & 0x800000) {
             HSet(pG->ashley_life, pG->ashley_life_max);
         }
-        if ((pG->flags_6C & 0x400) && (s16) pG->ashley_life <= 1) {
+        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->ashley_life <= 1) {
             HSet(pG->ashley_life, 2);
         }
         ret = (s16) pG->ashley_life;
     } else {
-        if (pG->flags_68 & 0x20000) {
+        if (pG->Debug_flg[2] & 0x20000) {
             return em->hp;
         }
         if (em->hp <= 0) {
@@ -2051,10 +2051,10 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         case 0x34: case 0x35:
         case 0x37: case 0x38: case 0x39: case 0x3A:
         case 0x3C:
-            if (pG->x4F88 > 5) {
-                rate = 1.0f - (f32) (int) (pG->x4F88 - 5) * 0.03f;
+            if (pG->Game_level > 5) {
+                rate = 1.0f - (f32) (int) (pG->Game_level - 5) * 0.03f;
             } else {
-                rate = 2.0f - (f32) pG->x4F88 * 0.2f;
+                rate = 2.0f - (f32) pG->Game_level * 0.2f;
             }
             dmg = (int) ((f32) dmg * rate);
             if (em->id >= 0x10 && em->id <= 0x3F && dmg > 100) {
@@ -2062,7 +2062,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
             }
             break;
         }
-        if (pG->flags_68 & 0x2000) {
+        if (pG->Debug_flg[2] & 0x2000) {
             dmg = em->hp;
         }
         if (em->hp < dmg) {
@@ -2093,7 +2093,7 @@ void PlSetDamage(int type, int dmg, int flag)
         if (type == 8) {
             type = 7;
         }
-        if (pG->flags_68 & 0x800000) {
+        if (pG->Debug_flg[2] & 0x800000) {
             HSet(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
@@ -2103,7 +2103,7 @@ void PlSetDamage(int type, int dmg, int flag)
             }
         }
     }
-    if ((s16) pG->pl_life <= 1 && (pG->flags_6C & 0x400)) {
+    if ((s16) pG->pl_life <= 1 && (pG->Debug_flg[3] & 0x400)) {
         HSet(pG->pl_life, 2);
         if (type == 6) {
             type = 2;
@@ -2177,7 +2177,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     int ret;
     f32 dy;
 
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if ((s16) pG->pl_life <= 0) {
@@ -2397,7 +2397,7 @@ EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     cModel* parts;
     EmHitInfo* part;
 
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if (pSUB == 0) {
@@ -2873,7 +2873,7 @@ void GetDropBullet(int* id, int* num)
         n = ItemMgr.bulletNumTotal(4);
         r = Rnd() % 100;
         if (r > 0x28) {
-            if (pG->x8354 == 1) {
+            if (pG->game_mode == 1) {
                 if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
                     if (Rnd() % 10 > 4) {
                         i = 0x18;
@@ -3310,10 +3310,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
         return 1;
     }
     lim = 1;
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         lim = 3;
     }
-    if (pG->x4F88 > 7) {
+    if (pG->Game_level > 7) {
         lim = 0;
     }
     if ((u32) recov <= lim) {

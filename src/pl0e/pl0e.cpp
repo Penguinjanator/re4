@@ -696,7 +696,7 @@ void pl0eRideActEvtCk(cPl0e* em)
 {
     u8 unused[6];   // the original frame has 8 unused bytes (a BLKmode local nothing references)
 
-    if (!(pG->flags_5010 & 0x00200000)) {
+    if (!(pG->Status_flg[1] & 0x00200000)) {
         if (!(fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > PI / 4)) {
             fabsf(em->pos.y - pPL->pos.y);
         }
@@ -767,7 +767,7 @@ static void PlBoatMove(cPlayer* pl)
         return;
     }
     SubScreenWait(0xF);
-    pG->flags_5010 |= 0x00200000;
+    pG->Status_flg[1] |= 0x00200000;
     PlSetNeck(2);
     pl->atari.m_flag &= 0xFCFF;
     pl->dmType = 0x1E;

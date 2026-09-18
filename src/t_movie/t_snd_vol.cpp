@@ -565,7 +565,7 @@ static void data_select()
     for (i = 0; i < 8; i++) {
         for (j = 0; j < 4; j++) {
             if (i * 4 + j == work->cur) {
-                col = cursorCol[pG->flags_51E4 & 0xF];
+                col = cursorCol[pG->Frame_cnt & 0xF];
             } else {
                 col = 0xFFFFFFFF;
             }
@@ -1184,7 +1184,7 @@ static void edit_reverb_param()
 
     // DPL2 panel
     if (work->x29 == 0) {
-        col = cursorCol[pG->flags_51E4 % 15];
+        col = cursorCol[pG->Frame_cnt % 15];
         active = 1;
     } else {
         col = 0xFFFFFFFF;
@@ -1222,7 +1222,7 @@ static void edit_reverb_param()
 
     // stereo panel
     if (work->x29 == 1) {
-        col = cursorCol[pG->flags_51E4 % 15];
+        col = cursorCol[pG->Frame_cnt % 15];
         active = 1;
     } else {
         col = 0xFFFFFFFF;
@@ -1231,7 +1231,7 @@ static void edit_reverb_param()
     {
         u32 c;
         if (work->x29 == 1) {
-            c = cursorCol[pG->flags_51E4 % 15];
+            c = cursorCol[pG->Frame_cnt % 15];
         } else {
             c = 0xFFFFFFFF;
         }
@@ -1309,7 +1309,7 @@ void combine_tbl_disp(CombSel* sel)
                 col[j] = 0xFFFFFFFF;
                 c[j] = 0;
                 if (work->sub == 1 && work->x29 == i && work->efxCur[i] == j) {
-                    col[j] = cursorCol[pG->flags_51E4 % 15];
+                    col[j] = cursorCol[pG->Frame_cnt % 15];
                     c[j] = 6;
                 }
             }

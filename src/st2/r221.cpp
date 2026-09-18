@@ -135,7 +135,7 @@ static void r221_appearBoss2nd()
 
     em.setPtr(0x8C, -1, 0);
     em.setFlag(1);
-    pG->flags_174 |= 0x00200000;
+    pG->Room_flg[0] |= 0x00200000;
     SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
@@ -169,12 +169,12 @@ void r221_checkShutterOpen()
     u32 i;
 
     em.setPtr(0x8C, -1, 1);
-    if (!((pG->flags_174 & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0)) {
+    if (!((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0)) {
         i = 0;
         do {
             SceDebugDisp("SHT[%d]", 1800 - i);
             em.setPtr(0x8C, -1, 1);
-            if ((pG->flags_174 & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
+            if ((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
                 SceSleep(30);
                 break;
             }
@@ -197,9 +197,9 @@ static void r221_checkShutter_end()
 {
     int i;
 
-    if ((pG->flags_174 & 0x00400000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+    if ((pG->Room_flg[0] & 0x00400000) && RsfCheck(G_ROOM_ID, 3) == 0) {
         RsfSet(G_ROOM_ID, 3);
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         SceEventStart(0);
         r221_checkBossAppear_end();
     }
@@ -584,8 +584,8 @@ static void r221_checkElevatorArrive_end()
 {
     int i;
 
-    if (pG->flags_174 & 0x20000000) {
-        if (!(pG->flags_174 & 0x02000000)) {
+    if (pG->Room_flg[0] & 0x20000000) {
+        if (!(pG->Room_flg[0] & 0x02000000)) {
             r221_setElevatorEff(8);
         }
         cObj* o = SmdGetObjPtr(0x41);
@@ -644,7 +644,7 @@ static void r221_checkElevatorArrive()
         }
         cEmWrap em;
         em.setPtr(0x8C, -1, 1);
-        if ((pG->flags_174 & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
+        if ((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
             u32 n = k + 1;
             u32 j;
             u32 m;
@@ -687,13 +687,13 @@ static void r221_checkElevatorArrive()
     PSetPrim(r221_work.p->wireTask, 0);
     U32Set(r221_work.p->doorSe, 0);
     U32Set(r221_work.p->elvSe1, 0);
-    pG->flags_174 &= ~0x02000000;
+    pG->Room_flg[0] &= ~0x02000000;
     SceSetEventCancel(1, (TaskFunc) r221_checkElevatorArrive_end, 0, 2, 1);
     SceEventStart(1);
     CamCtrl.CutCall(4);
     SceSleep(15);
     SndCall(6, 0xC, 0, 0, 0, 0);
-    pG->flags_174 |= 0x02000000;
+    pG->Room_flg[0] |= 0x02000000;
     r221_setElevatorEff(8);
     SceSleep(15);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -711,7 +711,7 @@ static void r221_checkElevatorArrive()
 // Task: the elevator switch.
 static void r221_operateElevator()
 {
-    if (!(pG->em_dead[5][4] & 0x00080000) && (pG->flags_174 & 0x00200000)) {
+    if (!(pG->em_dead[5][4] & 0x00080000) && (pG->Room_flg[0] & 0x00200000)) {
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
@@ -755,9 +755,9 @@ static void r221_checkBossAppear_end()
     em.setPtr(0x8C, -1, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     GamePointBossReset();
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         em.destroy();
         {
             int list = pG->em_list_no;
@@ -774,7 +774,7 @@ static void r221_checkBossAppear_end()
         S16Set(EM_LIST(0x8C)->rot[1], -0xBBB);
         em.setEm(0x8C, -1, 1, 1, 1);
         SceAtSetEmItem(em.getPtr(), 0x85);
-        if (!(pG->flags_174 & 0x01000000)) {
+        if (!(pG->Room_flg[0] & 0x01000000)) {
             SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
@@ -792,8 +792,8 @@ static void r221_checkBossAppear_end()
     SceAtPtr(3)->x38 |= 0x80;
     SceAtPtr(0x10)->x38 |= 0x80;
     em.setNoSuspend(0);
-    BitOn(pG->flags_174, 0x00800000);
-    BitOn(pG->flags_174, 0x00200000);
+    BitOn(pG->Room_flg[0], 0x00800000);
+    BitOn(pG->Room_flg[0], 0x00200000);
 }
 
 // Task: the boss appears.
@@ -816,12 +816,12 @@ static void r221_checkBossAppear()
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         RsfSet(G_ROOM_ID, 3);
-        pG->flags_174 &= ~0x01000000;
+        pG->Room_flg[0] &= ~0x01000000;
         SceSetEventCancel(1, (TaskFunc) r221_checkBossAppear_end, 0, 2, 1);
         SceEventStart(1);
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
         EstSet((int) em1.getPtr(), -1, 0, 0, 0x24, 1, 1, 2, (u32) em1.getPtr(), 0);
-        pG->flags_174 |= 0x01000000;
+        pG->Room_flg[0] |= 0x01000000;
         CamCtrl.clearAttachCamera();
         em1.setFlag(1);
         em1.setNoSuspend(1);
@@ -865,14 +865,14 @@ static void r221_checkSwitchboard_end()
 {
     int i;
 
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         r221_moveSwitchboardLever(1);
         r221_moveShutter(0, 1);
         r221_setShutterEff(0);
         if (r221_work.p->shutterSe) {
             SndStop(r221_work.p->shutterSe, 0);
         }
-        if (!(pG->flags_174 & 0x10000000)) {
+        if (!(pG->Room_flg[0] & 0x10000000)) {
             r221_work.p->wireTask2 = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
         }
         if (r221_work.p->elvSe0 == 0) {
@@ -882,10 +882,10 @@ static void r221_checkSwitchboard_end()
                 r221_work.p->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
             }
         }
-        if (!(pG->flags_174 & 0x08000000)) {
+        if (!(pG->Room_flg[0] & 0x08000000)) {
             r221_setElevatorEff(0);
         }
-        if (!(pG->flags_174 & 0x04000000)) {
+        if (!(pG->Room_flg[0] & 0x04000000)) {
             r221_setElevatorEff(1);
         }
     }
@@ -945,16 +945,16 @@ static void r221_checkSwitchboard()
     }
     ScePrim* wire = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
     PSetPrim(r221_work.p->wireTask2, wire);
-    pG->flags_174 |= 0x10000000;
+    pG->Room_flg[0] |= 0x10000000;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(4);
     r221_setElevatorEff(0);
-    pG->flags_174 |= 0x08000000;
+    pG->Room_flg[0] |= 0x08000000;
     SceSleep(15);
     r221_setElevatorEff(1);
-    pG->flags_174 |= 0x04000000;
+    pG->Room_flg[0] |= 0x04000000;
     SceMesSet(4, 0x30, 1, 0x64, R221_MES_Y);
     SceMesWait();
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -980,7 +980,7 @@ static void r221_appearBosstail()
         if (RsfCheck(G_ROOM_ID, 3)) {
             SceExit();
         }
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             break;
         }
         SceSleep(1);
@@ -1366,12 +1366,12 @@ static void r201_throwBonbe(int no)
     pPL->setNoSuspend(0);
     bonbe->setNoSuspend(0);
     SceEventEnd(0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     for (u32 j = 0; j < 300; j++) {
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             SceAtSetEnable(atNo, 0);
         }
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         SceSleep(1);
     }
     SceAtSetEnable(atNo, 0);

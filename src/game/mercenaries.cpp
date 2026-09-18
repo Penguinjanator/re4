@@ -500,7 +500,7 @@ int MercSysMoveMain(MercSysWork* wk)
     st[0] = 1;
     do {
         MercSysMoveScore(wk);
-        if (!(pG->flags_500C & 0x00100000)) {
+        if (!(pG->Status_flg[0] & 0x00100000)) {
             CountDown* cd = Cckpt.getCountDown();
             int end = 0;
 

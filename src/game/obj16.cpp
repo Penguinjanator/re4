@@ -410,7 +410,7 @@ void cObj16::move()
             setNoSuspend(0);
         }
     }
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         LightInfo.x50 = 4;
     } else {
         LightInfo.x50 = 2;

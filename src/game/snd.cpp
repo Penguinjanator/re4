@@ -82,7 +82,7 @@ static void sndCallErr(int blk, int no)
 {
     u32* p;
 
-    if (pG->flags_68 & 0x4) {
+    if (pG->Debug_flg[2] & 0x4) {
         pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
         return;
     }
@@ -726,7 +726,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     int ok = 1;
     int i;
 
-    if (RefU32(pG->flags_68) & 0x80000) {
+    if (RefU32(pG->Debug_flg[2]) & 0x80000) {
         return 0;
     }
     pan_calc = 1;
@@ -764,7 +764,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     pan = Snd_iss_get_sit_pan(blk, no);
     span = Snd_iss_get_sit_span(blk, no);
 
-    if (sit->srd_type == 1 || (pG->flags_500C & 0x40000)) {
+    if (sit->srd_type == 1 || (pG->Status_flg[0] & 0x40000)) {
         vol_calc = 0;
         curve_ok = 0;
         pan_calc = 0;
@@ -1095,7 +1095,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
     SndPlayWork* w;
     u32 smp = 0;
 
-    if (pG->flags_68 & 0x100000) {
+    if (pG->Debug_flg[2] & 0x100000) {
         return 0;
     }
     if (str_flag == 0) {
@@ -1188,7 +1188,7 @@ int SndStrReq(u32 id, int req, int time, int vol)
 {
     SndPlayWork* w;
 
-    if (pG->flags_68 & 0x100000) {
+    if (pG->Debug_flg[2] & 0x100000) {
         return 0;
     }
     w = getStrWork(id);
@@ -1324,7 +1324,7 @@ void SndWatcher()
     FlrAt* at;
     SndFlrAtBgm* b;
 
-    if (pG->flags_500C & 0x10000000) {
+    if (pG->Status_flg[0] & 0x10000000) {
         return;
     }
     if (!(pG->Stop_flg & 0x800)) {
@@ -1383,7 +1383,7 @@ void SndWatcher()
         }
     }
 
-    if (!(pG->flags_500C & 0x40000) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
+    if (!(pG->Status_flg[0] & 0x40000) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
         at = FlrAtCheck(2, &pPL->pos, 0xFF);
         if (at != NULL) {
             b = (SndFlrAtBgm*) &at->x44;
@@ -2490,10 +2490,10 @@ static void debug_mute_check()
     u32 off;
     u32 on;
 
-    if (pG->flags_68 & 0x80000) {
+    if (pG->Debug_flg[2] & 0x80000) {
         f = 1;
     }
-    if (pG->flags_68 & 0x100000) {
+    if (pG->Debug_flg[2] & 0x100000) {
         f |= 0x2;
     }
     {

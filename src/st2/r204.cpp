@@ -109,10 +109,10 @@ void R204Init()
     u32 i;
     u32 no;
 
-    BitOn(pG->flags_64, 0x20000);
-    if (pG->x4F9F == 1) {
+    BitOn(pG->Debug_flg[1], 0x20000);
+    if (pG->JumpPoint == 1) {
         U16Set(pG->room_id_prev, 0x205);
-        pG->x4F9E = 1;
+        pG->Part = 1;
     }
     wp = &r204_work.p;
 #line 98 "D:/Bio4/Prog/r204.cpp"
@@ -151,8 +151,8 @@ void R204Init()
     }
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
-    if ((pG->room_id_prev == 0x205 && pG->x4F9E == 1) || DebugTrg(1)) {
-        BitOn(pG->flags_51C0, 0x40000);
+    if ((pG->room_id_prev == 0x205 && pG->Part == 1) || DebugTrg(1)) {
+        BitOn(pG->Scenario_flg[0], 0x40000);
         readEmList(1);
         if (!RsfCheck(G_ROOM_ID, 1)) {
             SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -160,7 +160,7 @@ void R204Init()
         RsfSet(G_ROOM_ID, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (pG->room_id_prev == 0x205 && pG->x4F9E == 0) {
+        if (pG->room_id_prev == 0x205 && pG->Part == 0) {
             RsfSet(G_ROOM_ID, 2);
             for (no = 0x4A; no < 0x55; no++) {
                 u8* g = (u8*) pG + no * 0x20;
@@ -250,7 +250,7 @@ void R204Init()
             EmMgr.destroy(em1);
         }
     }
-    if (pG->flags_51C0 & 0x10000000) {
+    if (pG->Scenario_flg[0] & 0x10000000) {
         SceAtSetEnable(0x11, 0);
     }
     setTexRender();
@@ -308,8 +308,8 @@ void R204Main()
     u32 no;
 
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (!(pG->flags_174 & 0x80000000) && ((cEmBarred*) r204_work.p->barred[1])->ckOpen() == 1) {
-            BitOn(pG->flags_174, 0x80000000);
+        if (!(pG->Room_flg[0] & 0x80000000) && ((cEmBarred*) r204_work.p->barred[1])->ckOpen() == 1) {
+            BitOn(pG->Room_flg[0], 0x80000000);
             for (i = 0; i <= 10; i++) {
                 r204_work.p->em[i].setFindPL();
             }
@@ -321,18 +321,18 @@ void R204Main()
             r204_work.p->em[8].setGoto(&pos, 0xC);
             r204_work.p->em[9].setGoto(&pos, 0xC);
         }
-        if (!(pG->flags_174 & 0x40000000) && !RsfCheck(G_ROOM_ID, 2)) {
-            if (pG->sceat_x17C & 0x40000000) {
+        if (!(pG->Room_flg[0] & 0x40000000) && !RsfCheck(G_ROOM_ID, 2)) {
+            if (pG->Room_flg[2] & 0x40000000) {
                 SceDebugDisp("CNT[%d/%d]", r204_work.p->cnt2, 0x10E);
                 r204_work.p->cnt2++;
                 if (r204_work.p->cnt2 == 0x10E) {
-                    BitOn(pG->sceat_x17C, 0x80000000);
+                    BitOn(pG->Room_flg[2], 0x80000000);
                 }
             } else {
                 r204_work.p->cnt2 = 0;
             }
-            if (SceCkFindPL(0) == 1 || (pG->sceat_x17C & 0x80000000) || (pG->flags_500C & 0x800000)) {
-                BitOn(pG->flags_174, 0x40000000);
+            if (SceCkFindPL(0) == 1 || (pG->Room_flg[2] & 0x80000000) || (pG->Status_flg[0] & 0x800000)) {
+                BitOn(pG->Room_flg[0], 0x40000000);
                 RsfSet(G_ROOM_ID, 2);
                 r204_work.p->cnt = 1;
                 SndStrReq(r204_work.p->str, 4, 200, 0);
@@ -487,7 +487,7 @@ static void r204_first_cut()
         r204_work.p->em[i].setNoSuspend(1);
     }
     SceUpCutStart();
-    BitOff(pG->flags_5010, 0x10000000);
+    BitOff(pG->Status_flg[1], 0x10000000);
     BitOn(pG->Stop_flg, 0x10000000);
     KeyStop(0xEFCF0000ULL);
     SceSetEventCancel(1, (TaskFunc) r204_first_cut_exit, 0, -1, 0);
@@ -523,12 +523,12 @@ static void r204_nige_check()
                 }
             }
             pl = pPL;
-            if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->flags_174 & 0x08000000))) {
+            if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->Room_flg[0] & 0x08000000))) {
                 if (r204_work.p->cnt == 1) {
-                    BitOn(pG->flags_174, 0x08000000);
+                    BitOn(pG->Room_flg[0], 0x08000000);
                     SndStrReq(r204_work.p->str, 4, 200, 0);
                     SceUpCutStart();
-                    BitOff(pG->flags_5010, 0x10000000);
+                    BitOff(pG->Status_flg[1], 0x10000000);
                     pPL->dmg.set(0, 0x80);
                     BitOn(pG->Stop_flg, 0x10000000);
                     BitOn(pG->Disp_flg, 0x40000000);
@@ -545,9 +545,9 @@ static void r204_nige_check()
 
                     r204_work.p->em[7].setGoto(&p1, 8);
                     if (!(pG->Stop_flg & 0x10000000)) {
-                        BitOn(pG->flags_174, 0x08000000);
+                        BitOn(pG->Room_flg[0], 0x08000000);
                         SceUpCutStart();
-                        BitOff(pG->flags_5010, 0x10000000);
+                        BitOff(pG->Status_flg[1], 0x10000000);
                         pPL->dmg.set(0, 0x80);
                         BitOn(pG->Stop_flg, 0x10000000);
                         BitOn(pG->Disp_flg, 0x40000000);
@@ -570,10 +570,10 @@ static void r204_nige_check()
                         r204_work.p->em[7].setAng(pa);
                     }
                 }
-                if (r204_work.p->cnt == 0x87 && !(pG->flags_174 & 0x20000000)) {
+                if (r204_work.p->cnt == 0x87 && !(pG->Room_flg[0] & 0x20000000)) {
                     r204_work.p->em[7].setGoto(&p1, 1);
                 }
-                if (r204_work.p->cnt == 0x8C && (pG->flags_174 & 0x08000000)) {
+                if (r204_work.p->cnt == 0x8C && (pG->Room_flg[0] & 0x08000000)) {
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(0);
                     }
@@ -584,7 +584,7 @@ static void r204_nige_check()
                     SceUpCutEnd();
                 }
             }
-            if (!(pG->flags_174 & 0x20000000)) {
+            if (!(pG->Room_flg[0] & 0x20000000)) {
                 // The switch index is `cnt - 30` (19 nodes, root 0x52 = cnt 0x70): the tree compares
                 // the biased value and combine folds the root's EQ test back onto cnt.
                 switch (r204_work.p->cnt - 30) {
@@ -645,7 +645,7 @@ static void r204_nige_check()
                 }
             }
             if (alive != 0) {
-                if (!(pG->flags_174 & 0x20000000)) {
+                if (!(pG->Room_flg[0] & 0x20000000)) {
                     int far = 0;
 
                     for (u32 i = 0; i <= 10; i++) {
@@ -658,7 +658,7 @@ static void r204_nige_check()
                     }
                     if (r204_work.p->cnt > 0x12C) {
                         FSub(SmdGetObjPtr(0x39)->pos.y, 7.0666666f);
-                        if (!(pG->flags_174 & 0x20000000)) {
+                        if (!(pG->Room_flg[0] & 0x20000000)) {
                             if (SmdGetObjPtr(0x39)->pos.y < 1800.0f) {
                                 SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                             }
@@ -666,9 +666,9 @@ static void r204_nige_check()
                     }
                 }
             } else {
-                if (!(pG->flags_174 & 0x10000000)) {
-                    BitOn(pG->flags_174, 0x10000000);
-                    BitOn(pG->flags_174, 0x20000000);
+                if (!(pG->Room_flg[0] & 0x10000000)) {
+                    BitOn(pG->Room_flg[0], 0x10000000);
+                    BitOn(pG->Room_flg[0], 0x20000000);
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setGoto(&pPL->pos, 0xC);
                     }
@@ -676,7 +676,7 @@ static void r204_nige_check()
             }
             r204_work.p->cnt++;
         }
-        if (alive != 0 && !(pG->flags_174 & 0x20000000)) {
+        if (alive != 0 && !(pG->Room_flg[0] & 0x20000000)) {
             if (pPL->pos.y < 3000.0f && pPL->pos.z < -25000.0f) {
                 SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
             }
@@ -691,7 +691,7 @@ static void door5_close()
     u32 k;
     int cnt;
 
-    BitOn(pG->flags_174, 0x20000000);
+    BitOn(pG->Room_flg[0], 0x20000000);
     for (i = 0; i <= 10; i++) {
         if (r204_work.p->em[i].getPosZ() < -26000.0f) {
             r204_work.p->em[i].setNoSuspend(1);
@@ -945,13 +945,13 @@ static void r204_EventExec()
 {
     if (!RsfCheck(G_ROOM_ID, 0)) {
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->flags_51C0, 0x40000);
+        BitOn(pG->Scenario_flg[0], 0x40000);
         SndRoomStrVolSet(1, 200);
         EvtMgr.EvtReadExec("event/evd/r204s00.evd", 0x14, 0x10);
         SndRoomStrVolReset(500);
         if (pSubEm != 0) {
             EmMgr.destroy(pSubEm);
-            BitOff(pG->flags_5018, 0x04000000);
+            BitOff(pG->Status_flg[3], 0x04000000);
         }
         SceSetChapterEnd(CHAPTER_3_1, -1);
         r204_openTerm();

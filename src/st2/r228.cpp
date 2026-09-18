@@ -114,7 +114,7 @@ static void r228_execSalazarNeckDown()
     em1.setPtr(0x28, -1, 1);
     SceSleep(45);
     SceEventStart(1);
-    pG->flags_5014 |= 0x02000000;
+    pG->Status_flg[2] |= 0x02000000;
     em0.setNoSuspend(1);
     em1.setNoSuspend(1);
     CamCtrl.CutCall(0xE);
@@ -124,7 +124,7 @@ static void r228_execSalazarNeckDown()
     em0.setNoSuspend(0);
     em1.setNoSuspend(0);
     CamCtrl.Comeback(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     SceEventEnd(0);
     r228_work.p->se = 0;
 }
@@ -240,9 +240,9 @@ static void r228_execEvent00()
     RsfSet(G_ROOM_ID, 0);
     SceEventStart(0);
     EvtMgr.EvtReadExec("event/evd/r228s00.evd", 0, 0);
-    if ((int) pG->flags_174 >= 0) {
+    if ((int) pG->Room_flg[0] >= 0) {
         EvtMgr.EvtReadExec("event/evd/r228s01.evd", 0, 0);
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             EvtMgr.EvtReadExec("event/evd/r228s02.evd", 0, 0);
         }
     }
@@ -337,7 +337,7 @@ void r228_initEvent00()
 // The effect setup shared by the three events (funcMode 0).
 static inline void r228_evtEffectSet()
 {
-    if (pG->flags_60 & 0x02000000) {
+    if (pG->Debug_flg[0] & 0x02000000) {
         EffectDeleteAll();
         SstSet(1, 0xFFFF, 1, 0, 0x2F, 1);
         EspGenSetMoveLoop(200);
@@ -365,7 +365,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
             }
             if (e->NowFrame == 1) {
                 EvtMgr.EvtReadAram("event/evd/r228s01.evd", 0, 0, 0, 0);
-                pG->flags_174 |= 0x00200000;
+                pG->Room_flg[0] |= 0x00200000;
             }
             break;
         case 2:
@@ -421,8 +421,8 @@ extern "C" void Evt_R228S00_Func(Event* e)
         SmdSetTrans(1, 1);
         break;
     case 3:
-        BitOn(pG->flags_174, 0x80000000);
-        if (pG->flags_174 & 0x00200000) {
+        BitOn(pG->Room_flg[0], 0x80000000);
+        if (pG->Room_flg[0] & 0x00200000) {
             EvtMgr.EvtFree("event/evd/r228s01.evd");
         }
         break;
@@ -448,7 +448,7 @@ extern "C" void Evt_R228S01_Func(Event* e)
             }
             if (e->NowFrame == 0) {
                 EvtMgr.EvtReadAram("event/evd/r228s02.evd", 0, 0, 0, 0);
-                pG->flags_174 |= 0x00100000;
+                pG->Room_flg[0] |= 0x00100000;
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
@@ -469,8 +469,8 @@ extern "C" void Evt_R228S01_Func(Event* e)
         SmdSetTrans(1, 1);
         break;
     case 3:
-        BitOn(pG->flags_174, 0x80000000);
-        if (pG->flags_174 & 0x00100000) {
+        BitOn(pG->Room_flg[0], 0x80000000);
+        if (pG->Room_flg[0] & 0x00100000) {
             EvtMgr.EvtFree("event/evd/r228s02.evd");
         }
         break;

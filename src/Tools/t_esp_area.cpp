@@ -112,7 +112,7 @@ int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     } else {
         eprintf(0xAA, 0xB0, 0, 0, "          OFF");
     }
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     rep = Joy[0].rep;
@@ -185,7 +185,7 @@ void OptionExec()
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
     }
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     rep = Joy[0].rep;
@@ -317,7 +317,7 @@ void ToolEspArea()
         }
         TaskSleep(1);
     }
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     tEspAreaExit();
     TutilQuitDefault();
     TaskExit();
@@ -337,7 +337,7 @@ void tEspAreaInit()
     BitOn(pG->Disp_flg, 0x04000000);
     BitOn(pG->Disp_flg, 0x02000000);
     BitOn(pG->Disp_flg, 0x00100000);
-    BitOn(pG->flags_60, 0x10000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
     CamDbg.m_target_type = 4;
     Block.dispAllBlock(1);
 }
@@ -357,7 +357,7 @@ void tEspAreaExit()
     BitOff(pG->Disp_flg, 0x02000000);
     BitOff(pG->Disp_flg, 0x00100000);
     BitOff(pG->Disp_flg, 0x00004000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)
         volatile debugCamera* c = &CamDbg;

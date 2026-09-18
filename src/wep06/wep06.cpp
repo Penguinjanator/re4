@@ -93,7 +93,7 @@ void cObjGovernment::moveFire()
         }
         SndCall(2, 2, &pos, 0, 0, 0);
         zero = 0;
-        BitOn(pG->flags_500C, 0x00800000);
+        BitOn(pG->Status_flg[0], 0x00800000);
         MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         EstSet((int) this, -1, 0, 0, 0x3A, 0, 0, 0xA, zero, 0);

@@ -1091,7 +1091,7 @@ static void em2b_R1_Wait(cEm2b* em)
             EmRoutineSet(em, 1, 2, 0, 0xA);
             return;
         }
-        if ((pG->flags_5010 & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+        if ((pG->Status_flg[1] & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->Dash_wait = 30;
         }
         if (em->plDist2 > 25000000.0f) {
@@ -1187,7 +1187,7 @@ static void em2b_R1_Walk(cEm2b* em)
         if (em->plDist2 > 225000000.0f) {
             spd = 2;
         }
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             spd = 0;
         }
         if (w->pTree) {
@@ -1867,28 +1867,28 @@ static inline void em2bHouseFlagSet(Em2bEmi* h)
     if (h->state == 0) {
         switch (h->no) {
         case 0:
-            U32Or(pG->flags_174, 0x80000000);
-            U32Or(pG->flags_174, 0x10000000);
+            U32Or(pG->Room_flg[0], 0x80000000);
+            U32Or(pG->Room_flg[0], 0x10000000);
             break;
         case 1:
-            U32Or(pG->flags_174, 0x40000000);
-            U32Or(pG->flags_174, 0x08000000);
+            U32Or(pG->Room_flg[0], 0x40000000);
+            U32Or(pG->Room_flg[0], 0x08000000);
             break;
         case 2:
-            U32Or(pG->flags_174, 0x20000000);
-            U32Or(pG->flags_174, 0x04000000);
+            U32Or(pG->Room_flg[0], 0x20000000);
+            U32Or(pG->Room_flg[0], 0x04000000);
             break;
         }
     } else {
         switch (h->no) {
         case 0:
-            U32Or(pG->flags_174, 0x80000000);
+            U32Or(pG->Room_flg[0], 0x80000000);
             break;
         case 1:
-            U32Or(pG->flags_174, 0x40000000);
+            U32Or(pG->Room_flg[0], 0x40000000);
             break;
         case 2:
-            U32Or(pG->flags_174, 0x20000000);
+            U32Or(pG->Room_flg[0], 0x20000000);
             break;
         }
     }
@@ -2039,13 +2039,13 @@ static void em2b_R1_HouseBreak(cEm2b* em)
             if (w->pHouse) {
                 switch (w->pHouse->no) {
                 case 0:
-                    U32Or(pG->flags_174, 0x10000000);
+                    U32Or(pG->Room_flg[0], 0x10000000);
                     break;
                 case 1:
-                    U32Or(pG->flags_174, 0x08000000);
+                    U32Or(pG->Room_flg[0], 0x08000000);
                     break;
                 case 2:
-                    U32Or(pG->flags_174, 0x04000000);
+                    U32Or(pG->Room_flg[0], 0x04000000);
                     break;
                 }
                 w->pHouse->state = 1;
@@ -2452,10 +2452,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         PlGachaInit();
         w->Timer = 70;
         w->Timer2 = 0;
-        pGS->flags_5010 |= 0x10000000;
+        pGS->Status_flg[1] |= 0x10000000;
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
         GameAddPoint(LVADD_PL_DAMAGE);
         em->r_no_2++;
     case 1:
@@ -2498,10 +2498,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         MotionSetCore(em, &em->Motion, ARC(0x3A), (int) ARC(0x7D), 10, flip, 0);
         EstSet((int) em, -1, 0, 0, w->espKind2, 0x10, 0, 0, (u32) em, 0);
         w->Total_damage += 200;
-        pGS->flags_5010 &= ~0x10000000;
+        pGS->Status_flg[1] &= ~0x10000000;
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
         AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         w->Timer = 60;
         em->r_no_2++;
@@ -2521,10 +2521,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         MotionSetCore(em, &em->Motion, ARC(0x3B), (int) ARC(0x7E), 10, flip, 0);
         EstSet((int) em, -1, 0, 0, w->espKind2, 0x23, 0, 0, (u32) em, 0);
         AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
-        pG->flags_5010 &= ~0x10000000;
+        pG->Status_flg[1] &= ~0x10000000;
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
         em->r_no_2++;
     }
     case 5:
@@ -2538,7 +2538,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 static void plem2b_CatchHand(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pGS->flags_5010 |= 0x8000;
+    pGS->Status_flg[1] |= 0x8000;
     pl->dmType = 2;
     switch (pl->r_no_2) {
     case 0:
@@ -2584,7 +2584,7 @@ static void plem2b_CatchHand(cPlayer* pl)
 // Strangled player: follows the giant's step (xFE), the button mash blends the struggle motion.
 static void plem2b_Strangle(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmType = 2;
     switch (pl->r_no_2) {
@@ -2757,7 +2757,7 @@ static void subem2b_CatchHand(cSubChar* sub)
 
     s->subArc = PL_EM(s)->subArc;
     s->dmType = 2;
-    pGS->flags_5014 |= 0x20000000;
+    pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0:
         s->atari.m_flag &= 0xFCFF;
@@ -2801,7 +2801,7 @@ static void subem2b_Catch(cSubChar* sub)
 {
     cSubChar* s = pSUB;
 
-    pG->flags_5014 |= 0x20000000;
+    pG->Status_flg[2] |= 0x20000000;
     s->subArc = PL_EM(s)->subArc;
     s->dmType = 2;
     switch (s->r_no_2) {
@@ -2854,7 +2854,7 @@ static void subem2b_CatchEnd(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->subArc = PL_EM(s)->subArc;
-    pGS->flags_5014 |= 0x20000000;
+    pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0: {
         Vec v;
@@ -2949,7 +2949,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0xE6), (int) ARC(0xE7), 0, 1, 0);
         MotionMoveF(em, 0);
-        if ((s32) pG->flags_174 >= 0) {
+        if ((s32) pG->Room_flg[0] >= 0) {
             em->r_no_2 = 4;
             break;
         }
@@ -3042,7 +3042,7 @@ static void plem2bDmFall(cPlayer* pl)
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         if (pl->x3E4) {
             pl->x3E4--;
-            pGS->flags_174 |= 0x20000000;
+            pGS->Room_flg[0] |= 0x20000000;
         }
         if (pl->x3E0) {
             pl->x3E0--;
@@ -3276,26 +3276,26 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
         }
         w->mode = 0;
         w->Timer = 45;
-        if (pGS->x4F88 <= 1) {
+        if (pGS->Game_level <= 1) {
             w->Timer = 30;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 40;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 50;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 55;
         }
         w->Button_mode = Rnd() & 1;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Button_mode = 0;
         }
-        pGS->flags_5010 |= 0x10000000;
+        pGS->Status_flg[1] |= 0x10000000;
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
         em->r_no_2++;
     }
     case 1:
@@ -3351,10 +3351,10 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
         w->Timer = 15;
         EstSet((int) em, -1, 0, 0, w->espKind2, 0xB, 0, 0, (u32) em, 0);
         w->mode = 0;
-        pGS->flags_5010 &= ~0x10000000;
+        pGS->Status_flg[1] &= ~0x10000000;
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
         em->r_no_2++;
     case 7:
         if (w->Timer) {
@@ -3398,10 +3398,10 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
             MotSetObj16(w->pParasite, ARC(0xDE), 0, 0);
         }
         w->Total_damage = 0;
-        pGS->flags_5010 &= ~0x10000000;
+        pGS->Status_flg[1] &= ~0x10000000;
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
         em->r_no_2++;
     case 9:
         if (MotionMoveF(em, 0)) {
@@ -3543,16 +3543,16 @@ static void plem2b_AtkParasite(cPlayer* pl)
         em2bParasiteAtkCamMove(PL_EM(pl));
         if (em2bParasiteBtnCk(w)) {
             lvl = 8;
-            if (pG->x4F88 <= 1) {
+            if (pG->Game_level <= 1) {
                 lvl = 12;
             }
-            if (pG->x4F88 <= 3) {
+            if (pG->Game_level <= 3) {
                 lvl = 10;
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 lvl = 6;
             }
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 lvl = 4;
             }
             pl->x3E0 += lvl;
@@ -4312,7 +4312,7 @@ static void subem2b_dm_Stamp(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->subArc = PL_EM(s)->subArc;
-    pGS->flags_5014 |= 0x20000000;
+    pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0:
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD5), 0, 0, 1, 0);
@@ -5062,19 +5062,19 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
         if ((pG->room_id32 & 0xFFFF0000) == 0x011E0000 && h->state == 0) {
             switch (h->no) {
             case 0:
-                U32Or(pG->flags_174, 0x20000000);
+                U32Or(pG->Room_flg[0], 0x20000000);
                 h->state = 3;
                 break;
             case 1:
-                U32Or(pG->flags_174, 0x10000000);
+                U32Or(pG->Room_flg[0], 0x10000000);
                 h->state = 3;
                 break;
             case 2:
-                U32Or(pG->flags_174, 0x80000000);
+                U32Or(pG->Room_flg[0], 0x80000000);
                 h->state = 3;
                 break;
             case 3:
-                U32Or(pG->flags_174, 0x40000000);
+                U32Or(pG->Room_flg[0], 0x40000000);
                 h->state = 3;
                 break;
             }
@@ -5155,22 +5155,22 @@ void em2bR11eScrBrkCk(cEm2b* em)
         switch (h->no) {
         case 0:
             if (w->HoseiCnt > 2) {
-                U32Or(pG->flags_174, 0x20000000);
+                U32Or(pG->Room_flg[0], 0x20000000);
                 h->state = 3;
             }
             break;
         case 1:
             if (w->HoseiCnt > 2) {
-                U32Or(pG->flags_174, 0x10000000);
+                U32Or(pG->Room_flg[0], 0x10000000);
                 h->state = 3;
             }
             break;
         case 2:
-            U32Or(pG->flags_174, 0x80000000);
+            U32Or(pG->Room_flg[0], 0x80000000);
             h->state = 3;
             break;
         case 3:
-            U32Or(pG->flags_174, 0x40000000);
+            U32Or(pG->Room_flg[0], 0x40000000);
             h->state = 3;
             break;
         }
@@ -5207,11 +5207,11 @@ void em2bR11eScrBrkCk2(cEm2b* em, Vec* pos, f32 rad)
         case 1:
             break;
         case 2:
-            U32Or(pG->flags_174, 0x80000000);
+            U32Or(pG->Room_flg[0], 0x80000000);
             h->state = 3;
             break;
         case 3:
-            U32Or(pG->flags_174, 0x40000000);
+            U32Or(pG->Room_flg[0], 0x40000000);
             h->state = 3;
             break;
         }
@@ -5245,19 +5245,19 @@ void em2bPlBlowAtkScrCk(cPlayer* pl)
         if ((pG->room_id32 & 0xFFFF0000) == 0x011E0000 && h->state == 0) {
             switch (h->no) {
             case 0:
-                U32Or(pG->flags_174, 0x20000000);
+                U32Or(pG->Room_flg[0], 0x20000000);
                 h->state = 3;
                 break;
             case 1:
-                U32Or(pG->flags_174, 0x10000000);
+                U32Or(pG->Room_flg[0], 0x10000000);
                 h->state = 3;
                 break;
             case 2:
-                U32Or(pG->flags_174, 0x80000000);
+                U32Or(pG->Room_flg[0], 0x80000000);
                 h->state = 3;
                 break;
             case 3:
-                U32Or(pG->flags_174, 0x40000000);
+                U32Or(pG->Room_flg[0], 0x40000000);
                 h->state = 3;
                 break;
             }
@@ -5526,7 +5526,7 @@ int em2bAtkRtnCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
 
-    if ((pG->flags_5010 & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+    if ((pG->Status_flg[1] & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
         if (em->plDist2 < 49000000.0f) {
             em2bThreatSet(em, w);
             return 1;
@@ -5589,7 +5589,7 @@ int em2bAtkRtnCk(cEm2b* em)
         if (pSUB) {
             dash = 0;
         }
-        if (pG->room_id == 0x224 && !(pG->flags_174 & 0x10000000)) {
+        if (pG->room_id == 0x224 && !(pG->Room_flg[0] & 0x10000000)) {
             dash = 0;
         }
         if (dash && em2bInScreenCk(em)) {
@@ -5604,7 +5604,7 @@ int em2bAtkRtnCk(cEm2b* em)
     }
     if (pSUB == 0) {
         if (w->Tree_brk_wait && w->targetAngAbs < 0.392699093f && w->targetDist > 30250000.0f && w->targetDist < 42250000.0f) {
-            if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+            if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
                 em2bThreatSet(em, w);
                 return 1;
             }
@@ -5619,13 +5619,13 @@ int em2bAtkRtnCk(cEm2b* em)
             }
             return 1;
         }
-        if (pSUB == 0 && w->targetAngAbs > 1.22173047f && w->targetDist < 16000000.0f && pG->x4F88 > 1) {
+        if (pSUB == 0 && w->targetAngAbs > 1.22173047f && w->targetDist < 16000000.0f && pG->Game_level > 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
             return 1;
         }
     }
     if (w->targetAngAbs < 0.392699093f && w->targetDist > 6250000.0f && w->targetDist < 12250000.0f) {
-        if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+        if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
             em2bThreatSet(em, w);
             return 1;
         }
@@ -5641,7 +5641,7 @@ int em2bAtkRtnCk(cEm2b* em)
         return 1;
     }
     if (w->targetAngAbs < 0.698131680f && w->targetDist < 9000000.0f) {
-        if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+        if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
             em2bThreatSet(em, w);
             return 1;
         }
@@ -5652,11 +5652,11 @@ int em2bAtkRtnCk(cEm2b* em)
         }
         return 1;
     }
-    if (w->targetAngAbs > 2.09439516f && w->targetDist < 9000000.0f && pG->x4F88 > 1 && !em2bFriendCk(em)) {
+    if (w->targetAngAbs > 2.09439516f && w->targetDist < 9000000.0f && pG->Game_level > 1 && !em2bFriendCk(em)) {
         em2bRockOrKickSet(em, w);
         return 1;
     }
-    if (em2bPlRunCk(em) && pSUB == 0 && !(w->Be_flg & 0x80) && pG->x4F88 > 1) {
+    if (em2bPlRunCk(em) && pSUB == 0 && !(w->Be_flg & 0x80) && pG->Game_level > 1) {
         if (w->targetAngAbs < 0.628318548f && w->targetDist < 25000000.0f) {
             EmRoutineSet(em, 1, 9, 0, 0);
             return 1;
@@ -5849,7 +5849,7 @@ int em2bPlRunCk(cEm2b* em)
     if (pPL->r_no_1 != 3) {
         return 0;
     }
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         return 0;
     }
     if (em2bFriendCk(em)) {
@@ -6357,7 +6357,7 @@ int cEm2b::ckR224Drop()
     if (dist > 64000000.0f) {
         return 0;
     }
-    if ((int) pG->flags_174 >= 0) {
+    if ((int) pG->Room_flg[0] >= 0) {
         return 0;
     }
     if (dist > 25000000.0f) {

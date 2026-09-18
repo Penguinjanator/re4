@@ -537,16 +537,16 @@ static void em3a_R1_Patrol(cEm3a* em)
 static inline void em3aSetAtkTimer(Em3aWork* w)
 {
     IntSet(w->timer, 46);
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         IntSet(w->timer, 76);
     }
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         IntSet(w->timer, 61);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         IntSet(w->timer, 31);
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         IntSet(w->timer, 16);
     }
 }
@@ -1147,7 +1147,7 @@ static void em3a_R1_B_Move(cEm3a* em)
             SndCall(8, 3, &em->pos, em->id, 0, em);
             EstSet((int) em, -1, 0, 0, 2, 0x12, 0, 0, (u32) em, 0);
         }
-        rank = pG->x4F88;
+        rank = pG->Game_level;
         lim = 76;
         if (rank <= 3) {
             lim = 91;
@@ -1426,10 +1426,10 @@ int em3aFindPLCk(cEm3a* em)
     if (em3aDeadCk(em)) {
         return 1;
     }
-    if ((pG->flags_500C & 0x00800000) && em->plDist2 < 225000000.0f) {
+    if ((pG->Status_flg[0] & 0x00800000) && em->plDist2 < 225000000.0f) {
         return 1;
     }
-    if ((pG->flags_5010 & 0x20000000) && pG->bell_stat == 2) {
+    if ((pG->Status_flg[1] & 0x20000000) && pG->bell_stat == 2) {
         if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x)
                 + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
                 + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)

@@ -758,7 +758,7 @@ void cCard::loadMain()
         memcpy(SD->p14, buf + SAVE_SSCRN, SscrnDataSize());
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
-        GameSaveSave(&GameSave, pSaveData, pG->game_mode);
+        GameSaveSave(&GameSave, pSaveData, pG->SaveKind);
         BitOn(pG->CardStatus, 4);
         BitOff(pG->System_flg, 0x200);
         setMsgWindow(1, 0);
@@ -3588,7 +3588,7 @@ void CardID::save(cCard* pCard)
 void CardID::quit()
 {
     m_IdSave.free();
-    if (!(pG->flags_5014 & 0x8000)) {
+    if (!(pG->Status_flg[2] & 0x8000)) {
         Cckpt.roomInit();
     }
 }

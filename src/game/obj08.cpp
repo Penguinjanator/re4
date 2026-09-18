@@ -300,7 +300,7 @@ int obj08ToEmHitCk(cObj08* obj)
     obj08HitBox[6].z = len;
     obj08HitBox[7].z = len;
     BoxWorldCalc(obj08HitBox, box, &obj->pos_old, &ang);
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_box(box, 0x20FFFFFF, 0);
     }
     n = GetWepTargetList(box, &obj->pos, list, 3, (u16) w->atkFlags);

@@ -87,7 +87,7 @@ void R11bInit()
     int one = 1;     // COMPILER-DIFF: #13 (single use: update_equiv_regs moves the li next to the store)
 
     BitOn(pG->System_flg, 0x800);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
@@ -99,7 +99,7 @@ void R11bInit()
     // original's `lwz r9; ... lwz r9`); without it the first load gets r11.
     asm("" : "=m"(rot2.x));
     BitOn(pG->Item_find_flg, 2);
-    BitOn(pG->flags_51C0, 0x01000000);
+    BitOn(pG->Scenario_flg[0], 0x01000000);
     BitOff(pG->door_flags_51CC, 0x8000);
     BitOff(pG->door_flags_51CC, 0x200);
     BitOff(pG->door_flags_51CC, 0x10);
@@ -110,7 +110,7 @@ void R11bInit()
     EvtMgr.SetFunc("evt_r11bs00_func", (void*) Evt_R11BS00_Func);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
     EstSet((int) pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
-    BitOn(pG->flags_5010, 0x400);
+    BitOn(pG->Status_flg[1], 0x400);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -390,12 +390,12 @@ static void R11b_Event()
     if (pG->System_flg & 0x40) {
         seen = 1;
     }
-    BitOn(pG->flags_5010, 0x800);
+    BitOn(pG->Status_flg[1], 0x800);
     if (!(pG->System_flg & 0x40)) {
         EvtMgr.EvtReadExec("event/evd/r11bs00.evd", 0, 4);
     }
     BitOff(pG->System_flg, 0x400);
-    BitOff(pG->flags_5010, 0x800);
+    BitOff(pG->Status_flg[1], 0x800);
     SndBgmTblSet(0x11B, 1);
     SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (seen == 0) {
@@ -433,7 +433,7 @@ static void r11b_str_check()
             if (n == 0) {
                 break;
             }
-            if (pG->flags_5010 & 0x00200000) {
+            if (pG->Status_flg[1] & 0x00200000) {
                 break;
             }
             SceSleep(1);
@@ -606,12 +606,12 @@ static void r11b_bort_pos_chk()
 {
     int riding = 0;
 
-    if (pG->flags_5010 & 0x00200000) {
+    if (pG->Status_flg[1] & 0x00200000) {
         riding = 1;
     }
     for (;;) {
         if (riding) {
-            if (!(pG->flags_5010 & 0x00200000)) {
+            if (!(pG->Status_flg[1] & 0x00200000)) {
                 Vec pos = r11b_work.p->boat->pos;
                 Vec pierA = {-49902.0f, -700.0f, 22743.0f};
                 Vec pierB = {126064.0f, -700.0f, 148628.0f};
@@ -627,7 +627,7 @@ static void r11b_bort_pos_chk()
                     RsfClear(G_ROOM_ID, 2);
                 }
             }
-        } else if (pG->flags_5010 & 0x00200000) {
+        } else if (pG->Status_flg[1] & 0x00200000) {
             riding = 1;
         }
         SceSleep(1);

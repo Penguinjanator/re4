@@ -182,7 +182,7 @@ void Filter06Trans()
     if (flt06.num == 0) {
         return;
     }
-    if (pG->flags_5010 & 0x02000000) {
+    if (pG->Status_flg[1] & 0x02000000) {
         return;
     }
     PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &cam_vec_LR);

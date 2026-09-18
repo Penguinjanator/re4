@@ -499,7 +499,7 @@ void emset_gatling(int no)
     if (em.isActive()) {
         em.setFindPL();
     }
-    if ((int) pG->sceat_x180 < 0) {
+    if ((int) pG->Room_flg[3] < 0) {
         l = EM_LIST(0x89);
     } else {
         l = EM_LIST(0x8A);
@@ -522,10 +522,10 @@ void R403Main()
     SceDebugDisp("");
     SceDebugDisp("");
     SceDebugDisp("");
-    if (!(pG->flags_500C & 0x1000)) {
-        if (r403_work.p->timer == 1 && (int) pG->flags_174 >= 0) {
+    if (!(pG->Status_flg[0] & 0x1000)) {
+        if (r403_work.p->timer == 1 && (int) pG->Room_flg[0] >= 0) {
             U32Set(r403_work.p->base, r403_work.p->cnt);
-            pG->flags_174 |= 0x80000000;
+            pG->Room_flg[0] |= 0x80000000;
         }
         r403_work.p->timer++;
         if (r403_work.p->timer > 300) {
@@ -535,84 +535,84 @@ void R403Main()
         r403_work.p->cnt = SceCountEmAlive(0x10, 0x20);
         SceDebugDisp("EM_NUM[%d/%d]", r403_work.p->cnt, r403_work.p->base);
         if (r403_work.p->timer > 1800) {
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 reset_40();
             }
         }
-        if (pG->sceat_x17C & 0x40000000) {
+        if (pG->Room_flg[2] & 0x40000000) {
             reset_41();
         }
-        if (pG->sceat_x17C & 0x20000000) {
+        if (pG->Room_flg[2] & 0x20000000) {
             reset_42();
         }
-        if (pG->sceat_x17C & 0x10000000) {
+        if (pG->Room_flg[2] & 0x10000000) {
             reset_43();
         }
-        if (pG->sceat_x17C & 0x08000000) {
+        if (pG->Room_flg[2] & 0x08000000) {
             reset_44();
         }
-        if (pG->sceat_x17C & 0x04000000) {
+        if (pG->Room_flg[2] & 0x04000000) {
             reset_45();
         }
-        if (pG->sceat_x17C & 0x02000000) {
+        if (pG->Room_flg[2] & 0x02000000) {
             reset_46();
         }
-        if (pG->sceat_x17C & 0x01000000) {
+        if (pG->Room_flg[2] & 0x01000000) {
             reset_47();
         }
-        if (pG->sceat_x17C & 0x00800000) {
+        if (pG->Room_flg[2] & 0x00800000) {
             reset_48();
         }
-        if (pG->sceat_x17C & 0x00400000) {
+        if (pG->Room_flg[2] & 0x00400000) {
             reset_49();
         }
-        if (pG->sceat_x17C & 0x00200000) {
+        if (pG->Room_flg[2] & 0x00200000) {
             reset_4a();
         }
-        if (pG->sceat_x17C & 0x00100000) {
+        if (pG->Room_flg[2] & 0x00100000) {
             reset_4b();
         }
-        if (pG->sceat_x17C & 0x00080000) {
+        if (pG->Room_flg[2] & 0x00080000) {
             reset_4c();
         }
-        if (pG->sceat_x17C & 0x00040000) {
+        if (pG->Room_flg[2] & 0x00040000) {
             reset_4d();
         }
-        if (pG->sceat_x17C & 0x00020000) {
+        if (pG->Room_flg[2] & 0x00020000) {
             reset_4e();
         }
-        if (pG->sceat_x17C & 0x00010000) {
+        if (pG->Room_flg[2] & 0x00010000) {
             reset_4f();
         }
         if (r403_work.p->timer > 1800) {
-            if (pG->sceat_x17C & 0x8000) {
+            if (pG->Room_flg[2] & 0x8000) {
                 reset_50();
             }
         }
-        if (pG->sceat_x17C & 0x4000) {
+        if (pG->Room_flg[2] & 0x4000) {
             reset_51();
         }
-        if (pG->sceat_x17C & 0x2000) {
+        if (pG->Room_flg[2] & 0x2000) {
             reset_52();
         }
-        if (pG->sceat_x17C & 0x1000) {
+        if (pG->Room_flg[2] & 0x1000) {
             reset_53();
         }
-        if (pG->sceat_x17C & 0x800) {
+        if (pG->Room_flg[2] & 0x800) {
             reset_54();
         }
-        if (pG->sceat_x17C & 0x400) {
+        if (pG->Room_flg[2] & 0x400) {
             reset_55();
         }
         if (r403_work.p->base != 0 && r403_work.p->base - r403_work.p->cnt > 19) {
-            if (!(pG->flags_174 & 0x40000000)) {
-                pG->flags_174 |= 0x40000000;
+            if (!(pG->Room_flg[0] & 0x40000000)) {
+                pG->Room_flg[0] |= 0x40000000;
                 emset_gatling(0x89);
             }
         }
         if (r403_work.p->base != 0 && r403_work.p->base - r403_work.p->cnt > 44) {
-            if (!(pG->flags_174 & 0x20000000)) {
-                pG->flags_174 |= 0x20000000;
+            if (!(pG->Room_flg[0] & 0x20000000)) {
+                pG->Room_flg[0] |= 0x20000000;
                 emset_gatling(0x8A);
             }
         }

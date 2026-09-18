@@ -419,7 +419,7 @@ void objMissileBomb(cObjMissile* obj, Vec* pos)
         w->pHit = 0;
     }
     if (G_ROOM_ID == 0x320) {
-        pG->flags_174 |= 0x80000000;
+        pG->Room_flg[0] |= 0x80000000;
     }
     obj->r_no_0 = 4;
     obj->r_no_1 = 0;

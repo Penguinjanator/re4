@@ -21,8 +21,8 @@ void cActionButton::init()
 
     ClearOTagR(m_ot, 16);
     m_num = 0;
-    BitOff(pG->flags_500C, 0x4000);
-    BitOff(pG->flags_500C, 0x200000);
+    BitOff(pG->Status_flg[0], 0x4000);
+    BitOff(pG->Status_flg[0], 0x200000);
     stop = 1;
     if (!(pG->Stop_flg & 0x100)) {
         stop = 0;
@@ -37,7 +37,7 @@ void cActionButton::move()
 
     Cckpt.action.no = 0;
     m_active_flag = 0;
-    if ((pG->Stop_flg & 0x100) || (pG->flags_500C & 0x100000) || m_stop_flag_old) {
+    if ((pG->Stop_flg & 0x100) || (pG->Status_flg[0] & 0x100000) || m_stop_flag_old) {
         init();
         return;
     }
@@ -164,7 +164,7 @@ int cActionButton::checkButton(ActBtnWork* w)
                     }
                     break;
                 }
-                if (pG->flags_500C & 0x4000) {
+                if (pG->Status_flg[0] & 0x4000) {
                     return 1;
                 }
                 break;
@@ -191,7 +191,7 @@ int cActionButton::checkButton(ActBtnWork* w)
                 }
                 return 1;
             }
-            if (!(pG->flags_500C & 0x4000)) {
+            if (!(pG->Status_flg[0] & 0x4000)) {
                 break;
             }
             key = trg;
@@ -299,7 +299,7 @@ int cActionButton::checkPLStatus(ActBtnWork* w)
             case 0xE:
                 if (PlGetStatus() & 0x10) {
                     if (w->flags & 1) {
-                        BitOn(pG->flags_500C, 0x200000);
+                        BitOn(pG->Status_flg[0], 0x200000);
                         return 1;
                     }
                     return 0;
@@ -349,7 +349,7 @@ void cActionButton::set(int kind, int slot, int func, int arg, int flags, int bt
     case 4:
     case 0xE:
         if (w->flags & 1) {
-            BitOn(pG->flags_500C, 0x200000);
+            BitOn(pG->Status_flg[0], 0x200000);
         }
         break;
     }

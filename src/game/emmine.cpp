@@ -1156,8 +1156,8 @@ void cEmMine::setBomb()
     EffectEspDelete(0, w->EffKindId, this, 0);
     EffectEspgenDelete(0, w->EffKindId, this);
     EffectEfmDelete(0, w->EffKindId, this);
-    BitOn(pG->flags_500C, 0x800000);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[0], 0x800000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
     pG->bell_stat = 1;
     setLost();

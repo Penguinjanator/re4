@@ -544,7 +544,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 
 void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth)
 {
-    if (pG->flags_5010 & 0x200000) {
+    if (pG->Status_flg[1] & 0x200000) {
         pCloth->Move_rate = 0.9f;
     } else {
         pCloth->Move_rate = 0.5f;

@@ -17,7 +17,7 @@ extern "C" void bio4_AddBgColor();
 // by bio4_AddBgColor instead.
 void bio4_GXSetCopyClear(GXColor color, u32 z)
 {
-    pG->flags_5010 |= 0x40;
+    pG->Status_flg[1] |= 0x40;
     g_sysBgColor = color;
     GXSetCopyClear(clr_black, z);
 }
@@ -45,10 +45,10 @@ void bio4_AddBgColor()
     GXSetNumChans(1);
     GXSetNumTexGens(0);
 
-    if ((s32) pG->flags_60 >= 0) {
-        pG->flags_5010 &= ~0x40;
+    if ((s32) pG->Debug_flg[0] >= 0) {
+        pG->Status_flg[1] &= ~0x40;
     }
-    if (!(pG->flags_5010 & 0x40)) {
+    if (!(pG->Status_flg[1] & 0x40)) {
         cLightEnv* env = LightMgr.getEnvPtr();
         bg = env->bgColor;
         if (env->x8 == 0) {

@@ -26,9 +26,9 @@ void R10eInit()
 
     if (pG->room_id_prev == 0xFFF) {
         U16Set(pG->room_id_prev, 0x119);
-        BitOn(pG->flags_51C0, 0x01000000);
+        BitOn(pG->Scenario_flg[0], 0x01000000);
     }
-    if (!(pG->flags_51C0 & 0x01000000)) {
+    if (!(pG->Scenario_flg[0] & 0x01000000)) {
         SceAtSetEnable(1, 0);
     } else {
         SceAtSetEnable(0, 0);
@@ -36,10 +36,10 @@ void R10eInit()
             SceAtSetEnable(4, 0);
             SceAtSetEnable(5, 0);
             SceExec(0x12, (TaskFunc) R10e_door_set, 0, 0, SCE_PRIO_DEF_2, 0);
-            if (pG->x4F9E == 2) {
+            if (pG->Part == 2) {
                 RsfClear(G_ROOM_ID, 0);
                 EmSetFromList2(0x10, 1);
-            } else if (pG->x4F9E == 1) {
+            } else if (pG->Part == 1) {
                 RsfSet(G_ROOM_ID, 0);
                 EmSetFromList2(0xE, 1);
             } else {

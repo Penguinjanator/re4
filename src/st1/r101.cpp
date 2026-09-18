@@ -324,11 +324,11 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
 static inline void r101_startEvent30()
 {
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->flags_51C0, 0x08000000);
+    BitOff(pG->Scenario_flg[0], 0x08000000);
     BitOn(pG->door_flags_51CC, 0x200);
     BitOn(pG->door_flags_51CC, 0x20);
     SceExec(0x12, (TaskFunc) r101_Event30, 0, 0, SCE_PRIO_DEF_2, 0);
-    pG->flags_174 |= 0x10000000;
+    pG->Room_flg[0] |= 0x10000000;
 }
 
 // Counts the killed enemies: the two reset waves, then the bell after 15 / 18 kills or a time limit.
@@ -341,7 +341,7 @@ static void r101_checkEmNum()
     r101_work->emNum = SceCountEmAlive(0x10, 0x20);
     for (;;) {
         SceSleep(1);
-        if (pG->flags_174 & 0x10000000) {
+        if (pG->Room_flg[0] & 0x10000000) {
             continue;
         }
         alive = SceCountEmAlive(0x10, 0x20);
@@ -373,7 +373,7 @@ static void r101_checkEmNum()
             r101_startEvent30();
             return;
         }
-        if (pG->flags_500C & 0x1000) {
+        if (pG->Status_flg[0] & 0x1000) {
             continue;
         }
         cnt++;
@@ -407,7 +407,7 @@ static void r101_Event30_TitleCall()
     }
     id->setCommand(CMND_MRAM_LOAD, 0, 0);
     while (tex->isUseOk() != 1 || id->isUseOk() != 1) {
-        if (pG->flags_174 & 0x20000000) {
+        if (pG->Room_flg[0] & 0x20000000) {
             goto end;
         }
         SceSleep(1);
@@ -426,7 +426,7 @@ static void r101_Event30_TitleCall()
         if (frame > 1099) {
             break;
         }
-        if (pG->flags_174 & 0x20000000) {
+        if (pG->Room_flg[0] & 0x20000000) {
             goto end;
         }
         SceSleep(1);
@@ -435,7 +435,7 @@ static void r101_Event30_TitleCall()
     IdTexDataLoad(tex->m_addr, TEX_OWNER_ID_EVENT);
     IdSys.set(id->m_addr, 0xFF, 0x2C, 0x13, 6, 0);
     while (1) {
-        if (pG->flags_174 & 0x20000000) {
+        if (pG->Room_flg[0] & 0x20000000) {
             goto end;
         }
         SceSleep(1);
@@ -458,7 +458,7 @@ static void r101_Event30()
     cEm* ladder;
 
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->flags_51C0, 0x08000000);
+    BitOff(pG->Scenario_flg[0], 0x08000000);
     BitOn(pG->door_flags_51CC, 0x200);
     BitOn(pG->door_flags_51CC, 0x20);
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
@@ -501,7 +501,7 @@ static void r101_Event30()
             pG->System_flg &= ~0x400;
         }
     }
-    BitOn(pG->flags_174, 0x20000000);
+    BitOn(pG->Room_flg[0], 0x20000000);
     r101_work->evt30->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     SceAtDataReset(0);
@@ -563,7 +563,7 @@ static void r101_Event30()
             ((cObjLadder*) ladder)->setStand();
         }
     }
-    pG->flags_174 &= ~0x10000000;
+    pG->Room_flg[0] &= ~0x10000000;
     r101_execOperator();
 }
 
@@ -571,7 +571,7 @@ static void r101_Event30()
 static void r101_execOperator2()
 {
     OpeSetOpenTerm(0xC, 0.0f, 0.0f, 0.0f, 0.0f);
-    if (pG->x4F8E == 0) {
+    if (pG->game_cnt == 0) {
         FadeSetW(1, 0, 0, 0);
         SceAtExecute(0xAC);
     }
@@ -912,7 +912,7 @@ static void r101_FindPlayer2()
 extern "C" void r101_FindPlayer()
 {
     RsfSet(G_ROOM_ID, 6);
-    BitOn(pG->flags_51C0, 0x08000000);
+    BitOn(pG->Scenario_flg[0], 0x08000000);
     BitOff(pG->door_flags_51CC, 0x200);
     BitOff(pG->door_flags_51CC, 0x20);
     SceAtSetEnable(7, 0);

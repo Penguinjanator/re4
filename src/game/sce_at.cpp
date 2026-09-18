@@ -108,7 +108,7 @@ static inline void PSet(cModel*& d, cModel* v) { d = v; }
 
 static inline u32* eventFlags()
 {
-    return &pG->flags_174;
+    return &pG->Room_flg[0];
 }
 static inline u32* flags51BC()
 {
@@ -386,8 +386,8 @@ void SceAtSetExecFlg(u32 no)
 
 void SceAtWorkLoopInit()
 {
-    U32Set(pG->sceat_x17C, 0);
-    U32Set(pG->sceat_x180, 0);
+    U32Set(pG->Room_flg[2], 0);
+    U32Set(pG->Room_flg[3], 0);
     SceAtClearHitFlg();
     SceAtClearExecFlg();
 }
@@ -412,7 +412,7 @@ void SceAtCheck()
     cEm* em;
 
     if (SceAtCheckHideActive() == 1) {
-        if (!(pG->flags_500C & 0x00100000)) {
+        if (!(pG->Status_flg[0] & 0x00100000)) {
             SceAtCheckHideProc();
         }
     }
@@ -422,13 +422,13 @@ void SceAtCheck()
     }
     checkReleaseModelTbl();
     SceAtWorkLoopInit();
-    if (pG->flags_68 & 0x04000000) {
+    if (pG->Debug_flg[2] & 0x04000000) {
         return;
     }
     sceAtDebugDisp();
-    if ((s32) pG->flags_60 < 0) {
-        BitOff(pG->flags_500C, 0x40000000);
-        BitOff(pG->flags_500C, 0x20000000);
+    if ((s32) pG->Debug_flg[0] < 0) {
+        BitOff(pG->Status_flg[0], 0x40000000);
+        BitOff(pG->Status_flg[0], 0x20000000);
         return;
     }
     ItemMgr.flagclear();
@@ -436,10 +436,10 @@ void SceAtCheck()
     sceAtItemFindCheck();
     sceAtCamCtrlCheck();
     if ((s32) pS->stop < 0) {
-        if (pG->flags_500C & 0x40000000) {
+        if (pG->Status_flg[0] & 0x40000000) {
             pS->stop &= 0x7FFFFFFF;
         } else {
-            pG->flags_500C &= ~0x20000000;
+            pG->Status_flg[0] &= ~0x20000000;
         }
     }
     sceAtCheck_main(pPL, 1);
@@ -474,8 +474,8 @@ void SceAtCheck()
             sceAtCheck_main(em, 2);
         }
     }
-    BitOff(pG->flags_500C, 0x40000000);
-    BitOff(pG->flags_500C, 0x20000000);
+    BitOff(pG->Status_flg[0], 0x40000000);
+    BitOff(pG->Status_flg[0], 0x20000000);
 }
 
 int sceAtCheck_main(cEm* em, int type)
@@ -502,10 +502,10 @@ int sceAtCheck_main(cEm* em, int type)
     front.z = 550.0f;
     PSMTXMultVec(em->mat, &front, &front);
     if (type & 1) {
-        if (pG->flags_500C & 0x40000000) {
+        if (pG->Status_flg[0] & 0x40000000) {
             flag = 3;
         }
-        if (pG->flags_500C & 0x20000000) {
+        if (pG->Status_flg[0] & 0x20000000) {
             flag |= 4;
         }
         SatMgr.hitCheck(&pos, &front, &front, 0, 0, 0);
@@ -574,7 +574,7 @@ int sceAtCheck_main(cEm* em, int type)
                 }
                 continue;
             case 3:
-                if (pG->x4 != 0) {
+                if (pG->shooting_mode != 0) {
                     itemInfo(w->item.id, &info);
                     if (info.type != 7) {
                         continue;
@@ -777,7 +777,7 @@ int CheckAshleyActive()
     if (pSUB == 0) {
         return 0;
     }
-    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f || SceAtCheckHideActive() == 1 || (pG->flags_5014 & 0x20000000) ||
+    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f || SceAtCheckHideActive() == 1 || (pG->Status_flg[2] & 0x20000000) ||
         (SubCharGetStatus() & 0x02000000)) {
         return 0;
     }
@@ -829,7 +829,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->NextPos.z, w->dstPos.z);
     FSet(pG->NextY, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->x4F9E);
+    U8Set(pG->Part_old, pG->Part);
     pG->next_stage = w->dstStage;
     pG->next_room_no = w->dstRoom;
     pG->next_point = w->dstX4F9E;
@@ -838,7 +838,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->Rno1 = 0;
     pG->Rno2 = 0;
     pG->Rno3 = 0;
-    U16Set(pG->x4F90, 0);
+    U16Set(pG->r_continue_cnt, 0);
     BitOff(pG->System_flg, 0x40);
     return 1;
 }
@@ -988,8 +988,8 @@ void releaseModel(SceAtWork* w, int keep)
             it->flag &= ~4;                               \
         }                                                 \
         releaseModel(w, 1);                               \
-        BitOff(pG->flags_5010, 2);                        \
-        BitOn(pG->flags_5014, 0x10000000);                \
+        BitOff(pG->Status_flg[1], 2);                        \
+        BitOn(pG->Status_flg[2], 0x10000000);                \
         SceSys.x76 = 0;                                   \
         SceUpCutEnd();                                    \
         return;                                           \
@@ -1050,7 +1050,7 @@ static void sceAtGetItem(SceAtWork* w_)
     case 8: {
         // COMPILER-DIFF: 13 (global-alloc rotation it/ItemMgr/money): money pinned to the
         // original's r29 settles the other two (it r31, the ItemMgr high r30).
-        register u32 money asm("r29") = pG->x4F98;
+        register u32 money asm("r29") = pG->peseta;
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
@@ -1060,8 +1060,8 @@ static void sceAtGetItem(SceAtWork* w_)
             cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
-            if ((s32) money < (s32) pG->x4F98) {
-                cMes.mes[0].setNumber(pG->x4F98 - money, 0);
+            if ((s32) money < (s32) pG->peseta) {
+                cMes.mes[0].setNumber(pG->peseta - money, 0);
             }
             cMes.MesSet(0x14, 0x64, y, 0x10000011, 0, 0, 4);
         }
@@ -1139,7 +1139,7 @@ static void sceAtGetItem(SceAtWork* w_)
     }
     sel = 0;
     cancel = 0;
-    BitOn(pG->flags_5010, 2);
+    BitOn(pG->Status_flg[1], 2);
     disp_flag_bak = pG->Disp_flg;
     BitSet(pG->Disp_flg, -1);
     BitOff(pG->Disp_flg, 0x00010000);
@@ -1245,14 +1245,14 @@ static void sceAtGetItem(SceAtWork* w_)
     }
     SceSys.x76 = 0;
     SceUpCutEnd();
-    BitOff(pG->flags_5010, 2);
-    BitOn(pG->flags_5014, 0x10000000);
+    BitOff(pG->Status_flg[1], 2);
+    BitOn(pG->Status_flg[2], 0x10000000);
 }
 
 #define ITEM_CANCEL_NOMODEL()                             \
     {                                                     \
         SceSys.x76 = 0;                                   \
-        BitOn(pG->flags_5014, 0x10000000);                \
+        BitOn(pG->Status_flg[2], 0x10000000);                \
         SceUpCutEnd();                                    \
         return;                                           \
     }
@@ -1310,7 +1310,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         mes = 0;
         break;
     case 8: {
-        u32 money = pG->x4F98;
+        u32 money = pG->peseta;
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
@@ -1320,8 +1320,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
-            if ((s32) money < (s32) pG->x4F98) {
-                cMes.mes[0].setNumber(pG->x4F98 - money, 0);
+            if ((s32) money < (s32) pG->peseta) {
+                cMes.mes[0].setNumber(pG->peseta - money, 0);
             }
             cMes.MesSet(0x14, 0x64, y, 0x10000011, 0, 0, 4);
         }
@@ -1471,7 +1471,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     }
     pPL->setNoSuspend(0);
     SceSys.x76 = 0;
-    BitOn(pG->flags_5014, 0x10000000);
+    BitOn(pG->Status_flg[2], 0x10000000);
     SceUpCutEnd();
 }
 
@@ -1614,7 +1614,7 @@ void SceAtSetMes(SceAtMesData* m)
 
 static int sceAtFunc_save(SceAtWork* w, cModel* m)
 {
-    if (pSUB != 0 && ((pG->flags_5014 & 0x20000000) || (SubCharGetStatus() & 0x02000000))) {
+    if (pSUB != 0 && ((pG->Status_flg[2] & 0x20000000) || (SubCharGetStatus() & 0x02000000))) {
         cMes.MesSet(0x97, 0x64, MES_Y, 1, 0, 0, 4);
     } else {
         CardSave(w->value, 1);
@@ -2073,7 +2073,7 @@ void SceAtRoomSet()
             }
             sceAtSetItem(w);
         }
-        if (pG->x4F93 == 0) {
+        if (pG->language == 0) {
             if (w->x52 & 2) {
                 SceAtSetEnable(w->no, 0);
             }
@@ -2734,7 +2734,7 @@ static void sceAtDebugDisp()
     // table, so the dst giv is numbered (and allocated, r8) before the src giv; the original has src in r8.
     int dead = 0;
 
-    if (pG->debug_mode != 0x11 && !(pG->flags_60 & 0x00400000)) {
+    if (pG->debug_mode != 0x11 && !(pG->Debug_flg[0] & 0x00400000)) {
         return;
     }
     w = sceAtSetOtStart();
@@ -2875,7 +2875,7 @@ static void sceAtItemFindCheck()
         }
         if (it->flag2 & 0x20) {
             if (it->timer != 0) {
-                if (pG->flags_51E4 % 30 == 0) {
+                if (pG->Frame_cnt % 30 == 0) {
                     it->timer--;
                     if (it->timer == 6) {
                         sceAtItemEffDelete(it);
@@ -4057,7 +4057,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     int c;
     int kind;
 
-    if ((s8) pG->x4 != 0) {
+    if ((s8) pG->shooting_mode != 0) {
         return;
     }
     it->effNo = 0;
@@ -4275,7 +4275,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
     int c;
     int kind;
 
-    if ((s8) pG->x4 != 0) {
+    if ((s8) pG->shooting_mode != 0) {
         return;
     }
     it->effNo = 0;

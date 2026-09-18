@@ -213,20 +213,20 @@ void tp_pl_menu()
 void tp_pl_flag()
 {
     eprintf(32, 42, 4, 0, "FLAG EDIT");
-    if ((s32) pG->flags_6C < 0) {
+    if ((s32) pG->Debug_flg[3] < 0) {
         eprintf(40, 56, 0, 0, "INF BULLET + RELOAD");
-    } else if (pG->flags_68 & 0x400000) {
+    } else if (pG->Debug_flg[2] & 0x400000) {
         eprintf(40, 56, 0, 0, "INF BULLET");
     } else {
         eprintf(40, 56, 20, 0, "INF BULLET");
     }
-    eprintf(40, 70, pG->flags_68 & 0x800000 ? 0 : 20, 0, "NO DEATH");
-    eprintf(40, 84, pG->flags_68 & 0x10000 ? 0 : 20, 0, "KAIOUKEN x%d", PlKaiou + 2);
+    eprintf(40, 70, pG->Debug_flg[2] & 0x800000 ? 0 : 20, 0, "NO DEATH");
+    eprintf(40, 84, pG->Debug_flg[2] & 0x10000 ? 0 : 20, 0, "KAIOUKEN x%d", PlKaiou + 2);
     eprintf(40, 98, PlDbFlag & 4 ? 0 : 20, 0, "KAIOU ATTACK");
     eprintf(40, 112, ItemMgr.num(0xFE) ? 0 : 20, 0, "ASSAULT JACKET");
     eprintf(40, 126, !(PlDbFlag & 1) ? 20 : 0, 0, "LOCK SPHERE");
     eprintf(40, 140, PlDbFlag & 2 ? 0 : 20, 0, "INFORMATION");
-    eprintf(40, 154, pG->flags_68 & 8 ? 0 : 20, 0, "ATARI NO-HIT");
+    eprintf(40, 154, pG->Debug_flg[2] & 8 ? 0 : 20, 0, "ATARI NO-HIT");
     printCursor(4, pT->cursor + 4);
     if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + 7) % 8;
@@ -762,11 +762,11 @@ void tp_scr_menu()
 void tp_scr_flag()
 {
     eprintf(32, 42, 4, 0, "FLAG EDIT");
-    eprintf(40, 56, pG->flags_6C & 0x2000 ? 0 : 20, 0, "BG COLOR GREEN");
-    eprintf(40, 70, pG->flags_6C & 0x4000000 ? 0 : 20, 0, "LOG OFF");
+    eprintf(40, 56, pG->Debug_flg[3] & 0x2000 ? 0 : 20, 0, "BG COLOR GREEN");
+    eprintf(40, 70, pG->Debug_flg[3] & 0x4000000 ? 0 : 20, 0, "LOG OFF");
     eprintf(40, 84, pG->Disp_flg & 0x4000 ? 0 : 20, 0, "FOG OFF");
     eprintf(40, 98, Block.allDisp == 1 ? 0 : 20, 0, "BLOCK ALL DISP");
-    eprintf(40, 112, pG->flags_6C & 0x400000 ? 0 : 20, 0, "ERROR CHECK");
+    eprintf(40, 112, pG->Debug_flg[3] & 0x400000 ? 0 : 20, 0, "ERROR CHECK");
     int num = 5;
     printCursor(4, pT->cursor + 4);
     if (pT->joy[0].rep & JOY_UP) {

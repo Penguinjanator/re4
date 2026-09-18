@@ -183,10 +183,10 @@ void R224Init()
 
 void R224Main()
 {
-    if (pG->flags_174 & 0x20000000) {
-        u32 v = pG->flags_174 & ~0x20000000;
+    if (pG->Room_flg[0] & 0x20000000) {
+        u32 v = pG->Room_flg[0] & ~0x20000000;
 
-        pG->flags_174 = v;
+        pG->Room_flg[0] = v;
         // COMPILER-DIFF: 13 (the stack-argument zero reuses `v`: a two-set pseudo has no REG_EQUIV,
         // its `li` waits for the `stw` that reads v and it shares v's r0, like the
         // reload-materialised original; a fresh `0` is born early and takes r9 from pG)
@@ -204,7 +204,7 @@ static void r224_cam_task()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    if ((pG->flags_174 & 0x04000000) == 0) {
+    if ((pG->Room_flg[0] & 0x04000000) == 0) {
         CamCtrl.CutCall(7);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -222,7 +222,7 @@ static void r224_em_set_exit()
     SmdGetObjPtr(0x16)->pos.y = 7838.0f;
     AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
     AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
-    pGS->flags_174 |= 0x04000000;
+    pGS->Room_flg[0] |= 0x04000000;
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r224_door_mes, 0, 1);
     SceExec(0x12, (TaskFunc) em_die_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     GamePointBossReset();
@@ -313,10 +313,10 @@ static void r224_toroko()
     Vec v;
     u32 frames;
 
-    if (pG->flags_174 & 0x08000000) {
+    if (pG->Room_flg[0] & 0x08000000) {
         return;
     }
-    pG->flags_174 |= 0x08000000;
+    pG->Room_flg[0] |= 0x08000000;
     pl->beginAction();
     AtariFlagsAnd(&pPLS->atari, 0xFEFF);
     AtariFlagsAnd(&pPLS->atari, 0xFDFF);
@@ -353,7 +353,7 @@ static void r224_toroko()
     AtariFlagsOr(&pPLS->atari, 0x100);
     AtariFlagsOr(&pPLS->atari, 0x200);
     pPLS->atari.setPriority(0);
-    pG->flags_174 &= ~0x08000000;
+    pG->Room_flg[0] &= ~0x08000000;
 }
 
 // The lever handle swings to its other end and back.
@@ -408,7 +408,7 @@ static void reva_common_move()
         if (spd >= zero) {
             if (up ? (*py < hi) : (*py > hi)) {
                 spd += acc * 1.85f;
-            } else if (pG->flags_174 & 0x40000000) {
+            } else if (pG->Room_flg[0] & 0x40000000) {
                 spd = FCRef(r224_zero);
                 *py = reva_high;
             } else {
@@ -438,7 +438,7 @@ static void futa_move()
     void* zero;
 
     SceSleep(15);
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     em0 = r224_work.p->em0.getPtr();
     em1 = r224_work.p->em1.getPtr();
     if (em0 && ((cEm2b*) em0)->ckThrow2() == 1) {
@@ -479,12 +479,12 @@ static void futa_move()
     SceSleep(750);
     EffectEspgenDelete(0, 2, 0);
     SceSleep(15);
-    pG->flags_174 &= 0x7FFFFFFF;
+    pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSleep(135);
     EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, (u32) zero, zero);
     gnd_close();
     if (RsfCheck(G_ROOM_ID, 0)) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
     }
 }
 
@@ -551,7 +551,7 @@ void gnd_close()
     SceAtSetEnable(7, 1);
     AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFEFF);
     AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFDFF);
-    pGS->flags_174 &= ~0x40000000;
+    pGS->Room_flg[0] &= ~0x40000000;
 }
 
 // The lever: the player holds the button, the camera swings with the stick, the grate opens.
@@ -614,8 +614,8 @@ static void reva_move()
                 frames = (u32) MotionGetMaxFrame(&pPL->Motion);
                 SceExec(0x12, (TaskFunc) reva_common_move, 0, 0, SCE_PRIO_DEF_2, 0);
                 state = 2;
-                if ((pG->flags_174 & 0x40000000) == 0) {
-                    pG->flags_174 |= 0x40000000;
+                if ((pG->Room_flg[0] & 0x40000000) == 0) {
+                    pG->Room_flg[0] |= 0x40000000;
                     SceExec(0x12, (TaskFunc) futa_move, 0, 0, SCE_PRIO_DEF_2, 0);
                 }
             }

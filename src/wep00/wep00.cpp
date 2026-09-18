@@ -35,7 +35,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     }
     obj->init(pl);
     pl->Body->initWepHand((u32) PL_ARC_PTR(pG->pPlayer, 0x12));
-    if (!(pG->flags_5010 & 0x00200000)) {
+    if (!(pG->Status_flg[1] & 0x00200000)) {
         pl->setRightHand(1);
         pl->setLeftHand(0);
     }

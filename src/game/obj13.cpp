@@ -559,7 +559,7 @@ void plobjLadderClimb(cPlayer* pl)
     f32 fl;
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
-    pGS->flags_5010 |= 0x00040000;
+    pGS->Status_flg[1] |= 0x00040000;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -769,7 +769,7 @@ void subobjLadderClimb(cEm* pl)
         if (em->subX534) {
             em->subX534--;
         } else {
-            pG->flags_5010 |= 8;
+            pG->Status_flg[1] |= 8;
         }
         if (em->frame > 8.7f && em->frame < 9.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
@@ -790,7 +790,7 @@ void subobjLadderClimb(cEm* pl)
         MotionSetCore(em, &em->pMotion, w->mot[17], 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        pG->flags_5010 |= 8;
+        pG->Status_flg[1] |= 8;
         if (em->frame > 11.7f && em->frame < 12.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
         }
@@ -818,7 +818,7 @@ void subobjLadderClimb(cEm* pl)
     case 5:
         if (em->subX534) {
             em->subX534--;
-            pGS->flags_5010 |= 8;
+            pGS->Status_flg[1] |= 8;
         }
         if (obj->getType() == 1) {
             if (em->frame > 11.7f && em->frame < 12.3f) {

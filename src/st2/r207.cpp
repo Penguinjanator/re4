@@ -509,7 +509,7 @@ static void r207_EnemySetEndProc()
     int loop = 1;
     int wave = 0;
 
-    if (pGS->flags_174 & 0x40000000) {
+    if (pGS->Room_flg[0] & 0x40000000) {
         r207_work.p->em[3].em.setGoto(&gotoPos, 0xD);
         r207_work.p->em[4].em.setGoto(&gotoPos, 0xD);
     }

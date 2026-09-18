@@ -239,7 +239,7 @@ void cEm27::move()
     Vec v;
     f32 wh;
 
-    if (pG->room_id == 0x10B && (pG->flags_5010 & 0x00200000) && hp > 0) {
+    if (pG->room_id == 0x10B && (pG->Status_flg[1] & 0x00200000) && hp > 0) {
         be_flag &= ~2;
         be_flag &= ~0x20;
         return;
@@ -262,10 +262,10 @@ void cEm27::move()
     if (plDist2 < 250000.0f) {
         w->Esc_timer = Rnd() % 60 + 60;
     }
-    if (pG->flags_500C & 0x00800000) {
+    if (pG->Status_flg[0] & 0x00800000) {
         w->Esc_timer = Rnd() % 60 + 60;
     }
-    if ((u8) pG->flags_51E4 == emset_no % 0x100) {
+    if ((u8) pG->Frame_cnt == emset_no % 0x100) {
         if (Rnd() & 1) {
             w->Esc_timer = Rnd() % 60 + 60;
         }

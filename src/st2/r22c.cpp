@@ -474,7 +474,7 @@ void R22cInit()
         r22c_work.p->level = 4;
         break;
     }
-    switch (pG->x4F9F) {
+    switch (pG->JumpPoint) {
     case 1:
         r22c_work.p->level = 2;
         break;
@@ -616,7 +616,7 @@ static void r22c_AshleyCtrl()
 // Task: the exit door.
 static void r22c_checkExitDoor()
 {
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         SceAtSetEnable(2, 0);
         r22c_exitDoor();
         if (isWepmanAlive() == 0) {
@@ -653,7 +653,7 @@ static void r22c_talkWepMan()
 {
     SceAtSetEnable(1, 0);
     SndCall(8, 9, &r22c_work.p->wepMan->pos, r22c_work.p->wepMan->id, 0, 0);
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         SceMesSet(6, 0, 1, 0x64, MES_Y);
         switch (SceMesGetSelection()) {
         case 1:
@@ -804,7 +804,7 @@ int weaponSelect(int sel)
     wep = pG->weapon_no;
     switch (sel) {
     case 1:
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             itemSave();
         }
         ItemMgr.clear();
@@ -821,7 +821,7 @@ int weaponSelect(int sel)
         }
         break;
     case 2:
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             itemSave();
         }
         ItemMgr.clear();
@@ -846,7 +846,7 @@ void itemSave()
 {
     r22c_work.p->wepNo = pG->weapon_no;
     r22c_work.p->wepType = pG->weapon_type;
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(9, 0);
     ((cEmDoor*) r22c_work.p->door[0])->setNormal();
     ((cEmDoor*) r22c_work.p->door[1])->setNormal();
@@ -862,14 +862,14 @@ void itemSave()
 
 // One set of six bottle caps complete: award the bonus item (`no`: message / scenario item flag).
 #define R22C_BONUS(bit, base, mes, flg)                                     \
-    if ((pG->flags_51C0 & (bit)) == 0) {                                    \
+    if ((pG->Scenario_flg[0] & (bit)) == 0) {                                    \
         for (i = 0, n = 0; i < 6; i++) {                                    \
             if (ItemMgr.num((u16) (i + (base))) != 0) {                     \
                 n++;                                                        \
             }                                                               \
         }                                                                   \
         if (n == 6) {                                                       \
-            pG->flags_51C0 |= (bit);                                        \
+            pG->Scenario_flg[0] |= (bit);                                        \
             SceMesSet((mes), 0, 1, 0x64, MES_Y);                            \
             SceAtExecute(flg);                                              \
             while (SceAtItemFlgCk(flg) == 0) {                              \
@@ -906,7 +906,7 @@ void gameEnd()
     pl->weaponRelease();
     pl->weaponLoad(r22c_work.p->wepNo, r22c_work.p->wepType);
     pl->weaponInit();
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceAtSetEnable(9, 1);
     cEmDoorSetCloseLock(r22c_work.p->door[0]);
     cEmDoorSetCloseLock(r22c_work.p->door[1]);
@@ -1054,7 +1054,7 @@ static void (*r22c_shootFunc[5])() = {shootInit, shootReady, shootMain, shootRes
 static void r22c_startShootingGame()
 {
     SndCall(6, 5, &pPL->pList->world, 0, 0, 0);
-    pG->flags_174 |= 0x20000000;
+    pG->Room_flg[0] |= 0x20000000;
     if (Joy[0].on & 0x400) {
         r22c_checkGameLevel();
     } else {
@@ -1077,7 +1077,7 @@ static void shootInit()
 {
     SceAtSetEnable(0, 0);
     int zero = 0;
-    pG->flags_174 &= ~0x40000000;
+    pG->Room_flg[0] &= ~0x40000000;
     weaponSelect(r22c_work.p->wepSel);
     ItemMgr.reload();
     r22c_work.p->timer = zero;
@@ -1170,16 +1170,16 @@ static void shootReady()
         r22c_work.p->step = 2;
     }
     if (R22C_HARD_MODE(r22c_work.p)) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
     } else {
-        pG->flags_174 &= ~0x10000000;
+        pG->Room_flg[0] &= ~0x10000000;
     }
 }
 
 static void shootMain()
 {
     if (r22c_work.p->ufoWait == 0 && r22c_work.p->pause != 0) {
-        if (!(pG->flags_174 & 0x40000000)) {
+        if (!(pG->Room_flg[0] & 0x40000000)) {
             if (r22c_work.p->pause == 0x78) {
                 r22c_work.p->result.reloadtime();
             }
@@ -1228,12 +1228,12 @@ static void shootMain()
                 r22c_work.p->step = 3;
                 break;
             }
-            if (pG->flags_5014 & 0x01000000) {
+            if (pG->Status_flg[2] & 0x01000000) {
                 r22c_work.p->combo = 0;
             }
             if (r22c_work.p->combo == 5) {
                 r22c_work.p->combo = 0;
-                if (!(pG->flags_174 & 0x40000000)) {
+                if (!(pG->Room_flg[0] & 0x40000000)) {
                     SceExec(0x12, (TaskFunc) funcUfo, 0, 0, SCE_PRIO_DEF_2, 0);
                     r22c_work.p->ufoWait = 3;
                 }
@@ -1251,7 +1251,7 @@ static void shootMain()
         }
     }
     if (R22C_HARD_MODE(r22c_work.p)) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
     }
     if (r22c_work.p->ufoWait) {
         r22c_work.p->ufoWait--;
@@ -1324,7 +1324,7 @@ static void shootEnd()
     LightMgr.onKind(1);
     LightMgr.offKind(2);
     BitOff(pG->Stop_flg, 0x80000000);
-    BitOff(pG->flags_174, 0x20000000);
+    BitOff(pG->Room_flg[0], 0x20000000);
     SceAtSetEnable(0, 1);
     SceExit();
 }
@@ -1391,9 +1391,9 @@ static void funcUfo()
     cEmMark* m;
     u32 se;
 
-    pG->flags_174 |= 0x40000000;
+    pG->Room_flg[0] |= 0x40000000;
     for (i = 0; i < 30; i++) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
         SceSleep(1);
     }
     m = (cEmMark*) EmMgr.create(0x3E);
@@ -1404,14 +1404,14 @@ static void funcUfo()
         if (se) {
             SndStop(se, 0);
         }
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
         SceSleep(1);
     }
     for (i = 0; i < 15; i++) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
         SceSleep(1);
     }
-    pG->flags_174 &= ~0x40000000;
+    pG->Room_flg[0] &= ~0x40000000;
 }
 
 void deleteAllMark()
@@ -1514,8 +1514,8 @@ static void r22cGateCtrl()
     down->init(type, (EmMarkInst*) &r22c_d3920, 0.0f, 0.0f, 0.0f);
     open = 0;
     for (;;) {
-        if (pG->flags_174 & 0x10000000) {
-            pG->flags_174 &= ~0x10000000;
+        if (pG->Room_flg[0] & 0x10000000) {
+            pG->Room_flg[0] &= ~0x10000000;
             lim = 5000.0f;
             if (up->pos.x < lim) {
                 up->pos.x += spd;

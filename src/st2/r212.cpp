@@ -126,7 +126,7 @@ static inline u32 flagBit(u32 f, u32 bit)
 // word offset (cast-then-deref: not a struct access).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline u32 doorFlagBase()
 {
@@ -210,8 +210,8 @@ void r212_TrapInit()
         }
     } else {
         SceExec(0x12, (TaskFunc) r212_Puzzle, 0, 0, SCE_PRIO_DEF_2, 0);
-        if (!(pG->flags_5018 & 0x04000000)) {
-            pG->flags_5018 |= 0x04000000;
+        if (!(pG->Status_flg[3] & 0x04000000)) {
+            pG->Status_flg[3] |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
@@ -366,7 +366,7 @@ static void r212_Puzzle()
 
 static void r212_PuzzleEndProc()
 {
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         r212_work.p->door[0].setOpened();
     }
     CamCtrl.Comeback(0);
@@ -504,7 +504,7 @@ static void r212_RoofMove()
             DiedemoExec(0x2D, 0);
         }
         SceSleep(1);
-    } while (!(pG->flags_174 & 0x20000000));
+    } while (!(pG->Room_flg[0] & 0x20000000));
     RoomSeCall(0x15, &pos, 0, 0, 0);
     SndRoomStrStop(2);
     SndBgmTblSet(0x212, 1);
@@ -548,7 +548,7 @@ static void r212_RoofTrapWatcher()
                 RoomSeCall(0x12, 0, 0, 0, 0);
             }
         }
-        if (R212_TRAP_FLAGS_ALL(pG->flags_174)) {
+        if (R212_TRAP_FLAGS_ALL(pG->Room_flg[0])) {
             break;
         }
         if (SceAtHitCheck(7) || SceAtHitCheck(8)) {
@@ -556,15 +556,15 @@ static void r212_RoofTrapWatcher()
         }
         SceSleep(1);
     }
-    pG->flags_174 |= 0x20000000;
+    pG->Room_flg[0] |= 0x20000000;
     r212_work.p->door[1].setOpen();
 }
 
 static void r212_MesRoofDoor()
 {
     SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    if (!(pG->flags_174 & 0x01000000)) {
-        pG->flags_174 |= 0x01000000;
+    if (!(pG->Room_flg[0] & 0x01000000)) {
+        pG->Room_flg[0] |= 0x01000000;
         SceExec(0x12, (TaskFunc) r212_AshleyPointToCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
@@ -573,15 +573,15 @@ static void r212_MesRoofDoor()
 static void r212_AdhleyToPointWait()
 {
     SceSleep(750);
-    if (!(pG->flags_174 & 0x01000000)) {
-        pG->flags_174 |= 0x01000000;
+    if (!(pG->Room_flg[0] & 0x01000000)) {
+        pG->Room_flg[0] |= 0x01000000;
         IntSet(r212_work.p->mesNo, 5);
-        if (R212_TRAP_FLAGS_NONE(pG->flags_174)) {
+        if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
             SetSubAux((int) r212_AshleyPointTo, 0);
         }
     }
     SceSleep(300);
-    if (!(pG->flags_174 & 0x20000000)) {
+    if (!(pG->Room_flg[0] & 0x20000000)) {
         r212_work.p->mesNo = 4;
         SetSubAux((int) r212_AshleyPointTo, 0);
     }
@@ -632,7 +632,7 @@ static void r212_AshleyPointToCheck()
 {
     SceSleep(150);
     IntSet(r212_work.p->mesNo, 3);
-    if (R212_TRAP_FLAGS_NONE(pG->flags_174)) {
+    if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
         SetSubAux((int) r212_AshleyPointTo, 0);
     }
 }
@@ -666,7 +666,7 @@ static void r212_DrillAppearCheck()
     }
     SetSubAux((int) r212_AshleyDrillAction, 0);
     CamCtrl.CutCall(9);
-    pG->flags_174 &= ~0x40000000;
+    pG->Room_flg[0] &= ~0x40000000;
     SceSetEventCancel(1, (TaskFunc) r212_DrillAppearCheckEndProc, 0, 1, 1);
     EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, zero, (void*) zero);
     r212_work.p->door[2].setClose();
@@ -701,7 +701,7 @@ static void r212_DrillAppearCheckEndProc()
 {
     Vec v;
 
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         r212_work.p->door[2].setClosed();
         SmdGetObjPtr(0x32)->be_flag &= ~2;
         RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);

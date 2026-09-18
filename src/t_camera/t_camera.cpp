@@ -161,8 +161,8 @@ static void tcInit()
     if (g_pToolCamData == 0) {
         g_pToolCamData = Debug_alloc(0x19000, 0);
     }
-    BitOn(pG->flags_60, 0x20000000);
-    BitOn(pG->flags_60, 0x10000000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
     BitOn(pG->Stop_flg, 0x400000);
     TaskSuspend(0);
     tcGameCameraStore();
@@ -282,13 +282,13 @@ void tcSubMenu()
         }
         break;
     case 4:
-        if (pG->flags_6C & 0x40000000) {
+        if (pG->Debug_flg[3] & 0x40000000) {
             if (TC_TRG & 0x2) {
-                pG->flags_6C &= ~0x40000000;
+                pG->Debug_flg[3] &= ~0x40000000;
             }
         } else {
             if (TC_TRG & 0x1) {
-                pG->flags_6C |= 0x40000000;
+                pG->Debug_flg[3] |= 0x40000000;
             }
         }
         break;
@@ -334,7 +334,7 @@ void tcSubMenu()
             }
             break;
         case 4:
-            if (pG->flags_6C & 0x40000000) {
+            if (pG->Debug_flg[3] & 0x40000000) {
                 eprintf(x * 8, y * 14, 0, 0, "ON-/---");
             } else {
                 eprintf(x * 8, y * 14, 0, 0, "---/OFF");
@@ -863,7 +863,7 @@ void tcEdit_select()
                 col2 = 0;
                 break;
             }
-            if (i != PTC->x634 || (pG->flags_51E4 & 0x18)) {
+            if (i != PTC->x634 || (pG->Frame_cnt & 0x18)) {
                 on = 1;
             }
             if (on) {
@@ -894,7 +894,7 @@ void tcEdit_select()
                     col2 = 0;
                     break;
                 }
-                if (i != PTC->x635 || j != PTC->x636 || (pG->flags_51E4 & 0x18)) {
+                if (i != PTC->x635 || j != PTC->x636 || (pG->Frame_cnt & 0x18)) {
                     on = 1;
                 }
                 if (on) {
@@ -1796,7 +1796,7 @@ void tcEdit_camera_rail()
             if ((TC_TRG & 0x800) && (tcCdatPtr(PTC->cdatNo)->type == 6 || tcCdatPtr(PTC->cdatNo)->type == 7)) {
                 PTC->x2++;
                 CamCtrl.m_system_flag &= ~1;
-                pG->flags_60 &= ~0x10000000;
+                pG->Debug_flg[0] &= ~0x10000000;
             } else {
                 edit_frame_no();
             }
@@ -1944,7 +1944,7 @@ void tcEdit_camera_rail()
         }
         y++;
     }
-    if (pG->flags_51E4 & 0x38) {
+    if (pG->Frame_cnt & 0x38) {
         if (PTC->viewMode != 0) {
             eprintf(25 * 8, 31 * 14, 4, 0, "WORKING VIEW");
         } else {
@@ -2909,9 +2909,9 @@ static void tcQuit()
         CamCtrl.RoomDataRead((CameraDataHeader*) g_pToolCamData);
         CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~1) | 0x10;
     }
-    BitOff(pG->flags_60, 0x80000000);
-    BitOff(pG->flags_60, 0x20000000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    BitOff(pG->Debug_flg[0], 0x20000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     BitOff(pG->Stop_flg, 0x400000);
     pSys->key_type = PTC->x637;
     CameraSetProjection(1);
@@ -2994,9 +2994,9 @@ void tcPreviewOnOff(int on)
     PTC->preview = on;
     CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~1) | 0x10;
     if (PTC->preview) {
-        pG->flags_60 &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
     } else {
-        pG->flags_60 |= 0x10000000;
+        pG->Debug_flg[0] |= 0x10000000;
     }
 }
 

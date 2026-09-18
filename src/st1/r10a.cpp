@@ -186,10 +186,10 @@ static void r10a_StrStart()
 {
     int on;
 
-    if (pG->flags_174 & 0x80000000) {
+    if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     on = 0;
     for (;;) {
         if (SceCkFindPL(0) == 1) {

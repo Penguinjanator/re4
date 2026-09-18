@@ -54,7 +54,7 @@ void R211Init()
     if (RsfCheck(G_ROOM_ID, 0)) {
         cObj* obj;
 
-        pG->flags_174 |= 0x80000000;
+        pG->Room_flg[0] |= 0x80000000;
         SceAtSetEnable(4, 0);
         obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &r211_cup_pos0, &r211_cup_rot, 0x10, 1);
         if (obj) {
@@ -65,13 +65,13 @@ void R211Init()
         SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r211_InspectStatue, 0, 1);
         SceExec(0x12, (TaskFunc) r211_CheckUseCup, 0, 0, SCE_PRIO_DEF_2, 0);
         if (ItemMgr.num(0x6E)) {
-            pG->flags_174 |= 0x80000000;
+            pG->Room_flg[0] |= 0x80000000;
         }
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
         cObj* obj;
 
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         SceAtSetEnable(5, 0);
         obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &r211_cup_pos1, &r211_cup_rot, 0x10, 1);
         if (obj) {
@@ -82,7 +82,7 @@ void R211Init()
         SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r211_InspectStatue, (void*) 1, 1);
         SceExec(0x12, (TaskFunc) r211_CheckUseCup, 1, 0, SCE_PRIO_DEF_2, 0);
         if (ItemMgr.num(0x6F)) {
-            pG->flags_174 |= 0x40000000;
+            pG->Room_flg[0] |= 0x40000000;
         }
     }
     if (RsfCheck(G_ROOM_ID, 2)) {
@@ -90,7 +90,7 @@ void R211Init()
     } else {
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r211_DoorMessage, 0, 1);
     }
-    if (flagBit(pG->flags_174, 0x80000000) && flagBit(pG->flags_174, 0x40000000)) {
+    if (flagBit(pG->Room_flg[0], 0x80000000) && flagBit(pG->Room_flg[0], 0x40000000)) {
         setEm(0xAA, -1, 0, 1, 0);
         setEm(0xAB, -1, 0, 1, 0);
         setEm(0xAC, -1, 0, 1, 0);
@@ -169,7 +169,7 @@ void r211_GrateOpen()
     CamCtrl.CutCall(4);
     r211_work->se = RoomSeCall(0, &obj->pos, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
-    pG->flags_174 &= ~0x00200000;
+    pG->Room_flg[0] &= ~0x00200000;
     SceSetEventCancel(1, (TaskFunc) r211_GrateOpenEndProc, 0, 0xA, 1);
     while (obj->pos.y < 4600.0f) {
         obj->pos.y += 30.0f;
@@ -189,7 +189,7 @@ static void r211_GrateOpenEndProc()
     cObj* obj = SmdGetObjPtr(0x1B);
 
     BitOff(obj->be_flag, 2);
-    if (pG->flags_174 & 0x00200000) {
+    if (pG->Room_flg[0] & 0x00200000) {
         RoomSeCall(1, &obj->pos, 0, 0, 0);
         EffectEspDelete(1, 2, 0, 0);
         EffectEspgenDelete(1, 2, 0);

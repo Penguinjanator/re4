@@ -188,7 +188,7 @@ void R225Init()
             hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x39), ROOM_ARC_PTR(pG->pRoom, 0x38));
         }
     }
-    pG->flags_51C4 |= 0x01000000;
+    pG->Scenario_flg[1] |= 0x01000000;
 }
 
 void R225Main()
@@ -223,7 +223,7 @@ static void r225_operateCrank()
     int acc = 0;
     KeyWork* key;
 
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     {
         // COMPILER-DIFF: candidate (sched2 issue-slot filler). The target's block 0 leaves the second
         // slot of cycle 3 empty (only `lis pPL@ha`) although the free `li 0` inits and the hoisted
@@ -376,7 +376,7 @@ static void r225_operateCrank()
         SceAtSetEnable(4, 0);
     }
     CamCtrl.Comeback(0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
 }
 
 // The key door slides open (with a dummy copy of the door model riding along).
@@ -504,7 +504,7 @@ static void r225_checkGrave()
 static void first_cut_exit()
 {
     SceEventEnd(0);
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         SndRoomStrStop(0);
     }
 }
@@ -636,7 +636,7 @@ void SceElevator_r225(SceElevatorData* d)
         }
     }
     if (d->dir == 0 || d->dir == 2) {
-        BitOff(pG->flags_5010, 0x10000000);
+        BitOff(pG->Status_flg[1], 0x10000000);
         spd = maxSpd;
         move = stopDist2;
         if (d->dir == 0) {

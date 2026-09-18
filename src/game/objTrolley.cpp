@@ -170,7 +170,7 @@ void objTrolley_R0_Set(cObjTrolley* obj)
     objTrolleyPushMtx(obj);
     objTrolleySatSet(obj);
     if (w->Be_flg & 1) {
-        pG->flags_500C |= 0x20;
+        pG->Status_flg[0] |= 0x20;
         w->Ride_pl = 1;
         obj->r_no_0 = 1;
         obj->r_no_1 = 0;
@@ -223,7 +223,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
             obj->r_no_3 = 0;
         } else {
             if (obj->motFrame > 2250.0f) {
-                pG->flags_5014 |= 0x08000000;
+                pG->Status_flg[2] |= 0x08000000;
             }
             if (obj->motFrame > 2300.0f) {
                 EstSet((int) obj, -1, 0, 0, 1, 0x13, 0, 0, (u32) obj, 0);
@@ -405,10 +405,10 @@ void plobjTrolleyEscape(cPlayer* pl)
         PlGachaInit();
         em->x3E0 = 90;
         em->x3E4 = 10;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             em->x3E4 = 5;
         }
-        if (pG->x4F88 > 7) {
+        if (pG->Game_level > 7) {
             em->x3E4 = 15;
         }
         em->r_no_2++;

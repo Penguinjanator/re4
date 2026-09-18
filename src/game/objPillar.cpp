@@ -184,7 +184,7 @@ void objPillar_R0_Break(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->flags_51C0 & 0x200) {
+    if (pG->Scenario_flg[0] & 0x200) {
         ObjMgr.destroy(obj);
         return;
     }
@@ -312,7 +312,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->flags_51C0 & 0x200) {
+    if (pG->Scenario_flg[0] & 0x200) {
         ObjMgr.destroy(obj);
         return;
     }
@@ -357,7 +357,7 @@ void objPillar_R0_Escape(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->flags_51C0 & 0x200) {
+    if (pG->Scenario_flg[0] & 0x200) {
         ObjMgr.destroy(obj);
     }
 }
@@ -409,7 +409,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->flags_51C0 & 0x200) {
+    if (pG->Scenario_flg[0] & 0x200) {
         ObjMgr.destroy(obj);
     }
 }
@@ -520,7 +520,7 @@ void EscapeAction(cObjPillar* obj)
     PillarWork* w = &obj->pillar;
     u8 one = 1;
 
-    if (!(pG->flags_51C0 & 0x200)) {
+    if (!(pG->Scenario_flg[0] & 0x200)) {
         w->Act_ck = one;
         SetPlDamage((int) obj, plemEscape);
         GameAddPoint(9);
@@ -619,7 +619,7 @@ void EscapeAction2(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
 
-    if (!(pG->flags_51C0 & 0x200)) {
+    if (!(pG->Scenario_flg[0] & 0x200)) {
         w->Act_ck = 1;
         SetPlDamage((int) obj, plemEscape2);
         obj->r_no_0 = 3;

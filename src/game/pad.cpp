@@ -43,9 +43,9 @@ u32 ConnectedBits;
 // with the preceding Key stores (KeyClear).
 #define KeyStopFlagClear()                          \
     do {                                            \
-        BitOff(pG->flags_500C, 0x4000);             \
-        BitOff(pG->flags_500C, 0x40000000);         \
-        BitOff(pG->flags_500C, 0x20000000);         \
+        BitOff(pG->Status_flg[0], 0x4000);             \
+        BitOff(pG->Status_flg[0], 0x40000000);         \
+        BitOff(pG->Status_flg[0], 0x20000000);         \
     } while (0)
 
 void PadInit()

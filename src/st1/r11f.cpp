@@ -102,8 +102,8 @@ void R11fInit()
         SmdSetTrans(0x14, 1);
         SmdSetTrans(0x15, 0);
         SmdSetTrans(0x16, 0);
-        if (!(pG->flags_5018 & 0x04000000)) {
-            pG->flags_5018 |= 0x04000000;
+        if (!(pG->Status_flg[3] & 0x04000000)) {
+            pG->Status_flg[3] |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
@@ -182,7 +182,7 @@ static void r11f_EventS00()
     SubCharCtrl(SCC_KILL, 0);
     EvtMgr.EvtReadExec("event/evd/r11fs00.evd", 0, 0);
     r11f_DoorReplace();
-    if (!(pG->flags_174 & 0x80000000)) {
+    if (!(pG->Room_flg[0] & 0x80000000)) {
         EvtMgr.EvtReadExec("event/evd/r11fs01.evd", 0, 2);
     } else {
         EvtMgr.EvtReadExec("event/evd/r11fs02.evd", 0, 0);
@@ -204,7 +204,7 @@ static void r11f_EventS00()
             pl->setAng(&ang);
         }
         SceEventEnd(0);
-        pG->flags_5010 |= 1;
+        pG->Status_flg[1] |= 1;
         EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
         EstSet(0, -1, 0, 0, 1, 4, 0x801, 2, 0, 0);
         SceExec(0x12, r11f_EventS10, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -215,7 +215,7 @@ static void r11f_EventS00()
 
 static void r11f_EventS00_Act()
 {
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 extern "C" void Evt_R11FS00_Func(Event* e)
@@ -225,7 +225,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         r11f_actNo = (Rnd() & 1) ? 3 : 4;
         {
             int cut = 0x10;
@@ -329,7 +329,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         break;
     }
     if (r11f_actOn == 1) {
-        if (pG->flags_174 & 0x80000000) {
+        if (pG->Room_flg[0] & 0x80000000) {
             r11f_actOn = 0;
             e->CancelSet();
         } else {
@@ -485,7 +485,7 @@ static void r11f_EventS10()
     CamCtrl.SetAreaAttr(8, 0, 3);
     CamCtrl.CutCall(5);
     U32Set(r11f_work->strId, SndStrReq(1, 0x2C, 0x80000003, 0, 0, 0.0f));
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, r11f_EventS10CancelEndProc, 0, 2, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -509,7 +509,7 @@ static void r11f_EventS10EndProc()
     Vec pos = {36459.0f, -8000.0f, -63991.0f};
 
     // struct-member view: the pG load stays below the three template-copy stores of `pos`
-    if (pGS->flags_174 & 0x20000000) {
+    if (pGS->Room_flg[0] & 0x20000000) {
         SndStrReq(r11f_work->strId, 8, 0, 0);
     }
     CamCtrl.Comeback(0);
@@ -576,7 +576,7 @@ static void r11f_EventS11()
         pl->setAng(&ang);
     }
     {
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         Vec subPos = {44154.0f, -8000.0f, -48080.0f};
         SubCharInit(1, &subPos, 2.987f);
     }
@@ -594,7 +594,7 @@ static void r11f_EventS11()
     EffectEspgenDelete(0x801, 2, 0);
     EffectEfmDelete(0x801, 2, 0);
     EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
-    pG->flags_5010 &= ~1;
+    pG->Status_flg[1] &= ~1;
     SceExec(0x12, r11f_AshleyRunUp, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 

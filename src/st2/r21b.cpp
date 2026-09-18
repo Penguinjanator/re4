@@ -224,19 +224,19 @@ static void r21b_SwitchMove(int no)
     cObj* obj;
 
     if (no == 0) {
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             SceExit();
         }
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         obj = SmdGetObjPtr(0xC8);
         if (r21b_work.p->sat) {
             r21b_work.p->sat->m_Flag &= ~4;
         }
     } else {
-        if (pG->flags_174 & 0x20000000) {
+        if (pG->Room_flg[0] & 0x20000000) {
             SceExit();
         }
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         obj = SmdGetObjPtr(0xC9);
     }
     EstSet(0, -1, &obj->pos, 0, 1, 0x12, 0, 0, 0, 0);
@@ -344,7 +344,7 @@ static void r21b_HalfWaySwitchMove()
         em.setNoSuspend(1);
     }
     CamCtrl.CutCall(2);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r21b_HalfWaySwitchMoveEndProc, 0, 0, 1);
     SceSleep(5);
     r21b_work.p->se = RoomSeCall(4, &obj->pos, 0, 0, 0);
@@ -364,7 +364,7 @@ static void r21b_HalfWaySwitchMoveEndProc()
 {
     cObj* obj = SmdGetObjPtr(0xC9);
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         if (r21b_work.p->se) {
             SndStop(r21b_work.p->se, 0);
         }

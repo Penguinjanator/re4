@@ -413,8 +413,8 @@ static void em21_R1_Escape(cEm21* em)
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
-        if (!(pGS->flags_5010 & 0x20000000)) {
-            BitOn(pG->flags_5010, 0x20000000);
+        if (!(pGS->Status_flg[1] & 0x20000000)) {
+            BitOn(pG->Status_flg[1], 0x20000000);
             memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
             pG->bell_stat = 0;
         }
@@ -1001,7 +1001,7 @@ void Em21RouteCk(cEm21* em)
     if (em->hp <= 0) {
         return;
     }
-    if ((pG->flags_51E4 & 7) != (em->emset_no & 7)) {
+    if ((pG->Frame_cnt & 7) != (em->emset_no & 7)) {
         return;
     }
     w->flags &= ~1;
@@ -1154,15 +1154,15 @@ int em21WakeCk(cEm21* em)
     if (em->plDist2 < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
         return 1;
     }
-    if ((int) pG->flags_5010 < 0 && em->plDist2 < 16000000.0f) {
+    if ((int) pG->Status_flg[1] < 0 && em->plDist2 < 16000000.0f) {
         return 1;
     }
-    if ((pG->flags_5010 & 0x40000000) || (pG->flags_500C & 0x00800000)) {
+    if ((pG->Status_flg[1] & 0x40000000) || (pG->Status_flg[0] & 0x00800000)) {
         if (w->plDist < 15000.0f) {
             return 1;
         }
     }
-    if (pG->flags_5010 & 0x20000000) {
+    if (pG->Status_flg[1] & 0x20000000) {
         f32 r;
 
         // three identical arms + the override after the switch: the arm sets are dead (the

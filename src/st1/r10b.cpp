@@ -340,12 +340,12 @@ static void R10b_chkWater()
     void* zero;
 
     for (;;) {
-        if (!(pG->flags_174 & 0x40000000) && (pG->sceat_x17C & 0x20000000)) {
+        if (!(pG->Room_flg[0] & 0x40000000) && (pG->Room_flg[2] & 0x20000000)) {
             void* evt;
             cEm* em;
             Vec pos;
 
-            BitOn(pG->flags_174, 0x40000000);    // reference RMW: the r10b_work load waits for the store
+            BitOn(pG->Room_flg[0], 0x40000000);    // reference RMW: the r10b_work load waits for the store
             EmMgr.destroy(r10b_work->boat);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -370,34 +370,34 @@ static void R10b_chkWater()
             pPL->ot_type = 0;
         }
         zero = 0;
-        if (pG->flags_174 & 0x80000000) {
-            if (pG->sceat_x17C & 0x40000000) {
-                pG->flags_174 &= ~0x80000000;
+        if (pG->Room_flg[0] & 0x80000000) {
+            if (pG->Room_flg[2] & 0x40000000) {
+                pG->Room_flg[0] &= ~0x80000000;
                 r10b_effDelete(2);
                 r10b_effDelete(3);
                 SceSleep(1);
                 EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
                 EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
             }
-        } else if ((int) pG->sceat_x17C < 0) {
-            pG->flags_174 |= 0x80000000;
+        } else if ((int) pG->Room_flg[2] < 0) {
+            pG->Room_flg[0] |= 0x80000000;
             r10b_effDelete(2);
             r10b_effDelete(3);
             SceSleep(1);
             EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
         }
-        if (pG->flags_5010 & 0x200000) {
-            if (!(pG->flags_174 & 0x20000000)) {
-                pG->flags_174 |= 0x20000000;
+        if (pG->Status_flg[1] & 0x200000) {
+            if (!(pG->Room_flg[0] & 0x20000000)) {
+                pG->Room_flg[0] |= 0x20000000;
                 r10b_effDelete(3);
             }
-        } else if (pG->flags_174 & 0x20000000) {
-            pG->flags_174 &= ~0x20000000;
+        } else if (pG->Room_flg[0] & 0x20000000) {
+            pG->Room_flg[0] &= ~0x20000000;
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
         }
-        if (pG->flags_5010 & 0x200000) {
+        if (pG->Status_flg[1] & 0x200000) {
             Estgen45SetTargetCamera(1);
         } else {
             Estgen45SetTargetCamera(0);
@@ -470,8 +470,8 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         case 1:
         case 3:
         case 7:
-            if (e->NowFrame == 0 && !(pG->flags_500C & 0x400)) {
-                BitOn(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && !(pG->Status_flg[0] & 0x400)) {
+                BitOn(pG->Status_flg[0], 0x400);
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
                 r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 if (e->NowCut != 1) {
@@ -483,8 +483,8 @@ extern "C" void Evt_R10BS00_Func(Event* e)
             r10b_work->bino->move(&pG->Cam);
             break;
         default:
-            if (e->NowFrame == 0 && (pG->flags_500C & 0x400)) {
-                BitOff(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && (pG->Status_flg[0] & 0x400)) {
+                BitOff(pG->Status_flg[0], 0x400);
                 r10b_work->bino->quit(&pG->Cam);
                 r10b_work->bino->~IdBinocular();
                 r10b_work->focus->quit();
@@ -493,8 +493,8 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         }
         break;
     case 2:
-        if (pG->flags_500C & 0x400) {
-            BitOff(pG->flags_500C, 0x400);
+        if (pG->Status_flg[0] & 0x400) {
+            BitOff(pG->Status_flg[0], 0x400);
             r10b_work->bino->quit(&pG->Cam);
             r10b_work->bino->~IdBinocular();
         }
@@ -519,10 +519,10 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
         void* fcv;
         u16 step;
 
-        if ((pG->flags_60 & 0x02000000) && (pG->flags_174 & 0x8000)) {
+        if ((pG->Debug_flg[0] & 0x02000000) && (pG->Room_flg[0] & 0x8000)) {
             return;
         }
-        pG->flags_174 |= 0x8000;
+        pG->Room_flg[0] |= 0x8000;
         if (EvtMgr.GetBin(&bin, "obj/objmodel/obm3100.bin", 0) == 0) {
             return;
         }
@@ -588,7 +588,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
@@ -596,10 +596,10 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         {
             // A user variable: jump.c's thread_jumps never equivalences a REG_USERVAR_P pseudo, so
             // the re-test survives (the original re-reads the flag after the effect calls).
-            u32 f = pG->flags_60;
+            u32 f = pG->Debug_flg[0];
 
             if (f & 0x02000000) {
-                pG->flags_174 &= ~0x8000;
+                pG->Room_flg[0] &= ~0x8000;
             }
         }
         break;
@@ -659,7 +659,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -676,7 +676,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -708,7 +708,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
         e->EndActBtn();
         r10b_work->count = e->GetActBtnCount();
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -725,7 +725,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -743,7 +743,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -755,7 +755,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
 {
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -792,7 +792,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }

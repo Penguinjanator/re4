@@ -97,7 +97,7 @@ void Filter0aTrans()
     if (use_filter0a == 0) {
         return;
     }
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         return;
     }
     if (Render_checkBlurPermission()) {

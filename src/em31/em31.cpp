@@ -781,16 +781,16 @@ static void em31_R1_Appear(cEm31* em)
 static inline void em31SetAtkWait(Em31Work* w)
 {
     w->Atk_wait = 60;
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         w->Atk_wait = 90;
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         w->Atk_wait = 120;
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         w->Atk_wait = 30;
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         w->Atk_wait = 0;
     }
 }
@@ -809,16 +809,16 @@ static void em31_R1_Wait(cEm31* em)
         }
         em->atari.throughOff();
         w->Timer = Rnd() % 60 + 90;
-        if (pGS->x4F88 <= 3) {
+        if (pGS->Game_level <= 3) {
             w->Timer = Rnd() % 60 + 120;
         }
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = Rnd() % 60 + 150;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = Rnd() % 60 + 45;
         }
-        if (pG->x4F88 == 10) {
+        if (pG->Game_level == 10) {
             w->Timer = 0;
         }
         em->r_no_2++;
@@ -829,10 +829,10 @@ static void em31_R1_Wait(cEm31* em)
         }
         if (w->pTen && w->pTen->ckAtkHit()) {
             w->Atk_wait = 60;
-            if (pG->x4F88 <= 3) {
+            if (pG->Game_level <= 3) {
                 w->Atk_wait = 90;
             }
-            if (pG->x4F88 <= 1) {
+            if (pG->Game_level <= 1) {
                 w->Atk_wait = 120;
             }
             w->Timer = Rnd() % 60 + 90;
@@ -845,7 +845,7 @@ static void em31_R1_Wait(cEm31* em)
             f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
             if (w->Berserk_wait == 0 && w->Go_rot < 0.5235988f && dy < 100.0f && !(w->Be_flg & 0x40) &&
-                pG->x4F88 > 1) {
+                pG->Game_level > 1) {
                 EmRoutineSet(em, 1, 5, 0, 0);
                 break;
             }
@@ -895,7 +895,7 @@ static void em31_R1_Walk(cEm31* em)
                 f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
                 if (w->Berserk_wait == 0 && w->Go_rot < 0.5235988f && dy < 100.0f && !(w->Be_flg & 0x40) &&
-                    pG->x4F88 > 1) {
+                    pG->Game_level > 1) {
                     EmRoutineSet(em, 1, 5, 0, 0);
                     break;
                 }
@@ -962,7 +962,7 @@ static void em31_R1_Dash(cEm31* em)
             w->pTen->setDashAtk();
         }
         w->Timer = 5;
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 3;
         }
         em->r_no_2++;
@@ -1056,7 +1056,7 @@ static void em31_R1_Turn(cEm31* em)
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else if (em->plDist2 > 64000000.0f &&
                        (dy = fabsf(em->pos.y - pPL->pos.y), w->Berserk_wait == 0 && w->Go_rot < 0.5235988f &&
-                                                             dy < 100.0f && pG->x4F88 > 1)) {
+                                                             dy < 100.0f && pG->Game_level > 1)) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 2, 0, 0);
@@ -1704,16 +1704,16 @@ static inline void em31CatchEnd(cEm31* em, Em31Work* w)
     w->Berserk_wait = 450;
     w->Atk_wait = 60;
     w->Be_flg &= ~0x40;
-    if (pGS->x4F88 <= 3) {
+    if (pGS->Game_level <= 3) {
         w->Atk_wait = 90;
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         w->Atk_wait = 120;
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         w->Atk_wait = 30;
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         w->Atk_wait = 0;
     }
     EmRoutineSet(em, 1, 1, 0, 0);
@@ -1753,7 +1753,7 @@ static void em31_R1_CatchHit(cEm31* em)
 // The player's catch-hit routine shared by the normal and the step catch (a macro: the `pl`
 // parameter copy of an inline would pin the pos store order).
 #define PLEM31_CATCH_HIT_SUB(mot, est)                                                                  \
-    BitOn(pG->flags_5010, 0x8000);                                                                  \
+    BitOn(pG->Status_flg[1], 0x8000);                                                                  \
     pl->dmg.set(0, 10);                                                                             \
     pl->subArc = PL_EM(pl)->subArc;                                                                 \
     switch (pl->r_no_2) {                                                                              \
@@ -3505,10 +3505,10 @@ void cEm31::setCranePos(int no)
     setPos(&p);
     pos_old = p;
     w->Atk_wait = 60;
-    if (pGS->x4F88 <= 3) {
+    if (pGS->Game_level <= 3) {
         w->Atk_wait = 90;
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         w->Atk_wait = 120;
     }
     EmRoutineSet(this, 1, 1, 0, 0);
@@ -3824,13 +3824,13 @@ void em31EyelidMove(cEm31* em)
         case 0:
             SndCall(8, 0x2D, &em->getPartsPtr(e->Parts)->world, em->id, 0, em);
             e->Timer = Rnd() % 90 + 90;
-            if (pGS->x4F88 > 6) {
+            if (pGS->Game_level > 6) {
                 e->Timer = Rnd() % 60 + 60;
             }
-            if (pGS->x4F88 <= 3) {
+            if (pGS->Game_level <= 3) {
                 e->Timer = Rnd() % 90 + 150;
             }
-            if (pGS->x4F88 <= 1) {
+            if (pGS->Game_level <= 1) {
                 e->Timer = Rnd() % 90 + 250;
             }
             e->Rno++;
@@ -3851,7 +3851,7 @@ void em31EyelidMove(cEm31* em)
             }
             if (e->Timer == 0) {
                 e->Timer = Rnd() % 90 + 90;
-                if (pGS->x4F88 <= 3) {
+                if (pGS->Game_level <= 3) {
                     e->Timer = Rnd() % 60 + 60;
                 }
                 e->Rno++;
@@ -4939,7 +4939,7 @@ void em31WeakMove(cEm31* em)
             EYELID_WK* e = &w->Eyelid[i];
 
             if (e->pObj) {
-                if ((pGS->flags_5010 & 0x04000000) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
+                if ((pGS->Status_flg[1] & 0x04000000) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
                     e->pObj->be_flag |= 2;
                 } else {
                     e->pObj->be_flag &= ~2;
@@ -4949,7 +4949,7 @@ void em31WeakMove(cEm31* em)
         break;
     case 1:
         if (w->pWeak) {
-            if ((pG->flags_5010 & 0x04000000) && em->hp > 0 && (em->hitInfo.flags & 1)) {
+            if ((pG->Status_flg[1] & 0x04000000) && em->hp > 0 && (em->hitInfo.flags & 1)) {
                 w->pWeak->be_flag |= 2;
             } else {
                 w->pWeak->be_flag &= ~2;

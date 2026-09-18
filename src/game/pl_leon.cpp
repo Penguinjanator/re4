@@ -142,7 +142,7 @@ void cPlLeon::setModel()
         }
         addModel(info);
     }
-    if (pG->flags_51C0 & 0x20) {
+    if (pG->Scenario_flg[0] & 0x20) {
         setWound();
     }
     TevScaleGroup = 1;
@@ -320,7 +320,7 @@ int cPlLeon::checkXbutton()
     if (pSUB->id != 3) {
         return 0;
     }
-    pG->flags_5010 |= 4;
+    pG->Status_flg[1] |= 4;
     if (xButtonWait != 0) {
         return 0;
     }
@@ -338,6 +338,6 @@ int cPlLeon::checkXbutton()
         SubCharCtrl(0, 0);
     }
     xButtonWait = 8;
-    pG->flags_500C |= 0x800000;
+    pG->Status_flg[0] |= 0x800000;
     return 1;
 }

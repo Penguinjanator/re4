@@ -598,7 +598,7 @@ int Event::RunEvtCancel()
         }
     }
     BitOn(StatusFlag, 0x04000000);
-    pG->flags_5018 |= 0x01000000;
+    pG->Status_flg[3] |= 0x01000000;
     EvtMesDeleteAll();
     FadeSetW(1, 1, 0, 0);
     TaskSleep(2);
@@ -615,7 +615,7 @@ int Event::RunEvtCancel()
         }
         if (NowCut >= MaxCut - 1) {
             if (!(pG->Stop_flg & 0x10000000) && (pPL->be_flag & 0x20)
-                && (!(pG->flags_5010 & 0x10000000) || (pPL->be_flag & 0x800))) {
+                && (!(pG->Status_flg[1] & 0x10000000) || (pPL->be_flag & 0x800))) {
                 pPL->move();
             }
             if (PPl != 0) {
@@ -1418,7 +1418,7 @@ int Event::ExePacket_Mes(Event* evt)
     if (EvtChk(EvtDebug.FlagEtc, 0x04000000)) {
         return 1;
     }
-    if (pG->flags_68 & 0x400) {
+    if (pG->Debug_flg[2] & 0x400) {
         return 1;
     }
     pac = evt->pPacket;
@@ -1496,9 +1496,9 @@ void Event::ExeBeginEvt(Event* evt, int mode)
     } else {
         SceEventStart(0);
     }
-    BitOn(pG->flags_5014, 0x00080000);
-    BitOn(pG->flags_5014, 0x00010000);
-    BitOff(pG->flags_5018, 0x01000000);
+    BitOn(pG->Status_flg[2], 0x00080000);
+    BitOn(pG->Status_flg[2], 0x00010000);
+    BitOff(pG->Status_flg[3], 0x01000000);
     cMes.loadEventFont();
     ExeFunc(0, 0);
     if (pG->pl_type == 0) {
@@ -1597,8 +1597,8 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
     if (!EvtChk(evt->pData->sndFlag, 0x80000000)) {
         SndEventEnd();
     }
-    BitOff(pG->flags_5014, 0x00080000);
-    BitOff(pG->flags_5014, 0x00010000);
+    BitOff(pG->Status_flg[2], 0x00080000);
+    BitOff(pG->Status_flg[2], 0x00010000);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -1977,7 +1977,7 @@ int Event::GetMod(void** mod, char* nm, u8* type, int* wkNo)
     if (wkNo != 0) {
         *wkNo = 0;
     }
-    if ((pG->flags_6C & 8) && strcmp(nm, "pl0200") == 0) {
+    if ((pG->Debug_flg[3] & 8) && strcmp(nm, "pl0200") == 0) {
         nm = "pl0300";
         if (ModTbl.GetDat(&m, &t, nm, &no) == 0) {
             goto err;
@@ -2186,7 +2186,7 @@ int EventMgr::EvtReadAram(char* nm, int em, int* out, int wait, u32 sz)
 {
     int ret = 0;
 
-    if (!(pG->flags_60 & 0x02000000)) {
+    if (!(pG->Debug_flg[0] & 0x02000000)) {
         ret = EvtReadSub(nm, 1, em, out, wait, sz);
     }
     return ret;
@@ -2365,8 +2365,8 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     } else {
         SceEventStart(0);
     }
-    BitOn(pG->flags_5014, 0x00080000);
-    BitOn(pG->flags_5014, 0x00010000);
+    BitOn(pG->Status_flg[2], 0x00080000);
+    BitOn(pG->Status_flg[2], 0x00010000);
     BitOn(pG->System_flg, 0x400);
     if (em != 0) {
         SceSleep(2);
@@ -2415,8 +2415,8 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
         ret = 0;
     }
     BitOff(pG->System_flg, 0x400);
-    BitOff(pG->flags_5014, 0x00080000);
-    BitOff(pG->flags_5014, 0x00010000);
+    BitOff(pG->Status_flg[2], 0x00080000);
+    BitOff(pG->Status_flg[2], 0x00010000);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     return ret;
@@ -2468,7 +2468,7 @@ int EventMgr::SetEvt(void* data, u32* key)
     if (pG->Stop_flg & 0x400) {
         return 0;
     }
-    if (pG->flags_6C & 0x80) {
+    if (pG->Debug_flg[3] & 0x80) {
         return 0;
     }
     if (key != 0) {
@@ -2504,7 +2504,7 @@ int EventMgr::SetEvt(char* nm, Event** out)
     if (pG->Stop_flg & 0x400) {
         return 0;
     }
-    if (pG->flags_6C & 0x80) {
+    if (pG->Debug_flg[3] & 0x80) {
         return 0;
     }
     if (out != 0) {

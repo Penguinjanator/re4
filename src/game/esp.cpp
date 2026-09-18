@@ -54,7 +54,7 @@ int ESP_IsActive(cEsp* esp)
     if (!(esp->m_Be_flg & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x10000000) {
+    if (pG->Status_flg[1] & 0x10000000) {
         if (!(esp->info.Core_flg & 1)) {
             return 0;
         }
@@ -207,7 +207,7 @@ int EspMove()
         esp_num_list[i] = 0;
     }
     pause = 0;
-    if (pG->flags_5010 & 2) {
+    if (pG->Status_flg[1] & 2) {
         pause = 1;
     }
     cnt = 0;
@@ -245,12 +245,12 @@ int EspMove()
     if ((f32) cnt > (f32) sys->nEsp * 0.9f) {
         color = 2;
     }
-    if (pG->flags_6C & 0x8000) {
+    if (pG->Debug_flg[3] & 0x8000) {
         eprintf(0x1B0, 0xC8, color, 0, "%d/%d", sys->xC548, cnt);
     } else {
         eprintf(0x1D8, 0xC8, color, 0xE, "%d", cnt);
     }
-    if ((s32) pG->flags_60 >= 0 && pG->debug_mode == 0xE) {
+    if ((s32) pG->Debug_flg[0] >= 0 && pG->debug_mode == 0xE) {
         eprintf(0x20, 0x60, 0, 0xE, "TOTAL:%d", cnt);
         // y counts printed rows; `0x70 + y * 0x10` is a strength-reduced giv whose `li 0x70` init
         // is emitted by loop.c after the hoisted `lis`/`addi`s (a plain `y = 0x70; y += 0x10`
@@ -326,11 +326,11 @@ int EspTrans()
             continue;
         }
         if (esp->info.Core_flg & 0x400) {
-            if (pG->flags_5010 & 0x04000000) {
+            if (pG->Status_flg[1] & 0x04000000) {
                 continue;
             }
         }
-        if (pG->flags_500C & 0x8000) {
+        if (pG->Status_flg[0] & 0x8000) {
             if (esp->m_Tool_flg & 0x100) {
                 continue;
             }
@@ -343,7 +343,7 @@ int EspTrans()
         if (trans == EspCommonTrans && esp->pad_EC[0] == 0 && !(esp->m_Tool_flg & 0x6000)) {
             prio = 8;
         }
-        if (pG->flags_5010 & 2) {
+        if (pG->Status_flg[1] & 2) {
             if (!(esp->info.Core_flg & 0x8000)) {
                 continue;
             }
@@ -351,7 +351,7 @@ int EspTrans()
             continue;
         }
         if (esp->m_Tool_flg & 0x10000) {
-            BitOn(pG->flags_5010, 0x08000000);
+            BitOn(pG->Status_flg[1], 0x08000000);
             ot = 0;
             if (!(esp->info.Core_flg & 8)) {
                 if (esp->info.Core_flg & 0x10) {
@@ -366,7 +366,7 @@ int EspTrans()
                     ot = 5;
                 } else if (esp->info.Core_flg & 0x200) {
                     ot = 6;
-                } else if ((s32) pG->flags_60 >= 0) {
+                } else if ((s32) pG->Debug_flg[0] >= 0) {
                     pLog->err(6, 0, "ESP : FLG_TEX_RENDER but no set tex_no");
                 }
             }

@@ -131,7 +131,7 @@ void cObjXd9::moveFire()
         SndCall(2, 4, &pos, 0, 0, 0);
         zero = 0;
         SndCall(2, zero, &pos, 0, 0, 0);
-        BitOn(pG->flags_500C, 0x00800000);
+        BitOn(pG->Status_flg[0], 0x00800000);
         type = 0;
         if (pG->weapon_type == 1) {
             type = 1;

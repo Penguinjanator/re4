@@ -308,7 +308,7 @@ int fanceCheck(cPlayer* pl)
     int hit0;
     int hit1;
 
-    if (pG->flags_5014 & 0x08000000) {
+    if (pG->Status_flg[2] & 0x08000000) {
         return 0;
     }
     if ((pl->m_ActAttr & 0x20) == 0) {
@@ -478,7 +478,7 @@ int jumpCheck(cPlayer* pl)
     const f32 dist = 3800.0f;
     const f32 up = 1500.0f;
 
-    if (pG->flags_500C & 8) {
+    if (pG->Status_flg[0] & 8) {
         return 0;
     }
     p0.x = 300.0f;
@@ -582,7 +582,7 @@ int cPlayer::actionSelect()
         {
             int zero = 0;
 
-            pG->flags_500C |= 0x02000000;
+            pG->Status_flg[0] |= 0x02000000;
             if (joyKamae()) {
                 PlRoutineSet(this, zero, 6, zero, zero);
                 return 1;
@@ -760,7 +760,7 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
 // Fade the player (and the weapon) out while pG->flags_500C bit13 is set.
 void cPlayer::visibleCtrl()
 {
-    if (pG->flags_500C & 0x2000) {
+    if (pG->Status_flg[0] & 0x2000) {
         invisible_factor -= 0.1f;
         if (invisible_factor < 0.0f) {
             invisible_factor = 0.0f;
@@ -837,7 +837,7 @@ void cPlayer::seqSeCtrl()
     int parts;
     u16 kind;
 
-    pG->flags_5010 &= ~0x80000000;
+    pG->Status_flg[1] &= ~0x80000000;
     if (seNo == 0) {
         return;
     }
@@ -847,7 +847,7 @@ void cPlayer::seqSeCtrl()
     case 2:
     case 0xD:
         parts = 0x15;
-        pG->flags_5010 |= 0x80000000;
+        pG->Status_flg[1] |= 0x80000000;
         kind = 5;
         break;
     case 1:
@@ -855,7 +855,7 @@ void cPlayer::seqSeCtrl()
     case 0xE:
     case 0x14:
         parts = 0x19;
-        pG->flags_5010 |= 0x80000000;
+        pG->Status_flg[1] |= 0x80000000;
         kind = 5;
         break;
     case 4:
@@ -948,13 +948,13 @@ ng:
 void cPlayer::checkCtrl()
 {
     if (Key.trg & 0x400) {
-        pG->flags_500C |= 0x40000000;
+        pG->Status_flg[0] |= 0x40000000;
     }
     if (Key.on & 0x400) {
-        pG->flags_500C |= 0x20000000;
+        pG->Status_flg[0] |= 0x20000000;
     }
     if (Key.trg & 0x80000) {
-        pG->flags_500C |= 0x4000;
+        pG->Status_flg[0] |= 0x4000;
     }
 }
 
@@ -1144,8 +1144,8 @@ void cPlayer::interrupt()
         face->x70 = 0.0f;
         face->x5C = 0.0f;
     }
-    if (pG->pl_type == 4 && (pG->flags_5018 & 0x00800000)) {
-        pG->flags_5018 &= ~0x00800000;
+    if (pG->pl_type == 4 && (pG->Status_flg[3] & 0x00800000)) {
+        pG->Status_flg[3] &= ~0x00800000;
         x890 = 0;
         if (x894 == -1) {
             x894 = 1;
@@ -1164,14 +1164,14 @@ int cPlayer::endCamera()
 
     if (flags_420 & 0x200) {
         BitOff(flags_420, 0x200);
-        BitOff(pG->flags_5010, 0x04000000);
-        if (pG->flags_500C & 0x40000) {
+        BitOff(pG->Status_flg[1], 0x04000000);
+        if (pG->Status_flg[0] & 0x40000) {
             LightMgr.update(CamCtrl.areaNo, 0);
         }
     }
     if (flags_420 & 0x10) {
         CamCtrl.endScope();
-        if (pG->flags_500C & 0x40000) {
+        if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
         flags_420 &= ~0x10;
@@ -1180,7 +1180,7 @@ int cPlayer::endCamera()
     }
     if (flags_420 & 4) {
         CamCtrl.LowerBinocular();
-        if (pG->flags_500C & 0x40000) {
+        if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
         BitOff(flags_420, 4);
@@ -1189,7 +1189,7 @@ int cPlayer::endCamera()
     }
     if (flags_420 & 8) {
         CamCtrl.endPushObject();
-        if (pG->flags_500C & 0x40000) {
+        if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
         flags_420 &= ~8;

@@ -316,7 +316,7 @@ static void em28_R0_Move(cEm28* em)
 // Take off when the floor under the crow drops away (its perch broke).
 static inline void em28FloorCk(cEm28* em)
 {
-    if ((pG->flags_51E4 & 3) == (em->emset_no & 3)) {
+    if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
         if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 250.0f) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -326,8 +326,8 @@ static inline void em28FloorCk(cEm28* em)
 // Remember where the bell (this crow) was disturbed.
 static inline void em28BellSet(cEm28* em)
 {
-    if (!(pG->flags_5010 & 0x20000000)) {
-        BitOn(pG->flags_5010, 0x20000000);
+    if (!(pG->Status_flg[1] & 0x20000000)) {
+        BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + 0x4F3C, &em->pos, sizeof(Vec));
         pG->bell_stat = 0;
     }
@@ -747,7 +747,7 @@ int em28EscapeCk(cEm28* em)
         return 0;
     }
     int esc = 0;
-    if (pG->flags_5010 & 0x20000000) {
+    if (pG->Status_flg[1] & 0x20000000) {
         f32 r;
 
         // three identical arms + the override after the switch: the arm sets are dead (the
@@ -770,7 +770,7 @@ int em28EscapeCk(cEm28* em)
         }
     }
     d = em->plDist2;
-    if (pG->flags_500C & 0x00800000) {
+    if (pG->Status_flg[0] & 0x00800000) {
         if (d < 100000000.0f) {
             esc = 1;
         }

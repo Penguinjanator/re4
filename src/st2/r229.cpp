@@ -67,7 +67,7 @@ void R229Init()
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
     pPL->ot_type = 5;
-    pG->flags_51C4 |= 0x02000000;
+    pG->Scenario_flg[1] |= 0x02000000;
 }
 
 void R229Main()

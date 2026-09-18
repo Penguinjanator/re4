@@ -1069,7 +1069,7 @@ void tSceAtDataInput_door_PosSet()
     TOOL_FLAG(0x68) |= 0x4000000;
     pW->saveStage = pG->stage_no;
     pW->saveRoom = pG->room_no;
-    pW->saveX4F9E = pG->x4F9E;
+    pW->saveX4F9E = pG->Part;
     memcpy((u8*) pW + 0x14, &pPL->pos, sizeof(Vec));
     memcpy((u8*) pW + 0x20, &pPL->ang, sizeof(Vec));
     if (pCur->dstPos.x == (z = FCRef(zero)) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
@@ -1080,7 +1080,7 @@ void tSceAtDataInput_door_PosSet()
         FSet(pG->NextPos.z, pCur->dstPos.z);
         FSet(pG->NextY, pCur->dstAngle);
         U16Set(pG->room_id_prev, pG->room_id);
-        U8Set(pG->Part_old, pG->x4F9E);
+        U8Set(pG->Part_old, pG->Part);
         U8Set(pG->next_stage, pCur->dstStage);
         U8Set(pG->next_room_no, pCur->dstRoom);
         U8Set(pG->next_point, pCur->dstX4F9E);
@@ -1123,7 +1123,7 @@ void tSceAtDataInput_door_PosSet()
     FSet(pG->NextPos.z, pW->savePos.z);
     FSet(pG->NextY, pW->saveRot.y);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->x4F9E);
+    U8Set(pG->Part_old, pG->Part);
     U8Set(pG->next_stage, pW->saveStage);
     U8Set(pG->next_room_no, pW->saveRoom);
     U8Set(pG->next_point, pW->saveX4F9E);

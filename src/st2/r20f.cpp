@@ -152,14 +152,14 @@ void R20fInit()
         obj0->matUpdate();
         obj1->matUpdate();
     }
-    if (checkEmListNo(G_ROOM_ID) == 3 && (pG->flags_5018 & 0x04000000) == 0) {
+    if (checkEmListNo(G_ROOM_ID) == 3 && (pG->Status_flg[3] & 0x04000000) == 0) {
         int id = GetEmIdFromList(0xED);
 
         EmReadSearch((u8) id, 0, 0);
         SceExec(0x12, (TaskFunc) R20fEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     {
-        u32 flags = pG->flags_5018;
+        u32 flags = pG->Status_flg[3];
 
         if (flags & 0x04000000) {
             SmdSetTrans(0x10, 0);
@@ -330,15 +330,15 @@ static void R20fEmSetMain()
     R20fEmWanderingSet();
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 1)) {
-            if (RsfCheck(G_ROOM_ID, 2) == 0 && (pG->sceat_x17C & 0x40000000)) {
+            if (RsfCheck(G_ROOM_ID, 2) == 0 && (pG->Room_flg[2] & 0x40000000)) {
                 RsfSet(G_ROOM_ID, 2);
                 R20fEmResetA0();
             }
-            if (RsfCheck(G_ROOM_ID, 3) == 0 && (int) pG->sceat_x17C < 0) {
+            if (RsfCheck(G_ROOM_ID, 3) == 0 && (int) pG->Room_flg[2] < 0) {
                 RsfSet(G_ROOM_ID, 3);
                 R20fEmResetB0();
             }
-            if (RsfCheck(G_ROOM_ID, 4) == 0 && (int) pG->sceat_x17C < 0) {
+            if (RsfCheck(G_ROOM_ID, 4) == 0 && (int) pG->Room_flg[2] < 0) {
                 int dead = r20f_work.p->em[2].isActive() == 0;
 
                 if (r20f_work.p->em[3].isActive() == 0) {

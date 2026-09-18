@@ -174,8 +174,8 @@ void R206Init()
     if (pG->room_id_prev == 0x20D && RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
         SceExec(0x12, (TaskFunc) r206_gouryuu_event, 0, 0, SCE_PRIO_DEF_2, 0);
-        BitOn(pG->flags_51C0, 0x10000000);
-        BitOn(pG->flags_5018, 0x04000000);
+        BitOn(pG->Scenario_flg[0], 0x10000000);
+        BitOn(pG->Status_flg[3], 0x04000000);
     }
     EvtMgr.SetFunc("evt_r206s00_func", (void*) Evt_R206S00_Func);
     EvtMgr.SetFunc("evt_r206s10_func", (void*) Evt_R206S10_Func);
@@ -227,8 +227,8 @@ static void item_chk()
 
     RsfSet(G_ROOM_ID, 9);
     ItemMgr.takeOver();
-    U32Set(pG->x4F98, pG->x4F98 + pG->x832C);
-    pG->x832C = zero;
+    U32Set(pG->peseta, pG->peseta + pG->peseta_bak);
+    pG->peseta_bak = zero;
     SubScreenOpen(SS_OPEN_NORMAL, SS_ATTR_ASHLEY);
     SceSleep(1);
     r206_openTerm();
@@ -268,7 +268,7 @@ static void r206_auto_door_ck()
     ((cEmBarred*) gate0)->setClosed();
     ((cEmBarred*) gate1)->setClosed();
     for (;;) {
-        if (pG->sceat_x17C & 0x80000000) {
+        if (pG->Room_flg[2] & 0x80000000) {
             if (((cEmBarred*) gate0)->ckStatus() == 2) {
                 ((cEmBarred*) gate0)->setOpen(0);
             }
@@ -277,7 +277,7 @@ static void r206_auto_door_ck()
                 ((cEmBarred*) gate0)->setClose(0);
             }
         }
-        if (pG->sceat_x17C & 0x40000000) {
+        if (pG->Room_flg[2] & 0x40000000) {
             if (((cEmBarred*) gate1)->ckStatus() == 2) {
                 ((cEmBarred*) gate1)->setOpen(0);
             }
@@ -686,7 +686,7 @@ static void r206_snipe()
             }
             r206_work.p->frame++;
         }
-        if ((pG->flags_68 & 0x00800000) == 0) {
+        if ((pG->Debug_flg[2] & 0x00800000) == 0) {
             if (fire_die_ck() == 1 || subHit0->ckStatus() == 1 || subHit1->ckStatus() == 1) {
                 *(s16*) &pG->ashley_life = -1;
                 if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 2)) {
@@ -726,8 +726,8 @@ snipe_done:
     while (chkAliveGanadeNum() != 0) {
         SceSleep(1);
     }
-    if ((pG->flags_174 & 0x80000000) == 0) {
-        pG->flags_174 |= 0x80000000;
+    if ((pG->Room_flg[0] & 0x80000000) == 0) {
+        pG->Room_flg[0] |= 0x80000000;
     }
     SetSubAux((int) funcAshley2, 0);
     SceSleep(1);
@@ -900,9 +900,9 @@ wave_done:
     SceMesSet(5, 2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (pSUB != NULL) {
         EmMgr.destroy(pSUB);
-        pG->flags_5018 &= ~0x04000000;
+        pG->Status_flg[3] &= ~0x04000000;
     }
-    pG->flags_51C4 |= 0x08000000;
+    pG->Scenario_flg[1] |= 0x08000000;
     PlSelect(1);
     SceAtExecute(0);
     RsfSet(G_ROOM_ID, 0);

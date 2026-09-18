@@ -162,8 +162,8 @@ void Espgen45_Move00(EspgenWork* w)
     d2.z = 0.0f;
     d3.x = 0.0f;
     d3.z = -1.0f;
-    frame = pG->flags_51E4 % 60;
-    BitOn(pG->flags_500C, 0x200);
+    frame = pG->Frame_cnt % 60;
+    BitOn(pG->Status_flg[0], 0x200);
     if (g_bTargetCamera == 1) {
         FSet(g_Target_x, pG->Cam.param.at.x);
         FSet(g_Target_z, pG->Cam.param.at.z);
@@ -220,7 +220,7 @@ void Espgen45_Move00(EspgenWork* w)
         mode = g_Free.Type;
     }
     if (mode != 1) {
-        if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
+        if ((pG->Debug_flg[1] & 0x00800000) && (Joy[0].on & 0x100)) {
             // The index is the loop variable `k` (target `lwz r31` = k's register, base+index `lfsx f0,hB,k4`).
             k = (int) ((f32) (int) (p->nx * p->ny) * 0.5f);
             // Byte offset in a variable: inside an address `p->hB[k]` expands to `(plus (mult k 4) hB)` (expr.c
@@ -243,7 +243,7 @@ void Espgen45_Move00(EspgenWork* w)
         }
         f32* cur;
         f32* next;
-        if (pG->flags_51E4 & 1) {
+        if (pG->Frame_cnt & 1) {
             cur = p->hA;
             next = p->hB;
         } else {
@@ -405,7 +405,7 @@ void Espgen45_Trans(EspgenWork* w)
     if ((w->flag & 1) && !(w->flag & 2)) {
         AddOtDirect(0x10, w, (void (*)()) Espgen45_TransSub, 1, 0x80, NULL, 0.0f);
     }
-    pG->flags_5010 &= ~0x20;
+    pG->Status_flg[1] &= ~0x20;
 }
 
 void SetIndMtx_801291F4(Espgen42Work* p)
@@ -1105,19 +1105,19 @@ void Estgen45SetTargetPos(f32 x, f32 z)
 {
     FSet(g_Target_x, x);
     FSet(g_Target_z, z);
-    pG->flags_5010 |= 0x20;
+    pG->Status_flg[1] |= 0x20;
 }
 
 void Estgen45SetHeight(f32 h)
 {
     FSet(g_Target_y, h);
-    pG->flags_5010 |= 0x20;
+    pG->Status_flg[1] |= 0x20;
 }
 
 void Estgen45SetSize(f32 size)
 {
     FSet(g_Size, size);
-    pG->flags_5010 |= 0x20;
+    pG->Status_flg[1] |= 0x20;
 }
 
 void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
@@ -1130,13 +1130,13 @@ void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
     FSet(g_sg, gs);
     FSet(g_sb, bs);
     FSet(g_sa, as);
-    pG->flags_5010 |= 0x20;
+    pG->Status_flg[1] |= 0x20;
 }
 
 void Estgen45SetParam(Esp4cWork* w)
 {
     g_Free = *w;
-    pG->flags_5010 |= 0x20;
+    pG->Status_flg[1] |= 0x20;
 }
 
 asm(".section .sdata; .balign 8");

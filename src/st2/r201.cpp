@@ -111,7 +111,7 @@ void R201Init()
 #line 52 "D:/Bio4/Prog/r201.cpp"
     R201Work*& wp = r201_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
-    if (pG->x4F9F == 2) {
+    if (pG->JumpPoint == 2) {
         RsfSet(G_ROOM_ID, 0);
         BitOn(pG->Item_find_flg, 0x10000);
         RsfSet(G_ROOM_ID, 5);
@@ -121,7 +121,7 @@ void R201Init()
     SceAtSetEnable(0, 0);
     SceAtSetEnable(1, 0);
     r201_initAltar();
-    if (!(pG->flags_51C0 & 0x10000000)) {
+    if (!(pG->Scenario_flg[0] & 0x10000000)) {
         SceAtSetEnable(0x25, 0);
     } else {
         SceAtSetEnable(7, 0);
@@ -350,7 +350,7 @@ static void r201_checkPicture()
 
 static void r201_closeAltar_end()
 {
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         SndStop(r201_work.p->snd, 0);
         EffectEspDelete(0, (u8) r201_work.p->altarEff, 0, 0);
         EffectEspgenDelete(0, (u8) r201_work.p->altarEff, 0);
@@ -366,7 +366,7 @@ static void r201_closeAltar()
 {
     RsfSet(G_ROOM_ID, 9);
     BitOff(pG->door_flags_51C8, 0x2000);
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r201_closeAltar_end, 0, 2, 1);
     SceEventStart(0);
     CamCtrl.CutCall(0xA);
@@ -561,7 +561,7 @@ int r201_setGem(int no)
 
 static void r201_checkSetGem_end()
 {
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         SndStop(r201_work.p->snd, 0);
         EffectEspDelete(0, (u8) r201_work.p->altarEff, 0, 0);
         EffectEspgenDelete(0, (u8) r201_work.p->altarEff, 0);
@@ -580,7 +580,7 @@ static void r201_checkSetGem_end()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOn(pG->flags_51C4, 0x04000000);
+    BitOn(pG->Scenario_flg[1], 0x04000000);
     pG->door_flags_51C8 |= 0x2000;
 }
 
@@ -606,7 +606,7 @@ static void r201_checkSetGem()
         SceSleep(1);
     }
     SceAtSetEnable(0x1B, 0);
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceEventStart(0);
     CamCtrl.CutCall(0xE);
     SceSleep(15);
@@ -741,15 +741,15 @@ void r201_setBattleArea(int open, int init)
     cObj* obj;
 
     if (open == 1) {
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             return;
         }
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
     } else {
-        if (!(pG->flags_174 & 0x40000000)) {
+        if (!(pG->Room_flg[0] & 0x40000000)) {
             return;
         }
-        pG->flags_174 &= ~0x40000000;
+        pG->Room_flg[0] &= ~0x40000000;
     }
     obj = SmdGetObjPtr(0x53);
     obj->be_flag |= 0x20;
@@ -853,10 +853,10 @@ static void r201_execEmReset()
 
 static void r201_disarmTrap_end()
 {
-    if (!(pG->flags_174 & 0x10000000)) {
+    if (!(pG->Room_flg[0] & 0x10000000)) {
         r201_setSwitchSe(1);
     }
-    if (!(pG->flags_174 & 0x08000000)) {
+    if (!(pG->Room_flg[0] & 0x08000000)) {
         r201_setSwitchEnv(1);
     }
     CamCtrl.Comeback(0);
@@ -875,12 +875,12 @@ static void r201_disarmTrap()
     SceSetEventCancel(1, (TaskFunc) r201_disarmTrap_end, 0, -1, 1);
     SceEventStart(1);
     CamCtrl.CutCall(6);
-    pG->flags_174 |= 0x10000000;
+    pG->Room_flg[0] |= 0x10000000;
     r201_setSwitchSe(1);
     SndCall(6, 0xC, 0, 0, 0, 0);
     SndCall(6, 0xD, 0, 0, 0, 0);
     SceSleep(60);
-    pG->flags_174 |= 0x08000000;
+    pG->Room_flg[0] |= 0x08000000;
     r201_setSwitchEnv(1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -950,7 +950,7 @@ static void r201_appearClawMan()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 0);
-    if (!(pG->flags_174 & 0x40000000)) {
+    if (!(pG->Room_flg[0] & 0x40000000)) {
         SceEventStart(0);
         CamCtrl.CutCall(5);
         SceSleep(15);

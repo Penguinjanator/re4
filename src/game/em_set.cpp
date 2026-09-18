@@ -43,7 +43,7 @@ static inline void EmSetDieOn(u32 no)
 static inline void CntInc(u32& c) { c++; }
 
 // While flags_68 bit21 is set only the enemies 3 and 4 may be created.
-#define EM_SET_ID_NG(id) ((pG->flags_68 & 0x00200000) && ((id) != 3 && (id) != 4))
+#define EM_SET_ID_NG(id) ((pG->Debug_flg[2] & 0x00200000) && ((id) != 3 && (id) != 4))
 
 static inline cEm* EmCreate(u8 id)
 {
@@ -322,13 +322,13 @@ void EmListSetAlive(int no, int on)
 
 void EmSetDie(cEm* em)
 {
-    if (pG->flags_68 & 0x04000000) {
+    if (pG->Debug_flg[2] & 0x04000000) {
         return;
     }
     if ((pG->room_id32 & 0xFFFF0000) == 0x00040000) {
         return;
     }
-    if (pG->flags_6C & 0x00080000) {
+    if (pG->Debug_flg[3] & 0x00080000) {
         return;
     }
     if (EmSetDieCk(em->emset_no)) {
@@ -358,7 +358,7 @@ void EmListWaitDelete()
 {
     int i;
 
-    if (pG->flags_51E4 % 30 != 0) {
+    if (pG->Frame_cnt % 30 != 0) {
         return;
     }
     for (i = 0; i < 256; i++) {

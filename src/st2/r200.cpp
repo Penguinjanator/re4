@@ -68,7 +68,7 @@ void R200Init()
 #line 51 "D:/Bio4/Prog/r200.cpp"
     R200Work*& wp = r200_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R200Work*) MEM_CALLOC(sizeof(R200Work), 1, 0xd);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 4);
         RsfSet(G_ROOM_ID, 2);
     }
@@ -202,7 +202,7 @@ static void r200_execEvent00()
     EmReadInit();
     EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, 0x50);
     SceEventEnd(0);
-    pG->flags_51C0 |= 0x00800000;
+    pG->Scenario_flg[0] |= 0x00800000;
     SceAtInitSaveItem();
     levelDataAdd(merchantData, level_r200);
     stockDataAdd(merchantData, stock_2st_first);
@@ -282,7 +282,7 @@ static void r200_execTruckEvent_end()
         EffectEspgenDelete(0, (u8) r200_work.p->eff0C, 0);
         EffectEfmDelete(0, (u8) r200_work.p->eff0C, 0);
         SceEventEnd(0);
-        if ((pG->flags_174 & 0x80000000) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) == 0) {
             cEm* em = r200_work.p->em0.getPtr();
 
             EstSet((int) em, -1, 0, 0, 1, 0x20, 0, 0, (u32) r200_work.p->em0.getPtr(), 0);
@@ -326,7 +326,7 @@ static void r200_execTruckEvent()
     SceSleep(10);
     SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->world, 0, 0, 0);
     SceSleep(10);
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     {
         cEm* em = r200_work.p->em0.getPtr();
 

@@ -141,7 +141,7 @@ void R20cInit()
         }
     }
     R20cExecShootInit();
-    if (checkEmListNo(pG->room_id) == 3 && !(pG->flags_5018 & 0x04000000)) {
+    if (checkEmListNo(pG->room_id) == 3 && !(pG->Status_flg[3] & 0x04000000)) {
         EmReadSearch((u8) GetEmIdFromListI(0xCB), 0, 0);
     }
     obj = SmdGetObjPtr(6);
@@ -161,7 +161,7 @@ void R20cInit()
             R20cExecCageDown(0);
             SndBgmTblSet(0x20C, 2);
             SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
-            if (checkEmListNo(pG->room_id) == 3 && !(pG->flags_5018 & 0x04000000)) {
+            if (checkEmListNo(pG->room_id) == 3 && !(pG->Status_flg[3] & 0x04000000)) {
                 SceExec(0x12, (TaskFunc) R20cEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         } else {
@@ -177,7 +177,7 @@ void R20cInit()
 void R20cMain()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        if (!(pG->flags_174 & 0x00800000)) {
+        if (!(pG->Room_flg[0] & 0x00800000)) {
             if (r20c_work.p->hit && r20c_work.p->hit->ckStatus() == 1) {
                 SceExec(0x12, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 0, SCE_PRIO_DEF_2, 0);
             }
@@ -243,10 +243,10 @@ void R20cExecCageDown(int lock)
     cEm* door0;
     cEm* door1;
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         return;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     obj = SmdGetObjPtr(6);
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
@@ -404,7 +404,7 @@ cEmWrap* R20cExecCageEmResetSub(int slot)
     int no = r20c_resetTbl[r20c_work.p->resetCnt];
     cEmWrap* em;
 
-    if (no == 4 && pG->x4F88 <= 2) {
+    if (no == 4 && pG->Game_level <= 2) {
         no = 10;
     }
     em = &r20c_work.p->em[no];
@@ -460,7 +460,7 @@ void R20cKaigaMoved(int mode)
         if (mode == 1) {
             SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 0.0f);
             SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 0.0f);
-            pG->flags_174 |= 0x01000000;
+            pG->Room_flg[0] |= 0x01000000;
             if (r20c_work.p->kaigaHit[0]) {
                 r20c_work.p->kaigaHit[0]->hp = 1;
             }
@@ -473,7 +473,7 @@ void R20cKaigaMoved(int mode)
 
             SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 3.1415927f);
             SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 3.1415927f);
-            pG->flags_174 &= ~0x01000000;
+            pG->Room_flg[0] &= ~0x01000000;
             // COMPILER-DIFF: #5 — the original's `li r8,0` of the two `hp = 0` stores is one constant
             // hoisted above the first null test (interblock motion); a local set here gives the shape.
             hp = 0;
@@ -499,11 +499,11 @@ void R20cKaigaMove(int mode)
     if (obj7 && obj9) {
         if (mode == 1) {
             SndCall(6, 3, &obj7->pos, 0, 0, 0);
-            if (pG->flags_174 & 0x01000000) {
+            if (pG->Room_flg[0] & 0x01000000) {
                 SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 0.0f);
                 SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 0.0f);
             } else {
-                pG->flags_174 |= 0x01000000;
+                pG->Room_flg[0] |= 0x01000000;
                 while (obj7->ang.z >= 0.0f) {
                     SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, obj7->ang.z - 0.08726647f);
                     SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, obj9->ang.z - 0.08726647f);
@@ -513,11 +513,11 @@ void R20cKaigaMove(int mode)
             }
         } else {
             SndCall(6, 4, &obj7->pos, 0, 0, 0);
-            if (!(pG->flags_174 & 0x01000000)) {
+            if (!(pG->Room_flg[0] & 0x01000000)) {
                 SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 3.1415927f);
                 SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 3.1415927f);
             } else {
-                pG->flags_174 &= ~0x01000000;
+                pG->Room_flg[0] &= ~0x01000000;
                 while (obj7->ang.z <= 3.1415927f) {
                     SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, obj7->ang.z + 0.34906587f);
                     SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, obj9->ang.z + 0.34906587f);
@@ -532,10 +532,10 @@ void R20cKaigaMove(int mode)
 static void R20cExecShootKaigaOpenMain()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        if (!(pG->flags_174 & 0x00800000)) {
+        if (!(pG->Room_flg[0] & 0x00800000)) {
             cObj* obj;
 
-            pG->flags_174 |= 0x00800000;
+            pG->Room_flg[0] |= 0x00800000;
             obj = SmdGetObjPtr(8);
             if (obj) {
                 SndCall(6, 2, &obj->pos, 0, 0, 0);
@@ -612,7 +612,7 @@ static void R20cExecShootMain()
     }
 found:
     R20cKaigaMove(0);
-    pG->flags_174 &= ~0x00800000;
+    pG->Room_flg[0] &= ~0x00800000;
 }
 
 static void R20cDoorOpenMain()

@@ -1049,7 +1049,7 @@ void em29RouteCk(cEm29* em)
     if (w->flags & 0x40) {
         return;
     }
-    if ((pG->flags_51E4 & 3) != (em->emset_no & 3)) {
+    if ((pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         return;
     }
     if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {

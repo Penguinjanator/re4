@@ -202,7 +202,7 @@ void Render_done()
     }
     after_render_proc();
     Bg_brightness_set((f32) pSys->brightness);
-    if (pG->flags_68 & 0x08000000) {
+    if (pG->Debug_flg[2] & 0x08000000) {
         GXCopyDisp(pCurrent_buff, 0);
     } else {
         GXSetAlphaUpdate(1);
@@ -233,16 +233,16 @@ void Render_swap()
 void UpdateNearClipDist()
 {
     GlobalWork* g = pG;
-    if (!(g->flags_5010 & 0x1000)) {
+    if (!(g->Status_flg[1] & 0x1000)) {
         FSet(ZNEAR, 100.0f);
     }
-    g->flags_5010 &= ~0x1000;
+    g->Status_flg[1] &= ~0x1000;
 }
 
 void SetNearClipDist(f32 dist)
 {
     FSet(ZNEAR, dist);
-    pG->flags_5010 |= 0x1000;
+    pG->Status_flg[1] |= 0x1000;
 }
 
 int Render_checkBlurPermission()
@@ -275,7 +275,7 @@ void systemVISetBlack(int black)
 
 void SetScissorState()
 {
-    if (pG->flags_5018 & 0x10000000) {
+    if (pG->Status_flg[3] & 0x10000000) {
         GXSetScissor(0, 56, (u32) Screen.width, (u32) Screen.height - 111);
     } else {
         SetNoScissor();

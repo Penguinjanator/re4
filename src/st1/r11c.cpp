@@ -149,7 +149,7 @@ void R11cInit()
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 0, 0x23, 0x800, 0, 0, 0);
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     EstSet(0, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
     getRoomEtcLadder(6, (cEm**) &W->ladder[0], 1);
     getRoomEtcLadder(7, (cEm**) &W->ladder[1], 1);
@@ -241,7 +241,7 @@ void R11cInit()
     EvtMgr.SetFunc("evt_r11cs00_func", (void*) Evt_R11CS00_Func);
     EvtMgr.SetFunc("evt_r11cs10_func", (void*) Evt_R11CS10_Func);
     EvtMgr.SetFunc("evt_r11cs20_func", (void*) Evt_R11CS20_Func);
-    if (!(pG->flags_51C0 & 0x00020000)) {
+    if (!(pG->Scenario_flg[0] & 0x00020000)) {
         SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r11c_operator, 0, 1);
     }
     if (EtcGetDasAddr(0x14, &arc)) {
@@ -285,7 +285,7 @@ extern "C" void r11c_eventInit()
     W->evd1 = DC.setData(EvtMgr.NameChange("evd/r11cs10.evd"));
     EmReadSearch(0x13, 0, W->evd0->m_size);
     EmReadSearch(3, 0, 0x120000);
-    BitOn(pG->flags_5018, 0x04000000);
+    BitOn(pG->Status_flg[3], 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_CHASE, 0);
     W->mod3 = SearchEmModule(3);
@@ -300,14 +300,14 @@ static void r11c_EventBesiegedStart()
     int err;
 
     BitOn(pG->Item_find_flg, 0x00020000);
-    BitOn(pG->flags_174, 0x40000000);
+    BitOn(pG->Room_flg[0], 0x40000000);
     EffectEspDelete(0, (u8) W->eff, 0, 0);
     EffectEspgenDelete(0, (u8) W->eff, 0);
     EffectEfmDelete(0, (u8) W->eff, 0);
     SceEventStart(0);
     if (pSUB) {
         EmMgr.destroy(pSUB);
-        pG->flags_5018 &= ~0x04000000;
+        pG->Status_flg[3] &= ~0x04000000;
     }
     if (getRoomEtcDoor(0xA, &door, 1)) {
         door->setNoSuspend(0);
@@ -490,7 +490,7 @@ static void r11c_EventBesiegedStart()
     t = 0;
     while (1) {
         for (i = 0; i < n; i++) {
-            if (pG->flags_174 & 0x20000000) {
+            if (pG->Room_flg[0] & 0x20000000) {
                 SceEventStart(0);
                 SndRoomStrStop(3);
                 pG->System_flg |= 0x400;
@@ -583,7 +583,7 @@ static void r11c_EventBesiegedStart()
     pG->System_flg &= ~0x400;
     SceEventEnd(0);
     r11c_initGate();
-    BitOn(pG->flags_5018, 0x04000000);
+    BitOn(pG->Status_flg[3], 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_CHASE, 0);
     if (!r11c_emDead(0xC8)) {
@@ -640,7 +640,7 @@ static void r11c_EventBesiegedStart()
         SmdGetObjPtr(0x3F)->be_flag &= ~2;
         EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, (u32) zero, zero);
     }
-    pG->flags_174 &= ~0x40000000;
+    pG->Room_flg[0] &= ~0x40000000;
     SceSetChapterEnd(CHAPTER_2_2, -1);
 }
 
@@ -657,7 +657,7 @@ static void r11c_ThunderMove()
     for (;;) {
         u32 f;
 
-        f = pG->flags_174;
+        f = pG->Room_flg[0];
         if (!(f & 0x40000000)) {
             if (cnt <= 0) {
                 int st;
@@ -754,7 +754,7 @@ extern "C" void r11c_openGate(u32 id)
     EffectEspDelete(0, (u8) W->effGate, 0, 0);
     EffectEspgenDelete(0, (u8) W->effGate, 0);
     EffectEfmDelete(0, (u8) W->effGate, 0);
-    pG->sceat_x17C |= 0x80000000;
+    pG->Room_flg[2] |= 0x80000000;
     SceSleep(10);
 }
 
@@ -813,7 +813,7 @@ static void r11c_moveGear(int dir)
     g1->pParts->ang.y += d;
     SceSleep(1);
     EstSet(0, -1, 0, 0, 1, 5, 1, (u8) W->effGear, 0, 0);
-    while ((s32) pG->sceat_x17C >= 0) {
+    while ((s32) pG->Room_flg[2] >= 0) {
         f32 a;
 
         t += acc;
@@ -830,7 +830,7 @@ static void r11c_moveGear(int dir)
     EffectEspgenDelete(0, (u8) W->effGear, 0);
     EffectEfmDelete(0, (u8) W->effGear, 0);
     SceSleep(10);
-    pG->sceat_x17C &= 0x7FFFFFFF;
+    pG->Room_flg[2] &= 0x7FFFFFFF;
     W->gear = 0;
 }
 
@@ -850,7 +850,7 @@ static void r11c_moveChain(int dir)
     c = SmdGetObjPtr(id);
     spd = 0.0f;
     c->be_flag |= 0x20;
-    while ((s32) pGS->sceat_x17C >= 0) {
+    while ((s32) pGS->Room_flg[2] >= 0) {
         spd += acc;
         if (spd > max) {
             spd = max;
@@ -925,7 +925,7 @@ static void r11c_selectRoute_end(int sel)
     cObj* g1 = SmdGetObjPtr(0x34);
     cObj* lv = SmdGetObjPtr(0x35);
 
-    if (pG->flags_174 & 0x10000000) {
+    if (pG->Room_flg[0] & 0x10000000) {
         if (lv) {
             lv->pParts->ang.z = 0.0f;
         }
@@ -950,12 +950,12 @@ static void r11c_selectRoute_end(int sel)
         EffectEspDelete(0, (u8) W->effGate, 0, 0);
         EffectEspgenDelete(0, (u8) W->effGate, 0);
         EffectEfmDelete(0, (u8) W->effGate, 0);
-        pG->sceat_x17C &= 0x7FFFFFFF;
+        pG->Room_flg[2] &= 0x7FFFFFFF;
     }
     W->seGear = 0;
     W->seGate = 0;
     if (sel < 0) {
-        if (pG->flags_174 & 0x10000000) {
+        if (pG->Room_flg[0] & 0x10000000) {
             if (g0) {
                 g0->pos.y = W->gateY[0] + 3600.0f;
             }
@@ -970,7 +970,7 @@ static void r11c_selectRoute_end(int sel)
         SceAtSetEnable(0xA, 0);
         SceAtSetEnable(0xB, 0);
     } else {
-        if (pG->flags_174 & 0x10000000) {
+        if (pG->Room_flg[0] & 0x10000000) {
             if (g0) {
                 g0->pos.y = W->gateY[0];
             }
@@ -997,7 +997,7 @@ static void r11c_selectRoute()
     W->chain = 0;
     W->seGate = 0;
     W->seGear = 0;
-    pGS->sceat_x17C &= 0x7FFFFFFF;
+    pGS->Room_flg[2] &= 0x7FFFFFFF;
     SceEventStart(0);
     CamCtrl.CutCall(3);
     SceMesSet(0, 0x220, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -1070,8 +1070,8 @@ static void r11c_selectRoute()
 // Area 0xC: the typewriter terminal.
 static void r11c_operator()
 {
-    if (!(pG->flags_51C0 & 0x00020000)) {
-        pG->flags_51C0 |= 0x00020000;
+    if (!(pG->Scenario_flg[0] & 0x00020000)) {
+        pG->Scenario_flg[0] |= 0x00020000;
         SceAtSetEnable(0xC, 0);
         OpeSetOpenTerm(0xB, 71600.0f, -10.0f, -55420.0f, 1.6f);
     }

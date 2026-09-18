@@ -258,7 +258,7 @@ static void r119_EventGolemAppear()
     cObj* obj;
 
     RsfSet(G_ROOM_ID, 0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s00.evd", 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s10.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s20.evd", 0, 0, 0, 0);
@@ -266,7 +266,7 @@ static void r119_EventGolemAppear()
     r119_work->golem = EmSetFromList2(0x28, 0);
     GamePointBossReset();
     Cckpt.m_LifeMeter.flags = (u32) r119_work->golem;
-    BitOff(pG->flags_5010, 0x800);
+    BitOff(pG->Status_flg[1], 0x800);
     {
         Vec v;
 
@@ -301,11 +301,11 @@ static void r119_EventGolemAppear()
         if (stat == 0) {
             RsfSet(G_ROOM_ID, 7);
             SndRoomStrStop(3);
-            pG->flags_5010 |= 0x800;
+            pG->Status_flg[1] |= 0x800;
             EvtMgr.EvtReadExec("event/evd/r119s20.evd", 0x2B, 0);
             SceAtSetEnable(3, 0);
             SceAtSetEnable(4, 0);
-            BitOff(pG->flags_5010, 0x800);
+            BitOff(pG->Status_flg[1], 0x800);
             ((cEmGolem*) r119_work->golem)->setDie();
             EstSet((int) r119_work->golem, -1, 0, 0, 1, 0xF, 0, 0, (u32) r119_work->golem, (void*) stat);
             if (r119_work->dog != 0) {
@@ -329,7 +329,7 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if ((pG->Item_find_flg & 0x00080000) && !(pG->flags_174 & 0x02000000)) {
+        if ((pG->Item_find_flg & 0x00080000) && !(pG->Room_flg[0] & 0x02000000)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");
@@ -351,12 +351,12 @@ static void r119_EventGolemAppear()
                 }
             }
             if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
-                pG->flags_174 |= 0x02000000;
+                pG->Room_flg[0] |= 0x02000000;
                 SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
-        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->flags_174 & 0x01000000)) || DebugTrg(0) != 0) {
-            pG->flags_174 |= 0x01000000;
+        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->Room_flg[0] & 0x01000000)) || DebugTrg(0) != 0) {
+            pG->Room_flg[0] |= 0x01000000;
             SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         SceSleep(1);
@@ -365,9 +365,9 @@ static void r119_EventGolemAppear()
 
 static void r119_EventParasiet()
 {
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s30.evd", 0x2B, 0xA0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // The dog comes to help: its event, then Leon and the dog are placed.
@@ -376,9 +376,9 @@ static void r119_EventDogAppear()
     Vec pos;
     Vec ang;
 
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s10.evd", 0x2B, 0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
     PSet(r119_work->dog, EmSetFromList2(0x29, 0));
     pos.x = 116292.0f;
     pos.y = 2298.0f;
@@ -400,24 +400,24 @@ static void koya_destroy_check()
     static const Vec r119_up = {0.0f, 1.0f, 3.1415927f};
 
     for (;;) {
-        if ((pG->flags_174 & 0x80000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 1);
             koyaA_destroy();
-        } else if ((pG->flags_174 & 0x10000000) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
+        } else if ((pG->Room_flg[0] & 0x10000000) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 4);
             YaneA_destroy();
         }
-        if ((pG->flags_174 & 0x40000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+        if ((pG->Room_flg[0] & 0x40000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 2);
             koyaB_destroy();
-        } else if ((pG->flags_174 & 0x08000000) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+        } else if ((pG->Room_flg[0] & 0x08000000) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 5);
             YaneB_destroy();
         }
-        if ((pG->flags_174 & 0x20000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+        if ((pG->Room_flg[0] & 0x20000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 3);
             koyaC_destroy();
-        } else if ((pG->flags_174 & 0x04000000) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
+        } else if ((pG->Room_flg[0] & 0x04000000) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 6);
             YaneC_destroy();
         }
@@ -737,7 +737,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         default:
-            if ((int) pG->flags_60 >= 0 && e->NowFrame == 0) {
+            if ((int) pG->Debug_flg[0] >= 0 && e->NowFrame == 0) {
                 r119_evtBridgeOn();
             }
             break;
@@ -747,7 +747,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
         SmdSetTrans(0x2C, 1);
         SmdSetTrans(0x24, 0);
         SmdSetTrans(0x25, 0);
-        if ((int) pG->flags_60 >= 0) {
+        if ((int) pG->Debug_flg[0] >= 0) {
             r119_evtBridgeOn();
         }
         w = SmdGetWorkPtr(0x21);

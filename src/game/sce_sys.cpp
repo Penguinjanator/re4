@@ -46,7 +46,7 @@ static inline void U8SetI(u8& d, int v) { d = v; }
 // register (lwzx/stwx) instead of folding into the displacement.
 static inline u32* eventFlags()
 {
-    return &pG->flags_174;
+    return &pG->Room_flg[0];
 }
 
 cSceSys SceSys;
@@ -92,12 +92,12 @@ void ScenarioRoomInit()
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();
-    if (!(pG->flags_68 & 0x4000000)) {
+    if (!(pG->Debug_flg[2] & 0x4000000)) {
         SceExecInitCondition();
         RoomData.execInitFunc(pG->room_id);
         SceSys.scheduler();
     }
-    if (pG->flags_5018 & 0x4000000) {
+    if (pG->Status_flg[3] & 0x4000000) {
         SubCharInit(1, &pG->sub_pos, pG->sub_angle);
         SubCharCtrl(SCC_CHASE, 0);
     }
@@ -133,16 +133,16 @@ void scenarioLoopAfterInit()
 
 void ScenarioMove()
 {
-    if (pG->flags_68 & 0x4000000) {
+    if (pG->Debug_flg[2] & 0x4000000) {
         return;
     }
     scenarioLoopBeforeInit();
     if (SceSys.x76 == 0 && SceSys.pause == 0) {
-        if (!(pG->flags_500C & 0x100000)) {
+        if (!(pG->Status_flg[0] & 0x100000)) {
             scenarioCheckEventCancel();
             RoomData.execMainFunc(pG->room_id);
         }
-        if (!(pG->Stop_flg & 0x400) || (pG->flags_6C & 0x80)) {
+        if (!(pG->Stop_flg & 0x400) || (pG->Debug_flg[3] & 0x80)) {
             EvtMgr.Run();
         }
     }
@@ -301,7 +301,7 @@ ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* mo
     } else {
         t->flag = pCTask->flag;
     }
-    if (!(pG->flags_64 & 0x200000)) {
+    if (!(pG->Debug_flg[1] & 0x200000)) {
         busy = 0;
         for (i = 17; i >= 6; i--) {
             if (Task[i].Status != 0) {

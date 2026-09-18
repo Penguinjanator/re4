@@ -274,7 +274,7 @@ void Em36Init(cEm* em)
 // A lost limb whose hit box took the damage (em36DmCk): the routine is set straight from the loop (one
 // stepping limb pointer, the hit path jumps into the RS arm); an int inline returns through a flag.
 #define EM36_LIMB_HIT_CK(no)                                                                       \
-    if (pG->flags_5010 & 0x04000000) {                                                             \
+    if (pG->Status_flg[1] & 0x04000000) {                                                             \
         int i;                                                                                     \
                                                                                                    \
         for (i = 0; i < 5; i++) {                                                                  \
@@ -1357,10 +1357,10 @@ static void em36_R1_Atk(cEm36* em)
         if (fabsf(Muku(&em->pos, &v, em->ang.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x44), (int) ARC(0x45), 5, flip, 0);
             w->timer = 20;
-            if (pG->x4F88 <= 2) {
+            if (pG->Game_level <= 2) {
                 w->timer = 5;
             }
-            if (pG->x4F88 > 7) {
+            if (pG->Game_level > 7) {
                 w->timer = 30;
             }
         } else {
@@ -1465,7 +1465,7 @@ static void em36_R1_SpineAtk(cEm36* em)
 
 static void plem36_Stamp(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -1514,7 +1514,7 @@ static void subem36_Stamp()
 
     sub->subArc = PL_EM(sub)->subArc;
     sub->dmType = 2;
-    pG->flags_5014 |= 0x20000000;
+    pG->Status_flg[2] |= 0x20000000;
     step = sub->r_no_2;
     switch (step) {
     case 0:
@@ -1573,10 +1573,10 @@ static void em36_R1_Catch(cEm36* em)
             w->turnAng = LIMIT_ANGLE(w->turnAng);
         }
         w->timer = 20;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             w->timer = 5;
         }
-        if (pG->x4F88 > 7) {
+        if (pG->Game_level > 7) {
             w->timer = 30;
         }
         w->timer2 = 18;
@@ -1743,7 +1743,7 @@ static void plem36_CatchHit(cPlayer* pl)
 {
     u8 step;
 
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     step = pl->r_no_2;
@@ -1814,10 +1814,10 @@ static void plem36_CatchHit(cPlayer* pl)
 static inline void em36SetFindWait(Em36Work* w)
 {
     w->findWait = (u8) (Rnd() % 150) + 150;
-    if (pGS->x4F88 <= 3) {
+    if (pGS->Game_level <= 3) {
         w->findWait = (u8) (Rnd() % 150) + 300;
     }
-    if (pGS->x4F88 > 6) {
+    if (pGS->Game_level > 6) {
         w->findWait = (u8) (Rnd() % 150) + 90;
     }
 }
@@ -1842,10 +1842,10 @@ static void em36_R1_LongCatch(cEm36* em)
         w->turnAng = em->ang.y;
         EstSet((int) em, -1, 0, 0, 0x2D, 7, 0, 0, (u32) em, (void*) step);
         w->timer = 20;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             w->timer = 5;
         }
-        if (pG->x4F88 > 7) {
+        if (pG->Game_level > 7) {
             w->timer = 30;
         }
         w->atkHit = step;
@@ -1928,7 +1928,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
 
 static void plem36_LongCatchHit(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -2014,7 +2014,7 @@ static void plem36_SpineCatchHit(cPlayer* pl)
 {
     u8 step;
 
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     step = pl->r_no_2;
@@ -2081,10 +2081,10 @@ static void em36_R1_LostCatch(cEm36* em)
         MotionSetCore(em, MOTION(em), ARC(0x40), (int) ARC(0x41), 5, 1, 0);
         w->turnAng = em->ang.y;
         w->timer = 20;
-        if (pGS->x4F88 <= 2) {
+        if (pGS->Game_level <= 2) {
             w->timer = 5;
         }
-        if (pGS->x4F88 > 7) {
+        if (pGS->Game_level > 7) {
             w->timer = 30;
         }
         w->atkHit = step;
@@ -2361,7 +2361,7 @@ static void em36_R1_D_Walk(cEm36* em)
             Vec v;
             f32 d;
 
-            if ((w->flags2 & 0x10) || pG->x4F88 <= 2) {
+            if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
                 v = pPL->pos;
             } else {
                 GetPlPos(&v, 0, 10.0f);
@@ -2431,7 +2431,7 @@ static void em36_R1_D_Turn(cEm36* em)
             Vec v;
             f32 d;
 
-            if ((w->flags2 & 0x10) || pG->x4F88 <= 2) {
+            if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
                 v = pPL->pos;
             } else {
                 GetPlPos(&v, 0, 10.0f);
@@ -2499,10 +2499,10 @@ static void em36_R1_D_Catch(cEm36* em)
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x64), (int) ARC(0x65), 5, 1, 0);
         w->timer = 20;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             w->timer = 5;
         }
-        if (pG->x4F88 > 7) {
+        if (pG->Game_level > 7) {
             w->timer = 30;
         }
         w->atkHit = step;
@@ -2600,7 +2600,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
 
 static void plem36_D_CatchHit(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -3259,7 +3259,7 @@ void em36RouteCk(cEm36* em)
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
     w->flags &= ~4;
-    if (pSUBS && !(pG->flags_500C & 0x800) && w->plRouteDis > w->subRouteDis + 1000.0f) {
+    if (pSUBS && !(pG->Status_flg[0] & 0x800) && w->plRouteDis > w->subRouteDis + 1000.0f) {
         w->targetPos = w->subRoutePos;
         w->targetAng = w->subAng;
         w->targetAngAbs = w->subAngAbs;
@@ -3613,7 +3613,7 @@ void em36YarareCk(cEm36* em)
     if (!(w->flags & 1)) { \
         return 0; \
     } \
-    if (pG->flags_5010 & 0x8000) { \
+    if (pG->Status_flg[1] & 0x8000) { \
         return 0; \
     } \
     if (!(w->flags & 0x800)) { \
@@ -3704,7 +3704,7 @@ int em36LongCatchCk(cEm36* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     if (!(w->flags & 0x800)) {
@@ -3790,10 +3790,10 @@ void em36WeakInit(cEm36* em)
 
     a = Rnd() & 3;
     b = Rnd() & 3;
-    if ((u8) (Rnd() % 10) > 4 || pG->x4F88 > 7) {
+    if ((u8) (Rnd() % 10) > 4 || pG->Game_level > 7) {
         b = a;
     }
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         u32 r;
 
         // Region end after the Rnd chain (zero code) + else-arm 3: jump.c hoists `a = 3` right before the
@@ -3830,7 +3830,7 @@ void em36WeakInit(cEm36* em)
                 if (i == a || i == b) {
                     continue;
                 }
-                if (pG->x4F88 <= 9 && i == 4) {
+                if (pG->Game_level <= 9 && i == 4) {
                     continue;
                 }
                 break;
@@ -3887,7 +3887,7 @@ void em36WeakMove(cEm36* em)
             PSMTXInverse(em->getPartsPtr(0)->mat, inv);
             PSMTXMultVec(inv, &l->pObj->getPartsPtr(0)->world, &v);
             w->hit[l->hit].ofs = v;
-            if ((pGS->flags_5010 & 0x04000000) && l->hp > 0 && em->hp > 0) {
+            if ((pGS->Status_flg[1] & 0x04000000) && l->hp > 0 && em->hp > 0) {
                 l->pObj->be_flag |= 2;
                 w->hit[l->hit].flags |= 1;
             } else {
@@ -3998,7 +3998,7 @@ int em36SetDmVal(cEm36* em)
     case 9:
     case 0xA:
     case 0x28:
-        if (pG->flags_5010 & 0x04000000) {
+        if (pG->Status_flg[1] & 0x04000000) {
             int sum = 0;
             int i;
 
@@ -4158,7 +4158,7 @@ int em36AtkRtnCk(cEm36* em)
     f32 d;
 
     if ((w->flags & 4) && pSUB) {
-        if ((w->flags2 & 0x10) || pG->x4F88 <= 2) {
+        if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
             v = pSUB->pos;
         } else {
             GetPlPos(&v, pSUB, 18.0f);
@@ -4176,7 +4176,7 @@ int em36AtkRtnCk(cEm36* em)
         }
         return 0;
     }
-    if ((w->flags2 & 0x10) || pG->x4F88 <= 2) {
+    if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
         v = pPL->pos;
     } else {
         GetPlPos(&v, 0, 18.0f);
@@ -4190,22 +4190,22 @@ int em36AtkRtnCk(cEm36* em)
         case 0:
         case 1:
         default:
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
                 return 1;
             }
-            if ((u8) (Rnd() % 10) > 7 && pG->x4F88 > 1) {
+            if ((u8) (Rnd() % 10) > 7 && pG->Game_level > 1) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
                 return 1;
             }
             break;
         case 2:
         case 3:
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
                 return 1;
             }
-            if ((u8) (Rnd() % 10) > 3 && pG->x4F88 > 1) {
+            if ((u8) (Rnd() % 10) > 3 && pG->Game_level > 1) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
                 return 1;
             }
@@ -4713,14 +4713,14 @@ int em36FindCk(cEm36* em)
         if (em->plDist2 < 225000000.0f && w->routeAngAbs < 1.0471976f) {
             find = 1;
         }
-        if ((int) pG->flags_5010 < 0 && em->plDist2 < 25000000.0f) {
+        if ((int) pG->Status_flg[1] < 0 && em->plDist2 < 25000000.0f) {
             find = 1;
         }
         if (em->plDist2 < 12250000.0f) {
             find = 1;
         }
     }
-    if (pG->flags_5010 & 0x20000000) {
+    if (pG->Status_flg[1] & 0x20000000) {
         f32 r;
 
         switch (pG->bell_stat) {
@@ -4742,7 +4742,7 @@ int em36FindCk(cEm36* em)
             }
         }
     }
-    if ((pG->flags_500C & 0x00800000) && w->plRouteDis < 25000.0f) {
+    if ((pG->Status_flg[0] & 0x00800000) && w->plRouteDis < 25000.0f) {
         find = 1;
     }
     if (em36DeadCk(em)) {
@@ -4819,7 +4819,7 @@ int em36FanceOverCk(cEm36* em)
     u32 rem;
     f32 ang;
 
-    if (pG->flags_5014 & 0x08000000) {
+    if (pG->Status_flg[2] & 0x08000000) {
         return 0;
     }
     // Written-out modulo: the second load is cse'd, the subtraction's operand is the dying load temp (r9) and

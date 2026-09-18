@@ -205,7 +205,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
 
 int cObjHandGre::keyKamae()
 {
-    if (pG->flags_5018 & 0x00800000) {
+    if (pG->Status_flg[3] & 0x00800000) {
         return cObjWep::keyKamae();
     }
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {

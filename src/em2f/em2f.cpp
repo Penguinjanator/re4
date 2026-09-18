@@ -477,7 +477,7 @@ static void em2f_R1_SwimWait(cEm2f* em)
         em->be_flag &= ~2;
         em->r_no_2++;
     case 1:
-        if (pG->flags_5010 & 0x00200000) {
+        if (pG->Status_flg[1] & 0x00200000) {
             em->be_flag |= 2;
             EmRoutineSet(em, one, 3, 0, 0);
         }
@@ -694,7 +694,7 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
     }
     switch (em->r_no_2) {
     case 0:
-        if ((pG->flags_5010 & 0x00200000) && w->atkCnt) {
+        if ((pG->Status_flg[1] & 0x00200000) && w->atkCnt) {
             w->atkCnt--;
         }
         if (w->flags & 0x10) {
@@ -749,7 +749,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            hide = pG->flags_5010 & 0x00400000;
+            hide = pG->Status_flg[1] & 0x00400000;
             if (hide == 0) {
                 EmRoutineSet(em, one, 3, 0, 0);
                 break;
@@ -802,7 +802,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
             EmRoutineSet(em, 1, 3, 0, 0);
         } else {
             if (em->seFlags28B & 1) {
-                if (pG->flags_5010 & 0x00400000) {
+                if (pG->Status_flg[1] & 0x00400000) {
                     EmRoutineSet(pPL, r, 0xF, 9, r);
                     SndCall(8, 0x1E, &em->pos, em->id, 0, em);
                     SndCall(8, 0x1F, &pPL->pos, em->id, 0, pPL);
@@ -820,7 +820,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         }
         break;
     }
-    hide = pG->flags_5010 & 0x00400000;
+    hide = pG->Status_flg[1] & 0x00400000;
     if (hide == 0) {
         w->risingOk = 1;
     }
@@ -851,7 +851,7 @@ static void em2f_R1_Packman(cEm2f* em)
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            hide = pG->flags_5010 & 0x00400000;
+            hide = pG->Status_flg[1] & 0x00400000;
             if (hide == 0) {
                 EmRoutineSet(em, one, 3, 0, 0);
                 break;
@@ -911,7 +911,7 @@ static void em2f_R1_Packman(cEm2f* em)
             }
         } else {
             if (em->seFlags28B & 1) {
-                if (pG->flags_5010 & 0x00400000) {
+                if (pG->Status_flg[1] & 0x00400000) {
                     EmRoutineSet(pPL, r, 0xF, 9, r);
                     pPL->be_flag &= ~2;
                     SndCall(8, 0x1E, &em->pos, em->id, 0, em);
@@ -938,7 +938,7 @@ static void em2f_R1_Packman(cEm2f* em)
         }
         break;
     }
-    hide = pG->flags_5010 & 0x00400000;
+    hide = pG->Status_flg[1] & 0x00400000;
     if (hide == 0) {
         w->risingOk = 1;
     }
@@ -1101,7 +1101,7 @@ static void em2f_R1_Critical(cEm2f* em)
         if (pPL->pos.y < -800.0f) {
             break;
         }
-        if (!(pG->flags_500C & 0x00800000)) {
+        if (!(pG->Status_flg[0] & 0x00800000)) {
             break;
         }
         if (w->timer) {
@@ -1589,7 +1589,7 @@ int em2fRisingDragonCk(cEm2f* em)
     int one;
 
     one = 1;
-    if (pG->flags_5010 & 0x00400000) {
+    if (pG->Status_flg[1] & 0x00400000) {
         if (w->rndFlag) {
             if (Rnd() & 3) {
                 w->rndFlag = 0;

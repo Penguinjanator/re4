@@ -110,17 +110,17 @@ void R405Main()
         if (r405_work.p->cnt <= 4) {
             if (r405_work.p->timer <= 0) {
                 if ((u32) SceCountEmAlive(0x10, 0x20) <= 8) {
-                    if (pG->sceat_x17C & 0x20000000) {
+                    if (pG->Room_flg[2] & 0x20000000) {
                         R405_EmSetEvent(EM_LIST(0x10));
                         R405_EmSetEvent(EM_LIST(0x11));
                         r405_work.p->cnt++;
                         r405_work.p->timer = 240;
-                    } else if (pG->sceat_x17C & 0x10000000) {
+                    } else if (pG->Room_flg[2] & 0x10000000) {
                         R405_EmSetEvent(EM_LIST(0x13));
                         R405_EmSetEvent(EM_LIST(0x14));
                         r405_work.p->cnt++;
                         r405_work.p->timer = 240;
-                    } else if (pG->sceat_x17C & 0x40000000) {
+                    } else if (pG->Room_flg[2] & 0x40000000) {
                         R405_EmSetEvent(EM_LIST(0x25));
                         R405_EmSetEvent(EM_LIST(0x26));
                         r405_work.p->cnt++;

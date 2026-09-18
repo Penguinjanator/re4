@@ -361,7 +361,7 @@ void EtcModelRoomInit()
 
 int EtcModelDataLoad(void* addr)
 {
-    if (pG->flags_6C & 0x800) {
+    if (pG->Debug_flg[3] & 0x800) {
         return 0;
     }
     g_addr = addr;
@@ -378,7 +378,7 @@ int EtcModelListSet(EtcList* list)
     EtcSetData* d;
     u32 i;
 
-    if (pG->flags_6C & 0x800) {
+    if (pG->Debug_flg[3] & 0x800) {
         return 0;
     }
     d = list->data;

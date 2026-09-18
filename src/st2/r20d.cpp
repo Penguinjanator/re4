@@ -336,7 +336,7 @@ static void r20d_checkDoor()
     if (!(pG->door_unlock[0] & 0x00200000)) {
         SceAtExecute(0x10);
     } else {
-        pG->flags_51C0 |= 0x02000000;
+        pG->Scenario_flg[0] |= 0x02000000;
         PlSelect(0);
         SceAtExecute(0x10);
     }
@@ -382,7 +382,7 @@ static void r20d_checkSwitch(int opened)
             if (t != z0) {
                 open = 1;
                 ((cEmSwitch*) sw)->setOpen();
-                if (pG->flags_174 & 0x40000000) {
+                if (pG->Room_flg[0] & 0x40000000) {
                     continue;
                 }
             }
@@ -473,7 +473,7 @@ static void r20d_operateCrank(int no)
     int accel;
     u32 seId;
 
-    pG->flags_174 |= 0x40000000;
+    pG->Room_flg[0] |= 0x40000000;
     switch ((u32) no) {
     case 0:
         SceAtSetEnable(0, 0);
@@ -637,7 +637,7 @@ static void r20d_operateCrank(int no)
             break;
         }
     }
-    pG->flags_174 &= ~0x40000000;
+    pG->Room_flg[0] &= ~0x40000000;
     CamCtrl.Comeback(0);
 }
 

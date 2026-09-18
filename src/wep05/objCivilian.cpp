@@ -55,7 +55,7 @@ void cObjCivilian::moveFire()
         MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x32), 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        pG->Status_flg[0] |= 0x00800000;
         EstSet((int) this, -1, 0, 0, 0x39, 0, 0, 0xA, 0, 0);
         wep.step = 1;
     }

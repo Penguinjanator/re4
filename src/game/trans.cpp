@@ -481,7 +481,7 @@ void ModelTrans(cModel* m)
     f32 radius;
     cModel* p;
 
-    if ((pG->flags_5010 & 0x10000000) && !(m->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(m->be_flag & 0x800)) {
         return;
     }
     if (!(m->be_flag & 2)) {
@@ -610,7 +610,7 @@ void ModelTrans(cModel* m)
             lightSetObj(m);
         }
     } else {
-        if (pG->flags_60 & 0x10) {
+        if (pG->Debug_flg[0] & 0x10) {
             if (m->kindid == 0) {
                 lightSetEm(m);
             } else {
@@ -908,7 +908,7 @@ void Render()
     g_prev_add_tpl_addr = (void*) -1;
     GXSetCurrentGXThread();
     if (pG->System_flg & 0x800) {
-        pG->flags_5018 |= 0x10000000;
+        pG->Status_flg[3] |= 0x10000000;
         SetScissorState();
     }
     LightMgr.setFog();
@@ -929,7 +929,7 @@ void Render()
     ExecOt(OT_TYPE_SHADOW_DRAW);
     SetDrawTmpBufType(0);
     bio4_AddBgColor();
-    if (pG->flags_60 & 0x00040000) {
+    if (pG->Debug_flg[0] & 0x00040000) {
         drawGround(0);
     }
     ExecOt(OT_TYPE_SUBSCRN_NEAR);
@@ -944,7 +944,7 @@ void Render()
     ExecOt(OT_TYPE_AFTER_RENDER);
     ExecOt(OT_TYPE_DEBUG);
     ExecOt(OT_TYPE_MAX);
-    pG->flags_5018 &= ~0x10000000;
+    pG->Status_flg[3] &= ~0x10000000;
     SetScissorState();
     ExecOt(0x13);
     save = pG->Cam;
@@ -999,7 +999,7 @@ void ModelRender(cModel* m)
         GXSetDstAlpha(0, 0);
     }
     shaderReset();
-    if (pG->flags_64 & 0x40000000) {
+    if (pG->Debug_flg[1] & 0x40000000) {
         m->drawAllBoundingBox(m->pModelInfo);
     }
 }
@@ -1019,9 +1019,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int matSet;
 
     PSet(g_pShdMng, 0);
-    if ((pG->flags_5014 & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->Disp_flg & 0x00040000) &&
-        (pG->flags_5010 & 0x200)) {
-        if (!(pG->flags_5010 & 0x100)) {
+    if ((pG->Status_flg[2] & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->Disp_flg & 0x00040000) &&
+        (pG->Status_flg[1] & 0x200)) {
+        if (!(pG->Status_flg[1] & 0x100)) {
         g_pShdMng = GetCastShadowMngPtr(m);
         if (g_pShdMng != 0) {
             ShadowLightWork* w = (ShadowLightWork*) g_pShdMng->pLight->work;
@@ -1032,7 +1032,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             }
             u32 n = m->LightInfo.getLightNum();
             if (n > 7) {
-                if (!(pG->flags_64 & 0x00040000)) {
+                if (!(pG->Debug_flg[1] & 0x00040000)) {
                     pLog->err(0, 0, "CAST LIGHT NUM OVER %d", n);
                 }
                 g_pShdMng = 0;
@@ -1050,7 +1050,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         ModelPart* part;
         u32 i;
 
-        if (!(pG->flags_5010 & 0x100) && m->ot_type == 7) {
+        if (!(pG->Status_flg[1] & 0x100) && m->ot_type == 7) {
             if (m->be_flag & 0x08000000) {
                 if (!(info->be_flag & 0x40)) {
                     info = info->pList;
@@ -1154,7 +1154,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             GXSetCullMode(0);
             break;
         }
-        if (pG->flags_60 & 0x20000000) {
+        if (pG->Debug_flg[0] & 0x20000000) {
             GXSetCullMode(1);
         }
         if (g_prev_tpl_addr != info->tpl_addr || g_prev_add_tpl_addr != info->pAddTpl) {
@@ -1247,12 +1247,12 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         info = info->pList;
     }
-    if (!(pG->flags_5010 & 0x100)) {
+    if (!(pG->Status_flg[1] & 0x100)) {
         if (MODEL_EXT(m)->pFootShadowTbl != 0 && (m->be_flag & 0x10)) {
             DrawFootShadow((cEm*) m);
         }
     }
-    if (!(pG->flags_5010 & 0x100)) {
+    if (!(pG->Status_flg[1] & 0x100)) {
         if (m->ot_type == 7) {
             m->be_flag |= 0x08000000;
         }
@@ -1307,7 +1307,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     int st;
     int scale;
 
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         ThermoShaderSetup(m, info, part);
         return;
     }
@@ -1322,7 +1322,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     ISET0(tex_coord);
     ISET0(ind_stage);
     selfDone = 0;
-    if ((pGS->flags_500C & 1) && isSelfUse) {
+    if ((pGS->Status_flg[0] & 1) && isSelfUse) {
         u32 i;
         for (i = 0; i < g_SelfShdNum; i++) {
             if (GetSelfShadowMng(i)->pModel[0] == m) {

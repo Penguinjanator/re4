@@ -137,7 +137,7 @@ void R100Init()
     u32 flag;
 
     BitOff(pG->System_flg, 0x400);
-    if (pG->x4F9F == 1 || DebugTrg(1)) {
+    if (pG->JumpPoint == 1 || DebugTrg(1)) {
         RsfSet(G_ROOM_ID, 10);
         RsfSet(G_ROOM_ID, 3);
         RsfSet(G_ROOM_ID, 13);
@@ -383,7 +383,7 @@ void R100Main()
         }
     }
     if (RsfCheck(G_ROOM_ID, 12) == 0 && RsfCheck(G_ROOM_ID, 3) && !SceAtHitCheck(0xD) &&
-        !(pG->flags_500C & 0x1000)) {
+        !(pG->Status_flg[0] & 0x1000)) {
         RsfSet(G_ROOM_ID, 12);
         SndStrReq(1, 4, 4, 400, 0, FCRef(vol));
         SndStrReq(1, 5, 4, 400, 0, FCRef(vol));
@@ -396,8 +396,8 @@ void R100Main()
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 10, 5, 0);
                 MotionSetCore(W->cop[1], &W->cop[1]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 10, 5, 0);
             }
-        } else if ((int) pG->flags_5014 < 0 && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
-            if (pG->sceat_x17C & 0x40000000) {
+        } else if ((int) pG->Status_flg[2] < 0 && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
+            if (pG->Room_flg[2] & 0x40000000) {
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x35), 0, 10, 5, 0);
                 W->se = SndCall(6, 6, &W->cop[0]->pos, 0, 0, 0);
             } else {
@@ -565,13 +565,13 @@ static void r100_StartEvent()
     pG->System_flg |= 0x400;
     SceSleep(1);
     BitOff(SmdGetObjPtr(0x44)->be_flag, 2);
-    BitOn(pG->flags_5010, 0x800);
+    BitOn(pG->Status_flg[1], 0x800);
     BitOn(pG->Disp_flg, 0x20000);
     flag = pG->System_flg;
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!(pG->System_flg & 0x40) && !(pG->flags_51C0 & 0x10)) {
+    if (!(pG->System_flg & 0x40) && !(pG->Scenario_flg[0] & 0x10)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
@@ -586,7 +586,7 @@ static void r100_StartEvent()
         freeEvent(9, 0);
     }
     BitOn(SmdGetObjPtr(0x44)->be_flag, 2);
-    BitOff(pG->flags_5010, 0x800);
+    BitOff(pG->Status_flg[1], 0x800);
     {
         Vec pos;
         Vec* pp = &pos;
@@ -607,7 +607,7 @@ static void r100_StartEvent()
     }
     SceEventEnd(0);
     BitOff(pG->Disp_flg, 0x20000);
-    if (skip == 0 && !(pG->flags_51C0 & 0x10)) {
+    if (skip == 0 && !(pG->Scenario_flg[0] & 0x10)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     OpeSetMdtNo(0);
@@ -632,14 +632,14 @@ static void r100_DoorCk()
         ((cEmDoor*) door)->setOpenLock(0);
         SceSleep(1);
     }
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     found = 0;
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             found = 1;
         }
         if (found == 1) {
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 SndCall(6, 0x28, &door->pos, 0, 0, 0);
             }
             break;
@@ -694,7 +694,7 @@ static void r100_WindowBreakCk()
     ((cEmWindow*) win0)->SetEnableFence(1, 0);
     ((cEmWindow*) win1)->SetEnableFence(1, 0);
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if (!(pG->sceat_x17C & 0x80000000)) {
+        if (!(pG->Room_flg[2] & 0x80000000)) {
             RsfSet(G_ROOM_ID, 4);
             if (W->ems[0] != errEm) {
                 W->ems[0]->flags_3C8 |= 0x80;
@@ -715,7 +715,7 @@ static void r100_HouseEvent_exit()
 {
     pPL->setNoSuspend(0);
     EmMgr.destroy(W->emHouse);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -731,7 +731,7 @@ static void r100_HouseEvent()
     }
     RsfSet(G_ROOM_ID, 15);
     SceEventStart(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     W->emHouse = EmSetFromList2(0x25, 1);
     W->emHouse->setNoSuspend(1);
     W->emHouse->be_flag |= 0x1000;
@@ -756,7 +756,7 @@ static void r100_HouseEvent()
     CamCtrl.CutCall(0xA);
     SceSetEventCancel(1, (TaskFunc) r100_HouseEvent_exit, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
-        pG->flags_5010 |= 0x02000000;
+        pG->Status_flg[1] |= 0x02000000;
         SceSleep(1);
     }
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -783,7 +783,7 @@ static void r100_StreanChk()
         cnt = r + 60;
     }
     while (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             cnt--;
             if (cnt <= 0) {
                 u8 r = Rnd() % 30;
@@ -1051,7 +1051,7 @@ extern "C" void r100_trap_set()
     EmSetFromList2(0xE, 1);
     EmSetFromList2(0x1D, 1);
     EmSetFromList2(0x7A, 1);
-    if (pG->x4F8E == 0) {
+    if (pG->game_cnt == 0) {
         em = EmSetFromList2(6, 1);
         if (em != errEm) {
             ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0);
@@ -1099,7 +1099,7 @@ static void r100_MesCar00()
     W->car->setNoSuspend(1);
     W->cop[0]->setNoSuspend(1);
     W->cop[1]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (W->se) {
         SndStop(W->se, 0);
     }
@@ -1114,7 +1114,7 @@ static void r100_MesCar00()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // The other officer talks (s42).
@@ -1128,7 +1128,7 @@ static void r100_MesCar01()
     W->car->setNoSuspend(1);
     W->cop[1]->setNoSuspend(1);
     W->cop[0]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (W->se) {
         SndStop(W->se, 0);
     }
@@ -1143,7 +1143,7 @@ static void r100_MesCar01()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 static void r100_MesBrige()
@@ -1181,7 +1181,7 @@ static void r100_EventBrige()
     W->car->ot_type = 1;
     W->cop[0]->setNoSuspend(0);
     W->cop[1]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (readEvent(8, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
@@ -1193,7 +1193,7 @@ static void r100_EventBrige()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // TexRender blend setup of one water object.
@@ -1233,7 +1233,7 @@ extern "C" void Evt_R100S40_Func(Event* e)
     case 0:
         break;
     case 1:
-        pG->flags_5010 |= 0x02000000;
+        pG->Status_flg[1] |= 0x02000000;
         if (e->NowCut == 0 && e->NowFrame == 0) {
             EventCarInit(e);
         }
@@ -1241,7 +1241,7 @@ extern "C" void Evt_R100S40_Func(Event* e)
     case 2:
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }
@@ -1261,7 +1261,7 @@ extern "C" void Evt_R100S20_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == 0) {
-                if (!(pG->flags_60 & 0x02000000)) {
+                if (!(pG->Debug_flg[0] & 0x02000000)) {
                     W->ems[1]->setNoSuspend(1);
                     W->ems[2]->setNoSuspend(1);
                 }
@@ -1317,7 +1317,7 @@ static void r100_mes_gaikotu_bgm()
     SndRoomStrVolSet(1, 200);
     id = SndStrReq(0, 0x12, 3, 0, 0, 0.0f);
     SceSleep(1);
-    while (SndStrStatusCk(id, 0x16) != 0 && !(pG->flags_174 & 0x20000000)) {
+    while (SndStrStatusCk(id, 0x16) != 0 && !(pG->Room_flg[0] & 0x20000000)) {
         SceSleep(1);
     }
     SndStrReq(id, 8, 0, 0);
@@ -1326,10 +1326,10 @@ static void r100_mes_gaikotu_bgm()
 
 static void r100_mes_gaikotu()
 {
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceExec(0x12, (TaskFunc) r100_mes_gaikotu_bgm, 0, 2, SCE_PRIO_DEF_2, 0);
     SceUpCut(0x2F, 0xB, -1, 0);
-    pG->flags_174 |= 0x20000000;
+    pG->Room_flg[0] |= 0x20000000;
 }
 
 static void r100_mes_gaikotu_bgm_down()

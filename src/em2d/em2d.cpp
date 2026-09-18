@@ -263,16 +263,16 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 #define em2dSetAtkWait(w, a, b, c, d, e)   \
     {                                      \
         IntSet((w)->atkWait, a);           \
-        if (pG->x4F88 > 1) {               \
+        if (pG->Game_level > 1) {               \
             IntSet((w)->atkWait, b);       \
         }                                  \
-        if (pG->x4F88 > 3) {               \
+        if (pG->Game_level > 3) {               \
             IntSet((w)->atkWait, c);       \
         }                                  \
-        if (pG->x4F88 > 6) {               \
+        if (pG->Game_level > 6) {               \
             IntSet((w)->atkWait, d);       \
         }                                  \
-        if (pG->x4F88 == 10) {             \
+        if (pG->Game_level == 10) {             \
             IntSet((w)->atkWait, e);       \
         }                                  \
     }
@@ -282,16 +282,16 @@ static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int 
 {
     IntSet(w->atkWait, a);
     w->dmgTotal = 0;
-    if (pG->x4F88 > 1) {
+    if (pG->Game_level > 1) {
         IntSet(w->atkWait, b);
     }
-    if (pG->x4F88 > 3) {
+    if (pG->Game_level > 3) {
         IntSet(w->atkWait, c);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         IntSet(w->atkWait, d);
     }
-    if (pG->x4F88 == 10) {
+    if (pG->Game_level == 10) {
         IntSet(w->atkWait, e);
     }
 }
@@ -425,7 +425,7 @@ void em2dDmCk(cEm2d* em)
         return;
     }
     em->dmHit = 0;
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmType = 1;
@@ -796,7 +796,7 @@ void cEm2d::move()
     if (w->poisonWait) {
         w->poisonWait--;
     }
-    if (w->atkWait == 0 && em2dDeadCk(pPL) && pG->x4F88 <= 9) {
+    if (w->atkWait == 0 && em2dDeadCk(pPL) && pG->Game_level <= 9) {
         w->atkWait = 10;
     }
     if (w->atkCnt > 450) {
@@ -1276,7 +1276,7 @@ static void em2d_R1_Walk(cEm2d* em)
         f32 dy = fabsf(em->pos.y - pPL->pos.y);
         if ((w->flags & 1) && dy < 500.0f) {
             if (em->plDist2 < 4000000.0f && w->routeAngAbs < 0.785398185f) {
-                if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 1) && Rnd() % 10 > 4) {
+                if (pG->Game_level <= 1 && !EM_RTN(em, 1, 1) && Rnd() % 10 > 4) {
                     w->atkWait = 30;
                     EmRoutineSet(em, 1, 1, 0, 0);
                     return;
@@ -1287,7 +1287,7 @@ static void em2d_R1_Walk(cEm2d* em)
                 }
             }
             if (em2dScreenInCk(em)) {
-                if (pG->x4F88 <= 1) {
+                if (pG->Game_level <= 1) {
                     if (w->jumpWait) {
                         goto next;
                     }
@@ -1328,7 +1328,7 @@ static void em2d_R1_Walk(cEm2d* em)
         }
     }
 next:
-    if (!(w->flags & 0x2000) && !(em->flags_3C8 & 0x40000000) && (pG->flags_51E4 & 3) != (em->emset_no & 3)) {
+    if (!(w->flags & 0x2000) && !(em->flags_3C8 & 0x40000000) && (pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         Vec a;
         Vec b;
 
@@ -1695,7 +1695,7 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
 
 static void plem2d_CriticalHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     switch (pl->r_no_2) {
     case 0:
@@ -1779,16 +1779,16 @@ static void em2d_R1_JumpAtk(cEm2d* em)
             w->dmgTotal = fe;
             IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
-            if (pG->x4F88 > 1) {
+            if (pG->Game_level > 1) {
                 IntSet(w->atkWait, 75);
             }
-            if (pG->x4F88 > 3) {
+            if (pG->Game_level > 3) {
                 IntSet(w->atkWait, 60);
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 IntSet(w->atkWait, 45);
             }
-            if (pG->x4F88 == 10) {
+            if (pG->Game_level == 10) {
                 IntSet(w->atkWait, 30);
             }
             EmRoutineSet(em, 1, 1, fe, fe);
@@ -1870,16 +1870,16 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
             em->atari.setPriority(0);
             IntSet(w->jumpWait, Rnd() % 150 + 150);
             w->atkWait = 100;
-            if (pG->x4F88 > 1) {
+            if (pG->Game_level > 1) {
                 IntSet(w->atkWait, 75);
             }
-            if (pG->x4F88 > 3) {
+            if (pG->Game_level > 3) {
                 IntSet(w->atkWait, 60);
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 IntSet(w->atkWait, 45);
             }
-            if (pG->x4F88 == 10) {
+            if (pG->Game_level == 10) {
                 IntSet(w->atkWait, 30);
             }
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -1940,7 +1940,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
 {
     int fe;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     fe = pl->r_no_2;
@@ -2161,16 +2161,16 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
             em->atari.setPriority(0);
             IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
-            if (pG->x4F88 > 1) {
+            if (pG->Game_level > 1) {
                 IntSet(w->atkWait, 75);
             }
-            if (pG->x4F88 > 3) {
+            if (pG->Game_level > 3) {
                 IntSet(w->atkWait, 60);
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 IntSet(w->atkWait, 45);
             }
-            if (pG->x4F88 == 10) {
+            if (pG->Game_level == 10) {
                 IntSet(w->atkWait, 30);
             }
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -2184,7 +2184,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
 {
     int t;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -2243,16 +2243,16 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
             } else {
                 IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
                 w->atkWait = 100;
-                if (pG->x4F88 > 1) {
+                if (pG->Game_level > 1) {
                     IntSet(w->atkWait, 75);
                 }
-                if (pG->x4F88 > 3) {
+                if (pG->Game_level > 3) {
                     IntSet(w->atkWait, 60);
                 }
-                if (pG->x4F88 > 6) {
+                if (pG->Game_level > 6) {
                     IntSet(w->atkWait, 30);
                 }
-                if (pG->x4F88 == 10) {
+                if (pG->Game_level == 10) {
                     IntSet(w->atkWait, 0);
                 }
                 EmRoutineSet(em, 1, 0xE, 0, 0);
@@ -2302,7 +2302,7 @@ static void plem2dKick(cPlayer* pl)
 
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmg.set(0, 30);
-    pG->flags_5014 |= 0x40000000;
+    pG->Status_flg[2] |= 0x40000000;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x60), 0, 6, 1, 5);
@@ -3182,7 +3182,7 @@ static void em2d_R1_A_Wait(cEm2d* em)
         } else {
             em2dFindCk(em);
             if ((w->flags & 0x200) && w->atkWait == 0 && em2dStayCk(em)) {
-                if (pG->x4F88 <= 1) {
+                if (pG->Game_level <= 1) {
                     if (w->atkWait) {
                         break;
                     }
@@ -3713,7 +3713,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
 {
     int fe;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     fe = pl->r_no_2;
@@ -4558,10 +4558,10 @@ void em2dRouteCk(cEm2d* em)
     }
     if (em->r_no_0 != 0) {
         if (em->set == 1) {
-            if (pG->flags_51E4 % 10 != em->emset_no % 10) {
+            if (pG->Frame_cnt % 10 != em->emset_no % 10) {
                 return;
             }
-        } else if ((pG->flags_51E4 & 3) != (em->emset_no & 3)) {
+        } else if ((pG->Frame_cnt & 3) != (em->emset_no & 3)) {
             return;
         }
     }
@@ -4635,7 +4635,7 @@ void em2dRouteCk(cEm2d* em)
             w->targetAngAbs = 0.0f;
         }
     }
-    if (pG->flags_60 & 0x4000) {
+    if (pG->Debug_flg[0] & 0x4000) {
         a = em->pos;
         a.y += 250.0f;
         Draw_line3d(&a, &w->targetPos, 0xFFFFFF40, 0);
@@ -4780,7 +4780,7 @@ int em2dLockCk(cEm2d* em)
     if (pG->weapon_no == 0x10) {
         return 0;
     }
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         return 0;
     }
     if (ItemMgr.bulletNumCurrent() == 0) {
@@ -5050,7 +5050,7 @@ void em2dCamouflageMove(cEm2d* em)
         }
     }
     em->Refract_pow = em2d_tex_flag;
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         w->x4D0 = 0;
         em->Refract_ratio = 0xFF;
     }
@@ -5165,7 +5165,7 @@ int em2dCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);
@@ -5200,7 +5200,7 @@ int em2dAirCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);
@@ -5236,7 +5236,7 @@ int em2dFallCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     if (em->plDist2 > 2250000.0f) {
@@ -6126,7 +6126,7 @@ int em2dFindCk(cEm2d* em)
         return 1;
     }
     if (!(em->plDist2 < 9000000.0f)) {
-        if (pG->flags_5010 & 0x20000000) {
+        if (pG->Status_flg[1] & 0x20000000) {
             f32 r;
 
             switch (pG->bell_stat) {
@@ -6153,7 +6153,7 @@ int em2dFindCk(cEm2d* em)
                 }
             }
         }
-        if (!(pG->flags_500C & 0x00800000) || !(w->plDist < 25000.0f)) {
+        if (!(pG->Status_flg[0] & 0x00800000) || !(w->plDist < 25000.0f)) {
             if (em2dDeadCk(em) == 0 && em2dSomebodyFindCk(em) == 0) {
                 return 0;
             }

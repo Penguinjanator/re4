@@ -56,7 +56,7 @@ void cEsp15::move()
             }
             w->Base_alpha = m_Col_a;
             if (w->Room_del_frame != 0) {
-                if (pG->flags_5010 & 0x02000000) {
+                if (pG->Status_flg[1] & 0x02000000) {
                     w->Room_del_cnt++;
                 } else if (w->Room_del_cnt != 0) {
                     w->Room_del_cnt--;
@@ -150,7 +150,7 @@ int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
     m_Pos.z += w->Range * fRandSeed1_1(seed);
     w->Base_alpha = m_Col_a;
     w->Min_y = gen->xD8;
-    if (pGS->flags_5010 & 0x02000000) {
+    if (pGS->Status_flg[1] & 0x02000000) {
         m_Col_a = 0.0f;
         w->Room_del_cnt = w->Room_del_frame;
     }

@@ -523,7 +523,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     cSubChar* sub = pSUB;
 
     sub->subArc = PL_EM(sub)->subArc;
-    pGS->flags_5014 |= 0x20000000;
+    pGS->Status_flg[2] |= 0x20000000;
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1A), 0, 5, 5, 0);
@@ -998,7 +998,7 @@ int em2aTrap1BiteSubCk(cEm2a* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (pG->flags_5014 & 0x20000000) {
+    if (pG->Status_flg[2] & 0x20000000) {
         return 0;
     }
     dead = em2aDeadCk(pSUB);

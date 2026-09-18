@@ -49,7 +49,7 @@ void DrawFootShadow(cEm* em)
     if (em->Shd_color == 0xFF) {
         return;
     }
-    if (pG->flags_500C & 0x1000) {
+    if (pG->Status_flg[0] & 0x1000) {
         pos = em->pParts->world;
         pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
     } else {
@@ -81,7 +81,7 @@ void DrawFootShadow(cEm* em)
         if (!(l->xF & em->LightInfo.x50)) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
             if (l->Kind & 0x80) {
                 continue;
             }

@@ -719,7 +719,7 @@ void r20e_startArmor()
 
 static void r20d_getSalazarCrest_end()
 {
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         cObj* o23;
         cObj* o24;
         cObj* obj;
@@ -791,7 +791,7 @@ static void r20d_getSalazarCrest()
 
 static void r20e_checkFinalPieceUse_end()
 {
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         cObj* obj;
 
         EffectEspDelete(0, (u8) r20e_work->effKind, 0, 0);

@@ -659,7 +659,7 @@ template <class T> int cDbgEditWindow<T>::execCopyWindow()
     eprintf2(8, 12, 0x28, 0x9A, 0, 0, " COPY");
     eprintf2(8, 12, 0x28, 0xA8, 0, 0, " CUT");
     eprintf2(8, 12, 0x28, 0xB6, 0, 0, " PASTE");
-    if (pG->flags_51E4 & 4) {
+    if (pG->Frame_cnt & 4) {
         eprintf2(8, 12, 0x28, (copyCursor + 11) * 14, 0, 0, ">");
     }
     return 1;
@@ -794,7 +794,7 @@ template <class T> void cDbgEditWindow<T>::LocalDisp()
             int bx = m_px;
 
             cur = pCur;
-            if (pG->flags_51E4 & 4) {
+            if (pG->Frame_cnt & 4) {
                 eprintf2(8, 12, (bx + cur->m_px - 1) * 8, (by + cur->m_py) * 14, 0, 0, ">");
             }
             if (alive) {

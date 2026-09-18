@@ -1001,7 +1001,7 @@ void msqDisp()
     int j;   // row counter post-incremented in the eprintf argument (the y giv's `+14` lands in the arg block)
 
     eprintf(24, 14, 4, w->col, "MOTION SEQUENCE TOOL");
-    if (MSQ->camMode && (pG->flags_51E4 & 0x10)) {
+    if (MSQ->camMode && (pG->Frame_cnt & 0x10)) {
         eprintf(24, 28, 4, MSQ->col, "1P CAMERA MODE");
     }
     switch (MSQ->mode) {
@@ -1026,7 +1026,7 @@ void msqDisp()
         eprintf(24, 168, 0, MSQ->col, "SAVE & EXIT -> save & exit tool");
         eprintf(24, 182, 0, MSQ->col, "RENEWAL     -> renewal sequence");
         eprintf(24, 196, 0, MSQ->col, "EXIT        -> exit tool");
-        if (pG->flags_51E4 & 8) {
+        if (pG->Frame_cnt & 8) {
             eprintf(16, msq_y_tbl[MSQ->sub2], 0, MSQ->col, ">");
         }
         break;
@@ -1138,7 +1138,7 @@ void msqDisp()
         eprintf(384, 196, 0, MSQ->col, "L+Z:  SEQ PASTE");
         eprintf(384, 210, 0, MSQ->col, "L+R+Z:SEQ CUT");
         eprintf(384, 84, 0, MSQ->col, "ST:   1P CAMERA");
-        if (pG->flags_51E4 & 8) {
+        if (pG->Frame_cnt & 8) {
             eprintf(16, msq_y_tbl[MSQ->sub2], 0, MSQ->col, ">");
         }
         break;

@@ -354,7 +354,7 @@ void cEm38::move()
         }
     }
     if (type == 3) {
-        if (pG->flags_5010 & 0x04000000) {
+        if (pG->Status_flg[1] & 0x04000000) {
             LightInfo.x50 = 0x80;
         } else {
             LightInfo.x50 = 4;
@@ -562,7 +562,7 @@ static void em38_R1_Wait(cEm38* em)
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], 0, 0, 0, w->blendKind);
         if (MotionMoveF(em, 0)) {
             w->timer++;
-            if (pGS->x4F88 <= 1 && w->timer <= 1) {
+            if (pGS->Game_level <= 1 && w->timer <= 1) {
                 if ((u8) (Rnd() % 10) > 4) {
                     return;
                 }
@@ -790,7 +790,7 @@ static void em38_R1_AtkHit(cEm38* em)
 // Player damage callback of em38_R1_AtkHit: the player is bitten.
 static void plem38_AtkHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -848,14 +848,14 @@ static void em38_R1_T_Wait(cEm38* em)
                     EmRoutineSet(em, 1, 0xB, 0, 0);
                     break;
                 }
-                if ((u8) (Rnd() % 10) <= 1 && w->pBody->ckCritical() == 0 && pG->x4F88 > 1) {
+                if ((u8) (Rnd() % 10) <= 1 && w->pBody->ckCritical() == 0 && pG->Game_level > 1) {
                     EmRoutineSet(em, 1, 0xA, 0, 0);
                     break;
                 }
             }
             EmRoutineSet(em, 1, 9, 0, 0);
         } else {
-            if (pG->x4F88 > 1) {
+            if (pG->Game_level > 1) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             }
         }
@@ -947,10 +947,10 @@ static void em38_R1_T_Out(cEm38* em)
 static inline void em38SetTentAtkWait(Em38Work* w)
 {
     IntSet(w->atkWait, 270);
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         IntSet(w->atkWait, 330);
     }
-    if (pG->x4F88 > 7) {
+    if (pG->Game_level > 7) {
         IntSet(w->atkWait, 210);
     }
 }
@@ -1051,7 +1051,7 @@ static void em38_R1_T_Atk(cEm38* em)
                 em38AtkCk(em, 0, 0x11);
                 em38AtkCk(em, 0, 0x12);
             }
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer && w->atkHit == 0 && w->escaped == 0) {
@@ -1134,7 +1134,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -1216,7 +1216,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -1341,7 +1341,7 @@ static void em38_R1_T_CatchHit(cEm38* em)
 // Player damage callback of em38_R1_T_CatchHit: caught by a tentacle, then thrown.
 static void plem38_CatchHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -2168,7 +2168,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
                 SndCall(8, 0xD, &em->pos, em->id, 0, em);
                 break;
             case 3:
-                if (!(pG->flags_68 & 0x00800000)) {
+                if (!(pG->Debug_flg[2] & 0x00800000)) {
                     pG->pl_life = 0;
                 }
                 break;
@@ -2190,7 +2190,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
 static void plemDmStamp(cPlayer* pl)
 {
     pl->dmg.set(0, 10);
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
     case 0:
@@ -2731,7 +2731,7 @@ void em38WeakMove(cEm38* em)
     if (w->pWeak == 0) {
         return;
     }
-    if ((pG->flags_5010 & 0x04000000) && em->hp > 0) {
+    if ((pG->Status_flg[1] & 0x04000000) && em->hp > 0) {
         w->pWeak->be_flag |= 2;
     } else {
         w->pWeak->be_flag &= ~2;

@@ -77,7 +77,7 @@ void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag)
     flt03.b = b;
     flt03.flag = flag;
     if (flag) {
-        pG->flags_5010 |= 0x80;
+        pG->Status_flg[1] |= 0x80;
     }
 }
 
@@ -127,7 +127,7 @@ void Filter03Render()
     LightMgr.setFog();
     SetScissorState();
     if (flt03.flag == 0) {
-        pG->flags_5010 &= ~0x80;
+        pG->Status_flg[1] &= ~0x80;
     }
 }
 

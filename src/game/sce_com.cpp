@@ -137,10 +137,10 @@ void SceEventStart(int mode)
     }
     PlEndCamera();
     LightMgr.beginEvent();
-    BitOn(pG->flags_500C, 0x1000);
-    BitOn(pG->flags_5010, 0x10000000);
+    BitOn(pG->Status_flg[0], 0x1000);
+    BitOn(pG->Status_flg[1], 0x10000000);
     KeyStop(0xEFCF0000);
-    if (pG->flags_500C & 0x400) {
+    if (pG->Status_flg[0] & 0x400) {
         CamCtrl.LowerBinocular();
     }
     Cckpt.lifeMeterDisp(0);
@@ -176,9 +176,9 @@ void SceEventEnd(int mode)
         pPL->dmg = s->dmg;
     }
     LightMgr.endEvent();
-    BitOff(pG->flags_5018, 0x1000000);
-    BitOff(pG->flags_500C, 0x1000);
-    BitOff(pG->flags_5010, 0x10000000);
+    BitOff(pG->Status_flg[3], 0x1000000);
+    BitOff(pG->Status_flg[0], 0x1000);
+    BitOff(pG->Status_flg[1], 0x10000000);
     BitOff(pG->Stop_flg, 0x80000000);
     BitOff(pG->System_flg, 0x400);
     Cckpt.lifeMeterDisp(1);
@@ -220,7 +220,7 @@ void SceUpCutStart()
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x20000000);
     pPL->atari.clrFlag100();
-    BitOn(pGS->flags_5010, 0x10000000);  // the pG load waits for the clrFlag100 store
+    BitOn(pGS->Status_flg[1], 0x10000000);  // the pG load waits for the clrFlag100 store
     BitSet(pG->Stop_flg, 0xFFFFFFFF);
     BitOff(pG->Stop_flg, 0x40000000);
     BitOff(pG->Stop_flg, 0x10000);
@@ -243,7 +243,7 @@ void SceUpCutEnd()
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x20000000);
     pPL->atari.setFlag100();
-    BitOff(pGS->flags_5010, 0x10000000);  // the pG load waits for the setFlag100 store
+    BitOff(pGS->Status_flg[1], 0x10000000);  // the pG load waits for the setFlag100 store
     if (s->stop_bak_flg == 1) {
         pG->Stop_flg = s->x60;
         s->stop_bak_flg = 0;
@@ -714,7 +714,7 @@ void SceChapterEnd()
     EventMgr* ev = &EvtMgr;
     u32* key = &ev->x34;
 
-    pG->x4F8A = SceSys.x74 + 1;
+    pG->chapter = SceSys.x74 + 1;
     if (ev->IsAliveEvt(key, 0, 1)) {
         ev->GetEvt(key, &evt);
         ev->DelEvt(evt, 0);
@@ -769,19 +769,19 @@ void SceChapterEnd()
         plPos = pPL->pos;
         plRot = pPL->ang;
         room = pG->room_id;
-        x4F9E = pG->x4F9E;
+        x4F9E = pG->Part;
         if (SceAtPtr(SceSys.x78)->x35 == 1) {
             pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
             pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
             pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
             FSet(pPL->ang.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
-            U8Set(pG->Part_old, pG->x4F9E);
+            U8Set(pG->Part_old, pG->Part);
             U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
             U8Set(pG->room_no, SceAtPtr(SceSys.x78)->dstRoom);
-            U8Set(pG->x4F9E, SceAtPtr(SceSys.x78)->dstX4F9E);
-            U8Set(pG->x4F9F, 0);
-            U16Set(pG->x4F90, 0);
+            U8Set(pG->Part, SceAtPtr(SceSys.x78)->dstX4F9E);
+            U8Set(pG->JumpPoint, 0);
+            U16Set(pG->r_continue_cnt, 0);
         } else {
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
@@ -814,7 +814,7 @@ void SceChapterEnd()
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);
-        U8Set(pG->x4F9E, x4F9E);
+        U8Set(pG->Part, x4F9E);
         if (SceAtPtr(SceSys.x78)) {
             SceAtPtr(SceSys.x78)->x77 = 2;
             SceAtExecute(SceSys.x78);
@@ -1289,7 +1289,7 @@ void SceElevator(SceElevatorData* d)
     SceEventStart(0);
     faded = 0;
     done = 0;
-    BitOn(pG->flags_5014, 0x20000);
+    BitOn(pG->Status_flg[2], 0x20000);
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
@@ -1341,14 +1341,14 @@ void SceElevator(SceElevatorData* d)
                     faded = 1;
                 }
             } else if ((fade->flags & 1) == 0) {
-                BitOff(pG->flags_5014, 0x20000);
+                BitOff(pG->Status_flg[2], 0x20000);
                 SceAtExecRoomJump(d->room, jp, &d->jumpRot, 0);
                 break;
             }
         }
     }
     if (d->dir == 0 || d->dir == 2) {
-        BitOff(pG->flags_5010, 0x10000000);
+        BitOff(pG->Status_flg[1], 0x10000000);
         spd = maxSpd;
         move = stopDist2;
         if (d->dir == 0) {
@@ -1414,7 +1414,7 @@ void SceElevator(SceElevatorData* d)
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
     }
-    BitOff(pG->flags_5014, 0x20000);
+    BitOff(pG->Status_flg[2], 0x20000);
     pPL->be_flag |= 0x10;
     SceEventEnd(0);
     SceExit();

@@ -332,7 +332,7 @@ int move()
         break;
     case 1:
         col = 0;
-        if (!(pG->flags_51E4 & 0x10)) {
+        if (!(pG->Frame_cnt & 0x10)) {
             col = 0x14;
         }
         eprintf(0xD8, 0, col, 0, "CAMERA MODE");
@@ -344,7 +344,7 @@ int move()
     case 2:
         pWork->areaNo = CamCtrl.CurrentAreaNo();
         col = 0;
-        if (!(pG->flags_51E4 & 0x10)) {
+        if (!(pG->Frame_cnt & 0x10)) {
             col = 0x14;
         }
         eprintf(0xD8, 0, col, 0, "PLAYER MODE");
@@ -931,7 +931,7 @@ static void edit_litmask()
     } else {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d NOT USED", pWork->id);
     }
-    if (pG->flags_51E4 & 8) {
+    if (pG->Frame_cnt & 8) {
         eprintf((pWork->id + 8) * 8, 0xA8, 0, 0, "V");
         eprintf((pWork->id + 8) * 8, 0xC4, 0, 0, "A");
     }
@@ -1658,7 +1658,7 @@ static void option()
             on = (pWork->flags & (1 << i)) ? 1 : 0;
         } else {
             on = 1;
-            if (!(pG->flags_6C & 0x02000000)) {
+            if (!(pG->Debug_flg[3] & 0x02000000)) {
                 on = 0;
             }
         }
@@ -1683,10 +1683,10 @@ static void option()
         case 1:
             break;
         case 2:
-            if (pG->flags_6C & 0x02000000) {
-                pG->flags_6C &= ~0x02000000;
+            if (pG->Debug_flg[3] & 0x02000000) {
+                pG->Debug_flg[3] &= ~0x02000000;
             } else {
-                pG->flags_6C |= 0x02000000;
+                pG->Debug_flg[3] |= 0x02000000;
             }
             break;
         }

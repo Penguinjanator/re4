@@ -109,7 +109,7 @@ extern "C" void _unresolved()
 // R405Init (r405.cpp) calls it: the Ada game flag
 void st4_initAdaGame()
 {
-    if (!(pG->flags_51C4 & 0x20000000)) {
-        pG->flags_51C4 |= 0x20000000;
+    if (!(pG->Scenario_flg[1] & 0x20000000)) {
+        pG->Scenario_flg[1] |= 0x20000000;
     }
 }

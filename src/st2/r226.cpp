@@ -149,7 +149,7 @@ static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 // idiom: `addi rB, pG, 0x174; lwzx`).
 static inline u32* eventFlags()
 {
-    return &pG->flags_174;
+    return &pG->Room_flg[0];
 }
 
 static inline u32 evtFlag(u32 no)
@@ -231,7 +231,7 @@ void R226Init()
 #line 99 "D:/Bio4/Prog/r226.cpp"
     wp = (R226Work*) MEM_CALLOC(sizeof(R226Work), 1, 0xd);
     PSetRobo(wp->robo, NULL);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         int n;
 
         for (n = 0; n < 32; n++) {
@@ -387,7 +387,7 @@ void R226Init()
         if (RsfCheck(G_ROOM_ID, 13) == 0) {
             SceExec(0x12, (TaskFunc) R226EmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
             SndRoomStrStart(1, 0, 1);
-            pG->flags_178 |= 0x10000000;
+            pG->Room_flg[1] |= 0x10000000;
         }
     }
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -397,12 +397,12 @@ void R226Init()
     r226_work.p->moveTimer = 0;
     playerRunCamInitBridge();
     U32Set(r226_work.p->str, 0);
-    pG->flags_51C4 |= 0x800000;
+    pG->Scenario_flg[1] |= 0x800000;
 }
 
 void R226Main()
 {
-    if ((pG->flags_178 & 0x08000000) && RsfCheck(G_ROOM_ID, 14) == 0) {
+    if ((pG->Room_flg[1] & 0x08000000) && RsfCheck(G_ROOM_ID, 14) == 0) {
         r226_work.p->moveTimer++;
         eprintf(0x40, 0x10, 0, 0, "MoveTimer:[%d]", r226_work.p->moveTimer / 30);
         if (r226_work.p->moveTimer > 599) {
@@ -422,11 +422,11 @@ void R226Main()
         SceExec(0x12, (TaskFunc) R226EventRoboStartMain, 0, 0, SCE_PRIO_DEF_2, 0);
         RsfClear(G_ROOM_ID, 9);
     }
-    if ((int) pG->flags_178 < 0 && !(pG->flags_178 & 0x20000000)) {
-        pG->flags_178 |= 0x20000000;
+    if ((int) pG->Room_flg[1] < 0 && !(pG->Room_flg[1] & 0x20000000)) {
+        pG->Room_flg[1] |= 0x20000000;
         playerRunDieSet(0, 0);
-    } else if (flagBit(pG->flags_178, 0x40000000) && !flagBit(pG->flags_178, 0x20000000)) {
-        pG->flags_178 |= 0x20000000;
+    } else if (flagBit(pG->Room_flg[1], 0x40000000) && !flagBit(pG->Room_flg[1], 0x20000000)) {
+        pG->Room_flg[1] |= 0x20000000;
         playerRunDieSet(0, 1);
     }
 }
@@ -516,7 +516,7 @@ static void R226EventRoboStartMain()
         SceSleep(1);
     }
     SndRoomStrStart(1, 0, 1);
-    pG->flags_178 |= 0x10000000;
+    pG->Room_flg[1] |= 0x10000000;
     o = SmdGetObjPtr(0x3C);
     if (o) {
         SndCall(6, 0, &o->pos, 0, 0, 0);
@@ -583,9 +583,9 @@ static void R226EventRoboStartEnd()
         SndStrReq(r226_work.p->str, 8, 0, 0);
         r226_work.p->str = 0;
     }
-    if (!(pG->flags_178 & 0x10000000)) {
+    if (!(pG->Room_flg[1] & 0x10000000)) {
         SndRoomStrStart(1, 0, 1);
-        pG->flags_178 |= 0x10000000;
+        pG->Room_flg[1] |= 0x10000000;
     }
     o = SmdGetObjPtr(0x3D);
     if (o) {
@@ -1035,10 +1035,10 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
     int ret = 0;
     int limit = lim;
 
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         limit += 4;
     }
-    if (pG->x4F88 > 7) {
+    if (pG->Game_level > 7) {
         limit = lim + r226_buttonAdj;
     }
     (*sub)++;
@@ -1151,7 +1151,7 @@ static void playerRunMovePassage(cPlayer* pl)
         playerPillarDownCk(robo, 0xD, 0xA, 2, -3000.0f);
         playerPillarDownCk(robo, 0xA, 7, 0, -3000.0f);
         playerPillarDownCk(robo, 0xE, 0xB, 0, -4500.0f);
-        if (!(pG->flags_174 & 0x20000000)) {
+        if (!(pG->Room_flg[0] & 0x20000000)) {
             ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
             ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
         } else {
@@ -1179,8 +1179,8 @@ static void playerRunMovePassage(cPlayer* pl)
                 break;
             }
             if (hit) {
-                BitOff(pG->flags_174, 0x20000000);
-                BitOn(pG->flags_174, 0x10000000);
+                BitOff(pG->Room_flg[0], 0x20000000);
+                BitOn(pG->Room_flg[0], 0x10000000);
                 pl->r_no_2 = 3;
                 break;
             }
@@ -1196,8 +1196,8 @@ static void playerRunMovePassage(cPlayer* pl)
         playerRunCamMovePassage(pl, 1.0f);
         pl->st.x325 = 0x78;
         if (MotionMoveF(pl, 0)) {
-            BitOff(pG->flags_174, 0x10000000);
-            if (pG->flags_174 & 0x08000000) {
+            BitOff(pG->Room_flg[0], 0x10000000);
+            if (pG->Room_flg[0] & 0x08000000) {
                 pl->r_no_2 = 5;
                 SceExec(0x12, (TaskFunc) R226EventRoboWalkPassageGoal, (int) robo, 0, SCE_PRIO_DEF_2, 0);
                 EndPlDamage();
@@ -1241,14 +1241,14 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
         playerRunCamMoveBridge(pl, 1.0f);
-        if (pG->flags_174 & 1) {
-            pG->flags_178 |= 0x40000000;
-        } else if (pG->flags_174 & 2) {
+        if (pG->Room_flg[0] & 1) {
+            pG->Room_flg[1] |= 0x40000000;
+        } else if (pG->Room_flg[0] & 2) {
             ActBtn.set(0xC, 5, 0, 0, 0x42, 3, 1, 0);
             if (((Key.trg & 0x400000) && (Key.on & 0x800000)) || ((Key.on & 0x400000) && (Key.trg & 0x800000))) {
                 SndCall(1, 0x43, &pl->pos, 0, 0, 0);
-                BitOff(pG->flags_174, 0x20000000);
-                BitOn(pG->flags_174, 0x10000000);
+                BitOff(pG->Room_flg[0], 0x20000000);
+                BitOn(pG->Room_flg[0], 0x10000000);
                 pl->r_no_2 = 3;
                 break;
             }
@@ -1258,7 +1258,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         }
         for (i = 0; i < 6; i++) {
             if (evtFlag(smd0[i]) && evtFlag(smd1[i])) {
-                BitOn(pG->flags_178, 0x40000000);
+                BitOn(pG->Room_flg[1], 0x40000000);
             }
         }
         MotionMoveF(pl, 0);
@@ -1329,7 +1329,7 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 6:
         pl->st.x325 = 0x82;
         if (MotionMoveF(pl, 0)) {
-            BitOff(pG->flags_174, 0x10000000);
+            BitOff(pG->Room_flg[0], 0x10000000);
             RsfSet(G_ROOM_ID, 13);
             pPL->be_flag |= 0x10;
             pl->r_no_2 = 8;
@@ -1441,7 +1441,7 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     Vec at;
 
     cam->param.fovy = r226_fovyBridge;
-    if (g->flags_174 & 0x2000) {
+    if (g->Room_flg[0] & 0x2000) {
         r226_work.p->camPos.x += r226_camSpdPos.x;
         r226_work.p->camPos.y += r226_camSpdPos.y;
         r226_work.p->camPos.z += r226_camSpdPos.z;
@@ -1534,7 +1534,7 @@ static void playerPillarDownTask(int smdNo)
     i = 0;
     on = 1;
     if (smdNo == 14) {
-        pG->flags_174 |= 0x08000000;
+        pG->Room_flg[0] |= 0x08000000;
     }
     if (smdNo >= 8 && smdNo <= 11) {
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
@@ -1548,25 +1548,25 @@ static void playerPillarDownTask(int smdNo)
         i++;
         if (i >= frames[k]) {
             SndCall(6, 0xB, &o->pos, 0, 0, 0);
-            BitOff(pG->flags_174, 0x20000000);
+            BitOff(pG->Room_flg[0], 0x20000000);
             o->be_flag &= ~2;
             return;
         }
         if (on == 1 && i >= frames[k] * 90 / 100) {
-            pG->flags_178 |= 0x80000000;
+            pG->Room_flg[1] |= 0x80000000;
             on = 0;
         }
-        if ((pG->flags_174 & 0x20000000) && on == 1 && i >= frames[k] * 80 / 100) {
+        if ((pG->Room_flg[0] & 0x20000000) && on == 1 && i >= frames[k] * 80 / 100) {
             if (pPL->pos.x > o->pos.x + -3000.0f - (f32) i * r226_pillarSpd) {
-                pG->flags_178 |= 0x80000000;
+                pG->Room_flg[1] |= 0x80000000;
                 on = 0;
             }
         }
-        if (pG->flags_174 & 0x10000000) {
+        if (pG->Room_flg[0] & 0x10000000) {
             on = 0;
         }
         if (on == 1 && pl->pos.x < o->pos.x - 8000.0f) {
-            pG->flags_174 |= 0x20000000;
+            pG->Room_flg[0] |= 0x20000000;
         }
         SceSleep(1);
     }

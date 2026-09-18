@@ -167,16 +167,16 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 // pointer so that the store keeps the work base instead of folding into the enemy's).
 static inline void em32Timer2Set(Em32Work* w, int a, int b, int c, int e)
 {
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         IntSet(w->timer2, a);
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         IntSet(w->timer2, b);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         IntSet(w->timer2, c);
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         IntSet(w->timer2, e);
     }
 }
@@ -201,16 +201,16 @@ static inline void em32AtkHitSet(Em32Work* w, int v)
 
 static inline void em32Timer2SetW(Em32Work* w, int a, int b, int c, int e)
 {
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         EM32_W_SET(w, int, timer2, a);
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         EM32_W_SET(w, int, timer2, b);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         EM32_W_SET(w, int, timer2, c);
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         EM32_W_SET(w, int, timer2, e);
     }
 }
@@ -1542,7 +1542,7 @@ static void em32_R1_AtkWalk(cEm32* em)
                 EmRoutineSet(em, 1, 0x1F, 0, 0);
                 break;
             }
-            if (pG->x4F88 <= 9) {
+            if (pG->Game_level <= 9) {
                 if (Rnd() % 10 > 7) {
                     EM32_EFFECT_DELETE(w->espKind[1], em);
                     EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1808,7 +1808,7 @@ static void em32_R1_Atk(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->x4F88 <= 9) || w->x991) {
+            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->x991) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -1857,7 +1857,7 @@ static void em32_R1_Catch(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->x4F88 <= 9) || w->x991) {
+            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->x991) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -1982,7 +1982,7 @@ static void em32_R1_CatchHit(cEm32* em)
 
 static void plem32_CatchHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -2046,19 +2046,19 @@ static void em32_R1_LongAtk(cEm32* em)
         IntSet(w->timer2, 25);
         IntSet(w->timer3, 15);
         IntSet(w->timer, 10);
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             IntSet(w->timer2, 27);
             IntSet(w->timer3, 13);
         }
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             IntSet(w->timer3, 10);
             IntSet(w->timer2, 30);
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             IntSet(w->timer2, 22);
             IntSet(w->timer3, 18);
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             IntSet(w->timer2, 20);
             IntSet(w->timer3, 20);
         }
@@ -2076,7 +2076,7 @@ static void em32_R1_LongAtk(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->x4F88 <= 9) || w->x991) {
+            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->x991) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -2524,16 +2524,16 @@ static void em32_R1_TunnelAtk(cEm32* em)
         w->actionSet = 0;
         w->x991 = 0;
         IntSet(w->timer, 15);
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             IntSet(w->timer2, 18);
         }
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             IntSet(w->timer2, 20);
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             IntSet(w->timer2, 12);
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             IntSet(w->timer2, 10);
         }
         w->x10 = Rnd() & 1;
@@ -2763,16 +2763,16 @@ static void em32_R1_C_Wait(cEm32* em)
         EM32_EFFECT_DELETE(w->espKind[0], em);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
         IntSet(w->timer, Rnd() % 30 + 60);
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->timer = Rnd() % 60 + 90;
         }
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->timer = Rnd() % 60 + 120;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->timer = Rnd() % 60 + 45;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->timer2 = Rnd() % 60 + 30;
         }
         em->r_no_2++;
@@ -2851,7 +2851,7 @@ static void em32_R1_C_Atk(cEm32* em)
         em->be_flag |= 2;
         EstSet((int) em, -1, 0, 0, 0x2A, 0x12, 0, 0, (u32) em, (void*) step);
         w->x10 = Rnd() & 1;
-        if (pGS->x4F88 <= 3) {
+        if (pGS->Game_level <= 3) {
             w->x10 = step;
         }
         em->r_no_2++;
@@ -2991,7 +2991,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
 
 static void plem32_C_AtkHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -3129,7 +3129,7 @@ static void em32_R1_P_Catch(cEm32* em)
             }
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if (em->plDist2 < 25000000.0f && pG->x4F88 <= 9) {
+            } else if (em->plDist2 < 25000000.0f && pG->Game_level <= 9) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -3242,7 +3242,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
     int step;
     cObj* obj;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     step = pl->r_no_2;
@@ -3323,7 +3323,7 @@ static void em32_R1_Ground(cEm32* em)
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
         IntSet(w->timer2, Rnd() % 90 + 90);
         IntSet(w->timer3, 20);
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             IntSet(w->timer3, 25);
         }
         EstSet((int) em, -1, 0, 0, 0x2A, 0x1A, 0, 0, (u32) em, (void*) step);
@@ -3672,7 +3672,7 @@ void em32RouteCk(cEm32* em)
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
     w->flags &= ~4;
-    if (pGS->flags_60 & 0x4000) {
+    if (pGS->Debug_flg[0] & 0x4000) {
         d = em->pos;
         d.y += 250.0f;
         Draw_line3d(&d, &w->targetPos, 0xFFFFFF40, 0);
@@ -4563,7 +4563,7 @@ int em32AmbushAtkCk(cEm32* em)
     Vec d;
     f32 ang;
 
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         return 0;
     }
     ang = Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f);

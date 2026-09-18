@@ -58,7 +58,7 @@ static inline f32 FRef(f32& v) { return v; }
 // is reloaded after the hit counter store.
 static inline u32* eventFlags()
 {
-    return &pG->flags_174;
+    return &pG->Room_flg[0];
 }
 
 f32 RoboFallSpdX = -50.0f;
@@ -272,10 +272,10 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
         for (i = 0; i < 2; i++) {
             robo->SatMove(robo, &ft[i], i);
         }
-        if (w->pEmHitTbl[13] && w->pEmHitTbl[13]->ckStatus() == 1 && !(pG->flags_174 & 0x80000000)) {
+        if (w->pEmHitTbl[13] && w->pEmHitTbl[13]->ckStatus() == 1 && !(pG->Room_flg[0] & 0x80000000)) {
             SceExec(0x12, (TaskFunc) TaskSwitchFront, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (w->pEmHitTbl[12] && w->pEmHitTbl[12]->ckStatus() == 1 && !(pG->flags_174 & 0x40000000)) {
+        if (w->pEmHitTbl[12] && w->pEmHitTbl[12]->ckStatus() == 1 && !(pG->Room_flg[0] & 0x40000000)) {
             SceExec(0x12, (TaskFunc) TaskSwitchBack, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
         for (i = 0; i < 14; i++) {
@@ -330,7 +330,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
             EffectEspDelete(1, 3, 0, 0);
             EffectEspgenDelete(1, 3, 0);
             EffectEfmDelete(1, 3, 0);
-            BitOn(pG->flags_174, 0x10000);
+            BitOn(pG->Room_flg[0], 0x10000);
             MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x5C), (int) ROOM_ARC_PTR(pG->pRoom, 0x65), 0x3C, 4, 0);
             v.x = -55597.8984375f;
             v.y = robo->pos.y;
@@ -549,16 +549,16 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
 
     i = 15;
     parts = robo->getPartsPtr(0x16);
-    if (pG->flags_174 & 0x80000000) {
+    if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
-    BitOn(pG->flags_174, 0x80000000);
+    BitOn(pG->Room_flg[0], 0x80000000);
     SceAtSetEnable(4, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
-    if (!(pG->flags_174 & 0x8000)) {
-        BitOn(pG->flags_174, 0x8000);
+    if (!(pG->Room_flg[0] & 0x8000)) {
+        BitOn(pG->Room_flg[0], 0x8000);
         for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
             parts->ang.y = range * (f32) j / max + from;
@@ -567,7 +567,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
         FSet(parts->ang.y, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x61), (int) ROOM_ARC_PTR(pG->pRoom, 0x66), 0xF0, 4, 0);
     } else {
-        BitOff(pG->flags_174, 0x8000);
+        BitOff(pG->Room_flg[0], 0x8000);
         for (j = 0; j < i; j++) {
             max = (f32) i;
             range2 = from - to;
@@ -577,10 +577,10 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
         FSet(parts->ang.y, from);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x62), (int) ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
-    BitOff(pG->flags_174, 0x4000);
+    BitOff(pG->Room_flg[0], 0x4000);
     robo->getPartsPtr(0x15)->ang.x = 0.0f;
     SceSleep(1);
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     SceAtSetEnable(4, 1);
 }
 
@@ -599,16 +599,16 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
 
     i = 15;
     parts = robo->getPartsPtr(0x15);
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         return;
     }
-    BitOn(pG->flags_174, 0x40000000);
+    BitOn(pG->Room_flg[0], 0x40000000);
     SceAtSetEnable(3, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
-    if (!(pG->flags_174 & 0x4000)) {
-        BitOn(pG->flags_174, 0x4000);
+    if (!(pG->Room_flg[0] & 0x4000)) {
+        BitOn(pG->Room_flg[0], 0x4000);
         for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
             parts->ang.x = range * (f32) j / max + from;
@@ -617,7 +617,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
         FSet(parts->ang.x, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x22), (int) ROOM_ARC_PTR(pG->pRoom, 0x45), 0xF0, 4, 0);
     } else {
-        BitOff(pG->flags_174, 0x4000);
+        BitOff(pG->Room_flg[0], 0x4000);
         for (j = 0; j < i; j++) {
             max = (f32) i;
             range2 = from - to;
@@ -627,10 +627,10 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
         FSet(parts->ang.x, from);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x62), (int) ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
-    BitOff(pG->flags_174, 0x8000);
+    BitOff(pG->Room_flg[0], 0x8000);
     robo->getPartsPtr(0x16)->ang.y = 0.0f;
     SceSleep(1);
-    BitOff(pG->flags_174, 0x40000000);
+    BitOff(pG->Room_flg[0], 0x40000000);
     SceAtSetEnable(3, 1);
 }
 
@@ -663,7 +663,7 @@ int cObjRobo::WalkHitCk(cObjRobo* robo)
                       (robo->pos.z - pPL->pos.z) * (robo->pos.z - pPL->pos.z)) > RoboHitRadius) {
                 return 0;
             }
-            BitOn(pG->flags_178, 0x80000000);
+            BitOn(pG->Room_flg[1], 0x80000000);
             return 1;
         }
     }

@@ -90,7 +90,7 @@ struct GlobalWork {
     u8 pad_C[4];
     u64 card_serial;       // 0x10  serial of the card the save file came from (card)
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
-    s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
+    s32 IsMessageInit;     // 0x1C  1 = the message system is usable (mes sets it; dvd error screen tests it)
     union {
         u32 mode32;        // 0x20  x20..x23 as one word (game: gameOption saves/restores it in Game.mode_bak)
         struct {
@@ -121,10 +121,7 @@ struct GlobalWork {
     u32 System_flg;          // 0x54
     u32 Disp_flg;          // 0x58
     u32 game_start_time;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
-    u32 flags_60;          // 0x60
-    u32 flags_64;          // 0x64
-    u32 flags_68;          // 0x68
-    u32 flags_6C;          // 0x6C
+    u32 Debug_flg[4];      // 0x60  debug option bits ([2] 0x04000000 / [3] 0x00200000 shown in the title debug page)
     f32 mot_speed;         // 0x70  motion frame step per game frame (MotionSequenceCtrl: speed * mot_speed)
     Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
     u8 pad_16C[4];
@@ -152,27 +149,27 @@ struct GlobalWork {
     u8 weapon_no_old;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
     u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
-    u8 pad_4F80[4];        // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
+    u8 save_data_start_addr[4];  // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
     s32 point;             // 0x4F84  difficulty point (game GameAddPoint, 0..0x2AF7)
-    u8 x4F88;              // 0x4F88  difficulty rank = point / 1000 (pl_sub PlGachaGet: > 2 keeps the raw button count)
+    u8 Game_level;         // 0x4F88  adaptive difficulty rank 1..10 = point / 1000 (em2d/em10 branch on > 1/3/6/== 10)
     u8 x4F89;
-    u8 x4F8A;              // 0x4F8A  chapters ended (sce_com SceChapterEnd increments it)
+    u8 chapter;            // 0x4F8A  chapters ended (sce_com SceChapterEnd: SceSys chapter + 1)
     u8 pad_4F8B;
     u16 save_cnt;          // 0x4F8C  times saved (card makeSaveData increments it)
-    u16 x4F8E;             // 0x4F8E  nonzero = extra game (merchant: full price/tune tables, pSys->x4 weapon unlocks)
-    u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)
+    u16 game_cnt;          // 0x4F8E  games cleared: nonzero = new round (merchant full tables; 1 = Merchant2ndRoundInit on load)
+    u16 r_continue_cnt;    // 0x4F90  continues in this room (GameContinue increments; room jump / scene change clear it)
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
-    u8 x4F93;              // 0x4F93
+    u8 language;           // 0x4F93  game language (main: pSys->language; title: language_tbl[])
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
-    u32 x4F98;             // 0x4F98  (pl_sub PlSelect swaps it with x832C)
+    u32 peseta;            // 0x4F98  money (ss_shop buy/sell, item pickups; PlSelect swaps it with peseta_bak)
     union {
         u32 room_id32;     // 0x4F9C  stage/room and the two bytes after them as one word (em_set EmSetDie: `& 0xFFFF0000`)
         u16 room_id;       // 0x4F9C  stage << 8 | room as one halfword (obj14: room 004 test)
         struct {
             u8 stage_no;   // 0x4F9C
             u8 room_no;    // 0x4F9D
-            u8 x4F9E;
-            u8 x4F9F;      // 0x4F9F  (main: cleared with the room id on flags_54 bit 3)
+            u8 Part;       // 0x4F9E  spawn point in the current room (copied to Part_old / next_point)
+            u8 JumpPoint;  // 0x4F9F  room jump point (title/room_jmp debug jump; room scripts branch on 1/2)
         };
     };
     union {
@@ -210,10 +207,7 @@ struct GlobalWork {
     Vec sub_pos;           // 0x4FC0  sub character start position (sce_sys ScenarioRoomInit)
     f32 sub_angle;         // 0x4FCC
     u8 pad_4FD0[0x500C - 0x4FD0];
-    u32 flags_500C;        // 0x500C
-    u32 flags_5010;        // 0x5010
-    u32 flags_5014;        // 0x5014
-    u32 flags_5018;        // 0x5018  (main_sub: 0x10000000 letterbox scissor)
+    u32 Status_flg[4];     // 0x500C  game status bits ([3] 0x10000000: main_sub letterbox scissor)
     u32 em_dead[12][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
     u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
     u32 Item_find_flg;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
@@ -223,7 +217,7 @@ struct GlobalWork {
     u32 door_flags_51D0;   // 0x51D0
     u8 pad_51D4[0x51DC - 0x51D4];
     u32 door_unlock[2];    // 0x51DC  one bit per locked door (sce_at: SceAtWork::lockFlag)
-    u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
+    u32 Frame_cnt;         // 0x51E4  frame counter (em: `& 3` vs emset_no staggers per-enemy work; tools blink on % 30)
     u32 save_free_work[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
     u8 Em_list[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     ITEM_SAVE_WORK item_save[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
@@ -234,9 +228,8 @@ struct GlobalWork {
     u32 ope_x82FC;         // 0x82FC  (sscrn OpeOwTypeSet clears it)
     s32 ope_mdt_no;        // 0x8300  (sscrn OpeGetMdtNo / OpeSetMdtNo; SubScreenGameInit: 0x18)
     u8 pad_8304[0x832C - 0x8304];
-    u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
-    u32 x8330;             // 0x8330  (game clearGlobalSaveData keeps x8330/x8334 across the clear)
-    u32 x8334;             // 0x8334
+    u32 peseta_bak;        // 0x832C  the other character's money (PlSelect swaps it with peseta; r206 adds it back)
+    s16 shootingScore[4];  // 0x8330  shooting range scores (game clearGlobalSaveData keeps 0x8330..0x8338 across the clear)
     u16 c_continue_cnt;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
     u16 g_continue_cnt;             // 0x833A  (option: result screen counter next to x8338)
     u32 c_kill_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
@@ -245,9 +238,9 @@ struct GlobalWork {
     u32 g_hit_cnt;          // 0x8348
     u32 c_shot_cnt;         // 0x834C  shots fired
     u32 g_shot_cnt;        // 0x8350
-    u8 x8354;              // 0x8354  (main systemWorkInit: 5)
+    u8 game_mode;          // 0x8354  difficulty: 1 VERY_EASY, 3 EASY, 5 NORMAL, 6 HARD (title game_mode_tbl; main systemWorkInit: 5)
     u8 pad_8355[3];
-    s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
+    s32 SaveKind;          // 0x8358  save kind passed to cGameSave::save (stage: 3 = no enemy list reload; -1 on continue)
     u8 pad_835C[0x8678 - 0x835C];
     s8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
     s8 debug_disp;         // 0x8679  debug page shown by the game (0 = off); t_page/t_sc_shot edit it

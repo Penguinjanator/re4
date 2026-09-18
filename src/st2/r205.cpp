@@ -125,7 +125,7 @@ void R205Init()
     R205Work** wp;
     u32 i;
 
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     wp = &r205_work.p;
 #line 103 "D:/Bio4/Prog/r205.cpp"
     *wp = (R205Work*) MEM_CALLOC(sizeof(R205Work), 1, 0xd);
@@ -217,13 +217,13 @@ void R205Main()
         }
     }
     if (SceAtHitCheck(0xC) == 1) {
-        pG->sceat_x17C |= 0x20000000;
+        pG->Room_flg[2] |= 0x20000000;
     } else if (SceAtHitCheck(0xD) == 1) {
-        pG->sceat_x17C |= 0x40000000;
+        pG->Room_flg[2] |= 0x40000000;
     } else if (SceAtHitCheck(0xE) == 1) {
-        pG->sceat_x17C |= 0x40000000;
+        pG->Room_flg[2] |= 0x40000000;
     } else if (SceAtHitCheck(0xF) == 1 || SceAtHitCheck(0x10) == 1) {
-        pG->sceat_x17C |= 0x80000000;
+        pG->Room_flg[2] |= 0x80000000;
     }
     r205_Em105AppearCheck();
     r205_Em106AppearCheck();
@@ -263,7 +263,7 @@ void r205_Em105AppearCheck()
 void r205_Em106AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             if (r205_work.p->ems[0].dead == 1 && r205_work.p->ems[7].dead == 1) {
                 RsfSet(G_ROOM_ID, 3);
                 r205_work.p->ems[2].em.setEm(0x6A, -1, 1, 1, 1);
@@ -275,7 +275,7 @@ void r205_Em106AppearCheck()
 void r205_Em107AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if (pG->sceat_x17C & 0x40000000) {
+        if (pG->Room_flg[2] & 0x40000000) {
             if (RsfCheck(G_ROOM_ID, 2) && RsfCheck(G_ROOM_ID, 7)) {
                 if ((u32) r205_AtHitCheckEmNum(0xD, 0xE) <= 1) {
                     RsfSet(G_ROOM_ID, 4);
@@ -289,7 +289,7 @@ void r205_Em107AppearCheck()
 void r205_Em110AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        if (pG->sceat_x17C & 0x20000000) {
+        if (pG->Room_flg[2] & 0x20000000) {
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if ((u32) r205_AtHitCheckEmNum(0xC, -1) <= 1) {
                     RsfSet(G_ROOM_ID, 6);
@@ -304,7 +304,7 @@ void r205_Em111AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         SceAtSetEnable(0x21, 1);
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if (r205_work.p->ems[6].dead == 1) {
                     Vec pos;
@@ -425,13 +425,13 @@ static void r205_ExecDieDemo(R205Pend* p)
     int mot = 1;
     int i;
 
-    if (pG->flags_68 & 0x00800000) {
+    if (pG->Debug_flg[2] & 0x00800000) {
         SceExit();
     }
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         SceExit();
     }
-    BitOn(pG->flags_174, 0x40000000);
+    BitOn(pG->Room_flg[0], 0x40000000);
     BitOn(pG->System_flg, 0x40);
     BEGIN_EVENT(pPL, 0);
     d = p->rot - p->rotPrev;
@@ -454,7 +454,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     i = 0;
     parts = pPL->getPartsPtr(r205_camParts);
     while (!(MotionGetState(pPL) & 4)) {
-        if (!(pG->flags_174 & 0x20000000)) {
+        if (!(pG->Room_flg[0] & 0x20000000)) {
             if (i == 2) {
                 EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
             }
@@ -537,7 +537,7 @@ static void r205_StrCheck()
     for (;;) {
         int find = SceCkFindPL(NULL);
 
-        if (pG->sceat_x17C & 0x02000000) {
+        if (pG->Room_flg[2] & 0x02000000) {
             find = 0;
         }
         if (find == 1) {

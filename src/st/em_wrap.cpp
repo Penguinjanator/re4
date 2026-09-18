@@ -195,7 +195,7 @@ void cEmWrap::initWork()
 
 void cEmWrap::err(const char* msg, int no)
 {
-    if (errOn == 1 && !(pG->flags_64 & 0x20000)) {
+    if (errOn == 1 && !(pG->Debug_flg[1] & 0x20000)) {
         pLog->err(0, 0, msg, no);
     }
 }

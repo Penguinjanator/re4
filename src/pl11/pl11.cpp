@@ -15,7 +15,7 @@ static void Pl11Init(cEm* em)
 
     sub->modelSet();
     sub->init();
-    pG->flags_5010 &= ~0x00020000;
+    pG->Status_flg[1] &= ~0x00020000;
 }
 
 cSubAshley::cSubAshley()

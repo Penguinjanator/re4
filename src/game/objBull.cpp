@@ -357,7 +357,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
         MotionMove(obj, 0);
         zero = 0;
-        if (pG->flags_174 & 0x08000000) {
+        if (pG->Room_flg[0] & 0x08000000) {
             obj->r_no_0 = 6;
             obj->r_no_1 = zero;
             obj->r_no_2 = zero;
@@ -401,7 +401,7 @@ void objBull_R0_Lift(cObjBull* obj)
     case 3:
         MotionMove(obj, 0);
         zero = 0;
-        if (pG->flags_174 & 0x00400000) {
+        if (pG->Room_flg[0] & 0x00400000) {
             obj->r_no_0 = 7;
             obj->r_no_1 = zero;
             obj->r_no_2 = zero;
@@ -935,7 +935,7 @@ void cObjBull::setRide()
     p = parts->world;
     p.y += 1000.0f;
     pPL->setPos(&p);
-    pG->flags_500C |= 0x20;
+    pG->Status_flg[0] |= 0x20;
     w->Ride_pl = 1;
     if (pSUB) {
         p = parts->world;
@@ -1057,7 +1057,7 @@ static inline void SubBullSeat(cEm* em)
 
 void Sub_bull_drive(cEm* em)
 {
-    pG->flags_5014 |= 0x00800000;
+    pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1085,7 +1085,7 @@ void Sub_bull_drive(cEm* em)
 
 void Sub_bull_operation(cEm* em)
 {
-    pG->flags_5014 |= 0x00800000;
+    pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1107,7 +1107,7 @@ void Sub_bull_lookback(cEm* em)
 {
     cModel* parts;
 
-    pG->flags_5014 |= 0x00800000;
+    pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1135,7 +1135,7 @@ void Sub_bull_lookback(cEm* em)
 
 void Sub_bull_look(cEm* em)
 {
-    pG->flags_5014 |= 0x00800000;
+    pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1158,7 +1158,7 @@ void Sub_dm_bull(cEm* em)
     int dmg;
     int type = 2;
 
-    pG->flags_5014 |= 0x00800000;
+    pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
     em->dmType = type;
     switch (em->r_no_2) {

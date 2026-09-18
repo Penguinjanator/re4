@@ -59,20 +59,20 @@ void R120Main()
 extern "C" void R120Event()
 {
     SceSleep(1);
-    if (pG->x4F8E != 0) {
+    if (pG->game_cnt != 0) {
         FadeSetW(1, 0, 0, 0);
         SubScreenOpen(SS_OPEN_SHOP, 0);
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }
-    pG->flags_51C0 &= ~0x10;
+    pG->Scenario_flg[0] &= ~0x10;
     systemVISetBlack(1);
     Sofdec.Initialize("movie/opening.sfd", 0);
     SceSleep(1);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     if (Sofdec.m_be_flag & 0x20) {
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
     }
     SceEventStart(0);
     // Two sequential `if`s whose first test masks with a variable: the mask register keeps
@@ -82,11 +82,11 @@ extern "C" void R120Event()
     // first `bne` past the s01 block, which merges the second test into the call block (its
     // tail jump gives the `li r7/r8` an extra dependent, so sched puts `addi r3,r30` last).
     u32 mask = 0x10;
-    if (!(pG->flags_51C0 & mask)) {
+    if (!(pG->Scenario_flg[0] & mask)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
     }
-    if (!(pG->flags_51C0 & 0x10)) {
+    if (!(pG->Scenario_flg[0] & 0x10)) {
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
@@ -251,7 +251,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         pG->Disp_flg &= ~0x08000000;
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }
@@ -454,7 +454,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
         pG->System_flg |= 0x400;
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }

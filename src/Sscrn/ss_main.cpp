@@ -365,7 +365,7 @@ void SubScreenTask()
         LightMgr.move();
         if (IdSub.setCk(2)) {
             int d[8];
-            int v = pG->x4F98;
+            int v = pG->peseta;
             int i;
             for (i = 0; i < 8; i++) {
                 d[i] = v % 10;

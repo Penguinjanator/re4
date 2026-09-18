@@ -244,7 +244,7 @@ void cDbgWindow::LocalDisp()
     if (c) {
         int wx = x;
         int wy = dbgWindowRow(y);
-        if (pG->flags_51E4 & 4) {
+        if (pG->Frame_cnt & 4) {
             eprintf2(8, 0xC, (wx + c->x - 1) * 8, (wy + c->y) * 14, 0, 0, ">");
         }
         eprintf2(8, 0xC, (wx + c->x) * 8, (wy + c->y) * 14, 0, 0, c->m_pStr);

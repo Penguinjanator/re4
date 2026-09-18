@@ -268,15 +268,15 @@ void gameInit()
         c.w = 0;
         GXSetCopyClear(c.c, 0xFFFFFF);
     }
-    if (pG->x8354 == 6) {
+    if (pG->game_mode == 6) {
         pG->System_flg |= 0x20;
     }
     if ((pG->System_flg & 0x40000000) || pG->pl_type == 4) {
 #line 232 "D:/Bio4/Prog/game.cpp"
         Game.pBuf = MEM_ALLOC(0x70000, 1, 13);
     }
-    if (pG->x8354 == 0) {
-        pG->x8354 = 5;
+    if (pG->game_mode == 0) {
+        pG->game_mode = 5;
     }
     cMes.gameInit();
     SubScreenGameInit();
@@ -299,9 +299,9 @@ void gameInit()
         GameLoad();
     }
     if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
-        pG->x8354 = 5;
+        pG->game_mode = 5;
     }
-    if ((pG->System_flg & 0x2000) || pG->game_mode == 3) {
+    if ((pG->System_flg & 0x2000) || pG->SaveKind == 3) {
         GamePointInit(0);
         DoorFlagInit();
     }
@@ -319,7 +319,7 @@ void gameStageInit()
     }
     if ((s32) pSys->x4 < 0) {
         if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000) && pG->room_id == 0x120 &&
-            ((pG->System_flg & 0x2000) || pG->game_mode == 3)) {
+            ((pG->System_flg & 0x2000) || pG->SaveKind == 3)) {
             Message* m;
             int res;
 
@@ -344,7 +344,7 @@ void gameStageInit()
             PlSetCostume();
         }
     }
-    if (!(pG->flags_68 & 0x2000000)) {
+    if (!(pG->Debug_flg[2] & 0x2000000)) {
         switch (pG->stage_no) {
         case 0:
             break;
@@ -362,7 +362,7 @@ void gameStageInit()
         }
     }
     SetGameTime();
-    if ((s32) pG->flags_5018 >= 0 && !(pG->System_flg & 0x100)) {
+    if ((s32) pG->Status_flg[3] >= 0 && !(pG->System_flg & 0x100)) {
         GameSaveSave(&GameSave, pSaveData, -1);
     }
     StageSet();
@@ -377,16 +377,16 @@ void gameRoomInit()
     DC.xA0C = 1;
     SndReadAddrInit();
     gameRoomMemInit();
-    if (pG->x4 != 0) {
+    if (pG->shooting_mode != 0) {
         pG->debug_mode = 0;
-        BitOn(pG->flags_6C, 0x4000000);
-        BitOn(pG->flags_6C, 0x400);
-        BitOn(pG->flags_6C, 0x80000000);
-        BitOn(pG->flags_68, 0x100000);
-        BitOn(pG->flags_6C, 0x200);
-        BitOff(pG->flags_6C, 0x2000);
+        BitOn(pG->Debug_flg[3], 0x4000000);
+        BitOn(pG->Debug_flg[3], 0x400);
+        BitOn(pG->Debug_flg[3], 0x80000000);
+        BitOn(pG->Debug_flg[2], 0x100000);
+        BitOn(pG->Debug_flg[3], 0x200);
+        BitOff(pG->Debug_flg[3], 0x2000);
     }
-    BitOn(pG->flags_60, 0x200);
+    BitOn(pG->Debug_flg[0], 0x200);
     ReadPlayerData(pG->pl_type, pG->pl_costume);
     ReadAreaData();
     DC.initDataUnit();
@@ -399,25 +399,25 @@ void gameRoomInit()
     }
     ModInfoMgr.roomInit();
     n = ConsGetRoomValue(7) + SmdGetObjNum();
-    if (pG->flags_6C & 0x200000) {
+    if (pG->Debug_flg[3] & 0x200000) {
         n *= 2;
     }
     ModInfoMgr.arrayAlloc(n);
     PartsMgr.roomInit();
     n = ConsGetRoomValue(6) + SmdGetObjNum();
-    if (pG->flags_6C & 0x200000) {
+    if (pG->Debug_flg[3] & 0x200000) {
         n *= 2;
     }
     PartsMgr.arrayAlloc(n);
     EmMgr.roomInit();
     n = ConsGetRoomValue(0);
-    if (pG->flags_6C & 0x200000) {
+    if (pG->Debug_flg[3] & 0x200000) {
         n *= 2;
     }
     EmMgr.arrayAlloc(n);
     ObjMgr.roomInit();
     n = ConsGetRoomValue(1) + SmdGetObjNum();
-    if (pG->flags_6C & 0x200000) {
+    if (pG->Debug_flg[3] & 0x200000) {
         n *= 2;
     }
     ObjMgr.arrayAlloc(n);
@@ -532,7 +532,7 @@ void gameRoomInit()
     SubScreenRoomInit();
     IdSys.roomInit();
     Cckpt.roomInit();
-    if (pG->x4 == 0) {
+    if (pG->shooting_mode == 0) {
         LightMgr.setItemLight();
     }
     DbMenuRoomInit();
@@ -546,7 +546,7 @@ void gameRoomInit()
         BitOn(pG->Stop_flg, 0x10000000);
         BitOn(pG->Stop_flg, 0x400000);
     }
-    if (pG->flags_6C & 0x8000000) {
+    if (pG->Debug_flg[3] & 0x8000000) {
         BitOff(pG->System_flg, 0x800);
     } else {
         BitOn(pG->System_flg, 0x800);
@@ -556,7 +556,7 @@ void gameRoomInit()
     ScenarioRoomInit();
     SndRoomBgmStartCheck(0);
     SndRoomStrStartCheck();
-    RoomData.setPassed(pG->room_id, pG->x4F9E);
+    RoomData.setPassed(pG->room_id, pG->Part);
     if (!Flag54(0x2000) && !Flag54(0x100) && !Flag54(0x80000)) {
         DoorSeCall(1);
     }
@@ -564,7 +564,7 @@ void gameRoomInit()
     BitOff(pG->System_flg, 0x100);
     BitOff(pG->System_flg, 0x80000);
     BitOff(pG->System_flg, 0x400000);
-    BitOff(pG->flags_68, 0x80000000);
+    BitOff(pG->Debug_flg[2], 0x80000000);
     Block.check(0);
     Filter09SetbUse(0, 1);
     fadeSetG(0x80000002, 0, 0, 0);
@@ -573,7 +573,7 @@ void gameRoomInit()
     BitOff(pG->System_flg, 0x100000);
     DC.xA0C = 0;
     pG->Rno0 = 3;
-    pG->game_mode = 0;
+    pG->SaveKind = 0;
 }
 
 void gameMainLoop()
@@ -584,7 +584,7 @@ void gameMainLoop()
     int slow;
     int nObj;
 
-    BitOff(pG->flags_5014, 0x10000000);
+    BitOff(pG->Status_flg[2], 0x10000000);
     UpdateNearClipDist();
     gameStopMove();
     GameAddPoint(0);
@@ -599,7 +599,7 @@ void gameMainLoop()
         ScenarioMove();
     }
     ProcessTickGet(5, "ScenarioMove");
-    if (pG->flags_5018 & 0x8000000) {
+    if (pG->Status_flg[3] & 0x8000000) {
         pPL->setSlow(player_Seq_speed);
         preb_slow_flg = 1;
     } else {
@@ -608,29 +608,29 @@ void gameMainLoop()
         }
         preb_slow_flg = 0;
     }
-    if (pG->flags_5018 & 0x8000000) {
-        slow = (pG->flags_51E4 % other_slow) == 0;
+    if (pG->Status_flg[3] & 0x8000000) {
+        slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
     }
     if (slow) {
         EmMgr.move();
         EmListWaitDelete();
-        BitOff(pG->flags_5010, 0x20000000);
+        BitOff(pG->Status_flg[1], 0x20000000);
         ProcessTickGet(5, "EmMgr.move");
     }
     if (!(pG->Stop_flg & 0x10000000) && (pPL->be_flag & 0x20) &&
-        (!(pG->flags_5010 & 0x10000000) || (pPL->be_flag & 0x800))) {
+        (!(pG->Status_flg[1] & 0x10000000) || (pPL->be_flag & 0x800))) {
         pPL->move();
     }
     ProcessTickGet(5, "Player");
-    if (pG->flags_5018 & 0x8000000) {
-        slow = (pG->flags_51E4 % other_slow) == 0;
+    if (pG->Status_flg[3] & 0x8000000) {
+        slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
     }
     if (slow) {
-        BitOff(pG->flags_5014, 0x8000000);
+        BitOff(pG->Status_flg[2], 0x8000000);
         if (!(pG->Stop_flg & 0x4000000)) {
             ObjMgr.move();
         }
@@ -641,8 +641,8 @@ void gameMainLoop()
     }
     CameraMove();
     ProcessTickGet(5, "CameraMove");
-    if (pG->flags_5018 & 0x8000000) {
-        slow = (pG->flags_51E4 % other_slow) == 0;
+    if (pG->Status_flg[3] & 0x8000000) {
+        slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
     }
@@ -722,7 +722,7 @@ void gameMainLoop()
     }
     LightAreaUpdate();
     Cckpt.move();
-    if ((s32) pG->flags_60 >= 0) {
+    if ((s32) pG->Debug_flg[0] >= 0) {
         SubScreenCall();
     }
     if (pG->debug_mode == 0x10) {
@@ -731,7 +731,7 @@ void gameMainLoop()
     if (!(pG->System_flg & 0x200000)) {
         gameDebugDisp();
     }
-    if (KeyTrg(0x2000) && !KeyOn(0x400000) && !(pG->flags_60 & 0x80000000) && OptionOpenCheck() == 1) {
+    if (KeyTrg(0x2000) && !KeyOn(0x400000) && !(pG->Debug_flg[0] & 0x80000000) && OptionOpenCheck() == 1) {
         Game.Rno_bak = pG->mode32;
         pG->Rno0 = 6;
         pG->Rno1 = 0;
@@ -742,7 +742,7 @@ void gameMainLoop()
         Block.check(0);
     }
     if ((pG->System_flg & 0x8) || pG->debug_mode == 0) {
-        pG->flags_6C &= ~0x2000;
+        pG->Debug_flg[3] &= ~0x2000;
     }
 }
 
@@ -754,24 +754,24 @@ void GameLoad()
     BitOff(pG->System_flg, 0x80000);
     BitOff(pG->System_flg, 0x40);
     U16Set(pG->next_room, pG->room_id);
-    pG->next_point = pG->x4F9E;
+    pG->next_point = pG->Part;
 }
 
 void GameContinue(int mode)
 {
     u32 time = pG->play_time;
-    u16 x4F90 = pG->x4F90;
+    u16 x4F90 = pG->r_continue_cnt;
     u16 x8338 = pG->c_continue_cnt;
     u16 g_continue_cnt = pG->g_continue_cnt;
 
     GameSave.load(pSaveData);
-    if (pG->game_mode == -1) {
+    if (pG->SaveKind == -1) {
         BitOn(pG->System_flg, 0x80000);
     } else {
         BitOn(pG->System_flg, 0x100);
     }
     if (mode == 0) {
-        U16Set(pG->x4F90, x4F90 + 1);
+        U16Set(pG->r_continue_cnt, x4F90 + 1);
         U16Set(pG->c_continue_cnt, x8338 + 1);
         U16Set(pG->g_continue_cnt, g_continue_cnt + 1);
     }
@@ -781,7 +781,7 @@ void GameContinue(int mode)
     memcpy((u8*) pG + 0x2C, &pG->sub_pos, sizeof(Vec));
     FSet(pG->NextY, pG->sub_angle);
     U16Set(pG->next_room, pG->room_id);
-    pG->next_point = pG->x4F9E;
+    pG->next_point = pG->Part;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
@@ -802,22 +802,22 @@ void clearGlobalSaveData()
 {
     GlobalKeep keep;
     GlobalKeep2 keep2;
-    u16 x4F8E = pG->x4F8E;
-    u32 x4F98 = pG->x4F98;
-    u8 x4F93 = pG->x4F93;
-    u8 x8354 = pG->x8354;
-    s32 game_mode = pG->game_mode;
+    u16 x4F8E = pG->game_cnt;
+    u32 x4F98 = pG->peseta;
+    u8 x4F93 = pG->language;
+    u8 x8354 = pG->game_mode;
+    s32 game_mode = pG->SaveKind;
 
     memcpy(&keep2, (u8*) pG + 0x8330, sizeof(keep2));
     memcpy(&keep, (u8*) pG + 0x4FA4, sizeof(keep));
-    memclr_asm(pG->pad_4F80, 0x36F8);
+    memclr_asm(pG->save_data_start_addr, 0x36F8);
     memcpy((u8*) pG + 0x8330, &keep2, sizeof(keep2));
     memcpy((u8*) pG + 0x4FA4, &keep, sizeof(keep));
-    U16Set(pG->x4F8E, x4F8E);
-    U32Set(pG->x4F98, x4F98);
-    pG->x4F93 = x4F93;
-    pG->x8354 = x8354;
-    S32Set(pG->game_mode, game_mode);
+    U16Set(pG->game_cnt, x4F8E);
+    U32Set(pG->peseta, x4F98);
+    pG->language = x4F93;
+    pG->game_mode = x8354;
+    S32Set(pG->SaveKind, game_mode);
     U16Set(pG->pl_life, pG->pl_life_max);
     U16Set(pG->ashley_life, pG->ashley_life_max);
     InitGameTime();
@@ -832,13 +832,13 @@ int cGameSave::load(void* p)
     }
     checkAddr(data);
     memcpy((u8*) pG + 0x4F80, data->pGlobal, sizeof(GameSaveBlock));
-    if (pG->game_mode == 3) {
+    if (pG->SaveKind == 3) {
         clearGlobalSaveData();
         RoomData.clear(data->pRoom);
         SndBgmTblInit();
         MerchantDataLoad(data->pMerchant);
         ItemMgr.load(data->pItem);
-        if (pG->x4F8E == 1) {
+        if (pG->game_cnt == 1) {
             Merchant2ndRoundInit();
         }
         ItemMgr.dumpType(7);
@@ -864,8 +864,8 @@ extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
         memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
         FSet(pG->sub_angle, pPL->ang.y);
     }
-    S32Set(pG->game_mode, mode);
-    *data->pGlobal = *(GameSaveBlock*) pG->pad_4F80;
+    S32Set(pG->SaveKind, mode);
+    *data->pGlobal = *(GameSaveBlock*) pG->save_data_start_addr;
     RoomData.save(data->pRoom);
     SscrnDataSave(data->pSscrn);
     MerchantDataSave(data->pMerchant);
@@ -1025,12 +1025,12 @@ void gameOption()
 
 void DiedemoExec(int time, int type)
 {
-    if (pG->flags_500C & 0x100000) {
+    if (pG->Status_flg[0] & 0x100000) {
         return;
     }
     diedemo_work.exec_frame = time;
     diedemo_work.demo_type = type;
-    pG->flags_500C |= 0x100000;
+    pG->Status_flg[0] |= 0x100000;
     KeyStop(0xEFCF0000);
     BitOn(pG->Stop_flg, 0x400000);
     BitOn(pG->Stop_flg, 0x100);
@@ -1043,7 +1043,7 @@ void DiedemoExec(int time, int type)
 
 void gameDiedemoCheck()
 {
-    if ((s32) pG->flags_60 < 0) {
+    if ((s32) pG->Debug_flg[0] < 0) {
         return;
     }
     if (pSUB != 0 && (s16) pG->ashley_life <= 0) {
@@ -1095,7 +1095,7 @@ void gameDiedemo(DiedemoWork* w)
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             }
-            if (pG->flags_5018 & 0x1000000) {
+            if (pG->Status_flg[3] & 0x1000000) {
                 IdSys.unitPtr(0, 0x2D)->be_flag |= 8;
                 fadeSetG(0x80000002, 1, 0, 0);
             } else {
@@ -1192,7 +1192,7 @@ void gameDoordemo()
     BitOn(pG->System_flg, 0x1000000);
     BitSet(pG->Stop_flg, 0xFFFFFFFF);
     KeyStop(0xEFCF0000);
-    if (pG->flags_68 & 0x80000000) {
+    if (pG->Debug_flg[2] & 0x80000000) {
         fadeSetG(0, 0, 0, 0);
         TaskSleep(1);
     } else if (Flag54(0x80000) || Flag54(0x100)) {
@@ -1253,9 +1253,9 @@ void gameDoordemo()
     memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
     FSet(pG->sub_angle, pG->NextY);
     U16Set(pG->room_id, pG->next_room);
-    pG->x4F9E = pG->next_point;
-    if ((s32) pG->flags_68 >= 0 && !(pG->System_flg & 0x80000)) {
-        pG->x4F9F = 0;
+    pG->Part = pG->next_point;
+    if ((s32) pG->Debug_flg[2] >= 0 && !(pG->System_flg & 0x80000)) {
+        pG->JumpPoint = 0;
     }
     pG->Rno0 = 1;
     pG->Rno1 = 0;
@@ -1282,13 +1282,13 @@ void gameRoomMemInit()
         MemSetCurrentHeap(4);
     }
     memclr_asm(pG->pad_16C, 0x4E00);
-    U32Set(pG->flags_60, 0);
-    U32Set(pG->flags_64, 0);
-    U32Set(pG->flags_500C, 0);
-    U32Set(pG->flags_5010, 0);
-    U32Set(pG->flags_5014, 0);
-    if (pG->flags_6C & 0x10000) {
-        BitOn(pG->flags_60, 0x80000000);
+    U32Set(pG->Debug_flg[0], 0);
+    U32Set(pG->Debug_flg[1], 0);
+    U32Set(pG->Status_flg[0], 0);
+    U32Set(pG->Status_flg[1], 0);
+    U32Set(pG->Status_flg[2], 0);
+    if (pG->Debug_flg[3] & 0x10000) {
+        BitOn(pG->Debug_flg[0], 0x80000000);
         BitOn(pG->Stop_flg, 0x800000);
         BitOn(pG->Stop_flg, 0x20000000);
     }
@@ -1299,7 +1299,7 @@ void GamePointInit(u32 mode)
     switch (mode) {
     case 0:
     default:
-        switch (pG->x8354) {
+        switch (pG->game_mode) {
         case 0:
         case 5:
         default:
@@ -1430,10 +1430,10 @@ void GameAddPoint(int type)
     if (pG->System_flg & 0x20) {
         S32Set(pG->point, 0x2AF7);
     }
-    if (pG->x4 != 0) {
+    if (pG->shooting_mode != 0) {
         S32Set(pG->point, 0x2AF7);
     }
-    if (pG->x4F93 != 0) {
+    if (pG->language != 0) {
         if (pG->point < 1000) {
             S32Set(pG->point, 1000);
         }
@@ -1450,27 +1450,27 @@ void GameAddPoint(int type)
             pG->point = 0xFA0;
             break;
         }
-        pG->x4F88 = pG->point / 1000;
+        pG->Game_level = pG->point / 1000;
     } else {
-        switch (pG->x8354) {
+        switch (pG->game_mode) {
         case 0:
         case 5:
         default:
-            pG->x4F88 = pG->point / 1000;
+            pG->Game_level = pG->point / 1000;
             break;
         case 6:
-            pG->x4F88 = 10;
+            pG->Game_level = 10;
             break;
         case 3:
-            pG->x4F88 = pG->point / 1833;
+            pG->Game_level = pG->point / 1833;
             break;
         case 1:
-            pG->x4F88 = pG->point / 2750;
+            pG->Game_level = pG->point / 2750;
             break;
         }
     }
     if ((s32) pG->System_flg < 0) {
-        pG->x4F88 = 6;
+        pG->Game_level = 6;
     }
 }
 
@@ -1558,7 +1558,7 @@ void gameStopMove()
         stop_rno = 2;
         /* fallthrough */
     case 2:
-        if (pG->flags_51E4 & 0x10) {
+        if (pG->Frame_cnt & 0x10) {
             eprintf(0xA0, 0xE8, 4, 0, "STOP MODE");
         }
         if (Joy[1].trg & 0x1000) {
@@ -1577,12 +1577,12 @@ void gameDebugDisp()
     int col;
     u32 i;
 
-    if ((s32) pG->flags_60 >= 0) {
+    if ((s32) pG->Debug_flg[0] >= 0) {
         col = 0;
         if (pPL->flags_324 & 0xFFFF0000) {
             col = 2;
         }
-        eprintf(60, 0x18C, col, 0, "Rank[%d,%d],Kill[%d]", pG->x4F88, pG->point, pG->g_kill_cnt);
+        eprintf(60, 0x18C, col, 0, "Rank[%d,%d],Kill[%d]", pG->Game_level, pG->point, pG->g_kill_cnt);
         eprintf(60, 0x19B, col, 0, "C:SHOT[%d],HIT[%d]", pG->c_shot_cnt, pG->c_hit_cnt);
         eprintf(60, 0x1AA, col, 0, "G:SHOT[%d],HIT[%d]", pG->g_shot_cnt, pG->g_hit_cnt);
         if (pG->debug_mode == 7) {
@@ -1591,7 +1591,7 @@ void gameDebugDisp()
             eprintf2(8, 14, 32, 0x1AA, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[%04d],FRAME[%03d/%03d]", pPL->r_no_0,
                      pPL->r_no_1, pPL->r_no_2, pPL->r_no_3, (s16) pG->pl_life, (u32) pPL->frame, pPL->frameMax);
         }
-        if (!(pG->flags_500C & 0x1000)) {
+        if (!(pG->Status_flg[0] & 0x1000)) {
             eprintf(20, 30, 0, 0, "P[%.0f,%.0f,%.0f]", pPL->pos.x, pPL->pos.y, pPL->pos.z);
             {
                 int c0 = 'O';
@@ -1619,7 +1619,7 @@ void gameDebugDisp()
                 }
             }
         }
-        if (pG->flags_68 & 0x1000) {
+        if (pG->Debug_flg[2] & 0x1000) {
             for (i = 0; i < EmMgr.nArray; i++) {
                 cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
                 Vec pos2;
@@ -1704,29 +1704,29 @@ void gameDebugDisp()
         }
     }
     DbWork->move();
-    if (pG->flags_60 & 0x8000000) {
+    if (pG->Debug_flg[0] & 0x8000000) {
         SatMgr.disp(0);
     }
-    if (pG->flags_60 & 0x4000000) {
+    if (pG->Debug_flg[0] & 0x4000000) {
         EatMgr.disp(0);
     }
-    if (pG->flags_60 & 0x4000) {
+    if (pG->Debug_flg[0] & 0x4000) {
         Draw_rtp();
     }
-    if (pG->flags_60 & 0x20) {
+    if (pG->Debug_flg[0] & 0x20) {
         Draw_eminfo();
     }
-    if (pG->flags_60 & 0x2000) {
+    if (pG->Debug_flg[0] & 0x2000) {
         DrawRoomWireframe();
     }
-    if (pG->flags_68 & 0x4000) {
+    if (pG->Debug_flg[2] & 0x4000) {
         DrawTpl((TEXPalette*) (pG->pArc->ofs_90 + (u32) pG->pArc), 0x118, 0x186, 0xDC, 0x1E);
     }
 }
 
 void gameDebug()
 {
-    if ((Joy[0].trg & 0x1000) && (Joy[0].on & 0x40) && (s32) pG->flags_60 >= 0) {
+    if ((Joy[0].trg & 0x1000) && (Joy[0].on & 0x40) && (s32) pG->Debug_flg[0] >= 0) {
         if (pG->System_flg & 8) {
             if (PadCheckStatus(&Joy[1]) == 1) {
                 DbMenuExec();
@@ -1738,7 +1738,7 @@ void gameDebug()
     eprintf2(10, 16, 0x1AE, 8, 0, 0, "%03x ", pG->room_id);
     eprintf(0x1DA, 8, 0, 0, "%d", CamCtrl.CurrentAreaNo());
     eprintf(0x1F2, 8, 0, 0, "%d", pG->AreaNo);
-    if (pG->x4 != 0) {
+    if (pG->shooting_mode != 0) {
         Vec v = {0.0f, 0.0f, 0.0f};
 
         if (Joy[3].on & 0x40) {

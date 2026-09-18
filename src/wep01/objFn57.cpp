@@ -82,7 +82,7 @@ void cObjFn57::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         zero = 0;
-        BitOn(pG->flags_500C, 0x00800000);
+        BitOn(pG->Status_flg[0], 0x00800000);
         type = 1;
         if (pG->weapon_type == 0) {
             type = 0;

@@ -166,7 +166,7 @@ RESTART:
             U32Set(pSys->flags, pRK->sys_flags);
             U8Set(pSys->language, pRK->language);
             U8Set(pSys->region, pRK->region);
-            U8Set(pG->x4F93, pRK->x16);
+            U8Set(pG->language, pRK->x16);
             U32Set(pSys->x4, pRK->sys_x4);
             for (i = 0; i < 16; i += 4) {
                 U32SetOfs(pSys->x10, i, U32GetOfs(pRK->sys_x10, i));
@@ -184,11 +184,11 @@ RESTART:
         ret = 0;
         if (pG->System_flg & 0x8) {
             U16Set(pG->room_id, 0x120);
-            pG->x4F9F = 0;
+            pG->JumpPoint = 0;
             pSys->language = 1;
             pG->debug_mode = 0;
             pG->pl_type = 0;
-            BitOff(pG->flags_6C, 0x2000);
+            BitOff(pG->Debug_flg[3], 0x2000);
         }
         TaskExec(0, Title_task, 0);
         for (;;) {
@@ -202,13 +202,13 @@ RESTART:
             ProcessTickGet(4, "RENDER SETUP");
             SetPrimBuffPtr();
             ClearOt();
-            pG->flags_51E4++;
+            pG->Frame_cnt++;
             TaskScheduler();
             ProcessTickGet(5, "TaskScheduler");
-            if (!(pG->System_flg & 0x100000) || (pG->flags_500C & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (pG->Status_flg[0] & 0x40000)) {
                 IdSys.move();
             }
-            if (!(pG->System_flg & 0x100000) || (pG->flags_500C & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (pG->Status_flg[0] & 0x40000)) {
                 IdSys.trans();
             }
             if (!(pG->System_flg & 0x100000)) {
@@ -221,7 +221,7 @@ RESTART:
             cMes.Move();
             cMes.Trans();
             CinescoMove();
-            if (!(pG->flags_60 & 0x8000)) {
+            if (!(pG->Debug_flg[0] & 0x8000)) {
                 Draw_cinesco();
             }
             FadeControl(1);
@@ -428,14 +428,14 @@ void systemWorkInit()
     U16Set(pG->room_id, 0x120);
     U16Set(pG->next_room, pG->room_id);
     U8Set(pG->pl_type, 0);
-    U8Set(pG->x8354, 5);
+    U8Set(pG->game_mode, 5);
     U8Set(pG->game_costume, 0);
     U8Set(pG->pl_costume, 0);
 #line 823 "D:/Bio4/Prog/main.cpp"
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
     U8Set(pSys->language, 1);
     U8Set(pSys->region, 1);
-    U8Set(pG->x4F93, 1);
+    U8Set(pG->language, 1);
 }
 
 void SetSystemVcnt(int vcnt)
@@ -518,7 +518,7 @@ void systemResetCommon()
     U32Set(pRK->sys_flags, pSys->flags);
     U8Set(pRK->language, pSys->language);
     U8Set(pRK->region, pSys->region);
-    U8Set(pRK->x16, pG->x4F93);
+    U8Set(pRK->x16, pG->language);
     U32Set(pRK->sys_x4, pSys->x4);
     U32Set(pRK->g_flags_54, pG->System_flg);
     for (i = 0; i < 4; i++) {
@@ -557,7 +557,7 @@ void systemSoftReset()
     SndSystemReset();
     systemResetCommon();
     RomFontSetting();
-    pG->x1C = 0;
+    pG->IsMessageInit = 0;
     OSReport("--SOFT_RESET END!!\n");
 }
 
@@ -565,5 +565,5 @@ void setLanguage()
 {
     U8Set(pSys->language, 1);
     U8Set(pSys->region, pSys->language);
-    U8Set(pG->x4F93, pSys->language);
+    U8Set(pG->language, pSys->language);
 }

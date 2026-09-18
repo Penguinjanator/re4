@@ -49,7 +49,7 @@ static inline int emListVillage(int room)
     case 0x204:
     case 0x207:
     case 0x208:
-        if (!(pG->flags_51C0 & 0x40000)) {
+        if (!(pG->Scenario_flg[0] & 0x40000)) {
             return 2;
         }
     }
@@ -97,7 +97,7 @@ int checkEmListNo(u16 room)
             return -1;
         }
         if (room == 0x200) {
-            if (!(pG->flags_51C0 & 0x800000)) {
+            if (!(pG->Scenario_flg[0] & 0x800000)) {
                 return 1;
             }
             return 2;
@@ -111,7 +111,7 @@ int checkEmListNo(u16 room)
         if (room > 0x210) {
             return 4;
         }
-        if (pG->flags_51C0 & 0x10000000) {
+        if (pG->Scenario_flg[0] & 0x10000000) {
             return 4;
         }
         return emListVillage(room);
@@ -229,8 +229,8 @@ void readEmList(int mode)
     no = checkEmListNo(G_ROOM_ID);
     if (no >= 0) {
         GlobalWork* g = pG;
-        if (no > g->em_list_no || (g->System_flg & 0x2000) || g->game_mode == 3 ||
-            ((s32) g->flags_68 < 0 && g->em_list_no != no)) {
+        if (no > g->em_list_no || (g->System_flg & 0x2000) || g->SaveKind == 3 ||
+            ((s32) g->Debug_flg[2] < 0 && g->em_list_no != no)) {
             name = getEmListName(no);
             pG->em_list_no = no;
         }
@@ -317,7 +317,7 @@ void subMissionSt1()
         if (*p1 & 1) {
             count++;
         }
-        if (pG->x4 != 0) {
+        if (pG->shooting_mode != 0) {
             if (G_ROOM_ID == ((SubMissionTarget*) ((u32) t0 + ofs))->room1 && !(*p1 & 1)) {
                 if (getRoomEtcItem(t->no, &item, 1)) {
                     item->flags &= ~2;
@@ -343,10 +343,10 @@ void subMissionSt1()
             pG->Item_find_flg |= 0x40000;
             timer = 450;
             stockDataAdd(&merchantData, stock_1st_mission);
-            pG->flags_5014 &= ~0x40000;
+            pG->Status_flg[2] &= ~0x40000;
         }
         if (count == 15) {
-            pG->flags_51C0 |= 0x8000;
+            pG->Scenario_flg[0] |= 0x8000;
         }
         int n = 0;
         int base = 0;

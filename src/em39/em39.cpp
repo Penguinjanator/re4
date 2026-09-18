@@ -631,7 +631,7 @@ void cEm39::move()
     em39VoiceMove(this);
     em39SpeechMove(this);
     if (be_flag & 2) {
-        if (pG->flags_500C & 0x00800000) {
+        if (pG->Status_flg[0] & 0x00800000) {
             w->No_fire_timer = 0;
         } else {
             w->No_fire_timer++;
@@ -1105,7 +1105,7 @@ static void em39_R1_Success(cEm39* em)
 
 static void plem39_Success(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -1164,7 +1164,7 @@ static void em39_R1_Failure(cEm39* em)
 
 static void plem39_Failure(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -1246,7 +1246,7 @@ static void em39_R1_Wait(cEm39* em)
                 }
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
-                } else if (pG->x4F88 <= 9) {
+                } else if (pG->Game_level <= 9) {
                     EmRoutineSet(em, 1, 8, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 9, 0, 0);
@@ -1625,9 +1625,9 @@ static void em39_R1_Run(cEm39* em)
             break;
         } else if (w->targetAngAbs > 2.3561945f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
-        } else if (em->plDist2 < 9000000.0f && em->type == 2 && pG->x4F88 <= 1) {
+        } else if (em->plDist2 < 9000000.0f && em->type == 2 && pG->Game_level <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
-        } else if (em->plDist2 < 6250000.0f && em->type == 2 && pG->x4F88 <= 3) {
+        } else if (em->plDist2 < 6250000.0f && em->type == 2 && pG->Game_level <= 3) {
             EmRoutineSet(em, 1, 8, 0, 0);
         }
         break;
@@ -1984,16 +1984,16 @@ static void em39_R1_Backjump(cEm39* em)
         w->Timer = 10;
         if (em->type == 2) {
             w->Dash_wait = 60;
-            if (pG->x4F88 <= 1) {
+            if (pG->Game_level <= 1) {
                 w->Dash_wait = 150;
             }
-            if (pG->x4F88 <= 3) {
+            if (pG->Game_level <= 3) {
                 w->Dash_wait = 120;
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 w->Dash_wait = 30;
             }
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 w->Dash_wait = 0;
             }
         }
@@ -2284,7 +2284,7 @@ static void em39_R1_Slant2(cEm39* em)
             break;
         }
         if (em->seFlags28B & 4) {
-            if (pG->x4F88 > 3) {
+            if (pG->Game_level > 3) {
                 if (em->plDist2 > 12250000.0f && (u8) (Rnd() % 10) > 4) {
                     EmRoutineSet(em, 1, 0x11, 0, 0);
                     break;
@@ -2315,13 +2315,13 @@ static void em39_R1_SuperDash(cEm39* em)
         d = GetDistance3(&em->pos, &pPLS->pos) - 7100.0f;
         w->TmpF = d * 0.25f;
         w->SuperDashWait = 600;
-        if (pGS->x4F88 <= 3) {
+        if (pGS->Game_level <= 3) {
             w->SuperDashWait = 900;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->SuperDashWait = 450;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->SuperDashWait = 360;
         }
         w->Arm_rno = 8;
@@ -2980,16 +2980,16 @@ static void em39_R1_KnifeHit(cEm39* em)
             em39SetVoice(em, 0x24);
         }
         w->Timer = 10;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 7;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 13;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 15;
         }
         em->r_no_2++;
@@ -3076,7 +3076,7 @@ static void plem39_KnifeHit(cPlayer* pl)
 {
     int end;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -3181,16 +3181,16 @@ static void em39_R1_Knife4Atk(cEm39* em)
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
         }
         w->Timer = 12;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 8;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 13;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 15;
         }
         EstSet(0, -1, 0, 0, 0x2F, 0x1D, 0, w->EffKindId, (u32) em, 0);
@@ -3210,16 +3210,16 @@ static void em39_R1_Knife4Atk(cEm39* em)
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
         }
         w->Timer = 8;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 3;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 6;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 9;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 11;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -3246,16 +3246,16 @@ static void em39_R1_Knife4Atk(cEm39* em)
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x28), 0, 0, 1, 0);
         }
         w->Timer = 10;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 8;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 11;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 13;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -3267,7 +3267,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
         EM39_K4_WAIT(em, w);
         if ((u8) (Rnd() % 10) > 4) {
             em->r_no_2 = 0xA;
-        } else if (pG->x4F88 <= 1) {
+        } else if (pG->Game_level <= 1) {
             em->r_no_2 = 0xA;
         } else {
             em->r_no_2++;
@@ -3284,16 +3284,16 @@ static void em39_R1_Knife4Atk(cEm39* em)
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x2A), 0, 0, 1, 0);
         }
         w->Timer = 11;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 6;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 9;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 12;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 14;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -3409,7 +3409,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
 {
     int end;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -4594,20 +4594,20 @@ static void em39_R1_br_T_Atk(cEm39* em)
     EstSet((int) em, -1, 0, 0, 0x2F, est, 0, w->EffKindId, (u32) em, 0);                             \
     w->Arm_rno = 4;                                                                                   \
     w->Timer2 = 6;                                                                                     \
-    if (pG->x4F88 <= 1) {                                                                          \
+    if (pG->Game_level <= 1) {                                                                          \
         w->Timer2 = 0;                                                                                 \
     }                                                                                              \
-    if (pG->x4F88 <= 3) {                                                                          \
+    if (pG->Game_level <= 3) {                                                                          \
         w->Timer2 = 3;                                                                                 \
     }                                                                                              \
-    if (pG->x4F88 > 6) {                                                                           \
+    if (pG->Game_level > 6) {                                                                           \
         w->Timer2 = 7;                                                                                 \
     }                                                                                              \
-    if (pG->x4F88 > 9) {                                                                           \
+    if (pG->Game_level > 9) {                                                                           \
         w->Timer2 = 9;                                                                                 \
     }                                                                                              \
     w->TmpU32 = Rnd() & 1;                                                                            \
-    if (pGS->x4F88 <= 3) {                                                                         \
+    if (pGS->Game_level <= 3) {                                                                         \
         w->TmpU32 = 0;                                                                                \
     }                                                                                              \
     w->Act_ck = 0;                                                                                   \
@@ -4741,20 +4741,20 @@ static void em39_R1_T_LongAtk(cEm39* em)
         w->Timer2 = 15;
         w->Atk_ck = 0;
         w->Act_ck = 0;
-        if (pGS->x4F88 <= 1) {
+        if (pGS->Game_level <= 1) {
             w->Timer2 = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer2 = 10;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer2 = 16;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer2 = 18;
         }
         w->TmpU32 = Rnd() & 1;
-        if (pGS->x4F88 <= 3) {
+        if (pGS->Game_level <= 3) {
             w->TmpU32 = 0;
         }
         em->r_no_2++;
@@ -4810,20 +4810,20 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         w->Timer = 15;
         w->Atk_ck = 0;
         w->Act_ck = 0;
-        if (pGS->x4F88 <= 1) {
+        if (pGS->Game_level <= 1) {
             w->Timer = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 10;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 16;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 18;
         }
         w->TmpU32 = Rnd() & 1;
-        if (pGS->x4F88 <= 3) {
+        if (pGS->Game_level <= 3) {
             w->TmpU32 = 0;
         }
         w->Timer3 = 1;
@@ -4883,7 +4883,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
 
 static void plem39_Stamp(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -5241,16 +5241,16 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         w->Arm_rno = 0xC;
         w->Timer = 10;
-        if (pG->x4F88 <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = 7;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->Timer = 12;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->Timer = 15;
         }
         if ((s16) pG->pl_life <= 1) {
@@ -5258,7 +5258,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         w->TmpU32B = 0;
         w->TmpU32 = Rnd() & 1;
-        if (pGS->x4F88 <= 9) {
+        if (pGS->Game_level <= 9) {
             w->TmpU32 = 0;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -5329,7 +5329,7 @@ static void plem39_LowKickHit(cPlayer* pl)
     cModel* p = pl->getPartsPtr(4);
     int end;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -5447,16 +5447,16 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         SetPlDamage((int) em, plem39_CliffAtk);
         w->Arm_rno = st;
         w->TmpU32 = 10;
-        if (pGS->x4F88 <= 1) {
+        if (pGS->Game_level <= 1) {
             w->TmpU32 = 5;
         }
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             w->TmpU32 = 8;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             w->TmpU32 = 12;
         }
-        if (pG->x4F88 > 9) {
+        if (pG->Game_level > 9) {
             w->TmpU32 = 15;
         }
         if ((s16) pG->pl_life <= 1) {
@@ -5521,7 +5521,7 @@ static void plem39_CliffAtk(cPlayer* pl)
 {
     cModel* p = pl->getPartsPtr(4);
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -5894,10 +5894,10 @@ static void em39_R1_Dm_Blow(cEm39* em)
             EmRoutineSet(em, 1, 8, rtn, rtn);                                                      \
         }                                                                                          \
     } else if ((em)->seFlags28B & 4) {                                                             \
-        if (pG->x4F88 <= 3) {                                                                      \
+        if (pG->Game_level <= 3) {                                                                      \
             EmRoutineSet(em, 1, 0xE, end, 1);                                                      \
         } else if (em39LockCk(em)) {                                                               \
-            if (pG->x4F88 <= 9) {                                                                  \
+            if (pG->Game_level <= 9) {                                                                  \
                 EmRoutineSet(em, 1, 0xE, end, 1);                                                  \
             } else {                                                                               \
                 EmRoutineSet(em, 1, 0xF, end, end);                                                \
@@ -6001,10 +6001,10 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
         } else if (em->seFlags28B & 4) {
-            if (pG->x4F88 <= 3) {
+            if (pG->Game_level <= 3) {
                 EmRoutineSet(em, 1, 0xE, end, 1);
             } else if (em39LockCk(em)) {
-                if (pG->x4F88 <= 9) {
+                if (pG->Game_level <= 9) {
                     EmRoutineSet(em, 1, 0xE, end, 1);
                 } else {
                     EmRoutineSet(em, 1, 0xF, end, end);
@@ -6226,7 +6226,7 @@ void em39RouteCk(cEm39* em)
             asm("" : "=m"(w->Act_ck) : "m"(pep->y), "m"(pep->z));
         }
     }
-    if (pG->flags_60 & 0x4000) {
+    if (pG->Debug_flg[0] & 0x4000) {
         Vec c = em->pos;
 
         c.y += 250.0f;
@@ -6332,7 +6332,7 @@ void em39MarkerMove(cEm39* em)
     PSVECAdd(&from, &to, &to);
     GetWepTargetPos(&from, &to, 1, 0, 0, 0);
     EstSet(0, -1, &to, 0, 0, 0x50, 0, 0, 0, 0);
-    if (pG->x4 == 1) {
+    if (pG->shooting_mode == 1) {
         Draw_line3d_222(&to, &from, em39MarkerCol0, 1);
     } else {
         Draw_line3d_222(&to, &from, em39MarkerCol1, 1);
@@ -6474,7 +6474,7 @@ int em39LockCk(cEm39* em)
     Mtx inv;
     Vec p;
 
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         return 0;
     }
     if (pPL->r_no_0 != 0) {
@@ -6524,7 +6524,7 @@ int em39HeadLockCk(cEm39* em)
     Vec p;
     cModel* head;
 
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         return 0;
     }
     if (pG->weapon_no == 0x10) {
@@ -6714,7 +6714,7 @@ int em39JumpDownCk(cEm39* em, int force)
     if (em->type == 2) {
         return 0;
     }
-    if ((pG->flags_51E4 & 3) == (em->emset_no & 3)) {
+    if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
         if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
             a = em->pos;
             a.z += 100.0f;
@@ -7424,7 +7424,7 @@ void em39WepSet(cEm39* em, int no)
     if (noFlag) {                                                                                  \
         return 0;                                                                                  \
     }                                                                                              \
-    if (pG->flags_5010 & 0x8000) {                                                                 \
+    if (pG->Status_flg[1] & 0x8000) {                                                                 \
         return 0;                                                                                  \
     }                                                                                              \
     PSMTXInverse((em)->mat, inv);                                                                  \
@@ -8001,7 +8001,7 @@ int em39AtkRtnCk(cEm39* em)
     dy = fabsf(dy);
     ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
     if (em->type == 2) {
-        if (pG->x4F88 > 1 && w->SuperDashWait == 0 && (w->Be_flg & 1) && em->plDist2 > 36000000.0f && em->plDist2 < 100000000.0f &&
+        if (pG->Game_level > 1 && w->SuperDashWait == 0 && (w->Be_flg & 1) && em->plDist2 > 36000000.0f && em->plDist2 < 100000000.0f &&
             w->routeAngAbs < 0.5235988f && ang < 0.5235988f) {
             a = pPL->pos;
             b = em->pos;
@@ -8259,13 +8259,13 @@ int em39SlantCk2(cEm39* em)
     if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 0.5235988f) {
         return 0;
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         return 0;
     }
-    if (pG->x4F88 <= 3 && (u8) (Rnd() % 10) > 4) {
+    if (pG->Game_level <= 3 && (u8) (Rnd() % 10) > 4) {
         return 0;
     }
-    if (pG->x4F88 <= 9 && em->hp > em->hp_max / 2 && (u8) (Rnd() % 10) > 6) {
+    if (pG->Game_level <= 9 && em->hp > em->hp_max / 2 && (u8) (Rnd() % 10) > 6) {
         return 0;
     }
     EmRoutineSet(em, 1, 0x11, 0, 0);

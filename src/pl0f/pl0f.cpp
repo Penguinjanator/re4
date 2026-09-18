@@ -208,7 +208,7 @@ void cPl0f::move()
         } else {
             PenClothFixClear(ROPE(w), &w->Cloth, 0x1C);
         }
-        if (!(pG->flags_5010 & 0x00080000) && !(w->Be_flg & 8) && w->pBoss) {
+        if (!(pG->Status_flg[1] & 0x00080000) && !(w->Be_flg & 8) && w->pBoss) {
             ROPE(w)->be_flag |= 2;
             if (w->pBoss && (w->pBoss->flags_3C8 & 0x100)) {
                 ROPE(w)->be_flag &= ~2;
@@ -926,7 +926,7 @@ void pl0fWaterEff(cPl0f* em)
     if (pG->room_id == 0x10D || pG->room_id == 0x10E) {
         return;
     }
-    if (w->Boat_rot > 2.443461f && w->Boat_spd > 30.0f && !(pG->flags_51E4 & 3)) {
+    if (w->Boat_rot > 2.443461f && w->Boat_spd > 30.0f && !(pG->Frame_cnt & 3)) {
         EstSet((int) em, -1, 0, 0, 0xF, 0x1D, 0, 0x35, (u32) em, 0);
     }
     if (w->Boat_spd < 150.0f) {
@@ -962,7 +962,7 @@ void pl0fWaterEff(cPl0f* em)
         EstSet((int) em, -1, 0, 0, 0xF, 9, 0, 0x35, (u32) em, 0);
         SndCall(8, 0x12, &em->pos, 0xF, 0, 0);
     }
-    if (pG->flags_5010 & 0x00800000) {
+    if (pG->Status_flg[1] & 0x00800000) {
         if (hideCnt <= 4) {
             hideCnt++;
             return;
@@ -1040,7 +1040,7 @@ void pl0fBoatSpdControl(cPl0f* em)
 
     p = em->pos;
     p.y += 500.0f;
-    if (pG->flags_5010 & 0x00800000) {
+    if (pG->Status_flg[1] & 0x00800000) {
         if (w->Be_flg & 2) {
             pl0fEngineStop(w, &p);
         }
@@ -1464,7 +1464,7 @@ void pl0fBossDieCamMove(cPlayer* pl)
 
 void pl0fRideActEvtCk(cPl0f* em)
 {
-    if (pG->flags_5010 & 0x00200000) {
+    if (pG->Status_flg[1] & 0x00200000) {
         return;
     }
     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > PI / 4) {
@@ -1512,7 +1512,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
     u32 i;
 
-    if (!(pG->flags_5010 & 0x00200000)) {
+    if (!(pG->Status_flg[1] & 0x00200000)) {
         return;
     }
     if ((pG->room_id32 & 0xFFFF0000) != 0x010B0000 && (pG->room_id32 & 0xFFFF0000) != 0x011B0000) {
@@ -1603,7 +1603,7 @@ int pl0fCrashCk(cPl0f* em)
                 if (EmYarareContactCk(e, &w->node[i].wpos, &hit, 800.0f)) {
                     int away = 0;
 
-                    if (pG->flags_5010 & 0x00800000) {
+                    if (pG->Status_flg[1] & 0x00800000) {
                         away = 1;
                     }
                     if (e->flags_3C8 & 4) {
@@ -1629,7 +1629,7 @@ int pl0fCrashCk(cPl0f* em)
 
                     ((cObj1c*) o)->setCrash();
                     away = 0;   // after the call: the flag stays in the argument register
-                    if (pG->flags_5010 & 0x00800000) {
+                    if (pG->Status_flg[1] & 0x00800000) {
                         away = 1;
                     }
                     pl0fCrashAdjustSet(em, &o->pos, away);
@@ -1777,7 +1777,7 @@ static void PlBoatMove(cPlayer* pl)
         pLog->err(0, 0, "PlBoatMove(): m_pBoat == NULL!");
         return;
     }
-    pG->flags_5010 |= 0x00200000;
+    pG->Status_flg[1] |= 0x00200000;
     PlSetNeck(2);
     pl->atari.m_flag &= 0xFCFF;
     pl->dmType = 0x1E;
@@ -2119,7 +2119,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
             pl->x3EC--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
         } else {
-            pG->flags_5010 |= 0x00800000;
+            pG->Status_flg[1] |= 0x00800000;
             pl0fBossCamMove(PL_BOAT(pl), 1);
         }
     }
@@ -2157,7 +2157,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
         }
         break;
     }
-    pG->flags_5010 |= 0x00800000;
+    pG->Status_flg[1] |= 0x00800000;
     if (pl->m_pBoat) {
         pl0fBossCamMove(PL_BOAT(pl), 1);
     }
@@ -2235,7 +2235,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
             pl->x3EC--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
         } else {
-            pG->flags_5010 |= 0x00800000;
+            pG->Status_flg[1] |= 0x00800000;
             pl0fHideModeCamMove(pl);
         }
     }
@@ -2265,7 +2265,7 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
         }
         break;
     }
-    pG->flags_5010 |= 0x00800000;
+    pG->Status_flg[1] |= 0x00800000;
     pl0fHideModeCamMove(pl);
 }
 
@@ -2337,7 +2337,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
 
-    pG->flags_5010 |= 0x00400000;
+    pG->Status_flg[1] |= 0x00400000;
     switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PLARC(0x20), 0, 3, 1, 0);
@@ -2427,7 +2427,7 @@ static void plboat_R2_Swim(cPlayer* pl)
     // `li` next to the x3E4 store (shortest qty -> r9 before the pG pointer) and the store's source
     // crosses the calls, so it gets the TRUE store->call link and is issued first (source order).
     one = 1;
-    pG->flags_5010 |= 0x00400000;
+    pG->Status_flg[1] |= 0x00400000;
     switch (pl->r_no_3) {
     case 0:
         pl->ang.x = 0.0f;
@@ -2436,7 +2436,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         EffectEspDelete(0, 0x34, (u32) pl, 0);
         EffectEspgenDelete(0, 0x34, (int) pl);
         EffectEfmDelete(0, 0x34, (int) pl);
-        pG->flags_5010 &= ~0x00100000;
+        pG->Status_flg[1] &= ~0x00100000;
         pl->x3E4 = one;
         pl->x3E0 = 0;
         pl->x3F0 = 0;
@@ -2448,7 +2448,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             pl00SetChaseCam(pl);
             pl->x3EC = 90;
             EstSet(0, -1, 0, 0, 0xF, 0xE, 0, 0x34, (u32) pl, (void*) first);
-            pG->flags_5010 |= 0x00100000;
+            pG->Status_flg[1] |= 0x00100000;
         }
         MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) PLARC(0x15), 5, 5, 0);
         pl->evTarget.x = 0.0f;
@@ -2529,10 +2529,10 @@ static void plboat_R2_Swim(cPlayer* pl)
             EstSet((int) pl, -1, 0, 0, 0xF, 0x10, 0, 0x35, (u32) boat, 0);
         }
         lim = 8;
-        if (pG->x4F88 <= 3) {
+        if (pG->Game_level <= 3) {
             lim = 12;
         }
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             lim = 4;
         }
         pl->x3F0++;
@@ -2576,7 +2576,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             EffectEspDelete(0, 0x34, (u32) pl, 0);
             EffectEspgenDelete(0, 0x34, (int) pl);
             EffectEfmDelete(0, 0x34, (int) pl);
-            pG->flags_5010 &= ~0x00100000;
+            pG->Status_flg[1] &= ~0x00100000;
         }
     }
     if (pl->x3EC) {
@@ -2891,7 +2891,7 @@ void pl00SwimCamMove(cPlayer* pl)
     Vec pos;
     Vec at;
 
-    BitOn(pG->flags_5010, 0x00080000);
+    BitOn(pG->Status_flg[1], 0x00080000);
     if ((s16) pG->pl_life <= 0) {
         cEm* boss;
 
@@ -2937,7 +2937,7 @@ void pl00ChaseCamMove(cPlayer* pl)
 {
     Vec d;
 
-    pG->flags_5010 |= 0x00080000;
+    pG->Status_flg[1] |= 0x00080000;
     pl0f_camera.param.at = pl->pos;
     PSVECSubtract(&pl0f_camera.param.at, &pl0f_camera.param.pos, &d);
     d.y = 0.0f;
@@ -2976,7 +2976,7 @@ void pl00DieCamMove(cPlayer* pl)
     Vec v;
     cModel* p;
 
-    BitOn(pG->flags_5010, 0x00080000);   // reference store: the pPL load stays below it
+    BitOn(pG->Status_flg[1], 0x00080000);   // reference store: the pPL load stays below it
     p = pPL->getPartsPtr(0);
     pl0f_camera.param.pos = p->world;
     pl0f_camera.param.at = p->world;
@@ -3034,13 +3034,13 @@ void pl00DropCamMove(cPlayer* pl)
     pl00_drop_camera.up.z = 0.0f;
     CAM_SET(pl00_drop_camera);
     CamCtrl.x250 = (s32) &pl00_drop_camera;
-    pG->flags_5010 &= ~0x00100000;
+    pG->Status_flg[1] &= ~0x00100000;
     if (GetWaterHeight(&at, &h)) {
         switch (pl->x3EC) {
         case 0:
             if (h > at.y) {
                 EstSet(0, -1, 0, 0, 0xF, 0xA, 0, 0x34, (u32) pl, 0);
-                pG->flags_5010 |= 0x00100000;
+                pG->Status_flg[1] |= 0x00100000;
                 pl->x3F0 = 10;
                 pl->x3EC++;
             }
@@ -3049,19 +3049,19 @@ void pl00DropCamMove(cPlayer* pl)
             if (pl->x3F0) {
                 pl->x3F0--;
             } else {
-                pG->flags_5010 |= 0x00100000;
+                pG->Status_flg[1] |= 0x00100000;
                 if (h <= at.y - 300.0f) {
                     pl->x3EC++;
                 }
             }
             break;
         case 2:
-            pG->flags_5010 |= 0x00100000;
+            pG->Status_flg[1] |= 0x00100000;
             if (h <= at.y) {
                 EffectEspDelete(0, 0x34, (u32) pl, 0);
                 EffectEspgenDelete(0, 0x34, (int) pl);
                 EffectEfmDelete(0, 0x34, (int) pl);
-                pG->flags_5010 &= ~0x00100000;
+                pG->Status_flg[1] &= ~0x00100000;
                 pl->x3EC++;
             }
             break;

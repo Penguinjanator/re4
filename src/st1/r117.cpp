@@ -166,14 +166,14 @@ void R117Init()
         EvtMgr.SetFunc("evt_r117s10_func", (void*) Evt_R117S10_Func);
         W->mod = SearchEmModule(3);
     } else {
-        if (!(pG->System_flg & 0x100) && pG->x4F9E == 0) {
+        if (!(pG->System_flg & 0x100) && pG->Part == 0) {
             setEm(0x50, -1, 0, 1, 0);
             setEm(0x51, -1, 0, 1, 0);
         }
         SmdGetObjPtr(0x2E)->be_flag &= ~2;
         EstSet(0, -1, 0, 0, 1, 0x27, 1, 2, 0, 0);
     }
-    if (pG->x4F9E == 1) {
+    if (pG->Part == 1) {
         void* zero = 0;
 
         EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
@@ -389,13 +389,13 @@ static void r117_EventAshleyFind()
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         W->evd0->setCommand(CMND_DEL_DATA, 0, 0);
     }
-    BitOn(pG->flags_5018, 0x04000000);
+    BitOn(pG->Status_flg[3], 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_BEHIND, 0);
     SceSleep(2);
     OpeOwTypeSet(3);
     OpeSetOpenTerm(0xA, 0.0f, 0.0f, 0.0f, 0.0f);
-    if (pG->x4F8E == 0) {
+    if (pG->game_cnt == 0) {
         FadeSetW(1, 0, 0, 0);
         SceAtExecute(0x8F);
         SceSleep(1);
@@ -418,7 +418,7 @@ static void r117_EventSaddlerAppear()
     SceEventStart(0);
     BitOn(pG->System_flg, 0x400);
     EmMgr.destroy(pSUB);
-    pG->flags_5018 &= ~0x04000000;
+    pG->Status_flg[3] &= ~0x04000000;
     SceSleep(3);
     if (W->evd1->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
@@ -438,7 +438,7 @@ static void r117_EventSaddlerAppear()
     EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, (u32) zero, zero);
     SceEventEnd(0);
     f32 ry = -0.46134f;
-    BitOn(pG->flags_5018, 0x04000000);
+    BitOn(pG->Status_flg[3], 0x04000000);
     cPlayer* pl = pPL;
     Vec* pp = &pos;
     pl->setPos(pp);

@@ -1634,7 +1634,7 @@ static void em35_R1_BearHug(cEm35* em)
 
 static void plem35_BearHug(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->subArc = PL_EM_G->subArc;
     pl->dmType = 10;
     switch (pl->r_no_2) {
@@ -2115,7 +2115,7 @@ static void plem35_CriticalHit(cPlayer* pl)
 {
     f32 y;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
     switch (pl->r_no_2) {
@@ -2405,7 +2405,7 @@ static void em35_R1_CatchHit(cEm35* em)
 
 static void plem35_CatchHit(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->Status_flg[1], 0x8000);
     pl->subArc = PL_EM_G->subArc;
     pl->dmType = 2;
     switch (pl->r_no_2) {
@@ -2566,7 +2566,7 @@ static void em35_R1_U_Jump(cEm35* em)
         f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
         if (w->routeAngAbs < 0.5235988f && em->plDist2 < 49000000.0f && dy < 500.0f && (Rnd() & 1) &&
-            pG->x4F88 > 1) {
+            pG->Game_level > 1) {
             if (w->routeAng < 0.0f) {
                 MotionSetCore(em, MOTION(em), ARC(0x70), (int) ARC(0x71), 3, 0x41, 0);
                 em->r_no_3 = 1;
@@ -2825,7 +2825,7 @@ static void em35_R1_U_StepDown(cEm35* em)
     switch (em->r_no_2) {
     case 0:
         if (w->routeAngAbs < 1.5707964f) {
-            if (em->plDist2 < 9000000.0f && w->routeAngAbs < 1.0471976f && pG->x4F88 > 1) {
+            if (em->plDist2 < 9000000.0f && w->routeAngAbs < 1.0471976f && pG->Game_level > 1) {
                 MotionSetCore(em, MOTION(em), ARC(0x72), (int) ARC(0x73), 10, 1, 0);
             } else {
                 MotionSetCore(em, MOTION(em), ARC(0x58), (int) ARC(0x59), 10, 1, 0);
@@ -3952,7 +3952,7 @@ int em35CatchCk(cEm35* em)
     if (!(em->motEvent & 2)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     pos = pPL->pos;
@@ -4039,7 +4039,7 @@ int em35bPlRunCk(cEm35* em)
     if (pPL->r_no_1 != 3) {
         return 0;
     }
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         return 0;
     }
     if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 1.5707964f) {
@@ -4268,7 +4268,7 @@ void em35NextRtnSetUpper(cEm35* em)
         EmRoutineSet(em, 1, 0x12, 0, 0);
         return;
     }
-    if ((Rnd() & 1) && pG->x4F88 > 1 && em35BeamFrontDobuleCk(em, w->beamNo)) {
+    if ((Rnd() & 1) && pG->Game_level > 1 && em35BeamFrontDobuleCk(em, w->beamNo)) {
         EmRoutineSet(em, 1, 0x13, 0, 0);
         return;
     }
@@ -4860,7 +4860,7 @@ int em35BigStepCk(cEm35* em)
     if (em->hp > (s16) (em->hp_max / 10) * 8) {
         return 0;
     }
-    if (pG->x4F88 > 1) {
+    if (pG->Game_level > 1) {
         return 0;
     }
     a.x = 0.0f;
@@ -4917,7 +4917,7 @@ void em35WeakMove(cEm35* em)
     }
     for (i = 0; i < 4; i++) {
         if (w->pWeak[i]) {
-            if ((pGS->flags_5010 & 0x04000000) && em->hp > 0) {
+            if ((pGS->Status_flg[1] & 0x04000000) && em->hp > 0) {
                 w->pWeak[i]->be_flag |= 2;
             } else {
                 w->pWeak[i]->be_flag &= ~2;

@@ -314,8 +314,8 @@ void EspCommonTrans(cEsp* esp)
     {
         // The flag word is read into a local for the first test only: with two plain reads the
         // pre-cse jump threading merges the compares; the original kept one compare in cr7.
-        u32 sysFlags = pG->flags_5010;
-        if ((!(sysFlags & 0x80) && (esp->m_Tool_flg & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->m_Tool_flg & 0x800000))) {
+        u32 sysFlags = pG->Status_flg[1];
+        if ((!(sysFlags & 0x80) && (esp->m_Tool_flg & 0x8000)) || ((pG->Status_flg[1] & 0x80) && (esp->m_Tool_flg & 0x800000))) {
             GXSetAlphaUpdate(1);
         }
     }
@@ -468,7 +468,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         buf = GetDrawTmpBufAddr(1);
     }
     ofs = 56.0f;
-    if (pG->flags_5010 & 0x08000000) {
+    if (pG->Status_flg[1] & 0x08000000) {
         ofs = 0.0f;
     }
     if (copyOk) {
@@ -488,7 +488,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     Mtx tm;
     Mtx pm;
     if (ESP_PARTS_SCREEN(esp)) {
-        if (pG->flags_5010 & 0x08000000) {
+        if (pG->Status_flg[1] & 0x08000000) {
             PSMTXConcat(Matrix1, esp->m_Mat, tm);
         } else {
             PSMTXConcat(Matrix2, esp->m_Mat, tm);

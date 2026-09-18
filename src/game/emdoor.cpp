@@ -1488,7 +1488,7 @@ void emDoor_R1_Open(cEmDoor* em)
         if (w->Timer != 0) {
             w->Timer--;
             d = fRand0_1() * (PI / 128) + PI / 128;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 d = -d;
             }
             em->ang.y = ang + d;
@@ -1708,7 +1708,7 @@ void emDoor_R1_Down(cEmDoor* em)
         if (w->Timer != 0) {
             w->Timer--;
             r = fRand0_1() * (PI / 128) + PI / 128;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 r = -r;
             }
             em->ang.x += r;
@@ -1812,7 +1812,7 @@ void emDoor_R1_Shock(cEmDoor* em)
         if (w->Timer != 0) {
             w->Timer--;
             r = fRand0_1() * (PI / 128) + PI / 128;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 r = -r;
             }
             em->ang.y = w->base_dir + r;
@@ -2957,7 +2957,7 @@ void emDoorAction2(cEmDoor* em)
 // The bell position marks where the door was kicked / opened (pG->bell_pos).
 static inline void emDoorBellSet(Vec* pos)
 {
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec));
     pG->bell_stat = 0;
 }

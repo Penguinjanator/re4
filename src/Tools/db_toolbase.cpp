@@ -173,7 +173,7 @@ void cDbgWindow::LocalDisp()
         int bx = m_px;
         int by = m_py + 1;
 
-        if (pG->flags_51E4 & 4) {
+        if (pG->Frame_cnt & 4) {
             eprintf2(8, 12, (bx + cur->m_px - 1) * 8, (by + cur->m_py) * 14, 0, 0, cDbgStr::cursor());
         }
         eprintf2(8, 12, (bx + cur->m_px) * 8, (by + cur->m_py) * 14, 0, 0, cur->m_pStr);

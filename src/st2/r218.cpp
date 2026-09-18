@@ -161,7 +161,7 @@ static void r218_checkClawManDead_end()
     o28 = SmdGetObjPtr(0x28);
     o29 = SmdGetObjPtr(0x29);
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         if (r218_work.p->snd) {
             SndStop(r218_work.p->snd, 0);
         }
@@ -234,7 +234,7 @@ static void r218_checkClawManDead()
 
 static void r218_appearClawMan_end()
 {
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         cObj* o28;
         cObj* o29;
 

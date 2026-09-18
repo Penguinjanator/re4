@@ -231,7 +231,7 @@ void Espgen00_Move(EspgenWork* w)
     static void (*Espgen00MoveTbl[])(EspgenWork*) = {espgen00_Move00, espgen00_Move01};
     cModel* model = ((Espgen00Work*) w->work)->pMod;
 
-    if (model != NULL && (pG->flags_5010 & 0x10000000)) {
+    if (model != NULL && (pG->Status_flg[1] & 0x10000000)) {
         int susp = !(model->be_flag & 0x800);
         if (susp) {
             return;

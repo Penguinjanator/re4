@@ -364,7 +364,7 @@ void emMove(cEm* em)
         EmMgr.destroy(em);
         return;
     }
-    if ((pG->flags_5010 & 0x10000000) && !(em->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(em->be_flag & 0x800)) {
         return;
     }
     if (em == pPL) {
@@ -393,7 +393,7 @@ void emMove(cEm* em)
     }
     em->updateOldPos();
     EmYarareDisp(em);
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(em);
     }
     if (em->be_flag & 0x80000000) {

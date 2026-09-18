@@ -1036,9 +1036,9 @@ static void em3c_R1_Walk(cEm3c* em)
                 }
             } else if (w->targetAngAbs > 2.0943952f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
-            } else if (pG->x4F88 > 9) {
+            } else if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 4, 0, 0);
-            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->x4F88 > 1) {
+            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->Game_level > 1) {
                 if ((u8) (Rnd() % 10) > 4) {
                     w->Run_wait = 150;
                 } else {
@@ -1170,10 +1170,10 @@ static void em3c_R1_MoveAtk(cEm3c* em)
             far = 0;
         }
         w->Timer = 20;
-        if (pGS->x4F88 <= 2) {
+        if (pGS->Game_level <= 2) {
             w->Timer = 10;
         }
-        if (pGS->x4F88 > 7) {
+        if (pGS->Game_level > 7) {
             w->Timer = 30;
         }
         if (w->female) {
@@ -1214,10 +1214,10 @@ static void em3c_R1_MoveAtk(cEm3c* em)
             }
             if (w->Atk_ck != 0 || em->plDist2 < 6250000.0f) {
                 w->Atk_wait = 45;
-                if (pG->x4F88 <= 3) {
+                if (pG->Game_level <= 3) {
                     w->Atk_wait = 60;
                 }
-                if (pG->x4F88 <= 1) {
+                if (pG->Game_level <= 1) {
                     w->Atk_wait = 75;
                 }
                 EmRoutineSet(em, 1, 2, 0, 0);
@@ -1306,10 +1306,10 @@ static void em3c_R1_CoreAtk(cEm3c* em)
         if (end) {
             if (w->Atk_ck) {
                 w->Atk_wait = 45;
-                if (pG->x4F88 <= 3) {
+                if (pG->Game_level <= 3) {
                     w->Atk_wait = 60;
                 }
-                if (pG->x4F88 <= 1) {
+                if (pG->Game_level <= 1) {
                     w->Atk_wait = 75;
                 }
                 EmRoutineSet(em, 1, 2, 0, 0);
@@ -1410,9 +1410,9 @@ static void em3c_R1_Dm_Normal(cEm3c* em)
     }
     case 1:
         if (MotionMoveF(em, 0)) {
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 4, 0, 0);
-            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->x4F88 > 1 && (u8) (Rnd() % 10) > 4) {
+            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->Game_level > 1 && (u8) (Rnd() % 10) > 4) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1444,9 +1444,9 @@ static void em3c_R1_Dm_Big(cEm3c* em)
     }
     case 1:
         if (MotionMoveF(em, 0)) {
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 4, 0, 0);
-            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->x4F88 > 1 && (u8) (Rnd() % 10) > 4) {
+            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->Game_level > 1 && (u8) (Rnd() % 10) > 4) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1477,9 +1477,9 @@ static void em3c_R1_Dm_Head(cEm3c* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            if (pG->x4F88 > 9) {
+            if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 4, 0, 0);
-            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->x4F88 > 1 && (u8) (Rnd() % 10) > 4) {
+            } else if (w->L_pl_route > 7000.0f && w->Run_wait == 0 && pG->Game_level > 1 && (u8) (Rnd() % 10) > 4) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1662,7 +1662,7 @@ void em3cRouteCk(cEm3c* em)
     if (em->hp <= 0) {
         return;
     }
-    if ((pG->flags_51E4 & 3) != (em->emset_no & 3)) {
+    if ((pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         return;
     }
     spd = SQRTF(em->plDist2);
@@ -1707,7 +1707,7 @@ void em3cRouteCk(cEm3c* em)
         VECNormalize(&nrm, &nrm);
         PSVECScale(&nrm, &nrm, 350.0f);
         PSVECAdd(&hit, &nrm, &ofs);
-        if (pG->flags_60 & 0x4000) {
+        if (pG->Debug_flg[0] & 0x4000) {
             Draw_line3d(&top, &hit, 0xFFFFFFFF, 0);
             Draw_line3d(&top, &ofs, 0xFF00FF00, 0);
         }
@@ -2246,7 +2246,7 @@ int em3cStayCk(cEm3c* em)
             cnt++;
         }
     }
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         if (cnt == 0) {
             return 0;
         }
@@ -2275,7 +2275,7 @@ int em3cFindCk(cEm3c* em)
         w->Be_flg |= 0x80;
         return 1;
     }
-    if (pG->flags_5010 & 0x20000000) {
+    if (pG->Status_flg[1] & 0x20000000) {
         f32 r;
 
         switch (pG->bell_stat) {
@@ -2302,7 +2302,7 @@ int em3cFindCk(cEm3c* em)
             }
         }
     }
-    if ((pG->flags_500C & 0x00800000) && w->L_pl_route < 25000.0f) {
+    if ((pG->Status_flg[0] & 0x00800000) && w->L_pl_route < 25000.0f) {
         w->Be_flg |= 0x80;
         return 1;
     }
@@ -2379,21 +2379,21 @@ void em3cAtkSuspend(cEm3c* em, int on)
     u32 i;
 
     if (on) {
-        pG->flags_5010 |= 0x10000000;
+        pG->Status_flg[1] |= 0x10000000;
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
         if (pSUB) {
             pSUB->setNoSuspend(1);
         }
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
     } else {
-        pG->flags_5010 &= ~0x10000000;
+        pG->Status_flg[1] &= ~0x10000000;
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
         if (pSUB) {
             pSUB->setNoSuspend(0);
         }
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);

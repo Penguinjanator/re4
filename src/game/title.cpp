@@ -150,7 +150,7 @@ void titleInit(TitleWork* w)
     w->Rno1 = 0;
     ISet(w->scroll, 0);
     FSet(w->scroll_add, 1.5f);
-    pG->flags_5014 |= 0x8000;
+    pG->Status_flg[2] |= 0x8000;
     IdAllocBuffer();
 }
 
@@ -516,33 +516,33 @@ int titleLevelSelect(TitleWork* w)
         if (pSys->language == 0) {
             switch (w->cursor) {
             case 0:
-                pG->x8354 = 6;
+                pG->game_mode = 6;
                 break;
             case 1:
             default:
-                pG->x8354 = 5;
+                pG->game_mode = 5;
                 break;
             case 2:
-                pG->x8354 = 3;
+                pG->game_mode = 3;
                 break;
             }
         } else if (pSys->language == 1) {
             if (w->cursor == 0) {
-                pG->x8354 = 6;
+                pG->game_mode = 6;
             } else {
-                pG->x8354 = 5;
+                pG->game_mode = 5;
             }
         } else {
             switch (w->cursor) {
             case 0:
-                pG->x8354 = 6;
+                pG->game_mode = 6;
                 break;
             case 1:
             default:
-                pG->x8354 = 5;
+                pG->game_mode = 5;
                 break;
             case 2:
-                pG->x8354 = 3;
+                pG->game_mode = 3;
                 break;
             }
         }
@@ -1347,7 +1347,7 @@ void titleExit(TitleWork* w)
         pRj = new cRoomJmp(roomInfoAddr);
         w->Stage = pG->stage_no;
         w->Room[w->Stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
-        w->JumpPoint = pG->x4F9F;
+        w->JumpPoint = pG->JumpPoint;
         w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
         w->load_no = 1;
         w->menu_x = 340;
@@ -1358,12 +1358,12 @@ void titleExit(TitleWork* w)
             TaskSleep(1);
         }
         G_ROOM_ID = pRj->getRoomInfo(w->Stage, w->Room[w->Stage] + w->JumpPoint)->roomNo;
-        pG->x4F9F = w->JumpPoint;
+        pG->JumpPoint = w->JumpPoint;
         pG->em_list_no = w->em_list_no;
         if (pG->em_list_no > 3) {
-            pG->flags_51C0 |= 0x10000000;
+            pG->Scenario_flg[0] |= 0x10000000;
         } else if (pG->em_list_no > 2) {
-            pG->flags_51C0 |= 0x40000;
+            pG->Scenario_flg[0] |= 0x40000;
         }
         switch (w->c_pos) {
         case 1:
@@ -1375,7 +1375,7 @@ void titleExit(TitleWork* w)
             return;
         case 2:
             G_ROOM_ID = 0x120;
-            pG->x4F9F = 0;
+            pG->JumpPoint = 0;
             pG->pl_type = 0;
             break;
         case 0x12:
@@ -1396,15 +1396,15 @@ void titleExit(TitleWork* w)
             }
         }
         if (pG->stage_no == 2) {
-            BitOn(pG->flags_6C, 0x00800000);
+            BitOn(pG->Debug_flg[3], 0x00800000);
             if (pG->room_id != 0x200) {
-                BitOn(pG->flags_51C0, 0x00800000);
+                BitOn(pG->Scenario_flg[0], 0x00800000);
             }
         } else if (pG->stage_no == 3) {
-            BitOn(pG->flags_6C, 0x40000);
-            BitOn(pG->flags_51C0, 0x10000);
+            BitOn(pG->Debug_flg[3], 0x40000);
+            BitOn(pG->Scenario_flg[0], 0x10000);
             if (pG->room_id == 0x333) {
-                BitOn(pG->flags_6C, 0x20000);
+                BitOn(pG->Debug_flg[3], 0x20000);
             }
         }
         switch (pG->stage_no) {
@@ -1417,20 +1417,20 @@ void titleExit(TitleWork* w)
             BitOn(pG->Item_find_flg, 4);
             BitOn(pG->Item_find_flg, 2);
             if ((pG->room_id32 & 0xFFFF00FF) != 0x02000000) {
-                BitOn(pG->flags_51C0, 0x00800000);
+                BitOn(pG->Scenario_flg[0], 0x00800000);
             }
             break;
         }
-        pRj->getRoomInfo(pG->stage_no, pG->x4F9F + pRj->getRoomIdx(pG->stage_no, pG->room_no))->setNextPos();
+        pRj->getRoomInfo(pG->stage_no, pG->JumpPoint + pRj->getRoomIdx(pG->stage_no, pG->room_no))->setNextPos();
         delete pRj;
         if (pG->pl_type == 6) {
             pG->pl_type = 0;
-            BitOn(pG->flags_5018, 0x04000000);
+            BitOn(pG->Status_flg[3], 0x04000000);
         }
     }
     {
         u8 point = 0;
-        BitOff(pG->flags_6C, 0x00200000);
+        BitOff(pG->Debug_flg[3], 0x00200000);
         if (!(pG->System_flg & 0x100)) {
             pG->System_flg |= 0x2000;
         }
@@ -1438,8 +1438,8 @@ void titleExit(TitleWork* w)
         pG->em_list_no = -1;
         if (pG->System_flg & 0x80000000) {
             G_ROOM_ID = 0x405;
-            pG->x4F9F = point;
-            pG->x4F9E = point;
+            pG->JumpPoint = point;
+            pG->Part = point;
             FSet(pG->sub_pos.x, 28450.0f);
         FSet(pG->sub_pos.y, -16798.0f);
         FSet(pG->sub_pos.z, -40000.0f);
@@ -1448,8 +1448,8 @@ void titleExit(TitleWork* w)
         switch (w->omk_stage_no) {
         case 0:
             G_ROOM_ID = 0x400;
-            pG->x4F9F = point;
-            pG->x4F9E = point;
+            pG->JumpPoint = point;
+            pG->Part = point;
             FSet(pG->sub_pos.x, -12400.0f);
             FSet(pG->sub_pos.y, 2576.0f);
             FSet(pG->sub_pos.z, 31080.0f);
@@ -1457,8 +1457,8 @@ void titleExit(TitleWork* w)
             break;
         case 1:
             G_ROOM_ID = 0x402;
-            pG->x4F9F = point;
-            pG->x4F9E = point;
+            pG->JumpPoint = point;
+            pG->Part = point;
             FSet(pG->sub_pos.x, 21035.0f);
             FSet(pG->sub_pos.y, 3065.0f);
             FSet(pG->sub_pos.z, -26370.0f);
@@ -1466,8 +1466,8 @@ void titleExit(TitleWork* w)
             break;
         case 2:
             G_ROOM_ID = 0x403;
-            pG->x4F9F = point;
-            pG->x4F9E = point;
+            pG->JumpPoint = point;
+            pG->Part = point;
             FSet(pG->sub_pos.x, 31558.0f);
             FSet(pG->sub_pos.y, 8314.0f);
             FSet(pG->sub_pos.z, 38823.0f);
@@ -1475,8 +1475,8 @@ void titleExit(TitleWork* w)
             break;
         case 3:
             G_ROOM_ID = 0x404;
-            pG->x4F9F = point;
-            pG->x4F9E = point;
+            pG->JumpPoint = point;
+            pG->Part = point;
             FSet(pG->sub_pos.x, -640.0f);
             FSet(pG->sub_pos.y, 0.0f);
             FSet(pG->sub_pos.z, -15890.0f);
@@ -1487,7 +1487,7 @@ void titleExit(TitleWork* w)
             memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
             FSet(pG->sub_angle, pG->NextY);
             G_ROOM_ID = pG->next_room;
-            pG->x4F9E = pG->next_point;
+            pG->Part = pG->next_point;
         }
     }
     if (w->se_id != 0) {
@@ -1506,7 +1506,7 @@ void titleExit(TitleWork* w)
     if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
         Mem_free(w->pOmk);
     }
-    pG->flags_5014 &= ~0x8000;
+    pG->Status_flg[2] &= ~0x8000;
     IdFreeBuffer();
     Mem_free(w);
     systemVISetBlack(1);
@@ -1573,16 +1573,16 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%x", w->JumpPoint);
     eprintf(x + 96, y += 16, 4, 0, "%s", getEmListDbgName(w->em_list_no));
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->debug_mode);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x00200000) ? "OFF" : "ON");
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x800) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x00200000) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[3] & 0x800) ? "OFF" : "ON");
     eprintf(x + 96, y += 16, 4, 0, "%s", sound_mode[pSys->sound_mode]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x04000000) ? "OFF" : "ON");
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x00200000) ? "ON" : "OFF");
-    eprintf(x + 96, y += 16, 4, 0, "%s", shoot_mode[(s8) pG->x4]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x04000000) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[3] & 0x00200000) ? "ON" : "OFF");
+    eprintf(x + 96, y += 16, 4, 0, "%s", shoot_mode[(s8) pG->shooting_mode]);
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->game_costume);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->x4F93]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->language]);
     if ((s32) pG->System_flg < 0) {
         eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
     } else if (pG->System_flg & 0x40000000) {
@@ -1590,8 +1590,8 @@ void titleDebugMenu(TitleWork* w)
     } else {
         y += 16;
     }
-    eprintf(x + 96, y += 16, 4, 0, "%s", game_mode_tbl[pG->x8354]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x400) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", game_mode_tbl[pG->game_mode]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x400) ? "OFF" : "ON");
 
     if (Joy[0].rep & 0x00080008) {
         w->c_pos--;
@@ -1688,12 +1688,12 @@ void titleDebugMenu(TitleWork* w)
         break;
     case 8:
         if (Joy[0].trg & 0x00030003) {
-            pG->flags_68 ^= 0x00200000;
+            pG->Debug_flg[2] ^= 0x00200000;
         }
         break;
     case 9:
         if (Joy[0].trg & 0x00030003) {
-            pG->flags_6C ^= 0x800;
+            pG->Debug_flg[3] ^= 0x800;
         }
         break;
     case 10: {
@@ -1715,13 +1715,13 @@ void titleDebugMenu(TitleWork* w)
     }
     case 11:
         if (Joy[0].trg & 0x00030003) {
-            pG->flags_68 ^= 0x04000000;
+            pG->Debug_flg[2] ^= 0x04000000;
         }
         break;
     case 12:
         break;
     case 13:
-        num = (s8) pG->x4;
+        num = (s8) pG->shooting_mode;
         if (Joy[0].trg & 0x00020002) {
             num++;
         }
@@ -1729,7 +1729,7 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num < 0 ? 0 : (num > 2 ? 2 : num);
-        pG->x4 = num;
+        pG->shooting_mode = num;
         break;
     case 14:
         num = pG->game_costume;
@@ -1765,7 +1765,7 @@ void titleDebugMenu(TitleWork* w)
         pSys->region = num;
         break;
     case 17:
-        num = pG->x4F93;
+        num = pG->language;
         if (Joy[0].trg & 0x00020002) {
             num++;
         }
@@ -1773,12 +1773,12 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num < 0 ? 0 : (num > 7 ? 7 : num);
-        pG->x4F93 = num;
+        pG->language = num;
         break;
     case 18:
         break;
     case 19:
-        num = pG->x8354;
+        num = pG->game_mode;
         if (Joy[0].trg & 0x00020002) {
             num++;
         }
@@ -1786,11 +1786,11 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num <= 0 ? 1 : (num > 6 ? 6 : num);
-        pG->x8354 = num;
+        pG->game_mode = num;
         break;
     case 20:
         if (Joy[0].trg & 0x00030003) {
-            pG->flags_68 ^= 0x400;
+            pG->Debug_flg[2] ^= 0x400;
         }
         break;
     }

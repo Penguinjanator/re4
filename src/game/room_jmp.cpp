@@ -59,7 +59,7 @@ void CRoomInfo::setNextPos()
         FSet(pG->NextY, 0.0f);
     }
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->x4F9E);
+    U8Set(pG->Part_old, pG->Part);
     U16Set(pG->next_room, roomNo);
     U8Set(pG->next_point, 0);
 }
@@ -253,7 +253,7 @@ void roomJumpInit(test* w)
     pRj = new cRoomJmp(roomInfoAddr);
     w->stage = pG->stage_no;
     w->room[w->stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
-    w->point = pG->x4F9F;
+    w->point = pG->JumpPoint;
     w->flag = 0;
 }
 
@@ -340,9 +340,9 @@ void roomJumpExec(test* w)
 
     w->state++;
     BitSet(pG->Stop_flg, 0xFFFFFFFF);
-    BitOn(pG->flags_68, 0x80000000);
+    BitOn(pG->Debug_flg[2], 0x80000000);
     pRj->getRoomInfo(w->stage, w->room[w->stage] + w->point)->setNextPos();
-    pG->x4F9F = w->point;
+    pG->JumpPoint = w->point;
     cMes.roomInit();
     {
         // A pointer local for the loop keeps &cMes in one register (lis in a callee-saved one).
@@ -352,7 +352,7 @@ void roomJumpExec(test* w)
         }
     }
     U16Set(pG->pl_life, pG->pl_life_max);
-    U16Set(pG->x4F90, 0);
+    U16Set(pG->r_continue_cnt, 0);
     w->flag = 1;
 }
 
@@ -367,7 +367,7 @@ void roomJumpExit(test* w)
         pG->System_flg &= ~0x40;
     }
     BitSet(pG->Stop_flg, w->stop_bak);
-    BitOff(pG->flags_60, 0x80000000);
+    BitOff(pG->Debug_flg[0], 0x80000000);
     TaskExit();
 }
 

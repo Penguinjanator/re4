@@ -113,8 +113,8 @@ void R10cInit()
 #line 113 "D:/Bio4/Prog/r10c.cpp"
     r10c_work.p = (R10cWork*) MEM_CALLOC(sizeof(R10cWork), 1, 0xd);
     EmReadSearch(0x12, 0, 0);
-    if (pG->x4F9F == 1) {
-        pG->flags_174 |= 0x04000000;
+    if (pG->JumpPoint == 1) {
+        pG->Room_flg[0] |= 0x04000000;
     }
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
@@ -123,7 +123,7 @@ void R10cInit()
     }
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     SceExec(0x12, (TaskFunc) r10c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) moveWheel, 0, 2, SCE_PRIO_DEF_2, 0);
     setTexRender();
@@ -154,7 +154,7 @@ void R10cInit()
     }
     if (RsfCheck(G_ROOM_ID, 5)) {
         SetSstDispFlag(9, 1);
-        BitOff(pG->flags_174, 0x04000000);
+        BitOff(pG->Room_flg[0], 0x04000000);
         RsfSet(G_ROOM_ID, 7);
         SetSstDispFlag(0, 0);
         EffectEspDelete(0, 0xD, 0, 0);
@@ -190,7 +190,7 @@ void R10cInit()
         SceAtSetEnable(0xF, 0);
     }
     if (pPL->pos.y < -5000.0f) {
-        pG->flags_174 |= 0x04000000;
+        pG->Room_flg[0] |= 0x04000000;
     }
     {
         Vec pos = {0.0f, 0.0f, 0.0f};
@@ -292,9 +292,9 @@ static void r10c_TestPosMove(int side)
             p->setAng(&ang2);
         }
         if (RsfCheck(G_ROOM_ID, 5)) {
-            pG->flags_174 &= ~0x04000000;
+            pG->Room_flg[0] &= ~0x04000000;
         } else {
-            pG->flags_174 |= 0x04000000;
+            pG->Room_flg[0] |= 0x04000000;
         }
     } else {
         SndStrReq(1, 0x26, 0x80000003, 0, 0, 0.0f);
@@ -336,7 +336,7 @@ static void r10c_TestPosMove(int side)
             ang2.z = 0.0f;
             p->setAng(&ang2);
         }
-        pG->flags_174 &= ~0x04000000;
+        pG->Room_flg[0] &= ~0x04000000;
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
@@ -363,7 +363,7 @@ static void r10c_EmEvent_exit()
     EffectEfmDelete(1, 2, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     {
         EmListData* l = EM_LIST(3);
 
@@ -375,7 +375,7 @@ static void r10c_EmEvent_exit()
     EmSetFromList2(4, 1);
     r10c_setPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
     r10c_setAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
-    pG->flags_174 &= ~0x08000000;
+    pG->Room_flg[0] &= ~0x08000000;
 }
 
 // Area 1: the Ganado on the far bank throws its axe (camera cuts 0x11..0x13).
@@ -387,7 +387,7 @@ static void r10c_EmEvent()
         cEm* em;
 
         RsfSet(G_ROOM_ID, 1);
-        BitOff(pG->flags_174, 0x04000000);
+        BitOff(pG->Room_flg[0], 0x04000000);
         {
             EmListData* l = EM_LIST(2);
 
@@ -401,7 +401,7 @@ static void r10c_EmEvent()
         MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
         SceEventStart(0);
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
         SceSetEventCancel(1, (TaskFunc) r10c_EmEvent_exit, 0, -1, 1);
         CamCtrl.CutCall(0x11);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -411,8 +411,8 @@ static void r10c_EmEvent()
         CamCtrl.CutCall(0x12);
         while (CamCtrl.IsMotionEnd() == 0) {
             if (cnt++ == 219) {
-                BitOn(pG->flags_174, 0x10000000);
-                BitOn(pG->flags_174, 0x08000000);
+                BitOn(pG->Room_flg[0], 0x10000000);
+                BitOn(pG->Room_flg[0], 0x08000000);
             }
             SceSleep(1);
         }
@@ -434,7 +434,7 @@ static void r10c_StrCheck()
     int on = 0;
 
     for (;;) {
-        if ((SceCkFindPL(0) == 1 || (pG->flags_174 & 0x08000000)) && !(pG->flags_174 & 0x04000000)) {
+        if ((SceCkFindPL(0) == 1 || (pG->Room_flg[0] & 0x08000000)) && !(pG->Room_flg[0] & 0x04000000)) {
             if (on == 0) {
                 SndRoomStrStart(1, 0, 1);
                 on = 1;
@@ -468,7 +468,7 @@ static void r10c_ThunderMove()
     }
     for (;;) {
         if (cnt == 0) {
-            if (!(pG->flags_5010 & 0x02000000)) {
+            if (!(pG->Status_flg[1] & 0x02000000)) {
                 EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
                 {
                     u8 r = Rnd() % 30;
@@ -565,7 +565,7 @@ static void chkSwitchA_exit()
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10c_EmSet, 0, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x10000;
+    pG->Status_flg[2] &= ~0x10000;
     EffectEspDelete(0x2001, 6, 0, 0);
     EffectEspgenDelete(0x2001, 6, 0);
     EffectEfmDelete(0x2001, 6, 0);
@@ -613,9 +613,9 @@ static void chkSwitchA()
         f32 spd;
 
         SceAtSetEnable(5, 0);
-        pG->flags_5014 |= 0x10000;
+        pG->Status_flg[2] |= 0x10000;
         SndCall(6, 3, 0, 0, 0, 0);
-        pG->flags_174 |= 0x04000000;
+        pG->Room_flg[0] |= 0x04000000;
         CamCtrl.CutCall(0x14);
         spd = 0.0f;
         SmdGetObjPtr(0xC)->be_flag |= 0x20;
@@ -684,7 +684,7 @@ static void chkSwitchA()
     } else {
         CamCtrl.Comeback(0);
         SceEventEnd(0);
-        pG->flags_5014 &= ~0x10000;
+        pG->Status_flg[2] &= ~0x10000;
     }
 }
 
@@ -713,7 +713,7 @@ static void r10c_EmSet()
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         RsfSet(G_ROOM_ID, 9);
         SceSleep(30);
-        pG->flags_174 &= ~0x04000000;
+        pG->Room_flg[0] &= ~0x04000000;
         SndStrReq(1, 7, 3, 0, 0, FCRef(vol));
         SceEventStart(1);
         CamCtrl.CutCall(0x1B);
@@ -1277,8 +1277,8 @@ static void r10c_ItemGet()
 // Swaps the pool's water attribute for the drained one.
 extern "C" void eat_swap()
 {
-    if (!(pG->flags_174 & 0x02000000)) {
-        pG->flags_174 |= 0x02000000;
+    if (!(pG->Room_flg[0] & 0x02000000)) {
+        pG->Room_flg[0] |= 0x02000000;
         Vec zero = {0.0f, 0.0f, 0.0f};
 
         r10c_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);

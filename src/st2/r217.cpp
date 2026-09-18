@@ -126,7 +126,7 @@ void R217Init()
     for (u32 j = 0; j < 76; j++) {
         PSVECScale(R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[j])), &r217_work.p->pos[j], 1.0f);
     }
-    if (!(pG->flags_51C0 & 0x40000000)) {
+    if (!(pG->Scenario_flg[0] & 0x40000000)) {
         for (u32 k = 0; k < 76; k++) {
             SmdGetObjPtr(r217_objTbl[k])->be_flag &= ~0x20;
         }
@@ -143,7 +143,7 @@ void R217Init()
             cEmWrapSetEmI(&r217_work.p->em[n], r217_emTbl[n], -1, 0, 1, 1);
         }
     }
-    if (!(pG->flags_51C0 & 0x40000000)) {
+    if (!(pG->Scenario_flg[0] & 0x40000000)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r217_close_door, 0, 1);
     } else {
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
@@ -156,9 +156,9 @@ void R217Main()
     u32 i;
     u32 done;
 
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 RsfSet(G_ROOM_ID, 1);
                 SceExec(0x12, (TaskFunc) r217_2nd_set, 0, 0, SCE_PRIO_DEF_2, 0);
             }
@@ -184,11 +184,11 @@ void R217Main()
     if (done == 5) {
         RsfSet(G_ROOM_ID, 8);
     }
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         int hit;
         cEm* e;
 
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             if (r217_work.p->em[0].ckFindPL()) {
                 r217_work.p->em[0].setFlag(1);
             }
@@ -268,8 +268,8 @@ void R217Main()
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
         if ((u32) SceCountEmAlive(0x10, 0x20) <= 4) {
-            if (!(pG->flags_174 & 0x02000000)) {
-                pG->flags_174 |= 0x02000000;
+            if (!(pG->Room_flg[0] & 0x02000000)) {
+                pG->Room_flg[0] |= 0x02000000;
                 Vec p = {-5674.0f, 0.0f, -8930.0f};
                 r217_work.p->em[8].setGoto(&p, 1);
                 r217_work.p->em[9].setGoto(&pPL->pos, 1);
@@ -317,7 +317,7 @@ static void r217_2nd_set()
         e->setAng(pa);
         SceSleep(1);
     }
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     pPLS->dmg.set(0, 0x80);
     for (u32 i = 8; i < 10; i++) {
         r217_work.p->em[i].setFlag(1);
@@ -399,7 +399,7 @@ static void r217_Puzzle_exit()
 
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         pG->door_flags_51C8 |= 0x40;
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->pos.y = 6790.0f;
@@ -470,7 +470,7 @@ static void r217_Puzzle()
         SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SmdGetObjPtr(0x88)->pParts->ang.x = 0.0f;
     } else {
-        pG->flags_51C0 |= 0x40000000;
+        pG->Scenario_flg[0] |= 0x40000000;
         SceSetEventCancel(1, (TaskFunc) r217_Puzzle_exit, 0, -1, 1);
         CamCtrl.CutCall(7);
         SceSleep(5);

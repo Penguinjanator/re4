@@ -656,7 +656,7 @@ EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet)
         }
         return NULL;
     }
-    if (pG->flags_68 & 0x80) {
+    if (pG->Debug_flg[2] & 0x80) {
         if (owner != 0 || id != 6) {
             OWNER_WARN2(owner, "EST[%s/0x%02x] called.", "EST[%x/0x%02x] called.", id);
         }
@@ -751,7 +751,7 @@ int efmRegist(void* model, void* tpl, void* mot, void* x, u8 id, u32 owner)
     }
     w = &sys->efmWk[id];
     if (w->owner != 0xD2) {
-        if (pG->flags_6C & 0x8000) {
+        if (pG->Debug_flg[3] & 0x8000) {
             if (owner <= 0xD0) {
                 pLog->warn(0, 0, "efmRegist(): ID[0x%x]:OWNER[%s] already used[%s].", id, owner_name_tbl[owner],
                            owner_name_tbl[w->owner]);

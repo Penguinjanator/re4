@@ -153,7 +153,7 @@ int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
     }
     eprintf(0xAA, 0xD0, 4, 0, "POWER : ");
     eprintf(0xAA, 0xD0, 0, 0, "       %3d %", w->power);
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     // one pad pointer for the four cases (the last one is past cse's jump-following path length), taken
@@ -321,7 +321,7 @@ void OptionExec()
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
     }
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     rep = Joy[0].rep;
@@ -408,19 +408,19 @@ void ToolLightAreaMain()
             cnt = (u8) (c + 1);
             if (c & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "PREVIEW MODE");
-            } else if (pG->flags_68 & 8) {
+            } else if (pG->Debug_flg[2] & 8) {
                 eprintf(0xF0, 0x30, 2, 0, "PL NOHIT");
             }
             if (Joy[0].trg & 0x400) {
-                if (pG->flags_68 & 8) {
-                    BitOff(pG->flags_68, 8);
+                if (pG->Debug_flg[2] & 8) {
+                    BitOff(pG->Debug_flg[2], 8);
                 } else {
-                    BitOn(pG->flags_68, 8);
+                    BitOn(pG->Debug_flg[2], 8);
                 }
             }
             if (!(pG->Stop_flg & 0x10000000) && (Joy[0].trg & 0x10)) {
                 // back to the editor: the game's own light areas again
-                BitOn(pG->flags_60, 0x10000000);
+                BitOn(pG->Debug_flg[0], 0x10000000);
                 BitOn(pG->Stop_flg, 0x10000000);
                 BitOn(pG->Stop_flg, 0x20000000);
                 TaskSleep(10);
@@ -435,7 +435,7 @@ void ToolLightAreaMain()
         } else {
             BitOn(pG->Stop_flg, 0x10000000);
             BitOn(pG->Stop_flg, 0x20000000);
-            BitOn(pG->flags_68, 0x00800000);
+            BitOn(pG->Debug_flg[2], 0x00800000);
             w = light_area_work;
             for (i = 0; i < LIGHT_AREA_MAX; i++, w++) {
                     if (IsWorkAlive(w)) {
@@ -485,14 +485,14 @@ void ToolLightAreaMain()
                     // preview: play with the edited areas
                     preview ^= 1;
                     ((cUnitEventView*) pPL)->endEvent(0);
-                    BitOff(pG->flags_60, 0x10000000);
+                    BitOff(pG->Debug_flg[0], 0x10000000);
                     BitOn(pG->System_flg, 0x800);
                 }
             }
         }
         TaskSleep(1);
     }
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     tLightAreaExit();
     TutilQuitDefault();
     TaskExit();
@@ -507,7 +507,7 @@ void tLightAreaInit()
     BitOn(pG->Stop_flg, 0x00400000);
     BitOn(pG->Stop_flg, 0x00010000);
     BitOn(pG->Stop_flg, 0x00002000);
-    BitOn(pG->flags_60, 0x10000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
     CamDbg.m_target_type = 4;
     Block.dispAllBlock(1);
 }
@@ -521,7 +521,7 @@ void tLightAreaExit()
     BitOff(pG->Stop_flg, 0x00400000);
     BitOff(pG->Stop_flg, 0x00010000);
     BitOff(pG->Stop_flg, 0x00002000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)
         volatile debugCamera* c = &CamDbg;

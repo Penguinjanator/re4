@@ -193,8 +193,8 @@ void cSubLuis::modelSet()
 
 void cSubLuis::move()
 {
-    U32And(pG->flags_5010, ~0x10000);
-    U32And(pG->flags_5014, ~0x20000000);
+    U32And(pG->Status_flg[1], ~0x10000);
+    U32And(pG->Status_flg[2], ~0x20000000);
     damageCheck();
     analysis.move();
     think();
@@ -865,7 +865,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
 void cAction::moveAttackPl(cAnalysis* an, cRoutine* rt)
 {
     if (rno1 == 0) {
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         rno1 = 1;
     }
 }

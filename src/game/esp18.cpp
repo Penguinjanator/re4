@@ -230,7 +230,7 @@ void Esp18_Trans(cEsp18* esp)
         // there, and that f1 preference would otherwise follow `ofs` into the height conversion's
         // fmr temp (expand_preferences merges along the dying operands: 109 -> 526 -> 528).
         f32 ofs = 56.0f;
-        if (pG->flags_5010 & 0x08000000) {
+        if (pG->Status_flg[1] & 0x08000000) {
             ofs = 0.0f;
         }
         if (copyOk && i == 0) {
@@ -278,7 +278,7 @@ void Esp18_Trans(cEsp18* esp)
                 {0.0f, 0.0f, 1.0f, 0.0f},
             };
 
-            if (pG->flags_5010 & 0x08000000) {
+            if (pG->Status_flg[1] & 0x08000000) {
                 PSMTXConcat(m4, esp->m_Mat, tm);
             } else {
                 PSMTXConcat(m5, esp->m_Mat, tm);

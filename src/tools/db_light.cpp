@@ -469,7 +469,7 @@ int cLightTool::move()
         ret = 1;
         break;
     case 1:
-        eprintf(0xD8, 0, (pG->flags_51E4 & 0x10) ? 0 : 0x14, color, "CAMERA MODE");
+        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, color, "CAMERA MODE");
         Joy[1] = Joy[0];
         Joy[1].trg &= ~JOY_START;
         memclr_asm(&Pad1, sizeof(JOY));
@@ -477,7 +477,7 @@ int cLightTool::move()
         break;
     case 2:
         EditCutNo = cutNo = getCutNo();
-        eprintf(0xD8, 0, (pG->flags_51E4 & 0x10) ? 0 : 0x14, color, "PLAYER MODE");
+        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, color, "PLAYER MODE");
         joy1 = Joy[1];
         ret = 2;
         break;
@@ -504,7 +504,7 @@ int cLightTool::move()
             int st = Mode;
             switch (st) {
             case 0:
-                pG->flags_60 |= 0x10000000;
+                pG->Debug_flg[0] |= 0x10000000;
                 color = st;
                 break;
             case 1:
@@ -513,7 +513,7 @@ int cLightTool::move()
             case 2:
                 color = 1;
                 updateLit();
-                pG->flags_60 &= ~0x10000000;
+                pG->Debug_flg[0] &= ~0x10000000;
                 break;
             }
         }
@@ -534,12 +534,12 @@ int cLightTool::move()
     }
     routine_tbl[rno0]();
     LightMgr.move();
-    if (pG->flags_60 & 0x02000000) {
+    if (pG->Debug_flg[0] & 0x02000000) {
         if (Mode == 1) {
             CameraMove();
         } else {
             BitOff(pG->Stop_flg, 0x40000000);
-            pG->flags_60 &= ~0x10000000;
+            pG->Debug_flg[0] &= ~0x10000000;
         }
     } else {
         CameraMove();
@@ -1102,7 +1102,7 @@ static void edit_light_select()
         cLight* l = LightMgr.getWorkPtr(i);
         if ((l->be_flag & 3) == 3) {
             if (l == cur) {
-                u32 c = ((pG->flags_51E4 << 4) | 0xF) & 0xFF;
+                u32 c = ((pG->Frame_cnt << 4) | 0xF) & 0xFF;
                 drawLightInfo(l, c | (c << 24 | c << 16 | c << 8));
             } else {
                 drawLightInfo(l, 0x40404040);
@@ -2029,7 +2029,7 @@ static void edit_light_parent()
     drawLightInfo(cur, 0xFFFFFFFF);
     m = cur->getCoord();
     if (m) {
-        f32 r = cur->x1C * (f32) (pG->flags_51E4 % 30) / 0.1f;
+        f32 r = cur->x1C * (f32) (pG->Frame_cnt % 30) / 0.1f;
         Draw_sphere(&m->world, r, 0xA0A0A0FF, 1, 1);
         Draw_pos(&m->world, (int) r);
     }
@@ -2364,7 +2364,7 @@ static void edit_light_type_shadow_fit()
         }
         break;
     }
-    pG->flags_64 |= 0x04000000;
+    pG->Debug_flg[1] |= 0x04000000;
     if (ret) {
         if (pTool->Pad1.rep & JOY_UP) {
             pTool->rno3 = (pTool->rno3 + 6) % 7;
@@ -2449,7 +2449,7 @@ static void edit_light_type_shadow_parallel()
         }
         break;
     }
-    pG->flags_64 |= 0x04000000;
+    pG->Debug_flg[1] |= 0x04000000;
     if (ret) {
         if (pTool->Pad1.rep & JOY_UP) {
             pTool->rno3 = (pTool->rno3 + 6) % 7;
@@ -3985,7 +3985,7 @@ static void load()
     case 0:
         pTool->clearWork();
         pTool->rno1 = 1;
-        pTool->cursor = (pG->flags_60 & 0x02000000) ? 2 : 1;
+        pTool->cursor = (pG->Debug_flg[0] & 0x02000000) ? 2 : 1;
     case 1:
         eprintf(0x20, 0x38, 0, pTool->color, "ROOM LOCAL");
         eprintf(0x20, 0x46, 0, pTool->color, "ROOM SERVER");
@@ -4251,7 +4251,7 @@ static void save()
         pTool->clearWork();
         switch (pTool->mode) {
         default:
-            pTool->cursor = (pG->flags_60 & 0x02000000) ? 2 : 1;
+            pTool->cursor = (pG->Debug_flg[0] & 0x02000000) ? 2 : 1;
             break;
         case 4:
             pTool->cursor = 2;
@@ -4688,7 +4688,7 @@ static void option()
         if (pTool->Pad1.rep & JOY_B) {
             pTool->rno1 = 0;
         }
-        c = (pG->flags_51E4 % 30 > 14) ? 0x14 : 0;
+        c = (pG->Frame_cnt % 30 > 14) ? 0x14 : 0;
         eprintf((pTool->rno2 + 8) << 3, 0xA8, c, pTool->color, "^");
         break;
     }
@@ -5419,10 +5419,10 @@ int getCutNo()
 {
     int no;
 
-    if (pG->flags_60 & 0x02000000) {
+    if (pG->Debug_flg[0] & 0x02000000) {
         return 0;
     }
-    if ((pG->flags_60 & 0x80000000) && DebugMenuSelected == 7) {
+    if ((pG->Debug_flg[0] & 0x80000000) && DebugMenuSelected == 7) {
         no = tcCurrentCameraNo();
     } else {
         int cam = CamCtrl.CurrentCameraNo();

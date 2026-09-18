@@ -24,26 +24,26 @@ u8 PlCapNum[25];
 
 void mahoMuteki()
 {
-    BitOn(pG->flags_68, 0x800000);
+    BitOn(pG->Debug_flg[2], 0x800000);
     pLog->mes(0, 0, "NO DEATH ON");
 }
 
 void mahoInfBul()
 {
-    BitOn(pG->flags_68, 0x400000);
+    BitOn(pG->Debug_flg[2], 0x400000);
     pLog->mes(0, 0, "INF BULLET ON");
 }
 
 void mahoSkelOn()
 {
-    BitOn(pG->flags_60, 0x8000000);
+    BitOn(pG->Debug_flg[0], 0x8000000);
     BitOn(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON ON");
 }
 
 void mahoSkelOff()
 {
-    BitOff(pG->flags_60, 0x8000000);
+    BitOff(pG->Debug_flg[0], 0x8000000);
     BitOff(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON OFF");
 }
@@ -58,27 +58,27 @@ void mahoCallSc()
 
 static void mahoKaiouOff()
 {
-    BitOff(pG->flags_68, 0x10000);
+    BitOff(pG->Debug_flg[2], 0x10000);
     pLog->mes(0, 0, "KAIOUKEN OFF");
 }
 
 void mahoKaiou2()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 0;
     pLog->mes(0, 0, "KAIOUKEN x2");
 }
 
 void mahoKaiou3()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 1;
     pLog->mes(0, 0, "KAIOUKEN x3");
 }
 
 void mahoKaiou4()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 2;
     pLog->mes(0, 0, "KAIOUKEN x4");
 }
@@ -206,7 +206,7 @@ void cPlayer::debugMove()
     emSearch();
     localCoordTest(this);
     EmYarareDisp(this);
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(this);
     }
     if (PlDbFlag & 2) {

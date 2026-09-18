@@ -403,7 +403,7 @@ void MessageControl::gameInit()
     MesData.setPtr(1, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
     MesData.setPtr(2, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
     MesData.setPtr(3, (u8*) (pG->pArc->ofs_54 + (u32) pG->pArc));
-    pG->x1C = 1;
+    pG->IsMessageInit = 1;
     loadCommonFont();
     setLanguage(pSys->language);
     x11F8 = 0;
@@ -1155,7 +1155,7 @@ int Message::code01()
                 pG->Stop_flg = stop_bak;
             }
         }
-        if (IdSys.setCk(0x21) && !(pG->flags_500C & 0x00040000)) {
+        if (IdSys.setCk(0x21) && !(pG->Status_flg[0] & 0x00040000)) {
             Cckpt.lifeMeterDisp(1);
         }
         break;

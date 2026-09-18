@@ -230,7 +230,7 @@ static void wep17_r3_ready00(cPlayer* pl)
     obj->wep.mode = md;
     obj->wep.step = 0;
     AtariFlagsOr(WEP_ATARI(pl), 0x200);
-    if (pG->stage_no > 1 && pl->x3E0 == 0 && (pG->flags_5018 & 0x08000000)) {
+    if (pG->stage_no > 1 && pl->x3E0 == 0 && (pG->Status_flg[3] & 0x08000000)) {
         Vec nrm;
         Vec v0;
         Vec v1;
@@ -841,7 +841,7 @@ static void wep17_r2_out(cPlayer* pl)
             int zero;
 
             zero = 0;
-            BitOn(pG->flags_500C, 0x00800000);
+            BitOn(pG->Status_flg[0], 0x00800000);
             SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
             EstSet((int) WEP_OBJ(pl), -1, 0, 0, 0x4B, 0, 0, 0xA, zero, 0);

@@ -39,7 +39,7 @@ void cEsp43::move()
     Esp43Work* w = &m_Free;
     u32 on = 1;
 
-    if (pG->flags_64 & 0x00800000) {
+    if (pG->Debug_flg[1] & 0x00800000) {
         if (w->started == 0) {
             w->started = on;
         }

@@ -93,7 +93,7 @@ void cObjRuger::moveFire()
             SndCall(2, 1, &pParts->world, 0, 0, 0);
             SndCall(2, 3, &pParts->world, 0, 0, 0);
             SndCall(2, 5, &pParts->world, 0, 0, 0);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
             se = 0;
         } else {
             SndCall(2, 0x15, &pParts->world, 0, 0, 0);

@@ -59,7 +59,7 @@ void cObjSniper::moveFire()
         MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x21), 0, 0, 0, 0);
         motSpeedRate = 1.0f;
         SndCall(2, 4, &getPartsPtr(0)->world, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        pG->Status_flg[0] |= 0x00800000;
         wep.step = 1;
     } else {
         if (MotionCheckCrossFrame(&Motion, 14.0f)) {

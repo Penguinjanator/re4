@@ -66,7 +66,7 @@ void cLog::warn(int flag, int errId, const char* fmt, ...)
 
 void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
         cLogWork* w = add(flag, 0, fmt, ap);
         w->m_Col = col;
     }
@@ -74,7 +74,7 @@ void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
 
 void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
         cLogWork* w = add(flag, errId, fmt, ap);
         w->m_Col = 0x16;
     }
@@ -82,7 +82,7 @@ void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
 
 void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
         cLogWork* w = add(flag, errId, fmt, ap);
         w->m_Col = 0x10;
     }

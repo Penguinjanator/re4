@@ -127,7 +127,7 @@ int cEsp11::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP11 : LightType[%d] invalid", w->Type);
         return 0;
     }
-    if (pG->flags_64 & 0x00800000) {
+    if (pG->Debug_flg[1] & 0x00800000) {
         pG->Stop_flg &= ~0x01000000;
     }
     return 1;

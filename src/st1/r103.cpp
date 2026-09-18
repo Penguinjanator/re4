@@ -265,7 +265,7 @@ static void r103_execOpenCover(R103Cesspit* c)
 {
     cObj* lid;
 
-    pG->flags_51C0 |= 0x04000000;
+    pG->Scenario_flg[0] |= 0x04000000;
     lid = SmdGetObjPtr(c->lid);
     SndCall(6, 9, &lid->pos, 0, 0, 0);
     // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
@@ -392,17 +392,17 @@ extern "C" void r103_checkCesspit1(R103Cesspit* c)
 
     at = SceAtPtr(c->itemAt);
     while (1) {
-        if (!(pG->flags_51C0 & 0x04000000)) {
+        if (!(pG->Scenario_flg[0] & 0x04000000)) {
             if (!(pG->Item_find_flg & 0x10)) {
-                if (!(pG->flags_174 & 0x80000000)) {
+                if (!(pG->Room_flg[0] & 0x80000000)) {
                     if (SceAtItemFindFlgCk(c->itemAt) == 1) {
                         SceAtSetEnable(c->at18, 0);
-                        pG->flags_174 |= 0x80000000;
+                        pG->Room_flg[0] |= 0x80000000;
                     }
-                } else if (!(pG->flags_174 & 0x40000000)) {
+                } else if (!(pG->Room_flg[0] & 0x40000000)) {
                     if (SceAtItemFlgCk(c->itemAt) == 1) {
                         SceAtSetEnable(c->at18, 1);
-                        pG->flags_174 |= 0x40000000;
+                        pG->Room_flg[0] |= 0x40000000;
                     }
                 }
             }
@@ -457,7 +457,7 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
         SceAtSetEnable(c->itemAt, 1);
     } else {
         BitOff(SmdGetObjPtr(c->cover)->be_flag, 2);
-        if (!(pG->flags_51C0 & 0x04000000)) {
+        if (!(pG->Scenario_flg[0] & 0x04000000)) {
             SmdGetObjPtr(c->lid)->pParts->ang.x = 1.12f;
             SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);
             SceAtSetEnable(c->at14, 0);

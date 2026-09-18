@@ -75,7 +75,7 @@ void R20aInit()
     SceSetItemEvent(0xC, 0x8A, 4, 0xB, r20a_TreasureBoxOpen, (void (*)()) r20a_TreasureBoxOpened, 0x26, 0);
     SceSetItemEvent(0xB, 0x80, 5, 0xC, r20a_TreasureBoxOpen, (void (*)()) r20a_TreasureBoxOpened, 0x27, 0);
     SceSetItemEvent(0xE, 0x91, 6, 0xD, r20a_TreasureBoxOpen, (void (*)()) r20a_TreasureBoxOpened, 0x2A, 0);
-    if ((pG->flags_51C0 & 0x10000000) == 0) {
+    if ((pG->Scenario_flg[0] & 0x10000000) == 0) {
         SceAtSetEnable(0xD, 0);
     } else {
         SceAtSetEnable(0, 0);
@@ -183,7 +183,7 @@ static void r20a_AshleyPosCheck()
 static void r20a_DoorLockMessage()
 {
     SceUpCut(0, 6, 3, 0);
-    if (pG->flags_5018 & 0x04000000) {
+    if (pG->Status_flg[3] & 0x04000000) {
         SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r20a_AshleyPosCheck, 0, 1);
     }
 }

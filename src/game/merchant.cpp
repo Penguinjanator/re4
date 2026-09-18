@@ -637,12 +637,12 @@ MerchantData merchantData[MERCHANT_NUM];
 // the tests below are kept apart (fold would merge two masks of one lvalue into a single andis.)
 static inline u32 chkFlag6C(u32 b)
 {
-    return pG->flags_6C & b;
+    return pG->Debug_flg[3] & b;
 }
 
 static inline u32 chkFlag51C0(u32 b)
 {
-    return pG->flags_51C0 & b;
+    return pG->Scenario_flg[0] & b;
 }
 
 void merchant_stage1_full()
@@ -725,7 +725,7 @@ void Merchant2ndRoundInit()
 
 void MerchantRoomInit()
 {
-    if (pG->x4F8E != 0) {
+    if (pG->game_cnt != 0) {
         if (pSys->x4 & 0x20000000) {
             levelDataAdd(merchantData, level_ext_sw500);
             stockDataAdd(merchantData, stock_ext_sw500);
@@ -773,23 +773,23 @@ void MerchantRoomInit()
         break;
     }
     if (pG->room_id == 0x10E) {
-        if (pG->flags_51C0 & 0x01000000) {
-            if (!(pG->flags_51C0 & 0x00100000)) {
+        if (pG->Scenario_flg[0] & 0x01000000) {
+            if (!(pG->Scenario_flg[0] & 0x00100000)) {
                 levelDataAdd(merchantData, level_null);
                 stockDataAdd(merchantData, stock_r10e_night);
-                pG->flags_51C0 |= 0x00100000;
+                pG->Scenario_flg[0] |= 0x00100000;
             }
         } else {
-            if (!(pG->flags_51C0 & 0x00200000)) {
+            if (!(pG->Scenario_flg[0] & 0x00200000)) {
                 levelDataAdd(merchantData, level_r10e_day);
                 stockDataAdd(merchantData, stock_r10e_day);
-                pG->flags_51C0 |= 0x00200000;
+                pG->Scenario_flg[0] |= 0x00200000;
             }
         }
     }
     if (chkFlag51C0(0x01000000) && !chkFlag51C0(0x2000)) {
         levelDataAdd(merchantData, level_1st_night);
-        pG->flags_51C0 |= 0x2000;
+        pG->Scenario_flg[0] |= 0x2000;
     }
     switch (pG->room_id) {
     case 0x200:
@@ -918,7 +918,7 @@ void MerchantRoomInit()
         }
         break;
     }
-    if (pG->flags_6C & 0x10) {
+    if (pG->Debug_flg[3] & 0x10) {
         stockDataInit(merchantData);
         levelDataInit(merchantData);
         merchantChar.setChar(0, 0, 0, 0, 0);

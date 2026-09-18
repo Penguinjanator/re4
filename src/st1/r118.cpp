@@ -64,7 +64,7 @@ void R118Init()
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
         m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
@@ -130,7 +130,7 @@ static void r118_execShowView()
     r118_work->strId = SndStrReq(1, 0xE0, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r118_execShowView_end, 0, -1, 1);
     SceEventStart(0);
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -217,8 +217,8 @@ static void r118_checkDoor117()
     SceUpCut(0, 9, 7, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0x3C) == 0) {
         CamCtrl.Comeback(0);
-        if (!(pG->flags_51C0 & 0x00080000)) {
-            pG->flags_51C0 |= 0x00080000;
+        if (!(pG->Scenario_flg[0] & 0x00080000)) {
+            pG->Scenario_flg[0] |= 0x00080000;
             OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
         }
     } else {

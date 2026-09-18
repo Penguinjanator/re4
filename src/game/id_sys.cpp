@@ -301,7 +301,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         u->curve[3] = 0;
                     }
                     c = 0;
-                    if ((s32) pG->flags_60 >= 0) {
+                    if ((s32) pG->Debug_flg[0] >= 0) {
                         u->be_flag |= 0xD;
                     }
                     u->be_flag |= 0x2;
@@ -409,7 +409,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         u->curve[3] = 0;
                     }
                     c = 0;
-                    if ((s32) pG->flags_60 >= 0) {
+                    if ((s32) pG->Debug_flg[0] >= 0) {
                         u->be_flag |= 0xD;
                     }
                     u->be_flag |= 0x2;
@@ -979,7 +979,7 @@ void IDSystem::trans()
     if (pG->Disp_flg & 0x2000) {
         return;
     }
-    if ((s32) pG->flags_64 < 0) {
+    if ((s32) pG->Debug_flg[1] < 0) {
         return;
     }
     u = pUnit;
@@ -1443,7 +1443,7 @@ void IdDebugFreeBuffer()
 
 void* IdGetBufferAddr(int type)
 {
-    if ((pG->flags_64 & 0x100000) || (pG->flags_500C & 0x40000) || (pG->flags_5014 & 0x8000)) {
+    if ((pG->Debug_flg[1] & 0x100000) || (pG->Status_flg[0] & 0x40000) || (pG->Status_flg[2] & 0x8000)) {
         IdSetBufferType(type);
         return g_pIdBuff;
     }

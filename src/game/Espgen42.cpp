@@ -137,7 +137,7 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
         }
         if (k < (u32) (p->nx * p->ny)) {
             f32* h;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 h = p->hB + k;
             } else {
                 h = p->hA + k;
@@ -213,7 +213,7 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
         }
         if (k < (u32) (p->nx * p->ny)) {
             f32* h;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 h = p->hB + k;
             } else {
                 h = p->hA + k;
@@ -234,7 +234,7 @@ void AddWaterPowerSub(EspgenWork* w)
 
 void AddWaterPower(Vec* pos, f32 power)
 {
-    if (pG->flags_500C & 0x200) {
+    if (pG->Status_flg[0] & 0x200) {
         Height_find = 0;
         FSet(Add_power, power * 5.0f);
         Chk_pos = *pos;
@@ -291,7 +291,7 @@ void Espgen42SetNoWater(int on)
 
 int GetWaterHeight(Vec* pos, f32* height)
 {
-    if (!(pG->flags_500C & 0x200)) {
+    if (!(pG->Status_flg[0] & 0x200)) {
         return 0;
     }
     if (g_bNoWater == 1) {
@@ -399,7 +399,7 @@ void GetWaterCrossPosSub(EspgenWork* w)
 
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 {
-    if (!(pG->flags_500C & 0x200)) {
+    if (!(pG->Status_flg[0] & 0x200)) {
         return 0;
     }
     if (dir->x == 0.0f && dir->y == 0.0f && dir->z == 0.0f) {
@@ -494,8 +494,8 @@ void Espgen42_Move00(EspgenWork* w)
     d2.z = 0.0f;
     d3.x = 0.0f;
     d3.z = -1.0f;
-    frame = pG->flags_51E4 % 60;
-    BitOn(pG->flags_500C, 0x200);
+    frame = pG->Frame_cnt % 60;
+    BitOn(pG->Status_flg[0], 0x200);
     PPCMtpmc1(0);
     PPCMtpmc2(0);
     PPCMtpmc3(0);
@@ -514,7 +514,7 @@ void Espgen42_Move00(EspgenWork* w)
     f32 inx = 1.0f / (f32) (int) nx;
     f32 iny = 1.0f / (f32) (int) ny;
     if (p->mode != 1) {
-        if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
+        if ((pG->Debug_flg[1] & 0x00800000) && (Joy[0].on & 0x100)) {
             // The index is the loop variable `k` (target `lwz r28` = k's register, base+index `lfsx f0,hB,k4`).
             k = (int) ((f32) (int) (nx * ny) * 0.5f);
             // Byte offset in a variable: inside an address `p->hB[k]` expands to `(plus (mult k 4) hB)` (expr.c
@@ -527,7 +527,7 @@ void Espgen42_Move00(EspgenWork* w)
         f32 spread = p->spread;
         f32* cur;
         f32* next;
-        if (pG->flags_51E4 & 1) {
+        if (pG->Frame_cnt & 1) {
             cur = p->hA;
             next = p->hB;
         } else {

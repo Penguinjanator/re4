@@ -269,8 +269,8 @@ void ShadowTrans()
     } else {
         isSelfUse = 1;
     }
-    BitOff(pG->flags_5010, 0x4000);
-    BitOff(pG->flags_5014, 0x00100000);
+    BitOff(pG->Status_flg[1], 0x4000);
+    BitOff(pG->Status_flg[2], 0x00100000);
 
     found = 0;
     l = LightMgr.pAlive;
@@ -292,7 +292,7 @@ void ShadowTrans()
         if (l->Type != 4) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
             if (l->Kind & 0x80) {
                 continue;
             }
@@ -301,7 +301,7 @@ void ShadowTrans()
         if (w->mode == 5) {
             continue;
         }
-        pG->flags_5014 |= 0x00100000;
+        pG->Status_flg[2] |= 0x00100000;
         if (w->mode >= 1 && w->mode <= 4) {
             continue;
         }
@@ -315,7 +315,7 @@ void ShadowTrans()
         found = 1;
     }
 
-    if (!(pG->flags_5014 & 0x00100000)) {
+    if (!(pG->Status_flg[2] & 0x00100000)) {
         return;
     }
 
@@ -349,7 +349,7 @@ void ShadowTrans()
                 continue;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
@@ -390,7 +390,7 @@ void ShadowTrans()
         if (!(obj->be_flag & 0x04000010)) {
             continue;
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -440,7 +440,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         if (l->Type != 4) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
             if (l->Kind & 0x80) {
                 continue;
             }
@@ -550,7 +550,7 @@ void FixShadowLightSet(cLight* l)
                 continue;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
@@ -596,7 +596,7 @@ void FixShadowLightSet(cLight* l)
                 return;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -626,7 +626,7 @@ void FixShadowLightSet(cLight* l)
 
 void shadowModelRender(ShadowMng* mng)
 {
-    pG->flags_5010 |= 0x100;
+    pG->Status_flg[1] |= 0x100;
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
         VSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
@@ -637,7 +637,7 @@ void shadowModelRender(ShadowMng* mng)
         }
     }
     make_shadow_texture(mng);
-    pG->flags_5010 &= ~0x100;
+    pG->Status_flg[1] &= ~0x100;
 }
 
 void make_comn_fit_light(ShadowMng* mng, cModel* m)
@@ -982,7 +982,7 @@ void make_shadow_texture(ShadowMng* mng)
 
         MSet(pSelfShadowMng[g_SelfShdNum], mng);
         g_SelfShdNum++;
-        BitOn(pG->flags_500C, 1);
+        BitOn(pG->Status_flg[0], 1);
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
         Vec up = {0.0f, 1.0f, 0.0f};
         sm[0][0] = 0.0f;
@@ -1114,7 +1114,7 @@ void make_shadow_texture(ShadowMng* mng)
         GXPixModeSync();
     }
     if (w->xB) {
-        pG->flags_5010 |= 0x4000;
+        pG->Status_flg[1] |= 0x4000;
     }
     GXSetAlphaUpdate(0);
     GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
@@ -1184,7 +1184,7 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
             }
         }
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         if (ret == 1) {
             Draw_sphere(&pos, r, 0x80800080, 1, 1);
         } else {
@@ -1298,15 +1298,15 @@ void shadowScrModelRender(ShadowMng* mngs)
             mng++;
             continue;
         }
-        if (pG->debug_mode == 0xE || ((pG->flags_64 & 0x04000000) && mng->pTex)) {
+        if (pG->debug_mode == 0xE || ((pG->Debug_flg[1] & 0x04000000) && mng->pTex)) {
             drawTexture2(&mng->texObj, 0x1A0, mng->no * 0x58 + 0x40, 1, 0x50, 0x50);
         }
-        if (pG->debug_mode == 0xE || (pG->flags_64 & 0x04000000)) {
+        if (pG->debug_mode == 0xE || (pG->Debug_flg[1] & 0x04000000)) {
             eprintf(0x180, mng->no * 0x58 + 0x90, 4, 0, "F:%f ", mng->fov);
         }
         mng++;
     }
-    pG->flags_64 &= ~0x04000000;
+    pG->Debug_flg[1] &= ~0x04000000;
 }
 
 // Dead-stripped in the DOL (STRIP_UNUSED): its colour table and constant pool remain in .rodata.
@@ -1385,7 +1385,7 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texMap++;
         gs->texCoord++;
     }
-    if (pG->flags_5010 & 0x4000) {
+    if (pG->Status_flg[1] & 0x4000) {
         cLight* l;
         GXColor k;
         u8 c;
@@ -1409,7 +1409,7 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texMap++;
         gs->texCoord++;
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         Mtx id;
         gs->tevStage = 0;
         gs->texMap = 0;
@@ -1528,7 +1528,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
             part = (ModelPart*) (p + part->size);
         }
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         for (i = 0; i < num; i++) {
             ShadowMng* mng = tbl[i];
             Draw_corn2(&mng->lightPos, &mng->dir, mng->pLight->x1C, mng->fov, 0xFFFFFFFF);

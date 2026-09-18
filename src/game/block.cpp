@@ -74,7 +74,7 @@ void cBlock::roomInit(void* data)
     pArea = 0;
     pConnect = 0;
     stopFlagSet = 0;
-    if (!(pG->flags_60 & 0x80000000)) {
+    if (!(pG->Debug_flg[0] & 0x80000000)) {
         debugData = 0;
         debugMem = 0;
         allDisp = 0;

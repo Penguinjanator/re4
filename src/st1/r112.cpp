@@ -47,7 +47,7 @@ static void r112_ThunderMove()
     }
     for (;;) {
         if (cnt == 0) {
-            if (pG->flags_5010 & 0x02000000) {
+            if (pG->Status_flg[1] & 0x02000000) {
                 EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
                 SceSndCallThunder();
             }

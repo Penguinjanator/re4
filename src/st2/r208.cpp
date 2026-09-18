@@ -265,7 +265,7 @@ void R208Init()
     W->em[6].setEm(8, 2, 0, 1, 1);
     W->em[7].setEm(1, 2, 0, 1, 1);
     W->em[8].setEm(0x11, 2, 0, 1, 1);
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         W->em[9].setEm(0x3C, 2, 0, 1, 1);
         W->em[10].setEm(0x3D, 2, 0, 1, 1);
     }
@@ -277,10 +277,10 @@ void R208Init()
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
         SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) asl_yubisasi, 0, 1);
     }
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 5);
         RsfSet(G_ROOM_ID, 6);
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
         W->em[0].destroy();
         W->em[1].destroy();
         W->em[2].destroy();
@@ -295,8 +295,8 @@ void R208Init()
         RsfSet(G_ROOM_ID, 1);
         RsfSet(G_ROOM_ID, 4);
     }
-    if (pG->room_id_prev == 0xFFF && (pG->flags_5018 & 0x04000000) == 0) {
-        BitOn(pG->flags_5018, 0x04000000);
+    if (pG->room_id_prev == 0xFFF && (pG->Status_flg[3] & 0x04000000) == 0) {
+        BitOn(pG->Status_flg[3], 0x04000000);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(SCC_CHASE, 0);
     }
@@ -323,7 +323,7 @@ void R208Init()
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r208_snipe, 0, 1);
         SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r208_snipe, 0, 1);
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
     } else {
         SceAtSetEnable(0x1D, 0);
         SceAtSetEnable(0x1E, 0);
@@ -376,17 +376,17 @@ void R208Main()
 
     r208_StrCheck();
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        if (((pG->flags_174 & 0x02000000) && (pGS->flags_174 & 0x01000000)) || DebugTrg(0) != 0) {
+        if (((pG->Room_flg[0] & 0x02000000) && (pGS->Room_flg[0] & 0x01000000)) || DebugTrg(0) != 0) {
             RsfSet(G_ROOM_ID, 5);
             SceExec(0x12, (TaskFunc) crank_set, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    if ((pG->flags_174 & 0x00800000) == 0) {
+    if ((pG->Room_flg[0] & 0x00800000) == 0) {
         cEm* b0;
         cEm* b1;
 
         if (getRoomEtcBarred(0xE, &b0, 1) == 1 && getRoomEtcBarred(0xF, &b1, 1) == 1) {
-            if (pG->sceat_x17C & 0x08000000) {
+            if (pG->Room_flg[2] & 0x08000000) {
                 if (((cEmBarred*) b0)->ckStatus() == 2) {
                     ((cEmBarred*) b0)->setOpen(0);
                 }
@@ -395,7 +395,7 @@ void R208Main()
                     ((cEmBarred*) b0)->setClose(0);
                 }
             }
-            if (pG->sceat_x17C & 0x04000000) {
+            if (pG->Room_flg[2] & 0x04000000) {
                 if (((cEmBarred*) b1)->ckStatus() == 2) {
                     ((cEmBarred*) b1)->setOpen(0);
                 }
@@ -507,7 +507,7 @@ void R208Main()
     } else {
         SceAtSetEnable(0x16, 0);
     }
-    if ((pG->flags_174 & 0x04000000) == 0 && (SubCharGetStatus() & 0x01000000) == 0) {
+    if ((pG->Room_flg[0] & 0x04000000) == 0 && (SubCharGetStatus() & 0x01000000) == 0) {
         SmdGetObjPtr(0x4E)->motFlags |= 8;
         SmdGetObjPtr(0x50)->motFlags |= 8;
         BitOn16(SmdGetObjPtr(0x52)->motFlags, 8);
@@ -515,16 +515,16 @@ void R208Main()
             pSUB->atari.setPriority(0);
         }
     }
-    if ((pG->sceat_x17C & 0x80000000) || RsfCheck(G_ROOM_ID, 5)) {
+    if ((pG->Room_flg[2] & 0x80000000) || RsfCheck(G_ROOM_ID, 5)) {
         W->doorA += 15.0f;
     }
-    if ((pG->sceat_x17C & 0x80000000) == 0 && RsfCheck(G_ROOM_ID, 5) == 0) {
+    if ((pG->Room_flg[2] & 0x80000000) == 0 && RsfCheck(G_ROOM_ID, 5) == 0) {
         W->doorA -= 15.0f;
     }
-    if ((pG->sceat_x17C & 0x40000000) || RsfCheck(G_ROOM_ID, 5)) {
+    if ((pG->Room_flg[2] & 0x40000000) || RsfCheck(G_ROOM_ID, 5)) {
         W->doorB += 15.0f;
     }
-    if ((pG->sceat_x17C & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 5) == 0) {
+    if ((pG->Room_flg[2] & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 5) == 0) {
         W->doorB -= 15.0f;
     }
     if (W->doorA < 0.0f) {
@@ -534,28 +534,28 @@ void R208Main()
         W->doorB = 0.0f;
     }
     if (W->doorA > 150.0f) {
-        if ((pG->flags_174 & 0x02000000) == 0) {
+        if ((pG->Room_flg[0] & 0x02000000) == 0) {
             SndCall(6, 8, &SmdGetObjPtr(0x5A)->pos, 0, 0, 0);
         }
-        pG->flags_174 |= 0x02000000;
+        pG->Room_flg[0] |= 0x02000000;
         W->doorA = 150.0f;
     } else {
-        if (pG->flags_174 & 0x02000000) {
+        if (pG->Room_flg[0] & 0x02000000) {
             SndCall(6, 9, &SmdGetObjPtr(0x5A)->pos, 0, 0, 0);
         }
-        pG->flags_174 &= ~0x02000000;
+        pG->Room_flg[0] &= ~0x02000000;
     }
     if (W->doorB > 150.0f) {
-        if ((pG->flags_174 & 0x01000000) == 0) {
+        if ((pG->Room_flg[0] & 0x01000000) == 0) {
             SndCall(6, 8, &SmdGetObjPtr(0x59)->pos, 0, 0, 0);
         }
-        pG->flags_174 |= 0x01000000;
+        pG->Room_flg[0] |= 0x01000000;
         W->doorB = 150.0f;
     } else {
-        if (pG->flags_174 & 0x01000000) {
+        if (pG->Room_flg[0] & 0x01000000) {
             SndCall(6, 9, &SmdGetObjPtr(0x59)->pos, 0, 0, 0);
         }
-        pG->flags_174 &= ~0x01000000;
+        pG->Room_flg[0] &= ~0x01000000;
     }
     SmdGetObjPtr(0x59)->be_flag |= 0x20;
     SmdGetObjPtr(0x5A)->be_flag |= 0x20;
@@ -578,9 +578,9 @@ void R208Main()
         pos.y -= W->doorA;
         sat->setCoord(&pos, (Vec*) &vecZero);
     }
-    if ((pG->flags_174 & 0x00200000) && (SubCharGetStatus() & 0x00800000)) {
+    if ((pG->Room_flg[0] & 0x00200000) && (SubCharGetStatus() & 0x00800000)) {
         SetSubAux((int) funcAshley2, 0);
-        pG->flags_174 &= ~0x00200000;
+        pG->Room_flg[0] &= ~0x00200000;
     }
     if ((u32) W->crankSeCnt > 0x3B) {
         W->crankSeCnt = 0;
@@ -640,9 +640,9 @@ static void funcAshley(cEm* p)
         return;
     }
     pSUB->atari.setPriority(PRI_LV3);
-    if (pG->flags_174 & 0x08000000) {
+    if (pG->Room_flg[0] & 0x08000000) {
         W->crank = SmdGetObjPtr(0x4E);
-    } else if (pG->flags_174 & 0x80000000) {
+    } else if (pG->Room_flg[0] & 0x80000000) {
         W->crank = SmdGetObjPtr(0x50);
     } else {
         W->crank = SmdGetObjPtr(0x52);
@@ -670,35 +670,35 @@ static void funcAshley(cEm* p)
             || MotionCheckCrossFrame(&p->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, &p->pos, 0, 0, 0);
         }
-        if ((pG->flags_174 & 0x20000000) || (pGS->flags_174 & 0x40000000)) {   // two tests: not folded
+        if ((pG->Room_flg[0] & 0x20000000) || (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
             limit = r208_footTime2;
         } else {
             limit = r208_footTime1;
         }
         mot = 0;
-        if (pG->flags_174 & 0x08000000) {
+        if (pG->Room_flg[0] & 0x08000000) {
             W->crankSeCnt++;
             SmdGetObjPtr(0x21)->be_flag |= 0x20;
             if (SmdGetObjPtr(0x21)->ang.x < 1.0f) {
                 SmdGetObjPtr(0x21)->ang.x += (f32) (mot + 2) * 0.0007f;
             } else {
                 SceExec(0x12, (TaskFunc) brige1_down, 0, 0, SCE_PRIO_DEF_2, 0);
-                pG->flags_174 &= ~0x08000000;
+                pG->Room_flg[0] &= ~0x08000000;
                 EmRoutineSet(p, mot, mot, mot, mot);
                 SubCharCtrl(SCC_CHASE, 0);
             }
-        } else if (pG->flags_174 & 0x80000000) {
+        } else if (pG->Room_flg[0] & 0x80000000) {
             if (DebugTrg(0) != 0) {
                 W->footACnt = limit;
             }
             W->footACnt++;
             if ((u32) W->footACnt > limit) {
-                pG->flags_174 |= 0x40000000;
+                pG->Room_flg[0] |= 0x40000000;
                 SceExec(0x12, (TaskFunc) footingA_up, 0, 0, SCE_PRIO_DEF_2, 0);
-                pG->flags_174 &= ~0x80000000;
+                pG->Room_flg[0] &= ~0x80000000;
                 EmRoutineSet(p, 0, 0, 0, 0);
                 SubCharCtrl(SCC_CHASE, 0);
-                if (pG->flags_174 & 0x20000000) {
+                if (pG->Room_flg[0] & 0x20000000) {
                     Vec pos;
 
                     RsfSet(G_ROOM_ID, 9);
@@ -706,7 +706,7 @@ static void funcAshley(cEm* p)
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
                     SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
-                    pG->flags_174 |= 0x00200000;
+                    pG->Room_flg[0] |= 0x00200000;
                 }
             }
         } else {
@@ -715,12 +715,12 @@ static void funcAshley(cEm* p)
             }
             W->footBCnt++;
             if ((u32) W->footBCnt > limit) {
-                pG->flags_174 |= 0x20000000;
+                pG->Room_flg[0] |= 0x20000000;
                 SceExec(0x12, (TaskFunc) footingB_up, 0, 0, SCE_PRIO_DEF_2, 0);
-                pG->flags_174 |= 0x80000000;
+                pG->Room_flg[0] |= 0x80000000;
                 EmRoutineSet(p, 0, 0, 0, 0);
                 SubCharCtrl(SCC_CHASE, 0);
-                if (pG->flags_174 & 0x40000000) {
+                if (pG->Room_flg[0] & 0x40000000) {
                     Vec pos;
 
                     RsfSet(G_ROOM_ID, 9);
@@ -728,7 +728,7 @@ static void funcAshley(cEm* p)
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
                     SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
-                    pG->flags_174 |= 0x00200000;
+                    pG->Room_flg[0] |= 0x00200000;
                 }
             }
         }
@@ -940,14 +940,14 @@ static void setEmGo()
 
 static void atari_exec_A()
 {
-    if ((u32) SceCountEmAlive(0x10, 0x20) <= 3 && (pG->sceat_x17C & 0x10000000)) {
+    if ((u32) SceCountEmAlive(0x10, 0x20) <= 3 && (pG->Room_flg[2] & 0x10000000)) {
         emGroupeB1_reset();
     }
 }
 
 static void atari_exec_B()
 {
-    if ((u32) SceCountEmAlive(0x10, 0x20) <= 5 && (pG->sceat_x17C & 0x20000000)) {
+    if ((u32) SceCountEmAlive(0x10, 0x20) <= 5 && (pG->Room_flg[2] & 0x20000000)) {
         emGroupeB2_reset();
     }
 }
@@ -1037,7 +1037,7 @@ extern "C" void emGroupeD_reset()
     W->em[30].setNoSuspend(1);
     W->em[31].setNoSuspend(1);
     SceEventStart(1);
-    pG->flags_174 |= 0x00800000;
+    pG->Room_flg[0] |= 0x00800000;
     CamCtrl.CutCall(0xA);
     SceSleep(1);
     W->em[0].setGoto(&r208_goPos9, 0xC);
@@ -1072,7 +1072,7 @@ extern "C" void emGroupeD_reset()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_174 &= ~0x00800000;
+    pG->Room_flg[0] &= ~0x00800000;
     W->em[28].setNoSuspend(0);
     W->em[29].setNoSuspend(0);
     W->em[30].setNoSuspend(0);
@@ -1093,12 +1093,12 @@ static void brige1_down()
     SmdGetObjPtr(0x4E)->motFlags |= 8;
     SmdGetObjPtr(0x4E)->setNoSuspend(1);
     RsfSet(G_ROOM_ID, 6);
-    pG->flags_174 |= 0x10000000;
+    pG->Room_flg[0] |= 0x10000000;
     W->sat->setCoord(&r208_satPos, &SmdGetObjPtr(0x21)->ang);
     plPos = pPL->pos;
     SetVecXYZ(&pos, 0.0f, -4000.0f, -500.0f);
     pPL->setPos(&pos);
-    hard = pG->x4F88 > 6;
+    hard = pG->Game_level > 6;
     if (hard) {
         emGroupeC_reset();
         W->em[22].setNoSuspend(1);
@@ -1208,7 +1208,7 @@ static void r208_operateCrank()
     int accel = 0;
     int mot;
 
-    pG->flags_174 |= 0x04000000;
+    pG->Room_flg[0] |= 0x04000000;
     SmdGetObjPtr(0x4E)->be_flag |= 0x20;
     PSet(W->crank, SmdGetObjPtr(0x4E));   // the pPL load stays below the store
     ((cUnitEventView*) pPL)->beginEvent(0);
@@ -1327,7 +1327,7 @@ static void r208_operateCrank()
         SceAtSetEnable(2, 1);
     }
     CamCtrl.Comeback(0);
-    pG->flags_174 &= ~0x04000000;
+    pG->Room_flg[0] &= ~0x04000000;
 }
 
 // Sets the handle's list entry when less than twelve enemies are alive.
@@ -1381,18 +1381,18 @@ static void under_set_task()
         if (i < (u32) W->underCnt) {
             u32 max = 1;
 
-            if (pG->x4F88 > 7) {
+            if (pG->Game_level > 7) {
                 max = 4;
-            } else if (pG->x4F88 > 5) {
+            } else if (pG->Game_level > 5) {
                 max = 4;
-            } else if (pG->x4F88 > 3) {
+            } else if (pG->Game_level > 3) {
                 max = 3;
-            } else if (pG->x4F88 > 1) {
+            } else if (pG->Game_level > 1) {
                 max = 2;
             }
             if (getUnderEmNum() < max) {
-                if (pG->x4F88 <= 6 && (i == 3 || i == 7)) {
-                } else if (pG->x4F88 <= 3 && (i == 3 || i == 5 || i == 7)) {
+                if (pG->Game_level <= 6 && (i == 3 || i == 7)) {
+                } else if (pG->Game_level <= 3 && (i == 3 || i == 5 || i == 7)) {
                 } else if (r208_underEmTbl[i] != -1) {
                     cEm* em = R208_EmSetEvent(EM_LIST(r208_underEmTbl[i]));
 
@@ -1406,7 +1406,7 @@ static void under_set_task()
                     }
                 }
                 i++;
-                if (pG->x4F88 <= 6) {
+                if (pG->Game_level <= 6) {
                     SceSleep(0x2D);
                 }
             }
@@ -1435,7 +1435,7 @@ static void r208_snipe()
     Vec posB = {-15838.0f, 10007.0f, -51919.0f};
     Vec d;
 
-    if (pG->flags_174 & 0x80000000) {
+    if (pG->Room_flg[0] & 0x80000000) {
         pos = posA;
     } else {
         pos = posB;
@@ -1443,7 +1443,7 @@ static void r208_snipe()
     SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
     SceSleep(1);
     while (1) {
-        if (pG->flags_174 & 0x80000000) {
+        if (pG->Room_flg[0] & 0x80000000) {
             pos = posA;
         } else {
             pos = posB;
@@ -1455,7 +1455,7 @@ static void r208_snipe()
             }
         } else {
             if (SubCharGetStatus() & 1) {
-                if (pG->flags_174 & 0x80000000) {
+                if (pG->Room_flg[0] & 0x80000000) {
                     pos = posA;
                 } else {
                     pos = posB;
@@ -1463,7 +1463,7 @@ static void r208_snipe()
                 SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
             }
         }
-        if ((pG->flags_174 & 0x20000000) && (pGS->flags_174 & 0x40000000)) {   // two tests: not folded
+        if ((pG->Room_flg[0] & 0x20000000) && (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
             SceAtSetEnable(0x1D, 0);
             SceAtSetEnable(0x1E, 0);
             return;
@@ -1471,11 +1471,11 @@ static void r208_snipe()
         if (W->footACnt == 1) {
             cEm* em = R208_EmSetEvent(EM_LIST(0x19));
 
-            if ((pG->flags_174 & 0x20000000) && em != NULL) {
+            if ((pG->Room_flg[0] & 0x20000000) && em != NULL) {
                 ((cEmGanado*) em)->setGoto(&pSUB->pos, 0xC);
             }
             addUnderEmCnt();
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 addUnderEmCnt();
             }
         }
@@ -1490,7 +1490,7 @@ static void r208_snipe()
         }
         if (W->footACnt == 750) {
             W->footACnt = 751;
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 addUnderEmCnt();
             }
         }
@@ -1503,10 +1503,10 @@ static void r208_snipe()
 
             W->footBCnt = 2;
             em = R208_EmSetEvent(EM_LIST_S(0xB));
-            if ((pG->flags_174 & 0x40000000) && em != NULL) {
+            if ((pG->Room_flg[0] & 0x40000000) && em != NULL) {
                 ((cEmGanado*) em)->setGoto(&pSUB->pos, 0xC);
             }
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 addUnderEmCnt();
             }
             addUnderEmCnt();
@@ -1522,7 +1522,7 @@ static void r208_snipe()
         }
         if (W->footBCnt == 750) {
             W->footBCnt = 751;
-            if (pG->x4F88 > 6) {
+            if (pG->Game_level > 6) {
                 addUnderEmCnt();
             }
         }
@@ -1557,7 +1557,7 @@ extern "C" void r208_CarryOnShoulder()
         b.x = 10148.0f;
         b.y = 10000.0f;
         b.z = -61054.0f;
-        pG->flags_174 |= 0x80000000;
+        pG->Room_flg[0] |= 0x80000000;
     } else {
         a.x = -8842.0f;
         a.y = 7000.0f;
@@ -1566,7 +1566,7 @@ extern "C" void r208_CarryOnShoulder()
         b.x = -10148.0f;
         b.y = 10000.0f;
         b.z = -61054.0f;
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
     }
     {
         Vec ofs1 = {0.0f, 0.0f, -532.5f};
@@ -1610,7 +1610,7 @@ extern "C" void r208_CarryOnShoulder()
 // Battle stream on while a Ganado has found the player or the bridge is down.
 extern "C" void r208_StrCheck()
 {
-    if (SceCkFindPL(0) == 1 || (pG->flags_174 & 0x10000000)) {
+    if (SceCkFindPL(0) == 1 || (pG->Room_flg[0] & 0x10000000)) {
         if (RsfCheck(G_ROOM_ID, 13)) {
             if (W->strFlag == 0 && W->strOn == 1) {
                 SndRoomStrStop(3);
@@ -1734,7 +1734,7 @@ static void SubUnderCrankExec()
         Vec pos = {447.0f, 4000.0f, -29225.0f};
         Vec d;
 
-        pGS->flags_174 |= 0x08000000;   // struct view: the template copy's three loads precede its first frame store
+        pGS->Room_flg[0] |= 0x08000000;   // struct view: the template copy's three loads precede its first frame store
         while (1) {
             f32 dist;
 
@@ -1757,7 +1757,7 @@ static void SubUnderCrankExec()
             }
             SceSleep(1);
         }
-        pG->flags_174 &= ~0x08000000;
+        pG->Room_flg[0] &= ~0x08000000;
     }
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         SceAtSetEnable(2, 1);

@@ -92,13 +92,13 @@ void Filter00Render()
     };
 
     if ((pG->Disp_flg & 0x100000) || (blur_rate == 0 && is_eff_spread_on == 0 && g_cont_level == 0)) {
-        pG->flags_500C &= ~0x80000;
+        pG->Status_flg[0] &= ~0x80000;
         return;
     }
     if (filter00_buff) {
         int zero = 0;
 
-        if (pG->flags_500C & 0x80000) {
+        if (pG->Status_flg[0] & 0x80000) {
         col.r = col.g = col.b = zero;
         col.a = blur_rate;
         GXSetTevColor(1, col);
@@ -247,7 +247,7 @@ void Filter00Render()
     GXCopyTex(filter00_buff, 0);
     GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
     Filter00RenderContrast();
-    pG->flags_500C |= 0x80000;
+    pG->Status_flg[0] |= 0x80000;
 }
 
 void Filter00SetContrast(u8 level, u8 pow, u8 bias)

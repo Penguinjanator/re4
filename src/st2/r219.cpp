@@ -46,8 +46,8 @@ void R219Init()
 #line 48 "D:/Bio4/Prog/r219.cpp"
     r219_work = (R219Work*) MEM_CALLOC(sizeof(R219Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if (!(pG->flags_5018 & 0x04000000)) {
-            pG->flags_5018 |= 0x04000000;
+        if (!(pG->Status_flg[3] & 0x04000000)) {
+            pG->Status_flg[3] |= 0x04000000;
         }
     }
     SmdGetObjPtr(0x27)->Shader_type = 2;
@@ -57,13 +57,13 @@ void R219Init()
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) toroko_go, 0, 1);
     SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) toroko_go, (void*) 1, 1);
     if (pG->room_id_prev == 0x219) {
-        if (pG->x4F9E == 1) {
+        if (pG->Part == 1) {
             SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, SCE_PRIO_DEF_2, 0);
-        } else if (pG->x4F9E == 2) {
+        } else if (pG->Part == 2) {
             SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    if ((pG->room_id_prev == 0x219 && pG->x4F9E == 2) || pG->room_id_prev == 0x201) {
+    if ((pG->room_id_prev == 0x219 && pG->Part == 2) || pG->room_id_prev == 0x201) {
         SndRoomBgmStart(0, 0);
     }
     SceSetItemEvent(4, 0x84, 1, 3, r219_openShelf, (void (*)()) r219_openedShelf, 0, 0);

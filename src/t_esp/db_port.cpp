@@ -490,7 +490,7 @@ extern "C" void DB_EventCamLoad()
 extern "C" void DB_EventCamStart()
 {
     if (db_camMotion) {
-        BitOff(pG->flags_60, 0x10000000);
+        BitOff(pG->Debug_flg[0], 0x10000000);
         CamCtrl.MotionSet(db_camMotion, 0, 0.0f);
         CameraMove();
     }
@@ -499,7 +499,7 @@ extern "C" void DB_EventCamStart()
 extern "C" void DB_RoomCamStart(int cut)
 {
     db_camCut = cut;
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     CamCtrl.CutCall((s8) cut);
     CameraMove();
     BitOff(pG->Stop_flg, 0x1000000);
@@ -607,13 +607,13 @@ extern "C" void DB_WorkPush(int flags, int emArray)
     db_emArray = emArray != 0;
     db_workPushed = 1;
     EffectDeleteAll();
-    BitOff(pG->flags_60, 0x10000);
+    BitOff(pG->Debug_flg[0], 0x10000);
     ToolArrayPush(flags);
     ToolEmArraySet(emArray);
     if (emArray) {
-        pG->flags_60 |= 0x40;
+        pG->Debug_flg[0] |= 0x40;
     } else {
-        pG->flags_60 &= ~0x40;
+        pG->Debug_flg[0] &= ~0x40;
     }
     CamDbg.m_target_type = 0;
 }
@@ -627,14 +627,14 @@ extern "C" void DB_WorkPop(int flags, int emArray)
     db_workPushed = 0;
     CamDbg.m_target_type = 4;
     EffectDeleteAll();
-    BitOn(pG->flags_60, 0x10000);
+    BitOn(pG->Debug_flg[0], 0x10000);
     ToolWorkPop(flags);
     Block.dispAllBlock(1);
     ToolEmArraySet(emArray);
     if (emArray) {
-        pG->flags_60 |= 0x40;
+        pG->Debug_flg[0] |= 0x40;
     } else {
-        pG->flags_60 &= ~0x40;
+        pG->Debug_flg[0] &= ~0x40;
     }
 }
 
@@ -725,14 +725,14 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     db_effLoaded = 0;
     db_nearClip = 0;
     db_workPushed = 0;
-    BitOn(pG->flags_64, 0x800000);
+    BitOn(pG->Debug_flg[1], 0x800000);
     pLog->clear();
     pLog->modeSet(0x68, 0xE, 0x3C, 8);
     TaskSleep(1);
     TutilInitDefault();
     pG->debug_mode = 0xD;
-    BitOff(pG->flags_500C, 0x1000000);
-    BitOff(pG->flags_5010, 0x10000000);
+    BitOff(pG->Status_flg[0], 0x1000000);
+    BitOff(pG->Status_flg[1], 0x10000000);
     BitOn(pG->Stop_flg, 0x1000000);
     BitOff(pG->Disp_flg, 0x1000000);
     BitOff(pG->Stop_flg, 0x40000);
@@ -747,12 +747,12 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     db_cinesco = 0;
     db_workPushed = 0;
     DB_WorkPush(1, 1);
-    BitOn(pG->flags_60, 0x40000);
-    BitOn(pG->flags_60, 0x20000000);
+    BitOn(pG->Debug_flg[0], 0x40000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->flags_60, 0x10000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
     LightToolStart();
     LoadModelInit();
     SetLoopFlag(0, 0);
@@ -769,9 +769,9 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         cModel** list;
 
         EvtDebug.FlagEtc = (EvtDebug.FlagEtc & 0x7FFFFFFF) | 0x40000000;
-        BitOn(pG->flags_5010, 0x10000000);
-        BitOn(pG->flags_5014, 0x80000);
-        BitOn(pG->flags_5014, 0x10000);
+        BitOn(pG->Status_flg[1], 0x10000000);
+        BitOn(pG->Status_flg[2], 0x80000);
+        BitOn(pG->Status_flg[2], 0x10000);
         list = EspEvModList;
         for (room = 0; room < 0x80; room++) {
             list[room] = 0;
@@ -1137,13 +1137,13 @@ extern "C" void EspToolExit()
     volatile debugCamera* dbg = &CamDbg;
     GXColor col;
 
-    BitOff(pG->flags_60, 0x40000);
+    BitOff(pG->Debug_flg[0], 0x40000);
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Stop_flg, 0x20000000);
     BitOff(pG->Disp_flg, 0x2000000);
     BitOff(pG->Stop_flg, 0x800000);
     BitOff(pG->Stop_flg, 0x1000000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     *(u32*) &col = 0;
     dbg->m_target_type = 0;
     bio4_GXSetCopyClear(col, 0xFFFFFF);
@@ -1152,9 +1152,9 @@ extern "C" void EspToolExit()
     Block.dispAllBlock(0);
     if (evtToolOn()) {
         DbMenuSetExecTool("EVENT TOOL");
-        BitOff(pG->flags_5010, 0x10000000);
-        BitOff(pG->flags_5014, 0x80000);
-        BitOff(pG->flags_5014, 0x10000);
+        BitOff(pG->Status_flg[1], 0x10000000);
+        BitOff(pG->Status_flg[2], 0x80000);
+        BitOff(pG->Status_flg[2], 0x10000);
         LightMgr.endEvent();
         LightMgr.roomLitSet(0);
         LightMgr.update(0, -1);
@@ -1163,7 +1163,7 @@ extern "C" void EspToolExit()
         EspDataRelease(db_effOwner, 1, 1);
     }
     CamCtrl.Comeback(0);
-    BitOff(pG->flags_64, 0x800000);
+    BitOff(pG->Debug_flg[1], 0x800000);
     TutilQuitDefault();
     TaskExit();
 }
@@ -1190,9 +1190,9 @@ extern "C" void DB_SetBgColor(u8 r, u8 g, u8 b, u8 a)
 extern "C" void DB_DrawGrid(int on)
 {
     if (on) {
-        pG->flags_60 |= 0x40000;
+        pG->Debug_flg[0] |= 0x40000;
     } else {
-        pG->flags_60 &= ~0x40000;
+        pG->Debug_flg[0] &= ~0x40000;
     }
 }
 
@@ -1233,9 +1233,9 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
         pG->Disp_flg |= 0x4000;
     }
     if (db_cinesco) {
-        pG->flags_500C |= 0x1000000;
+        pG->Status_flg[0] |= 0x1000000;
     } else {
-        pG->flags_500C &= ~0x1000000;
+        pG->Status_flg[0] &= ~0x1000000;
     }
     LightMgr.setFog();
     if (db_motionOn) {
@@ -1244,10 +1244,10 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
     }
     if (DB_isGetComeEventTool() == 0 && db_roomCam == 0) {
         if (db_motionCam) {
-            BitOff(pG->flags_60, 0x10000000);
+            BitOff(pG->Debug_flg[0], 0x10000000);
             CameraMove();
         } else {
-            BitOn(pG->flags_60, 0x10000000);
+            BitOn(pG->Debug_flg[0], 0x10000000);
         }
     }
     if (wk->motionReq) {

@@ -616,21 +616,21 @@ int getGreetMsg(int* num, int* tbl)
     SUB_SCREEN* wk = &SubScreenWk;
     int ret = 1;
 
-    if (g->flags_51C0 & 0x01000000) {
+    if (g->Scenario_flg[0] & 0x01000000) {
         goto NG;
     }
-    if (!(g->flags_51C0 & 0x00400000)) {
-        BitOn(g->flags_51C0, 0x00400000);
-        BitOn(pG->flags_5014, 0x40000);
+    if (!(g->Scenario_flg[0] & 0x00400000)) {
+        BitOn(g->Scenario_flg[0], 0x00400000);
+        BitOn(pG->Status_flg[2], 0x40000);
         *num = 0;
         tbl[(*num)++] = 0;
         tbl[(*num)++] = 2;
         return ret;
     }
-    if (g->flags_5014 & 0x40000) {
+    if (g->Status_flg[2] & 0x40000) {
         goto NG;
     }
-    g->flags_5014 |= 0x40000;
+    g->Status_flg[2] |= 0x40000;
     *num = 0;
     if (wk->merchant->stockNew() || wk->merchant->levelNew()) {
         tbl[(*num)++] = 1;
@@ -640,7 +640,7 @@ int getGreetMsg(int* num, int* tbl)
     g = pG;
     if (g->stage_no == 1) {
         if (!(g->Item_find_flg & 0x40000)) {
-            if (!(g->flags_51C0 & 0x01000000) && g->x4F8E == 0) {
+            if (!(g->Scenario_flg[0] & 0x01000000) && g->game_cnt == 0) {
                 tbl[(*num)++] = 3;
             }
         } else if (!(g->item_flags[0] & 0x10000000)) {
@@ -1278,7 +1278,7 @@ void SellConfirm::move(SUB_SCREEN* wk)
     case 1: {
         ItemInfo info;
 
-        m->buyup(sw->item, sw->count, (int*) &pG->x4F98);
+        m->buyup(sw->item, sw->count, (int*) &pG->peseta);
         itemInfo(sw->item->id, &info);
         if (info.type == 1) {
             ItemMgr.dumpAll(sw->item);
@@ -1538,7 +1538,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
     case 0:
         if (searchItemPieceData(sw->buyId, piece_info)) {
             IntSet(state, 1);
-            if ((int) pG->x4F98 >= m->sellPrice(sw->buyId, sw->count)) {
+            if ((int) pG->peseta >= m->sellPrice(sw->buyId, sw->count)) {
                 switch (sw->buyId) {
                 case 0x3:
                     msg = 0xB;
@@ -1699,7 +1699,7 @@ int buyItem(SUB_SCREEN* wk)
     ShopWork* sw = wk->pShopWk;
     int ret = 0;
 
-    wk->merchant->sell(sw->buyId, sw->count, (int*) &pG->x4F98);
+    wk->merchant->sell(sw->buyId, sw->count, (int*) &pG->peseta);
     ItemMgr.get(sw->buyId, (u16) sw->count);
     if (sw->placed) {
         ItemWork* p = ItemMgr.pLast;
@@ -1744,7 +1744,7 @@ void BuyConfirm::init(SUB_SCREEN* wk)
     IdUnit* u;
 
     if (sw->noRoom == 0) {
-        if ((int) pG->x4F98 >= m->sellPrice(sw->buyId, sw->count)) {
+        if ((int) pG->peseta >= m->sellPrice(sw->buyId, sw->count)) {
             msg = 0xA;
             SndCall(0, 9, 0, 0, 0, 0);
         } else {
@@ -2461,7 +2461,7 @@ void LvUpConfirm::init(SUB_SCREEN* wk)
     } else {
         sw->lv[sw->lvType] = cur[sw->lvType] + 1;
     }
-    if (sw->price <= (int) pG->x4F98) {
+    if (sw->price <= (int) pG->peseta) {
         msg = 0x17;
         SndCall(0, 9, 0, 0, 0, 0);
     } else {
@@ -2539,7 +2539,7 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
             if (ItemMgr.pArm == sw->item) {
                 ItemMgr.arm(ItemMgr.pArm);
             }
-            pG->x4F98 -= sw->price;
+            pG->peseta -= sw->price;
             shopStrPlay(wk, shop_msg[25].str);
             SndCall(0, 0x18, 0, 0, 0, 0);
             break;
@@ -2613,7 +2613,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
                 switch (type) {
                 case 0:
                     lv = 1;
-                    if (pG->flags_51C0 & 0x8000) {
+                    if (pG->Scenario_flg[0] & 0x8000) {
                         lv = 2;
                     }
                     break;

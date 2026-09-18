@@ -43,7 +43,7 @@ void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
     f32 half;
 
     half = esp->m_Size_base_y * 0.5f * esp->m_Size_mul;
-    if ((pG->flags_64 & 0x00800000) && !(pG->flags_60 & 0x00010000)) {
+    if ((pG->Debug_flg[1] & 0x00800000) && !(pG->Debug_flg[0] & 0x00010000)) {
         floorY = 0.0f;
     }
     if (esp->m_Pos.y - half < floorY) {

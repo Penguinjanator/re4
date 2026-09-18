@@ -287,7 +287,7 @@ static void R21aEmSetMain()
                 }
             }
         }
-        if (pG->flags_174 & 0x01000000) {
+        if (pG->Room_flg[0] & 0x01000000) {
             if (RsfCheck(G_ROOM_ID, 3) == 0) {
                 RsfSet(G_ROOM_ID, 3);
                 r21a_work.p->em[17].setPtr(0x69, -1, 0);
@@ -375,10 +375,10 @@ static void R21aFallRoofStartMain()
 {
     cObj* obj = SmdGetObjPtr(0x41);
 
-    if (pG->flags_174 & 0x80000000) {
+    if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(7, 0);
     r21a_work.p->se = 0;
     r21a_work.p->str = 0;
@@ -389,7 +389,7 @@ static void R21aFallRoofStartMain()
     }
     SceEventStart(0);
     SceDestroyEm(0x10, 0x20);
-    pG->flags_174 |= 0x00800000;
+    pG->Room_flg[0] |= 0x00800000;
     SceSleep(2);
     SndRoomStrStop(6);
     r21a_work.p->str = SndStrReq(0, 0x20, 0x80000003, 0, 0, 0.0f);
@@ -538,7 +538,7 @@ static inline void S16Set(s16& d, s16 v) { d = v; }
 // store: it is not a struct access, so pG is reloaded after every store).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline void EvtFlagOn(u32 base, u32 no)
 {
@@ -639,7 +639,7 @@ static void R21aFallRoofMove()
 
             if (hit && hit->ckStatus() == 1) {
                 hit->hp = 0;
-                EvtFlagOn((u32) &pGS->flags_174, i + 1);
+                EvtFlagOn((u32) &pGS->Room_flg[0], i + 1);
                 EffectEspDelete(1, (u8) r21a_roofTbl[i].eff, 0, 0);
                 EffectEspgenDelete(1, (u8) r21a_roofTbl[i].eff, 0);
                 EffectEfmDelete(1, (u8) r21a_roofTbl[i].eff, 0);
@@ -649,8 +649,8 @@ static void R21aFallRoofMove()
                 }
             }
         }
-        if (flagBit(pG->flags_174, 0x40000000) && flagBit(pG->flags_174, 0x20000000) && flagBit(pG->flags_174, 0x10000000) &&
-            flagBit(pG->flags_174, 0x08000000)) {
+        if (flagBit(pG->Room_flg[0], 0x40000000) && flagBit(pG->Room_flg[0], 0x20000000) && flagBit(pG->Room_flg[0], 0x10000000) &&
+            flagBit(pG->Room_flg[0], 0x08000000)) {
             EffectEspDelete(1, 6, 0, 0);
             EffectEspgenDelete(1, 6, 0);
             EffectEfmDelete(1, 6, 0);
@@ -658,20 +658,20 @@ static void R21aFallRoofMove()
             return;
         }
         if (r21a_work.p->em[13].isActive() == 0) {
-            if ((pG->flags_174 & 0x04000000) == 0) {
+            if ((pG->Room_flg[0] & 0x04000000) == 0) {
                 IntSet(r21a_work.p->cnt[13], r21a_work.p->cnt[13] + 1);
                 if (r21a_work.p->cnt[13] > 0x1C1) {
-                    BitOn(pG->flags_174, 0x04000000);
+                    BitOn(pG->Room_flg[0], 0x04000000);
                     r21a_work.p->em[15].setEm(0x66, -1, 0, 1, 1);
                     r21a_work.p->em[15].setNoSuspend(0);
                 }
             }
         }
         if (r21a_work.p->em[14].isActive() == 0) {
-            if ((pG->flags_174 & 0x02000000) == 0) {
+            if ((pG->Room_flg[0] & 0x02000000) == 0) {
                 IntSet(r21a_work.p->cnt[14], r21a_work.p->cnt[14] + 1);
                 if (r21a_work.p->cnt[14] > 0x1C1) {
-                    BitOn(pG->flags_174, 0x02000000);
+                    BitOn(pG->Room_flg[0], 0x02000000);
                     r21a_work.p->em[16].setEm(0x67, -1, 0, 1, 1);
                     r21a_work.p->em[16].setNoSuspend(0);
                 }
@@ -764,7 +764,7 @@ static void SceBgmCheck()
     int playing = 0;
 
     for (;;) {
-        if ((pG->flags_174 & 0x00800000) == 0) {
+        if ((pG->Room_flg[0] & 0x00800000) == 0) {
             if (SceCkFindPL(NULL) == 1) {
                 if (playing == 0) {
                     SndRoomStrStart(1, 0, 1);

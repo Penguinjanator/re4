@@ -103,9 +103,9 @@ void R113Init()
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
-    if (!(pG->door_unlock[0] & 0x08000000) && (pG->flags_5018 & 0x04000000)) {
+    if (!(pG->door_unlock[0] & 0x08000000) && (pG->Status_flg[3] & 0x04000000)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
     }
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r113_eff_info);
@@ -304,7 +304,7 @@ static void r113_ThunderMove()
         if (cnt == 0) {
             if (EffGetAreaState(7)) {
                 EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
-            } else if (!(pG->flags_5010 & 0x02000000)) {
+            } else if (!(pG->Status_flg[1] & 0x02000000)) {
                 EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
             }
             {

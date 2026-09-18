@@ -1215,7 +1215,7 @@ void rckCameraMove()
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);
         TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-        if (pG->flags_51E4 & 0x10) {
+        if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }
     }

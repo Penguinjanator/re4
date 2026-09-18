@@ -99,8 +99,8 @@ void R203Init()
         SceExec(0x12, (TaskFunc) r209_CheckUseKey, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((pG->flags_5018 & 0x04000000) == 0) {
-            BitOn(pG->flags_5018, 0x04000000);
+        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+            BitOn(pG->Status_flg[3], 0x04000000);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
@@ -157,7 +157,7 @@ static void r203_GanadoEscape()
     }
     r203_work.p->em[6].setGoto(&pos[1], 1);
     SceSleep(150);
-    if ((int) pG->sceat_x17C >= 0) {
+    if ((int) pG->Room_flg[2] >= 0) {
         r203_work.p->em[0].setGoto(&pPL->pos, 0xD);
         r203_work.p->em[1].setGoto(&pPL->pos, 0xD);
         r203_work.p->em[2].setGoto(&pPL->pos, 0xD);

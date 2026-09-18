@@ -56,7 +56,7 @@ static R108Symbol r108_symbol[8] = {
 // store: it is not a struct access, so pG is reloaded after every store and per loop iteration).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline u32 EvtFlagChk(u32 base, int no)
 {
@@ -155,7 +155,7 @@ static void r108_execShowView()
 // The dial operator area: opens the sub screen puzzle terminal once.
 static void r108_operator()
 {
-    if (!(pG->flags_51C0 & 0x00080000)) {
+    if (!(pG->Scenario_flg[0] & 0x00080000)) {
         RsfSet(G_ROOM_ID, 0);
         OpeSetOpenTerm(6, 0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -230,8 +230,8 @@ static void r108_checkDoor()
 {
     SndCall(6, 7, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    if (!(pG->flags_51C0 & 0x00080000)) {
-        BitOn(pG->flags_51C0, 0x00080000);
+    if (!(pG->Scenario_flg[0] & 0x00080000)) {
+        BitOn(pG->Scenario_flg[0], 0x00080000);
         OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
     }
 }

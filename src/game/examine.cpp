@@ -840,7 +840,7 @@ void ItemExamine::move()
     C_MTXPerspective(itemCamera.ProjMat, itemCamera.param.fovy, 1.3333334f, ZNEAR, ZFAR);
     C_MTXLookAt(itemCamera.v_mat, &itemCamera.param.pos, &itemCamera.up, &itemCamera.param.at);
     LightMgr.setModel2(m_pModel);
-    if (!(pG->flags_500C & 0x40000)) {
+    if (!(pG->Status_flg[0] & 0x40000)) {
         AddOtDirect(ot_type, (void*) 0xCDCDCDCD, render, ot_no, ot_kind, 0, 0.0f);
     }
 }

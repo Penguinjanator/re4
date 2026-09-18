@@ -335,16 +335,16 @@ void objMove(cObj* p)
     if (!(p->be_flag & 0x20)) {
         return;
     }
-    if ((pG->flags_5010 & 0x10000000) && !(p->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(p->be_flag & 0x800)) {
         return;
     }
     p->move();
     ShapeMove(p->pModelInfo);
     p->updateOldPos();
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(p);
     }
-    if (pG->flags_64 & 0x08000000) {
+    if (pG->Debug_flg[1] & 0x08000000) {
         p->debugSkeletonDisp();
     }
     if ((int) p->be_flag < 0) {

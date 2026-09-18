@@ -176,7 +176,7 @@ void R202Init()
         } else {
             r202_changeIdoSmd(1);
             SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
-            pG->flags_174 |= 0x80000000;
+            pG->Room_flg[0] |= 0x80000000;
             r202_work.p->em180.setPtr(0x2A, 2, 0);
             r202_work.p->em180.setFlag(1);
         }
@@ -432,13 +432,13 @@ static void r202_operateCannon()
             pSUB->setNoSuspend(1);
             ((cUnitEventView*) pSUB)->endEvent(0);
         } else {
-            BitOn(pG->flags_174, 0x01000000);
+            BitOn(pG->Room_flg[0], 0x01000000);
             if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 10000.0f) {
-                pG->flags_174 |= 0x00800000;
+                pG->Room_flg[0] |= 0x00800000;
             } else if (SceAtHitCheck(0x19) == 1) {
-                pG->flags_174 |= 0x00400000;
+                pG->Room_flg[0] |= 0x00400000;
             } else {
-                pG->flags_174 |= 0x00200000;
+                pG->Room_flg[0] |= 0x00200000;
             }
         }
     }
@@ -459,7 +459,7 @@ static void r202_operateCannon()
         ((cEmTorch*) torch)->setBreak();
     }
     SceSleep(10);
-    if (!(pG->flags_174 & 0x01000000)) {
+    if (!(pG->Room_flg[0] & 0x01000000)) {
         int hit = SceAtHitCheck(0x10);
 
         if (hit == 1) {
@@ -489,13 +489,13 @@ static void r202_operateCannon()
             InitModule(m);
         }
     }
-    if (pSUB != 0 && (pG->flags_174 & 0x01000000)) {
+    if (pSUB != 0 && (pG->Room_flg[0] & 0x01000000)) {
         EmMgr.destroy(pSUB);
     }
     SceSleep(2);
     setEm(0x30, 2, 0, 1, 1);
     EmListSetAlive(0x30, 1);
-    if (pG->flags_174 & 0x01000000) {
+    if (pG->Room_flg[0] & 0x01000000) {
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(SCC_CHASE, 0);
     }
@@ -511,13 +511,13 @@ static void r202_operateCannon()
         cSubChar* sub = pSUB;
 
         if (sub != 0) {
-            if (pG->flags_174 & 0x01000000) {
-                if (pG->flags_174 & 0x00800000) {
+            if (pG->Room_flg[0] & 0x01000000) {
+                if (pG->Room_flg[0] & 0x00800000) {
                     Vec p;
 
                     SetVecXYZ(&p, -6366.0f, 6600.0f, -39153.0f);
                     sub->setPos(&p);
-                } else if (pG->flags_174 & 0x00400000) {
+                } else if (pG->Room_flg[0] & 0x00400000) {
                     sub->setPos(&pPL->pos);
                 } else {
                     v.x = 3215.0f;
@@ -715,7 +715,7 @@ static void r202_waitRockImpact(cEm* rock)
 
 static void r202_CatapultGo_end()
 {
-    if (!(pG->flags_174 & 0x02000000)) {
+    if (!(pG->Room_flg[0] & 0x02000000)) {
         cEmRock* rock = r202_work.p->cat[2].rock;
 
         r202_work.p->em180.setFlag(1);
@@ -753,11 +753,11 @@ static void r202_CatapultGo()
     r202_work.p->cat[2].targetPos.z = -37644.0f;
     r202_work.p->cat[2].targetOn = 1;
     r202_work.p->cat[2].fire = 1;
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     rock = r202_work.p->cat[2].rock;
     EstSet((int) rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, (u32) rock, zero);
     SceSleep(60);
-    pG->flags_174 |= 0x02000000;
+    pG->Room_flg[0] |= 0x02000000;
     r202_work.p->em180.setFlag(1);
     r202_work.p->cat[2].state = 5;
     SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, SCE_PRIO_DEF_2, 0);
@@ -918,7 +918,7 @@ void cCatapult::move()
         break;
     case 2:
         if (rockSet == 1) {
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 state = 3;
             }
         }

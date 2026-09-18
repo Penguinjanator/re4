@@ -96,7 +96,7 @@ void cObj1c::move()
     Obj1c_R1_move_tbl[r_no_1](this);
     f = be_flag;
     if ((f & 0x201) == 1) {
-        if (pG->flags_5010 & 0x80000) {
+        if (pG->Status_flg[1] & 0x80000) {
             be_flag = f & ~2;
             EffectEspDelete(0, w->espKind, this, 0);
             EffectEspgenDelete(0, w->espKind, this);

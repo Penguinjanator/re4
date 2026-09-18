@@ -686,7 +686,7 @@ static void em3b_R1_Cart_Run(cEm3b* em)
             v.y += 1000.0f;
             zero = 0;
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
             EffectEspDelete(0, w->espKind, (u32) em, 0);
             EffectEspgenDelete(0, w->espKind, (int) em);
             EffectEfmDelete(0, w->espKind, (int) em);
@@ -746,7 +746,7 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
             v.y += 3000.0f;
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
             SndStop(w->sndId2, 0);
             SndCall(6, 0xA, &em->pos, 0, 0, em);
             EmRoutineSet(em, 1, 6, t, t);

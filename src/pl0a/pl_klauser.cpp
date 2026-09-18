@@ -75,7 +75,7 @@ cPlKlauser::cPlKlauser()
     krX7C0 = 0;
     x890 = 0;
     x894 = 1;
-    pGS->flags_5018 &= ~0x00800000;
+    pGS->Status_flg[3] &= ~0x00800000;
     pFootShadowTbl = pl_fs_tbl;
 }
 
@@ -162,7 +162,7 @@ void cPlKlauser::transMove()
 {
     int step = 0x40;
 
-    if (pG->flags_5018 & 0x00800000) {
+    if (pG->Status_flg[3] & 0x00800000) {
         alphaUp(krModel[1]);
         ALPHA_DOWN(krModel[0], step);
     } else {
@@ -208,7 +208,7 @@ void cPlKlauser::transMove()
 
 int cPlKlauser::checkXbutton()
 {
-    if ((Joy[0].trg & 0x400) && !(pG->flags_5018 & 0x00800000) && x894 == 0) {
+    if ((Joy[0].trg & 0x400) && !(pG->Status_flg[3] & 0x00800000) && x894 == 0) {
         pFuncAux = pl_R1_KlauserAttack;
         r_no_0 = 0;
         r_no_1 = 0xA;
@@ -421,7 +421,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0:
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
-        BitOn(pGS->flags_5018, 0x00800000);
+        BitOn(pGS->Status_flg[3], 0x00800000);
         pl->Neck->motL = 0;
         DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, 0x3F, (u32) pl, 0);
@@ -470,7 +470,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         }
         if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {
             pl->x890 = 0x14;
-            BitOff(pGS->flags_5018, 0x00800000);
+            BitOff(pGS->Status_flg[3], 0x00800000);
         }
         if (pl->motionMove()) {
             pl->dmg.clear();
@@ -489,7 +489,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0x1E:
         pl->motionSet(PL_ARC(0x89), 5, 0, 1, 0);
         pl->x890 = 0x14;
-        BitOff(pGS->flags_5018, 0x00800000);
+        BitOff(pGS->Status_flg[3], 0x00800000);
         pl->x894 = 1;
         EffectEspDelete(0, 0x3F, (u32) pl, 0);
         EffectEspgenDelete(0, 0x3F, (int) pl);

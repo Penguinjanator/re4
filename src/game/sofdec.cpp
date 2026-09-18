@@ -469,8 +469,8 @@ void cSofdec::finishMovie()
     SetU32(pG->Disp_flg, m_disp_flg_bak);
     SetU32(pG->Stop_flg, save170);
     SetSystemVcnt(m_vcnt_save);
-    BitOff(pG->flags_500C, 0x10000000);
-    if (!(pG->flags_5014 & 0x8000)) {
+    BitOff(pG->Status_flg[0], 0x10000000);
+    if (!(pG->Status_flg[2] & 0x8000)) {
         MemDestroyHeap(11);
         Aram.DmaTransReq(1, 0x740000, heapStart, 0x500000, 1);
         MemSignalHeap(m_save_cur_heap);
@@ -496,7 +496,7 @@ int cSofdec::initWork(const char* fname)
     SetU32(pG->Stop_flg, 0xFFFFFFFF);
     SetU32(m_disp_flg_bak, pG->Disp_flg);
     SetU32(pG->Disp_flg, 0xFFFFFFFF);
-    if (!(pG->flags_5014 & 0x8000)) {
+    if (!(pG->Status_flg[2] & 0x8000)) {
         m_save_cur_heap = MemGetCurrentHeap();
         heapStart = MemGetHeapStartAddr(m_save_cur_heap);
         Aram.DmaTransReq(0, heapStart, 0x740000, 0x500000, 1);
@@ -520,7 +520,7 @@ int cSofdec::Initialize(cString& fname, u32 flags)
 
 int cSofdec::initSub(const char* fname, u32 flags)
 {
-    if (pG->flags_500C & 0x10000000) {
+    if (pG->Status_flg[0] & 0x10000000) {
         return 0;
     }
     sprintf(path, "%s", fname);
@@ -533,7 +533,7 @@ int cSofdec::initSub(const char* fname, u32 flags)
         }
         initApp(path);
         startApp();
-        pG->flags_500C |= 0x10000000;
+        pG->Status_flg[0] |= 0x10000000;
         initSync();
         m_be_flag = flags | 1;
     }
@@ -561,7 +561,7 @@ void cSofdec::ThreadMove(cSofdec* s)
     if (r == 1) {
         s->initApp(s->path);
         s->startApp();
-        pG->flags_500C |= 0x10000000;
+        pG->Status_flg[0] |= 0x10000000;
         s->initSync();
         s->m_be_flag = 1;
         while (s->Move() == 0) {

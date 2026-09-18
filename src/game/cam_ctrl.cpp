@@ -845,7 +845,7 @@ void CameraControl::areaHitCheck()
     int old_area = areaNo;
     s8 i;
 
-    if (pG->flags_60 & 0x800) {
+    if (pG->Debug_flg[0] & 0x800) {
         return;
     }
     d = data;
@@ -889,7 +889,7 @@ void CameraControl::areaHitCheck()
         case 0:
             break;
         case 1:
-            if (pG->x4F93 == 0) {
+            if (pG->language == 0) {
                 attr = 4;
             }
             break;
@@ -921,7 +921,7 @@ void CameraControl::areaHitCheck()
     }
 
     old_attr = m_cut_attr;
-    if (pG->flags_6C & 0x40000000) {
+    if (pG->Debug_flg[3] & 0x40000000) {
         m_cut_attr = 2;
         if (blink++ & 0x18) {
             eprintf(27, 18, 22, 0, "[ BATTLE ]");
@@ -990,7 +990,7 @@ void CameraControl::roomInit()
 {
     s8 ver;
 
-    BitOn(pG->flags_500C, 0x100);
+    BitOn(pG->Status_flg[0], 0x100);
     if (data == NULL) {
         be_flag = 0;
     } else {
@@ -1065,7 +1065,7 @@ void CameraControl::Check()
 {
     Vec d;
 
-    if (pG->flags_500C & 0x40000) {
+    if (pG->Status_flg[0] & 0x40000) {
         return;
     }
     if (!(be_flag & 1)) {
@@ -1080,10 +1080,10 @@ void CameraControl::Check()
         areaHitCheck();
     }
     checkAttachCamera();
-    if (pG->flags_64 & 0x800000) {
+    if (pG->Debug_flg[1] & 0x800000) {
         return;
     }
-    if (pG->flags_500C & 0x1000) {
+    if (pG->Status_flg[0] & 0x1000) {
         return;
     }
     if (x250 != 0) {
@@ -1120,7 +1120,7 @@ void CameraControl::Move()
     f32 t;
     f32 lim;
 
-    if (pG->flags_500C & 0x40000) {
+    if (pG->Status_flg[0] & 0x40000) {
         return;
     }
     if (!(be_flag & 1)) {
@@ -1199,7 +1199,7 @@ void CameraControl::Move()
         break;
     }
 
-    if (!(pG->flags_500C & 0x1000)) {
+    if (!(pG->Status_flg[0] & 0x1000)) {
         if (GetWaterHeight(&cur.pos, &water_y)) {
             t = sinf(cur.fovy * PI / 360.0f) / cosf(cur.fovy * PI / 360.0f);
             lim = gain * (ZNEAR * t * 1.3333334f) + water_y;
@@ -1215,7 +1215,7 @@ void CameraControl::Move()
     CamSmth.move(&interp.param);
     camera.param = *CamSmth.getParam();
     CameraSetOrientationRoll(&camera);
-    if (!(pG->flags_60 & 0x10000000) && (m_state_flag & 4)) {
+    if (!(pG->Debug_flg[0] & 0x10000000) && (m_state_flag & 4)) {
         pG->Cam = CamCtrl.camera;
     }
 }
@@ -2199,7 +2199,7 @@ void CameraControl::StartLookDownEm(void* em)
     extra = new (m_Free) CameraLookDownEm(em, &c);
     r0 = 0xD;
     AreaCheckOnOff(0);
-    BitOff(pG->flags_500C, 0x2000000);
+    BitOff(pG->Status_flg[0], 0x2000000);
 }
 
 void CameraControl::EndLookDownEm()
@@ -2208,14 +2208,14 @@ void CameraControl::EndLookDownEm()
         delete extra;
     }
     Comeback(0);
-    BitOn(pG->flags_500C, 0x2000000);
+    BitOn(pG->Status_flg[0], 0x2000000);
 }
 
 void CameraControl::startScope(Vec* pos, Vec* at)
 {
-    if (!(pG->flags_500C & 0x40)) {
-        BitOn(pG->flags_500C, 0x40);
-        BitOn(pG->flags_500C, 0x8000);
+    if (!(pG->Status_flg[0] & 0x40)) {
+        BitOn(pG->Status_flg[0], 0x40);
+        BitOn(pG->Status_flg[0], 0x8000);
         extra = new (m_Free) CameraScope(pos, at);
         r0 = 0x10;
         BitOn(pG->Disp_flg, 0x40000000);
@@ -2225,9 +2225,9 @@ void CameraControl::startScope(Vec* pos, Vec* at)
 
 void CameraControl::endScope()
 {
-    if (pG->flags_500C & 0x40) {
-        BitOff(pG->flags_500C, 0x40);
-        BitOff(pG->flags_500C, 0x8000);
+    if (pG->Status_flg[0] & 0x40) {
+        BitOff(pG->Status_flg[0], 0x40);
+        BitOff(pG->Status_flg[0], 0x8000);
         BitOff(pG->Disp_flg, 0x40000000);
         if (extra) {
             delete extra;
@@ -2238,7 +2238,7 @@ void CameraControl::endScope()
 
 void CameraControl::getTrajectory(Vec* pos, Vec* at)
 {
-    if (pG->flags_500C & 0x40) {
+    if (pG->Status_flg[0] & 0x40) {
         cCamera* c = extra;
         *pos = c->param.pos;
         *at = c->param.at;
@@ -2264,8 +2264,8 @@ void CameraControl::SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 
 void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 {
-    BitOn(pG->flags_500C, 0x400);
-    BitOn(pG->flags_500C, 0x8000);
+    BitOn(pG->Status_flg[0], 0x400);
+    BitOn(pG->Status_flg[0], 0x8000);
     extra = new (m_Free) CameraBinocular(pos, at, id_a, id_b);
     r0 = 0xC;
     BitOn(pG->Disp_flg, 0x40000000);
@@ -2274,8 +2274,8 @@ void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 
 void CameraControl::LowerBinocular()
 {
-    BitOff(pG->flags_500C, 0x400);
-    BitOff(pG->flags_500C, 0x8000);
+    BitOff(pG->Status_flg[0], 0x400);
+    BitOff(pG->Status_flg[0], 0x8000);
     BitOff(pG->Disp_flg, 0x40000000);
     if (extra) {
         delete extra;
@@ -2292,7 +2292,7 @@ void CameraControl::GetBinocularIDAddr(void** eff_addr, void** uwf_addr)
 void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 {
     BitOn(m_system_flag, 0x28);
-    BitOn(pG->flags_5014, 0x10000000);
+    BitOn(pG->Status_flg[2], 0x10000000);
     extra = new (m_Free) CameraMotion(motion, 0, 0, speed);
     ((CameraMotion*) extra)->base_mat = NULL;
     r0 = 5;
@@ -2424,7 +2424,7 @@ void CameraControl::checkAttachCamera()
     AttachCamera* ac;
     int i;
 
-    if (pG->flags_500C & 0x40) {
+    if (pG->Status_flg[0] & 0x40) {
         return;
     }
     if (m_state_flag & 4) {

@@ -304,10 +304,10 @@ void EffAreaUpdate()
     int y;
     SstAreaEnt* ent;
 
-    if (pG->flags_5010 & 0x800) {
-        BitOn(pG->flags_5010, 0x02000000);
+    if (pG->Status_flg[1] & 0x800) {
+        BitOn(pG->Status_flg[1], 0x02000000);
     } else {
-        BitOff(pG->flags_5010, 0x02000000);
+        BitOff(pG->Status_flg[1], 0x02000000);
     }
     if (pG->Stop_flg & 0x20) {
         return;
@@ -315,7 +315,7 @@ void EffAreaUpdate()
     if (sys->pSstArea == NULL) {
         return;
     }
-    if ((pG->flags_5014 & 0x10000) == 0) {
+    if ((pG->Status_flg[2] & 0x10000) == 0) {
         pos = pPL->pos;
         pos.y += 100.0f;
     } else {
@@ -327,7 +327,7 @@ void EffAreaUpdate()
         if (AreaHitCheck(ent->area, &pos) == 1) {
             flag |= 1 << ent->bit;
             if (ent->flags & 1) {
-                pG->flags_5010 |= 0x02000000;
+                pG->Status_flg[1] |= 0x02000000;
             }
         }
     }
@@ -342,7 +342,7 @@ void EffAreaUpdate()
     // load; `pos.x` (in-struct) would delay the lwz.
     for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
-            if (pG->flags_6C & 0x8000) {
+            if (pG->Debug_flg[3] & 0x8000) {
                 eprintf(0x1D8, 0xE8 + y * 0x10, 0x16, 0, "%d", j);
                 y++;
             }
@@ -393,7 +393,7 @@ void EffEm2d_setTexRender(cModel* m)
     u8* tbl = buf;
     int repType = 1;
 
-    if ((pG->flags_5010 & 0x10) == 0) {
+    if ((pG->Status_flg[1] & 0x10) == 0) {
         TexRenderMng* mgr;
         TexRenderMng* mgr2;
 
@@ -401,7 +401,7 @@ void EffEm2d_setTexRender(cModel* m)
             pLog->err(0, 0, "EffEm2d_setTexRender() : Manager alloc failed!!");
             return;
         }
-        BitOn(pG->flags_5010, 0x10);
+        BitOn(pG->Status_flg[1], 0x10);
         mgr = pMgr;
         BitSet(mgr->m_W_size, 0x40);
         BitSet(mgr->m_H_size, 0x40);
@@ -438,7 +438,7 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     cEsp19* e;
     Esp19Work* w;
 
-    if (pG->flags_6C & 0x40) {
+    if (pG->Debug_flg[3] & 0x40) {
         return;
     }
     if (!EspEstSetSelect(0, 3, 0, &esp, 0)) {
@@ -449,7 +449,7 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     e->m_Pos = from;
     w->Vec0 = to;
     w->max_laser_dist *= width;
-    if (pGS->flags_5010 & 1) {
+    if (pGS->Status_flg[1] & 1) {
         cEsp* e1 = esp;
         e1->xA4 = 1;
         asm("" : "=m"(esp) : "r"(e1), "r"(e1)); // COMPILER-DIFF: candidate (local-alloc qty order)
@@ -496,7 +496,7 @@ void EspSetGatling(Vec pos, Vec dir)
 #line 689 "D:/Bio4/Prog/esp_app.cpp"
     VECNormalize(&esp->m_Speed, &esp->m_Speed);
     PSVECScale(&esp->m_Speed, &esp->m_Speed, 3000.0f);
-    if (pG->flags_5014 & 0x02000000) {
+    if (pG->Status_flg[2] & 0x02000000) {
         esp->info.Core_flg |= 1;
     }
 }

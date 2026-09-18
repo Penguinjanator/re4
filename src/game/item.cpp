@@ -554,7 +554,7 @@ int cItemMgr::set_stage1(int no)
         search(0x02)->num = 5;
         search(0x0E)->num = 5;
         arm(ItemMgr.search(0x23));
-        pG->x4F98 = 0;
+        pG->peseta = 0;
         break;
     }
     case 1: {
@@ -587,7 +587,7 @@ int cItemMgr::set_stage1(int no)
         search(0x02)->num = 5;
         search(0x0E)->num = 5;
         arm(ItemMgr.search(0x25));
-        pG->x4F98 = 10000;
+        pG->peseta = 10000;
         break;
     }
     }
@@ -631,7 +631,7 @@ int cItemMgr::set_stage2(int no)
         search(0x44)->x8 = searchAt(p);
         search(0x44)->x6 = on;
         arm(ItemMgr.search(0x25));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     case 1: {
@@ -663,7 +663,7 @@ int cItemMgr::set_stage2(int no)
         search(0x02)->num = 2;
         search(0x0E)->num = 2;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 20000;
+        pG->peseta = 20000;
         break;
     }
     case 2: {
@@ -746,7 +746,7 @@ int cItemMgr::set_stage3(int no)
         search(0x45)->x8 = searchAt(p);
         search(0x45)->x6 = on;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     case 1: {
@@ -784,7 +784,7 @@ int cItemMgr::set_stage3(int no)
         search(0xC5)->x8 = searchAt(p);
         search(0xC5)->x6 = on;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     }
@@ -1135,11 +1135,11 @@ void cItemMgr::gameInit()
             type = 0;
         }
         set_game(0);
-        pG->x832C = 0;
-        pG->x4F98 = 0;
+        pG->peseta_bak = 0;
+        pG->peseta = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if (chkFlag(pG->flags_6C, 0x00800000) || chkFlag(pG->flags_6C, 0x00040000)) {
+        if (chkFlag(pG->Debug_flg[3], 0x00800000) || chkFlag(pG->Debug_flg[3], 0x00040000)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);
@@ -1151,7 +1151,7 @@ void cItemMgr::gameInit()
             get(0xB6, 1);
             get(0xB7, 1);
         }
-        if (pG->flags_6C & 0x00040000) {
+        if (pG->Debug_flg[3] & 0x00040000) {
             get(0x48, 1);
             get(0x49, 1);
             get(0x4A, 1);
@@ -1162,7 +1162,7 @@ void cItemMgr::gameInit()
             get(0x4F, 1);
             get(0x50, 1);
             get(0xF4, 1);
-            if (pG->flags_6C & 0x00020000) {
+            if (pG->Debug_flg[3] & 0x00020000) {
                 get(0xF5, 1);
                 get(0xF6, 1);
                 get(0xF7, 1);
@@ -1574,7 +1574,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (pGS->flags_51C0 & 0x8000) {
+            if (pGS->Scenario_flg[0] & 0x8000) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);
@@ -1756,9 +1756,9 @@ void cItemMgr::ordering(u16 id)
 
 int addMoney(int n)
 {
-    U32Set(pG->x4F98, pG->x4F98 + n);
-    if ((s32) pG->x4F98 > 99999998) {
-        pG->x4F98 = 99999999;
+    U32Set(pG->peseta, pG->peseta + n);
+    if ((s32) pG->peseta > 99999998) {
+        pG->peseta = 99999999;
     }
     return 1;
 }
@@ -1902,7 +1902,7 @@ int cItemMgr::use(ItemWork* p)
     case 0x17:
     case 0x35:
         p->num--;
-        if ((s32) pGS->flags_6C < 0) {
+        if ((s32) pGS->Debug_flg[3] < 0) {
             if (p->num != 0) {
                 return 1;
             }
@@ -2482,7 +2482,7 @@ int cItemMgr::reloadable(ItemWork* p, int flag)
                 ret = 1;
             }
         }
-        if ((s32) pG->flags_6C < 0) {
+        if ((s32) pG->Debug_flg[3] < 0) {
             ret = 1;
         }
     }
@@ -2508,7 +2508,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
     if (ITEM_TYPE(id) != 1) {
         goto done;
     }
-    if ((s32) pG->flags_6C < 0) {
+    if ((s32) pG->Debug_flg[3] < 0) {
         setBullet(p, WeaponId2ChargeNum(id, LV_EX(p) + 1));
         return 0;
     }
@@ -2586,7 +2586,7 @@ int cItemMgr::trigger(ItemWork* p)
 {
     ItemInfo info;
 
-    if (pG->flags_68 & 0x00400000) {
+    if (pG->Debug_flg[2] & 0x00400000) {
         return 1;
     }
     if (p == 0) {
@@ -2612,7 +2612,7 @@ int cItemMgr::trigger(ItemWork* p)
     }
     case 3:
     case 6:
-        if ((s32) pG->flags_6C < 0) {
+        if ((s32) pG->Debug_flg[3] < 0) {
             return 1;
         }
         if (p->id == 0x35) {
@@ -2723,7 +2723,7 @@ int cItemMgr::bulletNum(ItemWork* p)
     ItemInfo info;
     int n;
 
-    if ((s32) pG->flags_6C >= 0 && (pG->flags_68 & 0x00400000)) {
+    if ((s32) pG->Debug_flg[3] >= 0 && (pG->Debug_flg[2] & 0x00400000)) {
         return 100;
     }
     if (p == 0) {

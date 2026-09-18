@@ -337,9 +337,9 @@ extern f32 ZFAR;
         }                                                                                         \
     }                                                                                             \
     {                                                                                             \
-        u32 sysFlags = pG->flags_5010;                                                            \
+        u32 sysFlags = pG->Status_flg[1];                                                            \
         if ((!(sysFlags & 0x80) && (esp->m_Tool_flg & 0x8000)) ||                                      \
-            ((pG->flags_5010 & 0x80) && (esp->m_Tool_flg & 0x800000))) {                               \
+            ((pG->Status_flg[1] & 0x80) && (esp->m_Tool_flg & 0x800000))) {                               \
             GXSetAlphaUpdate(1);                                                                  \
         }                                                                                         \
     }                                                                                             \
@@ -387,7 +387,7 @@ void cEsp08::move()
             w->Scr_y += 1.0f;
         }
         if (w->Room_del_frame != 0) {
-            if (pG->flags_5010 & 0x02000000) {
+            if (pG->Status_flg[1] & 0x02000000) {
                 w->Room_del_cnt++;
             } else {
                 if (w->Room_del_cnt == 0) {
@@ -648,7 +648,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     } else {
         ofs = 0.0f;
     }
-    if (pG->flags_5010 & 0x08000000) {
+    if (pG->Status_flg[1] & 0x08000000) {
         ofs = 0.0f;
     }
     GXTexObj tex;
@@ -670,7 +670,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     Mtx tm;
     Mtx pm;
     if (ESP_PARTS_SCREEN(esp)) {
-        if (pG->flags_5010 & 0x08000000) {
+        if (pG->Status_flg[1] & 0x08000000) {
             PSMTXConcat(Matrix1, esp->m_Mat, tm);
         } else {
             PSMTXConcat(Matrix2, esp->m_Mat, tm);

@@ -797,7 +797,7 @@ static void em22_R1_Wait(cEm22* em)
         // the zero of the last routine set is a block-local pseudo set before the test (its
         // `li` lands at the top of the test block, above the pG load)
         int zero = 0;
-        if ((pG->flags_500C & 0x00800000) && em->plDist2 < 625000000.0f) {
+        if ((pG->Status_flg[0] & 0x00800000) && em->plDist2 < 625000000.0f) {
             EmRoutineSet(em, 1, 7, zero, zero);
             return;
         }
@@ -981,8 +981,8 @@ static void em22_R1_Escape(cEm22* em)
         if (lim > 2.3561945f) {
             em->r_no_2 = 2;
         }
-        if (!(pG->flags_5010 & 0x20000000)) {
-            BitOn(pG->flags_5010, 0x20000000);
+        if (!(pG->Status_flg[1] & 0x20000000)) {
+            BitOn(pG->Status_flg[1], 0x20000000);
             SET_BELL_POS(&em->pos);
             pG->bell_stat = 0;
         }
@@ -1366,7 +1366,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
 {
     f32 y;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM_G->subArc;
     switch (pl->r_no_2) {
@@ -1526,7 +1526,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
 
 static void plem22_ParaAtkHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM_G->subArc;
     switch (pl->r_no_2) {
@@ -1984,7 +1984,7 @@ void Em22RouteCk(cEm22* em)
     if (em->hp <= 0) {
         return;
     }
-    if ((pG->flags_51E4 & 3) != (em->emset_no & 3)) {
+    if ((pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         return;
     }
     w->flags &= ~1;
@@ -2013,7 +2013,7 @@ void Em22RouteCk(cEm22* em)
         dz = em->pos.z - w->gotoPos.z;
         dx = em->pos.x - w->gotoPos.x;
         w->targetDist2 = dx * dx + dz * dz;
-        if (pGS->flags_60 & 0x4000) {
+        if (pGS->Debug_flg[0] & 0x4000) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
@@ -2023,13 +2023,13 @@ void Em22RouteCk(cEm22* em)
         RouteCkEscEm(em, pPL, &w->routePos);
         w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
-        if (pGS->flags_60 & 0x4000) {
+        if (pGS->Debug_flg[0] & 0x4000) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
         }
     } else {
-        if (pGS->flags_60 & 0x4000) {
+        if (pGS->Debug_flg[0] & 0x4000) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);

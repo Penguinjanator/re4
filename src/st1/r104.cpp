@@ -100,7 +100,7 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 // Event flag words at pG+0x174 addressed as an integer base plus the word offset (r108).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline u32 EvtFlagChk(u32 base, u32 no)
 {
@@ -430,7 +430,7 @@ static void r104_execShowView()
     r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r104_execShowView_end, 0, -1, 1);
     SceEventStart(1);
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     CamCtrl.CutCall(4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -691,7 +691,7 @@ static void r104_execEvent20()
 
 static void r104_execEvent10()
 {
-    BitOn(pG->flags_51C0, 0x20000000);
+    BitOn(pG->Scenario_flg[0], 0x20000000);
     RsfSet(G_ROOM_ID, 21);
     EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
 }
@@ -701,9 +701,9 @@ static void r104_execEvent00()
 {
     RsfSet(G_ROOM_ID, 1);
     if (Rnd() & 0x80) {
-        pG->flags_174 |= 0x04000000;
+        pG->Room_flg[0] |= 0x04000000;
     } else {
-        pG->flags_174 &= ~0x04000000;
+        pG->Room_flg[0] &= ~0x04000000;
     }
     int skip = 0;
     DC.setAramSort(0);
@@ -729,7 +729,7 @@ static void r104_execEvent00()
         }
         if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
             BitOn(pG->System_flg, 0x400);
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
             } else {
                 pG->System_flg &= ~0x40;
@@ -770,7 +770,7 @@ static void r104_execEvent00()
 
 static void r104_succeedAction()
 {
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 static void Evt_R104S00_Func(Event* e)
@@ -832,9 +832,9 @@ static void Evt_R104S00_Func(Event* e)
             break;
         case 0x1E:
             BitOff(pG->Stop_flg, 0x100);
-            if (!(pG->flags_174 & 0x80000000)) {
+            if (!(pG->Room_flg[0] & 0x80000000)) {
                 BitOff(pG->Disp_flg, 0x800);
-                if (!(pG->flags_174 & 0x04000000)) {
+                if (!(pG->Room_flg[0] & 0x04000000)) {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 4, 0, 0);
                 } else {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 3, 0, 0);

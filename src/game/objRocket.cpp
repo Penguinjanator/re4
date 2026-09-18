@@ -110,7 +110,7 @@ void cObjRocket::move()
 
             res = PlWepHitCheck2(0, &rocket.oldPos, &pos, 0xD, 1, 3000.0f);
             if (res) {
-                BitOn(pG->flags_5010, 0x20000000);
+                BitOn(pG->Status_flg[1], 0x20000000);
                 memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
                 pG->bell_stat = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
@@ -151,7 +151,7 @@ void cObjRocket::move()
                         EstSet(0, -1, &hit, 0, 0, 0x27, 0, 10, 0, 0);
                         EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
                     }
-                    BitOn(pG->flags_5010, 0x20000000);
+                    BitOn(pG->Status_flg[1], 0x20000000);
                     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
                     pG->bell_stat = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
@@ -263,7 +263,7 @@ void cObjLauncher::loadRocket()
 void cObjLauncher::moveFire()
 {
     if (wep.step == 0) {
-        if ((pG->flags_68 & 0x00400000) || (s32) pG->flags_6C < 0) {
+        if ((pG->Debug_flg[2] & 0x00400000) || (s32) pG->Debug_flg[3] < 0) {
             if (launcher.rocket == 0) {
                 loadRocket();
             }
@@ -273,7 +273,7 @@ void cObjLauncher::moveFire()
                 launch();
                 if (pG->weapon_type == 2) {
                     loadRocket();
-                } else if ((pG->flags_68 & 0x00400000) || (s32) pG->flags_6C < 0) {
+                } else if ((pG->Debug_flg[2] & 0x00400000) || (s32) pG->Debug_flg[3] < 0) {
                     loadRocket();
                 }
             }
@@ -302,7 +302,7 @@ int cObjLauncher::ckBoss()
         getMarkerPos(&a, &b);
         PSVECSubtract(&b, &a, &a);
         BitOn(pG->System_flg, 0x400);
-        SND_BIT_SET(&pG->flags_174, (u32) pPL->m_pBossRmf);
+        SND_BIT_SET(&pG->Room_flg[0], (u32) pPL->m_pBossRmf);
         return 1;
     }
     return 0;
@@ -324,7 +324,7 @@ void cObjLauncher::launch()
     launcher.rocket = 0;
     EstSet((int) this, -1, 0, 0, 0x47, 0, 0, 10, 0, 0);
     SndCall(2, 0, &pos, 0, 0, 0);
-    pG->flags_500C |= 0x00800000;
+    pG->Status_flg[0] |= 0x00800000;
 }
 
 void cObjLauncher::moveDrop()

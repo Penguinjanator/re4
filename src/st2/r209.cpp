@@ -448,7 +448,7 @@ void R209Main()
                 }
             }
         }
-        if (pG->sceat_x17C & 0x00200000) {
+        if (pG->Room_flg[2] & 0x00200000) {
             u32* f = flags;  // through the flags pointer pseudo (`8(r20)`), not the frame slot
             f[2] |= 0x80000000;
         }
@@ -467,7 +467,7 @@ void R209Main()
             EffectEspgenDelete(1, 2, 0);
             EffectEfmDelete(1, 2, 0);
         } else {
-            if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 7) == 0 && (pG->flags_174 & 0x00200000)) {
+            if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 7) == 0 && (pG->Room_flg[0] & 0x00200000)) {
                 RsfSet(G_ROOM_ID, 7);
                 SceExec(0x12, (TaskFunc) r209_GatlingAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
@@ -477,15 +477,15 @@ void R209Main()
             r209_work.p->leaderInPlace = r209_InPlaceCheck(r209_work.p->leader.getPtr());
             r209_work.p->plInPlace = r209_InPlaceCheck(pPL);
             if (r209_work.p->leaderInPlace == 0) {
-                pG->flags_174 |= 0x20000000;
+                pG->Room_flg[0] |= 0x20000000;
             }
             if (r209_work.p->plInPlace == 0) {
-                pG->flags_174 |= 0x40000000;
+                pG->Room_flg[0] |= 0x40000000;
                 r209_work.p->plInPlaceCnt++;
             } else {
                 r209_work.p->plInPlaceCnt = 0;
             }
-            if ((pG->flags_174 & 0x40000000) && (pGS->flags_174 & 0x20000000)) {  // two `andis.`: the struct view stops fold from merging the bit tests
+            if ((pG->Room_flg[0] & 0x40000000) && (pGS->Room_flg[0] & 0x20000000)) {  // two `andis.`: the struct view stops fold from merging the bit tests
                 if (r209_work.p->leaderInPlace == 1 && r209_work.p->plInPlace == 1) {
                     SceAtSetEnable(0x19, 0);
                     SceAtSetEnable(0x1A, 0);
@@ -693,7 +693,7 @@ static void r209_DoorOpen1F(int no)
         } else if (r209_work.p->leaderInPlace == 1) {
             if (r209_work.p->plInPlaceCnt > 0x95) {
 inPlace:
-                pG->flags_174 |= 0x00200000;
+                pG->Room_flg[0] |= 0x00200000;
                 SceAtSetEnable(0x19, 0);
                 SceAtSetEnable(0x1A, 0);
                 SceAtSetEnable(0x1C, 0);
@@ -759,7 +759,7 @@ static void r209_DoorOpen2F(int no)
         } else if (r209_work.p->leaderInPlace == 1) {
             if (r209_work.p->plInPlaceCnt > 0x95) {
 inPlace:
-                pG->flags_174 |= 0x00200000;
+                pG->Room_flg[0] |= 0x00200000;
                 SceAtSetEnable(0x19, 0);
                 SceAtSetEnable(0x1A, 0);
                 SceAtSetEnable(0x1C, 0);
@@ -806,7 +806,7 @@ static void r209_LeaderEscapeToD()
     r209_work.p->head->setNoSuspend(1);
     r209_LeaderMoveToPoint(7, 1);
     CamCtrl.CutCall(0xC);
-    pG->flags_174 &= ~0x00100000;
+    pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_LeaderEscapeToDEndProc, 0, 0xB, 1);
     r209_work.p->seId = RoomSeCall(3, &obj->pos, 0, 0, 0);
     while (obj->pos.y < 2900.0f) {
@@ -833,7 +833,7 @@ static void r209_LeaderEscapeToDEndProc()
     cEmWrap* w = &r209_work.p->leader;
     Vec pos;
 
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         f32 angY;
 
         pos.x = -20980.0f;
@@ -905,7 +905,7 @@ static void r209_GatlingAppear()
     SceEventStart(1);
     r209_work.p->door2->setNoSuspend(0);
     r209_work.p->door3->setNoSuspend(0);
-    pG->flags_5014 |= 0x02000000;
+    pG->Status_flg[2] |= 0x02000000;
     SndStrReq(r209_work.p->strId, 4, 400, 0);
     U32Set(r209_work.p->strId, SndStrReq(0, 0x1B, 0x80000003, 0, 0, 0.0f));
     pos.x = -27050.0f;
@@ -924,7 +924,7 @@ static void r209_GatlingAppear()
     r209_work.p->head->setNoSuspend(1);
     r209_work.p->gatling->setNoSuspend(1);
     CamCtrl.CutCall(0x11);
-    pG->flags_174 &= ~0x00100000;
+    pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_GatlingAppearEndProc, 0, 0xB, 1);
     r209_work.p->seId = RoomSeCall(7, &r209_work.p->gatling->pos, 0, 0, 0);
     while (r209_work.p->gatling->pos.y < 3250.0f) {
@@ -942,7 +942,7 @@ static void r209_GatlingAppear()
 
 static void r209_GatlingAppearEndProc()
 {
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         SndStop(r209_work.p->seId, 0);
         r209_work.p->gatling->pos.y = 3250.0f;
     }
@@ -951,7 +951,7 @@ static void r209_GatlingAppearEndProc()
     r209_work.p->head->setNoSuspend(0);
     r209_work.p->gatling->setNoSuspend(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     r209_work.p->leader.setFlag(1);
     SceExec(0x12, (TaskFunc) r209_GatlingEndCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -1099,7 +1099,7 @@ static void r209_2ndBattleEmSet()
         case 3:
             if (RsfCheck(G_ROOM_ID, 8) && (u32) r209_work.p->snipeCnt <= 1) {
                 // `li r25,4 .. mr r29,r25` is gcse's PRE of step+1 across the loop.
-                if (pG->x4F88 > 7) {
+                if (pG->Game_level > 7) {
                     for (i = 0; i < 3; i++) {
                         cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
                         r209_work.p->em[tbl[i].em].active = 1;
@@ -1112,7 +1112,7 @@ static void r209_2ndBattleEmSet()
             break;
         }
         open = 0;
-        if (R209_BIT_CK(r209_work.p->atOn, 64) && (pG->flags_174 & 0x04000000) == 0) {
+        if (R209_BIT_CK(r209_work.p->atOn, 64) && (pG->Room_flg[0] & 0x04000000) == 0) {
             if ((done ^ 1) & 1) {
                 cnt = r209_work.p->em[0].w.isActive() == 0;
                 if (r209_work.p->em[1].w.isActive() == 0) {
@@ -1157,7 +1157,7 @@ static void r209_2ndBattleBowgunAppear()
     r209_work.p->task[0] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 0, 0, SCE_PRIO_DEF_2, 0);
     r209_work.p->task[1] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 1, 0, SCE_PRIO_DEF_2, 0);
     r209_work.p->task[2] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 2, 0, SCE_PRIO_DEF_2, 0);
-    pGS->flags_174 &= ~0x00100000;
+    pGS->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_2ndBattleBowgunAppearEndProc, 0, 0xB, 1);
     CamCtrl.CutCall(0x12);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1177,7 +1177,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
     R209EmSet tbl[4] = {{9, 0x98, 3}, {0xB, 0x9A, 1}, {0xC, 0x9B, 0}, {0xA, 0x99, 2}};
     u32 i;
 
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         for (i = 0; i < 4; i++) {
             r209_work.p->door[i].setClosed();
             if (r209_work.p->task[i] != NULL) {
@@ -1203,7 +1203,7 @@ static void r209_2ndBattleFinish()
         SceSleep(1);
     }
     SceEventStart(1);
-    pG->flags_174 &= ~0x00100000;
+    pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_2ndBattleFinishEndProc, 0, 0xB, 1);
     CamCtrl.CutCall(4);
     r209_work.p->door[5].setOpen();
@@ -1221,7 +1221,7 @@ static void r209_2ndBattleFinish()
 
 static void r209_2ndBattleFinishEndProc()
 {
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         r209_work.p->door[4].setOpened();
         r209_work.p->door[5].setOpened();
     }
@@ -1247,7 +1247,7 @@ static void r209_SwitchAppearCheck()
             SceEventStart(1);
             CamCtrl.CutCall(6);
             EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
-            pG->flags_174 &= ~0x00100000;
+            pG->Room_flg[0] &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_SwitchAppearCheckEnd, 0, 0xB, 1);
             int seId = RoomSeCall(0xD, 0, 0, 0, 0);
             const f32 lim = 11225.0f;
@@ -1283,7 +1283,7 @@ static void r209_SwitchAppearCheckEnd()
     cObj* obj1 = SmdGetObjPtr(1);
     cObj* objB7 = SmdGetObjPtr(0xB7);
 
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         if (r209_work.p->seId) {
             SndStop(r209_work.p->seId, 0);
         }
@@ -1328,7 +1328,7 @@ static void r209_BridgeAppearCheck()
             SceEventStart(1);
             EstSet(0, -1, 0, 0, 1, 1, 1, 2, 0, 0);
             CamCtrl.CutCall(0xE);
-            pG->flags_174 &= ~0x00100000;
+            pG->Room_flg[0] &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_BridgeAppearCheckEnd, 0, 0xB, 1);
             obj->be_flag |= 0x20;
             int seId = RoomSeCall(0xF, 0, 0, 0, 0);
@@ -1359,7 +1359,7 @@ static void r209_BridgeAppearCheckEnd()
     cObj* obj = SmdGetObjPtr(0xAD);
     cEm* door;
 
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         if (r209_work.p->seId) {
             SndStop(r209_work.p->seId, 0);
         }
@@ -1395,7 +1395,7 @@ static void r209_BridgeAppearCheckEnd()
 
 static void r209_OpenPicture(int no)
 {
-    pG->flags_174 |= 0x04000000;
+    pG->Room_flg[0] |= 0x04000000;
     while (r209_work.p->door[6].getStatus() != 0) {
         SceSleep(1);
     }
@@ -1418,7 +1418,7 @@ static void r209_OpenPicture(int no)
     r209_work.p->picEm[0].setNoSuspend(1);
     r209_work.p->picEm[1].setNoSuspend(1);
     CamCtrl.CutCall(0xF);
-    pG->flags_174 &= ~0x00100000;
+    pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_OpenPictureEndProc, 0, 0xB, 1);
     r209_work.p->door[6].setOpen();
     while (r209_work.p->door[6].getStatus() != 1) {
@@ -1433,7 +1433,7 @@ static void r209_OpenPicture(int no)
 
 static void r209_OpenPictureEndProc()
 {
-    if (pG->flags_174 & 0x00100000) {
+    if (pG->Room_flg[0] & 0x00100000) {
         r209_work.p->door[6].setOpened();
     }
     CamCtrl.Comeback(0);
@@ -1454,7 +1454,7 @@ static void r209_ClosePicture()
     }
     r209_work.p->picEm[0].destroy();
     r209_work.p->picEm[1].destroy();
-    pG->flags_174 &= ~0x04000000;
+    pG->Room_flg[0] &= ~0x04000000;
 }
 
 // Every frame of the second battle: the bowgun enemies on the balcony are sent to the position

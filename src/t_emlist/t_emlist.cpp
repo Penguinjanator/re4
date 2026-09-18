@@ -633,9 +633,9 @@ void ToolEmList()
         emlist_routine[EmList.wk->routine]();
         emlist_EmDir_disp();
         LightMgr.move();
-        if (pG->flags_60 & 0x40000000) {
-            if ((int) pG->flags_500C >= 0) {
-                pG->flags_500C |= 0x80000000;
+        if (pG->Debug_flg[0] & 0x40000000) {
+            if ((int) pG->Status_flg[0] >= 0) {
+                pG->Status_flg[0] |= 0x80000000;
             }
             SatMgr.disp(0);
         }
@@ -2183,7 +2183,7 @@ void emlist_file_menu_disp()
                 eprintf(x, y, col, 0, "emlist%02d.esl", i - 1);
             }
             if (EmList.wk->fileNo == i) {
-                eprintf(x + 0x60 + pG->flags_51E4 % 10, y, 4, 0, "<- old");
+                eprintf(x + 0x60 + pG->Frame_cnt % 10, y, 4, 0, "<- old");
             }
         }
         if (EmList.wk->x1C == i) {
@@ -2537,8 +2537,8 @@ void emlist_EmDir_disp()
     int i;
     u8 blink;
 
-    blink = pG->flags_51E4 & 0xF;
-    if (pG->flags_51E4 & 0x10) {
+    blink = pG->Frame_cnt & 0xF;
+    if (pG->Frame_cnt & 0x10) {
         blink = 15 - blink;
     }
     blink *= 3;
@@ -2609,8 +2609,8 @@ void emlist_EmDir_disp()
         TprimDraw3D(1);
         TprimDrawMtxDirection(m, (GXColor*) fill, (GXColor*) line);
         if (i == EmList.wk->listNo) {
-            blink = pG->flags_51E4 & 0xF;
-            if (pG->flags_51E4 & 0x10) {
+            blink = pG->Frame_cnt & 0xF;
+            if (pG->Frame_cnt & 0x10) {
                 blink = 15 - blink;
             }
             blink <<= 3;
@@ -2722,8 +2722,8 @@ void emlistCameraMove()
         BitSet(EmList.wk->joy.on, 0);
         BitSet(EmList.wk->joy.rep, 0);
         BitSet(EmList.wk->joy.rep2, 0);
-        BitOn(pG->flags_60, 0x10000000);
-        if (pG->flags_51E4 & 0x10) {
+        BitOn(pG->Debug_flg[0], 0x10000000);
+        if (pG->Frame_cnt & 0x10) {
             eprintf(0x140, 0x18, 4, 0, "1P CAMERA MODE");
         }
         EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;

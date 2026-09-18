@@ -189,7 +189,7 @@ void cPlayer::weaponInit()
     if (WeaponInitFunc) {
         WeaponInitFunc(this);
     }
-    if (!(pG->flags_5010 & 0x200000) && !(flags_420 & 0x40)) {
+    if (!(pG->Status_flg[1] & 0x200000) && !(flags_420 & 0x40)) {
         r_no_0 = 0;
         r_no_1 = 0;
         r_no_2 = 0;
@@ -384,7 +384,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
                 // nested call: `&nrm` is evaluated into a pseudo before EatGetEffectType (`addi r30,r1,..`
                 // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
-                BitOn(pG->flags_5010, 0x20000000);
+                BitOn(pG->Status_flg[1], 0x20000000);
                 memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &hit, sizeof(Vec));
                 pG->bell_stat = 0;
             }
@@ -407,7 +407,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         }
     }
     if (!(flag & 2) && n == 0) {
-        pG->flags_5014 |= 0x01000000;
+        pG->Status_flg[2] |= 0x01000000;
         switch (type) {
         case 0:
         case 1:
@@ -948,7 +948,7 @@ void PlWepLockCtrl(cModel* plm)
     }
     moved = 0;
     if (joyKamae() || joyLKamae()) {
-        if (pl->pLockEm && lockCtr != 0 && (pG->flags_68 & 0x40000)) {
+        if (pl->pLockEm && lockCtr != 0 && (pG->Debug_flg[2] & 0x40000)) {
             goto rand;
         }
         d = 0.0f;
@@ -1026,7 +1026,7 @@ rand:
             m3r[0] = tmp;
         }
     }
-    if ((pG->flags_68 & 0x40000) && lockCtr != 0) {
+    if ((pG->Debug_flg[2] & 0x40000) && lockCtr != 0) {
         PlWepAutoTrack(pl, 1, 0.03f);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);

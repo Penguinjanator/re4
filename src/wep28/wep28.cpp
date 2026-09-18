@@ -185,7 +185,7 @@ void cObjBow::setAllow()
 
 int cObjBow::keyKamae()
 {
-    if (pG->flags_5018 & 0x00800000) {
+    if (pG->Status_flg[3] & 0x00800000) {
         return (Key.on >> 4) & 1;
     }
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {

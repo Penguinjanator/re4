@@ -157,8 +157,8 @@ void R214Init()
 #line 98 "D:/Bio4/Prog/r214.cpp"
     R214Work*& wp = r214_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R214Work*) MEM_CALLOC(sizeof(R214Work), 1, 0xD);
-    if (pG->x4F9F == 1) {
-        BitOn(pG->flags_51C0, 0x40000000);
+    if (pG->JumpPoint == 1) {
+        BitOn(pG->Scenario_flg[0], 0x40000000);
         RsfSet(G_ROOM_ID, 2);
         RsfSet(G_ROOM_ID, 5);
     }
@@ -169,10 +169,10 @@ void R214Init()
     if (getRoomEtcBarred(0x12, &r214_work.p->barred[1], 1)) {
         ((cEmBarred*) r214_work.p->barred[1])->setClosed();
     }
-    if (pG->x4F9E == 2) {
+    if (pG->Part == 2) {
         r214_work.p->bridgeFlag = 1;
         SceExec(0x12, (TaskFunc) r214_BridgeRotate, 0, 0, SCE_PRIO_DEF_2, 0);
-    } else if (!(pG->flags_51C0 & 0x40000000)) {
+    } else if (!(pG->Scenario_flg[0] & 0x40000000)) {
         u32 i;
 
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
@@ -232,7 +232,7 @@ void R214Init()
         for (i = 0; i < 3; i++) {
             setEmI(r214_emTbl3[i], 4, 0, 1, 0);
         }
-        if (RsfCheck(G_ROOM_ID, 2) || pG->x4F9E == 1) {
+        if (RsfCheck(G_ROOM_ID, 2) || pG->Part == 1) {
             RsfSet(G_ROOM_ID, 2);
             for (i = 0; i < 3; i++) {
                 setEmI(r214_emTbl2[i], 4, 0, 1, 0);
@@ -261,8 +261,8 @@ void R214Init()
 void R214Main()
 {
     if (DebugTrg(0) == 1) {
-        if (!(pG->flags_178 & 0x40000000)) {
-            pG->flags_178 |= 0x40000000;
+        if (!(pG->Room_flg[1] & 0x40000000)) {
+            pG->Room_flg[1] |= 0x40000000;
             SmdGetObjPtr(0x15)->ang.y = 0.0f;
             SmdGetObjPtr(0x15)->matUpdate();
             SmdGetObjPtr(0x16)->ang.y = 0.0f;
@@ -654,7 +654,7 @@ void r214_setFireAll()
     for (i = 0; i < 3; i++) {
         r214_work.p->cat[i].fire = 1;
     }
-    pG->flags_174 |= 0x40000000;
+    pG->Room_flg[0] |= 0x40000000;
 }
 
 void r214_initCatapult(R214CatapultData* tbl)
@@ -729,7 +729,7 @@ void cCatapult214::move()
         break;
     case 2:
         if (rockReady == 1) {
-            if (pG->flags_174 & 0x40000000) {
+            if (pG->Room_flg[0] & 0x40000000) {
                 step = 3;
             }
         }
@@ -929,7 +929,7 @@ static void r214_BridgeRotate()
     cObj* o15 = SmdGetObjPtr(0x15);
     cObj* o16 = SmdGetObjPtr(0x16);
 
-    if ((int) pG->flags_178 < 0) {
+    if ((int) pG->Room_flg[1] < 0) {
         r214_debugMode = pG->debug_mode;
         pG->debug_mode = 0;
         ScreenShotStart("D:/bio4/Room/Sc_shot/r214_ev", 0, 1);
@@ -937,7 +937,7 @@ static void r214_BridgeRotate()
     SceEventStart(0);
     SceExec(6, (TaskFunc) r214_BridgeRotateCamera, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(30);
-    if ((int) pG->flags_178 >= 0) {
+    if ((int) pG->Room_flg[1] >= 0) {
         SceSetEventCancel(1, (TaskFunc) r214_BridgeRotateEndProc, 0, -1, 1);
     }
     while (o15->ang.y < 1.5707964f) {
@@ -947,7 +947,7 @@ static void r214_BridgeRotate()
         o16->matUpdate();
         SceSleep(1);
     }
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -965,12 +965,12 @@ static void r214_BridgeRotateEndProc()
     o16->matUpdate();
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    if ((int) pG->flags_178 < 0) {
-        pG->flags_178 &= ~0x80000000;
+    if ((int) pG->Room_flg[1] < 0) {
+        pG->Room_flg[1] &= ~0x80000000;
         ScreenShotEnd();
         pG->debug_mode = r214_debugMode;
     }
-    pG->flags_178 &= ~0x40000000;
+    pG->Room_flg[1] &= ~0x40000000;
     if (r214_work.p->bridgeFlag == 1) {
         SceAtExecute(8);
     }
@@ -987,7 +987,7 @@ static void r214_BridgeRotateCamera()
         }
     }
     SceSleep(30);
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 void Evt_R214S00_Func(Event* e)
@@ -1006,8 +1006,8 @@ void Evt_R214S00_Func(Event* e)
         }
         switch (e->NowCut) {
         case 0:
-            if (e->NowFrame == 0 && (pG->flags_500C & 0x400)) {
-                BitOff(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && (pG->Status_flg[0] & 0x400)) {
+                BitOff(pG->Status_flg[0], 0x400);
                 r214_work.p->bino->quit(&pG->Cam);
                 r214_work.p->bino->~IdBinocular();
             }
@@ -1016,8 +1016,8 @@ void Evt_R214S00_Func(Event* e)
         case 2:
         case 3:
         case 4:
-            if (e->NowFrame == 0 && !(pG->flags_500C & 0x400)) {
-                BitOn(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && !(pG->Status_flg[0] & 0x400)) {
+                BitOn(pG->Status_flg[0], 0x400);
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
                 r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
@@ -1032,8 +1032,8 @@ void Evt_R214S00_Func(Event* e)
         break;
     case 2:
         SmdSetTrans(0x18, 1);
-        if (pG->flags_500C & 0x400) {
-            BitOff(pG->flags_500C, 0x400);
+        if (pG->Status_flg[0] & 0x400) {
+            BitOff(pG->Status_flg[0], 0x400);
             r214_work.p->bino->quit(&pG->Cam);
             r214_work.p->bino->~IdBinocular();
         }

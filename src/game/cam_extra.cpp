@@ -507,8 +507,8 @@ void IdScope::move(void* p)
     if (pG->weapon_no != 0xE) {
         return;
     }
-    ra = ampA * SINF((f32) (pG->flags_51E4 % spdA) * 6.2831855f / (f32) spdA) + *zoom;
-    rb = ampB * COSF((f32) (pG->flags_51E4 % spdB) * 6.2831855f / (f32) spdB) + *zoom;
+    ra = ampA * SINF((f32) (pG->Frame_cnt % spdA) * 6.2831855f / (f32) spdA) + *zoom;
+    rb = ampB * COSF((f32) (pG->Frame_cnt % spdB) * 6.2831855f / (f32) spdB) + *zoom;
     a = IdSys.unitPtr(1, 0x25);
     b = IdSys.unitPtr(2, 0x25);
     a->curve[3] = 0;
@@ -733,7 +733,7 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     m_pos0_L = IdSys.unitPtr(1, 0x24)->scr;
     m_pos0_C = IdSys.unitPtr(2, 0x24)->scr;
     m_pos0_R = IdSys.unitPtr(3, 0x24)->scr;
-    if (pGS->flags_500C & 0x1000) {
+    if (pGS->Status_flg[0] & 0x1000) {
         IdSys.unitPtr(0x30, 0x24)->be_flag &= ~8;
         IdSys.unitPtr(0x1B, 0x24)->be_flag &= ~8;
     }
@@ -848,7 +848,7 @@ void IdBinocular::move(void* p)
         i++;
         IdSys.unitPtr(i, 0x24)->be_flag &= ~8;
     }
-    if (!(pG->flags_500C & 0x1000)) {
+    if (!(pG->Status_flg[0] & 0x1000)) {
         IdUnit* u = IdSys.unitPtr(0x36, 0x24);
         MessageControl* mc;
         Message* ms;
@@ -920,7 +920,7 @@ void IdBinocular::quit(void*)
     IdSys.kill(0xFF, 0x24);
     pG->Stop_flg &= ~0x100;
     Cckpt.roomInit();
-    if (pG->flags_500C & 0x1000) {
+    if (pG->Status_flg[0] & 0x1000) {
         Cckpt.lifeMeterDisp(0);
     }
     {

@@ -105,7 +105,7 @@ void R20bInit()
     r20b_work.p = (R20bWork*) MEM_CALLOC(sizeof(R20bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r20bs00_func", (void*) Evt_R20BS00_Func);
     EvtMgr.SetFunc("evt_r20bs99_func", (void*) Evt_R20BS00_Func);
-    pG->flags_174 &= 0x7FFFFFFF;
+    pG->Room_flg[0] &= 0x7FFFFFFF;
     R20bScrTrans(1);
     if (getRoomEtcDoor(3, &door0, 1) != 0 && getRoomEtcDoor(8, &door1, 1) != 0) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
@@ -121,7 +121,7 @@ void R20bInit()
         SmdSetTrans(0x52, 1);
         SmdSetTrans(0x53, 1);
         SceAtSetEnable(0x1B, 0);
-        if (!(pG->flags_5018 & 0x04000000)) {
+        if (!(pG->Status_flg[3] & 0x04000000)) {
             EmReadSearch((u8) GetEmIdFromListI(0x11), 0, 0);
         }
     }
@@ -159,7 +159,7 @@ void R20bInit()
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
         SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->flags_5018 & 0x04000000)) {
+    if (!(pG->Status_flg[3] & 0x04000000)) {
         r20b_work.p->cnt = zero;
         SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
         SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -174,14 +174,14 @@ void R20bInit()
 
 void R20bMain()
 {
-    if ((pG->sceat_x17C & 0x00080000) || pPL->pos.y <= 100.0f) {
-        if (!((int) pG->flags_174 < 0)) {
-            pG->flags_174 |= 0x80000000;
+    if ((pG->Room_flg[2] & 0x00080000) || pPL->pos.y <= 100.0f) {
+        if (!((int) pG->Room_flg[0] < 0)) {
+            pG->Room_flg[0] |= 0x80000000;
             R20bScrTrans(0);
         }
     } else {
-        if ((int) pG->flags_174 < 0) {
-            pG->flags_174 &= 0x7FFFFFFF;
+        if ((int) pG->Room_flg[0] < 0) {
+            pG->Room_flg[0] &= 0x7FFFFFFF;
             R20bScrTrans(1);
         }
     }
@@ -330,7 +330,7 @@ static void R20bEmSetMain()
         r20b_work.p->em[4].setFlag(1);
     }
     for (;;) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
                 r20b_work.p->em[0].setEm(0x11, -1, 0, 1, 1);
@@ -341,7 +341,7 @@ static void R20bEmSetMain()
                 r20b_work.p->em[3].setEm(5, -1, 0, 1, 1);
             }
         }
-        if (BitCk(pG->sceat_x17C, 0x40000000) || BitCk(pG->sceat_x17C, 0x20000000)) {
+        if (BitCk(pG->Room_flg[2], 0x40000000) || BitCk(pG->Room_flg[2], 0x20000000)) {
             if (RsfCheck(G_ROOM_ID, 3) == 0) {
                 RsfSet(G_ROOM_ID, 3);
                 r20b_work.p->em[1].setEm(3, -1, 0, 1, 1);
@@ -366,7 +366,7 @@ static void R20bEmSetMain()
                 hurt = 1;
             }
         }
-        if ((pG->sceat_x17C & 0x00400000) || hurt == 1) {
+        if ((pG->Room_flg[2] & 0x00400000) || hurt == 1) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 if (r20b_work.p->em[1].isActive() || r20b_work.p->em[2].isActive() || r20b_work.p->em[3].isActive()) {
@@ -381,14 +381,14 @@ static void R20bEmSetMain()
                 }
             }
         }
-        if (BitCk(pG->sceat_x17C, 0x10000000) || BitCk(pG->sceat_x17C, 0x08000000)) {
+        if (BitCk(pG->Room_flg[2], 0x10000000) || BitCk(pG->Room_flg[2], 0x08000000)) {
             if (RsfCheck(G_ROOM_ID, 4) == 0) {
                 RsfSet(G_ROOM_ID, 4);
                 r20b_work.p->em[4].setEm(6, -1, 0, 1, 1);
                 r20b_work.p->em[4].setFlag(1);
             }
         }
-        if (pG->sceat_x17C & 0x00100000) {
+        if (pG->Room_flg[2] & 0x00100000) {
             if (RsfCheck(G_ROOM_ID, 11) == 0) {
                 RsfSet(G_ROOM_ID, 11);
                 if (r20b_work.p->em[4].isActive()) {
@@ -404,7 +404,7 @@ static void R20bEmSetMain()
             }
         }
         if (R20bCalcActiveEmWarp() <= 4) {
-            if (pG->sceat_x17C & 0x02000000) {
+            if (pG->Room_flg[2] & 0x02000000) {
                 if (RsfCheck(G_ROOM_ID, 6) == 0) {
                     RsfSet(G_ROOM_ID, 6);
                     r20b_work.p->em[8].setEm(0x17, -1, 0, 1, 1);
@@ -413,7 +413,7 @@ static void R20bEmSetMain()
             }
         }
         if (R20bCalcActiveEmWarp() <= 3) {
-            if (pG->sceat_x17C & 0x04000000) {
+            if (pG->Room_flg[2] & 0x04000000) {
                 if (RsfCheck(G_ROOM_ID, 5) == 0) {
                     u8 r;
 
@@ -449,7 +449,7 @@ static void R20bEmSetMain()
             }
         }
         if (SceAtItemFlgCk(0x81) == 1) {
-            if (pG->sceat_x17C & 0x01000000) {
+            if (pG->Room_flg[2] & 0x01000000) {
                 if (RsfCheck(G_ROOM_ID, 7) == 0) {
                     if (R20bCalcActiveEmWarp() <= 3) {
                         RsfSet(G_ROOM_ID, 7);
@@ -462,7 +462,7 @@ static void R20bEmSetMain()
             }
         }
         if (SceAtItemFlgCk(0x81) == 1) {
-            if (pG->sceat_x17C & 0x01000000) {
+            if (pG->Room_flg[2] & 0x01000000) {
                 if (RsfCheck(G_ROOM_ID, 20) == 0) {
                     if (R20bCalcActiveEmWarp() <= 3) {
                         u8 r;
@@ -523,7 +523,7 @@ static void R20bEmSetMain()
         }
         if (R20bCalcActiveEmWarp() <= 3) {
             if (open == 1) {
-                if (pG->sceat_x17C & 0x00800000) {
+                if (pG->Room_flg[2] & 0x00800000) {
                     if (RsfCheck(G_ROOM_ID, 8) == 0) {
                         RsfSet(G_ROOM_ID, 8);
                         r20b_work.p->em[13].setEm(0xA, -1, 0, 1, 1);
@@ -700,8 +700,8 @@ extern "C" void Evt_R20BS00_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (!(pG->flags_174 & 0x40000000)) {
-            pG->flags_174 |= 0x40000000;
+        if (!(pG->Room_flg[0] & 0x40000000)) {
+            pG->Room_flg[0] |= 0x40000000;
             if (e->GetMod(&mod, "ev0202", 0, 0) == 1) {
                 r20b_work.p->tpl0202 = ((cModelInfo*) mod)->tpl_addr;
             }

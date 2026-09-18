@@ -130,7 +130,7 @@ static void r40e_execShowView()
 // Camera cuts of the elevator ride (mode = the ride direction).
 static void r40e_setElvCamera(u32 mode)
 {
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     switch (mode) {
     case 0:
         CamCtrl.CutCall(4);
@@ -155,7 +155,7 @@ static void r40e_setElvCamera(u32 mode)
         }
         break;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 // The ride: 0 up from the entrance, 1 down, 2 the return after the enemy fight.
@@ -169,7 +169,7 @@ static void r40e_moveElevator(u32 dir)
     } else {
         SceEventStart(1);
     }
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     if (dir == 0) {
         r40e_work->elv.setReverse(0);
     } else if (dir <= 2) {
@@ -204,7 +204,7 @@ static void r40e_moveElevator(u32 dir)
     case 1:
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->flags_174 < 0) {
+                if ((int) pG->Room_flg[0] < 0) {
                     break;
                 }
             }
@@ -217,7 +217,7 @@ static void r40e_moveElevator(u32 dir)
         r40e_work->elv.cnt = 90;
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->flags_174 < 0) {
+                if ((int) pG->Room_flg[0] < 0) {
                     break;
                 }
             }
@@ -260,7 +260,7 @@ void r40e_initElevator()
 static void r40e_execEmAppear_end()
 {
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     CamCtrl.Comeback(0);
     cEmWrap em;
     em.setPtr(0xDD, -1, 1);
@@ -280,7 +280,7 @@ static void r40e_execEmAppear()
     }
     SceSetEventCancel(1, (TaskFunc) r40e_execEmAppear_end, 0, -1, 1);
     SceEventStart(0);
-    pG->flags_5014 |= 0x02000000;
+    pG->Status_flg[2] |= 0x02000000;
     cEmWrap em;
     Vec p;
     Vec* pp = &p;
@@ -435,7 +435,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         ZFAR = 100000000.0f;
-        BitOn(pG->flags_5010, 0x800);
+        BitOn(pG->Status_flg[1], 0x800);
         break;
     case 1:
         if (e->NowCut == 0) {
@@ -494,7 +494,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         }
         break;
     case 2:
-        pG->flags_5010 &= ~0x800;
+        pG->Status_flg[1] &= ~0x800;
         break;
     }
 }

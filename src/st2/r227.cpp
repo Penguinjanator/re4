@@ -105,7 +105,7 @@ void R227Init()
 #line 57 "D:/Bio4/Prog/r227.cpp"
     R227Work*& wp = r227_work.p;
     wp = (R227Work*) MEM_CALLOC(sizeof(R227Work), 1, 0xD);
-    if (pG->x4F9F == 2) {
+    if (pG->JumpPoint == 2) {
         RsfSet(G_ROOM_ID, 0);
         EmReadSearch(0x14, 0, 0);
     }
@@ -119,9 +119,9 @@ void R227Init()
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         if (Rnd() & 0x80) {
-            pG->flags_174 |= 0x40000000;
+            pG->Room_flg[0] |= 0x40000000;
         } else {
-            pG->flags_174 &= ~0x40000000;
+            pG->Room_flg[0] &= ~0x40000000;
         }
         SceExec(0x12, (TaskFunc) r227_execEvent00, 0, 0, SCE_PRIO_DEF_2, 0);
         EvtMgr.SetFunc("evt_r227s00_func", (void*) Evt_R227S00_Func);
@@ -676,7 +676,7 @@ static void r227_setEm2()
     if (e0.getPtr() && r227_work.p->sw) {
         ((cEmGanado*) e0.getPtr())->setSwitch(r227_work.p->sw);
         SceEventStart(1);
-        pG->flags_5010 &= ~0x10000000;
+        pG->Status_flg[1] &= ~0x10000000;
         e1.setTrans(0);
         e2.setTrans(0);
         CamCtrl.CutCall(6);
@@ -837,7 +837,7 @@ static void r227_execEvent00()
         r227_waitEvt();
         pG->System_flg |= 0x400;
         r227_work.p->evd[0]->setCommand(CMND_DEL_DATA, 0, 0);
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             if (r227_work.p->evd[1]->waitLoadOk() != 0) {
                 u32 key1;
 
@@ -878,7 +878,7 @@ static void r227_execEvent00()
 
 static void r227_succeedAction()
 {
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 static void Evt_R227S00_Func(Event* e)
@@ -907,10 +907,10 @@ static void Evt_R227S00_Func(Event* e)
             break;
         case 0xB:
             BitOff(pG->Stop_flg, 0x100);
-            if (!(pG->flags_174 & 0x80000000)) {
+            if (!(pG->Room_flg[0] & 0x80000000)) {
                 if (e->NowFrame > 15) {
                     BitOff(pG->Disp_flg, 0x800);
-                    if (!(pG->flags_174 & 0x40000000)) {
+                    if (!(pG->Room_flg[0] & 0x40000000)) {
                         ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 4, 0, 0);
                     } else {
                         ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 3, 0, 0);

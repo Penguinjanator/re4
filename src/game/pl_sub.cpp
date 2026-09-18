@@ -59,9 +59,9 @@ void PlSelect(int no)
         U16Set(pG->ashley_life_max, life);
         pG->pl_life = pG->pl_life_max;
         ReleaseWepData();
-        tmp = pG->x4F98;
-        U32Set(pG->x4F98, pG->x832C);
-        U32Set(pG->x832C, tmp);
+        tmp = pG->peseta;
+        U32Set(pG->peseta, pG->peseta_bak);
+        U32Set(pG->peseta_bak, tmp);
     }
     U8Set(pG->pl_type, no);
     PlSetCostume();
@@ -142,7 +142,7 @@ int PlGachaGet()
 {
     int n = pPL->gachaCnt;
 
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         n += n / 2;
     }
     return n;
@@ -720,10 +720,10 @@ void PlReloadBullet()
 int joyFireOn()
 {
     if (Key.on & 0x80) {
-        if ((pG->flags_500C & 0x200000) || (pG->flags_5014 & 0x80000000)) {
-            BitOn(pG->flags_500C, 0x4000);
-            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x011C0000 && (pG->flags_5014 & 0x80000000)) {
-                BitOn(pG->flags_174, 0x20000000);
+        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+            BitOn(pG->Status_flg[0], 0x4000);
+            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x011C0000 && (pG->Status_flg[2] & 0x80000000)) {
+                BitOn(pG->Room_flg[0], 0x20000000);
             }
             return 0;
         }
@@ -735,8 +735,8 @@ int joyFireOn()
 int joyFireTrg()
 {
     if (Key.trg & 0x80) {
-        if ((pG->flags_500C & 0x200000) || (pG->flags_5014 & 0x80000000)) {
-            pG->flags_500C |= 0x4000;
+        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+            pG->Status_flg[0] |= 0x4000;
             return 0;
         }
         return 1;
@@ -836,7 +836,7 @@ void PlWaterProc(cPlayer* pl)
     static Vec m_PosOldWater;
     f32 dist;
 
-    if (pG->flags_5010 & 0x200000) {
+    if (pG->Status_flg[1] & 0x200000) {
         return;
     }
     if (pl->m_pEffRoom == 0) {
@@ -976,10 +976,10 @@ int PlSetWhistle()
     if (!(Key.trg & 0x200)) {
         return 0;
     }
-    if (pG->flags_500C & 0x400) {
+    if (pG->Status_flg[0] & 0x400) {
         return 0;
     }
-    if (!(pG->flags_5010 & 4)) {
+    if (!(pG->Status_flg[1] & 4)) {
         return 0;
     }
     pl = pPL;

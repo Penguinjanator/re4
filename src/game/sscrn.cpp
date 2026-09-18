@@ -214,9 +214,9 @@ void SubScreenRoomInit()
         wk->board_next = 0;
         wk->board_size = 0;
     }
-    BitOn(pG->flags_500C, 0x02000000);
-    BitOff(pG->flags_500C, 0x00040000);
-    BitOff(pG->flags_5014, 0x04000000);
+    BitOn(pG->Status_flg[0], 0x02000000);
+    BitOff(pG->Status_flg[0], 0x00040000);
+    BitOff(pG->Status_flg[2], 0x04000000);
     MapMgr.roomInit();
 }
 
@@ -235,7 +235,7 @@ void SubScreenCall()
     if (pSUB && pSUB->id == 3 && (s16) pG->ashley_life <= 0) {
         return;
     }
-    if (!(pG->flags_500C & 0x02000000)) {
+    if (!(pG->Status_flg[0] & 0x02000000)) {
         return;
     }
     if (pPL->subScrCheck() == 1) {
@@ -247,25 +247,25 @@ void SubScreenCall()
         if (Key.trg & 0x100000) {
             SubScreenOpen(SS_OPEN_NORMAL, 0);
         } else if (Key.trg & 0x200000) {
-            if (!(pG->flags_5014 & 0x00200000)) {
+            if (!(pG->Status_flg[2] & 0x00200000)) {
                 SubScreenOpen(SS_OPEN_MAP, 0);
             }
         }
     }
     if (wk->type) {
-        pG->flags_500C &= ~0x02000000;
+        pG->Status_flg[0] &= ~0x02000000;
         if (TaskExec(1, SubScreenExec, 0) == 0) {
             SubScreenMiss();
-            pG->flags_500C |= 0x02000000;
+            pG->Status_flg[0] |= 0x02000000;
         }
     }
 }
 
 int sscrnStageNo()
 {
-    if (pG->flags_51C0 & 0x00010000) {
+    if (pG->Scenario_flg[0] & 0x00010000) {
         return 3;
-    } else if (pG->flags_51C0 & 0x00800000) {
+    } else if (pG->Scenario_flg[0] & 0x00800000) {
         return 2;
     } else if (pG->Item_find_flg & 4) {
         return 1;
@@ -292,10 +292,10 @@ int SubScreenOpen(int type, int flags)
 {
     SubScreenWork* wk = &SubScreenWk;
 
-    if (pG->flags_5014 & 0x04000000) {
+    if (pG->Status_flg[2] & 0x04000000) {
         return 0;
     }
-    BitOn(pG->flags_5014, 0x04000000);
+    BitOn(pG->Status_flg[2], 0x04000000);
     wk->type = type;
     wk->flags = flags;
     wk->x34 = 0;
@@ -303,7 +303,7 @@ int SubScreenOpen(int type, int flags)
     if (flags & 1) {
         SceEventStart(0);
     } else {
-        if (pG->flags_5010 & 0x00200000) {
+        if (pG->Status_flg[1] & 0x00200000) {
             wk->flags = flags | 2;
         }
         wk->stop_bak = pG->Stop_flg;
@@ -325,7 +325,7 @@ void SubScreenMiss()
     }
     wk->flags = 0;
     wk->type = 0;
-    pG->flags_5014 &= ~0x04000000;
+    pG->Status_flg[2] &= ~0x04000000;
 }
 
 void SubScreenExec()
@@ -349,8 +349,8 @@ void SubScreenExec()
             } else {
                 wk->healing = 0;
             }
-            BitOn(pG->flags_500C, 0x00040000);
-            BitOff(pG->flags_500C, 0x100);
+            BitOn(pG->Status_flg[0], 0x00040000);
+            BitOff(pG->Status_flg[0], 0x100);
             BitOn(pG->Stop_flg, 0x100);
             BitOff(pG->Stop_flg, 0x08000000);
             MTX_COPY(pPL->mat, wk->pl_mat);
@@ -370,18 +370,18 @@ void SubScreenExec()
         case 2:
             pG->weapon_no = WeaponId2WeaponNo(ItemMgr.m_wep_id);
             pG->weapon_type = WeaponId2WeaponType(ItemMgr.m_wep_id);
-            if (pG->flags_500C & 0x40) {
+            if (pG->Status_flg[0] & 0x40) {
                 CamCtrl.saveScopeParam();
                 CamCtrl.endScope();
                 wk->scope_flag = 1;
-                if (pG->flags_5010 & 0x04000000) {
+                if (pG->Status_flg[1] & 0x04000000) {
                     wk->scope_flag = 2;
-                    pG->flags_5010 &= ~0x04000000;
+                    pG->Status_flg[1] &= ~0x04000000;
                 }
             } else {
                 wk->scope_flag = 0;
             }
-            if (pG->flags_500C & 0x400) {
+            if (pG->Status_flg[0] & 0x400) {
                 CamCtrl.GetBinocularIDAddr(&wk->binoA, &wk->binoB);
                 CamCtrl.LowerBinocular();
                 wk->binocular_flag = 1;
@@ -404,17 +404,17 @@ void SubScreenExec()
                 }
             }
             {
-                u32 t = pG->flags_5010 & 0x10000000;
+                u32 t = pG->Status_flg[1] & 0x10000000;
                 wk->suspend_flag = t;
             }
-            BitOff(pG->flags_5010, 0x10000000);
+            BitOff(pG->Status_flg[1], 0x10000000);
             wk->disp_bak = pG->Disp_flg;
             BitSet(pG->Disp_flg, 0xFFFFFFFF);
             BitOff(pG->Disp_flg, 0x10000);
             BitOff(pG->Disp_flg, 0x2000);
             BitOff(pG->Disp_flg, 0x800);
             BitOff(pG->Disp_flg, 0x04000000);
-            BitOn(pG->flags_5010, 2);
+            BitOn(pG->Status_flg[1], 2);
             cnt = 0;
             step++;
             break;
@@ -555,13 +555,13 @@ void SubScreenExec()
             wk->debugMode = pG->debug_mode;
             {
                 int v = 1;
-                if ((pG->flags_68 & 0x40000000) == 0) {
+                if ((pG->Debug_flg[2] & 0x40000000) == 0) {
                     v = 0;
                 }
                 wk->x354 = v;
             }
             step++;
-            pG->flags_68 &= ~0x40000000;
+            pG->Debug_flg[2] &= ~0x40000000;
         case 5:
             pG->Stop_flg &= ~0x80000000;
             TaskChain(wk->p_module->prolog, 0);
@@ -573,7 +573,7 @@ void SubScreenExec()
 
 void SubScreenExitCore(SubScreenWork* wk)
 {
-    if (pG->flags_500C & 0x00040000) {
+    if (pG->Status_flg[0] & 0x00040000) {
         MapMgr.roomInit();
         DLL_Unlink(wk->p_module);
         wk->relAddr = 0;
@@ -585,7 +585,7 @@ void SubScreenExitCore(SubScreenWork* wk)
         RoomData.restartRelData();
         MGR_PTR(cModel::mm) = &ModInfoMgr;
         MGR_PTR(cModel::pm) = &PartsMgr;
-        pG->flags_500C &= ~0x00040000;
+        pG->Status_flg[0] &= ~0x00040000;
     }
 }
 
@@ -688,9 +688,9 @@ void SubScreenExit()
             if (wk->binocular_flag == 0) {
                 pG->Stop_flg &= ~0x80000000;
             }
-            BitOff(pG->flags_5010, 2);
+            BitOff(pG->Status_flg[1], 2);
             if (wk->suspend_flag) {
-                pG->flags_5010 |= 0x10000000;
+                pG->Status_flg[1] |= 0x10000000;
             }
             {
                 u32 i;
@@ -728,9 +728,9 @@ void SubScreenExit()
             }
             TaskSignal(0);
             SndSubScreenExit();
-            BitOn(pG->flags_500C, 0x02000000);
-            BitOn(pG->flags_500C, 0x100);
-            BitOff(pG->flags_5014, 0x04000000);
+            BitOn(pG->Status_flg[0], 0x02000000);
+            BitOn(pG->Status_flg[0], 0x100);
+            BitOff(pG->Status_flg[2], 0x04000000);
             {
                 u32 mode;
                 if (wk->scope_flag == 2) {
@@ -751,7 +751,7 @@ void SubScreenExit()
             wk->flags = 0;
             pG->debug_mode = wk->debugMode;
             if (wk->x354) {
-                pG->flags_68 |= 0x40000000;
+                pG->Debug_flg[2] |= 0x40000000;
             }
             step++;
         case 5:

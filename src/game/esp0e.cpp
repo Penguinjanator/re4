@@ -66,7 +66,7 @@ void cEsp0e::move()
         return;
     }
     if (w->flg & 2) {
-        if (pG->flags_5014 & 0x10000000) {
+        if (pG->Status_flg[2] & 0x10000000) {
             w->delay_cnt = 2;
         }
         if (w->delay_cnt != 0) {

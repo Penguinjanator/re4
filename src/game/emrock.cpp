@@ -1326,28 +1326,28 @@ void emRockAtkScrCk(cEmRock* em)
             if (e->state == 0) {
                 switch (e->sub) {
                 case 0:
-                    BitOn(pG->flags_174, 0x80000000);
-                    BitOn(pG->flags_174, 0x10000000);
+                    BitOn(pG->Room_flg[0], 0x80000000);
+                    BitOn(pG->Room_flg[0], 0x10000000);
                     break;
                 case 1:
-                    BitOn(pG->flags_174, 0x40000000);
-                    BitOn(pG->flags_174, 0x08000000);
+                    BitOn(pG->Room_flg[0], 0x40000000);
+                    BitOn(pG->Room_flg[0], 0x08000000);
                     break;
                 case 2:
-                    BitOn(pG->flags_174, 0x20000000);
-                    BitOn(pG->flags_174, 0x04000000);
+                    BitOn(pG->Room_flg[0], 0x20000000);
+                    BitOn(pG->Room_flg[0], 0x04000000);
                     break;
                 }
             } else {
                 switch (e->sub) {
                 case 0:
-                    pG->flags_174 |= 0x80000000;
+                    pG->Room_flg[0] |= 0x80000000;
                     break;
                 case 1:
-                    pG->flags_174 |= 0x40000000;
+                    pG->Room_flg[0] |= 0x40000000;
                     break;
                 case 2:
-                    pG->flags_174 |= 0x20000000;
+                    pG->Room_flg[0] |= 0x20000000;
                     break;
                 }
             }
@@ -1436,7 +1436,7 @@ int emRockSetRollSpd(cEmRock* em)
     spd = SQRTF(w->spd.x * w->spd.x + w->spd.z * w->spd.z);
     if (w->First_bound) {
         add = 1.3f;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             add = 1.27f;
         }
     } else {
@@ -1572,10 +1572,10 @@ void plemRockEscape(cPlayer* pl)
             pl->x400 = 1.0f;
         }
         lim = 8;
-        if (pG->x4F88 <= 2) {
+        if (pG->Game_level <= 2) {
             lim = 12;
         }
-        if (pG->x4F88 > 7) {
+        if (pG->Game_level > 7) {
             lim = 5;
         }
         pl->x3F0++;

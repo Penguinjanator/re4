@@ -178,19 +178,19 @@ void R11eMain()
 static void koya_destroy_check()
 {
     for (;;) {
-        if ((pG->flags_174 & 0x80000000) && RsfCheck(G_ROOM_ID, 0) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) && RsfCheck(G_ROOM_ID, 0) == 0) {
             RsfSet(G_ROOM_ID, 0);
             koyaA_destroy();
         }
-        if ((pG->flags_174 & 0x40000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
+        if ((pG->Room_flg[0] & 0x40000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 1);
             koyaB_destroy();
         }
-        if ((pG->flags_174 & 0x20000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+        if ((pG->Room_flg[0] & 0x20000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 2);
             sakuA_destroy();
         }
-        if ((pG->flags_174 & 0x10000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+        if ((pG->Room_flg[0] & 0x10000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 3);
             sakuB_destroy();
         }

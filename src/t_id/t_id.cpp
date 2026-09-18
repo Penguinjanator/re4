@@ -2694,10 +2694,10 @@ static void toolIdOption(IdTool* w)
             break;
         case 1:
             if (joy->rep & 0x10001) {
-                pG->flags_68 |= 0x40000000;
+                pG->Debug_flg[2] |= 0x40000000;
             }
             if (joy->rep & 0x20002) {
-                pG->flags_68 &= ~0x40000000;
+                pG->Debug_flg[2] &= ~0x40000000;
             }
             break;
         case 2:
@@ -2769,7 +2769,7 @@ static void toolIdOption(IdTool* w)
             eprintf(vx << 3, r0 * 0xE, 0, 0, "%s", langName2[w->lang]);
             break;
         case 1:
-            if (pG->flags_68 & 0x40000000) {
+            if (pG->Debug_flg[2] & 0x40000000) {
                 eprintf(sx << 3, r1 * 0xE, col, 0, "ON-/---");
             } else {
                 eprintf(sx << 3, r1 * 0xE, col, 0, "---/OFF");

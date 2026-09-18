@@ -89,12 +89,12 @@ void R210Init()
 #line 53 "D:/Bio4/Prog/r210.cpp"
     r210_work = (R210Work*) MEM_CALLOC(sizeof(R210Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if ((pG->flags_5018 & 0x04000000) == 0) {
-            pG->flags_5018 |= 0x04000000;
+        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+            pG->Status_flg[3] |= 0x04000000;
         }
     }
     {
-        u32 flags = pG->flags_5018;
+        u32 flags = pG->Status_flg[3];
 
         if (flags & 0x04000000) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
@@ -103,9 +103,9 @@ void R210Init()
         }
     }
     if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
-        if ((pG->flags_51C0 & 0x40) == 0) {
+        if ((pG->Scenario_flg[0] & 0x40) == 0) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
-            BitOn(pG->flags_5018, 0x04000000);
+            BitOn(pG->Status_flg[3], 0x04000000);
             if (pSUB) {
                 Vec v;
 
@@ -136,9 +136,9 @@ void R210Init()
     SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) toroko_go, 0, 1);
     SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) toroko_go, (void*) 1, 1);
     if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x210) {
-        if (pG->x4F9E == 1) {
+        if (pG->Part == 1) {
             SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, SCE_PRIO_DEF_2, 0);
-        } else if (pG->x4F9E == 2) {
+        } else if (pG->Part == 2) {
             SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
@@ -165,7 +165,7 @@ static void r222_DummyDoorProc()
 {
     if (pSUB) {
         EmMgr.destroy(pSUB);
-        pG->flags_5018 &= ~0x04000000;
+        pG->Status_flg[3] &= ~0x04000000;
     }
     SceAtDataReset(0);
     SceAtExecute(0);
@@ -175,8 +175,8 @@ static void r222_dai_set()
 {
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
-    if ((int) pG->flags_174 < 0) {
-        BitOff(pG->flags_174, 0x80000000);
+    if ((int) pG->Room_flg[0] < 0) {
+        BitOff(pG->Room_flg[0], 0x80000000);
         pG->Item_find_flg &= ~0x80;
     }
 }
@@ -223,7 +223,7 @@ static void r222_dai_go()
         SubCharCtrl(SCC_STOP, 0);
         pG->Item_find_flg |= 0x80;
     }
-    if ((pG->flags_51C0 & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
+    if ((pG->Scenario_flg[0] & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);
@@ -319,7 +319,7 @@ static void r222_dai_ret()
     f32 spd = 0.0f;
     Vec v;
 
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     SceEventStart(0);
     pPL->setNoSuspend(1);
     if (pSUB) {

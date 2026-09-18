@@ -299,11 +299,11 @@ void R400Main()
     SceDebugDisp("");
     SceDebugDisp("");
     SceDebugDisp("");
-    if (!(pG->flags_500C & 0x1000)) {
+    if (!(pG->Status_flg[0] & 0x1000)) {
         r400_work.p->cnt = SceCountEmAlive(0x10, 0x20);
-        if (r400_work.p->timer == 1 && (int) pG->flags_174 >= 0) {
+        if (r400_work.p->timer == 1 && (int) pG->Room_flg[0] >= 0) {
             U32Set(r400_work.p->base, r400_work.p->cnt);
-            pG->flags_174 |= 0x80000000;
+            pG->Room_flg[0] |= 0x80000000;
         }
         r400_work.p->timer++;
         if (r400_work.p->timer > 300) {
@@ -313,29 +313,29 @@ void R400Main()
         GameAddPoint(LVADD_TIMECOUNT);
         r400_work.p->point++;
         if (r400_work.p->point > 450) {
-            pG->flags_174 |= 0x40000000;
+            pG->Room_flg[0] |= 0x40000000;
         }
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             SceDebugDisp("EM_NUM[%d/%d]", r400_work.p->cnt, r400_work.p->base);
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 reset_40();
             }
-            if (pG->sceat_x17C & 0x40000000) {
+            if (pG->Room_flg[2] & 0x40000000) {
                 reset_41();
             }
-            if (pG->sceat_x17C & 0x20000000) {
+            if (pG->Room_flg[2] & 0x20000000) {
                 reset_42();
             }
-            if (pG->sceat_x17C & 0x10000000) {
+            if (pG->Room_flg[2] & 0x10000000) {
                 reset_43();
             }
-            if (pG->sceat_x17C & 0x08000000) {
+            if (pG->Room_flg[2] & 0x08000000) {
                 reset_44();
             }
-            if (pG->sceat_x17C & 0x04000000) {
+            if (pG->Room_flg[2] & 0x04000000) {
                 reset_45();
             }
-            if (pG->sceat_x17C & 0x02000000) {
+            if (pG->Room_flg[2] & 0x02000000) {
                 reset_46();
             }
             if (SceAtItemFlgCk(0x80) == 1) {
@@ -357,22 +357,22 @@ void R400Main()
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 9) {
-                if (!(pG->flags_174 & 0x10000000)) {
-                    pG->flags_174 |= 0x10000000;
+                if (!(pG->Room_flg[0] & 0x10000000)) {
+                    pG->Room_flg[0] |= 0x10000000;
                     emset_boss(0x11, 0);
                     emset_boss(0x12, 1);
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 24) {
-                if (!(pG->flags_174 & 0x08000000)) {
-                    pG->flags_174 |= 0x08000000;
+                if (!(pG->Room_flg[0] & 0x08000000)) {
+                    pG->Room_flg[0] |= 0x08000000;
                     emset_boss(0x61, 0);
                     emset_boss(0x62, 1);
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 34) {
-                if (!(pG->flags_174 & 0x04000000)) {
-                    pG->flags_174 |= 0x04000000;
+                if (!(pG->Room_flg[0] & 0x04000000)) {
+                    pG->Room_flg[0] |= 0x04000000;
                     emset_boss(0x76, 0);
                     emset_boss(0x77, 1);
                 }
@@ -443,13 +443,13 @@ void emset_boss(int no, int dir)
     if (em.isActive()) {
         em.setFindPL();
     }
-    if (pG->sceat_x17C & 0x20000000) {
+    if (pG->Room_flg[2] & 0x20000000) {
         if (dir == 0) {
             l = EM_LIST(0x11);
         } else {
             l = EM_LIST(0x12);
         }
-    } else if ((int) pG->sceat_x180 < 0) {
+    } else if ((int) pG->Room_flg[3] < 0) {
         if (dir == 0) {
             l = EM_LIST(0x61);
         } else {

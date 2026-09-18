@@ -178,16 +178,16 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 static inline void em2cSetAtkWait(Em2cWork* w, int a, int b, int c, int d, int e)
 {
     IntSet(w->atkWait, a);
-    if (pG->x4F88 > 1) {
+    if (pG->Game_level > 1) {
         IntSet(w->atkWait, b);
     }
-    if (pG->x4F88 > 3) {
+    if (pG->Game_level > 3) {
         IntSet(w->atkWait, c);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         IntSet(w->atkWait, d);
     }
-    if (pG->x4F88 == 10) {
+    if (pG->Game_level == 10) {
         IntSet(w->atkWait, e);
     }
 }
@@ -344,7 +344,7 @@ void em2cDmCk(cEm2c* em)
         if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
             int two = 2;      // the routine 2 of the first two arms in a callee-saved register
 
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
             em2cSetFreeze(em);
             if (w->flags & 0x200000) {
                 EmRoutineSet(em, two, 6, 0, 0);
@@ -426,7 +426,7 @@ void em2cDmCk(cEm2c* em)
         return;
     }
     em->dmHit = 0;
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmType = 1;
@@ -827,7 +827,7 @@ void em2cTailDmCk(cEm2c* em)
         return;
     }
     em->dmHit = 0;
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmType = 1;
@@ -1230,13 +1230,13 @@ static void em2c_R1_Wait(cEm2c* em)
         if ((s16) pG->pl_life <= 0) {
             break;
         }
-        if (w->routeAngAbs > 1.57079637f && pG->x4F88 > 3) {
+        if (w->routeAngAbs > 1.57079637f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
-        if (em->plDist2 > 25000000.0f && pG->x4F88 > 3) {
+        if (em->plDist2 > 25000000.0f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
-        if (em2cDeadCk(em) && pG->x4F88 > 1) {
+        if (em2cDeadCk(em) && pG->Game_level > 1) {
             w->atkWait = 0;
         }
         if (w->atkWait) {
@@ -1500,7 +1500,7 @@ static void em2c_R1_Dash(cEm2c* em)
         if (w->timer8 % 6 == 0) {
             EstSet((int) em, -1, 0, 0, 0x24, 0xE, 0, w->espKind2, (u32) em, 0);
         }
-        if (em->plDist2 > 25000000.0f && pG->x4F88 > 1) {
+        if (em->plDist2 > 25000000.0f && pG->Game_level > 1) {
             w->blendVal += 16.0f;
             if (w->blendVal > 255.0f) {
                 w->blendVal = 255.0f;
@@ -1942,7 +1942,7 @@ static void em2c_R1_AtkSign(cEm2c* em)
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if ((em->seFlags28B & 4) && (Rnd() & 1) && pG->x4F88 > 3) {
+        } else if ((em->seFlags28B & 4) && (Rnd() & 1) && pG->Game_level > 3) {
             if (w->flags & 1) {
                 f32 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
                 f32 lim = 12250000.0f;
@@ -2261,7 +2261,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
 
 static void plem2c_CriticalHit(cPlayer* pl)
 {
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     switch (pl->r_no_2) {
     case 0:
@@ -3569,10 +3569,10 @@ static void em2c_R1_C_Wait(cEm2c* em)
         w->x6B8 = fe;
         if (em->r_no_3) {
             *(volatile int*) &w->timer = Rnd() % 150 + 100;  // volatile store: the pG load stays below it (a reference store folds the address to em+0x3E4)
-            if (pG->x4F88 <= 3) {
+            if (pG->Game_level <= 3) {
                 *(volatile int*) &w->timer = Rnd() % 150 + 200;
             }
-            if (pG->x4F88 <= 1) {
+            if (pG->Game_level <= 1) {
                 w->timer = Rnd() % 150 + 300;
             }
         } else {
@@ -3657,7 +3657,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         w->timer = 10;
         w->atkHit = 0;
         em->flags_3C8 &= ~4;
-        pGS->flags_174 |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
+        pGS->Room_flg[0] |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
         em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -3959,7 +3959,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         w->atkHit = 0;
         em->flags_3C8 &= ~4;
         em->flags_3C8 |= 0x40000000;
-        pGS->flags_174 |= 0x40000000;
+        pGS->Room_flg[0] |= 0x40000000;
         em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -4497,7 +4497,7 @@ static void plemKick(cPlayer* pl)
 
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmg.set(0, 30);
-    pG->flags_5014 |= 0x40000000;
+    pG->Status_flg[2] |= 0x40000000;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x7C), 0, 6, 1, 0);
@@ -5030,7 +5030,7 @@ int em2cLockCk(cEm2c* em)
     if (pG->weapon_no == 0x10) {
         return 0;
     }
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         return 0;
     }
     if (ItemMgr.bulletNumCurrent() == 0) {
@@ -6117,7 +6117,7 @@ void em2cSetFreeze(cEm2c* em)
 
     w->flags |= 0x800;
     w->guardCnt = 900;
-    pGS->flags_174 |= 0x80000000;
+    pGS->Room_flg[0] |= 0x80000000;
     if (w->pTex) {
         em->pModelInfo->setTexBlendTbl(tbl);
         em->pModelInfo->setBlendRatio(0xFF);

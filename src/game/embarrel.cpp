@@ -494,7 +494,7 @@ void cEmBarrel::move()
             w->Bomb_wait--;
             if (w->Bomb_wait == 0) {
                 PlWepHitCheck2(0, &w->Bomb_pos, &w->Bomb_pos, 0x13, 3, w->Bomb_r);
-                pG->flags_500C |= 0x00800000;
+                pG->Status_flg[0] |= 0x00800000;
             }
         }
     }

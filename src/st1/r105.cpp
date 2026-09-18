@@ -186,8 +186,8 @@ void R105Main()
     cEm* door;
 
     getRoomEtcDoor(1, &door, 1);
-    if ((pG->item_flags[0] & 0x20000000) && !(pG->flags_174 & 0x40000000)) {
-        BitOn(pG->flags_174, 0x40000000);
+    if ((pG->item_flags[0] & 0x20000000) && !(pG->Room_flg[0] & 0x40000000)) {
+        BitOn(pG->Room_flg[0], 0x40000000);
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);
             SceAtDataSet_exec(8, SCE_LEVEL10, 0, r105_Event, 0, 1);
@@ -543,7 +543,7 @@ static void r105_Event()
     SceEventStart(0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
-        pG->flags_174 &= ~0x20000000;
+        pG->Room_flg[0] &= ~0x20000000;
         SndRoomStrStop(0);
         EvtMgr.EvtReadExec("event/evd/r105s00.evd", 0x15, 0x10);
         EvtMgr.EvtReadAram("event/evd/r105s10.evd", 0x15, 0, 0, 0);
@@ -595,26 +595,26 @@ static void r105_StreanChk()
 {
     static const f32 vol = 0.0f;
 
-    pG->flags_174 &= ~0x08000000;
+    pG->Room_flg[0] &= ~0x08000000;
     for (;;) {
         if (SceCkFindPL(0) == 1) {
-            pG->flags_174 |= 0x10000000;
+            pG->Room_flg[0] |= 0x10000000;
         } else {
-            pG->flags_174 &= ~0x10000000;
+            pG->Room_flg[0] &= ~0x10000000;
         }
-        if (pG->flags_174 & 0x10000000) {
-            if (!(pG->flags_174 & 0x08000000)) {
-                BitOn(pG->flags_174, 0x08000000);
-                if (pG->flags_174 & 0x20000000) {
-                    pG->flags_174 &= ~0x20000000;
+        if (pG->Room_flg[0] & 0x10000000) {
+            if (!(pG->Room_flg[0] & 0x08000000)) {
+                BitOn(pG->Room_flg[0], 0x08000000);
+                if (pG->Room_flg[0] & 0x20000000) {
+                    pG->Room_flg[0] &= ~0x20000000;
                     SndRoomStrStop(0);
                     SceSleep(1);
                 }
                 SndStrReq(0, 2, 0x80000003, 0, 0, FCRef(vol));
                 SceSleep(30);
             }
-        } else if (pG->flags_174 & 0x08000000) {
-            BitOff(pG->flags_174, 0x08000000);
+        } else if (pG->Room_flg[0] & 0x08000000) {
+            BitOff(pG->Room_flg[0], 0x08000000);
             SndStrReq(0, 2, 4, 600, 0, FCRef(vol));
             SceSleep(30);
         }
@@ -624,7 +624,7 @@ static void r105_StreanChk()
 
 static void r105_bgmCheck()
 {
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
 }
 
 // Area 1: the locked front door.
@@ -916,15 +916,15 @@ extern "C" void r105_checkCesspit1()
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             if (RsfCheck(G_ROOM_ID, 5) == 0) {
-                if (!(pG->flags_174 & 0x04000000)) {
+                if (!(pG->Room_flg[0] & 0x04000000)) {
                     if (SceAtItemFindFlgCk(0x8D) == 1) {
                         SceAtSetEnable(0xC, 0);
-                        pG->flags_174 |= 0x04000000;
+                        pG->Room_flg[0] |= 0x04000000;
                     }
-                } else if (!(pG->flags_174 & 0x02000000)) {
+                } else if (!(pG->Room_flg[0] & 0x02000000)) {
                     if (SceAtItemFlgCk(0x8D) == 1) {
                         SceAtSetEnable(0xC, 1);
-                        pG->flags_174 |= 0x02000000;
+                        pG->Room_flg[0] |= 0x02000000;
                     }
                 }
             }

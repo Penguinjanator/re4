@@ -49,10 +49,10 @@ void Cockpit::roomInit()
 
 void Cockpit::move()
 {
-    if ((s32) pG->flags_60 < 0 && !(pG->flags_60 & 0x02000000)) {
-        pG->flags_64 |= 0x80000000;
+    if ((s32) pG->Debug_flg[0] < 0 && !(pG->Debug_flg[0] & 0x02000000)) {
+        pG->Debug_flg[1] |= 0x80000000;
     } else {
-        pG->flags_64 &= ~0x80000000;
+        pG->Debug_flg[1] &= ~0x80000000;
     }
     if (IdSys.setCk(ID_LIFE)) {
         m_LifeMeter.move();
@@ -716,7 +716,7 @@ static inline void U32Add(u32& d, u32 v)
 // the inline keeps the two tests apart (fold would merge them into one `andis. 0xa`)
 static inline u32 chkFlag5014(u32 b)
 {
-    return pG->flags_5014 & b;
+    return pG->Status_flg[2] & b;
 }
 
 void CountDown::move()
@@ -738,7 +738,7 @@ void CountDown::move()
         return;
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
-        ((pG->flags_5010 & 0x10000000) || (pG->Stop_flg & 0x10000000))) {
+        ((pG->Status_flg[1] & 0x10000000) || (pG->Stop_flg & 0x10000000))) {
         m_state |= 8;
     } else {
         m_state &= ~8;
@@ -747,7 +747,7 @@ void CountDown::move()
         U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!(pG->flags_64 & 0x00010000) && !(pG->flags_500C & 0x00040000) && !(m_state & 8)) {
+    if (!(pG->Debug_flg[1] & 0x00010000) && !(pG->Status_flg[0] & 0x00040000) && !(m_state & 8)) {
         if (m_frame != 0) {
             m_frame = m_frame - 1;
         } else {

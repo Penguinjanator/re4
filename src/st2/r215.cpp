@@ -62,7 +62,7 @@ void R215Init()
 {
 #line 44 "D:/Bio4/Prog/r215.cpp"
     r215_work = (R215Work*) MEM_CALLOC(sizeof(R215Work), 1, 0xd);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
     EvtMgr.SetFunc("evt_r215s00_func", (void*) Evt_R215S00_Func);
@@ -84,9 +84,9 @@ extern "C" void R215_Event()
     SceSleep(1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        pG->flags_174 |= 0x80000000;
+        pG->Room_flg[0] |= 0x80000000;
         EvtMgr.EvtReadExec("event/evd/r215s00.evd", 0, 0);
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             EvtMgr.EvtReadExec("event/evd/r215s01.evd", 0, 0);
             {
                 Vec pos = {39050.0f, 3000.0f, 200.0f};
@@ -115,7 +115,7 @@ extern "C" void R215_Event()
 
 static void r215_succeedAction()
 {
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
 }
 
 extern "C" void Evt_R215S00_Func(Event* e)
@@ -162,7 +162,7 @@ extern "C" void Evt_R215S00_Func(Event* e)
         case 0xA:
             BitOff(pG->Stop_flg, 0x100);
             BitOff(pG->Disp_flg, 0x800);
-            if (pG->flags_174 & 0x80000000) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 // The button object and the callback are evaluated before the stack argument store.
                 cActionButton* ab = &ActBtn;
                 int func = (int) r215_succeedAction;

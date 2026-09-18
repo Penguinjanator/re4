@@ -116,8 +116,8 @@ void R223Init()
 #line 67 "D:/Bio4/Prog/r223.cpp"
     R223Work*& wp = r223_work.p;
     wp = (R223Work*) MEM_CALLOC(sizeof(R223Work), 1, 0xD);
-    BitOn(pG->flags_64, 0x20000);
-    if (pG->x4F9F == 1) {
+    BitOn(pG->Debug_flg[1], 0x20000);
+    if (pG->JumpPoint == 1) {
         if (DebugTrg(1)) {
             RsfSet(G_ROOM_ID, 6);
             RsfClear(G_ROOM_ID, 9);
@@ -526,13 +526,13 @@ static void r223_EmApper_exit()
     r223_work.p->em[13].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
 }
 
 static void r223_EmApper()
 {
     SceEventStart(1);
-    pG->flags_5014 |= 0x02000000;
+    pG->Status_flg[2] |= 0x02000000;
     r223_work.p->em[13].setEm(0xCC, 5, 1, 1, 1);
     setFlagStart(&r223_work.p->em[13]);
     r223_work.p->em[13].setNoSuspend(1);
@@ -587,7 +587,7 @@ static void r223_EmCheck()
                 }
             }
         }
-        if (RsfCheck(G_ROOM_ID, 0) == 0 && (int) pG->sceat_x17C < 0 && isZouenGo() == 1) {
+        if (RsfCheck(G_ROOM_ID, 0) == 0 && (int) pG->Room_flg[2] < 0 && isZouenGo() == 1) {
             RsfSet(G_ROOM_ID, 0);
             r223_work.p->em[9].setEm(0xDC, 5, 1, 1, 1);
             r223_work.p->em[10].setEm(0xDD, 5, 1, 1, 1);
@@ -600,14 +600,14 @@ static void r223_EmCheck()
             r223_work.p->em[12].setGoto(&c, 7);
             r223_work.p->em[13].setGoto(&c, 7);
         }
-        if (RsfCheck(G_ROOM_ID, 1) == 0 && (int) pG->sceat_x17C < 0 && isZouenGo2() == 1) {
+        if (RsfCheck(G_ROOM_ID, 1) == 0 && (int) pG->Room_flg[2] < 0 && isZouenGo2() == 1) {
             RsfSet(G_ROOM_ID, 1);
             SceExec(0x12, (TaskFunc) r223_EmApper, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         timer++;
         if (timer > 100) {
             timer = 100;
-            if (r223_work.p->em[3].isActive() == 1 && (int) pG->sceat_x17C < 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+            if (r223_work.p->em[3].isActive() == 1 && (int) pG->Room_flg[2] < 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
                 r223_work.p->em[3].setGoto(&pPL->pos, 8);
                 r223_work.p->em[17].setEm(0xD0, 5, 1, 1, 1);

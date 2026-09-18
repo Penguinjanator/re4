@@ -23,7 +23,7 @@ void CinescoMove(void)
         cine_off_move,
     };
 
-    pG->flags_500C |= 0x1000000;
+    pG->Status_flg[0] |= 0x1000000;
     cine_tbl[cine_work.rno0](&cine_work);
 }
 
@@ -31,7 +31,7 @@ void cine_polling(CineWork* w)
 {
     int on;
 
-    if (!(pG->flags_500C & 0x1000000)) {
+    if (!(pG->Status_flg[0] & 0x1000000)) {
         on = 0;
     } else {
         on = 1;

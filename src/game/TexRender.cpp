@@ -105,7 +105,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
 {
     static u8 vfilter[7] __attribute__((aligned(32))) = {32, 0, 0, 0, 0, 0, 32};
 
-    if (pG->flags_5010 & 0x08000000) {
+    if (pG->Status_flg[1] & 0x08000000) {
         GXRenderModeObj* rmode = &Rmode;
         u32 ofs, w, h;
         int wrap;
@@ -159,7 +159,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
         g_draw = 1;
     }
     if (m == &g_RndMgr[g_RndMgrNum - 1]) {
-        pG->flags_5010 &= ~0x08000000;
+        pG->Status_flg[1] &= ~0x08000000;
         ScreenReSize(0x200, 0x1C0);
         SetScissorState();
     }
@@ -176,7 +176,7 @@ void TransTexRenderMgr()
         }
     }
     {
-        u32 use = pG->flags_60 & 0x80;
+        u32 use = pG->Debug_flg[0] & 0x80;
         if (use) {
             use = 1;
         }
@@ -297,7 +297,7 @@ void TexRenderModRes(cModel* m)
 
 void TexRenderModAddOt(int ot, cModel* m)
 {
-    pG->flags_5010 |= 0x08000000;
+    pG->Status_flg[1] |= 0x08000000;
     if (m == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;
@@ -310,7 +310,7 @@ void TexRenderModAddOt(int ot, cModel* m)
 
 void TexRenderModAddOtMirror(int ot, cModel* m)
 {
-    pG->flags_5010 |= 0x08000000;
+    pG->Status_flg[1] |= 0x08000000;
     if (m == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;

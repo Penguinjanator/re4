@@ -142,7 +142,7 @@ void MenuTask()
 void DbMenuExec()
 {
     struct test* t = &test;
-    BitOn(pG->flags_60, 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
     t->stop_bak = pG->Stop_flg;
     BitOn(pG->Stop_flg, ~0x4000);
     pG->debug_disp = pG->debug_mode;
@@ -162,16 +162,16 @@ void DbMenuExec()
 void DbMenuExitAfterCheck()
 {
     struct test* t = &test;
-    if (!(pG->flags_68 & 0x200)) {
-        if ((s32) pG->flags_60 < 0) {
-            pG->flags_68 |= 0x200;
+    if (!(pG->Debug_flg[2] & 0x200)) {
+        if ((s32) pG->Debug_flg[0] < 0) {
+            pG->Debug_flg[2] |= 0x200;
         }
         if (t->exit_wait > 0) {
             t->exit_wait--;
         }
         return;
     }
-    if ((s32) pG->flags_60 < 0) {
+    if ((s32) pG->Debug_flg[0] < 0) {
         return;
     }
     if (!(pG->debug_disp & 0x80)) {
@@ -184,7 +184,7 @@ void DbMenuExitAfterCheck()
     DbmenuModuleInit();
     ResetDebugAlloc();
     t->exit_wait = 30;
-    pG->flags_68 &= ~0x200;
+    pG->Debug_flg[2] &= ~0x200;
     if (t->exec_tool == 1) {
         DbMenuExec();
     }
@@ -248,7 +248,7 @@ void init(struct test* t)
 static void exit(struct test* t)
 {
     BitSet(pG->Stop_flg, t->stop_bak);
-    BitOff(pG->flags_60, 0x80000000);
+    BitOff(pG->Debug_flg[0], 0x80000000);
     TaskExit();
 }
 

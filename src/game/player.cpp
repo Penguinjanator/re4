@@ -179,7 +179,7 @@ void PlayerInit()
     }
     PlayerLifeReset();
     U16Set(pG->pl_life_max, pG->pl_life);
-    BitOff(pG->flags_68, 0x00040000);
+    BitOff(pG->Debug_flg[2], 0x00040000);
     ReleaseWepData();
     U16Set(pG->pl_flag, 1);
     PlKaiou = 0;
@@ -216,10 +216,10 @@ void PlayerLifeReset()
         break;
     }
     U16Set2(pG->ashley_life, pG->ashley_life_max, 600);
-    if (pG->flags_6C & 0x00800000) {
+    if (pG->Debug_flg[3] & 0x00800000) {
         U16Set2(pG->pl_life, pG->pl_life_max, 1440);
     }
-    if (pG->flags_6C & 0x00040000) {
+    if (pG->Debug_flg[3] & 0x00040000) {
         U16Set2(pG->pl_life, pG->pl_life_max, 1920);
     }
 }
@@ -328,20 +328,20 @@ void cPlayer::move()
     int moved;
     int i;
 
-    BitOff(pG->flags_5010, 4);
-    BitOff(pG->flags_500C, 0x00800000);
-    BitOff(pG->flags_5010, 0x40000000);
-    BitOff(pG->flags_5010, 0x00800000);
-    BitOff(pG->flags_5010, 0x00400000);
-    BitOff(pG->flags_5010, 0x00200000);
-    BitOff(pG->flags_5010, 0x00080000);
-    BitOff(pG->flags_5010, 0x00008000);
-    BitOff(pG->flags_5010, 0x00002000);
-    BitOff(pG->flags_5014, 0x40000000);
-    BitOff(pG->flags_5014, 0x01000000);
-    BitOff(pG->flags_5010, 0x00040000);
+    BitOff(pG->Status_flg[1], 4);
+    BitOff(pG->Status_flg[0], 0x00800000);
+    BitOff(pG->Status_flg[1], 0x40000000);
+    BitOff(pG->Status_flg[1], 0x00800000);
+    BitOff(pG->Status_flg[1], 0x00400000);
+    BitOff(pG->Status_flg[1], 0x00200000);
+    BitOff(pG->Status_flg[1], 0x00080000);
+    BitOff(pG->Status_flg[1], 0x00008000);
+    BitOff(pG->Status_flg[1], 0x00002000);
+    BitOff(pG->Status_flg[2], 0x40000000);
+    BitOff(pG->Status_flg[2], 0x01000000);
+    BitOff(pG->Status_flg[1], 0x00040000);
     clearStatus(EM_STATUS_IK_OFF);
-    BitOff(pG->flags_5014, 0x80000000);
+    BitOff(pG->Status_flg[2], 0x80000000);
     if (Wep->m_pWep) {
         Wep->m_pWep->wep.target = 0;
     }
@@ -353,9 +353,9 @@ void cPlayer::move()
         ShapeMove(Body->pShape);
     }
     if ((int) pos.x == (int) pos_old.x && (int) pos.y == (int) pos_old.y && (int) pos.z == (int) pos_old.z
-        && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20)) {
+        && (stat & 0xFFFFFF00) == 0x100 && !(pG->Status_flg[0] & 0x20)) {
         moved = 0;
-        if ((int) pG->flags_60 >= 0) {
+        if ((int) pG->Debug_flg[0] >= 0) {
             goto moveChecked;
         }
     }
@@ -374,7 +374,7 @@ moveChecked:
     moveBinocular();
     subCharLiveCheck();
     Pl_func_tbl[r_no_0](this);
-    if (pG->flags_68 & 0x00010000) {
+    if (pG->Debug_flg[2] & 0x00010000) {
         // the u8 compared as an int (`cmpwi -1`): the original's test, always true
         if (PlKaiou != -1) {
             for (i = 0; i < PlKaiou + 1; i++) {
@@ -397,7 +397,7 @@ moveChecked:
     partsWorldCalc();
     partsFixAdjust();
     PartsWorldPosCalc(this);
-    if (!(pG->flags_68 & 8)) {
+    if (!(pG->Debug_flg[2] & 8)) {
         savePos = pos;
         EmAtCheck(this);
         SatMgr.check(this, m_pSatMask);
@@ -801,7 +801,7 @@ static void plLadderPosSet(cPlayer* pl)
 // height reached, the foot SEs play at fixed frames.
 void pl_R1_Ladder(cPlayer* pl)
 {
-    BitOn(pG->flags_5010, 0x00040000);
+    BitOn(pG->Status_flg[1], 0x00040000);
     switch (pl->r_no_2) {
     case 0:
         FSet(pl->x400, pl->pos.y);
@@ -1091,7 +1091,7 @@ void pl_R1_Whistle(cPlayer* pl)
     case 1:
         if (MotionCheckCrossFrame(MOTION(pl), 20.0f)) {
             SndCall(1, 0xE, &pl->pParts->world, 0, 0, 0);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
         }
         if (pl->motionMove()) {
             PlRoutineSet(pl, 0, 0, 0, 0);

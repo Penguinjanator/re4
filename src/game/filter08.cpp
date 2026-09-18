@@ -62,7 +62,7 @@ void Filter08Trans()
     if (use_filter8 == 0) {
         return;
     }
-    if (!(pG->flags_5018 & 0x08000000)) {
+    if (!(pG->Status_flg[3] & 0x08000000)) {
         filter08_ratio -= filter08_ratio * 0.6f;
         if (filter08_ratio < 0.01f) {
             return;

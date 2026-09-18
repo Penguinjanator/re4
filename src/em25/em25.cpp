@@ -270,7 +270,7 @@ void cEm25::move()
     motFlags2 &= ~0x40000000;
     em25DmCk(this);
     w->Be_flg &= ~0x2F;
-    if (!(pGS->flags_68 & 0x20000) && w->Alive_timer) {
+    if (!(pGS->Debug_flg[2] & 0x20000) && w->Alive_timer) {
         w->Alive_timer--;
     }
     if (w->Atk_wait) {
@@ -315,7 +315,7 @@ void cEm25::move()
             }
         }
     }
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         LightInfo.x50 = 0x80;
     } else {
         LightInfo.x50 = 2;
@@ -726,7 +726,7 @@ static void plem25_Bite(cPlayer* pl)
 {
     int end;
 
-    pG->flags_5010 |= 0x8000;
+    pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = ((cEm*) pPL->dmgType)->subArc;
     switch (pl->r_no_2) {
@@ -1434,7 +1434,7 @@ int em25CatchCk(cEm25* em)
     if (!(w->Be_flg & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x8000) {
+    if (pG->Status_flg[1] & 0x8000) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);
@@ -1523,7 +1523,7 @@ void em25RouteCk(cEm25* em)
         return;
     }
     if (em->r_no_0 != 0) {
-        if ((pG->flags_51E4 & 7) != (em->emset_no & 7)) {
+        if ((pG->Frame_cnt & 7) != (em->emset_no & 7)) {
             return;
         }
     }

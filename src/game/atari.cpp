@@ -246,7 +246,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
         floor = getFloor(&m->pos, 600.0f, 100000.0f, (u32*) &m->pFloor_norm, flag);
         if (fabsf(floor - m->pos.y) < 1000.0f) {
             m->pos.y = floor;
-        } else if (pG->x4 == 0) {
+        } else if (pG->shooting_mode == 0) {
             f32 x = (f32) ((int) m->pos.x / 100) * 100.0f;
             f32 y = (f32) ((int) m->pos.y / 100) * 100.0f;
             f32 z = (f32) ((int) m->pos.z / 100) * 100.0f;
@@ -257,7 +257,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
             }
             up = m->pos;
             up.y += 50000.0f;
-            c = pG->flags_51E4 & 0x3F;
+            c = pG->Frame_cnt & 0x3F;
             c <<= 2;
             if (pG->debug_mode != 0) {
                 Draw_line3d(&m->pos, &up, 0xFFFF0000 | (c << 8) | c, 0);
@@ -274,7 +274,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
             }
         }
     }
-    if (pG->flags_68 & 0x20000000) {
+    if (pG->Debug_flg[2] & 0x20000000) {
         Draw_sphere(&newPos, info->m_radius, 0xA0A0A0A0, 1, 1);
     }
     return mag;
@@ -313,7 +313,7 @@ f32 cSatMgr::scrAtCheckSphereAir(cModel* m, cAtariInfo* info, int flag)
             PSVECSubtract(&m->pos, &mpos, &mpos);
             PSVECAdd(&link->pos, &mpos, &link->pos);
         }
-        if (pG->flags_68 & 0x20000000) {
+        if (pG->Debug_flg[2] & 0x20000000) {
             Draw_sphere(&newPos, info->m_radius, 0xA0A0A0A0, 1, 1);
         }
     }
@@ -393,7 +393,7 @@ f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
     Vec bottom;
     Vec hit;
 
-    if (pG->flags_64 & 0x10000000) {
+    if (pG->Debug_flg[1] & 0x10000000) {
         return 0.0f;
     }
     top.x = pos->x;
@@ -782,7 +782,7 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, 
             if (nrm) {
                 *nrm = sat->norm_p[sat->poly_p[*idx].n];
             }
-            if (pG->flags_60 & 0x08000000) {
+            if (pG->Debug_flg[0] & 0x08000000) {
                 sat->disp(*idx, 0x40FF0000, 1);
             }
         }

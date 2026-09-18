@@ -106,7 +106,7 @@ int OptionOpenCheck()
     if (SubScreenWk.wait > 0) {
         return 0;
     }
-    u32 f = pG->flags_500C;
+    u32 f = pG->Status_flg[0];
     if (f & 0x400) {
         return 0;
     }
@@ -137,7 +137,7 @@ void OptionScreen::init(int title)
     _rno1 = 0;
     _rno2 = 0;
     _rno3 = 0;
-    if (pG->flags_5014 & 0x8000) {
+    if (pG->Status_flg[2] & 0x8000) {
         _rno1 = 1;
     }
     SndCall(0, 0x33, 0, 0, 0, 0);
@@ -280,7 +280,7 @@ int top_menu(OptionScreen* o)
             o->_rno1++;
         }
         o->_rno1 = o->_rno1 < 0 ? 0 : (o->_rno1 > 4 ? 4 : o->_rno1);
-        if ((pG->flags_5014 & 0x8000) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
+        if ((pG->Status_flg[2] & 0x8000) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
             o->_rno1 = 1;
         }
         if (old != o->_rno1) {
@@ -298,7 +298,7 @@ int top_menu(OptionScreen* o)
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
-        if ((pG->flags_5014 & 0x8000) && i == 0) {
+        if ((pG->Status_flg[2] & 0x8000) && i == 0) {
             u->col0[0] = 0x40;
             u->col0[1] = 0x40;
             u->col0[2] = 0x40;
@@ -1027,7 +1027,7 @@ int GameResult::move()
     u->be_flag |= 8;
     u->tex_flag |= 2;
     u = IdSys.unitPtr(0, ID_RESULT);
-    if (pG->x4F8E > 1) {
+    if (pG->game_cnt > 1) {
         u->be_flag |= 8;
     } else {
         u->be_flag &= ~8;

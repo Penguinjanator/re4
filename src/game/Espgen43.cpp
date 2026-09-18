@@ -126,7 +126,7 @@ void AddSandPowerSub(EspgenWork* w)
 
 void AddSandPower(Vec* pos, f32 power)
 {
-    if (pG->flags_500C & 2) {
+    if (pG->Status_flg[0] & 2) {
         // COMPILER-DIFF: word copy with the .z word pinned to r11 (the original issues `stfs Add_power`
         // in the first cycle in both schedulers). Scalar `u32` loads are not MEM_IN_STRUCT_P, so the
         // plain `Add_power` store gates them (priority 7) and takes the first cycle in sched1 too;
@@ -183,7 +183,7 @@ void GetSandHeightSub(EspgenWork* w)
 
 int GetSandHeight(Vec* pos, f32* height)
 {
-    if (!(pG->flags_500C & 2)) {
+    if (!(pG->Status_flg[0] & 2)) {
         return 0;
     }
     ISet(Height_find, 0);
@@ -204,7 +204,7 @@ void Espgen43_Move00(EspgenWork* w)
     int k;
     u32 n;
 
-    pG->flags_500C |= 2;
+    pG->Status_flg[0] |= 2;
     for (i = 1; i < p->ny; i++) {
         k = i * (p->Width + 1);
         for (j = 1; j < p->Width; j++) {

@@ -101,7 +101,7 @@ static inline int EspgenIsActive(EspgenWork* w)
     } else {
         // the flag load before `on = 1` keeps jump.c from hoisting `on = 0` above the first
         // test (the else arm must not start with a set of `on`)
-        u32 f = pG->flags_5010;
+        u32 f = pG->Status_flg[1];
         on = 1;
         if (f & 0x10000000) {
             on = w->info.Core_flg & 1;
@@ -365,7 +365,7 @@ int EspgenMove()
     u32 i;
     u32 max;
 
-    if (pG->flags_5010 & 2) {
+    if (pG->Status_flg[1] & 2) {
         pause = 1;
     }
     cnt = 0;
@@ -391,7 +391,7 @@ int EspgenMove()
             }
         }
     }
-    if (pG->flags_6C & 0x8000) {
+    if (pG->Debug_flg[3] & 0x8000) {
         eprintf(472, 216, 0, 0, "%d", cnt);
     } else {
         eprintf(472, 216, 0, 14, "%d", cnt);
