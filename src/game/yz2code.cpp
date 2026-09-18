@@ -1,3 +1,8 @@
+// game/yz2code: set-up side of Capcom's yz2 decompressor (the room archives "rNNN.das" are yz2
+// streams: a text header "<packed hex> <unpacked hex>" then the bit stream at the next 32-byte
+// boundary). Yz2DecodeSet parses the header, Yz2DecodeExec builds the adaptive frequency models
+// (a 0x500-symbol main model and a 0x100-symbol one) and the 256-entry dictionary in a work
+// buffer, then hands over to the assembly decoder (yz2asm.cpp yz2Decode_Decode).
 #include "types.h"
 
 extern "C" {
@@ -60,6 +65,8 @@ struct Yz2Ctx {
     int n;          // 0x58
 };
 
+// Parses the yz2 header at `str` (packed size, unpacked size in hex), sets the work buffer `buf`
+// and the stream start (32-byte aligned after the header). Returns the unpacked size.
 u32 Yz2DecodeSet(char* str, void* buf)
 {
     char* p = str;
@@ -76,6 +83,7 @@ u32 Yz2DecodeSet(char* str, void* buf)
     return size;
 }
 
+// Bump allocation in the work buffer.
 static inline void* yz2Alloc(u32 size)
 {
     void* p = in_ev.free;
@@ -137,6 +145,8 @@ static inline void* yz2Alloc(u32 size)
         m->table = (u8*) yz2Alloc(0x20000);               \
     }
 
+// Decompresses the stream prepared by Yz2DecodeSet into `dst`: models and dictionary built in the
+// work buffer, first byte primed, then the decoder loop.
 void Yz2DecodeExec(void* dst)
 {
     Yz2Ctx ctx;

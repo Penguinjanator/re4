@@ -1,4 +1,7 @@
-// game/pl_ashley.cpp: Ashley player class: model set (body, hands, head), motion table, bust motion, cloth.
+// game/pl_ashley: cPlAshley, the player class for the Ashley chapter (pl_type 1): builds her
+// model set (body, face, hair, skirt) from the player archive, the room-dependent motion table
+// (pl01weaponSet), the two hand models, and adds the bust bounce (moveBust) on top of cPlayer.
+// She has no weapon; the cloth (hair / skirt / sweater) runs through pl_cloth.
 
 #include "atari.h"
 #include "light.h"
@@ -31,6 +34,8 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
+// Builds the Ashley player (pl_type 1 / the "Ashley chapter"): common init, model set, bust rest
+// positions (parts 0x1D / 0x1E / 0x1A), motion table, her effect data (archive 0x1A), foot shadows.
 cPlAshley::cPlAshley()
 {
     init0();
@@ -47,16 +52,20 @@ cPlAshley::cPlAshley()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// cPlayer::move plus the bust bounce.
 void cPlAshley::move()
 {
     cPlayer::move();
     moveBust();
 }
 
+// Nothing to fix up before the matrix pass (Leon uses it for the head).
 void cPlAshley::moveMatCalcBefore()
 {
 }
 
+// Loads the body (archive 4/5) and adds the face (7/9, also Body->pShape for the face morphs), hair
+// (6/0xB), the skirt (8, be_flag 0x40) and 0xA, then the default face and empty hands.
 void cPlAshley::setModel()
 {
     cModelInfo* info;
@@ -99,6 +108,8 @@ void cPlAshley::setModel()
     setLeftHand(0);
 }
 
+// Ashley's motion table (pMotTbl, 0x6D entries) from the player archive: a separate set for room
+// 20E (the crate-carrying / cabin section), the normal set elsewhere.
 void pl01weaponSet(cPlayer* pl)
 {
     int i;
@@ -177,6 +188,8 @@ void pl01weaponSet(cPlayer* pl)
     }
 }
 
+// Right hand model: 0 = empty hand (room 20E variant 0xA7/0xA8, else 0x11/5), 1 = the weapon hand
+// (Body->pWepHand). A create failure HALTs.
 void cPlAshley::setRightHand(int no)
 {
     cModelInfo* info;
@@ -217,6 +230,7 @@ void cPlAshley::setRightHand(int no)
     }
 }
 
+// Left hand model: 0 open (0x14), 1 closed (0x15); 0x63 = restore the previous hand.
 void cPlAshley::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -252,10 +266,13 @@ void cPlAshley::setLeftHand(u32 no)
     }
 }
 
+// Ashley has no face variants.
 void cPlAshley::setFace(int no)
 {
 }
 
+// Bust bounce: a sine offset (period 256/15 frames) on parts 0x1D / 0x1E / 0x1A that is pumped to 6
+// units while she moves faster than 5 units/frame (or pad 2 X is held) and decays otherwise.
 void cPlAshley::moveBust()
 {
     static u8 bbx = 0;

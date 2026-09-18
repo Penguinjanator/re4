@@ -1,3 +1,7 @@
+// game/se_at: the room's ambient sound emitters — the "ESE" sub-file of the room archive lists
+// SeAt records (a SE block / number, a position, first-play wait, repeat count, fixed interval or
+// a random one); SeAtCheck plays them on their timers every frame during play, the room scripts
+// switch single emitters with SeAtSetOnOff / SeAtSndCall.
 #include "map_obj.h"
 #include "light.h"
 #include "widget.h"
@@ -9,6 +13,7 @@
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 extern int DebugMenuSelected;                            // game/db_menu.cpp
 
+// Room start: takes the room's ESE emitter list (version 0x100) into Snd.se_at / se_at_list.
 void SeAtInit()
 {
     SndWork* s = &Snd;
@@ -26,6 +31,9 @@ void SeAtInit()
     s->se_at_list = (SeAt*) (s->se_at + 1);
 }
 
+// Per frame in the game routine (Rno0 3, not while Stop_flg 0x800): each enabled emitter waits
+// its `wait` frames, then plays its SE (positioned unless flags2 bit0) and reloads `cnt` with the
+// fixed interval or rnd_base + random(rnd_range); `repeat` counts the plays down (1 = last, -1 done).
 void SeAtCheck()
 {
     SndWork* s = &Snd;
@@ -83,6 +91,7 @@ void SeAtCheck()
     }
 }
 
+// Room script: enables / disables emitter `no` (flags bit0). 0 when not found.
 int SeAtSetOnOff(int no, int on)
 {
     SeAt* at = GetSeAtPtr(no);
@@ -103,6 +112,7 @@ int SeAtSetOnOff(int no, int on)
     return 1;
 }
 
+// The emitter record numbered `no`, or 0.
 SeAt* GetSeAtPtr(int no)
 {
     SeAt* at;
@@ -120,6 +130,7 @@ SeAt* GetSeAtPtr(int no)
     return 0;
 }
 
+// Plays emitter `no`'s SE once now; returns the SndCall handle (0 when not found).
 u32 SeAtSndCall(int no)
 {
     SeAt* at = GetSeAtPtr(no);

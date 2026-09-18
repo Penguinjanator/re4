@@ -1,4 +1,9 @@
-// game/scheduler: cooperative task scheduler on top of OS threads (D:/Bio4/Prog/scheduler.cpp).
+// game/scheduler: the cooperative task scheduler — 18 task slots (TASK), each an OS thread with
+// its own stack, run one after another by the main thread every frame (TaskScheduler ->
+// TaskSchedulerMain); a task runs until it calls TaskSleep / TaskExit, which hand control back.
+// Slot 0 is the game, 1 debug / sub screen / movie tasks, 4 the background (ISR) task, 5..17 the
+// scenario tasks (sce_sys). Task flags decide whether a slot keeps running during events and the
+// sub screen. (D:/Bio4/Prog/scheduler.cpp)
 #include "types.h"
 #include "global.h"
 #include "main_mem.h"
@@ -24,6 +29,8 @@ static int iTask_exec_flg = 0;
 
 void TaskKill(TASK* t);
 
+// Boot: gives every task slot its stack (one allocation, filled with 0xB3 for the usage check),
+// number and thread queue; the scheduler semaphore starts at 0.
 void TaskSchedulerInit()
 {
     u32 total = 0;
@@ -49,6 +56,7 @@ void TaskSchedulerInit()
     iTask_exec_flg = 0;
 }
 
+// Kills every task (game reset).
 void TaskAllClear()
 {
     u32 i;
@@ -59,6 +67,7 @@ void TaskAllClear()
     iTask_exec_flg = 0;
 }
 
+// Stack bytes for slot `no`: 0x3000 for slot 2 (the main game task), 0x2000 for 0..4, 0x1800 above.
 u32 GetStackSize(int no)
 {
     if (no == 2) {
@@ -70,6 +79,8 @@ u32 GetStackSize(int no)
     return 0x2000;
 }
 
+// Once per frame from the main thread: runs every slot except the ISR one in order (slot 2 first
+// restores the debug menu's stop flag); debug_mode 6 prints the stack usage.
 void TaskScheduler()
 {
     u32 i;
@@ -92,6 +103,10 @@ void TaskScheduler()
     }
 }
 
+// Runs one task for this frame: skipped while an event holds non-event tasks (Status_flg[1]
+// 0x10000000 vs flag bit1) or the sub screen holds (Status_flg[0] 0x100000 vs bit2); TASK_EXEC
+// creates and starts its thread, TASK_SLEEP counts down and wakes it, TASK_RUN resumes it; the
+// main thread then waits (semaphore for priority > 0xF tasks) until the task sleeps / exits.
 void TaskSchedulerMain(TASK* t)
 {
     if ((pG->Status_flg[1] & 0x10000000) && !(t->flag & 2)) {
@@ -130,6 +145,7 @@ void TaskSchedulerMain(TASK* t)
     StackOverflowCheck(t);
 }
 
+// Debug: prints how much of each task stack has been touched (bytes no longer 0xB3).
 void stackUsedCheck()
 {
     u32 i;
@@ -149,6 +165,7 @@ void stackUsedCheck()
     }
 }
 
+// Panics when the guard word at the bottom of the task's stack was overwritten.
 void StackOverflowCheck(TASK* t)
 {
     if (*(u32*) (t->pStack - t->StackSize) != 0xDEADBABE) {
@@ -159,6 +176,8 @@ void StackOverflowCheck(TASK* t)
     }
 }
 
+// Thread entry of every task: suspends the scheduler thread, sets the GQR registers for the
+// paired-single loads, and calls the task function with its argument.
 void* TaskExec_hook(void* value)
 {
     if (ParentThread() != NULL) {
@@ -184,6 +203,8 @@ void* TaskExec_hook(void* value)
     return NULL;
 }
 
+// Starts `func(arg)` in slot `prio` (fails with an error when the slot is busy): the thread is
+// created on the next scheduler pass; flag 6 (skipped by events and the sub screen), priority 0xF.
 TASK* TaskExec(int prio, TaskFunc func, int arg)
 {
     TASK* t;
@@ -202,6 +223,8 @@ TASK* TaskExec(int prio, TaskFunc func, int arg)
     return t;
 }
 
+// Called from a task: yields for `frames` frames — the scheduler thread resumes, the task thread
+// sleeps on its queue until TaskSchedulerMain wakes it.
 void TaskSleep(int frames)
 {
     if (frames == 0) {
@@ -222,6 +245,8 @@ void TaskSleep(int frames)
     GXSetCurrentGXThread();
 }
 
+// Called from a task: replaces itself with `func(arg)` in the same slot (started next frame) and
+// ends the current thread.
 void TaskChain(TaskFunc func, int arg)
 {
     CTASK->hook = TaskExec_hook;
@@ -237,6 +262,7 @@ void TaskChain(TaskFunc func, int arg)
     OSExitThread(&pCTask->Thread);
 }
 
+// Called from a task: frees the slot and ends the thread (the scheduler thread resumes).
 void TaskExit()
 {
     TASK* t = pCTask;
@@ -252,11 +278,14 @@ void TaskExit()
     OSExitThread(&pCTask->Thread);
 }
 
+// Kills the task in slot `prio`.
 void TaskKill(int prio)
 {
     TaskKill(&Task[prio]);
 }
 
+// Kills a task: a sleeping / suspended thread is cancelled; a running one (the caller itself)
+// exits; slot freed.
 void TaskKill(TASK* t)
 {
     if (t->Status == 0) {
@@ -281,6 +310,7 @@ void TaskKill(TASK* t)
     t->suspend_cnt = 0;
 }
 
+// Suspends slot `task` (counted; TASK_SUSPEND bit).
 void TaskSuspend(int task)
 {
     TASK* t = &Task[task];
@@ -289,6 +319,7 @@ void TaskSuspend(int task)
     t->Status |= TASK_SUSPEND;
 }
 
+// Undoes one TaskSuspend; the task runs again when the count reaches 0.
 void TaskSignal(int task)
 {
     TASK* t = &Task[task];
@@ -303,11 +334,13 @@ void TaskSignal(int task)
     t->Status &= ~TASK_SUSPEND;
 }
 
+// Status of slot `prio` (0 = free).
 u8 TaskStatus(int prio)
 {
     return Task[prio].Status;
 }
 
+// The model a task works on (the current task when t is NULL) — read by the scenario / camera.
 void SetTaskModelPtr(void* model, TASK* t)
 {
     if (t == NULL) {
@@ -317,6 +350,8 @@ void SetTaskModelPtr(void* model, TASK* t)
     }
 }
 
+// From the main loop after the CPU work of the frame (main.cpp): lets the background task slot
+// (TASK_ISR) run in the time left before the vsync, when one is active.
 void iTaskScheduler()
 {
     BOOL lv = OSDisableInterrupts();
@@ -332,6 +367,8 @@ void iTaskScheduler()
     OSRestoreInterrupts(lv);
 }
 
+// Starts `func` in the interrupt-driven slot (decompression / loading in the background); only
+// one at a time. Returns NULL when busy.
 TASK* iTaskExec(TaskFunc func)
 {
     TASK* t;
@@ -346,18 +383,22 @@ TASK* iTaskExec(TaskFunc func)
     return NULL;
 }
 
+// Kills the ISR task.
 void iTaskKill()
 {
     iTask_exec_flg = 0;
     TaskKill(&Task[TASK_ISR]);
 }
 
+// Called from the ISR task: ends it.
 void iTaskExit()
 {
     iTask_exec_flg = 0;
     TaskExit();
 }
 
+// From the VI retrace callback: suspends the background task's thread if it is still running so
+// the main thread gets the CPU back for the next frame.
 void iTaskSuspend()
 {
     if (iTask_exec_flg == 1) {
@@ -369,6 +410,7 @@ void iTaskSuspend()
     }
 }
 
+// 1 while an ISR task runs.
 int iTaskStatus()
 {
     return iTask_exec_flg;

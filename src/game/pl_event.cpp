@@ -1,9 +1,14 @@
-// game/pl_event.cpp: player routine 0 (event control): idle, walk to a point, smooth motion change.
+// game/pl_event: the player's event routine (routine 0 == 5, Pl_R0_Event): the scenario / event
+// system owns the player — Normal plays a set motion (m_Flag 0x100 returns control when it ends),
+// ToWalk turns and walks to evTarget, Smooth changes motion with a footwork. Entered / left through
+// cPlayer::beginAction / endEvent0 (pl_class).
 
 #include "player.h"
 #include "atari.h"
 #include "math_sub.h"
 
+// Routine 0 == 5 (event control): the scenario / event drives the player; r_no_1 picks Normal
+// (play a motion), ToWalk (walk to evTarget), Smooth (motion change with footwork).
 void Pl_R0_Event(cPlayer* pl)
 {
     static void (*funcTbl[])(cPlayer*) = {
@@ -15,6 +20,8 @@ void Pl_R0_Event(cPlayer* pl)
     funcTbl[pl->r_no_1](pl);
 }
 
+// Event sub-routine 0: plays the set motion; when it ends and m_Flag 0x100 (return when done) is
+// set, back to routine 0/0 (normal control).
 void pl_R1_Event_Normal(cPlayer* pl)
 {
     if (pl->r_no_2 == 0) {
@@ -31,6 +38,9 @@ void pl_R1_Event_Normal(cPlayer* pl)
     }
 }
 
+// Event sub-routine 1: turns toward evTarget (turn motion when more than 60 degrees off, m_Fwork0
+// = turn speed per frame), walks (pMotTbl[2]) until within 100 units, then stands (pMotTbl[0])
+// and sets m_Work0 = 1 for the event script to see.
 void pl_R1_Event_ToWalk(cPlayer* pl)
 {
     f32 ang;
@@ -66,6 +76,8 @@ void pl_R1_Event_ToWalk(cPlayer* pl)
     pl->motionMove();
 }
 
+// Event sub-routine 2: lets the current motion end, then re-plants the feet (setFootwork) and
+// keeps playing.
 void pl_R1_Event_Smooth(cPlayer* pl)
 {
     switch (pl->r_no_2) {

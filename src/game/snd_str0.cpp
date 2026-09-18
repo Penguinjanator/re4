@@ -1,5 +1,12 @@
+// game/snd_str0: sound driver streamed audio (ADPCM from disc), game-side entry points — a
+// stream work (SND_STR_WORK, 4 slots with 64 KB MRAM buffers and 128 KB ARAM per channel) is
+// prepared from a stream block's RIT / SHD entry (Snd_str_prepare / Snd_str_init: file opened,
+// block sizes, loop points, AX voices), then driven by request bits (1 ready, 2 play, 4 fade, 8
+// stop, 0x10 volume) that the audio frame executes (snd_str1..4).
 #include "snd_drv.h"
 
+// Prepares stream `req_no` of stream block `blk_no` from file `name` in slot `no` (-1 = the RIT's
+// default slot). Returns the sound id, 0 when the slot is busy or no voice is free.
 u32 Snd_str_prepare(u16 blk_no, u16 req_no, char* name, s8 no)
 {
     SND_RIT* rit;
@@ -12,6 +19,9 @@ u32 Snd_str_prepare(u16 blk_no, u16 req_no, char* name, s8 no)
     return ret;
 }
 
+// Fills a stream work: opens the file, new sound id, type (surround by RIT flag), buffer / block
+// sizes (mono 32 KB half-blocks, stereo 16 KB interleaved), read end rounded up, loop points from
+// the header, 8 ARAM blocks (a stream that fits entirely is "short"), and acquires the AX voices.
 u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -117,6 +127,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     return str->snd_id;
 }
 
+// Surround pan from the RIT (0x7F when unset).
 s8 str_init_get_span(SND_RIT* rit)
 {
     if (rit->span >= 0) {
@@ -126,6 +137,7 @@ s8 str_init_get_span(SND_RIT* rit)
     }
 }
 
+// Volume from the RIT: the surround volume in DPL2 mode when the RIT has one.
 s8 str_init_get_vol(SND_RIT* rit)
 {
     if (Snd_get_sound_mode() == 2 && rit->svol >= 0) {
@@ -134,6 +146,8 @@ s8 str_init_get_vol(SND_RIT* rit)
     return rit->vol;
 }
 
+// Request on stream `snd_id`: cmd 1 start buffering, 2 play, 4 fade to `vol` over `time`, 8 stop,
+// 0x10 volume `time` at once. Always returns 0.
 int Snd_str_req(u32 snd_id, u32 cmd, u32 time, u32 vol)
 {
     int old;
@@ -145,6 +159,7 @@ int Snd_str_req(u32 snd_id, u32 cmd, u32 time, u32 vol)
     return 0;
 }
 
+// Stores the request bits / parameters on the stream work; 1 when the id is unknown.
 int str_req_sub(u32 snd_id, u32 cmd, u32 time, u32 vol)
 {
     SND_STR_WORK* str;
@@ -164,21 +179,25 @@ int str_req_sub(u32 snd_id, u32 cmd, u32 time, u32 vol)
     return 0;
 }
 
+// Marks every stream of `type` for a volume recomputation.
 void Snd_str_reset_vol_type(u8 type)
 {
     str_type_sub(type, 0, 0);
 }
 
+// Marks every stream of `type` for a pan recomputation.
 void Snd_str_reset_pan_type(u8 type)
 {
     str_type_sub(type, 1, 0);
 }
 
+// Fades every stream of `type` out over `time` (0 = stop).
 void Snd_str_fade_out_type(u8 type, s16 time)
 {
     str_type_sub(type, 2, time);
 }
 
+// For every active stream of `type`: mode 0 volume refresh, 1 pan refresh, 2 fade-out / stop.
 void str_type_sub(u8 type, u32 mode, s16 time)
 {
     SND_STR_WORK* str;
@@ -215,6 +234,8 @@ void str_type_sub(u8 type, u32 mode, s16 time)
     OSRestoreInterrupts(old);
 }
 
+// The stream's status word (bit0 in use, 1 ready, 4 buffering, 0x10 playing, 0x20 MIX channel,
+// 0x100 fading, 0x8000 DVD error...), -1 when unknown.
 int Snd_str_get_status(u32 snd_id)
 {
     SND_STR_WORK* str;
@@ -226,6 +247,7 @@ int Snd_str_get_status(u32 snd_id)
     return (s16) str->status;
 }
 
+// 1 while the stream work exists, 0 when gone.
 int Snd_str_end_check(u32 snd_id)
 {
     SND_STR_WORK* str;
@@ -238,6 +260,7 @@ int Snd_str_end_check(u32 snd_id)
     }
 }
 
+// 4 while a stream of `type` is active.
 int Snd_str_pronounce_ck_type(u8 type)
 {
     int old;
@@ -249,6 +272,7 @@ int Snd_str_pronounce_ck_type(u8 type)
     return ret;
 }
 
+// 4 when any stream work of `type` is in use.
 int str_pro_ck_str_work(u8 type)
 {
     SND_STR_WORK* str;
@@ -263,6 +287,7 @@ int str_pro_ck_str_work(u8 type)
     return 0;
 }
 
+// ARAM buffers of stream slot `no`: left at `adr`, right 128 KB above (and their nibble addresses).
 void Snd_str_aram_adrs_set(int no, u32 adr)
 {
     SND_STR_WORK* str;

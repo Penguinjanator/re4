@@ -1,3 +1,7 @@
+// game/room_jmp: the debug room-jump menu (RoomJump task, from the debug menu) and cRoomJmp, the
+// reader of the room info table (roomInfoAddr: per stage a list of CRoomInfo jump points with
+// position, angle, room name, screen and programmer). GetNextPos lets the scenario use a jump
+// point as the next room entry.
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -45,6 +49,8 @@ static inline u32* ofsTbl(u32* tbl)
 
 cRoomJmp* pRj;
 
+// Makes this jump point the next room entry: NextPos / NextY from the record (zero when flag bit0
+// says it has none), room_id_prev / Part_old kept, next_room = roomNo, next_point 0.
 void CRoomInfo::setNextPos()
 {
     if (flag & 1) {
@@ -64,6 +70,8 @@ void CRoomInfo::setNextPos()
     U8Set(pG->next_point, 0);
 }
 
+// Wraps the room info table (count, per-stage offsets, CRoomInfo records) and, on first use,
+// relocates its name / screen / programmer string offsets into pointers.
 cRoomJmp::cRoomJmp(void* p)
 {
     u32 stage;
@@ -90,6 +98,7 @@ cRoomJmp::cRoomJmp(void* p)
     }
 }
 
+// Number of jump-point records of `stage` (0 when the stage has no table).
 s8 cRoomJmp::getIndexNum(s8 stage)
 {
     u32* p = tbl;
@@ -101,6 +110,7 @@ s8 cRoomJmp::getIndexNum(s8 stage)
     return *((s8*) p + ofs + 3);
 }
 
+// Number of jump points of `room`: consecutive records with the same room number.
 s8 cRoomJmp::getPointNum(s8 stage, s8 room)
 {
     int count = 1;
@@ -117,6 +127,7 @@ s8 cRoomJmp::getPointNum(s8 stage, s8 room)
     return count;
 }
 
+// Record `idx` of `stage`, or 0 when out of range.
 CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
 {
     u32* p = tbl;
@@ -141,6 +152,7 @@ CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
     }
 }
 
+// Index of the first record of `room` in `stage` (0 when not found).
 u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)
 {
     int i;
@@ -155,11 +167,13 @@ u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)
     return 0;
 }
 
+// Next room entry = the first jump point of stage / room.
 void cRoomJmp::setNextPos(u8 stage, u8 room)
 {
     getRoomInfo(stage, getRoomIdx(stage, room))->setNextPos();
 }
 
+// Next (dir +1) / previous (-1) stage that has a table, wrapping.
 s8 cRoomJmp::getNextStageNo(s8 stage, int dir)
 {
     u32* p = tbl;
@@ -171,6 +185,7 @@ s8 cRoomJmp::getNextStageNo(s8 stage, int dir)
     return stage;
 }
 
+// Index of the first record of the next / previous room after the one at `idx`, wrapping.
 s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
 {
     u32 n;
@@ -210,6 +225,7 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
     }
 }
 
+// Next / previous jump point of `room` (stays when the neighbour belongs to another room).
 s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, int dir)
 {
     u32 n = getIndexNum(stage);
@@ -224,6 +240,7 @@ s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, int dir)
     return idx - getRoomIdx(stage, room);
 }
 
+// `idx` when it is a valid record of `stage`, else -1.
 int cRoomJmp::checkRoomNo(s8 stage, int idx)
 {
     if ((u8) stage >= tbl[0] || getIndexNum(stage) == 0 || getRoomInfo(stage, idx) == 0) {
@@ -232,6 +249,7 @@ int cRoomJmp::checkRoomNo(s8 stage, int idx)
     return idx;
 }
 
+// Debug room-jump menu task (bugcheck controller): init -> move (menu) -> exec / exit.
 void RoomJump()
 {
     static test test;
@@ -245,6 +263,8 @@ void RoomJump()
     }
 }
 
+// Freezes the game (Stop_flg), builds the cRoomJmp on the room info table and starts the cursor at
+// the current stage / room / jump point.
 void roomJumpInit(test* w)
 {
     w->state++;
@@ -257,6 +277,8 @@ void roomJumpInit(test* w)
     w->flag = 0;
 }
 
+// Menu frame: up/down pick the line (stage / room / point), left/right change it (repeat keys);
+// prints the room name, screen and programmer; button 0x100 jumps, 0x200 cancels.
 void roomJumpMove(test* w)
 {
     JOY* joy = GetBugCheckController();
@@ -334,6 +356,8 @@ void roomJumpMove(test* w)
     }
 }
 
+// Performs the jump: everything stopped, Debug_flg[2] bit31 (debug jump), the chosen point becomes
+// the next room entry, messages cleared, life refilled.
 void roomJumpExec(test* w)
 {
     int i;
@@ -356,6 +380,8 @@ void roomJumpExec(test* w)
     w->flag = 1;
 }
 
+// Leaves the menu: restores Stop_flg; after a jump sets the game routine to 4 (room change) and
+// clears System_flg 0x40.
 void roomJumpExit(test* w)
 {
     delete pRj;
@@ -371,6 +397,7 @@ void roomJumpExit(test* w)
     TaskExit();
 }
 
+// One-shot: sets the next room entry to the first jump point of stage / room (used by the scenario).
 void GetNextPos(u8 stage, u8 room)
 {
     pRj = new cRoomJmp(roomInfoAddr);

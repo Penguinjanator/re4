@@ -1,5 +1,10 @@
+// game/snd_iss1: sound driver SE control requests — parameter updates, stop, end check and the
+// global SE controls (fade-out all, pause / resume by block type, volume-down); each only sets a
+// bit in Snd_ctrl_work.se_ctrl or queues a type 4 request that the audio frame executes (snd_iss2).
 #include "snd_drv.h"
 
+// Applies the parameters in Snd_ctrl_work (ovr_flag bits: pan, volume, AUX, filter, pitch) to the
+// playing SE `snd_id`. Returns 1 when the request bank is full.
 int Snd_se_set_paras(u32 snd_id)
 {
     int old;
@@ -11,6 +16,7 @@ int Snd_se_set_paras(u32 snd_id)
     return ret;
 }
 
+// Queues the type 4 / cmd 1 (set parameters) request with the control work copied in.
 int se_set_paras_sub(u32 snd_id)
 {
     SND_REQ_WORK* req;
@@ -27,6 +33,7 @@ int se_set_paras_sub(u32 snd_id)
     return 0;
 }
 
+// -1 while the SE is still queued, 1 while a voice plays it, 0 when it is gone.
 int Snd_se_end_check(u32 snd_id)
 {
     SND_REQ_WORK* req;
@@ -48,6 +55,7 @@ int Snd_se_end_check(u32 snd_id)
     return 1;
 }
 
+// Stops SE `snd_id` (type 4 / cmd 0 request). Returns 1 when the bank is full.
 int Snd_se_stop_one(u32 snd_id)
 {
     int old;
@@ -59,6 +67,7 @@ int Snd_se_stop_one(u32 snd_id)
     return ret;
 }
 
+// Queues a type 4 command request (0 stop, 1 set parameters) for a sound id.
 int se_cmd_req_work(u16 cmd, u32 snd_id, u16 para)
 {
     SND_REQ_WORK* req;
@@ -75,6 +84,7 @@ int se_cmd_req_work(u16 cmd, u32 snd_id, u16 para)
     return 0;
 }
 
+// Fades every SE out over `time` (5 ms units), except the ones flagged to survive (axv flag 4).
 int Snd_se_fade_out_all(s16 time)
 {
     int old;
@@ -86,6 +96,7 @@ int Snd_se_fade_out_all(s16 time)
     return ret;
 }
 
+// Fades every SE out, including the protected ones.
 int Snd_se_fade_out_all2(s16 time)
 {
     int old;
@@ -97,6 +108,9 @@ int Snd_se_fade_out_all2(s16 time)
     return ret;
 }
 
+// Sets a global SE control bit for the next audio frame: 0x200 / 0x400 fade-out (para = time),
+// 1 pause all, 2 pause block type `para`, 4 pause all unconditionally, 8 resume all, 0x10 resume
+// block type, 0x20 volume down to `para`, 0x40 volume back. Refused (1) during a reset.
 int se_ctrl_sub(u16 cmd, s16 para)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -144,6 +158,7 @@ int se_ctrl_sub(u16 cmd, s16 para)
     return 0;
 }
 
+// Non-zero while any SE is queued (0x10) or any AX voice is sounding (1).
 int Snd_se_pronounce_ck_all(void)
 {
     SND_CTRL_WORK* ctrl;
@@ -162,6 +177,7 @@ int Snd_se_pronounce_ck_all(void)
     return ret;
 }
 
+// 0x10 when the request bank holds a pending SE play (type 2 with a SE SIT).
 int se_pro_ck_req_work(int bank)
 {
     SND_REQ_WORK* req;
@@ -185,6 +201,7 @@ int se_pro_ck_req_work(int bank)
     return 0;
 }
 
+// 1 when any AX voice is in use.
 int se_pro_ck_axv_work(void)
 {
     SND_AXV_WORK* axv;
@@ -199,6 +216,7 @@ int se_pro_ck_axv_work(void)
     return 0;
 }
 
+// Pauses the SEs of block `type` (-1 = all) at the next audio frame.
 int Snd_se_pause_on2(s16 type)
 {
     int old;
@@ -210,6 +228,7 @@ int Snd_se_pause_on2(s16 type)
     return ret;
 }
 
+// Pauses all SEs, including those flagged unpausable (axv flag 1).
 int Snd_se_pause_on3(void)
 {
     int old;
@@ -221,6 +240,7 @@ int Snd_se_pause_on3(void)
     return ret;
 }
 
+// Resumes the SEs of block `type` (-1 = all).
 int Snd_se_pause_off2(s16 type)
 {
     int old;

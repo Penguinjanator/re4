@@ -35,6 +35,8 @@ int FlipMode = 0;
 static MtxPtr ProjMtx;
 MtxPtr ViewMtx;
 
+// Debug primitive environment: the view rectangle and the projection / view matrices the tool
+// draws with (from TutilInitDefault).
 void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx)
 {
     Orect = view->rect;
@@ -44,6 +46,7 @@ void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx)
     FlipMode = 0;
 }
 
+// GX state for 3D debug lines / points: current projection, view matrix, blend mode, vertex format.
 void TprimDraw3D(u32 blend)
 {
     CameraCurrentProjection();
@@ -53,6 +56,7 @@ void TprimDraw3D(u32 blend)
     set_attr_common();
 }
 
+// Blend mode 0 opaque, 1 alpha blend, 2 additive.
 void TprimSetBlend(u32 blend)
 {
     static u32 bl[3][4] = {
@@ -67,6 +71,8 @@ void TprimSetBlend(u32 blend)
     }
 }
 
+// Common GX setup for the debug primitives: no culling, z test by FlipMode bit0, one colour TEV
+// stage, line width 6.
 static void set_attr_common()
 {
     GXSetCullMode(0);
@@ -85,6 +91,7 @@ static void set_attr_common()
     set_attr_f32();
 }
 
+// Vertex format: f32 position + RGBA8 colour, direct.
 static void set_attr_f32()
 {
     GXClearVtxDesc();

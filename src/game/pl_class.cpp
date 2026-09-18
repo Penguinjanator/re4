@@ -413,6 +413,7 @@ static int fallCheck_80172E38(cPlayer* pl)
     return 0;
 }
 
+// Action button callback: jump down the ledge (routine 0/0xE pl_R1_Fall), invulnerable (dmg 0x80).
 void fallOn()
 {
     cPlayer* pl = pPL;
@@ -421,6 +422,7 @@ void fallOn()
     pPL->dmg.set(0, 0x80);
 }
 
+// Action button callback: climb up the step (routine 0/7 pl_R1_LevelUp, m_Work0 kind 0).
 void levelUpOn()
 {
     cPlayer* pl = pPL;
@@ -430,6 +432,7 @@ void levelUpOn()
     pPL->dmg.set(0, 10);
 }
 
+// Action button callback: climb down the step (routine 0/8 pl_R1_LevelDown, kind 0).
 void levelDownOn()
 {
     cPlayer* pl = pPL;
@@ -439,6 +442,7 @@ void levelDownOn()
     pPL->dmg.set(0, 10);
 }
 
+// Action button callback: climb up the high step (kind 1).
 void level2UpOn()
 {
     cPlayer* pl = pPL;
@@ -448,6 +452,7 @@ void level2UpOn()
     pPL->dmg.set(0, 10);
 }
 
+// Action button callback: climb down the high step (kind 1).
 void level2DownOn()
 {
     cPlayer* pl = pPL;
@@ -457,6 +462,7 @@ void level2DownOn()
     pPL->dmg.set(0, 10);
 }
 
+// Action button callback: grab the pushable object (routine 0/9 pl_R1_ObjPush).
 void holdOn()
 {
     cPlayer* pl = pPL;
@@ -794,6 +800,8 @@ int cPlayer::subScrCheck()
     return 1;
 }
 
+// be_flag 0x800 (keep moving while the game is suspended, e.g. during the sub screen) on the player
+// and its weapon object.
 void cPlayer::setNoSuspend(int on)
 {
     if (on) {
@@ -945,6 +953,8 @@ ng:
     return 0;
 }
 
+// Copies the control keys into Status_flg[0]: 0x40000000 / 0x20000000 action key trigger / held
+// (Key 0x400), 0x4000 the partner-call key (0x80000).
 void cPlayer::checkCtrl()
 {
     if (Key.trg & 0x400) {
@@ -973,6 +983,7 @@ u32 upDownCk(cPlayer* pl)
     return 0;
 }
 
+// Applies the controller layout (pSys->key_type); both layouts use keyConfigTypeA.
 void cPlayer::keyConfig()
 {
     switch (pSys->key_type) {
@@ -1022,6 +1033,7 @@ int cPlayer::actCheck()
     return 1;
 }
 
+// Damage start: ends a running event (flags_420 bit1) and interrupts the weapon / neck.
 void cPlayer::beginDamage()
 {
     if (flags_420 & 2) {
@@ -1030,6 +1042,7 @@ void cPlayer::beginDamage()
     interrupt();
 }
 
+// Damage end: default face, and the Krauser (type 4) bow's arrow display back on.
 void cPlayer::endDamage()
 {
     cPlayer* pl = pPL;
@@ -1206,6 +1219,9 @@ void cPlayer::endEvent()
     endEvent0(modeReg);
 }
 
+// Event end (flags_420 bit1 set): the player is drawn / collides / moves again, invulnerable for 10
+// frames, neck on; when alive mode 0 = back to routine 0/0 with a pending footwork (r_no_3 1),
+// 1 = m_Flag 0x100 (return when the event motion ends), 2 = routine 0/0 at once.
 void cPlayer::endEvent0(u32 mode)
 {
     int one = 1;
@@ -1241,6 +1257,7 @@ void cPlayer::endEvent0(u32 mode)
     flags_420 &= ~2;
 }
 
+// 1 while the player is in routine 0 (normal control) and an event may take him.
 int cPlayer::checkEvent()
 {
     return r_no_0 == 0;
@@ -1288,6 +1305,8 @@ void cPlayer::setSlow(f32 rate)
     }
 }
 
+// Eye / eyelid control each frame (not for HUNK, not when dead): eyeMode 0 wander / blink, 1 from
+// the motion's face data.
 void cPlayer::moveEye()
 {
     if (pG->pl_type == 3) {
@@ -1449,6 +1468,7 @@ void cPlayer::moveEyeMotion()
     b->matUpdate();
 }
 
+// Updates the body / weapon matrices and lets the weapon object draw its laser (wep.disp bit1).
 void cPlayer::setLaserSight(int draw, int noCalc)
 {
     Body->move();
@@ -1535,6 +1555,7 @@ int cPlayer::keyReload()
     }
 }
 
+// Neck control for player `p`: no motions yet, mode 1 (looking on).
 cPlNeck::cPlNeck(cPlayer* p)
 {
     pl = p;
@@ -1707,16 +1728,19 @@ cEm* cPlNeck::getTarget()
     return best;
 }
 
+// 0 off, 1 on, 2 = turn on next frame.
 void cPlNeck::setMode(int m)
 {
     m_Mode = m;
 }
 
+// Waist straight.
 cPlWaist::cPlWaist()
 {
     m_Ang.y = 0.0f;
 }
 
+// Moves the waist angle toward `target` by `rate` (0..1 per frame); returns the change applied.
 f32 cPlWaist::set(f32 target, f32 rate)
 {
     f32 old = m_Ang.y;
@@ -1725,12 +1749,15 @@ f32 cPlWaist::set(f32 target, f32 rate)
     return m_Ang.y - old;
 }
 
+// No model attached, rate 0.
 cMot3::cMot3()
 {
     m_Mode = 0;
     m_Rate = 0.0f;
 }
 
+// Attaches the blend to model `m`: m0 becomes its own motion (MotionSetCore frame a, hokan b,
+// flags d / e), m1 the first blended motion (rate < 0), m2 the second (rate > 0); c = m_Mode.
 void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16 d, u16 e)
 {
     // COMPILER-DIFF: 2 (narrow-argument extension at entry). The original zero-extends the u8

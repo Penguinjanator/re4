@@ -1,5 +1,10 @@
+// game/snd_sub1: sound driver voice works (SND_VOICE_WORK, 64 slots shared by SEs, sequence notes
+// and streams): a SIT names the slot range a sound may use (voice_start / voice_num); allocation
+// looks for a free slot there and otherwise steals the oldest lowest-priority voice of the same
+// kind when the priority allows (SIT flag 0x4000 = equal priority may steal).
 #include "snd_drv.h"
 
+// Clears the 64 voice works (numbered, no sequence note).
 void Snd_voice_work_clear(void)
 {
     SND_VOICE_WORK* voice;
@@ -23,6 +28,8 @@ void Snd_voice_work_clear(void)
     }
 }
 
+// Stops the sound on a voice work: a sequence note gets a note-off on its synth, a SE a release
+// on its AX voice.
 void Snd_stop_voice_work(SND_VOICE_WORK* voice)
 {
     SND_SEQ_WORK* seq;
@@ -37,6 +44,7 @@ void Snd_stop_voice_work(SND_VOICE_WORK* voice)
     }
 }
 
+// Takes voice work slot `no` for a stream channel (type 3, priority 0x7F); NULL when busy.
 SND_VOICE_WORK* Snd_open_voice_work_str(SND_STR_WORK* str, s8 no)
 {
     SND_VOICE_WORK* voice;
@@ -62,6 +70,7 @@ SND_VOICE_WORK* Snd_open_voice_work_str(SND_STR_WORK* str, s8 no)
     return voice;
 }
 
+// Takes a voice work for a sequence note in the sequence SIT's slot range at `prio` (type 2).
 SND_VOICE_WORK* Snd_open_voice_work_seq(SND_SEQ_WORK* seq, s8 prio)
 {
     SND_VOICE_WORK* voice;
@@ -86,6 +95,9 @@ SND_VOICE_WORK* Snd_open_voice_work_seq(SND_SEQ_WORK* seq, s8 prio)
     return voice;
 }
 
+// A voice work in the SIT's slot range: a free one, else the oldest of the lowest-priority voices
+// is stopped and reused when its priority is below `prio` (equal only with SIT flag 0x4000), it is
+// of the same kind (sequence / SE) and not already stopping. NULL when none may be taken.
 SND_VOICE_WORK* Snd_voice_work_open_ck(SND_SIT* info, s8 prio)
 {
     SND_VOICE_WORK* voice;
@@ -144,6 +156,7 @@ SND_VOICE_WORK* Snd_voice_work_open_ck(SND_SIT* info, s8 prio)
     return found;
 }
 
+// The SE voice work with sound id `snd_id`, or NULL.
 SND_VOICE_WORK* Snd_search_voice_work_snd_id(u32 snd_id)
 {
     SND_VOICE_WORK* voice;
@@ -164,6 +177,7 @@ SND_VOICE_WORK* Snd_search_voice_work_snd_id(u32 snd_id)
     return NULL;
 }
 
+// The voice work of a sequence's note on channel `ch`, or NULL.
 SND_VOICE_WORK* Snd_search_voice_work_seq(SND_SEQ_WORK* seq, u8 ch, u8 note)
 {
     SND_VOICE_WORK* voice;

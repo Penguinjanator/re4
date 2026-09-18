@@ -1,6 +1,7 @@
 /* newlib libc/string/strpbrk.c */
 #include "newlib_local.h"
 
+/* First character of s1 that is in s2, NULL when none. */
 char *strpbrk(const char *s1, const char *s2)
 {
     const char *c = s2;

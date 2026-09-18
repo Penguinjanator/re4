@@ -1,3 +1,9 @@
+// game/stage: stage-level room set-up and the enemy list files. StageSet (from the room-change
+// routine) reloads the stage heap / room REL when the stage or the reload flags change and picks
+// the enemy list ("etc/emleonNN.esl" / omake lists, chosen per room and story flags by
+// checkEmListNo) into pG->Em_list; SubMissionCheck runs the per-stage side missions — stage 1's
+// blue medallion count (15 targets in rooms 103 / 108, the HUD counter id 0x33, the merchant
+// bonus at 10 and the flag at 15).
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -39,6 +45,7 @@ void subMissionSt3();
 void SubMissionCheck();
 }
 
+// Village rooms 200..208: list 2 until the church bell (Scenario_flg[0] 0x40000), then 3.
 static inline int emListVillage(int room)
 {
     switch (room) {
@@ -57,6 +64,9 @@ static inline int emListVillage(int room)
 }
 
 // Enemy list (ESL file) number for a room (stage << 8 | room), -1 = none.
+// Which enemy list file `room` uses: 8 for Assignment Ada (System_flg bit31), 9 / 10 for the
+// Mercenaries (0x40000000; 10 in rooms 403 / 404), else by stage and story progress (0..7);
+// -1 = the room keeps the current list.
 int checkEmListNo(u16 room)
 {
     int stage = room >> 8;
@@ -146,6 +156,7 @@ static const char* emlist_dbg_name[11] = {
     "1st-1", "1st-2", "2st-1", "2st-2", "2st-3", "2st-4", "3st-1", "3st-2", "ada", "etc", "etc2",
 };
 
+// File name of enemy list `no` (0..10).
 const char* getEmListName(u32 no)
 {
     const char* name;
@@ -158,6 +169,7 @@ const char* getEmListName(u32 no)
     return name;
 }
 
+// Debug name of enemy list `no` ("1st-1" .. "etc2").
 const char* getEmListDbgName(int no)
 {
     const char* name;
@@ -173,12 +185,17 @@ const char* getEmListDbgName(int no)
     return "?????";
 }
 
+// Number of enemy list files (11).
 int getEmListNum()
 {
     return 11;
 }
 
 // Stage change: reload the stage data (heap 2) and link the room's relocatable data (heap 3).
+// Room change: when the stage changed or a reload is flagged (System_flg 0x2000 new game, 0x100
+// continue, 0x80000) the stage heap is replaced, messages re-initialised (stage 1 sets the
+// "village map" flag); when the room needs another REL the room heap is replaced and the REL
+// linked; then the enemy list is read.
 void StageSet()
 {
     GlobalWork* g = pG;
@@ -218,6 +235,8 @@ void StageSet()
     readEmList(1);
 }
 
+// Reads the enemy list file for the current room into pG->Em_list when it differs from the loaded
+// one (always on a new game / save kind 3 / debug); a failed read clears the list.
 #line 280 "D:/Bio4/Prog/stage.cpp"
 void readEmList(int mode)
 {
@@ -261,6 +280,7 @@ static SubMissionTarget st1_target_tbl[15] = {
     {0x108, 0x118, 0x08}, {0x108, 0x118, 0x0A}, {0x108, 0x118, 0x0B},
 };
 
+// Stage 1 medallion `no` (0..14) still unbroken in both of its rooms.
 int checkSubMissionTarget(int stage, int no)
 {
     u16* p1;
@@ -281,6 +301,10 @@ int checkSubMissionTarget(int stage, int no)
     return 0;
 }
 
+// Stage 1 side mission (blue medallions): syncs each target's broken flag between its two rooms,
+// counts them; a change shows the counter id (0x33) for 150 frames (450 at 10, which also adds the
+// merchant's reward stock and clears Status_flg[2] 0x40000; 15 sets Scenario_flg[0] 0x8000); in
+// shooting-range mode the medallion in the current room is shown and pointed at.
 void subMissionSt1()
 {
     static EtcItem* pCoin = NULL;
@@ -392,14 +416,17 @@ void subMissionSt1()
     }
 }
 
+// No stage 2 side mission.
 void subMissionSt2()
 {
 }
 
+// No stage 3 side mission.
 void subMissionSt3()
 {
 }
 
+// Per frame (scenario after-hook): the current stage's side mission.
 void SubMissionCheck()
 {
     switch (pG->stage_no) {

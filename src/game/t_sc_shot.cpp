@@ -7,6 +7,8 @@
 
 extern int ScreenShotTriggerType;
 
+// Debug screenshot settings task: the A-button trigger mode (held / press / press-to-press) and
+// whether the debug display is kept in shots; B leaves.
 void ToolScreenShot()
 {
     TOOL_MENU menu[2] = {

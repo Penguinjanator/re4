@@ -70,6 +70,8 @@ extern int _vfiprintf_r();
 #define FPT 0x100       /* Floating point number */
 
 #ifdef FLOATING_POINT
+/* Rounds a digit string at position len (half up, carrying); returns 0 when the carry runs off
+ * the front (caller prepends a 1). */
 static int strround(char *str, int len)
 {
     int i;
@@ -89,6 +91,7 @@ static int strround(char *str, int len)
     return 1;
 }
 
+/* Reverses a string in place (itoa builds digits backwards). */
 void strrev(char *str)
 {
     int i, j;
@@ -103,6 +106,7 @@ void strrev(char *str)
     }
 }
 
+/* Unsigned (signed for base 10) integer to digits in `base`, reversed into str. */
 static void itoa(unsigned int value, char *str, int base)
 {
     static char lower[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -122,6 +126,8 @@ static void itoa(unsigned int value, char *str, int base)
     strrev(str);
 }
 
+/* SN's float formatter for %e / %f / %g: digits with `prec` precision (strip = %g trailing-zero
+ * removal), returns the digit string and the sign character. */
 char *fftoa(double value, int prec, char fmt, int strip, char *sign)
 {
     static char str[164];
@@ -289,6 +295,7 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
 }
 #endif /* FLOATING_POINT */
 
+/* Buffers output to descriptor fd in 128-byte chunks (flush = write what is pending). */
 static int _vfwrite(int fd, const char *buf, size_t len, int flush)
 {
     static char pch[128];
@@ -318,6 +325,8 @@ static int _vfwrite(int fd, const char *buf, size_t len, int flush)
 }
 
 #ifndef INTEGER_ONLY
+/* Dispatch: the floating-point formatter only when the format uses e / E / f / g / G / L, else
+ * the integer-only _vfiprintf_r. */
 int vfprintf(FILE *fp, const char *fmt0, va_list ap)
 {
     const char *p = fmt0;
@@ -343,6 +352,9 @@ int vfprintf(FILE *fp, const char *fmt0, va_list ap)
 }
 #endif
 
+/* The BSD vfprintf core (this file is compiled twice: _vfprintf_r with floats, _vfiprintf_r
+ * integer-only): parses flags / width / precision / length, converts each argument and writes
+ * the pieces through the FILE. */
 int _VFPRINTF_R(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
 {
     register char *fmt;   /* format string */

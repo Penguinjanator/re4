@@ -79,31 +79,39 @@ static inline u8 LightInfoShape(cLightInfo* li) { return li->Flag; }
         }                                                                           \
     }
 
+// Room: how far the shadow receiver is pushed toward the camera (fights z-fighting; default 1.0).
 void SetShadowCamMoveSize(f32 size)
 {
     shadow_cammove_size = size;
 }
 
+// Back to the default camera push (1.0).
 void ResetShadowCamMoveSize()
 {
     shadow_cammove_size = 1.0f;
 }
 
+// Room: the x / z tilt of the parallel shadow lights' direction (0 = straight down).
 void SetShadowParallelDirX(f32 x)
 {
     shadow_add_dir_x = x;
 }
 
+// Back to the default tilt.
 void ReetShadowParallelDirX()
 {
     shadow_add_dir_x = shadow_add_dir_x_default;
 }
 
+// Self-shadow manager `no` registered this frame (trans.cpp SelfShadowSetup).
 ShadowMng* GetSelfShadowMng(int no)
 {
     return pSelfShadowMng[no];
 }
 
+// Room start: creates the shadow receiver objects (cObj kind 3, drawn only into the shadow pass:
+// be_flag 0x80 set, 2 clear) from the room's SHD placement file (version <= 0x41; model table
+// with the core archive's TPL). Returns their number.
 int ShdInit(ShdHeader* data)
 {
     u32* ofsTbl;
@@ -160,6 +168,8 @@ int ShdInit(ShdHeader* data)
     return data->num;
 }
 
+// Shadow receiver object `no` (0 with an error when out of range) — the sce_at shadow display areas
+// toggle their be_flag 0x80.
 cObj* ShdGetObjPtr(int no)
 {
     if (no >= g_objNum) {
@@ -169,12 +179,15 @@ cObj* ShdGetObjPtr(int no)
     return g_objTbl[no];
 }
 
+// Boot: no shadow managers in use.
 void ShadowInit()
 {
     g_Shd_num = 0;
     g_SelfShdNum = 0;
 }
 
+// Room start: allocates the 24 shadow managers, the self-shadow pointer table and GX light
+// objects; resets the camera push and the parallel tilt.
 void ShadowRoomInit()
 {
     u32 i;
@@ -195,6 +208,7 @@ void ShadowRoomInit()
     ReetShadowParallelDirX();
 }
 
+// Re-allocates the manager tables for `n` shadows (rooms needing more than 24).
 void ShadowMngReAlloc(int n)
 {
     u32 i;
@@ -220,6 +234,7 @@ void ShadowMngReAlloc(int n)
     }
 }
 
+// Frees every manager's shadow texture and clears them (event end / room change).
 void ShadowMemClear()
 {
     u32 i;
@@ -236,6 +251,7 @@ void ShadowMemClear()
     }
 }
 
+// The next free manager this frame (numbered), 0 when all are used.
 ShadowMng* getShadowMng()
 {
     ShadowMng* mng;
@@ -250,6 +266,11 @@ ShadowMng* getShadowMng()
     return mng;
 }
 
+// Once per frame (render setup): resets the managers, then for every type 4 (shadow) light —
+// fixed lights (xD 2) collect the models in their frustum (FixShadowLightSet); the per-model
+// lights (xD 0 fit / 1 parallel) get one manager per casting enemy / object (be_flag 0x10; self
+// shadows for be_flag 0x04000000 unless Disp_flg 0x8000); during an event only be_flag 0x800
+// models cast. Status_flg[2] 0x00100000 = shadow lights exist. Queues the receiver render pass.
 void ShadowTrans()
 {
     int found;
@@ -414,6 +435,8 @@ void ShadowTrans()
     }
 }
 
+// Registers a shadow of `m` for every fit / parallel shadow light that reaches it (light mask,
+// radius, self-shadow enabled when `self`). Returns 1 when at least one was added.
 int Fit_ParallelShadowModelSet(cModel* m, int self)
 {
     int ret = 0;
@@ -489,6 +512,8 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
     return ret;
 }
 
+// Takes a manager for light `l` casting model `m`, builds its light matrices (fit or parallel by
+// the light's xD) and queues the shadow texture render (OT 8).
 void Fit_ParallelShadowModelAddOt(cLight* l, cModel* m, int self)
 {
     ShadowMng* mng = getShadowMng();
@@ -512,6 +537,8 @@ void Fit_ParallelShadowModelAddOt(cLight* l, cModel* m, int self)
     AddOtDirect(8, mng, (void (*)()) shadowModelRender, 1, 4, NULL, 0.0f);
 }
 
+// A fixed shadow light: gathers up to 8 enemies / objects inside its frustum (visible, matching
+// the light mask) into one manager and queues the shadow texture render.
 void FixShadowLightSet(cLight* l)
 {
     ShadowMng tmp;
@@ -624,6 +651,8 @@ void FixShadowLightSet(cLight* l)
     }
 }
 
+// OT callback: allocates the manager's I8 shadow texture on first use and renders it
+// (make_shadow_texture); Status_flg[1] 0x100 while rendering.
 void shadowModelRender(ShadowMng* mng)
 {
     pG->Status_flg[1] |= 0x100;
@@ -640,6 +669,9 @@ void shadowModelRender(ShadowMng* mng)
     pG->Status_flg[1] &= ~0x100;
 }
 
+// Light matrices of a "fit" shadow: from the light position (or its `pos` source) looking at the
+// model's light-info point, with the field of view just covering the model's light-info size
+// (1..89.95 degrees, minus angleSub): lookAt and the texture projection texMat.
 void make_comn_fit_light(ShadowMng* mng, cModel* m)
 {
     cLight* l = mng->pLight;
@@ -701,6 +733,8 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
     }
 }
 
+// Light matrices of a "parallel" (directional) shadow: the light sits at the model, pointing down
+// tilted by shadow_add_dir_x and the light's rotX / rotY, fov covering the model's size.
 void make_comn_parallel_light(ShadowMng* mng, cModel* m)
 {
     cLight* l = mng->pLight;
@@ -774,6 +808,9 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     }
 }
 
+// Light matrices of a fixed shadow light: its own position and normal (rotX / rotY), fov = the
+// light's `angle` (0 = 90 degrees).
+#line 1061
 void make_fix_light(ShadowMng* mng)
 {
     Vec rot;
@@ -814,6 +851,7 @@ void make_fix_light(ShadowMng* mng)
     }
 }
 
+// Copies the rendered shadow square out of the EFB into the manager's texture, scaled by sx / sy.
 void SoftShadowGetEFB(ShadowMng* mng, f32 sx, f32 sy, int clear)
 {
     int size;
@@ -827,6 +865,8 @@ void SoftShadowGetEFB(ShadowMng* mng, f32 sx, f32 sy, int clear)
     GXInvalidateTexAll();
 }
 
+// Draws the shadow texture as a screen quad (size / div, at x / y, texture offset u / v, alpha,
+// scale) — one blur tap of the soft shadow.
 void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 scale)
 {
     GXTexObj tex;
@@ -890,6 +930,8 @@ void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v
 // COMPILER-DIFF: 1 (argument-move order): MakeSoftShadow issues the x/y/z moves before `li r4, div`.
 extern "C" void SoftShadowGXDrawF(ShadowMng* mng, f32 x, f32 y, f32 z, u32 div, f32 u, f32 v, f32 alpha, f32 scale) asm("SoftShadowGXDraw");
 
+// Blurs the shadow texture: several down / up-scaled draw-and-copy passes (more with the light's
+// `soft` count) over the EFB.
 void MakeSoftShadow(ShadowMng* mng)
 {
     static f32 fa = 1.0f;
@@ -937,6 +979,11 @@ f32 shd_tex_scale_x = 0.0003f;  // trans.cpp SelfShadowSetup reads it
 
 #define SHD_NO_SELF(mng) (!isSelfUse || !((mng)->self & 1))
 
+// Renders the manager's shadow map: the casting models drawn from the light (lookAt, per-model
+// alpha fading with the distance for lights with a radius; the model's own shadow model info when
+// it has one; self shadows use the depth variant), optional light-map texture multiplied in
+// (flags bit0 room texture / fixed-light texId), soft blur, then copied to the I8 texture; sets
+// Status_flg[1] 0x4000 when the light asks (setStatus).
 void make_shadow_texture(ShadowMng* mng)
 {
     ShadowLightWork* w = (ShadowLightWork*) mng->pLight->work;
@@ -1126,6 +1173,8 @@ void make_shadow_texture(ShadowMng* mng)
     GXSetDstAlpha(0, 0);
 }
 
+// 1 when the model's light-info sphere (scaled) lies inside the light's cone / range (Debug_flg[2]
+// 0x800 draws the sphere).
 int shadowChkInFrustum(ShadowMng* mng, cModel* m)
 {
     int ret = 0;
@@ -1194,6 +1243,9 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
     return ret;
 }
 
+// Draws receiver model `m` with the shadow textures of the (up to 4 per pass) fit / parallel
+// managers whose light reaches it (fixed-light and self-shadow managers excluded); kind 3
+// receivers use their own colour (shdCol).
 void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
 {
     ShadowMng* tbl[SHADOW_NUM_MAX];
@@ -1238,6 +1290,9 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
     }
 }
 
+// OT callback (OT 0xE): draws every receiver (objects and enemies with be_flag 0x80) through
+// ProcShadowScrModel, then the fixed-light managers project their textures; debug_mode 0xE /
+// Debug_flg[1] 0x04000000 show the shadow textures on screen.
 void shadowScrModelRender(ShadowMng* mngs)
 {
     cObj* obj;
@@ -1330,6 +1385,7 @@ static void shadowShaderSetup(ShadowMng** tbl, u32 num)
     }
 }
 
+// TEV / texgen setup for projecting `num` shadow textures onto one model part (per-part variant).
 void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
 {
     static const GXColor col_tbl[4] = {{0xFF, 0, 0, 0}, {0, 0xFF, 0, 0}, {0, 0, 0xFF, 0}, {0, 0, 0, 0xFF}};
@@ -1452,6 +1508,8 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
     GXSetNumTexGens(gs->texCoord);
 }
 
+// Draws model `m` as a shadow receiver: model-view (pushed toward the camera by
+// shadow_cammove_size) and the texture matrices of the `num` managers, then the parts.
 void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl, u32 num)
 {
     static int use_shd_cammove = 1;
@@ -1536,6 +1594,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     }
 }
 
+// Draws model `m` into a self-shadow map from the light view (position / normal matrices only).
 void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
 {
     Mtx mv;
@@ -1597,6 +1656,8 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     }
 }
 
+// Multiplies a light-map texture (room texture or the light's own) over the rendered shadow square
+// (flag1 = through the tlut, flag2 = the light's flags bit2 blend variant).
 void TransLightTexture(GXTexObj* tex, GXTlutObj* tlut, s16 x, s16 y, s16 z, s16 w, s16 h, ShadowMng* mng, int flag2, int flag1)
 {
     GXColor c;
@@ -1664,6 +1725,7 @@ void TransLightTexture(GXTexObj* tex, GXTlutObj* tlut, s16 x, s16 y, s16 z, s16 
     GXTexCoord2f32(0.0f, 1.0f);
 }
 
+// Draws a texture as a screen-space quad at (x, y, z) of w x h.
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h)
 {
     GXColor c;
@@ -1714,6 +1776,9 @@ static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h)
     GXSetTevSwapModeTable(1, 0, 1, 2, 3);
 }
 
+// The manager of the first type 4 light that would cast `m` (light mask, frustum), building its
+// matrices; 0 when none — trans.cpp projects that light's texture onto models flagged be_flag
+// 0x02000000 (the "shadow cast" receive pass).
 ShadowMng* GetCastShadowMngPtr(cModel* m)
 {
     ShadowMng tmp;

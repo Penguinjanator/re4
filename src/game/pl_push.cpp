@@ -1,4 +1,7 @@
-// game/pl_push.cpp: player push-object control (catch a pushable enemy, push it, keep it on the scenario).
+// game/pl_push: cPlPush, the player's push-object control (routine 0/9, pl_R1_ObjPush): catches a
+// pushable cEmRack (id 0x45) the player walks into, remembers which side he stands on (m_Dir), and
+// each push frame plays the object's motion facing that way while checking that no wall, enemy or
+// range limit blocks it; plAdjust turns the player to the object.
 
 #include "pl_push.h"
 #include "global.h"
@@ -15,6 +18,9 @@ void EmAtCheck(cEm* em);                                                // game/
 int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp
 }
 
+// Looks for a pushable object (cEmRack, id 0x45, not type 4, alive, within 500 in height, not
+// behind a wall) touching the player moved 300 forward; remembers it as m_Target with the side the
+// player stands on (m_Dir 0..3 in the object's frame). Returns 1 when one was caught.
 int cPlPush::catchCheck()
 {
     cPlayer* pl = pPl;
@@ -92,6 +98,7 @@ int cPlPush::catchCheck()
     return 1;
 }
 
+// Starts the object's push motion (archive 0x59); flag bit0 = getWHY reads the sides rotated.
 void cPlPush::pushTargetInit(u8 flag)
 {
     PlArc* arc = pG->pPlayer;
@@ -100,6 +107,9 @@ void cPlPush::pushTargetInit(u8 flag)
     x9 = flag;
 }
 
+// One push frame: plays the object's motion facing the push direction (m_Dir), lets the rack
+// clamp itself (adjustRange), runs its collision and the scroll / enemy-sandwich checks, rebuilds
+// its matrices. Returns 1 (and stops the motion) when the object cannot move further.
 int cPlPush::pushTarget()
 {
     int ret;
@@ -157,11 +167,14 @@ int cPlPush::pushTarget()
     return ret;
 }
 
+// Stops the object's push motion.
 void cPlPush::stopTarget()
 {
     m_Target->pMotion = 0;
 }
 
+// Half width / half depth of the object as seen from the push side and the world yaw of that side
+// (from the collision radii, m_Dir; x9 bit0 rotates the sides by 180 degrees).
 void cPlPush::getWHY(f32* w, f32* h, f32* y)
 {
     f32 sz = m_Target->atari.m_radius2;
@@ -213,6 +226,8 @@ void cPlPush::getWHY(f32* w, f32* h, f32* y)
     *y = LIMIT_ANGLE(*y);
 }
 
+// 1 when the object is blocked: an enemy would be sandwiched (emSandCheck) or the scroll collision
+// (0x800 lines) is hit on either side of its front.
 int cPlPush::scrHitCheck()
 {
     f32 w;
@@ -234,6 +249,8 @@ int cPlPush::scrHitCheck()
     return ret;
 }
 
+// Wall test for one corner (`side` +1 / -1) of the object's front: a line across the front, one
+// along the side and a floor probe; 1 when the scroll collision blocks it.
 int cPlPush::scrHitCheckSub(Vec* pos, f32 w, f32 h, f32 y, f32 side)
 {
     Vec v0;
@@ -332,6 +349,8 @@ int cPlPush::emSandCheck(Vec* pos, f32 w, f32 h, f32 y)
     return GetWepTargetPos(&v0, &v1, 0, 0, 0, 0) == 2;
 }
 
+// Turns the player toward the pushed side of the object (15 degrees / frame at most); 0 when there
+// is no target or the side is invalid.
 int cPlPush::plAdjust()
 {
     cEm* t = m_Target;

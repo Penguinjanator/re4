@@ -1,5 +1,11 @@
+// game/snd_iss3: sound driver new-play of a SE — takes a voice work and an AX voice for the
+// request, resolves the SIT's program in the block's DLS wavetable (instrument / region /
+// articulation / sample / ADPCM), derives envelope, volume, pan, AUX sends, pitch and filter from
+// request overrides -> SIT -> DLS defaults, and programs the AX voice (ADPCM addresses, sample
+// rate ratio, LPF) before starting it; sequence SITs (flag 4) go to snd_seq* instead.
 #include "snd_drv.h"
 
+// Executes a play request: a sequence SIT (flag 4) starts a MIDI sequence, else a sampled SE voice.
 void Snd_req_iss_new_play(SND_REQ_WORK* req)
 {
     SND_ISS_BLK* blk;
@@ -15,6 +21,9 @@ void Snd_req_iss_new_play(SND_REQ_WORK* req)
     }
 }
 
+// Starts one sampled SE: a voice work (by priority, possibly stealing), an AX voice slot and an AX
+// voice (priority 30), all parameters set up from the request / SIT / DLS, MIX channel initialised,
+// voice running. Silently drops the SE when any resource is exhausted.
 void iss_new_voice_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
 {
     SND_VOICE_WORK* vw;
@@ -60,6 +69,8 @@ void iss_new_voice_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
     AXSetVoiceState(axv->voice, 1);
 }
 
+// Links the voice work and the AX voice work for the request (type 1 SE, id, block / number,
+// priority, the SIT's se_flag into the AX flags).
 void iss_voice_work_init(SND_VOICE_WORK* vw, SND_AXV_WORK* axv, SND_REQ_WORK* req, s8 prio)
 {
     vw->status = 1;
@@ -80,6 +91,8 @@ void iss_voice_work_init(SND_VOICE_WORK* vw, SND_AXV_WORK* axv, SND_REQ_WORK* re
     axv->vw = vw;
 }
 
+// Resolves the SIT's program (bank << 8 | note) in the block's DLS: instrument -> key region ->
+// articulation, sample and ADPCM coefficients.
 void iss_ax_set_wt_ptr(SND_AXV_WORK* axv, SND_SIT* sit)
 {
     u16 prog;
@@ -98,6 +111,8 @@ void iss_ax_set_wt_ptr(SND_AXV_WORK* axv, SND_SIT* sit)
     axv->adpcm += axv->sample->adpcmIndex;
 }
 
+// Envelope from the articulation (when adsr_on): release time from eg1Release, attack ramp in
+// 5 ms steps from eg1Attack (status bit1 = attacking); without ADSR full volume at once.
 void iss_ax_set_adsr(SND_AXV_WORK* axv)
 {
     s32 attack;
@@ -128,6 +143,8 @@ void iss_ax_set_adsr(SND_AXV_WORK* axv)
     axv->status |= 0x2;
 }
 
+// Volume / surround volume: request override, else the SIT, else the region attenuation
+// (surround = volume); applies a running volume-down (se_state bit1) and computes the AX volume.
 void iss_ax_set_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
     s32 vol;
@@ -159,6 +176,7 @@ void iss_ax_set_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     Snd_axv_work_calc_ax_vol(axv);
 }
 
+// Pan / surround pan: request, else SIT, else the articulation pan / 0x7F.
 void iss_ax_set_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
     if (req->pan >= 0) {
@@ -178,6 +196,7 @@ void iss_ax_set_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     Snd_axv_work_choice_out_span(axv);
 }
 
+// AUX A / B send levels: request, else SIT, else 0; converted to AX attenuation.
 void iss_ax_set_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
     if (req->aux_a >= 0) {
@@ -198,6 +217,8 @@ void iss_ax_set_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     axv->ax_auxB = Snd_vol_syn_to_ax(axv->auxB);
 }
 
+// Pitch in cents: (note - unity note) * 100 + fine tune + the request's pitch / pitch_add as the
+// base, plus the request's pitch offset.
 void iss_ax_set_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
     WTREGION* rgn;
@@ -215,6 +236,7 @@ void iss_ax_set_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     axv->pitch = axv->pitch_base + axv->pitch_ofs;
 }
 
+// Low-pass filter number from the request (-1 = off).
 void iss_ax_set_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req)
 {
     if (req->lpf_no == -1) {
@@ -225,6 +247,9 @@ void iss_ax_set_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req)
     axv->lpf_no = req->lpf_no;
 }
 
+// Programs the AX voice: ADPCM sample addresses in ARAM (nibble addressing, 14 samples per 16
+// bytes; loop points or the silent zero table as loop for one-shots), coefficients, sample rate
+// ratio from the pitch (clamped to 4x), LPF coefficients from Snd_lpf_tbl.
 void iss_ax_set_para(SND_AXV_WORK* axv, SND_REQ_WORK* req)
 {
     WTREGION* rgn;
@@ -325,6 +350,7 @@ void iss_ax_set_para(SND_AXV_WORK* axv, SND_REQ_WORK* req)
     AXSetVoiceSrcType(axv->voice, 1);
 }
 
+// AX voice-drop callback: the hardware took the voice back — frees its AX and voice works.
 void cb_drop_voice(void* voice)
 {
     AXVPB* axvpb;

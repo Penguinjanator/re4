@@ -1,5 +1,13 @@
+// game/snd_str2: sound driver stream data flow — the DVD reads (one read_size block at a time into
+// the MRAM ring buffer, wrapping to the loop start for looping streams) and the MRAM -> ARAM DMAs
+// (into the 8-block ARAM ring per channel), their completion callbacks, and the play-position
+// tracking that re-programs the AX voices' loop / end addresses as the ring advances (loop back
+// to the top, loop to the stream's loop point, or run out at the end).
 #include "snd_drv.h"
 
+// Issues the next asynchronous DVD read (read_cnt pending blocks) into the MRAM buffer slot
+// read_blk; at the end of the data a looping stream (flag 4) rewinds to the block holding the
+// loop start, else read_done.
 void Snd_str_dvd_read_sub(SND_STR_WORK* str)
 {
     u32 blks;
@@ -31,6 +39,9 @@ void Snd_str_dvd_read_sub(SND_STR_WORK* str)
     }
 }
 
+// Issues the next MRAM -> ARAM DMA (dma_cnt pending): the block at dma_blk into ARAM ring slot
+// dma_aram_blk (left and right halves for stereo); the first block's predictor bytes are kept for
+// the ring wrap.
 void Snd_str_aram_dma_sub(SND_STR_WORK* str)
 {
     u8* src;
@@ -69,6 +80,8 @@ void Snd_str_aram_dma_sub(SND_STR_WORK* str)
     str->pred_R = src[0x4000];
 }
 
+// DVD read callback: on success the block becomes the next DMA source and read_blk advances
+// around the MRAM ring; errors / cancels leave the stream in the DVD-error state.
 void cb_dvd_read_end(s32 result, DVDFileInfo* info)
 {
     SND_STR_WORK* str;
@@ -96,6 +109,8 @@ void cb_dvd_read_end(s32 result, DVDFileInfo* info)
     }
 }
 
+// ARQ callback: advances the ARAM ring slot; while buffering (before ready) the last slot filled
+// marks the stream ready (status 2), else another read is requested.
 void cb_aram_dma_end(u32 task)
 {
     ARQRequest* req;
@@ -139,6 +154,9 @@ void cb_aram_dma_end(u32 task)
     }
 }
 
+// Reads the left voice's current ARAM nibble address into play_nbl / play_blk; when the voice moved
+// into a new ring block the loop / end addresses are re-programmed (str_ax_voice_to_next_block);
+// play_pos = position in the stream.
 void Snd_str_get_now_play_nbl(SND_STR_WORK* str)
 {
     u32 cur;
@@ -161,6 +179,10 @@ void Snd_str_get_now_play_nbl(SND_STR_WORK* str)
     str->play_pos = str->play_pos + str->play_nbl % str->blk_size;
 }
 
+// The voice entered the next ring block: advances blk_cnt / blk_end (after a loop jump, from the
+// loop start); when the end block is reached sets the end address and either loops back to the
+// stream's loop point or lets it run out; at the last ring slot points the loop at the ring top;
+// requests another read while data remains.
 void str_ax_voice_to_next_block(SND_STR_WORK* str)
 {
     u32 ofs;
@@ -194,6 +216,8 @@ void str_ax_voice_to_next_block(SND_STR_WORK* str)
     }
 }
 
+// End of a looping stream in the ring: the voices loop from end_L/R to the ring slot that holds
+// the loop start (ADPCM loop state from the header), non-looping type until then.
 void str_ax_voice_loop_to_top(SND_STR_WORK* str)
 {
     SND_SHD* shd;
@@ -230,6 +254,7 @@ void str_ax_voice_loop_to_top(SND_STR_WORK* str)
     AXSetVoiceEndAddr(str->voiceR, str->end_R);
 }
 
+// End of a non-looping stream: voices become one-shot ending at end_L/R (state 3 no-read).
 void str_ax_voice_loop_to_end(SND_STR_WORK* str)
 {
     u32 zero;
@@ -247,6 +272,8 @@ void str_ax_voice_loop_to_end(SND_STR_WORK* str)
     AXSetVoiceEndAddr(str->voiceR, str->end_R);
 }
 
+// The voice plays the last ring slot: loop back to the ring top with the saved predictor bytes,
+// end at the ring's last nibble.
 void str_ax_voice_last_to_top(SND_STR_WORK* str)
 {
     AXPBADPCMLOOP loop;

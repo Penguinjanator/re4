@@ -3,6 +3,7 @@
 
 #define UNALIGNED(X, Y) (((long)X & (sizeof(long) - 1)) | ((long)Y & (sizeof(long) - 1)))
 
+/* Copies src0 (with its terminator) to dst0. */
 char *strcpy(char *dst0, const char *src0)
 {
     char *dst = dst0;

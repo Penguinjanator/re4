@@ -1,3 +1,6 @@
+// game/tv_mode: boot-time TV mode selection — picks the VI mode for the TV format (NTSC / PAL /
+// EURGB60, interlaced or progressive from the saved setting) and, on a progressive-capable TV with
+// B held (or progressive already on), asks "display in progressive mode?" before the card check.
 #include "types.h"
 #include "global.h"
 #include "gx.h"
@@ -20,6 +23,9 @@
 TvModeWork* pTv;
 u8 tv_mode_cnt;
 
+// Boot: sets the render mode's VI / XFB mode for the console's TV format (progressive when saved
+// in pRK) and starts the mode-check task in slot 1.
+#line 26
 void SetTvMode(GXRenderModeObj* rmode)
 {
     pTv = (TvModeWork*) MEM_CALLOC(sizeof(TvModeWork), 1, 0xD);
@@ -50,6 +56,7 @@ void SetTvMode(GXRenderModeObj* rmode)
     TaskExec(1, tvModeCheckTask, 0);
 }
 
+// Task: black fade, then the state machine (trigger -> progressive menu -> exit).
 void tvModeCheckTask()
 {
     static void (*tvModeFuncTbl[3])(TvModeWork*) = {tvModeTrigger, tvModeMenu_progressive, tvModeExit};
@@ -65,6 +72,8 @@ void tvModeCheckTask()
     }
 }
 
+// State 0: with a progressive TV and the check not done yet (waits up to 30 frames for the pad),
+// B held or progressive already on opens the menu; else straight to exit. Marks the check done.
 void tvModeTrigger(TvModeWork* tv)
 {
     if (VIGetDTVStatus() != 0 && pRK->tv_mode_done == 0) {
@@ -86,6 +95,9 @@ void tvModeTrigger(TvModeWork* tv)
     pRK->tv_mode_done = 1;
 }
 
+// State 1: the yes / no message (system layout, message 0; the cursor's choice after 300 idle
+// frames), applies the mode (VI reconfigured behind a black screen), then the confirmation
+// message (1 progressive / 2 interlaced) until A.
 void tvModeMenu_progressive(TvModeWork* tv)
 {
     int i;
@@ -158,6 +170,7 @@ void tvModeMenu_progressive(TvModeWork* tv)
     }
 }
 
+// State 2: done — runs the memory card first check and ends the task.
 void tvModeExit(TvModeWork* tv)
 {
     tv->active = 0;

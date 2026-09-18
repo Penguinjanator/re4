@@ -58,11 +58,16 @@ struct ScePrimPtr {
 #define CSCE_TASK (((ScePrimPtr*) &pCSceTask)->p)
 static u32 SceExecOt;
 
+// Boot: clears the scenario system.
 void ScenarioInit()
 {
     memclr_asm(&SceSys, sizeof(cSceSys));
 }
 
+// Room start: resets the event / up-cut state and hand-over functions, kills the scenario tasks,
+// restores the saved items, runs the room's init function and one scheduler pass (unless the
+// debug "no scenario" flag), creates the partner when the save says she is with the player
+// (Status_flg[3] 0x4000000), places the enemies from the list and sets up the areas.
 void ScenarioRoomInit()
 {
     // Store order decides the zero registers and the schedule: the six byte zeros come first, so cse
@@ -105,6 +110,7 @@ void ScenarioRoomInit()
     SceAtRoomSet();
 }
 
+// Kills scenario slots 5..17 and empties the ordering table.
 void ScenarioTaskAllOff()
 {
     u32 i;
@@ -116,6 +122,7 @@ void ScenarioTaskAllOff()
     }
 }
 
+// Per frame before the room script: debug print y reset, the deferred conditions checked.
 void scenarioLoopBeforeInit()
 {
     SceSys.m_debug_disp_y = 0x3C;
@@ -125,12 +132,16 @@ void scenarioLoopBeforeInit()
     SceExecCheckCondition();
 }
 
+// Per frame after the tasks: sub-mission check and the moving collision areas.
 void scenarioLoopAfterInit()
 {
     SubMissionCheck();
     SceAtCheckMoveScrAt();
 }
 
+// Once per frame (game loop): unless an item pick-up or a pause holds the scenario, the event
+// cancel key, the room's main function and the event manager run; then all scenario tasks
+// (scheduler), then the after-hooks. Skipped in the debug "no scenario" mode.
 void ScenarioMove()
 {
     if (pG->Debug_flg[2] & 0x4000000) {
@@ -150,11 +161,13 @@ void ScenarioMove()
     scenarioLoopAfterInit();
 }
 
+// Iteration start over the scenario tasks (ordering table head).
 u32* scenarioSetOtStart()
 {
     return &SceSys.SceTaskOt[15];
 }
 
+// Next ScePrim in the task ordering table after `p`; 0 at the end.
 u32* scenarioGetOtAddr(u32* p)
 {
     u32 v;
@@ -168,6 +181,7 @@ u32* scenarioGetOtAddr(u32* p)
     return 0;
 }
 
+// Unlinks the ScePrim of task `t` from the ordering table (and drops its event-cancel role).
 void SceTaskDelete(TASK* t)
 {
     ScePrim* p = (ScePrim*) scenarioSetOtStart();
@@ -184,6 +198,10 @@ void SceTaskDelete(TASK* t)
     }
 }
 
+// Runs every linked scenario task once this frame in ordering-table order (all held while an item
+// pick-up / pause runs, except slot 5); a task that exited is unlinked; in the room-load routine
+// (Rno0 2) a task waiting on a read sleeps a frame, and `wait` inserts a GXDrawDone. The current
+// task pointers are swapped in and out around each task.
 void cSceSys::scheduler()
 {
     OSThread* parent = pParentThread;
@@ -250,6 +268,10 @@ void cSceSys::scheduler()
     pCTask = ctask;
 }
 
+// Starts a scenario task: prio 0 = call `func(arg)` directly; prio 5..17 = that scheduler slot,
+// > 17 = the highest free slot. Linked into ordering slot otPrio (SCE_PRIO_*), OS priority 0xE,
+// `model` as the task's model; `flag` (0 = inherit the caller's event kind). Warns when fewer
+// than 3 slots remain. Returns the ScePrim, 0 when none is free.
 ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* model)
 {
     TASK* t;
@@ -315,6 +337,7 @@ ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* mo
     return p;
 }
 
+// TaskSleep, only from inside a scenario task.
 void SceSleep(int frames)
 {
     if (SceSys.checkCTaskRange() != 0) {
@@ -322,6 +345,7 @@ void SceSleep(int frames)
     }
 }
 
+// Ends the calling scenario task (unlinked, TaskExit).
 void SceExit()
 {
     if (SceSys.checkCTaskRange() != 0) {
@@ -330,24 +354,28 @@ void SceExit()
     }
 }
 
+// Kills scenario slot `prio`.
 void SceKill(int prio)
 {
     SceTaskDelete(&Task[prio]);
     TaskKill(prio);
 }
 
+// Kills the task of a ScePrim.
 void SceKill(ScePrim* p)
 {
     SceTaskDelete(p->task);
     TaskKill(p->task);
 }
 
+// Kills scenario task `t`.
 void SceKill(TASK* t)
 {
     SceTaskDelete(t);
     TaskKill(t);
 }
 
+// Kills every scenario task running `func`.
 void SceKill(void (*func)(int))
 {
     ScePrim* p = (ScePrim*) scenarioSetOtStart();
@@ -359,6 +387,7 @@ void SceKill(void (*func)(int))
     }
 }
 
+// 1 when the current task is a scenario task (slot 5..17).
 int cSceSys::checkCTaskRange()
 {
     if (pCTask == 0) {
@@ -370,11 +399,13 @@ int cSceSys::checkCTaskRange()
     return (u32) (pCTask->Task_no - 5) <= 12;
 }
 
+// The ScePrim of the scenario task being run.
 ScePrim* SceCTask()
 {
     return pCSceTask;
 }
 
+// Empties the deferred-condition list.
 void SceExecInitCondition()
 {
     ClearOTagR(&SceExecOt, 1);
@@ -386,6 +417,9 @@ static inline u32 emDeadRow(int n)
     return n * 32 + (u32) pG + 0x501C;
 }
 
+// Is the condition met? type 0 enemy list entry dead (em_dead bit), 1 camera area == param, 2
+// enemy `param` dead and in its die routine, 3 callback returns 1, 4 etc model `param` broken, 5
+// item area `param` taken.
 int SceExecCheckCondition_sub(SceCond* pP)
 {
     cEm* em;
@@ -437,6 +471,7 @@ int SceExecCheckCondition_sub(SceCond* pP)
     return 0;
 }
 
+// Per frame: fires (SceExec) and frees every deferred condition that is met.
 void SceExecCheckCondition()
 {
     u32 v = SceExecOt;
@@ -460,6 +495,7 @@ void SceExecCheckCondition()
     } while (v != 0xFFFFFFFF);
 }
 
+// Room: run `func(arg)` as a scenario task (prio, flag) once condition `type` / `param` holds.
 void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg, u8 flag)
 {
 #line 608
@@ -474,11 +510,13 @@ void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg
     AddPrim(&SceExecOt, (u32*) c);
 }
 
+// Room: run `func(arg)` when enemy `param` has died.
 void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, int arg, u8 flag)
 {
     SceExecLinkCondition(2, param, prio, func, arg, flag);
 }
 
+// 1 when `em` is alive, shown, active (be_flag 1 / 2 / 0x20), has hp and is not the player.
 int EmMoveActiveCheck(cEm* em)
 {
     if (!(em->be_flag & 1)) {
@@ -499,6 +537,9 @@ int EmMoveActiveCheck(cEm* em)
     return 1;
 }
 
+// Skips the running event (the START key during a cancellable event): Stop_flg restored,
+// messages closed, event stream stopped (sndFlag), the cancel flag set, the event task killed and
+// the registered continuation started in its slot, fade back in.
 void SceExecEventCancel()
 {
     MessageControl* mes = &cMes;
@@ -532,6 +573,8 @@ void SceExecEventCancel()
     FadeSetW(0x80000000, 10, 0, 0);
 }
 
+// Event script: makes the calling task skippable (`on`): `func(arg)` runs after a skip, event flag
+// `flagNo` (cleared now) is set by the skip, sndFlag = stop the event stream too.
 void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
 {
     u32 no;
@@ -561,6 +604,8 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
     }
 }
 
+// Per frame: the skip key (Key 0x20000000) during a cancellable event fades to black and runs
+// SceExecEventCancel. Returns 1 when skipped.
 int scenarioCheckEventCancel()
 {
     cSceSys* s = &SceSys;

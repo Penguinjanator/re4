@@ -1,5 +1,10 @@
+// game/snd_iss4: sound driver AX voice works (SND_AXV_WORK, one per hardware voice of a SE):
+// allocation / release, note-off with release ramp, the 5 ms envelope step and the deferred
+// parameter update (upd bits: 1 volume, 2 pan, 4 / 8 AUX, 0x10 / 0x20 LPF, 0x40 pitch, 0x100 pause,
+// 0x200 resume) pushed to the AX / MIX libraries by Snd_axv_work_control.
 #include "snd_drv.h"
 
+// Clears the 64 AX voice works (numbered).
 void Snd_axv_work_clear(void)
 {
     SND_AXV_WORK* axv;
@@ -17,6 +22,7 @@ void Snd_axv_work_clear(void)
     }
 }
 
+// A free AX voice work, NULL (with a report) when all 64 are used.
 SND_AXV_WORK* Snd_open_axv_work(void)
 {
     SND_AXV_WORK* axv;
@@ -32,6 +38,7 @@ SND_AXV_WORK* Snd_open_axv_work(void)
     return NULL;
 }
 
+// Audio frame: frees AX voices whose hardware voice has stopped, and ages the voice works (count).
 void Snd_axv_work_close_check(void)
 {
     SND_AXV_WORK* axv;
@@ -55,6 +62,8 @@ void Snd_axv_work_close_check(void)
     }
 }
 
+// Releases one AX voice whose pb.state is stopped (not while paused): MIX channel and AX voice
+// freed, the voice work unlinked.
 void axv_close_ck_main(SND_AXV_WORK* axv)
 {
     SND_VOICE_WORK* vw;
@@ -77,6 +86,8 @@ void axv_close_ck_main(SND_AXV_WORK* axv)
     axv->voice = NULL;
 }
 
+// Starts the release: envelope ramps to 0 over `time` 5 ms steps, AX priority lowered to 1, the
+// voice work is freed at once (status bit2 = releasing).
 void Snd_axv_work_note_off(SND_AXV_WORK* axv, s32 time)
 {
     SND_VOICE_WORK* vw;
@@ -110,6 +121,7 @@ void Snd_axv_work_note_off(SND_AXV_WORK* axv, s32 time)
     axv->vw = NULL;
 }
 
+// 1 when the voice uses the surround (DPL2) parameters: DPL2 output and a surround-type SE.
 int Snd_axv_work_get_out_mode(SND_AXV_WORK* axv)
 {
     if (Snd_get_sound_mode() == 2) {
@@ -123,6 +135,7 @@ int Snd_axv_work_get_out_mode(SND_AXV_WORK* axv)
     }
 }
 
+// Picks the effective volume: surround or normal, volume-down variant while status bit4.
 void Snd_axv_work_choice_now_vol(SND_AXV_WORK* axv)
 {
     if (Snd_axv_work_get_out_mode(axv) == 1) {
@@ -140,6 +153,7 @@ void Snd_axv_work_choice_now_vol(SND_AXV_WORK* axv)
     }
 }
 
+// Volume-down volumes = source volumes scaled by se_vdown_vol / 127.
 void Snd_axv_work_calc_vdown_vol(SND_AXV_WORK* axv)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -148,6 +162,7 @@ void Snd_axv_work_calc_vdown_vol(SND_AXV_WORK* axv)
     axv->vdown_svol = axv->vdown_src_svol / 127 * ctrl->se_vdown_vol;
 }
 
+// AX attenuation from system SE volume x master x the voice volume x the envelope (8.8 fixed).
 void Snd_axv_work_calc_ax_vol(SND_AXV_WORK* axv)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -158,6 +173,7 @@ void Snd_axv_work_calc_ax_vol(SND_AXV_WORK* axv)
     axv->ax_vol = Snd_vol_syn_to_ax((s16) (axv->calc_vol >> 8));
 }
 
+// Surround pan actually sent: the voice's span in DPL2 surround mode, else 0x7F.
 void Snd_axv_work_choice_out_span(SND_AXV_WORK* axv)
 {
     if (Snd_axv_work_get_out_mode(axv) == 1) {
@@ -167,6 +183,7 @@ void Snd_axv_work_choice_out_span(SND_AXV_WORK* axv)
     }
 }
 
+// Audio frame: envelope step and pending parameter update of every active AX voice.
 void Snd_axv_work_control(void)
 {
     SND_AXV_WORK* axv;
@@ -182,6 +199,8 @@ void Snd_axv_work_control(void)
     }
 }
 
+// One envelope step while attacking (status bit1) or releasing (bit2): moves env_vol toward
+// env_target; at the target the attack ends or the released voice is stopped.
 void axv_work_adsr(SND_AXV_WORK* axv)
 {
     AXVPB* voice;
@@ -217,6 +236,8 @@ void axv_work_adsr(SND_AXV_WORK* axv)
     axv->upd |= 0x1;
 }
 
+// Pushes the upd bits to the hardware: pause (0x100: input muted, voice stopped) / resume (0x200),
+// then volume / pan, AUX, LPF, pitch; clears upd.
 void axv_work_update(SND_AXV_WORK* axv)
 {
     if (axv->upd & 0x100) {
@@ -235,6 +256,7 @@ void axv_work_update(SND_AXV_WORK* axv)
     axv->upd = 0;
 }
 
+// upd 1: recompute and set the MIX input volume; upd 2: pan and surround pan.
 void axv_work_update_vol_pan(SND_AXV_WORK* axv)
 {
     if (axv->upd & 0x1) {
@@ -251,6 +273,7 @@ void axv_work_update_vol_pan(SND_AXV_WORK* axv)
     }
 }
 
+// upd 4 / 8: AUX A / B send levels.
 void axv_work_update_aux(SND_AXV_WORK* axv)
 {
     if (axv->upd & 0x4) {
@@ -263,6 +286,7 @@ void axv_work_update_aux(SND_AXV_WORK* axv)
     }
 }
 
+// upd 0x10: LPF on / off with the table coefficients; 0x20: new coefficients only.
 void axv_work_update_lpf(SND_AXV_WORK* axv)
 {
     AXPBLPF lpf;
@@ -290,6 +314,7 @@ void axv_work_update_lpf(SND_AXV_WORK* axv)
     }
 }
 
+// upd 0x40: new sample-rate ratio from the pitch in cents (clamped to 4x).
 void axv_work_update_pitch(SND_AXV_WORK* axv)
 {
     f64 ratio;

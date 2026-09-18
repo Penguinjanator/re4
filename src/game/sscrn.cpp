@@ -1,4 +1,8 @@
-// game/sscrn: sub screen (inventory / map / puzzle DLL) front end (D:/Bio4/Prog/sscrn.cpp).
+// game/sscrn: the sub screen (inventory / map / puzzle / shop / files / radio terminal) front end:
+// its data and REL live in ARAM and are swapped into the game heap while it is open (SubScreenExec
+// links the Sscrn REL and chains into it; SubScreenExit applies the inventory changes — weapon
+// swap, costume — when it closes), plus the radio call sequence (OpeSetOpenTerm).
+// (D:/Bio4/Prog/sscrn.cpp)
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -92,21 +96,26 @@ SubScreenWork SubScreenWk;
 IDSystem IdSub;
 IDSystem IdNum;
 
+// Save-game bytes the sub screen keeps (one word: SubScreenWk.save).
 int SscrnDataSize()
 {
     return 4;
 }
 
+// Writes the sub screen's save word.
 void SscrnDataSave(u32* dst)
 {
     *dst = SubScreenWk.save;
 }
 
+// Reads the sub screen's save word.
 void SscrnDataLoad(u32* src)
 {
     SubScreenWk.save = *src;
 }
 
+// Game start: loads the sub screen REL ("rel/Sscrn.rel"), the common data ("SS/<lang>/ss_cmmn.dat")
+// and the puzzle data into the sub screen ARAM area, remembering each file's offset.
 void SubScreenAramRead()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -136,6 +145,7 @@ void SubScreenAramRead()
     OSReport("SubScrn Free: 0x%08x\n", SS_ARAM_SIZE - wk->aramSize);
 }
 
+// Writes the language directory ("jpn" / "eng" / "ger" / "fra" / "esp" / "ita") into wk->path.
 void sscrnSetLanguage(SubScreenWork* wk, int lang)
 {
     char* p = strchr(wk->path, '/') + 1;
@@ -168,11 +178,14 @@ void sscrnSetLanguage(SubScreenWork* wk, int lang)
     }
 }
 
+// Replaces the file name part of wk->path.
 void sscrnDataFilename(SubScreenWork* wk, const char* name)
 {
     strcpy(strrchr(wk->path, '/') + 1, name);
 }
 
+// Game start: language path, ARAM data, attache case size / map mode reset, the radio (ope) state
+// cleared with message set 0x18; then the room init.
 void SubScreenGameInit()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -189,6 +202,8 @@ void SubScreenGameInit()
     SubScreenRoomInit();
 }
 
+// Room start: sub screen closed and armed (Status_flg[0] 0x02000000 = may open), attache case
+// size from the case items 0x7C..0x7F owned (0 for Ashley), map manager room init.
 void SubScreenRoomInit()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -220,11 +235,16 @@ void SubScreenRoomInit()
     MapMgr.roomInit();
 }
 
+// Blocks the sub screen from opening for `frames` frames (events, item pick-ups).
 void SubScreenWait(int frames)
 {
     SubScreenWk.wait = frames;
 }
 
+// Per frame (game loop): when the player (and Ashley) live, the screen is armed and the player
+// state allows (subScrCheck), the inventory key (0x100000) or map key (0x200000, unless the map is
+// disabled by Status_flg[2] 0x00200000) opens it; an opened screen starts the SubScreenExec task
+// in slot 1 (or is cancelled when the slot is busy).
 void SubScreenCall()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -261,6 +281,7 @@ void SubScreenCall()
     }
 }
 
+// Map stage index from the story flags: 0 village, 1 after the church, 2 castle, 3 island.
 int sscrnStageNo()
 {
     if (pG->Scenario_flg[0] & 0x00010000) {
@@ -273,6 +294,7 @@ int sscrnStageNo()
     return 0;
 }
 
+// Map room number: the church-interior variants 0x111.. map onto their base rooms (-0x10).
 u16 sscrnRoomNo(u16 room)
 {
     switch (room) {
@@ -288,6 +310,10 @@ u16 sscrnRoomNo(u16 room)
     return room;
 }
 
+// Requests the sub screen of `type` (SS_OPEN_*: inventory, map, terminal / radio, shop...): flags
+// bit0 = inside an event (SceEventStart), else the game is frozen (Stop_flg saved, keys stopped);
+// bit1 is added when Ashley is carried. Returns 0 when one is already requested (Status_flg[2]
+// 0x04000000).
 int SubScreenOpen(int type, int flags)
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -314,6 +340,7 @@ int SubScreenOpen(int type, int flags)
     return 1;
 }
 
+// Cancels an open request (task slot busy): unfreezes / ends the event.
 void SubScreenMiss()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -328,6 +355,10 @@ void SubScreenMiss()
     pG->Status_flg[2] &= ~0x04000000;
 }
 
+// Sub screen task (slot 1): sounds down, fade to black, the room ids / effects hidden, the game
+// heap swapped to ARAM and the sub screen data swapped in (MemorySwap), fonts and shared id data
+// set up for the screen type, the Sscrn REL linked, then TaskChain into its prolog (the DLL runs
+// the screen and calls SubScreenExit when done).
 void SubScreenExec()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -571,6 +602,7 @@ void SubScreenExec()
     }
 }
 
+// Unlinks the Sscrn REL, swaps the game memory back and restarts the room REL.
 void SubScreenExitCore(SubScreenWork* wk)
 {
     if (pG->Status_flg[0] & 0x00040000) {
@@ -602,6 +634,9 @@ static inline void FadeSetBlackOut(u32 clear, u32 time, u32 z, int late)
     FadeSet(0x80000000, &col.start, &col.end, time, z, late);
 }
 
+// Closing task (chained by the DLL): fade, core exit, then applies what changed in the inventory —
+// a different equipped weapon / type / upgrade level is reloaded (weaponRelease / Load / Init),
+// the armor costume, ammo display; unfreezes the game or ends the event; fades back in.
 void SubScreenExit()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -762,11 +797,13 @@ void SubScreenExit()
     }
 }
 
+// Current radio (ope) message set number.
 int OpeGetMdtNo()
 {
     return pG->ope_mdt_no;
 }
 
+// Selects radio message set `no` and marks it heard (ope_mdt_bits).
 void OpeSetMdtNo(u32 no)
 {
     u32* tbl = pG->ope_mdt_bits;
@@ -775,6 +812,7 @@ void OpeSetMdtNo(u32 no)
     pG->ope_mdt_no = no;
 }
 
+// Applies the pending radio message set (SubScreenWk.opeMdtNo). Returns it.
 int OpeMdtSetInit()
 {
     int no = SubScreenWk.opeMdtNo;
@@ -783,6 +821,7 @@ int OpeMdtSetInit()
     return no;
 }
 
+// Radio caller type shown on the screen (Hunnigan / Saddler...).
 void OpeOwTypeSet(u8 type)
 {
     pG->ope_ow_type = type;
@@ -798,6 +837,10 @@ static inline void PlSetPosW(cPlayer* pl, Vec* v)
     pl->setPos(v);
 }
 
+// Scenario: the radio call `no` — waits for the player to be free, optionally moves him to
+// (x, y, z, ang), starts an event, plays the radio stream (strTbl block), the "take out the radio"
+// motion with the radio model in the left hand (parts 0x10), then opens the terminal sub screen
+// (SS_OPEN_TERM); the skip key cancels. Restores the position afterwards.
 void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -890,11 +933,13 @@ END:
     SceEventEnd(0);
 }
 
+// The radio call was skipped (SubScreenWk.cancel).
 void OpeSetOpenTermCancel()
 {
     SubScreenWk.cancel = 1;
 }
 
+// Radio call end: stream stopped, radio model removed, hand restored, fade back in.
 void OpeSetOpenTermEnd()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -918,6 +963,7 @@ void OpeSetOpenTermEnd()
 // `.long 0, 0, 0` here would land before the folded roomInit instantiation); the .bss gap is a
 // zero-initialised static referenced only by a never-called inline (the dmg.cpp trick).
 static u8 sscrn_pad[0x1C];
+// Keeps the 0x1C-byte pad in .bss (matching helper).
 static inline u8* sscrnPad()
 {
     return sscrn_pad;

@@ -62,6 +62,7 @@ static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; else if (m[1] > hi) m[1] = hi; if (m[2] == 0.0f) m[0] = m[1]; }
 static inline void Inc32(u32& d) { d++; }
 
+// No weapon objects yet.
 cPlWep::cPlWep()
 {
     m_pWep = 0;
@@ -69,6 +70,9 @@ cPlWep::cPlWep()
     m_EmRankPtr = 0;
 }
 
+// Drops the current weapon: the muzzle-flash objects (id 0xA), both weapon objects (destroyNow),
+// the aim camera, the weapon's effect data (by weapon_no_old, unless flags_420 bit0 says the
+// data is shared) and the player-owned effects.
 void cPlayer::weaponRelease()
 {
     cObj* obj;
@@ -172,6 +176,7 @@ void cPlayer::weaponRelease()
     EffectEfmDelete(0, 10, this);
 }
 
+// Sets weapon_no / weapon_type and reads the weapon module's data (ReadWepData).
 void cPlayer::weaponLoad(int no, int type)
 {
     U8Set(pG->weapon_no, no);
@@ -179,6 +184,8 @@ void cPlayer::weaponLoad(int no, int type)
     ReadWepData(no, type);
 }
 
+// Clears the weapon part of the motion table (0..0x5E) and lets the loaded weapon module fill it
+// (WeaponInitFunc); back to routine 0/0 with a footwork unless carried / crouching.
 void cPlayer::weaponInit()
 {
     int i;
@@ -212,6 +219,12 @@ static f32 wepRate(cPlWep* w)
     return w->pitch;
 }
 
+// The player's weapon hit: `type` = damage kind (0..0x11 guns / knife 0x10, 0x12 blast, 0x13
+// grenade, 0x17 flash, 0x19 egg, ...), priority from the weapon's power level; a radius search
+// around pPos for the blast types, else the line pPos-pPos2 (GetWepTargetList2) up to `len`.
+// Every enemy hit gets dmg.set(type); the map hit spawns the surface effect / bell noise and water
+// shots unless flag bit0 (no map effects); flag bit1 = don't count / score the shot, bit2 = f4
+// (headshot-capable line); a miss gives the shooting-range points. Returns the number of enemies hit.
 u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len)
 {
     cPlayer* pl = (cPlayer*) plm;
@@ -483,6 +496,8 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
     return n;
 }
 
+// Radius damage at `pos` without a shooter: every enemy within `len` gets dmg.set(type) at the
+// given priority (max 0x14). Ashley is spared by 0x14, Ashley / Luis by the bow types unless first.
 u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
 {
     WepTarget list[20];
@@ -535,6 +550,7 @@ f32 cPlWep::getAngle()
     return pitch;
 }
 
+// Current aim blend rate (m3r[0], -1..1) while aiming / knife stance, else 0.
 f32 cPlWep::getPitch()
 {
     if (pPL->r_no_0 != 0) {
@@ -549,6 +565,7 @@ f32 cPlWep::getPitch()
     return m3r[0];
 }
 
+// Updates the weapon object's matrices.
 void cPlWep::move()
 {
     if (m_pWep) {
@@ -556,6 +573,7 @@ void cPlWep::move()
     }
 }
 
+// The laser marker (aim end) while in the weapon-ready state (stat 0x0601xx, r_no_3 != 0); 0 otherwise.
 int cPlWep::getMarkerPos(Vec* out)
 {
     cPlayer* pl = pPL;
@@ -567,6 +585,8 @@ int cPlWep::getMarkerPos(Vec* out)
     return 1;
 }
 
+// Display type 2 of the weapon objects: the main object (only with type bit0 for the launcher /
+// grenade / egg types; always for the bow) and pObj2.
 void cPlWep::setTrans(int on, int type)
 {
     if (m_pWep == 0) {
@@ -594,6 +614,8 @@ void cPlWep::setTrans(int on, int type)
     }
 }
 
+// Aim start: picks the lock-on target nearest the hand (SearchLockEm) as pLockEm and arms 10
+// frames of auto tracking (m_LockTime) when it is in front. Returns the target.
 cModel* cPlWep::lockInit()
 {
     cPlayer* pl = pPL;
@@ -653,6 +675,8 @@ static inline f32 rangeAdd(Vec* pos, Vec* v, f32 d, f32& range)
     return d;
 }
 
+// Lock-on score of `em` from `pos`: the distance to its lock point plus penalties (far away,
+// outside the 50-degree front cone, beyond 4000 / 15000); 1e12 beyond `range` (0 = 10000).
 f32 rangeDist(Vec* pos, cEm* em, f32 range)
 {
     Vec v;
@@ -661,6 +685,8 @@ f32 rangeDist(Vec* pos, cEm* em, f32 range)
     return rangeAdd(pos, &v, GetDistance(pos, &v), range);
 }
 
+// While aiming: a C-stick move cancels the lock time; with auto-aim on (pSys->flags 0x20000000)
+// the gun tracks the target for the remaining lock frames.
 void cPlWep::lockMove()
 {
     cPlayer* pl = pPL;
@@ -673,6 +699,8 @@ void cPlWep::lockMove()
     }
 }
 
+// May `em` be locked from `pos`? Alive, active, lockable (be_flag 0x20, not EM_STATUS_LOCKOFF), a
+// real enemy (id > 0xF), in front for the 0x41 / 0x43 bosses, and its lock point not behind a wall.
 int lockEmCk(cEm* em, Vec* pos)
 {
     Vec v;
@@ -720,6 +748,7 @@ static f32 lockAngleWrap(f32 a)
     return a;
 }
 
+// |a| < PI (unused helper).
 static int lockAngleFront(f32 a)
 {
     if (a < 0.0f) {
@@ -728,6 +757,7 @@ static int lockAngleFront(f32 a)
     return a < PI;
 }
 
+// Cycles the lock-on to the next best target (skipping the current one); 10 lock frames.
 cModel* cPlWep::lockNext()
 {
     cPlayer* pl = pPL;
@@ -738,6 +768,7 @@ cModel* cPlWep::lockNext()
     return pl->pLockEm;
 }
 
+// Best lock-on target from `pos` when auto-aim is enabled (pSys->flags 0x20000000), else 0.
 cModel* SearchLockEm(Vec* pos, cModel* skip)
 {
     if (pSys->flags & 0x20000000) {
@@ -746,11 +777,14 @@ cModel* SearchLockEm(Vec* pos, cModel* skip)
     return 0;
 }
 
+// Best target within `range` regardless of the auto-aim option (enemy / scenario use).
 cModel* SearchTargetEm(Vec* pos, cModel* skip, f32 range)
 {
     return searchLockEm(pos, skip, range);
 }
 
+// Enemy with the lowest rangeDist score that passes lockEmCk, excluding `skip` (which is returned
+// again when nothing else qualifies).
 cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
 {
     // COMPILER-DIFF: candidate (global-alloc order): skip r30 / range f30 pins; a plain `skip` copy
@@ -803,6 +837,8 @@ static int cornerCheckOld()
     return SatMgr.hitCheck(&pPL->pos, &rot, 0, 0, 0, 0);
 }
 
+// Corner-peek test: a wall within 500 ahead of the hand (behind when backing up, stat 0x0D) with
+// open space 500 / 1000 to one side: 1 = the wall's left is open, 2 = right, 0 = no corner.
 int PlCornerCheck()
 {
     static Vec vecz = {0.0f, 0.0f, 500.0f};
@@ -839,6 +875,8 @@ int PlCornerCheck()
     return 0;
 }
 
+// One side of the corner test: `len` along the wall (sign = side) and 1000 through it must be
+// clear; returns the two probe points.
 int cnCkSub(Vec* pos, Vec* nrm, Vec* outA, Vec* outB, f32 len)
 {
     static Vec angR = {0.0f, PI / 2.0f, 0.0f};
@@ -863,6 +901,10 @@ int cnCkSub(Vec* pos, Vec* nrm, Vec* outA, Vec* outB, f32 len)
     return 1;
 }
 
+// Aim control each frame while aiming: stick / d-pad move the pitch blend (m3r) and the waist yaw
+// m_Fwork0 within the weapon's limit `lim` (turning the body past it), with acceleration repCtr
+// and per-weapon speeds; then the weapon sway (PlWepLockRand), debug auto-track, the three-way
+// motion blend and the waist twist.
 void PlWepLockCtrl(cModel* plm)
 {
     static f32 repCtr = 0.0f;
@@ -1034,11 +1076,15 @@ rand:
     pl->Waist->set(pl->m_Fwork0, 0.4f);
 }
 
+// Resets the sway amplitude factor (lockRandCtr 0.2).
 void PlWepLockRandInit()
 {
     lockRandCtr = 0.2f;
 }
 
+// Weapon sway around the aim centre (wep.pitch / m_CenterY) with the weapon's lockRand* ranges:
+// flag bit0 = the player moved the aim, re-centre; bit1 = a fresh random offset; else a random
+// walk by the step values clamped to the range. pitch is in blend units (-1..1 = -90..90 degrees).
 void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
 {
     cPlayer* pl = (cPlayer*) plm;
@@ -1076,6 +1122,8 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
     *pitch *= 2.0f / PI;
 }
 
+// Turns the aim toward the locked enemy's lock point: yaw by at most 30 degrees * rate (mode 1
+// moves the waist within 12 degrees, else the body), pitch blend by at most 0.05 per frame.
 void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
 {
     cPlayer* pl = (cPlayer*) plm;
@@ -1134,6 +1182,8 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     m3rClamp(m3r, -1.0f, 1.0f);
 }
 
+// Water hit of a shot line: the splash where p0-p1 crosses the water surface (if not behind a
+// wall); shotguns (5, 6, 0xF, 0x2C) add five random splashes within 2000 of the end.
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)
 {
     Vec d;
@@ -1162,6 +1212,7 @@ void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)
     }
 }
 
+// Splash at `pos`: hit-mark effect, wave push, SE.
 void setWaterShot(Vec* pos)
 {
     EspSetWaterHitmark(pos);
@@ -1169,6 +1220,8 @@ void setWaterShot(Vec* pos)
     SndCall(2, 0xB, pos, 0, 0, 0);
 }
 
+// Aim start pitch: the elevation to the locked enemy (auto-aim on) or the camera pitch (doubled
+// when looking up), stored as wep.pitch and as the m3r blend rates.
 void PlSetLockPitch(cModel* plm)
 {
     cPlayer* pl = (cPlayer*) plm;
@@ -1210,6 +1263,7 @@ void PlSetLockPitch(cModel* plm)
     } while (0);
 }
 
+// Weapon size class for the window-break enemy: 0 handguns / small, 1 shotguns / rifles, 2 heavy.
 int GetWepSizeGroup(int no)
 {
     switch (no) {

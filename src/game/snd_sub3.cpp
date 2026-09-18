@@ -1,5 +1,10 @@
+// game/snd_sub3: sound driver data block accessors — an ISS block (per SE bank: count, DLS
+// wavetable, SIT table, sequence table) and a stream block (count, stream headers, RIT table)
+// are registered from their file headers; the getters resolve SIT / RIT / SHD entries and the
+// SIT's volume / pan with the DLS defaults where the SIT says "from the DLS" (< 0).
 #include "snd_drv.h"
 
+// Registers an ISS block from its file header (count, DLS, SIT and sequence offsets).
 void Snd_iss_blk_init(u32 blk_no, void* data)
 {
     SND_ISS_BLK* blk;
@@ -13,6 +18,7 @@ void Snd_iss_blk_init(u32 blk_no, void* data)
     blk->seq = (u8*) data + *p++;
 }
 
+// Registers a stream block from its file header (count, stream headers, RIT offsets).
 void Snd_str_blk_init(u32 blk_no, void* data)
 {
     SND_STR_BLK* blk;
@@ -25,11 +31,13 @@ void Snd_str_blk_init(u32 blk_no, void* data)
     blk->rit = (SND_RIT*) ((u8*) data + *p++);
 }
 
+// The ISS block `blk_no`.
 SND_ISS_BLK* Snd_get_blk_adrs(u16 blk_no, u16 req_no)
 {
     return &Snd_iss_blk[blk_no];
 }
 
+// SIT entry `req_no` of ISS block `blk_no`.
 SND_SIT* Snd_get_sit_adrs(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -39,6 +47,7 @@ SND_SIT* Snd_get_sit_adrs(u16 blk_no, u16 req_no)
     return sit;
 }
 
+// RIT entry `req_no` of stream block `blk_no`.
 SND_RIT* Snd_get_rit_adrs(u16 blk_no, u16 req_no)
 {
     SND_RIT* rit;
@@ -48,6 +57,7 @@ SND_RIT* Snd_get_rit_adrs(u16 blk_no, u16 req_no)
     return rit;
 }
 
+// Stream header the RIT entry points at (shd_no through the header offset table).
 SND_SHD* Snd_get_shd_adrs(u16 blk_no, u16 req_no)
 {
     SND_RIT* rit;
@@ -59,6 +69,7 @@ SND_SHD* Snd_get_shd_adrs(u16 blk_no, u16 req_no)
     return (SND_SHD*) shd;
 }
 
+// SIT type: 0x8000 dummy, else the low 3 flag bits (1 one-shot, 4 sequence).
 u16 Snd_iss_get_sit_type(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -70,6 +81,7 @@ u16 Snd_iss_get_sit_type(u16 blk_no, u16 req_no)
     return sit->flag & 0x7;
 }
 
+// The SIT's volume, or the DLS region's when the SIT says < 0.
 s8 Snd_iss_get_sit_vol(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -84,6 +96,7 @@ s8 Snd_iss_get_sit_vol(u16 blk_no, u16 req_no)
     }
 }
 
+// The SIT's surround volume, or its volume when unset.
 s8 Snd_iss_get_sit_svol(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -98,6 +111,7 @@ s8 Snd_iss_get_sit_svol(u16 blk_no, u16 req_no)
     }
 }
 
+// The SIT's pan: -1 = positional (game computes it), other negatives = the DLS articulation pan.
 s8 Snd_iss_get_sit_pan(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -115,6 +129,7 @@ s8 Snd_iss_get_sit_pan(u16 blk_no, u16 req_no)
     }
 }
 
+// The SIT's surround pan: -1 = positional, other negatives = 0x7F.
 s8 Snd_iss_get_sit_span(u16 blk_no, u16 req_no)
 {
     SND_SIT* sit;
@@ -130,6 +145,8 @@ s8 Snd_iss_get_sit_span(u16 blk_no, u16 req_no)
     }
 }
 
+// DLS default for the SIT's program: mode 0 the region attenuation as a 0..127 volume, 1 the
+// articulation pan.
 s8 get_dls_vol_pan(u16 blk_no, u16 req_no, int mode)
 {
     SND_ISS_BLK* blk;

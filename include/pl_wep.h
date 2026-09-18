@@ -29,6 +29,8 @@ public:
     virtual void setMotion(cPlayer* pl) {}    // pl_sub PlReloadBullet: the launcher fills the player's motion table
     virtual void interrupt();
     virtual void endReload(int noReload);
+    // Aim sway ranges / per-frame steps in degrees (stored in radians) — each weapon module's
+    // init() calls it (pl_wep PlWepLockRand).
     void setAbility(f32 pitch, f32 yaw, f32 pitchStep, f32 yawStep) {
         wep.lockRandPitch = pitch * 0.017453292f;
         wep.lockRandYaw = yaw * 0.017453292f;
@@ -71,6 +73,7 @@ class cObjLauncher : public cObjWep {
 public:
     cObjLauncher();
     virtual ~cObjLauncher();
+    // The launcher and its loaded rocket keep moving while the game is suspended.
     virtual void setNoSuspend(int on) {
         if (on) {
             be_flag |= 0x800;

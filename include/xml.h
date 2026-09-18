@@ -25,16 +25,19 @@ public:
     int SetXmlElemEnd(int* size, char* buf);
     int SetXmlElem(int* size, char* buf, const char* name, const char* value);
 
+    // Element with an integer value (printed decimal).
     int SetXmlElem(int* size, char* buf, const char* name, long value)
     {
         char tmp[32];
         sprintf(tmp, "%ld", value);
         return SetXmlElem(size, buf, name, tmp);
     }
+    // Element with a boolean value ("true" / "false").
     int SetXmlElem(int* size, char* buf, const char* name, bool value)
     {
         return SetXmlElem(size, buf, name, value ? "true" : "false");
     }
+    // Reads a boolean element ("true" in any case); 0 when the element is missing.
     int GetXmlElem(bool* out, const char* src, const char* tag)
     {
         char tmp[256];
@@ -47,6 +50,7 @@ public:
 };
 
 // Debug-tool XML document helpers (file layout of the "Node" records written by the tools).
+// Checks a loaded XML file fits its buffer and was found (errors logged); 1 when usable.
 inline int ReadXml(const char* name, char* buf, int max, int size)
 {
     if (size > max) {
@@ -60,6 +64,7 @@ inline int ReadXml(const char* name, char* buf, int max, int size)
     return 1;
 }
 
+// Writes the twelve fields of a tool "Node" record, all with the same `value` (a template).
 inline void WriteNode(XmlSimple* xml, int* size, char* buf, const char* value)
 {
     xml->SetXmlElem(size, buf, "Node", value);
@@ -76,6 +81,7 @@ inline void WriteNode(XmlSimple* xml, int* size, char* buf, const char* value)
     xml->SetXmlElem(size, buf, "Dat1", value);
 }
 
+// Writes the default cut / name / frame fields of a node.
 inline void WriteDefaultNode(XmlSimple* xml, int* size, char* buf)
 {
     xml->SetXmlElem(size, buf, "CutNo", "3");
@@ -83,6 +89,7 @@ inline void WriteDefaultNode(XmlSimple* xml, int* size, char* buf)
     xml->SetXmlElem(size, buf, "Frame", "0");
 }
 
+// Checks a loaded data file was found (error logged); 1 when usable.
 inline int ReadData(const char* name, void* data)
 {
     if (data == NULL) {

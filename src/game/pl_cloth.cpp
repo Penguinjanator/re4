@@ -298,6 +298,8 @@ void PlClothSetLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair
     testHairSetLeon(pl, hair);
 }
 
+// Per frame (cPlLeon::moveCloth): simulates the jacket, holster and hair, then clears the model's
+// warp / no-cloth flags (be_flag 0x00E00000) that reset the chains this frame.
 void PlClothMoveLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair)
 {
     testJacketMoveLeon(pl, jacket);
@@ -318,6 +320,8 @@ void PlClothSetGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater,
     }
 }
 
+// Per frame (cPlAshley::moveCloth / the Ashley NPC): hair, then skirt + sweater, or ribbon + lapels
+// for the alternate costume (game_costume 1); clears be_flag 0x00E00000.
 void PlClothMoveGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater)
 {
     testHairMoveGirl(pl, hair);
@@ -331,23 +335,27 @@ void PlClothMoveGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater
     pl->be_flag &= ~0x00E00000;
 }
 
+// Luis: hair chain only.
 void PlClothSetLuis(cModel* pl, PlCloth* hair)
 {
     testHairSetLuis(pl, hair);
 }
 
+// Luis per frame: hair; clears be_flag 0x00E00000.
 void PlClothMoveLuis(cModel* pl, PlCloth* hair)
 {
     testHairMoveLuis(pl, hair);
     pl->be_flag &= ~0x00E00000;
 }
 
+// Ada: dress (fewer bundles in events) and hair; the ribbon is a separate chain object (AdaRibbonSet).
 void PlClothSetAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair, int evt)
 {
     testDressSetAda(pl, dress, evt);
     testHairSetAda(pl, hair);
 }
 
+// Ada per frame: dress and hair; clears be_flag 0x00E00000.
 void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
 {
     testDressMoveAda(pl, dress);
@@ -355,6 +363,7 @@ void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
     pl->be_flag &= ~0x00E00000;
 }
 
+// Leon's hair: 21 links, 4 collision spheres, gravity 15, Flag 0x302 (no floor, border collision).
 void testHairSetLeon(cModel* pl, PlCloth* pCloth)
 {
     pCloth->Num = 21;
@@ -384,11 +393,13 @@ void testHairSetLeon(cModel* pl, PlCloth* pCloth)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Hair: the plain simulation.
 void testHairMoveLeon(cModel* pl, PlCloth* pCloth)
 {
     PenClothMove(pl, (PenCloth*) pCloth);
 }
 
+// Leon's jacket (costume 0 only): 24 links, 6 volumes, gravity 25, soft constraints (Stretchy 0.1).
 void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->pl_costume != 0) {
@@ -421,6 +432,7 @@ void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Jacket (costume 0): the Move3 variant with parallel collision.
 void testJacketMoveLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->pl_costume == 0) {
@@ -428,6 +440,7 @@ void testJacketMoveLeon(cModel* pl, PlCloth* pCloth)
     }
 }
 
+// Leon's holster strap (costume 1, no jacket): a 2-link chain with one volume.
 void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->pl_costume != 1) {
@@ -460,6 +473,7 @@ void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Holster (costume 1): Move3.
 void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->pl_costume == 1) {
@@ -467,6 +481,7 @@ void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth)
     }
 }
 
+// Ashley's hair: 21 links, 7 collision spheres in events (evt) else 5, Flag 0x302.
 void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
     pCloth->Num = 21;
@@ -502,11 +517,13 @@ void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Hair: the plain simulation.
 void testHairMoveGirl(cModel* pl, PlCloth* pCloth)
 {
     PenClothMove(pl, (PenCloth*) pCloth);
 }
 
+// Ashley's skirt: 48 links (a ring of 4 x 12) with 11 volumes (a different set in events).
 void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
     pCloth->Num = 48;
@@ -542,6 +559,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Skirt: Move3, stiffer while Status_flg[1] 0x200000 (Ashley carried / on the ladder).
 void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth)
 {
     if (pG->Status_flg[1] & 0x200000) {
@@ -552,6 +570,7 @@ void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth)
     PenClothMove3(pl, (PenCloth*) pCloth);
 }
 
+// Ashley's sweater hem: 8 links, 6 volumes.
 void testSweaterSetGirl(cModel* pl, PlCloth* c)
 {
     c->Num = 8;
@@ -581,11 +600,13 @@ void testSweaterSetGirl(cModel* pl, PlCloth* c)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Sweater: the plain simulation.
 void testSweaterMoveGirl(cModel* pl, PlCloth* c)
 {
     PenClothMove(pl, (PenCloth*) c);
 }
 
+// Ashley's alternate costume ribbon: 12 links, 8 volumes, gravity 10, soft constraints.
 void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
 {
     pCloth->Num = 12;
@@ -615,6 +636,7 @@ void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Ribbon: the plain simulation.
 void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
 {
     PenClothMove(pl, (PenCloth*) pCloth);
@@ -677,6 +699,8 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
         }                                                                           \
     }
 
+// Ashley's alternate-costume lapels (parts 0x8D / 0x8E): each is tilted away from the chest by the
+// angle the chest (weighted parts 7/8 and 0xD/0xE) rises above it, then bent about its Y and Z axes.
 void girlLapelMove(cModel* pl)
 {
     static f32 lapel_rr = 50.0f;
@@ -712,6 +736,7 @@ void girlLapelMove(cModel* pl)
     }
 }
 
+// Luis's hair: 26 links.
 void testHairSetLuis(cModel* pl, PlCloth* pCloth)
 {
     pCloth->Num = 26;
@@ -741,6 +766,7 @@ void testHairSetLuis(cModel* pl, PlCloth* pCloth)
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
+// Hair: the plain simulation.
 void testHairMoveLuis(cModel* pl, PlCloth* pCloth)
 {
     PenClothMove(pl, (PenCloth*) pCloth);
@@ -786,11 +812,13 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Dress: Move3.
 void testDressMoveAda(cModel* pl, PlCloth* c)
 {
     PenClothMove3(pl, (PenCloth*) c);
 }
 
+// Ada's hair: 14 links, 6 volumes, Flag 0x302.
 void testHairSetAda(cModel* pl, PlCloth* c)
 {
     c->Num = 14;
@@ -820,11 +848,14 @@ void testHairSetAda(cModel* pl, PlCloth* c)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Hair: the plain simulation.
 void testHairMoveAda(cModel* pl, PlCloth* c)
 {
     PenClothMove(pl, (PenCloth*) c);
 }
 
+// Ada's dress ribbon as a cObjChain (its own model bin/tpl, 22 links, 10 volumes, Flag 0x200) hung
+// on parts 0x40 of the player. Returns 0 when the model data is missing.
 cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
 {
     cObjChain* chain;

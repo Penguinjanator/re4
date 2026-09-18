@@ -85,6 +85,9 @@ extern double atof(const char *);
 
 #define BufferEmpty (fp->_r <= 0 && __srefill(fp))
 
+/* The BSD vfscanf core: matches the format against the stream (white space, literals, %d / %i /
+ * %o / %u / %x / %c / %s / %[ / %e / %f / %g / %p / %n with width and size modifiers), storing
+ * each converted field; returns the number of assignments (EOF on input failure). */
 int
 __svfscanf (fp, fmt0, ap)
      register FILE *fp;
@@ -804,6 +807,8 @@ match_failure:
  */
 
 /*static*/
+/* Builds the 256-entry scanset table for a %[...] conversion (ranges, ^ negation); returns the
+ * format position after the closing ]. */
 u_char *
 __sccl (tab, fmt)
      register char *tab;

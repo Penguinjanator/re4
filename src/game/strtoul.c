@@ -6,6 +6,7 @@
 #define isdigit(c) ((_ctype_ + 1)[(unsigned)(c)] & _N)
 #define isspace(c) ((_ctype_ + 1)[(unsigned)(c)] & _S)
 
+/* Reentrant strtoul: like _strtol_r for unsigned long, clamping to ULONG_MAX. */
 unsigned long _strtoul_r(struct _reent *rptr, const char *nptr, char **endptr, int base)
 {
     register const char *s = nptr;
@@ -61,6 +62,7 @@ unsigned long _strtoul_r(struct _reent *rptr, const char *nptr, char **endptr, i
     return (acc);
 }
 
+/* String to unsigned long in `base` (0 = auto). */
 unsigned long strtoul(const char *s, char **ptr, int base)
 {
     return _strtoul_r(_REENT, s, ptr, base);

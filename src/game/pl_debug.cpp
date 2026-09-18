@@ -1,4 +1,7 @@
-// game/pl_debug.cpp: player debug helpers: cheat ("maho") commands, collision test draws, gauge.
+// game/pl_debug: player debug helpers — the "maho" cheats (button sequences registered in
+// cPlMaho: no death, infinite ammo, skeleton display, collision off, kaiouken speed-ups, Ashley
+// teleport), the per-frame debug draws (scroll hit test, collision quad test, local coordinate
+// finder, damage capsules, position marker), PlWepMotSet and the DrawGage life bar.
 
 #include "player.h"
 #include "global.h"
@@ -22,18 +25,21 @@ int local_coord_test = 0;
 
 u8 PlCapNum[25];
 
+// Cheat: no death (Debug_flg[2] 0x800000).
 void mahoMuteki()
 {
     BitOn(pG->Debug_flg[2], 0x800000);
     pLog->mes(0, 0, "NO DEATH ON");
 }
 
+// Cheat: infinite ammo (Debug_flg[2] 0x400000).
 void mahoInfBul()
 {
     BitOn(pG->Debug_flg[2], 0x400000);
     pLog->mes(0, 0, "INF BULLET ON");
 }
 
+// Cheat: collision skeleton display on (Debug_flg[0] / Disp_flg 0x8000000).
 void mahoSkelOn()
 {
     BitOn(pG->Debug_flg[0], 0x8000000);
@@ -41,6 +47,7 @@ void mahoSkelOn()
     pLog->mes(0, 0, "SKELTON ON");
 }
 
+// Cheat: collision skeleton display off.
 void mahoSkelOff()
 {
     BitOff(pG->Debug_flg[0], 0x8000000);
@@ -48,6 +55,7 @@ void mahoSkelOff()
     pLog->mes(0, 0, "SKELTON OFF");
 }
 
+// Cheat: teleports the partner (pSUB) to the player.
 void mahoCallSc()
 {
     if (pSUB) {
@@ -56,12 +64,14 @@ void mahoCallSc()
     }
 }
 
+// Cheat: kaiouken (speed-up) off.
 static void mahoKaiouOff()
 {
     BitOff(pG->Debug_flg[2], 0x10000);
     pLog->mes(0, 0, "KAIOUKEN OFF");
 }
 
+// Cheat: kaiouken x2 (Debug_flg[2] 0x10000, PlKaiou 0).
 void mahoKaiou2()
 {
     BitOn(pG->Debug_flg[2], 0x10000);
@@ -69,6 +79,7 @@ void mahoKaiou2()
     pLog->mes(0, 0, "KAIOUKEN x2");
 }
 
+// Cheat: kaiouken x3 (PlKaiou 1).
 void mahoKaiou3()
 {
     BitOn(pG->Debug_flg[2], 0x10000);
@@ -76,6 +87,7 @@ void mahoKaiou3()
     pLog->mes(0, 0, "KAIOUKEN x3");
 }
 
+// Cheat: kaiouken x4 (PlKaiou 2).
 void mahoKaiou4()
 {
     BitOn(pG->Debug_flg[2], 0x10000);
@@ -83,18 +95,21 @@ void mahoKaiou4()
     pLog->mes(0, 0, "KAIOUKEN x4");
 }
 
+// Cheat: the player passes through collision.
 void mahoThroughOn()
 {
     pPL->atari.throughOn();
     pLog->mes(0, 0, "PL THROUGH ON");
 }
 
+// Cheat: collision back on.
 void mahoThroughOff()
 {
     pPL->atari.throughOff();
     pLog->mes(0, 0, "PL THROUGH OFF");
 }
 
+// Registers the "maho" button-sequence cheats (digits = d-pad / buttons, A/B = the confirm key).
 void cPlayer::debugInit()
 {
     pMaho = new cPlMaho;
@@ -111,6 +126,8 @@ void cPlayer::debugInit()
     pMaho->regist("243A", mahoCallSc);
 }
 
+// Debug (scr_hit_check): casts a 5000-unit line forward from 1000 above the player through the
+// scroll collision and draws the hit / normal.
 void scrHitCheck(cPlayer* pl)
 {
     if (scr_hit_check) {
@@ -139,6 +156,7 @@ void scrHitCheck(cPlayer* pl)
     }
 }
 
+// Debug (sat_make_test): A creates a 2000 x 2000 collision quad 1000 ahead of the player.
 void satMakeTest(cPlayer* pl)
 {
     if (sat_make_test) {
@@ -166,6 +184,8 @@ void satMakeTest(cPlayer* pl)
     }
 }
 
+// Debug (local_coord_test): moves a point in parts space of the player (pad 2 stick / triggers,
+// Y / X change the parts) and prints its coordinates — for finding attachment offsets.
 void localCoordTest(cPlayer* pl)
 {
     if (local_coord_test) {
@@ -199,6 +219,8 @@ static void tangentTest(cPlayer* pl)
     eprintf(40, 100, 0, 0, "%f", tang.x * 10000.0f);
 }
 
+// Debug draws each frame: the tests above, nearest enemy search, the damage capsules
+// (EmYarareDisp), the oba collision (Debug_flg[2] 0x10000000) and the position marker (PlDbFlag bit1).
 void cPlayer::debugMove()
 {
     scrHitCheck(this);
@@ -214,6 +236,7 @@ void cPlayer::debugMove()
     }
 }
 
+// Finds the nearest living enemy (distance only; the result is not kept — debug leftover).
 void cPlayer::emSearch()
 {
     f32 min = 100000.0f;
@@ -231,6 +254,7 @@ void cPlayer::emSearch()
     }
 }
 
+// Plays weapon motion `no` (0-2 PlWepMot[], 3 the stand motion) on the player with a 3-frame blend.
 void PlWepMotSet(int no)
 {
     void* mot = 0;
@@ -253,12 +277,14 @@ void PlWepMotSet(int no)
     MotionSetCore(pl, &pl->pMotion, mot, 0, 3, 5, 0);
 }
 
+// Empty cheat table.
 cPlMaho::cPlMaho()
 {
     reset();
     num = 0;
 }
 
+// Resets every cheat's input progress (rno).
 void cPlMaho::reset()
 {
     int i;
@@ -268,6 +294,7 @@ void cPlMaho::reset()
     }
 }
 
+// Adds a cheat: `code` is the button sequence, `func` runs when it is completed.
 void cPlMaho::regist(const char* code, void (*func)())
 {
     PlMahoEntry* e = &tbl[num];

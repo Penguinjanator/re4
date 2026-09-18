@@ -4,6 +4,7 @@
 #define UNALIGNED(X, Y) (((long)X & (sizeof(long) - 1)) | ((long)Y & (sizeof(long) - 1)))
 #define TOO_SMALL(LEN) ((LEN) < sizeof(long))
 
+/* Copies at most count characters, zero-padding the rest. */
 char *strncpy(char *dst0, const char *src0, size_t count)
 {
     char *dst = dst0;

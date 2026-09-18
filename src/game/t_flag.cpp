@@ -1,3 +1,6 @@
+// game/t_flag: the debug flag editor task (FlagEdit): pages of the game's flag words (fe_data —
+// debug, display, status, system, scenario, room, item flags...) shown in hex with per-bit names,
+// toggled with the pad.
 #include "types.h"
 #include "global.h"
 #include "joy.h"
@@ -157,6 +160,8 @@ static FE_DATA fe_data[12] = {
 
 FE_WORK Test;
 
+// Debug flag editor task: pages of the game's flag words (debug / disp / status / scenario / room
+// flags... in fe_data) with the bit names; runs until B.
 void FlagEdit()
 {
     static void (*func_tbl[2])(FE_WORK*) = {move, die};
@@ -174,6 +179,7 @@ void FlagEdit()
     }
 }
 
+// Editor start: page 0, cursor 0, the game frozen (Stop_flg saved).
 static void init(FE_WORK* t)
 {
     Test.mode = 0;
@@ -182,6 +188,8 @@ static void init(FE_WORK* t)
     TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
 }
 
+// Editor frame: d-pad moves the cursor bit, C-stick / L / R change the page, A toggles the bit;
+// prints the page's words in hex, the cursor bit's value, number and name. B -> die.
 static void move(FE_WORK* t)
 {
     JOY* joy = GetBugCheckController();
@@ -294,6 +302,7 @@ static void move(FE_WORK* t)
     }
 }
 
+// Editor end: restores Stop_flg, ends the task.
 static void die(FE_WORK* t)
 {
     TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
@@ -302,6 +311,7 @@ static void die(FE_WORK* t)
     TaskExit();
 }
 
+// Value (0 / 1) of bit `bit` in a big-endian bit array (bit 0 = 0x80000000 of word 0).
 int CkBit(u32* flags, u32 bit)
 {
     flags += bit / 32;

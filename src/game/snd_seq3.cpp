@@ -1,5 +1,10 @@
+// game/snd_seq3: sound driver sequence works (SND_SEQ_WORK, 8 slots): allocation, lookup by
+// sound id, closing when the last note has died, the variable-length delta reader, MIDI send
+// helpers, the AX volume computation and the start of a new sequence from an ISS play request
+// (synth initialised on the block's DLS / ARAM, the sequence data picked by the SIT's bank).
 #include "snd_drv.h"
 
+// Clears the 8 sequence works (numbered).
 void Snd_seq_work_clear(void)
 {
     SND_SEQ_WORK* seq;
@@ -17,6 +22,7 @@ void Snd_seq_work_clear(void)
     }
 }
 
+// The active sequence work with sound id `snd_id`, or NULL.
 SND_SEQ_WORK* Snd_search_seq_work_snd_id(u32 snd_id)
 {
     SND_SEQ_WORK* seq;
@@ -38,6 +44,8 @@ SND_SEQ_WORK* Snd_search_seq_work_snd_id(u32 snd_id)
     return NULL;
 }
 
+// Game-frame tick: a sequence that has stopped (status bit4 off) is closed once its synth has no
+// active notes left.
 void Snd_seq_work_close_check(void)
 {
     SND_SEQ_WORK* seq;
@@ -59,6 +67,7 @@ void Snd_seq_work_close_check(void)
     }
 }
 
+// Reads a MIDI variable-length delta time (up to 4 bytes) at seq_pos.
 u32 Snd_seq_get_delta(SND_SEQ_WORK* seq)
 {
     u32 d;
@@ -80,6 +89,7 @@ u32 Snd_seq_get_delta(SND_SEQ_WORK* seq)
     return d;
 }
 
+// Forwards the current 3-byte message to the sequence's synth.
 void Snd_seq_send_midi(SND_CTRL_WORK* msg, SND_SEQ_WORK* seq)
 {
     int old;
@@ -89,6 +99,7 @@ void Snd_seq_send_midi(SND_CTRL_WORK* msg, SND_SEQ_WORK* seq)
     OSRestoreInterrupts(old);
 }
 
+// Sends one MIDI message to a synth.
 void Snd_send_midi(SYNSYNTH* synth, u8 status, u8 data1, u8 data2)
 {
     u8 msg[3];
@@ -102,6 +113,7 @@ void Snd_send_midi(SYNSYNTH* synth, u8 status, u8 data1, u8 data2)
     OSRestoreInterrupts(old);
 }
 
+// AX volume from the system BGM (type 2) or SE volume x master x the sequence's 8.8 volume.
 void Snd_seq_work_calc_ax_vol(SND_SEQ_WORK* seq)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -115,6 +127,9 @@ void Snd_seq_work_calc_ax_vol(SND_SEQ_WORK* seq)
     seq->ax_vol = Snd_vol_syn_to_ax((s16) (seq->calc_vol >> 8));
 }
 
+// Starts a sequence from a play request: a free work, tracks reset, synth on the block's DLS and
+// ARAM, sequence data = the block's sequence table entry for the SIT's bank, first delta read,
+// volume from the request or the SIT; status 0x11 running.
 void Snd_iss_new_seq_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
 {
     SND_SEQ_WORK* seq;
@@ -150,6 +165,7 @@ void Snd_iss_new_seq_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
     seq->status |= 0x10;
 }
 
+// A free sequence work, NULL (with a report) when all 8 are used.
 SND_SEQ_WORK* open_seq_work(void)
 {
     SND_SEQ_WORK* seq;
@@ -166,6 +182,7 @@ SND_SEQ_WORK* open_seq_work(void)
     return NULL;
 }
 
+// Resets the playback state (tempo 1000, division 480) and the 16 channels' remembered controllers.
 void seq_work_init_track(SND_SEQ_WORK* seq)
 {
     u32 i;

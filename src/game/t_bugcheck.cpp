@@ -1,3 +1,7 @@
+// game/t_bugcheck: the debug "bug check" cheat menu (a debug-menu task): infinite ammo, player
+// speed, no death for the player / enemies, free position move, life editing, the collision and
+// event-area displays, shop unlock, sound stops and model / enemy display toggles — all through
+// the Debug_flg / Disp_flg words (TOOL_FLAG offsets, t_util.h).
 #include "types.h"
 #include "vec.h"
 #include "atari.h"
@@ -43,11 +47,13 @@ cToolBugcheck BC;
 
 #define ROUND(x) ((int) ((x) + 0.5f))
 
+// Debug menu entry: runs the bug-check menu until B.
 void ToolBugcheck()
 {
     BC.main();
 }
 
+// Freezes the game (Stop_flg saved, all but 0x4000 set), menu at (80, 60).
 void cToolBugcheck::init()
 {
     BitSet(m_stop_flag_bak, TOOL_FLAG(OFS_STOP_FLG));
@@ -57,6 +63,7 @@ void cToolBugcheck::init()
     cursor = 0;
 }
 
+// Menu loop: the C-stick moves the menu, B leaves.
 void cToolBugcheck::main()
 {
     init();
@@ -81,6 +88,7 @@ void cToolBugcheck::main()
     exit();
 }
 
+// Restores Stop_flg, clears the debug-menu-active bit, ends the task.
 void cToolBugcheck::exit()
 {
     TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
@@ -88,6 +96,8 @@ void cToolBugcheck::exit()
     TaskExit();
 }
 
+// Sub menu: moves the player freely with the stick (A fast, L / R up / down, X ignores the scroll
+// collision, Z brings Ashley along), snapping to the floor unless flying; prints the position.
 void cToolBugcheck::menuPosMove()
 {
     f32 speed;
@@ -160,6 +170,7 @@ void cToolBugcheck::menuPosMove()
     BitOn(TOOL_FLAG(OFS_STOP_FLG), 0x40000000);
 }
 
+// Sub menu: edits the player's / Ashley's life and life maximum (stick / L / R), shows the level.
 void cToolBugcheck::menuLife()
 {
     int cur = 0;
@@ -297,6 +308,10 @@ void cToolBugcheck::menuLife()
     }
 }
 
+// The 18-entry menu: toggles for WEP_MUGEN (infinite ammo / +reload), PL_SPEED (kaiouken x2..x5),
+// PL / EM no death, position move, life, the five collision / event area displays, shop unlock,
+// BGM / SE stop, object / scroll hide, quick enemy death and enemy life display; each writes its
+// Debug_flg / Disp_flg bit.
 void cToolBugcheck::menu()
 {
     static TOOL_MENU menu[18] = {

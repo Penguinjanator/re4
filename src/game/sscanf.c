@@ -3,11 +3,13 @@
 
 extern size_t strlen(const char *);
 
+/* Read function of the string FILE: always EOF (the string is the whole buffer). */
 int eofread(void *cookie, char *buf, int len)
 {
     return 0;
 }
 
+/* Parses `str` with a read-only string FILE through vfscanf. */
 int sscanf(const char *str, const char *fmt, ...)
 {
     int ret;

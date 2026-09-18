@@ -1,4 +1,7 @@
-// game/sub2: vector / angle helpers (D:/Bio4/Prog/sub2.cpp).
+// game/sub2: small vector / angle helpers used everywhere: yaw between points (GetXZAngle*), the
+// clamped turning steps (Muku / Muku2 / Muku3), front cones (Front_check), distances, rotations,
+// screen projection (GetScreenPos / Get3DPosFrom2D), line-sphere tests and the parabola / stop
+// distance helpers of the throwing and movement code. (D:/Bio4/Prog/sub2.cpp)
 #include "types.h"
 #include "global.h"
 #include "atari.h"
@@ -20,6 +23,7 @@ void GXProject(f32 x, f32 y, f32 z, const Mtx mtx, const f32* pm, const f32* vp,
 
 #line 30 "D:/Bio4/Prog/sub2.cpp"
 
+// 1 when the XZ point `p` lies inside the convex quad (4 corners in order).
 int HitCheckPoint4(Vec* p, Vec* quad)
 {
     f32 px = p->x - quad[0].x;
@@ -48,11 +52,13 @@ int HitCheckPoint4(Vec* p, Vec* quad)
     return 1;
 }
 
+// Yaw (radians, -PI..PI) from `from` to `to` on the XZ plane (0 = +Z).
 f32 GetXZAngle(Vec* from, Vec* to)
 {
     return LIMIT_ANGLE(atan2f(to->x - from->x, to->z - from->z));
 }
 
+// Angle from `from` to `to` in the XY plane.
 f32 GetXYAngle(Vec* from, Vec* to)
 {
     f32 dx = to->x - from->x;
@@ -60,11 +66,13 @@ f32 GetXYAngle(Vec* from, Vec* to)
     return LIMIT_ANGLE(atan2f(dy, dx));
 }
 
+// Yaw to `to` relative to a facing `ang` (0 = straight ahead, wrapped to -PI..PI).
 f32 GetXZAngleLocal(Vec* from, Vec* to, f32 ang)
 {
     return LIMIT_ANGLE(GetXZAngle(from, to) - ang);
 }
 
+// Squared distance between two points.
 f32 GetDistance(Vec* v0, Vec* v1)
 {
     f32 x = v1->x - v0->x;
@@ -73,6 +81,7 @@ f32 GetDistance(Vec* v0, Vec* v1)
     return x * x + y * y + z * z;
 }
 
+// Squared distance between two points.
 f32 GetDistance(Vec& v0, Vec& v1)
 {
     f32 x = v1.x - v0.x;
@@ -81,6 +90,7 @@ f32 GetDistance(Vec& v0, Vec& v1)
     return x * x + y * y + z * z;
 }
 
+// Squared XZ distance.
 f32 GetDistanceXZ(Vec* v0, Vec* v1)
 {
     f32 x = v1->x - v0->x;
@@ -88,6 +98,8 @@ f32 GetDistanceXZ(Vec* v0, Vec* v1)
     return x * x + z * z;
 }
 
+// Turn amount toward `target` from facing `ang`: the signed yaw difference clamped to +-limit
+// (the usual `ang.y += Muku(...)` turning step).
 f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit)
 {
     f32 d = LIMIT_ANGLE(GetXZAngle(pos, target) - ang);
@@ -109,6 +121,7 @@ f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit)
     return ret;
 }
 
+// Turn amount from angle `ang` to `target` the short way round, clamped to +-limit.
 f32 Muku2(f32 ang, f32 target, f32 limit)
 {
     f32 d = target - ang;
@@ -131,6 +144,7 @@ f32 Muku2(f32 ang, f32 target, f32 limit)
     return limit;
 }
 
+// Turn amount from `ang` toward the direction vector `dir`, clamped to +-limit.
 f32 Muku3(Vec* dir, f32 ang, f32 limit)
 {
     return Muku2(ang, (f32) atan2(dir->x, dir->z), limit);
@@ -143,6 +157,7 @@ static void sub2_dead1(Vec* v)
     VECNormalize(v, v);
 }
 
+// Dead-stripped: sign test.
 static int sub2_dead2(f32 x)
 {
     if (x > 0.0f) {
@@ -151,6 +166,7 @@ static int sub2_dead2(f32 x)
     return 0;
 }
 
+// 1 when `b` is within +-ang of `a`'s facing.
 int Front_check(cModel* a, cModel* b, f32 ang)
 {
     f32 d = GetXZAngleLocal(&a->pos, &b->pos, a->ang.y);
@@ -161,6 +177,7 @@ int Front_check(cModel* a, cModel* b, f32 ang)
     return ret;
 }
 
+// 1 when point `b` is within +-ang of `a`'s facing.
 int Front_check(cModel* a, Vec* b, f32 ang)
 {
     f32 d = GetXZAngleLocal(&a->pos, b, a->ang.y);
@@ -171,6 +188,7 @@ int Front_check(cModel* a, Vec* b, f32 ang)
     return ret;
 }
 
+// 1 when `b` is within +-ang of the facing `rot` at `a`.
 int Front_check(Vec* a, Vec* b, f32 rot, f32 ang)
 {
     f32 d = GetXZAngleLocal(a, b, rot);
@@ -181,6 +199,7 @@ int Front_check(Vec* a, Vec* b, f32 rot, f32 ang)
     return ret;
 }
 
+// Moves `m` by `speed` given in its own (rotated) frame.
 void AddSpeed(cModel* m, const Vec* speed)
 {
     Vec v;
@@ -193,11 +212,13 @@ void AddSpeed(cModel* m, const Vec* speed)
     m->pos.z += v.z;
 }
 
+// Length of a vector.
 f32 RootSumSquare3(Vec* v)
 {
     return SQRTF(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
+// Distance between two points.
 f32 GetDistance3(Vec* v0, Vec* v1)
 {
     Vec d;
@@ -208,6 +229,7 @@ f32 GetDistance3(Vec* v0, Vec* v1)
     return RootSumSquare3(&d);
 }
 
+// Rotates `src` by the Euler angles `rot` (RotMatrix order).
 void RotVector(Vec* src, Vec* rot, Vec* dst)
 {
     Mtx mtx;
@@ -216,6 +238,7 @@ void RotVector(Vec* src, Vec* rot, Vec* dst)
     PSMTXMultVec(mtx, src, dst);
 }
 
+// Transforms the 8 corners of a box by rotation `rot` and translation `pos`.
 void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot)
 {
     Mtx mtx;
@@ -228,6 +251,8 @@ void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot)
     }
 }
 
+// Projects a world point to screen coordinates with the current camera; returns 1 when it is in
+// front of the camera.
 int GetScreenPos(Vec* pos, Vec* scr)
 {
     f32 proj[7];
@@ -242,6 +267,8 @@ int GetScreenPos(Vec* pos, Vec* scr)
     return cam.z < -0.0f;
 }
 
+// World point under screen position (sx, sy): the camera ray meets height `y` (y == 1e8: the
+// scroll collision hit, else the player's height when none), or the far point 20000 away.
 void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y)
 {
     Camera* cam = &pG->Cam;
@@ -285,6 +312,7 @@ static s8 sub2_dead3(f32 ang)
     return (s8) (v * 127.0f);
 }
 
+// Dead-stripped: clamp to -1..1 and halve.
 static f32 sub2_dead4(f32 x)
 {
     if (x < -1.0f) {
@@ -300,6 +328,7 @@ static f32 sub2_dead4(f32 x)
     return x;
 }
 
+// Linear interpolation: out = pos1 * (1 - t) + pos2 * t.
 void PosToPos(Vec* pos1, Vec* pos2, Vec* out, f32 t)
 {
     Vec ta;
@@ -310,6 +339,8 @@ void PosToPos(Vec* pos1, Vec* pos2, Vec* out, f32 t)
     PSVECAdd(&ta, &tb, out);
 }
 
+// A 2D stick vector (x right, y forward) turned into a world XZ direction relative to the camera
+// yaw.
 void VecToCamVec(Vec* v, Vec* out)
 {
     Mtx mtx;
@@ -328,6 +359,8 @@ void VecToCamVec(Vec* v, Vec* out)
     PSMTXMultVecSR(mtx, &t, out);
 }
 
+// Does the segment a-b enter the sphere (c, r)? Returns 1 with the entry point in `out` (a itself
+// when it starts inside).
 int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, Vec* out, f32 r)
 {
     Vec ab;
@@ -386,6 +419,7 @@ int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, Vec* out, f32 r)
     return 1;
 }
 
+// 1 when two spheres overlap.
 int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 ra, f32 rb)
 {
     Vec d;
@@ -396,6 +430,8 @@ int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 ra, f32 rb)
     return d.x * d.x + d.y * d.y + d.z * d.z < r * r;
 }
 
+// Launch velocity (units / frame, gravity 20) that carries a body from `from` to `to` peaking `h`
+// above the higher end; h <= 0 gives the straight difference.
 void CalcParabolaVector(Vec* out, Vec* from, Vec* to, f32 h)
 {
     f32 g = 20.0f;
@@ -417,6 +453,7 @@ void CalcParabolaVector(Vec* out, Vec* from, Vec* to, f32 h)
     out->y = SQRTF((h - from->y) * 40.0f);
 }
 
+// Distance covered while `speed` decelerates by `decel` per frame to 0.
 f32 CalcStopDist(f32 speed, f32 decel)
 {
     f32 d = 0.0f;
@@ -428,6 +465,7 @@ f32 CalcStopDist(f32 speed, f32 decel)
     return d;
 }
 
+// Moves `pos` `dist` units toward `target`; returns 1 (and snaps) when it arrives.
 int CalcMovePosDist(Vec* pos, Vec* target, f32 dist)
 {
     Vec dir;

@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/sprintf.c */
 #include "newlib_stdio.h"
 
+/* Formats into `str` through a string FILE (no length limit). */
 int sprintf(char *str, const char *fmt, ...)
 {
     int ret;

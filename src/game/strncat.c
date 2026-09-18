@@ -3,6 +3,7 @@
 
 #define ALIGNED(X) (((long)X & (sizeof(long) - 1)) == 0)
 
+/* Appends at most n characters of s2 to s1. */
 char *strncat(char *s1, const char *s2, size_t n)
 {
     char *s = s1;

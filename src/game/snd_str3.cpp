@@ -1,5 +1,11 @@
+// game/snd_str3: sound driver stream AX voices — acquiring the voice works and AX voices (left,
+// and right for stereo) at priority 31, programming their ADPCM parameters from the stream header
+// (SHD), start / stop / recovery / free, and the voice-drop callback that aborts the stream.
 #include "snd_drv.h"
 
+// Takes the voice works (slots start..start+num) and AX voices, sets the initial ARAM addresses
+// (short streams: the whole data with the real loop; long: the ring) and programs the voices.
+// Returns 1 when no voice is free.
 int Snd_str_ax_voice_init(SND_STR_WORK* str, s8 start, s8 num)
 {
     int ret;
@@ -20,6 +26,7 @@ int Snd_str_ax_voice_init(SND_STR_WORK* str, s8 start, s8 num)
     return 0;
 }
 
+// Long stream: loop over the whole ARAM ring (128 KB mono / 64 KB stereo per channel).
 void str_ax_adrs_set_long(SND_STR_WORK* str)
 {
     u32 len;
@@ -35,6 +42,8 @@ void str_ax_adrs_set_long(SND_STR_WORK* str)
     str->end_R = str->aram_R_nbl + len;
 }
 
+// Short (fully resident) stream: loop at the real loop start (or the zero table when not
+// looping), end at the loop end.
 void str_ax_adrs_set_short(SND_STR_WORK* str)
 {
     u32 zero;
@@ -51,6 +60,8 @@ void str_ax_adrs_set_short(SND_STR_WORK* str)
     str->end_R = str->aram_R_nbl + str->loop_end;
 }
 
+// Programs the left (and right) AX voice: sample rate ratio, no LPF, loop / end / current
+// addresses, ADPCM coefficients and initial state from the header.
 void str_ax_voice_para_set(SND_STR_WORK* str)
 {
     SND_SHD* shd;
@@ -145,6 +156,8 @@ void str_ax_voice_para_set(SND_STR_WORK* str)
     AXSetVoiceSrcType(str->voiceR, srctype);
 }
 
+// AX voice-drop callback: the stream loses a voice — flags the stream for abort (status 0x4000
+// plus 0x1000 / 0x2000 for the lost left / right voice) and frees the voice work.
 void cb_str_voice_drop(void* voice)
 {
     int old;
@@ -183,6 +196,8 @@ void cb_str_voice_drop(void* voice)
     OSRestoreInterrupts(old);
 }
 
+// A voice work in slots start..start+num and an AX voice (priority 31) for the left and, for
+// stereo, the right channel. Returns 1 when one is unavailable.
 int str_secure_voice_work(SND_STR_WORK* str, s8 start, s8 num)
 {
     SND_VOICE_WORK* vw;
@@ -227,6 +242,8 @@ int str_secure_voice_work(SND_STR_WORK* str, s8 start, s8 num)
     return 0;
 }
 
+// Starts playback: volume (or a fade-in from 0 when fade_time is set), pan / surround pan, AUX
+// sends into MIX channels (stereo: hard left / right), voices running.
 void Snd_str_ax_voice_play(SND_STR_WORK* str)
 {
     if (str->fade_time == 0) {
@@ -253,6 +270,7 @@ void Snd_str_ax_voice_play(SND_STR_WORK* str)
     }
 }
 
+// Mutes and stops the voices.
 void Snd_str_ax_voice_stop(SND_STR_WORK* str)
 {
     str->vol2 = 0;
@@ -270,6 +288,7 @@ void Snd_str_ax_voice_stop(SND_STR_WORK* str)
     }
 }
 
+// After a DVD error: restarts the voices with an error fade pending (status 0x200).
 void Snd_str_ax_voice_recovery(SND_STR_WORK* str)
 {
     str->status |= 0x200;
@@ -283,6 +302,7 @@ void Snd_str_ax_voice_recovery(SND_STR_WORK* str)
     AXSetVoiceState(str->voiceR, 1);
 }
 
+// Releases the MIX channels, AX voices and voice works.
 void Snd_str_ax_voice_free(SND_STR_WORK* str)
 {
     SND_VOICE_WORK* vw;

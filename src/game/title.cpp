@@ -55,10 +55,14 @@ static inline void ISet(int& d, int v)
 {
     d = v;
 }
+// Store through a reference (matching helper).
+#line 58
 static inline void CSet(s8& d, s8 v)
 {
     d = v;
 }
+// Store through a reference (matching helper).
+#line 62
 static inline void BSet(u8& d, u8 v)
 {
     d = v;
@@ -115,6 +119,9 @@ int TTL_CANCEL_CAPCOM = 120;
 int TTL_CANCEL_CRI = 245;
 static int TTL_CANCEL_DOLBY = 345;
 
+// The title screen task (scheduler slot after boot): allocates the save buffer, item manager, the
+// core / option data, then runs the title state machine (TitleWork Rno0) every frame until
+// titleExit chains into GameTask.
 void Title_task()
 {
     static void (*titleFuncTbl[8])(TitleWork*) = {
@@ -134,6 +141,8 @@ void Title_task()
     }
 }
 
+// State 0: 640 x 448 screen, starts reading the title sound bank, id buffers; Status_flg[2] 0x8000
+// = title mode (movies keep the heap).
 void titleInit(TitleWork* w)
 {
     int req;
@@ -154,6 +163,8 @@ void titleInit(TitleWork* w)
     IdAllocBuffer();
 }
 
+// Shows the title logo / background id layout (the alternate one once everything is unlocked,
+// unlock_flg 0x40000000) at animation time `time`.
 void titleSet(TitleWork* w, int time)
 {
     IdSys.kill(0xFF, ID_TITLE);
@@ -165,6 +176,9 @@ void titleSet(TitleWork* w, int time)
     IdSys.setTimeS(IdSys.unitPtr(0, ID_TITLE), (s16) time);
 }
 
+// State 1: waits for the memory card check and the sound bank, loads "SS/<lang>/title.dat" and its
+// textures, then goes to the Nintendo logo — or, when the title was already shown (pRK) straight
+// to the main menu (or the omake menu after an Ada / Mercenaries session).
 void titleWait(TitleWork* w)
 {
     static char title_dat[] = "SS/___/title.dat";
@@ -229,6 +243,7 @@ void titleWait(TitleWork* w)
     }
 }
 
+// State 2: fades the Nintendo logo in and out (a second pad skips to the menu).
 void titleNintendo(TitleWork* w)
 {
     static int wait_cnt = 0;
@@ -271,6 +286,7 @@ void titleNintendo(TitleWork* w)
     }
 }
 
+// State 3: the health warning for 105 frames; START (after 45) fades it early.
 void titleWarning(TitleWork* w)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
@@ -311,6 +327,8 @@ void titleWarning(TitleWork* w)
     }
 }
 
+// State 4: the Capcom (to 230), CRI (330) and Dolby (585) logos on the id timeline, each
+// skippable with START after its TTL_CANCEL_* frame; the title BGM starts at LOGO_CALL_FRAME.
 void titleLogo(TitleWork* w)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
@@ -391,6 +409,8 @@ void titleLogo(TitleWork* w)
     }
 }
 
+// Loads the main menu id layout: 5 entries (new game, Ada, Mercenaries, load, options) once all
+// is unlocked, else 3 (new game, load, options); cursor on "load".
 void titleMenuInit(TitleWork* w)
 {
     IdSys.kill(0xFF, ID_MENU);
@@ -451,6 +471,8 @@ void titleMenuInit(TitleWork* w)
         }                                                                                  \
     }
 
+// A on the main menu: returns 1 new game (3-entry menu), 6 new game (5-entry: level select first),
+// 2 Assignment Ada, 3 Mercenaries, 4 load, 5 options; 0 = nothing chosen.
 int titleMenuSelect(TitleWork* w)
 {
     int ret = 0;
@@ -493,6 +515,7 @@ int titleMenuSelect(TitleWork* w)
     return 0;
 }
 
+// Loads the difficulty menu (easy / normal, plus professional when unlocked... 2 or 3 entries).
 void titleLevelInit(TitleWork* w)
 {
     IdSys.kill(0xFF, ID_MENU);
@@ -510,6 +533,7 @@ void titleLevelInit(TitleWork* w)
     w->cursor = 1;
 }
 
+// A on the difficulty menu sets pG->Game_level (by cursor and language); returns 1 when chosen.
 int titleLevelSelect(TitleWork* w)
 {
     if (Key.trg & KEY_A) {
@@ -552,6 +576,11 @@ int titleLevelSelect(TitleWork* w)
     return 0;
 }
 
+// State 5, the main menu: Rno1 0 menu setup, 1 selection (new game -> the fade-out into the game
+// (Rno1 3), Ada / Mercenaries -> the omake screens (state 6) with System_flg bit31 / 0x40000000,
+// load -> the card (7), options -> the option screen (4)), 2 difficulty select, 5 / 6 the demo
+// movies after 600 idle frames (e3_jpn.sfd, then demo0 / demo1 alternating), 8 the "no save"
+// message. The background scrolls (titleLoop) meanwhile.
 void titleMain(TitleWork* w)
 {
     static int demo_loop_cnt = 0;
@@ -800,6 +829,8 @@ void titleMain(TitleWork* w)
     }
 }
 
+// The scrolling title background: drifts left at scroll_add, the stick / d-pad take over its
+// speed (C-stick up / down changes the layer), wrapping at twice the width.
 void titleLoop(TitleWork* w)
 {
     static f32 width = 900.0f;
@@ -843,6 +874,7 @@ void titleLoop(TitleWork* w)
     }
 }
 
+// Copies the colour of id unit `src` to unit `dst`.
 void id_color_copy(int src, int dst, u8 type)
 {
     IdUnit* s = IdSys.unitPtr(src, type);
@@ -855,6 +887,10 @@ void id_color_copy(int src, int dst, u8 type)
     d->curve[2] = s->curve[2];
 }
 
+// State 6, the omake (Ada / Mercenaries) screens: loads "omk_t0/1.dat", the start / back menu
+// (Rno1 3-4; a first Mercenaries start also unlocks the base characters), Mercenaries character
+// select (6-8, locked characters greyed by unlock_flg bits) and stage select (stageSelect), B goes
+// back to the main menu with its saved state (5).
 void titleSub(TitleWork* w)
 {
     static char omake_dat[] = "SS/___/omk_tX.dat";
@@ -1175,6 +1211,7 @@ void titleSub(TitleWork* w)
     }
 }
 
+// Mercenaries stage select layout, cursor on stage 0.
 void stageSelectInit(TitleWork* w)
 {
     TitleArc* omk = w->pOmk;
@@ -1184,6 +1221,8 @@ void stageSelectInit(TitleWork* w)
     w->omk_stage_no = 0;
 }
 
+// Mercenaries stage select: d-pad over the 2 x 2 stages (locked ones by unlock_flg), shows the
+// saved high scores per stage; A returns 1.
 int stageSelect(TitleWork* w)
 {
     int ret = 0;
@@ -1337,6 +1376,10 @@ int stageSelect(TitleWork* w)
 
 static cRoomJmp* pRj;
 
+// State 7, leaving the title: chooses the start room — a new game starts at stage 1's first room
+// (debug menu picks otherwise), a load restores the save (CardLoad, System_flg 0x100 continue),
+// Ada / Mercenaries start at their rooms with the chosen character / stage; sets the new-game
+// flag (System_flg 0x2000), the next position and chains into GameTask.
 void titleExit(TitleWork* w)
 {
     if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
@@ -1518,6 +1561,8 @@ void titleExit(TitleWork* w)
 s8 RjGetPointNumI(cRoomJmp* rj, s8 stage, int room) asm("getPointNum__8cRoomJmpScSc");
 s8 RjGetNextPointNoI(cRoomJmp* rj, s8 stage, int room, s8 point, int dir) asm("getNextPointNo__8cRoomJmpScScSci");
 
+// Debug start menu (title): stage / room / point, player type, costume, level and mode, edited
+// with the pad and shown with eprintf; writes the choice into pG before titleExit.
 void titleDebugMenu(TitleWork* w)
 {
     static char* title_debug_tbl[21] = {

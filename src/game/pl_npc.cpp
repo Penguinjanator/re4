@@ -125,11 +125,15 @@ static inline void SubRoutineSet(cSubChar* pl, int r0, int r1, int r2, int r3)
     pl->r_no_3 = r3;
 }
 
+// 1 while the partner has at least half her life: picks the healthy motion set (0x12..) over
+// the hurt one (0x6E..).
 int cSubChar::mot_ck()
 {
     return hp >= (s16) pG->ashley_life_max / 2;
 }
 
+// Partner enemy construction: flags clear, its motion-base helper, no light / damage function,
+// neck straight, eye state.
 cSubChar::cSubChar()
 {
     subFlags = 0;
@@ -144,6 +148,7 @@ cSubChar::cSubChar()
     eyeDir.x = 0.0f;
 }
 
+// Frees her back light and clears the global pSUB.
 cSubChar::~cSubChar()
 {
     if (subLight && subLight->isAlive()) {
@@ -152,6 +157,9 @@ cSubChar::~cSubChar()
     ((SubCharPtr*) &pSUB)->p = 0;
 }
 
+// Set up after creation (EmMgr.createBack): cloth, a 1000-unit light and a back light, the 300 x
+// 400 collision cylinder, lock point at the head (parts 4) but not lockable, three damage capsules
+// (body, two legs), the idle motion by health, bust rest positions, the 0x98-byte p2A4 work.
 void cSubChar::init()
 {
     initCloth();
@@ -201,6 +209,10 @@ void cSubChar::init()
     p2A4 = (EmWork2A4*) MEM_ALLOC(0x98, 1, 13);
 }
 
+// Per frame: hp mirrors pG->ashley_life, the player's routine bits are cached (plStat), damage
+// areas are checked, then r_no_0 (0 core, 1 damage, 2 die, 3 bulldozer, 4 custom subFunc, 5
+// event, 6 dijection); afterwards the neck, face, motion base, shadow, collision, sequence SEs,
+// cloth, bust, face morph, water effects. Kaiouken (Debug_flg[2] 0x10000) runs the routine again.
 void cSubChar::move()
 {
     static void (cSubChar::*NpcFuncTbl[])() = {
@@ -266,6 +278,10 @@ void cSubChar::move()
     debugMove();
 }
 
+// r_no_0 == 0 (normal): analyzes the surroundings, then r_no_1: 0 footwork, 1 move, 2/5 behind the
+// aiming player, 4 crouch (kagamu), 6 pants, 7 down, 8 fence, 9 fall, 0xA action, 0xC ladder, 0xE
+// back, 0xF aux, 0x10 hide, 0x11 stoop, 0x12 fall wait, 0x13 ladder wait, 0x14 window wait. The
+// player dying in a plain state puts her in dijection (routine 6).
 void cSubChar::moveCore()
 {
     static void (cSubChar::*funcTbl[])() = {
@@ -820,6 +836,7 @@ void cSubChar::moveMove()
     }
 }
 
+// The player is aiming (plStat 0x10), within 550 and with a clear line: she should take cover.
 int cSubChar::readyOkCheck()
 {
     if (!(plStat & 0x10)) {
@@ -1151,6 +1168,8 @@ void pl_fall_ok0()
 {
 }
 
+// Player custom damage routine (SetPlDamage) of the ledge catch: plays the catch motion from the
+// partner's archive (0x3E / 0x68), hides the weapon meanwhile, then endAction / EndPlDamage.
 void pl_fall_ok(cPlayer* pl)
 {
     PlArc* arc;
@@ -2208,6 +2227,7 @@ void cSubChar::movePos(Vec* target, f32 spd)
     PSVECAdd(&pos, &v, &pos);
 }
 
+// Neck straight, look request off.
 void cSubChar::neckInit()
 {
     subNeckOn = 0;
@@ -2248,6 +2268,7 @@ void cSubChar::neckCtrl()
     subNeckOn = 0;
 }
 
+// Ask the neck to look at `pos` this frame (neckCtrl turns toward the player while requested).
 void cSubChar::neckSet(Vec* pos)
 {
     subNeckPos = *pos;
@@ -2313,6 +2334,7 @@ int cSubChar::cautionCheck()
     return ret;
 }
 
+// The player is crouching (plStat 0x8000).
 int cSubChar::plDownCheck()
 {
     return (plStat & 0x8000) != 0;
@@ -2416,6 +2438,7 @@ int cSubChar::doorCheck()
     return 1;
 }
 
+// The player is aiming (plStat 0x10) and she is not flagged 3 (event-held).
 int cSubChar::readyCheck()
 {
     if (SUBFLAG(this)->check(3)) {
@@ -2607,6 +2630,7 @@ void cSubChar::pantsCheck()
     subFlags2 |= 4;
 }
 
+// The player is running (plStat bit3).
 int cSubChar::ckPlRun()
 {
     return (plStat & 8) != 0;
@@ -3031,12 +3055,14 @@ void cSubChar::anaSatInfo()
     subFlags2 |= 8;
 }
 
+// Event start: interrupts her routine, collision off (bits 0x300).
 void cSubChar::beginEvent()
 {
     interrupt();
     AtariOff(&atari, 0xFCFF);
 }
 
+// Event end: cloth reset (be_flag 0x200000), collision on.
 void cSubChar::endEvent()
 {
     be_flag |= 0x200000;
@@ -3834,11 +3860,13 @@ void cSubChar::dmgCheck()
     }
 }
 
+// Damage start: interrupt the current routine.
 void cSubChar::beginDamage()
 {
     interrupt();
 }
 
+// Damage end: neutral face.
 void cSubChar::endDamage()
 {
     setFace(0);
@@ -3938,6 +3966,7 @@ u32 SubCharGetCondition()
     return ret | 0x10;
 }
 
+// Debug (dbsubflag): draws the distance / action points and prints the routine numbers.
 void cSubChar::debugMove()
 {
     static int dbsubflag = 0;
@@ -3959,14 +3988,17 @@ inline void cSubChar::setFace(int no)
 {
 }
 
+// No hand models on the base partner (the Ashley class overrides).
 inline void cSubChar::setHand(int no)
 {
 }
 
+// No cloth on the base partner.
 inline void cSubChar::initCloth()
 {
 }
 
+// No cloth on the base partner.
 inline void cSubChar::moveCloth()
 {
 }

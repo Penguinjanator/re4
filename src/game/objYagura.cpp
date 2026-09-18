@@ -1,3 +1,7 @@
+// game/objYagura: the ladder object (yagura = tower/scaffold) placed by the room scripts
+// (SetYagura, ObjMgr id 0x39): a static model with a pass-through collision box whose only
+// behaviour is the vibration motion the room hands it (setMotionVib / setVib) when the player
+// climbs or kicks it; the climbing itself is the player's ladder routine (pl_R1_Ladder).
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -24,6 +28,8 @@ int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 void (*ObjYagura_R0_move_tbl[1])(cObjYagura*) = { objYagura_R0_Set };
 
+// Creates the ladder object (ObjMgr id 0x39) at pos / rot with a 700 x 1000 pass-through collision
+// box and a 5000-unit light; called by the room scenarios. Returns 0 when creation fails.
 cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -68,11 +74,13 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per frame: the single routine (ObjYagura_R0_move_tbl[r_no_0]).
 void cObjYagura::move()
 {
     ObjYagura_R0_move_tbl[r_no_0](this);
 }
 
+// r_no_0 == 0 (the only routine): plays the vibration motion to its end, else just updates matrices.
 void objYagura_R0_Set(cObjYagura* obj)
 {
     if (obj->pMotion) {
@@ -84,11 +92,13 @@ void objYagura_R0_Set(cObjYagura* obj)
     }
 }
 
+// Remembers the motion setVib() plays (room scenario sets it from its archive).
 void cObjYagura::setMotionVib(void* mot)
 {
     yagura.Mot_vib = mot;
 }
 
+// Starts the vibration motion (the ladder shakes when the player climbs / kicks it).
 void cObjYagura::setVib()
 {
     if (yagura.Mot_vib) {

@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/reent/readr.c */
 #include "newlib_stdio.h"
 
+/* Reentrant read(): calls the system read and stores errno in the reent. */
 long _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
 {
     long ret;

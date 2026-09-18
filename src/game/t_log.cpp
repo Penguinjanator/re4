@@ -1,3 +1,5 @@
+// game/t_log: the debug log viewer task (ToolLogView): scrolls through the pLog message history
+// while the game task is suspended.
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -29,6 +31,7 @@ void toolInit();
 int LogMove();
 void toolQuit();
 
+// Debug log viewer task: suspends the game task, shows the pLog history until B.
 void ToolLogView()
 {
     TaskSuspend(0);
@@ -44,6 +47,7 @@ void ToolLogView()
     TaskExit();
 }
 
+// Viewer start: log display mode / all channels on, fresh work.
 void toolInit()
 {
     pLog->modeSet(0x30, 0x2A, 0xFF, 0x19);
@@ -54,6 +58,8 @@ void toolInit()
     pT->x502 = 0;
 }
 
+// Viewer frame: up / down (A = 5 lines) and the stick scroll the log, line numbers shown; B ends
+// (returns 0).
 int LogMove()
 {
     eprintf(24, 14, 0, 0, "LOG VIEWER [Ver.%s %s]", "Nov 25 2004", "10:19:49");
@@ -77,6 +83,7 @@ int LogMove()
     return pT->active;
 }
 
+// Viewer end: log display mode restored.
 void toolQuit()
 {
     pLog->modeReset();

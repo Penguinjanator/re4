@@ -1,5 +1,9 @@
+// game/snd_efx: sound driver AUX effects — the two AUX buses (A / B) each carry one AXFX effect
+// (1 reverb HI, 2 reverb STD, 3 chorus, 4 delay, 5 DPL2 reverb); Snd_efx_req switches / updates /
+// stops them, the game sets the parameters in Snd_efx_work[].fx first (snd.cpp SndSetReverb).
 #include "snd_drv.h"
 
+// Clears both effect works (aux 0 / 1, no effect).
 void Snd_efx_work_clear(void)
 {
     SND_EFX_WORK* efx;
@@ -18,6 +22,8 @@ void Snd_efx_work_clear(void)
     }
 }
 
+// Sets AUX bus `no` to effect `type` (0 = off, 6 = stop and clear the buffers, 1..5 = start, or
+// update the parameters when the same type already runs). Returns 1 on failure (type 7 = error).
 int Snd_efx_req(s16 no, s16 type)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -56,6 +62,7 @@ int Snd_efx_req(s16 no, s16 type)
     return 0;
 }
 
+// Unhooks the bus callback and frees the effect's buffers.
 void efx_req_off(SND_EFX_WORK* efx)
 {
     if (efx->status & 0x3) {
@@ -72,6 +79,7 @@ void efx_req_off(SND_EFX_WORK* efx)
     efx->type = 0;
 }
 
+// Replaces the running effect by the buffer-clearing callback (silence) and frees it; status 2.
 void efx_req_stop(SND_EFX_WORK* efx)
 {
     if (efx->status & 0x1) {
@@ -87,6 +95,8 @@ void efx_req_stop(SND_EFX_WORK* efx)
     }
 }
 
+// Initialises effect `type` (DPL2 reverb only in DPL2 mode) and hooks it onto the bus. Returns 1
+// when the init failed.
 int efx_req_set_new(SND_EFX_WORK* efx, s16 type)
 {
     SND_AUX_CB cb;
@@ -141,6 +151,7 @@ int efx_req_set_new(SND_EFX_WORK* efx, s16 type)
     }
 }
 
+// Re-applies the parameters of the running effect. Returns 1 on failure.
 int efx_req_set_update(SND_EFX_WORK* efx, s16 type)
 {
     int ret;
@@ -172,6 +183,7 @@ int efx_req_set_update(SND_EFX_WORK* efx, s16 type)
     }
 }
 
+// Shuts the effect of `type` down (frees its delay lines).
 void efx_buffer_free(SND_EFX_WORK* efx, s16 type)
 {
     switch (type) {
@@ -193,6 +205,7 @@ void efx_buffer_free(SND_EFX_WORK* efx, s16 type)
     }
 }
 
+// AUX callback that outputs silence (used while stopping an effect).
 void cb_efx_clear_bass(AXFX_BUFFERUPDATE* buf, void* context)
 {
     memclr_asm(buf->left, 0x280);
@@ -200,6 +213,7 @@ void cb_efx_clear_bass(AXFX_BUFFERUPDATE* buf, void* context)
     memclr_asm(buf->surround, 0x280);
 }
 
+// 1 while an effect runs on bus `no`.
 int Snd_efx_get_status(s16 no)
 {
     SND_EFX_WORK* efx;
@@ -212,6 +226,7 @@ int Snd_efx_get_status(s16 no)
     }
 }
 
+// Effect type on bus `no` (0 off, 6 stopping, 7 error).
 s16 Snd_efx_get_type(s16 no)
 {
     return Snd_efx_work[no].type;

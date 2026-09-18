@@ -29,6 +29,8 @@ static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(cModel*& d, cModel* v) { d = v; }
 static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
 
+// Builds the rocket model (player archive 0x70/0x71; pink tint for the special launcher,
+// weapon_type 1), no collision, a 500-unit light; type 0 = loaded, waiting on the launcher.
 void cObjRocket::init()
 {
     cModelInfo* info;
@@ -52,6 +54,9 @@ void cObjRocket::init()
 const Vec cObjRocket::lightPos = { 0.0f, 0.0f, 0.0f };
 const Vec cObjRocket::lightSize = { 500.0f, 0.0f, 0.0f };
 
+// r_no_0 0: rides on the launcher (hidden while the weapon is transparent); 1: in flight — moves
+// by its motion, explodes (0x12 blast hit check, 8000 wide) on water, on an enemy / object hit
+// (0xD line check, 3000) or on the map, and rings the bell (bell_pos / bell_stat); 2: destroyed.
 void cObjRocket::move()
 {
     static f32 blastDmWidth = 8000.0f;
@@ -176,6 +181,7 @@ void cObjRocket::move()
     }
 }
 
+// Starts the flight: flight motion (player archive 0x74), exhaust effect 0x29, 300 frames of life.
 void cObjRocket::fire()
 {
     MotionSetCore(this, &pMotion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
@@ -186,6 +192,7 @@ void cObjRocket::fire()
     r_no_0 = 1;
 }
 
+// A rocket in flight is dropped when an event starts.
 void cObjRocket::beginEvent()
 {
     if (r_no_0) {
@@ -193,12 +200,14 @@ void cObjRocket::beginEvent()
     }
 }
 
+// No rocket in flight, none loaded.
 cObjLauncher::cObjLauncher()
 {
     launcher.flags = 0;
     launcher.rocket = 0;
 }
 
+// Destroys the loaded rocket at once (destroyNow) when the launcher goes.
 cObjLauncher::~cObjLauncher()
 {
     if (launcher.rocket) {
@@ -206,6 +215,9 @@ cObjLauncher::~cObjLauncher()
     }
 }
 
+// Launcher model (player archive 0x76/0x75; blue tint for the special one), gripped on the back
+// (or in hand for the infinite launcher, weapon_type 2), idle motions from the weapon archive; a
+// rocket is loaded when the item has ammo, else the player's "empty launcher" flag 0x400 is set.
 void cObjLauncher::init(cModel* parent)
 {
     cModelInfo* info;
@@ -242,6 +254,7 @@ void cObjLauncher::init(cModel* parent)
     }
 }
 
+// Creates the cObjRocket (ObjMgr id 0x22) and hangs it on parts 0 at the muzzle offset.
 void cObjLauncher::loadRocket()
 {
     static Vec pos0 = { -136.0f, -30.72f, 118.85f };
@@ -260,6 +273,8 @@ void cObjLauncher::loadRocket()
     launcher.rocket->move();
 }
 
+// wep.mode 2 (fire): step 0 launches the loaded rocket (unless ckBoss took the shot) and reloads
+// for the infinite launcher / debug infinite ammo; step 1 waits for the fire motion to end.
 void cObjLauncher::moveFire()
 {
     if (wep.step == 0) {
@@ -287,6 +302,8 @@ void cObjLauncher::moveFire()
     }
 }
 
+// Special launcher (weapon_type 1) fired within 30 degrees of the living boss: instead of a rocket,
+// sets System_flg 0x400 and the boss's room flag (m_pBossRmf) so the scenario kills it. Returns 1.
 int cObjLauncher::ckBoss()
 {
     cEm* boss = (cEm*) pPL->m_pBoss;
@@ -308,6 +325,8 @@ int cObjLauncher::ckBoss()
     return 0;
 }
 
+// Sends the loaded rocket along the marker line from/to (yaw / elevation from the difference),
+// muzzle flash 0x47, launch SE, Status_flg[0] 0x00800000; flags bit0 = a rocket is flying.
 void cObjLauncher::launch()
 {
     Vec d;
@@ -327,6 +346,7 @@ void cObjLauncher::launch()
     pG->Status_flg[0] |= 0x00800000;
 }
 
+// wep.mode 5 (drop): the launcher is thrown away once.
 void cObjLauncher::moveDrop()
 {
     if (wep.step == 0) {
@@ -335,6 +355,8 @@ void cObjLauncher::moveDrop()
     }
 }
 
+// Leaves an empty launcher model (cObjWep id 0x23, mode 5) on the ground under the player (only on
+// a floor hit with attr 0x01000000 and not 0x40), plays the drop SE, hides this weapon.
 void cObjLauncher::drop(int se)
 {
     cObjWep* w;
@@ -377,6 +399,7 @@ void cObjLauncher::drop(int se)
     setDisp(0, 0);
 }
 
+// Hangs the launcher in the right hand (parts 10) with the hand motion, or on the back (gripBack).
 void cObjLauncher::grip(int onoff)
 {
     if (pG->weapon_type == 2 || onoff == 1) {
@@ -387,12 +410,15 @@ void cObjLauncher::grip(int onoff)
     }
 }
 
+// Hangs the launcher on the player's back (parts 2) with the back motion.
 void cObjLauncher::gripBack()
 {
     PSet(pParts->pParent, pPL->getPartsPtr(2));
     motionSet(WEP_ARC_PTR(0x1F), 0, 0, 1, 0);
 }
 
+// Weapon interrupted (event / damage): the normal launcher is dropped if it was fired, else goes
+// back to the back grip.
 void cObjLauncher::interrupt()
 {
     cObjWep::interrupt();
@@ -405,6 +431,7 @@ void cObjLauncher::interrupt()
     }
 }
 
+// Aim key (Key.on 0x10) counts only when there is a rocket in the inventory.
 int cObjLauncher::keyKamae()
 {
     if (Key.on & 0x10) {
@@ -415,6 +442,9 @@ int cObjLauncher::keyKamae()
     return 0;
 }
 
+// Fills the player's motion table (pMotTbl) with the launcher's stand / walk / aim / damage motions
+// from the weapon archive, and shows the launcher in the hands (or the empty-handed set when
+// flags_420 0x400: no rocket).
 void cObjLauncher::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0], WEP_ARC_PTR(0x8));
@@ -459,6 +489,7 @@ void cObjLauncher::setMotion(cPlayer* pl)
 }
 
 template <class T>
+// destroy() with the deferred flag cleared: the object is removed immediately.
 void cManager<T>::destroyNow(T* p)
 {
     u8 f = flag;

@@ -1,3 +1,5 @@
+// game/t_page: the debug display page selector task (ToolDebugPage): chooses pG->debug_disp, the
+// page of debug prints shown over the game (0 = none, 1..24).
 #include "types.h"
 #include "global.h"
 #include "joy.h"
@@ -13,6 +15,7 @@ void t_page_exit();
 u8 tp_exit_flg;
 u8 tp_page_bak;
 
+// Debug page selector task: picks which debug display page (pG->debug_disp, 0..24) is shown.
 void ToolDebugPage()
 {
     t_page_init();
@@ -23,6 +26,7 @@ void ToolDebugPage()
     t_page_exit();
 }
 
+// Starts from the current page.
 void t_page_init()
 {
     TutilInitDefault();
@@ -30,6 +34,7 @@ void t_page_init()
     tp_page_bak = pG->debug_mode = pG->debug_disp;
 }
 
+// Left / right change the page (clear colour black on page 0), A / B confirm.
 void t_page_main()
 {
     s8 page;
@@ -53,6 +58,7 @@ void t_page_main()
     eprintf2(40, 40, 130, 300, 0, 0, "PAGE %d", (s8) pG->debug_mode);
 }
 
+// Ends the task.
 void t_page_exit()
 {
     TutilQuitDefault();

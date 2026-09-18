@@ -1,3 +1,10 @@
+// game/route_ck: enemy route finding on the room's RTP data (pG->Rtp, the "RTP" sub-file of the
+// room archive): a set of route points with links between them and a precomputed next-hop table
+// (row = current point, column = destination). Enemies ask RouteCkToEm / RouteCkToPos for the
+// next position to walk to (a direct line when nothing blocks it, else the next route point;
+// cEm::RckMy / RckTo / RckNear cache the points, RckStat bit0 marks the near point as fresh for
+// this frame), RouteCkEscEm for the point leading away from someone, RouteCkGetDist for the path
+// length. Draw_rtp / Draw_eminfo are the debug displays of the points and the EMI placements.
 #include "route_ck.h"
 #include "em.h"
 #include "player.h"
@@ -23,16 +30,19 @@ struct RckEmiData {
     RckEmiEntry entry[1];   // 0x08
 };
 
+// The room's route point data.
 static inline RtpData* rtpData()
 {
     return (RtpData*)pG->Rtp;
 }
 
+// The point array of the RTP data.
 static inline RtpPoint* rtpPoint(RtpData* r)
 {
     return (RtpPoint*)(r->pointOfs + (u32)r);
 }
 
+// The link array (each point's links start at its offLine).
 static inline RtpLink* rtpLink(RtpData* r)
 {
     return (RtpLink*)(r->linkOfs + (u32)r);
@@ -55,6 +65,8 @@ extern "C" {
 static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag);
 }
 
+// Once per frame before the enemies move: clears every live enemy's and the player's RckStat so
+// the near point is looked up again.
 void RouteCk()
 {
     u32 i;
@@ -69,6 +81,11 @@ void RouteCk()
     pPL->RckStat = 0;
 }
 
+// Where `em` should walk to reach `target`: the target itself (returns 1) when there is no RTP, a
+// clear line 500 above the ground with a floor under the midpoint, or no route; else the next
+// route point toward the target's nearest point (returns 0), advancing RckMy once within 250 of
+// the current point or when the next is in clear view. flag bit0 = skip the direct test unless
+// the next hop is the last, bit1 / bit2 (forced for Ashley, id 3) widen / narrow the collision mask.
 int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
 {
     Vec a;
@@ -144,6 +161,8 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
     return 0;
 }
 
+// Escape point for `em` fleeing `from`: the linked neighbour of its nearest route point that lies
+// most directly away from `from` (within 1000 in height); the mirrored position when no RTP.
 void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
 {
     RtpData* rtp;
@@ -189,6 +208,8 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     }
 }
 
+// RouteCkToEm toward a position: same rules; `dist` (optional) receives the height difference on a
+// direct move or the remaining path length (longest edge counted from the current point).
 int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
 {
     Vec a;
@@ -312,6 +333,8 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
     return 0;
 }
 
+// Route step between two positions without an enemy (scenario / camera use): `to` itself (1) when
+// reachable directly or unrouted, else the next route point (0).
 int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
 {
     Vec a;
@@ -379,6 +402,7 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     return 0;
 }
 
+// 1 when the nearest route points of the two positions are connected by the next-hop table.
 int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2)
 {
     int p;
@@ -398,6 +422,8 @@ int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2)
     return 1;
 }
 
+// Walking distance between two positions: the route length between their nearest points, or the
+// straight XZ distance when the line is clear / no route.
 f32 RouteCkPosToPosDis(Vec* from, Vec* to)
 {
     Vec a;
@@ -441,6 +467,7 @@ direct:
 // plus a block copy with our cc1plus).
 extern "C" void* memset_v(...) asm("memset");
 static inline void vecClear(Vec& v) { memset_v(&v, 0, sizeof(Vec)); }
+// Position of route point `no` (zero without RTP).
 void RouteCkGetPoint(int no, Vec* out)
 {
     RtpData* rtp = rtpData();
@@ -454,6 +481,7 @@ void RouteCkGetPoint(int no, Vec* out)
     *out = p;
 }
 
+// Number of route points, -1 without RTP.
 int RouteCkGetPointNumber()
 {
     RtpData* rtp = rtpData();
@@ -461,6 +489,7 @@ int RouteCkGetPointNumber()
     return rtp != NULL ? rtp->nPoint : -1;
 }
 
+// Path length from point n0 to n1 along the next-hop table (straight distance when unconnected).
 f32 RouteCkGetDist(int n0, int n1)
 {
     f32 d = 0.0f;
@@ -505,11 +534,15 @@ static f32 route_ck_unused(f32 a)
     return a;
 }
 
+// Nearest visible route point to `pos`, -1 when none.
 int RouteCkGetNearPoint(Vec* pos)
 {
     return getNearPoint(pos, 0, 0);
 }
 
+// Route line test against the scroll collision (attr | 0x4000, ignoring the route-only bits
+// 0x383070; flag bit1 also 8, without bit2 also 0x40000); non-zero when blocked. debug_mode 8
+// draws the line.
 static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
 {
     Vec pa;
@@ -532,6 +565,7 @@ static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
     return SatMgr.hitCheck(&pa, &pb, NULL, NULL, attr, mask);
 }
 
+// The enemy's nearest route point, computed once per frame (RckStat bit0 caches RckNear).
 int getNearInfo(cEm* em, int mode, int mask)
 {
     if (em->RckStat & 1) {
@@ -541,6 +575,8 @@ int getNearInfo(cEm* em, int mode, int mask)
     return getNearPoint(&em->pos, mode, mask);
 }
 
+// Nearest route point to `pos`: the ten closest are sorted; mode != 0 returns the closest, else
+// the first with a clear line from 500 above pos. -1 when none.
 s8 getNearPoint(Vec* pos, int mode, int mask)
 {
     f32 dist[10];
@@ -604,6 +640,8 @@ s8 getNearPoint(Vec* pos, int mode, int mask)
     return -1;
 }
 
+// Debug: draws every route point as a marker with its index, the links (blue, white when
+// two-way) and their direction arrows.
 void Draw_rtp()
 {
     RtpData* rtp;
@@ -702,6 +740,8 @@ void Draw_rtp()
     }
 }
 
+// Debug: draws every EMI (enemy placement) entry as a marker with its index and joins the type 2
+// (patrol route) entries into a closed polygon coloured by kind (1 blue, 2 red).
 void Draw_eminfo()
 {
     RckEmiData* emi;

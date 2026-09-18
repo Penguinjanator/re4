@@ -48,6 +48,7 @@ u32 ConnectedBits;
         BitOff(pG->Status_flg[0], 0x20000000);         \
     } while (0)
 
+// Boot: PAD library init, reset of all four channels, analog mode 3, no rumble.
 void PadInit()
 {
     PADInit();
@@ -57,6 +58,10 @@ void PadInit()
     Key.old = 0;
 }
 
+// Once per frame (main loop): reads the four pads into Joy[] (on / old / trg / rel, repeat masks
+// with 24/6 and 18/3 frame timers, stick direction bits JOY_S* / JOY_C* beyond a 30-unit dead
+// zone, L/R triggers as buttons), then translates Joy[0].on through Key_type_tbl[pSys->key_type]
+// into the 64-bit game Key word (opposite directions cancel), and runs the rumble (VibControl).
 void PadRead()
 {
     int i;
@@ -286,12 +291,15 @@ void PadRead()
     VibControl();
 }
 
+// Blocks all keys except `mask` until the stop flag is cleared (Stop_flg bit31) — events / menus.
 void KeyStop(u64 mask)
 {
     BitOn(pG->Stop_flg, 0x80000000);
     KeyClear(mask);
 }
 
+// Drops every key bit not in `mask` (the last non-zero mask is remembered) from Key on/trg/rel/
+// rep/rep2 and the triggers, and clears the key-stop status flags.
 void KeyClear(u64 mask)
 {
     static u64 un_stop_mask = 0;
@@ -309,6 +317,9 @@ void KeyClear(u64 mask)
     KeyStopFlagClear();
 }
 
+// Rumble mixer, once per frame: each active Joy[0].vib slot counts down (after its wait) and ramps
+// its level; the strongest one (random up to the level for type 0x8000) is accumulated into
+// Vib_level and turned into motor on/off pulses (PWM over 0x7F80). Stop_flg 0x8000 brakes the motor.
 void VibControl()
 {
     u8 old = Joy[0].motor_state;
@@ -352,6 +363,7 @@ void VibControl()
     }
 }
 
+// A free rumble slot (time == 0) of the 10, or NULL when vibration is off (pSys->flags 0x08000000).
 VibWork* PullVibWork()
 {
     int i;
@@ -367,6 +379,8 @@ VibWork* PullVibWork()
     return NULL;
 }
 
+// Constant rumble: `level` (0..0xFF) for `time` frames (max 255) after `wait` frames; `type` bits
+// 0-3 select what VibSetClearType can cancel, 0x8000 = random strength.
 void VibSet(u32 time, u32 level, u16 wait, u16 type)
 {
     VibWork* v = PullVibWork();
@@ -382,6 +396,7 @@ void VibSet(u32 time, u32 level, u16 wait, u16 type)
     }
 }
 
+// Queues every entry of a rumble pattern (start / end level ramp over `time` frames), or-ing `type`.
 void VibSetDataCore(VibData* d, u32 type)
 {
     u32 i;
@@ -407,6 +422,7 @@ void VibSetDataCore(VibData* d, u32 type)
     }
 }
 
+// Plays pattern `no` of a rumble table (damage / weapon / event tables in the archives).
 void VibSetData(VibDataTbl* t, u32 no, u32 type)
 {
     u32* ofs = t->ofs;
@@ -415,6 +431,7 @@ void VibSetData(VibDataTbl* t, u32 no, u32 type)
     }
 }
 
+// Cancels the running rumbles whose type has one of the low 4 bits of `type`.
 void VibSetClearType(u32 type)
 {
     int i;
@@ -427,6 +444,7 @@ void VibSetClearType(u32 type)
     }
 }
 
+// 1 when the pad is connected and System_flg bit3 (pad ignore) is off.
 int PadCheckStatus(JOY* joy)
 {
     if (pG->System_flg & 8) {
@@ -435,6 +453,7 @@ int PadCheckStatus(JOY* joy)
     return joy->err == 0;
 }
 
+// Debug print of Joy[0] (button words, sticks, triggers) with eprintf.
 void Pad_test()
 {
     u8* p = (u8*) &Joy[0];

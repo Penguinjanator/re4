@@ -3,6 +3,7 @@
 
 #define UNALIGNED(X) ((long)X & (sizeof(long) - 1))
 
+/* First occurrence of character i in s1 (the terminator counts), NULL when absent. */
 char *strchr(const char *s1, int i)
 {
     const unsigned char *s = (const unsigned char *)s1;

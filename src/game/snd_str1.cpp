@@ -1,7 +1,14 @@
+// game/snd_str1: sound driver stream player state machine, audio-frame side — Snd_stream_player
+// runs every stream's state (0 idle, 1 ready: buffering, 2 normal: read / DMA / play, 3 no-read:
+// short stream fully buffered, 4 close, 6 DVD error recovery, 7 / 8 abort) after checking the DVD
+// status and the pending requests, then pushes the parameter updates to the AX voices.
 #include "snd_drv.h"
 
 typedef void (*SND_STR_PLAYER)(SND_STR_WORK*);
 
+// Audio frame: for every active stream — aborting ones (status 0x3000) run the abort states; the
+// others check the DVD result, handle requests, run their state function and push the AX updates.
+// A driver reset flags every stream for cancel.
 void Snd_stream_player(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -37,6 +44,7 @@ void Snd_stream_player(void)
     }
 }
 
+// State 0: nothing (a reset request is honoured).
 void str_player_idle(SND_STR_WORK* str)
 {
     if (str->state != 0) {
@@ -45,6 +53,8 @@ void str_player_idle(SND_STR_WORK* str)
     str_reset_check(str);
 }
 
+// State 1 (buffering before play): reads and DMAs blocks; a DVD error waits for recovery or
+// cancels; a stop request cancels.
 void str_player_ready(SND_STR_WORK* str)
 {
     if (str_reset_check(str) != 0) {
@@ -65,6 +75,8 @@ void str_player_ready(SND_STR_WORK* str)
     Snd_str_aram_dma_sub(str);
 }
 
+// State 2 (playing): fade step, tracks the play position, keeps reading / DMAing; on a DVD error
+// checks for underrun or cancels.
 void str_player_normal(SND_STR_WORK* str)
 {
     if (str_reset_check(str) != 0) {
@@ -86,6 +98,7 @@ void str_player_normal(SND_STR_WORK* str)
     Snd_str_aram_dma_sub(str);
 }
 
+// State 3 (short stream, all data resident): fade step, ends when the left voice stops.
 void str_player_noread(SND_STR_WORK* str)
 {
     if (str_reset_check(str) != 0) {
@@ -101,6 +114,7 @@ void str_player_noread(SND_STR_WORK* str)
     Snd_str_get_now_play_nbl(str);
 }
 
+// State 4: once DVD and DMA are idle, closes the file and frees the AX voices (state 5 = done).
 void str_player_close(SND_STR_WORK* str)
 {
     if (str->dvd_busy != 0) {
@@ -115,6 +129,8 @@ void str_player_close(SND_STR_WORK* str)
     str->upd = 0;
 }
 
+// State 6 (DVD error): waits for the drive to recover, then restores the voices and the previous
+// state (or cancels when asked); keeps reading / DMAing.
 void str_player_error(SND_STR_WORK* str)
 {
     if (str_reset_check(str) != 0) {
@@ -134,6 +150,7 @@ void str_player_error(SND_STR_WORK* str)
     Snd_str_aram_dma_sub(str);
 }
 
+// Abort step 1: cancels the DVD read and frees the voices / voice works.
 void str_abort_init(SND_STR_WORK* str)
 {
     SND_VOICE_WORK* vw;
@@ -165,6 +182,7 @@ void str_abort_init(SND_STR_WORK* str)
     }
 }
 
+// Abort step 2: once DVD and DMA are idle, closes the file and clears the work.
 void str_abort_wait(SND_STR_WORK* str)
 {
     if (str->dvd_busy != 0) {
@@ -185,6 +203,8 @@ void str_abort_wait(SND_STR_WORK* str)
     str->voiceR = NULL;
 }
 
+// Executes the stream's pending request in order: 1 to ready, 2 play (once ready), then while
+// playing 0x10 set volume, 4 fade, 8 stop (50-step fade). Not during a reset or DVD error.
 void str_req_check(SND_STR_WORK* str)
 {
     if (Snd_ctrl_work.reset_flag & 0x20) {
@@ -226,6 +246,7 @@ void str_req_check(SND_STR_WORK* str)
     }
 }
 
+// Request 1: start buffering (state 1, status bit2).
 void str_req_to_ready(SND_STR_WORK* str)
 {
     str->req &= ~0x1;
@@ -233,6 +254,7 @@ void str_req_to_ready(SND_STR_WORK* str)
     str->state = 1;
 }
 
+// Request 2: starts the AX voices on block 0; state 2, or 3 for a fully buffered short stream.
 void str_req_to_play(SND_STR_WORK* str)
 {
     str->req &= ~0x2;
@@ -246,12 +268,14 @@ void str_req_to_play(SND_STR_WORK* str)
     str->status |= 0x30;
 }
 
+// Request 0x10: volume at once.
 void str_req_vol_set(SND_STR_WORK* str)
 {
     str->vol2 = str->req_vol << 8;
     str->upd |= 0x1;
 }
 
+// Starts a fade of the 8.8 volume to `vol` in `time` steps (cancels an error fade); status 0x100.
 void str_req_nml_fade_set(SND_STR_WORK* str, s16 time, s16 vol)
 {
     s16 diff;
@@ -272,6 +296,8 @@ void str_req_nml_fade_set(SND_STR_WORK* str, s16 time, s16 vol)
     str->status |= 0x100;
 }
 
+// One step of the error fade (status 0x200) or the normal fade (0x100); a fade to 0 ends the
+// stream (returns 1).
 int str_fade_check(SND_STR_WORK* str)
 {
     if (str->status & 0x200) {
@@ -300,6 +326,7 @@ int str_fade_check(SND_STR_WORK* str)
     return 0;
 }
 
+// Moves vol2 by `step` toward `target`, flags the volume update.
 void str_fade_new_vol_set(SND_STR_WORK* str, s16 step, s16 target)
 {
     int v;
@@ -318,6 +345,7 @@ void str_fade_new_vol_set(SND_STR_WORK* str, s16 step, s16 target)
     str->upd |= 0x1;
 }
 
+// During a driver reset the stream is cancelled (returns 1).
 int str_reset_check(SND_STR_WORK* str)
 {
     if (Snd_ctrl_work.reset_flag & 0x20) {
@@ -328,6 +356,7 @@ int str_reset_check(SND_STR_WORK* str)
     }
 }
 
+// Cancels a pending DVD read and ends the stream.
 void str_play_cancel(SND_STR_WORK* str)
 {
     if (str->dvd_busy != 0) {
@@ -336,6 +365,7 @@ void str_play_cancel(SND_STR_WORK* str)
     str_play_end(str);
 }
 
+// Stops the AX voices; state 4 (close), playing bit off.
 void str_play_end(SND_STR_WORK* str)
 {
     Snd_str_ax_voice_stop(str);
@@ -343,6 +373,7 @@ void str_play_end(SND_STR_WORK* str)
     str->state = 4;
 }
 
+// Clears the DVD error bit once the drive is idle and the failed read has been re-issued.
 void str_recovery_check(SND_STR_WORK* str)
 {
     if (str->err != 0) {

@@ -1,6 +1,7 @@
 /* newlib libc/string/strspn.c */
 #include "newlib_local.h"
 
+/* Length of the initial part of s1 made only of characters of s2. */
 size_t strspn(const char *s1, const char *s2)
 {
     const char *s = s1;

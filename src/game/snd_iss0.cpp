@@ -1,5 +1,11 @@
+// game/snd_iss0: sound driver request entry — Snd_iss_req_para turns a block / SE number (an
+// ISS block's SIT entry) into a request in the request bank that the audio frame picks up
+// (snd_iss1); chained SITs (flag 0x2000) queue several requests under one sound id.
 #include "snd_drv.h"
 
+// Plays SE / sequence `req_no` of ISS block `blk_no` with the parameters left in Snd_ctrl_work
+// (pan / volume / pitch overrides, ovr_flag); `para` (optional) receives the surround type.
+// Returns the new sound id, 0 when nothing was queued.
 int Snd_iss_req_para(u16 blk_no, u16 req_no, u8* para)
 {
     int ret;
@@ -8,6 +14,8 @@ int Snd_iss_req_para(u16 blk_no, u16 req_no, u8* para)
     return ret;
 }
 
+// Allocates a sound id and queues one request per SIT of the chain (flag 0x2000 = the next SIT
+// belongs to the same sound); dummy SITs (0x8000) and unknown numbers are refused.
 int req_iss_main(u16 blk_no, u16 req_no, u8* para)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -43,6 +51,7 @@ int req_iss_main(u16 blk_no, u16 req_no, u8* para)
     }
 }
 
+// The surround type of the request: the override (ovr_flag 0x100) or the SIT's.
 void req_set_srd_type(SND_CTRL_WORK* ctrl, SND_SIT* sit, u8* para)
 {
     if (ctrl->ovr_flag & 0x100) {
@@ -55,6 +64,7 @@ void req_set_srd_type(SND_CTRL_WORK* ctrl, SND_SIT* sit, u8* para)
     }
 }
 
+// Queues one request with interrupts off. Returns 1 when the request bank is full.
 int req_iss_one(SND_CTRL_WORK* ctrl, SND_SIT* sit, u16 blk_no, u16 req_no)
 {
     int old;
@@ -66,6 +76,8 @@ int req_iss_one(SND_CTRL_WORK* ctrl, SND_SIT* sit, u16 blk_no, u16 req_no)
     return ret;
 }
 
+// Fills a free request slot: type 1 (one-shot SE, SIT flag 0x100) or 2, block / number / id / SIT
+// and the control parameters copied in.
 int req_iss_one_sub(SND_CTRL_WORK* ctrl, SND_SIT* sit, u16 blk_no, u16 req_no)
 {
     SND_REQ_WORK* req;
@@ -89,6 +101,7 @@ int req_iss_one_sub(SND_CTRL_WORK* ctrl, SND_SIT* sit, u16 blk_no, u16 req_no)
     return 0;
 }
 
+// What sound id `snd_id` is: 1 SE (pending or on a voice), 2 sequence, 4 stream, 0 unknown / done.
 int Snd_get_play_type(u32 snd_id)
 {
     SND_REQ_WORK* req;

@@ -1,3 +1,7 @@
+// game/t_option: the debug "option" tool task (ToolOption): a nested menu (cDbOption rno[] per
+// level) over player settings — flag edit, weapon / upgrade level swap, position move, life,
+// kill, face morphs — and scroll settings — debug display flags, block display and the scroll
+// view distances. Runs in a scheduler slot with the game task suspended.
 #include "types.h"
 #include "vec.h"
 #include "atari.h"
@@ -86,6 +90,7 @@ void printCursor(int x, int y);
 #define WEP_LV_RELOAD (*(u8*) ((u8*) pG + 0x4FBA))
 #define PL_COSTUME (*(u8*) ((u8*) pG + 0x4FB8))
 
+// Resets the menu state (all levels at 0, cursor 0); be_flag = tool active.
 void cDbOption::clear(u8 flag)
 {
     setRno(0, 0, 0, 0, 0, 0, 0, 0);
@@ -94,12 +99,14 @@ void cDbOption::clear(u8 flag)
     be_flag = flag;
 }
 
+// Copies both pads for this frame.
 void cDbOption::joySet()
 {
     PT_MEMBER->joy[0] = Joy[0];
     PT_MEMBER->joy[1] = Joy[1];
 }
 
+// Counts idle frames (cursor blink), reset by any pad repeat.
 void cDbOption::move()
 {
     pT->count++;
@@ -108,6 +115,7 @@ void cDbOption::move()
     }
 }
 
+// Sets the routine number of every menu level.
 void cDbOption::setRno(u8 r0, u8 r1, u8 r2, u8 r3, u8 r4, u8 r5, u8 r6, u8 r7)
 {
     rno[0] = r0;
@@ -120,6 +128,8 @@ void cDbOption::setRno(u8 r0, u8 r1, u8 r2, u8 r3, u8 r4, u8 r5, u8 r6, u8 r7)
     rno[7] = r7;
 }
 
+// Debug option tool task: suspends the game task and runs the menu (rno[0]: 0 top, 1 player, 2
+// scroll, 3 quit) until it quits; then clears the tool-active bit and resumes the game.
 void ToolOption()
 {
     static void (*funcTbl[4])() = {tp_menu, tp_pl, tp_scr, tp_quit};
@@ -138,12 +148,14 @@ void ToolOption()
     TaskExit();
 }
 
+// Tool start: fresh menu state.
 void tp_init()
 {
     pT = &dbPl;
     pT->clear(1);
 }
 
+// Top menu: PLAYER / SCROLL / QUIT (B jumps to QUIT).
 void tp_menu()
 {
     static const char* menuStr[3] = {"PLAYER", "SCROLL", "QUIT"};
@@ -168,11 +180,13 @@ void tp_menu()
     }
 }
 
+// Ends the tool.
 void tp_quit()
 {
     pT->be_flag = 0;
 }
 
+// Player menu dispatcher (rno[1]).
 void tp_pl()
 {
     static void (*funcTbl[8])() = {tp_pl_menu, tp_pl_flag, tp_pl_weapon, tp_pl_posmove,
@@ -181,6 +195,7 @@ void tp_pl()
     funcTbl[pT->rno[1]]();
 }
 
+// Player menu: flag edit, weapon, position move, life, player kill, face control; B back to the top.
 void tp_pl_menu()
 {
     static const char* menuStr[7] = {"FLAG EDIT", "WEAPON", "POS MOVE", "LIFE", "PLAYER KILL", "--------",
@@ -308,6 +323,7 @@ void tp_pl_flag()
     }
 }
 
+// Life editor: player / Ashley life and maximum with the d-pad.
 void tp_pl_life()
 {
     eprintf(32, 42, 4, 0, "LIFE");
@@ -346,6 +362,8 @@ void tp_pl_life()
     }
 }
 
+// Free position / yaw move of the player with the stick (X ignores collision, Z brings the
+// partner, Y switches to rotation), coordinates printed.
 void tp_pl_posmove()
 {
     static u32 sfb;
@@ -396,6 +414,8 @@ void tp_pl_posmove()
     }
 }
 
+// Weapon swap: picks a weapon number / type and the four upgrade levels, then reloads the player's
+// weapon (weaponRelease / Load / Init) and puts it in the inventory (ItemMgr.debugWeapon).
 void tp_pl_weapon()
 {
     static const char* strWepName[46] = {
@@ -644,6 +664,7 @@ void tp_pl_weapon()
     }
 }
 
+// A kills the player (9999 damage).
 void tp_pl_PlKill()
 {
     eprintf(32, 42, 4, 0, "PRESS A TO PLAYER WILL DIE.");
@@ -655,6 +676,7 @@ void tp_pl_PlKill()
     }
 }
 
+// Placeholder page ("MOUNT-WEAPON", nothing to do).
 void tp_pl_mountweapon()
 {
     eprintf(32, 42, 4, 0, "MOUNT-WEAPON");
@@ -663,6 +685,7 @@ void tp_pl_mountweapon()
     }
 }
 
+// Face morph tester: plays one of the player archive's shape morphs on the head, or resets it.
 void tp_pl_face()
 {
     static const char* pFileName[6][3] = {
@@ -727,6 +750,7 @@ void tp_pl_face()
     }
 }
 
+// Scroll menu dispatcher (rno[1]).
 void tp_scr()
 {
     static void (*funcTbl[3])() = {tp_scr_menu, tp_scr_flag, tp_scr_view};
@@ -734,6 +758,7 @@ void tp_scr()
     funcTbl[pT->rno[1]]();
 }
 
+// Scroll menu: flag edit, view; B back to the top.
 void tp_scr_menu()
 {
     static const char* menuStr[2] = {"FLAG EDIT", "DISP MODE"};
@@ -759,6 +784,7 @@ void tp_scr_menu()
     }
 }
 
+// Scroll debug flags: green background, log off, fog off, all blocks displayed, error check.
 void tp_scr_flag()
 {
     eprintf(32, 42, 4, 0, "FLAG EDIT");
@@ -819,6 +845,8 @@ void tp_scr_flag()
     }
 }
 
+// Scroll view mode: what the scenery draws as — polygons, scroll collision, effect collision,
+// polygons + either, or off (Disp_flg / Debug_flg bits).
 void tp_scr_view()
 {
     static const char* strMode[6] = {"POLYGON", "SCR AT", "EFF AT", "POLYGON + SAT", "POLYGON + EAT", "OFF"};
@@ -877,6 +905,7 @@ void tp_scr_view()
     }
 }
 
+// Draws the blinking ">" cursor at text cell (x, y).
 void printCursor(int x, int y)
 {
     if (!(pT->count & 8)) {

@@ -1,3 +1,7 @@
+// game/roomdata: cRoomData — the per-stage room tables (St0..St4_data_tbl: which rooms have a save
+// record, their room REL file and init / main functions), the room save buffer (one 0xD8-byte
+// RoomSave per room with "passed" bits and the room's own flags, copied into the save game), and
+// the room REL handling (linkRelData / stopRelData / restartRelData).
 #include "types.h"
 #include "atari.h"
 #include "global.h"
@@ -76,6 +80,9 @@ static inline void U32Set(u32& d, u32 v) { d = v; }
 
 cRoomData RoomData;
 
+// Boot: counts the rooms of the five stage tables (total) and those with a save record (stat 1,
+// num), allocates the save buffer (header + one 0xD8-byte RoomSave per room) and stamps each
+// record with its stage / room id.
 void cRoomData::init()
 {
     u32 stage;
@@ -119,10 +126,12 @@ void cRoomData::init()
     }
 }
 
+// Nothing (room-set hook).
 void cRoomData::initRoomSet()
 {
 }
 
+// Copies the whole room save buffer into the save game image.
 void cRoomData::save(void* dst)
 {
     RoomSaveHdr* h = (RoomSaveHdr*) dst;
@@ -130,6 +139,8 @@ void cRoomData::save(void* dst)
     memcpy(h, pSaveBuf, num * sizeof(RoomSave) + sizeof(RoomSaveHdr));
 }
 
+// Restores the room records from a save game image, matched by id (records of rooms the build no
+// longer has are dropped).
 void cRoomData::load(void* src)
 {
     RoomSaveHdr* h = (RoomSaveHdr*) src;
@@ -149,6 +160,7 @@ void cRoomData::load(void* src)
     }
 }
 
+// Zeroes the records named in the image (keeping their ids) — the "new game from this data" case.
 void cRoomData::clear(void* src)
 {
     RoomSaveHdr* h = (RoomSaveHdr*) src;
@@ -177,6 +189,8 @@ void cRoomData::clear(void* src)
     }
 }
 
+// The RoomSave record of room `room` (stage << 8 | no); 0 when the room is out of range or has no
+// record.
 u8* cRoomData::getRoomSavePtr(u16 room)
 {
     u32 stage = room >> 8;
@@ -207,6 +221,7 @@ u8* cRoomData::getRoomSavePtr(u16 room)
     return 0;
 }
 
+// Runs the room's init function from its stage table entry, if any (room entry).
 void cRoomData::execInitFunc(u16 room)
 {
     u8 no = room;
@@ -221,6 +236,7 @@ void cRoomData::execInitFunc(u16 room)
     }
 }
 
+// Runs the room's per-frame main function, if any.
 void cRoomData::execMainFunc(u16 room)
 {
     u8 no = room;
@@ -235,6 +251,7 @@ void cRoomData::execMainFunc(u16 room)
     }
 }
 
+// 1 when stage / room index exists in the stage tables.
 int cRoomData::checkRoomRange(u8 stage, u8 no)
 {
     if (stage <= 9 && no < Room_data_tbl[stage].num && Room_data_tbl[stage].tbl != 0) {
@@ -243,6 +260,8 @@ int cRoomData::checkRoomRange(u8 stage, u8 no)
     return 0;
 }
 
+// 1 when the room uses a room REL (rel_no) other than the one currently linked (m_RelNo): the
+// stage loader must fetch it.
 int cRoomData::checkRelRead(u16 room)
 {
     u8 no = room;
@@ -258,6 +277,8 @@ int cRoomData::checkRelRead(u16 room)
     return 0;
 }
 
+// Loads the room's REL (FileTbl[rel_no]) from disc, allocates its bss (plus a backup copy for
+// stop/restart), links it and runs its prolog. m_RelNo remembers which is linked.
 void cRoomData::linkRelData(u16 room)
 {
     u8 no = room;
@@ -298,6 +319,7 @@ void cRoomData::linkRelData(u16 room)
     pModule->prolog();
 }
 
+// Temporarily unlinks the room REL (flag bit0), saving its bss to the backup.
 void cRoomData::stopRelData()
 {
     if ((flag & 1) == 0 && pModule != 0) {
@@ -309,6 +331,7 @@ void cRoomData::stopRelData()
     }
 }
 
+// Re-links a stopped room REL and restores its bss from the backup.
 void cRoomData::restartRelData()
 {
     if ((flag & 1) && pModule != 0) {
@@ -320,6 +343,7 @@ void cRoomData::restartRelData()
     }
 }
 
+// "Passed" bit `bit` (0..7, from the top) of the room's save record; 0 without a record.
 int cRoomData::checkPassed(u16 room, int bit)
 {
     u8* p = getRoomSavePtr(room);
@@ -330,6 +354,7 @@ int cRoomData::checkPassed(u16 room, int bit)
     return p[2] & (0x80 >> bit);
 }
 
+// Sets "passed" bit `bit` of the room's save record.
 void cRoomData::setPassed(u16 room, int bit)
 {
     u8* p = getRoomSavePtr(room);

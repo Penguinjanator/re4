@@ -26,6 +26,7 @@ f32 GlobalWindAdd = 1.0471976f;
 // parts list. The macro re-reads `no` in each arm (the link loops load `*pp` twice); the inline
 // takes an index already in a register (neighbour lookups).
 #define PEN_PARTS(m, c, no) ((c)->pPtbl ? (c)->pPtbl[no] : (m)->getPartsPtr(no))
+// Parts `no` of the chain owner (through pPtbl when the owner supplied a parts table).
 static inline cModel* penPartsNo(cModel* m, PenCloth* c, int no)
 {
     if (c->pPtbl) {
@@ -222,6 +223,7 @@ void PenClothFixSet(cModel* m, PenCloth* c, int no, Vec* pos)
     }
 }
 
+// Unpin link `no` (PenParts flags bit0 off) so it swings again.
 void PenClothFixClear(cModel* m, PenCloth* c, int no)
 {
     if (c->pCloth[no] != 0xFF) {
@@ -230,6 +232,11 @@ void PenClothFixClear(cModel* m, PenCloth* c, int no)
     }
 }
 
+// One simulation frame of a chain (called from the owner's move after the motion): floor from
+// parts 0 unless Flag 0x100, collision volumes unless Flag bit0, random-phase wind unless 0x40,
+// root speed / gravity unless 0x20; each link integrates its speed, is limited in angle and pulled
+// to its rest length from its parent and side neighbours, pushed out of the volumes, then its
+// matrix is rebuilt to look along the link. PenParts hit = a volume was touched this frame.
 void PenClothMove(cModel* m, PenCloth* c)
 {
     Mtx mtx;
@@ -1621,6 +1628,8 @@ static void PenClothReset(cModel* m, PenCloth* c)
     }
 }
 
+// Room / scenario wind for all cloth: direction `dir` (yaw, radians) at strength power * 20 units,
+// and the per-frame random phase step x * PI/3 (GlobalWindAdd).
 void PenWindSet(f32 dir, f32 power, f32 x)
 {
     static const Vec vec0 = {0.0f, 0.0f, 1.0f};

@@ -1,3 +1,8 @@
+// game/puzzle: the attache case packing puzzle behind the inventory — pzlBoard is a cell grid
+// (the case, and a spare board) holding pzlPiece pieces (one per item, shapes from piece_info,
+// rotated / mirrored in 8 orientations), pzlPlayer moves a cursor and a hand piece between the
+// boards (pick / put / swap / cancel) and writes the layout back into the ItemWork records.
+// PutInCase is the game-side entry that fits a picked-up item into the case (or stacks ammo).
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -90,6 +95,7 @@ PieceInfo piece_info[] = {
     { 0xFFFF, 0, 0, 0, { 0, 0 }, 0.0f, 0.0f, "", { 0 } },
 };
 
+// Shape record of item `id` in the piece table (ends with id 0xFFFF); 0 when the item has none.
 PieceData* searchItemPieceData(int id, PieceInfo* tbl)
 {
     int i;
@@ -104,6 +110,7 @@ PieceData* searchItemPieceData(int id, PieceInfo* tbl)
     }
 }
 
+// Model record of item `id` in the piece table; 0 when none.
 u8* searchItemModelData(int id, PieceInfo* tbl)
 {
     int i;
@@ -144,6 +151,8 @@ void pzlPiece::orientation(int o)
     }
 }
 
+// Rotates the piece a quarter turn (dir 0 clockwise, 1 counter-clockwise) within its orientation
+// group (0..3 normal, 4..7 mirrored) and rotates the centre offset with it.
 void pzlPiece::rotate(int dir)
 {
     switch (dir) {
@@ -188,6 +197,8 @@ void pzlPiece::rotate(int dir)
     }
 }
 
+// Mirrors the piece (axis 0 horizontal: flips cx, 1 vertical: flips the centre y) — moves between
+// the normal and mirrored orientation groups.
 void pzlPiece::mirror(int axis)
 {
     switch (axis) {
@@ -252,6 +263,7 @@ void pzlPiece::mirror(int axis)
     }
 }
 
+// Takes the piece into use with shape `p_data`, orientation 0, not on a board.
 void pzlPiece::init(PieceData* p_data)
 {
     m_p_data = p_data;
@@ -262,16 +274,20 @@ void pzlPiece::init(PieceData* p_data)
     m_orientation = 0;
 }
 
+// Board x of the piece's top-left cell (centre minus the centre offset).
 f32 pzlPiece::ver0_x()
 {
     return m_pos_x - cx;
 }
 
+// Board y of the piece's top-left cell.
 f32 pzlPiece::ver0_y()
 {
     return m_pos_y - m_center_y;
 }
 
+// Signed width in cells for the current orientation (negative = the shape runs leftwards from
+// ver0); 0 without shape data.
 int pzlPiece::size_x()
 {
     s8 size;
@@ -308,6 +324,7 @@ none:
 // jump2 only pairs RETURN insns, so every arm returns on its own (the `break` form's last arm falls
 // into the shared return and is never a candidate). With per-arm returns the byte value prefers r3
 // (global.c's sign_extend preference); the original keeps it in r0.
+// Signed height in cells for the current orientation.
 int pzlPiece::size_y()
 {
     register s8 size asm("r0");  // COMPILER-DIFF: #17 (value pin)
@@ -336,6 +353,7 @@ int pzlPiece::size_y()
     return 0;
 }
 
+// Rounds the piece position so its top-left cell sits on the cell grid.
 void pzlPiece::snap()
 {
     s8 vx;
@@ -430,6 +448,7 @@ static void dispShape(pzlPiece* p, int px, int py)
 }
 
 #line 540 "D:/Bio4/Prog/puzzle.cpp"
+// Allocates a w x h cell board (all cells free) and a table for `pieceMax_` pieces; 0 on failure.
 int pzlBoard::init(int w_, int h_, int pieceMax_)
 {
     int i;
@@ -465,6 +484,7 @@ int pzlBoard::init(int w_, int h_, int pieceMax_)
     return 1;
 }
 
+// Frees the cell and piece tables.
 void pzlBoard::quit()
 {
     if (m_cell) {
@@ -475,6 +495,7 @@ void pzlBoard::quit()
     }
 }
 
+// Pieces currently placed on the board.
 int pzlBoard::getPieceNum()
 {
     u8 n = 0;
@@ -488,6 +509,7 @@ int pzlBoard::getPieceNum()
     return n;
 }
 
+// 1 when `p` is one of the placed pieces.
 int pzlBoard::search(pzlPiece* p)
 {
     int i;
@@ -500,6 +522,8 @@ int pzlBoard::search(pzlPiece* p)
     return 0;
 }
 
+// 1 when every filled cell of `p` is on the board or in the one-cell border ring around it; else
+// 0 with m_wall_miss_flag = the side it left (1 left, 2 right, 3 up, 4 down).
 int pzlBoard::ckInsideWall(pzlPiece* p)
 {
     int sx;
@@ -541,6 +565,8 @@ int pzlBoard::ckInsideWall(pzlPiece* p)
     return 1;
 }
 
+// 1 when the piece is entirely off the board (m_out_miss_flag = the side it is beyond, or 0 when
+// it straddles the ring), 0 when any of its cells is on the board.
 int pzlBoard::outPiece(pzlPiece* p)
 {
     int sx;
@@ -597,6 +623,8 @@ int pzlBoard::outPiece(pzlPiece* p)
     return 1;
 }
 
+// Places `p` (snapped) if none of its cells is occupied or off the board: marks the cells (bit0),
+// registers it, state 1. Returns 1 on success.
 int pzlBoard::putPiece(pzlPiece* p)
 {
     int sx;
@@ -643,6 +671,8 @@ int pzlBoard::putPiece(pzlPiece* p)
     return 0;
 }
 
+// The single placed piece that `p` (snapped) overlaps; 0 when it overlaps none, more than one, or
+// leaves the board.
 pzlPiece* pzlBoard::lapPiece(pzlPiece* p)
 {
     pzlPiece* hit = 0;
@@ -681,6 +711,7 @@ pzlPiece* pzlBoard::lapPiece(pzlPiece* p)
     return hit;
 }
 
+// The piece covering cell (x, y), or 0.
 pzlPiece* pzlBoard::getPiece(int x, int y)
 {
     pzlPiece* p = 0;
@@ -702,6 +733,7 @@ pzlPiece* pzlBoard::getPiece(int x, int y)
     return p;
 }
 
+// Removes `p` from the board: frees its cells and table slot, state 0. Always 1.
 int pzlBoard::rmPiece(pzlPiece* p)
 {
     s8 vx;
@@ -733,6 +765,7 @@ int pzlBoard::rmPiece(pzlPiece* p)
     return 1;
 }
 
+// Removes and returns the piece covering (x, y), or 0.
 pzlPiece* pzlBoard::rmPiece(int x, int y)
 {
     pzlPiece* p = getPiece(x, y);
@@ -743,11 +776,14 @@ pzlPiece* pzlBoard::rmPiece(int x, int y)
     return p;
 }
 
+// Address of the state byte of cell (x, y) (no range check).
 u8* pzlBoard::cell(int x, int y)
 {
     return m_cell + (x + y * m_size_x);
 }
 
+// Cell state: on the board the cell byte (bit0 occupied); off the board 3 (occupied + outside), or
+// 0x43 for the one-cell ring just outside (outside + wall) where pieces may hover.
 int pzlBoard::cellState(int x, int y)
 {
     if (x >= m_size_x || x < 0 || y >= m_size_y || y < 0) {
@@ -762,6 +798,7 @@ int pzlBoard::cellState(int x, int y)
     return *cell(x, y);
 }
 
+// Clears `mask` bits in every cell.
 void pzlBoard::clearState(u8 mask)
 {
     int i;
@@ -896,6 +933,7 @@ int pzlPlayer::init(int type)
     return 1;
 }
 
+// Frees both boards and the piece array.
 void pzlPlayer::quit()
 {
     if (m_board) {
@@ -911,6 +949,7 @@ void pzlPlayer::quit()
     }
 }
 
+// Pieces in use.
 int pzlPlayer::pieceNum()
 {
     int n = 0;
@@ -925,6 +964,7 @@ int pzlPlayer::pieceNum()
     return n;
 }
 
+// The `no`-th piece in use (skipping free slots), or 0.
 pzlPiece* pzlPlayer::piecePtr(int no)
 {
     int n = 0;
@@ -942,6 +982,7 @@ pzlPiece* pzlPlayer::piecePtr(int no)
     return 0;
 }
 
+// The piece that represents inventory item `item`, or 0.
 pzlPiece* pzlPlayer::piecePtr(ItemWork* item)
 {
     int i;
@@ -957,6 +998,8 @@ pzlPiece* pzlPlayer::piecePtr(ItemWork* item)
     return 0;
 }
 
+// Writes every piece's position (in half cells), orientation and board (1 case, 0 spare) back into
+// its ItemWork — the layout the save game / item screen keeps.
 void pzlPlayer::save()
 {
     int i;
@@ -979,6 +1022,8 @@ void pzlPlayer::save()
     }
 }
 
+// Adds a new piece for `item` (a picked-up item not yet in the case) in a free slot at (0, 0) as
+// m_extra. 0 when the item has no shape or no slot is free.
 int pzlPlayer::appendExtraPiece(ItemWork* item)
 {
     pzlPiece* p = 0;
@@ -1010,6 +1055,7 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
     return 1;
 }
 
+// Discards the extra piece: off its board, the item erased from the inventory, the model freed.
 int pzlPlayer::removeExtraPiece()
 {
     if (m_extra->state & 1) {
@@ -1035,12 +1081,14 @@ int pzlPlayer::removeExtraPiece()
     return 1;
 }
 
+// Puts the extra piece in the player's hand (state 2).
 void pzlPlayer::inHandExtraPiece()
 {
     m_extra->state = 2;
     m_inhand = m_extra;
 }
 
+// Forgets the extra piece (it stays wherever it was placed).
 void pzlPlayer::giveupExtraPiece()
 {
     m_extra = 0;
@@ -1146,11 +1194,14 @@ doneY:
     return ret;
 }
 
+// The piece under the cursor of board `b`.
 pzlPiece* pzlPlayer::ptrPiece(pzlBoard* b)
 {
     return b->getPiece(b->m_cur_x, b->m_cur_y);
 }
 
+// Picks the piece under the cursor of `b` into the hand, remembering its position / orientation /
+// board so relPiece can put it back.
 void pzlPlayer::getPiece(pzlBoard* b)
 {
     pzlPiece* p = b->rmPiece(b->m_cur_x, b->m_cur_y);
@@ -1165,6 +1216,7 @@ void pzlPlayer::getPiece(pzlBoard* b)
     m_inhand = p;
 }
 
+// Drops the hand piece onto `b` at its position; the cursor moves to it. 0 when it does not fit.
 int pzlPlayer::putPiece(pzlBoard* b)
 {
     if (m_inhand == 0) {
@@ -1180,6 +1232,8 @@ int pzlPlayer::putPiece(pzlBoard* b)
     }
 }
 
+// Cancels the pick-up: the hand piece returns to where it was taken from (position, orientation,
+// board). Returns 1 when it went back.
 int pzlPlayer::relPiece(pzlBoard* b)
 {
     if (m_inhand) {
@@ -1199,6 +1253,8 @@ int pzlPlayer::relPiece(pzlBoard* b)
     return 0;
 }
 
+// Swaps the hand piece with the single piece it overlaps on `b`: the overlapped piece goes into
+// the hand (with its old place remembered), the hand piece is placed. 0 when no clean overlap.
 int pzlPlayer::chgPiece(pzlBoard* b)
 {
     pzlPiece* p;
@@ -1545,6 +1601,7 @@ cursor:
     return ret;
 }
 
+// Drops the pieces whose item was used up (ItemWork flags 0): removed from their board, model freed.
 void pzlPlayer::rehash()
 {
     int i;
@@ -1568,6 +1625,7 @@ void pzlPlayer::rehash()
     }
 }
 
+// Remembers the current board and cursor.
 void pzlPlayer::saveCursor()
 {
     m_board_sav = cur;
@@ -1575,6 +1633,7 @@ void pzlPlayer::saveCursor()
     m_cur_y_sav = cur->m_cur_y;
 }
 
+// Restores the board and cursor saved by saveCursor.
 void pzlPlayer::loadCursor()
 {
     cur = m_board_sav;
@@ -1582,6 +1641,7 @@ void pzlPlayer::loadCursor()
     cur->m_cur_y = m_cur_y_sav;
 }
 
+// If the cursor was on the spare board, moves it to the case at (0, 0).
 void pzlPlayer::salvCursor()
 {
     if (m_space == cur) {

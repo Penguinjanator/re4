@@ -71,6 +71,7 @@ extern "C" {
 void setThrowSpeed(Vec* spd, f32 power);
 }
 
+// r_no_0 0: flying / bouncing (moveNormal), 1: sunk in water, waiting to blow (moveWater).
 void cSubWep::move()
 {
     static void (cSubWep::*funcTbl[2])() = { &cSubWep::moveNormal, &cSubWep::moveWater };
@@ -78,6 +79,9 @@ void cSubWep::move()
     (this->*funcTbl[r_no_0])();
 }
 
+// Flight frame: counts subWep.life down (a timed grenade, type 0, explodes when it reaches 0;
+// the others are only destroyed), moves by the speed / bounces (addSpeed) and spins parts 0 by
+// rotSpd.
 void cSubWep::moveNormal()
 {
 
@@ -109,6 +113,8 @@ void cSubWep::moveNormal()
     matUpdate();
 }
 
+// Under water: when life runs out plays the water-surface effect chosen at entry (effNo/effPrm;
+// 0xD2/1 = none) plus the 0x28 splash when nothing is above the surface, then waterExplode().
 void cSubWep::moveWater()
 {
 
@@ -139,6 +145,8 @@ void cSubWep::moveWater()
     ObjMgr.destroy(this);
 }
 
+// Before exploding, pushes `pos` 400 units away from any wall within 400 units in the four
+// horizontal directions (measured 300 above the grenade), so the blast is not inside a wall.
 void cSubWep::scrAdjust()
 {
     Vec p;
@@ -210,6 +218,8 @@ void cSubWep::scrAdjust()
     }
 }
 
+// Damage area for the explosion: kind 1 (incendiary) = DmgMgr type 1 for 75 frames, radius 2500 x
+// 1500; kind 8 = types 2 and 8 (unused here).
 void cSubWep::dmgSet(int kind)
 {
     switch (kind) {
@@ -223,6 +233,10 @@ void cSubWep::dmgSet(int kind)
     }
 }
 
+// One frame of ballistics: gravity (grav / frame), vehicle adjust, then water (GetWaterHeight:
+// water effect / SE, eggs (type >= 3) vanish, a hand grenade sinks to r_no_0 1, fire / flash blow
+// at once) or the effect collision (EatMgr.adjust with radius rad/2): a surface whose AtEffInfo
+// flag bit0 is set counts as water, everything else bounces.
 void cSubWep::addSpeed()
 {
     Vec old;
@@ -353,6 +367,9 @@ void cSubWep::addSpeed()
     }
 }
 
+// Reflects the speed on the hit normal at half the speed, reverses the spin; on a floor
+// (nrm.y > 0.7) the fire / flash grenades (flags bit0) explode, the others play a bounce SE (4
+// max); on a wall the egg (flags bit1) breaks with flags 0x10 set (wall splat effect).
 void cSubWep::bounce(Vec* nrm)
 {
     Vec ref;
@@ -392,6 +409,7 @@ void cSubWep::bounce(Vec* nrm)
     }
 }
 
+// Effect surface type (EAT_ET_*) 3000 units ahead along the speed, 0 when nothing is hit.
 int cSubWep::getEffectType()
 {
     Vec d;
@@ -408,6 +426,7 @@ int cSubWep::getEffectType()
     return 0;
 }
 
+// Defaults: pass-through collision, 1000-unit light, gravity 20, radius 50, random spin.
 cSubWep::cSubWep()
 {
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
@@ -433,6 +452,10 @@ cSubWep::cSubWep()
     }
 }
 
+// Loads the model for `type` (0 hand grenade, 1 incendiary, 2 flash, 3-5 eggs at half scale) from
+// the player archive, starts it at the player's hand (parts 10, pulled back 500 from a wall
+// between the body and the hand), throw speed from `power` (-1..1 stick tilt), life 45 frames for
+// the hand grenade / 300 for the rest. Returns 0 when the model failed (object destroyed).
 int cSubWep::init(Vec* rot, f32 power)
 {
     Vec p;
@@ -510,6 +533,9 @@ int cSubWep::init(Vec* rot, f32 power)
     return 1;
 }
 
+// Throw velocity in world space: base speed (grenade 283 forward / 30 up; eggs 500 / 5), scaled up
+// for a forward tilt (power > 0.1), down for a back tilt, pitched by -power * 45 degrees with a
+// small random sideways component, plus the hand's own motion this frame.
 void setThrowSpeed(Vec* spd, f32 power)
 {
     static const Vec speedGre = { 0.0f, 30.000002f, 283.5f };
@@ -548,15 +574,20 @@ void setThrowSpeed(Vec* spd, f32 power)
     PSVECAdd(spd, &d, spd);
 }
 
+// A thrown sub weapon is dropped when an event starts.
 void cSubWep::beginEvent()
 {
     ObjMgr.destroy(this);
 }
 
+// Hand grenade: no special flags (explodes by its timer).
 cObjGrenade::cObjGrenade()
 {
 }
 
+// Hand grenade blast: water bomb on water, else the surface effect remembered from the last hit
+// (or the default 0x0D blast with scorch 0x1A on a floor), blast SE; damage 0x13 in a 6000 radius
+// (PlWepHitCheck2), Status_flg[0] 0x800000 = an explosion this frame, and the bell noise.
 void cObjGrenade::explode()
 {
     f32 wh;
@@ -605,6 +636,7 @@ void cObjGrenade::explode()
     pG->bell_stat = 1;
 }
 
+// Under-water blast: the same 6000-radius damage, water SE and bell noise, no effect.
 void cObjGrenade::waterExplode()
 {
     BitOn(pG->Status_flg[0], 0x800000);
@@ -615,11 +647,14 @@ void cObjGrenade::waterExplode()
     pG->bell_stat = 1;
 }
 
+// Incendiary: explodes on the first floor hit (flags bit0).
 cObjGreFire::cObjGreFire()
 {
     subWep.flags |= 1;
 }
 
+// Incendiary burst: surface effect (default 0x0B fire, plus 0x26 burning floor when within 200 of
+// the floor), fire SE, DmgMgr fire area for 75 frames; no direct hit check.
 void cObjGreFire::explode()
 {
     f32 wh;
@@ -670,16 +705,20 @@ void cObjGreFire::explode()
     pG->bell_stat = 1;
 }
 
+// Fizzles under water (SE only).
 void cObjGreFire::waterExplode()
 {
     SndCall(1, 0x23, &pos, 0, 0, 0);
 }
 
+// Flash grenade: explodes on the first floor hit (flags bit0).
 cObjGreLight::cObjGreLight()
 {
     subWep.flags |= 1;
 }
 
+// Flash: screen flash 0x3F plus the 0x0C effect, flash SE, and the 0x17 (flash) hit check in a
+// 15000 radius — kills Plagas heads, stuns everyone looking.
 void cObjGreLight::explode()
 {
     f32 wh;
@@ -712,16 +751,19 @@ void cObjGreLight::explode()
     pG->bell_stat = 1;
 }
 
+// Fizzles under water (SE only).
 void cObjGreLight::waterExplode()
 {
     SndCall(1, 0x24, &pos, 0, 0, 0);
 }
 
+// Egg: breaks on the first floor or wall hit (flags bits 0 and 1).
 cObjEgg::cObjEgg()
 {
     subWep.flags |= 3;
 }
 
+// Egg splat: effect 0x42 (0x43 on a wall), SE, and the 0x19 (egg) hit check in a 2000 radius.
 void cObjEgg::explode()
 {
     f32 wh;
@@ -743,6 +785,7 @@ void cObjEgg::explode()
     pG->bell_stat = 1;
 }
 
+// Nothing: an egg just sinks.
 void cObjEgg::waterExplode()
 {
 }

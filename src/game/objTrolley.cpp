@@ -95,6 +95,8 @@ Vec Trolley_vec[3];         // car movement of this frame (objTrolleyGetAdjust)
 f32 Trolley_dir[3];         // car turn of this frame
 u8 Trolley_parts_tbl[3] = { 0, 4, 8 };
 
+// Creates the mine trolley (ObjMgr id 0x3B; room 3-x mine cart ride) at pos / rot, no motions
+// yet (setMotion), and builds its scenario / effect collision pieces. Returns 0 on failure.
 cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -150,12 +152,16 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per frame: clears the pieces' active bit (set again by the routine) and runs r_no_0 (0 Set,
+// 1 Move, 2 Break).
 void cObjTrolley::move()
 {
     objTrolleySatClear(this);
     ObjTrolley_R0_move_tbl[r_no_0](this);
 }
 
+// r_no_0 == 0: waits at the start on the first frame of the run motion; when the scenario calls
+// setStart (Be_flg bit0) the player rides (Ride_pl, Status_flg[0] 0x20) and the run begins.
 void objTrolley_R0_Set(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
@@ -179,6 +185,11 @@ void objTrolley_R0_Set(cObjTrolley* obj)
     }
 }
 
+// r_no_0 == 1, the ride: r_no_2 0/1 first run motion (mot[0]) to its end -> Be_flg bit2 "stopped";
+// 3 holds until set2ndStart (bit1); 4/5 second run (mot[1]): after frame 2250 the camera flag
+// Status_flg[2] 0x08000000, 2300 the crash effect, 2865 the jump-off action button (random type
+// 3 / 4 -> objTrolleyEscapeAction); the motion ending with the player aboard is death
+// (plobjTrolleyDie). Every frame the riders are carried along and the front of the car hits enemies.
 void objTrolley_R0_Move(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
@@ -248,6 +259,9 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     objTrolleyHitCk(obj);
 }
 
+// r_no_0 == 2, the crash: the cars are put at the crash point and play the break motion (mot[2]
+// when the player escaped, mot[3] when he died), the enemies aboard fall and, when the motion
+// ends, are told setTrolleyLost and the cars vanish.
 void objTrolley_R0_Break(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
@@ -278,6 +292,7 @@ void objTrolley_R0_Break(cObjTrolley* obj)
     obj->partsWorldCalc();
 }
 
+// Marks all scenario / effect pieces inactive (m_Flag bit2) until objTrolleySatSet re-places them.
 static void objTrolleySatClear(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
@@ -293,6 +308,8 @@ static void objTrolleySatClear(cObjTrolley* obj)
     }
 }
 
+// Places (or on the first call creates from room archive file 5, shapes 3/2/1 scenario and 6/5/4
+// effect) one collision piece per car at the car's parts position + 500, following its yaw.
 void objTrolleySatSet(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
@@ -352,6 +369,7 @@ void objTrolleySatSet(cObjTrolley* obj)
     }
 }
 
+// Action button callback: the player jumps off (plobjTrolleyEscape) and the trolley crashes.
 void objTrolleyEscapeAction(cObjTrolley* obj)
 {
     obj->trolley.Ride_pl = 0;
@@ -362,6 +380,9 @@ void objTrolleyEscapeAction(cObjTrolley* obj)
     obj->r_no_3 = 1;
 }
 
+// Player damage routine of the jump-off: r_no_2 0/1 the jump motion (mot[4]) with its SEs, 2/3 the
+// hang-on motion (mot[6]) with a 90-frame button mash (m_Work1 presses needed: 5 / 10 / 15 by
+// Game_level), 4/5 climbs up (mot[7]) and returns control, 6/7 falls (mot[8]) and dies.
 void plobjTrolleyEscape(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -467,6 +488,7 @@ void plobjTrolleyEscape(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Player damage routine when he was still aboard at the crash: the death motion (mot[5]), life 0.
 void plobjTrolleyDie(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -495,6 +517,7 @@ void plobjTrolleyDie(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Copies the 9 motions from the room and starts the first run motion (frame 0).
 void cObjTrolley::setMotion(void** tbl)
 {
     TrolleyWork* w = &trolley;
@@ -508,6 +531,7 @@ void cObjTrolley::setMotion(void** tbl)
     }
 }
 
+// Saves the three cars' matrices as Trolley_MatOld before the motion moves them.
 void objTrolleyPushMtx(cObjTrolley* obj)
 {
     u32 i;
@@ -517,6 +541,7 @@ void objTrolleyPushMtx(cObjTrolley* obj)
     }
 }
 
+// Which car (0-2) `pos` stands in, using last frame's matrices (1800 x 1000 x 3900 box); -1 none.
 int objTrolleyGetTrolleyNo(cObjTrolley* obj, Vec* pos)
 {
     Mtx inv;
@@ -533,6 +558,7 @@ int objTrolleyGetTrolleyNo(cObjTrolley* obj, Vec* pos)
     return -1;
 }
 
+// Same as objTrolleyGetTrolleyNo with this frame's matrices.
 int objTrolleyGetTrolleyNo2(cObjTrolley* obj, Vec* pos)
 {
     Mtx inv;
@@ -549,6 +575,7 @@ int objTrolleyGetTrolleyNo2(cObjTrolley* obj, Vec* pos)
     return -1;
 }
 
+// Per car: movement (Trolley_vec) and yaw change (Trolley_dir) between last and this frame.
 void objTrolleyGetAdjust(cObjTrolley* obj)
 {
     Vec p1;
@@ -584,6 +611,9 @@ void objTrolleyGetAdjust(cObjTrolley* obj)
     }
 }
 
+// Carries `em` with the car it stands on: re-expresses its position in the car's new matrix,
+// adds the same yaw, flags be_flag 0x20000000; for the player also shifts the extra camera and
+// quake_ofs.
 void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
 {
     Mtx inv;
@@ -615,11 +645,13 @@ void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
     }
 }
 
+// The player rides along.
 void objTrolleyMoveAdjustPL(cObjTrolley* obj)
 {
     objTrolleySetAdjust(obj, pPL);
 }
 
+// Live room enemies (id 0x10..0x40) ride along; the enemy weapon (0x42) recalculates its parent.
 void objTrolleyMoveAdjustEM(cObjTrolley* obj)
 {
     u32 i;
@@ -639,6 +671,8 @@ void objTrolleyMoveAdjustEM(cObjTrolley* obj)
     }
 }
 
+// Is `pos` on a car? Returns 1 with the car's parts number and the position in car space (last
+// frame's matrix) — used by the room to attach enemies.
 int cObjTrolley::ckTrolleyRide(Vec* pos, u8* partsNo, Vec* out)
 {
     Mtx inv;
@@ -656,6 +690,7 @@ int cObjTrolley::ckTrolleyRide(Vec* pos, u8* partsNo, Vec* out)
     return 1;
 }
 
+// Moves `pos` with the car it stands on into `out` (out = pos when not on a car); returns 1 if on.
 int cObjTrolley::ckTrolleyRideAdjust(Vec* pos, Vec* out)
 {
     Mtx inv;
@@ -675,17 +710,20 @@ int cObjTrolley::ckTrolleyRideAdjust(Vec* pos, Vec* out)
     return 1;
 }
 
+// Scenario: begin the ride (Be_flg bit0).
 void cObjTrolley::setStart()
 {
     trolley.Be_flg |= 1;
 }
 
+// Scenario: begin the second run (Be_flg bit1), clears "stopped".
 void cObjTrolley::set2ndStart()
 {
     trolley.Be_flg |= 2;
     trolley.Be_flg &= ~4;
 }
 
+// 1 while the trolley has stopped after the first run (Be_flg bit2).
 int cObjTrolley::ckStop()
 {
     if (trolley.Be_flg & 4) {
@@ -694,6 +732,8 @@ int cObjTrolley::ckStop()
     return 0;
 }
 
+// While the front car moves (> 50 units / frame) three 400-radius 0x12 hit spheres 2700 ahead of
+// it run down enemies in the way.
 void objTrolleyHitCk(cObjTrolley* obj)
 {
     Vec v;
@@ -722,6 +762,8 @@ void objTrolleyHitCk(cObjTrolley* obj)
     PlWepHitCheck2(0, &v, &v, 0x12, 3, 400.0f);
 }
 
+// At the crash every living room enemy (id 0x10..0x20) gets hp 0 and is forced into its fall
+// routine (r_no_0 2 / r_no_1 7), remembering its yaw in x9BC.
 void objTrolleyFallEM(cObjTrolley* obj)
 {
     u32 i;
@@ -741,6 +783,7 @@ void objTrolleyFallEM(cObjTrolley* obj)
     }
 }
 
+// After the break motion the hidden room enemies are told setTrolleyLost (they vanish).
 void objTrolleyLostEM(cObjTrolley* obj)
 {
     u32 i;

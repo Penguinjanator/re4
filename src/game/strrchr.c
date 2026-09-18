@@ -1,6 +1,7 @@
 /* newlib libc/string/strrchr.c */
 #include "newlib_local.h"
 
+/* Last occurrence of character i in s, NULL when absent. */
 char *strrchr(const char *s, int i)
 {
     const char *last = NULL;

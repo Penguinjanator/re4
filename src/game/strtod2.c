@@ -28,6 +28,8 @@ float powersOf10[] = {          /* Table giving binary powers of 10.  Entry */
     1.0e256
 };
 
+/* Decimal string to double (sign, digits, fraction, exponent); *endPtr = first unparsed
+ * character (the start when nothing parsed). */
 double strtod(const char *string, char **endPtr)
 {
     int sign, expSign = FALSE;

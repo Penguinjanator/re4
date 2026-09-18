@@ -1,5 +1,11 @@
+// game/snd_seq2: sound driver MIDI event dispatch for the BGM sequencer — note on / off (with a
+// voice work per note so the game can count / stop them), program and control changes (CC 0x66 /
+// 0x67 mark and jump to the loop point, 0x68 channel priority, 0x69 drum channel), pitch bend and
+// the meta events (end of track, tempo); everything is forwarded to the SYN synthesizer.
 #include "snd_drv.h"
 
+// Dispatches the MIDI message in ctrl->midi_msg by status type; an unknown status is a data error
+// (OSPanic).
 void Snd_seq_midi_message(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     switch (m->midi_type) {
@@ -29,6 +35,8 @@ void Snd_seq_midi_message(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     }
 }
 
+// Note on (velocity 0 = note off): takes a voice work at the channel's priority (may steal),
+// remembers sequence / channel / note on it, forwards to the synth.
 void seq_note_on(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     SND_VOICE_WORK* voice;
@@ -50,6 +58,7 @@ void seq_note_on(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     Snd_seq_send_midi(m, seq);
 }
 
+// Note off: frees the note's voice work and forwards to the synth.
 void seq_note_off(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     SND_VOICE_WORK* voice;
@@ -66,6 +75,7 @@ void seq_note_off(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     Snd_seq_send_midi(m, seq);
 }
 
+// Program change: remembered per channel, forwarded.
 void seq_prog_change(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     seq->seq_pos += 2;
@@ -73,6 +83,9 @@ void seq_prog_change(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     Snd_seq_send_midi(m, seq);
 }
 
+// Control change: modulation / volume / pan / expression / hold / reverb / chorus are remembered
+// per channel and forwarded; data entry (6 / 0x26) goes through seq_ctrl_data_entry; 0x66 sets the
+// loop point, 0x67 jumps back to it, 0x68 channel priority, 0x69 drums flag (not forwarded).
 void seq_ctrl_change(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     u8 val;
@@ -126,6 +139,7 @@ void seq_ctrl_change(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     Snd_seq_send_midi(m, seq);
 }
 
+// RPN data entry: selects RPN 0 (pitch bend range) on the synth and stores the MSB / LSB per channel.
 void seq_ctrl_data_entry(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     int old;
@@ -152,6 +166,7 @@ void seq_ctrl_data_entry(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     }
 }
 
+// Pitch bend: remembered per channel, forwarded.
 void seq_pitch(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     seq->seq_pos += 3;
@@ -160,6 +175,8 @@ void seq_pitch(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     Snd_seq_send_midi(m, seq);
 }
 
+// Meta events: 0x2F end of track (sequence stops), 0x51 set tempo (microseconds per quarter /
+// 1000 -> tempo); anything else is a data error.
 void seq_event(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     int tempo;
@@ -187,6 +204,7 @@ void seq_event(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
     }
 }
 
+// A channel flagged as drums (CC 0x69) is redirected to MIDI channel 9.
 void seq_drums_flag_ck(SND_CTRL_WORK* m, SND_SEQ_WORK* seq)
 {
     if ((seq->ch_flag[m->midi_ch] & 0x1) == 0) {

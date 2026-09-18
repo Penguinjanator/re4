@@ -6,6 +6,8 @@
 #define isdigit(c) ((_ctype_ + 1)[(unsigned)(c)] & _N)
 #define isspace(c) ((_ctype_ + 1)[(unsigned)(c)] & _S)
 
+/* Reentrant strtol: skips blanks, sign, optional 0x / 0 prefix (base 0 / 16 / 8), accumulates
+ * with overflow clamping to LONG_MIN / LONG_MAX (errno ERANGE). */
 long _strtol_r(struct _reent *rptr, const char *nptr, char **endptr, int base)
 {
     register const char *s = nptr;
@@ -82,6 +84,7 @@ long _strtol_r(struct _reent *rptr, const char *nptr, char **endptr, int base)
     return (acc);
 }
 
+/* String to long in `base` (0 = auto). */
 long strtol(const char *s, char **ptr, int base)
 {
     return _strtol_r(_REENT, s, ptr, base);

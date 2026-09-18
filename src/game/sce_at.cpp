@@ -47,6 +47,13 @@
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
+// Every record is a SceAtWork (sce_at.h) linked into a 16-slot ordering table (SceAtSys.ot) by its
+// otNo; `type` selects the handler in sceAtFunc_tbl (0 normal / hit list, 1 door, 2 exec a task,
+// 3 item, 4 flag, 5 message, 8 typewriter save, 9 shadow display, 0xA damage, 0xB runtime
+// collision, 0xC camera control, 0xD field info, 0xE stoop, 0xF special key, 0x10 ladder, 0x11
+// use item, 0x12 hide spot, 0x13 position jump, 0x14 item parent). Entry points: SceAtInit /
+// SceAtRoomSet at room start, SceAtCheck once per frame from the scenario move, the SceAt*
+// accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
 extern "C" {
 int strcmp(const char* a, const char* b);
@@ -106,22 +113,27 @@ static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(u32& d, void* v) { d = (u32) v; }
 static inline void PSet(cModel*& d, cModel* v) { d = v; }
 
+// The room event flag words (Room_flg, kind 0 of the flag areas).
 static inline u32* eventFlags()
 {
     return &pG->Room_flg[0];
 }
+// The item-found flag word (kind 2 of the flag areas).
 static inline u32* flags51BC()
 {
     return &pG->Item_find_flg;
 }
+// Door unlock bits (SceAtDoor lockFlag).
 static inline u32* doorUnlock()
 {
     return pG->door_unlock;
 }
+// Global ITEM_SET flags (SceAtItem flagNo): the item was taken.
 static inline u32* itemFlags()
 {
     return pG->item_flags;
 }
+// Global item-found flags (item_flags[4..]): the item was seen / its area found.
 static inline u32* itemFindFlags()
 {
     return &pG->item_flags[4];
@@ -163,6 +175,7 @@ static inline u32* roomItemFlags()
 {
     return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8);
 }
+// Per-room "found" flags in the room save record (+0x18).
 static inline u32* roomItemFindFlags()
 {
     return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18);
@@ -290,6 +303,9 @@ static SceAtFuncTbl sceAtFunc_tbl[21] = {
     {sceAtFunc_normal, 0},      // 0x14  item parent
 };
 
+// Room start: resets the area system (ordering table, hit / exec flags, reservations) and links the
+// room's AEV records (version 0x104) and ITA item records (version 0x105, numbered +0x80) into the
+// ordering table by their otNo.
 void SceAtInit(void* atData, void* itemData)
 {
     int i;
@@ -342,11 +358,13 @@ void SceAtInit(void* atData, void* itemData)
     }
 }
 
+// Iteration start for sceAtGetOtAddr: the ordering table head (ot[15]).
 SceAtWork* sceAtSetOtStart()
 {
     return (SceAtWork*) &pS->ot[15];
 }
 
+// Next area record in the ordering table after `p` (skips the table's own entries); 0 at the end.
 SceAtWork* sceAtGetOtAddr(SceAtWork* p)
 {
     u32 v;
@@ -360,11 +378,13 @@ SceAtWork* sceAtGetOtAddr(SceAtWork* p)
     return 0;
 }
 
+// Clears the "hit this frame" bits.
 void SceAtClearHitFlg()
 {
     memclr_asm(pS->hitFlg, sizeof(pS->hitFlg));
 }
 
+// Marks area `no` as hit this frame (SceAtHitCheck reads it).
 void SceAtSetHitFlg(u32 no)
 {
     u32* f = pS->hitFlg;
@@ -372,11 +392,13 @@ void SceAtSetHitFlg(u32 no)
     f[no >> 5] |= 0x80000000 >> (no & 31);
 }
 
+// Clears the "executed this frame" bits.
 void SceAtClearExecFlg()
 {
     memclr_asm(pS->execFlg, sizeof(pS->execFlg));
 }
 
+// Marks area `no` as executed this frame.
 void SceAtSetExecFlg(u32 no)
 {
     u32* f = pS->execFlg;
@@ -384,6 +406,7 @@ void SceAtSetExecFlg(u32 no)
     f[no >> 5] |= 0x80000000 >> (no & 31);
 }
 
+// Per frame: clears Room_flg[2..3] (per-frame event flags) and the hit / exec bits.
 void SceAtWorkLoopInit()
 {
     U32Set(pG->Room_flg[2], 0);
@@ -392,6 +415,7 @@ void SceAtWorkLoopInit()
     SceAtClearExecFlg();
 }
 
+// Per frame: empties the hit-model lists of the enabled type 0 (normal) areas.
 static void sceAtDataLoopInit()
 {
     SceAtWork* w = sceAtSetOtStart();
@@ -406,6 +430,10 @@ static void sceAtDataLoopInit()
     }
 }
 
+// Once per frame (scenario move): the hide sequence, model links, item find / camera areas, then
+// tests every enabled area against the player (type 1), the partner (8) and the active enemies
+// (2, room enemies below id 0x40 plus the racks 0x45); skipped while Stop_flg 0x00400000 or in
+// the debug modes. Clears the action-key status bits at the end.
 void SceAtCheck()
 {
     u32 i;
@@ -478,6 +506,12 @@ void SceAtCheck()
     BitOff(pG->Status_flg[0], 0x20000000);
 }
 
+// Area test for one model: position + 250 and a point 550 ahead (wall-clipped for the player) are
+// tested against every enabled area whose checkType matches `type`; a hit sets the hit flag and,
+// for trigger bit3 areas, registers the action button (door / hide / stoop / item rules), else
+// fires the area's handler when its trigger bits match the key state (flag: 1 in area, 2 action
+// pressed, 4 action held); exclusive handlers run only once per frame; trigger bit7 disables the
+// area after it fired. Returns 1 when a handler fired.
 int sceAtCheck_main(cEm* em, int type)
 {
     Vec pos;
@@ -611,6 +645,8 @@ int sceAtCheck_main(cEm* em, int type)
 }
 
 // The area of `w` in world space: its parent's matrix applied (rotation ignored with flag bit3).
+// The area in world space: the record's area moved (and rotated unless flag bit3) by the parent
+// model / parts matrix when the area follows a parent.
 void sceAtGetArea(AreaData* out, SceAtWork* w)
 {
     Mtx mat;
@@ -673,6 +709,9 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
     }
 }
 
+// Is `m` in area `w`? Eye areas (area type 3) test the view cone and the screen; the others test
+// `front` (checkFlag bit0) or `pos`, then the facing angle within angleRange (checkFlag bit1) and,
+// for item areas, the item's own hit box.
 int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
 {
     AreaData area;
@@ -734,6 +773,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
     return ret;
 }
 
+// Type 0 / 6 / 7 / 0xC / 0x14 handler: records `m` in the area's hitModel list (SceAtCheckHitModel).
 static int sceAtFunc_normal(SceAtWork* w, cModel* m)
 {
     u32 i;
@@ -747,6 +787,8 @@ static int sceAtFunc_normal(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Task for a locked door: the locked SE and message 0xA ("locked") or 0xB ("unlocked with the
+// key", lockType 2 sets the unlock bit); then re-enables the area and restores Stop_flg.
 static void sceInLock(SceAtWork* w)
 {
     switch (w->lockType) {
@@ -772,6 +814,8 @@ static void sceInLock(SceAtWork* w)
     TaskExit();
 }
 
+// 1 when Ashley is around and can follow through a door: within 5000 by route, not hiding, not in
+// the carried / no-follow states.
 int CheckAshleyActive()
 {
     if (pSUB == 0) {
@@ -784,6 +828,8 @@ int CheckAshleyActive()
     return 1;
 }
 
+// May the player take a door now? Blocked when Ashley is present (and the "left behind" flag
+// Item_find_flg 0x80 is not set) but cannot follow.
 int CheckDoorJumpWithAshley()
 {
     if (pSUB != 0 && !(pG->Item_find_flg & 0x80)) {
@@ -794,6 +840,10 @@ int CheckDoorJumpWithAshley()
     return 1;
 }
 
+// Type 1 handler (door): with Ashley too far, message 0x67 instead; a locked door (lockType with
+// its unlock bit clear) runs sceInLock; else hands the door function to SceSys and sets the next
+// room (NextPos / NextY, next_stage / next_room_no / next_point, door_no) and the game routine 4
+// (room change).
 static int sceAtFunc_door(SceAtWork* w, cModel* m)
 {
     u8 lt;
@@ -843,6 +893,8 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     return 1;
 }
 
+// Type 2 handler: runs the area's func — directly with `arg` when prio is 0, else as a scenario
+// task (SceExec at prio / otNo with the model).
 static int sceAtFunc_exec(SceAtWork* w, cModel* m)
 {
     if (w->func == 0) {
@@ -857,11 +909,13 @@ static int sceAtFunc_exec(SceAtWork* w, cModel* m)
     return 1;
 }
 
+// Empties the deferred item-model free list.
 static void initReleaseModelTbl()
 {
     memclr_asm(releaseModelTbl, sizeof(releaseModelTbl));
 }
 
+// Queues an item model's bin / tpl to be freed 3 frames later (after the GPU is done with it).
 static void setReleaseModelTbl(void* bin, void* tpl)
 {
     u32 i;
@@ -878,6 +932,7 @@ break;
     }
 }
 
+// Per frame: counts the deferred frees down and frees the buffers.
 static void checkReleaseModelTbl()
 {
     u32 i;
@@ -903,6 +958,9 @@ static void checkReleaseModelTbl()
 }
 
 #line 990 "D:/Bio4/Prog/sce_at.cpp"
+// Prepares the pick-up zoom of an item area: loads the item's model from disc (the treasure map
+// items 0x95 / 0x97 replace their existing model) into a setItemObj object attached to the area.
+// Returns 0 on a load failure.
 int itemZoom(SceAtWork* w)
 {
     SceAtItem* it = &w->item;
@@ -957,6 +1015,8 @@ int itemZoom(SceAtWork* w)
     return 1;
 }
 
+// Undoes itemZoom: destroys the zoom model (its buffers freed later) and restores a replaced model
+// (hidden unless `keep`).
 void releaseModel(SceAtWork* w, int keep)
 {
     if ((w->item.flag & 2) && w->item.pModel != 0) {
@@ -995,6 +1055,11 @@ void releaseModel(SceAtWork* w, int keep)
         return;                                           \
     }
 
+// Scenario task of an item pick-up with a model (SceExec 5 from sceAtFunc_item): up-cut camera,
+// adds the item (ItemMgr.get / attache case placement by type: ammo, weapon, money with bonus
+// messages, treasure, key items...), shows the "got X" message with the item zoom (itemExam; B
+// cancels), opens the sub screen when the case is full, then marks the item taken, disables the
+// area, frees the model / allocation and ends the cut.
 static void sceAtGetItem(SceAtWork* w_)
 {
     // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): value pin of the parameter copy.
@@ -1257,6 +1322,8 @@ static void sceAtGetItem(SceAtWork* w_)
         return;                                           \
     }
 
+// The same pick-up sequence without a model to zoom (the item's model failed to load or is a
+// no-model item): messages, case placement (PutInCase) or the sub screen, flags and clean-up.
 static void sceAtGetItem_NoModel(SceAtWork* w)
 {
     static int sub_screen_open;
@@ -1475,6 +1542,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     SceUpCutEnd();
 }
 
+// Type 3 handler (item): keys blocked, the item model prepared (itemZoom) and the pick-up task
+// started (sceAtGetItem or the no-model variant); SceSys.m_item_get = 1 while it runs.
 static int sceAtFunc_item(SceAtWork* w, cModel* m)
 {
     SceAtItem* it = &w->item;
@@ -1506,6 +1575,7 @@ static inline u32* RsfFlags(u16 room)
     return (u32*) (RoomData.getRoomSavePtr(room) + 4);
 }
 
+// Sets room save flag `no` (0..31) of `room`.
 static inline void RsfSet(u16 room, int no)
 {
     if (no > 0x1F) {
@@ -1516,6 +1586,7 @@ static inline void RsfSet(u16 room, int no)
     RsfFlags(room)[(u32) no >> 5] |= 0x80000000 >> (no & 31);
 }
 
+// Clears room save flag `no` of `room`.
 static inline void RsfClear(u16 room, int no)
 {
     if (no > 0x1F) {
@@ -1527,6 +1598,8 @@ static inline void RsfClear(u16 room, int no)
 }
 #line 1400 "D:/Bio4/Prog/sce_at.cpp"
 
+// Type 4 handler (flag): sets or clears (flg.off) flag `no` of kind 0 event flags (Room_flg),
+// 1 room save flags, 2 Item_find_flg.
 static int sceAtFunc_flg(SceAtWork* w, cModel* m)
 {
     SceAtFlg* f = &w->flg;
@@ -1566,6 +1639,8 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Type 5 handler (message): shows the message at once, or as a scenario task when a camera cut is
+// requested.
 static int sceAtFunc_mes(SceAtWork* w, cModel* m)
 {
     SceAtMesData* d = &w->mes;
@@ -1578,6 +1653,9 @@ static int sceAtFunc_mes(SceAtWork* w, cModel* m)
     return 1;
 }
 
+// Shows a message request: optional up-cut camera (camCut - 1), message `no` (type 0 plain, else
+// flag bit0), optional SE (block 6 or 0), then waits for the message and returns the camera unless
+// flag bit2.
 void SceAtSetMes(SceAtMesData* m)
 {
     u32 flags = 0x10;
@@ -1612,6 +1690,8 @@ void SceAtSetMes(SceAtMesData* m)
     }
 }
 
+// Type 8 handler (typewriter): saves to the memory card (CardSave, slot `value`), refused with
+// message 0x97 while Ashley is carried / away.
 static int sceAtFunc_save(SceAtWork* w, cModel* m)
 {
     if (pSUB != 0 && ((pG->Status_flg[2] & 0x20000000) || (SubCharGetStatus() & 0x02000000))) {
@@ -1622,6 +1702,8 @@ static int sceAtFunc_save(SceAtWork* w, cModel* m)
     return 1;
 }
 
+// Type 9 handler (shadow display): turns shadow object `no` on / off (be_flag 0x80) once while the
+// model is inside (`done`).
 static int sceAtFunc_shd_disp(SceAtWork* w, cModel* m)
 {
     SceAtShdDisp* s = &w->shd;
@@ -1638,6 +1720,7 @@ static int sceAtFunc_shd_disp(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Leaving a shadow display area restores the shadow object's previous state.
 void sceAtFunc_shd_disp_reverse(SceAtWork* w)
 {
     SceAtShdDisp* s = &w->shd;
@@ -1652,6 +1735,9 @@ void sceAtFunc_shd_disp_reverse(SceAtWork* w)
     }
 }
 
+// Type 0xA handler (damage area): damages the player (checkType bit0) / partner (bit3) through
+// setDamage(kind, arg, power or 123 = no direction, flags bit0, time) when alive and not already
+// dying, and registers a DmgMgr area of the same shape for the enemies (bit1).
 static int sceAtFunc_damage(SceAtWork* w, cModel* m)
 {
     Vec pt[4];
@@ -1739,11 +1825,13 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Type 0xB (runtime scenario collision) has no trigger action.
 static int sceAtFunc_scr_at(SceAtWork* w, cModel* m)
 {
     return 0;
 }
 
+// Type 0xD handler (field info): value 0 flags the model inside (litArea.x0 bit0, dark area).
 static int sceAtFunc_field_info(SceAtWork* w, cModel* m)
 {
     if (w->field.value == 0) {
@@ -1752,12 +1840,14 @@ static int sceAtFunc_field_info(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Type 0xE handler (stoop): the player crouches (low passage).
 static int sceAtFunc_stoop(SceAtWork* w, cModel* m)
 {
     PlSetCrouch();
     return 0;
 }
 
+// Type 0xF handler (special key): stops the game and shows the "needs a key" message task.
 static int sceAtFunc_skey(SceAtWork* w, cModel* m)
 {
     pS->x94 = pG->Stop_flg;
@@ -1767,6 +1857,7 @@ static int sceAtFunc_skey(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Task: message 0xC, then restores Stop_flg.
 static void sceAtSkey(SceAtWork* w)
 {
     cMes.MesSet(0xC, 0x64, MES_Y, 1, 0, 0, 4);
@@ -1777,6 +1868,8 @@ static void sceAtSkey(SceAtWork* w)
     TaskExit();
 }
 
+// Ladder camera task: plays the area's up to three camera cuts, waits until the player has left
+// the ladder routine, returns the camera. SceSys.pLadderTask is cleared at the end.
 void sceAtLadder(SceAtWork* w)
 {
     CamCtrl.CutCall((s8) (w->ladder.cut1 - 1));
@@ -1802,6 +1895,8 @@ void sceAtLadder(SceAtWork* w)
     SceSys.pLadderTask = 0;
 }
 
+// Type 0x10 handler (ladder): puts the player on the ladder (PlSetLadder at the area's foot
+// position / angle / level) and starts the camera task when cut1 is set.
 static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
 {
     Vec pos;
@@ -1815,6 +1910,7 @@ static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Where the player stands to use the ladder: 300 in front of the ladder record, facing it.
 void sceAtGetLadderPos(SceAtLadder* l, Vec* pos, f32* ang)
 {
     Vec ofs = {0.0f, 0.0f, 300.0f};
@@ -1831,6 +1927,7 @@ void sceAtGetLadderPos(SceAtLadder* l, Vec* pos, f32* ang)
     *ang = LIMIT_ANGLE(*ang);
 }
 
+// 1 when another enemy (id <= 0x20) stands within 500 of the ladder's foot (someone is using it).
 int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
 {
     AreaData area;
@@ -1852,12 +1949,16 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
     return 1;
 }
 
+// Type 0x11 handler (use item): the item useItem[1] becomes usable from the inventory while the
+// player stands here (ItemMgr.available).
 static int sceAtFunc_use(SceAtWork* w, cModel* m)
 {
     ItemMgr.available(w->useItem[1]);
     return 0;
 }
 
+// Type 0x12 handler (hide spot, action button): sends Ashley to hide at hide.pos (SubCharCtrlHide
+// with hide.mode), starts the hide sequence (step 1) with its SE.
 static int sceAtFunc_hide(SceAtWork* w, cModel* m)
 {
     SubCharCtrlHide(&w->hide.pos, w->hide.mode);
@@ -1866,6 +1967,8 @@ static int sceAtFunc_hide(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Room: registers the scenario function of hide area `no` (called with 0 when she is hidden, 1
+// when called back).
 void SceAtDataSet_hide(int no, void (*func)(int))
 {
     SceAtWork* w = SceAtPtr(no);
@@ -1879,6 +1982,7 @@ void SceAtDataSet_hide(int no, void (*func)(int))
     }
 }
 
+// 1 while Ashley is hiding / going to hide (partner status bits) or a hide sequence runs.
 int SceAtCheckHideActive()
 {
     if ((SubCharGetStatus() & 0x04000000) || (SubCharGetStatus() & 0x08000000) || (SubCharGetStatus() & 0x10000000) ||
@@ -1888,6 +1992,9 @@ int SceAtCheckHideActive()
     return 0;
 }
 
+// Per frame (from SceAtCheck): drives the active hide area's sequence — step 1 waits until she is
+// hidden and runs func(0); 2 waits for the whistle (PlSetWhistle); 3 after 25 frames runs func(1),
+// calls her back and plays the area's camera cut; 4 waits for the cut to end and releases.
 void SceAtCheckHideProc()
 {
     static int timer;
@@ -1971,6 +2078,8 @@ FOUND:
 
 // OPEN (register only): the original loads dstAngle into f0 and the 0.0 constant into f13 (ours
 // swapped: local-alloc qty priority); store orders, chains and a zero local tried.
+// Type 0x13 handler (position jump): teleports the player to jumpPos / dstAngle and re-seats the
+// quasi-FPS camera.
 static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
 {
     Vec rot;
@@ -1992,11 +2101,17 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     return 0;
 }
 
+// Marks a pending action-key release (pS->stop bit31): the held key must be released before the
+// next held-trigger area fires.
 void SceAtStopSemiautoCheck()
 {
     pS->stop |= 0x80000000;
 }
 
+// Room start after SceAtInit: creates the runtime collision pieces (type 0xB), gives the door /
+// message / stoop / typewriter / ladder / hide areas their action button kind and ordering slot
+// when the data did not, sets up every enabled item area (item 0x1000 also preloads enemy module
+// 0x24), and disables the areas excluded for the current language (langDisable).
 void SceAtRoomSet()
 {
     SceAtWork* w = sceAtSetOtStart();
@@ -2085,6 +2200,9 @@ void SceAtRoomSet()
     }
 }
 
+// Creates the scenario (SatMgr, unless scr.flags bit1; attribute 0x40 added unless bit2) and
+// effect (EatMgr, unless bit0) collision pieces of a type 0xB area from its quad (scaled and placed
+// by the parent when it has one).
 void sceAtSetScrAt(SceAtWork* w)
 {
     Vec pos;
@@ -2144,6 +2262,7 @@ void sceAtSetScrAt(SceAtWork* w)
     w->scr.created = 1;
 }
 
+// Destroys the collision pieces created by sceAtSetScrAt.
 void sceAtDeleteScrAt(SceAtWork* w)
 {
     if (w->scr.created == 1) {
@@ -2159,6 +2278,7 @@ void sceAtDeleteScrAt(SceAtWork* w)
     }
 }
 
+// Per frame (stage move): parented type 0xB collision pieces follow their parent's position / yaw.
 void SceAtCheckMoveScrAt()
 {
     SceAtWork* w = sceAtSetOtStart();
@@ -2182,6 +2302,7 @@ void SceAtCheckMoveScrAt()
     }
 }
 
+// The area record numbered `no` (ITA items are 0x80 + index), or 0.
 SceAtWork* SceAtPtr(int no)
 {
     SceAtWork* w = sceAtSetOtStart();
@@ -2201,6 +2322,7 @@ static inline u32 bitTblChk(u32 tbl, u32 i)
     return *(u32*) (((i >> 5) << 2) + tbl) & (0x80000000 >> (i & 31));
 }
 
+// A free area number (0..255 not used by any record); 0 when none.
 int sceAtPullAtNo(u8* out)
 {
     u32 used[8];
@@ -2221,6 +2343,7 @@ int sceAtPullAtNo(u8* out)
     return 0;
 }
 
+// Room: the function SceSys runs after door `no` has been taken (hand-over to the next room).
 void SceAtSetDoorFunc(int no, TaskFunc func, int arg)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2233,6 +2356,9 @@ void SceAtSetDoorFunc(int no, TaskFunc func, int arg)
     }
 }
 
+// Room: makes area `no` run `func(obj)` when triggered — as a scenario task at `prio` (max 0x12, 0
+// = direct call) with SceExec flag `b`; `a` != 0 replaces the trigger bits (the old ones saved in
+// prioBak). For special-key areas (0xF) fills the skey payload instead.
 void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2268,6 +2394,7 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
     w->execFlag = b;
 }
 
+// Undoes SceAtDataSet_exec: trigger restored, no function.
 void SceAtDataReset(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2284,6 +2411,8 @@ void SceAtDataReset(int no)
     w->func = 0;
 }
 
+// Enables / disables area `no` (flag bit0); item areas create / remove their model and effect,
+// collision areas their pieces.
 void SceAtSetEnable(int no, int on)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2327,6 +2456,7 @@ static inline int SceAtCheckEnable(int no)
     return w->flag & 1;
 }
 
+// 1 when area `no` was hit (someone inside) this frame.
 int SceAtHitCheck(u32 no)
 {
     u32* f = pS->hitFlg;
@@ -2337,6 +2467,7 @@ int SceAtHitCheck(u32 no)
     return 0;
 }
 
+// Fires area `no` now (its type handler with no model).
 void SceAtExecute(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2348,6 +2479,7 @@ void SceAtExecute(int no)
     sceAtFunc_tbl[w->type].func(w, 0);
 }
 
+// 1 when model `m` is inside normal area `no` this frame (hitModel list).
 int SceAtCheckHitModel(int no, cModel* m)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2365,6 +2497,7 @@ int SceAtCheckHitModel(int no, cModel* m)
     return 0;
 }
 
+// Action button colour of area `no` (1 = the alternate colour).
 void SceAtSetActColor(int no, int col)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2376,6 +2509,7 @@ void SceAtSetActColor(int no, int col)
     }
 }
 
+// World centre of area `no`.
 void SceAtGetCenterPos(Vec* out, int no)
 {
     AreaData area;
@@ -2389,6 +2523,9 @@ void SceAtGetCenterPos(Vec* out, int no)
     }
 }
 
+// Attaches area `w` to `parent`: the area (and an item's position / offset / model) is converted
+// into the parent's local frame (divided by its scale); flag is or-ed into w->flag (8 = ignore
+// the parent rotation). Returns 1 when attached, 0 when already attached / unsupported shape.
 int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
 {
     if (parent == 0) {
@@ -2471,6 +2608,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     return 1;
 }
 
+// SceAtSetParent for area number `no`; 0 when the area does not exist.
 int SceAtSetParent(int no, cObj* obj, int flag)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2495,6 +2633,7 @@ static int sceAtFarCheck(Vec* a, Vec* b)
     return 0;
 }
 
+// 1 when the world point projects into the middle of the screen (25..75 % wide, 10..90 % high).
 int InScreenCheck(Vec* pos)
 {
     Vec scr;
@@ -2508,6 +2647,8 @@ int InScreenCheck(Vec* pos)
     return 0;
 }
 
+// Scenario: room change to `room` (stage << 8 | no) arriving at pos / rot.y, part `a` — a door
+// area made up on the spot and fired.
 void SceAtExecRoomJump(u16 room, Vec* pos, Vec* rot, int a)
 {
     SceAtWork w;
@@ -2524,6 +2665,8 @@ void SceAtExecRoomJump(u16 room, Vec* pos, Vec* rot, int a)
     sceAtFunc_door(&w, 0);
 }
 
+// The field-info payload of the enabled type 0xD area containing `pos`, or 0 (emwindow uses it
+// to decide the lighting of thrown things).
 SceAtField* SceAtCheckFieldInfo(Vec* pos)
 {
     SceAtWork* w;
@@ -2546,6 +2689,8 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos)
     return 0;
 }
 
+// Is `m` in an enabled ladder area that nobody else is using? Returns 1 with the ladder's foot
+// position / facing / level (enemies climbing).
 int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
 {
     SceAtWork* w;
@@ -2580,6 +2725,7 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     return 0;
 }
 
+// Nearest free ladder within 2000 of `m`; returns 1 with its foot position / facing / level.
 int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
 {
     SceAtWork* w;
@@ -2619,6 +2765,11 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     return 1;
 }
 
+// Per frame: picks the camera-control area (type 0xC) the player stands in — within its range
+// (range + range2 while it is current), 500 in height, and facing within its cone (mode 0: the
+// area's angle, 1: toward its position) — and hands it to the quasi-FPS camera (LRinfo). Without
+// one, a corner found by PlCornerCheck (2 = right) makes a temporary area at the player; the
+// current one is dropped when he moves 500 away or turns 70 degrees from it.
 static void sceAtCamCtrlCheck()
 {
     static SceAtCamCtrl auto_work;
@@ -2723,6 +2874,8 @@ static void sceAtCamCtrlCheck()
     }
 }
 
+// Debug (debug_mode 0x11 / Debug_flg[0] 0x00400000): draws every enabled area (and the items'
+// eye triggers) with its number, type letter and state.
 static void sceAtDebugDisp()
 {
     AreaData eye;
@@ -2769,6 +2922,8 @@ static void sceAtDebugDisp()
     }
 }
 
+// Builds the eye (view cone) area of an item: 100 radius at the item position, cone from its rot
+// (x / y angles, z = opening).
 void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
 {
     SceAtItem* it;
@@ -2788,6 +2943,10 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
     out->u.eye.open = it->rot.z;
 }
 
+// Per frame: for each enabled item area — a shoot-down item (flag2 bit4) that was hit plays its
+// damage SE and, once landed, becomes a normal item (found flag, auto area, glow effect 2); a
+// dropped item (bit6) falls to the floor the same way; a disappearing item (bit5) counts its
+// timer in half seconds (fade effect at 6) and is removed at 0.
 static void sceAtItemFindCheck()
 {
     Vec pos;
@@ -2894,6 +3053,7 @@ static void sceAtItemFindCheck()
     }
 }
 
+// Marks an item taken: global ITEM_SET flag `flagNo`, or room save item flag `saveNo` when flagNo is 0.
 void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
 {
     if (flagNo != 0) {
@@ -2905,6 +3065,7 @@ void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
     }
 }
 
+// 1 when the item (global flag, or the room save flag) has been taken.
 int SceAtItemFlgCk(u16 flagNo, u16 saveNo)
 {
     u32 r = 0;
@@ -2922,6 +3083,7 @@ int SceAtItemFlgCk(u16 flagNo, u16 saveNo)
     return 0;
 }
 
+// 1 when item area `no` has been taken.
 int SceAtItemFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2932,6 +3094,7 @@ int SceAtItemFlgCk(int no)
     return 0;
 }
 
+// 1 when item area `no` has been found (seen / knocked down).
 int SceAtItemFindFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -2942,6 +3105,7 @@ int SceAtItemFindFlgCk(int no)
     return 0;
 }
 
+// Marks the item taken (flagNo, else the room flag findFlagNo).
 void sceAtItemFlgOn(SceAtItem* it)
 {
     u16 no = it->flagNo;
@@ -2955,6 +3119,7 @@ void sceAtItemFlgOn(SceAtItem* it)
     }
 }
 
+// 1 when the item has been taken.
 int sceAtItemFlgCk(SceAtItem* it)
 {
     u32 r = 0;
@@ -2973,6 +3138,7 @@ int sceAtItemFlgCk(SceAtItem* it)
     return 0;
 }
 
+// Marks the item found (item_flags[4..] by flagNo, else the room record's found flags).
 void sceAtItemFindFlgOn(SceAtItem* it)
 {
     u16 no = it->flagNo;
@@ -2986,6 +3152,7 @@ void sceAtItemFindFlgOn(SceAtItem* it)
     }
 }
 
+// 1 when the item has been found.
 int sceAtItemFindFlgCk(SceAtItem* it)
 {
     u32 r = 0;
@@ -3004,6 +3171,7 @@ int sceAtItemFindFlgCk(SceAtItem* it)
     return 0;
 }
 
+// Removes area `no`: disabled, unlinked from the ordering table, freed if it was created at run time.
 int SceAtDestroy(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -3021,6 +3189,9 @@ int SceAtDestroy(int no)
 }
 
 #line 3850 "D:/Bio4/Prog/sce_at.cpp"
+// Creates a type 2 (exec) area at run time on model `m`: quad of the four `pos` corners (floor =
+// their mean y, height h), checkFlag a, trigger b, checkType c, otNo d, facing angle / range (radians),
+// action button kind e, task prio / func / arg / flag. Returns the area number, -1 on failure.
 int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag)
 {
     SceAtWork* w;
@@ -3063,6 +3234,8 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
 }
 
 #line 3936 "D:/Bio4/Prog/sce_at.cpp"
+// Creates a type 0xD (field info) area on model `m` (same shape arguments as SceAtCreateExecAt)
+// carrying `val`; *out receives the payload. Returns the area number, -1 on failure.
 int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int val, SceAtField** out)
 {
     SceAtWork* w;
@@ -3109,6 +3282,11 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
 }
 
 #line 3995 "D:/Bio4/Prog/sce_at.cpp"
+// Drops an item into the room at run time (enemy drops, broken crates): a type 3 area with an
+// action button, model from the item table (hidden until found for the "falling" glow 8), glow
+// colour by item type. Persistent items (treasure / key, sceAtCheckSaveItem) get a save_item
+// record (saveNo -1 = allocate; -2.. = none) so they survive a room change; the others disappear
+// after 61 half-seconds. Returns the area number, -1 on failure.
 int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts)
 {
     SceAtWork* w;
@@ -3198,6 +3376,8 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     return w->no;
 }
 
+// Pre-allocates a save_item record for a persistent item that an enemy / event will drop later
+// (`key` identifies the reservation), so the drop cannot be lost to a room change.
 void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int saveNo)
 {
     int i;
@@ -3240,6 +3420,7 @@ void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int sav
     }
 }
 
+// Releases a reservation made by SceAtReserveItemAt (the item was not dropped after all).
 void SceAtCancelItemAt(int key)
 {
     int i;
@@ -3253,6 +3434,8 @@ void SceAtCancelItemAt(int key)
     }
 }
 
+// Item glow colour by item type: 5 ammo / weapons (types 1-4), 4 treasure (6), 2 recovery /
+// key / money (0, 5, 7), 3 the rest; 8 for item 0x8C.
 int sceAtCheckItemEffectCol(u16 id)
 {
     ItemInfo info;
@@ -3282,6 +3465,7 @@ int sceAtCheckItemEffectCol(u16 id)
     }
 }
 
+// 1 when the item type (5 key, 7 money) must survive a room change (save_item record).
 int sceAtCheckSaveItem(u16 id)
 {
     ItemInfo info;
@@ -3301,6 +3485,9 @@ static inline void SceAtLinkEmFlag(int no)
     }
 }
 
+// Links area `no` to breakable etc model `etcNo`: while it is intact the area is (on == 1)
+// disabled / (0) enabled, and sceAtLink_check flips it when the model breaks. No link when the
+// model is already broken.
 void SceAtLinkEtcDead(int no, int etcNo, int on)
 {
     cEm* em;
@@ -3336,6 +3523,11 @@ void SceAtLinkEtcDead(int no, int etcNo, int on)
     }
 }
 
+// Per frame: resolves the enemy / etc-model links — linkType 1 waits for the enemy from the list
+// (EM_STATUS_ITEMSET for items, inactive / dead otherwise, or its em_dead bit) and then enables or
+// disables the area (a non-persistent dropped item also starts its disappear timer); an item still
+// linked to a living enemy is handed to it (SceAtSetEmItem); linkType 2 waits for the etc model to
+// break.
 void sceAtLink_check()
 {
     cEm* em;
@@ -3418,6 +3610,7 @@ void sceAtLink_check()
     }
 }
 
+// Hands item area `no` to enemy `em` as its drop; 0 when the area does not exist.
 int SceAtSetEmItem(cEm* em, int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -3428,6 +3621,7 @@ int SceAtSetEmItem(cEm* em, int no)
     return SceAtSetEmItem(em, w);
 }
 
+// Hands the item (id, num, flags, glow) to `em` (cEm::setItem) and clears the link. 0 without em.
 int SceAtSetEmItem(cEm* em, SceAtWork* w)
 {
     if (em == 0) {
@@ -3438,6 +3632,8 @@ int SceAtSetEmItem(cEm* em, SceAtWork* w)
     return 1;
 }
 
+// Room start: re-creates the persistent items saved for this room (type 0 records) and restores
+// the contents of the ITA item areas that were changed (type 1 records).
 void SceAtSetSaveItem()
 {
     Vec pos;
@@ -3469,6 +3665,7 @@ void SceAtSetSaveItem()
     }
 }
 
+// A free save_item record (room_no 0), -1 when all 256 are used.
 int sceAtPullItemSaveWork()
 {
     int i;
@@ -3481,11 +3678,13 @@ int sceAtPullItemSaveWork()
     return -1;
 }
 
+// New game: clears all save_item records.
 void SceAtInitSaveItem()
 {
     memclr_asm(pG->item_save, sizeof(pG->item_save));
 }
 
+// 1 when a save_item record for item `id` exists anywhere.
 int SceAtCheckSaveItemId(int id)
 {
     int i;
@@ -3498,6 +3697,8 @@ int SceAtCheckSaveItemId(int id)
     return 0;
 }
 
+// An unparented item lying inside a type 0x14 (item parent) area is attached to that area's
+// parent model (items on moving platforms).
 void sceAtCheckItemModelParent(SceAtWork* w)
 {
     SceAtWork* p;
@@ -3525,6 +3726,7 @@ void sceAtCheckItemModelParent(SceAtWork* w)
     }
 }
 
+// Attaches the item's model to the area's parent model (inverse-scaled so it keeps its size).
 void sceAtSetItemModelParent(SceAtWork* w)
 {
     if (w->pParent == 0) {
@@ -3545,6 +3747,7 @@ void sceAtSetItemModelParent(SceAtWork* w)
     w->item.pModel->setParent(w->pParent, &w->item.pModel->pos, &w->item.pModel->ang);
 }
 
+// SceAtSetItemModel for area number `no`.
 int SceAtSetItemModel(int no, cModel* m)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -3557,6 +3760,8 @@ int SceAtSetItemModel(int no, cModel* m)
     return 1;
 }
 
+// Makes `m` the item area's model: placed at item.pos with the record's rotation (when rot.z > 0),
+// ot_type 1 for item 0xAF, parented like the area.
 int SceAtSetItemModel(SceAtWork* w, cModel* m)
 {
     if (w == 0) {
@@ -3584,6 +3789,8 @@ int SceAtSetItemModel(SceAtWork* w, cModel* m)
     return 1;
 }
 
+// Creates the cEmItem of a shoot-down item (hanging items the player must shoot) at the item
+// position; the lanterns 0x58 / 0x59 get a box hit volume. Returns 0 when creation fails.
 int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl)
 {
     Vec rot = { 0.0f, 0.0f, 0.0f };
@@ -3609,6 +3816,7 @@ int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl)
     return 1;
 }
 
+// The model of item area `no` (0 when missing or not an item area).
 cModel* SceAtItemModelPtr(int no)
 {
     SceAtWork* w = SceAtPtr(no);
@@ -3624,6 +3832,8 @@ cModel* SceAtItemModelPtr(int no)
     return w->item.pModel;
 }
 
+// May the item area fire? Not while it still hangs (flag2 bit4); yes while the pick-up zoom shows
+// it (bit2); else the item must be within the eye cone / screen and not hidden by a wall.
 int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
 {
     Vec p;
@@ -3684,6 +3894,10 @@ int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
     }
 }
 
+// Resolves the special item ids of the ITA data: 0x1000 places enemy 0x24 (a crow / chicken egg
+// layer) instead of an item (returns 0), 0x1001 / 0x1002 roll a random item (RandomItemCk tables),
+// 0x1003..0x1005 give ammo for the current character's weapons; ids below 0x1000 pass through.
+// Returns 1 with the item id / count, 0 when nothing is to be placed.
 int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
 {
     EmListData d;
@@ -3835,6 +4049,12 @@ fail:
     return 0;
 }
 
+// Sets up (or refreshes, from SceAtSetEnable / SceAtRoomSet) an item area: skipped when linked to
+// an enemy / etc model that has not died / broken yet (the item then appears where it died), when
+// already taken, or excluded by modeMask (1 Leon, 2 the others); special ids are resolved and a
+// changed id saved (type 1 record); action button / shot trigger; shoot-down (flag2 bit4) and
+// dropped (bit6) items already found lie on the floor; the auto area, the model (item table or the
+// default crate model; a cEmItem for shoot-down items) and the glow effect are created.
 void sceAtSetItem(SceAtWork* w)
 {
     ItemInfo info;
@@ -4013,6 +4233,8 @@ disable:
     }
 }
 
+// The pick-up area of an item: a cylinder of radius 2 * size (1500 default) and height 3000 from
+// 2000 below `pos`.
 void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size)
 {
     Vec p = *pos;
@@ -4028,6 +4250,7 @@ void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size)
     }
 }
 
+// Disabling an item area: glow effect gone, model hidden.
 static void sceAtDeleteItem(SceAtWork* w)
 {
     SceAtItem* it = &w->item;
@@ -4038,6 +4261,7 @@ static void sceAtDeleteItem(SceAtWork* w)
     }
 }
 
+// Removes the item's glow effect (all three effect kinds under effNo).
 void sceAtItemEffDelete(SceAtItem* it)
 {
     if (it->effType != 0 && it->effNo != 0) {
@@ -4048,6 +4272,10 @@ void sceAtItemEffDelete(SceAtItem* it)
     }
 }
 
+// Starts the item's glow effect for its effType (1 plain glow 0x21 / on a model 0x2D, 2 recovery
+// 0x33 + glow, 3 0x2C, 4 treasure 0x31, 5 ammo 0x2F, 7 0x46, 8 falling 0x33 800 below, 9 0x4D) at
+// item.pos + ofs (or on model `m`); items on a parent get the parts-relative variants (only the
+// parts 2 / 4 / 8 cases of rooms 30F / 21B). Nothing in shooting-range mode.
 void sceAtItemEffSet(SceAtWork* w, cModel* m)
 {
     Vec p;
@@ -4268,6 +4496,8 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     }
 }
 
+// Starts the fade-out variant of the glow (0x2E / 0x30 / 0x32 / 0x34 / 0x47 by effType) when a
+// dropped item is about to disappear.
 void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
 {
     Vec p;

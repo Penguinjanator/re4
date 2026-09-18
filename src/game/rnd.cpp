@@ -1,8 +1,12 @@
+// game/rnd: the game's random numbers — a 16-bit generator (Rnd: one random byte per call,
+// seeded by RndInit) and float helpers on it (fRand0_1 / fRand1_1), plus the seeded LCG variants
+// (fRandSeed*) effects use for repeatable per-instance randomness.
 #include "types.h"
 #include "rnd.h"
 
 static u16 Random;
 
+// Seeds the global 16-bit generator (Rnd / fRand*).
 void RndInit(u16 seed)
 {
     Random = seed;
@@ -24,6 +28,7 @@ u8 Rnd()
     return m >> 8;
 }
 
+// Random float in [0, 1) from three Rnd() bytes (23-bit mantissa).
 f32 fRand0_1()
 {
     u32 a = Rnd();
@@ -34,6 +39,7 @@ f32 fRand0_1()
     return *(f32*) &u - 1.0f;
 }
 
+// Random float in [-1, 1).
 f32 fRand1_1()
 {
     u32 a = Rnd();
@@ -44,6 +50,7 @@ f32 fRand1_1()
     return *(f32*) &u * 2.0f - 3.0f;
 }
 
+// Random float in [0, 1) from a caller-owned LCG seed (deterministic per effect / enemy).
 f32 fRandSeed0_1(u32* seed)
 {
     f32 f;
@@ -54,6 +61,7 @@ f32 fRandSeed0_1(u32* seed)
     return f;
 }
 
+// Random float in [-1, 1) from a caller-owned LCG seed.
 f32 fRandSeed1_1(u32* seed)
 {
     f32 f;

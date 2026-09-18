@@ -49,6 +49,9 @@ static inline void PlSetRoutine(int a, int b, int c, int d)
     p->r_no_3 = d;
 }
 
+// Switches the player character to pl_type `no` (Leon <-> Ashley chapter): swaps the two life
+// maxima and the peseta counts, frees the weapon data, re-picks the costume; pl_flag bit0 = the
+// player data must be reloaded.
 void PlSelect(int no)
 {
     if (pG->pl_type != no) {
@@ -68,6 +71,9 @@ void PlSelect(int no)
     BitOn16(pG->pl_flag, 1);
 }
 
+// Chooses pl_costume: Leon = 2 with the armor item (0xFE), 1 after finding item 0x200000 (the
+// chapter 5 outfit), 3 in the special costume mode, else 0; the others use game_costume. Kept as
+// is when the save system flags (System_flg bit31 / 0x40000000) are set. Returns the costume.
 int PlSetCostume()
 {
     if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
@@ -92,6 +98,9 @@ int PlSetCostume()
     return pG->pl_costume;
 }
 
+// Reloads the player after a character / costume change: drops the weapon, the player archive and
+// effects, reads the new data (ReadPlayerData), rebuilds the model, motion table and weapon,
+// resets the routine to 0/0 with a pending footwork.
 void PlChangeData()
 {
     cPlayer* pl;
@@ -117,11 +126,14 @@ void PlChangeData()
     pl->initCloth();
 }
 
+// Starts a button-mash count (gachaCnt = 0).
 void PlGachaInit()
 {
     pPL->gachaCnt = 0;
 }
 
+// One frame of a button mash: shows the mash action icon and counts every direction / A / B / C
+// trigger into gachaCnt.
 void PlGachaMove()
 {
     cPlayer* pl = pPL;
@@ -138,6 +150,7 @@ void PlGachaMove()
     }
 }
 
+// Mash presses so far, 1.5x on the easy levels (Game_level <= 2).
 int PlGachaGet()
 {
     int n = pPL->gachaCnt;
@@ -148,6 +161,7 @@ int PlGachaGet()
     return n;
 }
 
+// Player hurt voice `no` at the head (parts 4); 0 = one of the three random grunts (9-11).
 void PlSetDamageSe(int no)
 {
     cPlayer* pl = pPL;
@@ -160,6 +174,10 @@ void PlSetDamageSe(int no)
     SndCall(1, no, &pl->getPartsPtr(4)->world, 0, 0, 0);
 }
 
+// Player routine as a bit word for the camera / scenario / HUD: bit0 idle, 1 walk / turn, 2 back,
+// 3 run, 4 weapon out (5 ready, 6 fire, 0x800 reload, 0x4000 ...), 7 damage, 8 level up, 9 level
+// down, 0xA push, 0xD die, 0xF crouch, 0x10 aux, 0x11 whistle-wait, 0x12 ladder, 0x13 fall,
+// bit17 (0x20000) in an event, bit31 unknown routine.
 u32 PlGetStatus()
 {
     cPlayer* pl = pPL;
@@ -248,6 +266,7 @@ u32 PlGetStatus()
     return st;
 }
 
+// Scenario: puts the player in the crouch routine (0/0x11).
 void PlSetCrouch()
 {
     cPlayer* pl = pPL;
@@ -258,6 +277,7 @@ void PlSetCrouch()
     pl->r_no_3 = 0;
 }
 
+// Shows / hides the weapon hand model (type 1 = display slot 0, else slot 1) through cPlWep::setTrans.
 void PlSetHand(int type, int on)
 {
     int t = 1;
@@ -268,6 +288,7 @@ void PlSetHand(int type, int on)
     pPL->Wep->setTrans(t, on);
 }
 
+// Partner hand model (cSubChar::setHand).
 void SubCharSetHand(int no)
 {
     if (pSUB) {
@@ -275,6 +296,8 @@ void SubCharSetHand(int no)
     }
 }
 
+// Custom damage routine: `func` becomes routine 0 == 4 and runs each frame until EndPlDamage;
+// `type` is kept in dmgType (often the attacking object). 10 invulnerable frames.
 void SetPlDamage(int type, void (*func)(cPlayer*))
 {
     cPlayer* pl = pPL;
@@ -286,6 +309,8 @@ void SetPlDamage(int type, void (*func)(cPlayer*))
     pl->dmgType = type;
 }
 
+// Ends a custom damage routine: back to routine 0/0, damage state restored, collision on again
+// with the default 400 x 200 cylinder.
 void EndPlDamage()
 {
     cPlayer* pl = pPL;
@@ -300,6 +325,7 @@ void EndPlDamage()
     pl->endDamage();
 }
 
+// Partner: aux routine 0/0xF with two parameters (scenario-specific behaviour).
 void SetSubAux(int a, int b)
 {
     cSubChar* sub = pSUB;
@@ -316,6 +342,7 @@ void SetSubAux(int a, int b)
     sub->r_no_3 = 0;
 }
 
+// Partner: the bulldozer-ride routine (r_no_0 3) with two parameters.
 void SetSubBulldozer(int a, int b)
 {
     cSubChar* sub = pSUB;
@@ -332,6 +359,8 @@ void SetSubBulldozer(int a, int b)
     sub->r_no_3 = 0;
 }
 
+// Partner damage routine (r_no_0 4): Ashley (id 3) runs the em damage function; the other partners
+// play `mot` (subFlags58C 0x40). dmgType = type.
 void SetSubDamage(int type, void* mot)
 {
     cSubChar* sub = pSUB;
@@ -359,6 +388,7 @@ void SetSubDamage(int type, void* mot)
     }
 }
 
+// Ends the partner damage routine: model reset for Luis (id 4), routine 0/0, collision on.
 void EndSubDamage()
 {
     cSubChar* sub = pSUB;
@@ -384,6 +414,8 @@ void EndSubDamage()
     at->set(10, 400.0f, 200.0f);
 }
 
+// Creates the partner enemy if none exists: type 0 = Luis (em 2), 1 = Ashley (em 3, or 5 in the
+// alternate costume; id forced to 3), 2 = (em 4); placed at pos / ang, nudged off the player.
 void SubCharInit(int type, Vec* pos, f32 ang)
 {
     cSubChar* sub;
@@ -432,6 +464,9 @@ void SubCharInit(int type, Vec* pos, f32 ang)
     pSUB = sub;
 }
 
+// Partner command: mode 0 follow, 1 wait here, 2 destroy, 3 stop, 4 warp to the player, 5 routine
+// 5, 6 re-init, 7 wait; flag bit0 restarts the routine at once, bit1 = manual control (subFlags
+// 0x80). Aux parameters are cleared unless she is in the aux routine.
 void SubCharCtrl(int mode, int flag)
 {
     cSubChar* sub = pSUB;
@@ -497,6 +532,8 @@ void SubCharCtrl(int mode, int flag)
     sub->subAux1 = 0;
 }
 
+// May the partner take a command now? 1 under manual control, else only when controllable
+// (subFlags 0x40), not stopped / moving-to, and in one of the plain routine-0 states.
 int SubCharCheckCtrl()
 {
     cSubChar* sub = pSUB;
@@ -541,6 +578,8 @@ int SubCharCheckCtrl()
     return 1;
 }
 
+// Partner hide: mode 0 flags her hidden (subX534), mode 1 sends her to hide at `pos` (routine
+// 0/0x10, invulnerable).
 void SubCharCtrlHide(Vec* pos, int mode)
 {
     cSubChar* sub = pSUB;
@@ -561,6 +600,8 @@ void SubCharCtrlHide(Vec* pos, int mode)
     }
 }
 
+// Partner: walk to (x, y, z) with parameter w (193 = special values), unless already going there;
+// flag bit0 sets subFlags 0x10.
 void SubCharMoveTo(int flag, f32 x, f32 y, f32 z, f32 w)
 {
     cSubChar* sub = pSUB;
@@ -582,6 +623,8 @@ void SubCharMoveTo(int flag, f32 x, f32 y, f32 z, f32 w)
     }
 }
 
+// Scenario: puts the player on a ladder at pos / ang: level > 1 climbs up (m_Work0 = level - 2
+// rungs), level < -1 climbs down (r_no_2 0xA); routine 0/0x10.
 void PlSetLadder(Vec* pos, int level, f32 ang)
 {
     cPlayer* pl;
@@ -615,11 +658,13 @@ void PlSetLadder(Vec* pos, int level, f32 ang)
     }
 }
 
+// Neck look mode (0 off, 1 on, 2 next frame).
 void PlSetNeck(int mode)
 {
     pPL->Neck->setMode(mode);
 }
 
+// Ends the aim camera; if the weapon was out, shows it again and goes back to routine 0/0.
 void PlEndCamera()
 {
     cPlayer* pl = pPL;
@@ -682,6 +727,7 @@ void PlRegistMotion(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, 
     }
 }
 
+// Partner: room-supplied motions subMot0 / subMot1 (non-zero ones only).
 void SubCharRegistMotion(void* m0, void* m1)
 {
     cSubChar* sub = pSUB;
@@ -698,11 +744,14 @@ void SubCharRegistMotion(void* m0, void* m1)
     }
 }
 
+// Room water effect table for the player (ripple, walk splash, run splash).
 void PlRegistRoomEff(PlRoomEff* eff)
 {
     pPL->m_pEffRoom = eff;
 }
 
+// After a reload of the bow / launcher / grenade types the weapon object refreshes the player's
+// motion table (shows the new round).
 void PlReloadBullet()
 {
     cPlayer* pl = pPL;
@@ -717,6 +766,8 @@ void PlReloadBullet()
     }
 }
 
+// Fire key held; 0 (and Status_flg[0] 0x4000 "blocked shot") while firing is forbidden
+// (Status_flg[0] 0x200000 or the laser's don't-fire bit); room 11C also sets Room_flg[0] 0x20000000.
 int joyFireOn()
 {
     if (Key.on & 0x80) {
@@ -732,6 +783,7 @@ int joyFireOn()
     return 0;
 }
 
+// Fire key pressed this frame, with the same block as joyFireOn.
 int joyFireTrg()
 {
     if (Key.trg & 0x80) {
@@ -744,6 +796,9 @@ int joyFireTrg()
     return 0;
 }
 
+// Aim key held for the gun: with the knife-key option off (pSys->flags 0x04000000 clear) only
+// Leon / Krauser, and not while the L trigger (knife) is held; the weapon's own keyKamae decides.
+// With the option on all gun characters, unless flags_420 0x1000 (knife key mode).
 int joyKamae()
 {
     cPlayer* pl = pPL;
@@ -802,6 +857,8 @@ ng:
     return 0;
 }
 
+// Knife stance key: Key 0x800 for Leon / Krauser (knife-key option off), or the aim key while
+// flags_420 0x1000 with the option on.
 int joyLKamae()
 {
     cPlayer* pl = pPL;
@@ -826,6 +883,9 @@ int joyLKamae()
     return 0;
 }
 
+// Player in water: a ripple (effect table entry 0) every 13 frames, a walk splash (1) when he moved
+// more than 1000 since the last frame, a run splash (2) above 6000, and a wave push; not while
+// carried (Status_flg[1] 0x200000).
 void PlWaterProc(cPlayer* pl)
 {
     static f32 wavePower = 0.055f;
@@ -867,6 +927,7 @@ void PlWaterProc(cPlayer* pl)
     m_PosOldWater = pl->pos;
 }
 
+// Back to the idle routine with a footwork (unless in a boat / crouch routine).
 void PlMotionReset()
 {
     cPlayer* pl = pPL;
@@ -888,6 +949,8 @@ void PlMotionReset()
     pl->r_no_2 = 0;
 }
 
+// May the partner be healed? 1 when within 5000 and in a plain routine-0 state, -1 when busy, 0
+// when too far.
 int SubCharCheckHealing()
 {
     cSubChar* sub;
@@ -922,6 +985,7 @@ int SubCharCheckHealing()
     return 1;
 }
 
+// Partner back to idle with a footwork (only from routine 0/0 or 0/1). Returns 1 when done.
 int SubCharMotionReset()
 {
     cSubChar* sub = pSUB;
@@ -942,22 +1006,26 @@ int SubCharMotionReset()
     return 1;
 }
 
+// Eye control mode (0 wander, 1 from the motion).
 void PlSetEyeMode(u8 mode)
 {
     pPL->eyeMode = mode;
 }
 
+// The player's facing yaw including the waist twist (aim direction).
 f32 PlGetDirY()
 {
     return pPL->ang.y + pPL->Waist->m_Ang.y;
 }
 
+// Room registers the boss enemy and its room flag (the special rocket launcher's insta-kill).
 void PlRegistBoss(void* a, void* b)
 {
     pPL->m_pBoss = a;
     pPL->m_pBossRmf = b;
 }
 
+// Leon wears the armor (costume 2 / 3) — no damage; off with System_flg 0x20.
 int PlIsArmor()
 {
     if (pG->System_flg & 0x20) {
@@ -969,6 +1037,8 @@ int PlIsArmor()
     return pG->pl_costume == 2 || pG->pl_costume == 3;
 }
 
+// Partner-call key (0x200) while Ashley is around (Status_flg[1] bit2) and the player is idle /
+// walking: interrupts and starts the whistle routine 0/0x14. Returns 1 when started.
 int PlSetWhistle()
 {
     cPlayer* pl;
@@ -1002,6 +1072,8 @@ int PlSetWhistle()
     return 1;
 }
 
+// Weapon in use for hit / camera purposes: 0x10 (knife) while in the knife routine or holding the
+// knife key, else weapon_no.
 int PlGetWeaponNo()
 {
     cPlayer* pl = pPL;
@@ -1012,6 +1084,7 @@ int PlGetWeaponNo()
     return pG->weapon_no;
 }
 
+// Player face 0 neutral, 1 pain, 2.
 void PlSetFace(int no)
 {
     int f;
@@ -1030,6 +1103,7 @@ void PlSetFace(int no)
     pPL->setFace(f);
 }
 
+// Ashley's face (id 3 only).
 void SubCharSetFace(int no)
 {
     if (pSUB->id == 3) {
@@ -1037,6 +1111,8 @@ void SubCharSetFace(int no)
     }
 }
 
+// Frees everything that belongs to the player archive before a reload: the weapon / item objects
+// (ids 0x1A, 0x23, 0x29, 0x2A, 0x3A) and the enemies of id 0x4F.
 void PlDataRelease()
 {
     cObj* obj;

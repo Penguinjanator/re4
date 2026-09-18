@@ -1,6 +1,8 @@
 /* newlib 1.8.2 libc/stdio/ungetc.c, SN version: no __submore (static buffer only) */
 #include "newlib_stdio.h"
 
+/* Pushes character c back onto the read stream (into the static 3-byte unget buffer, or in front
+ * of the current buffer position when it matches). */
 int ungetc(int c, register FILE *fp)
 {
     if (c == EOF)

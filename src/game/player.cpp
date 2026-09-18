@@ -224,6 +224,9 @@ void PlayerLifeReset()
     }
 }
 
+// Common player construction (before the character's own setModel): pPL = this, life from the
+// save, the 0x6D-entry motion table and the 12 registered-motion slots, cheats registered;
+// flags_420 bit0 = weapon effect data shared (not released by weaponRelease).
 cPlayer::cPlayer()
 {
     flags_420 = 0;

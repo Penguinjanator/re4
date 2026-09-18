@@ -1,3 +1,8 @@
+// game/sce_com: scenario helpers shared by the room scripts — the event brackets (SceEventStart /
+// SceEventEnd put the whole game into event mode, SceUpCutStart / End freeze it for a close-up),
+// messages with camera cuts and yes/no selection, save scratch words, enemy counting / destruction,
+// item events (an action button that reveals items), the chapter-end screen, the scenario
+// camera, container opening (OpenBoxMain) and the elevator script (SceElevator).
 #include "types.h"
 #include "atari.h"
 #include "light.h"
@@ -105,6 +110,11 @@ struct SceElevatorData {
 static void* ItemEventTbl[16];
 static Camera SceCam;
 
+// Begins a scenario event (nestable; only the outermost call acts): the calling scenario task is
+// marked as an event task, mode 0 puts every enemy / object / damage area into event mode, kills
+// the effects and the level-5 tasks, mode 1 only stops the ladder camera task; the aim camera
+// ends, keys are stopped (0xEFCF0000 kept), the life meter and cockpit ids hide, the player is
+// invulnerable, Stop_flg 0x100 / 0x400000 and SE block 2 stops. Status_flg[0] 0x1000 = in event.
 void SceEventStart(int mode)
 {
     cSceSys* s;
@@ -156,6 +166,9 @@ void SceEventStart(int mode)
 // The value is evaluated before the `->task` load (`lbz x70` between the call and `lwz 8(r3)`).
 static inline void SceTaskFlagSet(ScePrim* p, u8 v) { p->task->flag = v; }
 
+// Ends the event when the nesting count drops to 0: enemies / objects back from event mode (mode
+// passed to cEm::endEvent) with the camera returned, the player's damage state restored, lights,
+// HUD and keys back, System_flg 0x800 as before the event; the sub screen stays closed 10 frames.
 void SceEventEnd(int mode)
 {
     cSceSys* s = &SceSys;
@@ -201,6 +214,9 @@ void SceEventEnd(int mode)
     SubScreenWait(10);
 }
 
+// Begins an "up cut" (a short close-up with the game frozen, e.g. item pick-up, messages): marks
+// the task as an event task, saves Stop_flg, stops all keys and most movement (Stop_flg all but a
+// few bits), hides the HUD; Disp_flg 0x40000000 / 0x20000000 hide the player weapon / partner.
 void SceUpCutStart()
 {
     cSceSys* s;
@@ -235,6 +251,8 @@ void SceUpCutStart()
     IdSys.dispSw(0x21, 0);
 }
 
+// Ends an up cut: restores Stop_flg, the display flags, the player collision flag, the task kind
+// and the HUD.
 void SceUpCutEnd()
 {
     cSceSys* s = &SceSys;
@@ -261,17 +279,20 @@ void SceUpCutEnd()
     SubScreenWait(10);
 }
 
+// 1 when the player is in a state an event may take him from (routine 0).
 int SceCheckEventStart()
 {
     return pPL->checkEvent() == 1;
 }
 
+// Room: function `a` (with parameter `b`) SceSys runs when the room is left.
 void SceSetRoomExitFunc(int a, int b)
 {
     SceSys.pExitFunc = a;
     SceSys.pExitParam = b;
 }
 
+// Room script scratch word `no` (0..63) in the save data (pG->save_free_work).
 void SetFree(int no, u32 v)
 {
     u32* tbl;
@@ -283,6 +304,7 @@ void SetFree(int no, u32 v)
     tbl[no] = v;
 }
 
+// Reads a save scratch word (0 when out of range).
 u32 GetFree(int no)
 {
     u32* tbl;
@@ -294,6 +316,9 @@ u32 GetFree(int no)
     return 0;
 }
 
+// Shows room message `no` at (x, y): flags bit0 the plain style, bit5 keep the camera cut, bit6 /
+// 7 / 8 / 9 / 1 the cMes attribute bits (selection box, yes/no...), `sel` - 1 = initial cursor;
+// hides the life meter and, unless flags bit4, waits until the message closes.
 void SceMesSet(int no, u32 flags, int sel, int x, int y)
 {
     u32 attr;
@@ -328,6 +353,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
     }
 }
 
+// Message `no` with an optional camera cut and SE (block 6), then waits for it.
 void SceMesCamSndSet(int no, int cut, int se)
 {
     if (cut != -1) {
@@ -339,6 +365,8 @@ void SceMesCamSndSet(int no, int cut, int se)
     SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
+// Up-cut message through SceAtSetMes: message `a` (flags bit0 = type 1), camera cut `b`, SE `c`
+// (block 0 when flags bit1); waits for the message.
 void SceUpCut(int a, int b, int c, int flags)
 {
     SceAtMesData m;
@@ -363,6 +391,7 @@ void SceUpCut(int a, int b, int c, int flags)
     SceMesWait();
 }
 
+// Sleeps until the yes/no message is answered; returns 1 yes, 2 no.
 int SceMesGetSelection()
 {
     int r;
@@ -375,6 +404,7 @@ int SceMesGetSelection()
     return r;
 }
 
+// Sleeps while message slot 0 is open.
 void SceMesWait()
 {
     while (cMes.mes[0].flags2 & 1) {
@@ -382,11 +412,13 @@ void SceMesWait()
     }
 }
 
+// The thunder SE (block 6, 0x1D).
 void SceSndCallThunder()
 {
     SndCall(6, 0x1D, 0, 0, 0, 0);
 }
 
+// 1 when `em` exists, is alive and active.
 int SceCheckEmAlive(cEm* em)
 {
     if (em == 0) {
@@ -401,6 +433,7 @@ int SceCheckEmAlive(cEm* em)
     return 1;
 }
 
+// Number of living, active enemies with id in lo..hi (hi -1 = just lo).
 int SceCountEmAlive(int lo, int hi)
 {
     int cnt = 0;
@@ -420,6 +453,7 @@ int SceCountEmAlive(int lo, int hi)
     return cnt;
 }
 
+// Destroys every living enemy with id in lo..hi (hi -1 = just lo) and clears its list entry.
 void SceDestroyEm(int lo, int hi)
 {
     u32 i;
@@ -441,6 +475,7 @@ void SceDestroyEm(int lo, int hi)
     }
 }
 
+// Room start: no pending item events.
 void SceInitItemEvent()
 {
     void** p = ItemEventTbl;
@@ -467,6 +502,9 @@ void SceInitItemEvent()
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 
+// Task of an item event (the action button on its area): disables the area, enables the linked
+// item areas, sets the room save flag, plays the camera cut while `func(arg)` runs, then forgets
+// the event.
 void SceExecItemEvent(SceItemEvent* data)
 {
     u32 i;
@@ -509,6 +547,10 @@ void SceExecItemEvent(SceItemEvent* data)
     __builtin_delete(data);
 }
 
+// Room: makes area `atNo` an item event (action button 0x10) that reveals item area `itemNo`
+// (added to an existing event on the same area) with camera cut `cut` and `func(arg)`; if room
+// save flag `flagNo` is already set the event is skipped, the item enabled (unless taken) and
+// `doneFunc(arg)` run instead. `enable` shows the item model beforehand.
 void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), TaskFunc doneFunc, int arg, int enable)
 {
     u16 room = pG->room_id;
@@ -602,6 +644,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     SceAtDataSet_exec(atNo, SCE_LEVEL10, 0, (TaskFunc) SceExecItemEvent, ne, 1);
 }
 
+// Chapter counter (0..) -> displayed "chapter-section" numbers (1-1 .. 5-4 plus the extra ones).
 void getChapterSection(int chapter, int* chap, int* sec)
 {
     switch (chapter) {
@@ -694,6 +737,11 @@ static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), reference store
 
+// Chapter end task (SceSetChapterEnd): kills the running event, freezes the game, swaps the room
+// data out to load the chapter result id data ("SS/<lang>/chapNN.dat"), shows the ChapterEnd
+// screen with the "save?" message (0x80); with a door area the player is moved through it for
+// the save (pG->chapter, counters reset, GameSaveSave), a yes saves to the card; then everything
+// is restored and the door executed (fade effect 2), or the BGM restarts and the pause ends.
 void SceChapterEnd()
 {
     cDataSwap swap;
@@ -827,6 +875,8 @@ void SceChapterEnd()
     }
 }
 
+// Room: end of chapter `chapter` — fades to black, stops the music, and runs SceChapterEnd as an
+// event (door area `doorAt` is taken afterwards, -1 = none).
 void SceSetChapterEnd(int chapter, int doorAt)
 {
     GXColor c0;
@@ -850,11 +900,14 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SceEventEnd(0);
 }
 
+// Distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
     return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
 }
 
+// Puts the scenario camera (SceCam) at pos looking at `at` with `fovy` and makes it the extra
+// camera (CamCtrl.m_pExtraCamera).
 void SceCamMove(Vec* pos, Vec* at, f32 fovy)
 {
     SceCam.param.pos = *pos;
@@ -868,6 +921,9 @@ void SceCamMove(Vec* pos, Vec* at, f32 fovy)
     CamCtrl.m_pExtraCamera = (s32) &SceCam;
 }
 
+// Opens / closes a container (scroll objects id1 / id2 = lids or doors, the item model `itemNo`
+// inside): mode 0 animates the lids over 30 frames by `type` (0..8, 0x13..0x19: swing / slide axes
+// and directions) with SE `se` and drops the item onto the floor; mode 1 sets the end pose at once.
 void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
 {
     cObj* o1 = 0;
@@ -1240,6 +1296,7 @@ struct FadeColors {
     u32 pad;
 };
 
+// 30-frame fade between two packed RGBA colours.
 static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
 {
     FadeColors c;
@@ -1420,6 +1477,7 @@ void SceElevator(SceElevatorData* d)
     SceExit();
 }
 
+// Prints a debug line of the scenario (stacked 15 pixels apart each call; the y resets per frame).
 void SceDebugDisp(const char* fmt, ...)
 {
     va_list ap;
@@ -1438,6 +1496,7 @@ int DebugTrg(int)
 }
 
 template <class T>
+// beginEvent(mode) on every live unit of the manager.
 void cManager<T>::beginEvent(int mode)
 {
     u32 i;
@@ -1451,6 +1510,7 @@ void cManager<T>::beginEvent(int mode)
 }
 
 template <class T>
+// endEvent(mode) on every live unit of the manager.
 void cManager<T>::endEvent(int mode)
 {
     u32 i;

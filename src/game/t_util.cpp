@@ -1,3 +1,6 @@
+// game/t_util: shared debug tool helpers — TutilInitDefault / QuitDefault save and restore the
+// pG flag words and camera around a tool and freeze the game, and ToolMenuDisp_cur draws the
+// standard tool menu with a blinking cursor.
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -19,6 +22,9 @@ u32 stop_flg_bak;       // pG->flags_170
 u32 disp_flg_bak;       // pG->flags_58
 static u32 system_flg_bak;  // pG->flags_54
 
+// Common debug tool start: ends the game stop mode, sets the primitive environment to the current
+// camera, saves the pG flag words (system / stop / disp / debug / status), then freezes the game
+// (Stop_flg 0x200 | 0x80) and turns the tool display bits on.
 void TutilInitDefault()
 {
     TprimView view;
@@ -44,6 +50,8 @@ void TutilInitDefault()
     TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x2000;
 }
 
+// Common debug tool end: restores the camera and the saved flag words (keeping the debug 0x100 bit
+// if it was set meanwhile), clears the tool-active bit.
 void TutilQuitDefault()
 {
     memcpy(TOOL_PTR(OFS_CAMERA), &globalCamera, sizeof(Camera));
@@ -75,6 +83,9 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
 
 TOOL_MENU* old_menu = NULL;
 
+// Draws a debug menu (`size` bytes of TOOL_MENU entries; greyed when Be_flg is 0) at (x, y) with a
+// blinking cursor moved by up / down (flag TOOL_MENU_START_LAST starts at the end, B_LAST jumps
+// there on B). `cursor` (optional) carries the position in and out. Returns the cursor.
 int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
 {
     static s8 cursor_s = 0;

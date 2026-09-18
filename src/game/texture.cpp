@@ -1,3 +1,9 @@
+// game/texture: cTexSys, a texture registry — a table of 256 TexWk slots indexed by texture id,
+// each owning a TPL, its animation table and a run of GX texture objects out of a shared pool.
+// Texture data files (TexData version 3: id table + TPL offsets + animation offsets) are loaded
+// per `owner` and released per owner (room, cockpit, title...); the getters return the TPL, the
+// texture object `no` of an id, the animation and the palette. Used for the room textures
+// (room_tex.cpp) and the id / cockpit textures (id_sys).
 #include "types.h"
 #include "vec.h"
 #include "gx.h"
@@ -11,11 +17,13 @@
 int lod_enable = 0;
 int tex_dummy = 0;
 
+// Power-of-two size test (wrapping textures need it).
 static inline int IsPow2(u32 n)
 {
     return (n & (n - 1)) == 0;
 }
 
+// Creates a registry `name` with a pool of `num` GX texture objects and their in-use bitmap.
 void cTexSys::Init(const char* name, u32 num)
 {
     u32 i;
@@ -40,6 +48,7 @@ void cTexSys::Init(const char* name, u32 num)
     Clear();
 }
 
+// Drops every registered texture and frees the whole object pool.
 void cTexSys::Clear()
 {
     u32 i;
@@ -54,6 +63,7 @@ void cTexSys::Clear()
     }
 }
 
+// In-use bit of pool object `no`.
 int cTexSys::GetTexObjFlag(u32 no)
 {
     if (no >= nTexObj) {
@@ -66,6 +76,7 @@ int cTexSys::GetTexObjFlag(u32 no)
     return 0;
 }
 
+// Sets / clears the in-use bit of pool object `no`.
 void cTexSys::SetTexObjFlag(u32 no, int flag)
 {
     u8 bit;
@@ -81,6 +92,8 @@ void cTexSys::SetTexObjFlag(u32 no, int flag)
     }
 }
 
+// Registers every texture of a TexData file (version 3) under `owner`; `clamp` forces clamped
+// (non-repeating) textures. Returns 0 on a bad file.
 int cTexSys::DataLoad(TexData* data, u32 owner, int clamp)
 {
     TexIdTbl* ids;
@@ -112,6 +125,7 @@ int cTexSys::DataLoad(TexData* data, u32 owner, int clamp)
     return 1;
 }
 
+// `num` consecutive free pool objects, marked in use; NULL when the pool is full.
 GXTexObj* cTexSys::PullTexObj(u32 num)
 {
     u32 start = 0;
@@ -144,6 +158,8 @@ done:
     return obj;
 }
 
+// Relocates a TPL's offsets into pointers (once: skipped when the descriptor pointer is already a
+// real address).
 void cTexSys::CalcTplAddr(TEXPalette* tpl)
 {
     u32 i;
@@ -167,6 +183,9 @@ void cTexSys::CalcTplAddr(TEXPalette* tpl)
     }
 }
 
+// Registers texture `id`: pool objects for the animation's frame count, one GX texture object per
+// TPL image (repeat wrap when power-of-two and not clamped; CI formats also load the palette),
+// optional LOD setup. 0 when the id is taken (error when `check`) or the pool is full.
 int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp, int check)
 {
     TexWk* w = &wk[id];
@@ -223,6 +242,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
     return 1;
 }
 
+// TPL of texture `id`; 0 when unregistered.
 int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
 {
     TexWk* w = &wk[id];
@@ -234,6 +254,7 @@ int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
     return 1;
 }
 
+// GX texture object `no` (animation frame) of texture `id`; 0 when unregistered.
 int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** out)
 {
     TexWk* w = &wk[id];
@@ -245,6 +266,7 @@ int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** out)
     return 1;
 }
 
+// Animation table of texture `id`; 0 when unregistered.
 int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
 {
     TexWk* w = &wk[id];
@@ -256,6 +278,7 @@ int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
     return 1;
 }
 
+// Palette object of a CI texture `id`; 0 when unregistered or not paletted.
 int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
 {
     TexWk* w = &wk[id];
@@ -271,6 +294,7 @@ int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
     return 0;
 }
 
+// The registry slot of texture `id`, NULL (error unless `quiet`) when unregistered.
 TexWk* cTexSys::GetTexWk(u32 id, int quiet)
 {
     TexWk* w = &wk[id];
@@ -284,6 +308,7 @@ TexWk* cTexSys::GetTexWk(u32 id, int quiet)
     return NULL;
 }
 
+// Unregisters every texture of `owner` and frees its pool objects. Returns the count released.
 int cTexSys::TexRelease(u32 owner)
 {
     TexWk* w;

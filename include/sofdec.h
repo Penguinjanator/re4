@@ -81,12 +81,15 @@ public:
         }
         return 0;
     }
+    // Byte `no` of the work after the flag word (asserts no < m_be_flag; a debug leftover).
+#line 80
     u8* getData(u32 no) {
         if (no >= m_be_flag) {
             dbgAssert(__FILE__, __LINE__);
         }
         return (u8*) &x04 + no;
     }
+    // 1 when `bit` is set in m_be_flag (0x100 = keep the screen black after the movie).
     int chkFlag(u32 bit) {
         return (m_be_flag & bit) ? 1 : 0;
     }

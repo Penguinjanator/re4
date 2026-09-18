@@ -1,4 +1,8 @@
-// game/option: pause/title option menu, result screens, chapter end screen (D:/Bio4/Prog/option.cpp).
+// game/option: the option menu (pause menu in game, and from the title) — OptionScreen drives the
+// top menu (retry / load, controller, brightness, audio) and its sub menus on the option id
+// archive (pG->pOption), writing the settings into pSys->flags / brightness / sound_mode; also
+// the GameResult (game clear / omake) and ChapterEnd result screens on the result id data.
+// (D:/Bio4/Prog/option.cpp)
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -45,11 +49,13 @@ void num(int val, int n, int mode, int base, u8 type, int reverse);
 
 OptionScreen OptScrn;
 
+// pSys->language == n (0 jpn, 1 eng(US), 2 eng(EU), 3 ger, 4 fra, 5 esp, 6 ita, 7 eng).
 static inline int isLang(u8 lang, int n)
 {
     return lang == n;
 }
 
+// One of the five European languages (2..6).
 static inline int isEurope(u8 lang)
 {
     if (isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6)) {
@@ -58,6 +64,8 @@ static inline int isEurope(u8 lang)
     return 0;
 }
 
+// Writes the three-letter language suffix ("jpn", "eng", "ger", "fra", "esp", "ita") into
+// name[0..2] for the language-dependent data file names (title / omake / chapter-end archives).
 void setLangExt3(char* name)
 {
     u8 lang = pSys->language;
@@ -101,6 +109,8 @@ void setLangExt3(char* name)
     }
 }
 
+// May START open the pause option menu now? Not while the sub screen is fading (SubScreenWk.wait)
+// and not while Status_flg[0] 0x400 (menus locked) or 0x40 (event running) are set.
 int OptionOpenCheck()
 {
     if (SubScreenWk.wait > 0) {
@@ -114,6 +124,10 @@ int OptionOpenCheck()
     return t == 0;
 }
 
+// Opens the option menu (`title` = 1 from the title screen, 0 = pause menu in game): hides the
+// cockpit ids, loads the option id archive (pOption) with the background (ID_OPT_BG, fully faded in
+// when from the title) and the top menu (ID_OPT); the cursor starts on "controller" when the
+// retry entry is disabled (Status_flg[2] 0x8000).
 void OptionScreen::init(int title)
 {
     fromTitle = title;
@@ -143,6 +157,8 @@ void OptionScreen::init(int title)
     SndCall(0, 0x33, 0, 0, 0, 0);
 }
 
+// One frame of the menu: _rno0 0 = top menu, 1 = the sub menu chosen by _rno1 (0 retry/load, 1
+// controller, 2 brightness, 3 audio); returns 1 when the menu should close (4 = back, or START).
 int OptionScreen::move()
 {
     int ret = 0;
@@ -174,6 +190,7 @@ int OptionScreen::move()
     return ret;
 }
 
+// Frees the option textures and kills both id groups.
 void OptionScreen::quit()
 {
     IdTexRelease(TEX_OWNER_ID_DEAD);
@@ -190,6 +207,10 @@ static inline void setColor(IdUnit* u, IdUnit* base)
     u->col0[3] = (u8) base->col[3];
 }
 
+// Top menu (_rno0 == 0): up/down move _rno1 over the five entries (retry/load greyed out when
+// Status_flg[2] 0x8000), A loads the chosen sub menu's id layout (OPT_PTR 0x2C..0x38) and copies
+// the current pSys settings into the screen (m_reverse / m_vibration / m_knife_key / sound), B
+// jumps to "back" or (on it) closes. Returns 1 to close (START or back).
 int top_menu(OptionScreen* o)
 {
     static int x0 = 100;
@@ -313,6 +334,7 @@ int top_menu(OptionScreen* o)
     return 0;
 }
 
+// Leaves a sub menu: reloads the top menu id layout, _rno0 = 0, cancel SE.
 void back_to_top_menu(OptionScreen* o)
 {
     IdSys.kill(0xFF, ID_OPT);
@@ -321,6 +343,10 @@ void back_to_top_menu(OptionScreen* o)
     SndCall(0, 0x39, 0, 0, 0, 0);
 }
 
+// Retry / load sub menu: _rno3 0 cursor over retry / load / quit-to-title / back (load greyed when
+// System_flg bit31 / 0x40000000: no card), 1 yes/no confirm (mes 0x98 retry, 0x8A quit), 2 loads
+// from the card (CardLoad; on failure rebuilds the menu), 3 waits for the SE then System_flg
+// 0x04000000 = return to the title. Retry calls GameContinue(1).
 int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
@@ -489,6 +515,8 @@ int retry_load_menu(OptionScreen* o)
     return 0;
 }
 
+// Controller sub menu: entries reverse camera (pSys->flags bit31), vibration (0x08000000, with a
+// test rumble), knife key (0x04000000), back; left/right toggle, A applies to pSys->flags.
 int controller_menu(OptionScreen* o)
 {
     static int vib_time = 10;
@@ -708,6 +736,8 @@ int controller_menu(OptionScreen* o)
     return 0;
 }
 
+// Brightness sub menu: left/right change pSys->brightness (and pRK->brightness) around DEFAULT
+// within MIN_OFS..MAX_OFS, shows the signed level as digits and slides the marker; cursor 1 = back.
 int brightness_menu(OptionScreen* o)
 {
     static int DEFAULT = 0x40;
@@ -858,6 +888,8 @@ int brightness_menu(OptionScreen* o)
     return 0;
 }
 
+// Audio sub menu: mono / stereo / surround, A applies SndSetOutputMode (pSys->sound_mode) and
+// keeps `sound` as the checked entry; cursor 3 = back.
 int audio_menu(OptionScreen* o)
 {
     static int x0 = 100;
@@ -989,6 +1021,7 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
     }
 }
 
+// Game clear result screen: replaces the cockpit ids with the result id archive `d` (ID_RESULT).
 void GameResult::init(void* d)
 {
     data = d;
@@ -1002,6 +1035,8 @@ void GameResult::init(void* d)
     _rno3 = 0;
 }
 
+// Shows hit rate (g_hit_cnt / g_shot_cnt), kills, continues, play time (h:m:s) and the "2nd run"
+// mark when game_cnt > 1; returns 1 when A is pressed.
 int GameResult::move()
 {
     u32 h;
@@ -1038,12 +1073,14 @@ int GameResult::move()
     return 0;
 }
 
+// Restores the cockpit ids.
 void GameResult::quit()
 {
     Cckpt.roomInit();
     Cckpt.move();
 }
 
+// Omake (bonus unlocked) screen: the second id layout of the result archive.
 void GameResult::omake_init(void* d)
 {
     data = d;
@@ -1053,6 +1090,7 @@ void GameResult::omake_init(void* d)
     IdSys.set(DATA_PTR(data, 0x18), 0xFF, ID_RESULT, 0x13, 6, 0);
 }
 
+// Waits for A; returns 1 to leave.
 int GameResult::omake_move()
 {
     if (Key.trg & KEY_A) {
@@ -1061,6 +1099,7 @@ int GameResult::omake_move()
     return 0;
 }
 
+// Chapter end screen for chapter `ch` (SceChapterEnd): the chapter result id layout of archive `d`.
 void ChapterEnd::init(void* d, u8 ch)
 {
     data = d;
@@ -1071,6 +1110,9 @@ void ChapterEnd::init(void* d, u8 ch)
     _chapter = ch;
 }
 
+// Fills the chapter result: this chapter / next chapter numbers ("chap-sec"), chapter and total hit
+// rates, kills and continues (c_* chapter counters, g_* game counters). Never returns 1: the
+// scenario task ends the screen.
 int ChapterEnd::move()
 {
     static u8 char_per = 0xA;
@@ -1133,6 +1175,7 @@ int ChapterEnd::move()
     return 0;
 }
 
+// Restores the cockpit ids.
 void ChapterEnd::quit()
 {
     Cckpt.roomInit();

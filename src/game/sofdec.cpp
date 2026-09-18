@@ -1,4 +1,7 @@
-// game/sofdec: Sofdec (CRI) movie playback front end (D:/Bio4/Prog/sofdec.cpp).
+// game/sofdec: cSofdec, the Sofdec (CRI) movie player front end — loads the movie header, creates
+// the CRI handle, converts each decoded frame into a YUV (or ARGB) texture and draws it as a
+// screen quad while the game is frozen and its heap swapped out to ARAM; runs either in scheduler
+// slot 1 (ThreadMove) or inline from the caller's loop. (D:/Bio4/Prog/sofdec.cpp)
 #include "types.h"
 #include "global.h"
 #include "main.h"
@@ -26,6 +29,7 @@ f32 __float_huge = 1.0f / 0.0f;
 
 cSofdec Sofdec;
 
+// Store through a reference (matching helper).
 static inline void SetU32(u32& d, u32 v)
 {
     d = v;
@@ -42,6 +46,7 @@ void UsrSfcnt2time(int tscale, int count, int* h, int* m, int* s, int* f)
     *f = t % 100;
 }
 
+// Debug overlay: the movie's play time (h:m:s:f) and frame info.
 void disp_info(SofdecApp* app)
 {
     MWS_FRM* frm = &app->frm;
@@ -57,6 +62,7 @@ void disp_info(SofdecApp* app)
     eprintf(0x20, 0x30, 0, 0, "DISP SKIP   : %d", mwPlyGetNumSkipDisp(app->hn));
 }
 
+// Boot: initialises the CRI Sofdec player for 59.94 Hz display with the error callback.
 void SofdecInit()
 {
     MWS_PLY_INIT_SFD prm;
@@ -136,6 +142,7 @@ void setTevPrm(int mapY, int mapUV)
     GXSetNumIndStages(0);
 }
 
+// Restores the TEV / texgen state the YUV shader replaced.
 void restoreTevPrm()
 {
     GXSetZMode(1, 7, 0);
@@ -155,6 +162,7 @@ void restoreTevPrm()
     GXSetTevSwapModeTable(3, 2, 2, 2, 3);
 }
 
+// Sofdec error callback: prints the message and hangs.
 void ap_mwply_err_func(void* obj, const char* msg)
 {
     OSReport("%s\n", msg);
@@ -162,6 +170,8 @@ void ap_mwply_err_func(void* obj, const char* msg)
     }
 }
 
+// Draws the current frame: mode 0 the Y / UV planes through the YUV -> RGB TEV setup on a full
+// screen quad, mode 1 an ARGB texture on a 3D polygon.
 void cSofdec::drawTex()
 {
     Mtx tm;
@@ -202,6 +212,7 @@ void cSofdec::drawTex()
     restoreTevPrm();
 }
 
+// Screen-sized quad (texture width x height, centred) with the frame texture.
 void cSofdec::drawQuad(SofdecDraw* d)
 {
     Mtx tm, m;
@@ -224,6 +235,7 @@ void cSofdec::drawQuad(SofdecDraw* d)
     GXTexCoord2f32(0.0f, 0.0f);
 }
 
+// The frame on a 512-unit square 800 in front of the camera (mode 1).
 void cSofdec::drawPolygon(SofdecDraw* d)
 {
     Mtx tm, m, sm, rx, ry, rz;
@@ -242,6 +254,7 @@ void cSofdec::drawPolygon(SofdecDraw* d)
     GXDrawTorus(0.4f, 0x10, 0xC);
 }
 
+// Orthographic-like frustum for the framebuffer size, camera 400 back looking at the origin.
 void cSofdec::setCamera(SofdecDraw* d)
 {
     Mtx44 proj;
@@ -257,6 +270,8 @@ void cSofdec::setCamera(SofdecDraw* d)
     C_MTXLookAt(d->mtx, &pos, &up, &target);
 }
 
+// Converts a decoded frame into the texture buffers (Y8 + UV 4:4 planes in mode 0, ARGB8888 in
+// mode 1), allocating them on the first frame.
 void cSofdec::loadMvFrmFx(MWPLY hn, MWS_FRM* frm)
 {
     SofdecTex* tex = &drw.tex;
@@ -282,6 +297,8 @@ void cSofdec::loadMvFrmFx(MWPLY hn, MWS_FRM* frm)
     }
 }
 
+// Allocates the frame texture (width rounded to 32; mode 0: Y plane + half-size UV plane) and
+// clears it to black.
 void cSofdec::allocTexMem(SofdecTex* tex, int w, int h)
 {
     switch (mode) {
@@ -321,6 +338,7 @@ void cSofdec::allocTexMem(SofdecTex* tex, int w, int h)
     }
 }
 
+// Clears the frame texture to black (Y 0, UV 0x80 / ARGB 0).
 void cSofdec::clrTexMem(SofdecTex* tex)
 {
     switch (mode) {
@@ -338,12 +356,14 @@ void cSofdec::clrTexMem(SofdecTex* tex)
     }
 }
 
+// Fresh draw state with the default camera.
 void cSofdec::initDraw(SofdecDraw* d)
 {
     memclr_asm(d, sizeof(SofdecDraw));
     setCamera(d);
 }
 
+// Reads the movie's header (first 0x5000 bytes) for its width / height and resets the app state.
 void cSofdec::initApp(const char* fname)
 {
     static MWS_SFD_HDRINF info;
@@ -366,6 +386,8 @@ void cSofdec::initApp(const char* fname)
     m_height = info.height;
 }
 
+// Creates the Sofdec handle (work buffer sized for the movie, 8 Mbps, 4 frame pool, 2 streams)
+// and starts playback of the file. Returns 0 on failure.
 int cSofdec::startApp()
 {
     MWS_PLY_CPRM_SFD* cprm = &app.cprm;
@@ -397,6 +419,8 @@ int cSofdec::startApp()
     return 1;
 }
 
+// Playback start: screen black, VI sync every frame, the screen resized to 512 wide, texture
+// cleared; fadeIn = show the first frame when it arrives.
 void cSofdec::initSync()
 {
     systemVISetBlack(1);
@@ -411,6 +435,8 @@ void cSofdec::initSync()
     OSReport("Movie Play : %s \n", app.fname);
 }
 
+// One frame of playback: START / a button skips (m_be_flag 0x20), the CRI main tick, the newest
+// decoded frame converted; returns 0 when the movie ended / failed / was skipped.
 int cSofdec::appMain()
 {
     MWS_FRM frm;
@@ -435,6 +461,7 @@ int cSofdec::appMain()
     return 1;
 }
 
+// Draws the frame once playback has started (status > 1), lifting the black screen on the first.
 void cSofdec::draw()
 {
     if (app.stat > 1) {
@@ -451,6 +478,9 @@ void cSofdec::draw()
     }
 }
 
+// Playback end: destroys the handle and buffers, restores the screen size, Disp_flg / Stop_flg /
+// VI count, swaps the game heap back in from ARAM (unless Status_flg[2] 0x8000 kept it), clears
+// the movie flags (Status_flg[0] 0x10000000, System_flg 0x00100000, m_be_flag bit0).
 void cSofdec::finishMovie()
 {
     mwPlyDestroy(app.hn);
@@ -483,6 +513,9 @@ void cSofdec::finishMovie()
     m_be_flag &= ~1;
 }
 
+// Prepares the movie: falls back to "movie/dmy.sfd" when the file is missing, freezes and hides
+// the game (Stop_flg / Disp_flg all set), swaps the current heap out to ARAM and creates a 5 MB
+// movie heap (unless Status_flg[2] 0x8000); System_flg 0x00100000 = movie mode. 0 when no file.
 int cSofdec::initWork(const char* fname)
 {
     if (Dvd.FileExistCheck(fname, NULL) == -1) {
@@ -508,16 +541,20 @@ int cSofdec::initWork(const char* fname)
     return 1;
 }
 
+// Starts movie `fname` (see initSub).
 int cSofdec::Initialize(const char* fname, u32 flags)
 {
     return initSub(fname, flags);
 }
 
+// Starts movie `fname` (see initSub).
 int cSofdec::Initialize(cString& fname, u32 flags)
 {
     return initSub(fname.c_str(), flags);
 }
 
+// Starts a movie unless one plays: flags 0x200 = run it inline from the caller's loop (Move), else
+// in scheduler slot 1 (ThreadMove) with slot 0 suspended; all sounds stopped. Returns 1 if started.
 int cSofdec::initSub(const char* fname, u32 flags)
 {
     if (pG->Status_flg[0] & 0x10000000) {
@@ -541,6 +578,7 @@ int cSofdec::initSub(const char* fname, u32 flags)
     return 1;
 }
 
+// One playback frame (decode + draw); returns 1 when the movie has finished (resources released).
 int cSofdec::Move()
 {
     int ret = 0;
@@ -554,6 +592,7 @@ int cSofdec::Move()
     return ret;
 }
 
+// Task body: plays the movie to its end, then resumes slot 0 and exits.
 void cSofdec::ThreadMove(cSofdec* s)
 {
     int r = s->initWork(s->path);
@@ -572,6 +611,7 @@ void cSofdec::ThreadMove(cSofdec* s)
     TaskExit();
 }
 
+// Pauses / resumes playback (m_be_flag bit2).
 void cSofdec::PlayPause(int pause)
 {
     if (pause == 1) {

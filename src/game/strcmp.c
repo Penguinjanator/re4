@@ -3,6 +3,7 @@
 
 #define UNALIGNED(X, Y) (((long)X & (sizeof(long) - 1)) | ((long)Y & (sizeof(long) - 1)))
 
+/* Lexical comparison of two strings (negative / 0 / positive). */
 int strcmp(const char *s1, const char *s2)
 {
     unsigned long *a1;

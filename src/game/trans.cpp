@@ -114,6 +114,7 @@ struct Weight {
 // Loads straight into the named variable so the asm output shares the variable's (global) register.
 #define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p) : "memory")
 
+// Bit test as 0 / 1 (matching helper).
 static inline int isBit(u32 f, u32 b)
 {
     if (f & b) {
@@ -164,6 +165,7 @@ u32 aniso = 0;
 extern u8 gxCsScale[];
 u8 gxCsScale[4] = {2, 2, 2, 2};
 
+// The next free texture coordinate slot (tex_coord), with an overflow error past 7.
 static inline int getTexCoord()
 {
     int tbl[8] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -173,6 +175,7 @@ static inline int getTexCoord()
     return tbl[tex_coord];
 }
 
+// The texture matrix index (GX_TEXMTX0 + 3 * tex_coord) for the current coordinate slot.
 static inline u32 getTexMtx()
 {
     u32 tbl[10] = {0x1E, 0x21, 0x24, 0x27, 0x2A, 0x2D, 0x30, 0x33, 0x36, 0x39};
@@ -182,6 +185,7 @@ static inline u32 getTexMtx()
     return tbl[tex_coord];
 }
 
+// The next free texture map (tex_map), error past 7.
 static inline int getTexMap()
 {
     int tbl[8] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -191,6 +195,7 @@ static inline int getTexMap()
     return tbl[tex_map];
 }
 
+// The next free TEV constant colour register (tev_kcolor), error past 3.
 static inline int getKColor()
 {
     int tbl[4] = {0, 1, 2, 3};
@@ -200,6 +205,7 @@ static inline int getKColor()
     return tbl[tev_kcolor];
 }
 
+// The TEV colour-input selector for the current constant colour (GX_TEV_KCSEL_K0..3).
 static inline int getKColorSel()
 {
     int tbl[4] = {0xC, 0xD, 0xE, 0xF};
@@ -209,6 +215,7 @@ static inline int getKColorSel()
     return tbl[tev_kcolor];
 }
 
+// The TEV alpha-input selector for the current constant colour (GX_TEV_KASEL_K0_A..).
 static inline int getKAlphaSel()
 {
     int tbl[4] = {0x1C, 0x1D, 0x1E, 0x1F};
@@ -218,6 +225,7 @@ static inline int getKAlphaSel()
     return tbl[tev_kcolor];
 }
 
+// TEV output register for stage slot `no` (GX_TEVREG0..2), error past 2.
 static inline int getTevReg(int no)
 {
     int tbl[3] = {1, 2, 3};
@@ -227,6 +235,7 @@ static inline int getTevReg(int no)
     return tbl[no];
 }
 
+// Range check of a TEV register slot.
 static inline int checkTevReg(int no)
 {
     if (no > 2) {
@@ -235,6 +244,7 @@ static inline int checkTevReg(int no)
     return no;
 }
 
+// Allocates the next TEV register slot after tev_reg; returns its GX register.
 static inline int getTevRegNext(int& no)
 {
     int tbl[3] = {1, 2, 3};
@@ -242,6 +252,7 @@ static inline int getTevRegNext(int& no)
     return tbl[no];
 }
 
+// The colour-input selector reading TEV register slot `no` (GX_CC_C0..C2).
 static inline int getTevRegC(int no)
 {
     int tbl[3] = {2, 4, 6};
@@ -251,6 +262,7 @@ static inline int getTevRegC(int no)
     return tbl[no];
 }
 
+// The alpha-input selector reading TEV register slot `no` (GX_CC_A0..A2).
 static inline int getTevRegA(int no)
 {
     int tbl[3] = {3, 5, 7};
@@ -271,6 +283,7 @@ static inline int getTevReg()
     return tbl[tev_reg];
 }
 
+// The colour-input selector of the current tev_reg slot.
 static inline int getTevRegC()
 {
     int tbl[3] = {2, 4, 6};
@@ -332,6 +345,8 @@ static void updateMatrices(Mtx m, Mtx dst, cModel* model);
 static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv);
 }
 
+// Binds model texture `id` to texture map `map`: from the GX work's texture objects (0..0xF7), or
+// a render-to-texture manager's texture (0xF8..).
 void org_LoadTexObj(u32 id, int map)
 {
     GxWork* gx = GXWORK();
@@ -343,6 +358,9 @@ void org_LoadTexObj(u32 id, int map)
     }
 }
 
+// Per frame, the "transform" pass: effects, effect generators and the ctrl manager, shadows,
+// cloth, filters and render textures register their draw callbacks, then every object and enemy
+// (objTrans / emTrans -> ModelTrans); the primitive buffer written is flushed to memory.
 void Trans()
 {
     u8* primStart = (u8*) pG->prim_base;
@@ -390,6 +408,8 @@ void Trans()
     DCStoreRangeNoSync(primStart, (u8*) pG->prim_base - primStart);
 }
 
+// Picks the lights for an enemy model that will be drawn (LightMgr.setModel2), honouring the
+// player / partner / enemy hide flags of Disp_flg.
 void lightSetEm(cModel* m)
 {
     if ((m->be_flag & 3) != 3) {
@@ -411,6 +431,8 @@ void lightSetEm(cModel* m)
     LightMgr.setModel2(m);
 }
 
+// Picks the lights for an object model that will be drawn (scenery kind 2: Disp_flg 0x08000000,
+// other objects 0x10000000 hide them).
 void lightSetObj(cModel* m)
 {
     if ((m->be_flag & 3) != 3) {
@@ -428,6 +450,7 @@ void lightSetObj(cModel* m)
     LightMgr.setModel2(m);
 }
 
+// Transform pass of one enemy (skipped when its Disp_flg hide bit is set).
 void emTrans(cModel* m)
 {
     if (m == pPL) {
@@ -446,6 +469,7 @@ void emTrans(cModel* m)
     ModelTrans(m);
 }
 
+// Transform pass of one object (skipped when hidden by Disp_flg).
 void objTrans(cModel* m)
 {
     if (m->kindid == 2) {
@@ -470,6 +494,11 @@ void objTrans(cModel* m)
         PSVECAdd(&(pos), &p->world, &(pos));                         \
     }
 
+// Registers a visible model (be_flag 1 | 2 | 4; in events only be_flag 0x800 models) in the
+// ordering tables by ot_type: 0 world depth-sorted (7: plus the 0xB translucent table, drawn a
+// second time), 1 model table, 2 world, 3 / 4 / 5 fixed 0xB buckets, 6 table 0x10, 8 table 0x14;
+// frustum-culled by the light-info sphere (scaled). Then skins its vertices (commonScreenMat)
+// — a skinning failure removes the entry again.
 void ModelTrans(cModel* m)
 {
     Vec pos;
@@ -620,6 +649,8 @@ void ModelTrans(cModel* m)
     }
 }
 
+// Builds this frame's vertex buffers for a model (and its shadow model info). 0 when the model is
+// off / hidden or a buffer could not be had.
 int commonScreenMat(cModel* m)
 {
     int off = !(m->be_flag & 1);
@@ -669,6 +700,10 @@ int commonScreenMat(cModel* m)
         }                                   \
     }
 
+// For every model info of the list: advances the texture animation / UV scroll, allocates the
+// position (and normal) buffers from the prim buffer (unskinned single-part models draw from the
+// original vertices), builds the weight palette from the parts matrices, applies the shape morphs
+// (be_flag bit1) and skins the vertices (paired-single). 0 on an invalid pointer / full buffer.
 int commonScreenMatSub(cModel* m, cModelInfo* info)
 {
     calcWeightMat(m);
@@ -784,6 +819,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
     return 1;
 }
 
+// Per parts: world matrix x bind matrix into the parts' weight matrix (the skinning palette base).
 void calcWeightMat(cModel* m)
 {
     Mtx inv;
@@ -803,6 +839,8 @@ void calcWeightMat(cModel* m)
     }
 }
 
+// Builds the blended skinning matrices for the extended weight table (u8 percentages, more than
+// 255 palette entries). Returns the count.
 static int MakeWeightPaletteExt(WeightExt* w0, int n)
 {
     GxWork* gx = GXWORK();
@@ -848,6 +886,8 @@ static int MakeWeightPaletteExt(WeightExt* w0, int n)
     return cnt;
 }
 
+// Builds the blended skinning matrices for the weight table (sum of parts matrices x weights, the
+// last weight takes the remainder). Returns the count.
 static int MakeWeightPalette(Weight* w0, int n)
 {
     GxWork* gx = GXWORK();
@@ -898,6 +938,10 @@ static int MakeWeightPalette(Weight* w0, int n)
     return cnt;
 }
 
+// Per frame, the draw pass: runs the ordering tables in order (render textures, shadow setup,
+// far sub screen, scroll, sub screen, models, shadow draw, near sub screen, effects, world, VU1
+// effects, screen, cockpit, id models, messages, after-render, debug, then 0x13..0x15), the
+// filter 09 post-process and the draw-sync callback. Skipped output while System_flg 0x800.
 void Render()
 {
     Camera save;
@@ -964,6 +1008,8 @@ void Render()
 
 static const GXColor col64 = {0x40, 0x40, 0x40, 0x40};
 
+// OT callback for a model: z mode by z_mode (0 test+write, 1 test only, 2 off), the alpha-omit
+// compare, then commonModelTrans with the camera view; invisible models (invisible_factor 0) skip.
 void ModelRender(cModel* m)
 {
     static int modeltransalphaupdate = 1;
@@ -1004,6 +1050,11 @@ void ModelRender(cModel* m)
     }
 }
 
+// Draws every model info of `m`: the shadow-cast light when a shadow light covers it, material
+// colour, vertex descriptors / arrays (skinned buffers or the original vertices), cull mode,
+// texture objects for the TPL (+ added textures, anisotropy / mip filters, the cTexChg swaps),
+// then per part the TEV shader (shaderSetup), blend mode (blend_mode table), alpha compare and
+// the display list; foot shadows afterwards. flag bit0 = the shadow / depth pass (no alpha).
 void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
 {
     static int bl[5][4] = {
@@ -1259,6 +1310,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     }
 }
 
+// Applies the model's texture replacements (texture object `from` -> `to` pairs).
 void cTexChg::move(GXTexObj* texObj)
 {
     int i;
@@ -1270,6 +1322,8 @@ void cTexChg::move(GXTexObj* texObj)
     }
 }
 
+// Thermal-scope view (Status_flg[1] 0x04000000, the rifle's infrared scope): the part is drawn
+// with the thermo palette instead of its material.
 static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
 {
     int st;
@@ -1301,6 +1355,10 @@ static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
     GXSetNumIndStages(ind_stage);
 }
 
+// TEV setup of one part: thermo or refraction shaders take over entirely; else the self-shadow
+// or cast-shadow stages, the material (texture, blends), specular / bump (part flags), global
+// illumination (be_flag 0x01000000), the alpha texture (part flags 4), and the colour scale of
+// the model's TevScaleGroup (gxCsScale).
 static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
 {
     int selfDone;
@@ -1417,6 +1475,8 @@ static inline void loadBlendTex(ModelPart* part, u8* tbl, int map)
     }
 }
 
+// Material blend type 0 (blendType 0): the blend-table textures (matched to the part's texture)
+// layered over the base stage with the info's blendRatio as constant-colour weight.
 static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
@@ -1497,6 +1557,8 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     }
 }
 
+// Material blend type 1: the blend-table texture layered over the base with the blendRatio
+// weight; the alpha comes from the second texture (probably: differs from type 0 in the alpha path).
 static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
@@ -1577,6 +1639,8 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     }
 }
 
+// Material blend type 2: the blend-table texture over the base (blendRatio 0 = no second
+// texture) with the alpha kept from the input (`use_alp`).
 static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     static int use_alp = 1;
@@ -1708,6 +1772,9 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
     }
 }
 
+// Base material stage: the part's texture (animated frame when the info animates), texgen by UV
+// or by the UV-scroll matrix, then one of the blend types when the info blends (flags bit2),
+// producing the colour from `colIn` / `alphaIn`.
 static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
@@ -1765,6 +1832,8 @@ static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alph
     tex_coord++;
 }
 
+// Specular / environment stage (part flags 0x13): the specular texture selected by the part,
+// normal-based texgen, colour from the part's spec colour or the info colour2.
 static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
 {
     GXColor col;
@@ -1863,6 +1932,8 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     tex_coord++;
 }
 
+// Bump-mapped specular variant (part flags 0x80): indirect stage with the bump texture
+// perturbing the specular lookup.
 static void specularSetup2(ModelPart* part, int flag)
 {
     static f32 bp_mx = 0.0f;
@@ -1956,6 +2027,8 @@ static void specularSetup2(ModelPart* part, int flag)
     tev_reg++;
 }
 
+// Adds the global illumination texture stage (normal-based lookup; scale 0.25 for 8-bit normals);
+// off with Disp_flg 0x00080000.
 static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
 {
     Mtx tmp;
@@ -1996,6 +2069,8 @@ static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
     tex_coord++;
 }
 
+// The GX light used by the shadow-cast pass: at the shadow light's position / direction, with the
+// cast colours (cast_col1..3) as material / ambient.
 static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
 {
     static u8 cast_col1 = 0xC0;
@@ -2042,6 +2117,8 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     GXSetChanAmbColor(5, c);
 }
 
+// Adds the stage that projects the shadow light's texture (g_pShdMng texMat x the parts matrix)
+// onto the part, modulating the colour.
 static void ShadowCastSetup(ModelPart* part, cModel* m)
 {
     GXTexObj* tex;
@@ -2202,6 +2279,8 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
     tex_map++;
 }
 
+// Self-shadow stage: the model's own depth shadow map compared through an indirect texture (the
+// IndTex ramp) so parts in their own shadow darken.
 static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
 {
     static int shd_tex_no = 0;
@@ -2289,6 +2368,8 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     tev_stage++;
 }
 
+// Bump stage (part flags bit0): the part's bump texture (or the blend table's) as an indirect
+// texture perturbing the base lookup.
 static void bumpSetup(ModelPart* part, cModelInfo* info)
 {
     int off = !(part->flags & 1);
@@ -2327,6 +2408,8 @@ static void bumpSetup(ModelPart* part, cModelInfo* info)
     ind_stage++;
 }
 
+// Alpha texture stage (part flags 4): alpha compare against the part's alphaRef (or the model's
+// alpha_omit), the alpha texture multiplied into the output alpha.
 static void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo)
 {
     int map;
@@ -2360,6 +2443,8 @@ static void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo)
     tex_map++;
 }
 
+// Frame start: flips the double-buffered primitive / vertex buffer (vtx_buf_no) and resets the
+// allocation pointer.
 void SetPrimBuffPtr()
 {
     GxWork* gx = GXWORK();
@@ -2371,6 +2456,7 @@ void SetPrimBuffPtr()
     gx->prim = (u8*) pG->prim_cnt + pG->nPrim * pG->vtx_buf_no;
 }
 
+// Allocates `size` bytes (32-byte aligned) from this frame's primitive buffer; 0 when exhausted.
 void* GetPrimBuff(int size)
 {
     GxWork* gx = GXWORK();
@@ -2395,6 +2481,8 @@ void* GetPrimBuff(int size)
     return p;
 }
 
+// Resets the TEV / indirect / texgen state and the allocation counters (tev_stage, tev_reg,
+// tex_coord, tex_map, tev_kcolor) between models.
 void shaderReset()
 {
     if (IND_STAGE_ID() != 0) {
@@ -2504,6 +2592,7 @@ static void CalcSk1_x2(void* dst, void* src, u32 n)
         "bdnz 1b\n");
 }
 
+// Sets GQR6 (the paired-single quantisation register the skinning loads use).
 void setupGQR6(u32 v)
 {
     asm volatile("mtspr 918, %0" : : "r"(v));
@@ -2532,6 +2621,8 @@ void CalcTplAddrC8(TEXPalette* tpl)
     }
 }
 
+// Boot (CoreDataRead): the specular environment textures, the two indirect ramp textures and the
+// thermal palette from the core archive.
 void SpecularInit(TEXPalette* spec, TEXPalette* ind, TEXPalette* ind2, TEXPalette* thermo)
 {
     u32 i;
@@ -2569,6 +2660,7 @@ void SpecularInit(TEXPalette* spec, TEXPalette* ind, TEXPalette* ind2, TEXPalett
     GXInitTlutObj(&ThermoTlut, cl->data, cl->format, cl->numEntries);
 }
 
+// Boot: the global illumination textures from the core archive.
 void GlobalIlmTexInit(TEXPalette* tpl)
 {
     u32 i;
@@ -2583,6 +2675,8 @@ void GlobalIlmTexInit(TEXPalette* tpl)
     }
 }
 
+// Refraction: model-view matrix and its inverse transpose loaded as the position / normal
+// matrices, `dst` = the texture matrix mapping normals to the screen.
 static void updateMatrices(Mtx m, Mtx dst, cModel* model)
 {
     Mtx mv;
@@ -2608,6 +2702,8 @@ static void updateMatrices(Mtx m, Mtx dst, cModel* model)
     GXSetIndTexMtx(1, ind, 0);
 }
 
+// Refraction shader (Shader_type 1 / 2, Refract_ratio): the captured screen (render texture)
+// looked up through an indirect texture built from the normals, mixed by the refract ratio.
 static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
 {
     static f32 mul_x = 1.0f;

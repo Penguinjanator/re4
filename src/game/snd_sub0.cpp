@@ -1,3 +1,7 @@
+// game/snd_sub0: sound driver shared helpers — the DLS volume (0..127 -> AX attenuation) table
+// and the 24-entry low-pass filter coefficient table, sounding / soft-reset checks, the six system
+// volumes (SE / BGM / stream for the two output kinds), the random generator with the SIT's random
+// pitch range, and the sound-test work reset.
 #include "snd_drv.h"
 
 s32 Snd_dls_vol_tbl[128] = {
@@ -46,6 +50,7 @@ SND_LPF Snd_lpf_tbl[24] = {
     {0x01FE, 0x7E01, "   80"},
 };
 
+// Non-zero while any SE, sequence or stream is still sounding / queued.
 int Snd_pronounce_ck(void)
 {
     int ret;
@@ -56,11 +61,14 @@ int Snd_pronounce_ck(void)
     return ret;
 }
 
+// Asks for a driver soft reset (reset_flag bit0; the audio-frame players pick it up).
 void Snd_soft_reset_req(void)
 {
     Snd_ctrl_work.reset_flag = 1;
 }
 
+// 0x8000 until all three players have acknowledged the reset (bits 0x70), then whatever is still
+// sounding; 0 = reset complete (flag cleared).
 int Snd_soft_reset_ck(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -76,12 +84,14 @@ int Snd_soft_reset_ck(void)
     return ret;
 }
 
+// Output mode changed: every SE and stream recomputes its pan.
 void Snd_reset_pan_all(void)
 {
     Snd_ctrl_work.se_ctrl |= 0x80;
     Snd_str_reset_pan_type(3);
 }
 
+// Master volume changed: every SE, stream and sequence recomputes its volume.
 void Snd_reset_vol_all(void)
 {
     Snd_ctrl_work.se_ctrl |= 0x100;
@@ -89,6 +99,8 @@ void Snd_reset_vol_all(void)
     Snd_seq_reset_vol_type(3);
 }
 
+// System volumes (0..127, kept 8.8): type bits 1 / 2 SE (two output kinds), 4 / 8 sequence,
+// 0x10 / 0x20 stream.
 void Snd_set_system_vol(s16 type, u16 vol)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -115,6 +127,7 @@ void Snd_set_system_vol(s16 type, u16 vol)
     }
 }
 
+// One system volume (see Snd_set_system_vol) as 0..127.
 s16 Snd_get_system_vol(s16 type)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -141,11 +154,13 @@ s16 Snd_get_system_vol(s16 type)
     return v >> 8;
 }
 
+// 0..127 volume -> AX attenuation (table, 0 = -904).
 s32 Snd_vol_syn_to_ax(s32 vol)
 {
     return Snd_dls_vol_tbl[vol];
 }
 
+// AX attenuation -> the smallest 0..127 volume at least as loud; -1 on an out-of-range value.
 s32 Snd_vol_ax_to_syn(s32 vol)
 {
     int i;
@@ -162,6 +177,7 @@ s32 Snd_vol_ax_to_syn(s32 vol)
     return -1;
 }
 
+// Driver random byte (16-bit generator in Snd_ctrl_work.rnd).
 u8 Snd_rnd(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -180,6 +196,8 @@ u8 Snd_rnd(void)
     return r.b[1];
 }
 
+// Random pitch within the SIT's pitch_l..pitch_hi (in 1/16 steps when the range is wide);
+// remembered in rnd_pitch.
 s16 Snd_get_rnd_pitch(SND_SIT* sit)
 {
     s16 lo;
@@ -206,6 +224,7 @@ s16 Snd_get_rnd_pitch(SND_SIT* sit)
     return r;
 }
 
+// Resets the sound-test (debug menu) work: 14 SE blocks / 2 stream blocks, paths "/", display flags.
 void Snd_test_work_clear(void)
 {
     SND_TEST_WORK* test;

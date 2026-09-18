@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/printf.c (_printf_r was dead-stripped) */
 #include "newlib_stdio.h"
 
+/* Reentrant printf: formats into the reent's stdout. */
 int _printf_r(struct _reent *ptr, const char *fmt, ...)
 {
     int ret;
@@ -12,6 +13,7 @@ int _printf_r(struct _reent *ptr, const char *fmt, ...)
     return ret;
 }
 
+/* printf onto stdout (the game's OSReport-backed FILE). */
 int printf(const char *fmt, ...)
 {
     int ret;

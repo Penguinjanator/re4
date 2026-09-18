@@ -6,6 +6,11 @@
 asm("	.text\n"
     "	.balign 4\n");
 
+// yz2Decode_Decode(ctx, dst, size, in_ev): the decode loop — a symbol from the 0x500-symbol main
+// model per step (FrequencyDecode_Decode768); low symbols are literal bytes, the higher ones
+// reference a run in the 256-entry dictionary whose extra fields come from the 0x100-symbol model
+// (FrequencyDecode_Decode); every run written is entered into the dictionary. Runs until `size`
+// output bytes. (Register-level reading of the original asm; the exact symbol split is not verified.)
 asm("	.globl yz2Decode_Decode\n"
     "	.type yz2Decode_Decode,@function\n"
     "yz2Decode_Decode:\n"
@@ -39,6 +44,7 @@ asm("	.globl yz2Decode_Decode\n"
     "	lwz r3, 0xc(r27)\n"
     "	.size yz2Decode_Decode,.-yz2Decode_Decode\n");
 
+// Loop head: next symbol.
 asm("	.globl yz2Decode_loop\n"
     "	.type yz2Decode_loop,@function\n"
     "yz2Decode_loop:\n"
@@ -53,6 +59,7 @@ asm("	.globl yz2Decode_loop\n"
     "	b yz2Decode_dic_set\n"
     "	.size yz2Decode_loop,.-yz2Decode_loop\n");
 
+// Probably the literal / short-reference path (yz2Decode_L01).
 asm("	.globl yz2Decode_L01\n"
     "	.type yz2Decode_L01,@function\n"
     "yz2Decode_L01:\n"
@@ -103,6 +110,7 @@ asm("	.globl yz2Decode_L01\n"
     "	b yz2Decode_L03\n"
     "	.size yz2Decode_L01,.-yz2Decode_L01\n");
 
+// Probably the long-reference path: more fields read from the 0x100-symbol model.
 asm("	.globl yz2Decode_L02\n"
     "	.type yz2Decode_L02,@function\n"
     "yz2Decode_L02:\n"
@@ -119,6 +127,7 @@ asm("	.type yz2Decode_L03,@function\n"
     "	mtctr r24\n"
     "	.size yz2Decode_L03,.-yz2Decode_L03\n");
 
+// Copies a referenced run into the output.
 asm("	.globl yz2Decode_str_trans_loop\n"
     "	.type yz2Decode_str_trans_loop,@function\n"
     "yz2Decode_str_trans_loop:\n"
@@ -129,6 +138,7 @@ asm("	.globl yz2Decode_str_trans_loop\n"
     "	add r20, r20, r24\n"
     "	.size yz2Decode_str_trans_loop,.-yz2Decode_str_trans_loop\n");
 
+// Enters the run just written into the dictionary (256 entries of two 0x800-byte halves).
 asm("	.globl yz2Decode_dic_set\n"
     "	.type yz2Decode_dic_set,@function\n"
     "yz2Decode_dic_set:\n"
@@ -154,6 +164,7 @@ asm("	.globl yz2Decode_dic_set\n"
     "	b yz2Decode_loop\n"
     "	.size yz2Decode_dic_set,.-yz2Decode_dic_set\n");
 
+// Epilogue.
 asm("	.globl yz2Decode_end\n"
     "	.type yz2Decode_end,@function\n"
     "yz2Decode_end:\n"
@@ -164,6 +175,9 @@ asm("	.globl yz2Decode_end\n"
     "	blr\n"
     "	.size yz2Decode_end,.-yz2Decode_end\n");
 
+// FrequencyDecode_Decode: one symbol of the 0x100-symbol model with the adaptive arithmetic coder
+// (bit reader state in Yz2Dec, frequency / cumulative tables in Yz2Freq); the symbol's frequency
+// is bumped and the table rescaled when it fills.
 asm("	.globl FrequencyDecode_Decode\n"
     "	.type FrequencyDecode_Decode,@function\n"
     "FrequencyDecode_Decode:\n"
@@ -319,6 +333,7 @@ asm("	.globl FrequencyDecode_Decode\n"
     "	blr\n"
     "	.size FrequencyDecode_Decode,.-FrequencyDecode_Decode\n");
 
+// Same decoder for the 0x500-symbol main model (called first in every loop step).
 asm("	.globl FrequencyDecode_Decode768\n"
     "	.type FrequencyDecode_Decode768,@function\n"
     "FrequencyDecode_Decode768:\n"

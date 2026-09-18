@@ -1,3 +1,8 @@
+// game/shape: vertex-morph ("shape") animation of a model part — the face morphs of the player /
+// partner and the mouth / eye shapes of the enemies. A ShapeData holds per-channel Hermite key
+// tables of blend weights; up to 5 shapes play at once on a cModelInfo (info->shape[]). ShapeSet
+// starts one, ShapeMove (per frame from the model trans) advances the frames, CalculateShape_new
+// adds the weighted vertex deltas of the model's shape table onto the vertex buffer `dst`.
 #include "types.h"
 #include "vec.h"
 #include "db_log.h"
@@ -92,6 +97,7 @@ int ShapeMove(cModelInfo* info)
     return 1;
 }
 
+// Stops the shape animation of a model info and restores the neutral shape.
 void ShapeEnd(void* work)
 {
     cModelInfo* info = (cModelInfo*) work;
@@ -101,6 +107,7 @@ void ShapeEnd(void* work)
     SetOriginalShape(info);
 }
 
+// Clears the five shape slots (neutral face).
 void SetOriginalShape(cModelInfo* info)
 {
     int i;
@@ -185,6 +192,9 @@ struct ShapeEntry {
 #define PSQ_L_S16(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,5" : "=f"(f_) : "b"(p)); f_; })
 #define PSQ_ST_S16(f, p) asm volatile("psq_st %0,0(%1),1,5" : : "f"(f), "b"(p) : "memory")
 
+// Applies shape `data` at frame `rate` to the vertex buffer `dst`: for every channel flagged 4 the
+// Hermite weight (percent / 100, x1.37 with shapeFlags bit3) scales that channel's delta list
+// (vertex index + s16 dx/dy/dz from the model's shape table) and adds it to the vertices.
 void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, u8* dst)
 {
     ShapeWork work;

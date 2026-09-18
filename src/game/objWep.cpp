@@ -39,6 +39,8 @@ public:
     virtual int keyKamae();
 };
 
+// Common weapon object setup: no collision, a 500-unit light, no motions yet, all three display
+// types (wep.disp 0x1C) shown.
 cObjWep::cObjWep()
 {
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
@@ -55,6 +57,10 @@ cObjWep::cObjWep()
     wep.disp = 0x1C;
 }
 
+// Per-frame: dispatches wep.mode (0 stay, 1 ready, 2 fire, 3 down, 4 reload, 5 drop) to the
+// module's move* virtuals, then moveAll(); hides the model unless all three display types are on
+// and the parent is drawn; follows the parent's transparency / ot_type; draws the laser sight if
+// disp bit0 was requested this frame (bit1 remembers it for the next).
 void cObjWep::move()
 {
     switch (wep.mode) {
@@ -104,6 +110,8 @@ void cObjWep::move()
     DispOff(wep.disp, 1);
 }
 
+// Sets / clears one of the three display types (0 -> disp bit2, 1 -> bit3, 2 -> bit4); the model
+// is drawn only when all three are on.
 void cObjWep::setDisp(int type, int on)
 {
     if (on == 1) {
@@ -133,6 +141,7 @@ void cObjWep::setDisp(int type, int on)
     }
 }
 
+// Hangs the weapon on parts `partsNo` of `parent` with a local offset / rotation.
 void cObjWep::parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot)
 {
     wep.parent = parent;
@@ -141,6 +150,7 @@ void cObjWep::parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot)
     pParts->ang = *rot;
 }
 
+// Detaches the weapon at its current world position (used before dropping it).
 void cObjWep::parentRelease()
 {
     pos = pParts->pParent->world;
@@ -157,6 +167,8 @@ void cObjWep::parentRelease()
     wep.parent = 0;
 }
 
+// End of the reload motion: back to the idle motion and, unless noReload, moves ammo into the
+// magazine (ItemMgr.reload).
 void cObjWep::endReload(int noReload)
 {
     resetMotion();
@@ -165,6 +177,7 @@ void cObjWep::endReload(int noReload)
     }
 }
 
+// Idle motion (the empty-magazine variant when there is no ammo), stops the weapon SE, mode 0 / step 0.
 void cObjWep::resetMotion()
 {
     void* mot;
@@ -188,11 +201,13 @@ void cObjWep::resetMotion()
     wep.step = 0;
 }
 
+// One shot: takes a round from the magazine (ItemMgr.trigger).
 void cObjWep::trigger()
 {
     ItemMgr.trigger();
 }
 
+// 1 when the magazine still has a round.
 int cObjWep::bulletNum()
 {
     if (ItemMgr.bulletNumCurrent()) {
@@ -201,11 +216,17 @@ int cObjWep::bulletNum()
     return 0;
 }
 
+// Whether a reload is possible (ammo in the inventory, magazine not full).
 int cObjWep::reloadable()
 {
     return ItemMgr.reloadable();
 }
 
+// Laser sight: from the marker line (getMarkerPos) finds the target (GetWepTargetPos: 1 map, 2
+// enemy), sets wep.target / wep.marker, draws the laser line (thicker in rooms 22C/228; a plain
+// line in shooting range mode) and the dot on an enemy; Status_flg[2] bit31 = "don't fire"
+// (target with EM_STATUS_DONT_FIRE, or a map hit with an AtEffInfo flag 2 surface within 20000).
+// In the debug collision display modes it shows satCheck() instead.
 void cObjWep::drawLaserSight(int draw, int noCalc)
 {
     static Vec lpos;
@@ -288,6 +309,8 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
     wep.marker = lcross;
 }
 
+// Laser dot (esp 0x50) at p1, scaled with the camera distance (bigger in the 22C/228 rooms / when
+// Status_flg[3] 0x02000000); red-tinted while Status_flg[1] bit0.
 void drawPoint(Vec* p0, Vec* p1)
 {
     static f32 laset_max_dist = 8000.0f;
@@ -333,6 +356,9 @@ void drawPoint(Vec* p0, Vec* p1)
     }
 }
 
+// Muzzle position and aim end for the current weapon_no: muzzle offset table `ofs` on parts 0
+// (parts 1 for weapon 0xE) and -50000 along its x axis (+50000 for 0x1C); the bows (9, 10) use
+// the camera trajectory.
 void cObjWep::getMarkerPos(Vec* pos, Vec* at)
 {
     static const Vec ofs[46] = {
@@ -379,6 +405,8 @@ void cObjWep::getMarkerPos(Vec* pos, Vec* at)
     }
 }
 
+// Weapon interrupted (event / damage / weapon change): display on, a running reload is completed,
+// idle motion.
 void cObjWep::interrupt()
 {
     setDisp(1, 1);
@@ -391,6 +419,7 @@ void cObjWep::interrupt()
     resetMotion();
 }
 
+// The hand weapon's stance key counts only while Status_flg[3] 0x00800000 allows it.
 int cObjHand::keyKamae()
 {
     if (pG->Status_flg[3] & 0x00800000) {
@@ -402,6 +431,8 @@ int cObjHand::keyKamae()
 
 #define NOHIT_COL(bit) col = 0; if ((attr & (bit)) == 0) col = 20;
 
+// Debug (Debug_flg[0] 0x08000000: scroll, 0x04000000: effect collision): casts the marker line
+// through SatMgr / EatMgr, draws the line / hit normal and prints the attribute bits by name.
 void cObjWep::satCheck()
 {
     static const char* strAt[2] = { "SCROLL ATARI INFO", "EFFECT ATARI INFO" };
@@ -461,6 +492,8 @@ void cObjWep::satCheck()
     }
 }
 
+// Draws a line from p0 toward p1 clipped to 8000 units, fading its colour with the length (the
+// shooting-range laser); alpha 0xFE in `color` disables the z test.
 void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
 {
     static f32 max_laser_dist = 8000.0f;
@@ -519,6 +552,7 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
     GXColor4u8((u8)(r * rate), (u8)(g * rate), (u8)(b * rate), (u8)(a * rate));
 }
 
+// Draw_line3d_local_222 in the current camera view matrix.
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend)
 {
     Draw_line3d_local_222(p0, p1, pG->Cam.v_mat, color, blend);

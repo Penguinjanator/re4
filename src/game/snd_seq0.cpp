@@ -1,5 +1,10 @@
+// game/snd_seq0: sound driver sequence (MIDI BGM) requests from the game side — fade / stop /
+// volume requests are set as bits on the SND_SEQ_WORK for the audio frame (snd_seq1) to execute,
+// plus the fade / end / sounding checks.
 #include "snd_drv.h"
 
+// Request on sequence `snd_id`: cmd bit0 fade to `vol` over `time` (5 ms steps), bit1 stop (quick
+// fade), bit2 set volume `time` at once. Returns 1 when the sequence is unknown.
 int Snd_seq_req(u32 snd_id, u32 cmd, u32 time, u32 vol)
 {
     int old;
@@ -11,6 +16,7 @@ int Snd_seq_req(u32 snd_id, u32 cmd, u32 time, u32 vol)
     return ret;
 }
 
+// Stores the request bits / fade parameters on the sequence work.
 int seq_req_sub(u32 snd_id, u32 cmd, u32 time, u32 vol)
 {
     SND_SEQ_WORK* seq;
@@ -30,16 +36,19 @@ int seq_req_sub(u32 snd_id, u32 cmd, u32 time, u32 vol)
     return 0;
 }
 
+// Marks every sequence of `type` for a volume recomputation (master volume changed).
 void Snd_seq_reset_vol_type(u8 type)
 {
     seq_type_sub(type, 0, 0);
 }
 
+// Fades every sequence of `type` out over `time` (0 = stop at once).
 void Snd_seq_fade_out_type(u8 type, s16 time)
 {
     seq_type_sub(type, 1, time);
 }
 
+// For every running sequence whose type matches: mode 0 volume refresh, 1 fade-out / stop request.
 void seq_type_sub(u8 type, int mode, s16 time)
 {
     SND_SEQ_WORK* seq;
@@ -73,6 +82,7 @@ void seq_type_sub(u8 type, int mode, s16 time)
     OSRestoreInterrupts(old);
 }
 
+// 1 while the sequence is fading, 0 when steady, -1 when unknown.
 int Snd_seq_fade_check(u32 snd_id)
 {
     SND_SEQ_WORK* seq;
@@ -88,6 +98,7 @@ int Snd_seq_fade_check(u32 snd_id)
     }
 }
 
+// -1 while the sequence is still queued, 1 while it plays, 0 when gone.
 int Snd_seq_end_check(u32 snd_id)
 {
     SND_REQ_WORK* req;
@@ -107,6 +118,7 @@ int Snd_seq_end_check(u32 snd_id)
     return 1;
 }
 
+// Non-zero while a sequence of `type` is queued (0x10) or playing (2).
 int Snd_seq_pronounce_ck_type(u8 type)
 {
     SND_CTRL_WORK* ctrl;
@@ -125,6 +137,7 @@ int Snd_seq_pronounce_ck_type(u8 type)
     return ret;
 }
 
+// 0x10 when the request bank holds a pending sequence play of `type`.
 int seq_pro_ck_req_work(int bank, u8 type)
 {
     SND_REQ_WORK* req;
@@ -148,6 +161,7 @@ int seq_pro_ck_req_work(int bank, u8 type)
     return 0;
 }
 
+// 2 when a sequence of `type` is active.
 int seq_pro_ck_seq_work(u8 type)
 {
     SND_SEQ_WORK* seq;

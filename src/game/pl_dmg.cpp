@@ -1,4 +1,7 @@
-// game/pl_dmg.cpp: player routine 0 (damage): normal hit, blow-away, blast, death.
+// game/pl_dmg: the player's damage routines — routine 0 == 1 (Pl_R0_Damage: normal hit, blown
+// away, blast stagger, each with the get-up steps) and routine 0 == 2 (Pl_R0_Die). Entered from
+// cPlayer::setDamage; r_no_3 carries the hit direction, m_Fwork0 the attacker's yaw (123 = keep),
+// and the motions come from the player archive (0x48.. hits, 0x4C death, 0x51 fly, 0x52 stagger).
 
 #include "atari.h"
 #include "light.h"
@@ -35,6 +38,8 @@ static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
     pl->r_no_3 = r3;
 }
 
+// Routine 0 == 1 (damage, entered by cPlayer::setDamage): r_no_1 0 normal hit, 1 blown away,
+// 2 blast stagger.
 void Pl_R0_Damage(cPlayer* pl)
 {
     static void (*funcTbl[])(cPlayer*) = {
@@ -46,6 +51,11 @@ void Pl_R0_Damage(cPlayer* pl)
     funcTbl[pl->r_no_1](pl);
 }
 
+// Damage sub-routine 0: r_no_2 0 picks the hit motion by r_no_3 (0 front, 1 back, 2/4 left, 3/5
+// right; 6 = life is 0: the collapse) turned toward m_Fwork0 (the attacker's yaw; 123 = keep),
+// then 1 plays it — the player may cut it short with a key after m_Work0 frames; life 0 goes to
+// routine 2/2 (die, already lying). r_no_2 0xA/0xB: the knocked-down variant, standing up with
+// splash effects when in water. Ends with EndPlDamage and routine 0/0.
 void damageNormal(cPlayer* pl)
 {
     void* mot = 0;
@@ -169,6 +179,9 @@ void damageNormal(cPlayer* pl)
     }
 }
 
+// Damage sub-routine 1 (blown off the feet, e.g. by a blast or a big enemy): the fly motion (0x51,
+// or 0x4E + 0x66 when dead), landing splash / dust, then the get-up (r_no_2 0xA/0xB) or routine
+// 2/2 when dead.
 void damageBlow(cPlayer* pl)
 {
     void* mot;
@@ -281,6 +294,8 @@ void damageBlow(cPlayer* pl)
     }
 }
 
+// Damage sub-routine 2 (blast stagger, motion 0x52): turns toward m_Fwork0, pained face for 20
+// frames, then back to routine 0/0.
 void damageBlast(cPlayer* pl)
 {
     f32 ang;
@@ -316,6 +331,9 @@ void damageBlast(cPlayer* pl)
     }
 }
 
+// Routine 0 == 2 (death): r_no_1 0 starts the death motion (0x4C/0x4D) with the blood effect,
+// scream (when the character has hair data — Leon), rumble at frames 40 / 70; 1 plays it, 2 holds
+// the last frame while the game-over sequence runs.
 void Pl_R0_Die(cPlayer* pl)
 {
     int no = pl->r_no_1;

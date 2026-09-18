@@ -1,3 +1,8 @@
+// game/trans_ot: the draw ordering tables (OT) — 23 tables (OT_MAX) of depth-bucketed linked
+// lists of OtData {func, data, kind}; each frame the draw code adds callbacks into a table (by
+// camera depth for the world / model tables 17 / 13, or a fixed bucket with AddOtDirect) and the
+// render pass runs the tables back to front (ExecOt), so translucent things sort by depth. The
+// entries live in the per-frame prim buffer.
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -47,6 +52,7 @@ f32 OT_MUL = 0.05f;
 asm(".section .sdata; .balign 8");
 int g_NowExecOtType;
 
+// Boot: allocates each table's bucket array (Ot_max_tbl sizes) and clears them.
 void InitOt()
 {
     OtWork* w = g_OtWork;
@@ -61,6 +67,7 @@ void InitOt()
     ClearOt();
 }
 
+// Frame start: every table's buckets emptied (and the mirror works).
 void ClearOt()
 {
     OtWork* w = g_OtWork;
@@ -72,6 +79,7 @@ void ClearOt()
     CrearOtMirrorWork();
 }
 
+// Chains the buckets of one table back-to-front with no entries.
 void clearOtWork(OtWork* w)
 {
     OtData* p;
@@ -89,6 +97,7 @@ void clearOtWork(OtWork* w)
     q->next = 0;
 }
 
+// A new entry from the frame's prim buffer; 0 when it is full.
 OtData* MakeOtData(void* data)
 {
     OtPrim* p = (OtPrim*) GetPrimBuff(sizeof(OtPrim));
@@ -100,6 +109,9 @@ OtData* MakeOtData(void* data)
     return &p->ot;
 }
 
+// Adds a callback into the world table (17) at the bucket of `pos`'s camera depth x 0.05
+// (bucket 0 when zlimit is 0); dropped when the depth is below `zlimit`. Returns the bucket,
+// 0xFFFF when not added.
 int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimit)
 {
     Camera* cam = &pG->Cam;
@@ -143,6 +155,8 @@ int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimi
     return idx;
 }
 
+// AddOtWorldPos for a sphere: frustum-culled by (pos, radius); the depth of the sphere's near side
+// must reach `zlimit`.
 int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit)
 {
     OtWork* w = otWork(17);
@@ -192,6 +206,7 @@ int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u
     return no;
 }
 
+// The same for the model table (13), with buckets of 100 depth units (0x80 buckets).
 int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit)
 {
     OtWork* w = otWork(13);
@@ -241,6 +256,8 @@ int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u
     return no;
 }
 
+// Adds a callback into table `ot` at bucket `no` (clamped), optionally frustum-culled by
+// (pos, radius). Returns the bucket, 0xFFFF when culled or out of buffer.
 extern "C" int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag, Vec* pos, f32 radius)
 {
     OtWork* w;
@@ -275,6 +292,9 @@ extern "C" int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag,
     return no;
 }
 
+// Runs table `type` from the farthest bucket to the nearest, calling each entry's func(data)
+// (g_NowExecOtType / prev_kind tell the callbacks their context); alpha compare reset afterwards.
+// Returns the number of entries drawn.
 int ExecOt(int type)
 {
     OtWork* w = &g_OtWork[type];
@@ -298,6 +318,7 @@ int ExecOt(int type)
     return count;
 }
 
+// The `kind` of the entry drawn just before the current one in the running table (0 outside ExecOt).
 u16 OtGetPrevKind()
 {
     if (g_NowExecOtType == OT_MAX) {
@@ -306,6 +327,7 @@ u16 OtGetPrevKind()
     return g_OtWork[g_NowExecOtType].prev_kind;
 }
 
+// Clears the two mirror-pass works.
 void CrearOtMirrorWork()
 {
     int i;
@@ -323,6 +345,7 @@ static void SetOtMirrorWork(u32 no)
     }
 }
 
+// Empties bucket `no` of table `type` (entries dropped, not drawn).
 void DeleteOtData(u32 type, u32 no)
 {
     OtWork* w;

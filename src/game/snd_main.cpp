@@ -1,7 +1,13 @@
+// game/snd_main: sound driver core (Capcom sound library, -O0): system start-up (AX / MIX / AXART /
+// SYN / SEQ), the audio-frame callback that runs the ISS voice manager, stream player and MIDI
+// sequencer every 5 ms, the output mode (mono / stereo / DPL2) and the per-frame control tick
+// (Snd_iss_control) with the voice / DSP load statistics.
 #include "snd_drv.h"
 
 u8 zero_tbl[0x100] __attribute__((aligned(32)));
 
+// Driver start: AI / AX / mixer / articulation / synth / sequencer libraries, the work areas, the
+// output mode from the OS setting, and the 5 ms audio-frame callback.
 void Snd_system_init(void)
 {
     AIInit(NULL);
@@ -15,6 +21,8 @@ void Snd_system_init(void)
     AXRegisterCallback(cb_audio_frame);
 }
 
+// Clears the driver control work: ARAM base (+0x100 for the zero table), request banks, random
+// seed, compressor on, and all sub-works (requests, effects, AX voices, voices, sequences, streams, test).
 void snd_work_clear(void)
 {
     SND_CTRL_WORK* ctrl;
@@ -46,6 +54,8 @@ void snd_work_clear(void)
 // t_movie/snd_test defines its own static cb_dma_end; the header must not declare this one.
 void cb_dma_end(u32 task);
 
+// Uploads 256 zero bytes to the ARAM base (the silent sample every idle voice points at) and
+// waits for the DMA.
 void zero_buff_clear(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -62,11 +72,14 @@ void zero_buff_clear(void)
     }
 }
 
+// ARQ callback: the zero-table upload finished.
 void cb_dma_end(u32 task)
 {
     Snd_ctrl_work.dma_busy = 0;
 }
 
+// AX audio-frame callback (every 5 ms): voice manager, stream refill, MIDI sequencer, then the
+// SDK per-frame services; counts Snd_ctrl_work.frame.
 void cb_audio_frame(void)
 {
     int old;
@@ -83,6 +96,7 @@ void cb_audio_frame(void)
     OSRestoreInterrupts(old);
 }
 
+// Output mode from the console setting (0 mono, 1 stereo).
 void Snd_sound_mode_init(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -95,6 +109,8 @@ void Snd_sound_mode_init(void)
     snd_mode_set_ax_mix(ctrl);
 }
 
+// Applies the saved output mode: 2 (DPL2) only when the console is set to stereo. Returns the mode
+// in effect.
 u32 Snd_sound_mode_init_load(u32 mode)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -106,11 +122,13 @@ u32 Snd_sound_mode_init_load(u32 mode)
     return ctrl->sound_mode;
 }
 
+// Current output mode (0 mono, 1 stereo, 2 DPL2).
 u32 Snd_get_sound_mode(void)
 {
     return Snd_ctrl_work.sound_mode;
 }
 
+// Sets the output mode and the console setting to match.
 void Snd_set_sound_mode(u32 mode)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -124,6 +142,7 @@ void Snd_set_sound_mode(u32 mode)
     snd_mode_set_ax_mix(ctrl);
 }
 
+// AX / MIX modes for the output mode (DPL2 = AX mode 2, MIX 3).
 void snd_mode_set_ax_mix(SND_CTRL_WORK* ctrl)
 {
     switch (ctrl->sound_mode) {
@@ -142,6 +161,7 @@ void snd_mode_set_ax_mix(SND_CTRL_WORK* ctrl)
     }
 }
 
+// Game-frame tick (from SndWatcher): random step, closes finished sequences / streams, load stats.
 void Snd_iss_control(void)
 {
     Snd_rnd();
@@ -150,6 +170,7 @@ void Snd_iss_control(void)
     Snd_dev_voice_ck();
 }
 
+// Statistics: DSP cycles, active voices / AX voices / stream channels / synth notes with their peaks.
 void Snd_dev_voice_ck(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;

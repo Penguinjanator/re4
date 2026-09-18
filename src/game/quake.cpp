@@ -1,3 +1,7 @@
+// game/quake: camera shake — up to 16 QuakeEntry requests (QuakeExec: delay, duration, amplitude,
+// axes) scheduled each frame; the strongest active one shakes pG->Cam by a pseudo-random offset
+// in camera space (QuakeMain). Rooms and effects request quakes for explosions, footsteps of the
+// giants and the like.
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -9,6 +13,7 @@ extern "C" void* memset(void* dst, int c, unsigned int n);
 QuakeWork Quake;
 static Vec QuakeOfsOld[2];
 
+// Once per frame (game loop): advances the quake entries and, while one is active, shakes the camera.
 void QuakeMove()
 {
     QuakeScheduler();
@@ -17,6 +22,7 @@ void QuakeMove()
     }
 }
 
+// Clears the 16 quake entries (room init).
 void QuakeInit()
 {
     int i;
@@ -33,6 +39,9 @@ void QuakeInit()
     Quake.rnd_idx = 0;
 }
 
+// Starts a camera shake: after `delay` frames, `time` frames of amplitude `power` (units) on the
+// axes in `axis` (bit0 x, bit1 y, bit2 z); `id` names it for QuakeKill. Silently dropped when all
+// 16 entries are busy.
 void QuakeExec(u8 id, u16 delay, s16 time, f32 power, u8 axis)
 {
     int i;
@@ -51,6 +60,7 @@ void QuakeExec(u8 id, u16 delay, s16 time, f32 power, u8 axis)
     }
 }
 
+// Stops every entry started with `id`.
 static void QuakeKill(u8 id)
 {
     int i;
@@ -67,6 +77,9 @@ static void QuakeKill(u8 id)
     }
 }
 
+// Per frame: counts the delays / times down, frees finished entries, and sets Quake.active /
+// power / axis from the strongest running entry (axes of weaker ones are or-ed in only when they
+// raise the power).
 void QuakeScheduler()
 {
     int i;
@@ -99,6 +112,8 @@ void QuakeScheduler()
     }
 }
 
+// Applies the shake: a pseudo-random offset (table rnd_tbl x power) per enabled axis, in camera
+// space, added to both the camera position and target (pG->Cam), then the up vector is redone.
 void QuakeMain()
 {
     static s8 rnd_tbl[16] = {0, -1, 1, 2, -1, 0, 1, -1, 1, -1, 0, 1, -1, -2, 0, 1};

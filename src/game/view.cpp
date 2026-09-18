@@ -1,3 +1,8 @@
+// game/view: the camera view frustum used for culling (VIEW / View): the full frustum and a
+// half-width one (for the split-screen / mirror passes) as 6 planes + 8 corner points in camera
+// and world space, plus the frustum's bounding sphere; rebuilt each frame from the camera fovy /
+// far plane (initPerspective) and orientation (orientation). Models and effects test against
+// View.world* / sphereWorld before drawing.
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -10,17 +15,20 @@
 VIEW View;
 u8 ViewHit[0xD00];
 
+// Boot: the frustum follows camera `cam` (pG->Cam).
 void VIEW::gameInit(Camera* cam)
 {
     pCam = cam;
     roomInit();
 }
 
+// Room start: rebuilds the frustum.
 void VIEW::roomInit()
 {
     init();
 }
 
+// Builds the frustum for the camera's fovy with the default near / far planes and orients it.
 void VIEW::init()
 {
     initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, ZFAR);
@@ -29,6 +37,7 @@ void VIEW::init()
     _old_zfar = _zfar;
 }
 
+// Per frame: rebuilds the frustum when the fovy or far plane changed, then orients it to the camera.
 void VIEW::move()
 {
     if (_old_fovy != pCam->param.fovy || _old_zfar != _zfar) {
@@ -39,6 +48,7 @@ void VIEW::move()
     _old_zfar = _zfar;
 }
 
+// Far plane distance used from the next frame (rooms shorten it).
 void VIEW::setFarPlane(f32 z)
 {
     _zfar = z;
@@ -249,6 +259,7 @@ static void viewSphereReset(ViewSphere* sp, f64 r)
     sp->x10 = 0.0f;
 }
 
+// Dead-stripped debug helper: a point on the sphere's ring.
 static void viewSphereRing(ViewSphere* sp, Vec* out, int div, u32 col)
 {
     Vec* p;
@@ -263,6 +274,8 @@ static void viewSphereRing(ViewSphere* sp, Vec* out, int div, u32 col)
     p->z = sp->center.z + sp->radius * c;
 }
 
+// Transforms the camera-space planes / points / sphere of both frustums into world space with the
+// camera matrix.
 void VIEW::orientation()
 {
     Mtx* m = &pG->Cam.mat;

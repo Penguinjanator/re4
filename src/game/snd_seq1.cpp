@@ -1,5 +1,11 @@
+// game/snd_seq1: sound driver MIDI sequencer, audio-frame side — Snd_midi_sequencer advances every
+// running sequence by the elapsed milliseconds: pending requests (volume, fades), the per-track
+// volume / pan overrides (tpr), then the MIDI events whose delta time has elapsed are fed to the
+// SYN synthesizer; a sequence faded to 0 ends (its notes released).
 #include "snd_drv.h"
 
+// Audio frame (every 4.995 ms): accumulates the milliseconds elapsed and runs every playing
+// sequence (status bit4) for that many milliseconds; a reset request ends them all.
 void Snd_midi_sequencer(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -26,6 +32,8 @@ void Snd_midi_sequencer(void)
     }
 }
 
+// One audio frame of a sequence: reset check, track overrides, requests, fade step, then the MIDI
+// events for each elapsed millisecond, and the master volume update.
 void seq_player(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
 {
     u32 i;
@@ -44,6 +52,7 @@ void seq_player(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
     seq_play_update(seq);
 }
 
+// During a driver reset the sequence is ended (returns 1).
 int seq_reset_check(SND_SEQ_WORK* seq)
 {
     if ((Snd_ctrl_work.reset_flag & 0x40) == 0) {
@@ -53,6 +62,8 @@ int seq_reset_check(SND_SEQ_WORK* seq)
     return 1;
 }
 
+// Applies the queued per-track parameter changes (kind 8 = volume CC 7, else pan CC 10) to the
+// channels in each entry's mask.
 void seq_tpr_check(SND_SEQ_WORK* seq)
 {
     int i;
@@ -89,6 +100,7 @@ void seq_tpr_check(SND_SEQ_WORK* seq)
     seq->tpr_num = 0;
 }
 
+// Executes one pending request: set volume (bit2), fade (bit0), quick stop (bit1: 50-step fade to 0).
 void seq_req_check(SND_SEQ_WORK* seq)
 {
     if (seq->req == 0) {
@@ -110,12 +122,14 @@ void seq_req_check(SND_SEQ_WORK* seq)
     }
 }
 
+// Volume set at once (vol2 = vol << 8, refresh flagged).
 void seq_req_vol_set(SND_SEQ_WORK* seq)
 {
     seq->vol2 = seq->vol << 8;
     seq->flag |= 0x1;
 }
 
+// Starts a fade of the 8.8 volume to `vol` in `time` steps (at least 1 per step); status 0x100.
 void seq_req_fade_set(SND_SEQ_WORK* seq, s16 time, s16 vol)
 {
     s16 diff;
@@ -133,6 +147,8 @@ void seq_req_fade_set(SND_SEQ_WORK* seq, s16 time, s16 vol)
     seq->status |= 0x100;
 }
 
+// One fade step; when the target is reached the fade ends, and a target of 0 ends the sequence
+// (returns 1).
 int seq_fade_check(SND_SEQ_WORK* seq)
 {
     if (seq->status & 0x100) {
@@ -149,6 +165,7 @@ int seq_fade_check(SND_SEQ_WORK* seq)
     return 0;
 }
 
+// Moves vol2 by `step` toward `target`, flags the refresh.
 void seq_fade_new_vol_set(SND_SEQ_WORK* seq, s16 step, s16 target)
 {
     int v;
@@ -167,6 +184,8 @@ void seq_fade_new_vol_set(SND_SEQ_WORK* seq, s16 step, s16 target)
     seq->flag |= 0x1;
 }
 
+// One millisecond of sequence time: counts the delta down by `division` and plays every event
+// that comes due (delta = next delta time x tempo).
 void seq_one_msec(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
 {
     while (1) {
@@ -186,6 +205,7 @@ void seq_one_msec(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
     }
 }
 
+// Reads the next 3-byte MIDI message at seq_pos and dispatches it (Snd_seq_midi_message).
 void seq_one_msec_main(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
 {
     u8* p;
@@ -199,6 +219,7 @@ void seq_one_msec_main(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
     Snd_seq_midi_message(ctrl, seq);
 }
 
+// Ends the sequence: volume 0, note-off for every voice work it owns, status bit4 off.
 void seq_play_end(SND_SEQ_WORK* seq)
 {
     SND_VOICE_WORK* voice;
@@ -226,6 +247,7 @@ void seq_play_end(SND_SEQ_WORK* seq)
     seq->flag = 0;
 }
 
+// Pushes a changed volume (flag bit0) to the synth master volume.
 void seq_play_update(SND_SEQ_WORK* seq)
 {
     if (seq->flag & 0x1) {

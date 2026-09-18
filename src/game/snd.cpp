@@ -47,11 +47,13 @@ static inline GlobalWork* GRefS(GlobalWork*& p)
     return p;
 }
 
+// Reads an address-taken u16 through a reference (matching helper, no semantics).
 static inline u16 RefU16(u16& x)
 {
     return x;
 }
 
+// Reads a u32 through a reference (matching helper, no semantics).
 static inline u32 RefU32(u32& x)
 {
     return x;
@@ -78,6 +80,8 @@ SndWorkPtr pSnd;
 u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
 
 
+// "Illegal SE No." error for block / number, printed once per SE (callErr bits) unless Debug_flg[2]
+// bit2 asks for every occurrence.
 static void sndCallErr(int blk, int no)
 {
     u32* p;
@@ -94,12 +98,17 @@ static void sndCallErr(int blk, int no)
     pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
 }
 
+// AXFX allocator hook: reverb buffers from the game heap.
 #line 78 SND_FILE
 static void* reverb_mem_alloc(u32 size)
 {
     return MEM_ALLOC(size, 1, 13);
 }
 
+// Boot: ARAM setup, reads the sound system files into SND_DATA_TOP — the stream tables (file 0),
+// the BGM file (0x60), the door SE table (0x68), the room BGM table (0x6A) and the sub data (0x59)
+// — lays out the per-block MRAM buffers and the four stream buffers, starts the driver and takes
+// the saved output mode.
 void SndInit()
 {
     int len;
@@ -160,6 +169,8 @@ void SndInit()
     pSys->sound_mode = Snd_get_sound_mode();
 }
 
+// Game start: clears the sound work, sets the MRAM / ARAM allocation tops for enemy blocks and BGM,
+// no enemy / BGM / door blocks loaded, the room BGM tables into the room saves.
 void SndInit2()
 {
     int i;
@@ -181,6 +192,8 @@ void SndInit2()
     memclr_asm(callErr, sizeof(callErr));
 }
 
+// Copies the default BGM / stream numbers of every listed room from the BGM table file into that
+// room's save record (SndRoomSave), so scripts can change them per save.
 void SndBgmTblInit()
 {
     SndBgmTbl* t = SndMem.bgm_tbl;
@@ -203,6 +216,8 @@ void SndBgmTblInit()
     }
 }
 
+// Starts the sound driver: reverb hooks, master volumes (SE / BGM / stream, both output types) to
+// 0x7F, the four stream ARAM addresses and MRAM buffers.
 void SndDriverInit()
 {
     int i;
@@ -221,6 +236,7 @@ void SndDriverInit()
     }
 }
 
+// Full driver restart (AX / mixer / sequencer down and up again) — used on a soft reset.
 void SndSystemReset()
 {
     SEQQuit();
@@ -232,6 +248,8 @@ void SndSystemReset()
     SndDriverInit();
 }
 
+// Pan (0..127, 64 centre) from the angle of the source around the listener (radians; behind is
+// mirrored to the front).
 static s8 sndPanCalc(f32 angle)
 {
     f32 a = fabsf(angle);
@@ -248,6 +266,7 @@ static s8 sndPanCalc(f32 angle)
     return pan;
 }
 
+// Surround pan (127 in front, falling with |angle|).
 static s8 sndSpanCalc(f32 angle)
 {
     return (s8) (127.0f - fabsf(angle) * 40.743664f);
@@ -257,6 +276,8 @@ static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol);
 static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist);
 
 // .text order of the original: the callers precede their curve helpers.
+// Volume through the room's distance curve `no` (SndRoomHdr vol_ofs); `vol` unchanged when the
+// room has none.
 static int sndVolCalc(int vol, int no, f32 dist)
 {
     SndRoomHdr* h;
@@ -276,6 +297,7 @@ static int sndVolCalc(int vol, int no, f32 dist)
     return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) vol);
 }
 
+// Interpolates the curve's value at `dist` (clamped to the ends) and scales `vol` by it / 128.
 static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
 {
     u32 i;
@@ -304,6 +326,7 @@ static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
     return (s8) (vol * 0.0078125f * r);
 }
 
+// Pitch offset from the room's distance curve `no` (pitch_ofs); 0 when none.
 static s16 sndPitchCalc(int no, f32 dist)
 {
     SndRoomHdr* h;
@@ -323,6 +346,7 @@ static s16 sndPitchCalc(int no, f32 dist)
     return sndPitchCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist);
 }
 
+// Interpolated curve value at `dist`.
 static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
 {
     u32 i;
@@ -346,6 +370,8 @@ static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
     return (s16) r;
 }
 
+// Low-pass filter value from the room's distance curve `no` (filter_ofs, stepped, not
+// interpolated); -1 when there is no curve.
 static int sndFilterCalc(int no, f32 dist)
 {
     int ret = 0;
@@ -380,6 +406,7 @@ static int sndFilterCalc(int no, f32 dist)
     return ret;
 }
 
+// 1 when block `blk` is loaded and has SE `no` (type != 0x8000).
 static int sndExistCheck(int blk, u32 no)
 {
     u32* f = pSnd->blk_flag;
@@ -398,6 +425,8 @@ static int sndExistCheck(int blk, u32 no)
 
 static int sndWallCheckSub(Vec* pos);
 
+// Muffles the SE (sit->wall_vol percent, 1..99) when a wall (effect collision 0x404000) lies
+// between the source and the player's head.
 static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 {
     if (pos == NULL) {
@@ -423,6 +452,7 @@ static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
     }
 }
 
+// 1 when the effect collision blocks the line from `pos` to the player + 1500.
 static int sndWallCheckSub(Vec* pos)
 {
     Vec a;
@@ -441,6 +471,8 @@ static int sndWallCheckSub(Vec* pos)
     return ret;
 }
 
+// SEs flagged se_flag 0x20 drop to volume 1 when the player stands in a volume-control floor area
+// (FlrAt kind 1) that does not contain the source.
 static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 {
     FlrAt* at;
@@ -466,6 +498,8 @@ static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
     }
 }
 
+// While the player is in an "inner" floor area (FlrAt kind 3), SEs with inner_vol are scaled by
+// that percent. Returns 1 when applied.
 static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
 {
     int ret = 0;
@@ -490,6 +524,9 @@ static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
 
 static void seRandomCheck(int blk, u16* no);
 
+// Footstep SE selection: numbers 0x10..0x13 pick the surface variant (+30 per surface index) from
+// the floor attribute; the others use the water check (+30) or the floor's surface (with the foot
+// effect for 0..3, else the floor system default); then the random table and existence check.
 static int footSeCheck(u16* no, Vec* pos)
 {
     FlrAt* at;
@@ -528,6 +565,9 @@ check:
     return ret;
 }
 
+// Enemy SE: finds the loaded enemy block (8..13) whose enemy id matches (family aliases: 0x10 group,
+// 0x11 group, 0x1D group; 0xFF = block 8), applies the random table, and refuses a repeat of the
+// same id / number already in the 32-entry recent history (SndEmHist). Returns 1 to play.
 static int emSeCheck(u16* blk, u16* no, int id)
 {
     int i;
@@ -603,6 +643,7 @@ static int emSeCheck(u16* blk, u16* no, int id)
     return ret;
 }
 
+// Weapon SE: number 0xF (shell drop) picks the surface variant from the floor attribute.
 static int wepSeCheck(u16* no, Vec* pos)
 {
     int ret;
@@ -628,6 +669,8 @@ struct SndRndTbl {
     u16 e[1];
 };
 
+// SEs with a random group (SIT rnd_no) are replaced by a random member of the block's random
+// table, avoiding the last one played (5 tries).
 static void seRandomCheck(int blk, u16* no)
 {
     s8 retry = 5;
@@ -666,31 +709,37 @@ static void seRandomCheck(int blk, u16* no)
 typedef u32 (*SndCallFn)(int blk, int no, Vec* pos, int id, int vol, cUnit* obj);
 typedef u32 (*SndCallFn2)(int blk, int no, int id, Vec* pos, int vol, cUnit* obj);
 
+// Enemy SE `no` of enemy `id` (block 8 + the enemy's block).
 u32 EmSeCall(int no, int id, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
     return ((SndCallFn2) SndCall)(8, no, id, pos, vol0 | vol1, obj);
 }
 
+// Room SE `no` (block 6).
 u32 RoomSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
     return ((SndCallFn) SndCall)(6, no, pos, 0, vol1 | vol0, obj);
 }
 
+// Player SE `no` (block 1).
 u32 PlSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
     return ((SndCallFn) SndCall)(1, no, pos, 0, vol0 | vol1, obj);
 }
 
+// Core (system / common) SE `no` (block 0).
 u32 CoreSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
     return ((SndCallFn) SndCall)(0, no, pos, 0, vol0 | vol1, obj);
 }
 
+// Footstep SE `no` (block 5) at `pos`.
 u32 FootSeCall(int no, Vec* pos, int vol0, int vol1)
 {
     return ((SndCallFn) SndCall)(5, no, pos, 0, vol0 | vol1, 0);
 }
 
+// Door SE `no` (block 7) when the door block is loaded.
 u32 DoorSeCall(int no)
 {
     if (!SND_BIT_CK(pSnd->blk_flag, 7)) {
@@ -701,6 +750,13 @@ u32 DoorSeCall(int no)
 
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
 
+// Plays SE `no` of block `blk` (SIT entry): block-specific number fix-ups, then pan / surround
+// pan from the camera angle, volume / pitch / filter from the room's distance curves (curve_sel)
+// unless the SE is 2D (srd_type 1), wall muffling, volume-control and inner areas, a fixed `vol`
+// override (low byte; bits 0x100..0x400 = ctrl flags, 0x80000000 = follow `pos` / `obj`); the
+// request goes to the driver (Snd_iss_req_para), BGM blocks 3 / 4 fill bgm_work, positional
+// sounds get a SndSurWork so sndSurroundCalc keeps updating them. Returns the sound id, 0 when not
+// played (missing SE, muted, volume 0, debug off).
 u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
 {
     SND_CTRL_WORK* c = &Snd_ctrl_work;
@@ -994,6 +1050,8 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     return snd_id;
 }
 
+// Sets the volume of a playing sound `id` by its type (1 SE at once, 2 sequence / 4 stream faded
+// over `time` frames). Returns 1 on success.
 int SndSetVol(u32 id, int vol, int time)
 {
     SND_CTRL_WORK* c = &Snd_ctrl_work;
@@ -1018,6 +1076,7 @@ int SndSetVol(u32 id, int vol, int time)
     return ret;
 }
 
+// Doppler pitch offset on a playing SE.
 int SndSetDopPitch(u32 id, int pitch)
 {
     SND_CTRL_WORK* c = &Snd_ctrl_work;
@@ -1031,6 +1090,7 @@ int SndSetDopPitch(u32 id, int pitch)
     return ret;
 }
 
+// Stops sound `id`: SE at once, sequence / stream faded over `time` frames. Returns 1 on success.
 int SndStop(u32 id, int time)
 {
     int ret = 0;
@@ -1051,6 +1111,7 @@ int SndStop(u32 id, int time)
     return ret;
 }
 
+// Stops every SE voice playing from block `blk`.
 void SndBlkStop(int blk)
 {
     BOOL lv = OSDisableInterrupts();
@@ -1065,6 +1126,7 @@ void SndBlkStop(int blk)
     OSRestoreInterrupts(lv);
 }
 
+// 1 when sound `id` has finished (or never played).
 int SndEndCheck(u32 id)
 {
     int ret = 0;
@@ -1090,6 +1152,10 @@ static s8 pullStrWorkNo();
 static SndPlayWork* getStrWork(int blk, int no);
 static SndPlayWork* getStrWork(u32 id);
 
+// Stream request: req bit0 = start stream `no` of block `blk` (0 room streams, 1 events) in a free
+// str_work slot (a paused one of the same number just resumes; `pos` = start seconds), bit1 =
+// make it the room's playing stream, 4 = volume `vol` over `time`, 8 = stop; other reqs address
+// the stream by blk / no (no -1 = slot blk). Returns the stream id, 0 on failure / debug off.
 u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
 {
     SndPlayWork* w;
@@ -1184,6 +1250,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
     return Snd_str_req(w->id, req, time, vol) ? 0 : w->id;
 }
 
+// Stream request on a playing stream id (4 volume, 8 stop...). Returns 1 on success.
 int SndStrReq(u32 id, int req, int time, int vol)
 {
     SndPlayWork* w;
@@ -1199,6 +1266,8 @@ int SndStrReq(u32 id, int req, int time, int vol)
     return Snd_str_req(w->id, req, time, vol) == 0;
 }
 
+// 1 when stream blk / no (no -1 = slot blk) is playing with one of the `status` bits; a dead
+// stream frees its slot.
 int SndStrStatusCk(int blk, int no, u32 status)
 {
     SndPlayWork* w;
@@ -1225,6 +1294,7 @@ int SndStrStatusCk(int blk, int no, u32 status)
     return 0;
 }
 
+// 1 when stream `id` is playing with one of the `status` bits.
 int SndStrStatusCk(u32 id, u32 status)
 {
     int s = Snd_str_get_status(id);
@@ -1235,6 +1305,7 @@ int SndStrStatusCk(u32 id, u32 status)
     return 0;
 }
 
+// A free stream slot (0..3), -1 when none.
 static s8 pullStrWorkNo()
 {
     int i;
@@ -1247,6 +1318,7 @@ static s8 pullStrWorkNo()
     return -1;
 }
 
+// The slot playing stream blk / no, or NULL.
 static SndPlayWork* getStrWork(int blk, int no)
 {
     SndPlayWork* w;
@@ -1264,6 +1336,7 @@ static SndPlayWork* getStrWork(int blk, int no)
     return NULL;
 }
 
+// The slot playing stream `id`, or NULL.
 static SndPlayWork* getStrWork(u32 id)
 {
     SndPlayWork* w;
@@ -1281,6 +1354,7 @@ static SndPlayWork* getStrWork(u32 id)
     return NULL;
 }
 
+// Fades stream blk / no to `vol` over `time`.
 int SndStrVolSet(int blk, int no, int time, int vol)
 {
     SndPlayWork* w = getStrWork(blk, no);
@@ -1292,6 +1366,7 @@ int SndStrVolSet(int blk, int no, int time, int vol)
     return ret;
 }
 
+// Fades stream blk / no back to its file volume.
 int SndStrVolReset(int blk, int no, int time)
 {
     SndPlayWork* w = getStrWork(blk, no);
@@ -1318,6 +1393,11 @@ struct SndFlrAtBgm {
     s32 str_vol;     // 0x54
 };
 
+// Once per frame (main loop): positional SE update and ambient emitters (unless Stop_flg 0x800),
+// the driver tick, house-keeping of the BGM / stream slots (finished ones freed, a stream paused
+// for 300 frames is stopped), the enemy SE history timers, and the floor-attribute BGM control
+// (FlrAt kind 2: per-slot volume set / reset and a stream start / stop while the player stands on
+// it). Skipped while Status_flg[0] 0x10000000.
 void SndWatcher()
 {
     u32 i;
@@ -1421,6 +1501,8 @@ void SndWatcher()
     debugDisp();
 }
 
+// Room change: streams not continued by the next room's save record (same number with the
+// "keep" bits 0x8000 | 0x4000) are faded (200) or stopped.
 static void nextRoomStreamCheck()
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
@@ -1458,6 +1540,9 @@ static void nextRoomStreamCheck()
     }
 }
 
+// Room change: BGM slot 0 keeps playing when the next room's record names the same BGM with the
+// keep bit (0x8000; 0x4000 clear = fade it), else both slots fade out and their blocks are freed
+// (the BGM MRAM / ARAM tops reset).
 static void nextRoomBgmCheck()
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
@@ -1504,6 +1589,8 @@ static void nextRoomBgmCheck()
     }
 }
 
+// Room change: stream / BGM continuation, all SEs faded (100 x 5 ms), the room-owned blocks (5
+// foot, 6 room, 8..13 enemies) unloaded and the allocation tops reset.
 void SndNextRoomInit()
 {
     int i;
@@ -1531,6 +1618,7 @@ void SndNextRoomInit()
     SndReadAddrInit();
 }
 
+// Resets the MRAM / ARAM allocation pointers for the room's sound blocks.
 void SndReadAddrInit()
 {
     pSnd->mram_top = SndMem.mram_end;
@@ -1544,6 +1632,9 @@ struct SndCurveEntS {
     s16 val;
 };
 
+// Room start: takes the room's "STB" sound header (reverb parameters, distance curves — scaled by
+// their `scale`, pitch values x100) or a default one, sets the reverb, loads the room's BGM /
+// stream numbers from its save record, clears the SE history. Always 0.
 int SndRoomStartInit()
 {
     u32 i;
@@ -1629,6 +1720,8 @@ struct SndDoorSe {
     SndDoorRoom e[1];
 };
 
+// Room change: looks the door SE up in the room's "DSE" table (by next_room and door_no) and reads
+// its file (0x69 entry) into block 7 unless already loaded. Returns the read request, -1 when none.
 int SndDoorSeLoad()
 {
     u32 i;
@@ -1659,6 +1752,8 @@ int SndDoorSeLoad()
     return ret;
 }
 
+// Room start: loads the BGM sequence blocks the room table names (bit15 set) for slots 0 / 1 that
+// are not already resident (waits for a fading previous BGM first).
 void SndRoomBgmLoad()
 {
     int i;
@@ -1677,6 +1772,9 @@ void SndRoomBgmLoad()
     }
 }
 
+// Room start (or `reset`): starts the BGM slots whose table entry (room_bgm_tbl[0], or the
+// alternate table pG->snd_tbl_no after a continue / reset) has the auto-start bit 0x4000 (0x2000 =
+// start at volume 1, faded in later).
 void SndRoomBgmStartCheck(int reset)
 {
     int i;
@@ -1708,6 +1806,8 @@ void SndRoomBgmStartCheck(int reset)
     }
 }
 
+// Starts (or restarts at `vol`, 0 = default) BGM slot `no` with the sequence its table entry names
+// (bits 8-9); a different running sequence is stopped first. Returns 1 when the slot has a BGM.
 int SndRoomBgmStart(u8 no, int vol)
 {
     u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (no * 16));
@@ -1736,6 +1836,7 @@ int SndRoomBgmStart(u8 no, int vol)
     return ret;
 }
 
+// Stops BGM slot `no`, faded over `time` seconds (0 = at once); stat 1 = stopped by the game.
 void SndRoomBgmStop(u8 no, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
@@ -1751,6 +1852,7 @@ void SndRoomBgmStop(u8 no, int time)
     }
 }
 
+// Fades BGM slot `no` to `vol` over `time` (driver units) when it is playing.
 int SndRoomBgmVolSet(u8 no, int vol, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
@@ -1762,6 +1864,7 @@ int SndRoomBgmVolSet(u8 no, int vol, int time)
     return ret;
 }
 
+// Fades BGM slot `no` back to its default volume.
 int SndRoomBgmVolReset(u8 no, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
@@ -1773,6 +1876,8 @@ int SndRoomBgmVolReset(u8 no, int time)
     return ret;
 }
 
+// Ducks BGM slot `no` to volume 1 (remembering the current / fading volume) or restores it, over
+// `time` seconds (-1 = at once). Returns 1 when something changed.
 int SndRoomBgmMute(u8 no, int on, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
@@ -1799,12 +1904,15 @@ int SndRoomBgmMute(u8 no, int on, int time)
     return ret;
 }
 
+// Ducks / restores both BGM slots.
 void SndRoomBgmMuteAll(int on, int time)
 {
     SndRoomBgmMute(0, on, time);
     SndRoomBgmMute(1, on, time);
 }
 
+// Room start: starts the room stream when its table entry (room_str_tbl, or the alternate table
+// on a continue) has the auto-start bit.
 void SndRoomStrStartCheck()
 {
     u32 s;
@@ -1821,6 +1929,8 @@ void SndRoomStrStartCheck()
     }
 }
 
+// Starts the room's stream (room_str_tbl[0], low byte = number) looping when `loop`, faded in over
+// `time` seconds; a paused one is faded back to its default volume.
 void SndRoomStrStart(int flag, int time, int loop)
 {
     int req = 3;
@@ -1845,6 +1955,7 @@ void SndRoomStrStart(int flag, int time, int loop)
     }
 }
 
+// Stops the room stream, faded over `time` seconds (0 = at once).
 void SndRoomStrStop(int time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
@@ -1859,6 +1970,7 @@ void SndRoomStrStop(int time)
     }
 }
 
+// Fades the room stream to `vol`.
 int SndRoomStrVolSet(int vol, int time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
@@ -1870,6 +1982,7 @@ int SndRoomStrVolSet(int vol, int time)
     return ret;
 }
 
+// Fades the room stream back to its default volume.
 int SndRoomStrVolReset(int time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
@@ -1883,6 +1996,7 @@ int SndRoomStrVolReset(int time)
 
 static void sndMuteSetMain(SndMute* m, u32 type, int on);
 
+// Mutes / unmutes output groups: bit4 SE (headphones type), bit5 BGM, bit6 SE (TV), bit7 BGM (TV).
 void SndMuteSet(int bits, int on)
 {
     if (bits & 0x10) {
@@ -1899,6 +2013,7 @@ void SndMuteSet(int bits, int on)
     }
 }
 
+// Mutes one group by saving its master volume and setting 0, or restores it.
 static void sndMuteSetMain(SndMute* m, u32 type, int on)
 {
     if (on == 1) {
@@ -1913,6 +2028,8 @@ static void sndMuteSetMain(SndMute* m, u32 type, int on)
     }
 }
 
+// Master volume `vol` (0..0x7F) of a driver channel: type bit0 / bit1 = output kind, 0x10000 SE,
+// 0x20000 sequence, 0x40000 stream. Returns 1 when the type is valid.
 int SndSetMasterVol(u32 type, int vol)
 {
     int ret = 0;
@@ -1943,6 +2060,7 @@ int SndSetMasterVol(u32 type, int vol)
     return ret;
 }
 
+// Current master volume of a driver channel (see SndSetMasterVol), -1 for an invalid type.
 int SndGetMasterVol(u32 type)
 {
     u32 t = 0;
@@ -1967,6 +2085,8 @@ int SndGetMasterVol(u32 type)
     return (t != 0) ? (s8) Snd_get_system_vol(t) : -1;
 }
 
+// Output mode 0 mono / 1 stereo / 2 surround (DPL2): from the save at `init`, else applied now
+// (reverb re-set, pans / volumes recomputed); the movie output follows (ADXT mono).
 void SndSetOutputMode(int mode, int init)
 {
     int efx = Snd_efx_get_status(0) == 1;
@@ -1992,6 +2112,8 @@ void SndSetOutputMode(int mode, int init)
     }
 }
 
+// Angle of `pos` around the listener: yaw (pan) and elevation (span) in a frame at the player's
+// position aligned with the camera, and the distance from the camera.
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
 {
     Camera* cam = &pG->Cam;
@@ -2040,6 +2162,10 @@ static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
     }
 }
 
+// Per frame: every tracked positional sound (SndSurWork) is re-panned and re-attenuated from its
+// current position (following `ppos` / the owning unit while alive): distance curves, wall /
+// volume-control / inner areas, pitch and filter; a sound that attenuates to 0 is stopped;
+// finished ones free their slot. Sequences only get their volume refreshed.
 static void sndSurroundCalc()
 {
     static int (*end_check_tbl[2])(u32) = { Snd_se_end_check, Snd_seq_end_check };
@@ -2140,6 +2266,7 @@ static void sndSurroundCalc()
     }
 }
 
+// 1 when no SE and no type 2 sequence is sounding any more (and the reverb is switched off).
 int SndStopCheck()
 {
     if (Snd_se_pronounce_ck_all() != 0) {
@@ -2152,6 +2279,7 @@ int SndStopCheck()
     return 1;
 }
 
+// Stops everything at once: SEs, sequences (type 3) and the four streams.
 void SndAllStop()
 {
     int i;
@@ -2165,6 +2293,7 @@ void SndAllStop()
     }
 }
 
+// Fades everything out over 2 seconds.
 void SndAllFadeOut()
 {
     int i;
@@ -2178,6 +2307,7 @@ void SndAllFadeOut()
     }
 }
 
+// Pauses / resumes the SEs of `type` (-1 = all).
 void SndSePause(int on, s16 type)
 {
     if (on == 1) {
@@ -2187,16 +2317,19 @@ void SndSePause(int on, s16 type)
     }
 }
 
+// Pauses all SEs unconditionally (pause menu).
 void SndSeAbsPause()
 {
     Snd_se_pause_on3();
 }
 
+// Pauses / resumes all SEs.
 void SndSePauseAll(int on)
 {
     SndSePause(on, -1);
 }
 
+// Soft reset of the driver: waits for the reset to complete, reverb off.
 void SndSoftReset()
 {
     Snd_soft_reset_req();
@@ -2206,6 +2339,9 @@ void SndSoftReset()
     Snd_efx_req(0, 0);
 }
 
+// Scenario: switches room `room` to BGM / stream table entry `no` of the BGM table file (its six
+// BGM and stream words into the room's save record, and into the live tables when it is the
+// current room). Returns 1 when found.
 int SndBgmTblSet(u16 room, int no)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(room);
@@ -2249,6 +2385,8 @@ int SndBgmTblSet(u16 room, int no)
     return ret;
 }
 
+// Sets the auto-start bits of the room's BGM slot 0 (type bit0) / slot 1 (bit1) / stream (bit2)
+// table words, also in the save record when `save`.
 void SndBgmTblSetEnable(int type, int save)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
@@ -2288,6 +2426,7 @@ void SndBgmTblSetEnable(int type, int save)
     }
 }
 
+// Clears the auto-start bits (see SndBgmTblSetEnable).
 void SndBgmTblSetDisable(int type, int save)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
@@ -2327,6 +2466,7 @@ void SndBgmTblSetDisable(int type, int save)
     }
 }
 
+// Sub screen opened: SEs paused, BGM (TV) volume halved, Stop_flg 0x800 (no positional update).
 void SndSubScreenInit()
 {
     pG->Stop_flg |= 0x800;
@@ -2334,6 +2474,7 @@ void SndSubScreenInit()
     SndSePauseAll(1);
 }
 
+// Sub screen closed: volumes and SEs back.
 void SndSubScreenExit()
 {
     SndSetMasterVol(0x10002, 0x7F);
@@ -2341,6 +2482,7 @@ void SndSubScreenExit()
     pG->Stop_flg &= ~0x800;
 }
 
+// Stops the event streams (block 1), faded over `time` seconds.
 void SndEventStrStop(int time)
 {
     u32 i;
@@ -2357,6 +2499,7 @@ void SndEventStrStop(int time)
     }
 }
 
+// Event start: SEs faded out (400) and paused, BGM ducked, Stop_flg 0x800.
 void SndEventInit()
 {
     pG->Stop_flg |= 0x800;
@@ -2365,6 +2508,8 @@ void SndEventInit()
     SndRoomBgmMuteAll(1, 2);
 }
 
+// Event end: SEs resume, BGM slots unducked — a slot that was not playing is started at its SIT
+// wall_vol volume when the room table names one.
 void SndEventEnd()
 {
     int i;
@@ -2386,6 +2531,8 @@ void SndEventEnd()
     }
 }
 
+// Enemy block slot (0..5) to load enemy `id`'s sounds into: the first free one; -1 when the id is
+// already loaded or all six are used.
 int SndEmDataReadCheck(int id)
 {
     int i;
@@ -2402,6 +2549,8 @@ int SndEmDataReadCheck(int id)
     return -1;
 }
 
+// Registers a loaded sound block with the driver: type 8 = enemy block `no` for enemy `id` (block
+// 8 + no), 3 = BGM slot `no` (block 3 + no), else block `type`; ARAM / MRAM addresses from SndMem.
 void SndBlkInit(int type, int id, int no)
 {
     int blk = type;
@@ -2427,6 +2576,7 @@ void SndBlkInit(int type, int id, int no)
     SND_BIT_SET(pSnd->blk_flag, blk);
 }
 
+// Reads BGM `no`'s data (file 0x61 entry) unless already resident.
 void SndBgmLoad(int no)
 {
     int r;
@@ -2439,6 +2589,7 @@ void SndBgmLoad(int no)
     Dvd.ReadCheck(r, 0, 0, 0);
 }
 
+// BGM slot (0 / 1) to load BGM `id` into: the first free one; -1 when loaded or both used.
 int SndBgmDataReadCheck(int id)
 {
     int i;
@@ -2455,6 +2606,8 @@ int SndBgmDataReadCheck(int id)
     return -1;
 }
 
+// Applies the room's reverb parameters (STB efx[0] for DPL2, efx[1] for the HI reverb) to the
+// driver.
 void SndSetReverb()
 {
     SND_EFX_WORK* w = &Snd_efx_work[0];
@@ -2482,6 +2635,7 @@ void SndSetReverb()
     }
 }
 
+// Debug: Debug_flg[2] 0x80000 / 0x100000 mute the SE / BGM groups while set.
 static void debug_mute_check()
 {
     static u8 flag_bak = 0; // explicit `= 0` puts it in .sdata (GCC 2.95 keeps zero initializers out of bss)
@@ -2515,6 +2669,8 @@ static void debug_mute_check()
     flag_bak = f;
 }
 
+// Room-change wait screen: prints the BGM / stream slots while sounds are still stopping and the
+// read `req` is pending; returns 1 when both are done.
 int SndStatDisp(int req)
 {
     u32 i;
@@ -2550,6 +2706,7 @@ int SndStatDisp(int req)
     return ret;
 }
 
+// Debug (Debug_flg): the SE call history, output / reverb mode, ARAM use per block and the voice list.
 static void debugDisp()
 {
     static const char* mode_tbl[3] = { "  MONO", "STEREO", "  DPL2" };
@@ -2677,16 +2834,19 @@ static void debugDisp()
     }
 }
 
+// Fades all SEs out over `sec` seconds.
 void SndSeAbsFadeOutAll_sec(int sec)
 {
     Snd_se_fade_out_all2(sec * 200);
 }
 
+// Fades all SEs out over `time` x 5 ms.
 void SndSeAbsFadeOutAll_5msec(s16 time)
 {
     Snd_se_fade_out_all2(time);
 }
 
+// Fades all sequences of `type` out over `sec` seconds.
 void SndSeqFadeOutAll_sec(u8 type, int sec)
 {
     Snd_seq_fade_out_type(type, sec * 200);

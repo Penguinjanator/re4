@@ -23,6 +23,7 @@ static inline void swapfunc(char *, char *, int, int);
 #define SWAPINIT(a, es) swaptype = ((char *)a - (char *)0) % sizeof(long) || \
 	es % sizeof(long) ? 2 : es == sizeof(long)? 0 : 1;
 
+/* Swaps n bytes between a and b, by longs when aligned (swaptype 0 / 1) else by chars. */
 static inline void swapfunc(char *a, char *b, int n, int swaptype)
 {
 	if(swaptype <= 1) 
@@ -41,6 +42,7 @@ static inline void swapfunc(char *a, char *b, int n, int swaptype)
 
 #define vecswap(a, b, n) 	if ((n) > 0) swapfunc(a, b, n, swaptype)
 
+/* Median of three elements for the pivot choice. */
 static inline char *med3(char *a, char *b, char *c, int (*cmp)())
 {
 	return cmp(a, b) < 0 ?
@@ -48,6 +50,8 @@ static inline char *med3(char *a, char *b, char *c, int (*cmp)())
               :(cmp(b, c) > 0 ? b : (cmp(a, c) < 0 ? a : c ));
 }
 
+/* BSD qsort: insertion sort below 7 elements, else median-of-three quicksort with three-way
+ * partitioning (equal keys swapped to the ends), recursing on the smaller side. */
 void qsort(void *a, size_t n, size_t es, int (*cmp)())
 {
 	char *pa, *pb, *pc, *pd, *pl, *pm, *pn;

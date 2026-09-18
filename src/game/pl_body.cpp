@@ -1,8 +1,12 @@
-// game/pl_body.cpp: player body helper (waist twist, SPAE records, weapon hand).
+// game/pl_body: cPlBody, the player's body helper kept at cEm::Body: the model infos of the head /
+// hands / arms, the waist twist applied to the spine parts each frame (waistMove; aiming turns the
+// upper body), the two face-morph (SPAE) records and the weapon-hand model the weapon module
+// supplies.
 
 #include "pl_body.h"
 #include "atari.h"
 
+// Body helper for `model` (the player): no head / hand / arm models yet, waist straight.
 cPlBody::cPlBody(cModel* model)
 {
     m_pMod = model;
@@ -18,16 +22,20 @@ cPlBody::cPlBody(cModel* model)
     m_WaistY = 0.0f;
 }
 
+// Per frame: applies the waist twist.
 void cPlBody::move()
 {
     waistMove();
 }
 
+// Sets the waist twist (radians) the next waistMove applies — aiming turns the upper body.
 void cPlBody::waistSet(f32 angle)
 {
     m_WaistY = angle;
 }
 
+// Splits m_WaistY over the spine parts 1 and 2 (half each, flags 0x40000000 = extra rotation) and
+// counter-rotates parts 3 (the hips) so the legs keep their direction.
 void cPlBody::waistMove()
 {
     PlBodyParts* p;
@@ -52,6 +60,8 @@ void cPlBody::waistMove()
     p->rot.z = 0.0f;
 }
 
+// Builds the two face-morph (SPAE) records: shape 0 fades 1 -> 0 and shape 1 fades 0 -> 1 over
+// 256 frames, used for the blink / mouth morphs.
 void cPlBody::makeSpaeData()
 {
     SpaeData* d = spae;
@@ -86,6 +96,7 @@ void cPlBody::makeSpaeData()
     }
 }
 
+// Remembers the weapon-hand model data the weapon module supplies (setRightHand(1) uses it).
 void cPlBody::initWepHand(u32 hand)
 {
     // Unused; local static consts are still emitted (trailing 0, PI/2, 256 in .rodata).

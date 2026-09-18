@@ -3,6 +3,7 @@
 
 #define UNALIGNED(X, Y) (((long)X & (sizeof(long) - 1)) | ((long)Y & (sizeof(long) - 1)))
 
+/* Lexical comparison of at most n characters. */
 int strncmp(const char *s1, const char *s2, size_t n)
 {
     unsigned long *a1;

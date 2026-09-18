@@ -7,6 +7,8 @@
 #include "main_mem.h"
 #include "db_log.h"
 
+// 1 when any vertex of the path follows model parts (nWeight != 0), i.e. the path moves with an
+// enemy and the *Em variants must be used.
 int PathHasWeight(void* path)
 {
     Path* p = (Path*)path;
@@ -22,6 +24,7 @@ int PathHasWeight(void* path)
     return 0;
 }
 
+// Total length: the last vertex's distance from the start.
 f32 PathGetLength(void* path)
 {
     Path* p = (Path*)path;
@@ -29,6 +32,8 @@ f32 PathGetLength(void* path)
     return v[p->num - 1].dist;
 }
 
+// Point at `dist` along a fixed path, linear between vertices; `seg` caches the segment and is
+// searched from there in either direction. Returns 0 (out = 0) when dist is outside 0..length.
 int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
 {
     Path* p = (Path*)path;
@@ -62,6 +67,8 @@ int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
     return 1;
 }
 
+// PathGetPos for a path attached to `model`: both segment vertices are first moved by their
+// weighted parts matrices (PathGetVtxMat).
 int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out)
 {
     Path* p = (Path*)path;
@@ -106,6 +113,9 @@ int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out)
     return 1;
 }
 
+// Full matrix at `dist` along a path on `model`: position from a Hermite curve through the segment
+// (tangents from the neighbour vertices), forward from the curve tangent, up from the vertices'
+// interpolated nrm. Returns 0 (identity) when dist is outside the path.
 int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
 {
     Path* p = (Path*)path;
@@ -281,6 +291,8 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     dst[2][2] += src[2][2] * w;            \
     dst[2][3] += src[2][3] * w
 
+// Skinning matrix of a path vertex: sum of the parts' matrices weighted by weight[] percent
+// (the last weight takes the remainder), concatenated with the same blend of their bind matrices.
 void PathGetVtxMat(Mtx out, cModel* model, PathVtx* v)
 {
     Mtx m;
@@ -309,6 +321,9 @@ void PathGetVtxMat(Mtx out, cModel* model, PathVtx* v)
     PSMTXConcat(m, m2, out);
 }
 
+// Turns the n B-spline control points of order k (id_sys path0) into the interpolation
+// coefficients `alpha` (solves the de Boor-Cox basis matrix by Gaussian inversion); temporary
+// matrices from MEM_ALLOC. Returns 1 on success.
 int FuncPathParametrize(void* path, void* data)
 {
     FuncPathData* d = (FuncPathData*)path;
@@ -411,6 +426,8 @@ int FuncPathParametrize(void* path, void* data)
     return 1;
 }
 
+// Point on the parametrised B-spline at t in 0..1: sum of the basis values times alpha. Returns 0
+// on an allocation / basis failure.
 int FuncPathCalc(void* path, void* data, Vec* out, f32 t)
 {
     FuncPathWork* w = (FuncPathWork*)data;
@@ -438,6 +455,7 @@ int FuncPathCalc(void* path, void* data, Vec* out, f32 t)
     return 1;
 }
 
+// Empties the control point list (n = 0).
 void FuncPathClear(void* path)
 {
     FuncPathData* d = (FuncPathData*)path;

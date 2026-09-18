@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/reent/writer.c */
 #include "newlib_stdio.h"
 
+/* Reentrant write(): calls the system write and stores errno in the reent. */
 long _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
 {
     long ret;

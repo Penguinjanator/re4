@@ -3,6 +3,7 @@
 
 #define ALIGNED(X) (((long)X & (sizeof(long) - 1)) == 0)
 
+/* Appends s2 to s1. */
 char *strcat(char *s1, const char *s2)
 {
     char *s = s1;

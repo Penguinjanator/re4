@@ -144,6 +144,9 @@ static inline int BitChk16(u16& f, u16 b) { return f & b; }
     (p)[3] = 's'
 
 #line 50 "D:/Bio4/Prog/read.cpp"
+// iTask body of ReadAreaData: decompresses (Yz2) the room archive read into the top of the heap
+// into a fresh pG->pRoom allocation sized to the output (at least the room budget ROOM_ARC_SIZE
+// minus what the font already uses); HALTs when it would overlap the read buffer.
 static void decodeData()
 {
     char buf[64];
@@ -173,6 +176,9 @@ static void decodeData()
     iTaskExit();
 }
 
+// Loads the current room's archive "stX/rNNN.das" (skipped when System_flg 0x02000000 says it is
+// already in memory), decompresses it on the iTask, and resolves the RTP (route points), MDT
+// (messages), OSD and EMI sub-files into pG.
 void ReadAreaData()
 {
     char name[64];
@@ -212,6 +218,8 @@ void ReadAreaData()
     PSet(pG->pEmi, GetDataExt(pG->pRoom, "EMI", 0));
 }
 
+// Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pArc) and initialises the
+// specular / illumination textures from it.
 void CoreDataRead()
 {
     DvdReadInfo info;
@@ -229,6 +237,8 @@ void CoreDataRead()
     }
 }
 
+// Boot: reads the language-dependent "SS/<lang>/option.dat" (the option menu id data) to
+// OPTION_DATA_ADDR (pG->pOption).
 void OptionDataRead()
 {
     DvdReadInfo info;
@@ -247,6 +257,8 @@ void OptionDataRead()
     }
 }
 
+// Frees a loaded module slot: unlinks the REL (flag bit1), frees the archive (bit2; debug heap
+// when bit3) and the separately copied module (bit0), clears the slot.
 void InitModule(ReadModule* m)
 {
     if (m->pModule != NULL && (m->flag & 2)) {
@@ -265,6 +277,8 @@ void InitModule(ReadModule* m)
     memclr_asm(m, sizeof(ReadModule));
 }
 
+// Loads enemy module `id` into a free slot (all display flags forced on during the load): reads
+// the data / REL and links it. Returns the archive or NULL.
 static void* readEm(int id, void* addr, u32 size)
 {
     u32 flags = pG->Disp_flg;
@@ -358,6 +372,10 @@ ReadFile EmFileTbl_Klauser[64] = {
     { 0x8C, 0x8D, 1 }, { 0x9B, 0x9C, 1 }, { 0xB6, 0xB7, 1 }, { 0x18, 0x19, 1 },
 };
 
+// Reads the enemy file for `id` from the per-character file table (EmFileTbl*; entries with a DLL
+// become "em*.drs"): to `addr`, or to a new allocation (grown to `size` if smaller) when addr is
+// NULL; the REL part after the data offset at +4 is copied out when it does not fit. Sleeps on the
+// scenario task if inside it. Fills `m`; returns 1 on success.
 int readEmData(ReadModule* m, int id, void* addr, u32 size)
 {
     DvdReadInfo info;
@@ -470,6 +488,8 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
     return 1;
 }
 
+// Links the module's REL (once, flag bit1; hangs with "BSS SIZE OVER" when its bss exceeds
+// DLL_BSS_MAX), runs its prolog and takes the EmInitFunc it registered.
 void setEmModule(ReadModule* m, int id)
 {
     ReadFile* e;
@@ -516,6 +536,7 @@ void setEmModule(ReadModule* m, int id)
     }
 }
 
+// Frees the four enemy module slots (stage / game start).
 void EmReadInit()
 {
     int i;
@@ -525,6 +546,7 @@ void EmReadInit()
     }
 }
 
+// Ashley's module: id 3 normal, 5 in the alternate costume (game_costume).
 static int checkAshleyId(int id)
 {
     if (id == 3 || id == 5) {
@@ -537,6 +559,8 @@ static int checkAshleyId(int id)
     return id;
 }
 
+// The archive of enemy module `id`: the loaded slot (its init function becomes EM_INIT_FUNC), or
+// loads it (readEm).
 void* EmReadSearch(int id, void* addr, u32 size)
 {
     ReadModule* m;
@@ -550,6 +574,7 @@ void* EmReadSearch(int id, void* addr, u32 size)
     return readEm(id, addr, size);
 }
 
+// The loaded slot for enemy module `id`, or NULL.
 ReadModule* SearchEmModule(int id)
 {
     ReadModule* m;
@@ -564,6 +589,7 @@ ReadModule* SearchEmModule(int id)
     return NULL;
 }
 
+// A free enemy module slot (pArc NULL), or NULL when all four are used.
 ReadModule* pullEmModule()
 {
     int i;
@@ -576,6 +602,9 @@ ReadModule* pullEmModule()
     return NULL;
 }
 
+// Reloads the player archive (pG->pPlayer at PL_DATA_ADDR) when pl_flag bit0 asks for it: the file
+// by character `type` and `costume` (Leon: 6 / 0x5A / 0x5B / 0x79; Ashley 0x22 / 0xBE; Ada 0xA8 /
+// 0xB4 + DLL; HUNK / Krauser / Wesker with their DLLs), links the character REL when there is one.
 void ReadPlayerData(int type, int costume)
 {
     DvdReadInfo info;
@@ -706,6 +735,7 @@ void ReadPlayerData(int type, int costume)
     PlReadModule.bssSize = bssSize;
 }
 
+// Frees the player module slot.
 void ReleasePlData()
 {
     if (PlReadModule.pArc != NULL) {
@@ -714,6 +744,7 @@ void ReleasePlData()
     }
 }
 
+// Frees the weapon module slot and forgets the loaded weapon (weapon_no_old = 0xFF).
 void ReleaseWepData()
 {
     if (pG->weapon_no_old != 0xFF) {
@@ -794,6 +825,10 @@ ReadFile wep_data_klauser[46] = {
     { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
 };
 
+// Loads the weapon module for weapon `no` / variant `type`: maps the variants onto module numbers
+// (grenades / eggs -> 0x13, the special shotgun / rifles / launcher variants) in the per-character
+// table, skips when it is already loaded (oldWepId), reads it to WEP_DATA_ADDR (Game.pWepBuf for
+// Krauser), links the REL and runs its prolog (which registers WeaponInitFunc). pG->pWep = data.
 void ReadWepData(u32 no, u32 type)
 {
     DvdReadInfo info;
@@ -961,6 +996,7 @@ void ReadWepData(u32 no, u32 type)
     pG->pWep = data;
 }
 
+// After a continue: if the weapon changed since the module was loaded, reloads the weapon.
 void ContinueWepData()
 {
     u8 old;
@@ -978,6 +1014,8 @@ void ContinueWepData()
     }
 }
 
+// The `no`-th sub-file with the three-letter `tag` ("RTP", "MDT", ...) in a tagged archive
+// (offset table + tag table); NULL when missing.
 void* GetDataExt(void* arc, const char* tag, int no)
 {
     DataExtHeader* h = (DataExtHeader*) arc;

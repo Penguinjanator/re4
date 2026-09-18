@@ -1,3 +1,9 @@
+// game/scroll: the room's static scenery ("scroll") objects. The room archive's SMD file lists
+// the models (cSmd: bin / tpl / motion tables and one SmdWork per placed model; the common SMD
+// pSmdComn holds the shared ones), the SMX file the per-id display parameters. SmdInit / SmdSetup
+// (BlockCreate) turn the works into cObj kind 2 objects, registered by scroll id in scrObjTbl
+// (250 ids; SmdGetObjPtr / SmdGetGroupObjPtr for the room scripts and effects) and per work in
+// scrTbl; BlockDestroy drops a block's objects again when the scroll block is unloaded.
 #include "types.h"
 #include "vec.h"
 #include "atari.h"
@@ -53,6 +59,8 @@ const u8* SmdGetIdNumPtr()
     return &ScrObjIdNum;
 }
 
+// Room start: takes the room's SMD / SMX and the common SMD, allocates the id and work tables.
+// Returns the number of works (0 on failure).
 int SmdInit(cSmd* smd, cSmx* smx, cSmd* comn)
 {
     if (smd == NULL) {
@@ -71,6 +79,8 @@ int SmdInit(cSmd* smd, cSmx* smx, cSmd* comn)
     return nScrWork;
 }
 
+// mode 0: forgets every scroll object; 1: forgets those belonging to a block (blk != -1), keeping
+// the SetObjSmd ones.
 void SmdClear(int mode)
 {
     int i;
@@ -93,6 +103,7 @@ void SmdClear(int mode)
     }
 }
 
+// Marks a new scroll object: kind 2, type 0, ot_type 3, no block yet, keeps moving in events.
 void workInit(cObj* obj)
 {
     obj->setNoSuspend(1);
@@ -102,6 +113,7 @@ void workInit(cObj* obj)
     obj->blk = -2;
 }
 
+// Creates the objects of the current SMD for scroll block `blk` (version check).
 void SmdSetup(int blk)
 {
     if (pSmd == NULL) {
@@ -113,6 +125,9 @@ void SmdSetup(int blk)
     setObj(blk);
 }
 
+// Creates a cObj (createBack 2) for every used SmdWork (id != 0xFF), registers it by id (0xFE = not
+// registered) and work index, gives it its model / motion / placement (SmdSetParam) and its SMX
+// parameters; a work already owned by another block is an error. Returns -1 on a model failure.
 int setObj(int blk)
 {
     SmdWork* w = pSmd->getWorkPtr(0);
@@ -152,6 +167,9 @@ int setObj(int blk)
     return 0;
 }
 
+// Model (bin / tpl from the room or the common SMD by flags bit4, with the common TPL table
+// added), motion (bit6 = common), position / rotation / scale and a bounding-box light for one
+// scroll object. Returns 0 when the model failed (object destroyed).
 int SmdSetParam(cObj* obj, SmdWork* w)
 {
     void* bin;
@@ -220,6 +238,8 @@ int SmdSetParam(cObj* obj, SmdWork* w)
     return 1;
 }
 
+// SMX display flags: bit0 be_flag 0x10, bit2 0x2000000, bit3 alpha_omit 0x80, bit4 0x8000, bit5
+// x3D0 bit0.
 void SmxSetFlag(cObj* obj, u32 flags)
 {
     if (flags & 1) {
@@ -241,6 +261,7 @@ void SmxSetFlag(cObj* obj, u32 flags)
     }
 }
 
+// The SMX flags an object currently shows (inverse of SmxSetFlag, plus bit1 from the model data).
 int SmxGetFlag(cObj* obj)
 {
     u32 be = obj->be_flag;
@@ -282,6 +303,9 @@ void smxInit(cObj* obj, u8 id)
     }
 }
 
+// Applies an SMX record: type / ot_type / cull mode / light mask / flags, the model colours
+// (colour 0 alpha = blend mode), UV scroll, and the 0x78-byte work copied into the object; a
+// non-zero type makes the object a moving one (be_flag 0x20).
 void smxInit(cObj* obj, SmxWork* w)
 {
     cModelInfo* mi;
@@ -333,12 +357,15 @@ void smxInit(cObj* obj, SmxWork* w)
     }
 }
 
+// TPL `no` of the current SMD.
 void* SmdGetTplPtr(int no)
 {
     u8* tbl = (u8*) pSmd + pSmd->TplTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
+// The scroll object with id `id` (0..0xF9); NULL (with an error unless the debug flags silence it)
+// when unknown. Complains when the id is a group head.
 cObj* SmdGetObjPtr(u32 id)
 {
     cObj* obj;
@@ -377,11 +404,13 @@ cObj* SmdGetObjPtr(u32 id)
     return scrObjTbl[id];
 }
 
+// Number of SMD works.
 int SmdGetObjNum()
 {
     return nScrWork;
 }
 
+// The scroll id of `obj` (searching the groups too), -1 when it is none.
 int SmdGetWorkId(cObj* obj)
 {
     cObj* p;
@@ -397,12 +426,14 @@ int SmdGetWorkId(cObj* obj)
     return -1;
 }
 
+// Scroll block `blk` loaded: creates its objects from `smd`.
 void BlockCreate(int blk, cSmd* smd)
 {
     pSmd = smd;
     SmdSetup(blk);
 }
 
+// Scroll block `blk` unloaded: destroys its objects (kind 2 with that blk).
 void BlockDestroy(int blk)
 {
     cObj* p = ObjMgr.pAlive;
@@ -422,6 +453,7 @@ void BlockDestroy(int blk)
     }
 }
 
+// The SMD moved in memory by `ofs`: relocates the pointers inside every used bin and tpl.
 void cSmd::slide(int ofs)
 {
     SmdWork* w = getWorkPtr(0);
@@ -466,29 +498,34 @@ void cSmd::slide(int ofs)
     }
 }
 
+// Work `no` (the works follow the group count table when Flag bit0).
 SmdWork* cSmd::getWorkPtr(int no)
 {
     return (Flag & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[no];
 }
 
+// Model bin `no`.
 void* cSmd::getBinPtr(int no)
 {
     u8* tbl = (u8*) this + BinTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
+// Texture tpl `no`.
 void* cSmd::getTplPtr(int no)
 {
     u8* tbl = (u8*) this + TplTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
+// Motion `no`.
 void* cSmd::getMotPtr(int no)
 {
     u8* tbl = (u8*) this + MotTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
+// Works in the file including the group members.
 int cSmd::getWorkNum()
 {
     int n = nModel;
@@ -508,6 +545,7 @@ int cSmd::getWorkNum()
     return n;
 }
 
+// The SmdWork with scroll id `id`, or NULL.
 SmdWork* SmdGetWorkPtr(int id)
 {
     SmdWork* w;
@@ -522,6 +560,7 @@ SmdWork* SmdGetWorkPtr(int id)
     return NULL;
 }
 
+// The head object of scroll id `id` (groups allowed); NULL when unknown.
 cObj* SmdGetGroupObjPtr(u32 id)
 {
     cObj* obj;
@@ -559,6 +598,7 @@ ok:
     return scrObjTbl[id];
 }
 
+// Head object of `id` without any error reporting.
 cObj* SmdGetGroupObjPtr2(u32 id)
 {
     if (id > 0xF9) {
@@ -567,6 +607,7 @@ cObj* SmdGetGroupObjPtr2(u32 id)
     return scrObjTbl[id];
 }
 
+// Next member of a scroll group (x3D0 bit2), NULL at the end.
 cObj* SmdGetGroupNext(cObj* obj)
 {
     if (!(obj->x3D0 & 4)) {
@@ -575,6 +616,7 @@ cObj* SmdGetGroupNext(cObj* obj)
     return ObjMgr.getPrevWork(obj);
 }
 
+// Shows / hides (be_flag bit1) every object of scroll id `id`.
 void SmdSetTrans(u32 id, int on)
 {
     cObj* obj = SmdGetGroupObjPtr(id);
@@ -593,6 +635,8 @@ void SmdSetTrans(u32 id, int on)
     } while (obj != NULL);
 }
 
+// A scenery object created by a room script (not from the SMD): blk -1, moving, bounding-box
+// light with `lightFlag`; `front` puts it at the front of the object list.
 cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int front)
 {
     cObj* obj;

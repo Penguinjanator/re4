@@ -1,3 +1,10 @@
+// game/trans_lit: GX lighting set-up for the model draws. A model carries up to 8 cLight pointers
+// picked by the light manager (LightInfo.pLight); LightSetModel turns them into GX light objects
+// (position in camera space, colour x alpha scaled by the enemy's light area, attenuation by the
+// light's type xD: 0 constant, 1 linear, 2 quadratic, 3 spot, 4 custom, 5 parallel, 6 spot-quad,
+// 7 local ambient) and sets the ambient (scenery / effect / enemy ambient, plus the model's
+// AddAmb) and material colours. The common*LightSet variants do the same for cloth, water and
+// effects; LightDisable draws unlit.
 #include "types.h"
 #include "vec.h"
 #include "gx.h"
@@ -46,6 +53,7 @@ int obj_flag;
 f32 obj_size;
 const GXColor colZero = {0, 0, 0, 0};
 
+// Boot: the black light object used by LightDisable.
 void LightSetInit()
 {
     GXInitLightColor(&lightObjBlack, colZero);
@@ -54,6 +62,11 @@ void LightSetInit()
     GXInitLightAttn(&lightObjBlack, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
+// Lighting for a model draw: unlit when LightInfo.Flag bit2; each of its lights (none when be_flag
+// 0x8000) becomes a GX light by type (type 7 only raises the ambient), the light mask is loaded;
+// self-lit models (data flags 0x40000000) use their colour as ambient; else the environment
+// ambient chosen by EnableMask (0x10 scenery, 8 effects, else enemies) plus AddAmb (be_flag 8),
+// material = the model colour.
 void LightSetModel(cModel* m)
 {
     LIGHT_FUNC_TABLE;
@@ -142,6 +155,8 @@ void LightSetModel(cModel* m)
     GXSetChanMatColor(4, mat);
 }
 
+// Lighting for a cloth chain at `pos` (no distance fade, obj_flag 0): its lights, the scenery
+// ambient, white material.
 void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
 {
     LIGHT_FUNC_TABLE;
@@ -195,6 +210,8 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
 }
 
+// Lighting for the water surface: the lights with their alpha scaled by `alpha` / 256, scenery
+// ambient, white material.
 void commonWaterLightSet(cLight** list, int n, u32 alpha)
 {
     LIGHT_FUNC_TABLE;
@@ -250,6 +267,7 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
 }
 
+// Lighting for effects: the lights (positions taken directly), the effect ambient.
 void commonEspLightSet(cLight** list, int n)
 {
     LIGHT_FUNC_TABLE;
@@ -288,6 +306,8 @@ void commonEspLightSet(cLight** list, int n)
     lightSetAmbient(&LightMgr.getEnvPtr()->AmbientEsp);
 }
 
+// Type 0: constant brightness Intensity, fading to 0 over the last normal.x units of the light's
+// radius + object size (when obj_flag).
 void lightSetConstant(cLight* l, GXLightObj* obj)
 {
     Vec p = l->World;
@@ -305,6 +325,7 @@ void lightSetConstant(cLight* l, GXLightObj* obj)
     GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
+// Type 1: brightness falls linearly to 0 at the radius.
 void lightSetLinear(cLight* l, GXLightObj* obj)
 {
     Vec p = l->World;
@@ -320,6 +341,7 @@ void lightSetLinear(cLight* l, GXLightObj* obj)
     GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
+// Type 2: constant brightness with a quadratic distance attenuation k2 that reaches 0.1 at the radius.
 static void lightSetQuadratic(cLight* l, GXLightObj* obj)
 {
     Vec p = l->World;
@@ -345,6 +367,8 @@ static void lightSetQuadratic(cLight* l, GXLightObj* obj)
     GXInitLightAttn(obj, br, zero, zero, one, zero, k2);
 }
 
+// Type 3: spot light along the light's normal, cone angle A0, brightness with the radius fade
+// (A1 = fade width), GX distance attenuation over 5000.
 void lightSetSpotlight(cLight* l, GXLightObj* obj)
 {
     Vec cdir;
@@ -373,6 +397,7 @@ void lightSetSpotlight(cLight* l, GXLightObj* obj)
     GXInitLightDistAttn(obj, 5000.0f, br, 2);
 }
 
+// Type 4: direction from the normal, the raw GX attenuation coefficients A0..A2 / K0..K2.
 void lightSetCustom(cLight* l, GXLightObj* obj)
 {
     Vec cdir;
@@ -385,6 +410,8 @@ void lightSetCustom(cLight* l, GXLightObj* obj)
     GXInitLightAttn(obj, sp->A0, sp->A1, sp->A2, sp->K0, sp->K1, sp->K2);
 }
 
+// Type 5: directional light — placed at the object + the normal (in camera space when flags
+// bit0), brightness with the radius fade.
 void lightSetParallel(cLight* l, GXLightObj* obj)
 {
     Vec p;
@@ -418,6 +445,7 @@ void lightSetParallel(cLight* l, GXLightObj* obj)
     GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
+// Type 6: spot light with a quadratic distance attenuation scaled by the brightness.
 void lightSetSpotQuad(cLight* l, GXLightObj* obj)
 {
     Vec cdir;
@@ -451,6 +479,8 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
     GXInitLightAttnK(obj, 1.0f / br, 0.0f, k2);
 }
 
+// Type 7: a local ambient light — raises the ambient colour to its colour within the radius
+// (faded over the last normal.x units).
 void lightSetLocalAmb(cLight* l, GXColor* amb)
 {
     Vec p = l->World;
@@ -473,6 +503,8 @@ void lightSetLocalAmb(cLight* l, GXColor* amb)
     amb->b = MAX(amb->b, c.b);
 }
 
+// GX light colour = DispCol.rgb x alpha / 128 (x the enemy's light-area scale when this is the
+// area's light), clamped, alpha 0x80.
 void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
 {
     f32 col[3];
@@ -504,11 +536,13 @@ void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
     GXInitLightColor(obj, c);
 }
 
+// Ambient colour of both colour channels.
 void lightSetAmbient(GXColor* col0)
 {
     GXSetChanAmbColor(4, *col0);
 }
 
+// Unlit draw: the black light, one channel with vertex colour only, black material / ambient.
 void LightDisable()
 {
     GXLoadLightObjImm(&lightObjBlack, 1);

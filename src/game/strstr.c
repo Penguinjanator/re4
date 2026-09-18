@@ -1,6 +1,7 @@
 /* newlib libc/string/strstr.c */
 #include "newlib_local.h"
 
+/* First occurrence of lookfor in searchee, NULL when absent. */
 char *strstr(const char *searchee, const char *lookfor)
 {
     if (*searchee == 0) {

@@ -1,5 +1,10 @@
+// game/snd_str4: sound driver stream works (SND_STR_WORK, 4 slots): clear / lookup / close, the AX
+// volume and surround pan computation, DVD error detection (drive state, read starvation) with
+// the muted error-fade recovery, the per-frame MIX parameter update, and the pre-play parameter /
+// start position setters used by the game (snd.cpp SndStrReq).
 #include "snd_drv.h"
 
+// Clears the 4 stream works (numbered).
 void Snd_str_work_clear(void)
 {
     SND_STR_WORK* str;
@@ -17,6 +22,7 @@ void Snd_str_work_clear(void)
     }
 }
 
+// The active stream work with sound id `snd_id`, or NULL.
 SND_STR_WORK* Snd_search_str_work_snd_id(u32 snd_id)
 {
     SND_STR_WORK* str;
@@ -38,6 +44,7 @@ SND_STR_WORK* Snd_search_str_work_snd_id(u32 snd_id)
     return NULL;
 }
 
+// Game-frame tick: frees streams that reached the closed state (5).
 void Snd_str_work_close_check(void)
 {
     SND_STR_WORK* str;
@@ -54,6 +61,7 @@ void Snd_str_work_close_check(void)
     }
 }
 
+// AX volume from the system BGM (type 2) or SE volume x the stream master x the 8.8 volume.
 void Snd_str_work_calc_ax_vol(SND_STR_WORK* str)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -67,6 +75,7 @@ void Snd_str_work_calc_ax_vol(SND_STR_WORK* str)
     str->ax_vol = Snd_vol_syn_to_ax((s16) (str->calc_vol >> 8));
 }
 
+// Surround pan sent to MIX: the stream's in DPL2 mode, else 0x7F.
 void Snd_str_work_choice_out_span(SND_STR_WORK* str)
 {
     if (Snd_get_sound_mode() == 2) {
@@ -76,6 +85,9 @@ void Snd_str_work_choice_out_span(SND_STR_WORK* str)
     }
 }
 
+// Reads the DVD command state: fatal (err 1), no disc / cover / wrong disc / retry (2), or more
+// than 6 reads outstanding (4); any error sets status 0x8000 and reports the drive state in
+// ctrl->dvd_err (the game shows the disc error screen).
 void Snd_str_get_dvd_status(SND_STR_WORK* str)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -113,6 +125,8 @@ void Snd_str_get_dvd_status(SND_STR_WORK* str)
     }
 }
 
+// Playing with a DVD error: mutes, and once reads are pending stops the voices and enters the
+// error state (6) with an error fade back to the current volume prepared for the recovery.
 void Snd_str_err_check(SND_STR_WORK* str)
 {
     s32 vol;
@@ -134,6 +148,7 @@ void Snd_str_err_check(SND_STR_WORK* str)
     str->state = 6;
 }
 
+// Pushes upd bits to MIX: 1 volume (recomputed unless 4), 2 pan / surround pan (stereo hard L / R).
 void Snd_str_player_update(SND_STR_WORK* str)
 {
     if (str->voiceL == NULL) {
@@ -164,6 +179,8 @@ void Snd_str_player_update(SND_STR_WORK* str)
     str->upd = 0;
 }
 
+// Before play: sets pan (flag 2), surround pan (4), volume (8), AUX A (0x20) / B (0x40) or the
+// cancel mode (0x1000) of a prepared stream. 1 when unknown.
 int Snd_str_init_para(u32 snd_id, s16 flag, s16 val)
 {
     SND_STR_WORK* str;
@@ -193,6 +210,7 @@ int Snd_str_init_para(u32 snd_id, s16 flag, s16 val)
     return 0;
 }
 
+// Before play: start at block `pos` (read offset and play position moved).
 int Snd_str_init_pos(u32 snd_id, u32 pos)
 {
     SND_STR_WORK* str;
@@ -208,6 +226,8 @@ int Snd_str_init_pos(u32 snd_id, u32 pos)
     return 0;
 }
 
+// Samples per ring block of a stream (32 KB stereo / 64 KB mono, 14 samples per 16 bytes) — used to
+// turn a start time into a block number.
 u32 Snd_str_get_buff_smp(u16 blk_no, u16 req_no)
 {
     SND_SHD* shd;

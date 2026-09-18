@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/vsprintf.c */
 #include "newlib_stdio.h"
 
+/* Formats an argument list into `str` through a string FILE. */
 int vsprintf(char *str, const char *fmt, va_list ap)
 {
     int ret;

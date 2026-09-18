@@ -1,4 +1,7 @@
-// game/pl_leon.cpp: Leon player class: model set (body, hands, head, face), motion table, cloth.
+// game/pl_leon: cPlLeon, the player class for Leon and the other gun-carrying characters (the
+// character is chosen by pl_type / costume in the archive data): model set (body, costume extras,
+// face morph head, hair, eyes, wound overlay), weapon load, the extra motions, hands and face
+// morphs, and the partner command key (checkXbutton). Cloth runs through pl_cloth.
 
 #include "atari.h"
 #include "light.h"
@@ -35,6 +38,9 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
+// Builds the main player (Leon, and the other gun-carrying characters through pl_type / costume):
+// common init, model set, the equipped weapon (weapon_no / weapon_type) and its motion table, the
+// extra motions, effect data (archive 0x1A), foot shadows.
 cPlLeon::cPlLeon()
 {
     PlArc* arc;
@@ -52,6 +58,7 @@ cPlLeon::cPlLeon()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// Fills pMotTbl 0x5F..0x6C (the ladder / crouch / partner-command motions) from archive 0x32..0x3F.
 void cPlLeon::setMotion()
 {
     PSet(pMotTbl[0x5F], PL_ARC_PTR(pG->pPlayer, 0x32));
@@ -70,11 +77,15 @@ void cPlLeon::setMotion()
     PSet(pMotTbl[0x6A], PL_ARC_PTR(pG->pPlayer, 0x3F));
 }
 
+// Just cPlayer::move (the cloth runs through the moveCloth virtual).
 void cPlLeon::move()
 {
     cPlayer::move();
 }
 
+// Loads the body (archive 4/5) and adds the costume extras (0xA for costume 0, 0x10 for 1-3), the
+// face (0xD, Body->pFace), head shape (8, pShape / pHeadData), hair (6) and eyes (9, be_flag
+// 0x40), then the default face, empty right hand and left hand 1.
 void cPlLeon::setModel()
 {
     cModelInfo* info;
@@ -151,6 +162,7 @@ void cPlLeon::setModel()
     setLeftHand(1);
 }
 
+// Adds the wounded-arm overlay model (archive 0xE/0xF) — the chapter 5 injured Leon.
 void cPlLeon::setWound()
 {
     cModelInfo* info;
@@ -163,6 +175,8 @@ void cPlLeon::setWound()
     }
 }
 
+// Right hand model: 0 empty (archive 0x12), 1 the weapon grip hand (Body->pWepHand), anything else
+// is taken as model data itself. Texture 0x11. A create failure HALTs.
 void cPlLeon::setRightHand(int no)
 {
     void* data;
@@ -195,6 +209,8 @@ void cPlLeon::setRightHand(int no)
     }
 }
 
+// Left hand model 0-5 (archive 0x14..0x19: open, closed, the weapon grips); 0x63 = the previous
+// hand again (oldLhandNo).
 void cPlLeon::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -243,6 +259,7 @@ void cPlLeon::setLeftHand(u32 no)
     }
 }
 
+// Face morph on the head shape: 0 ends the morph (neutral), 1 pain (archive 0x62), 2 (0x63).
 void cPlLeon::setFace(int no)
 {
     void* data = 0;
@@ -268,6 +285,8 @@ void cPlLeon::setFace(int no)
     }
 }
 
+// no == 0: replaces the morphable head + hair + eyes with the plain head model (archive 0xB/7) —
+// used when the head is swapped for an event.
 void cPlLeon::setHead(int no)
 {
     cModelInfo* info;
@@ -290,6 +309,7 @@ void cPlLeon::setHead(int no)
     }
 }
 
+// Replaces the morphable head + hair + eyes with the given head model.
 void cPlLeon::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -309,6 +329,9 @@ void cPlLeon::setHead(void* bin, void* tpl)
     }
 }
 
+// Partner command key (Key 0x200, every 8 frames at most) while Ashley (pSUB id 3) follows:
+// toggles her between "wait" (SubCharCtrl 1) and "follow" (0) with the call SE; Status_flg[1] bit2
+// = the partner command is available. Returns 1 when a command was issued.
 int cPlLeon::checkXbutton()
 {
     if (m_CmdTimer) {

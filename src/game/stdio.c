@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/stdio.c */
 #include "newlib_stdio.h"
 
+/* Default FILE read: _read_r on the descriptor, tracking the offset (or dropping it on error). */
 int __sread(void *cookie, char *buf, int n)
 {
     register FILE *fp = (FILE *)cookie;
@@ -17,6 +18,7 @@ int __sread(void *cookie, char *buf, int n)
     return ret;
 }
 
+/* Default FILE write: seeks to the end in append mode, then _write_r. */
 int __swrite(void *cookie, char const *buf, int n)
 {
     register FILE *fp = (FILE *)cookie;
@@ -27,6 +29,7 @@ int __swrite(void *cookie, char const *buf, int n)
     return _write_r(fp->_data, fp->_file, buf, n);
 }
 
+/* Default FILE seek: lseek, remembering the offset. */
 fpos_t __sseek(void *cookie, fpos_t offset, int whence)
 {
     register FILE *fp = (FILE *)cookie;
@@ -42,6 +45,7 @@ fpos_t __sseek(void *cookie, fpos_t offset, int whence)
     return ret;
 }
 
+/* Default FILE close. */
 int __sclose(void *cookie)
 {
     FILE *fp = (FILE *)cookie;

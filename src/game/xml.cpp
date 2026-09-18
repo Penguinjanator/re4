@@ -1,3 +1,5 @@
+// game/xml: XmlSimple, a minimal tag reader / writer over C strings (the tool-side "XSDSchemaSof"
+// node files: <Node> blocks of <name>value</name> elements); string search only, no parser.
 #include "types.h"
 #include "xml.h"
 
@@ -10,6 +12,7 @@ char* strstr(const char* s, const char* sub);
 int sprintf(char* buf, const char* fmt, ...);
 }
 
+// Finds "<tag" in `src`; *out = its position. 0 when absent.
 int XmlSimple::GetXmlStart(char** out, const char* src, const char* tag)
 {
     char buf[256];
@@ -23,11 +26,13 @@ int XmlSimple::GetXmlStart(char** out, const char* src, const char* tag)
     return 1;
 }
 
+// The next "<tag" after position `src`.
 int XmlSimple::GetXmlNext(char** out, const char* src, const char* tag)
 {
     return GetXmlStart(out, src + 1, tag);
 }
 
+// Copies the text between "<tag>" and "</tag>" into `out`. 0 when either is missing.
 int XmlSimple::GetXmlElem(char* out, const char* src, const char* tag)
 {
     char start[256];
@@ -57,6 +62,7 @@ int XmlSimple::GetXmlElem(char* out, const char* src, const char* tag)
     return 1;
 }
 
+// Writes the document opening tag; *size grows by its length.
 int XmlSimple::SetXmlStart(int* size, char* buf)
 {
     strcpy(buf, "<XSDSchemaSof xmlns=\"http://tempuri.org/XSDSchemaSof.xsd\">\n");
@@ -64,6 +70,7 @@ int XmlSimple::SetXmlStart(int* size, char* buf)
     return 1;
 }
 
+// Writes the document closing tag.
 int XmlSimple::SetXmlEnd(int* size, char* buf)
 {
     strcpy(buf, "</XSDSchemaSof>\n");
@@ -71,6 +78,7 @@ int XmlSimple::SetXmlEnd(int* size, char* buf)
     return 1;
 }
 
+// Writes "<Node>".
 int XmlSimple::SetXmlElemStart(int* size, char* buf)
 {
     strcpy(buf, "\t<Node xmlns=\"\">\n");
@@ -78,6 +86,7 @@ int XmlSimple::SetXmlElemStart(int* size, char* buf)
     return 1;
 }
 
+// Writes "</Node>".
 int XmlSimple::SetXmlElemEnd(int* size, char* buf)
 {
     strcpy(buf, "\t</Node>\n");
@@ -85,6 +94,7 @@ int XmlSimple::SetXmlElemEnd(int* size, char* buf)
     return 1;
 }
 
+// Writes "<name>value</name>".
 int XmlSimple::SetXmlElem(int* size, char* buf, const char* name, const char* value)
 {
     char tmp[256];

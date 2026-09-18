@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/refill.c */
 #include "newlib_stdio.h"
 
+/* Flushes a line-buffered output stream (used before reading from another stream). */
 int lflush(FILE *fp)
 {
     if ((fp->_flags & (__SLBF | __SWR)) == __SLBF | __SWR)
@@ -13,6 +14,8 @@ int lflush(FILE *fp)
  * Return EOF on eof or error, 0 otherwise.
  */
 
+/* Refills a stream's read buffer: handles EOF / error / write-mode switching, flushes
+ * line-buffered streams first, then reads one buffer full. Returns EOF at end / error. */
 int __srefill(register FILE *fp)
 {
     /* make sure stdio is set up */
