@@ -115,6 +115,8 @@ void msqCameraMove();
 void msqErrorMessage();
 void msqFrameSizeCk();
 
+// Tool routines by MsqWork::mode: 0 model select, 1 sequence file load, 2 new sequence parameters,
+// 3 sequence editing, 4 resize, 5 file menu, 6 quit check, 7 quit.
 static void (*msqFunc[8])() = {
     msq_R0_Model,    msq_R0_SeqLoad, msq_R0_SeqMake, msq_R0_Sequence,
     msq_R0_SeqResize, msq_R0_File,   msq_R0_QuitCk,  msq_R0_Quit,
@@ -126,6 +128,7 @@ static int msq_y_tbl[21] = {
     0x62, 0x70, 0x7E, 0x8C, 0x9A, 0xA8, 0xB6, 0xC4, 0,
 };
 
+// Switches the tool routine and resets its sub cursors.
 static inline void msqSetMode(int mode)
 {
     MSQ->mode = mode;
@@ -134,6 +137,9 @@ static inline void msqSetMode(int mode)
     MSQ->sub3 = 0;
 }
 
+// MOTION SEQUENCE TOOL entry (debug menu 6): init, then every frame the pad snapshot / debug
+// camera (START toggles it), msqFunc[mode], the display, the sub stick up (bit 23) SE bank switch
+// (enemy / player) and the model animation (dbModMotionMove).
 void ToolMotSeq()
 {
     msqToolInit();
@@ -154,6 +160,8 @@ void ToolMotSeq()
     }
 }
 
+// Tool start: work allocated (Debug heap), room arrays parked, default tool flags, tool light 2,
+// db_mod viewer started (dbModelInit), colours; starts in the model select routine.
 void msqToolInit()
 {
     int i;
@@ -219,6 +227,8 @@ void msqToolInit()
     msqSetMode(0);
 }
 
+// Mode 0: the db_mod menu picks the model / motion into slot 0 (dbModel); B there opens the
+// EXIT: YES/NO prompt; a loaded model goes to the sequence load routine.
 static void msq_R0_Model()
 {
     JOY* joy = &Joy[0];
@@ -264,6 +274,8 @@ static void msq_R0_Model()
     }
 }
 
+// Mode 1: picks the sequence number 0..7 (left/right) of the motion file (<motion>N.seq); A loads
+// it (existing file -> editing, else -> new sequence parameters), B back to the model select.
 static void msq_R0_SeqLoad()
 {
     MsqWork* w = MSQ;
@@ -310,6 +322,8 @@ static void msq_R0_SeqLoad()
     }
 }
 
+// Mode 2, --New Sequence--: Start / End / Add frame rows (d-pad, R x10) within the motion length;
+// A builds the keys (msqMakeSequence) and enters editing; B back.
 static void msq_R0_SeqMake()
 {
     cModel* m = dbModSlot[0].pModel;
@@ -412,6 +426,8 @@ static void msq_R0_SeqMake()
     }
 }
 
+// Mode 4, RESIZE: rebuilds the key list at the new frame count keeping the flags / SE of the old
+// keys, then back to editing.
 static void msq_R0_SeqResize()
 {
     MsqWork* w = MSQ;
@@ -522,6 +538,11 @@ static inline void msqFrameStep(s16 cur, u32 on, int sub)
     }
 }
 
+// Mode 3, the key editor: the motion plays (A + sub stick skips frames, X/Y with the L/R
+// combinations add / delete a key at the current frame, R+Z / L+Z / L+R+Z copy / paste / cut a
+// key); up/down pick the row (frame, 8 flag bits, SE number), left/right toggle the flag or step
+// the SE; Z switches the SE bank test, B opens the file menu. SEs of the key are played on the
+// model as the sequence passes them.
 static void msq_R0_Sequence()
 {
     MsqWork* w = MSQ;
@@ -735,6 +756,8 @@ static void msq_R0_Sequence()
     }
 }
 
+// Mode 5, the file menu: CANCEL, SPEED (off / on / on + position reset), SAVE, RELOAD, RESIZE,
+// SAVE & EXIT, RENEWAL (new sequence), EXIT; B back to editing.
 static void msq_R0_File()
 {
     MsqWork* w = MSQ;
@@ -818,6 +841,7 @@ static void msq_R0_File()
     }
 }
 
+// Mode 6: EXIT YES/NO (unsaved changes) -> quit or back to editing.
 static void msq_R0_QuitCk()
 {
     MsqWork* w = MSQ;
@@ -858,6 +882,8 @@ static void msq_R0_QuitCk()
     }
 }
 
+// Mode 7: closes the viewer (dbModelQuit), restores the arrays / flags / light, frees the work and
+// ends the task.
 static void msq_R0_Quit()
 {
     dbModelQuit();
@@ -984,6 +1010,9 @@ void msqSeqFrameAdd(int no, u32 step, int sub)
     }
 }
 
+// Draws the tool: title, the routine's rows (file menu, sequence number / file name, new sequence
+// parameters, the current key's frame / flags / SE and the copy buffer, sequence and motion frame
+// counters, the HELP column) with the ">" cursor from msq_y_tbl.
 void msqDisp()
 {
     MsqWork* w = MSQ;
@@ -1225,16 +1254,19 @@ void msqDisp()
     }
 }
 
+// Reads the .seq file (count + keys) into the work; 1 when more than the header was read.
 int msqLoadFile()
 {
     return (u32) HDRead(MSQ->fileName, MSQ) > 3;
 }
 
+// Writes the count + keys to the .seq file.
 int msqSaveFile()
 {
     return HDWrite(MSQ->fileName, MSQ, MSQ->seq[0].num * 4 + 4);
 }
 
+// START toggles camera mode: the debug camera takes pad 1 and the tool's pad copy is cleared.
 void msqCameraMove()
 {
     MSQ->joy = Joy[0];
@@ -1251,6 +1283,7 @@ void msqCameraMove()
     }
 }
 
+// Shows "Sequence frame > / < Motion frame !!!" for errTimer frames after a mismatch.
 void msqErrorMessage()
 {
     if (MSQ->errTimer != 0) {

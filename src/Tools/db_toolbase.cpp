@@ -20,6 +20,7 @@ u32 MakeCol(f32 r, f32 g, f32 b, f32 a)
     return col;
 }
 
+// Screen-space rectangle outline (four Draw_line) in a 0..1 float colour.
 void DbgDrawBox(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
 {
     Vec p0;
@@ -50,6 +51,7 @@ void DbgDrawBox(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
     Draw_line(&p0, &p1, MakeCol(r, g, b, a));
 }
 
+// Filled screen-space rectangle (Draw_quad) in a 0..1 float colour.
 void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
 {
     Vec p0;
@@ -62,6 +64,9 @@ void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
     Draw_quad(&p0, &p1, MakeCol(r, g, b, a));
 }
 
+// Adds a button at text cell (bx, by) inside the window with cursor coordinates (bcx, bcy; 0xFFFF =
+// not selectable) and its exec / update callbacks; grows the window size and cursor range, the
+// first selectable button becomes current / top, the last one bottom.
 void cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy, void (*func)(cDbgButton*),
                            void (*update)(cDbgButton*))
 {
@@ -95,6 +100,7 @@ void cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy, v
     m_nBut++;
 }
 
+// Finds the button at cursor cell (bcx, bcy); 1 and *out when found.
 int cDbgWindow::FindButton(int bcx, int bcy, cDbgButton** out)
 {
     u32 i;
@@ -109,6 +115,8 @@ int cDbgWindow::FindButton(int bcx, int bcy, cDbgButton** out)
     return 0;
 }
 
+// Window input (pad 1, repeat): d-pad / stick move the cursor over the button grid with wrap,
+// every button's update callback runs; returns 0 on B (close the window).
 int cDbgWindow::LocalUpdate()
 {
     int ret = 1;
@@ -157,6 +165,8 @@ int cDbgWindow::LocalUpdate()
     return ret;
 }
 
+// Draws the button labels (row 0 is the title line), the blinking ">" before the current button
+// and its highlight box.
 void cDbgWindow::LocalDisp()
 {
     u32 i;

@@ -164,6 +164,9 @@ static inline void eminfoCursorCenter()
 // Blinking cursor mark: on for half of the frames, always while a button is held.
 #define eminfoBlink() ((TOOL_FLAG(0x51E4) & 0x10) || W->joy.on)
 
+// Enemy info editor entry (debug menu 35): loads the room's .emi, then every frame moves the debug
+// camera / cursor (TutilMoveCursor), finds the point nearest the cursor and runs tbl[mode]: 0 menu,
+// 1 move (pick), 2 catch (drag), 3 detail, 4 clear, 5 save, 6 load; draws everything.
 void ToolEmInfo()
 {
     void (*tbl[7])() = {
@@ -183,6 +186,8 @@ void ToolEmInfo()
     }
 }
 
+// Tool start: allocates the work and the file buffer, default tool flags, mode 1, loads
+// x:\soft\room\st<n>\r<room>\r<room>.emi and centres the cursor.
 void eminfoInit()
 {
     EmInfoTool* p;
@@ -210,6 +215,7 @@ void eminfoInit()
     W->camMode = 0;
 }
 
+// Frees the work, restores the flags and ends the task.
 void eminfoExit()
 {
     TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
@@ -221,6 +227,7 @@ void eminfoExit()
     TaskExit();
 }
 
+// Mode 0, the B menu: Cancel / Save (mode 5) / Load (6) / Clear data (4) / Exit.
 static void eminfo_r0_menu()
 {
     if (W->joy.rep2 & (JOY_UP | JOY_SUP)) {
@@ -276,6 +283,7 @@ static void eminfo_r0_menu()
     }
 }
 
+// "Clear data ?" YES/NO: YES empties the point list.
 static void eminfo_r0_clear()
 {
     if (W->joy.rep2 & (JOY_LEFT | 0x10000)) {
@@ -310,6 +318,7 @@ static void eminfo_r0_clear()
     }
 }
 
+// "Save data ?" YES/NO: YES writes the .emi (eminfoFileSave).
 static void eminfo_r0_save()
 {
     if (W->joy.rep2 & (JOY_LEFT | 0x10000)) {
@@ -343,6 +352,7 @@ static void eminfo_r0_save()
     }
 }
 
+// "Load data ?" YES/NO: YES re-reads the .emi.
 static void eminfo_r0_load()
 {
     if (W->joy.rep2 & (JOY_LEFT | 0x10000)) {
@@ -376,6 +386,10 @@ static void eminfo_r0_load()
     }
 }
 
+// Mode 1, free cursor: A on the nearest point selects it and drags it (mode 2), Y opens the
+// selected point's detail (mode 3), sub stick up/down moves its height by 500, L cycles the
+// selection through the points, X adds a new point (a copy of the template) under the cursor,
+// B opens the menu.
 static void eminfo_r0_move()
 {
     if (W->joy.trg & JOY_B) {
@@ -427,6 +441,9 @@ static void eminfo_r0_move()
     }
 }
 
+// Mode 2, dragging while A is held: the point follows the cursor on its height (Get3DPosFrom2D),
+// L/R rotate its direction, sub stick up/down change the height, Z deletes it; releasing A returns
+// to mode 1.
 static void eminfo_r0_catch()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -464,6 +481,7 @@ static void eminfo_r0_catch()
     }
 }
 
+// Detail of a free slot: A back to mode 1.
 static void Detail00Update()
 {
     if (W->joy.trg & JOY_A) {
@@ -473,6 +491,8 @@ static void Detail00Update()
     }
 }
 
+// Detail row select: up/down over WorkType / Pos X/Y/Z / Dir / Work0..2 / EXIT, A edits the row
+// (sub 1..8) or exits, B back; the point also becomes the copy template.
 static void Detail01UpdateSel()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -544,6 +564,7 @@ static void Detail01UpdateSel()
     W->copy = *p;
 }
 
+// WorkType row: up/down pick the type name (workTypeName), A applies, B cancels.
 void Detail01UpdateWorkType()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -597,6 +618,7 @@ void Detail01UpdateWorkType()
     }
 }
 
+// Pos X row: up/down (repeat) +-1 unit, R x10, L x100; B back.
 void Detail01UpdatePosX()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -628,6 +650,7 @@ void Detail01UpdatePosX()
     eprintf(104, 80, 4, 0, "%.2f", p->Pos.x);
 }
 
+// Pos Y row: same as Pos X.
 void Detail01UpdatePosY()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -659,6 +682,7 @@ void Detail01UpdatePosY()
     eprintf(104, 80, 4, 0, "%.2f", p->Pos.y);
 }
 
+// Pos Z row: same as Pos X.
 void Detail01UpdatePosZ()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -690,6 +714,7 @@ void Detail01UpdatePosZ()
     eprintf(104, 80, 4, 0, "%.2f", p->Pos.z);
 }
 
+// Dir row: up/down change the facing angle (radians, wrapped); B back.
 void Detail01UpdateDir()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -722,6 +747,7 @@ void Detail01UpdateDir()
     }
 }
 
+// Work0 row: up/down +-1 (R x8, L x16) on the type-specific byte; B back.
 void Detail01UpdateWork0()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -753,6 +779,7 @@ void Detail01UpdateWork0()
     }
 }
 
+// Work1 row: same as Work0.
 void Detail01UpdateWork1()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -784,6 +811,7 @@ void Detail01UpdateWork1()
     }
 }
 
+// Work2 row: same as Work0.
 void Detail01UpdateWork2()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -815,6 +843,7 @@ void Detail01UpdateWork2()
     }
 }
 
+// Detail of a typed point: runs the row editor for `sub` (0 select, 1..8 the rows).
 static void Detail01Update()
 {
     void (*tbl[9])() = {
@@ -825,6 +854,7 @@ static void Detail01Update()
     tbl[W->sub]();
 }
 
+// Mode 3: the detail editor of the selected point (detailFunc by type) and its panel.
 static void eminfo_r0_detail()
 {
     EmInfoWork* p = &W->work[W->cur];
@@ -835,6 +865,7 @@ static void eminfo_r0_detail()
     }
 }
 
+// Draws the B menu with the cursor.
 void eminfo_menu_disp()
 {
     int i;
@@ -849,6 +880,7 @@ void eminfo_menu_disp()
     }
 }
 
+// Draws the detail panel of point `no`: type name, the rows with their values, the cursor row.
 void eminfo_detail_disp(int no)
 {
     EmInfoWork* p = &W->work[no];
@@ -895,6 +927,7 @@ void eminfo_detail_disp(int no)
     }
 }
 
+// Appends a point (copy of the template) at the cursor's ground position; up to 256.
 void eminfoAddWork()
 {
     int i;
@@ -913,6 +946,7 @@ void eminfoAddWork()
     }
 }
 
+// Removes point `no` (the rest shift down, the tail cleared).
 void eminfoDeleteWork(int no)
 {
     int i;
@@ -929,6 +963,8 @@ void eminfoDeleteWork(int no)
     }
 }
 
+// Finds the typed point whose screen position is nearest the cursor within the pick radius
+// (W->near, -1 none).
 void eminfoGetNearPoint(Vec* cursor)
 {
     Vec scr;
@@ -953,6 +989,7 @@ void eminfoGetNearPoint(Vec* cursor)
     W->near = near;
 }
 
+// Moves the screen cursor onto point `no`.
 void eminfoCursorToWork(int no)
 {
     Vec scr;
@@ -966,6 +1003,9 @@ void eminfoCursorToWork(int no)
     }
 }
 
+// Draws every point (direction triangle, number; the selected / nearest one highlighted), the 2D
+// cursor, the EM2F / EM39 / EM3A route and area overlays, the selected point's values and the copy
+// template's type.
 void eminfoDisp()
 {
     int i;
@@ -1005,6 +1045,7 @@ void eminfoDisp()
     eminfoCopyDisp();
 }
 
+// Filled triangle at `pos` pointing along `dir` (fill `col`, outline `col2`).
 void eminfoDrawDir(Vec* pos, f32 dir, u32 col, u32 col2)
 {
     static const f32 unused[5] = {50.0f, 100.0f, 0.0f, -100.0f, 500.0f};
@@ -1036,6 +1077,7 @@ void eminfoDrawDir(Vec* pos, f32 dir, u32 col, u32 col2)
     Draw_line3d(&v[2], &v[0], col2, 0);
 }
 
+// Prints the point number at its screen position.
 void eminfoDispNo(Vec* pos, int no)
 {
     Vec scr;
@@ -1049,6 +1091,7 @@ void eminfoDispNo(Vec* pos, int no)
     }
 }
 
+// Bottom panel of point `no`: number / type, position, direction, the three work bytes.
 void eminfoTargetDisp(int no)
 {
     EmInfoWork* p = &W->work[no];
@@ -1068,6 +1111,7 @@ void eminfoTargetDisp(int no)
     eprintf(40, 372, 0, 0, "Work No.[ %02d / %02d ] -->> WorkType [ %s ]", no, 255, workTypeName[p->type]);
 }
 
+// Shows the copy template's type ("Copy type").
 void eminfoCopyDisp()
 {
     if (W->copy.type < 20) {
@@ -1076,6 +1120,8 @@ void eminfoCopyDisp()
     }
 }
 
+// Draws the EM2F (type 2) route: consecutive points joined, closed back to the first, coloured
+// by Work0.
 void eminfoEm2fRouteDisp()
 {
     EmInfoWork* first = NULL;
@@ -1130,6 +1176,8 @@ void eminfoEm2fRouteDisp()
     }
 }
 
+// Draws the No.3 snipe (type 14) areas: each Work1 == 0 point paired with its Work1 == 1 partner of
+// the same Work0 / Work2 as a box, coloured by Work0.
 void eminfoEm39AreaDisp()
 {
     u32 i;
@@ -1241,6 +1289,8 @@ void eminfoEm39AreaDisp()
     }
 }
 
+// Draws the EM3A (type 19) routes: spheres on the points, lines to the next point of the same
+// route (Work1) in order (Work2).
 void eminfoEm3aRouteDisp()
 {
     u32 i;
@@ -1273,6 +1323,7 @@ void eminfoEm3aRouteDisp()
     }
 }
 
+// Writes the point count + the used points to the room's .emi on x:.
 void eminfoFileSave()
 {
     char path[0x100];
@@ -1282,6 +1333,7 @@ void eminfoFileSave()
     HDWrite(path, &W->num, size);
 }
 
+// Reads the room's .emi (count + points) into the work; 0 when missing.
 int eminfoFileLoad()
 {
     char path[0x100];
@@ -1297,12 +1349,14 @@ int eminfoFileLoad()
     return size;
 }
 
+// x:\soft\room\st<n>\r<room>\r<room>.emi
 void eminfoSetFileName(char* path)
 {
     sprintf(path, "x:\\soft\\room\\st%1x\\r%1x%02x\\r%1x%02x.emi", pG->stage_no, pG->stage_no, pG->room_no,
             pG->stage_no, pG->room_no);
 }
 
+// START toggles camera mode: the debug camera takes pad 1 and the tool's pad copy is cleared.
 void eminfoCameraMove()
 {
     W->joy = Joy[0];

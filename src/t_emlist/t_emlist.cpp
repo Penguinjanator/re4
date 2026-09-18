@@ -550,6 +550,9 @@ struct EmListCtrl {
 
 static EmListCtrl EmList = {NULL};
 
+// Routines by EmListWork::routine: 0 main (list cursor), 1 target (one entry's fields), 2..12 the
+// field editors (id, room, pos, ang, be_flag, type, set, em flag, chara, hp, guard radius),
+// 13 menu, 14 save, 15 load, 16 clear, 17 sort, 18 set and exit.
 static void (*emlist_routine[19])() = {
     emlist_r0_main,
     emlist_r0_target,
@@ -625,6 +628,8 @@ void emlistCameraMove();
 void emlistCamToPoin();
 void emlistCursorToTarget();
 
+// Enemy list editor entry (debug menu 10): init, then every frame emlist_routine[routine], the
+// enemy direction arrows and (Debug_flg[0] bit 30) the debug camera.
 void ToolEmList()
 {
     emlist_init();
@@ -644,6 +649,9 @@ void ToolEmList()
     }
 }
 
+// Tool start: suspends the game, default tool flags plus the enemy-list display bits, allocates
+// the work (the tool exits when the Debug heap is short), cursor at the screen centre, starts in
+// the main list (step 1 = list loaded).
 void emlist_init()
 {
     u32 i;
@@ -701,6 +709,7 @@ void emlist_init()
     EmList.wk->listNo = 0;
 }
 
+// Restores the flags, frees the work and ends the task.
 void emlist_exit()
 {
     TOOL_FLAG(OFS_STOP_FLG) &= ~0x200000;
@@ -1141,6 +1150,8 @@ static void emlist_r0_target()
     EmList.wk->cur = *p;
 }
 
+// Routine 2, ID field: the EM ID SELECT list (emlist_select_id) picks the enemy id; A applies it to
+// the entry (and the working copy), B cancels; back to the target routine.
 static void emlist_r0_set_id()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1390,6 +1401,8 @@ static void emlist_r0_set_be_flag()
     emlist_target_disp(1);
 }
 
+// Routine 7, TYPE field: up/down +-1 (left/right +-0x10) on the entry's type byte, named by the
+// enemy's type table; A/B back.
 static void emlist_r0_set_type()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1419,6 +1432,7 @@ static void emlist_r0_set_type()
     emlist_target_disp(1);
 }
 
+// Routine 8, SET field: up/down step the entry's set byte through the enemy's set names; A/B back.
 static void emlist_r0_set_set()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1481,6 +1495,8 @@ static void emlist_r0_set_em_flag()
     emlist_target_disp(1);
 }
 
+// Routine 10, CHARA field: up/down step the entry's character byte (the enemy's chr names); A/B
+// back.
 static void emlist_r0_set_char()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1510,6 +1526,7 @@ static void emlist_r0_set_char()
     emlist_target_disp(1);
 }
 
+// Routine 11, HP field: up/down +-1 / +-100 (with X +-10 / +-1000) on the entry's hp; A/B back.
 static void emlist_r0_set_hp()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1551,6 +1568,7 @@ static void emlist_r0_set_hp()
     emlist_target_disp(1);
 }
 
+// Routine 12, Guard R field: up/right / down/left change the guard radius (metres); A/B back.
 static void emlist_r0_set_guard_r()
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -1595,6 +1613,8 @@ static void emlist_r0_set_guard_r()
     emlist_target_disp(1);
 }
 
+// Routine 13, -- MENU --: LIST (back), SORT LIST (17), CLEAR LIST (16), SET AND EXIT (18), LOAD
+// (15), SAVE (14, only after a load), EXIT; up/down, A picks, B back to the list.
 static void emlist_r0_menu()
 {
     if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
@@ -1977,6 +1997,8 @@ void emlist_main_disp()
     }
 }
 
+// Help column of the list screen: START camera, Y set menu, A catch, A+Z delete, A+L/R rotate, X
+// new entry, C stick up/down height.
 void emlist_target_help_disp()
 {
     eprintf(0x180, 0x3C, 0, 0, "START  CAMERA");
@@ -2090,6 +2112,7 @@ void emlist_target_menu_disp(int flag)
     }
 }
 
+// Draws the main menu rows with the cursor ("Not load file! Don't save" on SAVE before a load).
 void emlist_menu_disp()
 {
     int i;
@@ -2192,6 +2215,7 @@ void emlist_file_menu_disp()
     }
 }
 
+// "Ok? yes / no" prompt row with the cursor.
 void emlist_yes_no_menu_disp(int y)
 {
     eprintf(0x28, y, 4, 0, "Ok?");
@@ -2207,6 +2231,7 @@ void emlist_yes_no_menu_disp(int y)
     }
 }
 
+// -- EM ID SELECT -- list: the enemy ids with their names, the cursor row highlighted.
 void emlist_select_id_disp()
 {
     int i;
@@ -2237,6 +2262,7 @@ void emlist_select_id_disp()
     }
 }
 
+// ROOM field text: the entry's room (stage/room) with the current room marked.
 void emlist_set_room_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2365,6 +2391,7 @@ void emlist_set_be_flag_disp(int x, int y, int flag)
     }
 }
 
+// TYPE field text: hex / decimal type and its name from the enemy's type table.
 void emlist_set_type_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2384,6 +2411,7 @@ void emlist_set_type_disp(int x, int y, int flag)
     }
 }
 
+// SET field text: set byte and its name.
 void emlist_set_set_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2439,6 +2467,7 @@ void emlist_set_em_flag_disp(int x, int y, int flag)
     }
 }
 
+// CHARA field text: character byte and its name.
 void emlist_set_char_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2458,6 +2487,7 @@ void emlist_set_char_disp(int x, int y, int flag)
     }
 }
 
+// HP field text.
 void emlist_set_hp_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2469,6 +2499,7 @@ void emlist_set_hp_disp(int x, int y, int flag)
     eprintf(x, y, flag ? 4 : 0, 0, "%d", p->hp);
 }
 
+// Guard R field text (metres).
 void emlist_set_guard_r_disp(int x, int y, int flag)
 {
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
@@ -2492,6 +2523,7 @@ void emlist_file_save(int no)
     HDWrite(name, pG->Em_list, 0x1FE0);
 }
 
+// Reads ESL file `no` of the room from the host straight into pG->Em_list; 0 when missing.
 int emlist_file_load(int no)
 {
     char name[0x100];

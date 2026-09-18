@@ -462,6 +462,8 @@ public:
     }
     // tool-style integer address: the index is the first `add` operand
     T* WorkPtr(int no) { return (T*) (no * sizeof(T) + (u32) pWork); }
+// Work hooks (set by the tool: t_esp_area / t_lightarea / t_event's IsWorkAlive .. InitWork); a
+// missing hook HALTs. The #line keeps the original db_toolbase.h numbers in the HALT strings.
 #line 571 "D:/Bio4/Prog/db_toolbase.h"
     int IsWorkAlive(T* w) { if (pIsWorkAlive) { return pIsWorkAlive(w); } DBG_TOOL_HALT(); return 0; }
     void SetWorkAlive(T* w, int alive) { if (pSetWorkAlive) { pSetWorkAlive(w, alive); return; } DBG_TOOL_HALT(); }
@@ -486,7 +488,9 @@ public:
         DbgButtonSetName(b, buf);
     }
 
+    // Cursor to the first / last selectable button (cDbgWindowBase hooks).
     virtual void SetCurrentTopButton() { pCur = pTop; }
+    // Cursor column / row of the current button (0 without one).
     virtual int GetCx()
     {
         if (pCur == 0) {
@@ -502,6 +506,7 @@ public:
         return pCur->m_cy;
     }
     virtual void SetCurrentBottomButton() { pCur = pBottom; }
+    // Runs every button's update callback with the work of its row (top + row).
     virtual void ButtonAllUpdate()
     {
         u32 i;
@@ -519,6 +524,8 @@ public:
             }
         }
     }
+    // A on the current button: in the No column toggles the row's work alive / free, in the other
+    // columns starts the button's exec callback on a live work (execMode until it returns 0).
     virtual void ButtonPushCheck()
     {
         if (Joy[0].trg & 0x100) {
@@ -545,6 +552,8 @@ public:
     }
 };
 
+// Adds a column button at (bx, by) with cursor cell (bcx, bcy) and its exec / update callbacks; grows
+// the window and cursor range (see cDbgWindow::AddButton).
 template <class T>
 void cDbgEditWindow<T>::AddButton(int bx, int by, const char* name, int bcx, int bcy,
                                   int (*func)(int, T*, cDbgButtonTemplate<T>*),
@@ -578,12 +587,14 @@ void cDbgEditWindow<T>::AddButton(int bx, int by, const char* name, int bcx, int
     num++;
 }
 
+// COPY: the cursor row's work into the buffer.
 template <class T> void cDbgEditWindow<T>::copyBuffer()
 {
     bufValid = 1;
     buf = pWork[GetCurrentNo()];
 }
 
+// CUT: copy, then remove the row (later works shift up, the last one re-initialised).
 template <class T> void cDbgEditWindow<T>::cutBuffer()
 {
     u32 i;
@@ -605,6 +616,7 @@ template <class T> void cDbgEditWindow<T>::cutBuffer()
     }
 }
 
+// PASTE: inserts the buffer at the cursor row (later works shift down), renumbered.
 template <class T> void cDbgEditWindow<T>::pasteBuffer()
 {
     int cur = GetCurrentNo();
@@ -624,6 +636,7 @@ template <class T> void cDbgEditWindow<T>::pasteBuffer()
     }
 }
 
+// The copy window (X): up/down pick COPY / CUT / PASTE, A runs it, B closes; 0 when it closed.
 template <class T> int cDbgEditWindow<T>::execCopyWindow()
 {
     if (Joy[0].trg & 0x200) {
@@ -665,6 +678,7 @@ template <class T> int cDbgEditWindow<T>::execCopyWindow()
     return 1;
 }
 
+// Finds the button at cursor cell (bcx, bcy); 1 and *out when found.
 template <class T> int cDbgEditWindow<T>::FindButton(int bcx, int bcy, cDbgButtonTemplate<T>** out)
 {
     u32 i;
@@ -679,6 +693,9 @@ template <class T> int cDbgEditWindow<T>::FindButton(int bcx, int bcy, cDbgButto
     return 0;
 }
 
+// Edit table input: the copy window or a running exec callback take the pad; else the d-pad moves
+// the cursor over the button grid, scrolling `top` past the visible rows; A pushes the button, X
+// opens the copy window; 0 on B (close the table).
 template <class T> int cDbgEditWindow<T>::LocalUpdate()
 {
     int ret = 1;
@@ -766,6 +783,7 @@ template <class T> int cDbgEditWindow<T>::LocalUpdate()
     return ret;
 }
 
+// Draws the table: row numbers, every button's text, the cursor highlight and the copy window.
 template <class T> void cDbgEditWindow<T>::LocalDisp()
 {
     u32 i;
@@ -886,6 +904,7 @@ public:
         }
     }
 
+    // The MENU window: Edit / Load / Save / Option / Exit.
     void CreateMenuWindow()
     {
         cDbgWindow* w = new cDbgWindow;
@@ -979,6 +998,7 @@ public:
         }
     }
 
+    // The five work hooks the tool installs before use.
     void SetIsWorkAliveFunc(int (*f)(T*))
     {
         pIsWorkAlive = f;
@@ -1017,6 +1037,7 @@ public:
         }
     }
 
+// Hook forwarders of the tool main (same as cDbgEditWindow's); the #line keeps the original numbers.
 #line 1376 "D:/Bio4/Prog/db_toolbase.h"
     int IsWorkAlive(T* w) { if (pIsWorkAlive) { return pIsWorkAlive(w); } DBG_TOOL_HALT(); return 0; }
     void SetWorkAlive(T* w, int alive) { if (pSetWorkAlive) { pSetWorkAlive(w, alive); return; } DBG_TOOL_HALT(); }
@@ -1135,6 +1156,8 @@ public:
         w->LocalDisp();
     }
 
+    // Current mode (0 menu, 1 edit, 2 load, 3 save, 4 option, 6/7 the load / save file windows, 8 exit)
+    // and the edit table.
     int GetMode() { return mode; }
     cDbgEditWindow<T>* GetEdit() { return pEdit; }
 
@@ -1258,6 +1281,7 @@ public:
         return ret;
     }
 
+    // Draws the window of the current mode.
     void Disp()
     {
         switch (mode) {

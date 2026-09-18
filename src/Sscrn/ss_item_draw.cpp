@@ -60,6 +60,8 @@ static void ss_Draw_tpl_trans(SsTplPrim* p);
 static void ss_Draw_line3d_trans(SsLinePrim* p);
 static void ss_Draw_tile3d_trans(SsTilePrim* p);
 
+// Queues a 2D texture blit (TPL image `id`, screen rect x/y/w/h) into ordering table `ot` at `prio`;
+// drawn later by ss_Draw_tpl_trans.
 void ss_Draw_tpl(void* tpl, u32 id, int x, int y, int w, int h, int ot, int prio)
 {
     SsTplPrim* p = (SsTplPrim*) GetPrimBuff(sizeof(SsTplPrim));
@@ -75,11 +77,15 @@ void ss_Draw_tpl(void* tpl, u32 id, int x, int y, int w, int h, int ot, int prio
     AddOtDirect(ot, p, (void (*)()) ss_Draw_tpl_trans, prio, 0x1000, 0, 0.0f);
 }
 
+// OT callback of ss_Draw_tpl.
 static void ss_Draw_tpl_trans(SsTplPrim* p)
 {
     ss_Draw_tpl_local((TEXPalette*) p->tpl, p->id, p->x, p->y, p->w, p->h);
 }
 
+// Draws TPL image `id` immediately with DrawTexture (CI formats 8/9 load their palette first). Every
+// pointer is range checked against MRAM (0x80000000..0x82FFFFFF) because the data may still be in
+// the ARAM-swapped area.
 void ss_Draw_tpl_local(TEXPalette* tpl, u32 id, int x, int y, int w, int h)
 {
     GXTexObj tex;
@@ -124,6 +130,8 @@ void ss_Draw_tpl_local(TEXPalette* tpl, u32 id, int x, int y, int w, int h)
     DrawTexture(&tex, x, y, 1, w, h);
 }
 
+// Queues a world-space line a-b (RGBA `color`, GX line width, blend 0 opaque / 1 alpha / 2 add /
+// 3 additive-no-alpha, zupd = z write) into ordering table `ot` at `prio`.
 void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, int ot, int prio)
 {
     SsLinePrim* p = (SsLinePrim*) GetPrimBuff(sizeof(SsLinePrim));
@@ -139,6 +147,8 @@ void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, i
     AddOtDirect(ot, p, (void (*)()) ss_Draw_line3d_trans, prio, 0x1000, 0, 0.0f);
 }
 
+// OT callback of ss_Draw_line3d: sets the line width, draws with the current camera view matrix,
+// restores width 6.
 static void ss_Draw_line3d_trans(SsLinePrim* p)
 {
     GXSetLineWidth(p->width, 0);
@@ -146,6 +156,8 @@ static void ss_Draw_line3d_trans(SsLinePrim* p)
     GXSetLineWidth(6, 0);
 }
 
+// Draws the line a-b now through view matrix `mtx` with the given blend mode (see ss_Draw_line3d)
+// and z write flag.
 void ss_Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, u32 blend, int zupd)
 {
     u8 cr, cg, cb, ca;
@@ -195,6 +207,8 @@ void ss_Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, u32 blend, int zup
     GXColor4u8(cr, cg, cb, ca);
 }
 
+// Queues a world-space quad a-b-c-d (RGBA `color`, blend mode as ss_Draw_line3d) into ordering table
+// `ot` at `prio`; x34 is stored but unused. ss_pzzl draws the case grid cells with it.
 void ss_Draw_tile3d(Vec* a, Vec* b, Vec* c, Vec* d, u32 color, int x34, int blend, int ot, u16 prio)
 {
     SsTilePrim* p = (SsTilePrim*) GetPrimBuff(sizeof(SsTilePrim));
@@ -211,11 +225,13 @@ void ss_Draw_tile3d(Vec* a, Vec* b, Vec* c, Vec* d, u32 color, int x34, int blen
     AddOtDirect(ot, p, (void (*)()) ss_Draw_tile3d_trans, prio, 0x1000, 0, 0.0f);
 }
 
+// OT callback of ss_Draw_tile3d (no z write).
 static void ss_Draw_tile3d_trans(SsTilePrim* p)
 {
     ss_Draw_tile3d_local(&p->a, &p->b, &p->c, &p->d, pG->Cam.v_mat, p->color, p->blend, 0);
 }
 
+// Draws the quad a-b-c-d now through view matrix `mtx` with the given blend mode and z write flag.
 void ss_Draw_tile3d_local(Vec* a, Vec* b, Vec* c, Vec* d, Mtx mtx, u32 color, u32 blend, int zupd)
 {
     u8 cr, cg, cb, ca;

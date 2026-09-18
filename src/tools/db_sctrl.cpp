@@ -54,6 +54,7 @@ static inline void getColumn(Mtx m, int c, Vec* v)
 
 static int (*sctrl_routine_tbl[3])(DbSctrlWork*) = {sctrlEdit, sctrlMenu, sctrlQuit};
 
+// Sets the graph's visible range (x = key time, y = key value) by hand.
 void SctrlInitAxisRange(DbSctrlWork* w, f32 xMax, f32 xMin, f32 yMax, f32 yMin)
 {
     w->xMax = xMax;
@@ -110,12 +111,14 @@ void SctrlAdjustAxisRange(DbSctrlWork* w)
     w->yMin = ymin - d;
 }
 
+// Axis labels (up to 7 chars each) printed by drawAxis.
 void SctrlSetAxisLabel(DbSctrlWork* w, const char* x, const char* y)
 {
     strcpy(w->labelX, x);
     strcpy(w->labelY, y);
 }
 
+// Puts the screen cursor at graph coordinates (x, y).
 void SctrlInitCursor(DbSctrlWork* w, f32 x, f32 y)
 {
     Vec g = {0.0f, 0.0f, 0.0f};
@@ -159,6 +162,9 @@ void dbSctrlScreenOrientation(DbSctrlWork* w, Camera* cam, f32 fovy)
     w->mtx[2][3] = pos.z;
 }
 
+// Runs the S-curve editor one frame: menu at text position (x, y), graph plane in front of the
+// camera, axis / curve / cursor drawn, then the routine (0 sctrlEdit, 1 sctrlMenu, 2 sctrlQuit);
+// returns the routine's result (0 once the editor quit).
 int DbSctrl(DbSctrlWork* w, int x, int y)
 {
     w->x = x;
@@ -181,12 +187,17 @@ static const char* sctrl_menu_name[6] = {"Scale  :", "Grid   :", "Reverse:", "Of
 // unreferenced (db_path.cpp's edit-mode static, kept by the compiler)
 static s8 sctrl_edit_mode = 0;
 
+// Routine 2: resets the editor state and returns 0 (the caller closes the editor).
 static int sctrlQuit(DbSctrlWork* w)
 {
     w->routine = w->step = w->x2 = w->x3 = 0;
     return 0;
 }
 
+// Routine 1, the Z menu (pad 1): rows Scale (x/y factors applied to every key), Grid (grid-lock
+// step and drawn grid), Reverse (mirror the keys in time / value), Offset (shift all keys), Range
+// (auto or manual axis range), Clear (delete all keys, YES/NO). step 0 picks a row (B leaves),
+// 1 edits its columns with left/right / the stick, A applies. Returns 1.
 static int sctrlMenu(DbSctrlWork* w)
 {
     JOY* joy = &Joy[0];
@@ -525,6 +536,11 @@ static int sctrlMenu(DbSctrlWork* w)
     return 1;
 }
 
+// Routine 0, curve editing (pad 1): d-pad / stick move the screen cursor (x5 with the sub stick).
+// step 0 idle: A grabs a key (step 2 drag the point, 3 / 4 drag its in / out tangent handle), Y
+// on the curve grabs a key or an insertion spot (step 5: YES/NO to delete / insert), Z opens the
+// menu, B quits; step 1 appends keys (an empty curve starts here): A places one at the cursor
+// (grid-locked, range re-fitted), B ends. Returns 1.
 static int sctrlEdit(DbSctrlWork* w)
 {
     Vec* cur = &w->pos;
@@ -816,6 +832,7 @@ int grabLine(DbSctrlWork* w)
     return ret;
 }
 
+// Removes key w->grab from the curve (the rest shift down, the freed slot is zeroed).
 void deletePoint(DbSctrlWork* w)
 {
     Hermite1* c = w->curve;
@@ -828,6 +845,7 @@ void deletePoint(DbSctrlWork* w)
     memclr_asm(&c->key[c->num], sizeof(HermiteKey));
 }
 
+// Inserts a key at w->insertIdx with the grabbed curve position (insertPos); no-op at 64 keys.
 void insertPoint(DbSctrlWork* w)
 {
     Hermite1* c = w->curve;
@@ -845,6 +863,8 @@ void insertPoint(DbSctrlWork* w)
     c->num++;
 }
 
+// Draws the cross-hair cursor at the screen position (world space through w->mtx) and prints its
+// graph coordinates.
 void drawCursor(DbSctrlWork* w)
 {
     Vec a;
@@ -885,6 +905,8 @@ void drawCursor(DbSctrlWork* w)
     eprintf(sx + dx, sy + dy, 0, 0, "(%3.3f, %3.3f)", gph.x, gph.y);
 }
 
+// Draws the graph frame, the grid lines at gridX/gridY spacing and the axis labels with the range
+// values.
 void drawAxis(DbSctrlWork* w)
 {
     Vec g0;
@@ -961,6 +983,8 @@ void drawAxis(DbSctrlWork* w)
     }
 }
 
+// Draws the Hermite curve sampled between the keys, every key point (the grabbed one highlighted)
+// and the in/out tangent handles of the grabbed key.
 void drawScurve(DbSctrlWork* w)
 {
     Vec gph;
@@ -1042,6 +1066,7 @@ void drawScurve(DbSctrlWork* w)
     }
 }
 
+// Screen (640 x 480 centred) -> graph coordinates by the current range.
 void posScreen2Graph(DbSctrlWork* w, Vec* scr, Vec* gph)
 {
     f32 dx = w->xMax - w->xMin;
@@ -1052,6 +1077,7 @@ void posScreen2Graph(DbSctrlWork* w, Vec* scr, Vec* gph)
     gph->z = 0.0f;
 }
 
+// Graph -> screen coordinates.
 void posGraph2Screen(DbSctrlWork* w, Vec* gph, Vec* scr)
 {
     f32 dx = w->xMax - w->xMin;
@@ -1062,11 +1088,13 @@ void posGraph2Screen(DbSctrlWork* w, Vec* gph, Vec* scr)
     scr->z = 0.0f;
 }
 
+// Screen -> world through the graph plane matrix (for the GX primitives).
 void posScreen2World(DbSctrlWork* w, Vec* scr, Vec* out)
 {
     PSMTXMultVec(w->mtx, scr, out);
 }
 
+// Graph -> world (posGraph2Screen then posScreen2World).
 void posGraph2World(DbSctrlWork* w, Vec* gph, Vec* out)
 {
     Vec scr;
@@ -1096,6 +1124,7 @@ void posGridLock(Vec* grid, Vec* in, Vec* out)
     }
 }
 
+// Screen -> graph, snapped to the grid-lock step when flags bit 0 is set.
 void posScreen2GridLock(DbSctrlWork* w, Vec* scr, Vec* gph)
 {
     posScreen2Graph(w, scr, gph);

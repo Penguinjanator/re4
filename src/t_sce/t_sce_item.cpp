@@ -209,6 +209,9 @@ char* getItemIdStr(u32 id);
 static inline u32 bitChk(u32* tbl, u32 n) { return tbl[n >> 5] & (0x80000000 >> (n & 0x1F)); }
 static inline void bitOn(u32* tbl, u32 n) { tbl[n >> 5] |= 0x80000000 >> (n & 0x1F); }
 
+// ITEM SET TOOL entry (debug menu 34): edits the room's ITA item placement records (SceAtWork with
+// the item payload). Loops: sub stick moves the panel, START toggles the debug camera, Z the tool
+// light, then routine[mode] (main menu, area edit, preview, load, save, exit).
 void ToolSceItem()
 {
     void (*routine[6])() = {tSceItemMainMenu, tSceItemAreaEdit, tSceItemPreview, tSceItemDataLoad, tSceItemDataSave,
@@ -254,6 +257,7 @@ void ToolSceItem()
     }
 }
 
+// Flag setup: pause the game, debug displays on, tool light 1.
 void tSceItemInit_base()
 {
     *(TOOL_PTR(0x8678)) = 0x11;
@@ -275,6 +279,9 @@ void tSceItemInit_base()
     SetToolLight(1);
 }
 
+// Tool start: default state, header ("ITA" 0x105, 128 records), item names from the host header
+// d:\bio4/prog/item_id.h (idName / idName2), file names, the live item data (SceAtSys.pItemData)
+// copied into the work, camera target type.
 void tSceItemInit()
 {
     char buf[0x100];
@@ -304,6 +311,7 @@ void tSceItemInit()
     loadItemIdName(buf, (char*) pW->idName, (char*) pW->idName2);
 }
 
+// Server (d:) and local (x:) paths of the room's r<room>.ita.
 static void set_filename()
 {
     sprintf(pW->path, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.ita", pG->stage_no, pG->room_id, pG->room_id);
@@ -316,6 +324,7 @@ static TOOL_MENU tSceItemExitMenu[2] = {
     {1, "NO", NULL},
 };
 
+// EXIT? YES/NO; YES restores the camera target, tool light and flags, frees the work, ends the task.
 static void tSceItemExit()
 {
     s8 sel;
@@ -359,6 +368,7 @@ static TOOL_MENU tSceItemMainMenuTbl[5] = {
     {1, "EXIT", NULL},
 };
 
+// Main menu: ITEM SET (area edit) / PREVIEW / DATA LOAD / DATA SAVE / EXIT.
 static void tSceItemMainMenu()
 {
     s8 sel;
@@ -392,6 +402,8 @@ static void tSceItemMainMenu()
     }
 }
 
+// ITEM SET: L/R pick the record (areaNo); sub routines edit menu, area move, data input, area
+// create.
 static void tSceItemAreaEdit()
 {
     void (*routine[5])() = {tSceItemAreaEdit_ListDisp, tSceItemAreaEdit_EditMenu, tSceItemAreaEdit_AreaMove,
@@ -428,6 +440,7 @@ static void tSceItemAreaEdit()
     routine[pW->sub]();
 }
 
+// Record list "NO ID" (7-row window): A opens the record menu, B back to the main menu.
 static void tSceItemAreaEdit_ListDisp()
 {
     int end;
@@ -496,6 +509,8 @@ static TOOL_MENU tSceItemEditMenu[6] = {
     {1, "AREA DELEAT", tSceItemAreaEdit_AreaDelete},
 };
 
+// Record menu: existing -> AREA MOVE / DATA INPUT / AREA COPY / PASTE / COPY BUFF CLEAR / AREA
+// DELEAT, empty -> AREA CREATE / PASTE / CLEAR; B back.
 static void tSceItemAreaEdit_EditMenu()
 {
     s8 sel;
@@ -539,6 +554,7 @@ static TOOL_MENU tSceItemShapeMenu[3] = {
     {0, "EYE TRG", NULL},
 };
 
+// AREA CREATE: SQUARE / CIRCLE / EYE TRG at the player, a fresh ITEM record.
 static void tSceItemAreaEdit_AreaCreate()
 {
     s8 sel;
@@ -585,6 +601,7 @@ static void tSceItemAreaEdit_AreaCreate()
     }
 }
 
+// Copies the record into the copy buffer.
 static void tSceItemAreaEdit_AreaCopy()
 {
     pW->copyBuf = *pCur;
@@ -592,11 +609,13 @@ static void tSceItemAreaEdit_AreaCopy()
     pW->copyValid = 1;
 }
 
+// Overwrites the record with the copy buffer.
 static void tSceItemAreaEdit_AreaPaste()
 {
     *pCur = pW->copyBuf;
 }
 
+// Empties the copy buffer.
 static void tSceItemAreaEdit_CopyBuffClear()
 {
     memclr_asm(&pW->copyBuf, sizeof(SceAtWork));
@@ -604,6 +623,7 @@ static void tSceItemAreaEdit_CopyBuffClear()
     pW->copyValid = 0;
 }
 
+// Clears the record.
 static void tSceItemAreaEdit_AreaDelete()
 {
     pCur->flag &= ~1;
@@ -733,6 +753,7 @@ void tSceItemAreaEdit_disp()
     eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
+// AREA MOVE: the shared AreaDataEdit editor on the record's area; B back.
 static void tSceItemAreaEdit_AreaMove()
 {
     if (pCur->flag & 1) {
@@ -747,6 +768,7 @@ static void tSceItemAreaEdit_AreaMove()
     }
 }
 
+// DATA INPUT: the item payload editor (tSceItemDataInput_item); B back.
 static void tSceItemAreaEdit_DataInput()
 {
     if (pCur->flag & 1) {
@@ -770,6 +792,8 @@ extern SceAtWorkPtr sceItemCur_c1 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse 
 extern SceAtWorkPtr sceItemCur_c2 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
 extern SceAtWorkPtr sceItemCur_c3 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
 #define PC(n) (sceItemCur_##n.p)
+// The shared rows HIT TYPE, HIT ANGLE, OPEN ANGLE, PRIORITY: `sel` is the cursor row, left/right
+// change it, values printed beside the menu.
 void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
 {
     s16 x;
@@ -849,6 +873,7 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     pW->y = y;
 }
 
+// Item record editor: step 0 the row menu, 1 the position / effect offset editors.
 void tSceItemDataInput_item()
 {
     void (*routine[3])() = {tSceItemDataInput_item_main, tSceItemDataInput_item_ETedit,
@@ -887,6 +912,9 @@ static const char* tSceItemWaitTypeName[4] = {"NORMAL_SET", "EM_DEAD", "ETC_BREA
 
 #define NAME(tbl, n, hi) ((u32) (n) <= (hi) ? tbl[n] : "...no string")
 
+// Item rows: basic + ITEM_ID (stepped through item_id.h names), ITEM_FLG, ITEM_NUM, SET_WAIT_TYPE,
+// SET_TARGET_NO, POSITION_AUTO / POSITION_SET (drop position from the area or the eye editor),
+// HIT_AREA_AUTO, EFFECT_OFFSET_X/Y/Z; left/right change, A opens the editors.
 static void tSceItemDataInput_item_main()
 {
     s16 x;
@@ -1214,6 +1242,7 @@ static void tSceItemDataInput_item_EffPosSet()
     }
 }
 
+// Draws a cross mark at a world point (the item drop position).
 void tSceItem_PointDisp(f32 x, f32 y, f32 z)
 {
     Vec p;
@@ -1243,6 +1272,8 @@ static TOOL_MENU tSceItemLoadMenu[3] = {
     {1, "don't load", NULL},
 };
 
+// DATA LOAD: SERVER / LOCAL / don't load; reads r<room>.ita into the work (magic checked); the tool
+// starts here.
 static void tSceItemDataLoad()
 {
     s8 sel;
@@ -1349,6 +1380,9 @@ static TOOL_MENU tSceItemSaveMenu[3] = {
     {1, "don't save", NULL},
 };
 
+// DATA SAVE: SERVER / LOCAL / don't save; auto-numbers the item flags
+// (tSceItemSetItemFlgAutoDataCreate), writes the .ita, exports the AEV xml (tSceSaveXml) and
+// installs the image as the room's live item data.
 static void tSceItemDataSave()
 {
     int ret = 0;
@@ -1562,6 +1596,7 @@ void tSceItemSetItemFlgAutoDataCreate()
     }
 }
 
+// CAMERA MODE (START): the debug camera moves with pad 1.
 void tSceItemData_DebugCamera()
 {
     CamDbg.move(&pG->Cam, &Joy[0], 0);
@@ -1571,6 +1606,7 @@ void tSceItemData_DebugCamera()
     }
 }
 
+// PREVIEW: init / main / exit sub routines.
 static void tSceItemPreview()
 {
     void (*routine[3])() = {tSceItemPreview_init, tSceItemPreview_main, tSceItemPreview_exit};
@@ -1578,6 +1614,7 @@ static void tSceItemPreview()
     routine[pW->sub]();
 }
 
+// Un-pauses the player / HUD for the preview.
 static void tSceItemPreview_init()
 {
     TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
@@ -1589,6 +1626,8 @@ static void tSceItemPreview_init()
     pW->step2 = 0;
 }
 
+// PREVIEW MODE: the game runs, the player's hit points are drawn (lit inside an item area); START
+// ends it.
 static void tSceItemPreview_main()
 {
     tSceItemPreview_pl_pos();
@@ -1643,6 +1682,7 @@ void tSceItemPreview_pl_pos()
     Draw_line3d(&pos, &front, 0xFF40FF80, 0);
 }
 
+// Restores the tool flags, back to the main menu.
 static void tSceItemPreview_exit()
 {
     TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
@@ -1727,6 +1767,7 @@ done:
     Debug_free(buf);
 }
 
+// Item name for `id` (0..0xFE from idName, 0x1000.. from idName2).
 char* getItemIdStr(u32 id)
 {
     if (id <= 0xFE) return pW->idName[id];

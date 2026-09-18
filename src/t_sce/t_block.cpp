@@ -153,6 +153,7 @@ static inline u32 bitChk(u32* tbl, u32 n)
 {
     return tbl[n >> 5] & (0x80000000 >> (n & 0x1F));
 }
+// Sets bit `n` in a word table (the used-area bitmap).
 static inline void bitOn(u32* tbl, u32 n)
 {
     tbl[n >> 5] |= 0x80000000 >> (n & 0x1F);
@@ -196,6 +197,10 @@ static inline void U32Set(u32& d, u32 v)
         w->field = n;                 \
     }
 
+// BLOCK DATA EDIT TOOL entry (debug menu 31): edits the room's BLK data (block link table, block
+// trigger areas, per-area MRAM/ARAM load lists). Loops: sub stick moves the panel, START toggles
+// the debug camera, then routine[mode] (main menu, connect, area edit, area info, load, save,
+// exit) and the block / area display.
 void ToolBlock()
 {
     void (*routine[7])() = {tBlockMainMenu, tBlockConnect, tBlockArea,  tBlockAreaInfo,
@@ -233,6 +238,7 @@ void ToolBlock()
     }
 }
 
+// Flag setup shared with the other room editors: pause the game, debug displays on, tool light 1.
 void tBlockInit_base()
 {
     *(TOOL_PTR(0x8678)) = 0x11;
@@ -255,6 +261,9 @@ void tBlockInit_base()
     SetToolLight(1);
 }
 
+// Tool start: default tool state, file header ("BLK" 0x100), file names for the room, the live
+// cBlock data (links, areas, connects) copied into the work and the tool's cBlockUnit table
+// installed as cBlock::pUnit; block box centres computed.
 void tBlockInit()
 {
     u32 i;
@@ -297,6 +306,7 @@ void tBlockInit()
     Block.pUnit = pW->unit;
 }
 
+// Server (d:) and local (x:) paths of the room's r<room>.blk.
 void set_filename()
 {
     sprintf(pW->path, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.blk", pG->stage_no, pG->room_id, pG->room_id);
@@ -308,6 +318,7 @@ static TOOL_MENU tBlockExitMenu[2] = {
     {1, "NO", NULL},
 };
 
+// EXIT? YES/NO; YES restores cBlock's unit table and the flags, frees the work, ends the task.
 static void tBlockExit()
 {
     s8 sel;
@@ -376,6 +387,7 @@ static TOOL_MENU tBlockMainMenuTbl[6] = {
     {1, "EXIT", NULL},
 };
 
+// Main menu: BLOCK CONNECT / BLOCK AREA EDIT / BLOCK AREA INFO / DATA LOAD / DATA SAVE / EXIT.
 static void tBlockMainMenu()
 {
     s8 sel;
@@ -407,6 +419,7 @@ static void tBlockMainMenu()
     }
 }
 
+// BLOCK CONNECT_BLOCK: up/down (L/R) pick the block; sub 0 the list, 1 the link slot menu.
 static void tBlockConnect()
 {
     void (*routine[2])() = {tBlockConnect_ListDisp, tBlockConnect_Menu};
@@ -427,6 +440,8 @@ static void tBlockConnect()
     routine[pW->sub]();
 }
 
+// Block list (scrolling window): A opens the link menu of an existing block (its unit blinks),
+// B back to the main menu.
 static void tBlockConnect_ListDisp()
 {
     TBlockWork* w = pW;
@@ -476,6 +491,7 @@ static void tBlockConnect_ListDisp()
     }
 }
 
+// One block row: number and its link list (-- for none).
 void dispBlockList1(int x, int y, int no)
 {
     BlockLink* l = &pW->link[no];
@@ -517,6 +533,8 @@ static TOOL_MENU tBlockConnectMenu[9] = {
     {1, "BLOCK DELETE", tBlockConnect_Delete},
 };
 
+// Link slot menu (8 CONNECT BLOCK rows): left/right set the linked block number of the row (-1 =
+// none); B back to the list.
 static void tBlockConnect_Menu()
 {
     s16 y = pW->y;
@@ -563,6 +581,7 @@ static void tBlockConnect_Menu()
     pW->y = y;
 }
 
+// Clears the current block's link list.
 static void tBlockConnect_Delete()
 {
     BlockLink* l = &pW->link[pW->blockNo];
@@ -577,6 +596,7 @@ static void tBlockConnect_Delete()
     SUB_RESET();
 }
 
+// AREA LINK_BLOCK: L/R pick the area slot; sub 0 the list, 1 the area menu, 2 area move.
 static void tBlockArea()
 {
     void (*routine[3])() = {tBlockArea_ListDisp, tBlockArea_Menu, tBlockArea_Move};
@@ -597,6 +617,7 @@ static void tBlockArea()
     routine[pW->sub]();
 }
 
+// Area list: A opens the slot's menu, B back.
 static void tBlockArea_ListDisp()
 {
     int end;
@@ -629,6 +650,7 @@ static void tBlockArea_ListDisp()
     }
 }
 
+// One area row: slot, area number and priority (or "no data").
 void dispAreaList1(int x, int y, int no)
 {
     TBlockArea* a = &pW->area[no];
@@ -653,6 +675,8 @@ static TOOL_MENU tBlockEditMenu[4] = {
     {1, "AREA DELEAT", tBlockArea_Delete},
 };
 
+// Area slot menu: empty -> AREA CREATE; used -> AREA MOVE, AREA NO (left/right), PRIORITY
+// (left/right), AREA DELEAT; B back.
 static void tBlockArea_Menu()
 {
     s16 x = pW->x;
@@ -721,6 +745,7 @@ static void tBlockArea_Menu()
     pW->y = y;
 }
 
+// Creates the slot's area at the player (first time) with the next free area number.
 static void tBlockArea_Create()
 {
     TBlockArea* a = &pW->area[pW->areaNo];
@@ -735,6 +760,7 @@ static void tBlockArea_Create()
     pW->areaCursor = 0;
 }
 
+// Clears the slot.
 static void tBlockArea_Delete()
 {
     TBlockArea* a = &pW->area[pW->areaNo];
@@ -743,6 +769,7 @@ static void tBlockArea_Delete()
     pW->areaCursor = 0;
 }
 
+// AREA MOVE: the shared AreaDataEdit editor on the slot's area; B back.
 static void tBlockArea_Move()
 {
     TBlockArea* a = &pW->area[pW->areaNo];
@@ -758,6 +785,8 @@ static void tBlockArea_Move()
     }
 }
 
+// BLOCK AREA INFO: L/R pick the area number (connectNo); the current lists from
+// cBlock::checkBlockConnect shown; sub 0 the list, 1 the menu.
 static void tBlockAreaInfo()
 {
     void (*routine[2])() = {tBlockAreaInfo_ListDisp, tBlockAreaInfo_Menu};
@@ -790,6 +819,7 @@ static void tBlockAreaInfo()
     routine[pW->sub]();
 }
 
+// Area info list: A opens the connect menu, B back.
 static void tBlockAreaInfo_ListDisp()
 {
     int n;
@@ -826,6 +856,7 @@ static void tBlockAreaInfo_ListDisp()
     }
 }
 
+// One connect row: area number, its LINK / MRAM / ARAM block lists.
 void dispAreaInfoList1(int x, int y, int no)
 {
     BlockConnect* c = &pW->connect[no];
@@ -848,6 +879,8 @@ static TOOL_MENU tBlockAreaInfoMenu[3] = {
     {1, "UNLOAD BLOCK", NULL},
 };
 
+// Connect menu of the area: LINK BLOCK (the block the area belongs to), LOAD BLOCK (MRAM list
+// slots), UNLOAD BLOCK (ARAM list slots); left/right set the block numbers (-1 = none); B back.
 static void tBlockAreaInfo_Menu()
 {
     s16 y = pW->y;
@@ -965,6 +998,8 @@ static void tBlockAreaInfo_Menu()
     }
 }
 
+// Draws every block's box (the current one blinking) with its links, and every area with its
+// number in the priority colour; hides / shows the block models by the current selection.
 void tBlockArea_disp()
 {
     int i;
@@ -1063,11 +1098,14 @@ void tBlockArea_disp()
     eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
+// Object work `no` without the range check.
 static inline cObj* objWorkNoChk(u32 no)
 {
     return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
 }
 
+// Shows only the scroll models of the current block (on) or every block's models (off) by toggling
+// their be_flag bit 1.
 void tBlockArea_dispBlockModel(int on)
 {
     u32 i;
@@ -1105,6 +1143,7 @@ void tBlockArea_dispBlockModel(int on)
     }
 }
 
+// Draws area slot `no` in colour `col`.
 void tBlockArea_dispBlockArea(u8 no, u32 col)
 {
     TBlockArea* a = &pW->area[no];
@@ -1117,6 +1156,7 @@ void tBlockArea_dispBlockArea(u8 no, u32 col)
     eprintf2(0xA, 0x14, (int) c.x - 5, (int) c.y - 10, 0, 0, "%d", a->areaNo);
 }
 
+// Draws block `no`'s bounding box (from its cBlockUnit) and number label.
 void tBlockArea_dispBlockBox(u8 no, u32 col)
 {
     f32 minX = 100000000.0f;
@@ -1240,6 +1280,8 @@ static TOOL_MENU tBlockLoadMenu[3] = {
     {1, "don't load", NULL},
 };
 
+// DATA LOAD: SERVER / LOCAL / don't load; reads the .blk image and expands the link / area /
+// connect tables into the work; the tool starts here.
 static void tBlockDataLoad()
 {
     s8 sel;
@@ -1360,6 +1402,8 @@ static TOOL_MENU tBlockSaveMenu[3] = {
     {1, "don't save", NULL},
 };
 
+// DATA SAVE: SERVER / LOCAL / don't save; builds the image (tBlockSaveDataCreate), writes it and
+// installs it as the room's live block data.
 static void tBlockDataSave()
 {
     int ret = 0;
@@ -1431,6 +1475,8 @@ static void tBlockDataSave()
     }
 }
 
+// Builds the .blk image: header counts (blocks used, live areas, area numbers) and offsets, then
+// the link table, the areas and the connect table packed one after another.
 void tBlockSaveDataCreate()
 {
     int nBlock = 0;
@@ -1485,6 +1531,7 @@ void tBlockSaveDataCreate()
     }
 }
 
+// CAMERA MODE (START): the debug camera moves with pad 1.
 void tBlock_DebugCamera()
 {
     CamDbg.move(&pG->Cam, &Joy[0], 0);

@@ -46,6 +46,8 @@ void ToolLightArea();
 
 void ToolsTask();
 
+// REL entry of every tool module: runs the static constructors, then ToolsTask (the selected tool's
+// main loop) in the linking task; the DOL's debug menu links the module.
 extern "C" void _prolog()
 {
     void (**p)(void);
@@ -57,6 +59,11 @@ extern "C" void _prolog()
     ToolsTask();
 }
 
+// Dispatches the debug menu selection (game/debug.cpp DebugMenuSelected) to the tool's entry:
+// 5 Option, 6 MotSeq, 7 Camera, 8 Light, 9 Esp, 10 EmList, 12 RctRouteCheck, 13 Atari, 14 Cons,
+// 15 VibEdit, 16 Scroll, 17 MotionViewer, 18 TplView, 19 SceAt, 20 InterfaceDesign, 21 FlrAt,
+// 27 Mes, 30 Event, 31 Block, 32 EspArea, 34 SceItem, 35 EmInfo, 36 LightArea. Each Tool* runs
+// until the tool quits; entries not in this module resolve to the DOL or stay unresolved.
 void ToolsTask()
 {
     switch (DebugMenuSelected) {
@@ -132,6 +139,7 @@ void ToolsTask()
     }
 }
 
+// REL exit: runs the static destructors before the module is unlinked.
 extern "C" void _epilog()
 {
     void (**p)(void);
@@ -142,6 +150,7 @@ extern "C" void _epilog()
     OSReport("epilog...\n");
 }
 
+// Trap for calls through unresolved imports: reports and HALTs (line 142 of the original).
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");
@@ -193,6 +202,8 @@ void ToolArrayPush(int flags)
     }
 }
 
+// Undoes ToolArrayPush with the same flag word: restores the room's parts / em / obj / esp /
+// espgen / ctrl / event / light arrays.
 void ToolWorkPop(int flags)
 {
     if (!(flags & 1)) {
@@ -222,6 +233,8 @@ void ToolWorkPop(int flags)
 }
 
 #ifdef TOOLS_EM_ARRAY
+// t_esp: swaps in a 10-work enemy array for the effect editor's preview enemies (on) or restores
+// the room's (off).
 void ToolEmArraySet(int on)
 {
     if (on) {

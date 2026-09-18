@@ -224,6 +224,9 @@ void aram_dump_dma(SndTestWork* w);
 static void cb_dma_end(u32 task);
 void aram_dump_disp(SndTestWork* w);
 
+// Sound test frame: START / Z (0x1010) leave (returns 1); the Y menu (test_mode_menu) picks the
+// mode, otherwise the mode runs: 5 ARAM dump, 6/7 SIT / RIT file load, else test_mode_move (SIT,
+// RIT, AUX A/B, VOL).
 int Snd_test_mode()
 {
     SndTestWork* w = &Snd_test_work;
@@ -254,6 +257,8 @@ int Snd_test_mode()
     return 0;
 }
 
+// Mode menu: up/down pick SIT / RIT / AUX A / AUX B / VOL / DUMP (wrapping), A / X enter it
+// (loads / dumps initialised), Y closes.
 void test_mode_menu(SndTestWork* w)
 {
     if (w->trg & 0x900) {
@@ -305,6 +310,8 @@ void test_mode_menu(SndTestWork* w)
     }
 }
 
+// Runs the current mode: SIT / RIT parameter editing (test_sit_or_rit), effect editing, volume
+// editing, then play / stop and the display; block selection with the C stick.
 void test_mode_move(SndTestWork* w)
 {
     int ret;
@@ -350,6 +357,8 @@ void test_mode_move(SndTestWork* w)
     }
 }
 
+// Copies the current ISS block's request (blkNo[0] / reqNo[0]) SIT into the edit copy; 1 when the
+// block is loaded.
 int test_sit_init(SndTestWork* w)
 {
     SND_ISS_BLK* blk = &Snd_iss_blk[w->blkNo[0]];
@@ -373,6 +382,7 @@ int test_sit_init(SndTestWork* w)
     return ret;
 }
 
+// Copies the current stream block's request RIT into the edit copy; 1 when loaded.
 int test_rit_init(SndTestWork* w)
 {
     SND_STR_BLK* blk = &Snd_str_blk[w->blkNo[1]];
@@ -384,6 +394,9 @@ int test_rit_init(SndTestWork* w)
     return ret;
 }
 
+// SIT / RIT editing: L/R (0x00F00000 stick) switch the request number, the d-pad moves the
+// parameter cursor and changes the value through the parameter's move_type; 1 when something
+// changed (the edit copy is written back to the block).
 int test_sit_or_rit(SndTestWork* w)
 {
     s8 max;
@@ -447,6 +460,7 @@ void test_tbl_now_check(SndTestWork* w, int dir, int max)
     }
 }
 
+// The parameter table of the current table / SIT type (sit_para_tbl[type] or rit_para_tbl).
 TestPara* test_get_tpara_adrs(SndTestWork* w)
 {
     // integer form: `add r3, idx, tbl` operand order; one result variable: the index temp is not
@@ -465,6 +479,7 @@ TestPara* test_get_tpara_adrs(SndTestWork* w)
     return p;
 }
 
+// Up/down (repeat, not while X is held) move the parameter cursor 0..max-1; 1 when it moved.
 int test_tbl_para_select(SndTestWork* w, int max)
 {
     s8 old;
@@ -487,6 +502,7 @@ int test_tbl_para_select(SndTestWork* w, int max)
     return 0;
 }
 
+// Left/right change a numeric parameter by step (fast with R) within min..max, s8 / s16 by type.
 static void move_type_num(SndTestWork* w, TestPara* para)
 {
     if (para->type == 0) {
@@ -521,10 +537,12 @@ static void move_type_note(SndTestWork* w, TestPara* para)
     *(s16*) para->ptr = v;
 }
 
+// Unused parameter kind (no-op).
 static void move_type_ext(SndTestWork* w, TestPara* para)
 {
 }
 
+// Left/right toggle the flag bit of the parameter (type 3..7 = bit number).
 static void move_type_flag(SndTestWork* w, TestPara* para)
 {
     u16* p = (u16*) para->ptr;
@@ -550,6 +568,7 @@ static void move_type_flag(SndTestWork* w, TestPara* para)
     *p = v;
 }
 
+// Read-only parameter.
 static void move_type_nop(SndTestWork* w, TestPara* para)
 {
 }
@@ -594,6 +613,8 @@ s16 test_para_ck_s16(SndTestWork* w, TestPara* para, s16 val)
     return val;
 }
 
+// B stops everything (SE / sequence / stream fade outs), A plays the current request: an ISS
+// request (Snd_iss_req_para, the id kept in sndId) or the stream by name; 1 when pressed.
 int test_play_or_stop(SndTestWork* w)
 {
     if (w->trg & 0x200) {
@@ -642,6 +663,7 @@ int test_play_or_stop(SndTestWork* w)
     return 1;
 }
 
+// R held: stick left/right step the request number 0..max-1 (R + X by 16); 1 when it changed.
 int test_req_no_select(SndTestWork* w, s16 max)
 {
     int step = 1;
@@ -680,6 +702,8 @@ int test_req_no_select(SndTestWork* w, s16 max)
     return 1;
 }
 
+// C stick up/down step the block number of the current table over the loaded blocks (request
+// reset to 0).
 void test_blk_no_select(SndTestWork* w)
 {
     if (w->trg & 0x80000) {
@@ -723,6 +747,7 @@ int test_blk_enable_ck(SndTestWork* w, int dir)
     return 1;
 }
 
+// AUX mode entry: reads the slot's current effect type / running state into the work.
 void Snd_test_efx_init(SndTestWork* w)
 {
     SND_EFX_WORK* efx = &Snd_efx_work[w->aux];
@@ -739,6 +764,8 @@ void Snd_test_efx_init(SndTestWork* w)
     }
 }
 
+// AUX A/B editing: effect type select (L), on/off (A / Z), parameter cursor and value edits
+// (float / u32 tables); 1 when the display must refresh.
 int Snd_test_efx_main(SndTestWork* w)
 {
     SND_EFX_WORK* efx = &Snd_efx_work[w->aux];
@@ -762,6 +789,8 @@ int Snd_test_efx_main(SndTestWork* w)
     return 0;
 }
 
+// L cycles the slot's effect type (reverb hi / std, chorus, delay, DPL2 reverb); the effect is
+// stopped for the change.
 int test_efx_type_select(SndTestWork* w, SND_EFX_WORK* efx)
 {
     if (!(w->trg & 0x40)) {
@@ -780,6 +809,7 @@ int test_efx_type_select(SndTestWork* w, SND_EFX_WORK* efx)
     return 1;
 }
 
+// A starts the effect with the edited parameters, Z stops it.
 int test_efx_on_or_off(SndTestWork* w, SND_EFX_WORK* efx)
 {
     if (w->trg & 0x100) {
@@ -798,6 +828,7 @@ int test_efx_on_or_off(SndTestWork* w, SND_EFX_WORK* efx)
     return 0;
 }
 
+// Up/down move the effect parameter cursor (not while X is held); 1 when it moved.
 int test_aux_para_select(SndTestWork* w)
 {
     s8 max;
@@ -826,6 +857,7 @@ int test_aux_para_select(SndTestWork* w)
     return 0;
 }
 
+// Left/right change the cursor's float effect parameter by its step (R fast) within its range.
 static int test_move_epara_f32(SndTestWork* w)
 {
     EfxParaF* p = NULL;
@@ -895,6 +927,7 @@ static int test_move_epara_f32(SndTestWork* w)
     return 1;
 }
 
+// Left/right change the cursor's integer effect parameter (masks / shifts of the packed word).
 static int test_move_epara_u32(SndTestWork* w)
 {
     EfxParaU* p;
@@ -994,6 +1027,8 @@ void test_tbl_aux_ck(SndTestWork* w)
     *p = v;
 }
 
+// VOL mode: up/down pick one of the six system volumes (Snd_ctrl_work.sys_vol), left/right change
+// it; 1 when something changed.
 int Snd_test_volume(SndTestWork* w)
 {
     s8 old = w->volCursor;
@@ -1062,11 +1097,14 @@ static void (*disp_tbl[5])(SndTestWork*) = {(void (*)(SndTestWork*)) snd_test_di
                                             (void (*)(SndTestWork*)) Snd_test_disp_efx,
                                             (void (*)(SndTestWork*)) Snd_test_disp_vol};
 
+// Draws the current mode's screen (SIT / RIT / AUX / VOL).
 void Snd_test_disp_move(SndTestWork* w)
 {
     disp_tbl[w->mode](w);
 }
 
+// SIT screen: block / request numbers, the SIT by type (or the wavetable data / sequencer view
+// when toggled) and the cursor.
 static void snd_test_disp_sit()
 {
     SndTestWork* w = &Snd_test_work;
@@ -1102,6 +1140,7 @@ static void snd_test_disp_sit()
 
 static char* sit_type_name[4] = {"TYPE      : DUMMY", "TYPE      :   NML", "TYPE      :  ADSR", "TYPE      :  MIDI"};
 
+// Prints the SIT type name (dummy / normal / ADSR / MIDI).
 void disp_sit_type(SndTestWork* w, SND_SIT* sit)
 {
     eprintf(0x18, 0x54, 0, 1, sit_type_name[w->type]);
@@ -1112,6 +1151,8 @@ void disp_sit_type(SndTestWork* w, SND_SIT* sit)
 static char* srd_type_name[4] = {"   OFF", "DIRECT", "UPDATE", "  ONCE"};
 static char* on_off_name[2] = {"OFF", " ON"};
 
+// Prints a normal / ADSR SIT: PATCH / NOTE, VTBL_NO, VOL / SVOL, AUX_A/B, pan, pitch, flags, the
+// surround type; ADSR SITs add their envelope values.
 void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
 {
     u8* wt = blk->dls;
@@ -1182,6 +1223,7 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
     eprintf(0x18, y + 0x7E, 0, 1, "PAN(DLS)  : %5d", art->pan);
 }
 
+// Prints a MIDI SIT: MIDI_NO, VOL_FLAG, VOL, CH_NO and the sequence work's state.
 void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
 {
     SND_SEQ_WORK* seq;
@@ -1219,6 +1261,7 @@ void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
     disp_seq_volume(seq);
 }
 
+// Prints the sequence work's volume.
 void disp_seq_volume(SND_SEQ_WORK* seq)
 {
     eprintf(0xD0, 0x16C, 0, 1, "OUT : %04XH", seq->calc_vol);
@@ -1227,6 +1270,7 @@ void disp_seq_volume(SND_SEQ_WORK* seq)
     eprintf(0xD0, 0x1A4, 0, 1, "SPD : %0d", seq->fade_step);
 }
 
+// RIT screen: stream block / request numbers, the RIT fields and the stream status.
 static void snd_test_disp_rit()
 {
     SndTestWork* w = &Snd_test_work;
@@ -1312,6 +1356,7 @@ int str_get_player_id()
     return 0;
 }
 
+// Blinking ">" at the parameter cursor row.
 void disp_cursor(SndTestWork* w, int x, int y)
 {
     u16 flag;
@@ -1348,6 +1393,7 @@ void disp_cursor(SndTestWork* w, int x, int y)
 static char* str_state_name[7] = {"WAIT   ", "READY  ", "PLAY   ", "NO READ", "CLOSE  ", "IDLE   ", "ERROR  "};
 static u8 str_state_col[8] = {0, 0, 4, 0, 7, 7, 2, 0};
 
+// Prints the stream channels' state (playing / block / volume).
 void disp_str_status(SndTestWork* w, int x, int y)
 {
     int i;
@@ -1385,6 +1431,7 @@ static inline int seq_note_count(int ch, SND_VOICE_WORK* const& work)
     return notes;
 }
 
+// Prints the sequencer channels (program, note, volume per channel).
 void disp_sequencer()
 {
     SND_SEQ_WORK* seq;
@@ -1446,6 +1493,7 @@ void disp_sequencer()
     disp_seq_volume(seq);
 }
 
+// Prints the wavetable instrument / region / articulation / sample data of the SIT's program.
 void disp_se_wt_data(SndTestWork* w, SND_ISS_BLK* blk, SND_SIT* sit)
 {
     u32 ofs;
@@ -1481,6 +1529,7 @@ void disp_se_wt_data(SndTestWork* w, SND_ISS_BLK* blk, SND_SIT* sit)
     disp_adsr_para(w);
 }
 
+// Resolves the SIT's program to its WT instrument / region / art / sample / ADPCM pointers.
 void get_wt_ptr(SndTestWork* w, SND_ISS_BLK* blk, SND_SIT* sit)
 {
     SND_WT_HDR* hdr = (SND_WT_HDR*) blk->dls;
@@ -1498,6 +1547,7 @@ void get_wt_ptr(SndTestWork* w, SND_ISS_BLK* blk, SND_SIT* sit)
     w->adpcm += w->sample->adpcmIndex;
 }
 
+// Prints the ADSR parameters of the current voice (axv).
 void disp_adsr_para(SndTestWork* w)
 {
     SND_AXV_WORK* axv;
@@ -1518,6 +1568,7 @@ void disp_adsr_para(SndTestWork* w)
     eprintf(0x178, 0xC4, 0, 1, "OUT  VOL : %04XH", axv->calc_vol);
 }
 
+// Finds the AX voice work playing sndId (w->axv, NULL when none).
 void get_axv_ptr(SndTestWork* w)
 {
     SND_VOICE_WORK* vw;
@@ -1535,6 +1586,7 @@ void get_axv_ptr(SndTestWork* w)
     w->axv = vw->axv;
 }
 
+// Draws the mode menu with the cursor.
 void Snd_test_disp_menu(SndTestWork* w)
 {
     int y;
@@ -1553,6 +1605,8 @@ void Snd_test_disp_menu(SndTestWork* w)
     eprintf(0x168, y, 4, 1, "<");
 }
 
+// Common footer: sound mode (MONO / STEREO / DPL2), the voice map (active voices highlighted), the
+// table / block / request numbers, the master / ISS / STR volume pairs and the voice count / peak.
 void Snd_test_disp_basic(SndTestWork* w)
 {
     // The original passes a stale r3 to the 2nd/3rd call (no `mr r3,r31` reload): the argument
@@ -1618,6 +1672,7 @@ void Snd_test_disp_req_para(SndTestWork* unused)
 static u8 efx_type_col[8] = {7, 4, 4, 4, 4, 4, 0, 2};
 static char* efx_type_name[8] = {"EFX OFF  ", "REV HI   ", "REV STD. ", "CHORUS   ", "DELAY    ", "REV DPL2 ", "EFX STOP ", "EFX ERROR"};
 
+// AUX screen: slot, effect type / state and the parameters (test_disp_efx_tbl by type).
 void Snd_test_disp_aux(SndTestWork* w)
 {
     s16 type;
@@ -1630,9 +1685,11 @@ void Snd_test_disp_aux(SndTestWork* w)
 
 static char* aux_name[2] = {"AUX A", "AUX B"};
 static char* efx_name[6] = {"NO EFFECT  ", "REVERB HI  ", "REVERB STD.", "CHORUS     ", "DELAY      ", "REVERB DPL2"};
+// Effect parameter printers by effect type.
 static void (*test_disp_efx_tbl[7])(SndTestWork*, SND_EFX_WORK*, int, int) = {
     NULL, test_disp_efx_rev_hi, test_disp_efx_rev_std, test_disp_efx_chorus, test_disp_efx_delay, test_disp_efx_rev_dpl2, NULL};
 
+// Prints both AUX slots' effect type and state.
 void Snd_test_disp_efx()
 {
     SndTestWork* w = &Snd_test_work;
@@ -1677,6 +1734,7 @@ void Snd_test_disp_efx()
     }
 }
 
+// Reverb HI parameters (the float table).
 static void test_disp_efx_rev_hi(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
 {
     eprintf(x, y, 0, 1, "PREDELAY    ( 0.000 -  0.100) : %2.4fF", efx->fx.hi.preDelay);
@@ -1687,6 +1745,7 @@ static void test_disp_efx_rev_hi(SndTestWork* w, SND_EFX_WORK* efx, int x, int y
     eprintf(x, y + 0x46, 0, 1, "MIX         ( 0.000 -  1.000) : %2.4fF", efx->fx.hi.mix);
 }
 
+// Reverb STD parameters.
 static void test_disp_efx_rev_std(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
 {
     eprintf(x, y, 0, 1, "PREDELAY    ( 0.000 -  0.100) : %2.4fF", efx->fx.std.preDelay);
@@ -1696,6 +1755,7 @@ static void test_disp_efx_rev_std(SndTestWork* w, SND_EFX_WORK* efx, int x, int 
     eprintf(x, y + 0x38, 0, 1, "MIX         ( 0.000 -  1.000) : %2.4fF", efx->fx.std.mix);
 }
 
+// Chorus parameters.
 static void test_disp_efx_chorus(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
 {
     eprintf(x, y, 0, 1, "BASEDELAY   (     5 -     15) : %8d", efx->fx.chorus.baseDelay);
@@ -1703,6 +1763,7 @@ static void test_disp_efx_chorus(SndTestWork* w, SND_EFX_WORK* efx, int x, int y
     eprintf(x, y + 0x1C, 0, 1, "PERIOD      (   500 -  10000) : %8d", efx->fx.chorus.period);
 }
 
+// Delay parameters (per channel).
 static void test_disp_efx_delay(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
 {
     eprintf(x, y, 0, 1, "DELAY[0]    (    10 -   5000) : %8d", efx->fx.delay.delay[0]);
@@ -1716,6 +1777,7 @@ static void test_disp_efx_delay(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
     eprintf(x, y + 0x70, 0, 1, "OUTPUT[2]   (     0 -    100) : %8d", efx->fx.delay.output[2]);
 }
 
+// DPL2 reverb parameters.
 static void test_disp_efx_rev_dpl2(SndTestWork* w, SND_EFX_WORK* efx, int x, int y)
 {
     eprintf(x, y, 0, 1, "PREDELAY    ( 0.000 -  0.100) : %2.4fF", efx->fx.dpl2.preDelay);
@@ -1725,6 +1787,7 @@ static void test_disp_efx_rev_dpl2(SndTestWork* w, SND_EFX_WORK* efx, int x, int
     eprintf(x, y + 0x38, 0, 1, "MIX         ( 0.000 -  1.000) : %2.4fF", efx->fx.dpl2.mix);
 }
 
+// VOL screen: the six system volumes with the cursor.
 void Snd_test_disp_vol()
 {
     SndTestWork* w = &Snd_test_work;
@@ -1743,11 +1806,14 @@ void Snd_test_disp_vol()
     eprintf(0xB8, 0x9A, 0, 1, "STREAM VOL SE  : %3d", ctrl->sys_vol[5] >> 8);
 }
 
+// LOAD mode entry: opens the disc directory of the current table.
 void Snd_test_load_init(SndTestWork* w)
 {
     directory_open(w);
 }
 
+// LOAD mode: C stick picks the target block, the directory list scrolls with the d-pad, A loads
+// the selected file (or enters the directory), B goes up; the list and the block files are drawn.
 void Snd_test_mode_load(SndTestWork* w)
 {
     int moved;
@@ -1817,6 +1883,8 @@ int blk_no_check(SndTestWork* w)
     return 0;
 }
 
+// A on a directory entry: enters it, or loads the .SND / stream file into the current block
+// (load_sit_data / load_rit_data).
 void load_select(SndTestWork* w)
 {
     s8 tbl = w->loadTbl;
@@ -1844,16 +1912,20 @@ void load_select(SndTestWork* w)
     }
 }
 
+// Loads an ISS bank file into ISS block blkNo[0].
 void load_sit_data(SndTestWork* w, char* name)
 {
 }
 
+// Loads a stream table file into stream block blkNo[1].
 void load_rit_data(SndTestWork* w, char* name)
 {
 }
 
 static char dir_up_name[4] = "..";
 
+// Reads the current path's disc directory into dirName / dirIsDir (up to 128 entries; ".." when
+// below the root), cursor reset.
 void directory_open(SndTestWork* w)
 {
     w->dirNum = 0;
@@ -1908,6 +1980,7 @@ void dir_entry_read(SndTestWork* w, int dirs)
     DVDCloseDir(&w->dir);
 }
 
+// Draws the directory listing window around the cursor.
 void directory_disp(SndTestWork* w)
 {
     char name[0x100];
@@ -1935,11 +2008,13 @@ void directory_disp(SndTestWork* w)
     }
 }
 
+// ">" at the directory cursor.
 void cursor_disp(SndTestWork* w)
 {
     eprintf(0x98, (w->dirCur - w->dirTop + 7) * 14, 4, 1, ">\0\0");
 }
 
+// Lists the loaded blocks of the current table with their file names.
 void blk_file_disp(SndTestWork* w)
 {
     char name[0x100];
@@ -1985,6 +2060,7 @@ void dir_name_up(SndTestWork* w)
     *(path + last + 1) = 0;
 }
 
+// Upper-cases a string in place.
 void change_to_cap(char* s)
 {
     char c = *s;
@@ -1997,6 +2073,7 @@ void change_to_cap(char* s)
     }
 }
 
+// Pointer to the extension after the last '.', or the end of the string.
 char* get_file_ext(char* s)
 {
     char c;
@@ -2007,6 +2084,7 @@ char* get_file_ext(char* s)
     return s;
 }
 
+// Directory depth of a path (number of '/').
 int get_dir_level(char* s)
 {
     s8 level = 0;
@@ -2020,12 +2098,15 @@ int get_dir_level(char* s)
     return level;
 }
 
+// DUMP mode entry: fetches the first ARAM page.
 void Snd_test_dump_init(SndTestWork* w)
 {
     aram_dump_dma(w);
     aram_dump_disp(w);
 }
 
+// ARAM DUMP: d-pad / stick step the address by 0x100 .. 0x100000 (X resets to the sound ARAM
+// base), C stick jumps to a loaded block; a changed address DMAs the page and it is hex-dumped.
 void Snd_test_aram_dump(SndTestWork* w)
 {
     u32 old = w->aramAdrs;
@@ -2073,6 +2154,7 @@ void Snd_test_aram_dump(SndTestWork* w)
     aram_dump_disp(w);
 }
 
+// C stick up/down: the dump address jumps to the previous / next loaded ISS block.
 void aram_blk_no_select(SndTestWork* w)
 {
     if (w->tbl == 1) {
@@ -2086,6 +2168,7 @@ void aram_blk_no_select(SndTestWork* w)
     }
 }
 
+// Finds the next (dir) loaded ISS block from blkNo[0] and sets the dump address to it.
 void blk_enable_ck(SndTestWork* w, int dir)
 {
     int i;
@@ -2109,6 +2192,7 @@ void blk_enable_ck(SndTestWork* w, int dir)
     w->aramAdrs = Snd_iss_blk[w->blkNo[w->tbl]].aram & ~0xFF;
 }
 
+// Starts the ARAM -> MRAM DMA of the 0x100-byte page at aramAdrs.
 void aram_dump_dma(SndTestWork* w)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -2120,6 +2204,7 @@ void aram_dump_dma(SndTestWork* w)
     DCInvalidateRange(w->dump, 0x100);
 }
 
+// ARQ callback: marks the dump page ready.
 static void cb_dma_end(u32 task)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
@@ -2127,6 +2212,7 @@ static void cb_dma_end(u32 task)
     ctrl->dma_busy = 0;
 }
 
+// Hex dump of the fetched ARAM page with its address.
 void aram_dump_disp(SndTestWork* w)
 {
     u32 i;

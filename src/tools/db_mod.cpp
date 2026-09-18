@@ -336,21 +336,27 @@ void dbModGetMotFilename(int slot, char* dst);
 }
 int SetToolLight(int no);  // db_light_tools.cpp / db_light_esp.cpp
 
+// Sets viewer flag bits (bit0 parent/child link set, bit1 t_motseq's reverse toggle, bit2 no
+// position wrap, bit3 wrap the model position at +-50000 instead of +-10000 units).
 void dbModSetViewFlag(u32 flag)
 {
     pDbModState.p->viewFlag |= flag;
 }
 
+// The viewer flag word.
 u32 dbModGetViewFlag()
 {
     return pDbModState.p->viewFlag;
 }
 
+// Clears viewer flag bits.
 void dbModUnsetViewFlag(u32 flag)
 {
     pDbModState.p->viewFlag &= ~flag;
 }
 
+// Resets viewer slots start..end: frees their model / texture / motion buffers, clears the motion
+// works (motion 0 gets flags 0x15, an attach camera set from the game camera, speed 1), no parent.
 void init_dbEm(DB_EM* em, int start, int end)
 {
     int n, i;
@@ -391,10 +397,13 @@ void init_dbEm(DB_EM* em, int start, int end)
     }
 }
 
+// Empty (the PATH selector of the tool menu has no effect in this build).
 void dbmodFilePath(u8 path)
 {
 }
 
+// Viewer start: allocates the state, reads Room/Em/mot_tbl.txt from the host (loadFail when
+// missing), resets both slot banks, parses the table (mottblInit) and loads the first set's names.
 void dbModelInit()
 {
     int size;
@@ -425,6 +434,7 @@ void dbModelInit()
     }
 }
 
+// Viewer end: destroys the slot enemies (cEm) and frees the table image, MotTbl and state.
 void dbModelQuit()
 {
     int i;
@@ -452,6 +462,7 @@ void dbModelQuit()
     }
 }
 
+// Name of model set `no` (first word of its _SET line).
 void dbmodGetLabel(int no, char* dst)
 {
     char line[0x100];
@@ -460,6 +471,9 @@ void dbmodGetLabel(int no, char* dst)
     sscanf(line, "%s", dst);
 }
 
+// Selects model set pDbModState->setNo: reads its _SET block (set name, then the bin / tex / motion
+// / locate unit names), resolves the unit numbers and pulls the file names (dbmodGetFilenames);
+// motion numbers reset to 0 (or -1 without motions).
 void dbmodGetSet()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -538,6 +552,7 @@ void dbmodGetSet()
     dbmodGetFilenames();
 }
 
+// Empty file list.
 void DB_MODEL_FILES::init()
 {
     int i;
@@ -551,6 +566,8 @@ void DB_MODEL_FILES::init()
     }
 }
 
+// Fills the list with `num` host file names (NAME_LEN apart); changed names are marked for
+// re-reading (state 3).
 void DB_MODEL_FILES::set(u8 num, char* names)
 {
     int i;
@@ -570,6 +587,7 @@ void DB_MODEL_FILES::set(u8 num, char* names)
     m_counter = 0;
 }
 
+// Appends one host file name (marked new); 0 when full or the name is too long.
 int DB_MODEL_FILES::append(char* name)
 {
     m_type = 1;
@@ -588,6 +606,9 @@ int DB_MODEL_FILES::append(char* name)
     return 1;
 }
 
+// Loads the next entry into dst[i]: type 1 reads the host file (Debug heap; state 1 loaded, 2 not
+// found), type 2 takes the data pointer. Returns 2 while entries remain, 0 when done, 1 on a
+// missing file.
 int DB_MODEL_FILES::read(void** dst)
 {
     int i;
@@ -633,6 +654,7 @@ int DB_MODEL_FILES::read(void** dst)
     return (m_counter <= m_num - 1) ? 2 : 0;
 }
 
+// Fills the list with `num` in-memory data pointers.
 void DB_MODEL_FILES::set(u8 num, void** data)
 {
     int i;
@@ -649,6 +671,7 @@ void DB_MODEL_FILES::set(u8 num, void** data)
     m_counter = 0;
 }
 
+// Appends one data pointer; 0 when full.
 int DB_MODEL_FILES::append(void* data)
 {
     m_type = 2;
@@ -662,6 +685,10 @@ int DB_MODEL_FILES::append(void* data)
     return 1;
 }
 
+// Builds the current set's file names from the table: bin and tex units (directory line, then one
+// name per line into name[0]/name[1]), the motion units (directory, name pattern with a '#' run
+// standing for the motion number, its position and digit count), and the locate unit's bin/tex
+// names (locName).
 void dbmodGetFilenames()
 {
     char line[0x100];
@@ -813,6 +840,10 @@ void dbmodGetFilenames()
     }
 }
 
+// Model viewer frame (pad 1). mode 0 (menu): L/R flip the menu page, up/down pick an entry (entries
+// needing a model greyed), A opens it (mode 1), Z the TOOL MENU (path selector, mode 2), B returns
+// 2 (leave the viewer). mode 1 runs the page routine (dbmodFunc[id]; 0 when it returns to the menu).
+// `mode` != 0 hides the menu (a hosting tool drives the pages itself).
 int dbModel(int mode)
 {
     JOY* joy = &Joy[0];
@@ -947,6 +978,7 @@ int dbModel(int mode)
     return ret;
 }
 
+// NO page: picks the viewer slot (0..63 in a grid, d-pad moves, A selects, B back).
 static int dbmod_no()
 {
     static s8 noY;
@@ -1013,6 +1045,8 @@ static int dbmod_no()
 
 static const char* dbmodTypeName[8] = {"pl", "wep", "em", "obm", "et", "idm", "itm", "pcs"};
 
+// MODEL page: chooses the model set (stick / L / R skip through the sets filtered by type) and the
+// first motion, A loads the set's bin/tex files into the slot (and the sub slot), B back.
 static int dbmod_model()
 {
     JOY* joy = &Joy[0];
@@ -1209,6 +1243,8 @@ static int dbmod_model()
 static const char* dbmodModelLabel[3] = {"MODEL :", "MOTION:", "SKIP  :"};
 static const char* dbmodTypeLabel[8] = {"PL", "WP", "EM", "OB", "ET", "ID", "IT", "PS"};
 
+// Draws the MODEL page: set / motion rows with the cursor, the motion file name with the digit
+// cursor, the bin and tex directories and file lists with their load states.
 void dbmodDispModelName()
 {
     int x = 6;
@@ -1335,6 +1371,8 @@ void dbmodDispModelName()
 
 static const char* dbmodMotionLabel[2] = {"MOTION 0:", "MOTION 1:"};
 
+// MOTION page: per motion file of the slot, left/right step the motion number digit under the
+// cursor (R x10, L x100, Z reset, Y+up/down change the file), A loads the motions, B back.
 static int dbmod_motion()
 {
     JOY* joy = &Joy[0];
@@ -1504,6 +1542,9 @@ static int dbmod_motion()
     return ret;
 }
 
+// LOCATE page: places the slot model (position in X-Z / Y or per axis, rotation per axis, scale;
+// X switches the axis mode, Z resets, R/L fine steps) and the parent/child attachment from the
+// _ONTO unit (locate bin/tex names, parts); B back.
 static int dbmod_locate()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -1881,6 +1922,8 @@ static int dbmod_locate()
 
 static const char* dbmodTransLabel[4] = {"ON-", "OFF", "ADD", "INF"};
 
+// TRANS page: root translation mode of motion 0 (ON / OFF / ADD / INF -> SetTransMode flags
+// 0x11 / 0x4000).
 static int dbmod_trans()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -1951,6 +1994,7 @@ static int dbmod_trans()
     return 0;
 }
 
+// LOOP page: motion loop flag (flags bit 2) on / off.
 static int dbmod_loop()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -1998,6 +2042,7 @@ static int dbmod_loop()
     return 0;
 }
 
+// PLAY page: playback mode PLAY / STEP (X + stick steps frames) / REV (dbModPlayMode).
 static int dbmod_play()
 {
     JOY* joy = &Joy[0];
@@ -2037,6 +2082,7 @@ static int dbmod_play()
     return 0;
 }
 
+// FLIP page: x-mirror flag (flags 0x40) on / off.
 static int dbmod_flip()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -2085,6 +2131,8 @@ static int dbmod_flip()
 
 static const char* dbmodBlendLabel[3] = {"MOTION 0:", "MOTION 1:", "METHOD  :"};
 
+// BLEND page: blend ratio of the secondary motions (left/right, R x10, L x100, Z reset) and the
+// mode BLEND / ADD / NONE.
 static int dbmod_blend()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -2225,6 +2273,7 @@ static int dbmod_blend()
     return 0;
 }
 
+// Unused page id 9: returns to the menu at once.
 static int dbmod_except()
 {
     if (Joy[0].trg & 0x200) {
@@ -2235,6 +2284,8 @@ static int dbmod_except()
 
 static const char* dbmodLightLabel[2] = {"ENV :", "TOOL:"};
 
+// LIGHT page: ENV light preset (DFLT / ROOM / ST1D / ST1N / ST2 / ST3 -> lightMode) and the TOOL
+// light editor (db_light) toggle.
 static int dbmod_light()
 {
     static cLightTool* pLightTool;
@@ -2352,6 +2403,8 @@ static int dbmod_light()
 
 static const char* dbmodOptionLabel[5] = {"SKELETON:", "SYNCHRO :", "LIT TYPE:", "RANGE   :", "CALC SK1:"};
 
+// OPTION page: skeleton drawing (opt_flag bit 0), the IK report, the light type of the model
+// (PL / EM / OBJ / SCR / ITM -> lit_type), LARGE / SMALL info text and the info display.
 static int dbmod_option()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -2489,6 +2542,7 @@ static int dbmod_option()
 
 static const char* dbmodScaleLabel[1] = {"X Y Z:"};
 
+// SCALE page: uniform model scale (left/right, R x10, L x100, Z reset to 1).
 static int dbmod_scale()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -2555,6 +2609,7 @@ static int dbmod_scale()
 
 static f32 dbmodOrientLen = 800.0f;
 
+// Draws a parts' local axes (x red, y green, z blue) from its world matrix (skeleton option).
 void drawOrientation(cParts* p)
 {
     Vec v[2];
@@ -2645,6 +2700,8 @@ static int dbmodPinfoY = 300;
 static int dbmodPinfoW = 8;
 static int dbmodPinfoH = 11;
 
+// PARTS INFO page: lists the model's parts with their motion type; up/down pick a parts
+// (info_parts_no), left/right change the entry (X held: by parts number), B back.
 static int dbmod_p_info()
 {
     static int pinfoNum;
@@ -2788,6 +2845,7 @@ static int dbmod_p_info()
     return 0;
 }
 
+// Placeholder page (id 14): does nothing and returns.
 static int dbmod_null()
 {
     pDbModState.p->mode--;
@@ -2796,6 +2854,7 @@ static int dbmod_null()
 
 static const char* dbmodInfoLabel[6] = {"NO   :", "MOT 0:", "MOT 1:", "TRANS:", "LOOP :", "PLAY :"};
 
+// Status lines of the current slot: slot number, motion 0 / 1 numbers, trans / loop / play modes.
 void dbmodInfoDisp()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
@@ -2858,6 +2917,8 @@ void dbmodInfoDisp()
 }
 
 
+// Restarts every loaded slot's motions at `frame` (motion 0 through the model's MotionWork, the
+// others as blend motions; flag 0x200 = keep the parts), resets pos/ang to pos0/ang0.
 void dbModMotionSet(int frame)
 {
     DB_EM* em;
@@ -2885,6 +2946,8 @@ void dbModMotionSet(int frame)
         }
     }
 }
+// Plays motion sequence `seq` (MotionSeqKey table) on slot `no` from key `frame` with MotionWork
+// flags `flag` (t_motseq / t_event drive this).
 void dbModMotionSetSeq(int no, void* seq, int flag, int frame)
 {
     DB_EM* em = &dbModSlot[no];
@@ -2895,6 +2958,8 @@ void dbModMotionSetSeq(int no, void* seq, int flag, int frame)
     MotionGetPosition(model, &model->pos, &model->ang);
 }
 
+// Applies the PLAY page mode to a motion flag word: 0 play (clear 2 | 8), 1 step (pause bit 8;
+// X + stick left/right steps one frame back / forward), 2 reverse (bit 1).
 void dbModPlayMode(u16* flag)
 {
     JOY* joy = &Joy[0];
@@ -2925,6 +2990,10 @@ void dbModPlayMode(u16* flag)
 // MotionMove's second argument (the game's callers pass 0); motion.h declares the one-argument form
 u16 dbmodMotionMove(cModel* m, int flag) asm("MotionMove");
 
+// Per frame: orders the slots parents first, advances every alive model's motions (MotionMove,
+// blend of the secondary motions, the PLAY mode), attaches children to their parent's parts, wraps
+// the root position inside +-10000 / 50000 units (viewFlag 4 / 8), draws skeletons per option;
+// when every one-shot motion ended (allDone) restarts them from frame 0.
 void dbModMotionMove()
 {
     s8 order[SLOT_NUM];
@@ -3150,6 +3219,7 @@ void dbModMotionMove()
     }
 }
 
+// Copies the motion file name of slot `no`.
 void dbModGetMotFilename(int no, char* dst)
 {
     strcpy(dst, pDbModState.p->motName[no]);
@@ -3157,6 +3227,7 @@ void dbModGetMotFilename(int no, char* dst)
 
 static const char* dbmodTblUnit[5] = {"_SET", "_BIN", "_TPL", "_FCV", "_ONTO"};
 
+// Locates the five units of mot_tbl.txt (_SET, _BIN, _TPL, _FCV, _ONTO) and counts their blocks.
 void mottblInit(MotTbl* tbl)
 {
     int i;
@@ -3383,6 +3454,7 @@ char* mottblUnitPtr(char* start, int no)
     return ret;
 }
 
+// The file name part after the last '/'.
 char* dbmodSkipPath(char* path)
 {
     char* p;
@@ -3403,6 +3475,7 @@ static inline void dbmodLightInit(cEm* model, int flag)
     model->LightInfo.init2(0, 1, &center, &size, flag);
 }
 
+// Light set of a slot model by lit_type: 1 pl, 2 em, 4 obj, 0x10 scr, 0x20 item (5 = none).
 void dbmodSetLight(DB_EM* em)
 {
     cEm* model = em->pEm;
@@ -3429,6 +3502,7 @@ void dbmodSetLight(DB_EM* em)
     }
 }
 
+// Same as dbmodSetLight for this slot.
 void DB_EM::setLight()
 {
     switch (lit_type) {
@@ -3450,6 +3524,7 @@ void DB_EM::setLight()
     }
 }
 
+// Copies the bin and tex file lists into the slot's m_files[0..1] and starts the load steps.
 int DB_EM::loadModelSet(DB_MODEL_FILES* bin, DB_MODEL_FILES* tex)
 {
     switch (bin->m_type) {
@@ -3531,6 +3606,7 @@ int DB_EM::loadModel()
     return 0;
 }
 
+// USAGE box of the MODEL page.
 void model_usage()
 {
     eprintf(40 * 8, 5 * 14, 7, 0, "------- USAGE -------");
@@ -3539,6 +3615,7 @@ void model_usage()
     eprintf(40 * 8, 8 * 14, 7, 0, "L     : Skip Backward");
 }
 
+// USAGE box of the MOTION page.
 void motion_usage()
 {
     eprintf(40 * 8, 5 * 14, 7, 0, "------- USAGE -------");
@@ -3553,6 +3630,7 @@ void motion_usage()
     eprintf(40 * 8, 11 * 14, 4, 0, "A                    ");
 }
 
+// USAGE box of the BLEND page.
 void blend_usage()
 {
     eprintf(38 * 8, 5 * 14, 7, 0, "-------- USAGE --------");
@@ -3563,6 +3641,7 @@ void blend_usage()
     eprintf(38 * 8, 9 * 14, 7, 0, "L       : Move x 100   ");
 }
 
+// USAGE box of the LOCATE position mode (0 X-Z plane + Y, 1 per axis).
 void position_usage(int mode)
 {
     int x = 43;
@@ -3597,6 +3676,7 @@ void position_usage(int mode)
     eprintf(x * 8, (y - 1) * 14, 2, 0, "B                  ");
 }
 
+// USAGE box of the LOCATE rotation mode.
 void rotation_usage()
 {
     eprintf(42 * 8, 4 * 14, 7, 0, "------ USAGE ------");
@@ -3610,6 +3690,7 @@ void rotation_usage()
     eprintf(42 * 8, 10 * 14, 2, 0, "B                  ");
 }
 
+// USAGE box of the SCALE page.
 void scale_usage()
 {
     eprintf(38 * 8, 4 * 14, 7, 0, "-------- USAGE --------");
@@ -3620,6 +3701,7 @@ void scale_usage()
     eprintf(38 * 8, 8 * 14, 7, 0, "L       : Move x 100  ");
 }
 
+// Copies the motion file list into m_files[2] and starts the motion load steps.
 int DB_EM::loadMotionSet(DB_MODEL_FILES* mot)
 {
     switch (mot->m_type) {
@@ -3685,6 +3767,7 @@ static int dbmodIkX = 50;
 static int dbmodIkY = 8;
 static int dbmodIkUnused = 0;
 
+// Prints the model's IK joint table (joint kind / parts number per joint) at dbmodIkX/Y.
 void DB_EM::IKreport()
 {
     MotionWork* mw;
@@ -3722,11 +3805,13 @@ void DB_EM::IKreport()
     }
 }
 
+// Label (set name) of slot 0.
 char* dbModBinName()
 {
     return dbModSlot[0].label;
 }
 
+// Index of the model set called `name` in mot_tbl.txt, -1 when absent.
 int GetSlctSetNo(char* name)
 {
     char line[0x100];
@@ -3745,6 +3830,8 @@ int GetSlctSetNo(char* name)
     return -1;
 }
 
+// Loads model set `name` with motion number `motNum` into slot `no` (t_event / t_esp event models):
+// selects the set, resolves the names and runs dbModelLoad. 0 when the set is unknown.
 int LoadModelSetName(char* name, int motNum, int no)
 {
     int setNo = GetSlctSetNo(name);
@@ -3772,6 +3859,7 @@ int LoadModelSetName(char* name, int motNum, int no)
     }
 }
 
+// Root translation mode of slot `no`'s motion 0: 0 on (0x11), 1 off, 2 add (1), 3 infinite (0x4001).
 void SetTransMode(int mode, int no)
 {
     DB_EM* em = &dbModSlot[no];
@@ -3797,6 +3885,7 @@ void SetTransMode(int mode, int no)
     em->mot[0].flags = *flag;
 }
 
+// Loop flag (bit 2) of slot `no`'s motion 0.
 void SetLoopFlag(int on, int no)
 {
     DB_EM* em = &dbModSlot[no];
@@ -3810,6 +3899,7 @@ void SetLoopFlag(int on, int no)
     em->mot[0].flags = *flag;
 }
 
+// X-mirror flag (0x40) of slot `no`'s motion 0.
 void SetXFlipFlag(int on, int no)
 {
     DB_EM* em = &dbModSlot[no];
@@ -3823,6 +3913,7 @@ void SetXFlipFlag(int on, int no)
     em->mot[0].flags = *flag;
 }
 
+// The enemy (model) of slot `no`, 0 for a bad slot.
 cEm* dbModGetEmPtr(u32 no)
 {
     if (no > SLOT_NUM - 1) {
@@ -3831,6 +3922,7 @@ cEm* dbModGetEmPtr(u32 no)
     return dbModSlot[no].pEm;
 }
 
+// Attaches this slot to slot `parentNo`'s parts (-1 = the model) with local offset / rotation.
 void DB_EM::setParent(s8 parentNo, s16 parts, Vec* p, Vec* r)
 {
     this->parentNo = parentNo;
@@ -3840,12 +3932,15 @@ void DB_EM::setParent(s8 parentNo, s16 parts, Vec* p, Vec* r)
     pEm_parent = dbModSlot[this->parentNo].pEm;
 }
 
+// Parent/child link between two slots; viewFlag bit 0 makes dbModMotionMove apply it.
 void dbModelParentChild(s8 no, s8 parentNo, s8 parts, Vec* pos, Vec* rot)
 {
     dbModSlot[no].setParent(parentNo, parts, pos, rot);
     pDbModState.p->viewFlag |= 1;
 }
 
+// Loads a model (bin/tex lists) and its motions into slot `no` synchronously (runs the load steps
+// to completion); 0 on a bad slot or a failed read.
 int dbModelLoad(int no, DB_MODEL_FILES* bin, DB_MODEL_FILES* tex, DB_MODEL_FILES* mot)
 {
     DB_EM* em = &dbModSlot[no];
@@ -3876,21 +3971,25 @@ int dbModelLoad(int no, DB_MODEL_FILES* bin, DB_MODEL_FILES* tex, DB_MODEL_FILES
     return 1;
 }
 
+// 1 when slot `no` holds a model.
 int dbModelIsAlive(int no)
 {
     return dbModSlot[no].pEm ? 1 : 0;
 }
 
+// Rest position of slot `no` (restored at every motion restart).
 void dbModelSetPos0(int no, Vec* pos)
 {
     dbModSlot[no].pos0 = *pos;
 }
 
+// Rest rotation of slot `no`.
 void dbModelSetAng0(int no, Vec* rot)
 {
     dbModSlot[no].ang0 = *rot;
 }
 
+// Copies `cam` (pos, at, roll, fovy) into slot `no`'s motion attach camera.
 void dbModelSetCamera(int no, Camera* cam)
 {
     AttachCamera* ac = dbModSlot[no].mot[0].cam;

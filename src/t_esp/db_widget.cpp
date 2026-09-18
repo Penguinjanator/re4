@@ -2,11 +2,18 @@
 #include "db_widget.h"
 
 // t_esp REL: the window-system primitives of the effect tool (file name unknown, "db_widget.cpp").
+// DB_PRIMITIVE is the tree node (parent / child / sibling, relative position, hit rect, click /
+// mouse-over / drag / keyboard / value-message virtuals); DB_WINDOW adds the keyboard focus grid
+// (DB_ACTIVE_SELECT) and callbacks; DB_WINDOW_TITLE / DB_BUTTON_CLOSE / DB_STRING / DB_BUTTON are the
+// chrome; DB_NUMERIC binds a typed variable with range, digits and flags, DB_NUMERIC2 a second
+// variable receiving the edit delta, DB_SLIDEBAR a knob. The container is db_window.cpp's
+// DB_PRIM_ARRAY, the drawing / input hooks are db_port.cpp.
 
 int primIdCounter = 0;  // global in the original (.data+0x780 reloc fields are 0 in the REL; a static keeps the offset)
 static char hexDigit[] = "0123456789ABCDEF";
 static const f32 dbNumRange[7][2] = DB_NUM_RANGE_INIT;
 
+// 1 when `p` is inside the rectangle.
 int DB_RECT::ChkHitRect(DB_POINT* p)
 {
     int hit = 0;
@@ -17,6 +24,7 @@ int DB_RECT::ChkHitRect(DB_POINT* p)
     return hit;
 }
 
+// Unlinked primitive at the origin, no callbacks, not selectable.
 DB_PRIMITIVE::DB_PRIMITIVE()
 {
     int i;
@@ -99,15 +107,18 @@ DB_PRIMITIVE::DB_PRIMITIVE()
     }
 }
 
+// Nothing owned.
 DB_PRIMITIVE::~DB_PRIMITIVE()
 {
 }
 
+// Callback run when the primitive is clicked.
 void DB_PRIMITIVE::SetOnHitCallback(DB_PRIM_CALLBACK cb)
 {
     onHitCb = cb;
 }
 
+// Runs the click callback if set.
 void DB_PRIMITIVE::CallOnHitCallback()
 {
     if (onHitCb) {
@@ -115,11 +126,13 @@ void DB_PRIMITIVE::CallOnHitCallback()
     }
 }
 
+// Callback run every Update.
 void DB_PRIMITIVE::SetUpdateCallback(DB_PRIM_CALLBACK cb)
 {
     updateCb = cb;
 }
 
+// Runs the update callback if set.
 void DB_PRIMITIVE::CallUpdateCallback()
 {
     if (updateCb) {
@@ -127,11 +140,13 @@ void DB_PRIMITIVE::CallUpdateCallback()
     }
 }
 
+// Callback run at Draw.
 void DB_PRIMITIVE::SetDrawCallback(DB_PRIM_CALLBACK cb)
 {
     drawCb = cb;
 }
 
+// Runs the draw callback if set.
 void DB_PRIMITIVE::CallDrawCallback()
 {
     if (drawCb) {
@@ -151,6 +166,7 @@ void DB_PRIMITIVE::SetSize(f32 w, f32 h)
     rect = DB_RECT(base.x, base.y, size.x, size.y);
 }
 
+// Drawing offset inside the primitive (the hit rect stays).
 void DB_PRIMITIVE::SetBase(f32 x, f32 y)
 {
     DB_POINT* b = &base;
@@ -160,6 +176,7 @@ void DB_PRIMITIVE::SetBase(f32 x, f32 y)
     rect = DB_RECT(base.x, base.y, size.x, size.y);
 }
 
+// Appends `p` to the child list (parent set).
 int DB_PRIMITIVE::AddChild(DB_PRIMITIVE* p)
 {
     int ret = 1;
@@ -173,6 +190,7 @@ int DB_PRIMITIVE::AddChild(DB_PRIMITIVE* p)
     return ret;
 }
 
+// Appends `p` after this primitive in its sibling list.
 int DB_PRIMITIVE::AddBrother(DB_PRIMITIVE* p)
 {
     int ret = 1;
@@ -187,10 +205,13 @@ int DB_PRIMITIVE::AddBrother(DB_PRIMITIVE* p)
     return ret;
 }
 
+// Default per-frame update: nothing.
 void DB_PRIMITIVE::Update()
 {
 }
 
+// Computes the screen position (parent's + relative pos) of this primitive, its siblings and
+// children.
 void DB_PRIMITIVE::DrawRequest()
 {
     if (active) {
@@ -212,6 +233,7 @@ void DB_PRIMITIVE::DrawRequest()
     }
 }
 
+// Default draw: a 10 x 10 box (brighter while the mouse is on it).
 void DB_PRIMITIVE::Draw()
 {
     if (select) {
@@ -221,6 +243,8 @@ void DB_PRIMITIVE::Draw()
     }
 }
 
+// Click test of the tree: children first (local coordinates), then this rect (OnClick, the hit
+// callback, click[btn] set; a left click on a selectable one makes it `select`), then siblings.
 int DB_PRIMITIVE::ChkClick(DB_POINT* p, int btn)
 {
     int hit = 0;
@@ -252,6 +276,7 @@ int DB_PRIMITIVE::ChkClick(DB_POINT* p, int btn)
     return hit;
 }
 
+// Double click test of the tree (OnDoubleClick on the hit primitive).
 int DB_PRIMITIVE::ChkDoubleClick(DB_POINT* p, int btn)
 {
     int hit = 0;
@@ -276,6 +301,7 @@ int DB_PRIMITIVE::ChkDoubleClick(DB_POINT* p, int btn)
     return hit;
 }
 
+// Button release over the tree: OnMouseUp on the primitives that were clicked, click[btn] cleared.
 int DB_PRIMITIVE::ChkMouseUp(DB_POINT* p, int btn)
 {
     int hit = 0;
@@ -295,6 +321,7 @@ int DB_PRIMITIVE::ChkMouseUp(DB_POINT* p, int btn)
     return hit;
 }
 
+// Mouse-over test of the tree: mouseOn set on the hit primitives.
 int DB_PRIMITIVE::ChkMouseOn(DB_POINT* p)
 {
     int hit = 0;
@@ -318,6 +345,7 @@ int DB_PRIMITIVE::ChkMouseOn(DB_POINT* p)
     return hit;
 }
 
+// Drag: OnMouseDrag with the mouse delta on every primitive of the tree clicked with `btn`.
 int DB_PRIMITIVE::ChkMouseDrag(DB_POINT* p, int btn)
 {
     int hit = 0;
@@ -329,34 +357,42 @@ int DB_PRIMITIVE::ChkMouseDrag(DB_POINT* p, int btn)
     return hit;
 }
 
+// Default click handler: nothing.
 void DB_PRIMITIVE::OnClick(DB_POINT* p, int btn)
 {
 }
 
+// Default double click handler: nothing.
 void DB_PRIMITIVE::OnDoubleClick(DB_POINT* p, int btn)
 {
 }
 
+// Default release handler: nothing.
 void DB_PRIMITIVE::OnMouseUp(DB_POINT* p, int btn)
 {
 }
 
+// Default drag handler: nothing.
 void DB_PRIMITIVE::OnMouseDrag(DB_POINT* p, int btn)
 {
 }
 
+// Default keyboard handler: nothing.
 void DB_PRIMITIVE::OnKeybord(DB_KEYBORD* key)
 {
 }
 
+// Default value message (DB_CALC_*) handler: nothing.
 void DB_PRIMITIVE::OnCalcMsg(int msg)
 {
 }
 
+// Default float delta handler: nothing.
 void DB_PRIMITIVE::OnCalcMsgFloat(f32 v)
 {
 }
 
+// Empty focus grid.
 DB_ACTIVE_SELECT::DB_ACTIVE_SELECT()
 {
     tbl = 0;
@@ -371,6 +407,7 @@ DB_ACTIVE_SELECT::DB_ACTIVE_SELECT()
     memclr_asm(tbl, sizeof(DB_PRIMITIVE*));
 }
 
+// Frees the grid table.
 DB_ACTIVE_SELECT::~DB_ACTIVE_SELECT()
 {
     if (tbl) {
@@ -378,6 +415,7 @@ DB_ACTIVE_SELECT::~DB_ACTIVE_SELECT()
     }
 }
 
+// Moves the focus column (clamped) and refreshes `active`.
 void DB_ACTIVE_SELECT::SetSelX(u32 x)
 {
     DB_PRIMITIVE* p;
@@ -392,6 +430,7 @@ void DB_ACTIVE_SELECT::SetSelX(u32 x)
     }
 }
 
+// Moves the focus row (clamped) and refreshes `active`.
 void DB_ACTIVE_SELECT::SetSelY(u32 y)
 {
     DB_PRIMITIVE* p;
@@ -406,6 +445,7 @@ void DB_ACTIVE_SELECT::SetSelY(u32 y)
     }
 }
 
+// Puts `p` at grid cell (x, y), growing the table as needed; 0 when the cell is taken.
 int DB_ACTIVE_SELECT::AddPrimitive(DB_PRIMITIVE* p, int x, int y)
 {
     int ret;
@@ -453,6 +493,7 @@ int DB_ACTIVE_SELECT::AddPrimitive(DB_PRIMITIVE* p, int x, int y)
     return ret;
 }
 
+// The focused primitive (the first cell when none yet).
 DB_PRIMITIVE* DB_ACTIVE_SELECT::GetActivePrimitive()
 {
     if (num == 0) {
@@ -464,6 +505,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::GetActivePrimitive()
     return active;
 }
 
+// Focuses `p` if it is in the grid (selX / selY updated); 1 when found.
 int DB_ACTIVE_SELECT::SetActivePrimitive(DB_PRIMITIVE* p)
 {
     u32 i, j;
@@ -481,6 +523,7 @@ int DB_ACTIVE_SELECT::SetActivePrimitive(DB_PRIMITIVE* p)
     return 0;
 }
 
+// Focus one row up (skipping empty cells, wrapping); returns the new focus.
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveUp()
 {
     u32 x, y;
@@ -505,6 +548,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveUp()
     }
 }
 
+// Focus one row down.
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveDown()
 {
     u32 x, y;
@@ -529,6 +573,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveDown()
     }
 }
 
+// Focus one column left.
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveLeft()
 {
     u32 x, y;
@@ -553,6 +598,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveLeft()
     }
 }
 
+// Focus one column right.
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveRight()
 {
     u32 x, y;
@@ -577,6 +623,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveRight()
     }
 }
 
+// Focus the next filled cell in row-major order (wrapping).
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveNext()
 {
     u32 x, y;
@@ -605,6 +652,7 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveNext()
     }
 }
 
+// Focus the first filled cell.
 DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveDefault()
 {
     if (active == 0) {
@@ -645,6 +693,8 @@ DB_WINDOW::DB_WINDOW() : color(1.0f)
     SetActiveChangeCallback(0);
 }
 
+// Runs the window's ActiveChange callback (the tool's own keyboard handling); its result, 0 = use
+// the default scheme.
 int DB_WINDOW::CallActiveChangeCallback(DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
     // COMPILER-DIFF: candidate #17 (the original allocates `ret` to the return register first and copies
@@ -659,26 +709,31 @@ int DB_WINDOW::CallActiveChangeCallback(DB_PRIMITIVE* p, DB_KEYBORD* k)
     return ret;
 }
 
+// Installs the keyboard-focus callback.
 void DB_WINDOW::SetActiveChangeCallback(DB_WINDOW_CALLBACK cb)
 {
     activeChangeCb = cb;
 }
 
+// Installs the callback run when the window closes.
 void DB_WINDOW::SetCloseCallback(DB_WINDOW_CALLBACK cb)
 {
     closeCb = cb;
 }
 
+// A click on the window body: nothing beyond the activation done by the array.
 void DB_WINDOW::OnClick(DB_POINT* p, int btn)
 {
 }
 
+// Registers `p` in the window's keyboard focus grid at (x, y).
 int DB_WINDOW::AddSelectablePrimitive(DB_PRIMITIVE* p, int x, int y)
 {
     sel.AddPrimitive(p, x, y);
     return AddChild(p);
 }
 
+// Runs the close callback and deactivates the window (the tool's callback hides / frees it).
 void DB_WINDOW::Close()
 {
     if (closeCb) {
@@ -687,6 +742,8 @@ void DB_WINDOW::Close()
     active = 0;
 }
 
+// Window body: filled background and frame in the window colour (brighter when active), then
+// the children.
 void DB_WINDOW::Draw()
 {
     if (select) {
@@ -696,6 +753,7 @@ void DB_WINDOW::Draw()
     }
 }
 
+// Keyboard input while active: B (key 6) closes the window when keyFlag has DB_WIN_KEY_ESC_CLOSE.
 void DB_WINDOW::OnKeybord(DB_KEYBORD* key)
 {
     if ((keyFlag & DB_WIN_KEY_ESC_CLOSE) && key->trg[6]) {
@@ -703,6 +761,7 @@ void DB_WINDOW::OnKeybord(DB_KEYBORD* key)
     }
 }
 
+// Title bar with text `s`, white.
 DB_WINDOW_TITLE::DB_WINDOW_TITLE(const char* s)
 {
     ca = cb = cg = cr = 0.0f;
@@ -711,6 +770,7 @@ DB_WINDOW_TITLE::DB_WINDOW_TITLE(const char* s)
     SetString(s);
 }
 
+// Title text colour.
 void DB_WINDOW_TITLE::SetStringColor(f32 r, f32 g, f32 b, f32 a)
 {
     cr = r;
@@ -727,6 +787,7 @@ void DB_WINDOW_TITLE::SetStringColor(f32 r, f32 g, f32 b, f32 a)
     if (ca > 1.0f) ca = 1.0f;
 }
 
+// Title text (up to 31 chars); 0 when too long.
 int DB_WINDOW_TITLE::SetString(const char* s)
 {
     int ret = 0;
@@ -745,11 +806,13 @@ static inline f32 DB_PointY(DB_POINT* p)
     return p->y;
 }
 
+// a + p->y (keeps the load order of the title draw).
 static inline f32 DB_AddY(f32 a, DB_POINT* p)
 {
     return a + p->y;
 }
 
+// Title bar: a filled strip across the window top with the text.
 void DB_WINDOW_TITLE::Draw()
 {
     f32 r, g, b;
@@ -766,6 +829,7 @@ void DB_WINDOW_TITLE::Draw()
     DB_DrawString(drawPos.x + base.x + 2.0f, drawPos.y + DB_PointY(&base), str, cr, cg, cb, ca);
 }
 
+// Left-dragging the title moves the parent window.
 void DB_WINDOW_TITLE::OnMouseDrag(DB_POINT* p, int btn)
 {
     DB_POINT np;
@@ -780,6 +844,7 @@ void DB_WINDOW_TITLE::OnMouseDrag(DB_POINT* p, int btn)
     }
 }
 
+// Left double click on the title closes the parent window.
 void DB_WINDOW_TITLE::OnDoubleClick(DB_POINT* p, int btn)
 {
     if (btn == 0 && parent) {
@@ -791,6 +856,7 @@ void DB_WINDOW_TITLE::OnDoubleClick(DB_POINT* p, int btn)
     }
 }
 
+// 16 x 16 close box.
 DB_BUTTON_CLOSE::DB_BUTTON_CLOSE()
 {
     type = DB_PRIM_BUTTON_CLOSE;
@@ -799,10 +865,12 @@ DB_BUTTON_CLOSE::DB_BUTTON_CLOSE()
     rect = DB_RECT(base.x - 2.0f, base.y - 2.0f, size.x + 4.0f, size.y + 4.0f);
 }
 
+// Draws the close box (the default box).
 void DB_BUTTON_CLOSE::Draw()
 {
 }
 
+// Left click closes the parent window.
 void DB_BUTTON_CLOSE::OnClick(DB_POINT* p, int btn)
 {
     if (btn == 0 && parent) {
@@ -814,6 +882,7 @@ void DB_BUTTON_CLOSE::OnClick(DB_POINT* p, int btn)
     }
 }
 
+// Text label with a `max_`-char buffer holding `s`, white; size from the text (8 x 16 per char).
 DB_STRING::DB_STRING(u32 max_, const char* s)
 {
     u32 zero = 0;
@@ -838,6 +907,7 @@ DB_STRING::DB_STRING(u32 max_, const char* s)
     ca = cb = cg = cr = 1.0f;
 }
 
+// Frees the text buffer.
 DB_STRING::~DB_STRING()
 {
     if (str) {
@@ -845,6 +915,7 @@ DB_STRING::~DB_STRING()
     }
 }
 
+// Text colour.
 void DB_STRING::SetColor(f32 r, f32 g, f32 b, f32 a)
 {
     cr = r;
@@ -861,6 +932,7 @@ void DB_STRING::SetColor(f32 r, f32 g, f32 b, f32 a)
     if (ca > 1.0f) ca = 1.0f;
 }
 
+// Replaces the text (0 when it does not fit) and resizes the primitive to it.
 int DB_STRING::SetString(const char* s)
 {
     int ret = 0;
@@ -874,6 +946,7 @@ int DB_STRING::SetString(const char* s)
     return ret;
 }
 
+// Draws the text (highlighted while the mouse is on it or it has the focus).
 void DB_STRING::Draw()
 {
     DB_DrawString(drawPos.x + base.x, DB_AddY(drawPos.y, &base), str, cr, cg, cb, ca);
@@ -885,6 +958,7 @@ void DB_STRING::Draw()
     }
 }
 
+// Selectable text button without a callback.
 DB_BUTTON::DB_BUTTON() : DB_STRING(255, "")
 {
     cb = 0;
@@ -893,11 +967,13 @@ DB_BUTTON::DB_BUTTON() : DB_STRING(255, "")
     SetCallback(0);
 }
 
+// The button's action.
 void DB_BUTTON::SetCallback(DB_PRIM_CALLBACK cb_)
 {
     cb = cb_;
 }
 
+// Left click runs the action.
 void DB_BUTTON::OnClick(DB_POINT* p, int btn)
 {
     if (cb) {
@@ -905,6 +981,7 @@ void DB_BUTTON::OnClick(DB_POINT* p, int btn)
     }
 }
 
+// A (key 5) on the focused button runs the action.
 void DB_BUTTON::OnKeybord(DB_KEYBORD* key)
 {
     if (key->trg[5] && cb) {
@@ -912,6 +989,8 @@ void DB_BUTTON::OnKeybord(DB_KEYBORD* key)
     }
 }
 
+// Numeric field bound to nothing: u8 range 0..255, 3 digits, unit 1, not selectable until a
+// pointer is bound.
 DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
 {
     pNum = 0;
@@ -959,6 +1038,7 @@ DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
     }
 }
 
+// Behaviour flags (DB_NUM_FLAG_*: lock, no select, hex, no limit, no float msg, loop, signed view).
 void DB_NUMERIC::SetNumFlg(u32 flg)
 {
     numFlg = flg;
@@ -969,6 +1049,7 @@ void DB_NUMERIC::SetNumFlg(u32 flg)
     }
 }
 
+// The bound variable as a float (by numType; signed view re-interprets the unsigned types).
 f32 DB_NUMERIC::GetNumFloat()
 {
     f32 v;
@@ -1031,6 +1112,8 @@ f32 DB_NUMERIC::GetNumFloat()
     return v;
 }
 
+// Stores `v` into the bound variable (clamped to min..max unless NO_LIMIT, wrapped with LOOP,
+// rounded to the type).
 void DB_NUMERIC::SetNumFloat(f32 v)
 {
     if (!(numFlg & DB_NUM_FLAG_NO_LIMIT)) {
@@ -1082,6 +1165,7 @@ void DB_NUMERIC::SetNumFloat(f32 v)
     }
 }
 
+// The value DB_CALC_DEFAULT restores.
 void DB_NUMERIC::SetDefault(f32 v)
 {
     def = v;
@@ -1096,6 +1180,7 @@ void DB_NUMERIC::SetDefault(f32 v)
     }
 }
 
+// Integer digits shown (field width).
 void DB_NUMERIC::SetKeta(u32 n)
 {
     if (n < 2) {
@@ -1104,11 +1189,13 @@ void DB_NUMERIC::SetKeta(u32 n)
     keta = n;
 }
 
+// Fraction digits shown for float fields.
 void DB_NUMERIC::SetKetaFloat(int n)
 {
     ketaFloat = n;
 }
 
+// Binds an s8 variable (range -128..127, selectable).
 void DB_NUMERIC::SetNumPointer(s8* p)
 {
     numType = DB_NUM_S8;
@@ -1118,6 +1205,7 @@ void DB_NUMERIC::SetNumPointer(s8* p)
     pNum = p;
 }
 
+// Binds a u8 variable (0..255).
 void DB_NUMERIC::SetNumPointer(u8* p)
 {
     numType = DB_NUM_U8;
@@ -1127,6 +1215,7 @@ void DB_NUMERIC::SetNumPointer(u8* p)
     pNum = p;
 }
 
+// Binds an s16 variable.
 void DB_NUMERIC::SetNumPointer(s16* p)
 {
     numType = DB_NUM_S16;
@@ -1136,6 +1225,7 @@ void DB_NUMERIC::SetNumPointer(s16* p)
     pNum = p;
 }
 
+// Binds a u16 variable.
 void DB_NUMERIC::SetNumPointer(u16* p)
 {
     numType = DB_NUM_U16;
@@ -1145,6 +1235,7 @@ void DB_NUMERIC::SetNumPointer(u16* p)
     pNum = p;
 }
 
+// Binds an s32 variable.
 void DB_NUMERIC::SetNumPointer(s32* p)
 {
     numType = DB_NUM_S32;
@@ -1154,6 +1245,7 @@ void DB_NUMERIC::SetNumPointer(s32* p)
     pNum = p;
 }
 
+// Binds a u32 variable.
 void DB_NUMERIC::SetNumPointer(u32* p)
 {
     numType = DB_NUM_U32;
@@ -1163,6 +1255,7 @@ void DB_NUMERIC::SetNumPointer(u32* p)
     pNum = p;
 }
 
+// Binds an f32 variable (two fraction digits).
 void DB_NUMERIC::SetNumPointer(f32* p)
 {
     numType = DB_NUM_F32;
@@ -1173,6 +1266,7 @@ void DB_NUMERIC::SetNumPointer(f32* p)
     pNum = p;
 }
 
+// Writes the default value into the bound variable.
 void DB_NUMERIC::ClearToDefault()
 {
     SetNumFloat(def);
@@ -1183,6 +1277,7 @@ void DB_NUMERIC::ClearToDefault()
     }
 }
 
+// Left double click resets the value to the default.
 void DB_NUMERIC::OnDoubleClick(DB_POINT* p, int btn)
 {
     if ((numFlg & DB_NUM_FLAG_LOCK) == 0 && btn == 0) {
@@ -1190,6 +1285,7 @@ void DB_NUMERIC::OnDoubleClick(DB_POINT* p, int btn)
     }
 }
 
+// Formats an integer field into the label (decimal or hex, `keta` digits, sign).
 int DB_NUMERIC::SetStringInt()
 {
     char buf[16];
@@ -1256,6 +1352,7 @@ int DB_NUMERIC::SetStringInt()
     return 1;
 }
 
+// Formats a float field into the label (`keta`.`ketaFloat` digits).
 int DB_NUMERIC::SetStringFloat()
 {
     char buf[16];
@@ -1358,6 +1455,8 @@ int DB_NUMERIC::SetStringFloat()
     return 1;
 }
 
+// Per frame: refreshes the label from the bound variable (a name table entry when one is set)
+// unless being typed into; runs the update callback.
 void DB_NUMERIC::Update()
 {
     int ret;
@@ -1400,6 +1499,8 @@ void DB_NUMERIC::Update()
     }
 }
 
+// Value message: MIN / MAX / DEFAULT, or +- unit x 0.1 / 1 / 10 / 100 (x 16 steps in hex mode);
+// ignored when locked.
 void DB_NUMERIC::OnCalcMsg(int msg)
 {
     f32 v;
@@ -1456,6 +1557,7 @@ void DB_NUMERIC::OnCalcMsg(int msg)
     SetNumFloat(v);
 }
 
+// Adds d x unit to the value (unless locked or NO_FLOAT_MSG).
 void DB_NUMERIC::OnCalcMsgFloat(f32 d)
 {
     if ((numFlg & DB_NUM_FLAG_LOCK) == 0) {
@@ -1465,6 +1567,7 @@ void DB_NUMERIC::OnCalcMsgFloat(f32 d)
     }
 }
 
+// Typed digits / '-' / '.' edit the value in place (backspace deletes, Enter ends the edit).
 void DB_NUMERIC::OnKeybord(DB_KEYBORD* key)
 {
     u8 c;
@@ -1514,42 +1617,50 @@ void DB_NUMERIC::OnKeybord(DB_KEYBORD* key)
     }
 }
 
+// Numeric field with a second bound variable (no message yet).
 DB_NUMERIC2::DB_NUMERIC2()
 {
     pNum2 = 0;
     lastMsg = DB_CALC_NONE;
 }
 
+// Binds the second variable (same type as the first).
 void DB_NUMERIC2::SetNumPointer2(s8* p)
 {
     pNum2 = p;
 }
 
+// Binds the second variable.
 void DB_NUMERIC2::SetNumPointer2(u8* p)
 {
     pNum2 = p;
 }
 
+// Binds the second variable.
 void DB_NUMERIC2::SetNumPointer2(s16* p)
 {
     pNum2 = p;
 }
 
+// Binds the second variable.
 void DB_NUMERIC2::SetNumPointer2(u16* p)
 {
     pNum2 = p;
 }
 
+// Binds the second variable.
 void DB_NUMERIC2::SetNumPointer2(s32* p)
 {
     pNum2 = p;
 }
 
+// Binds the second variable.
 void DB_NUMERIC2::SetNumPointer2(f32* p)
 {
     pNum2 = p;
 }
 
+// Stores `v` into the second variable (by type, no clamp).
 void DB_NUMERIC2::SetNumFloat2(f32 v)
 {
     switch (numType) {
@@ -1577,6 +1688,7 @@ void DB_NUMERIC2::SetNumFloat2(f32 v)
     }
 }
 
+// The second variable as a float.
 f32 DB_NUMERIC2::GetNumFloat2()
 {
     f32 v;
@@ -1639,6 +1751,8 @@ f32 DB_NUMERIC2::GetNumFloat2()
     return v;
 }
 
+// Value message: MIN / MAX / DEFAULT set the first variable; the +- steps are accumulated into the
+// second variable (the edit delta the effect editor applies) while it is 0; lastMsg remembered.
 void DB_NUMERIC2::OnCalcMsg(int msg)
 {
     f32 v;
@@ -1712,6 +1826,7 @@ void DB_NUMERIC2::OnCalcMsg(int msg)
     lastMsg = msg;
 }
 
+// Float delta into the second variable while it is 0 (unless locked).
 void DB_NUMERIC2::OnCalcMsgFloat(f32 d)
 {
     f32 v;
@@ -1744,6 +1859,7 @@ static void dbSlidebarSetDefaultLength(DB_SLIDEBAR* s)
     s->length = 16.0f;
 }
 
+// Writes the slider position (rate in min..max) back into the bound variable by type.
 void DB_SLIDEBAR::UpdateHoldNum()
 {
     f32 v;
@@ -1776,6 +1892,7 @@ void DB_SLIDEBAR::UpdateHoldNum()
     }
 }
 
+// Per frame: the knob rate from the bound variable (clamped 0..1).
 void DB_SLIDEBAR::Update()
 {
     f32 v;
@@ -1813,6 +1930,7 @@ void DB_SLIDEBAR::Update()
     }
 }
 
+// Left drag moves the knob by the mouse delta / length and stores the value.
 void DB_SLIDEBAR::OnMouseDrag(DB_POINT* p, int btn)
 {
     if (btn == 0) {
@@ -1825,6 +1943,7 @@ void DB_SLIDEBAR::OnMouseDrag(DB_POINT* p, int btn)
     }
 }
 
+// Draws the slider track (highlighted when active) and the knob at rate x length.
 void DB_SLIDEBAR::Draw()
 {
     f32 kx;

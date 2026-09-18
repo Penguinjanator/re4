@@ -1,4 +1,10 @@
-// Sscrn/ss_file: file (document) screen of the sub screen DLL (D:/Bio4/Prog/ss_file.cpp).
+// Sscrn/ss_file: the files screen of the sub screen DLL (D:/Bio4/Prog/ss_file.cpp): main menu tab
+// 3. Three categories (fileNum: 12 / 10 / 8 files, one per stage) of file items (fileId2No), row 0
+// of each list being the radio log of the last codec call; a file opens as paged text (fileInfo:
+// first message, colour, attribute, layout) with per-page pictures read into the 0x20000-byte
+// TPL buffer. Data: SS/<lang>/ss_file.dat (id textures, list / frame tables, file texts, the 24
+// radio-log message blocks). Widgets: SsFileInit (load) -> SsFileMain running FileSelect
+// (category row / file list, SsFileWork cursor) and MessageDisplay (the reader).
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -172,6 +178,7 @@ static int file_read_req;
 static int file_tpl_req;
 u8* fileLogMes[32];
 
+// Page count of file `no` (0-based) for the current language (fileMsgNum: Japanese / other).
 int getMsgNum(int no)
 {
     int ret;
@@ -184,6 +191,7 @@ int getMsgNum(int no)
     return ret;
 }
 
+// MesSet attribute word of a file's text type (fileInfo[][2]: 1 plain, 2 wider, 3 the radio log).
 u32 getMsgAttr(u32 type)
 {
     u32 ret = 0;
@@ -202,6 +210,8 @@ u32 getMsgAttr(u32 type)
     return ret;
 }
 
+// Picture index shown on `page` of file `no`: the fileTplJpn/Eng row lists the first page of each
+// picture, the result is how many of those start at or before page + 1.
 int getTplName(int no, u32 page)
 {
     int ret = 0;
@@ -230,6 +240,8 @@ int getTplName(int no, u32 page)
     return ret;
 }
 
+// Fills fileLogMes[] with the 24 radio-log message blocks of ss_file.dat (sub-files 0xA..0x21), one
+// per OpeGetMdtNo call number.
 void setLogMesAddr(SUB_SCREEN* wk)
 {
     u8** p = fileLogMes;
@@ -260,11 +272,14 @@ void setLogMesAddr(SUB_SCREEN* wk)
     *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x21);
 }
 
+// The file screen uses the common sub screen camera.
 void fileCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     sscrnCameraInit(wk, cam);
 }
 
+// Files screen loader: skips the previous screen's exit routine (state 2) when opened directly as
+// SS_OPEN_FILE (0x40: a picked-up file).
 void SsFileInit::init(SUB_SCREEN* wk)
 {
     if (wk->type == 0x40) {
@@ -274,6 +289,9 @@ void SsFileInit::init(SUB_SCREEN* wk)
     }
 }
 
+// Loads the files screen: state 0 run the previous screen's scrn_out_func and drop its ids, 1 one
+// frame wait, 2 read SS/<lang>/ss_file.dat (coming from the map rebuilds the models), 3 wait for the
+// read (archive -> pFile), 4 fade in for SS_OPEN_FILE and transit to SsFileMain.
 void SsFileInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -339,6 +357,8 @@ void SsFileInit::move(SUB_SCREEN* wk)
     }
 }
 
+// File number 1..29 of a file item id (0xAC..0xB7 -> 1..12, 0x48..0x50 -> 13..21, 0xF4..0xFD ->
+// 22..31); 0 for other items.
 int fileId2No(u16 id)
 {
     if (id >= 0xAC && id <= 0xB7) {
@@ -353,6 +373,7 @@ int fileId2No(u16 id)
     return 0;
 }
 
+// Inverse of fileId2No: the item id of file number `no`.
 u16 fileNo2Id(int no)
 {
     if (no <= 0xC) {
@@ -367,6 +388,8 @@ u16 fileNo2Id(int no)
     return 0xAC;
 }
 
+// File number of row `no` in category `cat` (0 first 12, 1 next 10, 2 the rest; row 0 of the list is
+// the radio log, so files start at 1).
 int fileNo(int cat, int no)
 {
     int ret = 0;
@@ -385,6 +408,10 @@ int fileNo(int cat, int no)
     return ret;
 }
 
+// Builds the files screen: FileSelect <-> MessageDisplay widgets, the archive's id textures and
+// unit groups (0x19 list, 0x1D/0x1E message frame), lights, the 0x20000-byte picture TPL buffer
+// and the SsFileWork cursor (category 0, mode 0); an SS_OPEN_FILE open jumps straight to the new
+// file's text.
 void SsFileMain::init(SUB_SCREEN* wk)
 {
     sel = new FileSelect;
@@ -450,6 +477,9 @@ void SsFileMain::init(SUB_SCREEN* wk)
     }
 }
 
+// Files screen frame: state 0 runs the child widget (FileSelect state 1 = exit via link 4, 2 = up
+// to the main menu; close_flag bit 4), state 1 runs the main menu tab row (0 items, 1 case, 2 map,
+// 3 back here, 4 exit; down returns to the list). sndWait delays the page-turn sound 10 frames.
 void SsFileMain::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -512,6 +542,8 @@ void SsFileMain::move(SUB_SCREEN* wk)
 
 static int sscrn_file_out(SUB_SCREEN* wk);
 
+// Leaving the files screen: deletes the widgets, frees the TPL buffer and cursor work, installs
+// sscrn_file_out as scrn_out_func.
 void SsFileMain::quit(SUB_SCREEN* wk)
 {
     if (sel) {
@@ -526,6 +558,8 @@ void SsFileMain::quit(SUB_SCREEN* wk)
     wk->scrn_out_func = sscrn_file_out;
 }
 
+// Starts the list panel's slide-out (IdSub 0/0x19 reverse); going to the map also frames the life
+// meter out and fades the player model.
 void sscrn_file_out_init(SUB_SCREEN* wk)
 {
     IdSub.unitPtr(0, 0x19)->rev_flag |= 1;
@@ -535,6 +569,7 @@ void sscrn_file_out_init(SUB_SCREEN* wk)
     }
 }
 
+// Exit routine (scrn_out_func): 1 once the list panel animation ended.
 static int sscrn_file_out(SUB_SCREEN* wk)
 {
     if (IdSub.unitPtr(0, 0x19)->end & 1) {
@@ -543,6 +578,9 @@ static int sscrn_file_out(SUB_SCREEN* wk)
     return 0;
 }
 
+// Draws the file list: scroll bar for `n` visible rows, the category name (message cat + 3), and
+// per visible row the cursor highlight and the file title (message = item id; "?????" message 2 for
+// files not owned; row 0 is the radio log).
 void dispFileList(SUB_SCREEN* wk, int n)
 {
     SsFileWork* fw = wk->pFileWk;
@@ -625,10 +663,16 @@ void dispFileList(SUB_SCREEN* wk, int n)
     }
 }
 
+// List cursor widget: state lives in wk->pFileWk.
 void FileSelect::init(SUB_SCREEN* wk)
 {
 }
 
+// File list input. mode 0 (category row): Y/B-to-game -> state 1, B/up -> main menu (state 2, not
+// for SS_OPEN_FILE), A/down enter the list, left/right change the category (0..2, limited by the
+// stage). mode 1 (files): B or up on row 0 back to the category row, up/down move the cursor with a
+// 5-row scroll window, A opens an owned file (fileInfo -> SsFileWork page setup) or the radio log
+// (row 0, the last OpeGetMdtNo call's messages) in MessageDisplay; error sound otherwise.
 void FileSelect::move(SUB_SCREEN* wk)
 {
     SsFileWork* fw = wk->pFileWk;
@@ -759,10 +803,14 @@ void FileSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Nothing to release.
 void FileSelect::quit(SUB_SCREEN* wk)
 {
 }
 
+// Opens the file text: message origin from the frame unit (IdSub 0xFE/0x1E), the layout
+// (LAYOUT_FILE / LAYOUT_MANUAL / LAYOUT_OPERATOR by SsFileWork::layout), the first page message,
+// the frame ids and the page-number position; picture state reset (tplFirst).
 void MessageDisplay::init(SUB_SCREEN* wk)
 {
     IdUnit* pos = IdSub.unitPtr(0xFE, 0x1E);
@@ -801,6 +849,11 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     tplFirst = 1;
 }
 
+// File reader: state 0 A advances a page (past the last page closes), left/right turn pages, B
+// closes; 1/2 play the frame's close animation then return to FileSelect. Reads the page's picture
+// (SS/<lang>/fNNx.tpl, x = 'a' + picture index, into pTplDat; tplState 0 shown -> 1 request ->
+// 2 reading, a page change cancels a stale read) when it changes and draws it, then the
+// "page/total" digits and the prev/next arrows.
 void MessageDisplay::move(SUB_SCREEN* wk)
 {
     SsFileWork* fw = wk->pFileWk;
@@ -966,6 +1019,8 @@ void MessageDisplay::move(SUB_SCREEN* wk)
     }
 }
 
+// Closes the file text: deletes every message slot, restores the common Japanese font and hides
+// the message frame.
 void MessageDisplay::quit(SUB_SCREEN* wk)
 {
     MessageControl* m = &cMes;

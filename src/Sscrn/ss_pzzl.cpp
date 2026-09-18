@@ -198,16 +198,20 @@ public:
 #define CMES_FLAGS (*(u32*) ((u8*) &cMes + 0xFC))
 #define CMES_RESULT (*(s8*) ((u8*) &cMes + 0x1D1))
 
+// Queues clearZbuffer into OT 0xF before the case/piece models (they draw over the 2D background).
 void pzzlClearZ(SUB_SCREEN* wk)
 {
     AddOtDirect(0xF, &pzzl_clear_z, (void (*)()) clearZbuffer, 2, 0x1000, 0, 0.0f);
 }
 
+// Packs bytes into the RRGGBBAA colour word the ss_Draw_* primitives take.
 u32 colorRRGGBBAA(u32 r, u32 g, u32 b, u32 a)
 {
     return (r << 24) | (g << 16) | (b << 8) | a;
 }
 
+// Leaving PzzlThinking / PieceCommand: when the temporary space board is empty, restores the life
+// meter, the case header unit and the main menu fade and hides the space; returns 1 then, else 0.
 int back2PieceSelect(SUB_SCREEN* wk)
 {
     int ret;
@@ -224,6 +228,8 @@ int back2PieceSelect(SUB_SCREEN* wk)
     return ret;
 }
 
+// Marks the equipped weapon piece (IdSub 0x30/4 at its top-right corner + a type-3 frame) and its
+// attached parts (0x40, 0x50), except the piece in hand; sw 0 hides the marks.
 void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
 {
     pzlPlayer* pl = wk->puzzlePlayer;
@@ -307,6 +313,10 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Draws the case cursor every frame: the cell frame under the board cursor (drawCursor), the piece
+// highlight by wk->cursor_mode (1 command: piece under the cursor in the 0x20/4 colour; 2 combine:
+// target 0x21 and the source pzzl_sel 0x22), the equip marks and the grid lines. cursor_flag bits
+// restart the highlight animation after a move; sw 0 hides everything.
 void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
 {
     IdUnit* u0 = IdSub.unitPtr(0x20, 4);
@@ -383,6 +393,8 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
     drawGridLine(wk);
 }
 
+// Resets the cursor bounding corners (min/max seeds) and the boards' visited state (bit 7) before
+// drawCursor walks the piece cells.
 void drawCursorInit(SUB_SCREEN* wk, PzzlCursor* c)
 {
     const f32 big = 1000.0f;
@@ -537,6 +549,8 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
     }
 }
 
+// Draws the case board grid (cell size pzlGrid::size, two line colours on OT 0xD / 0xF) in the
+// board's matrix.
 void drawGridLine(SUB_SCREEN* wk)
 {
     Mtx mat;
@@ -615,11 +629,13 @@ void drawGridLine(SUB_SCREEN* wk)
     }
 }
 
+// The case screen uses the common sub screen camera.
 void puzzleCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     sscrnCameraInit(wk, cam);
 }
 
+// World -> screen (320 x 240 half extents) through the current camera; 0 when behind the near plane.
 int puzzlePos2screenPos(Vec* pos, Vec* out)
 {
     Mtx inv;
@@ -643,6 +659,8 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
     return 1;
 }
 
+// Screen (+-240 half height) -> world x/y at the camera's z distance (the id unit positions of the
+// case).
 void screenPos2puzzlePos(Vec* pos, Vec* out)
 {
     Camera* cam = &pG->Cam;
@@ -759,6 +777,8 @@ void pieceTblInit(SUB_SCREEN* wk)
     } while (((PieceInfo*) (ofs + (u32) base))->id != 0xFFFF);
 }
 
+// Sets the piece model's rotation and cell position from pzlPiece::m_orientation (0..3 quarter
+// turns) and its board coordinates (or the in-hand position above the cursor).
 void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
 {
     cModel* m;
@@ -982,6 +1002,8 @@ static inline void pzzlItemInfo(int id, ItemInfo* info)
     itemInfo(id, info);
 }
 
+// Per frame: places every piece model (pieceModelOrientation), shows its count / ammo digits
+// (numDisp 0x40 + i at the piece's corner, hidden for single items), the in-hand piece raised.
 void pieceModelDisp(SUB_SCREEN* wk)
 {
     pzlPlayer* pl;
@@ -1063,6 +1085,8 @@ static inline void pzzlModelLight(cModel* m)
     m->LightInfo.init2(0, 0, &ofs, &size, 0x10);
 }
 
+// Binds the pzlPlayer pieces to MapMgr works 4.., builds their models, and the case model (work 3,
+// ss_pzzl.dat 0x1A6..0x1A9 by board_size) tilted by case_rot; first frame draw.
 void pieceModelInit(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->puzzlePlayer;
@@ -1108,6 +1132,7 @@ void pieceModelInit(SUB_SCREEN* wk)
     m->be_flag |= 2;
 }
 
+// Builds the model of piece `p` from the piece_info entry of its item id (bin/tpl pair).
 void pieceModelSet(pzlPiece* p)
 {
     void** data = (void**) searchItemModelData(p->item->id, piece_info);
@@ -1226,6 +1251,10 @@ void caseModelMove(int sw)
     }
 }
 
+// Loads the attache case screen: state 0 run the previous screen's scrn_out_func and drop its ids,
+// 1 one frame wait, 2 show the HUD and read SS/<lang>/ss_pzzl.dat (coming from the map rebuilds
+// the character model and life meter), 3 wait (archive -> x1E4), 4 fade in for SS_OPEN_PZZL (type
+// 4, item pick-up) and transit to SsPzzlMain.
 void SsPzzlInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -1292,6 +1321,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Shows (1) or fades out (0) the temporary space board frame (IdSub 0/0x10).
 void tempSpaceDisp(int sw)
 {
     IdUnit* u = IdSub.unitPtr(0, 0x10);
@@ -1320,6 +1350,10 @@ int checkWeaponChange(int id, int bullets)
     return 0;
 }
 
+// Builds the case screen: widgets PzzlThinking -> PieceSelect -> PieceCommand -> PieceCombine /
+// SsItemExamine, CaseChange; the id groups (case 0x10, command menus 0x1C/0x1D, name 0x1E, digits
+// IdNum 0x40..), the pzlPlayer of board_size; on a pick-up open (get_item_id) the new item is
+// appended as the extra piece and put in hand; the debug editor; caseMove = first frame.
 void SsPzzlMain::init(SUB_SCREEN* wk)
 {
     IdUnit* tbl[16];
@@ -1467,6 +1501,10 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     SndCall(0, 0x1E, 0, 0, 0, 0);
 }
 
+// Case screen frame: moves the case model in, runs the child widget (PieceSelect mode 1 exit via
+// link 4, 2 main menu; L (Key bit 22) jumps to the key items screen), or the tab row (state 1:
+// 0 items, 1 back, 2 map, 3 files, 4 exit). Re-equips through weaponChangeRequest when the armed
+// weapon changed (checkWeaponChange). Z / B on pad 1 toggle the CASE MAKE debug editor.
 void SsPzzlMain::move(SUB_SCREEN* wk)
 {
     int old;
@@ -1621,6 +1659,9 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     }
 }
 
+// Leaving the case: on a pick-up open an extra piece still in the space is discarded (dumpAll,
+// unarmed if equipped; model_flag 0), otherwise the layout is saved (pzlPlayer::save, model_flag
+// 1). Deletes the widgets and player, installs sscrn_pzzl_out.
 void SsPzzlMain::quit(SUB_SCREEN* wk)
 {
     pzzlCursorDisp(wk, 0);
@@ -1658,6 +1699,8 @@ void SsPzzlMain::quit(SUB_SCREEN* wk)
     wk->scrn_out_func = sscrn_pzzl_out;
 }
 
+// Starts the case close animation (IdSub 0xFE/0xFD of group 1 reversed, name unit fade); going to
+// the map frames the life meter out and fades the character.
 void sscrn_pzzl_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -1674,6 +1717,8 @@ void sscrn_pzzl_out_init(SUB_SCREEN* wk)
     }
 }
 
+// Exit routine (scrn_out_func): keeps drawing the case, pieces and cursor; 1 once both case units
+// finished their animation.
 static int sscrn_pzzl_out(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -1691,6 +1736,7 @@ static int sscrn_pzzl_out(SUB_SCREEN* wk)
     return 0;
 }
 
+// Plays the case units' open animation forward (CaseChange / shop re-entry).
 void sscrn_pzzl_in_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -1701,6 +1747,7 @@ void sscrn_pzzl_in_init(SUB_SCREEN* wk)
     u->rev_flag &= 0xF0;
 }
 
+// One frame delay widget (pick-up animation placeholder) then back to the linked widget.
 void PiecePopUp::move(SUB_SCREEN* wk)
 {
     if (count++ > 0) {
@@ -1708,6 +1755,7 @@ void PiecePopUp::move(SUB_SCREEN* wk)
     }
 }
 
+// One frame delay widget then back to the linked widget.
 void PiecePopDown::move(SUB_SCREEN* wk)
 {
     if (count++ > 0) {
@@ -1715,6 +1763,8 @@ void PiecePopDown::move(SUB_SCREEN* wk)
     }
 }
 
+// Piece-in-hand mode open: frames the life meter out, hides the case header, shows the space board
+// and dims the main menu.
 void PzzlThinking::init(SUB_SCREEN* wk)
 {
     Cckpt.m_LifeMeter.frameOut();
@@ -1723,6 +1773,9 @@ void PzzlThinking::init(SUB_SCREEN* wk)
     idMainMenuFade(wk, 0);
 }
 
+// Piece in hand: A/X put it down (pzlPlayer::putPiece; on the space board the sound depends on the
+// item type), B puts it back where it came from, otherwise movePiece (d-pad / rotate) with the move
+// and blocked sounds. Back to PieceSelect once the hand is empty.
 void PzzlThinking::move(SUB_SCREEN* wk)
 {
     pzlPlayer* pl;
@@ -1783,6 +1836,7 @@ void PzzlThinking::move(SUB_SCREEN* wk)
     }
 }
 
+// Restores the case header / life meter when the space board is empty.
 void PzzlThinking::quit(SUB_SCREEN* wk)
 {
     back2PieceSelect(wk);
@@ -1807,6 +1861,7 @@ int isTerminable(SUB_SCREEN* wk)
     return ret;
 }
 
+// 1 while the yes/no message window (cMes flag bit 1) is open.
 int checkMsgWindow(SUB_SCREEN* wk)
 {
     if (CMES_FLAGS & 2) {
@@ -1815,12 +1870,15 @@ int checkMsgWindow(SUB_SCREEN* wk)
     return 0;
 }
 
+// Kills the message window frame ids (group 3) and message slot 1.
 void closeMsgWindow(SUB_SCREEN* wk)
 {
     IdSub.kill(0xFF, 3);
     cMes.Delete(1);
 }
 
+// Opens message `no` in slot 1 with the sub screen layout and the window frame ids (pCmmn 0xA):
+// the "space not empty" (0), combine remark and discard prompts.
 void openMsgWindow(SUB_SCREEN* wk, int no)
 {
     msg_open = 1;
@@ -1831,6 +1889,12 @@ void openMsgWindow(SUB_SCREEN* wk, int no)
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xA), 0xFF, 3, 0x13, 0, 0);
 }
 
+// Case cursor. A pending case size change (board_size != board_next) transits to CaseChange
+// first. state 0: Y (mode 1) leaves; B on a pick-up open leaves too, otherwise goes up to the main
+// menu (mode 2) or, in the shop (no link 3), returns to the shop (mode 4); pieces left on the space
+// board instead open the "items left" message (mode | 8, state 1). A on a piece opens PieceCommand
+// (pzzl_sel), X picks it up (PzzlThinking); d-pad moves the cursor between the case and space
+// boards. state 1 waits for the message answer (yes: continue, no: back), 2 closes the window.
 void PieceSelect::move(SUB_SCREEN* wk)
 {
     pzlBoard* b;
@@ -2060,11 +2124,15 @@ int remarkMsgCombine(int a, int b, int* no)
     return 0;
 }
 
+// Combine target selection start.
 void PieceCombine::init(SUB_SCREEN* wk)
 {
     state = 0;
 }
 
+// Combine mode: B back to the command menu, A combines the piece under the cursor with pzzl_sel
+// (ItemMgr.combine; success rebuilds the pieces, a remark message may follow), error sound
+// otherwise; d-pad moves the cursor (state 1 waits for the remark message).
 void PieceCombine::move(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->puzzlePlayer;
@@ -2200,11 +2268,15 @@ void PieceCombine::move(SUB_SCREEN* wk)
     }
 }
 
+// Nothing to release.
 void PieceCombine::quit(SUB_SCREEN* wk)
 {
     back2PieceSelect(wk);
 }
 
+// Command menu open for pzzl_sel: picks the id set by itemCommandType and board (case / space),
+// anchors it at the piece's cursor corner (below or above the piece by `lower`), cursor on the
+// first command.
 void PieceCommand::init(SUB_SCREEN* wk)
 {
     u8 type = itemCommandType(pzzl_sel->item);
@@ -2250,6 +2322,10 @@ void PieceCommand::init(SUB_SCREEN* wk)
     SndCall(0, 4, 0, 0, 0, 0);
 }
 
+// Command menu: mode 0 B cancels, A runs the command (per type row -> command_id: 0 equip (blocked
+// in events: message 0x27), 1 reload, 2 combine -> PieceCombine, 3 detach the weapon part, 4 use
+// (with Ashley present: the "who" sub menu), 5 examine -> SsItemExamine, 6 discard -> yes/no), up/
+// down move the cursor; mode 1/2 the sub menu (yes/no or Leon/Ashley), mode 3 waits for a message.
 void PieceCommand::move(SUB_SCREEN* wk)
 {
     Vec pos;
@@ -2670,11 +2746,13 @@ void PieceCommand::move(SUB_SCREEN* wk)
     }
 }
 
+// Restores the header when the space board is empty.
 void PieceCommand::quit(SUB_SCREEN* wk)
 {
     back2PieceSelect(wk);
 }
 
+// Case size change: plays the case units' close animation.
 void CaseChange::init(SUB_SCREEN* wk)
 {
     a = IdSub.unitPtr(0xFE, 1);
@@ -2683,6 +2761,8 @@ void CaseChange::init(SUB_SCREEN* wk)
     b->rev_flag |= 0xF;
 }
 
+// When the close animation ended, rebuilds the pzlPlayer with board_next (the bigger case) and its
+// models, then returns to PieceSelect.
 void CaseChange::move(SUB_SCREEN* wk)
 {
     if ((a->end & 1) && (b->end & 4)) {
@@ -2698,6 +2778,7 @@ void CaseChange::move(SUB_SCREEN* wk)
     }
 }
 
+// Plays the case units' open animation.
 void CaseChange::quit(SUB_SCREEN* wk)
 {
     a->rev_flag &= 0xF0;

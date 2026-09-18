@@ -28,6 +28,8 @@ static MtxPtr ViewMtx;
 static int FlipMode = 0;
 u8 ToolBuffer[0x100] __attribute__((aligned(32)));
 
+// Sets the primitive drawing environment: the 2D ortho rect and viewport, the 3D projection and
+// view matrices (normally the game camera's), z test off.
 void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx)
 {
     Orect = view->rect;
@@ -38,12 +40,15 @@ void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx)
 }
 
 #ifdef TPRIM_FULL
+// Changes the 2D ortho rectangle only.
 void TprimInitEnv2D(TprimRect* rect)
 {
     Orect = *rect;
 }
 #endif
 
+// Begins 2D drawing: ortho projection over the 2D rect, identity model matrix, blend mode
+// (0 opaque, 1 alpha, 2 additive) and the flat colour vertex format.
 void TprimDraw2D(u32 blend)
 {
     Mtx44 proj;
@@ -58,6 +63,8 @@ void TprimDraw2D(u32 blend)
     set_attr_common();
 }
 
+// Begins 3D drawing: the current camera projection, the view matrix as model matrix, blend mode
+// and the flat colour vertex format.
 void TprimDraw3D(u32 blend)
 {
     CameraCurrentProjection();
@@ -67,6 +74,7 @@ void TprimDraw3D(u32 blend)
     set_attr_common();
 }
 
+// GX blend mode for `blend` 0 none / 1 src alpha / 2 additive; other values leave it unchanged.
 void TprimSetBlend(u32 blend)
 {
     static u32 bl[3][4] = {
@@ -81,6 +89,8 @@ void TprimSetBlend(u32 blend)
     }
 }
 
+// TEV / channel setup for flat vertex-coloured primitives: no textures, one colour channel, no
+// culling, z test only in FlipMode bit 0, line width 6, f32 positions.
 static void set_attr_common()
 {
     GXSetCullMode(0);
@@ -99,6 +109,7 @@ static void set_attr_common()
     set_attr_f32();
 }
 
+// Vertex format: f32 position + RGBA8 colour, direct.
 static void set_attr_f32()
 {
     GXClearVtxDesc();
@@ -109,6 +120,7 @@ static void set_attr_f32()
 }
 
 #ifdef TPRIM_FULL
+// Vertex format: s16 position + RGBA8 colour, direct.
 static void set_attr_s16()
 {
     GXClearVtxDesc();
@@ -118,6 +130,7 @@ static void set_attr_s16()
     GXSetVtxAttrFmt(0, 11, 1, 5, 0);
 }
 
+// Line strip through `n` points in one colour.
 void TprimDrawLineFn(Vec* v, GXColor* col, u16 n)
 {
     GXBegin(0xB0, 0, n);
@@ -125,6 +138,7 @@ void TprimDrawLineFn(Vec* v, GXColor* col, u16 n)
 }
 #endif
 
+// Filled polygon (quad primitive) over `n` points in one colour.
 void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n)
 {
     GXBegin(0x80, 0, n);
@@ -132,6 +146,7 @@ void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n)
 }
 
 #ifdef TPRIM_FULL
+// Filled 2D rectangle at depth z.
 void TprimDrawTile2D(TprimRect* rect, GXColor* col, f32 z)
 {
     GXBegin(0x80, 0, 4);
@@ -296,6 +311,7 @@ void TprimDrawHtrCone(Vec* pos, GXColor* col)
 static TprimView default_view;
 static f32 default_clip[2];
 
+// Never called: keeps the default view / clip / x-axis constants of the original object.
 static inline void tprim_default_view(Vec* axis)
 {
     TprimView v = {{10.0f, 300.0f, 1200.0f, 300.0f}, 1.0f, 0.0f};
@@ -311,6 +327,7 @@ static inline void tprim_default_view(Vec* axis)
 // {1, 0} and {1, 0, 0} templates remain unexplained.
 static f32 default_clip[2];
 
+// Never called: keeps the clip / x-axis constants of the original object.
 static inline void tprim_default_view(Vec* axis)
 {
     f32 clip[2] = {1.0f, 0.0f};
@@ -364,6 +381,7 @@ void TprimDrawFrameFn_s16(S16Vec* v, GXColor* col, u16 n)
     set_attr_f32();
 }
 
+// Filled polygon over `n` s16 points in one colour (switches the vertex format and back).
 void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n)
 {
     set_attr_s16();
@@ -373,6 +391,7 @@ void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n)
 }
 #endif
 
+// Emits `n` f32 vertices with the same colour.
 static void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n)
 {
     u16 i = 0;
@@ -384,6 +403,7 @@ static void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n)
 }
 
 #ifdef TPRIM_FULL
+// Emits `n` s16 vertices with the same colour.
 static void set_vtx_flat_s16(S16Vec* v, GXColor* col, u16 n)
 {
     u16 i = 0;

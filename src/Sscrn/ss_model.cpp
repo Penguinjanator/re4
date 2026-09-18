@@ -61,6 +61,10 @@ void wep47Init(int no);
 #define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 #define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->pWepDat, no)
 
+// Sub screen weapon data file for weapon number `no` of the current character (pG->pl_type: 0 Leon,
+// 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker): SS/cmn/ss_wepNN.dat, NN = the wepNN module that owns the
+// weapon (grenades 0x13/0x16/0x17/0x19/0x1F/0x20 share one file per character; Leon's 0x1D uses
+// wep10's, unknown numbers wep02's).
 void weaponFilename(char* name, int no)
 {
     switch (pG->pl_type) {
@@ -157,11 +161,14 @@ static inline void ssModelLight(cModel* m)
     m->LightInfo.init2(0, 1, &light_ofs, &light_size, 1);
 }
 
+// Adds a part model (bin + tpl) to `m` through the DLL's model-info manager.
 static inline void ssModelAdd(cModel* m, void* bin, void* tpl)
 {
     m->addModel(ssModInfoMgr.create(bin, tpl));
 }
 
+// Codec screen: the player's radio pose model from the player archive plus the radio/hand parts of
+// ss_term.dat (sub-files 10..13).
 void tel00ModelInit(cModel* m, SsArc* arc)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -174,6 +181,8 @@ void tel00ModelInit(cModel* m, SsArc* arc)
     ssModelLight(m);
 }
 
+// Codec screen partner from SS/cmn/ss_ocNNN.dat (sub-files 5..11): base body + four parts, and the
+// sixth part (11) for partnerType 0/2 (Hunnigan); type 1 leaves it out.
 void hunniganModelInit(cModel* m, void* data, u32 type)
 {
     SsArc* d = (SsArc*) data;
@@ -204,6 +213,9 @@ void hunkModelInitI(int no, int type) asm("hunkModelInit");
 void weskerModelInitI(int no, int type) asm("weskerModelInit");
 }
 
+// Builds the sub screen's character (MapMgr work 0) and weapon (work 1) models for the equipped
+// weapon (ItemMgr.m_wep_id -> number / type) by pl_type; called at screen entry and by
+// weaponChangeTask after a re-equip.
 void playerModelInit()
 {
     cItemMgr* im = &ItemMgr;
@@ -261,6 +273,8 @@ static inline void ssWepMagazine(cModel* wep, int no, int type)
     }
 }
 
+// Ashley's sub screen model: body + six costume parts from her archive, placed at (850, -1300),
+// idle motion from ss_cmmn.dat 22; no weapon.
 void ashleyModelInit()
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -282,6 +296,9 @@ void ashleyModelInit()
     ssPlMotion = (cModel*) 1;
 }
 
+// Ada's sub screen model with her weapon `no`: 0 hands (wep34), 1 handgun (wep38), 0xB machine gun
+// (wep39), 0xA rifle (wep40), grenades (wep30, with the ammo check); ssWepModel2 marks a weapon
+// model to fade/animate.
 void adaModelInit(u16 no, u16 type)
 {
     cModel* m = ssPlModel;
@@ -368,6 +385,8 @@ void wep34Init(int no)
     (wep)->scale.y = s;                               \
     (wep)->scale.x = s
 
+// Ada's handgun (ss_wep38.dat): hand parts, weapon hung off the right hand with an offset, pose
+// motion 7.
 void wep38Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -382,6 +401,7 @@ void wep38Init(int no)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Ada's machine gun (ss_wep39.dat): as wep38 with its own hand offset.
 void wep39Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -396,6 +416,7 @@ void wep39Init(int no)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Ada's semi-auto rifle (ss_wep40.dat): weapon parented to the right hand, pose motion 7.
 void wep40Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -414,6 +435,9 @@ void wep40Init(int no)
 }
 
 
+// Ada's grenades (ss_wep30.dat): grenade model from the player archive (0x13 hand / 0x16 incendiary
+// / 0x17 flash share a mesh, 0x19/0x1F/0x20 the eggs at half scale) held in the right hand; the
+// empty-hand pose (5) when no ammo, else the grenade (6) or egg (7 + 8) poses.
 void wep30Init(int no, int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -496,6 +520,7 @@ void wep30Init(int no, int type)
     }
 }
 
+// Krauser's sub screen model with weapon `no`: 0 hands (wep36), 0x1C bow (wep28), grenades (wep42).
 void klauserModelInit(u16 no, u16 type)
 {
     cModel* m = ssPlModel;
@@ -553,6 +578,7 @@ void klauserModelInit(u16 no, u16 type)
     }
 }
 
+// Krauser unarmed (ss_wep36.dat): hand parts and the idle pose; no weapon model.
 void wep36Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -566,6 +592,7 @@ void wep36Init(int no)
     wep->be_flag &= ~2;
 }
 
+// Krauser's bow (ss_wep28.dat): bow on parts 16 (left hand) with its own motion (8), pose 7.
 void wep28Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -583,6 +610,7 @@ void wep28Init(int no)
     MotionSetCore(wep, &((cMotModel*) wep)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Krauser's grenades (ss_wep42.dat): like wep30 with his hand parts.
 void wep42Init(int no, int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -663,6 +691,8 @@ void wep42Init(int no, int type)
     }
 }
 
+// HUNK's sub screen model with weapon `no`: 0 hands (wep35), 0xB machine gun (wep29), grenades
+// (wep41).
 void hunkModelInit(u16 no, u16 type)
 {
     cModel* m = ssPlModel;
@@ -717,6 +747,7 @@ void hunkModelInit(u16 no, u16 type)
     }
 }
 
+// HUNK unarmed (ss_wep35.dat): hand parts and the idle pose; no weapon model.
 void wep35Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -729,6 +760,7 @@ void wep35Init(int no)
     wep->be_flag &= ~2;
 }
 
+// HUNK's machine gun (ss_wep29.dat): weapon on the right hand, pose 7.
 void wep29Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -745,6 +777,7 @@ void wep29Init(int no)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// HUNK's grenades (ss_wep41.dat): like wep30 with his hand parts.
 void wep41Init(int no, int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -825,6 +858,8 @@ void wep41Init(int no, int type)
     }
 }
 
+// Wesker's sub screen model with weapon `no`: 0 hands (wep37), 2 handgun (wep43), 6 Matilda-class
+// handgun (wep44), 0xA rifle (wep47), grenades (wep45).
 void weskerModelInit(u16 no, u16 type)
 {
     cModel* m = ssPlModel;
@@ -886,6 +921,7 @@ void weskerModelInit(u16 no, u16 type)
     }
 }
 
+// Wesker unarmed (ss_wep37.dat): hand parts and the idle pose; no weapon model.
 void wep37Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -899,6 +935,7 @@ void wep37Init(int no)
     wep->be_flag &= ~2;
 }
 
+// Wesker's handgun (ss_wep43.dat): weapon on the right hand, pose 7.
 void wep43Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -920,6 +957,7 @@ void wep43Init(int no)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Wesker's second handgun (ss_wep44.dat): weapon on the right hand, pose 7.
 void wep44Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -937,6 +975,7 @@ void wep44Init(int no)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Wesker's grenades (ss_wep45.dat): like wep30 with his hand parts.
 void wep45Init(int no, int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1018,6 +1057,7 @@ void wep45Init(int no, int type)
     }
 }
 
+// Wesker's semi-auto rifle (ss_wep47.dat): weapon on the right hand, pose 7.
 void wep47Init(int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1151,6 +1191,7 @@ void leonModelInit(u16 no, u16 type)
     (wep)->scale.y = 1.0f;                           \
     (wep)->scale.x = 1.0f
 
+// Leon unarmed (ss_wep00.dat): hand parts and idle pose; the weapon model is hidden.
 void wep00Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1170,6 +1211,7 @@ void wep00Init(int type)
     wep->be_flag &= ~2;
 }
 
+// Leon's handgun (ss_wep01.dat): model 5 (type 0) or 6 (tuned), in the right hand, pose 8.
 void wep01Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1188,6 +1230,7 @@ void wep01Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Leon's Red9 (ss_wep02.dat): model by type, right hand, pose 8.
 void wep02Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1206,6 +1249,7 @@ void wep02Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Leon's weapon 3 (ss_wep03.dat; the wep03 REL is a copy of wep02): model by type, right hand, pose 8.
 void wep03Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1228,6 +1272,7 @@ void wep03Init(int type)
     }
 }
 
+// Leon's Blacktail (ss_wep04.dat): model by type, right hand, pose 8.
 void wep04Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1246,6 +1291,7 @@ void wep04Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Leon's weapon 5 (ss_wep05.dat, the objCivilian revolver): one model, right hand.
 void wep05Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1260,6 +1306,7 @@ void wep05Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Leon's Matilda (ss_wep06.dat): model by type, right hand, pose 8.
 void wep06Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1278,6 +1325,7 @@ void wep06Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
+// Leon's shotgun (ss_wep07.dat): one model, right hand.
 void wep07Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1292,6 +1340,7 @@ void wep07Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Leon's Striker (ss_wep08.dat): one model, right hand.
 void wep08Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1306,6 +1355,7 @@ void wep08Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Leon's rifle (ss_wep09.dat): model 5/6/7 by scope type, right hand.
 void wep09Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1326,6 +1376,7 @@ void wep09Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
+// Leon's semi-auto rifle (ss_wep10.dat): model 5/6/7 by scope type, right hand.
 void wep10Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1346,6 +1397,8 @@ void wep10Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
+// Leon's TMP (ss_wep11.dat): model 5..8 by type (stock variants), pose 11 without / 12 with the
+// stock.
 void wep11Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1383,6 +1436,7 @@ void wep11Init(int type)
     }
 }
 
+// Leon's Chicago Typewriter (ss_wep12.dat): one model, right hand.
 void wep12Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1449,6 +1503,8 @@ void wep13Init(int type)
     }
 }
 
+// Leon's mine thrower (ss_wep14.dat): model by type, its parts 1 parented to the right hand at the
+// origin; pose 8 / 9 by type.
 void wep14Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1482,6 +1538,7 @@ void wep14Init(int type)
     }
 }
 
+// Leon's Broken Butterfly (ss_wep15.dat): one model, right hand.
 void wep15Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1496,6 +1553,7 @@ void wep15Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
+// Leon's knife (ss_wep16.dat): one model, right hand.
 void wep16Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1510,6 +1568,7 @@ void wep16Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Leon's Killer7 (ss_wep17.dat): one model, right hand.
 void wep17Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1524,6 +1583,7 @@ void wep17Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Leon's Riot Gun (ss_wep33.dat, weapon 0x21): one model, right hand.
 void wep33Init(int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1538,6 +1598,8 @@ void wep33Init(int type)
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
+// Leon's grenades (ss_wep19.dat): grenade / egg model from the player archive by `no` (see wep30),
+// held in the right hand; empty-hand pose when no ammo, else the grenade or egg poses.
 void wep19Init(int no, int type)
 {
     SUB_SCREEN* wk = &SubScreenWk;

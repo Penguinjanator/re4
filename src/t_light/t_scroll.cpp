@@ -173,6 +173,8 @@ int smxCk(cObj* obj);
 
 static void (*scrollFunc[8])() = {menu, edit, light, texture, load, save, option, quit};
 
+// SCROLL TOOL entry (debug menu 16): init, then move() every frame (result 2 = player mode runs the
+// player / camera), restores the flags and ends the task.
 int ToolScroll()
 {
     int ret;
@@ -201,6 +203,9 @@ int ToolScroll()
     return 0;
 }
 
+// Tool start: work + name / flag tables on the Debug heap, the room's object names from the host
+// header (loadBinName: r<room>smd.h SMD_ defines with their G/N/S flags), log window with the build
+// stamp, debug mode 0xC, default flags.
 int init()
 {
     int i;
@@ -319,6 +324,9 @@ SKIP_LINE:
     return 1;
 }
 
+// Frame: modeSel 0 edit (pad copies taken), 1 CAMERA MODE (pad 1 becomes the camera pad), 2 PLAYER
+// MODE (returns 2), 10 MODE SELECT (SCROLL EDIT / CAMERA / PREVIEW, START opens it); then
+// scrollFunc[mode]: menu, edit, light, texture, load, save, option, quit. Returns ret (0 = quit).
 int move()
 {
     int col;
@@ -416,6 +424,7 @@ static inline void dispList(int x, int y, char** tbl, int n)
     }
 }
 
+// MENU: EDIT / LIGHT / TEXTURE / LOAD / SAVE / OPTION / QUIT (mode = row + 1); B jumps to QUIT.
 static void menu()
 {
     eprintf(0x20, 0x2A, 4, 0, "MENU");
@@ -436,18 +445,23 @@ static void menu()
     }
 }
 
+// Edit routines by editMode: 0 table cursor, 1..11 the column editors (no, name, id, litmask, ot,
+// flag, col, tex, pos, ang, scale), 15 the table sub menu, 17/18/19 the id / litmask sub menus.
 static void (*editFunc[30])() = {
     edit_select, edit_no,     edit_name, edit_id,  edit_litmask, edit_ot,   edit_flag, edit_col,
     edit_tex,    edit_pos,    edit_ang,  edit_scale, NULL,       NULL,      NULL,
     edit_select_sub, NULL,    edit_no_sub, edit_id_sub, edit_litmask,
 };
 
+// EDIT: runs editFunc[editMode] and prints the object table.
 static void edit()
 {
     editFunc[pWork->editMode]();
     printEditTable();
 }
 
+// Object table cursor: left/right pick the column, up/down the object (scrolling), A opens the
+// column's editor (editMode = col + 1), Y the sub menu, B back to the menu.
 static void edit_select()
 {
     static const int colX[11] = {3, 7, 0x10, 0x13, 0x1C, 0x1F, 0x24, 0x29, 0x2D, 0x31, 0x35};
@@ -501,6 +515,7 @@ static void edit_select()
 
 static char* subMenuName[4] = {"CUT", "COPY", "INSERT", "DELETE"};
 
+// Table SUB MENU: CUT / COPY / INSERT / DELETE on the cursor object; B closes.
 static void edit_select_sub()
 {
     if (pWork->xC == 0) {
@@ -541,6 +556,8 @@ static void edit_select_sub()
     }
 }
 
+// "NO" column: toggles the display bit (be_flag 2) of the object and its whole group; back to the
+// table.
 static void edit_no()
 {
     cObj* obj;
@@ -556,10 +573,12 @@ static void edit_no()
     pWork->editMode = 0;
 }
 
+// Unused sub menu slot.
 static void edit_no_sub()
 {
 }
 
+// NAME column: shows the object's SMD_ name from the header (read-only); B back.
 static void edit_name()
 {
     cObj* obj;
@@ -607,6 +626,7 @@ done:
     }
 }
 
+// Parameter editors by scroll object type (ScrIdRefTbl): 1 rotate, 2 swing, others none.
 static void (*idFunc[16])() = {
     edit_id_normal, edit_id_rotate, edit_id_swing_rot, edit_id_normal, edit_id_normal, edit_id_normal,
     edit_id_normal, edit_id_normal, edit_id_normal,    edit_id_normal, edit_id_normal, edit_id_normal,
@@ -639,6 +659,7 @@ static void edit_id()
     }
 }
 
+// Types without parameters: left/right pick a new type id, A applies (the work is reset).
 static void edit_id_normal()
 {
     cObj* obj;
@@ -671,6 +692,7 @@ static void edit_id_normal()
     }
 }
 
+// +-step on a rotation speed with the d-pad / stick, X clears it.
 void edit_id_rotate_ang(f32* ang, f32 step)
 {
     *ang += (f32) pWork->joy[0].stickX * step / 10000.0f;
@@ -684,6 +706,8 @@ void edit_id_rotate_ang(f32* ang, f32 step)
 
 static char* rotName[2] = {"WORLD ROTATION", "LOCAL ROTATION"};
 
+// Rotate type: X/Y/Z rotation speeds (WORLD / LOCAL ROTATION), Y opens a x0.5 / x1.5 / x2.0 /
+// CLEAR sub menu on the speeds.
 static void edit_id_rotate()
 {
     cObj* obj;
@@ -835,6 +859,7 @@ static void edit_id_rotate()
         v = 0.0f;                                                                   \
     }
 
+// Swing type: three axes of INI R / START / SPEED / RANGE (the pendulum parameters).
 static void edit_id_swing_rot()
 {
     ScrSwingWork* w;
@@ -904,10 +929,13 @@ static void edit_id_swing_rot()
     eprintf(0x40, 0x142, 0, 0, "RANGE %3.5f", w->range3);
 }
 
+// Unused sub menu slot.
 static void edit_id_sub()
 {
 }
 
+// LIT_MASK column: the model's LightInfo.SelectMask (which of the room's lights may light it, V /
+// A marks); left/right pick the light, A toggles its bit; B back.
 static void edit_litmask()
 {
     u32 num = 32;
@@ -985,6 +1013,7 @@ static void edit_litmask()
 
 static char* otName[6] = {"NORMAL", "SORT", "SCROLL PRE", "SCROLL NORMAL", "SCROLL POST", "EFFECT"};
 
+// OT column: draw order group (NORMAL / SORT / SCROLL PRE / SCROLL NORMAL / SCROLL POST / EFFECT).
 static void edit_ot()
 {
     cObj* obj;
@@ -1025,6 +1054,8 @@ static char* flagName[10] = {
     "TAIMATU CUT", "06 ----", "07 ----", "08 ----", "09 ----",
 };
 
+// FLAG column: the smx flag bits (SHADOW, VERTEX COLOR, CAST ON, ALPHATEST OFF, POINT LIGHT ALL
+// CUT, TAIMATU CUT, ...); up/down pick, A toggles (edit_flag_core), B back.
 static void edit_flag()
 {
     cObj* obj;
@@ -1059,6 +1090,8 @@ static void edit_flag()
     }
 }
 
+// Toggles the flag under the cursor on `obj` and applies its side effects (mirror model, shadow /
+// vertex colour setup) at once.
 void edit_flag_core(cObj* obj)
 {
     ModelData* data = obj->pModelInfo->pData;
@@ -1144,6 +1177,8 @@ void SetColor(u8* c, int add, int mask, int minOne)
 static char* colName[10] = {"COLOR", " R", " G", " B", "SPECULAR", " R", " G", " B", "BLEND TYPE", "CULL MODE"};
 static char* blendName[5] = {"NORMAL", "ADD", "ADD2", "ADD3", "NO_BLEND"};
 
+// COL column: model colour / specular R G B, BLEND TYPE (NORMAL / ADD / ADD2 / ADD3 / NO_BLEND)
+// and CULL MODE rows; up/down pick, left/right change (edit_col_core), B back.
 static void edit_col()
 {
     cObj* obj;
@@ -1184,6 +1219,7 @@ static void edit_col()
     }
 }
 
+// Applies the cursor row's change to `obj`'s colour bytes / blend / cull mode.
 void edit_col_core(cObj* obj)
 {
     cModelInfo* info;
@@ -1251,6 +1287,7 @@ void edit_col_core(cObj* obj)
     }
 }
 
+// TEX column: the texture UV scroll speeds U / V; B back.
 static void edit_tex()
 {
     cObj* obj;
@@ -1295,6 +1332,8 @@ static void edit_tex()
     }
 }
 
+// POS column: stick moves the object on the XZ plane, L/R triggers its height, d-pad by 1 unit (A
+// x7); B back.
 static void edit_pos()
 {
     cObj* obj;
@@ -1333,6 +1372,7 @@ static void edit_pos()
     }
 }
 
+// ANG column: stick / L/R rotate the object about its axes; B back.
 static void edit_ang()
 {
     cObj* obj;
@@ -1371,6 +1411,7 @@ static void edit_ang()
     }
 }
 
+// SCL column: stick / L/R change the object's scale per axis; B back.
 static void edit_scale()
 {
     cObj* obj;
@@ -1409,6 +1450,8 @@ static void edit_scale()
     }
 }
 
+// LIGHT: runs an embedded db_light cLightTool until it quits (player mode passes through), then
+// back to the menu.
 static void light()
 {
     int ret;
@@ -1436,6 +1479,7 @@ static void light()
     }
 }
 
+// TEXTURE VIEWER: left/right pick a room texture number and draw it; B back.
 static void texture()
 {
     void* tpl;
@@ -1466,6 +1510,8 @@ static void texture()
     }
 }
 
+// LOAD: LOCAL (d:) / SERVER (x:), then the file number (r<room>NN.smx); reads the smx records into
+// the objects (SmxSet); "FILE OPEN ERROR" when missing.
 static void load()
 {
     eprintf(0x20, 0x2A, 4, 0, "LOAD");
@@ -1490,6 +1536,8 @@ static void load()
     }
 }
 
+// SAVE: LOCAL / SERVER, file number; writes one ScrSmxRec per registered object (id, type, flags,
+// colours, work, UV scroll) to the .smx.
 static void save()
 {
     char path[256];
@@ -1645,6 +1693,7 @@ static int optionDummy0 = 0;
 static int optionDummy1 = 0;
 static u32 optionKey = 0x40000;
 
+// OPTION: LOCK UNKNOWN MODEL / SCROLL CHECK MODE bits of ScrollWork::flags; B back.
 static void option()
 {
     u32 i;
@@ -1696,6 +1745,7 @@ static void option()
     }
 }
 
+// QUIT ? YES/NO: YES ends the tool (ret 0).
 static void quit()
 {
     eprintf(0x20, 0x2A, 4, 0, "QUIT ?");
@@ -1727,6 +1777,8 @@ static void quit()
     }
 }
 
+// Makes `obj` a mirror model (kindid 4, be_flag 0x100, not drawn normally) or a plain scroll model
+// (kindid 2).
 void setMirrorModel(cObj* obj, int on)
 {
     switch (on) {
@@ -1749,6 +1801,8 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
+// Draws the object table page: per object NO, NAME (NO REGIST / UNKNOWN MODEL for unmatched ids),
+// ID, LIT_MASK, OT, FLAG, COL, TEX, POS, ANG, SCL columns, cursor cell highlighted.
 static void printEditTable()
 {
     cObj* obj;
@@ -1884,6 +1938,7 @@ static void printEditTable()
     }
 }
 
+// Blinking ">" at text cell (x, y).
 void printCursor(int x, int y)
 {
     if (!(pWork->counter & 8)) {
@@ -1891,6 +1946,7 @@ void printCursor(int x, int y)
     }
 }
 
+// Resets the menu cursor and table position.
 void clearWork()
 {
     pWork->cursor = 0;

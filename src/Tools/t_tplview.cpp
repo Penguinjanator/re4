@@ -54,6 +54,7 @@ void getTplname(char* name, int no);
 void TplViewer();
 
 
+// TPL viewer entry (debug menu 18): saves the stop flags / debug mode, runs TplViewer, ends.
 void ToolTplView()
 {
     tplStopFlagBak = TOOL_FLAG(OFS_STOP_FLG);
@@ -65,6 +66,7 @@ void ToolTplView()
     }
 }
 
+// d:\bio4/Room/SubScreen/Viewer/fileNN.tpl
 void getTplname(char* name, int no)
 {
     sprintf(name, "d:\\bio4/Room/SubScreen/Viewer/file%02ld.tpl", no);
@@ -102,6 +104,7 @@ static inline void dispList(int x, int y, const char** tbl, int n)
     }
 }
 
+// Prints `n` menu strings one row apart (indexed form, see the note above).
 static inline void dispListI(int x, int y, const char** tbl, int n)
 {
     int i;
@@ -111,6 +114,10 @@ static inline void dispListI(int x, int y, const char** tbl, int n)
     }
 }
 
+// TPL viewer loop: step 0 probes fileNN.tpl on the host and lists what exists; 1 the main menu
+// (FiLE / SiZE / QUiT); 3 the sub menus: FiLE picks and loads a file (L/R switch files directly),
+// SiZE sets the drawn size (WxH: FullScrn / Texture, ORG: the texture's own size); START toggles
+// the 512 / 640 wide screen; Z exits. The selected TPL's first image is drawn at (x, y) each frame.
 void TplViewer()
 {
     char names[8][256];

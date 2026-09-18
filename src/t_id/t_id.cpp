@@ -1,4 +1,9 @@
-// t_id REL: ToolInterfaceDesign (2D interface / sub screen designer)
+// t_id REL: ToolInterfaceDesign (2D interface / sub screen designer, D:/Bio4/Prog/t_id.cpp). Edits
+// the IDSystem element tables (the .uwf files behind IdSys / IdSub: HUD, sub screens, title ...) as
+// a tree of ID_DATA elements (texture, position with paths and jitter, size / colour / rotation
+// curves, blend, mark id, groups), draws them live through the tool's own IDSystem
+// (toolIdDataEncode every frame) and loads / saves x:\soft/Room/SubScreen/<lang>/uwf/<kind>NNN.uwf.
+// Uses db_path (paths), db_sctrl (curves) and the DbRandom jitter editor.
 
 #include "types.h"
 #include "model.h"
@@ -85,11 +90,15 @@ void* pIdBuf1;
 void* pIdBuf2;
 void* pIdBuf3;
 
+// Debug-heap buffer for the tool's file images.
 static inline void IdBufAlloc(void*& p, u32 size)
 {
     p = Debug_alloc(size, 1);
 }
 
+// Tool start: 640x448 screen, tool flags (HUD off, Debug_flg bits), the work cleared (level 0, no
+// parent, language / type from the previous run), every ID_DATA slot freed, the four file buffers
+// (0x20000 .. 0x900000) and the tool's own IDSystem (0x200 units).
 static void toolIdInit(IdTool* w)
 {
     GXColor col;
@@ -168,6 +177,7 @@ static void toolIdInit(IdTool* w)
     }
 }
 
+// Tool end: frees the IDSystem, back to 512 wide, restores the flags, ends the task.
 static void toolIdQuit(IdTool* w)
 {
     toolIdSys.free();
@@ -187,6 +197,9 @@ static void toolIdQuit(IdTool* w)
     TaskExit();
 }
 
+// Interface design tool entry (debug menu 20): every frame the safe zone, toolIdFunc[mode] (0 the
+// page / file preselect, 1 the menu, 2 the editor), then unless paused (X toggles) the edited
+// elements are encoded (toolIdDataEncode) into the tool IDSystem and drawn as the game would.
 void ToolInterfaceDesign()
 {
     static IdTool idToolWork;
@@ -230,6 +243,7 @@ void ToolInterfaceDesign()
     }
 }
 
+// Draws the TV safe zone frame.
 void toolIdDrawSafeZone(IdTool* w)
 {
     if (w->drawSafe == 0) {
@@ -254,6 +268,7 @@ void toolIdDrawSafeZone(IdTool* w)
     }
 }
 
+// Places the edit sub menu (menuX / menuY) beside the element list.
 void toolIdSubMenuPosition(IdTool* w)
 {
     JOY* joy = &Joy[0];
@@ -267,6 +282,8 @@ void toolIdSubMenuPosition(IdTool* w)
 
 static const char* pageName[2] = { "Page 1", "Page 2" };
 
+// Mode 0, PAGE select: Page 1 / Page 2 decide which base .eff sets (ckpt / share / tool2 and the
+// sub screen's own) are read from x:\soft/Room/SubScreen/<lang>/ into the buffers; then the menu.
 static void toolIdPrev(IdTool* w)
 {
     JOY* joy = &Joy[0];
@@ -335,6 +352,7 @@ static void toolIdPrev(IdTool* w)
 static const char* mainMenuName[5] = { "Edit", "Load", "Save", "Opt.", "Exit" };
 static IdToolFunc toolIdMainFunc[5] = { toolIdEdit, toolIdFile, toolIdFile, toolIdOption, toolIdQuit };
 
+// Mode 1, MENU: Edit / Load / Save / Opt. / Exit (editSel -> toolIdMainFunc).
 static void toolIdMenu(IdTool* w)
 {
     JOY* joy = &Joy[0];
@@ -362,11 +380,14 @@ static void toolIdMenu(IdTool* w)
     }
 }
 
+// Mode 2: runs the chosen main function (edit, file load / save, option, quit).
 static void toolIdMain(IdTool* w)
 {
     toolIdMainFunc[w->menuCur](w);
 }
 
+// Default element: 64 x 64 at the origin, white, no texture / mark / parent, straight paths and
+// constant curves.
 void toolIdDataInit(ID_DATA* d)
 {
     d->texId = 0xFF;
@@ -391,6 +412,7 @@ void toolIdDataInit(ID_DATA* d)
     memclr_asm(&d->curve3, sizeof(d->curve3));
 }
 
+// The live element with unit number `unitNo`, 0 when none.
 ID_DATA* toolIdGetPtrU(u8 unitNo)
 {
     ID_DATA* d = idData;
@@ -404,6 +426,7 @@ ID_DATA* toolIdGetPtrU(u8 unitNo)
     return 0;
 }
 
+// The live element at slot `no` of parent `parentNo` (0xFF = root), 0 when none.
 ID_DATA* toolIdGetPtrPR(u8 parentNo, u8 no)
 {
     ID_DATA* d = idData;
@@ -417,6 +440,7 @@ ID_DATA* toolIdGetPtrPR(u8 parentNo, u8 no)
     return 0;
 }
 
+// Frees element `d` and, recursively, every child whose parent it is.
 void toolIdPush(ID_DATA* d, IdTool* w)
 {
     int i;
@@ -433,6 +457,7 @@ void toolIdPush(ID_DATA* d, IdTool* w)
     d->be_flag = 0xFF;
 }
 
+// Allocates a free element slot (unitNo = its index), 0 when full.
 ID_DATA* toolIdPull()
 {
     ID_DATA* d = idData;
@@ -448,6 +473,10 @@ ID_DATA* toolIdPull()
     return 0;
 }
 
+// The element editor. editMode 0: the list of the current parent's slots (up/down, B up one level,
+// A into a group, X a new element, Y the unit menu (Copy / Cut / Paste / Grp.), the column keys open
+// the property editors); editMode 1..8 run idEdit* (unit, no, id, pos, size, color, rot, trans,
+// mark) until they return 0; 2 the unit menu. Focus / selection highlight through toolIdFocusOn.
 static void toolIdEdit(IdTool* w)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -602,6 +631,8 @@ static void toolIdEdit(IdTool* w)
 
 static const char* unitMenuName[4] = { "Copy", "Cut", "Paste", "Grp." };
 
+// Unit menu: Copy / Cut (the selected elements into the clipboard) / Paste (after the cursor slot)
+// / Grp. (group the selection into a new group element); 0 when done.
 int idEditUnit(IdTool* w, int x, int y)
 {
     JOY* joy = &Joy[0];
@@ -740,6 +771,8 @@ int idEditUnit(IdTool* w, int x, int y)
 static int selLimit0 = 15;
 static int selLimit1 = 15;
 
+// No column: A toggles the element on/off (be_flag bit 0), a held A starts a multi-select over the
+// following slots (be_flag 0x80); 0 when done.
 int idEditNo(IdTool* w, int x, int y)
 {
     static int selNo;
@@ -885,6 +918,8 @@ int idEditNo(IdTool* w, int x, int y)
 
 static const char* idMenuName[1] = { "Tex:" };
 
+// Id column: Tex: picks the element's texture id (left/right, with a preview of the TPL image and
+// its size; groups edit their selected children); 0 when done.
 int idEditId(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -1062,6 +1097,9 @@ static const char* onOffName[2] = { "ON", "OFF" };
     eprintf(sx + dx, sy + dy, 0, 0, "(%3.0f, %3.0f)", pos->x, pos->y); \
 }
 
+// Pos column: Base (stick moves the position, grid-locked by gridLv), Path (the B-spline path
+// editor on path0 / path1), Speed, Loop, Grid level, Random (DbRandom on the jitter values);
+// 0 when done.
 int idEditPos(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -1370,6 +1408,8 @@ static const char* texFixName[2] = { "TEX", "FIX" };
 static const char* onOffName2[2] = { "ON", "OFF" };
 static const char* axisName[3] = { "X-Y", "-X-", "-Y-" };
 
+// Size column: Size (stick, TEX = the texture's own size / FIX), Anima (the size curve in the
+// S-curve editor), Axis (X-Y / X / Y), Loop, Flag, Random; 0 when done.
 int idEditSize(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -1674,6 +1714,8 @@ static const char* colMenuName[4] = { "COL-MENU", "Anima :", "Loop  :", "Random:
 static const char* colName[8] = { "R:", "G:", "B:", "A:", "R:", "G:", "B:", "A:" };
 static const char* onOffName3[2] = { "ON", "OFF" };
 
+// Color column: COL-MENU (R G B A of col0 and col1 with the d-pad), Anima (colour curve), Loop,
+// Random; 0 when done.
 int idEditColor(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -1900,6 +1942,8 @@ static const char* rotMenuName[5] = { "ROT-MENU", "Anima :", "Axis  :", "Loop  :
 static const char* rotAxisName[3] = { "X", "Y", "Z" };
 static const char* onOffName4[2] = { "ON", "OFF" };
 
+// Rot column: ROT-MENU (angle per axis), Anima (rotation curve), Axis (X / Y / Z), Loop, Random;
+// 0 when done.
 int idEditRot(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -2106,6 +2150,8 @@ static const char* transMenuName[5] = { "Type   :", "Trans  :", "Power  :", "Mas
 static const char* transTypeName[5] = { "BLND", "ADD ", "ADD2", "ADD3", "MULT" };
 static const char* transModeName[5] = { "NORMAL", "NEGA  ", "R-NRML", "R-OFST", "R-RPLC" };
 
+// Trans column: Type (BLND / ADD / ADD2 / ADD3 / MULT), Trans mode (NORMAL / NEGA / R-NRML /
+// R-OFST / R-RPLC), Power, Mask SW, MaskTex; 0 when done.
 int idEditTrans(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -2241,6 +2287,8 @@ int idEditTrans(IdTool* w, int x, int y)
 
 static const char* markMenuName[1] = { "Mark:" };
 
+// Mark column: left/right pick the element's mark number (the id the game addresses it by; used
+// marks are tracked in markUse), A applies; 0 when done.
 int idEditMark(IdTool* w, int x, int y)
 {
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
@@ -2321,10 +2369,13 @@ static int editDispRot(IdTool* w, int x, int y);
 static int editDispTrans(IdTool* w, int x, int y);
 static int editDispMark(IdTool* w, int x, int y);
 
+// Column text printers of the element list, in column order.
 static int (*editDispFunc[8])(IdTool*, int, int) = {
     editDispNo, editDispId, editDispSize, editDispPos, editDispColor, editDispRot, editDispTrans, editDispMark,
 };
 
+// Draws the element list (8 rows from listTop, at the top or bottom of the screen): per slot the
+// No / Id / Size / Pos / Color / Rot / Trans / Mark columns, the cursor column highlighted.
 void toolIdEditDisp(IdTool* w)
 {
     int row;
@@ -2400,6 +2451,7 @@ void toolIdEditDisp(IdTool* w)
     }
 }
 
+// No column text: slot number, on/off and group marks; returns the column width.
 static int editDispNo(IdTool* w, int x, int y)
 {
     int i;
@@ -2430,6 +2482,7 @@ static int editDispNo(IdTool* w, int x, int y)
     return 2;
 }
 
+// Id column text: texture id.
 static int editDispId(IdTool* w, int x, int y)
 {
     int i;
@@ -2466,6 +2519,7 @@ static int editDispId(IdTool* w, int x, int y)
 
 static const char* anchorName2[5] = { "CT", "LU", "RU", "RD", "LD" };
 
+// Pos column text: position and anchor (CT / LU / RU / RD / LD).
 static int editDispPos(IdTool* w, int x, int y)
 {
     int i;
@@ -2498,6 +2552,7 @@ static int editDispPos(IdTool* w, int x, int y)
     return 0x11;
 }
 
+// Size column text.
 static int editDispSize(IdTool* w, int x, int y)
 {
     int i;
@@ -2528,6 +2583,7 @@ static int editDispSize(IdTool* w, int x, int y)
     return 7;
 }
 
+// Color column text (a swatch of col0).
 static int editDispColor(IdTool* w, int x, int y)
 {
     int i;
@@ -2564,6 +2620,7 @@ static int editDispColor(IdTool* w, int x, int y)
     return 5;
 }
 
+// Rot column text.
 static int editDispRot(IdTool* w, int x, int y)
 {
     int i;
@@ -2594,6 +2651,7 @@ static int editDispRot(IdTool* w, int x, int y)
     return 0xE;
 }
 
+// Trans column text (type / mode).
 static int editDispTrans(IdTool* w, int x, int y)
 {
     int i;
@@ -2624,6 +2682,7 @@ static int editDispTrans(IdTool* w, int x, int y)
     return 4;
 }
 
+// Mark column text.
 static int editDispMark(IdTool* w, int x, int y)
 {
     int i;
@@ -2661,6 +2720,7 @@ static int editDispMark(IdTool* w, int x, int y)
 static const char* optMenuName[3] = { "Language  :[   ]", "Proc bar  :", "Resolution:" };
 static const char* langName2[7] = { "jpn", "eng", "ger", "fra", "spa", "ita", "cmn" };
 
+// Opt.: Language (jpn .. cmn: which SubScreen/<lang> files are used), Proc bar, Resolution; B back.
 static void toolIdOption(IdTool* w)
 {
     static int optCur;
@@ -2796,6 +2856,9 @@ static void toolIdOption(IdTool* w)
     }
 }
 
+// Load / Save (menuCur 1 = save): picks the sub screen kind (tool .. omk_r) and the file number,
+// then reads x:\soft/Room/SubScreen/<lang>/uwf/<kind>NNN.uwf (decoded into the elements; the .eff
+// texture set reloaded) or writes it (toolIdDataEncode); B back to the menu.
 static void toolIdFile(IdTool* w)
 {
     JOY* joy = &Joy[0];
@@ -3057,12 +3120,16 @@ struct IdSortEnt {
 };
 
 extern "C" {
+// qsort order of the save: by level, then parent, then slot.
 static int id_cmp(const void* a, const void* b)
 {
     return ((IdSortEnt*) a)->no - ((IdSortEnt*) b)->no;
 }
 }
 
+// Serialises the live elements into the IDSystem data image (header, one IdRec per element sorted
+// by level / parent / slot, then the variable path / curve blocks); returns the byte size. The
+// same image drives the game's IdSub tables.
 int toolIdDataEncode(void* buf, IdTool* w)
 {
     u8* base = (u8*) buf;
@@ -3249,6 +3316,7 @@ struct IdRec1 {
     u32 ofs[6];     // 0x70
 };
 
+// Copies a file Hermite curve into an element's IdCurve.
 static inline void idDecodeCurve(IdCurve* c, Hermite1* h)
 {
     int k;
@@ -3259,6 +3327,8 @@ static inline void idDecodeCurve(IdCurve* c, Hermite1* h)
     }
 }
 
+// Expands an IDSystem data image into the elements (slots, parents, paths, curves); marks in use
+// are recorded.
 int toolIdDataDecode(void* buf, IdTool* w)
 {
     u8* base = (u8*) buf;
@@ -3421,6 +3491,7 @@ int toolIdDataDecode(void* buf, IdTool* w)
     return 0;
 }
 
+// Sets the nesting level of `d` and, for a group, of its children recursively.
 void toolIdLevel(ID_DATA* d, u8 level)
 {
     int i;
@@ -3435,6 +3506,7 @@ void toolIdLevel(ID_DATA* d, u8 level)
     d->level = level;
 }
 
+// Fits group `d`'s position / size to the bounding box of its children; 0 without children.
 int toolIdGroup(ID_DATA* d)
 {
     Vec v0 = { 10000.0f, -10000.0f, 0.0f };
@@ -3501,6 +3573,7 @@ int toolIdGroup(ID_DATA* d)
     return 1;
 }
 
+// Clears the multi-select bit (be_flag 0x80) of every element.
 void toolIdSelectClear()
 {
     ID_DATA* p;
@@ -3513,6 +3586,7 @@ void toolIdSelectClear()
     }
 }
 
+// Number of selected elements.
 int toolIdCountSelected()
 {
     ID_DATA* p;
@@ -3527,6 +3601,7 @@ int toolIdCountSelected()
     return n;
 }
 
+// Copies `d` (and, for a group, its children) into the clipboard at `level`; returns the copy.
 ID_DATA* toolIdCopy(ID_DATA* d, u8 level)
 {
     ID_DATA* c;
@@ -3574,6 +3649,7 @@ struct IdParentMap {
     int newNo;
 };
 
+// Inserts the clipboard elements under parent `parentNo` from slot `no` (later slots pushed back).
 void toolIdPaste(u8 parentNo, u8 no)
 {
     ID_DATA* c;
@@ -3627,6 +3703,7 @@ void toolIdPaste(u8 parentNo, u8 no)
     }
 }
 
+// Deletes `d` (with children) and closes the slot gap under its parent.
 void toolIdDelete(ID_DATA* d, IdTool* w)
 {
     ID_DATA* p;
@@ -3643,6 +3720,7 @@ void toolIdDelete(ID_DATA* d, IdTool* w)
     }
 }
 
+// Element count: mode 0 live at `level`, 1 all live, 2 free slots.
 int toolIdCount(u8 level, u32 mode)
 {
     ID_DATA* p;
@@ -3672,6 +3750,7 @@ int toolIdCount(u8 level, u32 mode)
     return n;
 }
 
+// Empties the clipboard.
 void toolIdClipboardClear()
 {
     ID_DATA* p;
@@ -3684,6 +3763,7 @@ void toolIdClipboardClear()
     }
 }
 
+// Clipboard count with the same modes as toolIdCount.
 int toolIdClipboardCount(u8 level, u32 mode)
 {
     ID_DATA* p;
@@ -3713,6 +3793,7 @@ int toolIdClipboardCount(u8 level, u32 mode)
     return n;
 }
 
+// Shifts the slots of parent `parentNo` from `no` on by `n` (room for a paste / delete).
 void toolIdSpace(u8 parentNo, u8 no, int n)
 {
     ID_DATA* p;
@@ -3738,6 +3819,7 @@ void toolIdSpace(u8 parentNo, u8 no, int n)
     }
 }
 
+// Text colour of a list row: off / selected / group variants.
 int toolIdColorAttr(ID_DATA* d)
 {
     int col = 0;
@@ -3753,6 +3835,7 @@ int toolIdColorAttr(ID_DATA* d)
     return col;
 }
 
+// Puts the game camera in the id system's 2D view (saved in camSave).
 void toolIdSetCamera(IdTool* w)
 {
     Vec pos = { 0.0f, 0.0f, 0.0f };
@@ -3773,6 +3856,7 @@ void toolIdSetCamera(IdTool* w)
     CameraSetOrientationRoll(&pGS->Cam);
 }
 
+// Snaps `in` to the grid step.
 void toolIdGridLock(Vec* grid, Vec* in, Vec* out)
 {
     if (grid->x == 0.0f) {
@@ -3793,6 +3877,7 @@ void toolIdGridLock(Vec* grid, Vec* in, Vec* out)
     }
 }
 
+// World matrix of an element from its parents' positions.
 void toolIdCalcInitMatrix(ID_DATA* d, Mtx out)
 {
     Vec rot;
@@ -3813,6 +3898,8 @@ void toolIdCalcInitMatrix(ID_DATA* d, Mtx out)
     }
 }
 
+// Highlights the cursor element: a frame that slides towards its corners (trail of 8 frames),
+// selected elements framed too.
 void toolIdFocusOn(IdTool* w, ID_DATA* d)
 {
     static Vec focusTrail[8][4];
@@ -3952,11 +4039,14 @@ void toolIdFocusOn(IdTool* w, ID_DATA* d)
     }
 }
 
+// Restarts the focus frame animation.
 void toolIdFocusReset(IdTool* w, ID_DATA* d)
 {
     w->focusCnt = 0xF;
 }
 
+// The four corners of an element from its size and anchor (vtxType low nibble: centre / LU / RU /
+// RD / LD).
 void toolIdCalcVertex(ID_DATA* d)
 {
     switch (d->vtxType & 0xF) {
@@ -4025,6 +4115,7 @@ void toolIdCalcVertex(ID_DATA* d)
     }
 }
 
+// Rebuilds the mark-in-use table from the live elements.
 void toolIdMarkUseReset(IdTool* w)
 {
     int i;
@@ -4038,6 +4129,8 @@ void toolIdMarkUseReset(IdTool* w)
 
 static const char* randMenuName[4] = { "Amp :", "Cont:    Frame", "Intr:    Frame", "Axis:" };
 
+// Random jitter editor: rows Amp / Cont (frames) / Intr (frames) / Axis of the s16 triple at
+// w->pVal; up/down pick, left/right change; 0 on B.
 int DbRandom(IdRandomWork* w, int x, int y)
 {
     JOY* joy = &Joy[0];

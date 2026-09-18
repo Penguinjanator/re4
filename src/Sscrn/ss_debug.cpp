@@ -1,5 +1,9 @@
 // Sscrn/ss_debug: sub screen debug menu (pad 3) and the attache case debug editor
-// (D:/Bio4/Prog/ss_debug.cpp).
+// (D:/Bio4/Prog/ss_debug.cpp). SscrnDebugMenu is run every frame by SubScreenTask (START on pad 3
+// opens it: debug disp / memory disp / debug page / reveil toggles in SUB_SCREEN::debug_menu);
+// ssDbgPzzl is the "CASE MAKE" editor SsPzzlMain opens with Z on pad 1 (item set presets, infinite
+// ammo, case size, pesetas, case model angle, boss bar side). cManager<T>::dispWorkNum prints a
+// manager's occupancy.
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -38,6 +42,10 @@ static u8 dbg_blink = 0;
 static int dbg_x = 42;
 static int dbg_y = 5;
 
+// Sub screen debug menu on pad 3 (Joy[2]), run every frame by SubScreenTask: START toggles it
+// (debug_menu bit 0), B closes, up/down pick a row, left/right set it. Rows: DEBUG DISP
+// (debug_menu 0x10), MEMORY DISP (0x20 -> Debug_flg[2] bit 30), DEBUG PAGE (pG->debug_mode 0..0x18),
+// REVEIL (0x40). Also prints the DLL parts/model-info manager occupancy.
 void SscrnDebugMenu(SUB_SCREEN* wk)
 {
     const char* menu[4] = {"DEBUG DISP :", "MEMORY DISP:", "DEBUG PAGE :", "REVEIL     :"};
@@ -145,6 +153,8 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
     }
 }
 
+// "CASE MAKE" editor open: saves the whole inventory (ItemMgr.save) so item set 0x17 can restore
+// it, remembers the case size; cursor on the item set row.
 void ssDbgPzzl::init(SUB_SCREEN* wk)
 {
     m_menu_no = 0;
@@ -157,6 +167,7 @@ void ssDbgPzzl::init(SUB_SCREEN* wk)
     }
 }
 
+// Frees the inventory backup.
 void ssDbgPzzl::quit()
 {
     if (m_p_save_bak) {
@@ -164,6 +175,11 @@ void ssDbgPzzl::quit()
     }
 }
 
+// "CASE MAKE" attache case editor (ss_pzzl debug menu, pad 1): rows Item Set (cItemMgr::setUp
+// presets 0..0x16, 0x17 = saved inventory), Bullet (Debug_flg infinite ammo / no reload), Case Size
+// (gives case item 0x7C..0x7F -> board_next), Peseta (+-1000, x10 with A), Case Rot (case model
+// angle and the ss_pzzl pzzlDbgNo/pzzlDbgPos offsets) and Boss Bar (g_boss_bar_flag side).
+// Left/right edit the row; the case is rebuilt by the caller when `changed`.
 void ssDbgPzzl::move(SUB_SCREEN* wk)
 {
     JOY* joy = &Joy[0];
@@ -405,6 +421,8 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
 }
 
 template <class T>
+// Debug print "alive/maxAlive/total" of a manager array at screen (x, y), less `sub` reserved works;
+// returns the alive count (be_flag 0x601). Skipped when the array is not in MRAM.
 int cManager<T>::dispWorkNum(int x, int y, int col, int sub)
 {
     u32 n;

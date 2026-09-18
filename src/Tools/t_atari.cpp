@@ -75,10 +75,16 @@ void draw_pl_pos(AtariToolWork* w);
 void set_at(AtariToolWork* w, cSat* sat);
 void clear_pad(AtariToolWork* w);
 
+// Tool routines by AtariToolWork::mode: 0 menu, 1 edit, 2 wk edit, 3 pl move, 4 hit check, 5 load,
+// 6 save, 7 option, 8 quit.
 static void (*atFunc[])(AtariToolWork*) = {
     menu, edit, wk_edit, plmove, hitcheck, load, save, option, quit,
 };
 
+// SCROLL ATARI SET TOOL entry (debug menu 13): loops every frame with a copy of pad 1: START toggles
+// the debug camera (pad 1 doubles as camera pad), Y switches between the room (SatMgr) and effect
+// (EatMgr) collision sets, Z/L cycle the highlighted attribute (attrName), then runs atFunc[mode]
+// and draws the current polygon and the set filtered by the attribute.
 void ToolAtari()
 {
     AtariToolWork* w = &atWork;
@@ -144,6 +150,8 @@ static const char* menuName[8] = {
     "EDIT", "WK EDIT", "PL MOVE", "HIT CHECK", "LOAD", "SAVE", "OPTION", "EXIT",
 };
 
+// Tool start: suspends the game task, clears the work, edits satTbl0 (the room set) from polygon 0
+// in the menu, turns on the collision display (Disp_flg bit 27).
 void init(AtariToolWork* w)
 {
     TaskSuspend(0);
@@ -168,6 +176,8 @@ void init(AtariToolWork* w)
     w->x4F0 = 0;
 }
 
+// Main menu: EDIT / WK EDIT / PL MOVE / HIT CHECK / LOAD / SAVE / OPTION / EXIT (mode = row + 1);
+// B jumps to EXIT.
 static void menu(AtariToolWork* w)
 {
     int i;
@@ -194,6 +204,10 @@ static void menu(AtariToolWork* w)
     }
 }
 
+// EDIT: shows the current polygon (vertex indices, edge word, attribute bits EM_NOHIT / PL_NOHIT /
+// SEE_NOHIT / UP / DOWN / SMALL_NOHIT / ROUTE_NOHIT / STEPS / ONLY CAM HIT, the cursor vertex and
+// the normal); left/right step the polygon, up/down the vertex, Z the display group (A / F / S / W /
+// -), B back to the menu.
 static void edit(AtariToolWork* w)
 {
     cSat* s = w->sat;
@@ -298,6 +312,7 @@ static void edit(AtariToolWork* w)
     }
 }
 
+// WK EDIT: placeholder (X / Y / A do nothing); B back, Z cycles the display group.
 static void wk_edit(AtariToolWork* w)
 {
     if (w->joy.trg & 0x400) {
@@ -311,10 +326,12 @@ static void wk_edit(AtariToolWork* w)
     }
 }
 
+// PL MOVE sub routines: 0 reset the probe, 1 move it.
 static void (*plFunc[])(AtariToolWork*) = {
     plmove00, plmove10,
 };
 
+// PL MOVE: a probe sphere walks the collision; Z back to the menu.
 static void plmove(AtariToolWork* w)
 {
     eprintf(16, 16, 4, 0, "PL MOVE");
@@ -325,12 +342,16 @@ static void plmove(AtariToolWork* w)
     }
 }
 
+// Probe reset to the origin.
 static void plmove00(AtariToolWork* w)
 {
     w->plMode = 1;
     w->pos.x = w->pos.y = w->pos.z = 0.0f;
 }
 
+// Probe move: stick x/y and L/R (A x10) move the point; X held tests it against the current polygon
+// (At_poly_sphere_ck), else it is wall-adjusted (SatMgr.wallAdjust, radius 100) and dropped onto
+// the effect floor (EatMgr.getFloor, "FLOOR LOST!!" when none). Position printed.
 static void plmove10(AtariToolWork* w)
 {
     static Vec oldPos;
@@ -378,6 +399,8 @@ static void plmove10(AtariToolWork* w)
 
 static int hitSel = 0;
 
+// HIT CHECK: a line segment (A swaps the moved end; stick / triggers move it) is tested against the
+// room collision (SatMgr.hitCheck), the hit point drawn as a sphere; B back.
 static void hitcheck(AtariToolWork* w)
 {
     static Vec hitLine[2];
@@ -404,14 +427,17 @@ static void hitcheck(AtariToolWork* w)
     hitLine[hitSel].y -= (f32) w->joy.triggerLeft;
 }
 
+// LOAD: not implemented.
 static void load(AtariToolWork* w)
 {
 }
 
+// SAVE: not implemented.
 static void save(AtariToolWork* w)
 {
 }
 
+// OPTION: "UNDER CONSTRUCTING..."; A/B back.
 static void option(AtariToolWork* w)
 {
     eprintf(16, 24, 4, 0, "OPTION");
@@ -421,6 +447,7 @@ static void option(AtariToolWork* w)
     }
 }
 
+// EXIT: clears the tool flags (Debug_flg[0] bit 31, Disp_flg bit 27) and ends the task.
 static void quit(AtariToolWork* w)
 {
     TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
@@ -429,10 +456,12 @@ static void quit(AtariToolWork* w)
     TaskExit();
 }
 
+// Empty.
 void draw_pl_pos(AtariToolWork* w)
 {
 }
 
+// Makes `sat` the edited piece and caches its floor / slope / wall counts.
 void set_at(AtariToolWork* w, cSat* sat)
 {
     w->sat = sat;
@@ -441,6 +470,7 @@ void set_at(AtariToolWork* w, cSat* sat)
     w->nC = sat->wall_num;
 }
 
+// Clears the tool's pad copies (camera mode swallows the input).
 void clear_pad(AtariToolWork* w)
 {
     memclr_asm(&w->joy, sizeof(JOY));

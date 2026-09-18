@@ -28,6 +28,10 @@ u32 disp_flg_bak;       // pG->flags_58
 u32 system_flg_bak;     // pG->flags_54
 u32 status_flg_bak[4];  // pG->flags_500C .. 0x5018
 
+// Common tool entry: ends the game stop mode, sets the 2D/3D primitive environment to the screen
+// and the game camera, saves pG's camera and the system / stop / disp / debug / status flag words,
+// then stops the game (Stop_flg 0x200 | 0x80), turns on Debug_flg[0] 0x8000 and [2] 0x800000 and
+// clears [3] 0x2000 for the duration of the tool.
 void TutilInitDefault()
 {
     TprimView view;
@@ -53,6 +57,8 @@ void TutilInitDefault()
     TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x2000;
 }
 
+// Common tool exit: restores the camera and flag words saved by TutilInitDefault (keeping
+// Debug_flg[0] bit 8 if the tool set it), clears Debug_flg[0] bit 31 and sets [3] 0x2000.
 void TutilQuitDefault()
 {
     memcpy(TOOL_PTR(OFS_CAMERA), &globalCamera, sizeof(Camera));
@@ -263,6 +269,7 @@ const f32 TutilZero = 0.0f;
 // an inline nothing calls: only its "%s" / ">" strings and the two statics are in the object. t_event and
 // t_sce (src/tools/t_util_menu.cpp) have it out of line together with the cursor-less ToolMenuDisp wrapper.
 #ifdef T_UTIL_MENU_FUNCS
+// ToolMenuDisp_cur with the menu's own static cursor.
 int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy)
 {
     return ToolMenuDisp_cur(x, y, flag, NULL, menu, size, joy);
@@ -270,6 +277,10 @@ int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy)
 
 int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
 #else
+// Draws a TOOL_MENU list at text position (x, y) (greyed lines for Be_flg 0) with a blinking ">"
+// cursor: up/down (repeat) move it with wrap, B jumps to the last entry when TOOL_MENU_B_LAST, a
+// new menu starts at 0 or at the last entry (TOOL_MENU_START_LAST). A on an enabled line calls its
+// pFunc and returns the index; else -1. `cursor` (may be NULL) holds the caller's cursor.
 static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
 #endif
 {

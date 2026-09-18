@@ -115,6 +115,9 @@ static void preview_exit();
 
 static void (*seAtRoutine[5])() = {seAtMainMenu, seAtAreaEdit, seAtDataLoad, seAtDataSave, seAtPreview};
 
+// SE attack (room sound point, ESE file) editor entry: init, then every frame the panel position,
+// START toggles the debug camera, and seAtRoutine[mode] (0 main menu, 1 area edit, 2 data load,
+// 3 data save, 4 preview; EXIT runs seAtExit from the menu).
 void ToolSeAt()
 {
     {
@@ -138,6 +141,8 @@ void ToolSeAt()
     }
 }
 
+// Tool start: default tool flags, the work on the Debug heap, the live Snd.se_at_list detached and
+// kept (seAtSaveList) for the exit, the game camera saved; starts with DATA LOAD.
 void seAtInit()
 {
     GlobalWork* g = pG;
@@ -191,6 +196,7 @@ void seAtInit()
     pW->step2 = zero;
 }
 
+// EXIT: restores the se_at list, camera and flags, frees the work, ends the task.
 static void seAtExit()
 {
     TOOL_FLAG(OFS_DISP_FLG) = pW->saveDisp;
@@ -211,6 +217,7 @@ static TOOL_MENU seAtMainMenuTbl[5] = {
     {1, "EXIT", seAtExit},
 };
 
+// Main menu: AREA EDIT / PREVIEW / DATA LOAD / DATA SAVE / EXIT.
 static void seAtMainMenu()
 {
     s8 sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, seAtMainMenuTbl, sizeof(seAtMainMenuTbl), &Joy[0]);
@@ -239,6 +246,8 @@ static void seAtMainMenu()
 static void (*seAtEditRoutine[4])() = {seAtAreaEdit_EditMenu, seAtAreaEdit_AreaMove, seAtAreaEdit_DataInput,
                                         seAtAreaEdit_AreaCreate};
 
+// AREA EDIT: L/R pick the record (areaNo), its point and number drawn; sub routines edit menu,
+// area move, data input, area create.
 static void seAtAreaEdit()
 {
     // one array, not `Vec a, b`: two aggregate locals are 8-aligned slots (8 and 24), the target's
@@ -306,6 +315,8 @@ static TOOL_MENU seAtEditMenu[6] = {
     {1, "AREA DELETE", seAtAreaEdit_AreaDelete},
 };
 
+// Record menu: existing -> AREA MOVE / DATA INPUT / AREA COPY / PASTE / COPY BUFF CLEAR / AREA
+// DELETE, empty -> AREA CREATE / PASTE / CLEAR; B back.
 static void seAtAreaEdit_EditMenu()
 {
     s8 sel;
@@ -349,6 +360,8 @@ static void seAtAreaEdit_EditMenu()
     }
 }
 
+// AREA MOVE: the camera target is the point: stick / sub stick move and orbit the camera, the
+// record's pos follows the camera target; B back.
 static void seAtAreaEdit_AreaMove()
 {
     GlobalWork* g = pG;
@@ -434,6 +447,9 @@ static const char* seAtFlagName[16] = {"NO SET POS", "", "", "", "", "", "", "",
         else v -= 1;                          \
     }
 
+// DATA INPUT rows: BLOCK (CORE / WEAPON / BGM 0 / BGM 1 / DOOR / FOOT / ROOM), REQUEST NO,
+// INTERVAL (a value or RANDOM: base + max), DELAY TIME, CALL NUM (0 infinite, -1 none), FLAG bits;
+// up/down pick, left/right change; B back.
 static void seAtAreaEdit_DataInput()
 {
     int col;
@@ -690,6 +706,7 @@ static void seAtAreaEdit_DataInput()
     }
 }
 
+// Copies the record into the copy buffer.
 static void seAtAreaEdit_AreaCopy()
 {
     pW->copyBuf = *pCur;
@@ -697,11 +714,13 @@ static void seAtAreaEdit_AreaCopy()
     pW->copyValid = 1;
 }
 
+// Overwrites the record with the copy buffer.
 static void seAtAreaEdit_AreaPaste()
 {
     *pCur = pW->copyBuf;
 }
 
+// Empties the copy buffer.
 static void seAtAreaEdit_CopyBuffClear()
 {
     memclr_asm(&pW->copyBuf, sizeof(TSeAt));
@@ -709,12 +728,14 @@ static void seAtAreaEdit_CopyBuffClear()
     pW->copyValid = 0;
 }
 
+// Clears the record.
 static void seAtAreaEdit_AreaDelete()
 {
     pCur->flags &= ~1;
     pW->editCursor = 0;
 }
 
+// Creates the record at the camera target with default values.
 static void seAtAreaEdit_AreaCreate()
 {
     pCur->pos = pG->Cam.param.at;
@@ -725,6 +746,8 @@ static void seAtAreaEdit_AreaCreate()
     pW->step2 = 0;
 }
 
+// DATA LOAD: server (x:) / local (d:), stage and room picked with the d-pad, "DATA LOAD OK?";
+// reads r<room>.ese into the work and installs it as Snd.se_at_list.
 static void seAtDataLoad()
 {
     u16 roomId = (pW->stage << 8) | pW->room;
@@ -876,6 +899,7 @@ static TOOL_MENU seAtSaveMenu[3] = {
     {1, "DON'T SAVE", NULL},
 };
 
+// DATA SAVE: SERVER / LOCAL / DON'T SAVE; packs the live records (header + SeAt) and writes them.
 static void seAtDataSave()
 {
     char pathX[0x40];
@@ -968,11 +992,13 @@ static void seAtDataSave()
 
 static void (*seAtPreviewRoutine[3])() = {preview_init, preview_main, preview_exit};
 
+// PREVIEW: init / main / exit sub routines.
 static void seAtPreview()
 {
     seAtPreviewRoutine[pW->sub]();
 }
 
+// Un-pauses the game and gives the sound driver the edited list (Snd.se_at_list = the tool image).
 static void preview_init()
 {
     u32 i;
@@ -999,6 +1025,7 @@ static void preview_init()
     pW->sub++;
 }
 
+// PREVIEW MODE: the game runs with the edited sound points; START ends it.
 static void preview_main()
 {
     pW->timer++;
@@ -1010,6 +1037,7 @@ static void preview_main()
     }
 }
 
+// Re-pauses the game, back to the main menu.
 static void preview_exit()
 {
     TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;

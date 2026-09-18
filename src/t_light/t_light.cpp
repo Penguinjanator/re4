@@ -10,8 +10,13 @@
 #include "t_util.h"
 #include "db_light.h"
 
-// Light tool entry of the t_light REL (the light editor itself is tools/db_light.cpp).
+// Light tool entry of the t_light REL (the light editor itself is tools/db_light.cpp: cLightTool
+// edits the room's .lit cuts, lights, ambient, fog, focus ...). ToolLight only creates the editor,
+// runs it every frame and cleans up.
 
+// LIGHT TOOL entry (debug menu 8): suspends the game, creates the db_light cLightTool and runs its
+// move() every frame (result 2 = player mode: the player, camera control and camera also run);
+// Debug_flg bits 29/28/4 mark the tool active; ends the task when the editor quits.
 void ToolLight()
 {
     cLightTool* tool;

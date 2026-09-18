@@ -44,6 +44,9 @@ static int (*mvFunc[])() = {mvInit, mvMain, mvQuit};
 static int mvModelMode = 0;
 static int mvUnused = 0;
 
+// Motion viewer entry (debug menu 17): runs mvFunc[step] (init / main / quit) every frame; Z
+// toggles the debug camera (pad 1 moves it), the db_mod models are animated (dbModMotionMove) and
+// the ground grid drawn; leaves when quit returns 0.
 void ToolMotionViewer()
 {
     JOY* joy = &Joy[0];
@@ -76,6 +79,8 @@ void ToolMotionViewer()
     }
 }
 
+// Tool start: parks the room's manager arrays (ToolArrayPush), default tool flags, dbModelInit,
+// tool light 2; step 1 when mot_tbl.txt loaded, else straight to quit.
 static int mvInit()
 {
     GXColor bg;
@@ -122,6 +127,8 @@ static int mvInit()
     return 0;
 }
 
+// Frame: runs the db_mod menu (dbModel); cursor 0 = the viewer (B from its menu -> the exit row),
+// 1 = "EXIT: YES/NO"; shows the sequence frame counter of the model. 0 while running.
 static int mvMain()
 {
     JOY* joy = &Joy[0];
@@ -183,6 +190,7 @@ static int mvMain()
     return 1;
 }
 
+// Tool end: dbModelQuit, restores the arrays / flags / light; returns 0 (leave).
 static int mvQuit()
 {
     GXColor bg;

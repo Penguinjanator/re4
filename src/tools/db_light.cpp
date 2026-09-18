@@ -387,6 +387,9 @@ static int SetToolLight(int no)
 }
 #endif
 
+// Light editor start: takes the room's cLit (Lit.init), the cut count from the camera areas, the
+// current cut (getCutNo) loaded into the LightMgr works, a copy buffer, the analysis table (4 bytes
+// per scroll object); error logging (Flag 0x20) and analysis (Flag 4) on; menu routine 0.
 cLightTool::cLightTool() : modeSel(0, 2, 0)
 {
     pTool = this;
@@ -422,16 +425,19 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     logy = 140.0f;
 }
 
+// Resets the log display mode.
 cLightTool::~cLightTool()
 {
     pLog->modeReset();
 }
 
+// Light work `no` without the range check (the editor indexes past nArray on purpose).
 static inline cLight* lightWorkNoChk(u32 no)
 {
     return (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * no);
 }
 
+// Object work `no`, 0 when out of range.
 static inline cObj* objWorkChkP(u32 no)
 {
     cObjMgr* m = &ObjMgr;
@@ -441,6 +447,11 @@ static inline cObj* objWorkChkP(u32 no)
     return (cObj*) ((u8*) m->pArray + m->size * no);
 }
 
+// Light editor frame. Mode 0 copies the pads (pad 1 edits, pad 2 moves the camera), 1 CAMERA MODE
+// (pad 1 doubles as the camera pad), 2 PLAYER MODE (the caller runs the player; returns 2), 10 the
+// START mode select (LIGHT / CAMERA / PREVIEW). Runs routine_tbl[rno0]: menu, edit, path, load,
+// save, option, quit; the header shows the tool mode and cut. Returns ret (1 running, 2 player
+// mode, 0 quit).
 int cLightTool::move()
 {
     static void (*routine_tbl[])() = {menu, edit, path, load, save, option, quit};
@@ -571,11 +582,14 @@ int cLightTool::move()
     return ret;
 }
 
+// Flag bit test.
 u32 cLightTool::dblCk(u32 bit)
 {
     return Flag & bit;
 }
 
+// 1 when the edited cut may be written back: always for event / core / tool mode or with Flag 8
+// (edit any cut), else only while the game camera is in the edited cut.
 int cLightTool::editEnable()
 {
     if (mode == 3) {
@@ -593,6 +607,8 @@ int cLightTool::editEnable()
     return cutNo == EditCutNo;
 }
 
+// Writes the LightMgr works back into the edited cut (when allowed) and rebuilds the manager's
+// debug cLit image (dbMem) from the whole cDbLit so the room lights follow the edit.
 void cLightTool::updateLit()
 {
     if (editEnable()) {
@@ -616,6 +632,8 @@ void cLightTool::updateLit()
     Lit.createLit(LightMgr.dbMem);
 }
 
+// Routine 0, the main MENU: EDIT / PATH / LOAD / SAVE / OPTION / QUIT; up/down, A enters (rno0 =
+// row + 1), B jumps to QUIT.
 static void menu()
 {
     static const char* menu_name[] = {"EDIT", "PATH", "LOAD", "SAVE", "OPTION", "QUIT"};
@@ -643,6 +661,7 @@ static void menu()
     }
 }
 
+// Routine 1: runs edit_tbl[rno1] (the EDIT WORK menu and its twelve editors).
 static void edit()
 {
     static void (*edit_tbl[])() = {
@@ -653,6 +672,8 @@ static void edit()
     edit_tbl[pTool->rno1]();
 }
 
+// EDIT WORK menu: CUT SELECT, LIGHT, AMBIENT, FOG, MIRROR FOG, FOCUS, BLUR, MIPMAP, LIT TUNE, LIT
+// SCALE, PARAMETER, WIND; A enters (rno1 = row + 1), B back to the main menu.
 static void edit_menu()
 {
     static const char* edit_name[] = {
@@ -686,6 +707,8 @@ static void edit_menu()
     }
 }
 
+// CUT TABLE: lists the cuts with their light counts / on-off flags and runs cutsel_tbl[rno2]
+// (main list, sub menu).
 static void edit_cutsel()
 {
     static const char* cut_onoff[] = {"1", "2", "4", "x"};
@@ -727,6 +750,8 @@ static void edit_cutsel()
     cutsel_tbl[pTool->rno2]();
 }
 
+// Cut list cursor: saves the current works into the cut first, up/down (R pages) move over the
+// cuts, A loads the cut under the cursor for editing (cutNo), Y opens the sub menu, B back.
 static void edit_cutsel_main()
 {
     static const int cutsel_col[9] = {3, 10, 14, 19, 24, 29, 35, 39, 44};
@@ -811,6 +836,8 @@ static void edit_cutsel_main()
     }
 }
 
+// Cut SUB MENU: CUT, COPY, PASTE, INSERT, COPY TO BLANK CUT, COPY TO ALL CUT (the lightCopyCut /
+// lightPaste* helpers on the cursor cut); B closes it.
 static void edit_cutsel_sub()
 {
     static const char* cutsel_sub_name[] = {
@@ -899,6 +926,7 @@ static void edit_cutsel_sub()
     }
 }
 
+// Copies cut `no` into the tool's cut clipboard (CutTmp); 0 when the cut is empty.
 int lightCopyCut(int no)
 {
     if (!pTool->Lit.isCut(no)) {
@@ -911,6 +939,7 @@ int lightCopyCut(int no)
     return 1;
 }
 
+// Replaces cut `no` with a copy of the clipboard cut; 0 without a clipboard.
 int lightPasteCut(int no)
 {
     if (pTool->CutTmp == NULL) {
@@ -923,6 +952,7 @@ int lightPasteCut(int no)
     return 1;
 }
 
+// Pastes only the clipboard cut's ambient colours into cut `no`.
 int lightPasteAmbient(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -932,6 +962,7 @@ int lightPasteAmbient(int no)
     return 0;
 }
 
+// Pastes only the fog block.
 int lightPasteFog(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -941,6 +972,7 @@ int lightPasteFog(int no)
     return 0;
 }
 
+// Pastes only the mirror fog block (cLightEnv + 0x18).
 int lightPasteMFog(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -950,11 +982,13 @@ int lightPasteMFog(int no)
     return 0;
 }
 
+// Nothing to paste (shadow settings live in the lights).
 int lightPasteShadow(int no)
 {
     return 0;
 }
 
+// Pastes only the focus block (FocusZ / level / mode).
 int lightPasteFocus(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -964,6 +998,7 @@ int lightPasteFocus(int no)
     return 0;
 }
 
+// Pastes only the blur rate.
 int lightPasteBlur(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -973,6 +1008,7 @@ int lightPasteBlur(int no)
     return 0;
 }
 
+// Pastes only the lit tune block (cLightEnv + 0x30).
 int lightPasteTune(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -982,6 +1018,7 @@ int lightPasteTune(int no)
     return 0;
 }
 
+// Pastes only the two TEV scale values and the two bytes after them.
 int lightPasteScale(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
@@ -994,6 +1031,7 @@ int lightPasteScale(int no)
     return 0;
 }
 
+// COPY TO BLANK CUT: copies cut `no` over every cut that has no lights.
 int lightPasteCutAll(int no)
 {
     int i;
@@ -1013,6 +1051,7 @@ int lightPasteCutAll(int no)
     return 1;
 }
 
+// COPY TO ALL CUT: copies cut `no` over every cut.
 int lightPasteCutAll2(int no)
 {
     int i;
@@ -1029,6 +1068,7 @@ int lightPasteCutAll2(int no)
     return 1;
 }
 
+// Debug-heap duplicate of a cut (env + its light works).
 cLightEnv* copyCut(cLightEnv* src)
 {
     u32 size = src->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
@@ -1037,6 +1077,9 @@ cLightEnv* copyCut(cLightEnv* src)
     return dst;
 }
 
+// LIGHT editor: runs edit_light_tbl[rno2] (0 the table cursor, 1..12 the property editors picked by
+// column: no, id, eid, parent, pos, radius, color, intensity, type, kind, attr, priority; 20/21 the
+// sub menus) and prints the light table.
 static void edit_light()
 {
     static void (*edit_light_tbl[40])() = {
@@ -1050,6 +1093,8 @@ static void edit_light()
     printEditTable();
 }
 
+// Light table cursor: left/right pick a column, up/down a light (scrolling the page), A opens the
+// column's editor (rno2 = col + 1), Y the sub menu (rno2 + 20), B back to the EDIT WORK menu.
 static void edit_light_select()
 {
     static int light_col[12] = {3, 6, 9, 0xF, 0x12, 0x20, 0x24, 0x28, 0x2C, 0x31, 0x36, 0x3B};
@@ -1111,6 +1156,8 @@ static void edit_light_select()
     }
 }
 
+// Light SUB MENU: CUT / COPY / INSERT / DELETE / PAGE on the cursor light (lightCutWork,
+// lightInsertWork, the LitTmp clipboard) ; B closes.
 static void edit_light_select_sub()
 {
     static const char* light_sub_name[] = {
@@ -1228,6 +1275,8 @@ static void edit_light_select_sub()
     }
 }
 
+// Copies every edited field of a light work (type, position, colour, parent, spot / sub / path
+// blocks, display colour) into another work.
 void lightCopyWork(cLight* dst, cLight* src)
 {
     dst->be_flag = src->be_flag;
@@ -1256,6 +1305,7 @@ void lightCopyWork(cLight* dst, cLight* src)
     dst->DispCol = src->DispCol;
 }
 
+// Removes light `no`: every following light moves one slot down (recreated in place, copied).
 void lightCutWork(int no)
 {
     int i;
@@ -1276,6 +1326,7 @@ void lightCutWork(int no)
     }
 }
 
+// Opens slot `no`: every light from it on moves one slot up (the last one is lost).
 void lightInsertWork(int no)
 {
     int i;
@@ -1296,6 +1347,8 @@ void lightInsertWork(int no)
     }
 }
 
+// "No" column action: toggles the light's active bit (be_flag 2) or creates a default light in an
+// empty slot (initLightWork); returns to the table.
 static void edit_light_no()
 {
     u32 no = pTool->table_y + pTool->cy;
@@ -1358,6 +1411,9 @@ struct Light07Work {
 #define STICK_STEP(scale) ((f32) pTool->Pad1.stickX * step / (scale))
 #define STICK_MUL() f32 step = (pTool->Pad1.on & JOY_A) ? 10.0f : 1.0f
 
+// LIGHT PROPATY / id (cLight::Type, the animation kind: NORMAL, FLICK, WAVE, SPOT ROTATE, SHADOW,
+// PATH, FADE, SHINE, SPOT LOCK): left/right pick, A applies (sub work cleared), the kind's own
+// editor (light_id_tbl) edits its parameters; B back.
 static void edit_light_id()
 {
     static void (*light_id_tbl[])() = {
@@ -1387,6 +1443,7 @@ static void edit_light_id()
     }
 }
 
+// NORMAL light: no parameters.
 static void edit_light_id_normal()
 {
     cLight* cur = curLight();
@@ -1403,6 +1460,7 @@ static void edit_light_id_normal()
     }
 }
 
+// FLICK: the colour flicker range.
 static void edit_light_id_flick()
 {
     cLight* cur = curLight();
@@ -1456,6 +1514,7 @@ static void edit_light_id_flick()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// WAVE: intensity wave centre / range / speed.
 static void edit_light_id_wave()
 {
     cLight* cur = curLight();
@@ -1497,6 +1556,7 @@ static void edit_light_id_wave()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// SPOT ROTATE: rotation speed per axis (Y resets to 0).
 static void edit_light_id_round()
 {
     cLight* cur = curLight();
@@ -1551,6 +1611,8 @@ static void edit_light_id_round()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// SHADOW: shadow kind (NORMAL / CAST / CAST_ADD / CAST2 / CAST_ADD2 / FOOT), texture use / invert
+// / number and ground distance.
 static void edit_light_id_shadow()
 {
     static const char* shadow_kind_name[] = {"NORMAL", "CAST", "CAST_ADD", "CAST2", "CAST_ADD2", "FOOT"};
@@ -1661,6 +1723,7 @@ static void edit_light_id_shadow()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// PATH: the light path number (A edits the path itself in the path editor), loop and inverse flags.
 static void edit_light_id_path()
 {
     cLight* cur = curLight();
@@ -1728,6 +1791,7 @@ static void edit_light_id_path()
     }
 }
 
+// FADE: start value and speed, PLAY previews.
 static void edit_light_id_fade()
 {
     cLight* cur = curLight();
@@ -1778,6 +1842,7 @@ static void edit_light_id_fade()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// SHINE: rotation speed per axis (Y resets to 0).
 static void edit_light_id_shine()
 {
     cLight* cur = curLight();
@@ -1832,7 +1897,10 @@ static void edit_light_id_shine()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// SPOT LOCK: no parameters.
 static void edit_light_id_spotlock() {}
+// ENABLE MASK (cLight::xF): which model kinds the light affects (PLAYER, ENEMY, OBJ, EFFECT, SCROLL,
+// ITEM, SUBCHAR, THERMO); up/down pick, A toggles, B back.
 static void edit_light_eid()
 {
     cLight* cur = curLight();
@@ -1890,6 +1958,8 @@ static void edit_light_eid()
     }
 }
 
+// PARENT: attaches the light to WORLD / ENEMY / SCROLL / EtcModel / OBJ, with the target's id and
+// parts number (enemy names, object ids and event model names shown); B back.
 static void edit_light_parent()
 {
     static int parent_num = 5;
@@ -2063,6 +2133,9 @@ void posTranslate(cLight* l, u8 type, u32 id)
     }
 }
 
+// Position: the stick moves the light on the XZ plane relative to the camera (A x7), the L/R
+// triggers its height, the d-pad by 1 unit, X resets to the origin, Y puts it at the camera target;
+// B back.
 static void edit_light_pos()
 {
     cLight* cur = curLight();
@@ -2100,6 +2173,7 @@ static void edit_light_pos()
     }
 }
 
+// RADIUS (stick, A x7; infinite when 0) and HIT RADIUS (the on-model adjust distance); B back.
 static void edit_light_radius()
 {
     cLight* cur = curLight();
@@ -2157,6 +2231,7 @@ static void edit_light_radius()
     }
 }
 
+// Light colour through editColor; back when it closes.
 static void edit_light_color()
 {
     cLight* cur = curLight();
@@ -2167,6 +2242,7 @@ static void edit_light_color()
     }
 }
 
+// INTENSITY (stick; not used by some types); B back.
 static void edit_light_intensity()
 {
     cLight* cur = curLight();
@@ -2195,6 +2271,8 @@ static void edit_light_intensity()
     }
 }
 
+// Attenuation type editor (cLight::xD: CONSTANT, LINEAR, QUADRATIC, SPOT LIGHT, CUSTOM, PARALLEL,
+// SPOT QUAD, LOCAL AMBIENT) through light_type_tbl; SHADOW lights (Type 4) get the shadow editor.
 static void edit_light_type()
 {
     static void (*light_type_tbl[16])() = {
@@ -2216,6 +2294,7 @@ static void edit_light_type()
     }
 }
 
+// SHADOW PROPATY: shadow projection type NORMAL (fit) / PARALLEL / FIX through shadow_type_tbl.
 void edit_light_type_shadow()
 {
     cLight* cur = curLight();
@@ -2231,6 +2310,8 @@ void edit_light_type_shadow()
     }
 }
 
+// Shadow type row: left/right pick, A applies (spot block cleared); 1 while the shown type is the
+// light's.
 int shadow_select_type()
 {
     cLight* cur = curLight();
@@ -2303,6 +2384,8 @@ int shadow_select_type()
         w->field -= 360;                                                \
     }
 
+// NORMAL shadow: light position (set from the camera with A), self / soft / multi shadow levels and
+// range.
 static void edit_light_type_shadow_fit()
 {
     cLight* cur = curLight();
@@ -2402,6 +2485,7 @@ static void edit_light_type_shadow_fit()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// PARALLEL shadow: direction angles, self / soft / multi shadow levels and range.
 static void edit_light_type_shadow_parallel()
 {
     cLight* cur = curLight();
@@ -2475,6 +2559,7 @@ static void edit_light_type_shadow_parallel()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// FIX shadow: direction angles and the shadow texture number.
 static void edit_light_type_shadow_fix()
 {
     cLight* cur = curLight();
@@ -2521,6 +2606,7 @@ static void edit_light_type_shadow_fix()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
+// KIND byte (LightMgr::offKind groups); left/right; B back.
 static void edit_light_kind()
 {
     cLight* cur = curLight();
@@ -2544,6 +2630,7 @@ static void edit_light_kind()
     }
 }
 
+// ATTRIBUTE bits: NO TUNE, ELEC LIGHT, TAIMATU (torch); up/down, A toggles, B back.
 static void edit_light_attr()
 {
     cLight* cur = curLight();
@@ -2581,6 +2668,7 @@ static void edit_light_attr()
     }
 }
 
+// PRIORITY (which lights survive the per-model limit); left/right; B back.
 static void edit_light_priority()
 {
     cLight* cur = curLight();
@@ -2597,6 +2685,8 @@ static void edit_light_priority()
     }
 }
 
+// Attenuation type row: left/right pick over the 8 types, A applies (spot block cleared); 1 while
+// the shown type is the light's.
 int select_type()
 {
     cLight* cur = curLight();
@@ -2634,6 +2724,7 @@ int select_type()
     return ret;
 }
 
+// CONSTANT / LINEAR: type row and intensity.
 static void edit_light_type_constant()
 {
     cLight* cur = curLight();
@@ -2709,11 +2800,14 @@ static void edit_light_type_constant()
     pTool->printCursor(7, pTool->rno3 + 11);                                                    \
     drawLightInfo(cur, 0xFFFFFFFF);
 
+// QUADRATIC: type row and the smooth edge value.
 static void edit_light_type_quad()
 {
     EDIT_SMOOTH_EDGE();
 }
 
+// SPOT LIGHT / SPOT QUAD: type row, cone direction (stick, drawn as a cone), range angle and smooth
+// edge.
 static void edit_light_type_spotlight()
 {
     // direction editor scratch: the unit's first .bss object (a function static of the first function
@@ -2820,6 +2914,8 @@ static void edit_light_type_spotlight()
         sp->field = 0.0f;                                                     \
     }
 
+// CUSTOM: the raw GX attenuation coefficients A0..A2 / K0..K2 (stick, gear steps 1e-9..1e-3),
+// direction; the attenuation graph is drawn.
 static void edit_light_type_direct()
 {
     static Vec rot;
@@ -2918,6 +3014,7 @@ static void edit_light_type_direct()
     draw_light_graph(cur);
 }
 
+// LOCAL AMBIENT: type row and the smooth edge value.
 static void edit_light_type_localamb()
 {
     EDIT_SMOOTH_EDGE();
@@ -3126,6 +3223,7 @@ static void edit_light_type_parallel()
     eprintf(0x40, 0xC4, (sp->flags & 1) ? 0 : 0x14, pTool->color, "LOCAL DIR");
     eprintf(0x40, 0xD2, 0, pTool->color, "SMOOTH EDGE %6f", sp->A1);
 }
+// Unused sub menu slot (rno2 21).
 static void edit_light_prop_sub() {}
 // Ambient colours of the cut: model / enemy+object / effect.
 static void edit_ambient()
@@ -3227,6 +3325,7 @@ static void edit_ambient()
     drawColorTile(0x60, 0x54, 0x30, 0xD, env->x100);
     pTool->printCursor(3, pTool->rno5 + 4);
 }
+// FOG page of the cut (edit_fog_common on cLightEnv::Fog).
 static void edit_fog()
 {
     cLightEnv* env = LightMgr.getEnvPtr();
@@ -3235,6 +3334,7 @@ static void edit_fog()
     edit_fog_common(&env->Fog);
 }
 
+// MIRROR FOG page (the fog of the mirror render).
 static void edit_mirror_fog()
 {
     cLightEnv* env = LightMgr.getEnvPtr();
@@ -3243,6 +3343,8 @@ static void edit_mirror_fog()
     edit_fog_common(&env->MirrorFog);
 }
 
+// Fog rows: TYPE (GX fog kinds through fogTypeNext/Back), START, END (stick, A x20), COLOR
+// (editColor), FAR PLAY ratio; B back to the EDIT WORK menu.
 void edit_fog_common(LightFog* fog)
 {
     f32 step = (pTool->Pad1.on & JOY_A) ? 20.0f : 1.0f;
@@ -3319,6 +3421,7 @@ void edit_fog_common(LightFog* fog)
     drawColorTile(0x50, 0x62, 0x30, 0xE, *(u32*) &fog->Color);
     LightMgr.setFog();
 }
+// FOCUS (depth of field) rows: DIST, LEVEL, MODE (NEAR / FAR / FollowPL NEAR / FollowPL FAR); B back.
 static void edit_focus()
 {
     static const char* focus_mode_name[] = {"NEAR", "FAR", "FollowPL NEAR", "FollowPL FAR"};
@@ -4848,6 +4951,7 @@ void printEditTable()
     }
 }
 
+// Blinking ">" at text cell (x, y).
 void cLightTool::printCursor(int x, int y)
 {
     if (!(cursorCtr & 8)) {
@@ -4863,6 +4967,7 @@ static inline GXColor whiteCol()
     return c;
 }
 
+// Filled 2D rectangle in screen pixels (colour swatches of the editors).
 void DrawTile(int x, int y, int w, int h, GXColor* color)
 {
     GXColor col = *color;
@@ -4895,6 +5000,7 @@ void DrawTile(int x, int y, int w, int h, GXColor* color)
     GXPosition3s16(x, y + h, 2);
 }
 
+// Resets the menu cursor and table position.
 void cLightTool::clearWork()
 {
     cursor = 0;
@@ -4902,6 +5008,7 @@ void cLightTool::clearWork()
     col = 0;
 }
 
+// Resets the sub menu cursors.
 void cLightTool::clearSubMenu()
 {
     curSub = sno0 = sno1 = sno2 = sno3 = 0;
@@ -4920,6 +5027,7 @@ void cLightTool::setLogMode(int on)
 }
 #endif
 
+// Empty light file.
 cDbLit::cDbLit()
 {
     u32 i;
@@ -4932,6 +5040,8 @@ cDbLit::cDbLit()
     }
 }
 
+// Byte size of the cLit image this file would produce (header + offset table + every cut);
+// updates nCut to the last used cut + 1.
 u32 cDbLit::size()
 {
     u32 i;
@@ -4951,11 +5061,14 @@ u32 cDbLit::size()
     return size;
 }
 
+// Cut `no` (NULL when absent).
 cLightEnv* cDbLit::getCut(u16 no)
 {
     return cut[no];
 }
 
+// Loads cut `no` of the file into the LightMgr: env + light works; an absent cut clears the env
+// and returns 0.
 int LitLoadWork(cDbLit* lit, int no)
 {
     cLightEnv* env = lit->getCut(no);
@@ -4970,6 +5083,7 @@ int LitLoadWork(cDbLit* lit, int no)
     return 0;
 }
 
+// Stores the LightMgr env + scroll light works into cut `no` of the file (reallocated).
 int LitSaveWork(cDbLit* lit, int no)
 {
     u32 n;
@@ -4985,6 +5099,7 @@ int LitSaveWork(cDbLit* lit, int no)
     return 1;
 }
 
+// Reads a .lit file from the host and expands it (init); 0 when missing.
 int cDbLit::fileLoad(const char* path)
 {
     cLit* buf;
@@ -5000,6 +5115,7 @@ int cDbLit::fileLoad(const char* path)
     return ret;
 }
 
+// Expands a cLit image: one Debug-heap copy per cut (cut count, version, max light count kept).
 int cDbLit::init(cLit* lit)
 {
     u32 i;
@@ -5033,6 +5149,7 @@ int cDbLit::init(cLit* lit)
     return 1;
 }
 
+// Drops every cut but 0 (event light files hold one cut).
 void cDbLit::preEventSave()
 {
     u32 i;
@@ -5045,6 +5162,7 @@ void cDbLit::preEventSave()
     }
 }
 
+// Writes the file as a cLit image to the host path; 0 when empty or the write failed.
 int cDbLit::fileSave(const char* path)
 {
     u32 size;
@@ -5069,6 +5187,7 @@ int cDbLit::fileSave(const char* path)
     return ret;
 }
 
+// Serialises the cuts into a cLit image (header, offset table, cuts); returns the byte size.
 u32 cDbLit::createLit(cLit* dst)
 {
     u32 i;
@@ -5333,6 +5452,8 @@ const char* strFogType(int type)
     return s;
 }
 
+// Next GX fog type in the editor's cycle 0 -> 2 -> 4 -> 5 -> 6 -> 7 -> 0 (none, linear, exp, exp2,
+// reverse exp, reverse exp2).
 int fogTypeNext(int type)
 {
     switch (type) {
@@ -5352,6 +5473,7 @@ int fogTypeNext(int type)
     return 0;
 }
 
+// Previous fog type of the cycle.
 int fogTypeBack(int type)
 {
     switch (type) {
@@ -5371,6 +5493,8 @@ int fogTypeBack(int type)
     return 0;
 }
 
+// Default light: active, NORMAL, quadratic, all model kinds but effect / thermo, grey 0x80,
+// radius 3000, intensity 1, world parent, priority 3, blocks cleared.
 void initLightWork(cLight* l)
 {
     l->be_flag |= 6;
@@ -5400,6 +5524,7 @@ void initLightWork(cLight* l)
     l->DispCol.a = 0x80;
 }
 
+// Clears the current light's animation sub work (FLICK keeps its base colour).
 void clear_move_free()
 {
     cLight* cur = curLight();
@@ -5410,11 +5535,14 @@ void clear_move_free()
     }
 }
 
+// Clears the current light's spot block (type change).
 void clear_type_free()
 {
     memclr_asm(&curLight()->spot, sizeof(LightSpot));
 }
 
+// Light cut of the current camera: 0 with Debug_flg[0] bit 25, the camera tool's camera number
+// while it runs (bit 31 + menu 7), else the cLit's safe cut for CamCtrl's camera.
 int getCutNo()
 {
     int no;
@@ -5691,11 +5819,14 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
     }
 }
 
+// Object work `no` without the range check.
 static inline cObj* objWorkNoChk(u32 no)
 {
     return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
 }
 
+// Light usage analysis (Flag 4): per scroll object the lights hitting it (anaTbl: count, .., id),
+// printed with the player's light count (red above 3); 0 without the table.
 int cLightTool::lightAnalysis()
 {
     u32 i;
@@ -5740,6 +5871,8 @@ int cLightTool::lightAnalysis()
     return 1;
 }
 
+// Light path table start: copies the manager's path header to the Debug heap, expands the paths
+// and loads path 0 into the edit buffer.
 cLitPathTool::cLitPathTool()
 {
     memclr_asm(path, sizeof(path));
@@ -5772,10 +5905,12 @@ cLitPathTool::cLitPathTool()
     }
 }
 
+// Nothing to free here (the paths are released by the tool's quit).
 cLitPathTool::~cLitPathTool()
 {
 }
 
+// One Debug-heap copy per path of the header's offset table; 0 for a bad header.
 int cLitPathTool::expand(cLightPathHeader* hdr)
 {
     u32 i;
@@ -5807,6 +5942,7 @@ struct LitPathHdr {
     u32 ofs[1];  // 0x04
 };
 
+// Serialises the paths back into a header + offset table + data image.
 int cLitPathTool::createPath(cLightPathHeader* dst)
 {
     LitPathHdr* h = (LitPathHdr*) dst;

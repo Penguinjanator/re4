@@ -68,7 +68,7 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
-// ss_cap.cpp (attache case selection)
+// ss_cap.cpp (bottle cap collection grid)
 class SsCapInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10

@@ -261,6 +261,11 @@ int loadMesName(const char* path, char* names);
     pW->step = 0;    \
     pW->step2 = 0;
 
+// SCENARIO ATARI TOOL entry (debug menu 19): edits the room's AEV trigger areas (SceAtWork records:
+// doors, messages, flags, jumps, damage, ladders, hide spots, ...). Allocates the work, loads the
+// current room's data and loops: the sub stick moves the text panel, START toggles the debug camera,
+// Z the tool light, then runs routine[mode] (main menu, area edit, preview, data load, data save,
+// exit) every frame.
 void ToolSceAt()
 {
     void (*routine[6])() = {tSceAtMainMenu, tSceAtAreaEdit, tSceAtPreview, tSceAtDataLoad, tSceAtDataSave, tSceAtExit};
@@ -305,6 +310,8 @@ void ToolSceAt()
     }
 }
 
+// Flag setup shared with t_flr_at: pauses the game (Stop_flg bits), hides HUD / draws the debug
+// areas (Disp_flg bits), Debug_flg bit 28 (tool running), tool light 1 on, flags_5010 bit 24.
 void tSceAtInit_base()
 {
     *(TOOL_PTR(0x8678)) = 0x11;
@@ -328,6 +335,10 @@ void tSceAtInit_base()
     TOOL_FLAG(0x5010) |= 0x1000000;
 }
 
+// Tool init: default tool state, AEV header (version 0x104, 128 records), file names for the room,
+// locks the x: file, copies the room's live AEV data (SceAtSys) into the work, reads the room's and
+// the common message name headers (r%03xmes.h, cmesmes.h) for the MESSAGE editor, sets the debug
+// camera target type.
 void tSceAtInit()
 {
     char buf[0x100];
@@ -359,6 +370,7 @@ void tSceAtInit()
     CamDbg.m_target_type = 4;
 }
 
+// Server (d:) and local (x:) paths of the room's r<room>.aev.
 void set_filename()
 {
     sprintf(pW->path, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.aev", pG->stage_no, pG->room_id, pG->room_id);
@@ -370,6 +382,8 @@ static TOOL_MENU tSceAtExitMenu[2] = {
     {1, "NO", NULL},
 };
 
+// EXIT? YES/NO; YES (sub 9) unlocks the file, frees the work, restores the camera target and flags
+// and ends the task.
 static void tSceAtExit()
 {
     s8 sel;
@@ -415,6 +429,7 @@ static TOOL_MENU tSceAtMainMenuTbl[5] = {
     {1, "EXIT", NULL},
 };
 
+// Main menu: AREA EDIT / PREVIEW / DATA LOAD / DATA SAVE (only after a load) / EXIT -> mode 1..5.
 static void tSceAtMainMenu()
 {
     s8 sel;
@@ -447,6 +462,8 @@ static void tSceAtMainMenu()
     }
 }
 
+// AREA EDIT: L/R (fast repeat) pick the record (areaNo, 0..127), shows its type / copy source and
+// runs the sub routine: edit menu, area move, data input, area create.
 static void tSceAtAreaEdit()
 {
     void (*routine[4])() = {tSceAtAreaEdit_EditMenu, tSceAtAreaEdit_AreaMove, tSceAtAreaEdit_DataInput,
@@ -490,6 +507,8 @@ static TOOL_MENU tSceAtEditMenu[6] = {
     {1, "AREA DELEAT", tSceAtAreaEdit_AreaDelete},
 };
 
+// Record menu: an existing record offers AREA MOVE / DATA INPUT / AREA COPY / PASTE / COPY BUFF
+// CLEAR / AREA DELEAT, an empty slot AREA CREATE / PASTE / CLEAR; B back to the main menu.
 static void tSceAtAreaEdit_EditMenu()
 {
     s8 sel;
@@ -531,6 +550,8 @@ static TOOL_MENU tSceAtShapeMenu[3] = {
     {0, "EYE TRG", NULL},
 };
 
+// AREA CREATE: shape menu SQUARE / CIRCLE / EYE TRG, then AreaDataInit at the player position and
+// a fresh record (flag 1, type NORMAL); B back.
 static void tSceAtAreaEdit_AreaCreate()
 {
     s8 sel;
@@ -572,6 +593,7 @@ static void tSceAtAreaEdit_AreaCreate()
     }
 }
 
+// Copies the current record into the copy buffer (copySrc / copyValid).
 static void tSceAtAreaEdit_AreaCopy()
 {
     pW->copyBuf = *pCur;
@@ -579,11 +601,13 @@ static void tSceAtAreaEdit_AreaCopy()
     pW->copyValid = 1;
 }
 
+// Overwrites the current record with the copy buffer.
 static void tSceAtAreaEdit_AreaPaste()
 {
     *pCur = pW->copyBuf;
 }
 
+// Empties the copy buffer.
 static void tSceAtAreaEdit_CopyBuffClear()
 {
     memclr_asm(&pW->copyBuf, sizeof(SceAtWork));
@@ -591,6 +615,7 @@ static void tSceAtAreaEdit_CopyBuffClear()
     pW->copyValid = 0;
 }
 
+// Clears the current record.
 static void tSceAtAreaEdit_AreaDelete()
 {
     pCur->flag &= ~1;
@@ -636,6 +661,8 @@ void angle_arrow_disp(SceAtWork* a)
     }
 }
 
+// Draws every record's area (the current one highlighted, its trigger direction arrow) and the
+// player position / angle panel.
 void tSceAtAreaEdit_disp()
 {
     int i;
@@ -686,6 +713,7 @@ void tSceAtAreaEdit_disp()
     eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
+// AREA MOVE: the shared AreaDataEdit editor moves / resizes the record's area; B back.
 static void tSceAtAreaEdit_AreaMove()
 {
     if (pCur->flag & 1) {
@@ -698,6 +726,7 @@ static void tSceAtAreaEdit_AreaMove()
     }
 }
 
+// DATA INPUT: runs the record type's editor (routine[type], NORMAL for types without one); B back.
 static void tSceAtAreaEdit_DataInput()
 {
     void (*routine[21])() = {tSceAtDataInput_normal,     tSceAtDataInput_door,     tSceAtDataInput_normal,
@@ -738,6 +767,10 @@ extern SceAtWorkPtr sceAtCur_c5 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path
 extern SceAtWorkPtr sceAtCur_c6 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
 extern SceAtWorkPtr sceAtCur_c7 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
 #define PC(n) (sceAtCur_##n.p)
+// The eight rows every type shares (ID = type, HIT TYPE, HIT ANGLE, OPEN ANGLE, TRIGGER_TYPE,
+// ACTION TYPE, TARGET TYPE, PRIORITY): `sel` is the row under the cursor; left/right (sub stick)
+// change its value, the values are printed beside the menu. HIT/OPEN ANGLE need checkFlag bit 1,
+// ACTION TYPE the ACT_BTN trigger.
 void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
 {
     s16 x;
@@ -918,6 +951,7 @@ static TOOL_MENU tSceAtNormalMenu[8] = {
     {1, "PRIORITY", NULL},
 };
 
+// Types without parameters: only the basic rows.
 static void tSceAtDataInput_normal()
 {
     ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->inputCursor, tSceAtNormalMenu, sizeof(tSceAtNormalMenu), &Joy[0]);
@@ -950,6 +984,8 @@ static TOOL_MENU tSceAtDoorMenu[21] = {
 static const char* tSceAtLockName[3] = {"DEFAULT", "IN_LOCK_CLOSE", "IN_LOCK_OPEN"};
 static const char* tSceAtFadeName[3] = {"NORMAL", "FADE", "BLACK"};
 
+// DOOR: basic rows + NEXT_STAGE_NO / NEXT_ROOM_NO / NEXT_PART_NO / NEXT_POS_SET (A on the last
+// runs tSceAtDataInput_door_PosSet).
 static void tSceAtDataInput_door()
 {
     s16 x;
@@ -1059,6 +1095,9 @@ static inline f32 FCRef(const f32& v) { return v; }
 static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U16Set(u16& d, u16 v) { d = v; }
 
+// Door target position: jumps into the destination room (GetNextPos or the stored dstPos), lets the
+// player be moved with the stick / triggers (X fast, A slow) until START, stores his position as
+// dstPos and jumps back to the edited room.
 void tSceAtDataInput_door_PosSet()
 {
     static const f32 zero = 0.0f;
@@ -1154,6 +1193,8 @@ static TOOL_MENU tSceAtMesMenu[13] = {
     {1, " SE_NO", NULL},
 };
 
+// MESSAGE: basic rows + MES_TYPE (room / common), MES_NO (the message name from the .h files),
+// CAM_NO, SE_TYPE.
 static void tSceAtDataInput_mes()
 {
     SceAtMesData* d = &pCur->mes;
@@ -1269,6 +1310,7 @@ static TOOL_MENU tSceAtFlgMenu[11] = {
 };
 static const char* tSceAtFlgName[3] = {"ROOM_FLG", "ROOM_SAVE_FLG", "SCENARIO_FLG"};
 
+// FLG: basic rows + FLG_ID (flag word), FLG_NO (bit), FLG_ACT (set / clear / ...).
 static void tSceAtDataInput_flg()
 {
     SceAtFlg* d = &pCur->flg;
@@ -1320,6 +1362,7 @@ static TOOL_MENU tSceAtJumpMenu[11] = {
     {1, " JUMP_POS_Z", NULL},
 };
 
+// JUMP: basic rows + JUMP_POS_X/Y/Z (the landing position).
 static void tSceAtDataInput_jump()
 {
     s16 x;
@@ -1362,6 +1405,7 @@ static TOOL_MENU tSceAtShdDispMenu[10] = {
     {1, " DISP_FLG", NULL},
 };
 
+// SHD_DISP: basic rows + SHD_NO / DISP_FLG (shadow model on/off trigger).
 static void tSceAtDataInput_shd_disp()
 {
     SceAtShdDisp* d = &pCur->shd;
@@ -1411,6 +1455,7 @@ static TOOL_MENU tSceAtDamageMenu[14] = {
 };
 static const char* tSceAtDamageName[7] = {"NO HIT", "FIRE", "ELEC", "ENV_LIGHT", "ENV_FIRE", "GRENADE_BLAST", "PUSH"};
 
+// DAMAGE: basic rows + DAMAGE_TYPE / TIMER / VOLUME / DIE_FLG.
 static void tSceAtDataInput_damage()
 {
     SceAtDamage* d = &pCur->dmg;
@@ -1547,6 +1592,8 @@ static TOOL_MENU tSceAtScrAtMenu[27] = {
     if (Joy[0].rep & REP_RIGHT) f |= bit;           \
     if (Joy[0].rep & REP_LEFT) f &= ~(bit);
 
+// SCR_AT: basic rows + EAT_NO_SET / SAT_NO_SET (enemy / scenario collision numbers), the EM_NOHIT
+// and 1m_UP switches.
 static void tSceAtDataInput_scr_at()
 {
     SceAtScrAt* d = &pCur->scr;
@@ -1686,6 +1733,7 @@ static void tSceAtDataInput_scr_at()
     eprintf(x, y, 0, 0, "%s", ONOFF(d->attr & 0x800000));
 }
 
+// VIEW_CTRL: step 0 the row menu (tSceAtDataInput_cam_ctrl_main), 1 the position editor.
 static void tSceAtDataInput_cam_ctrl()
 {
     void (*routine[2])() = {tSceAtDataInput_cam_ctrl_main, tSceAtDataInput_cam_ctrl_pos_edit};
@@ -1712,6 +1760,7 @@ static TOOL_MENU tSceAtCamCtrlMenu[13] = {
 
 #define RANGE_CLAMP(f) f = (f) < 0.0f ? 0.0f : ((f) > 5000.0f ? 5000.0f : (f))
 
+// VIEW_CTRL rows: basic + TYPE, POS_SET (A opens the position editor), ANG_Y, RADIUS.
 static void tSceAtDataInput_cam_ctrl_main()
 {
     s16 x;
@@ -1771,6 +1820,8 @@ static void tSceAtDataInput_cam_ctrl_main()
         Joy[0].trg = 0;                                                                    \
     }
 
+// VIEW_CTRL position: an eye-type scratch area (AreaDataEdit) sets the camera target position and
+// ranges; B back.
 static void tSceAtDataInput_cam_ctrl_pos_edit()
 {
     SceAtCamCtrl* c = &pCur->cam;
@@ -1796,6 +1847,7 @@ static void tSceAtDataInput_cam_ctrl_pos_edit()
     }
 }
 
+// Prints the VIEW_CTRL values beside the rows (row `cur` highlighted).
 void tSceAtCamCtrlDataDisp(SceAtCamCtrl* c, int cur)
 {
     Mtx m;
@@ -1830,6 +1882,7 @@ static TOOL_MENU tSceAtFieldInfoMenu[9] = {
     {1, " FIELD_ID", NULL},
 };
 
+// FIELD_INFO: basic rows + FIELD_ID.
 static void tSceAtDataInput_field_info()
 {
     SceAtField* d = &pCur->field;
@@ -1859,6 +1912,7 @@ static TOOL_MENU tSceAtSaveAtMenu[9] = {
     {1, " TERM_NO", NULL},
 };
 
+// SAVE (typewriter): basic rows + TERM_NO.
 static void tSceAtDataInput_save()
 {
     TSceAtValue* d = (TSceAtValue*) pCur->data;
@@ -1876,6 +1930,7 @@ static void tSceAtDataInput_save()
     eprintf((s16) (pW->x + 0x80), pW->y, 0, 0, "%d", d->value);
 }
 
+// LADDER: step 0 the row menu, 1 the eye-target position editor.
 static void tSceAtDataInput_ladder()
 {
     void (*routine[2])() = {tSceAtDataInput_ladder_main, tSceAtDataInput_ladder_ETedit};
@@ -1903,6 +1958,8 @@ static TOOL_MENU tSceAtLadderMenu[17] = {
     {1, " CAM_NO3", NULL},
 };
 
+// LADDER rows: basic + LADDER_POS_SET (A opens the editor), LADDER_POS_X/Y/Z, the level and the
+// three camera cuts.
 static void tSceAtDataInput_ladder_main()
 {
     s16 x;
@@ -1982,6 +2039,7 @@ static void tSceAtDataInput_ladder_main()
     pW->y = y + 0x10;
 }
 
+// LADDER position: eye-type scratch area around the record sets the ladder foot and angle; B back.
 static void tSceAtDataInput_ladder_ETedit()
 {
     TSceAtLadder* l = (TSceAtLadder*) pCur->data;
@@ -2040,6 +2098,7 @@ static void tSceAtDataInput_ladder_ETedit()
         Draw_line3d(&P->pos, &rot, col | 0xFE000000, 0);                        \
     }
 
+// Prints the LADDER values beside the rows.
 void tSceAtLadderDataDisp(TSceAtLadder* l, int cur)
 {
     POINT_DIR_DISP(l, posSet);
@@ -2057,6 +2116,7 @@ static TOOL_MENU tSceAtUseMenu[9] = {
     {1, " USE_ID", NULL},
 };
 
+// USE: basic rows + USE_ID (the item that operates the area).
 static void tSceAtDataInput_use()
 {
     TSceAtValue* d = (TSceAtValue*) pCur->data;
@@ -2077,6 +2137,7 @@ static void tSceAtDataInput_use()
     eprintf((s16) (pW->x + 0x80), pW->y, 0, 0, "%x", d->value);
 }
 
+// HIDE (hiding spot): step 0 the row menu, 1 the position editor, 2 the area editor.
 static void tSceAtDataInput_hide()
 {
     void (*routine[3])() = {tSceAtDataInput_hide_main, tSceAtDataInput_hide_pos_edit, tSceAtDataInput_hide_area_edit};
@@ -2099,6 +2160,7 @@ static TOOL_MENU tSceAtHideMenu[12] = {
     {1, " CAM_NO", NULL},
 };
 
+// HIDE rows: basic + HIDE_TYPE, HIDE_POS_SET, HIDE_AREA (A opens the editors), CAM_NO.
 static void tSceAtDataInput_hide_main()
 {
     s16 x;
@@ -2140,6 +2202,7 @@ static void tSceAtDataInput_hide_main()
     pW->y = y + 0x10;
 }
 
+// HIDE position: eye-type scratch area sets the hiding position; B back.
 static void tSceAtDataInput_hide_pos_edit()
 {
     TSceAtHide* h = (TSceAtHide*) pCur->data;
@@ -2165,6 +2228,7 @@ static void tSceAtDataInput_hide_pos_edit()
 
 #define EDIT_PTS (*(AreaXZ4Pts*) pW->editArea.u.xz4.p)
 
+// HIDE area: square scratch area sets the four-point hide zone; B back.
 static void tSceAtDataInput_hide_area_edit()
 {
     TSceAtHide* h = (TSceAtHide*) pCur->data;
@@ -2195,6 +2259,7 @@ static void tSceAtDataInput_hide_area_edit()
     }
 }
 
+// Prints the HIDE values beside the rows.
 void tSceAtHideDataDisp(TSceAtHide* h, int cur)
 {
     AreaData a;
@@ -2212,6 +2277,7 @@ void tSceAtHideDataDisp(TSceAtHide* h, int cur)
     }
 }
 
+// POS_JUMP: step 0 the row menu, 1 the position editor.
 static void tSceAtDataInput_pos_jump()
 {
     void (*routine[2])() = {tSceAtDataInput_pos_jump_main, tSceAtDataInput_pos_jump_ETedit};
@@ -2237,6 +2303,7 @@ static TOOL_MENU tSceAtPosJumpMenu[13] = {
 
 #define PJ ((TSceAtPosJump*) pCur->data)
 
+// POS_JUMP rows: basic + JUMP_POS_SET (A opens the editor), JUMP_POS_X/Y/Z.
 static void tSceAtDataInput_pos_jump_main()
 {
     s16 x;
@@ -2275,6 +2342,7 @@ static void tSceAtDataInput_pos_jump_main()
     pW->y = y + 0x10;
 }
 
+// POS_JUMP position: eye-type scratch area sets the jump target and angle; B back.
 static void tSceAtDataInput_pos_jump_ETedit()
 {
     TSceAtPosJump* j = (TSceAtPosJump*) pCur->data;
@@ -2298,6 +2366,7 @@ static void tSceAtDataInput_pos_jump_ETedit()
     }
 }
 
+// Prints the POS_JUMP values beside the rows.
 void tSceAtPosJumpDataDisp(TSceAtPosJump* j, int cur)
 {
     POINT_DIR_DISP(j, posSet);
@@ -2333,6 +2402,8 @@ static TOOL_MENU tSceAtLoadMenu[3] = {
     {1, "don't load", NULL},
 };
 
+// DATA LOAD: SERVER (d:) / LOCAL (x:) / don't load; reads the .aev into the file image, checks the
+// magic and copies the records into the work (tSceAtLoadDataCopy); the tool starts here.
 static void tSceAtDataLoad()
 {
     s8 sel;
@@ -2430,6 +2501,8 @@ static TOOL_MENU tSceAtSaveMenu[3] = {
     {1, "don't save", NULL},
 };
 
+// DATA SAVE: SERVER / LOCAL / don't save; builds the file image (tSceAtSaveDataCreate), writes it
+// and re-installs it as the room's live AEV data (SceAtSys.pAtData, freed / reallocated).
 static void tSceAtDataSave()
 {
     int ret = 0;
@@ -2536,6 +2609,7 @@ void tSceAtSaveDataCreate()
     pW->file.head.num = pW->saveNum;
 }
 
+// CAMERA MODE (START): the debug camera moves with pad 1 while the tool is paused.
 void tSceAtData_DebugCamera()
 {
     CamDbg.move(&pG->Cam, &Joy[0], 0);
@@ -2545,6 +2619,7 @@ void tSceAtData_DebugCamera()
     }
 }
 
+// PREVIEW: init / main / exit sub routines.
 static void tSceAtPreview()
 {
     void (*routine[3])() = {tSceAtPreview_init, tSceAtPreview_main, tSceAtPreview_exit};
@@ -2552,6 +2627,7 @@ static void tSceAtPreview()
     routine[pW->sub]();
 }
 
+// Un-pauses the player and HUD (Stop / Disp / Debug flag bits) for the preview.
 static void tSceAtPreview_init()
 {
     TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
@@ -2563,6 +2639,8 @@ static void tSceAtPreview_init()
     pW->step2 = 0;
 }
 
+// PREVIEW MODE: the game runs, the player's hit points are drawn (tSceAtPreview_pl_pos); START
+// ends it.
 static void tSceAtPreview_main()
 {
     tSceAtPreview_pl_pos();
@@ -2617,6 +2695,7 @@ void tSceAtPreview_pl_pos()
     Draw_line3d(&pos, &front, 0xFF40FF80, 0);
 }
 
+// Restores the tool flags and returns to the main menu.
 static void tSceAtPreview_exit()
 {
     TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;

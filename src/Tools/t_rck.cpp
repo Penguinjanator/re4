@@ -132,6 +132,9 @@ static int menu_pos[2] = {0x18, 0x134};
 static int info_pos[2] = {0x18, 0x1C};
 static int menu_mode[5] = {2, 4, 5, 1, 0};
 
+// Route check point tool entry (debug menu 12): init, then every frame the camera / pad snapshot,
+// the cursor (TutilMoveCursor), rckFunc[mode] (0 quit, 1 clear, 2 main, 3 menu, 4 save, 5 load)
+// and the display.
 void ToolRctRouteCheck()
 {
     void (*tbl[6])() = {tool_quit, mode_clear, mode_main, mode_menu, mode_save, mode_load};
@@ -156,6 +159,8 @@ void ToolRctRouteCheck()
     }
 }
 
+// Tool start: work and save buffer allocated, default flags, cursor at the screen centre; the
+// room's route table (pG->Rtp) is expanded into the edit form, else the default .rtp is loaded.
 void rckInit()
 {
     int zero = 0;
@@ -190,6 +195,7 @@ void rckInit()
     pG->Rtp = RCK_SAVE;
 }
 
+// Mode 0: restores pG->pRoomRtp and the flags, frees the buffers, ends the task.
 static void tool_quit()
 {
     pG->Rtp = RCK->savedRtp;
@@ -204,6 +210,10 @@ static void tool_quit()
     TaskExit();
 }
 
+// Mode 2, editing: START opens the menu, Y cycles the edit mode (move / line / one way / delete),
+// L/R change the caught point, X adds a point, A catches; then per edit mode: move the caught
+// point, start / end a two-way or one-way line between points, delete; the next-hop table is
+// recomputed every frame (rckSetRoute).
 static void mode_main()
 {
     JOY* joy = &Joy[0];
@@ -266,6 +276,7 @@ static void mode_main()
 
 static const char* menu_str[5] = {"MAIN", "SAVE", "LOAD", "CLEAR", "QUIT"};
 
+// Mode 3, - MENU -: MAIN / SAVE / LOAD / CLEAR / QUIT; B back to editing.
 static void mode_menu()
 {
     JOY* joy = &Joy[0];
@@ -286,6 +297,7 @@ static void mode_menu()
 
 static const char* save_str[5] = {"DEFAULT", "BACKUP 1", "BACKUP 2", "BACKUP 3", "BACKUP 4"};
 
+// Mode 4, - SAVE -: DEFAULT (.rtp) or BACKUP 1..4 (.rt1..4); shows Complete. / Save Error!.
 static void mode_save()
 {
     JOY* joy = &Joy[0];
@@ -318,6 +330,7 @@ static void mode_save()
 
 static const char* clear_str[2] = {"Clear Yes", "Clear No"};
 
+// Mode 1: Clear Yes / No; yes empties the point and line tables.
 static void mode_clear()
 {
     JOY* joy = &Joy[0];
@@ -354,6 +367,7 @@ static GXColor col_point = {0x40, 0x40, 0x40, 0xFF};
 static GXColor col_htr = {0x80, 0x80, 0x80, 0xFF};
 asm(".section .data; .balign 8; .text");
 
+// Mode 5, - LOAD -: DEFAULT or BACKUP 1..4; shows Complete. / Load Error!.
 static void mode_load()
 {
     JOY* joy = &Joy[0];
@@ -384,6 +398,7 @@ static void mode_load()
     }
 }
 
+// Up/down (repeat) move a menu cursor over `n` rows with wrap.
 void menu_sel(int* cur, int n)
 {
     if (Joy[0].rep & 0x00040004) {
@@ -398,6 +413,7 @@ void menu_sel(int* cur, int n)
     }
 }
 
+// Prints `n` menu rows at `pos`, the cursor row in the highlight colour.
 void menu_print(int* pos, const char** str, int n, int cur)
 {
     int x = pos[0];
@@ -415,12 +431,15 @@ void menu_print(int* pos, const char** str, int n, int cur)
 
 // Rounds a height to the 500 grid.
 #define RCK_GRID_Y(y) (t = (s8) (((y) + 62.5f) / 500.0f), (f32) t * 500.0f)
+// New points are placed 100 units above the picked ground height.
 static inline f32 rckGridY(f32 y)
 {
     int t = (s8) ((y + 62.5f) / 500.0f);
     return (f32) t * 500.0f;
 }
 
+// X: adds a point under the cursor (ground position from TutilGet3DPosXZ_All), no lines; it
+// becomes the nearest point. Up to RCK_POINT_MAX.
 void rckPointAdd()
 {
     RckWork* w = RCK;
@@ -463,6 +482,7 @@ void rckPointAdd()
     }
 }
 
+// Delete mode + A: removes the nearest point and every line to / from it (tables shift down).
 void rckPointDelete()
 {
     int del;
@@ -522,6 +542,8 @@ void rckPointDelete()
     RCK->flags &= ~3;
 }
 
+// A: catches the nearest point (flags bit 0) for dragging; a second A within 10 frames releases
+// it.
 void rckPointCatch()
 {
     Vec p;
@@ -551,6 +573,7 @@ void rckPointCatch()
     }
 }
 
+// L/R: steps the caught point through the list (-1 = none) and moves the cursor onto it.
 void rckPointChange()
 {
     Vec scr;
@@ -585,6 +608,7 @@ void rckPointChange()
     }
 }
 
+// Keeps the cursor on the caught point while the camera moves.
 void rckPointCameraMove()
 {
     Camera* cam = &pG->Cam;
@@ -602,6 +626,7 @@ void rckPointCameraMove()
     RCK->x294 = RCK->x29C = RCK->curY = (Screen.y + Screen.height) * 0.5f;
 }
 
+// Move mode: the caught point follows the cursor's ground position.
 void rckPointMove()
 {
     RckWork* w = RCK;
@@ -632,6 +657,8 @@ void rckPointMove()
     }
 }
 
+// Index of the point whose screen position is nearest the cursor (within the pick radius), -1
+// when none.
 int rckGetNearPoint(Vec* cur)
 {
     RckPoint* p = RCK->pt;
@@ -657,6 +684,7 @@ int rckGetNearPoint(Vec* cur)
     return ret;
 }
 
+// Line modes + A on a point: remembers it as the line start (flags bit 1).
 void rckPointLineStart()
 {
     if (RCK->cur != -1) {
@@ -672,6 +700,8 @@ static inline u16 rckLineLen(RckPoint* pa, RckPoint* pb)
     return (s16) (SQRTF((pa->pos.x - pb->pos.x) * (pa->pos.x - pb->pos.x) + (pa->pos.z - pb->pos.z) * (pa->pos.z - pb->pos.z)) * 0.1f);
 }
 
+// Line modes + A on a second point: toggles the connection start -> near (two-way in mode 1, one
+// way in mode 2; an existing line is removed), lengths from rckLineLen.
 void rckPointLineEnd()
 {
     RckWork* w;
@@ -744,6 +774,8 @@ void rckPointLineEnd()
         eprintf(368, 126, 7, 0, help);                                                 \
     }
 
+// Draws the points, lines and the line being drawn (3D), the 2D cursor, the caught point's info,
+// the room number and the HELP column.
 void rckMainDisp()
 {
     int c;
@@ -792,6 +824,7 @@ void rckMainDisp()
     TprimDrawCursor((Vec*) &RCK->curX, &cursor_col[c], 0.0f);
 }
 
+// Draws every point as a cursor mark: caught / current / nearest / plain colours.
 void rckDrawPoint()
 {
     RckPoint* p = RCK->pt;
@@ -830,6 +863,7 @@ void rckDrawPoint()
     }
 }
 
+// Draws every line of the table (two-way lines once, one-way lines with a direction mark).
 void rckDrawPointLine()
 {
     u8 red = 0xFF;
@@ -925,6 +959,7 @@ void rckDrawPointLine()
     }
 }
 
+// Draws the line from the line start point to the cursor while a line is being placed.
 void rckDrawPointLineNow()
 {
     u8 red = 0xFF;
@@ -966,6 +1001,7 @@ void rckDrawPointLineNow()
     }
 }
 
+// Prints the caught point's number, position and its outgoing lines.
 void rckPointInfoDisp()
 {
     RckWork* w = RCK;
@@ -986,6 +1022,7 @@ void rckPointInfoDisp()
     }
 }
 
+// Prints the caught point's next-hop row.
 void rckPointNextDisp()
 {
     int x = info_pos[0];
@@ -1000,6 +1037,8 @@ void rckPointNextDisp()
     }
 }
 
+// Refreshes every line's target / length and recomputes the whole next-hop table (Dijkstra from
+// each point).
 void rckSetRoute()
 {
     int i;
@@ -1086,6 +1125,7 @@ void rckSetNextPoint(int start)
     }
 }
 
+// Writes the packed route file (rckMakeSaveData) to slot `no` (0 .rtp, 1..4 .rtN).
 int rckFileSave(int no)
 {
     char path[256];
@@ -1096,6 +1136,8 @@ int rckFileSave(int no)
     return HDWrite(path, RCK_SAVE, size);
 }
 
+// Packs the edit tables into the file image: header ("2RTP"), points with their line offsets and
+// counts, the line records, the next-hop table; returns the byte size (0 when `size` is too small).
 int rckMakeSaveData(void* buf, u32 size)
 {
     u8* p;
@@ -1143,6 +1185,7 @@ int rckMakeSaveData(void* buf, u32 size)
     return total - (o & 0x1F);
 }
 
+// Reads slot `no` into the save buffer and expands it (rckMakeEditData); 0 on failure.
 int rckFileLoad(int no)
 {
     char path[256];
@@ -1157,6 +1200,7 @@ int rckFileLoad(int no)
     return ret;
 }
 
+// Expands a route file image into the edit tables (points, full line matrix, next-hop table).
 void rckMakeEditData(void* data)
 {
     u8* p = (u8*) data;
@@ -1194,6 +1238,7 @@ void rckMakeEditData(void* data)
     }
 }
 
+// x:\soft\room\st<n>\r<room>\r<room>.rtp (no 0) or .rt<no>.
 void rckSetFilename(char* path, int no)
 {
     if (no == 0) {
@@ -1203,6 +1248,7 @@ void rckSetFilename(char* path, int no)
     }
 }
 
+// Pad snapshot; START toggles 1P CAMERA MODE where the debug camera takes the pad.
 void rckCameraMove()
 {
     RCK->joy = Joy[0];

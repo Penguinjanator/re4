@@ -81,6 +81,11 @@ TcWork* pTc = &tcWork;
 static void (*tcRoutineTbl[6])() = {tcInit, tcMenu, tcEdit, tcLoad, tcSave, tcQuit};
 static const char* tcMainMenuName[4] = {"EDIT", "LOAD", "SAVE", "EXIT"};
 
+// Camera tool entry (debug menu 7): every frame snapshots the pads into the work, then mode 0 runs
+// tcRoutineTbl[routine] (init, menu, edit, load, save, quit) with the tool camera (pad 1 moves it,
+// pad 2 the debug camera), or in preview exports the edited data into g_pToolCamData, feeds it to
+// CamCtrl and runs the player / game camera; START opens the sub menu (mode 1). While the embedded
+// light tool runs it gets the frame instead.
 void ToolCamera()
 {
     tcInit();
@@ -132,6 +137,8 @@ void ToolCamera()
     }
 }
 
+// Empties the tool data pools: camera type table, areas (tcAdat), cuts (tcCdat), lerps (tcLdat)
+// and the per-type counts.
 void tcDataInitialize()
 {
     int i;
@@ -156,6 +163,9 @@ void tcDataInitialize()
     }
 }
 
+// Routine 0: default tool flags, the game camera saved, pools cleared, the room's live camera data
+// imported (tcDataImport of CamCtrl.data when its version is > 1), CamCtrl's current camera / area
+// remembered; on to the menu.
 static void tcInit()
 {
     if (g_pToolCamData == 0) {
@@ -184,6 +194,7 @@ static void tcInit()
     }
 }
 
+// Routine 1, Main Menu: EDIT / LOAD / SAVE / EXIT (up/down, A -> routine 2..5, B to EXIT).
 static void tcMenu()
 {
     int x = tcMenuPos[0];
@@ -233,6 +244,9 @@ static void tcMenu()
     }
 }
 
+// START sub menu: PREVIEW on/off (the game camera runs on the edited data), LIGHT TOOL (embedded
+// db_light editor), VIEW MODE (working view), AREA DETAIL, BATTLE CAM, PROJECTION
+// (perspective / ortho); left/right set, A applies, START/B close.
 void tcSubMenu()
 {
     TcMenu menu[6] = {{1, "PREVIEW    :"}, {1, "LIGHT TOOL :"}, {1, "VIEW MODE  :"},
@@ -352,6 +366,9 @@ void tcSubMenu()
     }
 }
 
+// Routine 2: editMode 0 the selection screen (tcEdit_select: camera / area lists, links,
+// attributes), 1 the editor of the selected camera cut (tcEdit_camera) or area (tcEdit_area);
+// Z + left/right step through the cuts / areas; draws the areas, cuts and rails.
 static void tcEdit()
 {
     TcWork* w = pTc;
@@ -936,6 +953,7 @@ void tcEdit_select()
     blink++;
 }
 
+// Allocates a free camera cut record (enable 0xFF = free); 0 when the 64 are used.
 TcCdat* tcCdatNew()
 {
     int i;
@@ -950,12 +968,15 @@ TcCdat* tcCdatNew()
     return 0;
 }
 
+// Frees a camera cut record.
 void tcCdatDel(TcCdat* c)
 {
     c->enable = 0xFF;
     PTC->cdatNum--;
 }
 
+// New cut `cam_no`: type 2 (TRACK), aim offset (0, 1000, 0), one key at the tool camera's
+// pos / at / roll / fovy, frames 0.
 void tcCdatInit(TcCdat* c, int cam_no)
 {
     Camera* cam = &PTC->cam;
@@ -979,6 +1000,7 @@ void tcCdatInit(TcCdat* c, int cam_no)
     }
 }
 
+// The live cut record with camera number `cam_no`, 0 when none.
 TcCdat* tcCdatPtr(int cam_no)
 {
     int i;
@@ -992,6 +1014,7 @@ TcCdat* tcCdatPtr(int cam_no)
     return 0;
 }
 
+// Allocates a free camera area record; 0 when the 96 are used.
 TcAdat* tcAdatNew()
 {
     int i;
@@ -1006,12 +1029,15 @@ TcAdat* tcAdatNew()
     return 0;
 }
 
+// Frees a camera area record.
 void tcAdatDel(TcAdat* a)
 {
     a->enable = 0xFF;
     PTC->adatNum--;
 }
 
+// New area (area_no, suffix cam_no): a 4000 x 4000 square around the tool camera target, height
+// 1000, identity matrix, default attributes.
 void tcAdatInit(TcAdat* a, int area_no, int cam_no)
 {
     Mtx m;
@@ -1054,6 +1080,7 @@ void tcAdatInit(TcAdat* a, int area_no, int cam_no)
     poly->pt[0].y = poly->pt[1].y = poly->pt[2].y = poly->pt[3].y = a->base_y;
 }
 
+// The live area record (area_no, cam_no), 0 when none.
 TcAdat* tcAdatPtr(int area_no, int cam_no)
 {
     int i;
@@ -1067,6 +1094,7 @@ TcAdat* tcAdatPtr(int area_no, int cam_no)
     return 0;
 }
 
+// Allocates a free camera lerp (link) record; 0 when the 64 are used.
 TcLdat* tcLdatNew()
 {
     int i;
@@ -1081,12 +1109,14 @@ TcLdat* tcLdatNew()
     return 0;
 }
 
+// Frees a lerp record.
 void tcLdatDel(TcLdat* l)
 {
     l->enable = 0xFF;
     PTC->ldatNum--;
 }
 
+// New lerp: from (area, cam) to (area, cam) over `frame` frames.
 void tcLdatInit(TcLdat* l, int area_from, int cam_from, int area_to, int cam_to, int frame)
 {
     l->area_from = area_from;
@@ -1096,6 +1126,7 @@ void tcLdatInit(TcLdat* l, int area_from, int cam_from, int area_to, int cam_to,
     l->frame = frame;
 }
 
+// The live lerp record for the given transition, 0 when none.
 TcLdat* tcLdatPtr(int area_from, int cam_from, int area_to, int cam_to)
 {
     int i;
@@ -1333,6 +1364,8 @@ void tcEdit_area()
 
 static f32 tcVertexStep = 200.0f;
 
+// Area editor d-pad: mode 0 moves the current vertex (or the whole polygon when curVtx == -1) on
+// the XZ plane, 1 moves the base height (base_y, every vertex's y), 2 changes the area height.
 void tcAreaMoveVertex(TcAdat* a, int mode)
 {
     Vec d = {0.0f, 0.0f, 0.0f};
@@ -1392,6 +1425,7 @@ void tcAreaMoveVertex(TcAdat* a, int mode)
     }
 }
 
+// Left/right (repeat) cycle the current vertex of the area polygon.
 void tcAreaSelectVertex(TcAdat* a)
 {
     if (TC_REP & 0x1) {
@@ -1403,6 +1437,7 @@ void tcAreaSelectVertex(TcAdat* a)
     PTC->curVtx = PTC->curVtx < 0 ? a->num - 1 : (PTC->curVtx > a->num - 1 ? 0 : PTC->curVtx);
 }
 
+// Left/right cycle the current side (for vertex insertion).
 void tcAreaSelectSide(TcAdat* a)
 {
     if (TC_REP & 0x1) {
@@ -1414,6 +1449,7 @@ void tcAreaSelectSide(TcAdat* a)
     PTC->curSide = PTC->curSide < 0 ? a->num - 1 : (PTC->curSide > a->num - 1 ? 0 : PTC->curSide);
 }
 
+// Inserts a vertex at the middle of the current side (up to 16).
 void tcAreaInsertVertex(TcAdat* a)
 {
     TcPoly* p = &a->poly;
@@ -1441,6 +1477,7 @@ void tcAreaInsertVertex(TcAdat* a)
     }
 }
 
+// Deletes the current vertex (a polygon keeps at least 3).
 void tcAreaDeleteVertex(TcAdat* a)
 {
     TcPoly* p = &a->poly;
@@ -1455,6 +1492,8 @@ void tcAreaDeleteVertex(TcAdat* a)
     }
 }
 
+// Draws every live area: its polygon at base and top height with side lines, the current one
+// highlighted, direction marks and camera numbers; the current vertex / side shown.
 void tcDrawArea()
 {
     TcPoly poly;
@@ -1597,6 +1636,10 @@ void edit_rail_point();
 void edit_frame_no();
 void tcMoveOffsetPoint();
 
+// Camera cut editor: X + left/right change the camera TYPE (FIX .. BESIDE; a change marks
+// typeChanged for the data fix-up), then the type's row menu (shoulder cameras have the qFPS
+// offset editor); key points (pos / at / roll / fovy / frame) are picked, inserted, deleted and
+// moved with the tool camera (tcCameraPullPoint) in the working view.
 void tcEdit_camera()
 {
     TcCdat* c = tcCdatPtr(PTC->cdatNo);
@@ -1954,6 +1997,7 @@ void tcEdit_camera_rail()
     }
 }
 
+// The next (dir 1) / previous live cut after camera number `no`, wrapping; 0 with no cuts.
 TcCdat* tcNextCdatPtr(s8 no, int dir)
 {
     int i;
@@ -1970,6 +2014,8 @@ TcCdat* tcNextCdatPtr(s8 no, int dir)
     return 0;
 }
 
+// The next / previous live area after (area, suffix): steps the suffix within the area first, then
+// the area number.
 TcAdat* tcNextAdatPtr(s8 area, int cam, int dir)
 {
     int suffix = next_suffixI(cam, dir);
@@ -1997,6 +2043,7 @@ TcAdat* tcNextAdatPtr(s8 area, int cam, int dir)
     return tcAdatPtr(area, suffix);
 }
 
+// Lowest suffix (cam_no) of the live areas numbered `area`, -1 when none.
 int head_suffix(s8 area)
 {
     int i;
@@ -2010,6 +2057,7 @@ int head_suffix(s8 area)
     return -1;
 }
 
+// Highest suffix of the live areas numbered `area`, -1 when none.
 int tail_suffix(s8 area)
 {
     int i;
@@ -2023,6 +2071,7 @@ int tail_suffix(s8 area)
     return -1;
 }
 
+// Next (dir 1) / previous camera number with a live cut after `cam`, -1 when none.
 int next_suffix(s8 cam, int dir)
 {
     int i;
@@ -2450,6 +2499,8 @@ void tcCameraPullPoint(TcCdat* c)
     CameraSetOrientationRoll(&PTC->cam);
 }
 
+// Left/right cycle the current key point of the cut; in the normal view the tool camera jumps to
+// it.
 void tcCameraSelectPoint(TcCdat* c)
 {
     int old = PTC->curKey;
@@ -2474,6 +2525,7 @@ void tcCameraSelectPoint(TcCdat* c)
     }
 }
 
+// Left/right cycle the current segment between key points (insert position).
 void tcCameraSelectSegment(TcCdat* c)
 {
     if (TC_REP & 0x1) {
@@ -2513,6 +2565,7 @@ void tcCameraInsertPoint(TcCdat* c)
     }
 }
 
+// Left/right choose the copy side (0 left / 1 right) for the point copy operation.
 void tcCameraSelectLR(TcCdat* c)
 {
     int x = tcMenuPos[8];
@@ -2586,6 +2639,7 @@ void tcCameraCopyPoint(TcCdat* c)
     }
 }
 
+// Deletes the current key point (pos / at / roll / fovy / frame shift down; at least 2 keys stay).
 void tcCameraDeletePoint(TcCdat* c)
 {
     int i;
@@ -2799,6 +2853,8 @@ static void tcLoad()
     }
 }
 
+// Routine 4, --- SAVE FILE ---: FILE #0..#2 (r<room>NN.cam) or CORE (core00.cam), YES/NO, server
+// (y:) or local (x:); exports the pools (tcDataExport) and writes the file; FAILED!! on error.
 static void tcSave()
 {
     TcMenu menu[4] = {{1, "FILE #0:"}, {1, "FILE #1:"}, {1, "FILE #2:"}, {1, "CORE   :"}};
@@ -2902,6 +2958,8 @@ static void tcSave()
     }
 }
 
+// Routine 5: clears the tool Debug_flg bits, restores the key type and the saved game camera, and
+// ends the task.
 static void tcQuit()
 {
     if (*(u16*) &PTC->cdatNum != 0) {
@@ -2926,6 +2984,9 @@ static void tcQuit()
 static f32 tcDollySpeed = 5.0f;
 static f32 tcDollyDummy = 0.0f;
 
+// Tool camera control (pad 1): L/R triggers dolly along the view axis, sub stick pans, main stick
+// orbits the camera around the target (or the target around the camera when distTarget), Z
+// modifies; the tool camera is the game camera while the tool runs.
 void tcToolCameraMove(Camera* cam)
 {
     Vec d = {0.0f, 0.0f, 0.0f};
@@ -2989,6 +3050,7 @@ void tcToolCameraMove(Camera* cam)
     drawGround(0);
 }
 
+// Preview switch: the game camera / player run on the edited data (Debug_flg[0] bit 28 cleared).
 void tcPreviewOnOff(int on)
 {
     PTC->preview = on;
@@ -3000,6 +3062,7 @@ void tcPreviewOnOff(int on)
     }
 }
 
+// The camera number being edited (db_light asks for its light cut).
 int tcCurrentCameraNo()
 {
     return PTC->cdatNo;

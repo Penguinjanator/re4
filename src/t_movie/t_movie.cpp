@@ -70,6 +70,8 @@ static void (*movie_test_tbl[4])(MovieTestWork*) = {movie_test_init, movie_test_
 cString movie_name;  // global in the original (relocation fields hold the addend only)
 static MovieFile movie_file[1024];
 
+// REL entry of t_movie: runs the static constructors, then the DOL's selected test (MovieTest /
+// SoundTest / the tool entries) through ToolsTask.
 extern "C" void _prolog()
 {
     void (**p)(void);
@@ -94,6 +96,7 @@ extern "C" void _prolog()
     }
 }
 
+// REL exit: runs the static destructors.
 extern "C" void _epilog()
 {
     void (**p)(void);
@@ -104,11 +107,14 @@ extern "C" void _epilog()
     OSReport("epilog...\n");
 }
 
+// Trap for calls through unresolved imports: reports and HALTs.
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");
 }
 
+// Movie test entry: allocates the work and runs movie_test_tbl[routine] (init, main, exit) every
+// frame until the exit routine sets `quit`.
 void MovieTest()
 {
     MovieTestWork* w;
@@ -129,6 +135,7 @@ void MovieTest()
     TaskExit();
 }
 
+// Saves the pause flag / debug mode and default tool flags; on to the file list.
 static void movie_test_init(MovieTestWork* w)
 {
     int on = 1;
@@ -141,6 +148,9 @@ static void movie_test_init(MovieTestWork* w)
     TaskSuspend(0);
 }
 
+// Movie test: step 0 lists the disc's MOVIE/*.H4M files (file_search) in a 4-column grid, d-pad
+// moves, A plays, B exits; step 1 starts the Sofdec player on the file; step 2 runs it until it
+// ends (or Z stops it) and returns to the list.
 static void movie_test_main(MovieTestWork* w)
 {
     char path[0x80];
@@ -220,6 +230,7 @@ static void movie_test_main(MovieTestWork* w)
     }
 }
 
+// Restores the flags / debug mode, frees the work, sets `quit`.
 static void movie_test_exit(MovieTestWork* w)
 {
     if (w->flag) {
@@ -271,6 +282,7 @@ int file_search(const char* dir, const char* ext)
 // object behind movie_file[]; an unused inline reproduces both (its body is a guess).
 static char snd_test_dir[16];
 
+// Never called: the sound test's se / bgm directory listings (strings kept).
 static inline int snd_test_file_search(int type)
 {
     if (type == 0) {
@@ -279,6 +291,8 @@ static inline int snd_test_file_search(int type)
     return file_search("bgm", snd_test_dir);
 }
 
+// Sound test entry: suspends the game task and runs Snd_test_mode every frame with a copy of
+// pad 1's buttons in Snd_test_work; ends when it returns 1 (START / Z).
 void SoundTest()
 {
     TaskSuspend(0);

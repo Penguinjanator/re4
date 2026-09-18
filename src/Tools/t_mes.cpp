@@ -66,6 +66,8 @@ static char* menuTbl[] = {
     "-MENU-", "MESSAGE", "LOCATE", "COLOR", "TYPE", "LANGUAGE", "LOAD", "QUIT", "\\",
 };
 
+// Message tool entry (debug menu 27): runs the cMessageDebug loop with the game task suspended,
+// clears Debug_flg[0] bit 31 and ends the task.
 void ToolMes()
 {
     cMessageDebug dbg;
@@ -78,6 +80,8 @@ void ToolMes()
     TaskExit();
 }
 
+// Main loop by r_no_0: 0 menu, 1 message, 2 color, 3 locate, 4 type, 5 language, 6 data (load),
+// 7 quit (then leave); the sub stick moves the open menu.
 void cMessageDebug::move()
 {
     int loop = 1;
@@ -119,6 +123,7 @@ void cMessageDebug::move()
     } while (loop);
 }
 
+// English, ROOM message type, message 0 at (30, 360), a 2 MB buffer for loading.
 void cMessageDebug::init()
 {
     MesData.lang = 0;
@@ -131,6 +136,7 @@ void cMessageDebug::init()
     buf = new u8[0x200000];
 }
 
+// -MENU-: MESSAGE / LOCATE / COLOR / TYPE / LANGUAGE / LOAD / QUIT (B = QUIT) -> r_no_0.
 void cMessageDebug::menu()
 {
     int ret;
@@ -179,6 +185,8 @@ void cMessageDebug::menu()
     }
 }
 
+// MESSAGE: up/down pick the message number of the current set, A shows it at (m_x, m_y) in slot 0,
+// B deletes it and returns to the menu.
 void cMessageDebug::message()
 {
     MessageControl* pm = &cMes;
@@ -217,6 +225,8 @@ void cMessageDebug::message()
 static u8 colIdx = 0;
 static u8 colCur = 0;
 
+// COLOR: edits the message colour table entry (WHITE / RED / GREEN / BLUE / ORANGE / BLACK) R/G/B/A
+// bytes with the d-pad; B back.
 void cMessageDebug::color()
 {
     const char* names[6] = {"WHITE", "RED", "GREEN", "BLUE", "ORANGE", "BLACK"};
@@ -291,6 +301,7 @@ void cMessageDebug::color()
     eprintf(40, 280, colCur == 4 ? 4 : 0, 0, "A: %02x", a);
 }
 
+// LOCATE: d-pad moves the message origin (m_x, m_y); B back.
 void cMessageDebug::locate()
 {
     JOY* joy = &Joy[0];
@@ -316,6 +327,7 @@ void cMessageDebug::locate()
 
 static char* typeTbl[] = {"-TYPE-", " CORE", " ROOM", " FREE", "\\"};
 
+// -TYPE-: CORE / ROOM / FREE picks the message data set (m_type 1 / 2 / 4, count from MesData).
 void cMessageDebug::type()
 {
     int ret;
@@ -359,6 +371,7 @@ void cMessageDebug::type()
 static char* langTbl[] = {"-LANGUAGE-", " ENGLISH", "\\"};
 static int langBak = 0;  // unreferenced (.data 0x21E4)
 
+// -LANGUAGE-: ENGLISH sets MesData.lang.
 void cMessageDebug::language()
 {
     int ret;
@@ -389,17 +402,20 @@ void cMessageDebug::language()
     }
 }
 
+// LOAD: not implemented (back to the menu).
 void cMessageDebug::data()
 {
     r_no_0 = 0;
 }
 
+// QUIT: ends the loop (r_no_0 past the table).
 void cMessageDebug::quit()
 {
     delete buf;
     r_no_0 = 8;
 }
 
+// Menu over the "\\"-terminated string table `t` (t[0] = header) at text position (px, py).
 cIdToolMenu::cIdToolMenu(char** t, int px, int py)
 {
     int i;
@@ -425,6 +441,8 @@ cIdToolMenu::cIdToolMenu(char** t, int px, int py)
     }
 }
 
+// Draws the menu; up/down move the cursor (wrap), A returns the 1-based entry, B jumps to the last
+// entry (returns it when already there); else 0.
 int cIdToolMenu::ToolMenuMove(int flag)
 {
     int ret = -1;
@@ -465,6 +483,7 @@ int cIdToolMenu::ToolMenuMove(int flag)
     return ret;
 }
 
+// Moves the menu by (dx, dy) pixels, kept on screen when `clamp`.
 void cIdToolMenu::ToolMenuLocate(int dx, int dy, int clamp)
 {
     m_x += dx;

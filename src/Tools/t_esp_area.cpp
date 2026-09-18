@@ -36,6 +36,7 @@ struct ESP_AREA {
 
 static ESP_AREA esp_area_work[ESP_AREA_MAX];
 
+// cDbgToolMain hook: slot in use (be_flag bit 0).
 int IsWorkAlive(ESP_AREA* w)
 {
     if (w->be_flag & 1) {
@@ -44,6 +45,7 @@ int IsWorkAlive(ESP_AREA* w)
     return 0;
 }
 
+// cDbgToolMain hook: sets / clears the in-use bit.
 void SetWorkAlive(ESP_AREA* w, int alive)
 {
     if (alive == 1) {
@@ -53,16 +55,19 @@ void SetWorkAlive(ESP_AREA* w, int alive)
     }
 }
 
+// cDbgToolMain hook: slot number.
 int GetWorkNo(ESP_AREA* w)
 {
     return w->no;
 }
 
+// cDbgToolMain hook: slot number.
 void SetWorkNo(ESP_AREA* w, int no)
 {
     w->no = no;
 }
 
+// New slot: a 7000 x 5000 square area at the player's position.
 void InitWork(ESP_AREA* w, int no)
 {
     memclr_asm(w, sizeof(ESP_AREA));
@@ -70,6 +75,8 @@ void InitWork(ESP_AREA* w, int no)
     AreaDataInit(&w->area, PlPos(), 1, 7000.0f, 5000.0f);
 }
 
+// Position column pressed: runs the shared AreaDataEdit editor on the slot's area (info / help
+// panels); returns 0 on B (column done).
 int PosExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 {
     AreaData* a = &w->area;
@@ -83,6 +90,7 @@ int PosExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     }
 }
 
+// Position column text: area centre (x y z in metres) and height.
 void PosUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 {
     char buf[64];
@@ -98,6 +106,8 @@ void PosUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     DbgButtonSetName(b, buf);
 }
 
+// Data column pressed: rows AREA NO (left/right +-1, x10 with A) and IN ROOM (toggle, flags34
+// bit 0); B done.
 int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 {
     static int cursor = 0;
@@ -156,6 +166,7 @@ int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     }
 }
 
+// Data column text: the area number digits and the in-room mark.
 void AreaNoUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 {
     static char digits[] = "0123456789";
@@ -174,6 +185,7 @@ void AreaNoUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     DbgButtonSetName(b, buf);
 }
 
+// OPTION window: FOG on/off (Disp_flg 0x4000); B closes.
 void OptionExec()
 {
     static int cursor = 0;
@@ -217,6 +229,10 @@ void OptionExec()
 void tEspAreaInit();
 void tEspAreaExit();
 
+// Effect area editor entry (debug menu 32): builds the cDbgToolMain windows (menu, file windows on
+// X:\Soft\Room\st<n>\r<room>\ *.ear, edit table with Position / Data columns), loads r<room>00.ear,
+// then loops: START toggles the debug camera, otherwise the tool runs and every area is drawn
+// with its number (in-room ones highlighted); exits when the tool quits.
 void ToolEspArea()
 {
     u8 wait = 0;
@@ -323,6 +339,8 @@ void ToolEspArea()
     TaskExit();
 }
 
+// Pauses the game and turns on the debug displays (Stop / Disp flag bits, Debug_flg[0] bit 28),
+// camera target type 4, all blocks visible.
 void tEspAreaInit()
 {
     BitOn(pG->Stop_flg, 0x20000000);
@@ -342,6 +360,7 @@ void tEspAreaInit()
     Block.dispAllBlock(1);
 }
 
+// Undoes tEspAreaInit (fog display off too).
 void tEspAreaExit()
 {
     BitOff(pG->Stop_flg, 0x20000000);

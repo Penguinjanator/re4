@@ -1,5 +1,9 @@
-// Sscrn/ss_cap: attache case (weapon case) selection screen of the sub screen DLL
-// (D:/Bio4/Prog/ss_cap.cpp).
+// Sscrn/ss_cap: the bottle cap collection screen of the sub screen DLL (D:/Bio4/Prog/ss_cap.cpp):
+// the 4 x 6 grid of shooting gallery prize caps (items 0xDC..0xF3, cap_id_tbl), entered from the
+// key items screen (SsItemMain link 4) or directly with SS_OPEN_CAP when a cap was just won.
+// Data: SS/<lang>/ss_cap.dat (id textures, IdSub table 0x14, cap names). Widgets: SsCapInit loads
+// the archive, SsCapMain runs CapSelect (grid cursor) and SsItemExamine (turntable view with the
+// cap's voice line on X).
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -36,6 +40,8 @@ u16 cap_id_tbl[24] = {
 
 int cap_read_req;
 
+// Cap screen loader: starts at the fade-out, or straight at the data read (state 2) when the screen
+// was opened as SS_OPEN_CAP (0x100: the shooting gallery shows a freshly won cap).
 void SsCapInit::init(SUB_SCREEN* wk)
 {
     if (wk->type == 0x100) {
@@ -45,6 +51,9 @@ void SsCapInit::init(SUB_SCREEN* wk)
     }
 }
 
+// Loads the bottle cap screen: state 0/1 fade out, 2 hide the HUD, read SS/<lang>/ss_cap.dat over the
+// puzzle archive slot (pPzzl) and drop the previous screen's ids/models/lights, 3 wait for the read
+// (the archive becomes pExam), 4 fade in and transit to SsCapMain.
 void SsCapInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -90,6 +99,9 @@ void SsCapInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Builds the cap screen: CapSelect <-> SsItemExamine widget pair, the archive's id textures, id
+// table (IdSub group 0x14: 24 grid slots + cursor 0xFE), lights and cap names (MesData 2); allocates
+// the 3-byte cursor {row, column, index}. An SS_OPEN_CAP open starts in the examine widget.
 void SsCapMain::init(SUB_SCREEN* wk)
 {
     sel = new CapSelect;
@@ -114,6 +126,8 @@ void SsCapMain::init(SUB_SCREEN* wk)
     }
 }
 
+// Runs the current child widget; when CapSelect reports state 1 (B) it returns to the item screen
+// (link 0), state 2 (Y) exits the sub screen (link 1); close_flag bit 19 marks the cap screen.
 void SsCapMain::move(SUB_SCREEN* wk)
 {
     cMes.setLayout(0, LAYOUT_SUBSCRN);
@@ -140,6 +154,8 @@ void SsCapMain::move(SUB_SCREEN* wk)
 static void sscrn_cap_out_init(SUB_SCREEN* wk);
 static int sscrn_cap_out(SUB_SCREEN* wk);
 
+// Leaving the cap screen: restores the common lights (pCmmn 0x12), frees the cursor and the child
+// widgets and installs sscrn_cap_out as the exit routine (scrn_out_func).
 void SsCapMain::quit(SUB_SCREEN* wk)
 {
     sscrnLightClear(wk);
@@ -155,11 +171,14 @@ void SsCapMain::quit(SUB_SCREEN* wk)
     wk->scrn_out_func = sscrn_cap_out;
 }
 
+// Starts the 7-frame fade-out of the cap screen exit.
 static void sscrn_cap_out_init(SUB_SCREEN* wk)
 {
     FadeSetW(0, 7, 0, 0);
 }
 
+// Exit routine (scrn_out_func) of the cap screen: waits for the fade, restores the HUD ids and life
+// meter, starts the fade-in; returns 1 when done.
 static int sscrn_cap_out(SUB_SCREEN* wk)
 {
     int ret;
@@ -177,6 +196,8 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
     return ret;
 }
 
+// Draws the 4 x 6 bottle cap grid: slot i shows texture cap_id_tbl[i] + 0x25 when the cap item is
+// owned, else hidden; the cursor unit (0xFE) is moved onto the selected slot.
 void dispCapList(SUB_SCREEN* wk)
 {
     s8* sel = wk->pCapCursor;
@@ -199,10 +220,14 @@ void dispCapList(SUB_SCREEN* wk)
     u->scr = c->scr;
 }
 
+// Cap grid cursor: nothing to set up (the cursor lives in wk->pCapCursor).
 void CapSelect::init(SUB_SCREEN* wk)
 {
 }
 
+// Cap grid input: Y (state 2) leaves the sub screen, B (state 1) goes back, A examines the selected
+// cap if owned (SsItemExamine on MapMgr work 2), X (debug) gives the cap; up/down and left/right
+// (repeat) move the row (0..3) and column (0..5), sel[2] = row * 6 + column.
 void CapSelect::move(SUB_SCREEN* wk)
 {
     s8* sel = wk->pCapCursor;
@@ -256,6 +281,7 @@ void CapSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Nothing to release.
 void CapSelect::quit(SUB_SCREEN* wk)
 {
 }

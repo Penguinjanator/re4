@@ -1,3 +1,8 @@
+// t_movie REL: the SOUND TABLE EDITOR (t_snd_vol.cpp; the file name is not in the binary). Edits a
+// room's sound table file (snd/r<room>.stb = SndRoomHdr: the two AUX reverb parameter sets, 32 SET
+// entries choosing a volume / pitch / filter distance curve per stereo and DPL2 output, and the 32
+// curves of each kind as up to 100 (distance, value) points). Modes: menu, table list (copy /
+// delete), the curve editor on a graph, reverb parameters, SET table, host load / save.
 #include "types.h"
 #include "global.h"
 #include "main_mem.h"
@@ -115,6 +120,8 @@ static void file_save();
 static void file_load();
 void ToolSndVolEdit();
 
+// Expands a room sound table image (SndRoomHdr: reverb parameters, per-set curve selection, the
+// volume / pitch / filter distance curves) into the editable tables.
 void getInfoData(SndRoomHdr* hdr)
 {
     int i;
@@ -151,6 +158,8 @@ void getInfoData(SndRoomHdr* hdr)
     }
 }
 
+// Tool start: work on the Debug heap, default flags, the room's live tables (Snd room header)
+// expanded; starts with LOAD.
 void init()
 {
     u8 i;
@@ -171,6 +180,7 @@ void init()
     work->x6 = 0;
 }
 
+// Frees the work, restores the flags, ends the task.
 void exit()
 {
     TutilQuitDefault();
@@ -178,6 +188,8 @@ void exit()
     TaskExit();
 }
 
+// Mode 0 menu: REVERB PARAMETER EDIT, VOLUME / PITCH / FILTER TABLE EDIT (tblType 0..2 -> the
+// table list), SET TABLE EDIT, LOAD, SAVE, EXIT.
 static void edit_menu()
 {
     s8 c;
@@ -244,6 +256,7 @@ static void edit_menu()
     work->menuCur = work->menuCur < 0 ? 7 : work->menuCur > 7 ? 0 : work->menuCur;
 }
 
+// One curve segment of a table miniature in the list (type = table kind for the value scale).
 void ListLineDraw(TblEnt* e, u32 col, int x, int y, int type)
 {
     S16Vec pt[2];
@@ -311,6 +324,7 @@ void ListLineDraw(TblEnt* e, u32 col, int x, int y, int type)
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 2);
 }
 
+// Miniature of table `no` of kind `type` at (x, y).
 void ListDraw(s16 x, s16 y, u32 col, s8 no, u8 type)
 {
     S16Vec pt[4];
@@ -383,6 +397,7 @@ void ListDraw(s16 x, s16 y, u32 col, s8 no, u8 type)
     }
 }
 
+// D-pad moves the table cursor over the 32 tables (8 per row).
 void select_cur_move()
 {
     if (Joy[0].rep & 0x80008) {
@@ -405,6 +420,7 @@ void select_cur_move()
     work->cur = work->cur < 0 ? 0 : work->cur > 31 ? 31 : work->cur;
 }
 
+// Table list: A edits the table (backup taken), B back to the menu, Z delete, Y copy.
 static void data_select_main()
 {
     if (Joy[0].trg & 0x100) {
@@ -435,6 +451,7 @@ static void data_select_main()
     select_cur_move();
 }
 
+// DATA COPY: pick the source, then the destination, "DATA COPY OK?" YES/NO, copies the table.
 static void data_copy()
 {
     int move = 1;
@@ -503,6 +520,7 @@ static void data_copy()
     }
 }
 
+// DATA DELETE: "[DATA n] DELETE OK?" YES/NO, empties the table.
 static void data_delete()
 {
     switch (work->step) {
@@ -553,6 +571,7 @@ static char* select_title[3] = {"EDIT VOLUME TABLE DATA SELECT", "EDIT PITCH TAB
                                 "EDIT FILTER TABLE DATA SELECT"};
 static void (*select_func[3])() = {data_select_main, data_delete, data_copy};
 
+// Mode 1: the table list screen (sub 0 select, 1 copy, 2 delete) with the miniatures.
 static void data_select()
 {
     int i;
@@ -581,6 +600,9 @@ static void data_select()
 static char* edit_title[3] = {"[VOLUME TABLE EDIT]", "[PITCH TABLE EDIT]", "[FILTER TABLE EDIT]"};
 static s16 val_range[3][2] = {{0, 0x7F}, {-24, 24}, {0, 0x17}};
 
+// Mode 2, the curve editor of one table: L/R pick a point, A sets / adds a user point at the
+// cursor (dist 0..100, value by kind), Z deletes it, Y changes the value scale, X + left/right
+// move the visible distance window, B back (edit mode off / return).
 static void data_edit()
 {
     EditTbl* tbl = &work->curTbl[work->cur];
@@ -743,6 +765,7 @@ static void data_edit()
 static u8 blink_r = 0;
 static s8 blink_dir = 1;
 
+// A point mark at (dist, val) on the edit graph; kind picks the mark shape.
 void markDraw(s16 val, u32 col, int kind, f32 dist)
 {
     S16Vec pt[4];
@@ -822,6 +845,7 @@ void markDraw(s16 val, u32 col, int kind, f32 dist)
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
 }
 
+// The tool's screen frame.
 void mainFrameDisp()
 {
     S16Vec pt[3];
@@ -850,6 +874,7 @@ void mainFrameDisp()
     TprimDrawPolyFn_s16(pt, &col, 3);
 }
 
+// One curve segment on the edit graph.
 void editDataLineDraw(TblEnt* e, u32 col)
 {
     S16Vec pt[2];
@@ -912,6 +937,7 @@ void editDataLineDraw(TblEnt* e, u32 col)
     }
 }
 
+// Draws the table's curve on the edit graph with its points (user points marked).
 void editDataDraw(EditTbl* tbl)
 {
     s16 i;
@@ -943,6 +969,8 @@ static char* filter_name[24] = {"16000Hz", "12800Hz", "10240Hz", " 8000Hz", " 64
                                 " 2560Hz", " 2000Hz", " 1600Hz", " 1280Hz", " 1000Hz", "  800Hz", "  640Hz", "  500Hz",
                                 "  400Hz", "  320Hz", "  256Hz", "  200Hz", "  160Hz", "  128Hz", "  100Hz", "   80Hz"};
 
+// Edit graph frame: distance axis from `left`, value axis by table kind, the cursor point's
+// values.
 void editScreenDisp()
 {
     EditTbl* tbl = &work->curTbl[work->cur];
@@ -1125,6 +1153,8 @@ static char* efx_help[12][2] = {
     { int v = p->Aux_enemy; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->Aux_enemy = r; } \
     { int v = p->Aux_weapon; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->Aux_weapon = r; }
 
+// Mode 3, [REVERB PARAMETER EDIT]: L/R switch the stereo / DPL2 set, up/down pick the parameter,
+// left/right change it; B back.
 static void edit_reverb_param()
 {
     S16Vec pt[4];
@@ -1272,6 +1302,8 @@ static void edit_reverb_param()
     eprintf(0x58, y, 0, 0, "%s", efx_help[work->efxCur[work->x29]][work->x29]);
 }
 
+// Draws a SET's table selection (vol / pitch / filter for stereo and DPL2) with the source /
+// destination labels during a copy.
 void combine_tbl_disp(CombSel* sel)
 {
     int i;
@@ -1331,6 +1363,7 @@ void combine_tbl_disp(CombSel* sel)
     }
 }
 
+// SET list: A edits the set, Y copy, Z delete, B back to the menu.
 static void combine_tbl_select()
 {
     if (Joy[0].rep2 & 0x80008) {
@@ -1380,6 +1413,7 @@ static void combine_tbl_select()
     eprintf(0x15E, 0x18C, 0, 0, "B ... RETURN MENU");
 }
 
+// SET edit: L/R pick the column (stereo / DPL2), up/down the row, left/right the table number.
 static void combine_tbl_edit()
 {
     CombSel* sel = &work->sel[work->cur];
@@ -1438,6 +1472,7 @@ static void combine_tbl_edit()
     eprintf(0x12E, 0x18C, 0, 0, "B ..... CANCEL");
 }
 
+// SET copy: source -> destination with YES/NO.
 static void combine_tbl_copy()
 {
     eprintf(0xF0, 0x1A, 0, 0, "DATA COPY");
@@ -1502,6 +1537,7 @@ static void combine_tbl_copy()
     }
 }
 
+// SET delete with YES/NO.
 static void combine_tbl_delete()
 {
     switch (work->step) {
@@ -1543,6 +1579,7 @@ static void combine_tbl_delete()
 
 static void (*combine_func[4])() = {combine_tbl_select, combine_tbl_edit, combine_tbl_copy, combine_tbl_delete};
 
+// Mode 4: the SET TABLE EDIT screen (sub 0 select, 1 edit, 2 copy, 3 delete).
 static void edit_combine_tbl()
 {
     int i;
@@ -1566,6 +1603,8 @@ static void edit_combine_tbl()
     combine_tbl_disp(&work->sel[work->cur]);
 }
 
+// Mode 6, [DATA SAVE]: LOCAL (d:/bio4/room/snd/r<room>.stb) or SERVER (x:/soft/room/snd/...);
+// packs the reverb parameters, set selections and curves into a SndRoomHdr image and writes it.
 static void file_save()
 {
     u8* p;
@@ -1751,6 +1790,7 @@ static void file_save()
     }
 }
 
+// Mode 5, [DATA LOAD]: LOCAL / SERVER, stage / room; reads the .stb and expands it (getInfoData).
 static void file_load()
 {
     int ret;
@@ -1893,6 +1933,8 @@ static void file_load()
 static void (*mode_func[8])() = {edit_menu, data_select, data_edit, edit_reverb_param, edit_combine_tbl,
                                  file_load, file_save, NULL};
 
+// SOUND TABLE EDITOR entry: init, then every frame the frame, mode_func[mode] (menu, table select,
+// curve edit, reverb, set table, load, save).
 void ToolSndVolEdit()
 {
     init();

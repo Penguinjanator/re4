@@ -27,6 +27,7 @@
 // STRIP_UNUSED).
 template <> Widget<SUB_SCREEN>::~Widget();
 
+// Never called; exists only to reference the Widget destructor (see the note above).
 static void ssTermWidgetKill(Widget<SUB_SCREEN>* w)
 {
     w->Widget<SUB_SCREEN>::~Widget();  // COMPILER-DIFF: candidate #8
@@ -80,6 +81,7 @@ void termModelAlloc(SUB_SCREEN* wk);
 void terminalCameraInit(SUB_SCREEN* wk, Camera* cam);
 }
 
+// Packs 0..1 float components into an ARGB8 colour word (debug drawing helper).
 u32 MakeCol(f32 r, f32 g, f32 b, f32 a)
 {
     u32 col = 0;
@@ -91,6 +93,7 @@ u32 MakeCol(f32 r, f32 g, f32 b, f32 a)
     return col;
 }
 
+// Filled screen-space rectangle in a 0..1 float colour (the debug button window's cursor box).
 void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
 {
     Vec pos;
@@ -167,6 +170,7 @@ int cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy)
     return 1;
 }
 
+// Finds the button at grid cell (cx, cy); 1 and *out when found.
 int cDbgWindow::FindButton(int cx, int cy, cDbgButton** out)
 {
     u32 i;
@@ -182,6 +186,8 @@ int cDbgWindow::FindButton(int cx, int cy, cDbgButton** out)
     return 0;
 }
 
+// Debug button window input (pad 1 d-pad/stick, repeat): moves the cursor over the button grid with
+// wrap-around, runs every button's update callback; returns 0 on B (close the window).
 int cDbgWindow::LocalUpdate()
 {
     int ret = 1;
@@ -231,6 +237,7 @@ static inline int dbgWindowRow(int y)
     return y + 1;
 }
 
+// Draws the buttons' labels, the blinking ">" before the current one and its highlight box.
 void cDbgWindow::LocalDisp()
 {
     u32 i;
@@ -290,6 +297,8 @@ public:
     void dir(char* d, char* f);
 };
 
+// Host file list start: default directory (\bio4\data\*.*) and a first read (dir() reads two
+// uninitialised locals here, as the original does).
 void cFileList::init()
 {
     char* d;
@@ -304,6 +313,8 @@ void cFileList::init()
     update();
 }
 
+// Scrolling list display at (x, y) with `rows` visible lines: up/down (fast repeat) move the
+// cursor, stick up/down half a page; returns the selected name.
 char* cFileList::disp(int x, int y, int rows)
 {
     JOY* joy = &Joy[0];
@@ -347,6 +358,8 @@ char* cFileList::disp(int x, int y, int rows)
     return list[cursor];
 }
 
+// Re-reads d:\bio4\room\filelist.txt from the host, converts the backslashes, splits the CRLF
+// lines into `list` (stripping `filter` from each). 0 when the file is missing.
 int cFileList::update()
 {
     char* p;
@@ -389,6 +402,8 @@ int cFileList::update()
     return 1;
 }
 
+// Sets the search pattern `d` and name prefix `f` (copied, backslashes converted); d == 0 gives the
+// defaults \bio4\data\*.* and /bio4/data/.
 void cFileList::dir(char* d, char* f)
 {
     if (pattern) {
@@ -436,6 +451,9 @@ static inline SsArc* opArc(SUB_SCREEN* wk)
 }
 #define OP_ARC_PTR(wk, no) SS_ARC_PTR(opArc(wk), no)
 
+// Points the 24 op entries (term_ope_tbl) at their message and sequence blocks inside the loaded
+// op/opNN.das archive: ops 0..12 use sub-files 4..16 / 17..29, 13..18 and 19..23 (the later
+// stages' disc layout) reuse lower slots.
 void SsTermMain::OpeMesTblInit(SUB_SCREEN* wk)
 {
     term_ope_tbl[0].mes = OP_ARC_PTR(wk, 4);
@@ -488,11 +506,13 @@ void SsTermMain::OpeMesTblInit(SUB_SCREEN* wk)
     term_ope_tbl[23].seq = OP_ARC_PTR(wk, 13);
 }
 
+// Starts the op selected by the DOL (OpeMdtSetInit = the pending call number).
 void SsTermMain::OpeMdtSet()
 {
     OpeMdtSetNo(OpeMdtSetInit());
 }
 
+// Starts op `no` (0..23) of term_ope_tbl: its voice stream number, sequence and messages.
 void SsTermMain::OpeMdtSetNo(int no)
 {
     if (no > 0x17) {
@@ -502,6 +522,8 @@ void SsTermMain::OpeMdtSetNo(int no)
     }
 }
 
+// Resets the op player (TermOpeWork) onto a voice stream number, a TermSeq table and a message
+// block (MesData slot 2): sequence index / counters to 0, stream not started.
 void SsTermMain::OpeMdtSetSub(int mdtNo, void* seq, void* mes)
 {
     ope.mdtNo = mdtNo;
@@ -515,6 +537,10 @@ void SsTermMain::OpeMdtSetSub(int mdtNo, void* seq, void* mes)
     ope.str = 0;
 }
 
+// Runs the op one frame: starts the voice stream (SndStrReq mdtNo) and waits for it to be ready,
+// then plays the talking motions and shows the frame units; fires every TermSeq entry whose time
+// has come (OpeSeqMove). B (Key bit 18) skips: the stream stops and A/B step the remaining entries
+// by hand. Returns 1 when the sequence ended (arg == -1 entry).
 int SsTermMain::OpeMesMove()
 {
     if (ope.seqCnt == 0 && ope.str == 0) {
@@ -571,6 +597,8 @@ int SsTermMain::OpeMesMove()
     return 0;
 }
 
+// Executes one sequence entry: arg -1 ends the op (stream stopped, messages deleted; returns 0),
+// otherwise shows message mesNo for `arg` frames and advances seqIdx.
 int SsTermMain::OpeSeqMove(TermSeq* s)
 {
     TermSub* w = &sub;
@@ -591,6 +619,9 @@ int SsTermMain::OpeSeqMove(TermSeq* s)
     return 1;
 }
 
+// Shows subtitle message `no` at the frame unit (IdSub 0xFE/0x10) with the operator layout,
+// replacing every message; no == -1 just waits for the current message to end. `wait` frames
+// until OpeMesClear hides it (Disp_flg bit 11).
 void SsTermMain::OpeMesSet(int no, int wait)
 {
     pG->Disp_flg &= ~0x800;
@@ -612,6 +643,7 @@ void SsTermMain::OpeMesSet(int no, int wait)
     sub.count++;
 }
 
+// Counts the current subtitle's display time down; sets Disp_flg bit 11 (message hidden) at 0.
 void SsTermMain::OpeMesClear()
 {
     if (ope.mesWait > 0) {
@@ -624,6 +656,7 @@ void SsTermMain::OpeMesClear()
     sub.count++;
 }
 
+// Stops the op's voice stream (SndStrReq command 8) if one is playing.
 void SsTermMain::OpeSndStrStop()
 {
     if (ope.str) {
@@ -632,6 +665,7 @@ void SsTermMain::OpeSndStrStop()
     }
 }
 
+// File name of op `no`'s partner data: SS/cmn/ss_oc<call>.dat (101..112 chapter 1, 201..206, 301..305).
 void partnerDataName(char* name, int no)
 {
     const char* tbl[24] = {
@@ -641,6 +675,8 @@ void partnerDataName(char* name, int no)
     sprintf(name, "SS/cmn/ss_oc%s.dat", tbl[no]);
 }
 
+// Which model talks in op `no`: 0 Hunnigan (ops 0..13), 1 (14..18), 2 (19..22), 3 (23); passed to
+// hunniganModelInit.
 int partnerType(int no)
 {
     int tbl[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3};
@@ -662,6 +698,8 @@ void termMotionSet(void* data, int no)
     ShapeSet(GetModelInfoAddr(m->pModelInfo, 3), 0, SS_ARC_PTR(d, 15), 0xA);
 }
 
+// Sets the player's (pTerm sub-file 14) and the partner's (partner data sub-file 4) idle/cancel
+// motion `no` with blending; init (no 0) and after the call was skipped (no 10).
 void termMotionCancel(void* data, int no)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -676,11 +714,15 @@ void termMotionCancel(void* data, int no)
 
 static cFileList term_file_list;
 
+// Codec screen loader: starts at the data read (there is no previous screen to fade).
 void SsTermInit::init(SUB_SCREEN* wk)
 {
     state = 2;
 }
 
+// Loads the codec screen with blocking reads (mode 5): state 2 drops the HUD/models/lights and
+// reads SS/<lang>/ss_term.dat (-> pTerm, at the puzzle area offset), 4 op/op<stage>.das (-> pOpData),
+// 5 the partner data of wk->opeMdtNo (-> pPartner), 6 fade in and transit to SsTermMain.
 void SsTermInit::move(SUB_SCREEN* wk)
 {
     // .bss order: the read request is the unit's first .bss word, before the file-scope
@@ -746,6 +788,8 @@ template <> inline Widget<SUB_SCREEN>::~Widget()  // COMPILER-DIFF: candidate #8
     Mem_free(link);
 }
 
+// Like generalModelAlloc with the codec screen's sizes: 0x10 model infos / 0x180 parts / 0x10 MapMgr
+// works (the two character models are large).
 void termModelAlloc(SUB_SCREEN* wk)
 {
     int i;
@@ -764,6 +808,7 @@ void termModelAlloc(SUB_SCREEN* wk)
     }
 }
 
+// Codec screen camera: eye at (0, 0, 2000) looking at the origin, 50 degree fov.
 void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     const f32 zero = 0.0f;
@@ -804,6 +849,10 @@ static Vec term_pl_pos = {0.0f, -1600.0f, 950.0f};
 static Vec term_zero0 = {0.0f, 0.0f, 0.0f};
 static Vec term_zero1 = {0.0f, 0.0f, 0.0f};
 
+// Builds the codec call: id textures / groups 0x14, 0x10 (frame units hidden), operator font and
+// layout, the op table, lights, camera and the two models (work 0 = the player's radio model from
+// ss_term.dat, work 2 = the partner from ss_ocNNN.dat) at their fixed positions in the cancel pose.
+// The op starts after ope.wait (30 frames).
 void SsTermMain::init(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -868,6 +917,10 @@ void SsTermMain::init(SUB_SCREEN* wk)
     modelOn = 1;
 }
 
+// Codec call frame: animates both models (shape + motion); when the call was skipped (flags
+// 0x10000000) once switches them to the end pose. Counts ope.wait down then starts the op; when
+// OpeMesMove reports the end or START (Key bit 29) is pressed, stops the stream, deletes the
+// messages and transits to the exit widget (close_flag bit 3).
 void SsTermMain::move(SUB_SCREEN* wk)
 {
     if (modelOn != 0) {
@@ -912,6 +965,7 @@ void SsTermMain::move(SUB_SCREEN* wk)
     }
 }
 
+// Codec screen close sound, releases the Japanese operator font; close_flag bit 3.
 void SsTermMain::quit(SUB_SCREEN* wk)
 {
     SndCall(0, 0x15, 0, 0, 0, 0);

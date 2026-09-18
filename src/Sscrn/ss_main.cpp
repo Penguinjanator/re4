@@ -80,6 +80,8 @@ int weaponChangeMoveCheck();
 static void weaponChangeTask();
 static void sscrnModelTrans(cModel* m);
 
+// REL entry: runs the module's static constructors (.ctors), then the sub screen main loop
+// (SubScreenTask) in the calling task; the DOL links the module from SubScreenCall.
 extern "C" void _prolog()
 {
     void (**p)(void);
@@ -91,6 +93,7 @@ extern "C" void _prolog()
     SubScreenTask();
 }
 
+// REL exit: runs the static destructors (.dtors) before the DOL unlinks the module.
 extern "C" void _epilog()
 {
     void (**p)(void);
@@ -101,6 +104,7 @@ extern "C" void _epilog()
     OSReport("epilog...\n");
 }
 
+// Trap for calls through unresolved module imports: reports and HALTs (line 139 of the original).
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");
@@ -108,6 +112,8 @@ extern "C" void _unresolved()
     HALT();
 }
 
+// Sets the sub screen's fixed camera: eye at (0, 0, 5000) looking at the origin, y up, 20 degree fov,
+// 4:3 aspect; rebuilds its projection and view matrices. Every screen's Init widget calls it.
 void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     const f32 zero = 0.0f;  // pool order: 0.0 first
@@ -131,6 +137,8 @@ void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
     C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
 }
 
+// 1 when the player asks to return to the game: Y (Key bit 20) on a type 1 (inventory) screen, Y or B
+// otherwise. Main widgets test it before their own input.
 int sscrnKey2Game(SUB_SCREEN* wk)
 {
     if (wk->type == 1) {
@@ -145,6 +153,8 @@ int sscrnKey2Game(SUB_SCREEN* wk)
     return 0;
 }
 
+// Sizes and places a list scroll bar: `bar` spans the fraction n/num of the height between the `up`
+// and `down` arrow units, offset by top/num from the top; hidden (be_flag bit 3 off) when the list fits.
 void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* down)
 {
     if (n < num) {
@@ -165,6 +175,8 @@ struct MgrPtr {
 };
 #define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 
+// Switches cModel to the DLL's own parts/model-info managers (0x100 parts, 0xA0 infos) and creates
+// the 0xA0 MapMgr model works the screens use; attr_flag bit 0 records it for sscrnModelFree.
 void generalModelAlloc(SUB_SCREEN* wk)
 {
     int i;
@@ -417,11 +429,14 @@ void SubScreenTask()
     TaskChain((TaskFunc) SubScreenExit, 0);
 }
 
+// Exit widget: starts its step counter (_rno) at the fade-out.
 void SsExitInit::init(SUB_SCREEN* wk)
 {
     _rno = 0;
 }
 
+// Sub screen close sequence: _rno 0 fade out (FadeSetW 3 frames), 1 wait for the fade and a pending
+// weapon change read, 2 free the models, lights and every IdSub/IdNum unit, 3 transit to SsExitMain.
 void SsExitInit::move(SUB_SCREEN* wk)
 {
     switch (_rno) {
@@ -452,11 +467,14 @@ void SsExitInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Last widget: clears wk->Loop so SubScreenTask leaves its loop and chains to SubScreenExit.
 void SsExitMain::move(SUB_SCREEN* wk)
 {
     wk->Loop = 0;
 }
 
+// Item examine widget: restarts at the model read step (SsCapMain/SsItemMain/SsPzzlMain set
+// p_exam_item/p_exam_model before transiting here).
 void SsItemExamine::init(SUB_SCREEN* wk)
 {
     state = 0;
@@ -469,6 +487,7 @@ static inline void ssItemInfo(u16 id, ItemInfo* info)
 {
     itemInfo(id, info);
 }
+// Polls a DVD read request: 0 pending, 1 done (size filled), else error.
 static inline int ssReadCheck(int req, int* size)
 {
     return Dvd.ReadCheck(req, size, 0, 0);
@@ -616,6 +635,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
     }
 }
 
+// Per-frame model draw callback of SubScreenTask: draws every alive MapMgr model with be_flag bit 1.
 static void sscrnModelTrans(cModel* m)
 {
     if (m->be_flag & 2) {
@@ -623,11 +643,16 @@ static void sscrnModelTrans(cModel* m)
     }
 }
 
+// Shows the main menu (top tab row) highlight on menu_next; `no` != 0 shows the cursor unit.
 void sscrnMainMenuInit(SUB_SCREEN* wk, int no)
 {
     idMainMenu(wk, no);
 }
 
+// Top menu tab row input (menu 0 key items/treasures, 1 attache case, 2 map, 3 files, 4 exit): left/right (Key bits 26/27,
+// repeat) move menu_next, A picks it into menu_no (clearing close_flag), Y or B on the exit tab
+// selects exit, B elsewhere moves to the exit tab. Returns 1 when menu_no was chosen; the caller
+// then transits to the widget linked under menu_no.
 int sscrnMainMenu(SUB_SCREEN* wk)
 {
     int ret = 0;
@@ -666,6 +691,8 @@ int sscrnMainMenu(SUB_SCREEN* wk)
     return ret;
 }
 
+// Hides the five tab highlight units (IdSub group 0) and, when sw, shows the one under menu_next
+// with its animation restarted.
 void idMainMenu(SUB_SCREEN* wk, int sw)
 {
     IdUnit* u;
@@ -682,6 +709,7 @@ void idMainMenu(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Fades the menu background unit (IdSub 7/0) in (sw) or out; skipped on the shop screen (type 0x10).
 void idMainMenuFade(SUB_SCREEN* wk, int sw)
 {
     if (wk->type != 0x10) {
@@ -694,6 +722,8 @@ void idMainMenuFade(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Kills every screen-owned IdSub unit group (item, map, file, puzzle, shop groups 0x10..0x1F,
+// 0x80..0x84) and releases the sub screen id textures; SsExitInit step 2 and screen switches.
 void IdSubErase()
 {
     IdSub.kill(0xFF, 0x1C);
@@ -717,6 +747,7 @@ void IdSubErase()
     IdTexRelease(TEX_OWNER_ID_SSCRN);
 }
 
+// Kills the number display units (IdNum groups 0x40..0x7D individually, 0x10..0x16 whole).
 void IdNumErase()
 {
     int i;
@@ -776,6 +807,8 @@ void clearZbuffer()
     GXSetAlphaUpdate(0);
 }
 
+// Hides every MapMgr model work above the three reserved ones (player, weapon, examine) by clearing
+// be_flag bit 1; screens call it when they take over the model area.
 void sscrnModelClear(SUB_SCREEN* wk)
 {
     u32 i;
@@ -785,6 +818,8 @@ void sscrnModelClear(SUB_SCREEN* wk)
     }
 }
 
+// Undoes generalModelAlloc: restores the DOL parts/model-info managers, destroys the MapMgr models
+// and frees the three arrays. No-op unless attr_flag bit 0 is set.
 void sscrnModelFree(SUB_SCREEN* wk)
 {
     int off = !(wk->attr_flag & 1);
@@ -803,6 +838,7 @@ void sscrnModelFree(SUB_SCREEN* wk)
     }
 }
 
+// Destroys the eight screen lights (p_light[]).
 void sscrnLightClear(SUB_SCREEN* wk)
 {
     int i;
@@ -813,6 +849,7 @@ void sscrnLightClear(SUB_SCREEN* wk)
     }
 }
 
+// Creates the screen lights 0..2 from the archive's cLit table when not yet alive.
 void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit)
 {
     int i;
@@ -883,6 +920,8 @@ void numDisp(u8 id, int num, Vec* pos, u32 flags)
     }
 }
 
+// Queues a character weapon model change (weapon number / type) into the current wepChange slot for
+// weaponChangeTask; ignored for Ashley (pl_type 1) who has no weapon model.
 void weaponChangeRequest(u16 no, u16 type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -903,6 +942,7 @@ void weaponChangeRequest(u16 no, u16 type)
     }
 }
 
+// 1 when no weapon change request is pending in either slot (SsExitInit waits for it).
 int weaponChangeReadCheck()
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -913,6 +953,7 @@ int weaponChangeReadCheck()
     return 0;
 }
 
+// 1 while the weapon change task is not reading (wep_rno 3/4): the character model may be animated.
 int weaponChangeMoveCheck()
 {
     return SubScreenWk.wep_rno != 3 && SubScreenWk.wep_rno != 4;

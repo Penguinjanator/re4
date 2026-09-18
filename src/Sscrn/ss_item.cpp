@@ -1,4 +1,11 @@
-// Sscrn/ss_item: inventory (item list) screen of the sub screen DLL (D:/Bio4/Prog/ss_item.cpp).
+// Sscrn/ss_item: the key items / treasures screen of the sub screen DLL (D:/Bio4/Prog/ss_item.cpp):
+// main menu tab 0. Two scrolling columns (item_list from cItemMgr::makeItemList: key items, then
+// treasures) of eight slot frames each (IdNum 0x40.. digits parented to the frame units), a cursor
+// in SUB_SCREEN::pItemWk (ItemScreenWork), the command menu (use / combine / examine), the combine
+// target pick and the item examine view. Data: SS/<lang>/ss_item.dat (id textures, IdSub/IdNum
+// tables, item names). Widgets: SsItemInit (load) -> SsItemMain running ItemSelect -> ItemCommand
+// -> ItemCombine / SsItemExamine; links 0 case, 2 map, 3 files, 4 bottle caps, 5 exit. Also the
+// debug ITEM MAKE menu (Z on pad 1).
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -121,6 +128,8 @@ Vec item_scr[2];
 Vec item_pos[2];
 int item_frame_state[2];
 
+// Prints the name of the item under the cursor (message id = item id, font 0x12 x 0x18) at the name
+// unit (IdSub 1/0x1E); deletes the message when the slot is empty (flags bit 0 clear).
 void itemNameDisp(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -148,11 +157,14 @@ void itemNameDisp(SUB_SCREEN* wk)
     }
 }
 
+// The item screen uses the common sub screen camera.
 void itemCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     sscrnCameraInit(wk, cam);
 }
 
+// Key items / treasures screen loader: skips the previous screen's exit routine and wait (state 2)
+// when opened directly as SS_OPEN_ITEM (0x80, the pick-up screen).
 void SsItemInit::init(SUB_SCREEN* wk)
 {
     if (wk->type == 0x80) {
@@ -162,6 +174,10 @@ void SsItemInit::init(SUB_SCREEN* wk)
     }
 }
 
+// Loads the key items / treasures screen: state 0 run the previous screen's scrn_out_func, then drop
+// its ids and set the common frame ids; 1 one frame wait; 2 show the HUD and read SS/<lang>/ss_item.dat
+// into the puzzle slot (coming from the map, menu_old 2, rebuilds the models and life meter);
+// 3 wait for the read (archive -> pItem); 4 fade in for SS_OPEN_ITEM and transit to SsItemMain.
 void SsItemInit::move(SUB_SCREEN* wk)
 {
     int st = state;
@@ -232,6 +248,10 @@ void SsItemInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Builds the key items / treasures screen: widgets ItemSelect -> ItemCommand -> ItemCombine /
+// SsItemExamine, the archive's id textures, the number units (IdNum 0x40.. one per visible slot,
+// parented to the two 8-slot frame columns), the command menu ids (group 0x16, hidden), lights and
+// item names (MesData 2); allocates the ItemScreenWork cursor.
 void SsItemMain::init(SUB_SCREEN* wk)
 {
     sel = new ItemSelect;
@@ -304,6 +324,11 @@ void SsItemMain::init(SUB_SCREEN* wk)
     SndCall(0, 0x1E, 0, 0, 0, 0);
 }
 
+// Key items / treasures screen frame: state 0 runs the child widget (ItemSelect state 1 = exit the
+// sub screen via link 5, 2 = up to the main menu; ItemCommand state 1 = item used -> exit, 2 = show
+// the cap screen via link 4; R (Key bit 23) jumps to the attache case), state 1 runs the main menu
+// tab row (0 back here, 1 case, 2 map, 3 files, 4 exit; down returns to the list). Z on pad 1 (with
+// a second pad when System_flg bit 3) toggles the debug item-make menu, B closes it.
 void SsItemMain::move(SUB_SCREEN* wk)
 {
     int i;
@@ -412,6 +437,8 @@ void SsItemMain::move(SUB_SCREEN* wk)
     }
 }
 
+// Leaving the item screen: deletes the child widgets, frees the cursor work and installs
+// sscrn_item_out (frame slide-out animation) as scrn_out_func.
 void SsItemMain::quit(SUB_SCREEN* wk)
 {
     if (sel) {
@@ -431,6 +458,9 @@ void SsItemMain::quit(SUB_SCREEN* wk)
     wk->scrn_out_func = sscrn_item_out;
 }
 
+// Starts the item screen exit animation: fades the header/footer units, restores the two frame
+// columns' original paths (saved by itemFrameInit) and plays them out; going to the map (menu_next 2)
+// also frames the life meter out and fades the player model.
 void sscrn_item_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -475,6 +505,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
     }
 }
 
+// Exit routine (scrn_out_func): 1 once the first frame column's path animation ended (end bit 0).
 static int sscrn_item_out(SUB_SCREEN* wk)
 {
     IdUnit* u = IdNum.unitPtr(0x40, 0x15);
@@ -485,6 +516,8 @@ static int sscrn_item_out(SUB_SCREEN* wk)
     return ret;
 }
 
+// Item slot `idx` of list column `col` (0 key items, 1 treasures) from item_list, or the empty
+// item_dummy (flags 0) when out of range / 0xFF.
 ItemWork* ITEM_PTR(int idx, int col)
 {
     u8 no;
@@ -505,6 +538,7 @@ DUMMY:
     return &item_dummy;
 }
 
+// List index of item `p` in column `col`, -1 when it is not listed.
 int ITEM_AT(ItemWork* p, int col)
 {
     int i;
@@ -517,6 +551,7 @@ int ITEM_AT(ItemWork* p, int col)
     return -1;
 }
 
+// Icon texture number of item `id` in the ss_item id texture set (table position; 0 = unknown).
 int itemTexNo(u16 id)
 {
     u8 tbl[105] = {
@@ -538,6 +573,8 @@ int itemTexNo(u16 id)
     return 0;
 }
 
+// IdNum unit number of the slot frame n (-3..4 around the cursor) in column `col`: 0x41..0x48 for
+// key items (reversed), 0x51..0x58 for treasures.
 int frameMarkNo(int n, int col)
 {
     switch (col) {
@@ -585,6 +622,8 @@ int frameMarkNo(int n, int col)
     return 0x41;
 }
 
+// Refreshes the eight visible slots of column `col` around the cursor: icon texture, count (numDisp
+// unit 0x40 + slot, hidden for single items) and hides empty slots and the combine source.
 void itemFrameSet(SUB_SCREEN* wk, int col)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -641,6 +680,8 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
     }
 }
 
+// Remembers the two frame columns' rest paths/positions (for the exit animation), places them at
+// the path end and fills both columns; frame state 3 = waiting for the path end.
 void itemFrameInit(SUB_SCREEN* wk)
 {
     IdUnit* u = 0;
@@ -669,6 +710,8 @@ void itemFrameInit(SUB_SCREEN* wk)
     }
 }
 
+// Scroll animation of frame column `col`: state 1/2 (cursor moved up/down) plays the column along
+// the up/down path (IdNum 6/7 of 0x15) and refills the slots, 3 waits for the path end, 0 idle.
 void itemFrameMove(SUB_SCREEN* wk, int col)
 {
     IdUnit* u = 0;
@@ -714,11 +757,15 @@ void itemFrameMove(SUB_SCREEN* wk, int col)
     }
 }
 
+// Rebuilds item_list from the inventory (key items then treasures; item_num[] per column).
 void itemListMake()
 {
     item_total = ItemMgr.makeItemList(item_list, 0, &item_num[0], &item_num[1]);
 }
 
+// List cursor input: mode 0 up/down (Key bits 24/25) switch column (-1 = leave to the main menu,
+// returns 1), left/right (26/27) move within the column and set sel[]; mode 1 (combine) only moves
+// and sets comb[]. Starts the frame scroll animation, highlights the column tab, runs itemFrameMove.
 int itemSelect(SUB_SCREEN* wk, int mode)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -809,6 +856,7 @@ END:
     return ret;
 }
 
+// List cursor widget entry: no combine partner, refresh both columns.
 void ItemSelect::init(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -821,6 +869,8 @@ void ItemSelect::init(SUB_SCREEN* wk)
     }
 }
 
+// List cursor: Y/B-to-game (state 1), B (state 2) up to the main menu, A on an occupied slot opens
+// the command menu (item_sel), otherwise itemSelect (leaving upwards also gives state 2).
 void ItemSelect::move(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -863,6 +913,8 @@ void ItemSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Command menu open: shows the column's command ids (key items: Use / Combine / Examine, treasures:
+// Examine / Combine) with the cursor on the first entry.
 void ItemCommand::init(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -880,6 +932,10 @@ void ItemCommand::init(SUB_SCREEN* wk)
     SndCall(0, 4, 0, 0, 0, 0);
 }
 
+// Command menu: mode 0 B cancels, A runs the entry (item_cmd_mode 0 use -> state 1 on success,
+// 1 examine (item 0xA2, the cap collection, opens the cap screen: state 2), 2 combine ->
+// ItemCombine, 3 discard -> the yes/no sub menu; no command sets 3 in this build), up/down move the
+// cursor; mode 1 opens the sub menu, mode 2 runs the yes/no (yes = ItemMgr.dumpAll).
 void ItemCommand::move(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -1081,6 +1137,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
     }
 }
 
+// Combine mode open: shows the column's combine slot ids (0x60/0x70 of group 0x16) with the
+// selected item's icon and marks it as the combine source (comb[col]).
 void ItemCombine::init(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -1108,6 +1166,7 @@ void ItemCombine::init(SUB_SCREEN* wk)
     itemFrameSet(wk, col);
 }
 
+// Combine mode close: hides the combine slot ids and clears the source.
 void ItemCombine::quit(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -1128,6 +1187,9 @@ void ItemCombine::quit(SUB_SCREEN* wk)
     iw->comb[col] = -1;
 }
 
+// Combine target pick: B returns the cursor to the source and reopens the command menu, A combines
+// source into the target (ItemMgr.combine; list rebuilt, cursor on the result) or plays the error
+// sound, otherwise itemSelect mode 1 moves the target cursor.
 void ItemCombine::move(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -1164,6 +1226,8 @@ void ItemCombine::move(SUB_SCREEN* wk)
     }
 }
 
+// Collects the command menu units of column `mode` (0 key items 0x20.., 1 treasures 0x30.. of
+// group 0x16): tbl[0..3] frame parts, then per command its label and highlight; *num = commands.
 void setCommandId(u8 mode, IdUnit** tbl, s8* num)
 {
     switch (mode) {
@@ -1227,6 +1291,8 @@ static inline int itemMakeMatch2(u16 id, u16 types)
     return info.type == types >> 8 || info.type == (types & 0xFF);
 }
 
+// Debug item-make menu: sets the two id slots to the first key item (types 7) and treasure
+// (types 5/0xC) ids, cursor on the first row.
 void itemMakeInit(SUB_SCREEN* wk)
 {
     SsItemMakeWork* mk = ITEM_MAKE_WORK(wk);
@@ -1261,6 +1327,9 @@ void itemMakeInit(SUB_SCREEN* wk)
     mk->cursor = 0;
 }
 
+// Debug item-make menu input (pad 1): up/down pick KEY ITEM / TREASURE / REMOVE, left/right step the
+// row's id through the matching item types (x16 with A held), A gives the item (cursor moves onto
+// it) or removes the item under the list cursor.
 void itemMakeMove(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
@@ -1340,6 +1409,8 @@ void itemMakeMove(SUB_SCREEN* wk)
     }
 }
 
+// Draws the "ITEM MAKE" debug menu at text cell (x, y) with the current ids and the selected item's
+// name message.
 void itemMakeDisp(SUB_SCREEN* wk, int x, int y)
 {
     ItemScreenWork* iw = wk->pItemWk;

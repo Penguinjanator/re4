@@ -64,6 +64,7 @@ static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->EtcFlag
 
 #define EVT_MES_Y (336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
+// 1 when the event's StatusFlag has `bit`.
 static inline int EvtStatusChk(Event* ev, u32 bit)
 {
     return (ev->StatusFlag & bit) ? 1 : 0;
@@ -94,6 +95,7 @@ struct XmlNodeData {
 #define XML_NODE_MAX 100
 #define XML_BUF_SIZE 0x30D40
 
+// Zeroes the 100 xml Node records.
 static inline void XmlNodeDataClear(XmlNodeData* d)
 {
     XmlNode* n = d->node;
@@ -112,6 +114,7 @@ static inline void XmlNodeDataClear(XmlNodeData* d)
     }
 }
 
+// "true" / "True" / "TRUE" -> 1.
 static inline int XmlStrToBool(const char* s)
 {
     if (strcmp(s, "true") == 0 || strcmp(s, "True") == 0) {
@@ -120,6 +123,7 @@ static inline int XmlStrToBool(const char* s)
     return strcmp(s, "TRUE") == 0;
 }
 
+// Decimal string -> long.
 static inline long XmlStrToLong(const char* s)
 {
     long v;
@@ -264,6 +268,7 @@ template <class T> static inline void MessSetSaveFunc(cDbgToolMain<T>* tool, int
     tool->pSaveFunc = f;
     tool->saveArg = arg;
 }
+// Installs the message tool's LOAD / SAVE callbacks (CallbackLoad / CallbackSave) in the window.
 template <class T> static inline void MessSetLoadFunc(cDbgToolMain<T>* tool, int (*f)(void*), void* arg)
 {
     tool->pLoadFunc = f;
@@ -286,6 +291,7 @@ void CallbackTimerUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
 int CallbackSave(void* arg);
 int CallbackLoad(void* arg);
 
+// Event tool entry (debug menu 30): constructs the ToolEvt and runs it until it exits.
 void ToolEvent()
 {
     ToolEvt tool;
@@ -293,6 +299,7 @@ void ToolEvent()
     tool.Run();
 }
 
+// Suspends game task `task` (the event pauses).
 void ToolEvt::EvtTaskSuspend(int task)
 {
     if (!(EtcFlag & 0x4000)) {
@@ -301,6 +308,7 @@ void ToolEvt::EvtTaskSuspend(int task)
     }
 }
 
+// Resumes game task `task`.
 void ToolEvt::EvtTaskSignal(int task)
 {
     if (EtcFlag & 0x4000) {
@@ -309,6 +317,9 @@ void ToolEvt::EvtTaskSignal(int task)
     }
 }
 
+// Tool start: default tool flags, pads 1/2, the host file list of the room's .evd files
+// (x:\soft\room\event\evd\r<room>s??.evd), the 8 MB event buffer, the S-curve editor work and the
+// message data on the Debug heap; main menu.
 ToolEvt::ToolEvt()
 {
     char path[0x100];
@@ -386,6 +397,7 @@ ToolEvt::ToolEvt()
     pLightTool = new cLightTool;
 }
 
+// Frees the buffers and restores the flags.
 ToolEvt::~ToolEvt()
 {
     delete pLightTool;
@@ -398,6 +410,7 @@ ToolEvt::~ToolEvt()
 
 static void (*runTbl[3])(ToolEvt*) = {ToolEvt::MainMenu, ToolEvt::MainPreview, ToolEvt::MainExit};
 
+// One frame: runTbl[r_no_0] (MainMenu / MainPreview / MainExit).
 void ToolEvt::Run()
 {
     while ((int) EtcFlag >= 0) {
@@ -406,6 +419,7 @@ void ToolEvt::Run()
     }
 }
 
+// Deletes every message slot.
 static inline void MessDeleteAll()
 {
     MessageControl* mes = &cMes;
@@ -416,6 +430,9 @@ static inline void MessDeleteAll()
     }
 }
 
+// Event paused (StatusFlag bit 31, game task suspended): the stick left/right or X/Y step it: X
+// runs one cut back, Y one cut forward (RunTool), stick right plays one frame, holding the stick
+// auto-repeats every 10 frames (FFTimer); otherwise it stays stopped.
 void ToolEvt::RunStop(ToolEvt* t, Event* ev)
 {
     int i;
@@ -465,6 +482,7 @@ static TOOL_MENU mainMenu[2] = {
     {1, "TOOL EXIT", 0},
 };
 
+// r_no_0 0: PREVIEW / TOOL EXIT -> r_no_0 1 / 2.
 void ToolEvt::MainMenu(ToolEvt* t)
 {
     int sel;
@@ -489,6 +507,11 @@ static TOOL_MENU previewMenu[3] = {
 
 static void (*subRunTbl[3])(ToolEvt*, Event*) = {ToolEvt::SubMenuMain, ToolEvt::SubMenuFog, ToolEvt::SubMenuFocus};
 
+// r_no_0 1, the preview. r_no_1 0 picks an .evd from the host list (A), 1 "DATA LOAD OK?" YES / NO
+// / CONVERT AND LOAD reads it, 2 starts the event (EvtMgr.SetEvt) and inits the fog / focus
+// curves, 3 runs it: sub tools (light, camera, fog, focus, message) take the pads, START / stick
+// stop the event (RunStop), B leaves (or ends the capture), CAPTURE writes screenshots per frame
+// to D:/bio4/Room/Sc_shot; 4 the PREVIEW MENU (SubMenuMain / Fog / Focus by r_no_0_sub).
 void ToolEvt::MainPreview(ToolEvt* t)
 {
     char path[0x140];
@@ -717,6 +740,7 @@ static TOOL_MENU yesNoMenu[2] = {
     {1, "NO", 0},
 };
 
+// r_no_0 2: EXIT YES/NO, then the tool ends.
 void ToolEvt::MainExit(ToolEvt* t)
 {
     eprintf(0x38, 0x30, 5, 0, "EXIT OK?");
@@ -736,6 +760,7 @@ void ToolEvt::MainExit(ToolEvt* t)
     }
 }
 
+// Ends the previewed event: EvtMgr deletes it, messages cleared, fade killed.
 void ToolEvt::EventDel(Event* ev)
 {
     EvtTaskSignal(0);
@@ -757,6 +782,9 @@ static TOOL_MENU subMainMenu[8] = {
     {1, "PREVIEW EXIT", 0},
 };
 
+// PREVIEW MENU: CONTINUE, LIGHT TOOL (embedded db_light on pad 3), ESP TOOL (hands over to the
+// effect editor module), FOG TOOL / FOCUS TOOL (their menus), MESS TOOL (message list editor),
+// CAPTURE (frame capture on), PREVIEW EXIT.
 void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
 {
     eprintf(0x38, 0x30, 5, 0, "PREVIEW MENU");
@@ -827,6 +855,8 @@ static TOOL_MENU fogMenu[6] = {
     {1, "FOG TOOL END", 0},
 };
 
+// FOG TOOL MENU of the current cut (<event>_<cut>.fog): EDIT START / EDIT END (the S-curve editor
+// on the fog start / end curves), INIT, LOAD, SAVE (host x:/soft/room/event/...), FOG TOOL END.
 void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
 {
     char dir[0x100];
@@ -888,6 +918,8 @@ static TOOL_MENU focusMenu[8] = {
     {1, "FOCUS TOOL END", 0},
 };
 
+// FOCUS TOOL MENU of the current cut (<event>_<cut>.fcs): EDIT NEAR / FAR (S-curve editor on the
+// focus distance curves), LEVEL NEAR / FAR (blur levels), INIT, LOAD, SAVE, FOCUS TOOL END.
 void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
 {
     char dir[0x100];
@@ -949,6 +981,7 @@ static TOOL_MENU yesNoMenu2[2] = {
     {1, "NO", 0},
 };
 
+// "<s1> <s2> OK?" YES/NO; 1 on YES (the caller keeps calling until the answer).
 int ToolEvt::SubMenuSelectYesNo(ToolEvt* t, const char* s1, const char* s2)
 {
     TaskSleep(1);
@@ -964,6 +997,7 @@ int ToolEvt::SubMenuSelectYesNo(ToolEvt* t, const char* s1, const char* s2)
     }
 }
 
+// EDIT FOCUS LEVEL [NEAR/FAR]: up/down +-1, left/right +-0.1 (clamped at 0); 1 on A/B (done).
 int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32* level)
 {
     TaskSleep(1);
@@ -996,6 +1030,8 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
     return 0;
 }
 
+// START toggles the debug camera on pad 1 (CamDbg); returns 1 while the camera has the pad (B
+// releases it).
 int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
 {
     if (DebugCameraFlag != 0) {
@@ -1027,6 +1063,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
     return 0;
 }
 
+// Creates (sw 1) or deletes the embedded cLightTool; the tool then reads pads 3/4 (SubToolIn).
 void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
 {
     int i;
@@ -1044,6 +1081,7 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
     SubToolIn(t, sw, 13);
 }
 
+// Runs the embedded light editor; closes it when it quits.
 void ToolEvt::SubToolLightMove(ToolEvt* /*t*/)
 {
     cLightTool* lt = pLightTool;
@@ -1056,6 +1094,7 @@ void ToolEvt::SubToolLightMove(ToolEvt* /*t*/)
     }
 }
 
+// Default fog curves: start / end constant at the current LightMgr fog over the event length.
 int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
 {
     t->fog.start.num = 2;
@@ -1079,6 +1118,8 @@ int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
     return 1;
 }
 
+// Opens (sw 1) the S-curve editor on the fog start (which 0) or end (1) curve, x = frames, y up
+// to 100000; or closes it.
 void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
 {
     if (sw == 1) {
@@ -1099,6 +1140,7 @@ void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
     SubToolIn(t, sw, 14);
 }
 
+// Runs the fog curve editor; when it quits, back to the fog menu.
 void ToolEvt::SubToolFogMove(ToolEvt* t, Event* ev)
 {
     if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
@@ -1112,6 +1154,7 @@ void ToolEvt::SubToolFogMove(ToolEvt* t, Event* ev)
     ev->FogMove(ev, &t->fog);
 }
 
+// Default focus curves: near 0 / far 10000 constant over the event length.
 void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
 {
     t->focus.near_.num = 2;
@@ -1136,6 +1179,7 @@ void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
     t->focus.farLevel = 5.0f;
 }
 
+// Opens the S-curve editor on the focus near (which 0) / far (1) curve, or closes it.
 void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
 {
     if (sw == 1) {
@@ -1156,6 +1200,7 @@ void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
     SubToolIn(t, sw, 15);
 }
 
+// Runs the focus curve editor; when it quits, back to the focus menu.
 void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
 {
     if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
@@ -1169,6 +1214,8 @@ void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
     ev->FocusMove(ev, &t->focus);
 }
 
+// Opens (sw 1) the message list editor: a cDbgToolMain over EventMessageData::elem (columns CutNo /
+// Frame / MessNo / Timer) with LOAD / SAVE of evt_<room><event>_mes.xml; or closes it.
 void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
 {
     EventMessageData* m = t->PMesDat;
@@ -1229,6 +1276,8 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
     SubToolIn(t, sw, 16);
 }
 
+// Runs the message list editor; in preview it fires the entries whose cut / frame the event
+// reached (ev->MesSet with their timer), the edited row's message shown at once.
 void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
 {
     EventMessageData::MessElem unused; // COMPILER-DIFF: frame-only T local (24 bytes) of the original
@@ -1338,6 +1387,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
     }
 }
 
+// A sub tool takes over (sw 1: flag `bit` set, the tool reads pads 3/4) or gives back (pads 1/2).
 void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
 {
     if (sw == 1) {
@@ -1353,6 +1403,8 @@ void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
     }
 }
 
+// Sets up the S-curve editor on `curve` ("Frame" / "Param" axes, range -0.2..1.2 of xMax / yMax,
+// grid lock 1), cursor on the first key.
 void ToolEvt::SctrlToolInit(ToolEvt* t, Hermite1* curve, f32 xMax, f32 yMax)
 {
     memset(t->pSctrl, 0, sizeof(DbSctrlWork));
@@ -1371,6 +1423,7 @@ void ToolEvt::SctrlToolInit(ToolEvt* t, Hermite1* curve, f32 xMax, f32 yMax)
     }
 }
 
+// cDbgToolMain hook: entry in use (SetFlg).
 int IsWorkAlive(EventMessageData::MessElem* w)
 {
     if (w->be_flag & 1) {
@@ -1379,6 +1432,7 @@ int IsWorkAlive(EventMessageData::MessElem* w)
     return 0;
 }
 
+// cDbgToolMain hook: sets / clears the in-use flag.
 void SetWorkAlive(EventMessageData::MessElem* w, int alive)
 {
     if (alive == 1) {
@@ -1388,16 +1442,19 @@ void SetWorkAlive(EventMessageData::MessElem* w, int alive)
     }
 }
 
+// cDbgToolMain hook: entry number.
 int GetWorkNo(EventMessageData::MessElem* w)
 {
     return w->No;
 }
 
+// cDbgToolMain hook: entry number.
 void SetWorkNo(EventMessageData::MessElem* w, int no)
 {
     w->No = no;
 }
 
+// New entry: cut 0, frame 0, message -1 (none), timer 0.
 void InitWork(EventMessageData::MessElem* w, int no)
 {
     memclr_asm(w, sizeof(EventMessageData::MessElem));
@@ -1428,6 +1485,7 @@ static inline int EvtEditDone()
     return t == 0;
 }
 
+// CutNo column pressed: left/right +-1 (A x10); 0 on B.
 int CallbackCutNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     w->CutNo += EvtEditStep();
@@ -1436,6 +1494,7 @@ int CallbackCutNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<
     return EvtEditDone();
 }
 
+// CutNo column text.
 void CallbackCutNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     char buf[0x40];
@@ -1444,6 +1503,7 @@ void CallbackCutNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
     DbgButtonSetName(b, buf);
 }
 
+// Frame column pressed: left/right +-1 (A x10); 0 on B.
 int CallbackFrameExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     w->Frame += EvtEditStep();
@@ -1452,6 +1512,7 @@ int CallbackFrameExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<
     return EvtEditDone();
 }
 
+// Frame column text.
 void CallbackFrameUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     char buf[0x40];
@@ -1460,6 +1521,7 @@ void CallbackFrameUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
     DbgButtonSetName(b, buf);
 }
 
+// MessNo column pressed: left/right +-1 (A x10, -1 = clear the message); 0 on B.
 int CallbackMessNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     w->MessNo += EvtEditStep();
@@ -1471,6 +1533,7 @@ int CallbackMessNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate
     return EvtEditDone();
 }
 
+// MessNo column text.
 void CallbackMessNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     char buf[0x40];
@@ -1479,6 +1542,7 @@ void CallbackMessNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempl
     DbgButtonSetName(b, buf);
 }
 
+// Timer column pressed: left/right +-1 (A x10); 0 on B.
 int CallbackTimerExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     w->Timer += EvtEditStep();
@@ -1487,6 +1551,7 @@ int CallbackTimerExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<
     return EvtEditDone();
 }
 
+// Timer column text.
 void CallbackTimerUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
     char buf[0x40];
@@ -1570,6 +1635,8 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
     HDWrite(path, buf, cur - buf);
 }
 
+// SAVE of the message tool: writes the message list as evt_<room><event>_mes.xml (one Node per
+// used entry) on the host.
 int CallbackSave(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;
@@ -1584,6 +1651,7 @@ int CallbackSave(void* arg)
     return 0;
 }
 
+// LOAD of the message tool: parses the xml back into the message list.
 int CallbackLoad(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;

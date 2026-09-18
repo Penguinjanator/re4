@@ -19,7 +19,10 @@ int sprintf(char* buf, const char* fmt, ...);
 char* strncpy(char* dst, const char* src, unsigned int n);
 }
 
-// Camera tool: room camera data export/import, game camera bridge, drawing primitives (t_camera REL).
+// Camera tool (t_camera REL, t_camera_data.cpp): the bridge between the tool pools (tcAdat / tcCdat /
+// tcLdat) and the game's room camera data image (tcDataExport / tcDataImport, the format CamCtrl
+// reads), the tool <-> game camera copies, the preview player step, the shoulder-camera (quasi-FPS)
+// offset transfer and the colour-rotating drawing wrappers the editors use.
 
 void tcGetFileName(char* path, int no, int flag)
 {
@@ -40,6 +43,8 @@ void tcGetFileName(char* path, int no, int flag)
     }
 }
 
+// Serialises the tool pools into a room camera data image (CameraDataHeader, per-area records with
+// their cuts, lerps) at `buf`; returns the byte size.
 int tcDataExport(u8* buf)
 {
     CameraDataHeader* hdr = (CameraDataHeader*) buf;
@@ -210,6 +215,7 @@ int tcDataExport(u8* buf)
     return size;
 }
 
+// Expands a room camera data image (any known version) into the tool pools; -1 on a bad header.
 int tcDataImport(u8* buf)
 {
     CameraDataHeader* hdr = (CameraDataHeader*) buf;
@@ -355,6 +361,7 @@ int tcDataImport(u8* buf)
     return 0;
 }
 
+// Floor height used by the shoulder camera preview (fixed 100).
 f32 tcGetFloor()
 {
     return 100.0f;
@@ -366,6 +373,7 @@ struct TcPreviewWork {
 };
 static TcPreviewWork tcPreview = {8, 0};
 
+// Preview: blinking [ PREVIEW ] with the current camera / area numbers, then the player moves.
 void tcPlayerMove()
 {
     if (tcPreview.blink <= 15) {
@@ -378,6 +386,7 @@ void tcPlayerMove()
     pPL->move();
 }
 
+// Runs the debug camera (pad 2) on the tool camera.
 void tcCameraDebugMove()
 {
     tcToolCamera2GameCamera();
@@ -385,11 +394,13 @@ void tcCameraDebugMove()
     tcGameCamera2ToolCamera();
 }
 
+// Copies pG->Cam into the tool camera.
 void tcGameCamera2ToolCamera()
 {
     pTc->cam = pG->Cam;
 }
 
+// Copies the tool camera into pG->Cam.
 void tcToolCamera2GameCamera()
 {
     pG->Cam = pTc->cam;
@@ -397,36 +408,43 @@ void tcToolCamera2GameCamera()
 
 Camera tcGameCamera;
 
+// Saves the game camera (tool entry).
 void tcGameCameraStore()
 {
     tcGameCamera = pG->Cam;
 }
 
+// Restores the saved game camera (tool exit).
 void tcGameCameraLoad()
 {
     pG->Cam = tcGameCamera;
 }
 
+// 3D line in RGBA colour (rotated into the ARGB word Draw_line3d takes).
 void tcDrawLine3D(Vec* a, Vec* b, u32 color)
 {
     Draw_line3d(a, b, (color >> 8) | (color << 24), 0);
 }
 
+// Wire sphere of radius r.
 void tcDrawSphere(Vec* pos, u32 color, f32 r)
 {
     Draw_sphere(pos, r, color, 1, 1);
 }
 
+// Filled quad in RGBA colour.
 void tcDrawPoly(Vec* p, u32 color)
 {
     Draw_poly(p, (color >> 8) | (color << 24), 1);
 }
 
+// Shoulder camera floor ratio into CamCtrl's quasi-FPS controller.
 void tcSetBesideFloor(f32 ratio)
 {
     tcCdatPtr(pTc->cdatNo)->u44.floor = ratio;
 }
 
+// Copies the shoulder camera ready / transition offset tables into the current cut's key data.
 void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
 {
     TcCdat* c = tcCdatPtr(pTc->cdatNo);
@@ -456,6 +474,8 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     }
 }
 
+// Applies the current cut's shoulder camera data (offset tables, floor ratio) to CamCtrl's
+// quasi-FPS controller for the preview.
 void tcSetBesideCamera()
 {
     QfpsOfs ready[2][3];

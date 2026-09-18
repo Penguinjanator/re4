@@ -323,12 +323,14 @@ static inline cMap* shopItemModel()
     return MapMgr.getWork(1);
 }
 
+// Queues a Z clear before the case (OT 0xF) and before the shown item model (OT 0x14).
 void shopClearZ(SUB_SCREEN* wk)
 {
     AddOtDirect(0xF, &shop_clear_z, (void (*)()) clearZbuffer, 2, 0x1000, 0, 0.0f);
     AddOtDirect(0x14, &shop_clear_z, (void (*)()) clearZbuffer, 2, 0x1000, 0, 0.0f);
 }
 
+// Gives message slots 8..12 their 0x1000-byte queue buffers (shop_msg_buf) or detaches them (on 0).
 void setShopMsgQueue(int on)
 {
     Message* m = cMes.getMes(8);
@@ -344,11 +346,13 @@ void setShopMsgQueue(int on)
     }
 }
 
+// No merchant voice stream playing.
 void shopStrInit(SUB_SCREEN* wk)
 {
     wk->str_id = 0;
 }
 
+// Stops the merchant's current voice stream (str_id).
 void shopStrStop(SUB_SCREEN* wk)
 {
     u32 str = (u32) wk->str_id;
@@ -358,6 +362,7 @@ void shopStrStop(SUB_SCREEN* wk)
     }
 }
 
+// Plays merchant voice stream `no` (ShopMsg::str; 0xFF = none), replacing the current one.
 void shopStrPlay(SUB_SCREEN* wk, int no)
 {
     shopStrStop(wk);
@@ -368,6 +373,8 @@ void shopStrPlay(SUB_SCREEN* wk, int no)
     }
 }
 
+// Shop model managers sized to the case: piece_max + 4 model infos / MapMgr works (0 merchant,
+// 1 shown item, 3 case, 4.. pieces), 0xBE parts.
 void shopModelAlloc(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->puzzlePlayer;
@@ -387,6 +394,8 @@ void shopModelAlloc(SUB_SCREEN* wk)
     }
 }
 
+// Plays the merchant's coat-closing animation (list panel, price and caption units fade out);
+// ShopTopMenu waits for it (coat flag).
 void closeCoat(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -402,11 +411,15 @@ void closeCoat(SUB_SCREEN* wk)
     u->rev_flag |= 0xF;
 }
 
+// Shop loader: starts at the data read (the shop opens straight from the game).
 void SsShopInit::init(SUB_SCREEN* wk)
 {
     state = 2;
 }
 
+// Loads the shop: state 2 drops the models/lights, reads SS/<lang>/ss_shop.dat behind the ARAM
+// image (-> pShop) and releases the previous id textures, 3 waits (x1E4 = the puzzle archive),
+// 4 fades in and transits to SsShopMain.
 void SsShopInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -442,6 +455,11 @@ void SsShopInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Builds the shop: the Merchant session over merchantChar, the widget graph (ShopTopMenu -> Sell /
+// Buy / LvUp chains; BuyItemNum/BuyConfirm hand a piece to PzzlThinking -> PieceSelect -> BuyPuzzleEnd
+// for case placement, CaseChange for a bought case), the id groups (case 0x10, shop 0x1C..0x1F,
+// digits IdNum 0x40..), lights, the pzlPlayer of board_size, the model managers, the message
+// queue buffers, the ShopWork; starts in the top menu.
 void SsShopMain::init(SUB_SCREEN* wk)
 {
     IdUnit* u;
@@ -569,6 +587,9 @@ void SsShopMain::init(SUB_SCREEN* wk)
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->x1E4, 0x1A4));
 }
 
+// Shop frame: leaves at once (close_flag 0x10000) when the merchant data vanished; draws the case
+// and pieces, runs the current widget, saves the case layout and the merchant state every frame;
+// ShopTopMenu result 1 (B / exit entry) leaves.
 void SsShopMain::move(SUB_SCREEN* wk)
 {
     MerchantCharacter* mc = &merchantChar;
@@ -597,6 +618,7 @@ void SsShopMain::move(SUB_SCREEN* wk)
     cur = next;
 }
 
+// Frees the pzlPlayer, ShopWork and message buffers, stops the voice stream.
 void SsShopMain::quit(SUB_SCREEN* wk)
 {
     int i;
@@ -610,6 +632,9 @@ void SsShopMain::quit(SUB_SCREEN* wk)
     shopStrStop(wk);
 }
 
+// Picks the merchant's greeting lines (shop_msg indices into `tbl`): the first ever visit (Scenario
+// bit 22 set here) gets 0 + 2, the first visit of a session (Status_flg[2] bit 18) gets "new stock"
+// (1) or the plain greeting (0) plus the village hints 3/4; 0 when nothing is to be said.
 int getGreetMsg(int* num, int* tbl)
 {
     GlobalWork* g = pG;
@@ -652,6 +677,8 @@ NG:
     return 0;
 }
 
+// Top menu entry: rebuilds the merchant lists, clears the price/item displays and starts the
+// greeting (state 0) or goes straight to the menu (state 1).
 void ShopTopMenu::init(SUB_SCREEN* wk)
 {
     int i;
@@ -674,6 +701,10 @@ void ShopTopMenu::init(SUB_SCREEN* wk)
     shopStrInit(wk);
 }
 
+// Top menu: state 0 plays the greeting lines one by one (message + voice, A skips), 1 waits for
+// the coat animation, 2 the menu: B leaves (result 1), A enters Sell (link 0, only with sellable
+// items) / Buy (1) / Tune-up (2, only with tunable weapons) or the Exit row, up/down move between
+// the three rows and the exit entry (cursor / exit), with the merchant's line per choice.
 void ShopTopMenu::move(SUB_SCREEN* wk)
 {
     result = 0;
@@ -860,6 +891,8 @@ void ShopTopMenu::move(SUB_SCREEN* wk)
 END:;
 }
 
+// Draws the sell list: scroll bar, `n` rows of item icon / name / count and the buy-up price
+// (dispPrice 0x80 + row), the cursor row highlighted when `cursor`.
 void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
 {
     ShopWork* sw = wk->pShopWk;
@@ -975,6 +1008,7 @@ void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
     }
 }
 
+// Clamps the list cursor to 0..num-1 and keeps it inside the 5-row window (top).
 void listRangeCheck(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1003,6 +1037,7 @@ void listRangeCheck(SUB_SCREEN* wk)
     }
 }
 
+// Sell list open: the merchant's exercise (buy-up) list, list panel slide-in, the cursor item shown.
 void SellMenuSelect::init(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1031,6 +1066,8 @@ void SellMenuSelect::init(SUB_SCREEN* wk)
     state = 0;
 }
 
+// Sell list: B (or an empty list) closes the coat and returns to the top menu; state 0 waits for
+// the panel, 1: A picks the item (sw->item -> SellItemNum), up/down move the cursor.
 void SellMenuSelect::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1083,8 +1120,10 @@ void SellMenuSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Nothing to release.
 void SellMenuSelect::quit(SUB_SCREEN* wk) {}
 
+// Sell count entry: starts at 1, hides the panel highlight.
 void SellItemNum::init(SUB_SCREEN* wk)
 {
     wk->pShopWk->count = 1;
@@ -1093,6 +1132,9 @@ void SellItemNum::init(SUB_SCREEN* wk)
     fast = 0;
 }
 
+// Sell count: draws the count and total buy-up price digits; B back, A opens the confirm message
+// (shop_msg 6, or 7 "a valuable one" for expensive items; count 0 cancels), up/down change the
+// count (held stick steps faster, wraps 1 <-> max).
 void SellItemNum::move(SUB_SCREEN* wk)
 {
     // COMPILER-DIFF: candidate #17. The target allocates `val` (17 refs / 270 insns) above `this`
@@ -1250,6 +1292,9 @@ void SellItemNum::move(SUB_SCREEN* wk)
     }
 }
 
+// Sell yes/no: yes sells `count` of the item (Merchant::buyup adds pesetas, the items are dumped,
+// the armed weapon unequipped if gone), rebuilds the case and plays the thanks line; B or no
+// returns to the list.
 void SellConfirm::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1315,11 +1360,14 @@ void SellConfirm::move(SUB_SCREEN* wk)
     transit(0, wk);
 }
 
+// Hides the confirm frame.
 void SellConfirm::quit(SUB_SCREEN* wk)
 {
     IdSub.unitPtr(0, 0x1F)->be_flag &= ~8;
 }
 
+// Draws the buy list: scroll bar, `n` rows of icon / name, sold-out or stock marks and the selling
+// price (dispPrice 0x80 + row), cursor row highlighted when `cursor`.
 void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
 {
     Merchant* m = wk->merchant;
@@ -1427,6 +1475,7 @@ void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
     }
 }
 
+// Buy list open: the merchant's selling list, panel slide-in, the cursor item shown.
 void BuyMenuSelect::init(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1450,6 +1499,8 @@ void BuyMenuSelect::init(SUB_SCREEN* wk)
     state = 0;
 }
 
+// Buy list: B closes the coat and returns to the top menu; state 0 waits for the panel, 1: A picks
+// an in-stock item (buyId -> BuyItemNum), up/down move the cursor.
 void BuyMenuSelect::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1517,8 +1568,10 @@ void BuyMenuSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Nothing to release.
 void BuyMenuSelect::quit(SUB_SCREEN* wk) {}
 
+// Buy count entry: count = the item's sell unit, stock from the merchant.
 void BuyItemNum::init(SUB_SCREEN* wk)
 {
     unit = wk->merchant->sellUnit(wk->pShopWk->buyId);
@@ -1528,6 +1581,10 @@ void BuyItemNum::init(SUB_SCREEN* wk)
     IdSub.unitPtr(0xFA, 0x1D)->rev_flag |= 0xF;
 }
 
+// Buy step: state 0 picks the merchant's line (per-item pitch 0xB..0x12, 0xA default, 0x13 not
+// enough pesetas; items without a piece shape are bought directly) and opens the confirm; state 1
+// yes: a case-piece item is handed to PzzlThinking for placement (link 2), a case is bought (link
+// 0 -> BuyConfirm/CaseChange), else buyItem; B / no back to the list.
 void BuyItemNum::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1673,6 +1730,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
     }
 }
 
+// Clears the price displays.
 void BuyItemNum::quit(SUB_SCREEN* wk)
 {
     int i;
@@ -1682,6 +1740,7 @@ void BuyItemNum::quit(SUB_SCREEN* wk)
     }
 }
 
+// Removes the bought-but-unplaced extra piece from the case player; 1 when one was removed.
 int deleteExtraPiece(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->puzzlePlayer;
@@ -1694,6 +1753,9 @@ int deleteExtraPiece(SUB_SCREEN* wk)
     return 0;
 }
 
+// Completes a purchase: Merchant::sell takes the pesetas, ItemMgr.get adds `count`; a placed piece
+// copies its case position from the template (sw->buy); a bought case (0x7C..0x7F) sets board_next
+// and returns 1 (the caller runs CaseChange). Saves the layout.
 int buyItem(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1737,6 +1799,8 @@ int buyItem(SUB_SCREEN* wk)
     return ret;
 }
 
+// Buy confirm open: message 0xA (affordable) / 0x13 (too expensive) / 0x14 (no room in the case,
+// noRoom) with the merchant's voice.
 void BuyConfirm::init(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1762,6 +1826,8 @@ void BuyConfirm::init(SUB_SCREEN* wk)
     shopStrPlay(wk, shop_msg[msg].str);
 }
 
+// Buy confirm: yes buys (buyItem; a case -> CaseChange link 1, a piece -> back to placement link
+// 2), no / B drop the extra piece and return to the list; the no-room message only waits for A.
 void BuyConfirm::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1840,6 +1906,7 @@ void BuyConfirm::move(SUB_SCREEN* wk)
     }
 }
 
+// Shows the "placed" frame unit after the piece placement.
 void BuyPuzzleEnd::init(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0xF9, 0x1C);
@@ -1848,6 +1915,8 @@ void BuyPuzzleEnd::init(SUB_SCREEN* wk)
     u->rev_flag &= 0xF0;
 }
 
+// After placement: the piece on the case board completes the purchase (buyItem, thanks line ->
+// BuySel link 1); still in the space -> noRoom and back to BuyConfirm (link 0).
 void BuyPuzzleEnd::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1864,6 +1933,7 @@ void BuyPuzzleEnd::move(SUB_SCREEN* wk)
     }
 }
 
+// Draws the tune-up weapon list: scroll bar, `n` rows of icon / name, cursor row highlighted.
 void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
 {
     ShopWork* sw = wk->pShopWk;
@@ -1971,6 +2041,9 @@ static inline int itemTuneLevel(ItemWork* item, int type)
     return 0;
 }
 
+// Draws the tune-up type panel of the cursor weapon: per type (lvType 0 firepower, 1 capacity,
+// 2 firing speed, 3 exclusive) the current level bar, the next-level cost and the "MAX" marks;
+// sw 1 shows the type cursor (lvType) and its price, 0 the overview.
 void levelItemDisp(SUB_SCREEN* wk, int sw)
 {
     // swk before m: `wk` then dies at the m load, which sched1 issues first (weight rule), and the
@@ -2191,6 +2264,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Tune-up list open: the merchant's levelup list, panel slide-in, the cursor weapon shown.
 void LvUpMenuSelect::init(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2213,6 +2287,8 @@ void LvUpMenuSelect::init(SUB_SCREEN* wk)
     state = 0;
 }
 
+// Tune-up list: B closes the coat and returns to the top menu; A picks the weapon (sw->item ->
+// LvUpItemSelect), up/down move the cursor.
 void LvUpMenuSelect::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2326,8 +2402,13 @@ int specialCaption(int id)
     return 0;
 }
 
+// Nothing to set up (lvType keeps its value).
 void LvUpItemSelect::init(SUB_SCREEN* wk) {}
 
+// Tune type pick for the chosen weapon: shows its level table and the type's description message
+// (0xF + lvType; the Mine Thrower's special text); B (or nothing tunable) back to the list, A on a
+// tunable type computes the price (type 4 = every type at once) and opens LvUpConfirm; up/down
+// move lvType over the available rows.
 void LvUpItemSelect::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2435,6 +2516,8 @@ void LvUpItemSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Tune confirm open: current levels (cur[]) and the merchant's maxima (max[]); message 0x17 (buy?)
+// with the price, or the "cannot afford" / "already max" lines.
 void LvUpConfirm::init(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2488,6 +2571,8 @@ struct TuneLevel {
 static inline void tuneSetFire(TuneLevel* t, u8 v) { t->fire = v; }
 static inline u8 tuneU8(u8 v) { return v; }
 
+// Tune confirm: yes applies the levels (Merchant::levelup / ItemMgr, pesetas paid, sw->lv[]
+// stored) with the thanks line, no / B back to the type pick.
 void LvUpConfirm::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2558,11 +2643,13 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
     }
 }
 
+// Hides the confirm frame.
 void LvUpConfirm::quit(SUB_SCREEN* wk)
 {
     IdSub.unitPtr(0xFA, 0x1D)->rev_flag &= 0xF0;
 }
 
+// Prints item `id`'s name at the caption unit (IdSub 0xFC/0x1C) in message slot 1.
 void itemCaption(int id)
 {
     IdUnit* u = IdSub.unitPtr(0xFC, 0x1C);
@@ -2721,6 +2808,8 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
     }
 }
 
+// Shows the stock count digits (IdSub 6/0x1C) or the sold-out unit (0xF2) for the cursor item;
+// sw 0 hides both.
 void stockNumDisp(int num, int sw)
 {
     IdUnit* u = IdSub.unitPtr(6, 0x1C);
@@ -2874,6 +2963,8 @@ static int itemTexNo(int id)
     return 0;
 }
 
+// Rotation / scale of the shown item model from the shop_item_place table (degrees), identity when
+// the item has no entry.
 void setOrientation(int id, cModel* m)
 {
     int i;
@@ -2889,6 +2980,8 @@ void setOrientation(int id, cModel* m)
     m->matUpdate();
 }
 
+// Shows the cursor item in the display box (IdSub 0xF3/0x1C): a texture icon when itemTexNo knows
+// it, else its 3D piece model on MapMgr work 1 (lit, oriented, placed under the unit); sw 0 hides.
 void dispItem(int id, int sw)
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);
@@ -2927,6 +3020,7 @@ void dispItem(int id, int sw)
     itemCamera = pG->Cam;
 }
 
+// Screen (+-240 half height) -> world x/y at the camera distance, z 0.
 void screenPos2worldPos(Vec* scr, Vec* out)
 {
     Camera* cam = &pG->Cam;
@@ -2938,6 +3032,7 @@ void screenPos2worldPos(Vec* scr, Vec* out)
     out->z = 0.0f;
 }
 
+// Per frame: keeps the shown item model under the display box unit's screen position.
 void moveItem()
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);

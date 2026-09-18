@@ -87,6 +87,8 @@ void tvibListLineDraw(VibDataEntry* e, u32 col, int x, int y);
 void tvibFileSave(const char* path);
 void tvibFileLoad(const char* path);
 
+// Tool routines by TvibWork::mode: 0 pattern list, 1 grid edit, 2 key edit, 3 list menu, 4 edit
+// menu, 5 loop test setup, 6 loop test, 7 save, 8 load.
 static void (*tvibFunc[9])() = {
     tvib_R0_Select,  tvib_R0_Edit,       tvib_R0_EditVib,     tvib_R0_SelectMenu, tvib_R0_EditMenu,
     tvib_R0_VibLoopSet, tvib_R0_VibLoopTest, tvib_R0_Save,    tvib_R0_Load,
@@ -112,6 +114,7 @@ static s16 frame_w = 30;
 // Store through a reference: keeps the following global (pG) load below the store.
 static inline void ISet(int& d, int v) { d = v; }
 
+// Vibration editor entry (debug menu 15): init, then tvibFunc[mode] and the display every frame.
 void ToolVibEdit()
 {
     tvibInit();
@@ -126,6 +129,8 @@ void ToolVibEdit()
     }
 }
 
+// Tool start: work on the Debug heap (error text when it fails), default flags, current stage /
+// room, pattern list mode.
 void tvibInit()
 {
     TvibWork*& wp = tvib.p;
@@ -149,6 +154,7 @@ void tvibInit()
     V->cursor = 0;
 }
 
+// Frees the work, restores the flags, ends the task.
 void tvibExit()
 {
     TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
@@ -157,6 +163,9 @@ void tvibExit()
     TaskExit();
 }
 
+// Mode 0, the 64-pattern list (8 rows per column): d-pad moves, A edits the pattern, START opens
+// the list menu, X plays the pattern on the pad (L+X sets up a loop test), Y copies / L+Y pastes
+// a pattern, B stops the vibration.
 static void tvib_R0_Select()
 {
     TvibData* d;
@@ -228,6 +237,7 @@ static void tvib_R0_Select()
     }
 }
 
+// Mode 3, the list menu: CANCEL / SAVE / LOAD / LIST CLEAR / EXIT.
 static void tvib_R0_SelectMenu()
 {
     V->dispFlag |= 4;
@@ -276,6 +286,7 @@ static void tvib_R0_SelectMenu()
     tvibSelectMenuDisp();
 }
 
+// Mode 4, the edit menu (START in the grid): B / START back to the grid.
 static void tvib_R0_EditMenu()
 {
     V->dispFlag |= 4;
@@ -287,6 +298,10 @@ static void tvib_R0_EditMenu()
     }
 }
 
+// Mode 1, the level/frame grid of one pattern: up/down level 0..8, left/right frame (X x30);
+// Y adds a key at the cursor (its end then edited), Z deletes the current key, L/R pick a key,
+// A grabs the key start / end under the cursor (key edit mode), X plays the pattern, B back to
+// the list, START the edit menu.
 static void tvib_R0_Edit()
 {
     TvibData* d = &V->list[V->listNo];
@@ -403,6 +418,8 @@ static void tvib_R0_Edit()
     }
 }
 
+// Mode 2, one key: L/R select its start / end; up/down change that side's level, left/right move
+// the start (keeping the end) or stretch the end; X plays; A/B/Y back to the grid.
 static void tvib_R0_EditVib()
 {
     TvibData* d = &V->list[V->listNo];
@@ -496,6 +513,8 @@ static void tvib_R0_EditVib()
     }
 }
 
+// Mode 5: left/right set the loop length in frames (1..1999); A/X start the loop test, B/START
+// back.
 static void tvib_R0_VibLoopSet()
 {
     // the work pointer is read BEFORE the first test (`lwz r11,tvib@l` above the `beq`, and the PRE'd
@@ -528,6 +547,7 @@ static void tvib_R0_VibLoopSet()
     }
 }
 
+// Mode 6: replays the pattern every loopFrame frames (the grid cursor follows); B stops it.
 static void tvib_R0_VibLoopTest()
 {
     TvibData* d = &V->list[V->listNo];
@@ -547,6 +567,8 @@ static void tvib_R0_VibLoopTest()
     }
 }
 
+// Mode 7, SAVE: rows server / local (x: / d:), core or room file, stage and room numbers; A writes
+// the .vib, B/START back to the list menu.
 static void tvib_R0_Save()
 {
     V->dispFlag |= 4;
@@ -613,6 +635,7 @@ static void tvib_R0_Save()
     }
 }
 
+// Mode 8, LOAD: same rows as SAVE; A reads the .vib.
 static void tvib_R0_Load()
 {
     V->dispFlag |= 4;
@@ -677,6 +700,7 @@ static void tvib_R0_Load()
     }
 }
 
+// d:\bio4/room/etc/core/core.vib or d:\bio4/room/st<n>/r<room>/r<room>.vib.
 void tvibGetFileNameLocal(int core)
 {
     if (core == 0) {
@@ -687,6 +711,7 @@ void tvibGetFileNameLocal(int core)
     }
 }
 
+// x:\soft/Room/etc/core/core.vib or x:\soft/Room/st<n>/r<room>/r<room>.vib.
 void tvibGetFileNameServer(int core)
 {
     if (core == 0) {
@@ -697,6 +722,8 @@ void tvibGetFileNameServer(int core)
     }
 }
 
+// Draws the frame of the current mode: the pattern list or the edit grid with the key graph, the
+// cursor and the help lines.
 void tvibMainFrameDisp()
 {
     S16Vec v[4];
@@ -784,6 +811,7 @@ void tvibMainFrameDisp()
     tvibListVibDraw();
 }
 
+// Draws the list menu rows with the cursor.
 void tvibSelectMenuDisp()
 {
     s16 x = menu_x;
@@ -811,6 +839,7 @@ void tvibSelectMenuDisp()
     eprintf2(8, 14, x, y + 112, 0, 0, "L+Z: DELETE DATA ");
 }
 
+// Draws the SAVE rows (server / local, core / room, stage, room, path).
 void tvibSaveMenuDisp()
 {
     s16 x = menu_x + 200;
@@ -859,6 +888,7 @@ void tvibSaveMenuDisp()
     eprintf2(8, 14, x, y, 4, 0, ">");
 }
 
+// Draws the LOAD rows.
 void tvibLoadMenuDisp()
 {
     s16 x = menu_x + 200;
@@ -907,6 +937,7 @@ void tvibLoadMenuDisp()
     eprintf2(8, 14, x, y, 4, 0, ">");
 }
 
+// Draws the edit menu.
 void tvibEditMenuDisp()
 {
     s16 x = menu_x + 200;
@@ -922,6 +953,7 @@ void tvibEditMenuDisp()
     eprintf2(8, 14, x, y + 112, 0, 0, "L:   Back vib");
 }
 
+// Draws the loop length row.
 void tvibVibLoopSetDisp()
 {
     s16 x = menu_x;
@@ -931,6 +963,8 @@ void tvibVibLoopSetDisp()
     eprintf2(8, 14, x, y + 16, 4, 0, "LOOP FRAME = %d", V->loopFrame);
 }
 
+// Draws the edit grid: level rows, frame columns from `scroll`, the pattern's keys as lines and
+// the cursor cell.
 void tvibEditFrameDisp()
 {
     TvibData* d = &V->list[V->listNo];
@@ -1040,6 +1074,7 @@ void tvibEditFrameDisp()
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
 }
 
+// Draws the mode-specific help / status lines under the grid.
 void tvibModeFrameDisp()
 {
     S16Vec v[4];
@@ -1144,6 +1179,7 @@ void tvibModeFrameDisp()
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 4);
 }
 
+// Draws every key of pattern `d` on the grid (the edited one highlighted).
 void tvibFrameVibDraw(TvibData* d)
 {
     s16 i;
@@ -1177,6 +1213,8 @@ void tvibFrameVibDraw(TvibData* d)
     }
 }
 
+// One key as a line from (wait, lvl0) to (wait + time, lvl1) on the grid, clipped to the shown
+// frame window.
 void tvibFrameLineDraw(VibDataEntry* e, u32 col)
 {
     S16Vec v[2];
@@ -1217,6 +1255,7 @@ void tvibFrameLineDraw(VibDataEntry* e, u32 col)
     }
 }
 
+// A square mark at grid cell (frame, level).
 void tvibFrameMarkDraw(int lv, int frame, u32 col, u32 size)
 {
     S16Vec v[4];
@@ -1283,6 +1322,7 @@ void tvibFrameMarkDraw(int lv, int frame, u32 col, u32 size)
     TprimDrawFrameFn_s16(v, (GXColor*) &c, 4);
 }
 
+// Draws a miniature of every pattern in the list cells.
 void tvibListVibDraw()
 {
     S16Vec v[2];
@@ -1341,6 +1381,7 @@ void tvibListVibDraw()
     }
 }
 
+// One key as a line inside a list cell at (x, y).
 void tvibListLineDraw(VibDataEntry* e, u32 col, int x, int y)
 {
     S16Vec v[2];
@@ -1364,6 +1405,8 @@ void tvibListLineDraw(VibDataEntry* e, u32 col, int x, int y)
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
 }
 
+// Writes the .vib image: 64 offsets (0 = empty pattern) followed by the used patterns (count +
+// keys).
 void tvibFileSave(const char* path)
 {
     TvibFile* f = (TvibFile*) V->file;
@@ -1406,6 +1449,7 @@ void tvibFileSave(const char* path)
     }
 }
 
+// Reads a .vib image into the 64-pattern list (empty offsets clear the pattern).
 void tvibFileLoad(const char* path)
 {
     int size;

@@ -98,6 +98,8 @@ void read_main(const char* path, ConsTable* t);
 
 static void (*consFunc[])() = {soft_menu, soft_room, soft_core, soft_save, quit};
 
+// CONS TOOL entry (debug menu 14): suspends the game task, runs ConsMove every frame until it
+// returns 0, restores the tool flags and ends.
 void ToolCons()
 {
     TaskSuspend(0);
@@ -112,6 +114,8 @@ void ToolCons()
     TaskExit();
 }
 
+// Tool start: log window with the build stamp, clears the work and reads the core table
+// (etc/core/core.cns) and the room table (st<n>/r<room>/r<room>.cns) from the host.
 void toolInit()
 {
     char path[256];
@@ -132,6 +136,8 @@ void toolInit()
     read_main(path, &pCons->room);
 }
 
+// Frame: copies both pads into the work, counts the blink counter, runs consFunc[step] (menu,
+// room, core, save, quit); returns `alive`.
 int ConsMove()
 {
     eprintf(0x18, 0xE, 0, 0, "CONS TOOL [Ver.%s %s]", "Nov 25 2004", "10:05:27");
@@ -157,6 +163,7 @@ static inline void dispList(int x, int y, char** tbl, int n)
     }
 }
 
+// MENU: ROOM / CORE / SAVE / QUIT (step = row + 1); B jumps to QUIT.
 static void soft_menu()
 {
     eprintf(0x20, 0x2A, 4, 0, "MENU");
@@ -177,6 +184,7 @@ static void soft_menu()
     }
 }
 
+// R<room> CONSTANT TABLE: edits the room's table (cons_edit); B back.
 static void soft_room()
 {
     eprintf(0x20, 0x2A, 4, 0, "R%03X CONSTANT TABLE", pG->room_id);
@@ -187,6 +195,7 @@ static void soft_room()
     }
 }
 
+// CORE CONSTANT TABLE: edits the core table; B back.
 static void soft_core()
 {
     eprintf(0x20, 0x2A, 4, 0, "CORE CONSTANT TABLE");
@@ -197,6 +206,9 @@ static void soft_core()
     }
 }
 
+// Table editor: 12 rows (ENEMY / OBJ / ESP / ESPGEN / CTRL / LIGHT / PARTS / MODELINFO / PRIM NUM,
+// EVT, SAT, EAT) with their values; up/down pick, left/right change within cons_tbl's min..max
+// (A x10, X x100; the PRIM row steps by 0x100), Y toggles the row's enable bit, B back to the menu.
 void cons_edit(ConsTable* t)
 {
     u32 i;
@@ -263,6 +275,7 @@ void cons_edit(ConsTable* t)
     }
 }
 
+// SAVE YES/NO: writes both tables to the host (save_main) and logs it.
 static void soft_save()
 {
     char path[256];
@@ -295,6 +308,7 @@ static void soft_save()
     }
 }
 
+// Writes a .cns image: count (highest enabled row + 1), enable words, values; `num` back to 12.
 void save_main(const char* path, ConsTable* t)
 {
     u32 s = t->num >> 5;
@@ -318,6 +332,7 @@ void save_main(const char* path, ConsTable* t)
     t->num = 0xC;
 }
 
+// QUIT ? YES/NO: YES clears `alive`.
 static void quit()
 {
     eprintf(0x20, 0x2A, 4, 0, "QUIT ?");
@@ -350,6 +365,7 @@ static void quit()
     }
 }
 
+// Blinking ">" at text cell (x, y).
 void printCursor(int x, int y)
 {
     if (!(pCons->counter & 8)) {
@@ -357,6 +373,7 @@ void printCursor(int x, int y)
     }
 }
 
+// Resets the menu cursor and the prompt init flag.
 void clearWork()
 {
     pCons->cursor = 0;
@@ -365,6 +382,8 @@ void clearWork()
     pCons->f18 = pCons->f1C = pCons->f20 = pCons->f24 = 0.0f;
 }
 
+// Reads a .cns image (count, enable words, values) into `t`; an empty table with a warning when
+// the file is missing. `num` is forced to the 12 editable rows.
 void read_main(const char* path, ConsTable* t)
 {
     u32* buf;

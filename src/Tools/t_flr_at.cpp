@@ -142,6 +142,8 @@ static void preview_init();
 static void preview_main();
 static void preview_exit();
 
+// Tool start: default tool flags (pause, debug displays, tool light 1), the work allocated, the
+// room's FlrAt system pointer saved (the tool installs its own records), start with DATA LOAD.
 void flrAtInit()
 {
     int zero = 0;
@@ -180,6 +182,7 @@ void flrAtInit()
     pW->editType = -1;
 }
 
+// EXIT: restores the FlrAt system pointer, the tool light and flags, frees the work, ends the task.
 static void flrAtExit()
 {
     TOOL_FLAG(OFS_DISP_FLG) = pW->saveDisp;
@@ -199,6 +202,8 @@ static TOOL_MENU flrAtMainMenuTbl[5] = {
     {1, "EXIT", flrAtExit},
 };
 
+// Main menu: SE DATA EDIT / BGM DATA EDIT (editType 0 / 1 -> the sub menu), DATA LOAD, DATA SAVE,
+// EXIT.
 static void flrAtMainMenu()
 {
     s8 sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, flrAtMainMenuTbl, sizeof(flrAtMainMenuTbl), &Joy[0]);
@@ -237,6 +242,7 @@ static TOOL_MENU flrAtSubMenuTbl[3] = {
     {1, "DATA LOAD", NULL},
 };
 
+// Edit type sub menu: AREA EDIT / PREVIEW / DATA LOAD; B back to the main menu.
 static void flrAtSubMenu()
 {
     s8 sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->subCursor, flrAtSubMenuTbl, sizeof(flrAtSubMenuTbl), &Joy[0]);
@@ -262,6 +268,8 @@ static void flrAtSubMenu()
     }
 }
 
+// AREA EDIT: L/R pick the record of the edit type (SE records 0.., BGM records at 0x80), shows its
+// type; sub routines edit menu, area move, data input, area create.
 static void flrAtAreaEdit()
 {
     void (*routine[4])() = {flrAtAreaEdit_EditMenu, flrAtAreaEdit_AreaMove, flrAtAreaEdit_DataInput,
@@ -314,6 +322,8 @@ static TOOL_MENU flrAtEditMenu[6] = {
     {1, "AREA DELETE", flrAtAreaEdit_AreaDelete},
 };
 
+// Record menu: existing -> AREA MOVE / DATA INPUT / AREA COPY / PASTE / COPY BUFF CLEAR / DELETE,
+// empty -> AREA CREATE / PASTE / CLEAR; B back.
 static void flrAtAreaEdit_EditMenu()
 {
     s8 sel;
@@ -358,6 +368,7 @@ static TOOL_MENU flrAtShapeMenu[2] = {
     {1, "CIRCLE", NULL},
 };
 
+// AREA CREATE: SQUARE / CIRCLE shape at the player, a fresh record of the edit type's first id.
 static void flrAtAreaEdit_AreaCreate()
 {
     s8 sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, flrAtShapeMenu, sizeof(flrAtShapeMenu), &Joy[0]);
@@ -384,6 +395,7 @@ static void flrAtAreaEdit_AreaCreate()
     pW->step2 = 0;
 }
 
+// Copies the record into the edit type's copy buffer.
 static void flrAtAreaEdit_AreaCopy()
 {
     pW->copyBuf = *pCur;
@@ -392,11 +404,13 @@ static void flrAtAreaEdit_AreaCopy()
     pW->copyValid = 1;
 }
 
+// Overwrites the record with the copy buffer.
 static void flrAtAreaEdit_AreaPaste()
 {
     *pCur = pW->copyBuf;
 }
 
+// Empties the copy buffer.
 static void flrAtAreaEdit_CopyBuffClear()
 {
     memclr_asm(&pW->copyBuf, sizeof(TFlrAt));
@@ -404,12 +418,14 @@ static void flrAtAreaEdit_CopyBuffClear()
     pW->copyValid = 0;
 }
 
+// Clears the record.
 static void flrAtAreaEdit_AreaDelete()
 {
     pCur->be_flg &= ~1;
     pW->editCursor = 0;
 }
 
+// Draws every record's area in its type colour (the current one bright) and the player panel.
 void flrAtAreaEdit_disp()
 {
     int i;
@@ -466,6 +482,7 @@ void flrAtAreaEdit_disp()
     eprintf(0x1AE, 0x64, 0, 0, "A:%f", pPL->ang.y);
 }
 
+// AREA MOVE: the shared AreaDataEdit editor on the record's area; B back.
 static void flrAtAreaEdit_AreaMove()
 {
     if (pCur->be_flg & 1) {
@@ -483,6 +500,8 @@ static void flrAtAreaEdit_AreaMove()
 static void (*flrAtInputRoutine[4])() = {flrAtDataInput_sedata, flrAtDataInput_se_volctrl, flrAtDataInput_bgm_volctrl,
                                           flrAtDataInput_thunder_volctrl};
 
+// DATA INPUT: the editor of the record's id (foot SE / SE volume / BGM volume / thunder volume);
+// B back.
 static void flrAtAreaEdit_DataInput()
 {
     if (pCur->be_flg & 1) {
@@ -516,6 +535,8 @@ static void flrAtAreaEdit_DataInput()
 #define SE_TYPE_MAX (SE_TYPE_NUM - 1)
 #define BGM_TYPE_NUM (sizeof(flrAtBgmType) / sizeof(flrAtBgmType[0]))
 #define BGM_TYPE_MAX (BGM_TYPE_NUM - 1)
+// The rows every type shares: ID (cycles the ids of the edit type), GROUP NO, PRIORITY; `sel` is
+// the cursor row, left/right change it.
 void flrAtDataInput_common_menu(int sel)
 {
     int i;
@@ -581,6 +602,7 @@ static TOOL_MENU flrAtSeMenu[8] = {
 };
 static const char* flrAtSeFlagName[8] = {"PL FOOT", "EM FOOT", "CARTRIDGE", "", "", "", "", ""};
 
+// FOOT SE: common rows + FLAG, SE TYPE, EFF TYPE, CARTRIDGE TYPE, DEF CARTRIDGE.
 static void flrAtDataInput_sedata()
 {
     s16 x;
@@ -657,6 +679,7 @@ static TOOL_MENU flrAtVolMenu[3] = {
     {1, "PRIORITY", NULL},
 };
 
+// SE VOL CTRL: common rows only.
 static void flrAtDataInput_se_volctrl()
 {
     ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->inputCursor, flrAtVolMenu, sizeof(flrAtVolMenu), &Joy[0]);
@@ -682,6 +705,8 @@ static TOOL_MENU flrAtBgmMenu[16] = {
     {1, " FADE TIME", NULL},
 };
 
+// BGM VOL CTRL: common rows + per block (1, 2): ON/OFF, CHANGE TIME, VOL SET/RESET, SET VOL; the
+// stream block / number / volume rows.
 static void flrAtDataInput_bgm_volctrl()
 {
     s16 x;
@@ -845,6 +870,7 @@ static TOOL_MENU flrAtThunderMenu[5] = {
     {1, "SET SVOL", NULL},
 };
 
+// THUNDER VOL: common rows + SET VOL, SET SVOL.
 static void flrAtDataInput_thunder_volctrl()
 {
     s16 x;
@@ -915,6 +941,9 @@ static inline u8 flrAtColU8(int c)
     return c;
 }
 
+// DATA LOAD: picks server (d:) / local (x:), stage and room with the d-pad, "DATA LOAD OK?" YES/NO;
+// reads r<room>.fse into the records (all, or only the edit type's) and installs them as the room's
+// FlrAt data.
 static void flrAtDataLoad()
 {
     const char* title[3] = {"[ALL DATA LOAD]", "[SE DATA LOAD]", "[BGM DATA LOAD]"};
@@ -1136,6 +1165,8 @@ static TOOL_MENU flrAtSaveMenu[3] = {
     {1, "DON'T SAVE", NULL},
 };
 
+// DATA SAVE: SERVER / LOCAL / DON'T SAVE; records are written by priority (15 first) with their
+// index, header count = the saved records.
 static void flrAtDataSave()
 {
     char pathX[0x40];
@@ -1230,6 +1261,7 @@ static void flrAtDataSave()
     }
 }
 
+// CAMERA MODE (START): the debug camera moves with pad 1.
 void flrAtData_DebugCamera()
 {
     CamDbg.move(&pG->Cam, &Joy[0], 0);
@@ -1241,11 +1273,13 @@ void flrAtData_DebugCamera()
 
 static void (*flrAtPreviewRoutine[3])() = {preview_init, preview_main, preview_exit};
 
+// PREVIEW: init / main / exit sub routines.
 static void flrAtPreview()
 {
     flrAtPreviewRoutine[pW->sub]();
 }
 
+// Un-pauses the player / HUD for the preview.
 static void preview_init()
 {
     ISet(pW->dispType, -1);
@@ -1262,6 +1296,8 @@ static void preview_init()
     pW->step2 = 0;
 }
 
+// PREVIEW MODE: the game runs with the edited records, the player's hit points are drawn; START
+// ends it.
 static void preview_main()
 {
     pW->timer++;
@@ -1275,6 +1311,7 @@ static void preview_main()
     }
 }
 
+// Restores the tool flags, back to the sub menu.
 static void preview_exit()
 {
     TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
@@ -1297,6 +1334,9 @@ static void (*flrAtRoutine[6])() = {flrAtMainMenu, flrAtAreaEdit, flrAtPreview, 
                                      flrAtSubMenu};
 static const char* flrAtTitleName[3] = {"SE DATA EDIT", "BGM DATA EDIT", NULL};
 
+// Floor attribute tool entry (debug menu 21): init, then every frame the panel position (sub
+// stick), START toggles the debug camera, Z the tool light, and flrAtRoutine[mode] (main menu,
+// area edit, preview, data load, data save, sub menu).
 void ToolFlrAt()
 {
     FlrAtWork*& wp = flrAtWk.p;

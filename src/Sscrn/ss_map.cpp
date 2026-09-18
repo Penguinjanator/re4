@@ -19,6 +19,7 @@ extern "C" inline void LightSetModel2(cModel* m)
 }
 
 struct SUB_SCREEN;
+// The `delete` that instantiates ~Widget<SUB_SCREEN> here (SsMapMain::quit deletes its widgets).
 static inline void ssMapWidgetDelete(Widget<SUB_SCREEN>* w)
 {
     delete w;
@@ -368,19 +369,24 @@ static inline u32 flagBit(u32 tbl, u32 no)
 {
     return *(u32*) ((no >> 5) * 4 + tbl) & (0x80000000 >> (no & 0x1F));
 }
+// Stage progress flag bit `no` (the Item_find_flg word run in pG).
 static inline u32 stageFlag(u32 no)
 {
     return flagBit((u32) &pG->Item_find_flg, no);
 }
+// Door unlock flag bit `no` (pG->door_unlock).
 static inline u32 doorFlag(u32 no)
 {
     return flagBit((u32) pG->door_unlock, no);
 }
+// Item taken flag bit `no` (pG->item_flags).
 static inline u32 itemFlag(u32 no)
 {
     return flagBit((u32) pG->item_flags, no);
 }
 
+// Map stage of the current progress: 4 the island (stage_no 4), 3 / 2 by the Scenario_flg chapter
+// bits (castle / village-end), 1 the village once Item_find_flg bit 2 is set, else 0 (prologue).
 int getStageNo()
 {
     if (pG->stage_no == 4) {
@@ -398,6 +404,9 @@ int getStageNo()
     return 0;
 }
 
+// Map area 0..17 of `room` within getStageNo(): 0/1 village, 2..4 the castle parts (2a/2b/2c),
+// 5..10 the island parts (3a..3f), 11..17 the stage 4 rooms; the map area picks the
+// SS/cmn/map_objNN.dat file (mapAreaFilename) and every per-area table.
 int getAreaNo(u32 room)
 {
     switch (getStageNo()) {
@@ -464,6 +473,8 @@ int getAreaNo(u32 room)
     }
 }
 
+// Derives the map viewport from the frame unit (IdSub 0xFE/0x10): a 4:3 box of the frame size at
+// its screen position (SsMapWork cx/cy/sw/sh and the GX viewport in 640x448 field coordinates).
 void mapInitViewport(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0xFE, 0x10);
@@ -488,6 +499,8 @@ void mapInitViewport(SUB_SCREEN* wk)
     wk->pMapWk->vp.h = sy * 448.0f / 480.0f;
 }
 
+// Per frame: queues the map viewport before OT 9 (the room models) and the full screen viewport
+// after OT 0xC; the screen viewport is captured once from Screen.
 void mapChangeViewport(SUB_SCREEN* wk)
 {
     if (!map_vp_init[0]) {
@@ -504,11 +517,13 @@ void mapChangeViewport(SUB_SCREEN* wk)
     AddOtDirect(0xC, &map_vp_save, (void (*)()) setViewport, 7, 0x1000, 0, 0.0f);
 }
 
+// OT callback: GXSetViewport from a MapViewport.
 static void setViewport(MapViewport* vp)
 {
     GXSetViewport(vp->x, vp->y, vp->w, vp->h, 0.0f, 1.0f);
 }
 
+// Shows the stage title unit (IdSub 0x31..0x33 of 0x10) for wk->stage 1..3.
 void stageNameDisp(SUB_SCREEN* wk)
 {
     u8 id;
@@ -533,6 +548,8 @@ void stageNameDisp(SUB_SCREEN* wk)
     IdSub.unitPtr(id, 0x10)->be_flag |= 8;
 }
 
+// Places a character mark unit at the map screen position of matrix `m`'s translation, rotated to
+// its facing (z axis, degrees); skipped when the position projects behind the camera.
 void markCharDisp(IdUnit* u, Mtx m)
 {
     Vec pos;
@@ -553,6 +570,8 @@ void markCharDisp(IdUnit* u, Mtx m)
     }
 }
 
+// Shows (sw) or hides the player mark (IdSub 0/0x14, pl_mat_map) and the partner mark (1/0x14,
+// subMapMat, only while a partner exists).
 void markPlayerDisp(SUB_SCREEN* wk, int sw)
 {
     IdUnit* u;
@@ -574,6 +593,8 @@ void markPlayerDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Constructs the goal mark model in the map work: the area file's goal parts (sub-file 6, one
+// parts per possible goal) or the common single mark; its parts positions are the goal candidates.
 void markGoalInit(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -597,6 +618,7 @@ void markGoalInit(SUB_SCREEN* wk)
     mdl->be_flag &= ~2;
 }
 
+// Destroys the goal mark model.
 void markGoalQuit(SUB_SCREEN* wk)
 {
     cModel* mdl = wk->pMapWk->pGoal;
@@ -606,6 +628,8 @@ void markGoalQuit(SUB_SCREEN* wk)
     }
 }
 
+// Current goal position: the parts of the goal model whose stage flag (per-area table, the highest
+// set flag wins) is on, parts 0 when none. Always returns 1.
 int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
 {
     int none[1] = {0};
@@ -693,6 +717,7 @@ int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
     return 1;
 }
 
+// Shows (sw) the goal mark (IdSub 3/0x14) at the projected goal position, or hides it.
 void markGoalDisp(SUB_SCREEN* wk, int sw)
 {
     IdUnit* u = IdSub.unitPtr(3, 0x14);
@@ -712,6 +737,8 @@ void markGoalDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Constructs the merchant mark model (area file sub-file 7 or the common mark) whose parts are the
+// merchant positions.
 void markMerchantInit(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -735,6 +762,7 @@ void markMerchantInit(SUB_SCREEN* wk)
     mdl->be_flag &= ~2;
 }
 
+// Destroys the merchant mark model.
 void markMerchantQuit(SUB_SCREEN* wk)
 {
     cModel* mdl = wk->pMapWk->pMerchant;
@@ -809,6 +837,7 @@ int markMerchantPosition(SUB_SCREEN* wk, int no, Vec* pos)
     }
 }
 
+// IdSub unit (group 0x14) of merchant mark `no` 0..6: 2, then 5..0xA.
 int getMerchantMarkNo(int no)
 {
     int id = 2;
@@ -839,6 +868,7 @@ int getMerchantMarkNo(int no)
     return id;
 }
 
+// Shows (sw) the up to seven merchant marks at their projected positions, or hides them all.
 void markMerchantDisp(SUB_SCREEN* wk, int sw)
 {
     IdUnit* u;
@@ -867,6 +897,7 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Constructs the treasure mark model (area sub-file 8 or the common mark); nTreasure = its parts.
 void markTreasureInit(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -891,6 +922,7 @@ void markTreasureInit(SUB_SCREEN* wk)
     m->nTreasure = mdl->nParts;
 }
 
+// Destroys the treasure mark model.
 void markTreasureQuit(SUB_SCREEN* wk)
 {
     cModel* mdl = wk->pMapWk->pTreasure;
@@ -900,6 +932,7 @@ void markTreasureQuit(SUB_SCREEN* wk)
     }
 }
 
+// Position of treasure mark `no` (parts `no` of the treasure model).
 int markTreasurePosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
     cModel* p = wk->pMapWk->pTreasure->getPartsPtr(no);
@@ -947,6 +980,8 @@ int markTreasureExist(int no)
     return 0;
 }
 
+// Shows (sw) the treasure marks (IdNum i/0x15) at their positions with the "taken" overlay
+// (i + 0x10) on collected ones, or hides them.
 void markTreasureDisp(SUB_SCREEN* wk, int sw)
 {
     SsMapWork* m = wk->pMapWk;
@@ -990,6 +1025,8 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Constructs the blue medallion (sub-mission target) mark model (area sub-file 9 or the common
+// mark); nCoin = its parts.
 void markCoinInit(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -1014,6 +1051,7 @@ void markCoinInit(SUB_SCREEN* wk)
     m->nCoin = mdl->nParts;
 }
 
+// Destroys the medallion mark model.
 void markCoinQuit(SUB_SCREEN* wk)
 {
     cModel* mdl = wk->pMapWk->pCoin;
@@ -1023,6 +1061,7 @@ void markCoinQuit(SUB_SCREEN* wk)
     }
 }
 
+// Position of medallion mark `no`.
 int markCoinPosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
     cModel* p = wk->pMapWk->pCoin->getPartsPtr(no);
@@ -1031,11 +1070,14 @@ int markCoinPosition(SUB_SCREEN* wk, int no, Vec* pos)
     return 1;
 }
 
+// 1 while medallion `no` of `stage` is still unbroken (checkSubMissionTarget).
 int markCoinExist(int stage, int no)
 {
     return checkSubMissionTarget(stage, no);
 }
 
+// Shows (sw) the medallion marks (IdNum i/0x16, broken ones with the shot overlay) and the
+// remaining count digits (IdSub 0x14/0x15 of 0x10), or hides them.
 void markCoinDisp(SUB_SCREEN* wk, int sw)
 {
     SsMapWork* m = wk->pMapWk;
@@ -1111,6 +1153,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
     }
 }
 
+// Constructs the typewriter mark model (area sub-file 10 or the common mark); nSave = its parts.
 void markSaveInit(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -1135,6 +1178,7 @@ void markSaveInit(SUB_SCREEN* wk)
     m->nSave = mdl->nParts;
 }
 
+// Destroys the typewriter mark model.
 void markSaveQuit(SUB_SCREEN* wk)
 {
     cModel* mdl = wk->pMapWk->pSave;
@@ -1144,6 +1188,7 @@ void markSaveQuit(SUB_SCREEN* wk)
     }
 }
 
+// Position of typewriter mark `no`.
 int markSavePosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
     cModel* p = wk->pMapWk->pSave->getPartsPtr(no);
@@ -1152,6 +1197,7 @@ int markSavePosition(SUB_SCREEN* wk, int no, Vec* pos)
     return 1;
 }
 
+// Shows (sw) the typewriter marks (IdNum i/0x14) at their positions, or hides them.
 void markSaveDisp(SUB_SCREEN* wk, int sw)
 {
     SsMapWork* m = wk->pMapWk;
@@ -1350,6 +1396,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
     }
 }
 
+// Finds the display-flag row of `room` in a per-stage MapDispFlag table (0 when absent).
 MapDispFlag* searchMapDispFlag(u16 room, MapDispFlag* tbl, int n)
 {
     int i;
@@ -1546,11 +1593,13 @@ int mapRoomNum(MapRoomData* p)
     return *(int*) p->bin - 2;
 }
 
+// Model `no` (bin) of a room sub-file.
 void* mapBinAddr(MapRoomData* p, int no)
 {
     return (u8*) p->bin + ((u32*) p->bin)[no + 4];
 }
 
+// Floor collision `no` of a room sub-file (the hit tables follow the model offsets).
 cSatHeader* mapHitAddr(MapRoomData* p, int no)
 {
     u32* ofs = (u32*) (mapRoomNum(p) * 4 + (u32) p->bin);
@@ -1563,6 +1612,7 @@ cSatHeader* mapHitAddr(MapRoomData* p, int no)
     p->bin = SS_ARC_PTR(wk->pMapArea, ofs);     \
     p++;
 
+// Room list of the village map (area 0/1): room numbers -> map_obj1.dat sub-files; returns the count.
 int mapDataInit_St1(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1592,6 +1642,7 @@ int mapDataInit_St1(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of castle area 2a (map_obj2a.dat).
 int mapDataInit_St2A(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1626,6 +1677,7 @@ int mapDataInit_St2A(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of castle area 2b.
 int mapDataInit_St2B(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1644,6 +1696,7 @@ int mapDataInit_St2B(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of castle area 2c.
 int mapDataInit_St2C(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1653,6 +1706,7 @@ int mapDataInit_St2C(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3a.
 int mapDataInit_St3A(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1661,6 +1715,7 @@ int mapDataInit_St3A(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3b.
 int mapDataInit_St3B(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1673,6 +1728,7 @@ int mapDataInit_St3B(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3c.
 int mapDataInit_St3C(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1688,6 +1744,7 @@ int mapDataInit_St3C(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3d.
 int mapDataInit_St3D(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1700,6 +1757,7 @@ int mapDataInit_St3D(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3e.
 int mapDataInit_St3E(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1720,6 +1778,7 @@ int mapDataInit_St3E(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of island area 3f.
 int mapDataInit_St3F(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1732,6 +1791,7 @@ int mapDataInit_St3F(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area a (one room).
 int mapDataInit_St4A(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1740,6 +1800,7 @@ int mapDataInit_St4A(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area b.
 int mapDataInit_St4B(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1748,6 +1809,7 @@ int mapDataInit_St4B(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area c.
 int mapDataInit_St4C(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1756,6 +1818,7 @@ int mapDataInit_St4C(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area d.
 int mapDataInit_St4D(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1764,6 +1827,7 @@ int mapDataInit_St4D(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area e.
 int mapDataInit_St4E(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1772,6 +1836,7 @@ int mapDataInit_St4E(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area f.
 int mapDataInit_St4F(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1780,6 +1845,7 @@ int mapDataInit_St4F(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Room list of stage 4 area g (the remaining rooms).
 int mapDataInit_St4G(SUB_SCREEN* wk)
 {
     MapRoomData* p = map_room;
@@ -1795,6 +1861,8 @@ int mapDataInit_St4G(SUB_SCREEN* wk)
     return p - map_room;
 }
 
+// Fills map_room[] for the current area, counts the room models (map_obj_num: door models follow
+// them) and finds the current room's index (roomIdx, -1 when it is not on this map).
 void mapTblInit(SUB_SCREEN* wk)
 {
     int i;
@@ -1869,6 +1937,7 @@ struct MgrPtr {
 };
 #define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 
+// Map screen model managers: 0x80 model infos / 0x100 parts / 0x80 MapMgr works (no player model).
 void mapModelAlloc(SUB_SCREEN* wk)
 {
     wk->attr_flag |= 1;
@@ -1893,6 +1962,10 @@ static inline void mapModelLight(cModel* m)
     m->ot_type = 3;
 }
 
+// Builds the area's room models (one MapMgr work per model; room 0x10E is scaled x10), projects
+// the player / partner matrices onto the map floor (mapPositionCheck -> pl_mat_map, subMapMat) and
+// the player's floor number, then colours every model by mapColor (in the current room, other
+// floors get colour 5 + floor) from the colour units IdSub 0..10 of group 0x19.
 void mapModelInit(SUB_SCREEN* wk)
 {
     IdUnit* id[11];
@@ -1999,6 +2072,7 @@ void mapModelInit(SUB_SCREEN* wk)
     }
 }
 
+// Per frame: moves the MapMgr models and registers each one with the light manager (LightSetModel2).
 void mapModelDisp(SUB_SCREEN* wk)
 {
     cModel* m;
@@ -2015,6 +2089,9 @@ void mapModelDisp(SUB_SCREEN* wk)
     }
 }
 
+// Creates the area's door models (map_door_tbl) after the room models: parts -1 = the area file's
+// door set (sub-file 4), else the common door mesh placed on the given room parts with its angle.
+// Also relocates pMapArea from an offset to a pointer on the first call.
 void doorModelInit(SUB_SCREEN* wk)
 {
     SsMapWork* m;
@@ -2059,6 +2136,8 @@ void doorModelInit(SUB_SCREEN* wk)
     }
 }
 
+// Per frame door colouring: open (stage / unlock flag set, or no flag) takes IdSub 0x10/0x19's
+// colour, locked 0x11, locked with the key item in the inventory 0x12; parts bit 7 skips the entry.
 void doorModelDisp(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -2111,6 +2190,7 @@ void doorModelDisp(SUB_SCREEN* wk)
     }
 }
 
+// Map camera: top-down (up = -z) at the stage's whole-map position; re-enables Key input.
 void mapCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     mapCameraEntire(wk, &cam->param);
@@ -2121,6 +2201,8 @@ void mapCameraInit(SUB_SCREEN* wk, Camera* cam)
     wk->Key_disable = 0;
 }
 
+// Map scrolling in MapRead: d-pad/stick (Key bits 24..27) move the camera over the map at a speed
+// scaled by the zoom, L/R (bits 22/23) change height between zoomInLimit and zoomOutLimit.
 void mapCameraMove(SUB_SCREEN* wk)
 {
     Vec d;
@@ -2165,11 +2247,13 @@ void mapCameraMove(SUB_SCREEN* wk)
     }
 }
 
+// Camera height of the whole-stage view (map_cam_entire of the stage).
 f32 zoomOutLimit()
 {
     return map_cam_entire[(s8) SubScreenWk.stage].pos.y;
 }
 
+// Whole-stage camera of the stage into `out`; swaps the "zoom in" / "zoom out" button hints.
 void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
 {
     *out = map_cam_entire[(s8) wk->stage];
@@ -2178,11 +2262,14 @@ void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
     IdSub.unitPtr(0, 0x1D)->rev_flag |= 0xF;
 }
 
+// Closest camera height: 4000 units of half-width at the current fov.
 f32 zoomInLimit()
 {
     return 4000.0f / tanf(pG->Cam.param.fovy * 0.5f * 3.1415927f / 180.0f);
 }
 
+// Zoomed camera into `out`: centred between the player and the goal, high enough to frame both
+// (4:3), clamped to the zoom limits; swaps the button hints.
 void mapCameraZoomIn(SUB_SCREEN* wk, CameraParam* out)
 {
     Vec pl;
@@ -2244,6 +2331,7 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     return t >= 1.0f;
 }
 
+// Area data file name: SS/cmn/map_obj<1|2a..2c|3a..3f|4a..4g>.dat for map area 0..17.
 void mapAreaFilename(int area, char* name)
 {
     switch (area) {
@@ -2304,6 +2392,8 @@ void mapAreaFilename(int area, char* name)
     }
 }
 
+// Map screen loader: skips the previous screen's exit (state 2) when opened directly as
+// SS_OPEN_MAP (type 2, the in-game map key).
 void SsMapInit::init(SUB_SCREEN* wk)
 {
     if (wk->type == 2) {
@@ -2313,6 +2403,10 @@ void SsMapInit::init(SUB_SCREEN* wk)
     }
 }
 
+// Loads the map screen: state 0 run the previous screen's scrn_out_func and drop its ids, 1 one
+// frame wait, 2 hide the HUD, read SS/<lang>/ss_map.dat into the puzzle slot and switch to the map
+// model managers (no character model), 3 wait (archive -> pMapCmn, the area archive offset ->
+// pMapArea), 4 fade in for SS_OPEN_MAP and transit to SsMapMain.
 void SsMapInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -2378,6 +2472,11 @@ void SsMapInit::move(SUB_SCREEN* wk)
     }
 }
 
+// Builds the map screen: the zoom/mode widgets (MapFocus -> MapZoomIn <-> MapRead/MapZoomOut ->
+// MapEntire, MapModeSelect from Entire/Read), id textures and unit groups (0x19 room colours,
+// IdNum 0x14..0x16 typewriter/treasure/medallion marks, 0x14 character marks, 0x10 frame, 0x1D
+// button hints; hints for marks not yet available hidden), lights, the SsMapWork, viewport and
+// camera; area from the room number; state 2 / step 0 = load the area data.
 void SsMapMain::init(SUB_SCREEN* wk)
 {
     focus = new MapFocus;
@@ -2458,6 +2557,8 @@ int scf_check_merchant()
     return mark_model_tbl[m->area][1];
 }
 
+// Treasure marks are shown when the area has them and the stage's treasure map item is owned
+// (0xA9 village, 0x54 castle, 0x55 island).
 int scf_check_treasure()
 {
     int area = SubScreenWk.pMapWk->area;
@@ -2489,6 +2590,8 @@ int scf_check_treasure()
     return mark_model_tbl[area][2];
 }
 
+// Medallion marks are shown when the area has them; in the village only with the request note
+// (item 0xB0) or the mission started (Scenario_flg bit 22).
 int scf_check_submission()
 {
     SsMapWork* m = SubScreenWk.pMapWk;
@@ -2502,11 +2605,17 @@ int scf_check_submission()
     return mark_model_tbl[m->area][3];
 }
 
+// Typewriter marks are shown when the area has them (mark_model_tbl column 4).
 int scf_check_typewriter()
 {
     return mark_model_tbl[SubScreenWk.pMapWk->area][4];
 }
 
+// Map screen frame. state 0 runs the zoom widget chain (in MapRead: Y / B-or-Z on the in-game map
+// exit the sub screen via link 4, B opens the main menu tab row), 1 the tab row (0 items, 1 case,
+// 2 back, 3 files, 4 exit), 2 waits for the area load. step 0 reads the area file into pMapArea,
+// 1 builds the room/door/mark models, 2 draws them every frame with the marks enabled by the mode
+// bits (map_mode) and the scf_check_* availability.
 void SsMapMain::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -2635,6 +2744,7 @@ void SsMapMain::move(SUB_SCREEN* wk)
     }
 }
 
+// Leaving the map: deletes the widgets and mark models, frees the map work, installs sscrn_map_out.
 void SsMapMain::quit(SUB_SCREEN* wk)
 {
     ssWidgetDelete(focus);
@@ -2654,6 +2764,7 @@ void SsMapMain::quit(SUB_SCREEN* wk)
     wk->scrn_out_func = sscrn_map_out;
 }
 
+// Starts the map frame's close animation (IdSub 0/0x10) and fades the button hints.
 void sscrn_map_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0, 0x10);
@@ -2664,6 +2775,8 @@ void sscrn_map_out_init(SUB_SCREEN* wk)
     IdSub.unitPtr(3, 0x1D)->rev_flag |= 0xF;
 }
 
+// Exit routine (scrn_out_func): at frame 15 of the close animation frees the map models and kills
+// the map id groups; 1 when the animation ended.
 static int sscrn_map_out(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0, 0x10);
@@ -2681,6 +2794,7 @@ static int sscrn_map_out(SUB_SCREEN* wk)
     return 0;
 }
 
+// First widget: starts the zoom from the current camera to the player/goal view (MapZoomIn).
 void MapFocus::move(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -2690,6 +2804,8 @@ void MapFocus::move(SUB_SCREEN* wk)
     transit(0, wk);
 }
 
+// Whole-stage view: A/B zoom in (link 0), X (Key bit 17) opens the mark mode menu (link 1, returns
+// here).
 void MapEntire::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0xC0000000) {
@@ -2704,12 +2820,14 @@ void MapEntire::move(SUB_SCREEN* wk)
     }
 }
 
+// Zoom-in animation start (10 frames).
 void MapZoomIn::init(SUB_SCREEN* wk)
 {
     count = 0;
     SndCall(0, 4, 0, 0, 0, 0);
 }
 
+// Interpolates the camera to the zoomed view; A reverses into MapZoomOut, done -> MapRead.
 void MapZoomIn::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x80000000) {
@@ -2725,12 +2843,14 @@ void MapZoomIn::move(SUB_SCREEN* wk)
     }
 }
 
+// Zoom-out animation start (10 frames).
 void MapZoomOut::init(SUB_SCREEN* wk)
 {
     count = 0;
     SndCall(0, 5, 0, 0, 0, 0);
 }
 
+// Interpolates the camera to the whole-stage view; B reverses into MapZoomIn, done -> MapEntire.
 void MapZoomOut::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x40000000) {
@@ -2746,6 +2866,8 @@ void MapZoomOut::move(SUB_SCREEN* wk)
     }
 }
 
+// Zoomed map reading: A zooms out (link 1), X opens the mark mode menu (link 2, returns here),
+// otherwise the d-pad scrolls the camera (mapCameraMove).
 void MapRead::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x80000000) {
@@ -2762,6 +2884,9 @@ void MapRead::move(SUB_SCREEN* wk)
     }
 }
 
+// Mark mode menu open: shows the menu panel (IdSub 0x10/0x10), cursor on row 0 (typewriter), hides
+// the rows whose marks are not yet available (merchant before Scenario_flg bit 29, treasure
+// without item 0xA9, medallions without 0xB0 / the mission), swaps the button hints.
 void MapModeSelect::init(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -2797,6 +2922,8 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     SndCall(0, 9, 0, 0, 0, 0);
 }
 
+// 1 when mark kind `no` (0 typewriter, 1 merchant, 2 treasure, 3 medallion) is switched OFF
+// (map_mode bit set).
 int mapModeCheck(SUB_SCREEN* wk, s8 no)
 {
     u32 bit = 1 << no;
@@ -2807,6 +2934,7 @@ int mapModeCheck(SUB_SCREEN* wk, s8 no)
     return 0;
 }
 
+// Toggles mark kind `no` in map_mode (saved with the game).
 void mapModeChange(SUB_SCREEN* wk, s8 no)
 {
     u32 bit = 1 << no;
@@ -2818,6 +2946,9 @@ void mapModeChange(SUB_SCREEN* wk, s8 no)
     }
 }
 
+// Mark mode menu: B/X close it back to Entire (modeSel 0) or Read (1); A toggles the mark kind
+// under the cursor when available; up/down move the cursor (rows 0x60.. positions, check marks
+// 0x50.. shown for enabled kinds).
 void MapModeSelect::move(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
@@ -2896,6 +3027,7 @@ void MapModeSelect::move(SUB_SCREEN* wk)
     }
 }
 
+// Hides the mode menu panel.
 void MapModeSelect::quit(SUB_SCREEN* wk)
 {
     IdSub.unitPtr(0x10, 0x10)->rev_flag |= 0xF;

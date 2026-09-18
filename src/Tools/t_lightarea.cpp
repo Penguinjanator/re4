@@ -34,11 +34,13 @@ void* __builtin_new(unsigned int size)
     return Debug_alloc(size, 1);
 }
 
+// Array new on the debug heap.
 void* __builtin_vec_new(unsigned int size)
 {
     return Debug_alloc(size, 1);
 }
 
+// Debug heap free.
 void __builtin_delete(void* p)
 {
     Debug_free(p);
@@ -63,6 +65,7 @@ namespace t_lightarea_namespace {
 static LIGHT_AREA* light_area_work;      // LIGHT_AREA_MAX works
 static DbgToolFileHeader* light_area_buf;  // the file image fed to the game
 
+// cDbgToolMain hook: slot in use (be_flag bit 0).
 int IsWorkAlive(LIGHT_AREA* w)
 {
     if (w->be_flag & 1) {
@@ -71,6 +74,7 @@ int IsWorkAlive(LIGHT_AREA* w)
     return 0;
 }
 
+// cDbgToolMain hook: sets / clears the in-use bit.
 void SetWorkAlive(LIGHT_AREA* w, int alive)
 {
     if (alive == 1) {
@@ -80,16 +84,19 @@ void SetWorkAlive(LIGHT_AREA* w, int alive)
     }
 }
 
+// cDbgToolMain hook: slot number.
 int GetWorkNo(LIGHT_AREA* w)
 {
     return w->no;
 }
 
+// cDbgToolMain hook: slot number.
 void SetWorkNo(LIGHT_AREA* w, int no)
 {
     w->no = no;
 }
 
+// New slot: a square area at the player, no lights (0xFF), power 100.
 void InitWork(LIGHT_AREA* w, int no)
 {
     memclr_asm(w, sizeof(LIGHT_AREA));
@@ -97,6 +104,7 @@ void InitWork(LIGHT_AREA* w, int no)
     AreaDataInit(&w->area, &PlModel()->pos, 1, 7000.0f, 5000.0f);
 }
 
+// Position column pressed: the shared AreaDataEdit editor on the slot's area; 0 on B.
 int PosExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     AreaData* a = &w->area;
@@ -110,6 +118,7 @@ int PosExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
     }
 }
 
+// Position column text: area centre (metres) and height.
 void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     char buf[64];
@@ -125,6 +134,8 @@ void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
     DbgButtonSetName(b, buf);
 }
 
+// Data column pressed: rows PL NO / EM NO / SUB NO (light number for the player / enemies / partner,
+// 0xFF = OFF) and POWER (percent); left/right +-1 (A x10); B done.
 int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     static int cursor = 0;
@@ -310,6 +321,7 @@ void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>
     DbgButtonSetName(b, buf);
 }
 
+// OPTION window: FOG on/off (Disp_flg 0x4000); B closes.
 void OptionExec()
 {
     static int cursor = 0;
@@ -353,6 +365,11 @@ void OptionExec()
 void tLightAreaInit();
 void tLightAreaExit();
 
+// Light area editor: allocates the works and the file image, builds the cDbgToolMain windows
+// (files X:\Soft\Room\st<n>\r<room>\ *.sar, edit table Position / Data), loads r<room>00.sar, then
+// loops: START toggles the debug camera, Z toggles PREVIEW MODE (the game runs with the edited
+// areas, X = player no-hit); every frame the image is rebuilt (MakeSaveData) and fed to
+// LightAreaDataLoad so the room lights follow; areas drawn with their player light number.
 void ToolLightAreaMain()
 {
     // declaration order matters: the first zero-initialised local is the zero register of the tool's
@@ -498,6 +515,7 @@ void ToolLightAreaMain()
     TaskExit();
 }
 
+// Pauses the game and turns on the debug displays, camera target type 4, all blocks visible.
 void tLightAreaInit()
 {
     BitOn(pG->Stop_flg, 0x20000000);
@@ -512,6 +530,7 @@ void tLightAreaInit()
     Block.dispAllBlock(1);
 }
 
+// Undoes tLightAreaInit.
 void tLightAreaExit()
 {
     BitOff(pG->Stop_flg, 0x20000000);
@@ -532,6 +551,7 @@ void tLightAreaExit()
 
 } // namespace t_lightarea_namespace
 
+// Debug menu 36 entry: runs the light area editor.
 void ToolLightArea()
 {
     t_lightarea_namespace::ToolLightAreaMain();

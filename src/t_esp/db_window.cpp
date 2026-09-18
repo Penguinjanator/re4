@@ -29,6 +29,7 @@ DB_MOUSE::DB_MOUSE()
     oldPos = pos;
 }
 
+// Empty key state: every repeat counter armed.
 DB_KEYBORD::DB_KEYBORD()
 {
     ClearAllKey();
@@ -63,6 +64,8 @@ DB_KEYBORD::DB_KEYBORD()
         cnt[k] = first;                                 \
     }
 
+// Per frame from the pad flags (DB_GetKeybordData): per key the trigger and the auto-repeat
+// (counter on hold) flags; d-pad keys 0..3, then A, B, X, Y, L, R, Z, START.
 void DB_KEYBORD::Update()
 {
     if (stickX > 0.77f) {
@@ -119,6 +122,7 @@ void DB_KEYBORD::Update()
     DB_KEY_REPEAT(11, 6, 7)
 }
 
+// Clears every on / trg / rep flag and the typed character.
 void DB_KEYBORD::ClearAllKey()
 {
     x0 = 0;
@@ -168,6 +172,7 @@ void DB_KEYBORD::ClearAllKey()
     xC = stickY = stickX = 0.0f;
 }
 
+// Empty primitive and window tables, no active window.
 DB_PRIM_ARRAY::DB_PRIM_ARRAY()
 {
     int i;
@@ -193,6 +198,7 @@ DB_PRIM_ARRAY::DB_PRIM_ARRAY()
     oldActiveWin = 0;
 }
 
+// Deletes every registered primitive.
 DB_PRIM_ARRAY::~DB_PRIM_ARRAY()
 {
     u32 i;
@@ -205,6 +211,8 @@ DB_PRIM_ARRAY::~DB_PRIM_ARRAY()
     }
 }
 
+// Feeds mouse button `btn`'s double click / release / click at the mouse position to the tree
+// under `p`; returns the click hit result.
 int DB_PRIM_ARRAY::ChkMouseButton(DB_PRIMITIVE* p, DB_MOUSE m, int btn)
 {
     int ret = 0;
@@ -223,6 +231,7 @@ int DB_PRIM_ARRAY::ChkMouseButton(DB_PRIMITIVE* p, DB_MOUSE m, int btn)
     return ret;
 }
 
+// Adds `p` to the primitive table (max 0x400); 1 on success.
 int DB_PRIM_ARRAY::RegistPrimitive(DB_PRIMITIVE* p)
 {
     DB_PRIMITIVE** slot;
@@ -240,6 +249,7 @@ int DB_PRIM_ARRAY::RegistPrimitive(DB_PRIMITIVE* p)
     return ret;
 }
 
+// Removes `p` from the primitive table; 1 when found.
 int DB_PRIM_ARRAY::DeletePrimitive(DB_PRIMITIVE* p)
 {
     u32 i;
@@ -253,6 +263,7 @@ int DB_PRIM_ARRAY::DeletePrimitive(DB_PRIMITIVE* p)
     return 0;
 }
 
+// Adds `w` to the window table (max 0x100); 1 on success.
 int DB_PRIM_ARRAY::RegistWindow(DB_WINDOW* w)
 {
     DB_WINDOW** slot;
@@ -270,6 +281,7 @@ int DB_PRIM_ARRAY::RegistWindow(DB_WINDOW* w)
     return ret;
 }
 
+// news a DB_WINDOW and registers it in both tables.
 DB_WINDOW* DB_PRIM_ARRAY::MakeWindowPrimitive()
 {
     DB_WINDOW* w;
@@ -288,6 +300,7 @@ DB_WINDOW* DB_PRIM_ARRAY::MakeWindowPrimitive()
     return w;
 }
 
+// news a title bar ("NoTitle") and registers it.
 DB_WINDOW_TITLE* DB_PRIM_ARRAY::MakeWindowTitlePrimitive()
 {
     DB_WINDOW_TITLE* w;
@@ -300,6 +313,7 @@ DB_WINDOW_TITLE* DB_PRIM_ARRAY::MakeWindowTitlePrimitive()
     return w;
 }
 
+// news a close button and registers it.
 DB_BUTTON_CLOSE* DB_PRIM_ARRAY::MakeButtonClosePrimitive()
 {
     DB_BUTTON_CLOSE* w;
@@ -312,6 +326,7 @@ DB_BUTTON_CLOSE* DB_PRIM_ARRAY::MakeButtonClosePrimitive()
     return w;
 }
 
+// news a 255-char string label and registers it.
 DB_STRING* DB_PRIM_ARRAY::MakeStringPrimitive()
 {
     DB_STRING* w;
@@ -324,6 +339,7 @@ DB_STRING* DB_PRIM_ARRAY::MakeStringPrimitive()
     return w;
 }
 
+// news a button and registers it.
 DB_BUTTON* DB_PRIM_ARRAY::MakeButtonPrimitive()
 {
     DB_BUTTON* w;
@@ -336,6 +352,7 @@ DB_BUTTON* DB_PRIM_ARRAY::MakeButtonPrimitive()
     return w;
 }
 
+// news a numeric field and registers it.
 DB_NUMERIC* DB_PRIM_ARRAY::MakeNumericPrimitive()
 {
     DB_NUMERIC* w;
@@ -348,6 +365,7 @@ DB_NUMERIC* DB_PRIM_ARRAY::MakeNumericPrimitive()
     return w;
 }
 
+// news a two-variable numeric field and registers it.
 DB_NUMERIC2* DB_PRIM_ARRAY::MakeNumeric2Primitive()
 {
     DB_NUMERIC2* w;
@@ -360,6 +378,8 @@ DB_NUMERIC2* DB_PRIM_ARRAY::MakeNumeric2Primitive()
     return w;
 }
 
+// Builds a window at `pos` of size w x h with (unless keyFlag says otherwise) a close button and a
+// title bar reading `title`; keyFlag kept in the window.
 DB_WINDOW* DB_PRIM_ARRAY::CreateNormalWindow(const char* title, DB_POINT* pos, f32* w, f32* h, u32* keyFlag)
 {
     DB_WINDOW* win;
@@ -403,6 +423,7 @@ static f32 dbNumRangeOf(DB_NUMERIC* n, int hi)
     return tbl[n->numType][hi];
 }
 
+// Adds a label `s` at `pos` inside `parent` (size from the text).
 DB_STRING* DB_PRIM_ARRAY::CreateString(DB_PRIMITIVE* parent, const char* s, DB_POINT* pos)
 {
     DB_STRING* p;
@@ -461,6 +482,7 @@ DB_CREATE_NUMERIC2(u16)
 DB_CREATE_NUMERIC2(s32)
 DB_CREATE_NUMERIC2(f32)
 
+// Adds a button `s` at `pos` inside window `w` with its click callback, selectable by keyboard.
 DB_BUTTON* DB_PRIM_ARRAY::CreateButton(DB_WINDOW* w, const char* s, DB_POINT* pos, DB_PRIM_CALLBACK cb, int* selX, int selY)
 {
     DB_BUTTON* p;
@@ -475,6 +497,7 @@ DB_BUTTON* DB_PRIM_ARRAY::CreateButton(DB_WINDOW* w, const char* s, DB_POINT* po
     return p;
 }
 
+// Moves `w` to the end of the window table (drawn last = on top).
 DB_WINDOW* DB_PRIM_ARRAY::BringWindow(DB_WINDOW* w)
 {
     u32 i, j;
@@ -491,6 +514,7 @@ DB_WINDOW* DB_PRIM_ARRAY::BringWindow(DB_WINDOW* w)
     return w;
 }
 
+// A free slot of the primitive table (0 when full).
 DB_PRIMITIVE** DB_PRIM_ARRAY::PullPrimitivePtr()
 {
     DB_PRIMITIVE** slot = 0;
@@ -505,6 +529,7 @@ DB_PRIMITIVE** DB_PRIM_ARRAY::PullPrimitivePtr()
     return slot;
 }
 
+// A free slot of the window table (0 when full).
 DB_WINDOW** DB_PRIM_ARRAY::PullWindowPtr()
 {
     DB_WINDOW** slot = 0;
@@ -519,6 +544,7 @@ DB_WINDOW** DB_PRIM_ARRAY::PullWindowPtr()
     return slot;
 }
 
+// Clears the active flag of every window.
 void DB_PRIM_ARRAY::ClearAllActive()
 {
     u32 i;
@@ -530,6 +556,8 @@ void DB_PRIM_ARRAY::ClearAllActive()
     }
 }
 
+// Mouse buttons over the windows, topmost first: a left click on a window brings it to the front,
+// clicks / releases / double clicks are delivered, held buttons drag the clicked primitives.
 void DB_PRIM_ARRAY::ButtonUpdate(DB_MOUSE* m)
 {
     u32 i;
@@ -569,6 +597,7 @@ void DB_PRIM_ARRAY::ButtonUpdate(DB_MOUSE* m)
     }
 }
 
+// Mouse-over: marks the primitives under the pointer (mouseOn) in the topmost window hit.
 void DB_PRIM_ARRAY::SelectUpdate(DB_MOUSE* m)
 {
     u32 i;
@@ -591,6 +620,8 @@ void DB_PRIM_ARRAY::SelectUpdate(DB_MOUSE* m)
     }
 }
 
+// Finds the active window (the clicked one, else the last active) and its active primitive
+// (the last clicked selectable one); brings the active window to the front.
 void DB_PRIM_ARRAY::ActivePrimitiveUpdate()
 {
     u32 i;
@@ -635,6 +666,9 @@ void DB_PRIM_ARRAY::ActivePrimitiveUpdate()
     }
 }
 
+// Keyboard focus, normal windows: d-pad (repeat) moves the focus over the window's selectable
+// grid, key 4 to the next one; with A held the d-pad sends +-1 (left/right) / +-10 (up/down)
+// OnCalcMsg to the focused primitive.
 void DB_PRIM_ARRAY::ActiveChangeKeybordNormal(DB_KEYBORD* k)
 {
     DB_PRIMITIVE* old;
@@ -680,6 +714,9 @@ void DB_PRIM_ARRAY::ActiveChangeKeybordNormal(DB_KEYBORD* k)
     active->select = 1;
 }
 
+// Keyboard focus, mini windows (numeric panels): up/down move the focus, left/right with X move
+// it sideways, otherwise they change the focused value: plain +-1, A +-10 (L: +-1000, Y: +-100),
+// with the stick as a float delta; B +-0.1 / L +-1000; key 4 next field, X + A resets to default.
 void DB_PRIM_ARRAY::ActiveChangeKeybordMiniWin(DB_KEYBORD* k)
 {
     DB_PRIMITIVE* old;
@@ -769,6 +806,8 @@ void DB_PRIM_ARRAY::ActiveChangeKeybordMiniWin(DB_KEYBORD* k)
     active->select = 1;
 }
 
+// Keyboard handling of the active window: its ActiveChange callback first, else the normal / mini
+// scheme by sel.keyMode; the active primitive is re-read afterwards.
 void DB_PRIM_ARRAY::ActiveChangeKeybord(DB_KEYBORD* k)
 {
     if (activeWin) {
@@ -792,6 +831,8 @@ void DB_PRIM_ARRAY::ActiveChangeKeybord(DB_KEYBORD* k)
     }
 }
 
+// One frame of the window system: mouse buttons, mouse-over, active window / primitive, keyboard,
+// the active window's OnKeybord, then every window's Update.
 void DB_PRIM_ARRAY::Update(DB_MOUSE* m, DB_KEYBORD* k)
 {
     u32 i;
@@ -822,6 +863,7 @@ void DB_PRIM_ARRAY::Update(DB_MOUSE* m, DB_KEYBORD* k)
     }
 }
 
+// Draws every window (DrawRequest positions, then Draw) in table order.
 void DB_PRIM_ARRAY::Draw()
 {
     int i;

@@ -446,17 +446,20 @@ static inline void WSet(TOOL_WINDOW*& d, TOOL_WINDOW* v) { d = v; }
 
 /* ------------------------------------------------------------------------- Menu window */
 
+// Menu "Edit": closes the menu and brings the active EDIT table page to the front.
 static void MenuEditCallback(DB_PRIMITIVE*)
 {
     BRING(g_pEditActive);
     g_pMenuWin->win->Close();
 }
 
+// Menu "Model": opens the Load Model window.
 static void MenuModelCallback(DB_PRIMITIVE*)
 {
     g_modelLoad = 1;
 }
 
+// Menu "Load": opens the Load window with the cursor on the last used file kind (g_fileMenu).
 static void MenuLoadCallback(DB_PRIMITIVE*)
 {
     BRING(g_pLoadWin);
@@ -464,6 +467,7 @@ static void MenuLoadCallback(DB_PRIMITIVE*)
     WIN_SEL(g_pLoadWin).SetSelY(g_fileMenu);
 }
 
+// Menu "Save": opens the Save window on the last used file kind.
 static void MenuSaveCallback(DB_PRIMITIVE*)
 {
     BRING(g_pSaveWin);
@@ -471,23 +475,27 @@ static void MenuSaveCallback(DB_PRIMITIVE*)
     WIN_SEL(g_pSaveWin).SetSelY(g_fileMenu);
 }
 
+// Menu "Option": opens the Option window.
 static void MenuOptionCallback(DB_PRIMITIVE*)
 {
     BRING(g_pOptionWin);
     g_pMenuWin->win->Close();
 }
 
+// Menu "Light": starts the embedded db_light editor (g_lightTool).
 static void MenuLightCallback(DB_PRIMITIVE*)
 {
     g_lightTool = 1;
 }
 
+// Menu "DataSet": opens the Data Set (model config) window.
 static void MenuDataSetCallback(DB_PRIMITIVE*)
 {
     BRING(g_pDataSetWin);
     g_pMenuWin->win->Close();
 }
 
+// Menu "Exit": opens the Exit OK? prompt.
 static void MenuExitCallback(DB_PRIMITIVE*)
 {
     BRING(g_pExitWin);
@@ -497,6 +505,7 @@ static void MenuExitCallback(DB_PRIMITIVE*)
     sel->SetSelY(0);
 }
 
+// Menu window update: B with the menu active jumps the focus to the Exit button.
 static void MenuUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -584,17 +593,20 @@ public:
 
 /* ------------------------------------------------------------------------- Exit window */
 
+// Exit [OK]: requests the tool exit (g_exitReq).
 static void ExitOkCallback(DB_PRIMITIVE*)
 {
     g_exitReq = 1;
 }
 
+// Exit [CANCEL]: back to the menu.
 static void ExitCancelCallback(DB_PRIMITIVE*)
 {
     BRING(g_pMenuWin);
     g_pExitWin->win->Close();
 }
 
+// Exit window closed: back to the menu.
 static void ExitClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -635,6 +647,7 @@ public:
 
 /* ------------------------------------------------------------------------- Edit windows */
 
+// Moves the focus from EDIT page `w` to the next page (1 -> 2 -> 3 -> 4), first column.
 void EditActiveNextWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
@@ -652,6 +665,7 @@ void EditActiveNextWindow(DB_WINDOW* w)
     nsel->SetSelY(sel->selY);
 }
 
+// Moves the focus to the previous EDIT page, last column.
 void EditActivePrevWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
@@ -671,6 +685,10 @@ void EditActivePrevWindow(DB_WINDOW* w)
 
 #define SEQ_TBL_LAST 0x3F
 
+// Keyboard scheme of the EDIT table pages: X opens the Sub (cut/copy/paste) window, up/down move
+// the row cursor (scrolling g_editTop over the 64 records; with A held the +-10 value step is
+// suppressed), left/right / L/R move between columns and pages, key 4 the next field, A + left/
+// right toggle the row's selection bit (stat bit 0, counted in g_seqFlgNum) over a range.
 static void EditActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
@@ -797,6 +815,8 @@ static void EditActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD*
     }
 }
 
+// Brings a parameter window (Time, ID, Pos, ...) up for the cursor record if it is selected and
+// the selection allows editing it.
 void OpenEditWindow(TOOL_WINDOW* w)
 {
     DB_WINDOW* win = w->win;
@@ -808,16 +828,19 @@ void OpenEditWindow(TOOL_WINDOW* w)
     }
 }
 
+// ">>" button: next record group page (g_page 0..3).
 static void EditPageNextCallback(DB_PRIMITIVE*)
 {
     EditActiveNextWindow(g_pEditActive->win);
 }
 
+// "<<" button: previous record group page.
 static void EditPagePrevCallback(DB_PRIMITIVE*)
 {
     EditActivePrevWindow(g_pEditActive->win);
 }
 
+// "No" column: toggles the row's selection bit.
 static void OnNo_Callback(DB_PRIMITIVE*)
 {
     TOOL_SEQ* e = &g_pEditTbl[g_editTop + g_editCursor];
@@ -834,16 +857,19 @@ static void OnNo_Callback(DB_PRIMITIVE*)
     }
 }
 
+// TIM column: opens the Time window.
 static void OnTime_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pTimeWin);
 }
 
+// ID column: opens the ID window.
 static void OnId_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pIdWin);
 }
 
+// PR column: opens the Parent window.
 static void OnParent_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pParentWin);
@@ -852,21 +878,25 @@ static void OnParent_Callback(DB_PRIMITIVE*)
     sel->SetSelY(1);
 }
 
+// POSITION column: opens the Position window.
 static void OnPos_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pPosWin);
 }
 
+// SIZE column: opens the Size window.
 static void OnSize_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pSizeWin);
 }
 
+// SPEED column: opens the Speed window.
 static void OnSpeed_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pSpeedWin);
 }
 
+// EDIT page closed: back to the menu.
 static void EditClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -1068,111 +1098,134 @@ static inline void CreateEditWindow1(TOOL_WINDOW*& slot)
 
 /* ------------------------------------------------------------------------- Edit window 2 (colour) */
 
+// COLOR column: opens the RGBA window.
 static void OnColor_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pColorWin);
 }
 
+// BLND column: opens the Blend window.
 static void OnBlend_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pBlendWin);
 }
 
+// FL column: opens the Flag window.
 static void OnToolFlg_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pFlagWin);
 }
 
+// LIF column: opens the Life Time window.
 static void OnLifeMax_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pLifeWin);
 }
 
+// RT column: opens the release time window.
 static void OnReleaseTime_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pReleaseWin);
 }
 
+// AS column: opens the Animation rate window.
 static void OnAnmRate_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pAnmRateWin);
 }
 
+// ROTATE column: opens the Rotate window.
 static void OnAng_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pRotateWin);
 }
 
+// VEC0 column: opens the Vec0 window.
 static void OnVec0_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pVec0Win);
 }
 
+// VEC1 column: opens the Vec1 window.
 static void OnVec1_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pVec1Win);
 }
 
+// VEC2 column: opens the Vec2 window.
 static void OnVec2_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pVec2Win);
 }
 
+// WK0 column: opens the Work0 window.
 static void OnWork0_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork0Win);
 }
 
+// WK1 column: opens the Work1 window.
 static void OnWork1_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork1Win);
 }
 
+// WK2 column: opens the Work2 window.
 static void OnWork2_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork2Win);
 }
 
+// WK3 column: opens the Work3 window.
 static void OnWork3_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork3Win);
 }
 
+// WK4 column: opens the Work4 window.
 static void OnWork4_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork4Win);
 }
 
+// WK5 column: opens the Work5 window.
 static void OnWork5_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork5Win);
 }
 
+// WK6 column: opens the Work6 window.
 static void OnWork6_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWork6Win);
 }
 
+// SP0 column: opens the WorkSp0 window.
 static void OnWorkSp0_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp0Win);
 }
 
+// SP1 column: opens the WorkSp1 window.
 static void OnWorkSp1_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp1Win);
 }
 
+// SP2 column: opens the WorkSp2 window.
 static void OnWorkSp2_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp2Win);
 }
 
+// SP3 column: opens the WorkSp3 window.
 static void OnWorkSp3_Callback(DB_PRIMITIVE*)
 {
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp3Win);
 }
 
+// EDIT page 2 ("No COLOR BLND FL LIF RT AS ROTATE"): five rows of locked numerics over
+// g_pEditRow[] with a button per column opening the parameter window.
 static inline void CreateEditWindow2(TOOL_WINDOW*& slot)
 {
     EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
@@ -1310,6 +1363,7 @@ static inline void CreateEditWindow2(TOOL_WINDOW*& slot)
     slot = e;
 }
 
+// EDIT page 3 ("No VEC0 VEC1 VEC2"): five rows, one button per vector.
 static inline void CreateEditWindow3(TOOL_WINDOW*& slot)
 {
     EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
@@ -1455,6 +1509,7 @@ static inline void CreateEditWindow3(TOOL_WINDOW*& slot)
     slot = e;
 }
 
+// EDIT page 4 ("No WK0..WK6 SP0..SP3"): five rows, one button per work byte.
 static inline void CreateEditWindow4(TOOL_WINDOW*& slot)
 {
     EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
@@ -1600,6 +1655,8 @@ static inline void CreateEditWindow4(TOOL_WINDOW*& slot)
 
 /* ------------------------------------------------------------------------- Model window */
 
+// Load Model name row: "<model>NN.msq" from the type table and model number; sets g_modelPath /
+// g_modelFile (Room/Em/<model>/).
 static void ModelNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -1609,6 +1666,7 @@ static void ModelNameUpdateCallback(DB_PRIMITIVE* p)
     sprintf(g_modelFile, "%s", g_modelNameTbl[(s16) g_modelType]);
 }
 
+// Load Model type row: left/right (A x16) step g_modelType through the model name table.
 static void ModelTypeUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -1623,6 +1681,7 @@ static void ModelTypeUpdateCallback(DB_PRIMITIVE* p)
     ((DB_STRING*) p)->SetString(g_modelNameTbl[(s16) g_modelType]);
 }
 
+// Load Model [LOAD]: requests the model load (g_modelLoad, served by ToolEspMain); back to the menu.
 static void ModelLoadCallback(DB_PRIMITIVE*)
 {
     ISet(g_modelLoad, 1);
@@ -1630,6 +1689,7 @@ static void ModelLoadCallback(DB_PRIMITIVE*)
     DEACTIVATE(g_pModelWin);
 }
 
+// Load Model closed: back to the menu.
 static void ModelClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -1682,11 +1742,13 @@ public:
 
 /* ------------------------------------------------------------------------- Load window */
 
+// Remembers the Load / Save window's cursor row as the file kind (g_fileMenu).
 void GetSelectFileMenu(TOOL_WINDOW* w)
 {
     g_fileMenu = w->win->sel.selY;
 }
 
+// Load "Enemy": opens the Load Enemy window (<model>_NN.EST).
 static void LoadLoadEmCallback(DB_PRIMITIVE*)
 {
     WSet(g_pSaveNow, NULL);
@@ -1696,6 +1758,7 @@ static void LoadLoadEmCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
 }
 
+// Load "Room": opens the Load Room window (R<room>_NN.EST).
 static void LoadLoadRoomCallback(DB_PRIMITIVE*)
 {
     WSet(g_pSaveNow, NULL);
@@ -1705,6 +1768,7 @@ static void LoadLoadRoomCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
 }
 
+// Load "SST": opens the Load SST window (R<room>_NN.SST).
 static void LoadLoadSstCallback(DB_PRIMITIVE*)
 {
     WSet(g_pSaveNow, NULL);
@@ -1714,6 +1778,7 @@ static void LoadLoadSstCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
 }
 
+// Load "EVENT": opens the Load EVENT window (R<room>sNN_MM.EST).
 static void LoadLoadEventCallback(DB_PRIMITIVE*)
 {
     WSet(g_pSaveNow, NULL);
@@ -1723,6 +1788,7 @@ static void LoadLoadEventCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
 }
 
+// [Local] / [SerVer] toggle: g_dir = D:/bio4/ or X:/Soft/ for every file path.
 static void SetDirCallback(DB_PRIMITIVE*)
 {
     const char* name;
@@ -1747,6 +1813,7 @@ static void SetDirCallback(DB_PRIMITIVE*)
     }
 }
 
+// Load window closed: back to the menu.
 static void LoadClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -1810,6 +1877,7 @@ public:
 
 /* ------------------------------------------------------------------------- Load Enemy window */
 
+// [LOAD] of a Load sub window: opens the Load OK? prompt for g_filePath.
 static void LoadLoadCallback(DB_PRIMITIVE*)
 {
     DB_ACTIVE_SELECT* sel = &WIN_SEL(g_pLoadCheckWin);
@@ -1819,11 +1887,13 @@ static void LoadLoadCallback(DB_PRIMITIVE*)
     BRING(g_pLoadCheckWin);
 }
 
+// A Load sub window closed: back to the Load window.
 static void LoadNowClose_callback(DB_WINDOW*)
 {
     BRING(g_pLoadWin);
 }
 
+// Load Enemy name row: "<model>_NN.EST" and g_filePath = <dir>Room/effect/est/... (".bak" with X).
 static void LoadEmNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -1846,6 +1916,7 @@ static inline void ModelTypeStep(int step)
     if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
 }
 
+// Wraps g_modelType around the model name table.
 static inline void ModelTypeWrap(int dir)
 {
     g_modelType += dir;
@@ -1853,6 +1924,7 @@ static inline void ModelTypeWrap(int dir)
     if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
 }
 
+// L/R jump g_modelType to the next / previous model group (em / pl / obm / ...).
 static inline void ModelTypeGroupSkip()
 {
     int dir = 0;
@@ -1892,6 +1964,7 @@ static inline void ModelTypeGroupSkip()
     }
 }
 
+// Load Enemy type row: left/right step the model type (X + A resets to 0), shown by name.
 static void LoadEmTypeUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -1952,6 +2025,7 @@ public:
 
 /* ------------------------------------------------------------------------- Load Room window */
 
+// Load Room name row: "R<stage><room>_NN.EST" and its path.
 static void LoadRoomNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2004,6 +2078,7 @@ public:
 
 /* ------------------------------------------------------------------------- Load SST window */
 
+// Load SST name row: "R<stage><room>_NN.SST" and its path (room/effect/sst/).
 static void LoadSstNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2060,6 +2135,7 @@ public:
 
 /* ------------------------------------------------------------------------- Load EVENT window */
 
+// Load EVENT name row: "R<stage><room>s<event>_<no>.EST" and its path.
 static void LoadEventNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2120,6 +2196,7 @@ public:
 
 /* ------------------------------------------------------------------------- Load check window */
 
+// Load OK? row: the full g_filePath.
 static void LoadCheckNameUpdateCallback(DB_PRIMITIVE* p)
 {
     ((DB_STRING*) p)->SetString(g_filePath);
@@ -2127,6 +2204,8 @@ static void LoadCheckNameUpdateCallback(DB_PRIMITIVE* p)
     else ((DB_STRING*) p)->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
 }
 
+// Load OK? [OK]: reads the file into the sequence head and expands it into the 4 x 64 record table
+// (MakeLoadSeqData); back to the menu.
 static void LoadCheckOkCallback(DB_PRIMITIVE*)
 {
     LoadData(g_filePath, g_pSeqHead);
@@ -2136,12 +2215,14 @@ static void LoadCheckOkCallback(DB_PRIMITIVE*)
     DEACTIVATE(g_pLoadCheckWin);
 }
 
+// Load OK? [CANCEL]: back to the Load sub window.
 static void LoadCheckCancelCallback(DB_PRIMITIVE*)
 {
     BRING(g_pLoadNow);
     g_pLoadCheckWin->win->Close();
 }
 
+// Load OK? closed: back to the Load sub window.
 static void LoadCheckClose_callback(DB_WINDOW*)
 {
     BRING(g_pLoadNow);
@@ -2183,6 +2264,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save window */
 
+// Save "Enemy": opens the Save Enemy window.
 static void SaveSaveEmCallback(DB_PRIMITIVE*)
 {
     WSet(g_pLoadNow, NULL);
@@ -2192,6 +2274,7 @@ static void SaveSaveEmCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
 }
 
+// Save "Room": opens the Save Room window.
 static void SaveSaveRoomCallback(DB_PRIMITIVE*)
 {
     WSet(g_pLoadNow, NULL);
@@ -2201,6 +2284,7 @@ static void SaveSaveRoomCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
 }
 
+// Save "SST": opens the Save SST window.
 static void SaveSaveSstCallback(DB_PRIMITIVE*)
 {
     WSet(g_pLoadNow, NULL);
@@ -2210,6 +2294,7 @@ static void SaveSaveSstCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
 }
 
+// Save "EVENT": opens the Save EVENT window.
 static void SaveSaveEventCallback(DB_PRIMITIVE*)
 {
     WSet(g_pLoadNow, NULL);
@@ -2219,6 +2304,7 @@ static void SaveSaveEventCallback(DB_PRIMITIVE*)
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
 }
 
+// Save window closed: back to the menu.
 static void SaveClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -2282,6 +2368,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save Enemy window */
 
+// [SAVE] of a Save sub window: opens the Save OK? prompt for g_filePath.
 static void SaveSaveCallback(DB_PRIMITIVE*)
 {
     DB_ACTIVE_SELECT* sel = &WIN_SEL(g_pSaveCheckWin);
@@ -2291,11 +2378,13 @@ static void SaveSaveCallback(DB_PRIMITIVE*)
     BRING(g_pSaveCheckWin);
 }
 
+// A Save sub window closed: back to the Save window.
 static void SaveNowClose_callback(DB_WINDOW*)
 {
     BRING(g_pSaveWin);
 }
 
+// Save Enemy name row: "<model>_NN.EST" and its path.
 static void SaveEmNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2308,6 +2397,7 @@ static void SaveEmNameUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
+// Save Enemy type row: left/right step the model type (X + A resets).
 static void SaveEmTypeUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select && g_pKey->on[KEY_X]) {
@@ -2340,6 +2430,7 @@ static void SaveEmTypeUpdateCallback(DB_PRIMITIVE* p)
         if (type != step) step = type;               \
     }
 
+// Save Enemy No row: left/right step the file number (hex, wrapping).
 static void SaveEmFileNoUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[16];
@@ -2395,6 +2486,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save Room window */
 
+// Save Room name row: "R<stage><room>_NN.EST" and its path.
 static void SaveRoomNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2407,6 +2499,7 @@ static void SaveRoomNameUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
+// Save Room No row: left/right step the room file number.
 static void SaveRoomFileNoUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[16];
@@ -2454,6 +2547,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save SST window */
 
+// Save SST name row: "R<stage><room>_NN.SST" and its path.
 static void SaveSstNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2466,6 +2560,7 @@ static void SaveSstNameUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
+// Save SST No row: left/right step the SST file number.
 static void SaveSstFileNoUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[16];
@@ -2513,6 +2608,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save EVENT window */
 
+// Save EVENT name row: "R<stage><room>s<event>_<no>.EST" and its path.
 static void SaveEventNameUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[128];
@@ -2525,6 +2621,7 @@ static void SaveEventNameUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
+// Save EVENT No row: left/right step the event effect number.
 static void SaveEventFileNoUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[16];
@@ -2533,6 +2630,7 @@ static void SaveEventFileNoUpdateCallback(DB_PRIMITIVE* p)
     ((DB_STRING*) p)->SetString(buf);
 }
 
+// Save EVENT sNo row: left/right step the event (scene) number.
 static void SaveEventSNoUpdateCallback(DB_PRIMITIVE* p)
 {
     char buf[16];
@@ -2595,6 +2693,7 @@ public:
 
 /* ------------------------------------------------------------------------- Save check window */
 
+// Save OK? row: the full g_filePath.
 static void SaveCheckNameUpdateCallback(DB_PRIMITIVE* p)
 {
     ((DB_STRING*) p)->SetString(g_filePath);
@@ -2602,6 +2701,7 @@ static void SaveCheckNameUpdateCallback(DB_PRIMITIVE* p)
     else ((DB_STRING*) p)->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
 }
 
+// Save OK? [OK]: packs the selected records (MakeSaveSeqData) and writes the file; back to the menu.
 static void SaveCheckOkCallback(DB_PRIMITIVE*)
 {
     int num = MakeSaveSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64);
@@ -2611,12 +2711,14 @@ static void SaveCheckOkCallback(DB_PRIMITIVE*)
     DEACTIVATE(g_pSaveCheckWin);
 }
 
+// Save OK? [CANCEL]: back to the Save window.
 static void SaveCheckCancelCallback(DB_PRIMITIVE*)
 {
     BRING(g_pSaveWin);
     g_pSaveCheckWin->win->Close();
 }
 
+// Save OK? closed: back to the Save sub window.
 static void SaveCheckClose_callback(DB_WINDOW*)
 {
     BRING(g_pSaveWin);
@@ -2665,55 +2767,65 @@ public:
     if (var) ((DB_STRING*) p)->SetString("TOOL");                 \
     else ((DB_STRING*) p)->SetString("GAME");
 
+// Option "Grid" text: ON / OFF.
 static void OptionGridUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_grid);
 }
 
+// Option "Grid": toggles the ground grid.
 static void OptionGridHitCallback(DB_PRIMITIVE*)
 {
     if (g_grid) g_grid = 0;
     else g_grid = 1;
 }
 
+// Option "Work" text: TOOL / GAME (whose manager arrays are live).
 static void OptionWorkUpdateCallback(DB_PRIMITIVE* p)
 {
     TOOL_GAME_UPDATE(g_work);
 }
 
+// Option "Work": toggles between the tool's own arrays (DB_WorkPush) and the game's.
 static void OptionWorkHitCallback(DB_PRIMITIVE*)
 {
     if (g_work) g_work = 0;
     else g_work = 1;
 }
 
+// Option "WorkEm" text: ON / OFF.
 static void OptionWorkEmUpdateCallback(DB_PRIMITIVE* p)
 {
     TOOL_GAME_UPDATE(g_workEm);
 }
 
+// Option "WorkEm": toggles the 10-work enemy array swap with the tool arrays.
 static void OptionWorkEmHitCallback(DB_PRIMITIVE*)
 {
     if (g_workEm) g_workEm = 0;
     else g_workEm = 1;
 }
 
+// Option "Mod_sk" text: ON / OFF.
 static void OptionMod_skUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_modSk);
 }
 
+// Option "Mod_sk": toggles the model skeleton display.
 static void OptionMod_skHitCallback(DB_PRIMITIVE*)
 {
     if (g_modSk) g_modSk = 0;
     else g_modSk = 1;
 }
 
+// Option "Fog" text: ON / OFF.
 static void OptionFogUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_fog);
 }
 
+// Option "Fog": toggles the fog (DB_SetFog).
 static void OptionFogHitCallback(DB_PRIMITIVE*)
 {
     if (g_fog) g_fog = 0;
@@ -2721,22 +2833,26 @@ static void OptionFogHitCallback(DB_PRIMITIVE*)
     DB_SetFog(g_fog);
 }
 
+// Option "EvCam" text: ON / OFF.
 static void OptionEvCamUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_evCam);
 }
 
+// Option "EvCam": toggles the event camera preview (g_evCam).
 static void OptionEvCamHitCallback(DB_PRIMITIVE*)
 {
     if (g_evCam) g_evCam = 0;
     else g_evCam = 1;
 }
 
+// Option "Cinesco" text: ON / OFF.
 static void OptionCinescoUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_cinesco);
 }
 
+// Option "Cinesco": toggles the cinemascope bars.
 static void OptionCinescoHitCallback(DB_PRIMITIVE*)
 {
     if (g_cinesco) g_cinesco = 0;
@@ -2744,11 +2860,13 @@ static void OptionCinescoHitCallback(DB_PRIMITIVE*)
     DB_SetCinesco(g_cinesco);
 }
 
+// Option "MotionCam" text: ON / OFF.
 static void OptionMotionCamUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_motionCam);
 }
 
+// Option "MotionCam": toggles the motion-attached camera.
 static void OptionMotionCamHitCallback(DB_PRIMITIVE*)
 {
     if (g_motionCam) g_motionCam = 0;
@@ -2756,6 +2874,7 @@ static void OptionMotionCamHitCallback(DB_PRIMITIVE*)
     DB_SetMotionCam(g_motionCam);
 }
 
+// Option closed: back to the menu.
 static void OptionClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -2904,6 +3023,7 @@ public:
 
 /* ------------------------------------------------------------------------- Data Set window */
 
+// Data Set [Load]: loads <dir>room/effect/DataSetNN.txt (a model set config) into the viewer.
 static void DataSetLoadCallback(DB_PRIMITIVE*)
 {
     char buf[256];
@@ -2912,6 +3032,7 @@ static void DataSetLoadCallback(DB_PRIMITIVE*)
     g_pDataSetWin->win->Close();
 }
 
+// Data Set closed: back to the menu.
 static void DataSetClose_callback(DB_WINDOW*)
 {
     BRING(g_pMenuWin);
@@ -2954,6 +3075,7 @@ public:
 
 /* ------------------------------------------------------------------------- Time window */
 
+// A parameter window closed: back to the active EDIT page.
 static void ControlClose_callback(DB_WINDOW*)
 {
     BRING(g_pEditActive);
@@ -2993,6 +3115,8 @@ public:
 
 #define ESPGEN_GRAY(p) ((DB_STRING*) (p))->SetColor(0.4f, 0.4f, 0.4f, 1.0f)
 
+// ID window: the generator id field is editable only for generator records (type 1), else locked
+// and greyed.
 static void IdEspgenIdCallback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1) {
@@ -3003,6 +3127,7 @@ static void IdEspgenIdCallback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the generator Life field is editable for generator ids 0 / 2 / 0xFF, else locked.
 static void IdEspgenLifeCallback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2 || g_pEditSeq->genId == 0xFF)) {
@@ -3013,6 +3138,7 @@ static void IdEspgenLifeCallback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the interval field is editable for generator ids 0 / 2, else locked.
 static void IdEspgenInterCallback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
@@ -3023,6 +3149,7 @@ static void IdEspgenInterCallback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the Num field, as the interval.
 static void IdEspgenNumCallback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
@@ -3033,6 +3160,7 @@ static void IdEspgenNumCallback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the Flg field, as the interval.
 static void IdEspgenFlgCallback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
@@ -3043,6 +3171,8 @@ static void IdEspgenFlgCallback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the D_size / D_speed / D_alpha fields, editable for generator ids 0 / 2 with a
+// non-zero base.
 static void IdEspgenD_Callback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->x110[0] != 0) {
@@ -3053,6 +3183,7 @@ static void IdEspgenD_Callback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window: the Int fields, editable for generator ids 0 / 2 with a non-zero base.
 static void IdEspgenInt_Callback(DB_PRIMITIVE* p)
 {
     if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->x10C != 0) {
@@ -3063,6 +3194,7 @@ static void IdEspgenInt_Callback(DB_PRIMITIVE* p)
     }
 }
 
+// ID window "PATH" button: opens the PATH window (path owner / number / start / random, scale).
 static void IdPathSetCallback(DB_PRIMITIVE*)
 {
     BRING(g_pPathWin);
@@ -3220,6 +3352,7 @@ public:
 
 /* ------------------------------------------------------------------------- Path window */
 
+// PATH closed: back to the ID window.
 static void PathClose_callback(DB_WINDOW*)
 {
     BRING(g_pIdWin);
@@ -3407,6 +3540,9 @@ public:
 // `a == 3 || a == 4` on one lvalue is range-folded; the inline calls keep the two compares
 static inline int SelXIs(DB_ACTIVE_SELECT* s, int v) { return s->selX == v; }
 
+// POSITION window keyboard scheme: X + Y puts the record 1500 units in front of the camera (or at
+// the screen centre for 2D effects); up/down move the focus, X + left/right move sideways, else
+// left/right and the stick change the value (A: x10, A+L x1000, A+Y x100; L x1000 alone).
 static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
     DB_ACTIVE_SELECT* sel;
@@ -3490,6 +3626,7 @@ static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* 
     else (ny)->OnCalcMsgFloat(g_pKey->stickY * (scale));                              \
     (nz)->OnCalcMsgFloat(g_pKey->xC * (scale));
 
+// POSITION "stick" cell: while selected the stick moves pos x/y (A + L / Y / plain scale).
 static void PosStickPosUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -3517,6 +3654,7 @@ static void PosStickPosUpdateCallback(DB_PRIMITIVE* p)
     g_pRPosNumY->OnCalcMsgFloat(g_pKey->stickY * (scale));      \
     g_pRPosNumZ->OnCalcMsgFloat(g_pKey->xC * (scale));
 
+// RAND "stick" cell: the stick changes the random position range rpos x/y.
 static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -3653,11 +3791,13 @@ public:
 
 /* ------------------------------------------------------------------------- Size window */
 
+// Size "same" button: h = w.
 static void SizeSetsameCallback(DB_PRIMITIVE*)
 {
     g_pEditSeq->h = g_pEditSeq->w;
 }
 
+// Size "stick" cell: while selected the stick steps w (x) and h (y) through their delta fields.
 static void SizeWpHUpdate_callback(DB_PRIMITIVE* p)
 {
     if (p->select) {
@@ -3989,6 +4129,7 @@ public:
 
 /* ------------------------------------------------------------------------- Colour window */
 
+// RGBA window swatch: a 32 x 32 box in the record's colour.
 static void ColorDraw_callback(DB_PRIMITIVE* p)
 {
     TOOL_SEQ* seq = g_pEditSeq;
@@ -4004,32 +4145,38 @@ static int g_colorUnused0 = 0;
 static int g_colorUnused1 = 0;
 static u32 g_colorUnused2 = 0x40000;
 
+// RGBA "SimType" button: cycles the colour simulation type 0..3 (NONE / NORMAL / OFFSET / REPLACE).
 static void ColorSimTypeCallback(DB_PRIMITIVE*)
 {
     g_pEditSeq->simType++;
     if (g_pEditSeq->simType > 3) g_pEditSeq->simType = 0;
 }
 
+// RGBA "SimType" text.
 static void ColorSimTypeUpdateCallback(DB_PRIMITIVE* p)
 {
     ((DB_STRING*) p)->SetString(g_simTypeNameTbl[g_pEditSeq->simType]);
 }
 
+// RGBA "MaskUse" button: toggles record flag 0x4000 (mask texture).
 static void ColorMaskUseCallback(DB_PRIMITIVE*)
 {
     g_pEditSeq->flags ^= 0x4000;
 }
 
+// RGBA "MaskUse" text: ON / OFF.
 static void ColorMaskUseUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_pEditSeq->flags & 0x4000);
 }
 
+// RGBA "Shimmer" button: toggles record flag 0x1000 (light shimmer).
 static void ShimmerLightCallback(DB_PRIMITIVE*)
 {
     g_pEditSeq->flags ^= 0x1000;
 }
 
+// RGBA "Shimmer" text: ON / OFF.
 static void ShimmerLightUpdateCallback(DB_PRIMITIVE* p)
 {
     ON_OFF_UPDATE(g_pEditSeq->flags & 0x1000);
@@ -4756,6 +4903,7 @@ VEC_WINDOW_CLASS(VEC2_WINDOW, " Vec2", 344.0f, vec2)
 
 /* ------------------------------------------------------------------------- Sub window */
 
+// Sub "Cut": cuts the selected records to the clipboard; back to the table.
 static void SubCutCallback(DB_PRIMITIVE*)
 {
     CutSelectData();
@@ -4763,6 +4911,7 @@ static void SubCutCallback(DB_PRIMITIVE*)
     g_pSubWin->win->Close();
 }
 
+// Sub "Copy": copies the selected records; back to the table.
 static void SubCopyCallback(DB_PRIMITIVE*)
 {
     CopySelectData(1);
@@ -4770,6 +4919,7 @@ static void SubCopyCallback(DB_PRIMITIVE*)
     g_pSubWin->win->Close();
 }
 
+// Sub "Paste": inserts the clipboard at the cursor row; back to the table.
 static void SubPasteCallback(DB_PRIMITIVE*)
 {
     PasteSelectData();
@@ -4777,6 +4927,7 @@ static void SubPasteCallback(DB_PRIMITIVE*)
     g_pSubWin->win->Close();
 }
 
+// Sub "PartPaste": pastes only the chosen fields of the clipboard record into the selected rows.
 static void SubPartPasteCallback(DB_PRIMITIVE*)
 {
     PartPasteSelectData();
@@ -4784,6 +4935,7 @@ static void SubPartPasteCallback(DB_PRIMITIVE*)
     g_pSubWin->win->Close();
 }
 
+// Sub "BasePos": opens the BasePos window (the sequence head's base position / model slot).
 static void SubBasePosCallback(DB_PRIMITIVE*)
 {
     BRING(g_pBasePosWin);
@@ -5014,6 +5166,7 @@ public:
 
 /* ------------------------------------------------------------------------- BasePos window */
 
+// BasePos: X + Y puts the sequence base 1500 units in front of the camera.
 static void BasePosPosUpdate_callback(DB_PRIMITIVE* p)
 {
     if (p->select && g_pKey->on[KEY_X] && g_pKey->trg[KEY_Y]) {
@@ -5123,6 +5276,8 @@ public:
 
 /* ------------------------------------------------------------------------- edit table */
 
+// Colours table row `row` (record `no`): selected rows bright (orange for effect records, tan for
+// generators), unselected rows dim.
 void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
 {
     f32 r, g, b, a;
@@ -5165,6 +5320,7 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
     }
 }
 
+// Default record: cleared, parts 0xFE (the model itself), size 200 x 200, white, unit scales.
 void ClearSeqData(TOOL_SEQ* seq)
 {
     memclr_asm(seq, sizeof(TOOL_SEQ));
@@ -5184,6 +5340,7 @@ void ClearSeqData(TOOL_SEQ* seq)
     seq->da = 1.0f;
 }
 
+// Clears the 4 x 64 record table, the selection flags and the clipboard.
 void InitSeqTbl()
 {
     u32 i, j;
@@ -5314,6 +5471,7 @@ int InitTool()
 
 /* ------------------------------------------------------------------------- sequence table edits */
 
+// Clears the page's selection flags and count.
 void ClearSeqFlgNum()
 {
     u32 i;
@@ -5321,6 +5479,7 @@ void ClearSeqFlgNum()
     for (i = 0; i < 64; i++) g_pSeqFlg[i] = 0;
 }
 
+// Recounts the page's selected rows.
 void ReCountSeqFlgNum()
 {
     u32 i;
@@ -5330,6 +5489,7 @@ void ReCountSeqFlgNum()
     }
 }
 
+// Removes record `no` from a page (the rest shift up, the last one cleared).
 void DeleteSeqData(TOOL_SEQ* tbl, u32 no)
 {
     for (; no <= SEQ_TBL_LAST; no++) {
@@ -5349,6 +5509,7 @@ void DeleteSeqData(TOOL_SEQ* tbl, u32 no)
     g_dataChanged = 1;
 }
 
+// Inserts `src` at record `no` (the rest shift down, the last one lost).
 void InsertSeqData(TOOL_SEQ* tbl, u32 no, TOOL_SEQ* src)
 {
     u32 i;
@@ -5370,6 +5531,8 @@ void InsertSeqData(TOOL_SEQ* tbl, u32 no, TOOL_SEQ* src)
     g_dataChanged = 1;
 }
 
+// Copies the field groups chosen by `flags` bits (time, id/tex, position, size, speed, colour,
+// blend, life, rotation, vectors, works, ...) from `src` into `dst`.
 void PartPasteSeqData(TOOL_SEQ* dst, u32 flags, TOOL_SEQ* src)
 {
     if (flags & 0x1) dst->time = src->time;
@@ -5468,6 +5631,8 @@ static inline void SelectCurrentIfNone()
     }
 }
 
+// Copies the page's selected records into the clipboard (g_copyNum); `clear` drops their
+// selection.
 void CopySelectData(int clear)
 {
     TOOL_SEQ* e;
@@ -5491,6 +5656,7 @@ void CopySelectData(int clear)
     g_dataChanged = 1;
 }
 
+// Deletes every selected record of the page.
 void DeleteSelectData()
 {
     u32 i;
@@ -5502,6 +5668,7 @@ void DeleteSelectData()
     g_dataChanged = 1;
 }
 
+// Copy then delete the selection.
 void CutSelectData()
 {
     CopySelectData(0);
@@ -5510,6 +5677,7 @@ void CutSelectData()
     g_dataChanged = 1;
 }
 
+// Inserts the clipboard records at the cursor row (in order).
 void PasteSelectData()
 {
     u32 i;
@@ -5525,6 +5693,7 @@ void PasteSelectData()
     g_dataChanged = 1;
 }
 
+// Pastes the chosen field groups of clipboard record 0 into every selected record.
 void PartPasteSelectData()
 {
     int i;
@@ -5559,6 +5728,8 @@ void PartPasteSelectData()
     g_dataChanged = 1;
 }
 
+// Builds the runnable sequence: the selected records of every page copied behind the head, count
+// in head->num (the effect the tool plays).
 void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i;
@@ -5589,6 +5760,7 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 // the per-group record counts as an array member: an ARRAY_REF keeps the base first in the address (`lhzx r9,head,i2`);
 // pointer arithmetic (`((u16*) head)[i]`) is expanded with EXPAND_SUM, which puts the index product first
 struct SeqCountView { u16 n[1]; };
+// Builds the file image: header (version 0x10) + the selected records; returns the byte size.
 int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     TOOL_SEQ* t;   // before j: the lower pseudo makes loop.c reduce `t + 300` ahead of `j + 1` (r31 / r4)
@@ -5613,6 +5785,7 @@ int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     return size;
 }
 
+// Expands a loaded file into the record table (records marked selected).
 void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i, j;
@@ -5638,6 +5811,8 @@ void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     }                                                \
     no++;
 
+// Compares the edited copy with the table record field by field: changed fields were typed and
+// go into `imm` (flag 1), unchanged ones are stepped through the delta record (flag 0).
 void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
 {
     int no = 0;
@@ -5762,6 +5937,7 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     if (g_immFlg[no]) tbl->field = imm->field;                                     \
     else tbl->field = tbl->field + delta->field;                                   \
     no++;
+// Clamp helper of AddSeq.
 static inline void FClamp(f32& v, f32 lo, f32 hi)
 {
     if (v < lo) v = lo;
@@ -5796,6 +5972,8 @@ static inline void FClamp(f32& v, f32 lo, f32 hi)
         }                                                                          \
     }
 
+// Applies one frame of editing to record `tbl`: per field either the typed value (`imm`) or
+// tbl + delta, clamped to the field's range.
 void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
 {
     int no = 0;
@@ -5916,6 +6094,8 @@ void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
     ADD(path[3])
 }
 
+// Applies the edit copy / delta to the cursor record and, when rows are selected, to every
+// selected record of the page (multi-edit).
 void AddEditData()
 {
     TOOL_SEQ imm;
@@ -5933,6 +6113,9 @@ void AddEditData()
 
 /* ------------------------------------------------------------------------- main */
 
+// Effect editor frame: first call builds the windows (InitTool) and, when entered from the event
+// tool, loads the event's .EST; then the background / grid / array swap, the table rows and edit
+// copy refreshed from the page, the window system updated, and the edits applied (AddEditData).
 void EspToolMain()
 {
     u32 i;
@@ -5979,12 +6162,15 @@ void EspToolMain()
     g_dataChanged = 0;
 }
 
+// Draws the window system.
 void EspToolTrans()
 {
     static DB_KEYBORD key;
     g_pPrimArray->Draw();
 }
 
+// Draws the cursor record's origin: a 2D cross for screen effects, the 3D cross (with its parent
+// parts) for world effects, and the sequence base position.
 void DrawPosCursor()
 {
     Vec pos;
@@ -6008,6 +6194,12 @@ void DrawPosCursor()
     }
 }
 
+// Effect editor main loop: EspToolInit, then every frame the pad -> keyboard, the embedded light
+// tool (when open), START toggles the debug camera (Y / X toggle the event camera in camera mode),
+// otherwise EspToolMain / EspToolTrans; X (repeat) replays the selected records as an effect on the
+// viewer model (MakeExecSeqData + SeqSet), R + full trigger deletes the effects; a pending model
+// load runs the db_mod menu. On exit frees the windows and hands the effect back to the game
+// (EspToolExitEstSet) or the event tool.
 void ToolEspMain()
 {
     g_pPrimArray = new DB_PRIM_ARRAY;
@@ -6195,6 +6387,7 @@ void ToolEspMain()
 
 }  // namespace t_esp_namespace
 
+// Debug menu 9 entry: runs the effect editor.
 void ToolEsp()
 {
     t_esp_namespace::ToolEspMain();

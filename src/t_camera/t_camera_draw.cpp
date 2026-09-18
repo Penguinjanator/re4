@@ -9,7 +9,9 @@
 #include "light.h"
 #include "t_camera.h"
 
-// Camera tool: tool camera update, polygon / menu / spline drawing helpers (t_camera REL).
+// Camera tool (t_camera REL, t_camera_draw.cpp): the per-frame tool camera update (projection / view
+// matrices into pG->Cam), n-gon outline / fill helpers, the TcMenu drawer with the blinking cursor and
+// the CamBSpline preview curve.
 
 // Menu cursor blink timer (a struct: its stores alias the pad reads through pTc, which are
 // reloaded after `blink = 8` in the target).
@@ -18,6 +20,8 @@ static int tcMenuDummy = 0;
 #define TC_TRG (*(u32*) ((u8*) pTc + 0x120))
 #define TC_REP (*(u32*) ((u8*) pTc + 0x128))
 
+// Per frame: rebuilds the tool camera's projection (perspective or ortho by CameraGetProjection)
+// and view matrices, copies it into pG->Cam and updates the view.
 void tcCameraMove()
 {
     TcWork* w = pTc;
@@ -37,6 +41,7 @@ void tcCameraMove()
     View.move();
 }
 
+// Outline of an n-gon (closed line loop).
 void tcDrawNgon(TcNgon* ngon, u32 color)
 {
     Vec a;
@@ -57,6 +62,7 @@ void tcDrawNgon(TcNgon* ngon, u32 color)
     }
 }
 
+// Filled n-gon as a triangle fan.
 void tcFillNgon(TcNgon* ngon, u32 color)
 {
     Vec p[3];
@@ -71,6 +77,9 @@ void tcFillNgon(TcNgon* ngon, u32 color)
     }
 }
 
+// Draws a TcMenu at text cell (x, y) with a blinking cursor; up/down move it (flag 8: trigger
+// only, flag 4: no input), B jumps to the last entry with flag 1, flag 2 shows the cursor steady.
+// Returns the entry on A (if enabled), else -1.
 int tcMenuSelect(int x, int y, int flag, TcMenu* tbl, int num, s8* cursor)
 {
     TcMenu* m = tbl;
@@ -114,6 +123,7 @@ int tcMenuSelect(int x, int y, int flag, TcMenu* tbl, int num, s8* cursor)
 
 static Vec tcCurveOld;
 
+// Draws the current CamBSpline as 128 segments (position curve red, target curve blue).
 void tcDrawParametricCurve()
 {
     CameraBSpline* bs = &CamBSpline;

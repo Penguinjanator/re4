@@ -113,6 +113,7 @@ static TOOL_MENU drExitMenu[2] = {
     {1, "NO", 0},
 };
 
+// EXIT? YES/NO: YES (step 9) leaves the tool, NO returns to the main menu.
 static void tDrExit()
 {
     s8 ret;
@@ -159,6 +160,7 @@ static TOOL_MENU drMainMenu[4] = {
     {1, "EXIT", 0},
 };
 
+// Main menu: AREA EDIT / DATA LOAD / DATA SAVE / EXIT -> mode 1..4.
 static void tDrMainMenu()
 {
     s8 ret = ToolMenuDisp_cur(DR->x, DR->y, 1, &DR->mainCursor, drMainMenu, sizeof(drMainMenu), Joy);
@@ -186,6 +188,7 @@ static void tDrMainMenu()
     DR->x3 = 0;
 }
 
+// AREA EDIT page ("AREA  FILENAME" list): step 0 the list, 1 the area menu, 2 area move.
 static void tDrArea()
 {
     void (*tbl[3])() = {tDrArea_ListDisp, tDrArea_Menu, tDrArea_Move};
@@ -196,6 +199,7 @@ static void tDrArea()
     tbl[DR->step]();
 }
 
+// Clamps the area cursor to lo..hi.
 static inline void tDrLimit(DrWork* w, int lo, int hi)
 {
     u16 v = w->areaNo;
@@ -210,6 +214,8 @@ static inline void tDrLimit(DrWork* w, int lo, int hi)
     w->areaNo = v;
 }
 
+// Area list: up/down (fast repeat, L/R by pages) move the cursor over the 128 slots with a scrolling
+// window, A opens the slot's menu, B back to the main menu.
 static void tDrArea_ListDisp()
 {
     u16 v;
@@ -259,6 +265,7 @@ static void tDrArea_ListDisp()
     }
 }
 
+// One list row: "[no]" and the slot's file name (or "no data...") in the cursor colour.
 void dispAreaList1(int x, int y, int no)
 {
     DrArea* a = (DrArea*) (no * sizeof(DrArea) + (u32) DR->area);
@@ -275,6 +282,7 @@ void dispAreaList1(int x, int y, int no)
     }
 }
 
+// Slot menu: sub 0 the menu, 1 the host file list.
 static void tDrArea_Menu()
 {
     void (*tbl[2])() = {tDrArea_Menu_main, tDrArea_Menu_filelist};
@@ -282,6 +290,7 @@ static void tDrArea_Menu()
     tbl[DR->sub]();
 }
 
+// Host file list (DbgFileList): A assigns the selected file to the slot, B cancels.
 static void tDrArea_Menu_filelist()
 {
     char* name;
@@ -308,6 +317,8 @@ static TOOL_MENU drEditMenu[4] = {
 };
 static const char* drTypeName[2] = {"MRAM_LOAD", "ARAM_LOAD"};
 
+// Slot menu: an empty slot offers AREA CREATE; a used one AREA MOVE (step 2), ID (left/right:
+// MRAM_LOAD / ARAM_LOAD), FILE (the file list), AREA DELEAT; B back to the list.
 static void tDrArea_Menu_main()
 {
     s16 x = DR->x;
@@ -373,6 +384,7 @@ static void tDrArea_Menu_main()
     DR->y = y;
 }
 
+// Creates the slot's area at the player (first time) with type MRAM_LOAD.
 static void tDrArea_Create()
 {
     DrArea* a = &DR->area[DR->areaNo];
@@ -385,6 +397,7 @@ static void tDrArea_Create()
     DR->cursor = 0;
 }
 
+// Marks the slot unused.
 static void tDrArea_Delete()
 {
     DrArea* a = &DR->area[DR->areaNo];
@@ -393,6 +406,7 @@ static void tDrArea_Delete()
     DR->cursor = 0;
 }
 
+// AREA MOVE: the shared AreaDataEdit editor on the slot's area; B back to the menu.
 static void tDrArea_Move()
 {
     DrArea* a = &DR->area[DR->areaNo];
@@ -424,6 +438,7 @@ static inline void tDrPlayerDisp()
     eprintf(DR->x, DR->y + 64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
+// File name of slot `no` (flag 1: without the directory), "no file..." when unset.
 char* tDr_getFilename(u8 no, int flag)
 {
     char* name = DR->fileName[no];
@@ -448,6 +463,8 @@ static TOOL_MENU drLoadMenu[3] = {
     {1, "don't load", 0},
 };
 
+// DATA LOAD: SERVER / LOCAL / don't load; reads the .dra (header "DRA", area records, name strings)
+// into the work: areas by their saved slot, file names resolved through the string block.
 static void tDrDataLoad()
 {
     s8 ret;
@@ -557,6 +574,7 @@ static TOOL_MENU drSaveMenu[3] = {
     {1, "don't save", 0},
 };
 
+// DATA SAVE: SERVER / LOCAL / don't save; builds the image (tDrSaveDataCreate) and writes it.
 static void tDrDataSave()
 {
     int ok = 0;
@@ -634,6 +652,8 @@ static void tDrDataSave()
     }
 }
 
+// Builds the .dra image: used areas in slot order, each file name stored once in the string block
+// (index in DrArea::file), header counts and string offset; saveSize = the total.
 void tDrSaveDataCreate()
 {
     int nArea = 0;

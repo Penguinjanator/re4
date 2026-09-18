@@ -16,6 +16,8 @@ char* strchr(const char* s, int c);
 char* strstr(const char* s, const char* sub);
 }
 
+// Host file list start: default directory (\bio4\data\*.*) and a first read (dir() reads two
+// uninitialised locals here, as the original does).
 void cFileList::init()
 {
     char* d;
@@ -30,6 +32,8 @@ void cFileList::init()
     update();
 }
 
+// Scrolling list display at (x, y) with `rows` visible lines: up/down (fast repeat) move the
+// cursor, stick up/down half a page; returns the selected name.
 char* cFileList::disp(int x, int y, int rows)
 {
     JOY* joy = &Joy[0];
@@ -73,6 +77,8 @@ char* cFileList::disp(int x, int y, int rows)
     return list[cursor];
 }
 
+// Re-reads d:\bio4\room\filelist.txt from the host, converts the backslashes, splits the CRLF
+// lines into `list` (stripping `filter` from each). 0 when the file is missing.
 int cFileList::update()
 {
     char* p;
@@ -115,6 +121,8 @@ int cFileList::update()
     return 1;
 }
 
+// Sets the search pattern `d` and name prefix `f` (copied, backslashes converted); d == 0 gives the
+// defaults \bio4\data\*.* and /bio4/data/.
 void cFileList::dir(char* d, char* f)
 {
     if (pattern) {
