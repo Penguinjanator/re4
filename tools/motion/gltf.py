@@ -2,18 +2,32 @@
 
 Scene: node "model" (the cModel: root motion) with the parts as a node tree (parent links and
 rest translations from the .bin), a skin whose joints are the parts nodes (inverse bind
-matrices from the rest pose) and a stick-figure mesh bound to it (one thin triangle per parts
-towards its parent) so that importers create an armature; one animation with translation /
-rotation / scale samplers per parts node and per the model node, sampled at every motion frame
-(frame / fps seconds, LINEAR: exact at the frame times, which is what the game evaluates), values
-straight from the game's parts matrices. Units: the game's millimetres times `scale`.
+matrices from the rest pose) and the character's meshes bound to it: one glTF mesh per model .bin
+(`MeshSource`: body, head, hands ...), one primitive per ModelPart with POSITION / NORMAL /
+TEXCOORD_0 / COLOR_0 / JOINTS_0 / WEIGHTS_0, a material per (texture, alpha texture) with the
+PNG written to `textures/` next to the output (shared by the motions of an archive). Without
+meshes, a stick-figure mesh (one thin triangle per parts towards its parent) so that importers
+create an armature. One animation with translation / rotation / scale samplers per parts node
+and per the model node, sampled at every motion frame (frame / fps seconds, LINEAR: exact at the
+frame times, which is what the game evaluates), values straight from the game's parts matrices.
+Units: the game's millimetres times `scale`.
+
+Skinning follows game/trans.cpp: calcWeightMat builds mtx[k] = parts k world matrix x bind matrix
+(inverse rest translation), MakeWeightPalette blends them per Weight entry, CalcSk1_x applies
+palette[vertex matrix index] to the rest-pose model-space vertex; that is glTF linear blend
+skinning with the inverse bind matrices of the rest pose, so the same skin serves the mesh and the
+game's per-part rigid vertices (single-entry weights) become one joint with weight 1.
+Triangle winding: the GX order (strips alternate) is counter-clockwise towards the vertex normals
+on every disc model checked, so it is kept as glTF's front face.
 """
 import base64
 import json
 import math
+import os
 import struct
 
 FLOAT = 5126
+U32 = 5125
 U16 = 5123
 U8 = 5121
 ARRAY_BUFFER = 34962
@@ -78,7 +92,7 @@ class Builder:
         self.buffer_views = []
         self.accessors = []
 
-    def accessor(self, fmt, comp_type, type_name, values, target=None, minmax=False):
+    def accessor(self, fmt, comp_type, type_name, values, target=None, minmax=False, normalized=False):
         st = struct.Struct('<' + fmt)
         n = len(values)
         while len(self.blob) % 4:
@@ -91,6 +105,8 @@ class Builder:
             bv['target'] = target
         self.buffer_views.append(bv)
         acc = {'bufferView': len(self.buffer_views) - 1, 'componentType': comp_type, 'count': n, 'type': type_name}
+        if normalized:
+            acc['normalized'] = True
         if minmax:
             if isinstance(values[0], (tuple, list)):
                 acc['min'] = [min(v[i] for v in values) for i in range(len(values[0]))]
@@ -102,8 +118,122 @@ class Builder:
         return len(self.accessors) - 1
 
 
-def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_motion=True, extras=None, stick=True):
-    """poses: evalhost.Pose per frame 0..maxFrame (the game's parts matrices)."""
+def compose_image(textures, tex_id, alpha_id):
+    """RGBA8 of model texture tex_id; with alpha_id (ModelPart.alphaTex, flags bit2) the alpha channel
+    is that texture's alpha (trans.cpp alphaSetup: GX_CA_TEXA of the alpha texture on the same
+    texcoord), nearest-resampled to the base texture's size."""
+    import numpy as np
+    img = textures[tex_id].decode().copy()
+    if alpha_id is not None:
+        a = textures[alpha_id].decode()[..., 3]
+        h, w = img.shape[:2]
+        ys = (np.arange(h) * a.shape[0]) // h
+        xs = (np.arange(w) * a.shape[1]) // w
+        img[..., 3] = a[ys[:, None], xs[None, :]]
+    return img
+
+
+class MeshSource:
+    """One model .bin with its texture palette: mesh (meshbin.Mesh), textures ([gxtex.Texture]),
+    label (file stem of the PNGs / glTF mesh name), tex_prefix (PNG name prefix, shared by motions
+    of the same archive)."""
+
+    def __init__(self, mesh, textures, label, tex_prefix):
+        self.mesh = mesh
+        self.textures = textures
+        self.label = label
+        self.tex_prefix = tex_prefix
+
+
+def build_mesh(b, src, scale, out_dir, images, textures_out, materials, skin_check):
+    """glTF mesh of one .bin: one primitive per ModelPart (its display list, material texId /
+    alphaTex), vertices de-duplicated per part on the (position, normal, colour, texcoord) index
+    tuple, JOINTS_0 / WEIGHTS_0 from the Weight entry the vertex's matrix index selects
+    (meshbin.Mesh.skin: MakeWeightPalette / CalcSk1_x). Returns (mesh dict, n_vertices, n_triangles)."""
+    from . import gxtex
+    m = src.mesh
+    prims = []
+    n_vert = n_tri = 0
+    dropped = [0]
+    for pi, part in enumerate(m.parts):
+        tris = part.triangles()
+        if not tris:
+            continue
+        index = {}
+        seen = set()
+        pos, nrm, uv, clr, joints, weights, idx = [], [], [], [], [], [], []
+        for tri in tris:
+            if len({v[0] for v in tri}) < 3:
+                continue   # degenerate (nothing rasterised)
+            face = frozenset(tri)
+            if face in seen:
+                dropped[0] += 1   # the same face twice (pl00:4 has one); Blender's mesh validation removes it
+                continue
+            seen.add(face)
+            for v in tri:
+                k = index.get(v)
+                if k is None:
+                    k = index[v] = len(pos)
+                    pos.append(tuple(c * scale for c in m.position(v[0])))
+                    nrm.append(tuple(normalize(m.normal(v[1]))))
+                    clr.append(m.colour(v[2]))
+                    uv.append(m.texcoord(v[3]))
+                    pairs = m.skin(v[0])
+                    for j, _ in pairs:
+                        skin_check(j)
+                    pairs = pairs + [(0, 0.0)] * (4 - len(pairs))
+                    joints.append(tuple(j for j, _ in pairs))
+                    weights.append(tuple(w for _, w in pairs))
+                idx.append(k)
+        if not idx:
+            continue
+        n_vert += len(pos)
+        n_tri += len(idx) // 3
+        alpha_id = part.alpha_tex if part.flags & 4 else None
+        key = (src.tex_prefix, part.tex_id, alpha_id)
+        if key not in images:
+            fname = f'{src.tex_prefix}_{part.tex_id:02d}' + (f'_a{alpha_id:02d}' if alpha_id is not None else '') + '.png'
+            path = os.path.join(out_dir, 'textures', fname)
+            if path not in textures_out:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, 'wb') as f:
+                    f.write(gxtex.png(compose_image(src.textures, part.tex_id, alpha_id)))
+                textures_out.add(path)
+            images[key] = len(materials)
+            t = src.textures[part.tex_id]
+            mat = {
+                'name': f'{src.tex_prefix}_tex{part.tex_id:02d}' + (f'_alpha{alpha_id:02d}' if alpha_id is not None else ''),
+                'pbrMetallicRoughness': {'baseColorTexture': {'index': len(materials)}, 'metallicFactor': 0.0, 'roughnessFactor': 1.0},
+                'doubleSided': False,
+                'extras': {'re4': {'texture': part.tex_id, 'format': t.fmt_name, 'size': [t.width, t.height]}},
+            }
+            if alpha_id is not None:
+                # alphaSetup: GXSetAlphaCompare(GX_GREATER, alphaRef, GX_AOP_OR, GX_GREATER, 0xFF): alpha > alphaRef passes
+                mat['alphaMode'] = 'MASK'
+                mat['alphaCutoff'] = (part.alpha_ref + 1) / 255.0
+            materials.append((mat, 'textures/' + fname))
+        prim = {
+            'attributes': {
+                'POSITION': b.accessor('3f', FLOAT, 'VEC3', pos, ARRAY_BUFFER, minmax=True),
+                'NORMAL': b.accessor('3f', FLOAT, 'VEC3', nrm, ARRAY_BUFFER),
+                'TEXCOORD_0': b.accessor('2f', FLOAT, 'VEC2', uv, ARRAY_BUFFER),
+                'COLOR_0': b.accessor('4B', U8, 'VEC4', clr, ARRAY_BUFFER, normalized=True),
+                'JOINTS_0': b.accessor('4H', U16, 'VEC4', joints, ARRAY_BUFFER),
+                'WEIGHTS_0': b.accessor('4f', FLOAT, 'VEC4', weights, ARRAY_BUFFER),
+            },
+            'indices': b.accessor('I', U32, 'SCALAR', idx, ELEMENT_ARRAY_BUFFER),
+            'mode': 4,
+            'material': images[key],
+            'extras': {'re4': {'part': pi, 'flags': part.flags, 'texId': part.tex_id, 'alphaTex': part.alpha_tex,
+                               'bumpTex': part.bump_tex, 'nPoly': part.n_poly}},
+        }
+        prims.append(prim)
+    return {'name': src.label, 'primitives': prims}, n_vert, n_tri, dropped[0]
+
+
+def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_motion=True, extras=None, meshes=None):
+    """poses: evalhost.Pose per frame 0..maxFrame (the game's parts matrices). meshes: [MeshSource]
+    skinned to the parts (None: the stick-figure placeholder mesh). Returns (doc, mesh stats)."""
     n = model.n_parts
     b = Builder()
     nodes = []
@@ -132,9 +262,29 @@ def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_mot
     ibm_acc = b.accessor('16f', FLOAT, 'MAT4', ibm)
     skin = {'joints': list(range(1, n + 1)), 'inverseBindMatrices': ibm_acc, 'skeleton': 0, 'name': 'skeleton'}
 
-    meshes = []
-    mesh_node = None
-    if stick:
+    mesh_list = []
+    mesh_nodes = []
+    materials = []      # (material dict, image uri)
+    stats = {'vertices': 0, 'triangles': 0, 'meshes': 0, 'materials': 0, 'duplicate_faces': 0}
+    if meshes:
+        out_dir = os.path.dirname(os.path.abspath(out_path))
+        images = {}
+        textures_out = set()
+
+        def skin_check(j):
+            if j >= n:
+                raise ValueError(f'mesh weight refers to parts {j}, the skeleton has {n}')
+        for src in meshes:
+            mesh, nv, nt, dup = build_mesh(b, src, scale, out_dir, images, textures_out, materials, skin_check)
+            stats['vertices'] += nv
+            stats['triangles'] += nt
+            stats['duplicate_faces'] += dup
+            mesh_nodes.append(len(nodes))
+            nodes.append({'name': src.label, 'mesh': len(mesh_list), 'skin': 0})
+            mesh_list.append(mesh)
+        stats['meshes'] = len(mesh_list)
+        stats['materials'] = len(materials)
+    else:
         # one thin triangle per parts from its rest position to its parent's, skinned to the parts
         pos = []
         joints = []
@@ -165,8 +315,8 @@ def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_mot
             'indices': b.accessor('H', U16, 'SCALAR', idx, ELEMENT_ARRAY_BUFFER),
             'mode': 4,
         }
-        meshes.append({'name': 'skeleton_sticks', 'primitives': [prim]})
-        mesh_node = len(nodes)
+        mesh_list.append({'name': 'skeleton_sticks', 'primitives': [prim]})
+        mesh_nodes.append(len(nodes))
         nodes.append({'name': 'skeleton_mesh', 'mesh': 0, 'skin': 0})
 
     # animation
@@ -211,19 +361,23 @@ def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_mot
     doc = {
         'asset': {'version': '2.0', 'generator': 're4 tools/motion_export.py'},
         'scene': 0,
-        'scenes': [{'nodes': [0] + ([mesh_node] if mesh_node is not None else [])}],
+        'scenes': [{'nodes': [0] + mesh_nodes}],
         'nodes': nodes,
         'skins': [skin],
         'animations': [anim],
         'accessors': b.accessors,
         'bufferViews': b.buffer_views,
+        'meshes': mesh_list,
     }
-    if meshes:
-        doc['meshes'] = meshes
+    if materials:
+        doc['images'] = [{'uri': uri} for _, uri in materials]
+        doc['samplers'] = [{'magFilter': 9729, 'minFilter': 9729, 'wrapS': 10497, 'wrapT': 10497}]   # GX_REPEAT (TEXHeader wrapS/T = 1)
+        doc['textures'] = [{'source': i, 'sampler': 0} for i in range(len(materials))]
+        doc['materials'] = [mat for mat, _ in materials]
     if extras:
         doc['extras'] = extras
     write(doc, bytes(b.blob), out_path)
-    return doc
+    return doc, stats
 
 
 def write(doc, blob, out_path):
