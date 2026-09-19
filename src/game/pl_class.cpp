@@ -566,7 +566,7 @@ int dmMotCk()
         max = 1200;
         break;
     }
-    if (pG->pl_type == 0 && (G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->pl_type == 0 && pG->weapon_no == 0xD && pG->weapon_type == 2) {
         return 1;
     }
     return (s16) pG->pl_life >= max * 2 / 3;

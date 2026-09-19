@@ -1661,7 +1661,7 @@ int PlBombHitCk(Vec* pos, f32 r)
     if (d2 > (r + 300.0f) * (r + 300.0f)) {
         return 0;
     }
-    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
         lim = 1500.0f;
     } else {
         lim = 2500.0f;

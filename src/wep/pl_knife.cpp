@@ -7,8 +7,8 @@
 // the footwork routine when the knife key (joyLKamae) is held. r_no_2 is the knife state (0 ready,
 // 1 set, 2 fire = slash, 3 down), r_no_3 the step. The knife is not a weapon module object: the
 // motions come from the player archive (pG->pPlayer: 0x23/0x24 draw, 0x81/0x83/0x85 stance idle
-// low/middle/high, 0x82/0x84/0x86 slash, 0x87 put away) or, with the rocket launcher (G_WEP_ID
-// 0x0D02xxxx) in hand, from m_MotTbl[0x55..0x5C] (the launcher is gripped back / released around
+// low/middle/high, 0x82/0x84/0x86 slash, 0x87 put away) or, with the rocket launcher (weapon_no 0x0D,
+// weapon_type 2) in hand, from m_MotTbl[0x55..0x5C] (the launcher is gripped back / released around
 // the slash). Wep->knifeStance (0 low, 1 middle, 2 high from the stick) picks the blend; the
 // equipped gun is hidden by setWepTrans while the knife is out; hitCheck traces the blade.
 
@@ -164,7 +164,7 @@ static void knife_r3_ready00(cPlayer* pl)
     m3r[0] = pitch;
     pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
-    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
         mot0 = pl->m_MotTbl[0x59];
         mot1 = pl->m_MotTbl[0x5A];
     } else if (ItemMgr.bulletNum() && (Key.on & 0x10) && pG->weapon_no == 0xD) {
@@ -189,7 +189,7 @@ static void knife_r3_ready10(cPlayer* pl)
         setWepTrans(pl, 0);
         FACE_SET(pl, 1.0f);
     }
-    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
         if (MotionCheckCrossFrame(&pl->pMotion, 10.0f)) {
             ((cObjLauncher*) pl->Wep->m_pWep)->gripBack();
             pl->r_no_2 = 1;
@@ -483,7 +483,7 @@ static void knife_r3_down00(cPlayer* pl)
         pl->r_no_2 = 0;
         pl->r_no_3 = 0;
     } else {
-        pl->motionSet(mot0, 5, 0, ((G_WEP_ID & 0xFFFF0000) == 0x0E000000) ? 0x100 : 0, (int) mot1);
+        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, (int) mot1);
         pl->motionMove();
         pl->r_no_3 = 1;
     }
@@ -509,7 +509,7 @@ static void knife_r3_down10(cPlayer* pl)
         setWepTrans(pl, 1);
     }
     if (MotionCheckCrossFrame(&pl->pMotion, 15.0f)) {
-        if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+        if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
             ((cObjLauncher*) pl->Wep->m_pWep)->grip(0);
         }
     }
@@ -528,7 +528,7 @@ static void knife_r3_down10(cPlayer* pl)
     } else if ((Key.on & 0x10F) || (pl->m_Work0 != 0 && joyKamae() == 0) || (pl->m_Work0 == 0 && joyKamae() != 0)) {
         FACE_SET(pl, 0.0f);
         setWepTrans(pl, 1);
-        if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+        if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
             ((cObjLauncher*) pl->Wep->m_pWep)->grip(0);
         }
         KNIFE_RESET(pl);

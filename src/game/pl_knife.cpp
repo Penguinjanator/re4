@@ -138,7 +138,7 @@ void knife_r3_ready00(cPlayer* pl)
     m3r[0] = pitch;
     pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
-    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
         mot0 = pl->m_MotTbl[0x59];
         mot1 = pl->m_MotTbl[0x5A];
     } else if (ItemMgr.bulletNum() && (Key.on & 0x10) && pG->weapon_no == 0xD) {
@@ -163,7 +163,7 @@ void knife_r3_ready10(cPlayer* pl)
         setWepTrans(pl, 0);
         FACE_SET(pl, 1.0f);
     }
-    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
         if (MotionCheckCrossFrame(&pl->pMotion, 10.0f)) {
             ((cObjLauncher*) pl->Wep->m_pWep)->gripBack();
             pl->r_no_2 = 1;
@@ -450,7 +450,7 @@ void knife_r3_down00(cPlayer* pl)
         pl->r_no_2 = 0;
         pl->r_no_3 = 0;
     } else {
-        pl->motionSet(mot0, 5, 0, ((G_WEP_ID & 0xFFFF0000) == 0x0E000000) ? 0x100 : 0, (int) mot1);
+        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, (int) mot1);
         pl->motionMove();
         pl->r_no_3 = 1;
     }
@@ -474,7 +474,7 @@ void knife_r3_down10(cPlayer* pl)
         setWepTrans(pl, 1);
     }
     if (MotionCheckCrossFrame(&pl->pMotion, 15.0f)) {
-        if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+        if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
             ((cObjLauncher*) pl->Wep->m_pWep)->grip(0);
         }
     }
@@ -493,7 +493,7 @@ void knife_r3_down10(cPlayer* pl)
     } else if ((Key.on & 0x10F) || (pl->m_Work0 != 0 && joyKamae() == 0) || (pl->m_Work0 == 0 && joyKamae() != 0)) {
         FACE_SET(pl, 0.0f);
         setWepTrans(pl, 1);
-        if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+        if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
             ((cObjLauncher*) pl->Wep->m_pWep)->grip(0);
         }
         KNIFE_RESET(pl);
