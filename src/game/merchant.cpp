@@ -739,11 +739,11 @@ void Merchant2ndRoundInit()
 void MerchantRoomInit()
 {
     if (pG->game_cnt != 0) {
-        if (pSys->Extra_flg & 0x20000000) {
+        if (ExtFlagChk(pSys, EXT_02)) {
             levelDataAdd(merchantData, level_ext_sw500);
             stockDataAdd(merchantData, stock_ext_sw500);
         }
-        if (pSys->Extra_flg & 0x10000000) {
+        if (ExtFlagChk(pSys, EXT_03)) {
             levelDataAdd(merchantData, level_ext_tompson);
             stockDataAdd(merchantData, stock_ext_tompson);
         }

@@ -161,7 +161,7 @@ void titleInit(TitleWork* w)
 void titleSet(TitleWork* w, int time)
 {
     IdSys.kill(0xFF, ID_TITLE);
-    if (!(pSys->Extra_flg & 0x40000000)) {
+    if (!ExtFlagChk(pSys, EXT_HARD_MODE)) {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 6), 0xFF, ID_TITLE, 0x13, 6, 0);
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, ID_TITLE, 0x13, 6, 0);
@@ -407,7 +407,7 @@ void titleLogo(TitleWork* w)
 void titleMenuInit(TitleWork* w)
 {
     IdSys.kill(0xFF, ID_MENU);
-    if (pSys->Extra_flg & 0x40000000) {
+    if (ExtFlagChk(pSys, EXT_HARD_MODE)) {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, ID_MENU, 0x13, 5, 0);
         w->menu_num = 5;
         w->menu[0] = IdSys.unitPtr(1, ID_MENU);
@@ -471,7 +471,7 @@ int titleMenuSelect(TitleWork* w)
     int ret = 0;
 
     if (Key.trg & KEY_A) {
-        if (pSys->Extra_flg & 0x40000000) {
+        if (ExtFlagChk(pSys, EXT_HARD_MODE)) {
             switch (w->cursor) {
             case 0:
                 ret = 6;
@@ -581,7 +581,7 @@ void titleMain(TitleWork* w)
     FadeColor c1;
 
     pRK->logo_skip_enable = 1;
-    if (!SysFlagChk(pG, SYS_LOAD_GAME) && (pSys->Extra_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_LOAD_GAME) && (ExtFlagChk(pSys, EXT_HARD_MODE))) {
         titleLoop(w);
     }
     switch (w->Rno1) {
@@ -934,16 +934,16 @@ void titleSub(TitleWork* w)
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
         if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
-            if (!(pSys->Extra_flg & 0x08000000)) {
+            if (!ExtFlagChk(pSys, EXT_04)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->Extra_flg & 0x02000000)) {
+            if (!ExtFlagChk(pSys, EXT_06)) {
                 IdSys.unitPtr(1, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->Extra_flg & 0x04000000)) {
+            if (!ExtFlagChk(pSys, EXT_05)) {
                 IdSys.unitPtr(2, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!(pSys->Extra_flg & 0x01000000)) {
+            if (!ExtFlagChk(pSys, EXT_07)) {
                 IdSys.unitPtr(3, ID_OMAKE_BG)->be_flag &= ~8;
             }
         }
@@ -967,8 +967,8 @@ void titleSub(TitleWork* w)
                     w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
                 } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
-                    if (!(pSys->Extra_flg & 0x00400000)) {
-                        pSys->Extra_flg |= 0x00400000;
+                    if (!ExtFlagChk(pSys, EXT_09)) {
+                        ExtFlagOn(pSys, EXT_09);
                         {
                             int ofs;
                             for (ofs = 0; ofs < 0x10; ofs += 4) {
@@ -988,10 +988,10 @@ void titleSub(TitleWork* w)
                         }
                     }
                     if (DebugTrg(1)) {
-                        BitOff(pSys->Extra_flg, 0x08000000);
-                        BitOff(pSys->Extra_flg, 0x02000000);
-                        BitOff(pSys->Extra_flg, 0x04000000);
-                        BitOff(pSys->Extra_flg, 0x01000000);
+                        ExtFlagOff(pSys, EXT_04);
+                        ExtFlagOff(pSys, EXT_06);
+                        ExtFlagOff(pSys, EXT_05);
+                        ExtFlagOff(pSys, EXT_07);
                     }
                     // Every fade of this function is the FadeSetW inline (its own colour pair at 32/36):
                     // here `&col.start` is PRE'd across the loops (`addi r29,r1,32`, `mr r4,r29`) while
@@ -1064,22 +1064,22 @@ void titleSub(TitleWork* w)
         break;
     }
     case 8: {
-        if (!(pSys->Extra_flg & 0x08000000)) {
+        if (!ExtFlagChk(pSys, EXT_04)) {
             id_color_copy(0xFD, 1, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 1, ID_OMAKE);
         }
-        if (!(pSys->Extra_flg & 0x02000000)) {
+        if (!ExtFlagChk(pSys, EXT_06)) {
             id_color_copy(0xFD, 2, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 2, ID_OMAKE);
         }
-        if (!(pSys->Extra_flg & 0x04000000)) {
+        if (!ExtFlagChk(pSys, EXT_05)) {
             id_color_copy(0xFD, 3, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 3, ID_OMAKE);
         }
-        if (!(pSys->Extra_flg & 0x01000000)) {
+        if (!ExtFlagChk(pSys, EXT_07)) {
             id_color_copy(0xFD, 4, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 4, ID_OMAKE);
@@ -1279,7 +1279,7 @@ int stageSelect(TitleWork* w)
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
-        if (pSys->Extra_flg & 0x08000000) {
+        if (ExtFlagChk(pSys, EXT_04)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1287,7 +1287,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 0;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(2, ID_OMAKE);
-        if (pSys->Extra_flg & 0x02000000) {
+        if (ExtFlagChk(pSys, EXT_06)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1295,7 +1295,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 1;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(3, ID_OMAKE);
-        if (pSys->Extra_flg & 0x04000000) {
+        if (ExtFlagChk(pSys, EXT_05)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1303,7 +1303,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 2;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(4, ID_OMAKE);
-        if (pSys->Extra_flg & 0x01000000) {
+        if (ExtFlagChk(pSys, EXT_07)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1419,7 +1419,7 @@ void titleExit(TitleWork* w)
                     pG->pl_type = 0;
                     break;
                 case 0x12:
-                    BitOn(pSys->Extra_flg, 0x40000000);
+                    ExtFlagOn(pSys, EXT_HARD_MODE);
                     SysFlagOn(pG, SYS_SOFT_RESET);
                     return;
                 }

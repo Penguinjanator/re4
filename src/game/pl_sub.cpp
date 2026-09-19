@@ -804,7 +804,7 @@ int joyKamae()
     cPlayer* pl = pPL;
     cPlWep* wep;
 
-    if ((pSys->Config_flg & 0x04000000) == 0) {
+    if (CfgFlagChk(pSys, CFG_KNIFE_MODE) == 0) {
         switch (pG->pl_type) {
         case 0:
         case 4:
@@ -863,7 +863,7 @@ int joyLKamae()
 {
     cPlayer* pl = pPL;
 
-    if ((pSys->Config_flg & 0x04000000) == 0) {
+    if (CfgFlagChk(pSys, CFG_KNIFE_MODE) == 0) {
         if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (Key.on & 0x800) {
                 return 1;

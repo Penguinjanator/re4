@@ -694,7 +694,7 @@ void cPlWep::lockMove()
     if (Joy[0].on & 0xF0000) {
         m_LockTime = 0;
     }
-    if (pl->m_pEm && m_LockTime != 0 && (pSys->Config_flg & 0x20000000)) {
+    if (pl->m_pEm && m_LockTime != 0 && (CfgFlagChk(pSys, CFG_LOCK_ON))) {
         PlWepAutoTrack(pl, 0, 1.0f);
     }
 }
@@ -771,7 +771,7 @@ cModel* cPlWep::lockNext()
 // Best lock-on target from `pos` when auto-aim is enabled (pSys->Config_flg 0x20000000), else 0.
 cModel* SearchLockEm(Vec* pos, cModel* skip)
 {
-    if (pSys->Config_flg & 0x20000000) {
+    if (CfgFlagChk(pSys, CFG_LOCK_ON)) {
         return searchLockEm(pos, skip, 0.0f);
     }
     return 0;
@@ -994,7 +994,7 @@ void PlWepLockCtrl(cModel* plm)
             goto rand;
         }
         d = 0.0f;
-        if (pSys->Config_flg & 0x80000000) {
+        if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
             if (Joy[0].on & 8) {
                 d -= 0.035f;
             }
@@ -1227,7 +1227,7 @@ void PlSetLockPitch(cModel* plm)
     cPlayer* pl = (cPlayer*) plm;
     f32 p;
 
-    if (pSys->Config_flg & 0x20000000) {
+    if (CfgFlagChk(pSys, CFG_LOCK_ON)) {
         if (pl->m_pEm) {
             Vec d;
 

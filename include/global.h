@@ -1058,6 +1058,79 @@ enum ITF_FLAG {
 #define FlagChkSignW(flg, no) ((s32) ((flg) << ((no) & 31)) < 0)
 #define FlagChkSign(flg, no) FlagChkSignW((flg)[(no) >> 5], no)
 
+// Config_flg bits, in SystemSave rather than pG (t_flag CONFIG page)
+enum CFG_FLAG {
+    CFG_AIM_REVERSE = 0,
+    CFG_WIDE_MODE = 1,
+    CFG_LOCK_ON = 2,
+    CFG_BONUS_GET = 3,
+    CFG_VIBRATION = 4,
+    CFG_KNIFE_MODE = 5,
+    CFG_06 = 6,
+    CFG_07 = 7,
+    CFG_08 = 8,
+    CFG_09 = 9,
+    CFG_0a = 10,
+    CFG_0b = 11,
+    CFG_0c = 12,
+    CFG_0d = 13,
+    CFG_0e = 14,
+    CFG_0f = 15,
+    CFG_10 = 16,
+    CFG_11 = 17,
+    CFG_12 = 18,
+    CFG_13 = 19,
+    CFG_14 = 20,
+    CFG_15 = 21,
+    CFG_16 = 22,
+    CFG_17 = 23,
+    CFG_18 = 24,
+    CFG_19 = 25,
+    CFG_1a = 26,
+    CFG_1b = 27,
+    CFG_1c = 28,
+    CFG_1d = 29,
+    CFG_1e = 30,
+    CFG_1f = 31,
+};
+
+// Extra_flg bits, in SystemSave (the t_flag EXTRA page shows the CONFIG names by mistake;
+// only these two of its own strings are left in the rodata)
+enum EXT_FLAG {
+    EXT_COSTUME = 0,
+    EXT_HARD_MODE = 1,
+    EXT_02 = 2,
+    EXT_03 = 3,
+    EXT_04 = 4,
+    EXT_05 = 5,
+    EXT_06 = 6,
+    EXT_07 = 7,
+    EXT_08 = 8,
+    EXT_09 = 9,
+    EXT_0a = 10,
+    EXT_0b = 11,
+    EXT_0c = 12,
+    EXT_0d = 13,
+    EXT_0e = 14,
+    EXT_0f = 15,
+    EXT_10 = 16,
+    EXT_11 = 17,
+    EXT_12 = 18,
+    EXT_13 = 19,
+    EXT_14 = 20,
+    EXT_15 = 21,
+    EXT_16 = 22,
+    EXT_17 = 23,
+    EXT_18 = 24,
+    EXT_19 = 25,
+    EXT_1a = 26,
+    EXT_1b = 27,
+    EXT_1c = 28,
+    EXT_1d = 29,
+    EXT_1e = 30,
+    EXT_1f = 31,
+};
+
 #define DbgFlagChk(g, n) FlagChk(&(g)->Debug_flg, n)
 #define StaFlagChk(g, n) FlagChk(&(g)->Status_flg, n)
 #define SysFlagChk(g, n) FlagChk(&(g)->System_flg, n)
@@ -1097,6 +1170,12 @@ enum ITF_FLAG {
 #define ScfFlagOff(g, n) FlagOff(&(g)->Scenario_flg, n)
 #define ItfFlagOn(g, n) FlagOn(&(g)->Item_flg, n)
 #define ItfFlagOff(g, n) FlagOff(&(g)->Item_flg, n)
+#define CfgFlagChk(g, n) FlagChk(&(g)->Config_flg, n)
+#define CfgFlagOn(g, n) FlagOn(&(g)->Config_flg, n)
+#define CfgFlagOff(g, n) FlagOff(&(g)->Config_flg, n)
+#define ExtFlagChk(g, n) FlagChk(&(g)->Extra_flg, n)
+#define ExtFlagOn(g, n) FlagOn(&(g)->Extra_flg, n)
+#define ExtFlagOff(g, n) FlagOff(&(g)->Extra_flg, n)
 
 static inline void BitSet(u32& f, u32 v) { f = v; }
 

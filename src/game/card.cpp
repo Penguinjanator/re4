@@ -2582,7 +2582,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
 
     switch (*sub) {
     case 0:
-        BitOff(pSys->Config_flg, 0x02000000);
+        CfgFlagOff(pSys, CFG_06);
         m_SaveNo = 0;
         memclr_asm(s->fileFlag, sizeof(s->fileFlag));
         m_RetryCtr = 0;
@@ -2605,7 +2605,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             }
             sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
             if (file_exist(fileName)) {
-                BitOn(pSys->Config_flg, 0x02000000);
+                CfgFlagOn(pSys, CFG_06);
                 s->fileFlag[m_SaveNo] |= 1;
                 bit = 1 << m_SaveNo;
                 if (DBG_CACHED & bit) {
@@ -2633,7 +2633,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             if (r == 0) {
             } else if (r > 0) {
                 if (m_ResultCode == 0) {
-                    BitOn(pSys->Config_flg, 0x02000000);
+                    CfgFlagOn(pSys, CFG_06);
                     s->fileFlag[m_SaveNo] |= 1;
                     s->flags |= 0x100;
                     if (type == 2) {

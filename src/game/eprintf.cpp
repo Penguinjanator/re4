@@ -307,7 +307,7 @@ void EprintfDrawing()
         s16 h = p[6];
         s16 x0 = x;
         p += 7;
-        if (pSys->Config_flg & 0x40000000) {
+        if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
             h = (f32) h / 1.33333333f;
             y = (f32) y / 1.33333333f + 56.0f;
         }

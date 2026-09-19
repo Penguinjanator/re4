@@ -2122,7 +2122,7 @@ static void plboat_R2_Move(cPlayer* pl)
     f32 d; \
  \
     if ((u8) (Key.stickY + 15) > 30) { \
-        if (pSys->Config_flg & 0x80000000) { \
+        if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) { \
             d = (f32) -Key.stickY / 72.0f * 31.875f; \
         } else { \
             d = (f32) Key.stickY / 72.0f * 31.875f; \
@@ -2136,13 +2136,13 @@ static void plboat_R2_Move(cPlayer* pl)
         } \
     } else if (Key.on & 3) { \
         if (Key.on & 1) { \
-            if (pSys->Config_flg & 0x80000000) { \
+            if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) { \
                 d = -31.875f; \
             } else { \
                 d = 31.875f; \
             } \
         } else { \
-            if (pSys->Config_flg & 0x80000000) { \
+            if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) { \
                 d = 31.875f; \
             } else { \
                 d = -31.875f; \

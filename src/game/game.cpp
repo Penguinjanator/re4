@@ -330,7 +330,7 @@ void gameStageInit()
     } else {
         SysFlagOff(pG, SYS_CONTINUE_AFTER);
     }
-    if (pSys->Extra_flg & 0x80000000) {
+    if (ExtFlagChk(pSys, EXT_COSTUME)) {
         if (!SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
             if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME) && pG->room_id == 0x120 &&
                 (SysFlagChk(pG, SYS_NEW_GAME) || pG->SaveKind == 3)) {

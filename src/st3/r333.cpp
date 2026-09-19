@@ -678,7 +678,7 @@ static void gameResult()
     SndStrReq(0, 0x3A, 4, 800, 0, 0.0f);
     FadeSetW(2, FADE_TIME, 0, 0);
     r333_fadeWait(2);
-    if ((pSys->Extra_flg & 0x40000000) == 0) {
+    if (ExtFlagChk(pSys, EXT_HARD_MODE) == 0) {
         res->omake_init(data);
         FadeSetW(0x80000002, FADE_TIME, 0, 0);
         r333_fadeWait(2);
@@ -701,14 +701,14 @@ static void gameResult()
     if (pG->game_cnt > 99) {
         pG->game_cnt = 99;
     }
-    BitOn(pSys->Extra_flg, 0x80000000);
-    BitOn(pSys->Extra_flg, 0x40000000);
-    BitOn(pSys->Extra_flg, 0x00800000);
-    if ((pSys->Extra_flg & 0x00400000) == 0) {
+    ExtFlagOn(pSys, EXT_COSTUME);
+    ExtFlagOn(pSys, EXT_HARD_MODE);
+    ExtFlagOn(pSys, EXT_08);
+    if (ExtFlagChk(pSys, EXT_09) == 0) {
         MercSaveWork save;
         int i;
 
-        pSys->Extra_flg |= 0x00400000;
+        ExtFlagOn(pSys, EXT_09);
         // Struct-member view of pSys (pGS): the element store is not disjoint from the pointer load,
         // so pSys is reloaded per iteration and the address stays `(pSys + 0x10) + i*4` (`stwx`).
         for (i = 0; i < 4; i++) {

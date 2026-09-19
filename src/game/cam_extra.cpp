@@ -438,7 +438,7 @@ void CameraScope::move()
             if (Joy[0].on & 4) {
                 add = gain * SCOP_VEL_X + add;
             }
-            if (pSys->Config_flg & 0x80000000) {
+            if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
                 add = -add;
             }
             ang = angle_x;
@@ -720,7 +720,7 @@ void CameraBinocular::move()
         if (Joy[0].on & 4) {
             add = add - gain * BINO_VEL_X;
         }
-        if (pSys->Config_flg & 0x80000000) {
+        if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
             add = -add;
         }
         ang = m_rad.x;

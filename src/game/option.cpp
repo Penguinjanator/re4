@@ -257,17 +257,17 @@ int top_menu(OptionScreen* o)
         if (o->_rno1 == 2) {
             IdSys.unitPtr(0, ID_OPT_BG)->rev_flag |= 0xF;
         }
-        if (pSys->Config_flg & 0x80000000) {
+        if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
             o->m_reverse = 1;
         } else {
             o->m_reverse = 0;
         }
-        if (pSys->Config_flg & 0x08000000) {
+        if (CfgFlagChk(pSys, CFG_VIBRATION)) {
             o->m_vibration = 1;
         } else {
             o->m_vibration = 0;
         }
-        if (pSys->Config_flg & 0x04000000) {
+        if (CfgFlagChk(pSys, CFG_KNIFE_MODE)) {
             o->m_knife_key = 1;
         } else {
             o->m_knife_key = 0;
@@ -541,24 +541,24 @@ int controller_menu(OptionScreen* o)
         switch (old) {
         case 0:
             if (o->m_reverse) {
-                pSys->Config_flg |= 0x80000000;
+                CfgFlagOn(pSys, CFG_AIM_REVERSE);
             } else {
-                pSys->Config_flg &= ~0x80000000;
+                CfgFlagOff(pSys, CFG_AIM_REVERSE);
             }
             break;
         case 1:
             if (o->m_vibration) {
-                BitOn(pSys->Config_flg, 0x08000000);
+                CfgFlagOn(pSys, CFG_VIBRATION);
                 VibSet(vib_time, vib_level, 0, 4);
             } else {
-                pSys->Config_flg &= ~0x08000000;
+                CfgFlagOff(pSys, CFG_VIBRATION);
             }
             break;
         case 2:
             if (o->m_knife_key) {
-                pSys->Config_flg |= 0x04000000;
+                CfgFlagOn(pSys, CFG_KNIFE_MODE);
             } else {
-                pSys->Config_flg &= ~0x04000000;
+                CfgFlagOff(pSys, CFG_KNIFE_MODE);
             }
             break;
         case 3:
@@ -707,21 +707,21 @@ int controller_menu(OptionScreen* o)
         uns->col0[3] = off->col0[3];
     }
     asm("" : : "r"(sel));  // COMPILER-DIFF: candidate (global.c allocno order: sel 29/338 must outrank o 42/600 for r31)
-    if (pSys->Config_flg & 0x80000000) {
+    if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
         IdSys.unitPtr(0xA, ID_OPT)->be_flag |= 8;
         IdSys.unitPtr(0xB, ID_OPT)->be_flag &= ~8;
     } else {
         IdSys.unitPtr(0xA, ID_OPT)->be_flag &= ~8;
         IdSys.unitPtr(0xB, ID_OPT)->be_flag |= 8;
     }
-    if (pSys->Config_flg & 0x08000000) {
+    if (CfgFlagChk(pSys, CFG_VIBRATION)) {
         IdSys.unitPtr(0xC, ID_OPT)->be_flag |= 8;
         IdSys.unitPtr(0xD, ID_OPT)->be_flag &= ~8;
     } else {
         IdSys.unitPtr(0xC, ID_OPT)->be_flag &= ~8;
         IdSys.unitPtr(0xD, ID_OPT)->be_flag |= 8;
     }
-    if (pSys->Config_flg & 0x04000000) {
+    if (CfgFlagChk(pSys, CFG_KNIFE_MODE)) {
         IdSys.unitPtr(0x14, ID_OPT)->be_flag &= ~8;
         IdSys.unitPtr(0x15, ID_OPT)->be_flag |= 8;
     } else {

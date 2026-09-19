@@ -624,8 +624,8 @@ int MercSysResultInit(MercSysWork* wk)
                 }
             }
         }
-        if (!(pSys->Extra_flg & 0x20000000) && cnt > 19) {
-            pSys->Extra_flg |= 0x20000000;
+        if (!ExtFlagChk(pSys, EXT_02) && cnt > 19) {
+            ExtFlagOn(pSys, EXT_02);
             wk->flags |= MF_ALL_RANK;
         }
     }

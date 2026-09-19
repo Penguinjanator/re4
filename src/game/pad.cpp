@@ -368,7 +368,7 @@ VibWork* PullVibWork()
 {
     int i;
     VibWork* v = Joy[0].vib;
-    if (!(pSys->Config_flg & 0x08000000)) {
+    if (!CfgFlagChk(pSys, CFG_VIBRATION)) {
         return NULL;
     }
     for (i = 0; i < 10; i++, v++) {
