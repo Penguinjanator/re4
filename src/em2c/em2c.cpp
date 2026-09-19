@@ -343,7 +343,7 @@ void em2cDmCk(cEm2c* em)
         if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
             int two = 2;      // the routine 2 of the first two arms in a callee-saved register
 
-            if ((int) pG->Room_flg[2] < 0) {
+            if (pG->Room_flg[2] & 0x80000000) {
             em2cSetFreeze(em);
             if (w->flags & 0x200000) {
                 EmRoutineSet(em, two, 6, 0, 0);

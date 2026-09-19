@@ -222,13 +222,13 @@ void R10cInit()
     }
 }
 
-// Per frame: counts frames, mirrors item_flags[0] 0x00400000 (the key taken) into Item_find_flg 0x100,
+// Per frame: counts frames, mirrors item_flags[0] 0x00400000 (the key taken) into Scenario_flg[0] 0x100,
 // and keeps the three crate collision pieces on their swinging scroll objects 0x61..0x63.
 void R10cMain()
 {
     U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
     if (pG->item_flags[0] & 0x00400000) {
-        pG->Item_find_flg |= 0x100;
+        pG->Scenario_flg[0] |= 0x100;
     }
     r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);
     r10c_work.p->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang);
@@ -1279,7 +1279,7 @@ static void r10c_ItemGet()
     SndCall(6, 6, 0, 0, 0, 0);
     SceAtSetEnable(7, 0);
     RsfSet(G_ROOM_ID, 8);
-    pG->door_flags_51CC |= 1;
+    pG->Scenario_flg[4] |= 1;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }

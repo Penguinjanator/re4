@@ -229,7 +229,7 @@ static void r228_checkSalazarBattle()
     SceEventEnd(0);
     EstSet(0, -1, 0, 0, 1, 4, 0, 0, 0, 0);
     RsfSet(G_ROOM_ID, 1);
-    pG->door_flags_51CC |= 0x10000000;
+    pG->Scenario_flg[4] |= 0x10000000;
     SceAtSetEnable(0x8C, 1);
     SatMgr.destroy(r228_work.p->sat);
     EatMgr.destroy(r228_work.p->eat);
@@ -243,9 +243,9 @@ static void r228_execEvent00()
     RsfSet(G_ROOM_ID, 0);
     SceEventStart(0);
     EvtMgr.EvtReadExec("event/evd/r228s00.evd", 0, 0);
-    if ((int) pG->Room_flg[0] >= 0) {
+    if (!(pG->Room_flg[0] & 0x80000000)) {
         EvtMgr.EvtReadExec("event/evd/r228s01.evd", 0, 0);
-        if ((int) pG->Room_flg[0] >= 0) {
+        if (!(pG->Room_flg[0] & 0x80000000)) {
             EvtMgr.EvtReadExec("event/evd/r228s02.evd", 0, 0);
         }
     }

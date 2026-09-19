@@ -424,7 +424,7 @@ void lightSetEm(cModel* m)
             return;
         }
     } else {
-        if ((s32) pG->Disp_flg < 0) {
+        if (pG->Disp_flg & 0x80000000) {
             return;
         }
     }
@@ -462,7 +462,7 @@ void emTrans(cModel* m)
             return;
         }
     } else {
-        if ((s32) pG->Disp_flg < 0) {
+        if (pG->Disp_flg & 0x80000000) {
             return;
         }
     }
@@ -1168,7 +1168,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         } else {
             GXSetVtxAttrFmt(0, 10, 0, 3, 14);
         }
-        if ((s32) d->flags < 0) {
+        if (d->flags & 0x80000000) {
             void* clr = d->pClr;
             GXSetVtxAttrFmt(0, 13, 1, 3, 8);
             GXSetVtxDesc(11, 3);
@@ -1223,7 +1223,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 } else {
                     td = TEXGet(info->pAddTpl, i - tpl->numDescriptors);
                 }
-                if ((s32) d->flags < 0) {
+                if (d->flags & 0x80000000) {
                     TEXHeader* wh = td->textureHeader;
                     wh->wrapT = 1;
                     wh->wrapS = 1;

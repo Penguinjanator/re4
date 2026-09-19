@@ -324,7 +324,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         u->curve[3] = 0;
                     }
                     c = 0;
-                    if ((s32) pG->Debug_flg[0] >= 0) {
+                    if (!(pG->Debug_flg[0] & 0x80000000)) {
                         u->be_flag |= 0xD;
                     }
                     u->be_flag |= 0x2;
@@ -432,7 +432,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         u->curve[3] = 0;
                     }
                     c = 0;
-                    if ((s32) pG->Debug_flg[0] >= 0) {
+                    if (!(pG->Debug_flg[0] & 0x80000000)) {
                         u->be_flag |= 0xD;
                     }
                     u->be_flag |= 0x2;
@@ -1025,7 +1025,7 @@ void IDSystem::trans()
     if (pG->Disp_flg & 0x2000) {
         return;
     }
-    if ((s32) pG->Debug_flg[1] < 0) {
+    if (pG->Debug_flg[1] & 0x80000000) {
         return;
     }
     u = pUnit;

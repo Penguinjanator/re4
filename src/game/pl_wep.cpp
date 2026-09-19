@@ -994,7 +994,7 @@ void PlWepLockCtrl(cModel* plm)
             goto rand;
         }
         d = 0.0f;
-        if ((s32) pSys->flags < 0) {
+        if (pSys->flags & 0x80000000) {
             if (Joy[0].on & 8) {
                 d -= 0.035f;
             }

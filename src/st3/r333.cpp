@@ -474,7 +474,7 @@ static void exec_no_ret()
 {
     int zero = 0;
 
-    BitOn(pG->door_unlock[1], 0x4000);
+    BitOn(pG->Key_flg[1], 0x4000);
     RsfSet(G_ROOM_ID, 3);
     SceEventStart(1);
     SndStrReq(1, 0x3A, 0x80000003, 0, 0, 0.0f);
@@ -776,7 +776,7 @@ static void yure_task()
 static void kazekiri_task()
 {
     for (;;) {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             SndCall(6, 3, 0, 0, 0, 0);
             SceSleep(30);
         }

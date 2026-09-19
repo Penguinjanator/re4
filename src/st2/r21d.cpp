@@ -145,7 +145,7 @@ static inline u32 flagBit(u32 f, u32 bit)
 }
 
 // Event skip: the skip key or the skip flag; the event is marked skipped.
-#define R21D_SKIP ((Key.trg & 0x20000000) || (int) pG->Room_flg[0] < 0)
+#define R21D_SKIP ((Key.trg & 0x20000000) || (pG->Room_flg[0] & 0x80000000))
 #define R21D_SKIP_SET() pG->Room_flg[0] |= 0x80000000
 // fade.h's FadeSetW with `zero`/`black` locals (zero first): the loop-hoisted constants of moveFence's
 // skip block get the target's registers (0 -> r27, 0xFF -> r28) and store order (start, end).
@@ -549,7 +549,7 @@ void r21d_irradiateLaser()
 void r21d_operateSwitch_end(u32 n)
 {
     SceEventEnd(0);
-    if ((int) pG->Room_flg[0] < 0) {
+    if (pG->Room_flg[0] & 0x80000000) {
         FadeSetW(0x80000000, 10, 0, 0);
         SubScreenWait(20);
         if (r21d_work.p->str != 0) {
@@ -737,7 +737,7 @@ static void r21d_checkFence()
     return;
 yes:
     RsfSet(G_ROOM_ID, 0);
-    pG->door_flags_51CC |= 0x01000000;
+    pG->Scenario_flg[4] |= 0x01000000;
     SceAtSetEnable(0x13, 0);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceEventStart(0);
@@ -1013,7 +1013,7 @@ static void r21d_moveDeathTrap()
 // switch's pistons stop at the top unless already (0x40000000), camera back, SceEventEnd.
 static void r21d_checkDeathTrapSwitch_end()
 {
-    if ((int) pG->Room_flg[0] < 0) {
+    if (pG->Room_flg[0] & 0x80000000) {
         r21d_work.p->deathSw.setEndPos();
         if (!(pG->Room_flg[0] & 0x40000000)) {
             SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, SCE_PRIO_DEF_2, 0);

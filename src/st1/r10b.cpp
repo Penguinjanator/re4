@@ -388,7 +388,7 @@ static void R10b_chkWater()
                 EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
                 EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
             }
-        } else if ((int) pG->Room_flg[2] < 0) {
+        } else if (pG->Room_flg[2] & 0x80000000) {
             pG->Room_flg[0] |= 0x80000000;
             r10b_effDelete(2);
             r10b_effDelete(3);

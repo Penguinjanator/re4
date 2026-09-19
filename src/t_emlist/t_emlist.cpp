@@ -639,7 +639,7 @@ void ToolEmList()
         emlist_EmDir_disp();
         LightMgr.move();
         if (pG->Debug_flg[0] & 0x40000000) {
-            if ((int) pG->Status_flg[0] >= 0) {
+            if (!(pG->Status_flg[0] & 0x80000000)) {
                 pG->Status_flg[0] |= 0x80000000;
             }
             SatMgr.disp(0);

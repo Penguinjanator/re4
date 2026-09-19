@@ -407,7 +407,7 @@ static void r311_checkEmReset()
         r311_execEmAppear();
     }
     R311_SAVE_FLAGS |= 0x80000000;
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     SceSleep(30);
@@ -617,7 +617,7 @@ static void r311_throwIronBall()
                 SceSleep(1);
             }
             R311_SAVE_FLAGS |= 0x40000000;
-            BitOn(pG->door_unlock[1], 0x80000000);
+            BitOn(pG->Key_flg[1], 0x80000000);
             r311_work->resetCnt = 0;
             SceAtSetEnable(2, 0);
             SceAtSetEnable(0, 1);

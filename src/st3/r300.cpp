@@ -311,7 +311,7 @@ static inline void r300_setEmAng(cEmWrap* em, Vec* ang, f32 ry)
 }
 
 // Room init (the island landing): Debug_flg[1] 0x20000; JumpPoint skips the landing event; the s00
-// (and s99) callback; two door_unlock[1] bits; the water render targets; the player's room motions;
+// (and s99) callback; two Key_flg[1] bits; the water render targets; the player's room motions;
 // the searchlight objects and the dropping rock (until Room_flg bit 4); the landing event once (bit
 // 0); area 1 = Ashley carried through the gate (bit 3), area 0xF = the camera post (bit 2); the gate
 // already burnt open (bit 5) or the two mirrors (areas 6/7) and the laser start (area 0xB) / the laser
@@ -326,8 +326,8 @@ void R300Init()
     }
     EvtMgr.SetFunc("evt_r300s00_func", (void*) Evt_R300S00_Func);
     EvtMgr.SetFunc("evt_r300s99_func", (void*) Evt_R300S00_Func);
-    BitOn(pG->door_unlock[1], 0x800000);
-    BitOn(pG->door_unlock[1], 0x8000);
+    BitOn(pG->Key_flg[1], 0x800000);
+    BitOn(pG->Key_flg[1], 0x8000);
     setTexRender();
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     {
@@ -558,7 +558,7 @@ void R300Main()
             PSVECScale(&v4, &v4, 0.5f);
             PSVECSubtract(&v3, &v4, &v3);
             PSVECAdd(&v0, &v3, &v0);
-        } else if ((int) pG->Room_flg[2] < 0) {
+        } else if (pG->Room_flg[2] & 0x80000000) {
             v0 = pPL->pos;
             v0.y += 0.0f;
         } else {
@@ -672,7 +672,7 @@ void R300Main()
                     r300_wk->mirbAng = r300_mirbAng[0];
                     r300_wk->cnt++;
                     if (r300_wk->cnt > 0x18) {
-                        if ((int) pG->Room_flg[0] >= 0) {
+                        if (!(pG->Room_flg[0] & 0x80000000)) {
                             pG->Room_flg[0] |= 0x80000000;
                         }
                     }
@@ -1146,7 +1146,7 @@ static void r300_mira_exec()
             if (r300_wk->cnt == 1) {
                 SndCall(6, 0x12, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 SceExec(0x12, (TaskFunc) DoorOpen, 0, 0, 2, 0);
                 break;
             }
@@ -1232,7 +1232,7 @@ static void r300_mirb_exec()
             if (r300_wk->cnt == 1) {
                 SndCall(6, 0x12, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 SceExec(0x12, (TaskFunc) DoorOpen, 0, 0, 2, 0);
                 break;
             }
@@ -1289,11 +1289,11 @@ static void r300_mirb_exec()
     SceEventEnd(0);
 }
 
-// End of the gate opening (also its cancel path): door_unlock[0] 0x80, the laser effects dropped, the
+// End of the gate opening (also its cancel path): Key_flg[0] 0x80, the laser effects dropped, the
 // gate 0x42 snapped down to y -8825, Room_flg bit 5, the mirror / laser / gate areas off, camera back.
 static void DoorOpen_exit()
 {
-    pG->door_unlock[0] |= 0x80;
+    pG->Key_flg[0] |= 0x80;
     EffectEspDelete(1, 4, 0, 0);
     EffectEspgenDelete(1, 4, 0);
     EffectEfmDelete(1, 4, 0);

@@ -105,11 +105,11 @@ void R210Init()
         if (flags & 0x04000000) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
-            pG->Item_find_flg &= ~0x80;
+            pG->Scenario_flg[0] &= ~0x80;
         }
     }
     if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
-        if ((pG->Scenario_flg[0] & 0x40) == 0) {
+        if ((pG->Scenario_flg[1] & 0x40) == 0) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             BitOn(pG->Status_flg[3], 0x04000000);
             if (pSUB) {
@@ -129,7 +129,7 @@ void R210Init()
                 }
                 SubCharCtrl(SCC_STOP, 0);
             }
-            pG->Item_find_flg |= 0x80;
+            pG->Scenario_flg[0] |= 0x80;
         }
         SmdGetObjPtr(0x20)->be_flag |= 0x20;
         SmdGetObjPtr(0x21)->be_flag |= 0x20;
@@ -158,12 +158,12 @@ void R210Init()
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r222_dai_set, 0, 1);
 }
 
-// Per frame: once Leon is past z -20000 (on the lift side) Ashley stops following (Item_find_flg 0x80).
+// Per frame: once Leon is past z -20000 (on the lift side) Ashley stops following (Scenario_flg[0] 0x80).
 void R210Main()
 {
     if (pPL->pos.z < -20000.0f) {
         SubCharCtrl(SCC_STOP, 0);
-        pG->Item_find_flg |= 0x80;
+        pG->Scenario_flg[0] |= 0x80;
     }
 }
 
@@ -178,14 +178,14 @@ static void r222_DummyDoorProc()
     SceAtExecute(0);
 }
 
-// Areas 7/8: re-enable the lift areas 5/6; clears Room_flg[0] bit 31 (lift in use) and Item_find_flg 0x80.
+// Areas 7/8: re-enable the lift areas 5/6; clears Room_flg[0] bit 31 (lift in use) and Scenario_flg[0] 0x80.
 static void r222_dai_set()
 {
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
-    if ((int) pG->Room_flg[0] < 0) {
+    if (pG->Room_flg[0] & 0x80000000) {
         BitOff(pG->Room_flg[0], 0x80000000);
-        pG->Item_find_flg &= ~0x80;
+        pG->Scenario_flg[0] &= ~0x80;
     }
 }
 
@@ -229,9 +229,9 @@ static void r222_dai_go()
         at = &pSUB->atari;
         at->throughOff();
         SubCharCtrl(SCC_STOP, 0);
-        pG->Item_find_flg |= 0x80;
+        pG->Scenario_flg[0] |= 0x80;
     }
-    if ((pG->Scenario_flg[0] & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
+    if ((pG->Scenario_flg[1] & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);
@@ -337,7 +337,7 @@ static void r222_dai_ret()
         at = &pSUB->atari;
         at->throughOff();
         SubCharCtrl(SCC_STOP, 0);
-        pG->Item_find_flg |= 0x80;
+        pG->Scenario_flg[0] |= 0x80;
     }
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);

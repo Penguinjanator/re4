@@ -437,7 +437,7 @@ static void r202_operateCannon()
 
     SceEventStart(0);
     RsfSet(G_ROOM_ID, 1);
-    pG->door_flags_51C8 |= 0x8000;
+    pG->Scenario_flg[3] |= 0x8000;
     r202_destroyCatapult();
     pPL->setNoSuspend(1);
     if (pSUB != 0) {
@@ -943,7 +943,7 @@ void cCatapult::move()
         break;
     case 2:
         if (rockSet == 1) {
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 state = 3;
             }
         }

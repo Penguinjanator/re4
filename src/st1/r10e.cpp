@@ -19,7 +19,7 @@ static R10eWork* r10e_work;
 
 static void R10e_door_set();
 
-// Room init. Entered fresh (room_id_prev 0xFFF) it counts as coming from r119 and sets Scenario_flg[0]
+// Room init. Entered fresh (room_id_prev 0xFFF) it counts as coming from r119 and sets Scenario_flg[1]
 // bit 0x01000000. Before that flag: collision area 1 on (the path is blocked). After it: coming back
 // from r10e itself (a re-entry, System_flg 0x100 clear) disables areas 4/5 for 120 frames (R10e_door_set)
 // and spawns enemy list 0x10 / 0xE / 0xF by pG->Part (2 / 1 / other), recording Part 1 in Room_flg bit 0;
@@ -31,9 +31,9 @@ void R10eInit()
 
     if (pG->room_id_prev == 0xFFF) {
         U16Set(pG->room_id_prev, 0x119);
-        BitOn(pG->Scenario_flg[0], 0x01000000);
+        BitOn(pG->Scenario_flg[1], 0x01000000);
     }
-    if (!(pG->Scenario_flg[0] & 0x01000000)) {
+    if (!(pG->Scenario_flg[1] & 0x01000000)) {
         SceAtSetEnable(1, 0);
     } else {
         SceAtSetEnable(0, 0);

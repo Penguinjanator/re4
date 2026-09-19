@@ -188,7 +188,7 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
     int x;
     int y;
 
-    if ((s32) pG->Debug_flg[3] < 0) {
+    if (pG->Debug_flg[3] & 0x80000000) {
         m_bllt_no = 2;
     } else if (pG->Debug_flg[2] & 0x00400000) {
         m_bllt_no = 1;

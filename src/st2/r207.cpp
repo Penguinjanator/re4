@@ -791,13 +791,13 @@ static void r207_WallMove()
 }
 
 // End of the wall slide (also its cancel path): the wall 0x18 snapped open, collision area 1 on,
-// door_flags_51CC 0x20000000 (the passage is open), camera back, SceEventEnd.
+// Scenario_flg[4] 0x20000000 (the passage is open), camera back, SceEventEnd.
 static void r207_WallMoveEndProc()
 {
     SmdGetObjPtr(0x18)->pos.z = -9500.0f;
     SmdGetObjPtr(0x18)->matUpdate();
     SceAtSetEnable(1, 1);
-    pG->door_flags_51CC |= 0x20000000;
+    pG->Scenario_flg[4] |= 0x20000000;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }

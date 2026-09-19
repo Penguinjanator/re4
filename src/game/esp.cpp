@@ -276,7 +276,7 @@ int EspMove()
     } else {
         eprintf(0x1D8, 0xC8, color, 0xE, "%d", cnt);
     }
-    if ((s32) pG->Debug_flg[0] >= 0 && pG->debug_mode == 0xE) {
+    if (!(pG->Debug_flg[0] & 0x80000000) && pG->debug_mode == 0xE) {
         eprintf(0x20, 0x60, 0, 0xE, "TOTAL:%d", cnt);
         // y counts printed rows; `0x70 + y * 0x10` is a strength-reduced giv whose `li 0x70` init
         // is emitted by loop.c after the hoisted `lis`/`addi`s (a plain `y = 0x70; y += 0x10`
@@ -400,7 +400,7 @@ int EspTrans()
                     ot = 5;
                 } else if (esp->info.Core_flg & 0x200) {
                     ot = 6;
-                } else if ((s32) pG->Debug_flg[0] >= 0) {
+                } else if (!(pG->Debug_flg[0] & 0x80000000)) {
                     pLog->err(6, 0, "ESP : FLG_TEX_RENDER but no set tex_no");
                 }
             }

@@ -93,7 +93,7 @@ void ScenarioRoomInit()
     SceSys.m_door_fade_eff = 0;
     SceSys.m_item_get = 0;
     SceSys.pause = 0;
-    pGS->Item_find_flg &= ~0x80;
+    pGS->Scenario_flg[0] &= ~0x80;
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();

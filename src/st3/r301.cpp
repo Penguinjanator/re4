@@ -166,7 +166,7 @@ static void r301_execContinuePoint()
         u32 zero = 0;
 
         RsfSet(G_ROOM_ID, 5);
-        pG->door_unlock[0] |= 0x40;
+        pG->Key_flg[0] |= 0x40;
         SceAtSetEnable(0xF, 0);
         r301_work.p->espKind = 0;
         r301_work.p->sndId = 0;
@@ -436,7 +436,7 @@ static void r301_checkEmReset1()
 // 0x1D walk in (goto 0xB) to their posts and then after the player.
 static void r301_checkEmReset2()
 {
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     {
@@ -487,7 +487,7 @@ static void r301_checkEmReset2()
 // Reset wave 3 (after Room_flg[0] bit 31): when Ganado 0xF dies, 5 seconds later 0x10 / 0x15 walk in to its post.
 static void r301_checkEmReset3()
 {
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     {

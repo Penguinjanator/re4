@@ -1550,7 +1550,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
         } else {
             GXSetVtxAttrFmt(0, 10, 0, 3, 14);
         }
-        if ((s32) d->flags < 0) {
+        if (d->flags & 0x80000000) {
             void* clrArr = d->pClr;
             GXSetVtxAttrFmt(0, 13, 1, 3, 8);
             GXSetVtxDesc(11, 3);
@@ -1624,7 +1624,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         } else {
             GXSetVtxAttrFmt(0, 10, 0, 3, 14);
         }
-        if ((s32) d->flags < 0) {
+        if (d->flags & 0x80000000) {
             void* clrArr = d->pClr;
             GXSetVtxAttrFmt(0, 13, 1, 3, 8);
             GXSetVtxDesc(11, 3);

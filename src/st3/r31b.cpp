@@ -122,7 +122,7 @@ u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
 cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
 
-// The door lock bits (pG->door_unlock) like flag_rsf.h RsfFlagWord: the word base is a pointer
+// The door lock bits (pG->Key_flg) like flag_rsf.h RsfFlagWord: the word base is a pointer
 // formed before the index is added (`addi 0x51dc` then `lwzx`).
 static inline u32* DoorUnlockFlags() { return (u32*) ((u8*) pG + 0x51DC); }
 static inline u32* DoorUnlockWord(int no) { return (u32*) ((((u32) no >> 5) << 2) + (u32) DoorUnlockFlags()); }
@@ -378,7 +378,7 @@ void R31bInit()
             r31b_work.p->eat[12]->setCoord(&obj->pos, &obj->ang);
         }
     }
-    BitOn(pG->door_unlock[1], 0x01000000);
+    BitOn(pG->Key_flg[1], 0x01000000);
     SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) R31bExecGondolaMain, (void*) 0, 1);
     SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R31bExecGondolaMain, (void*) 1, 1);
     obj = SmdGetObjPtr(0xA3);
@@ -490,7 +490,7 @@ void R31bMain()
             if (no2 != 0xFF) {
                 R31bKanaamiRoom03Trans(no2, 0);
             }
-            if (RsfCheck(G_ROOM_ID, 0x17) == 0 && (int) pG->Room_flg[2] < 0) {
+            if (RsfCheck(G_ROOM_ID, 0x17) == 0 && (pG->Room_flg[2] & 0x80000000)) {
                 SceExec(0x12, (TaskFunc) R31bExecRoom01U3Main, 0, 0, 2, 0);
             }
             if (RsfCheck(G_ROOM_ID, 0xB) == 0 && RsfCheck(G_ROOM_ID, 0x1C) && em->hp <= 0) {
@@ -519,7 +519,7 @@ static void R31bExecEventS00()
             pPL->setAng(&ang);
         }
         SceEventEnd(0);
-        BitOn(pG->Scenario_flg[1], 0x4000);
+        BitOn(pG->Scenario_flg[2], 0x4000);
         GamePointBossReset();
         r31b_work.p->em.setEm(0x14, -1, 0, 1, 1);
         em = r31b_work.p->em.getPtr();
@@ -1091,7 +1091,7 @@ void R31bExecFallMainSub(int no, int flagNo, int cut)
         RsfSet(G_ROOM_ID, flagNo);
         SceEventStart(0);
         SceSetEventCancel(1, (TaskFunc) R31bExecFallEnd, no, -1, 1);
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             SndCall(6, 0x10, 0, 0, 0, 0);
             ((cUnitEventView*) pPL)->beginEvent(0);
             pPL->setNoSuspend(1);
@@ -1183,7 +1183,7 @@ void R31bExecFallEndSub(int no, u32 objId, int satNo, int flagNo)
             r31b_work.p->eat[satNo]->setCoord(&r31b_work.p->satPos[satNo], &obj->ang);
         }
     }
-    if ((int) pG->Room_flg[0] < 0) {
+    if (pG->Room_flg[0] & 0x80000000) {
         AtariOnRaw(&pPL->atari, 0x300);
         DiedemoExec(0, 0);
     } else {
@@ -1511,7 +1511,7 @@ static void R31bExecRoom03U3Main()
         void* zero = 0;
 
         RsfSet(G_ROOM_ID, 0x1C);
-        BitOff(pG->door_unlock[1], 0x01000000);
+        BitOff(pG->Key_flg[1], 0x01000000);
         BitOn(pG->Status_flg[2], 0x02000000);
         SceEventStart(0);
         BitOn(pG->Status_flg[2], 0x00400000);
@@ -1664,8 +1664,8 @@ void R31bExecRoom03U3DieEnd()
         ((cEmDoor*) door)->setNormal();
     }
     SceAtSetEnable(0x24, 0);
-    BitOn(pG->door_unlock[1], 0x02000000);
-    BitOn(pG->door_unlock[1], 0x01000000);
+    BitOn(pG->Key_flg[1], 0x02000000);
+    BitOn(pG->Key_flg[1], 0x01000000);
     SetPosXYZ(pPL, 55080.0f, 4266.0f, 13710.0f);
     SetAngXYZ(pPL, 0.0f, -2.718f, 0.0f);
     pPL->matUpdate();

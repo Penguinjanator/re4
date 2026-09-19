@@ -128,10 +128,10 @@ static inline u32 evtFlagBase()
 {
     return (u32) &pG->Room_flg[0];
 }
-// The door / item flag words at pG->Item_find_flg, as an integer base for FlagChk/On/Off.
+// The door / item flag words at pG->Scenario_flg[0], as an integer base for FlagChk/On/Off.
 static inline u32 doorFlagBase()
 {
-    return (u32) &pG->Item_find_flg;
+    return (u32) &pG->Scenario_flg[0];
 }
 // Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).
 static inline u32 FlagChk(u32 base, u32 no)
@@ -897,7 +897,7 @@ static void r212_DoorLock()
         while (((cEmDoor*) door)->ckLock()) {
             SceSleep(1);
         }
-        pG->door_flags_51C8 |= 0x200;
+        pG->Scenario_flg[3] |= 0x200;
     }
 }
 

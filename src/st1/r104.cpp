@@ -151,7 +151,7 @@ static void Evt_R104S01_Func(Event* e);
 // callbacks. First visit (Room_flg bit 1 clear, debug trigger 1 skips) runs the arrival event, else the
 // kill-count reset waves and the patrols start at once. Area 0x11 = event s10 once (bit 21), area 0x12 =
 // event s20 once (bit 22, pre-loaded after s00). Item area 0x97 is the door-107 key, hidden until
-// door_unlock[0] 0x00400000 (area 0 = locked door message + key-use watcher). Area 0xA = the view once
+// Key_flg[0] 0x00400000 (area 0 = locked door message + key-use watcher). Area 0xA = the view once
 // (bit 14), area 0xE = the dash-in wave once (bit 15); three shelf and two box item events; BGM task.
 void R104Init()
 {
@@ -203,7 +203,7 @@ void R104Init()
         m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
-    if (!(pG->door_unlock[0] & 0x00400000)) {
+    if (!(pG->Key_flg[0] & 0x00400000)) {
         SceAtSetEnable(0x97, 0);
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r104_checkDoor107, 0, 1);
         SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -471,7 +471,7 @@ static void r104_checkDoor107KeyUse()
     SceAtSetEnable(0x97, 1);
     SndCall(6, 3, 0, 0, 0, 0);
     SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->door_unlock[0] |= 0x00400000;
+    pG->Key_flg[0] |= 0x00400000;
     SceAtDataReset(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -710,10 +710,10 @@ static void r104_execEvent20()
     SubScreenOpen(SS_OPEN_SHOP, 0);
 }
 
-// Area 0x11 once (Room_flg bit 21): sets Scenario_flg[0] 0x20000000 and plays event r104s10 (slot 0x13).
+// Area 0x11 once (Room_flg bit 21): sets Scenario_flg[1] 0x20000000 and plays event r104s10 (slot 0x13).
 static void r104_execEvent10()
 {
-    BitOn(pG->Scenario_flg[0], 0x20000000);
+    BitOn(pG->Scenario_flg[1], 0x20000000);
     RsfSet(G_ROOM_ID, 21);
     EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
 }
@@ -751,7 +751,7 @@ static void r104_execEvent00()
         }
         if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
             BitOn(pG->System_flg, 0x400);
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
             } else {
                 pG->System_flg &= ~0x40;

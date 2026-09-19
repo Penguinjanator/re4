@@ -121,12 +121,12 @@ static inline u32* eventFlags()
 // The item-found flag word (kind 2 of the flag areas).
 static inline u32* flags51BC()
 {
-    return &pG->Item_find_flg;
+    return &pG->Scenario_flg[0];
 }
 // Door unlock bits (SceAtDoor lockFlag).
 static inline u32* doorUnlock()
 {
-    return pG->door_unlock;
+    return pG->Key_flg;
 }
 // Global ITEM_SET flags (SceAtItem flagNo): the item was taken.
 static inline u32* itemFlags()
@@ -454,7 +454,7 @@ void SceAtCheck()
         return;
     }
     sceAtDebugDisp();
-    if ((s32) pG->Debug_flg[0] < 0) {
+    if (pG->Debug_flg[0] & 0x80000000) {
         BitOff(pG->Status_flg[0], 0x40000000);
         BitOff(pG->Status_flg[0], 0x20000000);
         return;
@@ -829,10 +829,10 @@ int CheckAshleyActive()
 }
 
 // May the player take a door now? Blocked when Ashley is present (and the "left behind" flag
-// Item_find_flg 0x80 is not set) but cannot follow.
+// Scenario_flg[0] 0x80 is not set) but cannot follow.
 int CheckDoorJumpWithAshley()
 {
-    if (pSUB != 0 && !(pG->Item_find_flg & 0x80)) {
+    if (pSUB != 0 && !(pG->Scenario_flg[0] & 0x80)) {
         if (CheckAshleyActive() == 0) {
             return 0;
         }
@@ -1599,7 +1599,7 @@ static inline void RsfClear(u16 room, int no)
 #line 1400 "D:/Bio4/Prog/sce_at.cpp"
 
 // Type 4 handler (flag): sets or clears (flg.off) flag `no` of kind 0 event flags (Room_flg),
-// 1 room save flags, 2 Item_find_flg.
+// 1 room save flags, 2 Scenario_flg[0].
 static int sceAtFunc_flg(SceAtWork* w, cModel* m)
 {
     SceAtFlg* f = &w->flg;

@@ -1607,7 +1607,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (pGS->Scenario_flg[0] & 0x8000) {
+            if (pGS->Scenario_flg[1] & 0x8000) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);
@@ -1954,7 +1954,7 @@ int cItemMgr::use(ItemWork* p)
     case 0x17:
     case 0x35:
         p->num--;
-        if ((s32) pGS->Debug_flg[3] < 0) {
+        if (pGS->Debug_flg[3] & 0x80000000) {
             if (p->num != 0) {
                 return 1;
             }
@@ -2560,7 +2560,7 @@ int cItemMgr::reloadable(ItemWork* p, int flag)
                 ret = 1;
             }
         }
-        if ((s32) pG->Debug_flg[3] < 0) {
+        if (pG->Debug_flg[3] & 0x80000000) {
             ret = 1;
         }
     }
@@ -2590,7 +2590,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
     if (ITEM_TYPE(id) != 1) {
         goto done;
     }
-    if ((s32) pG->Debug_flg[3] < 0) {
+    if (pG->Debug_flg[3] & 0x80000000) {
         setBullet(p, WeaponId2ChargeNum(id, LV_EX(p) + 1));
         return 0;
     }
@@ -2699,7 +2699,7 @@ int cItemMgr::trigger(ItemWork* p)
     }
     case 3:
     case 6:
-        if ((s32) pG->Debug_flg[3] < 0) {
+        if (pG->Debug_flg[3] & 0x80000000) {
             return 1;
         }
         if (p->id == 0x35) {
@@ -2819,7 +2819,7 @@ int cItemMgr::bulletNum(ItemWork* p)
     ItemInfo info;
     int n;
 
-    if ((s32) pG->Debug_flg[3] >= 0 && (pG->Debug_flg[2] & 0x00400000)) {
+    if (!(pG->Debug_flg[3] & 0x80000000) && (pG->Debug_flg[2] & 0x00400000)) {
         return 100;
     }
     if (p == 0) {

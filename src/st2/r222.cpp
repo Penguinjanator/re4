@@ -342,13 +342,13 @@ void R222Main()
     SmdGetObjPtr(1)->pParts->ang.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->ang.y);
     ry = SmdGetObjPtr(1)->pParts->ang.y;
     if ((ry > r222_angA0 && ry < r222_angA1) || (ry > r222_angA2 && ry < r222_angA3)) {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             pG->Status_flg[0] &= ~8;
         }
         eprintf(0xD8, 0x38, 4, 0, "%f", ry);
         SceAtSetEnable(8, 0);
     } else {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             pG->Status_flg[0] |= 8;
         }
         SceAtSetEnable(8, 1);
@@ -408,11 +408,11 @@ static void dragon_down_ck()
 {
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 em_reset();
             }
             R222_DRAGON_CHECK(0, 0x16, 0x17, dragon, dragon_down);
-            if (RsfCheck(G_ROOM_ID, 3) == 0 && (int) pG->Room_flg[0] < 0) {
+            if (RsfCheck(G_ROOM_ID, 3) == 0 && (pG->Room_flg[0] & 0x80000000)) {
                 RsfSet(G_ROOM_ID, 3);
                 SceExec(0x12, (TaskFunc) dragon_appear, 0, 0, SCE_PRIO_DEF_2, 0);
             }

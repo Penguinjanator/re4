@@ -641,10 +641,10 @@ static inline u32 chkFlag6C(u32 b)
     return pG->Debug_flg[3] & b;
 }
 
-// Scenario_flg[0] bit test.
+// Scenario_flg[1] bit test.
 static inline u32 chkFlag51C0(u32 b)
 {
-    return pG->Scenario_flg[0] & b;
+    return pG->Scenario_flg[1] & b;
 }
 
 // Debug: adds every stage 1 stock and tune table at once.
@@ -786,23 +786,23 @@ void MerchantRoomInit()
         break;
     }
     if (pG->room_id == 0x10E) {
-        if (pG->Scenario_flg[0] & 0x01000000) {
-            if (!(pG->Scenario_flg[0] & 0x00100000)) {
+        if (pG->Scenario_flg[1] & 0x01000000) {
+            if (!(pG->Scenario_flg[1] & 0x00100000)) {
                 levelDataAdd(merchantData, level_null);
                 stockDataAdd(merchantData, stock_r10e_night);
-                pG->Scenario_flg[0] |= 0x00100000;
+                pG->Scenario_flg[1] |= 0x00100000;
             }
         } else {
-            if (!(pG->Scenario_flg[0] & 0x00200000)) {
+            if (!(pG->Scenario_flg[1] & 0x00200000)) {
                 levelDataAdd(merchantData, level_r10e_day);
                 stockDataAdd(merchantData, stock_r10e_day);
-                pG->Scenario_flg[0] |= 0x00200000;
+                pG->Scenario_flg[1] |= 0x00200000;
             }
         }
     }
     if (chkFlag51C0(0x01000000) && !chkFlag51C0(0x2000)) {
         levelDataAdd(merchantData, level_1st_night);
-        pG->Scenario_flg[0] |= 0x2000;
+        pG->Scenario_flg[1] |= 0x2000;
     }
     switch (pG->room_id) {
     case 0x200:
@@ -1410,7 +1410,7 @@ int checkSellingItem(u16 id)
 
     switch (id) {
     case 0x40:
-        if (pG->Item_find_flg & 0x00040000) {
+        if (pG->Scenario_flg[0] & 0x00040000) {
             u32 sold = pG->item_flags[0] & 0x10000000;
             ret = sold == 0;
         } else {

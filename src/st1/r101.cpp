@@ -127,12 +127,12 @@ static inline void r101_emDeadClear(int no)
     }
 }
 
-// Room init (the village, chapter 1-1): the ten reset-wave handles; first visit (Item_find_flg 0x2000)
+// Room init (the village, chapter 1-1): the ten reset-wave handles; first visit (Scenario_flg[0] 0x2000)
 // = typewriter + save; s21/s30 callbacks, floor hit effects, door 0xB lock models, rack ranges. Before
 // the bell (Room_flg bit 7): until the fight starts (bit 6) the find-player watcher, the Ganado voices
 // (area 0x13), the s00 binocular event (area 7), the kill counter, the door messages (areas 0/2); the
 // house event s21 on area 8 with the door watcher unless bit 8; the tower siege, chicken and terminal
-// tasks. After the bell: the post-fight layout, the stream watcher. Doors: area 1 until door_unlock[0]
+// tasks. After the bell: the post-fight layout, the stream watcher. Doors: area 1 until Key_flg[0]
 // 0x02000000, area 0x19 (door 102 with its key) until 0x20000000; item area 0xA3.
 void R101Init()
 {
@@ -153,8 +153,8 @@ void R101Init()
     PSet(r101_work->pEm[7], &r101_work->em[7]);
     PSet(r101_work->pEm[8], &r101_work->em[8]);
     PSet(r101_work->pEm[9], &r101_work->em[9]);
-    if (!(pG->Item_find_flg & 0x2000)) {
-        pG->Item_find_flg |= 0x2000;
+    if (!(pG->Scenario_flg[0] & 0x2000)) {
+        pG->Scenario_flg[0] |= 0x2000;
         SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     EvtMgr.SetFunc("evt_r101s21_func", (void*) Evt_R101S21_Func);
@@ -241,7 +241,7 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
             SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (pG->Item_find_flg & 0x00200000) {
+        if (pG->Scenario_flg[0] & 0x00200000) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 r101_emListOn(0x14);
@@ -267,10 +267,10 @@ void R101Init()
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    if (!(pG->door_unlock[0] & 0x02000000)) {
+    if (!(pG->Key_flg[0] & 0x02000000)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen3, 0, 1);
     }
-    if (!(pG->door_unlock[0] & 0x20000000)) {
+    if (!(pG->Key_flg[0] & 0x20000000)) {
         SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r101_checkDoor102, 0, 1);
         SceExec(0x12, (TaskFunc) r101_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -333,9 +333,9 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
 static inline void r101_startEvent30()
 {
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->Scenario_flg[0], 0x08000000);
-    BitOn(pG->door_flags_51CC, 0x200);
-    BitOn(pG->door_flags_51CC, 0x20);
+    BitOff(pG->Scenario_flg[1], 0x08000000);
+    BitOn(pG->Scenario_flg[4], 0x200);
+    BitOn(pG->Scenario_flg[4], 0x20);
     SceExec(0x12, (TaskFunc) r101_Event30, 0, 0, SCE_PRIO_DEF_2, 0);
     pG->Room_flg[0] |= 0x10000000;
 }
@@ -467,9 +467,9 @@ static void r101_Event30()
     cEm* ladder;
 
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->Scenario_flg[0], 0x08000000);
-    BitOn(pG->door_flags_51CC, 0x200);
-    BitOn(pG->door_flags_51CC, 0x20);
+    BitOff(pG->Scenario_flg[1], 0x08000000);
+    BitOn(pG->Scenario_flg[4], 0x200);
+    BitOn(pG->Scenario_flg[4], 0x20);
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         SceAtSetEnable(8, 0);
         r101_work->evt21->setCommand(CMND_DEL_DATA, 0, 0);
@@ -874,7 +874,7 @@ static void r101_checkDoor102KeyUse()
     }
     SndCall(6, 0x25, 0, 0, 0, 0);
     SceMesSet(0xB, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->door_unlock[0] |= 0x20000000;
+    pG->Key_flg[0] |= 0x20000000;
     SceAtDataReset(0x19);
 }
 
@@ -928,9 +928,9 @@ static void r101_FindPlayer2()
 extern "C" void r101_FindPlayer()
 {
     RsfSet(G_ROOM_ID, 6);
-    BitOn(pG->Scenario_flg[0], 0x08000000);
-    BitOff(pG->door_flags_51CC, 0x200);
-    BitOff(pG->door_flags_51CC, 0x20);
+    BitOn(pG->Scenario_flg[1], 0x08000000);
+    BitOff(pG->Scenario_flg[4], 0x200);
+    BitOff(pG->Scenario_flg[4], 0x20);
     SceAtSetEnable(7, 0);
     r101_work->evt00->setCommand(CMND_DEL_DATA, 0, 0);
     setEm(0x22, -1, 1, 1, 1);

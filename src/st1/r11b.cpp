@@ -78,7 +78,7 @@ extern "C" void Evt_R11BS00_Func(Event* e);
 static void r11b_bort_pos_chk();
 
 // Room init (the lake shore / boat dock): System_flg 0x800; JumpPoint 1 (arriving by boat) marks the
-// s00 event seen (Room_flg bit 0); Item_find_flg 8 / 2, Scenario_flg[0] 0x01000000, three door flags
+// s00 event seen (Room_flg bit 0); Scenario_flg[0] 8 / 2, Scenario_flg[1] 0x01000000, three door flags
 // cleared. Water hit effects, thunder task; the boat enemy (ESL 0x3C) placed at the pier the return
 // position flag (bit 2) says; the s00 event on the first visit (bit 0), else the shore Ganado list is
 // rewritten (EmSetChange); until bit 1 area 3 = the shore ambush and the battle stream; the two water
@@ -98,17 +98,17 @@ void R11bInit()
     }
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
     SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, SCE_PRIO_DEF_2, 0);
-    BitOn(pG->Item_find_flg, 8);
+    BitOn(pG->Scenario_flg[0], 8);
     // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
     // store (output dependence) and is issued in the idle cycle between it and the next pG reload,
     // so local-alloc's fake lifetimes of the two pG values no longer touch and both take r9 (the
     // original's `lwz r9; ... lwz r9`); without it the first load gets r11.
     asm("" : "=m"(rot2.x));
-    BitOn(pG->Item_find_flg, 2);
-    BitOn(pG->Scenario_flg[0], 0x01000000);
-    BitOff(pG->door_flags_51CC, 0x8000);
-    BitOff(pG->door_flags_51CC, 0x200);
-    BitOff(pG->door_flags_51CC, 0x10);
+    BitOn(pG->Scenario_flg[0], 2);
+    BitOn(pG->Scenario_flg[1], 0x01000000);
+    BitOff(pG->Scenario_flg[4], 0x8000);
+    BitOff(pG->Scenario_flg[4], 0x200);
+    BitOff(pG->Scenario_flg[4], 0x10);
 #line 106 "D:/Bio4/Prog/r11b.cpp"
     wp = (R11bWork*) MEM_CALLOC(sizeof(R11bWork), 1, 0xd);
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11b_eff_info);

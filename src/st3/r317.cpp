@@ -311,9 +311,9 @@ void R317EventS00()
             pPL->setAng(&v);
         }
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->Scenario_flg[0], 0x20);
+        BitOn(pG->Scenario_flg[1], 0x20);
         pPL->setWound();
-        pG->Scenario_flg[1] |= 0x00010000;
+        pG->Scenario_flg[2] |= 0x00010000;
         OpeSetOpenTerm(0x14, 0.0f, 0.0f, 0.0f, 0.0f);
         EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, (u32) zero, zero);
     }

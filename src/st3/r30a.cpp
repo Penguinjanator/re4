@@ -43,7 +43,7 @@ static void r30a_execEvent10();
 static void R30aEventS00();
 extern "C" void Evt_R30AS00_Func(Event* e);
 
-// Room init: the s00 (and s98) callback. In the escape phase (Scenario_flg[0] 0x800, consumed here):
+// Room init: the s00 (and s98) callback. In the escape phase (Scenario_flg[1] 0x800, consumed here):
 // BGM table 3 off and the s00 escape event once (Room_flg bit 0). Otherwise area 3 = the s10 event once
 // (bit 1, pre-loaded to MRAM) and the lift.
 void R30aInit()
@@ -52,9 +52,9 @@ void R30aInit()
     r30a_work = (R30aWork*) MEM_CALLOC(sizeof(R30aWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30as00_func", (void*) Evt_R30AS00_Func);
     EvtMgr.SetFunc("evt_r30as98_func", (void*) Evt_R30AS00_Func);
-    if (pG->Scenario_flg[0] & 0x800) {
+    if (pG->Scenario_flg[1] & 0x800) {
         SndBgmTblSetDisable(3, 0);
-        BitOff(pG->Scenario_flg[0], 0x800);
+        BitOff(pG->Scenario_flg[1], 0x800);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceExec(0x12, (TaskFunc) R30aEventS00, 0, 0, 2, 0);
             EvtMgr.EvtReadAram("event/evd/r30as00.evd", 0, 0, 0, 0);
@@ -173,7 +173,7 @@ static void r30a_moveElevator(u32 dir)
     SndCall(6, 0, 0, 0, 0, 0);
     do {
         if (r30a_work->elv.move() == 0) {
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 break;
             }
         }

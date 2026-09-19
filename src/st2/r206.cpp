@@ -180,7 +180,7 @@ void R206Init()
     if (pG->room_id_prev == 0x20D && RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
         SceExec(0x12, (TaskFunc) r206_gouryuu_event, 0, 0, SCE_PRIO_DEF_2, 0);
-        BitOn(pG->Scenario_flg[0], 0x10000000);
+        BitOn(pG->Scenario_flg[1], 0x10000000);
         BitOn(pG->Status_flg[3], 0x04000000);
     }
     EvtMgr.SetFunc("evt_r206s00_func", (void*) Evt_R206S00_Func);
@@ -222,8 +222,8 @@ void r206_die_event()
 // (SceSetChapterEnd(CHAPTER_3_4)), then the item take-over.
 static void r206_gouryuu_event()
 {
-    BitOn(pG->door_flags_51C8, 1);
-    BitOn(pG->door_flags_51CC, 0x80000000);
+    BitOn(pG->Scenario_flg[3], 1);
+    BitOn(pG->Scenario_flg[4], 0x80000000);
     SceSleep(1);
     EvtMgr.EvtReadExec("event/evd/r206s20.evd", 0x11, 0);
     SceSetChapterEnd(CHAPTER_3_4, -1);
@@ -590,7 +590,7 @@ static void r206_snipe()
     obj0 = SmdGetObjPtr(0xC);
     obj1 = SmdGetObjPtr(0xD);
     obj2 = SmdGetObjPtr(0xE);
-    BitOn(pG->Item_find_flg, 0x80);
+    BitOn(pG->Scenario_flg[0], 0x80);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         hit0 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &r206_hitPos0, &r206_hitRot, 0);
         BitOn(obj0->be_flag, 0x20);
@@ -931,7 +931,7 @@ wave_done:
         EmMgr.destroy(pSUB);
         pG->Status_flg[3] &= ~0x04000000;
     }
-    pG->Scenario_flg[1] |= 0x08000000;
+    pG->Scenario_flg[2] |= 0x08000000;
     PlSelect(1);
     SceAtExecute(0);
     RsfSet(G_ROOM_ID, 0);

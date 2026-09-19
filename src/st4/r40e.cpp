@@ -211,7 +211,7 @@ static void r40e_moveElevator(u32 dir)
     case 1:
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->Room_flg[0] < 0) {
+                if (pG->Room_flg[0] & 0x80000000) {
                     break;
                 }
             }
@@ -224,7 +224,7 @@ static void r40e_moveElevator(u32 dir)
         r40e_work->elv.cnt = 90;
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->Room_flg[0] < 0) {
+                if (pG->Room_flg[0] & 0x80000000) {
                     break;
                 }
             }

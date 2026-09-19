@@ -1273,7 +1273,7 @@ static void em32_R1_Walk(cEm32* em)
         switch (mode) {
         case 0:
         default:
-            if (em->pos.x > 7000.0f || (int) em->flag < 0) {
+            if (em->pos.x > 7000.0f || (em->flag & 0x80000000)) {
                 EmRoutineSet(em, 1, 0, 0, 0);
                 break;
             }
@@ -1411,7 +1411,7 @@ static void em32_R1_Dash(cEm32* em)
         switch (mode) {
         case 0:
         default:
-            if (em->pos.x > 7000.0f || (int) em->flag < 0) {
+            if (em->pos.x > 7000.0f || (em->flag & 0x80000000)) {
                 EmRoutineSet(em, 1, 0, 0, 0);
                 break;
             }

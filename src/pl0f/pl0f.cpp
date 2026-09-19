@@ -387,7 +387,7 @@ static void pl0f_R0_Init(cPl0f* em)
     w->swayPhase.y = 0.0f;
     w->Seid_engine = 0;
     w->swayPhase.z = 0.0f;   // last 0.0 store (dying register): issued first
-    if ((int) em->flag < 0) {
+    if (em->flag & 0x80000000) {
         LightMgr.createBack(0, 3, 0, 0)->setParent(em);
     }
     w->EffKindId = EspPullCoreKind();
@@ -2122,7 +2122,7 @@ static void plboat_R2_Move(cPlayer* pl)
     f32 d; \
  \
     if ((u8) (Key.stickY + 15) > 30) { \
-        if ((int) pSys->flags < 0) { \
+        if (pSys->flags & 0x80000000) { \
             d = (f32) -Key.stickY / 72.0f * 31.875f; \
         } else { \
             d = (f32) Key.stickY / 72.0f * 31.875f; \
@@ -2136,13 +2136,13 @@ static void plboat_R2_Move(cPlayer* pl)
         } \
     } else if (Key.on & 3) { \
         if (Key.on & 1) { \
-            if ((int) pSys->flags < 0) { \
+            if (pSys->flags & 0x80000000) { \
                 d = -31.875f; \
             } else { \
                 d = 31.875f; \
             } \
         } else { \
-            if ((int) pSys->flags < 0) { \
+            if (pSys->flags & 0x80000000) { \
                 d = 31.875f; \
             } else { \
                 d = -31.875f; \

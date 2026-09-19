@@ -1810,7 +1810,7 @@ void CameraControl::r0_RailBehind()
             q2.x = q.x;
             PSMTXMultVec(m, &q2, &cam.param.at);
         }
-        if ((s32) pSys->flags < 0) {
+        if (pSys->flags & 0x80000000) {
             PSVECScale(&ang, &a, -1.0f);
         } else {
             a = ang;
@@ -1913,7 +1913,7 @@ void CameraControl::r0_Free()
         Vec yaxis = {0.0f, 1.0f, 0.0f};
         Vec tofs;
         Vec a;
-        if ((s32) pSys->flags < 0) {
+        if (pSys->flags & 0x80000000) {
             PSVECScale(&ang, &a, -1.0f);
         } else {
             a = ang;
@@ -1947,7 +1947,7 @@ void CameraControl::r0_Free()
             Vec yaxis = {0.0f, 1.0f, 0.0f};
             Vec tofs;
             Vec a;
-            if ((s32) pSys->flags < 0) {
+            if (pSys->flags & 0x80000000) {
                 PSVECScale(&ang, &a, -1.0f);
             } else {
                 a = ang;

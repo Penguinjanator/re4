@@ -142,7 +142,7 @@ extern "C" void Evt_R117S10_Func(Event* e);
 static void R117S0_WhiteFade();
 
 // Room init (the church interior, chapter 2-1): thunder task, the chandelier rope object (SetObjSmd from
-// room archive 0x1F/0x20), the light mechanism state. Until Ashley is found (Item_find_flg 0x00100000):
+// room archive 0x1F/0x20), the light mechanism state. Until Ashley is found (Scenario_flg[0] 0x00100000):
 // door 0 close-locked, evd r117s00 pre-loaded to ARAM, r117s10 registered with module 3 pre-read, area 7
 // = the Ashley event, area 4 = the chandelier swing, the two event callbacks. Afterwards: two Ganados
 // (ESL 0x50/0x51) on a fresh visit in Part 0, and the upstairs objects shown.
@@ -155,7 +155,7 @@ void R117Init()
     W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
-    if (!(pG->Item_find_flg & 0x00100000)) {
+    if (!(pG->Scenario_flg[0] & 0x00100000)) {
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
@@ -384,8 +384,8 @@ static void r117_EventAshleyFind()
 {
     cEm* door;
 
-    BitOn(pG->Item_find_flg, 0x00100000);
-    BitOff(pG->door_flags_51CC, 0x8000);
+    BitOn(pG->Scenario_flg[0], 0x00100000);
+    BitOff(pG->Scenario_flg[4], 0x8000);
     if (W->evd0->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         EvtMgr.SetEvt(W->mod->pArc, (u32*) 0);

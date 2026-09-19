@@ -2971,7 +2971,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0xE6), (int) ARC(0xE7), 0, 1, 0);
         MotionMoveF(em, 0);
-        if ((s32) pG->Room_flg[0] >= 0) {
+        if (!(pG->Room_flg[0] & 0x80000000)) {
             em->r_no_2 = 4;
             break;
         }
@@ -4026,7 +4026,7 @@ void em2bRouteCk(cEm2b* em)
     if (pG->stage_no == 1 && pG->room_no == 0x19) {
         w->routePos = pPL->pos;
     } else {
-        if ((int) em->flag < 0 && !((dist = SQRTF(em->plDist2)) < 8000.0f)) {
+        if ((em->flag & 0x80000000) && !((dist = SQRTF(em->plDist2)) < 8000.0f)) {
             if (dist > 25000.0f) {
                 dist = 25000.0f;
             }
@@ -6390,7 +6390,7 @@ int cEm2b::ckR224Drop()
     if (dist > 64000000.0f) {
         return 0;
     }
-    if ((int) pG->Room_flg[0] >= 0) {
+    if (!(pG->Room_flg[0] & 0x80000000)) {
         return 0;
     }
     if (dist > 25000000.0f) {

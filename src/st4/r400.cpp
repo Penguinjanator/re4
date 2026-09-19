@@ -320,7 +320,7 @@ void R400Main()
     SceDebugDisp("");
     if (!(pG->Status_flg[0] & 0x1000)) {
         r400_work.p->cnt = SceCountEmAlive(0x10, 0x20);
-        if (r400_work.p->timer == 1 && (int) pG->Room_flg[0] >= 0) {
+        if (r400_work.p->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
             U32Set(r400_work.p->base, r400_work.p->cnt);
             pG->Room_flg[0] |= 0x80000000;
         }
@@ -336,7 +336,7 @@ void R400Main()
         }
         if (pG->Room_flg[0] & 0x40000000) {
             SceDebugDisp("EM_NUM[%d/%d]", r400_work.p->cnt, r400_work.p->base);
-            if ((int) pG->Room_flg[2] < 0) {
+            if (pG->Room_flg[2] & 0x80000000) {
                 reset_40();
             }
             if (pG->Room_flg[2] & 0x40000000) {
@@ -468,7 +468,7 @@ void emset_boss(int no, int dir)
         } else {
             l = EM_LIST(0x12);
         }
-    } else if ((int) pG->Room_flg[3] < 0) {
+    } else if (pG->Room_flg[3] & 0x80000000) {
         if (dir == 0) {
             l = EM_LIST(0x61);
         } else {

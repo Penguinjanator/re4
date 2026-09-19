@@ -222,23 +222,23 @@ static const PlRoomEff effRoom[6] = {
     {1, {0, 0, 0}, 0x21}, {1, {0, 0, 0}, 0x22}, {1, {0, 0, 0}, 0x23},
 };
 
-// New game: presets the door state flags (door_flags_51C8/51CC/51D0) of the doors that start
+// New game: presets the door state flags (Scenario_flg[3]/51CC/51D0) of the doors that start
 // locked/opened for the scenario.
 void DoorFlagInit()
 {
-    BitOn(pG->door_flags_51CC, 0x200);
-    BitOn(pG->door_flags_51CC, 0x80);
-    BitOn(pG->door_flags_51CC, 0x20);
-    BitOn(pG->door_flags_51CC, 0x10);
-    BitOn(pG->door_flags_51CC, 0x4);
-    BitOn(pG->door_flags_51D0, 0x10000000);
-    BitOn(pG->door_flags_51D0, 0x10000000);
-    BitOn(pG->door_flags_51C8, 0x2000);
-    BitOn(pG->door_flags_51C8, 0x20);
-    BitOn(pG->door_flags_51C8, 0x1);
-    BitOn(pG->door_flags_51CC, 0x80000000);
-    BitOn(pG->door_flags_51CC, 0x8000000);
-    BitOn(pG->door_flags_51CC, 0x400000);
+    BitOn(pG->Scenario_flg[4], 0x200);
+    BitOn(pG->Scenario_flg[4], 0x80);
+    BitOn(pG->Scenario_flg[4], 0x20);
+    BitOn(pG->Scenario_flg[4], 0x10);
+    BitOn(pG->Scenario_flg[4], 0x4);
+    BitOn(pG->Scenario_flg[5], 0x10000000);
+    BitOn(pG->Scenario_flg[5], 0x10000000);
+    BitOn(pG->Scenario_flg[3], 0x2000);
+    BitOn(pG->Scenario_flg[3], 0x20);
+    BitOn(pG->Scenario_flg[3], 0x1);
+    BitOn(pG->Scenario_flg[4], 0x80000000);
+    BitOn(pG->Scenario_flg[4], 0x8000000);
+    BitOn(pG->Scenario_flg[4], 0x400000);
 }
 
 // The game task (TaskExec'd by main): loops forever running game_func_tbl[pG->Rno0] once per frame
@@ -377,7 +377,7 @@ void gameStageInit()
         }
     }
     SetGameTime();
-    if ((s32) pG->Status_flg[3] >= 0 && !(pG->System_flg & 0x100)) {
+    if (!(pG->Status_flg[3] & 0x80000000) && !(pG->System_flg & 0x100)) {
         GameSaveSave(&GameSave, pSaveData, -1);
     }
     StageSet();
@@ -1094,7 +1094,7 @@ void DiedemoExec(int time, int type)
 // (pl_life) is <= 0 (skipped in debug no-death mode).
 void gameDiedemoCheck()
 {
-    if ((s32) pG->Debug_flg[0] < 0) {
+    if (pG->Debug_flg[0] & 0x80000000) {
         return;
     }
     if (pSUB != 0 && (s16) pG->ashley_life <= 0) {
@@ -1655,7 +1655,7 @@ void gameDebugDisp()
     int col;
     u32 i;
 
-    if ((s32) pG->Debug_flg[0] >= 0) {
+    if (!(pG->Debug_flg[0] & 0x80000000)) {
         col = 0;
         if (pPL->dmg.m_Flag || pPL->dmg.m_Timer) {
             col = 2;

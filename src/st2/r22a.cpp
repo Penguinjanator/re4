@@ -206,7 +206,7 @@ extern "C" void R22A_Event()
         EvtMgr.EvtReadExec("event/evd/r22as00.evd", 0, 0x50);
         SceSleep(1);
         SceEventEnd(0);
-        pG->Scenario_flg[0] |= 0x10000;
+        pG->Scenario_flg[1] |= 0x10000;
         SceAtInitSaveItem();
         SceSetChapterEnd(CHAPTER_4_4, 1);
     }

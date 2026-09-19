@@ -228,7 +228,7 @@ void tp_pl_menu()
 void tp_pl_flag()
 {
     eprintf(32, 42, 4, 0, "FLAG EDIT");
-    if ((s32) pG->Debug_flg[3] < 0) {
+    if (pG->Debug_flg[3] & 0x80000000) {
         eprintf(40, 56, 0, 0, "INF BULLET + RELOAD");
     } else if (pG->Debug_flg[2] & 0x400000) {
         eprintf(40, 56, 0, 0, "INF BULLET");

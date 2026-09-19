@@ -408,7 +408,7 @@ void R100Main()
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 10, 5, 0);
                 MotionSetCore(W->cop[1], &W->cop[1]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 10, 5, 0);
             }
-        } else if ((int) pG->Status_flg[2] < 0 && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
+        } else if ((pG->Status_flg[2] & 0x80000000) && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
             if (pG->Room_flg[2] & 0x40000000) {
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x35), 0, 10, 5, 0);
                 W->se = SndCall(6, 6, &W->cop[0]->pos, 0, 0, 0);
@@ -585,7 +585,7 @@ static void r100_StartEvent()
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!(pG->System_flg & 0x40) && !(pG->Scenario_flg[0] & 0x10)) {
+    if (!(pG->System_flg & 0x40) && !(pG->Scenario_flg[1] & 0x10)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
@@ -621,7 +621,7 @@ static void r100_StartEvent()
     }
     SceEventEnd(0);
     BitOff(pG->Disp_flg, 0x20000);
-    if (skip == 0 && !(pG->Scenario_flg[0] & 0x10)) {
+    if (skip == 0 && !(pG->Scenario_flg[1] & 0x10)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     OpeSetMdtNo(0);
@@ -649,11 +649,11 @@ static void r100_DoorCk()
     pG->Room_flg[0] &= ~0x80000000;
     found = 0;
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             found = 1;
         }
         if (found == 1) {
-            if ((int) pG->Room_flg[2] < 0) {
+            if (pG->Room_flg[2] & 0x80000000) {
                 SndCall(6, 0x28, &door->pos, 0, 0, 0);
             }
             break;
@@ -798,7 +798,7 @@ static void r100_StreanChk()
         cnt = r + 60;
     }
     while (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             cnt--;
             if (cnt <= 0) {
                 u8 r = Rnd() % 30;
@@ -988,7 +988,7 @@ static void r100_Sce_zombi_dead(cEm* em)
     SceAtSetEnable(0x1C, 1);
     SceAtSetEnable(0x1E, 0);
     RsfSet(G_ROOM_ID, 10);
-    BitOn(pG->Item_find_flg, 0x4000);
+    BitOn(pG->Scenario_flg[0], 0x4000);
     BitOff(pG->System_flg, 0x400);
     DC.setAramSort(1);
     SceEventEnd(0);
@@ -1248,7 +1248,7 @@ extern "C" void setTexRender()
 }
 
 // Event r100s40 callback (the officers at the ravine / car): Status_flg[1] 0x02000000 during the event,
-// the car event models set up on the first frame (EventCarInit, r120's); funcMode 3 sets Scenario_flg[0]
+// the car event models set up on the first frame (EventCarInit, r120's); funcMode 3 sets Scenario_flg[1]
 // bit 0x10.
 extern "C" void Evt_R100S40_Func(Event* e)
 {
@@ -1264,7 +1264,7 @@ extern "C" void Evt_R100S40_Func(Event* e)
     case 2:
         break;
     case 3:
-        pG->Scenario_flg[0] |= 0x10;
+        pG->Scenario_flg[1] |= 0x10;
         break;
     }
 }

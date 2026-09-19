@@ -361,7 +361,7 @@ static void em28_R1_Wait(cEm28* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            if ((int) em->flag >= 0) {
+            if (!(em->flag & 0x80000000)) {
                 if (Rnd() & 1) {
                     if (Rnd() & 3) {
                         em->r_no_2++;

@@ -167,7 +167,7 @@ static void r108_execShowView()
 // The dial operator area: opens the sub screen puzzle terminal once.
 static void r108_operator()
 {
-    if (!(pG->Scenario_flg[0] & 0x00080000)) {
+    if (!(pG->Scenario_flg[1] & 0x00080000)) {
         RsfSet(G_ROOM_ID, 0);
         OpeSetOpenTerm(6, 0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -244,8 +244,8 @@ static void r108_checkDoor()
 {
     SndCall(6, 7, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    if (!(pG->Scenario_flg[0] & 0x00080000)) {
-        BitOn(pG->Scenario_flg[0], 0x00080000);
+    if (!(pG->Scenario_flg[1] & 0x00080000)) {
+        BitOn(pG->Scenario_flg[1], 0x00080000);
         OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
     }
 }
@@ -307,7 +307,7 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     if ((m = SceAtItemModelPtr(0x82)) != 0) {
         m->setNoSuspend(1);
     }
-    if (!(pG->Item_find_flg & 0x8000)) {
+    if (!(pG->Scenario_flg[0] & 0x8000)) {
         SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_execPuzzle, 0, 1);
     } else {
         FAdd(r108_coverL->pos.x, 220.0f);
@@ -432,7 +432,7 @@ static void r108_execPuzzle()
         }
         if (ok == 1) {
             r108_openCover();
-            pG->Item_find_flg |= 0x8000;
+            pG->Scenario_flg[0] |= 0x8000;
             SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_getItem, 0, 1);
             SceAtPtr(0xA)->actBtnKind = 0x28;
             break;

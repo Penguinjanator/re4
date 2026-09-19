@@ -337,7 +337,7 @@ static void R21aDoorMain()
         }
         zero = 0;
         SceEventStart(1);
-        BitOn(pG->door_flags_51CC, 0x02000000);
+        BitOn(pG->Scenario_flg[4], 0x02000000);
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(5, 0);
         obj = SmdGetObjPtr(0x19);

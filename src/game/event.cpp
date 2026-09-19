@@ -1215,7 +1215,7 @@ int Event::ExePacket_Pos(Event* evt)
             return 1;
         }
     }
-    if ((s32) pac->flag < 0) {
+    if (pac->flag & 0x80000000) {
         PSMTXMultVec(oya->mat, &pos, &pos);
         rot.x += oya->ang.x;
         rot.y += oya->ang.y;
@@ -1350,7 +1350,7 @@ int Event::ExePacket_Esp(Event* evt)
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    if ((s32) pac->flag < 0) {
+    if (pac->flag & 0x80000000) {
         if (evt->PModOya == 0) {
             pLog->err(0, 0, "Event::ExePacket_Esp : oya failed");
             return 1;

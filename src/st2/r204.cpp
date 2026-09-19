@@ -158,7 +158,7 @@ void R204Init()
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
     if ((pG->room_id_prev == 0x205 && pG->Part == 1) || DebugTrg(1)) {
-        BitOn(pG->Scenario_flg[0], 0x40000);
+        BitOn(pG->Scenario_flg[1], 0x40000);
         readEmList(1);
         if (!RsfCheck(G_ROOM_ID, 1)) {
             SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -256,7 +256,7 @@ void R204Init()
             EmMgr.destroy(em1);
         }
     }
-    if (pG->Scenario_flg[0] & 0x10000000) {
+    if (pG->Scenario_flg[1] & 0x10000000) {
         SceAtSetEnable(0x11, 0);
     }
     setTexRender();
@@ -973,14 +973,14 @@ static void r204_EventChandelier2()
     })
 }
 
-// Area 2 once (Room_flg bit 0): Scenario_flg[0] 0x40000, event r204s00 (slot 0x14) with the BGM ducked,
+// Area 2 once (Room_flg bit 0): Scenario_flg[1] 0x40000, event r204s00 (slot 0x14) with the BGM ducked,
 // the partner (Ashley) removed from following, then chapter 3-1 ends (SceSetChapterEnd(CHAPTER_3_1))
 // and the terminal opens.
 static void r204_EventExec()
 {
     if (!RsfCheck(G_ROOM_ID, 0)) {
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->Scenario_flg[0], 0x40000);
+        BitOn(pG->Scenario_flg[1], 0x40000);
         SndRoomStrVolSet(1, 200);
         EvtMgr.EvtReadExec("event/evd/r204s00.evd", 0x14, 0x10);
         SndRoomStrVolReset(500);

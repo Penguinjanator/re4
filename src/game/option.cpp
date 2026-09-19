@@ -707,7 +707,7 @@ int controller_menu(OptionScreen* o)
         uns->col0[3] = off->col0[3];
     }
     asm("" : : "r"(sel));  // COMPILER-DIFF: candidate (global.c allocno order: sel 29/338 must outrank o 42/600 for r31)
-    if ((s32) pSys->flags < 0) {
+    if (pSys->flags & 0x80000000) {
         IdSys.unitPtr(0xA, ID_OPT)->be_flag |= 8;
         IdSys.unitPtr(0xB, ID_OPT)->be_flag &= ~8;
     } else {

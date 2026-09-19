@@ -84,15 +84,15 @@ void R329Main()
 {
 }
 
-// Once (Room_flg bit 0): two door_unlock[1] bits cleared, event r329s00 (Leon and Ashley reunited),
-// a fade-in, Leon placed at the fixed spot, Ashley initialised beside him in chase mode, Scenario_flg[1]
+// Once (Room_flg bit 0): two Key_flg[1] bits cleared, event r329s00 (Leon and Ashley reunited),
+// a fade-in, Leon placed at the fixed spot, Ashley initialised beside him in chase mode, Scenario_flg[2]
 // 0x40000000, the post-event objects.
 static void R329EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        BitOff(pG->door_unlock[1], 0x04000000);
-        BitOff(pG->door_unlock[1], 0x00040000);
+        BitOff(pG->Key_flg[1], 0x04000000);
+        BitOff(pG->Key_flg[1], 0x00040000);
         SceEventStart(0);
         pG->System_flg |= 0x400;
         SceSleep(1);
@@ -119,7 +119,7 @@ static void R329EventS00()
             ang.z = 0.0f;
             pPL->setAng(&ang);
         }
-        BitOn(pG->Scenario_flg[1], 0x40000000);
+        BitOn(pG->Scenario_flg[2], 0x40000000);
         BitOn(pG->Status_flg[3], 0x04000000);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);

@@ -214,7 +214,7 @@ static void r200_execEvent00()
     EmReadInit();
     EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, 0x50);
     SceEventEnd(0);
-    pG->Scenario_flg[0] |= 0x00800000;
+    pG->Scenario_flg[1] |= 0x00800000;
     SceAtInitSaveItem();
     levelDataAdd(merchantData, level_r200);
     stockDataAdd(merchantData, stock_2st_first);

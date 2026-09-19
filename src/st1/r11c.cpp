@@ -200,7 +200,7 @@ void R11cInit()
     if (getRoomEtcRack(2, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 10000.0f, 0.0f, 10000.0f);
     }
-    if (!(pG->Item_find_flg & 0x00020000)) {
+    if (!(pG->Scenario_flg[0] & 0x00020000)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r11c_EventBesiegedStart, 0, 1);
         r11c_eventInit();
         if (!r11c_emDead(0xC8)) {
@@ -246,14 +246,14 @@ void R11cInit()
     EvtMgr.SetFunc("evt_r11cs00_func", (void*) Evt_R11CS00_Func);
     EvtMgr.SetFunc("evt_r11cs10_func", (void*) Evt_R11CS10_Func);
     EvtMgr.SetFunc("evt_r11cs20_func", (void*) Evt_R11CS20_Func);
-    if (!(pG->Scenario_flg[0] & 0x00020000)) {
+    if (!(pG->Scenario_flg[1] & 0x00020000)) {
         SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r11c_operator, 0, 1);
     }
     if (EtcGetDasAddr(0x14, &arc)) {
         RoomEfmRegist(GetEtcAddr(arc, "et1400.bin"), GetEtcAddr(arc, "et1400.tpl"), 0x6F);
     }
     FlrAtSetDefVal(0, 0, 3);
-    if (!(pG->Item_find_flg & 0x00020000) && RoomData.checkPassed(pG->room_id, 0) == 0) {
+    if (!(pG->Scenario_flg[0] & 0x00020000) && RoomData.checkPassed(pG->room_id, 0) == 0) {
         levelDataAdd(merchantData, level_null);
         stockDataAdd(merchantData, stock_r11c);
     }
@@ -307,7 +307,7 @@ static void r11c_EventBesiegedStart()
     ReadModule* mod;
     int err;
 
-    BitOn(pG->Item_find_flg, 0x00020000);
+    BitOn(pG->Scenario_flg[0], 0x00020000);
     BitOn(pG->Room_flg[0], 0x40000000);
     EffectEspDelete(0, (u8) W->eff, 0, 0);
     EffectEspgenDelete(0, (u8) W->eff, 0);
@@ -640,7 +640,7 @@ static void r11c_EventBesiegedStart()
         // calls below, so sched1 may hoist it): a block-local, as in r111.
         void* zero = 0;
 
-        pG->Item_find_flg |= 0x40;
+        pG->Scenario_flg[0] |= 0x40;
         stockDataAdd(merchantData, stock_r11c_after_event);
         merchantChar.setChar(&merchant_info_A, merchantData, g_item_price_tbl, g_item_price_tbl, level_price);
         SceAtSetEnable(8, 0);
@@ -710,7 +710,7 @@ extern "C" void r11c_initGate()
     cObj* g1 = SmdGetObjPtr(0x34);
 
     if (g0 && g1) {
-        if (!(pG->Item_find_flg & 0x00020000)) {
+        if (!(pG->Scenario_flg[0] & 0x00020000)) {
             const f32 h = 3600.0f;
 
             g0->pos.y += h;
@@ -824,7 +824,7 @@ static void r11c_moveGear(int dir)
     g1->pParts->ang.y += d;
     SceSleep(1);
     EstSet(0, -1, 0, 0, 1, 5, 1, (u8) W->effGear, 0, 0);
-    while ((s32) pG->Room_flg[2] >= 0) {
+    while (!(pG->Room_flg[2] & 0x80000000)) {
         f32 a;
 
         t += acc;
@@ -861,7 +861,7 @@ static void r11c_moveChain(int dir)
     c = SmdGetObjPtr(id);
     spd = 0.0f;
     c->be_flag |= 0x20;
-    while ((s32) pGS->Room_flg[2] >= 0) {
+    while (!(pGS->Room_flg[2] & 0x80000000)) {
         spd += acc;
         if (spd > max) {
             spd = max;
@@ -1081,8 +1081,8 @@ static void r11c_selectRoute()
 // Area 0xC: the typewriter terminal.
 static void r11c_operator()
 {
-    if (!(pG->Scenario_flg[0] & 0x00020000)) {
-        pG->Scenario_flg[0] |= 0x00020000;
+    if (!(pG->Scenario_flg[1] & 0x00020000)) {
+        pG->Scenario_flg[1] |= 0x00020000;
         SceAtSetEnable(0xC, 0);
         OpeSetOpenTerm(0xB, 71600.0f, -10.0f, -55420.0f, 1.6f);
     }

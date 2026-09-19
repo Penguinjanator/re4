@@ -183,12 +183,12 @@ void R20bInit()
 void R20bMain()
 {
     if ((pG->Room_flg[2] & 0x00080000) || pPL->pos.y <= 100.0f) {
-        if (!((int) pG->Room_flg[0] < 0)) {
+        if (!(pG->Room_flg[0] & 0x80000000)) {
             pG->Room_flg[0] |= 0x80000000;
             R20bScrTrans(0);
         }
     } else {
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             pG->Room_flg[0] &= 0x7FFFFFFF;
             R20bScrTrans(1);
         }
@@ -343,7 +343,7 @@ static void R20bEmSetMain()
         r20b_work.p->em[4].setFlag(1);
     }
     for (;;) {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
                 r20b_work.p->em[0].setEm(0x11, -1, 0, 1, 1);
@@ -611,7 +611,7 @@ static void R20bDoorEventMain()
         SceSleep(1);
     }
     SceEventStart(1);
-    BitOn(pG->door_flags_51C8, 0x400);
+    BitOn(pG->Scenario_flg[3], 0x400);
     RsfSet(G_ROOM_ID, 1);
     SceAtSetEnable(4, 0);
     SceAtSetEnable(0x19, 0);

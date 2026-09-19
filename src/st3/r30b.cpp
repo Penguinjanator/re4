@@ -534,12 +534,14 @@ static void R30bCraneEnd()
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         RsfSet(G_ROOM_ID, 7);
         SceAtSetEnable(0x10, 0);
-        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
-            pG->Room_flg[0] |= 0x40000000;
-            SceExec(0x12, (TaskFunc) R30bEmGotoSet2, 0, 0, 2, 0);
-            RsfSet(G_ROOM_ID, 2);
-            SceAtSetEnable(4, 0);
-            SceAtSetEnable(6, 1);
+        if (pG->Room_flg[0] & 0x80000000) {
+            if ((pG->Room_flg[0] & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+                pG->Room_flg[0] |= 0x40000000;
+                SceExec(0x12, (TaskFunc) R30bEmGotoSet2, 0, 0, 2, 0);
+                RsfSet(G_ROOM_ID, 2);
+                SceAtSetEnable(4, 0);
+                SceAtSetEnable(6, 1);
+            }
         }
     }
 }
@@ -705,7 +707,7 @@ static void R30bCrane()
                             }
                         }
                     }
-                    if ((int) pG->Room_flg[0] >= 0) {
+                    if (!(pG->Room_flg[0] & 0x80000000)) {
                         pG->Room_flg[0] |= 0x80000000;
                         SceExec(0x12, (TaskFunc) R30bEmSitDownSet, 0, 0, 2, 0);
                     }
@@ -908,7 +910,7 @@ static void R30bCrane()
                     EspDrawLaserLine2(&a, &b, 0xFF, 0, 0, 0x80);
                 }
             }
-            if ((int) pG->Room_flg[0] < 0) {
+            if (pG->Room_flg[0] & 0x80000000) {
                 r30b_work.p->timer++;
             }
             eprintf(0x40, 0x20, 0, 0, "TRY:[%2d:%2d] Timer:[%d/%d]", r30b_work.p->tryLeft, 3, r30b_work.p->timer, 700);

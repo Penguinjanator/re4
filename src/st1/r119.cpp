@@ -278,10 +278,10 @@ static void r119_EventGolemAppear()
         v.z = 0.0f;
         pPL->setAng(&v);
     }
-    BitOff(pG->door_flags_51CC, 0x80);
-    BitOff(pG->door_flags_51CC, 4);
-    BitOff(pG->door_flags_51D0, 0x10000000);
-    BitOff(pG->door_flags_51D0, 0x10000000);
+    BitOff(pG->Scenario_flg[4], 0x80);
+    BitOff(pG->Scenario_flg[4], 4);
+    BitOff(pG->Scenario_flg[5], 0x10000000);
+    BitOff(pG->Scenario_flg[5], 0x10000000);
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {0.0f, -1.51458f, 0.0f};
 
@@ -314,10 +314,10 @@ static void r119_EventGolemAppear()
             if (r119_work->dog != 0) {
                 EmMgr.destroy(r119_work->dog);
             }
-            BitOn(pG->door_flags_51CC, 0x80);
-            BitOn(pG->door_flags_51CC, 4);
-            BitOn(pG->door_flags_51D0, 0x10000000);
-            BitOn(pG->door_flags_51D0, 0x10000000);
+            BitOn(pG->Scenario_flg[4], 0x80);
+            BitOn(pG->Scenario_flg[4], 4);
+            BitOn(pG->Scenario_flg[5], 0x10000000);
+            BitOn(pG->Scenario_flg[5], 0x10000000);
             if ((obj = SmdGetObjPtr(0x21)) != 0) {
                 Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
 
@@ -332,7 +332,7 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if ((pG->Item_find_flg & 0x00080000) && !(pG->Room_flg[0] & 0x02000000)) {
+        if ((pG->Scenario_flg[0] & 0x00080000) && !(pG->Room_flg[0] & 0x02000000)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");
@@ -764,7 +764,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         default:
-            if ((int) pG->Debug_flg[0] >= 0 && e->NowFrame == 0) {
+            if (!(pG->Debug_flg[0] & 0x80000000) && e->NowFrame == 0) {
                 r119_evtBridgeOn();
             }
             break;
@@ -774,7 +774,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
         SmdSetTrans(0x2C, 1);
         SmdSetTrans(0x24, 0);
         SmdSetTrans(0x25, 0);
-        if ((int) pG->Debug_flg[0] >= 0) {
+        if (!(pG->Debug_flg[0] & 0x80000000)) {
             r119_evtBridgeOn();
         }
         w = SmdGetWorkPtr(0x21);

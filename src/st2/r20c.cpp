@@ -250,7 +250,7 @@ void R20cExecCageDown(int lock)
     cEm* door0;
     cEm* door1;
 
-    if ((int) pG->Room_flg[0] < 0) {
+    if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
     pG->Room_flg[0] |= 0x80000000;

@@ -617,7 +617,7 @@ static void r223_EmCheck()
                 }
             }
         }
-        if (RsfCheck(G_ROOM_ID, 0) == 0 && (int) pG->Room_flg[2] < 0 && isZouenGo() == 1) {
+        if (RsfCheck(G_ROOM_ID, 0) == 0 && (pG->Room_flg[2] & 0x80000000) && isZouenGo() == 1) {
             RsfSet(G_ROOM_ID, 0);
             r223_work.p->em[9].setEm(0xDC, 5, 1, 1, 1);
             r223_work.p->em[10].setEm(0xDD, 5, 1, 1, 1);
@@ -630,14 +630,14 @@ static void r223_EmCheck()
             r223_work.p->em[12].setGoto(&c, 7);
             r223_work.p->em[13].setGoto(&c, 7);
         }
-        if (RsfCheck(G_ROOM_ID, 1) == 0 && (int) pG->Room_flg[2] < 0 && isZouenGo2() == 1) {
+        if (RsfCheck(G_ROOM_ID, 1) == 0 && (pG->Room_flg[2] & 0x80000000) && isZouenGo2() == 1) {
             RsfSet(G_ROOM_ID, 1);
             SceExec(0x12, (TaskFunc) r223_EmApper, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         timer++;
         if (timer > 100) {
             timer = 100;
-            if (r223_work.p->em[3].isActive() == 1 && (int) pG->Room_flg[2] < 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+            if (r223_work.p->em[3].isActive() == 1 && (pG->Room_flg[2] & 0x80000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
                 r223_work.p->em[3].setGoto(&pPL->pos, 8);
                 r223_work.p->em[17].setEm(0xD0, 5, 1, 1, 1);

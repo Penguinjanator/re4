@@ -274,7 +274,7 @@ void r205_Em105AppearCheck()
 void r205_Em106AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->Room_flg[2] < 0) {
+        if (pG->Room_flg[2] & 0x80000000) {
             if (r205_work.p->ems[0].dead == 1 && r205_work.p->ems[7].dead == 1) {
                 RsfSet(G_ROOM_ID, 3);
                 r205_work.p->ems[2].em.setEm(0x6A, -1, 1, 1, 1);
@@ -319,7 +319,7 @@ void r205_Em111AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         SceAtSetEnable(0x21, 1);
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if (r205_work.p->ems[6].dead == 1) {
                     Vec pos;

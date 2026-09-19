@@ -274,7 +274,7 @@ static void R316EventSXX()
         FadeSetW(2, 60, 0, 0);
         FadeWait(2);
         SceEventEnd(0);
-        pG->Scenario_flg[0] |= 0x800;
+        pG->Scenario_flg[1] |= 0x800;
         {
             Vec pos;
             Vec rot;

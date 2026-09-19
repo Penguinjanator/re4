@@ -149,7 +149,7 @@ void objPillar_R0_Set(cObjPillar* obj)
 
 // Rno0 == 1 (setBreak): the pillar topples with motBreak towards the player: creak sound when he
 // is near, crushing hit tests on parts 1/2 (objPillarAtkCk), the escape action button (0x25)
-// offered while he stands in front, fade-out 10 frames before the end; removed when Scenario_flg[0]
+// offered while he stands in front, fade-out 10 frames before the end; removed when Scenario_flg[1]
 // 0x200 (the boss died).
 void objPillar_R0_Break(cObjPillar* obj)
 {
@@ -195,7 +195,7 @@ void objPillar_R0_Break(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->Scenario_flg[0] & 0x200) {
+    if (pG->Scenario_flg[1] & 0x200) {
         ObjMgr.destroy(obj);
         return;
     }
@@ -326,7 +326,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->Scenario_flg[0] & 0x200) {
+    if (pG->Scenario_flg[1] & 0x200) {
         ObjMgr.destroy(obj);
         return;
     }
@@ -373,7 +373,7 @@ void objPillar_R0_Escape(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->Scenario_flg[0] & 0x200) {
+    if (pG->Scenario_flg[1] & 0x200) {
         ObjMgr.destroy(obj);
     }
 }
@@ -427,7 +427,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
         break;
     }
     obj->partsWorldCalc();
-    if (pG->Scenario_flg[0] & 0x200) {
+    if (pG->Scenario_flg[1] & 0x200) {
         ObjMgr.destroy(obj);
     }
 }
@@ -549,7 +549,7 @@ void EscapeAction(cObjPillar* obj)
     PillarWork* w = &obj->pillar;
     u8 one = 1;
 
-    if (!(pG->Scenario_flg[0] & 0x200)) {
+    if (!(pG->Scenario_flg[1] & 0x200)) {
         w->Act_ck = one;
         SetPlDamage((cEm*) obj, plemEscape);
         GameAddPoint(9);
@@ -653,7 +653,7 @@ void EscapeAction2(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
 
-    if (!(pG->Scenario_flg[0] & 0x200)) {
+    if (!(pG->Scenario_flg[1] & 0x200)) {
         w->Act_ck = 1;
         SetPlDamage((cEm*) obj, plemEscape2);
         obj->r_no_0 = 3;

@@ -359,7 +359,7 @@ void objMove(cObj* p)
     if (pG->Debug_flg[1] & 0x08000000) {
         p->debugSkeletonDisp();
     }
-    if ((int) p->be_flag < 0) {
+    if (p->be_flag & 0x80000000) {
         p->drawAllBoundingBox(p->pModelInfo);
     }
 }

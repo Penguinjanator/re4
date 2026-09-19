@@ -635,7 +635,7 @@ static void em21_R1_R100TrapCancel(cEm21* em)
             w->pTrap->flag |= 1;
         }
         SndStrReq(1, 0xE, 0x80000003, 0, 0, 0.0f);
-        pG->Item_find_flg |= 0x80000;
+        pG->Scenario_flg[0] |= 0x80000;
         em->hp = 0;
         em->atari.m_flag &= ~0x200;
         em->r_no_2++;
@@ -1202,7 +1202,7 @@ int em21WakeCk(cEm21* em)
     if (em->plDist2 < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
         return 1;
     }
-    if ((int) pG->Status_flg[1] < 0 && em->plDist2 < 16000000.0f) {
+    if ((pG->Status_flg[1] & 0x80000000) && em->plDist2 < 16000000.0f) {
         return 1;
     }
     if ((pG->Status_flg[1] & 0x40000000) || (pG->Status_flg[0] & 0x00800000)) {

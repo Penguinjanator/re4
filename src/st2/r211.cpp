@@ -199,7 +199,7 @@ void r211_GrateOpen()
 }
 
 // End of the grate opening: the grate object stays shown, SE / effect cleanup when cancelled early,
-// camera back, Room_flg bit 2 and door_flags_51C8 0x10 (the way is open), collision area 0 re-armed.
+// camera back, Room_flg bit 2 and Scenario_flg[3] 0x10 (the way is open), collision area 0 re-armed.
 static void r211_GrateOpenEndProc()
 {
     cObj* obj = SmdGetObjPtr(0x1B);
@@ -213,7 +213,7 @@ static void r211_GrateOpenEndProc()
     }
     CamCtrl.Comeback(0);
     RsfSet(G_ROOM_ID, 2);
-    pG->door_flags_51C8 |= 0x10;
+    pG->Scenario_flg[3] |= 0x10;
     SceAtDataReset(0);
     SceEventEnd(0);
 }

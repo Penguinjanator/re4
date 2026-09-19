@@ -193,7 +193,7 @@ void R225Init()
             hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x39), ROOM_ARC_PTR(pG->pRoom, 0x38));
         }
     }
-    pG->Scenario_flg[1] |= 0x01000000;
+    pG->Scenario_flg[2] |= 0x01000000;
 }
 
 // Per-frame room main: nothing.
@@ -391,7 +391,7 @@ void r225_open_door()
     f32 spd;
     f32 max;
 
-    pG->door_flags_51CC |= 0x04000000;
+    pG->Scenario_flg[4] |= 0x04000000;
     SceEventStart(0);
     CamCtrl.CutCall(9);
     SceSleep(15);

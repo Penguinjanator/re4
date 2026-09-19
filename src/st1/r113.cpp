@@ -93,7 +93,7 @@ static void r113_ThunderMove();
 
 // Room init (Ashley with Leon, storm): thunder task, rain effects on the player, Status_flg[1] 0x400
 // (raining); area 2 = front door check; area 3 = the window shoulder-ride prompt while the door is still
-// locked (door_unlock[0] 0x08000000 clear) and Ashley is following (Status_flg[3] 0x04000000); the shared
+// locked (Key_flg[0] 0x08000000 clear) and Ashley is following (Status_flg[3] 0x04000000); the shared
 // r103 cesspit, sub-mission target 8, rack 6 range, three shelf item events (items 0x8E/0x8F/0x8B), the
 // closet hide spot (area 4), and the glowing file item at area 0x82 until item_flags[0] 0x800 is taken.
 void R113Init()
@@ -110,7 +110,7 @@ void R113Init()
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
     pG->Status_flg[1] |= 0x400;
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
-    if (!(pG->door_unlock[0] & 0x08000000) && (pG->Status_flg[3] & 0x04000000)) {
+    if (!(pG->Key_flg[0] & 0x08000000) && (pG->Status_flg[3] & 0x04000000)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
     }
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r113_eff_info);
@@ -203,7 +203,7 @@ static void r113_EventRideShoulder()
     int i;
 
     SceAtSetEnable(3, 0);
-    BitOn(pG->door_unlock[0], 0x08000000);
+    BitOn(pG->Key_flg[0], 0x08000000);
     r113_work->strId = 0;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
@@ -290,7 +290,7 @@ static void r113_checkAshleyPos()
 // The front door: the up-cut until the window event is done.
 static void r113_DoorCheck()
 {
-    if (!(pG->door_unlock[0] & 0x08000000)) {
+    if (!(pG->Key_flg[0] & 0x08000000)) {
         SceUpCut(0, -1, 0xA, 0);
     } else {
         SceAtExecute(2);

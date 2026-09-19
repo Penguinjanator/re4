@@ -85,10 +85,10 @@ static void r11d_str_check();
 
 // Room init (the village at night, the Bella sisters): rain on the player, Status_flg[1] 0x400; the
 // enemy waves start on area 2 the first time (Room_flg bit 0) else at once; area 1 = the locked front
-// door until door_unlock[0] 0x00010000; the sister effect data; closets 3/4/5 as hide spots; the show
+// door until Key_flg[0] 0x00010000; the sister effect data; closets 3/4/5 as hide spots; the show
 // view once (bit 2) else thunder at once; area 6 = the sisters' appearance until bit 3 else they are
 // re-set from flags; the iron door (etc 0x26, key item 0xB) on area 8 with its key-use watcher until
-// door_unlock[0] 0x00100000; five two-point patrols between area pairs 0xA..0x13; ladder 1 camera 0xC.
+// Key_flg[0] 0x00100000; five two-point patrols between area pairs 0xA..0x13; ladder 1 camera 0xC.
 void R11dInit()
 {
     void* zero = 0;
@@ -106,7 +106,7 @@ void R11dInit()
     } else {
         SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->door_unlock[0] & 0x00010000)) {
+    if (!(pG->Key_flg[0] & 0x00010000)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11d_checkDoor, 0, 1);
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
@@ -127,7 +127,7 @@ void R11dInit()
     } else {
         r11d_setEmSister();
     }
-    if (!(pG->door_unlock[0] & 0x00100000)) {
+    if (!(pG->Key_flg[0] & 0x00100000)) {
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
             ((cEmDoor*) r11d_work->door)->setKey(0xB);
         }
@@ -168,7 +168,7 @@ static void r11d_checkIronDoorKeyUse()
     while (ItemMgr.check(0x8C) != 1) {
         SceSleep(1);
     }
-    pG->door_unlock[0] |= 0x00100000;
+    pG->Key_flg[0] |= 0x00100000;
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
     GameSaveSave(&GameSave, pSaveData, -1);
@@ -481,7 +481,7 @@ static void r11d_checkDoor()
     CamCtrl.CutCall(0xA);
     SceSleep(15);
     SmdSetTrans(0x20, 0);
-    pG->door_unlock[0] |= 0x00010000;
+    pG->Key_flg[0] |= 0x00010000;
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceAtDataReset(1);

@@ -341,11 +341,11 @@ static void R20fEmSetMain()
                 RsfSet(G_ROOM_ID, 2);
                 R20fEmResetA0();
             }
-            if (RsfCheck(G_ROOM_ID, 3) == 0 && (int) pG->Room_flg[2] < 0) {
+            if (RsfCheck(G_ROOM_ID, 3) == 0 && (pG->Room_flg[2] & 0x80000000)) {
                 RsfSet(G_ROOM_ID, 3);
                 R20fEmResetB0();
             }
-            if (RsfCheck(G_ROOM_ID, 4) == 0 && (int) pG->Room_flg[2] < 0) {
+            if (RsfCheck(G_ROOM_ID, 4) == 0 && (pG->Room_flg[2] & 0x80000000)) {
                 int dead = r20f_work.p->em[2].isActive() == 0;
 
                 if (r20f_work.p->em[3].isActive() == 0) {

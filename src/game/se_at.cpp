@@ -44,7 +44,7 @@ void SeAtCheck()
     if (pG->Stop_flg & 0x800) {
         return;
     }
-    if ((s32) pG->Debug_flg[0] < 0 && DebugMenuSelected != 0x18) {
+    if ((pG->Debug_flg[0] & 0x80000000) && DebugMenuSelected != 0x18) {
         return;
     }
     if (pG->Rno0 != 3) {

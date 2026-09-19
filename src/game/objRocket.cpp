@@ -278,7 +278,7 @@ void cObjLauncher::loadRocket()
 void cObjLauncher::moveFire()
 {
     if (wep.step == 0) {
-        if ((pG->Debug_flg[2] & 0x00400000) || (s32) pG->Debug_flg[3] < 0) {
+        if ((pG->Debug_flg[2] & 0x00400000) || (pG->Debug_flg[3] & 0x80000000)) {
             if (launcher.rocket == 0) {
                 loadRocket();
             }
@@ -288,7 +288,7 @@ void cObjLauncher::moveFire()
                 launch();
                 if (pG->weapon_type == 2) {
                     loadRocket();
-                } else if ((pG->Debug_flg[2] & 0x00400000) || (s32) pG->Debug_flg[3] < 0) {
+                } else if ((pG->Debug_flg[2] & 0x00400000) || (pG->Debug_flg[3] & 0x80000000)) {
                     loadRocket();
                 }
             }

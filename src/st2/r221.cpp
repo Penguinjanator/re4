@@ -699,7 +699,7 @@ static void r221_checkElevatorArrive()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 6);
-    pG->door_flags_51CC |= 0x00800000;
+    pG->Scenario_flg[4] |= 0x00800000;
     PSetPrim(r221_work.p->wireTask, 0);
     U32Set(r221_work.p->doorSe, 0);
     U32Set(r221_work.p->elvSe1, 0);
@@ -1400,7 +1400,7 @@ static void r201_throwBonbe(int no)
     SceEventEnd(0);
     pG->Room_flg[0] &= ~0x80000000;
     for (u32 j = 0; j < 300; j++) {
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             SceAtSetEnable(atNo, 0);
         }
         pG->Room_flg[0] &= ~0x80000000;

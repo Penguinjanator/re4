@@ -91,10 +91,10 @@ static inline void emDoorMatUpdate(cEmDoor* em)
     em->partsWorldCalc();
 }
 
-// pG->door_unlock bit of key `no`.
+// pG->Key_flg bit of key `no`.
 static inline u32 emDoorKeyCk(u32 no)
 {
-    u32* tbl = pG->door_unlock;
+    u32* tbl = pG->Key_flg;
 
     return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
 }
@@ -1839,7 +1839,7 @@ void emDoor_R1_Break(cEmDoor* em)
             *flg |= 1;
         }
         if (w->Key_flag != 0x36) {
-            u32* tbl = pG->door_unlock;
+            u32* tbl = pG->Key_flg;
 
             tbl[w->Key_flag >> 5] |= 0x80000000 >> (w->Key_flag & 0x1F);
         }
@@ -3381,7 +3381,7 @@ void cEmDoor::setNormal()
     EMDOOR_WK(this)->Be_flg &= ~1;
 }
 
-// The pG->door_unlock key bit required to open the door (0x36 = none).
+// The pG->Key_flg key bit required to open the door (0x36 = none).
 void cEmDoor::setKey(int no)
 {
     EMDOOR_WK(this)->Key_flag = no;

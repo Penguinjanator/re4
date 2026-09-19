@@ -153,7 +153,7 @@ void cPlLeon::setModel()
         }
         addModel(info);
     }
-    if (pG->Scenario_flg[0] & 0x20) {
+    if (pG->Scenario_flg[1] & 0x20) {
         setWound();
     }
     TevScaleGroup = 1;

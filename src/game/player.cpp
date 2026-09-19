@@ -358,7 +358,7 @@ void cPlayer::move()
     if ((int) pos.x == (int) pos_old.x && (int) pos.y == (int) pos_old.y && (int) pos.z == (int) pos_old.z
         && (r_no_0 == 0 && r_no_1 == 0 && r_no_2 == 1) && !(pG->Status_flg[0] & 0x20)) {
         moved = 0;
-        if ((int) pG->Debug_flg[0] >= 0) {
+        if (!(pG->Debug_flg[0] & 0x80000000)) {
             goto moveChecked;
         }
     }

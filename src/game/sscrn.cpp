@@ -284,11 +284,11 @@ void SubScreenCall()
 // Map stage index from the story flags: 0 village, 1 after the church, 2 castle, 3 island.
 int sscrnStageNo()
 {
-    if (pG->Scenario_flg[0] & 0x00010000) {
+    if (pG->Scenario_flg[1] & 0x00010000) {
         return 3;
-    } else if (pG->Scenario_flg[0] & 0x00800000) {
+    } else if (pG->Scenario_flg[1] & 0x00800000) {
         return 2;
-    } else if (pG->Item_find_flg & 4) {
+    } else if (pG->Scenario_flg[0] & 4) {
         return 1;
     }
     return 0;

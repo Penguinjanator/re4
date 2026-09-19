@@ -164,7 +164,7 @@ static inline int r320_evtSkip(Event* e)
 // The helicopter into the work; it fires freely below rank 9.
 static inline void r320_heriSet()
 {
-    if ((int) pG->Scenario_flg[1] >= 0) {
+    if (!(pG->Scenario_flg[2] & 0x80000000)) {
         cEm3d* em;
 
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
@@ -315,10 +315,10 @@ void R320Init()
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
     BitOn(pG->Debug_flg[1], 0x00200000);
-    if ((pG->Scenario_flg[1] & 0x10000000) == 0) {
+    if ((pG->Scenario_flg[2] & 0x10000000) == 0) {
         if ((R320_SAVE_FLAGS & 0x100) == 0) {
             R320_SAVE_FLAGS |= 0x100;
-            BitOn(pG->Scenario_flg[1], 0x10000000);
+            BitOn(pG->Scenario_flg[2], 0x10000000);
             SceExec(0x12, (TaskFunc) tower_explode, 0, 0, 2, 0);
         }
     }
@@ -344,7 +344,7 @@ void R320Init()
         R320_SAVE_FLAGS |= 0x00200000;
         R320_SAVE_FLAGS |= 0x00100000;
     }
-    if ((int) pG->Scenario_flg[1] < 0) {
+    if (pG->Scenario_flg[2] & 0x80000000) {
         if (pG->em_list_no >= 0) {
             u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
 
@@ -665,7 +665,7 @@ static void r320_heri_event()
     SmdSetTrans(0x27, 0);
     setMisileUseNum(0);
     GatlingSetBreak(r320_work->gatling[5]);
-    if ((int) pG->Scenario_flg[1] >= 0) {
+    if (!(pG->Scenario_flg[2] & 0x80000000)) {
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
     }
     scr_delete();
@@ -759,7 +759,7 @@ void R320Main()
                 if (r320_work->heriTimer <= 0x12B || r320_work->emAlive == 0) {
                     cEm3d* em = (cEm3d*) r320_work->heri.getPtr();
 
-                    if ((int) pG->Room_flg[2] < 0) {
+                    if (pG->Room_flg[2] & 0x80000000) {
                         em->setPatrolPos(&r320_posB[4]);
                     }
                     if (pG->Room_flg[2] & 0x40000000) {
@@ -787,7 +787,7 @@ void R320Main()
                     SetHeriTargetEm();
                 }
                 cnt = r320_work->atkCnt;
-            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && (int) pG->Room_flg[2] < 0 && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
+            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && (pG->Room_flg[2] & 0x80000000) && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri0, 0, 0, 2, 0);
@@ -1719,7 +1719,7 @@ void gate1_open(int no)
 {
     cObj* o;
 
-    BitOn(pG->door_unlock[1], 0x00100000);
+    BitOn(pG->Key_flg[1], 0x00100000);
     scr_set();
     o = SmdGetObjPtr(0x2A);
     o->be_flag |= 0x20;
@@ -1764,13 +1764,13 @@ void gate1_close()
     SceEventEnd(0);
 }
 
-// Gate 2 (object 0x2B) rises 100 units a frame to y 10961 under camera cut 0x16 with SE; door_unlock[1]
+// Gate 2 (object 0x2B) rises 100 units a frame to y 10961 under camera cut 0x16 with SE; Key_flg[1]
 // 0x00200000 and Room_flg[1] 0x08000000.
 void gate2_open()
 {
     cObj* o;
 
-    BitOn(pG->door_unlock[1], 0x00200000);
+    BitOn(pG->Key_flg[1], 0x00200000);
     BitOn(pG->Room_flg[1], 0x08000000);
     SceEventStart(1);
     CamCtrl.CutCall(0x16);
@@ -1943,7 +1943,7 @@ static void destroy_0()
         BitOn(pG->Status_flg[2], 0x02000000);
         SceEventStart(1);
         CamCtrl.CutCall(8);
-        while ((int) pG->Room_flg[0] >= 0) {
+        while (!(pG->Room_flg[0] & 0x80000000)) {
             SceSleep(1);
         }
         int zero = 0;
@@ -1972,7 +1972,7 @@ static void destroy_0()
 // Gun tower 1 destroyed: its collision off, explosion effect under a camera cut, blast damage around it, save bit set.
 static void destroy_1()
 {
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     BitOff(pG->Room_flg[0], 0x80000000);
@@ -2011,7 +2011,7 @@ static void destroy_2()
     SceAtWork* at;
     SceAtWork* w;
 
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     int zero = 0;
@@ -2061,7 +2061,7 @@ static void destroy_3()
 {
     cEm* door;
 
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     int zero = 0;
@@ -2102,7 +2102,7 @@ static void destroy_3()
 static void destroy_4()
 {
     BitOn(pG->Room_flg[0], 0x10000000);
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     int zero = 0;
@@ -2143,7 +2143,7 @@ static void destroy_4()
 static void destroy_5()
 {
     BitOn(pG->Room_flg[0], 0x08000000);
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     int zero = 0;
@@ -2177,7 +2177,7 @@ static void destroy_5()
 static void destroy_6()
 {
     BitOn(pG->Room_flg[0], 0x04000000);
-    while ((int) pG->Room_flg[0] >= 0) {
+    while (!(pG->Room_flg[0] & 0x80000000)) {
         SceSleep(1);
     }
     int zero = 0;
@@ -2513,7 +2513,7 @@ static void door_open()
     int zero = 0;
     u32 i;
 
-    BitOn(pG->door_unlock[1], 0x00080000);
+    BitOn(pG->Key_flg[1], 0x00080000);
     R320_SAVE_FLAGS |= 0x200;
     EffectEspDelete(1, 6, 0, 0);
     EffectEspgenDelete(1, 6, 0);

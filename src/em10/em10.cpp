@@ -4369,7 +4369,7 @@ static void em10_R1_R222DragonC(cEm10* em)
             if (y < -200.0f) {
                 y = -200.0f;
             }
-            if (pPL->pos.x > -53000.0f && (s32) pG->Room_flg[0] >= 0) {
+            if (pPL->pos.x > -53000.0f && !(pG->Room_flg[0] & 0x80000000)) {
                 y = 200.0f;
                 if (w->Timer <= 99) {
                     w->Timer = 100;
@@ -6281,7 +6281,7 @@ static void em10_R1_EvtWalk(cEm10* em)
     case 0:
         em->r_no_3 = Rnd() % 256;
         em10SetWalkMotion(em, 7);
-        if (w->Wep_type == 4 && (s32) w->flags < 0) {
+        if (w->Wep_type == 4 && (w->flags & 0x80000000)) {
             if (em->type == 0x16) {
                 EstSetEm(w->pWep, -1, 0, 0, 0x10, 0x96, 0, w->EffKindIdCsaw, w->pWep, 0);
             } else {
@@ -18177,7 +18177,7 @@ extern "C" void em10WeaponInit(cEm10* em)
             w->Wep_type = 6;
         }
     }
-    if (w->mot[41] && w->mot[42] && w->Ganado == 0 && (s32) em->flag < 0 && w->pWep == 0) {
+    if (w->mot[41] && w->mot[42] && w->Ganado == 0 && (em->flag & 0x80000000) && w->pWep == 0) {
         w->Wep_type = 1;
     }
     if (w->mot[65] && w->mot[66] && (em->flag & 0x20000000) && w->pWep == 0) {
@@ -21448,7 +21448,7 @@ int em10FindCk(cEm10* em, int a)
                 find = 1;
             }
         }
-        if ((s32) pG->Status_flg[1] < 0) {
+        if (pG->Status_flg[1] & 0x80000000) {
             if (em->plDist2 < 25000000.0f) {
                 find = 1;
             }
@@ -24033,7 +24033,7 @@ void cEm10::setWeaponFall()
         if (hp > 0) {
             return;
         }
-        if ((int) w->flags >= 0) {
+        if (!(w->flags & 0x80000000)) {
             return;
         }
         EffectEspDelete(0, w->EffKindIdCsaw, (u32) w->pWep, 0);

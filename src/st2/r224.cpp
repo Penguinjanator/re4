@@ -220,14 +220,14 @@ static void r224_cam_task()
     }
 }
 
-// End of the Novistador entrance: door_flags_51CC 0x00400000 (exit) off, SEs stopped, the door 0x16
+// End of the Novistador entrance: Scenario_flg[4] 0x00400000 (exit) off, SEs stopped, the door 0x16
 // snapped shut, both Novistadors made solid (atari 0x300) and placed on the floor alerted, Room_flg[0]
 // 0x04000000, area 0 = the shut-door message, the death watcher, boss points reset.
 static void r224_em_set_exit()
 {
     Vec v;
 
-    pG->door_flags_51CC &= ~0x00400000;
+    pG->Scenario_flg[4] &= ~0x00400000;
     SndStop(r224_work.p->se0, 0);
     SndStop(r224_work.p->se1, 0);
     SmdGetObjPtr(0x16)->pos.y = 7838.0f;
@@ -658,7 +658,7 @@ static void em_die_ck()
     RsfSet(G_ROOM_ID, 1);
     SceSleep(270);
     door_open(0);
-    pG->door_flags_51CC |= 0x00400000;
+    pG->Scenario_flg[4] |= 0x00400000;
 }
 
 // The exit door 0x16 (and, with no == 0, the grille 0x12 at double speed) rise 100 units a frame under

@@ -196,7 +196,7 @@ void emRackDmCk(cEmRack* em)
         return;
     }
     em->dmg.m_Flag = 0;
-    if ((int) em->flag < 0) {
+    if (em->flag & 0x80000000) {
         return;
     }
     wep = em->dmg.m_Wep;

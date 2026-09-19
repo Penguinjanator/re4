@@ -176,7 +176,7 @@ void DbMenuExitAfterCheck()
 {
     struct test* t = &test;
     if (!(pG->Debug_flg[2] & 0x200)) {
-        if ((s32) pG->Debug_flg[0] < 0) {
+        if (pG->Debug_flg[0] & 0x80000000) {
             pG->Debug_flg[2] |= 0x200;
         }
         if (t->exit_wait > 0) {
@@ -184,7 +184,7 @@ void DbMenuExitAfterCheck()
         }
         return;
     }
-    if ((s32) pG->Debug_flg[0] < 0) {
+    if (pG->Debug_flg[0] & 0x80000000) {
         return;
     }
     if (!(pG->debug_disp & 0x80)) {

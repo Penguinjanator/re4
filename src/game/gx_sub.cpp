@@ -53,7 +53,7 @@ void bio4_AddBgColor()
     GXSetNumChans(1);
     GXSetNumTexGens(0);
 
-    if ((s32) pG->Debug_flg[0] >= 0) {
+    if (!(pG->Debug_flg[0] & 0x80000000)) {
         pG->Status_flg[1] &= ~0x40;
     }
     if (!(pG->Status_flg[1] & 0x40)) {

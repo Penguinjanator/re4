@@ -148,7 +148,7 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 // Door flag words at pG+0x51BC, addressed as an integer base plus the word offset (cast-then-deref).
 static inline u32 doorFlagBase()
 {
-    return (u32) &pG->Item_find_flg;
+    return (u32) &pG->Scenario_flg[0];
 }
 // Set door flag `no` in the words at `base` (pG+0x51BC).
 static inline void FlagOn(u32 base, u32 no)
@@ -319,7 +319,7 @@ void R209Init()
         Vec ofs = {0.0f, -2.0f, 180.0f};
         Vec rot0 = {0.0f, 0.0f, 0.0f};
 
-        pG->door_flags_51CC &= ~0x00080000;
+        pG->Scenario_flg[4] &= ~0x00080000;
         r209_work.p->leader.setEm(0x7D, 3, 1, 0, 0);
         r209_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
         OyaSetObj00(r209_work.p->head, r209_work.p->leader.getPtr(), 2);
@@ -884,7 +884,7 @@ static void r209_LeaderEscapeToDEndProc()
     SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen1F, (void*) 0x19, 1);
     SceAtDataSet_exec(0x1D, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen2F, (void*) 0x1D, 1);
     SceAtDataSet_exec(0x1C, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen2F, (void*) 0x1C, 1);
-    pG->door_flags_51CC |= 0x00080000;
+    pG->Scenario_flg[4] |= 0x00080000;
     SceEventEnd(0);
     while (w->ckGoto() == 1) {
         SceSleep(1);
@@ -906,7 +906,7 @@ static void r209_DoorMessage()
     }
 }
 
-// Task: waits for the salon key (item 0xA3) to be used, then Room_flg bit 2, door_flags_51C8 0x1000,
+// Task: waits for the salon key (item 0xA3) to be used, then Room_flg bit 2, Scenario_flg[3] 0x1000,
 // door 9 becomes normal, message up-cut 1/2.
 static void r209_CheckUseSalonKey()
 {
@@ -914,7 +914,7 @@ static void r209_CheckUseSalonKey()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 2);
-    pG->door_flags_51C8 |= 0x1000;
+    pG->Scenario_flg[3] |= 0x1000;
     SceAtSetEnable(2, 0);
     ((cEmDoor*) r209_work.p->door9)->setNormal();
     SceUpCut(1, -1, 2, 0);

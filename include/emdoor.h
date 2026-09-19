@@ -32,7 +32,7 @@ struct EmDoorWork {
     f32 base_dir;             // 0x398 (0x778)  rot.y of the closed door
     Mtx base_mat;              // 0x39C (0x77C)  closed door -> world (rot.y, pos, shifted by -width)
     Mtx base_im;              // 0x3CC (0x7AC)  world -> closed door
-    u32 Key_flag;            // 0x3FC (0x7DC)  pG->door_unlock bit (setKey), 0x36 = none
+    u32 Key_flag;            // 0x3FC (0x7DC)  pG->Key_flg bit (setKey), 0x36 = none
     int Open_timer;             // 0x400 (0x7E0)  0x96 while opening
     Vec Open_pos;           // 0x404 (0x7E4)  position of the one that opened the door (setOpen: the open direction)
     cSat* pSat[6];         // 0x410 (0x7F0)  effect collision pieces: [1] door, [2] panel above, [3..5] the panels of type 4 / 5 ([0] unused)

@@ -76,14 +76,14 @@ void PlSelect(int no)
 // is when the save system flags (System_flg bit31 / 0x40000000) are set. Returns the costume.
 int PlSetCostume()
 {
-    if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+    if (SysFlagChk(SYS_OMAKE_ADA_GAME) || SysFlagChk(SYS_OMAKE_ETC_GAME)) {
         return pG->pl_costume;
     }
     if (pG->pl_type == 0) {
         if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
                 U8Set(pG->pl_costume, 2);
-            } else if (pG->Item_find_flg & 0x200000) {
+            } else if (pG->Scenario_flg[0] & 0x200000) {
                 U8Set(pG->pl_costume, 1);
             } else {
                 U8Set(pG->pl_costume, 0);

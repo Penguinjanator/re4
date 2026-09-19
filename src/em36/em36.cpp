@@ -4936,7 +4936,7 @@ int em36FindCk(cEm36* em)
         if (em->plDist2 < 225000000.0f && w->routeAngAbs < 1.0471976f) {
             find = 1;
         }
-        if ((int) pG->Status_flg[1] < 0 && em->plDist2 < 25000000.0f) {
+        if ((pG->Status_flg[1] & 0x80000000) && em->plDist2 < 25000000.0f) {
             find = 1;
         }
         if (em->plDist2 < 12250000.0f) {

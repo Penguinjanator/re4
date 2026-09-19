@@ -931,7 +931,7 @@ static void R213EventSwitchMain()
                 // COMPILER-DIFF: candidate #17 -- dead test (o41 is not read again; jump2 deletes the
                 // compare/load). Its in-loop pG read is a 4th, loop-weighted ref of the PRE'd pG high,
                 // which breaks the equal-priority tie with the RoomData high in the target's favour (r28/r27).
-                if ((int) pG->Room_flg[0] < 0) {
+                if (pG->Room_flg[0] & 0x80000000) {
                     o41 = 0;
                 }
             }
@@ -1057,7 +1057,7 @@ static void R213Event()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
-        pG->Scenario_flg[0] |= 0x40;
+        pG->Scenario_flg[1] |= 0x40;
         SubCharCtrl(SCC_KILL, 0);
         pG->Status_flg[3] &= ~0x04000000;
         EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, 0);

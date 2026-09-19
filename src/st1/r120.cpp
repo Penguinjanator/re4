@@ -69,14 +69,14 @@ extern "C" void R120Event()
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }
-    pG->Scenario_flg[0] &= ~0x10;
+    pG->Scenario_flg[1] &= ~0x10;
     systemVISetBlack(1);
     Sofdec.Initialize("movie/opening.sfd", 0);
     SceSleep(1);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     if (Sofdec.m_be_flag & 0x20) {
-        pG->Scenario_flg[0] |= 0x10;
+        pG->Scenario_flg[1] |= 0x10;
     }
     SceEventStart(0);
     // Two sequential `if`s whose first test masks with a variable: the mask register keeps
@@ -86,11 +86,11 @@ extern "C" void R120Event()
     // first `bne` past the s01 block, which merges the second test into the call block (its
     // tail jump gives the `li r7/r8` an extra dependent, so sched puts `addi r3,r30` last).
     u32 mask = 0x10;
-    if (!(pG->Scenario_flg[0] & mask)) {
+    if (!(pG->Scenario_flg[1] & mask)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
     }
-    if (!(pG->Scenario_flg[0] & 0x10)) {
+    if (!(pG->Scenario_flg[1] & 0x10)) {
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
@@ -261,7 +261,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         pG->Disp_flg &= ~0x08000000;
         break;
     case 3:
-        pG->Scenario_flg[0] |= 0x10;
+        pG->Scenario_flg[1] |= 0x10;
         break;
     }
 }
@@ -270,7 +270,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
 // hides scroll objects 0x17..0x1A; funcMode 1 shows the car parts obm3000a/b/e/f (CMF on, be_flag draw)
 // on cuts 3/5/0xE, sets Leon / interior / evm0000 (the officers) flags per cut and feeds the mirror render
 // on cuts 2/6; funcMode 2 (end) restores the scroll objects, clears Disp_flg 0x08000000 and sets
-// System_flg 0x400; funcMode 3 sets Scenario_flg[0] bit 0x10 (intro seen).
+// System_flg 0x400; funcMode 3 sets Scenario_flg[1] bit 0x10 (intro seen).
 extern "C" void Evt_R120S01_Func(Event* e)
 {
     void* mod;
@@ -469,7 +469,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
         pG->System_flg |= 0x400;
         break;
     case 3:
-        pG->Scenario_flg[0] |= 0x10;
+        pG->Scenario_flg[1] |= 0x10;
         break;
     }
 }

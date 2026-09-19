@@ -413,7 +413,7 @@ static void (*runTbl[3])(ToolEvt*) = {ToolEvt::MainMenu, ToolEvt::MainPreview, T
 // One frame: runTbl[r_no_0] (MainMenu / MainPreview / MainExit).
 void ToolEvt::Run()
 {
-    while ((int) EtcFlag >= 0) {
+    while (!(EtcFlag & 0x80000000)) {
         runTbl[r_no_0](this);
         TaskSleep(1);
     }

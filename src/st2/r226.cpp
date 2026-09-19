@@ -408,7 +408,7 @@ void R226Init()
     r226_work.p->moveTimer = 0;
     playerRunCamInitBridge();
     U32Set(r226_work.p->str, 0);
-    pG->Scenario_flg[1] |= 0x800000;
+    pG->Scenario_flg[2] |= 0x800000;
 }
 
 // Per frame: after the door opened (Room_flg[1] 0x08000000) and before the bridge (bit 14) a 600-frame
@@ -436,7 +436,7 @@ void R226Main()
         SceExec(0x12, (TaskFunc) R226EventRoboStartMain, 0, 0, SCE_PRIO_DEF_2, 0);
         RsfClear(G_ROOM_ID, 9);
     }
-    if ((int) pG->Room_flg[1] < 0 && !(pG->Room_flg[1] & 0x20000000)) {
+    if (flagBit(pG->Room_flg[1], 0x80000000) && !flagBit(pG->Room_flg[1], 0x20000000)) {
         pG->Room_flg[1] |= 0x20000000;
         playerRunDieSet(0, 0);
     } else if (flagBit(pG->Room_flg[1], 0x40000000) && !flagBit(pG->Room_flg[1], 0x20000000)) {

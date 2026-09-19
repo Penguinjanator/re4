@@ -902,7 +902,7 @@ void titleSub(TitleWork* w)
 
     switch (w->Rno1) {
     case 0:
-        if ((s32) pG->System_flg < 0) {
+        if (pG->System_flg & 0x80000000) {
             omake_dat[12] = '0';
         } else if (pG->System_flg & 0x40000000) {
             omake_dat[12] = '1';
@@ -966,7 +966,7 @@ void titleSub(TitleWork* w)
             SndStrReq(snd_id, 4, 200, 0);
         } else if (Key.trg & KEY_A) {
             if (w->omk_menu_no == 0) {
-                if ((s32) pG->System_flg < 0) {
+                if (pG->System_flg & 0x80000000) {
                     w->Rno0 = 7;
                     FadeSetW(0, 90, 0, 0);
                     pG->pl_type = 2;
@@ -1408,9 +1408,9 @@ void titleExit(TitleWork* w)
                 pG->JumpPoint = w->JumpPoint;
                 pG->em_list_no = w->em_list_no;
                 if (pG->em_list_no > 3) {
-                    pG->Scenario_flg[0] |= 0x10000000;
+                    pG->Scenario_flg[1] |= 0x10000000;
                 } else if (pG->em_list_no > 2) {
-                    pG->Scenario_flg[0] |= 0x40000;
+                    pG->Scenario_flg[1] |= 0x40000;
                 }
                 switch (w->c_pos) {
                 case 1:
@@ -1442,17 +1442,17 @@ void titleExit(TitleWork* w)
                         pG->pl_costume = 0;
                     } else {
                         pG->pl_costume = 1;
-                        pG->Item_find_flg |= 0x00200000;
+                        pG->Scenario_flg[0] |= 0x00200000;
                     }
                 }
                 if (pG->stage_no == 2) {
                     BitOn(pG->Debug_flg[3], 0x00800000);
                     if (pG->room_id != 0x200) {
-                        BitOn(pG->Scenario_flg[0], 0x00800000);
+                        BitOn(pG->Scenario_flg[1], 0x00800000);
                     }
                 } else if (pG->stage_no == 3) {
                     BitOn(pG->Debug_flg[3], 0x40000);
-                    BitOn(pG->Scenario_flg[0], 0x10000);
+                    BitOn(pG->Scenario_flg[1], 0x10000);
                     if (pG->room_id == 0x333) {
                         BitOn(pG->Debug_flg[3], 0x20000);
                     }
@@ -1461,13 +1461,13 @@ void titleExit(TitleWork* w)
                 case 0:
                     break;
                 case 1:
-                    BitOn(pG->Item_find_flg, 4);
+                    BitOn(pG->Scenario_flg[0], 4);
                     break;
                 case 2:
-                    BitOn(pG->Item_find_flg, 4);
-                    BitOn(pG->Item_find_flg, 2);
+                    BitOn(pG->Scenario_flg[0], 4);
+                    BitOn(pG->Scenario_flg[0], 2);
                     if (pG->stage_no != 2 || pG->room_no != 0 || pG->JumpPoint != 0) {
-                        BitOn(pG->Scenario_flg[0], 0x00800000);
+                        BitOn(pG->Scenario_flg[1], 0x00800000);
                     }
                     break;
                 }
@@ -1637,7 +1637,7 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->language]);
-    if ((s32) pG->System_flg < 0) {
+    if (pG->System_flg & 0x80000000) {
         eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
     } else if (pG->System_flg & 0x40000000) {
         eprintf(x + 96, y += 16, 4, 0, "ETC GAME");

@@ -292,7 +292,7 @@ void R332Init()
     EvtMgr.SetFunc("evt_r332s97_func", (void*) Evt_R332S00_Func);
     EvtMgr.SetFunc("evt_r332s98_func", (void*) Evt_R332S10_Func);
     EvtMgr.SetFunc("evt_r332s99_func", (void*) Evt_R332S20_Func);
-    if ((pG->Scenario_flg[0] & 0x200) == 0) {
+    if ((pG->Scenario_flg[1] & 0x200) == 0) {
         u32 size0;
         u32 size1;
         u32 size;
@@ -315,14 +315,14 @@ void R332Init()
         EvtMgr.EvtReadAram("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, size);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(9, 1);
-        BitOff(pG->door_unlock[1], 0x00010000);
+        BitOff(pG->Key_flg[1], 0x00010000);
         SmdSetTrans(7, 0);
     } else {
         SceExec(0x12, (TaskFunc) R332EmSetMain, 0, 0, 2, 0);
         st3_startCountDown();
         SceAtSetEnable(0, 1);
         SceAtSetEnable(9, 0);
-        BitOn(pG->door_unlock[1], 0x00010000);
+        BitOn(pG->Key_flg[1], 0x00010000);
         SmdSetTrans(0xA, 1);
         SndBgmTblSet(0x332, 1);
         SndRoomStrStart(1, 0, 1);
@@ -402,7 +402,7 @@ void R332Init()
             }
         }
     }
-    if ((pG->Scenario_flg[0] & 0x200) == 0) {
+    if ((pG->Scenario_flg[1] & 0x200) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R332ExecCrane, 0, 1);
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R332ExecCrane, (void*) 1, 1);
     }
@@ -449,7 +449,7 @@ void R332Main()
             SceExec(0x12, (TaskFunc) R332BossDown, 0, 0, 2, 0);
             return;
         }
-        if ((pG->Scenario_flg[0] & 0x200) == 0 && (pG->item_flags[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
+        if ((pG->Scenario_flg[1] & 0x200) == 0 && (pG->item_flags[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (r332_work->task[0]) {
                 SceKill(r332_work->task[0]);
@@ -1019,7 +1019,7 @@ static void R332RocketShootMain(int type)
     BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(0);
     BitOn(pG->System_flg, 0x400);
-    BitOn(pG->Scenario_flg[0], 0x200);
+    BitOn(pG->Scenario_flg[1], 0x200);
     if (r332_work->task[0]) {
         SceKill(r332_work->task[0]);
     }
@@ -1603,15 +1603,15 @@ static void R332EventS10()
     BitOff(pG->System_flg, 0x400);
     st3_setCountDownTimer(0x127D);
     st3_startCountDown();
-    BitOn(pG->Scenario_flg[0], 0x200);
+    BitOn(pG->Scenario_flg[1], 0x200);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(9, 0);
-    BitOn(pG->door_unlock[1], 0x00010000);
+    BitOn(pG->Key_flg[1], 0x00010000);
     SceAtSetEnable(1, 0);
     SceAtSetEnable(2, 0);
     SceSleep(1);
     SceAtExecute(0x85);
-    BitOn(pG->Scenario_flg[1], 0x400);
+    BitOn(pG->Scenario_flg[2], 0x400);
     while (SceAtItemFlgCk(0x85) == 0) {
         SceSleep(1);
     }

@@ -51,7 +51,7 @@ static inline int r331_evtSkip(Event* e)
 }
 
 // Room init: the s00 / s10 callbacks; until Room_flg bit 0 area 3 = the s00 event (pre-loaded). With
-// Scenario_flg[0] 0x200 (the count-down phase): BGM table 0x331 set 2 and the s10 event task, the
+// Scenario_flg[1] 0x200 (the count-down phase): BGM table 0x331 set 2 and the s10 event task, the
 // count-down resumed; else BGM table 3 enabled.
 void R331Init()
 {
@@ -63,7 +63,7 @@ void R331Init()
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R331ExecEventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r331s00.evd", 0, 0, 0, 0);
     }
-    if (pG->Scenario_flg[0] & 0x200) {
+    if (pG->Scenario_flg[1] & 0x200) {
         SndBgmTblSetDisable(3, 0);
         SndBgmTblSet(0x331, 2);
         SceExec(0x12, (TaskFunc) R331ExecEventS10, 0, 2, 2, 0);

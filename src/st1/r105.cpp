@@ -111,7 +111,7 @@ static void (*r105_markTbl[4])() = {
 
 // Room init (debug trigger 1 re-arms the dial puzzle). Registers the s00/s10/s99 event callbacks, five
 // shelf/box item events (items 0x92/0x93/0x94/0x88/0x8B), the key-item camera show at area 0x1A once
-// (Room_flg bit 12), BGM task, floor hit effects; area 1 = the locked front door until door_unlock[0]
+// (Room_flg bit 12), BGM task, floor hit effects; area 1 = the locked front door until Key_flg[0]
 // 0x02000000 (else object 0x23 hidden); the dial puzzle on area 6 until Room_flg bit 0 (else the door
 // parts are removed). Bit 1 = s00 seen (else pre-load r105s00), bit 2 = s10 seen (window 5 broken, area
 // 0x17 on; else pre-load r105s10 after s00); after s00 the Ganado wave (r105_EmSet) and the terminal
@@ -141,7 +141,7 @@ void R105Init()
     }
     SceExec(0x12, r105_bgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r105_eff_info);
-    if (!(pG->door_unlock[0] & 0x02000000)) {
+    if (!(pG->Key_flg[0] & 0x02000000)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, r105_checkDoor, 0, 1);
     } else {
         SmdSetTrans(0x23, 0);
@@ -666,8 +666,8 @@ static void r105_checkDoor()
     SceAtDataReset(1);
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    BitOn(pG->door_unlock[0], 0x02000000);
-    pG->door_flags_51CC |= 0x8000;
+    BitOn(pG->Key_flg[0], 0x02000000);
+    pG->Scenario_flg[4] |= 0x8000;
     CamCtrl.Comeback(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

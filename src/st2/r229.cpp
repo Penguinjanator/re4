@@ -53,7 +53,7 @@ static void setTexRender();
 
 // Room init (the sewer): System_flg 0x400 cleared; area 3 = the Ganado-in-the-water camera event until
 // Room_flg bit 0; the typewriter once (bit 2); the water render targets, the water splash effect table,
-// player OT type 5 (wading), Scenario_flg[1] 0x02000000.
+// player OT type 5 (wading), Scenario_flg[2] 0x02000000.
 void R229Init()
 {
     R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
@@ -70,7 +70,7 @@ void R229Init()
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
     pPL->ot_type = 5;
-    pG->Scenario_flg[1] |= 0x02000000;
+    pG->Scenario_flg[2] |= 0x02000000;
 }
 
 // Per-frame room main: nothing.

@@ -141,7 +141,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         return;
     }
     if (joy->on & ~0x1A00) {
-        if ((s32) pG->Debug_flg[0] < 0) {
+        if (pG->Debug_flg[0] & 0x80000000) {
             m_draw_timer = 5;
         } else {
             m_draw_timer = 30;
@@ -156,7 +156,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             pG->Debug_flg[0] |= 0x10000000;
         }
     } else {
-        if ((s32) pG->Debug_flg[0] >= 0 && (pG->Frame_cnt & 0x10)) {
+        if (!(pG->Debug_flg[0] & 0x80000000) && (pG->Frame_cnt & 0x10)) {
             eprintf(160, 406, 4, 0, "DEBUG CAMERA --- [%s]", key_str[m_key_type]);
         }
         if (m_menu_sw == 0 && !(flag & 1) && (joy->on & JOY_B)) {
@@ -1010,7 +1010,7 @@ void CameraDrawTarget(Camera* cam, int flag)
     if (pG->debug_mode == 0) {
         return;
     }
-    if ((s32) pG->Debug_flg[0] < 0) {
+    if (pG->Debug_flg[0] & 0x80000000) {
         if (flag & 1) {
             flag |= 1;
         } else {
@@ -1290,7 +1290,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             if (joy->trg & JOY_A) {
                 menu_level = 1;
                 BitOn(pG->Debug_flg[1], 0x20000000);
-                if ((s32) pG->Debug_flg[0] >= 0) {
+                if (!(pG->Debug_flg[0] & 0x80000000)) {
                     CamDbg.m_cam_mode = 2;
                 }
                 BitOn(pG->Stop_flg, 0x10000000);

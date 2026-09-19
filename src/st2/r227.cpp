@@ -838,7 +838,7 @@ static inline void r227_waitEvt()
 static void r227_execEvent00()
 {
     RsfSet(G_ROOM_ID, 0);
-    pG->door_flags_51CC |= 0x08000000;
+    pG->Scenario_flg[4] |= 0x08000000;
     SceEventStart(0);
     SceSleep(1);
     pG->System_flg |= 0x400;
@@ -856,7 +856,7 @@ static void r227_execEvent00()
         r227_waitEvt();
         pG->System_flg |= 0x400;
         r227_work.p->evd[0]->setCommand(CMND_DEL_DATA, 0, 0);
-        if ((int) pG->Room_flg[0] < 0) {
+        if (pG->Room_flg[0] & 0x80000000) {
             if (r227_work.p->evd[1]->waitLoadOk() != 0) {
                 u32 key1;
 
