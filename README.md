@@ -46,7 +46,9 @@ the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows o
 - `config/G4BE08/` — unit lists (`objects.py`, `modules.py`), `symbols.txt`, `splits.txt`, linker
   scripts, per-module REL data (`modules/<mod>/`), `build.sha1`.
 - `tools/` — build generator (`project.py`), the ProDG driver (`ngccc.py`), REL rebuild (`make_rel.py`,
-  `link_rel.py`), the compare tools, `sn-gcc/` (native compiler build), `research/` (compiler-analysis kit).
+  `link_rel.py`), the compare tools, `sn-gcc/` (native compiler build), `research/` (compiler-analysis kit),
+  `motion_export.py` + `motion/` (animation export to glTF/BVH, evaluated with the game's own code and
+  verified against the game running in Dolphin).
 - `docs/overview.md` — how the engine is put together: a reading guide to `src/` by subsystem.
 - `docs/matching.md` — how the matching was done: compiler provenance, the catalogue of compiler
   mechanisms and the source shapes that reproduce them, rules of thumb for both compilers.

@@ -34,9 +34,14 @@ The routine encoding is the same everywhere: `r_no_0` picks the R0 table (0 init
 3 die, 4 scenario-driven), `r_no_1` the entry of that table (move routines are `{branch check,
 move}` pairs), `r_no_2` the step inside it, `r_no_3` a variant. `model.cpp`/`motion.cpp` implement
 the model format (`RotMatrix` = Rz·Ry·Rx, contiguous parts when `be_flag & 0x2000`) and the motion
-format: per-axis Hermite key streams in ten Fcc layouts, sequence frames in 10.6 fixed point,
+format (`FCV` entries of the character archives; `tools/motion_export.py` exports them to glTF/BVH
+and verifies itself by byte round-trip and against the game in Dolphin, see `tools/motion/README.md`):
+per joint a kind word (root pos/rot, rot, pos, scale, IK chain root) and per axis a Hermite key
+stream in ten Fcc layouts (f32/s16/s8 values and tangents, ints in 1/10000), sequence frames in 10.6
+fixed point,
 `Mot_attr` bits (root speed, reverse, loop, flip), a second `MotionWork` blended through
-`blend`/`Brate`, and leg IK per chain.
+`blend`/`Brate`, and leg IK per chain (`ik.cpp`: position keys on IK effectors — ankles, hands — are
+targets in model space, so a pose needs the IK solve, not just the keys).
 
 ## Collision
 
