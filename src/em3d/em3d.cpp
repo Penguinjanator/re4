@@ -172,20 +172,20 @@ void em3dDmCk(cEm3d* em)
     int near;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     if (w->Se_wait) {
         return;
     }
     near = 0;
-    if ((em->dmPos.x - pPL->pos.x) * (em->dmPos.x - pPL->pos.x) + (em->dmPos.y - pPL->pos.y) * (em->dmPos.y - pPL->pos.y)
-            + (em->dmPos.z - pPL->pos.z) * (em->dmPos.z - pPL->pos.z)
+    if ((em->dmg.m_PosFrom.x - pPL->pos.x) * (em->dmg.m_PosFrom.x - pPL->pos.x) + (em->dmg.m_PosFrom.y - pPL->pos.y) * (em->dmg.m_PosFrom.y - pPL->pos.y)
+            + (em->dmg.m_PosFrom.z - pPL->pos.z) * (em->dmg.m_PosFrom.z - pPL->pos.z)
         < 9000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0xD) {
         near = 1;
     }

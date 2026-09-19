@@ -1,7 +1,7 @@
 // game/at_mod.cpp: character-to-character collision and the hit box ("yarare") setup. EmAtCheck
 // pushes a character's cAtariInfo body (cylinder or yaw-aligned box) out of every other
 // character's and object's body by push priority; EmHitCheck / ObjHitCheck trace a line against
-// those bodies (camera, aiming). The Yarare* functions build the EmHitInfo chain of hit boxes
+// those bodies (camera, aiming). The Yarare* functions build the YARARE_INFO chain of hit boxes
 // weapons test (em_sub.cpp).
 
 #include "atari.h"
@@ -16,7 +16,7 @@
 #include "db_log.h"
 
 extern "C" {
-void yarareInit0(EmHitInfo* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags);
+void yarareInit0(YARARE_INFO* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags);
 static int priorityCheck(cEm* pMod, cEm* pMod2);
 static int sphereRectCk(cAtariInfo* info, Vec* p, f32 rad);
 // game/em_sub.cpp
@@ -56,7 +56,7 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
 
 // Fills one hit box: offset, width (radius) / height, the parts it follows (1-based, 0 = model),
 // flags; not linked.
-void yarareInit0(EmHitInfo* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags)
+void yarareInit0(YARARE_INFO* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
     y->ofs.x = x;
     y->ofs.y = yy;
@@ -83,9 +83,9 @@ void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 
 }
 
 // Appends a cylinder hit box to the character's hit box chain (error when already linked).
-void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
+void YarareAdd(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
-    EmHitInfo* p = &em->hitInfo;
+    YARARE_INFO* p = &em->hitInfo;
 
     yarareInit0(box, x, y, z, w, h, no, flags);
     for (; p->next != 0; p = p->next) {
@@ -102,9 +102,9 @@ void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 n
 }
 
 // Appends a box hit box to the chain.
-void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags)
+void YarareAddCube(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags)
 {
-    EmHitInfo* p;
+    YARARE_INFO* p;
 
     yarareInit0(box, x, y, z, w, h, no, flags);
     box->depth = extent;

@@ -229,11 +229,11 @@ void emBarrelDmCk(cEmBarrel* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -255,11 +255,11 @@ void emBarrelDmCk(cEmBarrel* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         break;
     }
     em->hp = 0;
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -284,7 +284,7 @@ void emBarrelDmCk(cEmBarrel* em)
     case 7:
     case 8:
     case 0x21:
-        if (em->dmRad > 36000000.0f) {
+        if (em->dmg.m_Dist > 36000000.0f) {
             emBarrelSetBreak(em, 0);
         } else {
             emBarrelSetBreak(em, 1);
@@ -311,7 +311,7 @@ void emBarrelDmCk(cEmBarrel* em)
 // est (owner 1, est 2).
 void emBarrelDmCk2(cEmBarrel* em)
 {
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
     int dmg;
     int near;
@@ -327,16 +327,16 @@ void emBarrelDmCk2(cEmBarrel* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    part = em->dmPart;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     near = 0;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -352,7 +352,7 @@ void emBarrelDmCk2(cEmBarrel* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     switch (wep) {
     case 0:
     case 1:
@@ -406,7 +406,7 @@ void emBarrelDmCk2(cEmBarrel* em)
     }
     LifeDownSet(em, dmg, 0);
     if (em->hp <= 0) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -431,7 +431,7 @@ void emBarrelDmCk2(cEmBarrel* em)
         case 7:
         case 8:
         case 0x21:
-            if (em->dmRad > 36000000.0f) {
+            if (em->dmg.m_Dist > 36000000.0f) {
                 emBarrelSetBreak(em, 0);
             } else {
                 emBarrelSetBreak(em, 1);
@@ -930,7 +930,7 @@ int emBarrelRollHitCk(cEmBarrel* em)
         return 0;
     }
     dead = 1;
-    if (!(pPL->flags_324 & 0xFFFF0000)) {
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {

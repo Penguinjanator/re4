@@ -14,7 +14,7 @@ struct Em34Work {
     u32 Be_flg;            // 0x000 (0x3E0)  bit0: route to the player found, bit1: partner present, bit2: targets the partner, bit3: damage / die routine, bit4: neck follows the target
     int Timer;            // 0x004 (0x3E4)
     u8 pad_8[4];
-    EmHitInfo hit[3];     // 0x00C (0x3EC)  extra hit boxes (YarareAdd)
+    YARARE_INFO hit[3];     // 0x00C (0x3EC)  extra hit boxes (YarareAdd)
     u8 pad_A8[0x214 - 0xA8];
     f32 routeAng;         // 0x214 (0x5F4)  Muku towards the route point (player)
     f32 Pl_rot;      // 0x218 (0x5F8)

@@ -162,7 +162,7 @@ static inline void U32Or(u32& d, u32 v) { d |= v; }
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em2bDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // The motion flip argument of the two model variants.
@@ -534,15 +534,15 @@ void cEm2b::setNoSuspend(int on)
 void em2bDmCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int near;
     int dmg;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    if (em->dmWep == 0x14) {
+    em->dmg.m_Flag = 0;
+    if (em->dmg.m_Wep == 0x14) {
         return;
     }
     if (w->dmGuard > 30) {
@@ -554,18 +554,18 @@ void em2bDmCk(cEm2b* em)
             w->Dog_wait = 600;
         }
     }
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     near = 0;
     if (part->rad < 64000000.0f) {
         near = 1;
     }
     dmg = em2bSetDmVal(em);
     w->Parasite_damage -= dmg;
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -650,7 +650,7 @@ void em2bDmCk(cEm2b* em)
         SndCall(8, 8, &em->pos, em->id, 0, em);
     }
     if (part->partsNo == 0x3F) {
-        if (em->dmWep != 0x17 && em->dmWep != 0x2A) {
+        if (em->dmg.m_Wep != 0x17 && em->dmg.m_Wep != 0x2A) {
             em->hp -= dmg * 2;
         }
         if (w->Be_flg & 0x2000) {
@@ -678,13 +678,13 @@ void em2bDmCk(cEm2b* em)
     if (w->Be_flg & 8) {
         return;
     }
-    if (!(w->Be_flg & 0x400) && (em->dmWep == 0x17 || em->dmWep == 0x2A)) {
+    if (!(w->Be_flg & 0x400) && (em->dmg.m_Wep == 0x17 || em->dmg.m_Wep == 0x2A)) {
         EmRoutineSet(em, 2, 5, 0, 0);
         return;
     }
     w->Total_damage += dmg;
     if (w->Total_damage <= 999) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0xD:
         case 0x12:
         case 0x13:
@@ -695,7 +695,7 @@ void em2bDmCk(cEm2b* em)
         return;
     }
     w->Total_damage = 0;
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -2428,7 +2428,7 @@ static void em2b_R1_Catch(cEm2b* em)
                 d = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y)
                     + (p->world.z - v.z) * (p->world.z - v.z);
                 if (d < 4000000.0f && !em2bDeadCk(pPLS)) {
-                    pPLS->dmType = 2;
+                    pPLS->dmg.m_Timer = 2;
                     SetPlDamage((int) em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
                     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
@@ -2567,7 +2567,7 @@ static void plem2b_CatchHand(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
     pGS->Status_flg[1] |= 0x8000;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         pl->atari.throughOn();
@@ -2614,7 +2614,7 @@ static void plem2b_Strangle(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0: {
         Vec v;
@@ -2784,7 +2784,7 @@ static void subem2b_CatchHand(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->subArc = PL_EM(s)->subArc;
-    s->dmType = 2;
+    s->dmg.m_Timer = 2;
     pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0:
@@ -2831,7 +2831,7 @@ static void subem2b_Catch(cSubChar* sub)
 
     pG->Status_flg[2] |= 0x20000000;
     s->subArc = PL_EM(s)->subArc;
-    s->dmType = 2;
+    s->dmg.m_Timer = 2;
     switch (s->r_no_2) {
     case 0: {
         Vec v;
@@ -2896,7 +2896,7 @@ static void subem2b_CatchEnd(cSubChar* sub)
         s->ang.z = 0.0f;
         LIMIT_ANGLE(s->ang.y);
         PSMTXMultVec(PL_EM(s)->mat, &v, &s->pos);
-        s->dmType = 0x1E;
+        s->dmg.m_Timer = 0x1E;
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD3), 0, 0, 1, 0);
         SubCharSetFace(1);
         s->r_no_2++;
@@ -3017,7 +3017,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             dx = hp->world.x - v.x;
             d = dx * dx + dz * dz;
             if (d < 2250000.0f && !em2bDeadCk(pPLS)) {
-                pPLS->dmType = 0x80;
+                pPLS->dmg.m_Timer = 0x80;
                 pG->pl_life = 0;
                 SetPlDamage((int) em, plem2b_CatchHand);
                 SndCall(8, 0x24, &hp->world, em->id, 0, em);
@@ -3052,7 +3052,7 @@ void em2bPlFallCK(cEm2b* em)
 static void plem2bDmFall(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xEA), 0, 3, 0x201, 0);
@@ -3507,7 +3507,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
     Em2bWork* w = EM2B_WK(PL_EM(pPLS));
 
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
@@ -4370,7 +4370,7 @@ static void plem2b_dm_BlowKick(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x51), 0, 3, 1, 0);
         PlSetFace(1);
         PlSetDamageSe(0);
-        pl->dmType = 0xA;
+        pl->dmg.m_Timer = 0xA;
         EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 6 : 5, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     case 1:
@@ -4397,9 +4397,9 @@ static void em2bDashEscapeAction(cEm2b* em)
 static void plem2bDashEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     if (pSUB) {
-        pSUB->dmType = 2;
+        pSUB->dmg.m_Timer = 2;
     }
     switch (pl->r_no_2) {
     case 0:
@@ -6202,7 +6202,7 @@ void em2bSetTentacle(cEm2b* em, int set)
 // Damage of the weapon that hit: half more on the head (parts 5), a quarter on the armoured variants.
 int em2bSetDmVal(cEm2b* em)
 {
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     int near = 0;
     int dmg;
 
@@ -6210,8 +6210,8 @@ int em2bSetDmVal(cEm2b* em)
         near = 1;
     }
     dmg = 10;
-    if (em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     if (part->partsNo == 5) {
         dmg += dmg / 2;

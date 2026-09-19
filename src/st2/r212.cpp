@@ -821,12 +821,12 @@ static void r212_DrillMove()
             SceDebugDisp("Dist2[%f]", dist2);
             if (dist1 < 2890000.0f) {
                 U16Set(pG->pl_life, 1);
-                pPL->dmType = 0;
+                pPL->dmg.m_Timer = 0;
                 PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 3, 3000.0f);
                 break;
             } else if (dist2 < 2890000.0f) {
                 U16Set(pG->ashley_life, 1);
-                pSUB->dmType = 0;
+                pSUB->dmg.m_Timer = 0;
                 PlWepHitCheck2(0, &pSUB->pos, &pSUB->pos, 0x12, 3, 3000.0f);
                 break;
             }

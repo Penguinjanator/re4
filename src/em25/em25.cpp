@@ -152,7 +152,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em25DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
@@ -210,15 +210,15 @@ void em25DmCk(cEm25* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     zero = 0;
-    em->dmHit = zero;
-    em->dmType = 1;
+    em->dmg.m_Flag = zero;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     // COMPILER-DIFF: candidate #12 (AROUND form; r104 execEvent00 family) -- the original's cse forgets
     // `zero == 0` past the skipped `if` block, so the `hitCnt = 0` below gets its own `li`; ours
@@ -713,7 +713,7 @@ static void em25_R1_Bite(cEm25* em)
             at->setPriority(0);
             AtariOn(at, 0x300);
             w->Atk_wait = 60;
-            em->dmType = 10;
+            em->dmg.m_Timer = 10;
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
@@ -750,7 +750,7 @@ static void em25_R1_Bite(cEm25* em)
             at->setPriority(0);
             AtariOn(at, 0x300);
             w->Atk_wait = 60;
-            em->dmType = 10;
+            em->dmg.m_Timer = 10;
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1054,7 +1054,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
         em->hp = em->hp_max;
         SndCall(8, 5, &em->pos, em->id, 0, em);
         w->Compress_y = 1.0f;
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         MotionMoveF(em, 0);
         em->partsWorldCalc();
         em->r_no_2++;
@@ -1639,15 +1639,15 @@ int em25SetDmVal(cEm25* em)
     int near = 0;
     int dmg;
 
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     dmg = 100;
-    if (em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     dmg *= 2;
-    if (em->dmWep == 0x17 || em->dmWep == 0x2A) {
+    if (em->dmg.m_Wep == 0x17 || em->dmg.m_Wep == 0x2A) {
         dmg = 9999;
     }
     return dmg;
@@ -1717,10 +1717,10 @@ void em25BloodSet(cEm25* em)
     Vec dir;
     int near = 0;
 
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 1:
     case 2:
     case 3:

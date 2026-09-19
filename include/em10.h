@@ -47,7 +47,7 @@ struct Em10Work {
     cModel* pHood;         // 0x1A0 (0x580)  hood parts (em10SetAccesory; hides the head parts) (PS2 pHood)
     cModel* pWhood;         // 0x1A4 (0x584)  second hood variant (em10SetAccesory mot[23]) (PS2 pWhood)
     cModel* pAccesory[7]; // 0x1A8 (0x588)  accessory parts by flags_3C8 bits (em10SetAccesory) (PS2 pAccesory[7])
-    EmHitInfo hit[10];    // 0x1C4 (0x5A4)  extra hit boxes (YarareAdd in em10_R0_Init)
+    YARARE_INFO hit[10];    // 0x1C4 (0x5A4)  extra hit boxes (YarareAdd in em10_R0_Init)
     Camera Cam;           // 0x3CC (0x7AC)  takeaway camera (em10CamMoveTakeaway installs it as CamCtrl.x250)
     u8 St_set;              // 0x4C4 (0x8A4)  chgSet value (cEm::x38D copy)  (PS2 St_set)
     u8 pad_4C5[3];

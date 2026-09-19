@@ -232,7 +232,7 @@ cPlayer::cPlayer()
     flags_420 = 0;
     pPL = this;
     hp = pGS->pl_life;
-    x378 = 0x807EC000;
+    subArc = (PlArc*)0x807EC000;
     pMotTbl = (void**) PL_MEM_ALLOC(0x1B4, 373);
     memclr_asm(pMotTbl, 0x1B4);
     pRegistMot = (void**) PL_MEM_ALLOC(0x30, 376);
@@ -282,10 +282,10 @@ void cPlayer::init1()
     YarareInit(this, 0.0f, -30.0f, 0.0f, 200.0f, 100.0f, 2, 1);
     // TODO: the four extra hit boxes live at cEm+0x530/0x564/0x598/0x5CC (the cSubChar fields of em.h
     // overlay them); give them names in em.h.
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x530), 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x564), 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x598), -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x5CC), 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
+    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x530), 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
+    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x564), 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
+    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x598), -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
+    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x5CC), 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
     MOTION(this)->flip = pl00_mirror;
     m_BbtnCnt = 0;
     invisible_factor = 1.0f;

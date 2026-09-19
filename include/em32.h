@@ -38,7 +38,7 @@ struct Em32Work {
     u32 sndId2;           // 0x014 (0x3F4)  CatchHit: catch SE handle
     Vec spd;              // 0x018 (0x3F8)  movement left to the step / jump target (a tenth per motion frame)
     f32 turnAng;          // 0x024 (0x404)  AmbushAtk: yaw the swipe turns towards
-    EmHitInfo hit[28];    // 0x028 (0x408)  extra hit boxes (YarareAdd in em32_R0_Init)
+    YARARE_INFO hit[28];    // 0x028 (0x408)  extra hit boxes (YarareAdd in em32_R0_Init)
     u8 pad_5D8[0x640 - 0x5D8];
     f32 routeAng;         // 0x640 (0xA20)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x644 (0xA24)

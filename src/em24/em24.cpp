@@ -66,7 +66,7 @@ struct PlayerPtr {
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em24DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Module entry (SN loader): registers Em24Init as the DOL's enemy constructor (EmInitFunc).
@@ -109,9 +109,9 @@ void em24DmCk(cEm24* em)
             goto die;
         }
     }
-    if (em->dmHit) {
-        wep = em->dmWep;
-        em->dmHit = 0;
+    if (em->dmg.m_Flag) {
+        wep = em->dmg.m_Wep;
+        em->dmg.m_Flag = 0;
         if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A || wep == 0xE) {
             return;
         }
@@ -123,7 +123,7 @@ void em24DmCk(cEm24* em)
         }
     die:
         em->hp = 0;
-        em->dmType = 0x80;
+        em->dmg.m_Timer = 0x80;
         EmRoutineSet(em, 3, 0, 0, 0);
     }
 }
@@ -292,7 +292,7 @@ static void em24_R1_BoxWait(cEm24* em)
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI);
         MotionMoveF(em, 0);
         if (!(em->flag & 1)) {
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             break;
         }
         if (w->Timer) {
@@ -314,7 +314,7 @@ static void em24_R1_BoxWait(cEm24* em)
     case 3: {
         int two = 2;
 
-        em->dmType = two;
+        em->dmg.m_Timer = two;
         if (em->seFlags28B & 1) {
             cModel* p = em->getPartsPtr(5);
 

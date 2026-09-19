@@ -257,11 +257,11 @@ void emBoxDmCk(cEmBox* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -283,10 +283,10 @@ void emBoxDmCk(cEmBox* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         break;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0x14:
     case 0x15:
     case 0x2A:
@@ -337,7 +337,7 @@ void emBoxDmCk(cEmBox* em)
     }
     LifeDownSet(em, dmg, 0);
     if (em->hp <= 0) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0x14:
         case 0x15:
         case 0x2A:
@@ -367,7 +367,7 @@ void emBoxDmCk(cEmBox* em)
         case 7:
         case 8:
         case 0x21:
-            if (em->dmRad > 36000000.0f) {
+            if (em->dmg.m_Dist > 36000000.0f) {
                 emBoxSetBreak(em, 0);
             } else {
                 emBoxSetBreak(em, 1);

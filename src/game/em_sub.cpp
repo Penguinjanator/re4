@@ -66,7 +66,7 @@ u32 No_drop_cnt2 = 0;
 // Dead (upper 16 bits of cDmgInfo::flags set): the `li 1; andis.; bne; li 0; cmpwi` chain.
 static inline int EmIsDead(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Player life at least `lim`: the compare keeps its `>=` form (`cmpwi 0x1f5; cror un,eq,gt`) because
@@ -78,7 +78,7 @@ static inline int PlLifeOver(int lim)
 
 // Pointer store through a scalar reference (the FSet mechanism, global.h): a following `pPL` load
 // is not hoisted above / shared across it.
-static inline void PSet(EmHitInfo*& d, EmHitInfo* v)
+static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v)
 {
     d = v;
 }
@@ -109,7 +109,7 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 // The parts a hit box belongs to (partsNo is 1-based, 0 = the model itself).
-static inline cModel* HitParts(cEm* em, EmHitInfo* p)
+static inline cModel* HitParts(cEm* em, YARARE_INFO* p)
 {
     if (p->partsNo != 0) {
         return em->getPartsPtr(p->partsNo - 1);
@@ -140,7 +140,7 @@ void Em_R0_Scenario(cEm* em)
 // height along its axis, from the damage position (x328) mapped into the parts' space.
 int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
 {
-    EmHitInfo* p = em->dmPart;
+    YARARE_INFO* p = em->dmg.m_pDamageYarare;
     u32 type;
     cModel* parts;
     Mtx m;
@@ -159,7 +159,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (p->flags & 0x4000) {
         *pos = p->pos;
         dir->x = 0.0f;
-        dir->y = GetXZAngle(pos, &em->dmPos);
+        dir->y = GetXZAngle(pos, &em->dmg.m_PosFrom);
         dir->z = 0.0f;
         return 1;
     }
@@ -197,7 +197,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (PSMTXInverse(m, inv) == 0) {
         PSMTXIdentity(inv);
     }
-    PSMTXMultVec(inv, &em->dmPos, &v);
+    PSMTXMultVec(inv, &em->dmg.m_PosFrom, &v);
     switch (type) {
     case 0:
         d.x = 0.0f;
@@ -259,7 +259,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         break;
     }
     dir->x = 0.0f;
-    dir->y = GetXZAngle(&c, &em->dmPos);
+    dir->y = GetXZAngle(&c, &em->dmg.m_PosFrom);
     dir->z = 0.0f;
     return 1;
 }
@@ -283,7 +283,7 @@ void EmDmBloodSet(cEm* em)
     if (EmGetDmPos(em, &pos, &dir) == 0) {
         return;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     default:
         EstSet(0, -1, &pos, &dir, 0, 1, 0, 0, 0, 0);
         p.x = fRand1_1() * 200.0f + pos.x;
@@ -367,7 +367,7 @@ void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
 void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 {
     cPlayer* pl = pPL;
-    EmHitInfo* hit = &pl->hitInfo;
+    YARARE_INFO* hit = &pl->hitInfo;
     Mtx m;
     Vec p;
     Vec q;
@@ -439,7 +439,7 @@ void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
 void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 {
     cSubChar* sub = pSUB;
-    EmHitInfo* hit;
+    YARARE_INFO* hit;
     Mtx m;
     Vec p;
     Vec q;
@@ -483,7 +483,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 
 // Hit boxes of `em` inside the capsule box (8 corners) of a melee weapon: the one nearest to the
 // box axis, with rad = squared distance to `pos` and dist = squared distance from the axis.
-EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
+YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
 {
     Mtx mat;
     Mtx rm;
@@ -493,8 +493,8 @@ EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
     Vec dir;
     Vec bc;
     Vec up;
-    EmHitInfo* p;
-    EmHitInfo* ret;
+    YARARE_INFO* p;
+    YARARE_INFO* ret;
     cModel* parts;
     f32 best;
     f32 ang;
@@ -585,15 +585,15 @@ EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
 
 // Hit boxes of `em` crossed by the line a-b (within `len` squared of `a`): the nearest one, with
 // pos = hit point, rad = squared distance a -> hit, dist = squared distance hit -> a.
-EmHitInfo* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
+YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
 {
     Vec top;
     Vec bottom;
     Vec center;
     Vec hit;
     Vec s;
-    EmHitInfo* p;
-    EmHitInfo* ret = 0;
+    YARARE_INFO* p;
+    YARARE_INFO* ret = 0;
     cModel* parts;
     f32 best = len;
     f32 d2;
@@ -652,15 +652,15 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
 }
 
 // emLineAtCk sorted by the XZ distance only, hit point returned in `out`.
-EmHitInfo* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int flag)
+YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int flag)
 {
     Vec top;
     Vec bottom;
     Vec center;
     Vec hit;
     Vec s;
-    EmHitInfo* p;
-    EmHitInfo* ret = 0;
+    YARARE_INFO* p;
+    YARARE_INFO* ret = 0;
     cModel* parts;
     f32 best = len;
     f32 d2;
@@ -996,15 +996,15 @@ int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
 
 // Hit boxes of `em` touched by the sphere (pos, r): the one best facing the pos2 -> pos direction
 // (or the nearest when pos2 is at pos); rad = squared distance centre -> pos.
-EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
+YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
 {
     Vec top;
     Vec bottom;
     Vec center;
     Vec d;
     Vec s;
-    EmHitInfo* p;
-    EmHitInfo* ret;
+    YARARE_INFO* p;
+    YARARE_INFO* ret;
     cModel* parts;
     f32 dist;
     f32 bestRad;
@@ -1141,8 +1141,8 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
     u32 j;
     u32 worst;
     cEm* em;
-    EmHitInfo* part;
-    EmHitInfo* q;
+    YARARE_INFO* part;
+    YARARE_INFO* q;
     WepTarget* wp;
     f32 wr;
 
@@ -1245,11 +1245,11 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     f32 dist;
     f32 l;
     cEm* bestEm;
-    EmHitInfo* bestPart;
-    EmHitInfo* part;
+    YARARE_INFO* bestPart;
+    YARARE_INFO* part;
     cModel* parts;
     cEm* em;  // one variable for both scans and the sort swap (r31 throughout); `i` is the sort's outer counter too
-    EmHitInfo* part2;
+    YARARE_INFO* part2;
 
     mask = 0;
     if (type != 0x10) {
@@ -1476,10 +1476,10 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     u32 mask;
     f32 rr;
     f32 r2;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     cModel* parts;
     cEm* em;  // one variable for the scan and the sort swap (r24 in both loops)
-    EmHitInfo* part2;
+    YARARE_INFO* part2;
 
     switch (type) {
     case 0xD:
@@ -1687,7 +1687,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
     u32 i;
     cEm* em;
     cModel* parts;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     f32 dist;
     f32 len;
     f32 e2;
@@ -1790,13 +1790,13 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
 
 // Hit box of `em` the sphere (pos, r) touches, stepping along each capsule's axis; the contact
 // point on the axis goes to `out`.
-EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
+YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
 {
     Vec top;
     Vec bottom;
     Vec s;
     Vec q;
-    EmHitInfo* p;
+    YARARE_INFO* p;
     cModel* parts;
     f32 rr;
     f32 len;  // the axis length, then the step (one variable: it lives across the VECNormalize call)
@@ -1883,7 +1883,7 @@ void EmYarareDisp(cEm* em)
     Vec top;
     Vec bottom;
     Vec s;
-    EmHitInfo* p;
+    YARARE_INFO* p;
     cModel* parts;
     u32 color;
 
@@ -1897,7 +1897,7 @@ void EmYarareDisp(cEm* em)
             continue;
         }
         color = 0x60606060;
-        if (EmIsDead(em) && p == em->dmPart) {
+        if (EmIsDead(em) && p == em->dmg.m_pDamageYarare) {
             color = 0xFF000000;
         }
         if (em->hp <= 0) {
@@ -2091,9 +2091,9 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
 void PlSetDamage(int type, int dmg, int flag)
 {
     pPL->dmg.set(0, 0x1E);
-    BitSet(pPL->x378, pPL->x37C);
+    pPL->subArc = pPL->subArc2;
     if (dmg != 0) {
-        LifeDownSet2(pPL, dmg, 0, flag);
+        LifeDownSet2(pPLS, dmg, 0, flag);
     }
     if ((s16) pG->pl_life <= 0) {
         if (type == 8) {
@@ -2122,7 +2122,7 @@ void PlSetDamage(int type, int dmg, int flag)
         cPlayer* p;
 
         pG->pl_life = 0;
-        pPLS->st.x325 = 0x80;
+        pPLS->dmg.m_Timer = 0x80;
         p = pPL;
         p->r_no_0 = 2;
         p->r_no_1 = 0;
@@ -2146,7 +2146,7 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* pPos, Vec* pPosOld, int noSub)
     int ret = 0;
     int hit;
     int keep;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 
     hit = EmAtkHitCk2(info, pPos, pPosOld);
     if (hit) {
@@ -2179,7 +2179,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     Vec d;
     Vec fwd;
     cModel* parts;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int ret;
     f32 dy;
 
@@ -2201,7 +2201,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
         return 0;
     }
     MaskAnd16(part->flags, 0xBFFF);
-    PSet(pPL->dmPart, part);
+    PSet(pPL->dmg.m_pDamageYarare, part);
     if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
@@ -2229,7 +2229,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
     Vec d;
     cPlayer* pl;
     cModel* parts;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int at;
     f32 len;
 
@@ -2289,13 +2289,13 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
 }
 
 // EmAtkLineHitCk for the partner.
-EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
+YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
 {
     Mtx m;
     Vec d;
     cSubChar* sub;
     cModel* parts;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     f32 len;
 
     if (pSUB == 0) {
@@ -2361,7 +2361,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
     int keep;
     f32 dy;
 
-    PSet(pPL->dmPart, (EmHitInfo*) part);
+    PSet(pPL->dmg.m_pDamageYarare, (YARARE_INFO*) part);
     if ((pPos->x - pPos2->x) * (pPos->x - pPos2->x) + (pPos->z - pPos2->z) * (pPos->z - pPos2->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
@@ -2390,7 +2390,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 }
 
 // Damage from a line attack that hit the partner's box `part`.
-void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
+void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 {
     if (pSUB) {
         pSUB->dmg.set(0, 10, 0x18, pPos, part->rad, part);
@@ -2398,10 +2398,10 @@ void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 }
 
 // Attack sphere against the partner: the hit box or NULL.
-EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
+YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
 {
     cModel* parts;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 
     if (pG->Debug_flg[0] & 0x1000) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
@@ -2476,7 +2476,7 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     pPL->x3A8 = pPL->pos;
     ISet(em->dmgType, (int) pPLS);
     ISet(pPL->dmgType, (int) em);
-    pPL->x378 = em->x378;
+    pPL->subArc = em->subArc;
     SetPlDamage((int) em, (void (*)(cPlayer*)) a);
 }
 
@@ -2535,7 +2535,7 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     sub->x3A8 = sub->pos;
     em->dmgType = (int) sub;
     sub->dmgType = (int) em;
-    sub->x378 = em->x378;
+    sub->subArc = em->subArc;
     SetSubDamage((int) em, (void*) a);
 }
 

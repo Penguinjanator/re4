@@ -9,7 +9,7 @@ class cSat;
 
 // One extra yarare cube of the rack (YarareAddCube target); 0x34 bytes per entry.
 struct EmRackHit {
-    EmHitInfo info;       // 0x00
+    YARARE_INFO info;       // 0x00
 };
 
 // Work of the rack enemy (game/emrack.cpp), overlaid on cEm from 0x3E0.

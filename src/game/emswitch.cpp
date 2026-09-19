@@ -37,15 +37,15 @@ static void emSwitchDmCk(cEmSwitch* em)
     int near;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -58,11 +58,11 @@ static void emSwitchDmCk(cEmSwitch* em)
     if (wep == 0x2A) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 7:
     case 8:
     case 0x21:

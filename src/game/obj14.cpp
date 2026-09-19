@@ -242,7 +242,7 @@ void obj14DmCk(cObjBell* obj)
         break;
     }
     if (EmGetDmPos(w->pEmHit, &dm, &dm2) == 0) {
-        dm = w->pEmHit->dmPos;
+        dm = w->pEmHit->dmg.m_PosFrom;
     }
     PSVECSubtract(&obj->pos, &dm, &dir);
     dir.y = 0.0f;

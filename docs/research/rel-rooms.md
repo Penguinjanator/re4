@@ -2359,7 +2359,7 @@
   keeps the `subi` -- so the tree's root 0x52 = cnt 0x70 is the em[8] arm: our `case 0x8E` was the wrong VALUE, not an
   extra case; values `cnt - 30` = 8, 0x13, 0x14, 0x1e, 0x28, 0x32, 0x41, 0x46, 0x50, 0x52, 0x55, 0x64, 0x78, 0xdb,
   0xdc, 0xe6, 0xf0, 0xfa, 0x109, plain-mode balance root = 10th node). (2) `static inline int r204_isDead(cEm* em)
-  { return (em->flags_324 & 0xFFFF0000) ? 1 : 0; }` for the `li r9,1; andis.; bne; li r9,0; cmpwi r9,0` chain (also
+  { return em->dmg.m_Flag || em->dmg.m_Timer; }` for the `li r9,1; andis.; bne; li r9,0; cmpwi r9,0` chain (also
   fixed the r16/r17/r18 naming of the three Vec templates). (3) `cPlayer* pl = pPL;` assigned right before the
   `if (started == 0 && pl->checkEvent() == 1 ..)` and used again for `pl->pWep->pObj->setDisp(1, 1)` (target `lwz
   r28,pPL@l` above the `cmpwi r19,0`, `mr r3,r28`, `lwz r9,0x788(r28)`; every other pPL use reloads). (4) Loop

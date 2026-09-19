@@ -47,6 +47,12 @@ typedef void (*EmDoorFunc)(cEmDoor*);
 // Store through a scalar reference: the following pPL read is not shared with the one before it.
 static inline void U32Set(u32& d, u32 v) { d = v; }
 
+// Struct-member view of pPL: the load stays below a preceding store through the player pointer.
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
+
 static void emDoor_R1_Open2(cEmDoor* em);
 
 // Parts index remap for the flipped motions (MotionWork::flip): identity.
@@ -241,7 +247,7 @@ static inline void emDoorChainHit(cEmDoor* em, u32 no)
 void emDoorDmCkWood(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
     Vec v;
     Vec out;
@@ -262,12 +268,12 @@ void emDoorDmCkWood(cEmDoor* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    part = em->dmPart;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     if (wep == 0x14) {
         return;
     }
@@ -283,9 +289,9 @@ void emDoorDmCkWood(cEmDoor* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     if (w->Be_flg & 1) {
         if (w->Eff_id == 0xFF) {
@@ -294,13 +300,13 @@ void emDoorDmCkWood(cEmDoor* em)
         EmDmBloodSet2(em, w->Eff_id, 2, 0, 0, 0);
         return;
     }
-    if (em->dmWep == 0x10) {
+    if (em->dmg.m_Wep == 0x10) {
         if (part != &w->hit[12] && part != &w->hit[11] && part != &w->hit[13] && part != &w->hit[14] && part != &w->hit[15]) {
-            em->dmType = 0;
+            em->dmg.m_Timer = 0;
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -443,7 +449,7 @@ void emDoorDmCkWood(cEmDoor* em)
         emDoorSetDmgChain(em, 0);
         emDoorSetDmgChain(em, 1);
         emDoorSetDmgChain(em, 2);
-        emDoorSetBrkDoor(em, &em->dmPos);
+        emDoorSetBrkDoor(em, &em->dmg.m_PosFrom);
         break;
     }
     if (emDoorBrkCk(em)) {
@@ -516,7 +522,7 @@ static inline void emDoorBreakLocks(cEmDoor* em)
 
     switch (em->type) {
     default:
-        ang = Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        ang = Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
             emDoorSetDmgLock_L(em, 1);
         } else {
@@ -539,15 +545,15 @@ static inline void emDoorBreakLocks(cEmDoor* em)
 void emDoorDmCkIron(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    part = em->dmPart;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     if (wep == 0x14) {
         return;
     }
@@ -563,16 +569,16 @@ void emDoorDmCkIron(cEmDoor* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
         if (part != &EMDOOR_WK(em)->hit[12] && part != &EMDOOR_WK(em)->hit[11] && part != &EMDOOR_WK(em)->hit[13] &&
             part != &EMDOOR_WK(em)->hit[14] && part != &EMDOOR_WK(em)->hit[15]) {
-            em->dmType = 0;
+            em->dmg.m_Timer = 0;
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -695,15 +701,15 @@ void emDoorDmCkIron(cEmDoor* em)
 void emDoorDmCkIron2(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    part = em->dmPart;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     if (wep == 0x14) {
         return;
     }
@@ -719,16 +725,16 @@ void emDoorDmCkIron2(cEmDoor* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
         if (part != &EMDOOR_WK(em)->hit[12] && part != &EMDOOR_WK(em)->hit[11] && part != &EMDOOR_WK(em)->hit[13] &&
             part != &EMDOOR_WK(em)->hit[14] && part != &EMDOOR_WK(em)->hit[15]) {
-            em->dmType = 0;
+            em->dmg.m_Timer = 0;
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -871,15 +877,15 @@ void emDoorDmCkIron2(cEmDoor* em)
 void emDoorDmCkIronDown(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    part = em->dmPart;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     if (wep == 0x14) {
         return;
     }
@@ -895,16 +901,16 @@ void emDoorDmCkIronDown(cEmDoor* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
         if (part != &EMDOOR_WK(em)->hit[12] && part != &EMDOOR_WK(em)->hit[11] && part != &EMDOOR_WK(em)->hit[13] &&
             part != &EMDOOR_WK(em)->hit[14] && part != &EMDOOR_WK(em)->hit[15]) {
-            em->dmType = 0;
+            em->dmg.m_Timer = 0;
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -1023,7 +1029,7 @@ void emDoorDmCkIronDown(cEmDoor* em)
 }
 
 // A hit box no longer takes hits.
-static inline void emDoorHitOff(EmHitInfo* hit)
+static inline void emDoorHitOff(YARARE_INFO* hit)
 {
     hit->flags &= ~1;
 }
@@ -1035,7 +1041,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
     EmListData* d = EM_LIST(em->emset_no);
-    EmHitInfo* hit;
+    YARARE_INFO* hit;
     u16* flg;
     Vec v;
 
@@ -1102,7 +1108,7 @@ void emDoorSetDmgLock_R(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
     EmListData* d = EM_LIST(em->emset_no);
-    EmHitInfo* hit;
+    YARARE_INFO* hit;
     u16* flg;
     Vec v;
 
@@ -1232,7 +1238,7 @@ void emDoorSetDmgChain(cEmDoor* em, u32 no)
 void emDoorSetDmgDoor(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     EmListData* d = EM_LIST(em->emset_no);
     cModel* parts;
     u16* flg;
@@ -1262,7 +1268,7 @@ void emDoorSetDmgDoor(cEmDoor* em)
                     rot.x = 0.0f;
                     rot.y = atan2f(v.x, v.z);
                     rot.z = 0.0f;
-                    ang = GetXZAngle(wpos, &em->dmPos);
+                    ang = GetXZAngle(wpos, &em->dmg.m_PosFrom);
                     dif = Muku2(rot.y, ang, PI);
                     if (fabsf(dif) > PI / 2) {
                         rot.y += PI;
@@ -1294,7 +1300,7 @@ void emDoorSetDmgDoor(cEmDoor* em)
         }
     }
     if (w->Eff_id != 0xFF) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         default:
             EmDmBloodSet2(em, w->Eff_id, 2, 0, 0, 0);
             break;
@@ -1490,7 +1496,7 @@ void emDoor_R1_Open(cEmDoor* em)
         }
         if (w->kickCnt != 0) {
             w->kickCnt--;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             if (w->Open_flag) {
                 v.x = 0.0f;
                 v.y = w->Width;
@@ -1693,7 +1699,7 @@ void emDoor_R1_Down(cEmDoor* em)
         }
         if (w->kickCnt != 0) {
             w->kickCnt--;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             if (w->Open_flag) {
                 v.x = 0.0f;
                 v.y = w->Width;
@@ -3065,9 +3071,9 @@ void plemDoorKick(cPlayer* pl)
     int frame;
     Vec v;
 
-    U32Set(pl->x378, door2->x378);
+    pl->subArc = door2->subArc;
     if (pl->r_no_2 == 0 || pl->r_no_2 == 4) {
-        if (door->ckKick(&pPL->pos) && (w->pDoor == 0 || w->pDoor->ckKick(&pPL->pos))) {
+        if (door->ckKick(&pPLS->pos) && (w->pDoor == 0 || w->pDoor->ckKick(&pPL->pos))) {
             if (pl->r_no_2 == 0) {
                 pl->r_no_2 = 2;
             }
@@ -3128,7 +3134,7 @@ void plemDoorKick(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Player damage routine of opening by hand: motion 0x1E with setOpen2 (side by which half the
@@ -3143,7 +3149,7 @@ void plemDoorOpen(cPlayer* pl)
     u8 flag;
     Vec v;
 
-    U32Set(pl->x378, door2->x378);
+    pl->subArc = door2->subArc;
     switch (pl->r_no_2) {
     case 0:
         d = Muku2(pl->ang.y, door->ang.y, PI);
@@ -3214,7 +3220,7 @@ void plemDoorOpen(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Corner `v` of an object (in the closed door's space) is inside the door's swing box.
@@ -3482,7 +3488,7 @@ void subDoorKick()
     }
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR((PlArc*) sub->x378, 0x2B), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
         sub->subHideMode = 0xE;
         sub->r_no_2++;
     case 1:
@@ -3499,7 +3505,7 @@ void subDoorKick()
         }
         break;
     case 2:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR((PlArc*) sub->x378, 0x2A), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
         sub->subHideMode = 0xE;
         sub->r_no_2++;
     case 3:

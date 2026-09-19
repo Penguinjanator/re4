@@ -36,7 +36,7 @@ struct Em3cWork {
     int Run_wait;        // 0x07C (0x45C)  frames the routine 4 choice is suppressed
     Vec Set_pos;         // 0x080 (0x460)  pos at init
     Vec Set_ang;         // 0x08C (0x46C)  rot at init
-    EmHitInfo hit[11];    // 0x098 (0x478)  extra hit boxes (YarareAdd); [9] the parasite, [10] the head object
+    YARARE_INFO hit[11];    // 0x098 (0x478)  extra hit boxes (YarareAdd); [9] the parasite, [10] the head object
     u8 pad_2D4[0x3A4 - 0x2D4];
     int bombTimer;        // 0x3A4 (0x784)  frames until the head parts are hidden (em3cPartsBombHead)
     cModelInfo* pWeapon; // 0x3A8 (0x788)  em3cModelInit extra models

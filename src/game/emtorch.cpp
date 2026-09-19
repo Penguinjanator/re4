@@ -175,11 +175,11 @@ void emTorchDmCk(cEmTorch* em)
     u8 wep;
     int dmg;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -201,10 +201,10 @@ void emTorchDmCk(cEmTorch* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         break;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -255,7 +255,7 @@ void emTorchDmCk(cEmTorch* em)
         EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 1, 0, 0, 0, 0);
     }
     if (em->hp <= 0) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -280,7 +280,7 @@ void emTorchDmCk(cEmTorch* em)
         case 7:
         case 8:
         case 0x21:
-            if (em->dmRad > 36000000.0f) {
+            if (em->dmg.m_Dist > 36000000.0f) {
                 emTorchSetBreak(em, 0);
             } else {
                 emTorchSetBreak(em, 1);

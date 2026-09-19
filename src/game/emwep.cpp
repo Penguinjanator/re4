@@ -34,9 +34,9 @@
 extern "C" {
 int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
-EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
-void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
-EmHitInfo* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
+YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
+void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
+YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
 int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 void GameAddPoint(int no);                                                                   // game.cpp
 static void emWep_R1_Parent(cEmWep* em);
@@ -247,11 +247,11 @@ void emWepDmCk(cEmWep* em)
     Vec v;
     Vec r;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -273,7 +273,7 @@ void emWepDmCk(cEmWep* em)
     case 3:
     case 0xA:
     default:
-        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->dmPos));
+        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->dmg.m_PosFrom));
         v.x = fRand1_1() * 200.0f;
         v.y = fRand0_1() * 50.0f + 50.0f;
         v.z = fRand0_1() * 100.0f + -250.0f;
@@ -879,7 +879,7 @@ void emWep_R1_Shot(cEmWep* em)
     Vec hitPos;
     Vec nrm;
     Mtx inv;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int no;
     f32 len;
     cCtrl* c;
@@ -947,7 +947,7 @@ void emWep_R1_Shot(cEmWep* em)
         return;
     }
     if (w->pAtk) {
-        part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0);
+        part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0);
         if (part) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
@@ -1052,7 +1052,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
     EmWepWork* w = EMWEP_WK(em);
     Vec hit;
     Vec nrm;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 
     switch (em->r_no_2) {
     case 0:
@@ -1125,7 +1125,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
         return;
     }
     if (w->pAtk) {
-        part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hit, &nrm, 0);
+        part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hit, &nrm, 0);
         if (part) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
@@ -1476,7 +1476,7 @@ void emWep_R1_FlashThrow(cEmWep* em)
         SndCall(1, 0x13, &em->pos, 0, 0, 0);
         if ((s16) pG->pl_life > 0) {
             dead = 1;
-            if (!(pPL->flags_324 & 0xFFFF0000)) {
+            if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
                 dead = 0;
             }
             if (dead == 0) {
@@ -1662,8 +1662,8 @@ static void plemEscape(cPlayer* pl)
 {
     EmWepWork* w = EMWEP_WK(PL_WEP(pl));
 
-    pl->x378 = PL_WEP(pl)->x378;
-    pl->st.x325 = 2;
+    pl->subArc = PL_WEP(pl)->subArc;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
@@ -1694,7 +1694,7 @@ static void plemEscape(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Player damage routine: back jump away from the grenade.
@@ -1702,8 +1702,8 @@ void plemBackjump(cPlayer* pl)
 {
     EmWepWork* w = EMWEP_WK(PL_WEP(pl));
 
-    pl->x378 = PL_WEP(pl)->x378;
-    pl->st.x325 = 0x1E;
+    pl->subArc = PL_WEP(pl)->subArc;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motBackjump, 0, 3, 1, 5);
@@ -1737,7 +1737,7 @@ void plemBackjump(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Player damage routine: dive forward over the grenade.
@@ -1745,8 +1745,8 @@ void plemFrontEscape(cPlayer* pl)
 {
     EmWepWork* w = EMWEP_WK(PL_WEP(pl));
 
-    pl->x378 = PL_WEP(pl)->x378;
-    pl->st.x325 = 0x1E;
+    pl->subArc = PL_WEP(pl)->subArc;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motFront, 0, 3, 1, 5);
@@ -1774,7 +1774,7 @@ void plemFrontEscape(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Camera of the grenade escape: behind the player, pulled in front of the scenery.
@@ -2528,7 +2528,7 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
     Vec hitPos;
     Vec d;
     cEm* hitEm;
-    EmHitInfo* hitPart;
+    YARARE_INFO* hitPart;
     f32 len;
     u32 i;
     int r;
@@ -2550,7 +2550,7 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-        EmHitInfo* part;
+        YARARE_INFO* part;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -2603,7 +2603,7 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
     Vec hitPos;
     Vec d;
     cEm* hitEm;
-    EmHitInfo* hitPart;
+    YARARE_INFO* hitPart;
     f32 len;
     u32 i;
     int r;
@@ -2625,7 +2625,7 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-        EmHitInfo* part = 0;
+        YARARE_INFO* part = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

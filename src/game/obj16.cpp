@@ -1034,7 +1034,7 @@ int cObj16::ckAtkEnable()
 // The player is dead (the upper half of the damage word).
 static inline int PlIsDead()
 {
-    return (pPL->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return pPL->dmg.m_Flag || pPL->dmg.m_Timer;
 }
 
 // Attack hit test of parts partsNo with obj16_atk_info[kind] (0/1 bite, 2 spit, 3 decapitation):

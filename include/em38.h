@@ -41,7 +41,7 @@ struct Em38Work {
     int timer2;           // 0x008 (0x3E8)
     int actVar;           // 0x00C (0x3EC)  Rnd() & 1: action button prompt variant
     u8 pad_10[0x10];
-    EmHitInfo hit[26];    // 0x020 (0x400)  extra hit boxes (YarareAdd / YarareAddCube)
+    YARARE_INFO hit[26];    // 0x020 (0x400)  extra hit boxes (YarareAdd / YarareAddCube)
     f32 routeAng;         // 0x568 (0x948)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x56C (0x94C)
     f32 subAng;           // 0x570 (0x950)  the same for the partner

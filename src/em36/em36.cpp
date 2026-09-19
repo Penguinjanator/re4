@@ -229,7 +229,7 @@ static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &
 
 static inline int em36DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // The appearance effects (type 0/1: two, type 2/3: one).
@@ -303,7 +303,7 @@ void em36DmCk(cEm36* em)
     Em36Work* w = EM36_WK(em);
     int near;
     int dmg;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 
     if (em36CrashCk(em)) {
         return;
@@ -346,24 +346,24 @@ void em36DmCk(cEm36* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     w->flags |= 0x200;
     near = 0;
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
     dmg = em36SetDmVal(em);
     LifeDownSet2(em, dmg, 0, 0);
     SndCall(8, 0x1C, &em->pos, em->id, 0, em);
-    if (em->dmWep == 0xD || em->dmWep == 0x12) {
+    if (em->dmg.m_Wep == 0xD || em->dmg.m_Wep == 0x12) {
         em->hp = 0;
     }
     if (em->hp <= 0) {
@@ -384,7 +384,7 @@ void em36DmCk(cEm36* em)
         return;
     }
     if (w->flags & 0x100) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 7:
         case 8:
         case 0x21:
@@ -434,7 +434,7 @@ void em36DmCk(cEm36* em)
         return;
     }
     if (w->flags & 0x20) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -493,7 +493,7 @@ void em36DmCk(cEm36* em)
         EmRoutineSet(em, 2, 3, 0, 0);
         return;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -822,7 +822,7 @@ static void em36_R1_br_Dummy(cEm36* em)
 // 2: no hit damage), holding the lying pose; the script swaps it for the live one.
 static void em36_R1_R307Bed(cEm36* em)
 {
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0: {
         cAtariInfo* at;
@@ -848,7 +848,7 @@ static void em36_R1_R307Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
@@ -880,7 +880,7 @@ static void em36_R1_R309Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
@@ -905,7 +905,7 @@ static void em36_R1_R308Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         em->pos.x = -1767.99f;
@@ -1586,7 +1586,7 @@ static void subem36_Stamp()
     u8 step;
 
     sub->subArc = PL_EM(sub)->subArc;
-    sub->dmType = 2;
+    sub->dmg.m_Timer = 2;
     pG->Status_flg[2] |= 0x20000000;
     step = sub->r_no_2;
     switch (step) {
@@ -1985,7 +1985,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
     Em36Work* w = EM36_WK(em);
     u8 step = em->r_no_2;
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->flags |= 0x10;
     switch (step) {
     case 0:
@@ -2865,7 +2865,7 @@ static void em36_R1_Dm_Normal(cEm36* em)
         f32 ang;
 
         em->r_no_3 = em36GetDmPosType(em);
-        ang = fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI));
+        ang = fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI));
         m1 = 0;
         if (ang < 1.5707964f) {
             switch (em->r_no_3) {
@@ -3501,7 +3501,7 @@ int em36AtkCk2(cEm36* em, int no, Vec* pos, Vec* oldPos)
 // leg (the rest). Indexes flags2 / atkTimer / the limb models.
 int em36GetDmPosType(cEm36* em)
 {
-    EmHitInfo* p = em->dmPart;
+    YARARE_INFO* p = em->dmg.m_pDamageYarare;
 
     if (p == 0) {
         return 0;
@@ -4190,7 +4190,7 @@ void em36SlopeMove(cEm36* em)
 int em36SetDmVal(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     EmListData* list = EM_LIST(em->emset_no);
     int near;
     int dmg;
@@ -4200,10 +4200,10 @@ int em36SetDmVal(cEm36* em)
         near = 1;
     }
     dmg = 100;
-    if ((u32) em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if ((u32) em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 9:
     case 0xA:
     case 0x28:
@@ -4245,7 +4245,7 @@ void cEm36::setR307Appear()
 void em36SetHitMark(cEm36* em, int big)
 {
     Em36Work* w = EM36_WK(em);
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     Vec lp;
     Vec rot;
     Mtx inv;
@@ -4845,14 +4845,14 @@ void em36BloodSet(cEm36* em)
 {
     int near = 0;
 
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     // `default:` at the top of the body, jumping to the normal-blood arm: the default label then
     // sits right after the compare tree, so jump.c inverts the last node's `bgt default; b big`
     // into `ble big` falling into `default: b normal` (the tree's tail `ble B; b D`); a default
     // label on the arm itself gives `bgt default; b big`.
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     default:
         goto normal;
     case 0xB:
@@ -5271,7 +5271,7 @@ int em36CrashCk(cEm36* em)
     Em36Work* w = EM36_WK(em);
     Vec hit;
 
-    if (em->dmHit != 0) {
+    if (em->dmg.m_Flag != 0) {
         return 0;
     }
     if (em->hp <= 0) {

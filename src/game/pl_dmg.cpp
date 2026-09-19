@@ -28,7 +28,7 @@ void damageBlast(cPlayer* pl);
 void Pl_R0_Die(cPlayer* pl);
 
 // Routine bytes through int parameters: the four zeros become one SImode pseudo that cse cannot
-// merge with the QImode zero of `st.x324` stored before the EndPlDamage call, so the original's
+// merge with the QImode zero of `dmg.m_Flag` stored before the EndPlDamage call, so the original's
 // second `li r0, 0` after the call is reproduced instead of a callee-saved zero.
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
@@ -114,7 +114,7 @@ void damageNormal(cPlayer* pl)
         }
         pl->setFace(1);
         pl->r_no_2 = 1;
-        pl->st.x325 |= 0x80;
+        pl->dmg.m_Timer |= 0x80;
     case 1:
         if (pl->frame > 19.7f && pl->frame < 20.3f) {
             pl->setFace(0);
@@ -129,8 +129,8 @@ void damageNormal(cPlayer* pl)
                 pl->r_no_1 = 2;
                 pl->r_no_3 = 0;
             } else {
-                pl->st.x324 = 0;
-                pl->st.x325 = 5;
+                pl->dmg.m_Flag = 0;
+                pl->dmg.m_Timer = 5;
                 EndPlDamage();
                 PlRoutineSet(pl, 0, 0, 0, 0);
             }
@@ -167,8 +167,8 @@ void damageNormal(cPlayer* pl)
             }
         }
         if (pl->motionMove()) {
-            pl->st.x324 = 0;
-            pl->st.x325 = 5;
+            pl->dmg.m_Flag = 0;
+            pl->dmg.m_Timer = 5;
             EndPlDamage();
             PlRoutineSet(pl, 0, 0, 0, 0);
         }
@@ -232,7 +232,7 @@ void damageBlow(cPlayer* pl)
         pl->setFace(1);
         pl->m_Work2 = 0;
         pl->r_no_2 = 1;
-        pl->st.x325 |= 0x80;
+        pl->dmg.m_Timer |= 0x80;
     case 1:
         if (MotionCheckCrossFrame(&pl->pMotion, 20.0f)) {
             pl->setFace(0);
@@ -285,8 +285,8 @@ void damageBlow(cPlayer* pl)
             }
         }
         if (pl->motionMove()) {
-            pl->st.x324 = 0;
-            pl->st.x325 = 5;
+            pl->dmg.m_Flag = 0;
+            pl->dmg.m_Timer = 5;
             EndPlDamage();
             PlRoutineSet(pl, 0, 0, 0, 0);
         }
@@ -316,14 +316,14 @@ void damageBlast(cPlayer* pl)
         }
         pl->setFace(1);
         pl->r_no_2 = 1;
-        pl->st.x325 |= 0x80;
+        pl->dmg.m_Timer |= 0x80;
     case 1:
         if (pl->frame > 19.7f && pl->frame < 20.3f) {
             pl->setFace(0);
         }
         if (pl->motionMove()) {
-            pl->st.x324 = 0;
-            pl->st.x325 = 5;
+            pl->dmg.m_Flag = 0;
+            pl->dmg.m_Timer = 5;
             EndPlDamage();
             PlRoutineSet(pl, 0, 0, 0, 0);
         }
@@ -343,7 +343,7 @@ void Pl_R0_Die(cPlayer* pl)
         pl->beginDamage();
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x4C), pG->pPlayer->ofs[0x4D] + (u32) pG->pPlayer, 5, 1, 0);
         EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 4 : 3, 0, 0, (u32) pl, (void*) no);
-        pl->st.x325 |= 0x80;
+        pl->dmg.m_Timer |= 0x80;
         if (pl->Body->pHair) {
             SndCall(1, 0xD, &pl->getPartsPtr(4)->world, 0, 0, 0);
             pl->setFace(1);

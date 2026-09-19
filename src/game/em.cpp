@@ -112,8 +112,8 @@ int cEmMgr::construct(cEm* p, u32 id)
     case 0xC:
     case 0xD:
     case 0xE:
-        p->x378 = (u32) EmReadSearch(id, 0, 0);
-        if (p->x378 == 0) {
+        p->subArc = (PlArc*)EmReadSearch(id, 0, 0);
+        if (p->subArc == 0) {
             return 0;
         }
         EmInitFunc(p);
@@ -173,8 +173,8 @@ int cEmMgr::construct(cEm* p, u32 id)
         p = new (p) cEm;
         break;
     default:
-        p->x378 = (u32) EmReadSearch(id, 0, 0);
-        if (p->x378 == 0) {
+        p->subArc = (PlArc*)EmReadSearch(id, 0, 0);
+        if (p->subArc == 0) {
             return 0;
         }
         EmInitFunc(p);
@@ -207,7 +207,7 @@ int cEmMgr::construct(cEm* p, u32 id)
     p->be_flag |= 0x40;
     p->id = id;
     p->be_flag |= 0x02000000;
-    p->x37C = p->x378;
+    p->subArc2 = p->subArc;
     return 1;
 }
 
@@ -331,7 +331,6 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
 // Base character constructor: builds the damage info and the default work (initWork).
 cEm::cEm()
 {
-    new (&dmg) cDmgInfo;
     initWork();
 }
 
@@ -458,27 +457,27 @@ cDmgInfo::cDmgInfo()
 // Registers a hit on the character: stat = flag | 1 (a hit is pending), lifetime `timer` frames
 // (bit7 = hold until cleared), damage kind, hit position / radius and the hit box that was hit.
 // The character's own move reads and clears it.
-void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
+void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, YARARE_INFO* prt)
 {
-    stat = flag | 1;
+    m_Flag = flag | 1;
     m_Timer = timer;
-    this->kind = kind;
-    pos = *p;
-    rad = r;
-    part = prt;
+    m_Wep = kind;
+    m_PosFrom = *p;
+    m_Dist = r;
+    m_pDamageYarare = prt;
 }
 
 // Sets only the state byte and the timer (player damage motions).
 void cDmgInfo::set(int flag, int timer)
 {
-    stat = flag;
+    m_Flag = flag;
     m_Timer = timer;
 }
 
 // Forgets the registered hit.
 void cDmgInfo::clear()
 {
-    stat = 0;
+    m_Flag = 0;
     m_Timer = 0;
 }
 
@@ -494,7 +493,7 @@ void cDmgInfo::move()
     }
     m_Timer--;
     if (m_Timer == 0) {
-        stat = 0;
+        m_Flag = 0;
     }
 }
 

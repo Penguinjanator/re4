@@ -117,11 +117,11 @@ void em27DmCk(cEm27* em)
     // `li` next to it (r0, like the original's rematerialised reload).
     int zero;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     zero = 0;
     if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A) {
         return;
@@ -194,7 +194,7 @@ void em27DmCk(cEm27* em)
         // into the second and only the dead `lbz dmWep; cmpwi 0x21` survives (jump2 runs after
         // flow2). The first arm must be written else-first (`!(a > b)`) so that after its
         // sub-arms are merged it reads `ble E2; b T2`, identical to the second arm's head.
-        if (em->dmWep == 0x21) {
+        if (em->dmg.m_Wep == 0x21) {
             if (!(em->pos.y > w->waterHeight)) {
                 EmRoutineSet(em, 2, 0, 0, 0);
             } else {
@@ -631,7 +631,7 @@ static void em27_R1_Dm_Normal(cEm27* em)
     case 0: {
         int flag;
 
-        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         if (Rnd() & 1) {
             flag = 0;
             em->r_no_3 = flag;
@@ -662,7 +662,7 @@ static void em27_R1_Dm_Big(cEm27* em)
     case 0: {
         int flag;
 
-        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         em->r_no_3 = Rnd() & 1;
         if (em->r_no_3) {
             flag = 0x40;
@@ -693,7 +693,7 @@ static void em27_R1_Dm_Air(cEm27* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         em->r_no_3 = Rnd() & 1;
         if (em->r_no_3) {
             flag = 0x41;

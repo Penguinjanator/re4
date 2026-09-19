@@ -11,7 +11,7 @@ class cSat;
 struct EmBoxWork {
     u32 Be_flg;            // 0x000 (0x3E0)
     u8 pad_4[8];
-    EmHitInfo hit;        // 0x00C (0x3EC)  second yarare cube (YarareAddCube)
+    YARARE_INFO hit;        // 0x00C (0x3EC)  second yarare cube (YarareAddCube)
     u8 pad_40[0x214 - 0x40];
     Vec size;             // 0x214 (0x5F4)  yarare box size
     u8 pad_220[4];

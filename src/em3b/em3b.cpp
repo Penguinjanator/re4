@@ -74,7 +74,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em3bDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // REL entry: registers the enemy constructor.
@@ -112,20 +112,20 @@ void em3bDmCkTruck(cEm3b* em)
     Vec* pos;
     cModel* p;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A || wep == 0xE) {
         return;
     }
     p = em->getPartsPtr(0);
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -206,15 +206,15 @@ void em3bDmCkCart(cEm3b* em)
             }
         }
     }
-    if (em->dmHit) {
-        em->dmHit = 0;
-        em->dmType = 1;
+    if (em->dmg.m_Flag) {
+        em->dmg.m_Flag = 0;
+        em->dmg.m_Timer = 1;
         // dmWep read directly at both uses: the byte store between them forces the reload the
         // target has before the switch (a u8 local keeps one load)
-        if (em->dmWep == 0x10) {
-            em->dmType = 0x11;
+        if (em->dmg.m_Wep == 0x10) {
+            em->dmg.m_Timer = 0x11;
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 1:
         case 2:
         case 3:
@@ -290,15 +290,15 @@ void em3bDmCkStopCart(cEm3b* em)
             }
         }
     }
-    if (em->dmHit) {
-        em->dmHit = 0;
-        em->dmType = 1;
+    if (em->dmg.m_Flag) {
+        em->dmg.m_Flag = 0;
+        em->dmg.m_Timer = 1;
         // dmWep read directly at both uses: the byte store between them forces the reload the
         // target has before the switch (a u8 local keeps one load)
-        if (em->dmWep == 0x10) {
-            em->dmType = 0x11;
+        if (em->dmg.m_Wep == 0x10) {
+            em->dmg.m_Timer = 0x11;
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 1:
         case 2:
         case 3:

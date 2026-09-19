@@ -16,7 +16,7 @@ struct Em25Work {
     int Timer;            // 0x004 (0x3E4)
     int Timer2;       // 0x008 (0x3E8)  em25_R1_Bite: frames the catch motion blends
     u32 sndId;            // 0x00C (0x3EC)  bite SE handle (SndStop)
-    EmHitInfo hit[3];     // 0x010 (0x3F0)  extra hit boxes (YarareAdd in em25_R0_Init)
+    YARARE_INFO hit[3];     // 0x010 (0x3F0)  extra hit boxes (YarareAdd in em25_R0_Init)
     u8 pad_AC[0x218 - 0xAC];
     f32 routeAng;         // 0x218 (0x5F8)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x21C (0x5FC)

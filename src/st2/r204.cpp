@@ -519,7 +519,7 @@ static void r204_first_cut()
     r204_first_cut_exit();
 }
 
-static inline int r204_isDead(cEm* em) { return (em->flags_324 & 0xFFFF0000) ? 1 : 0; }
+static inline int r204_isDead(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
 
 // The chase task ("nige" = escape): counts frames from the mob's first move; camera cuts 0xF/0x10 as
 // the Ganado with the torch (em[7]) charges, scripted run orders to the far points at fixed counts, the

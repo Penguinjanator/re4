@@ -37,7 +37,7 @@ struct EmMarkData {
 // whole-object view here rather than a work pointer.
 struct EmMarkView {
     u8 em[0x3E0];
-    EmHitInfo hit[4];     // 0x3E0  extra hit boxes (YarareAddCube)
+    YARARE_INFO hit[4];     // 0x3E0  extra hit boxes (YarareAddCube)
     EmMarkInst* pInst;    // 0x4B0  current instruction
     int timer;            // 0x4B4  emmark_stay: frames left
     u8 pad_4B8[0x4D4 - 0x4B8];

@@ -318,7 +318,7 @@ void EndPlDamage()
 
     pl->dmg.clear();
     PlSetRoutine(0, 0, 0, 0);
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
     at->throughOff();
     at->setPriority(0);
     at->set(10, 400.0f, 200.0f);
@@ -403,7 +403,7 @@ void EndSubDamage()
     } else {
         sub->endDamage();
     }
-    sub->x378 = sub->x37C;
+    sub->subArc = sub->subArc2;
     sub->r_no_0 = 0;
     sub->r_no_1 = 0;
     sub->r_no_2 = 0;

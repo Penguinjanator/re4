@@ -4,6 +4,7 @@
 Reproduces exactly what `ngccc.exe -v -c in -o out <flags> -lang=c++` runs:
 
   1. cpp.exe   -D__OPTIMIZE__ <-I/-D/-U> <fixed target/language defines> in -o tmp.i
+               (plus -MD when --depfile is given: the header list, written in the same pass)
   2. cc1plus   <codegen flags> -quiet tmp.i -o tmp.s        <- native Linux build (SN v1.79 source)
   3. NgcAs.exe <-I> tmp.s -o out
 
@@ -58,6 +59,8 @@ def main(argv: List[str]) -> int:
     prodg_dir = wrapper = native_dir = None
     verbose = False
     save_asm = None  # --save-asm PATH: keep cc1's .s output (tools/asmcheck.py reads its #APP blocks)
+    dep_path = None  # --depfile PATH: header list for ninja's "deps = gcc"
+
     lang = "c++"
     out_path = None
     inputs: List[str] = []
@@ -83,6 +86,8 @@ def main(argv: List[str]) -> int:
             verbose = True
         elif a == "--save-asm":
             save_asm = args[i]; i += 1
+        elif a == "--depfile":
+            dep_path = args[i]; i += 1
         elif a == "-o":
             out_path = args[i]; i += 1
         elif a.startswith("-lang="):
@@ -141,6 +146,9 @@ def main(argv: List[str]) -> int:
     with tempfile.TemporaryDirectory(prefix="ngccc.") as tmp:
         pre = os.path.join(tmp, stem + ".i")
         asm = os.path.join(tmp, stem + ".s")
+        dep_tmp = os.path.join(tmp, stem + ".d")
+        if dep_path:
+            cpp_cmd += ["-MD", dep_tmp]
 
         cpp_cmd += [src, "-o", pre]
         cc1_cmd = [str(cc1_exe), *cc1_flags, "-quiet", pre, "-o", asm]
@@ -175,6 +183,8 @@ def main(argv: List[str]) -> int:
                 if os.path.exists(out_path):
                     os.remove(out_path)
                 return rc
+            if cmd is cpp_cmd and dep_path:
+                write_depfile(dep_tmp, dep_path, out_path)
             if cmd is cc1_cmd and save_asm:
                 shutil.copyfile(asm, save_asm)
             if cmd is cc1_cmd and lang == "c++":
@@ -187,6 +197,31 @@ def main(argv: List[str]) -> int:
                 else:
                     place_linkonce(src, asm)
     return 0
+
+
+def write_depfile(cpp_dep: str, out_dep: str, obj: str) -> None:
+    """Turn cpp's dependency list into one ninja can use.
+
+    Two things differ from what cpp writes: the target is the source's own name (`em.o`) where ninja
+    needs the object path of the edge, and the headers come out absolute because the -I flags are.
+    Paths inside the project are made relative so a generated header is the same node ninja builds.
+    """
+    root = str(Path(__file__).resolve().parent.parent) + os.sep
+    with open(cpp_dep) as f:
+        _, _, deps = f.read().partition(":")
+
+    def fix(word: str) -> str:
+        return os.path.relpath(word, root) if word.startswith(root) else word
+
+    out = []
+    for line in deps.splitlines(keepends=True):
+        cont = line.endswith("\\\n")
+        words = [fix(w) for w in line.rstrip("\\\n").split()]
+        out.append(" " + " ".join(words) + (" \\\n" if cont else "\n"))
+
+    os.makedirs(os.path.dirname(out_dep) or ".", exist_ok=True)
+    with open(out_dep, "w") as f:
+        f.write(obj + ":" + "".join(out))
 
 
 def place_linkonce_module(module: str, unit: str, asm: str, pre_obj: str, assemble) -> int:

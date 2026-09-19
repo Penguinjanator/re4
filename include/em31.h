@@ -18,7 +18,7 @@ struct EYELID_WK {
     u8 Rno;             // 0x00  0 open wait, 1 opening, 2 blink, 3 closing, 4 broken, 5 closed
     u8 Flag;            // 0x01  the lid is shut (no damage)
     u8 Parts;             // 0x02  lid parts (rotated / scaled)
-    u8 Parts2;            // 0x03  eye parts (em->dmPart->partsNo - 1)
+    u8 Parts2;            // 0x03  eye parts (em->dmg.m_pDamageYarare->partsNo - 1)
     int Timer;            // 0x04  frames until the next state
     f32 Dir;              // 0x08  +-3.124: lid opening direction
     f32 H1;             // 0x0C  eye parts base y
@@ -39,7 +39,7 @@ struct Em31Work {
     int motVar;           // 0x00C (0x3EC)  em31_R1_BridgeVs / T_Wait: motion variant chosen at the state start
     int x010;             // 0x010 (0x3F0)
     Vec jumpSpd;          // 0x014 (0x3F4)  em31_R1_Jump: movement left towards bridgePos
-    EmHitInfo hit[29];    // 0x020 (0x400)  hit boxes (YarareAdd)
+    YARARE_INFO hit[29];    // 0x020 (0x400)  hit boxes (YarareAdd)
     u8 pad_604[0x638 - 0x604];
     f32 routeAng;         // 0x638 (0xA18)  Muku towards the route point (player)
     f32 Pl_rot;      // 0x63C (0xA1C)

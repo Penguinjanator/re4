@@ -36,7 +36,7 @@ struct Em35Work {
     int walkType;         // 0x010 (0x3F0)  Rnd() % 3 walk variant / AtkDouble second hit
     f32 jumpAng;          // 0x014 (0x3F4)  Atk2F / U_JumpToBeam: yaw the jump turns to
     Vec jumpSpd;          // 0x018 (0x3F8)  U_OverStep / U_JumpToBeam: movement left
-    EmHitInfo hit[26];    // 0x024 (0x404)  extra hit boxes (YarareAdd)
+    YARARE_INFO hit[26];    // 0x024 (0x404)  extra hit boxes (YarareAdd)
     u8 pad_56C[0x63C - 0x56C];
     f32 routeAng;         // 0x63C (0xA1C)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x640 (0xA20)

@@ -403,7 +403,7 @@ static void R30dShutterFrontEvent()
     SceAtSetEnable(0x18, 0);
     R30D_SAVE_FLAGS |= 0x08000000;
     BitOn(pG->door_unlock[1], 0x40000000);
-    pSUB->st.x325 = 0x80;
+    pSUB->dmg.m_Timer = 0x80;
     SubCharMoveToF(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);

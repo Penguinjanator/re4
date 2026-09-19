@@ -390,7 +390,7 @@ void plobjTrolleyEscape(cPlayer* pl)
     TrolleyWork* w = &obj->trolley;
     cModel* parts = em->getPartsPtr(4);
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -485,7 +485,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         MotionMove(em, 0);
         break;
     }
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Player damage routine when he was still aboard at the crash: the death motion (mot[5]), life 0.
@@ -496,7 +496,7 @@ void plobjTrolleyDie(cPlayer* pl)
     TrolleyWork* w = &obj->trolley;
     u8 step;
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     em->dmg.set(0, 0xF);
     step = em->r_no_2;
     switch (step) {
@@ -514,7 +514,7 @@ void plobjTrolleyDie(cPlayer* pl)
         MotionMove(em, 0);
         break;
     }
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Copies the 9 motions from the room and starts the first run motion (frame 0).

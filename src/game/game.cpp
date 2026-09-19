@@ -1655,7 +1655,7 @@ void gameDebugDisp()
 
     if ((s32) pG->Debug_flg[0] >= 0) {
         col = 0;
-        if (pPL->flags_324 & 0xFFFF0000) {
+        if (pPL->dmg.m_Flag || pPL->dmg.m_Timer) {
             col = 2;
         }
         eprintf(60, 0x18C, col, 0, "Rank[%d,%d],Kill[%d]", pG->Game_level, pG->point, pG->g_kill_cnt);
@@ -1672,7 +1672,7 @@ void gameDebugDisp()
             {
                 int c0 = 'O';
                 int c1 = 'O';
-                if (pPL->flags_324 & 0xFFFF0000) {
+                if (pPL->dmg.m_Flag || pPL->dmg.m_Timer) {
                     c0 = 'X';
                 }
                 if (!(pPL->atari.m_flag & 0x100)) {
@@ -1685,7 +1685,7 @@ void gameDebugDisp()
                 {
                     int c0 = 'O';
                     int c1 = 'O';
-                    if (pSUB->flags_324 & 0xFFFF0000) {
+                    if (pSUB->dmg.m_Flag || pSUB->dmg.m_Timer) {
                         c0 = 'X';
                     }
                     if (!(pSUB->atari.m_flag & 0x100)) {

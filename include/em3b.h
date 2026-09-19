@@ -11,7 +11,7 @@ struct Em3bWork {
     u32 flags;            // 0x000 (0x3E0)  the low 5 bits are cleared every frame
     int timer;            // 0x004 (0x3E4)
     u8 pad_8[4];
-    EmHitInfo hit;        // 0x00C (0x3EC)  second hit cube of the truck
+    YARARE_INFO hit;        // 0x00C (0x3EC)  second hit cube of the truck
     u8 pad_40[0x258 - 0x40];
     int seTimer;          // 0x258 (0x638)  frames until the next horn SE (R1_Truck_Run)
     int dmgWait;          // 0x25C (0x63C)  frames the vehicle stays invulnerable / burning (ckFire)

@@ -23,7 +23,7 @@
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
     cEm* em;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 };
 
 extern "C" {
@@ -194,11 +194,11 @@ void emMineDmCk(cEmMine* em)
 {
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -1259,7 +1259,7 @@ int emMineHitCk(cEmMine* em)
     WepTarget list;
     u32 attr;
     cEm* hitEm;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int type;
     int partsNo;
     f32 len;

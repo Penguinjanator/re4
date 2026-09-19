@@ -25,7 +25,7 @@ public:
 // GetWepTargetList entry.
 struct WepTarget {
     cEm* em;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 };
 
 extern cModel* pSUB;
@@ -40,7 +40,7 @@ void obj08AddSpeed(cObj08* obj);
 int obj08ScrHitCk(cObj08* obj);
 int obj08ToEmHitCk(cObj08* obj);
 int obj08ToPlHitCk(cObj08* obj);
-void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, EmHitInfo* part);
+void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part);
 }
 int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
@@ -329,7 +329,7 @@ int obj08ToEmHitCk(cObj08* obj)
         return 0;
     }
     for (i = 0; i < n; i++) {
-        EmHitInfo* part = list[i].part;
+        YARARE_INFO* part = list[i].part;
         list[i].em->dmg.set(0, 10, (u8) w->atkFlags, &obj->pos, part->rad, part);
         if (w->estNo[3] && w->estPrm[3]) {
             obj08DmEstSet(obj, pPL, &obj->pos_old, part);
@@ -380,7 +380,7 @@ int obj08ToPlHitCk(cObj08* obj)
 
 // Spawns the character-hit effect [3]: attached to the victim when hit_type, otherwise on the
 // surface of the hit parts (facing the projectile, clamped to 70% of the parts height), plus the sound.
-void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, EmHitInfo* part)
+void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
 {
     Obj08Work* w = &obj->o8;
     Mtx m;

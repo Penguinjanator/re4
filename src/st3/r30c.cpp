@@ -118,7 +118,7 @@ void R30cInit()
             sub->setAng(pa);
             AtariFlagsAnd(&pSUB->atari, ~0x100);
             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 9, 0);
-            pSUB->st.x325 = 0x80;
+            pSUB->dmg.m_Timer = 0x80;
         } else {
             Vec pos = {5250.0f, 0.0f, -7150.0f};
             Vec ang;

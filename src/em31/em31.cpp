@@ -269,7 +269,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em31DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Work `no` of the object manager without the range check (the pillar scans loop over nArray).
@@ -337,7 +337,7 @@ static inline void em31BridgeVsSet(cEm31* em, Em31Work* w)
 void em31DmCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int wep;
     int dmg;
 
@@ -377,16 +377,16 @@ void em31DmCk(cEm31* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    em->dmType = 1;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     dmg = em31SetDmVal(em);
     if (w->pTen) {
         LifeDownSet2(w->pTen, dmg, 0, 0);
@@ -427,7 +427,7 @@ void em31DmCk(cEm31* em)
         }
         break;
     default:
-        int no = em->dmWep;
+        int no = em->dmg.m_Wep;
         int lim2B = 0x2B;
 
         switch (no) {
@@ -505,23 +505,23 @@ void em31DmCk(cEm31* em)
 void em31DmCkT(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int wep;
     int dmg;
 
     if (em->hp <= 0) {
         return;
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    em->dmType = 1;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     dmg = em31SetDmVal(em);
     LifeDownSet2(em, dmg, 0, 0);
     if (part->partsNo == 0xC) {
@@ -1570,7 +1570,7 @@ static void em31ActEscape(cEm31* em)
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
@@ -1738,9 +1738,9 @@ static void em31_R1_Kick(cEm31* em)
     if (!((pPL->pos.x - p->world.x) * (pPL->pos.x - p->world.x) +                             \
               (pPL->pos.z - p->world.z) * (pPL->pos.z - p->world.z) >                         \
           range)) {                                                                                 \
-        pPL->dmType = 2;                                                                            \
-        em->dmType = 2;                                                                             \
-        w->pTen->dmType = 2;                                                                        \
+        pPL->dmg.m_Timer = 2;                                                                            \
+        em->dmg.m_Timer = 2;                                                                             \
+        w->pTen->dmg.m_Timer = 2;                                                                        \
         EmRoutineSet(em, 1, rtn, 0, 0);                                                             \
         VibSetData(VIB_TBL, 0xB, 1);                                                                \
     }
@@ -1810,7 +1810,7 @@ static void em31_R1_CatchHit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x80;
     switch (em->r_no_2) {
     case 0:
@@ -1942,7 +1942,7 @@ static void em31_R1_StepCatchHit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x80;
     switch (em->r_no_2) {
     case 0:
@@ -3007,7 +3007,7 @@ static void em31_R1_Dm_Climb(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x80;
     switch (em->r_no_2) {
     case 0:
@@ -4158,13 +4158,13 @@ void em31EyelidMove(cEm31* em)
 int em31EyelidDmcK(cEm31* em, int dmg)
 {
     Em31Work* w = EM31_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int i;
 
     if (em->type != 0) {
         return 0;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     for (i = 0; i < 4; i++) {
         EYELID_WK* e = &w->Eyelid[i];
 
@@ -4278,7 +4278,7 @@ int cEm31::ckBerserk()
 // 0x2D), divided by 5 everywhere except on the tentacle's weak point part 0xC.
 int em31SetDmVal(cEm31* em)
 {
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     int near;
     int dmg;
 
@@ -4287,7 +4287,7 @@ int em31SetDmVal(cEm31* em)
         near = 1;
     }
     {
-        u32 no = em->dmWep;
+        u32 no = em->dmg.m_Wep;
 
         dmg = 100;
         if (no <= 0x2D) {
@@ -4492,7 +4492,7 @@ int em31JumpCk(cEm31* em)
 // give `big`, the blades (B, C, 1B, 1D, 27) `blade`, the hand guns (7, 8, 21) `near ? big : small`,
 // the special ones (10, 1A) `fire`, the rest `small`; 14, 16, 17, 19, 1F, 20, 2A give nothing.
 #define EM31_BLOOD_SWITCH(small, blade, big, fire, nearBig, nearSmall)                            \
-    switch (em->dmWep) {                                                                            \
+    switch (em->dmg.m_Wep) {                                                                            \
     case 0x0:                                                                                       \
     case 0x1:                                                                                       \
     case 0x2:                                                                                       \
@@ -4558,7 +4558,7 @@ int em31JumpCk(cEm31* em)
 void em31BloodSet(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     Vec pos;
     Vec dir;
     Vec dir2;
@@ -4633,11 +4633,11 @@ void em31TBloodSet(cEm31* em)
     int kind;
 
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     kind = 0;
-    if (em->dmPart == &em->hitInfo) {
+    if (em->dmg.m_pDamageYarare == &em->hitInfo) {
         kind = 1;
     }
     switch (kind) {

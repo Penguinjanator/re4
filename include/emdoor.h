@@ -18,7 +18,7 @@ struct EmDoorWork {
     u8 pad_10[0x10];
     f32 Height;           // 0x020 (0x400)  door height (2300, type 6: 4400)
     f32 Width;            // 0x024 (0x404)  half width (650): the door spans -2 * width .. 0 along its local x
-    EmHitInfo hit[16];    // 0x028 (0x408)  [0..2] door boxes, [3..10] the breakable panes (parts 2..9), [11] right lock, [12] left lock, [13..15] chain
+    YARARE_INFO hit[16];    // 0x028 (0x408)  [0..2] door boxes, [3..10] the breakable panes (parts 2..9), [11] right lock, [12] left lock, [13..15] chain
     u32 x368;             // 0x368 (0x748)
     u32 rnd;              // 0x36C (0x74C)  Rnd() % 5 at creation
     u32 Se_switch;             // 0x370 (0x750)

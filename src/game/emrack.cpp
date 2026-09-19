@@ -168,7 +168,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 void emRackDmCk(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     u8 wep;
     int type;
     Vec hit;
@@ -192,14 +192,14 @@ void emRackDmCk(cEmRack* em)
             }
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     if ((int) em->flag < 0) {
         return;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -221,11 +221,11 @@ void emRackDmCk(cEmRack* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         break;
     }
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     switch (em->type) {
     case 2:
@@ -236,8 +236,8 @@ void emRackDmCk(cEmRack* em)
         }
         return;
     }
-    part = em->dmPart;
-    switch (em->dmWep) {
+    part = em->dmg.m_pDamageYarare;
+    switch (em->dmg.m_Wep) {
     case 1:
     case 2:
     case 3:
@@ -308,7 +308,7 @@ void emRackDmCk(cEmRack* em)
         break;
     case 0:
     case 0x14:
-        em->setDown(&em->dmPos);
+        em->setDown(&em->dmg.m_PosFrom);
         break;
     }
 }

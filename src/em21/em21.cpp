@@ -87,7 +87,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em21DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Module entry (SN loader): registers Em21Init as the DOL's enemy constructor (EmInitFunc).
@@ -132,7 +132,7 @@ void em21DmCk(cEm21* em)
             {
                 register int c asm("r9"); // COMPILER-DIFF: #13
                 c = 0x1E;
-                em->dmType = c;
+                em->dmg.m_Timer = c;
             }
             if (mode != 2) {
                 if ((em->stat & 0xFFFF0000) == 0x01050000 && w->pTrap) {
@@ -141,7 +141,7 @@ void em21DmCk(cEm21* em)
                     w->pTrap->r_no_2 = 0;
                     w->pTrap->r_no_3 = 0;
                     em->r_no_0 = 1;
-                    em->dmType = 0x3C;
+                    em->dmg.m_Timer = 0x3C;
                     em->r_no_1 = 7;
                     em->r_no_2 = 0;
                     em->r_no_3 = 1;
@@ -152,10 +152,10 @@ void em21DmCk(cEm21* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     if (em->set == 2) {
         return;
     }
@@ -165,12 +165,12 @@ void em21DmCk(cEm21* em)
         w->pTrap->r_no_2 = 0;
         w->pTrap->r_no_3 = 0;
         em->r_no_0 = 1;
-        em->dmType = 0x3C;
+        em->dmg.m_Timer = 0x3C;
         em->r_no_1 = 7;
         em->r_no_2 = 0;
         em->r_no_3 = 1;
     } else {
-        em->dmType = 0x3C;
+        em->dmg.m_Timer = 0x3C;
         EmRoutineSet(em, 1, 3, 0, 0);
     }
 }
@@ -614,7 +614,7 @@ static void em21_R1_R100TrapWait(cEm21* em)
         MotionMoveF(em, 0);
         em21TrapSearch(em);
         if (w->pTrap && (w->pTrap->stat & 0xFFFF0000) == 0x01040000) {
-            em->dmType = 0x3C;
+            em->dmg.m_Timer = 0x3C;
             EmRoutineSet(em, 1, 7, 0, 1);
             return;
         }
@@ -643,7 +643,7 @@ static void em21_R1_R100TrapCancel(cEm21* em)
         em->atari.m_flag &= ~0x200;
         em->r_no_2++;
     case 1:
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 7, 0, 0);
         }
@@ -964,8 +964,8 @@ int em21SearchElgigante(cEm21* em)
 // R100TrapCancel (6) on the dog.
 static void em21TrapCancelAction(cEm21* em)
 {
-    pPL->dmType = 2;
-    em->dmType = 2;
+    pPL->dmg.m_Timer = 2;
+    em->dmg.m_Timer = 2;
     SetPlDamage((int) em, plemTrapCancel);
     EmRoutineSet(em, 1, 6, 0, 0);
 }
@@ -988,7 +988,7 @@ static void plemTrapCancel(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x1B), 0, 0, 1, 0);
         pl->r_no_2++;
     case 1:
-        pl->dmType = 2;
+        pl->dmg.m_Timer = 2;
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);

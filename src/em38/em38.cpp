@@ -162,19 +162,19 @@ void Em38Init(cEm* em)
 void em38DmCk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int dmg;
     u32 i;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     dmg = em38SetDmVal(em);
     LifeDownSet2(em, dmg, 0, 1);
     em38BloodSet(em);
@@ -743,10 +743,10 @@ static void em38_R1_br_Atk(cEm38* em)
         if (w->atkHit) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
             EM_RTN_SET(em, 1, 4);
-            pPLS->dmType = 0x80;
-            em->dmType = 0x80;
+            pPLS->dmg.m_Timer = 0x80;
+            em->dmg.m_Timer = 0x80;
             if (w->pUpper) {
-                w->pUpper->dmType = 0x80;
+                w->pUpper->dmg.m_Timer = 0x80;
             }
         }
     }
@@ -814,7 +814,7 @@ static void em38_R1_AtkHit(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->flags |= 0x10;
     switch (em->r_no_2) {
     case 0:
@@ -2022,7 +2022,7 @@ void em38BlendMotSet(cEm38* em, void* m0, void* m1, void* m2, void* m3, int a, i
 // weapon 0 give no effect.
 void em38BloodSet(cEm38* em)
 {
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     cModel* p;
     int near;
 
@@ -2034,7 +2034,7 @@ void em38BloodSet(cEm38* em)
     if (em->type == 0) {
         if (part->partsNo == 0x3B) {
             SndCall(8, 5, &p->world, em->id, 0, em);
-            switch (em->dmWep) {
+            switch (em->dmg.m_Wep) {
             case 1:
             case 2:
             case 3:
@@ -2095,7 +2095,7 @@ void em38BloodSet(cEm38* em)
         if (em->type == 3) {
             SndCall(8, 0x1B, &p->world, em->id, 0, em);
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 1:
         case 2:
         case 3:
@@ -2239,11 +2239,11 @@ int em38SetDmVal(cEm38* em)
     int dmg;
 
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     {
-        u32 no = em->dmWep;
+        u32 no = em->dmg.m_Wep;
 
         dmg = 20;
         if (no <= 0x2D) {
@@ -2381,7 +2381,7 @@ static void em38EscapeAction(cEm38* em)
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0: {
         Vec a;
@@ -2520,7 +2520,7 @@ static void em38BackjumpAction(cEm38* em)
 static void plemBackjump(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4E), 0, 5, 1, 5);

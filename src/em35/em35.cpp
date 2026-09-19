@@ -147,7 +147,7 @@ static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em35DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 extern "C" void _prolog()
@@ -211,16 +211,16 @@ void em35DmCk(cEm35* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     dmg = em35SetDmVal(em);
@@ -229,7 +229,7 @@ void em35DmCk(cEm35* em)
     d = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x) +
         (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y) +
         (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z);
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -331,7 +331,7 @@ void em35DmCk(cEm35* em)
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -432,16 +432,16 @@ void em35DmCkUpper(cEm35* em)
     cModel* p;
     f32 d;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmPart->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
         near = 1;
     }
     dmg = em35SetDmVal(em);
@@ -451,7 +451,7 @@ void em35DmCkUpper(cEm35* em)
     d = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x) +
         (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y) +
         (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z);
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -518,7 +518,7 @@ void em35DmCkUpper(cEm35* em)
         return;
     }
     if (w->flags & 0x20) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -570,7 +570,7 @@ void em35DmCkUpper(cEm35* em)
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -1712,7 +1712,7 @@ static void plem35_BearHug(cPlayer* pl)
 {
     BitOn(pG->Status_flg[1], 0x8000);
     pl->subArc = PL_EM_G->subArc;
-    pl->dmType = 10;
+    pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0: {
         Vec v;
@@ -1924,7 +1924,7 @@ static void em35_R1_Atk2F(cEm35* em)
 static void plem35DmFall2F(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 10;
+    pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x92), 0, 3, 1, 0);
@@ -2093,7 +2093,7 @@ static void plem35DmHook(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x91), 0, 3, 1, 0);
-        pl->dmType = 30;
+        pl->dmg.m_Timer = 30;
         PlSetDamageSe(0);
         PlSetFace(1);
         pl->r_no_2++;
@@ -2272,7 +2272,7 @@ static void em35DashEscapeAction(cEm35* em)
 static void plem35DashEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 10;
+    pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
         if (Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, PI) < 0.0f) {
@@ -2355,7 +2355,7 @@ void em35EscapeCamMove(cEm35* em)
 static void plem35DmStamp(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 10;
+    pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x97), 0, 3, 1, 0);
@@ -2538,7 +2538,7 @@ static void plem35_CatchHit(cPlayer* pl)
 {
     BitOn(pG->Status_flg[1], 0x8000);
     pl->subArc = PL_EM_G->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0: {
         cAtariInfo* at;
@@ -3671,7 +3671,7 @@ static void em35_R1_Dm_U_Fall(cEm35* em)
         Vec a;
         Vec b;
 
-        ang = fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI));
+        ang = fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI));
 
         a.x = 0.0f;
         a.y = 500.0f;
@@ -4013,10 +4013,10 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 0:
             case 1:
                 if (no == 0) {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 em35PlKnock(em);
@@ -4037,10 +4037,10 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 5:
             case 6:
                 if (no == 5) {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 if (pPL->pos.y > em->pos.y + 2000.0f) {
@@ -4054,17 +4054,17 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 7:
                 EmPlBloodSet(em, &p->world, 1, 0xFF, 0xFF);
                 pG->pl_life = 1;
-                em->dmType = 0x80;
-                pPL->dmType = 0x80;
+                em->dmg.m_Timer = 0x80;
+                pPL->dmg.m_Timer = 0x80;
                 SndCall(8, 0x1E, &em->pos, em->id, 0, em);
                 break;
             case 8:
             case 9:
                 if (no == 8) {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 em35PlKnock(em);
@@ -4073,17 +4073,17 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 0xA:
             case 0xB:
                 if (no == 0xA) {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x1A);
                 } else {
-                    pPL->dmPos = em->pos;
+                    pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x1B);
                 }
                 em35PlKnock(em);
                 SndCall(8, 0x11, &em->pos, em->id, 0, em);
                 break;
             case 0xC:
-                pPL->dmPos = em->pos;
+                pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x19);
                 em35PlKnock(em);
                 SndCall(8, 0x11, &em->pos, em->id, 0, em);
@@ -4134,7 +4134,7 @@ int em35PlFallCk(cEm35* em)
 // 1 when the pending hit landed on the exposed spine (parts 3..6), the weak point.
 int em35WeakDmCk(cEm35* em)
 {
-    s16 n = em->dmPart->partsNo;
+    s16 n = em->dmg.m_pDamageYarare->partsNo;
 
     if (n == 3) {
         return 1;
@@ -5027,11 +5027,11 @@ int em35SetDmVal(cEm35* em)
     int dmg;
 
     near = 0;
-    if (em->dmPart->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
         near = 1;
     }
     {
-        u32 no = em->dmWep;
+        u32 no = em->dmg.m_Wep;
 
         dmg = 20;
         if (no <= 0x2D) {

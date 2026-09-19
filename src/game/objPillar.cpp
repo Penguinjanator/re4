@@ -566,7 +566,7 @@ static void plemEscape(cPlayer* pl)
     PillarWork* w = &obj->pillar;
     f32 ang;
 
-    em->st.x325 = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         // the dead 0.0f store creates the pool `lis` in this block before the call, so
@@ -672,7 +672,7 @@ void plemEscape2(cPlayer* pl)
     PillarWork* w = &obj->pillar;
     u8 step;
 
-    em->st.x325 = 2;
+    em->dmg.m_Timer = 2;
     step = em->r_no_2;
     switch (step) {
     case 0:

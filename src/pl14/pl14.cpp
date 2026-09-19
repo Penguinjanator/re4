@@ -429,14 +429,14 @@ void cRoutine::moveDamage()
 }
 
 // Routine 2: death (only through the scenario, damageCheck stat 0x0400xxxx): the fall 0xCC/0xD0
-// with the death SE, dmType bit7 (dead), the collision moved to parts 4; the motion then holds.
+// with the death SE, dmg.m_Timer bit7 (dead), the collision moved to parts 4; the motion then holds.
 void cRoutine::moveDie()
 {
     switch (owner->r_no_1) {
     case 0:
         MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
         SndCall(1, 0xD, &owner->getPartsPtr(4)->world, owner->id, 0, 0);
-        owner->dmType |= 0x80;
+        owner->dmg.m_Timer |= 0x80;
         owner->atari.m_parts_no = 4;
         owner->r_no_1 = 1;
         break;
@@ -1392,8 +1392,8 @@ void cSubLuis::seqSeCtrl()
 }
 
 // Damage of the frame -> flags bit0 and the routine's work[]: stat 0x0400xxxx (scenario kill) ->
-// die; a damage area hit (DmgMgr) -> flinch 3; a registered enemy / player hit (dmHit) by weapon
-// (dmWep): the player's guns count down m_PlAtack (at 0 flags bit1 = attack the player, at 1
+// die; a damage area hit (DmgMgr) -> flinch 3; a registered enemy / player hit (dmg.m_Flag) by weapon
+// (dmg.m_Wep): the player's guns count down m_PlAtack (at 0 flags bit1 = attack the player, at 1
 // EM_STATUS_DONT_FIRE), flinch 2 from the front / 3 from behind, pTarget = the player; grenade 0x13
 // -> blast 8; 0x17 (flash) ignored; 0x18 -> flinch 2. Returns 1 when a reaction was set.
 int cSubLuis::damageCheck()
@@ -1404,19 +1404,19 @@ int cSubLuis::damageCheck()
         action.set(6);
         return 1;
     }
-    dead = (dmg.flags & 0xFFFF0000) != 0;
+    dead = dmg.m_Flag != 0 || dmg.m_Timer != 0;
     if (!dead && (s16) pG->pl_life > 0 && DmgMgr.hitCheck(&getPartsPtr(0)->world, 0) == 1) {
         routine.work[0] = 3;
-        dmHit = dead;
-        dmType = 0x80;
+        dmg.m_Flag = dead;
+        dmg.m_Timer = 0x80;
         flags |= 1;
         return 1;
     }
-    if (dmHit == 0) return 0;
+    if (dmg.m_Flag == 0) return 0;
 
     analysis.flags &= ~0x40;
     routine.work[1] = 0;
-    switch (dmWep) {
+    switch (dmg.m_Wep) {
     default:
         m_PlAtack--;
         if (m_PlAtack == 0) {
@@ -1427,26 +1427,26 @@ int cSubLuis::damageCheck()
             routine.work[1] = m_PlAtack;
         }
         routine.pTarget = pPL;
-        dmType = 1;
-        if (Front_check(this, &dmPos, PI / 2)) routine.work[0] = 2;
+        dmg.m_Timer = 1;
+        if (Front_check(this, &dmg.m_PosFrom, PI / 2)) routine.work[0] = 2;
         else routine.work[0] = 3;
         SndCall(8, 0x13, &subSelf->pParts->world, subSelf->id, 0, 0);
         break;
     case 0x13:
-        dmType = 1;
+        dmg.m_Timer = 1;
         routine.work[0] = 8;
         break;
     case 0x17:
-        dmHit = 0;
+        dmg.m_Flag = 0;
         return 0;
     case 0x18:
-        dmType = 1;
+        dmg.m_Timer = 1;
         routine.work[0] = 2;
         break;
     }
     flags |= 1;
-    dmHit = 0;
-    dmType = 0x80;
+    dmg.m_Flag = 0;
+    dmg.m_Timer = 0x80;
     return 1;
 }
 
@@ -1471,7 +1471,7 @@ void cSubLuis::equipWeapon()
 // frames when the attacker is still marked, back to action mode 0 and the routine ended.
 void cSubLuis::endDamage()
 {
-    if ((flags & 0x40) && dmgType && ((cEm*) dmgType)->dmType) cnt = 30;
+    if ((flags & 0x40) && dmgType && ((cEm*) dmgType)->dmg.m_Timer) cnt = 30;
     flags &= ~0x40;
     action.set(0);
     routine.end();

@@ -252,10 +252,10 @@ void cEmRock::beginEvent()
 // Rocks take no weapon damage: the registered hit is simply cleared.
 void emRockDmCk(cEmRock* em)
 {
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
 }
 
 // Per-frame: hit clear, the Rno0 routine, then the model-vs-player atari, mirroring the parent's
@@ -974,7 +974,7 @@ void emRock_R1_Drop2(cEmRock* em)
         FSet(pPL->pos.y, -11950.0f);
         FSet(pPL->pos.z, -14770.0f);
         pPL->setPos(&pPL->pos);
-        pPL->st.x325 = 2;
+        pPL->dmg.m_Timer = 2;
         SetPlDamage((int) em, (void (*)(cPlayer*)) plemDropFind);
         em->r_no_2++;
     case 3:
@@ -1038,7 +1038,7 @@ void emRock_R1_Drop2(cEmRock* em)
 void plemDropEscAction(cEmRock* em)
 {
     EMROCK_WK(em)->Act_ck = 1;
-    pPL->st.x325 = 2;
+    pPL->dmg.m_Timer = 2;
     SetPlDamage((int) em, (void (*)(cPlayer*)) plemDropEscape);
 }
 
@@ -1047,8 +1047,8 @@ void plemDropFind(cPlayer* pl)
 {
     EmRockWork* w = EMROCK_WK(PL_ROCK(pl));
 
-    pl->x378 = PL_ROCK(pl)->x378;
-    pl->st.x325 = 2;
+    pl->subArc = PL_ROCK(pl)->subArc;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         pl->m_Work0 = 25;
@@ -1067,7 +1067,7 @@ void plemDropFind(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Player damage routine: the player dives out of the way of the dropping rock.
@@ -1075,14 +1075,14 @@ void plemDropEscape(cPlayer* pl)
 {
     EmRockWork* w = EMROCK_WK(PL_ROCK(pl));
 
-    pl->x378 = PL_ROCK(pl)->x378;
+    pl->subArc = PL_ROCK(pl)->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->mot4, 0, 3, 1, 0);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pPL->st.x325 = 0x1E;
+        pPL->dmg.m_Timer = 0x1E;
         pl->r_no_2++;
     case 1:
         if (pl->frame > 20.7f && pl->frame < 21.3f) {
@@ -1097,7 +1097,7 @@ void plemDropEscape(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // The rolling rock runs the player over: 1 when it hit him this frame.
@@ -1110,7 +1110,7 @@ int emRockRollHitCk(cEmRock* em)
         return 0;
     }
     dead = 1;
-    if (!(pPL->flags_324 & 0xFFFF0000)) {
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {
@@ -1518,7 +1518,7 @@ int emRockRollStartCk(cEmRock* em)
         return 0;
     }
     dead = 1;
-    if (!(pPL->flags_324 & 0xFFFF0000)) {
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {
@@ -1551,7 +1551,7 @@ void plemRockEscape(cPlayer* pl)
     int n;
     int flag;
 
-    pl->x378 = PL_ROCK(pl)->x378;
+    pl->subArc = PL_ROCK(pl)->subArc;
     mot2 = w->plMot[3];
     mot = w->plMot[2];
     switch (pl->r_no_2) {
@@ -1582,7 +1582,7 @@ void plemRockEscape(cPlayer* pl)
         }
         pl->r_no_2++;
     case 1:
-        pl->st.x325 = 0x1E;
+        pl->dmg.m_Timer = 0x1E;
         if (pl->m_Work0) {
             pl->m_Work0--;
             emRockPushCamMove(PL_ROCK(pl));
@@ -1728,7 +1728,7 @@ void plemRockEscape(cPlayer* pl)
         } else {
             plemRockEscapeCamMove2(pl, pl->m_Work5);
         }
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
@@ -1742,7 +1742,7 @@ void plemRockEscape(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Stores the 16 player motions of the boulder chase escape (plemRockEscape steps).
@@ -2268,7 +2268,7 @@ int emRockDropHitCk(cEmRock* em)
         return 0;
     }
     dead = 1;
-    if (!(pPL->flags_324 & 0xFFFF0000)) {
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {
@@ -2304,7 +2304,7 @@ int emRockDropHitCkSub(cEmRock* em)
         return 0;
     }
     dead = 1;
-    if (!(pSUB->flags_324 & 0xFFFF0000)) {
+    if (!pSUB->dmg.m_Flag && !pSUB->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {
@@ -2372,7 +2372,7 @@ void plemDropDie(cPlayer* pl)
 {
     EmRockWork* w = EMROCK_WK(PL_ROCK(pl));
 
-    pl->x378 = PL_ROCK(pl)->x378;
+    pl->subArc = PL_ROCK(pl)->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->mot2, 0, 3, 1, 0);
@@ -2388,7 +2388,7 @@ void plemDropDie(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Sub character damage routine: crushed by the dropping rock.
@@ -2397,7 +2397,7 @@ void subemDropDie()
     cEm* sub = pSUB;
     EmRockWork* w = EMROCK_WK(PL_ROCK(sub));
 
-    sub->x378 = PL_ROCK(sub)->x378;
+    sub->subArc = PL_ROCK(sub)->subArc;
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->pMotion, w->mot3, 0, 3, 1, 0);
@@ -2407,7 +2407,7 @@ void subemDropDie()
         MotionMove(sub, 0);
         break;
     }
-    sub->x378 = sub->x37C;
+    sub->subArc = sub->subArc2;
 }
 
 // Room 11E: the rock breaks (effect, sound) and stops.

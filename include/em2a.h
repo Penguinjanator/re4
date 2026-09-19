@@ -14,7 +14,7 @@ struct Em2aWork {
     int camTimer;         // 0x004 (0x3E4)  Trap1Bite: frames the trap camera runs; Trap2Bomb: frames until the blast
     int biteTimer;        // 0x008 (0x3E8)  Trap1Bite: frames the catch motion is driven
     u8 pad_C[0x50 - 0xC];
-    EmHitInfo hit[6];     // 0x050 (0x430)  extra hit boxes of the tripwire types (em2aYarareInit)
+    YARARE_INFO hit[6];     // 0x050 (0x430)  extra hit boxes of the tripwire types (em2aYarareInit)
     u8 pad_188[0x258 - 0x188];
     cCtrl* pCtrl11;       // 0x258 (0x638)  GetCtrlCtrl11()
     cCtrl* pCtrl12;       // 0x25C (0x63C)  GetCtrlCtrl12()

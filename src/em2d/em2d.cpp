@@ -249,7 +249,7 @@ static inline void U8Set(u8& d, u8 v) { d = v; }
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em2dDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
@@ -355,7 +355,7 @@ void em2dDmCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
     Camera* cam = &pG->Cam;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     cModel* p;
     Vec pos;
     Vec dir;
@@ -432,21 +432,21 @@ void em2dDmCk(cEm2d* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     BitOn(pG->Status_flg[1], 0x20000000);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     w->x50C = 0;
     w->flags |= 0x200;
     near = 0;
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
@@ -457,7 +457,7 @@ void em2dDmCk(cEm2d* em)
     dist = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x) +
            (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y) +
            (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z);
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -577,7 +577,7 @@ void em2dDmCk(cEm2d* em)
         }
         break;
     }
-    if (em->dmWep == 0x17 || em->dmWep == 0x2A) {
+    if (em->dmg.m_Wep == 0x17 || em->dmg.m_Wep == 0x2A) {
         w->poisonTimer = Rnd() % 450 + 450;
     }
     SndCall(8, 6, &em->pos, em->id, 0, em);
@@ -600,7 +600,7 @@ void em2dDmCk(cEm2d* em)
             EmRoutineSet(em, 2, 3, 0, 0);
             return;
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -683,7 +683,7 @@ void em2dDmCk(cEm2d* em)
         return;
     }
     if (w->flags & 0x400) {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         default:
             if (Rnd() & 3) {
                 return;
@@ -711,7 +711,7 @@ void em2dDmCk(cEm2d* em)
     if (w->flags & 8) {
         return;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -837,7 +837,7 @@ void cEm2d::move()
     at = &atari;
     if (w->catchGuard) {
         w->catchGuard--;
-        dmType = 2;
+        dmg.m_Timer = 2;
         AtariOff(at, 0xFCFF);
         if (w->catchGuard == 0) {
             AtariOn(at, 0x300);
@@ -2272,7 +2272,7 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
     Mtx m;
     int fe = em->r_no_2;
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (fe) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &pPL->pos);
@@ -2480,7 +2480,7 @@ static void em2d_R1_DownJump(cEm2d* em)
             w->flags |= 0x400;
         } else {
             w->flags |= 0x40;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
         }
         MotionMoveF(em, 0);
         a = em->pos_old;
@@ -2544,7 +2544,7 @@ static void em2d_R1_ToCeiling(cEm2d* em)
             w->timer--;
         } else {
             w->flags |= 0x40;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
         }
         MotionMoveF(em, 0);
         a = em->pos_old;
@@ -3426,7 +3426,7 @@ static void em2d_R1_A_Step(cEm2d* em)
             } else {
                 MotionSetCore(em, &em->Motion, ARC(0x71), 0, 5, 0x40, 0);
             }
-            em->dmType = 30;
+            em->dmg.m_Timer = 30;
         } else {
             if (Rnd() & 1) {
                 MotionSetCore(em, &em->Motion, ARC(0x69), 0, 5, 0, 0);
@@ -4047,7 +4047,7 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
     w->flags |= 0x100;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
+        if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f)) < 1.57079637f) {
             side = 0;
         } else {
             side = 1;
@@ -4115,12 +4115,12 @@ static void em2d_R1_Dm_Blow(cEm2d* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
-            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f)) < 1.57079637f) {
+            em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         } else {
-            em->ang.y += Muku(&em->dmPos, &em->pos, em->ang.y, 3.14159274f);
+            em->ang.y += Muku(&em->dmg.m_PosFrom, &em->pos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x26), (int) ARC(0x27), 5, 1, 0);
         }
@@ -4226,7 +4226,7 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
-        em->ang.y = GetXZAngle(&em->pos, &em->dmPos);
+        em->ang.y = GetXZAngle(&em->pos, &em->dmg.m_PosFrom);
         ofs.x = 0.0f;
         ofs.y = -1028.31995f;
         ofs.z = 0.0f;
@@ -4323,12 +4323,12 @@ static void em2d_R1_Dm_Air(cEm2d* em)
         if (Rnd() & 1) {
             flip = 1;
         }
-        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
-            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f)) < 1.57079637f) {
+            em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x72), 0, 5, flip, 0);
         } else {
-            em->ang.y += Muku(&em->dmPos, &em->pos, em->ang.y, 3.14159274f);
+            em->ang.y += Muku(&em->dmg.m_PosFrom, &em->pos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x73), 0, 5, flip, 0);
         }
@@ -4618,7 +4618,7 @@ static void em2d_R1_Die_Air(cEm2d* em)
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
-        em->ang.y = GetXZAngle(&em->pos, &em->dmPos);
+        em->ang.y = GetXZAngle(&em->pos, &em->dmg.m_PosFrom);
         RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
@@ -4790,7 +4790,7 @@ void em2dRouteCk(cEm2d* em)
 int em2dSetDmVal(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     int near = 0;
     int dmg;
 
@@ -4798,12 +4798,12 @@ int em2dSetDmVal(cEm2d* em)
         near = 1;
     }
     dmg = 100;
-    if (em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     if (part->partsNo == 6) {
         dmg = (int) ((f32) dmg * 1.25f);
-        switch (em->dmWep) {  // range node: `cmpwi 0xa; bgt; cmpwi 9; blt`
+        switch (em->dmg.m_Wep) {  // range node: `cmpwi 0xa; bgt; cmpwi 9; blt`
         case 9:
         case 0xA:
             dmg = 9999;
@@ -4841,10 +4841,10 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
         switch ((u32) no) {
         case 0:
             if (em->motFlags & 0x40) {
-                pPL->dmPos = em->pos;
+                pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xE);
             } else {
-                pPL->dmPos = em->pos;
+                pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0x1B);
             }
             if ((s16) pG->pl_life <= 0) {
@@ -4853,10 +4853,10 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             break;
         case 1:
             if (em->motFlags & 0x40) {
-                pPL->dmPos = em->pos;
+                pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xD);
             } else {
-                pPL->dmPos = em->pos;
+                pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0x1C);
             }
             if ((s16) pG->pl_life <= 0) {

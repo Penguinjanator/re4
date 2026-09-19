@@ -12,7 +12,7 @@ class cModelInfo;
 struct Em18Work {
     u32 Be_flg;            // 0x000 (0x3E0)  bit3: damage / die routine, bit4: neck follows the player, bit5: trade started (em18TradeAction)
     u8 pad_4[8];
-    EmHitInfo hit[9];     // 0x00C (0x3EC)  extra hit boxes (YarareAdd)
+    YARARE_INFO hit[9];     // 0x00C (0x3EC)  extra hit boxes (YarareAdd)
     u8 pad_1E0[0x258 - 0x1E0];
     f32 neckAng;          // 0x258 (0x638)  smoothed neck yaw (em18NeckMove)
     PlCloth Cloth;        // 0x25C (0x63C)  Em18ClothSet / Em18ClothMove

@@ -3441,18 +3441,18 @@ int cSubChar::moveAnotherRoute()
 // Damage registered on her (dmg info): pick the reaction by weapon.
 void cSubChar::damageCheck()
 {
-    if (dmHit == 0) {
+    if (dmg.m_Flag == 0) {
         return;
     }
     if (subAux1) {
         SubRoutineSet(this, 1, 0, 0, 0);
-        dmHit = 0;
+        dmg.m_Flag = 0;
         return;
     }
     interrupt();
-    switch (dmWep) {
+    switch (dmg.m_Wep) {
     default: {
-        dmType = 1;
+        dmg.m_Timer = 1;
         LifeDownSet2(this, 9999, 0, 0);
         int one = 1;
         if (pG->Status_flg[1] & 8) {
@@ -3462,7 +3462,7 @@ void cSubChar::damageCheck()
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
@@ -3470,8 +3470,8 @@ void cSubChar::damageCheck()
     case 0xD:
     case 0x12:
     case 0x13:
-        dmType = 1;
-        if (dmRad > 9000000.0f) {
+        dmg.m_Timer = 1;
+        if (dmg.m_Dist > 9000000.0f) {
             r_no_1 = 7;
             r_no_0 = 0;
             r_no_2 = 0;
@@ -3479,12 +3479,12 @@ void cSubChar::damageCheck()
         } else {
             LifeDownSet2(this, 9999, 0, 0);
             SubRoutineSet(this, 1, 0, 0, 0);
-            if (Front_check(this, &dmPos, 1.5707964f)) {
+            if (Front_check(this, &dmg.m_PosFrom, 1.5707964f)) {
                 subHideMode = 7;
-                ang.y += Muku(&pos, &dmPos, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &dmg.m_PosFrom, 3.1415927f, 3.1415927f);
             } else {
                 subHideMode = 9;
-                ang.y += Muku(&pos, &dmPos, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &dmg.m_PosFrom, 3.1415927f, 3.1415927f);
             }
         }
         break;
@@ -3492,20 +3492,20 @@ void cSubChar::damageCheck()
     case 0x17:
         goto skip;
     case 0x18:
-        dmType = 0x3C;
+        dmg.m_Timer = 0x3C;
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->ashley_life > 0) {
             SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
     pG->Status_flg[1] &= ~8;
 skip:
-    dmHit = 0;
+    dmg.m_Flag = 0;
 }
 
 // Scenario damage area hit (sce_at sceAtFunc_damage): `power` is the hit direction (123 = none).
@@ -3788,7 +3788,7 @@ void cSubChar::dmgCheck()
 {
     int hit = 1;
 
-    if (!(flags_324 & 0xFFFF0000)) {
+    if (!dmg.m_Flag && !dmg.m_Timer) {
         hit = 0;
     }
     if (hit) {
@@ -3806,11 +3806,11 @@ void cSubChar::dmgCheck()
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
-            dmType = 0x5A;
+            dmg.m_Timer = 0x5A;
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         BitOff(pG->Status_flg[1], 8);
@@ -3820,11 +3820,11 @@ void cSubChar::dmgCheck()
             SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
-            dmType = 0x5A;
+            dmg.m_Timer = 0x5A;
             SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
@@ -3837,11 +3837,11 @@ void cSubChar::dmgCheck()
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
-            dmType = 0x5A;
+            dmg.m_Timer = 0x5A;
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
@@ -3849,11 +3849,11 @@ void cSubChar::dmgCheck()
     case 5:
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->ashley_life > 0) {
-            dmType = 0x5A;
+            dmg.m_Timer = 0x5A;
             SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
         } else {
-            dmType = 0x80;
+            dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;

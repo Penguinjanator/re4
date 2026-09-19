@@ -38,7 +38,7 @@
 // Hit boxes of the statue's cEmHit: EmHitWork keeps them from 0x1C.
 struct R213SuYarare {
     u8 pad_0[0x1C];
-    EmHitInfo box[5];
+    YARARE_INFO box[5];
 };
 
 struct R213Work {
@@ -314,7 +314,7 @@ static void R213SuMove()
                         Vec dir;
                         int dm;
 
-                        switch (hit->dmWep) {
+                        switch (hit->dmg.m_Wep) {
                         case 0xB:
                         case 0xC:
                         case 0x1B:
@@ -329,9 +329,9 @@ static void R213SuMove()
                             SndCall(6, 0xB, &pos, 0, 0, 0);
                         }
                         dm = 100;
-                        if (hit->dmWep <= 0x2D) {
-                            dm = GetWepDmVal(hit, hit->dmWep, 0);
-                            if (GetWepSizeGroup(hit->dmWep) == 0) {
+                        if (hit->dmg.m_Wep <= 0x2D) {
+                            dm = GetWepDmVal(hit, hit->dmg.m_Wep, 0);
+                            if (GetWepSizeGroup(hit->dmg.m_Wep) == 0) {
                                 dm = (u32) ((f32) dm * 0.64f);
                             }
                         }
@@ -812,8 +812,8 @@ void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo)
 
                 EmDmBloodSet2(hit, 1, 9, 0, 0, 4);
                 dm = 100;
-                if (hit->dmWep <= 0x2D) {
-                    dm = GetWepDmVal(hit, hit->dmWep, 0);
+                if (hit->dmg.m_Wep <= 0x2D) {
+                    dm = GetWepDmVal(hit, hit->dmg.m_Wep, 0);
                 }
                 hit->hp -= dm;
                 if (hit->hp <= 0) {

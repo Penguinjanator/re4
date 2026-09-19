@@ -676,7 +676,7 @@ void cPlayer::dmgCheck()
 {
     int dead = 1;
 
-    if ((flags_324 & 0xFFFF0000) == 0) {
+    if (!dmg.m_Flag && !dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {

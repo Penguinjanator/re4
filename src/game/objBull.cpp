@@ -1219,19 +1219,19 @@ void Sub_dm_bull(cEm* em)
 
     pG->Status_flg[2] |= 0x00800000;
     em->setStatus(EM_STATUS_IK_OFF);
-    em->dmType = type;
+    em->dmg.m_Timer = type;
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
         dmg = 0;
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         default:
             dmg = 9999;
             break;
         case 0xD:
         case 0x12:
         case 0x13:
-            if (em->dmRad < 9000000.0f) {
+            if (em->dmg.m_Dist < 9000000.0f) {
                 dmg = 9999;
             } else {
                 dmg = 500;
@@ -1252,7 +1252,7 @@ void Sub_dm_bull(cEm* em)
             em->subSndId = SndCall(8, 0xD, &em->pParts->world, em->id, 0, 0);
         } else {
             MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 52), 0, 3, 1, 0);
-            em->dmType = 1;
+            em->dmg.m_Timer = 1;
             SndStop(em->subSndId, 0);
             em->subSndId = SndCall(8, 9, &em->pParts->world, em->id, 0, 0);
         }

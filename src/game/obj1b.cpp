@@ -41,7 +41,7 @@ struct Obj1bNode {
 // GetWepTargetList2 entry.
 struct WepTarget {
     cEm* em;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 };
 
 // EspSeqOpt as the spear fills it: flag byte 2, speed vector at 4.
@@ -584,7 +584,7 @@ int obj1bHitCk(cObjSpear* obj)
     WepTarget target;
     u32 attr;
     cEm* em;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int no;
     f32 len;
 

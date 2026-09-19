@@ -96,7 +96,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     return em;
 }
 
-// Damage check at the top of every frame: consumes the registered hit (dmHit / dmWep), ignores
+// Damage check at the top of every frame: consumes the registered hit (dmHit / dmg.m_Wep), ignores
 // the knife, grenades and other non-bullet weapons, then by type: 0 dies (Rno1 2 Break), 1 only
 // raises Status for the owner to read, 2 sets hp to 0.
 void emHitDmCk(cEmHit* em)
@@ -105,12 +105,12 @@ void emHitDmCk(cEmHit* em)
     u8 wep;
 
     w->Status = 0;
-    if (em->dmHit == 0) {
-        em->dmWep = 0;
+    if (em->dmg.m_Flag == 0) {
+        em->dmg.m_Wep = 0;
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -126,9 +126,9 @@ void emHitDmCk(cEmHit* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     switch (em->type) {
     case 0:
@@ -349,7 +349,7 @@ int cEmHit::ckDmgWeapon()
     if (EMHIT_WK(this)->Status == 0) {
         return 0;
     }
-    return dmWep;
+    return dmg.m_Wep;
 }
 
 // Attaches the hit target to parts `partsNo` of `parent` (Rno1 1) and disables the parent's own

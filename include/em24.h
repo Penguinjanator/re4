@@ -13,7 +13,7 @@ struct Em24Work {
     u8 pad_C[0x20 - 0xC];
     int motEnd;           // 0x020 (0x400)  MotionMove reported the end of the motion
     u8 pad_24[0x30 - 0x24];
-    EmHitInfo hit[5];     // 0x030 (0x410)  extra hit boxes (YarareAdd)
+    YARARE_INFO hit[5];     // 0x030 (0x410)  extra hit boxes (YarareAdd)
     u8 pad_134[0x238 - 0x134];
     Vec spd;              // 0x238 (0x618)  jump speed (R1_BoxWait)
     u8 pad_244[0x294 - 0x244];

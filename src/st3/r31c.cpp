@@ -56,7 +56,7 @@ public:
     u16 step;        // 0x02
     cObj* obj;       // 0x04
     cEmHit* hit;     // 0x08
-    EmHitInfo box;   // 0x0C  the second yarare box (YarareAdd)
+    YARARE_INFO box;   // 0x0C  the second yarare box (YarareAdd)
     cSat* eat;       // 0x40
     int type;        // 0x44  1 (posts 0..4), 0 (5, 6), 2 (7)
     int dmgType;     // 0x48  4 heavy weapon, 3 the rest
@@ -1937,7 +1937,7 @@ void cR31CPost::dmg_ck()
         return;
     }
     if (hit->ckStatus() == 1) {
-        switch (hit->dmWep) {
+        switch (hit->dmg.m_Wep) {
         case 0xD:
         case 0x12:
         case 0x13:

@@ -598,7 +598,7 @@ static void R318ExecSwitchCheck()
         SndCall(6, 3, 0, 0, 0, 0);
         r318_work.p->xE4 = 0;
         while (MotionGetState(pPL) == 0) {
-            pPL->st.x325 = 5;
+            pPL->dmg.m_Timer = 5;
             SceSleep(1);
         }
         SceSetEventCancel(0, 0, 0, -1, 1);
@@ -1085,7 +1085,7 @@ static void playerEscape02(cPlayer* pl)
         }
         pl->r_no_2++;
     case 1:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (MotionMoveF(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(2);
@@ -1150,7 +1150,7 @@ static void playerEscape03(cPlayer* pl)
             R318LaserEspInit(8, 0, 2);
             SndCall(6, 3, 0, 0, 0, 0);
         }
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         r318_work.p->escFrame++;
         if (r318_work.p->escFrame > 0x20) {
             ActBtn.set(0x25, 5, 0, 0, 2, 3, 1, 0);
@@ -1189,7 +1189,7 @@ static void playerEscape03(cPlayer* pl)
         pl->r_no_2++;
     }
     case 3:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (MotionMoveF(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(3);
@@ -1235,7 +1235,7 @@ static void playerEscape04(cPlayer* pl)
         }
         pl->r_no_2++;
     case 1:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (MotionMoveF(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(4);

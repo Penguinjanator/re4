@@ -382,7 +382,7 @@ static void r205_PendulumMove()
             f32 rot;
 
             if (r205_work.p->hit[i]->ckStatus() == 1) {
-                switch (r205_work.p->hit[i]->dmWep) {
+                switch (r205_work.p->hit[i]->dmg.m_Wep) {
                 case 7:
                 case 8:
                 case 0x21:

@@ -90,7 +90,7 @@ confirmed on the units named):
   like a substituted constant store) and update_equiv_regs moves the `li` right before it, where it takes
   r0 (the shortest qty) — `li r0,0; mr r3,r31; stw r0,0xc(r1); li r4,-1; stw r31,8(r1)` is what the
   original's reload rematerialisation + sched2 give. cse must not know a register equal to 0 there (em3c
-  keeps its dead `do {} while (0)` before `case 0:`; em27's `zero = 0` is assigned after `em->dmHit = 0`
+  keeps its dead `do {} while (0)` before `case 0:`; em27's `zero = 0` is assigned after `em->dmg.m_Flag = 0`
   so the QI zero store does not merge into it). (b) A zero whose `li` the target issues at the top of the
   test block before the pG load (em22 R1_Wait's third EmRoutineSet): a block-local `int zero = 0;` declared
   before the `if` (two uses -> not moved by update_equiv_regs, scheduled as a free insn at the block top).
@@ -136,7 +136,7 @@ confirmed on the units named):
 Harness: /tmp/equiv13 = the /tmp/sched5 h.py harness (tree snapshot refreshed from src/ at 15:10; base =
 installed cc1plus, 18591/19929 identical) + `tree_plain/` (hardlinked copy with the 15 launder-dependent
 functions reverted to their plain source: em10/em21/em28/em3c/em2d bell blocks without the override,
-em21DmCk `em->dmType = 0x1E`, MercSysInitRoom `wk->stage = 0`, em27DmCk/em3c R1_Die_Normal/db_port SeqSet
+em21DmCk `em->dmg.m_Timer = 0x1E`, MercSysInitRoom `wk->stage = 0`, em27DmCk/em3c R1_Die_Normal/db_port SeqSet
 EstSet literal 0, em22 R1_Wait literals, em2a `EmRoutineSet(em,1,2,0,dead)`, SetRock/em2b R0_Init/em39 ctor/
 cam_extra cutin without the asm launders, wep07 fire00 `m3r[2] == 0.0f`, em32 R0_Init literals, r11b `l->x3 = 1`,
 item `s[i].id = 0xFFFF`, esp16 `t = 0.0f`, r201 without the `on` launder; `bp.sh CFG` builds them, `t13.py CFG..`
@@ -198,7 +198,7 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
      li r11,0; stw r11; lhz r0` with r0 free): under stock local-alloc the 2-ref constant (life 2) outranks
      the load (life 6) and takes r0; the target's assignment is what "constant not a local qty" gives
      (global pass 0 / reload round-robin pick r9, r11). But in the SAME function em21DmCk block 11 has
-     three identical-shape 2-ref QI constants (`4`, `60` -> the same `em->dmType`, `7`) that ARE allocated
+     three identical-shape 2-ref QI constants (`4`, `60` -> the same `em->dmg.m_Timer`, `7`) that ARE allocated
      and hoisted exactly like ours (r8/r7/r6 by the fake-lifetime walk); em27DmCk's `lbz wep; li r0,0;
      stb r0` gives the constant r0 in the target because `wep` is a global pseudo there. So the property
      that excludes the constant in block 8 is not its shape, refs, mode, block-locality, equivalence
@@ -408,7 +408,7 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   to `ble big` and falls into `default: b normal` (em36BloodSet, `--goto D=N`).
 - **jump2** (after reload, with sched2 on): `delete_computation` deletes only the jump, so a conditional jump made
   redundant by jump2's cross-jumping keeps its compare: `cmpwi 0; b D` (em28DmCk, three identical arms), `lbz dmWep;
-  cmpwi 0x21` with no branch (em30DmCk `if ((em->dmWep ^ 0x21) == 0) return em->dmWep;`, em29DmCk).  Cross-jumping
+  cmpwi 0x21` with no branch (em30DmCk `if ((em->dmg.m_Wep ^ 0x21) == 0) return em->dmg.m_Wep;`, em29DmCk).  Cross-jumping
   also merges the last branch of two nodes when the arm body is not adjacent (`cmpwi 1; b L; T: cmpwi 7; L: beq A`,
   em24DmCk's hitCheck switch whose arm ends in `return`): model it with 'EXIT' in the layout before the far arm.
   Identical arms: `merge={'A1': 'A0'}` (survivor normally the LAST identical arm; `'A3+'` when the copies jump past a
@@ -423,7 +423,7 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   (15876 configurations, /tmp/casetree2/em31s2.py) finds no match.  Nested `if`/switch forms cannot bound `[29-2a]`
   from below (an inner switch's `[29-2a]` has no parent with high 0x28: `cmpwi 0x29; blt` appears).  Left as a
   compiler-side difference; do not retry source forms.
-- **em29DmCk hp>0 arm (`lbz dmWep; cmpwi 0x21` dead, then the kind switch):** the mechanism is `if (em->dmWep == 0x21)
+- **em29DmCk hp>0 arm (`lbz dmWep; cmpwi 0x21` dead, then the kind switch):** the mechanism is `if (em->dmg.m_Wep == 0x21)
   em29DmRoutineSet(em, kind); else em29DmRoutineSet(em, kind);` -- jump2 cross-jumps the THEN copy into the ELSE copy,
   `bne ELSE; b ELSE` loses its branch and the compare survives.  With our jump.c the THEN copy only collapses
   partially: its kind-0 body's `b END` is first tried against the code before END (the ELSE kind-2 body's `stb r0,fe`,
