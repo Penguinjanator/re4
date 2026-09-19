@@ -354,11 +354,11 @@ static void r20d_checkDoor()
     }
 }
 
-// One frame in: if the key item (item_flags[0] 0x4000) was already taken, remove every Ganado (0x10..0x20).
+// One frame in: if the key item (Item_flg[0] 0x4000) was already taken, remove every Ganado (0x10..0x20).
 static void r20d_setEm()
 {
     SceSleep(1);
-    if (pG->item_flags[0] & 0x4000) {
+    if (pG->Item_flg[0] & 0x4000) {
         SceDestroyEm(0x10, 0x20);
         SceExit();
     }

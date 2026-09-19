@@ -87,10 +87,10 @@ void R309Init()
     }
 }
 
-// Per frame: once the key item (item_flags[0] 0x40) is taken and item 0x83 is no longer saved, set Scenario_flg[2] 0x00040000.
+// Per frame: once the key item (Item_flg[0] 0x40) is taken and item 0x83 is no longer saved, set Scenario_flg[2] 0x00040000.
 void R309Main()
 {
-    if (!(pG->Scenario_flg[2] & 0x00040000) && (pG->item_flags[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
+    if (!(pG->Scenario_flg[2] & 0x00040000) && (pG->Item_flg[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
         pG->Scenario_flg[2] |= 0x00040000;
     }
 }
@@ -101,7 +101,7 @@ static void r309_checkBgmTblRewrite()
     // The work sits inside the poll's arm (a `return` ends it): the arm's pG high is a fresh `lis`,
     // not the loop's hoisted r31 (a post-loop block gets the loop's high through cse's around-path).
     while (1) {
-        if (pG->item_flags[0] & 0x40) {
+        if (pG->Item_flg[0] & 0x40) {
             RsfSet(G_ROOM_ID, 4);
             SndBgmTblSet(0x30E, 1);
             SndBgmTblSet(0x30B, 1);

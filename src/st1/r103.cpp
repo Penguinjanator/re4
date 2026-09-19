@@ -86,7 +86,7 @@ static void r103_BgmStartCheck();
 // Room init (in st1_1 and st1_3): the ten corpse models only outside region 0 (Japan hides them and
 // area 0xB), Scenario_flg[0] 0x1000, battle-stream timer, the cesspit and its sub-mission target on
 // object 8, floor hit effects, rack 6 range, three shelf item events (items 0x92/0x81/0x83), and the
-// glowing file at area 0x80 until item_flags[0] 0x800.
+// glowing file at area 0x80 until Item_flg[0] 0x800.
 void R103Init()
 {
     cEm* rack;
@@ -114,7 +114,7 @@ void R103Init()
     SceSetItemEvent(7, 0x92, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf0, 0);
     SceSetItemEvent(8, 0x81, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf1, 0);
     SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf2, 0);
-    if (!(pG->item_flags[0] & 0x800)) {
+    if (!(pG->Item_flg[0] & 0x800)) {
         U32Set(r103_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r103_work->eff, 0, 0);
         SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);

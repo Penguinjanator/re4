@@ -131,12 +131,12 @@ static inline u32* doorUnlock()
 // Global ITEM_SET flags (SceAtItem flagNo): the item was taken.
 static inline u32* itemFlags()
 {
-    return pG->item_flags;
+    return pG->Item_flg;
 }
-// Global item-found flags (item_flags[4..]): the item was seen / its area found.
+// Global item-found flags (Item_flg[4..]): the item was seen / its area found.
 static inline u32* itemFindFlags()
 {
-    return &pG->item_flags[4];
+    return &pG->Item_flg[4];
 }
 // pG->save_item as a pointer (the original adds the record offset to pG before the index).
 static inline ITEM_SAVE_WORK* saveItemTbl()
@@ -155,7 +155,7 @@ static inline u32 saveItemBase(int ofs)
 #define RAW_F32(p, ofs) (*(f32*) ((u32) (p) + (ofs)))
 #define RAW_U32(p, ofs) (*(u32*) ((u32) (p) + (ofs)))
 
-// em_dead row address as an integer (the original adds the list offset after the row index).
+// Em_flg row address as an integer (the original adds the list offset after the row index).
 static inline u32 emDeadRow(int n)
 {
     return n * 32 + (u32) pG + 0x501C;
@@ -3138,7 +3138,7 @@ int sceAtItemFlgCk(SceAtItem* it)
     return 0;
 }
 
-// Marks the item found (item_flags[4..] by flagNo, else the room record's found flags).
+// Marks the item found (Item_flg[4..] by flagNo, else the room record's found flags).
 void sceAtItemFindFlgOn(SceAtItem* it)
 {
     u16 no = it->flagNo;
@@ -3524,7 +3524,7 @@ void SceAtLinkEtcDead(int no, int etcNo, int on)
 }
 
 // Per frame: resolves the enemy / etc-model links — linkType 1 waits for the enemy from the list
-// (EM_STATUS_ITEMSET for items, inactive / dead otherwise, or its em_dead bit) and then enables or
+// (EM_STATUS_ITEMSET for items, inactive / dead otherwise, or its Em_flg bit) and then enables or
 // disables the area (a non-persistent dropped item also starts its disappear timer); an item still
 // linked to a living enemy is handed to it (SceAtSetEmItem); linkType 2 waits for the etc model to
 // break.

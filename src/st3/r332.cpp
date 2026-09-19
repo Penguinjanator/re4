@@ -449,7 +449,7 @@ void R332Main()
             SceExec(0x12, (TaskFunc) R332BossDown, 0, 0, 2, 0);
             return;
         }
-        if ((pG->Scenario_flg[1] & 0x200) == 0 && (pG->item_flags[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
+        if ((pG->Scenario_flg[1] & 0x200) == 0 && (pG->Item_flg[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (r332_work->task[0]) {
                 SceKill(r332_work->task[0]);

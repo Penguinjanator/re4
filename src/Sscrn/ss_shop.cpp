@@ -668,7 +668,7 @@ int getGreetMsg(int* num, int* tbl)
             if (!(g->Scenario_flg[1] & 0x01000000) && g->game_cnt == 0) {
                 tbl[(*num)++] = 3;
             }
-        } else if (!(g->item_flags[0] & 0x10000000)) {
+        } else if (!(g->Item_flg[0] & 0x10000000)) {
             tbl[(*num)++] = 4;
         }
     }
@@ -1610,7 +1610,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
                     msg = 0xE;
                     break;
                 case 0x21:
-                    if ((pG->Scenario_flg[0] & 0x40000) && !(pG->item_flags[0] & 0x10000000)) {
+                    if ((pG->Scenario_flg[0] & 0x40000) && !(pG->Item_flg[0] & 0x10000000)) {
                         msg = 0x10;
                     } else {
                         msg = 0xF;

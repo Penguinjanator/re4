@@ -102,7 +102,7 @@ void R20fInit()
     PSet(r20f_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3));
     PSet(r20f_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 2));
     PSet(r20f_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
-    if (checkEmListNo(G_ROOM_ID) == 4 && (pG->em_dead[3][6] & 0x10)) {
+    if (checkEmListNo(G_ROOM_ID) == 4 && (pG->Em_flg[3][6] & 0x10)) {
         EmListSetAlive(0xF, 0);
     }
     getRoomEtcDoor(0xF, &door, 1);

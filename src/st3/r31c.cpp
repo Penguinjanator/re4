@@ -1652,7 +1652,7 @@ static void r31cEventS02()
     SceEventStart(1);
     if (pG->Room_flg[0] & 0x80000000) {
         ItemMgr.get(0x85, 1);
-        BitOn(pG->item_flags[0], 2);
+        BitOn(pG->Item_flg[0], 2);
         SceAtSetEnable(0x80, 0);
         r31cEventS02EndProc();
     } else {

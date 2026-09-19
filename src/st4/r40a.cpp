@@ -100,10 +100,10 @@ static void em_set()
 {
     int n = 0;
 
-    if (pG->item_flags[0] & 8) {
+    if (pG->Item_flg[0] & 8) {
         n = 1;
     }
-    if (pG->item_flags[0] & 4) {
+    if (pG->Item_flg[0] & 4) {
         n++;
     }
     if (n == 0) {

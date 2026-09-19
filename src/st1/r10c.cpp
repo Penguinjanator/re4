@@ -222,12 +222,12 @@ void R10cInit()
     }
 }
 
-// Per frame: counts frames, mirrors item_flags[0] 0x00400000 (the key taken) into Scenario_flg[0] 0x100,
+// Per frame: counts frames, mirrors Item_flg[0] 0x00400000 (the key taken) into Scenario_flg[0] 0x100,
 // and keeps the three crate collision pieces on their swinging scroll objects 0x61..0x63.
 void R10cMain()
 {
     U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
-    if (pG->item_flags[0] & 0x00400000) {
+    if (pG->Item_flg[0] & 0x00400000) {
         pG->Scenario_flg[0] |= 0x100;
     }
     r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);

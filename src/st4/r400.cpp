@@ -448,7 +448,7 @@ void emset_boss(int no, int dir)
     EM_LIST_V(no).be_flag &= ~2;
     list = pG->em_list_no;
     if (list >= 0) {
-        u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[list], em_set.cpp style
+        u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);  // pG->Em_flg[list], em_set.cpp style
 
         tbl[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
     }

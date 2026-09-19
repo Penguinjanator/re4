@@ -241,7 +241,7 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
             SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (pG->Scenario_flg[0] & 0x00200000) {
+        if (ScfFlagChk(SCF_R106_EVENT)) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 r101_emListOn(0x14);

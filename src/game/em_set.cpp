@@ -2,7 +2,7 @@
 // entries (id, type, set, flag, hp, position in 10 unit steps, rotation in 1/16384 turns, stage /
 // room); EmSetFromList creates every entry of the current room at room start and event code
 // creates single entries with EmSetFromList2. Killed list enemies are recorded per list in the
-// pG->em_dead bit tables so they stay dead when the room is re-entered.
+// pG->Em_flg bit tables so they stay dead when the room is re-entered.
 
 #include "atari.h"
 #include "light.h"
@@ -16,7 +16,7 @@ cEm* errEm = 0;
 static int emSetDummy = 0;
 
 // Death bit of list entry `no` in the current enemy list (0 when no list is loaded).
-// Death bit table of the current enemy list (pG->em_dead[pG->emlist_no]); the original computes
+// Death bit table of the current enemy list (pG->Em_flg[pG->emlist_no]); the original computes
 // it with byte arithmetic: the row offset is added to pG before the table offset.
 #define EM_DEAD_TBL() ((u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C))
 

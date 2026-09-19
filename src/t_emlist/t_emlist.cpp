@@ -1909,7 +1909,7 @@ static void emlist_r0_set_exit()
     for (i = 0; i < 255; i++) {
         int no = pG->em_list_no;
         if (no >= 0) {
-            u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[no], tool style
+            u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->Em_flg[no], tool style
             BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
         }
     }

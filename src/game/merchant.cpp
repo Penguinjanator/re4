@@ -1403,7 +1403,7 @@ void Merchant::makeList()
 }
 
 // Special availability of Buy items: the Infinite Launcher 0x40 only after the game is cleared and
-// not yet bought (item_flags[0] 0x10000000); a few ids never.
+// not yet bought (Item_flg[0] 0x10000000); a few ids never.
 int checkSellingItem(u16 id)
 {
     int ret = 1;
@@ -1411,7 +1411,7 @@ int checkSellingItem(u16 id)
     switch (id) {
     case 0x40:
         if (pG->Scenario_flg[0] & 0x00040000) {
-            u32 sold = pG->item_flags[0] & 0x10000000;
+            u32 sold = pG->Item_flg[0] & 0x10000000;
             ret = sold == 0;
         } else {
             ret = 0;
@@ -1731,7 +1731,7 @@ int Merchant::sell(u16 id, int num, int* money)
 
     if (*money >= price) {
         if (id == 0x40) {
-            pG->item_flags[0] |= 0x10000000;
+            pG->Item_flg[0] |= 0x10000000;
         }
         *money -= price;
         stockSub(id, num);

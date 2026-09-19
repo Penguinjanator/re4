@@ -188,14 +188,14 @@ void R105Init()
     SceExec(0x12, r105_initCesspit, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
-// Per frame: when the key item (item_flags[0] 0x20000000) is picked up for the first time
+// Per frame: when the key item (Item_flg[0] 0x20000000) is picked up for the first time
 // (Room_flg[0] 0x40000000), arm area 8 with the s00/s10 event and close-lock door 1.
 void R105Main()
 {
     cEm* door;
 
     getRoomEtcDoor(1, &door, 1);
-    if ((pG->item_flags[0] & 0x20000000) && !(pG->Room_flg[0] & 0x40000000)) {
+    if ((pG->Item_flg[0] & 0x20000000) && !(pG->Room_flg[0] & 0x40000000)) {
         BitOn(pG->Room_flg[0], 0x40000000);
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);

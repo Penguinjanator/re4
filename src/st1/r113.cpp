@@ -95,7 +95,7 @@ static void r113_ThunderMove();
 // (raining); area 2 = front door check; area 3 = the window shoulder-ride prompt while the door is still
 // locked (Key_flg[0] 0x08000000 clear) and Ashley is following (Status_flg[3] 0x04000000); the shared
 // r103 cesspit, sub-mission target 8, rack 6 range, three shelf item events (items 0x8E/0x8F/0x8B), the
-// closet hide spot (area 4), and the glowing file item at area 0x82 until item_flags[0] 0x800 is taken.
+// closet hide spot (area 4), and the glowing file item at area 0x82 until Item_flg[0] 0x800 is taken.
 void R113Init()
 {
     cEm* rack;
@@ -124,7 +124,7 @@ void R113Init()
     SceSetItemEvent(0xA, 0x8B, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf2, 0);
     SceAtDataSet_hide(4, r113_execHide);
     FlrAtSetDefVal(0, 0, 3);
-    if (!(pG->item_flags[0] & 0x800)) {
+    if (!(pG->Item_flg[0] & 0x800)) {
         U32Set(r113_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r113_work->eff, 0, 0);
         SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);

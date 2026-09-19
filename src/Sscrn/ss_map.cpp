@@ -379,10 +379,10 @@ static inline u32 doorFlag(u32 no)
 {
     return flagBit((u32) pG->Key_flg, no);
 }
-// Item taken flag bit `no` (pG->item_flags).
+// Item taken flag bit `no` (pG->Item_flg).
 static inline u32 itemFlag(u32 no)
 {
-    return flagBit((u32) pG->item_flags, no);
+    return flagBit((u32) pG->Item_flg, no);
 }
 
 // Map stage of the current progress: 4 the island (stage_no 4), 3 / 2 by the Scenario_flg chapter

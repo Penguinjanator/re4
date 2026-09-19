@@ -411,13 +411,13 @@ void SceExecInitCondition()
     ClearOTagR(&SceExecOt, 1);
 }
 
-// em_dead row address as an integer (the original adds the list offset after the row index), as in sce_at.
+// Em_flg row address as an integer (the original adds the list offset after the row index), as in sce_at.
 static inline u32 emDeadRow(int n)
 {
     return n * 32 + (u32) pG + 0x501C;
 }
 
-// Is the condition met? type 0 enemy list entry dead (em_dead bit), 1 camera area == param, 2
+// Is the condition met? type 0 enemy list entry dead (Em_flg bit), 1 camera area == param, 2
 // enemy `param` dead and in its die routine, 3 callback returns 1, 4 etc model `param` broken, 5
 // item area `param` taken.
 int SceExecCheckCondition_sub(SceCond* pP)

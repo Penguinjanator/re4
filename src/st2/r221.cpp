@@ -70,7 +70,7 @@ static R221WorkPtr r221_work;
 
 static inline void S16Set(s16& d, s16 v) { d = v; }
 static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
-// The death bits of enemy list `list` (pG->em_dead[list]), as an integer base (the r218 idiom).
+// The death bits of enemy list `list` (pG->Em_flg[list]), as an integer base (the r218 idiom).
 static inline u32* emDeadWords(int list) { return (u32*) ((list << 5) + (u32) pG + 0x501C); }
 
 // Two tests of one flag word stay separate (fold-const merges `(f & A) == 0 && (f & B) == 0`).
@@ -727,7 +727,7 @@ static void r221_checkElevatorArrive()
 // Task: the elevator switch.
 static void r221_operateElevator()
 {
-    if (!(pG->em_dead[5][4] & 0x00080000) && (pG->Room_flg[0] & 0x00200000)) {
+    if (!(pG->Em_flg[5][4] & 0x00080000) && (pG->Room_flg[0] & 0x00200000)) {
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
@@ -1130,7 +1130,7 @@ void r221_initInsectboss()
 
             em.setEm(0x8C, -1, 0, 1, 1);
         }
-        if (!(pG->em_dead[5][4] & 0x00080000)) {
+        if (!(pG->Em_flg[5][4] & 0x00080000)) {
             SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r221_appearBoss2nd, 0, 1);
         }
     }
