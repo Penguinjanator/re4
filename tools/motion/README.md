@@ -46,6 +46,12 @@ starts with four header words). The skeleton defaults to entry 0 of the same arc
    MotionSetCore(flags 0) and, per frame, MotionMove with the sequence frame forced (Mot_attr
    0x8000). So the poses include the IK (effector position keys: the feet/hands, no floor on the
    host) and the double-joint quaternion blends, as in the game.
+
+   **For anyone writing their own importer:** the position keys on the IK end effectors (ankles,
+   hands; chain roots have kind bit 0x10/0x20) are targets in model space for `ik.cpp`'s solver,
+   not the joint's own translation. Reading them as bone translations gives stretched or folded
+   limbs — the usual failure of RE4 animation importers. Either run the IK (this tool does) or
+   drop those keys and accept approximate limbs. Details in `fcv.py`'s header.
    `make fma` builds a variant with `-mfma -ffp-contract=fast` (fused multiply-adds like the PowerPC
    `fmadds`); `--fma` selects it.
 3. **Check against the real game** (`dolphin.py`): `verify --dolphin` boots the debug disc in

@@ -14,6 +14,15 @@ Layout (big-endian, from game/motion.cpp MotionSetCore / HermiteInterpolation / 
       u16 n; u16 frame[n]; key[n]   with key = Fcc layout `type` (below)
   0xCD padding to 32 bytes
 
+IF YOU ARE WRITING YOUR OWN IMPORTER, READ THIS: a joint whose kind has bit 0x10 or 0x20 set is an
+IK chain root (IKInit: bits 8-11 of the kind word = bend axis, 0x20 = toe correction, 0x80 = 4-joint
+chain), and the `pos` (kind & 4) keys on the chain's END EFFECTOR (ankles, hands) are NOT that joint's
+local translation: they are the target position in MODEL space that game/ik.cpp InverseKinematics
+aims the chain at every frame. Applying those keys as bone translations produces stretched or
+folded limbs. A correct pose needs the IK solve (and the model's blend table for the double
+joints), which is why this tool evaluates poses with the game's own code (tools/motion/host) instead
+of reading the keys literally. The same is very likely true of the PC/UHD `.fcv` files.
+
 The key blocks are contiguous in the file but NOT in joint order (the exporter's traversal order);
 `Motion.layout` keeps that order so that the serialisation is byte-identical.
 
