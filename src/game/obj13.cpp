@@ -585,7 +585,7 @@ void objLadderClimbActEvtCk(cObjLadder* obj)
 void objLadderActClimb(cObjLadder* obj)
 {
     obj->setClimb();
-    SetPlDamage((int) obj, plobjLadderClimb);
+    SetPlDamage((cEm*) obj, plobjLadderClimb);
 }
 
 // Player climb routine (via SetPlDamage): Rno2 0 snaps the player in front of the ladder and
@@ -594,13 +594,13 @@ void objLadderActClimb(cObjLadder* obj)
 void plobjLadderClimb(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjLadder* obj = (cObjLadder*) em->dmgType;
+    cObjLadder* obj = (cObjLadder*) em->pEmCatch;
     LadderWork* w = &obj->ladder;
     Mtx m;
     Vec v;
     f32 fl;
 
-    em->subArc = ((cEm*) pPL->dmgType)->subArc;
+    em->subArc = pPL->pEmCatch->subArc;
     pGS->Status_flg[1] |= 0x00040000;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
@@ -744,7 +744,7 @@ int SubLadderClimbCk(cEm* em)
             }
             if (em->plDist2 > 100000000.0f || em->pos.y + 1000.0f < pPL->pos.y) {
                 obj->ladder.flags |= 4;
-                SetSubDamage((int) obj, (void*) subobjLadderClimb);
+                SetSubDamage((cEm*) obj, (void*) subobjLadderClimb);
                 obj->setClimb();
                 return 1;
             }
@@ -782,7 +782,7 @@ int SubLadderClimbCk2(cEm* em)
 void subobjLadderClimb(cEm* pl)
 {
     cEm* em = pSUB;
-    cObjLadder* obj = (cObjLadder*) em->dmgType;
+    cObjLadder* obj = (cObjLadder*) em->pEmCatch;
     LadderWork* w = &obj->ladder;
     Mtx m;
     Vec p;
@@ -1006,7 +1006,7 @@ void objLadderActDown(cObjLadder* obj)
     LadderWork* w = &obj->ladder;
 
     if (!(w->flags & 4)) {
-        SetPlDamage((int) obj, plobjLadderDown);
+        SetPlDamage((cEm*) obj, plobjLadderDown);
         w->climbTimer = 90;
     }
 }
@@ -1016,12 +1016,12 @@ void objLadderActDown(cObjLadder* obj)
 void plobjLadderDown(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjLadder* obj = (cObjLadder*) em->dmgType;
+    cObjLadder* obj = (cObjLadder*) em->pEmCatch;
     LadderWork* w = &obj->ladder;
     Mtx m;
     Vec v;
 
-    em->subArc = ((cEm*) pPL->dmgType)->subArc;
+    em->subArc = pPL->pEmCatch->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -1122,7 +1122,7 @@ void objLadderResetActEvtCk(cObjLadder* obj)
 // Action button 0xB: puts the player into plobjLadderReset.
 void objLadderActReset(cObjLadder* obj)
 {
-    SetPlDamage((int) obj, plobjLadderReset);
+    SetPlDamage((cEm*) obj, plobjLadderReset);
     obj->setResetReserve();
 }
 
@@ -1130,13 +1130,13 @@ void objLadderActReset(cObjLadder* obj)
 void plobjLadderReset(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjLadder* obj = (cObjLadder*) em->dmgType;
+    cObjLadder* obj = (cObjLadder*) em->pEmCatch;
     LadderWork* w = &obj->ladder;
     Mtx m;
     Vec v;
     int motA;
 
-    em->subArc = ((cEm*) pPL->dmgType)->subArc;
+    em->subArc = pPL->pEmCatch->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:

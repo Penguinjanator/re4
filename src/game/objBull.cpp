@@ -1087,14 +1087,14 @@ int cObjBull::ckLiftWait()
     return 0;
 }
 
-// The partner (`em`) sits in the driver's seat (parts 2 of the bulldozer it drives, em->dmgType).
+// The partner (`em`) sits in the driver's seat (parts 2 of the bulldozer it drives, em->pEmCatch).
 static inline void SubBullSeat(cEm* em)
 {
     Vec v;
     cModel* parts;
 
-    if (em->dmgType) {
-        parts = ((cObj*) em->dmgType)->getPartsPtr(2);
+    if (em->pEmCatch) {
+        parts = em->pEmCatch->getPartsPtr(2);
         v.x = 0.0f;
         v.y = 452.29f;
         v.z = 3173.64f;
@@ -1275,7 +1275,7 @@ void cObjBull::setSubBullDrive()
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             pSUB->r_no_3 = 1;
-            pSUB->dmgType = (int) this;
+            pSUB->pEmCatch = (cEm*) this;
         }
     }
 }
@@ -1286,7 +1286,7 @@ void cObjBull::setSubBullFinger()
     if (pSUB) {
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_look, (int) Sub_dm_bull);
-            pSUB->dmgType = (int) this;
+            pSUB->pEmCatch = (cEm*) this;
         }
     }
 }
@@ -1298,7 +1298,7 @@ void cObjBull::setSubBullLookBack()
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
             pSUB->r_no_3 = 1;
-            pSUB->dmgType = (int) this;
+            pSUB->pEmCatch = (cEm*) this;
         }
     }
 }

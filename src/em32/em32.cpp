@@ -126,9 +126,6 @@ static void plemEscape(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm32*) (pl)->dmgType)
-
 #define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
 
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
@@ -2065,7 +2062,7 @@ static void plem32_CatchHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x89), 0, 0, 1, 0);
@@ -2073,7 +2070,7 @@ static void plem32_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if ((*(u32*) &((cEm32*) pPL->dmgType)->r_no_0 & 0xFFFF0000) == 0x01110000) {
+        if ((*(u32*) &((cEm32*) pPL->pEmCatch)->r_no_0 & 0xFFFF0000) == 0x01110000) {
             break;
         }
         goto end;
@@ -2188,14 +2185,14 @@ static void em32_R1_LongAtk(cEm32* em)
 // Action button of the ambush swipe: the player ducks (plemSit) and gets a critical-hit rank point.
 static void em32SitAction(cEm32* em)
 {
-    SetPlDamage((int) em, plemSit);
+    SetPlDamage(em, plemSit);
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Action button of the ceiling attack: the duck variant that gets up again (plemSit with r_no_3 1).
 static void em32SitUpAction(cEm32* em)
 {
-    SetPlDamage((int) em, plemSit);
+    SetPlDamage(em, plemSit);
     pPL->r_no_3 = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -2205,11 +2202,11 @@ static void plemSit(cPlayer* pl)
 {
     f32 ang;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
-        ang = fabsf(Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 3.14159274f));
+        ang = fabsf(Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 3.14159274f));
         if (pl->r_no_3) {
             if (ang < 1.57079637f) {
                 MotionSetCore(pl, &pl->Motion, PL_ARC(0x8F), 0, 3, 1, 0);
@@ -2241,7 +2238,7 @@ static void em32BackjumpAction(cEm32* em)
     Em32Work* w = EM32_WK(em);
 
     w->actionSet = 1;
-    SetPlDamage((int) em, plemBackjump);
+    SetPlDamage(em, plemBackjump);
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -2252,12 +2249,12 @@ static void plemBackjump(cPlayer* pl)
     f32 ry;
     f32 d;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     pl->dmg.m_Timer = 0x1E;
     switch (fe) {
     case 0:
-        ry = LIMIT_ANGLE(PL_EM(pl)->ang.y + 1.57079637f);
+        ry = LIMIT_ANGLE(pl->pEmCatch->ang.y + 1.57079637f);
         d = fabsf(Muku2(pl->ang.y, ry, 3.14159274f));
         if (d < 0.785398185f) {
             pl->ang.y = ry;
@@ -2306,7 +2303,7 @@ static void plemBackjump(cPlayer* pl)
 // rank point.
 static void em32EscapeAction(cEm32* em)
 {
-    SetPlDamage((int) em, plemEscape);
+    SetPlDamage(em, plemEscape);
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -2317,13 +2314,13 @@ static void plemEscape(cPlayer* pl)
     Vec b;
     int side;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         // The side from the angle is overridden by the random pick right after (dead in the
         // original too: only the compare's 0.0 load survives, hoisted before Rnd).
-        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->ang.y, 3.14159274f) > 0.0f) {
+        if (Muku(&pl->pEmCatch->pos, &pl->pos, pl->ang.y, 3.14159274f) > 0.0f) {
             side = 1;
         } else {
             side = 0;
@@ -2363,13 +2360,13 @@ static void plemEscape(cPlayer* pl)
         pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
-        em32EscapeCamMove(PL_EM(pl));
+        em32EscapeCamMove((cEm32*)pl->pEmCatch);
         if (pl->frame > 11.6999998f && pl->frame < 12.3000002f) {
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.392699093f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.392699093f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
@@ -3094,7 +3091,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x87), 0, 0, 0x201, 0);
@@ -3348,13 +3345,13 @@ static void em32_R1_P_CatchHit(cEm32* em)
 // object hooked to the player's hand for 15 frames (pCatchObj), then destroyed, and the damage ends.
 static void plem32_P_CatchHit(cPlayer* pl)
 {
-    Em32Work* w = EM32_WK(PL_EM(pl));
+    Em32Work* w = EM32_WK(pl->pEmCatch);
     int step;
     cObj* obj;
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     step = pl->r_no_2;
     switch (step) {
     case 0:
@@ -3362,19 +3359,19 @@ static void plem32_P_CatchHit(cPlayer* pl)
         EmCatchMotionMove(pl, 1.0f, 1.0f);
         PlSetFace(1);
         if (pSys->region) {
-            EstSet((int) pl, -1, 0, 0, 0x2A, 0x2C, 0, w->espKind[1], (u32) pl->dmgType, (void*) step);
+            EstSet((int) pl, -1, 0, 0, 0x2A, 0x2C, 0, w->espKind[1], (u32) pl->pEmCatch, (void*) step);
         } else {
-            EstSet((int) pl, -1, 0, 0, 0x2A, 0x2D, 0, w->espKind[1], (u32) pl->dmgType, (void*) step);
+            EstSet((int) pl, -1, 0, 0, 0x2A, 0x2D, 0, w->espKind[1], (u32) pl->pEmCatch, (void*) step);
         }
         pl->r_no_2++;
         break;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
         if (pl->frame > 109.699997f && pl->frame < 110.300003f && pSys->region) {
-            em32PlDivideSet2(PL_EM(pl));
+            em32PlDivideSet2((cEm32*)pl->pEmCatch);
             pl->be_flag &= ~2;
         }
-        if ((*(u32*) &((cEm32*) pPL->dmgType)->r_no_0 & 0xFFFF0000) != 0x011E0000) {
+        if ((*(u32*) &((cEm32*) pPL->pEmCatch)->r_no_0 & 0xFFFF0000) != 0x011E0000) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -4871,7 +4868,7 @@ void em32PlDivideSet(cEm32* em)
 {
     Em32Work* w = EM32_WK(em);
 
-    SetPlDamage((int) em, plemDivide);
+    SetPlDamage(em, plemDivide);
     pG->pl_life = 0;
     pPLS->be_flag &= ~2;
     pPLS->ang.y = GetXZAngle(&em->pos, &pPLS->pos);
@@ -4919,7 +4916,7 @@ void em32PlDivideSet2(cEm32* em)
 // motion with the collision off while the two obj00 halves show the death.
 static void plemDivide(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x9E), 0, 3, 1, 0);

@@ -134,9 +134,6 @@ static void plem2bDmBlow(cPlayer* pl);
 // Routine word test: xFC / xFD as the upper half of cModel::stat.
 #define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm2b*) (pl)->dmgType)
-
 // Struct-member views of the player / partner pointers (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
     cPlayer* p;
@@ -2429,7 +2426,7 @@ static void em2b_R1_Catch(cEm2b* em)
                     + (p->world.z - v.z) * (p->world.z - v.z);
                 if (d < 4000000.0f && !em2bDeadCk(pPLS)) {
                     pPLS->dmg.m_Timer = 2;
-                    SetPlDamage((int) em, plem2b_CatchHand);
+                    SetPlDamage(em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
                     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
                     w->Atk_ck = 1;
@@ -2441,7 +2438,7 @@ static void em2b_R1_Catch(cEm2b* em)
                 d = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y)
                     + (p->world.z - v.z) * (p->world.z - v.z);
                 if (d < 4000000.0f) {
-                    SetSubDamage((int) em, (void*) subem2b_CatchHand);
+                    SetSubDamage(em, (void*) subem2b_CatchHand);
                     LifeDownSet2(pSUBS, 300, 0, 1);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
                     w->Atk_ck = 2;
@@ -2476,7 +2473,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 
             MotionSetCore(em, &em->Motion, ARC(0x39), (int) ARC(0x7C), 0, flip, 0);
         }
-        SetPlDamage((int) em, plem2b_Strangle);
+        SetPlDamage(em, plem2b_Strangle);
         PlGachaInit();
         w->Timer = 70;
         w->Timer2 = 0;
@@ -2565,7 +2562,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 // Player caught by the hand: hangs on the hand parts' matrix until the strangle starts.
 static void plem2b_CatchHand(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pGS->Status_flg[1] |= 0x8000;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
@@ -2577,7 +2574,7 @@ static void plem2b_CatchHand(cPlayer* pl)
         PlSetDamageSe(9);
         pl->r_no_2++;
     case 1: {
-        cModel* p = PL_EM(pl)->getPartsPtr(0xA);
+        cModel* p = pl->pEmCatch->getPartsPtr(0xA);
         Vec pos;
         Vec rot;
 
@@ -2596,7 +2593,7 @@ static void plem2b_CatchHand(cPlayer* pl)
         pl->pos.z = pl->mat[2][3];
         pl->motFlags2 |= 0x40000000;
         PSMTXMultVec(p->mat, &pos, &pl->pos);
-        PSVECSubtract(&pl->pos, &PL_EM(pl)->pos, &pos);
+        PSVECSubtract(&pl->pos, &pl->pEmCatch->pos, &pos);
         pl->ang.x = 0.0f;
         pl->ang.y = atan2f(pos.x, pos.z);
         pl->ang.z = 0.0f;
@@ -2605,7 +2602,7 @@ static void plem2b_CatchHand(cPlayer* pl)
     }
     }
     pl->partsWorldCalc();
-    em2bBlowCamMove(PL_EM(pl), 1.0f);
+    em2bBlowCamMove((cEm2b*)pl->pEmCatch, 1.0f);
     pl->subArc = pl->subArc2;
 }
 
@@ -2613,7 +2610,7 @@ static void plem2b_CatchHand(cPlayer* pl)
 static void plem2b_Strangle(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0: {
@@ -2624,10 +2621,10 @@ static void plem2b_Strangle(cPlayer* pl)
         v.y = 0.0f;
         v.z = 89.5199966f;
         pl->ang.x = 0.0f;
-        pl->ang.y = PL_EM(pl)->ang.y + 3.14159274f;
+        pl->ang.y = pl->pEmCatch->ang.y + 3.14159274f;
         pl->ang.z = 0.0f;
         LIMIT_ANGLE(pl->ang.y);
-        PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+        PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         PlSetFace(1);
         pl->Wep->setTrans(0, 0);
         em2bCatchObj.p = ObjMgr.create(0xB);
@@ -2653,9 +2650,9 @@ static void plem2b_Strangle(cPlayer* pl)
         }
         plBlendMotSet(pl, PL_ARC(0xBA), PL_ARC(0xBD), 0, 0);
         MotionMoveF(pl, 0);
-        pl->r_no_2 = PL_EM(pPLS)->r_no_2;
+        pl->r_no_2 = pPLS->pEmCatch->r_no_2;
         if (pl->frame > 77.6999969f && pl->frame < 78.3000031f) {
-            pl->m_Work0 = SndCall(8, 0x28, &pl->getPartsPtr(0)->world, PL_EM(pl)->id, 0, pl);
+            pl->m_Work0 = SndCall(8, 0x28, &pl->getPartsPtr(0)->world, pl->pEmCatch->id, 0, pl);
             VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 0xC, 1);
         }
         break;
@@ -2666,10 +2663,10 @@ static void plem2b_Strangle(cPlayer* pl)
         v.y = 0.0f;
         v.z = 1962.04004f;
         pl->ang.x = 0.0f;
-        pl->ang.y = PL_EM(pl)->ang.y + 3.14159274f;
+        pl->ang.y = pl->pEmCatch->ang.y + 3.14159274f;
         pl->ang.z = 0.0f;
         LIMIT_ANGLE(pl->ang.y);
-        PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+        PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xBB), 0, 0, 1, 0);
         VibSetClearType(1);
         SndStop(pl->m_Work0, 0);
@@ -2694,10 +2691,10 @@ static void plem2b_Strangle(cPlayer* pl)
         v.y = 0.0f;
         v.z = 2179.71997f;
         pl->ang.x = 0.0f;
-        pl->ang.y = PL_EM(pl)->ang.y + 3.14159274f;
+        pl->ang.y = pl->pEmCatch->ang.y + 3.14159274f;
         pl->ang.z = 0.0f;
         LIMIT_ANGLE(pl->ang.y);
-        PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+        PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xBC), 0, 0, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xA);
@@ -2724,7 +2721,7 @@ static void em2b_R1_SubCatch(cEm2b* em)
         int flip = em2bFlip(w, 0x41, 1);
 
         MotionSetCore(em, &em->Motion, ARC(0x4A), (int) ARC(0x98), 0, flip, 0);
-        SetSubDamage((int) em, (void*) subem2b_Catch);
+        SetSubDamage(em, (void*) subem2b_Catch);
         GameAddPoint(LVADD_PL_DAMAGE);
         w->Parasite_damage = 100;
         em->r_no_2++;
@@ -2766,7 +2763,7 @@ static void em2b_R1_SubCatch(cEm2b* em)
         int flip = em2bFlip(w, 0x41, 1);
 
         MotionSetCore(em, &em->Motion, ARC(0x4B), (int) ARC(0x99), 10, flip, 0);
-        SetSubDamage((int) em, (void*) subem2b_CatchEnd);
+        SetSubDamage(em, (void*) subem2b_CatchEnd);
         w->Catch_power = 450;
         em->r_no_2++;
     }
@@ -2783,7 +2780,7 @@ static void subem2b_CatchHand(cSubChar* sub)
 {
     cSubChar* s = pSUB;
 
-    s->subArc = PL_EM(s)->subArc;
+    s->subArc = s->pEmCatch->subArc;
     s->dmg.m_Timer = 2;
     pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
@@ -2794,7 +2791,7 @@ static void subem2b_CatchHand(cSubChar* sub)
         s->be_flag &= ~0x10;
         s->r_no_2++;
     case 1: {
-        cModel* p = PL_EM(s)->getPartsPtr(0xA);
+        cModel* p = s->pEmCatch->getPartsPtr(0xA);
         Vec pos;
         Vec rot;
 
@@ -2810,13 +2807,13 @@ static void subem2b_CatchHand(cSubChar* sub)
         PSMTXConcat(p->mat, s->mat, s->mat);
         s->motFlags2 |= 0x40000000;
         PSMTXMultVec(p->mat, &pos, &s->pos);
-        PSVECSubtract(&s->pos, &PL_EM(s)->pos, &pos);
+        PSVECSubtract(&s->pos, &s->pEmCatch->pos, &pos);
         s->ang.x = 0.0f;
         s->ang.y = atan2f(pos.x, pos.z);
         s->ang.z = 0.0f;
         MotionMoveF(s, 0);
-        if (PL_EM(s)->hp <= 0) {
-            SetSubDamage((int) PL_EM(s), (void*) subem2b_CatchEnd);
+        if (s->pEmCatch->hp <= 0) {
+            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
         }
         break;
     }
@@ -2830,7 +2827,7 @@ static void subem2b_Catch(cSubChar* sub)
     cSubChar* s = pSUB;
 
     pG->Status_flg[2] |= 0x20000000;
-    s->subArc = PL_EM(s)->subArc;
+    s->subArc = s->pEmCatch->subArc;
     s->dmg.m_Timer = 2;
     switch (s->r_no_2) {
     case 0: {
@@ -2841,19 +2838,19 @@ static void subem2b_Catch(cSubChar* sub)
         v.y = 0.0f;
         v.z = 478.769989f;
         s->ang.x = 0.0f;
-        s->ang.y = PL_EM(s)->ang.y + 3.14159274f;
+        s->ang.y = s->pEmCatch->ang.y + 3.14159274f;
         s->ang.z = 0.0f;
         LIMIT_ANGLE(s->ang.y);
-        PSMTXMultVec(PL_EM(s)->mat, &v, &s->pos);
+        PSMTXMultVec(s->pEmCatch->mat, &v, &s->pos);
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD2), 0, 0, 1, 0);
         SubCharSetFace(1);
         s->r_no_2++;
     }
     case 1:
         MotionMoveF(s, 0);
-        s->r_no_2 = PL_EM(s)->r_no_2;
-        if (PL_EM(s)->r_no_0 != 1 && PL_EM(s)->r_no_1 != 0x13) {
-            SetSubDamage((int) PL_EM(s), (void*) subem2b_CatchEnd);
+        s->r_no_2 = s->pEmCatch->r_no_2;
+        if (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x13) {
+            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
         }
         break;
     case 2:
@@ -2868,8 +2865,8 @@ static void subem2b_Catch(cSubChar* sub)
                 pG->ashley_life = 0;
             }
         }
-        if ((s16) pG->ashley_life > 0 && (PL_EM(s)->r_no_0 != 1 && PL_EM(s)->r_no_1 != 0x13)) {
-            SetSubDamage((int) PL_EM(s), (void*) subem2b_CatchEnd);
+        if ((s16) pG->ashley_life > 0 && (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x13)) {
+            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
         }
         break;
     }
@@ -2881,7 +2878,7 @@ static void subem2b_CatchEnd(cSubChar* sub)
 {
     cSubChar* s = pSUB;
 
-    s->subArc = PL_EM(s)->subArc;
+    s->subArc = s->pEmCatch->subArc;
     pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0: {
@@ -2892,10 +2889,10 @@ static void subem2b_CatchEnd(cSubChar* sub)
         v.y = 0.0f;
         v.z = 2067.51001f;
         s->ang.x = 0.0f;
-        s->ang.y = PL_EM(s)->ang.y + 3.14159274f;
+        s->ang.y = s->pEmCatch->ang.y + 3.14159274f;
         s->ang.z = 0.0f;
         LIMIT_ANGLE(s->ang.y);
-        PSMTXMultVec(PL_EM(s)->mat, &v, &s->pos);
+        PSMTXMultVec(s->pEmCatch->mat, &v, &s->pos);
         s->dmg.m_Timer = 0x1E;
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD3), 0, 0, 1, 0);
         SubCharSetFace(1);
@@ -3019,7 +3016,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             if (d < 2250000.0f && !em2bDeadCk(pPLS)) {
                 pPLS->dmg.m_Timer = 0x80;
                 pG->pl_life = 0;
-                SetPlDamage((int) em, plem2b_CatchHand);
+                SetPlDamage(em, plem2b_CatchHand);
                 SndCall(8, 0x24, &hp->world, em->id, 0, em);
                 VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
                 w->Atk_ck = 1;
@@ -3045,13 +3042,13 @@ void em2bPlFallCK(cEm2b* em)
     }
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
     pPLS->ang.y = GetXZAngle(&pPLS->pos, &em->pos);
-    SetPlDamage((int) em, plem2bDmFall);
+    SetPlDamage(em, plem2bDmFall);
 }
 
 // Player knocked off the tower: falls until the floor, then lands and gets up.
 static void plem2bDmFall(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
@@ -3298,7 +3295,7 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
         em->atari.throughOn();
         em2bCatchPosSet(em);
         MotionSetCore(em, &em->Motion, ARC(0x30), (int) ARC(0x77), 0, 1, 0);
-        SetPlDamage((int) em, plem2b_AtkParasite);
+        SetPlDamage(em, plem2b_AtkParasite);
         pPLS->r_no_3 = side;
         if (w->pParasite) {
             MotSetObj16(w->pParasite, ARC(0xD9), 0, 0);
@@ -3484,8 +3481,8 @@ static inline void em2bPlOnEmSet(cPlayer* pl, f32 x, f32 y, f32 z)
     v.x = x;
     v.y = y;
     v.z = z;
-    pl->ang.y = PL_EM(pl)->ang.y;
-    PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+    pl->ang.y = pl->pEmCatch->ang.y;
+    PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
 }
 
 // Same, facing the other way (the Vec temp shares the frame slot of em2bPlOnEmSet's; a caller `Vec v` in the
@@ -3497,16 +3494,16 @@ static inline void em2bPlOnEmSetRev(cPlayer* pl, f32 x, f32 y, f32 z)
     v.x = x;
     v.y = y;
     v.z = z;
-    pl->ang.y = LIMIT_ANGLE(pl->ang.y = PL_EM(pl)->ang.y + 3.14159274f);
-    PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+    pl->ang.y = LIMIT_ANGLE(pl->ang.y = pl->pEmCatch->ang.y + 3.14159274f);
+    PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
 }
 
 // Player attacking the parasite: climbs the back, slashes it while the button is mashed, is thrown off.
 static void plem2b_AtkParasite(cPlayer* pl)
 {
-    Em2bWork* w = EM2B_WK(PL_EM(pPLS));
+    Em2bWork* w = EM2B_WK(pPLS->pEmCatch);
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
@@ -3531,7 +3528,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         MotionMoveF(pl, 0);
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
@@ -3540,7 +3537,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
         }
         if ((pl->frame > 31.7000008f && pl->frame < 32.2999992f) || (pl->frame > 41.7000008f && pl->frame < 42.2999992f)
             || (pl->frame > 55.7000008f && pl->frame < 56.2999992f) || (pl->frame > 73.6999969f && pl->frame < 74.3000031f)) {
-            SndCall(8, 0x2C, &pl->pos, PL_EM(pl)->id, 0, pl);
+            SndCall(8, 0x2C, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         break;
     case 2:
@@ -3549,7 +3546,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
         pl->m_Work0 = 0;
         pl->r_no_2++;
     case 3:
-        em2bParasiteAtkCamMove(PL_EM(pl));
+        em2bParasiteAtkCamMove((cEm2b*)pl->pEmCatch);
         if (em2bParasiteBtnCk(w)) {
             pl->m_Work0++;
         }
@@ -3569,7 +3566,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
     case 5: {
         int lvl;
 
-        em2bParasiteAtkCamMove(PL_EM(pl));
+        em2bParasiteAtkCamMove((cEm2b*)pl->pEmCatch);
         if (em2bParasiteBtnCk(w)) {
             lvl = 8;
             if (pG->Game_level <= 1) {
@@ -3637,7 +3634,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
         MotionMoveF(pl, 0);
         if ((pl->Motion.Mot_frame >= 10.0f && pl->Motion.Mot_frame <= 15.0f) || (pl->Motion.Mot_frame >= 44.0f && pl->Motion.Mot_frame <= 49.0f)) {
             if (pl->m_Work6 == 0) {
-                SndCall(8, 0x30, &pl->pos, PL_EM(pl)->id, 0, pl);
+                SndCall(8, 0x30, &pl->pos, pl->pEmCatch->id, 0, pl);
             }
             pl->m_Work6 = 1;
         } else {
@@ -3645,20 +3642,20 @@ static void plem2b_AtkParasite(cPlayer* pl)
         }
         if ((pl->Motion.Mot_frame >= 50.0f && pl->Motion.Mot_frame <= 55.0f) || (pl->Motion.Mot_frame >= 13.0f && pl->Motion.Mot_frame <= 18.0f)) {
             if (pl->m_Work7 == 0) {
-                SndCall(8, 0x2F, &pl->pos, PL_EM(pl)->id, 0, pl);
-                SndCall(8, 0x2D, &pl->pos, PL_EM(pl)->id, 0, pl);
+                SndCall(8, 0x2F, &pl->pos, pl->pEmCatch->id, 0, pl);
+                SndCall(8, 0x2D, &pl->pos, pl->pEmCatch->id, 0, pl);
                 if (w->pParasite) {
                     MotSetObj16(w->pParasite, PL_ARC(0xD8), 0, 3);
                     EstSet((int) w->pParasite, -1, 0, 0, w->espKind2, 0x1F, 0, 0, (u32) w->pParasite, 0);
                 }
                 EstSet((int) pl, -1, 0, 0, w->espKind2, 0x20, 0, 0, (u32) pl, 0);
-                PL_EM(pl)->hp -= 70;
+                pl->pEmCatch->hp -= 70;
             }
             pl->m_Work7 = 1;
         } else {
             pl->m_Work7 = 0;
         }
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     }
     case 6:
@@ -4282,21 +4279,21 @@ int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no)
                 case 1:
                     FSet(pPL->pos.x, a->x);
                     FSet(pPL->pos.z, a->z);
-                    SetPlDamage((int) em, plem2b_dm_Stamp);
+                    SetPlDamage(em, plem2b_dm_Stamp);
                     break;
                 case 2:
                 case 3:
                     FSet(pPL->ang.y, GetXZAngle(a, b));
-                    SetPlDamage((int) em, plem2bDmBlow);
+                    SetPlDamage(em, plem2bDmBlow);
                     break;
                 case 5:
                     FSet(pPL->ang.y, GetXZAngle(&pPL->pos, b));
-                    SetPlDamage((int) em, plem2bDmBlow);
+                    SetPlDamage(em, plem2bDmBlow);
                     break;
                 case 4:
                     pPLS->ang.y = em->ang.y + 3.14159274f;
                     FSet(pPL->ang.y, LIMIT_ANGLE(pPLS->ang.y));
-                    SetPlDamage((int) em, plem2b_dm_BlowKick);
+                    SetPlDamage(em, plem2b_dm_BlowKick);
                     break;
                 }
                 QuakeExec(0, 0, 5, 22.0f, 2);
@@ -4319,7 +4316,7 @@ int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no)
 // Stamped flat.
 static void plem2b_dm_Stamp(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xB8), 0, 3, 1, 0);
@@ -4328,7 +4325,7 @@ static void plem2b_dm_Stamp(cPlayer* pl)
         PlSetDamageSe(0);
         pl->r_no_2++;
     case 1:
-        em2bStampCamMove(PL_EM(pl));
+        em2bStampCamMove((cEm2b*)pl->pEmCatch);
         if (MotionMoveF(pl, 0) || (pl->frame > 49.7000008f && pl->frame < 50.2999992f)) {
             if ((s16) pG->pl_life > 0) {
                 pl->atari.throughOff();
@@ -4346,7 +4343,7 @@ static void subem2b_dm_Stamp(cSubChar* sub)
 {
     cSubChar* s = pSUB;
 
-    s->subArc = PL_EM(s)->subArc;
+    s->subArc = s->pEmCatch->subArc;
     pGS->Status_flg[2] |= 0x20000000;
     switch (s->r_no_2) {
     case 0:
@@ -4364,7 +4361,7 @@ static void plem2b_dm_BlowKick(cPlayer* pl)
 {
     int rtn = pl->r_no_2;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (rtn) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x51), 0, 3, 1, 0);
@@ -4389,21 +4386,21 @@ static void plem2b_dm_BlowKick(cPlayer* pl)
 // Action button under the falling giant: dash out.
 static void em2bDashEscapeAction(cEm2b* em)
 {
-    SetPlDamage((int) em, plem2bDashEscape);
+    SetPlDamage(em, plem2bDashEscape);
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Dash out from under the falling giant.
 static void plem2bDashEscape(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     if (pSUB) {
         pSUB->dmg.m_Timer = 2;
     }
     switch (pl->r_no_2) {
     case 0:
-        if (Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 3.14159274f) < 0.0f) {
+        if (Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 3.14159274f) < 0.0f) {
             MotionSetCore(pl, &pl->Motion, PL_ARC(0xC1), (int) PL_ARC(0xC2), 3, 1, 0);
         } else {
             MotionSetCore(pl, &pl->Motion, PL_ARC(0xC1), (int) PL_ARC(0xC2), 3, 0x41, 0);
@@ -4422,9 +4419,9 @@ static void plem2bDashEscape(cPlayer* pl)
         pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
-        em2bEscapeCamMove(PL_EM(pl));
+        em2bEscapeCamMove((cEm2b*)pl->pEmCatch);
         if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.196349546f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.196349546f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionMoveF(pl, 0);
@@ -5004,7 +5001,7 @@ int em2bTreeAtkCk(cEm2b* em)
     SndCall(8, 0xF, &pPL->pos, em->id, 0, pPL);
     SndCall(8, 0x32, &pPL->pos, em->id, 0, pPL);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
-    SetPlDamage((int) em, plem2bDmBlow);
+    SetPlDamage(em, plem2bDmBlow);
     return 1;
 }
 
@@ -5303,14 +5300,14 @@ void em2bPlBlowAtkScrCk(cPlayer* pl)
 // Action button of the tree swing: the player ducks under the tree.
 static void em2bEscapeAction(cEm2b* em)
 {
-    SetPlDamage((int) em, plem2bEscapeTree);
+    SetPlDamage(em, plem2bEscapeTree);
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Ducks under the swung tree.
 static void plem2bEscapeTree(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
@@ -5319,7 +5316,7 @@ static void plem2bEscapeTree(cPlayer* pl)
         pl->r_no_2++;
         break;
     case 1:
-        if (!MotionMoveF(pl, 0) && !(PL_EM(pl)->flag & 4) && pl->m_Work0 != 0) {
+        if (!MotionMoveF(pl, 0) && !(pl->pEmCatch->flag & 4) && pl->m_Work0 != 0) {
             pl->m_Work0--;
         } else {
             pl->r_no_2++;
@@ -5341,9 +5338,9 @@ static void plem2bEscapeTree(cPlayer* pl)
 // Blown away by a swing / the tree: flies until a wall stops him, lands, gets up.
 static void plem2bDmBlow(cPlayer* pl)
 {
-    Em2bWork* w = EM2B_WK(PL_EM(pl));
+    Em2bWork* w = EM2B_WK(pl->pEmCatch);
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
@@ -5352,7 +5349,7 @@ static void plem2bDmBlow(cPlayer* pl)
         pl->m_Work0 = 1;
         pl->r_no_2++;
     case 1:
-        em2bBlowCamMove(PL_EM(pl), 0.300000012f);
+        em2bBlowCamMove((cEm2b*)pl->pEmCatch, 0.300000012f);
         if (MotionMoveF(pl, 0)) {
             pl->r_no_2++;
         } else {
@@ -5367,12 +5364,12 @@ static void plem2bDmBlow(cPlayer* pl)
     case 2:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xB5), 0, 5, 1, 0);
         EstSet((int) pl, -1, 0, 0, w->espKind2, 6, 0, 0, (u32) pl, 0);
-        SndCall(8, 0x1A, &pl->pos, PL_EM(pl)->id, 0, pl);
+        SndCall(8, 0x1A, &pl->pos, pl->pEmCatch->id, 0, pl);
         SndCall(1, 9, &pl->pos, 0, 0, pl);
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
         pl->r_no_2++;
     case 3:
-        em2bBlowCamMove(PL_EM(pl), 0.300000012f);
+        em2bBlowCamMove((cEm2b*)pl->pEmCatch, 0.300000012f);
         if (MotionMoveF(pl, 0) && (s16) pG->pl_life > 0) {
             pl->r_no_2++;
         }
@@ -5924,7 +5921,7 @@ int em2bPressPlCk(cEm2b* em)
                 (pos.z - m->world.z) * (pos.z - m->world.z) <
             9000000.0f) {
             LifeDownSet(pPL, 9999, 0);
-            SetPlDamage((int) em, plem2b_dm_Stamp);
+            SetPlDamage(em, plem2b_dm_Stamp);
             return 1;
         }
     }
@@ -5954,7 +5951,7 @@ int em2bPressSubCk(cEm2b* em)
                 (pos.z - m->world.z) * (pos.z - m->world.z) <
             9000000.0f) {
             pG->ashley_life = 0;
-            SetSubDamage((int) em, (void*) subem2b_dm_Stamp);
+            SetSubDamage(em, (void*) subem2b_dm_Stamp);
             return 1;
         }
     }

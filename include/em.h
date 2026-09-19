@@ -117,7 +117,8 @@ public:
     };
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
     f32 catchTurn;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it)
-    int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
+    cEm* pEmCatch;         // 0x3B8  what damaged this one (pl_sub SetPlDamage/SetSubDamage
+                          //         first argument); object enemies store a cObj of their own
     u8 RckStat;           // 0x3BC  route_ck: bit0 = RckNear valid this frame (RouteCk clears it)
     s8 RckMy;             // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
     s8 RckTo;             // 0x3BE  route_ck: way point nearest to the target

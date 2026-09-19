@@ -220,9 +220,6 @@ static u8 em2d_tex_flag = 0xF;
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm2d*) (pl)->dmgType)
-
 // Struct-member views of the player pointer / pG: a load through them is not hoisted above the
 // preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
@@ -1995,7 +1992,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     switch (fe) {
     case 0:
@@ -2014,7 +2011,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         } else {
             MotionMoveF(pl, 0);
         }
-        if (em2dCamMove(PL_EM(pl), pl->r_no_3, 0.3f) == 0) {
+        if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
             if (pl->r_no_3 == 0) {
                 pl->r_no_3 = 2;
             }
@@ -2028,7 +2025,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
                 pl->r_no_3 = 7;
             }
         }
-        if (!EM_RTN(PL_EM(pPL), 1, 0xB)) {
+        if (!EM_RTN(pPL->pEmCatch, 1, 0xB)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
             break;
@@ -2036,7 +2033,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 2:
     case 4:
@@ -2045,7 +2042,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         pl->r_no_2++;
     case 3:
     case 5:
-        if (em2dCamMove(PL_EM(pl), pl->r_no_3, 0.3f) == 0) {
+        if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
             if (pl->r_no_3 == 0) {
                 pl->r_no_3 = 2;
             }
@@ -2064,7 +2061,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             pl->dmg.set(0, 30);
         }
         if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
-            SndCall(8, 0x35, &pl->pos, PL_EM(pl)->id, 0, pl);
+            SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         break;
     case 6:
@@ -2072,7 +2069,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 0x25, 0x14, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     case 7:
-        if (em2dCamMove(PL_EM(pl), pl->r_no_3, 0.3f) == 0) {
+        if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
             if (pl->r_no_3 == 0) {
                 pl->r_no_3 = 2;
             }
@@ -2090,14 +2087,14 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
         MotionMoveF(pl, 0);
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 8:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x62), 0, 5, 1, 0);
         EstSet((int) pl, -1, 0, 0, 0x25, 0x16, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     case 9:
-        if (em2dCamMove(PL_EM(pl), pl->r_no_3, 0.3f) == 0) {
+        if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
             if (pl->r_no_3 == 0) {
                 pl->r_no_3 = 2;
             }
@@ -2112,7 +2109,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             }
         }
         if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
-            SndCall(8, 0x35, &pl->pos, PL_EM(pl)->id, 0, pl);
+            SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
@@ -2125,7 +2122,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
     case 11:
-        em2dDieCamMove(PL_EM(pl));
+        em2dDieCamMove((cEm2d*)pl->pEmCatch);
         MotionMoveF(pl, 0);
         break;
     }
@@ -2242,7 +2239,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x66), 0, 5, 1, 0);
@@ -2345,7 +2342,7 @@ void em2dActEvtSetKick(cEm2d* em, int side)
 // JumpAtkCounter (0xD), critical scored, damage held 30 frames.
 static void em2dKickAction(cEm2d* em)
 {
-    SetPlDamage((int) em, plem2dKick);
+    SetPlDamage(em, plem2dKick);
     pPL->dmg.set(0, 30);
     if (pSUB && pSUB->plDist2 < 9000000.0f) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
@@ -2364,7 +2361,7 @@ static void plem2dKick(cPlayer* pl)
 {
     Vec pos;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     pG->Status_flg[2] |= 0x40000000;
     switch (pl->r_no_2) {
@@ -3829,7 +3826,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     switch (fe) {
     case 0:
@@ -3848,8 +3845,8 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         } else {
             MotionMoveF(pl, 0);
         }
-        em2dCatchCamMove(PL_EM(pl), pl);
-        if (!EM_RTN(PL_EM(pPL), 1, 0x26)) {
+        em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
+        if (!EM_RTN(pPL->pEmCatch, 1, 0x26)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
             break;
@@ -3857,7 +3854,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 2:
     case 4:
@@ -3866,13 +3863,13 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 3:
     case 5:
-        em2dCatchCamMove(PL_EM(pl), pl);
+        em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
         if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
-            SndCall(8, 0x35, &pl->pos, PL_EM(pl)->id, 0, pl);
+            SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         break;
     case 6:
@@ -3880,21 +3877,21 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 0x25, 0x14, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     case 7:
-        em2dCatchCamMove(PL_EM(pl), pl);
+        em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
         if (pl->frame > 27.7000008f && pl->frame < 28.2999992f) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
         MotionMoveF(pl, 0);
-        pl->r_no_2 = PL_EM(pl)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 8:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x62), 0, 5, 1, 0);
         EstSet((int) pl, -1, 0, 0, 0x25, 0x16, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     case 9:
-        em2dCatchCamMove(PL_EM(pl), pl);
+        em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
         if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
-            SndCall(8, 0x35, &pl->pos, PL_EM(pl)->id, 0, pl);
+            SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
@@ -3907,7 +3904,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
     case 11:
-        em2dDieCamMove(PL_EM(pl));
+        em2dDieCamMove((cEm2d*)pl->pEmCatch);
         MotionMoveF(pl, 0);
         break;
     }
@@ -4867,7 +4864,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             memcpy((u8*) pPL + 0x328, &em->pos, sizeof(Vec));  // byte-pointer destination: pPL is reloaded for EstSet
             EstSet((int) pPL, -1, 0, 0, 0x25, 0x26, 0, 0, (u32) pPL, 0);
             pG->pl_life = 0;
-            SetPlDamage((int) em, plem2d_CriticalHit);
+            SetPlDamage(em, plem2d_CriticalHit);
             break;
         }
         w->atkHit = 1;

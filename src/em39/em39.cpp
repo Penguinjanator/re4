@@ -1134,7 +1134,7 @@ static void em39_R1_Success(cEm39* em)
         em->pos.z = -9402.42f;
         em->ang.y = -0.9032079f;
         MotionSetCore(em, MOTION(em), ARC(0xF1), (int) ARC(0xF2), 0, 1, 0);
-        SetPlDamage((int) em, plem39_Success);
+        SetPlDamage(em, plem39_Success);
         EstSet((int) em, -1, 0, 0, 0x2F, 0x43, 0, w->EffKindId, (u32) em, 0);
         w->Arm_rno = 6;
         em->r_no_2++;
@@ -1158,7 +1158,7 @@ static void plem39_Success(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         AtariOff(&pl->atari, 0xFCFF);
@@ -1198,7 +1198,7 @@ static void em39_R1_Failure(cEm39* em)
         em->pos.z = -9417.92f;
         em->ang.y = -0.8901179f;
         MotionSetCore(em, MOTION(em), ARC(0xF3), (int) ARC(0xF4), 0, 1, 0);
-        SetPlDamage((int) em, plem39_Failure);
+        SetPlDamage(em, plem39_Failure);
         EstSet((int) em, -1, 0, 0, 0x2F, 0x44, 0, w->EffKindId, (u32) em, 0);
         w->Arm_rno = 6;
         em->r_no_2++;
@@ -1222,7 +1222,7 @@ static void plem39_Failure(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         AtariOff(&pl->atari, 0xFCFF);
@@ -3237,7 +3237,7 @@ static void plem39_KnifeHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x113), 0, 5, 1, 0);
@@ -3248,10 +3248,10 @@ static void plem39_KnifeHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        if (!EM_RTN((cEm*) pPL->dmgType, 1, 0x1B)) {
+        if (!EM_RTN(pPL->pEmCatch, 1, 0x1B)) {
             goto END;
         }
-        pl->r_no_2 = ((cEm*) pl->dmgType)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 2:
         if ((s16) pG->pl_life <= 0) {
@@ -3565,7 +3565,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
 // Player side of Knife4Atk: follow the catch motion until the enemy leaves routine 0x1C.
 #define PLEM39_K4_WAIT(pl)                                                                          \
     EmCatchMotionMove(pl, 0.3f, 0.2f);                                                             \
-    if (!EM_RTN((cEm*) pPL->dmgType, 1, 0x1C)) {                                                   \
+    if (!EM_RTN(pPL->pEmCatch, 1, 0x1C)) {                                                   \
         EndPlDamage();                                                                             \
         (pl)->dmg.set(0, 0x1E);                                                                    \
     }                                                                                              \
@@ -3580,7 +3580,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x11B), 0, 5, 1, 0);
@@ -5119,7 +5119,7 @@ static void plem39_Stamp(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
@@ -5165,7 +5165,7 @@ static void em39SitAction(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    SetPlDamage((int) em, plem39Sit);
+    SetPlDamage(em, plem39Sit);
     w->Act_ck = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -5174,7 +5174,7 @@ static void em39SitAction(cEm39* em)
 // rank point; ends with the motion.
 static void plem39Sit(cPlayer* pl)
 {
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 0x1E);
     switch (pl->r_no_2) {
     case 0:
@@ -5201,7 +5201,7 @@ static void em39BackjumpAction(cEm39* em)
     Em39Work* w = EM39_WK(em);
     f32 ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
 
-    SetPlDamage((int) em, plemBackjump);
+    SetPlDamage(em, plemBackjump);
     if (ang > 1.5707964f) {
         pPL->r_no_2 = 2;
     }
@@ -5236,7 +5236,7 @@ static void em39BackjumpAction(cEm39* em)
 // ends with the motion.
 static void plemBackjump(cPlayer* pl)
 {
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
@@ -5596,7 +5596,7 @@ static void plem39_LowKickHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         if (pG->pl_type == 2) {
@@ -5611,7 +5611,7 @@ static void plem39_LowKickHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (((cEm*) pPL->dmgType)->r_no_0 != 1 && ((cEm*) pPL->dmgType)->r_no_1 != 0x1B) {
+        if (pPL->pEmCatch->r_no_0 != 1 && pPL->pEmCatch->r_no_1 != 0x1B) {
             pl->Wep->setTrans(1, 0);
             EndPlDamage();
             pl->dmg.set(0, 0x1E);
@@ -5625,9 +5625,9 @@ static void plem39_LowKickHit(cPlayer* pl)
         }
         if (PL_FRAME_IN(pl, 78.7f, 79.3f)) {
             if (pG->pl_type == 2) {
-                SndCall(8, 0x56, &p->world, ((cEm*) pl->dmgType)->id, 0, pPL);
+                SndCall(8, 0x56, &p->world, pl->pEmCatch->id, 0, pPL);
             } else {
-                SndCall(8, 0x54, &p->world, ((cEm*) pl->dmgType)->id, 0, pPL);
+                SndCall(8, 0x54, &p->world, pl->pEmCatch->id, 0, pPL);
             }
         }
         if (PL_FRAME_IN(pl, 130.7f, 131.3f)) {
@@ -5636,7 +5636,7 @@ static void plem39_LowKickHit(cPlayer* pl)
         if (PL_FRAME_IN(pl, 151.7f, 152.3f)) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
         }
-        pl->r_no_2 = ((cEm*) pl->dmgType)->r_no_2;
+        pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 2:
         if (pG->pl_type == 2) {
@@ -5714,7 +5714,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         AtariOff(&em->atari, 0xFCFF);
         EM39_CLIFF_POS(em, w, mat, a, -1145.15f);
         MotionSetCore(em, MOTION(em), ARC(0xED), (int) ARC(0xEE), 0, 1, 0);
-        SetPlDamage((int) em, plem39_CliffAtk);
+        SetPlDamage(em, plem39_CliffAtk);
         w->Arm_rno = st;
         w->TmpU32 = 10;
         if (pGS->Game_level <= 1) {
@@ -5770,7 +5770,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         EM39_CLIFF_POS(em, w, mat, a, -382.78f);
         MotionSetCore(em, MOTION(em), ARC(0xEF), (int) ARC(0xF0), 0, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x2F, 0x39, 0, 0, (u32) em, 0);
-        SetPlDamage((int) em, plem39_CliffAtk);
+        SetPlDamage(em, plem39_CliffAtk);
         pPL->r_no_2 = st;
         em->r_no_2++;
     case 3:
@@ -5796,15 +5796,15 @@ static void plem39_CliffAtk(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 0xA);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         AtariOff(&pl->atari, 0xFCFF);
         pl->pos.x = -15.66f;
         pl->pos.y = 0.0f;
         pl->pos.z = 934.56f;
-        PSMTXMultVec(((cEm*) pl->dmgType)->mat, &pl->pos, &pl->pos);
-        pl->ang.y = ((cEm*) pl->dmgType)->ang.y + PI;
+        PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
+        pl->ang.y = pl->pEmCatch->ang.y + PI;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x121), 0, 0, 1, 0);
         PlSetFace(1);
@@ -5827,8 +5827,8 @@ static void plem39_CliffAtk(cPlayer* pl)
         pl->pos.x = 54.86f;
         pl->pos.y = 0.0f;
         pl->pos.z = 704.51f;
-        PSMTXMultVec(((cEm*) pl->dmgType)->mat, &pl->pos, &pl->pos);
-        pl->ang.y = ((cEm*) pl->dmgType)->ang.y + PI;
+        PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
+        pl->ang.y = pl->pEmCatch->ang.y + PI;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x122), 0, 0, 1, 0);
         em39CliffObj.p = ObjMgr.create(0xB);
@@ -6721,7 +6721,7 @@ static void em39ActOn(cEm39* em)
 // r_no_3, Ada's own motion) with the pain face and sound, 10 frames of stun; ends with the motion.
 static void plemDmSide(cPlayer* pl)
 {
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0: {
         int flag = 1;
@@ -6880,7 +6880,7 @@ int em39AtkCk(cEm39* em, int no, int parts)
 
 // Side damage on the player: turn him towards the enemy and pick the left / right motion.
 #define EM39_ATK_SIDE(em, v)                                                                        \
-    SetPlDamage((int) (em), plemDmSide);                                                           \
+    SetPlDamage((em), plemDmSide);                                                           \
     v = Muku(&pPL->pos, &(em)->pos, pPL->ang.y, PI);                                               \
     v = fabsf(v);                                                                                  \
     if (v < 1.5707964f) {                                                                          \
@@ -6934,7 +6934,7 @@ int em39AtkCk2(cEm39* em, int no, Vec* a, Vec* b)
                 if (pG->pl_type == 2) {
                     EM39_ATK_KNOCK(em);
                 } else {
-                    SetPlDamage((int) em, plem39_Stamp);
+                    SetPlDamage(em, plem39_Stamp);
                 }
                 break;
             case 8:

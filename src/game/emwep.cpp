@@ -54,10 +54,6 @@ void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int 
 // (atari_init.h: GCC emits the argument moves in declaration order).
 void setYarareCubeF(cEmWep* em, f32 x, f32 y, f32 z, Vec* size) asm("setYarareCube__6cEmWepP3Vecfff");
 
-
-// The weapon the player damage callbacks belong to.
-#define PL_WEP(pl) ((cEmWep*) (pl)->dmgType)
-
 // One rope node of the falling weapon (emWep_R1_Fall): three point masses joined by distance
 // constraints; the model matrix is rebuilt from them every frame.
 struct EmWepNode {
@@ -1645,13 +1641,13 @@ void emWepEscapeAction(cEmWep* em)
     ang = Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
     a = fabsf(ang);
     if (a < 0.7853982f) {
-        SetPlDamage((int) em, plemBackjump);
+        SetPlDamage(em, plemBackjump);
     } else if (a < 2.3561945f) {
-        SetPlDamage((int) em, plemFrontEscape);
+        SetPlDamage(em, plemFrontEscape);
     } else if (ang > 0.0f) {
-        SetPlDamage((int) em, plemEscape);
+        SetPlDamage(em, plemEscape);
     } else {
-        SetPlDamage((int) em, plemEscape);
+        SetPlDamage(em, plemEscape);
         pPL->r_no_3 = 1;
         GameAddPoint(9);
     }
@@ -1660,9 +1656,9 @@ void emWepEscapeAction(cEmWep* em)
 // Player damage routine: runs away from the grenade.
 static void plemEscape(cPlayer* pl)
 {
-    EmWepWork* w = EMWEP_WK(PL_WEP(pl));
+    EmWepWork* w = EMWEP_WK(pl->pEmCatch);
 
-    pl->subArc = PL_WEP(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
@@ -1677,7 +1673,7 @@ static void plemEscape(cPlayer* pl)
         pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
-        emWepEscapeCamMove(PL_WEP(pl));
+        emWepEscapeCamMove((cEmWep*)pl->pEmCatch);
         if (pl->m_Work1 && w->pEm_old) {
             pl->ang.y += Muku(&pl->pos, &w->pEm_old->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
@@ -1700,9 +1696,9 @@ static void plemEscape(cPlayer* pl)
 // Player damage routine: back jump away from the grenade.
 void plemBackjump(cPlayer* pl)
 {
-    EmWepWork* w = EMWEP_WK(PL_WEP(pl));
+    EmWepWork* w = EMWEP_WK(pl->pEmCatch);
 
-    pl->subArc = PL_WEP(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
@@ -1743,9 +1739,9 @@ void plemBackjump(cPlayer* pl)
 // Player damage routine: dive forward over the grenade.
 void plemFrontEscape(cPlayer* pl)
 {
-    EmWepWork* w = EMWEP_WK(PL_WEP(pl));
+    EmWepWork* w = EMWEP_WK(pl->pEmCatch);
 
-    pl->subArc = PL_WEP(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:

@@ -139,9 +139,6 @@ static void plemBackjump(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm2c*) (pl)->dmgType)
-
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
     cPlayer* p;
@@ -4593,7 +4590,7 @@ static void em2cKickAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    SetPlDamage((int) em, plemKick);
+    SetPlDamage(em, plemKick);
     pPL->dmg.set(0, 30);
     if (pSUB) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
@@ -4612,7 +4609,7 @@ static void plemKick(cPlayer* pl)
 {
     Vec pos;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     pG->Status_flg[2] |= 0x40000000;
     switch (pl->r_no_2) {
@@ -4627,7 +4624,7 @@ static void plemKick(cPlayer* pl)
     case 1:
         if (pl->m_Work1) {
             pl->m_Work1--;
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.196349546f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.196349546f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             if (pl->m_Work1 == 0) {
                 SndCall(1, 0x11, &pl->pos, 0, 0, pl);
@@ -5032,7 +5029,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                     EmPlBloodSet2(em, &p->world, 1, 0x24, 0x17);
                 }
                 if ((s16) pG->pl_life > 0) {
-                    SetPlDamage((int) em, plemDmSide);
+                    SetPlDamage(em, plemDmSide);
                     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 1.57079637f) {
                         pPLS->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f);
                         pPLS->r_no_3 = 0;
@@ -5075,7 +5072,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                 EmPlBloodSet2(em, &p->world, 1, 0x24, 0x15);
                 if ((s16) pG->pl_life <= 0) {
                     pG->pl_life = 0;
-                    SetPlDamage((int) em, plem2c_CriticalHit);
+                    SetPlDamage(em, plem2c_CriticalHit);
                 } else {
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
                     PlSetDamage(8, 0, 0);
@@ -5092,7 +5089,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
                     PlSetDamage(8, 0, 0);
                 } else {
-                    SetPlDamage((int) em, plemDmTail);
+                    SetPlDamage(em, plemDmTail);
                 }
                 break;
             case 5:
@@ -5102,7 +5099,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
                     PlSetDamage(8, 0, 0);
                 } else {
-                    SetPlDamage((int) em, plemDmTail);
+                    SetPlDamage(em, plemDmTail);
                 }
                 break;
             }
@@ -5842,7 +5839,7 @@ static void plemDmSide(cPlayer* pl)
 {
     int flip;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 2);
     switch (pl->r_no_2) {
     case 0:
@@ -5871,7 +5868,7 @@ static void plemDmTail(cPlayer* pl)
     void* m1;
     int flip;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         flip = 1;
@@ -5912,7 +5909,7 @@ static void em2cSitAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    SetPlDamage((int) em, plem2cSit);
+    SetPlDamage(em, plem2cSit);
     w->x6B8 = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -5920,7 +5917,7 @@ static void em2cSitAction(cEm2c* em)
 // Player routine of the duck under the claw / tail (motion 0x73 of the boss archive), escape scored.
 static void plem2cSit(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
@@ -5941,7 +5938,7 @@ static void em2cEscapeAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    SetPlDamage((int) em, plem2cEscape);
+    SetPlDamage(em, plem2cEscape);
     w->x6B8 = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -5955,13 +5952,13 @@ static void plem2cEscape(cPlayer* pl)
     int wall;
     int fe;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     pl->dmg.m_Timer = 0x1E;
     switch (fe) {
     case 0:
         side = 0;
-        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->ang.y, 3.14159274f) < 0.0f) {
+        if (Muku(&pl->pEmCatch->pos, &pl->pos, pl->ang.y, 3.14159274f) < 0.0f) {
             side = 1;
         }
         side = Rnd() & 1;
@@ -6016,7 +6013,7 @@ static void plem2cEscape(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         if (pl->m_Work2) {
-            em2cEscapeCamMove(PL_EM(pl));
+            em2cEscapeCamMove((cEm2c*)pl->pEmCatch);
             if (pl->frame > 11.6999998f && pl->frame < 12.3000002f) {
                 EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
@@ -6038,7 +6035,7 @@ static void plem2cEscape(cPlayer* pl)
             }
         }
         if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.392699093f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.392699093f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
@@ -6099,7 +6096,7 @@ static void em2cBackjumpAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    SetPlDamage((int) em, plemBackjump);
+    SetPlDamage(em, plemBackjump);
     w->x6B8 = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -6109,7 +6106,7 @@ static void plemBackjump(cPlayer* pl)
 {
     int fe;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     pl->dmg.m_Timer = 0x3C;
     switch (fe) {
@@ -6148,7 +6145,7 @@ static void em2cBackjumpAction2(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    SetPlDamage((int) em, plemBackjump2);
+    SetPlDamage(em, plemBackjump2);
     w->x6B8 = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -6158,7 +6155,7 @@ static void plemBackjump2(cPlayer* pl)
 {
     int fe;
 
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
     switch (fe) {
     case 0:

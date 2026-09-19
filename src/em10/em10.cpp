@@ -4652,10 +4652,10 @@ static void em10_R1_R10FGJump(cEm10* em)
         if (w->pGondola) {
             w->pGondola->setVib();
             if ((s16) pG->pl_life > 0) {
-                SetPlDamage((int) em, plem10DmGondolaShake);
+                SetPlDamage(em, plem10DmGondolaShake);
             }
             if (pSUB && pSUB->hp > 0) {
-                SetSubDamage((int) em, (void*) subem10DmGondolaShake);
+                SetSubDamage(em, (void*) subem10DmGondolaShake);
             }
         }
         SndCall(6, 0xC, &em->pos, 0, 0, em);
@@ -4714,11 +4714,11 @@ static void em10_R1_R10FGJump(cEm10* em)
                 w->pGondola->setBreak();
                 w->pGondola->setVib();
                 if ((s16) pG->pl_life > 0) {
-                    SetPlDamage((int) em, plem10DmGondolaShake);
+                    SetPlDamage(em, plem10DmGondolaShake);
                     pPL->r_no_3 = 1;
                 }
                 if (pSUB && pSUB->hp > 0) {
-                    SetSubDamage((int) em, (void*) subem10DmGondolaShake);
+                    SetSubDamage(em, (void*) subem10DmGondolaShake);
                     pSUB->r_no_3 = 1;
                 }
                 em->dmg.m_Timer = 0x80;
@@ -11455,7 +11455,7 @@ static void plem10_ClawCriHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    em = (cEm*) pl->dmgType;
+    em = pl->pEmCatch;
     pl->subArc = em->subArc;
     switch (pl->r_no_2) {
     case 0:
@@ -11670,7 +11670,7 @@ static void plem10_C_SawHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 2);
     switch (pl->r_no_2) {
     case 0:
@@ -11687,7 +11687,7 @@ static void plem10_C_SawHit(cPlayer* pl)
             pl->r_no_2 = 4;
             break;
         }
-        em = (cEm*) pPL->dmgType;
+        em = pPL->pEmCatch;
         if (!EM_RTN(em, 1, 0x30)) {
             EndPlDamage();
             SndStop(pl->m_Work2, 0);
@@ -11699,7 +11699,7 @@ static void plem10_C_SawHit(cPlayer* pl)
         }
         break;
     case 2:
-        flag = (((cEm*) pPL->dmgType)->flag & 0x1000000) ? 0x41 : 1;
+        flag = (pPL->pEmCatch->flag & 0x1000000) ? 0x41 : 1;
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x102), 0, 5, flag, 0);
         SndStop(pl->m_Work2, 0);
         pl->r_no_2++;
@@ -11857,7 +11857,7 @@ static void plem10_C_SawCriHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    em = (cEm*) pl->dmgType;
+    em = pl->pEmCatch;
     pl->subArc = em->subArc;
     switch (pl->r_no_2) {
     case 0:
@@ -12199,7 +12199,7 @@ static void plem10_NeckHang(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    em = (cEm*) pl->dmgType;
+    em = pl->pEmCatch;
     arc = em->subArc;
     pl->subArc = arc;
     switch (pl->r_no_2) {
@@ -12212,7 +12212,7 @@ static void plem10_NeckHang(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        em = (cEm*) pPL->dmgType;
+        em = pPL->pEmCatch;
         if (!EM_RTN(em, 1, 0x34)) {
             VibSetClearType(1);
             pl->Wep->setTrans(1, 0);
@@ -12241,7 +12241,7 @@ static void plem10_NeckHang(cPlayer* pl)
         pl->r_no_2++;
     case 3:
         end = MotionMoveF(pl, 0);
-        em = (cEm*) pPL->dmgType;
+        em = pPL->pEmCatch;
         if (!EM_RTN(em, 1, 0x34)) {
             pl->Wep->setTrans(1, 0);
             EndPlDamage();
@@ -12291,7 +12291,7 @@ static void plem10_NeckHang(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
-            em = (cEm*) pPL->dmgType;
+            em = pPL->pEmCatch;
             if (!EM_RTN(em, 1, 0x34)) {
                 pl->Wep->setTrans(1, 0);
                 EndPlDamage();
@@ -12402,7 +12402,7 @@ static void subem10_NeckHang_Luis(cSubChar* sub)
     BitOn(pG->Status_flg[1], 0x10000);
     BitOn(pG->Status_flg[2], 0x20000000);
     s->dmg.set(0, 10);
-    arc = ((cEm*) s->dmgType)->subArc;
+    arc = s->pEmCatch->subArc;
     s->subArc = arc;
     switch (s->r_no_2) {
     case 0:
@@ -12413,11 +12413,11 @@ static void subem10_NeckHang_Luis(cSubChar* sub)
         s->r_no_2++;
     case 1:
         EmCatchMotionMove(s, 0.3f, 0.2f);
-        if (((cEm*) s->dmgType)->r_no_0 != 1 && ((cEm*) s->dmgType)->r_no_1 != 0x34) {
+        if (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x34) {
             EndSubDamage();
             s->dmg.set(0, 0x1E);
         } else {
-            s->r_no_2 = ((cEm*) s->dmgType)->r_no_2;
+            s->r_no_2 = s->pEmCatch->r_no_2;
         }
         break;
     case 2:
@@ -12431,7 +12431,7 @@ static void subem10_NeckHang_Luis(cSubChar* sub)
             s->dmg.set(0, 0x1E);
         } else if (s->subHideMode) {
             s->subHideMode--;
-            if (((cEm*) s->dmgType)->r_no_0 != 1 && ((cEm*) s->dmgType)->r_no_1 != 0x34) {
+            if (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x34) {
                 EndSubDamage();
                 s->dmg.set(0, 0x1E);
             }
@@ -12571,7 +12571,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    arc = ((cEm*) pl->dmgType)->subArc;
+    arc = pl->pEmCatch->subArc;
     pl->subArc = arc;
     switch (pl->r_no_2) {
     case 0:
@@ -12581,7 +12581,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        em = (cEm*) pPL->dmgType;
+        em = pPL->pEmCatch;
         if (!EM_RTN(em, 1, 0x36)) {
             VibSetClearType(1);
             EndPlDamage();
@@ -12619,7 +12619,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
         if (pl->m_Work0) {
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
-            em = (cEm*) pPL->dmgType;
+            em = pPL->pEmCatch;
             if (!EM_RTN(em, 1, 0x36)) {
                 EndPlDamage();
                 pl->dmg.set(0, 0x1E);
@@ -12777,7 +12777,7 @@ static void plem10_Backhold(cPlayer* pl)
 
     BitOn(pG->Status_flg[1], 0x8000);
     BitOn(pG->Status_flg[1], 0x2000);
-    em = (cEm*) pl->dmgType;
+    em = pl->pEmCatch;
     arc = em->subArc;
     pl->subArc = arc;
     switch (pl->r_no_2) {
@@ -12790,7 +12790,7 @@ static void plem10_Backhold(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        em = (cEm*) pPL->dmgType;
+        em = pPL->pEmCatch;
         if (!EM_RTN(em, 1, 0x37)) {
             pl->Wep->setTrans(1, 0);
             EndPlDamage();
@@ -12966,7 +12966,7 @@ static void plem10_Bombhold(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    em = (cEm*) pl->dmgType;
+    em = pl->pEmCatch;
     arc = em->subArc;
     pl->subArc = arc;
     switch (pl->r_no_2) {
@@ -12978,12 +12978,12 @@ static void plem10_Bombhold(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        if (!EM_RTN((cEm*) pPL->dmgType, 1, 0x38)) {
+        if (!EM_RTN(pPL->pEmCatch, 1, 0x38)) {
             pl->Wep->setTrans(1, 0);
             EndPlDamage();
             pl->dmg.set(0, 0x1E);
         } else {
-            pl->r_no_2 = ((cEm*) pl->dmgType)->r_no_2;
+            pl->r_no_2 = pl->pEmCatch->r_no_2;
         }
         break;
     case 2:
@@ -13342,11 +13342,11 @@ static void em10_R1_TakeAway(cEm10* em)
         v.x = X;                                                                                       \
         v.y = 0.0f;                                                                                    \
         v.z = Z;                                                                                       \
-        PSMTXMultVec(((cEm*) s->dmgType)->mat, &v, &s->pos);                                           \
+        PSMTXMultVec(s->pEmCatch->mat, &v, &s->pos);                                           \
     }                                                                                                  \
-    s->ang.y = ((cEm*) s->dmgType)->ang.y + PI;                                                        \
+    s->ang.y = s->pEmCatch->ang.y + PI;                                                        \
     s->ang.y = LIMIT_ANGLE(s->ang.y);
-#define SUB_TAKEAWAY_HOLD_CK ((u32) (((cEm*) s->dmgType)->r_no_0 - 2) <= 1)
+#define SUB_TAKEAWAY_HOLD_CK ((u32) (s->pEmCatch->r_no_0 - 2) <= 1)
 #define SUB_TAKEAWAY_SCREAM                                                                            \
     {                                                                                                  \
         int t = s->subX534;                                                                            \
@@ -13363,7 +13363,7 @@ static void em10_R1_TakeAway(cEm10* em)
             }                                                                                          \
         }                                                                                              \
     }                                                                                                  \
-    s->r_no_2 = ((cEm*) s->dmgType)->r_no_2;
+    s->r_no_2 = s->pEmCatch->r_no_2;
 
 // Ashley's half of TakeAway (SetSubDamage routine): held on the Ganado's shoulder
 // (SUB_TAKEAWAY_POS), screaming every 60..90 frames, following his climb / jump / fall motions
@@ -13373,7 +13373,7 @@ static void subem10_TakeAway(cSubChar* sub)
     cSubChar* s = pSUB;
     int r;
 
-    s->subArc = ((cEm*) s->dmgType)->subArc;
+    s->subArc = s->pEmCatch->subArc;
     BitOn(pGS->Status_flg[1], 0x10000);
     BitOn(pG->Status_flg[2], 0x20000000);
     switch (s->r_no_2) {
@@ -13401,7 +13401,7 @@ static void subem10_TakeAway(cSubChar* sub)
         } else {
             r = MotionMoveF(s, 0);
         }
-        if (em10DeadCk((cEm*) s->dmgType)) {
+        if (em10DeadCk(s->pEmCatch)) {
             EndSubDamage();
         }
         if (r) {
@@ -13486,7 +13486,7 @@ static void subem10_TakeAway(cSubChar* sub)
                     }
                 }
             }
-            s->r_no_2 = ((cEm*) s->dmgType)->r_no_2;
+            s->r_no_2 = s->pEmCatch->r_no_2;
         }
         break;
     case 0xA:
@@ -13522,7 +13522,7 @@ static void subem10_TakeAway(cSubChar* sub)
         if (SUB_TAKEAWAY_HOLD_CK) {
             s->r_no_2 = 0xA;
         } else {
-            s->r_no_2 = ((cEm*) s->dmgType)->r_no_2;
+            s->r_no_2 = s->pEmCatch->r_no_2;
         }
         break;
     case 0x10:
@@ -13539,7 +13539,7 @@ static void subem10_TakeAway(cSubChar* sub)
         break;
     }
     s->x3A8 = s->pos;
-    if ((((cEm*) s->dmgType)->be_flag & 0x201) != 1) {
+    if ((s->pEmCatch->be_flag & 0x201) != 1) {
         s->pos.y = SatMgr.getFloor(&s->pos, 600.0f, 100000.0f, 0, 0);
         EndSubDamage();
     }
@@ -23336,7 +23336,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
         switch ((u32) no) {
         case 2:
             if ((s16) pG->pl_life > 0) {
-                SetPlDamage((int) em, plemDmMStar);
+                SetPlDamage(em, plemDmMStar);
                 if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f)) < 1.5707964f) {
                     FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f));
                     pPL->r_no_3 = 0;
@@ -23354,7 +23354,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             }
             break;
         case 3:
-            SetPlDamage((int) em, plemDmStun);
+            SetPlDamage(em, plemDmStun);
             break;
         case 4:
             pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
@@ -23364,7 +23364,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             if ((s16) pG->pl_life <= 0) {
                 em10PlHeadLost();
             } else {
-                SetPlDamage((int) em, plemDmMStar);
+                SetPlDamage(em, plemDmMStar);
                 pPL->r_no_3 = 1;
                 if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f)) < 1.5707964f) {
                     FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f));
@@ -23651,7 +23651,7 @@ extern "C" int em10TorchFrameAtkCk(cEm10* em)
         w->Atk_ck = 1;
         SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
         Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_NOT_NEAR, 30);
-        SetPlDamage((int) em, plemDmFrame);
+        SetPlDamage(em, plemDmFrame);
         pPL->dmg.set(0, 30);
         return 1;
     }
@@ -23725,7 +23725,7 @@ void em10DragonFireCk(cEm10* em)
                 SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
                 Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
                 pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
-                SetPlDamage((int) em, plemDmFrame);
+                SetPlDamage(em, plemDmFrame);
                 pPL->dmg.set(0, 0x1E);
             }
         }
@@ -23776,7 +23776,7 @@ void em10DragonFireCk(cEm10* em)
 // frame scaled by em10GetPower, dies with the burn death when hp runs out; kick camera meanwhile.
 static void plemDmFrame(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     int end;
     int dmg;
 
@@ -23819,8 +23819,8 @@ static void plemDmFrame(cPlayer* pl)
 // Player damage routine of the room 10F gondola shake (evtMot[3] of the jumping Ganado): stagger and return.
 static void plem10DmGondolaShake(cPlayer* pl)
 {
-    Em10Work* w = EM10_WK((cEm10*) pPL->dmgType);
-    cEm* em = (cEm*) pl->dmgType;
+    Em10Work* w = EM10_WK(pPL->pEmCatch);
+    cEm* em = pl->pEmCatch;
 
     pl->subArc = em->subArc;
     pl->dmg.set(0, 5);
@@ -23883,7 +23883,7 @@ static void subem10DmGondolaShake(cSubChar* sub)
 // mirrored by the hit side, then EndPlDamage.
 static void plemDmMStar(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     int flag;
 
     pl->subArc = em->subArc;
@@ -23916,7 +23916,7 @@ static void plemDmMStar(cPlayer* pl)
 // by it collapses at frame 17.
 static void plemDmStun(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
 
     pl->subArc = em->subArc;
     pl->dmg.set(0, 2);
@@ -24289,13 +24289,13 @@ static void em10KickAction(cEm10* em)
 {
     switch (pG->pl_type) {
     default:
-        SetPlDamage((int) em, plem10Kick);
+        SetPlDamage(em, plem10Kick);
         break;
     case 5:
-        SetPlDamage((int) em, plem10Showtay);
+        SetPlDamage(em, plem10Showtay);
         break;
     case 4:
-        SetPlDamage((int) em, plem10Kick2);
+        SetPlDamage(em, plem10Kick2);
         break;
     case 3:
         EmRoutineSet(em, 2, 0x15, 0, 0);
@@ -24315,15 +24315,15 @@ static void em10KneeDownAction(cEm10* em)
 {
     switch (pG->pl_type) {
     case 4:
-        SetPlDamage((int) em, plem10Kick2);
+        SetPlDamage(em, plem10Kick2);
         break;
     case 3:
     case 5:
-        SetPlDamage((int) em, plem10Kick);
+        SetPlDamage(em, plem10Kick);
         pPL->r_no_3 = 1;
         break;
     default:
-        SetPlDamage((int) em, plem10Kick);
+        SetPlDamage(em, plem10Kick);
         pPL->r_no_3 = 1;
         break;
     }
@@ -24338,7 +24338,7 @@ static void em10KneeDownAction(cEm10* em)
 // 0x14 = the hand weapon 0x14 damage) 1200 units around, scoring a critical; kick camera by r_no_3.
 static void plem10Kick(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     Vec v;
 
     pl->subArc = em->subArc;
@@ -24388,7 +24388,7 @@ static void plem10Kick(cPlayer* pl)
     case 1:
         if (pl->m_Work1) {
             pl->m_Work1--;
-            pl->ang.y += Muku(&pl->pos, &((cEm*) pl->dmgType)->pos, pl->ang.y, 0.19634955f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             if (pl->m_Work1 == 0) {
                 SndCall(1, 0x11, &pl->pos, 0, 0, pPL);
@@ -24432,7 +24432,7 @@ static void plem10Kick(cPlayer* pl)
 // Player routine of Krauser's kick (motion 0x29D/0x29E): two hit sweeps, kind 0x24 then 0x14.
 static void plem10Kick2(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     Vec v;
 
     pl->subArc = em->subArc;
@@ -24451,7 +24451,7 @@ static void plem10Kick2(cPlayer* pl)
     case 1:
         if (pl->m_Work1) {
             pl->m_Work1--;
-            pl->ang.y += Muku(&pl->pos, &((cEm*) pl->dmgType)->pos, pl->ang.y, 0.19634955f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (pl->seFlags28B & 4) {
@@ -24568,7 +24568,7 @@ static void em10FSAction(cEm10* em)
     if (!em10DmgDeadCk(&em->dmg)) {
         if (pG->pl_type == 4) {
             EmRoutineSet(em, 2, 0x14, 0, 0);
-            SetPlDamage((int) em, plem10KneeKick);
+            SetPlDamage(em, plem10KneeKick);
             em->dmg.set(0, 0x1E);
             pPL->dmg.set(0, 0x1E);
             if (pSUB && !em10DmgDeadCk(&pSUB->dmg)) {
@@ -24576,7 +24576,7 @@ static void em10FSAction(cEm10* em)
             }
         } else {
             EmRoutineSet(em, 2, 0x10, 0, 0);
-            SetPlDamage((int) em, plem10FS);
+            SetPlDamage(em, plem10FS);
             em->dmg.set(0, 0x1E);
             pPL->dmg.set(0, 0x1E);
             if (pSUB && !em10DmgDeadCk(&pSUB->dmg)) {
@@ -24590,7 +24590,7 @@ static void em10FSAction(cEm10* em)
 // Dm_FS lands in sync), critical scored.
 static void plem10FS(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
 
     pl->subArc = em->subArc;
     pl->dmg.set(0, 0x1E);
@@ -24623,7 +24623,7 @@ static void plem10FS(cPlayer* pl)
 // Player routine of the knee kick on a kneeling Ganado (motion 0x2B4, hits at frames 18 / 36).
 static void plem10KneeKick(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
 
     pl->subArc = em->subArc;
     pl->dmg.set(0, 0x1E);
@@ -24660,7 +24660,7 @@ static void plem10KneeKick(cPlayer* pl)
 // Ganado's Dm_NeckBreak plays in sync; hands and weapon restored at the end.
 static void plem10NeckBreak(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     int end;
 
     pl->subArc = em->subArc;
@@ -24745,7 +24745,7 @@ static void plem10NeckBreakCamMove(cPlayer* pl, int a)
 // weapon 0x25 (PlWepHitCheck3, 800 units) -> the Ganado's Dm_Showtay.
 static void plem10Showtay(cPlayer* pl)
 {
-    cEm* em = (cEm*) pl->dmgType;
+    cEm* em = pl->pEmCatch;
     f32 f;
 
     pl->subArc = em->subArc;
@@ -24769,7 +24769,7 @@ static void plem10Showtay(cPlayer* pl)
     case 1:
         if (pl->m_Work1) {
             pl->m_Work1--;
-            pl->ang.y += Muku(&pl->pos, &((cEm*) pl->dmgType)->pos, pl->ang.y, 0.19634955f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             if (pl->m_Work1 == 0) {
                 SndCall(1, 0x11, &pl->pos, 0, 0, pPL);

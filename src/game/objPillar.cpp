@@ -551,7 +551,7 @@ void EscapeAction(cObjPillar* obj)
 
     if (!(pG->Scenario_flg[0] & 0x200)) {
         w->Act_ck = one;
-        SetPlDamage((int) obj, plemEscape);
+        SetPlDamage((cEm*) obj, plemEscape);
         GameAddPoint(9);
     }
 }
@@ -562,7 +562,7 @@ void EscapeAction(cObjPillar* obj)
 static void plemEscape(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjPillar* obj = (cObjPillar*) em->dmgType;
+    cObjPillar* obj = (cObjPillar*) em->pEmCatch;
     PillarWork* w = &obj->pillar;
     f32 ang;
 
@@ -655,7 +655,7 @@ void EscapeAction2(cObjPillar* obj)
 
     if (!(pG->Scenario_flg[0] & 0x200)) {
         w->Act_ck = 1;
-        SetPlDamage((int) obj, plemEscape2);
+        SetPlDamage((cEm*) obj, plemEscape2);
         obj->r_no_0 = 3;
         obj->r_no_1 = 0;
         obj->r_no_2 = 0;
@@ -668,7 +668,7 @@ void EscapeAction2(cObjPillar* obj)
 void plemEscape2(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjPillar* obj = (cObjPillar*) em->dmgType;
+    cObjPillar* obj = (cObjPillar*) em->pEmCatch;
     PillarWork* w = &obj->pillar;
     u8 step;
 

@@ -114,7 +114,6 @@ static void subBoatR10eIn2();
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
 #define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
 #define PL_BOAT(pl) ((cPl0f*) (pl)->m_pBoat)
-#define SUB_BOAT(sub) ((cPl0f*) (sub)->dmgType)
 #define ROPE(w) ((cObj*) (w)->pRope)
 
 // The boss (em2f) work as far as the boat reads it.
@@ -529,7 +528,7 @@ static void pl0f_R1_RideStart(cPl0f* em)
     w->Be_flg |= 1;
     w->Seid_engine = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
     if (pSUBS) {
-        SetSubDamage((int) em, (void*) subBoatRide);
+        SetSubDamage(em, (void*) subBoatRide);
         pSUB->r_no_2 = 2;
     }
     PlRoutineSet(em, 1, 1, 0, 0);
@@ -757,7 +756,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         BoatMoveFunc = PlBoatMove; \
         PlRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
-            SetSubDamage((int) em, (void*) subFunc); \
+            SetSubDamage(em, (void*) subFunc); \
         } \
         w->Timer = t1; \
         w->Timer2 = t2; \
@@ -796,7 +795,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         PL0F_WK(em)->Be_flg &= ~1; \
         SndStop(PL0F_WK(em)->Seid_engine, 0); \
         if (pSUB) { \
-            SetSubDamage((int) em, (void*) subBoatGetoff); \
+            SetSubDamage(em, (void*) subBoatGetoff); \
         } \
     } \
 }
@@ -1653,7 +1652,7 @@ static void pl0fActRide(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0, 0);
     PlRoutineSet(em, 1, 1, 0, 0);
     if (pSUB) {
-        SetSubDamage((int) em, (void*) subBoatRide);
+        SetSubDamage(em, (void*) subBoatRide);
     }
 }
 
@@ -1665,7 +1664,7 @@ static void pl0fActRideR10d(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0xE, 0);
     PlRoutineSet(em, 1, 9, 0, 0);
     if (pSUB) {
-        SetSubDamage((int) em, (void*) subBoatRide);
+        SetSubDamage(em, (void*) subBoatRide);
     }
 }
 
@@ -1677,7 +1676,7 @@ static void pl0fActRideR10e(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0x10, 0);
     PlRoutineSet(em, 1, 0xB, 0, 0);
     if (pSUB) {
-        SetSubDamage((int) em, (void*) subBoatRide);
+        SetSubDamage(em, (void*) subBoatRide);
     }
 }
 
@@ -1689,7 +1688,7 @@ static void pl0fActRideR10e2(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0x12, 0);
     PlRoutineSet(em, 1, 0xD, 0, 0);
     if (pSUB) {
-        SetSubDamage((int) em, (void*) subBoatRide);
+        SetSubDamage(em, (void*) subBoatRide);
     }
 }
 
@@ -1707,7 +1706,7 @@ static void pl0fActGetOff(cPl0f* em)
     w->Be_flg &= ~1;
     SndStop(w->Seid_engine, 0);
     if (pSUB) {
-        SetSubDamage((int) em, (void*) subBoatGetoff);
+        SetSubDamage(em, (void*) subBoatGetoff);
     }
 }
 
@@ -3779,14 +3778,14 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
 }
 
 // Partner damage-routine handlers (SetSubDamage(boat, fn); the boat pointer sits in the partner's
-// dmgType): each swaps in the boat archive, damage type 0x1E, runs its r_no_2 steps and restores
+// pEmCatch): each swaps in the boat archive, damage type 0x1E, runs its r_no_2 steps and restores
 // the partner's own archive.
 // Boarding (Ashley on the ferry): the step-in motion 0x2B from beside the boat climbing the height
 // difference over 20 frames, then step 2 the seated lean blend in step with the boat's rider.
 static void subBoatRide()
 {
     cSubChar* sub = pSUB;
-    cPl0f* boat = SUB_BOAT(sub);
+    cPl0f* boat = (cPl0f*)sub->pEmCatch;
     Pl0fWork* w = PL0F_WK(boat);
     Vec v;
 
@@ -3846,7 +3845,7 @@ static void subBoatRide()
 static void subBoatGetoff()
 {
     cSubChar* sub = pSUB;
-    cPl0f* boat = SUB_BOAT(sub);
+    cPl0f* boat = (cPl0f*)sub->pEmCatch;
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
@@ -3878,7 +3877,7 @@ static void subBoatGetoff()
 #define SUB_BOAT_ROOM_IN() \
 { \
     cSubChar* sub = pSUB; \
-    cPl0f* boat = SUB_BOAT(sub); \
+    cPl0f* boat = (cPl0f*)sub->pEmCatch; \
     Pl0fWork* w = PL0F_WK(boat); \
  \
     sub->subArc = boat->subArc; \

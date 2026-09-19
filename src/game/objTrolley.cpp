@@ -236,7 +236,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     case 5:
         if (MotionMove(obj, 0) && w->Ride_pl) {
             w->Ride_pl = 0;
-            SetPlDamage((int) obj, plobjTrolleyDie);
+            SetPlDamage((cEm*) obj, plobjTrolleyDie);
             obj->r_no_0 = 2;
             obj->r_no_1 = 0;
             obj->r_no_2 = 0;
@@ -382,7 +382,7 @@ void objTrolleySatSet(cObjTrolley* obj)
 void objTrolleyEscapeAction(cObjTrolley* obj)
 {
     obj->trolley.Ride_pl = 0;
-    SetPlDamage((int) obj, plobjTrolleyEscape);
+    SetPlDamage((cEm*) obj, plobjTrolleyEscape);
     obj->r_no_0 = 2;
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
@@ -395,11 +395,11 @@ void objTrolleyEscapeAction(cObjTrolley* obj)
 void plobjTrolleyEscape(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjTrolley* obj = (cObjTrolley*) em->dmgType;
+    cObjTrolley* obj = (cObjTrolley*) em->pEmCatch;
     TrolleyWork* w = &obj->trolley;
     cModel* parts = em->getPartsPtr(4);
 
-    em->subArc = ((cEm*) pPL->dmgType)->subArc;
+    em->subArc = pPL->pEmCatch->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -501,11 +501,11 @@ void plobjTrolleyEscape(cPlayer* pl)
 void plobjTrolleyDie(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
-    cObjTrolley* obj = (cObjTrolley*) em->dmgType;
+    cObjTrolley* obj = (cObjTrolley*) em->pEmCatch;
     TrolleyWork* w = &obj->trolley;
     u8 step;
 
-    em->subArc = ((cEm*) pPL->dmgType)->subArc;
+    em->subArc = pPL->pEmCatch->subArc;
     em->dmg.set(0, 0xF);
     step = em->r_no_2;
     switch (step) {

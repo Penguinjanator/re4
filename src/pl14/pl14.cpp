@@ -1471,7 +1471,7 @@ void cSubLuis::equipWeapon()
 // frames when the attacker is still marked, back to action mode 0 and the routine ended.
 void cSubLuis::endDamage()
 {
-    if ((flags & 0x40) && dmgType && ((cEm*) dmgType)->dmg.m_Timer) cnt = 30;
+    if ((flags & 0x40) && pEmCatch && ((cEm*) pEmCatch)->dmg.m_Timer) cnt = 30;
     flags &= ~0x40;
     action.set(0);
     routine.end();

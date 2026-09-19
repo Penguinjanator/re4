@@ -766,7 +766,7 @@ static void plem25_Bite(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = ((cEm*) pPL->dmgType)->subArc;
+    pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x2F), 0, 0, 1, 0);

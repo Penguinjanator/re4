@@ -1174,7 +1174,7 @@ void pl_fall_ok(cPlayer* pl)
 {
     PlArc* arc;
 
-    arc = ((cEm*) pPL->dmgType)->subArc;
+    arc = pPL->pEmCatch->subArc;
     pl->subArc = arc;
     switch (pl->r_no_1) {
     case 0:
@@ -1204,7 +1204,7 @@ void cSubChar::moveFall()
         FSet(pPL->ang.y, pPL->ang.y + 4.712389f);
         FSet(pPL->ang.y, LIMIT_ANGLE(pPL->ang.y));
         pPL->cCoord::matUpdate();
-        SetPlDamage((int) this, (void (*)(cPlayer*)) pl_fall_ok0);
+        SetPlDamage(this, (void (*)(cPlayer*)) pl_fall_ok0);
         pPL->dmg.set(0, 0x80);
         if (SUBFLAG2(this)->check(7)) {
             m = SUB_MOT(subSelf, 0x46);
@@ -1233,7 +1233,7 @@ void cSubChar::moveFall()
         FSet(ang.y, LIMIT_ANGLE(ang.y));
         PSMTXMultVec(pPL->mat, &v_ok, &pos);
         setPos(&pos);
-        SetPlDamage((int) this, pl_fall_ok);
+        SetPlDamage(this, pl_fall_ok);
         pPL->dmg.set(0, 0x80);
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x3F), SUB_MOT(subSelf, 0x5F), 7, 5, 0);
         AtariOff(&atari, 0xFEFF);

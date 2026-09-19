@@ -87,11 +87,6 @@ static void em22_R1_Die_Lost(cEm22* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm22*) (pl)->dmgType)
-// The same through the global player pointer (the catch callbacks read it that way).
-#define PL_EM_G ((cEm22*) pPL->dmgType)
-
 // Struct-member views of the player / partner / pG pointers: a load through them is not hoisted above
 // the preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
@@ -1423,7 +1418,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
 
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM_G->subArc;
+    pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x35), 0, 0, 1, 0);
@@ -1437,7 +1432,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
             SndCall(5, 0xC, &pl->pos, 0, 0, pl);
         }
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        pl->r_no_2 = PL_EM_G->r_no_2;
+        pl->r_no_2 = pPL->pEmCatch->r_no_2;
         break;
     case 2: {
         Vec v;
@@ -1446,17 +1441,17 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         v.y = 0.0f;
         v.z = 235.52f;
         pl->ang.x = 0.0f;
-        y = PL_EM(pl)->ang.y;
+        y = pl->pEmCatch->ang.y;
         pl->ang.z = 0.0f;
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
-        PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
+        PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x36), 0, 3, 1, 0);
         pl->r_no_2++;
     }
     case 3:
         MotionMoveF(pl, 0);
-        pl->r_no_2 = PL_EM_G->r_no_2;
+        pl->r_no_2 = pPL->pEmCatch->r_no_2;
         break;
     case 4:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x37), 0, 3, 1, 0);
@@ -1567,7 +1562,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
         em22ParaAtkHitPosSet(em);
         MotionSetCore(em, MOTION(em), ARC(0x4F), 0, 3, 1, 0);
         EmCatchPLSet(em, 0.0f, 2, (int) plem22_JumpAtkHit, -41.59f, 0.0f, 638.16f);
-        SetPlDamage((int) em, plem22_ParaAtkHit);
+        SetPlDamage(em, plem22_ParaAtkHit);
         em22ParaSetMotAtkHit(em);
         SndCall(8, 0x2F, &em->pos, em->id, 0, em);
         PlSetDamageSe(0);
@@ -1591,10 +1586,10 @@ static void plem22_ParaAtkHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM_G->subArc;
+    pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, PI);
+        pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, PI);
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4D), 0, 3, 1, 0);
         PlSetFace(1);

@@ -94,9 +94,6 @@ static void plemSit(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm38*) (pl)->dmgType)
-
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
 // stores through the work pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
@@ -819,7 +816,7 @@ static void em38_R1_AtkHit(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 0, 1, 0);
-        SetPlDamage((int) em, plem38_AtkHit);
+        SetPlDamage(em, plem38_AtkHit);
         w->blendRate = 0.0f;
         EstSet((int) em, -1, 0, 0, 0x2E, 8, 0, 0, (u32) em, 0);
         SndCall(8, 0x21, &em->pos, em->id, 0, em);
@@ -835,7 +832,7 @@ static void plem38_AtkHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0: {
         Vec v;
@@ -844,8 +841,8 @@ static void plem38_AtkHit(cPlayer* pl)
         v.x = -106.0f;
         v.y = -5817.0f;
         v.z = 13351.18f;
-        PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-        pl->ang.y = PL_EM(pl)->ang.y + PI;
+        PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
+        pl->ang.y = pl->pEmCatch->ang.y + PI;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x46), 0, 0, 1, 0);
         pG->pl_life = 0;
@@ -1390,10 +1387,10 @@ static void em38_R1_T_CatchHit(cEm38* em)
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 1, 0);
-            SetPlDamage((int) em, plem38_CatchHit);
+            SetPlDamage(em, plem38_CatchHit);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 0x41, 0);
-            SetPlDamage((int) em, plem38_CatchHit);
+            SetPlDamage(em, plem38_CatchHit);
             pPL->r_no_3 = 1;
         }
         w->timer = 91;
@@ -1419,7 +1416,7 @@ static void plem38_CatchHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
     pl->dmg.set(0, 10);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         pl->atari.throughOn();
@@ -1429,8 +1426,8 @@ static void plem38_CatchHit(cPlayer* pl)
             v.x = -7405.05f;
             v.y = -2000.0f;
             v.z = 11349.85f;
-            PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-            pl->ang.y = PL_EM(pl)->ang.y + PI;
+            PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
+            pl->ang.y = pl->pEmCatch->ang.y + PI;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 0x41, 0);
         } else {
@@ -1439,8 +1436,8 @@ static void plem38_CatchHit(cPlayer* pl)
             v.x = 7405.05f;
             v.y = -2000.0f;
             v.z = 11349.85f;
-            PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-            pl->ang.y = PL_EM(pl)->ang.y + PI;
+            PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
+            pl->ang.y = pl->pEmCatch->ang.y + PI;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 1, 0);
         }
@@ -2281,7 +2278,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
             switch (no) {
             case 0:
             case 2:
-                SetPlDamage((int) em, plemDmStamp);
+                SetPlDamage(em, plemDmStamp);
                 SndCall(8, 0xD, &em->pos, em->id, 0, em);
                 break;
             case 3:
@@ -2292,7 +2289,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
             case 4:
                 // Allocation lever (loop notes, no code): the 8th weighted `em` ref ranks em above
                 // `no` in global-alloc (em r31, no r30).
-                do { SetPlDamage((int) em, plemDmStamp); } while (0);
+                do { SetPlDamage(em, plemDmStamp); } while (0);
                 break;
             }
         }
@@ -2308,7 +2305,7 @@ static void plemDmStamp(cPlayer* pl)
 {
     pl->dmg.set(0, 10);
     BitOn(pG->Status_flg[1], 0x8000);
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
@@ -2371,7 +2368,7 @@ static void em38EscapeAction(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    SetPlDamage((int) em, plemEscape);
+    SetPlDamage(em, plemEscape);
     w->escaped = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -2381,7 +2378,7 @@ static void em38EscapeAction(cEm38* em)
 // the tentacle, with the event camera (em38EscapeCamMove); ends when the motion finishes.
 static void plemEscape(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0: {
@@ -2390,7 +2387,7 @@ static void plemEscape(cPlayer* pl)
         int side;
         int hit;
 
-        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->ang.y, PI) > 0.0f) {
+        if (Muku(&pl->pEmCatch->pos, &pl->pos, pl->ang.y, PI) > 0.0f) {
             side = 1;
         } else {
             side = 0;
@@ -2439,14 +2436,14 @@ static void plemEscape(cPlayer* pl)
     }
     case 1:
         if (pl->m_Work2) {
-            em38EscapeCamMove(PL_EM(pl));
+            em38EscapeCamMove((cEm38*)pl->pEmCatch);
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
                 EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
         }
         if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
@@ -2510,7 +2507,7 @@ static void em38BackjumpAction(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    SetPlDamage((int) em, plemBackjump);
+    SetPlDamage(em, plemBackjump);
     w->escaped = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -2520,7 +2517,7 @@ static void em38BackjumpAction(cEm38* em)
 // jump / landing sounds; ends when the motion finishes.
 static void plemBackjump(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
@@ -2534,7 +2531,7 @@ static void plemBackjump(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
+            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (pl->frame > 10.7f && pl->frame < 11.3f) {
@@ -2567,7 +2564,7 @@ static void em38SitAction(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    SetPlDamage((int) em, plemSit);
+    SetPlDamage(em, plemSit);
     w->escaped = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
@@ -2576,7 +2573,7 @@ static void em38SitAction(cEm38* em)
 // slam, an escape rank point, and the damage ends with the motion.
 static void plemSit(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pl)->subArc;
+    pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:

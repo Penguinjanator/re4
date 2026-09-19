@@ -83,6 +83,11 @@ static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v)
     d = v;
 }
 
+static inline void PSet(cEm*& d, cEm* v)
+{
+    d = v;
+}
+
 // Reference store helpers (see PSet above): keep the store after preceding loads in the target order.
 static inline void ISet(int& d, int v)
 {
@@ -2474,10 +2479,10 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     }
     em->x3A8 = em->pos;
     pPL->x3A8 = pPL->pos;
-    ISet(em->dmgType, (int) pPLS);
-    ISet(pPL->dmgType, (int) em);
+    PSet(em->pEmCatch, pPLS);
+    PSet(pPL->pEmCatch, em);
     pPL->subArc = em->subArc;
-    SetPlDamage((int) em, (void (*)(cPlayer*)) a);
+    SetPlDamage(em, (void (*)(cPlayer*)) a);
 }
 
 // Never called (dead-stripped by the original linker; only its PI pool entry survives).
@@ -2533,10 +2538,10 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     }
     em->x3A8 = em->pos;
     sub->x3A8 = sub->pos;
-    em->dmgType = (int) sub;
-    sub->dmgType = (int) em;
+    em->pEmCatch = sub;
+    sub->pEmCatch = em;
     sub->subArc = em->subArc;
-    SetSubDamage((int) em, (void*) a);
+    SetSubDamage(em, (void*) a);
 }
 
 // Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by
@@ -2546,7 +2551,7 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
 // is tied into ry / rate by local-alloc; rate then ranks below rate2 (f29 / f30).
 int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
 {
-    cEm* target = (cEm*) em->dmgType;
+    cEm* target = em->pEmCatch;
     Vec d;
     f32 ry;
     f32 tmp;

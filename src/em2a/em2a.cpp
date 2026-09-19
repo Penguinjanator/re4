@@ -67,9 +67,6 @@ static void em2a_R1_Trap2Bomb(cEm2a* em);
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
 
-// The enemy a player / partner damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm*) (pl)->dmgType)
-
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
     cPlayer* p;
@@ -473,7 +470,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
 // Player catch routine of the bear trap: the leg-caught motion, 300 damage, then EndPlDamage.
 static void plem2a_Trap1Bite(cPlayer* pl)
 {
-    pl->subArc = PL_EM(pPL)->subArc;
+    pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x10), (int) PL_ARC(0x11), 5, 1, 0);
@@ -553,7 +550,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
 {
     cSubChar* sub = pSUB;
 
-    sub->subArc = PL_EM(sub)->subArc;
+    sub->subArc = sub->pEmCatch->subArc;
     pGS->Status_flg[2] |= 0x20000000;
     switch (sub->r_no_2) {
     case 0:
@@ -612,18 +609,18 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
 // both damage-held.
 static void em2aResuceAshleyAction(cSubChar* sub)
 {
-    SetPlDamage(sub->dmgType, plemResuceAshley);
+    SetPlDamage(sub->pEmCatch, plemResuceAshley);
     sub->dmg.m_Timer = 10;
     pPL->dmg.m_Timer = 10;
     sub->r_no_2 = 4;
-    PL_EM(sub)->r_no_2 = 4;
+    sub->pEmCatch->r_no_2 = 4;
 }
 
 // Player routine of the rescue: kneels and opens the trap (rescue camera plem2aTrapCamMove), then
 // EndPlDamage.
 static void plemResuceAshley(cPlayer* pl)
 {
-    cEm* em = PL_EM(pl);
+    cEm* em = pl->pEmCatch;
     Mtx m;
     Vec v;
 

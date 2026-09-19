@@ -53,9 +53,6 @@ static void plemTrapCancel(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
-#define PL_EM(pl) ((cEm*) (pl)->dmgType)
-
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
 // stores through the work pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
@@ -966,7 +963,7 @@ static void em21TrapCancelAction(cEm21* em)
 {
     pPL->dmg.m_Timer = 2;
     em->dmg.m_Timer = 2;
-    SetPlDamage((int) em, plemTrapCancel);
+    SetPlDamage(em, plemTrapCancel);
     EmRoutineSet(em, 1, 6, 0, 0);
 }
 
@@ -974,10 +971,10 @@ static void em21TrapCancelAction(cEm21* em)
 // trap camera, then EndPlDamage.
 static void plemTrapCancel(cPlayer* pl)
 {
-    cEm* em = PL_EM(pl);
+    cEm* em = pl->pEmCatch;
     Vec v;
 
-    pl->subArc = PL_EM(pPL)->subArc;
+    pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
         v.x = 431.86002f;

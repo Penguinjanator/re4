@@ -297,8 +297,8 @@ void SubCharSetHand(int no)
 }
 
 // Custom damage routine: `func` becomes routine 0 == 4 and runs each frame until EndPlDamage;
-// `type` is kept in dmgType (often the attacking object). 10 invulnerable frames.
-void SetPlDamage(int type, void (*func)(cPlayer*))
+// `type` is kept in pEmCatch (often the attacking object). 10 invulnerable frames.
+void SetPlDamage(cEm* em, void (*func)(cPlayer*))
 {
     cPlayer* pl = pPL;
 
@@ -306,7 +306,7 @@ void SetPlDamage(int type, void (*func)(cPlayer*))
     Pl_func_tbl[4] = func;
     PlSetRoutine(4, 0, 0, 0);
     pl->dmg.set(0, 10);
-    pl->dmgType = type;
+    pl->pEmCatch = em;
 }
 
 // Ends a custom damage routine: back to routine 0/0, damage state restored, collision on again
@@ -360,8 +360,8 @@ void SetSubBulldozer(int a, int b)
 }
 
 // Partner damage routine (r_no_0 4): Ashley (id 3) runs the em damage function; the other partners
-// play `mot` (subFlags58C 0x40). dmgType = type.
-void SetSubDamage(int type, void* mot)
+// play `mot` (subFlags58C 0x40). pEmCatch = type.
+void SetSubDamage(cEm* em, void* mot)
 {
     cSubChar* sub = pSUB;
 
@@ -375,7 +375,7 @@ void SetSubDamage(int type, void* mot)
         sub->r_no_2 = 0;
         sub->r_no_3 = 0;
         sub->dmg.set(0, 10);
-        sub->dmgType = type;
+        sub->pEmCatch = em;
     } else {
         sub->subMot0 = mot;
         sub->subFlags58C |= 0x40;
@@ -384,7 +384,7 @@ void SetSubDamage(int type, void* mot)
         sub->r_no_2 = 0;
         sub->r_no_3 = 0;
         sub->dmg.set(0, 10);
-        sub->dmgType = type;
+        sub->pEmCatch = em;
     }
 }
 

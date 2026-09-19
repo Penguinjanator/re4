@@ -199,7 +199,7 @@ int R226CalcActiveEmWarp();
 static void SceBgmCheck();
 static void playerRunMovePassage(cPlayer* pl);
 static void playerRunMoveBridge(cPlayer* pl);
-void playerRunDieSet(int type, int which);
+void playerRunDieSet(cEm* em, int which);
 static void playerRunDiePassage(cPlayer* pl);
 static void playerRunDieBridge(cPlayer* pl);
 void playerRunCamInitBridge();
@@ -868,7 +868,7 @@ static void R226EventRoboWalkPassageStart()
         }
         SceSleep(1);
     }
-    SetPlDamage((int) robo, playerRunMovePassage);
+    SetPlDamage((cEm*) robo, playerRunMovePassage);
     cObjRoboSetEndEvent(robo, 0);
     rw->r_no_0 = 2;
     rw->step = 0;
@@ -1002,7 +1002,7 @@ static void R226EventRoboWalkBridgeStart()
         robo->WalkSequence(robo, 1);
         SceSleep(1);
     }
-    SetPlDamage((int) robo, playerRunMoveBridge);
+    SetPlDamage((cEm*) robo, playerRunMoveBridge);
     cObjRoboSetEndEvent(robo, 0);
     rw->r_no_0 = 4;
     rw->step = 0;
@@ -1146,7 +1146,7 @@ static void SceBgmCheck()
 // SetPlDamage routine: the player runs through the passage ahead of the statue.
 static void playerRunMovePassage(cPlayer* pl)
 {
-    cObjRobo* robo = (cObjRobo*) pl->dmgType;
+    cObjRobo* robo = (cObjRobo*) pl->pEmCatch;
     RoboWork* rw = &robo->robo;
     void* data = ROOM_ARC_PTR(pG->pRoom, 0x2C);
     void* mot[8] = {ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30),
@@ -1376,15 +1376,15 @@ static void playerRunMoveBridge(cPlayer* pl)
 
 // The statue caught the player: rumble + quake, then the crush death routine for the passage (which 0)
 // or the bridge (which 1) via SetPlDamage.
-void playerRunDieSet(int type, int which)
+void playerRunDieSet(cEm* em, int which)
 {
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     if (which == 0) {
-        SetPlDamage(type, playerRunDiePassage);
+        SetPlDamage(em, playerRunDiePassage);
     }
     if (which == 1) {
-        SetPlDamage(type, playerRunDieBridge);
+        SetPlDamage(em, playerRunDieBridge);
     }
 }
 

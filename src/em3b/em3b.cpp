@@ -867,7 +867,7 @@ void em3bRunDownCkTruck(cEm3b* em)
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
                 FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
                 pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);
-                SetSubDamage((int) em, (void*) subem3bRunDown);
+                SetSubDamage(em, (void*) subem3bRunDown);
                 SndCall(1, 0x4B, &pSUB->pos, 0, 0, 0);
                 break;
             }
@@ -957,7 +957,7 @@ static void subem3bRunDown()
 {
     cSubChar* sub = pSUB;
     int st = sub->r_no_2;
-    PlArc* arc = ((cEm*) sub->dmgType)->subArc;
+    PlArc* arc = sub->pEmCatch->subArc;
 
     sub->subArc = arc;
     switch (st) {
