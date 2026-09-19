@@ -239,9 +239,16 @@ public:
 
 struct Global {
     u32 Debug_flg[4];
+    u32 System_flg[4];
     f32 mot_speed;
 };
 extern Global* pG;
+// include/global.h flag accessors (the host keeps every flag clear): bit `no` of a u32 flag array,
+// MSB first, as the game's FlagChk macro.
+enum { DBG_TEST_MODE = 0, DBG_ERROR_CK = 105, SYS_INVISIBLE = 8 };
+#define FlagChk(base, no) (((u32*) (base))[(no) >> 5] & (0x80000000u >> ((no) & 31)))
+#define DbgFlagChk(g, n) FlagChk((g)->Debug_flg, n)
+#define SysFlagChk(g, n) FlagChk((g)->System_flg, n)
 extern cModel* pPL;
 
 struct Log {

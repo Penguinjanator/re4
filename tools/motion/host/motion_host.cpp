@@ -24,7 +24,7 @@
 
 // ---- stubs for the globals the game code references ----------------------------------------------
 
-static Global g_global = { { 0, 0, 0, 0 }, 1.0f };
+static Global g_global = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 1.0f };
 Global* pG = &g_global;
 cModel* pPL = NULL;
 static Log g_log;

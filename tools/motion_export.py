@@ -15,7 +15,8 @@ usage: motion_export.py list <archive|disc>
 N is the entry index of the archive (the game's PL_ARC index minus 4). --model defaults to entry 0
 of the motion's archive (the character's body .bin), its texture palette to the entry after it
 (--tpl). --mesh adds attachment models of the archive (Leon: head 4:3, hair 2:3, eyes 5:3, right
-hand 14:13, left hand 17:13, as cPlLeon::setModel loads them). --archive picks the archive of a disc.
+hand 14:13, left hand 17:13, as cPlLeon::setModel loads them; Ada: hair 2:3, head 5:6 — her bare hands
+come from the weapon module, cPlAda::setRightHand). An attachment whose palette is missing is skipped. --archive picks the archive of a disc.
 `verify` re-serialises every motion, sequence table and model and counts byte-identical round-trips,
 decodes every texture (re-encoding the lossless formats), then compares the helper's poses with a
 Dolphin memory dump when given one (see tools/motion/README.md).
@@ -51,15 +52,19 @@ def load_model(ref, arc):
     return m, e.name, e
 
 
+class MeshSourceError(Exception):
+    pass
+
+
 def mesh_source(arc, bin_entry, tpl_entry):
     if bin_entry.tag != 'BIN':
-        sys.exit(f'{bin_entry.name}: tag {bin_entry.tag!r}, not a model (BIN)')
+        raise MeshSourceError(f'{bin_entry.name}: tag {bin_entry.tag!r}, not a model (BIN)')
     if tpl_entry.tag != 'TPL':
-        sys.exit(f'{tpl_entry.name}: tag {tpl_entry.tag!r}, not a texture palette (TPL); pass the TPL entry explicitly')
+        raise MeshSourceError(f'{tpl_entry.name}: tag {tpl_entry.tag!r}, not a texture palette (TPL); pass the TPL entry explicitly')
     mesh = meshbin.parse(bin_entry.data)
     textures = gxtex.parse_tpl(tpl_entry.data)
     if mesh.n_tex > len(textures):
-        sys.exit(f'{bin_entry.name}: model wants {mesh.n_tex} textures, {tpl_entry.name} has {len(textures)}')
+        raise MeshSourceError(f'{bin_entry.name}: model wants {mesh.n_tex} textures, {tpl_entry.name} has {len(textures)}')
     stem = os.path.splitext(arc.name)[0]
     return gltf.MeshSource(mesh, textures, f'{stem}_{bin_entry.index:03d}', f'{stem}_{tpl_entry.index:03d}')
 
@@ -71,10 +76,19 @@ def load_meshes(args, arc, body):
         return None
     if body is None:
         sys.exit('--model is a file: pass --no-mesh (no texture palette to go with it)')
-    srcs = [mesh_source(arc, body, arc.entry(args.tpl if args.tpl is not None else body.index + 1))]
+    try:
+        srcs = [mesh_source(arc, body, arc.entry(args.tpl if args.tpl is not None else body.index + 1))]
+    except MeshSourceError as e:
+        sys.exit(str(e))
+    # An attachment that cannot be loaded (its palette is in another archive: the bare hands of the
+    # weapon module, a costume's head) is skipped with a warning; the body and the other attachments
+    # are still written.
     for spec in args.mesh or []:
         bi, _, ti = spec.partition(':')
-        srcs.append(mesh_source(arc, arc.entry(int(bi, 0)), arc.entry(int(ti, 0) if ti else int(bi, 0) + 1)))
+        try:
+            srcs.append(mesh_source(arc, arc.entry(int(bi, 0)), arc.entry(int(ti, 0) if ti else int(bi, 0) + 1)))
+        except MeshSourceError as e:
+            print(f'warning: --mesh {spec} skipped: {e}', file=sys.stderr)
     return srcs
 
 
