@@ -85,7 +85,7 @@ void R315Init()
 #line 45 "D:/Bio4/Prog/r315.cpp"
     r315_work = (R315Work*) MEM_CALLOC(sizeof(R315Work), 1, 0xd);
     if (PREV_ROOM_ID == 0xFFF) {
-        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+        if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
             BitOn(pG->Status_flg[3], 0x04000000);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);

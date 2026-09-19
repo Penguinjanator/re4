@@ -1505,7 +1505,7 @@ void IdDebugFreeBuffer()
 // otherwise draw temp buffer 0xF.
 void* IdGetBufferAddr(int type)
 {
-    if ((pG->Debug_flg[1] & 0x100000) || (pG->Status_flg[0] & 0x40000) || (pG->Status_flg[2] & 0x8000)) {
+    if ((pG->Debug_flg[1] & 0x100000) || (StaFlagChk(pG, STA_SUB_SCRN)) || (StaFlagChk(pG, STA_50))) {
         IdSetBufferType(type);
         return g_pIdBuff;
     }

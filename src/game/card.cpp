@@ -3699,7 +3699,7 @@ void CardID::save(cCard* pCard)
 void CardID::quit()
 {
     m_IdSave.free();
-    if (!(pG->Status_flg[2] & 0x8000)) {
+    if (!StaFlagChk(pG, STA_50)) {
         Cckpt.roomInit();
     }
 }

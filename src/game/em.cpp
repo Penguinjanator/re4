@@ -397,7 +397,7 @@ void emMove(cEm* em)
         EmMgr.destroy(em);
         return;
     }
-    if ((pG->Status_flg[1] & 0x10000000) && !(em->be_flag & 0x800)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(em->be_flag & 0x800)) {
         return;
     }
     if (em == pPL) {

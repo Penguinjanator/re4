@@ -1607,7 +1607,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (pGS->Scenario_flg[1] & 0x8000) {
+            if (ScfFlagChk(pGS, SCF_R119_DOOR_CLOSE)) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);

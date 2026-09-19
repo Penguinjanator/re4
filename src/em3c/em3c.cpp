@@ -2420,7 +2420,7 @@ int em3cFindCk(cEm3c* em)
         w->Be_flg |= 0x80;
         return 1;
     }
-    if (pG->Status_flg[1] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
         switch (pG->bell_stat) {
@@ -2447,7 +2447,7 @@ int em3cFindCk(cEm3c* em)
             }
         }
     }
-    if ((pG->Status_flg[0] & 0x00800000) && w->L_pl_route < 25000.0f) {
+    if (StaFlagChk(pG, STA_PL_FIRE) && w->L_pl_route < 25000.0f) {
         w->Be_flg |= 0x80;
         return 1;
     }

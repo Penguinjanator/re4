@@ -83,7 +83,7 @@ int PlSetCostume()
         if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
                 U8Set(pG->pl_costume, 2);
-            } else if (pG->Scenario_flg[0] & 0x200000) {
+            } else if (ScfFlagChk(pG, SCF_R106_EVENT)) {
                 U8Set(pG->pl_costume, 1);
             } else {
                 U8Set(pG->pl_costume, 0);
@@ -771,9 +771,9 @@ void PlReloadBullet()
 int joyFireOn()
 {
     if (Key.on & 0x80) {
-        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+        if (StaFlagChk(pG, STA_ACT_DONT_FIRE) || (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
             BitOn(pG->Status_flg[0], 0x4000);
-            if (pG->stage_no == 1 && pG->room_no == 0x1C && (pG->Status_flg[2] & 0x80000000)) {
+            if (pG->stage_no == 1 && pG->room_no == 0x1C && (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
                 BitOn(pG->Room_flg[0], 0x20000000);
             }
             return 0;
@@ -787,7 +787,7 @@ int joyFireOn()
 int joyFireTrg()
 {
     if (Key.trg & 0x80) {
-        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+        if (StaFlagChk(pG, STA_ACT_DONT_FIRE) || (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
             pG->Status_flg[0] |= 0x4000;
             return 0;
         }
@@ -896,7 +896,7 @@ void PlWaterProc(cPlayer* pl)
     static Vec m_PosOldWater;
     f32 dist;
 
-    if (pG->Status_flg[1] & 0x200000) {
+    if (StaFlagChk(pG, STA_PL_BOAT)) {
         return;
     }
     if (pl->m_pEffRoom == 0) {
@@ -1046,7 +1046,7 @@ int PlSetWhistle()
     if (!(Key.trg & 0x200)) {
         return 0;
     }
-    if (pG->Status_flg[0] & 0x400) {
+    if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
         return 0;
     }
     if (!(pG->Status_flg[1] & 4)) {

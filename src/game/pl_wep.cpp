@@ -196,7 +196,7 @@ void cPlayer::weaponInit()
     if (WeaponInitFunc) {
         WeaponInitFunc(this);
     }
-    if (!(pG->Status_flg[1] & 0x200000) && !(stat & 0x40)) {
+    if (!StaFlagChk(pG, STA_PL_BOAT) && !(stat & 0x40)) {
         r_no_0 = 0;
         r_no_1 = 0;
         r_no_2 = 0;

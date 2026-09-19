@@ -238,7 +238,7 @@ static inline void st3_resumeCountDown()
 void st3_startCountDown()
 {
     BitOff(pG->Scenario_flg[2], 0x200);
-    if ((pG->Scenario_flg[1] & 0x80) == 0) {
+    if (ScfFlagChk(pG, SCF_38) == 0) {
         pG->Scenario_flg[1] |= 0x80;
         st3_resumeCountDown();
     } else {
@@ -249,7 +249,7 @@ void st3_startCountDown()
 // Every island room's Main: when the running count-down reaches zero, the death demo event.
 void st3_checkCountDown()
 {
-    if (pG->Scenario_flg[1] & 0x80) {
+    if (ScfFlagChk(pG, SCF_38)) {
         int over = 0;
         CountDown* cd = Cckpt.getCountDown();
 
@@ -258,7 +258,7 @@ void st3_checkCountDown()
             over = (cd->m_frame == 0);
         }
         if (over == 1) {
-            if ((pG->Scenario_flg[2] & 0x200) == 0) {
+            if (ScfFlagChk(pG, SCF_56) == 0) {
                 pG->Scenario_flg[2] |= 0x200;
                 ScenarioTaskAllOff();
                 SceExec(0x12, (TaskFunc) st3_dieDemoEvent, 0, 2, 2, 0);

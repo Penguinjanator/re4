@@ -95,7 +95,7 @@ void R210Init()
 #line 53 "D:/Bio4/Prog/r210.cpp"
     r210_work = (R210Work*) MEM_CALLOC(sizeof(R210Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+        if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
             pG->Status_flg[3] |= 0x04000000;
         }
     }
@@ -109,7 +109,7 @@ void R210Init()
         }
     }
     if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
-        if ((pG->Scenario_flg[1] & 0x40) == 0) {
+        if (ScfFlagChk(pG, SCF_39) == 0) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             BitOn(pG->Status_flg[3], 0x04000000);
             if (pSUB) {
@@ -231,7 +231,7 @@ static void r222_dai_go()
         SubCharCtrl(SCC_STOP, 0);
         pG->Scenario_flg[0] |= 0x80;
     }
-    if ((pG->Scenario_flg[1] & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
+    if (ScfFlagChk(pG, SCF_39) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);

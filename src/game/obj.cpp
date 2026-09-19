@@ -347,7 +347,7 @@ void objMove(cObj* p)
     if (!(p->be_flag & 0x20)) {
         return;
     }
-    if ((pG->Status_flg[1] & 0x10000000) && !(p->be_flag & 0x800)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(p->be_flag & 0x800)) {
         return;
     }
     p->move();

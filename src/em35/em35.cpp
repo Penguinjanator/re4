@@ -4168,7 +4168,7 @@ int em35CatchCk(cEm35* em)
     if (!(em->motEvent & 2)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     pos = pPL->pos;
@@ -5199,7 +5199,7 @@ void em35WeakMove(cEm35* em)
     }
     for (i = 0; i < 4; i++) {
         if (w->pWeak[i]) {
-            if ((pGS->Status_flg[1] & 0x04000000) && em->hp > 0) {
+            if (StaFlagChk(pGS, STA_THERMO_GRAPH) && em->hp > 0) {
                 w->pWeak[i]->be_flag |= 2;
             } else {
                 w->pWeak[i]->be_flag &= ~2;

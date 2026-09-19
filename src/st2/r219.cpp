@@ -52,7 +52,7 @@ void R219Init()
 #line 48 "D:/Bio4/Prog/r219.cpp"
     r219_work = (R219Work*) MEM_CALLOC(sizeof(R219Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if (!(pG->Status_flg[3] & 0x04000000)) {
+        if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             pG->Status_flg[3] |= 0x04000000;
         }
     }

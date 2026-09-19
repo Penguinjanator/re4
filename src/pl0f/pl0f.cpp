@@ -231,7 +231,7 @@ void cPl0f::move()
         } else {
             PenClothFixClear(ROPE(w), &w->Cloth, 0x1C);
         }
-        if (!(pG->Status_flg[1] & 0x00080000) && !(w->Be_flg & 8) && w->pBoss) {
+        if (!StaFlagChk(pG, STA_PL_SWIM_CAMERA) && !(w->Be_flg & 8) && w->pBoss) {
             ROPE(w)->be_flag |= 2;
             if (w->pBoss && (w->pBoss->flag & 0x100)) {
                 ROPE(w)->be_flag &= ~2;
@@ -1045,7 +1045,7 @@ void pl0fWaterEff(cPl0f* em)
         EstSet((int) em, -1, 0, 0, 0xF, 9, 0, 0x35, (u32) em, 0);
         SndCall(8, 0x12, &em->pos, 0xF, 0, 0);
     }
-    if (pG->Status_flg[1] & 0x00800000) {
+    if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
         if (hideCnt <= 4) {
             hideCnt++;
             return;
@@ -1132,7 +1132,7 @@ void pl0fBoatSpdControl(cPl0f* em)
 
     p = em->pos;
     p.y += 500.0f;
-    if (pG->Status_flg[1] & 0x00800000) {
+    if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
         if (w->Be_flg & 2) {
             pl0fEngineStop(w, &p);
         }
@@ -1577,7 +1577,7 @@ void pl0fBossDieCamMove(cPlayer* pl)
 // the pl0fActRide* of the boat type (lake / 10D / 10E / 10E second).
 void pl0fRideActEvtCk(cPl0f* em)
 {
-    if (pG->Status_flg[1] & 0x00200000) {
+    if (StaFlagChk(pG, STA_PL_BOAT)) {
         return;
     }
     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > PI / 4) {
@@ -1627,7 +1627,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
     u32 i;
 
-    if (!(pG->Status_flg[1] & 0x00200000)) {
+    if (!StaFlagChk(pG, STA_PL_BOAT)) {
         return;
     }
     if ((pG->stage_no != 1 || pG->room_no != 0xB) && (pG->stage_no != 1 || pG->room_no != 0x1B)) {
@@ -1729,7 +1729,7 @@ int pl0fCrashCk(cPl0f* em)
                 if (EmYarareContactCk(e, &w->node[i].wpos, &hit, 800.0f)) {
                     int away = 0;
 
-                    if (pG->Status_flg[1] & 0x00800000) {
+                    if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
                         away = 1;
                     }
                     if (e->flag & 4) {
@@ -1755,7 +1755,7 @@ int pl0fCrashCk(cPl0f* em)
 
                     ((cObj1c*) o)->setCrash();
                     away = 0;   // after the call: the flag stays in the argument register
-                    if (pG->Status_flg[1] & 0x00800000) {
+                    if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
                         away = 1;
                     }
                     pl0fCrashAdjustSet(em, &o->pos, away);

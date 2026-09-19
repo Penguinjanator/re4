@@ -127,7 +127,7 @@ void R333Init()
     r333_work = (R333Work*) MEM_CALLOC(sizeof(R333Work), 1, 0xd);
     read_id_data();
     if (pG->room_id_prev == 0xFFF) {
-        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+        if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
             BitOn(pG->Status_flg[3], 0x04000000);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);

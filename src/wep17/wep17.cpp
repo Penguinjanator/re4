@@ -256,7 +256,7 @@ static void wep17_r3_ready00(cPlayer* pl)
     obj->wep.mode = md;
     obj->wep.step = 0;
     AtariFlagsOr(WEP_ATARI(pl), 0x200);
-    if (pG->stage_no > 1 && pl->m_Work0 == 0 && (pG->Status_flg[3] & 0x08000000)) {
+    if (pG->stage_no > 1 && pl->m_Work0 == 0 && (StaFlagChk(pG, STA_SLOW))) {
         Vec nrm;
         Vec v0;
         Vec v1;

@@ -214,7 +214,7 @@ void cObjBow::setAllow()
 // unless Status_flg[3] bit23 (an event / debug override) lets it through regardless.
 int cObjBow::keyKamae()
 {
-    if (pG->Status_flg[3] & 0x00800000) {
+    if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
         return (Key.on >> 4) & 1;
     }
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {

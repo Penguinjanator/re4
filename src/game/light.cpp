@@ -537,8 +537,8 @@ void cLightMgr::setModel2(cModel* m)
         if (m->id == 2 && (((cObj*) m)->x3D0 & 1) && (l->Attribute & 4)) {
             continue;
         }
-        if (i <= 31 && !((1 << i) & m->LightInfo.SelectMask) && !(pG->Status_flg[1] & 0x01000000)) {
-            if (!(pG->Status_flg[1] & 0x04000000)) {
+        if (i <= 31 && !((1 << i) & m->LightInfo.SelectMask) && !StaFlagChk(pG, STA_NO_LIGHTMASK)) {
+            if (!StaFlagChk(pG, STA_THERMO_GRAPH)) {
                 continue;
             }
         }
@@ -549,7 +549,7 @@ void cLightMgr::setModel2(cModel* m)
             continue;
         }
         parent = l->pParent;
-        if ((pG->Status_flg[1] & 0x10000000) && parent != 0 && !(parent->be_flag & 0x800)) {
+        if (StaFlagChk(pG, STA_SUSPEND) && parent != 0 && !(parent->be_flag & 0x800)) {
             continue;
         }
         if (n > 7) {
@@ -722,12 +722,12 @@ int cLightMgr::update(int cut_no, int hokan)
     u32 n;
     u32 i;
 
-    if (pG->Status_flg[2] & 0x00400000) {
+    if (StaFlagChk(pG, STA_LIT_NO_UPDATE)) {
         cut_no = m_oldCutNo;
     } else {
         m_oldCutNo = cut_no;
     }
-    if (pG->Status_flg[1] & 0x04000000) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         return 0;
     }
     if (!VALID_PTR(pLitHeader)) {
@@ -875,7 +875,7 @@ void cLightMgr::setFog()
     LightFog* fog = &LightEnv.Fog;
     u8 c = 0;
 
-    if ((pG->Disp_flg & 0x4000) || (pG->Status_flg[1] & 0x04000000)) {
+    if ((pG->Disp_flg & 0x4000) || (StaFlagChk(pG, STA_THERMO_GRAPH))) {
         GXColor black;
         black.r = black.g = black.b = black.a = c;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, black);

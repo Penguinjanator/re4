@@ -341,7 +341,7 @@ static inline void em28FloorCk(cEm28* em)
 // Remember where the bell (this chicken) was disturbed.
 static inline void em28BellSet(cEm28* em)
 {
-    if (!(pG->Status_flg[1] & 0x20000000)) {
+    if (!StaFlagChk(pG, STA_SE_BURST)) {
         BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + 0x4F3C, &em->pos, sizeof(Vec));
         pG->bell_stat = 0;
@@ -778,7 +778,7 @@ int em28EscapeCk(cEm28* em)
         return 0;
     }
     int esc = 0;
-    if (pG->Status_flg[1] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
         // three identical arms + the override after the switch: the arm sets are dead (the
@@ -801,7 +801,7 @@ int em28EscapeCk(cEm28* em)
         }
     }
     d = em->plDist2;
-    if (pG->Status_flg[0] & 0x00800000) {
+    if (StaFlagChk(pG, STA_PL_FIRE)) {
         if (d < 100000000.0f) {
             esc = 1;
         }

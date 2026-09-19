@@ -1120,7 +1120,7 @@ void CameraControl::Check()
 {
     Vec d;
 
-    if (pG->Status_flg[0] & 0x40000) {
+    if (StaFlagChk(pG, STA_SUB_SCRN)) {
         return;
     }
     if (!(be_flag & 1)) {
@@ -1138,7 +1138,7 @@ void CameraControl::Check()
     if (pG->Debug_flg[1] & 0x800000) {
         return;
     }
-    if (pG->Status_flg[0] & 0x1000) {
+    if (StaFlagChk(pG, STA_EVENT)) {
         return;
     }
     if (m_pExtraCamera != 0) {
@@ -1180,7 +1180,7 @@ void CameraControl::Move()
     f32 t;
     f32 lim;
 
-    if (pG->Status_flg[0] & 0x40000) {
+    if (StaFlagChk(pG, STA_SUB_SCRN)) {
         return;
     }
     if (!(be_flag & 1)) {
@@ -1259,7 +1259,7 @@ void CameraControl::Move()
         break;
     }
 
-    if (!(pG->Status_flg[0] & 0x1000)) {
+    if (!StaFlagChk(pG, STA_EVENT)) {
         if (GetWaterHeight(&cur.pos, &water_y)) {
             t = sinf(cur.fovy * PI / 360.0f) / cosf(cur.fovy * PI / 360.0f);
             lim = gain * (ZNEAR * t * 1.3333334f) + water_y;
@@ -2317,7 +2317,7 @@ void CameraControl::EndLookDownEm()
 // Enters the rifle scope camera (r0 0x10; Status_flg[0] 0x40 scope, 0x8000 first-person view).
 void CameraControl::startScope(Vec* pos, Vec* at)
 {
-    if (!(pG->Status_flg[0] & 0x40)) {
+    if (!StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         BitOn(pG->Status_flg[0], 0x40);
         BitOn(pG->Status_flg[0], 0x8000);
         extra = new (m_Free) CameraScope(pos, at);
@@ -2330,7 +2330,7 @@ void CameraControl::startScope(Vec* pos, Vec* at)
 // Leaves the scope camera.
 void CameraControl::endScope()
 {
-    if (pG->Status_flg[0] & 0x40) {
+    if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         BitOff(pG->Status_flg[0], 0x40);
         BitOff(pG->Status_flg[0], 0x8000);
         BitOff(pG->Disp_flg, 0x40000000);
@@ -2344,7 +2344,7 @@ void CameraControl::endScope()
 // While scoped: the scope camera's pos / at (the rifle's shot line).
 void CameraControl::getTrajectory(Vec* pos, Vec* at)
 {
-    if (pG->Status_flg[0] & 0x40) {
+    if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         cCamera* c = extra;
         *pos = c->param.pos;
         *at = c->param.at;
@@ -2551,7 +2551,7 @@ void CameraControl::checkAttachCamera()
     AttachCamera* ac;
     int i;
 
-    if (pG->Status_flg[0] & 0x40) {
+    if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         return;
     }
     if (m_state_flag & 4) {

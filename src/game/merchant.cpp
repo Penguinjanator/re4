@@ -786,14 +786,14 @@ void MerchantRoomInit()
         break;
     }
     if (pG->room_id == 0x10E) {
-        if (pG->Scenario_flg[1] & 0x01000000) {
-            if (!(pG->Scenario_flg[1] & 0x00100000)) {
+        if (ScfFlagChk(pG, SCF_ST1_NIGHT)) {
+            if (!ScfFlagChk(pG, SCF_STOCK_ST2)) {
                 levelDataAdd(merchantData, level_null);
                 stockDataAdd(merchantData, stock_r10e_night);
                 pG->Scenario_flg[1] |= 0x00100000;
             }
         } else {
-            if (!(pG->Scenario_flg[1] & 0x00200000)) {
+            if (!ScfFlagChk(pG, SCF_STOCK_ST1_NIGHT)) {
                 levelDataAdd(merchantData, level_r10e_day);
                 stockDataAdd(merchantData, stock_r10e_day);
                 pG->Scenario_flg[1] |= 0x00200000;
@@ -1410,7 +1410,7 @@ int checkSellingItem(u16 id)
 
     switch (id) {
     case 0x40:
-        if (pG->Scenario_flg[0] & 0x00040000) {
+        if (ScfFlagChk(pG, SCF_ST1_SUB_MISSION)) {
             u32 sold = pG->Item_flg[0] & 0x10000000;
             ret = sold == 0;
         } else {

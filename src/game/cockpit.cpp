@@ -776,7 +776,7 @@ void CountDown::move()
         return;
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
-        ((pG->Status_flg[1] & 0x10000000) || (pG->Stop_flg & 0x10000000))) {
+        (StaFlagChk(pG, STA_SUSPEND) || (pG->Stop_flg & 0x10000000))) {
         m_state |= 8;
     } else {
         m_state &= ~8;
@@ -785,7 +785,7 @@ void CountDown::move()
         U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!(pG->Debug_flg[1] & 0x00010000) && !(pG->Status_flg[0] & 0x00040000) && !(m_state & 8)) {
+    if (!(pG->Debug_flg[1] & 0x00010000) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
         if (m_frame != 0) {
             m_frame = m_frame - 1;
         } else {

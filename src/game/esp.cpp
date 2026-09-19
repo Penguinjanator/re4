@@ -69,7 +69,7 @@ int ESP_IsActive(cEsp* esp)
     if (!(esp->m_Be_flg & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x10000000) {
+    if (StaFlagChk(pG, STA_SUSPEND)) {
         if (!(esp->info.Core_flg & 1)) {
             return 0;
         }
@@ -360,11 +360,11 @@ int EspTrans()
             continue;
         }
         if (esp->info.Core_flg & 0x400) {
-            if (pG->Status_flg[1] & 0x04000000) {
+            if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
                 continue;
             }
         }
-        if (pG->Status_flg[0] & 0x8000) {
+        if (StaFlagChk(pG, STA_10)) {
             if (esp->m_Tool_flg & 0x100) {
                 continue;
             }

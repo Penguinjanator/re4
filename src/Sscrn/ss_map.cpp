@@ -392,10 +392,10 @@ int getStageNo()
     if (pG->stage_no == 4) {
         return 4;
     }
-    if (pG->Scenario_flg[1] & 0x00010000) {
+    if (ScfFlagChk(pG, SCF_ST3_IN)) {
         return 3;
     }
-    if (pG->Scenario_flg[1] & 0x00800000) {
+    if (ScfFlagChk(pG, SCF_ST2_IN)) {
         return 2;
     }
     if (pG->Scenario_flg[0] & 4) {
@@ -2521,13 +2521,13 @@ void SsMapMain::init(SUB_SCREEN* wk)
     IdSub.unitPtr(1, 0x1D)->be_flag &= ~8;
     IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
     IdSub.unitPtr(2, 0x1D)->be_flag &= ~8;
-    if (!(pG->Scenario_flg[1] & 0x20000000)) {
+    if (!ScfFlagChk(pG, SCF_22)) {
         IdSub.unitPtr(0x12, 0x1D)->be_flag &= ~8;
     }
     if (!ItemMgr.search(0xA9)) {
         IdSub.unitPtr(0x14, 0x1D)->be_flag &= ~8;
     }
-    if (ItemMgr.num(0xB0) == 0 && !(pG->Scenario_flg[1] & 0x00400000)) {
+    if (ItemMgr.num(0xB0) == 0 && !ScfFlagChk(pG, SCF_STOCK_ST1_DAY)) {
         IdSub.unitPtr(0x13, 0x1D)->be_flag &= ~8;
     }
     sscrnMainMenuInit(wk, 0);
@@ -2549,7 +2549,7 @@ int scf_check_merchant()
     SsMapWork* m = SubScreenWk.pMapWk;
 
     if (m->area == 1) {
-        if (pG->Scenario_flg[1] & 0x20000000) {
+        if (ScfFlagChk(pG, SCF_22)) {
             return 1;
         }
         return 0;
@@ -2597,7 +2597,7 @@ int scf_check_submission()
     SsMapWork* m = SubScreenWk.pMapWk;
 
     if (m->area == 1) {
-        if (ItemMgr.num(0xB0) != 0 || (pG->Scenario_flg[1] & 0x00400000)) {
+        if (ItemMgr.num(0xB0) != 0 || (ScfFlagChk(pG, SCF_STOCK_ST1_DAY))) {
             return 1;
         }
         return 0;
@@ -2903,7 +2903,7 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     u->timer[2] = 0;
     u->timer[1] = 0;
     u->timer[0] = 0;
-    if (pGS->Scenario_flg[1] & 0x20000000) {
+    if (ScfFlagChk(pGS, SCF_22)) {
         u = IdSub.unitPtr(0x61, 0x10);
         u->be_flag &= ~8;
     }
@@ -2911,7 +2911,7 @@ void MapModeSelect::init(SUB_SCREEN* wk)
         u = IdSub.unitPtr(0x62, 0x10);
         u->be_flag &= ~8;
     }
-    if (ItemMgr.num(0xB0) || (pG->Scenario_flg[1] & 0x00400000)) {
+    if (ItemMgr.num(0xB0) || (ScfFlagChk(pG, SCF_STOCK_ST1_DAY))) {
         u = IdSub.unitPtr(0x63, 0x10);
         u->be_flag &= ~8;
     }
@@ -2975,12 +2975,12 @@ void MapModeSelect::move(SUB_SCREEN* wk)
     if (Key.trg & 0x80000000) {
         switch (m->modeCursor) {
         case 1:
-            if (!(pG->Scenario_flg[1] & 0x20000000)) {
+            if (!ScfFlagChk(pG, SCF_22)) {
                 return;
             }
             break;
         case 3:
-            if (ItemMgr.num(0xB0) == 0 && !(pG->Scenario_flg[1] & 0x00400000)) {
+            if (ItemMgr.num(0xB0) == 0 && !ScfFlagChk(pG, SCF_STOCK_ST1_DAY)) {
                 return;
             }
             break;

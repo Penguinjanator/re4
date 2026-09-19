@@ -78,7 +78,7 @@ void cEsp0e::move()
         return;
     }
     if (w->flg & 2) {
-        if (pG->Status_flg[2] & 0x10000000) {
+        if (StaFlagChk(pG, STA_CUT_CHANGE)) {
             w->delay_cnt = 2;
         }
         if (w->delay_cnt != 0) {

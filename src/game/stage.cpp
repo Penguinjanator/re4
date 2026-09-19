@@ -56,7 +56,7 @@ static inline int emListVillage(int room)
     case 0x204:
     case 0x207:
     case 0x208:
-        if (!(pG->Scenario_flg[1] & 0x40000)) {
+        if (!ScfFlagChk(pG, SCF_R204_ASHLEY_SPLIT)) {
             return 2;
         }
     }
@@ -107,7 +107,7 @@ int checkEmListNo(u16 room)
             return -1;
         }
         if (room == 0x200) {
-            if (!(pG->Scenario_flg[1] & 0x800000)) {
+            if (!ScfFlagChk(pG, SCF_ST2_IN)) {
                 return 1;
             }
             return 2;
@@ -121,7 +121,7 @@ int checkEmListNo(u16 room)
         if (room > 0x210) {
             return 4;
         }
-        if (pG->Scenario_flg[1] & 0x10000000) {
+        if (ScfFlagChk(pG, SCF_R206_ASHLEY_RESCUE)) {
             return 4;
         }
         return emListVillage(room);

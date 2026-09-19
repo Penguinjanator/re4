@@ -303,7 +303,7 @@ void R208Init()
         RsfSet(G_ROOM_ID, 1);
         RsfSet(G_ROOM_ID, 4);
     }
-    if (pG->room_id_prev == 0xFFF && (pG->Status_flg[3] & 0x04000000) == 0) {
+    if (pG->room_id_prev == 0xFFF && StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
         BitOn(pG->Status_flg[3], 0x04000000);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(SCC_CHASE, 0);

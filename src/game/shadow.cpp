@@ -313,7 +313,7 @@ void ShadowTrans()
         if (l->Type != 4) {
             continue;
         }
-        if (pG->Status_flg[0] & 0x80) {
+        if (StaFlagChk(pG, STA_BLACKOUT)) {
             if (l->Kind & 0x80) {
                 continue;
             }
@@ -336,7 +336,7 @@ void ShadowTrans()
         found = 1;
     }
 
-    if (!(pG->Status_flg[2] & 0x00100000)) {
+    if (!StaFlagChk(pG, STA_USE_SHADOW_LIGHT)) {
         return;
     }
 
@@ -370,7 +370,7 @@ void ShadowTrans()
                 continue;
             }
         }
-        if (pG->Status_flg[1] & 0x10000000) {
+        if (StaFlagChk(pG, STA_SUSPEND)) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
@@ -411,7 +411,7 @@ void ShadowTrans()
         if (!(obj->be_flag & 0x04000010)) {
             continue;
         }
-        if (pG->Status_flg[1] & 0x10000000) {
+        if (StaFlagChk(pG, STA_SUSPEND)) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -463,7 +463,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         if (l->Type != 4) {
             continue;
         }
-        if (pG->Status_flg[0] & 0x80) {
+        if (StaFlagChk(pG, STA_BLACKOUT)) {
             if (l->Kind & 0x80) {
                 continue;
             }
@@ -577,7 +577,7 @@ void FixShadowLightSet(cLight* l)
                 continue;
             }
         }
-        if (pG->Status_flg[1] & 0x10000000) {
+        if (StaFlagChk(pG, STA_SUSPEND)) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
@@ -623,7 +623,7 @@ void FixShadowLightSet(cLight* l)
                 return;
             }
         }
-        if (pG->Status_flg[1] & 0x10000000) {
+        if (StaFlagChk(pG, STA_SUSPEND)) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -1441,7 +1441,7 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texMap++;
         gs->texCoord++;
     }
-    if (pG->Status_flg[1] & 0x4000) {
+    if (StaFlagChk(pG, STA_SHADOW_EQCOL)) {
         cLight* l;
         GXColor k;
         u8 c;

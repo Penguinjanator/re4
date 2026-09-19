@@ -1039,12 +1039,17 @@ enum ITF_FLAG {
     ITF_7f = 127,
 };
 
+// Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).  The base is an
+// address rather than a field so a check can read the flags through whichever pointer the caller
+// holds: pG for most of the game, pGS where the code reaches them through the save block.
+#define FlagChk(base, no) (*(u32*) ((((no) >> 5) << 2) + (base)) & (0x80000000 >> ((no) & 31)))
+
 #define DbgFlagChk(n) ((s32) (pG->Debug_flg[(n) >> 5] << ((n) & 31)) < 0)
-#define StaFlagChk(n) ((s32) (pG->Status_flg[(n) >> 5] << ((n) & 31)) < 0)
+#define StaFlagChk(g, n) FlagChk((u32) &(g)->Status_flg[0], n)
 #define SysFlagChk(n) ((s32) (pG->System_flg << (n)) < 0)
 #define SpfFlagChk(n) ((s32) (pG->Stop_flg << (n)) < 0)
 #define DpfFlagChk(n) ((s32) (pG->Disp_flg << (n)) < 0)
-#define ScfFlagChk(n) ((s32) (pG->Scenario_flg[(n) >> 5] << ((n) & 31)) < 0)
+#define ScfFlagChk(g, n) FlagChk((u32) &(g)->Scenario_flg[0], n)
 #define ItfFlagChk(n) ((s32) (pG->Item_flg[(n) >> 5] << ((n) & 31)) < 0)
 
 static inline void BitSet(u32& f, u32 v) { f = v; }

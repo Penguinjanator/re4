@@ -272,7 +272,7 @@ void Em36Init(cEm* em)
 // A lost limb whose hit box took the damage (em36DmCk): the routine is set straight from the loop (one
 // stepping limb pointer, the hit path jumps into the RS arm); an int inline returns through a flag.
 #define EM36_LIMB_HIT_CK(no)                                                                       \
-    if (pG->Status_flg[1] & 0x04000000) {                                                             \
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {                                                             \
         int i;                                                                                     \
                                                                                                    \
         for (i = 0; i < 5; i++) {                                                                  \
@@ -3420,7 +3420,7 @@ void em36RouteCk(cEm36* em)
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
     w->flags &= ~4;
-    if (pSUBS && !(pG->Status_flg[0] & 0x800) && w->plRouteDis > w->subRouteDis + 1000.0f) {
+    if (pSUBS && !StaFlagChk(pG, STA_ASHLEY_HIDE) && w->plRouteDis > w->subRouteDis + 1000.0f) {
         w->targetPos = w->subRoutePos;
         w->targetAng = w->subAng;
         w->targetAngAbs = w->subAngAbs;
@@ -3793,7 +3793,7 @@ void em36YarareCk(cEm36* em)
     if (!(w->flags & 1)) { \
         return 0; \
     } \
-    if (pG->Status_flg[1] & 0x8000) { \
+    if (StaFlagChk(pG, STA_PL_CATCHED)) { \
         return 0; \
     } \
     if (!(w->flags & 0x800)) { \
@@ -3891,7 +3891,7 @@ int em36LongCatchCk(cEm36* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     if (!(w->flags & 0x800)) {
@@ -4084,7 +4084,7 @@ void em36WeakMove(cEm36* em)
             PSMTXInverse(em->getPartsPtr(0)->mat, inv);
             PSMTXMultVec(inv, &l->pObj->getPartsPtr(0)->world, &v);
             w->hit[l->hit].ofs = v;
-            if ((pGS->Status_flg[1] & 0x04000000) && l->hp > 0 && em->hp > 0) {
+            if (StaFlagChk(pGS, STA_THERMO_GRAPH) && l->hp > 0 && em->hp > 0) {
                 l->pObj->be_flag |= 2;
                 w->hit[l->hit].flags |= 1;
             } else {
@@ -4202,7 +4202,7 @@ int em36SetDmVal(cEm36* em)
     case 9:
     case 0xA:
     case 0x28:
-        if (pG->Status_flg[1] & 0x04000000) {
+        if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
             int sum = 0;
             int i;
 
@@ -4936,14 +4936,14 @@ int em36FindCk(cEm36* em)
         if (em->plDist2 < 225000000.0f && w->routeAngAbs < 1.0471976f) {
             find = 1;
         }
-        if ((pG->Status_flg[1] & 0x80000000) && em->plDist2 < 25000000.0f) {
+        if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->plDist2 < 25000000.0f) {
             find = 1;
         }
         if (em->plDist2 < 12250000.0f) {
             find = 1;
         }
     }
-    if (pG->Status_flg[1] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
         switch (pG->bell_stat) {
@@ -4965,7 +4965,7 @@ int em36FindCk(cEm36* em)
             }
         }
     }
-    if ((pG->Status_flg[0] & 0x00800000) && w->plRouteDis < 25000.0f) {
+    if (StaFlagChk(pG, STA_PL_FIRE) && w->plRouteDis < 25000.0f) {
         find = 1;
     }
     if (em36DeadCk(em)) {
@@ -5051,7 +5051,7 @@ int em36FanceOverCk(cEm36* em)
     u32 rem;
     f32 ang;
 
-    if (pG->Status_flg[2] & 0x08000000) {
+    if (StaFlagChk(pG, STA_NO_FENCE)) {
         return 0;
     }
     // Written-out modulo: the second load is cse'd, the subtraction's operand is the dying load temp (r9) and

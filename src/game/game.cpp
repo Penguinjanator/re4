@@ -377,7 +377,7 @@ void gameStageInit()
         }
     }
     SetGameTime();
-    if (!(pG->Status_flg[3] & 0x80000000) && !(pG->System_flg & 0x100)) {
+    if (!StaFlagChk(pG, STA_SAVEDATA_NO_UPDATE) && !(pG->System_flg & 0x100)) {
         GameSaveSave(&GameSave, pSaveData, -1);
     }
     StageSet();
@@ -625,7 +625,7 @@ void gameMainLoop()
         ScenarioMove();
     }
     ProcessTickGet(5, "ScenarioMove");
-    if (pG->Status_flg[3] & 0x8000000) {
+    if (StaFlagChk(pG, STA_SLOW)) {
         pPL->setSlow(player_Seq_speed);
         preb_slow_flg = 1;
     } else {
@@ -634,7 +634,7 @@ void gameMainLoop()
         }
         preb_slow_flg = 0;
     }
-    if (pG->Status_flg[3] & 0x8000000) {
+    if (StaFlagChk(pG, STA_SLOW)) {
         slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
@@ -646,11 +646,11 @@ void gameMainLoop()
         ProcessTickGet(5, "EmMgr.move");
     }
     if (!(pG->Stop_flg & 0x10000000) && (pPL->be_flag & 0x20) &&
-        (!(pG->Status_flg[1] & 0x10000000) || (pPL->be_flag & 0x800))) {
+        (!StaFlagChk(pG, STA_SUSPEND) || (pPL->be_flag & 0x800))) {
         pPL->move();
     }
     ProcessTickGet(5, "Player");
-    if (pG->Status_flg[3] & 0x8000000) {
+    if (StaFlagChk(pG, STA_SLOW)) {
         slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
@@ -667,7 +667,7 @@ void gameMainLoop()
     }
     CameraMove();
     ProcessTickGet(5, "CameraMove");
-    if (pG->Status_flg[3] & 0x8000000) {
+    if (StaFlagChk(pG, STA_SLOW)) {
         slow = (pG->Frame_cnt % other_slow) == 0;
     } else {
         slow = 1;
@@ -1074,7 +1074,7 @@ void gameOption()
 // 0x100000, stops input/movement, hides the HUD and runs gameDiedemo as a task.
 void DiedemoExec(int time, int type)
 {
-    if (pG->Status_flg[0] & 0x100000) {
+    if (StaFlagChk(pG, STA_DIEDEMO)) {
         return;
     }
     diedemo_work.exec_frame = time;
@@ -1149,7 +1149,7 @@ void gameDiedemo(DiedemoWork* w)
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             }
-            if (pG->Status_flg[3] & 0x1000000) {
+            if (StaFlagChk(pG, STA_67)) {
                 IdSys.unitPtr(0, 0x2D)->be_flag |= 8;
                 fadeSetG(0x80000002, 1, 0, 0);
             } else {
@@ -1669,7 +1669,7 @@ void gameDebugDisp()
             eprintf2(8, 14, 32, 0x1AA, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[%04d],FRAME[%03d/%03d]", pPL->r_no_0,
                      pPL->r_no_1, pPL->r_no_2, pPL->r_no_3, (s16) pG->pl_life, (u32) pPL->frame, pPL->frameMax);
         }
-        if (!(pG->Status_flg[0] & 0x1000)) {
+        if (!StaFlagChk(pG, STA_EVENT)) {
             eprintf(20, 30, 0, 0, "P[%.0f,%.0f,%.0f]", pPL->pos.x, pPL->pos.y, pPL->pos.z);
             {
                 int c0 = 'O';

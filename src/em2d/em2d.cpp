@@ -5203,7 +5203,7 @@ void em2dCamouflageMove(cEm2d* em)
         }
     }
     em->Refract_pow = em2d_tex_flag;
-    if (pG->Status_flg[1] & 0x04000000) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         w->x4D0 = 0;
         em->Refract_ratio = 0xFF;
     }
@@ -5319,7 +5319,7 @@ int em2dCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);
@@ -5355,7 +5355,7 @@ int em2dAirCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);
@@ -5393,7 +5393,7 @@ int em2dFallCatchCk(cEm2d* em)
     if (!(w->flags & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     if (em->plDist2 > 2250000.0f) {
@@ -6320,7 +6320,7 @@ int em2dFindCk(cEm2d* em)
         return 1;
     }
     if (!(em->plDist2 < 9000000.0f)) {
-        if (pG->Status_flg[1] & 0x20000000) {
+        if (StaFlagChk(pG, STA_SE_BURST)) {
             f32 r;
 
             switch (pG->bell_stat) {
@@ -6347,7 +6347,7 @@ int em2dFindCk(cEm2d* em)
                 }
             }
         }
-        if (!(pG->Status_flg[0] & 0x00800000) || !(w->plDist < 25000.0f)) {
+        if (!StaFlagChk(pG, STA_PL_FIRE) || !(w->plDist < 25000.0f)) {
             if (em2dDeadCk(em) == 0 && em2dSomebodyFindCk(em) == 0) {
                 return 0;
             }

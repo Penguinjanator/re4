@@ -138,7 +138,7 @@ void R30bInit()
 #line 63 "D:/Bio4/Prog/r30b.cpp"
     r30b_work.p = (R30bWork*) MEM_CALLOC(sizeof(R30bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30bs00_func", (void*) Evt_R30BS00_Func);
-    if (pG->Status_flg[3] & 0x04000000) {
+    if (StaFlagChk(pG, STA_SUB_ASHLEY)) {
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R30bEventS00, 0, 1);
             EvtMgr.EvtReadAram("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0, 0, 0);
@@ -149,7 +149,7 @@ void R30bInit()
         SceAtSetEnable(2, 1);
         SceAtSetEnable(3, 0);
     }
-    if ((pG->Status_flg[3] & 0x04000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+    if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R30bCrane, 0, 1);
         SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R30bCraneEnd, 0, 1);
         SceAtSetEnable(6, 0);
@@ -211,7 +211,7 @@ void R30bInit()
     }
     r30b_work.p->tryLeft = 3;
     r30b_work.p->timer = 0;
-    if ((pGS->Status_flg[3] & 0x04000000) == 0) {
+    if (StaFlagChk(pGS, STA_SUB_ASHLEY) == 0) {
         r30b_work.p->em[0].setPtr(0x35, -1, 0);
         r30b_work.p->em[1].setPtr(0x36, -1, 0);
         r30b_work.p->em[2].setPtr(0x3F, -1, 0);

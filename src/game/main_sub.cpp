@@ -294,7 +294,7 @@ void systemVISetBlack(int black)
 // Restores the normal scissor (full frame, or none when Status_flg[3] 0x10000000).
 void SetScissorState()
 {
-    if (pG->Status_flg[3] & 0x10000000) {
+    if (StaFlagChk(pG, STA_SCISSOR)) {
         GXSetScissor(0, 56, (u32) Screen.width, (u32) Screen.height - 111);
     } else {
         SetNoScissor();

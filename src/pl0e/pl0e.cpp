@@ -763,7 +763,7 @@ void pl0eRideActEvtCk(cPl0e* em)
 {
     u8 unused[6];   // the original frame has 8 unused bytes (a BLKmode local nothing references)
 
-    if (!(pG->Status_flg[1] & 0x00200000)) {
+    if (!StaFlagChk(pG, STA_PL_BOAT)) {
         if (!(fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > PI / 4)) {
             fabsf(em->pos.y - pPL->pos.y);
         }

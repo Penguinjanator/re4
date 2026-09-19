@@ -211,10 +211,10 @@ RESTART:
             pG->Frame_cnt++;
             TaskScheduler();
             ProcessTickGet(5, "TaskScheduler");
-            if (!(pG->System_flg & 0x100000) || (pG->Status_flg[0] & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (StaFlagChk(pG, STA_SUB_SCRN))) {
                 IdSys.move();
             }
-            if (!(pG->System_flg & 0x100000) || (pG->Status_flg[0] & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (StaFlagChk(pG, STA_SUB_SCRN))) {
                 IdSys.trans();
             }
             if (!(pG->System_flg & 0x100000)) {

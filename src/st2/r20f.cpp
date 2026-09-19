@@ -156,7 +156,7 @@ void R20fInit()
         obj0->matUpdate();
         obj1->matUpdate();
     }
-    if (checkEmListNo(G_ROOM_ID) == 3 && (pG->Status_flg[3] & 0x04000000) == 0) {
+    if (checkEmListNo(G_ROOM_ID) == 3 && StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
         int id = GetEmIdFromList(0xED);
 
         EmReadSearch((u8) id, 0, 0);

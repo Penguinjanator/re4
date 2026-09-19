@@ -396,7 +396,7 @@ static void R10b_chkWater()
             EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
         }
-        if (pG->Status_flg[1] & 0x200000) {
+        if (StaFlagChk(pG, STA_PL_BOAT)) {
             if (!(pG->Room_flg[0] & 0x20000000)) {
                 pG->Room_flg[0] |= 0x20000000;
                 r10b_effDelete(3);
@@ -406,7 +406,7 @@ static void R10b_chkWater()
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
         }
-        if (pG->Status_flg[1] & 0x200000) {
+        if (StaFlagChk(pG, STA_PL_BOAT)) {
             Estgen45SetTargetCamera(1);
         } else {
             Estgen45SetTargetCamera(0);
@@ -483,7 +483,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         case 1:
         case 3:
         case 7:
-            if (e->NowFrame == 0 && !(pG->Status_flg[0] & 0x400)) {
+            if (e->NowFrame == 0 && !StaFlagChk(pG, STA_CAM_SHOULDER)) {
                 BitOn(pG->Status_flg[0], 0x400);
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
                 r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
@@ -496,7 +496,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
             r10b_work->bino->move(&pG->Cam);
             break;
         default:
-            if (e->NowFrame == 0 && (pG->Status_flg[0] & 0x400)) {
+            if (e->NowFrame == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
                 BitOff(pG->Status_flg[0], 0x400);
                 r10b_work->bino->quit(&pG->Cam);
                 r10b_work->bino->~IdBinocular();
@@ -506,7 +506,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         }
         break;
     case 2:
-        if (pG->Status_flg[0] & 0x400) {
+        if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
             BitOff(pG->Status_flg[0], 0x400);
             r10b_work->bino->quit(&pG->Cam);
             r10b_work->bino->~IdBinocular();

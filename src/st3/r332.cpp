@@ -292,7 +292,7 @@ void R332Init()
     EvtMgr.SetFunc("evt_r332s97_func", (void*) Evt_R332S00_Func);
     EvtMgr.SetFunc("evt_r332s98_func", (void*) Evt_R332S10_Func);
     EvtMgr.SetFunc("evt_r332s99_func", (void*) Evt_R332S20_Func);
-    if ((pG->Scenario_flg[1] & 0x200) == 0) {
+    if (ScfFlagChk(pG, SCF_36) == 0) {
         u32 size0;
         u32 size1;
         u32 size;
@@ -402,7 +402,7 @@ void R332Init()
             }
         }
     }
-    if ((pG->Scenario_flg[1] & 0x200) == 0) {
+    if (ScfFlagChk(pG, SCF_36) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R332ExecCrane, 0, 1);
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R332ExecCrane, (void*) 1, 1);
     }
@@ -449,7 +449,7 @@ void R332Main()
             SceExec(0x12, (TaskFunc) R332BossDown, 0, 0, 2, 0);
             return;
         }
-        if ((pG->Scenario_flg[1] & 0x200) == 0 && (pG->Item_flg[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
+        if (ScfFlagChk(pG, SCF_36) == 0 && (pG->Item_flg[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (r332_work->task[0]) {
                 SceKill(r332_work->task[0]);

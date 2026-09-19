@@ -5226,7 +5226,7 @@ void em31WeakMove(cEm31* em)
             EYELID_WK* e = &w->Eyelid[i];
 
             if (e->pObj) {
-                if ((pGS->Status_flg[1] & 0x04000000) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
+                if (StaFlagChk(pGS, STA_THERMO_GRAPH) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
                     e->pObj->be_flag |= 2;
                 } else {
                     e->pObj->be_flag &= ~2;
@@ -5236,7 +5236,7 @@ void em31WeakMove(cEm31* em)
         break;
     case 1:
         if (w->pWeak) {
-            if ((pG->Status_flg[1] & 0x04000000) && em->hp > 0 && (em->hitInfo.flags & 1)) {
+            if (StaFlagChk(pG, STA_THERMO_GRAPH) && em->hp > 0 && (em->hitInfo.flags & 1)) {
                 w->pWeak->be_flag |= 2;
             } else {
                 w->pWeak->be_flag &= ~2;

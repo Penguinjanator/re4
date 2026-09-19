@@ -1228,7 +1228,7 @@ int Message::code01()
                 pG->Stop_flg = stop_bak;
             }
         }
-        if (IdSys.setCk(0x21) && !(pG->Status_flg[0] & 0x00040000)) {
+        if (IdSys.setCk(0x21) && !StaFlagChk(pG, STA_SUB_SCRN)) {
             Cckpt.lifeMeterDisp(1);
         }
         break;

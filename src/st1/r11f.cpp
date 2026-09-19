@@ -107,7 +107,7 @@ void R11fInit()
         SmdSetTrans(0x14, 1);
         SmdSetTrans(0x15, 0);
         SmdSetTrans(0x16, 0);
-        if (!(pG->Status_flg[3] & 0x04000000)) {
+        if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             pG->Status_flg[3] |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
             SubCharCtrl(SCC_CHASE, 0);

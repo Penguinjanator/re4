@@ -241,7 +241,7 @@ void R30fInit()
         }
     }
     EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
-    if (pG->room_id_prev == 0xFFF && !(pG->Status_flg[3] & 0x04000000)) {
+    if (pG->room_id_prev == 0xFFF && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
         BitOn(pG->Status_flg[3], 0x04000000);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);

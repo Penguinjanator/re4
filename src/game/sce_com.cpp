@@ -150,7 +150,7 @@ void SceEventStart(int mode)
     BitOn(pG->Status_flg[0], 0x1000);
     BitOn(pG->Status_flg[1], 0x10000000);
     KeyStop(0xEFCF0000);
-    if (pG->Status_flg[0] & 0x400) {
+    if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
         CamCtrl.LowerBinocular();
     }
     Cckpt.lifeMeterDisp(0);

@@ -510,7 +510,7 @@ void ModelTrans(cModel* m)
     f32 radius;
     cModel* p;
 
-    if ((pG->Status_flg[1] & 0x10000000) && !(m->be_flag & 0x800)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(m->be_flag & 0x800)) {
         return;
     }
     if (!(m->be_flag & 2)) {
@@ -1070,9 +1070,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int matSet;
 
     PSet(g_pShdMng, 0);
-    if ((pG->Status_flg[2] & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->Disp_flg & 0x00040000) &&
-        (pG->Status_flg[1] & 0x200)) {
-        if (!(pG->Status_flg[1] & 0x100)) {
+    if (StaFlagChk(pG, STA_USE_SHADOW_LIGHT) && (m->be_flag & 0x02000000) && !(pG->Disp_flg & 0x00040000) &&
+        (StaFlagChk(pG, STA_USE_CAST_SHADOW))) {
+        if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
         g_pShdMng = GetCastShadowMngPtr(m);
         if (g_pShdMng != 0) {
             ShadowLightWork* w = (ShadowLightWork*) g_pShdMng->pLight->work;
@@ -1101,7 +1101,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         ModelPart* part;
         u32 i;
 
-        if (!(pG->Status_flg[1] & 0x100) && m->ot_type == 7) {
+        if (!StaFlagChk(pG, STA_PROC_SHD_TEX) && m->ot_type == 7) {
             if (m->be_flag & 0x08000000) {
                 if (!(info->be_flag & 0x40)) {
                     info = info->pList;
@@ -1298,12 +1298,12 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         info = info->pList;
     }
-    if (!(pG->Status_flg[1] & 0x100)) {
+    if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
         if (MODEL_EXT(m)->pFootShadowTbl != 0 && (m->be_flag & 0x10)) {
             DrawFootShadow((cEm*) m);
         }
     }
-    if (!(pG->Status_flg[1] & 0x100)) {
+    if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
         if (m->ot_type == 7) {
             m->be_flag |= 0x08000000;
         }
@@ -1365,7 +1365,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     int st;
     int scale;
 
-    if (pG->Status_flg[1] & 0x04000000) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         ThermoShaderSetup(m, info, part);
         return;
     }

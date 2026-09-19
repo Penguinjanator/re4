@@ -318,7 +318,7 @@ void R400Main()
     SceDebugDisp("");
     SceDebugDisp("");
     SceDebugDisp("");
-    if (!(pG->Status_flg[0] & 0x1000)) {
+    if (!StaFlagChk(pG, STA_EVENT)) {
         r400_work.p->cnt = SceCountEmAlive(0x10, 0x20);
         if (r400_work.p->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
             U32Set(r400_work.p->base, r400_work.p->cnt);

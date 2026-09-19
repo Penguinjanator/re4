@@ -823,7 +823,7 @@ static void em22_R1_Wait(cEm22* em)
         // the zero of the last routine set is a block-local pseudo set before the test (its
         // `li` lands at the top of the test block, above the pG load)
         int zero = 0;
-        if ((pG->Status_flg[0] & 0x00800000) && em->plDist2 < 625000000.0f) {
+        if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 625000000.0f) {
             EmRoutineSet(em, 1, 7, zero, zero);
             return;
         }
@@ -1016,7 +1016,7 @@ static void em22_R1_Escape(cEm22* em)
         if (lim > 2.3561945f) {
             em->r_no_2 = 2;
         }
-        if (!(pG->Status_flg[1] & 0x20000000)) {
+        if (!StaFlagChk(pG, STA_SE_BURST)) {
             BitOn(pG->Status_flg[1], 0x20000000);
             SET_BELL_POS(&em->pos);
             pG->bell_stat = 0;

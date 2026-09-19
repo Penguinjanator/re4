@@ -151,7 +151,7 @@ void OptionScreen::init(int title)
     _rno1 = 0;
     _rno2 = 0;
     _rno3 = 0;
-    if (pG->Status_flg[2] & 0x8000) {
+    if (StaFlagChk(pG, STA_50)) {
         _rno1 = 1;
     }
     SndCall(0, 0x33, 0, 0, 0, 0);
@@ -301,7 +301,7 @@ int top_menu(OptionScreen* o)
             o->_rno1++;
         }
         o->_rno1 = o->_rno1 < 0 ? 0 : (o->_rno1 > 4 ? 4 : o->_rno1);
-        if ((pG->Status_flg[2] & 0x8000) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
+        if (StaFlagChk(pG, STA_50) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
             o->_rno1 = 1;
         }
         if (old != o->_rno1) {
@@ -319,7 +319,7 @@ int top_menu(OptionScreen* o)
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
-        if ((pG->Status_flg[2] & 0x8000) && i == 0) {
+        if (StaFlagChk(pG, STA_50) && i == 0) {
             u->col0[0] = 0x40;
             u->col0[1] = 0x40;
             u->col0[2] = 0x40;

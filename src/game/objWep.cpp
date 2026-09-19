@@ -30,7 +30,6 @@ void drawPoint(Vec* lpos, Vec* lcross);
 static inline void DispOn(u8& f, u8 b) { f |= b; }
 static inline void DispOff(u8& f, u8 b) { f &= ~b; }
 static inline int DispChk(u8 f, u8 b) { return f & b; }
-static inline int FlagChk(u32 f, u32 b) { return f & b; }
 
 // Weapon held in the hand: the stance key only counts while the hand weapon is allowed. Never
 // constructed in the DOL: the linker dropped its vtable (STRIP_UNUSED).
@@ -233,7 +232,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
     static Vec lcross;
     static int donfire;
 
-    if (FlagChk(pG->Debug_flg[0], 0x08000000) || FlagChk(pG->Debug_flg[0], 0x04000000)) {
+    if (DbgFlagChk(DBG_SAT_DISP) || DbgFlagChk(DBG_EAT_DISP)) {
         satCheck();
         return;
     }
@@ -328,7 +327,7 @@ void drawPoint(Vec* p0, Vec* p1)
     }
     PSVECSubtract(&pG->Cam.param.pos, p1, &d);
     size = PSVECMag(&d);
-    if ((pG->Status_flg[3] & 0x02000000) || pG->stage_no == 2 && pG->room_no == 0x2C ||
+    if (StaFlagChk(pG, STA_BIG_MARKER) || pG->stage_no == 2 && pG->room_no == 0x2C ||
         pG->stage_no == 2 && pG->room_no == 0x28) {
         size = size * 0.00033333333f + 1.0f;
         if (size > 6.0f) {
@@ -422,7 +421,7 @@ void cObjWep::interrupt()
 // The hand weapon's stance key counts only while Status_flg[3] 0x00800000 allows it.
 int cObjHand::keyKamae()
 {
-    if (pG->Status_flg[3] & 0x00800000) {
+    if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
         return cObjWep::keyKamae();
     } else {
         return 0;

@@ -820,7 +820,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     pan = Snd_iss_get_sit_pan(blk, no);
     span = Snd_iss_get_sit_span(blk, no);
 
-    if (sit->srd_type == 1 || (pG->Status_flg[0] & 0x40000)) {
+    if (sit->srd_type == 1 || (StaFlagChk(pG, STA_SUB_SCRN))) {
         vol_calc = 0;
         curve_ok = 0;
         pan_calc = 0;
@@ -1404,7 +1404,7 @@ void SndWatcher()
     FlrAt* at;
     SndFlrAtBgm* b;
 
-    if (pG->Status_flg[0] & 0x10000000) {
+    if (StaFlagChk(pG, STA_MOVIE_ON)) {
         return;
     }
     if (!(pG->Stop_flg & 0x800)) {
@@ -1463,7 +1463,7 @@ void SndWatcher()
         }
     }
 
-    if (!(pG->Status_flg[0] & 0x40000) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
+    if (!StaFlagChk(pG, STA_SUB_SCRN) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
         at = FlrAtCheck(2, &pPL->pos, 0xFF);
         if (at != NULL) {
             b = (SndFlrAtBgm*) &at->x44;

@@ -440,7 +440,7 @@ void SceAtCheck()
     cEm* em;
 
     if (SceAtCheckHideActive() == 1) {
-        if (!(pG->Status_flg[0] & 0x00100000)) {
+        if (!StaFlagChk(pG, STA_DIEDEMO)) {
             SceAtCheckHideProc();
         }
     }
@@ -464,7 +464,7 @@ void SceAtCheck()
     sceAtItemFindCheck();
     sceAtCamCtrlCheck();
     if ((s32) pS->stop < 0) {
-        if (pG->Status_flg[0] & 0x40000000) {
+        if (StaFlagChk(pG, STA_PL_CHECK)) {
             pS->stop &= 0x7FFFFFFF;
         } else {
             pG->Status_flg[0] &= ~0x20000000;
@@ -536,10 +536,10 @@ int sceAtCheck_main(cEm* em, int type)
     front.z = 550.0f;
     PSMTXMultVec(em->mat, &front, &front);
     if (type & 1) {
-        if (pG->Status_flg[0] & 0x40000000) {
+        if (StaFlagChk(pG, STA_PL_CHECK)) {
             flag = 3;
         }
-        if (pG->Status_flg[0] & 0x20000000) {
+        if (StaFlagChk(pG, STA_PL_CHECK2)) {
             flag |= 4;
         }
         SatMgr.hitCheck(&pos, &front, &front, 0, 0, 0);
@@ -821,7 +821,7 @@ int CheckAshleyActive()
     if (pSUB == 0) {
         return 0;
     }
-    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f || SceAtCheckHideActive() == 1 || (pG->Status_flg[2] & 0x20000000) ||
+    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f || SceAtCheckHideActive() == 1 || (StaFlagChk(pG, STA_SUB_CATCHED)) ||
         (SubCharGetStatus() & 0x02000000)) {
         return 0;
     }
@@ -832,7 +832,7 @@ int CheckAshleyActive()
 // Scenario_flg[0] 0x80 is not set) but cannot follow.
 int CheckDoorJumpWithAshley()
 {
-    if (pSUB != 0 && !(pG->Scenario_flg[0] & 0x80)) {
+    if (pSUB != 0 && !ScfFlagChk(pG, SCF_NO_ASHLEY_DIST_CK)) {
         if (CheckAshleyActive() == 0) {
             return 0;
         }
@@ -1694,7 +1694,7 @@ void SceAtSetMes(SceAtMesData* m)
 // message 0x97 while Ashley is carried / away.
 static int sceAtFunc_save(SceAtWork* w, cModel* m)
 {
-    if (pSUB != 0 && ((pG->Status_flg[2] & 0x20000000) || (SubCharGetStatus() & 0x02000000))) {
+    if (pSUB != 0 && (StaFlagChk(pG, STA_SUB_CATCHED) || (SubCharGetStatus() & 0x02000000))) {
         cMes.MesSet(0x97, 0x64, MES_Y, 1, 0, 0, 4);
     } else {
         CardSave(w->value, 1);

@@ -536,7 +536,7 @@ static void r11d_ThunderMove()
             SceSleep(1);
         }
         if (cnt == 0) {
-            if (!(pG->Status_flg[1] & 0x02000000)) {
+            if (!StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
                 EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
             }
             {

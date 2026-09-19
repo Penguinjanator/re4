@@ -33,7 +33,7 @@ void R10eInit()
         U16Set(pG->room_id_prev, 0x119);
         BitOn(pG->Scenario_flg[1], 0x01000000);
     }
-    if (!(pG->Scenario_flg[1] & 0x01000000)) {
+    if (!ScfFlagChk(pG, SCF_ST1_NIGHT)) {
         SceAtSetEnable(1, 0);
     } else {
         SceAtSetEnable(0, 0);

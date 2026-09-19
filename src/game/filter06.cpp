@@ -195,7 +195,7 @@ void Filter06Trans()
     if (flt06.num == 0) {
         return;
     }
-    if (pG->Status_flg[1] & 0x02000000) {
+    if (StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
         return;
     }
     PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &cam_vec_LR);

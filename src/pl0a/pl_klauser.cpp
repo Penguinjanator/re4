@@ -188,7 +188,7 @@ void cPlKlauser::transMove()
 {
     int step = 0x40;
 
-    if (pG->Status_flg[3] & 0x00800000) {
+    if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
         alphaUp(krModel[1]);
         ALPHA_DOWN(krModel[0], step);
     } else {
@@ -237,7 +237,7 @@ void cPlKlauser::transMove()
 // pl_R1_KlauserAttack, x894 = -1 (glow off). Returns 1 when the routine was taken.
 int cPlKlauser::checkXbutton()
 {
-    if ((Joy[0].trg & 0x400) && !(pG->Status_flg[3] & 0x00800000) && x894 == 0) {
+    if ((Joy[0].trg & 0x400) && !StaFlagChk(pG, STA_KLAUSER_TRANSFORM) && x894 == 0) {
         pFuncAux = pl_R1_KlauserAttack;
         r_no_0 = 0;
         r_no_1 = 0xA;

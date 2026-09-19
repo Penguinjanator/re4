@@ -1053,7 +1053,7 @@ int em2aTrap1BiteSubCk(cEm2a* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (pG->Status_flg[2] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SUB_CATCHED)) {
         return 0;
     }
     dead = em2aDeadCk(pSUB);

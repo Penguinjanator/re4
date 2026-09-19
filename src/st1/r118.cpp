@@ -82,7 +82,7 @@ void R118Init()
         SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r118_checkDoor117, 0, 1);
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (pG->Scenario_flg[0] & 0x00100000) {
+    if (ScfFlagChk(pG, SCF_R117_ASHLEY_FIND)) {
         EM_LIST(0x82)->be_flag &= ~1;
         EM_LIST(0x83)->be_flag &= ~1;
         EM_LIST(0x84)->be_flag &= ~1;
@@ -228,7 +228,7 @@ static void r118_checkDoor117()
     SceUpCut(0, 9, 7, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0x3C) == 0) {
         CamCtrl.Comeback(0);
-        if (!(pG->Scenario_flg[1] & 0x00080000)) {
+        if (!ScfFlagChk(pG, SCF_R108_OPERATOR)) {
             pG->Scenario_flg[1] |= 0x00080000;
             OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
         }

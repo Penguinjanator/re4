@@ -395,7 +395,7 @@ void R100Main()
         }
     }
     if (RsfCheck(G_ROOM_ID, 12) == 0 && RsfCheck(G_ROOM_ID, 3) && !SceAtHitCheck(0xD) &&
-        !(pG->Status_flg[0] & 0x1000)) {
+        !StaFlagChk(pG, STA_EVENT)) {
         RsfSet(G_ROOM_ID, 12);
         SndStrReq(1, 4, 4, 400, 0, FCRef(vol));
         SndStrReq(1, 5, 4, 400, 0, FCRef(vol));
@@ -408,7 +408,7 @@ void R100Main()
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 10, 5, 0);
                 MotionSetCore(W->cop[1], &W->cop[1]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 10, 5, 0);
             }
-        } else if ((pG->Status_flg[2] & 0x80000000) && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
+        } else if (StaFlagChk(pG, STA_PL_DONT_FIRE) && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
             if (pG->Room_flg[2] & 0x40000000) {
                 MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x35), 0, 10, 5, 0);
                 W->se = SndCall(6, 6, &W->cop[0]->pos, 0, 0, 0);
@@ -585,7 +585,7 @@ static void r100_StartEvent()
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!(pG->System_flg & 0x40) && !(pG->Scenario_flg[1] & 0x10)) {
+    if (!FlagChk((u32) &pG->System_flg, SYS_START_EVT_SKIP) && !ScfFlagChk(pG, SCF_3b)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
@@ -621,7 +621,7 @@ static void r100_StartEvent()
     }
     SceEventEnd(0);
     BitOff(pG->Disp_flg, 0x20000);
-    if (skip == 0 && !(pG->Scenario_flg[1] & 0x10)) {
+    if (skip == 0 && !ScfFlagChk(pG, SCF_3b)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     OpeSetMdtNo(0);

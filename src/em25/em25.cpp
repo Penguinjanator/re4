@@ -328,7 +328,7 @@ void cEm25::move()
             }
         }
     }
-    if (pG->Status_flg[1] & 0x04000000) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         LightInfo.EnableMask = 0x80;
     } else {
         LightInfo.EnableMask = 2;
@@ -1518,7 +1518,7 @@ int em25CatchCk(cEm25* em)
     if (!(w->Be_flg & 1)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     PSMTXInverse(em->mat, inv);

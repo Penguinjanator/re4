@@ -153,7 +153,7 @@ void R101Init()
     PSet(r101_work->pEm[7], &r101_work->em[7]);
     PSet(r101_work->pEm[8], &r101_work->em[8]);
     PSet(r101_work->pEm[9], &r101_work->em[9]);
-    if (!(pG->Scenario_flg[0] & 0x2000)) {
+    if (!ScfFlagChk(pG, SCF_R101_ENTER)) {
         pG->Scenario_flg[0] |= 0x2000;
         SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -241,7 +241,7 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
             SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (ScfFlagChk(SCF_R106_EVENT)) {
+        if (ScfFlagChk(pG, SCF_R106_EVENT)) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 r101_emListOn(0x14);
@@ -382,7 +382,7 @@ static void r101_checkEmNum()
             r101_startEvent30();
             return;
         }
-        if (pG->Status_flg[0] & 0x1000) {
+        if (StaFlagChk(pG, STA_EVENT)) {
             continue;
         }
         cnt++;

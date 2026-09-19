@@ -178,7 +178,7 @@ void R214Init()
     if (pG->Part == 2) {
         r214_work.p->bridgeFlag = 1;
         SceExec(0x12, (TaskFunc) r214_BridgeRotate, 0, 0, SCE_PRIO_DEF_2, 0);
-    } else if (!(pG->Scenario_flg[1] & 0x40000000)) {
+    } else if (!ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
         u32 i;
 
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
@@ -1040,7 +1040,7 @@ void Evt_R214S00_Func(Event* e)
         }
         switch (e->NowCut) {
         case 0:
-            if (e->NowFrame == 0 && (pG->Status_flg[0] & 0x400)) {
+            if (e->NowFrame == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
                 BitOff(pG->Status_flg[0], 0x400);
                 r214_work.p->bino->quit(&pG->Cam);
                 r214_work.p->bino->~IdBinocular();
@@ -1050,7 +1050,7 @@ void Evt_R214S00_Func(Event* e)
         case 2:
         case 3:
         case 4:
-            if (e->NowFrame == 0 && !(pG->Status_flg[0] & 0x400)) {
+            if (e->NowFrame == 0 && !StaFlagChk(pG, STA_CAM_SHOULDER)) {
                 BitOn(pG->Status_flg[0], 0x400);
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
                 r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
@@ -1066,7 +1066,7 @@ void Evt_R214S00_Func(Event* e)
         break;
     case 2:
         SmdSetTrans(0x18, 1);
-        if (pG->Status_flg[0] & 0x400) {
+        if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
             BitOff(pG->Status_flg[0], 0x400);
             r214_work.p->bino->quit(&pG->Cam);
             r214_work.p->bino->~IdBinocular();

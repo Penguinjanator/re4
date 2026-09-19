@@ -78,7 +78,7 @@ void R203Init()
 
 #line 69 "D:/Bio4/Prog/r203.cpp"
     r203_work.p = (R203Work*) MEM_CALLOC(sizeof(R203Work), 1, 0xd);
-    if (pG->Scenario_flg[0] & 0x00010000) {
+    if (ScfFlagChk(pG, SCF_R201_EVENT00)) {
         setEm(0x27, -1, 0, 1, 0);
         setEm(0x29, -1, 0, 1, 0);
         if (r203_work.p->em[0].setEm(0x34, 2, 0, 1, 0) == 1) {
@@ -104,7 +104,7 @@ void R203Init()
         SceExec(0x12, (TaskFunc) r209_CheckUseKey, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+        if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
             BitOn(pG->Status_flg[3], 0x04000000);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);

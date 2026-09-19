@@ -53,10 +53,10 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
         pLog->warn(0, 0, "EstSet():EST is enpty.");
         return;
     }
-    if (pG->Status_flg[2] & 0x00080000) {
+    if (StaFlagChk(pG, STA_EVENT_SYSYTEM)) {
         e |= 0x2000;
     }
-    if (pG->Status_flg[2] & 0x02000000) {
+    if (StaFlagChk(pG, STA_ESP_COMPULSION_NOSUSPEND)) {
         e |= 1;
     }
     if (!PullEspEspgen(&w, e, f, (u8) EspgenGetCallNo(), g, owner, 1)) {
@@ -459,7 +459,7 @@ void EventAllEffDelete()
 // 1 when water effects are on (Status_flg[1] 0x400) and the point is not in a flagged effect area.
 int ChkWaterEffectEnable(Vec* pos)
 {
-    if (pG->Status_flg[1] & 0x400) {
+    if (StaFlagChk(pG, STA_ROOM_RAIN)) {
         if (EffAreaCheckInRoom(pos) == 0) {
             return 1;
         }

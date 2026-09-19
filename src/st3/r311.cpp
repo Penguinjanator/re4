@@ -729,7 +729,7 @@ static void r311_checkIronBallTerminal()
         SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         return;
     }
-    if (pSUB != NULL && RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 4000.0f && !(pG->Status_flg[2] & 0x20000000)) {
+    if (pSUB != NULL && RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 4000.0f && !StaFlagChk(pG, STA_SUB_CATCHED)) {
         SceUpCut(1, 9, -1, 0);
         switch (SceMesGetSelection()) {
         case 0:

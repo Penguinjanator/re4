@@ -537,11 +537,11 @@ void cSubChar::moveFootwork()
     if (SUBFLAG2(this)->check(8)) {
         return;
     }
-    if ((pG->Status_flg[1] & 0x8000) && SUBFLAG2(this)->check(1)) {
+    if (StaFlagChk(pG, STA_PL_CATCHED) && SUBFLAG2(this)->check(1)) {
         SubRoutineSet(this, 0, 7, 0, 0);
         return;
     }
-    if ((pG->Status_flg[2] & 0x40000000) && SUBFLAG2(this)->check(1)) {
+    if (StaFlagChk(pG, STA_PL_EM_ACTION) && SUBFLAG2(this)->check(1)) {
         if ((u8) (r_no_2 - 0x32) > 9) {
             r_no_2 = 0x32;
         }
@@ -784,11 +784,11 @@ void cSubChar::moveMove()
         SubRoutineSet(this, 0, 6, 0, 0);
     } else if (SUBFLAG2(this)->check(4)) {
         SubRoutineSet(this, 0, 4, 0, 0);
-    } else if ((pG->Status_flg[2] & 0x40000000) && SUBFLAG2(this)->check(1)) {
+    } else if (StaFlagChk(pG, STA_PL_EM_ACTION) && SUBFLAG2(this)->check(1)) {
         SubRoutineSet(this, 0, 0, 0x32, 0);
     } else if (!SUBFLAG2(this)->check(1) && SUBFLAG2(this)->check(0)) {
         SubRoutineSet(this, 0, 7, 0, 0);
-    } else if ((pG->Status_flg[1] & 0x8000) && SUBFLAG2(this)->check(1)) {
+    } else if (StaFlagChk(pG, STA_PL_CATCHED) && SUBFLAG2(this)->check(1)) {
         SubRoutineSet(this, 0, 7, 0, 0);
     } else if (SUBFLAG(this)->check(1)) {
         SubRoutineSet(this, 0, 0, 0, 0);
@@ -896,7 +896,7 @@ void cSubChar::moveBehind()
         break;
     case 2:
         motionMove();
-        if (pG->Status_flg[1] & 0x20000) {
+        if (StaFlagChk(pG, STA_CRITICAL)) {
             pG->Status_flg[1] &= ~0x20000;
             if (!(plStat & 0x2080)) {
                 r_no_2 = 0xA;
@@ -1044,7 +1044,7 @@ void cSubChar::moveDown()
         MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x44), 0, 7, 1, 0);
         r_no_2 = 3;
     case 3:
-        if (SUBFLAG2(this)->check(0) || (pG->Status_flg[1] & 0x8000)) {
+        if (SUBFLAG2(this)->check(0) || (StaFlagChk(pG, STA_PL_CATCHED))) {
             r_no_3 = 40;
         } else if (r_no_3) {
             r_no_3--;
@@ -1498,7 +1498,7 @@ void cSubChar::moveBack()
         motionMove();
         break;
     }
-    if (!(pG->Status_flg[1] & 0x8000)) {
+    if (!StaFlagChk(pG, STA_PL_CATCHED)) {
         SubRoutineSet(this, 0, 0, 0, 0);
     }
 }
@@ -3611,7 +3611,7 @@ void cSubChar::moveBust()
     cModel* parts;
     cModel* body;
 
-    if (pG->Status_flg[1] & 0x200000) {
+    if (StaFlagChk(pG, STA_PL_BOAT)) {
         max = 2.0f;
         div = 3.6666667f;
         step = 5;
@@ -3951,7 +3951,7 @@ u32 SubCharGetCondition()
     } else {
         ret = 1;
     }
-    if (pG->Status_flg[1] & 0x10000) {
+    if (StaFlagChk(pG, STA_TAKEAWAY)) {
         return ret | 8;
     }
     if (SUBFLAG(sub)->check(3)) {

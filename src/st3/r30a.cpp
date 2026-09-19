@@ -52,7 +52,7 @@ void R30aInit()
     r30a_work = (R30aWork*) MEM_CALLOC(sizeof(R30aWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30as00_func", (void*) Evt_R30AS00_Func);
     EvtMgr.SetFunc("evt_r30as98_func", (void*) Evt_R30AS00_Func);
-    if (pG->Scenario_flg[1] & 0x800) {
+    if (ScfFlagChk(pG, SCF_R316_TO_R30A_CUTBACK_EVENT)) {
         SndBgmTblSetDisable(3, 0);
         BitOff(pG->Scenario_flg[1], 0x800);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {

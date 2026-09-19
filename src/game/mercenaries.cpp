@@ -519,7 +519,7 @@ int MercSysMoveMain(MercSysWork* wk)
     st[0] = 1;
     do {
         MercSysMoveScore(wk);
-        if (!(pG->Status_flg[0] & 0x00100000)) {
+        if (!StaFlagChk(pG, STA_DIEDEMO)) {
             CountDown* cd = Cckpt.getCountDown();
             int end = 0;
 

@@ -330,7 +330,7 @@ void EffAreaUpdate()
     int y;
     SstAreaEnt* ent;
 
-    if (pG->Status_flg[1] & 0x800) {
+    if (StaFlagChk(pG, STA_CAMERA_SET_ROOM)) {
         BitOn(pG->Status_flg[1], 0x02000000);
     } else {
         BitOff(pG->Status_flg[1], 0x02000000);
@@ -341,7 +341,7 @@ void EffAreaUpdate()
     if (sys->pSstArea == NULL) {
         return;
     }
-    if ((pG->Status_flg[2] & 0x10000) == 0) {
+    if (StaFlagChk(pG, STA_4f) == 0) {
         pos = pPL->pos;
         pos.y += 100.0f;
     } else {
@@ -424,7 +424,7 @@ void EffEm2d_setTexRender(cModel* m)
     u8* tbl = buf;
     int repType = 1;
 
-    if ((pG->Status_flg[1] & 0x10) == 0) {
+    if (StaFlagChk(pG, STA_EFFEM2D_TEXRND) == 0) {
         TexRenderMng* mgr;
         TexRenderMng* mgr2;
 
@@ -534,7 +534,7 @@ void EspSetGatling(Vec pos, Vec dir)
 #line 689 "D:/Bio4/Prog/esp_app.cpp"
     VECNormalize(&esp->m_Speed, &esp->m_Speed);
     PSVECScale(&esp->m_Speed, &esp->m_Speed, 3000.0f);
-    if (pG->Status_flg[2] & 0x02000000) {
+    if (StaFlagChk(pG, STA_ESP_COMPULSION_NOSUSPEND)) {
         esp->info.Core_flg |= 1;
     }
 }

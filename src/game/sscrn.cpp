@@ -255,7 +255,7 @@ void SubScreenCall()
     if (pSUB && pSUB->id == 3 && (s16) pG->ashley_life <= 0) {
         return;
     }
-    if (!(pG->Status_flg[0] & 0x02000000)) {
+    if (!StaFlagChk(pG, STA_SSCRN_ENABLE)) {
         return;
     }
     if (pPL->subScrCheck() == 1) {
@@ -267,7 +267,7 @@ void SubScreenCall()
         if (Key.trg & 0x100000) {
             SubScreenOpen(SS_OPEN_NORMAL, 0);
         } else if (Key.trg & 0x200000) {
-            if (!(pG->Status_flg[2] & 0x00200000)) {
+            if (!StaFlagChk(pG, STA_MAP_DISABLE)) {
                 SubScreenOpen(SS_OPEN_MAP, 0);
             }
         }
@@ -318,7 +318,7 @@ int SubScreenOpen(int type, int flags)
 {
     SubScreenWork* wk = &SubScreenWk;
 
-    if (pG->Status_flg[2] & 0x04000000) {
+    if (StaFlagChk(pG, STA_SSCRN_REQUEST)) {
         return 0;
     }
     BitOn(pG->Status_flg[2], 0x04000000);
@@ -329,7 +329,7 @@ int SubScreenOpen(int type, int flags)
     if (flags & 1) {
         SceEventStart(0);
     } else {
-        if (pG->Status_flg[1] & 0x00200000) {
+        if (StaFlagChk(pG, STA_PL_BOAT)) {
             wk->flags = flags | 2;
         }
         wk->stop_bak = pG->Stop_flg;
@@ -401,18 +401,18 @@ void SubScreenExec()
         case 2:
             pG->weapon_no = WeaponId2WeaponNo(ItemMgr.m_wep_id);
             pG->weapon_type = WeaponId2WeaponType(ItemMgr.m_wep_id);
-            if (pG->Status_flg[0] & 0x40) {
+            if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
                 CamCtrl.saveScopeParam();
                 CamCtrl.endScope();
                 wk->scope_flag = 1;
-                if (pG->Status_flg[1] & 0x04000000) {
+                if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
                     wk->scope_flag = 2;
                     pG->Status_flg[1] &= ~0x04000000;
                 }
             } else {
                 wk->scope_flag = 0;
             }
-            if (pG->Status_flg[0] & 0x400) {
+            if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
                 CamCtrl.GetBinocularIDAddr(&wk->binoA, &wk->binoB);
                 CamCtrl.LowerBinocular();
                 wk->binocular_flag = 1;
@@ -435,7 +435,7 @@ void SubScreenExec()
                 }
             }
             {
-                u32 t = pG->Status_flg[1] & 0x10000000;
+                u32 t = StaFlagChk(pG, STA_SUSPEND);
                 wk->suspend_flag = t;
             }
             BitOff(pG->Status_flg[1], 0x10000000);
@@ -605,7 +605,7 @@ void SubScreenExec()
 // Unlinks the Sscrn REL, swaps the game memory back and restarts the room REL.
 void SubScreenExitCore(SubScreenWork* wk)
 {
-    if (pG->Status_flg[0] & 0x00040000) {
+    if (StaFlagChk(pG, STA_SUB_SCRN)) {
         MapMgr.roomInit();
         DLL_Unlink(wk->p_module);
         wk->relAddr = 0;

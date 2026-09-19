@@ -90,7 +90,7 @@ void R306Init()
     } else {
         EstSet(0, -1, 0, 0, 1, 0, 1, 0, (u32) zero, zero);
     }
-    if (pG->Scenario_flg[1] & 0x1000) {
+    if (ScfFlagChk(pG, SCF_R307_REGENERATER_APPEAR)) {
         r306_work->em[0].setEm(0x30, 6, 0, 1, 1);
         r306_work->em[1].setEm(0x31, 6, 0, 1, 1);
         if (pG->room_id_prev == 0x30B) {

@@ -659,7 +659,7 @@ void cEm39::move()
     em39VoiceMove(this);
     em39SpeechMove(this);
     if (be_flag & 2) {
-        if (pG->Status_flg[0] & 0x00800000) {
+        if (StaFlagChk(pG, STA_PL_FIRE)) {
             w->No_fire_timer = 0;
         } else {
             w->No_fire_timer++;
@@ -7753,7 +7753,7 @@ void em39WepSet(cEm39* em, int no)
     if (noFlag) {                                                                                  \
         return 0;                                                                                  \
     }                                                                                              \
-    if (pG->Status_flg[1] & 0x8000) {                                                                 \
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {                                                                 \
         return 0;                                                                                  \
     }                                                                                              \
     PSMTXInverse((em)->mat, inv);                                                                  \

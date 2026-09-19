@@ -308,7 +308,7 @@ int fanceCheck(cPlayer* pl)
     int hit0;
     int hit1;
 
-    if (pG->Status_flg[2] & 0x08000000) {
+    if (StaFlagChk(pG, STA_NO_FENCE)) {
         return 0;
     }
     if ((pl->m_ActAttr & 0x20) == 0) {
@@ -766,7 +766,7 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
 // Fade the player (and the weapon) out while pG->flags_500C bit13 is set.
 void cPlayer::visibleCtrl()
 {
-    if (pG->Status_flg[0] & 0x2000) {
+    if (StaFlagChk(pG, STA_PL_INVISIBLE)) {
         invisible_factor -= 0.1f;
         if (invisible_factor < 0.0f) {
             invisible_factor = 0.0f;
@@ -1157,7 +1157,7 @@ void cPlayer::interrupt()
         face->x70 = 0.0f;
         face->x5C = 0.0f;
     }
-    if (pG->pl_type == 4 && (pG->Status_flg[3] & 0x00800000)) {
+    if (pG->pl_type == 4 && (StaFlagChk(pG, STA_KLAUSER_TRANSFORM))) {
         pG->Status_flg[3] &= ~0x00800000;
         x890 = 0;
         if (x894 == -1) {
@@ -1178,13 +1178,13 @@ int cPlayer::endCamera()
     if (stat & 0x200) {
         BitOff(stat, 0x200);
         BitOff(pG->Status_flg[1], 0x04000000);
-        if (pG->Status_flg[0] & 0x40000) {
+        if (StaFlagChk(pG, STA_SUB_SCRN)) {
             LightMgr.update(CamCtrl.areaNo, 0);
         }
     }
     if (stat & 0x10) {
         CamCtrl.endScope();
-        if (pG->Status_flg[0] & 0x40000) {
+        if (StaFlagChk(pG, STA_SUB_SCRN)) {
             CameraMove();
         }
         stat &= ~0x10;
@@ -1193,7 +1193,7 @@ int cPlayer::endCamera()
     }
     if (stat & 4) {
         CamCtrl.LowerBinocular();
-        if (pG->Status_flg[0] & 0x40000) {
+        if (StaFlagChk(pG, STA_SUB_SCRN)) {
             CameraMove();
         }
         BitOff(stat, 4);
@@ -1202,7 +1202,7 @@ int cPlayer::endCamera()
     }
     if (stat & 8) {
         CamCtrl.endPushObject();
-        if (pG->Status_flg[0] & 0x40000) {
+        if (StaFlagChk(pG, STA_SUB_SCRN)) {
             CameraMove();
         }
         stat &= ~8;

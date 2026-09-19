@@ -645,7 +645,7 @@ int Event::RunEvtCancel()
         }
         if (NowCut >= MaxCut - 1) {
             if (!(pG->Stop_flg & 0x10000000) && (pPL->be_flag & 0x20)
-                && (!(pG->Status_flg[1] & 0x10000000) || (pPL->be_flag & 0x800))) {
+                && (!StaFlagChk(pG, STA_SUSPEND) || (pPL->be_flag & 0x800))) {
                 pPL->move();
             }
             if (PPl != 0) {

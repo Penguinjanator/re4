@@ -225,7 +225,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
 // unless Status_flg[3] bit23 lets it through regardless.
 int cObjHandGre::keyKamae()
 {
-    if (pG->Status_flg[3] & 0x00800000) {
+    if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
         return cObjWep::keyKamae();
     }
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {

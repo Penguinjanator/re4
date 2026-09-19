@@ -245,7 +245,7 @@ void AddWaterPowerSub(EspgenWork* w)
 // (Status_flg[0] 0x200).
 void AddWaterPower(Vec* pos, f32 power)
 {
-    if (pG->Status_flg[0] & 0x200) {
+    if (StaFlagChk(pG, STA_WATER_ALIVE)) {
         Height_find = 0;
         FSet(Add_power, power * 5.0f);
         Chk_pos = *pos;
@@ -307,7 +307,7 @@ void Espgen42SetNoWater(int on)
 // live water covers it or no water exists this frame.
 int GetWaterHeight(Vec* pos, f32* height)
 {
-    if (!(pG->Status_flg[0] & 0x200)) {
+    if (!StaFlagChk(pG, STA_WATER_ALIVE)) {
         return 0;
     }
     if (g_bNoWater == 1) {
@@ -419,7 +419,7 @@ void GetWaterCrossPosSub(EspgenWork* w)
 // (bullet splashes, item drops), 0 otherwise.
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 {
-    if (!(pG->Status_flg[0] & 0x200)) {
+    if (!StaFlagChk(pG, STA_WATER_ALIVE)) {
         return 0;
     }
     if (dir->x == 0.0f && dir->y == 0.0f && dir->z == 0.0f) {

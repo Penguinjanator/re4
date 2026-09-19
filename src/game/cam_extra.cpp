@@ -768,7 +768,7 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     m_pos0_L = IdSys.unitPtr(1, 0x24)->scr;
     m_pos0_C = IdSys.unitPtr(2, 0x24)->scr;
     m_pos0_R = IdSys.unitPtr(3, 0x24)->scr;
-    if (pGS->Status_flg[0] & 0x1000) {
+    if (StaFlagChk(pGS, STA_EVENT)) {
         IdSys.unitPtr(0x30, 0x24)->be_flag &= ~8;
         IdSys.unitPtr(0x1B, 0x24)->be_flag &= ~8;
     }
@@ -885,7 +885,7 @@ void IdBinocular::move(void* p)
         i++;
         IdSys.unitPtr(i, 0x24)->be_flag &= ~8;
     }
-    if (!(pG->Status_flg[0] & 0x1000)) {
+    if (!StaFlagChk(pG, STA_EVENT)) {
         IdUnit* u = IdSys.unitPtr(0x36, 0x24);
         MessageControl* mc;
         Message* ms;
@@ -958,7 +958,7 @@ void IdBinocular::quit(void*)
     IdSys.kill(0xFF, 0x24);
     pG->Stop_flg &= ~0x100;
     Cckpt.roomInit();
-    if (pG->Status_flg[0] & 0x1000) {
+    if (StaFlagChk(pG, STA_EVENT)) {
         Cckpt.lifeMeterDisp(0);
     }
     {

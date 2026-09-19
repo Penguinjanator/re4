@@ -200,7 +200,7 @@ void R11cInit()
     if (getRoomEtcRack(2, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 10000.0f, 0.0f, 10000.0f);
     }
-    if (!(pG->Scenario_flg[0] & 0x00020000)) {
+    if (!ScfFlagChk(pG, SCF_R11C_BESIEGED_EVENT)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r11c_EventBesiegedStart, 0, 1);
         r11c_eventInit();
         if (!r11c_emDead(0xC8)) {
@@ -246,14 +246,14 @@ void R11cInit()
     EvtMgr.SetFunc("evt_r11cs00_func", (void*) Evt_R11CS00_Func);
     EvtMgr.SetFunc("evt_r11cs10_func", (void*) Evt_R11CS10_Func);
     EvtMgr.SetFunc("evt_r11cs20_func", (void*) Evt_R11CS20_Func);
-    if (!(pG->Scenario_flg[1] & 0x00020000)) {
+    if (!ScfFlagChk(pG, SCF_R11C_OPERATOR)) {
         SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r11c_operator, 0, 1);
     }
     if (EtcGetDasAddr(0x14, &arc)) {
         RoomEfmRegist(GetEtcAddr(arc, "et1400.bin"), GetEtcAddr(arc, "et1400.tpl"), 0x6F);
     }
     FlrAtSetDefVal(0, 0, 3);
-    if (!(pG->Scenario_flg[0] & 0x00020000) && RoomData.checkPassed(pG->room_id, 0) == 0) {
+    if (!ScfFlagChk(pG, SCF_R11C_BESIEGED_EVENT) && RoomData.checkPassed(pG->room_id, 0) == 0) {
         levelDataAdd(merchantData, level_null);
         stockDataAdd(merchantData, stock_r11c);
     }
@@ -710,7 +710,7 @@ extern "C" void r11c_initGate()
     cObj* g1 = SmdGetObjPtr(0x34);
 
     if (g0 && g1) {
-        if (!(pG->Scenario_flg[0] & 0x00020000)) {
+        if (!ScfFlagChk(pG, SCF_R11C_BESIEGED_EVENT)) {
             const f32 h = 3600.0f;
 
             g0->pos.y += h;
@@ -1081,7 +1081,7 @@ static void r11c_selectRoute()
 // Area 0xC: the typewriter terminal.
 static void r11c_operator()
 {
-    if (!(pG->Scenario_flg[1] & 0x00020000)) {
+    if (!ScfFlagChk(pG, SCF_R11C_OPERATOR)) {
         pG->Scenario_flg[1] |= 0x00020000;
         SceAtSetEnable(0xC, 0);
         OpeSetOpenTerm(0xB, 71600.0f, -10.0f, -55420.0f, 1.6f);

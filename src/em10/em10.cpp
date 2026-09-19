@@ -1038,7 +1038,7 @@ void em10DmCk(cEm10* em)
     }
     if ((em->r_no_0 == 1 && em->r_no_1 == 0x5E) && (w->flags & 8)) {
         em10BloodSet(em, 0);
-        if (!(pG->Status_flg[1] & 0x20000000)) {
+        if (!StaFlagChk(pG, STA_SE_BURST)) {
             BitOn(pG->Status_flg[1], 0x20000000);
             SET_BELL_POS(&em->pos);
             pG->bell_stat = 0;
@@ -1137,7 +1137,7 @@ void em10DmCk(cEm10* em)
             GameAddPoint(LVADD_CRITICALHIT);
         }
     }
-    if (!(pG->Status_flg[1] & 0x20000000)) {
+    if (!StaFlagChk(pG, STA_SE_BURST)) {
         BitOn(pG->Status_flg[1], 0x20000000);
         SET_BELL_POS(&em->pos);
         pG->bell_stat = 0;
@@ -2551,12 +2551,12 @@ void cEm10::move()
     if (w->Atk_wait) {
         w->Atk_wait--;
     }
-    if (pPL->r_no_0 == 1 || (pG->Status_flg[1] & 0x8000)) {
+    if (pPL->r_no_0 == 1 || (StaFlagChk(pG, STA_PL_CATCHED))) {
         if ((s16) w->Atk_wait <= 4) {
             w->Atk_wait = 5;
         }
     }
-    if (pG->Status_flg[1] & 0x2000) {
+    if (StaFlagChk(pG, STA_PL_CATCHHOLD)) {
         w->Atk_wait = 0;
     }
     if (w->Dash_wait) {
@@ -8284,7 +8284,7 @@ static void em10_R1_LadderClimb(cEm10* em)
                 em->r_no_2 = 4;
             }
         } else {
-            if (pG->Status_flg[1] & 0x40000) {
+            if (StaFlagChk(pG, STA_PL_LADDER)) {
                 p = pPL->getPartsPtr(4);
                 v = p->world;
                 d2 = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z);
@@ -8322,7 +8322,7 @@ static void em10_R1_LadderClimb(cEm10* em)
         if (MotionMoveF(em, 0)) {
             w->Atk_wait = 15;
             em10WalkRtnSet(em);
-        } else if ((pG->Status_flg[1] & 0x40000) && !(em->seFlags28B & 4)) {
+        } else if (StaFlagChk(pG, STA_PL_LADDER) && !(em->seFlags28B & 4)) {
             p = pPL->getPartsPtr(4);
             v = p->world;
             d2 = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z);
@@ -8422,7 +8422,7 @@ static void em10_R1_VLadderClimb(cEm10* em)
             if (w->Timer <= 0) {
                 em->r_no_2 = 4;
             }
-        } else if (pG->Status_flg[1] & 0x40000) {
+        } else if (StaFlagChk(pG, STA_PL_LADDER)) {
             p = pPL->getPartsPtr(4);
             v = p->world;
             d2 = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z);
@@ -8446,7 +8446,7 @@ static void em10_R1_VLadderClimb(cEm10* em)
         if (MotionMoveF(em, 0)) {
             w->Atk_wait = 15;
             em10WalkRtnSet(em);
-        } else if ((pG->Status_flg[1] & 0x40000) && !(em->seFlags28B & 4)) {
+        } else if (StaFlagChk(pG, STA_PL_LADDER) && !(em->seFlags28B & 4)) {
             p = pPL->getPartsPtr(4);
             v = p->world;
             d2 = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z);
@@ -12683,7 +12683,7 @@ static void em10_R1_Backhold(cEm10* em)
         if (EmCatchMotionMove(em, 0.3f, 0.2f) || w->Timer2 == 0) {
             em->dmg.m_Timer = 2;
             em->r_no_2 = 2;
-        } else if (!(pG->Status_flg[1] & 0x2000)) {
+        } else if (!StaFlagChk(pG, STA_PL_CATCHHOLD)) {
             em->r_no_2 = 4;
         }
         break;
@@ -13138,7 +13138,7 @@ static void em10_R1_TakeAway(cEm10* em)
         em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, 0.09817477f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMoveF(em, 0);
-        if (!(pG->Status_flg[1] & 0x10000)) {
+        if (!StaFlagChk(pG, STA_TAKEAWAY)) {
             em10WalkRtnSet(em);
             break;
         }
@@ -13180,7 +13180,7 @@ static void em10_R1_TakeAway(cEm10* em)
             em->r_no_2 = 0xE;
             break;
         }
-        if (!(pG->Status_flg[1] & 0x10000)) {
+        if (!StaFlagChk(pG, STA_TAKEAWAY)) {
             em10WalkRtnSet(em);
         }
         break;
@@ -13256,7 +13256,7 @@ static void em10_R1_TakeAway(cEm10* em)
         em->r_no_2++;
     case 0xF:
         MotionMoveF(em, 0);
-        if (!(pG->Status_flg[1] & 0x10000)) {
+        if (!StaFlagChk(pG, STA_TAKEAWAY)) {
             em10WalkRtnSet(em);
             break;
         }
@@ -16944,10 +16944,10 @@ extern "C" int em10RouteTargetSet(cEm10* em)
     if (em->type == 6) {
         return 0;
     }
-    if (pG->Status_flg[0] & 0x800) {
+    if (StaFlagChk(pG, STA_ASHLEY_HIDE)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x10000) {
+    if (StaFlagChk(pG, STA_TAKEAWAY)) {
         return 0;
     }
     if (pG->Status_flg[1] & 8) {
@@ -17138,7 +17138,7 @@ int em10AtkRtnCk(cEm10* em, int a)
             return 0;
         }
     }
-    if (pG->Status_flg[1] & 0x00200000) {
+    if (StaFlagChk(pG, STA_PL_BOAT)) {
         return 0;
     }
     if (em10ParasiteAtkCk(em)) {
@@ -17189,7 +17189,7 @@ int em10AtkRtnCk(cEm10* em, int a)
         return 1;
     }
     if (pG->room_id == 0x21B) {
-        if (pG->Status_flg[2] & 0x08000000) {
+        if (StaFlagChk(pG, STA_NO_FENCE)) {
             return 0;
         }
     }
@@ -17223,7 +17223,7 @@ extern "C" int em10CatchPLRtnCk(cEm10* em)
     if (w->Atk_wait != 0) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     if (w->pShield != 0) {
@@ -17311,7 +17311,7 @@ extern "C" int em10CatchSubRtnCk(cEm10* em)
     if (w->Wep_type == 4) {
         return 0;
     }
-    if (pG->Status_flg[0] & 0x800) {
+    if (StaFlagChk(pG, STA_ASHLEY_HIDE)) {
         return 0;
     }
     if (pG->Status_flg[1] & 8) {
@@ -17324,10 +17324,10 @@ extern "C" int em10CatchSubRtnCk(cEm10* em)
         return 0;
     }
     rtn = 1;
-    if (pG->Status_flg[1] & 0x10000) {
+    if (StaFlagChk(pG, STA_TAKEAWAY)) {
         return 0;
     }
-    if (pG->Status_flg[2] & 0x00800000) {
+    if (StaFlagChk(pG, STA_SUB_BULLDOZER)) {
         return 0;
     }
     if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_ATK)) {
@@ -17393,7 +17393,7 @@ int em10CatchCk(cEm10* em)
     if (w->Die_wait > 0x2D) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x8000) {
+    if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
     if ((w->flags & 0x80) && (em->flag & 0x100000)) {
@@ -17482,13 +17482,13 @@ int em10CatchSubCk(cEm10* em)
     if (!(w->flags & 2)) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x00010000) {
+    if (StaFlagChk(pG, STA_TAKEAWAY)) {
         return 0;
     }
-    if (pG->Status_flg[2] & 0x00800000) {
+    if (StaFlagChk(pG, STA_SUB_BULLDOZER)) {
         return 0;
     }
-    if (pG->Status_flg[0] & 0x800) {
+    if (StaFlagChk(pG, STA_ASHLEY_HIDE)) {
         return 0;
     }
     if (pG->Status_flg[1] & 8) {
@@ -19146,7 +19146,7 @@ extern "C" int em10ClimbOverCk2(cEm10* em)
     f32 ang;
     f32 y;
 
-    if (pG->Status_flg[2] & 0x08000000) {
+    if (StaFlagChk(pG, STA_NO_FENCE)) {
         return 0;
     }
     if (w->x634 % 15 != 11) {
@@ -20693,7 +20693,7 @@ extern "C" int em10AxeAtkCk(cEm10* em)
     if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_ATK)) {
         return 0;
     }
-    if ((w->flags & 0x08000000) && pSUB && ((pG->Status_flg[2] & 0x00800000) || em->type == 0x18 || em->type == 2)) {
+    if ((w->flags & 0x08000000) && pSUB && (StaFlagChk(pG, STA_SUB_BULLDOZER) || em->type == 0x18 || em->type == 2)) {
         if (!(w->flags & 2)) {
             return 0;
         }
@@ -20988,7 +20988,7 @@ extern "C" int em10ClawCriAtkCk(cEm10* em)
     if (em->plDist2 < 12250000.0f || em->plDist2 > 225000000.0f) {
         return 0;
     }
-    if (!(Rnd() & 3) && !(pG->Status_flg[1] & 0x20000000)) {
+    if (!(Rnd() & 3) && !StaFlagChk(pG, STA_SE_BURST)) {
         w->CriAtk_wait = 150;
         return 0;
     }
@@ -21448,7 +21448,7 @@ int em10FindCk(cEm10* em, int a)
                 find = 1;
             }
         }
-        if (pG->Status_flg[1] & 0x80000000) {
+        if (StaFlagChk(pG, STA_PL_SE_FOOT)) {
             if (em->plDist2 < 25000000.0f) {
                 find = 1;
             }
@@ -21474,7 +21474,7 @@ int em10FindCk(cEm10* em, int a)
         case 11:
         case 12:
         case 13:
-            if (pG->Status_flg[1] & 0x20000000) {
+            if (StaFlagChk(pG, STA_SE_BURST)) {
                 // em3c bell idiom: three identical arms assigning `r` keep the dispatch compares; the
                 // override in the distance block makes the arm sets dead (flow deletes them, the
                 // compares stay) and `r` a block-local pseudo loaded at the use (local-alloc gives
@@ -21503,7 +21503,7 @@ int em10FindCk(cEm10* em, int a)
                     }
                 }
             }
-            if (pG->Status_flg[0] & 0x00800000) {
+            if (StaFlagChk(pG, STA_PL_FIRE)) {
                 if (w->L_pl_route < 25000.0f) {
                     find = 1;
                 }
@@ -21538,7 +21538,7 @@ int em10FindCk2(cEm10* em)
     if (w->Goto_mode) {
         return 0;
     }
-    if (pG->Status_flg[1] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SE_BURST)) {
         if (pG->bell_stat == 2) {
             f32 dx = em->pos.x - pG->bell_pos.x;
             f32 dy = em->pos.y - pG->bell_pos.y;
@@ -21573,7 +21573,7 @@ int em10FindCk2(cEm10* em)
         w->x5F0 = pPL->pos;
         return 1;
     }
-    if ((pG->Status_flg[0] & 0x00800000) && w->L_pl_route < 25000.0f) {
+    if (StaFlagChk(pG, STA_PL_FIRE) && w->L_pl_route < 25000.0f) {
         w->x5F0 = pPL->pos;
         return 1;
     }
@@ -21941,7 +21941,7 @@ void em10SlopeMove(cEm10* em)
     f32 fa;
     f32 fb;
 
-    if (pG->Status_flg[0] & 0x1000) {
+    if (StaFlagChk(pG, STA_EVENT)) {
         return;
     }
     if (w->flags & 0x00400000) {
@@ -23236,7 +23236,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
     if ((em->flag & 4) && !(pG->System_flg & 0x20)) {
         info.dmg = info.dmg / 2 + 1;
     }
-    if ((pG->Status_flg[1] & 0x2000) && pG->Game_level > 3) {
+    if (StaFlagChk(pG, STA_PL_CATCHHOLD) && pG->Game_level > 3) {
         info.dmg = 9999;
         info.flag = 4;
     }

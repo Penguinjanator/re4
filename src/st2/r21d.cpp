@@ -867,7 +867,7 @@ void TRAP::stop(int v)
 
 #define R21D_TRAP_HIT()                                                                        \
     if (SceAtHitCheck(hitAtNo) == 1) {                                                         \
-        if (!(pG->Status_flg[0] & 0x00100000)) {                                                  \
+        if (!StaFlagChk(pG, STA_DIEDEMO)) {                                                  \
             SndCall(6, 0xA, 0, 0, 0, 0);                                                       \
             pPL->dmg.set(0, 0x80);                                                             \
             pPL->setNoSuspend(1);                                                              \

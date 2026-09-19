@@ -441,7 +441,7 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
         setColumns(m, &v0, &v1, &v3, &v4);
         memclr_asm(&m_pl_dir, sizeof(Vec));
     }
-    if (!pl->isKamae() && m_p_floor_norm != NULL && !(pG->Status_flg[0] & 0x40000)) {
+    if (!pl->isKamae() && m_p_floor_norm != NULL && !StaFlagChk(pG, STA_SUB_SCRN)) {
         Vec up = {0.0f, 1.0f, 0.0f};
 
         v5 = *m_p_floor_norm;
@@ -475,7 +475,7 @@ int CameraQuasiFPS::checkFBLR()
 {
     cPlayer* pl = pPL;
 
-    if (pG->Status_flg[3] & 0x800000) {
+    if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
         return 0;
     }
     if (pl->isKamae()) {
@@ -613,7 +613,7 @@ void CameraQuasiFPS::checkCameraType()
         }
         break;
     case 4:
-        if (pG->Status_flg[3] & 0x800000) {
+        if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
             m_ready_type = 0xA;
         } else if (PlGetWeaponNo() != 0x10) {
             m_ready_type = 8;

@@ -164,7 +164,7 @@ static inline int r320_evtSkip(Event* e)
 // The helicopter into the work; it fires freely below rank 9.
 static inline void r320_heriSet()
 {
-    if (!(pG->Scenario_flg[2] & 0x80000000)) {
+    if (!ScfFlagChk(pG, SCF_40)) {
         cEm3d* em;
 
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
@@ -315,7 +315,7 @@ void R320Init()
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
     BitOn(pG->Debug_flg[1], 0x00200000);
-    if ((pG->Scenario_flg[2] & 0x10000000) == 0) {
+    if (ScfFlagChk(pG, SCF_43) == 0) {
         if ((R320_SAVE_FLAGS & 0x100) == 0) {
             R320_SAVE_FLAGS |= 0x100;
             BitOn(pG->Scenario_flg[2], 0x10000000);
@@ -344,7 +344,7 @@ void R320Init()
         R320_SAVE_FLAGS |= 0x00200000;
         R320_SAVE_FLAGS |= 0x00100000;
     }
-    if (pG->Scenario_flg[2] & 0x80000000) {
+    if (ScfFlagChk(pG, SCF_40)) {
         if (pG->em_list_no >= 0) {
             u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
 
@@ -665,7 +665,7 @@ static void r320_heri_event()
     SmdSetTrans(0x27, 0);
     setMisileUseNum(0);
     GatlingSetBreak(r320_work->gatling[5]);
-    if (!(pG->Scenario_flg[2] & 0x80000000)) {
+    if (!ScfFlagChk(pG, SCF_40)) {
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
     }
     scr_delete();

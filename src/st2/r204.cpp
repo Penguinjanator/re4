@@ -256,7 +256,7 @@ void R204Init()
             EmMgr.destroy(em1);
         }
     }
-    if (pG->Scenario_flg[1] & 0x10000000) {
+    if (ScfFlagChk(pG, SCF_R206_ASHLEY_RESCUE)) {
         SceAtSetEnable(0x11, 0);
     }
     setTexRender();
@@ -343,7 +343,7 @@ void R204Main()
             } else {
                 r204_work.p->cnt2 = 0;
             }
-            if (SceCkFindPL(0) == 1 || (pG->Room_flg[2] & 0x80000000) || (pG->Status_flg[0] & 0x800000)) {
+            if (SceCkFindPL(0) == 1 || (pG->Room_flg[2] & 0x80000000) || (StaFlagChk(pG, STA_PL_FIRE))) {
                 BitOn(pG->Room_flg[0], 0x40000000);
                 RsfSet(G_ROOM_ID, 2);
                 r204_work.p->cnt = 1;

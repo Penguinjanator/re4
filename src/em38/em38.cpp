@@ -363,7 +363,7 @@ void cEm38::move()
         }
     }
     if (type == 3) {
-        if (pG->Status_flg[1] & 0x04000000) {
+        if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
             LightInfo.EnableMask = 0x80;
         } else {
             LightInfo.EnableMask = 4;
@@ -1105,7 +1105,7 @@ static void em38_R1_T_Atk(cEm38* em)
                 em38AtkCk(em, 0, 0x11);
                 em38AtkCk(em, 0, 0x12);
             }
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (StaFlagChk(pG, STA_PL_CATCHED))) {
                 w->escaped = 1;
             }
             if (w->timer && w->atkHit == 0 && w->escaped == 0) {
@@ -1193,7 +1193,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (StaFlagChk(pG, STA_PL_CATCHED))) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -1281,7 +1281,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->Status_flg[1] & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (StaFlagChk(pG, STA_PL_CATCHED))) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -2867,7 +2867,7 @@ void em38WeakMove(cEm38* em)
     if (w->pWeak == 0) {
         return;
     }
-    if ((pG->Status_flg[1] & 0x04000000) && em->hp > 0) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH) && em->hp > 0) {
         w->pWeak->be_flag |= 2;
     } else {
         w->pWeak->be_flag &= ~2;

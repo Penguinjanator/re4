@@ -155,7 +155,7 @@ void R117Init()
     W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
-    if (!(pG->Scenario_flg[0] & 0x00100000)) {
+    if (!ScfFlagChk(pG, SCF_R117_ASHLEY_FIND)) {
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {

@@ -1259,7 +1259,7 @@ static void shootMain()
                 r22c_work.p->step = 3;
                 break;
             }
-            if (pG->Status_flg[2] & 0x01000000) {
+            if (StaFlagChk(pG, STA_PL_MISS_SHOT)) {
                 r22c_work.p->combo = 0;
             }
             if (r22c_work.p->combo == 5) {

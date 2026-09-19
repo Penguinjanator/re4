@@ -118,7 +118,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
 {
     static u8 vfilter[7] __attribute__((aligned(32))) = {32, 0, 0, 0, 0, 0, 32};
 
-    if (pG->Status_flg[1] & 0x08000000) {
+    if (StaFlagChk(pG, STA_TEX_RENDER)) {
         GXRenderModeObj* rmode = &Rmode;
         u32 ofs, w, h;
         int wrap;

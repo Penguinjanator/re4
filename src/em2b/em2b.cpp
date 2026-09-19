@@ -1101,7 +1101,7 @@ static void em2b_R1_Wait(cEm2b* em)
             EmRoutineSet(em, 1, 2, 0, 0xA);
             return;
         }
-        if ((pG->Status_flg[1] & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+        if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->Dash_wait = 30;
         }
         if (em->plDist2 > 25000000.0f) {
@@ -5556,7 +5556,7 @@ int em2bAtkRtnCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
 
-    if ((pG->Status_flg[1] & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+    if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
         if (em->plDist2 < 49000000.0f) {
             em2bThreatSet(em, w);
             return 1;

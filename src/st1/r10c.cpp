@@ -482,7 +482,7 @@ static void r10c_ThunderMove()
     }
     for (;;) {
         if (cnt == 0) {
-            if (!(pG->Status_flg[1] & 0x02000000)) {
+            if (!StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
                 EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
                 {
                     u8 r = Rnd() % 30;

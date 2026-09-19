@@ -90,7 +90,7 @@ extern "C" void R120Event()
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
     }
-    if (!(pG->Scenario_flg[1] & 0x10)) {
+    if (!ScfFlagChk(pG, SCF_3b)) {
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);

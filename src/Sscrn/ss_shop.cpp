@@ -1610,7 +1610,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
                     msg = 0xE;
                     break;
                 case 0x21:
-                    if ((pG->Scenario_flg[0] & 0x40000) && !(pG->Item_flg[0] & 0x10000000)) {
+                    if (ScfFlagChk(pG, SCF_ST1_SUB_MISSION) && !(pG->Item_flg[0] & 0x10000000)) {
                         msg = 0x10;
                     } else {
                         msg = 0xF;
@@ -2700,7 +2700,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
                 switch (type) {
                 case 0:
                     lv = 1;
-                    if (pG->Scenario_flg[1] & 0x8000) {
+                    if (ScfFlagChk(pG, SCF_R119_DOOR_CLOSE)) {
                         lv = 2;
                     }
                     break;

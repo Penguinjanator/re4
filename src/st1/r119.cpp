@@ -332,7 +332,7 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if ((pG->Scenario_flg[0] & 0x00080000) && !(pG->Room_flg[0] & 0x02000000)) {
+        if (ScfFlagChk(pG, SCF_R100_DOG_RUN) && !(pG->Room_flg[0] & 0x02000000)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");

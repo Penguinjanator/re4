@@ -153,7 +153,7 @@ void cPlLeon::setModel()
         }
         addModel(info);
     }
-    if (pG->Scenario_flg[1] & 0x20) {
+    if (ScfFlagChk(pG, SCF_R317_LEON_WOUND)) {
         setWound();
     }
     TevScaleGroup = 1;

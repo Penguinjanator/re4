@@ -127,7 +127,7 @@ void R20bInit()
         SmdSetTrans(0x52, 1);
         SmdSetTrans(0x53, 1);
         SceAtSetEnable(0x1B, 0);
-        if (!(pG->Status_flg[3] & 0x04000000)) {
+        if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             EmReadSearch((u8) GetEmIdFromListI(0x11), 0, 0);
         }
     }
@@ -165,7 +165,7 @@ void R20bInit()
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
         SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->Status_flg[3] & 0x04000000)) {
+    if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
         r20b_work.p->cnt = zero;
         SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
         SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);

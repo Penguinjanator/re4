@@ -434,7 +434,7 @@ static void em21_R1_Escape(cEm21* em)
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
-        if (!(pGS->Status_flg[1] & 0x20000000)) {
+        if (!StaFlagChk(pGS, STA_SE_BURST)) {
             BitOn(pG->Status_flg[1], 0x20000000);
             memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
             pG->bell_stat = 0;
@@ -1202,15 +1202,15 @@ int em21WakeCk(cEm21* em)
     if (em->plDist2 < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
         return 1;
     }
-    if ((pG->Status_flg[1] & 0x80000000) && em->plDist2 < 16000000.0f) {
+    if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->plDist2 < 16000000.0f) {
         return 1;
     }
-    if ((pG->Status_flg[1] & 0x40000000) || (pG->Status_flg[0] & 0x00800000)) {
+    if (StaFlagChk(pG, STA_PL_SE_WHISTLE) || (StaFlagChk(pG, STA_PL_FIRE))) {
         if (w->plDist < 15000.0f) {
             return 1;
         }
     }
-    if (pG->Status_flg[1] & 0x20000000) {
+    if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
         // three identical arms + the override after the switch: the arm sets are dead (the

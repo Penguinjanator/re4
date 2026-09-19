@@ -113,7 +113,7 @@ void CameraMove()
     CamCtrl.Check();
     if (!(pG->Stop_flg & 0x40000000)) {
         CamCtrl.Move();
-        if ((pG->Status_flg[0] & 0x100) && !(pG->Debug_flg[0] & 0x10000000)) {
+        if (StaFlagChk(pG, STA_CAMERA) && !(pG->Debug_flg[0] & 0x10000000)) {
             pG->Cam = CamCtrl.camera;
             if (CamCtrl.m_pExtraCamera != 0) {
                 pG->Cam = *(Camera*) CamCtrl.m_pExtraCamera;

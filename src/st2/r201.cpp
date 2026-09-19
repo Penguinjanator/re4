@@ -128,7 +128,7 @@ void R201Init()
     SceAtSetEnable(0, 0);
     SceAtSetEnable(1, 0);
     r201_initAltar();
-    if (!(pG->Scenario_flg[1] & 0x10000000)) {
+    if (!ScfFlagChk(pG, SCF_R206_ASHLEY_RESCUE)) {
         SceAtSetEnable(0x25, 0);
     } else {
         SceAtSetEnable(7, 0);
@@ -199,7 +199,7 @@ void R201Init()
             SceAtSetEnable(5, 0);
         }
     }
-    if (!(pG->Scenario_flg[0] & 0x10000)) {
+    if (!ScfFlagChk(pG, SCF_R201_EVENT00)) {
         r201_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
         r201_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EmReadSearch(0x1B, 0, r201_work.p->evd->m_size);
@@ -1123,7 +1123,7 @@ static void r201_execEvent00_sub()
     RsfSet(G_ROOM_ID, 4);
     SndCall(6, 3, 0, 0, 0, 0);
     for (i = 0; i < 120; i++) {
-        if (pG->Scenario_flg[0] & 0x10000) {
+        if (ScfFlagChk(pG, SCF_R201_EVENT00)) {
             SceExit();
         }
         SceSleep(1);

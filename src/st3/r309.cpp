@@ -90,7 +90,7 @@ void R309Init()
 // Per frame: once the key item (Item_flg[0] 0x40) is taken and item 0x83 is no longer saved, set Scenario_flg[2] 0x00040000.
 void R309Main()
 {
-    if (!(pG->Scenario_flg[2] & 0x00040000) && (pG->Item_flg[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
+    if (!ScfFlagChk(pG, SCF_4d) && (pG->Item_flg[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
         pG->Scenario_flg[2] |= 0x00040000;
     }
 }

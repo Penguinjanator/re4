@@ -422,7 +422,7 @@ void cObj16::move()
             setNoSuspend(0);
         }
     }
-    if (pG->Status_flg[1] & 0x04000000) {
+    if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         LightInfo.EnableMask = 4;
     } else {
         LightInfo.EnableMask = 2;

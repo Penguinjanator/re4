@@ -49,7 +49,7 @@ void cActionButton::move()
 
     Cckpt.action.no = 0;
     m_active_flag = 0;
-    if ((pG->Stop_flg & 0x100) || (pG->Status_flg[0] & 0x100000) || m_stop_flag_old) {
+    if ((pG->Stop_flg & 0x100) || (StaFlagChk(pG, STA_DIEDEMO)) || m_stop_flag_old) {
         init();
         return;
     }
@@ -181,7 +181,7 @@ int cActionButton::checkButton(ActBtnWork* w)
                     }
                     break;
                 }
-                if (pG->Status_flg[0] & 0x4000) {
+                if (StaFlagChk(pG, STA_PL_ACTION)) {
                     return 1;
                 }
                 break;
@@ -208,7 +208,7 @@ int cActionButton::checkButton(ActBtnWork* w)
                 }
                 return 1;
             }
-            if (!(pG->Status_flg[0] & 0x4000)) {
+            if (!StaFlagChk(pG, STA_PL_ACTION)) {
                 break;
             }
             key = trg;

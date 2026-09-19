@@ -133,11 +133,6 @@ static inline u32 doorFlagBase()
 {
     return (u32) &pG->Scenario_flg[0];
 }
-// Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).
-static inline u32 FlagChk(u32 base, u32 no)
-{
-    return *(u32*) (((no >> 5) << 2) + base) & (0x80000000 >> (no & 31));
-}
 // Set flag `no` in the word array at `base`.
 static inline void FlagOn(u32 base, u32 no)
 {
@@ -219,7 +214,7 @@ void r212_TrapInit()
         }
     } else {
         SceExec(0x12, (TaskFunc) r212_Puzzle, 0, 0, SCE_PRIO_DEF_2, 0);
-        if (!(pG->Status_flg[3] & 0x04000000)) {
+        if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             pG->Status_flg[3] |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
             SubCharCtrl(SCC_CHASE, 0);

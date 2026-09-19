@@ -448,7 +448,7 @@ static void r11b_str_check()
             if (n == 0) {
                 break;
             }
-            if (pG->Status_flg[1] & 0x00200000) {
+            if (StaFlagChk(pG, STA_PL_BOAT)) {
                 break;
             }
             SceSleep(1);
@@ -625,12 +625,12 @@ static void r11b_bort_pos_chk()
 {
     int riding = 0;
 
-    if (pG->Status_flg[1] & 0x00200000) {
+    if (StaFlagChk(pG, STA_PL_BOAT)) {
         riding = 1;
     }
     for (;;) {
         if (riding) {
-            if (!(pG->Status_flg[1] & 0x00200000)) {
+            if (!StaFlagChk(pG, STA_PL_BOAT)) {
                 Vec pos = r11b_work.p->boat->pos;
                 Vec pierA = {-49902.0f, -700.0f, 22743.0f};
                 Vec pierB = {126064.0f, -700.0f, 148628.0f};
@@ -646,7 +646,7 @@ static void r11b_bort_pos_chk()
                     RsfClear(G_ROOM_ID, 2);
                 }
             }
-        } else if (pG->Status_flg[1] & 0x00200000) {
+        } else if (StaFlagChk(pG, STA_PL_BOAT)) {
             riding = 1;
         }
         SceSleep(1);

@@ -112,7 +112,7 @@ void Filter00Render()
     if (filter00_buff) {
         int zero = 0;
 
-        if (pG->Status_flg[0] & 0x80000) {
+        if (StaFlagChk(pG, STA_BLUR)) {
         col.r = col.g = col.b = zero;
         col.a = blur_rate;
         GXSetTevColor(1, col);

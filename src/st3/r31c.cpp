@@ -348,7 +348,7 @@ void R31cInit()
     }
     r31c_work.p->towerSat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
     SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r31c_TowerEntranceClose, 0, 1);
-    if (pG->Scenario_flg[2] & 0x10000000) {
+    if (ScfFlagChk(pG, SCF_43)) {
         r31c_TowerExplodeModelSet(0, 0);
         r31c_TowerExplodeModelSet(1, 1);
         SceAtSetEnable(0x87, 0);
@@ -1239,7 +1239,7 @@ static void r31c_LeverCheck()
             ((cEmSwitch*) r31c_work.p->sw[1])->setOpened();
             ((cEmSwitch*) r31c_work.p->sw[1])->setActButton(0);
             r31c_work.p->door[5].setOpened();
-            if ((pG->Scenario_flg[2] & 0x10000000) == 0) {
+            if (ScfFlagChk(pG, SCF_43) == 0) {
                 r31c_work.p->door[6].setOpened();
             }
         }
@@ -1250,7 +1250,7 @@ static void r31c_LeverCheck()
         }
     }
     ((cEmSwitch*) r31c_work.p->sw[0])->setOpened();
-    if (pG->Scenario_flg[2] & 0x10000000) {
+    if (ScfFlagChk(pG, SCF_43)) {
         ((cEmSwitch*) r31c_work.p->sw[1])->setClosed();
         r31c_work.p->door[6].setClosed();
     }

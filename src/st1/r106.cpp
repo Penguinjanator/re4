@@ -94,7 +94,7 @@ void R106Init()
     }
     SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, (void (*)()) r106_openedShelf, 0, 0);
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, (void (*)()) r106_openedShelf, 1, 0);
-    if (!(pG->Scenario_flg[0] & 0x00200000)) {
+    if (!ScfFlagChk(pG, SCF_R106_EVENT)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r106_Event, 0, 1);
         PSet(r106_work->evd, DC.setData(EvtMgr.NameChange("evd/r106s00.evd")));
         r106_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
@@ -474,7 +474,7 @@ static void r106_setCloset()
     body = GetPartsAddr(obj->pParts, 0);
     doorR = GetPartsAddr(obj->pParts, 2);
     doorL = GetPartsAddr(obj->pParts, 1);
-    while (!(pG->Scenario_flg[0] & 0x00200000)) {
+    while (!ScfFlagChk(pG, SCF_R106_EVENT)) {
         if (cnt <= 0) {
             Vec sp = {157059.0f, -9245.0f, -43597.0f};
 

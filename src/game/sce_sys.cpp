@@ -102,7 +102,7 @@ void ScenarioRoomInit()
         RoomData.execInitFunc(pG->room_id);
         SceSys.scheduler();
     }
-    if (pG->Status_flg[3] & 0x4000000) {
+    if (StaFlagChk(pG, STA_SUB_ASHLEY)) {
         SubCharInit(1, &pG->sub_pos, pG->sub_angle);
         SubCharCtrl(SCC_CHASE, 0);
     }
@@ -149,7 +149,7 @@ void ScenarioMove()
     }
     scenarioLoopBeforeInit();
     if (SceSys.m_item_get == 0 && SceSys.pause == 0) {
-        if (!(pG->Status_flg[0] & 0x100000)) {
+        if (!StaFlagChk(pG, STA_DIEDEMO)) {
             scenarioCheckEventCancel();
             RoomData.execMainFunc(pG->room_id);
         }

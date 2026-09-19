@@ -6313,7 +6313,7 @@ void ToolEspMain()
                 }
             }
         }
-        if (pG->Status_flg[1] & 0x8000000) {
+        if (StaFlagChk(pG, STA_TEX_RENDER)) {
             if (g_pTexRender == NULL) GetTexRenderMgr(&g_pTexRender);
         }
         DB_DispProc();
