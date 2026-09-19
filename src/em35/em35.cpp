@@ -1702,7 +1702,7 @@ static void em35_R1_BearHug(cEm35* em)
 }
 
 // Routine test on the cModel status word (em10.cpp EM_RTN).
-#define EM_RTN(em, fc, fd) (((em)->stat & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // Player damage callback of the bear hug (dmType 10). Step 0/1: placed 3.5 m in front of the enemy
 // facing it, the squeezed motion with the crush sounds / rumble at frames 73 and 158, its step
@@ -2415,9 +2415,9 @@ static void em35_R1_br_Catch(cEm35* em)
     if (em->hp > 0 && (em->motEvent & 2) && em35CatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         if (em->motFlags & 0x40) {
-            em->stat = 0x010D0001;
+            *(u32*) &em->r_no_0 = 0x010D0001;
         } else {
-            em->stat = 0x010D0000;
+            *(u32*) &em->r_no_0 = 0x010D0000;
         }
     }
 }

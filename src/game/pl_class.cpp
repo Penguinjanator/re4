@@ -817,7 +817,7 @@ void cPlayer::setNoSuspend(int on)
     }
 }
 
-// Idle footwork motion (pMotTbl[0]/[1] or the damaged pair), no blend.
+// Idle footwork motion (m_MotTbl[0]/[1] or the damaged pair), no blend.
 void cPlayer::setFootwork()
 {
     int frame;
@@ -827,13 +827,13 @@ void cPlayer::setFootwork()
         partsFixMemory(0x13);
     }
     if (r_no_3 & 2) {
-        frame = x4FC;
-        hokan = x4FD;
+        frame = m_Frame;
+        hokan = m_Hokan;
     } else {
         frame = 0;
         hokan = 5;
     }
-    motionSet(pMotTbl[0], pMotTbl[1], PL_ARC_PTR(pG->pPlayer, 0x32), PL_ARC_PTR(pG->pPlayer, 0x33), hokan, frame);
+    motionSet(m_MotTbl[0], m_MotTbl[1], PL_ARC_PTR(pG->pPlayer, 0x32), PL_ARC_PTR(pG->pPlayer, 0x33), hokan, frame);
     blendMot = 0;
 }
 
@@ -923,7 +923,7 @@ int cPlayer::isKamae()
         }
     }
     if (r_no_1 == 6) {
-        if ((stat & 0xFFFF) == 0) {
+        if ((*(u32*) &r_no_0 & 0xFFFF) == 0) {
             return 0;
         }
         if (r_no_2 == 4) {
@@ -1014,7 +1014,7 @@ void cPlayer::keyConfigTypeA()
 // 1 when an action button may be taken in the current routine.
 int cPlayer::actCheck()
 {
-    if (flags_420 & 4) {
+    if (stat & 4) {
         return 0;
     }
     if (r_no_0 != 0) {
@@ -1033,10 +1033,10 @@ int cPlayer::actCheck()
     return 1;
 }
 
-// Damage start: ends a running event (flags_420 bit1) and interrupts the weapon / neck.
+// Damage start: ends a running event (stat bit1) and interrupts the weapon / neck.
 void cPlayer::beginDamage()
 {
-    if (flags_420 & 2) {
+    if (stat & 2) {
         END_EVENT(this, 0);
     }
     interrupt();
@@ -1118,7 +1118,7 @@ void cPlayer::beginEvent()
         PlRoutineSet(this, 5, 2, 0, 0);
         break;
     }
-    flags_420 |= 2;
+    stat |= 2;
 }
 
 // Stop everything the routines left running: cameras, neck, motion speed, weapon, face, sounds.
@@ -1127,11 +1127,11 @@ void cPlayer::interrupt()
     cModelInfo* face;
 
     endCamera();
-    flags_420 |= 0x800;
+    stat |= 0x800;
     m_BbtnCnt = 0;
     Neck->m_Mode = 1;
     MOTION(this)->Seq_speed = 1.0f;
-    flags_420 &= ~0x40;
+    stat &= ~0x40;
     ang.y += pParts->ang.y;
     pParts->ang.y = 0.0f;
     if (Wep->m_pWep) {
@@ -1175,37 +1175,37 @@ int cPlayer::endCamera()
 {
     int ret = 0;
 
-    if (flags_420 & 0x200) {
-        BitOff(flags_420, 0x200);
+    if (stat & 0x200) {
+        BitOff(stat, 0x200);
         BitOff(pG->Status_flg[1], 0x04000000);
         if (pG->Status_flg[0] & 0x40000) {
             LightMgr.update(CamCtrl.areaNo, 0);
         }
     }
-    if (flags_420 & 0x10) {
+    if (stat & 0x10) {
         CamCtrl.endScope();
         if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
-        flags_420 &= ~0x10;
+        stat &= ~0x10;
         be_flag |= 2;
         ret = 1;
     }
-    if (flags_420 & 4) {
+    if (stat & 4) {
         CamCtrl.LowerBinocular();
         if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
-        BitOff(flags_420, 4);
+        BitOff(stat, 4);
         pG->Stop_flg &= ~0x80000000;
         ret = 1;
     }
-    if (flags_420 & 8) {
+    if (stat & 8) {
         CamCtrl.endPushObject();
         if (pG->Status_flg[0] & 0x40000) {
             CameraMove();
         }
-        flags_420 &= ~8;
+        stat &= ~8;
         ret = 1;
     }
     return ret;
@@ -1219,14 +1219,14 @@ void cPlayer::endEvent()
     endEvent0(modeReg);
 }
 
-// Event end (flags_420 bit1 set): the player is drawn / collides / moves again, invulnerable for 10
+// Event end (stat bit1 set): the player is drawn / collides / moves again, invulnerable for 10
 // frames, neck on; when alive mode 0 = back to routine 0/0 with a pending footwork (r_no_3 1),
 // 1 = m_Flag 0x100 (return when the event motion ends), 2 = routine 0/0 at once.
 void cPlayer::endEvent0(u32 mode)
 {
     int one = 1;
 
-    if (!(flags_420 & 2)) {
+    if (!(stat & 2)) {
         return;
     }
     be_flag |= 2;
@@ -1239,8 +1239,8 @@ void cPlayer::endEvent0(u32 mode)
     if ((s16) pG->pl_life > 0) {
         switch (mode) {
         case 0:
-            x4FD = 0;
-            x4FC = 0;
+            m_Hokan = 0;
+            m_Frame = 0;
             PlRoutineSet(this, 0, 0, 0, one);
             break;
         case 1:
@@ -1254,7 +1254,7 @@ void cPlayer::endEvent0(u32 mode)
             break;
         }
     }
-    flags_420 &= ~2;
+    stat &= ~2;
 }
 
 // 1 while the player is in routine 0 (normal control) and an event may take him.
@@ -1273,22 +1273,22 @@ void cPlayer::beginAction()
         Wep->m_pWep->resetMotion();
     }
     setFootwork();
-    flags_420 |= 2;
+    stat |= 2;
 }
 
-// Action end: back to routine 0 with sub routine `routine` pending (x4FD).
+// Action end: back to routine 0 with sub routine `routine` pending (m_Hokan).
 // `one` at function scope with a single use in another block: update_equiv_regs moves its `li`
 // next to the `stb`, so the short-lived constant outranks the flags chain for r0.
 void cPlayer::endAction(int routine)
 {
     int one = 1;
 
-    if (flags_420 & 2) {
+    if (stat & 2) {
         be_flag |= 2;
         setNoSuspend(0);
-        x4FD = routine;
-        flags_420 &= ~2;
-        x4FC = 0;
+        m_Hokan = routine;
+        stat &= ~2;
+        m_Frame = 0;
         PlRoutineSet(this, 0, 0, 0, one);
     }
 }
@@ -1305,7 +1305,7 @@ void cPlayer::setSlow(f32 rate)
     }
 }
 
-// Eye / eyelid control each frame (not for HUNK, not when dead): eyeMode 0 wander / blink, 1 from
+// Eye / eyelid control each frame (not for HUNK, not when dead): m_EyeMode 0 wander / blink, 1 from
 // the motion's face data.
 void cPlayer::moveEye()
 {
@@ -1315,7 +1315,7 @@ void cPlayer::moveEye()
     if ((s16) pG->pl_life <= 0) {
         return;
     }
-    switch (eyeMode) {
+    switch (m_EyeMode) {
     case 0:
         moveEyeNormal();
         break;
@@ -1481,21 +1481,21 @@ void cPlayer::setLaserSight(int draw, int noCalc)
 // Binocular sequence: 1 raise sound -> 2 wait for the key -> 3 end camera -> 0.
 void cPlayer::moveBinocular()
 {
-    switch (binoMode) {
+    switch (m_BinoRno) {
     case 0:
         break;
     case 1:
         SndCall(1, 2, &getPartsPtr(3)->world, 0, 0, 0);
-        binoMode = 2;
+        m_BinoRno = 2;
         break;
     case 2:
         if ((Key.trg & 0x800) || (Key.trg & 0x40000000)) {
-            binoMode = 3;
+            m_BinoRno = 3;
         }
         break;
     case 3:
         endCamera();
-        binoMode = 0;
+        m_BinoRno = 0;
         break;
     }
 }
@@ -1505,7 +1505,7 @@ void cPlayer::shadowCtrl()
 {
     int on;
 
-    if (!(flags_420 & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
+    if (!(stat & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
         on = 0;
     } else {
         on = 1;
@@ -1682,10 +1682,10 @@ void cPlNeck::motSet(void* data, int frame)
         pLog->err(0, 0, "cPlNeck::motSet() ILEGAL PTR WAS SET %08X", data);
         return;
     }
-    p->neckMot.flags2 |= 0x10000000;
-    MotionSetCore(p, &p->neckMot, data, 0, 8, 5, frame);
-    p->neckMot.flags2 &= ~0x10000000;
-    p->blendMot = &p->neckMot;
+    p->m_SubMot.flags2 |= 0x10000000;
+    MotionSetCore(p, &p->m_SubMot, data, 0, 8, 5, frame);
+    p->m_SubMot.flags2 &= ~0x10000000;
+    p->blendMot = &p->m_SubMot;
     p->blendMot->blendRate = 1.0f;
     p->blendMot->flags2 |= 0x80000000;
 }

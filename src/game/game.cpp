@@ -330,31 +330,33 @@ void gameStageInit()
     } else {
         BitOff(pG->System_flg, 0x80);
     }
-    if ((s32) pSys->unlock_flg < 0) {
-        if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000) && pG->room_id == 0x120 &&
-            ((pG->System_flg & 0x2000) || pG->SaveKind == 3)) {
-            Message* m;
-            int res;
+    if (pSys->unlock_flg & 0x80000000) {
+        if (!(pG->System_flg & 0x80000000)) {
+            if (!(pG->System_flg & 0x40000000) && pG->room_id == 0x120 &&
+                ((pG->System_flg & 0x2000) || pG->SaveKind == 3)) {
+                Message* m;
+                int res;
 
-            pG->Disp_flg &= ~0x800;
-            cMes.setLayout(0, 0);
-            m = cMes.getMes(0);
-            cMes.MesSet(150, 100, 336 - m->lineSpace - m->m_font_h - 1, 1, 0, 0, 4);
-            if ((res = m->m_sel) == 0) {
-                do {
-                    TaskSleep(1);
-                } while ((res = cMes.getMes(0)->m_sel) == 0);
+                pG->Disp_flg &= ~0x800;
+                cMes.setLayout(0, 0);
+                m = cMes.getMes(0);
+                cMes.MesSet(150, 100, 336 - m->lineSpace - m->m_font_h - 1, 1, 0, 0, 4);
+                if ((res = m->m_sel) == 0) {
+                    do {
+                        TaskSleep(1);
+                    } while ((res = cMes.getMes(0)->m_sel) == 0);
+                }
+                switch (res) {
+                case 1:
+                default:
+                    pG->game_costume = 1;
+                    break;
+                case 2:
+                    pG->game_costume = 0;
+                    break;
+                }
+                PlSetCostume();
             }
-            switch (res) {
-            case 1:
-            default:
-                pG->game_costume = 1;
-                break;
-            case 2:
-                pG->game_costume = 0;
-                break;
-            }
-            PlSetCostume();
         }
     }
     if (!(pG->Debug_flg[2] & 0x2000000)) {
@@ -1099,7 +1101,7 @@ void gameDiedemoCheck()
         DiedemoExec(90, 0);
     }
     if ((s16) pG->pl_life <= 0) {
-        if ((s32) pG->System_flg < 0) {
+        if (pG->System_flg & 0x80000000) {
             DiedemoExec(90, 2);
         } else {
             DiedemoExec(90, 0);
@@ -1489,7 +1491,7 @@ void GameAddPoint(int type)
     if (pG->point < 0) {
         S32Set(pG->point, 0);
     }
-    if ((s32) pG->System_flg < 0) {
+    if (pG->System_flg & 0x80000000) {
         S32Set(pG->point, 0x270F);
     }
     if (pG->System_flg & 0x20) {
@@ -1534,7 +1536,7 @@ void GameAddPoint(int type)
             break;
         }
     }
-    if ((s32) pG->System_flg < 0) {
+    if (pG->System_flg & 0x80000000) {
         pG->Game_level = 6;
     }
 }
@@ -1543,7 +1545,7 @@ void GameAddPoint(int type)
 // mirrors them into the save block.
 void GamePointBossReset()
 {
-    if ((s32) pG->System_flg < 0) {
+    if (pG->System_flg & 0x80000000) {
         return;
     }
     if (pG->System_flg & 0x40000000) {

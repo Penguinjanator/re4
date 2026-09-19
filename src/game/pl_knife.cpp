@@ -62,7 +62,7 @@ void PlKnifeMove(cPlayer* pl)
 }
 
 // Knife state 0: draw the knife (r_no_3 sub-steps). r_no_3 == 100 is the re-entry from a slash.
-// Releasing the L trigger goes back to routine 0/0 (or 0/0x11 crouch when flags_420 0x40); while
+// Releasing the L trigger goes back to routine 0/0 (or 0/0x11 crouch when stat 0x40); while
 // held the shoulder camera aims at the locked enemy or 10000 ahead.
 void knife_r2_ready(cPlayer* pl)
 {
@@ -93,7 +93,7 @@ void knife_r2_ready(cPlayer* pl)
     if (joyLKamae() == 0 && pl->r_no_3 != 3) {
         setWepTrans(pl, 1);
         FACE_SET(pl, 0.0f);
-        if (pl->flags_420 & 0x40) {
+        if (pl->stat & 0x40) {
             pl->r_no_0 = 0;
             pl->r_no_2 = 0;
             pl->r_no_1 = 0x11;
@@ -105,8 +105,8 @@ void knife_r2_ready(cPlayer* pl)
             pl->r_no_3 = 0;
         }
     } else {
-        if (pl->pLockEm) {
-            CamCtrlShoulderSetAim(&pl->pLockEm->pos);
+        if (pl->m_pEm) {
+            CamCtrlShoulderSetAim(&pl->m_pEm->pos);
         } else {
             Vec aim = {0.0f, 1000.0f, 10000.0f};
             Vec hit;
@@ -119,7 +119,7 @@ void knife_r2_ready(cPlayer* pl)
 }
 
 // Draw step 0: pitch from the camera, three-way blend of the draw motion (rocket launcher /
-// bow-with-ammo variants from pMotTbl 0x59 / 0x55, else archive 0x23 + 0x24), neck off.
+// bow-with-ammo variants from m_MotTbl 0x59 / 0x55, else archive 0x23 + 0x24), neck off.
 void knife_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -139,11 +139,11 @@ void knife_r3_ready00(cPlayer* pl)
     pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
-        mot0 = pl->pMotTbl[0x59];
-        mot1 = pl->pMotTbl[0x5A];
+        mot0 = pl->m_MotTbl[0x59];
+        mot1 = pl->m_MotTbl[0x5A];
     } else if (ItemMgr.bulletNum() && (Key.on & 0x10) && pG->weapon_no == 0xD) {
-        mot0 = pl->pMotTbl[0x55];
-        mot1 = pl->pMotTbl[0x56];
+        mot0 = pl->m_MotTbl[0x55];
+        mot1 = pl->m_MotTbl[0x56];
     } else {
         mot0 = PL_ARC_PTR(pG->pPlayer, 0x23);
         mot1 = PL_ARC_PTR(pG->pPlayer, 0x24);
@@ -197,7 +197,7 @@ void knife_r2_set(cPlayer* pl)
         PlWepLockCtrl(pl);
     }
     if (joyLKamae() == 0) {
-        if (pl->flags_420 & 0x40) {
+        if (pl->stat & 0x40) {
             pl->r_no_0 = 0;
             pl->r_no_2 = 0;
             pl->r_no_1 = 0x11;
@@ -414,7 +414,7 @@ void knife_r2_down(cPlayer* pl)
     pl->checkCtrl();
 }
 
-// Down step 0: with the aim key held goes straight into the gun stance motion (pMotTbl 0x57, weapon
+// Down step 0: with the aim key held goes straight into the gun stance motion (m_MotTbl 0x57, weapon
 // mode ready) — m_Work0 1; else the sheath motion (damage variant 0x5B when hurt, archive 0x87).
 // No motion -> routine 0/0 at once.
 void knife_r3_down00(cPlayer* pl)
@@ -429,13 +429,13 @@ void knife_r3_down00(cPlayer* pl)
 
         obj->wep.mode = on;
         obj->wep.step = 0;
-        mot0 = pl->pMotTbl[0x57];
-        mot1 = pl->pMotTbl[0x58];
+        mot0 = pl->m_MotTbl[0x57];
+        mot1 = pl->m_MotTbl[0x58];
         pl->m_Work0 = on;
     } else {
         if (dmMotCk()) {
-            mot0 = pl->pMotTbl[0x5B];
-            mot1 = pl->pMotTbl[0x5C];
+            mot0 = pl->m_MotTbl[0x5B];
+            mot1 = pl->m_MotTbl[0x5C];
         } else {
             mot0 = PL_ARC_PTR(pG->pPlayer, 0x87);
             mot1 = 0;

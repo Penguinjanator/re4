@@ -271,7 +271,7 @@ void PlWepMotSet(int no)
         mot = PlWepMot[2];
         break;
     case 3:
-        mot = pl->pMotTbl[0];
+        mot = pl->m_MotTbl[0];
         break;
     }
     MotionSetCore(pl, &pl->pMotion, mot, 0, 3, 5, 0);

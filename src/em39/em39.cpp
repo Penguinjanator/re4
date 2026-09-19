@@ -187,7 +187,7 @@ struct SubCharPtr {
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 // Routine test on the cModel status word (xFC / xFD as the upper half of `stat`).
-#define EM_RTN(em, fc, fd) (((em)->stat & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 extern "C" void _prolog()
 {
@@ -1205,7 +1205,7 @@ static void em39_R1_Failure(cEm39* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (em39GetCliffPos(em)) {
-                em->stat = 0x012E0000;
+                *(u32*) &em->r_no_0 = 0x012E0000;
             } else {
                 AtariOn(&em->atari, 0x300);
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -3035,7 +3035,7 @@ static void em39_R1_br_KnifeCatch(cEm39* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em39CatchCk(em)) {
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-        em->stat = 0x011B0000;
+        *(u32*) &em->r_no_0 = 0x011B0000;
     }
 }
 
@@ -4778,7 +4778,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
                 if ((s16) pG->pl_life <= 0) {
                     pG->pl_life = 1;
                 }
-                em->stat = 0x012E0000;
+                *(u32*) &em->r_no_0 = 0x012E0000;
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0x2F, 0x2C);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
@@ -4919,7 +4919,7 @@ static void em39_R1_br_T_LongAtk(cEm39* em)
                 if ((s16) pG->pl_life <= 0) {
                     pG->pl_life = 1;
                 }
-                em->stat = 0x012E0000;
+                *(u32*) &em->r_no_0 = 0x012E0000;
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0x2F, 0x2C);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
@@ -5225,8 +5225,8 @@ static void em39BackjumpAction(cEm39* em)
     pl->r_no_2++;
 
 #define PLEM39_BACKJUMP_KEY(pl)                                                                     \
-    if (pl->x3E0) {                                                                                \
-        pl->x3E0--;                                                                                \
+    if (pl->m_Work0) {                                                                                \
+        pl->m_Work0--;                                                                                \
     } else if (Key.on & 0x1F) {                                                                    \
         pl->m_Work1 = 1;                                                                              \
     }
@@ -5291,7 +5291,7 @@ static void em39_R1_br_T_Kick(cEm39* em)
         SndCall(8, 0x38, &pPL->pos, em->id, 0, pPL);
         if (em39GetCliffPos(em)) {
             LifeDownSet2(pPL, 500, 0, 1);
-            em->stat = 0x012E0000;
+            *(u32*) &em->r_no_0 = 0x012E0000;
         } else {
             LifeDownSet(pPL, 500, 0);
             pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
@@ -5407,7 +5407,7 @@ static void em39_R1_br_T_LowKick(cEm39* em)
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         LifeDownSet2(pPL, 500, 0, 1);
         SndCall(8, 0x38, &pPL->pos, em->id, 0, pPL);
-        em->stat = 0x012D0000;
+        *(u32*) &em->r_no_0 = 0x012D0000;
     }
 }
 
@@ -8684,7 +8684,7 @@ void em39FootEff(cEm39* em)
     no = (u8) (v - 1);
     switch (no) {
     case 2:
-        if ((em->stat & 0xFFFF0000) == 0x01090000) {
+        if ((*(u32*) &em->r_no_0 & 0xFFFF0000) == 0x01090000) {
             EstSet(0, -1, &em->getPartsPtr(0x15)->world, &em->ang, 0x2F, 0x2E, 0, 0, 0, 0);
         }
         if (pG->room_id != 0x31C) {
@@ -8692,7 +8692,7 @@ void em39FootEff(cEm39* em)
         }
         break;
     case 3:
-        if ((em->stat & 0xFFFF0000) == 0x01090000) {
+        if ((*(u32*) &em->r_no_0 & 0xFFFF0000) == 0x01090000) {
             EstSet(0, -1, &em->getPartsPtr(0x19)->world, &em->ang, 0x2F, 0x2E, 0, 0, 0, 0);
         }
         if (pG->room_id != 0x31C) {

@@ -47,12 +47,13 @@ struct EmDoorWork {
     u8 Etc_no;            // 0x43F (0x81F)  etc flag number (bit0 broken, bit1 right lock broken, bit2 left lock broken, bit3..5 chains broken, bit6/7 fallen direction)
 };
 
-#define EMDOOR_WK(em) ((EmDoorWork*) &(em)->x3E0)
+#define EMDOOR_WK(em) ((EmDoorWork*) (((cEmDoor*) (em))->free))
 
 // Door enemy (game/emdoor.cpp): the room doors the player opens or kicks, with locks, chains and
 // breakable panes.
 class cEmDoor : public cEm {
 public:
+    u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMDOOR_WK)
     virtual void move();   // key function: the vtable stays in this unit (cEmMgr::construct stores it)
 
     void setLock(void* bin, void* tpl, int side, int strong);

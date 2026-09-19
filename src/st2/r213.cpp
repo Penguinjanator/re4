@@ -262,7 +262,7 @@ void R213SuInit()
             if (r213_work.p->hit[0]) {
                 cEmHit* hit = r213_work.p->hit[0];
 
-                r213_suYarare = (R213SuYarare*) &hit->m_Work0;
+                r213_suYarare = (R213SuYarare*) hit->free;
                 YarareInit(hit, 0.0f, -9000.0f, 0.0f, 6000.0f, 15000.0f, 0, 0x81);
                 YarareAdd(hit, &r213_suYarare->box[0], 200.0f, -12000.0f, 600.0f, 5000.0f, 0.0f, 0, 0x81);
                 YarareAdd(hit, &r213_suYarare->box[1], 100.0f, -15000.0f, 800.0f, 3700.0f, 0.0f, 0, 0x81);

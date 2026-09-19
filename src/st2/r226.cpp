@@ -457,7 +457,7 @@ static void R226EventRoboWatchMain()
 {
     cObjRobo* robo = r226_work.p->robo;
 
-    if (pPL->flags_420 & 0x100) {
+    if (pPL->stat & 0x100) {
         return;
     }
     if (RsfCheck(G_ROOM_ID, 10)) {

@@ -612,7 +612,7 @@ static void plemRide(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         pPL->setNoSuspend(1);
-        MotionSetCore(pPL, &pPL->Motion, pl->pMotTbl[11], 0, 0, 0x201, 0);
+        MotionSetCore(pPL, &pPL->Motion, pl->m_MotTbl[11], 0, 0, 0x201, 0);
         pl->r_no_2++;
         pl->r_no_3 = 0;
     case 1:

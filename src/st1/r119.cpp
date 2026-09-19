@@ -67,6 +67,7 @@ static f32 r119_lightAng2 = 1.0471976f;
 // The giant (enemy 0x28) by vtable slot.
 class cEmGolem : public cEm {
 public:
+    u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMGOLEM_WK)
     virtual void setDogPos(Vec* pos, f32 ang);   // 0x50
     virtual void setDie();        // 0x58
     virtual int ckEvent();        // 0x60

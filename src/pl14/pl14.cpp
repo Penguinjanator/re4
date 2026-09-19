@@ -164,7 +164,7 @@ void cSubLuis::init()
         s->lockOfs.z = 0.0f;
     }
     setStatus(EM_STATUS_LOCKOFF);
-    hp = hpMax = 0x4B0;
+    hp = hp_max = 0x4B0;
     m_PlAtack = 5;
     be_flag |= 0x2000000;
     m_LeonHp = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
@@ -1400,7 +1400,7 @@ int cSubLuis::damageCheck()
 {
     int dead;
 
-    if ((stat & 0xFFFF0000) == 0x04000000) {
+    if ((*(u32*) &r_no_0 & 0xFFFF0000) == 0x04000000) {
         action.set(6);
         return 1;
     }

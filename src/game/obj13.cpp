@@ -615,7 +615,7 @@ void plobjLadderClimb(cPlayer* pl)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->pMotion, w->mot[0], 0, 5, 1, 0);
         em->atari.throughOn();
-        em->m_Work0 = obj->getLadderNum();
+        ((cPlayer*) em)->m_Work0 = obj->getLadderNum();
         em->be_flag &= ~0x10;
         if (w->camera != -1) {
             CamCtrl.CutCall((s8) w->camera);
@@ -629,8 +629,8 @@ void plobjLadderClimb(cPlayer* pl)
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->m_Work0 -= 4;
-            if ((int) em->m_Work0 > 0) {
+            ((cPlayer*) em)->m_Work0 -= 4;
+            if ((int) ((cPlayer*) em)->m_Work0 > 0) {
                 em->r_no_2++;
             } else {
                 em->r_no_2 = 4;
@@ -648,8 +648,8 @@ void plobjLadderClimb(cPlayer* pl)
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->m_Work0 -= 2;
-            if ((int) em->m_Work0 > 0) {
+            ((cPlayer*) em)->m_Work0 -= 2;
+            if ((int) ((cPlayer*) em)->m_Work0 > 0) {
                 break;
             }
             em->r_no_2 = 4;
@@ -664,7 +664,7 @@ void plobjLadderClimb(cPlayer* pl)
         if (w->camera != -1) {
             CamCtrl.Comeback(0);
         }
-        em->m_Work0 = 0;
+        ((cPlayer*) em)->m_Work0 = 0;
         em->r_no_2++;
     case 5:
         if (obj->getType() == 1) {
@@ -688,8 +688,8 @@ void plobjLadderClimb(cPlayer* pl)
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
             }
         }
-        em->m_Work0++;
-        if (obj->getType() != 1 && (int) em->m_Work0 > 0x17) {
+        ((cPlayer*) em)->m_Work0++;
+        if (obj->getType() != 1 && (int) ((cPlayer*) em)->m_Work0 > 0x17) {
             fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;
@@ -802,17 +802,17 @@ void subobjLadderClimb(cEm* pl)
         rot.x = rot.z = 0.0f;
         rot.y = obj->ang.y + PI;
         rot.y = LIMIT_ANGLE(rot.y);
-        ((cMotBase*) &em->subFlags58C)->set((cMotModel*) em, &p, &rot, 10);
+        ((cMotBase*) &((cSubChar*) em)->subFlags58C)->set((cMotModel*) em, &p, &rot, 10);
         MotionSetCore(em, &em->pMotion, w->mot[16], 0, 5, 1, 0);
         em->atari.m_flag &= ~0x100;
         em->atari.m_flag |= 0x10;
-        em->subFlags |= 0x20;
-        em->subHideMode = obj->getLadderNum();
-        em->subX534 = 8;
+        ((cSubChar*) em)->subFlags |= 0x20;
+        ((cSubChar*) em)->subHideMode = obj->getLadderNum();
+        ((cSubChar*) em)->subX534 = 8;
         em->r_no_2++;
     case 1:
-        if (em->subX534) {
-            em->subX534--;
+        if (((cSubChar*) em)->subX534) {
+            ((cSubChar*) em)->subX534--;
         } else {
             pG->Status_flg[1] |= 8;
         }
@@ -823,8 +823,8 @@ void subobjLadderClimb(cEm* pl)
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->subHideMode -= 4;
-            if (em->subHideMode > 0) {
+            ((cSubChar*) em)->subHideMode -= 4;
+            if (((cSubChar*) em)->subHideMode > 0) {
                 em->r_no_2++;
             } else {
                 em->r_no_2 = 4;
@@ -843,8 +843,8 @@ void subobjLadderClimb(cEm* pl)
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->subHideMode -= 2;
-            if (em->subHideMode > 0) {
+            ((cSubChar*) em)->subHideMode -= 2;
+            if (((cSubChar*) em)->subHideMode > 0) {
                 break;
             }
             em->r_no_2 = 4;
@@ -853,16 +853,16 @@ void subobjLadderClimb(cEm* pl)
     case 4:
         if (obj->getType() == 1) {
             MotionSetCore(em, &em->pMotion, w->mot[19], 0, 5, 1, 0);
-            em->subX534 = 0x28;
+            ((cSubChar*) em)->subX534 = 0x28;
         } else {
             MotionSetCore(em, &em->pMotion, w->mot[18], 0, 5, 1, 0);
-            em->subX534 = 0x23;
+            ((cSubChar*) em)->subX534 = 0x23;
         }
-        em->subHideMode = 0;
+        ((cSubChar*) em)->subHideMode = 0;
         em->r_no_2++;
     case 5:
-        if (em->subX534) {
-            em->subX534--;
+        if (((cSubChar*) em)->subX534) {
+            ((cSubChar*) em)->subX534--;
             pGS->Status_flg[1] |= 8;
         }
         if (obj->getType() == 1) {
@@ -874,7 +874,7 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 42.7f && em->frame < 43.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
-                BitOff16(em->subFlags, 0x20);
+                BitOff16(((cSubChar*) em)->subFlags, 0x20);
             }
         } else {
             if (em->frame > 11.7f && em->frame < 12.3f) {
@@ -885,11 +885,11 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 35.7f && em->frame < 36.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
-                BitOff16(em->subFlags, 0x20);
+                BitOff16(((cSubChar*) em)->subFlags, 0x20);
             }
         }
-        em->subHideMode++;
-        if (obj->getType() != 1 && em->subHideMode > 0x17) {
+        ((cSubChar*) em)->subHideMode++;
+        if (obj->getType() != 1 && ((cSubChar*) em)->subHideMode > 0x17) {
             fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;
@@ -901,7 +901,7 @@ void subobjLadderClimb(cEm* pl)
                 em->pos.y = fl;
             }
             EndSubDamage();
-            BitOff16(em->subFlags, 0x20);
+            BitOff16(((cSubChar*) em)->subFlags, 0x20);
             em->atari.m_flag |= 0x100;
             em->atari.m_flag &= ~0x10;
         }

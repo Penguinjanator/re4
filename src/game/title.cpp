@@ -1382,93 +1382,101 @@ static cRoomJmp* pRj;
 // flag (System_flg 0x2000), the next position and chains into GameTask.
 void titleExit(TitleWork* w)
 {
-    if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
-        pG->pl_type = 0;
-        pG->game_costume = 0;
+    if (!(pG->System_flg & 0x80000000)) {
+        if (!(pG->System_flg & 0x40000000)) {
+            pG->pl_type = 0;
+            pG->game_costume = 0;
+        }
     }
-    if (!(pG->System_flg & 0x100) && (s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
-        pRj = new cRoomJmp(roomInfoAddr);
-        w->Stage = pG->stage_no;
-        w->Room[w->Stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
-        w->JumpPoint = pG->JumpPoint;
-        w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
-        w->load_no = 1;
-        w->menu_x = 340;
-        w->menu_y = 60;
-        w->se_id = 0;
-        while (!(Joy[0].trg & 0x1100)) {
-            titleDebugMenu(w);
-            TaskSleep(1);
-        }
-        G_ROOM_ID = pRj->getRoomInfo(w->Stage, w->Room[w->Stage] + w->JumpPoint)->roomNo;
-        pG->JumpPoint = w->JumpPoint;
-        pG->em_list_no = w->em_list_no;
-        if (pG->em_list_no > 3) {
-            pG->Scenario_flg[0] |= 0x10000000;
-        } else if (pG->em_list_no > 2) {
-            pG->Scenario_flg[0] |= 0x40000;
-        }
-        switch (w->c_pos) {
-        case 1:
-            if (CardLoad() == 1) {
-                pG->System_flg |= 0x100;
-            } else {
-                pG->System_flg |= 0x04000000;
+    if (!(pG->System_flg & 0x100)) {
+        if (!(pG->System_flg & 0x80000000)) {
+            if (!(pG->System_flg & 0x40000000)) {
+                pRj = new cRoomJmp(roomInfoAddr);
+                w->Stage = pG->stage_no;
+                w->Room[w->Stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
+                w->JumpPoint = pG->JumpPoint;
+                w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
+                w->load_no = 1;
+                w->menu_x = 340;
+                w->menu_y = 60;
+                w->se_id = 0;
+                while (!(Joy[0].trg & 0x1100)) {
+                    titleDebugMenu(w);
+                    TaskSleep(1);
+                }
+                G_ROOM_ID = pRj->getRoomInfo(w->Stage, w->Room[w->Stage] + w->JumpPoint)->roomNo;
+                pG->JumpPoint = w->JumpPoint;
+                pG->em_list_no = w->em_list_no;
+                if (pG->em_list_no > 3) {
+                    pG->Scenario_flg[0] |= 0x10000000;
+                } else if (pG->em_list_no > 2) {
+                    pG->Scenario_flg[0] |= 0x40000;
+                }
+                switch (w->c_pos) {
+                case 1:
+                    if (CardLoad() == 1) {
+                        pG->System_flg |= 0x100;
+                    } else {
+                        pG->System_flg |= 0x04000000;
+                    }
+                    return;
+                case 2:
+                    G_ROOM_ID = 0x120;
+                    pG->JumpPoint = 0;
+                    pG->pl_type = 0;
+                    break;
+                case 0x12:
+                    BitOn(pSys->unlock_flg, 0x40000000);
+                    pG->System_flg |= 0x04000000;
+                    return;
+                }
+                if (!(pG->System_flg & 0x80000000)) {
+                    if (!(pG->System_flg & 0x40000000)) {
+                        PlSetCostume();
+                    }
+                }
+                if (pG->pl_type == 0 && pG->game_costume == 0) {
+                    u32 room = pG->room_id32 & 0xFFFF0000;
+                    if (room == 0x01200000 || room == 0x01000000 || room == 0x01010000 || room == 0x01030000 || room == 0x01060000) {
+                        pG->pl_costume = 0;
+                    } else {
+                        pG->pl_costume = 1;
+                        pG->Item_find_flg |= 0x00200000;
+                    }
+                }
+                if (pG->stage_no == 2) {
+                    BitOn(pG->Debug_flg[3], 0x00800000);
+                    if (pG->room_id != 0x200) {
+                        BitOn(pG->Scenario_flg[0], 0x00800000);
+                    }
+                } else if (pG->stage_no == 3) {
+                    BitOn(pG->Debug_flg[3], 0x40000);
+                    BitOn(pG->Scenario_flg[0], 0x10000);
+                    if (pG->room_id == 0x333) {
+                        BitOn(pG->Debug_flg[3], 0x20000);
+                    }
+                }
+                switch (pG->stage_no) {
+                case 0:
+                    break;
+                case 1:
+                    BitOn(pG->Item_find_flg, 4);
+                    break;
+                case 2:
+                    BitOn(pG->Item_find_flg, 4);
+                    BitOn(pG->Item_find_flg, 2);
+                    if ((pG->room_id32 & 0xFFFF00FF) != 0x02000000) {
+                        BitOn(pG->Scenario_flg[0], 0x00800000);
+                    }
+                    break;
+                }
+                pRj->getRoomInfo(pG->stage_no, pG->JumpPoint + pRj->getRoomIdx(pG->stage_no, pG->room_no))->setNextPos();
+                delete pRj;
+                if (pG->pl_type == 6) {
+                    pG->pl_type = 0;
+                    BitOn(pG->Status_flg[3], 0x04000000);
+                }
             }
-            return;
-        case 2:
-            G_ROOM_ID = 0x120;
-            pG->JumpPoint = 0;
-            pG->pl_type = 0;
-            break;
-        case 0x12:
-            BitOn(pSys->unlock_flg, 0x40000000);
-            pG->System_flg |= 0x04000000;
-            return;
-        }
-        if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
-            PlSetCostume();
-        }
-        if (!(pG->x4FB8_32 & 0xFF0000FF)) {
-            u32 room = pG->room_id32 & 0xFFFF0000;
-            if (room == 0x01200000 || room == 0x01000000 || room == 0x01010000 || room == 0x01030000 || room == 0x01060000) {
-                pG->pl_costume = 0;
-            } else {
-                pG->pl_costume = 1;
-                pG->Item_find_flg |= 0x00200000;
-            }
-        }
-        if (pG->stage_no == 2) {
-            BitOn(pG->Debug_flg[3], 0x00800000);
-            if (pG->room_id != 0x200) {
-                BitOn(pG->Scenario_flg[0], 0x00800000);
-            }
-        } else if (pG->stage_no == 3) {
-            BitOn(pG->Debug_flg[3], 0x40000);
-            BitOn(pG->Scenario_flg[0], 0x10000);
-            if (pG->room_id == 0x333) {
-                BitOn(pG->Debug_flg[3], 0x20000);
-            }
-        }
-        switch (pG->stage_no) {
-        case 0:
-            break;
-        case 1:
-            BitOn(pG->Item_find_flg, 4);
-            break;
-        case 2:
-            BitOn(pG->Item_find_flg, 4);
-            BitOn(pG->Item_find_flg, 2);
-            if ((pG->room_id32 & 0xFFFF00FF) != 0x02000000) {
-                BitOn(pG->Scenario_flg[0], 0x00800000);
-            }
-            break;
-        }
-        pRj->getRoomInfo(pG->stage_no, pG->JumpPoint + pRj->getRoomIdx(pG->stage_no, pG->room_no))->setNextPos();
-        delete pRj;
-        if (pG->pl_type == 6) {
-            pG->pl_type = 0;
-            BitOn(pG->Status_flg[3], 0x04000000);
         }
     }
     {

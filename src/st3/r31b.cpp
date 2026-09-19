@@ -1352,7 +1352,7 @@ static void R31bExecEscapeEnd()
     SndStrReq(r31b_work.p->str, 8, 0, 0);
     R31bSmdTransOff(2);
     SndRoomStrStop(3);
-    pPL->motionSet(pPL->pMotTbl[0], pPL->pMotTbl[1], pPL->pMotTbl[0x5F], pPL->pMotTbl[0x60], 0, 0);
+    pPL->motionSet(pPL->m_MotTbl[0], pPL->m_MotTbl[1], pPL->m_MotTbl[0x5F], pPL->m_MotTbl[0x60], 0, 0);
     MotionMoveF(pPL, 0);
     pPL->setNoSuspend(0);
     SetPosXYZ(pPL, 37120.0f, 4265.0f, -1500.0f);

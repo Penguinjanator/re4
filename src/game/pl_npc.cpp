@@ -1821,7 +1821,7 @@ void cSubChar::moveFallWait()
         sub540++;
     }
     if (subX534 == 0) {
-        if (subHideMode == 0 && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
+        if (subHideMode == 0 && (*(u32*) &pPL->r_no_0 & 0xFFFF0000) != 0x000E0000) {
             subX534 = 1;
         }
     }
@@ -2246,7 +2246,7 @@ void cSubChar::neckCtrl()
     f32 ang;
 
     BitOn(MOTION_PARTS(p)->flags, 0x40000000);
-    if (!(pPL->flags_420 & 2)) {
+    if (!(pPL->stat & 2)) {
         on = 0;
     }
     if (subNeckOn == 0 || (blendMot != 0 && blendMot->blendRate != 0.0f) || on) {
@@ -2527,7 +2527,7 @@ int cSubChar::actionCheck()
         d.z = -satNorm.z;
         ang.y += Muku3(&d, ang.y, 3.1415927f);
     }
-    if (m_PlActTime && dist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
+    if (m_PlActTime && dist <= 300.0f && (*(u32*) &pPL->r_no_0 & 0xFFFF0000) != 0x000E0000) {
         if (getCliffHeight(m_PlActAngY) < 2900.0f) {
             m_PlActTime = 0;
             pos = m_PlActPos;
@@ -2555,7 +2555,7 @@ int cSubChar::ladder2Check()
     if (fabsf(distPos.y - pos.y) < 1000.0f) {
         return 0;
     }
-    if ((pPL->stat & 0xFFFF0000) == 0x00100000) {
+    if ((*(u32*) &pPL->r_no_0 & 0xFFFF0000) == 0x00100000) {
         return 0;
     }
     {
@@ -3089,7 +3089,7 @@ void cSubChar::control(int mode)
         if (r_no_0 == 5) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
-        if ((stat & 0xFFFF0000) != 0x00100000) {
+        if ((*(u32*) &r_no_0 & 0xFFFF0000) != 0x00100000) {
             BitOff16(subFlags, 1);
             subFlags |= 2;
             AtariOn(&atari, 0x300);
@@ -3099,7 +3099,7 @@ void cSubChar::control(int mode)
         if (r_no_0 == 5) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
-        if ((stat & 0xFFFF0000) != 0x00100000) {
+        if ((*(u32*) &r_no_0 & 0xFFFF0000) != 0x00100000) {
             setPos(&pPL->pos);
         }
         r_no_0 = 0;
@@ -3111,7 +3111,7 @@ void cSubChar::control(int mode)
         if (r_no_0 == 5) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
-        if ((stat & 0xFFFF0000) != 0x00100000) {
+        if ((*(u32*) &r_no_0 & 0xFFFF0000) != 0x00100000) {
             BitOff16(subFlags, 3);
             AtariOn(&atari, 0x300);
         }
@@ -3254,7 +3254,7 @@ u32 SubCharGetStatus()
         }
         break;
     }
-    if (SUBFLAG(sub)->check(1) || SUBFLAG(sub)->check(0) || (sub->stat & 0xFFFF0000) == 0x00100000) {
+    if (SUBFLAG(sub)->check(1) || SUBFLAG(sub)->check(0) || (*(u32*) &sub->r_no_0 & 0xFFFF0000) == 0x00100000) {
         ret |= 0x40000000;
     } else {
         ret |= 0x20000000;
@@ -3946,7 +3946,7 @@ u32 SubCharGetCondition()
     if (sub == 0) {
         return 0;
     }
-    if (SUBFLAG(sub)->check(1) || (sub->stat & 0xFFFF0000) == 0x00100000) {
+    if (SUBFLAG(sub)->check(1) || (*(u32*) &sub->r_no_0 & 0xFFFF0000) == 0x00100000) {
         ret = 2;
     } else {
         ret = 1;

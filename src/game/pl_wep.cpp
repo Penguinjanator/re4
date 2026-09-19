@@ -71,7 +71,7 @@ cPlWep::cPlWep()
 }
 
 // Drops the current weapon: the muzzle-flash objects (id 0xA), both weapon objects (destroyNow),
-// the aim camera, the weapon's effect data (by weapon_no_old, unless flags_420 bit0 says the
+// the aim camera, the weapon's effect data (by weapon_no_old, unless stat bit0 says the
 // data is shared) and the player-owned effects.
 void cPlayer::weaponRelease()
 {
@@ -101,7 +101,7 @@ void cPlayer::weaponRelease()
         Wep->pObj2 = 0;
     }
     endCamera();
-    if ((flags_420 & 1) == 0) {
+    if ((stat & 1) == 0) {
         switch (pG->weapon_no_old) {
         case 0:
             break;
@@ -170,7 +170,7 @@ void cPlayer::weaponRelease()
             break;
         }
     }
-    flags_420 &= ~1;
+    stat &= ~1;
     EffectEspDelete(0, 10, this, 0);
     EffectEspgenDelete(0, 10, this);
     EffectEfmDelete(0, 10, this);
@@ -191,18 +191,18 @@ void cPlayer::weaponInit()
     int i;
 
     for (i = 0; i < 0x5F; i++) {
-        pMotTbl[i] = 0;
+        m_MotTbl[i] = 0;
     }
     if (WeaponInitFunc) {
         WeaponInitFunc(this);
     }
-    if (!(pG->Status_flg[1] & 0x200000) && !(flags_420 & 0x40)) {
+    if (!(pG->Status_flg[1] & 0x200000) && !(stat & 0x40)) {
         r_no_0 = 0;
         r_no_1 = 0;
         r_no_2 = 0;
         r_no_3 = 1;
-        x4FD = 0;
-        x4FC = 0;
+        m_Hokan = 0;
+        m_Frame = 0;
     }
 }
 
@@ -578,7 +578,7 @@ int cPlWep::getMarkerPos(Vec* out)
 {
     cPlayer* pl = pPL;
 
-    if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->r_no_3 == 0) {
+    if ((*(u32*) &pl->r_no_0 & 0xFFFFFF00) != 0x00060100 || pl->r_no_3 == 0) {
         return 0;
     }
     *out = m_pWep->wep.marker;
@@ -614,7 +614,7 @@ void cPlWep::setTrans(int on, int type)
     }
 }
 
-// Aim start: picks the lock-on target nearest the hand (SearchLockEm) as pLockEm and arms 10
+// Aim start: picks the lock-on target nearest the hand (SearchLockEm) as m_pEm and arms 10
 // frames of auto tracking (m_LockTime) when it is in front. Returns the target.
 cModel* cPlWep::lockInit()
 {
@@ -622,12 +622,12 @@ cModel* cPlWep::lockInit()
     cEm* em;
 
     em = (cEm*) SearchLockEm(&pl->getPartsPtr(3)->world, 0);
-    pl->pLockEm = em;
+    pl->m_pEm = em;
     if (em) {
         Vec v;
         f32 ang;
 
-        PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &((cEm*) pl->pLockEm)->lockOfs, &v);
+        PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &((cEm*) pl->m_pEm)->lockOfs, &v);
         ang = GetXZAngleLocal(&pl->pos, &v, pl->ang.y);
         if (ang <= PI && ang >= -PI) {
             m_LockTime = 10;
@@ -637,7 +637,7 @@ cModel* cPlWep::lockInit()
     } else {
         m_LockTime = 0;
     }
-    return pl->pLockEm;
+    return pl->m_pEm;
 }
 
 // Distance penalty by direction: inlined into rangeDist; its constants precede rangeDist's own.
@@ -694,7 +694,7 @@ void cPlWep::lockMove()
     if (Joy[0].on & 0xF0000) {
         m_LockTime = 0;
     }
-    if (pl->pLockEm && m_LockTime != 0 && (pSys->flags & 0x20000000)) {
+    if (pl->m_pEm && m_LockTime != 0 && (pSys->flags & 0x20000000)) {
         PlWepAutoTrack(pl, 0, 1.0f);
     }
 }
@@ -762,10 +762,10 @@ cModel* cPlWep::lockNext()
 {
     cPlayer* pl = pPL;
 
-    if ((pl->pLockEm = SearchLockEm(&pl->getPartsPtr(3)->world, pl->pLockEm)) != 0) {
+    if ((pl->m_pEm = SearchLockEm(&pl->getPartsPtr(3)->world, pl->m_pEm)) != 0) {
         m_LockTime = 10;
     }
-    return pl->pLockEm;
+    return pl->m_pEm;
 }
 
 // Best lock-on target from `pos` when auto-aim is enabled (pSys->flags 0x20000000), else 0.
@@ -852,7 +852,7 @@ int PlCornerCheck()
 
     rot.y = pPL->ang.y;
     dir = rot;
-    if ((pPL->stat & 0xFFFF0000) == 0x000D0000) {
+    if ((*(u32*) &pPL->r_no_0 & 0xFFFF0000) == 0x000D0000) {
         dir.y += PI;
         dir.y = LIMIT_ANGLE(dir.y);
     }
@@ -990,7 +990,7 @@ void PlWepLockCtrl(cModel* plm)
     }
     moved = 0;
     if (joyKamae() || joyLKamae()) {
-        if (pl->pLockEm && lockCtr != 0 && (pG->Debug_flg[2] & 0x40000)) {
+        if (pl->m_pEm && lockCtr != 0 && (pG->Debug_flg[2] & 0x40000)) {
             goto rand;
         }
         d = 0.0f;
@@ -1139,11 +1139,11 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     // did not die at the copy; the HImode read of r4 keeps it live past the copy (regmove only moves
     // the death when the dying mode matches the copy's), see docs/matching.md #8.
     asm("" : "=m"(pl->m_Fwork0) : "r"(hm));
-    if (pl->pLockEm == 0) {
+    if (pl->m_pEm == 0) {
         return;
     }
     hand = &pl->getPartsPtr(10)->world;
-    PSMTXMultVec(pl->pLockEm->getPartsPtr(((cEm*) pl->pLockEm)->lockParts & 7)->mat, &((cEm*) pl->pLockEm)->lockOfs,
+    PSMTXMultVec(pl->m_pEm->getPartsPtr(((cEm*) pl->m_pEm)->lockParts & 7)->mat, &((cEm*) pl->m_pEm)->lockOfs,
                  &tgt);
     dist = GetDistance3(hand, &tgt);
     if (dist > 400.0f) {
@@ -1228,10 +1228,10 @@ void PlSetLockPitch(cModel* plm)
     f32 p;
 
     if (pSys->flags & 0x20000000) {
-        if (pl->pLockEm) {
+        if (pl->m_pEm) {
             Vec d;
 
-            PSVECSubtract(&pl->pLockEm->getPartsPtr(((cEm*) pl->pLockEm)->lockParts)->world, &pl->pParts->world,
+            PSVECSubtract(&pl->m_pEm->getPartsPtr(((cEm*) pl->m_pEm)->lockParts)->world, &pl->pParts->world,
                           &d);
             p = VecElevation(&d);
         } else {

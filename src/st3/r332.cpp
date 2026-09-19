@@ -1433,7 +1433,7 @@ static void R332ExecCrane(int no)
             while (MotionGetState(pPL) == 0) {
                 SceSleep(1);
             }
-            pPL->motionSet(pPL->pMotTbl[0], pPL->pMotTbl[1], pPL->pMotTbl[0x5F], pPL->pMotTbl[0x60], 0xC, 0);
+            pPL->motionSet(pPL->m_MotTbl[0], pPL->m_MotTbl[1], pPL->m_MotTbl[0x5F], pPL->m_MotTbl[0x60], 0xC, 0);
         } else {
             MotionSetCore(crane, &crane->Motion, mot, 0, 3, 0x301, 0);
             while (MotionGetState(pPL) == 0) {
@@ -1486,7 +1486,7 @@ void R332ExecCraneEnd(int no, int atNo)
 
     pl->dmg.clear();
     ((cUnitEventView*) pl)->endEvent(0);
-    pl->x4FD = 0xC;
+    pl->m_Hokan = 0xC;
     AtariOnRaw(&pPL->atari, 0x300);
 }
 

@@ -122,8 +122,8 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 }
 
 // Routine test / store on the cModel status word (em10.cpp EM_RTN / EM_RTN_SET).
-#define EM_RTN(em, fc, fd) (((em)->stat & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
-#define EM_RTN_SET(em, fc, fd) ((em)->stat = (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN_SET(em, fc, fd) (*(u32*) &(em)->r_no_0 = (u32) (((fc) << 24) | ((fd) << 16)))
 
 // int stores through a reference: the following pG load stays below them (em3a).
 static inline void IntSet(int& x, int v)
@@ -1836,6 +1836,7 @@ void em38UpperOnBody(cEm38* em)
 // The parasite enemy (em25 module): only the two virtuals this module calls, by slot.
 class cEm25 : public cEm {
 public:
+    u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM25_WK)
     virtual void v09();
     virtual void v10();
     virtual void v11();

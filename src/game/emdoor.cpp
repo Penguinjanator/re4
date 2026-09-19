@@ -3158,8 +3158,8 @@ void plemDoorOpen(cPlayer* pl)
             v.y = 0.0f;
             v.z = 440.4f;
             PSMTXMultVec(((cEmDoor*) pl->dmgType)->mat, &v, &v);
-            PSVECSubtract(&v, &pPL->pos, &pl->evTarget);
-            pl->evTarget.y = 0.0f;
+            PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
+            pl->m_VecWork0.y = 0.0f;
             pl->m_Fwork0 = ((cEmDoor*) pl->dmgType)->ang.y + PI;
             FSet(pl->m_Fwork0, LIMIT_ANGLE(pl->m_Fwork0));
             MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
@@ -3173,8 +3173,8 @@ void plemDoorOpen(cPlayer* pl)
             v.y = 0.0f;
             v.z = -440.4f;
             PSMTXMultVec(((cEmDoor*) pl->dmgType)->mat, &v, &v);
-            PSVECSubtract(&v, &pPL->pos, &pl->evTarget);
-            pl->evTarget.y = 0.0f;
+            PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
+            pl->m_VecWork0.y = 0.0f;
             FSet(pl->m_Fwork0, ((cEmDoor*) pl->dmgType)->ang.y);
             MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(1);
@@ -3191,9 +3191,9 @@ void plemDoorOpen(cPlayer* pl)
         pl->ang.y += Muku2(pl->ang.y, pl->m_Fwork0, PI / 16);
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         if (pl->r_no_3 == 0) {
-            PSVECScale(&pl->evTarget, &v, 0.1f);
+            PSVECScale(&pl->m_VecWork0, &v, 0.1f);
             PSVECAdd(&pl->pos, &v, &pl->pos);
-            PSVECSubtract(&pl->evTarget, &v, &pl->evTarget);
+            PSVECSubtract(&pl->m_VecWork0, &v, &pl->m_VecWork0);
         }
         if (MotionMove(pl, 0)) {
             pl->atari.setFlag200();
@@ -3250,7 +3250,7 @@ int cEmDoor::ckObj()
         cEmMgr* m = &EmMgr;
         u32 ofs = m->size * i;
         cEm* e = (cEm*) ((u8*) m->pArray + ofs);
-        EmRackWork* rw = 0;
+        FREE_EMRACK* rw = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -3270,42 +3270,42 @@ int cEmDoor::ckObj()
             }
         }
         rw = EMRACK_WK(e);
-        v.x = rw->size.x;
+        v.x = rw->Size_x;
         v.y = 0.0f;
-        v.z = rw->size.z;
+        v.z = rw->Size_z;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
-        v.x = rw->size.x;
+        v.x = rw->Size_x;
         v.y = 0.0f;
-        v.z = -rw->size.z;
+        v.z = -rw->Size_z;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
-        v.x = -rw->size.x;
+        v.x = -rw->Size_x;
         v.y = 0.0f;
-        v.z = rw->size.z;
+        v.z = rw->Size_z;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
-        v.x = -rw->size.x;
+        v.x = -rw->Size_x;
         v.y = 0.0f;
-        v.z = -rw->size.z;
-        emDoorObjToDoor(e->mat, w->base_im, &v);
-        OBJ_BOX_CK();
-        v.x = 0.0f;
-        v.y = 0.0f;
-        v.z = rw->size.z;
+        v.z = -rw->Size_z;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
         v.x = 0.0f;
         v.y = 0.0f;
-        v.z = -rw->size.z;
+        v.z = rw->Size_z;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
-        v.x = rw->size.x;
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = -rw->Size_z;
+        emDoorObjToDoor(e->mat, w->base_im, &v);
+        OBJ_BOX_CK();
+        v.x = rw->Size_x;
         v.y = 0.0f;
         v.z = 0.0f;
         emDoorObjToDoor(e->mat, w->base_im, &v);
         OBJ_BOX_CK();
-        v.x = -rw->size.x;
+        v.x = -rw->Size_x;
         v.y = 0.0f;
         v.z = 0.0f;
         emDoorObjToDoor(e->mat, w->base_im, &v);

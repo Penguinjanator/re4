@@ -1204,7 +1204,7 @@ void cItemMgr::gameInit()
             type = 1;
         }
     } else {
-        if ((s32) pG->System_flg < 0) {
+        if (pG->System_flg & 0x80000000) {
             set_ada(2);
         } else if (pG->System_flg & 0x40000000) {
             set_char(pG->pl_type);

@@ -2595,7 +2595,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     Mtx m;
     u32 i;
     cEm* e;
-    EmRackWork* w;
+    FREE_EMRACK* w;
     f32 hx;
     f32 hz;
     u32 off;
@@ -2623,8 +2623,8 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
             continue;
         }
         w = EMRACK_WK(e);
-        hx = w->size.x + 50.0f;
-        hz = w->size.z + 50.0f;
+        hx = w->Size_x + 50.0f;
+        hz = w->Size_z + 50.0f;
         v.x = hx;
         v.y = 0.0f;
         v.z = hz;
@@ -3239,7 +3239,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     case 0x22:
     case 0x36:
         if (r <= 0x13) {
-            if ((s32) pG->System_flg < 0) {
+            if (pG->System_flg & 0x80000000) {
                 return 0;
             }
             if (pG->System_flg & 0x40000000) {

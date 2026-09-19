@@ -47,6 +47,7 @@ void EffectEfmDelete(int a, int b, int c);
 // The chief (game/em2b.cpp): only the two event virtuals the room calls.
 class cEm2b : public cEm {
 public:
+    u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM2B_WK)
     virtual void v50();
     virtual void v58();
 };

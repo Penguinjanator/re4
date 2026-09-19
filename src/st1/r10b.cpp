@@ -69,6 +69,7 @@ static const AtEffInfo r10b_eff_info = {
 // The lake boss (enemy 0x2f) by vtable slot.
 class cEm2f : public cEm {
 public:
+    u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM2F_WK)
     virtual void v50();
     virtual void setCamPos(Vec* pos, f32 ang);   // 0x58
     virtual void setDie();                        // 0x60

@@ -65,6 +65,7 @@
 #include "sce.h"
 #include "gx_sub.h"
 
+
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
 // a shared header, see include/st_room.h): the split object of every Ganado module defines it as
 // `common_<mod>`, unreferenced. REL_MODULE comes from configure.py.
@@ -542,7 +543,7 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 #define EM10_WINDOW(w) ((w)->pWindow)
 
 // Routine test on the cModel status word (xFC / xFD as the upper half of `stat`).
-#define EM_RTN(em, fc, fd) (((em)->stat & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
 #define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
@@ -573,7 +574,7 @@ struct PlayerPtr {
     cPlayer* p;
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
-#define EM_RTN_SET(em, fc, fd) ((em)->stat = (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN_SET(em, fc, fd) (*(u32*) &(em)->r_no_0 = (u32) (((fc) << 24) | ((fd) << 16)))
 
 Em10Func Em10SetFunc = 0;
 
@@ -17234,7 +17235,7 @@ extern "C" int em10CatchPLRtnCk(cEm10* em)
     }
     // Four separate ifs, not an `||` chain: cse follows at most 9 conditional jumps per extended
     // block (PATHLENGTH 10), so the x3E0 test below is the 10th and the pWep block starts a fresh
-    // ebb -- `w->flags` is reloaded there (not merged with em->x3E0) exactly like the target.
+    // ebb -- `w->flags` is reloaded there (not merged with EM10_WK(em)->flags) exactly like the target.
     if (em->type == 0xA) {
         return 0;
     }
@@ -17250,7 +17251,7 @@ extern "C" int em10CatchPLRtnCk(cEm10* em)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (!(em->m_Work0 & 1)) {
+    if (!(EM10_WK(em)->flags & 1)) {
         return 0;
     }
     if (w->pWep != 0 && !(w->flags & 0x08000000)) {
@@ -20668,7 +20669,7 @@ extern "C" int em10AxeAtkCk(cEm10* em)
     if (w->pCore) {
         return 0;
     }
-    if (em->m_Work0 & 0x80) {
+    if (EM10_WK(em)->flags & 0x80) {
         return 0;
     }
     switch (w->Wep_type) {
@@ -22614,7 +22615,7 @@ void em10SetWalkMotion(cEm10* em, int a)
         kind = 7;
     }
     if (w->pWep) {
-        if ((em->m_Work0 & 0x20000100) == 0x100) {
+        if ((EM10_WK(em)->flags & 0x20000100) == 0x100) {
             kind = 3;
         }
         if (w->Wep_type == 1) {

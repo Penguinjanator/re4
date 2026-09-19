@@ -132,7 +132,7 @@ static void plem2bDmBlow(cPlayer* pl);
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 // Routine word test: xFC / xFD as the upper half of cModel::stat.
-#define EM_RTN(em, fc, fd) (((em)->stat & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
+#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // The enemy a player damage callback belongs to (pl_sub SetPlDamage's first argument).
 #define PL_EM(pl) ((cEm2b*) (pl)->dmgType)
@@ -2641,15 +2641,15 @@ static void plem2b_Strangle(cPlayer* pl)
             em2bCatchObj.p->getPartsPtr(1)->ang.y = 3.14159274f;
         }
         pl->atari.throughOn();
-        pl->x4FD = 0;
-        pl->x4FC = 0;
-        pl->blendRate500 = 0.0f;
+        pl->m_Hokan = 0;
+        pl->m_Frame = 0;
+        pl->m_Blend = 0.0f;
         pl->r_no_2++;
     }
     case 1:
-        pl->blendRate500 = (f32) (u32) PlGachaGet() * 0.0333333351f * 255.0f;
-        if (pl->blendRate500 > 255.0f) {
-            pl->blendRate500 = 255.0f;
+        pl->m_Blend = (f32) (u32) PlGachaGet() * 0.0333333351f * 255.0f;
+        if (pl->m_Blend > 255.0f) {
+            pl->m_Blend = 255.0f;
         }
         plBlendMotSet(pl, PL_ARC(0xBA), PL_ARC(0xBD), 0, 0);
         MotionMoveF(pl, 0);
@@ -5314,7 +5314,7 @@ static void plem2bEscapeTree(cPlayer* pl)
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, pl->pMotTbl[0], (int) pl->pMotTbl[1], 5, 5, 0);
+        MotionSetCore(pl, &pl->Motion, pl->m_MotTbl[0], (int) pl->m_MotTbl[1], 5, 5, 0);
         pl->m_Work0 = 15;
         pl->r_no_2++;
         break;
@@ -5466,19 +5466,19 @@ void cEm2b::setPos(Vec* p, f32 ang)
 void plBlendMotSet(cPlayer* pl, void* m0, void* m1, int a, int b)
 {
     MotionWork* bm;
-    f32 val = fabsf(pl->blendRate500);
+    f32 val = fabsf(pl->m_Blend);
 
-    MotionSetCore(pl, &pl->Motion, m0, a, pl->x4FD, 1, pl->x4FC);
-    bm = (MotionWork*) &pl->neckMot;
-    MotionSetCore(pl, bm, m1, b, pl->x4FD, 1, pl->x4FC);
+    MotionSetCore(pl, &pl->Motion, m0, a, pl->m_Hokan, 1, pl->m_Frame);
+    bm = (MotionWork*) &pl->m_SubMot;
+    MotionSetCore(pl, bm, m1, b, pl->m_Hokan, 1, pl->m_Frame);
     pl->motBlend = bm;
     bm->Brate = val * 0.00390625f;
-    if (pl->x4FD) {
-        pl->x4FD--;
+    if (pl->m_Hokan) {
+        pl->m_Hokan--;
     }
-    pl->x4FC++;
-    if (pl->x4FC >= pl->frameMax) {
-        pl->x4FC = 0;
+    pl->m_Frame++;
+    if (pl->m_Frame >= pl->frameMax) {
+        pl->m_Frame = 0;
     }
 }
 

@@ -1121,13 +1121,13 @@ void Sub_bull_drive(cEm* em)
         } else {
             MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 3, 5, 0);
         }
-        em->subHideMode = (u8) ((u32) Rnd() % 100);
+        ((cSubChar*) em)->subHideMode = (u8) ((u32) Rnd() % 100);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
         MotionMove(em, 0);
-        if (em->subHideMode) {
-            em->subHideMode--;
+        if (((cSubChar*) em)->subHideMode) {
+            ((cSubChar*) em)->subHideMode--;
         } else if (SubCkNearEm()) {
             if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
@@ -1171,11 +1171,11 @@ void Sub_bull_lookback(cEm* em)
         MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 66), 0, 3, 1, 0);
         parts = em->getPartsPtr(3);
         if (em->r_no_3) {
-            SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(6, 3, &parts->world, 0, 0, em);
+            SndStop(((cSubChar*) em)->subSndId, 0);
+            ((cSubChar*) em)->subSndId = SndCall(6, 3, &parts->world, 0, 0, em);
         } else {
-            SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(6, 0x19, &parts->world, 0, 0, em);
+            SndStop(((cSubChar*) em)->subSndId, 0);
+            ((cSubChar*) em)->subSndId = SndCall(6, 0x19, &parts->world, 0, 0, em);
         }
         em->r_no_2++;
     case 1:
@@ -1248,13 +1248,13 @@ void Sub_dm_bull(cEm* em)
         LifeDownSet(em, dmg, 0);
         if ((s16) pG->ashley_life <= 0) {
             MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 53), 0, 3, 1, 0);
-            SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(8, 0xD, &em->pParts->world, em->id, 0, 0);
+            SndStop(((cSubChar*) em)->subSndId, 0);
+            ((cSubChar*) em)->subSndId = SndCall(8, 0xD, &em->pParts->world, em->id, 0, 0);
         } else {
             MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 52), 0, 3, 1, 0);
             em->dmg.m_Timer = 1;
-            SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(8, 9, &em->pParts->world, em->id, 0, 0);
+            SndStop(((cSubChar*) em)->subSndId, 0);
+            ((cSubChar*) em)->subSndId = SndCall(8, 9, &em->pParts->world, em->id, 0, 0);
         }
         em->r_no_2++;
     case 1:

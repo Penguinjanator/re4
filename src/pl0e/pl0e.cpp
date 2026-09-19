@@ -703,7 +703,7 @@ static Vec pl0e_cam_pos0 = { -1500.0f, 0.0f, -3000.0f };
 static Vec pl0e_cam_pos1 = { -1500.0f, 0.0f, -5000.0f };
 
 // The chase camera (called from the player's boat states while riding; skipped while the player
-// has flags_420 bit2): looks at the path point 15 m ahead (or 5 m ahead of the ski), sits 5 m
+// has stat bit2): looks at the path point 15 m ahead (or 5 m ahead of the ski), sits 5 m
 // behind on the line ski -> target blended with a fixed offset (pl0e_cam_pos0 -> pos1 by camRate,
 // which rises when boosting), 1.5 m up; fovy relaxes to 40, the up vector rolls with the heading
 // change of the frame (x3); handed to CamCtrl as the extra camera.
@@ -716,7 +716,7 @@ void pl0eCamMove(cPl0e* em)
     Vec target;
     Vec dir;
 
-    if (pPL->flags_420 & 4) {
+    if (pPL->stat & 4) {
         return;
     }
     PSMTXRotRad(m, 'y', em->ang.y);
@@ -850,10 +850,10 @@ static void PlBoatMove(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     pl->subArc = pl->m_pBoat->subArc;
     pl->motFlags2 &= ~0x40000000;
-    pl->neckMot.flags2 &= ~0x40000000;
+    pl->m_SubMot.flags2 &= ~0x40000000;
     plboat_R2_move_tbl[pl->r_no_2](pl);
     pl->motFlags2 &= ~0x40000000;
-    pl->neckMot.flags2 &= ~0x40000000;
+    pl->m_SubMot.flags2 &= ~0x40000000;
     pl->subArc = pl->subArc2;
 }
 
@@ -871,7 +871,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         pl->ang.y = 0.0f;
         pl->ang.z = 0.0f;
         MotionSetCore(pl, &pl->Motion, PLARC(0x1D), 0, 0, 0x201, 0);
-        pl->blendRate500 = 0.0f;
+        pl->m_Blend = 0.0f;
         {
             cAtariInfo* at = &pl->atari;
             at->m_flag &= 0xFCFF;
@@ -900,14 +900,14 @@ static void plboat_R2_Move(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        pl->blendRate500 = 0.0f;
-        pl->x4FD = 0;
-        pl->x4FC = 0;
+        pl->m_Blend = 0.0f;
+        pl->m_Hokan = 0;
+        pl->m_Frame = 0;
         pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x16), PLARC(0x18), PLARC(0x17), 0, 0, 0);
-        pl->blendRate500 = w->blendRate;
-        pl->x4FC = (u8) w->frameOld;
+        pl->m_Blend = w->blendRate;
+        pl->m_Frame = (u8) w->frameOld;
         plOnJet(pl);
         MotionMoveF(pl, 0);
         break;
@@ -954,14 +954,14 @@ static void plboat_R2_Landing(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        pl->x4FD = 0xA;
-        pl->x4FC = 0;
-        pl->blendRate500 = 0.0f;
+        pl->m_Hokan = 0xA;
+        pl->m_Frame = 0;
+        pl->m_Blend = 0.0f;
         pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x1A), PLARC(0x1F), PLARC(0x1E), 0, 0, 0);
-        pl->blendRate500 = w->blendRate;
-        pl->x4FC = (u8) w->frameOld;
+        pl->m_Blend = w->blendRate;
+        pl->m_Frame = (u8) w->frameOld;
         plOnJet(pl);
         if (MotionMoveF(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 1, 0);
@@ -1008,7 +1008,7 @@ static void plboat_R2_Sink(cPlayer* pl)
         pl->ang.y = 0.0f;
         pl->ang.z = 0.0f;
         MotionSetCore(pl, &pl->Motion, PLARC(0x21), 0, 0, 0x201, 0);
-        pl->blendRate500 = 0.0f;
+        pl->m_Blend = 0.0f;
         {
             cAtariInfo* at = &pl->atari;
             at->m_flag &= 0xFCFF;
@@ -1033,7 +1033,7 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
         pl->ang.y = 0.0f;
         pl->ang.z = 0.0f;
         MotionSetCore(pl, &pl->Motion, PLARC(0x22), 0, 0, 0x201, 0);
-        pl->blendRate500 = 0.0f;
+        pl->m_Blend = 0.0f;
         {
             cAtariInfo* at = &pl->atari;
             at->m_flag &= 0xFCFF;
@@ -1047,33 +1047,33 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
 }
 
 // Lean blend of the rider: m0 straight, m1 left / m2 right by the sign of the blend rate.
-// The straight motion goes on the player's own work, the lean into neckMot as the blend work with
-// weight |blendRate500| / 256; x4FD is the blend-in counter, x4FC the frame (wraps at frameMax).
+// The straight motion goes on the player's own work, the lean into m_SubMot as the blend work with
+// weight |m_Blend| / 256; m_Hokan is the blend-in counter, m_Frame the frame (wraps at frameMax).
 void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, int c)
 {
-    f32 rate = fabsf(pl->blendRate500);
+    f32 rate = fabsf(pl->m_Blend);
     MotionWorkSub* bm;
     void* m;
     int f;
 
-    MotionSetCore(pl, &pl->Motion, m0, a, pl->x4FD, 4, pl->x4FC);
-    if (pl->blendRate500 < 0.0f) {
+    MotionSetCore(pl, &pl->Motion, m0, a, pl->m_Hokan, 4, pl->m_Frame);
+    if (pl->m_Blend < 0.0f) {
         m = m1;
         f = b;
     } else {
         m = m2;
         f = c;
     }
-    bm = &pl->neckMot;
-    MotionSetCore(pl, bm, m, f, pl->x4FD, 4, pl->x4FC);
+    bm = &pl->m_SubMot;
+    MotionSetCore(pl, bm, m, f, pl->m_Hokan, 4, pl->m_Frame);
     pl->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
-    if (pl->x4FD) {
-        pl->x4FD--;
+    if (pl->m_Hokan) {
+        pl->m_Hokan--;
     }
-    pl->x4FC++;
-    if (pl->x4FC >= pl->frameMax) {
-        pl->x4FC = 0;
+    pl->m_Frame++;
+    if (pl->m_Frame >= pl->frameMax) {
+        pl->m_Frame = 0;
     }
 }
 
@@ -1119,7 +1119,7 @@ void plOnJet(cPlayer* pl)
     PSMTXCopy(pl->m_pBoat->mat, pl->mat);
     pl->ang = pl->m_pBoat->ang;
     pl->motFlags2 |= 0x40000000;
-    pl->neckMot.flags2 |= 0x40000000;
+    pl->m_SubMot.flags2 |= 0x40000000;
 }
 
 // Partner damage-routine handlers (SetSubDamage(boat, fn) installs them; the boat pointer sits in

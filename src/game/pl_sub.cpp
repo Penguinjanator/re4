@@ -121,39 +121,39 @@ void PlChangeData()
     pl->r_no_1 = 0;
     pl->r_no_2 = 0;
     pl->r_no_3 = 1;
-    pl->x4FD = 0;
-    pl->x4FC = 0;
+    pl->m_Hokan = 0;
+    pl->m_Frame = 0;
     pl->initCloth();
 }
 
-// Starts a button-mash count (gachaCnt = 0).
+// Starts a button-mash count (m_GachaCtr = 0).
 void PlGachaInit()
 {
-    pPL->gachaCnt = 0;
+    pPL->m_GachaCtr = 0;
 }
 
 // One frame of a button mash: shows the mash action icon and counts every direction / A / B / C
-// trigger into gachaCnt.
+// trigger into m_GachaCtr.
 void PlGachaMove()
 {
     cPlayer* pl = pPL;
 
     ActBtn.set(0x2B, 5, 0, 0, 2, 0xB, 0, 0);
     if (Key.trg & 0xF) {
-        pl->gachaCnt++;
+        pl->m_GachaCtr++;
     }
     if (Key.trg & 0xC0000000) {
-        pl->gachaCnt++;
+        pl->m_GachaCtr++;
     }
     if (Key.trg & 0x0C000000) {
-        pl->gachaCnt++;
+        pl->m_GachaCtr++;
     }
 }
 
 // Mash presses so far, 1.5x on the easy levels (Game_level <= 2).
 int PlGachaGet()
 {
-    int n = pPL->gachaCnt;
+    int n = pPL->m_GachaCtr;
 
     if (pG->Game_level <= 2) {
         n += n / 2;
@@ -260,7 +260,7 @@ u32 PlGetStatus()
         st |= 0x80000000;
         break;
     }
-    if (pl->flags_420 & 2) {
+    if (pl->stat & 2) {
         st |= 0x20000;
     }
     return st;
@@ -526,7 +526,7 @@ void SubCharCtrl(int mode, int flag)
     } else {
         BitOff16(sub->subFlags, 0x80);
     }
-    if ((sub->stat & 0xFFFF0000) != 0x000F0000) {
+    if ((*(u32*) &sub->r_no_0 & 0xFFFF0000) != 0x000F0000) {
         sub->subAux0 = 0;
     }
     sub->subAux1 = 0;
@@ -690,40 +690,40 @@ void PlRegistMotion(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, 
         return;
     }
     if (m0) {
-        pl->pRegistMot[0] = m0;
+        pl->m_MotTbl2[0] = m0;
     }
     if (m1) {
-        pl->pRegistMot[1] = m1;
+        pl->m_MotTbl2[1] = m1;
     }
     if (m2) {
-        pl->pRegistMot[2] = m2;
+        pl->m_MotTbl2[2] = m2;
     }
     if (m3) {
-        pl->pRegistMot[3] = m3;
+        pl->m_MotTbl2[3] = m3;
     }
     if (m4) {
-        pl->pRegistMot[4] = m4;
+        pl->m_MotTbl2[4] = m4;
     }
     if (m5) {
-        pl->pRegistMot[5] = m5;
+        pl->m_MotTbl2[5] = m5;
     }
     if (m6) {
-        pl->pRegistMot[6] = m6;
+        pl->m_MotTbl2[6] = m6;
     }
     if (m7) {
-        pl->pRegistMot[7] = m7;
+        pl->m_MotTbl2[7] = m7;
     }
     if (m8) {
-        pl->pRegistMot[8] = m8;
+        pl->m_MotTbl2[8] = m8;
     }
     if (m9) {
-        pl->pRegistMot[9] = m9;
+        pl->m_MotTbl2[9] = m9;
     }
     if (m10) {
-        pl->pRegistMot[10] = m10;
+        pl->m_MotTbl2[10] = m10;
     }
     if (m11) {
-        pl->pRegistMot[11] = m11;
+        pl->m_MotTbl2[11] = m11;
     }
 }
 
@@ -798,7 +798,7 @@ int joyFireTrg()
 
 // Aim key held for the gun: with the knife-key option off (pSys->flags 0x04000000 clear) only
 // Leon / Krauser, and not while the L trigger (knife) is held; the weapon's own keyKamae decides.
-// With the option on all gun characters, unless flags_420 0x1000 (knife key mode).
+// With the option on all gun characters, unless stat 0x1000 (knife key mode).
 int joyKamae()
 {
     cPlayer* pl = pPL;
@@ -846,7 +846,7 @@ int joyKamae()
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
-        if (pl->flags_420 & 0x1000) {
+        if (pl->stat & 0x1000) {
             return 0;
         }
         if (wep->m_pWep->keyKamae()) {
@@ -858,7 +858,7 @@ ng:
 }
 
 // Knife stance key: Key 0x800 for Leon / Krauser (knife-key option off), or the aim key while
-// flags_420 0x1000 with the option on.
+// stat 0x1000 with the option on.
 int joyLKamae()
 {
     cPlayer* pl = pPL;
@@ -871,7 +871,7 @@ int joyLKamae()
         }
     } else {
         if (pG->pl_type == 0 || pG->pl_type == 4) {
-            if (pl->flags_420 & 0x1000) {
+            if (pl->stat & 0x1000) {
                 if (Key.on & 0x10) {
                     return 1;
                 }
@@ -941,8 +941,8 @@ void PlMotionReset()
     if (pl->r_no_1 == 0x11) {
         return;
     }
-    pl->x4FC = 0;
-    pl->x4FD = 0;
+    pl->m_Frame = 0;
+    pl->m_Hokan = 0;
     pl->r_no_0 = 0;
     pl->r_no_1 = 0;
     pl->r_no_3 = 1;
@@ -1009,7 +1009,7 @@ int SubCharMotionReset()
 // Eye control mode (0 wander, 1 from the motion).
 void PlSetEyeMode(u8 mode)
 {
-    pPL->eyeMode = mode;
+    pPL->m_EyeMode = mode;
 }
 
 // The player's facing yaw including the waist twist (aim direction).
@@ -1078,7 +1078,7 @@ int PlGetWeaponNo()
 {
     cPlayer* pl = pPL;
 
-    if (((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->r_no_2 != 3) || joyLKamae()) {
+    if (((*(u32*) &pl->r_no_0 & 0xFFFF0000) == 0x000B0000 && pl->r_no_2 != 3) || joyLKamae()) {
         return 0x10;
     }
     return pG->weapon_no;

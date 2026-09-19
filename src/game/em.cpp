@@ -58,7 +58,7 @@ static u32 battleCheckFlag;
 
 // The character manager: a cManager<cEm> pool of 0xDE0 byte works (type 2), one serial (Guid)
 // counter for the works it hands out.
-cEmMgr::cEmMgr() : cManager<cEm>(sizeof(cEm), 2)
+cEmMgr::cEmMgr() : cManager<cEm>(EM_WORK_SIZE, 2)
 {
     setName("cEmMgr");
     Guid = 0;
