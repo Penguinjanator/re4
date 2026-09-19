@@ -578,7 +578,7 @@ int cPlWep::getMarkerPos(Vec* out)
 {
     cPlayer* pl = pPL;
 
-    if ((*(u32*) &pl->r_no_0 & 0xFFFFFF00) != 0x00060100 || pl->r_no_3 == 0) {
+    if ((pl->r_no_0 != 0 || pl->r_no_1 != 6 || pl->r_no_2 != 1) || pl->r_no_3 == 0) {
         return 0;
     }
     *out = m_pWep->wep.marker;
@@ -852,7 +852,7 @@ int PlCornerCheck()
 
     rot.y = pPL->ang.y;
     dir = rot;
-    if ((*(u32*) &pPL->r_no_0 & 0xFFFF0000) == 0x000D0000) {
+    if (pPL->r_no_0 == 0 && pPL->r_no_1 == 0xD) {
         dir.y += PI;
         dir.y = LIMIT_ANGLE(dir.y);
     }

@@ -526,7 +526,7 @@ void SubCharCtrl(int mode, int flag)
     } else {
         BitOff16(sub->subFlags, 0x80);
     }
-    if ((*(u32*) &sub->r_no_0 & 0xFFFF0000) != 0x000F0000) {
+    if (sub->r_no_0 != 0 || sub->r_no_1 != 0xF) {
         sub->subAux0 = 0;
     }
     sub->subAux1 = 0;
@@ -1078,7 +1078,7 @@ int PlGetWeaponNo()
 {
     cPlayer* pl = pPL;
 
-    if (((*(u32*) &pl->r_no_0 & 0xFFFF0000) == 0x000B0000 && pl->r_no_2 != 3) || joyLKamae()) {
+    if (((pl->r_no_0 == 0 && pl->r_no_1 == 0xB) && pl->r_no_2 != 3) || joyLKamae()) {
         return 0x10;
     }
     return pG->weapon_no;

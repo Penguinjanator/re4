@@ -151,6 +151,12 @@ public:
 // One work per enemy: the manager's stride is the largest enemy class, cEm plus its free area.
 #define EM_WORK_SIZE 0xDE0
 
+// The routine bytes written all at once, in the single stw the original emits at some sites (four
+// separate byte stores do not reproduce it). A macro, not an inline: an inline defined here would
+// create entities in every unit that includes em.h, which renumbers their static locals.
+#define EmRoutineSetW(em, r0, r1, r2, r3) \
+    (*(u32*) &(em)->r_no_0 = ((u32) (r0) << 24) | ((u32) (r1) << 16) | ((u32) (r2) << 8) | (u32) (r3))
+
 // Enemy manager (game/em.cpp). The construct id selects the class: 0 player, 1..0xE / others a
 // read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {

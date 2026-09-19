@@ -139,7 +139,7 @@ void em2aDmCkTrap1(cEm2a* em)
     em->hp = 0;
     SndCall(8, 2, &em->pos, em->id, 0, em);
     EmDmBloodSet2(em, 0x22, 9, 0, 0, 0);
-    if ((*(u32*) &em->r_no_0 & 0xFFFF0000) == 0x01050000) {
+    if (em->r_no_0 == 1 && em->r_no_1 == 5) {
         EmRoutineSet(em, 1, 4, 0, 0);
     } else {
         GameAddPoint(LVADD_CRITICALHIT);

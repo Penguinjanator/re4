@@ -131,9 +131,6 @@ static void plem2bDmBlow(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Routine word test: xFC / xFD as the upper half of cModel::stat.
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
-
 // Struct-member views of the player / partner pointers (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
     cPlayer* p;
@@ -5637,7 +5634,7 @@ int em2bAtkRtnCk(cEm2b* em)
     }
     if (pSUB == 0) {
         if (w->Tree_brk_wait && w->targetAngAbs < 0.392699093f && w->targetDist > 30250000.0f && w->targetDist < 42250000.0f) {
-            if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+            if (pG->Game_level <= 1 && (em->r_no_0 != 1 || em->r_no_1 != 0) && Rnd() % 10 > 4) {
                 em2bThreatSet(em, w);
                 return 1;
             }
@@ -5658,7 +5655,7 @@ int em2bAtkRtnCk(cEm2b* em)
         }
     }
     if (w->targetAngAbs < 0.392699093f && w->targetDist > 6250000.0f && w->targetDist < 12250000.0f) {
-        if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+        if (pG->Game_level <= 1 && (em->r_no_0 != 1 || em->r_no_1 != 0) && Rnd() % 10 > 4) {
             em2bThreatSet(em, w);
             return 1;
         }
@@ -5674,7 +5671,7 @@ int em2bAtkRtnCk(cEm2b* em)
         return 1;
     }
     if (w->targetAngAbs < 0.698131680f && w->targetDist < 9000000.0f) {
-        if (pG->Game_level <= 1 && !EM_RTN(em, 1, 0) && Rnd() % 10 > 4) {
+        if (pG->Game_level <= 1 && (em->r_no_0 != 1 || em->r_no_1 != 0) && Rnd() % 10 > 4) {
             em2bThreatSet(em, w);
             return 1;
         }

@@ -396,14 +396,12 @@ public:
         cParts* pList;  // 0xF4 the same pointer typed as the parts (model.cpp)
     };
     u32 serial;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
-    union {
-        struct {
-            u8 r_no_0;  // 0xFC  routine / state
-            u8 r_no_1;  // 0xFD  routine index (move table)
-            u8 r_no_2;  // 0xFE  step
-            u8 r_no_3;  // 0xFF  (t_option clears FC..FF after a weapon change)
-        };
-    };
+
+    u8 r_no_0;  // 0xFC  routine / state
+    u8 r_no_1;  // 0xFD  routine index (move table)
+    u8 r_no_2;  // 0xFE  step
+    u8 r_no_3;  // 0xFF  (t_option clears FC..FF after a weapon change)
+
     u8 id;           // 0x100
     u8 type;         // 0x101 per-object sub type
     u8 nParts;       // 0x102

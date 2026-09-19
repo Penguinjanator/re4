@@ -923,7 +923,7 @@ int cPlayer::isKamae()
         }
     }
     if (r_no_1 == 6) {
-        if ((*(u32*) &r_no_0 & 0xFFFF) == 0) {
+        if (r_no_2 == 0 && r_no_3 == 0) {
             return 0;
         }
         if (r_no_2 == 4) {

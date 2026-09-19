@@ -356,7 +356,7 @@ void cPlayer::move()
         ShapeMove(Body->pShape);
     }
     if ((int) pos.x == (int) pos_old.x && (int) pos.y == (int) pos_old.y && (int) pos.z == (int) pos_old.z
-        && (*(u32*) &r_no_0 & 0xFFFFFF00) == 0x100 && !(pG->Status_flg[0] & 0x20)) {
+        && (r_no_0 == 0 && r_no_1 == 0 && r_no_2 == 1) && !(pG->Status_flg[0] & 0x20)) {
         moved = 0;
         if ((int) pG->Debug_flg[0] >= 0) {
             goto moveChecked;
@@ -385,7 +385,7 @@ moveChecked:
             }
         }
     }
-    if ((*(u32*) &r_no_0 & 0xFFFFFF00) == 0x00060000) {
+    if (r_no_0 == 0 && r_no_1 == 6 && r_no_2 == 0) {
         pParts->ang.y *= 0.5f;
     }
     ang.y = LIMIT_ANGLE(ang.y);

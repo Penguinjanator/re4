@@ -118,9 +118,6 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->r_no_3 = r3;
 }
 
-// Routine test / store on the cModel status word (em10.cpp EM_RTN / EM_RTN_SET).
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
-#define EM_RTN_SET(em, fc, fd) (*(u32*) &(em)->r_no_0 = (u32) (((fc) << 24) | ((fd) << 16)))
 
 // int stores through a reference: the following pG load stays below them (em3a).
 static inline void IntSet(int& x, int v)
@@ -739,7 +736,7 @@ static void em38_R1_br_Atk(cEm38* em)
         em38AtkCk(em, 3, 0x19);
         if (w->atkHit) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
-            EM_RTN_SET(em, 1, 4);
+            EmRoutineSetW(em, 1, 4, 0, 0);
             pPLS->dmg.m_Timer = 0x80;
             em->dmg.m_Timer = 0x80;
             if (w->pUpper) {
@@ -1156,7 +1153,7 @@ static void em38_R1_br_T_MdlAtk(cEm38* em)
         em38AtkCk(em, 1, 0x11);
         em38AtkCk(em, 1, 0x12);
         if (w->atkHit) {
-            EM_RTN_SET(em, 1, 0xD);
+            EmRoutineSetW(em, 1, 0xD, 0, 0);
         }
     }
 }
@@ -1245,7 +1242,7 @@ static void em38_R1_br_T_BigAtk(cEm38* em)
         em38AtkCk(em, 1, 0x11);
         em38AtkCk(em, 1, 0x12);
         if (w->atkHit) {
-            EM_RTN_SET(em, 1, 0xD);
+            EmRoutineSetW(em, 1, 0xD, 0, 0);
         }
     }
 }
@@ -2827,7 +2824,7 @@ int cEm38::ckDown()
     if (type != 0) {
         return 0;
     }
-    return EM_RTN(this, 2, 0);
+    return r_no_0 == 2 && r_no_1 == 0;
 }
 
 // The weak point object (obj00) on parts 0x3A of the body.

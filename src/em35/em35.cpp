@@ -1696,8 +1696,6 @@ static void em35_R1_BearHug(cEm35* em)
     em->x3A8 = em->pos;
 }
 
-// Routine test on the cModel status word (em10.cpp EM_RTN).
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // Player damage callback of the bear hug (dmType 10). Step 0/1: placed 3.5 m in front of the enemy
 // facing it, the squeezed motion with the crush sounds / rumble at frames 73 and 158, its step
@@ -1732,7 +1730,7 @@ static void plem35_BearHug(cPlayer* pl)
     case 1:
         MotionMoveF(pl, 0);
         pl->r_no_2 = pl->pEmCatch->r_no_2;
-        if (!EM_RTN(pPL->pEmCatch, 1, 7)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 7) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
@@ -1768,7 +1766,7 @@ static void plem35_BearHug(cPlayer* pl)
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
-        } else if (!EM_RTN(pPL->pEmCatch, 1, 7)) {
+        } else if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 7) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -2410,9 +2408,9 @@ static void em35_R1_br_Catch(cEm35* em)
     if (em->hp > 0 && (em->motEvent & 2) && em35CatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         if (em->motFlags & 0x40) {
-            *(u32*) &em->r_no_0 = 0x010D0001;
+            EmRoutineSetW(em, 1, 0xD, 0, 1);
         } else {
-            *(u32*) &em->r_no_0 = 0x010D0000;
+            EmRoutineSetW(em, 1, 0xD, 0, 0);
         }
     }
 }
@@ -2561,7 +2559,7 @@ static void plem35_CatchHit(cPlayer* pl)
     case 1:
         MotionMoveF(pl, 0);
         pl->r_no_2 = pl->pEmCatch->r_no_2;
-        if (!EM_RTN(pPL->pEmCatch, 1, 0xD)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0xD) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -2587,7 +2585,7 @@ static void plem35_CatchHit(cPlayer* pl)
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
-        } else if (!EM_RTN(pPL->pEmCatch, 1, 0xD)) {
+        } else if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0xD) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }

@@ -145,8 +145,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine test on the cModel status word (xFC / xFD as the upper half of `stat`).
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -5499,7 +5497,7 @@ void em2cDoorOpenCk(cEm2c* em)
                 }
                 w->x574 = Rnd() % 15 + 15;
                 w->Dash_wait = 150;
-                if (EM_RTN(em, 1, 2)) {
+                if (em->r_no_0 == 1 && em->r_no_1 == 2) {
                     em->r_no_0 = 1;
                     em->r_no_1 = 1;
                     em->r_no_2 = 0;

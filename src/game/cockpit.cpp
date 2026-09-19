@@ -635,7 +635,7 @@ static int dispBulletDigit(u8 no)
     if (pG->pl_type == 1) {
         return 0;
     }
-    if ((*(u32*) &pPL->r_no_0 & 0xFFFF0000) == 0x000F0000) {
+    if (pPL->r_no_0 == 0 && pPL->r_no_1 == 0xF) {
         return 0;
     }
     switch (no) {
@@ -676,7 +676,7 @@ u8 dispBulletIconMarkNo(u8 no)
     if (pG->pl_type == 1) {
         return 0xFF;
     }
-    if ((*(u32*) &pPL->r_no_0 & 0xFFFF0000) == 0x000F0000) {
+    if (pPL->r_no_0 == 0 && pPL->r_no_1 == 0xF) {
         if (pG->room_id == 0x333) {
             return 0xFF;
         }

@@ -1400,7 +1400,7 @@ int cSubLuis::damageCheck()
 {
     int dead;
 
-    if ((*(u32*) &r_no_0 & 0xFFFF0000) == 0x04000000) {
+    if (r_no_0 == 4 && r_no_1 == 0) {
         action.set(6);
         return 1;
     }

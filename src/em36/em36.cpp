@@ -1617,7 +1617,7 @@ static void em36_R1_br_Catch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36CatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
-        *(u32*) &em->r_no_0 = 0x010B0000;
+        EmRoutineSetW(em, 1, 0xB, 0, 0);
     }
 }
 
@@ -1691,7 +1691,6 @@ static void em36_R1_Catch(cEm36* em)
 }
 
 
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // The effects of the appearance are removed when the player is caught.
 // (a macro: through an inline the kind array's address becomes a pseudo, the loads must reload
@@ -1910,7 +1909,7 @@ static void em36_R1_br_LongCatch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36LongCatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
-        *(u32*) &em->r_no_0 = 0x010D0000;
+        EmRoutineSetW(em, 1, 0xD, 0, 0);
     }
 }
 
@@ -1999,11 +1998,11 @@ static void em36_R1_LongCatchHit(cEm36* em)
             case 0:
             case 1:
             default:
-                *(u32*) &em->r_no_0 = 0x010B0000;
+                EmRoutineSetW(em, 1, 0xB, 0, 0);
                 break;
             case 2:
             case 3:
-                *(u32*) &em->r_no_0 = 0x010E0000;
+                EmRoutineSetW(em, 1, 0xE, 0, 0);
                 break;
             }
         }
@@ -2032,7 +2031,7 @@ static void plem36_LongCatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (!EM_RTN(pPL->pEmCatch, 1, 0xD)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0xD) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
@@ -2167,7 +2166,7 @@ static void em36_R1_br_LostCatch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
-        *(u32*) &em->r_no_0 = 0x01150000;
+        EmRoutineSetW(em, 1, 0x15, 0, 0);
     }
 }
 
@@ -2612,7 +2611,7 @@ static void em36_R1_br_D_Catch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
-        *(u32*) &em->r_no_0 = 0x01150000;
+        EmRoutineSetW(em, 1, 0x15, 0, 0);
     }
 }
 
@@ -2749,7 +2748,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (!EM_RTN(pPL->pEmCatch, 1, 0xB)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0xB) {
             SndStop(pl->m_Work1, 0);
             VibSetClearType(1);
             EndPlDamage();

@@ -965,7 +965,7 @@ void pl0fBoatControl(cPl0f* em)
         cPlayer* pl = pPL;
         cModel* p = em->getPartsPtr(1);
 
-        if ((*(u32*) &pPL->r_no_0 & 0xFFFFFF00) == 0x000F0200) {
+        if (pPL->r_no_0 == 0 && pPL->r_no_1 == 0xF && pPL->r_no_2 == 2) {
             p->ang.y = pl->m_Blend * (1.0f / 255.0f) * -0.5235988f;
         } else {
             p->ang.y *= 0.9f;

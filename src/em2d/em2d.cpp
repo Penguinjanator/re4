@@ -227,8 +227,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine test on the cModel status word (xFC / xFD as the upper half of `stat`).
-#define EM_RTN(em, fc, fd) ((*(u32*) &(em)->r_no_0 & 0xFFFF0000) == (u32) (((fc) << 24) | ((fd) << 16)))
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -1305,7 +1303,7 @@ static void em2d_R1_Walk(cEm2d* em)
         f32 dy = fabsf(em->pos.y - pPL->pos.y);
         if ((w->flags & 1) && dy < 500.0f) {
             if (em->plDist2 < 4000000.0f && w->routeAngAbs < 0.785398185f) {
-                if (pG->Game_level <= 1 && !EM_RTN(em, 1, 1) && Rnd() % 10 > 4) {
+                if (pG->Game_level <= 1 && (em->r_no_0 != 1 || em->r_no_1 != 1) && Rnd() % 10 > 4) {
                     w->atkWait = 30;
                     EmRoutineSet(em, 1, 1, 0, 0);
                     return;
@@ -1773,9 +1771,9 @@ static void em2d_R1_br_JumpAtk(cEm2d* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em2dCatchCk(em)) {
         if ((Rnd() & 1) || (s16) pG->pl_life > 300) {
-            *(u32*) &em->r_no_0 = 0x010C0000;
+            EmRoutineSetW(em, 1, 0xC, 0, 0);
         } else {
-            *(u32*) &em->r_no_0 = 0x010B0000;
+            EmRoutineSetW(em, 1, 0xB, 0, 0);
         }
     }
 }
@@ -2025,7 +2023,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
                 pl->r_no_3 = 7;
             }
         }
-        if (!EM_RTN(pPL->pEmCatch, 1, 0xB)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0xB) {
             EndPlDamage();
             pl->dmg.set(0, 30);
             break;
@@ -3097,9 +3095,9 @@ static void em2d_R1_W_Fall(cEm2d* em)
             if (em2dFallCatchCk(em)) {
                 em->pos.y = pPL->pos.y;
                 if ((Rnd() & 1) != 0 || (s16) pG->pl_life <= 299) {
-                    *(u32*) &em->r_no_0 = 0x010B0000;
+                    EmRoutineSetW(em, 1, 0xB, 0, 0);
                 } else {
-                    *(u32*) &em->r_no_0 = 0x010C0000;
+                    EmRoutineSetW(em, 1, 0xC, 0, 0);
                 }
             }
         }
@@ -3115,9 +3113,9 @@ static void em2d_R1_W_Fall(cEm2d* em)
             if (em2dFallCatchCk(em)) {
                 em->pos.y = pPL->pos.y;
                 if ((Rnd() & 1) != 0 || (s16) pG->pl_life <= 299) {
-                    *(u32*) &em->r_no_0 = 0x010B0000;
+                    EmRoutineSetW(em, 1, 0xB, 0, 0);
                 } else {
-                    *(u32*) &em->r_no_0 = 0x010C0000;
+                    EmRoutineSetW(em, 1, 0xC, 0, 0);
                 }
             }
         }
@@ -3616,9 +3614,9 @@ static void em2d_R1_br_A_Catch(cEm2d* em)
 {
     if (em->hp > 0 && em2dAirCatchCk(em)) {
         if (Rnd() & 1) {
-            *(u32*) &em->r_no_0 = 0x01250000;
+            EmRoutineSetW(em, 1, 0x25, 0, 0);
         } else {
-            *(u32*) &em->r_no_0 = 0x01260000;
+            EmRoutineSetW(em, 1, 0x26, 0, 0);
         }
     }
 }
@@ -3846,7 +3844,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
             MotionMoveF(pl, 0);
         }
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
-        if (!EM_RTN(pPL->pEmCatch, 1, 0x26)) {
+        if (pPL->pEmCatch->r_no_0 != 1 || pPL->pEmCatch->r_no_1 != 0x26) {
             EndPlDamage();
             pl->dmg.set(0, 30);
             break;
@@ -4004,9 +4002,9 @@ static void em2d_R1_C_Fall(cEm2d* em)
         if (em2dFallCatchCk(em)) {
             em->pos.y = pPL->pos.y;
             if ((Rnd() & 1) || (s16) pG->pl_life <= 299) {
-                *(u32*) &em->r_no_0 = 0x010B0000;
+                EmRoutineSetW(em, 1, 0xB, 0, 0);
             } else {
-                *(u32*) &em->r_no_0 = 0x010C0000;
+                EmRoutineSetW(em, 1, 0xC, 0, 0);
             }
         }
         break;
