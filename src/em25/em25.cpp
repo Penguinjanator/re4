@@ -1788,7 +1788,7 @@ void em25PlHeadLost()
     cObj* obj;
     int zero;
 
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
         EstSet((int) pPL, -1, 0, 0, 0x1D, 0xA, 0, 0, (u32) pPL, 0);
         return;

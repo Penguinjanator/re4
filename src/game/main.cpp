@@ -135,14 +135,14 @@ static inline u32 U32GetOfs(void* base, int ofs) { return *(u32*) ((u8*) base + 
 const Vec vecZero = {0.0f, 0.0f, 0.0f};
 
 GlobalWork Global;
-SystemSaveWork SystemSave;
+SYSTEM_SAVE_WORK SystemSave;
 JOY Joy[4];
 KeyWork Key;
 u32 MainOt[5];
 ScreenInfo Screen;
 
 GlobalWork* pG = &Global;
-SystemWork* pSys = (SystemWork*) &SystemSave;
+SYSTEM_SAVE_WORK* pSys = &SystemSave;
 int vsync_cnt = 0;
 
 RESET_KEEP_WORK* pRK;
@@ -169,16 +169,16 @@ RESTART:
     {
         systemRestartInit();
         if (pRK->reset_flag) {
-            U32Set(pSys->flags, pRK->Config_flg);
+            U32Set(pSys->Config_flg, pRK->Config_flg);
             U8Set(pSys->language, pRK->language);
-            U8Set(pSys->region, pRK->eff_country);
+            U8Set(pSys->eff_country, pRK->eff_country);
             U8Set(pG->language, pRK->game_country);
-            U32Set(pSys->unlock_flg, pRK->Extra_flg);
+            U32Set(pSys->Extra_flg, pRK->Extra_flg);
             for (i = 0; i < 16; i += 4) {
-                U32SetOfs(pSys->merc_stage, i, U32GetOfs(pRK->MercSysRoom, i));
+                U32SetOfs(pSys->MercSysRoom, i, U32GetOfs(pRK->MercSysRoom, i));
             }
             for (j = 0; j < 2; j++) {
-                U32SetOfs(pSys->merc_rank, j * 4, pRK->MercSysRank[j]);
+                U32SetOfs(pSys->MercSysRank, j * 4, pRK->MercSysRank[j]);
             }
             if (FlagChkSignW(pRK->System_flg, SYS_OMAKE_ADA_GAME)) {
                 SysFlagOn(pG, SYS_OMAKE_ADA_GAME);
@@ -457,7 +457,7 @@ void systemWorkInit()
 #line 823 "D:/Bio4/Prog/main.cpp"
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
     U8Set(pSys->language, 1);
-    U8Set(pSys->region, 1);
+    U8Set(pSys->eff_country, 1);
     U8Set(pG->language, 1);
 }
 
@@ -546,17 +546,17 @@ void systemResetCommon()
     ReleasePlData();
     ReleaseWepData();
     RoomData.stopRelData();
-    U32Set(pRK->Config_flg, pSys->flags);
+    U32Set(pRK->Config_flg, pSys->Config_flg);
     U8Set(pRK->language, pSys->language);
-    U8Set(pRK->eff_country, pSys->region);
+    U8Set(pRK->eff_country, pSys->eff_country);
     U8Set(pRK->game_country, pG->language);
-    U32Set(pRK->Extra_flg, pSys->unlock_flg);
+    U32Set(pRK->Extra_flg, pSys->Extra_flg);
     U32Set(pRK->System_flg, pG->System_flg);
     for (i = 0; i < 4; i++) {
-        U32SetOfs(pRK->MercSysRoom, i * 4, pSys->merc_stage[i]);
+        U32SetOfs(pRK->MercSysRoom, i * 4, pSys->MercSysRoom[i]);
     }
     for (i = 0; i < 2; i++) {
-        U32SetOfs(pRK->MercSysRank, i * 4, pSys->merc_rank[i]);
+        U32SetOfs(pRK->MercSysRank, i * 4, pSys->MercSysRank[i]);
     }
     U32Set(pRK->MemcardCheckDone, pG->CardStatus >> 31);
     U8Set(pRK->reset_flag, 1);
@@ -599,6 +599,6 @@ void systemSoftReset()
 void setLanguage()
 {
     U8Set(pSys->language, 1);
-    U8Set(pSys->region, pSys->language);
+    U8Set(pSys->eff_country, pSys->language);
     U8Set(pG->language, pSys->language);
 }

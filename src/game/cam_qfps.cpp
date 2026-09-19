@@ -349,7 +349,7 @@ void CameraQuasiFPS::calcDepressionRatio()
     } else if ((f32) Key.substickX != 0.0f || (f32) Key.substickY != 0.0f) {
         f32 t;
 
-        if (pSys->flags & 0x80000000) {
+        if (pSys->Config_flg & 0x80000000) {
             angle_y = -((f32) Key.substickY / C_RANGE);
         } else {
             angle_y = (f32) Key.substickY / C_RANGE;

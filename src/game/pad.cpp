@@ -60,7 +60,7 @@ void PadInit()
 
 // Once per frame (main loop): reads the four pads into Joy[] (on / old / trg / rel, repeat masks
 // with 24/6 and 18/3 frame timers, stick direction bits JOY_S* / JOY_C* beyond a 30-unit dead
-// zone, L/R triggers as buttons), then translates Joy[0].on through Key_type_tbl[pSys->key_type]
+// zone, L/R triggers as buttons), then translates Joy[0].on through Key_type_tbl[pSys->pad_type]
 // into the 64-bit game Key word (opposite directions cancel), and runs the rumble (VibControl).
 void PadRead()
 {
@@ -207,7 +207,7 @@ void PadRead()
         U64Set(k->on, 0);
     }
     for (i = 0, bit = 1; i < 64; bit <<= 1, i++) {
-        if (Joy[0].on & Key_type_tbl[pSys->key_type][i]) {
+        if (Joy[0].on & Key_type_tbl[pSys->pad_type][i]) {
             Key.on |= bit;
         }
     }
@@ -363,12 +363,12 @@ void VibControl()
     }
 }
 
-// A free rumble slot (time == 0) of the 10, or NULL when vibration is off (pSys->flags 0x08000000).
+// A free rumble slot (time == 0) of the 10, or NULL when vibration is off (pSys->Config_flg 0x08000000).
 VibWork* PullVibWork()
 {
     int i;
     VibWork* v = Joy[0].vib;
-    if (!(pSys->flags & 0x08000000)) {
+    if (!(pSys->Config_flg & 0x08000000)) {
         return NULL;
     }
     for (i = 0; i < 10; i++, v++) {

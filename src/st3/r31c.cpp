@@ -1313,7 +1313,7 @@ static void r31c_CountDownEnd()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 0x1B);
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         r31c_work.p->countDown.setDisp(0);
     }
 }
@@ -1412,7 +1412,7 @@ static void r31c_TowerExplodeEndProc()
         EffectDelete(1, 2);
         SndStop(r31c_work.p->hSnd, 0);
     }
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         if (RsfCheck(G_ROOM_ID, 0x1B)) {
             CamCtrl.Comeback(0);
         } else {

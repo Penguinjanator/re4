@@ -5609,7 +5609,7 @@ void em2dPlHeadLost()
     cObj* obj;
     int zero;
 
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
         EstSet((int) pPL, -1, 0, 0, 0x25, 0x2C, 0, 0, (u32) pPL, 0);
         return;
@@ -5641,7 +5641,7 @@ void em2dPlHeadLost()
 // Swaps the player's head for the acid-melted skull (player archive 0x6D / 0x6E) after the face grab kill.
 void em2dPlHeadMelt(cPlayer* pl)
 {
-    if (pSys->region) {
+    if (pSys->eff_country) {
         pPL->setHead(PL_ARC(0x6D), PL_ARC(0x6E));
     }
 }

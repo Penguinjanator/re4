@@ -242,13 +242,21 @@ struct GlobalWork {
 extern GlobalWork* pG;
 extern GlobalWork Global;  // the instance pG points at (game/main.cpp); static initializers take its address
 
-// System save block (game/main.cpp `SystemSave`, 0x38 bytes; layout partially known).
-struct SystemSaveWork {
-    u32 Config_flg;  // 0x00  CFG_* bits
-    u32 Extra_flg;   // 0x04
-    u8 pad_8[0x38 - 0x08];
+// The system save block (game/main.cpp `SystemSave`, 0x38 bytes), which pSys also points at.
+struct SYSTEM_SAVE_WORK {
+    u32 Config_flg;       // 0x00  CFG_* bits (bit 30 = progressive / 60Hz screen scaling)
+    u32 Extra_flg;        // 0x04  EXT_* bits: mercenaries characters, stages and extra content
+    u8 language;          // 0x08  0 JP, 1/2/7 EN, 3 DE, 4 FR, 5 ES, 6 IT (dvd error messages)
+    u8 eff_country;       // 0x09  1 US, 2..6 EU, 7 ? (dvd: disc id game name)
+    u8 brightness;        // 0x0A  background brightness (Render_done -> Bg_brightness_set)
+    u8 pad_type;          // 0x0B  Key_type_tbl row (controller layout)
+    u8 SndMode;           // 0x0C  0 mono, 1 stereo, 2 DPL2 (Snd_get_sound_mode / SndSetOutputMode)
+    u8 __ssd_padding0[3];
+    u32 MercSysRoom[4];   // 0x10  mercenaries record per stage: score / 10 | mode << 28 | new << 31
+    u32 MercSysRank[2];   // 0x20  mercenaries rank bits, 3 per (stage, character), MSB first
+    u32 dummy32[4];       // 0x28
 };
-extern SystemSaveWork SystemSave;
+extern SYSTEM_SAVE_WORK SystemSave;
 
 // stage_no/room_no read as one u16 (stage << 8 | room), as cRoomData::getRoomSavePtr wants it.
 #define G_ROOM_ID (*(u16*) &pG->stage_no)

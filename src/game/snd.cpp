@@ -166,7 +166,7 @@ void SndInit()
     SndMem.sub_end = SndMem.sub_adr + len;
 
     SndDriverInit();
-    pSys->sound_mode = Snd_get_sound_mode();
+    pSys->SndMode = Snd_get_sound_mode();
 }
 
 // Game start: clears the sound work, sets the MRAM / ARAM allocation tops for enemy blocks and BGM,
@@ -873,7 +873,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         if (curve_ok == 1) {
             int m = 1;
             int f;
-            if (pSys->sound_mode == 2) {
+            if (pSys->SndMode == 2) {
                 m = 0;
             }
             vol_ofs = cs[1];
@@ -906,7 +906,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         c->ovr_flag |= 0x20;
         if (pSnd->hdr != NULL) {
             SndEfxParam* p = &pSnd->hdr->efx[0];
-            if (pSys->sound_mode != 2) {
+            if (pSys->SndMode != 2) {
                 p = &pSnd->hdr->efx[1];
             }
             switch (blk) {
@@ -2092,12 +2092,12 @@ void SndSetOutputMode(int mode, int init)
     int efx = Snd_efx_get_status(0) == 1;
 
     if (init != 0) {
-        pSys->sound_mode = Snd_sound_mode_init_load(mode);
+        pSys->SndMode = Snd_sound_mode_init_load(mode);
     } else {
         if (efx == 1) {
             Snd_efx_req(0, 0);
         }
-        pSys->sound_mode = mode;
+        pSys->SndMode = mode;
         Snd_set_sound_mode(mode);
         if (efx == 1) {
             SndSetReverb();
@@ -2105,7 +2105,7 @@ void SndSetOutputMode(int mode, int init)
         Snd_reset_pan_all();
         Snd_reset_vol_all();
     }
-    if (pSys->sound_mode == 0) {
+    if (pSys->SndMode == 0) {
         ADXT_SetOutputMono(1);
     } else {
         ADXT_SetOutputMono(0);
@@ -2255,7 +2255,7 @@ static void sndSurroundCalc()
             getCam2SndAngle(&pan, 0, &dist, &w->pos);
             vol = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
             svol = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
-            if (pSys->sound_mode == 2) {
+            if (pSys->SndMode == 2) {
                 Snd_seq_req(w->id, 1, 10, svol);
             } else {
                 Snd_seq_req(w->id, 1, 10, vol);
@@ -2613,7 +2613,7 @@ void SndSetReverb()
     SND_EFX_WORK* w = &Snd_efx_work[0];
     SndEfxParam* p;
 
-    if (pSys->sound_mode == 2) {
+    if (pSys->SndMode == 2) {
         p = &pSnd->hdr->efx[0];
         w->fx.dpl2.tempDisableFX = 0;
         w->fx.dpl2.preDelay = p->Delay;
@@ -2816,7 +2816,7 @@ static void debugDisp()
 
     if (0) {
         eprintf2(7, 0xE, 0x20, 0x10, 6, 0xA, "SOUND MODE");
-        eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "%s", mode_tbl[pSys->sound_mode]);
+        eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "%s", mode_tbl[pSys->SndMode]);
         eprintf2(7, 0xE, 0x20, 0x2C, 6, 0xA, "REVERB TYPE");
         eprintf2(7, 0xE, 0x20, 0x3A, 0, 0xA, "%s", rev_tbl[Snd_efx_work[0].type]);
         eprintf2(7, 0xE, 0x20, 0x48, 6, 0xA, "REVERB SETTINGS");

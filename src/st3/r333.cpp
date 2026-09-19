@@ -578,7 +578,7 @@ void ride()
 
 // The result screen after the escape movie: the game result, the extras unlocked, the save question.
 struct SystemWorkPtr {
-    SystemWork* p;
+    SYSTEM_SAVE_WORK* p;
 };
 #define pSysS (((SystemWorkPtr*) &pSys)->p)
 
@@ -678,7 +678,7 @@ static void gameResult()
     SndStrReq(0, 0x3A, 4, 800, 0, 0.0f);
     FadeSetW(2, FADE_TIME, 0, 0);
     r333_fadeWait(2);
-    if ((pSys->unlock_flg & 0x40000000) == 0) {
+    if ((pSys->Extra_flg & 0x40000000) == 0) {
         res->omake_init(data);
         FadeSetW(0x80000002, FADE_TIME, 0, 0);
         r333_fadeWait(2);
@@ -701,21 +701,21 @@ static void gameResult()
     if (pG->game_cnt > 99) {
         pG->game_cnt = 99;
     }
-    BitOn(pSys->unlock_flg, 0x80000000);
-    BitOn(pSys->unlock_flg, 0x40000000);
-    BitOn(pSys->unlock_flg, 0x00800000);
-    if ((pSys->unlock_flg & 0x00400000) == 0) {
+    BitOn(pSys->Extra_flg, 0x80000000);
+    BitOn(pSys->Extra_flg, 0x40000000);
+    BitOn(pSys->Extra_flg, 0x00800000);
+    if ((pSys->Extra_flg & 0x00400000) == 0) {
         MercSaveWork save;
         int i;
 
-        pSys->unlock_flg |= 0x00400000;
+        pSys->Extra_flg |= 0x00400000;
         // Struct-member view of pSys (pGS): the element store is not disjoint from the pointer load,
         // so pSys is reloaded per iteration and the address stays `(pSys + 0x10) + i*4` (`stwx`).
         for (i = 0; i < 4; i++) {
-            pSysS->merc_stage[i] = 0;
+            pSysS->MercSysRoom[i] = 0;
         }
         for (i = 0; i < 2; i++) {
-            pSysS->merc_rank[i] = 0;
+            pSysS->MercSysRank[i] = 0;
         }
         MercSysGetSaveWork(&save);
         for (i = 0; i < 4; i++) {

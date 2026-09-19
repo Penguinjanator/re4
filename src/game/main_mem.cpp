@@ -577,7 +577,7 @@ struct MemTile {
 };
 
 struct SysFlagsView {
-    u32 flags;  // 0x00  SystemWork::flags
+    u32 Config_flg;  // 0x00
 };
 extern SysFlagsView* pSysView asm("pSys");
 // Reference read: the load stays below the preceding tile stores (see mercenaries.cpp SysRef).
@@ -709,7 +709,7 @@ void MemCheckUsedHeap()
                 mt->b = 0x20;
             }
             mt->cd = 0xFF;
-            if (SysRef(pSysView)->flags & 0x40000000) {
+            if (SysRef(pSysView)->Config_flg & 0x40000000) {
                 mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
                 mt->h = (s16) ((f32) mt->h / 1.3333334f);
             }
@@ -739,7 +739,7 @@ void MemCheckUsedHeap()
             mt->b = 0x20;
         }
         mt->cd = 0xFF;
-        if (SysRef(pSysView)->flags & 0x40000000) {
+        if (SysRef(pSysView)->Config_flg & 0x40000000) {
             mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
             mt->h = (s16) ((f32) mt->h / 1.3333334f);
         }
@@ -849,7 +849,7 @@ void MemCheckUsedHeap()
         mt->h = 400;
         mt->b = mt->g = mt->r = 0x20;
         mt->cd = 0xFF;
-        if (SysRef(pSysView)->flags & 0x40000000) {
+        if (SysRef(pSysView)->Config_flg & 0x40000000) {
             mt->y0 = 78;
             mt->h = 300;
         }

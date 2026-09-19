@@ -179,7 +179,7 @@ static void tcInit()
     memclr_asm(pTc, sizeof(TcWork));
     tcGameCamera2ToolCamera();
     PTC->routine = 1;
-    PTC->keyTypeBak = pSys->key_type;
+    PTC->keyTypeBak = pSys->pad_type;
     tcDataInitialize();
     PTC->cdatNo = -1;
     PTC->adatNo = -1;
@@ -2971,7 +2971,7 @@ static void tcQuit()
     DbgFlagOff(pG, DBG_BACK_CLIP);
     DbgFlagOff(pG, DBG_DBG_CAM);
     SpfFlagOff(pG, SPF_SCE_AT);
-    pSys->key_type = PTC->keyTypeBak;
+    pSys->pad_type = PTC->keyTypeBak;
     CameraSetProjection(1);
     if (!(Joy[0].on & 0x400)) {
         CamCtrl.Comeback(0);

@@ -983,10 +983,10 @@ u32 upDownCk(cPlayer* pl)
     return 0;
 }
 
-// Applies the controller layout (pSys->key_type); both layouts use keyConfigTypeA.
+// Applies the controller layout (pSys->pad_type); both layouts use keyConfigTypeA.
 void cPlayer::keyConfig()
 {
-    switch (pSys->key_type) {
+    switch (pSys->pad_type) {
     case 0:
         keyConfigTypeA();
         break;

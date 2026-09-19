@@ -812,7 +812,7 @@ void cCard::makeSaveData()
     }
     src = (u8*) d->CLUTHeader->data;
     memcpy(buf + SAVE_CLUT, src, 0x200);
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         sprintf((char*) buf, "biohazard4 FILE%02d", m_SaveNo + 1);
         sprintf((char*) buf + SAVE_COMMENT2, "%04d/%02d/%02d %02d:%02d:%02d \x8dX\x90V", cal.year, cal.mon + 1, cal.mday,
                 cal.hour, cal.min, cal.sec);
@@ -868,7 +868,7 @@ void cCard::makeSystemSaveData()
     }
     src = (u8*) d->CLUTHeader->data;
     memcpy(buf + SAVE_CLUT, src, 0x200);
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         sprintf((char*) buf, "biohazard4 \x83V\x83X\x83" "e\x83\x80\x83t\x83@\x83" "C\x83\x8b");
         sprintf((char*) buf + SAVE_COMMENT2, "%04d/%02d/%02d %02d:%02d:%02d \x8dX\x90V", cal.year, cal.mon + 1, cal.mday,
                 cal.hour, cal.min, cal.sec);
@@ -881,7 +881,7 @@ void cCard::makeSystemSaveData()
     d = TEXGet(tpl, i);
     src = (u8*) d->textureHeader->data;
     memcpy(buf + SAVE_BANNER, src, 0x1800);
-    *(SystemWork*) (buf + SYS_WORK) = *pSys;
+    *(SYSTEM_SAVE_WORK*) (buf + SYS_WORK) = *pSys;
     *(u32*) (buf + SYS_WORK + 4) |= sysFlags;
     *(u32*) (buf + SYS_CRC) = CRCCalc(buf, SYS_CRC);
     DCFlushRange(pSaveBuf, SYS_SIZE);
@@ -1758,11 +1758,11 @@ int cCard::initialize(int type)
     u32 addr;
 
     this->type = type;
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         idpath[12] = fileext[0];
-    } else if (pSys->region == 1) {
+    } else if (pSys->eff_country == 1) {
         idpath[12] = fileext[1];
-    } else if (isEurope(pSys->region)) {
+    } else if (isEurope(pSys->eff_country)) {
         idpath[12] = fileext[pSys->language];
     } else {
         idpath[12] = fileext[7];
@@ -2095,9 +2095,9 @@ void cCard::firstCheck10()
         }
         break;
     case 2:
-        *pSys = *(SystemWork*) (buf + SYS_WORK);
+        *pSys = *(SYSTEM_SAVE_WORK*) (buf + SYS_WORK);
         BitOn(pGS->CardStatus, 1);
-        SndSetOutputMode(pSys->sound_mode, 1);
+        SndSetOutputMode(pSys->SndMode, 1);
         m_Rno1++;
         break;
     case 3:
@@ -2582,7 +2582,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
 
     switch (*sub) {
     case 0:
-        BitOff(pSys->flags, 0x02000000);
+        BitOff(pSys->Config_flg, 0x02000000);
         m_SaveNo = 0;
         memclr_asm(s->fileFlag, sizeof(s->fileFlag));
         m_RetryCtr = 0;
@@ -2605,7 +2605,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             }
             sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
             if (file_exist(fileName)) {
-                BitOn(pSys->flags, 0x02000000);
+                BitOn(pSys->Config_flg, 0x02000000);
                 s->fileFlag[m_SaveNo] |= 1;
                 bit = 1 << m_SaveNo;
                 if (DBG_CACHED & bit) {
@@ -2633,7 +2633,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             if (r == 0) {
             } else if (r > 0) {
                 if (m_ResultCode == 0) {
-                    BitOn(pSys->flags, 0x02000000);
+                    BitOn(pSys->Config_flg, 0x02000000);
                     s->fileFlag[m_SaveNo] |= 1;
                     s->flags |= 0x100;
                     if (type == 2) {

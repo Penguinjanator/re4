@@ -10,7 +10,7 @@
 //    were cross-jumped only in jump2, after global alloc, so they counted 2 extra insns in both
 //    ranges. Still off:
 //  - DiscChange (matching): the `game[4]` template copy loads words 0,8,c,4 because the first
-//    `pSys->region` read goes through a reference (`SysRef`): a MEM without the scalar flag is not
+//    `pSys->eff_country` read goes through a reference (`SysRef`): a MEM without the scalar flag is not
 //    exempt from the preceding stack stores, so all four stores rank equally in sched2 and the
 //    copy keeps its template order (with a plain `pSys` only the word-4 store gated the load via
 //    the r9 anti-dependence and its load ranked first).
@@ -322,7 +322,7 @@ static inline s32 IRef(s32& v) { return v; }
 // Same for the first pSys read of DiscChange: without the scalar flag the `lwz r9,pSys` is not
 // exempt from the game[] template stores (fixed_scalar_and_varying_struct_p), so every store
 // ranks 7 in sched2 and the copy issues in template order (0, 8, c, 4) like the original.
-static inline SystemWork* SysRef(SystemWork*& p) { return p; }
+static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p) { return p; }
 
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.
@@ -1954,7 +1954,7 @@ void RomFontMessage(u32 msg, int disc)
 // CALL_EXPRs (side effects) is never merged by fold and gives the five compares to one `li 1`.
 static inline int SysRegionIs(int r)
 {
-    return pSys->region == r;
+    return pSys->eff_country == r;
 }
 
 // 1 for the European regions.
@@ -1976,11 +1976,11 @@ int cDvd::DiscChange(int disc)
     char company[] = "08";
     const char* game[] = {"G4BJ", "G4BE", "G4BJ", "G4BJ"};
 
-    if (SysRef(pSys)->region == 1) {
+    if (SysRef(pSys)->eff_country == 1) {
         region = 1;
     } else if (SysIsEurope() == 1) {
         region = 2;
-    } else if (pSys->region == 7) {
+    } else if (pSys->eff_country == 7) {
         region = 3;
     }
     DVDGenerateDiskID(&id, game[region], company, (u8) disc, 0xFF);

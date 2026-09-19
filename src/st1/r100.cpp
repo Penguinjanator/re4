@@ -153,7 +153,7 @@ void R100Init()
 #line 207 "D:/Bio4/Prog/r100.cpp"
     W = (R100Work*) MEM_CALLOC(sizeof(R100Work), 1, 0xd);
     EmReadSearch(0x12, 0, 0);
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         SetSstDispFlag(0x12, 0);
         SceAtSetEnable(0x17, 0);
     } else {

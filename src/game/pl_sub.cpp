@@ -796,7 +796,7 @@ int joyFireTrg()
     return 0;
 }
 
-// Aim key held for the gun: with the knife-key option off (pSys->flags 0x04000000 clear) only
+// Aim key held for the gun: with the knife-key option off (pSys->Config_flg 0x04000000 clear) only
 // Leon / Krauser, and not while the L trigger (knife) is held; the weapon's own keyKamae decides.
 // With the option on all gun characters, unless stat 0x1000 (knife key mode).
 int joyKamae()
@@ -804,7 +804,7 @@ int joyKamae()
     cPlayer* pl = pPL;
     cPlWep* wep;
 
-    if ((pSys->flags & 0x04000000) == 0) {
+    if ((pSys->Config_flg & 0x04000000) == 0) {
         switch (pG->pl_type) {
         case 0:
         case 4:
@@ -863,7 +863,7 @@ int joyLKamae()
 {
     cPlayer* pl = pPL;
 
-    if ((pSys->flags & 0x04000000) == 0) {
+    if ((pSys->Config_flg & 0x04000000) == 0) {
         if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (Key.on & 0x800) {
                 return 1;

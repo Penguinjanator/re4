@@ -71,7 +71,7 @@ struct PlPtr {
 #define pPLS (((PlPtr*) &pPL)->p)
 // Same for pSys (em10.cpp): the load stays below the preceding `ang = pPL->pos` copy stores (Event00).
 struct SystemWorkPtr {
-    SystemWork* p;
+    SYSTEM_SAVE_WORK* p;
 };
 #define pSysS (((SystemWorkPtr*) &pSys)->p)
 
@@ -186,7 +186,7 @@ void R101Init()
             ((cObjLadder*) r101_work->ladder[2])->setOff();
         }
     }
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         SceAtSetEnable(0x20, 0);
     } else {
         Vec pos;
@@ -1016,7 +1016,7 @@ static void r101_Event00()
     }
     pPL->dmg.set(0, 0x80);
     ang = pPL->pos;
-    if (pSysS->region == 0) {   // struct view: the pSys load stays below the `ang` copy stores
+    if (pSysS->eff_country == 0) {   // struct view: the pSys load stays below the `ang` copy stores
         at.x = 3492.0f;
         at.y = 1100.0f;
         at.z = 3695.0f;

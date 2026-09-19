@@ -685,7 +685,7 @@ f32 rangeDist(Vec* pos, cEm* em, f32 range)
     return rangeAdd(pos, &v, GetDistance(pos, &v), range);
 }
 
-// While aiming: a C-stick move cancels the lock time; with auto-aim on (pSys->flags 0x20000000)
+// While aiming: a C-stick move cancels the lock time; with auto-aim on (pSys->Config_flg 0x20000000)
 // the gun tracks the target for the remaining lock frames.
 void cPlWep::lockMove()
 {
@@ -694,7 +694,7 @@ void cPlWep::lockMove()
     if (Joy[0].on & 0xF0000) {
         m_LockTime = 0;
     }
-    if (pl->m_pEm && m_LockTime != 0 && (pSys->flags & 0x20000000)) {
+    if (pl->m_pEm && m_LockTime != 0 && (pSys->Config_flg & 0x20000000)) {
         PlWepAutoTrack(pl, 0, 1.0f);
     }
 }
@@ -768,10 +768,10 @@ cModel* cPlWep::lockNext()
     return pl->m_pEm;
 }
 
-// Best lock-on target from `pos` when auto-aim is enabled (pSys->flags 0x20000000), else 0.
+// Best lock-on target from `pos` when auto-aim is enabled (pSys->Config_flg 0x20000000), else 0.
 cModel* SearchLockEm(Vec* pos, cModel* skip)
 {
-    if (pSys->flags & 0x20000000) {
+    if (pSys->Config_flg & 0x20000000) {
         return searchLockEm(pos, skip, 0.0f);
     }
     return 0;
@@ -994,7 +994,7 @@ void PlWepLockCtrl(cModel* plm)
             goto rand;
         }
         d = 0.0f;
-        if (pSys->flags & 0x80000000) {
+        if (pSys->Config_flg & 0x80000000) {
             if (Joy[0].on & 8) {
                 d -= 0.035f;
             }
@@ -1227,7 +1227,7 @@ void PlSetLockPitch(cModel* plm)
     cPlayer* pl = (cPlayer*) plm;
     f32 p;
 
-    if (pSys->flags & 0x20000000) {
+    if (pSys->Config_flg & 0x20000000) {
         if (pl->m_pEm) {
             Vec d;
 

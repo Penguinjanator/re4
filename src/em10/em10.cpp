@@ -559,7 +559,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 
 // Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).
 struct SystemWorkPtr {
-    SystemWork* p;
+    SYSTEM_SAVE_WORK* p;
 };
 #define pSysS (((SystemWorkPtr*) &pSys)->p)
 // Same for pSUB: its load stays below the preceding member stores and is redone after the flag store (em10_R1_TakeAway).
@@ -11212,7 +11212,7 @@ static void em10_R1_br_ClawCriAtk(cEm10* em)
         case 0:
         case 3:
         case 5:
-            if (pSys->region && w->Atk_ck && (s16) pG->pl_life <= 0) {
+            if (pSys->eff_country && w->Atk_ck && (s16) pG->pl_life <= 0) {
                 pG->pl_life = 1;
                 EmRoutineSet(em, 1, 0x2E, 0, 0);
             }
@@ -11555,7 +11555,7 @@ static void em10_R1_C_SawHit(cEm10* em)
         PlSetDamageSe(0);
         SndStop(w->Seid_csaw, 0);
         w->TmpU32 = SndCall(6, 0x4F, &em->pos, 0, 0, em);
-        if (pSysS->region == 0 && (u8) (Rnd() % 10) > 4) {
+        if (pSysS->eff_country == 0 && (u8) (Rnd() % 10) > 4) {
             em->r_no_3 = 1;
         } else {
             em->r_no_3 = 3;
@@ -11673,7 +11673,7 @@ static void plem10_C_SawHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x101), 0, 5, 1, 0);
         pl->atari.set(10, 400.0f, 700.0f);
         pl->m_Work2 = SndCall(1, 0xC, &pPL->pos, 0, 0, pPL);
-        if (pSysS->region == 0) {
+        if (pSysS->eff_country == 0) {
             SndCall(6, 0x5C, &pPL->pos, 0, 0, pPL);
         }
         pl->r_no_2++;
@@ -11707,7 +11707,7 @@ static void plem10_C_SawHit(cPlayer* pl)
         break;
     case 4:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x4C), (int) PL_ARC_PTR(pG->pPlayer, 0x4D), 5, 1, 0);
-        if (pSys->region == 0) {
+        if (pSys->eff_country == 0) {
             PlSetDamageSe(0xD);
             EstSet((int) pPL, -1, 0, 0, 0x10, 0x57, 0, 0, (u32) pPL, 0);
         }
@@ -11717,7 +11717,7 @@ static void plem10_C_SawHit(cPlayer* pl)
         if (pl->frame > 71.7f && pl->frame < 72.3f) {
             EstSet((int) pl, -1, 0, 0, 0x10, 0x4D, 0, 0, (u32) pl, 0);
         }
-        if (pl->m_Work0 && --pl->m_Work0 == 0 && pSys->region) {
+        if (pl->m_Work0 && --pl->m_Work0 == 0 && pSys->eff_country) {
             SndStop(pl->m_Work2, 0);
             em10PlHeadLost();
         }
@@ -11807,7 +11807,7 @@ static void em10_R1_C_SawCriHit(cEm10* em)
         w->Timer3 = 0;
         w->Timer = 18;
         GameAddPoint(LVADD_PL_DAMAGE);
-        if (pSys->region == 0) {
+        if (pSys->eff_country == 0) {
             SndCall(6, 0x5C, &pPL->pos, 0, 0, pPL);
         }
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
@@ -17645,7 +17645,7 @@ int em10CsawHitCk(cEm10* em)
 // while the eye glow (parasite) effect is enabled for the room, every other type always.
 int em10LostHeadCk(cEm10* em)
 {
-    if (pSys->region != 0) {
+    if (pSys->eff_country != 0) {
         return 1;
     }
     switch (em->type) {
@@ -21081,7 +21081,7 @@ extern "C" int em10CsawAtkCk(cEm10* em)
             return 0;
         }
         r = Rnd() % 100;
-        if (r <= 29 || pSys->region == 0) {
+        if (r <= 29 || pSys->eff_country == 0) {
             EmRoutineSet(em, 1, 0x2F, hit, hit);
         } else {
             EmRoutineSet(em, 1, 0x31, hit, hit);
@@ -22232,7 +22232,7 @@ extern "C" void em10CamMoveCri(cEm10* em, u32 no, int shake)
         w->Cam.param.fovy = 50.0f;
         break;
     case 1:
-        if (pSys->region == 0) {
+        if (pSys->eff_country == 0) {
             a.x = 762.0f;
             a.y = 1953.0f;
             a.z = 263.0f;
@@ -22259,7 +22259,7 @@ extern "C" void em10CamMoveCri(cEm10* em, u32 no, int shake)
         w->Cam.param.fovy = 30.0f;
         break;
     case 3:
-        if (pSys->region == 0) {
+        if (pSys->eff_country == 0) {
             a.x = -1120.0f;
             a.y = 1269.0f;
             a.z = -494.1f;
@@ -26887,14 +26887,14 @@ int em10FindLostCk(cEm10* em)
 }
 // The player's head comes off (chainsaw / claw kills): in the overseas versions hides his head model
 // (setHead 0) and spawns it as a cObj01 flying off the neck part 3 with the blood effect; the Japanese
-// version (pSys->region 0) only plays the blood effect and death SE.
+// version (pSys->eff_country 0) only plays the blood effect and death SE.
 extern "C" void em10PlHeadLost()
 {
     Vec v;
     Vec ofs;
     cObj* o;
     cModel* p;
-    int region = pSys->region;
+    int region = pSys->eff_country;
 
     if (region == 0) {
         PlSetDamageSe(0xD);

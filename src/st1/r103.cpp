@@ -94,7 +94,7 @@ void R103Init()
 #line 72 "D:/Bio4/Prog/r103.cpp"
     r103_work = (R103Work*) MEM_CALLOC(sizeof(R103Work), 1, 0xd);
 
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         SceAtSetEnable(0xB, 0);
     } else {
         r103_setCorpse(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),

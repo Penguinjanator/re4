@@ -3358,7 +3358,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x9F), 0, 0, 1, 0);
         EmCatchMotionMove(pl, 1.0f, 1.0f);
         PlSetFace(1);
-        if (pSys->region) {
+        if (pSys->eff_country) {
             EstSet((int) pl, -1, 0, 0, 0x2A, 0x2C, 0, w->espKind[1], (u32) pl->pEmCatch, (void*) step);
         } else {
             EstSet((int) pl, -1, 0, 0, 0x2A, 0x2D, 0, w->espKind[1], (u32) pl->pEmCatch, (void*) step);
@@ -3367,7 +3367,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
         break;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (pl->frame > 109.699997f && pl->frame < 110.300003f && pSys->region) {
+        if (pl->frame > 109.699997f && pl->frame < 110.300003f && pSys->eff_country) {
             em32PlDivideSet2((cEm32*)pl->pEmCatch);
             pl->be_flag &= ~2;
         }
@@ -4385,7 +4385,7 @@ int em32CeilingAtkCk(cEm32* em)
 // The player's head comes off (regions other than Japan).
 void em32PlHeadLost()
 {
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
         return;
     }
@@ -4401,7 +4401,7 @@ void em32PlHeadFall()
     Vec rot;
     cObj* obj;
 
-    if (pSys->region == 0) {
+    if (pSys->eff_country == 0) {
         return;
     }
     pPL->getPartsPtr(3);

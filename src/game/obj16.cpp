@@ -1193,7 +1193,7 @@ void obj16PlHeadLost(cObj16* obj)
 
     pG->pl_life = 0;
     PlSetDamage(6, 0, 0);
-    region = pSys->region;
+    region = pSys->eff_country;
     if (region == 0) {
         PlSetDamageSe(0xD);
         if (w->body) {

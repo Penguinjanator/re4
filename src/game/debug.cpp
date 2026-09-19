@@ -117,7 +117,7 @@ void debugPadInfoDisp()
 #define PROG_Y(y) ((s16) ((f32) (s16) (y) / 1.3333334f + 56.0f))
 #define PROG_H(h) ((s16) ((f32) (s16) (h) / 1.3333334f))
 // Reference read of pSys: the load stays below the preceding tile stores.
-static inline SystemWork* SysRef(SystemWork*& p) { return p; }
+static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p) { return p; }
 // Ticks -> 1/100 frame units (bus clock / 4 = tick rate, 60 frames per second)
 #define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 100.0f)
 #define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 1000.0f)
@@ -164,7 +164,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = x0;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = PROG_Y(30);
         t->h = PROG_H(t->h);
     }
@@ -182,7 +182,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = x1 - x0;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -200,7 +200,7 @@ void processBarDisp()
     t->c0.b = 0x80;
     t->c0.cd = 0xFF;
     t->h = x2 - x0;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -229,7 +229,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = TICKX(proc_tick[3]) - x0;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -246,7 +246,7 @@ void processBarDisp()
     t->c0.g = 8;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = 78;
         t->h = 300;
     }
@@ -263,7 +263,7 @@ void processBarDisp()
     t->c0.g = 8;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    if (SysRef(pSys)->flags & 0x40000000) {
+    if (SysRef(pSys)->Config_flg & 0x40000000) {
         t->y0 = 78;
         t->h = 300;
     }
@@ -364,7 +364,7 @@ void PrimitiveBuffDisp()
         t->c0.cd = 0xFF;
         t->z0 = 0;
         int z = 0;
-        if (SysRef(pSys)->flags & 0x40000000) {
+        if (SysRef(pSys)->Config_flg & 0x40000000) {
             t->y0 = 74;
             t->h = 3;
         }
@@ -381,7 +381,7 @@ void PrimitiveBuffDisp()
         t->c0.r = 0x14;
         t->c0.g = 0x14;
         t->c0.cd = 0xFF;
-        if (SysRef(pSys)->flags & 0x40000000) {
+        if (SysRef(pSys)->Config_flg & 0x40000000) {
             t->y0 = 74;
             t->h = 3;
         }
@@ -398,7 +398,7 @@ void PrimitiveBuffDisp()
         t->h = 4;
         t->c0.b = 0x14;
         t->c0.cd = 0xFF;
-        if (SysRef(pSys)->flags & 0x40000000) {
+        if (SysRef(pSys)->Config_flg & 0x40000000) {
             t->y0 = 74;
             t->h = 3;
         }
@@ -510,9 +510,9 @@ void ConfigSet()
             }
         } else if (symbol_check(&p, "VIBRATION")) {
             if (symbol_check(&p, "OFF")) {
-                BitOff(pSys->flags, 0x08000000);
+                BitOff(pSys->Config_flg, 0x08000000);
             } else {
-                BitOn(pSys->flags, 0x08000000);
+                BitOn(pSys->Config_flg, 0x08000000);
             }
         } else if (symbol_check(&p, "BG_BLACK")) {
             if (symbol_check(&p, "ON")) {
@@ -566,7 +566,7 @@ void ConfigSet()
             if (symbol_check(&p, "DPL2")) {
                 mode = 2;
             }
-            if (mode != pSys->sound_mode) {
+            if (mode != pSys->SndMode) {
                 SndSetOutputMode(mode, 0);
             }
         } else if (symbol_check(&p, "WARNING_LOG")) {
@@ -634,21 +634,21 @@ void ConfigSet()
             }
         } else if (symbol_check(&p, "AIM_REVERSE")) {
             if (CFG_ON(p)) {
-                BitOn(pSys->flags, 0x80000000);
+                BitOn(pSys->Config_flg, 0x80000000);
             } else {
-                BitOff(pSys->flags, 0x80000000);
+                BitOff(pSys->Config_flg, 0x80000000);
             }
         } else if (symbol_check(&p, "WIDE_MODE")) {
             if (CFG_ON(p)) {
-                BitOn(pSys->flags, 0x40000000);
+                BitOn(pSys->Config_flg, 0x40000000);
             } else {
-                BitOff(pSys->flags, 0x40000000);
+                BitOff(pSys->Config_flg, 0x40000000);
             }
         } else if (symbol_check(&p, "AUTO_LOCK_ON")) {
             if (CFG_ON(p)) {
-                BitOn(pSys->flags, 0x20000000);
+                BitOn(pSys->Config_flg, 0x20000000);
             } else {
-                BitOff(pSys->flags, 0x20000000);
+                BitOff(pSys->Config_flg, 0x20000000);
             }
         } else if (symbol_check(&p, "SINGLE_DISK")) {
             if (CFG_ON(p)) {
