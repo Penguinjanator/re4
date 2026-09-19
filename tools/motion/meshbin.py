@@ -46,7 +46,13 @@ of the models; commonScreenMatSub / CalcSk1_x, the skinning; dbmodule.cpp DrawOb
   blend      s32 count, count x {u16 dst, a, c, percent} (cModel::setJointInfo -> MotionWork::blendTbl);
              not padded: the flip table follows it directly
   flip       u32 count (= nParts), count x u16 parts remap (MotionWork::flip = flipTbl + 4), 0xCD padded
-  shape      raw bytes (game/shape.cpp morph targets; not decoded here)
+  shape      the morph targets of the head models (game/shape.cpp CalculateShape_new: tbl =
+             shapeOfs + 4): u32 count, count x ShapeEntry {u32 ofs from tbl, s32 num}, then the
+             delta lists back to back (ofs = 8 * count, 8 * count + 8 * num[0], ...): num x
+             {s16 vertex index, s16 dx, dy, dz} in the vertex units (1 / (1 << shift) mm). Per
+             frame the game copies vtxOrig (ResetShape) and adds weight x delta for each active
+             shape channel (weight = Hermite key percent / 100), before the skinning; the normals
+             are not touched. Zero padded to 32.
 """
 import struct
 from dataclasses import dataclass, field
@@ -160,11 +166,16 @@ class Mesh:
     parts: list           # Part
     blend_table: list = None   # (dst, a, c, percent)
     flip_table: list = None    # u16 per parts
-    shape: bytes = None        # raw shape table section
+    shapes: list = None        # per shape key: [(vertex index, dx, dy, dz)] raw s16; None: no shape table
 
     @property
     def n_parts(self):
         return len(self.heads)
+
+    def shape_deltas(self, k):
+        """{vertex index: (dx, dy, dz) mm} of shape key k at weight 1 (Hermite percent 100)."""
+        s = 1.0 / (1 << self.shift)
+        return {i: (dx * s, dy * s, dz * s) for i, dx, dy, dz in self.shapes[k]}
 
     @property
     def nrm_s8(self):
@@ -260,7 +271,22 @@ def parse(d: bytes) -> Mesh:
     else:
         nrm = [struct.unpack_from('>4h', d, p_nrm + 8 * i) for i in range(n_nrm)]
         _zero_pad(d, p_nrm + 8 * n_nrm, ends['nrm'], 'normals')
-    shape = d[shape_ofs:ends['shape']] if shape_ofs else None
+    shapes = None
+    if shape_ofs:
+        cnt, = struct.unpack_from('>I', d, shape_ofs)
+        tbl = shape_ofs + 4
+        shapes = []
+        p = tbl + 8 * cnt
+        for k in range(cnt):
+            ofs, num = struct.unpack_from('>Ii', d, tbl + 8 * k)
+            if tbl + ofs != p or num < 0:
+                raise ValueError(f'shape {k}: delta list at {ofs:#x} ({num} entries), expected {p - tbl:#x}')
+            deltas = [struct.unpack_from('>4h', d, p + 8 * i) for i in range(num)]
+            if any(e[0] >= n_vtx for e in deltas):
+                raise ValueError(f'shape {k}: vertex index out of range')
+            shapes.append(deltas)
+            p += 8 * num
+        _zero_pad(d, p, ends['shape'], 'shape table')
 
     weights = []
     for i in range(wpn):
@@ -325,7 +351,7 @@ def parse(d: bytes) -> Mesh:
         p = flip_ofs + 4 + 2 * cnt
         if len(d) - p >= ALIGN or d[p:] != bytes([FILL]) * (len(d) - p):
             raise ValueError(f'flip table tail at {p:#x} is not 0xCD padding to 32')
-    return Mesh(version, flags, shift, n_tex, wpn, wext, x8, heads, vtx, nrm, clr, tex, weights, parts, blend, flip, shape)
+    return Mesh(version, flags, shift, n_tex, wpn, wext, x8, heads, vtx, nrm, clr, tex, weights, parts, blend, flip, shapes)
 
 
 def serialise(m: Mesh) -> bytes:
@@ -338,8 +364,13 @@ def serialise(m: Mesh) -> bytes:
     add('head', b''.join(struct.pack('>4B3f', h.parts_no, h.parent_no, h.x2, h.x3, *h.center) for h in m.heads))
     add('vtx', b''.join(struct.pack('>4h', *v) for v in m.vtx))
     add('nrm', b''.join(struct.pack('>3bB' if m.nrm_s8 else '>4h', *v) for v in m.nrm))
-    if m.shape is not None:
-        add('shape', m.shape)
+    if m.shapes is not None:
+        sb = struct.pack('>I', len(m.shapes))
+        ofs = 8 * len(m.shapes)
+        for deltas in m.shapes:
+            sb += struct.pack('>Ii', ofs, len(deltas))
+            ofs += 8 * len(deltas)
+        add('shape', sb + b''.join(struct.pack('>4h', *e) for deltas in m.shapes for e in deltas))
     add('clr', struct.pack(f'>{len(m.clr)}I', *m.clr))
     add('tex', b''.join(struct.pack('>2h', *t) for t in m.tex))
     add('wgt', b''.join(struct.pack('>3BB4B', *w.ids, w.num, *w.wht) for w in m.weights))
@@ -384,4 +415,5 @@ def describe(m: Mesh):
             ops[OPCODES[pr.op & 0xF8]] = ops.get(OPCODES[pr.op & 0xF8], 0) + 1
     return (f'{len(m.vtx)} vertices, {len(m.nrm)} normals ({"s8" if m.nrm_s8 else "s16"}), {len(m.clr)} colours, '
             f'{len(m.tex)} texcoords, {len(m.weights)} weight entries, {len(m.parts)} parts, {m.n_triangles()} triangles '
-            f'({", ".join(f"{v} {k}" for k, v in sorted(ops.items()))}), {m.n_tex} textures, shift {m.shift}')
+            f'({", ".join(f"{v} {k}" for k, v in sorted(ops.items()))}), {m.n_tex} textures, shift {m.shift}'
+            + (f', {len(m.shapes)} shape keys ({", ".join(str(len(s)) for s in m.shapes)} vertex deltas)' if m.shapes else ''))

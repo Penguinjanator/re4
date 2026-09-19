@@ -138,23 +138,31 @@ class MeshSource:
     label (file stem of the PNGs / glTF mesh name), tex_prefix (PNG name prefix, shared by motions
     of the same archive)."""
 
-    def __init__(self, mesh, textures, label, tex_prefix):
+    def __init__(self, mesh, textures, label, tex_prefix, role=None):
         self.mesh = mesh
         self.textures = textures
         self.label = label
         self.tex_prefix = tex_prefix
+        self.role = role
+
+    def shape_names(self):
+        return [f'shape_{k:02d}' for k in range(len(self.mesh.shapes or []))]
 
 
 def build_mesh(b, src, scale, out_dir, images, textures_out, materials, skin_check):
     """glTF mesh of one .bin: one primitive per ModelPart (its display list, material texId /
     alphaTex), vertices de-duplicated per part on the (position, normal, colour, texcoord) index
     tuple, JOINTS_0 / WEIGHTS_0 from the Weight entry the vertex's matrix index selects
-    (meshbin.Mesh.skin: MakeWeightPalette / CalcSk1_x). Returns (mesh dict, n_vertices, n_triangles)."""
+    (meshbin.Mesh.skin: MakeWeightPalette / CalcSk1_x). The shape table (meshbin.Mesh.shapes,
+    shape.cpp CalculateShape_new: per key a list of vertex position deltas added to vtxOrig before
+    the skinning, normals untouched) becomes one POSITION morph target per key on every primitive,
+    named in the mesh's extras.targetNames. Returns (mesh dict, n_vertices, n_triangles, dropped)."""
     from . import gxtex
     m = src.mesh
     prims = []
     n_vert = n_tri = 0
     dropped = [0]
+    shape_deltas = [m.shape_deltas(k) for k in range(len(m.shapes or []))]
     for pi, part in enumerate(m.parts):
         tris = part.triangles()
         if not tris:
@@ -227,8 +235,18 @@ def build_mesh(b, src, scale, out_dir, images, textures_out, materials, skin_che
             'extras': {'re4': {'part': pi, 'flags': part.flags, 'texId': part.tex_id, 'alphaTex': part.alpha_tex,
                                'bumpTex': part.bump_tex, 'nPoly': part.n_poly}},
         }
+        if shape_deltas:
+            zero = (0.0, 0.0, 0.0)
+            prim['targets'] = []
+            for deltas in shape_deltas:
+                dp = [tuple(c * scale for c in deltas.get(v[0], zero)) for v in index]
+                prim['targets'].append({'POSITION': b.accessor('3f', FLOAT, 'VEC3', dp, ARRAY_BUFFER, minmax=True)})
         prims.append(prim)
-    return {'name': src.label, 'primitives': prims}, n_vert, n_tri, dropped[0]
+    mesh = {'name': src.label, 'primitives': prims}
+    if shape_deltas:
+        mesh['weights'] = [0.0] * len(shape_deltas)
+        mesh['extras'] = {'targetNames': src.shape_names()}
+    return mesh, n_vert, n_tri, dropped[0]
 
 
 def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_motion=True, extras=None, meshes=None):
@@ -265,7 +283,7 @@ def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_mot
     mesh_list = []
     mesh_nodes = []
     materials = []      # (material dict, image uri)
-    stats = {'vertices': 0, 'triangles': 0, 'meshes': 0, 'materials': 0, 'duplicate_faces': 0}
+    stats = {'vertices': 0, 'triangles': 0, 'meshes': 0, 'materials': 0, 'duplicate_faces': 0, 'labels': [], 'shape_keys': {}}
     if meshes:
         out_dir = os.path.dirname(os.path.abspath(out_path))
         images = {}
@@ -279,6 +297,9 @@ def export(model, motion, poses, out_path, name, fps=30.0, scale=0.001, root_mot
             stats['vertices'] += nv
             stats['triangles'] += nt
             stats['duplicate_faces'] += dup
+            stats['labels'].append(src.label)
+            if src.mesh.shapes:
+                stats['shape_keys'][src.label] = src.shape_names()
             mesh_nodes.append(len(nodes))
             nodes.append({'name': src.label, 'mesh': len(mesh_list), 'skin': 0})
             mesh_list.append(mesh)

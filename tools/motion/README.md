@@ -3,24 +3,53 @@
 `tools/motion_export.py` reads the "FCV" motion entries of the character archives
 (`files/em/plNN.drs` players, `emNN.drs` enemies, `wepNN.drs` weapons; the room `.das` archives are
 yz2-compressed and not opened), plays them with the **game's own code** compiled for the host, and
-writes glTF 2.0 (and BVH) animations on the model's parts hierarchy for Blender, with the
-character's skinned, textured mesh from the model `.bin` ("BIN") and texture palette ("TPL") entries.
+writes glTF 2.0 (and BVH) animations on the model's parts hierarchy for Blender, with the whole
+character (body, head, hair, eyes, hands ... as the game assembles it) skinned and textured from
+the model `.bin` ("BIN") and texture palette ("TPL") entries, and the heads' face morphs as shape keys.
 
     python3 tools/motion_export.py list   files/em/pl00.drs            # or the disc .iso
-    python3 tools/motion_export.py export files/em/pl00.drs --motion 46 -o leon_046.gltf --bvh leon_046.bvh
-    python3 tools/motion_export.py export files/em/pl00.drs --motion 33 -o leon_033.gltf \
-        --mesh 6:1 --mesh 9:1 --mesh 4:3 --mesh 2:3 --mesh 5:3 --mesh 14:13 --mesh 17:13   # full Leon
+    python3 tools/motion_export.py export files/em/pl00.drs --motion 46 -o leon_046.gltf --bvh leon_046.bvh   # full Leon
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 46 -o ganado.gltf
     python3 tools/motion_export.py export files/em/pl00.drs --all -o out/          # every motion
     python3 tools/motion_export.py export ... --blender-check /tmp/mot/render [--strip]  # headless Blender import + renders
+    python3 tools/motion_export.py export ... --blender-check --render-nice /tmp/mot/render   # + lit EEVEE renders
     python3 tools/motion_export.py verify orig/G4BE08/re4_debug_disc1.iso [--dump dump.bin | --dolphin]
 
 `--motion N` is the archive entry index (the game's `PL_ARC` index is `N + 4`: the container body
-starts with four header words). The skeleton defaults to entry 0 of the same archive (the body
-`.bin`), its textures to the entry after it (`--tpl N`). `--mesh BIN[:TPL]` adds attachment models
-of the archive that the game hangs on the same parts (`cPlLeon::setModel`: costume 6:1, face 9:1,
-head 4:3, hair 2:3, eyes 5:3, right hand 14:13, left hand 17:13; Ada pl02: hair 2:3, dress 5:6;
-Ganado em10: body 440:441). `--no-mesh` writes the skeleton with the old stick-figure placeholder.
+starts with four header words). One command exports the whole character: the body `.bin` with its
+palette and the attachment models the game's set-up code hangs on the same parts (the table in
+`character.py`, below). `--body-only` leaves the attachments out; `--mesh [stem:]BIN[:[stem:]TPL]`
+adds a model (or replaces the palette of a table entry; `stem:` names another archive of the
+source: the disc, or a `.drs` next to the given one). An archive that is not in the table exports
+the body only and says so. `--no-mesh` writes the skeleton with the old stick-figure placeholder.
 Units: game millimetres × `--scale` (default 0.001 → metres), Y up, 30 fps.
+
+## The character table (`character.py`)
+
+Read off the players' `setModel` / `setRightHand` / `setLeftHand` (the state before the weapon
+module runs) and the Ganado's `em10ModelInit`; `verify` checks that every entry loads from the disc.
+`bin:tpl` are archive entry indices (PL_ARC − 4).
+
+| archive | character | models (role bin:tpl) | source |
+|---|---|---|---|
+| pl00 | Leon | body 0:1, costume 6:1, face 9:1, head 4:3, hair 2:3, eyes 5:3, right hand 14:13, left hand 17:13 | `cPlLeon::setModel` (PL_ARC 4/5, 0xA/5, 0xD/5, 8/7, 6/7, 9/7), `setRightHand(0)` 0x12/0x11, `setLeftHand(1)` 0x15/0x11 |
+| pl01 | Ashley | body 0:1, head 3:5, hair 2:7, skirt 4:1, accessory 6:1, right hand 13:1, left hand 16:1 | `cPlAshley::setModel` (4/5, 7/9, 6/0xB, 8/5, 0xA/5), `setRightHand(0)` 0x11/5, `setLeftHand(0)` 0x14/5 |
+| pl0c | Ada (playable) | body 0:1, hair 2:3, head 4:3, eyes 5:6, right hand 13:1, left hand 14:1 | `cPlAda::setModel` (4/5, 6/7, 8/7, 9/0xA), `setRightHand(0)` 0x11/5, `setLeftHand(0)` 0x12/5 |
+| pl02 | Ada (event, red dress) | body 0:1, hair 2:3, eyes/face 5:6 | same code; entry 13 is empty, 14 wants texture 6 of the 5-texture palette, and the "head" entry 4 is a 29-vertex stub without a shape table rigged to a 67-part skeleton whose parts 7 is the body's upper arm (it floats beside the shoulder in the game's own skinning) - left out; the body has the hands modelled in |
+| pl0d | Wesker | body 0:1, costume 6:1, head 4:3, hair 2:3, right hand 14:13, left hand 16:13 | `cPlWesker::setModel`, `setRightHand(0)` 0x12/0x11, `setLeftHand(0)` 0x14/0x11 |
+| pl06 | HUNK | body 0:1, mask 2:3, right hand 14:13, left hand 17:13 | `cPlHunk::setModel`, `setRightHand(0)`, `setLeftHand(1)` 0x15/0x11 |
+| pl0a | Krauser | body 0:1, hair 2:3, head 4:5, face 10:5, accessory 11:12, right hand 14:13, left hand 16:13 | `cPlKlauser::setModel` (the be_flag &= ~8 models 0xA/0xB and the 0x18/0x19 glow are hidden: not exported) |
+| em10 | Ganado (village, type 0) | body 440:441, head 442:441, right hand 444:441, left hand 449:441 | `em10ModelInit` + `Em10Set` type 0 (mot[1]/mot[0] = ARC 0x1BC/0x1BD), `em10HeadSet(0)` mot[2]/mot[5], `em10HandSet(0)` mot[6], mot[11] with mot[0] |
+
+Hands and the weapon module: the default handgun modules (wep01 FN57, wep02 Mauser) do not touch the
+hands (`Wep01_init` creates the weapon object only), so the bare hands of the player archive are the
+default state. The other modules replace the right hand with their grip hand:
+`cPlBody::initWepHand(WEP_ARC_PTR(0xA))` + `setRightHand(1)` draws `wepNN.drs` entry 6 with the
+player's hand palette (`PL_ARC_PTR(pG->pPlayer, 0x11)` = pl00:13) — a cross-archive pair, e.g.
+`--mesh wep04:6:13 --mesh 20:13` for Leon holding the shotgun (`wep04.cpp`: `setLeftHand(4)` =
+0x18). The eye / eyelid parts (0x1C, 0x20, 0x21) are skeleton parts the game turns by code
+(`cPlayer::moveEyeNormal`), not by the motion, so the eye models are bound through the skin like
+everything else and stay at rest here.
 
 ## The mesh export
 
@@ -61,29 +90,50 @@ What each array means comes from the game's draw path, `game/trans.cpp`:
   (`<archive>_<tpl entry>_<tex id>[_a<alpha id>].png`, shared by the motions of an archive). CMPR
   follows Dolphin's decoder (8×8 tiles of four DXT1 blocks, indices MSB first, 5/8-3/8 blend,
   transparent black fourth colour); only the base mip level is decoded (9 textures have mips).
+- Morph targets (`ModelData::shapeOfs`, `game/shape.cpp`): the head models carry a shape table,
+  `u32 count` then `count × ShapeEntry {u32 ofs, s32 num}` (offsets from `shapeOfs + 4`, the lists
+  back to back) and per shape `num × {s16 vertex index, s16 dx, dy, dz}` in the vertex units
+  (`1 / (1 << shift)` mm). Every frame `commonScreenMatSub` copies `vtxOrig` into the vertex buffer
+  (`ResetShape`) and `CalculateShape_new` adds `weight × delta` for each of the five shape slots
+  (`weight` = the ShapeData channel's Hermite key in percent / 100, ×1.37 for `shapeFlags` bit 3),
+  before the skinning; the normals are not touched. Each shape becomes a glTF POSITION morph
+  target on every primitive of the head mesh (named `shape_NN` in `extras.targetNames`: the game has
+  no names; Blender shows them as shape keys), so shape key 1.0 = the game's 100 %. Which key is
+  which: `cPlLeon::setFace(1)` plays PL_ARC 0x62 (channel on shape 0, the pain face), `setFace(2)`
+  0x63 (shape 1); Ada (pl0c) has one shape; Ashley's two are played by the events. On the disc 12
+  of 1830 models have a shape table (22 keys: pl00/08/09/10 and em32 Leon heads, pl01/05/11/15/21
+  Ashley, pl0b/0c Ada), deltas at most 19.7 mm (Ashley's open mouth).
 
 Verified by:
 
 1. **Byte round-trip** (`verify`): every `BIN` on disc 1 (1830 of 1830, players, enemies and
    weapons) parses into vertices, normals, colours, texcoords, weights, parts headers, display-list
-   primitives, blend and flip tables and re-serialises to identical bytes, with the zero / 0xCD
-   padding regenerated (not copied), the colour and texcoord counts taken from the display lists
-   (the padding after them must be zero), and every vertex index range-checked. Every TPL parses
-   (1179 palettes, 2776 textures decoded); the lossless formats re-encode byte-identically (617 of
-   617 I4 / IA8). CMPR is lossy: checked by eye on Leon's jacket / face textures.
-2. **Blender** (`--blender-check`): asserts the mesh objects hold the exporter's vertex and
-   triangle counts, are skinned to the armature, have UVs, colours and node materials with the
-   images; that the deformed mesh stays inside the bones' bounding box + 25 % at the sampled frames
-   (an exploded vertex or a stretched limb fails it); renders textured (workbench,
-   `color_type='TEXTURE'`); `--strip` renders every frame at the motion's fps into
-   `<name>_strip.png` and `<name>.mp4` (ffmpeg).
+   primitives, shape table, blend and flip tables and re-serialises to identical bytes, with the
+   zero / 0xCD padding and the shape entries' offsets regenerated (not copied), the colour and
+   texcoord counts taken from the display lists (the padding after them must be zero), and every
+   vertex index (display lists and shape deltas) range-checked. Every TPL parses (1179 palettes,
+   2776 textures decoded); the lossless formats re-encode byte-identically (617 of 617 I4 / IA8).
+   CMPR is lossy: checked by eye on Leon's jacket / face textures. Every entry of the character
+   table loads from the disc (45 of 45).
+2. **Blender** (`--blender-check`): asserts the mesh objects are exactly the exporter's models
+   (names) with its vertex and triangle counts, are skinned to the armature, have UVs, colours and
+   node materials with the images; that the shape keys are exactly the head's morph targets, each
+   moving some vertices and none by more than 60 mm; that the deformed mesh stays inside the
+   bones' bounding box + 25 % at the sampled frames (an exploded vertex or a stretched limb fails
+   it); renders textured (workbench, `color_type='TEXTURE'`); `--strip` renders every frame at the
+   motion's fps into `<name>_strip.png` and `<name>.mp4` (ffmpeg). `--render-nice DIR` adds EEVEE
+   renders with three area lights (key / fill / rim scaled to the character's height) and the
+   camera framed on the skinned mesh's bounding box over the motion (`<name>_nice_fNNN.png`, first
+   and middle frame), plus a head close-up per shape key at 1.0 and the neutral head
+   (`<name>_nice_<mesh>_shape_NN.png`).
 
-Known gaps: the shape (morph target) table of the head models (`shapeOfs`, `game/shape.cpp`) is
-carried as raw bytes, not decoded; bump / specular / texture-blend stages and mip levels are not
-exported; enemy heads and hands live in separate `.bin`s whose pairing with the body is in the
-enemy code (pass them with `--mesh`); Ada's hand models (pl02:14/15) want 7 textures, more than any
-TPL of pl02, so they are not exported; one duplicated face in pl00:4 is dropped (Blender removes it
-on import).
+Known gaps: TEV materials (bump / specular / texture-blend stages, the indirect stage) and mip
+levels are not exported, only the base texture with the alpha test; the room archives (`St*/rNNN.das`,
+yz2-compressed) are not opened; 12 motions do not round-trip (below); the enemy table covers the
+village Ganado (em10 type 0) only: the other Ganado types / enemies pair their heads and hands in
+their `emNN_set.cpp` (`--mesh` for those); the game turns the eye parts by code, so exported eyes
+look straight ahead; one duplicated face in pl00:4 is dropped (Blender removes it on import). The
+host helper is built with `make` in `host/`; on Windows that needs a C++ toolchain (MSYS2 / MSVC).
 
 ## What is verified, and how
 
@@ -148,11 +198,12 @@ on import).
     motion_export.py   CLI (tools/)
     fcv.py             MotionData / sequence table parse + byte-exact serialise (format notes in the docstring)
     modelbin.py        model .bin parts hierarchy, rest pose, blend table
-    meshbin.py         model .bin mesh data: arrays, weights, display lists; byte-exact serialise (format notes in the docstring)
+    meshbin.py         model .bin mesh data: arrays, weights, display lists, shape table; byte-exact serialise (format notes in the docstring)
+    character.py       archive -> attachment models (bin, tpl, role) read off the game's setModel code
     gxtex.py           TPL parse, CMPR / IA8 / I4 decode, I4 / IA8 encode, PNG writer
     archive.py         .drs containers via tools/drs.py, disc extraction via dtk
     evalhost.py        ctypes front end: Player (hosted cModel), Pose
-    gltf.py, bvh.py    writers (gltf: skin, meshes, materials, animation)
+    gltf.py, bvh.py    writers (gltf: skin, meshes, morph targets, materials, animation)
     dolphin.py         Dolphin harness, memory dump format, comparison
     blender_check.py   headless Blender import / compare / render
     host/              Makefile, prepare.py, motion_host.cpp, stub/ -> build/libmotion_host*.so
