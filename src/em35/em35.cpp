@@ -1071,7 +1071,7 @@ static void em35_R1_Divide(cEm35* em)
 
     switch (em->r_no_2) {
     case 0:
-        if ((pG->room_id32 & 0xFFFF0000) == 0x011F0000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x1F) {
             Vec v;
 
             em->ang.y = PI;
@@ -1120,7 +1120,7 @@ static void em35_R1_U_Divide(cEm35* em)
 
     switch (em->r_no_2) {
     case 0:
-        if ((pG->room_id32 & 0xFFFF0000) == 0x011F0000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x1F) {
             Vec v;
 
             em->ang.y = PI;
@@ -4206,7 +4206,7 @@ void em35CatchPosSet(cEm35* em)
     };
     u8 kind[3] = { 0, 1, 2 };
 
-    if ((pG->room_id32 & 0xFFFF0000) == 0x011F0000) {
+    if (pG->stage_no == 1 && pG->room_no == 0x1F) {
         Vec pos;
         f32 best = 10000000000000000.0f;
         int no = 0;

@@ -417,7 +417,7 @@ static void knife_r3_fire10(cPlayer* pl)
         Vec* pos = &pl->getPartsPtr(10)->world;
 
         if (GetWaterHeight(pos, &wh) && pos->y < wh + 100.0f) {
-            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x010A0000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x011A0000) {
+            if (pG->stage_no == 1 && pG->room_no == 0xA || pG->stage_no == 1 && pG->room_no == 0x1A) {
                 EstSet((int) pl, -1, 0, 0, 1, 0x25, 0, 0, (u32) pl, 0);
             } else {
                 EstSet((int) pl, -1, 0, 0, 3, 0, 0, 0, (u32) pl, 0);

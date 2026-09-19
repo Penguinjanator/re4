@@ -160,7 +160,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     EmBarrelWork* w;
     int zero;
 
-    if ((pGS->room_id32 & 0xFFFF0000) != 0x02270000) {
+    if (pGS->stage_no != 2 || pGS->room_no != 0x27) {
         return 0;
     }
     em = (cEmBarrel*) EmMgr.create(0x48);

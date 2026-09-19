@@ -788,7 +788,7 @@ void emRock_R1_Roll(cEmRock* em)
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01040000) {
+        if (pG->stage_no == 1 && pG->room_no == 4) {
             w->First_bound = 1;
             w->rollWait = 0;
         } else {
@@ -1365,7 +1365,7 @@ void emRockAtkScrCk(cEmRock* em)
             9000000.0f) {
             continue;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x19) {
             if (e->state == 0) {
                 switch (e->sub) {
                 case 0:
@@ -1902,7 +1902,7 @@ void plemRockEscapeCamMove2(cPlayer* pl, int side)
         emRock_campos.x = -30.0f;
         emRock_target.x = 397.0f;
     }
-    if ((pG->room_id32 & 0xFFFF0000) == 0x01060000) {
+    if (pG->stage_no == 1 && pG->room_no == 6) {
         emRock_campos.y = 690.0f;
     } else {
         emRock_campos.y = 490.0f;

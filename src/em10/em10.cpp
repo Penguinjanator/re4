@@ -556,7 +556,6 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->r_no_3 = r3;
 }
 
-#define G_ROOM_ID32 (*(u32*) &pG->stage_no)
 
 // Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).
 struct SystemWorkPtr {
@@ -1371,7 +1370,7 @@ static void em10DmSetWep02(cEm10* em)
                     return;
                 }
                 if (em->r_no_0 == 1 && (em->r_no_1 == 0x10 || em->r_no_1 == 0x39 || em->r_no_1 == 0x33) && em10LostHeadCk(em) && w->Wep_type != 4) {
-                    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+                    if (pG->stage_no == 1 && pG->room_no == 0) {
                         em->r_no_0 = 2;
                         em->r_no_1 = 9;
                         em->r_no_3 = em->r_no_2 = 0;
@@ -1623,7 +1622,7 @@ static void em10DmSetWep03(cEm10* em)
                 em10LostHead(em, 0, 0);
                 GameAddPoint(LVADD_CRITICALHIT);
                 if (em->r_no_0 == 1 && (em->r_no_1 == 0x10 || em->r_no_1 == 0x39 || em->r_no_1 == 0x33) && em10LostHeadCk(em) && w->Wep_type != 4) {
-                    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+                    if (pG->stage_no == 1 && pG->room_no == 0) {
                         em->r_no_0 = 2;
                         em->r_no_1 = 4;
                         em->r_no_3 = em->r_no_2 = 0;
@@ -3503,7 +3502,7 @@ static void em10_R0_Init(cEm10* em)
     w->EffKindIdWork = 0x2E;
     w->EffKindIdArrow = 0x2F;
     w->EffKindIdCore = 0x30;
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000 && em->emset_no == 0) {
+    if ((pG->stage_no == 1 && pG->room_no == 0) && em->emset_no == 0) {
         em->be_flag |= 0x10000;
     }
     switch (em->set) {
@@ -3786,7 +3785,7 @@ static void em10_R1_Hide(cEm10* em)
         em10SetWalkMotion(em, 0);
         MotionMoveF(em, 0);
         em10HideOff(em, w);
-        if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+        if (pG->stage_no == 1 && pG->room_no == 0) {
             w->Dash_wait = 150;
         }
         em10WalkRtnSet(em);
@@ -16047,7 +16046,7 @@ static void em10_R1_Die_Cramp(cEm10* em)
             w->Timer--;
         } else if (!Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_LOST)) {
             f = 0;
-            if ((pG->room_id32 & 0xFFFF0000) == 0x1000000) {
+            if (pG->stage_no == 1 && pG->room_no == 0) {
                 f = 1;
             }
             if (em->flag & 0x10000000) {
@@ -16930,13 +16929,13 @@ extern "C" int em10RouteTargetSet(cEm10* em)
             return 0;
         }
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x01110000 ||
-        (G_ROOM_ID32 & 0xFFFF0000) == 0x04000000) {
+    if ((pG->stage_no == 1 && pG->room_no == 1) || (pG->stage_no == 1 && pG->room_no == 0x11) ||
+        (pG->stage_no == 4 && pG->room_no == 0)) {
         if (pSUB->pos.y > 6000.0f) {
             return 0;
         }
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x030F0000 && w->Wep_type == 0) {
+    if ((pG->stage_no == 3 && pG->room_no == 0xF) && w->Wep_type == 0) {
         return 0;
     }
     if (w->Wep_type == 8) {
@@ -17717,7 +17716,7 @@ int em10LostHead(cEm10* em, int a, int b)
     if (em->type == 2) {
         no = 1;
     }
-    if ((pG->room_id32 & 0xFFFF0000) == 0x01000000) {
+    if (pG->stage_no == 1 && pG->room_no == 0) {
         no = 1;
     }
     if (w->Wep_type == 4) {
@@ -19320,7 +19319,7 @@ int em10WindowCk(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
 
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 && (w->flags & 0x00800000)) {
+    if ((pG->stage_no == 1 && pG->room_no == 1) && (w->flags & 0x00800000)) {
         return 0;
     }
     switch ((u32) em10WindowCk2(em)) {
@@ -19883,7 +19882,7 @@ int em10VLadderClimbCk(cEm10* em)
     f32 ang;
     u32 i;
 
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x01110000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x04000000) {
+    if ((pG->stage_no == 1 && pG->room_no == 1) || (pG->stage_no == 1 && pG->room_no == 0x11) || (pG->stage_no == 4 && pG->room_no == 0)) {
         return 0;
     }
     switch (em->id) {
@@ -20348,7 +20347,7 @@ extern "C" int em10ShotBowgunCk(cEm10* em)
         em->setWeaponFall();
         return 0;
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+    if (pG->stage_no == 1 && pG->room_no == 0) {
         return 0;
     }
     if (w->pParasite) {
@@ -20394,7 +20393,7 @@ extern "C" int em10ShotRocketCk(cEm10* em)
     if (!w->pWep) {
         return 0;
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+    if (pG->stage_no == 1 && pG->room_no == 0) {
         return 0;
     }
     if (w->pParasite) {
@@ -20497,7 +20496,7 @@ extern "C" int em10ThrowAxeCk(cEm10* em)
     if (w->pWep == 0) {
         return 0;
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+    if (pG->stage_no == 1 && pG->room_no == 0) {
         return 0;
     }
     if (w->Atk_no_wait == 0) {
@@ -20725,7 +20724,7 @@ extern "C" int em10AxeAtkCk(cEm10* em)
             return 0;
         }
         lim = 2890000.0f;
-        if (w->Wep_type == 7 && !(em->flag & 0x00081300) && !w->pParasite && !w->pCore && (pG->room_id32 & 0xFFFF0000) != 0x011C0000) {
+        if (w->Wep_type == 7 && !(em->flag & 0x00081300) && !w->pParasite && !w->pCore && (pG->stage_no != 1 || pG->room_no != 0x1C)) {
             lim = 6250000.0f;
         }
         if (em->plDist2 > lim) {
@@ -20757,7 +20756,7 @@ extern "C" int em10AxeAtkCk(cEm10* em)
             return 1;
         }
     }
-    if (w->Wep_type == 7 && !(em->flag & 0x00081300) && !w->pParasite && !w->pCore && (pG->room_id32 & 0xFFFF0000) != 0x011C0000) {
+    if (w->Wep_type == 7 && !(em->flag & 0x00081300) && !w->pParasite && !w->pCore && (pG->stage_no != 1 || pG->room_no != 0x1C)) {
         EmRoutineSet(em, 1, 0x28, 0, 0);
     } else {
         EmRoutineSet(em, 1, 0x26, 0, 0);
@@ -21667,7 +21666,7 @@ extern "C" int em10SomebodyDamageNowCk(cEm10* em)
         if (!dm) {
             continue;
         }
-        if ((G_ROOM_ID32 & 0xFFFF0000) != 0x01010000) {
+        if (pG->stage_no != 1 || pG->room_no != 1) {
             f32 dx = em->pos.x - e->pos.x;
             f32 dy = em->pos.y - e->pos.y;
             f32 dz = em->pos.z - e->pos.z;
@@ -23033,8 +23032,8 @@ extern "C" int em10StayCk(cEm10* em)
         EmRoutineSet(em, 1, 0x11, 0, 0);
         return 1;
     }
-    if (((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x01110000 ||
-         (G_ROOM_ID32 & 0xFFFF0000) == 0x04000000) &&
+    if (((pG->stage_no == 1 && pG->room_no == 1) || (pG->stage_no == 1 && pG->room_no == 0x11) ||
+         (pG->stage_no == 4 && pG->room_no == 0)) &&
         pPL->pos.y > 6000.0f && em->plDist2 < 144000000.0f) {
         if (em->plDist2 < 36000000.0f) {
             Vec tbl[4] = {
@@ -23998,7 +23997,7 @@ void cEm10::setWeaponFall()
     if (!w->pWep) {
         return;
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000 && hp > 0) {
+    if ((pG->stage_no == 1 && pG->room_no == 0) && hp > 0) {
         return;
     }
     if (type == 6) {

@@ -117,7 +117,7 @@ void pl01weaponSet(cPlayer* pl)
     for (i = 0; i < 0x6D; i++) {
         pl->m_MotTbl[i] = 0;
     }
-    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x020E0000) {
+    if (pG->stage_no == 2 && pG->room_no == 0xE) {
         PSet(pl->m_MotTbl[0x00], PL_ARC_PTR(pG->pPlayer, 0x80));
         PSet(pl->m_MotTbl[0x02], PL_ARC_PTR(pG->pPlayer, 0x81));
         PSet(pl->m_MotTbl[0x03], PL_ARC_PTR(pG->pPlayer, 0x9A));
@@ -206,7 +206,7 @@ void cPlAshley::setRightHand(int no)
     switch (no) {
     case 0:
     default:
-        if ((G_ROOM_ID32 & 0xFFFF0000) == 0x020E0000) {
+        if (pG->stage_no == 2 && pG->room_no == 0xE) {
             data = (cModelInfo*) PL_ARC_PTR(pG->pPlayer, 0xA7);
             tpl = PL_ARC_PTR(pG->pPlayer, 0xA8);
         } else {

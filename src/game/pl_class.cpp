@@ -514,7 +514,7 @@ int jumpCheck(cPlayer* pl)
         p2.y += up;
         h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
         FSet(pl->m_JumpAdjY, h);
-        if ((pG->room_id32 & 0xFFFF0000) == 0x02260000) {
+        if (pG->stage_no == 2 && pG->room_no == 0x26) {
             if (fabsf(h) > up) {
                 pl->m_JumpAdjY = 0.0f;
             }

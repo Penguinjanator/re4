@@ -347,7 +347,7 @@ void EmSetDie(cEm* em)
     if (pG->Debug_flg[2] & 0x04000000) {
         return;
     }
-    if ((pG->room_id32 & 0xFFFF0000) == 0x00040000) {
+    if (pG->stage_no == 0 && pG->room_no == 4) {
         return;
     }
     if (pG->Debug_flg[3] & 0x00080000) {

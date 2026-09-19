@@ -289,7 +289,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
     if (draw) {
         f32 width;
 
-        if ((pG->room_id32 & 0xFFFF0000) == 0x022C0000 || (pG->room_id32 & 0xFFFF0000) == 0x22280000) {
+        if (pG->stage_no == 2 && pG->room_no == 0x2C || pG->stage_no == 0x22 && pG->room_no == 0x28) {
             width = 3.0f;
         } else {
             width = 1.0f;
@@ -298,7 +298,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
             Draw_line3d_222(&lpos, &lcross, 0x20400000, 1);
         } else {
             EspDrawLaserLine(lpos, lcross, width);
-            if ((pG->room_id32 & 0xFFFF0000) == 0x022C0000 || (pG->room_id32 & 0xFFFF0000) == 0x02280000) {
+            if (pG->stage_no == 2 && pG->room_no == 0x2C || pG->stage_no == 2 && pG->room_no == 0x28) {
                 EspDrawLaserLine(lpos, lcross, width);
             }
         }
@@ -328,8 +328,8 @@ void drawPoint(Vec* p0, Vec* p1)
     }
     PSVECSubtract(&pG->Cam.param.pos, p1, &d);
     size = PSVECMag(&d);
-    if ((pG->Status_flg[3] & 0x02000000) || (pG->room_id32 & 0xFFFF0000) == 0x022C0000 ||
-        (pG->room_id32 & 0xFFFF0000) == 0x02280000) {
+    if ((pG->Status_flg[3] & 0x02000000) || pG->stage_no == 2 && pG->room_no == 0x2C ||
+        pG->stage_no == 2 && pG->room_no == 0x28) {
         size = size * 0.00033333333f + 1.0f;
         if (size > 6.0f) {
             size = 6.0f;

@@ -773,7 +773,7 @@ int joyFireOn()
     if (Key.on & 0x80) {
         if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
             BitOn(pG->Status_flg[0], 0x4000);
-            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x011C0000 && (pG->Status_flg[2] & 0x80000000)) {
+            if (pG->stage_no == 1 && pG->room_no == 0x1C && (pG->Status_flg[2] & 0x80000000)) {
                 BitOn(pG->Room_flg[0], 0x20000000);
             }
             return 0;

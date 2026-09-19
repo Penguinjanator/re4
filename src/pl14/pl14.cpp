@@ -1173,7 +1173,7 @@ void cAction::set(int m)
 // (set 1: ground floor part of the cabin, set 2: upstairs) -- not on the stairs / porch side.
 int cAction::chasePlAreaCheck()
 {
-    if ((pG->room_id32 & 0xFFFF0000) != 0x011C0000) return 1;
+    if (pG->stage_no != 1 || pG->room_no != 0x1C) return 1;
     switch (owner->set) {
     default:
         return 1;
@@ -1623,7 +1623,7 @@ void cVoice::move()
 // On the stairs of room 11C.
 int stairCheck(cModel* m)
 {
-    if ((pG->room_id32 & 0xFFFF0000) != 0x011C0000) return 0;
+    if (pG->stage_no != 1 || pG->room_no != 0x1C) return 0;
     if (m->pos.x > 109070.0f && m->pos.x < 114620.0f && m->pos.z > -47600.0f && m->pos.z < -45930.0f) return 1;
     return 0;
 }

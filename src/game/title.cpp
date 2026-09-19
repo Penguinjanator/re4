@@ -1436,8 +1436,9 @@ void titleExit(TitleWork* w)
                     }
                 }
                 if (pG->pl_type == 0 && pG->game_costume == 0) {
-                    u32 room = pG->room_id32 & 0xFFFF0000;
-                    if (room == 0x01200000 || room == 0x01000000 || room == 0x01010000 || room == 0x01030000 || room == 0x01060000) {
+                    if ((pG->stage_no == 1 && pG->room_no == 0x20) || (pG->stage_no == 1 && pG->room_no == 0)
+                        || (pG->stage_no == 1 && pG->room_no == 1) || (pG->stage_no == 1 && pG->room_no == 3)
+                        || (pG->stage_no == 1 && pG->room_no == 6)) {
                         pG->pl_costume = 0;
                     } else {
                         pG->pl_costume = 1;
@@ -1465,7 +1466,7 @@ void titleExit(TitleWork* w)
                 case 2:
                     BitOn(pG->Item_find_flg, 4);
                     BitOn(pG->Item_find_flg, 2);
-                    if ((pG->room_id32 & 0xFFFF00FF) != 0x02000000) {
+                    if (pG->stage_no != 2 || pG->room_no != 0 || pG->JumpPoint != 0) {
                         BitOn(pG->Scenario_flg[0], 0x00800000);
                     }
                     break;

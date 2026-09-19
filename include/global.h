@@ -163,15 +163,14 @@ struct GlobalWork {
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u32 peseta;            // 0x4F98  money (ss_shop buy/sell, item pickups; PlSelect swaps it with peseta_bak)
     union {
-        u32 room_id32;     // 0x4F9C  stage/room and the two bytes after them as one word (em_set EmSetDie: `& 0xFFFF0000`)
         u16 room_id;       // 0x4F9C  stage << 8 | room as one halfword (obj14: room 004 test)
         struct {
             u8 stage_no;   // 0x4F9C
             u8 room_no;    // 0x4F9D
-            u8 Part;       // 0x4F9E  spawn point in the current room (copied to Part_old / next_point)
-            u8 JumpPoint;  // 0x4F9F  room jump point (title/room_jmp debug jump; room scripts branch on 1/2)
         };
     };
+    u8 Part;       // 0x4F9E  spawn point in the current room (copied to Part_old / next_point)
+    u8 JumpPoint;  // 0x4F9F  room jump point (title/room_jmp debug jump; room scripts branch on 1/2)
     union {
         u16 room_id_prev;  // 0x4FA0  room_id of the previous room (room_jmp CRoomInfo::setNextPos)
         struct {

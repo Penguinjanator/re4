@@ -354,7 +354,5 @@ void knife_r2_fire(cPlayer* pl);
 void knife_r2_down(cPlayer* pl);
 void setWepTrans(cPlayer* pl, int on);
 
-// (u32) view of pG->stage_no/room_no
-#define G_ROOM_ID32 (*(u32*) &pG->stage_no)
 
 #endif

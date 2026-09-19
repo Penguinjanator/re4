@@ -1630,7 +1630,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
     if (!(pG->Status_flg[1] & 0x00200000)) {
         return;
     }
-    if ((pG->room_id32 & 0xFFFF0000) != 0x010B0000 && (pG->room_id32 & 0xFFFF0000) != 0x011B0000) {
+    if ((pG->stage_no != 1 || pG->room_no != 0xB) && (pG->stage_no != 1 || pG->room_no != 0x1B)) {
         return;
     }
     for (i = 0; i < 2; i++) {

@@ -1921,7 +1921,7 @@ static inline void em2bHouseBreakSet(Em2bWork* w)
     Em2bEmi* h = w->pHouse;
 
     if (h) {
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x19) {
             em2bHouseFlagSet(h);
         }
         w->pHouse->state = 3;
@@ -3124,7 +3124,7 @@ static void em2b_R1_Dm_Face(cEm2b* em)
     case 0: {
         int flip = em2bFlip(w, 5, 0x45);
 
-        if (!(w->Be_flg & 0x1000) && (pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (!(w->Be_flg & 0x1000) && pG->stage_no == 1 && pG->room_no == 0x19) {
             MotionSetCore(em, &em->Motion, ARC(0x2D), (int) ARC(0x74), 30, flip, 100);
         } else {
             MotionSetCore(em, &em->Motion, ARC(0x2D), (int) ARC(0x74), 30, flip, 0);
@@ -3147,7 +3147,7 @@ static void em2b_R1_Dm_Face(cEm2b* em)
         em2bSetTentacle(em, 0);
         w->pParasite = (cObj16*) SetObj16(ARC(0xD6), ARC(0xD7), em, em, 0x3E, 8, 0, 0);
         if (w->pParasite) {
-            if (!(w->Be_flg & 0x1000) && (pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+            if (!(w->Be_flg & 0x1000) && pG->stage_no == 1 && pG->room_no == 0x19) {
                 MotSetObj16(w->pParasite, ARC(0xDA), 0, 100);
             } else {
                 MotSetObj16(w->pParasite, ARC(0xDA), 0, 0);
@@ -4784,7 +4784,7 @@ int em2bPlInHouseCk(cEm2b* em)
     Em2bEmiTbl* tbl;
     int i;
 
-    if ((pG->room_id32 & 0xFFFF0000) != 0x01190000) {
+    if (pG->stage_no != 1 || pG->room_no != 0x19) {
         return 0;
     }
     tbl = (Em2bEmiTbl*) pG->pEmi;
@@ -5049,7 +5049,7 @@ int em2bTreeAtkScrCk(cEm2b* em)
         if (fabsf(Muku(&a, &h->pos, ang, 3.14159274f)) > 0.392699093f) {
             continue;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x19) {
             em2bHouseFlagSet(h);
         }
         h->state = 3;
@@ -5084,11 +5084,11 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
         if (d > (rad + 3000.0f) * (rad + 3000.0f)) {
             continue;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x19) {
             em2bHouseFlagSet(h);
             h->state = 3;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x011E0000 && h->state == 0) {
+        if (pG->stage_no == 1 && pG->room_no == 0x1E && h->state == 0) {
             switch (h->no) {
             case 0:
                 U32Or(pG->Room_flg[0], 0x20000000);
@@ -5157,7 +5157,7 @@ void em2bR11eScrBrkCk(cEm2b* em)
     if (pG->pEmi == 0) {
         return;
     }
-    if ((pG->room_id32 & 0xFFFF0000) != 0x011E0000) {
+    if (pG->stage_no != 1 || pG->room_no != 0x1E) {
         return;
     }
     for (i = 0; i < ((Em2bEmiTbl*) pG->pEmi)->num; i++) {
@@ -5214,7 +5214,7 @@ void em2bR11eScrBrkCk2(cEm2b* em, Vec* pos, f32 rad)
     if (pG->pEmi == 0) {
         return;
     }
-    if ((pG->room_id32 & 0xFFFF0000) != 0x011E0000) {
+    if (pG->stage_no != 1 || pG->room_no != 0x1E) {
         return;
     }
     for (i = 0; i < ((Em2bEmiTbl*) pG->pEmi)->num; i++) {
@@ -5267,11 +5267,11 @@ void em2bPlBlowAtkScrCk(cPlayer* pl)
         if ((h->pos.x - pl->pos.x) * (h->pos.x - pl->pos.x) + (h->pos.z - pl->pos.z) * (h->pos.z - pl->pos.z) > 9000000.0f) {
             continue;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+        if (pG->stage_no == 1 && pG->room_no == 0x19) {
             em2bHouseFlagSet(h);
             h->state = 3;
         }
-        if ((pG->room_id32 & 0xFFFF0000) == 0x011E0000 && h->state == 0) {
+        if (pG->stage_no == 1 && pG->room_no == 0x1E && h->state == 0) {
             switch (h->no) {
             case 0:
                 U32Or(pG->Room_flg[0], 0x20000000);
@@ -5963,7 +5963,7 @@ void em2bCatchPosSet(cEm2b* em)
     f32 ang;
     int i;
 
-    if ((pG->room_id32 & 0xFFFF0000) == 0x01190000) {
+    if (pG->stage_no == 1 && pG->room_no == 0x19) {
         em->pos.x = 114800.0f;
         em->pos.y = 2230.0f;
         em->pos.z = 8000.0f;

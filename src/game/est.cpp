@@ -315,7 +315,7 @@ void EspSetWaterBomb(Vec* pos)
 // Bullet-hits-water splash: est 1/0x20 in the lake rooms, else 0/0x14; none in stage 3-11 / 2-24.
 void EspSetWaterHitmark(Vec* pos)
 {
-    if ((pG->room_id32 & 0xFFFF0000) == 0x03110000 || (pG->room_id32 & 0xFFFF0000) == 0x02240000) {
+    if (pG->stage_no == 3 && pG->room_no == 0x11 || pG->stage_no == 2 && pG->room_no == 0x24) {
         return;
     }
     if (pG->room_id == 0x10A || pG->room_id == 0x10B || pG->room_id == 0x11A || pG->room_id == 0x11B) {
