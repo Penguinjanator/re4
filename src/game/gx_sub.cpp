@@ -22,7 +22,7 @@ extern "C" void bio4_AddBgColor();
 // by bio4_AddBgColor instead.
 void bio4_GXSetCopyClear(GXColor color, u32 z)
 {
-    pG->Status_flg[1] |= 0x40;
+    StaFlagOn(pG, STA_SET_BG_COLOR);
     g_sysBgColor = color;
     GXSetCopyClear(clr_black, z);
 }
@@ -53,8 +53,8 @@ void bio4_AddBgColor()
     GXSetNumChans(1);
     GXSetNumTexGens(0);
 
-    if (!(pG->Debug_flg[0] & 0x80000000)) {
-        pG->Status_flg[1] &= ~0x40;
+    if (!DbgFlagChk(pG, DBG_TEST_MODE)) {
+        StaFlagOff(pG, STA_SET_BG_COLOR);
     }
     if (!StaFlagChk(pG, STA_SET_BG_COLOR)) {
         cLightEnv* env = LightMgr.getEnvPtr();

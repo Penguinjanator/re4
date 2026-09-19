@@ -353,10 +353,10 @@ void objMove(cObj* p)
     p->move();
     ShapeMove(p->pModelInfo);
     p->updateOldPos();
-    if (pG->Debug_flg[2] & 0x10000000) {
+    if (DbgFlagChk(pG, DBG_OBA_VIEW)) {
         DrawOba(p);
     }
-    if (pG->Debug_flg[1] & 0x08000000) {
+    if (DbgFlagChk(pG, DBG_OBJ_SKELETON_)) {
         p->debugSkeletonDisp();
     }
     if (p->be_flag & 0x80000000) {

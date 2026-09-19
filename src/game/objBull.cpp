@@ -980,7 +980,7 @@ void cObjBull::setRide()
     p = parts->world;
     p.y += 1000.0f;
     pPL->setPos(&p);
-    pG->Status_flg[0] |= 0x20;
+    StaFlagOn(pG, STA_RIDE_GONDOLA);
     w->Ride_pl = 1;
     if (pSUB) {
         p = parts->world;
@@ -1111,7 +1111,7 @@ static inline void SubBullSeat(cEm* em)
 // look-back is queued when enemies approach (SubCkNearEm).
 void Sub_bull_drive(cEm* em)
 {
-    pG->Status_flg[2] |= 0x00800000;
+    StaFlagOn(pG, STA_SUB_BULLDOZER);
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1140,7 +1140,7 @@ void Sub_bull_drive(cEm* em)
 // Partner routine: the lever operation motion (room motion 51) at each barrier, then back to driving.
 void Sub_bull_operation(cEm* em)
 {
-    pG->Status_flg[2] |= 0x00800000;
+    StaFlagOn(pG, STA_SUB_BULLDOZER);
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1163,7 +1163,7 @@ void Sub_bull_lookback(cEm* em)
 {
     cModel* parts;
 
-    pG->Status_flg[2] |= 0x00800000;
+    StaFlagOn(pG, STA_SUB_BULLDOZER);
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1192,7 +1192,7 @@ void Sub_bull_lookback(cEm* em)
 // Partner routine: points ahead (room motion 67), then back to driving.
 void Sub_bull_look(cEm* em)
 {
-    pG->Status_flg[2] |= 0x00800000;
+    StaFlagOn(pG, STA_SUB_BULLDOZER);
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
@@ -1217,7 +1217,7 @@ void Sub_dm_bull(cEm* em)
     int dmg;
     int type = 2;
 
-    pG->Status_flg[2] |= 0x00800000;
+    StaFlagOn(pG, STA_SUB_BULLDOZER);
     em->setStatus(EM_STATUS_IK_OFF);
     em->dmg.m_Timer = type;
     switch (em->r_no_2) {

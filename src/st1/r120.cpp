@@ -69,14 +69,14 @@ extern "C" void R120Event()
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }
-    pG->Scenario_flg[1] &= ~0x10;
+    ScfFlagOff(pG, SCF_3b);
     systemVISetBlack(1);
     Sofdec.Initialize("movie/opening.sfd", 0);
     SceSleep(1);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     if (Sofdec.m_be_flag & 0x20) {
-        pG->Scenario_flg[1] |= 0x10;
+        ScfFlagOn(pG, SCF_3b);
     }
     SceEventStart(0);
     // Two sequential `if`s whose first test masks with a variable: the mask register keeps
@@ -94,7 +94,7 @@ extern "C" void R120Event()
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
-    pG->System_flg |= 0x400;
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     {
         Vec pos = {-109450.0f, -515.0f, 820.0f};
         Vec rot = {0, 0, 0};
@@ -224,7 +224,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
-                pG->Disp_flg |= 0x08000000;
+                DpfFlagOn(pG, DPF_SCR);
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -251,17 +251,17 @@ extern "C" void Evt_R120S00_Func(Event* e)
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
                 }
-                pG->Disp_flg &= ~0x08000000;
+                DpfFlagOff(pG, DPF_SCR);
             }
             break;
         }
         break;
     case 2:
         r120_setTrans(1);
-        pG->Disp_flg &= ~0x08000000;
+        DpfFlagOff(pG, DPF_SCR);
         break;
     case 3:
-        pG->Scenario_flg[1] |= 0x10;
+        ScfFlagOn(pG, SCF_3b);
         break;
     }
 }
@@ -465,11 +465,11 @@ extern "C" void Evt_R120S01_Func(Event* e)
         break;
     case 2:
         r120_setTrans(1);
-        BitOff(pG->Disp_flg, 0x08000000);
-        pG->System_flg |= 0x400;
+        DpfFlagOff(pG, DPF_SCR);
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         break;
     case 3:
-        pG->Scenario_flg[1] |= 0x10;
+        ScfFlagOn(pG, SCF_3b);
         break;
     }
 }

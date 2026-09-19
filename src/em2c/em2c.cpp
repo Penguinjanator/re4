@@ -425,7 +425,7 @@ void em2cDmCk(cEm2c* em)
         return;
     }
     em->dmg.m_Flag = 0;
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmg.m_Timer = 1;
@@ -829,7 +829,7 @@ void em2cTailDmCk(cEm2c* em)
         return;
     }
     em->dmg.m_Flag = 0;
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmg.m_Timer = 1;
@@ -2304,7 +2304,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
 // Player damage routine of the boss's killing blow: the head comes off (em2cPlHeadLost), routine held.
 static void plem2c_CriticalHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     switch (pl->r_no_2) {
     case 0:
@@ -4609,7 +4609,7 @@ static void plemKick(cPlayer* pl)
 
     pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
-    pG->Status_flg[2] |= 0x40000000;
+    StaFlagOn(pG, STA_PL_EM_ACTION);
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x7C), 0, 6, 1, 0);

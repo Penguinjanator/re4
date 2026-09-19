@@ -43,7 +43,7 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
     EspgenWork* w;
     Espgen10Work* p;
 
-    if (pG->Debug_flg[1] & 0x01000000) {
+    if (DbgFlagChk(pG, DBG_NO_EST_CALL)) {
         return;
     }
     if (head == NULL) {
@@ -235,7 +235,7 @@ void EffectEfmDelete(int a, int b, int c)
 // Removes every sprite, controller and effect model (room change).
 void EffectDeleteAll()
 {
-    pG->Status_flg[1] &= ~0x20;
+    StaFlagOff(pG, STA_ESPGEN45_SET);
     EspArrayClear();
     EspgenArrayClear();
     EfmArrayClear();
@@ -386,7 +386,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
             SndCall(2, 0xC, pos, 0, 0, NULL);
         } else {
             EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, type, (void*) type);
-            if (pG->Debug_flg[3] & 0x4000) {
+            if (DbgFlagChk(pG, DBG_SET_HITMARK_ALL)) {
                 EstSet(0, -1, pos, &rot, 0, 0x87, 0, 0, type, (void*) type);
             }
         }

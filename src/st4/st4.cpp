@@ -115,6 +115,6 @@ extern "C" void _unresolved()
 void st4_initAdaGame()
 {
     if (!ScfFlagChk(pG, SCF_42)) {
-        pG->Scenario_flg[2] |= 0x20000000;
+        ScfFlagOn(pG, SCF_42);
     }
 }

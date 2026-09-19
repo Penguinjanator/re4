@@ -115,7 +115,7 @@ extern "C" void R215_Event()
             }
         }
         SceEventEnd(0);
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SceAtExecute(2);
     }
 }
@@ -171,8 +171,8 @@ extern "C" void Evt_R215S00_Func(Event* e)
             }
             break;
         case 0xA:
-            BitOff(pG->Stop_flg, 0x100);
-            BitOff(pG->Disp_flg, 0x800);
+            SpfFlagOff(pG, SPF_ACTBTN);
+            DpfFlagOff(pG, DPF_MESSAGE);
             if (pG->Room_flg[0] & 0x80000000) {
                 // The button object and the callback are evaluated before the stack argument store.
                 cActionButton* ab = &ActBtn;

@@ -120,7 +120,7 @@ void R201Init()
     wp = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
     if (pG->JumpPoint == 2) {
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->Scenario_flg[0], 0x10000);
+        ScfFlagOn(pG, SCF_R201_EVENT00);
         RsfSet(G_ROOM_ID, 5);
         RsfSet(G_ROOM_ID, 4);
         SceExec(0x12, (TaskFunc) r201_execEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -163,7 +163,7 @@ void R201Init()
         if (obj) {
             obj->be_flag &= ~2;
         }
-        if ((pG->System_flg & 0x100) || pG->room_id_prev == 0x203 || pG->room_id_prev == 0xFFF) {
+        if (SysFlagChk(pG, SYS_LOAD_GAME) || pG->room_id_prev == 0x203 || pG->room_id_prev == 0xFFF) {
             if (RsfCheck(G_ROOM_ID, 5)) {
                 SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r201_execEmReset, 0, 1);
             }
@@ -380,7 +380,7 @@ static void r201_closeAltar_end()
 static void r201_closeAltar()
 {
     RsfSet(G_ROOM_ID, 9);
-    BitOff(pG->Scenario_flg[3], 0x2000);
+    ScfFlagOff(pG, SCF_72);
     pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r201_closeAltar_end, 0, 2, 1);
     SceEventStart(0);
@@ -600,8 +600,8 @@ static void r201_checkSetGem_end()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOn(pG->Scenario_flg[2], 0x04000000);
-    pG->Scenario_flg[3] |= 0x2000;
+    ScfFlagOn(pG, SCF_45);
+    ScfFlagOn(pG, SCF_72);
 }
 
 // Waits for the gems to be used and lowers the altar once all three are set.
@@ -707,7 +707,7 @@ static void r201_checkDungeonKeyUse()
     }
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 1);
-    BitOn(pG->Scenario_flg[4], 0x40000000);
+    ScfFlagOn(pG, SCF_81);
     GameSaveSave(&GameSave, pSaveData, -1);
     SceSleep(12);
     r201_setBattleArea(1, 0);
@@ -746,7 +746,7 @@ static void r201_setBattleArea_sub(int open)
         cObj* obj;
 
         RsfSet(G_ROOM_ID, 1);
-        pG->Scenario_flg[4] |= 0x40000000;
+        ScfFlagOn(pG, SCF_81);
         obj = SmdGetObjPtr(0x53);
         while (obj->pos.y - r201_work.p->doorY < 1600.0f) {
             SceSleep(1);
@@ -754,7 +754,7 @@ static void r201_setBattleArea_sub(int open)
         SceAtSetEnable(0xA, 0);
     } else {
         RsfClear(G_ROOM_ID, 1);
-        pG->Scenario_flg[4] &= ~0x40000000;
+        ScfFlagOff(pG, SCF_81);
         SceAtSetEnable(0xA, 1);
     }
 }
@@ -1096,10 +1096,10 @@ static void r201_execEvent00()
     ReadModule* m;
     u32 key;
 
-    BitOn(pG->Scenario_flg[0], 0x10000);
+    ScfFlagOn(pG, SCF_R201_EVENT00);
     SceEventStart(0);
     if (r201_work.p->evd->waitLoadOk() == 1) {
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(2);
         m = SearchEmModule(0x1B);
         MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);

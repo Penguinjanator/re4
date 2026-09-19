@@ -283,7 +283,7 @@ void cEm25::move()
     motFlags2 &= ~0x40000000;
     em25DmCk(this);
     w->Be_flg &= ~0x2F;
-    if (!(pGS->Debug_flg[2] & 0x20000) && w->Alive_timer) {
+    if (!DbgFlagChk(pGS, DBG_EM_NO_DEATH) && w->Alive_timer) {
         w->Alive_timer--;
     }
     if (w->Atk_wait) {
@@ -764,7 +764,7 @@ static void plem25_Bite(cPlayer* pl)
 {
     int end;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {

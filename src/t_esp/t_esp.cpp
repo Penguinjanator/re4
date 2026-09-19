@@ -5395,8 +5395,8 @@ int InitTool()
         g_editRowNo[i] = i;
     }
     InitSeqTbl();
-    if (!(pG->Debug_flg[0] & 0x100)) {
-        BitOn(pG->Debug_flg[0], 0x100);
+    if (!DbgFlagChk(pG, DBG_ESPTOOL_MEM_USE)) {
+        DbgFlagOn(pG, DBG_ESPTOOL_MEM_USE);
         g_pSeqHead = (EspSeqData*) Debug_alloc(0x12C30, 0);
         g_EspToolSeqHedAddr = g_pSeqHead;
     } else {

@@ -100,7 +100,7 @@ void R11dInit()
 
     EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, (u32) zero, zero);
-    BitOn(pG->Status_flg[1], 0x400);
+    StaFlagOn(pG, STA_ROOM_RAIN);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
     } else {
@@ -269,7 +269,7 @@ static void r11d_execEmAppear_end()
     r11d_work->em1.setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     BitOff(pG->Room_flg[0], 0x20000000);
     int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
     int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
@@ -305,7 +305,7 @@ static void r11d_execEmAppear()
     KeyStop(0xEFCF0000ULL);
     SceSleep(15);
     SceEventStart(0);
-    BitOn(pG->Status_flg[2], 0x02000000);
+    StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     pPL->setNoSuspend(1);
     r11d_work->eff1 = 0;
     SceSetEventCancel(1, (TaskFunc) r11d_execEmAppear_end, 0, -1, 1);
@@ -389,7 +389,7 @@ static void r11d_execShowView()
     r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r11d_execShowView_end, 0, -1, 1);
     SceEventStart(1);
-    pG->Status_flg[1] &= ~0x10000000;
+    StaFlagOff(pG, STA_SUSPEND);
     r11d_work->eff2 = EspPullCoreKind();
     EstSet(0, -1, 0, 0, 1, 3, 1, r11d_work->eff2, (u32) zero, zero);
     CamCtrl.CutCall(2);

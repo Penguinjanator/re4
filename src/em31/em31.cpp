@@ -1837,7 +1837,7 @@ static void em31_R1_CatchHit(cEm31* em)
 // The player's catch-hit routine shared by the normal and the step catch (a macro: the `pl`
 // parameter copy of an inline would pin the pos store order).
 #define PLEM31_CATCH_HIT_SUB(mot, est)                                                                  \
-    BitOn(pG->Status_flg[1], 0x8000);                                                                  \
+    StaFlagOn(pG, STA_PL_CATCHED);                                                                  \
     pl->dmg.set(0, 10);                                                                             \
     pl->subArc = pl->pEmCatch->subArc;                                                                 \
     switch (pl->r_no_2) {                                                                              \

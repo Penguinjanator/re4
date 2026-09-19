@@ -76,7 +76,7 @@ void PlSelect(int no)
 // is when the save system flags (System_flg bit31 / 0x40000000) are set. Returns the costume.
 int PlSetCostume()
 {
-    if (SysFlagChk(SYS_OMAKE_ADA_GAME) || SysFlagChk(SYS_OMAKE_ETC_GAME)) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || FlagChkSignW(pG->System_flg, SYS_OMAKE_ETC_GAME)) {
         return pG->pl_costume;
     }
     if (pG->pl_type == 0) {
@@ -772,7 +772,7 @@ int joyFireOn()
 {
     if (Key.on & 0x80) {
         if (StaFlagChk(pG, STA_ACT_DONT_FIRE) || (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
-            BitOn(pG->Status_flg[0], 0x4000);
+            StaFlagOn(pG, STA_PL_ACTION);
             if (pG->stage_no == 1 && pG->room_no == 0x1C && (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
                 BitOn(pG->Room_flg[0], 0x20000000);
             }
@@ -788,7 +788,7 @@ int joyFireTrg()
 {
     if (Key.trg & 0x80) {
         if (StaFlagChk(pG, STA_ACT_DONT_FIRE) || (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
-            pG->Status_flg[0] |= 0x4000;
+            StaFlagOn(pG, STA_PL_ACTION);
             return 0;
         }
         return 1;
@@ -1028,7 +1028,7 @@ void PlRegistBoss(void* a, void* b)
 // Leon wears the armor (costume 2 / 3) — no damage; off with System_flg 0x20.
 int PlIsArmor()
 {
-    if (pG->System_flg & 0x20) {
+    if (SysFlagChk(pG, SYS_HARD_MODE)) {
         return 0;
     }
     if (pG->pl_type != 0) {
@@ -1049,7 +1049,7 @@ int PlSetWhistle()
     if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
         return 0;
     }
-    if (!(pG->Status_flg[1] & 4)) {
+    if (!StaFlagChk(pG, STA_SUBCHAR_CTRL)) {
         return 0;
     }
     pl = pPL;

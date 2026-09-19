@@ -49,7 +49,7 @@ static inline void EmSetDieOn(u32 no)
 static inline void CntInc(u32& c) { c++; }
 
 // While flags_68 bit21 is set only the enemies 3 and 4 may be created.
-#define EM_SET_ID_NG(id) ((pG->Debug_flg[2] & 0x00200000) && ((id) != 3 && (id) != 4))
+#define EM_SET_ID_NG(id) (DbgFlagChk(pG, DBG_NO_ENEMY) && ((id) != 3 && (id) != 4))
 
 // Pulls an enemy work for `id`: the partner (0xF) and the parasite (0x25) are created at the back
 // of the pool so they move after the others.
@@ -344,13 +344,13 @@ void EmListSetAlive(int no, int on)
 // except in stage 4 rooms and under the debug flags that keep enemies respawning.
 void EmSetDie(cEm* em)
 {
-    if (pG->Debug_flg[2] & 0x04000000) {
+    if (DbgFlagChk(pG, DBG_NO_SCE_EXE)) {
         return;
     }
     if (pG->stage_no == 0 && pG->room_no == 4) {
         return;
     }
-    if (pG->Debug_flg[3] & 0x00080000) {
+    if (DbgFlagChk(pG, DBG_EM_NO_DIE_FLAG)) {
         return;
     }
     if (EmSetDieCk(em->emset_no)) {

@@ -231,9 +231,9 @@ void cSubChar::move()
     }
     hp = pG->ashley_life;
     SUB_MOTBASE(this)->adjust();
-    BitOff(pG->Status_flg[1], 0x10000);
-    BitOff(pG->Status_flg[2], 0x20000000);
-    BitOff(pG->Status_flg[1], 0x8);
+    StaFlagOff(pG, STA_TAKEAWAY);
+    StaFlagOff(pG, STA_SUB_CATCHED);
+    StaFlagOff(pG, STA_SUB_LADDER);
     plStat = PlGetStatus();
     dmgCheck();
     damageCheck();
@@ -242,7 +242,7 @@ void cSubChar::move()
     } else {
         (this->*NpcFuncTbl[r_no_0])();
     }
-    if (pG->Debug_flg[2] & 0x10000) {
+    if (DbgFlagChk(pG, DBG_KAIOUKEN)) {
         int i;
 
         for (i = 0; i < PlKaiou + 1; i++) {
@@ -897,7 +897,7 @@ void cSubChar::moveBehind()
     case 2:
         motionMove();
         if (StaFlagChk(pG, STA_CRITICAL)) {
-            pG->Status_flg[1] &= ~0x20000;
+            StaFlagOff(pG, STA_CRITICAL);
             if (!(plStat & 0x2080)) {
                 r_no_2 = 0xA;
             }
@@ -920,7 +920,7 @@ void cSubChar::moveBehind()
         break;
     case 0x14:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x1F), 0, 3, 5, 0);
-        pG->Status_flg[1] &= ~0x20000;
+        StaFlagOff(pG, STA_CRITICAL);
         AtariOn(&atari, 0x300);
         inSat();
         atari.set(-10, 300.0f, 200.0f);
@@ -1137,7 +1137,7 @@ void cSubChar::moveFance()
         subSelf->r_no_2 = 1;
     }
     case 1:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         if (subSelf->motionMove()) {
             AtariOn(&subSelf->atari, 0x100);
             atari.setPriority(0);
@@ -1301,7 +1301,7 @@ void cSubChar::moveAction()
         AtariOff(&atari, 0xFCFF);
         dmg.set(0, 0x80);
     case 1:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         if (motionMove()) {
             AtariOn(&atari, 0x300);
             dmg.clear();
@@ -1309,7 +1309,7 @@ void cSubChar::moveAction()
         }
         break;
     case 2:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         motionMove();
         if (subSelf->frame >= 40.0f && landCheck()) {
             AtariOn(&atari, 0x300);
@@ -1319,7 +1319,7 @@ void cSubChar::moveAction()
         }
         break;
     case 3:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         if (motionMove()) {
             AtariOn(&atari, 0x300);
             dmg.clear();
@@ -1327,7 +1327,7 @@ void cSubChar::moveAction()
         }
         break;
     case 4:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         if (subSelf->frame <= 9.0f) {
             jumpAdjust();
         }
@@ -1349,7 +1349,7 @@ void cSubChar::moveLadder()
     void* m;
     void* seq;
 
-    pG->Status_flg[1] |= 8;
+    StaFlagOn(pG, STA_SUB_LADDER);
     switch (r_no_2) {
     case 0:
         if (subHideMode) {
@@ -1642,7 +1642,7 @@ void cSubChar::moveHide()
         }
         if (motionMove()) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x43), 0, 7, 1, 0);
-            pG->Status_flg[0] |= 0x800;
+            StaFlagOn(pG, STA_ASHLEY_HIDE);
             sub538 = 6;
             r_no_2 = 0xC;
         }
@@ -1690,7 +1690,7 @@ void cSubChar::moveHide()
         if (motionMove()) {
             u8 z = 0;
 
-            pG->Status_flg[0] &= ~0x800;
+            StaFlagOff(pG, STA_ASHLEY_HIDE);
             subSelf->atari.setPriority(0);
             AtariOn(&atari, 0x300);
             dmg.clear();
@@ -1966,7 +1966,7 @@ void cSubChar::moveDamage()
         beginDamage();
         // raw store through the info's address: the pG load below stays after the flag store
         AtariOnRaw(&atari, 0x300);
-        if (pG->Debug_flg[2] & 0x800000) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             switch (subHideMode) {
             case 7:
                 subHideMode = 8;
@@ -2031,7 +2031,7 @@ void cSubChar::moveDamage()
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x6B), 0, 3, 1, 0);
             EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, 0, (u32) subSelf, 0);
             r_no_1 = 10;
-            if (pG->Debug_flg[2] & 0x800000) {
+            if (DbgFlagChk(pG, DBG_NO_DEATH)) {
                 subHideMode = 8;
                 r_no_1 = 5;
             }
@@ -3455,7 +3455,7 @@ void cSubChar::damageCheck()
         dmg.m_Timer = 1;
         LifeDownSet2(this, 9999, 0, 0);
         int one = 1;
-        if (pG->Status_flg[1] & 8) {
+        if (StaFlagChk(pG, STA_SUB_LADDER)) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
@@ -3503,7 +3503,7 @@ void cSubChar::damageCheck()
         }
         break;
     }
-    pG->Status_flg[1] &= ~8;
+    StaFlagOff(pG, STA_SUB_LADDER);
 skip:
     dmg.m_Flag = 0;
 }
@@ -3802,7 +3802,7 @@ void cSubChar::dmgCheck()
     case 8: {
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
-        if (pG->Status_flg[1] & 8) {
+        if (StaFlagChk(pG, STA_SUB_LADDER)) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
@@ -3813,10 +3813,10 @@ void cSubChar::dmgCheck()
             dmg.m_Timer = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
-        BitOff(pG->Status_flg[1], 8);
+        StaFlagOff(pG, STA_SUB_LADDER);
         int two = 1;
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
-        if (pG->Status_flg[1] & 8) {
+        if (StaFlagChk(pG, STA_SUB_LADDER)) {
             SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
@@ -3833,7 +3833,7 @@ void cSubChar::dmgCheck()
     case 4: {
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
-        if (pG->Status_flg[1] & 8) {
+        if (StaFlagChk(pG, STA_SUB_LADDER)) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->ashley_life > 0) {
@@ -3882,7 +3882,7 @@ void cSubChar::interrupt()
     at->setPriority(0);
     // Scalar (non-struct) store through the pointer: keeps the pG load below it (cAtariInfo::flags).
     *(u16*) ((u8*) at + 0x1a) |= 0x300;
-    BitOff(pG->Status_flg[1], 0x20000);
+    StaFlagOff(pG, STA_CRITICAL);
     BitOff16(subFlags, 0x20);
     if (subSndId) {
         SndStop(subSndId, 0);

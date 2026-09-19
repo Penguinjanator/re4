@@ -342,7 +342,7 @@ static inline void em28FloorCk(cEm28* em)
 static inline void em28BellSet(cEm28* em)
 {
     if (!StaFlagChk(pG, STA_SE_BURST)) {
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         memcpy((u8*) pG + 0x4F3C, &em->pos, sizeof(Vec));
         pG->bell_stat = 0;
     }

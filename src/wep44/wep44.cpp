@@ -97,7 +97,7 @@ void cObjGovernment::moveFire()
         SndCall(2, 2, &pos, 0, 0, 0);
         // the EstSet stack zeros come from an SImode pseudo set after the first SndCall
         int type = 0;
-        pG->Status_flg[0] |= 0x00800000;
+        StaFlagOn(pG, STA_PL_FIRE);
         MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         EstSet((int) this, -1, 0, 0, 0x3A, type, 0, 0xA, 0, 0);

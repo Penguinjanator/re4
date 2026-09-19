@@ -2474,10 +2474,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         PlGachaInit();
         w->Timer = 70;
         w->Timer2 = 0;
-        pGS->Status_flg[1] |= 0x10000000;
+        StaFlagOn(pGS, STA_SUSPEND);
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
-        pG->Status_flg[2] |= 0x02000000;
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         GameAddPoint(LVADD_PL_DAMAGE);
         em->r_no_2++;
     case 1:
@@ -2520,10 +2520,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         MotionSetCore(em, &em->Motion, ARC(0x3A), (int) ARC(0x7D), 10, flip, 0);
         EstSet((int) em, -1, 0, 0, w->espKind2, 0x10, 0, 0, (u32) em, 0);
         w->Total_damage += 200;
-        pGS->Status_flg[1] &= ~0x10000000;
+        StaFlagOff(pGS, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->Status_flg[2] &= ~0x02000000;
+        StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
         AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         w->Timer = 60;
         em->r_no_2++;
@@ -2543,10 +2543,10 @@ static void em2b_R1_Strangle(cEm2b* em)
         MotionSetCore(em, &em->Motion, ARC(0x3B), (int) ARC(0x7E), 10, flip, 0);
         EstSet((int) em, -1, 0, 0, w->espKind2, 0x23, 0, 0, (u32) em, 0);
         AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
-        pG->Status_flg[1] &= ~0x10000000;
+        StaFlagOff(pG, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->Status_flg[2] &= ~0x02000000;
+        StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
         em->r_no_2++;
     }
     case 5:
@@ -2560,7 +2560,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 static void plem2b_CatchHand(cPlayer* pl)
 {
     pl->subArc = pl->pEmCatch->subArc;
-    pGS->Status_flg[1] |= 0x8000;
+    StaFlagOn(pGS, STA_PL_CATCHED);
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
@@ -2606,7 +2606,7 @@ static void plem2b_CatchHand(cPlayer* pl)
 // Strangled player: follows the giant's step (xFE), the button mash blends the struggle motion.
 static void plem2b_Strangle(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
@@ -2779,7 +2779,7 @@ static void subem2b_CatchHand(cSubChar* sub)
 
     s->subArc = s->pEmCatch->subArc;
     s->dmg.m_Timer = 2;
-    pGS->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pGS, STA_SUB_CATCHED);
     switch (s->r_no_2) {
     case 0:
         s->atari.m_flag &= 0xFCFF;
@@ -2823,7 +2823,7 @@ static void subem2b_Catch(cSubChar* sub)
 {
     cSubChar* s = pSUB;
 
-    pG->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pG, STA_SUB_CATCHED);
     s->subArc = s->pEmCatch->subArc;
     s->dmg.m_Timer = 2;
     switch (s->r_no_2) {
@@ -2876,7 +2876,7 @@ static void subem2b_CatchEnd(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->subArc = s->pEmCatch->subArc;
-    pGS->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pGS, STA_SUB_CATCHED);
     switch (s->r_no_2) {
     case 0: {
         Vec v;
@@ -3315,10 +3315,10 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
         if (pG->Game_level <= 1) {
             w->Button_mode = 0;
         }
-        pGS->Status_flg[1] |= 0x10000000;
+        StaFlagOn(pGS, STA_SUSPEND);
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
-        pG->Status_flg[2] |= 0x02000000;
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         em->r_no_2++;
     }
     case 1:
@@ -3374,10 +3374,10 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
         w->Timer = 15;
         EstSet((int) em, -1, 0, 0, w->espKind2, 0xB, 0, 0, (u32) em, 0);
         w->mode = 0;
-        pGS->Status_flg[1] &= ~0x10000000;
+        StaFlagOff(pGS, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->Status_flg[2] &= ~0x02000000;
+        StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
         em->r_no_2++;
     case 7:
         if (w->Timer) {
@@ -3421,10 +3421,10 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
             MotSetObj16(w->pParasite, ARC(0xDE), 0, 0);
         }
         w->Total_damage = 0;
-        pGS->Status_flg[1] &= ~0x10000000;
+        StaFlagOff(pGS, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
-        pG->Status_flg[2] &= ~0x02000000;
+        StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
         em->r_no_2++;
     case 9:
         if (MotionMoveF(em, 0)) {
@@ -4341,7 +4341,7 @@ static void subem2b_dm_Stamp(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->subArc = s->pEmCatch->subArc;
-    pGS->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pGS, STA_SUB_CATCHED);
     switch (s->r_no_2) {
     case 0:
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD5), 0, 0, 1, 0);

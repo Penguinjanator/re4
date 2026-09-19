@@ -435,7 +435,7 @@ static void em21_R1_Escape(cEm21* em)
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
         if (!StaFlagChk(pGS, STA_SE_BURST)) {
-            BitOn(pG->Status_flg[1], 0x20000000);
+            StaFlagOn(pG, STA_SE_BURST);
             memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
             pG->bell_stat = 0;
         }
@@ -635,7 +635,7 @@ static void em21_R1_R100TrapCancel(cEm21* em)
             w->pTrap->flag |= 1;
         }
         SndStrReq(1, 0xE, 0x80000003, 0, 0, 0.0f);
-        pG->Scenario_flg[0] |= 0x80000;
+        ScfFlagOn(pG, SCF_R100_DOG_RUN);
         em->hp = 0;
         em->atari.m_flag &= ~0x200;
         em->r_no_2++;

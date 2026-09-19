@@ -122,7 +122,7 @@ void R223Init()
 #line 67 "D:/Bio4/Prog/r223.cpp"
     R223Work*& wp = r223_work.p;
     wp = (R223Work*) MEM_CALLOC(sizeof(R223Work), 1, 0xD);
-    BitOn(pG->Debug_flg[1], 0x20000);
+    DbgFlagOn(pG, DBG_2e);
     if (pG->JumpPoint == 1) {
         if (DebugTrg(1)) {
             RsfSet(G_ROOM_ID, 6);
@@ -555,14 +555,14 @@ static void r223_EmApper_exit()
     r223_work.p->em[13].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->Status_flg[2] &= ~0x02000000;
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
 }
 
 // Cutscene: Ganado 0xCC (list 5) appears alerted under camera cuts 0x12 and 0x13; player-cancellable.
 static void r223_EmApper()
 {
     SceEventStart(1);
-    pG->Status_flg[2] |= 0x02000000;
+    StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     r223_work.p->em[13].setEm(0xCC, 5, 1, 1, 1);
     setFlagStart(&r223_work.p->em[13]);
     r223_work.p->em[13].setNoSuspend(1);

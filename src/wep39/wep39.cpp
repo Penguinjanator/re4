@@ -128,7 +128,7 @@ void cObjMachinegun::moveFire()
         case 2:
         default:
             SndCall(2, 0, &pos, 0, 0, 0);
-            pG->Status_flg[0] |= 0x00800000;
+            StaFlagOn(pG, STA_PL_FIRE);
             break;
         case 1:
         case 3:

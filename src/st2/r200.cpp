@@ -187,8 +187,8 @@ static void r200_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 4);
-    if ((pG->System_flg & 0x40) == 0) {
-        BitOn(pG->System_flg, 0x40);
+    if (SysFlagChk(pG, SYS_START_EVT_SKIP) == 0) {
+        SysFlagOn(pG, SYS_START_EVT_SKIP);
         r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, FCRef(vol));
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
@@ -208,13 +208,13 @@ static void r200_execEvent00()
     RsfSet(G_ROOM_ID, 2);
     SndRoomStrStop(3);
     SceEventStart(0);
-    pG->System_flg |= 0x400;
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     EmMgr.destroyAll();
     SceSleep(2);
     EmReadInit();
     EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, 0x50);
     SceEventEnd(0);
-    pG->Scenario_flg[1] |= 0x00800000;
+    ScfFlagOn(pG, SCF_ST2_IN);
     SceAtInitSaveItem();
     levelDataAdd(merchantData, level_r200);
     stockDataAdd(merchantData, stock_2st_first);

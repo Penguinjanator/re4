@@ -105,7 +105,7 @@ void R203Init()
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
-            BitOn(pG->Status_flg[3], 0x04000000);
+            StaFlagOn(pG, STA_SUB_ASHLEY);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }

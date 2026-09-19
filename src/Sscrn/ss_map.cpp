@@ -398,7 +398,7 @@ int getStageNo()
     if (ScfFlagChk(pG, SCF_ST2_IN)) {
         return 2;
     }
-    if (pG->Scenario_flg[0] & 4) {
+    if (ScfFlagChk(pG, SCF_ST1_MAP_DAY)) {
         return 1;
     }
     return 0;

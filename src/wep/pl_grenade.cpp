@@ -569,7 +569,7 @@ static void wep19_r2_next(cPlayer* pl)
 void readyWeapon(cPlayer* pl)
 {
     pl->Wep->pObj2->setDisp(1, 1);
-    if (!(pG->Debug_flg[2] & 0x00400000) && ItemMgr.bulletNum() == 1) {
+    if (!DbgFlagChk(pG, DBG_INF_BULLET) && ItemMgr.bulletNum() == 1) {
         pl->Wep->m_pWep->setDisp(0, 0);
     }
 }

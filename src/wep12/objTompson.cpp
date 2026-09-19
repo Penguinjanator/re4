@@ -62,7 +62,7 @@ void cObjTompson::moveFire()
         EstSet((int) this, -1, 0, 0, 0x46, 0, 0, 0, (u32) this, 0);
         SndCall(2, 0, &pParts->world, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
-        pG->Status_flg[0] |= 0x00800000;
+        StaFlagOn(pG, STA_PL_FIRE);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
         wep.step = 1;

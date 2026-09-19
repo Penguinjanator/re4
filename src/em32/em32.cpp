@@ -2060,7 +2060,7 @@ static void em32_R1_CatchHit(cEm32* em)
 // on, 2/3 dropped (thrown clear, collision back on, damage ends), 4/5 the death bite (rumble at frame 40).
 static void plem32_CatchHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -3089,7 +3089,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
 // and the damage ends.
 static void plem32_C_AtkHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -3349,7 +3349,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
     int step;
     cObj* obj;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     step = pl->r_no_2;
@@ -3785,7 +3785,7 @@ void em32RouteCk(cEm32* em)
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
     w->flags &= ~4;
-    if (pGS->Debug_flg[0] & 0x4000) {
+    if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
         d = em->pos;
         d.y += 250.0f;
         Draw_line3d(&d, &w->targetPos, 0xFFFFFF40, 0);

@@ -484,7 +484,7 @@ int jumpCheck(cPlayer* pl)
     const f32 dist = 3800.0f;
     const f32 up = 1500.0f;
 
-    if (pG->Status_flg[0] & 8) {
+    if (StaFlagChk(pG, STA_PL_JUMP_OFF)) {
         return 0;
     }
     p0.x = 300.0f;
@@ -588,7 +588,7 @@ int cPlayer::actionSelect()
         {
             int zero = 0;
 
-            pG->Status_flg[0] |= 0x02000000;
+            StaFlagOn(pG, STA_SSCRN_ENABLE);
             if (joyKamae()) {
                 PlRoutineSet(this, zero, 6, zero, zero);
                 return 1;
@@ -845,7 +845,7 @@ void cPlayer::seqSeCtrl()
     int parts;
     u16 kind;
 
-    pG->Status_flg[1] &= ~0x80000000;
+    StaFlagOff(pG, STA_PL_SE_FOOT);
     if (seNo == 0) {
         return;
     }
@@ -855,7 +855,7 @@ void cPlayer::seqSeCtrl()
     case 2:
     case 0xD:
         parts = 0x15;
-        pG->Status_flg[1] |= 0x80000000;
+        StaFlagOn(pG, STA_PL_SE_FOOT);
         kind = 5;
         break;
     case 1:
@@ -863,7 +863,7 @@ void cPlayer::seqSeCtrl()
     case 0xE:
     case 0x14:
         parts = 0x19;
-        pG->Status_flg[1] |= 0x80000000;
+        StaFlagOn(pG, STA_PL_SE_FOOT);
         kind = 5;
         break;
     case 4:
@@ -958,13 +958,13 @@ ng:
 void cPlayer::checkCtrl()
 {
     if (Key.trg & 0x400) {
-        pG->Status_flg[0] |= 0x40000000;
+        StaFlagOn(pG, STA_PL_CHECK);
     }
     if (Key.on & 0x400) {
-        pG->Status_flg[0] |= 0x20000000;
+        StaFlagOn(pG, STA_PL_CHECK2);
     }
     if (Key.trg & 0x80000) {
-        pG->Status_flg[0] |= 0x4000;
+        StaFlagOn(pG, STA_PL_ACTION);
     }
 }
 
@@ -1158,7 +1158,7 @@ void cPlayer::interrupt()
         face->x5C = 0.0f;
     }
     if (pG->pl_type == 4 && (StaFlagChk(pG, STA_KLAUSER_TRANSFORM))) {
-        pG->Status_flg[3] &= ~0x00800000;
+        StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
         x890 = 0;
         if (x894 == -1) {
             x894 = 1;
@@ -1177,7 +1177,7 @@ int cPlayer::endCamera()
 
     if (stat & 0x200) {
         BitOff(stat, 0x200);
-        BitOff(pG->Status_flg[1], 0x04000000);
+        StaFlagOff(pG, STA_THERMO_GRAPH);
         if (StaFlagChk(pG, STA_SUB_SCRN)) {
             LightMgr.update(CamCtrl.areaNo, 0);
         }
@@ -1197,7 +1197,7 @@ int cPlayer::endCamera()
             CameraMove();
         }
         BitOff(stat, 4);
-        pG->Stop_flg &= ~0x80000000;
+        SpfFlagOff(pG, SPF_KEY);
         ret = 1;
     }
     if (stat & 8) {

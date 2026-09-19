@@ -541,7 +541,7 @@ void* MemAlloc(u32 size, int flag)
 {
     void* p;
 
-    if (!(pG->Debug_flg[3] & 0x200000)) {
+    if (!DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
 #line 646
         p = MEM_ALLOC(size, 1, MEM_HEAP_CURRENT);
     } else {
@@ -553,7 +553,7 @@ void* MemAlloc(u32 size, int flag)
 // Counterpart of MemAlloc.
 void MemFree(void* p)
 {
-    if (pG->Debug_flg[3] & 0x200000) {
+    if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
         Debug_free(p);
     } else {
         Mem_free(p);

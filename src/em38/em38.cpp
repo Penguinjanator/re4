@@ -827,7 +827,7 @@ static void em38_R1_AtkHit(cEm38* em)
 // Player damage callback of em38_R1_AtkHit: the player is bitten.
 static void plem38_AtkHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -1411,7 +1411,7 @@ static void em38_R1_T_CatchHit(cEm38* em)
 // Player damage callback of em38_R1_T_CatchHit: caught by a tentacle, then thrown.
 static void plem38_CatchHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -2279,7 +2279,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
                 SndCall(8, 0xD, &em->pos, em->id, 0, em);
                 break;
             case 3:
-                if (!(pG->Debug_flg[2] & 0x00800000)) {
+                if (!DbgFlagChk(pG, DBG_NO_DEATH)) {
                     pG->pl_life = 0;
                 }
                 break;
@@ -2301,7 +2301,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
 static void plemDmStamp(cPlayer* pl)
 {
     pl->dmg.set(0, 10);
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:

@@ -444,12 +444,6 @@ void ScoreClear();
 void ScoreMove();
 }
 
-// One flag-word test kept as its own `and` (fold-const would merge two tests of one word).
-static inline u32 flagBit(u32 f, u32 bit)
-{
-    return f & bit;
-}
-
 #define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 // Room init (the shooting range): the result screen data file, the floating scores, the target enemy
@@ -1357,7 +1351,7 @@ static void shootEnd()
     SndStrReq(r22c_work.p->strId, 4, 0xC8, 0);
     LightMgr.onKind(1);
     LightMgr.offKind(2);
-    BitOff(pG->Stop_flg, 0x80000000);
+    SpfFlagOff(pG, SPF_KEY);
     BitOff(pG->Room_flg[0], 0x20000000);
     SceAtSetEnable(0, 1);
     SceExit();
@@ -1687,7 +1681,7 @@ void R22cHitEffect(int no)
         r22c_work.p->effFlags |= 4;
         break;
     case 5:
-        if (flagBit(r22c_work.p->effFlags, 1) && !(r22c_work.p->effFlags & 2)) {
+        if (FlagChkSignW(r22c_work.p->effFlags, 31) && !(r22c_work.p->effFlags & 2)) {
             r22c_work.p->effFlags |= 2;
             SceExec(0x12, (TaskFunc) r22c_FireWorks, 0, 0, SCE_PRIO_DEF_2, 0);
             r22c_work.p->effTimer = 0x4B0;

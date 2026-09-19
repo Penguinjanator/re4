@@ -86,7 +86,7 @@ void R106Init()
 #line 66 "D:/Bio4/Prog/r106.cpp"
     r106_work = (R106Work*) MEM_CALLOC(sizeof(R106Work), 1, 0xd);
 
-    pG->Scenario_flg[0] |= 0x800;
+    ScfFlagOn(pG, SCF_R106_ENTER);
     EvtMgr.SetFunc("evt_r106s00_func", (void*) Evt_R106S00_Func);
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r106_eff_info);
     if (getRoomEtcDoor(8, &door, 1)) {
@@ -353,10 +353,10 @@ static void r106_Event()
 {
     Event* ev;
 
-    BitOn(pG->Scenario_flg[0], 0x00200000);
-    BitOn(pG->Scenario_flg[0], 0x400);
+    ScfFlagOn(pG, SCF_R106_EVENT);
+    ScfFlagOn(pG, SCF_R106_CONFINEED_WITH_LUIS);
     SceEventStart(0);
-    pG->System_flg |= 0x400;
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     SndRoomStrStop(3);
     EmMgr.destroyAll();
     SceSleep(2);

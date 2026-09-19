@@ -1818,7 +1818,7 @@ void em3cRouteCk(cEm3c* em)
         VECNormalize(&nrm, &nrm);
         PSVECScale(&nrm, &nrm, 350.0f);
         PSVECAdd(&hit, &nrm, &ofs);
-        if (pG->Debug_flg[0] & 0x4000) {
+        if (DbgFlagChk(pG, DBG_RTP_DISP)) {
             Draw_line3d(&top, &hit, 0xFFFFFFFF, 0);
             Draw_line3d(&top, &ofs, 0xFF00FF00, 0);
         }
@@ -2530,21 +2530,21 @@ void em3cAtkSuspend(cEm3c* em, int on)
     u32 i;
 
     if (on) {
-        pG->Status_flg[1] |= 0x10000000;
+        StaFlagOn(pG, STA_SUSPEND);
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
         if (pSUB) {
             pSUB->setNoSuspend(1);
         }
-        pG->Status_flg[2] |= 0x02000000;
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     } else {
-        pG->Status_flg[1] &= ~0x10000000;
+        StaFlagOff(pG, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
         if (pSUB) {
             pSUB->setNoSuspend(0);
         }
-        pG->Status_flg[2] &= ~0x02000000;
+        StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     }
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);

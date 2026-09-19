@@ -121,7 +121,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.z = 250.0f;
         PSMTXMultVec(obj->mat, &p, &p);
         p.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0);
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         // A byte-pointer destination: the copy is then a plain (non-struct) store and the
         // original reloads pG for the following store, as the target shows.
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));

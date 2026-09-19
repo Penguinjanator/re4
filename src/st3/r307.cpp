@@ -506,7 +506,7 @@ static void r307_appearEm()
     cObj* obj;
 
     RsfSet(G_ROOM_ID, 0);
-    pG->Scenario_flg[1] |= 0x1000;
+    ScfFlagOn(pG, SCF_R307_REGENERATER_APPEAR);
     SceAtSetEnable(7, 0);
     SceAtSetEnable(8, 0);
     Vec pos = {-4168.0f, 0.0f, -3932.0f};

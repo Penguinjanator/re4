@@ -1271,7 +1271,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         nrm->y = 0.0f;
         nrm->z = 0.0f;
     }
-    if (pG->Debug_flg[0] & 0x1000) {
+    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
         Draw_line3d(p0, hit, 0xFFFFFFFF, 0);
     }
     PSVECSubtract(p1, p0, &d);
@@ -1493,7 +1493,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PlBombHitCk(pos, r);
         break;
     }
-    if (pG->Debug_flg[0] & 0x1000) {
+    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
     cnt = 0;
@@ -1892,7 +1892,7 @@ void EmYarareDisp(cEm* em)
     cModel* parts;
     u32 color;
 
-    if (!(pG->Debug_flg[0] & 0x1000)) {
+    if (!DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
         return;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
@@ -2007,10 +2007,10 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 HSet(pG->pl_life, 0);
             }
         }
-        if (pG->Debug_flg[2] & 0x800000) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             HSet(pG->pl_life, pG->pl_life_max);
         }
-        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->pl_life <= 1) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->pl_life <= 1) {
             HSet(pG->pl_life, 2);
         }
         ret = (s16) pG->pl_life;
@@ -2039,15 +2039,15 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 HSet(pG->ashley_life, 0);
             }
         }
-        if (pG->Debug_flg[2] & 0x800000) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             HSet(pG->ashley_life, pG->ashley_life_max);
         }
-        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->ashley_life <= 1) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->ashley_life <= 1) {
             HSet(pG->ashley_life, 2);
         }
         ret = (s16) pG->ashley_life;
     } else {
-        if (pG->Debug_flg[2] & 0x20000) {
+        if (DbgFlagChk(pG, DBG_EM_NO_DEATH)) {
             return em->hp;
         }
         if (em->hp <= 0) {
@@ -2073,7 +2073,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
             }
             break;
         }
-        if (pG->Debug_flg[2] & 0x2000) {
+        if (DbgFlagChk(pG, DBG_EM_WEAK)) {
             dmg = em->hp;
         }
         if (em->hp < dmg) {
@@ -2104,7 +2104,7 @@ void PlSetDamage(int type, int dmg, int flag)
         if (type == 8) {
             type = 7;
         }
-        if (pG->Debug_flg[2] & 0x800000) {
+        if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             HSet(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
@@ -2114,7 +2114,7 @@ void PlSetDamage(int type, int dmg, int flag)
             }
         }
     }
-    if ((s16) pG->pl_life <= 1 && (pG->Debug_flg[3] & 0x400)) {
+    if ((s16) pG->pl_life <= 1 && (DbgFlagChk(pG, DBG_NO_DEATH2))) {
         HSet(pG->pl_life, 2);
         if (type == 6) {
             type = 2;
@@ -2188,7 +2188,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     int ret;
     f32 dy;
 
-    if (pG->Debug_flg[0] & 0x1000) {
+    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if ((s16) pG->pl_life <= 0) {
@@ -2408,7 +2408,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     cModel* parts;
     YARARE_INFO* part;
 
-    if (pG->Debug_flg[0] & 0x1000) {
+    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if (pSUB == 0) {
@@ -2711,7 +2711,7 @@ void GetDropBullet(int* id, int* num)
 
     // The bit test as a variable: the `andis.` result stays (cse later reuses it as the zero stored
     // for `*num = 0` on the other path); a plain `flags & 0x80000000` folds to a signed compare.
-    f = pG->System_flg & 0x80000000;
+    f = SysFlagChk(pG, SYS_OMAKE_ADA_GAME);
     if (f) {
         r = Rnd() % 100;
         if (r <= 0x27) {
@@ -2747,7 +2747,7 @@ void GetDropBullet(int* id, int* num)
             *num = n;
             return;
         }
-    } else if (pG->System_flg & 0x40000000) {
+    } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         r = Rnd() % 100;
         switch (pG->pl_type) {
         case 0:
@@ -3244,10 +3244,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     case 0x22:
     case 0x36:
         if (r <= 0x13) {
-            if (pG->System_flg & 0x80000000) {
+            if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
                 return 0;
             }
-            if (pG->System_flg & 0x40000000) {
+            if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
                 return 0;
             }
             switch (id) {

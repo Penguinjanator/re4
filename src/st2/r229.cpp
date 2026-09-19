@@ -58,7 +58,7 @@ void R229Init()
 {
     R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
 
-    pG->System_flg &= ~0x400;
+    SysFlagOff(pG, SYS_SCREEN_STOP);
 #line 56 "D:/Bio4/Prog/r229.cpp"
     wp = (R229Work*) MEM_CALLOC(sizeof(R229Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -70,7 +70,7 @@ void R229Init()
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
     pPL->ot_type = 5;
-    pG->Scenario_flg[2] |= 0x02000000;
+    ScfFlagOn(pG, SCF_46);
 }
 
 // Per-frame room main: nothing.

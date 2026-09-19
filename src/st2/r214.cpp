@@ -164,7 +164,7 @@ void R214Init()
     R214Work*& wp = r214_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R214Work*) MEM_CALLOC(sizeof(R214Work), 1, 0xD);
     if (pG->JumpPoint == 1) {
-        BitOn(pG->Scenario_flg[1], 0x40000000);
+        ScfFlagOn(pG, SCF_R217_PUZZLE_CLEAR);
         RsfSet(G_ROOM_ID, 2);
         RsfSet(G_ROOM_ID, 5);
     }
@@ -1041,7 +1041,7 @@ void Evt_R214S00_Func(Event* e)
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
-                BitOff(pG->Status_flg[0], 0x400);
+                StaFlagOff(pG, STA_CAM_SHOULDER);
                 r214_work.p->bino->quit(&pG->Cam);
                 r214_work.p->bino->~IdBinocular();
             }
@@ -1051,7 +1051,7 @@ void Evt_R214S00_Func(Event* e)
         case 3:
         case 4:
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_CAM_SHOULDER)) {
-                BitOn(pG->Status_flg[0], 0x400);
+                StaFlagOn(pG, STA_CAM_SHOULDER);
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
                 r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
@@ -1067,7 +1067,7 @@ void Evt_R214S00_Func(Event* e)
     case 2:
         SmdSetTrans(0x18, 1);
         if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
-            BitOff(pG->Status_flg[0], 0x400);
+            StaFlagOff(pG, STA_CAM_SHOULDER);
             r214_work.p->bino->quit(&pG->Cam);
             r214_work.p->bino->~IdBinocular();
         }

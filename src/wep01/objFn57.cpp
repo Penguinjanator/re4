@@ -96,7 +96,7 @@ void cObjFn57::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         zero = 0;
-        BitOn(pG->Status_flg[0], 0x00800000);
+        StaFlagOn(pG, STA_PL_FIRE);
         type = 1;
         if (pG->weapon_type == 0) {
             type = 0;

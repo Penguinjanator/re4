@@ -90,7 +90,7 @@ cPlKlauser::cPlKlauser()
     krX7C0 = 0;
     x890 = 0;
     x894 = 1;
-    pGS->Status_flg[3] &= ~0x00800000;
+    StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
     pFootShadowTbl = pl_fs_tbl;
 }
 
@@ -470,7 +470,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0:
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
-        BitOn(pGS->Status_flg[3], 0x00800000);
+        StaFlagOn(pGS, STA_KLAUSER_TRANSFORM);
         pl->Neck->motL = 0;
         DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, 0x3F, (u32) pl, 0);
@@ -519,7 +519,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         }
         if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {
             pl->x890 = 0x14;
-            BitOff(pGS->Status_flg[3], 0x00800000);
+            StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
         }
         if (pl->motionMove()) {
             pl->dmg.clear();
@@ -538,7 +538,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0x1E:
         pl->motionSet(PL_ARC(0x89), 5, 0, 1, 0);
         pl->x890 = 0x14;
-        BitOff(pGS->Status_flg[3], 0x00800000);
+        StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
         pl->x894 = 1;
         EffectEspDelete(0, 0x3F, (u32) pl, 0);
         EffectEspgenDelete(0, 0x3F, (int) pl);

@@ -133,7 +133,7 @@ void R30dInit()
     R30dWork*& wp = r30d_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
 #line 57 "D:/Bio4/Prog/r30d.cpp"
     wp = (R30dWork*) MEM_CALLOC(sizeof(R30dWork), 1, 0xd);
-    pG->Scenario_flg[1] |= 0x400;
+    ScfFlagOn(pG, SCF_R30D_ENTER);
     getRoomEtcSwitch(8, (cEm**) &sw0, 1);
     getRoomEtcSwitch(9, (cEm**) &sw1, 1);
     getRoomEtcBarred(0xC, (cEm**) &bar, 1);

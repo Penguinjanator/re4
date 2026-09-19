@@ -909,7 +909,7 @@ static void wep17_r2_out(cPlayer* pl)
             int zero;
 
             zero = 0;
-            BitOn(pG->Status_flg[0], 0x00800000);
+            StaFlagOn(pG, STA_PL_FIRE);
             SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
             EstSet((int) WEP_OBJ(pl), -1, 0, 0, 0x4B, 0, 0, 0xA, zero, 0);

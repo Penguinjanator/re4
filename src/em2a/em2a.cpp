@@ -551,7 +551,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     cSubChar* sub = pSUB;
 
     sub->subArc = sub->pEmCatch->subArc;
-    pGS->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pGS, STA_SUB_CATCHED);
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1A), 0, 5, 5, 0);

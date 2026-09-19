@@ -62,7 +62,7 @@ void R118Init()
     cModel* m;
     int zero = 0;
 
-    pG->System_flg &= ~0x800;
+    SysFlagOff(pG, SYS_SCISSOR_ON);
 #line 47 "D:/Bio4/Prog/r118.cpp"
     r118_work = (R118Work*) MEM_CALLOC(sizeof(R118Work), 1, 0xd);
 
@@ -71,7 +71,7 @@ void R118Init()
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
-    pG->Status_flg[1] |= 0x400;
+    StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
         m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
@@ -141,7 +141,7 @@ static void r118_execShowView()
     r118_work->strId = SndStrReq(1, 0xE0, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r118_execShowView_end, 0, -1, 1);
     SceEventStart(0);
-    pG->Status_flg[1] &= ~0x10000000;
+    StaFlagOff(pG, STA_SUSPEND);
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -229,7 +229,7 @@ static void r118_checkDoor117()
     if (ItemMgr.num(0x3C) == 0) {
         CamCtrl.Comeback(0);
         if (!ScfFlagChk(pG, SCF_R108_OPERATOR)) {
-            pG->Scenario_flg[1] |= 0x00080000;
+            ScfFlagOn(pG, SCF_R108_OPERATOR);
             OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
         }
     } else {

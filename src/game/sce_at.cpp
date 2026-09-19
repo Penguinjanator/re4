@@ -445,18 +445,18 @@ void SceAtCheck()
         }
     }
     sceAtLink_check();
-    if (pG->Stop_flg & 0x00400000) {
+    if (SpfFlagChk(pG, SPF_SCE_AT)) {
         return;
     }
     checkReleaseModelTbl();
     SceAtWorkLoopInit();
-    if (pG->Debug_flg[2] & 0x04000000) {
+    if (DbgFlagChk(pG, DBG_NO_SCE_EXE)) {
         return;
     }
     sceAtDebugDisp();
-    if (pG->Debug_flg[0] & 0x80000000) {
-        BitOff(pG->Status_flg[0], 0x40000000);
-        BitOff(pG->Status_flg[0], 0x20000000);
+    if (DbgFlagChk(pG, DBG_TEST_MODE)) {
+        StaFlagOff(pG, STA_PL_CHECK);
+        StaFlagOff(pG, STA_PL_CHECK2);
         return;
     }
     ItemMgr.flagclear();
@@ -467,7 +467,7 @@ void SceAtCheck()
         if (StaFlagChk(pG, STA_PL_CHECK)) {
             pS->stop &= 0x7FFFFFFF;
         } else {
-            pG->Status_flg[0] &= ~0x20000000;
+            StaFlagOff(pG, STA_PL_CHECK2);
         }
     }
     sceAtCheck_main(pPL, 1);
@@ -502,8 +502,8 @@ void SceAtCheck()
             sceAtCheck_main(em, 2);
         }
     }
-    BitOff(pG->Status_flg[0], 0x40000000);
-    BitOff(pG->Status_flg[0], 0x20000000);
+    StaFlagOff(pG, STA_PL_CHECK);
+    StaFlagOff(pG, STA_PL_CHECK2);
 }
 
 // Area test for one model: position + 250 and a point 550 ahead (wall-clipped for the player) are
@@ -889,7 +889,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->Rno2 = 0;
     pG->Rno3 = 0;
     U16Set(pG->r_continue_cnt, 0);
-    BitOff(pG->System_flg, 0x40);
+    SysFlagOff(pG, SYS_START_EVT_SKIP);
     return 1;
 }
 
@@ -1048,8 +1048,8 @@ void releaseModel(SceAtWork* w, int keep)
             it->flag &= ~4;                               \
         }                                                 \
         releaseModel(w, 1);                               \
-        BitOff(pG->Status_flg[1], 2);                        \
-        BitOn(pG->Status_flg[2], 0x10000000);                \
+        StaFlagOff(pG, STA_ITEM_GET);                        \
+        StaFlagOn(pG, STA_CUT_CHANGE);                \
         SceSys.m_item_get = 0;                                   \
         SceUpCutEnd();                                    \
         return;                                           \
@@ -1085,7 +1085,7 @@ static void sceAtGetItem(SceAtWork* w_)
 
     SceUpCutStart();
     swep_flag = 0;
-    BitOn(pG->Stop_flg, 0x40000000);
+    SpfFlagOn(pG, SPF_CAMERA);
     itemInfo(it->id, &info);
     switch (info.type) {
     case 0:
@@ -1204,13 +1204,13 @@ static void sceAtGetItem(SceAtWork* w_)
     }
     sel = 0;
     cancel = 0;
-    BitOn(pG->Status_flg[1], 2);
+    StaFlagOn(pG, STA_ITEM_GET);
     disp_flag_bak = pG->Disp_flg;
     BitSet(pG->Disp_flg, -1);
-    BitOff(pG->Disp_flg, 0x00010000);
-    BitOff(pG->Disp_flg, 0x04000000);
-    BitOff(pG->Disp_flg, 0x00002000);
-    BitOff(pG->Disp_flg, 0x00000800);
+    DpfFlagOff(pG, DPF_COCKPIT);
+    DpfFlagOff(pG, DPF_ESP);
+    DpfFlagOff(pG, DPF_ID_SYSTEM);
+    DpfFlagOff(pG, DPF_MESSAGE);
     itemExam.init(w->item.id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
@@ -1310,14 +1310,14 @@ static void sceAtGetItem(SceAtWork* w_)
     }
     SceSys.m_item_get = 0;
     SceUpCutEnd();
-    BitOff(pG->Status_flg[1], 2);
-    BitOn(pG->Status_flg[2], 0x10000000);
+    StaFlagOff(pG, STA_ITEM_GET);
+    StaFlagOn(pG, STA_CUT_CHANGE);
 }
 
 #define ITEM_CANCEL_NOMODEL()                             \
     {                                                     \
         SceSys.m_item_get = 0;                                   \
-        BitOn(pG->Status_flg[2], 0x10000000);                \
+        StaFlagOn(pG, STA_CUT_CHANGE);                \
         SceUpCutEnd();                                    \
         return;                                           \
     }
@@ -1345,7 +1345,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
 
     SceUpCutStart();
     pPL->setNoSuspend(1);
-    BitOff(pG->Disp_flg, 0x40000000);
+    DpfFlagOff(pG, DPF_PL);
     swep_flag = 0;
     // COMPILER-DIFF: 12 (sched2 rank in block 0): the `it->id` load after the swep_flag store ranks
     // `li r31,0` (cancel) above `addi r29,&w->item` in the prologue.
@@ -1538,7 +1538,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     }
     pPL->setNoSuspend(0);
     SceSys.m_item_get = 0;
-    BitOn(pG->Status_flg[2], 0x10000000);
+    StaFlagOn(pG, STA_CUT_CHANGE);
     SceUpCutEnd();
 }
 
@@ -2045,13 +2045,13 @@ FOUND:
                 SceKill(w->hide.func);
                 p = SceExec(0x12, (TaskFunc) w->hide.func, 1, 0, SCE_PRIO_DEF_2, 0);
             }
-            BitOff(pG->Stop_flg, 0x80000000);
+            SpfFlagOff(pG, SPF_KEY);
             SubCharCtrlHide(&pPL->pos, 0);
             if (w->hide.cut != 0) {
                 SceUpCutStart();
-                BitOff(pG->Disp_flg, 0x20000000);
+                DpfFlagOff(pG, DPF_SUBCHAR);
                 pSUB->setNoSuspend(1);
-                BitOff(pG->Stop_flg, 0x1000);
+                SpfFlagOff(pG, SPF_SUBCHAR);
                 if (p != 0) {
                     p->task->flag |= 2;
                 }
@@ -2887,7 +2887,7 @@ static void sceAtDebugDisp()
     // table, so the dst giv is numbered (and allocated, r8) before the src giv; the original has src in r8.
     int dead = 0;
 
-    if (pG->debug_mode != 0x11 && !(pG->Debug_flg[0] & 0x00400000)) {
+    if (pG->debug_mode != 0x11 && !DbgFlagChk(pG, DBG_SCE_AT_DISP)) {
         return;
     }
     w = sceAtSetOtStart();

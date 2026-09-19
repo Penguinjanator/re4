@@ -212,7 +212,7 @@ static void R30cEventS00()
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        pG->Status_flg[3] |= 0x04000000;
+        StaFlagOn(pG, STA_SUB_ASHLEY);
         pSUB = r30c_work.p->ashley;
         AtariFlagsOr(&pSUB->atari, 0x100);
         MotionClear(pSUB, 1);
@@ -230,7 +230,7 @@ static void R30cEventS00()
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r30c_PlaneMove, 0, 1);
         r30c_work.p->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
         SndBgmTblSet(0x30C, 1);
-        pG->Scenario_flg[2] |= 0x00020000;
+        ScfFlagOn(pG, SCF_4e);
     }
 }
 
@@ -293,7 +293,7 @@ static void r30c_EventCutEndProc()
     r30c_work.p->em[1].setNoSuspend(0);
     SceEventEnd(0);
     r30c_work.p->shout->task->flag &= ~2;
-    pG->Scenario_flg[2] |= 0x00080000;
+    ScfFlagOn(pG, SCF_4c);
 }
 
 // Ashley's shouting in the cell: the sound effects on the motion frames, and the wave once the

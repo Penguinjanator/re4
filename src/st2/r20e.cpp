@@ -579,9 +579,9 @@ static void r20e_moveCrestDoor(int open, int init)
     if (obj) {
         obj->be_flag |= 0x20;
         if (open == 1) {
-            pG->Scenario_flg[3] |= 8;
+            ScfFlagOn(pG, SCF_7c);
         } else {
-            pG->Scenario_flg[3] &= ~8;
+            ScfFlagOff(pG, SCF_7c);
         }
         if (init == 1) {
             r20e_work->crestDoorY = obj->pos.y;

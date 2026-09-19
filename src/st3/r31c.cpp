@@ -149,13 +149,9 @@ int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 // The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
 void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-// The door lock bits (pG->Key_flg) like flag_rsf.h RsfFlagWord: the word base is a pointer
-// formed before the index is added (`addi 0x51dc` then `lwzx`).
-static inline u32* DoorUnlockFlags() { return (u32*) ((u8*) pG + 0x51DC); }
 // The scheduler's kill-by-function overload (sce_sys.cpp).
 void SceKill(void (*func)(int));
 
-static inline u32* DoorUnlockWord(int no) { return (u32*) ((((u32) no >> 5) << 2) + (u32) DoorUnlockFlags()); }
 
 // Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -567,7 +563,7 @@ static void r31c_CrestDoorOpen()
     void* model = NULL;
 
     BitOn(pG->Key_flg[0], 0x200);
-    BitOn(pG->Scenario_flg[2], 0x1000);
+    ScfFlagOn(pG, SCF_53);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(0x10, 0);
     SceEventStart(1);
@@ -685,7 +681,7 @@ static void r31c_SeekerAppearCut(int no)
     }
     RsfSet(G_ROOM_ID, 0x15);
     SceEventStart(1);
-    BitOn(pG->Status_flg[2], 0x02000000);
+    StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     BitOff(pG->Room_flg[0], 0x80000000);
     SceSetEventCancel(1, (TaskFunc) r31c_SeekerAppearCutEndProc, no, 0, 1);
     if (no == 0) {
@@ -738,7 +734,7 @@ static void r31c_SeekerAppearCutEndProc(int no)
     r31c_work.p->seeker[b].setFlag(1);
     r31c_work.p->seeker[b].setNoSuspend(0);
     CamCtrl.Comeback(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventEnd(0);
 }
 
@@ -797,7 +793,7 @@ static void r31c_TalktoKrauser(int no)
     while (SndEndCheck(r31c_work.p->hSnd) == 0 || CamCtrl.IsMotionEnd() == 0) {
         if ((pG->Room_flg[0] & 0x08000000) == 0) {
             ActBtn.set(0x36, 5, (int) r31c_TalkToKrauserActBtnSet, 0, 6, 1, 1, 0);
-            BitOff(pG->Stop_flg, 0x100);
+            SpfFlagOff(pG, SPF_ACTBTN);
         }
         SceSleep(1);
     }
@@ -868,7 +864,7 @@ static void r31c_KrauserDieCheck(cEm39* em)
     SceAtSetEnable(0x1C, 0);
     SndRoomStrStop(1);
     SceEventStart(0);
-    BitOn(pG->Status_flg[2], 0x02000000);
+    StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     em->setNoSuspend(1);
     CamCtrl.clearAttachCamera();
     em->setDie();
@@ -897,7 +893,7 @@ static void r31c_KrauserDieCheckEndProc(cEm39* em)
     SetPosAngY(pPL, 5907.0f, 12000.0f, -14740.0f, 1.88f);
     CamCtrl.Comeback(0);
     em->setNoSuspend(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventEnd(0);
     SceExec(0x12, (TaskFunc) r31c_GetSnakeCrest, 0, 0, 2, 0);
     SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r31c_CountDownEnd, 0, 1);
@@ -928,7 +924,7 @@ static void r31c_GetSnakeCrest()
     while (SceAtCheckSaveItemId(0x86) == 1) {
         SceSleep(1);
     }
-    BitOn(pG->Status_flg[2], 0x00020000);
+    StaFlagOn(pG, STA_TIMER_NO_PAUSE);
     SceEventStart(1);
     CamCtrl.CutCall(0x15);
     BitOff(pG->Room_flg[0], 0x80000000);
@@ -974,7 +970,7 @@ static void r31c_GetSnakeCrestEndProc()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 0x18);
-    BitOff(pG->Status_flg[2], 0x00020000);
+    StaFlagOff(pG, STA_TIMER_NO_PAUSE);
     SmdSetTrans(0xB5, 1);
     SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 9);
     EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero, &zero, 6);
@@ -1339,7 +1335,7 @@ static void r31c_CountDownThread()
     do { } while (0);
     r31c_work.p->countDown.countEnd();
     SceExec(0x12, (TaskFunc) r31c_TowerExplode, 0, 0, 2, 0);
-    BitOff(pG->Status_flg[2], 0x00020000);
+    StaFlagOff(pG, STA_TIMER_NO_PAUSE);
 }
 
 // The tower entrance door closes behind the player.
@@ -1385,7 +1381,7 @@ static void r31c_TowerExplode()
     if (r31c_work.p->krauser2.isAlive()) {
         r31c_work.p->krauser2.destroy();
     }
-    BitOn(pG->Scenario_flg[2], 0x10000000);
+    ScfFlagOn(pG, SCF_43);
     SceEventStart(0);
     CamCtrl.CutCall(0x22);
     EffectDelete(1, 5);
@@ -1436,7 +1432,7 @@ static void r31c_TowerExplodeEndProc()
 // The tower cover: the crest door closes again over the bomb.
 static void r31c_TowerCoverClose()
 {
-    BitOn(pG->Status_flg[2], 0x00020000);
+    StaFlagOn(pG, STA_TIMER_NO_PAUSE);
     SceEventStart(1);
     CamCtrl.CutCall(0x15);
     BitOff(pG->Room_flg[0], 0x80000000);
@@ -1467,7 +1463,7 @@ static void r31c_TowerCoverCloseEndProc()
     BitOn(pG->Room_flg[0], 0x04000000);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x00020000);
+    StaFlagOff(pG, STA_TIMER_NO_PAUSE);
 }
 
 // Krauser plants the bomb (cut 0x1F with its ticking).
@@ -1652,7 +1648,7 @@ static void r31cEventS02()
     SceEventStart(1);
     if (pG->Room_flg[0] & 0x80000000) {
         ItemMgr.get(0x85, 1);
-        BitOn(pG->Item_flg[0], 2);
+        ItfFlagOn(pG, ITF_1e);
         SceAtSetEnable(0x80, 0);
         r31cEventS02EndProc();
     } else {
@@ -1801,7 +1797,7 @@ static void Evt_R31CS01_Func(Event* e)
             e->CancelSet();
         } else {
             ActBtn.set(0x25, 5, (int) r31c_EventS01Act, 0, 0x46, r31c_mesNo, 1, 0);
-            BitOff(pG->Stop_flg, 0x100);
+            SpfFlagOff(pG, SPF_ACTBTN);
         }
     }
 }
@@ -2188,7 +2184,7 @@ void cR31CDoor::open()
         break;
     case 2:
         if (unlockNo) {
-            *DoorUnlockWord(unlockNo) |= 0x80000000 >> (unlockNo & 0x1F);
+            FlagOnVar(&pG->Key_flg, (u32) unlockNo);
         }
         mode = 0;
         status = 1;
@@ -2323,7 +2319,7 @@ void cR31CDoor::close()
             timer--;
         } else {
             if (unlockNo) {
-                *DoorUnlockWord(unlockNo) &= ~(0x80000000 >> (unlockNo & 0x1F));
+                FlagOffVar(&pG->Key_flg, (u32) unlockNo);
             }
             status = 0;
             mode = 0;
@@ -2403,7 +2399,7 @@ void cR31CDoor::setOpened()
         }
         SndStop(hSnd, 0);
         if (unlockNo) {
-            *DoorUnlockWord(unlockNo) |= 0x80000000 >> (unlockNo & 0x1F);
+            FlagOnVar(&pG->Key_flg, (u32) unlockNo);
         }
     }
 }
@@ -2433,7 +2429,7 @@ void cR31CDoor::setClosed()
         }
         SndStop(hSnd, 0);
         if (unlockNo) {
-            *DoorUnlockWord(unlockNo) &= ~(0x80000000 >> (unlockNo & 0x1F));
+            FlagOffVar(&pG->Key_flg, (u32) unlockNo);
         }
     }
 }

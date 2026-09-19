@@ -97,21 +97,6 @@ R104PatrolData r104_patrolData[7] = {
 int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
-// Event flag words at pG+0x174 addressed as an integer base plus the word offset (r108).
-static inline u32 evtFlagBase()
-{
-    return (u32) &pG->Room_flg[0];
-}
-// Test event flag `no` in the pG->flags_174 words (bit 31 - (no & 31) of word no >> 5).
-static inline u32 EvtFlagChk(u32 base, u32 no)
-{
-    return *(u32*) (((no >> 5) << 2) + base) & (0x80000000 >> (no & 31));
-}
-// Set event flag `no` (the reset waves remember they were spawned once).
-static inline void EvtFlagOn(u32 base, u32 no)
-{
-    *(u32*) (((no >> 5) << 2) + base) |= 0x80000000 >> (no & 31);
-}
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
@@ -451,7 +436,7 @@ static void r104_execShowView()
     r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r104_execShowView_end, 0, -1, 1);
     SceEventStart(1);
-    pG->Status_flg[1] &= ~0x10000000;
+    StaFlagOff(pG, STA_SUSPEND);
     CamCtrl.CutCall(4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -517,11 +502,11 @@ extern "C" int EmReset_set(EmReset* r)
     if (RsfCheck(G_ROOM_ID, r->flagC)) {
         return 0;
     }
-    if (EvtFlagChk(evtFlagBase(), r->flagD) == 0) {
+    if (FlagChkVar(&pG->Room_flg, (u32) r->flagD) == 0) {
         cEmWrapSetEmI(&r->em[0], r->R104ResetData::em[0], -1, 0, 0, 1);
         cEmWrapSetEmI(&r->em[1], r->R104ResetData::em[1], -1, 0, 0, 1);
         cEmWrapSetEmI(&r->em[2], r->R104ResetData::em[2], -1, 0, 0, 1);
-        EvtFlagOn(evtFlagBase(), r->flagD);
+        FlagOnVar(&pG->Room_flg, (u32) r->flagD);
     } else {
         if (r->em[0].ckResetEnable() != 1 || r->em[1].ckResetEnable() != 1 || r->em[2].ckResetEnable() != 1) {
             return 0;
@@ -713,7 +698,7 @@ static void r104_execEvent20()
 // Area 0x11 once (Room_flg bit 21): sets Scenario_flg[1] 0x20000000 and plays event r104s10 (slot 0x13).
 static void r104_execEvent10()
 {
-    BitOn(pG->Scenario_flg[1], 0x20000000);
+    ScfFlagOn(pG, SCF_22);
     RsfSet(G_ROOM_ID, 21);
     EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
 }
@@ -736,9 +721,9 @@ static void r104_execEvent00()
     if (f & 0x40) {
         skip = 1;
     }
-    if (!(pG->System_flg & 0x40)) {
+    if (!SysFlagChk(pG, SYS_START_EVT_SKIP)) {
         SceEventStart(0);
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         EvtMgr.EvtReadAram("event/evd/r104s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s02.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s10.evd", 0, 0, 0, 0);
@@ -750,11 +735,11 @@ static void r104_execEvent00()
             r104_work->door1->setOpenLock(0);
         }
         if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
-            BitOn(pG->System_flg, 0x400);
+            SysFlagOn(pG, SYS_SCREEN_STOP);
             if (pG->Room_flg[0] & 0x80000000) {
                 EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
             } else {
-                pG->System_flg &= ~0x40;
+                SysFlagOff(pG, SYS_START_EVT_SKIP);
                 EvtMgr.EvtReadExec("event/evd/r104s02.evd", 0, 2);
                 for (;;) {
                     SceSleep(1);
@@ -857,9 +842,9 @@ static void Evt_R104S00_Func(Event* e)
             }
             break;
         case 0x1E:
-            BitOff(pG->Stop_flg, 0x100);
+            SpfFlagOff(pG, SPF_ACTBTN);
             if (!(pG->Room_flg[0] & 0x80000000)) {
-                BitOff(pG->Disp_flg, 0x800);
+                DpfFlagOff(pG, DPF_MESSAGE);
                 if (!(pG->Room_flg[0] & 0x04000000)) {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 4, 0, 0);
                 } else {

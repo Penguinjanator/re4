@@ -1042,15 +1042,53 @@ enum ITF_FLAG {
 // Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).  The base is an
 // address rather than a field so a check can read the flags through whichever pointer the caller
 // holds: pG for most of the game, pGS where the code reaches them through the save block.
-#define FlagChk(base, no) (*(u32*) ((((no) >> 5) << 2) + (base)) & (0x80000000 >> ((no) & 31)))
+#define FlagChk(base, no) (*(u32*) ((((no) >> 5) << 2) + (u32) (base)) & (0x80000000 >> ((no) & 31)))
 
-#define DbgFlagChk(n) ((s32) (pG->Debug_flg[(n) >> 5] << ((n) & 31)) < 0)
-#define StaFlagChk(g, n) FlagChk((u32) &(g)->Status_flg[0], n)
-#define SysFlagChk(n) ((s32) (pG->System_flg << (n)) < 0)
-#define SpfFlagChk(n) ((s32) (pG->Stop_flg << (n)) < 0)
-#define DpfFlagChk(n) ((s32) (pG->Disp_flg << (n)) < 0)
-#define ScfFlagChk(g, n) FlagChk((u32) &(g)->Scenario_flg[0], n)
-#define ItfFlagChk(n) ((s32) (pG->Item_flg[(n) >> 5] << ((n) & 31)) < 0)
+// The same test written as a shift into the sign bit, for a condition that tests two bits of one
+// word: two mask tests fold into a single mask and stop matching, two shifts stay two tests.
+// FlagChkSignW takes the flag word itself, FlagChkSign a word array.
+#define FlagChkSignW(flg, no) ((s32) ((flg) << ((no) & 31)) < 0)
+#define FlagChkSign(flg, no) FlagChkSignW((flg)[(no) >> 5], no)
+
+#define DbgFlagChk(g, n) FlagChk(&(g)->Debug_flg, n)
+#define StaFlagChk(g, n) FlagChk(&(g)->Status_flg, n)
+#define SysFlagChk(g, n) FlagChk(&(g)->System_flg, n)
+#define SpfFlagChk(g, n) FlagChk(&(g)->Stop_flg, n)
+#define DpfFlagChk(g, n) FlagChk(&(g)->Disp_flg, n)
+#define ScfFlagChk(g, n) FlagChk(&(g)->Scenario_flg, n)
+#define ItfFlagChk(g, n) FlagChk(&(g)->Item_flg, n)
+
+// Set and clear, against the same base and index as FlagChk.
+#define FlagOn(base, no) (*(u32*) ((((no) >> 5) << 2) + (u32) (base)) |= (0x80000000 >> ((no) & 31)))
+#define FlagOff(base, no) (*(u32*) ((((no) >> 5) << 2) + (u32) (base)) &= ~(0x80000000 >> ((no) & 31)))
+#define FlagXor(base, no) (*(u32*) ((((no) >> 5) << 2) + (u32) (base)) ^= (0x80000000 >> ((no) & 31)))
+
+// The same four, for a call site whose flag number is a variable or a struct field rather than an
+// enumerator.  Both arguments are copied into locals: substituted twice the field would be loaded
+// twice, where the original loads it once.  The number keeps the type the call site gives it, so an
+// index cast to u32 folds its shift into a single rlwinm where a signed one takes two instructions.
+#define FLAG_WORD_VAR(base, no, op) ({ u32 flagBase_ = (u32) (base); __typeof__(no) flagNo_ = (no); \
+                                       *(u32*) (((flagNo_ >> 5) << 2) + flagBase_) op; })
+#define FlagChkVar(base, no) FLAG_WORD_VAR(base, no, & (0x80000000 >> (flagNo_ & 31)))
+#define FlagOnVar(base, no) FLAG_WORD_VAR(base, no, |= (0x80000000 >> (flagNo_ & 31)))
+#define FlagOffVar(base, no) FLAG_WORD_VAR(base, no, &= ~(0x80000000 >> (flagNo_ & 31)))
+#define FlagXorVar(base, no) FLAG_WORD_VAR(base, no, ^= (0x80000000 >> (flagNo_ & 31)))
+
+#define DbgFlagOn(g, n) FlagOn(&(g)->Debug_flg, n)
+#define DbgFlagOff(g, n) FlagOff(&(g)->Debug_flg, n)
+#define DbgFlagXor(g, n) FlagXor(&(g)->Debug_flg, n)
+#define StaFlagOn(g, n) FlagOn(&(g)->Status_flg, n)
+#define StaFlagOff(g, n) FlagOff(&(g)->Status_flg, n)
+#define SysFlagOn(g, n) FlagOn(&(g)->System_flg, n)
+#define SysFlagOff(g, n) FlagOff(&(g)->System_flg, n)
+#define SpfFlagOn(g, n) FlagOn(&(g)->Stop_flg, n)
+#define SpfFlagOff(g, n) FlagOff(&(g)->Stop_flg, n)
+#define DpfFlagOn(g, n) FlagOn(&(g)->Disp_flg, n)
+#define DpfFlagOff(g, n) FlagOff(&(g)->Disp_flg, n)
+#define ScfFlagOn(g, n) FlagOn(&(g)->Scenario_flg, n)
+#define ScfFlagOff(g, n) FlagOff(&(g)->Scenario_flg, n)
+#define ItfFlagOn(g, n) FlagOn(&(g)->Item_flg, n)
+#define ItfFlagOff(g, n) FlagOff(&(g)->Item_flg, n)
 
 static inline void BitSet(u32& f, u32 v) { f = v; }
 

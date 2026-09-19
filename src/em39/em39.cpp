@@ -1154,7 +1154,7 @@ static void em39_R1_Success(cEm39* em)
 // with the weapon hidden; the damage ends with it.
 static void plem39_Success(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -1218,7 +1218,7 @@ static void em39_R1_Failure(cEm39* em)
 // motion with its blood effect and pain face, weapon hidden; held (the cliff attack takes over).
 static void plem39_Failure(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -3233,7 +3233,7 @@ static void plem39_KnifeHit(cPlayer* pl)
 {
     int end;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -3576,7 +3576,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
 {
     int end;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -5115,7 +5115,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
 // at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
 static void plem39_Stamp(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -5592,7 +5592,7 @@ static void plem39_LowKickHit(cPlayer* pl)
     cModel* p = pl->getPartsPtr(4);
     int end;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -5792,7 +5792,7 @@ static void plem39_CliffAtk(cPlayer* pl)
 {
     cModel* p = pl->getPartsPtr(4);
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 0xA);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -6530,7 +6530,7 @@ void em39RouteCk(cEm39* em)
             asm("" : "=m"(w->Act_ck) : "m"(pep->y), "m"(pep->z));
         }
     }
-    if (pG->Debug_flg[0] & 0x4000) {
+    if (DbgFlagChk(pG, DBG_RTP_DISP)) {
         Vec c = em->pos;
 
         c.y += 250.0f;

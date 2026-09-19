@@ -110,7 +110,7 @@ void cObjMauser::moveFire()
         MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
-        pG->Status_flg[0] |= 0x00800000;
+        StaFlagOn(pG, STA_PL_FIRE);
         EstSet((int) this, -1, 0, 0, 0x36, 0, 0, 0xA, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);

@@ -437,7 +437,7 @@ static void r202_operateCannon()
 
     SceEventStart(0);
     RsfSet(G_ROOM_ID, 1);
-    pG->Scenario_flg[3] |= 0x8000;
+    ScfFlagOn(pG, SCF_70);
     r202_destroyCatapult();
     pPL->setNoSuspend(1);
     if (pSUB != 0) {

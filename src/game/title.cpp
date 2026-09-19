@@ -68,13 +68,6 @@ static inline void BSet(u8& d, u8 v)
     d = v;
 }
 
-// Mercenaries character unlock bits live in pSys->unlock_flg (bit numbers from the charBit table).
-static inline u32 omkFlagChk(u32 no)
-{
-    u32* tbl = &pSys->unlock_flg;
-    return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
-}
-
 // stage_prev/room_prev written as one u16 through a plain pointer (aliases pG like G_ROOM_ID).
 #define G_ROOM_ID_PREV (*(u16*) &pG->stage_prev)
 
@@ -159,7 +152,7 @@ void titleInit(TitleWork* w)
     w->Rno1 = 0;
     ISet(w->scroll, 0);
     FSet(w->scroll_add, 1.5f);
-    pG->Status_flg[2] |= 0x8000;
+    StaFlagOn(pG, STA_50);
     IdAllocBuffer();
 }
 
@@ -218,11 +211,11 @@ void titleWait(TitleWork* w)
                 ISet(w->counter, 0);
                 ISet(w->dbg_mode, 0);
             }
-            if (pRK->title_shown != 0) {
+            if (pRK->logo_skip_enable != 0) {
                 w->Rno0 = 5;
                 w->counter = 585;
                 titleSet(w, 585);
-                if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveStep = w->Rno1;
                     w->saveSub = w->Rno2;
                     w->saveX3 = w->Rno3;
@@ -587,8 +580,8 @@ void titleMain(TitleWork* w)
     FadeColor c0;
     FadeColor c1;
 
-    pRK->title_shown = 1;
-    if (!(pG->System_flg & 0x100) && (pSys->unlock_flg & 0x40000000)) {
+    pRK->logo_skip_enable = 1;
+    if (!SysFlagChk(pG, SYS_LOAD_GAME) && (pSys->unlock_flg & 0x40000000)) {
         titleLoop(w);
     }
     switch (w->Rno1) {
@@ -599,8 +592,8 @@ void titleMain(TitleWork* w)
         break;
     case 1: {
         int sel = titleMenuSelect(w);
-        BitOff(pG->System_flg, 0x80000000);
-        BitOff(pG->System_flg, 0x40000000);
+        SysFlagOff(pG, SYS_OMAKE_ADA_GAME);
+        SysFlagOff(pG, SYS_OMAKE_ETC_GAME);
         switch (sel) {
         case 1:
             Snd.room_ok = 1;
@@ -624,10 +617,10 @@ void titleMain(TitleWork* w)
         case 3:
             switch (sel) {
             case 2:
-                pG->System_flg |= 0x80000000;
+                SysFlagOn(pG, SYS_OMAKE_ADA_GAME);
                 break;
             case 3:
-                pG->System_flg |= 0x40000000;
+                SysFlagOn(pG, SYS_OMAKE_ETC_GAME);
                 break;
             }
             w->saveStep = w->Rno1;
@@ -657,7 +650,7 @@ void titleMain(TitleWork* w)
             SndCall(0, 0x33, 0, 0, 0, 0);
             break;
         }
-        if (w->Rno1 == 1 && !(pG->System_flg & 8)) {
+        if (w->Rno1 == 1 && !SysFlagChk(pG, SYS_PUBLICITY_VER)) {
             if (Key.trg & (KEY_UP | KEY_DOWN)) {
                 demo_loop_cnt = 600;
             }
@@ -784,9 +777,9 @@ void titleMain(TitleWork* w)
     case 7:
         if (CardLoad() == 1) {
             w->Rno1 = 3;
-            pG->System_flg |= 0x100;
+            SysFlagOn(pG, SYS_LOAD_GAME);
         } else {
-            pG->System_flg |= 0x04000000;
+            SysFlagOn(pG, SYS_SOFT_RESET);
             return;
         }
         break;
@@ -805,7 +798,7 @@ void titleMain(TitleWork* w)
             if (Joy[0].trg & 0x1100) {
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->Rno0 = 7;
-                if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveSub = w->Rno2;
                     w->saveStep = w->Rno1;
                     w->saveX3 = w->Rno3;
@@ -902,9 +895,9 @@ void titleSub(TitleWork* w)
 
     switch (w->Rno1) {
     case 0:
-        if (pG->System_flg & 0x80000000) {
+        if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
             omake_dat[12] = '0';
-        } else if (pG->System_flg & 0x40000000) {
+        } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             omake_dat[12] = '1';
         }
         setLangExt3(omake_dat + 3);
@@ -918,7 +911,7 @@ void titleSub(TitleWork* w)
         w->Rno1++;
         if ((s32) pG->System_flg < 0) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
-        } else if (pG->System_flg & 0x40000000) {
+        } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             snd_id = SndStrReq(0, 55, 0x80000003, 0, 0, 0.0f);
         }
         break;
@@ -940,7 +933,7 @@ void titleSub(TitleWork* w)
         IdSys.kill(0xFF, ID_MENU);
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
-        if (pG->System_flg & 0x40000000) {
+        if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             if (!(pSys->unlock_flg & 0x08000000)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
             }
@@ -966,14 +959,14 @@ void titleSub(TitleWork* w)
             SndStrReq(snd_id, 4, 200, 0);
         } else if (Key.trg & KEY_A) {
             if (w->omk_menu_no == 0) {
-                if (pG->System_flg & 0x80000000) {
+                if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
                     w->Rno0 = 7;
                     FadeSetW(0, 90, 0, 0);
                     pG->pl_type = 2;
                     pG->pl_costume = 1;
                     w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
-                } else if (pG->System_flg & 0x40000000) {
+                } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
                     if (!(pSys->unlock_flg & 0x00400000)) {
                         pSys->unlock_flg |= 0x00400000;
                         {
@@ -1160,7 +1153,7 @@ void titleSub(TitleWork* w)
             u->texNo = sel;
             u->tex_flag |= 2;
         }
-        if (w->omk_char_no == 0 || omkFlagChk(charBit[w->omk_char_no])) {
+        if (w->omk_char_no == 0 || FlagChkVar(&pSys->unlock_flg, (u32) charBit[w->omk_char_no])) {
             id_color_copy(0xFC, 5, ID_OMAKE);
         } else {
             id_color_copy(0xFD, 5, ID_OMAKE);
@@ -1382,15 +1375,15 @@ static cRoomJmp* pRj;
 // flag (System_flg 0x2000), the next position and chains into GameTask.
 void titleExit(TitleWork* w)
 {
-    if (!(pG->System_flg & 0x80000000)) {
-        if (!(pG->System_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
+        if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             pG->pl_type = 0;
             pG->game_costume = 0;
         }
     }
-    if (!(pG->System_flg & 0x100)) {
-        if (!(pG->System_flg & 0x80000000)) {
-            if (!(pG->System_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_LOAD_GAME)) {
+        if (!SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
+            if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
                 pRj = new cRoomJmp(roomInfoAddr);
                 w->Stage = pG->stage_no;
                 w->Room[w->Stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
@@ -1408,16 +1401,16 @@ void titleExit(TitleWork* w)
                 pG->JumpPoint = w->JumpPoint;
                 pG->em_list_no = w->em_list_no;
                 if (pG->em_list_no > 3) {
-                    pG->Scenario_flg[1] |= 0x10000000;
+                    ScfFlagOn(pG, SCF_R206_ASHLEY_RESCUE);
                 } else if (pG->em_list_no > 2) {
-                    pG->Scenario_flg[1] |= 0x40000;
+                    ScfFlagOn(pG, SCF_R204_ASHLEY_SPLIT);
                 }
                 switch (w->c_pos) {
                 case 1:
                     if (CardLoad() == 1) {
-                        pG->System_flg |= 0x100;
+                        SysFlagOn(pG, SYS_LOAD_GAME);
                     } else {
-                        pG->System_flg |= 0x04000000;
+                        SysFlagOn(pG, SYS_SOFT_RESET);
                     }
                     return;
                 case 2:
@@ -1427,11 +1420,11 @@ void titleExit(TitleWork* w)
                     break;
                 case 0x12:
                     BitOn(pSys->unlock_flg, 0x40000000);
-                    pG->System_flg |= 0x04000000;
+                    SysFlagOn(pG, SYS_SOFT_RESET);
                     return;
                 }
-                if (!(pG->System_flg & 0x80000000)) {
-                    if (!(pG->System_flg & 0x40000000)) {
+                if (!SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
+                    if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
                         PlSetCostume();
                     }
                 }
@@ -1442,32 +1435,32 @@ void titleExit(TitleWork* w)
                         pG->pl_costume = 0;
                     } else {
                         pG->pl_costume = 1;
-                        pG->Scenario_flg[0] |= 0x00200000;
+                        ScfFlagOn(pG, SCF_R106_EVENT);
                     }
                 }
                 if (pG->stage_no == 2) {
-                    BitOn(pG->Debug_flg[3], 0x00800000);
+                    DbgFlagOn(pG, DBG_START_ST2);
                     if (pG->room_id != 0x200) {
-                        BitOn(pG->Scenario_flg[1], 0x00800000);
+                        ScfFlagOn(pG, SCF_ST2_IN);
                     }
                 } else if (pG->stage_no == 3) {
-                    BitOn(pG->Debug_flg[3], 0x40000);
-                    BitOn(pG->Scenario_flg[1], 0x10000);
+                    DbgFlagOn(pG, DBG_START_ST3);
+                    ScfFlagOn(pG, SCF_ST3_IN);
                     if (pG->room_id == 0x333) {
-                        BitOn(pG->Debug_flg[3], 0x20000);
+                        DbgFlagOn(pG, DBG_6e);
                     }
                 }
                 switch (pG->stage_no) {
                 case 0:
                     break;
                 case 1:
-                    BitOn(pG->Scenario_flg[0], 4);
+                    ScfFlagOn(pG, SCF_ST1_MAP_DAY);
                     break;
                 case 2:
-                    BitOn(pG->Scenario_flg[0], 4);
-                    BitOn(pG->Scenario_flg[0], 2);
+                    ScfFlagOn(pG, SCF_ST1_MAP_DAY);
+                    ScfFlagOn(pG, SCF_ST1_MAP_NIGHT);
                     if (pG->stage_no != 2 || pG->room_no != 0 || pG->JumpPoint != 0) {
-                        BitOn(pG->Scenario_flg[1], 0x00800000);
+                        ScfFlagOn(pG, SCF_ST2_IN);
                     }
                     break;
                 }
@@ -1475,20 +1468,20 @@ void titleExit(TitleWork* w)
                 delete pRj;
                 if (pG->pl_type == 6) {
                     pG->pl_type = 0;
-                    BitOn(pG->Status_flg[3], 0x04000000);
+                    StaFlagOn(pG, STA_SUB_ASHLEY);
                 }
             }
         }
     }
     {
         u8 point = 0;
-        BitOff(pG->Debug_flg[3], 0x00200000);
-        if (!(pG->System_flg & 0x100)) {
-            pG->System_flg |= 0x2000;
+        DbgFlagOff(pG, DBG_APP_USE_DBMEM);
+        if (!SysFlagChk(pG, SYS_LOAD_GAME)) {
+            SysFlagOn(pG, SYS_NEW_GAME);
         }
         G_ROOM_ID_PREV = 0xFFF;
         pG->em_list_no = -1;
-        if (pG->System_flg & 0x80000000) {
+        if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
             G_ROOM_ID = 0x405;
             pG->JumpPoint = point;
             pG->Part = point;
@@ -1496,7 +1489,7 @@ void titleExit(TitleWork* w)
         FSet(pG->sub_pos.y, -16798.0f);
         FSet(pG->sub_pos.z, -40000.0f);
         FSet(pG->sub_angle, -2.49f);
-        } else if (pG->System_flg & 0x40000000) {
+        } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         switch (w->omk_stage_no) {
         case 0:
             G_ROOM_ID = 0x400;
@@ -1555,10 +1548,10 @@ void titleExit(TitleWork* w)
         Mem_free(w->pDat);
         w->pDat = 0;
     }
-    if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         Mem_free(w->pOmk);
     }
-    pG->Status_flg[2] &= ~0x8000;
+    StaFlagOff(pG, STA_50);
     IdFreeBuffer();
     Mem_free(w);
     systemVISetBlack(1);
@@ -1627,25 +1620,25 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%x", w->JumpPoint);
     eprintf(x + 96, y += 16, 4, 0, "%s", getEmListDbgName(w->em_list_no));
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->debug_mode);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x00200000) ? "OFF" : "ON");
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[3] & 0x800) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (DbgFlagChk(pG, DBG_NO_ENEMY)) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (DbgFlagChk(pG, DBG_NO_ETC_SET)) ? "OFF" : "ON");
     eprintf(x + 96, y += 16, 4, 0, "%s", sound_mode[pSys->sound_mode]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x04000000) ? "OFF" : "ON");
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[3] & 0x00200000) ? "ON" : "OFF");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (DbgFlagChk(pG, DBG_NO_SCE_EXE)) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) ? "ON" : "OFF");
     eprintf(x + 96, y += 16, 4, 0, "%s", shoot_mode[(s8) pG->shooting_mode]);
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->game_costume);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->language]);
-    if (pG->System_flg & 0x80000000) {
+    if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
         eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
-    } else if (pG->System_flg & 0x40000000) {
+    } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         eprintf(x + 96, y += 16, 4, 0, "ETC GAME");
     } else {
         y += 16;
     }
     eprintf(x + 96, y += 16, 4, 0, "%s", game_mode_tbl[pG->game_mode]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->Debug_flg[2] & 0x400) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (DbgFlagChk(pG, DBG_CAPTION_OFF)) ? "OFF" : "ON");
 
     if (Joy[0].rep & 0x00080008) {
         w->c_pos--;
@@ -1742,12 +1735,12 @@ void titleDebugMenu(TitleWork* w)
         break;
     case 8:
         if (Joy[0].trg & 0x00030003) {
-            pG->Debug_flg[2] ^= 0x00200000;
+            DbgFlagXor(pG, DBG_NO_ENEMY);
         }
         break;
     case 9:
         if (Joy[0].trg & 0x00030003) {
-            pG->Debug_flg[3] ^= 0x800;
+            DbgFlagXor(pG, DBG_NO_ETC_SET);
         }
         break;
     case 10: {
@@ -1769,7 +1762,7 @@ void titleDebugMenu(TitleWork* w)
     }
     case 11:
         if (Joy[0].trg & 0x00030003) {
-            pG->Debug_flg[2] ^= 0x04000000;
+            DbgFlagXor(pG, DBG_NO_SCE_EXE);
         }
         break;
     case 12:
@@ -1844,7 +1837,7 @@ void titleDebugMenu(TitleWork* w)
         break;
     case 20:
         if (Joy[0].trg & 0x00030003) {
-            pG->Debug_flg[2] ^= 0x400;
+            DbgFlagXor(pG, DBG_CAPTION_OFF);
         }
         break;
     }

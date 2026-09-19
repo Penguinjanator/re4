@@ -138,12 +138,6 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
-// Two tests of one flag word stay separate (fold-const merges `(f & A) == 0 && (f & B) == 0`).
-static inline u32 flagBit(u32 f, u32 bit)
-{
-    return f & bit;
-}
-
 // Event skip: the skip key or the skip flag; the event is marked skipped.
 #define R21D_SKIP ((Key.trg & 0x20000000) || (pG->Room_flg[0] & 0x80000000))
 #define R21D_SKIP_SET() pG->Room_flg[0] |= 0x80000000
@@ -187,7 +181,7 @@ void R21dInit()
     r21d_initSwitch();
     r21d_initFence();
     SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r21d_checkGrave, 0, 1);
-    if (pG->room_id_prev == 0x225 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x80000) == 0) {
+    if (pG->room_id_prev == 0x225 && FlagChkSignW(pG->System_flg, SYS_LOAD_GAME) == 0 && FlagChkSignW(pG->System_flg, SYS_CONTINUE) == 0) {
         SceExec(0x12, (TaskFunc) r21d_moveGrave, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0,
@@ -737,7 +731,7 @@ static void r21d_checkFence()
     return;
 yes:
     RsfSet(G_ROOM_ID, 0);
-    pG->Scenario_flg[4] |= 0x01000000;
+    ScfFlagOn(pG, SCF_87);
     SceAtSetEnable(0x13, 0);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceEventStart(0);
@@ -806,7 +800,7 @@ static void r21d_moveGrave(int dir)
             }
         }
         SceEventStart(0);
-        pG->Disp_flg |= 0x02000000;
+        DpfFlagOn(pG, DPF_SHADOW);
         if (dir == 1) {
             CamCtrl.CutCall(0xE);
             SndCall(6, 7, 0, 0, 0, 0);
@@ -829,7 +823,7 @@ static void r21d_moveGrave(int dir)
             SceSleep(15);
             CamCtrl.Comeback(0);
         }
-        pG->Disp_flg &= ~0x02000000;
+        DpfFlagOff(pG, DPF_SHADOW);
         SceEventEnd(0);
     }
 }

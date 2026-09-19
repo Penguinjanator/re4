@@ -761,7 +761,7 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     IdSys.kill(0xFF, 0x20);
     IdSys.kill(0xFF, 0x23);
     IdSys.kill(0xFF, 0x30);
-    pG->Stop_flg |= 0x100;
+    SpfFlagOn(pG, SPF_ACTBTN);
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdTexDataLoad(a, TEX_OWNER_ID_COCKPIT);
     IdSys.set(b, 0xFF, 0x24, 0x13, 5, 0);
@@ -956,7 +956,7 @@ void IdBinocular::quit(void*)
     u->size_H = m_meter_h0;
     u->sizeX = m_meter_w0;
     IdSys.kill(0xFF, 0x24);
-    pG->Stop_flg &= ~0x100;
+    SpfFlagOff(pG, SPF_ACTBTN);
     Cckpt.roomInit();
     if (StaFlagChk(pG, STA_EVENT)) {
         Cckpt.lifeMeterDisp(0);

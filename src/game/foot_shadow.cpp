@@ -49,7 +49,7 @@ void DrawFootShadow(cEm* em)
     cLight* l;
     int cnt;
 
-    if (pG->Disp_flg & 0x02000000) {
+    if (DpfFlagChk(pG, DPF_SHADOW)) {
         return;
     }
     if (em->Shd_color == 0xFF) {

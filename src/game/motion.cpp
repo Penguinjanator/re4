@@ -180,7 +180,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
     w->Mot_state = 0;
     w->Mot_flag = (w->Mot_flag & 0x7FFFFFFF) | 0x04000000;
     if (data == 0) {
-        if (!(pG->Debug_flg[0] & 0x80000000)) {
+        if (!DbgFlagChk(pG, DBG_TEST_MODE)) {
 #line 273
             pLog->err(0, 0, "MotionSetCore():%d pMot == NULL", __LINE__);
         }

@@ -162,7 +162,7 @@ void R207Init()
         SceAtSetEnable(0xD, 0);
         SceAtSetEnable(0xE, 0);
         if (ItemMgr.num(0x80) == 0) {
-            pG->Item_flg[0] &= ~0x00100000;
+            ItfFlagOff(pG, ITF_0b);
             SceAtSetEnable(0x80, 1);
             m = SceAtItemModelPtr(0x80);
             if (RsfCheck(G_ROOM_ID, 4)) {
@@ -172,7 +172,7 @@ void R207Init()
             }
         }
         if (ItemMgr.num(0xC4) == 0) {
-            pG->Item_flg[0] &= ~0x00080000;
+            ItfFlagOff(pG, ITF_0c);
             SceAtSetEnable(0x87, 1);
             m = SceAtItemModelPtr(0x87);
             if (RsfCheck(G_ROOM_ID, 6)) {
@@ -706,12 +706,12 @@ void r207_SetSword(int which, int mode)
             at = 0x80;
             mes = 1;
             RsfSet(G_ROOM_ID, 4);
-            pG->Item_flg[0] &= ~0x00100000;
+            ItfFlagOff(pG, ITF_0b);
         } else {
             at = 0x87;
             mes = 2;
             RsfSet(G_ROOM_ID, 6);
-            pG->Item_flg[0] &= ~0x00080000;
+            ItfFlagOff(pG, ITF_0c);
         }
         SceAtSetEnable(9, 0);
         SceAtSetEnable(0xA, 0);
@@ -722,12 +722,12 @@ void r207_SetSword(int which, int mode)
             at = 0x80;
             mes = 1;
             RsfSet(G_ROOM_ID, 5);
-            pG->Item_flg[0] &= ~0x00100000;
+            ItfFlagOff(pG, ITF_0b);
         } else {
             at = 0x87;
             mes = 2;
             RsfSet(G_ROOM_ID, 7);
-            pG->Item_flg[0] &= ~0x00080000;
+            ItfFlagOff(pG, ITF_0c);
         }
         SceAtSetEnable(0xB, 0);
         SceAtSetEnable(0xC, 0);
@@ -797,7 +797,7 @@ static void r207_WallMoveEndProc()
     SmdGetObjPtr(0x18)->pos.z = -9500.0f;
     SmdGetObjPtr(0x18)->matUpdate();
     SceAtSetEnable(1, 1);
-    pG->Scenario_flg[4] |= 0x20000000;
+    ScfFlagOn(pG, SCF_82);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }

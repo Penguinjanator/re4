@@ -242,7 +242,7 @@ void R30fInit()
     }
     EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
     if (pG->room_id_prev == 0xFFF && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
-        BitOn(pG->Status_flg[3], 0x04000000);
+        StaFlagOn(pG, STA_SUB_ASHLEY);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);
     }
@@ -850,7 +850,7 @@ static void R30f_ride()
     int truck;
     int adjust;
 
-    BitOn(pG->Scenario_flg[0], 0x80);
+    ScfFlagOn(pG, SCF_NO_ASHLEY_DIST_CK);
     if (!(R30F_SAVE_FLAGS & 0x40000000)) {
         SceEventStart(0);
         SndStrReq(1, 0xE6, 0x80000003, 0, 0, 0.0f);

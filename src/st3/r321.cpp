@@ -65,7 +65,7 @@ void break_heri_set();
 // the s00 callback.
 void R321Init()
 {
-    pG->Debug_flg[1] |= 0x00200000;
+    DbgFlagOn(pG, DBG_WARN_LEVEL_LOW);
 #line 45 "D:/Bio4/Prog/r321.cpp"
     r321_work = (R321Work*) MEM_CALLOC(sizeof(R321Work), 1, 0xd);
     setTexRender();
@@ -89,7 +89,7 @@ void R321Main()
 static void r321_heri_down()
 {
     RsfSet(G_ROOM_ID, 0);
-    pG->Scenario_flg[2] |= 0x80000000;
+    ScfFlagOn(pG, SCF_40);
     EvtMgr.EvtReadExec("event/evd/r321s00.evd", 0, 0);
     setPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
     setAngY(pPL, 1.663f);

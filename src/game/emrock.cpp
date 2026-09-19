@@ -1059,7 +1059,7 @@ void plemDropFind(cPlayer* pl)
             emRockDropCamMove((cEmRock*)pl->pEmCatch);
         }
         if (MotionMove(pl, 0)) {
-            pG->Stop_flg &= ~0x80000000;
+            SpfFlagOff(pG, SPF_KEY);
             EndPlDamage();
         }
         break;
@@ -1089,7 +1089,7 @@ void plemDropEscape(cPlayer* pl)
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
-            pG->Stop_flg &= ~0x80000000;
+            SpfFlagOff(pG, SPF_KEY);
             EndPlDamage();
         }
         break;
@@ -1731,7 +1731,7 @@ void plemRockEscape(cPlayer* pl)
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
-            pG->Stop_flg &= ~0x80000000;
+            SpfFlagOff(pG, SPF_KEY);
             Cckpt.lifeMeterDisp(1);
             pl->Wep->setTrans(1, 0);
             GameSaveSave(&GameSave, pSaveData, -1);

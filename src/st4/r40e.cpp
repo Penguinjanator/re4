@@ -272,7 +272,7 @@ void r40e_initElevator()
 static void r40e_execEmAppear_end()
 {
     SceEventEnd(0);
-    pG->Status_flg[2] &= ~0x02000000;
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     CamCtrl.Comeback(0);
     cEmWrap em;
     em.setPtr(0xDD, -1, 1);
@@ -292,7 +292,7 @@ static void r40e_execEmAppear()
     }
     SceSetEventCancel(1, (TaskFunc) r40e_execEmAppear_end, 0, -1, 1);
     SceEventStart(0);
-    pG->Status_flg[2] |= 0x02000000;
+    StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     cEmWrap em;
     Vec p;
     Vec* pp = &p;
@@ -379,14 +379,14 @@ static void gameResult()
 
     disp_bak = pG->Disp_flg;
     BitSet(pG->Disp_flg, 0xFFFFFFFF);
-    BitOff(pG->Disp_flg, 0x2000);
-    BitOff(pG->Disp_flg, 0x800);
-    BitOff(pG->Disp_flg, 0x10000);
+    DpfFlagOff(pG, DPF_ID_SYSTEM);
+    DpfFlagOff(pG, DPF_MESSAGE);
+    DpfFlagOff(pG, DPF_COCKPIT);
     stop_bak = pG->Stop_flg;
     BitSet(pG->Stop_flg, 0xFFFFFFFF);
-    BitOff(pG->Stop_flg, 0x00800000);
-    BitOff(pG->Stop_flg, 0x80000000);
-    BitOff(pG->Stop_flg, 0x40);
+    SpfFlagOff(pG, SPF_SCE);
+    SpfFlagOff(pG, SPF_KEY);
+    SpfFlagOff(pG, SPF_ID_SYSTEM);
     SceSleep(2);
     systemVISetBlack(1);
     FadeKill(FADE_NO_ROOM);
@@ -437,7 +437,7 @@ static void gameResult()
         delete res;
         swap.SwapIn();
     }
-    pG->System_flg |= 0x04000000;
+    SysFlagOn(pG, SYS_SOFT_RESET);
 }
 
 // Event r40es00 callback (Assignment Ada's ending): far clip pushed out, Status_flg[1] 0x800; cut 0
@@ -450,7 +450,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         ZFAR = 100000000.0f;
-        BitOn(pG->Status_flg[1], 0x800);
+        StaFlagOn(pG, STA_CAMERA_SET_ROOM);
         break;
     case 1:
         if (e->NowCut == 0) {
@@ -509,7 +509,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         }
         break;
     case 2:
-        pG->Status_flg[1] &= ~0x800;
+        StaFlagOff(pG, STA_CAMERA_SET_ROOM);
         break;
     }
 }

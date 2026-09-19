@@ -857,19 +857,19 @@ int cDvdQueue::Read()
     int ret = 1;
     int pc = 1;
 
-    if ((pG->System_flg & 0x20000) == 0) {
+    if (SysFlagChk(pG, SYS_SN_PC_READ) == 0) {
         pc = 0;
     }
     if (pcMode) {
-        pG->System_flg |= 0x20000;
+        SysFlagOn(pG, SYS_SN_PC_READ);
     } else {
-        pG->System_flg &= ~0x20000;
+        SysFlagOff(pG, SYS_SN_PC_READ);
     }
     (this->*func_tbl[m_Rno0])();
     if (pc) {
-        pG->System_flg |= 0x20000;
+        SysFlagOn(pG, SYS_SN_PC_READ);
     } else {
-        pG->System_flg &= ~0x20000;
+        SysFlagOff(pG, SYS_SN_PC_READ);
     }
     if (chk(0x400000)) {
         ret = 0;
@@ -896,7 +896,7 @@ void cDvdQueue::Initialize()
         entrynum = DVDConvertPathToEntrynum(w->name);
         sprintf(m_Name, "%s", w->name);
     }
-    if (pG->System_flg & 0x20000) {
+    if (SysFlagChk(pG, SYS_SN_PC_READ)) {
         sprintf(buf, "d:\\bio4/data/%s", m_Name);
         sprintf(m_Name, "%s", buf);
     }
@@ -935,7 +935,7 @@ void cDvdQueue::Initialize()
     sprintf(reqfile, "%s", w->file);
     reqline = w->line;
     pc = 1;
-    if ((pGS->System_flg & 0x20000) == 0) {
+    if (SysFlagChk(pGS, SYS_SN_PC_READ) == 0) {
         pc = 0;
     }
     pcMode = pc;
@@ -1305,7 +1305,7 @@ int cDvd::FileExistCheck(const char* name, u32* pLength)
     DVDFileInfo fi;
     int ret;
 
-    if (pG->System_flg & 0x20000) {
+    if (SysFlagChk(pG, SYS_SN_PC_READ)) {
         ret = -1;
     } else {
         ret = DVDConvertPathToEntrynum(name);
@@ -1633,17 +1633,17 @@ int cDvd::ErrCheck(int disc, int flag)
         // One shared body (goto) instead of two identical arms: the duplicated `li r30,-1;
         // li r27,0` that jump2 would cross-jump later still counts at global-alloc time and
         // puts pMes/pStr (3 refs each, live around the loop) into different priority buckets.
-        if (pG->System_flg & 0x8000) {
+        if (SysFlagChk(pG, SYS_HARD_RESET)) {
             goto stop;
-        } else if (pG->System_flg & 0x200) {
+        } else if (SysFlagChk(pG, SYS_CARD_ACCESS)) {
         stop:
             msg = -1;
             cont = 0;
         }
         if (msg != -1) {
-            BitOff(pG->System_flg, 0x400);
+            SysFlagOff(pG, SYS_SCREEN_STOP);
             if (shown == 0) {
-                if (pG->System_flg & 0x40000) {
+                if (SysFlagChk(pG, SYS_SET_BLACK)) {
                     paused = 1;
                 }
                 PADControlMotor(0, 2);
@@ -1725,7 +1725,7 @@ void MesSysMessage(int msg, int disc)
 {
     int f = 1;
 
-    if ((pG->Disp_flg & 0x800) == 0) {
+    if (DpfFlagChk(pG, DPF_MESSAGE) == 0) {
         f = 0;
     }
     u16* pos = mes_pos[pSys->language][0];
@@ -1739,11 +1739,11 @@ void MesSysMessage(int msg, int disc)
     }
     pos += no * 2;
     cMes.MesSet(mes_no[msg], pos[0], pos[1], 0x01020090, 0xF, 0, 1);
-    pG->Disp_flg &= ~0x800;
+    DpfFlagOff(pG, DPF_MESSAGE);
     cMes.Move();
     cMes.Trans();
     if (f == 1) {
-        pG->Disp_flg |= 0x800;
+        DpfFlagOn(pG, DPF_MESSAGE);
     }
 }
 

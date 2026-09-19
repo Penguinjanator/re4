@@ -124,7 +124,7 @@ void R10bInit()
     Vec rot;
     cObj* obj;
 
-    pG->System_flg |= 0x800;
+    SysFlagOn(pG, SYS_SCISSOR_ON);
 #line 95 "D:/Bio4/Prog/r10b.cpp"
     r10b_work = (R10bWork*) MEM_CALLOC(sizeof(R10bWork), 1, 0xd);
 
@@ -297,7 +297,7 @@ static void R10b_chkEmDie()
             SndEventStrStop(0);
             ((cEm2f*) GetEmPtrFromList(0xA0))->setDie();
             SceEventStart(0);
-            BitOn(pG->System_flg, 0x400);
+            SysFlagOn(pG, SYS_SCREEN_STOP);
             EmMgr.destroy(r10b_work->boss);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -424,7 +424,7 @@ static void r10b_GakeEvent()
         SceAtSetEnable(4, 0);
         RsfSet(G_ROOM_ID, 0);
         SceEventStart(0);
-        BitOn(pG->System_flg, 0x400);
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
@@ -441,16 +441,16 @@ static void r10b_GakeEvent()
             freeEvent(3);
         }
         PSet(r10b_work->boat, EmSetFromList2(0xA3, 0));    // reference store: the pG load waits for it
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(4);
         SceEventEnd(0);
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
         EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
         EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
-        pG->System_flg &= ~0x400;
+        SysFlagOff(pG, SYS_SCREEN_STOP);
     }
 }
 
@@ -484,7 +484,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         case 3:
         case 7:
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_CAM_SHOULDER)) {
-                BitOn(pG->Status_flg[0], 0x400);
+                StaFlagOn(pG, STA_CAM_SHOULDER);
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
                 r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 if (e->NowCut != 1) {
@@ -497,7 +497,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
             break;
         default:
             if (e->NowFrame == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
-                BitOff(pG->Status_flg[0], 0x400);
+                StaFlagOff(pG, STA_CAM_SHOULDER);
                 r10b_work->bino->quit(&pG->Cam);
                 r10b_work->bino->~IdBinocular();
                 r10b_work->focus->quit();
@@ -507,7 +507,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         break;
     case 2:
         if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
-            BitOff(pG->Status_flg[0], 0x400);
+            StaFlagOff(pG, STA_CAM_SHOULDER);
             r10b_work->bino->quit(&pG->Cam);
             r10b_work->bino->~IdBinocular();
         }
@@ -532,7 +532,7 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
         void* fcv;
         u16 step;
 
-        if ((pG->Debug_flg[0] & 0x02000000) && (pG->Room_flg[0] & 0x8000)) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL) && (pG->Room_flg[0] & 0x8000)) {
             return;
         }
         pG->Room_flg[0] |= 0x8000;
@@ -604,7 +604,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
@@ -675,7 +675,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -695,7 +695,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -727,7 +727,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
         e->EndActBtn();
         r10b_work->count = e->GetActBtnCount();
         SetSstAddAreaFlag(0x800);
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -746,7 +746,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -764,7 +764,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -778,7 +778,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
 {
     switch (e->funcMode) {
     case 0:
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -815,7 +815,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->Debug_flg[0] & 0x02000000) {
+        if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }

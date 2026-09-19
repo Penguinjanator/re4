@@ -93,11 +93,11 @@ void ScenarioRoomInit()
     SceSys.m_door_fade_eff = 0;
     SceSys.m_item_get = 0;
     SceSys.pause = 0;
-    pGS->Scenario_flg[0] &= ~0x80;
+    ScfFlagOff(pGS, SCF_NO_ASHLEY_DIST_CK);
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();
-    if (!(pG->Debug_flg[2] & 0x4000000)) {
+    if (!DbgFlagChk(pG, DBG_NO_SCE_EXE)) {
         SceExecInitCondition();
         RoomData.execInitFunc(pG->room_id);
         SceSys.scheduler();
@@ -144,7 +144,7 @@ void scenarioLoopAfterInit()
 // (scheduler), then the after-hooks. Skipped in the debug "no scenario" mode.
 void ScenarioMove()
 {
-    if (pG->Debug_flg[2] & 0x4000000) {
+    if (DbgFlagChk(pG, DBG_NO_SCE_EXE)) {
         return;
     }
     scenarioLoopBeforeInit();
@@ -153,7 +153,7 @@ void ScenarioMove()
             scenarioCheckEventCancel();
             RoomData.execMainFunc(pG->room_id);
         }
-        if (!(pG->Stop_flg & 0x400) || (pG->Debug_flg[3] & 0x80)) {
+        if (!SpfFlagChk(pG, SPF_EVT) || (DbgFlagChk(pG, DBG_NO_EVENT))) {
             EvtMgr.Run();
         }
     }
@@ -225,7 +225,7 @@ void cSceSys::scheduler()
     }
     p = (ScePrim*) scenarioSetOtStart();
     while ((p = (ScePrim*) scenarioGetOtAddr((u32*) p)) != 0) {
-        if (pG->Stop_flg & 0x800000) {
+        if (SpfFlagChk(pG, SPF_SCE)) {
             break;
         }
         running = p->running;
@@ -323,7 +323,7 @@ ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* mo
     } else {
         t->flag = pCTask->flag;
     }
-    if (!(pG->Debug_flg[1] & 0x200000)) {
+    if (!DbgFlagChk(pG, DBG_WARN_LEVEL_LOW)) {
         busy = 0;
         for (i = 17; i >= 6; i--) {
             if (Task[i].Status != 0) {

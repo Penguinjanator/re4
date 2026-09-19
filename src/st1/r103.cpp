@@ -103,7 +103,7 @@ void R103Init()
                        ROOM_ARC_PTR(pG->pRoom, 0x28));
         EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
     }
-    pG->Scenario_flg[0] |= 0x1000;
+    ScfFlagOn(pG, SCF_R103_ENTER);
     SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r103_cesspit, 0, SCE_PRIO_DEF_2, 0);
     r103_setSubMissionTarget(8);
@@ -114,7 +114,7 @@ void R103Init()
     SceSetItemEvent(7, 0x92, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf0, 0);
     SceSetItemEvent(8, 0x81, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf1, 0);
     SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf2, 0);
-    if (!(pG->Item_flg[0] & 0x800)) {
+    if (!ItfFlagChk(pG, ITF_14)) {
         U32Set(r103_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r103_work->eff, 0, 0);
         SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);
@@ -272,7 +272,7 @@ static void r103_execOpenCover(R103Cesspit* c)
 {
     cObj* lid;
 
-    pG->Scenario_flg[1] |= 0x04000000;
+    ScfFlagOn(pG, SCF_R103_OPEN_COVER);
     lid = SmdGetObjPtr(c->lid);
     SndCall(6, 9, &lid->pos, 0, 0, 0);
     // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
@@ -322,7 +322,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
     SndCall(6, 7, &cover->pos, 0, 0, 0);
     cover->be_flag &= ~2;
     SceAtSetEnable(c->at10, 1);
-    pG->Scenario_flg[0] |= 0x20;
+    ScfFlagOn(pG, SCF_R103_MANURE_RECEPTACLE);
     {
         const f32 deg = 0.017453292f;
         f32 spd = 0.0f;
@@ -340,7 +340,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
     }
     SndCall(6, 8, &lid->pos, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0x11, 0, 0, 0, 0);
-    pG->Scenario_flg[0] |= 0x20;
+    ScfFlagOn(pG, SCF_R103_MANURE_RECEPTACLE);
     lid->pParts->ang.x -= 0.06981317f;
     SceSleep(1);
     lid->pParts->ang.x -= 0.02617994f;
@@ -372,7 +372,7 @@ extern "C" void r103_checkCesspit0(R103Cesspit* c)
         if (!ScfFlagChk(pG, SCF_R103_MANURE_RECEPTACLE)) {
             if (!ScfFlagChk(pG, SCF_R103_ITEM_IN_MANURE_RECEPTACLE)) {
                 if (SceAtItemFindFlgCk(c->itemAt) == 1) {
-                    pG->Scenario_flg[0] |= 0x10;
+                    ScfFlagOn(pG, SCF_R103_ITEM_IN_MANURE_RECEPTACLE);
                     at->item.id = 0x89;
                     r103_moveItemModel(at, SceAtPtr(c->itemAt2));
                 }
@@ -440,7 +440,7 @@ extern "C" void r103_checkCesspit2(R103Cesspit* c)
     at = SceAtPtr(c->itemAt);
     while (1) {
         if (!ScfFlagChk(pG, SCF_R103_ITEM_IN_MANURE_RECEPTACLE) && SceAtItemFindFlgCk(c->itemAt) == 1) {
-            pG->Scenario_flg[0] |= 0x10;
+            ScfFlagOn(pG, SCF_R103_ITEM_IN_MANURE_RECEPTACLE);
             at->item.id = 0x89;
             r103_moveItemModel(at, SceAtPtr(c->itemAt2));
             break;

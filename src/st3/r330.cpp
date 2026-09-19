@@ -217,7 +217,7 @@ void R330EventS00End()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->Scenario_flg[2] |= 0x800;
+    ScfFlagOn(pG, SCF_54);
     SceSetChapterEnd(0x11, -1);
     SeAtSndCall(0);
 }

@@ -343,7 +343,7 @@ int cPlLeon::checkXbutton()
     if (pSUB->id != 3) {
         return 0;
     }
-    pG->Status_flg[1] |= 4;
+    StaFlagOn(pG, STA_SUBCHAR_CTRL);
     if (m_CmdTimer != 0) {
         return 0;
     }
@@ -361,6 +361,6 @@ int cPlLeon::checkXbutton()
         SubCharCtrl(0, 0);
     }
     m_CmdTimer = 8;
-    pG->Status_flg[0] |= 0x800000;
+    StaFlagOn(pG, STA_PL_FIRE);
     return 1;
 }

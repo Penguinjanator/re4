@@ -172,7 +172,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
         g_draw = 1;
     }
     if (m == &g_RndMgr[g_RndMgrNum - 1]) {
-        pG->Status_flg[1] &= ~0x08000000;
+        StaFlagOff(pG, STA_TEX_RENDER);
         ScreenReSize(0x200, 0x1C0);
         SetScissorState();
     }
@@ -191,7 +191,7 @@ void TransTexRenderMgr()
         }
     }
     {
-        u32 use = pG->Debug_flg[0] & 0x80;
+        u32 use = DbgFlagChk(pG, DBG_TEX_RENDER_ALL);
         if (use) {
             use = 1;
         }
@@ -324,7 +324,7 @@ void TexRenderModRes(cModel* m)
 // into the texture).
 void TexRenderModAddOt(int ot, cModel* m)
 {
-    pG->Status_flg[1] |= 0x08000000;
+    StaFlagOn(pG, STA_TEX_RENDER);
     if (m == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;
@@ -338,7 +338,7 @@ void TexRenderModAddOt(int ot, cModel* m)
 // Queues the model's mirror render (MirrorDraw2) for the texture.
 void TexRenderModAddOtMirror(int ot, cModel* m)
 {
-    pG->Status_flg[1] |= 0x08000000;
+    StaFlagOn(pG, STA_TEX_RENDER);
     if (m == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;

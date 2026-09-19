@@ -31,13 +31,13 @@ void R10eInit()
 
     if (pG->room_id_prev == 0xFFF) {
         U16Set(pG->room_id_prev, 0x119);
-        BitOn(pG->Scenario_flg[1], 0x01000000);
+        ScfFlagOn(pG, SCF_ST1_NIGHT);
     }
     if (!ScfFlagChk(pG, SCF_ST1_NIGHT)) {
         SceAtSetEnable(1, 0);
     } else {
         SceAtSetEnable(0, 0);
-        if (pG->room_id_prev == 0x10E && !(pG->System_flg & 0x100)) {
+        if (pG->room_id_prev == 0x10E && !SysFlagChk(pG, SYS_LOAD_GAME)) {
             SceAtSetEnable(4, 0);
             SceAtSetEnable(5, 0);
             SceExec(0x12, (TaskFunc) R10e_door_set, 0, 0, SCE_PRIO_DEF_2, 0);

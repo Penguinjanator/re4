@@ -1703,7 +1703,7 @@ static void em35_R1_BearHug(cEm35* em)
 // the break-free motion at the enemy's feet with the relief voice.
 static void plem35_BearHug(cPlayer* pl)
 {
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->subArc = pPL->pEmCatch->subArc;
     pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
@@ -2214,7 +2214,7 @@ static void plem35_CriticalHit(cPlayer* pl)
 {
     f32 y;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -2529,7 +2529,7 @@ static void em35_R1_CatchHit(cEm35* em)
 // effect and impact sounds / rumble at frames 39 and 78, then (alive) the get-up in step 6.
 static void plem35_CatchHit(cPlayer* pl)
 {
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->subArc = pPL->pEmCatch->subArc;
     pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {

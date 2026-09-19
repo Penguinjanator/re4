@@ -58,7 +58,7 @@ void R111Init()
         EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, (u32) zero, zero);
         EstSet((int) pPL, -1, 0, 0, 0, 0x23, 0x800, 0, (u32) zero, zero);
     }
-    pG->Status_flg[1] |= 0x400;
+    StaFlagOn(pG, STA_ROOM_RAIN);
     if (getRoomEtcWindow(0, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
     }

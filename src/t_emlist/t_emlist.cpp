@@ -638,9 +638,9 @@ void ToolEmList()
         emlist_routine[EmList.wk->routine]();
         emlist_EmDir_disp();
         LightMgr.move();
-        if (pG->Debug_flg[0] & 0x40000000) {
+        if (DbgFlagChk(pG, DBG_SCR_TEST)) {
             if (!StaFlagChk(pG, STA_BG_OFF)) {
-                pG->Status_flg[0] |= 0x80000000;
+                StaFlagOn(pG, STA_BG_OFF);
             }
             SatMgr.disp(0);
         }
@@ -2754,7 +2754,7 @@ void emlistCameraMove()
         BitSet(EmList.wk->joy.on, 0);
         BitSet(EmList.wk->joy.rep, 0);
         BitSet(EmList.wk->joy.rep2, 0);
-        BitOn(pG->Debug_flg[0], 0x10000000);
+        DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(0x140, 0x18, 4, 0, "1P CAMERA MODE");
         }

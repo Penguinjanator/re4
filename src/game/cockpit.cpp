@@ -58,10 +58,10 @@ void Cockpit::roomInit()
 // is created (ID_LIFE set).
 void Cockpit::move()
 {
-    if ((s32) pG->Debug_flg[0] < 0 && !(pG->Debug_flg[0] & 0x02000000)) {
-        pG->Debug_flg[1] |= 0x80000000;
+    if ((s32) pG->Debug_flg[0] < 0 && !DbgFlagChk(pG, DBG_EVENT_TOOL)) {
+        DbgFlagOn(pG, DBG_COCKPIT_TOOL);
     } else {
-        pG->Debug_flg[1] &= ~0x80000000;
+        DbgFlagOff(pG, DBG_COCKPIT_TOOL);
     }
     if (IdSys.setCk(ID_LIFE)) {
         m_LifeMeter.move();
@@ -776,7 +776,7 @@ void CountDown::move()
         return;
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
-        (StaFlagChk(pG, STA_SUSPEND) || (pG->Stop_flg & 0x10000000))) {
+        (StaFlagChk(pG, STA_SUSPEND) || (SpfFlagChk(pG, SPF_PL)))) {
         m_state |= 8;
     } else {
         m_state &= ~8;
@@ -785,7 +785,7 @@ void CountDown::move()
         U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!(pG->Debug_flg[1] & 0x00010000) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
+    if (!DbgFlagChk(pG, DGG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
         if (m_frame != 0) {
             m_frame = m_frame - 1;
         } else {

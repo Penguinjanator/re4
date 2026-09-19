@@ -3054,7 +3054,7 @@ void dbModMotionMove()
                 }
             }
         }
-        if (noMotion == 0 && !(pG->Stop_flg & 0x04000000)) {
+        if (noMotion == 0 && !SpfFlagChk(pG, SPF_OBJ)) {
             model->Motion.Mot_attr = em->mot[0].flags;
             dbmodMotionMove(model, 0);
             if (model->Motion.blend == 0 && em->mot_num > 1 && model->Motion.Mot_state != 0) {

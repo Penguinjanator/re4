@@ -154,7 +154,7 @@ void R101Init()
     PSet(r101_work->pEm[8], &r101_work->em[8]);
     PSet(r101_work->pEm[9], &r101_work->em[9]);
     if (!ScfFlagChk(pG, SCF_R101_ENTER)) {
-        pG->Scenario_flg[0] |= 0x2000;
+        ScfFlagOn(pG, SCF_R101_ENTER);
         SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     EvtMgr.SetFunc("evt_r101s21_func", (void*) Evt_R101S21_Func);
@@ -333,9 +333,9 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
 static inline void r101_startEvent30()
 {
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->Scenario_flg[1], 0x08000000);
-    BitOn(pG->Scenario_flg[4], 0x200);
-    BitOn(pG->Scenario_flg[4], 0x20);
+    ScfFlagOff(pG, SCF_R101_IMPRISON);
+    ScfFlagOn(pG, SCF_96);
+    ScfFlagOn(pG, SCF_9a);
     SceExec(0x12, (TaskFunc) r101_Event30, 0, 0, SCE_PRIO_DEF_2, 0);
     pG->Room_flg[0] |= 0x10000000;
 }
@@ -467,9 +467,9 @@ static void r101_Event30()
     cEm* ladder;
 
     RsfSet(G_ROOM_ID, 7);
-    BitOff(pG->Scenario_flg[1], 0x08000000);
-    BitOn(pG->Scenario_flg[4], 0x200);
-    BitOn(pG->Scenario_flg[4], 0x20);
+    ScfFlagOff(pG, SCF_R101_IMPRISON);
+    ScfFlagOn(pG, SCF_96);
+    ScfFlagOn(pG, SCF_9a);
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         SceAtSetEnable(8, 0);
         r101_work->evt21->setCommand(CMND_DEL_DATA, 0, 0);
@@ -487,7 +487,7 @@ static void r101_Event30()
         SceSleep(1);
     }
     SceEventStart(0);
-    pG->System_flg |= 0x400;
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     SndRoomStrStop(3);
     SceDestroyEm(0x10, 0x20);
     SceSleep(2);
@@ -507,7 +507,7 @@ static void r101_Event30()
             while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
-            pG->System_flg &= ~0x400;
+            SysFlagOff(pG, SYS_SCREEN_STOP);
         }
     }
     BitOn(pG->Room_flg[0], 0x20000000);
@@ -639,7 +639,7 @@ static void r101_Event20()
     diff = r101_work->emNum - SceCountEmAlive(0x10, 0x20);
     SceAtSetEnable(8, 0);
     SceEventStart(0);
-    pG->System_flg |= 0x400;
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     SndRoomStrStop(3);
     if (r101_work->evt21->waitLoadOk() == 0) {
         fail = 1;
@@ -681,7 +681,7 @@ static void r101_Event20()
                 }
                 SceSleep(1);
             }
-            BitOff(pG->System_flg, 0x400);
+            SysFlagOff(pG, SYS_SCREEN_STOP);
             MemorySwap(m->pArc, (u32) r101_work->evt21->m_addr, r101_work->evt21->m_size);
         }
     }
@@ -928,9 +928,9 @@ static void r101_FindPlayer2()
 extern "C" void r101_FindPlayer()
 {
     RsfSet(G_ROOM_ID, 6);
-    BitOn(pG->Scenario_flg[1], 0x08000000);
-    BitOff(pG->Scenario_flg[4], 0x200);
-    BitOff(pG->Scenario_flg[4], 0x20);
+    ScfFlagOn(pG, SCF_R101_IMPRISON);
+    ScfFlagOff(pG, SCF_96);
+    ScfFlagOff(pG, SCF_9a);
     SceAtSetEnable(7, 0);
     r101_work->evt00->setCommand(CMND_DEL_DATA, 0, 0);
     setEm(0x22, -1, 1, 1, 1);
@@ -986,7 +986,7 @@ static void r101_Event00()
         if (r101_work->evt00->waitLoadOk() == 1) {
             ReadModule* m;
 
-            pG->System_flg |= 0x400;
+            SysFlagOn(pG, SYS_SCREEN_STOP);
             SceSleep(2);
             m = SearchEmModule(0x26);
             MemorySwap(m->pArc, (u32) r101_work->evt00->m_addr, r101_work->evt00->m_size);
@@ -1026,11 +1026,11 @@ static void r101_Event00()
         at.z = 2113.0f;
     }
     ang.y += 1750.0f;
-    pG->Stop_flg |= 0x100;
+    SpfFlagOn(pG, SPF_ACTBTN);
     SndCall(1, 2, 0, 0, 0, 0);
     CamCtrl.HoldBinocular(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &ang, &at);
     CamCtrl.SetBinocularRange(-0.05992f, 0.2645f, -0.2532f, 0.14943f);
-    pG->Stop_flg |= 0x10000000;
+    SpfFlagOn(pG, SPF_PL);
     for (;;) {
         if (Key.trg & 0x40000000) {
             break;
@@ -1042,8 +1042,8 @@ static void r101_Event00()
     }
     pPL->dmg.clear();
     CamCtrl.LowerBinocular();
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Stop_flg, 0x100);
+    SpfFlagOff(pG, SPF_PL);
+    SpfFlagOff(pG, SPF_ACTBTN);
     pPL->cCoord::matUpdate();
     CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     CamCtrl.roomInit();

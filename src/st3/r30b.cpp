@@ -605,7 +605,7 @@ static void R30bCrane()
             switch (c->step) {
             case 0:
                 ActBtn.set(0x14, 5, 0, 0, 2, 0xF, 0, 0);
-                pG->Stop_flg &= ~0x100;
+                SpfFlagOff(pG, SPF_ACTBTN);
                 if (Key.trg & 0x00040000) {
                     if (r30b_work.p->se) {
                         SndStop(r30b_work.p->se, 0);
@@ -941,7 +941,7 @@ static void R30bEventS00()
         SceDestroyEm(0x10, 0x20);
         SceSleep(2);
         EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0);
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         Vec pos = {-6200.0f, 0.0f, -26100.0f};
         Vec rot;
         r30b_memset(&rot, 0, sizeof(Vec));

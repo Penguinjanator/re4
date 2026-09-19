@@ -115,7 +115,7 @@ void cObjRocket::move()
 
             res = PlWepHitCheck2(0, &rocket.oldPos, &pos, 0xD, 1, 3000.0f);
             if (res) {
-                BitOn(pG->Status_flg[1], 0x20000000);
+                StaFlagOn(pG, STA_SE_BURST);
                 memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
                 pG->bell_stat = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
@@ -156,7 +156,7 @@ void cObjRocket::move()
                         EstSet(0, -1, &hit, 0, 0, 0x27, 0, 10, 0, 0);
                         EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
                     }
-                    BitOn(pG->Status_flg[1], 0x20000000);
+                    StaFlagOn(pG, STA_SE_BURST);
                     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
                     pG->bell_stat = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
@@ -278,7 +278,7 @@ void cObjLauncher::loadRocket()
 void cObjLauncher::moveFire()
 {
     if (wep.step == 0) {
-        if ((pG->Debug_flg[2] & 0x00400000) || (pG->Debug_flg[3] & 0x80000000)) {
+        if (DbgFlagChk(pG, DBG_INF_BULLET) || (DbgFlagChk(pG, DBG_INF_BULLET2))) {
             if (launcher.rocket == 0) {
                 loadRocket();
             }
@@ -288,7 +288,7 @@ void cObjLauncher::moveFire()
                 launch();
                 if (pG->weapon_type == 2) {
                     loadRocket();
-                } else if ((pG->Debug_flg[2] & 0x00400000) || (pG->Debug_flg[3] & 0x80000000)) {
+                } else if (DbgFlagChk(pG, DBG_INF_BULLET) || (DbgFlagChk(pG, DBG_INF_BULLET2))) {
                     loadRocket();
                 }
             }
@@ -318,7 +318,7 @@ int cObjLauncher::ckBoss()
         partsWorldCalc();
         getMarkerPos(&a, &b);
         PSVECSubtract(&b, &a, &a);
-        BitOn(pG->System_flg, 0x400);
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SND_BIT_SET(&pG->Room_flg[0], (u32) pPL->m_pBossRmf);
         return 1;
     }
@@ -343,7 +343,7 @@ void cObjLauncher::launch()
     launcher.rocket = 0;
     EstSet((int) this, -1, 0, 0, 0x47, 0, 0, 10, 0, 0);
     SndCall(2, 0, &pos, 0, 0, 0);
-    pG->Status_flg[0] |= 0x00800000;
+    StaFlagOn(pG, STA_PL_FIRE);
 }
 
 // wep.mode 5 (drop): the launcher is thrown away once.

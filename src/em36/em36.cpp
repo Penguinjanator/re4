@@ -1532,7 +1532,7 @@ static void em36_R1_SpineAtk(cEm36* em)
 // variant at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
 static void plem36_Stamp(cPlayer* pl)
 {
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -1583,7 +1583,7 @@ static void subem36_Stamp()
 
     sub->subArc = sub->pEmCatch->subArc;
     sub->dmg.m_Timer = 2;
-    pG->Status_flg[2] |= 0x20000000;
+    StaFlagOn(pG, STA_SUB_CATCHED);
     step = sub->r_no_2;
     switch (step) {
     case 0:
@@ -1824,7 +1824,7 @@ static void plem36_CatchHit(cPlayer* pl)
 {
     u8 step;
 
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     step = pl->r_no_2;
@@ -2020,7 +2020,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
 // the enemy's motion while it stays in 1/0xD, 2/3 the death bite, 4/5 the throw-off.
 static void plem36_LongCatchHit(cPlayer* pl)
 {
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -2112,7 +2112,7 @@ static void plem36_SpineCatchHit(cPlayer* pl)
 {
     u8 step;
 
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     step = pl->r_no_2;
@@ -2735,7 +2735,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
 // blood effect, 4/5 the throw-off; ends with the motion.
 static void plem36_D_CatchHit(cPlayer* pl)
 {
-    BitOn(pG->Status_flg[1], 0x8000);
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {

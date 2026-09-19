@@ -30,7 +30,7 @@ void R30eInit()
 #line 30 "D:/Bio4/Prog/r30e.cpp"
     r30e_work = (R30eWork*) MEM_CALLOC(sizeof(R30eWork), 1, 0xd);
     r30e_checkEmSet();
-    if (!(pG->Item_flg[0] & 0x40)) {
+    if (!ItfFlagChk(pG, ITF_19)) {
         SceExec(0x12, (TaskFunc) r30e_checkBgm, 0, 0, 2, 0);
     } else {
         SceExec(0x12, (TaskFunc) r30e_checkBgm2, 0, 0, 2, 0);
@@ -49,7 +49,7 @@ static void r30e_checkEmSet()
     u8 set[6] = {0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B};
     u32 i;
 
-    if (pGS->Item_flg[0] & 0x40) {
+    if (ItfFlagChk(pGS, ITF_19)) {
         for (i = 0; i < 6; i++) {
             EmListSetAlive(dead[i], 0);
         }

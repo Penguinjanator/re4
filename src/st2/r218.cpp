@@ -216,7 +216,7 @@ static void r218_checkClawManDead()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 0);
-    pG->Scenario_flg[3] |= 0x20;
+    ScfFlagOn(pG, SCF_7a);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(2, 0);
     snd = 0;
@@ -269,7 +269,7 @@ static void r218_appearClawMan_end()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExec(0x12, (TaskFunc) r218_checkClawManDead, 0, 0, SCE_PRIO_DEF_2, 0);
-    pG->Scenario_flg[3] &= ~0x20;
+    ScfFlagOff(pG, SCF_7a);
 }
 
 // The two cages drop when the player enters area 3.

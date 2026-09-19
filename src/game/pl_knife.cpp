@@ -410,7 +410,7 @@ void knife_r2_down(cPlayer* pl)
 
     func_tbl[pl->r_no_3](pl);
     FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
-    BitOn(pG->Status_flg[0], 0x2000000);
+    StaFlagOn(pG, STA_SSCRN_ENABLE);
     pl->checkCtrl();
 }
 

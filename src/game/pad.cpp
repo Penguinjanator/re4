@@ -43,9 +43,9 @@ u32 ConnectedBits;
 // with the preceding Key stores (KeyClear).
 #define KeyStopFlagClear()                          \
     do {                                            \
-        BitOff(pG->Status_flg[0], 0x4000);             \
-        BitOff(pG->Status_flg[0], 0x40000000);         \
-        BitOff(pG->Status_flg[0], 0x20000000);         \
+        StaFlagOff(pG, STA_PL_ACTION);             \
+        StaFlagOff(pG, STA_PL_CHECK);         \
+        StaFlagOff(pG, STA_PL_CHECK2);         \
     } while (0)
 
 // Boot: PAD library init, reset of all four channels, analog mode 3, no rumble.
@@ -272,7 +272,7 @@ void PadRead()
         }
     }
 
-    if (!(pG->Stop_flg & 0x80000000)) {
+    if (!SpfFlagChk(pG, SPF_KEY)) {
         Key.stickX = Joy[0].stickX;
         Key.stickY = Joy[0].stickY;
         Key.substickX = Joy[0].substickX;
@@ -285,7 +285,7 @@ void PadRead()
     Key.analogA = 0;
     Key.analogB = 0;
     Pad_test();
-    if (pG->Stop_flg & 0x10000000) {
+    if (SpfFlagChk(pG, SPF_PL)) {
         KeyStopFlagClear();
     }
     VibControl();
@@ -294,7 +294,7 @@ void PadRead()
 // Blocks all keys except `mask` until the stop flag is cleared (Stop_flg bit31) — events / menus.
 void KeyStop(u64 mask)
 {
-    BitOn(pG->Stop_flg, 0x80000000);
+    SpfFlagOn(pG, SPF_KEY);
     KeyClear(mask);
 }
 
@@ -354,7 +354,7 @@ void VibControl()
     } else {
         Joy[0].motor_state = 0;
     }
-    if ((pG->Stop_flg & 0x8000) && old == 1) {
+    if (SpfFlagChk(pG, SPF_VIBRATION) && old == 1) {
         Joy[0].motor_state = 2;
         PADControlMotor(0, 2);
         Vib_level = 0;
@@ -447,7 +447,7 @@ void VibSetClearType(u32 type)
 // 1 when the pad is connected and System_flg bit3 (pad ignore) is off.
 int PadCheckStatus(JOY* joy)
 {
-    if (pG->System_flg & 8) {
+    if (SysFlagChk(pG, SYS_PUBLICITY_VER)) {
         return 0;
     }
     return joy->err == 0;

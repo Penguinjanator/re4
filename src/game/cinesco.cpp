@@ -27,7 +27,7 @@ void CinescoMove(void)
         cine_off_move,
     };
 
-    pG->Status_flg[0] |= 0x1000000;
+    StaFlagOn(pG, STA_CINESCO);
     cine_tbl[cine_work.rno0](&cine_work);
 }
 

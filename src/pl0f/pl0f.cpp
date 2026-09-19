@@ -1910,7 +1910,7 @@ static void PlBoatMove(cPlayer* pl)
         pLog->err(0, 0, "PlBoatMove(): m_pBoat == NULL!");
         return;
     }
-    pG->Status_flg[1] |= 0x00200000;
+    StaFlagOn(pG, STA_PL_BOAT);
     PlSetNeck(2);
     pl->atari.m_flag &= 0xFCFF;
     pl->dmg.m_Timer = 0x1E;
@@ -2268,7 +2268,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
             pl->m_Work3--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
         } else {
-            pG->Status_flg[1] |= 0x00800000;
+            StaFlagOn(pG, STA_PL_SPEAR_SET);
             pl0fBossCamMove(PL_BOAT(pl), 1);
         }
     }
@@ -2310,7 +2310,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
         }
         break;
     }
-    pG->Status_flg[1] |= 0x00800000;
+    StaFlagOn(pG, STA_PL_SPEAR_SET);
     if (pl->m_pBoat) {
         pl0fBossCamMove(PL_BOAT(pl), 1);
     }
@@ -2393,7 +2393,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
             pl->m_Work3--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
         } else {
-            pG->Status_flg[1] |= 0x00800000;
+            StaFlagOn(pG, STA_PL_SPEAR_SET);
             pl0fHideModeCamMove(pl);
         }
     }
@@ -2425,7 +2425,7 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
         }
         break;
     }
-    pG->Status_flg[1] |= 0x00800000;
+    StaFlagOn(pG, STA_PL_SPEAR_SET);
     pl0fHideModeCamMove(pl);
 }
 
@@ -2506,7 +2506,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
 
-    pG->Status_flg[1] |= 0x00400000;
+    StaFlagOn(pG, STA_PL_SWIM);
     switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PLARC(0x20), 0, 3, 1, 0);
@@ -2603,7 +2603,7 @@ static void plboat_R2_Swim(cPlayer* pl)
     // `li` next to the x3E4 store (shortest qty -> r9 before the pG pointer) and the store's source
     // crosses the calls, so it gets the TRUE store->call link and is issued first (source order).
     one = 1;
-    pG->Status_flg[1] |= 0x00400000;
+    StaFlagOn(pG, STA_PL_SWIM);
     switch (pl->r_no_3) {
     case 0:
         pl->ang.x = 0.0f;
@@ -2612,7 +2612,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         EffectEspDelete(0, 0x34, (u32) pl, 0);
         EffectEspgenDelete(0, 0x34, (int) pl);
         EffectEfmDelete(0, 0x34, (int) pl);
-        pG->Status_flg[1] &= ~0x00100000;
+        StaFlagOff(pG, STA_WATER_CAMERA);
         pl->m_Work1 = one;
         pl->m_Work0 = 0;
         pl->m_Work4 = 0;
@@ -2624,7 +2624,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             pl00SetChaseCam(pl);
             pl->m_Work3 = 90;
             EstSet(0, -1, 0, 0, 0xF, 0xE, 0, 0x34, (u32) pl, (void*) first);
-            pG->Status_flg[1] |= 0x00100000;
+            StaFlagOn(pG, STA_WATER_CAMERA);
         }
         MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) PLARC(0x15), 5, 5, 0);
         pl->m_VecWork0.x = 0.0f;
@@ -2752,7 +2752,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             EffectEspDelete(0, 0x34, (u32) pl, 0);
             EffectEspgenDelete(0, 0x34, (int) pl);
             EffectEfmDelete(0, 0x34, (int) pl);
-            pG->Status_flg[1] &= ~0x00100000;
+            StaFlagOff(pG, STA_WATER_CAMERA);
         }
     }
     if (pl->m_Work3) {
@@ -3089,7 +3089,7 @@ void pl00SwimCamMove(cPlayer* pl)
     Vec pos;
     Vec at;
 
-    BitOn(pG->Status_flg[1], 0x00080000);
+    StaFlagOn(pG, STA_PL_SWIM_CAMERA);
     if ((s16) pG->pl_life <= 0) {
         cEm* boss;
 
@@ -3139,7 +3139,7 @@ void pl00ChaseCamMove(cPlayer* pl)
 {
     Vec d;
 
-    pG->Status_flg[1] |= 0x00080000;
+    StaFlagOn(pG, STA_PL_SWIM_CAMERA);
     pl0f_camera.param.at = pl->pos;
     PSVECSubtract(&pl0f_camera.param.at, &pl0f_camera.param.pos, &d);
     d.y = 0.0f;
@@ -3181,7 +3181,7 @@ void pl00DieCamMove(cPlayer* pl)
     Vec v;
     cModel* p;
 
-    BitOn(pG->Status_flg[1], 0x00080000);   // reference store: the pPL load stays below it
+    StaFlagOn(pG, STA_PL_SWIM_CAMERA);   // reference store: the pPL load stays below it
     p = pPL->getPartsPtr(0);
     pl0f_camera.param.pos = p->world;
     pl0f_camera.param.at = p->world;
@@ -3245,13 +3245,13 @@ void pl00DropCamMove(cPlayer* pl)
     pl00_drop_camera.up.z = 0.0f;
     CAM_SET(pl00_drop_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl00_drop_camera;
-    pG->Status_flg[1] &= ~0x00100000;
+    StaFlagOff(pG, STA_WATER_CAMERA);
     if (GetWaterHeight(&at, &h)) {
         switch (pl->m_Work3) {
         case 0:
             if (h > at.y) {
                 EstSet(0, -1, 0, 0, 0xF, 0xA, 0, 0x34, (u32) pl, 0);
-                pG->Status_flg[1] |= 0x00100000;
+                StaFlagOn(pG, STA_WATER_CAMERA);
                 pl->m_Work4 = 10;
                 pl->m_Work3++;
             }
@@ -3260,19 +3260,19 @@ void pl00DropCamMove(cPlayer* pl)
             if (pl->m_Work4) {
                 pl->m_Work4--;
             } else {
-                pG->Status_flg[1] |= 0x00100000;
+                StaFlagOn(pG, STA_WATER_CAMERA);
                 if (h <= at.y - 300.0f) {
                     pl->m_Work3++;
                 }
             }
             break;
         case 2:
-            pG->Status_flg[1] |= 0x00100000;
+            StaFlagOn(pG, STA_WATER_CAMERA);
             if (h <= at.y) {
                 EffectEspDelete(0, 0x34, (u32) pl, 0);
                 EffectEspgenDelete(0, 0x34, (int) pl);
                 EffectEfmDelete(0, 0x34, (int) pl);
-                pG->Status_flg[1] &= ~0x00100000;
+                StaFlagOff(pG, STA_WATER_CAMERA);
                 pl->m_Work3++;
             }
             break;

@@ -348,7 +348,7 @@ static void r20d_checkDoor()
     if (!(pG->Key_flg[0] & 0x00200000)) {
         SceAtExecute(0x10);
     } else {
-        pG->Scenario_flg[1] |= 0x02000000;
+        ScfFlagOn(pG, SCF_R20D_END_OF_ASHLEY_PLAY);
         PlSelect(0);
         SceAtExecute(0x10);
     }
@@ -358,7 +358,7 @@ static void r20d_checkDoor()
 static void r20d_setEm()
 {
     SceSleep(1);
-    if (pG->Item_flg[0] & 0x4000) {
+    if (ItfFlagChk(pG, ITF_11)) {
         SceDestroyEm(0x10, 0x20);
         SceExit();
     }
@@ -782,7 +782,7 @@ void r20d_checkPictureCombination()
 {
     SceExec(0x12, (TaskFunc) r20d_moveWall, 0, 0, SCE_PRIO_DEF_2, 0);
     RsfSet(G_ROOM_ID, 2);
-    pG->Scenario_flg[3] |= 4;
+    ScfFlagOn(pG, SCF_7d);
     SceAtSetEnable(0xD, 0);
 }
 

@@ -431,7 +431,7 @@ void em2dDmCk(cEm2d* em)
         return;
     }
     em->dmg.m_Flag = 0;
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmg.m_Timer = 1;
@@ -1733,7 +1733,7 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
 // Player damage routine of the critical bite: the head comes off (em2dPlHeadLost), routine held.
 static void plem2d_CriticalHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     switch (pl->r_no_2) {
     case 0:
@@ -1988,7 +1988,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
 {
     int fe;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
@@ -2235,7 +2235,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
 {
     int t;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -2361,7 +2361,7 @@ static void plem2dKick(cPlayer* pl)
 
     pl->subArc = pl->pEmCatch->subArc;
     pl->dmg.set(0, 30);
-    pG->Status_flg[2] |= 0x40000000;
+    StaFlagOn(pG, STA_PL_EM_ACTION);
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x60), 0, 6, 1, 5);
@@ -3822,7 +3822,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
 {
     int fe;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pl->pEmCatch->subArc;
     fe = pl->r_no_2;
@@ -4772,7 +4772,7 @@ void em2dRouteCk(cEm2d* em)
             w->targetAngAbs = 0.0f;
         }
     }
-    if (pG->Debug_flg[0] & 0x4000) {
+    if (DbgFlagChk(pG, DBG_RTP_DISP)) {
         a = em->pos;
         a.y += 250.0f;
         Draw_line3d(&a, &w->targetPos, 0xFFFFFF40, 0);

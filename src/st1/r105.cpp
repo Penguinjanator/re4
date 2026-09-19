@@ -195,7 +195,7 @@ void R105Main()
     cEm* door;
 
     getRoomEtcDoor(1, &door, 1);
-    if ((pG->Item_flg[0] & 0x20000000) && !(pG->Room_flg[0] & 0x40000000)) {
+    if (ItfFlagChk(pG, ITF_02) && !(pG->Room_flg[0] & 0x40000000)) {
         BitOn(pG->Room_flg[0], 0x40000000);
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);
@@ -570,7 +570,7 @@ static void r105_Event()
         SndRoomStrStop(0);
         EvtMgr.EvtReadExec("event/evd/r105s00.evd", 0x15, 0x10);
         EvtMgr.EvtReadAram("event/evd/r105s10.evd", 0x15, 0, 0, 0);
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(2);
         r105_EmSet();
     } else {
@@ -582,7 +582,7 @@ static void r105_Event()
             ((cEmDoor*) door)->setNormal();
         }
     }
-    pG->System_flg &= ~0x400;
+    SysFlagOff(pG, SYS_SCREEN_STOP);
     SceEventEnd(0);
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
         SceSetChapterEnd(CHAPTER_1_2, -1);
@@ -667,7 +667,7 @@ static void r105_checkDoor()
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     BitOn(pG->Key_flg[0], 0x02000000);
-    pG->Scenario_flg[4] |= 0x8000;
+    ScfFlagOn(pG, SCF_90);
     CamCtrl.Comeback(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

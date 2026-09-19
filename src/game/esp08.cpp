@@ -658,7 +658,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     ESP08_TEXCOORD_SET()
     if (ESP_PARTS_SCREEN(esp)) {
         ofs = 56.0f;
-    } else if (pG->System_flg & 0x800) {
+    } else if (SysFlagChk(pG, SYS_SCISSOR_ON)) {
         ofs = 56.0f;
     } else {
         ofs = 0.0f;
@@ -694,7 +694,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
         f32 fovy = pG->Cam.param.fovy;
-        if (pG->System_flg & 0x800) {
+        if (SysFlagChk(pG, SYS_SCISSOR_ON)) {
             C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         } else {
             C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);

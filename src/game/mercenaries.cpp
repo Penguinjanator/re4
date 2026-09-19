@@ -674,13 +674,13 @@ int MercSysResultMove(MercSysWork* wk)
                     MercSysResultInit(wk);
                     disp_bak = pG->Disp_flg;
                     BitSet(pG->Disp_flg, 0xFFFFFFFF);
-                    BitOff(pG->Disp_flg, 0x2000);
-                    BitOff(pG->Disp_flg, 0x800);
-                    BitOff(pG->Disp_flg, 0x10000);
+                    DpfFlagOff(pG, DPF_ID_SYSTEM);
+                    DpfFlagOff(pG, DPF_MESSAGE);
+                    DpfFlagOff(pG, DPF_COCKPIT);
                     stop_bak = pG->Stop_flg;
                     BitSet(pG->Stop_flg, 0xFFFFFFFF);
-                    BitOff(pG->Stop_flg, 0x00800000);
-                    BitOff(pG->Stop_flg, 0x40);
+                    SpfFlagOff(pG, SPF_SCE);
+                    SpfFlagOff(pG, SPF_ID_SYSTEM);
                     rs->cnt = 0;
                     rs->step++;
                 }
@@ -724,7 +724,7 @@ int MercSysResultMove(MercSysWork* wk)
         SceSleep(1);
         FadeSetW(2, 0, 0, 0);
         CardSysSave();
-        pG->System_flg |= 0x04000000;
+        SysFlagOn(pG, SYS_SOFT_RESET);
         CamCtrl.Comeback(0);
         SceEventEnd(0);
     }
@@ -816,7 +816,7 @@ int MercSysSetPoint(int kind, int pt)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->System_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
     if (kind == 9) {
@@ -861,7 +861,7 @@ int MercSysSetAddTime(int sec)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->System_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
     wk->addTime += sec;
@@ -878,7 +878,7 @@ int MercSysSetBonusTime(int frames)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->System_flg & 0x40000000)) {
+    if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
     if (wk->bonusTimer == 0) {

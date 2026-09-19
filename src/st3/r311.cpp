@@ -114,7 +114,7 @@ void R311Init()
 #line 62 "D:/Bio4/Prog/r311.cpp"
     wp = (R311Work*) MEM_CALLOC(sizeof(R311Work), 1, 0xd);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
-    pG->Status_flg[3] |= 0x04000000;
+    StaFlagOn(pG, STA_SUB_ASHLEY);
     EatMgr.registEffInfo(2, (AtEffInfo*) &r311_effInfo);
     SceExec(0x12, (TaskFunc) r311_checkEmReset, 0, 0, 2, 0);
     r311_initEmDoor();

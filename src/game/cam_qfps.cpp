@@ -549,7 +549,7 @@ void CameraQuasiFPS::checkCameraType()
         }
     }
     blend_dst = trans_tbl[m_trans_type];
-    if (pGS->Debug_flg[1] & 0x20000000) {
+    if (DbgFlagChk(pGS, DBG_ADJUST_CAM)) {
         blend_dst = g_transOfs[5];
     }
     switch (m_trans_type) {
@@ -630,7 +630,7 @@ void CameraQuasiFPS::checkCameraType()
         break;
     }
     blend_src = ready_tbl[m_ready_type];
-    if (pGS->Debug_flg[1] & 0x20000000) {
+    if (DbgFlagChk(pGS, DBG_ADJUST_CAM)) {
         blend_src = g_readyOfs[14];
     }
 }
@@ -1234,7 +1234,7 @@ void CameraQuasiFPS::move()
 
     checkCameraType();
     calcBaseMatrix(m);
-    if (!(pG->Debug_flg[1] & 0x20000000)) {
+    if (!DbgFlagChk(pG, DBG_ADJUST_CAM)) {
         m_site = checkFBLR();
     }
     switch (m_site) {
@@ -1255,7 +1255,7 @@ void CameraQuasiFPS::move()
         old = g_transOfs[6][1];
         break;
     }
-    if (!(pG->Debug_flg[1] & 0x20000000)) {
+    if (!DbgFlagChk(pG, DBG_ADJUST_CAM)) {
         calcDepressionRatio();
     }
     calcOffset(&ofs);

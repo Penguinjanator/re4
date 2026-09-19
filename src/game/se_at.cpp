@@ -41,10 +41,10 @@ void SeAtCheck()
     Vec* pos;
     int i;
 
-    if (pG->Stop_flg & 0x800) {
+    if (SpfFlagChk(pG, SPF_SE)) {
         return;
     }
-    if ((pG->Debug_flg[0] & 0x80000000) && DebugMenuSelected != 0x18) {
+    if (DbgFlagChk(pG, DBG_TEST_MODE) && DebugMenuSelected != 0x18) {
         return;
     }
     if (pG->Rno0 != 3) {

@@ -101,7 +101,7 @@ void cObjShotgun::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         // the EstSet stack zeros come from an SImode pseudo set after the SndCall (wep44)
         int type = 0;
-        pG->Status_flg[0] |= 0x00800000;
+        StaFlagOn(pG, STA_PL_FIRE);
         EstSet((int) this, -1, 0, 0, 0x3B, type, 0, 0xA, 0, 0);
         wep.step = 1;
     } else {

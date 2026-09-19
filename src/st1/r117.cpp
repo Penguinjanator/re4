@@ -171,7 +171,7 @@ void R117Init()
         EvtMgr.SetFunc("evt_r117s10_func", (void*) Evt_R117S10_Func);
         W->mod = SearchEmModule(3);
     } else {
-        if (!(pG->System_flg & 0x100) && pG->Part == 0) {
+        if (!SysFlagChk(pG, SYS_LOAD_GAME) && pG->Part == 0) {
             setEm(0x50, -1, 0, 1, 0);
             setEm(0x51, -1, 0, 1, 0);
         }
@@ -384,19 +384,19 @@ static void r117_EventAshleyFind()
 {
     cEm* door;
 
-    BitOn(pG->Scenario_flg[0], 0x00100000);
-    BitOff(pG->Scenario_flg[4], 0x8000);
+    ScfFlagOn(pG, SCF_R117_ASHLEY_FIND);
+    ScfFlagOff(pG, SCF_90);
     if (W->evd0->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         EvtMgr.SetEvt(W->mod->pArc, (u32*) 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
-        pG->System_flg |= 0x400;
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         W->evd0->setCommand(CMND_DEL_DATA, 0, 0);
     }
-    BitOn(pG->Status_flg[3], 0x04000000);
+    StaFlagOn(pG, STA_SUB_ASHLEY);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_BEHIND, 0);
     SceSleep(2);
@@ -423,9 +423,9 @@ static void r117_EventSaddlerAppear()
     Event* ev;
 
     SceEventStart(0);
-    BitOn(pG->System_flg, 0x400);
+    SysFlagOn(pG, SYS_SCREEN_STOP);
     EmMgr.destroy(pSUB);
-    pG->Status_flg[3] &= ~0x04000000;
+    StaFlagOff(pG, STA_SUB_ASHLEY);
     SceSleep(3);
     if (W->evd1->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
@@ -445,7 +445,7 @@ static void r117_EventSaddlerAppear()
     EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, (u32) zero, zero);
     SceEventEnd(0);
     f32 ry = -0.46134f;
-    BitOn(pG->Status_flg[3], 0x04000000);
+    StaFlagOn(pG, STA_SUB_ASHLEY);
     cPlayer* pl = pPL;
     Vec* pp = &pos;
     pl->setPos(pp);

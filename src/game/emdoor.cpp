@@ -3055,7 +3055,7 @@ void emDoorAction2(cEmDoor* em)
 // The bell position marks where the door was kicked / opened (pG->bell_pos).
 static inline void emDoorBellSet(Vec* pos)
 {
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec));
     pG->bell_stat = 0;
 }

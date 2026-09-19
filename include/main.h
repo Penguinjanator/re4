@@ -6,26 +6,27 @@
 
 // game/main.cpp globals that are not part of GlobalWork.
 
-// Persistent system settings (pRK).
-struct RK {
-    u8 pad_0[0x10];
-    u8 valid;         // 0x10  1 = filled by systemResetCommon (main.cpp restores pSys/pG from it)
-    u8 progressive;   // 0x11  progressive scan on
-    u8 tv_mode_done;  // 0x12  TV mode prompt already handled
-    u8 brightness;    // 0x13  pSys->brightness (0x40 when unset)
-    u8 language;      // 0x14  pSys->language
-    u8 region;        // 0x15  pSys->region
-    u8 game_language; // 0x16  pG->language
-    u8 title_shown;   // 0x17  1 once the title menu has been shown (title: skips the logos on the next visit)
-    u32 sys_flags;    // 0x18  pSys->flags
-    u32 g_flags_54;   // 0x1C  pG->flags_54 (bits 31/30 restored)
-    u32 sys_unlock_flg;  // 0x20  pSys->unlock_flg
-    u32 sys_merc_stage[4];  // 0x24  pSys->merc_stage[]
-    u32 sys_merc_rank[2];   // 0x34  pSys->merc_rank[]
-    u32 card_checked; // 0x3C  pG->CardStatus >> 31 (first card check done; card.cpp)
+// Persistent system settings (pRK), kept across a soft reset: systemResetCommon fills it and main.cpp
+// restores pSys and pG from it on the next boot.
+struct RESET_KEEP_WORK {
+    char head[0x10];          // 0x00
+    u8 reset_flag;            // 0x10  1 = filled by systemResetCommon
+    u8 tv_mode;               // 0x11  progressive scan on
+    u8 tv_mode_select;        // 0x12  TV mode prompt already handled
+    u8 base_brightness;       // 0x13  pSys->brightness (0x40 when unset)
+    u8 language;              // 0x14  pSys->language
+    u8 eff_country;           // 0x15  pSys->region
+    u8 game_country;          // 0x16  pG->language
+    u8 logo_skip_enable;      // 0x17  1 once the title menu has been shown (title: skips the logos on the next visit)
+    u32 Config_flg;           // 0x18  pSys->flags
+    u32 System_flg;           // 0x1C  pG->System_flg, of which the two SYS_OMAKE bits are restored
+    u32 Extra_flg;            // 0x20  pSys->unlock_flg
+    u32 MercSysRoom[4];       // 0x24  pSys->merc_stage[]
+    u32 MercSysRank[2];       // 0x34  pSys->merc_rank[]
+    u32 MemcardCheckDone;     // 0x3C  pG->CardStatus >> 31 (first card check done; card.cpp)
 };
 
-extern RK* pRK;
+extern RESET_KEEP_WORK* pRK;
 
 // Logical key state (main.cpp `Key`, 0xB8 bytes), built from Joy[0] by pad.cpp PadRead through
 // Key_type_tbl. 64 logical keys, one bit each.

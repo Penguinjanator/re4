@@ -218,7 +218,7 @@ void StageSet()
         MemSetCurrentHeap(2);
         cMes.stageInit();
         if (pG->stage_no == 1) {
-            pG->Scenario_flg[0] |= 0x4;
+            ScfFlagOn(pG, SCF_ST1_MAP_DAY);
         }
         TaskSleep(1);
     }
@@ -248,8 +248,8 @@ void readEmList(int mode)
     no = checkEmListNo(G_ROOM_ID);
     if (no >= 0) {
         GlobalWork* g = pG;
-        if (no > g->em_list_no || (g->System_flg & 0x2000) || g->SaveKind == 3 ||
-            ((g->Debug_flg[2] & 0x80000000) && g->em_list_no != no)) {
+        if (no > g->em_list_no || (SysFlagChk(g, SYS_NEW_GAME)) || g->SaveKind == 3 ||
+            (DbgFlagChk(g, DBG_ROOMJMP) && g->em_list_no != no)) {
             name = getEmListName(no);
             pG->em_list_no = no;
         }
@@ -364,13 +364,13 @@ void subMissionSt1()
         timer = 150;
         SetFree(0, count);
         if (count == 10) {
-            pG->Scenario_flg[0] |= 0x40000;
+            ScfFlagOn(pG, SCF_ST1_SUB_MISSION);
             timer = 450;
             stockDataAdd(&merchantData, stock_1st_mission);
-            pG->Status_flg[2] &= ~0x40000;
+            StaFlagOff(pG, STA_INTO_SHOP);
         }
         if (count == 15) {
-            pG->Scenario_flg[1] |= 0x8000;
+            ScfFlagOn(pG, SCF_R119_DOOR_CLOSE);
         }
         int n = 0;
         int base = 0;

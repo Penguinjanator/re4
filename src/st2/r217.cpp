@@ -330,7 +330,7 @@ static void r217_2nd_set()
         e->setAng(pa);
         SceSleep(1);
     }
-    pG->Status_flg[1] &= ~0x10000000;
+    StaFlagOff(pG, STA_SUSPEND);
     pPLS->dmg.set(0, 0x80);
     for (u32 i = 8; i < 10; i++) {
         r217_work.p->em[i].setFlag(1);
@@ -420,7 +420,7 @@ static void r217_Puzzle_exit()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     if (ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
-        pG->Scenario_flg[3] |= 0x40;
+        ScfFlagOn(pG, SCF_79);
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->pos.y = 6790.0f;
         SceAtDataReset(1);
@@ -490,7 +490,7 @@ static void r217_Puzzle()
         SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SmdGetObjPtr(0x88)->pParts->ang.x = 0.0f;
     } else {
-        pG->Scenario_flg[1] |= 0x40000000;
+        ScfFlagOn(pG, SCF_R217_PUZZLE_CLEAR);
         SceSetEventCancel(1, (TaskFunc) r217_Puzzle_exit, 0, -1, 1);
         CamCtrl.CutCall(7);
         SceSleep(5);

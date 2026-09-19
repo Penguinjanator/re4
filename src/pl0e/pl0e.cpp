@@ -843,7 +843,7 @@ static void PlBoatMove(cPlayer* pl)
         return;
     }
     SubScreenWait(0xF);
-    pG->Status_flg[1] |= 0x00200000;
+    StaFlagOn(pG, STA_PL_BOAT);
     PlSetNeck(2);
     pl->atari.m_flag &= 0xFCFF;
     pl->dmg.m_Timer = 0x1E;

@@ -281,22 +281,22 @@ void emWepDmCk(cEmWep* em)
         if (w->effDamage[0] != 0xFF && w->effDamage[1] != 0xFF) {
             EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
         }
-        BitOn(pG->Status_flg[1], 0x20000);
+        StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         break;
     case 7:
-        BitOn(pG->Status_flg[1], 0x20000);
+        StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         emWepArrowBomb(em);
         break;
     case 8:
-        BitOn(pG->Status_flg[1], 0x20000);
+        StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         emWepRocketBobm(em);
         break;
     case 9:
         stat = 1;
-        BitOn(pG->Status_flg[1], 0x20000);
+        StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         r.x = 0.0f;
         r.y = GetXZAngle(&em->pos, &pG->Cam.param.pos);
@@ -305,27 +305,27 @@ void emWepDmCk(cEmWep* em)
         if (w->pEm_old) {
             SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
         }
-        BitOn(pG->Status_flg[0], 0x800000);
+        StaFlagOn(pG, STA_PL_FIRE);
         p = em->pos;
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = stat;
         em->setLost();
         break;
     case 0xC:
-        BitOn(pG->Status_flg[1], 0x20000);
+        StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
         EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
         one = 1;
         SndCall(one, 0x14, &em->pos, 0, 0, em);
-        BitOn(pG->Status_flg[0], 0x800000);
+        StaFlagOn(pG, STA_PL_FIRE);
         p = em->pos;
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = one;
         em->setLost();
@@ -1276,11 +1276,11 @@ void emWepRocketBobm(cEmWep* em)
     if (w->pEm_old) {
         SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
     }
-    BitOn(pG->Status_flg[0], 0x800000);
+    StaFlagOn(pG, STA_PL_FIRE);
     pos = em->pos_old;
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos_old, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
@@ -1300,11 +1300,11 @@ void emWepArrowBomb(cEmWep* em)
     EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
     em->hp = 0;
     SndCall(8, 0x15, &em->pos, 0x39, 0, em);
-    BitOn(pG->Status_flg[0], 0x800000);
+    StaFlagOn(pG, STA_PL_FIRE);
     pos = em->pos;
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-    BitOn(pG->Status_flg[1], 0x20000000);
+    StaFlagOn(pG, STA_SE_BURST);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
@@ -1363,11 +1363,11 @@ void emWep_R1_BombThrow(cEmWep* em)
         if (w->pEm_old) {
             SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
         }
-        BitOn(pG->Status_flg[0], 0x800000);
+        StaFlagOn(pG, STA_PL_FIRE);
         pos = em->pos;
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();
@@ -1564,11 +1564,11 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
         em->hp = 0;
         SndCall(1, 0x14, &em->pos, 0, 0, em);
-        BitOn(pG->Status_flg[0], 0x800000);
+        StaFlagOn(pG, STA_PL_FIRE);
         pos = em->pos;
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-        BitOn(pG->Status_flg[1], 0x20000000);
+        StaFlagOn(pG, STA_SE_BURST);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();

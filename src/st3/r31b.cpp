@@ -122,10 +122,6 @@ u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
 cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
 
-// The door lock bits (pG->Key_flg) like flag_rsf.h RsfFlagWord: the word base is a pointer
-// formed before the index is added (`addi 0x51dc` then `lwzx`).
-static inline u32* DoorUnlockFlags() { return (u32*) ((u8*) pG + 0x51DC); }
-static inline u32* DoorUnlockWord(int no) { return (u32*) ((((u32) no >> 5) << 2) + (u32) DoorUnlockFlags()); }
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
@@ -460,7 +456,7 @@ void R31bMain()
         }
         R31bLightAllOn();
         LightMgr.update(0x21, -1);
-        BitOn(pG->Status_flg[2], 0x00400000);
+        StaFlagOn(pG, STA_LIT_NO_UPDATE);
     }
     r31b_plParts = pPL->getPartsPtr(0xA);
     if (RsfCheck(G_ROOM_ID, 0xB) == 0 && RsfCheck(G_ROOM_ID, 0xC)) {
@@ -519,7 +515,7 @@ static void R31bExecEventS00()
             pPL->setAng(&ang);
         }
         SceEventEnd(0);
-        BitOn(pG->Scenario_flg[2], 0x4000);
+        ScfFlagOn(pG, SCF_51);
         GamePointBossReset();
         r31b_work.p->em.setEm(0x14, -1, 0, 1, 1);
         em = r31b_work.p->em.getPtr();
@@ -704,7 +700,7 @@ void R31bExecSwitchEndSub(int no, int room, int flagNo, int count, int emMode, i
     if (room == 2 && opened != 0) {
         R31bLightAllOn();
         LightMgr.update(0x21, -1);
-        BitOn(pG->Status_flg[2], 0x00400000);
+        StaFlagOn(pG, STA_LIT_NO_UPDATE);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -923,7 +919,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
             cObj* obj1;
 
             RsfSet(G_ROOM_ID, flagDoor);
-            *DoorUnlockWord(doorFlag) |= 0x80000000 >> (doorFlag & 0x1F);
+            FlagOnVar(&pG->Key_flg, (u32) doorFlag);
             SceAtSetEnable(atNo, 0);
             if (no != 2) {
                 BitOff(pG->Room_flg[0], 0x40000000);
@@ -1274,11 +1270,11 @@ static void R31bExecEscapeMain()
         RsfSet(G_ROOM_ID, 8);
         SceAtSetEnable(0x22, 0);
         BitOff(pG->Room_flg[0], 0x40000000);
-        BitOn(pG->Status_flg[2], 0x02000000);
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(0);
-        BitOn(pG->System_flg, 0x400);
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         U32Set(r31b_work.p->str, SndStrPlayBlock(1, 0x34, 0.0f));
-        BitOff(pG->System_flg, 0x400);
+        SysFlagOff(pG, SYS_SCREEN_STOP);
         SceSetEventCancel(1, (TaskFunc) R31bExecEscapeEnd, 0, -1, 1);
         em = (cEm32*) r31b_work.p->em.getPtr();
         if (em) {
@@ -1373,11 +1369,11 @@ static void R31bExecEscapeEnd()
         SmdSetTrans(r31b_kanaamiTbl[2][i], 0);
     }
     R31bLightAllOn();
-    BitOff(pG->Status_flg[2], 0x00400000);
+    StaFlagOff(pG, STA_LIT_NO_UPDATE);
     FadeSetW(0x80000002, 40, 0, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     GameSaveSave2(&GameSave, pSaveData, -1);
     SceExit();
 }
@@ -1389,7 +1385,7 @@ static void R31bExecRoom01U3Main()
         cObj* obj;
 
         RsfSet(G_ROOM_ID, 0x17);
-        BitOn(pG->Status_flg[2], 0x02000000);
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(0);
         LightMgr.onKind(0x13);
         r31b_work.p->em.setFlag(1);
@@ -1450,7 +1446,7 @@ static void R31bExecRoom01U3End()
     SetPosXYZ(pPL, -1450.0f, 0.0f, 113.0f);
     SetAngXYZ(pPL, 0.0f, -0.48f, 0.0f);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceExit();
 }
 
@@ -1459,7 +1455,7 @@ static void R31bExecRoom02U3Main()
 {
     if (RsfCheck(G_ROOM_ID, 0x1F) == 0) {
         RsfSet(G_ROOM_ID, 0x1F);
-        BitOn(pG->Status_flg[2], 0x02000000);
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(0);
         CamCtrl.CutCall(0x22);
         r31b_work.p->em.setFlag(1);
@@ -1491,7 +1487,7 @@ static void R31bExecRoom02U3End()
     ((cUnitEventView*) pPL)->endEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceExit();
 }
 
@@ -1512,10 +1508,10 @@ static void R31bExecRoom03U3Main()
 
         RsfSet(G_ROOM_ID, 0x1C);
         BitOff(pG->Key_flg[1], 0x01000000);
-        BitOn(pG->Status_flg[2], 0x02000000);
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(0);
-        BitOn(pG->Status_flg[2], 0x00400000);
-        BitOn(pG->System_flg, 0x400);
+        StaFlagOn(pG, STA_LIT_NO_UPDATE);
+        SysFlagOn(pG, SYS_SCREEN_STOP);
         SndRoomStrStart(1, 0, 1);
         U32Set(r31b_work.p->str, SndStrPlayBlock(1, 0x35, 0.0f));
         ((cUnitEventView*) pPL)->beginEvent(0);
@@ -1538,7 +1534,7 @@ static void R31bExecRoom03U3Main()
             zero = em;
         }
         SceSleep(1);
-        BitOff(pG->System_flg, 0x400);
+        SysFlagOff(pG, SYS_SCREEN_STOP);
         SceSetEventCancel(1, (TaskFunc) R31bExecRoom03U3End, 0, -1, 1);
         for (int i = 0; i < 293; i++) {
             SceSleep(1);
@@ -1594,9 +1590,9 @@ static void R31bExecRoom03U3End()
     if (em) {
         em->setNext(5);
     }
-    BitOff(pG->Status_flg[2], 0x00400000);
+    StaFlagOff(pG, STA_LIT_NO_UPDATE);
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceExit();
 }
 
@@ -1608,7 +1604,7 @@ static void R31bExecRoom03U3DieMain()
         cObj* obj;
 
         RsfSet(G_ROOM_ID, 0xB);
-        BitOn(pG->Status_flg[2], 0x02000000);
+        StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(0);
         SndRoomStrStop(3);
         r31b_work.p->em.setNoSuspend(1);
@@ -1670,7 +1666,7 @@ void R31bExecRoom03U3DieEnd()
     SetAngXYZ(pPL, 0.0f, -2.718f, 0.0f);
     pPL->matUpdate();
     SceEventEnd(0);
-    BitOff(pG->Status_flg[2], 0x02000000);
+    StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceExit();
 }
 

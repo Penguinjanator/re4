@@ -611,7 +611,7 @@ static void R20bDoorEventMain()
         SceSleep(1);
     }
     SceEventStart(1);
-    BitOn(pG->Scenario_flg[3], 0x400);
+    ScfFlagOn(pG, SCF_75);
     RsfSet(G_ROOM_ID, 1);
     SceAtSetEnable(4, 0);
     SceAtSetEnable(0x19, 0);

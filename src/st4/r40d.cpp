@@ -100,7 +100,7 @@ void R40dInit()
             }
         }
     }
-    if (!(pG->Item_flg[1] & 0x10000000)) {
+    if (!ItfFlagChk(pG, ITF_23)) {
         cModel* m;
 
         SceAtSetEnable(0x81, 1);

@@ -108,7 +108,7 @@ void R113Init()
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
-    pG->Status_flg[1] |= 0x400;
+    StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
     if (!(pG->Key_flg[0] & 0x08000000) && (StaFlagChk(pG, STA_SUB_ASHLEY))) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
@@ -124,7 +124,7 @@ void R113Init()
     SceSetItemEvent(0xA, 0x8B, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf2, 0);
     SceAtDataSet_hide(4, r113_execHide);
     FlrAtSetDefVal(0, 0, 3);
-    if (!(pG->Item_flg[0] & 0x800)) {
+    if (!ItfFlagChk(pG, ITF_14)) {
         U32Set(r113_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r113_work->eff, 0, 0);
         SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);

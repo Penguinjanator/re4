@@ -601,7 +601,7 @@ void plobjLadderClimb(cPlayer* pl)
     f32 fl;
 
     em->subArc = pPL->pEmCatch->subArc;
-    pGS->Status_flg[1] |= 0x00040000;
+    StaFlagOn(pGS, STA_PL_LADDER);
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -814,7 +814,7 @@ void subobjLadderClimb(cEm* pl)
         if (((cSubChar*) em)->subX534) {
             ((cSubChar*) em)->subX534--;
         } else {
-            pG->Status_flg[1] |= 8;
+            StaFlagOn(pG, STA_SUB_LADDER);
         }
         if (em->frame > 8.7f && em->frame < 9.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
@@ -835,7 +835,7 @@ void subobjLadderClimb(cEm* pl)
         MotionSetCore(em, &em->pMotion, w->mot[17], 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        pG->Status_flg[1] |= 8;
+        StaFlagOn(pG, STA_SUB_LADDER);
         if (em->frame > 11.7f && em->frame < 12.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
         }
@@ -863,7 +863,7 @@ void subobjLadderClimb(cEm* pl)
     case 5:
         if (((cSubChar*) em)->subX534) {
             ((cSubChar*) em)->subX534--;
-            pGS->Status_flg[1] |= 8;
+            StaFlagOn(pGS, STA_SUB_LADDER);
         }
         if (obj->getType() == 1) {
             if (em->frame > 11.7f && em->frame < 12.3f) {

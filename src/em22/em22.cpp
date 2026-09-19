@@ -1017,7 +1017,7 @@ static void em22_R1_Escape(cEm22* em)
             em->r_no_2 = 2;
         }
         if (!StaFlagChk(pG, STA_SE_BURST)) {
-            BitOn(pG->Status_flg[1], 0x20000000);
+            StaFlagOn(pG, STA_SE_BURST);
             SET_BELL_POS(&em->pos);
             pG->bell_stat = 0;
         }
@@ -1416,7 +1416,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
 {
     f32 y;
 
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -1584,7 +1584,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
 // per frame; dies with the standard death when hp runs out.
 static void plem22_ParaAtkHit(cPlayer* pl)
 {
-    pG->Status_flg[1] |= 0x8000;
+    StaFlagOn(pG, STA_PL_CATCHED);
     pl->dmg.set(0, 10);
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
@@ -2088,7 +2088,7 @@ void Em22RouteCk(cEm22* em)
         dz = em->pos.z - w->gotoPos.z;
         dx = em->pos.x - w->gotoPos.x;
         w->targetDist2 = dx * dx + dz * dz;
-        if (pGS->Debug_flg[0] & 0x4000) {
+        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
@@ -2098,13 +2098,13 @@ void Em22RouteCk(cEm22* em)
         RouteCkEscEm(em, pPL, &w->routePos);
         w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
-        if (pGS->Debug_flg[0] & 0x4000) {
+        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
         }
     } else {
-        if (pGS->Debug_flg[0] & 0x4000) {
+        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);

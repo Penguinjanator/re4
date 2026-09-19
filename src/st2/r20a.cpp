@@ -174,7 +174,7 @@ static void r20a_CarryOnShoulderEndProc()
     if (r20a_work.p->door) {
         ((cEmDoor*) r20a_work.p->door)->setNormal();
     }
-    pG->Scenario_flg[4] |= 0x40000;
+    ScfFlagOn(pG, SCF_8d);
     SceAtSetEnable(2, 0);
 }
 
@@ -273,6 +273,6 @@ static void r20a_DoorLock()
         while (((cEmDoor*) door)->ckLock()) {
             SceSleep(1);
         }
-        pG->Scenario_flg[4] |= 0x200000;
+        ScfFlagOn(pG, SCF_8a);
     }
 }

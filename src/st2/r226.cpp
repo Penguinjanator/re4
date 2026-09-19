@@ -147,31 +147,6 @@ static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setAng(&v);
 }
 
-// Event flag words (pG->flags_174[]) through an accessor returning the array base (the sce_sys
-// idiom: `addi rB, pG, 0x174; lwzx`).
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
-
-// Test event flag `no` in pG->flags_174.
-static inline u32 evtFlag(u32 no)
-{
-    return eventFlags()[no >> 5] & (0x80000000 >> (no & 31));
-}
-
-// Set event flag `no` in pG->flags_174.
-static inline void evtFlagSet(u32 no)
-{
-    eventFlags()[no >> 5] |= 0x80000000 >> (no & 31);
-}
-
-// Two tests of one flag word stay separate (fold-const merges `(f & A) && !(f & B)`).
-static inline u32 flagBit(u32 f, u32 bit)
-{
-    return f & bit;
-}
-
 // Euclidean distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
@@ -259,8 +234,8 @@ void R226Init()
     }
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) SceElevator, &r226_elvLeave, 1);
     SceAtSetActColor(0, 1);
-    if (!((pG->System_flg & 0x80000) && RsfCheck(G_ROOM_ID, 17))) {
-        if (!(pG->System_flg & 0x100)) {
+    if (!(SysFlagChk(pG, SYS_CONTINUE) && RsfCheck(G_ROOM_ID, 17))) {
+        if (!SysFlagChk(pG, SYS_LOAD_GAME)) {
             if (pG->room_id_prev == 0x225) {
                 SceExec(0x12, (TaskFunc) SceElevator, (int) &r226_elvArrive, 0, SCE_PRIO_DEF_2, 0);
             }
@@ -408,7 +383,7 @@ void R226Init()
     r226_work.p->moveTimer = 0;
     playerRunCamInitBridge();
     U32Set(r226_work.p->str, 0);
-    pG->Scenario_flg[2] |= 0x800000;
+    ScfFlagOn(pG, SCF_48);
 }
 
 // Per frame: after the door opened (Room_flg[1] 0x08000000) and before the bridge (bit 14) a 600-frame
@@ -436,10 +411,10 @@ void R226Main()
         SceExec(0x12, (TaskFunc) R226EventRoboStartMain, 0, 0, SCE_PRIO_DEF_2, 0);
         RsfClear(G_ROOM_ID, 9);
     }
-    if (flagBit(pG->Room_flg[1], 0x80000000) && !flagBit(pG->Room_flg[1], 0x20000000)) {
+    if (FlagChkSign(pG->Room_flg, 32) && !FlagChkSign(pG->Room_flg, 34)) {
         pG->Room_flg[1] |= 0x20000000;
         playerRunDieSet(0, 0);
-    } else if (flagBit(pG->Room_flg[1], 0x40000000) && !flagBit(pG->Room_flg[1], 0x20000000)) {
+    } else if (FlagChkSign(pG->Room_flg, 33) && !FlagChkSign(pG->Room_flg, 34)) {
         pG->Room_flg[1] |= 0x20000000;
         playerRunDieSet(0, 1);
     }
@@ -1235,6 +1210,18 @@ static void playerRunMovePassage(cPlayer* pl)
 }
 
 // SetPlDamage routine: the player runs over the bridge, the pillars fall, the final jump.
+// Two event flag tests in one condition: the pair only reproduces through a call, which orders the
+// base and the pG load the way the original does.  Every other flag site here goes through the
+// FlagChk / FlagOn macros in global.h.
+static inline u32* eventFlags()
+{
+    return &pG->Room_flg[0];
+}
+static inline u32 evtFlag(u32 no)
+{
+    return eventFlags()[no >> 5] & (0x80000000 >> (no & 31));
+}
+
 static void playerRunMoveBridge(cPlayer* pl)
 {
     void* data = ROOM_ARC_PTR(pG->pRoom, 0x2C);
@@ -1283,7 +1270,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         }
         for (i = 0; i < 6; i++) {
             if (evtFlag(smd0[i]) && evtFlag(smd1[i])) {
-                BitOn(pG->Room_flg[1], 0x40000000);
+                FlagOn(&pG->Room_flg, 33);
             }
         }
         MotionMoveF(pl, 0);
@@ -1514,14 +1501,14 @@ extern "C" void playerPillarDownCk__FP8cObjRoboiUlif(cObjRobo* robo, int smdNo, 
 {
     RoboWork* rw = &robo->robo;
 
-    if (!evtFlag(flagNo)) {
+    if (!FlagChkVar(&pG->Room_flg, (u32) flagNo)) {
         cObj* o = SmdGetObjPtr(smdNo);
 
         if (o) {
             if (pPL->pos.x < o->pos.x + dist) {
                 rw->pillar = idx;
                 SceExec(0x12, (TaskFunc) playerPillarDownTask, smdNo, 6, SCE_PRIO_DEF_2, 0);
-                evtFlagSet(flagNo);
+                FlagOnVar(&pG->Room_flg, (u32) flagNo);
             }
         }
     }

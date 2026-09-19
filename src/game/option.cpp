@@ -403,7 +403,7 @@ int retry_load_menu(OptionScreen* o)
                 o->_rno2++;
             }
             o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
-            if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+            if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                 if (o->_rno2 == 1) {
                     if (Key.trg & KEY_UP) {
                         o->_rno2 = 0;
@@ -428,7 +428,7 @@ int retry_load_menu(OptionScreen* o)
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
-            if (((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) && i == 1) {
+            if (((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) && i == 1) {
                 u->col0[0] = 0x40;
                 u->col0[1] = 0x40;
                 u->col0[2] = 0x40;
@@ -508,7 +508,7 @@ int retry_load_menu(OptionScreen* o)
         break;
     case 3:
         if (SndEndCheck(snd_id)) {
-            pG->System_flg |= 0x04000000;
+            SysFlagOn(pG, SYS_SOFT_RESET);
         }
         break;
     }
@@ -736,7 +736,7 @@ int controller_menu(OptionScreen* o)
     return 0;
 }
 
-// Brightness sub menu: left/right change pSys->brightness (and pRK->brightness) around DEFAULT
+// Brightness sub menu: left/right change pSys->brightness (and pRK->base_brightness) around DEFAULT
 // within MIN_OFS..MAX_OFS, shows the signed level as digits and slides the marker; cursor 1 = back.
 int brightness_menu(OptionScreen* o)
 {
@@ -803,7 +803,7 @@ int brightness_menu(OptionScreen* o)
                     s->brightness = n;
                 }
             }
-            pRK->brightness = pSys->brightness;
+            pRK->base_brightness = pSys->brightness;
             if (bright != pSys->brightness) {
                 SndCall(0, 0x3B, 0, 0, 0, 0);
             }

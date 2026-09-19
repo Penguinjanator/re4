@@ -86,7 +86,7 @@ static void sndCallErr(int blk, int no)
 {
     u32* p;
 
-    if (pG->Debug_flg[2] & 0x4) {
+    if (DbgFlagChk(pG, DBG_SE_ERR_ALL)) {
         pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
         return;
     }
@@ -1161,7 +1161,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
     SndPlayWork* w;
     u32 smp = 0;
 
-    if (pG->Debug_flg[2] & 0x100000) {
+    if (DbgFlagChk(pG, DBG_BGM_STOP)) {
         return 0;
     }
     if (str_flag == 0) {
@@ -1255,7 +1255,7 @@ int SndStrReq(u32 id, int req, int time, int vol)
 {
     SndPlayWork* w;
 
-    if (pG->Debug_flg[2] & 0x100000) {
+    if (DbgFlagChk(pG, DBG_BGM_STOP)) {
         return 0;
     }
     w = getStrWork(id);
@@ -1407,7 +1407,7 @@ void SndWatcher()
     if (StaFlagChk(pG, STA_MOVIE_ON)) {
         return;
     }
-    if (!(pG->Stop_flg & 0x800)) {
+    if (!SpfFlagChk(pG, SPF_SE)) {
         sndSurroundCalc();
         SeAtCheck();
     }
@@ -1463,7 +1463,7 @@ void SndWatcher()
         }
     }
 
-    if (!StaFlagChk(pG, STA_SUB_SCRN) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
+    if (!StaFlagChk(pG, STA_SUB_SCRN) && !SysFlagChk(pG, SYS_TYPEWRITER) && pSndRaw->room_ok != 0) {
         at = FlrAtCheck(2, &pPL->pos, 0xFF);
         if (at != NULL) {
             b = (SndFlrAtBgm*) &at->x44;
@@ -1516,7 +1516,7 @@ static void nextRoomStreamCheck()
         } else {
             u16 s = (u16) rs->str[0];
             if (w->used != 0) {
-                if ((pG->System_flg & 0x100) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
+                if (SysFlagChk(pG, SYS_LOAD_GAME) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
                     stop = 1;
                 } else {
                     SND_STR_WORK* sw = Snd_search_str_work_snd_id(w->id);
@@ -1562,7 +1562,7 @@ static void nextRoomBgmCheck()
                     }
                 }
             }
-            if ((pG->System_flg & 0x100) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
+            if (SysFlagChk(pG, SYS_LOAD_GAME) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
                 flag = 1;
             }
             if (flag == 1) {
@@ -1786,7 +1786,7 @@ void SndRoomBgmStartCheck(int reset)
     }
     for (i = 0; i < 2; i++) {
         u16 b;
-        if ((pG->System_flg & 0x100) || reset != 0) {
+        if (SysFlagChk(pG, SYS_LOAD_GAME) || reset != 0) {
             b = (u16) (pSnd->room_bgm_tbl[pG->snd_tbl_no + 1] >> (i * 16));
         } else {
             b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
@@ -1917,7 +1917,7 @@ void SndRoomStrStartCheck()
 {
     u32 s;
 
-    if (pG->System_flg & 0x100) {
+    if (SysFlagChk(pG, SYS_LOAD_GAME)) {
         s = pSnd->room_str_tbl[pG->snd_tbl_no + 1];
     } else {
         s = pSnd->room_str_tbl[0];
@@ -2469,7 +2469,7 @@ void SndBgmTblSetDisable(int type, int save)
 // Sub screen opened: SEs paused, BGM (TV) volume halved, Stop_flg 0x800 (no positional update).
 void SndSubScreenInit()
 {
-    pG->Stop_flg |= 0x800;
+    SpfFlagOn(pG, SPF_SE);
     SndSetMasterVol(0x10002, 0x3F);
     SndSePauseAll(1);
 }
@@ -2479,7 +2479,7 @@ void SndSubScreenExit()
 {
     SndSetMasterVol(0x10002, 0x7F);
     SndSePauseAll(0);
-    pG->Stop_flg &= ~0x800;
+    SpfFlagOff(pG, SPF_SE);
 }
 
 // Stops the event streams (block 1), faded over `time` seconds.
@@ -2502,7 +2502,7 @@ void SndEventStrStop(int time)
 // Event start: SEs faded out (400) and paused, BGM ducked, Stop_flg 0x800.
 void SndEventInit()
 {
-    pG->Stop_flg |= 0x800;
+    SpfFlagOn(pG, SPF_SE);
     Snd_se_fade_out_all(400);
     SndSePauseAll(1);
     SndRoomBgmMuteAll(1, 2);
@@ -2514,7 +2514,7 @@ void SndEventEnd()
 {
     int i;
 
-    pG->Stop_flg &= ~0x800;
+    SpfFlagOff(pG, SPF_SE);
     SndSePauseAll(0);
     for (i = 0; i < 2; i++) {
         u8 no = i;
@@ -2644,10 +2644,10 @@ static void debug_mute_check()
     u32 off;
     u32 on;
 
-    if (pG->Debug_flg[2] & 0x80000) {
+    if (DbgFlagChk(pG, DBG_SE_STOP)) {
         f = 1;
     }
-    if (pG->Debug_flg[2] & 0x100000) {
+    if (DbgFlagChk(pG, DBG_BGM_STOP)) {
         f |= 0x2;
     }
     {

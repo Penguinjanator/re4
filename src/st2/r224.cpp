@@ -227,7 +227,7 @@ static void r224_em_set_exit()
 {
     Vec v;
 
-    pG->Scenario_flg[4] &= ~0x00400000;
+    ScfFlagOff(pG, SCF_89);
     SndStop(r224_work.p->se0, 0);
     SndStop(r224_work.p->se1, 0);
     SmdGetObjPtr(0x16)->pos.y = 7838.0f;
@@ -658,7 +658,7 @@ static void em_die_ck()
     RsfSet(G_ROOM_ID, 1);
     SceSleep(270);
     door_open(0);
-    pG->Scenario_flg[4] |= 0x00400000;
+    ScfFlagOn(pG, SCF_89);
 }
 
 // The exit door 0x16 (and, with no == 0, the grille 0x12 at double speed) rise 100 units a frame under

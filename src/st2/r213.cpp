@@ -1057,9 +1057,9 @@ static void R213Event()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
-        pG->Scenario_flg[1] |= 0x40;
+        ScfFlagOn(pG, SCF_39);
         SubCharCtrl(SCC_KILL, 0);
-        pG->Status_flg[3] &= ~0x04000000;
+        StaFlagOff(pG, STA_SUB_ASHLEY);
         EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, 0);
         R213EmSet();
     }
@@ -1094,7 +1094,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
                     EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
                     EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
                 }
-                pG->Stop_flg |= 0x20;
+                SpfFlagOn(pG, SPF_ESP_AREA);
             }
             SetNearClipDist(clip);
             break;
@@ -1110,13 +1110,13 @@ extern "C" void Evt_R213S00_Func(Event* e)
                     EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
                     EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
                 }
-                pG->Status_flg[0] &= ~0x1000;
+                StaFlagOff(pG, STA_EVENT);
                 SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
                 if (r213_work.p->tex) {
                     EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
                 }
-                BitOn(pG->Status_flg[0], 0x1000);
-                BitOff(pG->Stop_flg, 0x20);
+                StaFlagOn(pG, STA_EVENT);
+                SpfFlagOff(pG, SPF_ESP_AREA);
             }
             break;
         }
@@ -1140,13 +1140,13 @@ extern "C" void Evt_R213S00_Func(Event* e)
             EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
         }
         frame = 0;
-        pG->Status_flg[0] &= ~0x1000;
+        StaFlagOff(pG, STA_EVENT);
         SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
         if (r213_work.p->tex) {
             EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
         }
-        BitOn(pG->Status_flg[0], 0x1000);
-        BitOff(pG->Stop_flg, 0x20);
+        StaFlagOn(pG, STA_EVENT);
+        SpfFlagOff(pG, SPF_ESP_AREA);
         SetSstAddAreaFlag(0x800);
         break;
     }
