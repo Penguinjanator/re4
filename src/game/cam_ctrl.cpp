@@ -2319,7 +2319,7 @@ void CameraControl::startScope(Vec* pos, Vec* at)
 {
     if (!StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         StaFlagOn(pG, STA_SCOPE_CAMERA);
-        StaFlagOn(pG, STA_10);
+        StaFlagOn(pG, STA_LOOK_THROUGH);
         extra = new (m_Free) CameraScope(pos, at);
         r0 = 0x10;
         DpfFlagOn(pG, DPF_PL);
@@ -2332,7 +2332,7 @@ void CameraControl::endScope()
 {
     if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         StaFlagOff(pG, STA_SCOPE_CAMERA);
-        StaFlagOff(pG, STA_10);
+        StaFlagOff(pG, STA_LOOK_THROUGH);
         DpfFlagOff(pG, DPF_PL);
         if (extra) {
             delete extra;
@@ -2375,8 +2375,8 @@ void CameraControl::SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 // its HUD data.
 void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 {
-    StaFlagOn(pG, STA_CAM_SHOULDER);
-    StaFlagOn(pG, STA_10);
+    StaFlagOn(pG, STA_BINOCULAR);
+    StaFlagOn(pG, STA_LOOK_THROUGH);
     extra = new (m_Free) CameraBinocular(pos, at, id_a, id_b);
     r0 = 0xC;
     DpfFlagOn(pG, DPF_PL);
@@ -2386,8 +2386,8 @@ void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 // Leaves the binocular camera.
 void CameraControl::LowerBinocular()
 {
-    StaFlagOff(pG, STA_CAM_SHOULDER);
-    StaFlagOff(pG, STA_10);
+    StaFlagOff(pG, STA_BINOCULAR);
+    StaFlagOff(pG, STA_LOOK_THROUGH);
     DpfFlagOff(pG, DPF_PL);
     if (extra) {
         delete extra;

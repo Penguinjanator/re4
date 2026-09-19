@@ -320,7 +320,7 @@ void R300Init()
 {
 #line 185 "D:/Bio4/Prog/r300.cpp"
     r300_work = (R300Work*) MEM_CALLOC(sizeof(R300Work), 1, 0xd);
-    DbgFlagOn(pGS, DBG_2e);
+    DbgFlagOn(pGS, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint != 0) {
         RsfSet(G_ROOM_ID, 0);
     }

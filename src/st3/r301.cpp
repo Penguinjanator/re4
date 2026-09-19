@@ -82,7 +82,7 @@ void R301Init()
     cObj* obj;
     R301Work*& wp = r301_work.p;   // the address is computed before the call
 
-    DbgFlagOn(pG, DBG_2d);
+    DbgFlagOn(pG, DBG_CAST_ERR_NO_DISP);
 #line 63 "D:/Bio4/Prog/r301.cpp"
     wp = (R301Work*) MEM_CALLOC(sizeof(R301Work), 1, 0xd);
     EatMgr.registEffInfo(2, (AtEffInfo*) &r301_eff_info);

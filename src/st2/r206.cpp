@@ -931,7 +931,7 @@ wave_done:
         EmMgr.destroy(pSUB);
         StaFlagOff(pG, STA_SUB_ASHLEY);
     }
-    ScfFlagOn(pG, SCF_44);
+    ScfFlagOn(pG, SCF_R206_ASHLEY_GAME);
     PlSelect(1);
     SceAtExecute(0);
     RsfSet(G_ROOM_ID, 0);

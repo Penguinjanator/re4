@@ -785,7 +785,7 @@ void CountDown::move()
         U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!DbgFlagChk(pG, DGG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
+    if (!DbgFlagChk(pG, DBG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
         if (m_frame != 0) {
             m_frame = m_frame - 1;
         } else {

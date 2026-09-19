@@ -364,7 +364,7 @@ int EspTrans()
                 continue;
             }
         }
-        if (StaFlagChk(pG, STA_10)) {
+        if (StaFlagChk(pG, STA_LOOK_THROUGH)) {
             if (esp->m_Tool_flg & 0x100) {
                 continue;
             }

@@ -1046,7 +1046,7 @@ int PlSetWhistle()
     if (!(Key.trg & 0x200)) {
         return 0;
     }
-    if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
+    if (StaFlagChk(pG, STA_BINOCULAR)) {
         return 0;
     }
     if (!StaFlagChk(pG, STA_SUBCHAR_CTRL)) {

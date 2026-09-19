@@ -391,11 +391,11 @@ static void gameResult()
     systemVISetBlack(1);
     FadeKill(FADE_NO_ROOM);
     ScreenReSize(0x200, 0x1C0);
-    if (!ExtFlagChk(pSys, EXT_0a)) {
-        ExtFlagOn(pSys, EXT_0a);
+    if (!ExtFlagChk(pSys, EXT_ASHLEY_ARMOR)) {
+        ExtFlagOn(pSys, EXT_ASHLEY_ARMOR);
         Sofdec.Initialize("movie/adaend_m.sfd", 0);
     } else {
-        ExtFlagOff(pSys, EXT_0a);
+        ExtFlagOff(pSys, EXT_ASHLEY_ARMOR);
         Sofdec.Initialize("movie/adaend_c.sfd", 0);
     }
     SceSleep(1);
@@ -411,8 +411,8 @@ static void gameResult()
     } while (0);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
-    if (!ExtFlagChk(pSys, EXT_02)) {
-        ExtFlagOn(pSys, EXT_02);
+    if (!ExtFlagChk(pSys, EXT_GET_SW500)) {
+        ExtFlagOn(pSys, EXT_GET_SW500);
         SceEventStart(0);
         setLangExt3(data_name + 3);
         Dvd.FileExistCheck(data_name, &size);

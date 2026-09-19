@@ -412,7 +412,7 @@ void SubScreenExec()
             } else {
                 wk->scope_flag = 0;
             }
-            if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
+            if (StaFlagChk(pG, STA_BINOCULAR)) {
                 CamCtrl.GetBinocularIDAddr(&wk->binoA, &wk->binoB);
                 CamCtrl.LowerBinocular();
                 wk->binocular_flag = 1;
@@ -462,7 +462,7 @@ void SubScreenExec()
             systemVISetBlack(1);
             ScreenReSize(640, 448);
             systemVISetBlack(0);
-            DpfFlagOn(pG, DPF_15);
+            DpfFlagOn(pG, DPF_TEX_RENDER);
             FadeKill(FADE_NO_SCENARIO);
             switch (wk->type) {
             case 2:
@@ -675,7 +675,7 @@ void SubScreenExit()
             sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 979 "D:/Bio4/Prog/sscrn.cpp"
             Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->pzzlOfs, 0, 0, 9), 0, 0, 0);
-            DpfFlagOff(pG, DPF_15);
+            DpfFlagOff(pG, DPF_TEX_RENDER);
             break;
         case 3:
             if (cnt++ > 0) {

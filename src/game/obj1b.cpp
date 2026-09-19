@@ -177,7 +177,7 @@ void cObjSpear::move()
     if (w->parent == 0) {
         return;
     }
-    if (w->parent->id == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
+    if (w->parent->id == 0 && (StaFlagChk(pG, STA_BINOCULAR))) {
         be_flag &= ~2;
     }
 }

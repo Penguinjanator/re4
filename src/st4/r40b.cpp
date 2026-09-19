@@ -53,7 +53,7 @@ void R40bInit()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceExec(0x12, (TaskFunc) r40b_checkEmSet1, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!ItfFlagChk(pG, ITF_1c)) {
+    if (!ItfFlagChk(pG, ITF_R40B_SAMPLE00)) {
         cModel* m;
 
         SceAtSetEnable(0x81, 1);

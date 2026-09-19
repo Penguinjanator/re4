@@ -1271,7 +1271,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         nrm->y = 0.0f;
         nrm->z = 0.0f;
     }
-    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
+    if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
         Draw_line3d(p0, hit, 0xFFFFFFFF, 0);
     }
     PSVECSubtract(p1, p0, &d);
@@ -1493,7 +1493,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PlBombHitCk(pos, r);
         break;
     }
-    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
+    if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
     cnt = 0;
@@ -1892,7 +1892,7 @@ void EmYarareDisp(cEm* em)
     cModel* parts;
     u32 color;
 
-    if (!DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
+    if (!DbgFlagChk(pG, DBG_YARARE_DISP)) {
         return;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
@@ -2188,7 +2188,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     int ret;
     f32 dy;
 
-    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
+    if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if ((s16) pG->pl_life <= 0) {
@@ -2408,7 +2408,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     cModel* parts;
     YARARE_INFO* part;
 
-    if (DbgFlagChk(pG, DBG_EM_YARARE_DISP)) {
+    if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
         Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if (pSUB == 0) {

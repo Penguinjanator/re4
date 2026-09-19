@@ -358,7 +358,7 @@ static void r20d_checkDoor()
 static void r20d_setEm()
 {
     SceSleep(1);
-    if (ItfFlagChk(pG, ITF_11)) {
+    if (ItfFlagChk(pG, ITF_R20E_SALAZAR_CREST)) {
         SceDestroyEm(0x10, 0x20);
         SceExit();
     }

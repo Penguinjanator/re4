@@ -237,9 +237,9 @@ static inline void st3_resumeCountDown()
 // Scenario_flg[2] 0x200 (time-over handled) cleared; the frame count lives in free word 2 across rooms.
 void st3_startCountDown()
 {
-    ScfFlagOff(pG, SCF_56);
-    if (ScfFlagChk(pG, SCF_38) == 0) {
-        ScfFlagOn(pG, SCF_38);
+    ScfFlagOff(pG, SCF_ST3_COUNT_DOWN_DIE);
+    if (ScfFlagChk(pG, SCF_ST3_COUNT_DOWN_START) == 0) {
+        ScfFlagOn(pG, SCF_ST3_COUNT_DOWN_START);
         st3_resumeCountDown();
     } else {
         st3_resumeCountDown();
@@ -249,7 +249,7 @@ void st3_startCountDown()
 // Every island room's Main: when the running count-down reaches zero, the death demo event.
 void st3_checkCountDown()
 {
-    if (ScfFlagChk(pG, SCF_38)) {
+    if (ScfFlagChk(pG, SCF_ST3_COUNT_DOWN_START)) {
         int over = 0;
         CountDown* cd = Cckpt.getCountDown();
 
@@ -258,8 +258,8 @@ void st3_checkCountDown()
             over = (cd->m_frame == 0);
         }
         if (over == 1) {
-            if (ScfFlagChk(pG, SCF_56) == 0) {
-                ScfFlagOn(pG, SCF_56);
+            if (ScfFlagChk(pG, SCF_ST3_COUNT_DOWN_DIE) == 0) {
+                ScfFlagOn(pG, SCF_ST3_COUNT_DOWN_DIE);
                 ScenarioTaskAllOff();
                 SceExec(0x12, (TaskFunc) st3_dieDemoEvent, 0, 2, 2, 0);
             }
@@ -290,7 +290,7 @@ void st3_dieDemoEvent()
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     S16Set(pPL->hp, 0);
-    StaFlagOn(pG, STA_67);
+    StaFlagOn(pG, STA_EVENT_CANCEL);
     DiedemoExec(0, 1);
     SceSleep(1);
     SceEventEnd(0);
@@ -301,7 +301,7 @@ void st3_endCountDown()
 {
     CountDown* cd = Cckpt.getCountDown();
 
-    ScfFlagOff(pG, SCF_38);
+    ScfFlagOff(pG, SCF_ST3_COUNT_DOWN_START);
     cd->disp(0);
     cd->m_state &= ~1;
     cd->frameOut();

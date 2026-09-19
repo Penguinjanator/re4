@@ -109,7 +109,7 @@ void R210Init()
         }
     }
     if (SysFlagChk(pG, SYS_LOAD_GAME) == 0 && pG->room_id_prev == 0x222) {
-        if (ScfFlagChk(pG, SCF_39) == 0) {
+        if (ScfFlagChk(pG, SCF_R213_ASHLEY_LOST) == 0) {
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             StaFlagOn(pG, STA_SUB_ASHLEY);
             if (pSUB) {
@@ -231,7 +231,7 @@ static void r222_dai_go()
         SubCharCtrl(SCC_STOP, 0);
         ScfFlagOn(pG, SCF_NO_ASHLEY_DIST_CK);
     }
-    if (ScfFlagChk(pG, SCF_39) == 0 && CheckDoorJumpWithAshley() == 1) {
+    if (ScfFlagChk(pG, SCF_R213_ASHLEY_LOST) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);

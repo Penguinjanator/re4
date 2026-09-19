@@ -292,7 +292,7 @@ void R332Init()
     EvtMgr.SetFunc("evt_r332s97_func", (void*) Evt_R332S00_Func);
     EvtMgr.SetFunc("evt_r332s98_func", (void*) Evt_R332S10_Func);
     EvtMgr.SetFunc("evt_r332s99_func", (void*) Evt_R332S20_Func);
-    if (ScfFlagChk(pG, SCF_36) == 0) {
+    if (ScfFlagChk(pG, SCF_R332_BOSS_DIE) == 0) {
         u32 size0;
         u32 size1;
         u32 size;
@@ -402,7 +402,7 @@ void R332Init()
             }
         }
     }
-    if (ScfFlagChk(pG, SCF_36) == 0) {
+    if (ScfFlagChk(pG, SCF_R332_BOSS_DIE) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R332ExecCrane, 0, 1);
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R332ExecCrane, (void*) 1, 1);
     }
@@ -449,7 +449,7 @@ void R332Main()
             SceExec(0x12, (TaskFunc) R332BossDown, 0, 0, 2, 0);
             return;
         }
-        if (ScfFlagChk(pG, SCF_36) == 0 && (ItfFlagChk(pG, ITF_24)) && (pG->Room_flg[0] & 0x01000000) == 0) {
+        if (ScfFlagChk(pG, SCF_R332_BOSS_DIE) == 0 && (ItfFlagChk(pG, ITF_R332_ADA_ROCKET)) && (pG->Room_flg[0] & 0x01000000) == 0) {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (r332_work->task[0]) {
                 SceKill(r332_work->task[0]);
@@ -510,7 +510,7 @@ static void playerDieBridge(cPlayer* pl)
     case 3:
         pl->r_no_3++;
         if (pl->r_no_3 > 59) {
-            StaFlagOn(pG, STA_67);
+            StaFlagOn(pG, STA_EVENT_CANCEL);
             DiedemoExec(0, 1);
             pl->r_no_2++;
         }
@@ -1019,7 +1019,7 @@ static void R332RocketShootMain(int type)
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventStart(0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
-    ScfFlagOn(pG, SCF_36);
+    ScfFlagOn(pG, SCF_R332_BOSS_DIE);
     if (r332_work->task[0]) {
         SceKill(r332_work->task[0]);
     }
@@ -1603,7 +1603,7 @@ static void R332EventS10()
     SysFlagOff(pG, SYS_SCREEN_STOP);
     st3_setCountDownTimer(0x127D);
     st3_startCountDown();
-    ScfFlagOn(pG, SCF_36);
+    ScfFlagOn(pG, SCF_R332_BOSS_DIE);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(9, 0);
     BitOn(pG->Key_flg[1], 0x00010000);
@@ -1611,7 +1611,7 @@ static void R332EventS10()
     SceAtSetEnable(2, 0);
     SceSleep(1);
     SceAtExecute(0x85);
-    ScfFlagOn(pG, SCF_55);
+    ScfFlagOn(pG, SCF_R332_KEY_GET);
     while (SceAtItemFlgCk(0x85) == 0) {
         SceSleep(1);
     }

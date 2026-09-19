@@ -63,7 +63,7 @@ void R331Init()
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R331ExecEventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r331s00.evd", 0, 0, 0, 0);
     }
-    if (ScfFlagChk(pG, SCF_36)) {
+    if (ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
         SndBgmTblSetDisable(3, 0);
         SndBgmTblSet(0x331, 2);
         SceExec(0x12, (TaskFunc) R331ExecEventS10, 0, 2, 2, 0);

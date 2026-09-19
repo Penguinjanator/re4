@@ -1188,7 +1188,7 @@ void cItemMgr::gameInit()
             get(0x4F, 1);
             get(0x50, 1);
             get(0xF4, 1);
-            if (DbgFlagChk(pG, DBG_6e)) {
+            if (DbgFlagChk(pG, DBG_START_LAST)) {
                 get(0xF5, 1);
                 get(0xF6, 1);
                 get(0xF7, 1);
@@ -1607,7 +1607,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (ScfFlagChk(pGS, SCF_R119_DOOR_CLOSE)) {
+            if (ScfFlagChk(pGS, SCF_ST1_SUB_PERFECT)) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);

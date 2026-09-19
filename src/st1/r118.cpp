@@ -82,7 +82,7 @@ void R118Init()
         SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r118_checkDoor117, 0, 1);
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (ScfFlagChk(pG, SCF_R117_ASHLEY_FIND)) {
+    if (ScfFlagChk(pG, SCF_R117_FIND_ASHLEY)) {
         EM_LIST(0x82)->be_flag &= ~1;
         EM_LIST(0x83)->be_flag &= ~1;
         EM_LIST(0x84)->be_flag &= ~1;

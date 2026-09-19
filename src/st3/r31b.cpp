@@ -515,7 +515,7 @@ static void R31bExecEventS00()
             pPL->setAng(&ang);
         }
         SceEventEnd(0);
-        ScfFlagOn(pG, SCF_51);
+        ScfFlagOn(pG, SCF_R31B_U3);
         GamePointBossReset();
         r31b_work.p->em.setEm(0x14, -1, 0, 1, 1);
         em = r31b_work.p->em.getPtr();

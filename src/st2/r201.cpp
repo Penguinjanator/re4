@@ -600,7 +600,7 @@ static void r201_checkSetGem_end()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    ScfFlagOn(pG, SCF_45);
+    ScfFlagOn(pG, SCF_R201_SET_3OBJ);
     ScfFlagOn(pG, SCF_72);
 }
 

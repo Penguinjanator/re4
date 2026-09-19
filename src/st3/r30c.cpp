@@ -230,7 +230,7 @@ static void R30cEventS00()
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r30c_PlaneMove, 0, 1);
         r30c_work.p->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
         SndBgmTblSet(0x30C, 1);
-        ScfFlagOn(pG, SCF_4e);
+        ScfFlagOn(pG, SCF_R30C_SAVE_ASHLEY);
     }
 }
 
@@ -293,7 +293,7 @@ static void r30c_EventCutEndProc()
     r30c_work.p->em[1].setNoSuspend(0);
     SceEventEnd(0);
     r30c_work.p->shout->task->flag &= ~2;
-    ScfFlagOn(pG, SCF_4c);
+    ScfFlagOn(pG, SCF_R30C_ASHLEY_SCREAM);
 }
 
 // Ashley's shouting in the cell: the sound effects on the motion frames, and the wave once the

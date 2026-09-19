@@ -341,7 +341,7 @@ void EffAreaUpdate()
     if (sys->pSstArea == NULL) {
         return;
     }
-    if (StaFlagChk(pG, STA_4f) == 0) {
+    if (StaFlagChk(pG, STA_EFFAREA_USE_CAM) == 0) {
         pos = pPL->pos;
         pos.y += 100.0f;
     } else {

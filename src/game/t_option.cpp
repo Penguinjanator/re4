@@ -792,7 +792,7 @@ void tp_scr_flag()
     eprintf(40, 70, DbgFlagChk(pG, DBG_LOG_OFF) ? 0 : 20, 0, "LOG OFF");
     eprintf(40, 84, DpfFlagChk(pG, DPF_FOG) ? 0 : 20, 0, "FOG OFF");
     eprintf(40, 98, Block.allDisp == 1 ? 0 : 20, 0, "BLOCK ALL DISP");
-    eprintf(40, 112, DbgFlagChk(pG, DBG_ERRORL_CK) ? 0 : 20, 0, "ERROR CHECK");
+    eprintf(40, 112, DbgFlagChk(pG, DBG_ERROR_CK) ? 0 : 20, 0, "ERROR CHECK");
     int num = 5;
     printCursor(4, pT->cursor + 4);
     if (pT->joy[0].rep & JOY_UP) {

@@ -291,7 +291,7 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     } else {
         FAdd(r108_coverL->pos.x, 220.0f);
         FSub(r108_coverR->pos.x, 220.0f);
-        if (!ItfFlagChk(pG, ITF_01)) {
+        if (!ItfFlagChk(pG, ITF_R108_ITEM)) {
             SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_getItem, 0, 1);
             SceAtPtr(0xA)->actBtnKind = 0x28;
         }

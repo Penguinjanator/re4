@@ -356,7 +356,7 @@ void objMove(cObj* p)
     if (DbgFlagChk(pG, DBG_OBA_VIEW)) {
         DrawOba(p);
     }
-    if (DbgFlagChk(pG, DBG_OBJ_SKELETON_)) {
+    if (DbgFlagChk(pG, DBG_OBJ_SKELETON)) {
         p->debugSkeletonDisp();
     }
     if (p->be_flag & 0x80000000) {

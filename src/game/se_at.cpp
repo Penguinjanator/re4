@@ -41,7 +41,7 @@ void SeAtCheck()
     Vec* pos;
     int i;
 
-    if (SpfFlagChk(pG, SPF_SE)) {
+    if (SpfFlagChk(pG, SPF_SE_CALC)) {
         return;
     }
     if (DbgFlagChk(pG, DBG_TEST_MODE) && DebugMenuSelected != 0x18) {

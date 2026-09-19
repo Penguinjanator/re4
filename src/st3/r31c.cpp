@@ -344,7 +344,7 @@ void R31cInit()
     }
     r31c_work.p->towerSat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
     SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r31c_TowerEntranceClose, 0, 1);
-    if (ScfFlagChk(pG, SCF_43)) {
+    if (ScfFlagChk(pG, SCF_R31C_TOWER_EXPLODE)) {
         r31c_TowerExplodeModelSet(0, 0);
         r31c_TowerExplodeModelSet(1, 1);
         SceAtSetEnable(0x87, 0);
@@ -563,7 +563,7 @@ static void r31c_CrestDoorOpen()
     void* model = NULL;
 
     BitOn(pG->Key_flg[0], 0x200);
-    ScfFlagOn(pG, SCF_53);
+    ScfFlagOn(pG, SCF_R31C_OPEN_DOOR);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(0x10, 0);
     SceEventStart(1);
@@ -1235,7 +1235,7 @@ static void r31c_LeverCheck()
             ((cEmSwitch*) r31c_work.p->sw[1])->setOpened();
             ((cEmSwitch*) r31c_work.p->sw[1])->setActButton(0);
             r31c_work.p->door[5].setOpened();
-            if (ScfFlagChk(pG, SCF_43) == 0) {
+            if (ScfFlagChk(pG, SCF_R31C_TOWER_EXPLODE) == 0) {
                 r31c_work.p->door[6].setOpened();
             }
         }
@@ -1246,7 +1246,7 @@ static void r31c_LeverCheck()
         }
     }
     ((cEmSwitch*) r31c_work.p->sw[0])->setOpened();
-    if (ScfFlagChk(pG, SCF_43)) {
+    if (ScfFlagChk(pG, SCF_R31C_TOWER_EXPLODE)) {
         ((cEmSwitch*) r31c_work.p->sw[1])->setClosed();
         r31c_work.p->door[6].setClosed();
     }
@@ -1381,7 +1381,7 @@ static void r31c_TowerExplode()
     if (r31c_work.p->krauser2.isAlive()) {
         r31c_work.p->krauser2.destroy();
     }
-    ScfFlagOn(pG, SCF_43);
+    ScfFlagOn(pG, SCF_R31C_TOWER_EXPLODE);
     SceEventStart(0);
     CamCtrl.CutCall(0x22);
     EffectDelete(1, 5);
@@ -1648,7 +1648,7 @@ static void r31cEventS02()
     SceEventStart(1);
     if (pG->Room_flg[0] & 0x80000000) {
         ItemMgr.get(0x85, 1);
-        ItfFlagOn(pG, ITF_1e);
+        ItfFlagOn(pG, ITF_R31C_CREST_A);
         SceAtSetEnable(0x80, 0);
         r31cEventS02EndProc();
     } else {

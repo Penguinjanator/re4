@@ -217,7 +217,7 @@ void R330EventS00End()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    ScfFlagOn(pG, SCF_54);
+    ScfFlagOn(pG, SCF_R330_END_OPE);
     SceSetChapterEnd(0x11, -1);
     SeAtSndCall(0);
 }

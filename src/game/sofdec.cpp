@@ -500,7 +500,7 @@ void cSofdec::finishMovie()
     SetU32(pG->Stop_flg, save170);
     SetSystemVcnt(m_vcnt_save);
     StaFlagOff(pG, STA_MOVIE_ON);
-    if (!StaFlagChk(pG, STA_50)) {
+    if (!StaFlagChk(pG, STA_TITLE)) {
         MemDestroyHeap(11);
         Aram.DmaTransReq(1, 0x740000, heapStart, 0x500000, 1);
         MemSignalHeap(m_save_cur_heap);
@@ -529,7 +529,7 @@ int cSofdec::initWork(const char* fname)
     SetU32(pG->Stop_flg, 0xFFFFFFFF);
     SetU32(m_disp_flg_bak, pG->Disp_flg);
     SetU32(pG->Disp_flg, 0xFFFFFFFF);
-    if (!StaFlagChk(pG, STA_50)) {
+    if (!StaFlagChk(pG, STA_TITLE)) {
         m_save_cur_heap = MemGetCurrentHeap();
         heapStart = MemGetHeapStartAddr(m_save_cur_heap);
         Aram.DmaTransReq(0, heapStart, 0x740000, 0x500000, 1);

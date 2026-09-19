@@ -115,7 +115,7 @@ void R204Init()
     u32 i;
     u32 no;
 
-    DbgFlagOn(pG, DBG_2e);
+    DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint == 1) {
         U16Set(pG->room_id_prev, 0x205);
         pG->Part = 1;

@@ -1149,7 +1149,7 @@ void gameDiedemo(DiedemoWork* w)
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             }
-            if (StaFlagChk(pG, STA_67)) {
+            if (StaFlagChk(pG, STA_EVENT_CANCEL)) {
                 IdSys.unitPtr(0, 0x2D)->be_flag |= 8;
                 fadeSetG(0x80000002, 1, 0, 0);
             } else {
@@ -1794,7 +1794,7 @@ void gameDebugDisp()
     if (DbgFlagChk(pG, DBG_EMINFO_DISP)) {
         Draw_eminfo();
     }
-    if (DbgFlagChk(pG, DBG_ROOM_WIRE_DISP)) {
+    if (DbgFlagChk(pG, DBG_WIRE_DISP)) {
         DrawRoomWireframe();
     }
     if (DbgFlagChk(pG, DBG_UNDER_CONST)) {

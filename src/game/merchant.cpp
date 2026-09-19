@@ -739,11 +739,11 @@ void Merchant2ndRoundInit()
 void MerchantRoomInit()
 {
     if (pG->game_cnt != 0) {
-        if (ExtFlagChk(pSys, EXT_02)) {
+        if (ExtFlagChk(pSys, EXT_GET_SW500)) {
             levelDataAdd(merchantData, level_ext_sw500);
             stockDataAdd(merchantData, stock_ext_sw500);
         }
-        if (ExtFlagChk(pSys, EXT_03)) {
+        if (ExtFlagChk(pSys, EXT_GET_TOMPSON)) {
             levelDataAdd(merchantData, level_ext_tompson);
             stockDataAdd(merchantData, stock_ext_tompson);
         }
@@ -787,16 +787,16 @@ void MerchantRoomInit()
     }
     if (pG->room_id == 0x10E) {
         if (ScfFlagChk(pG, SCF_ST1_NIGHT)) {
-            if (!ScfFlagChk(pG, SCF_STOCK_ST2)) {
+            if (!ScfFlagChk(pG, SCF_R10E_STOCK_NIGHT)) {
                 levelDataAdd(merchantData, level_null);
                 stockDataAdd(merchantData, stock_r10e_night);
-                ScfFlagOn(pG, SCF_STOCK_ST2);
+                ScfFlagOn(pG, SCF_R10E_STOCK_NIGHT);
             }
         } else {
-            if (!ScfFlagChk(pG, SCF_STOCK_ST1_NIGHT)) {
+            if (!ScfFlagChk(pG, SCF_R10E_STOCK_DAY)) {
                 levelDataAdd(merchantData, level_r10e_day);
                 stockDataAdd(merchantData, stock_r10e_day);
-                ScfFlagOn(pG, SCF_STOCK_ST1_NIGHT);
+                ScfFlagOn(pG, SCF_R10E_STOCK_DAY);
             }
         }
     }
@@ -1411,7 +1411,7 @@ int checkSellingItem(u16 id)
     switch (id) {
     case 0x40:
         if (ScfFlagChk(pG, SCF_ST1_SUB_MISSION)) {
-            u32 sold = ItfFlagChk(pG, ITF_03);
+            u32 sold = ItfFlagChk(pG, ITF_FN57);
             ret = sold == 0;
         } else {
             ret = 0;
@@ -1731,7 +1731,7 @@ int Merchant::sell(u16 id, int num, int* money)
 
     if (*money >= price) {
         if (id == 0x40) {
-            ItfFlagOn(pG, ITF_03);
+            ItfFlagOn(pG, ITF_FN57);
         }
         *money -= price;
         stockSub(id, num);

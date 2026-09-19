@@ -164,7 +164,7 @@ static inline int r320_evtSkip(Event* e)
 // The helicopter into the work; it fires freely below rank 9.
 static inline void r320_heriSet()
 {
-    if (!ScfFlagChk(pG, SCF_40)) {
+    if (!ScfFlagChk(pG, SCF_R321_HERI_DOWN)) {
         cEm3d* em;
 
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
@@ -315,15 +315,15 @@ void R320Init()
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
     DbgFlagOn(pG, DBG_WARN_LEVEL_LOW);
-    if (ScfFlagChk(pG, SCF_43) == 0) {
+    if (ScfFlagChk(pG, SCF_R31C_TOWER_EXPLODE) == 0) {
         if ((R320_SAVE_FLAGS & 0x100) == 0) {
             R320_SAVE_FLAGS |= 0x100;
-            ScfFlagOn(pG, SCF_43);
+            ScfFlagOn(pG, SCF_R31C_TOWER_EXPLODE);
             SceExec(0x12, (TaskFunc) tower_explode, 0, 0, 2, 0);
         }
     }
     PartsMgr.warnDiv = 100;
-    DbgFlagOn(pG, DBG_2e);
+    DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (getRoomEtcWindow(0x1E, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
         win->be_flag &= ~2;
@@ -344,7 +344,7 @@ void R320Init()
         R320_SAVE_FLAGS |= 0x00200000;
         R320_SAVE_FLAGS |= 0x00100000;
     }
-    if (ScfFlagChk(pG, SCF_40)) {
+    if (ScfFlagChk(pG, SCF_R321_HERI_DOWN)) {
         if (pG->em_list_no >= 0) {
             u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
 
@@ -665,7 +665,7 @@ static void r320_heri_event()
     SmdSetTrans(0x27, 0);
     setMisileUseNum(0);
     GatlingSetBreak(r320_work->gatling[5]);
-    if (!ScfFlagChk(pG, SCF_40)) {
+    if (!ScfFlagChk(pG, SCF_R321_HERI_DOWN)) {
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
     }
     scr_delete();

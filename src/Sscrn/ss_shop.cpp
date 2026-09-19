@@ -644,8 +644,8 @@ int getGreetMsg(int* num, int* tbl)
     if (ScfFlagChk(g, SCF_ST1_NIGHT)) {
         goto NG;
     }
-    if (!ScfFlagChk(g, SCF_STOCK_ST1_DAY)) {
-        ScfFlagOn(g, SCF_STOCK_ST1_DAY);
+    if (!ScfFlagChk(g, SCF_CONTACT_MERCHANT)) {
+        ScfFlagOn(g, SCF_CONTACT_MERCHANT);
         StaFlagOn(pG, STA_INTO_SHOP);
         *num = 0;
         tbl[(*num)++] = 0;
@@ -668,7 +668,7 @@ int getGreetMsg(int* num, int* tbl)
             if (!ScfFlagChk(g, SCF_ST1_NIGHT) && g->game_cnt == 0) {
                 tbl[(*num)++] = 3;
             }
-        } else if (!ItfFlagChk(g, ITF_03)) {
+        } else if (!ItfFlagChk(g, ITF_FN57)) {
             tbl[(*num)++] = 4;
         }
     }
@@ -1610,7 +1610,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
                     msg = 0xE;
                     break;
                 case 0x21:
-                    if (ScfFlagChk(pG, SCF_ST1_SUB_MISSION) && !ItfFlagChk(pG, ITF_03)) {
+                    if (ScfFlagChk(pG, SCF_ST1_SUB_MISSION) && !ItfFlagChk(pG, ITF_FN57)) {
                         msg = 0x10;
                     } else {
                         msg = 0xF;
@@ -2700,7 +2700,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
                 switch (type) {
                 case 0:
                     lv = 1;
-                    if (ScfFlagChk(pG, SCF_R119_DOOR_CLOSE)) {
+                    if (ScfFlagChk(pG, SCF_ST1_SUB_PERFECT)) {
                         lv = 2;
                     }
                     break;

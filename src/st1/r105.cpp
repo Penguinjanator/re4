@@ -195,7 +195,7 @@ void R105Main()
     cEm* door;
 
     getRoomEtcDoor(1, &door, 1);
-    if (ItfFlagChk(pG, ITF_02) && !(pG->Room_flg[0] & 0x40000000)) {
+    if (ItfFlagChk(pG, ITF_R105_ITEM) && !(pG->Room_flg[0] & 0x40000000)) {
         BitOn(pG->Room_flg[0], 0x40000000);
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);

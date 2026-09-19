@@ -70,7 +70,7 @@ void R229Init()
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
     pPL->ot_type = 5;
-    ScfFlagOn(pG, SCF_46);
+    ScfFlagOn(pG, SCF_R229_IN);
 }
 
 // Per-frame room main: nothing.

@@ -585,7 +585,7 @@ static void r100_StartEvent()
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!FlagChk((u32) &pG->System_flg, SYS_START_EVT_SKIP) && !ScfFlagChk(pG, SCF_3b)) {
+    if (!FlagChk((u32) &pG->System_flg, SYS_START_EVT_SKIP) && !ScfFlagChk(pG, SCF_R120_EVENT_CANCEL)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
@@ -621,7 +621,7 @@ static void r100_StartEvent()
     }
     SceEventEnd(0);
     DpfFlagOff(pG, DPF_CLOTH);
-    if (skip == 0 && !ScfFlagChk(pG, SCF_3b)) {
+    if (skip == 0 && !ScfFlagChk(pG, SCF_R120_EVENT_CANCEL)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     OpeSetMdtNo(0);
@@ -1264,7 +1264,7 @@ extern "C" void Evt_R100S40_Func(Event* e)
     case 2:
         break;
     case 3:
-        ScfFlagOn(pG, SCF_3b);
+        ScfFlagOn(pG, SCF_R120_EVENT_CANCEL);
         break;
     }
 }

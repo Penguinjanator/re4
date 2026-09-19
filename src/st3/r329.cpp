@@ -119,7 +119,7 @@ static void R329EventS00()
             ang.z = 0.0f;
             pPL->setAng(&ang);
         }
-        ScfFlagOn(pG, SCF_41);
+        ScfFlagOn(pG, SCF_R329_ASHLEY_HELP);
         StaFlagOn(pG, STA_SUB_ASHLEY);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);

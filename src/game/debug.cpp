@@ -670,9 +670,9 @@ void ConfigSet()
             }
         } else if (symbol_check(&p, "TITLE_CHECK")) {
             if (CFG_ON(p)) {
-                DbgFlagOn(pG, DBG_2c);
+                DbgFlagOn(pG, DBG_TITLE_CHECK);
             } else {
-                DbgFlagOff(pG, DBG_2c);
+                DbgFlagOff(pG, DBG_TITLE_CHECK);
             }
         }
     }

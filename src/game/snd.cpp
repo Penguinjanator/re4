@@ -1407,7 +1407,7 @@ void SndWatcher()
     if (StaFlagChk(pG, STA_MOVIE_ON)) {
         return;
     }
-    if (!SpfFlagChk(pG, SPF_SE)) {
+    if (!SpfFlagChk(pG, SPF_SE_CALC)) {
         sndSurroundCalc();
         SeAtCheck();
     }
@@ -2469,7 +2469,7 @@ void SndBgmTblSetDisable(int type, int save)
 // Sub screen opened: SEs paused, BGM (TV) volume halved, Stop_flg 0x800 (no positional update).
 void SndSubScreenInit()
 {
-    SpfFlagOn(pG, SPF_SE);
+    SpfFlagOn(pG, SPF_SE_CALC);
     SndSetMasterVol(0x10002, 0x3F);
     SndSePauseAll(1);
 }
@@ -2479,7 +2479,7 @@ void SndSubScreenExit()
 {
     SndSetMasterVol(0x10002, 0x7F);
     SndSePauseAll(0);
-    SpfFlagOff(pG, SPF_SE);
+    SpfFlagOff(pG, SPF_SE_CALC);
 }
 
 // Stops the event streams (block 1), faded over `time` seconds.
@@ -2502,7 +2502,7 @@ void SndEventStrStop(int time)
 // Event start: SEs faded out (400) and paused, BGM ducked, Stop_flg 0x800.
 void SndEventInit()
 {
-    SpfFlagOn(pG, SPF_SE);
+    SpfFlagOn(pG, SPF_SE_CALC);
     Snd_se_fade_out_all(400);
     SndSePauseAll(1);
     SndRoomBgmMuteAll(1, 2);
@@ -2514,7 +2514,7 @@ void SndEventEnd()
 {
     int i;
 
-    SpfFlagOff(pG, SPF_SE);
+    SpfFlagOff(pG, SPF_SE_CALC);
     SndSePauseAll(0);
     for (i = 0; i < 2; i++) {
         u8 no = i;

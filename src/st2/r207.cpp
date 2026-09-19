@@ -162,7 +162,7 @@ void R207Init()
         SceAtSetEnable(0xD, 0);
         SceAtSetEnable(0xE, 0);
         if (ItemMgr.num(0x80) == 0) {
-            ItfFlagOff(pG, ITF_0b);
+            ItfFlagOff(pG, ITF_R207_GOLDEN_SWORD);
             SceAtSetEnable(0x80, 1);
             m = SceAtItemModelPtr(0x80);
             if (RsfCheck(G_ROOM_ID, 4)) {
@@ -172,7 +172,7 @@ void R207Init()
             }
         }
         if (ItemMgr.num(0xC4) == 0) {
-            ItfFlagOff(pG, ITF_0c);
+            ItfFlagOff(pG, ITF_R207_SILVER_SWORD);
             SceAtSetEnable(0x87, 1);
             m = SceAtItemModelPtr(0x87);
             if (RsfCheck(G_ROOM_ID, 6)) {
@@ -706,12 +706,12 @@ void r207_SetSword(int which, int mode)
             at = 0x80;
             mes = 1;
             RsfSet(G_ROOM_ID, 4);
-            ItfFlagOff(pG, ITF_0b);
+            ItfFlagOff(pG, ITF_R207_GOLDEN_SWORD);
         } else {
             at = 0x87;
             mes = 2;
             RsfSet(G_ROOM_ID, 6);
-            ItfFlagOff(pG, ITF_0c);
+            ItfFlagOff(pG, ITF_R207_SILVER_SWORD);
         }
         SceAtSetEnable(9, 0);
         SceAtSetEnable(0xA, 0);
@@ -722,12 +722,12 @@ void r207_SetSword(int which, int mode)
             at = 0x80;
             mes = 1;
             RsfSet(G_ROOM_ID, 5);
-            ItfFlagOff(pG, ITF_0b);
+            ItfFlagOff(pG, ITF_R207_GOLDEN_SWORD);
         } else {
             at = 0x87;
             mes = 2;
             RsfSet(G_ROOM_ID, 7);
-            ItfFlagOff(pG, ITF_0c);
+            ItfFlagOff(pG, ITF_R207_SILVER_SWORD);
         }
         SceAtSetEnable(0xB, 0);
         SceAtSetEnable(0xC, 0);

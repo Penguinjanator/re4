@@ -241,7 +241,7 @@ static void R21aEmSetMain()
     r21a_work.p->em[7].setPtr(0x5C, -1, 0);
     r21a_work.p->patrol.SetPatrol(0x5B, r21a_patrolTbl, 2, 0, 0);
     for (;;) {
-        if (ItfFlagChk(pG, ITF_13)) {
+        if (ItfFlagChk(pG, ITF_R21A_ITEM)) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 int cnt = 0;
 

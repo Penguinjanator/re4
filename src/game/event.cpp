@@ -628,7 +628,7 @@ int Event::RunEvtCancel()
         }
     }
     BitOn(StatusFlag, 0x04000000);
-    StaFlagOn(pG, STA_67);
+    StaFlagOn(pG, STA_EVENT_CANCEL);
     EvtMesDeleteAll();
     FadeSetW(1, 1, 0, 0);
     TaskSleep(2);
@@ -1591,8 +1591,8 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         SceEventStart(0);
     }
     StaFlagOn(pG, STA_EVENT_SYSYTEM);
-    StaFlagOn(pG, STA_4f);
-    StaFlagOff(pG, STA_67);
+    StaFlagOn(pG, STA_EFFAREA_USE_CAM);
+    StaFlagOff(pG, STA_EVENT_CANCEL);
     cMes.loadEventFont();
     ExeFunc(0, 0);
     if (pG->pl_type == 0) {
@@ -1697,7 +1697,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         SndEventEnd();
     }
     StaFlagOff(pG, STA_EVENT_SYSYTEM);
-    StaFlagOff(pG, STA_4f);
+    StaFlagOff(pG, STA_EFFAREA_USE_CAM);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -2515,7 +2515,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
         SceEventStart(0);
     }
     StaFlagOn(pG, STA_EVENT_SYSYTEM);
-    StaFlagOn(pG, STA_4f);
+    StaFlagOn(pG, STA_EFFAREA_USE_CAM);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     if (em != 0) {
         SceSleep(2);
@@ -2565,7 +2565,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     StaFlagOff(pG, STA_EVENT_SYSYTEM);
-    StaFlagOff(pG, STA_4f);
+    StaFlagOff(pG, STA_EFFAREA_USE_CAM);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     return ret;

@@ -193,7 +193,7 @@ void R225Init()
             hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x39), ROOM_ARC_PTR(pG->pRoom, 0x38));
         }
     }
-    ScfFlagOn(pG, SCF_47);
+    ScfFlagOn(pG, SCF_R225_IN);
 }
 
 // Per-frame room main: nothing.

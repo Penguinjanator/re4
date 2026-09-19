@@ -383,7 +383,7 @@ void R226Init()
     r226_work.p->moveTimer = 0;
     playerRunCamInitBridge();
     U32Set(r226_work.p->str, 0);
-    ScfFlagOn(pG, SCF_48);
+    ScfFlagOn(pG, SCF_R226_IN);
 }
 
 // Per frame: after the door opened (Room_flg[1] 0x08000000) and before the bridge (bit 14) a 600-frame

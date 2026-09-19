@@ -150,7 +150,7 @@ void SceEventStart(int mode)
     StaFlagOn(pG, STA_EVENT);
     StaFlagOn(pG, STA_SUSPEND);
     KeyStop(0xEFCF0000);
-    if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
+    if (StaFlagChk(pG, STA_BINOCULAR)) {
         CamCtrl.LowerBinocular();
     }
     Cckpt.lifeMeterDisp(0);
@@ -189,7 +189,7 @@ void SceEventEnd(int mode)
         pPL->dmg = s->dmg;
     }
     LightMgr.endEvent();
-    StaFlagOff(pG, STA_67);
+    StaFlagOff(pG, STA_EVENT_CANCEL);
     StaFlagOff(pG, STA_EVENT);
     StaFlagOff(pG, STA_SUSPEND);
     SpfFlagOff(pG, SPF_KEY);
@@ -244,7 +244,7 @@ void SceUpCutStart()
     SpfFlagOff(pG, SPF_ESP);
     SpfFlagOff(pG, SPF_OBJ);
     SpfFlagOff(pG, SPF_SCE);
-    SpfFlagOff(pG, SPF_SE);
+    SpfFlagOff(pG, SPF_SE_CALC);
     SpfFlagOff(pG, SPF_LIGHT);
     SpfFlagOff(pG, SPF_ID_SYSTEM);
     Cckpt.lifeMeterDisp(0);

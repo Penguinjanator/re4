@@ -388,7 +388,7 @@ void Trans()
         FilterTrans();
     }
     if (!DpfFlagChk(pG, DPF_ESP)) {
-        if (!DpfFlagChk(pG, DPF_15)) {
+        if (!DpfFlagChk(pG, DPF_TEX_RENDER)) {
             TransTexRenderMgr();
         }
     }
@@ -1083,7 +1083,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             }
             u32 n = m->LightInfo.getLightNum();
             if (n > 7) {
-                if (!DbgFlagChk(pG, DBG_2d)) {
+                if (!DbgFlagChk(pG, DBG_CAST_ERR_NO_DISP)) {
                     pLog->err(0, 0, "CAST LIGHT NUM OVER %d", n);
                 }
                 g_pShdMng = 0;

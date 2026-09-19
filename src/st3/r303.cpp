@@ -67,7 +67,7 @@ void R303Init()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) oneshot_bgm, 0, 1);
     }
-    ScfFlagOn(pG, SCF_4a);
+    ScfFlagOn(pG, SCF_R303_IN);
 }
 
 // The shelf swings open (mode 1: already open).

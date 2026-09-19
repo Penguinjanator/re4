@@ -370,7 +370,7 @@ void subMissionSt1()
             StaFlagOff(pG, STA_INTO_SHOP);
         }
         if (count == 15) {
-            ScfFlagOn(pG, SCF_R119_DOOR_CLOSE);
+            ScfFlagOn(pG, SCF_ST1_SUB_PERFECT);
         }
         int n = 0;
         int base = 0;

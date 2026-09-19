@@ -85,7 +85,7 @@ void R306Init()
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r306_checkDoor30b, 0, 1);
         SceExec(0x12, (TaskFunc) r306_checkDoor30bKeyUse, 0, 0, 2, 0);
     }
-    if (ItfFlagChk(pG, ITF_1a)) {
+    if (ItfFlagChk(pG, ITF_R308_THERMO_RIFLE)) {
         EstSet(0, -1, 0, 0, 1, 1, 1, 0, (u32) zero, zero);
     } else {
         EstSet(0, -1, 0, 0, 1, 0, 1, 0, (u32) zero, zero);

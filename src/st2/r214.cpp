@@ -1040,8 +1040,8 @@ void Evt_R214S00_Func(Event* e)
         }
         switch (e->NowCut) {
         case 0:
-            if (e->NowFrame == 0 && (StaFlagChk(pG, STA_CAM_SHOULDER))) {
-                StaFlagOff(pG, STA_CAM_SHOULDER);
+            if (e->NowFrame == 0 && (StaFlagChk(pG, STA_BINOCULAR))) {
+                StaFlagOff(pG, STA_BINOCULAR);
                 r214_work.p->bino->quit(&pG->Cam);
                 r214_work.p->bino->~IdBinocular();
             }
@@ -1050,8 +1050,8 @@ void Evt_R214S00_Func(Event* e)
         case 2:
         case 3:
         case 4:
-            if (e->NowFrame == 0 && !StaFlagChk(pG, STA_CAM_SHOULDER)) {
-                StaFlagOn(pG, STA_CAM_SHOULDER);
+            if (e->NowFrame == 0 && !StaFlagChk(pG, STA_BINOCULAR)) {
+                StaFlagOn(pG, STA_BINOCULAR);
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
                 r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
@@ -1066,8 +1066,8 @@ void Evt_R214S00_Func(Event* e)
         break;
     case 2:
         SmdSetTrans(0x18, 1);
-        if (StaFlagChk(pG, STA_CAM_SHOULDER)) {
-            StaFlagOff(pG, STA_CAM_SHOULDER);
+        if (StaFlagChk(pG, STA_BINOCULAR)) {
+            StaFlagOff(pG, STA_BINOCULAR);
             r214_work.p->bino->quit(&pG->Cam);
             r214_work.p->bino->~IdBinocular();
         }

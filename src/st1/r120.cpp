@@ -69,14 +69,14 @@ extern "C" void R120Event()
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }
-    ScfFlagOff(pG, SCF_3b);
+    ScfFlagOff(pG, SCF_R120_EVENT_CANCEL);
     systemVISetBlack(1);
     Sofdec.Initialize("movie/opening.sfd", 0);
     SceSleep(1);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     if (Sofdec.m_be_flag & 0x20) {
-        ScfFlagOn(pG, SCF_3b);
+        ScfFlagOn(pG, SCF_R120_EVENT_CANCEL);
     }
     SceEventStart(0);
     // Two sequential `if`s whose first test masks with a variable: the mask register keeps
@@ -90,7 +90,7 @@ extern "C" void R120Event()
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
     }
-    if (!ScfFlagChk(pG, SCF_3b)) {
+    if (!ScfFlagChk(pG, SCF_R120_EVENT_CANCEL)) {
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
@@ -261,7 +261,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         DpfFlagOff(pG, DPF_SCR);
         break;
     case 3:
-        ScfFlagOn(pG, SCF_3b);
+        ScfFlagOn(pG, SCF_R120_EVENT_CANCEL);
         break;
     }
 }
@@ -469,7 +469,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
         SysFlagOn(pG, SYS_SCREEN_STOP);
         break;
     case 3:
-        ScfFlagOn(pG, SCF_3b);
+        ScfFlagOn(pG, SCF_R120_EVENT_CANCEL);
         break;
     }
 }

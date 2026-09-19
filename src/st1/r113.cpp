@@ -124,7 +124,7 @@ void R113Init()
     SceSetItemEvent(0xA, 0x8B, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf2, 0);
     SceAtDataSet_hide(4, r113_execHide);
     FlrAtSetDefVal(0, 0, 3);
-    if (!ItfFlagChk(pG, ITF_14)) {
+    if (!ItfFlagChk(pG, ITF_R103_FILE)) {
         U32Set(r113_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r113_work->eff, 0, 0);
         SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);

@@ -79,7 +79,7 @@ void R316Init()
     cEm* win;
 
     SysFlagOff(pG, SYS_SCREEN_STOP);
-    DbgFlagOn(pG, DBG_2d);
+    DbgFlagOn(pG, DBG_CAST_ERR_NO_DISP);
 #line 51 "D:/Bio4/Prog/r316.cpp"
     r316_work = (R316Work*) MEM_CALLOC(sizeof(R316Work), 1, 0xd);
     if (pG->JumpPoint == 1) {

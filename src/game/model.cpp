@@ -1579,7 +1579,7 @@ void cModel::error()
 {
     Vec v;
 
-    if (DbgFlagChk(pG, DBG_ERRORL_CK)) {
+    if (DbgFlagChk(pG, DBG_ERROR_CK)) {
         be_flag |= 0x80000000;
         v.x = pos.x;
         v.y = pos.y + 50000.0f;

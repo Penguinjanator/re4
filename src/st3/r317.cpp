@@ -313,7 +313,7 @@ void R317EventS00()
         RsfSet(G_ROOM_ID, 0);
         ScfFlagOn(pG, SCF_R317_LEON_WOUND);
         pPL->setWound();
-        ScfFlagOn(pG, SCF_4f);
+        ScfFlagOn(pG, SCF_R317_KNIFE_BATTLE);
         OpeSetOpenTerm(0x14, 0.0f, 0.0f, 0.0f, 0.0f);
         EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, (u32) zero, zero);
     }

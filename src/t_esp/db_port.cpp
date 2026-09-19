@@ -806,7 +806,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         EvtDebug.FlagEtc = (EvtDebug.FlagEtc & 0x7FFFFFFF) | 0x40000000;
         StaFlagOn(pG, STA_SUSPEND);
         StaFlagOn(pG, STA_EVENT_SYSYTEM);
-        StaFlagOn(pG, STA_4f);
+        StaFlagOn(pG, STA_EFFAREA_USE_CAM);
         list = EspEvModList;
         for (room = 0; room < 0x80; room++) {
             list[room] = 0;
@@ -1193,7 +1193,7 @@ extern "C" void EspToolExit()
         DbMenuSetExecTool("EVENT TOOL");
         StaFlagOff(pG, STA_SUSPEND);
         StaFlagOff(pG, STA_EVENT_SYSYTEM);
-        StaFlagOff(pG, STA_4f);
+        StaFlagOff(pG, STA_EFFAREA_USE_CAM);
         LightMgr.endEvent();
         LightMgr.roomLitSet(0);
         LightMgr.update(0, -1);

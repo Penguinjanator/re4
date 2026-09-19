@@ -152,7 +152,7 @@ void titleInit(TitleWork* w)
     w->Rno1 = 0;
     ISet(w->scroll, 0);
     FSet(w->scroll_add, 1.5f);
-    StaFlagOn(pG, STA_50);
+    StaFlagOn(pG, STA_TITLE);
     IdAllocBuffer();
 }
 
@@ -934,16 +934,16 @@ void titleSub(TitleWork* w)
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
         if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
-            if (!ExtFlagChk(pSys, EXT_04)) {
+            if (!ExtFlagChk(pSys, EXT_GET_ADA)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!ExtFlagChk(pSys, EXT_06)) {
+            if (!ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
                 IdSys.unitPtr(1, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!ExtFlagChk(pSys, EXT_05)) {
+            if (!ExtFlagChk(pSys, EXT_GET_HUNK)) {
                 IdSys.unitPtr(2, ID_OMAKE_BG)->be_flag &= ~8;
             }
-            if (!ExtFlagChk(pSys, EXT_07)) {
+            if (!ExtFlagChk(pSys, EXT_GET_WESKER)) {
                 IdSys.unitPtr(3, ID_OMAKE_BG)->be_flag &= ~8;
             }
         }
@@ -967,8 +967,8 @@ void titleSub(TitleWork* w)
                     w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
                 } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
-                    if (!ExtFlagChk(pSys, EXT_09)) {
-                        ExtFlagOn(pSys, EXT_09);
+                    if (!ExtFlagChk(pSys, EXT_GET_OMAKE_ETC_GAME)) {
+                        ExtFlagOn(pSys, EXT_GET_OMAKE_ETC_GAME);
                         {
                             int ofs;
                             for (ofs = 0; ofs < 0x10; ofs += 4) {
@@ -988,10 +988,10 @@ void titleSub(TitleWork* w)
                         }
                     }
                     if (DebugTrg(1)) {
-                        ExtFlagOff(pSys, EXT_04);
-                        ExtFlagOff(pSys, EXT_06);
-                        ExtFlagOff(pSys, EXT_05);
-                        ExtFlagOff(pSys, EXT_07);
+                        ExtFlagOff(pSys, EXT_GET_ADA);
+                        ExtFlagOff(pSys, EXT_GET_KLAUSER);
+                        ExtFlagOff(pSys, EXT_GET_HUNK);
+                        ExtFlagOff(pSys, EXT_GET_WESKER);
                     }
                     // Every fade of this function is the FadeSetW inline (its own colour pair at 32/36):
                     // here `&col.start` is PRE'd across the loops (`addi r29,r1,32`, `mr r4,r29`) while
@@ -1064,22 +1064,22 @@ void titleSub(TitleWork* w)
         break;
     }
     case 8: {
-        if (!ExtFlagChk(pSys, EXT_04)) {
+        if (!ExtFlagChk(pSys, EXT_GET_ADA)) {
             id_color_copy(0xFD, 1, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 1, ID_OMAKE);
         }
-        if (!ExtFlagChk(pSys, EXT_06)) {
+        if (!ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
             id_color_copy(0xFD, 2, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 2, ID_OMAKE);
         }
-        if (!ExtFlagChk(pSys, EXT_05)) {
+        if (!ExtFlagChk(pSys, EXT_GET_HUNK)) {
             id_color_copy(0xFD, 3, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 3, ID_OMAKE);
         }
-        if (!ExtFlagChk(pSys, EXT_07)) {
+        if (!ExtFlagChk(pSys, EXT_GET_WESKER)) {
             id_color_copy(0xFD, 4, ID_OMAKE);
         } else {
             id_color_copy(0xFC, 4, ID_OMAKE);
@@ -1279,7 +1279,7 @@ int stageSelect(TitleWork* w)
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
-        if (ExtFlagChk(pSys, EXT_04)) {
+        if (ExtFlagChk(pSys, EXT_GET_ADA)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1287,7 +1287,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 0;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(2, ID_OMAKE);
-        if (ExtFlagChk(pSys, EXT_06)) {
+        if (ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1295,7 +1295,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 1;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(3, ID_OMAKE);
-        if (ExtFlagChk(pSys, EXT_05)) {
+        if (ExtFlagChk(pSys, EXT_GET_HUNK)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1303,7 +1303,7 @@ int stageSelect(TitleWork* w)
         u->texNo = 2;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(4, ID_OMAKE);
-        if (ExtFlagChk(pSys, EXT_07)) {
+        if (ExtFlagChk(pSys, EXT_GET_WESKER)) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
@@ -1447,7 +1447,7 @@ void titleExit(TitleWork* w)
                     DbgFlagOn(pG, DBG_START_ST3);
                     ScfFlagOn(pG, SCF_ST3_IN);
                     if (pG->room_id == 0x333) {
-                        DbgFlagOn(pG, DBG_6e);
+                        DbgFlagOn(pG, DBG_START_LAST);
                     }
                 }
                 switch (pG->stage_no) {
@@ -1551,7 +1551,7 @@ void titleExit(TitleWork* w)
     if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         Mem_free(w->pOmk);
     }
-    StaFlagOff(pG, STA_50);
+    StaFlagOff(pG, STA_TITLE);
     IdFreeBuffer();
     Mem_free(w);
     systemVISetBlack(1);

@@ -89,7 +89,7 @@ void R321Main()
 static void r321_heri_down()
 {
     RsfSet(G_ROOM_ID, 0);
-    ScfFlagOn(pG, SCF_40);
+    ScfFlagOn(pG, SCF_R321_HERI_DOWN);
     EvtMgr.EvtReadExec("event/evd/r321s00.evd", 0, 0);
     setPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
     setAngY(pPL, 1.663f);

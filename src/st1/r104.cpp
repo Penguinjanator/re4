@@ -698,7 +698,7 @@ static void r104_execEvent20()
 // Area 0x11 once (Room_flg bit 21): sets Scenario_flg[1] 0x20000000 and plays event r104s10 (slot 0x13).
 static void r104_execEvent10()
 {
-    ScfFlagOn(pG, SCF_22);
+    ScfFlagOn(pG, SCF_R104_MEET_MERCHANT);
     RsfSet(G_ROOM_ID, 21);
     EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
 }

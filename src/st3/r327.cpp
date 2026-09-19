@@ -134,7 +134,7 @@ void R327Init()
     r327_work.p = (R327Work*) MEM_CALLOC(sizeof(R327Work), 1, 0xd);
     // Reference-view store: the flags test's `pG` load is issued after it (alias.c keeps them ordered).
     IntSet(r327_work.p->first, 1);
-    if (ScfFlagChk(pG, SCF_41)) {
+    if (ScfFlagChk(pG, SCF_R329_ASHLEY_HELP)) {
         for (i = 0; i < 0x100; i++) {
             EmListData* e = (EmListData*) ((u8*) pG + (0x52E8 + i * 0x20));
 

@@ -227,7 +227,7 @@ void R10cInit()
 void R10cMain()
 {
     U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
-    if (ItfFlagChk(pG, ITF_09)) {
+    if (ItfFlagChk(pG, ITF_R11C_ITEM)) {
         ScfFlagOn(pG, SCF_R10C_GET_CREST);
     }
     r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);
@@ -583,7 +583,7 @@ static void chkSwitchA_exit()
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10c_EmSet, 0, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    StaFlagOff(pG, STA_4f);
+    StaFlagOff(pG, STA_EFFAREA_USE_CAM);
     EffectEspDelete(0x2001, 6, 0, 0);
     EffectEspgenDelete(0x2001, 6, 0);
     EffectEfmDelete(0x2001, 6, 0);
@@ -631,7 +631,7 @@ static void chkSwitchA()
         f32 spd;
 
         SceAtSetEnable(5, 0);
-        StaFlagOn(pG, STA_4f);
+        StaFlagOn(pG, STA_EFFAREA_USE_CAM);
         SndCall(6, 3, 0, 0, 0, 0);
         pG->Room_flg[0] |= 0x04000000;
         CamCtrl.CutCall(0x14);
@@ -702,7 +702,7 @@ static void chkSwitchA()
     } else {
         CamCtrl.Comeback(0);
         SceEventEnd(0);
-        StaFlagOff(pG, STA_4f);
+        StaFlagOff(pG, STA_EFFAREA_USE_CAM);
     }
 }
 

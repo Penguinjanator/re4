@@ -117,7 +117,7 @@ void R222Init()
     // before the call (the r11b/r402 idiom); the sixth be_flag store is a BitOn so the RsfCheck's `lwz pG`
     // stays below it. The reference is declared after the pG flag store so that `high(pG)` is the earlier
     // gcse expression: the two PRE'd highs fill the prologue's free slots in first-occurrence order.
-    DbgFlagOn(pG, DBG_2e);
+    DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     R222Work*& wp = r222_work.p;
 #line 70 "D:/Bio4/Prog/r222.cpp"
     wp = (R222Work*) MEM_CALLOC(sizeof(R222Work), 1, 0xd);

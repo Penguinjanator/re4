@@ -703,12 +703,12 @@ static void gameResult()
     }
     ExtFlagOn(pSys, EXT_COSTUME);
     ExtFlagOn(pSys, EXT_HARD_MODE);
-    ExtFlagOn(pSys, EXT_08);
-    if (ExtFlagChk(pSys, EXT_09) == 0) {
+    ExtFlagOn(pSys, EXT_GET_OMAKE_ADA_GAME);
+    if (ExtFlagChk(pSys, EXT_GET_OMAKE_ETC_GAME) == 0) {
         MercSaveWork save;
         int i;
 
-        ExtFlagOn(pSys, EXT_09);
+        ExtFlagOn(pSys, EXT_GET_OMAKE_ETC_GAME);
         // Struct-member view of pSys (pGS): the element store is not disjoint from the pointer load,
         // so pSys is reloaded per iteration and the address stays `(pSys + 0x10) + i*4` (`stwx`).
         for (i = 0; i < 4; i++) {

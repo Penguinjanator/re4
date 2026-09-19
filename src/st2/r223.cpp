@@ -122,7 +122,7 @@ void R223Init()
 #line 67 "D:/Bio4/Prog/r223.cpp"
     R223Work*& wp = r223_work.p;
     wp = (R223Work*) MEM_CALLOC(sizeof(R223Work), 1, 0xD);
-    DbgFlagOn(pG, DBG_2e);
+    DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint == 1) {
         if (DebugTrg(1)) {
             RsfSet(G_ROOM_ID, 6);

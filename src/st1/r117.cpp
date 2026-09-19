@@ -155,7 +155,7 @@ void R117Init()
     W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
-    if (!ScfFlagChk(pG, SCF_R117_ASHLEY_FIND)) {
+    if (!ScfFlagChk(pG, SCF_R117_FIND_ASHLEY)) {
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
@@ -384,7 +384,7 @@ static void r117_EventAshleyFind()
 {
     cEm* door;
 
-    ScfFlagOn(pG, SCF_R117_ASHLEY_FIND);
+    ScfFlagOn(pG, SCF_R117_FIND_ASHLEY);
     ScfFlagOff(pG, SCF_90);
     if (W->evd0->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);

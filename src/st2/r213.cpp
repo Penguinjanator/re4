@@ -1057,7 +1057,7 @@ static void R213Event()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
-        ScfFlagOn(pG, SCF_39);
+        ScfFlagOn(pG, SCF_R213_ASHLEY_LOST);
         SubCharCtrl(SCC_KILL, 0);
         StaFlagOff(pG, STA_SUB_ASHLEY);
         EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, 0);
