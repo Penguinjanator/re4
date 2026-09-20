@@ -10,10 +10,7 @@
 #include "math_sub.h"
 #include "motion.h"
 #include "at_mod.h"
-
-extern "C" {
-int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp
-}
+#include "em_sub.h"
 
 // Looks for a pushable object (cEmRack, id 0x45, not type 4, alive, within 500 in height, not
 // behind a wall) touching the player moved 300 forward; remembers it as m_Target with the side the
@@ -100,7 +97,7 @@ void cPlPush::pushTargetInit(u8 flag)
 {
     PlArc* arc = pG->pPlayer;
 
-    MotionSetCore(m_Target, &m_Target->pMotion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
+    MotionSetCore(m_Target, &m_Target->Motion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
     x9 = flag;
 }
 

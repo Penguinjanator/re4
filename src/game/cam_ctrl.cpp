@@ -30,9 +30,9 @@
 #include "pl_npc.h"
 #include "esp.h"
 #include "quake.h"
+#include "eprintf.h"
 
 extern f32 ZNEAR;
-void eprintf(int x, int y, int color, int p, const char* fmt, ...);
 
 
 #define PI 3.1415927f

@@ -1653,9 +1653,9 @@ static void plemEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 0x41, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_escape, w->motEscape2, 3, 0x41, 0);
         } else {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_escape, w->motEscape2, 3, 1, 0);
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1692,7 +1692,7 @@ void plemBackjump(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->motBackjump, 0, 3, 1, 5);
+        MotionSetCore(pl, &pl->Motion, w->motBackjump, 0, 3, 1, 5);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1735,7 +1735,7 @@ void plemFrontEscape(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->motFront, 0, 3, 1, 5);
+        MotionSetCore(pl, &pl->Motion, w->motFront, 0, 3, 1, 5);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);

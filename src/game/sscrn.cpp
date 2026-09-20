@@ -866,7 +866,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
     wk->sndId = SndStrPlayBlock(1, strTbl[no], 0.0f);
-    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x79), 0, 0, 0x201, 0);
+    MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
     SysFlagOff(pG, SYS_SCREEN_STOP);
     for (i = 0; i <= 20; i++) {

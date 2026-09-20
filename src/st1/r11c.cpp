@@ -50,7 +50,6 @@
 // the merchant.
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
-void RoomEfmRegist(void* model, void* tpl, u8 id);   // game/eff_sys.cpp (the bin/tpl overload)
 
 
 extern StockEntry stock_r11c[];               // game/merchant.cpp

@@ -15,6 +15,7 @@
 #include "dbmodule.h"
 #include "player.h"
 #include "motion.h"
+#include "em_sub.h"
 
 // Thrown object (bottle, dynamite, ...): flies under gravity, optionally spinning, and checks
 // the scenario, the enemies and the player for hits.
@@ -23,17 +24,9 @@ public:
     virtual void move();
 };
 
-// GetWepTargetList entry.
-struct WepTarget {
-    cEm* em;
-    YARARE_INFO* part;
-};
-
 extern cModel* pSUB;
 
 extern "C" {
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
-u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, int max, u16 flag);
 void obj08AddSpeed(cObj08* obj);
 int obj08ScrHitCk(cObj08* obj);
 int obj08ToEmHitCk(cObj08* obj);
@@ -100,7 +93,7 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
     if (flags & 0x40000000) {
         w->be_flag |= 0x20;
     }
-    w->pAtk = atk;
+    w->pAtk = (EmAtkInfo*) atk;
     w->atkFlags = flags & 0xFFFF;
     return obj;
 }
@@ -191,7 +184,7 @@ void cObj08::move()
     }
     w->life--;
     if (w->be_flag & 1) {
-        MotionSetCore(this, &pMotion, w->pMot, 0, 0, w->motPrm, 0);
+        MotionSetCore(this, &Motion, w->pMot, 0, 0, w->motPrm, 0);
         w->be_flag = (w->be_flag & ~1) | 2;
     }
     if (w->be_flag & 2) {

@@ -14,9 +14,9 @@
 #include "math_sub.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "esp.h"
 
 extern "C" {
-void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 void ReleaseWepData();                          // game/read.cpp
 }
 
@@ -45,7 +45,7 @@ cPlAshley::cPlAshley()
     pl01weaponSet(this);
     ReleaseWepData();
     init1();
-    EspDataLoad(PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
 }

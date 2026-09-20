@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "scheduler.h"
+#include "TexRender.h"
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
@@ -62,7 +63,6 @@ void sp_nobigenkai_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans_1a(EspSeqData* head, void* seq);
 void sp_tex_trans(u8 id);
-void GetTexRenderMgr(void** pp);
 }
 extern int db_modelNo;  // db_port.cpp (the BasePos "WorKNo" numeric edits the model slot)
 extern void* g_EspToolSeqHedAddr;  // eff_sys.cpp
@@ -313,7 +313,7 @@ static char g_filePath[256];
 static char g_modelPath[256];
 static char g_modelFile[256];
 static u8 g_modelNo;
-static void* g_pTexRender;
+static TexRenderMng* g_pTexRender;
 static DB_NUMERIC* g_editNum[5][43];
 static char g_dir[64];
 static int g_dirLocal;

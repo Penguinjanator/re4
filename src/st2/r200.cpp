@@ -50,7 +50,6 @@ static R200WorkPtr r200_work;
 extern "C" int setRoomEtcBreakDisp(int no, int on, int flag);
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 extern LevelEntry level_r200[];
-extern StockEntry stock_2st_first[];
 
 void r200_openBox_main(int id, int mode);
 static void r200_openedBox(int id);

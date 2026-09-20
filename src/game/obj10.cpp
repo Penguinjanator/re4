@@ -99,7 +99,7 @@ void cWepItem::move00()
         return;
     }
     if (w->be_flag & 1) {
-        MotionSetCore(this, &pMotion, w->pMot, 0, 0, w->motPrm, 0);
+        MotionSetCore(this, &Motion, w->pMot, 0, 0, w->motPrm, 0);
         w->be_flag = (w->be_flag & ~1) | 2;
     }
     if (w->be_flag & 2) {

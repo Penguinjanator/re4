@@ -34,9 +34,6 @@
 #include "esp.h"
 #include "math_sub.h"
 
-extern "C" {
-}
-
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 static void knife_r2_ready(cPlayer* pl);

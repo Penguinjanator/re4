@@ -19,13 +19,11 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "at_mod.h"
+#include "em_sub.h"
+#include "est.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 }
 
 typedef void (*EmBarrelFunc)(cEmBarrel*);

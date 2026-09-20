@@ -31,6 +31,7 @@
 #include "fade.h"
 #include "snd.h"
 #include "rnd.h"
+#include "est.h"
 
 // Room 1-1f (D:/Bio4/Prog/r11f.cpp): the village chief's barn; the meeting event (s00/s01/s02),
 // the boss fight (0xF8 / 0xF9) with its s10 stream and the s11 escape event.
@@ -38,12 +39,6 @@
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 // Event::FlgOnStatus is called out of line here (the DOL copy), not the header inline.
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-extern "C" {
-void EffectEspDelete(int a, int b, void* c, int d);
-void EffectEspgenDelete(int a, int b, void* c);
-void EffectEfmDelete(int a, int b, void* c);
-}
-
 // The chief (game/em2b.cpp): only the two event virtuals the room calls.
 class cEm2b : public cEm {
 public:

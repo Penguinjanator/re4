@@ -24,10 +24,7 @@
 #include "motion.h"
 #include "ref_access.h"
 #include <string.h>
-
-extern "C" {
-void Draw_line3d(Vec* a, Vec* b, u32 color, int flag);
-}
+#include "dbmodule.h"
 
 extern int ProjType;
 extern f32 ORTHO_T;

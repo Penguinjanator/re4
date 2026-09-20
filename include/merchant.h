@@ -151,6 +151,8 @@ public:
 
 extern MerchantCharacter merchantChar;
 extern MerchantData merchantData[1];
+extern StockEntry stock_1st_mission[];
+extern StockEntry stock_2st_first[];
 extern MerchantInfo merchant_info_A;
 extern LevelPrice level_price[];
 extern PriceEntry g_item_price_tbl[];

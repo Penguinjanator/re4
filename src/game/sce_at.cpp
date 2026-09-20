@@ -50,6 +50,7 @@
 #include <dolphin/os.h>
 #include "em_sub.h"
 #include "item_model.h"
+#include "read.h"
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -61,9 +62,6 @@
 // SceAtRoomSet at room start, SceAtCheck once per frame from the scenario move, the SceAt*
 // accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
-extern "C" {
-void* EmReadSearch(int id, void* addr, u32 size);        // game/read.cpp
-}
 int DbMenuActiveCheck();                                 // game/db_menu.cpp
 cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot);  // game/obj19.cpp
 

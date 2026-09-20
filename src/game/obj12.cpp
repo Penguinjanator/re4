@@ -11,6 +11,7 @@
 #include "rnd.h"
 #include "pad.h"
 #include "motion.h"
+#include "em_sub.h"
 
 // Hanging object that can be thrown and falls as a three-point rope (obj00 variant with a rope
 // type, a life counter and a throw routine).
@@ -36,10 +37,6 @@ struct Obj12Node {
     f32 len;
     int hit;
 };
-
-extern "C" {
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
-}
 
 // Per-frame: motion, parent follow (destroyed with the parent; catch-up blend on be_flag bit 3),
 // throw flight (bit 8), rope fall (bit 2), parts/collision update, Lost_wait countdown to removal.

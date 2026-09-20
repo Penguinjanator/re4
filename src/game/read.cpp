@@ -24,12 +24,11 @@
 #include <string.h>
 #include <dolphin/os.h>
 #include "sce.h"
+#include "trans.h"
 
 extern "C" {
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
 void Yz2DecodeExec(void* dst);
-void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
-void GlobalIlmTexInit(void* p);
 extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
 
@@ -229,8 +228,9 @@ void CoreDataRead()
 #line 219 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ(3, CORE_DATA_ADDR, 0, 0, 0, 0x8001);
     Dvd.ReadCheck(req, &info);
-    SpecularInit(ARC_PTR(ofs_10), ARC_PTR(ofs_44), ARC_PTR(ofs_48), ARC_PTR(ofs_4C));
-    GlobalIlmTexInit(ARC_PTR(ofs_40));
+    SpecularInit((TEXPalette*) ARC_PTR(ofs_10), (TEXPalette*) ARC_PTR(ofs_44), (TEXPalette*) ARC_PTR(ofs_48),
+                 (TEXPalette*) ARC_PTR(ofs_4C));
+    GlobalIlmTexInit((TEXPalette*) ARC_PTR(ofs_40));
     if (info.size[0][0] > CORE_DATA_MAX) {
         pLog->err(0, 0, "CORE_DATA IS TOO LARGE(%d/%d)", 0, CORE_DATA_MAX);
         TaskSleep(60);

@@ -302,6 +302,8 @@ int EspGetTplAddr(int no, void** out);
 // (obj01/obj10 move00, obj10AddSpeed).
 void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, u8 d, u16 e, u8 f, void* g, void* h);
 }
+// game/est.cpp: the C++ overload the plain EstSet forwards to, with the est data block resolved.
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
@@ -400,6 +402,8 @@ void EspEmDataSwapPush(int id);
 void EspEmDataSwapPop(int id);
 // game/eff_sys.cpp: registers a scroll model's texture palette for the room's effect models.
 void RoomEfmRegist(cModel* m, u8 no);
+// Same for a model / texture palette pair that is not a scroll model yet (raw addresses).
+void RoomEfmRegist(void* model, void* tpl, u8 id);
 // game/eff_sys.cpp: releases the effect data of owner `id` (C linkage).
 extern "C" int EspDataRelease(u32 owner, int flag, int warn);
 // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): swap the esp work pool for a Debug_alloc'd one of

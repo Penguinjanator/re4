@@ -23,6 +23,7 @@
 #include "pl_npc.h"
 #include "pl_sub.h"
 #include "motion.h"
+#include "em_sub.h"
 
 // Enemy head (obj 0x16): the head / mouth model of the plaga-carrying enemies, hung on a parts of
 // its body (`o16.body`). It turns toward the player (obj16NeckMove), bites (R1_Atk, R1_Critical),
@@ -56,8 +57,6 @@ struct Obj16Parts {
 };
 
 extern "C" {
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
-void LifeDownSet(cEm* em, int dmg, int rnd);
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void obj16_R1_Set(cObj16* obj);
 void obj16_R1_CoreMove(cObj16* obj);
@@ -453,11 +452,11 @@ void obj16_R1_CoreMove(cObj16* obj)
     switch (obj->r_no_2) {
     case 0:
         if (w->Wait_mode) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 3, 4, (u8) ((u32) Rnd() % 15));
+            MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 3, 4, (u8) ((u32) Rnd() % 15));
         } else if (Rnd() & 1) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 3, 4, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 3, 4, 0);
         } else {
-            MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 3, 4, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[1], 0, 3, 4, 0);
         }
         w->Timer = (u8) ((u32) Rnd() % 5) + 15;
         obj->r_no_2++;
@@ -511,7 +510,7 @@ void obj16_R1_CoreMove(cObj16* obj)
         }
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[10], 0, 3, 0, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[10], 0, 3, 0, 0);
         if (obj->type == 2) {
             EstSet(obj, -1, 0, 0, 0x10, 0x53, 0, 0, obj, 0);
             EffectEspDelete(0, w->EffKindId2, obj, 0);
@@ -538,7 +537,7 @@ void obj16_R1_CoreMove(cObj16* obj)
         }
         break;
     case 4:
-        MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 3, 0, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[9], 0, 3, 0, 0);
         if (obj->type == 2) {
             EstSet(obj, -1, 0, 0, 0x10, 0xA, 0, 0, obj, 0);
             EstSet(obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, obj, 0);
@@ -589,7 +588,7 @@ void obj16_R1_Atk(cObj16* obj)
     atk = 0;
     switch (obj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0xA, 0, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[9], 0, 0xA, 0, 0);
         if (obj->type == 2) {
             EstSet(obj, -1, 0, 0, 0x10, 0xA, 0, 0, obj, 0);
             EstSet(obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, obj, 0);
@@ -609,7 +608,7 @@ void obj16_R1_Atk(cObj16* obj)
         break;
     case 2:
         if ((Rnd() & 1) || obj->r_no_3) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0xA, 0, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0xA, 0, 0);
             w->Timer = 34;
             w->atkTimer = 8;
             obj->r_no_3 = 0;
@@ -620,7 +619,7 @@ void obj16_R1_Atk(cObj16* obj)
                 EstSet(obj, -1, 0, 0, 0x31, 0x1C, 0, 0, obj, 0);
             }
         } else {
-            MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 3, 0, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[4], 0, 3, 0, 0);
             w->Timer = 28;
             w->atkTimer = 6;
             obj->r_no_3 = 1;
@@ -703,7 +702,7 @@ void obj16_R1_Critical(cObj16* obj)
     atk = 0;
     switch (obj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 3, 0, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[9], 0, 3, 0, 0);
         if (obj->type == 3) {
             EstSet(obj, -1, 0, 0, 0x10, 0x5F, 0, 0, obj, 0);
             SndCall(8, 9, &w->target->pos, w->target->id, 0, 0);
@@ -738,18 +737,18 @@ void obj16_R1_Critical(cObj16* obj)
         // `w->timer = 14` repeated in every arm: the last arm's block then does not end in a
         // call (no flow nop), so all four tails cross-jump into one MotionSetCore
         if (head.y - tgt.y > 500.0f) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[6], 0, 0, 0, 0);
             w->Timer = 14;
         } else {
             f32 d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z);
             if (d2 < 1440000.0f) {
-                MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
+                MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0, 0);
                 w->Timer = 14;
             } else if (d2 < 3240000.0f) {
-                MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
+                MotionSetCore(obj, &obj->Motion, w->mot[4], 0, 0, 0, 0);
                 w->Timer = 14;
             } else {
-                MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
+                MotionSetCore(obj, &obj->Motion, w->mot[5], 0, 0, 0, 0);
                 w->Timer = 14;
             }
         }
@@ -816,9 +815,9 @@ void obj16_R1_Damage(cObj16* obj)
     switch (obj->r_no_2) {
     case 0:
         if (w->Wait_mode) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[8], 0, 0, 0, 0);
         } else {
-            MotionSetCore(obj, &obj->pMotion, w->mot[7], 0, 0, 0, 0);
+            MotionSetCore(obj, &obj->Motion, w->mot[7], 0, 0, 0, 0);
         }
         if (obj->type == 3 || obj->type == 0xD) {
             w->Scale.x = 0.3f;
@@ -885,7 +884,7 @@ void MotSetObj16(cObj* obj, void* mot, int a, int b)
     if (obj == 0) {
         return;
     }
-    MotionSetCore(obj, &obj->pMotion, mot, 0, 0xA, (u16) a, (u16) b);
+    MotionSetCore(obj, &obj->Motion, mot, 0, 0xA, (u16) a, (u16) b);
 }
 
 // Places the head: its pos/ang/scale under the body parts' matrix (or free), then the parts with
@@ -960,9 +959,9 @@ void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* 
     w->mot[9] = m9;
     w->mot[10] = m10;
     if (type == 3 || type == 0xD) {
-        MotionSetCore(this, &pMotion, m2, 0, 0, 4, 0);
+        MotionSetCore(this, &Motion, m2, 0, 0, 4, 0);
     } else {
-        MotionSetCore(this, &pMotion, m0, 0, 0, 4, 0);
+        MotionSetCore(this, &Motion, m0, 0, 0, 4, 0);
     }
     w->x6C = 0;
     if (type == 3) {
@@ -1341,7 +1340,7 @@ void plemDmMStar(cPlayer* pl)
         } else {
             hokan = 1;
         }
-        MotionSetCore(pl, &pl->pMotion, w->Mot_pl_dm, (void*) w->Seq_pl_dm, 3, hokan, 0);
+        MotionSetCore(pl, &pl->Motion, w->Mot_pl_dm, (void*) w->Seq_pl_dm, 3, hokan, 0);
         PlSetDamageSe(0);
         if (pl->r_no_3) {
             pl->dmg.set(0, 0xF);

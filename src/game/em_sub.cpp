@@ -30,9 +30,6 @@
 #include "ref_access.h"
 #include "em.h"
 
-extern "C" {
-}
-
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
 public:
@@ -1641,7 +1638,7 @@ int PlBombHitCk(Vec* pos, f32 r)
 
 // Point the weapon line p0-p1 hits: the scenario (1), an enemy (2, 3 with flag 0x40) or nothing (0);
 // p1 is moved to the hit point.
-int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, int* outAttr)
+int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, u32* outAttr)
 {
     Mtx m;
     Vec hit;

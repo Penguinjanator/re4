@@ -174,7 +174,7 @@ void cObjRocket::move()
 // Starts the flight: flight motion (player archive 0x74), exhaust effect 0x29, 300 frames of life.
 void cObjRocket::fire()
 {
-    MotionSetCore(this, &pMotion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
+    MotionSetCore(this, &Motion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
     MotionMove(this, 0);
     EstSet(this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
     rocket.timer = 300;

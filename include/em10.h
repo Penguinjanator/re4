@@ -12,6 +12,8 @@
 #include "camera.h"
 #include "obj.h"
 #include "objBull.h"
+#include "obj12.h"
+#include "obj16.h"
 
 // Shared Ganado enemy library (em10.cpp, D:/Bio4/Prog/em10.cpp): the same object is linked into the
 // 16 Ganado modules em10..em17, em19..em1f, em20 (config/G4BE08/modules.py). The per-enemy files of
@@ -271,22 +273,6 @@ typedef void (*PlEm10Func)(cPlayer*);
 extern Em10Func Em10SetFunc;
 
 // Object enemies the Ganados interact with (DOL units without a header of their own).
-class cObj16 : public cObj {
-public:
-    int ckAtkEnable();
-    void setDamage();
-    void setAtk(u8 a);
-    void clearLostWait();
-    void setMotData(void* a, void* b, void* c, void* d, void* e, void* f, void* g, void* h, void* i, void* j, void* k);
-    void setLostWait(int a);
-    void setBurn();
-    void setPlDmgMot(void* m, int a);
-    void setDieEff();
-    void setCritical();
-    int ckAtkHit();
-    void setScale(Vec* s);
-};
-
 class cObjGatling : public cObj {
 public:
     void stopFire();
@@ -329,15 +315,6 @@ public:
 // game/obj14.cpp: creates the bell object (st2 r218).
 cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot);
 
-// Hanging object (game/obj12.cpp): the Ganado's sack / lantern hangs on it.
-class cObj12 : public cObj {
-public:
-    void setParent(cModel* parent, int parts, int flag);
-    void setFall(Vec* spd, u8 type);
-    void setBurn();
-};
-
-cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* v, f32 a, f32 b, int c, int d);
 // game/obj08.cpp: the thrown projectile object (em2d poison; em10 declares them locally).
 cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int flags, void* atk);

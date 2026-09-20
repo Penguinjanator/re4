@@ -15,8 +15,8 @@
 #include "obj.h"
 #include "scroll.h"
 #include <string.h>
+#include "motion.h"
 
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 void slideModelAddr(u32 addr, int ofs);
 void slideTplAddr(void* tpl, int ofs);
 
@@ -210,7 +210,7 @@ int SmdSetParam(cObj* obj, SmdWork* w)
             mot = pSmd->getMotPtr(w->motNo);
         }
         if (mot != NULL) {
-            MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 5, 0);
+            MotionSetCore(obj, &obj->Motion, mot, 0, 0, 5, 0);
         }
     }
     obj->pos = w->pos;

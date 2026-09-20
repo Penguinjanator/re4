@@ -13,11 +13,11 @@
 #include "dbmodule.h"
 #include "math_sub.h"
 #include "at_mod.h"
+#include "motion.h"
+#include "em_sub.h"
 
 extern cModel* pSUB;
 
-int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
-extern "C" void EmYarareDisp(cModel* m);                                            // game/em_sub.cpp
 
 int scr_hit_check = 0;
 static int sat_make_test = 0;
@@ -274,7 +274,7 @@ void PlWepMotSet(int no)
         mot = pl->m_MotTbl[0];
         break;
     }
-    MotionSetCore(pl, &pl->pMotion, mot, 0, 3, 5, 0);
+    MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
 }
 
 // Empty cheat table.

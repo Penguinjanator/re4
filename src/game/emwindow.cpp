@@ -20,6 +20,9 @@
 #include "db_log.h"
 #include "motion.h"
 #include "obj13.h"
+#include "est.h"
+#include "em_sub.h"
+#include "sce_at.h"
 
 // One row of WindowData (0x48 bytes), indexed by cModel::type.
 struct WindowDataRow {
@@ -40,21 +43,9 @@ struct WindowDataRow {
     u8 pad_45[3];
 };
 
-// Field info returned by SceAtCheckFieldInfo.
-struct SceAtFieldInfo {
-    int id;
-    cEmWindow* pWindow;
-};
-
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-void EmDmBloodSet3(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);                           // em_sub.cpp
 int LadderNearCk(Vec* pos);                                                                  // obj13.cpp
-SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
-int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
 }
 
 
@@ -119,7 +110,7 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
 // direction (window -z or +z in world), the window position, its status word and the window.
 int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
 {
-    SceAtFieldInfo* info;
+    SceAtField* info;
     cEmWindow* win;
 
     if (out) {
@@ -133,10 +124,10 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
     if (info == 0) {
         return 0;
     }
-    if (info->id != id) {
+    if (info->value != id) {
         return 0;
     }
-    win = info->pWindow;
+    win = (cEmWindow*) info->pModel;
     if (win == 0) {
         pLog->err(0, 0, "SceAtCheck : failed");
         return 0;
@@ -204,7 +195,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     Vec pt[4];
     Vec size;
     Vec satPos;
-    void* out;
+    SceAtField* out;
     f32 frame;
     int cube;
     int no;
@@ -543,7 +534,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     FSet(pPL->ang.y, pPL->ang.y + pEm->ang.y);
     FSet(pPL->ang.z, pPL->ang.z + pEm->ang.z);
     if (mot) {
-        MotionSetCore(pPL, &pPL->pMotion, mot, 0, 0, 0x201, 0);
+        MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
     }
     for (i = 0; (pPL->motState & 4) == 0; i++) {
         switch (w->breakDir) {

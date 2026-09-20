@@ -14,13 +14,12 @@
 #include "math_sub.h"
 #include "motion.h"
 #include "db_log.h"
+#include "em_sub.h"
 
 extern "C" {
 void yarareInit0(YARARE_INFO* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags);
 static bool priorityCheck(cModel* pMod, cModel* pMod2);
 static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad);
-// game/em_sub.cpp
-int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo* info, Vec* hit);
 }
 
 // Matrix copy written out as loops. The row counter is a do-while starting at 2 (`i_-- != 0`): the
@@ -689,7 +688,8 @@ int ComnHitCheck(Vec* hit, Vec* nrm, cModel* m, Vec* pos0, Vec* pos1, u32 flag)
         } else {
             MTX_COPY(m->mat, mat);
         }
-        r = emLineCubeCrossCk(pos0, pos1, mat, m->atari.m_radius, m->atari.m_height, m->atari.m_radius2, &m->atari, hit);
+        r = emLineCubeCrossCk(pos0, pos1, mat, &m->atari.m_offset, hit, m->atari.m_radius, m->atari.m_height,
+                              m->atari.m_radius2);
         if (r != 0) {
             return 1;
         }

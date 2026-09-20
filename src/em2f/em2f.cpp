@@ -11,6 +11,7 @@
 #include "map_obj.h"
 #include "widget.h"
 #include "em2f.h"
+#include "obj16.h"
 #include "emhit.h"
 #include "em_set.h"
 #include "em_sub.h"
@@ -41,19 +42,6 @@
 asm(".comm common_em2f,52,4");
 
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
-
-
-// game/obj16.cpp: the tentacle objects (obj16.h pulls in em10.h).
-extern "C" {
-cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
-void MotSetObj16(cObj* obj, void* mot, int a, int b);
-}
-
-// Enemy head object (game/obj16.cpp; em10.h declares the same class, which this module cannot include).
-class cObj16 : public cObj {
-public:
-    void clearLostWait();
-};
 
 // Floating island (game/obj1c.cpp): only what the crash check calls.
 class cObj1c : public cObj {

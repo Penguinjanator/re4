@@ -135,7 +135,7 @@ void cObjRobo::R0Init(cObjRobo* robo)
     cObj* smd;
     cEmHit* hit;
 
-    MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x42), 0, 0, 4, 0);
+    MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x42), 0, 0, 4, 0);
     Vec pos = { 0.0f, 0.0f, 0.0f };
     Vec rot = { 0.0f, 0.0f, 0.0f };
     for (int i = 0; i < 2; i++) {
@@ -223,7 +223,7 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
 
     switch (w->step) {
     case 0:
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0, 4, 0);
         w->step++;
     case 1:
         if (robo->motEvent & 1) {
@@ -280,7 +280,7 @@ void cObjRobo::R0WalkPassage(cObjRobo* robo)
     switch (w->step) {
     case 0:
         EstSet(robo, -1, 0, 0, 1, 7, 1, 3, 0, 0);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
         w->step++;
     case 1:
         robo->WalkSequence(robo, 1);
@@ -305,7 +305,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
 
     switch (w->step) {
     case 0:
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
         w->step++;
     case 1:
         robo->WalkSequence(robo, 0);
@@ -316,7 +316,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
             EffectEspgenDelete(1, 3, 0);
             EffectEfmDelete(1, 3, 0);
             BitOn(pG->Room_flg[0], 0x10000);
-            MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x5C), ROOM_ARC_PTR(pG->pRoom, 0x65), 0x3C, 4, 0);
+            MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5C), ROOM_ARC_PTR(pG->pRoom, 0x65), 0x3C, 4, 0);
             v.x = -55597.8984375f;
             v.y = robo->pos.y;
             v.z = robo->pos.z;
@@ -373,7 +373,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
             robo->setPos(pv);
         }
         EstSet(robo, -1, 0, 0, 1, 7, 1, 3, 0, 0);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 5, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 5, 0);
         for (i = 0; i < 6; i++) {
             w->BridgeTimer[i] = 0;
         }
@@ -399,7 +399,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
             EffectEspDelete(1, 3, 0, 0);
             EffectEspgenDelete(1, 3, 0);
             EffectEfmDelete(1, 3, 0);
-            MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x63), 0, 0xA, 1, 0);
+            MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x63), 0, 0xA, 1, 0);
             EstSet(robo, -1, 0, 0, 1, 0x20, 1, 0, 0, 0);
             w->BridgeFallPos = robo->pos.x;
             w->FallSpdY = FRef(RoboFallSpdY);
@@ -446,7 +446,7 @@ void cObjRobo::R0WaitBreak(cObjRobo* robo)
     RoboWork* w = &robo->robo;
 
     if (w->step == 0) {
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
         w->step++;
     }
     MotionMove(robo, 0);
@@ -459,7 +459,7 @@ void cObjRobo::R0WaitDie(cObjRobo* robo)
     RoboWork* w = &robo->robo;
 
     if (w->step == 0) {
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
         w->step++;
     }
     MotionMove(robo, 0);
@@ -529,7 +529,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
 // 0x80000000 while running, 0x8000 = hand closed.
 // Scenario task: the front arm swings down (or back up) over 15 frames.
 // Loop shapes (both tasks): the down arm sets `range = to` in the for-init (a preheader copy, LUID
-// between `j = 0` and gcse's `&robo->pMotion` insertion: `fmr` before `lfd`/`addi`), the up arm
+// between `j = 0` and gcse's `&robo->Motion` insertion: `fmr` before `lfd`/`addi`), the up arm
 // computes `range2 = from - to` inside the loop (a loop.c movable after the insertion); no `base`
 // copy (the offsets are `from`/`to` directly), so max (2 sets, x4 length) outranks the two ranges.
 void cObjRobo::TaskSwitchFront(cObjRobo* robo)
@@ -562,7 +562,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
             SceSleep(1);
         }
         FSet(parts->ang.y, to);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x61), ROOM_ARC_PTR(pG->pRoom, 0x66), 0xF0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x61), ROOM_ARC_PTR(pG->pRoom, 0x66), 0xF0, 4, 0);
     } else {
         BitOff(pG->Room_flg[0], 0x8000);
         for (j = 0; j < i; j++) {
@@ -572,7 +572,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
             SceSleep(1);
         }
         FSet(parts->ang.y, from);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->Room_flg[0], 0x4000);
     robo->getPartsPtr(0x15)->ang.x = 0.0f;
@@ -614,7 +614,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
             SceSleep(1);
         }
         FSet(parts->ang.x, to);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x45), 0xF0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x45), 0xF0, 4, 0);
     } else {
         BitOff(pG->Room_flg[0], 0x4000);
         for (j = 0; j < i; j++) {
@@ -624,7 +624,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
             SceSleep(1);
         }
         FSet(parts->ang.x, from);
-        MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
+        MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->Room_flg[0], 0x8000);
     robo->getPartsPtr(0x16)->ang.y = 0.0f;

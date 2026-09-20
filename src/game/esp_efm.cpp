@@ -503,10 +503,10 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         if (EspGetEfmMotAddr(gen->Tex_id, w->x7B, &mot)) {
             switch (gen->WorkSp8[3]) {
             case 0:
-                MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 0, 0);
+                MotionSetCore(obj, &obj->Motion, mot, 0, 0, 0, 0);
                 break;
             case 1:
-                MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 4, 0);
+                MotionSetCore(obj, &obj->Motion, mot, 0, 0, 4, 0);
                 break;
             default:
                 pLog->err(0, 0, "ESP_EFM04 : MotionType[%d] is invalid.", gen->WorkSp8[3]);

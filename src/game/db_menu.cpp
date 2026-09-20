@@ -19,21 +19,7 @@
 #include "dvd.h"
 #include <string.h>
 #include "room_jmp.h"
-
-extern "C" {
-u32 GetGameTime(int* h, int* m, int* s); // returns a value (main_sub.h): the call sets r3, so `addi r3,&h` loses its output dependence and issues last
-void DLL_Link(void* module, void* bss);
-void DLL_Unlink(void* module);
-}
-
-// REL header (Dolphin OSModuleInfo + OSModuleHeader)
-struct DllModule {
-    u8 pad_0[0x20];
-    u32 bssSize;      // 0x20
-    u8 pad_24[0x10];
-    void (*prolog)(); // 0x34
-    void (*epilog)(); // 0x38
-};
+#include "main_sub.h"
 
 // One debug menu line (0x10 bytes)
 struct DB_MENU {
@@ -111,7 +97,7 @@ DB_MENU menu[MENU_NUM] = {
 test test;
 int DebugMenuSelected;
 void DbmenuModuleInit();
-static DllModule* pModule;
+static OSModuleHeader* pModule;
 void* pModule_bss;
 
 void init(struct test* t);
@@ -276,7 +262,7 @@ void move(struct test* t)
     int i;
     int n = sizeof(menu) / sizeof(menu[0]);
     int color;
-    int h, m, s;
+    u32 h, m, s;
 
     joy = GetBugCheckController();
     t->x += joy->substickX / 16;
@@ -341,7 +327,7 @@ void move(struct test* t)
                     pModule_bss = NULL;
                 }
                 DLL_Link(pModule, pModule_bss);
-                TaskChain(pModule->prolog, 0);
+                TaskChain(DLL_PROLOG(pModule), 0);
             } else {
                 pLog->err(0, 0, "%s FILE NOT FOUND", menu[t->cursor].rel_name);
                 exit(t);
@@ -356,7 +342,7 @@ void move(struct test* t)
 void DbmenuModuleInit()
 {
     if (pModule != NULL) {
-        pModule->epilog();
+        DLL_EPILOG(pModule)();
         DLL_Unlink(pModule);
         Debug_free(pModule);
         pModule = NULL;

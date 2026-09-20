@@ -7,9 +7,9 @@
 #include "emwindow.h"
 #include "etc_model.h"
 #include "db_log.h"
+#include "esp.h"
 
 extern "C" {
-void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 int Et00_init(void* arc, EtcSetData* d, cEmWindow** out, int flag);
 int Et07_init(void* arc, EtcSetData* d, cEmWindow** out, int flag);
 int Et1d_init(void* arc, EtcSetData* d, cEmWindow** out, int flag);
@@ -56,7 +56,7 @@ static int EtXX_init(void* arc, EtcSetData* d, cEmWindow** out, int flag, const 
         pLog->err(0, 0, "Etxx_init : set failed");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, eff), effId, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, eff), effId, 0);
     em->setEff(effId);
     em->setNoSuspend(1);
     if (em->ChkStatus() & 1) {

@@ -22,6 +22,7 @@
 #include "pl_sub.h"
 #include "pl_wep.h"
 #include "motion.h"
+#include "em_sub.h"
 
 // Bulldozer (obj 0x3E): parts 2 carries the player, the partner and the enemies standing on it
 // through the break / move / lift routines of its motion table; the partner drives it
@@ -53,7 +54,6 @@ public:
 };
 
 extern "C" {
-void LifeDownSet(cEm* em, int dmg, int rnd);
 void objBull_R0_Set(cObjBull* obj);
 void objBull_R0_Break1st(cObjBull* obj);
 void objBull_R0_To2nd(cObjBull* obj);
@@ -175,7 +175,7 @@ void objBull_R0_Set(cObjBull* obj)
     w->cnt = 0;
     w->timer = 0;
     if (w->mot[0]) {
-        MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
     } else {
         obj->matUpdate();
@@ -200,7 +200,7 @@ void objBull_R0_Break1st(cObjBull* obj)
         w->timer = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -208,7 +208,7 @@ void objBull_R0_Break1st(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
         if (w->break1st == 0 || --w->break1st == 0) {
             obj->bull.Be_flg |= 2;
         }
@@ -246,7 +246,7 @@ void objBull_R0_To2nd(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[1], 0, 0, 0x8001, 0);
         SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
@@ -285,7 +285,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -293,7 +293,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 0, 0x8001, 0);
         if (w->break2nd == 0 || --w->break2nd == 0) {
             obj->bull.Be_flg |= 4;
         }
@@ -333,7 +333,7 @@ static void objBull_R0_ToLift(cObjBull* obj)
         w->timer = 0;
         SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
-        MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, 0);
         obj->r_no_2++;
     case 1:
         w->cnt++;
@@ -371,7 +371,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
         SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
+        MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
         MotionMove(obj, 0);
         zero = 0;
         if (pG->Room_flg[0] & 0x08000000) {
@@ -403,7 +403,7 @@ void objBull_R0_Lift(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[4], 0, 0, 0x8001, 0);
         SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->bull.Be_flg |= 0x20;
@@ -447,7 +447,7 @@ void objBull_R0_To3rd(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[5], 0, 0, 0x8001, 0);
         SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->bull.Be_flg &= ~0x20;
@@ -487,7 +487,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[6], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -495,7 +495,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[6], 0, 0, 0x8001, 0);
         if (w->break3rd == 0 || --w->break3rd == 0) {
             obj->bull.Be_flg |= 8;
         }
@@ -533,7 +533,7 @@ void objBull_R0_To4th(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        MotionSetCore(obj, &obj->pMotion, w->mot[7], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[7], 0, 0, 0x8001, 0);
         SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
@@ -572,7 +572,7 @@ void objBull_R0_Break4th(cObjBull* obj)
         SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[8], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -580,7 +580,7 @@ void objBull_R0_Break4th(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[8], 0, 0, 0x8001, 0);
         if (w->break4th == 0 || --w->break4th == 0) {
             obj->bull.Be_flg |= 0x10;
         }
@@ -620,7 +620,7 @@ void objBull_R0_Collision(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[9], 0, 0, 0x8001, 0);
         SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         w->frame = (*(u16*) w->mot[9] & 0x3FFF) - 30;
@@ -639,7 +639,7 @@ void objBull_R0_Collision(cObjBull* obj)
         }
         break;
     case 2:
-        MotionSetCore(obj, &obj->pMotion, w->mot[10], 0, 0, 0x8201, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[10], 0, 0, 0x8201, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
@@ -651,7 +651,7 @@ void objBull_R0_Collision(cObjBull* obj)
         }
         break;
     case 4:
-        MotionSetCore(obj, &obj->pMotion, w->mot[11], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->mot[11], 0, 0, 0x8001, 0);
         obj->bull.Be_flg |= 0x80;
         obj->r_no_2++;
     case 5:
@@ -745,7 +745,7 @@ void cObjBull::setMotion(void** tbl)
     w->mot[9] = tbl[9];
     w->mot[10] = tbl[10];
     w->mot[11] = tbl[11];
-    MotionSetCore(this, &pMotion, tbl[0], 0, 0, 0x8001, 0);
+    MotionSetCore(this, &Motion, tbl[0], 0, 0, 0x8001, 0);
 }
 
 // Saves the rider parts matrix of the previous frame (Bull_MatOld) before the motion advances.
@@ -1116,9 +1116,9 @@ void Sub_bull_drive(cEm* em)
     case 0:
         em->atari.throughOn();
         if (em->r_no_3) {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 0, 5, 0);
+            MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 0, 5, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 3, 5, 0);
+            MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 3, 5, 0);
         }
         ((cSubChar*) em)->m_Work0 = (u8) ((u32) Rnd() % 100);
         em->r_no_2++;
@@ -1144,7 +1144,7 @@ void Sub_bull_operation(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 51), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 51), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
@@ -1167,7 +1167,7 @@ void Sub_bull_lookback(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 66), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 66), 0, 3, 1, 0);
         parts = em->getPartsPtr(3);
         if (em->r_no_3) {
             SndStop(((cSubChar*) em)->m_StopSe, 0);
@@ -1196,7 +1196,7 @@ void Sub_bull_look(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 67), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 67), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
@@ -1246,11 +1246,11 @@ void Sub_dm_bull(cEm* em)
         }
         LifeDownSet(em, dmg, 0);
         if ((s16) pG->ashley_life <= 0) {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 53), 0, 3, 1, 0);
+            MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 53), 0, 3, 1, 0);
             SndStop(((cSubChar*) em)->m_StopSe, 0);
             ((cSubChar*) em)->m_StopSe = SndCall(8, 0xD, &em->pParts->world, em->id, 0, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 52), 0, 3, 1, 0);
+            MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 52), 0, 3, 1, 0);
             em->dmg.m_Timer = 1;
             SndStop(((cSubChar*) em)->m_StopSe, 0);
             ((cSubChar*) em)->m_StopSe = SndCall(8, 9, &em->pParts->world, em->id, 0, 0);

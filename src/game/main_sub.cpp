@@ -25,6 +25,7 @@
 #include <dolphin/vi/vifuncs.h>
 #include "debug.h"
 #include "sce.h"
+#include "trans_ot.h"
 
 typedef s64 OSTime;
 
@@ -68,7 +69,6 @@ void GXCopyDisp(void* dest, u8 clear);
 void GXSetDispCopyGamma(int gamma);
 void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
 void GXInvalidateVtxCache();
-void ExecOt(int no);
 }
 void SetDrawTmpBufType(int type);
 

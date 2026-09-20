@@ -8,6 +8,8 @@
 #include "light.h"
 #include "em.h"
 #include "db_log.h"
+#include "read.h"
+#include "esp.h"
 
 // read.cpp enemy module entry (SearchEmModule); only the archive pointer is used here.
 struct EmModule {
@@ -15,11 +17,6 @@ struct EmModule {
     void* pArc;   // 0x84
 };
 
-EmModule* SearchEmModule(int id);              // game/read.cpp (C++ linkage: SearchEmModule__Fi)
-extern "C" {
-void EspDataRelease(int owner, int bCountCheck, int bErrDisp);      // game/eff_sys.cpp
-void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
-}
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 // Effect owner id of enemy module `id` (enemy 0x11..0x20 -> EM10 owner 0x10, 0x2B -> 0x23, ...);
@@ -102,5 +99,5 @@ void EspEmDataSwapPop(int id)
         pLog->err(0, 0, "EspEmDataSwapPop(): ID[%x] '.EFF' not found.", id);
         return;
     }
-    EspDataLoad(data, eff, 0);
+    EspDataLoad((u32) data, eff, 0);
 }

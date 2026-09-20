@@ -318,7 +318,7 @@ void plemEscape(cPlayer* pl)
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->pMotion, w->motion, 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, w->motion, 0, 5, 1, 0);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {

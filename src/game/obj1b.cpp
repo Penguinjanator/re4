@@ -15,6 +15,7 @@
 #include "em.h"
 #include "main_mem.h"
 #include "motion.h"
+#include "em_sub.h"
 
 // Spear (obj 0x1B): thrown by an enemy (R1_Throw), sticks into the enemy it hits (R1_Parent:
 // follows a parts of the target), falls off as a three-point rope (R1_Fall) and fades out (Lost).
@@ -39,12 +40,6 @@ struct Obj1bNode {
     int hit;
 };
 
-// GetWepTargetList2 entry.
-struct WepTarget {
-    cEm* em;
-    YARARE_INFO* part;
-};
-
 // EspSeqOpt as the spear fills it: flag byte 2, speed vector at 4.
 struct SpearEstOpt {
     u8 x0;
@@ -63,7 +58,6 @@ void obj1b_R1_Parent(cObjSpear* obj);
 void obj1b_R1_Fall(cObjSpear* obj);
 void obj1b_R1_Throw(cObjSpear* obj);
 int obj1bHitCk(cObjSpear* obj);
-int GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, int max, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
 }
 
 void (*Obj1b_R1_move_tbl[6])(cObjSpear*) = { obj1b_R1_Set, obj1b_R1_LostWait, obj1b_R1_Lost, obj1b_R1_Parent, obj1b_R1_Fall, obj1b_R1_Throw };

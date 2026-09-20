@@ -25,16 +25,9 @@
 #include "sce.h"
 #include "stage.h"
 #include "sscrn.h"
+#include "sce_at.h"
+#include "etc_model.h"
 
-extern "C" {
-void SceAtSetSaveItem();                       // game/sce_at.cpp
-void SceAtRoomSet();
-void SceAtCheckMoveScrAt();
-void* SceAtPtr(int no);
-int getRoomEtcBreak(void* p, cEm** em, int a); // game/EtcModel.cpp
-}
-
-int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)
 
 #line 34 "D:/Bio4/Prog/sce_sys.cpp"
 
@@ -448,7 +441,7 @@ int SceExecCheckCondition_sub(SceCond* pP)
         }
         break;
     case 4:
-        if (getRoomEtcBreak(pP->param, &em, 1) == 1 && em->hp <= 0) {
+        if (getRoomEtcBreak((int) pP->param, &em, 1) == 1 && em->hp <= 0) {
             return 1;
         }
         break;

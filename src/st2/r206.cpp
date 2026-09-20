@@ -43,6 +43,7 @@
 #include "rnd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "pl_mod.h"
 
 // Room 2-06 (D:/Bio4/Prog/r206.cpp): the sniper sequence where Ashley runs through the hall while
 // the player covers her, Luis' body, the key item pickup and the shelf.
@@ -70,10 +71,6 @@ struct R206WorkPtr {
 };
 
 static R206WorkPtr r206_work;
-
-// game/shape.cpp (C++ linkage, declared locally by its users).
-void ShapeSet(void* info, int a, void* data, int b);
-
 
 void r206_die_event();
 static void r206_gouryuu_event();

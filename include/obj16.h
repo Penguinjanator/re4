@@ -3,9 +3,25 @@
 
 #include "types.h"
 #include "vec.h"
-#include "em10.h"
+#include "obj.h"
 
-// game/obj16.cpp: the enemy head object (cObj16 itself is declared in em10.h).
+// Enemy head object (game/obj16.cpp): the head / mouth model of the plaga-carrying enemies.
+class cObj16 : public cObj {
+public:
+    int ckAtkEnable();
+    void setDamage();
+    void setAtk(u8 a);
+    void clearLostWait();
+    void setMotData(void* a, void* b, void* c, void* d, void* e, void* f, void* g, void* h, void* i, void* j, void* k);
+    void setLostWait(int a);
+    void setBurn();
+    void setPlDmgMot(void* m, int a);
+    void setDieEff();
+    void setCritical();
+    int ckAtkHit();
+    void setScale(Vec* s);
+};
+
 extern "C" {
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void MotSetObj16(cObj* obj, void* mot, int a, int b);

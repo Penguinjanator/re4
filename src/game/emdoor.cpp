@@ -28,18 +28,11 @@
 #include "db_log.h"
 #include "motion.h"
 #include "em_sub.h"
+#include "obj12.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 }
-
-// Hanging object (game/obj12.cpp): the locks and the chain hang on the door as cObj12 models.
-class cObj12 : public cObj {
-public:
-    void setFall(Vec* spd, u8 type);
-    void setFallSe(u8 blk, u8 no, u8 id);
-};
-cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 typedef void (*EmDoorFunc)(cEmDoor*);
 
@@ -1567,15 +1560,15 @@ static void emDoor_R1_Open2(cEmDoor* em)
         em->hp = 1000;
         switch (em->r_no_3) {
         case 1:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
             break;
         case 0:
         case 2:
         default:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 1, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 1, 0);
             break;
         case 3:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
             break;
         }
         emDoorDropWeapon(em);
@@ -3090,7 +3083,7 @@ void plemDoorKick(cPlayer* pl)
     }
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1D), 0, 5, 1, frame);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1D), 0, 5, 1, frame);
         pl->r_no_2++;
     case 1:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -3111,7 +3104,7 @@ void plemDoorKick(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1C), 0, 5, 1, frame);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1C), 0, 5, 1, frame);
         pl->r_no_2++;
     case 3:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -3159,7 +3152,7 @@ void plemDoorOpen(cPlayer* pl)
             pl->m_VecWork0.y = 0.0f;
             pl->m_Fwork0 = pl->pEmCatch->ang.y + PI;
             FSet(pl->m_Fwork0, LIMIT_ANGLE(pl->m_Fwork0));
-            MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
+            MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(0);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setOpen2(1);
@@ -3173,7 +3166,7 @@ void plemDoorOpen(cPlayer* pl)
             PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
             pl->m_VecWork0.y = 0.0f;
             FSet(pl->m_Fwork0, ((cEmDoor*) pl->pEmCatch)->ang.y);
-            MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
+            MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(1);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setOpen2(0);
@@ -3485,7 +3478,7 @@ void subDoorKick()
     }
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->Motion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
         sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 1:
@@ -3502,7 +3495,7 @@ void subDoorKick()
         }
         break;
     case 2:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->Motion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
         sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 3:

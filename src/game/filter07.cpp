@@ -14,6 +14,7 @@
 #include "trans_ot.h"
 #include "global.h"
 #include "joy.h"
+#include "est.h"
 
 // Thermal vision filter: the frame buffer's green channel is copied to a half-size I8 texture,
 // blurred with pixel offsets, and drawn back through the ThermoTlut palette.
@@ -26,9 +27,6 @@ extern f32 ZFAR;
 extern GXTlutObj ThermoTlut;
 
 extern "C" {
-void EffectEspDelete(int a, int b, void* c, int d);
-void EffectEspgenDelete(int a, int b, void* c);
-void EffectEfmDelete(int a, int b, void* c);
 void Filter07Render();
 void Filter07GetEFB(int div, int div2);
 static void Filter07GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, int div, int tlut);

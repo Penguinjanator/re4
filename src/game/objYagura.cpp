@@ -101,7 +101,7 @@ void cObjYagura::setMotionVib(void* mot)
 void cObjYagura::setVib()
 {
     if (yagura.Mot_vib) {
-        MotionSetCore(this, &pMotion, yagura.Mot_vib, 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, yagura.Mot_vib, 0, 0, 0, 0);
     }
 }
 

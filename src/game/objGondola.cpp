@@ -520,7 +520,7 @@ static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
 // Starts the car's travel motion at `frame` (looping, sequence frame from the table).
 void cObjGondola::setMoveMotion(void* mot, int frame)
 {
-    MotionSetCore(this, &pMotion, mot, 0, 0, 0x8005, frame);
+    MotionSetCore(this, &Motion, mot, 0, 0, 0x8005, frame);
     r_no_0 = 1;
     r_no_1 = 0;
     r_no_2 = 0;

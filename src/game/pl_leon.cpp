@@ -13,15 +13,10 @@
 #include "ref_access.h"
 #include <dolphin/os.h>
 #include "pl_sub.h"
+#include "esp.h"
+#include "pl_npc.h"
+#include "pl_mod.h"
 
-extern "C" {
-void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
-}
-u32 SubCharGetStatus();                         // game/pl_npc.cpp
-void ShapeSet(void* info, int a, void* data, int b);  // game/shape.cpp
-void ShapeEnd(void* info);
-
-extern cModel* pSUB;
 extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 // Plain block, not do/while(0): the do-while's deleted back-jump lets cse rewrite the HALT store's
@@ -51,7 +46,7 @@ cPlLeon::cPlLeon()
     init1();
     setMotion();
     arc = pG->pPlayer;
-    EspDataLoad(PL_ARC_PTR(arc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
 }

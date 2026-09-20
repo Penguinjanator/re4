@@ -127,7 +127,7 @@ void MotSetObj00(cObj* obj, void* mot, int prm, int a)
     w->pMot = mot;
     w->mot_attr = prm;
     w->motA = a;
-    MotionSetCore(obj, &obj->pMotion, mot, (void*) a, 0, (u16) w->mot_attr, 0);
+    MotionSetCore(obj, &obj->Motion, mot, (void*) a, 0, (u16) w->mot_attr, 0);
 }
 
 // Attaches the object to parts partsNo of `oya` (motion cleared, no catch-up blend).

@@ -15,9 +15,6 @@
 #include "math_sub.h"
 #include "motion.h"
 
-extern "C" {
-}
-
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 void knife_r3_ready00(cPlayer* pl);

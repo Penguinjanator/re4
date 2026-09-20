@@ -16,12 +16,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "est.h"
+#include "em_sub.h"
 
 extern "C" {
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp (obj12 declares it the same way)
 static void emTree_R0_Move(cEmTree* em);
 }
 

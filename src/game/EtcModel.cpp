@@ -24,6 +24,7 @@
 #include "eprintf.h"
 #include "math_sub.h"
 #include <string.h>
+#include "esp.h"
 
 // obj13.cpp's ladder object; only the two setters the etc list calls are needed here.
 class cObjLadder : public cObj {
@@ -68,7 +69,6 @@ struct EtcAmbRgb {
 };
 
 extern "C" {
-void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);   // game/obj13.cpp
 
 // game/et00.cpp: the window models
@@ -206,7 +206,6 @@ int GetEm10EyeEffectEnable();
 void EtcSetAddAmb(cModel* m, int no);
 }
 
-int EspGetEfmTplAddr(int id, void** tpl);   // game/eff_sys.cpp
 
 // One slot of the room etc table.
 class cEtcTbl {
@@ -407,7 +406,7 @@ int Et01_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et01.eff"), 0x55, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et01.eff"), 0x55, 0);
     bin = GetEtcAddr(arc, "et0100.bin");
     if (EspGetEfmTplAddr(0x04, &tpl) == 0) {
         pLog->err(0, 0, "ET01:EFM[%02x] TPL err", 0x04);
@@ -432,7 +431,7 @@ int Et02_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et02.eff"), 0x56, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et02.eff"), 0x56, 0);
     bin = GetEtcAddr(arc, "et0200.bin");
     if (EspGetEfmTplAddr(0x04, &tpl) == 0) {
         pLog->err(0, 0, "ET02:EFM[%02x] TPL err", 0x04);
@@ -457,8 +456,8 @@ int Et03_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et03.eff"), 0x57, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et03.eff"), 0x57, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et0300.bin");
     if (EspGetEfmTplAddr(0x0A, &tpl) == 0) {
         pLog->err(0, 0, "ET03:EFM[%02x] TPL err", 0x0A);
@@ -484,7 +483,7 @@ static int Et04_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmRack* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et04.eff"), 0x58, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et04.eff"), 0x58, 0);
     bin = GetEtcAddr(arc, "et0400.bin");
     if (EspGetEfmTplAddr(0x00, &tpl) == 0) {
         pLog->err(0, 0, "ET04:EFM[%02x] TPL err", 0x00);
@@ -509,7 +508,7 @@ int Et05_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmRack* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et05.eff"), 0x59, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et05.eff"), 0x59, 0);
     bin = GetEtcAddr(arc, "et0500.bin");
     if (EspGetEfmTplAddr(0x03, &tpl) == 0) {
         pLog->err(0, 0, "ET05:EFM[%02x] TPL err", 0x03);
@@ -534,7 +533,7 @@ int Et15_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmRack* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et15.eff"), 0x69, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et15.eff"), 0x69, 0);
     bin = GetEtcAddr(arc, "et1500.bin");
     tpl = GetEtcAddr(arc, "et1500.tpl");
     em = SetRack(bin, tpl, &d->pos, &d->ang, 2, d->type);
@@ -564,7 +563,7 @@ int Et06_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET06:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et06.eff"), 0x5A, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et06.eff"), 0x5A, 0);
     mot[0] = GetEtcAddr(arc, "pl00017.fcv");
     mot[1] = GetEtcAddr(arc, "pl00018.fcv");
     mot[2] = GetEtcAddr(arc, "pl00019.fcv");
@@ -608,7 +607,7 @@ int Et08_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET08:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et08.eff"), 0x5C, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et08.eff"), 0x5C, 0);
     mot[0] = GetEtcAddr(arc, "pl00017.fcv");
     mot[1] = GetEtcAddr(arc, "pl00018.fcv");
     mot[2] = GetEtcAddr(arc, "pl00019.fcv");
@@ -645,8 +644,8 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et09.eff"), 0x5D, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et09.eff"), 0x5D, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
     bin = GetEtcAddr(arc, "et0900.bin");
     tpl = GetEtcAddr(arc, "et0900.tpl");
     em = SetDoor(bin, tpl, &d->pos, &d->ang, 3, d->type);
@@ -671,7 +670,7 @@ int Et0a_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmTorch* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et0a.eff"), 0x5E, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0a.eff"), 0x5E, 0);
     bin = GetEtcAddr(arc, "et0a00.bin");
     if (EspGetEfmTplAddr(0x4B, &tpl) == 0) {
         pLog->err(0, 0, "ET0a:EFM[%02x] TPL err", 0x4B);
@@ -696,7 +695,7 @@ int Et0b_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmTorch* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et0b.eff"), 0x5F, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0b.eff"), 0x5F, 0);
     bin = GetEtcAddr(arc, "et0b00.bin");
     if (EspGetEfmTplAddr(0x0D, &tpl) == 0) {
         pLog->err(0, 0, "ET0b:EFM[%02x] TPL err", 0x0D);
@@ -728,7 +727,7 @@ int Et0c_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0C:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0c.eff"), 0x60, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0c.eff"), 0x60, 0);
     em->setEff(0x60);
     em->setNoSuspend(1);
     *out = em;
@@ -750,8 +749,8 @@ int Et0d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0D:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x61, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x61, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x61);
     em->setNoSuspend(1);
     *out = em;
@@ -766,7 +765,7 @@ int Et10_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmTorch* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et10.eff"), 0x64, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et10.eff"), 0x64, 0);
     bin = GetEtcAddr(arc, "et1000.bin");
     if (EspGetEfmTplAddr(0x0F, &tpl) == 0) {
         pLog->err(0, 0, "ET10:EFM[%02x] TPL err", 0x0F);
@@ -818,7 +817,7 @@ int Et0f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0F:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
     em->setEff(0x63);
     *out = em;
     return 1;
@@ -832,7 +831,7 @@ int Et11_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et11.eff"), 0x65, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et11.eff"), 0x65, 0);
     bin = GetEtcAddr(arc, "et1100.bin");
     if (EspGetEfmTplAddr(0x09, &tpl) == 0) {
         pLog->err(0, 0, "ET11:EFM[%02x] TPL err", 0x09);
@@ -857,7 +856,7 @@ int Et12_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBarrel* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et12.eff"), 0x66, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et12.eff"), 0x66, 0);
     bin = GetEtcAddr(arc, "et1200.bin");
     if (EspGetEfmTplAddr(0x0B, &tpl) == 0) {
         pLog->err(0, 0, "ET12:EFM[%02x] TPL err", 0x0B);
@@ -882,8 +881,8 @@ int Et13_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et13.eff"), 0x67, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et13.eff"), 0x67, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et1300.bin");
     if (EspGetEfmTplAddr(0x0C, &tpl) == 0) {
         pLog->err(0, 0, "ET13:EFM[%02x] TPL err", 0x0C);
@@ -916,7 +915,7 @@ int Et14_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET14:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et14.eff"), 0x68, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et14.eff"), 0x68, 0);
     em->setEff(0x68);
     em->setNoSuspend(1);
     *out = em;
@@ -938,8 +937,8 @@ static int Et16_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET16:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et16.eff"), 0x6A, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et16.eff"), 0x6A, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x6A);
     em->setNoSuspend(1);
     *out = em;
@@ -961,8 +960,8 @@ int Et17_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET17:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et17.eff"), 0x6B, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et17.eff"), 0x6B, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x6B);
     em->setNoSuspend(1);
     *out = em;
@@ -977,8 +976,8 @@ int Et18_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et18.eff"), 0x6C, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et18.eff"), 0x6C, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et1800.bin");
     if (EspGetEfmTplAddr(0x1E, &tpl) == 0) {
         pLog->err(0, 0, "ET18:EFM[%02x] TPL err", 0x1E);
@@ -1011,7 +1010,7 @@ int Et19_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET19:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et19.eff"), 0x6D, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et19.eff"), 0x6D, 0);
     em->setEff(0x6D);
     em->setNoSuspend(1);
     *out = em;
@@ -1033,7 +1032,7 @@ int Et1a_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET1a:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et1a.eff"), 0x6E, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et1a.eff"), 0x6E, 0);
     em->setEff(0x6E);
     em->setNoSuspend(1);
     *out = em;
@@ -1055,7 +1054,7 @@ int Et1b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET1b:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
     em->setEff(0x63);
     *out = em;
     return 1;
@@ -1076,7 +1075,7 @@ int Et1c_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET1C:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et1c.eff"), 0x70, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et1c.eff"), 0x70, 0);
     em->setEff(0x70);
     em->setNoSuspend(1);
     *out = em;
@@ -1091,7 +1090,7 @@ int Et1e_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et11.eff"), 0x65, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et11.eff"), 0x65, 0);
     bin = GetEtcAddr(arc, "et1e00.bin");
     if (EspGetEfmTplAddr(0x09, &tpl) == 0) {
         pLog->err(0, 0, "ET1e:EFM[%02x] TPL err", 0x09);
@@ -1116,7 +1115,7 @@ int Et1f_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et1f.eff"), 0x73, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et1f.eff"), 0x73, 0);
     bin = GetEtcAddr(arc, "et1f00.bin");
     tpl = GetEtcAddr(arc, "et1f00.tpl");
     em = SetBox(bin, tpl, &d->pos, &d->ang, 4, d->type);
@@ -1138,8 +1137,8 @@ int Et20_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et20.eff"), 0x74, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et20.eff"), 0x74, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et2000.bin");
     if (EspGetEfmTplAddr(0x27, &tpl) == 0) {
         pLog->err(0, 0, "ET20:EFM[%02x] TPL err", 0x27);
@@ -1172,8 +1171,8 @@ int Et21_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et21.eff"), 0x75, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et21.eff"), 0x75, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x75);
     em->setNoSuspend(1);
     *out = em;
@@ -1188,8 +1187,8 @@ int Et22_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et22.eff"), 0x76, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et22.eff"), 0x76, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et2200.bin");
     if (EspGetEfmTplAddr(0x2C, &tpl) == 0) {
         pLog->err(0, 0, "ET22:EFM[%02x] TPL err", 0x2C);
@@ -1222,8 +1221,8 @@ int Et23_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET23:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et23.eff"), 0x77, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et23.eff"), 0x77, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x77);
     em->setNoSuspend(1);
     *out = em;
@@ -1245,8 +1244,8 @@ int Et24_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET24:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et24.eff"), 0x78, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et24.eff"), 0x78, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x78);
     em->setNoSuspend(1);
     *out = em;
@@ -1268,7 +1267,7 @@ int Et26_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET26:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
     em->setEff(0x63);
     *out = em;
     return 1;
@@ -1289,8 +1288,8 @@ int Et27_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et27.eff"), 0x7B, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et27.eff"), 0x7B, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x7B);
     em->setNoSuspend(1);
     *out = em;
@@ -1312,7 +1311,7 @@ int Et28_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET28:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0f.eff"), 0x63, 0);
     em->setEff(0x63);
     *out = em;
     return 1;
@@ -1333,8 +1332,8 @@ int Et2a_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2a:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x7E, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x7E, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x7E);
     em->setNoSuspend(1);
     *out = em;
@@ -1356,8 +1355,8 @@ int Et2b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2b:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x7F, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x7F, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x7F);
     em->setNoSuspend(1);
     *out = em;
@@ -1372,7 +1371,7 @@ int Et2d_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBarrel* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et2d.eff"), 0x81, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et2d.eff"), 0x81, 0);
     bin = GetEtcAddr(arc, "et2d00.bin");
     if (EspGetEfmTplAddr(0x44, &tpl) == 0) {
         pLog->err(0, 0, "ET2d:EFM[%02x] TPL err", 0x44);
@@ -1397,7 +1396,7 @@ int Et30_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmRack* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et30.eff"), 0x84, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et30.eff"), 0x84, 0);
     bin = GetEtcAddr(arc, "et3000.bin");
     tpl = GetEtcAddr(arc, "et3000.tpl");
     em = SetRack(bin, tpl, &d->pos, &d->ang, 3, d->type);
@@ -1420,7 +1419,7 @@ static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et2e.eff"), 0x82, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et2e.eff"), 0x82, 0);
     bin = GetEtcAddr(arc, "et2e00.bin");
     if (EspGetEfmTplAddr(0x45, &tpl) == 0) {
         pLog->err(0, 0, "ET2e:EFM[%02x] TPL err", 0x45);
@@ -1448,7 +1447,7 @@ int Et2f_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBox* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et2f.eff"), 0x83, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et2f.eff"), 0x83, 0);
     bin = GetEtcAddr(arc, "et2f00.bin");
     if (EspGetEfmTplAddr(0x46, &tpl) == 0) {
         pLog->err(0, 0, "ET2f:EFM[%02x] TPL err", 0x46);
@@ -1482,8 +1481,8 @@ int Et31_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET31:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et31.eff"), 0x85, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et31.eff"), 0x85, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x85);
     em->setNoSuspend(1);
     *out = em;
@@ -1505,8 +1504,8 @@ int Et32_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET32:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et32.eff"), 0x86, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et32.eff"), 0x86, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x86);
     em->setNoSuspend(1);
     em->setYarare();
@@ -1529,8 +1528,8 @@ int Et33_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET33:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x87, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x87, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x87);
     em->setNoSuspend(1);
     em->setYarare();
@@ -1553,8 +1552,8 @@ int Et34_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET34:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x88, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x88, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x88);
     em->setNoSuspend(1);
     *out = em;
@@ -1576,7 +1575,7 @@ int Et37_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET37:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et37.eff"), 0x8B, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et37.eff"), 0x8B, 0);
     em->setEff(0x8B);
     em->setNoSuspend(1);
     *out = em;
@@ -1598,7 +1597,7 @@ int Et38_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET38:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et38.eff"), 0x8C, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et38.eff"), 0x8C, 0);
     em->setEff(0x8C);
     em->setNoSuspend(1);
     *out = em;
@@ -1620,8 +1619,8 @@ int Et39_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET39:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x8D, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x8D, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x8D);
     em->setNoSuspend(1);
     *out = em;
@@ -1643,7 +1642,7 @@ int Et3a_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3a:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et3a.eff"), 0x8E, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et3a.eff"), 0x8E, 0);
     em->setEff(0x8E);
     *out = em;
     return 1;
@@ -1664,8 +1663,8 @@ int Et3b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3b:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x8F, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x8F, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x8F);
     em->setNoSuspend(1);
     *out = em;
@@ -1680,7 +1679,7 @@ int Et3c_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBarrel* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et3c.eff"), 0x90, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et3c.eff"), 0x90, 0);
     bin = GetEtcAddr(arc, "et3c00.bin");
     if (EspGetEfmTplAddr(0x51, &tpl) == 0) {
         pLog->err(0, 0, "ET3c:EFM[%02x] TPL err", 0x51);
@@ -1705,8 +1704,8 @@ int Et3d_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et3d.eff"), 0x91, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et3d.eff"), 0x91, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et3d00.bin");
     if (EspGetEfmTplAddr(0x55, &tpl) == 0) {
         pLog->err(0, 0, "ET3d:EFM[%02x] TPL err", 0x55);
@@ -1739,8 +1738,8 @@ int Et3e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3e:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x92, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x92, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x92);
     em->setNoSuspend(1);
     *out = em;
@@ -1762,8 +1761,8 @@ int Et3f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3f:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x93, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x93, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x93);
     em->setNoSuspend(1);
     *out = em;
@@ -1778,8 +1777,8 @@ int Et40_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmDoor* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et40.eff"), 0x94, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et40.eff"), 0x94, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     bin = GetEtcAddr(arc, "et4000.bin");
     if (EspGetEfmTplAddr(0x83, &tpl) == 0) {
         pLog->err(0, 0, "ET40:EFM[%02x] TPL err", 0x83);
@@ -1812,8 +1811,8 @@ int Et41_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET41:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x95, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x95, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x95);
     em->setNoSuspend(1);
     *out = em;
@@ -1828,7 +1827,7 @@ int Et42_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmBar* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et42.eff"), 0x96, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et42.eff"), 0x96, 0);
     bin = GetEtcAddr(arc, "et4200.bin");
     if (EspGetEfmTplAddr(0x5D, &tpl) == 0) {
         pLog->err(0, 0, "ET42:EFM[%02x] TPL err", 0x5D);
@@ -1861,7 +1860,7 @@ int Et43_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET43:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et43.eff"), 0x97, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et43.eff"), 0x97, 0);
     em->setEff(0x97);
     *out = em;
     return 1;
@@ -1882,8 +1881,8 @@ int Et45_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET45:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x99, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x99, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x99);
     em->setNoSuspend(1);
     *out = em;
@@ -1905,8 +1904,8 @@ int Et46_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET46:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et46.eff"), 0x9A, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et46.eff"), 0x9A, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x9A);
     em->setNoSuspend(1);
     em->setYarare();
@@ -1929,8 +1928,8 @@ int Et47_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET47:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x9B, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x9B, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x9B);
     em->setNoSuspend(1);
     *out = em;
@@ -1952,8 +1951,8 @@ int Et49_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET49:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0x9D, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0x9D, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0x9D);
     em->setNoSuspend(1);
     *out = em;
@@ -1975,7 +1974,7 @@ int Et4b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET4b:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et4b.eff"), 0x9F, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et4b.eff"), 0x9F, 0);
     em->setEff(0x9F);
     *out = em;
     return 1;
@@ -1996,7 +1995,7 @@ int Et4c_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET4c:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et4c.eff"), 0xA0, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et4c.eff"), 0xA0, 0);
     em->setEff(0xA0);
     *out = em;
     return 1;
@@ -2017,8 +2016,8 @@ static int Et4d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET4d:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0xA1, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0xA1, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0xA1);
     em->setNoSuspend(1);
     *out = em;
@@ -2040,8 +2039,8 @@ int Et4e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET4e:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0xA2, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0xA2, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0xA2);
     em->setNoSuspend(1);
     *out = em;
@@ -2063,7 +2062,7 @@ int Et4f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET4f:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et4b.eff"), 0xA3, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et4b.eff"), 0xA3, 0);
     em->setEff(0xA3);
     *out = em;
     return 1;
@@ -2084,8 +2083,8 @@ int Et59_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET59:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0xAD, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0xAD, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0xAD);
     em->setNoSuspend(1);
     *out = em;
@@ -2107,7 +2106,7 @@ int Et61_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET61:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et61.eff"), 0xB5, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et61.eff"), 0xB5, 0);
     em->setEff(0xB5);
     *out = em;
     return 1;
@@ -2128,8 +2127,8 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET62:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0xB6, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0xB6, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0xB6);
     em->setNoSuspend(1);
     *out = em;
@@ -2151,8 +2150,8 @@ int Et63_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET63:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et0d.eff"), 0xB7, 0);
-    EspDataLoad(GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et0d.eff"), 0xB7, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "obm2b.eff"), 0xC9, 0);
     em->setEff(0xB7);
     em->setNoSuspend(1);
     *out = em;
@@ -2167,7 +2166,7 @@ int Et66_init(void* arc, EtcSetData* d, cModel** out)
     void* tpl;
     cEmRack* em;
 
-    EspDataLoad(GetEtcAddr(arc, "et66.eff"), 0xBA, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et66.eff"), 0xBA, 0);
     bin = GetEtcAddr(arc, "et6600.bin");
     tpl = GetEtcAddr(arc, "et6600.tpl");
     em = SetRack(bin, tpl, &d->pos, &d->ang, 5, d->type);
@@ -2196,7 +2195,7 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET67:Mod err");
         return 0;
     }
-    EspDataLoad(GetEtcAddr(arc, "et67.eff"), 0xBB, 0);
+    EspDataLoad((u32) GetEtcAddr(arc, "et67.eff"), 0xBB, 0);
     em->setEff(0xBB);
     *out = em;
     return 1;

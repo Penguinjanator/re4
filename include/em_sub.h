@@ -39,7 +39,7 @@ u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 max, Vec* hit,
                       int flag);
 int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, int flag);
 int PlBombHitCk(Vec* pos, f32 r);
-int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, int* outAttr);
+int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, u32* outAttr);
 YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out);
 void EmYarareDisp(cEm* em);
 void EmScenario(cEm* em);

@@ -56,9 +56,6 @@ asm(".comm common_em2b,52,4");
 
 // game/obj20.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);
-// game/obj16.cpp (obj16.h includes em10.h, which this module cannot).
-extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
-extern "C" void MotSetObj16(cObj* obj, void* mot, int a, int b);
 
 static void em2b_R0_Init(cEm2b* em);
 static void em2b_R0_Move(cEm2b* em);

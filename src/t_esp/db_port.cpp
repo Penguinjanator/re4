@@ -33,14 +33,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 // t_esp REL, D:/Bio4/Prog/db_port.cpp: the bridge between the effect tool (t_esp.cpp) and the game
 // (model viewer, event debug data, light tool, drawing helpers, the sp_*_trans debug draw callbacks of
 // the effect generators and the .cfg model set loader).
 
-int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 
 extern GXTexObj fontTexObj;  // game/eprintf.cpp
 extern Mtx fontTMtx;

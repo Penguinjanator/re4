@@ -65,6 +65,7 @@
 #include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 extern "C" {
 // game/shape.cpp
@@ -76,10 +77,6 @@ extern u8 pl_fs_tbl[];
 extern u8 Em10_fs_tbl[];
 extern u8 Em2c_fs_tbl[];
 }
-
-// game/shape.cpp
-int ShapeSet(void* work, int frame, void* data, int flags);
-
 
 // Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).

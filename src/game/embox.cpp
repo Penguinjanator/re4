@@ -18,6 +18,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "at_mod.h"
+#include "em_sub.h"
+#include "sce_at.h"
 
 extern cEm* pPL;   // game/em.cpp
 // Struct-member view of pPL (the pGS trick): the load stays below the preceding stack stores.
@@ -27,9 +29,7 @@ struct EmPtr {
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);                                  // esp_efm.cpp
-void SceAtCreateItemAt(Vec* pos, u16 no, int num, int a, int b, int c, int d);              // sce_at.cpp
 extern u32 tubo_amb;                                                                         // esp.cpp
 }
 

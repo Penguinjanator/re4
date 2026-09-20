@@ -18,6 +18,7 @@
 #include "esp.h"
 #include "est.h"
 #include "obj00.h"
+#include "em10.h"
 #include "obj16.h"
 #include "camera.h"
 #include "cam_ctrl.h"

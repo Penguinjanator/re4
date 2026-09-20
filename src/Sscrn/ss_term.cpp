@@ -58,7 +58,6 @@ extern "C" {
 int ShapeMove(cModelInfo* info);
 void ClrShape(cModel* m);
 }
-int ShapeSet(void* work, int frame, void* data, int flags);
 void* GetModelInfoAddr(cModelInfo* info, int no);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
@@ -262,6 +261,7 @@ void cDbgWindow::LocalDisp()
 #include "ss_main.h"
 #include <stdio.h>
 #include <string.h>
+#include "pl_mod.h"
 
 
 // Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).

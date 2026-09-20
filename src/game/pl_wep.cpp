@@ -20,6 +20,7 @@
 #include "math_sub.h"
 #include "ref_access.h"
 #include "game.h"
+#include "est.h"
 
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
@@ -28,15 +29,10 @@ struct WepTarget {
 };
 
 extern "C" {
-void EffectEspDelete(int a, int b, cModel* m, int c);     // game/est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 void ReadWepData(int no, int type);                       // game/read.cpp
 u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag, f32 len);
-void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
-void EspSetWaterHitmark(Vec* pos);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
 cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);
