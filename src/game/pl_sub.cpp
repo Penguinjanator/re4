@@ -361,7 +361,7 @@ void SetSubBulldozer(void (*ft)(cEm*), void (*ftdm)(cEm*))
 
 // Partner damage routine (r_no_0 4): Ashley (id 3) runs the em damage function; the other partners
 // play `mot` (subFlags58C 0x40). pEmCatch = type.
-void SetSubDamage(cEm* em, void* mot)
+void SetSubDamage(cEm* em, void (*ft)())
 {
     cSubChar* sub = pSUB;
 
@@ -369,7 +369,7 @@ void SetSubDamage(cEm* em, void* mot)
         return;
     }
     if (sub->id == 3) {
-        sub->setEmFunc();
+        sub->setEmFunc(ft);
         sub->r_no_0 = 4;
         sub->r_no_1 = 0;
         sub->r_no_2 = 0;
@@ -377,7 +377,7 @@ void SetSubDamage(cEm* em, void* mot)
         sub->dmg.set(0, 10);
         sub->pEmCatch = em;
     } else {
-        sub->subMot0 = mot;
+        sub->subMot0 = (void*)ft;
         sub->subFlags58C |= 0x40;
         sub->r_no_0 = 4;
         sub->r_no_1 = 0;

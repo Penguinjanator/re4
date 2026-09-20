@@ -527,7 +527,7 @@ static void pl0f_R1_RideStart(cPl0f* em)
     w->Be_flg |= 1;
     w->Seid_engine = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
     if (pSUBS) {
-        SetSubDamage(em, (void*) subBoatRide);
+        SetSubDamage(em, subBoatRide);
         pSUB->r_no_2 = 2;
     }
     PlRoutineSet(em, 1, 1, 0, 0);
@@ -755,7 +755,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         BoatMoveFunc = PlBoatMove; \
         PlRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
-            SetSubDamage(em, (void*) subFunc); \
+            SetSubDamage(em, subFunc); \
         } \
         w->Timer = t1; \
         w->Timer2 = t2; \
@@ -794,7 +794,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         PL0F_WK(em)->Be_flg &= ~1; \
         SndStop(PL0F_WK(em)->Seid_engine, 0); \
         if (pSUB) { \
-            SetSubDamage(em, (void*) subBoatGetoff); \
+            SetSubDamage(em, subBoatGetoff); \
         } \
     } \
 }
@@ -1651,7 +1651,7 @@ static void pl0fActRide(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0, 0);
     PlRoutineSet(em, 1, 1, 0, 0);
     if (pSUB) {
-        SetSubDamage(em, (void*) subBoatRide);
+        SetSubDamage(em, subBoatRide);
     }
 }
 
@@ -1663,7 +1663,7 @@ static void pl0fActRideR10d(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0xE, 0);
     PlRoutineSet(em, 1, 9, 0, 0);
     if (pSUB) {
-        SetSubDamage(em, (void*) subBoatRide);
+        SetSubDamage(em, subBoatRide);
     }
 }
 
@@ -1675,7 +1675,7 @@ static void pl0fActRideR10e(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0x10, 0);
     PlRoutineSet(em, 1, 0xB, 0, 0);
     if (pSUB) {
-        SetSubDamage(em, (void*) subBoatRide);
+        SetSubDamage(em, subBoatRide);
     }
 }
 
@@ -1687,7 +1687,7 @@ static void pl0fActRideR10e2(cPl0f* em)
     PlRoutineSet(pPL, 0, 0xF, 0x12, 0);
     PlRoutineSet(em, 1, 0xD, 0, 0);
     if (pSUB) {
-        SetSubDamage(em, (void*) subBoatRide);
+        SetSubDamage(em, subBoatRide);
     }
 }
 
@@ -1705,7 +1705,7 @@ static void pl0fActGetOff(cPl0f* em)
     w->Be_flg &= ~1;
     SndStop(w->Seid_engine, 0);
     if (pSUB) {
-        SetSubDamage(em, (void*) subBoatGetoff);
+        SetSubDamage(em, subBoatGetoff);
     }
 }
 

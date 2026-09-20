@@ -1094,7 +1094,7 @@ address	size	section	unit	scope	name	demangled
 0x80053D1C	0xAC	.text	game/pl_npc.cpp	global	backCheckCtrlFootwork__8cSubChar	cSubChar::backCheckCtrlFootwork
 0x80053DC8	0xC0	.text	game/pl_npc.cpp	global	backCheckCtrlMove__8cSubChar	cSubChar::backCheckCtrlMove
 0x80053E88	0x1AC	.text	game/pl_npc.cpp	global	checkBackEm__8cSubChar	cSubChar::checkBackEm
-0x80054034	0x8	.text	game/pl_npc.cpp	global	setEmFunc__8cSubChar	cSubChar::setEmFunc
+0x80054034	0x8	.text	game/pl_npc.cpp	global	setEmFunc__8cSubCharPFv_v	cSubChar::setEmFunc
 0x8005403C	0x6A4	.text	game/pl_npc.cpp	global	analyze__8cSubChar	cSubChar::analyze
 0x800546E0	0x110	.text	game/pl_npc.cpp	global	frontCheck__8cSubChar	cSubChar::frontCheck
 0x800547F0	0x10C	.text	game/pl_npc.cpp	global	anaSatInfo__8cSubChar	cSubChar::anaSatInfo
@@ -5370,7 +5370,7 @@ address	size	section	unit	scope	name	demangled
 0x8017780C	0x90	.text	game/pl_sub.cpp	global	EndPlDamage	EndPlDamage
 0x8017789C	0x68	.text	game/pl_sub.cpp	global	SetSubAux	SetSubAux
 0x80177904	0x68	.text	game/pl_sub.cpp	global	SetSubBulldozer	SetSubBulldozer
-0x8017796C	0xA4	.text	game/pl_sub.cpp	global	SetSubDamage	SetSubDamage
+0x8017796C	0xA4	.text	game/pl_sub.cpp	global	SetSubDamage__FP3cEmPFv_v	SetSubDamage
 0x80177A10	0xC0	.text	game/pl_sub.cpp	global	EndSubDamage	EndSubDamage
 0x80177AD0	0x180	.text	game/pl_sub.cpp	global	SubCharInit	SubCharInit
 0x80177C50	0x1AC	.text	game/pl_sub.cpp	global	SubCharCtrl	SubCharCtrl

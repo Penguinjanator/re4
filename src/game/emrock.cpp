@@ -2309,7 +2309,7 @@ int emRockDropHitCkSub(cEmRock* em)
     if (len > r * r) {
         return 0;
     }
-    SetSubDamage(em, (void*) subemDropDie);
+    SetSubDamage(em, subemDropDie);
     return 1;
 }
 

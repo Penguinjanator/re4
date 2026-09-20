@@ -2534,7 +2534,7 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     em->pEmCatch = sub;
     sub->pEmCatch = em;
     sub->subArc = em->subArc;
-    SetSubDamage(em, (void*) a);
+    SetSubDamage(em, (void (*)()) a);
 }
 
 // Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by

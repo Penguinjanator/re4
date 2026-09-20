@@ -744,7 +744,7 @@ int SubLadderClimbCk(cEm* em)
             }
             if (em->plDist2 > 100000000.0f || em->pos.y + 1000.0f < pPL->pos.y) {
                 obj->ladder.flags |= 4;
-                SetSubDamage((cEm*) obj, (void*) subobjLadderClimb);
+                SetSubDamage((cEm*) obj, (void (*)()) subobjLadderClimb);
                 obj->setClimb();
                 return 1;
             }

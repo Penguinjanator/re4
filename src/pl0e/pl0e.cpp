@@ -405,7 +405,7 @@ static void pl0e_R1_Jump(cPl0e* em)
                 PlRoutineSet(pPL, 0, 0xF, 2, 0);
                 U32Set(pPL->m_Work0, 2);
                 if (pSUB) {
-                    SetSubDamage(em, (void*) subBoatJump);
+                    SetSubDamage(em, subBoatJump);
                     pSUB->r_no_3 = 2;
                 }
             } else {
@@ -413,7 +413,7 @@ static void pl0e_R1_Jump(cPl0e* em)
                 PlRoutineSet(pPL, 0, 0xF, 2, 0);
                 U32Set(pPL->m_Work0, 1);
                 if (pSUB) {
-                    SetSubDamage(em, (void*) subBoatJump);
+                    SetSubDamage(em, subBoatJump);
                     pSUB->r_no_3 = 1;
                 }
             }
@@ -422,7 +422,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
             U32Set(pPL->m_Work0, 0);
             if (pSUB) {
-                SetSubDamage(em, (void*) subBoatJump);
+                SetSubDamage(em, subBoatJump);
             }
         }
         w->flags |= 8;
@@ -460,7 +460,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         w->frameOld = 0;
         PlRoutineSet(pPLS, 0, 0xF, 3, 0);
         if (pSUB) {
-            SetSubDamage(em, (void*) subBoatLanding);
+            SetSubDamage(em, subBoatLanding);
         }
         if (em->be_flag & 2) {
             EstSet(em, -1, 0, 0, 0xE, 4, 0, 0, em, 0);
@@ -511,7 +511,7 @@ static void pl0e_R1_Crash(cPl0e* em)
         }
         PlRoutineSet(pPL, 0, 0xF, 4, 0);
         if (pSUB) {
-            SetSubDamage(em, (void*) subBoatCrash);
+            SetSubDamage(em, subBoatCrash);
         }
         SndStop(w->seNo, 0);
         SndStrReq(1, 0x38, 0x80000003, 0, 0, 0.0f);
@@ -547,7 +547,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         w->xD4 = 0x14;
         PlRoutineSet(pPLS, 0, 0xF, 5, 0);
         if (pSUB) {
-            SetSubDamage(em, (void*) subBoatSink);
+            SetSubDamage(em, subBoatSink);
         }
         SndStop(w->seNo, 0);
         SndStrReq(1, 0x39, 0x80000003, 0, 0, 0.0f);
@@ -584,7 +584,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         w->xD4 = 0x14;
         PlRoutineSet(pPLS, 0, 0xF, 6, 0);
         if (pSUB) {
-            SetSubDamage(em, (void*) subBoatJumpMiss);
+            SetSubDamage(em, subBoatJumpMiss);
         }
         SndStop(w->seNo, 0);
         SndStrReq(1, 0x72, 0x80000003, 0, 0, 0.0f);
@@ -786,7 +786,7 @@ void cPl0e::setRide()
         BoatMoveFunc = PlBoatMove;
         PlRoutineSet(pPL, 0, 0xF, 0, 0);
         if (pSUB) {
-            SetSubDamage(this, (void*) subBoatRide);
+            SetSubDamage(this, subBoatRide);
         }
     }
 }
@@ -1146,7 +1146,7 @@ static void subBoatRide()
         sub->r_no_2++;
     case 1:
         if (MotionMove(sub, 0)) {
-            SetSubDamage(boat, (void*) subBoatRun);
+            SetSubDamage(boat, subBoatRun);
         } else {
             if (sub->frame > 21.7f && sub->frame < 22.3f) {
                 SndCall(5, 0x16, &sub->pos, 0, 0, 0);
@@ -1250,7 +1250,7 @@ static void subBoatLanding()
         subOnJet(sub, boat);
         subBlendMotSet(sub, SUBARC(0x29), SUBARC(0x2E), SUBARC(0x2D), 0, 0, 0);
         if (MotionMove(sub, 0)) {
-            SetSubDamage(boat, (void*) subBoatRun);
+            SetSubDamage(boat, subBoatRun);
         }
         break;
     }
@@ -1543,7 +1543,7 @@ void cPl0e::set2ndRail()
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 1, 0);
     if (pSUB) {
-        SetSubDamage(this, (void*) subBoatRun);
+        SetSubDamage(this, subBoatRun);
     }
     if (w->pWave) {
         EstSet(w->pWave, -1, 0, 0, 0xE, 9, 1, 0, w->pWave, 0);

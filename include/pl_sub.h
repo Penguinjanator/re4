@@ -22,7 +22,6 @@ void SetPlDamage(cEm* em, void (*func)(cPlayer*));
 void EndPlDamage();
 void SetSubAux(void (*ft)(cEm*), void (*ftdm)(cEm*));
 void SetSubBulldozer(void (*ft)(cEm*), void (*ftdm)(cEm*));
-void SetSubDamage(cEm* em, void* mot);
 void EndSubDamage();
 void SubCharInit(int type, Vec* pos, f32 ang);
 enum SCC_MODE {
@@ -62,6 +61,7 @@ void PlSetFace(int no);
 void SubCharSetFace(int no);
 void PlDataRelease();
 }
+void SetSubDamage(cEm* em, void (*ft)());
 
 int PlSetCostume();
 void PlChangeData();

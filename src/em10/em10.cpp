@@ -4631,7 +4631,7 @@ static void em10_R1_R10FGJump(cEm10* em)
                 SetPlDamage(em, plem10DmGondolaShake);
             }
             if (pSUB && pSUB->hp > 0) {
-                SetSubDamage(em, (void*) subem10DmGondolaShake);
+                SetSubDamage(em, (void (*)()) subem10DmGondolaShake);
             }
         }
         SndCall(6, 0xC, &em->pos, 0, 0, em);
@@ -4694,7 +4694,7 @@ static void em10_R1_R10FGJump(cEm10* em)
                     pPL->r_no_3 = 1;
                 }
                 if (pSUB && pSUB->hp > 0) {
-                    SetSubDamage(em, (void*) subem10DmGondolaShake);
+                    SetSubDamage(em, (void (*)()) subem10DmGondolaShake);
                     pSUB->r_no_3 = 1;
                 }
                 em->dmg.m_Timer = 0x80;

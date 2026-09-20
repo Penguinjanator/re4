@@ -3471,7 +3471,7 @@ cEmDoor* DoorOpenCk(cModel* m)
 // Makes the partner open / kick `door` (subDoorKick as her damage routine).
 void SubOpenDoorSet(cEmDoor* door)
 {
-    SetSubDamage(door, (void*) subDoorKick);
+    SetSubDamage(door, subDoorKick);
 }
 
 // Partner damage routine: kick motion (0x2B) with setShock, or the kick-open motion (0x2A) with

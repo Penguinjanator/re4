@@ -3473,7 +3473,7 @@ int em36AtkCk2(cEm36* em, int no, Vec* pos, Vec* oldPos)
             switch (no) {
             case 0:
                 SndCall(8, 0x1B, &em->pos, em->id, 0, em);
-                SetSubDamage(em, (void*) subem36_Stamp);
+                SetSubDamage(em, subem36_Stamp);
                 break;
             case 1:
                 SndCall(8, 0x35, &pSUB->pos, em->id, 0, pSUB);

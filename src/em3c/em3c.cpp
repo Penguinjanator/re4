@@ -734,7 +734,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
                     + (em->pos.z - pSUB->pos.z) * (em->pos.z - pSUB->pos.z);
 
             if (pSUB->hp > 0 && d < 25000000.0f) {
-                SetSubDamage(em, (void*) subemSurprised);
+                SetSubDamage(em, subemSurprised);
             }
         }
         em3cAtkSuspend(em, 1);
@@ -862,7 +862,7 @@ static void plemEscapeAction(cEm3c* em)
                 + (em->pos.z - pSUB->pos.z) * (em->pos.z - pSUB->pos.z);
 
         if (pSUB->hp > 0 && d < 16000000.0f) {
-            SetSubDamage(em, (void*) subemSit);
+            SetSubDamage(em, subemSit);
         }
     }
     GameAddPoint(LVADD_CRITICALHIT);

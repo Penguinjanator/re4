@@ -2425,7 +2425,7 @@ static void em2b_R1_Catch(cEm2b* em)
                 d = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y)
                     + (p->world.z - v.z) * (p->world.z - v.z);
                 if (d < 4000000.0f) {
-                    SetSubDamage(em, (void*) subem2b_CatchHand);
+                    SetSubDamage(em, (void (*)()) subem2b_CatchHand);
                     LifeDownSet2(pSUBS, 300, 0, 1);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
                     w->Atk_ck = 2;
@@ -2708,7 +2708,7 @@ static void em2b_R1_SubCatch(cEm2b* em)
         int flip = em2bFlip(w, 0x41, 1);
 
         MotionSetCore(em, &em->Motion, ARC(0x4A), ARC(0x98), 0, flip, 0);
-        SetSubDamage(em, (void*) subem2b_Catch);
+        SetSubDamage(em, (void (*)()) subem2b_Catch);
         GameAddPoint(LVADD_PL_DAMAGE);
         w->Parasite_damage = 100;
         em->r_no_2++;
@@ -2750,7 +2750,7 @@ static void em2b_R1_SubCatch(cEm2b* em)
         int flip = em2bFlip(w, 0x41, 1);
 
         MotionSetCore(em, &em->Motion, ARC(0x4B), ARC(0x99), 10, flip, 0);
-        SetSubDamage(em, (void*) subem2b_CatchEnd);
+        SetSubDamage(em, (void (*)()) subem2b_CatchEnd);
         w->Catch_power = 450;
         em->r_no_2++;
     }
@@ -2800,7 +2800,7 @@ static void subem2b_CatchHand(cSubChar* sub)
         s->ang.z = 0.0f;
         MotionMove(s, 0);
         if (s->pEmCatch->hp <= 0) {
-            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
+            SetSubDamage(s->pEmCatch, (void (*)()) subem2b_CatchEnd);
         }
         break;
     }
@@ -2837,7 +2837,7 @@ static void subem2b_Catch(cSubChar* sub)
         MotionMove(s, 0);
         s->r_no_2 = s->pEmCatch->r_no_2;
         if (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x13) {
-            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
+            SetSubDamage(s->pEmCatch, (void (*)()) subem2b_CatchEnd);
         }
         break;
     case 2:
@@ -2853,7 +2853,7 @@ static void subem2b_Catch(cSubChar* sub)
             }
         }
         if ((s16) pG->ashley_life > 0 && (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x13)) {
-            SetSubDamage(s->pEmCatch, (void*) subem2b_CatchEnd);
+            SetSubDamage(s->pEmCatch, (void (*)()) subem2b_CatchEnd);
         }
         break;
     }
@@ -5938,7 +5938,7 @@ int em2bPressSubCk(cEm2b* em)
                 (pos.z - m->world.z) * (pos.z - m->world.z) <
             9000000.0f) {
             pG->ashley_life = 0;
-            SetSubDamage(em, (void*) subem2b_dm_Stamp);
+            SetSubDamage(em, (void (*)()) subem2b_dm_Stamp);
             return 1;
         }
     }

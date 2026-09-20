@@ -2846,12 +2846,10 @@ int cSubChar::checkBackEm()
     return 0;
 }
 
-// The damage routine handler (routine 4): pl_sub's SetSubDamage passes it in r4.
-void cSubChar::setEmFunc()
+// The damage routine handler (routine 4): pl_sub's SetSubDamage passes it.
+void cSubChar::setEmFunc(void (*pFunc)())
 {
-    register void (*func)() asm("r4");
-
-    subFunc = func;
+    subFunc = pFunc;
 }
 
 // Per-frame situation: player distance flags, nearby enemies, the route target (subTarget),

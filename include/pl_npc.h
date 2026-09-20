@@ -80,7 +80,7 @@ public:
     virtual void setHand(int no);
     virtual void initCloth();
     virtual void moveCloth();
-    virtual void setEmFunc();           // pl_sub SetSubDamage (Ashley)
+    virtual void setEmFunc(void (*pFunc)());   // pl_sub SetSubDamage (Ashley)
 
     static const Vec atckPos;    // offset behind the player while he aims (moveBehind)
     static const Vec atckPos2;   // the same for the two-handed weapons
