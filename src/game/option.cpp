@@ -144,7 +144,7 @@ void OptionScreen::init(int title)
     if (fromTitle != 0) {
         IdUnit* u = IdSys.unitPtr(0, ID_OPT_BG);
         Hermite1* h = u->curve[2];
-        IdSys.setTimeS(u, (s16) (int) h->key[h->num - 1].t);
+        IdSys.setTime(u, (s16) (int) h->key[h->num - 1].t);
     }
     IdSys.set(OPT_PTR(0x28), 0xFF, ID_OPT, 0x13, 3, 0);
     _rno0 = 0;
@@ -499,7 +499,7 @@ int retry_load_menu(OptionScreen* o)
             {
                 IdUnit* bg = IdSys.unitPtr(0, ID_OPT_BG);
                 Hermite1* h = bg->curve[2];
-                IdSys.setTimeS(bg, (s16) (int) h->key[h->num - 1].t);
+                IdSys.setTime(bg, (s16) (int) h->key[h->num - 1].t);
             }
             IdSys.kill(0xFF, ID_OPT);
             IdSys.set(OPT_PTR(0x2C), 0xFF, ID_OPT, 0x13, 3, 0);

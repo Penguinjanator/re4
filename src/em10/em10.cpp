@@ -350,11 +350,6 @@ extern "C" int em10SearchParasite(cEm10* em);
 // EstSet with the enemy as owner argument (esp.h declares the int form).
 void EstSetEm(cModel* em, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, cModel* g, void* h) asm("EstSet");
 
-// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4). The original passes -1 to the u16
-// count of Ctrl12CntAdd as `li r5, -1`; an int-view declaration reproduces it.
-void Ctrl12CntAddI(cCtrl* c, int idx, int add) asm("Ctrl12CntAdd__FP5cCtrliUs");
-// COMPILER-DIFF: narrow-argument extension (docs/matching.md item 2): the s16 wait time is sign-extended.
-void Ctrl12SetS(cCtrl* c, int idx, s16 val) asm("Ctrl12Set__FP5cCtrliUs");
 // COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of the u16 se number / block.
 u32 Ctrl11SetSe2I(cCtrl* c, cModel* m, s16 time, int no, int idx, int blk) asm("Ctrl11SetSe2__FP5cCtrlP6cModelsUsiUs");
 // COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of em10CallVoiceSe's u16 se number (em10SetDamageVoice).
@@ -3922,8 +3917,8 @@ static void em10_R1_R10CPCancel(cEm10* em)
         MotionMove(em, 0);
         w->flags |= 0x80;
         w->Parasite_on = 1;
-        Ctrl12CntAddI(w->pCtrl12, 4, -1);
-        Ctrl12CntAddI(w->pCtrl12, 4, 1);
+        Ctrl12CntAdd(w->pCtrl12, 4, -1);
+        Ctrl12CntAdd(w->pCtrl12, 4, 1);
         em10SetParasite(em);
         em10HeadSet(em, 1);
         EffectEspDelete(0, w->EffKindIdEye, em, 0);
@@ -5246,7 +5241,7 @@ static void em10_R1_R209Gatling(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         if (w->Parasite_on) {
             w->Parasite_on = 0;
-            Ctrl12CntAddI(w->pCtrl12, 4, -1);
+            Ctrl12CntAdd(w->pCtrl12, 4, -1);
         }
         em10CoreBreak(em, 0);
         w->pGatling->stopFire();
@@ -16011,7 +16006,7 @@ static void em10_R1_Die_Cramp(cEm10* em)
         }
         if (w->Parasite_on) {
             w->Parasite_on = 0;
-            Ctrl12CntAddI(w->pCtrl12, 4, -1);
+            Ctrl12CntAdd(w->pCtrl12, 4, -1);
         }
         if (em->type == 0xA || em->type == 0xD) {
             if (w->pCore) {
@@ -26777,8 +26772,8 @@ extern "C" void em10SetAtkWait(cEm10* em, int set)
     }
     w->Atk_wait = t;
     if (set) {
-        Ctrl12SetS(w->pCtrl12, 6, (s16) t);
-        Ctrl12SetS(w->pCtrl12, 8, (s16) t);
+        Ctrl12Set(w->pCtrl12, 6, (s16) t);
+        Ctrl12Set(w->pCtrl12, 8, (s16) t);
     }
 }
 

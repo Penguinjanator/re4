@@ -49,7 +49,7 @@ cCtrl* GetCtrlCtrl12()
 }
 
 // Sets timer `idx` (0..12) to `val` frames.
-void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val)
+void Ctrl12Set(cCtrl* pCtrl, int idx, s16 val)
 {
     Ctrl12Work* w;
 
@@ -88,7 +88,7 @@ int Ctrl12Ck(cCtrl* pCtrl, int idx)
 }
 
 // Adds `add` to counter `idx` (0..5), saturating at 0xFFFF.
-void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add)
+void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add)
 {
     Ctrl12Work* w;
     u16 v;

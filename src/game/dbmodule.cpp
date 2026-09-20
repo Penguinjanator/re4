@@ -121,7 +121,7 @@ void Render_tile(void* data)
 }
 
 // Queues a filled screen-space rectangle (pixels) in OT 13 for this frame.
-void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
+void Draw_tile(int x, int y, int w, int h, GXColor* color)
 {
     TileWork* t = (TileWork*) GetPrimBuff(sizeof(TileWork));
     if (t) {

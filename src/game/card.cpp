@@ -182,12 +182,10 @@ public:
     void setAction(int a);
 };
 
-void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken);
+void dispSaveInfo(int no, SaveInfo* info, int type, int broken);
 // cCard::exit passes the saved int width as a full word (`lwz`, not the `lhz 0x41a` narrowing a u16
 // parameter gets): int view of ScreenReSize.
 extern "C" void ScreenReSizeI(int w, int h) asm("ScreenReSize");
-// CardID::updateSaveInfo passes `0x40 + i` without the `clrlwi` truncation: int view of `type`.
-void dispSaveInfoI(int no, SaveInfo* info, int type, int broken) asm("dispSaveInfo__FiP8SaveInfoUci");
 
 int isDbgInfoAlloc = 0;
 static int isDbgInfoCached = 0;
@@ -3214,7 +3212,7 @@ void CardDbgCacheSet()
 
 // Fills save slot `no`'s list entry ids: chapter / difficulty / play time / save count digits
 // from the header (or the "broken" / "no data" variants).
-void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
+void dispSaveInfo(int no, SaveInfo* info, int type, int broken)
 {
     IDSystem* id = &g_id->m_IdSave;
     IdUnit* u;
@@ -3396,16 +3394,16 @@ void CardID::updateSaveInfo(cCard* pCard)
         if (no > 19) {
             no -= 20;
         }
-        g_id->m_IdSave.unitPtrI(0x15, type)->be_flag |= 8;
+        g_id->m_IdSave.unitPtr(0x15, type)->be_flag |= 8;
         f = (&pCard->slotw[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
+                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
+                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
             }
         } else {
-            dispSaveInfoI(no, 0, type, 0);
+            dispSaveInfo(no, 0, type, 0);
         }
     }
 }
@@ -3439,7 +3437,7 @@ void CardID::init(int type, CardArc* data)
     IdSys.kill(0xFF, 0x2A);
     m_IdSave.set(pFrame, 0xFF, 0x18, 9, 3, 0);
     for (i = 0; i < 7; i++) {
-        m_IdSave.setI(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
+        m_IdSave.set(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
     }
     if (this->m_mode == 1) {
         IdSys.set(pSaveDat, 0xFF, 0x10, 0xF, 2, 0);
@@ -3454,7 +3452,7 @@ void CardID::init(int type, CardArc* data)
     IdSys.unitPtr(1, 0x11)->rev_flag |= 0xF;
     zero = 0.0f;
     for (int j = 0; j < 7; j++) {
-        IdUnit* p = g_id->m_IdSave.unitPtrI(0x15, 0x40 + j);
+        IdUnit* p = g_id->m_IdSave.unitPtr(0x15, 0x40 + j);
         IdUnit* q = g_id->m_IdSave.unitPtr((u8) (j + 0x10), 0x18);
         q->type = 1;
         FSet(p->scr.z, zero);
@@ -3513,7 +3511,7 @@ void CardID::move(cCard* pCard)
             a->path1 = b->path1;
             a->scr = b->scr;
             FuncPathParametrize(a->path0, a->path1);
-            m_IdSave.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
+            m_IdSave.setTime(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
             a->rev_flag |= 0xF;
             setAction(0);
             IdSys.unitPtr(5, 0x10)->rev_flag |= 0xF;

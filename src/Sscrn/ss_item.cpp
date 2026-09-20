@@ -33,13 +33,6 @@
 
 
 
-// COMPILER-DIFF: item 4. Int views of the u8 id / type parameters (no `clrlwi` at the calls).
-class IDSystemN : public IDSystem {
-public:
-    IdUnit* unitPtrN(int id, int type) asm("unitPtr__8IDSystemUcUc");
-};
-#define IdSubN (*(IDSystemN*) &IdSub)
-#define IdNumN (*(IDSystemN*) &IdNum)
 extern "C" void numDispI(int id, int num, Vec* pos, u32 flags) asm("numDisp");
 
 // Item list select (two columns), command menu and combine widgets of the item screen.
@@ -83,7 +76,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk);
 ItemWork* ITEM_PTR(int idx, int col);
 int ITEM_AT(ItemWork* p, int col);
 int itemTexNo(u16 id);
-int frameMarkNo(int n, int col);
+u8 frameMarkNo(int n, int col);
 void itemFrameSet(SUB_SCREEN* wk, int col);
 void itemFrameInit(SUB_SCREEN* wk);
 void itemFrameMove(SUB_SCREEN* wk, int col);
@@ -267,14 +260,14 @@ void SsItemMain::init(SUB_SCREEN* wk)
     IdNum.set(SS_ARC_PTR(wk->pItem, 7), 0xFF, 0x15, 0xC, 6, 0);
     for (int i = 0; i < 32; i++) {
         int no = i + 0x40;
-        IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
+        IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
         numDispI(no, 0, 0, 0);
     }
     for (int k = 0; k < 2; k++) {
         int type = k * 8 + 0x40;
         for (int n = -3; n <= 4; n++) {
             IdUnit* parent = IdNum.unitPtr(frameMarkNo(n, k) - 0x30, 0x15);
-            IdNum.unitParent(parent, IdNumN.unitPtrN(0, type));
+            IdNum.unitParent(parent, IdNum.unitPtr(0, type));
             type++;
         }
     }
@@ -568,7 +561,7 @@ int itemTexNo(u16 id)
 
 // IdNum unit number of the slot frame n (-3..4 around the cursor) in column `col`: 0x41..0x48 for
 // key items (reversed), 0x51..0x58 for treasures.
-int frameMarkNo(int n, int col)
+u8 frameMarkNo(int n, int col)
 {
     switch (col) {
     case 0:
@@ -635,7 +628,7 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
     }
     no = col * 8 + 0x40;
     for (n = -3; n <= 4; n++) {
-        IdUnit* m = IdNumN.unitPtrN(frameMarkNo(n, col), 0x15);
+        IdUnit* m = IdNum.unitPtr(frameMarkNo(n, col), 0x15);
         ItemWork* item = ITEM_PTR(n + iw->idx[col], col);
         int off;
         if (iw->comb[col] != -1 && iw->sel[col] == n + iw->idx[col]) {

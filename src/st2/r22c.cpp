@@ -1905,7 +1905,7 @@ void ScoreMove()
             r22c_work.p->scoreTimer[i] = 0;
         }
         if (r22c_work.p->scoreTimer[i] == 0) {
-            r22c_work.p->score2.killI(0xFF, 0x40 + i);
+            r22c_work.p->score2.kill(0xFF, 0x40 + i);
         }
     }
     r22c_work.p->score2.move();
@@ -1942,8 +1942,8 @@ void ScoreSet(int pt, Vec* pos)
     }
     r22c_work.p->scoreTimer[slot] = 30;
     type = slot + 0x40;
-    r22c_work.p->score2.setI(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
-    u = r22c_work.p->score2.unitPtrI(0, type);
+    r22c_work.p->score2.set(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
+    u = r22c_work.p->score2.unitPtr(0, type);
     v = *pos;
     GetScreenPos(&v, &scr);
     scr.x = (scr.x - 256.0f) * 1.25f;
@@ -1953,14 +1953,14 @@ void ScoreSet(int pt, Vec* pos)
         IdUnit* m;
 
         pt = -pt;
-        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag &= ~8;
-        m = r22c_work.p->score2.unitPtrI(0xFD, type);
+        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag &= ~8;
+        m = r22c_work.p->score2.unitPtr(0xFD, type);
         u->col0[0] = m->col0[0];
         u->col0[1] = m->col0[1];
         u->col0[2] = m->col0[2];
         u->col0[3] = m->col0[3];
     } else {
-        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag |= 8;
+        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag |= 8;
     }
     d = digit;
     {
@@ -1985,7 +1985,7 @@ void ScoreSet(int pt, Vec* pos)
         }
     }
     for (i = 3; i >= 0; i--) {
-        IdUnit* du = r22c_work.p->score2.unitPtrI(i + 1, type);
+        IdUnit* du = r22c_work.p->score2.unitPtr(i + 1, type);
 
         if (i - n >= 0) {
             du->tex_flag = 2;

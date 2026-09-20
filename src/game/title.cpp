@@ -166,7 +166,7 @@ void titleSet(TitleWork* w, int time)
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, ID_TITLE, 0x13, 6, 0);
     }
-    IdSys.setTimeS(IdSys.unitPtr(0, ID_TITLE), (s16) time);
+    IdSys.setTime(IdSys.unitPtr(0, ID_TITLE), (s16) time);
 }
 
 // State 1: waits for the memory card check and the sound bank, loads "SS/<lang>/title.dat" and its
@@ -291,7 +291,7 @@ void titleWarning(TitleWork* w)
         w->counter = 585;
         w->Rno0 = 5;
         w->Rno1 = 0;
-        IdSys.setTimeS(u, (s16) w->counter);
+        IdSys.setTime(u, (s16) w->counter);
         return;
     }
     switch (w->Rno1) {
@@ -314,7 +314,7 @@ void titleWarning(TitleWork* w)
             w->counter = 105;
             w->Rno1 = 0;
             w->Rno0 = 4;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     }
@@ -348,7 +348,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 230;
             w->Rno1 = 2;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 2:
@@ -368,7 +368,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 330;
             w->Rno1 = 4;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 4:
@@ -388,7 +388,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 585;
             w->Rno1 = 6;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 6:
@@ -790,7 +790,7 @@ void titleMain(TitleWork* w)
             if (w->counter <= 584) {
                 w->counter = 645;
             }
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
             w->dbg_mode = 1;
             w->Rno2++;
         }

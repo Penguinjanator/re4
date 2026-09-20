@@ -751,7 +751,7 @@ void IdNumErase()
     int i;
 
     for (i = 0; i < 0x3E; i++) {
-        IdNum.killI(0xFF, 0x40 + i);
+        IdNum.kill(0xFF, 0x40 + i);
     }
     IdNum.kill(0xFF, 0x10);
     IdNum.kill(0xFF, 0x11);

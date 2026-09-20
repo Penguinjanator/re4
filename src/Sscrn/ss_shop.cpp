@@ -519,7 +519,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
             if (i == 0) {
                 IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
             } else {
-                IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
+                IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
             }
         }
     }
@@ -527,7 +527,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
     {
         int i;
         for (i = 0; i < 5; i++) {
-            IdSub.setI(SS_ARC_PTR(wk->pShop, 8), 0xFF, 0x80 + i, 0x13, 5, 0);
+            IdSub.set(SS_ARC_PTR(wk->pShop, 8), 0xFF, 0x80 + i, 0x13, 5, 0);
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pShop, 7), 0xFF, 0x1C, 0x13, 4, 0);
@@ -2071,7 +2071,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 id = 0x70;
                 break;
             }
-            IdSub.unitPtrI(id, 0x1D)->be_flag &= ~8;
+            IdSub.unitPtr(id, 0x1D)->be_flag &= ~8;
         }
         return;
     }
@@ -2853,25 +2853,25 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
     int n;
 
     if (flags == 0) {
-        IdSub.unitPtrI(0, type)->be_flag &= ~8;
+        IdSub.unitPtr(0, type)->be_flag &= ~8;
         return;
     }
-    IdSub.unitPtrI(0, type)->be_flag |= 8;
+    IdSub.unitPtr(0, type)->be_flag |= 8;
     if (pos) {
-        IdSub.unitPtrI(0, type)->scr = *pos;
+        IdSub.unitPtr(0, type)->scr = *pos;
     }
     if (price_disp_num & flags) {
         int digit[4];
         int on;
 
-        IdSub.unitPtrI(0x10, type)->be_flag |= 8;
+        IdSub.unitPtr(0x10, type)->be_flag |= 8;
         n = num;
         for (int i = 0; i < 4; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
         for (int i = 0; i < 4; i++) {
-            IdSub.unitPtrI(0x11 + i, type)->be_flag &= ~8;
+            IdSub.unitPtr(0x11 + i, type)->be_flag &= ~8;
         }
         on = 0;
         for (int i = 3; i >= 0; i--) {
@@ -2883,26 +2883,26 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
                 }
                 on = 1;
             }
-            d = IdSub.unitPtrI(0x11 + i, type);
+            d = IdSub.unitPtr(0x11 + i, type);
             d->be_flag |= 8;
             d->tex_flag |= 2;
             d->texNo = digit[i];
         }
     } else {
-        IdSub.unitPtrI(0x10, type)->be_flag &= ~8;
+        IdSub.unitPtr(0x10, type)->be_flag &= ~8;
     }
     if (price_disp_price & flags) {
         int digit[7];
         int on;
 
-        IdSub.unitPtrI(0xFE, type)->be_flag |= 8;
+        IdSub.unitPtr(0xFE, type)->be_flag |= 8;
         n = price;
         for (int i = 0; i < 7; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
         for (int i = 0; i < 7; i++) {
-            IdSub.unitPtrI(1 + i, type)->be_flag &= ~8;
+            IdSub.unitPtr(1 + i, type)->be_flag &= ~8;
         }
         on = 0;
         for (int i = 6; i >= 0; i--) {
@@ -2914,18 +2914,18 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
                 }
                 on = 1;
             }
-            d = IdSub.unitPtrI(1 + i, type);
+            d = IdSub.unitPtr(1 + i, type);
             d->be_flag |= 8;
             d->tex_flag |= 2;
             d->texNo = digit[i];
         }
     } else {
-        IdSub.unitPtrI(0xFE, type)->be_flag &= ~8;
+        IdSub.unitPtr(0xFE, type)->be_flag &= ~8;
     }
     if (price_disp_sold & flags) {
-        IdSub.unitPtrI(0x20, type)->be_flag |= 8;
+        IdSub.unitPtr(0x20, type)->be_flag |= 8;
     } else {
-        IdSub.unitPtrI(0x20, type)->be_flag &= ~8;
+        IdSub.unitPtr(0x20, type)->be_flag &= ~8;
     }
 }
 

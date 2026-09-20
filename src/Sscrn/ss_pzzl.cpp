@@ -1387,7 +1387,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         if (i == 0) {
             IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
         } else {
-            IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
+            IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, 0x1C, 0x13, 2, 0);

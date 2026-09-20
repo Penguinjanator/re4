@@ -96,7 +96,7 @@ enum CTRL12_ID {
     CTRL12_ID_NUM = 13
 };
 
-void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val);
+void Ctrl12Set(cCtrl* pCtrl, int idx, s16 val);
 int Ctrl12Ck(cCtrl* pCtrl, int idx);
 enum CTRL12_ID_CNT {
     CTRL12_ID_CNT_EM1A_DIE = 0,
@@ -108,7 +108,7 @@ enum CTRL12_ID_CNT {
     CTRL12_ID_CNT_NUM = 6
 };
 
-void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add);
+void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add);
 int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val);
 struct TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* c);
