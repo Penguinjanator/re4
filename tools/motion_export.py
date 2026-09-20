@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""RE4 (GameCube) skeletal motion export: the "FCV" motion entries of the character archives
-(files/em/plNN.drs, emNN.drs, wepNN.drs) and the yz2-compressed room archives (files/St*/rNNN.das)
+"""RE4 (GameCube) skeletal motion export: every "FCV" motion the game hands to MotionSetCore - the
+character archives (files/em/plNN.drs, emNN.drs, wepNN.drs), the yz2-compressed room archives
+(files/St*/rNNN.das) with their nested ETM etc archives, the cutscene data (files/Evd/*.evd), the
+sub screen data (files/ss/*/*.dat) and the raw .fcv files, on both discs (tools/motion/archive.py) -
 evaluated with the game's own code (tools/motion/host) and written as glTF 2.0 (and BVH)
 animations on the model's parts hierarchy, with the character's skinned, textured mesh from the
 model .bin / .tpl entries.
 
-usage: motion_export.py list <archive|disc> [--character leon]
-       motion_export.py export <archive|disc> --motion N [--archive plNN.drs|rNNN.das] [--character leon | --model <bin|[stem:]index>]
+usage: motion_export.py list <archive|disc>... [--character leon | --all-sources]
+       motion_export.py export <archive|disc> --motion N|name [--archive plNN.drs|rNNN.das|rNNNsMM.evd] [--character leon | --model <bin|[stem:]index>]
                                [--tpl N] [--body-only] [--mesh [stem:]BIN[:[stem:]TPL] ...] [--no-mesh]
                                -o out.gltf [--bvh out.bvh] [--no-ik] [--no-root] [--fps 30] [--scale 0.001]
                                [--blender-check [render_dir] [--strip]] [--render-nice DIR]
        motion_export.py export <archive> --all -o <dir> [--model ...]
-       motion_export.py verify <archive|disc> [--dump <file.bin> | --dolphin] [--fma]
+       motion_export.py verify <archive|disc>... [--dump <file.bin> | --dolphin] [--fma]
 
-N is the entry index of the archive (the game's PL_ARC index minus 4). --model defaults to the
+N is the entry index of the archive (the game's PL_ARC index minus 4); an event bin or a room ETM
+file is named ('pl0000_s03_000.fcv', 'pl00017.fcv'). --model defaults to the
 character table's body of the motion's archive (its entry 0 for the players), its texture palette
 to the entry after it (--tpl). The head, hair, eyes, hands ... of a known character come along by
 default: the table in tools/motion/character.py, read off the game's set-up code
@@ -25,15 +28,19 @@ reported and skipped. --archive picks the archive of a disc.
 The player's melee motions are split over two archives (character.MELEE): the roundhouse kick is
 PL_ARC 0x25 of the player's archive, the alternate kick (0x29D), suplex (0xD6), knee kick / palm
 strike (0x2B4) and neck break (0x2B9) are entries of the Ganado's em10.drs that the em10 routines
-play on the player (`pl->subArc = em->subArc`). `list --character leon` shows them;
-`export --archive em10.drs --motion 665 --character leon` plays one on Leon's body.
-`verify` decompresses every .das, checks the container, re-serialises every motion, sequence table
-and model and counts byte-identical round-trips, decodes every texture (re-encoding the lossless
-formats), then compares the helper's poses with a Dolphin memory dump when given one (see
-tools/motion/README.md).
+play on the player (`pl->subArc = em->subArc`). `list --character leon` shows them with every
+other motion Leon can play (the player archive, the enemy / vehicle archives, the weapon modules,
+the rooms, the ETM ladder files, the events, the sub screen) and the game function that plays each
+(tools/motion/refs.py, generated from src/ by gen_refs.py); `list --all-sources` is the inventory
+per file and tag; `export --archive em10.drs --motion 665 --character leon` plays one on Leon's body.
+`verify` decompresses every .das, checks every container (nested ones included), re-serialises
+every motion, sequence table and model and counts byte-identical round-trips, decodes every
+texture (re-encoding the lossless formats), then compares the helper's poses with a Dolphin memory
+dump when given one (see tools/motion/README.md).
 """
 import argparse
 import os
+import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -119,36 +126,56 @@ def parse_mesh_spec(spec, stem):
 
 
 class Source:
-    """The archives a source offers: every archive of a disc (em/*.drs, the St*/rNNN.das rooms,
-    etc/*.das), or one container file and the sibling files of its directory (a cross-archive
-    reference 'wep04:6' or 'em10:665' next to pl00.drs)."""
+    """The archives the sources offer: every archive of a disc (em/*.drs, the St*/rNNN.das rooms,
+    St*/*.dat, etc/*.das, op/*.das, ss/*/*.dat + *.fcv, Evd/*.evd, etc/*/*.eff; both discs when
+    both are given, a file present on both counted once), or container files and the sibling files
+    of their directories (a cross-archive reference 'wep04:6' or 'em10:665' next to pl00.drs)."""
 
-    def __init__(self, path):
-        self.arcs = {a.name: a for a in archive.open_source(path)}
-        self.is_disc = archive.is_disc(path)
-        self.dir = None if self.is_disc else os.path.dirname(os.path.abspath(path))
+    def __init__(self, paths):
+        if isinstance(paths, str):
+            paths = [paths]
+        self.arcs = {}
+        self.is_disc = all(archive.is_disc(p) for p in paths)
+        self.dirs = []
+        for p in paths:
+            for a in archive.open_source(p):
+                if a.name in self.arcs:
+                    if os.path.getsize(a.path) != os.path.getsize(self.arcs[a.name].path):
+                        sys.exit(f'{a.name}: two different files of that name in the sources ({self.arcs[a.name].path}, {a.path})')
+                    continue
+                self.arcs[a.name] = a
+            if not archive.is_disc(p):
+                self.dirs.append(os.path.dirname(os.path.abspath(p)))
 
     def get(self, stem):
         for ext in archive.EXTS:
             name = stem + ext
             if name in self.arcs:
                 return self.arcs[name]
-        if self.is_disc:
-            return None
-        for ext in archive.EXTS:
-            p = os.path.join(self.dir, stem + ext)
-            if os.path.isfile(p):
-                self.arcs[stem + ext] = archive.Archive(p)
-                return self.arcs[stem + ext]
+        for d in self.dirs:
+            for ext in archive.EXTS:
+                p = os.path.join(d, stem + ext)
+                if os.path.isfile(p):
+                    self.arcs[stem + ext] = archive.Archive(p)
+                    return self.arcs[stem + ext]
         return None
+
+    def by_kind(self, kind):
+        return [a for a in self.arcs.values() if a.kind == kind]
+
+    def rooms(self):
+        return [a for a in self.arcs.values() if a.kind == 'hakase' and a.stem.startswith('r') and a.ext == '.das']
+
+    def events(self):
+        return self.by_kind('evd')
 
     def entry(self, ref):
         stem, idx = ref
         arc = self.get(stem)
         if arc is None:
             raise MeshSourceError(f'{stem}:{idx}: archive {stem}.drs / .das not in the source')
-        if idx >= len(arc.drs.entries):
-            raise MeshSourceError(f'{stem}:{idx}: the archive has {len(arc.drs.entries)} entries')
+        if idx >= len(arc):
+            raise MeshSourceError(f'{stem}:{idx}: the archive has {len(arc)} entries')
         return arc.entry(idx)
 
 
@@ -205,10 +232,24 @@ def pick_archive(args, src):
     if len(arcs) == 1:
         return arcs[0]
     if not args.archive:
-        sys.exit('a disc holds many archives: pass --archive plNN.drs (or rNNN.das)')
+        sys.exit('a disc holds many archives: pass --archive plNN.drs (or rNNN.das, rNNNsMM.evd)')
     if args.archive not in src.arcs:
         sys.exit(f'{args.archive}: not on the disc')
     return src.arcs[args.archive]
+
+
+def find_entry(arc, ref):
+    """--motion N (entry index) or a name: an event bin / raw file name ('em1000_s00_000.fcv'), or a
+    nested ETM file ('ETM/pl00017.fcv' or 'pl00017.fcv') of a room."""
+    if ref.isdigit() or ref.lower().startswith('0x'):
+        return arc.entry(int(ref, 0))
+    e = arc.find(ref)
+    if e is None:
+        for sub in arc.entries(deep=True):
+            if sub.sub and (sub.sub == ref or sub.sub.split('/', 1)[-1] == ref):
+                return sub
+        sys.exit(f'{arc.name}: no entry named {ref!r}')
+    return e
 
 
 def list_melee(src, stem):
@@ -235,60 +276,198 @@ def describe_entry(e):
             m = fcv.parse(e.data)
             kinds = sorted(set(j.target() or ('root_pos' if j.is_root_pos() else 'root_rot') for j in m.joints))
             ik = sum(1 for j in m.joints if j.kind & 0x30)
+            notes = ''
+            if e.is_camera:
+                notes = ' [camera motion]'
+            elif e.is_face:
+                notes = ' [face shape data]'
+            elif len(m.joints) and all(j.target() is None and not j.is_root_pos() and not j.is_root_rot() for j in m.joints):
+                notes = ' [no rot/pos/scale joints]'
             return (f'FCV  {m.max_frame + 1:4} frames, {len(m.joints):2} joints ({", ".join(kinds)}), {ik} IK chains, '
-                    f'parts <= {max([j.parts_no for j in m.joints], default=-1)}')
+                    f'parts <= {max([j.parts_no for j in m.joints], default=-1)}{notes}')
         except Exception as ex:
             return f'FCV  MALFORMED: {ex}'
-    return f'{e.tag:4} {len(e.data):#x} bytes'
+    if e.tag == 'SEQ':
+        try:
+            s = fcv.parse_seq(e.data)
+            return (f'SEQ  {len(s.keys)} keys, flags {s.flags:#x}, frames {s.keys[0].frame_f:g}..{s.keys[-1].frame_f:g}'
+                    if s.keys else 'SEQ  empty')
+        except Exception as ex:
+            return f'SEQ  not a MotionSeqKey table: {ex}'
+    if e.tag == 'BIN':
+        try:
+            m = modelbin.parse(e.data)
+            kind = 'skeleton' if all(p.attach == p.no for p in m.parts) else 'attachment model'
+            return f'BIN  {kind}, {m.n_parts} parts, version {m.version:#x}; mesh: {meshbin.describe(meshbin.parse(e.data))}'
+        except Exception as ex:
+            return f'BIN  ({ex})'
+    if e.tag == 'TPL':
+        try:
+            ts = gxtex.parse_tpl(e.data)
+            return f'TPL  {len(ts)} textures: ' + ', '.join(
+                f'{t.fmt_name} {t.width}x{t.height}' + (f' {t.max_lod + 1} mips' if t.max_lod else '') for t in ts)
+        except Exception as ex:
+            return f'TPL  ({ex})'
+    return f'{e.tag or "----":4} {len(e.data):#x} bytes'
+
+
+def motion_round_trips(arc, e):
+    """parse + serialise gives the entry's bytes back (ValueError when it does not parse). The raw
+    ss/<lang>/*.fcv files end at the last key without the padding their size word counts."""
+    out = fcv.serialise(fcv.parse(e.data))
+    if out == e.data:
+        return True
+    return arc.kind == 'fcv' and out.startswith(e.data) and len(out) - len(e.data) < fcv.ALIGN
+
+
+def entry_line(e):
+    """One listing line: '[idx] arc 0xNN TAG ...' or, for a named / nested entry, its name."""
+    if e.sub:
+        return f'  [{e.index:3}]   {e.sub:<40} {describe_entry(e)}'
+    if e.label:
+        return f'  [{e.index:3}] {e.label:<44} {describe_entry(e)}'
+    return f'  [{e.index:3}] arc {e.arc_no:#05x} {describe_entry(e)}'
+
+
+def list_archive(arc, deep=True):
+    head = f'{arc.name}: {arc.kind}'
+    if arc.kind == 'hakase':
+        arc.drs
+        if arc.das and arc.das.compressed:
+            head += f' (yz2 {arc.das.packed:#x} -> {arc.das.unpacked:#x} bytes)'
+    print(head)
+    for e in arc.entries(deep=deep):
+        if e.tag or e.sub:
+            print(entry_line(e))
+
+
+def refs_lines(calls, indent='        '):
+    return ''.join(f'\n{indent}<- {c}' for c in sorted(set(calls)))
+
+
+def list_character(src, stem):
+    """Every motion the player can play, per archive, with the game function that plays it."""
+    import re
+    arc = src.get(stem)
+    if arc is None:
+        sys.exit(f'{stem}: not in the source')
+    pl_type, wep_table, module, em_table = character.PLAYER_TYPE[stem]
+    print(f'== {arc.name}: the player archive (ReadPlayerData pl_type {pl_type}; PL_ARC_PTR(pG->pPlayer, n), '
+          f'pl_mod.h PL_ARC(n), pl->subArc outside a grab)')
+    prefs = character.player_archive_refs(stem)
+    n_ref = 0
+    for e in arc.entries('FCV'):
+        calls = prefs.get(e.arc_no, [])
+        n_ref += bool(calls)
+        print(entry_line(e) + refs_lines(calls))
+    print(f'   {sum(1 for _ in arc.entries("FCV"))} motions, {n_ref} referenced by a constant PL_ARC index in src/ '
+          f'(the rest are reached through tables: m_MotTbl, the weapon routines\' PL_ARC_PTR(arc, n) with a computed n, ...)')
+    list_melee(src, stem)
+    print(f'== enemy / vehicle / partner archives whose motions the game plays on the player '
+          f'(pl->subArc = em->subArc; PL_ARC_PTR(em->subArc, n) with the player as the model; {em_table})')
+    for em_stem, idx in sorted(character.enemy_archive_refs_on_player(stem).items()):
+        a = src.get(em_stem)
+        print(f'  {em_stem}.drs:' + ('' if a else ' (archive not in the source)'))
+        for i, calls in sorted(idx.items()):
+            if a and i - archive.ARC_INDEX_BASE < len(a):
+                e = a.entry(i - archive.ARC_INDEX_BASE)
+                print('  ' + entry_line(e) + refs_lines(calls, '          '))
+            else:
+                print(f'    arc {i:#05x}' + refs_lines(calls, '          '))
+    print(f'== weapon modules (ReadWepData: read.cpp {wep_table} -> em/wepNN.drs at WEP_DATA_ADDR; WEP_ARC_PTR(n))')
+    for wep, nos in character.weapon_archives(stem):
+        a = src.get(wep)
+        wrefs = character.weapon_archive_refs(wep)
+        print(f'  {wep}.drs (weapon no {", ".join(f"{n:#x}" for n in nos)}):' + ('' if a else ' archive not in the source'))
+        if a is None:
+            for i, calls in sorted(wrefs.items()):
+                print(f'    arc {i:#05x}' + refs_lines(calls, '          '))
+            continue
+        for e in a.entries('FCV'):
+            print('  ' + entry_line(e) + refs_lines(wrefs.get(e.arc_no, []), '          '))
+    print('== room archives: motions the room scripts play on the player (ROOM_ARC_PTR(pG->pRoom, n): '
+          'pPL->motionSet, MotionSetCore(pPL, ..), PlRegistMotion -> m_MotTbl2)')
+    for room, idx in sorted(character.room_refs_on_player().items()):
+        a = src.get(room)
+        print(f'  {room}.das:' + ('' if a else ' (archive not in the source)'))
+        for i, calls in sorted(idx.items()):
+            if a and i - archive.ARC_INDEX_BASE < len(a):
+                print('  ' + entry_line(a.entry(i - archive.ARC_INDEX_BASE)) + refs_lines(calls, '          '))
+            else:
+                print(f'    arc {i:#05x}' + refs_lines(calls, '          '))
+    print(f'== room ETM files named {stem}NNN.fcv (EtcModel.cpp GetEtcAddr: the ladder / door objects play them on the player, '
+          f'Et06_init -> cObjLadder::setMotion)')
+    n = 0
+    for room in sorted(src.rooms(), key=lambda a: a.name):
+        for e in room.entries('FCV', deep=True):
+            if e.sub and e.sub.startswith(f'ETM/{stem}'):
+                print(f'  {room.stem}' + entry_line(e))
+                n += 1
+    print(f'   {n} files' + ('' if src.rooms() else ' (no room archives in the source)'))
+    pat = re.compile(rf'/{stem}\w*/')
+    print(f'== events (Evd/*.evd bins event/<room>/<cut>/{stem}NN/*.fcv: Event::ExePacket_Mot on the cut\'s model of that name; '
+          f'{stem}NN/face/*.fcv are its ShapeData for ExePacket ShapeSet)')
+    n = faces = 0
+    for ev in sorted(src.events(), key=lambda a: a.name):
+        for e in ev.entries('FCV'):
+            if pat.search(e.label):
+                print(f'  {ev.stem}' + entry_line(e))
+                if e.is_face:
+                    faces += 1
+                else:
+                    n += 1
+    print(f'   {n} event motions, {faces} face shape tables' + ('' if src.events() else ' (no Evd/*.evd in the source)'))
+    print('== sub screen (Sscrn: the player model built from PL_ARC(4) on the codec screen; SS_ARC_PTR(arc, n) indexes the '
+          'offset table like PL_ARC: entry n - 4)')
+    for pattern, arc_no, why in character.SS_MOTIONS.get(stem, []):
+        names = sorted(a.name for a in src.by_kind('body') if re.fullmatch(pattern.replace('.', r'\.').replace('*', '.*'), a.name))
+        if not names:
+            print(f'  {pattern} arc {arc_no:#05x}: not in the source\n        <- {why}')
+        for name in names:
+            print('  ' + entry_line(src.arcs[name].entry(arc_no - archive.ARC_INDEX_BASE)).replace('[', f'{name} [', 1) + f'\n        <- {why}')
+
+
+def list_all_sources(src):
+    """The full inventory: per file, per tag, counts (nested ETM / EFF / SMD entries included), then
+    totals per directory and per tag."""
+    import collections
+    totals = collections.Counter()
+    per_dir = collections.Counter()
+    fcv_ok = fcv_total = 0
+    for a in sorted(src.arcs.values(), key=lambda a: (os.path.dirname(a.path), a.name)):
+        c = collections.Counter()
+        for e in a.entries(deep=True):
+            key = (e.tag or '(empty)') + (f' in {e.sub.split("/")[0]}' if e.sub else '')
+            c[key] += 1
+            totals[key] += 1
+            per_dir[(os.path.basename(os.path.dirname(a.path)), key)] += 1
+            if e.tag == 'FCV':
+                fcv_total += 1
+                try:
+                    fcv_ok += motion_round_trips(a, e)
+                except ValueError:
+                    pass
+        extra = ''
+        if a.kind == 'hakase' and a.das and a.das.compressed:
+            extra = f', yz2 {a.das.packed:#x} -> {a.das.unpacked:#x}'
+        print(f'{os.path.relpath(a.path, os.path.commonpath([x.path for x in src.arcs.values()]))}: {a.kind}{extra}; '
+              + ', '.join(f'{k} {v}' for k, v in sorted(c.items())))
+    print('\nper directory:')
+    for d in sorted(set(k[0] for k in per_dir)):
+        print(f'  {d}: ' + ', '.join(f'{k[1]} {v}' for k, v in sorted(per_dir.items()) if k[0] == d))
+    print('\ntotals: ' + ', '.join(f'{k} {v}' for k, v in sorted(totals.items())))
+    print(f'  {fcv_total} FCV entries, {fcv_ok} parse and re-serialise byte-identically')
 
 
 def cmd_list(args):
+    src = Source(args.source)
     if args.character:
-        stem = character.character_stem(args.character)
-        src = Source(args.source)
-        arc = src.get(stem)
-        if arc is None:
-            sys.exit(f'{stem}: not in the source')
-        arcs = [arc]
+        list_character(src, character.character_stem(args.character))
+    elif args.all_sources:
+        list_all_sources(src)
     else:
-        arcs = archive.open_source(args.source)
-        src = None
-    for arc in arcs:
-        arc.drs
-        print(f'{arc.name}:' + (f' (yz2 {arc.das.packed:#x} -> {arc.das.unpacked:#x} bytes)' if arc.das and arc.das.compressed else ''))
-        entries = list(arc.entries())
-        for e in entries:
-            if e.tag == 'BIN':
-                try:
-                    m = modelbin.parse(e.data)
-                    kind = 'skeleton' if all(p.attach == p.no for p in m.parts) else 'attachment model'
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} BIN  {kind}, {m.n_parts} parts, version {m.version:#x}; '
-                          f'mesh: {meshbin.describe(meshbin.parse(e.data))}')
-                except Exception as ex:
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} BIN  ({ex})')
-            elif e.tag == 'TPL':
-                try:
-                    ts = gxtex.parse_tpl(e.data)
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} TPL  {len(ts)} textures: '
-                          + ', '.join(f'{t.fmt_name} {t.width}x{t.height}' + (f' {t.max_lod + 1} mips' if t.max_lod else '') for t in ts))
-                except Exception as ex:
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} TPL  ({ex})')
-            elif e.tag == 'FCV':
-                try:
-                    m = fcv.parse(e.data)
-                    kinds = sorted(set(j.target() or ('root_pos' if j.is_root_pos() else 'root_rot') for j in m.joints))
-                    ik = sum(1 for j in m.joints if j.kind & 0x30)
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} FCV  {m.max_frame + 1:4} frames, {len(m.joints):2} joints'
-                          f' ({", ".join(kinds)}), {ik} IK chains, parts <= {max([j.parts_no for j in m.joints], default=-1)}')
-                except Exception as ex:
-                    print(f'  [{e.index:3}] arc {e.arc_no:#04x} FCV  MALFORMED: {ex}')
-            elif e.tag == 'SEQ':
-                s = fcv.parse_seq(e.data)
-                print(f'  [{e.index:3}] arc {e.arc_no:#04x} SEQ  {len(s.keys)} keys, flags {s.flags:#x}, frames {s.keys[0].frame_f:g}..{s.keys[-1].frame_f:g}' if s.keys else f'  [{e.index:3}] SEQ empty')
-            elif e.tag:
-                print(f'  [{e.index:3}] arc {e.arc_no:#04x} {e.tag:4} {len(e.data):#x} bytes')
-    if args.character:
-        list_melee(src, stem)
+        for arc in src.arcs.values():
+            list_archive(arc)
 
 
 def play(model, motion, args):
@@ -296,13 +475,25 @@ def play(model, motion, args):
     return [player.frame(f) for f in range(motion.n_frames)]
 
 
+def entry_file_stem(arc, e):
+    """Output name of a motion: plNN_NNN, or the bin / file name of a named / nested entry."""
+    if e.sub or e.label:
+        base = os.path.splitext(os.path.basename((e.sub or e.label).strip()))[0]
+        return f'{arc.stem}_{base}'
+    return f'{arc.stem}_{e.index:03d}'
+
+
 def export_one(arc, entry, model, model_name, meshes, out, args):
+    if entry.is_camera:
+        sys.exit(f'{entry.name}: a camera motion (CameraControl::MotionSet), not a skeletal one')
+    if entry.is_face:
+        sys.exit(f'{entry.name}: face shape data (ShapeSet), not a skeletal motion')
     motion = load_motion(entry)
     poses = play(model, motion, args)
-    name = f'{arc.stem}_{entry.index:03d}'
+    name = entry_file_stem(arc, entry)
     if meshes and meshes[0].label.rsplit('_', 1)[0] != arc.stem:   # a melee motion on another archive's body
         name += '_' + meshes[0].label.rsplit('_', 1)[0]
-    extras = {'re4': {'archive': arc.name, 'entry': entry.index, 'arc_index': entry.arc_no, 'model': model_name,
+    extras = {'re4': {'archive': arc.name, 'entry': entry.index, 'arc_index': entry.arc_no, 'name': entry.sub or entry.label, 'model': model_name,
                       'max_frame': motion.max_frame, 'fps': args.fps, 'units': f'mm x {args.scale}',
                       'ik': not args.no_ik,
                       'meshes': [{'label': s.label, 'role': s.role, 'palette': s.tex_prefix, 'shape_keys': s.shape_names()}
@@ -377,7 +568,9 @@ def cmd_export(args):
     meshes = load_meshes(args, src, body)
     if args.all:
         os.makedirs(args.output, exist_ok=True)
-        for e in arc.entries('FCV'):
+        for e in arc.entries('FCV', deep=True):
+            if e.is_camera or e.is_face:
+                continue
             try:
                 m = fcv.parse(e.data)
             except ValueError as ex:
@@ -386,24 +579,29 @@ def cmd_export(args):
             if any(j.target() is not None and j.parts_no >= model.n_parts for j in m.joints):
                 print(f'{e.name}: skipped, targets parts beyond the model ({model.n_parts})')
                 continue
-            out = os.path.join(args.output, f'{os.path.splitext(arc.name)[0]}_{e.index:03d}.gltf')
+            out = os.path.join(args.output, entry_file_stem(arc, e) + '.gltf')
             export_one(arc, e, model, model_name, meshes, out, args)
         return
     if args.motion is None:
         sys.exit('export: --motion N or --all')
-    export_one(arc, arc.entry(args.motion), model, model_name, meshes, args.output, args)
+    export_one(arc, find_entry(arc, args.motion), model, model_name, meshes, args.output, args)
 
 
 def cmd_verify(args):
-    arcs = archive.open_source(args.source)
-    total = ok = 0
+    import collections
+    src = Source(args.source)
+    arcs = list(src.arcs.values())
+    total = ok = cam_total = face_total = placeholders = 0
     seq_total = seq_ok = 0
     bin_total = bin_ok = shaped = shape_keys = 0
     tpl_total = tex_total = tex_lossless = tex_ok = 0
     das_total = das_yz2 = das_ok = 0
     das_entries = 0
+    kinds = collections.Counter()
+    nested = collections.Counter()
     failures = []
     for arc in list(arcs):
+        kinds[arc.kind] += 1
         # .das: the yz2 decode + the container parse (drs.Drs asserts the entry table: offsets
         # ascending, 0x20-aligned, within the body; the record table; the sound bank)
         if arc.ext == '.das':
@@ -424,52 +622,74 @@ def cmd_verify(args):
                 bad.append(f'coder read {arc.das.used:#x} of a {arc.das.packed:#x} packed stream')
             failures += [f'{arc.name}: {b}' for b in bad]
             das_ok += not bad
+        else:
+            # the other containers: the parse itself checks the table (bins contiguous and inside
+            # the block, ETM records aligned and ending at the entry)
+            try:
+                len(arc)
+            except (ValueError, struct.error) as ex:
+                failures.append(f'{arc.name}: {type(ex).__name__}: {ex}')
+                arcs.remove(arc)
+                continue
     for arc in arcs:
-        for e in arc.entries('BIN'):
-            bin_total += 1
-            try:
-                m = meshbin.parse(e.data)
-                if m.shapes:
-                    shaped += 1
-                    shape_keys += len(m.shapes)
-                if meshbin.serialise(m) == e.data:
-                    bin_ok += 1
-                else:
-                    failures.append(f'{e.name}: model re-serialisation differs')
-            except ValueError as ex:
-                failures.append(f'{e.name}: model {ex}')
-        for e in arc.entries('TPL'):
-            tpl_total += 1
-            try:
-                ts = gxtex.parse_tpl(e.data)
-                tex_total += len(ts)
-                n, k, f = gxtex.verify(ts)
-                tex_lossless += n
-                tex_ok += k
-                failures += [f'{e.name}: {x}' for x in f]
-            except ValueError as ex:
-                failures.append(f'{e.name}: palette {ex}')
-        for e in arc.entries('FCV'):
-            total += 1
-            try:
-                m = fcv.parse(e.data)
-                if fcv.serialise(m) == e.data:
-                    ok += 1
-                else:
-                    failures.append(f'{e.name}: re-serialisation differs')
-            except ValueError as ex:
-                failures.append(f'{e.name}: {ex}')
-        for e in arc.entries('SEQ'):
-            seq_total += 1
-            try:
-                if fcv.serialise_seq(fcv.parse_seq(e.data)) == e.data:
-                    seq_ok += 1
-                else:
-                    failures.append(f'{e.name}: sequence re-serialisation differs')
-            except ValueError as ex:
-                failures.append(f'{e.name}: sequence {ex}')
+        try:
+            entries = list(arc.entries(deep=True))
+        except (ValueError, struct.error) as ex:
+            failures.append(f'{arc.name}: nested container: {type(ex).__name__}: {ex}')
+            entries = list(arc.entries())
+        for e in entries:
+            if e.sub:
+                nested[e.sub.split('/')[0]] += 1
+            if e.tag == 'BIN':
+                bin_total += 1
+                try:
+                    m = meshbin.parse(e.data)
+                    if m.shapes:
+                        shaped += 1
+                        shape_keys += len(m.shapes)
+                    if meshbin.serialise(m) == e.data:
+                        bin_ok += 1
+                    else:
+                        failures.append(f'{e.name}: model re-serialisation differs')
+                except ValueError as ex:
+                    failures.append(f'{e.name}: model {ex}')
+            elif e.tag == 'TPL':
+                if e.label and e.data == b' ' * len(e.data):
+                    placeholders += 1     # an event bin the packer filled with spaces (32 bytes): no palette
+                    continue
+                tpl_total += 1
+                try:
+                    ts = gxtex.parse_tpl(e.data)
+                    tex_total += len(ts)
+                    n, k, f = gxtex.verify(ts)
+                    tex_lossless += n
+                    tex_ok += k
+                    failures += [f'{e.name}: {x}' for x in f]
+                except ValueError as ex:
+                    failures.append(f'{e.name}: palette {ex}')
+            elif e.tag == 'FCV':
+                total += 1
+                cam_total += e.is_camera
+                face_total += e.is_face
+                try:
+                    if motion_round_trips(arc, e):
+                        ok += 1
+                    else:
+                        failures.append(f'{e.name}: re-serialisation differs')
+                except ValueError as ex:
+                    failures.append(f'{e.name}: {ex}')
+            elif e.tag == 'SEQ':
+                if arc.stem.startswith('op') and arc.kind == 'hakase':
+                    continue       # op/opNN.das "SEQ": the codec conversation blocks (ss_term.cpp term_ope_tbl), not MotionSeqKey tables
+                seq_total += 1
+                try:
+                    if fcv.serialise_seq(fcv.parse_seq(e.data)) == e.data:
+                        seq_ok += 1
+                    else:
+                        failures.append(f'{e.name}: sequence re-serialisation differs')
+                except ValueError as ex:
+                    failures.append(f'{e.name}: sequence {ex}')
     # the character table against the source: every default attachment must load
-    src = Source(args.source)
     tab_total = tab_ok = 0
     for stem, table in character.TABLE.items():
         if src.get(stem) is None:
@@ -481,7 +701,12 @@ def cmd_verify(args):
                 tab_ok += 1
             except MeshSourceError as e:
                 failures.append(f'character.TABLE {stem} {a.role}: {e}')
-    print(f'{len(arcs)} archives: {total} motions, {ok} byte-identical round-trips; {seq_total} sequence tables, {seq_ok} byte-identical')
+    print(f'{len(arcs)} archives (' + ', '.join(f'{v} {k}' for k, v in sorted(kinds.items())) + f'): {total} motions '
+          f'({cam_total} event camera motions, {face_total} event face shape tables), {ok} byte-identical round-trips; {seq_total} sequence tables, {seq_ok} byte-identical')
+    if nested:
+        print('  nested entries: ' + ', '.join(f'{v} in {k}' for k, v in sorted(nested.items())))
+    if placeholders:
+        print(f'  {placeholders} event TPL bins are 32-byte 0x20-filled placeholders (no palette)')
     if das_total:
         print(f'  {das_total} .das archives ({das_yz2} yz2-compressed): {das_ok} decompress to the header\'s size and parse as '
               f'consistent containers, {das_entries} entries (their FCV / SEQ / BIN / TPL are in the counts above)')
@@ -495,13 +720,14 @@ def cmd_verify(args):
     if args.dump or args.dolphin:
         from motion import dolphin
         if args.dolphin:
-            dumps = dolphin.capture(args.source, args.dolphin_iso, args.dump_out)
+            dumps = dolphin.capture(args.source[0], args.dolphin_iso, args.dump_out)
         else:
             dumps = [args.dump]
+        players = [a for a in arcs if a.kind == 'hakase' and a.ext == '.drs']   # the dump names a PL_DATA_ADDR body offset
         for dump_path in dumps:
-            status |= dolphin.compare(dump_path, arcs, variant='fma' if args.fma else 'plain', verbose=True)
+            status |= dolphin.compare(dump_path, players, variant='fma' if args.fma else 'plain', verbose=True)
             if args.fma_too:
-                status |= dolphin.compare(dump_path, arcs, variant='fma', verbose=True)
+                status |= dolphin.compare(dump_path, players, variant='fma', verbose=True)
     sys.exit(status)
 
 
@@ -509,14 +735,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest='cmd', required=True)
     p = sub.add_parser('list')
-    p.add_argument('source')
-    p.add_argument('--character', help='leon / ada / hunk / krauser / wesker (or plNN): the player archive of the source '
-                                       'plus the melee motions the em10 routines play on the player (from em10.drs)')
+    p.add_argument('source', nargs='+', help='archive file(s) or disc image(s); both discs may be given')
+    p.add_argument('--character', help='leon / ashley / ada / hunk / krauser / wesker (or plNN): every motion that player can play, '
+                                       'per archive, with the game function that plays it (player archive, melee via em10.drs, '
+                                       'enemy / vehicle archives, weapon modules, rooms, room ETM files, events, sub screen)')
+    p.add_argument('--all-sources', action='store_true', help='the inventory: per file, per tag, counts (nested ETM / EFF / SMD entries included)')
     p.set_defaults(func=cmd_list)
     p = sub.add_parser('export')
     p.add_argument('source')
-    p.add_argument('--archive', help='archive name when the source is a disc (plNN.drs, em10.drs, rNNN.das)')
-    p.add_argument('--motion', type=lambda s: int(s, 0))
+    p.add_argument('--archive', help='archive name when the source is a disc (plNN.drs, em10.drs, rNNN.das, rNNNsMM.evd, ss_oc101.dat)')
+    p.add_argument('--motion', help='entry index N, or the name of an event bin / ETM file (em1000_s00_000.fcv, pl00017.fcv)')
     p.add_argument('--all', action='store_true')
     p.add_argument('--model', help='model .bin file or [stem:]index (default: the character table\'s body of the '
                                    'motion\'s archive, else its entry 0); "pl00:0" takes the body from another archive')
@@ -543,7 +771,7 @@ def main():
                    help='import the result in headless Blender, compare bone positions, render 4 frames to RENDER_DIR')
     p.set_defaults(func=cmd_export)
     p = sub.add_parser('verify')
-    p.add_argument('source')
+    p.add_argument('source', nargs='+', help='archive file(s) or disc image(s); both discs may be given')
     p.add_argument('--dump', help='Dolphin memory dump (tools/motion/dolphin.py capture) to compare poses against')
     p.add_argument('--dolphin', action='store_true', help='run the game in Dolphin and capture a dump first')
     p.add_argument('--dolphin-iso', default='orig/G4BE08/re4_debug_disc1.iso')

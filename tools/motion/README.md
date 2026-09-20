@@ -1,26 +1,32 @@
 # tools/motion — RE4 (GameCube) skeletal motion export
 
-`tools/motion_export.py` reads the "FCV" motion entries of the character archives
-(`files/em/plNN.drs` players, `emNN.drs` enemies, `wepNN.drs` weapons) and of the yz2-compressed
-room archives (`files/St*/rNNN.das`, decompressed by `yz2.py`), plays them with the **game's own
-code** compiled for the host, and writes glTF 2.0 (and BVH) animations on the model's parts
-hierarchy for Blender, with the whole character (body, head, hair, eyes, hands ... as the game
+`tools/motion_export.py` reads every "FCV" motion the game can hand to `MotionSetCore`: the
+character archives (`files/em/plNN.drs` players, `emNN.drs` enemies, `wepNN.drs` weapon modules),
+the yz2-compressed room archives (`files/St*/rNNN.das`, decompressed by `yz2.py`) with the etc
+archives nested in them (`ETM`), the cutscene data (`files/Evd/*.evd`), the sub screen data
+(`files/ss/*/*.dat`) and the raw `.fcv` / `.eff` files — on both discs — plays them with the
+**game's own code** compiled for the host, and writes glTF 2.0 (and BVH) animations on the model's
+parts hierarchy for Blender, with the whole character (body, head, hair, eyes, hands ... as the game
 assembles it) skinned and textured from the model `.bin` ("BIN") and texture palette ("TPL")
 entries, and the heads' face morphs as shape keys.
 
-    python3 tools/motion_export.py list   files/em/pl00.drs            # or the disc .iso, or a rNNN.das
-    python3 tools/motion_export.py list   orig/G4BE08/re4_debug_disc1.iso --character leon   # + the melee motions in em10.drs
+    python3 tools/motion_export.py list   files/em/pl00.drs            # or the disc .iso, a rNNN.das, a rNNNsMM.evd, a ss_oc101.dat
+    python3 tools/motion_export.py list   orig/G4BE08/re4_debug_disc1.iso orig/G4BE08/re4_debug_disc2.gcm --character leon   # everything Leon plays
+    python3 tools/motion_export.py list   orig/G4BE08/re4_debug_disc1.iso orig/G4BE08/re4_debug_disc2.gcm --all-sources      # the inventory
     python3 tools/motion_export.py export files/em/pl00.drs --motion 46 -o leon_046.gltf --bvh leon_046.bvh   # full Leon
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 46 -o ganado.gltf
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 665 --character leon -o kick.gltf  # Leon's alternate kick
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r100.das --motion 42 --character leon -o r100_042.gltf
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r100s03.evd --motion pl0000_s03_000.fcv --character leon -o ev.gltf  # a cutscene motion
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r400.das --motion pl00017.fcv --character leon -o ladder.gltf   # a room ETM motion
     python3 tools/motion_export.py export files/em/pl00.drs --all -o out/          # every motion
     python3 tools/motion_export.py export ... --blender-check /tmp/mot/render [--strip]  # headless Blender import + renders
     python3 tools/motion_export.py export ... --blender-check --render-nice /tmp/mot/render   # + lit EEVEE renders
-    python3 tools/motion_export.py verify orig/G4BE08/re4_debug_disc1.iso [--dump dump.bin | --dolphin]
+    python3 tools/motion_export.py verify orig/G4BE08/re4_debug_disc1.iso orig/G4BE08/re4_debug_disc2.gcm [--dump dump.bin | --dolphin]
 
 `--motion N` is the archive entry index (the game's `PL_ARC` index is `N + 4`: the container body
-starts with four header words). One command exports the whole character: the body `.bin` with its
+starts with four header words); a named entry (an event bin, a room ETM file) is given by its file
+name. One command exports the whole character: the body `.bin` with its
 palette and the attachment models the game's set-up code hangs on the same parts (the table in
 `character.py`, below). `--body-only` leaves the attachments out; `--mesh [stem:]BIN[:[stem:]TPL]`
 adds a model (or replaces the palette of a table entry; `stem:` names another archive of the
@@ -30,6 +36,64 @@ placeholder. `--character leon` (`ada`, `hunk`, `krauser`, `wesker`, or a `plNN`
 motion on that player's body with its attachments whatever archive the motion is in (`--model
 pl00:0` is the same thing by hand); an archive without a default body (a room) needs one of the
 two. Units: game millimetres × `--scale` (default 0.001 → metres), Y up, 30 fps.
+
+## Where the motions come from
+
+`MotionSetCore(model, work, data, seq, ...)` (`src/game/motion.cpp`) is the only way a motion is
+played; `cModel::motionSet`, `cPlayer::motionSet`, `cEmWrap::motionSet`, `cMot3::set`, the
+`*BlendMotSet` / `MotSetObj*` wrappers, `PlRegistMotion` (fills `m_MotTbl2`), the `cEm10::set*Motion`
+setters and the weapon modules' `PSet(pl->m_MotTbl[n], WEP_ARC_PTR(m))` fills all end in it;
+`CameraControl::MotionSet` plays the same format on the camera. `gen_refs.py` scans every call in
+`src/` (2371 call sites, 3015 constant references resolved, 192 left with a run-time pointer:
+object work fields filled by a room's table walk, the debug tools) and writes `refs.py`; the
+`data` pointer of every call resolves to one of these archive classes:
+
+| class (how `data` is obtained) | disc files | tool before | after |
+|---|---|---|---|
+| `PL_ARC_PTR(pG->pPlayer, n)`, `PL_ARC(n)`, `m_MotTbl` (weapon modules fill it), `m_MotTbl2` (rooms) | `em/plNN.drs` (`ReadPlayerData`: pl00/08/09/10 Leon, pl01/05 Ashley, pl0b/0c Ada, pl06 HUNK, pl0a Krauser, pl0d Wesker) | yes | yes |
+| `PL_ARC_PTR(em->subArc, n)`, `ARC(n)`, `pl->subArc = em->subArc` in the grab / ride / door routines (the melee of issue #8, the boat and jet ski pl0e/pl0f, the partner pl11/pl14) | `em/emNN.drs`, `em/plNN.drs` (`EmFileTbl*`) | yes | yes, attributed per player (`list --character`) |
+| `WEP_ARC_PTR(n)` = `pG->pWep` | `em/wepNN.drs` (`ReadWepData`, `wep_data_<player>` tables) | yes | yes, per weapon and player |
+| `ROOM_ARC_PTR(pG->pRoom, n)`, `PlRegistMotion`, `cEm10::setEvtMotion`, the objects' motion tables | `St1/St2/St4/rNNN.das` (disc 1), `St3/rNNN.das` (disc 2 only) | disc 1 only | both discs |
+| `GetEtcAddr(arc, "pl00017.fcv")` (EtcModel.cpp: ladders, doors, windows) | the rooms' `ETM` entry: a named-file archive nested in the .das | **no** | yes (`ETM/` entries) |
+| `EvtMgr.GetBin(name)` -> `Event::ExePacket_Mot` / `ExePacket_Cam` / `ShapeSet` | `Evd/rNNNsMM.evd` (87 disc 1, 61 disc 2): named bins `<room>/<cut>/<model>/*.fcv`, `cam/*.fcv` (camera), `<model>/face/*.fcv` (ShapeData) | **no** | yes |
+| `SS_ARC_PTR(arc, n)` (Sscrn: codec screen, inventory models, weapon display) | `ss/cmn/ss_ocNNN.dat`, `ss_wepNN.dat`, `ss/<lang>/ss_cmmn.dat`, `ss_term.dat` (bare container bodies) | **no** | yes |
+| `EspGetEfmMotAddr` (esp_efm.cpp: effect models) | the `EFF` data's effect-model motion tables (core.das, rooms, ETM `.eff`, event `.eff`, `etc/<lang>/*.eff`) | **no** | yes: 3 entries exist, all in `r10b.das` EFF efm 124, and they are not MotionData (a model header with 0x20 fill; the reader would fault on Fcc type 3) |
+| `cSmd::getMotPtr` (scroll.cpp: scroll models) | the `SMD` entries' motion tables (rooms, `St1/r100_NN.dat`) | **no** | yes: every SMD motion table on both discs is empty |
+| `ARC_PTR(pG->pCore)` (`etc/core.das`) | `etc/core.das` | listed | no FCV in it: models, TPLs, camera / light data (the mercenaries' `smdMot` is `ROOM_ARC_PTR`) |
+| `op/opNN.das` (ss_term.cpp `OP_ARC_PTR`) | 13 `MDT` + 13 "SEQ" per file: the codec conversation blocks, not `MotionSeqKey` tables | no | listed, excluded from the SEQ round-trip |
+| `ss/<lang>/tel*.fcv` (4 raw MotionData files) | not referenced by any code on the disc | no | yes |
+| debug tools (`db_mod.cpp` motion viewer, `t_motseq`, `db_port`) | `HDReadDebugAlloc("Room/Em/mot_tbl.txt")`, `x:/soft/room/`: the developers' host disk, not on the disc | — | not on the disc |
+
+Every other file on both discs was checked: the ハカセ containers, bare bodies, events, yz2 streams
+and the nested `ETM` / `EFF` / `SMD` are parsed, and every remaining blob (`Rel/*.rel`, `etc/*.esl`,
+`ss/Item/*`, `font/`, the `CAM` / `LIT` / `MDT` / `ITM` ... room entries) was brute-force scanned for
+MotionData headers at 32-byte alignment: none. `Movie/*.sfd` and `bgm/` are video and audio.
+
+Disc 2 (`re4_debug_disc2.gcm`): the 42 `St3` rooms and 59 events are its own, `em/`, `ss/`, `etc/`,
+`op/` and `St4/` are byte-identical to disc 1 (847 identical files, only `opening.bnr` differs).
+Totals: disc 1 15128 FCV entries (em 9273, rooms 358 + 205 in ETM + 3 in EFF, events 5111, sub screen
+178), disc 2 13468 (rooms 325 + 75 in ETM, events 3617); both discs deduplicated 18961 FCV entries:
+1775 event camera motions (1038 + 752, two events are on both discs), 1502 event face shape tables
+(878 + 634) and 15684 skeletal motions (5389 of them cutscene motions in 146 events),
+18946 byte-identical round-trips (`verify`). The 15 that do not round-trip: the 12 malformed rifle /
+pl14 archive entries below and the 3 EFF entries of r10b. Before this audit the tool reached 9631
+(em/*.drs + the disc-1 rooms' top-level FCV). All 6574 `SEQ` tables round-trip (the ETM `.seq`
+files included).
+
+Format variants met on the way (all byte-exact in `fcv.py` / `meshbin.py`): the event bins and ETM
+files pad motions, sequences and models with 0x00 instead of 0xCD (`fill`); the event camera
+motions carry a zero size word (`size_word`; `MotionSetCore` steps over it) and flag bits 14-15 of
+`maxFrame` (`frame_flags`, masked by the game); their type-15 key blocks (f32 values without
+tangents) start 4-aligned; the four raw `tel*.fcv` files end at the last key without the padding
+their size word counts; 27 event TPL bins are 32-byte 0x20-filled placeholders; the ETM textures
+include 2x2 ones (one tile, round-tripped uncropped).
+
+`list --character leon` prints, per archive, every motion Leon can play with the function that
+plays it: the player archive, the melee table, the enemy / vehicle archives the grab and ride
+routines play on him, the weapon modules (with the `m_MotTbl` slot each fill goes through), the
+rooms' `ROOM_ARC_PTR` motions on the player, the rooms' `ETM/pl00NNN.fcv` ladder motions, the
+event bins under `pl00NN/`, and the sub screen's codec motions. `list --all-sources` prints the
+inventory per file and per tag.
 
 ## The melee motions: two archives
 
@@ -58,7 +122,8 @@ the same em10.drs.
 
 ## The `.das` archives (yz2)
 
-`St1/St2/St4/rNNN.das` (85 rooms on disc 1) and `etc/*.das` are the same ﾊｶｾ container as the
+`St1/St2/St4/rNNN.das` (85 rooms on disc 1), `St3/rNNN.das` (42 rooms on disc 2), `etc/*.das` and
+`op/*.das` are the same ﾊｶｾ container as the
 `.drs` files; a room's type-0 body is a **yz2** stream: a text header `"<packed hex>\t<unpacked
 hex>\n"` (`Yz2DecodeSet`, `strtoul` twice), the coded bytes from the next 32-byte boundary after
 the second number, the body record `packed + 0x24` bytes long. `etc/core.das` and `memcard.das`
@@ -93,7 +158,7 @@ range coder over an LZ dictionary:
 
 How it is verified (the asm cannot run on the host; the oracles are structural and external):
 
-1. Every `.das` on disc 1 (87: 85 rooms + core + memcard) decompresses to exactly the header's
+1. Every `.das` on both discs (132: 127 rooms + core + memcard + 3 op, 127 yz2-compressed) decompresses to exactly the header's
    unpacked size with the coder 1–3 bytes short of the packed size (the encoder's flush), and
    parses as a container whose entry table is consistent (`drs.Drs`: offsets ascending, 0x20-aligned,
    within the body; tags 3 upper-case letters) — `verify` counts this.
@@ -191,14 +256,14 @@ What each array means comes from the game's draw path, `game/trans.cpp`:
 
 Verified by:
 
-1. **Byte round-trip** (`verify`): every `BIN` on disc 1 (1918 of 1918: 1830 players, enemies and
-   weapons, 88 in the rooms) parses into vertices, normals, colours, texcoords, weights, parts headers, display-list
+1. **Byte round-trip** (`verify`): every `BIN` on both discs (5117 of 5118: 1830 players, enemies and
+   weapons, the rooms', the ETM files', the sub screen's and the events' models; the one left is
+   core.das's version-0x2c020202 model) parses into vertices, normals, colours, texcoords, weights, parts headers, display-list
    primitives, shape table, blend and flip tables and re-serialises to identical bytes, with the
    zero / 0xCD padding and the shape entries' offsets regenerated (not copied), the colour and
    texcoord counts taken from the display lists (the padding after them must be zero), and every
-   vertex index (display lists and shape deltas) range-checked. Every TPL parses (1266 palettes,
-   2988 textures decoded, 87 palettes / 212 textures of them in the rooms); the lossless formats
-   re-encode byte-identically (660 of 660 I4 / IA8). The raw-bodied `etc/core.das` / `memcard.das`
+   vertex index (display lists and shape deltas) range-checked. Every TPL parses (3506 palettes,
+   9647 textures decoded, both discs); the lossless formats re-encode byte-identically (2530 of 2530 I4 / IA8). The raw-bodied `etc/core.das` / `memcard.das`
    hold one model of another version (0x2c020202) and CLUT / format 5 / 6 textures, which are not read.
    CMPR is lossy: checked by eye on Leon's jacket / face textures. Every entry of the character
    table loads from the disc (45 of 45).
@@ -227,8 +292,9 @@ host helper is built with `make` in `host/`; on Windows that needs a C++ toolcha
 
 1. **Byte round-trip of the parse** (`verify`): every FCV and SEQ entry is parsed into keys
    (`fcv.py`) and re-serialised; the bytes must be identical, including the size word, the
-   exporter's joint block order and the 0xCD padding. Disc 1: 9619 of 9631 motions (9273 in em/*.drs, 358 in the rooms) and all 6505
-   sequence tables (154 in the rooms). The 12 failures are named: 11 weapon motions (wep09/10/21/24/31/32/47) whose
+   exporter's joint block order and the padding. Both discs: 18946 of 18961 FCV entries (9273 in em/*.drs, 615 in the
+   rooms + 226 in their ETM files + 3 in an EFF, 8666 in the events, 178 in the sub screen; see "Where the motions come from")
+   and all 6574 sequence tables. The 12 archive failures are named: 11 weapon motions (wep09/10/21/24/31/32/47) whose
    last attach-camera joints (channel 6) have key blocks in the padding, at the end, or on a
    duplicated offset, and pl14:8 (a 1-joint stub whose key block is padding); the game only
    evaluates channel-6 joints with an attach camera set. See "Malformed motions" below.
@@ -310,9 +376,14 @@ fails.
     modelbin.py        model .bin parts hierarchy, rest pose, blend table
     meshbin.py         model .bin mesh data: arrays, weights, display lists, shape table; byte-exact serialise (format notes in the docstring)
     character.py       archive -> attachment models (bin, tpl, role) read off the game's setModel code; MELEE: the
-                       player's melee motions per archive (em10.drs / own) from the em10 routines
+                       player's melee motions per archive (em10.drs / own) from the em10 routines; PLAYER_TYPE /
+                       SS_MOTIONS and the per-player queries over refs.py (list --character)
+    gen_refs.py        scans src/ for every motion-setting call and writes refs.py: archive class + entry per call,
+                       function, model; the read.cpp file tables; the weapon module unit lists (run after editing src/)
+    refs.py            generated by gen_refs.py
     gxtex.py           TPL parse, CMPR / IA8 / I4 decode, I4 / IA8 encode, PNG writer
-    archive.py         .drs / .das containers via tools/drs.py (a .das body decompressed first), disc extraction via dtk
+    archive.py         every container kind: .drs / .das (tools/drs.py, a .das body decompressed first), bare bodies (ss/*.dat),
+                       events (.evd), raw .fcv / .eff; the nested ETM / EFF / SMD entries; disc extraction via dtk (both discs)
     yz2.py             Capcom's yz2 decompressor (adaptive range coder + 256 x 512 run dictionary), from yz2code/yz2asm
     evalhost.py        ctypes front end: Player (hosted cModel), Pose
     gltf.py, bvh.py    writers (gltf: skin, meshes, morph targets, materials, animation)

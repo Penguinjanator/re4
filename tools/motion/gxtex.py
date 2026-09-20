@@ -78,11 +78,13 @@ def parse_tpl(d: bytes):
     return out
 
 
-def _tiles(a, w, h, tw, th):
-    """Texels (n, c) in tile order (row-major tiles, row-major within a tile) -> (h, w, c) image."""
+def _tiles(a, w, h, tw, th, crop=True):
+    """Texels (n, c) in tile order (row-major tiles, row-major within a tile) -> (h, w, c) image;
+    crop=False keeps the whole tile-rounded image (the padding texels of a texture smaller than a tile)."""
     rows, cols = (h + th - 1) // th, (w + tw - 1) // tw
     a = a.reshape(rows, cols, th, tw, -1).transpose(0, 2, 1, 3, 4)
-    return a.reshape(rows * th, cols * tw, -1)[:h, :w]
+    a = a.reshape(rows * th, cols * tw, -1)
+    return a[:h, :w] if crop else a
 
 
 def _untile(img, tw, th):
@@ -106,16 +108,16 @@ def _rgb565(c):
     return np.stack([_c5(c >> 11), _c6((c >> 5) & 0x3F), _c5(c & 0x1F)], axis=-1).astype(np.uint8)
 
 
-def decode(fmt, w, h, data: bytes):
-    """RGBA8 (h, w, 4) uint8 of the base level."""
+def decode(fmt, w, h, data: bytes, crop=True):
+    """RGBA8 (h, w, 4) uint8 of the base level (crop=False: tile-rounded, see _tiles)."""
     if fmt == FMT_I4:
         b = np.frombuffer(data, np.uint8)
         px = np.stack([b >> 4, b & 0xF], axis=-1).reshape(-1) * np.uint8(0x11)
-        return _tiles(np.repeat(px[:, None], 4, axis=1), w, h, 8, 8)
+        return _tiles(np.repeat(px[:, None], 4, axis=1), w, h, 8, 8, crop)
     if fmt == FMT_IA8:
         b = np.frombuffer(data, np.uint8).reshape(-1, 2)   # alpha, intensity
         px = np.stack([b[:, 1], b[:, 1], b[:, 1], b[:, 0]], axis=-1)
-        return _tiles(px, w, h, 4, 4)
+        return _tiles(px, w, h, 4, 4, crop)
     if fmt == FMT_CMPR:
         blocks = np.frombuffer(data, np.uint8).reshape(-1, 8)
         n = len(blocks)
@@ -136,7 +138,7 @@ def decode(fmt, w, h, data: bytes):
         px = pal[np.arange(n)[:, None, None], idx]                                            # (n, 4, 4, 4)
         # blocks -> 8x8 tiles: block order TL, TR, BL, BR
         tiles = px.reshape(-1, 2, 2, 4, 4, 4).transpose(0, 1, 3, 2, 4, 5)
-        return _tiles(tiles.reshape(-1, 4), w, h, 8, 8)
+        return _tiles(tiles.reshape(-1, 4), w, h, 8, 8, crop)
     raise ValueError(f'texture format {fmt}')
 
 
@@ -176,8 +178,9 @@ def verify(textures):
             n += 1
             tw = 8 if t.fmt == FMT_I4 else 4
             if t.width % tw or t.height % tw:
-                fails.append(f'texture {t.index}: {t.width}x{t.height} not a tile multiple')
-                continue
+                # smaller than a tile (the 2x2 textures of the room ETM models): the file holds the
+                # whole tile, so the round trip runs on the uncropped image
+                img = decode(t.fmt, t.width, t.height, t.data, crop=False)
             if encode(t.fmt, img) == t.data:
                 ok += 1
             else:

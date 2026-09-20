@@ -12,6 +12,12 @@ A cross-archive reference is written 'stem:entry' (the weapon-grip hands of the 
 `cPlBody::initWepHand(WEP_ARC_PTR(0xA))` + `setRightHand(1)`, are a wepNN.drs `.bin` drawn with the
 player's hand palette; the default handgun modules wep01 / wep02 do not touch the hands, so the
 defaults below are all in-archive). The table is checked against the disc by `verify`.
+
+The second half answers "which motions can this player play, and what plays them": PLAYER_TYPE
+(read.cpp's pl_type, weapon table and EmFileTbl variant per archive), SS_MOTIONS (the sub screen's
+motions on the player model) and the queries over refs.py (generated from src/ by gen_refs.py:
+every MotionSetCore call with the archive entry it plays): the player archive's referenced entries,
+the enemy / vehicle archives played on the player, the weapon modules' entries, the rooms'.
 """
 from dataclasses import dataclass
 
@@ -198,10 +204,134 @@ CHARACTERS = {
     'wesker': 'pl0d',
 }
 
+# player archive stem -> (pl_type, weapon table of read.cpp, the player's own code module directory
+# under src/ whose PL_ARC references apply to this player only, the EmFileTbl variant of read.cpp)
+PLAYER_TYPE = {
+    'pl00': (0, 'wep_data_leon', 'game', 'EmFileTbl'),
+    'pl08': (0, 'wep_data_leon', 'game', 'EmFileTbl'),
+    'pl09': (0, 'wep_data_leon', 'game', 'EmFileTbl'),
+    'pl10': (0, 'wep_data_leon', 'game', 'EmFileTbl'),
+    'pl01': (1, None, 'game', 'EmFileTbl'),
+    'pl05': (1, None, 'game', 'EmFileTbl'),
+    'pl0b': (2, 'wep_data_ada', 'pl02', 'EmFileTbl_Ada'),
+    'pl0c': (2, 'wep_data_ada', 'pl02', 'EmFileTbl_Ada'),
+    'pl06': (3, 'wep_data_hunk', 'pl06', 'EmFileTbl'),
+    'pl0a': (4, 'wep_data_klauser', 'pl0a', 'EmFileTbl_Klauser'),
+    'pl0d': (5, 'wep_data_wesker', 'pl0d', 'EmFileTbl_Wesker'),
+}
+
+# The sub screen motions played on a player's model (Sscrn/ss_model.cpp, ss_term.cpp): the codec
+# screen's talking player (SS_ARC_PTR(d, 12) of the partner data file, d = SS/cmn/ss_ocNNN.dat,
+# termMotionSet; 13 is its ShapeData), the cancel idle (ss_term.dat 14, termMotionCancel), Ashley's
+# inventory idle (ss_cmmn.dat 22, ashleyModelInit). SS_ARC_PTR(arc, n) = arc->ofs[n] + arc with the
+# file's four header words as ofs[0..3], so n is a PL_ARC-style index (entry n - 4). The player
+# model there is built from the player archive (PL_ARC(4)..), so the motions target the same skeleton.
+SS_MOTIONS = {
+    'pl00': [('ss_oc*.dat', 12, 'termMotionSet: SS_ARC_PTR(d, 12) on MapMgr.getWork(0), the player of the codec call'),
+             ('ss_term.dat', 14, 'termMotionCancel: SS_ARC_PTR(wk->pTerm, 14)')],
+    'pl01': [('ss_cmmn.dat', 22, 'ashleyModelInit: SS_ARC_PTR(wk->pCmmn, 22)')],
+}
+SS_MOTIONS['pl08'] = SS_MOTIONS['pl09'] = SS_MOTIONS['pl10'] = SS_MOTIONS['pl00']
+
 
 def attachments(stem):
     """The character's model list for an archive stem ('pl00'), body first; None when unknown."""
     return TABLE.get(stem)
+
+
+# ---- every motion a player can play: the call sites of refs.py (gen_refs.py) sorted by archive ----
+
+def _fmt(r):
+    """'function (file:line)' of a reference, with the field it went through when it did."""
+    s = f'{r["function"]} ({r["file"]}:{r["line"]})'
+    if r.get('via'):
+        s += f' via {r["via"]} = {r["fill"]}'
+    if r.get('seq') is not None:
+        s += f' + SEQ {r["seq"] + ARC_INDEX_BASE:#x}'
+    return s
+
+
+def _applies(r, stem):
+    """A reference from a player module directory (pl0a/, pl0d/, pl02/, pl06/) applies to that player
+    only; everything else (game/, em*/, wep*/, st*/) to every player."""
+    mod = r['file'].split('/')[0]
+    if mod in ('pl0a', 'pl0d', 'pl02', 'pl06'):
+        return mod == PLAYER_TYPE[stem][2]
+    return True
+
+
+def player_archive_refs(stem):
+    """{PL_ARC index: [call description]}: the player-archive entries the code plays
+    (PL_ARC_PTR(pG->pPlayer, n), pl_mod.h PL_ARC(n), and pl->subArc outside the grab routines)."""
+    import refs
+    out = {}
+    for r in refs.REFS:
+        if r['class'] in ('player', 'sub') and _applies(r, stem):
+            tag = _fmt(r) + (' [pl->subArc]' if r['class'] == 'sub' else '')
+            out.setdefault(r['index'], []).append(tag)
+    return out
+
+
+def enemy_archive_refs_on_player(stem):
+    """{enemy archive stem: {PL_ARC index: [call]}}: motions of enemy / vehicle / partner archives the
+    game plays on the PLAYER model (the grab, kick, ride and escape routines: pl->subArc = em->subArc,
+    PL_ARC_PTR(em->subArc, n) with the player as the cModel). Ada's enemy variants (EmFileTbl_Ada:
+    em16 -> em46 ...) are mapped through read.cpp's tables."""
+    import refs
+    base, variant = refs.EM_FILES['EmFileTbl'], refs.EM_FILES[PLAYER_TYPE[stem][3]]
+    remap = {b: v for b, v in zip(base, variant) if b and v and b != v}
+    out = {}
+    for r in refs.REFS:
+        if r['class'] == 'em' and r['model'] == 'player' and r['stem'] and _applies(r, stem):
+            arc = remap.get(r['stem'], r['stem'])
+            out.setdefault(arc, {}).setdefault(r['index'], []).append(_fmt(r))
+    return out
+
+
+def weapon_archives(stem):
+    """[(weapon module stem, [weapon numbers])] the player can load (read.cpp ReadWepData tables)."""
+    import refs
+    table = PLAYER_TYPE[stem][1]
+    if table is None:
+        return []
+    by = {}
+    for no, arc in enumerate(refs.WEP_FILES[table]):
+        if arc:
+            by.setdefault(arc, []).append(no)
+    return sorted(by.items())
+
+
+def weapon_archive_refs(wep):
+    """{WEP_ARC index: [call]} for a weapon module archive: WEP_ARC_PTR(n) in the module's own
+    sources and the shared player routines linked into it (modules.py UNITS)."""
+    import refs
+    files = set(refs.WEP_UNITS.get(wep, [f'{wep}/{wep}.cpp']))
+    out = {}
+    for r in refs.REFS:
+        if r['class'] != 'wep':
+            continue
+        src_file = r['fill'].rsplit(':', 1)[0] if r.get('fill') else r['file']
+        if r['stem'] == wep or (r['stem'] is None and (src_file in files or src_file.startswith(wep + '/'))):
+            out.setdefault(r['index'], []).append(_fmt(r))
+    return out
+
+
+def room_refs_on_player():
+    """{room stem: {ROOM_ARC index: [call]}}: room-archive motions the room scripts play on the
+    player (pPL->motionSet(ROOM_ARC_PTR(..)), MotionSetCore(pPL, ..), PlRegistMotion -> m_MotTbl2)."""
+    import refs
+    out = {}
+    for r in refs.REFS:
+        if r['class'] == 'room' and r['model'] == 'player' and r['stem']:
+            out.setdefault(r['stem'], {}).setdefault(r['index'], []).append(_fmt(r))
+    return out
+
+
+def unresolved_calls():
+    """The motion-setting calls whose data pointer gen_refs.py could not tie to a constant archive
+    entry (event bins, tables walked by index, work fields filled at run time)."""
+    import refs
+    return refs.UNRESOLVED
 
 
 def melee(stem):

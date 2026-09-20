@@ -4,7 +4,8 @@ The file is one ModelData header followed by 32-byte aligned sections whose offs
 holds (game/model.cpp calcModelAddr turns them into pointers: pHead, pClr, pTex, pWeight, pParts,
 vtxOrig, nrmOrig, blendTbl, flipTbl). On the disc the sections always come in this order, each
 zero-padded to 32 bytes: parts records, vertices, normals, [shape table], colours, texture
-coordinates, weights, display-list parts, [blend table], flip table (0xCD padded, last).
+coordinates, weights, display-list parts, [blend table], flip table (0xCD padded, last; the event
+bins' models are padded with 0x00: `Mesh.fill`).
 
 ModelData (include/model.h; 0x48 bytes for version 0x20030818, 0x40 for 0x20010801 which has no
 blend / flip table words):
@@ -168,6 +169,7 @@ class Mesh:
     blend_table: list = None   # (dst, a, c, percent)
     flip_table: list = None    # u16 per parts
     shapes: list = None        # per shape key: [(vertex index, dx, dy, dz)] raw s16; None: no shape table
+    fill: int = FILL           # the final padding byte after the flip table: 0xCD (archives), 0x00 (event bins)
 
     @property
     def n_parts(self):
@@ -354,9 +356,13 @@ def parse(d: bytes) -> Mesh:
             raise ValueError(f'flip table count {cnt} != nParts {n_parts}')
         flip = list(struct.unpack_from(f'>{cnt}H', d, flip_ofs + 4))
         p = flip_ofs + 4 + 2 * cnt
-        if len(d) - p >= ALIGN or d[p:] != bytes([FILL]) * (len(d) - p):
-            raise ValueError(f'flip table tail at {p:#x} is not 0xCD padding to 32')
-    return Mesh(version, flags, shift, n_tex, wpn, wext, x8, heads, vtx, nrm, clr, tex, weights, parts, blend, flip, shapes)
+        tail = d[p:]
+        if len(tail) >= ALIGN or (tail and tail not in (bytes([FILL]) * len(tail), b'\0' * len(tail))):
+            raise ValueError(f'flip table tail at {p:#x} is not 0xCD / 0x00 padding to 32')
+        fill = tail[0] if tail else FILL
+    else:
+        fill = FILL
+    return Mesh(version, flags, shift, n_tex, wpn, wext, x8, heads, vtx, nrm, clr, tex, weights, parts, blend, flip, shapes, fill)
 
 
 def serialise(m: Mesh) -> bytes:
@@ -399,7 +405,7 @@ def serialise(m: Mesh) -> bytes:
     if m.blend_table is not None:
         add('blend', struct.pack('>i', len(m.blend_table)) + b''.join(struct.pack('>4H', *e) for e in m.blend_table), None)
     if m.flip_table is not None:
-        add('flip', struct.pack(f'>I{len(m.flip_table)}H', len(m.flip_table), *m.flip_table), FILL)
+        add('flip', struct.pack(f'>I{len(m.flip_table)}H', len(m.flip_table), *m.flip_table), m.fill)
 
     ofs = {}
     out = bytearray(b'\0' * align(hs))
