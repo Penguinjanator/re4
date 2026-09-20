@@ -54,13 +54,6 @@ public:
     void setCamera(int no);
 };
 
-// cMotBase.h drags in motion.h; only the base setter is needed here.
-class cMotModel;
-class cMotBase {
-public:
-    void set(cMotModel* m, Vec* pos, Vec* rot, u8 cnt);
-};
-
 extern "C" {
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);
 void objLadder_R1_Set(cObjLadder* obj);
@@ -724,7 +717,7 @@ int SubLadderClimbCk(cEm* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (pSUB->subX5C8 < 1000.0f) {
+    if (pSUB->Route_h < 1000.0f) {
         return 0;
     }
     for (i = 0; i < ObjMgr.nArray; i++) {
@@ -802,17 +795,17 @@ void subobjLadderClimb(cEm* pl)
         rot.x = rot.z = 0.0f;
         rot.y = obj->ang.y + PI;
         rot.y = LIMIT_ANGLE(rot.y);
-        ((cMotBase*) &((cSubChar*) em)->subFlags58C)->set((cMotModel*) em, &p, &rot, 10);
+        ((cSubChar*) em)->m_MotBase.set((cMotModel*) em, &p, &rot, 10);
         MotionSetCore(em, &em->pMotion, w->mot[16], 0, 5, 1, 0);
         em->atari.m_flag &= ~0x100;
         em->atari.m_flag |= 0x10;
-        ((cSubChar*) em)->subFlags |= 0x20;
-        ((cSubChar*) em)->subHideMode = obj->getLadderNum();
-        ((cSubChar*) em)->subX534 = 8;
+        ((cSubChar*) em)->flg |= 0x20;
+        ((cSubChar*) em)->m_Work0 = obj->getLadderNum();
+        ((cSubChar*) em)->m_Work1 = 8;
         em->r_no_2++;
     case 1:
-        if (((cSubChar*) em)->subX534) {
-            ((cSubChar*) em)->subX534--;
+        if (((cSubChar*) em)->m_Work1) {
+            ((cSubChar*) em)->m_Work1--;
         } else {
             StaFlagOn(pG, STA_SUB_LADDER);
         }
@@ -823,8 +816,8 @@ void subobjLadderClimb(cEm* pl)
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            ((cSubChar*) em)->subHideMode -= 4;
-            if (((cSubChar*) em)->subHideMode > 0) {
+            ((cSubChar*) em)->m_Work0 -= 4;
+            if (((cSubChar*) em)->m_Work0 > 0) {
                 em->r_no_2++;
             } else {
                 em->r_no_2 = 4;
@@ -843,8 +836,8 @@ void subobjLadderClimb(cEm* pl)
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            ((cSubChar*) em)->subHideMode -= 2;
-            if (((cSubChar*) em)->subHideMode > 0) {
+            ((cSubChar*) em)->m_Work0 -= 2;
+            if (((cSubChar*) em)->m_Work0 > 0) {
                 break;
             }
             em->r_no_2 = 4;
@@ -853,16 +846,16 @@ void subobjLadderClimb(cEm* pl)
     case 4:
         if (obj->getType() == 1) {
             MotionSetCore(em, &em->pMotion, w->mot[19], 0, 5, 1, 0);
-            ((cSubChar*) em)->subX534 = 0x28;
+            ((cSubChar*) em)->m_Work1 = 0x28;
         } else {
             MotionSetCore(em, &em->pMotion, w->mot[18], 0, 5, 1, 0);
-            ((cSubChar*) em)->subX534 = 0x23;
+            ((cSubChar*) em)->m_Work1 = 0x23;
         }
-        ((cSubChar*) em)->subHideMode = 0;
+        ((cSubChar*) em)->m_Work0 = 0;
         em->r_no_2++;
     case 5:
-        if (((cSubChar*) em)->subX534) {
-            ((cSubChar*) em)->subX534--;
+        if (((cSubChar*) em)->m_Work1) {
+            ((cSubChar*) em)->m_Work1--;
             StaFlagOn(pGS, STA_SUB_LADDER);
         }
         if (obj->getType() == 1) {
@@ -874,7 +867,7 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 42.7f && em->frame < 43.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
-                BitOff16(((cSubChar*) em)->subFlags, 0x20);
+                BitOff16(((cSubChar*) em)->flg, 0x20);
             }
         } else {
             if (em->frame > 11.7f && em->frame < 12.3f) {
@@ -885,11 +878,11 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 35.7f && em->frame < 36.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
-                BitOff16(((cSubChar*) em)->subFlags, 0x20);
+                BitOff16(((cSubChar*) em)->flg, 0x20);
             }
         }
-        ((cSubChar*) em)->subHideMode++;
-        if (obj->getType() != 1 && ((cSubChar*) em)->subHideMode > 0x17) {
+        ((cSubChar*) em)->m_Work0++;
+        if (obj->getType() != 1 && ((cSubChar*) em)->m_Work0 > 0x17) {
             fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;
@@ -901,7 +894,7 @@ void subobjLadderClimb(cEm* pl)
                 em->pos.y = fl;
             }
             EndSubDamage();
-            BitOff16(((cSubChar*) em)->subFlags, 0x20);
+            BitOff16(((cSubChar*) em)->flg, 0x20);
             em->atari.m_flag |= 0x100;
             em->atari.m_flag &= ~0x10;
         }

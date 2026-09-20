@@ -943,13 +943,13 @@ static void subemSurprised()
         sub->ang.y = LIMIT_ANGLE(sub->ang.y);
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x64), 0, 3, 0x101, 0);
         sub->atari.throughOn();
-        sub->subHideMode = 50;
+        sub->m_Work0 = 50;
         sub->r_no_2++;
     }
     case 1:
         MotionMove(sub, 0);
-        if (!(sub->pEmCatch->flag & 2) && sub->subHideMode) {
-            sub->subHideMode--;
+        if (!(sub->pEmCatch->flag & 2) && sub->m_Work0) {
+            sub->m_Work0--;
         } else {
             sub->r_no_2++;
         }

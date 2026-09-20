@@ -568,7 +568,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         break;
     case 2:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1B), 0, 5, 5, 0);
-        sub->subHideMode = 0;
+        sub->m_Work0 = 0;
         sub->r_no_2++;
     case 3:
         EmCatchMotionMove(sub, 0.3f, 0.2f);
@@ -576,10 +576,10 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         if (sub->plDist2 < 9000000.0f && fabsf(sub->pos.y - pPL->pos.y) < 1000.0f) {
             ActBtn.set(0x15, 5, (void*) em2aResuceAshleyAction, sub, 0, 1, 0, 0);
         }
-        if (sub->subHideMode) {
-            sub->subHideMode--;
+        if (sub->m_Work0) {
+            sub->m_Work0--;
         } else {
-            sub->subHideMode = Rnd() % 15 + 30;
+            sub->m_Work0 = Rnd() % 15 + 30;
             SndCall(8, 0xE, &sub->pos, sub->id, 0, sub);
         }
         break;

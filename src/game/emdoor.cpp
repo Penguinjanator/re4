@@ -3489,12 +3489,12 @@ void subDoorKick()
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
-        sub->subHideMode = 0xE;
+        sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 1:
-        if (sub->subHideMode != 0) {
-            sub->subHideMode--;
-            if (sub->subHideMode == 0) {
+        if (sub->m_Work0 != 0) {
+            sub->m_Work0--;
+            if (sub->m_Work0 == 0) {
                 door->setShock(1, &sub->pos, 0);
                 emDoorBellSet(&sub->pos);
             }
@@ -3506,12 +3506,12 @@ void subDoorKick()
         break;
     case 2:
         MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
-        sub->subHideMode = 0xE;
+        sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 3:
-        if (sub->subHideMode != 0) {
-            sub->subHideMode--;
-            if (sub->subHideMode == 0) {
+        if (sub->m_Work0 != 0) {
+            sub->m_Work0--;
+            if (sub->m_Work0 == 0) {
                 door->setOpen(&sub->pos, 1, 0, 0);
                 emDoorBellSet(&sub->pos);
             }

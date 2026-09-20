@@ -12399,14 +12399,14 @@ static void subem10_NeckHang_Luis(cSubChar* sub)
     case 2:
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(arc, 0x299), 0, 5, 1, 0);
         SndCall(8, 0x11, &s->pos, s->id, 0, s);
-        s->subHideMode = 0xF;
+        s->m_Work0 = 0xF;
         s->r_no_2++;
     case 3:
         if (MotionMove(s, 0)) {
             EndSubDamage();
             s->dmg.set(0, 0x1E);
-        } else if (s->subHideMode) {
-            s->subHideMode--;
+        } else if (s->m_Work0) {
+            s->m_Work0--;
             if (s->pEmCatch->r_no_0 != 1 && s->pEmCatch->r_no_1 != 0x34) {
                 EndSubDamage();
                 s->dmg.set(0, 0x1E);
@@ -13325,16 +13325,16 @@ static void em10_R1_TakeAway(cEm10* em)
 #define SUB_TAKEAWAY_HOLD_CK ((u32) (s->pEmCatch->r_no_0 - 2) <= 1)
 #define SUB_TAKEAWAY_SCREAM                                                                            \
     {                                                                                                  \
-        int t = s->subX534;                                                                            \
+        int t = s->m_Work1;                                                                            \
         if (t) {                                                                                       \
-            s->subX534 = t - 1;                                                                        \
+            s->m_Work1 = t - 1;                                                                        \
         } else {                                                                                       \
-            s->subX534 = (u8) (Rnd() % 30) + 60;                                                       \
-            if (s->sub538) {                                                                           \
-                s->sub538 = t;                                                                         \
+            s->m_Work1 = (u8) (Rnd() % 30) + 60;                                                       \
+            if (s->m_Work2) {                                                                           \
+                s->m_Work2 = t;                                                                         \
                 SndCall(8, 1, &s->pos, s->id, 0, s);                                                 \
             } else {                                                                                   \
-                s->sub538 = 1;                                                                         \
+                s->m_Work2 = 1;                                                                         \
                 SndCall(8, 2, &s->pos, s->id, 0, s);                                                 \
             }                                                                                          \
         }                                                                                              \
@@ -13366,13 +13366,13 @@ static void subem10_TakeAway(cSubChar* sub)
             }
             SndCall(8, no, &s->pos, s->id, 0, s);
         }
-        s->subHideMode = 10;
+        s->m_Work0 = 10;
         s->r_no_2++;
     case 1:
         s->atari.setFlag100();
         s->atari.clrFlag200();
-        if (s->subHideMode) {
-            s->subHideMode--;
+        if (s->m_Work0) {
+            s->m_Work0--;
             r = EmCatchMotionMove(s, 0.3f, 0.2f);
         } else {
             r = MotionMove(s, 0);
@@ -13386,9 +13386,9 @@ static void subem10_TakeAway(cSubChar* sub)
         break;
     case 2:
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x2A3), 0, 5, 4, 0);
-        s->subHideMode = 0x28;
-        s->subX534 = 0x3C;
-        s->sub538 = 0;
+        s->m_Work0 = 0x28;
+        s->m_Work1 = 0x3C;
+        s->m_Work2 = 0;
         s->r_no_2++;
     case 3:
         s->atari.setFlag100();
@@ -13404,9 +13404,9 @@ static void subem10_TakeAway(cSubChar* sub)
     case 4:
         SUB_TAKEAWAY_POS(-176.17f, -79.17f)
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x9E), 0, 5, 1, 0);
-        s->subHideMode = 0x28;
-        s->subX534 = 0x3C;
-        s->sub538 = 0;
+        s->m_Work0 = 0x28;
+        s->m_Work1 = 0x3C;
+        s->m_Work2 = 0;
         s->r_no_2++;
     case 5:
         s->atari.throughOn();
@@ -13420,9 +13420,9 @@ static void subem10_TakeAway(cSubChar* sub)
     case 6:
         SUB_TAKEAWAY_POS(-184.08f, 40.78f)
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x9F), 0, 5, 1, 0);
-        s->subHideMode = 0x28;
-        s->subX534 = 0x3C;
-        s->sub538 = 0;
+        s->m_Work0 = 0x28;
+        s->m_Work1 = 0x3C;
+        s->m_Work2 = 0;
         s->r_no_2++;
     case 7:
         s->atari.throughOn();
@@ -13437,9 +13437,9 @@ static void subem10_TakeAway(cSubChar* sub)
     case 8:
         SUB_TAKEAWAY_POS(-147.03f, 219.32f)
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0xA0), 0, 5, 1, 0);
-        s->subHideMode = 0x28;
-        s->subX534 = 0x3C;
-        s->sub538 = 0;
+        s->m_Work0 = 0x28;
+        s->m_Work1 = 0x3C;
+        s->m_Work2 = 0;
         s->r_no_2++;
     case 9:
         s->atari.throughOn();
@@ -13447,17 +13447,17 @@ static void subem10_TakeAway(cSubChar* sub)
         if (SUB_TAKEAWAY_HOLD_CK) {
             s->r_no_2 = 0xA;
         } else {
-            int t = s->subX534;
+            int t = s->m_Work1;
             if (t) {
-                s->subX534 = t - 1;
+                s->m_Work1 = t - 1;
             } else {
-                s->subX534 = (u8) (Rnd() % 30) + 60;
+                s->m_Work1 = (u8) (Rnd() % 30) + 60;
                 if ((s16) pGS->ashley_life > 0) {
-                    if (s->sub538) {
-                        s->sub538 = t;
+                    if (s->m_Work2) {
+                        s->m_Work2 = t;
                         SndCall(8, 1, &s->pos, s->id, 0, s);
                     } else {
-                        s->sub538 = 1;
+                        s->m_Work2 = 1;
                         SndCall(8, 2, &s->pos, s->id, 0, s);
                     }
                 }

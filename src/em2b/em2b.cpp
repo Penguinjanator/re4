@@ -2842,13 +2842,13 @@ static void subem2b_Catch(cSubChar* sub)
         break;
     case 2:
         MotionSetCore(s, &s->Motion, PL_ARC_PTR(s->subArc, 0xD4), 0, 0, 1, 0);
-        s->subHideMode = 67;
+        s->m_Work0 = 67;
         s->r_no_2++;
     case 3:
         MotionMove(s, 0);
-        if (s->subHideMode) {
-            s->subHideMode--;
-            if (s->subHideMode == 0) {
+        if (s->m_Work0) {
+            s->m_Work0--;
+            if (s->m_Work0 == 0) {
                 pG->ashley_life = 0;
             }
         }

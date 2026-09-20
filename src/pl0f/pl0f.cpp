@@ -745,7 +745,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
 // Entrance of rooms 10D / 10E: the boat drives itself in and the player gets off at the landing.
 // Macros, not inlines: an inline's constant arguments (the partner routine address, the four f32 room
 // coordinates) are expanded at the call's head, i.e. before the switch / the timer2 test.
-#define PL0F_ROOM_IN(plRoutine, subFunc, t1, t2) \
+#define PL0F_ROOM_IN(plRoutine, m_pFunc, t1, t2) \
 { \
     cPlayer* pl = pPL; \
  \
@@ -755,7 +755,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         BoatMoveFunc = PlBoatMove; \
         PlRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
-            SetSubDamage(em, subFunc); \
+            SetSubDamage(em, m_pFunc); \
         } \
         w->Timer = t1; \
         w->Timer2 = t2; \
@@ -3332,7 +3332,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     }
 }
 
-// The same lean blend for the partner (subBackMot as the blend work, m_Hokan / m_Frame counters).
+// The same lean blend for the partner (subMot as the blend work, m_Hokan / m_Frame counters).
 void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(sub->m_Blend);
@@ -3348,7 +3348,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
         m = m2;
         f = c;
     }
-    bm = &sub->subBackMot;
+    bm = &sub->subMot;
     MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
     sub->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
@@ -3753,22 +3753,22 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
 
 // The partner (Ashley is not in the boat; the routines exist for the R10d / R10e entrances). A macro: an
 // inline's f32 arguments are expanded at the head of the block (both pool `lis` hoisted above the
-// subHideMode test) and its inlined pool loads lose RTX_UNCHANGING_P (integrate.c), so they would depend on
+// m_Work0 test) and its inlined pool loads lose RTX_UNCHANGING_P (integrate.c), so they would depend on
 // the preceding stores through `sub`.
 #define SUB_BOAT_SIT(lo, hi) \
 { \
-    if (sub->subHideMode) { \
+    if (sub->m_Work0) { \
         if (w->Boat_spd < lo) { \
-            sub->subHideMode = 0; \
+            sub->m_Work0 = 0; \
             MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 5, 5, 0); \
         } \
     } else if (w->Boat_spd > hi) { \
-        sub->subHideMode = 1; \
-        sub->subSelf->m_Hokan = 5; \
+        sub->m_Work0 = 1; \
+        sub->pEm->m_Hokan = 5; \
         sub->m_Frame = 0; \
         sub->m_Blend = 0.0f; \
     } \
-    if (sub->subHideMode) { \
+    if (sub->m_Work0) { \
         sub->m_Blend = sub->m_Blend * 0.9f + pPL->m_Blend * 0.1f; \
         subBlendMotSet(sub, SUBARC(0x2E), SUBARC(0x2F), SUBARC(0x30), 0, 0, 0); \
     } \
@@ -3801,14 +3801,14 @@ static void subBoatRide()
         sub->pos.x = v.x;
         sub->pos.z = v.z;
         sub->fWork0 = v.y - sub->pos.y;
-        sub->subHideMode = 20;
+        sub->m_Work0 = 20;
         sub->ang.y = boat->ang.y - PI / 2;
         sub->ang.y = LIMIT_ANGLE(sub->ang.y);
         sub->atari.m_flag &= 0xFCFF;
         sub->r_no_2++;
     case 1:
-        if (sub->subHideMode) {
-            sub->subHideMode--;
+        if (sub->m_Work0) {
+            sub->m_Work0--;
         } else {
             f32 dy = sub->fWork0 * 0.1f;
 
@@ -3829,7 +3829,7 @@ static void subBoatRide()
     case 2:
         MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 5, 5, 0);
         sub->atari.m_flag &= 0xFCFF;
-        sub->subHideMode = 0;
+        sub->m_Work0 = 0;
         sub->r_no_2++;
     case 3:
         SUB_BOAT_SIT(50.0f, 30.0f);
@@ -3852,12 +3852,12 @@ static void subBoatGetoff()
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->Motion, SUBARC(0x2D), 0, 5, 5, 0);
-        sub->subHideMode = 20;
+        sub->m_Work0 = 20;
         sub->fWork0 = 100.0f;
         sub->r_no_2++;
     case 1:
-        if (sub->subHideMode) {
-            sub->subHideMode--;
+        if (sub->m_Work0) {
+            sub->m_Work0--;
         } else {
             f32 dy = sub->fWork0 * 0.1f;
 
@@ -3886,7 +3886,7 @@ static void subBoatGetoff()
     case 0: \
         MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 0, 5, 0); \
         sub->atari.m_flag &= 0xFCFF; \
-        sub->subHideMode = 0; \
+        sub->m_Work0 = 0; \
         sub->r_no_2++; \
     case 1: \
         SUB_BOAT_SIT(50.0f, 30.0f); \

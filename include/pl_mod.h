@@ -20,8 +20,8 @@ extern u8 pl_fs_tbl[];                // game/foot_shadow_tbl.cpp (incomplete ty
 void ShapeSet(void* info, int a, void* data, int b);   // game/shape.cpp (C++ linkage; pl_leon.cpp declares the same)
 void ShapeEnd(void* info);
 
-// Motion / model data `no` of the partner's archive (cSubChar::subArc, read through subSelf).
-#define SUB_ARC(pl, no) PL_ARC_PTR((pl)->subSelf->subArc, no)
+// Motion / model data `no` of the partner's archive (cSubChar::subArc, read through pEm).
+#define SUB_ARC(pl, no) PL_ARC_PTR((pl)->pEm->subArc, no)
 // Model data `no` of the player archive.
 #define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 

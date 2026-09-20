@@ -1073,7 +1073,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
 }
 
 // The same lean blend for the partner: straight on her own work, the lean (by the sign of
-// m_Blend) into subBackMot with weight |m_Blend| / 256; m_Hokan / m_Frame are the blend counter / frame.
+// m_Blend) into subMot with weight |m_Blend| / 256; m_Hokan / m_Frame are the blend counter / frame.
 void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(sub->m_Blend);
@@ -1089,7 +1089,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
         m = m2;
         f = c;
     }
-    bm = &sub->subBackMot;
+    bm = &sub->subMot;
     MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
     sub->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);

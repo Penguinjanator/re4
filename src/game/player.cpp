@@ -26,7 +26,7 @@
 extern "C" {
 double atan2(double y, double x);
 void ReleaseWepData();                        // game/read.cpp
-void ShapeMove(void* info);                   // game/shape.cpp
+void ShapeMove(cModelInfo* info);                   // game/shape.cpp
 int fanceWidthCheck(cPlayer* pl);
 void fanceAdjust(cPlayer* pl);
 int fallCheck(cPlayer* pl);

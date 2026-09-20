@@ -46,7 +46,7 @@ extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define SUBARC(no) PL_ARC_PTR(subSelf->subArc, no)
+#define SUBARC(no) PL_ARC_PTR(pEm->subArc, no)
 #define OARC(no) PL_ARC_PTR(owner->subArc, no)
 #define EM ((cEm*) this)
 #define OEM ((cEm*) owner)
@@ -121,7 +121,7 @@ cSubLuis::cSubLuis()
     analysis.init(this);
     flags = 0;
     pFootShadowTbl = pl_fs_tbl;
-    subSelf = this;
+    pEm = this;
     pSUB = (cSubChar*) this;
     luisEye.r[0] = luisEye.r[1] = 0.0f;   // chain: r[1] first in RTL, the 0.0 dies at r[0] (issued first)
     luisEye.r[2] = 0.4f;
@@ -156,7 +156,7 @@ void cSubLuis::init()
     // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
     atari.init(0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     {
-        cSubLuis* s = subSelf;
+        cSubLuis* s = pEm;
         s->lockParts = 4;
         s->lockOfs.x = 0.0f;
         s->lockOfs.y = 0.0f;
@@ -183,7 +183,7 @@ void cSubLuis::init()
     YarareAdd(EM, &hit[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, 3);
     YarareAdd(EM, &hit[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, 3);
     YarareAdd(EM, &hit[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, 3);
-    MotionSetCore(subSelf, &subSelf->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
+    MotionSetCore(pEm, &pEm->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
     motionMove();
     getRoomEtcRack(0, &rack[0], 1);
     getRoomEtcRack(1, &rack[1], 1);
@@ -1429,7 +1429,7 @@ int cSubLuis::damageCheck()
         dmg.m_Timer = 1;
         if (Front_check(this, &dmg.m_PosFrom, PI / 2)) routine.work[0] = 2;
         else routine.work[0] = 3;
-        SndCall(8, 0x13, &subSelf->pParts->world, subSelf->id, 0, 0);
+        SndCall(8, 0x13, &pEm->pParts->world, pEm->id, 0, 0);
         break;
     case 0x13:
         dmg.m_Timer = 1;
@@ -1570,7 +1570,7 @@ void cSubLuis::neckMove()
     } else {
         neckY += Muku2(neckY, 0.0f, spd);
     }
-    p = subSelf->getPartsPtr(3);
+    p = pEm->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
     ((cParts*) p)->addRot.y = neckY;
 }
