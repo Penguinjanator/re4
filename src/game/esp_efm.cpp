@@ -17,7 +17,6 @@
 #include "ref_access.h"
 
 // game/motion.cpp (C++ linkage)
-void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);
 
 extern "C" {
 u32 GetEfmMoveIdMax();

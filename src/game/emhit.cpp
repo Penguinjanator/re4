@@ -15,7 +15,6 @@ extern cEm* pPL;   // game/em.cpp
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
-void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmHitFunc)(cEmHit*);
 

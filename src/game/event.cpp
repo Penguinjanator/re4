@@ -80,8 +80,6 @@ extern u8 Em2c_fs_tbl[];
 }
 
 // game/emdata.cpp
-void EspEmDataSwapPush(int id);
-void EspEmDataSwapPop(int id);
 // game/shape.cpp
 int ShapeSet(void* work, int frame, void* data, int flags);
 

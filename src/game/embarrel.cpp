@@ -23,7 +23,6 @@
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
-u8 EspPullCoreKind();                                                                        // eff_sys.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);

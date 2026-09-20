@@ -90,7 +90,6 @@ void EprintfFlush();
 // game/trans_lit.cpp
 void LightSetInit();
 // game/id_tex.cpp
-void IdTexGameInit();
 // game/eff_sys.cpp
 void EspInit();
 // game/shadow.cpp
@@ -100,8 +99,6 @@ void ItemModelInit();
 // game/EtcModel.cpp
 void EtcModelInit();
 // game/card.cpp
-void CardInit();
-void CardDbgCacheSet();
 // game/read.cpp
 void EmReadInit();
 void ReleasePlData();

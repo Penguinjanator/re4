@@ -92,7 +92,6 @@ void objTrolleyHitCk(cObjTrolley* obj);
 void objTrolleyFallEM(cObjTrolley* obj);
 void objTrolleyLostEM(cObjTrolley* obj);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 static void objTrolleySatClear(cObjTrolley* obj);
 
 void (*ObjTrolley_R0_move_tbl[3])(cObjTrolley*) = {

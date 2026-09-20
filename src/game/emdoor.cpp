@@ -32,7 +32,6 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
 // Hanging object (game/obj12.cpp): the locks and the chain hang on the door as cObj12 models.
 class cObj12 : public cObj {

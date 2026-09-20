@@ -71,7 +71,6 @@ void obj16PlHeadLost(cObj16* obj);
 static void obj16NeckMove(cObj16* obj);
 void plemDmMStar(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*Obj16_R1_move_tbl[5])(cObj16*) = {
     obj16_R1_Set, obj16_R1_CoreMove, obj16_R1_Atk, obj16_R1_Critical, obj16_R1_Damage,

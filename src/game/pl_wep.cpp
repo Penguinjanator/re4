@@ -37,10 +37,6 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec
 void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
 void EspSetWaterHitmark(Vec* pos);
 void GameAddPoint(int no);                                // game/game.cpp
-f32 GetXZAngleLocal(Vec* v0, Vec* v1, f32 ang);             // game/sub2.cpp
-int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);       // game/Espgen42.cpp
-void AddWaterPower(Vec* pos, f32 power);
-f64 atan2(f64 y, f64 x);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
 cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);
@@ -48,7 +44,6 @@ int cnCkSub(Vec* pos, Vec* nrm, f32 len, Vec* outA, Vec* outB);
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type);
 void setWaterShot(Vec* pos);
 }
-int Front_check(cModel* a, cModel* b, f32 ang);           // game/sub2.cpp
 
 void (*WeaponInitFunc)(cModel*) = 0;
 u8 lockCtr;

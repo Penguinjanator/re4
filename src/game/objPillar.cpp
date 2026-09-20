@@ -55,7 +55,6 @@ void objPillarEatSet(cObjPillar* obj);
 void GameAddPoint(int no);   // game/game.cpp
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);   // em_sub.cpp (obj08/obj12 declare it the same way)
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix so the report can pair it with the local symbol.
 #define plemEscape plemEscape_8003C33C

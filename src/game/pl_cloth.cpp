@@ -10,12 +10,6 @@
 #include "global.h"
 #include "math_sub.h"
 
-extern "C" {
-void PenClothMove(cModel* m, PenCloth* pInfo);   // game/pendulum.cpp
-f32 sqrtf(f32 x);
-f32 asinf(f32 x);
-}
-
 PlCloth leonHair;
 PlCloth leonJacket;
 PlCloth leonHolster;

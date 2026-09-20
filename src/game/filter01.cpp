@@ -27,7 +27,6 @@ struct LensEffectWork {
 
 extern f32 ZNEAR;
 extern f32 ZFAR;
-void* GetDrawTmpBufAddr(int type);
 
 void* filter01_buff = 0;
 LensEffectWork g_LeNear;

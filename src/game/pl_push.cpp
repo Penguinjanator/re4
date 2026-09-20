@@ -12,7 +12,6 @@
 #include "at_mod.h"
 
 extern "C" {
-void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp
 int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp
 }
 

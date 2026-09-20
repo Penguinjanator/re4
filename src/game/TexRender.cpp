@@ -17,7 +17,6 @@
 // game/model.cpp
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);
 void ModelInfoRefrectOffAll(cModel* m);
-void ModelInfoRefrectOn(cModel* m, int no);
 // game/trans.cpp
 int commonScreenMat(cModel* m);
 void lightSetEm(cModel* m);

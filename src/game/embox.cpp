@@ -29,7 +29,6 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);                                  // esp_efm.cpp
-int getRoomEtc(int no, int kind, cEm** out, int bDispErr);                                          // EtcModel.cpp
 void SceAtCreateItemAt(Vec* pos, u16 no, int num, int a, int b, int c, int d);              // sce_at.cpp
 extern u32 tubo_amb;                                                                         // esp.cpp
 }

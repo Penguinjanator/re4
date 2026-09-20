@@ -80,7 +80,6 @@ void EspRoomInit();
 int EspArrayAlloc(u32 n);
 int EspMove();
 int EspDispInfo();
-int EspDataLoad(u32 addr, u32 owner, int flag);
 int EspgenRoomInit();
 int EspgenArrayAlloc(int n);
 int EspgenMove();

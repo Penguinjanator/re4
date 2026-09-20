@@ -26,12 +26,6 @@
 #include <string.h>
 
 extern "C" {
-void CameraSetOrientationZeroRoll(Camera* cam);
-void CameraCamposDistance(Camera* cam, f32 dist);
-void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);
-void CameraCamposRot(Camera* cam, char axis, f32 rad);
-void CameraTargetRot(Camera* cam, char axis, f32 rad);
-void CameraDolly(Camera* cam, Vec* mv);
 void Draw_line3d(Vec* a, Vec* b, u32 color, int flag);
 }
 

@@ -18,7 +18,6 @@
 #include "math_sub.h"
 
 extern "C" {
-u8 EspPullCoreKind();
 void EffectEspgenDelete(int Core_flg, int kind, cModel* obj);
 }
 

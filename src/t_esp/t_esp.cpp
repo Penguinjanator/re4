@@ -14,7 +14,6 @@
 // InitTool inlines (only ID_WINDOW's, which owns a static name table, stays out of line).
 
 extern "C" {
-void memclr_asm(void* p, u32 size);
 // db_port.cpp
 int DB_GetStageNo();
 int DB_GetRoomNo();

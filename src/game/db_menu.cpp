@@ -23,7 +23,6 @@ extern "C" {
 u32 GetGameTime(int* h, int* m, int* s); // returns a value (main_sub.h): the call sets r3, so `addi r3,&h` loses its output dependence and issues last
 void DLL_Link(void* module, void* bss);
 void DLL_Unlink(void* module);
-void TaskChain(void (*func)(), int arg);
 }
 
 // REL header (Dolphin OSModuleInfo + OSModuleHeader)

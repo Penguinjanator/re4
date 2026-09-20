@@ -42,9 +42,6 @@
 #define T_ID_STR(x) T_ID_STR2(x)
 asm(".comm common_" T_ID_STR(REL_MODULE) ",52,4");
 
-extern "C" {
-float tanf(float);
-}
 // COMPILER-DIFF #4: the original passes the (u32) converted height without the u16 truncation.
 void ScreenReSizeI(int w, u32 h) asm("ScreenReSize");
 

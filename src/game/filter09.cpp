@@ -22,7 +22,6 @@ extern f32 ZFAR;
 int GetDrawTmpBufType();
 
 extern "C" {
-void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht);
 void Filter09Render();
 void Filter09GetEFB(int div, int div2);
 static void Filter09GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 ofs, int div);

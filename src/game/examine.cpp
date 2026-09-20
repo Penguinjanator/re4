@@ -37,7 +37,6 @@ extern IDSystem IdSub;  // game/sscrn.cpp
 int GetDrawTmpBufType();
 
 extern "C" {
-float tanf(float);
 void getEFB();
 static void gxDraw(f32 x, f32 y, f32 z, f32 alpha, void* buf);
 void drawBuffer();

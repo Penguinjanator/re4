@@ -25,7 +25,6 @@
 #include "ref_access.h"
 
 extern "C" {
-double atan2(double y, double x);
 void ReleaseWepData();                        // game/read.cpp
 void ShapeMove(cModelInfo* info);                   // game/shape.cpp
 int fanceWidthCheck(cPlayer* pl);

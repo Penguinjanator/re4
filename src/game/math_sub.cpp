@@ -8,23 +8,9 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "math_sub.h"
+#include <stdio.h>
+#include <string.h>
 
-extern "C" {
-f32 asinf(f32 x);
-f32 acosf(f32 x);
-void* memcpy(void* dst, const void* src, unsigned int n);
-int printf(const char* fmt, ...);
-int fprintf(void* fp, const char* fmt, ...);
-struct ReentStd {
-    int _errno;
-    void* _stdin;
-    void* _stdout;
-    void* _stderr;
-};
-extern ReentStd* _impure_ptr;
-#define stderr (_impure_ptr->_stderr)
-
-}
 
 #define PI2 6.2831855f
 

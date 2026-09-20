@@ -75,7 +75,6 @@
 #define EM10_STR(x) EM10_STR2(x)
 asm(".comm common_" EM10_STR(REL_MODULE) ",52,4");
 
-extern "C" double atan2(double y, double x);
 
 
 // Routine dispatch tables (.data).
@@ -364,7 +363,6 @@ int em10LostHeadCk(cEm10* em);
 int em10ModelInit(cEm10* em);
 void em10InitRtnSet(cEm10* em);
 void Em1fClothSet(cModel* m, PlCloth* c);
-extern "C" int EspDataLoad(u32 addr, u32 owner, int flag);
 extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void em10SetWaitMotion(cEm10* em, int a);
 void em10SetWalkMotion(cEm10* em, int a);

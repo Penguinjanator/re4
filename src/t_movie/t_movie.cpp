@@ -23,10 +23,6 @@
 #include <stdio.h>
 #include <string.h>
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
-
 // newlib ctype.h
 extern "C" const char _ctype_[];
 #define _L 02

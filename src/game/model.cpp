@@ -31,7 +31,6 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void PartsWorldPosCalc(cModel* m);
 void calcModelAddr(cModelData* data);
 void calcModelOffset(cModelData* data);
 void calcTplOffset(TEXPalette* tpl);

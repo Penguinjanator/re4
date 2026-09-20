@@ -19,7 +19,6 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void PenClothMove(cModel* m, PenCloth* pInfo);   // game/pendulum.cpp
 }
 extern f32 adaHairMax[14];   // game/pl_cloth.cpp
 extern f32 adaHairWindS[14];

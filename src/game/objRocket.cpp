@@ -16,12 +16,6 @@
 // Rocket launcher (weapon 0x13) and its rocket: the launcher carries a loaded cObjRocket on its
 // muzzle parts, launch() sends it along the marker line, drop() leaves an empty launcher model.
 
-extern "C" {
-int MotionGetState(cModel* m);
-double atan2(double y, double x);
-}
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
-
 // Pointer store through a reference: the following `pG` load stays below it.
 static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
 

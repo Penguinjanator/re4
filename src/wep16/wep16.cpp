@@ -10,7 +10,6 @@
 #include "esp.h"
 #include "motion.h"
 
-void PlKnifeMove(cPlayer* pl);   // wep/pl_knife.cpp
 
 void ObjKnife_init(cObj* obj);
 

@@ -6,7 +6,6 @@
 #include "math_sub.h"
 #include "esp.h"
 
-extern "C" void AddWaterPower(Vec* pos, f32 power);
 
 // Water ripple: pushes the water surface in rings around the effect position.
 class cEsp4d : public cEsp {

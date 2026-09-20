@@ -32,7 +32,6 @@ void* SceAtPtr(int no);
 void SubMissionCheck();                        // game/stage.cpp
 int getRoomEtcBreak(void* p, cEm** em, int a); // game/EtcModel.cpp
 void SubScreenWait(int frames);                // game/sscrn.cpp
-void GXDrawDone();
 }
 
 int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)

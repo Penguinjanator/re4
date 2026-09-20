@@ -37,16 +37,11 @@ int EspgenGetCallNo();
 void EspgenIncCallNo();
 int EspgenApplyFunc(void (*func)(EspgenWork* w));
 // game/Espgen42.cpp
-void EspWaterInit();
 // game/eff_sys.cpp
-void EspGenSetMoveLoop(int loop);
 
 // generator entry points (game/espgen0*.cpp, Espgen4*.cpp)
-void Espgen01_Move(EspgenWork* w);
-void Espgen01_Trans(EspgenWork* w);
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
-void Espgen02_Move(EspgenWork* w);
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 }

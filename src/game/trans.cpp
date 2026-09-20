@@ -41,7 +41,6 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 int EspTrans();
 void EspgenTrans();
-void ProcessTickGet(int no, const char* name);
 void DCStoreRangeNoSync(void* addr, u32 nBytes);
 void GXSetCurrentGXThread();
 void GXSetDrawSync(u16 token);
@@ -56,10 +55,6 @@ void ResetShape(cModelInfo* info, void* dst);
 void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, void* dst);
 }
 void SetDrawTmpBufType(int type);   // game/TmpBuf.cpp (C++)
-void drawGround(int big);           // game/db_cam.cpp (C++)
-int Filter09GetbUse();              // game/filter09.cpp (C++)
-void CameraCurrentProjection();     // game/camera.cpp (C++)
-void* GetDrawTmpBufAddr(int type);
 
 // The renderer's view of pG+0x184..0x4F14: the stage counters, the skinning matrix palette, the
 // texture objects of the current model and the primitive buffer write pointer.

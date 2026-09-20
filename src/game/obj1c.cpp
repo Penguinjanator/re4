@@ -25,7 +25,6 @@ public:
 };
 
 extern "C" {
-u8 EspPullCoreKind();
 void EffectEspDelete(int a, int kind, cObj* obj, int b);
 void EffectEspgenDelete(int Core_flg, int kind, cObj* obj);
 void EffectEfmDelete(int Core_flg, int kind, cObj* obj);

@@ -45,7 +45,6 @@ static void emWep_R1_Parent(cEmWep* em);
 #define plemEscape plemEscape_80017688
 static void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);   // obj01.cpp
 void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 

@@ -34,8 +34,6 @@ extern cModel* pSUB;
 extern "C" {
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, int max, u16 flag);
-void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot);
-f32 GetXZAngle(Vec* from, Vec* to);
 void obj08AddSpeed(cObj08* obj);
 int obj08ScrHitCk(cObj08* obj);
 int obj08ToEmHitCk(cObj08* obj);

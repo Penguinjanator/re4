@@ -38,9 +38,7 @@
 // the effect generators and the .cfg model set loader).
 
 extern "C" {
-f32 tanf(f32 x);
 void OSReport(const char* fmt, ...);
-void memclr_asm(void* p, u32 size);
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);

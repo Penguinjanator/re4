@@ -18,7 +18,6 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 void ReleaseWepData();                          // game/read.cpp
-f32 sinf(f32 x);
 }
 
 extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)

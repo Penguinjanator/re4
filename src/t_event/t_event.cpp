@@ -33,10 +33,6 @@
 // (EventMgr::SetEvt of a host .evd file, stop / capture / message display) and the preview sub tools
 // (light editor, ESP tool hand-off, fog and focus Hermite curve editors, message list editor).
 
-extern "C" {
-void memclr_asm(void* p, u32 size);
-}
-
 void DbMenuSetExecTool(const char* name);
 
 // cFileList::init really takes the list buffer and the host directory (the symbol keeps the

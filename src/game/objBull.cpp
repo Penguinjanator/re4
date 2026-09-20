@@ -83,7 +83,6 @@ void Sub_bull_look(cEm* em);
 void Sub_dm_bull(cEm* em);
 int SubCkNearEm();
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*ObjBull_R0_move_tbl[12])(cObjBull*) = {
     objBull_R0_Set,      objBull_R0_Break1st, objBull_R0_To2nd, objBull_R0_Break2nd,

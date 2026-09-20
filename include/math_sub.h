@@ -5,6 +5,12 @@
 #include "vec.h"
 #include "db_log.h"
 
+// libm's own declaration of fabsf clashes with the inline below (C linkage against static), so it is
+// renamed out of the way while <math.h> is read.
+#define fabsf fabsf_libm
+#include <math.h>
+#undef fabsf
+
 #ifndef PI
 #define PI 3.1415927f
 #endif
@@ -93,13 +99,6 @@ void CalcParabolaVector(Vec* out, Vec* from, Vec* to, f32 h);
 f32 CalcStopDist(f32 speed, f32 decel);
 // Move `pos` `dist` towards `target`; 1 when it arrived.
 int CalcMovePosDist(Vec* pos, Vec* target, f32 dist);
-// lib math
-f32 sqrtf(f32 x);
-f32 sinf(f32 x);
-f32 cosf(f32 x);
-f32 atan2f(f32 y, f32 x);
-f32 acosf(f32 x);
-f32 asinf(f32 x);
 }
 
 // game/sub2.cpp (C++ linkage)

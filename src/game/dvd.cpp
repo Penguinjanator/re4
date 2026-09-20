@@ -297,8 +297,6 @@ void OSReport(const char* fmt, ...);
 void DCFlushRange(void* addr, u32 nBytes);
 u32 OSGetTick();
 u32 OSGetConsoleSimulatedMemSize();
-void PADControlMotor(int chan, u32 cmd);
-void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
 void GXCopyDisp(void* dest, u8 clear);
 void ADXGC_SetupDvdFs(int mode);
 u16 OSGetFontEncode();

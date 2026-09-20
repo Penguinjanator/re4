@@ -34,7 +34,6 @@ int strncmp(const char*, const char*, u32);
 char* strchr(const char*, int);
 char* strstr(const char*, const char*);
 u32 strspn(const char*, const char*);
-f64 log10(f64);
 }
 
 #define FILE_NUM 16

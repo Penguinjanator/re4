@@ -26,7 +26,6 @@
 #include "ref_access.h"
 
 extern "C" {
-double atan2(double y, double x);
 
 int actWallCheck(cPlayer* pl);
 int fanceCheck(cPlayer* pl);

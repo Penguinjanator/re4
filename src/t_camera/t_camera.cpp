@@ -21,10 +21,6 @@
 // editors. PARTIAL: the editors (tcEdit_select, tcEdit_area .. tcDrawRail, tcLoad, tcSave) are not
 // written yet; see the report.
 
-extern "C" {
-void memclr_asm(void* p, u32 size);
-}
-
 struct TcWorkPtr {
     TcWork* p;
 };

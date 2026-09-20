@@ -45,7 +45,6 @@ extern "C" {
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);   // em_sub.cpp
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
 // Head of a key-frame motion data block (motion.h MotionData).
 struct RockMotData {

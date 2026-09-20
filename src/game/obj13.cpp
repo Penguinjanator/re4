@@ -79,7 +79,6 @@ void objLadderResetCamMove(cEm* em);
 int LadderNearCk(Vec* pos);
 void LadderEventTrans(int mode);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*ObjLadder_R1_move_tbl[4])(cObjLadder*) = {
     objLadder_R1_Set, objLadder_R1_Fall, objLadder_R1_Down, objLadder_R1_Reset,

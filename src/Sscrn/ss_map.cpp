@@ -48,7 +48,6 @@ static inline void ssMapWidgetDelete(Widget<SUB_SCREEN>* w)
 
 class cSubChar;
 extern cSubChar* pSUB;
-extern "C" f32 tanf(f32 x);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 

@@ -19,7 +19,6 @@
 #include <stdlib.h>
 
 extern "C" {
-double tan(double);
 void OSReport(const char* msg, ...);
 // game/path.cpp
 int FuncPathParametrize(void* path, void* data);

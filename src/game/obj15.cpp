@@ -27,7 +27,6 @@ void obj15BarrelMove(cObjGatling* obj);
 void obj15MatCalc(cObjGatling* obj);
 int obj15GunHitck(cObjGatling* obj);
 void obj15DmCk(cObjGatling* obj);
-void EspSetGatling(Vec pos, Vec dir);
 }
 
 void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };

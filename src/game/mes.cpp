@@ -23,7 +23,6 @@ extern MessageFont MesFont[4];
 #include <stdio.h>
 
 extern "C" {
-void C_MTXOrtho(f32 m[4][4], f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void calcTplOffset(TEXPalette* tpl);  // game/model.cpp
 u16 getCharCode(u16 code);
 int isCtrlCode(u16 code);

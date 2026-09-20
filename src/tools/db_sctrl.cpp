@@ -15,12 +15,6 @@
 // t_event). Screen space is 640x480 centred on the graph centre; the graph is drawn in world space
 // through w->mtx (the camera matrix pushed 240 / tan(fovy / 2) in front of the camera).
 
-extern "C" {
-double tan(double x);
-double log10(double x);
-float atanf(float x);
-}
-
 #define SCTRL_MAX_KEY 64
 #define SCTRL_GRAB_DIST 10.0f
 #define SCTRL_HANDLE_LEN 10.0f

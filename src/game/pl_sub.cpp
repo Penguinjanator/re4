@@ -24,9 +24,7 @@
 extern "C" {
 void ReleaseWepData();                         // game/read.cpp
 void ReadPlayerData(int type, int costume);    // game/read.cpp
-void AddWaterPower(Vec* pos, f32 power);       // game/Espgen42.cpp
 }
-f32 GetDistance(Vec& v0, Vec& v1);               // game/sub2.cpp (second overload)
 
 extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
 

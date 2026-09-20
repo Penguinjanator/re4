@@ -45,7 +45,6 @@ asm(".comm common_em36,52,4");
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-void EmReserveDropItem(cEm* em);
 typedef void (*Em36Func)(cEm36*);
 
 static void em36_R0_Init(cEm36* em);

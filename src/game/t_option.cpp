@@ -20,8 +20,6 @@
 #include <string.h>
 
 
-void DrawGage(int x, int y, int h, int w, int val, int max, int color);
-void CamStick2World(Camera* cam, JOY* joy, Vec* out);
 extern "C" void Draw_pos(Vec* pos, int size);
 void PlSetDamage(int type, int dmg, int flag);
 void PlSetCostume();

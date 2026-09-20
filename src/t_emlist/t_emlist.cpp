@@ -461,7 +461,6 @@ static EmListIdInfo EmListIdTbl[64] = {
 
 // The player's position is all the tool needs from pPL (player.h would add its header strings).
 extern cEm* pPLem asm("pPL");
-extern "C" void memclr_asm(void* p, u32 size);
 // The list index is stored through a reference in emlist_r0_target: the store then keeps the
 // following `pG` loads in the search loops (a plain member store lets them hoist).
 

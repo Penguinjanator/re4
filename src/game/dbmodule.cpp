@@ -21,7 +21,6 @@
 extern "C" {
 void* GetPrimBuff(int size);
 void DCFlushRange(void* addr, u32 nBytes);
-float tanf(float);
 }
 
 #define DEG (PI / 180.0f)
@@ -29,7 +28,6 @@ float tanf(float);
 extern "C" {
 void GXBeginDisplayList(void* list, u32 size);
 u32 GXEndDisplayList(void);
-void GXCallDisplayList(void* list, u32 nbytes);
 }
 
 struct TileWork {

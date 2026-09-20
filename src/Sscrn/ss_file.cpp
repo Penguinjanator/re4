@@ -63,14 +63,8 @@ int fileNo(int cat, int no);
 void sscrn_file_out_init(SUB_SCREEN* wk);
 void dispFileList(SUB_SCREEN* wk, int n);
 // ss_main.cpp
-void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam);
-int sscrnKey2Game(SUB_SCREEN* wk);
 void dispScrollBar(int top, int n, int num, IdUnit* bar, IdUnit* up, IdUnit* down);
-void generalModelAlloc(SUB_SCREEN* wk);
-void sscrnModelFree(SUB_SCREEN* wk);
-int sscrnMainMenu(SUB_SCREEN* wk);
 // ss_model.cpp
-void playerModelInit();
 }
 
 // files per category

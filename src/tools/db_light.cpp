@@ -41,14 +41,6 @@ asm(".comm common_" DB_LIGHT_STR(REL_MODULE) ",52,4");
 // DB_LIGHT_SET_TOOL_LIGHT), t_esp also cLightTool::setLogMode (tools/db_light_esp.cpp,
 // DB_LIGHT_SET_LOG_MODE); t_sce / t_movie carry an older build (tools/db_light_v2.cpp, unwritten).
 
-extern "C" {
-f32 atan2f(f32 y, f32 x);
-f64 atan2(f64 y, f64 x);
-f32 asinf(f32 x);
-f32 cosf(f32 x);
-f32 sinf(f32 x);
-}
-
 // A colour as one word (DrawTile swatches). The user copy constructor makes it BLKmode: every inlined
 // drawColorTile shares one frame slot (see the FadeSet colour pair note in docs/matching.md).
 struct GXColorW {
@@ -167,12 +159,8 @@ struct cLightToolPtr {
     cLightTool* p;
 };
 
-void RotVector(Vec* v, Vec* rot);
-f32 LIMIT_ANGLE(f32 a);
-void moveOnPlaneXZ(Vec* pos, Vec* dir);
 int tcCurrentCameraNo();
 extern int DebugMenuSelected;
-cModel* getRoomEtcOnLight(int no);
 
 // Debug heap pointers are checked for the MEM1 range before use.
 #define PTR_OK(p) (!((u32)(p) < 0x80000000 || (u32)(p) > 0x82FFFFFF))

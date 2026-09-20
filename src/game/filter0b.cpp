@@ -21,7 +21,6 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 extern "C" {
-void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht);
 void Filter0bAllocBuf();
 void Filter0bFreeBuf();
 void Filter0bCapture();

@@ -25,10 +25,6 @@
 #include "item.h"
 #include "math_sub.h"
 
-extern "C" {
-f64 atan2(f64 y, f64 x);
-}
-
 // game/objSubWep.cpp: the thrown grenade / egg objects (init only, the module never touches the rest)
 class cSubWep : public cObj {
 public:

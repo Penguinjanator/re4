@@ -18,7 +18,6 @@
 // Motion viewer debug tool (Tools/t_mv.cpp): a three-step menu (init / main / quit through mvFunc) around
 // db_mod's model viewer, with the debug camera on the Z button.
 
-void drawGround(int on);
 int SetToolLight(int no);      // db_light_tools.cpp exports it (asm .globl; static in db_light.cpp)
 void ToolArrayPush(int flag);  // tools.cpp linkonce tail
 void ToolWorkPop(int flag);

@@ -21,10 +21,6 @@
 #include "snd.h"
 #include "math_sub.h"
 
-extern "C" {
-f64 atan2(f64 y, f64 x);
-}
-
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
 // The weapon object's own cAtariInfo (the object's collision with enemies while it is held).

@@ -51,7 +51,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
-extern "C" void Em_R0_Scenario(cEm* em);         // game/em_sub.cpp
 
 // The module's 0x30-byte COMMON block: uninitialised template statics of the original object,
 // appended to .bss by snmakerel.

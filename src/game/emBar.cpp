@@ -27,7 +27,6 @@ void SetPlDamage(cEm* em, void (*func)(cPlayer*));  // pl_sub.cpp
 void EndPlDamage();
 void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmBarFunc)(cEmBar*);
 

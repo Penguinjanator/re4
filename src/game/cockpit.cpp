@@ -16,7 +16,6 @@
 #include "cockpit.h"
 
 // game/item.cpp: life bar level (0..levels) of `max` against `base`
-int lifeLevel(int levels, s16 max, int base);
 
 #define ARC_PTR(ofs) ((void*) (pG->pCore->ofs + (u32) pG->pCore))
 

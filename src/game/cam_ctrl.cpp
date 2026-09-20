@@ -29,8 +29,6 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-f32 sinf(f32);
-f32 cosf(f32);
 }
 
 extern f32 ZNEAR;

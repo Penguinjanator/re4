@@ -35,8 +35,6 @@
 #include <string.h>
 
 extern "C" {
-double atan2(double y, double x);
-f32 sinf(f32 x);
 void ShapeMove(void* p);
 int SubLadderClimbCk(cModel* m);
 int SubLadderClimbCk2(cModel* m);

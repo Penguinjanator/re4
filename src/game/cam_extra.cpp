@@ -27,10 +27,7 @@
 #include <string.h>
 
 extern "C" {
-f32 atan2f(f32, f32);
 void Filter01SetParam(int mode, int z, u8 type, f32 level);
-void IdTexRelease(int id);
-int IdTexDataLoad(void* data, int id);
 }
 
 extern u8 use_filter0a;

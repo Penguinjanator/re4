@@ -823,7 +823,6 @@ void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
     C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
 }
 
-extern "C" f64 tan(f64 x);
 
 // Never called (the ss_pzzl screenPos2puzzlePos formula): the original REL link dead-stripped the
 // body (modules.py STRIP_UNUSED) and kept its pool, the four floats 0.5 / pi / 180 / 240 that

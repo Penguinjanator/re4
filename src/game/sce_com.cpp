@@ -52,7 +52,6 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
-void SubScreenWait(int frames);
 }
 
 

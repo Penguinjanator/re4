@@ -60,16 +60,12 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int SubCharHideCheck();                                  // game/pl_npc.cpp
-int getRoomEtcBreak(int no, cEm** em, int a);            // game/EtcModel.cpp
 int RandomItemCk(int a, int* id, int* num, int b);       // game/em_sub.cpp
 int ItemGetBinTplAddr(u8 id, void** bin, void** tpl);    // game/item_model.cpp
 void* EmReadSearch(int id, void* addr, u32 size);        // game/read.cpp
 }
-u32 SubCharGetStatus();                                  // game/pl_npc.cpp
 int DbMenuActiveCheck();                                 // game/db_menu.cpp
 cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot);  // game/obj19.cpp
-cEm* EmSetEvent(EmListData* d);                          // game/em_set.cpp
 
 #define MTX_COPY(src, dst)               \
     {                                    \
