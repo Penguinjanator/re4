@@ -562,7 +562,7 @@ void emWep_R1_Fall(cEmWep* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -2419,7 +2419,7 @@ void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
 
 // Makes the weapon shootable: a cylinder hit box (offset `size` or the origin) of width w /
 // height h, hp 1.
-void cEmWep::setYarare(Vec* size, f32 w, f32 h)
+void cEmWep::setYarare(f32 w, f32 h, Vec* size)
 {
     if (size) {
         YarareInit(this, size->x, size->y, size->z, w, h, 0, 1);

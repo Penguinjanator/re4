@@ -1140,7 +1140,7 @@ static void emlist_r0_target()
             p->pos[1] -= 50;
         }
         TprimDraw2D(0);
-        TprimDrawCursor((Vec*) &EmList.wk->cursorX, &list_color[(EmList.wk->joy.on >> 8) & 1], 0.0f);
+        TprimDrawCursor((Vec*) &EmList.wk->cursorX, 0.0f, &list_color[(EmList.wk->joy.on >> 8) & 1]);
         break;
     }
     emlist_target_disp(1);

@@ -3686,7 +3686,7 @@ static void em35_R1_Dm_U_Fall(cEm35* em)
             MotionMove(em, 0);
             em->r_no_2++;
         } else if (em->motEvent & 1) {
-            f32 fl = SatMgr.getFloor(&em->pos, em->pos_old.y - em->pos.y + 2000.0f, 100000.0f, 0, 0);
+            f32 fl = SatMgr.getFloor(&em->pos, 0, em->pos_old.y - em->pos.y + 2000.0f, 100000.0f, 0);
 
             if (em->pos.y < fl) {
                 em->pos.y = fl;

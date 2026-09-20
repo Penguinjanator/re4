@@ -266,7 +266,7 @@ void PenClothMove(cModel* m, PenCloth* c)
     floorY = -100000.0f;
     parts = m->getPartsPtr(0);
     if (!(c->Flag & 0x100)) {
-        floorY = SatMgr.getFloor(&parts->world, 600.0f, 100000.0f, 0, 0) + 30.0f;
+        floorY = SatMgr.getFloor(&parts->world, 0, 600.0f, 100000.0f, 0) + 30.0f;
     }
     if (m->be_flag & 0x00200000) {
         PenClothReset(m, c);
@@ -575,7 +575,7 @@ void PenClothMove2(cModel* m, PenCloth* c)
     floorY = -100000.0f;
     parts = m->getPartsPtr(0);
     if (!(c->Flag & 0x100)) {
-        floorY = SatMgr.getFloor(&parts->world, 600.0f, 100000.0f, 0, 0) + 30.0f;
+        floorY = SatMgr.getFloor(&parts->world, 0, 600.0f, 100000.0f, 0) + 30.0f;
     }
     if (m->be_flag & 0x00200000) {
         PenClothReset(m, c);
@@ -862,7 +862,7 @@ void PenClothMove3(cModel* m, PenCloth* c)
     floorY = -100000.0f;
     parts = m->getPartsPtr(0);
     if (!(c->Flag & 0x100)) {
-        floorY = SatMgr.getFloor(&parts->world, 600.0f, 100000.0f, 0, 0) + 30.0f;
+        floorY = SatMgr.getFloor(&parts->world, 0, 600.0f, 100000.0f, 0) + 30.0f;
     }
     if (m->be_flag & 0x00200000) {
         PenClothReset(m, c);

@@ -175,7 +175,7 @@ void cEm24::move()
         } else {
             f32 wh;
 
-            pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
+            pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
             if (GetWaterHeight(&pos, &wh)) {
                 if (pos.y < wh) {
                     w->Be_flg |= 0x20;
@@ -327,7 +327,7 @@ static void em24_R1_BoxWait(cEm24* em)
             PSMTXMultVecSR(em->mat, &w->spd, &v);
             PSVECAdd(&em->pos, &v, &em->pos);
             w->spd.y -= 20.0f;
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
@@ -540,7 +540,7 @@ static void em24_R0_Die(cEm24* em)
 
             SceAtSetItemModel(no, wep);
             wep->setAtNo(no);
-            wep->setYarare(0, 100.0f, 10.0f);
+            wep->setYarare(100.0f, 10.0f, 0);
             wep->setEffDamage(0x1C, 0x1F);
             wep->setSeDamage(8, 0xC, em->id);
         }
@@ -616,13 +616,13 @@ void em24SlopeMove(cEm24* em)
     b.z = -200.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
     if (GetWaterHeight(&a, &wh)) {
         if (fa < wh) {
             fa = wh;
         }
     }
-    fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
     if (GetWaterHeight(&b, &wh)) {
         if (fb < wh) {
             fb = wh;

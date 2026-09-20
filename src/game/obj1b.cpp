@@ -363,7 +363,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
     f32 mag;
     f32 diff;
 
-    floor = EatMgr.getFloor(&obj->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&obj->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         p = &node[i];
         p->spd.x = w->spd[i].x;

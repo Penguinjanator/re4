@@ -3059,7 +3059,7 @@ static void plem2bDmFall(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
         } else {
-            f32 y = SatMgr.getFloor(&pl->pos, pl->pos_old.y - pl->pos.y + 2000.0f, 100000.0f, 0, 0);
+            f32 y = SatMgr.getFloor(&pl->pos, 0, pl->pos_old.y - pl->pos.y + 2000.0f, 100000.0f, 0);
             if (pl->pos.y < y) {
                 pl->pos.y = y;
                 if (pl->frame > 63.7000008f && pl->frame < 64.3000031f) {

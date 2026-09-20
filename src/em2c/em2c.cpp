@@ -186,7 +186,7 @@ static inline void em2cGravityMove(cEm2c* em, Em2cWork* w)
 
     PSVECAdd(&em->pos, &w->spd, &em->pos);
     w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos_old, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos_old, 0, 600.0f, 100000.0f, 0);
     if (em->pos.y < fl) {
         em->pos.y = fl;
         w->spd.y = 0.0f;
@@ -1395,7 +1395,7 @@ static void em2c_R1_Walk(cEm2c* em)
                 return;
             }
             if (plAng > 1.57079637f) {
-                GetPlPos(&pos, 0, 20.0f);
+                GetPlPos(&pos, 20.0f, 0);
                 if ((em->pos.x - pos.x) * (em->pos.x - pos.x) + (em->pos.z - pos.z) * (em->pos.z - pos.z) <
                     6250000.0f) {
                     EmRoutineSet(em, 1, 9, 0, 0);
@@ -1569,7 +1569,7 @@ static void em2c_R1_Dash(cEm2c* em)
                 return;
             }
             if (plAng > 1.57079637f) {
-                GetPlPos(&pos, 0, 20.0f);
+                GetPlPos(&pos, 20.0f, 0);
                 if ((em->pos.x - pos.x) * (em->pos.x - pos.x) + (em->pos.z - pos.z) * (em->pos.z - pos.z) <
                     6250000.0f) {
                     EmRoutineSet(em, 1, 9, 0, 0);
@@ -2688,7 +2688,7 @@ static void em2c_R1_HideWait(cEm2c* em)
         w->timer = Rnd() % 60 + 60;
         w->timer8 = fe;
     case 1:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -2745,7 +2745,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         w->timer8 = 24;
         em->r_no_3 = fe;
     case 1:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -2765,9 +2765,9 @@ static void em2c_R1_HideAtk(cEm2c* em)
             w->timer = 30;
             w->timer8 = 15;
             if (w->x6B8) {
-                GetPlPos(&w->pTail->pos, 0, 0.0f);
+                GetPlPos(&w->pTail->pos, 0.0f, 0);
             } else {
-                GetPlPos(&w->pTail->pos, 0, 10.0f);
+                GetPlPos(&w->pTail->pos, 10.0f, 0);
             }
             w->pTail->pos.y = pPLS->pos.y + 4000.0f;
             w->pTail->ang.y += pPLS->ang.y + 3.14159274f;
@@ -2798,7 +2798,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         break;
     case 2:
         if (w->x6B8 == 0) {
-            GetPlPos(&em->pos, 0, 10.0f);
+            GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 3.14159274f) + 3.14159274f;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -2874,7 +2874,7 @@ static void em2c_R1_HideFall(cEm2c* em)
         }
         em->dmg.m_Timer = 2;
         end = MotionMove(em, 0);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -2903,7 +2903,7 @@ static void em2c_R1_HideFall(cEm2c* em)
         em->dmg.m_Timer = 2;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -2981,7 +2981,7 @@ static void em2c_R1_JumpDown(cEm2c* em)
         em->dmg.m_Timer = 2;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             em->r_no_2++;
@@ -3534,7 +3534,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
         }
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -3561,7 +3561,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
         em->dmg.m_Timer = 2;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -3586,7 +3586,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
         em->dmg.m_Timer = 2;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -3655,7 +3655,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         }
         em->r_no_3 = 1;
     case 1:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3686,7 +3686,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         }
         break;
     case 2:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3696,7 +3696,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->r_no_2++;
     case 3:
         if (w->x6B8 == 0) {
-            GetPlPos(&em->pos, 0, 10.0f);
+            GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y += 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3723,7 +3723,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         break;
     case 4:
         if (w->x6B8 == 0) {
-            GetPlPos(&em->pos, 0, 10.0f);
+            GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3756,7 +3756,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         w->x6B8 = 0;
         w->timer = 120;
     case 7:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3856,7 +3856,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
         w->flags |= 0x1000;
         em->dmg.m_Timer = 2;
         end = MotionMove(em, 0);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -3887,7 +3887,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
         em->dmg.m_Timer = 2;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -3940,7 +3940,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         em->r_no_2++;
         w->x6B8 = fe;
     case 1:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3957,7 +3957,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         }
         break;
     case 2:
-        GetPlPos(&em->pos, 0, 10.0f);
+        GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3975,7 +3975,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         if (em->r_no_3) {
             MotionSetCore(em, &em->Motion, ARC(0x8C), 0, 0, 5, 0);
             if (w->x6B8 == 0) {
-                GetPlPos(&em->pos, 0, 10.0f);
+                GetPlPos(&em->pos, 10.0f, 0);
                 em->pos.y = pPLS->pos.y - 500.0f;
                 em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
                 em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -3985,7 +3985,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
             }
         } else {
             MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
-            GetPlPos(&em->pos, 0, 10.0f);
+            GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y += 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -4017,7 +4017,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         break;
     case 4:
         if (w->x6B8 == 0) {
-            GetPlPos(&em->pos, 0, 10.0f);
+            GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -4079,7 +4079,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
         em->r_no_2++;
         w->x6B8 = fe;
     case 1:
-        GetPlPos(&em->pos, 0, 3.0f);
+        GetPlPos(&em->pos, 3.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
@@ -4257,7 +4257,7 @@ static void em2c_R1_Dm_Down(cEm2c* em)
         if (DM_TYPE) {                                                                         \
             (em)->dmg.m_Timer = 2;                                                                  \
         }                                                                                      \
-        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        fl_ = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                             \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
         if ((em)->pos.y < fl_) {                                                               \
             (em)->pos.y = fl_;                                                                 \
@@ -5721,7 +5721,7 @@ int em2cFallCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
 
-    if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) > em->pos.y - 250.0f) {
+    if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) > em->pos.y - 250.0f) {
         return 0;
     }
     w->wallNrm.x = 0.0f;

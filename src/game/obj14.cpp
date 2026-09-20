@@ -120,7 +120,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.y = 0.0f;
         p.z = 250.0f;
         PSMTXMultVec(obj->mat, &p, &p);
-        p.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0);
+        p.y = SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0);
         StaFlagOn(pG, STA_SE_BURST);
         // A byte-pointer destination: the copy is then a plain (non-struct) store and the
         // original reloads pG for the following store, as the target shows.

@@ -989,7 +989,7 @@ void em3bSlopeMove(cEm3b* em)
     if (em->motFlags2 & 0x40000000) {
         return;
     }
-    fa = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     // two statements into the function-scope fb: the difference and the fabs share fb's register (f1)
     fb = fa - em->pos.y;
     fb = fabsf(fb);
@@ -1006,8 +1006,8 @@ void em3bSlopeMove(cEm3b* em)
     b.z = -500.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
-    fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
+    fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
     if (fa == -100000.0f) {
         fa = em->pos.y;
     }

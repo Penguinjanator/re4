@@ -428,7 +428,7 @@ int FuncPathParametrize(void* path, void* data)
 
 // Point on the parametrised B-spline at t in 0..1: sum of the basis values times alpha. Returns 0
 // on an allocation / basis failure.
-int FuncPathCalc(void* path, void* data, Vec* out, f32 t)
+int FuncPathCalc(void* path, void* data, f32 t, Vec* out)
 {
     FuncPathWork* w = (FuncPathWork*)data;
     f32* B;

@@ -794,7 +794,7 @@ void rckMainDisp()
     if (RCK->flags & 1) {
         c = 1;
     }
-    TprimDrawCursor((Vec*) &RCK->curX, &cursor_col[c], 0.0f);
+    TprimDrawCursor((Vec*) &RCK->curX, 0.0f, &cursor_col[c]);
     rckPointInfoDisp();
     eprintf2(10, 16, 440, 8, 0, 0, "%03x", pG->room_id);
     eprintf(menu_pos[0], menu_pos[1] - 14, 4, 0, "- MENU -");
@@ -821,7 +821,7 @@ void rckMainDisp()
         rckModeDisp("Z:DELETE", "Z:delete", RCK->cur != -1, 30, "Z:     Delete Point");
         break;
     }
-    TprimDrawCursor((Vec*) &RCK->curX, &cursor_col[c], 0.0f);
+    TprimDrawCursor((Vec*) &RCK->curX, 0.0f, &cursor_col[c]);
 }
 
 // Draws every point as a cursor mark: caught / current / nearest / plain colours.

@@ -255,7 +255,7 @@ address	size	section	unit	scope	name	demangled
 0x800192CC	0x10	.text	game/emwep.cpp	global	setEffWater__6cEmWepUcUc	cEmWep::setEffWater
 0x800192DC	0x4C	.text	game/emwep.cpp	global	setEffAlways__6cEmWepUcUc	cEmWep::setEffAlways
 0x80019328	0x3C	.text	game/emwep.cpp	global	setEffAlways2__6cEmWepUcUcUcP3VecUs	cEmWep::setEffAlways2
-0x80019364	0x84	.text	game/emwep.cpp	global	setYarare__6cEmWepP3Vecff	cEmWep::setYarare
+0x80019364	0x84	.text	game/emwep.cpp	global	setYarare__6cEmWepffP3Vec	cEmWep::setYarare
 0x800193E8	0x84	.text	game/emwep.cpp	global	setYarareCube__6cEmWepfffP3Vec	cEmWep::setYarareCube
 0x8001946C	0x34	.text	game/emwep.cpp	global	setTransMode__6cEmWepi	cEmWep::setTransMode
 0x800194A0	0x8	.text	game/emwep.cpp	global	setAtNo__6cEmWepi	cEmWep::setAtNo
@@ -1132,8 +1132,8 @@ address	size	section	unit	scope	name	demangled
 0x80056B0C	0x10	.text	game/pl_push.cpp	global	stopTarget__7cPlPush	cPlPush::stopTarget
 0x80056B1C	0x160	.text	game/pl_push.cpp	global	getWHY__7cPlPushPfN21	cPlPush::getWHY
 0x80056C7C	0xCC	.text	game/pl_push.cpp	global	scrHitCheck__7cPlPush	cPlPush::scrHitCheck
-0x80056D48	0x200	.text	game/pl_push.cpp	global	scrHitCheckSub__7cPlPushP3Vecffff	cPlPush::scrHitCheckSub
-0x80056F48	0x238	.text	game/pl_push.cpp	global	emSandCheck__7cPlPushP3Vecfff	cPlPush::emSandCheck
+0x80056D48	0x200	.text	game/pl_push.cpp	global	scrHitCheckSub__7cPlPushfffP3Vecf	cPlPush::scrHitCheckSub
+0x80056F48	0x238	.text	game/pl_push.cpp	global	emSandCheck__7cPlPushfffP3Vec	cPlPush::emSandCheck
 0x80057180	0x100	.text	game/pl_push.cpp	global	plAdjust__7cPlPush	cPlPush::plAdjust
 0x80057280	0x140	.text	game/player.cpp	global	PlayerInit	PlayerInit
 0x800573C0	0xE8	.text	game/player.cpp	global	PlayerLifeReset	PlayerLifeReset
@@ -3046,7 +3046,7 @@ address	size	section	unit	scope	name	demangled
 0x800CA708	0x178	.text	game/atari.cpp	global	scrAtCheckSphereAir__7cSatMgrP6cModelP10cAtariInfoi	cSatMgr::scrAtCheckSphereAir
 0x800CA880	0x1B4	.text	game/atari.cpp	global	wallAdjust__7cSatMgrP3VecN21fii	cSatMgr::wallAdjust
 0x800CAA34	0x194	.text	game/atari.cpp	global	adjust__7cSatMgrP3VecN21fii	cSatMgr::adjust
-0x800CABC8	0x98	.text	game/atari.cpp	global	getFloor__7cSatMgrP3VecffPUli	cSatMgr::getFloor
+0x800CABC8	0x98	.text	game/atari.cpp	global	getFloor__7cSatMgrP3VecPUlffi	cSatMgr::getFloor
 0x800CAC60	0xA4	.text	game/atari.cpp	global	log__7cSatMgrPCce	cSatMgr::log
 0x800CAD04	0x28	.text	game/atari.cpp	global	polyBitSet__FUl	polyBitSet
 0x800CAD2C	0x24	.text	game/atari.cpp	global	polyBitCk__FUl	polyBitCk
@@ -3693,7 +3693,7 @@ address	size	section	unit	scope	name	demangled
 0x800F7084	0x62C	.text	game/em_sub.cpp	global	RandomItemCk	RandomItemCk
 0x800F76B0	0x90	.text	game/em_sub.cpp	global	CheckInWater	CheckInWater
 0x800F7740	0x40	.text	game/em_sub.cpp	global	HandgunCk	HandgunCk
-0x800F7780	0x7C	.text	game/em_sub.cpp	global	GetPlPos__FP3VecP3cEmf	GetPlPos
+0x800F7780	0x7C	.text	game/em_sub.cpp	global	GetPlPos__FP3VecfP3cEm	GetPlPos
 0x800F77FC	0xE8	.text	game/em_sub.cpp	global	TrolleyItemSetCk	TrolleyItemSetCk
 0x800F78E4	0xE8	.text	game/em_sub.cpp	global	BullItemSetCk	BullItemSetCk
 0x800F79CC	0x24	.text	game/em_sub.cpp	global	adjust_add_set	adjust_add_set
@@ -3966,7 +3966,7 @@ address	size	section	unit	scope	name	demangled
 0x80110B18	0x390	.text	game/emshield.cpp	global	emShield_R1_Parent	emShield_R1_Parent
 0x80110EA8	0x86C	.text	game/emshield.cpp	global	emShield_R1_Fall	emShield_R1_Fall
 0x80111714	0x4C	.text	game/emshield.cpp	global	setParent__9cEmShieldP6cModelii	cEmShield::setParent
-0x80111760	0x1D8	.text	game/emshield.cpp	global	setFall__9cEmShieldfP3Vec	cEmShield::setFall
+0x80111760	0x1D8	.text	game/emshield.cpp	global	setFall__9cEmShieldP3Vecf	cEmShield::setFall
 0x80111938	0x20	.text	game/emshield.cpp	global	_._9cEmShield	cEmShield::~cEmShield
 0x80111958	0x1E8	.text	game/emswitch.cpp	local	emSwitchDmCk__FP9cEmSwitch	emSwitchDmCk
 0x80111B40	0x290	.text	game/emswitch.cpp	global	SetEmSwitch	SetEmSwitch

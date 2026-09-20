@@ -22,7 +22,7 @@ void TprimSetBlend(u32 blend);
 // The tool modules link the full t_prim (tools/t_prim.cpp); the DOL link dead-stripped these.
 void TprimDraw2D(u32 blend);
 void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n);
-void TprimDrawCursor(Vec* pos, GXColor* col, f32 z);
+void TprimDrawCursor(Vec* pos, f32 z, GXColor* col);
 void TprimDrawMtxDirection(Mtx m, GXColor* fill, GXColor* line);
 
 // The full build (Tools REL, tools/t_prim.cpp with TPRIM_FULL): 2D-only environment, line strips, tiles,
@@ -33,7 +33,7 @@ struct S16Vec {
 
 void TprimInitEnv2D(TprimRect* rect);
 void TprimDrawLineFn(Vec* v, GXColor* col, u16 n);
-void TprimDrawTile2D(TprimRect* rect, GXColor* col, f32 z);
+void TprimDrawTile2D(TprimRect* rect, f32 z, GXColor* col);
 void TprimDrawHtr(Vec* pos, GXColor* col);
 void TprimDrawHtrCone(Vec* pos, GXColor* col);
 void TprimDrawFrameFn_s16(S16Vec* v, GXColor* col, u16 n);

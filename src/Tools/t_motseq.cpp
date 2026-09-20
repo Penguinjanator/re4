@@ -1189,7 +1189,7 @@ void msqDisp()
         rc.y = 362.0f;
         rc.w = 17.0f;
         rc.h = 73.0f;
-        TprimDrawTile2D(&rc, &c1, 0.0f);
+        TprimDrawTile2D(&rc, 0.0f, &c1);
         if (w->seq[0].cursor != 0) {
             rc.x = tx;
             rc.y = (f32) (w->seq[0].cursor * 5 + 362);
@@ -1203,7 +1203,7 @@ void msqDisp()
             col.g = 0x20;
             col.b = 0x80;
             col.a = 0x40;
-            TprimDrawTile2D(&rc, &col, 0.0f);
+            TprimDrawTile2D(&rc, 0.0f, &col);
         }
         x = 40.0f;
         rc.w = 13.0f;
@@ -1231,7 +1231,7 @@ void msqDisp()
                 } else {
                     col = c2;
                 }
-                TprimDrawTile2D(&rc, &col, 0.0f);
+                TprimDrawTile2D(&rc, 0.0f, &col);
                 bit <<= 1;
                 rc.y += rowStep;
             }
@@ -1246,7 +1246,7 @@ void msqDisp()
             } else {
                 col = c2;
             }
-            TprimDrawTile2D(&rc, &col, 0.0f);
+            TprimDrawTile2D(&rc, 0.0f, &col);
             y0++;
             rc.y += colStep;
             x += xStep;

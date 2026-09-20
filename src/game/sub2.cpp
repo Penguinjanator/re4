@@ -145,7 +145,7 @@ f32 Muku2(f32 ang, f32 target, f32 limit)
 }
 
 // Turn amount from `ang` toward the direction vector `dir`, clamped to +-limit.
-f32 Muku3(Vec* dir, f32 ang, f32 limit)
+f32 Muku3(f32 ang, Vec* dir, f32 limit)
 {
     return Muku2(ang, (f32) atan2(dir->x, dir->z), limit);
 }
@@ -276,7 +276,7 @@ void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y)
     Vec dir;
     Vec hit;
 
-    CamPos2ScrnVec(&dir, sx, sy);
+    CamPos2ScrnVec(sx, sy, &dir);
 #line 518 "D:/Bio4/Prog/sub2.cpp"
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, 20000.0f);
@@ -361,7 +361,7 @@ void VecToCamVec(Vec* v, Vec* out)
 
 // Does the segment a-b enter the sphere (c, r)? Returns 1 with the entry point in `out` (a itself
 // when it starts inside).
-int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, Vec* out, f32 r)
+int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, f32 r, Vec* out)
 {
     Vec ab;
     Vec ac;

@@ -119,7 +119,7 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
 // Fits the XZ position whose screen projection is closest to `target`: a square of side `step` around
 // `center` is projected corner by corner, the closest corner becomes the new origin and the side is
 // halved until it underflows to 0.
-int TutilGet3DPosXZ(Vec* target, Vec* center, Vec* out, f32 step)
+int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out)
 {
     Vec p[4];
     f32 scr[4];
@@ -201,7 +201,7 @@ int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out)
         prev.x = cur.x;
         prev.y = cur.y;
         prev.z = cur.z;
-        if (TutilGet3DPosXZ(target, &prev, &cur, 1024.0f) == 0) {
+        if (TutilGet3DPosXZ(target, &prev, 1024.0f, &cur) == 0) {
             return 0;
         }
         i++;
@@ -229,7 +229,7 @@ int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out)
         prev.x = cur.x;
         prev.y = cur.y;
         prev.z = cur.z;
-        if (TutilGet3DPosXZ(target, &prev, &cur, 2048.0f) == 0) {
+        if (TutilGet3DPosXZ(target, &prev, 2048.0f, &cur) == 0) {
             return 0;
         }
         i++;

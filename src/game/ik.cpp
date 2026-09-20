@@ -332,11 +332,11 @@ void InverseKinematics(cModel* m, int flag)
                 floorY = target.y - eff->pos.y;
             } else if (IK_FLAGS(p) & 0x800) {
                 target.y += 1000.0f;
-                floorY = SatMgr.getFloor(&target, 500.0f, 100000.0f, 0, 0);
+                floorY = SatMgr.getFloor(&target, 0, 500.0f, 100000.0f, 0);
             } else if (IK_FLAGS(p) & 0x40) {
-                floorY = SatMgr.getFloor(&target, 6000.0f, 100000.0f, 0, 0);
+                floorY = SatMgr.getFloor(&target, 0, 6000.0f, 100000.0f, 0);
             } else {
-                floorY = SatMgr.getFloor(&target, 500.0f, 100000.0f, 0, 0);
+                floorY = SatMgr.getFloor(&target, 0, 500.0f, 100000.0f, 0);
             }
             if (floorY != -100000.0f) {
                 f32 dist;

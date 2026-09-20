@@ -210,7 +210,7 @@ void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad)
 }
 
 // out = s * a + t * b.
-void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
+void VecLinearCombination(Vec* a, f32 s, Vec* b, f32 t, Vec* out)
 {
     Vec ta;
     Vec tb;
@@ -221,7 +221,7 @@ void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
 }
 
 // Interpolate the direction of `a` towards `b` by the ratio s : t.
-void VecInternalDivisionAngle(Vec* a, Vec* b, f32 s, Vec* out, f32 t)
+void VecInternalDivisionAngle(Vec* a, f32 s, Vec* b, f32 t, Vec* out)
 {
     Mtx r;
     Vec axis;

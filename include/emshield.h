@@ -59,7 +59,7 @@ public:
     virtual void move();
 
     void setParent(cModel* parent, int partsNo, int flag);
-    void setFall(f32 gravity, Vec* spd);
+    void setFall(Vec* spd, f32 gravity);
 };
 
 extern "C" {

@@ -94,7 +94,7 @@ public:
     void setEffWater(u8 id, u8 type);
     void setEffAlways(u8 id, u8 type);
     void setEffAlways2(u8 id, u8 type, u8 parts, Vec* ofs, u16 wait);
-    void setYarare(Vec* size, f32 w, f32 h);
+    void setYarare(f32 w, f32 h, Vec* size);
     void setYarareCube(f32 x, f32 y, f32 z, Vec* size);
     void setTransMode(int on);
     void setAtNo(int no);

@@ -167,7 +167,7 @@ static void r228_checkSalazarBattle()
         SceKill(r228_work.p->se);
     }
     r228_work.p->eff = EspPullCoreKind();
-    f32 y = SatMgr.getFloor(&pPLS->pos, 600.0f, 100000.0f, 0, 0);
+    f32 y = SatMgr.getFloor(&pPLS->pos, 0, 600.0f, 100000.0f, 0);
     FSetP(pPL->pos.y, y);
     pPL->setPos(&pPL->pos);
     SceEventStart(0);

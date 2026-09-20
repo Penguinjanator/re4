@@ -30,8 +30,8 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id);
 YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag);
 YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);
 YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int flag);
-int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit);
-int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit);
+int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r);
+int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* hit, f32 sx, f32 sy, f32 sz);
 int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit);
 YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag);
@@ -40,7 +40,7 @@ u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 max, Vec* hit,
 int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, int flag);
 int PlBombHitCk(Vec* pos, f32 r);
 int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, int* outAttr);
-YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r);
+YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out);
 void EmYarareDisp(cEm* em);
 void EmScenario(cEm* em);
 int LifeDownSet(cEm* em, int dmg, int flag);
@@ -69,6 +69,6 @@ void adjust_add_set(Vec add);
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame (C++ linkage;
 // Bio4.sym marks it local but the em3c module calls it).
-void GetPlPos(Vec* out, cEm* em, f32 t);
+void GetPlPos(Vec* out, f32 t, cEm* em);
 
 #endif

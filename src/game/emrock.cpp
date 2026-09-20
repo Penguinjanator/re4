@@ -575,7 +575,7 @@ void emRock_R1_Throw(cEmRock* em)
                 Vec fp;
 
                 fp = em->pos;
-                fp.y = EatMgr.getFloor(&fp, 600.0f, 100000.0f, 0, 0);
+                fp.y = EatMgr.getFloor(&fp, 0, 600.0f, 100000.0f, 0);
                 EstSet(0, -1, &fp, 0, w->effFall[0], w->effFall[1], 0, 0, 0, 0);
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
@@ -815,7 +815,7 @@ void emRock_R1_Roll(cEmRock* em)
         } else {
             f32 floor;
 
-            floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + w->Radius;
+            floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + w->Radius;
             if (em->pos.y < floor) {
                 em->pos.y = floor;
                 w->spd.y *= -0.5f;

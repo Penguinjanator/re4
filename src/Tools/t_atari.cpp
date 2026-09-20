@@ -384,7 +384,7 @@ static void plmove10(AtariToolWork* w)
     } else {
         SatMgr.wallAdjust(0, &oldPos, &w->pos, 100.0f, 0, 0);
     }
-    y = EatMgr.getFloor(&w->pos, 600.0f, 100000.0f, 0, 0);
+    y = EatMgr.getFloor(&w->pos, 0, 600.0f, 100000.0f, 0);
     if (y != -100000.0f) {
         old.y = y;
     } else {

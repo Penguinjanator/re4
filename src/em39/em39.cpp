@@ -2499,7 +2499,7 @@ static void em39_R1_JumpDown(cEm39* em)
         if (em->seFlags28B & 0x10) {
             v = em->pos;
             v.y = em->pos_old.y;
-            fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 AtariOn(&em->atari, 0x300);
@@ -3852,7 +3852,7 @@ static void em39_R1_AppearMG(cEm39* em)
 
     w->Be_flg |= 0xC0;
     w->Be_flg &= ~0x20;
-    GetPlPos(&target, 0, 10.0f);
+    GetPlPos(&target, 10.0f, 0);
     target.y += 1300.0f;
     PSVECSubtract(&target, &em->pos, &b);
     PSMTXRotRad(m, 'y', 0.018325957f);
@@ -3998,7 +3998,7 @@ static void em39_R1_AppearMG2(cEm39* em)
 
     w->Be_flg |= 0xC0;
     w->Be_flg &= ~0x20;
-    GetPlPos(&target, 0, 10.0f);
+    GetPlPos(&target, 10.0f, 0);
     target.y += 1500.0f;
     PSVECSubtract(&target, &em->pos, &b);
     PSMTXRotRad(m, 'y', 0.018325957f);
@@ -4151,7 +4151,7 @@ static void em39_R1_AppearGR(cEm39* em)
     } else {
         Mtx m;
 
-        GetPlPos(&target, 0, 10.0f);
+        GetPlPos(&target, 10.0f, 0);
         target.y += 1300.0f;
         PSVECSubtract(&target, &em->pos, &b);
         PSMTXRotRad(m, 'y', 0.008726646f);
@@ -4452,7 +4452,7 @@ static void em39_R1_AppearBow(cEm39* em)
     } else {
         Mtx m;
 
-        GetPlPos(&target, 0, 10.0f);
+        GetPlPos(&target, 10.0f, 0);
         target.y += 1300.0f;
         PSVECSubtract(&target, &em->pos, &b);
         PSMTXRotRad(m, 'y', 0.008726646f);
@@ -7025,11 +7025,11 @@ int em39JumpDownCk(cEm39* em, int force)
         return 0;
     }
     if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
-        if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
+        if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) < em->pos.y - 350.0f) {
             a = em->pos;
             a.z += 100.0f;
             a.x += 100.0f;
-            if (SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
+            if (SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0) < em->pos.y - 350.0f) {
                 w->Target_dir = em->ang.y;
                 EmRoutineSet(em, 1, 0x13, 0, 0);
                 return 1;
@@ -7384,7 +7384,7 @@ int em39AppearCk(cEm39* em)
     plPos = pPL->pos;
     plPos.y += 1500.0f;
     retry = 1;
-    GetPlPos(&pos, 0, 20.0f);
+    GetPlPos(&pos, 20.0f, 0);
     for (i = 0; i < EM39_EMI->n; i++) {
         EmiEntry* e = &EM39_EMI->entry[i];
 

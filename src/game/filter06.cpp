@@ -223,7 +223,7 @@ void Filter06Trans()
 // Starts `level` particles (max 0x800; buffer allocated on first use) with speed spd +- spdRand per
 // particle, target colour r,g,b,a approached at `rate`, starting alpha, line length scale and
 // minimum alpha.
-void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd, f32 alpha, Vec* spdRand, f32 scale,
+void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, f32 alpha, Vec* spd, Vec* spdRand, f32 scale,
                       int alphaMin)
 {
     u32 i;

@@ -212,7 +212,7 @@ static f32 ScrnY2Ratio(int y)
 // World-space ray direction through screen pixel (sx, sy): the pixel offset from the screen
 // centre in 640 x 480 units, z from the vertical fov, rotated by the camera matrix (aiming /
 // picking).
-void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
+void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out)
 {
     f32 ang = pG->Cam.param.fovy;
     f32 h = 480.0f;  // first constant of the pool

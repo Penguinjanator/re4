@@ -649,7 +649,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         p.z = cap_dist_max;
         p0 = &m_pModel->getPartsPtr(0)->world;
         c = c0;
-        VecLinearCombination(p0, &m_pModel->getPartsPtr(1)->world, c, 1.0f - c0, &mid);
+        VecLinearCombination(p0, c, &m_pModel->getPartsPtr(1)->world, 1.0f - c0, &mid);
         PSVECScale(&mid, &mid, 0.5f);
         PSVECAdd(&mid, &p, &at);
         itemCamera.param.at = mid;

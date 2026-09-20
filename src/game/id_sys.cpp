@@ -23,7 +23,7 @@ double strtod(const char*, char**);
 void OSReport(const char* msg, ...);
 // game/path.cpp
 int FuncPathParametrize(void* path, void* data);
-int FuncPathCalc(void* path, void* data, Vec* out, f32 t);
+int FuncPathCalc(void* path, void* data, f32 t, Vec* out);
 }
 
 extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
@@ -691,8 +691,8 @@ void idSysMove00(IdUnit* u)
         } else {
             t = 0.0f;
         }
-        if (FuncPathCalc(u->path0, u->path1, &u->pos, t) == 0 ||
-            FuncPathCalc(u->path0, u->path1, &tmp, 0.0f) == 0) {
+        if (FuncPathCalc(u->path0, u->path1, t, &u->pos) == 0 ||
+            FuncPathCalc(u->path0, u->path1, 0.0f, &tmp) == 0) {
             memclr_asm(&u->pos, sizeof(Vec));
         } else {
             u->pos.x -= tmp.x;

@@ -33,7 +33,7 @@ void Espgen44_Destruct(EspgenWork* w)
         break;
     case 1: {
         Vec zero = {0.0f, 0.0f, 0.0f};
-        Filter06SetParam(0, 0, 0, 0, 0, 0.0f, &zero, 0.0f, &zero, 0.0f, 0);
+        Filter06SetParam(0, 0, 0, 0, 0, 0.0f, 0.0f, &zero, &zero, 0.0f, 0);
         break;
     }
     }
@@ -64,7 +64,7 @@ int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         int level = (s8) rec->Work8[0] * 100 + 100;
         f32 scale = rec->Size_base_x * 0.005f;
         int kind = rec->Work8[1];
-        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, &rec->Speed, 0.0f, &rec->R_speed, scale,
+        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, &rec->Speed, &rec->R_speed, scale,
                          kind);
         break;
     }

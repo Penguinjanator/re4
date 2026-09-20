@@ -927,7 +927,7 @@ void em2aTrap2Bomb(cEm2a* em)
     EffectEfmDelete(0, (u8) w->espKind, em);
     water = 0;
     if (GetWaterHeight(&em->pos, &wh)) {
-        if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < wh) {
+        if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) < wh) {
             water = 1;
         }
     }

@@ -1253,7 +1253,7 @@ void tSceItem_PointDisp(f32 x, f32 y, f32 z)
     p.z = z;
     Draw_sphere(&p, 100.0f, 0xFFFFFF80, 1, 1);
     f = p;
-    f.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, NULL, 0);
+    f.y = SatMgr.getFloor(&p, NULL, 600.0f, 100000.0f, 0);
     Draw_line3d(&p, &f, 0x80808020, 0);
     p = f;
     p.x += 200.0f;

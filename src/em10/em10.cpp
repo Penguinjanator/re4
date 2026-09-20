@@ -3547,7 +3547,7 @@ static void em10_R1_Wait(cEm10* em)
         if (w->pCore || w->pParasite) {
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
         }
@@ -3794,7 +3794,7 @@ static void em10_R1_HideFall(cEm10* em)
     case 2:
         em10HideOff(em, w);
         {
-            f32 y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            f32 y = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             w->Keep_pos = em->pos;
             w->Keep_pos.y = y;
         }
@@ -3847,7 +3847,7 @@ static void em10_R1_HideJump(cEm10* em)
         v.y = 0.0f;
         v.z = 200.0f;
         PSMTXMultVec(em->mat, &v, &v);
-        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         if (y < em->pos.y - 350.0f) {
             w->Keep_pos = em->pos;
             w->Keep_pos.y = y;
@@ -5987,7 +5987,7 @@ static void em10_R1_R30FBullJump(cEm10* em)
             f32 y;
             v = em->pos;
             v.y = em->pos_old.y;
-            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             // The landing tail is repeated in both arms (jump2 cross-jumps it): with the MotionSetCore call
             // in the SndCall's block, the SndCall arg `li r3, 8` is issued after `mr r8` like the target.
             if (em->pos.y < y) {
@@ -7580,7 +7580,7 @@ static void em10_R1_Stay(cEm10* em)
         if (w->pCore || w->pParasite) {
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
         }
@@ -8291,7 +8291,7 @@ static void em10_R1_LadderClimb(cEm10* em)
             em->setStatus(EM_STATUS_IK_OFF);
         }
         if (em->seFlags28B & 8) {
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
             }
@@ -8585,7 +8585,7 @@ static void em10_R1_JumpDown(cEm10* em)
         }
         tmp = em->pos;
         tmp.y = em->pos_old.y;
-        fl = SatMgr.getFloor(&tmp, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&tmp, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             EM10_JUMP_DOWN_LAND;
         } else if (end) {
@@ -8611,7 +8611,7 @@ static void em10_R1_JumpDown(cEm10* em)
         MotionMove(em, 0);
         tmp = em->pos;
         tmp.y = em->pos_old.y;
-        fl = SatMgr.getFloor(&tmp, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&tmp, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             EM10_JUMP_DOWN_LAND;
         }
@@ -8682,7 +8682,7 @@ static void em10_R1_Jump(cEm10* em)
         v.y = 0.0f;
         v.z = 4000.0f;
         PSMTXMultVec(mat, &v, &v);
-        fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         w->TmpF = fl - em->pos.y;
         if (fl > 1000.0f) {
             w->TmpF = 0.0f;
@@ -8713,7 +8713,7 @@ static void em10_R1_Jump(cEm10* em)
         if (em->seFlags28B & 1) {
             tmp = em->pos;
             tmp.y = em->pos_old.y;
-            fl = SatMgr.getFloor(&tmp, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&tmp, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 EM10_JUMP_DOWN_LAND;
                 break;
@@ -8742,7 +8742,7 @@ static void em10_R1_Jump(cEm10* em)
         MotionMove(em, 0);
         tmp = em->pos;
         tmp.y = em->pos_old.y;
-        fl = SatMgr.getFloor(&tmp, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&tmp, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             EM10_JUMP_DOWN_LAND;
         }
@@ -9084,7 +9084,7 @@ static void em10_R1_ParasiteAtk(cEm10* em)
         w->Timer = 120;
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em->r_no_2++;
@@ -13087,7 +13087,7 @@ static void em10_R1_TakeAway(cEm10* em)
         em10SetTakeawayPosUpdate(em);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (em->Character == 5) {
@@ -13200,7 +13200,7 @@ static void em10_R1_TakeAway(cEm10* em)
             f32 y;
             v = em->pos;
             v.y = em->pos_old.y;
-            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (!(em->pos.y > y)) {
                 em->pos.y = y;
                 w->Spd.y = 0.0f;
@@ -13516,7 +13516,7 @@ static void subem10_TakeAway(cSubChar* sub)
     }
     s->x3A8 = s->pos;
     if ((s->pEmCatch->be_flag & 0x201) != 1) {
-        s->pos.y = SatMgr.getFloor(&s->pos, 600.0f, 100000.0f, 0, 0);
+        s->pos.y = SatMgr.getFloor(&s->pos, 0, 600.0f, 100000.0f, 0);
         EndSubDamage();
     }
     s->subArc = s->subArc2;
@@ -14436,7 +14436,7 @@ static void em10_R1_Dm_FS(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em10SetDmWaterEff(em, 1);
@@ -14546,7 +14546,7 @@ static void em10_R1_Dm_KneeKick(cEm10* em)
         PSMTXMultVec(em->mat, &v, &pPLS->pos);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em10SetDmWaterEff(em, 1);
@@ -14645,14 +14645,14 @@ static void em10_R1_Dm_NeckBreak(cEm10* em)
             end = MotionMove(em, 0);
         }
         if (end) {
-            em->pos.y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            em->pos.y = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             EmRoutineSet(em, 3, 0, 0, 1);
         } else if (em->seFlags28B & 1) {
             SndCall(1, 0x4C, &em->getPartsPtr(4)->world, 0, 0, em);
             em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
             em10SetPoint(em);
@@ -14690,7 +14690,7 @@ static void em10_R1_Dm_Showtay(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em10SetDmWaterEff(em, 1);
@@ -14731,14 +14731,14 @@ static void em10_R1_Dm_Showtay(cEm10* em)
             w->Timer--;
             v = em->pos;
             v.y = em->pos_old.y;
-            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < y + 50.0f) {
                 em->pos.y = y;
             }
         } else {
             v = em->pos;
             v.y = em->pos_old.y;
-            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             v.x += 10.0f;
             if (em->pos.y < y) {
                 em->pos.y = y;
@@ -14811,7 +14811,7 @@ static void em10_R1_Dm_Heel(cEm10* em)
             em10LostHead(em, 1, 0);
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
         }
@@ -15038,7 +15038,7 @@ static void em10_R1_Dm_Blow(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (w->pCore && w->pCore->ckAtkEnable()) {
@@ -15096,7 +15096,7 @@ static void em10_R1_Dm_Blow(cEm10* em)
         }
         v = em->pos;
         v.y = em->pos_old.y;
-        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         if (w->flags & 0x80000) {
             if (w->Landing_ck == 0) {
                 if (em->pos.y < y + 50.0f) {
@@ -15132,7 +15132,7 @@ static void em10_R1_Dm_Blow(cEm10* em)
                     v.z = -100.0f;
                     PSMTXMultVec(em->mat, &v, &v);
                     v.y = em->pos_old.y;
-                    y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+                    y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
                     if (em->pos.y > y + 300.0f) {
                         em->r_no_2++;
                     } else {
@@ -15141,7 +15141,7 @@ static void em10_R1_Dm_Blow(cEm10* em)
                         v.z = -50.0f;
                         PSMTXMultVec(em->mat, &v, &v);
                         v.y = em->pos_old.y;
-                        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+                        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
                         if (em->pos.y > y + 300.0f) {
                             em->r_no_2++;
                         } else {
@@ -15188,7 +15188,7 @@ static void em10_R1_Dm_Blow(cEm10* em)
         }
         v = em->pos;
         v.y = em->pos_old.y;
-        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         v.x += 10.0f;
         if (em->pos.y < y) {
             em->pos.y = y;
@@ -15272,7 +15272,7 @@ static void em10_R1_Dm_Fence(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (w->pCore && w->pCore->ckAtkEnable()) {
@@ -15363,7 +15363,7 @@ static void em10_R1_Dm_Ladder(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[14], w->Se_tbl[14]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (w->pCore && w->pCore->ckAtkEnable()) {
@@ -15394,7 +15394,7 @@ static void em10_R1_Dm_Ladder(cEm10* em)
         w->Timer++;
         v = em->pos;
         v.y = em->pos_old.y;
-        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y > y) {
             break;
         }
@@ -15482,7 +15482,7 @@ static void em10_R1_Dm_Roof(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[14], w->Se_tbl[14]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (w->pCore && w->pCore->ckAtkEnable()) {
@@ -15533,7 +15533,7 @@ static void em10_R1_Dm_Roof(cEm10* em)
             w->Timer++;
             v = em->pos;
             v.y = em->pos_old.y;
-            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (w->TmpU32 == 0) {
                 em10FallWaterCk(em);
             if (CheckInWater(em, 0)) {
@@ -15598,7 +15598,7 @@ static void em10_R1_Dm_Roof(cEm10* em)
         MotionMove(em, 0);
         v = em->pos;
         v.y = em->pos_old.y;
-        y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < y) {
             em->pos.y = y;
             w->Spd.y = 0.0f;
@@ -15697,7 +15697,7 @@ static void em10_R1_Dm_KneeDown(cEm10* em)
         if (em->hp <= 0) {
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
         }
@@ -15757,7 +15757,7 @@ static void em10_R1_Dm_KnockOut(cEm10* em)
         if (em->hp <= 0) {
             em->setWeaponFall();
             if (w->pShield) {
-                w->pShield->setFall(20.0f, 0);
+                w->pShield->setFall(0, 20.0f);
                 w->pShield = 0;
             }
         }
@@ -16010,7 +16010,7 @@ static void em10_R1_Die_Cramp(cEm10* em)
         }
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em10ParasiteGoOut(em);
@@ -16236,7 +16236,7 @@ static void em10_R1_Die_Down(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em->r_no_2++;
@@ -16272,7 +16272,7 @@ static void em10_R1_Die_Normal(cEm10* em)
         em10SetDamageVoice(em, w->Se_tbl[8], w->Se_tbl[0]);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         if (em->type != 6) {
@@ -16344,7 +16344,7 @@ static void em10_R1_Die_RunDown(cEm10* em)
         SndStop(w->Seid_csaw, 0);
         em->setWeaponFall();
         if (w->pShield) {
-            w->pShield->setFall(20.0f, 0);
+            w->pShield->setFall(0, 20.0f);
             w->pShield = 0;
         }
         em->r_no_2++;
@@ -17833,7 +17833,7 @@ int em10LostHead(cEm10* em, int a, int b)
     }
     em->setWeaponFall();
     if (w->pShield) {
-        w->pShield->setFall(20.0f, 0);
+        w->pShield->setFall(0, 20.0f);
         w->pShield = 0;
     }
     return 1;
@@ -19193,7 +19193,7 @@ extern "C" int em10ClimbOverCk2(cEm10* em)
     d.y = 0.0f;
     d.z = 1000.0f;
     PSMTXMultVec(m, &d, &d);
-    y = SatMgr.getFloor(&d, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&d, 0, 600.0f, 100000.0f, 0);
     if (y < em->pos.y - 500.0f) {
         return 2;
     }
@@ -19270,7 +19270,7 @@ extern "C" int em10WindowCk2(cEm10* em)
     v.y = 0.0f;
     v.z = 1000.0f;
     PSMTXMultVec(m, &v, &v);
-    y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
     if (y < em->pos.y - 500.0f) {
         return 2;
     }
@@ -20079,7 +20079,7 @@ int em10JumpDownCk(cEm10* em)
         return 0;
     }
     if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
-        f32 y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        f32 y = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (y < em->pos.y - 350.0f) {
             w->x5E0 = em->pos;
             EmRoutineSet(em, 1, 0x43, 0, 0);
@@ -20151,7 +20151,7 @@ int em10JumpCk(cEm10* em)
     a.y = 500.0f;
     a.z = 4500.0f;
     PSMTXMultVec(m, &a, &a);
-    y = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
     if (fabsf(em->pos.y - y) > 1000.0f) {
         return 0;
     }
@@ -21602,7 +21602,7 @@ static int em10FindFloorCk(cEm10* em)
     if (em->plDist2 > 25000.0f) {
         return 0;
     }
-    y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
     if (y < -100000.0f) {
         return 0;
     }
@@ -21961,8 +21961,8 @@ void em10SlopeMove(cEm10* em)
         b.z = -t;
         PSMTXMultVec(em->mat, &a, &a);
         PSMTXMultVec(em->mat, &b, &b);
-        fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
-        fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+        fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
+        fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
         if (fa == -100000.0f) {
             fa = em->pos.y;
         }
@@ -24116,7 +24116,7 @@ void cEm10::setGoto(Vec* pos, int range)
     }
     w->Goto_mode = range;
     w->x5F0 = *pos;
-    y = SatMgr.getFloor(&w->x5F0, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&w->x5F0, 0, 600.0f, 100000.0f, 0);
     if (y != -100000.0f) {
         w->x5F0.y = y + 50.0f;
     }
@@ -24143,7 +24143,7 @@ void cEm10::setGotoSwitch(cModel* sw, int near, Vec* pos)
     } else {
         w->x5F0 = sw->pos;
     }
-    y = SatMgr.getFloor(&w->x5F0, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&w->x5F0, 0, 600.0f, 100000.0f, 0);
     if (y != -100000.0f) {
         w->x5F0.y = y + 50.0f;
     }
@@ -25248,7 +25248,7 @@ void em10FootSe(cEm10* em)
     SndCall(5, a, &p->world, 0, 0, em);
     if (ChkWaterEffectEnable(&em->pos)) {
         v = p->world;
-        v.y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        v.y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         EstSet(0, -1, &v, 0, 0x10, 0x3A, 0, 0, 0, 0);
     }
 }

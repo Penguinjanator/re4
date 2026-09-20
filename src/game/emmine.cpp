@@ -1005,7 +1005,7 @@ void emMine_R1_Fall(cEmMine* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): two dead sets (deleted by flow) take the
     // expression table from 235 to 237 buckets, so `w+48`/`fp+100` (13389) hash below `fp+144` (13433)
     // and the three PRE'd addresses get the original's spill-slot order (256/260/264).

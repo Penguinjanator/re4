@@ -1075,7 +1075,7 @@ static void em3c_R1_Walk(cEm3c* em)
             Vec pl;
             f32 d;
 
-            GetPlPos(&pl, 0, 18.0f);
+            GetPlPos(&pl, 18.0f, 0);
             d = (em->pos.x - pl.x) * (em->pos.x - pl.x) + (em->pos.z - pl.z) * (em->pos.z - pl.z);
             if (fabsf(Muku(&em->pos, &pl, em->ang.y, PI)) < PI / 2.0f && d < 4000000.0f) {
                 switch (em->type) {
@@ -1149,7 +1149,7 @@ static void em3c_R1_Run(cEm3c* em)
             Vec pl;
             f32 d;
 
-            GetPlPos(&pl, 0, 18.0f);
+            GetPlPos(&pl, 18.0f, 0);
             d = (em->pos.x - pl.x) * (em->pos.x - pl.x) + (em->pos.z - pl.z) * (em->pos.z - pl.z);
             if (fabsf(Muku(&em->pos, &pl, em->ang.y, PI)) < PI / 2.0f && d < 4000000.0f) {
                 switch (em->type) {
@@ -1227,7 +1227,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
     case 0: {
         f32 ang;
 
-        GetPlPos(&pl, 0, 18.0f);
+        GetPlPos(&pl, 18.0f, 0);
         ang = fabsf(Muku(&em->pos, &pl, em->ang.y, PI));
         int far = 1;
         if (ang < PI / 12.0f) {

@@ -43,7 +43,7 @@ f64 atan2(f64 y, f64 x);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
 cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);
-int cnCkSub(Vec* pos, Vec* nrm, Vec* outA, Vec* outB, f32 len);
+int cnCkSub(Vec* pos, Vec* nrm, f32 len, Vec* outA, Vec* outB);
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type);
 void setWaterShot(Vec* pos);
 }
@@ -859,16 +859,16 @@ int PlCornerCheck()
     RotVector(&vecz, &dir, &rot);
     PSVECAdd(&rot, hand, &rot);
     if (SatMgr.hitCheck(hand, &rot, &hit, &nrm, 0, 0)) {
-        if (cnCkSub(hand, &nrm, &a, &b, 500.0f)) {
+        if (cnCkSub(hand, &nrm, 500.0f, &a, &b)) {
             return 1;
         }
-        if (cnCkSub(hand, &nrm, &a, &b, -500.0f)) {
+        if (cnCkSub(hand, &nrm, -500.0f, &a, &b)) {
             return 2;
         }
-        if (cnCkSub(hand, &nrm, &a, &b, 1000.0f)) {
+        if (cnCkSub(hand, &nrm, 1000.0f, &a, &b)) {
             return 1;
         }
-        if (cnCkSub(hand, &nrm, &a, &b, -1000.0f)) {
+        if (cnCkSub(hand, &nrm, -1000.0f, &a, &b)) {
             return 2;
         }
     }
@@ -877,7 +877,7 @@ int PlCornerCheck()
 
 // One side of the corner test: `len` along the wall (sign = side) and 1000 through it must be
 // clear; returns the two probe points.
-int cnCkSub(Vec* pos, Vec* nrm, Vec* outA, Vec* outB, f32 len)
+int cnCkSub(Vec* pos, Vec* nrm, f32 len, Vec* outA, Vec* outB)
 {
     static Vec angR = {0.0f, PI / 2.0f, 0.0f};
     static Vec angB = {0.0f, PI, 0.0f};

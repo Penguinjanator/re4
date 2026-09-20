@@ -330,7 +330,7 @@ void cObj12::fallMove()
     if (!(w->be_flag & 4)) {
         return;
     }
-    floor = EatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         p = &node[i];
         p->spd.x = (f32) w->fallSpd[i][0] * 0.1f;

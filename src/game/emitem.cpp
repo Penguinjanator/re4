@@ -372,7 +372,7 @@ void emItem_R1_Drop(cEmItem* em)
         em->r_no_2++;
     case 1:
         w->spd.y -= 10.0f;
-        floor = EatMgr.getFloor(&em->pos, 0.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&em->pos, 0, 0.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < floor) {
             em->pos.y = floor;

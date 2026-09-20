@@ -509,7 +509,7 @@ int jumpCheck(cPlayer* pl)
         PSVECScale(&pl->m_JumpVec, &p2, dist);
         PSVECAdd(&p2, &hit, &p2);
         p2.y += up;
-        h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
+        h = SatMgr.getFloor(&p2, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
         FSet(pl->m_JumpAdjY, h);
         if (pG->stage_no == 2 && pG->room_no == 0x26) {
             if (fabsf(h) > up) {
@@ -531,7 +531,7 @@ void jumpFallOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 0x13, 0, 0);
-    FSet(pPL->ang.y, pPL->ang.y + Muku3(&pl->m_JumpVec, pPL->ang.y, 3.1415927f));
+    FSet(pPL->ang.y, pPL->ang.y + Muku3(pPL->ang.y, &pl->m_JumpVec, 3.1415927f));
     pPL->dmg.set(0, 0x80);
 }
 

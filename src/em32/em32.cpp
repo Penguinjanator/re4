@@ -3440,7 +3440,7 @@ static void em32_R1_Ground(cEm32* em)
         w->actionSet = 0;
         w->TmpU32 = Rnd() & 1;
         em->ang.y = pPLS->ang.y;
-        GetPlPos(&em->pos, 0, 18.0f);
+        GetPlPos(&em->pos, 18.0f, 0);
         PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
         v.x = 0.0f;
@@ -3452,7 +3452,7 @@ static void em32_R1_Ground(cEm32* em)
         w->flags |= 0x8000;
         if (w->actionSet == 0) {
             em->ang.y = pPL->ang.y;
-            GetPlPos(&em->pos, 0, 18.0f);
+            GetPlPos(&em->pos, 18.0f, 0);
             PSMTXRotRad(m, 'y', em->ang.y);
             TransMatrix(m, &em->pos);
             v.x = 0.0f;
@@ -3482,7 +3482,7 @@ static void em32_R1_Ground(cEm32* em)
     case 4:
         if (w->actionSet == 0) {
             em->ang.y = pPL->ang.y;
-            GetPlPos(&em->pos, 0, 18.0f);
+            GetPlPos(&em->pos, 18.0f, 0);
             PSMTXRotRad(m, 'y', em->ang.y);
             TransMatrix(m, &em->pos);
             v.x = 0.0f;
@@ -4155,7 +4155,7 @@ int em32PlInTunnelCk(cEm32* em)
     if (w->mode == 2) {
         return 0;
     }
-    GetPlPos(&p, 0, 20.0f);
+    GetPlPos(&p, 20.0f, 0);
     a = pPL->pos;
     b = p;
     a.y += 500.0f;

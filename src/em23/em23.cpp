@@ -789,7 +789,7 @@ static void em23_R1_Landing(cEm23* em)
             f32 fl;
 
             v = w->pCorpse->pos;
-            fl = SatMgr.getFloor(&em->pos, 0.0f, 5000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 0.0f, 5000.0f, 0);
             if (fl == -100000.0f) {
                 fl = v.y;
             }

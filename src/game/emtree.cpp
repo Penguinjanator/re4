@@ -370,7 +370,7 @@ void emTree_R1_Fall(cEmTree* em)
     f32 d;
 
     em->hp = 0;
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 300.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;

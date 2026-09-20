@@ -515,7 +515,7 @@ void emTorch_R1_Fall(cEmTorch* em)
     case 1:
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < floor) {
             em->pos.y = floor;
             EffectEspDelete(1, w->EffKindId, em, 0);

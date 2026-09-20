@@ -260,7 +260,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
     mag = PSVECMag(&pos);
     at_pos_calc(m, &pos);
     if (!(info->m_flag & 4)) {
-        floor = getFloor(&m->pos, 600.0f, 100000.0f, (u32*) &m->pFloor_norm, flag);
+        floor = getFloor(&m->pos, (u32*) &m->pFloor_norm, 600.0f, 100000.0f, flag);
         if (fabsf(floor - m->pos.y) < 1000.0f) {
             m->pos.y = floor;
         } else if (pG->shooting_mode == 0) {
@@ -285,7 +285,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
     if (link) {
         at_pos_calc(link, &pos);
         if (!(((cEm*) link)->atari.m_flag & 4)) {
-            floor = getFloor(&link->pos, 600.0f, 100000.0f, (u32*) &link->pFloor_norm, flag);
+            floor = getFloor(&link->pos, (u32*) &link->pFloor_norm, 600.0f, 100000.0f, flag);
             if (fabsf(floor - link->pos.y) < 1000.0f) {
                 link->pos.y = floor;
             }
@@ -411,7 +411,7 @@ void cSatMgr::adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask)
 // Floor height under `pos`: casts from pos.y + up to pos.y - down against floor polygons
 // (0x40) and returns the hit y with its attribute word in *attr; -100000 when nothing is below
 // (0 when Debug_flg[1] 0x10000000 disables scenery).
-f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
+f32 cSatMgr::getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag)
 {
     Vec top;
     Vec bottom;

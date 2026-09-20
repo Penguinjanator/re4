@@ -690,13 +690,13 @@ void plobjLadderClimb(cPlayer* pl)
         }
         ((cPlayer*) em)->m_Work0++;
         if (obj->getType() != 1 && (int) ((cPlayer*) em)->m_Work0 > 0x17) {
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;
             }
         }
         if (MotionMove(em, 0)) {
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
             }
@@ -890,13 +890,13 @@ void subobjLadderClimb(cEm* pl)
         }
         ((cSubChar*) em)->subHideMode++;
         if (obj->getType() != 1 && ((cSubChar*) em)->subHideMode > 0x17) {
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;
             }
         }
         if (MotionMove(em, 0)) {
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
             }

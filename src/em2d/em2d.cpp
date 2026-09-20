@@ -298,7 +298,7 @@ static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int 
                                                                                   \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                              \
         (w)->spd.y -= 20.0f;                                                      \
-        fl_ = SatMgr.getFloor(&(em)->pos_old, 600.0f, 100000.0f, 0, 0);            \
+        fl_ = SatMgr.getFloor(&(em)->pos_old, 0, 600.0f, 100000.0f, 0);            \
         if ((em)->pos.y < fl_) {                                                  \
             (em)->pos.y = fl_;                                                    \
             (w)->spd.y = 0.0f;                                                    \
@@ -836,7 +836,7 @@ void cEm2d::move()
     }
     partsWorldCalc();
     em2dScaleCompress(this);
-    if (SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) < pos.y - 100.0f) {
+    if (SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) < pos.y - 100.0f) {
         w->flags |= 0x200000;
     }
     len = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
@@ -958,7 +958,7 @@ void em2dInitRtnSet(cEm2d* em)
         if (SatMgr.hitCheck(&top, &bottom, &hit, 0, 0, 0x383830)) {
             em->pos.y = hit.y;
         }
-        fy = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fy = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         w->homePos = em->pos;
         w->homePos.y = fy;  // the floor y overrides the copy (stfs after the copy's stw)
         EmRoutineSet(em, 1, 0x27, 0, 0);
@@ -2171,7 +2171,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
             EmCatchMotionMove(em, 0.3f, 0.2f);
         } else if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl + 500.0f) {
                 em->pos.y = fl;
                 em->r_no_2 = 4;
@@ -2191,7 +2191,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         w->spd.y -= 20.0f;
         MotionSetCore(em, &em->Motion, ARC(0x4F), 0, 5, 1, 0);
         MotionMove(em, 0);
-        fl = SatMgr.getFloor(&em->pos_old, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos_old, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             em->r_no_2++;
@@ -2614,7 +2614,7 @@ static void em2d_R1_JumpDown(cEm2d* em)
         w->flags |= 0x40;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             if (fl <= -99000.0f) {
@@ -3014,7 +3014,7 @@ static void em2d_R1_W_Turn180(cEm2d* em)
 #define EM2D_WALL_FALL(em, w, v_, fl_)                                                            \
     PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                               \
     (w)->spd.y -= 20.0f;                                                                       \
-    fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                                 \
+    fl_ = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                                 \
     PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                               \
     if ((em)->pos.y < fl_) {                                                                   \
         (em)->pos.y = fl_;                                                                     \
@@ -3173,7 +3173,7 @@ static void em2d_R1_ToGround(cEm2d* em)
         w->flags |= 0x40;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             if (fl <= -99000.0f) {
@@ -3245,7 +3245,7 @@ static void em2d_R1_A_Wait(cEm2d* em)
             em2dTurnTo(em, &pPL->pos, 0.0981747732f);
         }
         em2dHoverMove(em, w);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
@@ -3287,7 +3287,7 @@ static void em2d_R1_A_Wait(cEm2d* em)
     if (lock) {
         w->lockCnt++;
         if (w->lockCnt > 15) {
-            if ((Rnd() & 1) && em->pos.y > SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 2000.0f &&
+            if ((Rnd() & 1) && em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f &&
                 em->pos.y > pPL->pos.y + 1000.0f && (Rnd() & 1) && em->plDist2 < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x21, 0, 0);
             } else if ((Rnd() & 1) && em->pos.y < pPL->pos.y + 5000.0f && em->plDist2 > 9000000.0f && (Rnd() & 1) &&
@@ -3321,7 +3321,7 @@ static void em2d_R1_A_Wait(cEm2d* em)
     PSMTXMultVecSR(m, &spd, &spd);                                                        \
     MotionAddSpeed(em, &(em)->Motion, &spd, &rot);                                           \
     em2dTurnTo(em, &(w)->targetPos, 0.0981747732f);                                       \
-    fl = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                            \
+    fl = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                            \
     if ((em)->pos.y < fl) {                                                               \
         (em)->pos.y = fl;                                                                 \
     }
@@ -3446,7 +3446,7 @@ static void em2d_R1_A_Step(cEm2d* em)
     PSVECScale(&spd, &spd, (w)->turnAng);                                                 \
     MotionAddSpeed(em, &(em)->Motion, &spd, &rot);                                           \
     em2dTurnTo(em, &(w)->targetPos, 0.0981747732f);                                       \
-    fl = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                            \
+    fl = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                            \
     if ((em)->pos.y < fl) {                                                               \
         (em)->pos.y = fl;                                                                 \
     }
@@ -3543,7 +3543,7 @@ static void em2d_R1_A_Turn180(cEm2d* em)
         w->turnAng = LIMIT_ANGLE(w->turnAng);
         em->ang.y += ang;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
@@ -3581,7 +3581,7 @@ static void em2d_R1_A_Atk(cEm2d* em)
             w->timer--;
             em2dTurnTo(em, &pPLS->pos, 0.0981747732f);
         }
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
@@ -3637,7 +3637,7 @@ static void em2d_R1_A_Catch(cEm2d* em)
         em->r_no_2++;
     case 1:
         em2dTurnTo(em, &pPL->pos, 0.0981747732f);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
@@ -3973,7 +3973,7 @@ static void em2d_R1_C_Fall(cEm2d* em)
         w->flags |= 0x1000;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -4170,7 +4170,7 @@ static void em2d_R1_Dm_Down(cEm2d* em)
     {                                                                                          \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
         (w)->spd.y -= 20.0f;                                                                   \
-        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        fl_ = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                             \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
         if ((em)->pos.y < fl_) {                                                               \
             (em)->pos.y = fl_;                                                                 \
@@ -4326,7 +4326,7 @@ static void em2d_R1_Dm_Air(cEm2d* em)
         SndCall(8, 0xF, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
@@ -4359,7 +4359,7 @@ static void em2d_R1_Dm_Ceiling(cEm2d* em)
         end = MotionMove(em, 0);
         em->partsWorldCalc();
         p = em->getPartsPtr(0);
-        fl = SatMgr.getFloor(&p->world, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&p->world, 0, 600.0f, 100000.0f, 0);
         if (p->world.y < fl) {
             em->pos.y = fl;
             if (fl <= -99000.0f) {
@@ -4484,7 +4484,7 @@ static void em2d_R1_Die_Normal(cEm2d* em)
         em->r_no_2++;
     case 1:
         em->pos.y += w->turnAng;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             w->turnAng = 0.0f;
@@ -4515,7 +4515,7 @@ static void em2d_R1_Die_Down(cEm2d* em)
         em->r_no_2++;
     case 1:
         em->pos.y += w->turnAng;
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             w->turnAng = 0.0f;
@@ -4534,7 +4534,7 @@ static void em2d_R1_Die_Down(cEm2d* em)
     {                                                                                          \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
         (w)->spd.y -= 20.0f;                                                                   \
-        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        fl_ = SatMgr.getFloor(&(em)->pos, 0, 600.0f, 100000.0f, 0);                             \
         PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
         if ((em)->pos.y < fl_) {                                                               \
             (em)->pos.y = fl_;                                                                 \
@@ -4702,7 +4702,7 @@ void em2dRouteCk(cEm2d* em)
     // stay per arm). The xFC reset must be inside the arms too: sched2 runs before jump2, so the surviving arm's
     // block has to end in the xFC `bne`, not at a join label, for `stfs routeAngAbs` to be issued before the PRE copies.
     if (w->flags & 0x800) {
-        GetPlPos(&w->routePos, 0, 10.0f);
+        GetPlPos(&w->routePos, 10.0f, 0);
         w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, 3.14159274f);
         w->routeAngAbs = fabsf(w->routeAng);
         if (em->r_no_0 == 0) {
@@ -5973,7 +5973,7 @@ int em2dFallCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
 
-    if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) > em->pos.y - 250.0f) {
+    if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) > em->pos.y - 250.0f) {
         return 0;
     }
     w->wallNrm.x = 0.0f;
@@ -6071,7 +6071,7 @@ int em2dToGround(cEm2d* em)
     if (em->plDist2 < 64000000.0f) {
         return 0;
     }
-    if (em->pos.y > SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 2000.0f) {
+    if (em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f) {
         return 0;
     }
     EmRoutineSet(em, set, 0x1B, r, r);
@@ -6273,7 +6273,7 @@ void em2dAirNextRtnSet(cEm2d* em)
             EmRoutineSet(em, 1, 0x22, wait2, wait2);
             return;
         }
-        if (em->pos.y > SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 2000.0f &&
+        if (em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f &&
             em->pos.y > pPL->pos.y + 1000.0f && ((Rnd() & 1) || em->plDist2 < 9000000.0f)) {
             EmRoutineSet(em, 1, 0x21, wait2, wait2);
             return;

@@ -205,7 +205,7 @@ void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
 }
 
 // Debug draw of a box of half sizes sx / sy / sz at `pos` in matrix `m` (12 edges).
-void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color)
+void AtCubeDisp(Mtx m, Vec* pos, f32 sx, f32 sy, f32 sz, u32 color)
 {
     Mtx mat;
     Vec c;

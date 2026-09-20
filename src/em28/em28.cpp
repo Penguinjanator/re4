@@ -330,7 +330,7 @@ static void em28_R0_Move(cEm28* em)
 static inline void em28FloorCk(cEm28* em)
 {
     if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
-        if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 250.0f) {
+        if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) < em->pos.y - 250.0f) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
     }
@@ -439,7 +439,7 @@ static void em28_R1_Wait(cEm28* em)
                 }
                 w->flags |= 0x20;
                 if (wep) {
-                    wep->setYarare(0, 100.0f, 10.0f);
+                    wep->setYarare(100.0f, 10.0f, 0);
                     wep->setEffDamage(0x20, 1);
                     wep->setSeDamage(1, 6, em->id);
                 }
@@ -597,7 +597,7 @@ static void em28_R1_Jump(cEm28* em)
 
             v = em->pos;
             v.y = em->pos_old.y;
-            fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
@@ -734,7 +734,7 @@ static void em28_R1_Die_Air(cEm28* em)
 
             v = em->pos;
             v.y = em->pos_old.y;
-            fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;

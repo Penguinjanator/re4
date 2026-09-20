@@ -46,7 +46,7 @@ extern "C" {
 int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out);
 void PathGetVtxMat(Mtx out, cModel* model, PathVtx* v);
 int FuncPathParametrize(void* path, void* data);
-int FuncPathCalc(void* path, void* data, Vec* out, f32 t);
+int FuncPathCalc(void* path, void* data, f32 t, Vec* out);
 void FuncPathClear(void* path);
 }
 

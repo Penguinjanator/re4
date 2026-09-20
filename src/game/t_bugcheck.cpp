@@ -125,7 +125,7 @@ void cToolBugcheck::menuPosMove()
         if (Joy[0].on & 0x20000) {
             pPL->ang.y -= 0.13962634f;
         }
-        floor = SatMgr.getFloor(&pPL->pos, 600.0f, 100000.0f, 0, 0);
+        floor = SatMgr.getFloor(&pPL->pos, 0, 600.0f, 100000.0f, 0);
         if (pPL->pos.y > floor + 500.0f || (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 8)) {
             v.y = v.y + speed * (f32) (int) Joy[0].triggerRight - speed * (f32) (int) Joy[0].triggerLeft;
         }

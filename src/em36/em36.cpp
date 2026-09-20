@@ -1198,7 +1198,7 @@ static void em36_R1_Turn(cEm36* em)
             if (w->flags2 & 0x10) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, 18.0f);
+                GetPlPos(&v, 18.0f, 0);
             }
             fabsf(em->pos.y - pPL->pos.y);
             em36AtkRtnCk(em);
@@ -1236,7 +1236,7 @@ static void em36_R1_JumpDown(cEm36* em)
 
             v = em->pos;
             v.y = em->pos_old.y;
-            fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 MotionSetCore(em, MOTION(em), ARC(0x92), 0, 3, 1, 0);
@@ -1372,13 +1372,13 @@ static void em36_R1_Crash(cEm36* em)
         if ((w)->flags2 & 0x10) { \
             v = pSUB->pos; \
         } else { \
-            GetPlPos(&v, pSUB, 18.0f); \
+            GetPlPos(&v, 18.0f, pSUB); \
         } \
     } else { \
         if ((w)->flags2 & 0x10) { \
             v = pPL->pos; \
         } else { \
-            GetPlPos(&v, 0, 18.0f); \
+            GetPlPos(&v, 18.0f, 0); \
         } \
     }
 
@@ -1404,13 +1404,13 @@ static void em36_R1_Atk(cEm36* em)
             if (w->flags2 & 0x10) {
                 v = pSUB->pos;
             } else {
-                GetPlPos(&v, pSUB, 18.0f);
+                GetPlPos(&v, 18.0f, pSUB);
             }
         } else {
             if (w->flags2 & 0x10) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, 18.0f);
+                GetPlPos(&v, 18.0f, 0);
             }
         }
         if (fabsf(Muku(&em->pos, &v, em->ang.y, PI)) < 1.5707964f) {
@@ -1632,7 +1632,7 @@ static void em36_R1_Catch(cEm36* em)
         if (w->flags2 & 0x10) {
             v = pPL->pos;
         } else {
-            GetPlPos(&v, 0, 18.0f);
+            GetPlPos(&v, 18.0f, 0);
         }
         if (fabsf(Muku(&em->pos, &v, em->ang.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x35), ARC(0x36), 5, 1, 0);
@@ -1662,7 +1662,7 @@ static void em36_R1_Catch(cEm36* em)
             if (w->flags2 & 0x10) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, (f32) w->timer2);
+                GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
         if (em->seFlags28B & 8) {
@@ -1942,7 +1942,7 @@ static void em36_R1_LongCatch(cEm36* em)
             if (w->flags2 & 0x10) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, (f32) w->timer2);
+                GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
         if (em->seFlags28B & 8) {
@@ -2197,7 +2197,7 @@ static void em36_R1_LostCatch(cEm36* em)
             if (w->flags2 & 0x10) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, (f32) w->timer2);
+                GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
         if (em->seFlags28B & 8) {
@@ -2415,7 +2415,7 @@ static void em36_R1_D_Wait(cEm36* em)
                     if (w->flags2 & 0x10) {
                         v = pPL->pos;
                     } else {
-                        GetPlPos(&v, 0, 10.0f);
+                        GetPlPos(&v, 10.0f, 0);
                     }
                     d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
                     switch (em->type) {
@@ -2479,7 +2479,7 @@ static void em36_R1_D_Walk(cEm36* em)
             if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, 10.0f);
+                GetPlPos(&v, 10.0f, 0);
             }
             d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
             switch (em->type) {
@@ -2552,7 +2552,7 @@ static void em36_R1_D_Turn(cEm36* em)
             if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
                 v = pPL->pos;
             } else {
-                GetPlPos(&v, 0, 10.0f);
+                GetPlPos(&v, 10.0f, 0);
             }
             d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
             if ((w->flags & 1) && d < 16000000.0f && w->routeAngAbs < 0.5235988f) {
@@ -4121,8 +4121,8 @@ void em36SlopeMove(cEm36* em)
         b.y = 1000.0f;
         PSMTXMultVec(em->mat, &a, &a);
         PSMTXMultVec(em->mat, &b, &b);
-        fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
-        fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+        fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
+        fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
         if (fa == -100000.0f) {
             fa = em->pos.y;
         }
@@ -4369,7 +4369,7 @@ int em36AtkRtnCk(cEm36* em)
         if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
             v = pSUB->pos;
         } else {
-            GetPlPos(&v, pSUB, 18.0f);
+            GetPlPos(&v, 18.0f, pSUB);
         }
         d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
         dy = em->pos.y - pSUB->pos.y;
@@ -4387,7 +4387,7 @@ int em36AtkRtnCk(cEm36* em)
     if ((w->flags2 & 0x10) || pG->Game_level <= 2) {
         v = pPL->pos;
     } else {
-        GetPlPos(&v, 0, 18.0f);
+        GetPlPos(&v, 18.0f, 0);
     }
     d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
     dy = em->pos.y - pPL->pos.y;

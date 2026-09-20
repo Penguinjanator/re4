@@ -565,7 +565,7 @@ static void em29_R1_Walk(cEm29* em)
         }
         w->tgtSpd.x = 0.0f;
         w->tgtSpd.y = fRand1_1() * 100.0f;
-        if (em->pos.y < SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 500.0f) {
+        if (em->pos.y < SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 500.0f) {
             w->tgtSpd.y = fRand0_1() * 50.0f + 50.0f;
         }
         w->tgtSpd.z = fRand1_1() * 30.0f + 120.0f;
@@ -614,7 +614,7 @@ static void em29_R1_Turn(cEm29* em)
         MotionSetCore(em, MOTION(em), mot, 0, 0, 1, 0);
         w->tgtSpd.x = 0.0f;
         w->tgtSpd.y = fRand1_1() * 100.0f;
-        if (em->pos.y < SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 500.0f) {
+        if (em->pos.y < SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 500.0f) {
             w->tgtSpd.y = fRand0_1() * 50.0f + 50.0f;
         }
         w->tgtSpd.z = fRand1_1() * 40.0f + 80.0f;
@@ -1141,7 +1141,7 @@ void em29SetSPeed(cEm29* em, f32 rate)
     PSMTXRotRad(m, 'y', em->ang.y);
     PSMTXMultVecSR(m, &w->spd, &v);
     PSVECAdd(&em->pos, &v, &em->pos);
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     if (em->pos.y > fl + 2500.0f) {
         em->pos.y = fl + 2500.0f;
     }

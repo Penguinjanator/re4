@@ -129,7 +129,7 @@ int AreaViewCheck(AreaData* area, GeoCone* cone)
         rot.z = 0.0f;
         RotMatrix(m, &rot);
         PSMTXMultVecSR(m, &dir, &dir);
-        ret = collision_point_cone_rev_play_face(&pos, cone, &dir, area->u.eye.radius, ang);
+        ret = collision_point_cone_rev_play_face(&pos, cone, area->u.eye.radius, &dir, ang);
         break;
     default:
         pLog->warn(0, 0, AREA_TYPE_ERR, area->type);

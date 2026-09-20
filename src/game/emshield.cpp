@@ -564,7 +564,7 @@ void emShield_R1_Parent(cEmShield* em)
     if (w->Fall_wait) {
         w->Fall_wait--;
         if (w->Fall_wait == 0) {
-            em->setFall(20.0f, 0);
+            em->setFall(0, 20.0f);
         }
     }
 }
@@ -597,7 +597,7 @@ void emShield_R1_Fall(cEmShield* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 80.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 80.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -760,7 +760,7 @@ void cEmShield::setParent(cModel* parent, int partsNo, int flag)
 // initial speed `spd` (rotated +-90 degrees for nodes 1 / 2) or random speeds, stops the motion.
 // Drops the shield: node speeds from `spd` (node 0 as is, nodes 1 / 2 rotated +-90 degrees around Y)
 // or random when NULL.
-void cEmShield::setFall(f32 gravity, Vec* spd)
+void cEmShield::setFall(Vec* spd, f32 gravity)
 {
     EmShieldWork* w = EMSHIELD_WK(this);
     Mtx m;

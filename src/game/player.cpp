@@ -1484,14 +1484,14 @@ void pl_R1_Fall(cPlayer* pl)
         }
         pl->motionMove();
         if (pl->frame <= (f32) lim) {
-            pl->ang.y += Muku3(&pl->m_FallVec, pl->ang.y, 0.31415927f);
+            pl->ang.y += Muku3(pl->ang.y, &pl->m_FallVec, 0.31415927f);
             break;
         }
         if (fallCheck(pl)) {
             if (pl->m_Work0 == 0) {
                 EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, 0, pl, 0);
             }
-            FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 600.0f, 100000.0f, 0, 0));
+            FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 0, 600.0f, 100000.0f, 0));
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2F), PL_ARC_PTR(pG->pPlayer, 0x30), 0, 5, 0);
             pl->motionMove();
             pl->r_no_2 = 4;
@@ -1569,5 +1569,5 @@ f32 getHeighAdjust(cPlayer* pl)
 
     PSVECScale(&pl->m_ActNorm, &p, -1000.0f);
     PSVECAdd(&p, &pl->m_ActCross, &p);
-    return SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
+    return SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
 }

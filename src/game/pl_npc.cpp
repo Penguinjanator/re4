@@ -1419,7 +1419,7 @@ f32 cSubChar::getJumpAdjY()
     PSVECScale(&v, &v, far);
     PSVECAdd(&v, &satCross, &v);
     v.y += lim;
-    h = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+    h = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
     h -= pos.y;
     if (fabsf(h) > lim) {
         h = 0.0f;
@@ -1809,7 +1809,7 @@ void cSubChar::moveFallWait()
     v.y = 0.0f;
     v.z = 1300.0f;
     PSMTXMultVec(mat, &v, &v);
-    v.y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0) + 300.0f;
+    v.y = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0) + 300.0f;
     if (GetDistance(&v, &pPL->pos) > 25000000.0f) {
         sub540++;
         if (sub540 == 300) {
@@ -2524,7 +2524,7 @@ int cSubChar::actionCheck()
         d.x = -satNorm.x;
         d.y = 0.0f;
         d.z = -satNorm.z;
-        ang.y += Muku3(&d, ang.y, 3.1415927f);
+        ang.y += Muku3(ang.y, &d, 3.1415927f);
     }
     if (m_PlActTime && dist <= 300.0f && (pPL->r_no_0 != 0 || pPL->r_no_1 != 0xE)) {
         if (getCliffHeight(m_PlActAngY) < 2900.0f) {
@@ -2593,7 +2593,7 @@ f32 cSubChar::getCliffHeight(f32 ang)
     r.z = 0.0f;
     RotVector(&v, &r, &v);
     PSVECAdd(&pos, &v, &v);
-    h = pos.y - SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+    h = pos.y - SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
     if (h < 800.0f) {
         h = 100000.0f;
     }
@@ -2964,7 +2964,7 @@ void cSubChar::analyze()
             } else {
                 distPos = pPL->pos;
             }
-            fl = SatMgr.getFloor(&distPos, 1000.0f, 1000.0f, 0, 0);
+            fl = SatMgr.getFloor(&distPos, 0, 1000.0f, 1000.0f, 0);
             if (fl != -100000.0f) {
                 distPos.y = fl + 100.0f;
             }
@@ -3176,10 +3176,10 @@ int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
     PSVECScale(&d, &d, back);
     PSVECAdd(&hit, &d, &b);
     orot->x = 0.0f;
-    orot->y = Muku3(&d, 0.0f, 3.1415927f);
+    orot->y = Muku3(0.0f, &d, 3.1415927f);
     orot->z = 0.0f;
     opos->x = b.x;
-    opos->y = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    opos->y = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
     opos->z = b.z;
     return 1;
 }

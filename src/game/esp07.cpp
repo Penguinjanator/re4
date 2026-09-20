@@ -110,7 +110,7 @@ void Esp07_HitGndLight(cEsp07* esp)
 
     if (!(w->Flg & 2)) {
         w->Flg |= 2;
-        w->GndHeight = SatMgr.getFloor(&esp->m_Pos, 600.0f, 100000.0f, &attr, 0);
+        w->GndHeight = SatMgr.getFloor(&esp->m_Pos, &attr, 600.0f, 100000.0f, 0);
     }
     Esp07_ChkGnd(esp, w->GndHeight);
 }
@@ -120,7 +120,7 @@ void Esp07_HitGnd(cEsp07* esp)
 {
     u32 attr;
 
-    Esp07_ChkGnd(esp, SatMgr.getFloor(&esp->m_Pos, 600.0f, 100000.0f, &attr, 0));
+    Esp07_ChkGnd(esp, SatMgr.getFloor(&esp->m_Pos, &attr, 600.0f, 100000.0f, 0));
 }
 
 // HitType 2: casts pos -> pos + speed against the scenery; on a hit moves onto the surface,

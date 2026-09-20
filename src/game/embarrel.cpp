@@ -637,7 +637,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         }
         w->Roll_spd.y -= 10.0f;
         PSVECAdd(&em->pos, &w->Roll_spd, &em->pos);
-        floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < floor + w->floorOfs) {
             em->pos.y = floor + w->floorOfs;
             w->Roll_spd.y *= -0.3f;

@@ -1565,7 +1565,7 @@ void CameraControl::r0_UpCut()
 // r0_RailBehind: argument addresses substituted into the hard-register sets (see COMPILER-DIFF #3 there).
 static inline void VecLinComb(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
 {
-    VecLinearCombination(a, b, s, t, out);
+    VecLinearCombination(a, s, b, t, out);
 }
 
 // r0 == 6: the behind-the-player camera on a rail: C-stick looks around within the h / v angle
@@ -1789,7 +1789,7 @@ void CameraControl::r0_RailBehind()
         m[2][3] = p0.z;
         if (edge_camera) {
             floor = p0;
-            floor.y = EatMgr.getFloor(&floor, 600.0f, 100000.0f, NULL, 0);
+            floor.y = EatMgr.getFloor(&floor, NULL, 600.0f, 100000.0f, 0);
         } else {
             floor = pPL->pos;
         }

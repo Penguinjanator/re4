@@ -606,7 +606,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
@@ -630,7 +630,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
                 continue;
             }
         }
@@ -673,7 +673,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
@@ -697,7 +697,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
                 continue;
             }
         }
@@ -730,7 +730,7 @@ static f32 emLineAtCkDead(f32 len, f32 step)
 }
 
 // Segment a-b against the capsule top-bottom of radius r: 1 with the entry point in `hit`.
-int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
+int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
 {
     Mtx m;
     Mtx inv;
@@ -791,14 +791,14 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     if ((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z) <= 0.1f) {
         return 0;
     }
-    if (LineSphereCrossCk(a, b, top, &c, r)) {
+    if (LineSphereCrossCk(a, b, top, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
             *hit = c;
             return 1;
         }
     }
-    if (LineSphereCrossCk(a, b, bottom, &c, r)) {
+    if (LineSphereCrossCk(a, b, bottom, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
             *hit = c;
@@ -844,7 +844,7 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
 }
 
 // Segment a-b against the box (sx, sy, sz) at `ofs` in the space of `m`: the six faces as quads.
-int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit)
+int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* hit, f32 sx, f32 sy, f32 sz)
 {
     Mtx mat;
     Vec poly[4];
@@ -1788,7 +1788,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
 
 // Hit box of `em` the sphere (pos, r) touches, stepping along each capsule's axis; the contact
 // point on the axis goes to `out`.
-YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
+YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
 {
     Vec top;
     Vec bottom;
@@ -1906,7 +1906,7 @@ void EmYarareDisp(cEm* em)
         }
         if (p->flags & 8) {
             parts = HitParts(em, p);
-            AtCubeDisp(parts->mat, p->width, p->height, p->depth, &p->ofs, color);
+            AtCubeDisp(parts->mat, &p->ofs, p->width, p->height, p->depth, color);
         } else {
             bottom = p->ofs;
             top = p->ofs;
@@ -3420,7 +3420,7 @@ int HandgunCk(int wep)
 }
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame.
-void GetPlPos(Vec* out, cEm* em, f32 t)
+void GetPlPos(Vec* out, f32 t, cEm* em)
 {
     Vec d;
     cModel* parts;

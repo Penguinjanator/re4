@@ -32,7 +32,7 @@ struct GeoHexahedron {
 
 extern "C" {
 int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin);
-int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, Vec* face, f32 margin, f32 angle);
+int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, f32 margin, Vec* face, f32 angle);
 int collision_sphere_hexahedron(GeoSphere* s, GeoHexahedron* h);
 }
 

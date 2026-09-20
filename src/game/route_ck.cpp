@@ -115,7 +115,7 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
         }
         if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
-            if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
+            if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
                 *out = target->pos;
                 return 1;
             }
@@ -244,7 +244,7 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         }
         if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
-            if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
+            if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
                 *out = *target;
                 if (dist != NULL) {
                     *dist = a.y - b.y;
@@ -359,7 +359,7 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     }
     if (rckLineHitCheck(&a, &b, 0, 0) == 0) {
         PosToPos(&a, &b, &c, 0.5f);
-        if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
+        if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
             *out = *to;
             return 1;
         }
@@ -443,7 +443,7 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
         asm volatile("" : : : "memory");
         if (rckLineHitCheck(from, to, 0, 0) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
-            if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
+            if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
                 goto direct;
             }
         }

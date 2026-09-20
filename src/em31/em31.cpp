@@ -1994,7 +1994,7 @@ static void em31_R1_HeadAtk(cEm31* em)
     Em31Work* w = EM31_WK(em);
     Vec pp;
 
-    GetPlPos(&pp, 0, 18.0f);
+    GetPlPos(&pp, 18.0f, 0);
     switch (em->r_no_2) {
     case 0: {
         f32 ang = Muku(&em->pos, &pp, em->ang.y, PI);
@@ -2062,7 +2062,7 @@ static void em31_R1_BackAtk(cEm31* em)
     Em31Work* w = EM31_WK(em);
     Vec pp;
 
-    GetPlPos(&pp, 0, 18.0f);
+    GetPlPos(&pp, 18.0f, 0);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xD), ARC(0xE), 30, 1, 0);
@@ -4983,7 +4983,7 @@ int em31AtkRtnCk(cEm31* em)
     Vec pp;
     Vec lp;
 
-    GetPlPos(&pp, 0, 18.0f);
+    GetPlPos(&pp, 18.0f, 0);
     pp.y = pPL->pos.y;
     PSMTXInverse(em->mat, inv);
     PSMTXMultVec(inv, &pp, &lp);

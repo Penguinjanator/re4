@@ -217,7 +217,7 @@ void EspFootCall(int type, int no, Vec* pos)
             EstSet(0, -1, pos, NULL, 0, 4, 0, 0, 0, NULL);
             break;
         case 4:
-            h = EatMgr.getFloor(&pl->pos, 600.0f, 100000.0f, NULL, 0);
+            h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;
@@ -242,7 +242,7 @@ void EspFootCall(int type, int no, Vec* pos)
             EstSet(0, -1, pos, NULL, 0, 5, 0, 0, 0, NULL);
             break;
         case 4:
-            h = EatMgr.getFloor(&pl->pos, 600.0f, 100000.0f, NULL, 0);
+            h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;

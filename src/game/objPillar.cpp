@@ -395,7 +395,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
     case 1:
         PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
         w->Spd.y -= 15.0f;
-        floor = EatMgr.getFloor(&obj->pos_old, 600.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&obj->pos_old, 0, 600.0f, 100000.0f, 0);
         if (obj->pos.y < floor) {
             obj->pos.y = floor;
             SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);

@@ -288,7 +288,7 @@ static void pl0e_R0_Move(cPl0e* em)
 // (pl0eBoatControl) and checks the player's boarding action.
 static void pl0e_R1_Wait(cPl0e* em)
 {
-    em->pos.y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    em->pos.y = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     pl0eBoatControl(em);
     em->partsMatCalc();
     em->partsWorldCalc();
@@ -1595,22 +1595,22 @@ int pl0eSlopeControl(cPl0e* em)
     v.y = 0.0f;
     v.z = 1500.0f;
     PSMTXMultVec(m, &v, &v);
-    fl[0] = SatMgr.getFloor(&v, 10000.0f, 100000.0f, 0, 0);
+    fl[0] = SatMgr.getFloor(&v, 0, 10000.0f, 100000.0f, 0);
     v.x = -200.0f;
     v.y = 0.0f;
     v.z = 1500.0f;
     PSMTXMultVec(m, &v, &v);
-    fl[1] = SatMgr.getFloor(&v, 10000.0f, 100000.0f, 0, 0);
+    fl[1] = SatMgr.getFloor(&v, 0, 10000.0f, 100000.0f, 0);
     v.x = 200.0f;
     v.y = 0.0f;
     v.z = -1500.0f;
     PSMTXMultVec(m, &v, &v);
-    fl[2] = SatMgr.getFloor(&v, 10000.0f, 100000.0f, 0, 0);
+    fl[2] = SatMgr.getFloor(&v, 0, 10000.0f, 100000.0f, 0);
     v.x = -200.0f;
     v.y = 0.0f;
     v.z = -1500.0f;
     PSMTXMultVec(m, &v, &v);
-    fl[3] = SatMgr.getFloor(&v, 10000.0f, 100000.0f, 0, 0);
+    fl[3] = SatMgr.getFloor(&v, 0, 10000.0f, 100000.0f, 0);
     if (fl[0] < fl[1]) {
         fl[0] = fl[1];
     }

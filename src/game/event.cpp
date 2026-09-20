@@ -3119,7 +3119,7 @@ int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
     pos->x = parts->world.x;
     pos->y = parts->world.y;
     pos->z = parts->world.z;
-    pos->y = SatMgr.getFloor(pos, 600.0f, 100000.0f, 0, 0);
+    pos->y = SatMgr.getFloor(pos, 0, 600.0f, 100000.0f, 0);
     if (parts->pParts == 0) {
         return 0;
     }

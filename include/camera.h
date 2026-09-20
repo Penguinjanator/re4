@@ -50,7 +50,7 @@ struct ViewFrustum* CameraViewFrustumPtr(Camera* cam);
 void CameraGetUpVec(Camera* cam, Vec* up);
 void CameraGetLookVec(Camera* cam, Vec* look);
 void CameraGetLookVecInverse(Camera* cam, Vec* look);
-void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy);
+void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out);
 }
 // game/camera.cpp (C++ linkage): loads the current projection matrix into GX
 void CameraCurrentProjection();

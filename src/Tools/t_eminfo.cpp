@@ -1037,7 +1037,7 @@ void eminfoDisp()
     if ((W->joy.on & (JOY_A | JOY_Y)) == 0) {
         on = 0;
     }
-    TprimDrawCursor((Vec*) &W->cx, &cursorCol[on], 0.0f);
+    TprimDrawCursor((Vec*) &W->cx, 0.0f, &cursorCol[on]);
     eminfoEm2fRouteDisp();
     eminfoEm39AreaDisp();
     eminfoEm3aRouteDisp();

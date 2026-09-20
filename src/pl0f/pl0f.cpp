@@ -1725,7 +1725,7 @@ int pl0fCrashCk(cPl0f* em)
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0) {
             for (i = 0; i < 2; i++) {
-                if (EmYarareContactCk(e, &w->node[i].wpos, &hit, 800.0f)) {
+                if (EmYarareContactCk(e, &w->node[i].wpos, 800.0f, &hit)) {
                     int away = 0;
 
                     if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
@@ -3465,7 +3465,7 @@ void plboatSpearThrow(cPlayer* pl)
         return;
     }
     plboatSightCurGet(pl, &cur);
-    CamPos2ScrnVec(&dir, cur.x, cur.y);
+    CamPos2ScrnVec(cur.x, cur.y, &dir);
 #line 5166
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, 25000.0f);

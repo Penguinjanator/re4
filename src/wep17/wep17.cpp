@@ -292,7 +292,7 @@ static void wep17_r3_ready00(cPlayer* pl)
                     v0.x = -nrm.x;
                     v0.y = zero;
                     v0.z = -nrm.z;
-                    pl->ang.y += Muku3(&v0, pl->ang.y, PI);
+                    pl->ang.y += Muku3(pl->ang.y, &v0, PI);
                     return;
                 }
             }
@@ -319,7 +319,7 @@ static void wep17_r3_ready00(cPlayer* pl)
                     v0.x = -nrm.x;
                     v0.y = 0.0f;
                     v0.z = -nrm.z;
-                    pl->ang.y += Muku3(&v0, pl->ang.y, PI);
+                    pl->ang.y += Muku3(pl->ang.y, &v0, PI);
                     return;
                 }
             }

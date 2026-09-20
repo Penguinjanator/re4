@@ -621,7 +621,7 @@ static void em22_R1_R11B_B(cEm22* em)
         MotionMove(em, 0);
         v = em->pos;
         v.y = em->pos_old.y;
-        fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y > fl) {
             break;
         }
@@ -1694,7 +1694,7 @@ static void em22_R1_Jump(cEm22* em)
         v.y = 500.0f;
         v.z = 4356.0f;
         PSMTXMultVec(m, &v, &v);
-        fl = SatMgr.getFloor(&v, 1000.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&v, 0, 1000.0f, 100000.0f, 0);
         if (fl == -100000.0f) {
             fl = em->pos.y;
         }
@@ -1875,7 +1875,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
                 if (ChkWaterEffectEnable(&em->pos)) {
                     EstSet(0, -1, &em->pos, 0, 0x1A, 4, 0, 0, 0, 0);
                 }
-                fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+                fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
                 if (em->pos.y < fl) {
                     em->pos.y = fl;
                     w->timer = 0;
@@ -1918,7 +1918,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         PSVECAdd(&em->pos, &w->blowSpd, &em->pos);
         w->blowSpd.y -= 20.0f;
         MotionMove(em, 0);
-        fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
             w->blowSpd.x = 0.0f;
@@ -2800,7 +2800,7 @@ void em22ParaAtkHitPosSet(cEm22* em)
     b = a;
     PSVECAdd(&b, &d, &b);
     if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
-        b.y = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+        b.y = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
         em->pos = b;
     }
 }
@@ -2855,7 +2855,7 @@ void cEm22::setGoto(Vec* pos, int on)
 
     w->gotoOn = on;
     w->gotoPos = *pos;
-    fl = SatMgr.getFloor(&w->gotoPos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&w->gotoPos, 0, 600.0f, 100000.0f, 0);
     if (fl != -100000.0f) {
         w->gotoPos.y = fl + 50.0f;
     }

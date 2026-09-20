@@ -3005,7 +3005,7 @@ static void sceAtItemFindCheck()
         }
         if ((it->flag2 & 0x40) && it->pModel != 0) {
             cEm* m = (cEm*) w->item.pModel;
-            f32 fl = EatMgr.getFloor(&m->pos, 0.0f, 100000.0f, 0, 0);
+            f32 fl = EatMgr.getFloor(&m->pos, 0, 0.0f, 100000.0f, 0);
 
             m->pos.y -= m->dmg.m_PosFrom.y;
             m->dmg.m_PosFrom.y += 10.0f;
@@ -4167,7 +4167,7 @@ void sceAtSetItem(SceAtWork* w)
             }
             if (sceAtItemFindFlgCk(it) == 1) {
                 it->flag2 &= ~0x10;
-                it->pos.y = EatMgr.getFloor(&it->pos, 0.0f, 100000.0f, 0, 0);
+                it->pos.y = EatMgr.getFloor(&it->pos, 0, 0.0f, 100000.0f, 0);
                 it->rot.z = 0.0f;
                 it->effType = 2;
             }
@@ -4175,7 +4175,7 @@ void sceAtSetItem(SceAtWork* w)
         if (it->flag2 & 0x40) {
             if (sceAtItemFindFlgCk(it) == 1) {
                 it->flag2 &= ~0x40;
-                it->pos.y = EatMgr.getFloor(&it->pos, 0.0f, 100000.0f, 0, 0);
+                it->pos.y = EatMgr.getFloor(&it->pos, 0, 0.0f, 100000.0f, 0);
                 it->effType = 2;
             }
         }

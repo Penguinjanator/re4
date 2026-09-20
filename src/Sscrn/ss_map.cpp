@@ -1372,9 +1372,9 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         vtx = satA.vtx;
         PSVECSubtract(&vtx[poly->v[1]], &vtx[poly->v[0]], &a);
         PSVECSubtract(&vtx[poly->v[2]], &vtx[poly->v[0]], &b);
-        VecLinearCombination(&a, &b, s0, t0, &pos);
+        VecLinearCombination(&a, s0, &b, t0, &pos);
         PSVECAdd(&pos, &vtx[poly->v[0]], &pos);
-        VecLinearCombination(&a, &b, s1, t1, &pos2);
+        VecLinearCombination(&a, s1, &b, t1, &pos2);
         PSVECAdd(&pos2, &vtx[poly->v[0]], &pos2);
         if (SubScreenWk.debug_menu & 0x10) {
             PSMTXMultVec(partsMat, &vtx[poly->v[0]], &hit2);

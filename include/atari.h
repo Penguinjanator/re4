@@ -168,7 +168,7 @@ public:
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
     int hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask);
     // Floor height under `pos`, searching `up` above and `down` below it.
-    f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
+    f32 getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag);
     // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the
     // polygons (cLight::hitAdjust). Returns 1 when the sphere was adjusted.
     int polySphereCk(Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask);

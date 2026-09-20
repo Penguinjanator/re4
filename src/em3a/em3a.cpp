@@ -314,7 +314,7 @@ void cEm3a::move()
         case 0:
         case 1:
         default: {
-            f32 fl = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) + 500.0f;
+            f32 fl = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) + 500.0f;
 
             if (pos.y < fl) {
                 pos.y = fl;
@@ -506,7 +506,7 @@ static void em3a_R1_Patrol(cEm3a* em)
     Vec b;
     f32 fl;
 
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 90 + 90;
@@ -596,7 +596,7 @@ static void em3a_R1_Atk(cEm3a* em)
     if (em->r_no_2 == 0 && (w->flags & 2)) {
         em->r_no_2 = 2;
     }
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
@@ -717,7 +717,7 @@ static void em3a_R1_Chase(cEm3a* em)
     Vec v;
     f32 fl;
 
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     switch (em->r_no_2) {
     case 0:
         em->r_no_2++;
@@ -758,7 +758,7 @@ static void em3a_R1_Fix(cEm3a* em)
     Vec v;
     int t;
 
-    SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     // Dead test (t is reassigned before its use): flow1 deletes the arms and jump2 the branch, but
     // the `w->flags` load behind the call gives `w` its sched priority (addi issued among the arg
     // moves) and the branch splits the block for gcse/sched1.
@@ -832,7 +832,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
     if (em->r_no_2 == 0 && (w->flags & 2)) {
         em->r_no_2 = 2;
     }
-    SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);

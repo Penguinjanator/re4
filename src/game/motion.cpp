@@ -456,15 +456,15 @@ u32 MotionMove(cModel* m, Camera* pCamera)
                     MOTION(m)->blend->Hokan_cnt = 0;
                     MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
                     inv = 1.0f - rate;
-                    VecLinearCombination(&spd2, &spd, rate, inv, &spd);
-                    VecLinearCombination(&rot2, &rot, rate, inv, &rot);
+                    VecLinearCombination(&spd2, rate, &spd, inv, &spd);
+                    VecLinearCombination(&rot2, rate, &rot, inv, &rot);
                 }
             } else {
                 if (rate != 0.0f) {
                     MOTION(m)->blend->Hokan_cnt = 0;
                     MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
-                    VecLinearCombination(&spd2, &spd, rate, 1.0f, &spd);
-                    VecLinearCombination(&rot2, &rot, rate, 1.0f, &rot);
+                    VecLinearCombination(&spd2, rate, &spd, 1.0f, &spd);
+                    VecLinearCombination(&rot2, rate, &rot, 1.0f, &rot);
                 }
             }
         }

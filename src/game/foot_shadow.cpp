@@ -57,7 +57,7 @@ void DrawFootShadow(cEm* em)
     }
     if (StaFlagChk(pG, STA_EVENT)) {
         pos = em->pParts->world;
-        pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
+        pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
     } else {
         pos = em->pos;
     }

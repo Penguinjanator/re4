@@ -1679,7 +1679,7 @@ void cObjLuisItem::move()
                 PSVECScale(&nrm, &nrm, 200.0f);
                 PSVECAdd(&hit, &nrm, &pos);
             }
-            pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
+            pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
             r_no_0 = 1;
         }
         LITEM->timer++;

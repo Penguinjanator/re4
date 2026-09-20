@@ -47,7 +47,7 @@ void TutilMoveCursor(Vec* pos, f32 speed, f32 step);
 // t_event/t_sce: ToolMenuDisp_cur without a cursor variable
 int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy);
 // Tools only: XZ position under a screen point (projection search around `center`, side `step`).
-int TutilGet3DPosXZ(Vec* target, Vec* center, Vec* out, f32 step);
+int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out);
 int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out);
 int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out);
 
