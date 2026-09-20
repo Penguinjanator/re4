@@ -400,7 +400,7 @@ void r307_initPuzzle()
     void* zero = 0;
     u32 k;
 
-    U32Set(r307_work.p->effBarred, EspPullCoreKind());
+    r307_work.p->effBarred = EspPullCoreKind();
     getRoomEtcBarred(0x32, &r307_work.p->barred, 1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r307_checkPuzzleTerminal, 0, 1);

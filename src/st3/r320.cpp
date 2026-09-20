@@ -39,7 +39,6 @@
 #include "model.h"
 #include "vec.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Rotate a model from three components written y, x, z (the store order the original has).
 static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
@@ -118,16 +117,6 @@ struct EmListView {
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r320_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // The helicopter into the work; it fires freely below rank 9.
 static inline void r320_heriSet()
@@ -322,53 +311,53 @@ void R320Init()
     Vec zeroVec = {0.0f, 0.0f, 0.0f};
     Vec pos;
     Vec rot;
-    PSet((void*&) r320_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 1));
+    (void*&) r320_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 1);
     pos.x = 70135.0f;
     pos.y = 12213.0f;
     pos.z = 27432.0f;
     rot.x = 0.0f;
     rot.y = 4.3228312f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
+    (void*&) r320_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
     pos.x = 43415.0f;
     pos.y = 9404.0f;
     pos.z = -14004.0f;
     rot.x = 0.0f;
     rot.y = -0.21746802f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
+    (void*&) r320_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
     pos.x = 33202.0f;
     pos.y = 10325.0f;
     pos.z = 1747.0f;
     rot.x = 0.0f;
     rot.y = 2.2174408f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
-    PSet((void*&) r320_work->sat[4], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 3));
-    PSet((void*&) r320_work->sat[8], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 5));
-    PSet((void*&) r320_work->sat[9], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 6));
-    PSet((void*&) r320_work->sat[10], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 7));
+    (void*&) r320_work->sat[3] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
+    (void*&) r320_work->sat[4] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 3);
+    (void*&) r320_work->sat[8] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 5);
+    (void*&) r320_work->sat[9] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 6);
+    (void*&) r320_work->sat[10] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 7);
     pos.x = 43072.0f;
     pos.y = 8728.0f;
     pos.z = -12694.0f;
     rot.x = 0.0f;
     rot.y = -3.3182199f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[5], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
+    (void*&) r320_work->sat[5] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
     pos.x = 27594.0f;
     pos.y = 12609.0f;
     pos.z = -13892.0f;
     rot.x = 0.0f;
     rot.y = 4.166799f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[6], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
+    (void*&) r320_work->sat[6] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
     pos.x = 34259.0f;
     pos.y = 9660.0f;
     pos.z = 820.0f;
     rot.x = 0.0f;
     rot.y = -0.8840093f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[7], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
+    (void*&) r320_work->sat[7] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
     getRoomEtcDoor(2, &door, 1);
     if (door) {
         ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
@@ -384,7 +373,7 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = -0.76f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[0], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+        (void*&) r320_work->gatling[0] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
         if (r320_work->gatling[0]) {
             r320_work->gatling[0]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
             r320_work->gatling[0]->setNoSuspend(1);
@@ -408,7 +397,7 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = -1.28f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[1], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+        (void*&) r320_work->gatling[1] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
         if (r320_work->gatling[1]) {
             r320_work->gatling[1]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
             r320_work->gatling[1]->setNoSuspend(1);
@@ -437,7 +426,7 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = 5.72468f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[5], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+        (void*&) r320_work->gatling[5] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
         r320_work->gatling[5]->setBreakMode(1);
         r320_work->gatling[5]->setNoSuspend(1);
         EvtMgr.EvtReadAram("event/evd/r320s00.evd", 0, 0, 0, 0);
@@ -577,7 +566,7 @@ void R320Init()
         Vec smdRot = {0.0f, 0.0f, 0.0f};
         cEm* dram;
 
-        PSet((void*&) r320_work->smd, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &smdPos, &smdRot, 0x10, 1));
+        (void*&) r320_work->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &smdPos, &smdRot, 0x10, 1);
         r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
         FSet(r320_work->smd->motSpeedRate, 0.0f);
         r320_work->smd->be_flag |= 0x1000;
@@ -714,7 +703,7 @@ void R320Main()
     heri = (cEm3d*) r320_work->heri.getPtr();
     if (heri) {
         if (r320_work->heriWait > 0) {
-            IntSet(r320_work->heriWait, r320_work->heriWait - 1);
+            r320_work->heriWait = r320_work->heriWait - 1;
         }
         if (heri->ckSelectEnable()) {
             if (r320_work->heriWait <= 0) {
@@ -750,7 +739,7 @@ void R320Main()
                     }
                 } else {
                     if (r320_work->heriTimer > 0xE10) {
-                        U32Set(r320_work->heriTimer, 0);
+                        r320_work->heriTimer = 0;
                     }
                     SetHeriTargetEm();
                 }
@@ -759,35 +748,35 @@ void R320Main()
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri0, 0, 0, 2, 0);
-                    IntSet(r320_work->atkCnt, 0);
+                    r320_work->atkCnt = 0;
                 }
             }
             if ((R320_SAVE_FLAGS & 0x20000000) == 0 && (pG->Room_flg[2] & 0x40000000) && (R320_SAVE_FLAGS & 0x00200000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri1, 0, 0, 2, 0);
-                    IntSet(r320_work->atkCnt, 0);
+                    r320_work->atkCnt = 0;
                 }
             }
             if ((R320_SAVE_FLAGS & 0x10000000) == 0 && (pG->Room_flg[2] & 0x20000000) && (R320_SAVE_FLAGS & 0x00400000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri2, 0, 0, 2, 0);
-                    IntSet(r320_work->atkCnt, 0);
+                    r320_work->atkCnt = 0;
                 }
             }
             if ((R320_SAVE_FLAGS & 0x08000000) == 0 && (pG->Room_flg[2] & 0x08000000) && (R320_SAVE_FLAGS & 0x00100000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri3, 0, 0, 2, 0);
-                    IntSet(r320_work->atkCnt, 0);
+                    r320_work->atkCnt = 0;
                 }
             }
             if ((pG->Room_flg[2] & 0x04000000) && (R320_SAVE_FLAGS & 0x01000000) == 0) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri4, 0, 0, 2, 0);
-                    IntSet(r320_work->atkCnt, 0);
+                    r320_work->atkCnt = 0;
                 }
             }
             if (cnt != r320_work->atkCnt) {
@@ -808,16 +797,16 @@ void R320Main()
         if (r320_work->chgCntB <= 3) {
             if (setChange(6, 0x54, 6, 0x54)) {
                 r320_work->em[6].setGoto(&r320_posA[7], 0xC);
-                U32Set(r320_work->chgCntB, r320_work->chgCntB + 1);
+                r320_work->chgCntB = r320_work->chgCntB + 1;
             }
             if (setChange(7, 0x55, 7, 0x55)) {
                 r320_work->em[7].setGoto(&r320_posA[7], 0xC);
-                U32Set(r320_work->chgCntB, r320_work->chgCntB + 1);
+                r320_work->chgCntB = r320_work->chgCntB + 1;
             }
             if ((R320_SAVE_FLAGS & 0x20000000) == 0 && r320_work->chgCntB == 0) {
                 if (setChange(8, 0x49, 8, 0x49)) {
                     r320_work->em[8].setGoto(&r320_posB[0], 0xC);
-                    U32Set(r320_work->chgCntB, r320_work->chgCntB + 1);
+                    r320_work->chgCntB = r320_work->chgCntB + 1;
                 }
             }
         }
@@ -825,23 +814,23 @@ void R320Main()
     if (((R320_SAVE_FLAGS & 0x00400000) || (R320_SAVE_FLAGS & 0x00200000)) && (R320_SAVE_FLAGS & 0x20000000) == 0
         && (pG->Room_flg[0] & 0x40000000) == 0 && (R320_SAVE_FLAGS & 0x08000000) == 0) {
         if (r320_work->chgWaitC > 0) {
-            IntSet(r320_work->chgWaitC, r320_work->chgWaitC - 1);
+            r320_work->chgWaitC = r320_work->chgWaitC - 1;
         } else {
             u32 n = r320_work->chgCntC;
 
             if (n <= 7) {
                 if (setChange(9, 0x4B, 9, 0x4B)) {
-                    U32Set(r320_work->chgCntC, r320_work->chgCntC + 1);
+                    r320_work->chgCntC = r320_work->chgCntC + 1;
                 }
                 if (setChange(0xA, 0x4F, 0xA, 0x4F)) {
-                    U32Set(r320_work->chgCntC, r320_work->chgCntC + 1);
+                    r320_work->chgCntC = r320_work->chgCntC + 1;
                 }
                 if (r320_work->chgCntC == 1) {
                     r320_work->chgCntC = 2;
                     emset(0xB, 0x5B);
                 }
                 if (n != r320_work->chgCntC && r320_work->chgCntC > 4) {
-                    IntSet(r320_work->chgWaitC, 0x78);
+                    r320_work->chgWaitC = 0x78;
                 }
             }
         }
@@ -856,7 +845,7 @@ void R320Main()
                 emset(0x10, 0x48);
                 r320_work->em[0x10].setGoto(&r320_posB[12], 0xC);
                 U32Set(r320_work->chgCntD, r320_work->chgCntD + 1);
-                U32Set(r320_work->chgCntD, r320_work->chgCntD + 1);
+                r320_work->chgCntD = r320_work->chgCntD + 1;
             } else if (r320_work->chgCntD <= 3) {
                 if (setChange(0xF, 0x47, 0xF, 0x47)) {
                     U32Set(r320_work->chgCntD, r320_work->chgCntD + 1);
@@ -888,7 +877,7 @@ void R320Main()
                 if (r320_work->em[0x2D].ckResetEnable()) {
                     if (setChange(0x2D, 0x42, 0x11, 0x4D) || setChange(0x11, 0x4D, 0x11, 0x4D)) {
                         r320_work->em[0x11].setGoto(&pos, 0xC);
-                        U32Set(r320_work->chgCntF, r320_work->chgCntF + 1);
+                        r320_work->chgCntF = r320_work->chgCntF + 1;
                     }
                 }
             }
@@ -896,7 +885,7 @@ void R320Main()
                 if (r320_work->em[0x38].ckResetEnable()) {
                     if (setChange(0x38, 0x61, 7, 0x55) || setChange(7, 0x55, 7, 0x55)) {
                         r320_work->em[7].setGoto(&pos, 0xC);
-                        U32Set(r320_work->chgCntF, r320_work->chgCntF + 1);
+                        r320_work->chgCntF = r320_work->chgCntF + 1;
                     }
                 }
             }
@@ -904,7 +893,7 @@ void R320Main()
                 if (r320_work->em[0x2C].ckResetEnable()) {
                     if (setChange(0x2C, 0x41, 0x18, 0x5C) || setChange(0x18, 0x5C, 0x18, 0x5C)) {
                         r320_work->em[0x18].setGoto(&pos, 0xC);
-                        U32Set(r320_work->chgCntF, r320_work->chgCntF + 1);
+                        r320_work->chgCntF = r320_work->chgCntF + 1;
                     }
                 }
             }
@@ -1432,7 +1421,7 @@ static void appear_g()
         if (r320_work->gatling[4]) {
             r320_work->gatling[4]->setFire();
         }
-        IntSet(r320_work->fireTimer, -0x4B);
+        r320_work->fireTimer = -0x4B;
         SceSleep(0x4B);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -1529,7 +1518,7 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 0.21f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[2], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+            (void*&) r320_work->gatling[2] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
             if (r320_work->gatling[2]) {
                 r320_work->gatling[2]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[2]->setNoSuspend(1);
@@ -1543,7 +1532,7 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 1.72f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[3], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+            (void*&) r320_work->gatling[3] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
             if (r320_work->gatling[3]) {
                 r320_work->gatling[3]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[3]->setNoSuspend(1);
@@ -1557,7 +1546,7 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 1.15f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[4], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
+            (void*&) r320_work->gatling[4] = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
             if (r320_work->gatling[4]) {
                 r320_work->gatling[4]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[4]->setNoSuspend(1);
@@ -2228,7 +2217,7 @@ static void Evt_R320S00_Func(Event* e)
             SmdSetTrans(0x18, 0);
         }
         if (e->NowCut == 7 && e->NowFrame == 0x78) {
-            int skip = r320_evtSkip(e);
+            int skip = EvtSkipCk(e);
 
             if (skip == 0) {
                 FadeSetW(2, e->MaxFrame - 0x78, 0, 0);
@@ -2312,7 +2301,7 @@ static void Evt_R320S01_Func(Event* e)
                 e->EspSetModelPtr(obj);
             }
             {
-                int skip = r320_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 0x1E, 0, 0);

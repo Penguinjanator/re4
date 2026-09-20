@@ -24,6 +24,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -51,11 +52,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em24DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em24Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -88,7 +84,7 @@ void em24DmCk(cEm24* em)
     Em24Work* w = EM24_WK(em);
     int wep;
 
-    if (em->hp > 0 && !em24DeadCk(em)) {
+    if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:

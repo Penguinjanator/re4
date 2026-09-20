@@ -29,6 +29,7 @@
 #include "path.h"
 #include "hermite.h"
 #include "room_data.h"
+#include "ref_access.h"
 
 typedef s64 OSTime;
 
@@ -138,8 +139,6 @@ struct MesPos {
 #define SYS_SIZE 0x1E7C
 
 static inline void U16Inc(u16& v) { v++; }
-// Member read through a reference (no struct flag): stays below a preceding store to a static.
-static inline s32 IRef(s32& v) { return v; }
 static inline u32 bitChk(u32 f, u32 b) { return f & b; }
 
 #define KEY_A 0x80000000
@@ -1478,7 +1477,7 @@ void cCard::errorDisp()
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
         cardcheck = 1;
-        switch (IRef(m_ErrCode)) {
+        switch (S32Ref(m_ErrCode)) {
         case -3:
             if (type == 2) {
                 mesNo = 0x18;

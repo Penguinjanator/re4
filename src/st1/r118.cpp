@@ -25,7 +25,6 @@
 #include "snd.h"
 #include "flr_at.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-18 (D:/Bio4/Prog/r118.cpp): the church in the storm; the door 117 key, the altar view,
 // r108's symbol puzzle, Ashley's call and the thunder task with the dog.

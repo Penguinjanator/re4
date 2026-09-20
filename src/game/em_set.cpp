@@ -10,6 +10,7 @@
 #include "global.h"
 #include "db_log.h"
 #include "ref_access.h"
+#include "em.h"
 
 extern cEm* pPL;   // game/em.cpp
 
@@ -123,18 +124,6 @@ static inline void EmSetDist(cEm* em)
     em->plDist2 = dx * dx + dz * dz;
 }
 
-// Work `no` with the range check read through a manager copy (map_obj.h getWork). A plain
-// `for (i = 0; i < EmMgr.nArray; i++)` around it gives the original shape: gcse PRE turns the second
-// nArray read into a copy of the first (`mr r10, r0`), the bottom test uses that copy and the back
-// edge is threaded past the check.
-static inline cEm* emSetWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 // 1 when no live enemy already carries list entry `no` (0xFF: always 1).
 int checkListId(int no)
@@ -145,7 +134,7 @@ int checkListId(int no)
         return 1;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = emSetWork(i);
+        cEm* em = EmMgr.at(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return 0;
@@ -290,7 +279,7 @@ cEm* GetEmPtrFromList(int no)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = emSetWork(i);
+        cEm* em = EmMgr.at(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return em;
@@ -362,7 +351,7 @@ void EmSetDie(cEm* em)
 void EmSetDieCnt(cEm* pEm)
 {
     U32Inc(pG->c_kill_cnt);
-    U32Inc(pG->g_kill_cnt);
+    pG->g_kill_cnt++;
 }
 
 // Room change: clears the "set" bit of every list entry so the new room can create its enemies.

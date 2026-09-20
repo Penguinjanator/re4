@@ -2249,7 +2249,7 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
         }
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -3394,7 +3394,7 @@ cEmDoor* DoorOpenCk(cModel* m)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* em = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* em = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* w;
 
         if ((em->be_flag & 0x201) != 1) {
@@ -3528,7 +3528,7 @@ void emDoorDropWeapon(cEmDoor* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmWep* e = (cEmWep*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmWep* e = (cEmWep*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

@@ -56,26 +56,26 @@ void ObjHand_init(cObj* obj)
 // (idle, walk, run, turns, back, the 0x39..0x42 damage set; 0x3D stays the player archive's).
 void cObjHand::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x04));
-    PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x05));
-    PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x0B));
-    PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x06));
-    PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x07));
-    PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x0D));
-    PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x08));
-    PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x0E));
-    PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x09));
-    PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x0F));
-    PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0A));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x10));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
-    PSet(pl->m_MotTbl[0x3F], WEP_ARC_PTR(0x11));
-    PSet(pl->m_MotTbl[0x40], WEP_ARC_PTR(0x12));
-    PSet(pl->m_MotTbl[0x39], WEP_ARC_PTR(0x13));
-    PSet(pl->m_MotTbl[0x3A], WEP_ARC_PTR(0x14));
-    PSet(pl->m_MotTbl[0x41], WEP_ARC_PTR(0x15));
-    PSet(pl->m_MotTbl[0x42], WEP_ARC_PTR(0x16));
+    WEP_MOT(pl, 0x00, 0x04);
+    WEP_MOT(pl, 0x02, 0x05);
+    WEP_MOT(pl, 0x03, 0x0B);
+    WEP_MOT(pl, 0x08, 0x06);
+    WEP_MOT(pl, 0x09, 0x0C);
+    WEP_MOT(pl, 0x06, 0x07);
+    WEP_MOT(pl, 0x07, 0x0D);
+    WEP_MOT(pl, 0x0B, 0x08);
+    WEP_MOT(pl, 0x0C, 0x0E);
+    WEP_MOT(pl, 0x0D, 0x09);
+    WEP_MOT(pl, 0x0E, 0x0F);
+    WEP_MOT(pl, 0x0F, 0x0A);
+    WEP_MOT(pl, 0x10, 0x10);
+    PLA_MOT(pl, 0x3D, 0x5D);
+    WEP_MOT(pl, 0x3F, 0x11);
+    WEP_MOT(pl, 0x40, 0x12);
+    WEP_MOT(pl, 0x39, 0x13);
+    WEP_MOT(pl, 0x3A, 0x14);
+    WEP_MOT(pl, 0x41, 0x15);
+    WEP_MOT(pl, 0x42, 0x16);
 }
 
 // REL entry: registers the weapon init / move routines and the object constructor slot.

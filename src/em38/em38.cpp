@@ -34,7 +34,6 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
@@ -978,12 +977,12 @@ static void em38_R1_T_Out(cEm38* em)
 // The attack wait of the tentacle routines by difficulty (pG reloaded after every store).
 static inline void em38SetTentAtkWait(Em38Work* w)
 {
-    IntSet(w->atkWait, 270);
+    w->atkWait = 270;
     if (pG->Game_level <= 2) {
-        IntSet(w->atkWait, 330);
+        w->atkWait = 330;
     }
     if (pG->Game_level > 7) {
-        IntSet(w->atkWait, 210);
+        w->atkWait = 210;
     }
 }
 
@@ -1739,11 +1738,6 @@ void em38EyeMove(cEm38* em)
     }
 }
 
-// Work `no` of the enemy manager without the range check (the callers loop over nArray).
-static inline cEm38* em38EmWork(u32 no)
-{
-    return (cEm38*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Finds the other parts of the boss among the alive enemies.
 void em38SearchParts(cEm38* em)
@@ -1752,7 +1746,7 @@ void em38SearchParts(cEm38* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm38* p = em38EmWork(i);
+        cEm38* p = (cEm38*) EmMgr.fastAt(i);
 
         if ((p->be_flag & 0x201) == 1 && p->id == 0x38 && p != em) {
             switch (p->type) {
@@ -1838,7 +1832,7 @@ void em38BirthParasite(cEm38* em)
 
     if (w->birthTimer == 0 && em->type == 4 && em->hp > 0) {
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm25* p = (cEm25*) em38EmWork(i);
+            cEm25* p = (cEm25*) (cEm38*) EmMgr.fastAt(i);
 
             // isAlive() (not the open-coded flag test): the inline's extra RTL keeps the loop
             // above loop.c's 71-insn threshold in pass 2, so `li 240` stays inside the loop

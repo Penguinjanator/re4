@@ -229,7 +229,7 @@ extern "C" cModel* GetActiveModel(EspGenWork* gen)
     }
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
-        m = EmMgrWork(db_modelNo);
+        m = EmMgr.at(db_modelNo);
     }
     return m;
 }
@@ -480,7 +480,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
 
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
-        m = EmMgrWork(db_modelNo);
+        m = EmMgr.at(db_modelNo);
     }
     if (m != 0 && !(m->be_flag & 1)) {
         m = 0;
@@ -844,7 +844,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         LightMgr.update(0, -1);
         nLit = LightMgr.nArray;
         for (k = 0; k < nLit; k++) {
-            cLight* l = LightMgr.getWorkPtr(k);
+            cLight* l = LightMgr.at(k);
             if ((l->be_flag & 3) == 3 && l->ParentType == 1) {
                 l->be_flag &= 2; // sic: the original masks with 2, not ~2 (`rlwinm 0,30,30`)
             }

@@ -33,7 +33,6 @@
 #include "cam_ctrl.h"
 #include "sscrn.h"
 #include "snd.h"
-#include "ref_access.h"
 
 // Room 1-1e (D:/Bio4/Prog/r11e.cpp): the village path with the two huts and the two fences the
 // Ganados break through, the two boulders on the props, the giant's appearance and Ashley's
@@ -111,7 +110,7 @@ void R11eInit()
     PSet(r11e_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
     PSet(r11e_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
     PSet(r11e_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
-    PSet(r11e_work->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
+    r11e_work->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0);
     getRoomEtcDoor(0xE, &door, 1);
     getRoomEtcDoor(0xF, &door, 1);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -480,7 +479,7 @@ static void r11e_str_check()
         u32 i;
 
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 find = 1;

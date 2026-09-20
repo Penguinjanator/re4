@@ -51,19 +51,6 @@ extern f32 ORTHO_R;
         ORTHO_L -= (t);                  \
     }
 
-// EmMgrWork with the manager through a pointer (one `&EmMgr` instead of three per-field
-// `high/lo_sum` pairs): four fewer expand-time insns, so the enemy search loop's `break` sits
-// within stmt.c's 30-insn rotation window and the loop rotates at the match test (`bdz` at the
-// top, the two tests jumping back to the increment) instead of at the `--i` test (`bdnz`).
-// Same final code as em.h's EmMgrWork everywhere else (cse folds the pointer).
-static inline cEm* EmMgrWorkP(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 debugCamera CamDbg;
 QfpsOfs g_local_ready[2][3];
@@ -167,7 +154,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 numEm = 0;
             }
             while (--i) {
-                e = EmMgrWorkP(numEm);
+                e = EmMgr.at(numEm);
                 if ((e->be_flag & 1) && e->id <= 0x3F) {
                     break;
                 }
@@ -178,10 +165,10 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
         }
         if (joy->on & JOY_A) {
-            if (EmMgrWork(numEm)->be_flag & 1) {
-                cModel* parts = EmMgrWork(numEm)->getPartsPtr(0);
+            if (EmMgr.at(numEm)->be_flag & 1) {
+                cModel* parts = EmMgr.at(numEm)->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = EmMgrWork(numEm)->pos;
+                    cam->param.at = EmMgr.at(numEm)->pos;
                 } else {
                     cam->param.at = parts->world;
                 }
@@ -192,7 +179,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
             CameraSetOrientationZeroRoll(cam);
         }
-        em = EmMgrWork(numEm);
+        em = EmMgr.at(numEm);
         if (em != NULL) {
             if ((em->be_flag & 1) && em != (cEm*) pPL) {
                 int col = 0;
@@ -1319,7 +1306,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 4:
             if (joy->trg & JOY_A) {
                 menu_level = 4;
-                ISet(yes_no, 0);
+                yes_no = 0;
             }
             break;
         }
@@ -1362,11 +1349,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 site_LR = site_col;
             }
             if (site_row <= 2) {
-                ISet(site_UMD, site_row);
-                ISet(site_NF, 0);
+                site_UMD = site_row;
+                site_NF = 0;
             } else {
-                ISet(site_NF, 1);
-                ISet(site_UMD, site_row - 3);
+                site_NF = 1;
+                site_UMD = site_row - 3;
             }
             if (site_NF) {
                 if (site_LR) {
@@ -1484,7 +1471,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             ISet(yes_no, 1);
         }
         if (joy->rep & JOY_RIGHT) {
-            ISet(yes_no, 0);
+            yes_no = 0;
         }
         if (joy->trg & JOY_A) {
             if (yes_no) {
@@ -1509,7 +1496,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             ISet(near_far, 0);
         }
         if (joy->trg & JOY_DOWN) {
-            ISet(near_far, 1);
+            near_far = 1;
         }
         {
             f32 step = 1.0f;

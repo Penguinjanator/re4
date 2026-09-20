@@ -820,7 +820,7 @@ int em3dGetTargetEm(cEm3d* em)
     a = em->pos;
     w->pTargetEm = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         int dead = !(e->be_flag & 1);
 
         if (dead) {

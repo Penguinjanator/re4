@@ -1144,10 +1144,6 @@ static inline int flagNeg(u32& f)
     return (s32) f < 0;
 }
 
-static inline u32 chkFlag(u32& f, u32 b)
-{
-    return f & b;
-}
 
 // Game start: clears the inventory and gives the start set (set_game for Leon, set_ada / set_char for
 // the extra modes; debug presets via Debug_flg[3]) with 0 pesetas.
@@ -1155,7 +1151,7 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!flagNeg(pG->System_flg) && !chkFlag(pG->System_flg, 0x40000000)) {
+    if (!flagNeg(pG->System_flg) && !BitChk(pG->System_flg, 0x40000000)) {
         if (pG->pl_type == 1) {
             type = 0;
         }
@@ -1164,7 +1160,7 @@ void cItemMgr::gameInit()
         pG->peseta = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if (chkFlag(pG->Debug_flg[3], 0x00800000) || chkFlag(pG->Debug_flg[3], 0x00040000)) {
+        if (BitChk(pG->Debug_flg[3], 0x00800000) || BitChk(pG->Debug_flg[3], 0x00040000)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);

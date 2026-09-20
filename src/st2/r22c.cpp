@@ -1110,7 +1110,7 @@ static void shootInit()
     r22c_work.p->cnt46 = zero;
     r22c_work.p->cnt47 = zero;
     U32Set(r22c_work.p->shotHit, pG->g_hit_cnt);
-    U32Set(r22c_work.p->shotTotal, pG->g_shot_cnt);
+    r22c_work.p->shotTotal = pG->g_shot_cnt;
     r22c_work.p->effTimer = zero;
     r22c_work.p->effFlags = zero;
     LightMgr.onKind(1);

@@ -516,7 +516,6 @@ static void r204_first_cut()
     r204_first_cut_exit();
 }
 
-static inline int r204_isDead(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
 
 // The chase task ("nige" = escape): counts frames from the mob's first move; camera cuts 0xF/0x10 as
 // the Ganado with the torch (em[7]) charges, scripted run orders to the far points at fixed counts, the
@@ -539,7 +538,7 @@ static void r204_nige_check()
             if (r204_work.p->cnt == 1) {
                 cEm* em = r204_work.p->em[7].getPtr();
 
-                if (em != 0 && r204_isDead(em)) {
+                if (em != 0 && EmDeadCk(em)) {
                     started = 1;
                     SndStrReq(r204_work.p->str, 4, 200, 0);
                     r204_work.p->cnt = 0x23;

@@ -2203,7 +2203,7 @@ int EventMgr::DelAll()
     Event* e;
 
     for (i = 0; i < nArray; i++) {
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (e->isAlive()) {
             DelEvt(e, 0);
         }
@@ -2222,7 +2222,7 @@ int EventMgr::Run()
 
     dieCheck();
     for (i = 0; i < nArray; i++) {
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (!e->isAlive()) {
             continue;
         }
@@ -2282,7 +2282,7 @@ int EventMgr::IsAliveEvt(u32* key, Event** out, int chk)
 
     for (i = 0; i < nArray; i++) {
         char* p = nm;
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (!e->isAlive()) {
             continue;
         }

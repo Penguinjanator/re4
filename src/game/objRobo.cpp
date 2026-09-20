@@ -30,9 +30,6 @@ void* memset(void* p, int c, unsigned int n);
 }
 void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
-// Pointer store through a reference: the following `pG` load is kept behind it.
-// Reference read of pG: an unflagged MEM that stays below the preceding `w->hit[i] = 0` store.
-static inline GlobalWork* GRef(GlobalWork*& g) { return g; }
 // Reference read of a .sdata float: an unflagged MEM that stays below the preceding `w->fallX` store.
 
 
@@ -152,7 +149,7 @@ void cObjRobo::R0Init(cObjRobo* robo)
     PSet(w->pSat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3));
     PSet(w->pEat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 6));
     PSet(w->pEat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 7));
-    PSet(w->pEatBody, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &robo->pos, &rot, 2));
+    w->pEatBody = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &robo->pos, &rot, 2);
     for (int i = 0; i < 2; i++) {
         Vec pos2 = { 0.0f, 0.0f, 0.0f };
         Vec rot2 = { 0.0f, 0.0f, 0.0f };
@@ -732,7 +729,7 @@ void cObjRobo::SatMove(cObjRobo* robo, Vec* pos, int side)
         }
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20) {
             SatMoveSub(em, &a, &d);
         }

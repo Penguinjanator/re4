@@ -167,10 +167,10 @@ RESTART:
         systemRestartInit();
         if (pRK->reset_flag) {
             U32Set(pSys->Config_flg, pRK->Config_flg);
-            U8Set(pSys->language, pRK->language);
-            U8Set(pSys->eff_country, pRK->eff_country);
-            U8Set(pG->language, pRK->game_country);
-            U32Set(pSys->Extra_flg, pRK->Extra_flg);
+            pSys->language = pRK->language;
+            pSys->eff_country = pRK->eff_country;
+            pG->language = pRK->game_country;
+            pSys->Extra_flg = pRK->Extra_flg;
             for (i = 0; i < 16; i += 4) {
                 U32SetOfs(pSys->MercSysRoom, i, U32GetOfs(pRK->MercSysRoom, i));
             }
@@ -404,9 +404,9 @@ void systemRestartInit()
         SysFlagOff(pG, SYS_SN_PC_READ_TOOL);
     }
     if (pRK->base_brightness == 0) {
-        U8Set(pRK->base_brightness, 0x40);
+        pRK->base_brightness = 0x40;
     }
-    U8Set(pSys->brightness, pRK->base_brightness);
+    pSys->brightness = pRK->base_brightness;
 #line 752 "D:/Bio4/Prog/main.cpp"
     ret = DvdReadN("debug/roomInfo.dat", 0, 0, 0, 0, 5, __FILE__, __LINE__);
     if (Dvd.ReadCheck(ret, 0, 0, &roomInfoAddr) < 0) {
@@ -433,7 +433,7 @@ static void systemScreenInit()
     Screen.y = 0.0f;
     Screen.width = (f32) rm->fbWidth;
     Screen.height = (f32) rm->efbHeight;
-    U8Set(pSys->brightness, 0x40);
+    pSys->brightness = 0x40;
     OSReport("width = %d\n", rm->fbWidth);
     OSReport("height = %d\n", rm->efbHeight);
 }
@@ -444,18 +444,18 @@ void systemWorkInit()
 {
     systemScreenInit();
     S8Set(pG->debug_mode, 1);
-    S8Set(pG->debug_disp, -1);
+    pG->debug_disp = -1;
     U16Set(pG->room_id, 0x120);
     U16Set(pG->RoomNo_next, pG->room_id);
     U8Set(pG->pl_type, 0);
-    U8Set(pG->game_mode, 5);
-    U8Set(pG->game_costume, 0);
-    U8Set(pG->pl_costume, 0);
+    pG->game_mode = 5;
+    pG->game_costume = 0;
+    pG->pl_costume = 0;
 #line 823 "D:/Bio4/Prog/main.cpp"
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
-    U8Set(pSys->language, 1);
-    U8Set(pSys->eff_country, 1);
-    U8Set(pG->language, 1);
+    pSys->language = 1;
+    pSys->eff_country = 1;
+    pG->language = 1;
 }
 
 // Frames per game update in vsyncs (1 = 60 Hz, 2 = 30 Hz).
@@ -544,11 +544,11 @@ void systemResetCommon()
     ReleaseWepData();
     RoomData.stopRelData();
     U32Set(pRK->Config_flg, pSys->Config_flg);
-    U8Set(pRK->language, pSys->language);
-    U8Set(pRK->eff_country, pSys->eff_country);
-    U8Set(pRK->game_country, pG->language);
+    pRK->language = pSys->language;
+    pRK->eff_country = pSys->eff_country;
+    pRK->game_country = pG->language;
     U32Set(pRK->Extra_flg, pSys->Extra_flg);
-    U32Set(pRK->System_flg, pG->System_flg);
+    pRK->System_flg = pG->System_flg;
     for (i = 0; i < 4; i++) {
         U32SetOfs(pRK->MercSysRoom, i * 4, pSys->MercSysRoom[i]);
     }
@@ -556,7 +556,7 @@ void systemResetCommon()
         U32SetOfs(pRK->MercSysRank, i * 4, pSys->MercSysRank[i]);
     }
     U32Set(pRK->MemcardCheckDone, pG->CardStatus >> 31);
-    U8Set(pRK->reset_flag, 1);
+    pRK->reset_flag = 1;
 }
 
 // Blacks the screen and runs the common reset (the OS then reboots).
@@ -595,7 +595,7 @@ void systemSoftReset()
 // Fixed language 1 / region 1 for this build.
 void setLanguage()
 {
-    U8Set(pSys->language, 1);
-    U8Set(pSys->eff_country, pSys->language);
-    U8Set(pG->language, pSys->language);
+    pSys->language = 1;
+    pSys->eff_country = pSys->language;
+    pG->language = pSys->language;
 }

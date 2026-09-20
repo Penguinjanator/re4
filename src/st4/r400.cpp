@@ -516,7 +516,7 @@ void em_destroy()
     int hi = 0x20;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         int id;
 
         if (hi == -1) {

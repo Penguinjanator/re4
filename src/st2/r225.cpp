@@ -31,7 +31,6 @@
 #include "motion.h"
 #include "rnd.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-25 (D:/Bio4/Prog/r225.cpp): the graveyard / crank puzzle; a local copy of sce_com's
 // SceElevator with the chapter end on the way out.

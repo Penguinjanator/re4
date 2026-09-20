@@ -41,7 +41,6 @@
 #include "snd.h"
 #include "math_sub.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-01 (D:/Bio4/Prog/r101.cpp): the village; the first fight, the tower and the enemy resets,
 // the church bell event (s30), the house event (s20), the binocular view (s00) and the door messages.
@@ -946,7 +945,7 @@ static void r101_setChickenFlag()
 
     SceSleep(1);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id == 0x28 && em->isAlive()) {
             em->flag &= ~0x80000000;
@@ -960,7 +959,7 @@ static inline void r101_setEmSuspend(int on)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id >= 0x10 && em->id <= 0x20 && em->isAlive()) {
             em->setNoSuspend(on);

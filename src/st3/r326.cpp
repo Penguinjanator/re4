@@ -15,7 +15,6 @@
 #include "pl_sub.h"
 #include "snd.h"
 #include "vec.h"
-#include "ref_access.h"
 
 // Room 3-26 (D:/Bio4/Prog/r326.cpp): the island cold-storage room: the corpse bag hanging from the
 // ceiling (a SetObjSmd with the dark light set until the lights come on, then it drops with a hit box),

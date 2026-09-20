@@ -75,26 +75,26 @@ void ObjKnife_init(cObj* obj)
 // weapon hand model (right hand 1, bare left hand 0).
 void cObjKnife::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x08));
-    PSet(pl->m_MotTbl[0x01], 0);
-    PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x09));
-    PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x1B));
-    PSet(pl->m_MotTbl[0x04], WEP_ARC_PTR(0x09));
-    PSet(pl->m_MotTbl[0x05], WEP_ARC_PTR(0x09));
-    PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x1D));
-    PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x0A));
-    PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x1C));
-    PSet(pl->m_MotTbl[0x0A], WEP_ARC_PTR(0x0A));
-    PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x0D));
-    PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x1E));
-    PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x0E));
-    PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x1F));
-    PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0F));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x20));
-    PSet(pl->m_MotTbl[0x12], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x13], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
+    WEP_MOT(pl, 0x00, 0x08);
+    NO_MOT(pl, 0x01);
+    WEP_MOT(pl, 0x02, 0x09);
+    WEP_MOT(pl, 0x03, 0x1B);
+    WEP_MOT(pl, 0x04, 0x09);
+    WEP_MOT(pl, 0x05, 0x09);
+    WEP_MOT(pl, 0x06, 0x0C);
+    WEP_MOT(pl, 0x07, 0x1D);
+    WEP_MOT(pl, 0x08, 0x0A);
+    WEP_MOT(pl, 0x09, 0x1C);
+    WEP_MOT(pl, 0x0A, 0x0A);
+    WEP_MOT(pl, 0x0B, 0x0D);
+    WEP_MOT(pl, 0x0C, 0x1E);
+    WEP_MOT(pl, 0x0D, 0x0E);
+    WEP_MOT(pl, 0x0E, 0x1F);
+    WEP_MOT(pl, 0x0F, 0x0F);
+    WEP_MOT(pl, 0x10, 0x20);
+    WEP_MOT(pl, 0x12, 0x0C);
+    WEP_MOT(pl, 0x13, 0x0C);
+    PLA_MOT(pl, 0x3D, 0x5D);
     pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
     pl->setRightHand(1);
     pl->setLeftHand(0);

@@ -33,7 +33,6 @@
 #include "sscrn.h"
 #include "fade.h"
 #include "cSceObj.h"
-#include "ref_access.h"
 
 // Room 2-27 (D:/Bio4/Prog/r227.cpp): the entrance event, the cargo lift with its enemy waves and
 // falling crates, the gondola and the shelf items.
@@ -184,7 +183,7 @@ u32 r227_checkEmNumOnElv()
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        if (SceAtCheckHitModel(0xE, (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i)) == 1) {
+        if (SceAtCheckHitModel(0xE, EmMgr.fastAt(i)) == 1) {
             n++;
         }
     }

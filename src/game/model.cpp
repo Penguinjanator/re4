@@ -155,7 +155,7 @@ int cModel::modelInit(void* bin, void* tpl)
     be_flag |= 6;
     invisible_factor2 = 1.0f;
     U8Set(TevScaleGroup, 0);
-    U8Set(CullMode, 0);
+    CullMode = 0;
     if (kindid == 0) {
         be_flag |= 0x10;
     }
@@ -1296,7 +1296,7 @@ static inline cParts* PartsMgrWork(cPartsMgr* m, u32 no)
     if (no >= m->nArray) {
         return 0;
     }
-    return (cParts*) ((u8*) m->pArray + m->size * no);
+    return m->fastAt(no);
 }
 
 // Allocates n consecutive free parts slots (linked as pList) so the model can index them directly;

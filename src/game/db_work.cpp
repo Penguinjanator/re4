@@ -88,7 +88,7 @@ void cDbWork::dispEm()
     cEm* em;
 
     eprintf(32, 28, 4, 0, "ENEMY %d", wkNo);
-    em = EmMgrWork(wkNo);
+    em = EmMgr.at(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
         wkNo++;
     }
@@ -224,7 +224,7 @@ void cDbWork::dispLit()
     cLight* l;
 
     eprintf(32, 28, 4, 0, "LIGHT %d", wkNo);
-    l = LightMgr.getWorkPtr(wkNo);
+    l = LightMgr.at(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
         wkNo++;
     }

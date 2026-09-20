@@ -39,16 +39,6 @@ static void R331ExecEventS10();
 extern "C" void Evt_R331S00_Func(Event* e);
 extern "C" void Evt_R331S10_Func(Event* e);
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r331_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Room init: the s00 / s10 callbacks; until Room_flg bit 0 area 3 = the s00 event (pre-loaded). With
 // Scenario_flg[1] 0x200 (the count-down phase): BGM table 0x331 set 2 and the s10 event task, the
@@ -154,7 +144,7 @@ extern "C" void Evt_R331S00_Func(Event* e)
             break;
         case 4:
             if (e->NowFrame == e->MaxFrame - 40) {
-                int skip = r331_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 40, 0, 0);
@@ -201,7 +191,7 @@ extern "C" void Evt_R331S10_Func(Event* e)
                     obj->be_flag |= 0x20;
                     e->EspSetModelPtr(obj);
                 }
-                skip = r331_evtSkip(e);
+                skip = EvtSkipCk(e);
                 if (skip == 0) {
                     FadeSetW(0x80000002, 40, 0, 0);
                 }
@@ -209,7 +199,7 @@ extern "C" void Evt_R331S10_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == e->MaxFrame - 40) {
-                int skip = r331_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 40, 0, 0);

@@ -65,6 +65,7 @@
 #include "sce.h"
 #include "gx_sub.h"
 #include "ref_access.h"
+#include "em.h"
 
 
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
@@ -501,11 +502,6 @@ extern "C" void em10BlendMotSet(cEm10* em, void* m0, void* m1, void* m2, int a, 
 extern "C" int em10HideRtnCk(cEm10* em);
 extern "C" int em10GatlingHitCk(cEm10* em);
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em10DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Reference store (same mechanism as FSet): keeps the following global load after the store.
 // Same for an int work field (Dm_Roof: `w->TmpU32 = 1` before the pG load of the water-effect room check).
@@ -896,7 +892,7 @@ void em10DmCk(cEm10* em)
     if (em10CrashCk(em)) {
         return;
     }
-    if ((em->be_flag & 2) && !em10DeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -5659,7 +5655,7 @@ static void em10_R1_R100Cliff(cEm10* em)
                 SndCall(6, 4, &em->pos, 0, 0, em);
             }
             for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+                cEm* e = EmMgr.fastAt(i);
                 if ((e->be_flag & 0x201) != 1) {
                     continue;
                 }
@@ -9196,7 +9192,7 @@ static void em10_R1_ShotBowgun(cEm10* em)
             if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW)) {
                 break;
             }
-            if (em10DeadCk(pPL)) {
+            if (EmDeadCk(pPL)) {
                 break;
             }
             if (pG->Game_level <= 4) {
@@ -9290,7 +9286,7 @@ static void em10_R1_ShotBowgun(cEm10* em)
                 em->r_no_2 = 2;
             } else {
                 w->Timer--;
-                if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW) || em10DeadCk(pPL)) {
+                if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW) || EmDeadCk(pPL)) {
                     em->r_no_2 = 2;
                 }
             }
@@ -9442,7 +9438,7 @@ static void em10_R1_ShotRocket(cEm10* em)
             if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW)) {
                 break;
             }
-            if (em10DeadCk(pPL)) {
+            if (EmDeadCk(pPL)) {
                 break;
             }
         }
@@ -9596,7 +9592,7 @@ static void em10_R1_ShotGatling(cEm10* em)
             w->Timer--;
         } else {
             if (!(em->flag & 1)) {
-                if (em10DeadCk(pPL)) {
+                if (EmDeadCk(pPL)) {
                     break;
                 }
                 if (pG->Game_level <= 4) {
@@ -9971,7 +9967,7 @@ static void em10_R1_FixBomber(cEm10* em)
         if (em->r_no_3 && !(w->flags & 1)) {
             break;
         }
-        if (em10DeadCk(pPL)) {
+        if (EmDeadCk(pPL)) {
             break;
         }
         if ((s16) pG->pl_life <= 0) {
@@ -13260,13 +13256,13 @@ static void em10_R1_TakeAway(cEm10* em)
         StaFlagOn(pG, STA_SET_BG_COLOR);
         bio4_GXSetCopyClear(GXColor(), 0xFFFFFF);
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            cEm* e = EmMgr.fastAt(i);
             if (e && e != em && pSUB && e != pSUB && e->isAlive()) {
                 e->setNoSuspend(0);
             }
         }
         for (i = 0; i < ObjMgr.nArray; i++) {
-            cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+            cObj* o = ObjMgr.fastAt(i);
             if (o && o->isAlive()) {
                 o->setNoSuspend(0);
             }
@@ -13364,7 +13360,7 @@ static void subem10_TakeAway(cSubChar* sub)
         } else {
             r = MotionMove(s, 0);
         }
-        if (em10DeadCk(s->pEmCatch)) {
+        if (EmDeadCk(s->pEmCatch)) {
             EndSubDamage();
         }
         if (r) {
@@ -16847,7 +16843,7 @@ extern "C" int em10GetGoSub(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -17342,7 +17338,7 @@ int em10CatchCk(cEm10* em)
     Vec b;
     Mtx m;
 
-    if (em10DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -17434,7 +17430,7 @@ int em10CatchSubCk(cEm10* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (em10DeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     if (pSUB->hp <= 0) {
@@ -19325,7 +19321,7 @@ int em10DoorOpenCk(cEm10* em, int kick)
         kick = 1;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -19405,7 +19401,7 @@ extern "C" int em10AtkDoorCk(cEm10* em)
     Vec v;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* d = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 hw;
         if (!(d->be_flag & 1)) {
@@ -19605,7 +19601,7 @@ int em10RackBreakCk(cEm10* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmRack* e = (cEmRack*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmRack* e = (cEmRack*) EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19675,7 +19671,7 @@ extern "C" int em10AtkRackCk(cEm10* em)
     Vec v;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19723,7 +19719,7 @@ void em10SetDamageRack(cEm10* em, int a)
     Vec v;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmRack* e = (cEmRack*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmRack* e = (cEmRack*) EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19894,7 +19890,7 @@ int em10VLadderClimbCk(cEm10* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* o = EmMgr.fastAt(i);
         if ((o->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21478,7 +21474,7 @@ int em10FindCk(cEm10* em, int a)
             break;
         }
     }
-    dead = em10DeadCk(em);
+    dead = EmDeadCk(em);
     if (dead) {
         find = 1;
     }
@@ -21553,7 +21549,7 @@ extern "C" int em10SomebodyFindNowCk(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21603,7 +21599,7 @@ extern "C" int em10SomebodyDamageNowCk(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         int dm;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -21658,7 +21654,7 @@ int em10SomebodyNearCk(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21696,7 +21692,7 @@ void em10FindNotify(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -22921,7 +22917,7 @@ extern "C" int em10DashCk(cEm10* em)
     }
     cnt = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* o = EmMgr.fastAt(i);
         if ((o->be_flag & 0x201) != 1) {
             continue;
         }
@@ -23040,7 +23036,7 @@ extern "C" int em10StayCk(cEm10* em)
     }
     n = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) == 1 && e->id > 0xF && e->id <= 0x20 && e->hp > 0 && e != em &&
             e->checkStatus(EM_STATUS_ACTIVE) && EM10_WK(e)->L_pl_route < w->L_pl_route) {
             n++;
@@ -23092,7 +23088,7 @@ extern "C" int em10GoSubStayCk(cEm10* em)
     }
     cnt = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         Em10Work* ew;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -23602,7 +23598,7 @@ extern "C" int em10TorchFrameAtkCk(cEm10* em)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (em10DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if (w->Atk_ck) {
@@ -23636,7 +23632,7 @@ extern "C" int em10TorchFrameAtkCkSub(cEm10* em)
     if (pSUB->hp <= 0) {
         return 0;
     }
-    if (em10DeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     old = w->Atk_ck2;
@@ -23682,7 +23678,7 @@ void em10DragonFireCk(cEm10* em)
         return;
     }
     if ((s16) pG->pl_life > 0) {
-        int dead = em10DeadCk(pPL);
+        int dead = EmDeadCk(pPL);
         if (!dead) {
             if (EM10_DRAGON(w)->ckHitFire(&pPL->pos)) {
                 SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
@@ -23694,7 +23690,7 @@ void em10DragonFireCk(cEm10* em)
         }
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm10* e = (cEm10*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm10* e = (cEm10*) EmMgr.fastAt(i);
         int dead;
         cDmgInfo* d;
         if ((e->be_flag & 0x201) != 1) {
@@ -24832,7 +24828,7 @@ void em10ActEvtSetTrade(cEm10* em)
         break;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -25247,7 +25243,7 @@ extern "C" int em10DootAtkCk(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -25297,7 +25293,7 @@ extern "C" int em10ThrowNearCk(cEm10* em)
     TransMatrix(m, &em->pos);
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -26099,7 +26095,7 @@ extern "C" cModel* em10SearchTruck(cEm10* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3B) {
             *(cEm10**) ((u8*) e + 0x64C) = em;  // truck (em3b) work: driver
             w->pTruck = e;
@@ -26117,7 +26113,7 @@ extern "C" int em10SearchParasite(cEm10* em)
 
     w->pParasite = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmPartner* e = (cEmPartner*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmPartner* e = (cEmPartner*) EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -26495,7 +26491,7 @@ int em10GotoPosCk(cEm10* em)
         }
         cnt = 0;
         for (j = 0; j < EmMgr.nArray; j++) {
-            cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * j);
+            cEm* o = EmMgr.fastAt(j);
             if ((o->be_flag & 0x201) != 1) {
                 continue;
             }

@@ -645,7 +645,7 @@ void Espgen45_TransSub(EspgenWork* w)
         st->tevStage++;
         st->texMap++;
         st->texCoord++;
-        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (IGet(g_bSetParam) == 0 && (p->flag & 2))) {
+        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (g_bSetParam == 0 && (p->flag & 2))) {
             u8 texId;
             EspTexWk* tw;
             if (g_bSetParam == 1) {
@@ -1164,10 +1164,10 @@ void Estgen45SetSize(f32 size)
 // Sets the override tev colour (r,g,b,a) and ambient/scale factors (rs..as, 0..1).
 void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
 {
-    U8Set(g_r, r);
-    U8Set(g_g, g);
-    U8Set(g_b, b);
-    U8Set(g_a, a);
+    g_r = r;
+    g_g = g;
+    g_b = b;
+    g_a = a;
     FSet(g_sr, rs);
     FSet(g_sg, gs);
     FSet(g_sb, bs);

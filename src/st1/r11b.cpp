@@ -28,7 +28,6 @@
 #include "flr_at.h"
 #include "TexRender.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-1B (D:/Bio4/Prog/r11b.cpp): the lake; the boat, the floating islands, the lake water
 // rendered to texture, the Ganado ambush on the shore and the s00 event (Del Lago).
@@ -434,7 +433,7 @@ static void r11b_str_check()
             u32 i;
 
             for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+                cEm* em = EmMgr.fastAt(i);
 
                 if (em->id == 0x22 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                     n++;
@@ -452,16 +451,6 @@ static void r11b_str_check()
     }
 }
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r11b_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Water render setup of the event's player stand-in: parts 6 (lake) and 7 / 8 (the two shores).
 static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
@@ -505,7 +494,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 30, 0, 0);
@@ -517,7 +506,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == 0x84) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -526,7 +515,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 3:
             if (e->NowFrame == 0x55) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -535,7 +524,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 4:
             if (e->NowFrame == 0x26) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -544,7 +533,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 5:
             if (e->NowFrame == 0x5D) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -552,13 +541,13 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 8: {
-            int skip = r11b_evtSkip(e);
+            int skip = EvtSkipCk(e);
 
             if (skip == 0) {
                 SetNearClipDist(1.0f);
             }
             if (e->NowFrame == 0x68) {
-                int skip2 = r11b_evtSkip(e);
+                int skip2 = EvtSkipCk(e);
 
                 if (skip2 == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);

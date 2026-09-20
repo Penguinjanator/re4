@@ -429,7 +429,7 @@ int SceCountEmAlive(int lo, int hi)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;
         }
@@ -448,7 +448,7 @@ void SceDestroyEm(int lo, int hi)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;
         }
@@ -811,12 +811,12 @@ void SceChapterEnd()
             pPL->pos.z = SceAtPtr(SceSys.m_chapter_door)->dstPos.z;
             FSet(pPL->ang.y, SceAtPtr(SceSys.m_chapter_door)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
-            U8Set(pG->Part_old, pG->Part);
-            U8Set(pG->stage_no, SceAtPtr(SceSys.m_chapter_door)->dstStage);
-            U8Set(pG->room_no, SceAtPtr(SceSys.m_chapter_door)->dstRoom);
-            U8Set(pG->Part, SceAtPtr(SceSys.m_chapter_door)->dstPart);
-            U8Set(pG->JumpPoint, 0);
-            U16Set(pG->r_continue_cnt, 0);
+            pG->Part_old = pG->Part;
+            pG->stage_no = SceAtPtr(SceSys.m_chapter_door)->dstStage;
+            pG->room_no = SceAtPtr(SceSys.m_chapter_door)->dstRoom;
+            pG->Part = SceAtPtr(SceSys.m_chapter_door)->dstPart;
+            pG->JumpPoint = 0;
+            pG->r_continue_cnt = 0;
         } else {
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
@@ -849,7 +849,7 @@ void SceChapterEnd()
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);
-        U8Set(pG->Part, x4F9E);
+        pG->Part = x4F9E;
         if (SceAtPtr(SceSys.m_chapter_door)) {
             SceAtPtr(SceSys.m_chapter_door)->doorFadeEff = 2;
             SceAtExecute(SceSys.m_chapter_door);
@@ -1476,7 +1476,7 @@ void cManager<T>::beginEvent(int mode)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->isAlive()) {
             p->beginEvent(mode);
         }
@@ -1490,7 +1490,7 @@ void cManager<T>::endEvent(int mode)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->isAlive()) {
             p->endEvent(mode);
         }

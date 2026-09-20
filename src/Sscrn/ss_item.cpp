@@ -985,8 +985,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
             case 1:
                 // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
                 // and load stay below it (the store is on the critical path).
-                PSet((void*&) wk->p_exam_model, MapMgr.getWork(2));
-                PSet((void*&) wk->p_exam_item, item_sel);
+                (void*&) wk->p_exam_model = MapMgr.getWork(2);
+                (void*&) wk->p_exam_item = item_sel;
                 if (item_sel->id == 0xA2) {
                     state = 2;
                     return;

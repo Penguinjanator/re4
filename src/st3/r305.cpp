@@ -13,7 +13,6 @@
 #include "em_wrap.h"
 #include "snd.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 3-05 (D:/Bio4/Prog/r305.cpp): the shutter that the bomber Ganado open and close, the enemies reset
 // to their start positions while it is closed, and the three item boxes.

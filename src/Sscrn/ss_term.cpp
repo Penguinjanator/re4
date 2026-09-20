@@ -266,7 +266,6 @@ void cDbgWindow::LocalDisp()
 }
 
 #include "ss_main.h"
-#include "ref_access.h"
 
 
 // Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).

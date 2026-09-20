@@ -48,9 +48,6 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
-// Flag test through a reference: the load is a plain scalar access that the scheduler keeps
-// below the preceding stores (a member read of pG is hoisted above them).
-static inline u32 BitChk(u32& f, u32 b) { return f & b; }
 static inline void PSet(cObj**& d, cObj** v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
@@ -749,7 +746,7 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     mng->lightPos = mng->target;
     mng->dir.x = FRef(shadow_add_dir_x);
     FSet(mng->dir.y, -1.0f);
-    mng->dir.z = FRef(shadow_add_dir_x);
+    mng->dir.z = shadow_add_dir_x;
     PSVECNormalize(&mng->dir, &mng->dir);
     w = (ShadowLightWork*) l->work;
     {
@@ -1782,7 +1779,7 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
     u32 n = LightMgr.nArray;
 
     for (i = 0; i < n; i++) {
-        cLight* l = (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * i);
+        cLight* l = (cLight*) LightMgr.fastAt(i);
         ShadowLightWork* w;
         ShadowMng* mng;
 

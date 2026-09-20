@@ -316,13 +316,6 @@ void EprintfFlush();
 extern int vsync_cnt;
 extern int eprintf_init;
 
-// Read through a reference: a MEM with neither the struct nor the scalar flag, so the load is
-// not hoisted above the preceding `vsync_cnt = 0` scalar store (ErrCheck).
-static inline s32 IRef(s32& v) { return v; }
-// Same for the first pSys read of DiscChange: without the scalar flag the `lwz r9,pSys` is not
-// exempt from the game[] template stores (fixed_scalar_and_varying_struct_p), so every store
-// ranks 7 in sched2 and the copy issues in template order (0, 8, c, 4) like the original.
-static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p) { return p; }
 
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.
@@ -335,6 +328,7 @@ struct OSLowMem {
 #define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
 
 #include "snd.h"
+#include "ref_access.h"
 
 // Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
 struct DvdSndStrWork {
@@ -1686,7 +1680,7 @@ int cDvd::ErrCheck(int disc, int flag)
             Render_swap();
             while (vsync_cnt < (int) GetSystemVcnt()) {}
             vsync_cnt = 0;
-            if (IRef(m_ErrCode) != -1) {
+            if (S32Ref(m_ErrCode) != -1) {
                 systemResetCheck();
             }
         }

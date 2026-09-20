@@ -34,7 +34,6 @@
 #include "esp.h"
 #include "est.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-0C (D:/Bio4/Prog/r20c.cpp): the cage trap dropped on the player, the enemy waves it
 // releases, the painting (kaiga) that swings open when shot and the barred door behind it.
@@ -126,7 +125,7 @@ void R20cInit()
             r20c_work.p->eat[i] = NULL;
         }
         PSet(r20c_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-        PSet(r20c_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
+        r20c_work.p->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
         R20cExecCageUp();
         if (RsfCheck(G_ROOM_ID, 3)) {
             R20cExecCageDown(0);

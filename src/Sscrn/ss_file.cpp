@@ -810,7 +810,7 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     IdUnit* u;
     SsFileWork* fw;
 
-    S16Set(x, (int) ((pos->scr.x + 320.0f) * 0.8f));
+    x = (int) ((pos->scr.x + 320.0f) * 0.8f);
     S16Set(y, (int) ((240.0f - pos->scr.y) * 0.8f));
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);

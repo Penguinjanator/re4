@@ -43,6 +43,7 @@
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "ref_access.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
@@ -126,13 +127,7 @@ struct PlayerPtr {
 #define pSUBS (((PlayerPtr*) &pSUB)->p)
 
 
-static inline void U32Or(u32& d, u32 v) { d |= v; }
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2bDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // The motion flip argument of the two model variants.
 static inline int em2bFlip(Em2bWork* w, int a, int b)
@@ -1072,11 +1067,11 @@ static void em2b_R1_Wait(cEm2b* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em2bDeadCk(em) && em2bStayCk(em)) {
+        if (EmDeadCk(em) && em2bStayCk(em)) {
             EmRoutineSet(em, 1, 2, 0, 0xA);
             return;
         }
-        if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+        if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->Dash_wait = 30;
         }
         if (em->plDist2 > 25000000.0f) {
@@ -1930,7 +1925,7 @@ static inline void em2bHandLandingP(cEm2b* em, cModel* p)
 // The player inside 6000 of the landing hand is knocked down.
 static inline void em2bHandLandingPlCk(cModel* p)
 {
-    if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS)) {
+    if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS)) {
         f32 dx = pPLS->pos.x - p->world.x;
         f32 dy = pPLS->pos.y - p->world.y;
         f32 dz = pPLS->pos.z - p->world.z;
@@ -2396,7 +2391,7 @@ static void em2b_R1_Catch(cEm2b* em)
                 v.y += 1000.0f;
                 d = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y)
                     + (p->world.z - v.z) * (p->world.z - v.z);
-                if (d < 4000000.0f && !em2bDeadCk(pPLS)) {
+                if (d < 4000000.0f && !EmDeadCk(pPLS)) {
                     pPLS->dmg.m_Timer = 2;
                     SetPlDamage(em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
@@ -2950,7 +2945,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             em->r_no_2 = 4;
             break;
         }
-        if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS)) {
+        if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS)) {
             f32 dx = pPLS->pos.x - em2b_r11e_pos.x;
             f32 dz = pPLS->pos.z - em2b_r11e_pos.z;
             d = dx * dx + dz * dz;
@@ -2975,7 +2970,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         if (em->seFlags28B & 2) {
             SndCall(6, 0xE, &p->world, 0, 0, em);
         }
-        if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS) && (em->seFlags28B & 1) && w->Atk_ck == 0) {
+        if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS) && (em->seFlags28B & 1) && w->Atk_ck == 0) {
             Vec v;
             f32 dx;
             f32 dz;
@@ -2985,7 +2980,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             dz = hp->world.z - v.z;
             dx = hp->world.x - v.x;
             d = dx * dx + dz * dz;
-            if (d < 2250000.0f && !em2bDeadCk(pPLS)) {
+            if (d < 2250000.0f && !EmDeadCk(pPLS)) {
                 pPLS->dmg.m_Timer = 0x80;
                 pG->pl_life = 0;
                 SetPlDamage(em, plem2b_CatchHand);
@@ -3003,7 +2998,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
 // The player standing higher than the giant's feet + 2000 (on the tower) falls off.
 void em2bPlFallCK(cEm2b* em)
 {
-    if (em2bDeadCk(pPLS)) {
+    if (EmDeadCk(pPLS)) {
         return;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -4800,7 +4795,7 @@ int em2bSearchTree(cEm2b* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmTree* e = (cEmTree*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmTree* e = (cEmTree*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -4934,7 +4929,7 @@ int em2bTreeAtkCk(cEm2b* em)
     if (w->Atk_ck) {
         return 0;
     }
-    if (em2bDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -5085,7 +5080,7 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
         }
     }
     for (i = 0; i < (int) EmMgr.nArray; i++) {
-        cEmRock* e = (cEmRock*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmRock* e = (cEmRock*) EmMgr.fastAt(i);
         cModel* p;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -5485,7 +5480,7 @@ int em2bSearchDog(cEm2b* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -5531,7 +5526,7 @@ int em2bAtkRtnCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
 
-    if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+    if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
         if (em->plDist2 < 49000000.0f) {
             em2bThreatSet(em, w);
             return 1;
@@ -5881,7 +5876,7 @@ int em2bPressPlCk(cEm2b* em)
     Vec pos;
     u32 i;
 
-    if (em2bDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     pos = pPL->pos;
@@ -5911,7 +5906,7 @@ int em2bPressSubCk(cEm2b* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (em2bDeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     pos = pSUB->pos;
@@ -6204,7 +6199,7 @@ int em2bStayCk(cEm2b* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6244,7 +6239,7 @@ void em2bObaHitCk(cEm2b* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         Vec d;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6326,7 +6321,7 @@ int em2bFriendCk(cEm2b* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6396,7 +6391,7 @@ void em2bYaguraSearch(cEm2b* em)
 
     w->pYagura = 0;
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) != 1) {
             continue;

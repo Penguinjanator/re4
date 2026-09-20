@@ -20,7 +20,6 @@
 #include "pad.h"
 #include "snd.h"
 #include "math_sub.h"
-#include "ref_access.h"
 
 extern "C" {
 f64 atan2(f64 y, f64 x);

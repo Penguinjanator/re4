@@ -10,7 +10,6 @@
 #include "obj.h"
 #include "emtorch.h"
 #include "etc_model.h"
-#include "ref_access.h"
 
 // Room 1-09 (D:/Bio4/Prog/r109.cpp): the hut ("koya") interior; extra collision pieces and the
 // hut's scroll-object flags.
@@ -56,7 +55,7 @@ void R109Init()
     PSet(r109_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos2, &r109_rot2, 0));
     PSet(r109_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos0, &r109_rot0, 0));
     PSet(r109_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos1, &r109_rot1, 0));
-    PSet(r109_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos2, &r109_rot2, 0));
+    r109_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos2, &r109_rot2, 0);
 
     if (getRoomEtcTorch(0, &torch, 1)) {
         ((cEmTorch*) torch)->setDelete();

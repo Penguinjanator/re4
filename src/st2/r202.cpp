@@ -37,7 +37,6 @@
 #include "rnd.h"
 #include "atari_init.h"
 #include "st_mgr_event.h"
-#include "ref_access.h"
 
 // Room 2-02 (D:/Bio4/Prog/r202.cpp): the four catapults on the castle wall, the crank that raises
 // the wall and the cannon on the tower.

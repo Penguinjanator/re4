@@ -31,7 +31,6 @@
 #include "est.h"
 #include "TexRender.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-13 (D:/Bio4/Prog/r213.cpp): the drawbridge over the lake - the statue ("Su") that is shot
 // down, the switch, the two chains holding the bridge and the enemies set after the s00 event.

@@ -28,7 +28,6 @@
 #include "sscrn.h"
 #include "cam_ctrl.h"
 #include "game.h"
-#include "ref_access.h"
 
 // Room 3-0C (D:/Bio4/Prog/r30c.cpp): Ashley locked in the cell, the s00 event that frees her, the
 // plane that crashes through the wall (with its cut), the cell door key and the item box.

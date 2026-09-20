@@ -38,6 +38,7 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "main_mem.h"
+#include "em.h"
 
 asm(".comm common_em36,52,4");
 
@@ -206,10 +207,6 @@ struct PlayerPtr {
 
 
 
-static inline int em36DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // The appearance effects (type 0/1: two, type 2/3: one).
 static inline void em36AppearEsp(cEm36* em, Em36Work* w)
@@ -287,7 +284,7 @@ void em36DmCk(cEm36* em)
     if (em36CrashCk(em)) {
         return;
     }
-    if (em->hp > 0 && em36DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -3761,7 +3758,7 @@ void em36YarareCk(cEm36* em)
     Vec a; \
     Vec b; \
     Mtx m; \
-    if (em36DeadCk(pPL)) { \
+    if (EmDeadCk(pPL)) { \
         return 0; \
     } \
     if ((s16) pG->pl_life <= 0) { \
@@ -3859,7 +3856,7 @@ int em36LongCatchCk(cEm36* em)
     cModel* p;
     f32 len;
 
-    if (em36DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -4290,7 +4287,7 @@ void em36DoorOpenCk(cEm36* em)
     u32 r;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;
 
@@ -4951,7 +4948,7 @@ int em36FindCk(cEm36* em)
     if (StaFlagChk(pG, STA_PL_FIRE) && w->plRouteDis < 25000.0f) {
         find = 1;
     }
-    if (em36DeadCk(em)) {
+    if (EmDeadCk(em)) {
         find = 1;
     }
     if (find) {

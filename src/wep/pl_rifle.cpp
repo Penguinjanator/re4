@@ -26,8 +26,6 @@
 #include "ref_access.h"
 
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 // Store through a scalar reference: the following global load stays below it.
 
 

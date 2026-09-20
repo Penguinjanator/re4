@@ -20,6 +20,7 @@
 #include "dvd.h"
 #include "snd.h"
 #include "debug.h"
+#include "ref_access.h"
 
 void bio4_GXSetCopyClear(GXColor color, u32 z);   // game/gx_sub.cpp
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
@@ -116,8 +117,6 @@ void debugPadInfoDisp()
 // Progressive (60Hz) screen: the 400-line bars are squashed to 300 lines below y = 56.
 #define PROG_Y(y) ((s16) ((f32) (s16) (y) / 1.3333334f + 56.0f))
 #define PROG_H(h) ((s16) ((f32) (s16) (h) / 1.3333334f))
-// Reference read of pSys: the load stays below the preceding tile stores.
-static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p) { return p; }
 // Ticks -> 1/100 frame units (bus clock / 4 = tick rate, 60 frames per second)
 #define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 100.0f)
 #define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 1000.0f)

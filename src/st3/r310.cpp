@@ -31,7 +31,6 @@
 #include "est.h"
 #include "math_sub.h"
 #include "vec.h"
-#include "ref_access.h"
 
 // Room 3-10 (D:/Bio4/Prog/r310.cpp): the two crates Leon and Ashley push together, the lever pairs
 // with their barred doors, the hiding spots and the S00 event with the Ganado that stands up.
@@ -416,7 +415,7 @@ finish:
 static void r310_pushBox2()
 {
     SceAtSetEnable(6, 0);
-    PSet(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
+    r310_work->pushTask = SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0);
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
@@ -658,7 +657,7 @@ finish:
 static void r310_pushBox1()
 {
     SceAtSetEnable(1, 0);
-    PSet(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
+    r310_work->pushTask = SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0);
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {

@@ -20,7 +20,6 @@
 #include "mes.h"
 #include "fade.h"
 #include "snd.h"
-#include "ref_access.h"
 
 // Room 2-10 (D:/Bio4/Prog/r210.cpp): the lift platform of the mine (r222 shares the code), the
 // mine cart ride to and from r212, and Ashley's follow / wait areas.

@@ -952,8 +952,8 @@ static void edit_litmask()
         pWork->sub2 = 1;
     }
     eprintf(0x40, 0x8C, 4, 0, "MODEL PROPATY");
-    if ((u32) LightMgr.getWorkPtr(pWork->id) >= 0x80000000 && (u32) LightMgr.getWorkPtr(pWork->id) <= 0x82FFFFFF &&
-        (LightMgr.getWorkPtr(pWork->id)->be_flag & 1)) {
+    if ((u32) LightMgr.at(pWork->id) >= 0x80000000 && (u32) LightMgr.at(pWork->id) <= 0x82FFFFFF &&
+        (LightMgr.at(pWork->id)->be_flag & 1)) {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d %s", pWork->id,
                 (obj->LightInfo.SelectMask & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
     } else {
@@ -964,7 +964,7 @@ static void edit_litmask()
         eprintf((pWork->id + 8) * 8, 0xC4, 0, 0, "A");
     }
     for (i = 0; i < num; i++) {
-        cLight* l = LightMgr.getWorkPtr(i);
+        cLight* l = LightMgr.at(i);
         int col = 0;
 
         if (!(obj->LightInfo.SelectMask & (1 << i))) {
@@ -989,7 +989,7 @@ static void edit_litmask()
         pWork->id = (num + pWork->id - 1) % num;
     }
     for (i = 0; i < num; i++) {
-        cLight* l = LightMgr.getWorkPtr(i);
+        cLight* l = LightMgr.at(i);
 
         if (!(l->be_flag & 1)) {
             obj->LightInfo.SelectMask |= 1 << i;

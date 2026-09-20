@@ -25,9 +25,6 @@
 #include "cockpit.h"
 #include "ref_access.h"
 
-// Weapon archive (pG->pWepArc): offsets to its sub-files.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
 f32 atan2f(f32, f32);
@@ -532,10 +529,10 @@ void IdScope::move(void* p)
     b->curve[3] = 0;
     a->rot0.y = 0.0f;
     a->rot0.x = 0.0f;
-    a->rot0.z = (FRef(maxA) - FRef(minA)) * ra + FRef(minA);
+    a->rot0.z = (FRef(maxA) - minA) * ra + minA;
     b->rot0.y = 0.0f;
     b->rot0.x = 0.0f;
-    b->rot0.z = (FRef(maxB) - FRef(minB)) * rb + FRef(minB);
+    b->rot0.z = (FRef(maxB) - minB) * rb + FRef(minB);
 }
 
 // Never called: its body is stripped at link (STRIP_UNUSED) but its pool words (0.5f, 100000.0f)
@@ -999,7 +996,7 @@ void CameraPushObject::move()
     getColumn(inv, 2, (Vec*) plmat[2]);
     plpos.x = inv[0][3]; plpos.y = inv[1][3]; plpos.z = inv[2][3];
     for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        e = (cModel*) EmMgr.fastAt(i);
         if ((e->id == 0x41 || e->id == 0x44 || e->id == 0x46) && (e->be_flag & 0x201) == 1) {
             PSMTXMultVec(m, &e->pos, &em_pos);
             // negated tests: `blt` / `cror so,eq,gt; bso` (a positive `>=`/`<=` gives cror + bns)

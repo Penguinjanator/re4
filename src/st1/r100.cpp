@@ -39,7 +39,6 @@
 #include "rnd.h"
 #include "room_data.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 1-00 (D:/Bio4/Prog/r100.cpp): the village approach; the police car, the two officers
 // (s03: the first Ganado kills one, s20: the truck runs the car off the bridge, s40: the ravine).

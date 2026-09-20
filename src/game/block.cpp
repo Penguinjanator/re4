@@ -434,7 +434,7 @@ void cBlockUnit::setTrans(int on)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObj* o = ObjMgr.fastAt(i);
         if ((o->be_flag & 0x201) == 1 && o->id == 2 && o->blk == no) {
             if (on == 1) {
                 o->be_flag |= 2;

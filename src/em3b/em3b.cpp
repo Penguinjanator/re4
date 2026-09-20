@@ -34,6 +34,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "ref_access.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -57,11 +58,6 @@ static void subem3bRunDown();
 
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3bDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: registers the enemy constructor.
 extern "C" void _prolog()
@@ -175,7 +171,7 @@ void em3bDmCkCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
 
-    if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -261,7 +257,7 @@ void em3bDmCkStopCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
 
-    if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -861,7 +857,7 @@ void em3bRunDownCkTruck(cEm3b* em)
     }
     p = em->getPartsPtr(0);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -898,7 +894,7 @@ void em3bRunDownCkCart(cEm3b* em)
     cModel* p;
     u32 i;
 
-    if ((s16) pG->pl_life > 0 && !em3bDeadCk(pPL)) {
+    if ((s16) pG->pl_life > 0 && !EmDeadCk(pPL)) {
         for (i = 0; i < 2; i++) {
             p = em->getPartsPtr(1);
             if (em3bDistXZ(p, &pPL->pos) < 2250000.0f) {
@@ -912,7 +908,7 @@ void em3bRunDownCkCart(cEm3b* em)
     }
     p = em->getPartsPtr(1);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {

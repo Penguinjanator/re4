@@ -16,7 +16,6 @@
 #include "snd.h"
 #include "TexRender.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 3-03 (D:/Bio4/Prog/r303.cpp): the water render target, the shelf, the boxes and the door that
 // falls in once the Ganado of the corridor is set.

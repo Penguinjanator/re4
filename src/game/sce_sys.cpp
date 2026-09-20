@@ -21,6 +21,7 @@
 #include "pad.h"
 #include "db_log.h"
 #include "sce_sys.h"
+#include "ref_access.h"
 
 extern "C" {
 void SceInitItemEvent();                       // game/sce_com.cpp
@@ -38,10 +39,6 @@ int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)
 
 #line 34 "D:/Bio4/Prog/sce_sys.cpp"
 
-// Reference store of a SceSys byte: the inline's `&member` reaches the MEM as a CONST address and folds
-// into `stb rX,SceSys+N@l(rH)` (SceSetEventCancel's first store); a plain `SceSys.x = v` legitimises
-// `&SceSys` into a lo_sum pseudo first and stores through `N(rP)`.
-static inline void U8SetI(u8& d, int v) { d = v; }
 
 cSceSys SceSys;
 static ScePrim* pCSceTask;

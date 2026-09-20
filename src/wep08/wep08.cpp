@@ -76,7 +76,7 @@ void cObjStriker::init(cModel* parent)
     }
     wep.parent = parent;
     U16Set(wep.x24, 0x2D);
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x31));
+    wep.pMotNormal = WEP_ARC_PTR(0x31);
     resetMotion();
     wep.x18 = 0x2E;
     wep.x19 = 0x2E;
@@ -176,29 +176,29 @@ void cObjStriker::setCartridge()
 // the player archive's), the weapon hand model (right hand 1) and the player archive's left hand 0x19.
 void cObjStriker::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x0A));
-    PSet(pl->m_MotTbl[0x01], 0);
-    PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x10));
-    PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x11));
-    PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x14));
-    PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x15));
-    PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x12));
-    PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x13));
-    PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x16));
-    PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x17));
-    PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x0D));
-    PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0E));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x0F));
-    PSet(pl->m_MotTbl[0x5B], WEP_ARC_PTR(0x33));
-    PSet(pl->m_MotTbl[0x57], WEP_ARC_PTR(0x34));
-    PSet(pl->m_MotTbl[0x39], WEP_ARC_PTR(0x26));
-    PSet(pl->m_MotTbl[0x3A], WEP_ARC_PTR(0x27));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
-    PSet(pl->m_MotTbl[0x41], WEP_ARC_PTR(0x28));
-    PSet(pl->m_MotTbl[0x42], WEP_ARC_PTR(0x29));
-    PSet(pl->m_MotTbl[0x3F], WEP_ARC_PTR(0x24));
-    PSet(pl->m_MotTbl[0x40], WEP_ARC_PTR(0x25));
+    WEP_MOT(pl, 0x00, 0x0A);
+    NO_MOT(pl, 0x01);
+    WEP_MOT(pl, 0x02, 0x10);
+    WEP_MOT(pl, 0x03, 0x11);
+    WEP_MOT(pl, 0x06, 0x14);
+    WEP_MOT(pl, 0x07, 0x15);
+    WEP_MOT(pl, 0x08, 0x12);
+    WEP_MOT(pl, 0x09, 0x13);
+    WEP_MOT(pl, 0x0B, 0x16);
+    WEP_MOT(pl, 0x0C, 0x17);
+    WEP_MOT(pl, 0x0D, 0x0C);
+    WEP_MOT(pl, 0x0E, 0x0D);
+    WEP_MOT(pl, 0x0F, 0x0E);
+    WEP_MOT(pl, 0x10, 0x0F);
+    WEP_MOT(pl, 0x5B, 0x33);
+    WEP_MOT(pl, 0x57, 0x34);
+    WEP_MOT(pl, 0x39, 0x26);
+    WEP_MOT(pl, 0x3A, 0x27);
+    PLA_MOT(pl, 0x3D, 0x5D);
+    WEP_MOT(pl, 0x41, 0x28);
+    WEP_MOT(pl, 0x42, 0x29);
+    WEP_MOT(pl, 0x3F, 0x24);
+    WEP_MOT(pl, 0x40, 0x25);
     pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
     pl->setRightHand(1);
     pl->setLeftHand((u32) PL_ARC_PTR(pG->pPlayer, 0x19));

@@ -27,7 +27,6 @@
 #include "pl_sub.h"
 #include "snd.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-06 (D:/Bio4/Prog/r106.cpp): the village hall; the boulder, the two Ganado waves, the
 // shelves, the shaking closet (Luis tied up inside) and the r106s00 event that ends chapter 1-1.

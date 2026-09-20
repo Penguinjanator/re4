@@ -44,6 +44,7 @@
 #include "foot_shadow.h"
 #include "main_mem.h"
 #include "ref_access.h"
+#include "em.h"
 
 asm(".comm common_em32,52,4");
 
@@ -127,18 +128,13 @@ struct PlayerPtr {
 
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em32DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 
 
 // The attack-hit byte written from a promoted int (an SImode pseudo shared with the int stores).
 static inline void em32AtkHitSet(Em32Work* w, int v)
 {
-    U8Set(w->Atk_ck, v);
+    w->Atk_ck = v;
 }
 
 // COMPILER-DIFF #12 (cse path knowledge): in a `case` arm reached through the switch's once-used label
@@ -343,7 +339,7 @@ void em32DmCk(cEm32* em)
     int flag;
     int wep;
 
-    if (em->hp > 0 && em32DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -1113,7 +1109,7 @@ static void em32_R1_Ambush(cEm32* em)
         case 2:
             break;
         }
-        if (em32DeadCk(em)) {
+        if (EmDeadCk(em)) {
             if ((w->flags & 0x1000) && em32StepUpCk2(em)) {
                 break;
             }
@@ -1948,7 +1944,7 @@ static void em32_R1_CatchHit(cEm32* em)
             em->r_no_2 = 2;
             break;
         }
-        dead = em32DeadCk(em);
+        dead = EmDeadCk(em);
         if (dead) {
             em->r_no_2 = 2;
             break;
@@ -2082,20 +2078,20 @@ static void em32_R1_LongAtk(cEm32* em)
         IntSet(w->timer3, 15);
         IntSet(w->timer, 10);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer2, 27);
-            IntSet(w->timer3, 13);
+            w->timer2 = 27;
+            w->timer3 = 13;
         }
         if (pG->Game_level <= 1) {
-            IntSet(w->timer3, 10);
-            IntSet(w->timer2, 30);
+            w->timer3 = 10;
+            w->timer2 = 30;
         }
         if (pG->Game_level > 6) {
-            IntSet(w->timer2, 22);
-            IntSet(w->timer3, 18);
+            w->timer2 = 22;
+            w->timer3 = 18;
         }
         if (pG->Game_level > 9) {
-            IntSet(w->timer2, 20);
-            IntSet(w->timer3, 20);
+            w->timer2 = 20;
+            w->timer3 = 20;
         }
         em->r_no_2++;
     case 1:
@@ -2574,16 +2570,16 @@ static void em32_R1_TunnelAtk(cEm32* em)
         w->Atk_ck = 0;
         IntSet(w->timer, 15);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer2, 18);
+            w->timer2 = 18;
         }
         if (pG->Game_level <= 1) {
-            IntSet(w->timer2, 20);
+            w->timer2 = 20;
         }
         if (pG->Game_level > 6) {
-            IntSet(w->timer2, 12);
+            w->timer2 = 12;
         }
         if (pG->Game_level > 9) {
-            IntSet(w->timer2, 10);
+            w->timer2 = 10;
         }
         w->TmpU32 = Rnd() & 1;
         em->r_no_2++;
@@ -3388,7 +3384,7 @@ static void em32_R1_Ground(cEm32* em)
         IntSet(w->timer2, Rnd() % 90 + 90);
         IntSet(w->timer3, 20);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer3, 25);
+            w->timer3 = 25;
         }
         EstSet(em, -1, 0, 0, 0x2A, 0x1A, 0, 0, em, (void*) step);
         em->r_no_2++;
@@ -4281,7 +4277,7 @@ void em32GetJumpDownNo(cEm32* em)
         if (d > best) {
             continue;
         }
-        PSet((void*&) w->pPoint, e);
+        (void*&) w->pPoint = e;
         best = d;
     }
 }
@@ -4897,7 +4893,7 @@ void em32RackBreakCk(cEm32* em)
     v.z = 2000.0f;
     PSMTXMultVec(em->mat, &v, &v);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = EmMgrWork(i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -4956,7 +4952,7 @@ void em32BreakBarred(cEm32* em)
 
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = EmMgrWork(i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

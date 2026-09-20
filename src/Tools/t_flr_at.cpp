@@ -1187,7 +1187,7 @@ static void flrAtDataSave()
                     if (pW->area[i].priority == 15 - j) {
                         pW->area[i].no = i;
                         pW->file[flrAtSaveNum] = pW->area[i];
-                        ISet(flrAtSaveNum, IGet(flrAtSaveNum) + 1);
+                        flrAtSaveNum = IGet(flrAtSaveNum) + 1;
                     }
                 }
             }

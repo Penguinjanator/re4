@@ -62,9 +62,9 @@ void PlSelect(int no)
         ReleaseWepData();
         tmp = pG->peseta;
         U32Set(pG->peseta, pG->peseta_bak);
-        U32Set(pG->peseta_bak, tmp);
+        pG->peseta_bak = tmp;
     }
-    U8Set(pG->pl_type, no);
+    pG->pl_type = no;
     PlSetCostume();
     BitOn16(pG->pl_flag, 1);
 }
@@ -80,17 +80,17 @@ int PlSetCostume()
     if (pG->pl_type == 0) {
         if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
-                U8Set(pG->pl_costume, 2);
+                pG->pl_costume = 2;
             } else if (ScfFlagChk(pG, SCF_R106_EVENT)) {
-                U8Set(pG->pl_costume, 1);
+                pG->pl_costume = 1;
             } else {
-                U8Set(pG->pl_costume, 0);
+                pG->pl_costume = 0;
             }
         } else {
-            U8Set(pG->pl_costume, 3);
+            pG->pl_costume = 3;
         }
     } else {
-        U8Set(pG->pl_costume, pG->game_costume);
+        pG->pl_costume = pG->game_costume;
     }
     BitOn16(pG->pl_flag, 1);
     return pG->pl_costume;

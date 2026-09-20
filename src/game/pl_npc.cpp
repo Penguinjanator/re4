@@ -2858,7 +2858,7 @@ void cSubChar::analyze()
     BitOff16(status, 0x201);
     if (!SUBFLAG(this)->check(3)) {
         for (i = 0; i < n; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            cEm* em = EmMgr.fastAt(i);
 
             if (!em->isAlive()) {
                 continue;

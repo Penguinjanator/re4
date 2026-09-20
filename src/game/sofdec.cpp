@@ -493,7 +493,7 @@ void cSofdec::finishMovie()
         ScreenReSize(0x280, 0x1C0);
     }
     U32Set(pG->Disp_flg, m_disp_flg_bak);
-    U32Set(pG->Stop_flg, save170);
+    pG->Stop_flg = save170;
     SetSystemVcnt(m_vcnt_save);
     StaFlagOff(pG, STA_MOVIE_ON);
     if (!StaFlagChk(pG, STA_TITLE)) {

@@ -22,7 +22,6 @@
 #include "math_sub.h"
 
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 #define BOW(pl) ((cObjBow*) (pl)->Wep->m_pWep)
 
 

@@ -26,7 +26,6 @@
 #include "sscrn.h"
 #include "ss_main.h"
 #include "ss_pzzl.h"
-#include "ref_access.h"
 
 extern "C" f64 tan(f64 x);
 
@@ -963,7 +962,7 @@ void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
         slot = row + 8;
         cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
-        U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+        cMes.getMes(slot)->m_ot_type = 0x13;
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
         IdSub.unitPtr(row + 0x80, 0x1D)->be_flag &= ~8;
         if (i == sw->cursor) {
@@ -1424,7 +1423,7 @@ void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
         slot = row + 8;
         cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
-        U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+        cMes.getMes(slot)->m_ot_type = 0x13;
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
         if (wk->merchant->stockNew(pe->id)) {
             IdSub.unitPtr(row + 0x80, 0x1D)->be_flag |= 8;
@@ -2090,7 +2089,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             }
             cMes.setLayout(slot, LAYOUT_SHOP_LIST);
             cMes.MesSet(type + 6, x, y, 0x200A1, slot, 0, 3);
-            U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+            cMes.getMes(slot)->m_ot_type = 0x13;
             U16Set(cMes.getMes(slot)->m_ot_no, 6);
             switch (type) {
             case 0:

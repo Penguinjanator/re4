@@ -806,7 +806,7 @@ void GameContinue(int mode)
     if (mode == 0) {
         U16Set(pG->r_continue_cnt, x4F90 + 1);
         U16Set(pG->c_continue_cnt, x8338 + 1);
-        U16Set(pG->g_continue_cnt, g_continue_cnt + 1);
+        pG->g_continue_cnt = g_continue_cnt + 1;
     }
     pG->play_time = time;
     PlSetCostume();
@@ -854,7 +854,7 @@ void clearGlobalSaveData()
     pG->game_mode = x8354;
     S32Set(pG->SaveKind, game_mode);
     U16Set(pG->pl_life, pG->pl_life_max);
-    U16Set(pG->ashley_life, pG->ashley_life_max);
+    pG->ashley_life = pG->ashley_life_max;
     InitGameTime();
 }
 
@@ -878,7 +878,7 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
             Merchant2ndRoundInit();
         }
         ItemMgr.dumpType(7);
-        U16Set(pG->room_id, 0x120);
+        pG->room_id = 0x120;
     } else {
         RoomData.load(data->pRoom);
         SscrnDataLoad(data->pSscrn);
@@ -1481,27 +1481,27 @@ void GameAddPoint(int type)
                     add = (int) (((f32) add - 0.5f) * rate);
                 }
             }
-            S32Set(pG->point, pG->point + add);
+            pG->point = pG->point + add;
         }
     }
     if (pG->point > 0x2AF7) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->point < 0) {
-        S32Set(pG->point, 0);
+        pG->point = 0;
     }
     if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
-        S32Set(pG->point, 0x270F);
+        pG->point = 0x270F;
     }
     if (SysFlagChk(pG, SYS_HARD_MODE)) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->shooting_mode != 0) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->language != 0) {
         if (pG->point < 1000) {
-            S32Set(pG->point, 1000);
+            pG->point = 1000;
         }
     }
     if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
@@ -1698,7 +1698,7 @@ void gameDebugDisp()
         }
         if (DbgFlagChk(pG, DBG_EM_LIFE_DISP)) {
             for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+                cEm* em = EmMgr.fastAt(i);
                 Vec pos2;
                 Vec pos;
                 Vec scr2;
@@ -1879,7 +1879,7 @@ int cManager<T>::dispWorkNum(int x, int y, int col, int sub)
     }
     n = 0;
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->be_flag & 0x601) {
             n++;
         }

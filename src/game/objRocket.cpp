@@ -22,9 +22,6 @@ double atan2(double y, double x);
 }
 void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
-// Weapon archive (pG->pWepArc): offsets to its sub-files like the player archive.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 // Pointer store through a reference: the following `pG` load stays below it.
 static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
 
@@ -239,10 +236,10 @@ void cObjLauncher::init(cModel* parent)
     PSet(wep.parent, parent);
     if (pG->weapon_type != 2) {
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x1E));
-        PSet(wep.pMotEmpty, WEP_ARC_PTR(0x1E));
+        wep.pMotEmpty = WEP_ARC_PTR(0x1E);
     } else {
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x1D));
-        PSet(wep.pMotEmpty, WEP_ARC_PTR(0x1D));
+        wep.pMotEmpty = WEP_ARC_PTR(0x1D);
     }
     resetMotion();
     if (ItemMgr.bulletNum()) {
@@ -446,33 +443,33 @@ int cObjLauncher::keyKamae()
 // stat 0x400: no rocket).
 void cObjLauncher::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0], WEP_ARC_PTR(0x8));
-    PSet(pl->m_MotTbl[2], WEP_ARC_PTR(0x9));
-    PSet(pl->m_MotTbl[6], WEP_ARC_PTR(0xB));
-    PSet(pl->m_MotTbl[8], WEP_ARC_PTR(0xA));
-    PSet(pl->m_MotTbl[0xB], WEP_ARC_PTR(0xC));
-    PSet(pl->m_MotTbl[0xD], WEP_ARC_PTR(0xD));
-    PSet(pl->m_MotTbl[0xF], WEP_ARC_PTR(0xE));
-    PSet(pl->m_MotTbl[1], WEP_ARC_PTR(0x21));
-    PSet(pl->m_MotTbl[3], WEP_ARC_PTR(0x22));
-    PSet(pl->m_MotTbl[7], WEP_ARC_PTR(0x24));
-    PSet(pl->m_MotTbl[9], WEP_ARC_PTR(0x23));
-    PSet(pl->m_MotTbl[0xC], WEP_ARC_PTR(0x25));
-    PSet(pl->m_MotTbl[0xE], WEP_ARC_PTR(0x26));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x27));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
+    WEP_MOT(pl, 0, 0x8);
+    WEP_MOT(pl, 2, 0x9);
+    WEP_MOT(pl, 6, 0xB);
+    WEP_MOT(pl, 8, 0xA);
+    WEP_MOT(pl, 0xB, 0xC);
+    WEP_MOT(pl, 0xD, 0xD);
+    WEP_MOT(pl, 0xF, 0xE);
+    WEP_MOT(pl, 1, 0x21);
+    WEP_MOT(pl, 3, 0x22);
+    WEP_MOT(pl, 7, 0x24);
+    WEP_MOT(pl, 9, 0x23);
+    WEP_MOT(pl, 0xC, 0x25);
+    WEP_MOT(pl, 0xE, 0x26);
+    WEP_MOT(pl, 0x10, 0x27);
+    PLA_MOT(pl, 0x3D, 0x5D);
     if (pG->weapon_type != 2) {
-        PSet(pl->m_MotTbl[0x39], WEP_ARC_PTR(0x2A));
-        PSet(pl->m_MotTbl[0x3A], WEP_ARC_PTR(0x2B));
-        PSet(pl->m_MotTbl[0x41], WEP_ARC_PTR(0x2C));
-        PSet(pl->m_MotTbl[0x42], WEP_ARC_PTR(0x2D));
-        PSet(pl->m_MotTbl[0x3F], WEP_ARC_PTR(0x28));
-        PSet(pl->m_MotTbl[0x40], WEP_ARC_PTR(0x29));
+        WEP_MOT(pl, 0x39, 0x2A);
+        WEP_MOT(pl, 0x3A, 0x2B);
+        WEP_MOT(pl, 0x41, 0x2C);
+        WEP_MOT(pl, 0x42, 0x2D);
+        WEP_MOT(pl, 0x3F, 0x28);
+        WEP_MOT(pl, 0x40, 0x29);
     }
-    PSet(pl->m_MotTbl[0x55], WEP_ARC_PTR(0x1A));
-    PSet(pl->m_MotTbl[0x59], WEP_ARC_PTR(0x2E));
-    PSet(pl->m_MotTbl[0x5B], WEP_ARC_PTR(0x1B));
-    PSet(pl->m_MotTbl[0x57], WEP_ARC_PTR(0x1C));
+    WEP_MOT(pl, 0x55, 0x1A);
+    WEP_MOT(pl, 0x59, 0x2E);
+    WEP_MOT(pl, 0x5B, 0x1B);
+    WEP_MOT(pl, 0x57, 0x1C);
     if (!(pl->stat & 0x400)) {
         pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
         pl->setRightHand(1);

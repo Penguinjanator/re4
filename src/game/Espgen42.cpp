@@ -147,7 +147,7 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
             } else {
                 h = p->hA + k;
             }
-            *h += FGet(Add_power) * pw;
+            *h += Add_power * pw;
         }
     }
 }
@@ -223,7 +223,7 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
             } else {
                 h = p->hA + k;
             }
-            *h += FGet(Add_power) * pw;
+            *h += Add_power * pw;
         }
     }
 }
@@ -311,7 +311,7 @@ int GetWaterHeight(Vec* pos, f32* height)
     if (g_bNoWater == 1) {
         return 0;
     }
-    ISet(Height_find, 0);
+    Height_find = 0;
     FSet(Height_ret, -100000000.0f);
     Chk_pos = *pos;
     if (g_pWater != NULL) {

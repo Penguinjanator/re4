@@ -27,7 +27,6 @@
 #include "sscrn.h"
 #include "esp.h"
 #include "snd.h"
-#include "ref_access.h"
 
 // Room 1-05 (D:/Bio4/Prog/r105.cpp): the church; the insignia dial puzzle on the door, the
 // cesspit cover with the key item, the Ganado wave after the rescue and the s00/s10 events.

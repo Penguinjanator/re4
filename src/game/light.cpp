@@ -514,7 +514,7 @@ void cLightMgr::setModel2(cModel* m)
 
     memclr_asm(m->LightInfo.pLight, sizeof(m->LightInfo.pLight));
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -578,7 +578,7 @@ void cLightMgr::setCloth(cModel* m, u32 count)
     }
     n = 0;
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -614,7 +614,7 @@ void cLightMgr::setEsp(EspLightList* list, u8 mask)
 
     list->num = 0;
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -911,7 +911,7 @@ void cLightMgr::deleteScr()
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             destroy(l);
         }
@@ -925,7 +925,7 @@ void cLightMgr::offScr(u8 mask)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             l->xF &= ~mask;
         }
@@ -939,7 +939,7 @@ int cLightMgr::countScr()
     int n = 0;
 
     for (i = 0; i < nArray; i++) {
-        if (((cLight*) ((u8*) pArray + size * i))->checkScr()) {
+        if ((fastAt(i))->checkScr()) {
             n++;
         }
     }
@@ -1080,7 +1080,7 @@ int cLightMgr::saveLit(cLightWork* w)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             *w = *l;
             w++;
@@ -1235,7 +1235,7 @@ int cLight::setParent(cModel* m)
     }
     n = EmMgr.nArray;
     for (i = 0; i < n; i++) {
-        if ((cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i) == m) {
+        if ((cModel*) EmMgr.fastAt(i) == m) {
             setParent(1, (ParentNo & 0xFFFF0000) | m->id);
             return 1;
         }
@@ -1248,7 +1248,7 @@ int cLight::setParent(cModel* m)
     }
     n = ObjMgr.nArray;
     for (i = 0; i < n; i++) {
-        if ((cModel*) ((u8*) ObjMgr.pArray + ObjMgr.size * i) == m) {
+        if ((cModel*) ObjMgr.fastAt(i) == m) {
             setParent(4, (ParentNo & 0xFFFF0000) | i);
             return 1;
         }
@@ -1279,7 +1279,7 @@ cModel* cLight::calcParent()
         }
         break;
     case 4:
-        pParent = (cModel*) ((u8*) ObjMgr.pArray + ObjMgr.size * parent.no);
+        pParent = (cModel*) ObjMgr.fastAt(parent.no);
         break;
     }
     return pParent;
@@ -1738,7 +1738,7 @@ void cLightMgr::inSscrn()
 void cLightMgr::outSscrn(u32 mode)
 {
     BitSet(nArray, nArrayBak);
-    PSet(pAlive, pAliveBak);
+    pAlive = pAliveBak;
     switch (mode) {
     case 0:
     default:

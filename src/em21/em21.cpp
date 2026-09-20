@@ -24,6 +24,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 // The module's 0x30-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -58,24 +59,8 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Work `no` of the enemy manager with the range check kept (em.h's EmMgrWork lets jump threading
-// fold it away inside the scan loops; the manager pointer local defeats it, db_light objWorkChkP).
-static inline cEm* em21EmWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em21DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em21Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -109,7 +94,7 @@ void em21DmCk(cEm21* em)
     Vec hitPos;
     u8 mode;
 
-    if (em21DeadCk(em) == 0) {
+    if (EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hitPos)) {
         case 1:
         case 4:
@@ -758,7 +743,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         } else {
             ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
@@ -795,7 +780,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         } else {
             ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
@@ -857,7 +842,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 0xC;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -869,7 +854,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 8;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -881,7 +866,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 2;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -903,7 +888,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -924,7 +909,7 @@ int em21SearchElgigante(cEm21* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
             continue;
@@ -1245,7 +1230,7 @@ void em21EscapeWithYou(cEm21* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em21EmWork(i);
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1311,7 +1296,7 @@ int em21TrapSearch(cEm21* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em21EmWork(i);
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;

@@ -768,7 +768,7 @@ void cPl0e::setRide()
         // Reference store: the pPL reload of EmRoutineSet then depends on it (cost 2) and is not
         // ready when the BoatMoveFunc store is, so sched1 issues that store first and the
         // PlBoatMove address dies before the reload is born (both r9; the zero takes r10).
-        PSet((void*&) pl->m_pBoat, this);
+        (void*&) pl->m_pBoat = this;
         BoatMoveFunc = PlBoatMove;
         EmRoutineSet(pPL, 0, 0xF, 0, 0);
         if (pSUB) {
@@ -1437,7 +1437,7 @@ void pl0ePathMove(cPl0e* em, int jump)
             if (Key.on & 1) {
                 w->spd += 25.0f;
                 if (w->spd > FRef(pl0e_spd_boost)) {
-                    w->spd = FRef(pl0e_spd_boost);
+                    w->spd = pl0e_spd_boost;
                 }
                 w->pitch104 += 4;
                 if (w->pitch104 > 500) {

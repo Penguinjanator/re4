@@ -23,7 +23,6 @@
 #include "est.h"
 #include "snd.h"
 #include "merchant.h"
-#include "ref_access.h"
 
 // Room 2-00 (D:/Bio4/Prog/r200.cpp): the castle approach (the first stage-2 room, end of chapter 2-3):
 // the show-view pan over the castle, the truck event (a Ganado drives the truck at the gate) with its

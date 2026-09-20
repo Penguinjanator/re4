@@ -39,6 +39,7 @@
 #include "quake.h"
 #include "item.h"
 #include "ref_access.h"
+#include "em.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -228,11 +229,6 @@ struct PlayerPtr {
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2dDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
@@ -262,16 +258,16 @@ static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int 
     IntSet(w->atkWait, a);
     w->dmgTotal = 0;
     if (pG->Game_level > 1) {
-        IntSet(w->atkWait, b);
+        w->atkWait = b;
     }
     if (pG->Game_level > 3) {
-        IntSet(w->atkWait, c);
+        w->atkWait = c;
     }
     if (pG->Game_level > 6) {
-        IntSet(w->atkWait, d);
+        w->atkWait = d;
     }
     if (pG->Game_level == 10) {
-        IntSet(w->atkWait, e);
+        w->atkWait = e;
     }
 }
 
@@ -790,7 +786,7 @@ void cEm2d::move()
     if (w->poisonWait) {
         w->poisonWait--;
     }
-    if (w->atkWait == 0 && em2dDeadCk(pPL) && pG->Game_level <= 9) {
+    if (w->atkWait == 0 && EmDeadCk(pPL) && pG->Game_level <= 9) {
         w->atkWait = 10;
     }
     if (w->atkCnt > 450) {
@@ -1807,16 +1803,16 @@ static void em2d_R1_JumpAtk(cEm2d* em)
             IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
             if (pG->Game_level > 1) {
-                IntSet(w->atkWait, 75);
+                w->atkWait = 75;
             }
             if (pG->Game_level > 3) {
-                IntSet(w->atkWait, 60);
+                w->atkWait = 60;
             }
             if (pG->Game_level > 6) {
-                IntSet(w->atkWait, 45);
+                w->atkWait = 45;
             }
             if (pG->Game_level == 10) {
-                IntSet(w->atkWait, 30);
+                w->atkWait = 30;
             }
             EmRoutineSet(em, 1, 1, fe, fe);
         }
@@ -1901,16 +1897,16 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
             IntSet(w->jumpWait, Rnd() % 150 + 150);
             w->atkWait = 100;
             if (pG->Game_level > 1) {
-                IntSet(w->atkWait, 75);
+                w->atkWait = 75;
             }
             if (pG->Game_level > 3) {
-                IntSet(w->atkWait, 60);
+                w->atkWait = 60;
             }
             if (pG->Game_level > 6) {
-                IntSet(w->atkWait, 45);
+                w->atkWait = 45;
             }
             if (pG->Game_level == 10) {
-                IntSet(w->atkWait, 30);
+                w->atkWait = 30;
             }
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -2196,16 +2192,16 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
             IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
             if (pG->Game_level > 1) {
-                IntSet(w->atkWait, 75);
+                w->atkWait = 75;
             }
             if (pG->Game_level > 3) {
-                IntSet(w->atkWait, 60);
+                w->atkWait = 60;
             }
             if (pG->Game_level > 6) {
-                IntSet(w->atkWait, 45);
+                w->atkWait = 45;
             }
             if (pG->Game_level == 10) {
-                IntSet(w->atkWait, 30);
+                w->atkWait = 30;
             }
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -2281,16 +2277,16 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
                 IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
                 w->atkWait = 100;
                 if (pG->Game_level > 1) {
-                    IntSet(w->atkWait, 75);
+                    w->atkWait = 75;
                 }
                 if (pG->Game_level > 3) {
-                    IntSet(w->atkWait, 60);
+                    w->atkWait = 60;
                 }
                 if (pG->Game_level > 6) {
-                    IntSet(w->atkWait, 30);
+                    w->atkWait = 30;
                 }
                 if (pG->Game_level == 10) {
-                    IntSet(w->atkWait, 0);
+                    w->atkWait = 0;
                 }
                 EmRoutineSet(em, 1, 0xE, 0, 0);
             }
@@ -2329,7 +2325,7 @@ static void em2dKickAction(cEm2d* em)
     if (pSUB && pSUB->plDist2 < 9000000.0f) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
 
-        if (!em2dDeadCk(pSUB)) {
+        if (!EmDeadCk(pSUB)) {
             d->set(0, 30);
         }
     }
@@ -5291,7 +5287,7 @@ int em2dCatchCk(cEm2d* em)
     Mtx inv;
     Vec pos;
 
-    if (em2dDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -5330,7 +5326,7 @@ int em2dAirCatchCk(cEm2d* em)
     Mtx inv;
     Vec pos;
 
-    if (em2dDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -5368,7 +5364,7 @@ int em2dFallCatchCk(cEm2d* em)
     cDmgInfo* dm = &pl->dmg;
     f32 dy;
 
-    if (em2dDeadCk(pl)) {
+    if (EmDeadCk(pl)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -5533,7 +5529,7 @@ int em2dStayCk(cEm2d* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE) &&
             (EM2D_WK(e)->flags & 0x200) && e->plDist2 < em->plDist2) {
@@ -5556,7 +5552,7 @@ int em2dCrashCk(cEm2d* em)
     Vec out;
     int zero;
 
-    if (em2dDeadCk(em)) {
+    if (EmDeadCk(em)) {
         return 0;
     }
     if (em->hp <= 0) {
@@ -5770,7 +5766,7 @@ void em2dDoorOpenCk(cEm2d* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6332,7 +6328,7 @@ int em2dFindCk(cEm2d* em)
             }
         }
         if (!StaFlagChk(pG, STA_PL_FIRE) || !(w->plDist < 25000.0f)) {
-            if (em2dDeadCk(em) == 0 && em2dSomebodyFindCk(em) == 0) {
+            if (EmDeadCk(em) == 0 && em2dSomebodyFindCk(em) == 0) {
                 return 0;
             }
         }
@@ -6349,7 +6345,7 @@ int em2dSomebodyFindCk(cEm2d* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         f32 d;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6524,7 +6520,7 @@ void em2dHumSeMove(cEm2d* em)
         (cam->param.pos.z - em->pos.z) * (cam->param.pos.z - em->pos.z);
     cnt = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE) &&
             (EM2D_WK(e)->flags & 0x40000) &&

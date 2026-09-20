@@ -22,9 +22,6 @@ extern void (*ObjInitFunc[0x40])(cObj*);   // game/obj.cpp: per-id constructor t
 extern void (*WeaponMoveFunc)(cPlayer*);   // game/player.cpp: the equipped weapon's per-frame routine
 // WeaponInitFunc (cModel*) is declared in pl_wep.h.
 
-// Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 // Hand weapon (wep00 and the wep34..wep37 modules): the weapon object of the empty hand /
 // event hand poses. keyKamae is the DOL's cObjHand::keyKamae (game/objWep.cpp), setMotion fills the
 // player's motion table from the weapon archive in the module.

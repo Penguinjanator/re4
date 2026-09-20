@@ -74,9 +74,6 @@ static R206WorkPtr r206_work;
 // game/shape.cpp (C++ linkage, declared locally by its users).
 void ShapeSet(void* info, int a, void* data, int b);
 
-// Upper half of the damage flags set = the enemy is dead (db_cam idiom); the inline's result is
-// materialised as 0/1 before the test.
-static inline int isDeadEm(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
 
 void r206_die_event();
 static void r206_gouryuu_event();
@@ -519,7 +516,7 @@ int chkAliveGanadeNum()
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && (em->be_flag & 0x201) == 1) {
             cnt++;
@@ -949,7 +946,7 @@ static void chkReaderMove()
                 }
                 if ((r206_work.p->gotoNo == 0 && cnt == 0x1A4)
                     || (cnt > 0x257 && (em->be_flag & 0x201) == 1 && em->checkStatus(EM_STATUS_ACTIVE) == 1
-                        && isDeadEm(em))) {
+                        && EmDeadCk(em))) {
                     timer = 0x5A;
                 }
                 if (timer != 0) {

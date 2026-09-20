@@ -36,6 +36,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
@@ -95,11 +96,6 @@ struct SubCharPtr {
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em22DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em22Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -132,7 +128,7 @@ void em22DmCk(cEm22* em)
     Em22Work* w = EM22_WK(em);
     int near;
 
-    if (em->hp > 0 && em22DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -311,7 +307,7 @@ void cEm22::move()
     if (w->plDeadWait) {
         w->plDeadWait--;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->plDeadWait = 30;
     }
     if (w->stuckTimer) {
@@ -1209,7 +1205,7 @@ static void em22_R1_br_JumpAtk(cEm22* em)
     if (!(em->motEvent & 1)) {
         return;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return;
     }
     if (!(w->flags & 1)) {
@@ -1479,7 +1475,7 @@ static void em22_R1_br_ParaAtk(cEm22* em)
     if (!(em->motEvent & 1)) {
         return;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return;
     }
     PSMTXInverse(em->mat, inv);
@@ -2870,11 +2866,6 @@ int em22ScreenInCk(cEm22* em)
     return 0;
 }
 
-// Work `no` of the enemy manager without the range check (the callers loop over nArray).
-static inline cEmDoor* em22EmWork(u32 no)
-{
-    return (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Opens a closed door (cEmDoor) the dog runs into from its side (within reach and angle).
 void em22DoorOpenCk(cEm22* em)
@@ -2888,7 +2879,7 @@ void em22DoorOpenCk(cEm22* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* door = em22EmWork(i);
+        cEmDoor* door = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((door->be_flag & 0x201) != 1) {

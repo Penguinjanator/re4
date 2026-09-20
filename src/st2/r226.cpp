@@ -40,7 +40,6 @@ class cObjWep;
 #include "motion.h"
 #include "eprintf.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-26 (D:/Bio4/Prog/r226.cpp): the giant statue (cObjRobo) chase - the passage switches, the
 // statue's walk through the passage and over the bridge, the button-mash escape and the deaths.
@@ -227,7 +226,7 @@ void R226Init()
         PSet(r226_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 1));
         PSet(r226_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 4));
         PSet(r226_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 5));
-        PSet(r226_work.p->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 3));
+        r226_work.p->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 3);
         SmdSetTrans(0x47, 0);
         if (RsfCheck(G_ROOM_ID, 13) == 0) {
             SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWalkPassageStart, 0, 1);
@@ -1104,7 +1103,7 @@ static void playerRunMovePassage(cPlayer* pl)
         Cckpt.lifeMeterDisp(0);
         FSetP(pPL->pos.x, -8540.0f);
         FSetP(pPL->pos.y, 1000.0f);
-        FSetP(pPL->pos.z, -16430.0f);
+        pPL->pos.z = -16430.0f;
         pl->ang.y = -1.5707964f;
         r226_work.p->hitPoint = 0;
         r226_work.p->spdOld = 0;
@@ -1268,7 +1267,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
         if (MotionMove(pl, 0)) {
-            IntSet(r226_work.p->btnCnt, 0);
+            r226_work.p->btnCnt = 0;
             IntSet(r226_work.p->timer, 0);
             MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6A), 0, 10, 0x204, 0);
             MotionMove(pl, 0);
@@ -1292,7 +1291,7 @@ static void playerRunMoveBridge(cPlayer* pl)
                 r226_work.p->str = SndStrPlayBlock(1, 0x2F, 0.0f);
                 pl->r_no_2 = 6;
             } else {
-                U16Set(pG->pl_life, 0);
+                pG->pl_life = 0;
                 AtariOffV(&pl->atari, 0xFCFF);
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6C), 0, 3, 0x201, 0);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);

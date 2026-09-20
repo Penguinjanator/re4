@@ -33,7 +33,7 @@ cEsp* Esp41_Create()
 
 // Base update and animation, then (Type 0) adds (Dist - dist) * Pow along the direction from the
 // target to the sprite into m_Speed while inside Dist. In the effect tool (Debug_flg[1]
-// 0x00800000) the target is EmMgrWork(0) and nothing happens while that enemy is not alive.
+// 0x00800000) the target is EmMgr.at(0) and nothing happens while that enemy is not alive.
 void cEsp41::move()
 {
     Esp41Work* w = &m_Free;
@@ -47,7 +47,7 @@ void cEsp41::move()
         } else if (w->Type == 0) {
             cModel* target = pPL;
             if (DbgFlagChk(pG, DBG_IN_ESP_TOOL)) {
-                target = EmMgrWork(0);
+                target = EmMgr.at(0);
                 if (!(target->be_flag & 1)) {
                     return;
                 }

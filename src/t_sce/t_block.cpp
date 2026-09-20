@@ -265,7 +265,7 @@ void tBlockInit()
 
     TutilInitDefault();
     U32Set(pW->saveStopFlag, TOOL_FLAG(OFS_STOP_FLG));
-    U32Set(pW->saveDispFlag, TOOL_FLAG(OFS_DISP_FLG));
+    pW->saveDispFlag = TOOL_FLAG(OFS_DISP_FLG);
     tBlockInit_base();
     pW->x0 = 0x28;
     pW->y0 = 0xA;
@@ -1092,11 +1092,6 @@ void tBlockArea_disp()
     eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
-// Object work `no` without the range check.
-static inline cObj* objWorkNoChk(u32 no)
-{
-    return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
-}
 
 // Shows only the scroll models of the current block (on) or every block's models (off) by toggling
 // their be_flag bit 1.
@@ -1105,7 +1100,7 @@ void tBlockArea_dispBlockModel(int on)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* obj = objWorkNoChk(i);
+        cObj* obj = ObjMgr.fastAt(i);
         u32 be = obj->be_flag;
         int blk;
 
@@ -1164,7 +1159,7 @@ void tBlockArea_dispBlockBox(u8 no, u32 col)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* obj = objWorkNoChk(i);
+        cObj* obj = ObjMgr.fastAt(i);
         cModelInfo* info;
         Mtx m;
         Mtx r;

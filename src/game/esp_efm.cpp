@@ -83,7 +83,7 @@ void EfmDelete(int a, int b, void* c)
     g_Core_kind = b;
     g_Core_pEm = (cModel*) c;
     for (i = 0; i < m->nArray; i++) {
-        func((cObj*) ((u8*) m->pArray + m->size * i));
+        func(m->fastAt(i));
     }
 }
 
@@ -122,7 +122,7 @@ void EfmDeleteEvent()
     u32 i;
 
     for (i = 0; i < m->nArray; i++) {
-        func((cObj*) ((u8*) m->pArray + m->size * i));
+        func(m->fastAt(i));
     }
 }
 

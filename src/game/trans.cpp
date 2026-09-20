@@ -1064,7 +1064,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int efbDone;
     int matSet;
 
-    PSet(g_pShdMng, 0);
+    g_pShdMng = 0;
     if (StaFlagChk(pG, STA_USE_SHADOW_LIGHT) && (m->be_flag & 0x02000000) && !DpfFlagChk(pG, DPF_CAST_SHADOW) &&
         (StaFlagChk(pG, STA_USE_CAST_SHADOW))) {
         if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
@@ -2902,8 +2902,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         GXSetNumTevStages(++tev_stage);
-        GXSetNumTexGens(IRef(tex_coord));
-        GXSetNumIndStages(IRef(ind_stage));
+        GXSetNumTexGens(tex_coord);
+        GXSetNumIndStages(ind_stage);
     }
 }
 

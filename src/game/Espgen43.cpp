@@ -91,7 +91,7 @@ void AddSandPowerSub(EspgenWork* w)
     z = (u32) (v.z + (f32) (p->ny / 2));
     x = (u32) (v.x + (f32) (p->Width / 2));
     idx = z * (p->Width + 1) + x;
-    p->pHeightBuf[idx].y += FGet(Add_power);
+    p->pHeightBuf[idx].y += Add_power;
     total = (p->ny + 1) * (p->Width + 1);
     stride = p->Width + 1;
     for (i = -3; i <= 3; i++) {
@@ -197,7 +197,7 @@ int GetSandHeight(Vec* pos, f32* height)
     if (!StaFlagChk(pG, STA_SAND_ALIVE)) {
         return 0;
     }
-    ISet(Height_find, 0);
+    Height_find = 0;
     FSet(Height_ret, -100000000.0f);
     Chk_pos = *pos;
     EspgenApplyFunc(GetSandHeightSub);

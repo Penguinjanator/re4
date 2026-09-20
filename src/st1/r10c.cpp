@@ -37,7 +37,6 @@
 #include "rnd.h"
 #include "debug.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 1-0C (D:/Bio4/Prog/r10c.cpp): the dam and the water wheel; the two gates opened by the
 // switch, the hanging crates (hit boxes on ropes) that fall into the water, the ambush after the

@@ -27,7 +27,6 @@
 #include "snd.h"
 #include "rnd.h"
 #include "debug.h"
-#include "ref_access.h"
 
 // Room 1-19 (D:/Bio4/Prog/r119.cpp): the village square with the giant; the three huts and their
 // roofs the giant breaks, the trees, the thunder lights and the giant / dog / parasite events.
@@ -131,7 +130,7 @@ void R119Init()
     PSet(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
     PSet(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
     PSet(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSet(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    r119_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
     koya_init();
     if (RsfCheck(G_ROOM_ID, 4)) {
         YaneA_delete();
@@ -202,14 +201,14 @@ static void r119_ThunderFlagOn()
     cLight* l;
 
     if (EffGetToolState() == 1) {
-        l = LightMgr.getWorkPtr(2);
+        l = LightMgr.at(2);
         l->Intensity = r119_lightPow2B;
-        l = LightMgr.getWorkPtr(6);
+        l = LightMgr.at(6);
         l->Intensity = r119_lightPow6B;
     } else if (EffGetToolState() == 2) {
-        l = LightMgr.getWorkPtr(2);
+        l = LightMgr.at(2);
         l->Intensity = r119_lightPow2A;
-        l = LightMgr.getWorkPtr(6);
+        l = LightMgr.at(6);
         l->Intensity = r119_lightPow6A;
     }
 }
@@ -219,9 +218,9 @@ static void r119_ThunderFlagOff()
 {
     cLight* l;
 
-    l = LightMgr.getWorkPtr(2);
+    l = LightMgr.at(2);
     l->Intensity = 0.509f;
-    l = LightMgr.getWorkPtr(6);
+    l = LightMgr.at(6);
     l->Intensity = 0.897f;
 }
 

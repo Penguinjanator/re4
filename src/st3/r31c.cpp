@@ -45,7 +45,6 @@
 #include "scheduler.h"
 #include "room_data.h"
 #include "eprintf.h"
-#include "ref_access.h"
 
 static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
 
@@ -184,16 +183,6 @@ static inline void SetPosAngY(cModel* m, f32 x, f32 y, f32 z, f32 ry)
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// 1 while the event is being skipped / cancelled (an EVT status bit, r215).
-static inline int r31c_evtStatus(Event* e, u32 bit)
-{
-    int on = 1;
-
-    if ((e->StatusFlag & bit) == 0) {
-        on = 0;
-    }
-    return on;
-}
 
 
 // Wait for fade `no` to finish: the index stays a separate `addi` on the array base (r316).
@@ -1740,7 +1729,7 @@ static void Evt_R31CS01_Func(Event* e)
                 IntSet(r31c_evtS01Flag, 1);
             }
             if (e->NowFrame == 0x78) {
-                IntSet(r31c_evtS01Flag, 0);
+                r31c_evtS01Flag = 0;
             }
             break;
         }
@@ -1749,7 +1738,7 @@ static void Evt_R31CS01_Func(Event* e)
         SmdGetObjPtr(0x97)->be_flag |= 2;
         break;
     case 3:
-        if (r31c_evtStatus(e, 0x4000) == 0) {
+        if (EvtStatusCk(e, 0x4000) == 0) {
             EvtMgr.EvtSndStrPlay(evtKey(&EvtMgr), 1, 0x8B, 1, 0.0f);
         }
         break;

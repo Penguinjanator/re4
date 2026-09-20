@@ -36,7 +36,14 @@
 #include "db_log.h"
 #include "wep_mod.h"
 #include "st_mgr_event.h"
-#include "ref_access.h"
+
+// Position and angle set together: both addresses are taken before the first call, so the angle
+// pointer is kept in a register across setPos (`lwz; addi 0xa0` before `bl setPos`).
+static inline void SetPosAng(cModel* m, Vec* pos, Vec* ang)
+{
+    m->setPos(pos);
+    m->setAng(ang);
+}
 
 // Room 2-08 (D:/Bio4/Prog/r208.cpp): the castle courtyard with the water mill. The crank drains
 // the moat and lowers the bridge, the two footings rise while Ashley turns the cranks on the far
@@ -90,13 +97,6 @@ static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
     v->x = x;
     v->y = y;
     v->z = z;
-}
-// Position and angle set together: both addresses are taken before the first call, so the angle
-// pointer is kept in a register across setPos (`lwz; addi 0xa0` before `bl setPos`).
-static inline void SetPosAng(cModel* m, Vec* pos, Vec* ang)
-{
-    m->setPos(pos);
-    m->setAng(ang);
 }
 
 // Hit effects of attribute types 4 and 5
@@ -604,7 +604,7 @@ extern "C" cEm* getMostFarEm(f32 range)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         Vec d;
         f32 len;
 

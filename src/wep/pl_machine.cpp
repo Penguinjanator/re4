@@ -24,8 +24,6 @@
 #include "math_sub.h"
 
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 
 u8 lockCtr = 0;
 

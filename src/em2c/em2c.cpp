@@ -46,7 +46,7 @@ asm(".comm common_em2c,52,4");
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "item.h"
-#include "ref_access.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
@@ -141,28 +141,23 @@ struct PlayerPtr {
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2cDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
 static inline void em2cSetAtkWait(Em2cWork* w, int a, int b, int c, int d, int e)
 {
-    IntSet(w->atkWait, a);
+    w->atkWait = a;
     if (pG->Game_level > 1) {
-        IntSet(w->atkWait, b);
+        w->atkWait = b;
     }
     if (pG->Game_level > 3) {
-        IntSet(w->atkWait, c);
+        w->atkWait = c;
     }
     if (pG->Game_level > 6) {
-        IntSet(w->atkWait, d);
+        w->atkWait = d;
     }
     if (pG->Game_level == 10) {
-        IntSet(w->atkWait, e);
+        w->atkWait = e;
     }
 }
 
@@ -305,7 +300,7 @@ void em2cDmCk(cEm2c* em)
     f32 py;
 
     if (em->hp > 0) {
-        if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
+        if (!(w->flags & 0x100840) && !EmDeadCk(em)) {
             int two = 2;      // the routine 2 of the first two arms in a callee-saved register
 
             if (pG->Room_flg[2] & 0x80000000) {
@@ -330,7 +325,7 @@ void em2cDmCk(cEm2c* em)
             return;
             }
         }
-        if (em->hp > 0 && !em2cDeadCk(em)) {
+        if (em->hp > 0 && !EmDeadCk(em)) {
             switch (DmgMgr.hitCheck(&em->pos, 0)) {
             case 1:
             case 4:
@@ -948,7 +943,7 @@ void cEm2c::move()
     if (w->guardCnt) {
         w->guardCnt--;
     }
-    if (w->atkWait == 0 && em2cDeadCk(pPL)) {
+    if (w->atkWait == 0 && EmDeadCk(pPL)) {
         w->atkWait = 10;
     }
     if (w->Dash_wait) {
@@ -1218,7 +1213,7 @@ static void em2c_R1_Wait(cEm2c* em)
         if (em->plDist2 > 25000000.0f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
-        if (em2cDeadCk(em) && pG->Game_level > 1) {
+        if (EmDeadCk(em) && pG->Game_level > 1) {
             w->atkWait = 0;
         }
         if (w->atkWait) {
@@ -4558,7 +4553,7 @@ static void em2cKickAction(cEm2c* em)
     if (pSUB) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
 
-        if (!em2cDeadCk(pSUB)) {
+        if (!EmDeadCk(pSUB)) {
             d->set(0, 30);
         }
     }
@@ -5413,7 +5408,7 @@ void em2cDoorOpenCk(cEm2c* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -5496,7 +5491,7 @@ void em2cDoorOpenCk2(cEm2c* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6284,7 +6279,7 @@ void em2cGetTail(cEm2c* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6312,7 +6307,7 @@ int em2cDoorCk(cEm2c* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

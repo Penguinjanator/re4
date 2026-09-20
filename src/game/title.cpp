@@ -52,10 +52,6 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 // Store through a reference (matching helper).
 #line 58
-static inline void CSet(s8& d, s8 v)
-{
-    d = v;
-}
 // Store through a reference (matching helper).
 #line 62
 
@@ -196,11 +192,11 @@ void titleWait(TitleWork* w)
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
-                CSet(w->Rno0, 2);
+                S8Set(w->Rno0, 2);
                 ISet(w->sndFlag, 1);
                 w->Rno1 = z;
-                ISet(w->counter, 0);
-                ISet(w->dbg_mode, 0);
+                w->counter = 0;
+                w->dbg_mode = 0;
             }
             if (pRK->logo_skip_enable != 0) {
                 w->Rno0 = 5;

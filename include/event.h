@@ -354,6 +354,11 @@ extern EventMgr EvtMgr;
 // The running event's name key of the event manager, read through a helper: a plain scalar access, not a member chain.
 static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
+// Event::StatusFlag bit test as a 0/1 value: an inline gives the `li 1; and.; bne; li 0` chain.
+static inline int EvtStatusCk(Event* e, u32 bit) { int on = 1; if ((e->StatusFlag & bit) == 0) { on = 0; } return on; }
+// The skip bit of StatusFlag (0x40000000) the same way.
+static inline int EvtSkipCk(Event* e) { int skip = 1; if ((e->StatusFlag & 0x40000000) == 0) { skip = 0; } return skip; }
+
 // Event debug tool work (game/event.cpp `EvtDebug`, 0xE8 bytes).
 class EventDebug {
 public:

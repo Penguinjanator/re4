@@ -22,7 +22,6 @@
 #include "est.h"
 #include "snd.h"
 #include "math_sub.h"
-#include "ref_access.h"
 
 // Room 2-0F (D:/Bio4/Prog/r20f.cpp): the lever switch that raises the platform, the patrol /
 // guard Ganados and the two reset waves.

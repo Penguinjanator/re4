@@ -22,7 +22,6 @@
 #include "math_sub.h"
 #include "motion.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-2A (D:/Bio4/Prog/r22a.cpp): the mine shaft; the rope down / up (a copy of r10c's ladder
 // event, message and all), the lift and the s00 event.
@@ -263,7 +262,7 @@ static void r22a_EleDown()
     SceSleep(30);
     FSetP(pPL->pos.y, -3500.0f);
     FSetP(pPL->pos.x, 15430.0f);
-    FSetP(pPL->pos.z, -38962.0f);
+    pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = -3500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
     CamCtrl.CutCall(3);
@@ -311,7 +310,7 @@ static void r22a_EleUp()
     SceSleep(30);
     FSetP(pPL->pos.y, 21500.0f);
     FSetP(pPL->pos.x, 15430.0f);
-    FSetP(pPL->pos.z, -38962.0f);
+    pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = 21500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
     CamCtrl.CutCall(5);

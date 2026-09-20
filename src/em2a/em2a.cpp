@@ -32,6 +32,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -73,17 +74,7 @@ struct PlayerPtr {
 
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2aDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
-// Work `no` of the enemy manager without the range check (em2aTrap2HitCkEM).
-static inline cEm* em2aMgrWork(u32 no)
-{
-    return (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Module entry (SN loader): registers Em2aInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -441,7 +432,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             em2aTrap1CamMove(em);
             w->camTimer--;
         }
-        if ((em->seFlags28B & 4) && em2aDeadCk(pPL)) {
+        if ((em->seFlags28B & 4) && EmDeadCk(pPL)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
@@ -513,7 +504,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         em->r_no_2++;
     case 3:
         MotionMove(em, 0);
-        if (em2aDeadCk(pSUB)) {
+        if (EmDeadCk(pSUB)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
@@ -869,7 +860,7 @@ int em2aTrap2HitCkEM(cEm2a* em)
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em2aMgrWork(i);
+        cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
             continue;
@@ -1016,7 +1007,7 @@ int em2aTrap1BiteCk(cEm2a* em)
         > 90000.0f) {
         return 0;
     }
-    dead = em2aDeadCk(pPL);
+    dead = EmDeadCk(pPL);
     if (dead) {
         return 0;
     }
@@ -1044,7 +1035,7 @@ int em2aTrap1BiteSubCk(cEm2a* em)
     if (StaFlagChk(pG, STA_SUB_CATCHED)) {
         return 0;
     }
-    dead = em2aDeadCk(pSUB);
+    dead = EmDeadCk(pSUB);
     if (dead) {
         return 0;
     }

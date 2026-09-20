@@ -161,6 +161,9 @@ public:
 // arguments keep the registers of the call, which is not the case when they are assigned inline.
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3) { em->r_no_0 = r0; em->r_no_1 = r1; em->r_no_2 = r2; em->r_no_3 = r3; }
 
+// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
+static inline int EmDeadCk(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
+
 // Enemy manager (game/em.cpp). The construct id selects the class: 0 player, 1..0xE / others a
 // read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {
@@ -187,16 +190,6 @@ public:
 };
 
 extern cEmMgr EmMgr;
-
-// Work `no` of the enemy manager, NULL when out of range. A free function: a cEmMgr member (even an
-// out-of-class inline) is emitted out of line into em.cpp, which owns the vtable (ctrl.h CtrlMgrWork).
-static inline cEm* EmMgrWork(u32 no)
-{
-    if (no >= EmMgr.nArray) {
-        return 0;
-    }
-    return (cEm*)((u8*)EmMgr.pArray + EmMgr.size * no);
-}
 
 // Pushable rack/crate enemy (game/emrack.cpp); only what pl_push calls.
 class cEmRack : public cEm {

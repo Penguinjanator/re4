@@ -27,7 +27,6 @@
 #include "fade.h"
 #include "TexRender.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-28 (D:/Bio4/Prog/r228.cpp): Salazar's throne room; the s00/s01/s02 event chain, the
 // boss fight and the render-to-texture setup.
@@ -72,16 +71,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// The event skips its fades when the player skipped the event (Event::status bit 30).
-static inline int r228_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Room init (Salazar's throne room): the two room render targets, the s00/s01/s02 callbacks, the fight
 // effect kind, the event chain / fight setup (r228_initEvent00), and an event render target with its effect.
@@ -377,7 +366,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == e->MaxFrame - 10) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 10, 0, 0);
@@ -386,35 +375,35 @@ extern "C" void Evt_R228S00_Func(Event* e)
             break;
         case 3:
             if (e->NowFrame == 0) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     SysFlagOn(pG, SYS_SCREEN_STOP);
                 }
             }
             if (e->NowFrame == 0) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 10, 0, 0);
                 }
             }
             if (e->NowFrame == 1) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     SysFlagOff(pG, SYS_SCREEN_STOP);
                 }
             }
             if (e->NowFrame == e->MaxFrame - 30) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 30, 0, 0);
                 }
             }
             if (e->NowFrame == e->MaxFrame - 1) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -458,14 +447,14 @@ extern "C" void Evt_R228S01_Func(Event* e)
             if (e->NowFrame == 0) {
                 EvtMgr.EvtReadAram("event/evd/r228s02.evd", 0, 0, 0, 0);
                 pG->Room_flg[0] |= 0x00100000;
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 20, 0, 0);
                 }
             }
             if (e->NowFrame == 1) {
-                int skip = r228_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     SysFlagOff(pG, SYS_SCREEN_STOP);

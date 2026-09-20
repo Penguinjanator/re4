@@ -35,6 +35,7 @@
 #include "db_log.h"
 #include "quake.h"
 #include "ref_access.h"
+#include "em.h"
 
 asm(".comm common_em25,52,4");
 
@@ -138,11 +139,6 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em25DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 
 
@@ -179,7 +175,7 @@ void em25DmCk(cEm25* em)
     int wep;
     int zero;
 
-    if ((em->be_flag & 2) && em25DeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
+    if ((em->be_flag & 2) && EmDeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -272,7 +268,7 @@ void cEm25::move()
     if (w->Atk_wait) {
         w->Atk_wait--;
     }
-    if (em25DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->Atk_wait = 120;
     }
     if (w->Fire_timer) {
@@ -1486,7 +1482,7 @@ int em25CatchCk(cEm25* em)
     Vec b;
     Mtx m;
 
-    if (em25DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {

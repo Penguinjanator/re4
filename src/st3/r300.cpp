@@ -40,7 +40,6 @@
 #include "vec.h"
 #include "TexRender.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 3-00 (D:/Bio4/Prog/r300.cpp): the island landing. The searchlight that follows its target, the two
 // mirrors the player turns to redirect the laser onto the gate, the Ashley "asl" scene, the found-by-camera

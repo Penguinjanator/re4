@@ -28,7 +28,6 @@
 #include "eprintf.h"
 #include "TexRender.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
 

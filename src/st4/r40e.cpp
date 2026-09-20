@@ -33,7 +33,6 @@
 #include "mercenaries.h"
 #include "TexRender.h"
 #include "cSceObj.h"
-#include "ref_access.h"
 
 // Room 4-0E (D:/Bio4/Prog/r40e.cpp): the elevator ride with its camera cuts, the enemy that
 // appears on the way, the s00 event with the render-to-texture camera and the Assignment Ada

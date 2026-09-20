@@ -266,13 +266,13 @@ static void tvib_R0_SelectMenu()
             return;
         case 1:
             ISet(V->stage, pG->stage_no);
-            ISet(V->room, pG->room_no);
+            V->room = pG->room_no;
             V->mode = 7;
             V->cursor = 0;
             break;
         case 2:
             ISet(V->stage, pG->stage_no);
-            ISet(V->room, pG->room_no);
+            V->room = pG->room_no;
             V->mode = 8;
             V->cursor = 0;
             break;

@@ -37,6 +37,7 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "ref_access.h"
+#include "em.h"
 
 asm(".comm common_em35,52,4");
 
@@ -125,11 +126,6 @@ struct PlayerPtr {
 
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em35DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 extern "C" void _prolog()
 {
@@ -170,7 +166,7 @@ void em35DmCk(cEm35* em)
     cModel* p;
     f32 d;
 
-    if (em->hp > 0 && em35DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -1175,7 +1171,7 @@ static void em35_R1_Wait(cEm35* em)
     }
     case 1:
         MotionMove(em, 0);
-        if (em35DeadCk(em)) {
+        if (EmDeadCk(em)) {
             if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
@@ -4145,7 +4141,7 @@ int em35CatchCk(cEm35* em)
     cModel* p;
     int hit;
 
-    if (em35DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {

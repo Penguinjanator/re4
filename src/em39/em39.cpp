@@ -51,6 +51,7 @@
 #include "sce_at.h"
 #include "game.h"
 #include "ref_access.h"
+#include "em.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -144,11 +145,6 @@ static void plemDmSide(cPlayer* pl);
 
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em39DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Struct-member views of the player / partner pointers: a load through them is not hoisted above
 // the preceding stores (cam_ctrl.cpp PlayerPtr).
@@ -249,7 +245,7 @@ void em39DmCk(cEm39* em)
     YARARE_INFO* hit;
     int dmg;
 
-    if (em->hp > 0 && !em39DeadCk(em)) {
+    if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -1265,7 +1261,7 @@ static void em39_R1_Wait(cEm39* em)
     case 3:
         MotionMove(em, 0);
         if ((s16) pG->pl_life > 0 && em->hp > 0 && em->set != 1) {
-            if (em39DeadCk(em)) {
+            if (EmDeadCk(em)) {
                 if (em39JumpUpCk3(em)) {
                     return;
                 }
@@ -1379,7 +1375,7 @@ static void em39_R1_Sit(cEm39* em)
                     EmRoutineSet(em, 1, 0x26, 0, 0);
                 }
             } else {
-                if (em39DeadCk(pPL)) {
+                if (EmDeadCk(pPL)) {
                     w->Atk_wait = 30;
                 }
                 if (w->Atk_wait == 0) {
@@ -3753,7 +3749,7 @@ static void em39_R1_Atk_MG(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
             if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 1.5707964f) {
@@ -3930,7 +3926,7 @@ static void em39_R1_AppearMG(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
             if (em39ExitCk(em) && (u32) w->TmpU32 > 5) {
@@ -4089,7 +4085,7 @@ static void em39_R1_AppearMG2(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
         }
@@ -7075,7 +7071,7 @@ int em39JumpUpCk(cEm39* em)
         return 0;
     }
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObj* o = ObjMgr.fastAt(i);
         int alive = o->be_flag & 0x201;
 
         if (alive != 1) {
@@ -7957,7 +7953,7 @@ int em39DoorOpenCk(cEm39* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* d = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;
         u32 st;

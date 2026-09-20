@@ -32,7 +32,6 @@
 #include "cam_extra.h"
 #include "snd.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-0b (D:/Bio4/Prog/r10b.cpp): the lake; the boss fight from the boat (enemy 0x2f), the
 // floating islands, the binocular view of the cliff event and the boss's tentacle heads.

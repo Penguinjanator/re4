@@ -33,7 +33,6 @@
 #include "snd.h"
 #include "flr_at.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-1d (D:/Bio4/Prog/r11d.cpp): the two sisters (the big one on the balcony object, the
 // little one with her own motion), the iron door key, the closet hides, the show view, the enemy

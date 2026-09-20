@@ -29,7 +29,6 @@
 
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 #define LAUNCHER(pl) ((cObjLauncher*) (pl)->Wep->m_pWep)
 
 

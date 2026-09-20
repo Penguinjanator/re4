@@ -42,11 +42,6 @@ int AreaHitCheck(void* area, Vec* pos);
 int EspPlWaterCall(int no, Vec* pos);
 void EspFootCall(int no, int type, Vec* pos);
 
-// Reference read of pG: the load stays inside the store loop (SndBgmTblSet; mercenaries.cpp SysRef).
-static inline GlobalWork* GRefS(GlobalWork*& p)
-{
-    return p;
-}
 
 
 
@@ -995,7 +990,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
                     u32 t = seq | 0x80;
                     w->type = t;
                     w->id = snd_id;
-                    w->no = U16Ref(no);
+                    w->no = no;
                     w->blk = U16Ref(blk);
                     w->svol_ofs = svol_ofs;
                     w->vol_ofs = vol_ofs;
@@ -2357,7 +2352,7 @@ int SndBgmTblSet(u16 room, int no)
                     for (k = 0; k < 6; k++) {
                         rs->bgm[k] = r->e[j].bgm[k];
                         rs->str[k] = r->e[j].str[k];
-                        if (room == GRefS(pG)->room_id) {
+                        if (room == GRef(pG)->room_id) {
                             pSnd->room_bgm_tbl[k] = r->e[j].bgm[k];
                             pSnd->room_str_tbl[k] = r->e[j].str[k];
                         }

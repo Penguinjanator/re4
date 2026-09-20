@@ -73,10 +73,6 @@ static inline void flagOn(u32* tbl, u32 no)
 }
 
 
-static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p)
-{
-    return p;
-}
 
 // 1 while a fade slot is still fading.
 // Through a pointer parameter: `&Fade[2]` stays a loop-invariant pseudo (`addi rX, Fade+0x48@l`).

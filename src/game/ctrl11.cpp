@@ -31,7 +31,7 @@ cCtrl* GetCtrlCtrl11()
     u32 n = CtrlMgr.nArray;
 
     for (i = 0; i < n; i++) {
-        c = CtrlMgrWork(i);
+        c = CtrlMgr.at(i);
         if ((c->be_flag & 0x201) == 1 && c->Id == 0x11) {
             return c;
         }

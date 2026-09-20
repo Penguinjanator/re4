@@ -215,7 +215,7 @@ void ReadAreaData()
     PSet(pG->Rtp, GetDataExt(pG->pRoom, "RTP", 0));
     PSet(pG->RoomMes, GetDataExt(pG->pRoom, "MDT", 0));
     PSet(pG->pOsd, GetDataExt(pG->pRoom, "OSD", 0));
-    PSet(pG->pEmi, GetDataExt(pG->pRoom, "EMI", 0));
+    pG->pEmi = GetDataExt(pG->pRoom, "EMI", 0);
 }
 
 // Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pCore) and initialises the

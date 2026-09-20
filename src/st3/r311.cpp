@@ -36,7 +36,6 @@
 #include "est.h"
 #include "math_sub.h"
 #include "cSceObj.h"
-#include "ref_access.h"
 
 // Room 3-11 (D:/Bio4/Prog/r311.cpp): the iron ball crane terminal Ashley operates, the Ganado
 // waves behind the sliding door, the kidnap attempt and the enemy reset counter.
@@ -140,7 +139,7 @@ static void r311_checkEmMoveCtrl()
         SceSleep(15);
         n = 0;
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* p = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            cEm* p = EmMgr.fastAt(i);
 
             if (p->id >= 0x10 && p->id <= 0x20 && (p->be_flag & 0x201) == 1) {
                 em.setPtr(p, 1);

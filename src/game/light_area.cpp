@@ -97,7 +97,7 @@ void LightAreaUpdate()
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         int type;
 
         if ((em->be_flag & 0x201) != 1) {

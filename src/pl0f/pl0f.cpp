@@ -1708,7 +1708,7 @@ int pl0fCrashCk(cPl0f* em)
     u32 n;
 
     for (n = 0; n < EmMgr.nArray; n++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * n);
+        cEm* e = EmMgr.fastAt(n);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0) {
             for (i = 0; i < 2; i++) {
@@ -1728,7 +1728,7 @@ int pl0fCrashCk(cPl0f* em)
         }
     }
     for (n = 0; n < ObjMgr.nArray; n++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * n);
+        cObj* o = ObjMgr.fastAt(n);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1C) {
             f32 r = o->scale.x * 1800.0f;
@@ -2270,7 +2270,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
     case 0:
         pl->m_Hokan = 0xA;
         pl->m_Frame = 0;
-        U32Set(pl->m_Work0, 0);
+        pl->m_Work0 = 0;
         pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
@@ -2394,7 +2394,7 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
     case 0:
         pl->m_Hokan = 0xA;
         pl->m_Frame = 0;
-        U32Set(pl->m_Work0, 0);
+        pl->m_Work0 = 0;
         pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
@@ -3377,7 +3377,7 @@ int testSearchEm2f(cPl0f* em)
 
     w->pBoss = 0;
     for (n = 0; n < EmMgr.nArray; n++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * n);
+        cEm* e = EmMgr.fastAt(n);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0 && e->set == 1) {
             Vec v;

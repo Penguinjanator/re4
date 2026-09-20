@@ -33,7 +33,6 @@
 #include "esp.h"
 #include "est.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-2-4 (D:/Bio4/Prog/r224.cpp): the water hall. The lever ("reva") that opens the floor
 // grate ("gnd"), the lid ("futa") that lets the two Novistadors out, the mine cart ("toroko") ride
@@ -84,11 +83,6 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
-// Enemy manager work `i` (address recomputed per use, em_set idiom).
-static inline cEm* r224_emWork(u32 i)
-{
-    return (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-}
 
 static void r224_cam_task();
 static void r224_em_set_exit();
@@ -418,7 +412,7 @@ static void reva_common_move()
             if (up ? (*py < hi) : (*py > hi)) {
                 spd += acc * 1.85f;
             } else if (pG->Room_flg[0] & 0x40000000) {
-                spd = FCRef(r224_zero);
+                spd = r224_zero;
                 *py = reva_high;
             } else {
                 spd = -acc;
@@ -748,7 +742,7 @@ static void r224_str_check()
         u32 i;
 
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = r224_emWork(i);
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 found = 1;

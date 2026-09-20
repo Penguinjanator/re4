@@ -721,7 +721,7 @@ int SubLadderClimbCk(cEm* em)
         return 0;
     }
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObjLadder* obj = (cObjLadder*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && obj->ckClimb()) {
             if ((em->pos.x - obj->pos.x) * (em->pos.x - obj->pos.x) + (em->pos.y - obj->pos.y) * (em->pos.y - obj->pos.y) +
@@ -752,7 +752,7 @@ int SubLadderClimbCk2(cEm* em)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObjLadder* obj = (cObjLadder*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && obj->getStatus() != 0) {
             f32 dy = em->pos.y - obj->pos.y;
@@ -1230,7 +1230,7 @@ int LadderNearCk(Vec* pos)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObjLadder* obj = (cObjLadder*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
         LadderWork* w = &obj->ladder;
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && w->status == 0 && !(obj->ladder.flags & 2)) {
@@ -1257,7 +1257,7 @@ void LadderEventTrans(int mode)
     u32 i;
 
     for (i = 0; i < ObjMgr.nArray; i++) {
-        cObjLadder* obj = (cObjLadder*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13) {
             if (mode == 1) {
@@ -1290,7 +1290,7 @@ void cObjLadder::breakWindow()
         v.y -= 1000.0f;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmWindow* em = (cEmWindow*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmWindow* em = (cEmWindow*) EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1 && em->id == 0x46 && em->hp > 0 && (em->ChkStatus() & 1) == 0) {
             if ((em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z) <

@@ -39,6 +39,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 #include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
@@ -75,16 +76,8 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3aDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 static inline void EmiSet(EmiEntry*& p, EmiEntry* v) { p = v; }
-// Reference read of pG: the load depends on the preceding `w->pRoute = 0` store (a MEM with neither
-// the struct nor the scalar flag), which ranks the store above the `lis pG@ha` in em3aPatrolInit.
-static inline GlobalWork* GRef(GlobalWork*& p) { return p; }
 
 // Hover: keep the height between fl + 1800 and fl + 2000, apply and damp the speed, vibrate.
 static inline void em3aHoverMove(cEm3a* em, Em3aWork* w, f32 fl)
@@ -283,7 +276,7 @@ void cEm3a::move()
     if (w->atkWait) {
         w->atkWait--;
     }
-    if (em3aDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->atkWait = 90;
     }
     Em3a_R0_move_tbl[r_no_0](this);
@@ -553,18 +546,18 @@ static void em3a_R1_Patrol(cEm3a* em)
 // Gun / rocket attack wait by difficulty rank (R1_Atk / R1_FixAtk step 2).
 static inline void em3aSetAtkTimer(Em3aWork* w)
 {
-    IntSet(w->timer, 46);
+    w->timer = 46;
     if (pG->Game_level <= 1) {
-        IntSet(w->timer, 76);
+        w->timer = 76;
     }
     if (pG->Game_level <= 3) {
-        IntSet(w->timer, 61);
+        w->timer = 61;
     }
     if (pG->Game_level > 6) {
-        IntSet(w->timer, 31);
+        w->timer = 31;
     }
     if (pG->Game_level > 9) {
-        IntSet(w->timer, 16);
+        w->timer = 16;
     }
 }
 
@@ -1489,7 +1482,7 @@ int em3aFindPLCk(cEm3a* em)
     if (em->type == 2) {
         return 0;
     }
-    if (em3aDeadCk(em)) {
+    if (EmDeadCk(em)) {
         return 1;
     }
     if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 225000000.0f) {
@@ -1610,7 +1603,7 @@ int em3aBossCk(cEm3a* em)
 
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0 && (e->be_flag & 2)) {
             PSMTXMultVec(inv, &e->pos, &lp);
@@ -1631,7 +1624,7 @@ int em3aBossNearCk(cEm3a* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0
             && (em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y)

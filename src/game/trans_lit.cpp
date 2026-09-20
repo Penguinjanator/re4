@@ -221,7 +221,7 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
     u32 mask;
     int i;
 
-    ISet(obj_flag, 0);
+    obj_flag = 0;
     mask = 0;
     amb.a = amb.b = amb.g = amb.r = 0;
     for (i = 0; i < n; i++) {

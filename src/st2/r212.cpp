@@ -36,7 +36,6 @@ class cObjWep;
 #include "est.h"
 #include "math_sub.h"
 #include "pl_npc.h"
-#include "ref_access.h"
 
 // game/quake.cpp keeps QuakeKill static; the REL imports it by name.
 void QuakeKill(u8 id);
@@ -200,7 +199,7 @@ void r212_TrapInit()
     PSet(r212_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 8));
     PSet(r212_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7));
     PSet(r212_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
-    PSet(r212_work.p->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 9));
+    r212_work.p->sat[3] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 9);
     r212_work.p->y0[0] = SmdGetObjPtr(0xD)->pos.y;
     r212_work.p->y0[1] = SmdGetObjPtr(0xF)->pos.y;
     r212_work.p->y0[2] = SmdGetObjPtr(0x12)->pos.y;
@@ -240,7 +239,7 @@ void r212_TrapInit()
 
         PSet(r212_work.p->sat2, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &d->pos, &d->ang, 1));
         PSet(r212_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &d->pos, &d->ang, 3));
-        PSet(r212_work.p->eat2, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero2, &zero2, 1));
+        r212_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero2, &zero2, 1);
     }
 }
 

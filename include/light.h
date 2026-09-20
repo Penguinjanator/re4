@@ -346,13 +346,6 @@ public:
         }
         return (cLight*)((u8*)pArray + size * no);
     }
-    // range-checked variant returning NULL (db_work)
-    cLight* getWorkPtr(u32 no) {
-        if (no >= nArray) {
-            return 0;
-        }
-        return (cLight*)((u8*)pArray + size * no);
-    }
     cLight* createNew() { return cManager<cLight>::create(); }
     cLight* createNo(int id, u32 no) { return cManager<cLight>::create(id, no); }
 };

@@ -974,7 +974,7 @@ void emBarrelRunDownCk(cEmBarrel* em)
 
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }

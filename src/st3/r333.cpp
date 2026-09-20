@@ -102,16 +102,6 @@ void st3_startCountDown();
 void st3_checkCountDown();
 void st3_endCountDown();
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r333_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Room init (the jet ski escape, the last room): the result id data; a fresh entry marks Ashley as
 // following and gives the jet ski key (item 0x88); JumpPoint 2 skips to the escape event. Area 0xE =
@@ -419,7 +409,7 @@ extern "C" void Evt_R333S10_Func(Event* e)
             break;
         case 0x13:
             if (e->NowFrame == 380) {
-                int skip = r333_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, e->MaxFrame - 380, 0, 0);

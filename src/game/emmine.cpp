@@ -593,7 +593,7 @@ void emMineSearchEm(cEmMine* em, int mode)
         best = 0.0f;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
         cModel* parts;
 
         if ((e->be_flag & 0x201) != 1) {

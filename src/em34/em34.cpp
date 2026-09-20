@@ -33,6 +33,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -65,11 +66,6 @@ struct SubCharPtr {
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em34DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: registers the enemy constructor.
 extern "C" void _prolog()
@@ -387,7 +383,7 @@ static void em34_R1_Wait(cEm34* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em34DeadCk(em)) {
+        if (EmDeadCk(em)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;

@@ -82,20 +82,20 @@ void Wep17_init(cModel* m)
         pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         if (pG->weapon_no == 3) {
-            PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x0A));
-            PSet(pl->m_MotTbl[0x01], (void*) 0);
-            PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x0D));
-            PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x1D));
-            PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x0F));
-            PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x1F));
-            PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x0E));
-            PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x1E));
-            PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x10));
-            PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x20));
-            PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x0B));
-            PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x1B));
-            PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0C));
-            PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x1C));
+            WEP_MOT(pl, 0x00, 0x0A);
+            NO_MOT(pl, 0x01);
+            WEP_MOT(pl, 0x02, 0x0D);
+            WEP_MOT(pl, 0x03, 0x1D);
+            WEP_MOT(pl, 0x06, 0x0F);
+            WEP_MOT(pl, 0x07, 0x1F);
+            WEP_MOT(pl, 0x08, 0x0E);
+            WEP_MOT(pl, 0x09, 0x1E);
+            WEP_MOT(pl, 0x0B, 0x10);
+            WEP_MOT(pl, 0x0C, 0x20);
+            WEP_MOT(pl, 0x0D, 0x0B);
+            WEP_MOT(pl, 0x0E, 0x1B);
+            WEP_MOT(pl, 0x0F, 0x0C);
+            WEP_MOT(pl, 0x10, 0x1C);
         }
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4B, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x14);
@@ -197,7 +197,7 @@ int ckEmWep(cPlayer* pl)
 
     pCkEm = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
 
         if (!em->isAlive()) {
             continue;

@@ -34,7 +34,6 @@ class cObjWep;
 #include "TexRender.h"
 #include "cSceObj.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-21 (D:/Bio4/Prog/r221.cpp): the insect boss arena — the shutter and the switchboard
 // lever, the elevator with its doors and wires, the boss appearance and the gas bombs (the
@@ -693,8 +692,8 @@ static void r221_checkElevatorArrive()
     }
     RsfSet(G_ROOM_ID, 6);
     ScfFlagOn(pG, SCF_88);
-    PSet(r221_work.p->wireTask, 0);
-    U32Set(r221_work.p->doorSe, 0);
+    r221_work.p->wireTask = 0;
+    r221_work.p->doorSe = 0;
     U32Set(r221_work.p->elvSe1, 0);
     pG->Room_flg[0] &= ~0x02000000;
     SceSetEventCancel(1, (TaskFunc) r221_checkElevatorArrive_end, 0, 2, 1);
@@ -729,7 +728,7 @@ static void r221_operateElevator()
         S16Set(EM_LIST(0x8C)->pos[0], -1458);
         S16Set(EM_LIST(0x8C)->pos[1], 0x32);
         S16Set(EM_LIST(0x8C)->pos[2], -577);
-        S16Set(EM_LIST(0x8C)->rot[1], 0x17D2);
+        EM_LIST(0x8C)->rot[1] = 0x17D2;
     }
     if (r221_work.p->str1C) {
         SndStrReq(r221_work.p->str1C, 4, 200, 0);
@@ -783,7 +782,7 @@ static void r221_checkBossAppear_end()
         S16Set(EM_LIST(0x8C)->pos[0], -0x4F8);
         S16Set(EM_LIST(0x8C)->pos[1], 0x58);
         S16Set(EM_LIST(0x8C)->pos[2], -0x1FA1);
-        S16Set(EM_LIST(0x8C)->rot[1], -0xBBB);
+        EM_LIST(0x8C)->rot[1] = -0xBBB;
         em.setEm(0x8C, -1, 1, 1, 1);
         SceAtSetEmItem(em.getPtr(), 0x85);
         if (!(pG->Room_flg[0] & 0x01000000)) {

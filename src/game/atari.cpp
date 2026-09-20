@@ -744,7 +744,7 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
     }
     ret = 0;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         if (sat->isAlive()) {
             Vec lo;
             Vec lp;
@@ -868,7 +868,7 @@ int cSatMgr::hitCheck2(Vec* pos0, Vec* pos1, Vec* hit, u32* attr, int flag, int 
     ((SEckView*) &SEck)->v = seCk;
     cur = *pos1;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         if (sat->isAlive()) {
             cSatBlock* blk = sat->block_p;
             int r;
@@ -1035,7 +1035,7 @@ void cSatMgr::disp(int flag)
     GXSetLineWidth(6, 0);
     sel = (flag >> 8) & 0xFF0000;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         int s;
         int e;
         int j;

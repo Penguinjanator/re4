@@ -26,6 +26,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -71,17 +72,6 @@ struct PlayerPtr {
     } else                                                                              \
         PSVECNormalize(src, dst)
 
-// Work `no` of the enemy manager with the range check kept (em.h's EmMgrWork lets jump threading
-// fold it away inside the scan loops; the manager pointer local defeats it, db_light objWorkChkP).
-static inline cEm* em29EmWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 
 // Damage / death routine per the wait state the bat was in (0: flying, 1: on the ceiling, 2: on the ground).
@@ -1158,7 +1148,7 @@ void em29ObaHitCk(cEm29* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1221,7 +1211,7 @@ int em29LastCk(cEm29* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1258,7 +1248,7 @@ int em29FriendCk(cEm29* em)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;

@@ -178,8 +178,8 @@ void cPlayer::weaponRelease()
 // Sets weapon_no / weapon_type and reads the weapon module's data (ReadWepData).
 void cPlayer::weaponLoad(int no, int type)
 {
-    U8Set(pG->weapon_no, no);
-    U8Set(pG->weapon_type, type);
+    pG->weapon_no = no;
+    pG->weapon_type = type;
     ReadWepData(no, type);
 }
 
@@ -484,10 +484,10 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
             if (!(flag & 2)) {
                 if (n != 0) {
                     U32Inc(pG->c_hit_cnt);
-                    U32Inc(pG->g_hit_cnt);
+                    pG->g_hit_cnt++;
                 }
                 U32Inc(pG->c_shot_cnt);
-                U32Inc(pG->g_shot_cnt);
+                pG->g_shot_cnt++;
             }
             break;
         }
@@ -796,7 +796,7 @@ cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         f32 d;
 
         if (em == skip) {

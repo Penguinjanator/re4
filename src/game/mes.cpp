@@ -56,7 +56,6 @@ struct OSFontHeader {
     u32 sheetFullSize;  // 0x28
 };
 
-static inline void SetU16(u16& d, u16 v) { d = v; }
 // Message slot address as an expression (not an inline call): the multiply lands in the same pseudo
 // as the sum, which is what the original codegen shows.
 #define MES(no) ((Message*) ((no) * sizeof(Message) + (u32) this + sizeof(u32)))
@@ -310,8 +309,8 @@ void MessageControl::setLayout(int no, int layout)
 
     p_layout = layout_tbl[MesData.lang][layout];
     setFontSize(no, p_layout[0], p_layout[1]);
-    SetU16(MES(no)->charSpace, p_layout[3]);
-    SetU16(MES(no)->m_line_gap, p_layout[5]);
+    U16Set(MES(no)->charSpace, p_layout[3]);
+    U16Set(MES(no)->m_line_gap, p_layout[5]);
 }
 
 // Selects the language block of the message files (0 Japanese, 1 English, 2..5 French/German/

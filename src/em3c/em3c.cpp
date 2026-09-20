@@ -35,6 +35,7 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -81,11 +82,6 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3cDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: hands the module's constructor to the enemy manager (EmInitFunc) so an enemy set
 // with id 0x3C is built as a cEm3c.
@@ -443,7 +439,7 @@ void cEm3c::move()
     if (w->Run_wait) {
         w->Run_wait--;
     }
-    if (em3cDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         if (w->Atk_wait <= 4) {
             w->Atk_wait = 5;
         }
@@ -2368,7 +2364,7 @@ int em3cStayCk(cEm3c* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE)
             && EM3C_WK(e)->L_pl_route < w->L_pl_route) {
@@ -2439,7 +2435,7 @@ int em3cFindCk(cEm3c* em)
         w->Be_flg |= 0x80;
         return 1;
     }
-    if (em3cDeadCk(em)) {
+    if (EmDeadCk(em)) {
         w->Be_flg |= 0x80;
         return 1;
     }
@@ -2459,7 +2455,7 @@ void em3cDoorOpenCk(cEm3c* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -2535,7 +2531,7 @@ void em3cAtkSuspend(cEm3c* em, int on)
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e != em && e->r_no_0 == 1 && e->r_no_1 <= 1) {
             if (on) {

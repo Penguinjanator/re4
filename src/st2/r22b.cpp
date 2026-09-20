@@ -20,16 +20,6 @@ static R22bWork* r22b_work;
 extern "C" void R22bEventS00();
 extern "C" void Evt_R22bS00_Func(Event* e);
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r22b_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Room init: registers the s00 callback and, unless Room_flg bit 0 (seen), pre-loads r22bs00 and starts the event task.
 void R22bInit()
@@ -67,14 +57,14 @@ extern "C" void Evt_R22bS00_Func(Event* e)
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 25, 0, 0);
                 }
             }
             if (e->NowFrame == 0x4E) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 12, 0, 0);
@@ -83,14 +73,14 @@ extern "C" void Evt_R22bS00_Func(Event* e)
             break;
         case 1:
             if (e->NowFrame == 0) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 12, 0, 0);
                 }
             }
             if (e->NowFrame == 0x7B) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 6, 0, 0);
@@ -99,14 +89,14 @@ extern "C" void Evt_R22bS00_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == 0) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 0, 0, 0);
                 }
             }
             if (e->NowFrame == 6) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 5, 0, 0);
@@ -115,7 +105,7 @@ extern "C" void Evt_R22bS00_Func(Event* e)
             break;
         case 5:
             if (e->NowFrame == 0x59) {
-                int skip = r22b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 25, 0, 0);

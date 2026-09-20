@@ -123,51 +123,51 @@ void PlayerInit()
     switch (pG->pl_type) {
     case 0:
     case 1:
-        U8Set(pG->weapon_no, 2);
+        pG->weapon_no = 2;
         U8Set(pG->weapon_type, 0);
-        U8Set(pG->weapon_lv_power, 0);
-        U8Set(pG->weapon_lv_speed, 0);
-        U8Set(pG->weapon_lv_blt, 0);
-        U8Set(pG->weapon_lv_reload, 0);
+        pG->weapon_lv_power = 0;
+        pG->weapon_lv_speed = 0;
+        pG->weapon_lv_blt = 0;
+        pG->weapon_lv_reload = 0;
         break;
     case 2:
-        U8Set(pG->weapon_no, 1);
+        pG->weapon_no = 1;
         U8Set(pG->weapon_lv_power, 0);
-        U8Set(pG->weapon_lv_speed, 0);
-        U8Set(pG->weapon_lv_blt, 0);
-        U8Set(pG->weapon_lv_reload, 0);
-        U8Set(pG->weapon_type, 0);
+        pG->weapon_lv_speed = 0;
+        pG->weapon_lv_blt = 0;
+        pG->weapon_lv_reload = 0;
+        pG->weapon_type = 0;
         break;
     case 4:
-        U8Set(pG->weapon_no, 0x1C);
+        pG->weapon_no = 0x1C;
         U8Set(pG->weapon_lv_power, 0);
-        U8Set(pG->weapon_lv_speed, 0);
-        U8Set(pG->weapon_lv_blt, 0);
-        U8Set(pG->weapon_lv_reload, 0);
-        U8Set(pG->weapon_type, 0);
+        pG->weapon_lv_speed = 0;
+        pG->weapon_lv_blt = 0;
+        pG->weapon_lv_reload = 0;
+        pG->weapon_type = 0;
         break;
     case 3:
-        U8Set(pG->weapon_no, 0xB);
+        pG->weapon_no = 0xB;
         U8Set(pG->weapon_lv_power, 0);
-        U8Set(pG->weapon_lv_speed, 0);
-        U8Set(pG->weapon_lv_blt, 0);
-        U8Set(pG->weapon_lv_reload, 0);
-        U8Set(pG->weapon_type, 0);
+        pG->weapon_lv_speed = 0;
+        pG->weapon_lv_blt = 0;
+        pG->weapon_lv_reload = 0;
+        pG->weapon_type = 0;
         break;
     case 5:
-        U8Set(pG->weapon_no, 2);
-        U8Set(pG->weapon_type, 1);
+        pG->weapon_no = 2;
+        pG->weapon_type = 1;
         U8Set(pG->weapon_lv_power, 0);
-        U8Set(pG->weapon_lv_speed, 0);
-        U8Set(pG->weapon_lv_blt, 0);
-        U8Set(pG->weapon_lv_reload, 0);
+        pG->weapon_lv_speed = 0;
+        pG->weapon_lv_blt = 0;
+        pG->weapon_lv_reload = 0;
         break;
     }
     PlayerLifeReset();
     U16Set(pG->pl_life_max, pG->pl_life);
     DbgFlagOff(pG, DBG_PL_LOCK_FOLLOW);
     ReleaseWepData();
-    U16Set(pG->pl_flag, 1);
+    pG->pl_flag = 1;
     PlKaiou = 0;
 }
 

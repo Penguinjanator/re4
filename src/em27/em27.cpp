@@ -21,6 +21,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -58,15 +59,6 @@ static void em27_R1_Die_Normal(cEm27* em);
     } else                                                                              \
         PSVECNormalize(src, dst)
 
-// Work `no` of the enemy manager with the range check read through a manager copy (em_set.cpp).
-static inline cEm* em27MgrWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 // Module entry (SN loader): registers Em27Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -920,7 +912,7 @@ void em27ObaHitCk(cEm27* em)
         return;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em27MgrWork(i);
+        cEm* e = EmMgr.at(i);
 
         {
             int dead = !(e->be_flag & 1);
@@ -1034,7 +1026,7 @@ int em27JumpCk(cEm27* em)
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = EmMgr.fastAt(i);
 
         if (e->isAlive() && e->id == 0xF) {
             if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z)

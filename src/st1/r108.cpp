@@ -23,7 +23,6 @@
 #include "cam_ctrl.h"
 #include "sscrn.h"
 #include "math_sub.h"
-#include "ref_access.h"
 
 // Room 1-08 (D:/Bio4/Prog/r108.cpp, in st1_1 and st1_3): the church; the symbol puzzle on the
 // balcony, the bell, the doors and the battle streams.
@@ -439,7 +438,7 @@ static void r108_str_check()
         int found = 0;
 
         for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
                 && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < near) {

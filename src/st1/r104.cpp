@@ -28,7 +28,6 @@
 #include "fade.h"
 #include "snd.h"
 #include "rnd.h"
-#include "ref_access.h"
 
 // Room 1-04 (D:/Bio4/Prog/r104.cpp): the farm; the double door, the enemy reset waves per area,
 // the patrolling Ganados, the shelves / boxes to open and the four events (s00 arrival, s10, s20).

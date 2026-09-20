@@ -53,6 +53,12 @@ struct PlArc {
     u32 ofs[0x100];   // pl_knife indexes up to 0x87
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
+// Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
+// Slot `idx` of player `pl`'s motion table (m_MotTbl) set to entry `no` of the weapon / player archive.
+#define WEP_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], WEP_ARC_PTR(no))
+#define PLA_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], PL_ARC_PTR(pG->pPlayer, no))
+#define NO_MOT(pl, idx) PSet((pl)->m_MotTbl[idx], (void*) 0)
 
 // Room archive at pG->pRoomArc: offsets to its sub-files (GetDataExt finds them by tag; ctrl14 indexes it).
 struct RoomArc {

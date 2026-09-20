@@ -45,7 +45,7 @@ void cDmgMgr::move()
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        cDmg* p = (cDmg*) ((u8*) pArray + size * i);
+        cDmg* p = fastAt(i);
         dieCheck();
         if ((p->be_flag & 0x201) == 1) {
             if (--p->m_Time == 0) {
@@ -96,7 +96,7 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        cDmg* p = (cDmg*) ((u8*) pArray + size * i);
+        cDmg* p = fastAt(i);
         if ((p->be_flag & 0x201) == 1) {
             if (p->hitCheck(pos, out)) {
                 return p->kind;

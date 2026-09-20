@@ -31,7 +31,6 @@
 #include "item.h"
 #include "sscrn.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Room 2-0E (D:/Bio4/Prog/r20e.cpp): the maze with its three switch-driven fences, the sliding
 // picture puzzle behind the crest door, the armor statues and the treasure shelves/boxes.
@@ -584,7 +583,7 @@ static void r20e_moveCrestDoor(int open, int init)
             u32 i;
 
             EstSet(0, -1, 0, 0, 1, 0, 1, (u8) r20e_work->effKind, 0, 0);
-            U32Set(r20e_work->snd, SndCall(6, 0x24, 0, 0, 0, 0));
+            r20e_work->snd = SndCall(6, 0x24, 0, 0, 0, 0);
             for (i = 0; i < 75; i++) {
                 obj->pos.y += 40.0f;
                 SceSleep(1);
@@ -637,7 +636,7 @@ void r20d_moveArmorStatue(int noAnim)
             u32 i;
 
             EstSet(0, -1, 0, 0, 1, 1, 1, (u8) r20e_work->effKind, 0, 0);
-            U32Set(r20e_work->snd, SndCall(6, 7, 0, 0, 0, 0));
+            r20e_work->snd = SndCall(6, 7, 0, 0, 0, 0);
             for (i = 0; i < 90; i++) {
                 o23->pParts->ang.y += 0.034906585f;
                 o24->pParts->ang.y += 0.034906585f;

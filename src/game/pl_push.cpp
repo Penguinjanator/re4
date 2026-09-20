@@ -33,7 +33,7 @@ int cPlPush::catchCheck()
     AddSpeed(pl, &sp);
     m_Target = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) != 1) {
             continue;
         }

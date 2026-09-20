@@ -312,7 +312,7 @@ void SceAtInit(void* atData, void* itemData)
     }
     SceAtWorkLoopInit();
     U8Set(pS->x11C, 0);
-    U8Set(pS->x11D, 0);
+    pS->x11D = 0;
     if (atData != 0) {
         if (strcmp((char*) atData, "AEV") != 0) {
             pLog->err(0, 0, "THIS DATA IS NOT SCENARIO ATARI DATA");
@@ -399,7 +399,7 @@ void SceAtSetExecFlg(u32 no)
 void SceAtWorkLoopInit()
 {
     U32Set(pG->Room_flg[2], 0);
-    U32Set(pG->Room_flg[3], 0);
+    pG->Room_flg[3] = 0;
     SceAtClearHitFlg();
     SceAtClearExecFlg();
 }
@@ -461,7 +461,7 @@ void SceAtCheck()
     }
     sceAtCheck_main(pPL, 1);
     for (i = 0; i < EmMgr.nArray; i++) {
-        em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        em = EmMgr.fastAt(i);
         if (pSUB != 0 && pSUB == em) {
             sceAtCheck_main(em, 8);
             continue;
@@ -868,7 +868,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->NextPos.z, w->dstPos.z);
     FSet(pG->NextY, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->Part);
+    pG->Part_old = pG->Part;
     pG->Stage_next = w->dstStage;
     pG->Room_next = w->dstRoom;
     pG->Part_next = w->dstPart;
@@ -1927,7 +1927,7 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
     sceAtGetLadderPos(l, &pos, &ang);
     AreaDataInit(&area, &pos, 2, 500.0f, 2000.0f);
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id <= 0x20 && m != em) {
             if (AreaHitCheck(&area, &em->pos) == 1) {

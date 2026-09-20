@@ -35,7 +35,6 @@
 #include "snd.h"
 #include "esp.h"
 #include "st_mgr_event.h"
-#include "ref_access.h"
 
 // Room 2-0D (D:/Bio4/Prog/r20d.cpp): the hall with the three crank-raised fences, the round switch
 // of the picture puzzle, the lantern throwing and the ten pass-through spots.
