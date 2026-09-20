@@ -50,7 +50,7 @@ void CamCtrlStub::registAttachCamera(AttachCamera*, cModel*) {}
 void CamCtrlStub::deleteAttachCamera(AttachCamera*, cModel*) {}
 
 // No scenario collision on the host: "no floor" (InverseKinematics keeps the key target).
-f32 SatMgrStub::getFloor(Vec*, f32, f32, u32*, int) { return -100000.0f; }
+f32 SatMgrStub::getFloor(Vec*, u32*, f32, f32, int) { return -100000.0f; }
 
 extern "C" void OSReport(const char* fmt, ...)
 {
@@ -199,7 +199,7 @@ API u16 mot_model_frame(HostModel* h, float frame)
     m->Motion.Mot_attr |= 0x8000;
     m->Motion.Mot_attr &= ~1;
     m->Motion.Seq_frame = frame;
-    return MotionMove(m);
+    return MotionMove(m, 0);
 }
 
 // Places the model (cModel pos/ang/scale; MotionMoveCore rebuilds its matrix from them), so the

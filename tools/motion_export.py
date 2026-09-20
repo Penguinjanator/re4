@@ -1,29 +1,36 @@
 #!/usr/bin/env python3
 """RE4 (GameCube) skeletal motion export: the "FCV" motion entries of the character archives
-(files/em/plNN.drs, emNN.drs, wepNN.drs) evaluated with the game's own code (tools/motion/host)
-and written as glTF 2.0 (and BVH) animations on the model's parts hierarchy, with the character's
-skinned, textured mesh from the model .bin / .tpl entries.
+(files/em/plNN.drs, emNN.drs, wepNN.drs) and the yz2-compressed room archives (files/St*/rNNN.das)
+evaluated with the game's own code (tools/motion/host) and written as glTF 2.0 (and BVH)
+animations on the model's parts hierarchy, with the character's skinned, textured mesh from the
+model .bin / .tpl entries.
 
-usage: motion_export.py list <archive|disc>
-       motion_export.py export <archive|disc> --motion N [--archive plNN.drs] [--model <bin|archive:index>]
+usage: motion_export.py list <archive|disc> [--character leon]
+       motion_export.py export <archive|disc> --motion N [--archive plNN.drs|rNNN.das] [--character leon | --model <bin|[stem:]index>]
                                [--tpl N] [--body-only] [--mesh [stem:]BIN[:[stem:]TPL] ...] [--no-mesh]
                                -o out.gltf [--bvh out.bvh] [--no-ik] [--no-root] [--fps 30] [--scale 0.001]
                                [--blender-check [render_dir] [--strip]] [--render-nice DIR]
        motion_export.py export <archive> --all -o <dir> [--model ...]
        motion_export.py verify <archive|disc> [--dump <file.bin> | --dolphin] [--fma]
 
-N is the entry index of the archive (the game's PL_ARC index minus 4). --model defaults to entry 0
-of the motion's archive (the character's body .bin), its texture palette to the entry after it
-(--tpl). The head, hair, eyes, hands ... of a known character come along by default: the table in
-tools/motion/character.py, read off the game's set-up code (cPlLeon::setModel, cPlAda::setModel,
-cPlAshley::setModel, em10ModelInit ...). --body-only leaves them out; --mesh adds an attachment
-(or replaces the palette of one in the table); an entry of another archive is written 'stem:N'
-(the weapon-grip hand of the shotgun module for Leon: --mesh wep04:6:13). An attachment the disc
-cannot render (empty entry, texture id beyond the palette) is reported and skipped. --archive picks
-the archive of a disc.
-`verify` re-serialises every motion, sequence table and model and counts byte-identical round-trips,
-decodes every texture (re-encoding the lossless formats), then compares the helper's poses with a
-Dolphin memory dump when given one (see tools/motion/README.md).
+N is the entry index of the archive (the game's PL_ARC index minus 4). --model defaults to the
+character table's body of the motion's archive (its entry 0 for the players), its texture palette
+to the entry after it (--tpl). The head, hair, eyes, hands ... of a known character come along by
+default: the table in tools/motion/character.py, read off the game's set-up code
+(cPlLeon::setModel, cPlAda::setModel, cPlAshley::setModel, em10ModelInit ...). --body-only leaves
+them out; --mesh adds an attachment (or replaces the palette of one in the table); an entry of
+another archive is written 'stem:N' (the weapon-grip hand of the shotgun module for Leon: --mesh
+wep04:6:13). An attachment the disc cannot render (empty entry, texture id beyond the palette) is
+reported and skipped. --archive picks the archive of a disc.
+The player's melee motions are split over two archives (character.MELEE): the roundhouse kick is
+PL_ARC 0x25 of the player's archive, the alternate kick (0x29D), suplex (0xD6), knee kick / palm
+strike (0x2B4) and neck break (0x2B9) are entries of the Ganado's em10.drs that the em10 routines
+play on the player (`pl->subArc = em->subArc`). `list --character leon` shows them;
+`export --archive em10.drs --motion 665 --character leon` plays one on Leon's body.
+`verify` decompresses every .das, checks the container, re-serialises every motion, sequence table
+and model and counts byte-identical round-trips, decodes every texture (re-encoding the lossless
+formats), then compares the helper's poses with a Dolphin memory dump when given one (see
+tools/motion/README.md).
 """
 import argparse
 import os
@@ -39,25 +46,31 @@ def load_motion(entry):
     return fcv.parse(entry.data)
 
 
-def table_body(arc):
-    """(stem, entry) of the character table's body for this archive, or (stem, 0)."""
-    stem = os.path.splitext(arc.name)[0]
+def table_body(stem):
+    """(stem, entry) of the character table's body for an archive stem, or (stem, 0)."""
     table = character.attachments(stem)
     body = [a for a in table if a.role == 'body'][0] if table else None
     return (stem, body.bin) if body else (stem, 0)
 
 
-def load_model(ref, arc):
+def load_model(ref, arc, src):
     """(skeleton, name, body entry or None for a .bin file). Default: the character table's body
-    entry (em10: 440), else entry 0."""
+    entry of the motion's archive (em10: 440), else entry 0; 'stem:N' takes the body from another
+    archive of the source (the player's, for a melee motion stored in the Ganado's em10.drs)."""
     if ref is None:
-        e = arc.entry(table_body(arc)[1])
+        e = arc.entry(table_body(arc.stem)[1])
+        if e.tag != 'BIN':
+            sys.exit(f'{arc.name} is not in character.TABLE and its entry 0 is {e.tag!r}, not a model: pass '
+                     f'--character NAME or --model [stem:]N (a room archive holds no default body)')
     elif os.path.isfile(ref):
         m = modelbin.parse(open(ref, 'rb').read())
         m.check_tree()
         return m, ref, None
     else:
-        e = archive.resolve_ref(ref, arc)
+        try:
+            e = src.entry(character.parse_ref(ref, arc.stem))
+        except MeshSourceError as ex:
+            sys.exit(f'--model {ref}: {ex}')
     if e.tag != 'BIN':
         sys.exit(f'{e.name}: tag {e.tag!r}, not a model (BIN)')
     m = modelbin.parse(e.data)
@@ -106,8 +119,9 @@ def parse_mesh_spec(spec, stem):
 
 
 class Source:
-    """The archives a source offers: every character archive of a disc, or one container file and
-    the sibling files of its directory (a cross-archive reference 'wep04:6' next to pl00.drs)."""
+    """The archives a source offers: every archive of a disc (em/*.drs, the St*/rNNN.das rooms,
+    etc/*.das), or one container file and the sibling files of its directory (a cross-archive
+    reference 'wep04:6' or 'em10:665' next to pl00.drs)."""
 
     def __init__(self, path):
         self.arcs = {a.name: a for a in archive.open_source(path)}
@@ -115,46 +129,49 @@ class Source:
         self.dir = None if self.is_disc else os.path.dirname(os.path.abspath(path))
 
     def get(self, stem):
-        name = stem + '.drs'
-        if name not in self.arcs:
-            if self.is_disc:
-                return None
-            p = os.path.join(self.dir, name)
-            if not os.path.isfile(p):
-                return None
-            self.arcs[name] = archive.Archive(p)
-        return self.arcs[name]
+        for ext in archive.EXTS:
+            name = stem + ext
+            if name in self.arcs:
+                return self.arcs[name]
+        if self.is_disc:
+            return None
+        for ext in archive.EXTS:
+            p = os.path.join(self.dir, stem + ext)
+            if os.path.isfile(p):
+                self.arcs[stem + ext] = archive.Archive(p)
+                return self.arcs[stem + ext]
+        return None
 
     def entry(self, ref):
         stem, idx = ref
         arc = self.get(stem)
         if arc is None:
-            raise MeshSourceError(f'{stem}:{idx}: archive {stem}.drs not in the source')
+            raise MeshSourceError(f'{stem}:{idx}: archive {stem}.drs / .das not in the source')
         if idx >= len(arc.drs.entries):
             raise MeshSourceError(f'{stem}:{idx}: the archive has {len(arc.drs.entries)} entries')
         return arc.entry(idx)
 
 
-def load_meshes(args, src, arc, body):
+def load_meshes(args, src, body):
     """[MeshSource]: the body .bin with its TPL (--tpl, default: the entry after the body), the
-    character's attachments from character.TABLE when the archive is known (head, hair, hands ...
-    as the game's setModel loads them; --body-only leaves them out) and every --mesh spec, which
-    adds a model or replaces the palette of a table entry."""
+    character's attachments from character.TABLE when the body's archive is known (head, hair,
+    hands ... as the game's setModel loads them; --body-only leaves them out) and every --mesh
+    spec, which adds a model or replaces the palette of a table entry."""
     if args.no_mesh:
         return None
     if body is None:
         sys.exit('--model is a file: pass --no-mesh (no texture palette to go with it)')
-    stem = os.path.splitext(arc.name)[0]
+    stem = os.path.splitext(body.archive)[0]
     body_ref = (stem, body.index)
     tpl_ref = (stem, args.tpl if args.tpl is not None else body.index + 1)
-    wanted = [(body_ref, tpl_ref, 'body', 'the motion archive')]
+    wanted = [(body_ref, tpl_ref, 'body', 'the model archive')]
     table = character.attachments(stem)
     if args.body_only:
         pass
     elif table is None:
         print(f'note: {stem} is not in character.TABLE: body only (add attachments with --mesh)')
-    elif body_ref != table_body(arc):
-        print(f'note: --model {body.index} is not the character table\'s body ({table_body(arc)[1]}): body only')
+    elif body_ref != table_body(stem):
+        print(f'note: --model {body.index} is not the character table\'s body ({table_body(stem)[1]}): body only')
     else:
         for a in table:
             if a.role == 'body':
@@ -188,15 +205,57 @@ def pick_archive(args, src):
     if len(arcs) == 1:
         return arcs[0]
     if not args.archive:
-        sys.exit('a disc holds many archives: pass --archive plNN.drs')
+        sys.exit('a disc holds many archives: pass --archive plNN.drs (or rNNN.das)')
     if args.archive not in src.arcs:
         sys.exit(f'{args.archive}: not on the disc')
     return src.arcs[args.archive]
 
 
+def list_melee(src, stem):
+    """The player's melee motions (character.MELEE): the entries the em10 routines play on the
+    player, from the player's archive and the Ganado's."""
+    rows = character.melee(stem)
+    if not rows:
+        return
+    print(f'melee motions of {stem} (em10/em10.cpp, pl->subArc = em->subArc):')
+    for arc_stem, m in rows:
+        arc = src.get(arc_stem)
+        if arc is None:
+            print(f'  {arc_stem}:{m.index}  {m.role}: archive not in the source')
+            continue
+        e = arc.entry(m.entry)
+        desc = describe_entry(e)
+        print(f'  {arc_stem}:{e.index:<3} arc {e.arc_no:#05x} {m.role:<16} {desc}')
+        print(f'      {m.source}')
+
+
+def describe_entry(e):
+    if e.tag == 'FCV':
+        try:
+            m = fcv.parse(e.data)
+            kinds = sorted(set(j.target() or ('root_pos' if j.is_root_pos() else 'root_rot') for j in m.joints))
+            ik = sum(1 for j in m.joints if j.kind & 0x30)
+            return (f'FCV  {m.max_frame + 1:4} frames, {len(m.joints):2} joints ({", ".join(kinds)}), {ik} IK chains, '
+                    f'parts <= {max([j.parts_no for j in m.joints], default=-1)}')
+        except Exception as ex:
+            return f'FCV  MALFORMED: {ex}'
+    return f'{e.tag:4} {len(e.data):#x} bytes'
+
+
 def cmd_list(args):
-    for arc in archive.open_source(args.source):
-        print(f'{arc.name}:')
+    if args.character:
+        stem = character.character_stem(args.character)
+        src = Source(args.source)
+        arc = src.get(stem)
+        if arc is None:
+            sys.exit(f'{stem}: not in the source')
+        arcs = [arc]
+    else:
+        arcs = archive.open_source(args.source)
+        src = None
+    for arc in arcs:
+        arc.drs
+        print(f'{arc.name}:' + (f' (yz2 {arc.das.packed:#x} -> {arc.das.unpacked:#x} bytes)' if arc.das and arc.das.compressed else ''))
         entries = list(arc.entries())
         for e in entries:
             if e.tag == 'BIN':
@@ -226,6 +285,10 @@ def cmd_list(args):
             elif e.tag == 'SEQ':
                 s = fcv.parse_seq(e.data)
                 print(f'  [{e.index:3}] arc {e.arc_no:#04x} SEQ  {len(s.keys)} keys, flags {s.flags:#x}, frames {s.keys[0].frame_f:g}..{s.keys[-1].frame_f:g}' if s.keys else f'  [{e.index:3}] SEQ empty')
+            elif e.tag:
+                print(f'  [{e.index:3}] arc {e.arc_no:#04x} {e.tag:4} {len(e.data):#x} bytes')
+    if args.character:
+        list_melee(src, stem)
 
 
 def play(model, motion, args):
@@ -236,7 +299,9 @@ def play(model, motion, args):
 def export_one(arc, entry, model, model_name, meshes, out, args):
     motion = load_motion(entry)
     poses = play(model, motion, args)
-    name = f'{os.path.splitext(arc.name)[0]}_{entry.index:03d}'
+    name = f'{arc.stem}_{entry.index:03d}'
+    if meshes and meshes[0].label.rsplit('_', 1)[0] != arc.stem:   # a melee motion on another archive's body
+        name += '_' + meshes[0].label.rsplit('_', 1)[0]
     extras = {'re4': {'archive': arc.name, 'entry': entry.index, 'arc_index': entry.arc_no, 'model': model_name,
                       'max_frame': motion.max_frame, 'fps': args.fps, 'units': f'mm x {args.scale}',
                       'ik': not args.no_ik,
@@ -303,8 +368,13 @@ def blender_check(model, motion, poses, out, name, mesh_stats, args):
 def cmd_export(args):
     src = Source(args.source)
     arc = pick_archive(args, src)
-    model, model_name, body = load_model(args.model, arc)
-    meshes = load_meshes(args, src, arc, body)
+    if args.character:
+        if args.model:
+            sys.exit('--character and --model: pass one')
+        stem = character.character_stem(args.character)
+        args.model = f'{stem}:{table_body(stem)[1]}'
+    model, model_name, body = load_model(args.model, arc, src)
+    meshes = load_meshes(args, src, body)
     if args.all:
         os.makedirs(args.output, exist_ok=True)
         for e in arc.entries('FCV'):
@@ -330,7 +400,30 @@ def cmd_verify(args):
     seq_total = seq_ok = 0
     bin_total = bin_ok = shaped = shape_keys = 0
     tpl_total = tex_total = tex_lossless = tex_ok = 0
+    das_total = das_yz2 = das_ok = 0
+    das_entries = 0
     failures = []
+    for arc in list(arcs):
+        # .das: the yz2 decode + the container parse (drs.Drs asserts the entry table: offsets
+        # ascending, 0x20-aligned, within the body; the record table; the sound bank)
+        if arc.ext == '.das':
+            das_total += 1
+            try:
+                arc.drs
+            except (AssertionError, ValueError, IndexError) as ex:
+                failures.append(f'{arc.name}: {type(ex).__name__}: {ex}')
+                arcs.remove(arc)
+                continue
+            das_yz2 += arc.das.compressed
+            das_entries += len(arc.drs.entries)
+            bad = [f'entry {i} tag {t!r}' for i, (t, _) in enumerate(arc.drs.entries)
+                   if t != b'\0\0\0\0' and not (t[3] == 0 and all(48 <= c <= 90 for c in t[:3]))]
+            if arc.das.compressed and arc.das.unpacked % 0x20:
+                bad.append(f'unpacked size {arc.das.unpacked:#x} not 0x20-aligned')
+            if arc.das.compressed and not 0 <= arc.das.used - arc.das.packed <= 4:
+                bad.append(f'coder read {arc.das.used:#x} of a {arc.das.packed:#x} packed stream')
+            failures += [f'{arc.name}: {b}' for b in bad]
+            das_ok += not bad
     for arc in arcs:
         for e in arc.entries('BIN'):
             bin_total += 1
@@ -389,6 +482,9 @@ def cmd_verify(args):
             except MeshSourceError as e:
                 failures.append(f'character.TABLE {stem} {a.role}: {e}')
     print(f'{len(arcs)} archives: {total} motions, {ok} byte-identical round-trips; {seq_total} sequence tables, {seq_ok} byte-identical')
+    if das_total:
+        print(f'  {das_total} .das archives ({das_yz2} yz2-compressed): {das_ok} decompress to the header\'s size and parse as '
+              f'consistent containers, {das_entries} entries (their FCV / SEQ / BIN / TPL are in the counts above)')
     print(f'  {bin_total} models, {bin_ok} byte-identical round-trips ({shaped} with a shape table, {shape_keys} shape keys); '
           f'{tpl_total} texture palettes, {tex_total} textures decoded, '
           f'{tex_lossless} lossless (I4 / IA8), {tex_ok} byte-identical re-encodings')
@@ -414,13 +510,18 @@ def main():
     sub = ap.add_subparsers(dest='cmd', required=True)
     p = sub.add_parser('list')
     p.add_argument('source')
+    p.add_argument('--character', help='leon / ada / hunk / krauser / wesker (or plNN): the player archive of the source '
+                                       'plus the melee motions the em10 routines play on the player (from em10.drs)')
     p.set_defaults(func=cmd_list)
     p = sub.add_parser('export')
     p.add_argument('source')
-    p.add_argument('--archive', help='archive name when the source is a disc')
+    p.add_argument('--archive', help='archive name when the source is a disc (plNN.drs, em10.drs, rNNN.das)')
     p.add_argument('--motion', type=lambda s: int(s, 0))
     p.add_argument('--all', action='store_true')
-    p.add_argument('--model', help='model .bin file or archive:index (default: entry 0 of the archive)')
+    p.add_argument('--model', help='model .bin file or [stem:]index (default: the character table\'s body of the '
+                                   'motion\'s archive, else its entry 0); "pl00:0" takes the body from another archive')
+    p.add_argument('--character', help='leon / ada / hunk / krauser / wesker (or plNN): play the motion on that '
+                                       'player\'s body with the character table\'s attachments (= --model plNN:body)')
     p.add_argument('--tpl', type=lambda s: int(s, 0), help='texture palette entry of the body (default: the entry after the model)')
     p.add_argument('--mesh', action='append', metavar='[stem:]BIN[:[stem:]TPL]',
                    help='attachment model entry (head, hair, hands ...) skinned to the body parts, with its TPL entry '

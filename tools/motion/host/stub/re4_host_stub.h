@@ -240,7 +240,7 @@ public:
 struct Global {
     u32 Debug_flg[4];
     u32 System_flg[4];
-    f32 mot_speed;
+    f32 Speed;          // motion frame step per game frame (MotionSequenceCtrl: Seq_speed * Speed)
 };
 extern Global* pG;
 // include/global.h flag accessors (the host keeps every flag clear): bit `no` of a u32 flag array,
@@ -263,7 +263,7 @@ struct CamCtrlStub {
 extern CamCtrlStub CamCtrl;
 
 struct SatMgrStub {
-    f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
+    f32 getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag);   // include/atari.h cSatMgr::getFloor
 };
 extern SatMgrStub SatMgr;
 
@@ -305,9 +305,10 @@ void PartsWorldPosCalc(cModel* m);
 void MotionBlendOff(cModel* m);
 void MotionPause(cModel* m);
 void MotionClear(cModel* m, int flag);
-u16 MotionMove(cModel* m);
+struct Camera;   // cam_ctrl.h; MotionMove / MotionMoveCore take a Camera* the host passes as NULL
+u32 MotionMove(cModel* m, Camera* pCamera);
 u16 MotionMoveSub(cModel* m, MotionWork* w);
-void MotionMoveCore(cModel* m, MotionWork* w, int flag);
+void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera);
 void MotionHokan(cModel* m, MotionWork* w);
 void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot);
 void MotionAddSpeed(cModel* m, MotionWork* w, Vec* pos, Vec* rot);
@@ -327,12 +328,12 @@ void SetOrientationZX(Vec* z, Vec* x, Mtx m);
 void SetOrientationZY(Vec* z, Vec* y, Mtx m);
 f32 VecAngle(Vec* a, Vec* b);
 void VecRadLimit(Vec* v);
-void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out);
+void VecLinearCombination(Vec* a, f32 s, Vec* b, f32 t, Vec* out);   // include/math_sub.h
 f32 LIMIT_ANGLE(f32 x);
 f32 SQRTF(f32 x);
 f32 hermite(f32* p, f32* v, f32 t);
 f32 RootSumSquare3(Vec* v);
 f32 GetDistance3(Vec* a, Vec* b);
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // include/motion.h
 
 #endif

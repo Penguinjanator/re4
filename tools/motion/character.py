@@ -142,9 +142,82 @@ FACES = {
 }
 
 
+
+@dataclass(frozen=True)
+class Melee:
+    archive: str     # stem of the archive the game reads the motion from ('em10', or the player's own)
+    entry: int       # entry index (PL_ARC - 4)
+    seq: object      # SEQ entry index when MotionSetCore is given one, else None
+    role: str
+    source: str      # the game routine
+
+
+ARC_INDEX_BASE = 4
+
+
+def M(archive, arc_no, role, source, seq=None):
+    """Table entry by the game's PL_ARC index (entry index = PL_ARC - 4)."""
+    return Melee(archive, arc_no - ARC_INDEX_BASE, None if seq is None else seq - ARC_INDEX_BASE, role, source)
+
+
+# The player's melee motions come from TWO archives. The routines in em10/em10.cpp (plem10Kick,
+# plem10Kick2, plem10FS, plem10KneeKick, plem10NeckBreak, plem10Showtay) start with
+# `pl->subArc = em->subArc`: the caught Ganado's archive, em10.drs (EmFileTbl[0x10] -> FileTbl 0x18
+# "em/em10.das", read as .drs), and index it with PL_ARC_PTR(pl->subArc, N); only the roundhouse is
+# PL_ARC_PTR(pG->pPlayer, 0x25) in the player's own archive. `cPlayer::cPlayer` sets subArc to
+# PL_DATA_ADDR (= pG->pPlayer) and every routine restores `pl->subArc = pl->subArc2` on exit.
+# plem10Kick picks the archive by r_no_3: the knee-down prompt (em10KneeDownAction) sets r_no_3 = 1
+# (own 0x25); the standing prompt (em10KickAction) leaves r_no_3 as the previous kick left it
+# (`pl->r_no_3 = Rnd() & 3`), so 0x25 three times in four and em10's 0x29D otherwise. pl_type picks
+# the routine: 0 Leon / 2 Ada plem10Kick + suplex; 3 HUNK plem10Kick(r_no_3 = 1) + neck break
+# (Dm_NeckBreak -> EmCatchPLSet plem10NeckBreak) + suplex; 4 Krauser plem10Kick2 + knee kick;
+# 5 Wesker plem10Showtay + plem10Kick(r_no_3 = 1) + suplex.
+KICK_OWN = 'roundhouse kick'
+_KICK = [
+    M(None, 0x25, KICK_OWN, 'plem10Kick r_no_3 != 0: PL_ARC_PTR(pG->pPlayer, 0x25)'),
+    M('em10', 0x29D, 'kick (alternate)', 'plem10Kick r_no_3 == 0: PL_ARC_PTR(pl->subArc = em->subArc, 0x29D)'),
+]
+_SUPLEX = [M('em10', 0xD6, 'suplex', 'plem10FS: PL_ARC_PTR(pl->subArc, 0xD6) (em10FSAction, pl_type != 4)')]
+MELEE = {
+    'pl00': _KICK + _SUPLEX,
+    'pl0b': _KICK + _SUPLEX,
+    'pl0c': _KICK + _SUPLEX,
+    'pl06': [_KICK[0]] + _SUPLEX + [M('em10', 0x2B9, 'neck break', 'plem10NeckBreak: PL_ARC_PTR(pl->subArc, 0x2B9) (em10KickAction pl_type 3 -> Dm_NeckBreak)')],
+    'pl0a': [M('em10', 0x29D, 'kick', 'plem10Kick2: PL_ARC_PTR(pl->subArc, 0x29D) + SEQ 0x29E (pl_type 4)', seq=0x29E),
+             M('em10', 0x2B4, 'knee kick', 'plem10KneeKick: PL_ARC_PTR(pl->subArc, 0x2B4) (em10FSAction pl_type 4)')],
+    'pl0d': [_KICK[0]] + _SUPLEX + [M('em10', 0x2B4, 'palm strike', 'plem10Showtay: PL_ARC_PTR(pl->subArc, 0x2B4) (em10KickAction pl_type 5)')],
+}
+
+# --character names -> the player archive stem (the game's pl_type and costume: ReadPlayerData).
+CHARACTERS = {
+    'leon': 'pl00',
+    'ashley': 'pl01',
+    'ada': 'pl0c',
+    'hunk': 'pl06',
+    'krauser': 'pl0a',
+    'wesker': 'pl0d',
+}
+
+
 def attachments(stem):
     """The character's model list for an archive stem ('pl00'), body first; None when unknown."""
     return TABLE.get(stem)
+
+
+def melee(stem):
+    """[(archive stem, Melee)] of the player's melee motions; the archive is the player's own when
+    the table says None. Empty for a non-player archive."""
+    return [(m.archive or stem, m) for m in MELEE.get(stem, [])]
+
+
+def character_stem(name):
+    """'leon' / 'pl00' -> 'pl00'."""
+    name = name.lower()
+    if name in CHARACTERS:
+        return CHARACTERS[name]
+    if name in TABLE or name in MELEE:
+        return name
+    raise ValueError(f'{name}: not a character ({", ".join(CHARACTERS)}) or a player archive stem')
 
 
 def parse_ref(text, default_stem):

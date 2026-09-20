@@ -27,8 +27,9 @@ of the models; commonScreenMatSub / CalcSk1_x, the skinning; dbmodule.cpp DrawOb
              register, not the vertex (flags bit30, never set on the disc), so the game ignores them.
   texcoords  {s16 s, t} with frac 8 (flags bit31; else u16 with frac 15), stride 4, GX_VA_TEX0.
   weights    weight_palette_num x Weight {u8 id[3], u8 num, u8 wht[4]} (percent); when
-             weight_ext_num > 0xFF the table is WeightExt {u16 idx[3], u16 num, u8 weight[4]}
-             (none on the disc, rejected here). MakeWeightPalette: palette[i] = sum over
+             weight_ext_num > 0xFF the table is weight_ext_num x WeightExt {u16 idx[3], u16 num,
+             u8 weight[4]} (MakeWeightPaletteExt; two room models, r10c:27 = r22a:27 with 275
+             entries, none in the em archives). MakeWeightPalette: palette[i] = sum over
              j < num of mtx[id[j]] * (wht[j] / 100), the last weight taking 1 - sum of the
              previous ones; mtx[k] = calcWeightMat: parts k's world matrix x its bind matrix
              (inverse of the rest-pose world translation, cModel::setPartsOffset), relative to
@@ -233,8 +234,6 @@ def parse(d: bytes) -> Mesh:
         raise ValueError('header padding not zero')
     if not (flags & FLAG_TEX_S16_CLR):
         raise ValueError(f'flags {flags:#x}: no colour array / u16 texcoords (not on the disc, vertex layout unknown)')
-    if wext > 0xFF:
-        raise ValueError(f'weight_ext_num {wext}: WeightExt table (not on the disc)')
     blend_ofs = flip_ofs = 0
     if version == VERSION_NEW:
         blend_ofs, flip_ofs = struct.unpack('>II', d[0x40:0x48])
@@ -289,10 +288,16 @@ def parse(d: bytes) -> Mesh:
         _zero_pad(d, p, ends['shape'], 'shape table')
 
     weights = []
-    for i in range(wpn):
-        w = d[p_weight + 8 * i:p_weight + 8 * i + 8]
-        weights.append(Weight(tuple(w[:3]), w[3], tuple(w[4:8])))
-    _zero_pad(d, p_weight + 8 * wpn, ends['wgt'], 'weights')
+    if wext > 0xFF:     # commonScreenMatSub: MakeWeightPaletteExt((WeightExt*) pWeight, weight_ext_num)
+        for i in range(wext):
+            w = struct.unpack_from('>3HH4B', d, p_weight + 12 * i)
+            weights.append(Weight(tuple(w[:3]), w[3], tuple(w[4:8])))
+        _zero_pad(d, p_weight + 12 * wext, ends['wgt'], 'weights')
+    else:
+        for i in range(wpn):
+            w = d[p_weight + 8 * i:p_weight + 8 * i + 8]
+            weights.append(Weight(tuple(w[:3]), w[3], tuple(w[4:8])))
+        _zero_pad(d, p_weight + 8 * wpn, ends['wgt'], 'weights')
 
     parts = []
     o = p_parts
@@ -373,7 +378,10 @@ def serialise(m: Mesh) -> bytes:
         add('shape', sb + b''.join(struct.pack('>4h', *e) for deltas in m.shapes for e in deltas))
     add('clr', struct.pack(f'>{len(m.clr)}I', *m.clr))
     add('tex', b''.join(struct.pack('>2h', *t) for t in m.tex))
-    add('wgt', b''.join(struct.pack('>3BB4B', *w.ids, w.num, *w.wht) for w in m.weights))
+    if m.weight_ext_num > 0xFF:
+        add('wgt', b''.join(struct.pack('>3HH4B', *w.ids, w.num, *w.wht) for w in m.weights))
+    else:
+        add('wgt', b''.join(struct.pack('>3BB4B', *w.ids, w.num, *w.wht) for w in m.weights))
     pb = bytearray()
     for p in m.parts:
         stream = bytearray()

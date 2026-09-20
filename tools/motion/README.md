@@ -1,15 +1,19 @@
 # tools/motion — RE4 (GameCube) skeletal motion export
 
 `tools/motion_export.py` reads the "FCV" motion entries of the character archives
-(`files/em/plNN.drs` players, `emNN.drs` enemies, `wepNN.drs` weapons; the room `.das` archives are
-yz2-compressed and not opened), plays them with the **game's own code** compiled for the host, and
-writes glTF 2.0 (and BVH) animations on the model's parts hierarchy for Blender, with the whole
-character (body, head, hair, eyes, hands ... as the game assembles it) skinned and textured from
-the model `.bin` ("BIN") and texture palette ("TPL") entries, and the heads' face morphs as shape keys.
+(`files/em/plNN.drs` players, `emNN.drs` enemies, `wepNN.drs` weapons) and of the yz2-compressed
+room archives (`files/St*/rNNN.das`, decompressed by `yz2.py`), plays them with the **game's own
+code** compiled for the host, and writes glTF 2.0 (and BVH) animations on the model's parts
+hierarchy for Blender, with the whole character (body, head, hair, eyes, hands ... as the game
+assembles it) skinned and textured from the model `.bin` ("BIN") and texture palette ("TPL")
+entries, and the heads' face morphs as shape keys.
 
-    python3 tools/motion_export.py list   files/em/pl00.drs            # or the disc .iso
+    python3 tools/motion_export.py list   files/em/pl00.drs            # or the disc .iso, or a rNNN.das
+    python3 tools/motion_export.py list   orig/G4BE08/re4_debug_disc1.iso --character leon   # + the melee motions in em10.drs
     python3 tools/motion_export.py export files/em/pl00.drs --motion 46 -o leon_046.gltf --bvh leon_046.bvh   # full Leon
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 46 -o ganado.gltf
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 665 --character leon -o kick.gltf  # Leon's alternate kick
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r100.das --motion 42 --character leon -o r100_042.gltf
     python3 tools/motion_export.py export files/em/pl00.drs --all -o out/          # every motion
     python3 tools/motion_export.py export ... --blender-check /tmp/mot/render [--strip]  # headless Blender import + renders
     python3 tools/motion_export.py export ... --blender-check --render-nice /tmp/mot/render   # + lit EEVEE renders
@@ -20,9 +24,89 @@ starts with four header words). One command exports the whole character: the bod
 palette and the attachment models the game's set-up code hangs on the same parts (the table in
 `character.py`, below). `--body-only` leaves the attachments out; `--mesh [stem:]BIN[:[stem:]TPL]`
 adds a model (or replaces the palette of a table entry; `stem:` names another archive of the
-source: the disc, or a `.drs` next to the given one). An archive that is not in the table exports
-the body only and says so. `--no-mesh` writes the skeleton with the old stick-figure placeholder.
-Units: game millimetres × `--scale` (default 0.001 → metres), Y up, 30 fps.
+source: the disc, or a `.drs` / `.das` next to the given one). An archive that is not in the table
+exports the body only and says so. `--no-mesh` writes the skeleton with the old stick-figure
+placeholder. `--character leon` (`ada`, `hunk`, `krauser`, `wesker`, or a `plNN` stem) plays the
+motion on that player's body with its attachments whatever archive the motion is in (`--model
+pl00:0` is the same thing by hand); an archive without a default body (a room) needs one of the
+two. Units: game millimetres × `--scale` (default 0.001 → metres), Y up, 30 fps.
+
+## The melee motions: two archives
+
+The player's melee moves are not all in the player's archive. The routines in `em10/em10.cpp`
+(`plem10Kick`, `plem10Kick2`, `plem10FS`, `plem10KneeKick`, `plem10NeckBreak`, `plem10Showtay`)
+start with `pl->subArc = em->subArc` — the caught Ganado's archive, `em10.drs` (`EmFileTbl[0x10]` →
+`FileTbl[0x18]`; `cPlayer::cPlayer` initialises `subArc` to `PL_DATA_ADDR` = `pG->pPlayer`, and every
+routine restores `pl->subArc = pl->subArc2` on exit) — and play `PL_ARC_PTR(pl->subArc, N)` on the
+player; only the roundhouse is `PL_ARC_PTR(pG->pPlayer, 0x25)` in the player's own archive.
+`plem10Kick` alternates: the knee-down prompt sets `r_no_3 = 1` (own 0x25), the standing prompt
+keeps the `pl->r_no_3 = Rnd() & 3` the previous kick left, so 0x25 three times in four and em10's
+0x29D otherwise. `character.MELEE` lists them per player (`list --character` shows the entries):
+
+| player | own archive | em10.drs | routines |
+|---|---|---|---|
+| Leon pl00, Ada pl0b/pl0c | 0x25 roundhouse (pl00:33 49 frames, pl0c:33 38 frames — Ada's spinning fan kick) | 0x29D kick (em10:665, 51 frames, a high axe kick), 0xD6 suplex (em10:210, 89 frames) | `plem10Kick`, `plem10FS` |
+| HUNK pl06 | 0x25 (r_no_3 forced 1) | 0x2B9 neck break (em10:693, 78 frames), 0xD6 suplex | `plem10Kick`, `plem10NeckBreak` (via `Dm_NeckBreak`), `plem10FS` |
+| Krauser pl0a | — | 0x29D + SEQ 0x29E kick, 0x2B4 knee kick (em10:688, 66 frames) | `plem10Kick2`, `plem10KneeKick` |
+| Wesker pl0d | 0x25 (r_no_3 forced 1) | 0x2B4 palm strike, 0xD6 suplex | `plem10Showtay`, `plem10Kick`, `plem10FS` |
+
+(The game's `FileTbl` names the player and enemy files `em/plNN.das` / `em/emNN.das`, but
+`ReadPlayerData` / `readEmData` rewrite the extension to `.drs` (`SET_DRS_NAME`) and read them
+uncompressed; the disc has no `em/*.das`.) Ada's other enemies come from her own variants
+(`EmFileTbl_Ada`: em16 → em46, em1c → em4c, em1d → em4d, em1f → em4f, em20 → em50); her Ganado is
+the same em10.drs.
+
+## The `.das` archives (yz2)
+
+`St1/St2/St4/rNNN.das` (85 rooms on disc 1) and `etc/*.das` are the same ﾊｶｾ container as the
+`.drs` files; a room's type-0 body is a **yz2** stream: a text header `"<packed hex>\t<unpacked
+hex>\n"` (`Yz2DecodeSet`, `strtoul` twice), the coded bytes from the next 32-byte boundary after
+the second number, the body record `packed + 0x24` bytes long. `etc/core.das` and `memcard.das`
+store the body raw. `archive.py` decompresses the body (`yz2.py`) and re-assembles the container
+so `.das` entries read like `.drs` ones; a room decompresses in about 2 s in pure Python.
+
+`yz2.py` is a port of `src/game/yz2code.cpp` (set-up) and the instructions of
+`src/game/yz2asm.cpp` (the decode loop; label names cited in the module docstring), an adaptive
+range coder over an LZ dictionary:
+
+- Coder (`FrequencyDecode_Decode`, `.L_801D4058`): state `R` (primed 0x80) and `C` (the first
+  byte); renormalise by 1 / 2 / 3 bytes when `R` ≤ 0x800000 / 0x8000 / 0x80; `step = R >> 14`,
+  `value = C / step`, symbol = the cumulative slot holding `value` (the asm's 0x8000-entry lookup
+  table = a bisect on the cumulative starts), `C -= step * start`, `R = (step * freq) >> 1`. The
+  cumulative table always totals 0x8000.
+- Models (`Yz2Freq`): `freq[i]++` per symbol; at `total == 1 << bits` (bits ≤ 14) the cumulative
+  table is rebuilt as `freq << (15 - bits)` and `bits++` (`.L_801D415C`); at bits 15 and
+  `total > 0x7FFF` the table takes the unhalved counts, then `freq >>= 1` where > 1
+  (`.L_801D41BC`). Initial cumulative table: 0x8000 counts dealt round-robin (`MODEL_SETUP`);
+  `freq` reset to 1 (`FREQ_RESET`).
+- Symbols (`yz2Decode_loop`): main model of 0x500. `s ≥ 0x400`: literal `s & 0xFF`.
+  `s < 0x400`: a run from the dictionary of the byte before the run (`ctx = *r21`), slot
+  `(s + cnt) & 0x1FF` of its 512-entry ring (`cnt` = next write slot, so `s & 0x1FF = 0x1FF` is
+  the newest); `0x200 ≤ s ≤ 0x3FF` (`yz2Decode_L02`) takes pointer and length from the slot,
+  `s ≤ 0x1FF` (`yz2Decode_L01`) the pointer only, the length from the 0x100-symbol side model:
+  `t > 2` → `t - 1`; `t = 2 / 1 / 0` → a 16 / 24 / 32-bit big-endian value from further side
+  symbols, minus 1.
+- Dictionary (`yz2Decode_dic_set`): after every literal or run, if the scan pointer is behind the
+  last byte written, `dic[*scan].ptr[cnt] = scan + 1`, `.len[cnt] = length`, `cnt = (cnt + 1) &
+  0x1FF`, `scan = last`. So every run (and every literal, length 1) is entered under the byte that
+  preceded it. `Yz2DicEnt` is `{u32 cnt; u32 ptr[0x200]; u32 len[0x200]}` (0x1004 bytes).
+
+How it is verified (the asm cannot run on the host; the oracles are structural and external):
+
+1. Every `.das` on disc 1 (87: 85 rooms + core + memcard) decompresses to exactly the header's
+   unpacked size with the coder 1–3 bytes short of the packed size (the encoder's flush), and
+   parses as a container whose entry table is consistent (`drs.Drs`: offsets ascending, 0x20-aligned,
+   within the body; tags 3 upper-case letters) — `verify` counts this.
+2. The entries pass the same byte round-trips as the `.drs` ones: rooms hold 358 FCV, 154 SEQ,
+   88 BIN, 87 TPL; 358 / 154 / 88 / 87 re-serialise byte-identically (the two room models with a
+   `WeightExt` table, r10c:27 = r22a:27, made `meshbin.py` learn that 12-byte weight record). A
+   single wrong output byte breaks a motion's key offsets or a model's section layout.
+3. External oracle: 74 room entries (1.19 MB: NPC models r100:32–37 = pl07:0–4, motions r104:41 =
+   pl00:74, em2b models ...) are byte-identical to entries of the uncompressed `em/*.drs`, and 449
+   entries occur byte-identically in two or more rooms, i.e. independent yz2 streams decode to the
+   same bytes.
+   `core.das` fails 3 entries and `memcard.das` 1 for format reasons (model version 0x2c020202,
+   CLUT / format 5 / 6 textures), not decompression: their bodies are raw.
 
 ## The character table (`character.py`)
 
@@ -75,8 +159,9 @@ What each array means comes from the game's draw path, `game/trans.cpp`:
   `JOINTS_0 / WEIGHTS_0` = the Weight entry's (parts, weight) pairs (≤ 3), inverse bind matrices
   from the rest pose (the same skin the bones already used). Rigid attachment models
   (`weight_palette_num <= 1 && nParts == 1`, drawn from the original arrays on
-  `getPartsPtr(pHead->partsNo)`) fall out as single-joint weights. `WeightExt` (u16 ids,
-  `weight_ext_num > 0xFF`) does not occur on the disc and is rejected.
+  `getPartsPtr(pHead->partsNo)`) fall out as single-joint weights. `WeightExt` (`{u16 idx[3],
+  u16 num, u8 weight[4]}` × `weight_ext_num` when that is > 0xFF, `MakeWeightPaletteExt`) occurs
+  in one room model (r10c:27 = r22a:27, 275 entries) and is read the same way.
 - Materials: `materialSetup` binds `ModelPart.texId` on TEX0 (`GXSetTexCoordGen2(..., GX_TG_TEX0)`,
   identity matrix, `GX_REPEAT` from the TPL headers); `alphaSetup` (part flags bit2) multiplies the
   alpha of `alphaTex` in and alpha-compares `alpha > alphaRef` → glTF `MASK` with cutoff
@@ -86,7 +171,7 @@ What each array means comes from the game's draw path, `game/trans.cpp`:
   counter-clockwise towards the vertex normals on every disc model checked (0 to 9 disagreeing
   faces per model), so it is kept as the glTF front face.
 - Textures (`gxtex.py`): TPL descriptors → `GXInitTexObj` fields. Formats on the disc: CMPR (2159
-  textures), IA8 (373), I4 (244); decoded to RGBA8 PNGs in `textures/` next to the output
+  textures in em/*.drs + 161 in the rooms), IA8 (373 + 17), I4 (244 + 25); decoded to RGBA8 PNGs in `textures/` next to the output
   (`<archive>_<tpl entry>_<tex id>[_a<alpha id>].png`, shared by the motions of an archive). CMPR
   follows Dolphin's decoder (8×8 tiles of four DXT1 blocks, indices MSB first, 5/8-3/8 blend,
   transparent black fourth colour); only the base mip level is decoded (9 textures have mips).
@@ -101,18 +186,20 @@ What each array means comes from the game's draw path, `game/trans.cpp`:
   no names; Blender shows them as shape keys), so shape key 1.0 = the game's 100 %. Which key is
   which: `cPlLeon::setFace(1)` plays PL_ARC 0x62 (channel on shape 0, the pain face), `setFace(2)`
   0x63 (shape 1); Ada (pl0c) has one shape; Ashley's two are played by the events. On the disc 12
-  of 1830 models have a shape table (22 keys: pl00/08/09/10 and em32 Leon heads, pl01/05/11/15/21
-  Ashley, pl0b/0c Ada), deltas at most 19.7 mm (Ashley's open mouth).
+  of 1830 em models have a shape table (22 keys: pl00/08/09/10 and em32 Leon heads, pl01/05/11/15/21
+  Ashley, pl0b/0c Ada), deltas at most 19.7 mm (Ashley's open mouth); one room model (r206:50) has 26 keys.
 
 Verified by:
 
-1. **Byte round-trip** (`verify`): every `BIN` on disc 1 (1830 of 1830, players, enemies and
-   weapons) parses into vertices, normals, colours, texcoords, weights, parts headers, display-list
+1. **Byte round-trip** (`verify`): every `BIN` on disc 1 (1918 of 1918: 1830 players, enemies and
+   weapons, 88 in the rooms) parses into vertices, normals, colours, texcoords, weights, parts headers, display-list
    primitives, shape table, blend and flip tables and re-serialises to identical bytes, with the
    zero / 0xCD padding and the shape entries' offsets regenerated (not copied), the colour and
    texcoord counts taken from the display lists (the padding after them must be zero), and every
-   vertex index (display lists and shape deltas) range-checked. Every TPL parses (1179 palettes,
-   2776 textures decoded); the lossless formats re-encode byte-identically (617 of 617 I4 / IA8).
+   vertex index (display lists and shape deltas) range-checked. Every TPL parses (1266 palettes,
+   2988 textures decoded, 87 palettes / 212 textures of them in the rooms); the lossless formats
+   re-encode byte-identically (660 of 660 I4 / IA8). The raw-bodied `etc/core.das` / `memcard.das`
+   hold one model of another version (0x2c020202) and CLUT / format 5 / 6 textures, which are not read.
    CMPR is lossy: checked by eye on Leon's jacket / face textures. Every entry of the character
    table loads from the disc (45 of 45).
 2. **Blender** (`--blender-check`): asserts the mesh objects are exactly the exporter's models
@@ -128,8 +215,9 @@ Verified by:
    (`<name>_nice_<mesh>_shape_NN.png`).
 
 Known gaps: TEV materials (bump / specular / texture-blend stages, the indirect stage) and mip
-levels are not exported, only the base texture with the alpha test; the room archives (`St*/rNNN.das`,
-yz2-compressed) are not opened; 12 motions do not round-trip (below); the enemy table covers the
+levels are not exported, only the base texture with the alpha test; of the room archives only the
+BIN / TPL / FCV / SEQ entries are understood (CAM, SAT, LIT, SMD, ... are listed with their size);
+12 motions do not round-trip (below); the enemy table covers the
 village Ganado (em10 type 0) only: the other Ganado types / enemies pair their heads and hands in
 their `emNN_set.cpp` (`--mesh` for those); the game turns the eye parts by code, so exported eyes
 look straight ahead; one duplicated face in pl00:4 is dropped (Blender removes it on import). The
@@ -139,8 +227,8 @@ host helper is built with `make` in `host/`; on Windows that needs a C++ toolcha
 
 1. **Byte round-trip of the parse** (`verify`): every FCV and SEQ entry is parsed into keys
    (`fcv.py`) and re-serialised; the bytes must be identical, including the size word, the
-   exporter's joint block order and the 0xCD padding. Disc 1: 9261 of 9273 motions and all 6351
-   sequence tables. The 12 failures are named: 11 weapon motions (wep09/10/21/24/31/32/47) whose
+   exporter's joint block order and the 0xCD padding. Disc 1: 9619 of 9631 motions (9273 in em/*.drs, 358 in the rooms) and all 6505
+   sequence tables (154 in the rooms). The 12 failures are named: 11 weapon motions (wep09/10/21/24/31/32/47) whose
    last attach-camera joints (channel 6) have key blocks in the padding, at the end, or on a
    duplicated offset, and pl14:8 (a 1-joint stub whose key block is padding); the game only
    evaluates channel-6 joints with an attach camera set. See "Malformed motions" below.
@@ -221,9 +309,11 @@ fails.
     fcv.py             MotionData / sequence table parse + byte-exact serialise (format notes in the docstring)
     modelbin.py        model .bin parts hierarchy, rest pose, blend table
     meshbin.py         model .bin mesh data: arrays, weights, display lists, shape table; byte-exact serialise (format notes in the docstring)
-    character.py       archive -> attachment models (bin, tpl, role) read off the game's setModel code
+    character.py       archive -> attachment models (bin, tpl, role) read off the game's setModel code; MELEE: the
+                       player's melee motions per archive (em10.drs / own) from the em10 routines
     gxtex.py           TPL parse, CMPR / IA8 / I4 decode, I4 / IA8 encode, PNG writer
-    archive.py         .drs containers via tools/drs.py, disc extraction via dtk
+    archive.py         .drs / .das containers via tools/drs.py (a .das body decompressed first), disc extraction via dtk
+    yz2.py             Capcom's yz2 decompressor (adaptive range coder + 256 x 512 run dictionary), from yz2code/yz2asm
     evalhost.py        ctypes front end: Player (hosted cModel), Pose
     gltf.py, bvh.py    writers (gltf: skin, meshes, morph targets, materials, animation)
     dolphin.py         Dolphin harness, memory dump format, comparison

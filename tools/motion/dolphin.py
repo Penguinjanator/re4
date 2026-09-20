@@ -12,7 +12,7 @@ entry), evaluates the same motion frame with the helper on the same model and re
 abs error of the parts' ang/pos/scale, l_mat and mat.
 
 Addresses (config/G4BE08/symbols.txt, include/model.h, src/game/read.cpp):
-  pG  = *0x80314BC8, pG->pPlayer at +0x50 (= PL_DATA_ADDR 0x807EC000), pG->mot_speed +0x70
+  pG  = *0x80314BC8, pG->pPlayer at +0x50 (= PL_DATA_ADDR 0x807EC000), pG->Speed +0x70
   pPL = *0x803159F4  (the player cModel)
   cModel: pParts 0xF4, nParts 0x102, Motion 0x1D8 (MotionWork 0xDC bytes)
   cParts (0x1D8 bytes): mat 0x0C, l_mat 0x3C, pParent 0x6C, world 0x70, pos 0x94, ang 0xA0,
