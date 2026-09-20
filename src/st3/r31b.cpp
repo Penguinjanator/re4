@@ -72,8 +72,6 @@ cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31b_memset(void*, ...) asm("memset");
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Struct-member view of pPL (r40f BombSet): a mem/s load that alias.c orders after the preceding
 // frame stores, so the `pPL` load of a setPos that follows two `Vec = {..}` template copies is
@@ -405,7 +403,7 @@ void R31bInit()
     }
     if (RsfCheck(G_ROOM_ID, 0xC) == 0) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R31bExecEventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r31bs00.evd", (u8) GetEmIdFromListI(0x14), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), 0, 0, 0);
     } else {
         SceExec(0x12, (TaskFunc) R31bEmSetMain, 0, 0, 2, 0);
     }
@@ -501,7 +499,7 @@ static void R31bExecEventS00()
         RsfSet(G_ROOM_ID, 0xC);
         SceAtSetEnable(4, 0);
         SceEventStart(0);
-        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromListI(0x14), 0);
+        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), 0);
         R31bLight(1);
         {
             Vec pos = {-21730.0f, 0.0f, 3800.0f};

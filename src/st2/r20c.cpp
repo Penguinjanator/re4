@@ -104,9 +104,6 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setAng(&v);
 }
 
-// COMPILER-DIFF: #4 — the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void R20cEmSetMain();
 void R20cExecCageUp();
@@ -147,7 +144,7 @@ void R20cInit()
     }
     R20cExecShootInit();
     if (checkEmListNo(pG->room_id) == 3 && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
-        EmReadSearch((u8) GetEmIdFromListI(0xCB), 0, 0);
+        EmReadSearch((u8) GetEmIdFromList(0xCB), 0, 0);
     }
     obj = SmdGetObjPtr(6);
     if (obj) {

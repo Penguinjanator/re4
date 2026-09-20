@@ -58,8 +58,6 @@ static s16 r330_scrollTbl[5] = {30, 15, 20, 25, 40};
 
 // The original reads r4 although its prototype has one parameter (r40e).
 void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
-// The list id is masked to a byte at the EvtRead calls: the room build's prototype returned int.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -97,7 +95,7 @@ void R330Init()
     EvtMgr.SetFunc("evt_r330s00_func", (void*) Evt_R330S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R330EventS00Main, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r330s00.evd", (u8) GetEmIdFromListI(0xA0), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), 0, 0, 0);
         {
             cEm* a;
 
@@ -170,7 +168,7 @@ void R330EventS00Main()
             }
             CamCtrl.Comeback(0);
             SceSetEventCancel(0, 0, 0, -1, 1);
-            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromListI(0xA0), 0);
+            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), 0);
             SceSetEventCancel(0, 0, 0, -1, 1);
             R330EventS00End();
         }

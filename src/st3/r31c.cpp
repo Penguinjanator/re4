@@ -143,8 +143,6 @@ static R31cWorkPtr r31c_work;   // .bss 0x20
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31c_memset(void*, ...) asm("memset");
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 // The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
 void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 // The scheduler's kill-by-function overload (sce_sys.cpp).
@@ -366,15 +364,15 @@ void R31cInit()
     EvtMgr.SetFunc("evt_r31cs02_func", (void*) Evt_R31CS02_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r31cEventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r31cs00.evd", (u8) GetEmIdFromListI(0x19), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r31cs00.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
         SceExec(0x12, (TaskFunc) r31c_TimerDoorCancelCheck, 0, 0, 2, 0);
     } else if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(0x14, 0x12, 0, (TaskFunc) r31cEventS02, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r31cs02.evd", (u8) GetEmIdFromListI(0x19), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
         SndRoomStrStart(1, 0, 1);
     } else if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(0x81, 0x12, 0, (TaskFunc) r31cEventS01, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r31cs01.evd", (u8) GetEmIdFromListI(0x19), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r31cs01.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
         SndRoomStrStart(1, 0, 1);
     }
     r31c_memset(&rot, 0, sizeof(Vec));
@@ -1560,9 +1558,9 @@ static void r31cEventS00()
     int i;
 
     RsfSet(G_ROOM_ID, 0);
-    EvtMgr.EvtReadExec("event/evd/r31cs00.evd", (u8) GetEmIdFromListI(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs00.evd", (u8) GetEmIdFromList(0x19), 0);
     SceAtDataSet_exec(0x14, 0x12, 0, (TaskFunc) r31cEventS02, 0, 1);
-    EvtMgr.EvtReadAram("event/evd/r31cs02.evd", (u8) GetEmIdFromListI(0x19), 0, 0, 0);
+    EvtMgr.EvtReadAram("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
     SetPosAngY(pPL, 3805.0f, 0.0f, 10095.0f, -2.49f);
     SndBgmTblSet(0x31C, 1);
     GamePointBossReset();
@@ -1604,7 +1602,7 @@ static void r31cEventS01()
     }
     SceEventEnd(0);
     BitOff(pG->Room_flg[0], 0x80000000);
-    EvtMgr.EvtReadExec("event/evd/r31cs01.evd", (u8) GetEmIdFromListI(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs01.evd", (u8) GetEmIdFromList(0x19), 0);
     SndBgmTblSet(0x31C, 0);
     SndRoomStrStart(1, 0, 1);
     r31cEventS01EndProc();
@@ -1642,7 +1640,7 @@ static void r31cEventS02()
     RsfSet(G_ROOM_ID, 2);
     BitOff(pG->Room_flg[0], 0x80000000);
     SndRoomStrStop(1);
-    EvtMgr.EvtReadExec("event/evd/r31cs02.evd", (u8) GetEmIdFromListI(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), 0);
     SceEventStart(1);
     if (pG->Room_flg[0] & 0x80000000) {
         ItemMgr.get(0x85, 1);

@@ -49,8 +49,6 @@
 
 extern "C" char* strstr(const char* s, const char* sub);
 extern "C" void* memcpy(void* d, const void* s, u32 n);
-// The list id as an int return (the callers mask it themselves).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // game/objPillar.cpp
 class cObjPillar : public cObj {
@@ -310,7 +308,7 @@ void R332Init()
         } else {
             size = size1;
         }
-        EvtMgr.EvtReadAram("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, size);
+        EvtMgr.EvtReadAram("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), 0, 0, size);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(9, 1);
         BitOff(pG->Key_flg[1], 0x00010000);
@@ -1013,7 +1011,7 @@ static void R332RocketShootMain(int type)
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         EvtMgr.EvtFree("event/evd/r332s20.evd");
     }
-    EvtMgr.EvtReadAram("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
+    EvtMgr.EvtReadAram("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventStart(0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -1499,7 +1497,7 @@ static void R332EventS00()
     RsfSet(G_ROOM_ID, 0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0);
+    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), 0);
     GamePointBossReset();
     r332_work->em[0].setEm(0xA8, -1, 1, 1, 1);
     r332_work->em[1].setEm(0xA9, -1, 1, 1, 1);
@@ -1561,7 +1559,7 @@ void R332EventS00End()
     setPosXYZ(pPL, -32900.0f, 15811.0f, 47140.0f);
     setAngXYZ(pPL, 0.0f, 0.766f, 0.0f);
     ((cUnitEventView*) pPL)->endEvent(0);
-    EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
+    EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {
         Cckpt.m_LifeMeter.flags = (u32) em;
@@ -1596,7 +1594,7 @@ static void R332EventS10()
     R332BridgeOpened(1, 1);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     if ((pG->Room_flg[0] & 0x02000000) == 0) {
-        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0);
+        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), 0);
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     st3_setCountDownTimer(0x127D);
@@ -1626,7 +1624,7 @@ static void R332EventS10()
 static void R332EventS20()
 {
     RsfSet(G_ROOM_ID, 2);
-    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromListI(0xA9), 0x200);
+    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0x200);
     SceAtSetEnable(0x84, 1);
 }
 

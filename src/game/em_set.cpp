@@ -310,7 +310,7 @@ EmListData* GetListPtrFromEm(cEm* em)
 }
 
 // Enemy id of list entry `no` (0xFF for an invalid index).
-u8 GetEmIdFromList(u32 no)
+u32 GetEmIdFromList(u32 no)
 {
     EmListData* list;
 

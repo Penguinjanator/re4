@@ -41,8 +41,6 @@ struct R308Work {
 
 static R308Work* r308_work;
 
-// The u8 result is passed on unmasked (COMPILER-DIFF 4).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 void R308OpenBoxMain(int type, int mode, int se, int id1, int id2, int itemNo, int seNo);
 static void OpenedBoxTreasure(int id);
@@ -85,7 +83,7 @@ void R308Init()
         SceAtSetEnable(2, 0);
         EstSet(0, -1, 0, 0, 1, 1, 0x2001, 3, zero, zero);
     }
-    EmReadSearch((u8) GetEmIdFromListI(0x58), 0, 0);
+    EmReadSearch((u8) GetEmIdFromList(0x58), 0, 0);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceExec(0x12, (TaskFunc) R308EnemySetCheck, 0, 0, 2, 0);
     } else {

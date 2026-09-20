@@ -71,9 +71,6 @@ static R30bWorkPtr r30b_work;
 extern "C" void* r30b_memset(void*, ...) asm("memset");
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static f32 r30b_cableOfs = 6000.0f;
 static f32 r30b_spd = 100.0f;
@@ -141,7 +138,7 @@ void R30bInit()
     if (StaFlagChk(pG, STA_SUB_ASHLEY)) {
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R30bEventS00, 0, 1);
-            EvtMgr.EvtReadAram("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0, 0, 0);
+            EvtMgr.EvtReadAram("event/evd/r30bs00.evd", (u8) GetEmIdFromList(0x56), 0, 0, 0);
         }
         SceAtSetEnable(2, 0);
         SceAtSetEnable(3, 1);
@@ -940,7 +937,7 @@ static void R30bEventS00()
         SceAtSetEnable(3, 0);
         SceDestroyEm(0x10, 0x20);
         SceSleep(2);
-        EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0);
+        EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromList(0x56), 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         Vec pos = {-6200.0f, 0.0f, -26100.0f};
         Vec rot;

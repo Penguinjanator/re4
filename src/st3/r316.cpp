@@ -39,9 +39,6 @@ struct R316ItemView {
 
 static R316Work* r316_work;
 
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r316_memset(void*, ...) asm("memset");
@@ -88,7 +85,7 @@ void R316Init()
     StaFlagOff(pG, STA_SUB_ASHLEY);
     EvtMgr.SetFunc("evt_r316s00_func", (void*) Evt_R316S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        EvtMgr.EvtReadAram("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0, 1, 0);
+        EvtMgr.EvtReadAram("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), 0, 1, 0);
         SceExec(0x12, (TaskFunc) R316EventS00, 0, 2, 2, 0);
     } else if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
@@ -255,7 +252,7 @@ static void R316EventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0);
+        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), 0);
         SceSetChapterEnd(0xF, -1);
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
         FadeSetW(1, 0, 0, 0);

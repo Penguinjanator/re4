@@ -51,8 +51,6 @@ static const AtEffInfo r405_eff_info = {
 
 void st4_initAdaGame();   // st4.cpp
 
-// The list entry's enemy id as an int, truncated by the caller (the u8 result of em_set.h is never masked).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void snd_tbl_set();
 void setTexRender();
@@ -92,7 +90,7 @@ void R405Init()
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceExec(0x12, (TaskFunc) R405ExecEventS00, 0, 0, SCE_PRIO_DEF_2, 0);
-        EvtMgr.EvtReadAram("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r405s00.evd", (u8) GetEmIdFromList(0), 0, 0, 0);
     }
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r405_eff_info);
     if (pG->pl_type == 2) {
@@ -188,7 +186,7 @@ static void R405ExecEventS00()
         SceEventStart(0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(1);
-        EvtMgr.EvtReadExec("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0);
+        EvtMgr.EvtReadExec("event/evd/r405s00.evd", (u8) GetEmIdFromList(0), 0);
         SceEventEnd(0);
         SndRoomStrStart(1, 0, 1);
         SndBgmTblSet(0x405, 2);

@@ -113,9 +113,6 @@ static int r214_emTbl4[10] = {0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0x
 cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
-// COMPILER-DIFF: #4 - the original masks the u8 result of GetEmIdFromList before passing it on;
-// the int view makes ours emit the same `clrlwi`.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 // The room passes `li r4,0` to the parameterless IdBinocular::cutin (old prototype).
 void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular");
 
@@ -182,7 +179,7 @@ void R214Init()
         u32 i;
 
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
-            EvtMgr.EvtReadAram("event/evd/r214s00.evd", (u8) GetEmIdFromListI(0xE4), 0, 0, 0);
+            EvtMgr.EvtReadAram("event/evd/r214s00.evd", (u8) GetEmIdFromList(0xE4), 0, 0, 0);
             SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r214_execEvent00, 0, 1);
         }
         SceAtSetEnable(5, 0);
@@ -285,7 +282,7 @@ static void r214_execEvent00()
     RsfSet(G_ROOM_ID, 5);
     OpeSetOpenTerm(0x12, 0.0f, 0.0f, 0.0f, 0.0f);
     SceEventStart(0);
-    EvtMgr.EvtReadExec("event/evd/r214s00.evd", (u8) GetEmIdFromListI(0xE4), 0x20);
+    EvtMgr.EvtReadExec("event/evd/r214s00.evd", (u8) GetEmIdFromList(0xE4), 0x20);
     SceEventEnd(0);
 }
 

@@ -31,7 +31,7 @@ void EmSetFromList();                       // create every enemy of the current
 cEm* EmSetFromList2(int no, int chkDead);   // create list entry `no`; errEm on failure
 cEm* GetEmPtrFromList(int no);              // alive enemy created from list entry `no`
 EmListData* GetListPtrFromEm(cEm* em);
-u8 GetEmIdFromList(u32 no);
+u32 GetEmIdFromList(u32 no);
 void EmListSetAlive(int no, int on);
 void EmSetDie(cEm* em);                     // remember the death of `em` in pG->Em_flg
 void EmSetDieCnt(cEm* pEm);

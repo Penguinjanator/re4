@@ -53,8 +53,6 @@ struct R30cWorkPtr {
 
 static R30cWorkPtr r30c_work;
 
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Halfword read-modify-write of the collision flags through a volatile access: the pSUB load that
 // follows stays below the store (r311 idiom).
@@ -101,7 +99,7 @@ void R30cInit()
     EvtMgr.SetFunc("evt_r30cs00_func", (void*) Evt_R30CS00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R30cEventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r30cs00.evd", (u8) GetEmIdFromListI(0x40), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r30cs00.evd", (u8) GetEmIdFromList(0x40), 0, 0, 0);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(5, 0);
         if (ItemMgr.num(0x83) != 0 || (pG->Key_flg[0] & 0x1000)) {
@@ -200,7 +198,7 @@ static void R30cEventS00()
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
         SndRoomStrStop(1);
-        EvtMgr.EvtReadExec("event/evd/r30cs00.evd", (u8) GetEmIdFromListI(0x40), 0x200);
+        EvtMgr.EvtReadExec("event/evd/r30cs00.evd", (u8) GetEmIdFromList(0x40), 0x200);
         {
             // pPL read first (its load precedes the pool loads in the stream): the x store then
             // issues before the dying y store.

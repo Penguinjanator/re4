@@ -81,8 +81,6 @@ static void r310_checkEmStandUp_end();
 static void r310_checkEmStandUp();
 static void R310EventS00();
 static void Evt_R310S00_Func(Event* e);
-// GetEmIdFromList returns int here: the event functions take its low byte (r308).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Room init: JumpPoint 1/2 marks the S00 event seen (save record bit 31); Ashley initialised as the
 // follower; the event pre-loaded (enemy of ESL 0x5A) and run on a first visit; the two lever pairs
@@ -103,7 +101,7 @@ void R310Init()
     StaFlagOn(pG, STA_SUB_ASHLEY);
     EvtMgr.SetFunc("evt_r310s00_func", (void*) Evt_R310S00_Func);
     if ((int) R310_SAVE_FLAGS >= 0) {
-        EvtMgr.EvtReadAram("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0, 1, 0);
+        EvtMgr.EvtReadAram("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), 0, 1, 0);
         SceExec(0x12, (TaskFunc) R310EventS00, 0, 2, 2, 0);
     }
     getRoomEtcSwitch(1, (cEm**) &sw0, 1);
@@ -813,7 +811,7 @@ static void R310EventS00()
     if ((int) R310_SAVE_FLAGS >= 0) {
         R310_SAVE_FLAGS |= 0x80000000;
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0);
+        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), 0);
         cPlayer* pl = pPL;
         p.x = -6877.0f;
         p.y = 0.0f;
