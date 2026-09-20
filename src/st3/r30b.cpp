@@ -309,7 +309,7 @@ static void R30bDoorSwitchMain()
         SceUpCut(6, -1, -1, 4);
     } else {
         SceEventStart(1);
-        SceMesCamSndSet4(5, -1, -1, 4);
+        SceMesCamSndSet(5, -1, -1, 4);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);

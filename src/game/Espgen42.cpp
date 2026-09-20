@@ -774,7 +774,7 @@ void Espgen42_TransSub(EspgenWork* w)
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
-    LightMgr.setClothN(&model, 5);
+    LightMgr.setCloth(&model, 5);
     commonWaterLightSet(model.LightInfo.pLight, 5, p->amb.a);
     GXColor white;
     white.r = white.g = white.b = white.a = 0xFF;

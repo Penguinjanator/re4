@@ -332,9 +332,9 @@ static void R308EnemyDieMain()
     }
     SceEventStart(1);
     if (r308_work->timer > 1799) {
-        SceMesCamSndSet4(7, 4, 7, 0);
+        SceMesCamSndSet(7, 4, 7, 0);
     } else {
-        SceMesCamSndSet4(6, 4, 7, 0);
+        SceMesCamSndSet(6, 4, 7, 0);
     }
     R308EnemyDieEnd();
 }

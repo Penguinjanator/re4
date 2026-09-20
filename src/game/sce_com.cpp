@@ -354,7 +354,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
 }
 
 // Message `no` with an optional camera cut and SE (block 6), then waits for it.
-void SceMesCamSndSet(int no, int cut, int se)
+void SceMesCamSndSet(int no, int cut, int se, int flags)
 {
     if (cut != -1) {
         CamCtrl.CutCall((s8) cut);

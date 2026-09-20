@@ -112,7 +112,7 @@ public:
     void init(Camera* cam, void* tex, void* data);
     virtual void move(void* cam);
     virtual void quit(void* cam);
-    void cutin();
+    void cutin(void* arg);
 };
 
 class CameraBinocular : public cCamera {

@@ -32,13 +32,6 @@
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation). The font sizes are s16 table entries passed to
-// the s8 parameters without the `extsb` our compiler adds: s16 view of MessageControl::setFontSize.
-class MessageControlS : public MessageControl {
-public:
-    void setFontSizeS(int no, s16 w, s16 h) asm("setFontSize__14MessageControliScSc");
-};
-#define cMesS (*(MessageControlS*) &cMes)
 
 // COMPILER-DIFF: item 4. Int views of the u8 id / type parameters (no `clrlwi` at the calls).
 class IDSystemN : public IDSystem {
@@ -150,7 +143,7 @@ void itemNameDisp(SUB_SCREEN* wk)
     if (del) {
         pm->Delete(0);
     } else {
-        cMesS.setFontSizeS(0, item_name_w[1], item_name_h[1]);
+        cMes.setFontSize(0, item_name_w[1], item_name_h[1]);
         m->m_line_gap = 0;
         m->charSpace = item_name_space[3];
         pm->MesSet(item->id, x, y, 0x20088, 0, 0, 4);

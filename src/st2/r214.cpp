@@ -113,8 +113,6 @@ static int r214_emTbl4[10] = {0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0x
 cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
-// The room passes `li r4,0` to the parameterless IdBinocular::cutin (old prototype).
-void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular");
 
 // Local arrays of these get the constructor loop and the (empty) destructor loop.
 class cEmWrapD : public cEmWrap {
@@ -1052,7 +1050,7 @@ void Evt_R214S00_Func(Event* e)
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
                 r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
-                    IdBinocularCutinI(r214_work.p->bino, 0);
+                    r214_work.p->bino->cutin(0);
                 }
                 r214_work.p->focus = &r214_work.p->focusObj;
                 r214_work.p->focus->init(-1);

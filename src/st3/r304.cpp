@@ -40,8 +40,6 @@ struct R304Work {
 
 static R304Work* r304_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 static void r304_EnemySet();
 void R304EventS00();
@@ -202,12 +200,12 @@ extern "C" void Evt_R304S00_Func(Event* e)
             if (e->NowFrame == 0) {
                 obj = SmdGetObjPtr(0xA);
                 if (obj) {
-                    TexRenderModResP(obj, 0);
+                    TexRenderModRes(obj, 0);
                     ModelInfoSetTrans(obj, 0, 1);
                 }
                 obj = SmdGetObjPtr(0xB);
                 if (obj) {
-                    TexRenderModResP(obj, 0);
+                    TexRenderModRes(obj, 0);
                     ModelInfoSetTrans(obj, 0, 1);
                 }
             }

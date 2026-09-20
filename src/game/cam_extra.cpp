@@ -781,7 +781,7 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
 
 // The skipped ids are a switch (`||`/`&&` range tests fold to `cmplwi 4`). OPEN (3 words): the three
 // `sth` come out in source order in the target although `u` dies at the last one.
-void IdBinocular::cutin()
+void IdBinocular::cutin(void* arg)
 {
     int i;
 

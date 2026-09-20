@@ -300,10 +300,9 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
 }
 
 // Undoes TexRenderModSet on every parts of the model (blend ratio 0, default blend table).
-void TexRenderModRes(cModel* m)
+void TexRenderModRes(cModel* m, u32 parts)
 {
     cModelInfo* info;
-    int parts;  // never set in the original (GetModelInfoAddr gets whatever is in r4)
 
     if (m == NULL) {
         pLog->err(0, 0, "TexRenderModRes() : failed!!");

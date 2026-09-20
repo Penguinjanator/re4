@@ -65,8 +65,6 @@ struct R20bWorkPtr {
 static u8 r20b_texTbl[0x20];
 static R20bWorkPtr r20b_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 // `(f & a) || (f & b)` tested bit by bit: fold merges the two masks of a plain `||`; a helper keeps
 // the two `andis.` on one load.
@@ -759,7 +757,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod2, 0);
+                    TexRenderModRes((cModel*) mod2, 0);
                 }
             }
             break;
@@ -818,7 +816,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod2, 0);
+                    TexRenderModRes((cModel*) mod2, 0);
                 }
                 EffectEspDelete(r20b_work.p->tex2->mask | 0x3001, 0, 0, 0);
                 EffectEspgenDelete(r20b_work.p->tex2->mask | 0x3001, 0, 0);

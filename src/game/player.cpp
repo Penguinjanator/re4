@@ -57,8 +57,6 @@ void pl_R1_BoatDrive(cPlayer* pl);
 }
 void Pl_R0_Damage(cPlayer* pl);   // game/pl_dmg.cpp
 void Pl_R0_Die(cPlayer* pl);
-// cSubChar::registPlAction(Vec*, f32) (pl_npc.h) called with an extra `li r5, 0` the original passes.
-void SubCharRegistPlAction(cSubChar* sub, Vec* pos, int a, f32 ang) asm("registPlAction__8cSubCharP3Vecf");
 
 #line 41 "D:/Bio4/Prog/player.cpp"
 #define PL_MEM_ALLOC(size, line) mem_alloc(size, __FILE__, line, 1, 13)
@@ -1439,7 +1437,7 @@ void pl_R1_Fall(cPlayer* pl)
         pl->Neck->motL = 0;
         pl->atari.setPriority(PRI_LV2);
         if (pSUB) {
-            SubCharRegistPlAction(pSUB, &pl->pos, 0, pl->ang.y);
+            pSUB->registPlAction(&pl->pos, pl->ang.y, 0);
         }
         pl->m_Work0 = 0;
         pl->stat &= ~0x800;

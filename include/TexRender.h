@@ -62,7 +62,7 @@ void CopyTexRenderMgr(TexRenderMng* m);
 void TransTexRenderMgr();
 void TexRenderInit(TexRenderMng** out, int size, int repType);
 void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepBlendType, int keepRefrect, int keepD6, int keep12C, f32 alpha);
-void TexRenderModRes(cModel* m);
+void TexRenderModRes(cModel* m, u32 parts);
 void TexRenderModAddOt(int ot, cModel* m);
 void TexRenderModAddOtMirror(int ot, cModel* m);
 void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data);

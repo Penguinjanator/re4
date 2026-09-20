@@ -376,7 +376,7 @@ void clothTrans(Cloth* pCL)
         model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos = pCL->center;
-    LightMgr.setClothN(&model, 8);
+    LightMgr.setCloth(&model, 8);
     if (model.LightInfo.Size.x > model.LightInfo.Size.y) {
         r = model.LightInfo.Size.x;
     } else {

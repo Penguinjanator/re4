@@ -71,8 +71,6 @@ struct R206WorkPtr {
 
 static R206WorkPtr r206_work;
 
-// The original reads r4 although its prototype has one parameter (r20b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 // game/shape.cpp (C++ linkage, declared locally by its users).
 void ShapeSet(void* info, int a, void* data, int b);
 
@@ -388,7 +386,7 @@ static void Evt_R206S00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                 }
                 EffectEspDelete(r206_work.p->tex->mask | 0x3001, 2, 0, 0);
                 EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, 2, 0);

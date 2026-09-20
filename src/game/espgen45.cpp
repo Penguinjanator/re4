@@ -508,7 +508,7 @@ void Espgen45_TransSub(EspgenWork* w)
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
-    LightMgr.setClothN(&model, 5);
+    LightMgr.setCloth(&model, 5);
     GXColor amb = p->amb;
     if (g_bColorOverWrite == 1) {
         amb.r = (u8) (g_sr * 255.0f);

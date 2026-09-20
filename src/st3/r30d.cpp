@@ -301,7 +301,7 @@ static void R30dShutterPowerMain()
     SceAtSetEnable(0x14, 0);
     SceEventStart(1);
     SceSetEventCancel(1, (TaskFunc) R30dShutterPowerEnd, 0, -1, 1);
-    SceMesCamSndSet4(5, -1, 1, 0);
+    SceMesCamSndSet(5, -1, 1, 0);
     CamCtrl.CutCall(8);
     getRoomEtcBarred(0xD, &bar, 1);
     if (bar) {
@@ -343,7 +343,7 @@ static void R30dShutterPowerMain()
             bar->setPos(&p);
         }
     }
-    SceMesCamSndSet4(6, -1, -1, 0);
+    SceMesCamSndSet(6, -1, -1, 0);
     SceSetEventCancel(0, 0, 0, -1, 1);
     R30dShutterPowerEnd();
 }

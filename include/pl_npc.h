@@ -149,7 +149,7 @@ public:
     void damageCheck();
     // scenario damage area hit (sce_at sceAtFunc_damage)
     void setDamage(u8 kind, int arg, f32 power, int a, int b);
-    void registPlAction(Vec* pos, f32 ang);
+    void registPlAction(Vec* pos, f32 ang, u8 a);
     void moveBust();
     void moveFace();
     void shadowCtrl();

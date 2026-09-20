@@ -3560,7 +3560,7 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
 }
 
 // The player registers a ledge for her to wait at (pos / facing angle), for 240 frames.
-void cSubChar::registPlAction(Vec* pos, f32 ang)
+void cSubChar::registPlAction(Vec* pos, f32 ang, u8 a)
 {
     m_PlActPos = *pos;
     m_PlActAngY = ang;

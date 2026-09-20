@@ -188,12 +188,6 @@ PzzlCursor pzzl_cursor;
 pzlPiece* pzzl_sel;
 ssDbgPzzl pzzl_dbg;
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation): s16 view of MessageControl::setFontSize.
-class MessageControlS : public MessageControl {
-public:
-    void setFontSizeS(int no, s16 w, s16 h) asm("setFontSize__14MessageControliScSc");
-};
-#define cMesS (*(MessageControlS*) &cMes)
 
 #define CMES_FLAGS (*(u32*) ((u8*) &cMes + 0xFC))
 #define CMES_RESULT (*(s8*) ((u8*) &cMes + 0x1D1))
@@ -1537,7 +1531,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         y = (int) ((240.0f - u->pos.y) * 0.8f);
         y -= cMes.getMes(0)->m_font_h / 2;
         if (on && caseMove == 0) {
-            cMesS.setFontSizeS(0, pzzl_font_w[1], pzzl_font_h[1]);
+            cMes.setFontSize(0, pzzl_font_w[1], pzzl_font_h[1]);
             cMes.getMes(0)->m_line_gap = 0;
             cMes.getMes(0)->charSpace = pzzl_font_space[3];
             cMes.MesSet(id, x, y, 0x20088, 0, 0, 4);

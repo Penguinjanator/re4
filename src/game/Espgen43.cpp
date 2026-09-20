@@ -287,7 +287,7 @@ void Espgen43_TransSub(EspgenWork* w)
     model.pos.x = p->Wld_mat[0][3];
     model.pos.y = p->Wld_mat[1][3];
     model.pos.z = p->Wld_mat[2][3];
-    LightMgr.setClothN(&model, 5);
+    LightMgr.setCloth(&model, 5);
     if (model.LightInfo.Size.x > model.LightInfo.Size.y) {
         r = model.LightInfo.Size.x;
     } else {

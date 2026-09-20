@@ -602,7 +602,7 @@ void MessageControl::Trans()
 }
 
 // Sets the glyph draw size of slot `no`.
-void MessageControl::setFontSize(int no, s8 w, s8 h)
+void MessageControl::setFontSize(int no, s16 w, s16 h)
 {
     Message* m = getMes(no);
     m->m_font_w = w;

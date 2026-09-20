@@ -239,7 +239,7 @@ static void R318ExecSitMain()
     while (MotionGetState(pPL) == 0) {
         SceSleep(1);
     }
-    SceMesCamSndSet4(3, -1, -1, 4);
+    SceMesCamSndSet(3, -1, -1, 4);
     {
         u32 str = SndStrPlayBlock(1, 0xEC, 0.0f);
 

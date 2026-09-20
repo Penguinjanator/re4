@@ -56,8 +56,6 @@ idR330 IdR330;
 // Scroll speed (frames per texture cycle) of the five background units 9 / 0x10..0x13.
 static s16 r330_scrollTbl[5] = {30, 15, 20, 25, 40};
 
-// The original reads r4 although its prototype has one parameter (r40e).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 // Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -375,11 +373,11 @@ extern "C" void Evt_R330S00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if ((mod = SmdGetObjPtr(0x22)) != 0) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                     ModelInfoSetTrans((cModel*) mod, 0, 1);
                 }
                 if ((mod = SmdGetObjPtr(0x23)) != 0) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                     ModelInfoSetTrans((cModel*) mod, 0, 1);
                 }
             }

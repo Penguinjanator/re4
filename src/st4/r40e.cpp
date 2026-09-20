@@ -48,8 +48,6 @@ struct R40eWork {
 
 static R40eWork* r40e_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 static void r40e_execShowView_end();
 static void r40e_execShowView();
@@ -498,7 +496,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                 }
             }
             break;

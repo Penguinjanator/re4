@@ -62,8 +62,6 @@ static const AtEffInfo r11b_eff_info = {
 };
 
 // The original TexRenderModRes reads the parts number from r4 although its prototype has one
-// parameter (game/TexRender.cpp); the rooms pass it.
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 static void R11b_bgm_ck();
 static void r11b_ThunderFlagOn();
@@ -598,9 +596,9 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 6);
-                    TexRenderModResP((cModel*) mod, 7);
-                    TexRenderModResP((cModel*) mod, 8);
+                    TexRenderModRes((cModel*) mod, 6);
+                    TexRenderModRes((cModel*) mod, 7);
+                    TexRenderModRes((cModel*) mod, 8);
                 }
                 r11b_evtEffDelete();
             }
