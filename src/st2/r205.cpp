@@ -653,5 +653,5 @@ static void r205_TreasureBoxOpened(int id)
 static void r205_ContinuePointSet()
 {
     RsfSet(G_ROOM_ID, 12);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }

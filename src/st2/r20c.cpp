@@ -685,7 +685,7 @@ void R20cDoorOpenEnd(int mode)
 {
     if (mode) {
         SceEventEnd(0);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
         SceExit();
     }
 }

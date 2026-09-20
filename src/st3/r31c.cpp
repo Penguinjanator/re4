@@ -143,8 +143,6 @@ static R31cWorkPtr r31c_work;   // .bss 0x20
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31c_memset(void*, ...) asm("memset");
-// The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
-void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 // The scheduler's kill-by-function overload (sce_sys.cpp).
 void SceKill(void (*func)(int));
 
@@ -1548,7 +1546,7 @@ static void r31c_SetContinuePoint(int no)
 
     if (RsfCheck(G_ROOM_ID, flag) == 0) {
         RsfSet(G_ROOM_ID, r31c_contFlag[no]);
-        GameSaveSave2(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 

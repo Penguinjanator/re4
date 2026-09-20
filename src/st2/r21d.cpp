@@ -741,7 +741,7 @@ yes:
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The two fence halves (objects 0x13/0x21): 60-frame move1 up by 2800. Not yet raised (Room_flg bit

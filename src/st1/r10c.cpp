@@ -618,7 +618,7 @@ static void chkSwitchA_exit()
     SceAtSetEnable(0xC, 0);
     SceAtSetEnable(0xD, 0);
     eat_swap();
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Area 5: the switch that opens the gates and drains the pool (camera cuts 0x14..0x19).

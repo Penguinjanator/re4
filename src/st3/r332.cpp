@@ -1616,7 +1616,7 @@ static void R332EventS10()
     SndRoomStrStart(1, 0, 1);
     SndRoomBgmStart(1, 0);
     SndBgmTblSet(0x331, 2);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
 }
 

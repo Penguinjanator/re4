@@ -2002,7 +2002,7 @@ extern "C" void r209_PanelPazzleEndEndProc()
     SceAtSetEnable(0x31, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Task (AT 0x2E..0x31): the message of panel `no` for its current state.

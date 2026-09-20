@@ -737,7 +737,7 @@ static void gameResult()
 static void exec_continue()
 {
     RsfSet(G_ROOM_ID, 2);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Debug: the death camera (cut 13).

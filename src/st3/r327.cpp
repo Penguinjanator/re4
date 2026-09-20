@@ -851,7 +851,7 @@ static void r327_ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
         RsfSet(G_ROOM_ID, 15);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 

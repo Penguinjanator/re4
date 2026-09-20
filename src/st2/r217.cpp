@@ -434,7 +434,7 @@ static void r217_Puzzle_exit()
         SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r217_1st_set, 0, 1);
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         SceAtSetEnable(5, 0);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
         SceSleep(90);
         SndCall(6, 6, 0, 0, 0, 0);
         SceSleep(30);

@@ -740,7 +740,7 @@ static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), re
 // Chapter end task (SceSetChapterEnd): kills the running event, freezes the game, swaps the room
 // data out to load the chapter result id data ("SS/<lang>/chapNN.dat"), shows the ChapterEnd
 // screen with the "save?" message (0x80); with a door area the player is moved through it for
-// the save (pG->chapter, counters reset, GameSaveSave), a yes saves to the card; then everything
+// the save (pG->chapter, counters reset, GameSave.save), a yes saves to the card; then everything
 // is restored and the door executed (fade effect 2), or the BGM restarts and the pause ends.
 void SceChapterEnd()
 {
@@ -838,7 +838,7 @@ void SceChapterEnd()
     U32Set(pG->c_kill_cnt, 0);
     U32Set(pG->c_hit_cnt, 0);
     U32Set(pG->c_shot_cnt, 0);
-    GameSaveSave(&GameSave, pSaveData, 2);
+    GameSave.save(pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
         SndCall(0, 4, 0, 0, 0, 0);

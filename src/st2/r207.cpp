@@ -251,7 +251,7 @@ static void r207_openTerm()
 {
     RsfSet(G_ROOM_ID, 10);
     OpeSetOpenTerm(0xD, 0.0f, 0.0f, 0.0f, 0.0f);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Every 150 frames: the enemy farthest from the player in the area the player just entered is

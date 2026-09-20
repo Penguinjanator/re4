@@ -62,9 +62,6 @@ int CRCVerify(u8* data, u32 len, u32 saved);
 void setMsgBG(int a, int flag);
 }
 
-// cGameSave::save reads a mode in r5 (see emrock.cpp).
-int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-
 // Sub screen data archive (SndMem.sub_adr): offsets to its sub-files.
 // Archive header shared by the sub screen sound data (SndMem.sub_adr: [0] icon/banner TPL,
 // [1] message table) and ss/cmn/save_?.dat (CardID textures, save/load frames, file list, ...).
@@ -778,7 +775,7 @@ void cCard::loadMain()
         memcpy(SD->p14, buf + SAVE_SSCRN, SscrnDataSize());
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
-        GameSaveSave(&GameSave, pSaveData, pG->SaveKind);
+        GameSave.save(pSaveData, pG->SaveKind);
         BitOn(pG->CardStatus, 4);
         SysFlagOff(pG, SYS_CARD_ACCESS);
         setMsgWindow(1, 0);
@@ -791,7 +788,7 @@ void cCard::loadMain()
 }
 
 // Builds the save file image in pSaveBuf: banner / icons / comment strings ("biohazard4 FILE%02d"),
-// the header (mode, serial, play time...), then the game save blocks (GameSaveSave, room data,
+// the header (mode, serial, play time...), then the game save blocks (GameSave.save, room data,
 // subscreen, merchant) and both CRCs.
 void cCard::makeSaveData()
 {
@@ -834,7 +831,7 @@ void cCard::makeSaveData()
     } else {
         *(u32*) (buf + SAVE_HDR_MODE) = 1;
     }
-    GameSaveSave(&GameSave, pSaveData, *(u32*) (buf + SAVE_HDR_MODE));
+    GameSave.save(pSaveData, *(u32*) (buf + SAVE_HDR_MODE));
     memcpy(buf + SAVE_GAME, SD->p8, SAVE_GAME_SIZE);
     memcpy(buf + SAVE_DATA2, SD->pC, SAVE_DATA2_SIZE);
     memcpy(buf + SAVE_ROOM, SD->p10, RoomData.num * 0xD8 + 0x10);

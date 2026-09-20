@@ -388,7 +388,7 @@ static void r10f_GondolaGetOff(int side)
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 

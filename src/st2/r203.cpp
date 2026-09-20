@@ -276,7 +276,7 @@ static void r203_EventMeetAgain()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     // global-alloc pass 0 (regs_used_so_far): with r29 and f31 ever-live, the 0.0 pseudo takes f31,
     // m/ry share r29 and &ang falls to r31 in pass 1 as in the target (no code emitted).
     register int pin asm("r29");   // COMPILER-DIFF: candidate #17

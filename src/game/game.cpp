@@ -194,7 +194,7 @@ void gameDebugDisp();
 void gameDebug();
 }
 
-GameSaveData* pSaveData;
+SAVE_DATA_HEAD* pSaveData;
 cGameSave GameSave;
 cDbWork* DbWork;
 static u32 g_at_total;
@@ -320,7 +320,7 @@ void gameInit()
 
 // Rno0 == 1: stage/room entry. Marks continue mode (System_flg 0x80), offers the Ashley costume
 // choice at r120 on a new game (unlocked extras), swaps to the disc of the stage (disc 2 from stage
-// 3 on, except r22c), saves the game (GameSaveSave) when allowed and starts the room load
+// 3 on, except r22c), saves the game (GameSave.save) when allowed and starts the room load
 // (StageSet); Rno0 = 2.
 void gameStageInit()
 {
@@ -378,7 +378,7 @@ void gameStageInit()
     }
     SetGameTime();
     if (!StaFlagChk(pG, STA_SAVEDATA_NO_UPDATE) && !SysFlagChk(pG, SYS_LOAD_GAME)) {
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
     StageSet();
     pG->Rno0 = 2;
@@ -856,13 +856,11 @@ void clearGlobalSaveData()
     InitGameTime();
 }
 
-// Restores the game from a GameSaveData image: the global block (0x4F80..), room flags, sub screen,
+// Restores the game from a SAVE_DATA_HEAD image: the global block (0x4F80..), room flags, sub screen,
 // merchant and item data; SaveKind 3 (new round) clears the block, resets rooms/BGM and starts at
 // r120 with the carried-over merchant/items (2nd round bonuses).
-int cGameSave::load(void* p)
+bool cGameSave::load(SAVE_DATA_HEAD* data)
 {
-    GameSaveData* data = (GameSaveData*) p;
-
     if (data->base == 0) {
         return 0;
     }
@@ -891,13 +889,12 @@ int cGameSave::load(void* p)
 
 // cGameSave::save: writes the game state into the image (player position/angle when in play,
 // SaveKind = mode, global block, room flags, sub screen, merchant, items).
-// cGameSave::save(void*): the original also reads `mode` from r5 (see game.h).
-extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
+bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
 {
     if (data->base == 0) {
         return 0;
     }
-    g->checkAddr(data);
+    checkAddr(data);
     if (pG->Rno0 == 3) {
         memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
         FSet(pG->sub_angle, pPL->ang.y);
@@ -912,18 +909,18 @@ extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
 }
 
 // Re-bases the image's pointers when it was copied from another address (memory card load).
-void cGameSave::checkAddr(GameSaveData* data)
+void cGameSave::checkAddr(SAVE_DATA_HEAD* data)
 {
-    GameSaveData* base = data->base;
+    SAVE_DATA_HEAD* base = data->base;
 
     if (base != 0 && base != data) {
-        calcOffset(data, base);
+        calcOffset(data, (u32) base);
         calcAddr(data);
     }
 }
 
 // Converts the image's section pointers to offsets from base (before writing to card).
-void cGameSave::calcOffset(GameSaveData* data, void* base)
+void cGameSave::calcOffset(SAVE_DATA_HEAD* data, u32 base)
 {
     u32 p;
 
@@ -931,24 +928,24 @@ void cGameSave::calcOffset(GameSaveData* data, void* base)
         return;
     }
     if (base == 0) {
-        base = data;
+        base = (u32) data;
     }
     // One shared temporary: its anti-dependences keep each load below the previous add/sub.
     data->base = 0;
     p = (u32) data->pGlobal;
-    data->pGlobal = (GameSaveBlock*) (p - (u32) base);
+    data->pGlobal = (GameSaveBlock*) (p - base);
     p = (u32) data->pRoom;
-    data->pRoom = (void*) (p - (u32) base);
+    data->pRoom = (void*) (p - base);
     p = (u32) data->pSscrn;
-    data->pSscrn = (u32*) (p - (u32) base);
+    data->pSscrn = (u32*) (p - base);
     p = (u32) data->pMerchant;
-    data->pMerchant = (void*) (p - (u32) base);
+    data->pMerchant = (void*) (p - base);
     p = (u32) data->pItem;
-    data->pItem = (void*) (p - (u32) base);
+    data->pItem = (void*) (p - base);
 }
 
 // Converts the image's section offsets back to pointers (base = the image itself).
-void cGameSave::calcAddr(GameSaveData* data)
+void cGameSave::calcAddr(SAVE_DATA_HEAD* data)
 {
     u32 p;
 
@@ -972,7 +969,7 @@ void cGameSave::calcAddr(GameSaveData* data)
 
 // Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
 // and item sections (32-byte aligned), and fixes the pointers.
-GameSaveData* cGameSave::alloc()
+SAVE_DATA_HEAD* cGameSave::alloc()
 {
     u32 globalOfs = 0x40;
     u32 roomOfs = 0x3740;
@@ -984,7 +981,7 @@ GameSaveData* cGameSave::alloc()
     u32 sscrnSize;
     u32 merchantSize;
     u32 itemSize;
-    GameSaveData* d;
+    SAVE_DATA_HEAD* d;
 
     roomSize = ALIGN32(RoomData.num * 0xD8 + 0x10);
     sscrnSize = ALIGN32(SscrnDataSize());
@@ -995,7 +992,7 @@ GameSaveData* cGameSave::alloc()
     itemOfs = merchantOfs + merchantSize;
     size = itemOfs + itemSize;
 #line 1385 "D:/Bio4/Prog/game.cpp"
-    d = (GameSaveData*) MEM_CALLOC(size, 1, 13);
+    d = (SAVE_DATA_HEAD*) MEM_CALLOC(size, 1, 13);
     d->pGlobal = (GameSaveBlock*) globalOfs;
     d->pRoom = (void*) roomOfs;
     d->pSscrn = (u32*) sscrnOfs;

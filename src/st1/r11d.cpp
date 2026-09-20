@@ -167,7 +167,7 @@ static void r11d_checkIronDoorKeyUse()
     pG->Key_flg[0] |= 0x00100000;
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
         ((u8*) pG->pEmi)[0xD08] = 0;
     }
@@ -366,7 +366,7 @@ static void r11d_execShowView_end()
     SceEventEnd(0);
     SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Show the room: camera cuts 2 and 3 with the stream and the glow.

@@ -1017,7 +1017,7 @@ static void R226ContinuePointSet()
     if (RsfCheck(G_ROOM_ID, 7) && RsfCheck(G_ROOM_ID, 8) && RsfCheck(G_ROOM_ID, 17) == 0) {
         RsfSet(G_ROOM_ID, 17);
         SceAtSetEnable(0x24, 0);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 

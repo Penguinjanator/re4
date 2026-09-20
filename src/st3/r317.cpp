@@ -89,8 +89,6 @@ static f32 r317_elvStopAddUp = 2000.0f;
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-// The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
-void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
 // Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -209,13 +207,13 @@ void R317Main()
 {
 }
 
-// Area 9 once (Room_flg bit 1): area off and a checkpoint save (GameSaveSave2).
+// Area 9 once (Room_flg bit 1): area off and a checkpoint save (GameSave.save).
 static void R317ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
         SceAtSetEnable(9, 0);
-        GameSaveSave2(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 
@@ -281,7 +279,7 @@ void R317EventS00()
         EvtMgr.EvtReadAram("event/evd/r317s14.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r317s03.evd", 0, 0);
         RsfSet(G_ROOM_ID, 2);
-        GameSaveSave2(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
         if (pG->Room_flg[0] & 0x04000000) {
             EvtMgr.EvtFree("event/evd/r317s13.evd");
             EvtMgr.EvtReadExec("event/evd/r317s14.evd", 0, 2);

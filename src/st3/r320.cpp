@@ -1608,7 +1608,7 @@ static void switch1_move()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     R320_SAVE_FLAGS |= 0x2000;
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceAtDataSet_exec(0x2B, 0x12, 0, (TaskFunc) em_lastset, 0, 1);
 }
 
@@ -2526,7 +2526,7 @@ static void door_open()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     R320_SAVE_FLAGS |= 0x2000;
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The tower door already open: area 0x2C off, its parts slid aside by 1140, the open-door effect.

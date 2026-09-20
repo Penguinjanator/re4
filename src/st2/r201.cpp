@@ -708,7 +708,7 @@ static void r201_checkDungeonKeyUse()
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 1);
     ScfFlagOn(pG, SCF_81);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceSleep(12);
     r201_setBattleArea(1, 0);
 }

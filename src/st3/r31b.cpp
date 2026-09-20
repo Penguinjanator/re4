@@ -110,8 +110,6 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
-// The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
-void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 // COMPILER-DIFF: #1 -- cSatMgr::create redeclared with the float parameter before the two ints: the
 // `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
 cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
@@ -1368,7 +1366,7 @@ static void R31bExecEscapeEnd()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    GameSaveSave2(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceExit();
 }
 

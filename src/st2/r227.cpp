@@ -484,7 +484,7 @@ static void r227_operateElv()
         SceAtSetEnable(3, 1);
         return;
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceAtSetEnable(0xD, 1);
     SceAtSetEnable(0xF, 1);
     SceAtSetEnable(0x14, 1);
@@ -890,7 +890,7 @@ static void r227_execEvent00()
     SceEventEnd(0);
     r227_setEm1();
     SndBgmTblSet(0x227, 1);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // QTE success callback of the entrance event: Room_flg[0] bit 31.

@@ -1330,7 +1330,7 @@ static void lift_stop_task()
     cnt = 0;
     eff = 0;
     R30F_SAVE_FLAGS |= 0x40000000;
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SmdGetObjPtr(0x12)->be_flag |= 0x20;
     SmdGetObjPtr(0x12)->pParts->ang.z = 1.38f;
     o = SmdGetObjPtr(0xD);

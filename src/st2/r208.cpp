@@ -1796,5 +1796,5 @@ static void SubUnderCrankExec()
 extern "C" void r208_continue()
 {
     RsfSet(G_ROOM_ID, 12);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }

@@ -352,7 +352,7 @@ static void r212_PuzzleEndProc()
     r212_work.p->rack[0]->be_flag |= 2;
     r212_work.p->rack[1]->be_flag |= 2;
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Task: the roof trap event (the player steps in behind the first door).

@@ -46,9 +46,6 @@ void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);   // em_sub.cpp
 }
 void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
-// cGameSave::save is `save(void*)` by name but the original reads a second argument (-1 here);
-// ABI-identical redeclaration (dvd.h ReadCheckInfo).
-int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
 // Head of a key-frame motion data block (motion.h MotionData).
 struct RockMotData {
@@ -1729,7 +1726,7 @@ void plemRockEscape(cPlayer* pl)
             SpfFlagOff(pG, SPF_KEY);
             Cckpt.lifeMeterDisp(1);
             pl->Wep->setTrans(1, 0);
-            GameSaveSave(&GameSave, pSaveData, -1);
+            GameSave.save(pSaveData, -1);
             EndPlDamage();
         }
         break;

@@ -703,7 +703,7 @@ static void r20d_getSnakeObject()
         em4.setEm(0xB2, 3, 0, 1, 1);
     }
     r20e_startArmor();
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The armor knights wake up.

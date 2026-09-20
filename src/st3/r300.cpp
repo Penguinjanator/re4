@@ -1013,7 +1013,7 @@ static void r300_asl_exit()
     SpfFlagOff(pG, SPF_PL);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Area 1: Ashley carried through the gate.
@@ -1312,7 +1312,7 @@ static void DoorOpen_exit()
         setEm(0x41, -1, 1, 1, 1);
         setEm(0x42, -1, 1, 1, 1);
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The laser burnt through: the gate opens.

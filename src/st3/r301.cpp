@@ -147,7 +147,7 @@ static void r301_execContinuePoint_end()
     SceEventEnd(0);
     SceAtSetEnable(0x10, 0);
     SceAtSetEnable(0x11, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The continue point: ask, then slide the rock away with a dust effect and save.

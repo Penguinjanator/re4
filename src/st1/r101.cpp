@@ -582,7 +582,7 @@ static void r101_execOperator2()
         SceAtExecute(0xAC);
     }
     SceSleep(1);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Once (Room_flg bit 10): the typewriter terminal 2 with the overwrite type.

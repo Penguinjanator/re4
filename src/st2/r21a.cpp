@@ -375,7 +375,7 @@ static void R21aDoorEnd()
     SmdSetTrans(0x19, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The lamp knocked over: the roof supports catch fire.
