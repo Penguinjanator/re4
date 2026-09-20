@@ -2254,10 +2254,10 @@ void sceAtSetScrAt(SceAtWork* w)
         if (!(w->scr.flags & 4)) {
             w->scr.attr |= 0x40;
         }
-        w->scr.pSat = SatMgr.create(&pos, &rot, poly, w->scr.attr, w->scr.flag, h);
+        w->scr.pSat = SatMgr.create(&pos, &rot, poly, h, w->scr.attr, w->scr.flag);
     }
     if (bitOff(w->scr.flags)) {
-        w->scr.pEat = EatMgr.create(&pos, &rot, poly, w->scr.attr2, w->scr.flag, h);
+        w->scr.pEat = EatMgr.create(&pos, &rot, poly, h, w->scr.attr2, w->scr.flag);
     }
     w->scr.created = 1;
 }

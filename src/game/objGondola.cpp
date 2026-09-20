@@ -460,7 +460,7 @@ void objGondolaSatSet(cObjGondola* obj)
             w->pSat[i]->m_Flag |= 4;
             w->pSat[i]->setCoord(&pos, &rot);
         } else {
-            w->pSat[i] = SatMgr.create(&pos, &rot, poly, 0, 0x100, r);
+            w->pSat[i] = SatMgr.create(&pos, &rot, poly, r, 0, 0x100);
         }
     }
 }

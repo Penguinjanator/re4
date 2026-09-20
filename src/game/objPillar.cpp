@@ -711,7 +711,7 @@ void objPillarEatSet(cObjPillar* obj)
         poly[3].x = -r;
         poly[3].y = 0.0f;
         poly[3].z = r;
-        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, 0, 0, h);
+        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0);
     } else {
         w->pEat->m_Flag |= 4;
         w->pEat->setCoord(&obj->pos, &obj->ang);

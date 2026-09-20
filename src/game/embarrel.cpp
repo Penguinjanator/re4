@@ -910,7 +910,7 @@ void emBarrelEatSet(cEmBarrel* em)
         v[3].x = -r;
         v[3].y = 0.0f;
         v[3].z = r;
-        w->sat = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, 1250.0f);
+        w->sat = EatMgr.create(&em->pos, &em->ang, v, 1250.0f, 0x400000, 0);
     } else {
         w->sat->m_Flag |= 4;
         w->sat->setCoord(&em->pos, &em->ang);

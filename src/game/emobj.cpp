@@ -11,11 +11,6 @@ void YarareInit(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h);  
 void YarareInitCube(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h, f32 rad);
 }
 
-// cSatMgr::create(pos, rot, poly, attr, flag, h) with the `lfs h` argument move issued before the
-// `lwz attr/flag` moves (atari_init.h: GCC emits the moves in declaration order, the original
-// build issued the FP argument first).
-cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
-
 // Constructor-time defaults of an object enemy: no motion / collision flags, no collision
 // pieces, effect and etc ids 0xFF.
 void cEmObj::EmObjInit()
@@ -96,7 +91,7 @@ void cEmObj::setSatMain()
     poly[3].y = w->satPos.y;
     poly[3].z = w->satPos.z + w->satSize.z;
     if (w->pSat == 0) {
-        w->pSat = SatMgrCreateF(&SatMgr, &pos, &ang, poly, w->satSize.y, w->satN, w->satFlag);
+        w->pSat = SatMgr.create(&pos, &ang, poly, w->satSize.y, w->satN, w->satFlag);
     } else {
         w->pSat->m_Flag |= 4;
         w->pSat->setCoord(&pos, &ang);
@@ -154,7 +149,7 @@ void cEmObj::setEatMain()
     poly[3].y = w->eatPos.y;
     poly[3].z = w->eatPos.z + w->eatSize.z;
     if (w->pEat == 0) {
-        w->pEat = SatMgrCreateF(&EatMgr, &pos, &ang, poly, w->eatSize.y, w->eatN, w->eatFlag);
+        w->pEat = EatMgr.create(&pos, &ang, poly, w->eatSize.y, w->eatN, w->eatFlag);
     } else {
         w->pEat->m_Flag |= 4;
         w->pEat->setCoord(&pos, &ang);

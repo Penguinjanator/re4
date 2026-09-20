@@ -3059,7 +3059,7 @@ address	size	section	unit	scope	name	demangled
 0x800CB5C0	0x28	.text	game/atari.cpp	global	getEffInfo__7cEatMgri	cEatMgr::getEffInfo
 0x800CB5E8	0xA4	.text	game/atari.cpp	global	log__7cEatMgrPCce	cEatMgr::log
 0x800CB68C	0xB8	.text	game/atari.cpp	global	create__7cSatMgrPviP3VecT3Uc	cSatMgr::create
-0x800CB744	0xB0	.text	game/atari.cpp	global	create__7cSatMgrP3VecN21iif	cSatMgr::create
+0x800CB744	0xB0	.text	game/atari.cpp	global	create__7cSatMgrP3VecN21fUlUl	cSatMgr::create
 0x800CB7F4	0x298	.text	game/atari.cpp	global	polySphereCk__7cSatMgrP3VecT1fiT1i	cSatMgr::polySphereCk
 0x800CBA8C	0xE4	.text	game/atari.cpp	global	blkPolySphereCk__FP4cSatP9cSatBlockP3VecT2fiT2i	blkPolySphereCk
 0x800CBB70	0x190	.text	game/atari.cpp	global	blkPolySphereCkCore__FP4cSatP9cSatBlockP3VecT2fiT2i	blkPolySphereCkCore

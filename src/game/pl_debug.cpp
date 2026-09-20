@@ -179,7 +179,7 @@ void satMakeTest(cPlayer* pl)
             }
             RotVector(&z0, &pl->ang, &pos);
             PSVECAdd(&pos, &pl->pos, &pos);
-            pS0 = sat->create(&pos, &pl->ang, quad, 0, 0x200, 0.0f);
+            pS0 = sat->create(&pos, &pl->ang, quad, 0.0f, 0, 0x200);
         }
     }
 }

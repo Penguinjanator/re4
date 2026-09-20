@@ -110,11 +110,6 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
-// COMPILER-DIFF: #1 -- cSatMgr::create redeclared with the float parameter before the two ints: the
-// `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
-cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
-
-
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
 {
@@ -1851,8 +1846,8 @@ void R31bDoorSatSub(int no, u32 objId, int satNo)
     cObj* obj = SmdGetObjPtr(objId);
 
     if (obj) {
-        r31b_work.p->sat[satNo] = SatCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0, 0x100);
-        r31b_work.p->eat[satNo] = SatCreateF(&EatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+        r31b_work.p->sat[satNo] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0x100);
+        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
         r31b_work.p->satPos[satNo] = obj->pos;
     }
 }
@@ -1924,8 +1919,8 @@ void R31bKoushiSatSub1(int no, u32 objId, int satNo, int type)
     }
     obj = SmdGetObjPtr(objId);
     if (obj) {
-        r31b_work.p->sat[satNo] = SatCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0, 0x100);
-        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, 0x40, 0x100, h);
+        r31b_work.p->sat[satNo] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0x100);
+        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
     }
 }
 

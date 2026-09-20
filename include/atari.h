@@ -159,7 +159,7 @@ public:
 
     // Runtime scenario piece from a 4-corner polygon (createFloorSat / createBoxSat / createSat by
     // flag bits 0x200 / 0x100); returns the registered piece or NULL.
-    cSat* create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h);
+    cSat* create(Vec* pos, Vec* rot, Vec* poly, f32 h, u32 attr, u32 flag);
     // Piece from prebuilt collision data (obj15 cObjGatling::setEat: EatMgr.create(data, 0, &pos, &rot, type)).
     cSat* create(void* data, int flag, Vec* pos, Vec* rot, u8 type);
     // Ray from `top` down to `bottom`; returns the hit attribute, hit point in `hit`; `attr`

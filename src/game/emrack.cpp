@@ -580,7 +580,7 @@ void emRackSatSet(cEmRack* em)
         h = w->Size_y;
     }
     if (w->pEatUnder == 0) {
-        w->pEatUnder = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatUnder = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatUnder->m_Flag |= 4;
         w->pEatUnder->setCoord(&em->pos, &em->ang);
@@ -594,7 +594,7 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1000.0f;
     h = 500.0f;
     if (w->pEatCenter == 0) {
-        w->pEatCenter = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatCenter = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatCenter->m_Flag |= 4;
         w->pEatCenter->setCoord(&em->pos, &em->ang);
@@ -605,7 +605,7 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1500.0f;
     h = 500.0f;
     if (w->pEatTop == 0) {
-        w->pEatTop = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatTop = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatTop->m_Flag |= 4;
         w->pEatTop->setCoord(&em->pos, &em->ang);

@@ -694,7 +694,7 @@ cSat* cSatMgr::create(void* data, int flag, Vec* pos, Vec* rot, u8 type)
 // Creates a collision piece from a quad: a floor slab (flag 0x200), a closed box of height h
 // (flag 0x100) or open side walls (else), all with attribute `attr`; the built file is freed
 // with the piece (m_Flag bit1).
-cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h)
+cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, f32 h, u32 attr, u32 flag)
 {
     cSatFile* f;
     cSat* sat;

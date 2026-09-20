@@ -687,7 +687,7 @@ void cFence::init(R20dFenceData* d)
     hz = d->d * 0.5f + 100.0f;
     Vec rot = {0.0f, 0.0f, 0.0f};
     Vec v[4] = {{-hx, -1100.0f, -hz}, {hx, -1100.0f, -hz}, {hx, -1100.0f, hz}, {-hx, -1100.0f, hz}};
-    sat = SatMgr.create(&obj->pos, &rot, v, 0x40, 0, 4100.0f);
+    sat = SatMgr.create(&obj->pos, &rot, v, 4100.0f, 0x40, 0);
 }
 
 // Area 0x19: marks all three fences raised (Room_flg bits 0/1/8) — the exit shortcut after the puzzle.

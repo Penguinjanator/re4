@@ -2043,7 +2043,7 @@ void emDoorSatSet(cEmDoor* em)
             h = 800.0f;
             break;
         }
-        w->pSat[1] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+        w->pSat[1] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
     } else {
         w->pSat[1]->m_Flag |= 4;
         w->pSat[1]->setCoord(&em->pos, &em->ang);
@@ -2064,7 +2064,7 @@ void emDoorSatSet(cEmDoor* em)
                 h = 600.0f;
                 break;
             }
-            w->pSat[2] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+            w->pSat[2] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
         } else {
             w->pSat[2]->m_Flag |= 4;
             w->pSat[2]->setCoord(&em->pos, &em->ang);
@@ -2076,17 +2076,17 @@ void emDoorSatSet(cEmDoor* em)
             case 4:
                 SAT_POLY(-w->Width * 2.0f + 320.0f, -320.0f, 1300.0f);
                 h = 580.0f;
-                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
                 break;
             case 5:
                 SAT_POLY(-w->Width * 2.0f + 150.0f, -150.0f, 1350.0f);
                 h = 500.0f;
-                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, 0x404000, 0, h);
+                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, h, 0x404000, 0);
                 break;
             default:
                 SAT_POLY(-w->Width * 2.0f, 0.0f, 1400.0f);
                 h = w->Height - 1400.0f;
-                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+                w->pSat[3] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
                 break;
             }
         } else {
@@ -2099,12 +2099,12 @@ void emDoorSatSet(cEmDoor* em)
         case 4:
             SAT_POLY(-w->Width * 2.0f, -w->Width * 2.0f + 320.0f, 1300.0f);
             h = 580.0f;
-            w->pSat[4] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+            w->pSat[4] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
             break;
         case 5:
             SAT_POLY(-w->Width * 2.0f, -w->Width * 2.0f + 150.0f, 1300.0f);
             h = 580.0f;
-            w->pSat[4] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+            w->pSat[4] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
             break;
         }
     } else {
@@ -2116,12 +2116,12 @@ void emDoorSatSet(cEmDoor* em)
         case 4:
             SAT_POLY(-320.0f, 0.0f, 1300.0f);
             h = 580.0f;
-            w->pSat[5] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+            w->pSat[5] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
             break;
         case 5:
             SAT_POLY(-150.0f, 0.0f, 1300.0f);
             h = 580.0f;
-            w->pSat[5] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+            w->pSat[5] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
             break;
         }
     } else {

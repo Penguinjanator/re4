@@ -102,9 +102,6 @@ static SceElevatorData r318_elvLeave = {1, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826
 extern "C" void* r318_memset(void*, ...) asm("memset");
 // cObjScr (game/obj02.cpp) is not in a header: the callback setter of a scripted map object.
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
-// cSatMgr::create redeclared with the float parameter before the two ints: the `fmr f1` is issued
-// between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
-cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
 
 // Collision flag bits set through a raw (non-struct) store at the info's address: the following
 // `pPL` load stays below it (r210 AtariOnRaw).
@@ -380,10 +377,10 @@ void R318AutoDoorInit(int no, u32 id1, u32 id0)
         pos.x = d->obj0->pos.x;
         pos.y = d->obj0->pos.y;
         pos.z = d->obj0->pos.z;
-        d->sat0 = SatCreateF(&SatMgr, &pos, &rot, poly0, r, 0x40, 0);
-        d->sat1 = SatCreateF(&SatMgr, &pos, &rot, poly1, r, 0x40, 0);
-        d->eat0 = SatCreateF(&EatMgr, &pos, &rot, poly0, r, 0x40, 0);
-        d->eat1 = SatCreateF(&EatMgr, &pos, &rot, poly1, r, 0x40, 0);
+        d->sat0 = SatMgr.create(&pos, &rot, poly0, r, 0x40, 0);
+        d->sat1 = SatMgr.create(&pos, &rot, poly1, r, 0x40, 0);
+        d->eat0 = EatMgr.create(&pos, &rot, poly0, r, 0x40, 0);
+        d->eat1 = EatMgr.create(&pos, &rot, poly1, r, 0x40, 0);
     }
 }
 
