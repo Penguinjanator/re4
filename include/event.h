@@ -194,9 +194,7 @@ public:
     cLit* pLit;            // 0x118  room lit set by ExePacket_Lit
     u8 pad_11C[0x13C - 0x11C];
 
-    Event(u8 type);
-    // int-parameter alias of the constructor: EventMgr::construct passes its u32 id without a clrlwi.
-    Event* ctorI(int type) asm("__5EventUc");
+    Event(u32 type);
     virtual ~Event();
     int init(char* name, EvtHeader* data);
     int Run();

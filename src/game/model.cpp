@@ -37,8 +37,6 @@ void calcTplOffset(TEXPalette* tpl);
 void getBoundingBox(cModelData* data, ModelBound* bound);
 void drawBoundingBox(Mtx m, ModelBound* bound);
 int GetModelInfoNum(cModelInfo* info);
-// cAtariInfo lives in cModel's union (no member constructor call): constructed by hand
-cAtariInfo* AtariInfoConstruct(cAtariInfo* p) asm("__10cAtariInfo");
 }
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);
 
@@ -78,7 +76,7 @@ static inline void U8Set(u8& d, u8 v)
 // alpha_omit 0xFF.
 cModel::cModel()
 {
-    AtariInfoConstruct(&atari);
+    new (&atari) cAtariInfo;
     LightAreaInit(&litArea);
     alpha_omit = 0xFF;
     speed.x = 0.0f;

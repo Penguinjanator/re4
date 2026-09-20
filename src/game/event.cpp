@@ -227,7 +227,7 @@ EventDebug EvtDebug;
 #define EVT_FRAME_RATE 29.97f
 
 // Event unit constructor: only records the manager id.
-Event::Event(u8 t) : cUnit(1)
+Event::Event(u32 t) : cUnit(1)
 {
     Type = t;
 }
@@ -2163,7 +2163,7 @@ int EventMgr::construct(Event* p, u32 id)
     Event* e;
     int no;
 
-    e = p->ctorI(id);
+    e = new (p) Event(id);
     if (e) {
         no = EvtWorkNo(this, e);
         e->effNo = no;

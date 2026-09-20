@@ -381,32 +381,10 @@ public:
     void OpeSndStrStop();
 };
 
-// The DLL's own model managers (ss_main.cpp; the DOL's PartsMgr/ModInfoMgr are swapped out while
-// the sub screen is open). They are constructed by the DOL's cPartsMgr/cModInfoMgr constructors,
-// but the module's view of the classes has no virtual destructor: the static destructor inlines
-// cManager<T>::~cManager (stores the cManager vtable) instead of calling _._9cPartsMgr.
-class cSsPartsMgr : public cManager<cParts> {
-public:
-    cSsPartsMgr() asm("__9cPartsMgr");
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cParts* p, u32 size);
-    virtual void log(const char* fmt, ...);
-    virtual int construct(cParts* p, u32 id);
-};
-class cSsModInfoMgr : public cManager<cModelInfo> {
-public:
-    cSsModInfoMgr() asm("__11cModInfoMgr");
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cModelInfo* p, u32 size);
-    virtual void log(const char* fmt, ...);
-    virtual int construct(cModelInfo* p, u32 id);
-    // The DOL's cModInfoMgr::create (ss_model.cpp builds the models through the DLL manager).
-    cModelInfo* create(void* bin, void* tpl) asm("create__11cModInfoMgrPvT1");
-};
-extern cSsPartsMgr ssPartsMgr;
-extern cSsModInfoMgr ssModInfoMgr;
+// The DLL's own model managers (ss_main.cpp; the DOL's PartsMgr/ModInfoMgr are swapped out while the sub
+// screen is open).
+extern cPartsMgr ssPartsMgr;
+extern cModInfoMgr ssModInfoMgr;
 
 // ss_map.cpp: the sub screen's character model (MapMgr work 0), its weapon model (work 1), the
 // motion-driven flag of the character and the optional second weapon model (both .data, zeroed at

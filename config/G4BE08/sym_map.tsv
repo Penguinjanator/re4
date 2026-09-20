@@ -4369,7 +4369,7 @@ address	size	section	unit	scope	name	demangled
 0x80134624	0x60	.text	game/EtcModel.cpp	local	__static_initialization_and_destruction_0_80134624	__static_initialization_and_destruction_0
 0x80134684	0x14	.text	game/EtcModel.cpp	global	Init__7cEtcTbl	cEtcTbl::Init
 0x80134698	0x2C	.text	game/EtcModel.cpp	global	global_constructors_keyed_to_EtcModelDebugDisp	global constructors keyed to EtcModelDebugDisp
-0x801346C4	0x50	.text	game/event.cpp	global	__5EventUc	Event::Event
+0x801346C4	0x50	.text	game/event.cpp	global	__5EventUl	Event::Event
 0x80134714	0x64	.text	game/event.cpp	global	_._5Event	Event::~Event
 0x80134778	0x1BC	.text	game/event.cpp	global	init__5EventPcP9EvtHeader	Event::init
 0x80134934	0x38C	.text	game/event.cpp	global	Run__5Event	Event::Run

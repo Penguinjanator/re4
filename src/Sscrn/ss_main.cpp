@@ -1083,8 +1083,8 @@ static void weaponChangeTask()
 
 // Defined after the function-local statics above: objects with constructors are emitted at their
 // definition, the statics at their declaration (.bss 0x27C..0x28C, then the managers).
-cSsPartsMgr ssPartsMgr;
-cSsModInfoMgr ssModInfoMgr;
+cPartsMgr ssPartsMgr;
+cModInfoMgr ssModInfoMgr;
 
 
 // The split object's .data is 4 bytes longer than the variables (the next unit's .data starts

@@ -112,18 +112,6 @@ static void r100_mes_gaikotu();
 static void r100_mes_gaikotu_bgm_down();
 static void r100_mes_gaikotu_bgm_up();
 
-// em.h's cEm carries the player fields (EmMgr's stride 0xDE0); the class the original puts on the
-// stack here is 0x3E0 (two of them make the 0x818 frame). HEADER DEBT: make these `cEm em;` once
-// em.h splits the work area off (r103 has the same note).
-class R100Em : public cModel {
-public:
-    u8 pad_320[0x378 - 0x320];
-    PlArc* subArc;        // 0x378
-    u8 pad_37C[0x3E0 - 0x37C];
-
-    R100Em() asm("__3cEm");
-};
-
 // Room init (the village approach: Leon leaves the police car). JumpPoint 1 / debug trigger 1 skips to
 // the after state (Room_flg bits 10/3/13). Outside region 0 the hanging-corpse objects are built from the
 // Ganado module (Japan hides them, area 0x17 off). Before the officers' death (bit 10): events 5/7/8/9
@@ -160,8 +148,8 @@ void R100Init()
         ReadModule* m = SearchEmModule(0x12);
 
         if (m) {
-            R100Em em;
-            R100Em* pe = &em;
+            cEm em;
+            cEm* pe = &em;
 
             em.subArc = (PlArc*) m->pArc;
             W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x31), ROOM_ARC_PTR(pG->pRoom, 0x32), &pos, &rot, 0x10, 1);
@@ -205,8 +193,8 @@ void R100Init()
             pLog->err(0, 0, "R100Init : set failed");
         }
         {
-            R100Em em;
-            R100Em* pe = &em;
+            cEm em;
+            cEm* pe = &em;
 
             // The original's store is a scalar one through the pointer (the pG load after it is not
             // hoisted above it, and the address stays `0x378(pe)`): a member store is a struct store
