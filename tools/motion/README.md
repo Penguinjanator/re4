@@ -143,7 +143,7 @@ host helper is built with `make` in `host/`; on Windows that needs a C++ toolcha
    sequence tables. The 12 failures are named: 11 weapon motions (wep09/10/21/24/31/32/47) whose
    last attach-camera joints (channel 6) have key blocks in the padding, at the end, or on a
    duplicated offset, and pl14:8 (a 1-joint stub whose key block is padding); the game only
-   evaluates channel-6 joints with an attach camera set.
+   evaluates channel-6 joints with an attach camera set. See "Malformed motions" below.
 2. **The evaluation is the game's code** (`host/`): `src/game/motion.cpp` (MotionSetCore,
    MotionMove, MotionMoveCore, HermiteInterpolation, Fcc_get_data_*), `src/game/ik.cpp`
    (IKInit, InverseKinematics), `cModel::partsMatCalc/partsWorldCalc/getPartsPtr/matBlend` from
@@ -192,6 +192,28 @@ host helper is built with `make` in `host/`; on Windows that needs a C++ toolcha
    glTF, asserts the bone count and the action frame range, compares bone world positions with the
    helper's parts world positions at four frames, checks the mesh (above), and renders four frames
    (workbench, textured).
+
+## Malformed motions on the disc (the rifle modules)
+
+The only motion data on disc 1 that does not round-trip is in the two rifle modules and their
+byte copies: `wep09:28` (bolt-action rifle), `wep10:16` and `wep10:28` (semi-auto rifle), and the
+same entries in `wep21`/`wep24` (= wep09) and `wep31`/`wep32`/`wep47` (= wep10); plus `pl14:8`, a
+one-joint stub. `wep10:16` is the semi-auto's draw animation (`pl_rifle.cpp` `WEP_ARC_PTR(0x14)`);
+`:28` is archive slot 0x20 (not referenced by `pl_rifle.cpp`). In each, the last joints are tagged
+for attach-camera channel 6 (`kind` word bits 8-11 = 6, e.g. `0xa602`) and their key blocks are
+broken: a key count of 16401 that runs past the end of the blob, an offset at or past the end, or a
+duplicate of another joint's offset. Everything else in those motions is normal: keys every 3 frames
+with Hermite tangents, like the rest of the player's motions.
+
+The GameCube never touches them. `MotionMoveCore` (`src/game/motion.cpp`, the `ch == 6 || ch == 7`
+branch) skips channel-6/7 joints unless the MotionWork has an attach camera (`pAttachCam`, set by
+event cameras attached to a motion), and the player has none while handling a rifle. So the data is
+inert on GC; an evaluator that walks every joint of the blob (a re-implementation, or a port that
+dropped the channel test) would read garbage there. This is worth knowing for the PC/UHD port's
+sniper-rifle animation, which its developers capped at 30 fps for a reason nobody outside Capcom
+has explained: the key spacing rules out "authored at a low frame rate", and this corrupt tail is the
+one thing unusual about exactly those animations. `verify` prints the 12 entries with the reason each
+fails.
 
 ## Files
 
