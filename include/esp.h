@@ -300,7 +300,7 @@ int EspGetTplAddr(int no, void** out);
 // game/est.cpp. void: no caller reads r3 after the call, and with an `int` result the call's
 // set of r3 changes the haifa depend counts, moving `li r3,0` to the end of the arg setup
 // (obj01/obj10 move00, obj10AddSpeed).
-void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, void* g, void* h);
+void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, u8 d, u16 e, u8 f, void* g, void* h);
 }
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();

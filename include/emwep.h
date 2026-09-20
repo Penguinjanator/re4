@@ -92,7 +92,7 @@ public:
     void setEffDamage(u8 id, u8 type);
     void setEffHit(u8 id, u8 type);
     void setEffWater(u8 id, u8 type);
-    void setEffAlways(int id, int type);
+    void setEffAlways(u8 id, u8 type);
     void setEffAlways2(u8 id, u8 type, u8 parts, Vec* ofs, u16 wait);
     void setYarare(Vec* size, f32 w, f32 h);
     void setYarareCube(f32 x, f32 y, f32 z, Vec* size);

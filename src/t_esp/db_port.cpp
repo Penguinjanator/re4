@@ -48,7 +48,7 @@ void memclr_asm(void* p, u32 size);
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h);
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 
 extern GXTexObj fontTexObj;  // game/eprintf.cpp
 extern Mtx fontTMtx;
@@ -470,7 +470,7 @@ extern "C" void EprintfDrawing(char* s, f32 x, f32 y, f32 r, f32 g, f32 b, f32 a
 extern "C" void SeqSet(EspSeqData* head, int mode)
 {
     cModel* m;
-    u32 f;
+    u16 f;
     // COMPILER-DIFF: #13 (int shape, em27DmCk): the EstSet stack zero is a function-scope constant with
     // one use in another block, so update_equiv_regs moves the `li` next to the store (r0). It is assigned
     // right before the evtToolOn() test: for sched1 the set is a free insn of that block and takes the t1 slot
@@ -2344,7 +2344,7 @@ extern "C" int symbol_check(char** pp, const char* sym)
 }
 
 // Plays core effect `id` at the origin (EstSet without an owner).
-extern "C" void CoreEstSet(int id)
+extern "C" void CoreEstSet(u8 id)
 {
     EstSet(0, -1, 0, 0, 0, id, 1, 0, 0, 0);
 }

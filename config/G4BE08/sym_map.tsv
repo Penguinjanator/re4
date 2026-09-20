@@ -253,7 +253,7 @@ address	size	section	unit	scope	name	demangled
 0x800192AC	0x10	.text	game/emwep.cpp	global	setEffDamage__6cEmWepUcUc	cEmWep::setEffDamage
 0x800192BC	0x10	.text	game/emwep.cpp	global	setEffHit__6cEmWepUcUc	cEmWep::setEffHit
 0x800192CC	0x10	.text	game/emwep.cpp	global	setEffWater__6cEmWepUcUc	cEmWep::setEffWater
-0x800192DC	0x4C	.text	game/emwep.cpp	global	setEffAlways__6cEmWepii	cEmWep::setEffAlways
+0x800192DC	0x4C	.text	game/emwep.cpp	global	setEffAlways__6cEmWepUcUc	cEmWep::setEffAlways
 0x80019328	0x3C	.text	game/emwep.cpp	global	setEffAlways2__6cEmWepUcUcUcP3VecUs	cEmWep::setEffAlways2
 0x80019364	0x84	.text	game/emwep.cpp	global	setYarare__6cEmWepP3Vecff	cEmWep::setYarare
 0x800193E8	0x84	.text	game/emwep.cpp	global	setYarareCube__6cEmWepfffP3Vec	cEmWep::setYarareCube
@@ -3921,7 +3921,7 @@ address	size	section	unit	scope	name	demangled
 0x8010D3B8	0x214	.text	game/emrock.cpp	global	setThrow2__7cEmRockP3VecP9EmAtkInfo	cEmRock::setThrow2
 0x8010D5CC	0x1C	.text	game/emrock.cpp	global	setSeFall__7cEmRockUcUcUc	cEmRock::setSeFall
 0x8010D5E8	0x10	.text	game/emrock.cpp	global	setEffFall__7cEmRockUcUc	cEmRock::setEffFall
-0x8010D5F8	0x4C	.text	game/emrock.cpp	global	setEffAlways__7cEmRockii	cEmRock::setEffAlways
+0x8010D5F8	0x4C	.text	game/emrock.cpp	global	setEffAlways__7cEmRockUcUc	cEmRock::setEffAlways
 0x8010D644	0x84	.text	game/emrock.cpp	global	setYarareCube__7cEmRockfffP3Vec	cEmRock::setYarareCube
 0x8010D6C8	0x28	.text	game/emrock.cpp	global	setTransMode__7cEmRocki	cEmRock::setTransMode
 0x8010D6F0	0x18C	.text	game/emrock.cpp	global	emRockAtkScrCk	emRockAtkScrCk
@@ -4239,7 +4239,7 @@ address	size	section	unit	scope	name	demangled
 0x8012BCFC	0x34	.text	game/espgen45.cpp	global	Estgen45SetColor	Estgen45SetColor
 0x8012BD30	0x70	.text	game/espgen45.cpp	global	Estgen45SetParam	Estgen45SetParam
 0x8012BDA0	0x84	.text	game/est.cpp	global	EstSet	EstSet
-0x8012BE24	0x25C	.text	game/est.cpp	global	EstSet__FP6cModeliP3VecT2P10EspSeqDataiiPvUlT7	EstSet
+0x8012BE24	0x25C	.text	game/est.cpp	global	EstSet__FP6cModeliP3VecT2P10EspSeqDataUsUcPvUlT7	EstSet
 0x8012C080	0x108	.text	game/est.cpp	global	AreaSstSet	AreaSstSet
 0x8012C188	0x6C	.text	game/est.cpp	global	GetSstDispFlag	GetSstDispFlag
 0x8012C1F4	0xC4	.text	game/est.cpp	global	SetSstDispFlag	SetSstDispFlag

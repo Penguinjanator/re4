@@ -1241,7 +1241,7 @@ extern "C" void Evt_R11CS10_Func(Event* e)
 }
 
 // Per-cut effect of the s20 event on the render texture.
-static inline void r11c_evtEsp(Event* e, int no)
+static inline void r11c_evtEsp(Event* e, u8 no)
 {
     if (e->NowFrame == 0) {
         EffectEspDelete(W->tex->mask | 0x3001, 0, 0, 0);

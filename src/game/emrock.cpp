@@ -1305,7 +1305,7 @@ void cEmRock::setEffFall(u8 id, u8 type)
 }
 
 // Attaches a continuous est (trail / glow) to the rock under its Core_kind.
-void cEmRock::setEffAlways(int id, int type)
+void cEmRock::setEffAlways(u8 id, u8 type)
 {
     EstSet(this, -1, 0, 0, id, type, 0, EMROCK_WK(this)->espKind, this, 0);
 }

@@ -614,7 +614,7 @@ static void R226EventPassageSwitchMain(int side)
     s8 cut2;
     u8 estNo;
     int cutX;
-    int estX;
+    u8 estX;
     cObj* o;
 
     if (side == 0) {

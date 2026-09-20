@@ -75,7 +75,7 @@ public:
     void setThrow2(Vec* spd, EmAtkInfo* atk);
     void setSeFall(u8 blk, u8 no, u8 vol);
     void setEffFall(u8 id, u8 type);
-    void setEffAlways(int id, int type);
+    void setEffAlways(u8 id, u8 type);
     void setYarareCube(f32 x, f32 y, f32 z, Vec* size);
     void setTransMode(int on);
     void setPlMotion(void** mot);

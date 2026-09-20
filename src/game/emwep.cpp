@@ -2399,7 +2399,7 @@ void cEmWep::setEffWater(u8 id, u8 type_)
 }
 
 // Attaches a continuous est (torch flame, chainsaw smoke) to the weapon under its Core_kind.
-void cEmWep::setEffAlways(int id, int type_)
+void cEmWep::setEffAlways(u8 id, u8 type_)
 {
     EstSet(this, -1, 0, 0, id, type_, 0x800, EMWEP_WK(this)->espKind, this, 0);
 }

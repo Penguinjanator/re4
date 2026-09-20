@@ -6,6 +6,7 @@
 #include "dmg.h"
 #include "emrack.h"
 #include "emhit.h"
+#include "esp.h"
 #include "etc_model.h"
 #include "snd.h"
 #include "motion.h"
@@ -18,10 +19,6 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
-// esp.h declares the effect id as int; this unit passes the u8 `eff` byte straight into r7
-// (emRack_R1_Break: the byte load is shared by the compare and the calls), so it carries the
-// prototype with a u8 parameter.
-void EstSet(cModel* a, int b, Vec* pos, Vec* rot, u8 c, int d, int e, int f, void* g, void* h);
 }
 
 typedef void (*EmRackFunc)(cEmRack*);

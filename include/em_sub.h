@@ -23,9 +23,9 @@ extern u32 No_drop_cnt2;
 extern "C" {
 void Em_R0_Scenario(cEm* em);
 void EmDmBloodSet(cEm* em);
-void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f);
-void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id);
-void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id);
+void EmDmBloodSet3(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f);
+void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id);
+void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id);
 // Hit box of `em` touched by the capsule of the 8-corner `box`; the best one by squared distance.
 YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag);
 YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);

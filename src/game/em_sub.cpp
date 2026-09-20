@@ -31,10 +31,6 @@
 extern "C" {
 }
 
-// EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to
-// them is masked at the call (`clrlwi 24`, EmDmBloodSet2/3).
-void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
-
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
 public:
@@ -332,7 +328,7 @@ void EmDmBloodSet(cEm* em)
 }
 
 // Effect `no` at the damage position (scattered by 50 when `rnd` is set), owned by `em`.
-void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
+void EmDmBloodSet2(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
 {
     Vec pos;
     Vec dir;
@@ -345,11 +341,11 @@ void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &dir, no, prm, esp_core_flg, f, (u32) em, 0);
+    EstSet(0, -1, &pos, &dir, no, prm, esp_core_flg, f, em, 0);
 }
 
 // EmDmBloodSet2 with the effect aligned to the enemy's rotation instead of the damage direction.
-void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
+void EmDmBloodSet3(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
 {
     Vec pos;
     Vec dir;
@@ -362,11 +358,11 @@ void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, (u32) em, 0);
+    EstSet(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, em, 0);
 }
 
 // Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
-void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
+void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 {
     cPlayer* pl = pPL;
     YARARE_INFO* hit = &pl->hitInfo;
@@ -417,7 +413,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 }
 
 // Blood at the player's registered damage position.
-void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
+void EmPlBloodSet2(cModel* m, Vec* p, u32 type, u8 eff_id, u8 est_id)
 {
     Vec pos;
     Vec dir;
@@ -438,7 +434,7 @@ void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
 }
 
 // EmPlBloodSet for the partner.
-void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
+void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 {
     cSubChar* sub = pSUB;
     YARARE_INFO* hit;

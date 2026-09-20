@@ -22,12 +22,12 @@
 cModel* EspEvModList[0x80];
 
 // Effect set table: starts effect controller 10 on the est data block `head`.
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h);
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 
 // The common entry: starts est table (owner c, id d) with parts b (-1 = the table's default) on the
 // model a (0 = none), at pos/rot (NULL = the table's own), core flags e, kind f, Core_pEm g and an
 // optional EspSeqOpt h.
-void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, void* g, void* h)
+void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, u8 d, u16 e, u8 f, void* g, void* h)
 {
     EspSeqData* head = EspGetEstAddr(c, d, 0);
 
@@ -38,7 +38,7 @@ void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, vo
 // 0x2000 during a movie / bit 0 in the no-suspend mode from Status_flg[2]), the call number, parts,
 // offset (pos != NULL sets Flg bit 1 = explicit position) and rotation (head->rot is in degrees),
 // and a random seed. Debug_flg[1] 0x01000000 disables all effects.
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h)
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h)
 {
     EspgenWork* w;
     Espgen10Work* p;

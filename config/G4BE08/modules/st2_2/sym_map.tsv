@@ -100,7 +100,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00006BA0	0x1E4	st2_2/r213.cpp	local	R213BridgeManager__Fv	R213BridgeManager
 .text	0x00006D84	0x1CC	st2_2/r213.cpp	global	R213BridgeAngMove__Fif	R213BridgeAngMove
 .text	0x00006F50	0xE0	st2_2/r213.cpp	global	R213BridgeAngSet__Ff	R213BridgeAngSet
-.text	0x00007030	0x1C4	st2_2/r213.cpp	global	R213ChainAngSet__FiUliif	R213ChainAngSet
+.text	0x00007030	0x1C4	st2_2/r213.cpp	global	R213ChainAngSet__FiUlifi	R213ChainAngSet
 .text	0x000071F4	0x1B4	st2_2/r213.cpp	global	R213ChainDamageCheck__FiUlii	R213ChainDamageCheck
 .text	0x000073A8	0x94	st2_2/r213.cpp	global	R213ChainBreakNumCalc__Fv	R213ChainBreakNumCalc
 .text	0x0000743C	0x370	st2_2/r213.cpp	local	R213EventSwitchMain__Fv	R213EventSwitchMain
