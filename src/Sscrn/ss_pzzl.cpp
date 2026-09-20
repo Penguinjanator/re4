@@ -2810,14 +2810,14 @@ int itemCommandType(ItemWork* item)
         case 0xA8:
             return 3;
         }
-        if (itemCombineCheckI(item->id) == 0) {
+        if (itemCombineCheck(item->id) == 0) {
             return 4;
         }
         return 5;
     case 0xE:
         return 9;
     }
-    if (itemCombineCheckI(item->id) == 0) {
+    if (itemCombineCheck(item->id) == 0) {
         return 4;
     }
     return 5;

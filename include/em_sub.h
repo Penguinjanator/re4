@@ -5,6 +5,7 @@
 #include "vec.h"
 #include "em.h"
 #include "emhit.h"
+#include "item.h"
 
 // game/em_sub.cpp: the shared enemy helper library (hit boxes, damage, blood effects, weapon
 // target lists, catch motions, item drops). EmGetDmPos, EmDmBloodSet2, EmPlBloodSet2,
@@ -61,8 +62,8 @@ void RandomItemSet(cEm* em);
 int RandomItemCk(int id, int* outId, int* outNum, int flag);
 int CheckInWater(cModel* m, int parts);
 int HandgunCk(int wep);
-int TrolleyItemSetCk(Vec* pos, u16 id, int num);
-int BullItemSetCk(Vec* pos, u16 id, int num);
+int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num);
+int BullItemSetCk(Vec* pos, ITEM_ID id, int num);
 void adjust_add_set(Vec* v);
 }
 

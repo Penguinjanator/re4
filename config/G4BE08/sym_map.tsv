@@ -300,10 +300,10 @@ address	size	section	unit	scope	name	demangled
 0x8001DFC0	0x10	.text	game/item.cpp	global	order_cmp	order_cmp
 0x8001DFD0	0xC8	.text	game/item.cpp	global	ordering__8cItemMgrUs	cItemMgr::ordering
 0x8001E098	0x3C	.text	game/item.cpp	global	addMoney	addMoney
-0x8001E0D4	0x2E8	.text	game/item.cpp	global	get__8cItemMgrii	cItemMgr::get
+0x8001E0D4	0x2E8	.text	game/item.cpp	global	get__8cItemMgrUsi	cItemMgr::get
 0x8001E3BC	0x470	.text	game/item.cpp	global	use__8cItemMgrP8ItemWork	cItemMgr::use
 0x8001E82C	0x144	.text	game/item.cpp	global	erase__8cItemMgrP8ItemWork	cItemMgr::erase
-0x8001E970	0x38	.text	game/item.cpp	global	dump__8cItemMgri	cItemMgr::dump
+0x8001E970	0x38	.text	game/item.cpp	global	dump__8cItemMgrUs	cItemMgr::dump
 0x8001E9A8	0x54	.text	game/item.cpp	global	dump__8cItemMgrP8ItemWork	cItemMgr::dump
 0x8001E9FC	0x3C	.text	game/item.cpp	global	dumpAll__8cItemMgrP8ItemWork	cItemMgr::dumpAll
 0x8001EA38	0xAC	.text	game/item.cpp	global	dumpType__8cItemMgri	cItemMgr::dumpType
@@ -346,7 +346,7 @@ address	size	section	unit	scope	name	demangled
 0x8002074C	0x94	.text	game/item.cpp	global	WeaponId2ChargeNum	WeaponId2ChargeNum
 0x800207E0	0x44	.text	game/item.cpp	global	WeaponId2MaxLevel	WeaponId2MaxLevel
 0x80020824	0x1C8	.text	game/item.cpp	global	debugNumDisp__8cItemMgri	cItemMgr::debugNumDisp
-0x800209EC	0x5C	.text	game/item.cpp	global	debugWeapon__8cItemMgri	cItemMgr::debugWeapon
+0x800209EC	0x5C	.text	game/item.cpp	global	debugWeapon__8cItemMgrUs	cItemMgr::debugWeapon
 0x80020A48	0xC	.text	game/light_area.cpp	global	LightAreaInit	LightAreaInit
 0x80020A54	0xC	.text	game/light_area.cpp	global	LightAreaDataLoad	LightAreaDataLoad
 0x80020A60	0xD4	.text	game/light_area.cpp	global	LightAreaUpdate	LightAreaUpdate
@@ -502,7 +502,7 @@ address	size	section	unit	scope	name	demangled
 0x80028498	0x18	.text	game/mes.cpp	global	checkState__14MessageControlUl	MessageControl::checkState
 0x800284B0	0x88	.text	game/mes.cpp	global	Move__14MessageControl	MessageControl::Move
 0x80028538	0x94	.text	game/mes.cpp	global	Trans__14MessageControl	MessageControl::Trans
-0x800285CC	0x18	.text	game/mes.cpp	global	setFontSize__14MessageControliScSc	MessageControl::setFontSize
+0x800285CC	0x18	.text	game/mes.cpp	global	setFontSize__14MessageControliss	MessageControl::setFontSize
 0x800285E4	0x194	.text	game/mes.cpp	global	MesSet__14MessageControliiiUliii	MessageControl::MesSet
 0x80028778	0x38	.text	game/mes.cpp	global	Delete__14MessageControli	MessageControl::Delete
 0x800287B0	0x38	.text	game/mes.cpp	global	WaitEnd__14MessageControli	MessageControl::WaitEnd
@@ -1107,7 +1107,7 @@ address	size	section	unit	scope	name	demangled
 0x8005518C	0x180	.text	game/pl_npc.cpp	global	moveAnotherRoute__8cSubChar	cSubChar::moveAnotherRoute
 0x8005530C	0x268	.text	game/pl_npc.cpp	global	damageCheck__8cSubChar	cSubChar::damageCheck
 0x80055574	0x15C	.text	game/pl_npc.cpp	global	setDamage__8cSubCharUcifii	cSubChar::setDamage
-0x800556D0	0x34	.text	game/pl_npc.cpp	global	registPlAction__8cSubCharP3Vecf	cSubChar::registPlAction
+0x800556D0	0x34	.text	game/pl_npc.cpp	global	registPlAction__8cSubCharP3VecfUc	cSubChar::registPlAction
 0x80055704	0x16C	.text	game/pl_npc.cpp	global	waterProc	waterProc
 0x80055870	0x1C8	.text	game/pl_npc.cpp	global	moveBust__8cSubChar	cSubChar::moveBust
 0x80055A38	0x42C	.text	game/pl_npc.cpp	global	moveFace__8cSubChar	cSubChar::moveFace
@@ -3165,7 +3165,7 @@ address	size	section	unit	scope	name	demangled
 0x800D18BC	0x14	.text	game/cam_extra.cpp	global	setRange__15CameraBinocularffff	CameraBinocular::setRange
 0x800D18D0	0x3D0	.text	game/cam_extra.cpp	global	move__15CameraBinocular	CameraBinocular::move
 0x800D1CA0	0x1E4	.text	game/cam_extra.cpp	global	init__11IdBinocularP6CameraPvT2	IdBinocular::init
-0x800D1E84	0x74	.text	game/cam_extra.cpp	global	cutin__11IdBinocular	IdBinocular::cutin
+0x800D1E84	0x74	.text	game/cam_extra.cpp	global	cutin__11IdBinocularPv	IdBinocular::cutin
 0x800D1EF8	0x78C	.text	game/cam_extra.cpp	global	move__11IdBinocularPv	IdBinocular::move
 0x800D2684	0xDC	.text	game/cam_extra.cpp	global	quit__11IdBinocularPv	IdBinocular::quit
 0x800D2760	0x14	.text	game/cam_extra.cpp	global	__16CameraPushObject	CameraPushObject::CameraPushObject
@@ -4774,7 +4774,7 @@ address	size	section	unit	scope	name	demangled
 0x8014EFCC	0x8	.text	game/light.cpp	global	getEnvPtr__9cLightMgr	cLightMgr::getEnvPtr
 0x8014EFD4	0xC	.text	game/light.cpp	global	Light00_Move__FP6cLight	Light00_Move
 0x8014EFE0	0x1EC	.text	game/light.cpp	global	setModel2__9cLightMgrP6cModel	cLightMgr::setModel2
-0x8014F1CC	0x134	.text	game/light.cpp	global	setCloth__9cLightMgrP6cModel	cLightMgr::setCloth
+0x8014F1CC	0x134	.text	game/light.cpp	global	setCloth__9cLightMgrP6cModelUl	cLightMgr::setCloth
 0x8014F300	0xB4	.text	game/light.cpp	global	setEsp__9cLightMgrP12EspLightListUc	cLightMgr::setEsp
 0x8014F3B4	0x38	.text	game/light.cpp	global	lightHitCheck__FP6cModelP6cLight	lightHitCheck
 0x8014F3EC	0x94	.text	game/light.cpp	global	lightHitCheckSphere__FP6cModelP6cLight	lightHitCheckSphere

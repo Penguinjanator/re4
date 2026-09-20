@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "vec.h"
+#include "item.h"
 
 // Attache case packing puzzle (game/puzzle.cpp): pieces on a grid board.
 struct ItemWork;
@@ -134,7 +135,7 @@ extern PieceInfo piece_info[];
 extern "C" {
 PieceData* searchItemPieceData(int id, PieceInfo* tbl);
 u8* searchItemModelData(int id, PieceInfo* tbl);
-int PutInCase(u16 id, u16 num, int type);
+int PutInCase(ITEM_ID id, u16 num, int type);
 }
 
 #endif

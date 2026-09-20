@@ -3287,7 +3287,7 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
 // colour by item type. Persistent items (treasure / key, sceAtCheckSaveItem) get a save_item
 // record (saveNo -1 = allocate; -2.. = none) so they survive a room change; the others disappear
 // after 61 half-seconds. Returns the area number, -1 on failure.
-int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts)
+int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cModel* parent, int parts)
 {
     SceAtWork* w;
     void* bin;
@@ -3378,7 +3378,7 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
 
 // Pre-allocates a save_item record for a persistent item that an enemy / event will drop later
 // (`key` identifies the reservation), so the drop cannot be lost to a room change.
-void SceAtReserveItemAt(cEm* key, Vec* pos, u16 id, int num, int effType, int saveNo)
+void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, int saveNo)
 {
     int i;
 
@@ -3437,7 +3437,7 @@ void SceAtCancelItemAt(cEm* key)
 
 // Item glow colour by item type: 5 ammo / weapons (types 1-4), 4 treasure (6), 2 recovery /
 // key / money (0, 5, 7), 3 the rest; 8 for item 0x8C.
-int sceAtCheckItemEffectCol(u16 id)
+int sceAtCheckItemEffectCol(ITEM_ID id)
 {
     ItemInfo info;
 

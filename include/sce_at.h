@@ -5,6 +5,7 @@
 #include "vec.h"
 #include "area.h"
 #include "scheduler.h"
+#include "item.h"
 
 class cObj;
 class cModel;
@@ -287,10 +288,10 @@ int SceAtDestroy(int no);
 // Area of the four corners `pos` around `m`: (x37, x38, x39, height, x44, angle, angle range, x4A, prio, func, arg, flag).
 int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag);
 int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int val, SceAtField** out);
-int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts);
-void SceAtReserveItemAt(cEm* key, Vec* pos, u16 id, int num, int effType, int saveNo);
+int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cModel* parent, int parts);
+void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, int saveNo);
 void SceAtCancelItemAt(cEm* key);
-int sceAtCheckItemEffectCol(u16 id);
+int sceAtCheckItemEffectCol(ITEM_ID id);
 int sceAtCheckSaveItem(u16 id);
 void SceAtLinkEtcDead(int no, int etcNo, int on);
 void sceAtLink_check();

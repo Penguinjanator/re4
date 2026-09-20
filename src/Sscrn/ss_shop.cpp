@@ -206,14 +206,6 @@ void screenPos2worldPos(Vec* scr, Vec* out);
 void moveItem();
 }
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation). The tune level is an int local passed to the
-// s8 parameter without the `extsb` our compiler adds: int views of the ratio getters.
-extern "C" {
-f32 getPowerRatioI(u16 id, int level) asm("getPowerRatio");
-f32 getSpeedRatioI(u16 id, int level) asm("getSpeedRatio");
-f32 getReloadRatioI(u16 id, int level) asm("getReloadRatio");
-f32 getBulletRatioI(u16 id, int level) asm("getBulletRatio");
-}
 
 // The shop's own item texture table (ss_item.cpp has the inventory's `itemTexNo`).
 static int itemTexNo(int id);
@@ -2165,26 +2157,26 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
 
                 switch (type) {
                 case 0:
-                    val[0] = (int) (getPowerRatioI(id, lv - 1) * 10.0f + 0.5f);
-                    val[1] = (int) (getPowerRatioI(id, lv) * 10.0f + 0.5f);
+                    val[0] = (int) (getPowerRatio(id, lv - 1) * 10.0f + 0.5f);
+                    val[1] = (int) (getPowerRatio(id, lv) * 10.0f + 0.5f);
                     tag[0] = '1';
                     tag[1] = '4';
                     break;
                 case 1:
-                    val[0] = (int) (getSpeedRatioI(id, lv - 1) * 100.0f + 0.5f);
-                    val[1] = (int) (getSpeedRatioI(id, lv) * 100.0f + 0.5f);
+                    val[0] = (int) (getSpeedRatio(id, lv - 1) * 100.0f + 0.5f);
+                    val[1] = (int) (getSpeedRatio(id, lv) * 100.0f + 0.5f);
                     tag[0] = 'Q';
                     tag[1] = 'T';
                     break;
                 case 2:
-                    val[0] = (int) (getReloadRatioI(id, lv - 1) * 100.0f + 0.5f);
-                    val[1] = (int) (getReloadRatioI(id, lv) * 100.0f + 0.5f);
+                    val[0] = (int) (getReloadRatio(id, lv - 1) * 100.0f + 0.5f);
+                    val[1] = (int) (getReloadRatio(id, lv) * 100.0f + 0.5f);
                     tag[0] = 'a';
                     tag[1] = 'd';
                     break;
                 case 3:
-                    val[0] = (int) getBulletRatioI(id, lv - 1);
-                    val[1] = (int) getBulletRatioI(id, lv);
+                    val[0] = (int) getBulletRatio(id, lv - 1);
+                    val[1] = (int) getBulletRatio(id, lv);
                     tag[0] = 'q';
                     tag[1] = 't';
                     break;
@@ -2619,7 +2611,7 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
             }
             if (sw->lvType == 3 || sw->lvType == 4) {
                 ItemWork* item = sw->item;
-                item->bullet = (item->bullet & 0xE000) | (WeaponId2ChargeNumI(item->id, (item->lv8[1] & 0xF) + 1) & 0x1FFF);
+                item->bullet = (item->bullet & 0xE000) | (WeaponId2ChargeNum(item->id, (item->lv8[1] & 0xF) + 1) & 0x1FFF);
             }
             if (ItemMgr.pArm == sw->item) {
                 ItemMgr.arm(ItemMgr.pArm);
@@ -2735,22 +2727,22 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
         }
         switch (type) {
         case 0:
-            val = (int) (getPowerRatioI(id, lv) * 10.0f + 0.5f);
+            val = (int) (getPowerRatio(id, lv) * 10.0f + 0.5f);
             numBase = 0x61;
             barBase = 0x65;
             break;
         case 1:
-            val = (int) (getSpeedRatioI(id, lv) * 100.0f + 0.5f);
+            val = (int) (getSpeedRatio(id, lv) * 100.0f + 0.5f);
             numBase = 0x71;
             barBase = 0x75;
             break;
         case 2:
-            val = (int) (getReloadRatioI(id, lv) * 100.0f + 0.5f);
+            val = (int) (getReloadRatio(id, lv) * 100.0f + 0.5f);
             numBase = 0x81;
             barBase = 0x85;
             break;
         case 3:
-            val = (int) getBulletRatioI(id, lv);
+            val = (int) getBulletRatio(id, lv);
             numBase = 0x91;
             barBase = 0x95;
             break;

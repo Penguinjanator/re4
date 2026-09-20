@@ -2692,8 +2692,10 @@ int GetBulletPoint()
         pt = n / 2 + 1;
     }
     pt += ItemMgr.bulletNumTotal(0x18) * 2;
-    pt += (u32) ItemMgr.bulletNumTotal(0x20) / 5 + 1;
-    pt += (u32) ItemMgr.bulletNumTotal(0x6A) / 5 + 1;
+    n = ItemMgr.bulletNumTotal(0x20);
+    pt += n / 5 + 1;
+    n = ItemMgr.bulletNumTotal(0x6A);
+    pt += n / 5 + 1;
     ItemMgr.bulletNumTotal(0x72);
     return pt + 5;
 }
@@ -3437,7 +3439,7 @@ void GetPlPos(Vec* out, cEm* em, f32 t)
 }
 
 // Item dropped on the mine cart (room 21B): created on the cart the position is above; 1 when so.
-int TrolleyItemSetCk(Vec* pos, u16 id, int num)
+int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
 {
     Vec out;
     u8 parts;
@@ -3464,7 +3466,7 @@ int TrolleyItemSetCk(Vec* pos, u16 id, int num)
 }
 
 // Item dropped on the bulldozer (room 30F).
-int BullItemSetCk(Vec* pos, u16 id, int num)
+int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
 {
     Vec out;
     u8 parts;

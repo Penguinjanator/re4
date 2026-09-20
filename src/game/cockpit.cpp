@@ -17,7 +17,6 @@
 
 // game/item.cpp: life bar level (0..levels) of `max` against `base`
 int lifeLevel(int levels, s16 max, int base);
-extern "C" u16 WeaponId2BulletId(u16 id, int attr);
 
 #define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
 
