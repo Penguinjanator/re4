@@ -155,7 +155,7 @@ void em26DmCk(cEm26* em)
     case 8:
     case 0x21:
         if (near) {
-            Camera* cam = &pG->Cam;
+            Camera* cam = &pG->Camera;
             cModel* p = em->getPartsPtr(0);
 
             if ((cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
@@ -599,7 +599,7 @@ int em26AtkCk(cEm26* em)
                 w->atkHit = 1;
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             return 1;
         }
     }

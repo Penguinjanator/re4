@@ -363,7 +363,7 @@ void R332Init()
             // The reference-view store keeps the following `pG` load below it (r30c PSetPtr).
 #line 372 "D:/Bio4/Prog/r332.cpp"
             PSet(crane->p2A4, MEM_ALLOC(0x98, 1, 0xd));
-            R332_ARR_SET(hit[0], i * 4, SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 0, 1));
+            R332_ARR_SET(hit[0], i * 4, SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0, 1));
             if (r332_work->hit[i]) {
                 r332_work->hit[i]->setParent(crane, 4, 0);
             }
@@ -1363,7 +1363,7 @@ static void R332ExecCrane(int no)
         case 1:
             if (MotionGetState(pPL)) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x35), 5, 0, 0x204, 0);
-                r332_work->cam = pG->Cam;
+                r332_work->cam = pG->Camera;
                 step++; // `li r8,2` before the block copy, `mr r28,r8` after it (cse folds step == 1 in the case arm)
             }
             break;

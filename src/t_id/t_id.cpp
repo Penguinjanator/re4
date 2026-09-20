@@ -187,7 +187,7 @@ static void toolIdQuit(IdTool* w)
     TOOL_FLAG(0x54) |= 0x800;
     TOOL_FLAG(0x60) &= ~0x8000;
     TOOL_FLAG(0x64) &= ~0x100000;
-    pG->Cam = w->camSave;
+    pG->Camera = w->camSave;
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     ToolWorkPop(0);
     TaskSignal(0);
@@ -3842,16 +3842,16 @@ void toolIdSetCamera(IdTool* w)
     f32 fovy = 55.0f;
     f32 t;
 
-    w->camSave = pG->Cam;
+    w->camSave = pG->Camera;
     w->scrW = 640;
     w->scrH = 480;
     t = tanf(fovy * 0.5f * PI / 180.0f);
     pos.z = (f32) w->scrH * 0.5f / t;
-    pGS->Cam.param.pos = pos;
-    pGS->Cam.param.at = at;
-    pGS->Cam.param.roll = roll;
-    pGS->Cam.param.fovy = fovy;
-    CameraSetOrientationRoll(&pGS->Cam);
+    pGS->Camera.param.pos = pos;
+    pGS->Camera.param.at = at;
+    pGS->Camera.param.roll = roll;
+    pGS->Camera.param.fovy = fovy;
+    CameraSetOrientationRoll(&pGS->Camera);
 }
 
 // Snaps `in` to the grid step.

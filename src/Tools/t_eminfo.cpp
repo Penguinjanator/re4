@@ -1367,7 +1367,7 @@ void eminfoCameraMove()
         W->camMode ^= 1;
     }
     if (W->camMode) {
-        CamDbg.move(&pG->Cam, Joy, 0);
+        CamDbg.move(&pG->Camera, Joy, 0);
         BitSet(W->joy.trg, 0);
         BitSet(W->joy.on, 0);
         BitSet(W->joy.rep, 0);

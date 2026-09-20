@@ -809,7 +809,7 @@ void emBarrelSetBomb(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 6000.0f;
-    cam = &pGS->Cam;
+    cam = &pGS->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
@@ -859,7 +859,7 @@ void emBarrelSetBomb2(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 4000.0f;
-    cam = &pGS->Cam;
+    cam = &pGS->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
@@ -958,7 +958,7 @@ int emBarrelRollHitCk(cEmBarrel* em)
     }
     LifeDownSet(pPL, 600, 0);
     PlSetDamage(8, 0, 0);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     return 1;
 }

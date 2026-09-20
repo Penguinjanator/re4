@@ -116,7 +116,7 @@ void cToolBugcheck::menuPosMove()
         Vec v = {0.0f, 0.0f, 0.0f};
         JOY joy = Joy[0];
         joy.stickX = 0;
-        CamStick2World(&pG->Cam, &joy, &v);
+        CamStick2World(&pG->Camera, &joy, &v);
         PSVECScale(&v, &v, speed);
         v.y = 0.0f;
         if (Joy[0].on & 0x10000) {

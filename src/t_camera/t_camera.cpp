@@ -2597,7 +2597,7 @@ void tcCameraCopyPoint(TcCdat* c)
         // both arms: `v.x >= 0` test first, a shared `p` and one `x627++` behind `goto skip` -- the
         // layout jump2 needs to cross-jump A2 into B1 and B2 into A1 (four per-arm copies leave 13 words)
         if (i - 1 >= 0) {
-            PSMTXMultVec(pG->Cam.v_mat, &c->at[i - 1], &v);
+            PSMTXMultVec(pG->Camera.v_mat, &c->at[i - 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
                 if (p->copySide != 0) {
@@ -2611,7 +2611,7 @@ void tcCameraCopyPoint(TcCdat* c)
             }
             p->curKey++;
         } else {
-            PSMTXMultVec(pG->Cam.v_mat, &c->at[i + 1], &v);
+            PSMTXMultVec(pG->Camera.v_mat, &c->at[i + 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
                 if (p->copySide == 0) {

@@ -422,7 +422,7 @@ static void r310_pushBox2()
     PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
-        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000)) {
+        if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
             FSet(r310_work->box2->pos.x, r310_work->box2->pos.x + 10.0f);
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box2->pos, 0, 0, 0);
@@ -664,7 +664,7 @@ static void r310_pushBox1()
     PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
-        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000)) {
+        if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
             FSet(r310_work->box1->pos.x, r310_work->box1->pos.x - 10.0f);
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box1->pos, 0, 0, 0);

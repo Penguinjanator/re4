@@ -188,7 +188,7 @@ static void r108_initChurchBell()
     cEmHit* hit;
 
     bell = SmdGetObjPtr(0x1C);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &bell->pos, &bell->ang, 1);
+    hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &bell->pos, &bell->ang, 1);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order (the r103 checkCloseCover lever)

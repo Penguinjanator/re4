@@ -1486,7 +1486,7 @@ void cPlayer::shadowCtrl()
 {
     int on;
 
-    if (!(stat & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
+    if (!(stat & 0x800) || pG->Camera.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
         on = 0;
     } else {
         on = 1;

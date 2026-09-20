@@ -431,7 +431,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
         EmCatchPLSet(em, 0.0f, 0, (int) plem2a_Trap1Bite, 34.69f, 0.0f, 250.42f);
         w->camTimer = 120;
         w->biteTimer = 10;
-        VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 7, 1);
         l->set = 2;
         em->r_no_2++;
     case 1:
@@ -650,7 +650,7 @@ static void plemResuceAshley(cPlayer* pl)
 // Installs the rescue cut camera (em2a_rescue_cam) beside the player looking at the trap.
 void plem2aTrapCamMove(cModel* m)
 {
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Camera* cam;
     Vec v;
     Vec a;
@@ -957,7 +957,7 @@ void em2aTrap2Bomb(cEm2a* em)
     PSVECAdd(&p->world, &d, &e);
     PlWepHitCheck2(0, &e, &e, 0x13, 2, 3000.0f);
     {
-        Camera* c = &pG->Cam;
+        Camera* c = &pG->Camera;
         f32 dist;
 
         p = em->getPartsPtr(1);
@@ -986,7 +986,7 @@ void em2aTrap2Bomb(cEm2a* em)
 void em2aTrap1CamMove(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Mtx m;
     Vec v;
 

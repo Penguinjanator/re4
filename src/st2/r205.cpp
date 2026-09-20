@@ -183,7 +183,7 @@ void R205Init()
         Vec pos = {0.0f, -425.0f, 0.0f};
 
         for (i = 0; i < 4; i++) {
-            r205_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
+            r205_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                          &pos, 0, 1);
             r205_work.p->hit[i]->setParent(r205_work.p->pend[i].obj, 0, 0);
             YarareInitCube(r205_work.p->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, 1);
@@ -451,7 +451,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     wp = &pPL->getPartsPtr(2)->world;
     RoomSeCall(0, wp, 0, 0, 0);
     PlSeCall(9, wp, 0, 0, 0);
-    cam = pG->Cam;
+    cam = pG->Camera;
     i = 0;
     parts = pPL->getPartsPtr(r205_camParts);
     while (!(MotionGetState(pPL) & 4)) {

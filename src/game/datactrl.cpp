@@ -232,7 +232,7 @@ void cDataUnit::setLoadToMram()
         }
 #line 222 "D:/Bio4/Prog/datactrl.cpp"
         no = DvdReadN(m_name, (void*) dest, 0, 0, 0, wait | 0x10, __FILE__, __LINE__);
-        if (pG->dev_mode == 1) {
+        if (pG->IsDevConsole == 1) {
 #line 226 "D:/Bio4/Prog/datactrl.cpp"
             DC.setDummyId(DvdReadN("dummy.dat", DC.m_DummyDataMem, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
         }
@@ -335,7 +335,7 @@ void cDataUnit::setLoadToAram()
         }
 #line 366 "D:/Bio4/Prog/datactrl.cpp"
         no = DvdReadN(m_name, NULL, dest, 0, 0, wait | 0x8, __FILE__, __LINE__);
-        if (pG->dev_mode == 1) {
+        if (pG->IsDevConsole == 1) {
 #line 370 "D:/Bio4/Prog/datactrl.cpp"
             DC.setDummyId(DvdReadN("dummy.dat", DC.m_DummyDataMem, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
         }
@@ -968,7 +968,7 @@ void cDataCtrl::setDummyId(int id)
 {
     int i;
 
-    if (pG->dev_mode != 0 && id >= 0) {
+    if (pG->IsDevConsole != 0 && id >= 0) {
         for (i = 0; i < 32; i++) {
             if (m_id_dummy[i] == -1) {
                 m_id_dummy[i] = id;
@@ -985,7 +985,7 @@ void cDataCtrl::checkDummyId()
     int i;
     int ret;
 
-    if (pG->dev_mode != 0) {
+    if (pG->IsDevConsole != 0) {
         for (i = 0; i < 32; i++) {
             if (m_id_dummy[i] != -1) {
                 ret = Dvd.ReadCheck(m_id_dummy[i], NULL, NULL, NULL);

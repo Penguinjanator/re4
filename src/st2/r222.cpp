@@ -101,7 +101,7 @@ void em_reset();
 // RTX_UNCHANGING_P from an inlined body's pool loads, which then wait for the `hit[no]` store (cost 2);
 // as pool MEMs of the function itself the YarareInitCube constants are `mem/u` and issue before it.
 #define r222_setHit(no, objId)                                                                                  \
-    r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
+    r222_work.p->hit[no] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
     YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1)
 
 // Room init (the dragon hall): Debug_flg[1] 0x20000, Status_flg[1] bit 0, no water splashes, the moving

@@ -593,7 +593,7 @@ static void reva_move()
             if (--frames == 0) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 5, 0, 5, 0);
                 state = 1;
-                r224_work.p->cam = pG->Cam;
+                r224_work.p->cam = pG->Camera;
             }
         } else if (state == 1) {
             Camera* cam;

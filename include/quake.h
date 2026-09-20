@@ -4,7 +4,7 @@
 #include "types.h"
 
 // game/quake.cpp: camera shake requests. Up to 16 concurrent entries; the scheduler picks the
-// strongest active one each frame and QuakeMain jitters pG->Cam by it.
+// strongest active one each frame and QuakeMain jitters pG->Camera by it.
 struct QuakeEntry {
     u8 Be_flg;   // 0x00  bit 0
     u8 No;       // 0x01

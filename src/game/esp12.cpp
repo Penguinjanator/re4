@@ -123,7 +123,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     }
     PSMTXIdentity(esp->m_Mat);
     RotMatrix(esp->m_Mat, &esp->m_Ang);
-    PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
+    PSMTXConcat(pG->Camera.v_mat, esp->m_Mat, esp->m_Mat);
     PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
@@ -137,7 +137,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     tstep = tstep / (f32)w->Num;
-    camPos = pG->Cam.param.pos;
+    camPos = pG->Camera.param.pos;
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;

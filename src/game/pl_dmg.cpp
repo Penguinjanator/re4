@@ -353,10 +353,10 @@ void Pl_R0_Die(cPlayer* pl)
         pl->m_Work0 = no;
     case 1:
         if (pl->frame > 39.7f && pl->frame < 40.3f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 3, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 3, 1);
         }
         if (pl->frame > 69.7f && pl->frame < 70.3f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 3, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 3, 1);
         }
         if (pl->motionMove()) {
             pl->r_no_1 = 2;

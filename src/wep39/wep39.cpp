@@ -136,7 +136,7 @@ void cObjMachinegun::moveFire()
             SndCall(2, 0x15, &pos, 0, 0, 0);
             break;
         }
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xA, 1);
         setCartridge();
         switch (pG->weapon_type) {
         case 0:

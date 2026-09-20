@@ -308,7 +308,7 @@ void ToolEspArea()
         if (cam) {
             int c = cnt;
 
-            CamDbg.move(&pG->Cam, &Joy[0], 1);
+            CamDbg.move(&pG->Camera, &Joy[0], 1);
             cnt = (u8) (c + 1);
             if (c & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");

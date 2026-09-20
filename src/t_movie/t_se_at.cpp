@@ -147,7 +147,7 @@ void seAtInit()
 {
     GlobalWork* g = pG;
     int zero = 0;
-    Camera* cam = &g->Cam;
+    Camera* cam = &g->Camera;
 
     TutilInitDefault();
     BitSet(pW->saveStop, TOOL_FLAG(OFS_STOP_FLG));
@@ -188,8 +188,8 @@ void seAtInit()
         asm("" : "=m"(seAtWk.p) : "m"(seAtSaveList)); // COMPILER-DIFF: #13 (memory anchor)
         asm("" : "=m"(seAtWk.p) : "m"(Snd.se_at), "m"(Snd.se_at_list)); // COMPILER-DIFF: #13 (memory anchor)
     }
-    pW->camPos = g->Cam.param.pos;
-    pW->camAt = g->Cam.param.at;
+    pW->camPos = g->Camera.param.pos;
+    pW->camAt = g->Camera.param.at;
     pW->mode = 2;
     pW->sub = zero;
     pW->step = zero;
@@ -266,7 +266,7 @@ static void seAtAreaEdit()
     eprintf(pW->x, pW->y, 4, 0, "AREA[ %d ]", pW->areaNo);
     if (pCur->flags & 1) {
         f32 dist;
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
         dist = cam->dist;
         cam->param.at = pCur->pos;
         CameraSetOrientationRoll(cam);
@@ -288,7 +288,7 @@ static void seAtAreaEdit()
         v[1].z -= 200.0f;
         Draw_line3d(&v[0], &v[1], 0xFF00FFFF, 0);
     } else {
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
         cam->param.pos = pW->camPos;
         cam->param.at = pW->camAt;
         CameraSetOrientationRoll(cam);
@@ -371,22 +371,22 @@ static void seAtAreaEdit_AreaMove()
     Vec dir;
     Vec t;
     Vec d = {0.0f, 0.0f, 0.0f};
-    Camera* cam = &g->Cam;
+    Camera* cam = &g->Camera;
 
     {
         // written through a pointer: the original stores right.y/.z via `addi r9,r1,8` (cse keeps
         // `(mem (plus P 4))`, only the offset-0 store folds to the frame address)
         Vec* rp = &right;
-        rp->x = g->Cam.mat[0][0];
-        rp->y = g->Cam.mat[1][0];
-        rp->z = g->Cam.mat[2][0];
+        rp->x = g->Camera.mat[0][0];
+        rp->y = g->Camera.mat[1][0];
+        rp->z = g->Camera.mat[2][0];
     }
-    up.x = g->Cam.mat[0][1];
-    up.y = g->Cam.mat[1][1];
-    up.z = g->Cam.mat[2][1];
-    dir.x = g->Cam.mat[0][2];
-    dir.y = g->Cam.mat[1][2];
-    dir.z = g->Cam.mat[2][2];
+    up.x = g->Camera.mat[0][1];
+    up.y = g->Camera.mat[1][1];
+    up.z = g->Camera.mat[2][1];
+    dir.x = g->Camera.mat[0][2];
+    dir.y = g->Camera.mat[1][2];
+    dir.z = g->Camera.mat[2][2];
     if (joy->on & (JOY_R | JOY_L)) {
         f32 dist = cam->dist;
         if (joy->on & JOY_R) {
@@ -738,7 +738,7 @@ static void seAtAreaEdit_AreaDelete()
 // Creates the record at the camera target with default values.
 static void seAtAreaEdit_AreaCreate()
 {
-    pCur->pos = pG->Cam.param.at;
+    pCur->pos = pG->Camera.param.at;
     pCur->flags |= 3;
     pW->editCursor = 0;
     pW->sub = 0;

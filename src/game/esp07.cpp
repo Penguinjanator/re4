@@ -63,7 +63,7 @@ void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
             Vec d;
             f32 dist;
 
-            PSVECSubtract(&pG->Cam.param.pos, &esp->m_Pos, &d);
+            PSVECSubtract(&pG->Camera.param.pos, &esp->m_Pos, &d);
             dist = PSVECMag(&d);
             if (w->SeType == 3 || dist < 8000.0f) {
                 EspCallSeType(w->SeType, &esp->m_Pos);

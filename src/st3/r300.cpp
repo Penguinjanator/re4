@@ -340,7 +340,7 @@ void R300Init()
         const f32 h = 450.0f;
 
         EstSet(SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
-        r300_wk->hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
+        r300_wk->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
         YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, 1);
     } else {
@@ -1124,7 +1124,7 @@ static void r300_mira_exec()
         SceSleep(1);
         r300_wk->cnt = 0;
         pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Cam;
+        r300_wk->cam = pGS->Camera;
         CameraControl* cc = &CamCtrl;
         while (1) {
             ActBtn.set(0x14, 5, 0, 0, 2, 0xB, 0, 0);
@@ -1209,7 +1209,7 @@ static void r300_mirb_exec()
         SceSleep(1);
         r300_wk->cnt = 0;
         pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Cam;
+        r300_wk->cam = pGS->Camera;
         Vec* lp = r300_laser;
         CameraControl* cc = &CamCtrl;
         while (1) {

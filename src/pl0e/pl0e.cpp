@@ -84,7 +84,7 @@ static void subBoatJumpMiss();
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define SUBARC(no) PL_ARC_PTR(sub->subArc, no)
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 #define PL_BOAT(pl) ((cPl0e*) (pl)->m_pBoat)
 
 // Store through a reference: a scalar (non-struct) MEM, so a following global load stays below it.
@@ -269,7 +269,7 @@ static void pl0e_R0_Init(cPl0e* em)
     w->spdX = 0.0f;
     w->floorY0 = em->pos.y;
     w->floorY1 = em->pos.y;
-    w->pWave = SetObj00((void*) (pGS->pArc->ofs_20 + (u32) pGS->pArc), (void*) (pGS->pArc->ofs_24 + (u32) pGS->pArc), 0, 0);
+    w->pWave = SetObj00((void*) (pGS->pCore->ofs_20 + (u32) pGS->pCore), (void*) (pGS->pCore->ofs_24 + (u32) pGS->pCore), 0, 0);
     w->espKind = EspPullCoreKind();
     em->r_no_1 = 0;
     em->r_no_2 = 0;
@@ -705,7 +705,7 @@ static Vec pl0e_cam_pos1 = { -1500.0f, 0.0f, -5000.0f };
 void pl0eCamMove(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec at;
     Vec target;
@@ -1358,7 +1358,7 @@ void cPl0e::setRail(void* path)
 {
     Pl0eWork* w = PL0E_WK(this);
 
-    w->pRailObj = SetObj00((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 0);
+    w->pRailObj = SetObj00((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0);
     if (w->pRailObj) {
         w->seg = 0;
         w->dist = 0.0f;

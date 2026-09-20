@@ -387,7 +387,7 @@ void init_dbEm(DB_EM* em, int start, int end)
         em->mot_cnt = 0;
         em->mot[0].flags = 0x15;
         em->mot[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
-        dbModelSetCamera(n, &pGS->Cam);
+        dbModelSetCamera(n, &pGS->Camera);
         em->mot[0].speedRate = 1.0f;
         em->parentNo = n;
         // parent (the SI zero) before the name byte: the QI store then takes the wider zero's lowpart
@@ -1596,11 +1596,11 @@ static int dbmod_locate()
         case 2:
             if (joy->trg & 0x100) {
                 changed = 1;
-                ax.x = pG->Cam.mat[0][2];
-                ax.y = pG->Cam.mat[1][2];
-                ax.z = pG->Cam.mat[2][2];
+                ax.x = pG->Camera.mat[0][2];
+                ax.y = pG->Camera.mat[1][2];
+                ax.z = pG->Camera.mat[2][2];
                 PSVECScale(&ax, &ax, -1000.0f);
-                PSVECAdd(&pG->Cam.param.pos, &ax, &ax);
+                PSVECAdd(&pG->Camera.param.pos, &ax, &ax);
                 em->pos0 = ax;
             }
             break;
@@ -1694,7 +1694,7 @@ static int dbmod_locate()
             }
             if (v.y == 0.0f) {
                 mag = PSVECMag(&v);
-                PSMTXMultVecSR(pG->Cam.mat, &v, &v);
+                PSMTXMultVecSR(pG->Camera.mat, &v, &v);
                 v.y = 0.0f;
 #line 1982
                 VECNormalize(&v, &v);

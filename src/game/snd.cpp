@@ -1500,7 +1500,7 @@ void SndWatcher()
 // "keep" bits 0x8000 | 0x4000) are faded (200) or stopped.
 static void nextRoomStreamCheck()
 {
-    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->RoomNo_next);
     int i;
 
     for (i = 0; i < 4; i++) {
@@ -1540,7 +1540,7 @@ static void nextRoomStreamCheck()
 // (the BGM MRAM / ARAM tops reset).
 static void nextRoomBgmCheck()
 {
-    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->RoomNo_next);
     int i;
     int flag = 1;
 
@@ -1730,7 +1730,7 @@ int SndDoorSeLoad()
     memclr_asm(callErr[7], sizeof(callErr[7]));
     if (d != NULL && d->num != 0) {
         for (i = 0; i < d->num; i++) {
-            if (d->e[i].room == pG->next_room) {
+            if (d->e[i].room == pG->RoomNo_next) {
                 no = d->e[i].door[pG->door_no];
                 pG->door_no = 0;
                 break;
@@ -2111,7 +2111,7 @@ void SndSetOutputMode(int mode, int init)
 // position aligned with the camera, and the distance from the camera.
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec out;
     Vec fwd;
 
@@ -2122,9 +2122,9 @@ static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
     Vec right;
     Mtx m;
     Mtx inv;
-    fwd.x = pG->Cam.mat[0][0];
-    fwd.y = pG->Cam.mat[1][0];
-    fwd.z = pG->Cam.mat[2][0];
+    fwd.x = pG->Camera.mat[0][0];
+    fwd.y = pG->Camera.mat[1][0];
+    fwd.z = pG->Camera.mat[2][0];
     PSVECCrossProduct(&fwd, &up, &right);
     m[0][0] = fwd.x;
     m[1][0] = fwd.y;

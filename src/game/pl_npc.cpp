@@ -3755,7 +3755,7 @@ void cSubChar::shadowCtrl()
     if (SUBFLAG(this)->check(5)) {
         fade = 1;
     }
-    if (pG->Cam.param.pos.y < pEm->pos.y) {
+    if (pG->Camera.param.pos.y < pEm->pos.y) {
         fade = 1;
     }
     if (pEm->pFloor_norm && pEm->pFloor_norm->y < 0.8f) {

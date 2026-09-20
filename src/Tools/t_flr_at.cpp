@@ -1264,7 +1264,7 @@ static void flrAtDataSave()
 // CAMERA MODE (START): the debug camera moves with pad 1.
 void flrAtData_DebugCamera()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 0);
+    CamDbg.move(&pG->Camera, &Joy[0], 0);
     pW->timer++;
     if (pW->timer & 8) {
         eprintf(0xD0, 0x10, 0, 0, "CAMERA MODE");

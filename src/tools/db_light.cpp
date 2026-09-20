@@ -2164,7 +2164,7 @@ static void edit_light_pos()
         cur->Pos = vecZero;
     }
     if (pTool->Pad1.trg & JOY_Y) {
-        cur->Pos = pG->Cam.param.at;
+        cur->Pos = pG->Camera.param.at;
     }
     drawLightInfo(cur, 0x80808080);
     if (pTool->Pad1.rep & JOY_B) {
@@ -3946,7 +3946,7 @@ static void edit_wind()
             if (pTool->Pad1.rep & JOY_LEFT) {
                 env->wind.direction--;
             }
-            CamStick2World(&pG->Cam, &Joy[0], &stick);
+            CamStick2World(&pG->Camera, &Joy[0], &stick);
             if (Joy[0].on & 0xF0000) {
                 env->wind.direction = (int) (atan2(stick.x, stick.z) * 127.0 / 3.14159265f);  // f32 PI widened: pool 0x400921FB60000000
             }
@@ -3991,8 +3991,8 @@ static void edit_wind()
     }
     env->wind.set();
     pPL->moveCloth();
-    a = pG->Cam.param.pos;
-    b = pG->Cam.param.at;
+    a = pG->Camera.param.pos;
+    b = pG->Camera.param.at;
     PSVECSubtract(&b, &a, &b);
 #line 4082 "D:/Bio4/Prog/db_light.cpp"
     VECNormalize(&b, &b);

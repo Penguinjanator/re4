@@ -112,7 +112,7 @@ static void em35_R1_Die_Pose(cEm35* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
 // stores through the work pointer (cam_ctrl.cpp PlayerPtr).
@@ -174,7 +174,7 @@ void Em35Init(cEm* em)
 void em35DmCk(cEm35* em)
 {
     Em35Work* w = EM35_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     int near;
     int dmg;
     cModel* p;
@@ -417,7 +417,7 @@ void em35DmCk(cEm35* em)
 void em35DmCkUpper(cEm35* em)
 {
     Em35Work* w = EM35_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     int near;
     int dmg;
     cModel* p;
@@ -2307,7 +2307,7 @@ void em35EscapeCamMove(cEm35* em)
     Vec b;
     Vec c;
 
-    w->cam.param.fovy = g->Cam.param.fovy;
+    w->cam.param.fovy = g->Camera.param.fovy;
     a.x = -376.0f;
     a.y = 575.0f;
     a.z = -1831.0f;
@@ -2316,8 +2316,8 @@ void em35EscapeCamMove(cEm35* em)
     b.z = 52.6f;
     PSMTXMultVec(pPLS->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
-    PosToPos(&g->Cam.param.at, &b, &w->cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &a, &w->cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &b, &w->cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &c, 0, 0x8000, 0)) {
         Vec d;
         f32 len;
@@ -2379,14 +2379,14 @@ void em35StampCamMove(cEm35* em)
     Vec a;
     cModel* p;
 
-    w->cam.param.fovy = g->Cam.param.fovy;
+    w->cam.param.fovy = g->Camera.param.fovy;
     a.x = 0.0f;
     a.y = 3000.0f;
     a.z = -3000.0f;
     PSMTXMultVec(pPLS->mat, &a, &a);
-    PosToPos(&g->Cam.param.pos, &a, &w->cam.param.pos, 0.1f);
+    PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
-    PosToPos(&g->Cam.param.at, &p->world, &w->cam.param.at, 0.3f);
+    PosToPos(&g->Camera.param.at, &p->world, &w->cam.param.at, 0.3f);
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;

@@ -295,7 +295,7 @@ void emWepDmCk(cEmWep* em)
         StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         r.x = 0.0f;
-        r.y = GetXZAngle(&em->pos, &pG->Cam.param.pos);
+        r.y = GetXZAngle(&em->pos, &pG->Camera.param.pos);
         r.z = 0.0f;
         EstSet(0, -1, &em->pos, &r, 0x10, 0x42, 0, 0, 0, 0);
         if (w->pEm_old) {
@@ -749,7 +749,7 @@ void emWep_R1_Throw(cEmWep* em)
         SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -830,7 +830,7 @@ void emWep_R1_ThrowScythe(cEmWep* em)
         SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -941,7 +941,7 @@ void emWep_R1_Shot(cEmWep* em)
     if (w->pAtk) {
         part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -985,7 +985,7 @@ void emWep_R1_Shot(cEmWep* em)
         }
         part = EmAtkLineHitCkSub(&em->pos_old, &em->pos, &hitPos, &nrm);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1119,7 +1119,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
     if (w->pAtk) {
         part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hit, &nrm, 0);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1138,7 +1138,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
             if (part == 0) {
                 goto fly;
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1246,7 +1246,7 @@ void emWep_R1_Rocket(cEmWep* em)
 void emWepRocketBobm(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     cModel* p;
     Vec r;
     Vec pos;
@@ -1337,7 +1337,7 @@ void emWep_R1_BombThrow(cEmWep* em)
     }
     if (w->Bomb_wait == 0) {
         GlobalWork* g = pG;
-        Camera* cam = &g->Cam;
+        Camera* cam = &g->Camera;
         cModel* p;
         Vec r;
         Vec pos;
@@ -1782,7 +1782,7 @@ void emWepEscapeCamMove(cEmWep* em)
 
     // Store through a cast pointer (no MEM_IN_STRUCT_P): the store may alias the `pPL` load below,
     // which keeps `lwz pPL` after it and ranks the `w` chain above the constant-pool `lis`es.
-    *(f32*) (u8*) &w->Cam.param.fovy = g->Cam.param.fovy;
+    *(f32*) (u8*) &w->Cam.param.fovy = g->Camera.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -1791,8 +1791,8 @@ void emWepEscapeCamMove(cEmWep* em)
     p1.z = 52.6f;
     PSMTXMultVec(pPL->mat, &p0, &p0);
     PSMTXMultVec(pPL->mat, &p1, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &w->Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &p0, &w->Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &p1, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &p0, &w->Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->Cam.param.at, &w->Cam.param.pos, &hit, 0, 0x8000, 0)) {
         PSVECSubtract(&hit, &w->Cam.param.at, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;

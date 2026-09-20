@@ -1188,7 +1188,7 @@ void cSat::disp(int no, u32 color, int zupd)
     Vec* vt = vtx;
     u16 i;
 
-    PSMTXConcat(pG->Cam.v_mat, mat, m);
+    PSMTXConcat(pG->Camera.v_mat, mat, m);
     for (i = 0; i < 3; i++) {
         AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) pt);
         Vec* v = (Vec*) (*(u16*) (i * 2 + (u32) pl) * sizeof(Vec) + (u32) vt);
@@ -1221,7 +1221,7 @@ void cSat::disp(int no, u32 color, int zupd)
     PSVECScale(&n, &p[1], 100.0f);
     PSVECAdd(&p[0], &p[1], &p[1]);
     PSMTXMultVec(mat, &p[0], &w);
-    PSVECSubtract(&w, &pG->Cam.param.pos, &w);
+    PSVECSubtract(&w, &pG->Camera.param.pos, &w);
     PSMTXMultVecSR(mat, &n, &n);
     if (PSVECDotProduct(&n, &w) > 0.0f) {
         color = 0xFFFFFFFF;

@@ -488,7 +488,7 @@ void Esp08_Trans(cEsp08* esp)
             PSMTXRotRad(m, 'x', EspGetCameraPan2() * (3.1415927f / 180.0f));
             PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
         }
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXMultVec(m, &esp->m_Pos, &p);
         esp->m_Mat[0][3] = p.x;
         esp->m_Mat[1][3] = p.y;
@@ -499,7 +499,7 @@ void Esp08_Trans(cEsp08* esp)
         PSMTXIdentity(esp->m_Mat);
         RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     PSMTXInverse(esp->m_Mat, inv);
@@ -618,7 +618,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
 
         PSMTXIdentity(esp->m_Mat);
         PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXMultVec(m, &esp->m_Pos, &p);
         esp->m_Mat[0][3] = p.x;
         esp->m_Mat[1][3] = p.y;
@@ -629,7 +629,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         PSMTXIdentity(esp->m_Mat);
         RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     PSMTXInverse(esp->m_Mat, inv);
@@ -693,7 +693,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
-        f32 fovy = pG->Cam.param.fovy;
+        f32 fovy = pG->Camera.param.fovy;
         if (SysFlagChk(pG, SYS_SCISSOR_ON)) {
             C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         } else {

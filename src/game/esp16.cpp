@@ -205,7 +205,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     }
     PSMTXIdentity(esp->m_Mat);
     RotMatrix(esp->m_Mat, &esp->m_Ang);
-    PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
+    PSMTXConcat(pG->Camera.v_mat, esp->m_Mat, esp->m_Mat);
     PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
@@ -219,7 +219,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     p1 = NULL;
-    cam = pG->Cam.param.pos;
+    cam = pG->Camera.param.pos;
     if (esp->m_Tool_flg & 4) {
         t = tw;
         tw = -1.0f / (f32)w->Num;

@@ -374,7 +374,7 @@ static inline bool evtFlag(TexRenderEvt* e, u32 bit)
 }
 
 // Before the render-to-texture passes: builds a CameraMotion at the event's frame (frameB with
-// flag 0x40000000, the last frame with 0x08000000), saves pG->Cam and installs the motion camera
+// flag 0x40000000, the last frame with 0x08000000), saves pG->Camera and installs the motion camera
 // with its projection / view matrices.
 void CamRenderPrev(TexRenderCam* pWk)
 {
@@ -389,14 +389,14 @@ void CamRenderPrev(TexRenderCam* pWk)
     }
     pWk->pCam = new (&pWk->cam) CameraMotion(pWk->data, 0, 0, (f32) frame);
     pWk->pCam->move();
-    pWk->save = pG->Cam;
-    pGS->Cam = *pWk->pCam;
-    C_MTXPerspective(pGS->Cam.ProjMat, pGS->Cam.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
-    C_MTXLookAt(pG->Cam.v_mat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
+    pWk->save = pG->Camera;
+    pGS->Camera = *pWk->pCam;
+    C_MTXPerspective(pGS->Camera.ProjMat, pGS->Camera.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
+    C_MTXLookAt(pG->Camera.v_mat, &pG->Camera.param.pos, &pG->Camera.up, &pG->Camera.param.at);
 }
 
-// After the passes: restores pG->Cam.
+// After the passes: restores pG->Camera.
 void CamRenderAfter(TexRenderCam* pWk)
 {
-    pG->Cam = pWk->save;
+    pG->Camera = pWk->save;
 }

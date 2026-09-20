@@ -1534,7 +1534,7 @@ void tBlockSaveDataCreate()
 // CAMERA MODE (START): the debug camera moves with pad 1.
 void tBlock_DebugCamera()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 0);
+    CamDbg.move(&pG->Camera, &Joy[0], 0);
     pW->timer++;
     if (pW->timer & 8) {
         eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");

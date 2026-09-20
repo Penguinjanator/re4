@@ -202,7 +202,7 @@ void localCoordTest(cPlayer* pl)
         if (Joy[0].trg & JOY_X) {
             pl_db_parts_no--;
         }
-        PSMTXConcat(pG->Cam.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
         Draw_local_pos(&vpos, 1000, m);
         eprintf(40, 100, 0, 0, "%5.2f", vpos.x);
         eprintf(40, 116, 0, 0, "%5.2f", vpos.y);

@@ -301,9 +301,9 @@ void systemStartInit()
     setLanguage();
     RomFontSetting();
     if (OSGetConsoleType() & 0xF0000000) {
-        pG->dev_mode = 1;
+        pG->IsDevConsole = 1;
     }
-    if (pG->dev_mode == 1) {
+    if (pG->IsDevConsole == 1) {
         InitFile();
         if (file_path("d:\\bio4") == 0) {
             file_path("c:/");
@@ -334,7 +334,7 @@ void systemStartInit()
         :
         : "r3");
     SystemMemInit();
-    if (pG->dev_mode == 1) {
+    if (pG->IsDevConsole == 1) {
         CardDbgCacheSet();
     }
     TaskSchedulerInit();
@@ -397,7 +397,7 @@ void systemRestartInit()
     EtcModelInit();
     EvtMgr.init();
     CameraGameInit();
-    View.gameInit(&pG->Cam);
+    View.gameInit(&pG->Camera);
     SndInit2();
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     GXCopyDisp(pCurrent_buff, 1);
@@ -449,7 +449,7 @@ void systemWorkInit()
     S8Set(pG->debug_mode, 1);
     S8Set(pG->debug_disp, -1);
     U16Set(pG->room_id, 0x120);
-    U16Set(pG->next_room, pG->room_id);
+    U16Set(pG->RoomNo_next, pG->room_id);
     U8Set(pG->pl_type, 0);
     U8Set(pG->game_mode, 5);
     U8Set(pG->game_costume, 0);
@@ -513,7 +513,7 @@ int systemResetCheck()
     if ((Joy[0].on & 0x1600) == 0x1600) {
         Soft_reset_cnt += GetSystemVcnt();
         if (Soft_reset_cnt > 30) {
-            if (pG->dev_mode == 1) {
+            if (pG->IsDevConsole == 1) {
                 SysFlagOn(pG, SYS_SOFT_RESET);
             } else {
                 SysFlagOn(pG, SYS_HARD_RESET);

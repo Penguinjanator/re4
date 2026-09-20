@@ -119,5 +119,5 @@ extern "C" void Esp19_Trans(cEsp19* esp)
 
     color = ((u32)esp->m_Col_r << 16) + ((u32)esp->m_Col_g << 8) + (u32)esp->m_Col_b + ((u32)esp->m_Col_a << 24);
     PSVECAdd(&esp->m_Pos, &pG->quake_ofs, &p);
-    Draw_line3d_local_222(&p, &w->Vec0, pG->Cam.v_mat, color, esp, w->max_laser_dist);
+    Draw_line3d_local_222(&p, &w->Vec0, pG->Camera.v_mat, color, esp, w->max_laser_dist);
 }

@@ -194,7 +194,7 @@ static Vec em36_weak_rot[5] = {
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {

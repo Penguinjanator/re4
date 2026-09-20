@@ -206,11 +206,11 @@ void cAtariInfo::dispRect(cModel* m)
         cModel* p = m->getPartsPtr(m_parts_no - 1);
         PSMTXRotRad(mat, 'y', p->ang.y);
         TransMatrix(mat, &p->world);
-        PSMTXConcat(pG->Cam.v_mat, mat, mat);
+        PSMTXConcat(pG->Camera.v_mat, mat, mat);
     } else {
         PSMTXRotRad(mat, 'y', m->ang.y);
         TransMatrix(mat, &m->pos);
-        PSMTXConcat(pG->Cam.v_mat, mat, mat);
+        PSMTXConcat(pG->Camera.v_mat, mat, mat);
     }
     for (i = 0; i < 12; i++) {
         u8* t = &ptbl[i * 3];

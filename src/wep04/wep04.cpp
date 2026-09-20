@@ -155,7 +155,7 @@ void cObjXd9::moveFire()
         }
         EstSet(this, -1, 0, 0, 0x38, type, 0, 0xA, 0, 0);
         setCartridge();
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;
     } else if (MotionGetState(this)) {
         wep.mode = 0;

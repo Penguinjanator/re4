@@ -1199,7 +1199,7 @@ static void em22_R1_SideStep(cEm22* em)
     em22SlaverSet(em, 1);
 }
 
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
 // Branch check of JumpAtk (0xD): on the motion's hit key (motEvent bit0) with the player alive, seen,
@@ -2330,7 +2330,7 @@ int em22GetCamType(cEm22* em)
 void em22CamMove(cEm22* em, int type)
 {
     Em22Work* w = EM22_WK(em);
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Vec a;
     Vec b;
     Vec hit;

@@ -43,8 +43,8 @@ void TutilInitDefault()
     view.rect.h = Screen.height;
     view.nearz = 0.0f;
     view.farz = 1.0f;
-    TprimInitEnv2D3D(&view, pG->Cam.ProjMat, pG->Cam.v_mat);
-    globalCamera = pG->Cam;
+    TprimInitEnv2D3D(&view, pG->Camera.ProjMat, pG->Camera.v_mat);
+    globalCamera = pG->Camera;
     system_flg_bak = TOOL_FLAG(OFS_SYSTEM_FLG);
     stop_flg_bak = TOOL_FLAG(OFS_STOP_FLG);
     disp_flg_bak = TOOL_FLAG(OFS_DISP_FLG);
@@ -94,7 +94,7 @@ int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup)
     }
     GXGetProjectionv(proj);
     GXGetViewportv(viewport);
-    GXProject(pos->x, pos->y, pos->z, pG->Cam.v_mat, proj, viewport, &scr[0], &scr[1], &scr[2]);
+    GXProject(pos->x, pos->y, pos->z, pG->Camera.v_mat, proj, viewport, &scr[0], &scr[1], &scr[2]);
     return 1;
 }
 

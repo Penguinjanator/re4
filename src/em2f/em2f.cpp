@@ -1207,7 +1207,7 @@ static void em2f_R1_Critical(cEm2f* em)
 void em2fCriCamMove(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Camera* cam;
     Vec v;
 

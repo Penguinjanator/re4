@@ -1930,7 +1930,7 @@ void R31bKoushiSatSub2(int no, u32 lampId, int koushiNo)
     cObj* obj = SmdGetObjPtr(lampId);
 
     if (obj) {
-        r31b_work.p->koushi[koushiNo] = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &obj->pos, &obj->ang, 1);
+        r31b_work.p->koushi[koushiNo] = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &obj->pos, &obj->ang, 1);
         if (r31b_work.p->koushi[koushiNo]) {
             YarareInitCube(r31b_work.p->koushi[koushiNo], 0.0f, -400.0f, -150.0f, 300.0f, 800.0f, 150.0f, 0, 1);
         }

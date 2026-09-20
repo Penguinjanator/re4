@@ -411,7 +411,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     disp = new MessageDisplay;
     sel->connect(0, disp);
     disp->connect(0, sel);
-    fileCameraInit(wk, &pG->Cam);
+    fileCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->pFile, 6), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);

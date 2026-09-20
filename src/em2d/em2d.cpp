@@ -345,7 +345,7 @@ void Em2dInit(cEm* em)
 void em2dDmCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     YARARE_INFO* part;
     cModel* p;
     Vec pos;
@@ -2025,7 +2025,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             break;
         }
         if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
@@ -2078,7 +2078,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             }
         }
         if (pl->frame > 27.7000008f && pl->frame < 28.2999992f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         MotionMove(pl, 0);
         pl->r_no_2 = pl->pEmCatch->r_no_2;
@@ -3846,7 +3846,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
             break;
         }
         if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
@@ -3873,7 +3873,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
     case 7:
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
         if (pl->frame > 27.7000008f && pl->frame < 28.2999992f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         MotionMove(pl, 0);
         pl->r_no_2 = pl->pEmCatch->r_no_2;
@@ -4869,7 +4869,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
     }
     QuakeExec(0, 0, 5, 22.0f, 2);
     SndCall(8, 0xD, &em->pos, em->id, 0, em);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
     }
     return 0;
@@ -5331,7 +5331,7 @@ int em2dCatchCk(cEm2d* em)
     }
     pPL->dmg.set(0, 2);
     em->dmg.set(0, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
 }
 
@@ -5367,7 +5367,7 @@ int em2dAirCatchCk(cEm2d* em)
     }
     pPL->dmg.set(0, 2);
     em->dmg.set(0, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
 }
 
@@ -5399,7 +5399,7 @@ int em2dFallCatchCk(cEm2d* em)
     if (!(dy > 2000.0f) && !(dy < -200.0f)) {  // every `return 0` shares the final `li r3,0`
         dm->set(0, 2);
         em->dmg.set(0, 2);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         return 1;
     }
     return 0;
@@ -5411,7 +5411,7 @@ int em2dFallCatchCk(cEm2d* em)
 int em2dCamMove(cEm2d* em, int mode, f32 rate)
 {
     Em2dWork* w = EM2D_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec pos;
     Vec at;
     Vec hit;
@@ -5524,8 +5524,8 @@ void em2dDieCamMove(cEm2d* em)
     pos.z = -670.0f;
     PSMTXMultVec(pPL->mat, &pos, &pos);
     at = pPL->getPartsPtr(4)->world;
-    PosToPos(&g->Cam.param.at, &at, &w->cam.param.at, 0.300000012f);
-    PosToPos(&g->Cam.param.pos, &pos, &w->cam.param.pos, 0.300000012f);
+    PosToPos(&g->Camera.param.at, &at, &w->cam.param.at, 0.300000012f);
+    PosToPos(&g->Camera.param.pos, &pos, &w->cam.param.pos, 0.300000012f);
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
@@ -6530,7 +6530,7 @@ void em2dHumSeMove(cEm2d* em)
         w->x534--;
         return;
     }
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     d = (cam->param.pos.x - em->pos.x) * (cam->param.pos.x - em->pos.x) +
         (cam->param.pos.y - em->pos.y) * (cam->param.pos.y - em->pos.y) +
         (cam->param.pos.z - em->pos.z) * (cam->param.pos.z - em->pos.z);

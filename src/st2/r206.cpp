@@ -590,29 +590,29 @@ static void r206_snipe()
     obj2 = SmdGetObjPtr(0xE);
     ScfFlagOn(pG, SCF_NO_ASHLEY_DIST_CK);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        hit0 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &r206_hitPos0, &r206_hitRot, 0);
+        hit0 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos0, &r206_hitRot, 0);
         BitOn(obj0->be_flag, 0x20);
         YarareInitCube(hit0, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
     } else {
         obj0->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        hit1 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &r206_hitPos1, &r206_hitRot, 0);
+        hit1 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos1, &r206_hitRot, 0);
         BitOn(obj1->be_flag, 0x20);
         YarareInitCube(hit1, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
     } else {
         obj1->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        hit2 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &r206_hitPos2, &r206_hitRot, 0);
+        hit2 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos2, &r206_hitRot, 0);
         BitOn(obj2->be_flag, 0x20);
         YarareInitCube(hit2, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
     } else {
         obj2->be_flag &= ~2;
     }
-    subHit0 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &pSUB->pos, &r206_hitRot, 1);
+    subHit0 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &pSUB->pos, &r206_hitRot, 1);
     YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH, r206_subCubeD, 0, 1);
-    subHit1 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &pSUB->pos, &r206_hitRot, 1);
+    subHit1 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &pSUB->pos, &r206_hitRot, 1);
     YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H, r206_subCube2D, 0, 1);
     if (DebugTrg(1) == 0) {
         SceSleep(1);

@@ -2415,7 +2415,7 @@ static void em2b_R1_Catch(cEm2b* em)
                     pPLS->dmg.m_Timer = 2;
                     SetPlDamage(em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
-                    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
                     w->Atk_ck = 1;
                 }
             }
@@ -2640,7 +2640,7 @@ static void plem2b_Strangle(cPlayer* pl)
         pl->r_no_2 = pPLS->pEmCatch->r_no_2;
         if (pl->frame > 77.6999969f && pl->frame < 78.3000031f) {
             pl->m_Work0 = SndCall(8, 0x28, &pl->getPartsPtr(0)->world, pl->pEmCatch->id, 0, pl);
-            VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 0xC, 1);
+            VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 0xC, 1);
         }
         break;
     case 2: {
@@ -2691,7 +2691,7 @@ static void plem2b_Strangle(cPlayer* pl)
     case 5:
         MotionMove(pl, 0);
         if (pl->frame > 63.7000008f && pl->frame < 64.3000031f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         break;
     }
@@ -3005,7 +3005,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
                 pG->pl_life = 0;
                 SetPlDamage(em, plem2b_CatchHand);
                 SndCall(8, 0x24, &hp->world, em->id, 0, em);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
                 w->Atk_ck = 1;
             }
         }
@@ -3027,7 +3027,7 @@ void em2bPlFallCK(cEm2b* em)
     if (pPLS->pos.y < em->pos.y + 2000.0f) {
         return;
     }
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     pPLS->ang.y = GetXZAngle(&pPLS->pos, &em->pos);
     SetPlDamage(em, plem2bDmFall);
 }
@@ -3063,7 +3063,7 @@ static void plem2bDmFall(cPlayer* pl)
             if (pl->pos.y < y) {
                 pl->pos.y = y;
                 if (pl->frame > 63.7000008f && pl->frame < 64.3000031f) {
-                    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
                 }
                 MotionSetCore(pl, &pl->Motion, PL_ARC(0xE9), 0, 3, 1, 0);
                 MotionMove(pl, 0);
@@ -3682,7 +3682,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
             } else {
                 PlSetDamageSe(0xA);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         if (MotionMove(pl, 0) && (s16) pG->pl_life > 0) {
             if (em2bCatchObj.p) {
@@ -4285,14 +4285,14 @@ int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no)
                 }
                 QuakeExec(0, 0, 5, 22.0f, 2);
                 SndCall(8, 0x32, &em->pos, em->id, 0, em);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
                 return 1;
             }
             if (hit & 2) {
                 w->Atk_ck = 1;
                 QuakeExec(0, 0, 5, 22.0f, 2);
                 SndCall(8, 0x32, &em->pos, em->id, 0, em);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
                 return 1;
             }
         }
@@ -4442,7 +4442,7 @@ void em2bEscapeCamMove(cEm2b* em)
     Vec b;
     Vec c;
 
-    w->Cam.param.fovy = g->Cam.param.fovy;
+    w->Cam.param.fovy = g->Camera.param.fovy;
     a.x = -376.0f;
     a.y = 575.0f;
     a.z = -1831.0f;
@@ -4451,8 +4451,8 @@ void em2bEscapeCamMove(cEm2b* em)
     b.z = 52.5999985f;
     PSMTXMultVec(pPLS->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
-    PosToPos(&g->Cam.param.at, &b, &w->Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &a, &w->Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &b, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->Cam.param.at, &w->Cam.param.pos, &c, 0, 0x8000, 0)) {
         Vec d;
         f32 len;
@@ -4540,7 +4540,7 @@ void em2bFtChgCk(cEm2b* em)
 // Camera quake scaled by the distance of the position from the camera.
 void em2bQuakeSet(Vec* pos)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 d = (pos->x - cam->param.pos.x) * (pos->x - cam->param.pos.x) + (pos->y - cam->param.pos.y) * (pos->y - cam->param.pos.y) +
             (pos->z - cam->param.pos.z) * (pos->z - cam->param.pos.z);
 
@@ -4987,7 +4987,7 @@ int em2bTreeAtkCk(cEm2b* em)
     FSet(em->ang.y, LIMIT_ANGLE(em->ang.y));
     SndCall(8, 0xF, &pPL->pos, em->id, 0, pPL);
     SndCall(8, 0x32, &pPL->pos, em->id, 0, pPL);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
     SetPlDamage(em, plem2bDmBlow);
     return 1;
 }
@@ -5353,7 +5353,7 @@ static void plem2bDmBlow(cPlayer* pl)
         EstSet(pl, -1, 0, 0, w->espKind2, 6, 0, 0, pl, 0);
         SndCall(8, 0x1A, &pl->pos, pl->pEmCatch->id, 0, pl);
         SndCall(1, 9, &pl->pos, 0, 0, pl);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         pl->r_no_2++;
     case 3:
         em2bBlowCamMove((cEm2b*)pl->pEmCatch, 0.300000012f);
@@ -5383,10 +5383,10 @@ void em2bBlowCamMove(cEm2b* em, f32 rate)
 
     cModel* p;
 
-    w->Cam.param.fovy = g->Cam.param.fovy;
-    w->Cam.param.pos = g->Cam.param.pos;
+    w->Cam.param.fovy = g->Camera.param.fovy;
+    w->Cam.param.pos = g->Camera.param.pos;
     p = pPLS->getPartsPtr(0);
-    PosToPos(&g->Cam.param.at, &p->world, &w->Cam.param.at, rate);
+    PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, rate);
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
@@ -5405,14 +5405,14 @@ void em2bStampCamMove(cEm2b* em)
     Vec v;
     cModel* p;
 
-    w->Cam.param.fovy = g->Cam.param.fovy;
+    w->Cam.param.fovy = g->Camera.param.fovy;
     v.x = 0.0f;
     v.y = 3000.0f;
     v.z = -3000.0f;
     PSMTXMultVec(pPLS->mat, &v, &v);
-    PosToPos(&g->Cam.param.pos, &v, &w->Cam.param.pos, 0.100000001f);
+    PosToPos(&g->Camera.param.pos, &v, &w->Cam.param.pos, 0.100000001f);
     p = pPL->getPartsPtr(0);
-    PosToPos(&g->Cam.param.at, &p->world, &w->Cam.param.at, 0.300000012f);
+    PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, 0.300000012f);
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;

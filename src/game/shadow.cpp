@@ -143,7 +143,7 @@ int ShdInit(ShdHeader* data)
                 e->shdCol = 0xFF;
             }
         }
-        if (obj->modelInit((u8*) ofsTbl + ofsTbl[e->model], (void*) (pG->pArc->ofs_10 + (u32) pG->pArc)) == 0) {
+        if (obj->modelInit((u8*) ofsTbl + ofsTbl[e->model], (void*) (pG->pCore->ofs_10 + (u32) pG->pCore)) == 0) {
             ObjMgr.destroy(obj);
             continue;
         }
@@ -1275,7 +1275,7 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
         commonScreenMat(m);
         m->be_flag &= ~2;
     }
-    GXSetProjection(pG->Cam.ProjMat, 0);
+    GXSetProjection(pG->Camera.ProjMat, 0);
     GXSetBlendMode(1, 4, 5, 0);
     GXSetAlphaCompare(4, 0, 1, 4, 0xFF);
     n = (num - 1) / 4 + 1;
@@ -1284,7 +1284,7 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
         if (cnt > 4) {
             cnt = 4;
         }
-        shadowModelTrans(m, m->pModelInfo, pG->Cam.v_mat, &tbl[i * 4], cnt);
+        shadowModelTrans(m, m->pModelInfo, pG->Camera.v_mat, &tbl[i * 4], cnt);
     }
 }
 
@@ -1372,9 +1372,9 @@ static void shadowShaderSetup(ShadowMng** tbl, u32 num)
         ShadowMng* mng = tbl[i];
         Vec p;
         Vec d;
-        PSMTXMultVec(pG->Cam.v_mat, &mng->lightPos, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &mng->lightPos, &p);
         GXInitLightPos(&light_obj[i], p.x, p.y, p.z);
-        PSMTXMultVecSR(pG->Cam.v_mat, &mng->dir, &d);
+        PSMTXMultVecSR(pG->Camera.v_mat, &mng->dir, &d);
         GXInitLightDir(&light_obj[i], d.x, d.y, d.z);
         GXInitLightAttn(&light_obj[i], 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
         GXInitLightSpot(&light_obj[i], mng->fov * 0.9f, 1);
@@ -1402,9 +1402,9 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         Vec p;
         mng = tbl[i];
         Vec d;
-        PSMTXMultVec(pG->Cam.v_mat, &mng->lightPos, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &mng->lightPos, &p);
         GXInitLightPos(&light_obj[i], p.x, p.y, p.z);
-        PSMTXMultVecSR(pG->Cam.v_mat, &mng->dir, &d);
+        PSMTXMultVecSR(pG->Camera.v_mat, &mng->dir, &d);
         GXInitLightDir(&light_obj[i], d.x, d.y, d.z);
         GXInitLightAttn(&light_obj[i], 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
         GXInitLightSpot(&light_obj[i], mng->fov * 0.9f, 1);
@@ -1519,7 +1519,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     if (use_shd_cammove) {
         Vec look;
         Mtx tr;
-        CameraGetLookVec(&pG->Cam, &look);
+        CameraGetLookVec(&pG->Camera, &look);
         PSVECScale(&look, &look, shadow_cammove_size);
         PSMTXTrans(tr, look.x, look.y, look.z);
         PSMTXConcat(tr, m->pParts->mat, tr);
@@ -1557,11 +1557,11 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
         } else {
             GXSetVtxAttrFmt(0, 13, 1, 2, 15);
         }
-        GXSetArray(9, info->pPosBuf[pG->vtx_buf_no], 6);
+        GXSetArray(9, info->pPosBuf[pG->DblBufIdx], 6);
         if (d->flags & 0x20000000) {
-            GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 3);
+            GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 3);
         } else {
-            GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
+            GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 6);
         }
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
@@ -1631,8 +1631,8 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         } else {
             GXSetVtxAttrFmt(0, 13, 1, 2, 15);
         }
-        GXSetArray(9, info->pPosBuf[pG->vtx_buf_no], 6);
-        GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
+        GXSetArray(9, info->pPosBuf[pG->DblBufIdx], 6);
+        GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 6);
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
         if ((d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) || (m->be_flag & 0x4000)) {

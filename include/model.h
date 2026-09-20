@@ -163,7 +163,7 @@ public:
         u32 colorWord;   // 0x8C  (cModelInfo::cModelInfo: 0xFFFFFFFF)
     };
     u8 color2[4];        // 0x90  second RGBA (0x93 = 0 or 0xFF)
-    void* pPosBuf[2];    // 0x94  double-buffered vertex position arrays (pG->vtx_buf_no selects)
+    void* pPosBuf[2];    // 0x94  double-buffered vertex position arrays (pG->DblBufIdx selects)
     void* pNrmBuf[2];    // 0x9C  double-buffered vertex normal arrays
     ShapeData* pShape;   // 0xA4  current shape animation, NULL when none (shape.cpp)
     ShapeKey shape[5];   // 0xA8  blended shapes

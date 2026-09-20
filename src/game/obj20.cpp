@@ -29,8 +29,8 @@ extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h
         return 0;
     }
     w = &obj->obaModel;
-    if (obj->modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc),
-                       (void*) (pG->pArc->ofs_24 + (u32) pG->pArc)) == 0) {
+    if (obj->modelInit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore),
+                       (void*) (pG->pCore->ofs_24 + (u32) pG->pCore)) == 0) {
         pLog->err(0, 0, "SetObaModel() failed.");
         ObjMgr.destroy(obj);
         return 0;

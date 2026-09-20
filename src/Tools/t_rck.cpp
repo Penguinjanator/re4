@@ -458,9 +458,9 @@ void rckPointAdd()
     }
     p = &w->pt[n];
     gy = RCK_GRID_Y(pPL->pos.y);
-    c.x = pG->Cam.param.pos.x;
+    c.x = pG->Camera.param.pos.x;
     c.y = gy;
-    c.z = pG->Cam.param.pos.z;
+    c.z = pG->Camera.param.pos.z;
     TutilGet3DPosXZ_All((Vec*) &w->curX, &c, &out);
     memclr_asm(p, sizeof(RckPoint));
     gy = RCK_GRID_Y(out.y);
@@ -611,7 +611,7 @@ void rckPointChange()
 // Keeps the cursor on the caught point while the camera moves.
 void rckPointCameraMove()
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     RckPoint* p = &RCK->pt[RCK->cur];
     Vec d;
 
@@ -1256,7 +1256,7 @@ void rckCameraMove()
         RCK->camMode ^= 1;
     }
     if (RCK->camMode) {
-        CamDbg.move(&pG->Cam, Joy, 0);
+        CamDbg.move(&pG->Camera, Joy, 0);
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);

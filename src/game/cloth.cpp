@@ -413,7 +413,7 @@ void clothTrans(Cloth* pCL)
         Mtx tmp;
         PSMTXScale(scale, pCL->Scale, pCL->Scale, pCL->Scale);
         PSMTXConcat(pCL->mat, scale, tmp);
-        PSMTXConcat(pG->Cam.v_mat, tmp, scale);
+        PSMTXConcat(pG->Camera.v_mat, tmp, scale);
         GXLoadPosMtxImm(scale, 0);
         PSMTXInverse(scale, tmp);
         PSMTXTranspose(tmp, scale);

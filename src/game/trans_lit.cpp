@@ -107,7 +107,7 @@ void LightSetModel(cModel* m)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, (cEm*) m);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -183,7 +183,7 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, NULL);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -237,7 +237,7 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         a = l->DispCol.a;
         l->DispCol.a = (a * alpha) >> 8;
@@ -285,7 +285,7 @@ void commonEspLightSet(cLight** list, int n)
             continue;
         }
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.v_mat, &l->Pos, &p);
+        PSMTXMultVec(pG->Camera.v_mat, &l->Pos, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, NULL);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -382,7 +382,7 @@ void lightSetSpotlight(cLight* l, GXLightObj* obj)
 
     l->getPos(&p);
     l->getNormal(&sp->Normal, &dir);
-    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
+    PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
     range = l->Radius + obj_size;
@@ -405,7 +405,7 @@ void lightSetCustom(cLight* l, GXLightObj* obj)
     LightSpot* sp = &l->spot;
 
     l->getNormal(&sp->Normal, &dir);
-    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
+    PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     GXInitLightAttn(obj, sp->A0, sp->A1, sp->A2, sp->K0, sp->K1, sp->K2);
 }
@@ -423,13 +423,13 @@ void lightSetParallel(cLight* l, GXLightObj* obj)
     if (sp->flags & 1) {
         Mtx inv;
 
-        PSMTXInverse(pG->Cam.v_mat, inv);
+        PSMTXInverse(pG->Camera.v_mat, inv);
         PSMTXMultVecSR(inv, &sp->Normal, &p);
     } else {
         p = sp->Normal;
     }
     PSVECAdd(&obj_pos, &p, &p);
-    PSMTXMultVec(pG->Cam.v_mat, &p, &p);
+    PSMTXMultVec(pG->Camera.v_mat, &p, &p);
     GXInitLightPos(obj, p.x, p.y, p.z);
     Vec q;
     l->getPos(&q);
@@ -459,7 +459,7 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
 
     l->getPos(&p);
     l->getNormal(&sp->Normal, &dir);
-    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
+    PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
     range = l->Radius + obj_size;

@@ -34,7 +34,7 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 }
 
 
-#define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
+#define ARC_PTR(ofs) ((void*) (pG->pCore->ofs + (u32) pG->pCore))
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 

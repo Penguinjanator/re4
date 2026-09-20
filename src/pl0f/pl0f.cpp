@@ -111,7 +111,7 @@ static void subBoatR10eIn2();
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define SUBARC(no) PL_ARC_PTR(sub->subArc, no)
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 #define PL_BOAT(pl) ((cPl0f*) (pl)->m_pBoat)
 #define ROPE(w) ((cObj*) (w)->pRope)
 
@@ -1275,7 +1275,7 @@ static Vec pl0f_ride_cam_ofs = { -1000.0f, 1500.0f, -5000.0f };
 // the player, blended in at `rate` (1.0 = snap, 0.3 = follow); fovy 40.
 void pl0fRideCamMove(cPl0f* em, f32 rate)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec pos;
     Vec at;
@@ -1299,7 +1299,7 @@ static Vec pl0f_getoff_cam_ofs = { -1000.0f, 1500.0f, -5000.0f };
 // Get-off camera: the same offset as the ride camera, snapped every frame.
 void pl0fGetoffCamMove(cPl0f* em)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec pos;
     Vec at;
@@ -1344,7 +1344,7 @@ static Vec pl0f_boss_cam_at1 = { 0.0f, 1500.0f, 5000.0f };
 void pl0fBossCamMove(cPl0f* em, int hide)
 {
     Pl0fWork* w = PL0F_WK(em);
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec bpos;
     Vec cpos;
@@ -1484,7 +1484,7 @@ static Vec pl0f_hide_cam_pos = { 0.0f, -200.0f, 10000.0f };
 // shoulder looking 10 m ahead of the boat, snapped (the at / pos offsets are used swapped).
 void pl0fHideModeCamSet(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec at;
     Vec pos;
@@ -1505,7 +1505,7 @@ void pl0fHideModeCamSet(cPlayer* pl)
 // Hiding-mode camera per frame: the same placement followed at 10 % per frame, handed to CamCtrl.
 void pl0fHideModeCamMove(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec at;
     Vec pos;
@@ -1531,7 +1531,7 @@ static Vec pl0f_die_cam_pos = { 0.0f, 1600.0f, 10000.0f };
 // up, 2.5 m back) looking 10 m ahead of the boat, fovy 40, snapped.
 void pl0fBossDieCamSet(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec at;
     Vec pos;
@@ -1552,7 +1552,7 @@ void pl0fBossDieCamSet(cPlayer* pl)
 // Boss-death camera per frame: the same placement, snapped and handed to CamCtrl.
 void pl0fBossDieCamMove(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Mtx m;
     Vec at;
     Vec pos;
@@ -3084,7 +3084,7 @@ void pl00SetSwimCam(cPlayer* pl)
 // relaxes to 40; handed to CamCtrl.
 void pl00SwimCamMove(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Vec pos;
     Vec at;
 
@@ -3228,7 +3228,7 @@ void pl00SetDropCam(cPlayer* pl)
 // and go off again once it comes back up.
 void pl00DropCamMove(cPlayer* pl)
 {
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Vec at;
     Vec pos;
     f32 h;
@@ -3454,7 +3454,7 @@ void plboatSightCurMove(cPlayer* pl)
 void plboatSpearThrow(cPlayer* pl)
 {
     cObjSpear* spear = pl->m_pSpear;
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
     Vec cur;
     Vec dir;
     Vec target;

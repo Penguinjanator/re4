@@ -1097,7 +1097,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->Mot_pl_dm && (s16) pG->pl_life > 0 && w->body) {
                 if (obj->type == 2) {
@@ -1136,7 +1136,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (obj->type == 2) {
                 EstSet(obj, -1, 0, 0, 0x10, 0x73, 0, 0, obj, 0);
@@ -1157,7 +1157,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (obj->type == 2) {
                 EstSet(obj, -1, 0, 0, 0x10, 0x73, 0, 0, obj, 0);
@@ -1165,7 +1165,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             break;
         case 3:
             obj16PlHeadLost(obj);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             break;
         }

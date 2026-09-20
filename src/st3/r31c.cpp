@@ -1903,17 +1903,17 @@ void cR31CPost::atari_set()
 
     switch (type) {
     case 1:
-        hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &zero, 0, 1);
+        hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
         YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 1300.0f, 1, 0x41);
         YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, 0x41);
         break;
     case 0:
-        hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &zero, 0, 1);
+        hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
         YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 2600.0f, 1, 0x41);
         YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, 0x41);
         break;
     case 2:
-        hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &zero, 0, 1);
+        hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
         YarareInitCube(hit, 0.0f, 0.0f, 0.0f, 2500.0f, 2150.0f, 700.0f, 1, 0x41);
         break;
     }

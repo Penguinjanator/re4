@@ -1063,13 +1063,13 @@ static void emlist_r0_target()
                 p->flags |= 1;
                 *(u16*) ((u8*) p + 0x18) = (pG->stage_no << 8) | pG->room_no;
                 p->xA = 0;
-                PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &v);
+                PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &v);
                 {
                     f32 vy = v.y;
                     v.y = 0.0f;
-                    PSVECScale(&v, &v, (pPLem->pos.y - pG->Cam.param.pos.y) / vy);
+                    PSVECScale(&v, &v, (pPLem->pos.y - pG->Camera.param.pos.y) / vy);
                 }
-                PSVECAdd(&pG->Cam.param.pos, &v, &v);
+                PSVECAdd(&pG->Camera.param.pos, &v, &v);
                 ((s16*) p->pos)[0] = (s16) (v.x * 0.1f);
                 ((s16*) p->pos)[1] = (s16) (pPLem->pos.y * 0.1f);
                 ((s16*) p->pos)[2] = (s16) (v.z * 0.1f);
@@ -2749,7 +2749,7 @@ void emlistCameraMove()
         EmList.wk->joy.rep2 = 0;
     }
     if (EmList.wk->x7C != 0) {
-        CamDbg.move(&pG->Cam, &Joy[0], 0);
+        CamDbg.move(&pG->Camera, &Joy[0], 0);
         BitSet(EmList.wk->joy.trg, 0);
         BitSet(EmList.wk->joy.on, 0);
         BitSet(EmList.wk->joy.rep, 0);
@@ -2769,7 +2769,7 @@ void emlistCamToPoin()
     Vec d;
     Vec pos;
     Vec scr;
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
 
     if (p->id != 0 && pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {

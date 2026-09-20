@@ -207,7 +207,7 @@ void msqToolInit()
     w->seq[0].viewFlag = 4;
     ToolArrayPush(0);
     zero = 0.0f;
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     cam->param.at.y = 1000.0f;
     cam->param.at.x = zero;
     cam->param.at.z = zero;
@@ -1279,7 +1279,7 @@ void msqCameraMove()
         MSQ->joy.rep = 0;
         U32Set(MSQ->joy.rep2, 0);
         TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-        CamDbg.move(&pG->Cam, Joy, 0);
+        CamDbg.move(&pG->Camera, Joy, 0);
     }
 }
 

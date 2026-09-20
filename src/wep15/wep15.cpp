@@ -89,7 +89,7 @@ void cObjMagnum::moveFire()
         SndCall(2, 2, &pos, 0, 0, 0);
         SndCall(2, 4, &pos, 0, 0, 0);
         EstSet(this, -1, 0, 0, 0x49, 0, 0, 0xA, 0, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         wep.step = 1;
     }
 }

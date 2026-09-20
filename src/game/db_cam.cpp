@@ -307,8 +307,8 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         Vec pos;
         Vec at;
         PSMTXInverse(pPL->mat, inv);
-        PSMTXMultVec(inv, &pG->Cam.param.pos, &pos);
-        PSMTXMultVec(inv, &pG->Cam.param.at, &at);
+        PSMTXMultVec(inv, &pG->Camera.param.pos, &pos);
+        PSMTXMultVec(inv, &pG->Camera.param.at, &at);
         eprintf(72, 420, 5, 0, "CAMPOS @pPl->mat: (%5.1f, %5.1f, %5.1f)", pos.x, pos.y, pos.z);
         eprintf(72, 434, 5, 0, "TARGET @pPl->mat: (%5.1f, %5.1f, %5.1f)", at.x, at.y, at.z);
     }
@@ -535,12 +535,12 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         CamCtrl.r1 = 0;
         if (m_cam_mode != 5) {
             if (old_cam_mode == 5) {
-                pG->Cam.param = cameraBak;
+                pG->Camera.param = cameraBak;
                 ProjType = 1;
             }
-            CameraSetOrientationRoll(&pG->Cam);
+            CameraSetOrientationRoll(&pG->Camera);
         } else {
-            cameraBak = pG->Cam.param;
+            cameraBak = pG->Camera.param;
             ProjType = 2;
             u32 t;
             // One destination pointer per copy: the three `addi rD,pG,off` bases are distinct
@@ -550,7 +550,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
                 // The campos copy as three named words: `campos.w[k]` loads are `mem/s` and the
                 // `*(u32*)((u32)d0 + k)` stores are flagless MEMs, the same RTL as memcpy's
                 // move_by_pieces (a `*(u32*)(d0 + k)` store would be `mem/s`, `((u32*)d0)[k]` too).
-                u8* d0 = (u8*) &pG->Cam.param.pos;
+                u8* d0 = (u8*) &pG->Camera.param.pos;
                 u32 wx = campos.w[0];
                 u32 wy = campos.w[1];
                 u32 wz = campos.w[2];
@@ -570,17 +570,17 @@ void debugCamera::menu(Camera* cam, JOY* joy)
                 asm("" : "=&r"(t) : "r"(wy), "f"(0.0f));
             }
             {
-                u8* d1 = (u8*) &pG->Cam.param.at;
+                u8* d1 = (u8*) &pG->Camera.param.at;
                 memcpy(d1, &target, sizeof(Vec));
             }
             {
-                u8* d2 = (u8*) &pG->Cam.up;
+                u8* d2 = (u8*) &pG->Camera.up;
                 memcpy(d2, &up, sizeof(Vec));
             }
-            FSet(pG->Cam.param.roll, 0.0f);
+            FSet(pG->Camera.param.roll, 0.0f);
             // COMPILER-DIFF: candidate (sched2 tie, second half; see the campos copy above).
             asm("" : "=m"(ProjType) : "r"(t));
-            CameraSetOrientationUp(&pG->Cam);
+            CameraSetOrientationUp(&pG->Camera);
             DbgFlagOn(pG, DBG_DBG_CAM);
         }
         do { } while (0);
@@ -594,7 +594,7 @@ int debugCamera::menuCamera(JOY* joy)
 {
     static const char* str[4] = {"Roll", "FOVy", "Gain", "Play"};
     static int pos[2] = {240, 294};
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     int d;
     int i;
 
@@ -979,7 +979,7 @@ int debugCamera::menuAdjust(JOY* joy)
         }
         CamCtrl.r0 = 10;
         CamCtrl.Move();
-        pG->Cam = CamCtrl.camera;
+        pG->Camera = CamCtrl.camera;
     }
     old_ret = ret;
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
@@ -1095,7 +1095,7 @@ void CameraDebugInformation()
     eprintf(56, 294, 0, 15, "Trgt : (%.2f, %.2f, %.2f)", cam->param.at.x, cam->param.at.y, cam->param.at.z);
     eprintf(56, 308, 0, 15, "Roll : %.2f", cam->param.roll);
     eprintf(176, 308, 0, 15, "FOVy : %.2f", cam->param.fovy);
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     eprintf(56, 336, 0, 15, "----- DEBUG CAMERA ----");
     eprintf(56, 350, 0, 15, "Cpos : (%.2f, %.2f, %.2f)", cam->param.pos.x, cam->param.pos.y, cam->param.pos.z);
     eprintf(56, 364, 0, 15, "Trgt : (%.2f, %.2f, %.2f)", cam->param.at.x, cam->param.at.y, cam->param.at.z);
@@ -1107,7 +1107,7 @@ void CameraDebugInformation()
 // horizontal part of forward) with the y kept.
 void moveOnPlaneXZ(Vec* in, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec vx;
     Vec vy;
     Vec vz;
@@ -1232,7 +1232,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     static int yes_no = 0;
     static int near_far = 0;
     GlobalWork* g = pG;
-    Camera* cam = &g->Cam;
+    Camera* cam = &g->Camera;
     CameraQuasiFPS* q = &CamCtrl.m_QuasiFPS;
     Mtx inv;
     Vec target;
@@ -1448,8 +1448,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             SpfFlagOff(pG, SPF_CAMERA);
             menu_level = 1;
         } else if (joy->trg & JOY_A) {
-            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->Campos);
-            PSMTXMultVec(inv, &g->Cam.param.at, &QOFS(p_offset)->target);
+            PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->Campos);
+            PSMTXMultVec(inv, &g->Camera.param.at, &QOFS(p_offset)->target);
             if (symmetry_flag) {
                 memcpy(p_counter, p_offset, sizeof(QfpsOfs));
                 FSet(QOFS(p_counter)->Campos.x, -QOFS(p_counter)->Campos.x);
@@ -1471,7 +1471,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             CameraSetOrientationRoll(&CamCtrl.camera);
             menu_level = 2;
         } else if (joy->trg & JOY_A) {
-            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->campos2);
+            PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->campos2);
             if (symmetry_flag) {
                 memcpy(p_counter + QOFS_CAMPOS2, p_offset + QOFS_CAMPOS2, sizeof(Vec));
                 FSet(QOFS(p_counter)->campos2.x, -QOFS(p_counter)->campos2.x);

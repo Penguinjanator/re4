@@ -1668,7 +1668,7 @@ int PlBombHitCk(Vec* pos, f32 r)
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
     PlSetDamage(8, 0, 0);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
 }
 

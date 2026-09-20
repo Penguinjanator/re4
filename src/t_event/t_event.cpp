@@ -1040,7 +1040,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
                 SpfFlagOff(pG, SPF_CAMERA);
             }
         } else {
-            CamDbg.move(&pG->Cam, &Joy[0], 0);
+            CamDbg.move(&pG->Camera, &Joy[0], 0);
             if (DebugCameraTimer++ & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");
             }

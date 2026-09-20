@@ -1360,7 +1360,7 @@ static void playerRunMoveBridge(cPlayer* pl)
 // or the bridge (which 1) via SetPlDamage.
 void playerRunDieSet(cEm* em, int which)
 {
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     if (which == 0) {
         SetPlDamage(em, playerRunDiePassage);
@@ -1433,8 +1433,8 @@ void playerRunCamMovePassage(cPlayer* pl, f32 t)
     cam->param.fovy = r226_fovyPassage;
     PSMTXMultVec(pl->mat, &r226_camOfsPos, &pos);
     PSMTXMultVec(pl->mat, &r226_camOfsAt, &at);
-    PosToPos(&g->Cam.param.at, &at, &r226_cam.param.at, t);
-    PosToPos(&g->Cam.param.pos, &pos, &r226_cam.param.pos, t);
+    PosToPos(&g->Camera.param.at, &at, &r226_cam.param.at, t);
+    PosToPos(&g->Camera.param.pos, &pos, &r226_cam.param.pos, t);
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
@@ -1462,8 +1462,8 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     }
     PSMTXMultVec(pl->mat, &r226_work.p->camPos, &pos);
     PSMTXMultVec(pl->mat, &r226_work.p->camAt, &at);
-    PosToPos(&g->Cam.param.at, &at, &r226_cam.param.at, t);
-    PosToPos(&g->Cam.param.pos, &pos, &r226_cam.param.pos, t);
+    PosToPos(&g->Camera.param.at, &at, &r226_cam.param.at, t);
+    PosToPos(&g->Camera.param.pos, &pos, &r226_cam.param.pos, t);
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
@@ -1481,8 +1481,8 @@ void playerRunCamDiePassage(cPlayer* pl)
 
     cam->param.fovy = r226_fovyDie;
     parts = pl->getPartsPtr(0);
-    PosToPos(&g->Cam.param.at, &parts->world, &r226_cam.param.at, 1.0f);
-    cam->param.pos = g->Cam.param.pos;
+    PosToPos(&g->Camera.param.at, &parts->world, &r226_cam.param.at, 1.0f);
+    cam->param.pos = g->Camera.param.pos;
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;

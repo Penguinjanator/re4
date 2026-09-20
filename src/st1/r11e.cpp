@@ -324,7 +324,7 @@ static void r11e_move_sasaeki1()
         return;
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        hitA = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objA->pos, &objA->ang, 0);
+        hitA = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &objA->pos, &objA->ang, 0);
         objA->be_flag |= 0x20;
         {
             const f32 w = 2000.0f;    // const: pool order w, h before 0.0, uses stay literal (sched ties)
@@ -346,7 +346,7 @@ static void r11e_move_sasaeki1()
         objA->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        hitB = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objB->pos, &objB->ang, 0);
+        hitB = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &objB->pos, &objB->ang, 0);
         objB->be_flag |= 0x20;
         {
             const f32 w = 2000.0f;

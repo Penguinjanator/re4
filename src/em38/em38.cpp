@@ -731,7 +731,7 @@ static void em38_R1_br_Atk(cEm38* em)
         w->atkHit = 0;
         em38AtkCk(em, 3, 0x19);
         if (w->atkHit) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
             EmRoutineSetW(em, 1, 4, 0, 0);
             pPLS->dmg.m_Timer = 0x80;
             em->dmg.m_Timer = 0x80;
@@ -1446,7 +1446,7 @@ static void plem38_CatchHit(cPlayer* pl)
         } else if (pl->frame > 87.7f && pl->frame < 88.3f) {
             PlSetDamageSe(0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         break;
     case 2:
@@ -2287,7 +2287,7 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
             }
         }
         QuakeExec(0, 0, 5, 22.0f, 2);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         return 1;
     }
     return 0;
@@ -2463,7 +2463,7 @@ void em38EscapeCamMove(cEm38* em)
 
     // volatile store: keeps the w-relative address (a reference setter folds it to em+0xCA8) and
     // orders every later memory op behind it, which issues the store before the pool loads
-    *(volatile f32*) &w->cam.param.fovy = g->Cam.param.fovy;
+    *(volatile f32*) &w->cam.param.fovy = g->Camera.param.fovy;
     a.x = -376.0f;
     a.y = 575.0f;
     a.z = -1831.0f;
@@ -2472,8 +2472,8 @@ void em38EscapeCamMove(cEm38* em)
     b.z = 52.6f;
     PSMTXMultVec(pPL->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
-    PosToPos(&g->Cam.param.at, &b, &w->cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &a, &w->cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &b, &w->cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &c, 0, 0x8000, 0)) {
         Vec d;
         f32 len;

@@ -21,7 +21,7 @@ void MirrorDraw2(cModel* m)
         return;
     }
     commonScreenMat(m);
-    mirrorModelTrans2(m, m->pModelInfo, pG->Cam.v_mat);
+    mirrorModelTrans2(m, m->pModelInfo, pG->Camera.v_mat);
 }
 
 // Draws every cModelInfo of the model with one TEV stage sampling TexRender texture 0 through a
@@ -77,8 +77,8 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         } else {
             GXSetVtxAttrFmt(0, 13, 1, 2, 15);
         }
-        GXSetArray(9, info->pPosBuf[pG->vtx_buf_no], 6);
-        GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
+        GXSetArray(9, info->pPosBuf[pG->DblBufIdx], 6);
+        GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 6);
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
         if (d->weight_palette_num == 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
@@ -87,7 +87,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         }
         GXSetCullMode(1);
         GXLoadTexObj(&GetTexRenderMgrAddr(0)->m_Tex_obj, st->texMap);
-        C_MTXLightPerspective(proj, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
+        C_MTXLightPerspective(proj, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
         PSMTXConcat(proj, mv, tex);
         GXLoadTexMtxImm(tex, 0x1E, 0);
         GXSetTexCoordGen2(st->texCoord, 0, 0, 0x1E, 0, 0x7D);

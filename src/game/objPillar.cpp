@@ -534,11 +534,11 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
             QuakeExec(0, 0, 5, 22.0f, 2);
             SndCall(8, 0x25, &pPL->pos, 0x31, 0, pPL);
             w->Act_ck = 1;
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         if (hit & 2) {
             QuakeExec(0, 0, 5, 22.0f, 2);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
     }
 }
@@ -614,7 +614,7 @@ void EscapeCamMove()
     f32 len;
     GlobalWork* g = pG;
 
-    Cam.param.fovy = g->Cam.param.fovy;
+    Cam.param.fovy = g->Camera.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -623,8 +623,8 @@ void EscapeCamMove()
     p1.z = 52.6f;
     PSMTXMultVec(pPL->mat, &p0, &p0);
     PSMTXMultVec(pPL->mat, &p1, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &p0, &Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &p1, &Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &p0, &Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&Cam.param.at, &Cam.param.pos, &hit, 0, 0x8000, 0)) {
         PSVECSubtract(&hit, &Cam.param.at, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;

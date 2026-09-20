@@ -926,8 +926,8 @@ void objLadderClimbCamMove(cEm* em)
     camAt.z = 0.0f;
     PSMTXMultVec(parts->mat, &camPos, &camPos);
     PSMTXMultVec(parts->mat, &camAt, &camAt);
-    PosToPos(&g->Cam.param.at, &camAt, &objLadderClimbCam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &camPos, &objLadderClimbCam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &camAt, &objLadderClimbCam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &camPos, &objLadderClimbCam.param.pos, 1.0f);
     objLadderClimbCam.up.x = 0.0f;
     objLadderClimbCam.up.y = 1.0f;
     objLadderClimbCam.up.z = 0.0f;
@@ -1078,8 +1078,8 @@ void objLadderDownCamMove(cEm* em)
     camAt.z = 500.0f;
     PSMTXMultVec(em->mat, &camPos, &camPos);
     PSMTXMultVec(em->mat, &camAt, &camAt);
-    PosToPos(&g->Cam.param.at, &camAt, &objLadderDownCam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &camPos, &objLadderDownCam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &camAt, &objLadderDownCam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &camPos, &objLadderDownCam.param.pos, 1.0f);
     objLadderDownCam.up.x = 0.0f;
     objLadderDownCam.up.y = 1.0f;
     objLadderDownCam.up.z = 0.0f;
@@ -1183,8 +1183,8 @@ void objLadderResetCamMove(cEm* em)
     camAt.z = 0.0f;
     PSMTXMultVec(em->mat, &camPos, &camPos);
     PSMTXMultVec(em->mat, &camAt, &camAt);
-    PosToPos(&g->Cam.param.at, &camAt, &objLadderResetCam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &camPos, &objLadderResetCam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &camAt, &objLadderResetCam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &camPos, &objLadderResetCam.param.pos, 1.0f);
     objLadderResetCam.up.x = 0.0f;
     objLadderResetCam.up.y = 1.0f;
     objLadderResetCam.up.z = 0.0f;

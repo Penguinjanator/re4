@@ -71,8 +71,8 @@ static inline void BSet(u8& d, u8 v)
 // stage_prev/room_prev written as one u16 through a plain pointer (aliases pG like G_ROOM_ID).
 #define G_ROOM_ID_PREV (*(u16*) &pG->stage_prev)
 
-// Sub-file of the core archive (pG->pArc): `ofs + (u32) arc` (integer arithmetic, ofs first).
-#define G_ARC_PTR(field) ((void*) (pG->pArc->field + (u32) pG->pArc))
+// Sub-file of the core archive (pG->pCore): `ofs + (u32) arc` (integer arithmetic, ofs first).
+#define G_ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Fade colours: word constants passed by address (see sscrn.cpp).
 union FadeColor {
@@ -215,7 +215,7 @@ void titleWait(TitleWork* w)
                 w->Rno0 = 5;
                 w->counter = 585;
                 titleSet(w, 585);
-                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+                if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveStep = w->Rno1;
                     w->saveSub = w->Rno2;
                     w->saveX3 = w->Rno3;
@@ -226,7 +226,7 @@ void titleWait(TitleWork* w)
             }
         }
         {
-            Camera* cam = &pG->Cam;
+            Camera* cam = &pG->Camera;
             C_MTXPerspective(cam->ProjMat, cam->param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
             cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
             C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
@@ -798,7 +798,7 @@ void titleMain(TitleWork* w)
             if (Joy[0].trg & 0x1100) {
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->Rno0 = 7;
-                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+                if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveSub = w->Rno2;
                     w->saveStep = w->Rno1;
                     w->saveX3 = w->Rno3;
@@ -909,7 +909,7 @@ void titleSub(TitleWork* w)
         }
         FadeSetW(0, 5, 0, 0);
         w->Rno1++;
-        if ((s32) pG->System_flg < 0) {
+        if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME)) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
         } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             snd_id = SndStrReq(0, 55, 0x80000003, 0, 0, 0.0f);
@@ -1531,8 +1531,8 @@ void titleExit(TitleWork* w)
         } else {
             memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
             FSet(pG->sub_angle, pG->NextY);
-            G_ROOM_ID = pG->next_room;
-            pG->Part = pG->next_point;
+            G_ROOM_ID = pG->RoomNo_next;
+            pG->Part = pG->Part_next;
         }
     }
     if (w->se_id != 0) {
@@ -1548,7 +1548,7 @@ void titleExit(TitleWork* w)
         Mem_free(w->pDat);
         w->pDat = 0;
     }
-    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         Mem_free(w->pOmk);
     }
     StaFlagOff(pG, STA_TITLE);

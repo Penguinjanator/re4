@@ -262,8 +262,8 @@ int GetScreenPos(Vec* pos, Vec* scr)
     CameraCurrentProjection();
     GXGetProjectionv(proj);
     GXGetViewportv(vp);
-    GXProject(pos->x, pos->y, pos->z, pG->Cam.v_mat, proj, vp, &scr->x, &scr->y, &scr->z);
-    PSMTXMultVec(pG->Cam.v_mat, pos, &cam);
+    GXProject(pos->x, pos->y, pos->z, pG->Camera.v_mat, proj, vp, &scr->x, &scr->y, &scr->z);
+    PSMTXMultVec(pG->Camera.v_mat, pos, &cam);
     return cam.z < -0.0f;
 }
 
@@ -271,7 +271,7 @@ int GetScreenPos(Vec* pos, Vec* scr)
 // scroll collision hit, else the player's height when none), or the far point 20000 away.
 void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec far;
     Vec dir;
     Vec hit;
@@ -350,7 +350,7 @@ void VecToCamVec(Vec* v, Vec* out)
     t.x = 0.0f;
     t.y = 0.0f;
     t.z = 1.0f;
-    PSMTXMultVecSR(pG->Cam.mat, &t, &t);
+    PSMTXMultVecSR(pG->Camera.mat, &t, &t);
     ang = atan2f(t.x, t.z);
     t.x = v->x;
     t.y = 0.0f;

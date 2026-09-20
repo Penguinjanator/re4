@@ -243,7 +243,7 @@ static f32 em31ClothMax3[18] = {
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 // Struct-member views of the player pointer / pG: a load through them is not hoisted above the
 // preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
@@ -1610,7 +1610,7 @@ void em31EscapeCamMove(cEm31* em)
     Vec b;
     Vec c;
 
-    w->Cam.param.fovy = g->Cam.param.fovy;
+    w->Cam.param.fovy = g->Camera.param.fovy;
     a.x = -376.0f;
     a.y = 575.0f;
     a.z = -1831.0f;
@@ -1619,8 +1619,8 @@ void em31EscapeCamMove(cEm31* em)
     b.z = 52.6f;
     PSMTXMultVec(pPLS->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
-    PosToPos(&g->Cam.param.at, &b, &w->Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &a, &w->Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &b, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->Cam.param.at, &w->Cam.param.pos, &c, 0, 0x8000, 0)) {
         Vec d;
         f32 len;
@@ -3589,14 +3589,14 @@ void em31StampCamMove(cEm31* em)
     Vec a;
     cModel* p;
 
-    w->Cam.param.fovy = g->Cam.param.fovy;
+    w->Cam.param.fovy = g->Camera.param.fovy;
     a.x = 0.0f;
     a.y = 3000.0f;
     a.z = -3000.0f;
     PSMTXMultVec(pPLS->mat, &a, &a);
-    PosToPos(&g->Cam.param.pos, &a, &w->Cam.param.pos, 0.1f);
+    PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
-    PosToPos(&g->Cam.param.at, &p->world, &w->Cam.param.at, 0.3f);
+    PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, 0.3f);
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;

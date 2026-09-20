@@ -66,8 +66,8 @@ void CRoomInfo::setNextPos()
     }
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->Part);
-    U16Set(pG->next_room, roomNo);
-    U8Set(pG->next_point, 0);
+    U16Set(pG->RoomNo_next, roomNo);
+    U8Set(pG->Part_next, 0);
 }
 
 // Wraps the room info table (count, per-stage offsets, CRoomInfo records) and, on first use,

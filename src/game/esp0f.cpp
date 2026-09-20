@@ -91,7 +91,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
 
         PSMTXIdentity(esp->m_Mat);
         PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXMultVec(m, &esp->m_Pos, &p);
         esp->m_Mat[0][3] = p.x;
         esp->m_Mat[1][3] = p.y;
@@ -102,7 +102,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
         PSMTXIdentity(esp->m_Mat);
         RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     GXTexObj tex;
@@ -162,7 +162,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
         Mtx tm;
         Mtx pm;
 
-        C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
+        C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
         PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(0, 0, 0, 0x1E);

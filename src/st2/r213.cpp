@@ -118,7 +118,7 @@ static void SceBgmCheck();
 static void R213Event();
 extern "C" void Evt_R213S00_Func(Event* e);
 
-#define R213_EM_ARC(no) ((void*) (pG->pArc->ofs_##no + (u32) pG->pArc))
+#define R213_EM_ARC(no) ((void*) (pG->pCore->ofs_##no + (u32) pG->pCore))
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec rot = {0,0,0}`
 // libcall for an explicit call (see R213Init).
 extern "C" void* r213_memset(void*, ...) asm("memset");

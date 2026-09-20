@@ -4,7 +4,7 @@
 // (fixed, pan, rail track / pan / behind, free, camera motion, shoulder camera = CameraQuasiFPS
 // in cam_qfps.cpp) and the extras (scope, binoculars, push object, look-down, attached motion
 // cameras in cam_extra.cpp) plug in as cCamera objects. Move() produces the frame's camera
-// through the cut interpolation and smoothing; CameraMove (camera.cpp) copies it into pG->Cam.
+// through the cut interpolation and smoothing; CameraMove (camera.cpp) copies it into pG->Camera.
 
 #include "types.h"
 #include "vec.h"
@@ -224,7 +224,7 @@ void CameraControl::Comeback(int)
     Check();
 }
 
-// Stops the controller (r0 Wait, area check off); the room / event drives pG->Cam itself.
+// Stops the controller (r0 Wait, area check off); the room / event drives pG->Camera itself.
 void CameraControl::Disable()
 {
     r0 = 0;
@@ -1276,7 +1276,7 @@ void CameraControl::Move()
     camera.param = *CamSmth.getParam();
     CameraSetOrientationRoll(&camera);
     if (!DbgFlagChk(pG, DBG_DBG_CAM) && (m_state_flag & 4)) {
-        pG->Cam = CamCtrl.camera;
+        pG->Camera = CamCtrl.camera;
     }
 }
 
@@ -1375,7 +1375,7 @@ void CameraSmooth::move(CameraParam* p)
     param.fovy = p->fovy * (1.0f - m_ratio) + param.fovy;
 }
 
-// r0 == 0: idle (an event / room owns pG->Cam).
+// r0 == 0: idle (an event / room owns pG->Camera).
 void CameraControl::r0_Wait()
 {
 }
@@ -2411,7 +2411,7 @@ void CameraControl::MotionSet(void* motion, int frame, f32 speed)
     extra = new (m_Free) CameraMotion(motion, 0, 0, speed);
     ((CameraMotion*) extra)->base_mat = NULL;
     r0 = 5;
-    interp.set(frame, &pG->Cam.param);
+    interp.set(frame, &pG->Camera.param);
 }
 
 // 1 while a camera motion is playing (m_system_flag 0x20).
@@ -2576,21 +2576,21 @@ void CameraControl::checkAttachCamera()
         ac = getAttachCamera(model);
         if (m_p_attach_model_old != model) {
             BitOn(m_system_flag, 8);
-            interp.set(ac->frame, &pG->Cam.param);
+            interp.set(ac->frame, &pG->Camera.param);
             r0 = 0x11;
             if (extra) {
                 delete extra;
             }
             extra = new (m_Free) CameraAttachedToMotion(model);
-            extra->param.pos = pGW.p->Cam.param.pos;
-            extra->param.at = pGW.p->Cam.param.at;
-            extra->param.roll = pGW.p->Cam.param.roll;
-            extra->param.fovy = pGW.p->Cam.param.fovy;
+            extra->param.pos = pGW.p->Camera.param.pos;
+            extra->param.at = pGW.p->Camera.param.at;
+            extra->param.roll = pGW.p->Camera.param.roll;
+            extra->param.fovy = pGW.p->Camera.param.fovy;
         }
         inter_frame = ac->frame;
     } else if (m_p_attach_model_old) {
         BitSet(m_system_flag, 0x10);
-        interp.set(inter_frame, &pG->Cam.param);
+        interp.set(inter_frame, &pG->Camera.param);
     }
     m_p_attach_model_old = model;
 }

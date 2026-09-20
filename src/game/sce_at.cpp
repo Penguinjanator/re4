@@ -880,9 +880,9 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->NextY, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->Part);
-    pG->next_stage = w->dstStage;
-    pG->next_room_no = w->dstRoom;
-    pG->next_point = w->dstPart;
+    pG->Stage_next = w->dstStage;
+    pG->Room_next = w->dstRoom;
+    pG->Part_next = w->dstPart;
     pG->door_no = w->doorNo;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
@@ -4189,8 +4189,8 @@ void sceAtSetItem(SceAtWork* w)
     if (it->pModel == 0) {
         ok2 = ItemGetBinTplAddr(it->id, &bin, &tpl) ? 1 : 0;
         if (ok2 == 0) {
-            bin = (void*) (pG->pArc->ofs_20 + (u32) pG->pArc);
-            tpl = (void*) (pG->pArc->ofs_24 + (u32) pG->pArc);
+            bin = (void*) (pG->pCore->ofs_20 + (u32) pG->pCore);
+            tpl = (void*) (pG->pCore->ofs_24 + (u32) pG->pCore);
         }
         if (it->flag2 & 0x10) {
             SceAtSetShootDownItem(w, bin, tpl);

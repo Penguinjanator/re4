@@ -634,12 +634,12 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
     f32 w;
     f32 ang;
 
-    PSMTXInverse(pG->Cam.mat, inv);
+    PSMTXInverse(pG->Camera.mat, inv);
     PSMTXMultVec(inv, pos, out);
     if (out->z > -fabsf(ZNEAR)) {
         return 0;
     }
-    ang = pG->Cam.param.fovy * 0.5f * 0.017453292f;
+    ang = pG->Camera.param.fovy * 0.5f * 0.017453292f;
     az = fabsf(out->z);
     h = az * tanf(ang);
     w = h * 1.3333334f;
@@ -653,7 +653,7 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
 // case).
 void screenPos2puzzlePos(Vec* pos, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 pz = cam->param.pos.z;
     f32 h = fabsf((f32) (pz * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 
@@ -1371,7 +1371,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     combine->connect(1, command);
     exam->connect(0, select);
     caseChange->connect(0, select);
-    puzzleCameraInit(wk, &pG->Cam);
+    puzzleCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
     if (!IdSub.setCk(0x14)) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);

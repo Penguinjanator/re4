@@ -126,7 +126,7 @@ ReadModule WepReadModule __attribute__((aligned(32)));
 #define WEP_DATA_MAX 0x70000
 #define DLL_BSS_MAX 0x80
 
-#define ARC_PTR(field) ((void*) (pG->pArc->field + (u32) pG->pArc))
+#define ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
 static inline void PSet(void*& d, void* v) { d = v; }
@@ -218,14 +218,14 @@ void ReadAreaData()
     PSet(pG->pEmi, GetDataExt(pG->pRoom, "EMI", 0));
 }
 
-// Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pArc) and initialises the
+// Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pCore) and initialises the
 // specular / illumination textures from it.
 void CoreDataRead()
 {
     DvdReadInfo info;
     int req;
 
-    pG->pArc = (ArcFile*) CORE_DATA_ADDR;
+    pG->pCore = (ArcFile*) CORE_DATA_ADDR;
 #line 219 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ(3, CORE_DATA_ADDR, 0, 0, 0, 0x8001);
     Dvd.ReadCheck(req, &info);

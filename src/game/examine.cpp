@@ -564,7 +564,7 @@ void ItemExamine::idSet()
     switch (m_scrn_flag) {
     case 0:
     case 1:
-        m_pIdSys->set((void*) (pG->pArc->ofs_78 + (u32) pG->pArc), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set((void*) (pG->pCore->ofs_78 + (u32) pG->pCore), 0xFF, 0x26, 0x13, 0, 0);
         break;
     case 2:
         m_pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
@@ -657,7 +657,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         itemCamera.dist = cap_dist_max;
         g_rad_x = 0.0f;
     } else {
-        arc = pG->pArc;
+        arc = pG->pCore;
         lit = (cLit*) (arc->ofs_58 + (u32) arc);
         if (m_pInfo) {
             switch (m_pInfo->light) {
@@ -677,7 +677,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
                 lit = (cLit*) (arc->ofs_68 + (u32) arc);
                 break;
             default:
-                lit = (cLit*) (pG->pArc->ofs_58 + (u32) pG->pArc);
+                lit = (cLit*) (pG->pCore->ofs_58 + (u32) pG->pCore);
                 break;
             }
         }

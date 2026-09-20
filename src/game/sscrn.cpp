@@ -376,7 +376,7 @@ void SubScreenExec()
             if (pSUB) {
                 MTX_COPY(pSUB->mat, wk->sub_mat);
             }
-            wk->camera_bak = pG->Cam;
+            wk->camera_bak = pG->Camera;
             step++;
             wk->stage = sscrnStageNo();
             wk->room_no = sscrnRoomNo(pG->room_id);
@@ -705,7 +705,7 @@ void SubScreenExit()
             systemVISetBlack(1);
             ScreenReSize(512, 448);
             systemVISetBlack(0);
-            pG->Cam = wk->camera_bak;
+            pG->Camera = wk->camera_bak;
             View.move();
             BitSet(pG->Disp_flg, wk->disp_bak);
             if (wk->binocular_flag == 0) {

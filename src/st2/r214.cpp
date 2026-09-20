@@ -1033,7 +1033,7 @@ void Evt_R214S00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0 && (StaFlagChk(pG, STA_BINOCULAR))) {
                 StaFlagOff(pG, STA_BINOCULAR);
-                r214_work.p->bino->quit(&pG->Cam);
+                r214_work.p->bino->quit(&pG->Camera);
                 r214_work.p->bino->~IdBinocular();
             }
             break;
@@ -1044,14 +1044,14 @@ void Evt_R214S00_Func(Event* e)
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_BINOCULAR)) {
                 StaFlagOn(pG, STA_BINOCULAR);
                 r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
-                r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
+                r214_work.p->bino->init(&pGS->Camera, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
                     r214_work.p->bino->cutin(0);
                 }
                 r214_work.p->focus = &r214_work.p->focusObj;
                 r214_work.p->focus->init(-1);
             }
-            r214_work.p->bino->move(&pG->Cam);
+            r214_work.p->bino->move(&pG->Camera);
             break;
         }
         break;
@@ -1059,7 +1059,7 @@ void Evt_R214S00_Func(Event* e)
         SmdSetTrans(0x18, 1);
         if (StaFlagChk(pG, STA_BINOCULAR)) {
             StaFlagOff(pG, STA_BINOCULAR);
-            r214_work.p->bino->quit(&pG->Cam);
+            r214_work.p->bino->quit(&pG->Camera);
             r214_work.p->bino->~IdBinocular();
         }
         break;

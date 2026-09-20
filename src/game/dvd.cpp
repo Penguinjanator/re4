@@ -1649,7 +1649,7 @@ int cDvd::ErrCheck(int disc, int flag)
                     Sofdec.PlayPause(1);
                 }
                 if (pG->IsMessageInit == 1) {
-                    pMes[4] = (u8*) (pG->pArc->ofs_6C + (u32) pG->pArc);
+                    pMes[4] = (u8*) (pG->pCore->ofs_6C + (u32) pG->pCore);
                     cMes.setLayout(0xF, LAYOUT_SYSTEM);
                 }
                 systemVISetBlack(0);
@@ -1748,7 +1748,7 @@ void MesSysMessage(int msg, int disc)
 // Prints a string with the IPL ROM font (used before the game font is loaded).
 void RomFontPrint(int x, int y, const char* str)
 {
-    RomFont* font = new RomFont(pG->pFont);
+    RomFont* font = new RomFont(pG->FontData);
     void* image;
     s32 cx;
     s32 cy;
@@ -2003,15 +2003,15 @@ int cDvd::GetDiscNo()
     return no;
 }
 
-// Loads the IPL ROM font into pG->pFont for the error screens.
+// Loads the IPL ROM font into pG->FontData for the error screens.
 void RomFontSetting()
 {
     if (OSGetFontEncode() == 1) {
-        pG->pFont = (void*) 0x816D3100;
+        pG->FontData = (void*) 0x816D3100;
     } else {
-        pG->pFont = (void*) 0x817D3EE0;
+        pG->FontData = (void*) 0x817D3EE0;
     }
-    OSInitFont(pG->pFont);
+    OSInitFont(pG->FontData);
 }
 
 char* queue_stat[] = {"PUSH", "READ", "COMPLETE", "CANCEL", "ERROR"};

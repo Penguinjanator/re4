@@ -178,7 +178,7 @@ static void r309_setEffOnEm(s16 no)
         Vec rot = {0.0f, 0.0f, 0.0f};
         cObj* obj;
 
-        obj = SetObj00(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &ofs, &rot);
+        obj = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
         OyaSetObj00(obj, em.getPtr(), 0x11);
         obj->setNoSuspend(1);
         U32Set(r309_work->kind0, EspPullCoreKind());

@@ -116,7 +116,7 @@ static void plemEscape(cPlayer* pl);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-#define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
+#define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
 struct PlayerPtr {
@@ -2376,7 +2376,7 @@ static void plemEscape(cPlayer* pl)
 void em32EscapeCamMove(cEm32* em)
 {
     Em32Work* w = EM32_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec pos;
     Vec at;
     Vec hit;

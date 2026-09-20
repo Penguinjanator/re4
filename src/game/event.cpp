@@ -1592,8 +1592,8 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         EvtMgr.SetBin("em/pl00/pl000b.tpl", PL_ARC_PTR(pG->pPlayer, 7), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000e.bin", PL_ARC_PTR(pG->pPlayer, 0xA), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000l.bin", PL_ARC_PTR(pG->pPlayer, 0x10), 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.bin", (void*) (pG->pArc->ofs_20 + (u32) pG->pArc), 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.bin", (void*) (pG->pCore->ofs_20 + (u32) pG->pCore), 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 2);
     }
     EvtMesDeleteAll();
     SysFlagOn(pG, SYS_SCREEN_STOP);

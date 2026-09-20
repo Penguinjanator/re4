@@ -152,7 +152,7 @@ void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, i
 static void ss_Draw_line3d_trans(SsLinePrim* p)
 {
     GXSetLineWidth(p->width, 0);
-    ss_Draw_line3d_local(&p->a, &p->b, pG->Cam.v_mat, p->color, p->blend, p->zupd);
+    ss_Draw_line3d_local(&p->a, &p->b, pG->Camera.v_mat, p->color, p->blend, p->zupd);
     GXSetLineWidth(6, 0);
 }
 
@@ -228,7 +228,7 @@ void ss_Draw_tile3d(Vec* a, Vec* b, Vec* c, Vec* d, u32 color, int x34, int blen
 // OT callback of ss_Draw_tile3d (no z write).
 static void ss_Draw_tile3d_trans(SsTilePrim* p)
 {
-    ss_Draw_tile3d_local(&p->a, &p->b, &p->c, &p->d, pG->Cam.v_mat, p->color, p->blend, 0);
+    ss_Draw_tile3d_local(&p->a, &p->b, &p->c, &p->d, pG->Camera.v_mat, p->color, p->blend, 0);
 }
 
 // Draws the quad a-b-c-d now through view matrix `mtx` with the given blend mode and z write flag.

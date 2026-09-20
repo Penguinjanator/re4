@@ -279,7 +279,7 @@ void debugInfoDisp(int slot, int type)
 {
     static u8 col_tbl[2] = { 0x14, 0x05 };
 
-    if (pG->dev_mode == 1) {
+    if (pG->IsDevConsole == 1) {
         eprintf2(12, 16, 32, 38, col_tbl[slot == 0], 0, "CARD SLOT A");
         eprintf2(12, 16, 32, 62, col_tbl[slot == 2], 0, "HARD DISK");
     }
@@ -321,7 +321,7 @@ void cCard::slotSelect()
         }
         break;
     case 1:
-        if (pG->dev_mode == 1) {
+        if (pG->IsDevConsole == 1) {
             if (Key.trg & KEY_DOWN) {
                 m_SlotNo = 2;
             } else if (Key.trg & KEY_UP) {
@@ -513,7 +513,7 @@ void cCard::dataSelect()
     switch (m_Rno1) {
     case 0: {
         if (pG->card_serial == slotw[m_SlotNo].serial) {
-            m_SaveNo = pG->save_no;
+            m_SaveNo = pG->CardLastSelNo;
         } else {
             int found = 0;
             u32 n;
@@ -661,7 +661,7 @@ void cCard::dataSelect()
             m_Rno2 = 0;
             m_Rno3 = 0;
 /*/BF*/
-            pG->save_no = m_SaveNo;
+            pG->CardLastSelNo = m_SaveNo;
             pG->card_serial = slotw[m_SlotNo].serial;
             deleteAllMes();
             break;
@@ -1195,7 +1195,7 @@ void cCard::exit()
             }
         }
         BitOff(pG->CardStatus, 0x7FFFFFF8);
-        MesData.ptr[0] = (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc);
+        MesData.ptr[0] = (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore);
         exitFlag = 1;
         break;
     }
@@ -2052,7 +2052,7 @@ void cCard::firstCheck00()
         m_SlotNo = 0;
         if (slotw[0].flags & 0x200) {
             m_Rno0++;
-        } else if (pG->dev_mode == 1) {
+        } else if (pG->IsDevConsole == 1) {
             m_SlotNo = 2;
             m_Rno0++;
         } else {
@@ -2106,7 +2106,7 @@ void cCard::firstCheck10()
             m_Rno1 = 0;
             m_Rno2 = 0;
             m_Rno3 = 0;
-            if (pG->dev_mode == 1) {
+            if (pG->IsDevConsole == 1) {
                 pSys->language = 1;
             }
         }
@@ -3179,7 +3179,7 @@ void CardDbgCacheSet()
     u8* p;
     int i;
 
-    if (pG->dev_mode == 1 && isDbgInfoAlloc == 0) {
+    if (pG->IsDevConsole == 1 && isDbgInfoAlloc == 0) {
         p = (u8*) Debug_alloc(0x2800, 0);
         if (p != 0) {
             memclr_asm(p, 0x2800);

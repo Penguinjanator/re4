@@ -403,7 +403,7 @@ int retry_load_menu(OptionScreen* o)
                 o->_rno2++;
             }
             o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
-            if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+            if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                 if (o->_rno2 == 1) {
                     if (Key.trg & KEY_UP) {
                         o->_rno2 = 0;
@@ -428,7 +428,7 @@ int retry_load_menu(OptionScreen* o)
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
-            if (((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) && i == 1) {
+            if ((FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) && i == 1) {
                 u->col0[0] = 0x40;
                 u->col0[1] = 0x40;
                 u->col0[2] = 0x40;

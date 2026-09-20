@@ -852,7 +852,7 @@ static void r105_checkCloseCover()
     lid = SmdGetObjPtr(0x30);
     BitOn(cover->be_flag, 0x20);
     BitOn(lid->be_flag, 0x20);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos,
+    hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &cover->pos,
                    &cover->ang, 0);
     {
         const f32 w = 100.0f;

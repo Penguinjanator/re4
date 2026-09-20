@@ -261,10 +261,10 @@ void drawShadowParts(GXTexObj* tex, Vec* pos, f32 size, f32 alpha)
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 4, 5, 7);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    PSMTXInverse(pG->Cam.v_mat, m);
+    PSMTXInverse(pG->Camera.v_mat, m);
     PSMTXTranspose(m, m);
     GXLoadNrmMtxImm(m, 0);
-    GXLoadPosMtxImm(pG->Cam.v_mat, 0);
+    GXLoadPosMtxImm(pG->Camera.v_mat, 0);
     GXSetCurrentMtx(0);
     CameraCurrentProjection();
     GXSetBlendMode(1, 4, 5, 0);

@@ -72,7 +72,7 @@ void cEsp45::move()
     if (m_Be_flg & 1) {
         Vec v;
 
-        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &v);
+        PSMTXMultVec(pG->Camera.v_mat, &w->wld_pos, &v);
         w->sz = v.z;
         EspAddOtAfterRender(this, Esp45_HideCheck);
     }
@@ -111,8 +111,8 @@ void Esp45_Trans(cEsp* esp0)
             }
             PSMTXMultVec(esp->m_pMod->getPartsPtr(esp->m_Parts_no)->mat, &esp->m_Pos, &w->wld_pos);
         }
-        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &view);
-        PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
+        PSMTXMultVec(pG->Camera.v_mat, &w->wld_pos, &view);
+        PSMTX44MultVec(pG->Camera.ProjMat, &view, &scr);
         scr.z = 0.0f;
         cx = scr.x * 0.5f;
         cy = scr.y * -0.5f;
@@ -123,7 +123,7 @@ void Esp45_Trans(cEsp* esp0)
         a = (u8) ((f32) a * GetDistAlpha(esp));
         Filter00SetAddSpread(w->type, 1, (u8) esp->m_Col_r, (u8) esp->m_Col_g, (u8) esp->m_Col_b, a, w->rate, 1, cx, cy,
                              w->power);
-        PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
+        PSMTX44MultVec(pG->Camera.ProjMat, &view, &scr);
         sx = (scr.x * 0.5f + 0.5f) * Screen.width;
         sy = (-scr.y * 0.5f + 0.5f) * Screen.height;
         scr.z = 0.0f;
@@ -145,7 +145,7 @@ static f32 GetDistAlpha(cEsp45* esp)
     f32 a;
 
     if (w->del_dist != 0.0f) {
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
 
         d.x = w->wld_pos.x - cam->param.pos.x;
         d.y = w->wld_pos.y - cam->param.pos.y;

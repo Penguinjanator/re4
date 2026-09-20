@@ -1582,7 +1582,7 @@ int em3aGunHitCk(cEm3a* em)
         SndCall(6, 0xA, &hit, 0, 0, 0);
         ret = 0;
     } else {
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         SndCall(6, 0x15, &pPL->pos, 0, 0, pPL);
         QuakeExec(0, 0, 5, 22.0f, 2);
         EmPlBloodSet2(em, &em->pos, 1, 2, 7);

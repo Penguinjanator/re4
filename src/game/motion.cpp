@@ -1108,7 +1108,7 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
     }
 }
 
-// Advances the sequence frame by Seq_speed * pG->mot_speed per frame (unless paused): forward or
+// Advances the sequence frame by Seq_speed * pG->Speed per frame (unless paused): forward or
 // reverse (Mot_attr bit 1), looping (bit 2: Mot_state 1/2) or clamping at the end (Mot_state
 // 4/8); then resolves the motion frame (10.6 fixed) from the sequence table with interpolation
 // between table entries, or linearly. Returns Mot_state.
@@ -1125,7 +1125,7 @@ u16 MotionSequenceCtrl(MotionWork* w)
                     w->Mot_state = 2;
                     f = w->Seq_frame + (f32) (int) w->Seq_frame_num;
                 } else {
-                    f = w->Seq_frame - w->Seq_speed * pG->mot_speed;
+                    f = w->Seq_frame - w->Seq_speed * pG->Speed;
                 }
                 w->Seq_frame = f;
             } else {
@@ -1133,12 +1133,12 @@ u16 MotionSequenceCtrl(MotionWork* w)
                     w->Mot_state = 8;
                     w->Seq_frame = 0.0f;
                 } else {
-                    f = w->Seq_frame - w->Seq_speed * pG->mot_speed;
+                    f = w->Seq_frame - w->Seq_speed * pG->Speed;
                     w->Seq_frame = f;
                 }
             }
         } else {
-            w->Seq_frame = w->Seq_frame + w->Seq_speed * pG->mot_speed;
+            w->Seq_frame = w->Seq_frame + w->Seq_speed * pG->Speed;
             if (w->Mot_attr & 4) {
                 u16 max = w->Seq_frame_num;
 

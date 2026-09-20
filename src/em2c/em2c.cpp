@@ -320,7 +320,7 @@ void Em2cInit(cEm* em)
 void em2cDmCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     YARARE_INFO* part;
     cModel* p;
     int near;
@@ -810,7 +810,7 @@ void em2cDmCk(cEm2c* em)
 void em2cTailDmCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     cModel* p;
     int near;
     int dmg;
@@ -4837,7 +4837,7 @@ static void em2c_R1_Die_Freeze(cEm2c* em)
             t = w->timer8 - 1;
             w->timer8 = t;
             if (t == 0) {
-                Camera* cam = &pG->Cam;
+                Camera* cam = &pG->Camera;
                 em2cDieEffDelete(em, w);
                 rot.x = 0.0f;
                 rot.y = GetXZAngle(&em->pos, &cam->param.pos);
@@ -5101,7 +5101,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
         }
         QuakeExec(0, 0, 5, 22.0f, 2);
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         return 1;
     }
     return 0;
@@ -6044,7 +6044,7 @@ static void plem2cEscape(cPlayer* pl)
 void em2cEscapeCamMove(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec pos;
     Vec at;
     Vec hit;

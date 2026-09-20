@@ -103,7 +103,7 @@ extern "C" void Esp03_Trans(cEsp03* esp)
         PSMTXIdentity(esp->m_Mat);
         RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     GXLoadPosMtxImm(esp->m_Mat, 0);
@@ -125,9 +125,9 @@ extern "C" void Esp03_Trans(cEsp03* esp)
         p = &w->Pos[(w->idx - 1) & 3];
         v = q;
 #line 187 "D:/Bio4/Prog/esp03.cpp"
-        VECNormalize(&pG->Cam.up, &up);
+        VECNormalize(&pG->Camera.up, &up);
         PSVECScale(&up, &up, esp->m_Size_base_x * 0.5f);
-        PSVECSubtract(p, &pG->Cam.param.pos, &d);
+        PSVECSubtract(p, &pG->Camera.param.pos, &d);
         PSVECCrossProduct(&up, &d, &d);
 #line 193 "D:/Bio4/Prog/esp03.cpp"
         VECNormalize(&d, &d);

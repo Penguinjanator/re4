@@ -507,7 +507,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
         }
     }
     setShopMsgQueue(1);
-    puzzleCameraInit(wk, &pG->Cam);
+    puzzleCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
     IdTexDataLoad(SS_ARC_PTR(wk->pShop, 4), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
@@ -3009,13 +3009,13 @@ void dispItem(int id, int sw)
             m->be_flag &= ~2;
         }
     }
-    itemCamera = pG->Cam;
+    itemCamera = pG->Camera;
 }
 
 // Screen (+-240 half height) -> world x/y at the camera distance, z 0.
 void screenPos2worldPos(Vec* scr, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 z = cam->param.pos.z;
     f32 h = fabsf((f32) (z * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 

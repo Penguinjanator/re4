@@ -1645,7 +1645,7 @@ void luisItemInit(cObj* obj)
 // towards the player at 7 % of the distance per frame with a small downward acceleration.
 void cObjLuisItem::init(Vec* p, f32 rotY)
 {
-    modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc));
+    modelInit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore));
     setPos(p);
     ang.y = rotY;
     ang.x = 0.0f;

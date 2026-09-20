@@ -328,7 +328,7 @@ int EspTrans()
         return 0;
     }
     LightMgr.setEsp(&sys->lightList, 8);
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     dir.x = cam->param.at.x - cam->param.pos.x;
     dir.y = cam->param.at.y - cam->param.pos.y;
     dir.z = cam->param.at.z - cam->param.pos.z;

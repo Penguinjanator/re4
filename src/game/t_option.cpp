@@ -387,7 +387,7 @@ void tp_pl_posmove()
         pPL->ang.y -= (f32) Joy[0].stickX * 0.001f;
     } else {
         eprintf(32, 42, 4, 0, "POS MOVE");
-        CamStick2World(&pG->Cam, &Joy[0], &mv);
+        CamStick2World(&pG->Camera, &Joy[0], &mv);
         PSVECScale(&mv, &mv, spd);
         y = 0.0f;
         mv.y = y + spd * Joy[0].triggerRight - spd * Joy[0].triggerLeft;

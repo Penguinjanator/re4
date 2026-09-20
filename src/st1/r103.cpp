@@ -290,7 +290,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
     cover->be_flag |= 0x20;
     lid->be_flag |= 0x20;
     FSet(cover->ang.x, -0.5235988f);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos, &cover->ang, 0);
+    hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &cover->pos, &cover->ang, 0);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order

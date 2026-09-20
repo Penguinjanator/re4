@@ -511,7 +511,7 @@ static void r212_RoofTrapWatcher()
 
     for (i = 0; i < 4; i++) {
         PSVECSubtract(&ofs[i], &o->pos, &d);
-        r212_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &d, 0, 0);
+        r212_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &d, 0, 0);
         r212_work.p->hit[i]->setParent(o, 0, 0);
         YarareInit(r212_work.p->hit[i], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
         EstSet(0, -1, 0, 0, 1, (u8) prm[i][0], 0x800, (u8) prm[i][1], 0, 0);

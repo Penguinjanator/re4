@@ -422,10 +422,10 @@ void MessageControl::init()
 // common font, resets the state.
 void MessageControl::gameInit()
 {
-    MesData.setPtr(0, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
-    MesData.setPtr(1, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
-    MesData.setPtr(2, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
-    MesData.setPtr(3, (u8*) (pG->pArc->ofs_54 + (u32) pG->pArc));
+    MesData.setPtr(0, (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore));
+    MesData.setPtr(1, (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore));
+    MesData.setPtr(2, (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore));
+    MesData.setPtr(3, (u8*) (pG->pCore->ofs_54 + (u32) pG->pCore));
     pG->IsMessageInit = 1;
     loadCommonFont();
     setLanguage(pSys->language);
@@ -442,7 +442,7 @@ void MessageControl::roomInit()
     for (i = 0; i < 16; i++) {
         Delete(i);
     }
-    MesData.setPtr(0, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
+    MesData.setPtr(0, (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore));
     MesData.setPtr(1, (u8*) pG->RoomMes);
     setLayout(0, 0);
     if (checkState(1)) {

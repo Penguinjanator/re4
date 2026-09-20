@@ -997,7 +997,7 @@ static void plemTrapCancel(cPlayer* pl)
 // Installs the trap release cut camera (em21_trap_cam) beside the player looking at the dog.
 void plem21TrapCamMove(cModel* m)
 {
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Camera* cam;
     Vec v;
     Vec a;

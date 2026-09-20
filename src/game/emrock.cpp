@@ -1109,7 +1109,7 @@ int emRockRollHitCk(cEmRock* em)
         w->Radius * w->Radius) {
         return 0;
     }
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     pG->pl_life = 0;
     PlSetDamage(8, 0, 0);
@@ -1845,8 +1845,8 @@ void plemRockEscapeCamMove(cPlayer* pl, f32 rate)
     FSet(cam->param.fovy, 27.0f);
     PSMTXMultVec(pl->mat, &emRock_campos, &p0);
     PSMTXMultVec(pl->mat, &emRock_target, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &emRockCam.param.at, rate);
-    PosToPos(&g->Cam.param.pos, &p0, &emRockCam.param.pos, rate);
+    PosToPos(&g->Camera.param.at, &p1, &emRockCam.param.at, rate);
+    PosToPos(&g->Camera.param.pos, &p0, &emRockCam.param.pos, rate);
     r.x = fRand1_1() * 10.0f;
     r.y = fRand1_1() * 10.0f;
     r.z = fRand1_1() * 10.0f;
@@ -1884,7 +1884,7 @@ void plemRockEscapeCamMove2(cPlayer* pl, int side)
     Vec p1;
     Vec r;
     f32 len;
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
 
     emRockCam.param.fovy = 50.0f;
     if (side) {
@@ -1929,7 +1929,7 @@ void plemRockDropDieCamMove(cEmRock* em)
     Vec p;
     f32 len;
     cModel* parts;
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
 
     emRockCam.param.fovy = 50.0f;
     if (Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f) < 0.0f) {
@@ -1966,7 +1966,7 @@ void emRockPushCamMove(cEmRock* em)
     Vec p;
     f32 len;
     cModel* parts;
-    Camera* gcam = &pG->Cam;
+    Camera* gcam = &pG->Camera;
 
     emRockCam.param.fovy = 50.0f;
     switch (pG->room_no) {
@@ -2146,7 +2146,7 @@ int emRockAtkCk(cEmRock* em, EmAtkInfo* atk, int type, f32 r)
         a = *atk;
         a.range = w->Radius;
         if (EmAtkHitCk(&a, &em->pos, &em->pos_old, 1)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->se8D[0] != 0xFF && w->se8D[1] != 0xFF) {
                 SndCall(w->se8D[0], w->se8D[1], &em->pos, w->se8D[2], 0, em);
             }

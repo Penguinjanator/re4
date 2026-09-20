@@ -298,7 +298,7 @@ void Espgen43_TransSub(EspgenWork* w)
     {
         Mtx nrm;
         Mtx mv;
-        PSMTXConcat(pG->Cam.v_mat, p->Wld_mat, mv);
+        PSMTXConcat(pG->Camera.v_mat, p->Wld_mat, mv);
         PSMTXInverse(mv, nrm);
         PSMTXTranspose(nrm, nrm);
         GXLoadNrmMtxImm(nrm, 0);

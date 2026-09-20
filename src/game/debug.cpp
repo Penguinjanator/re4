@@ -341,7 +341,7 @@ void PrimitiveBuffDisp()
         return;
     }
     pb = (PrimBuffView*) &pG->gxStage;
-    rate = 1.0f - (f32) (int) (pG->prim_cnt + max * (pG->vtx_buf_no + 1) - pb->base) / (f32) max;
+    rate = 1.0f - (f32) (int) (pG->prim_cnt + max * (pG->DblBufIdx + 1) - pb->base) / (f32) max;
     t = tile;
     if (pb->rate < rate) {
         pb->rate = rate;

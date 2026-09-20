@@ -2009,7 +2009,7 @@ static void em10DmSetWep23(cEm10* em)
 void em10BloodSet(cEm10* em, int near)
 {
     Em10Work* w = EM10_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     YARARE_INFO* part;
     cModel* parts;
     f32 dist;
@@ -2255,7 +2255,7 @@ void em10BloodSet(cEm10* em, int near)
 void em1cBloodSet(cEm10* em, int near)
 {
     Em10Work* w = EM10_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     YARARE_INFO* part;
     cModel* parts;
     f32 dist;
@@ -2667,7 +2667,7 @@ void cEm10::move()
         }
     }
     {
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
         int hide = 0;
         Vec* nrm = pFloor_norm;
         if (nrm == 0 || nrm->y < 0.8f) {
@@ -6187,7 +6187,7 @@ static void em10_R1_EvtDash(cEm10* em)
     case 0:
         em->r_no_3 = Rnd() % 256;
         em10SetDashMotion(em);
-        if (w->Wep_type == 4 && (s32) w->flags < 0) {
+        if (w->Wep_type == 4 && FlagChkSignW(w->flags, 0)) {
             if (em->type == 0x16) {
                 EstSet(w->pWep, -1, 0, 0, 0x10, 0x96, 0, w->EffKindIdCsaw, w->pWep, 0);
             } else {
@@ -11545,7 +11545,7 @@ static void em10_R1_C_SawHit(cEm10* em)
         w->Timer2 = 41;
         GameAddPoint(LVADD_PL_DAMAGE);
         w->Timer3 = 0;
-        VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 0xD, 1);
+        VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 0xD, 1);
         em->r_no_2++;
     case 1:
         Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_NOT_NEAR, 5);
@@ -11790,7 +11790,7 @@ static void em10_R1_C_SawCriHit(cEm10* em)
         if (pSys->eff_country == 0) {
             SndCall(6, 0x5C, &pPL->pos, 0, 0, pPL);
         }
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
         em->r_no_2++;
     case 1:
         Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_NOT_NEAR, 5);
@@ -12184,7 +12184,7 @@ static void plem10_NeckHang(cPlayer* pl)
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         pl->Wep->setTrans(0, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xC, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xC, 1);
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
@@ -12212,7 +12212,7 @@ static void plem10_NeckHang(cPlayer* pl)
             EstSet(pl, -1, 0, 0, 0x10, 0x21, 0, 0, pl, 0);
         }
         if (pl->frame > 34.7f && pl->frame < 35.3f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         pl->r_no_2++;
     case 3:
@@ -12553,7 +12553,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(arc, 0x1AC), 0, 5, 1, 0);
         pl->atari.set(10, 480.00003f, 400.0f);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xC, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xC, 1);
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
@@ -12583,7 +12583,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
     case 3:
         MotionMove(pl, 0);
         if (pl->frame > 29.7f && pl->frame < 30.3f) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         break;
     case 4:
@@ -12858,7 +12858,7 @@ static void em10_R1_Bombhold(cEm10* em)
                 em->setStatus(EM_STATUS_ITEMSET);
                 SndStop(w->TmpU32, 0);
                 SndCall(8, 0x96, &em->pos, em->id, 0, em);
-                cam = &pG->Cam;
+                cam = &pG->Camera;
                 p = em->getPartsPtr(0);
                 if ((cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x) +
                         (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y) +
@@ -13542,8 +13542,8 @@ extern "C" void em10CamMoveTakeaway(cEm10* em)
     b.z = 0.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    PosToPos(&g->Cam.param.pos, &a, &w->Cam.param.pos, 1.0f);
-    PosToPos(&g->Cam.param.at, &b, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &b, &w->Cam.param.at, 1.0f);
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
@@ -16425,7 +16425,7 @@ static void em10_R1_Die_Bomb(cEm10* em)
                     if (w->flags & 0x1400000) {
                         EstSet(0, -1, &p->world, 0, 0x10, 0x2A, 0, 0, 0, 0);
                     } else {
-                        cam = &pG->Cam;
+                        cam = &pG->Camera;
                         dx = cam->param.pos.x - p->world.x;
                         dy = cam->param.pos.y - p->world.y;
                         if (dx * dx + dy * dy + (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z) < 4000000.0f) {
@@ -17426,7 +17426,7 @@ int em10CatchCk(cEm10* em)
     }
     pPL->dmg.set(0, 2);
     em->dmg.set(0, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_ATK, 30);
     Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_THROW, 120);
     return 1;
@@ -17568,11 +17568,11 @@ int em10CsawHitCk(cEm10* em)
         U16Set(pG->pl_life, 1);
         pPL->dmg.set(0, 0x80);
         em->dmg.set(0, 0x80);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         return 1;
     } else if (hit & 2) {
         LifeDownSet(pSUB, 9999, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         return 0;
     } else {
         a.x = 0.0f;
@@ -17588,11 +17588,11 @@ int em10CsawHitCk(cEm10* em)
             U16Set(pG->pl_life, 1);
             pPL->dmg.set(0, 0x80);
             em->dmg.set(0, 0x80);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             return 1;
         } else if (hit & 2) {
             LifeDownSet(pSUB, 9999, 0);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             return 0;
         } else {
             a.x = 0.0f;
@@ -17609,11 +17609,11 @@ int em10CsawHitCk(cEm10* em)
                 U16Set(pG->pl_life, 1);
                 pPL->dmg.set(0, 0x80);
                 em->dmg.set(0, 0x80);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
                 return 1;
             } else if (hit & 2) {
                 LifeDownSet(pSUB, 9999, 0);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
                 return 0;
             }
         }
@@ -17963,7 +17963,7 @@ extern "C" void em10CsawSignSe(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
 
-    if ((int) w->flags >= 0) {
+    if (!FlagChkSignW(w->flags, 0)) {
         return;
     }
     if (w->Wep_type != 4) {
@@ -18789,7 +18789,7 @@ extern "C" void em10ShieldSet(cEm10* em)
     if (w->Ganado == 0) {
         return;
     }
-    if ((int) em->flag >= 0) {
+    if (!FlagChkSignW(em->flag, 0)) {
         return;
     }
     if (em->type == 10 || em->type == 13 || em->type == 2 || em->type == 22 || em->type == 24) {
@@ -21539,7 +21539,7 @@ int em10FindCk2(cEm10* em)
             }
         }
     }
-    if ((s32) pG->Status_flg[1] < 0) {
+    if (FlagChkSign(pG->Status_flg, STA_PL_SE_FOOT)) {
         f32 r = 12250000.0f;
         if (pPL->r_no_0 == 0 && pPL->r_no_1 == 3) {
             r = 64000000.0f;
@@ -22022,7 +22022,7 @@ extern "C" void em10CamMove(cEm10* em, int no, f32 rate, int shake)
     Vec v;
     Vec hit;
     Vec d;
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     cModel* p;
     cModel* q;
 
@@ -22145,7 +22145,7 @@ void em10CamMove2(cEm10* em)
     Vec d;
     Vec hit;
     Vec d2;
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
 
     pl = pPL->getPartsPtr(4)->world;
     PSVECSubtract(&w->Campos, &pl, &d);
@@ -22194,7 +22194,7 @@ void em10CamMove2(cEm10* em)
 extern "C" void em10CamMoveCri(cEm10* em, u32 no, int shake)
 {
     Em10Work* w = EM10_WK(em);
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Vec a;
     Vec b;
     Vec hit;
@@ -22318,7 +22318,7 @@ extern "C" void em10CamMoveAshley(cEm10* em, u32 no)
     Vec b;
     Vec hit;
     Vec d;
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
 
     switch (no) {
     case 0:
@@ -22630,7 +22630,7 @@ void em10SetWalkMotion(cEm10* em, int a)
     if (CheckInWater(em, 0)) {
         v = 1;
     }
-    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         if (v == 2) {
             v = 1;
         }
@@ -22747,7 +22747,7 @@ void em10SetDashMotion(cEm10* em)
     if (CheckInWater(em, 0)) {
         v = 1;
     }
-    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         if (v == 2) {
             v = 1;
         }
@@ -23361,7 +23361,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
         case 0xE:
             pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
             PlSetDamage(8, 0, 0);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
             if ((s16) pG->pl_life > 0) {
                 EstSet(em, -1, 0, 0, 0x10, 0x79, 0, 0, em, 0);
             }
@@ -23385,9 +23385,9 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
         w->Atk_ck = 1;
         Ctrl12Set(w->pCtrl12, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
         if ((s16) pG->pl_life <= 0) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         } else {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         QuakeExec(0, 0, 5, 22.0f, 2);
         if (w->Wep_type == 7) {
@@ -23545,7 +23545,7 @@ extern "C" int em10GatlingHitCk(cEm10* em)
     e = EmAtkLineHitCk(&a, &b, &hit, &nrm, &attr);
     const f32 k = 30.0f; // pool order: the 30 of PSVECScale before the 22 of QuakeExec
     if (e != 0) {
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         SndCall(8, 0x81, &pPL->getPartsPtr(0)->world, em->id, 0, pPL);
         QuakeExec(0, 0, 5, 22.0f, 2);
         EmPlBloodSet2(em, &a, 1, 0xCC, 2);
@@ -23763,7 +23763,7 @@ static void plemDmFrame(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x29C), 0, 3, 1, 0);
         PlSetDamageSe(0);
         EstSet(pl, -1, 0, 0, 0x10, 0x28, 0, 0, pl, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         pl->m_Work0 = 50;
         pl->r_no_2++;
     case 1:

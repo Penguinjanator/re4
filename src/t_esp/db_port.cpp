@@ -1308,7 +1308,7 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
         dbModMotionSet(db_motNo);
         db_motionOn = 1;
         db_frameCnt = 0;
-        dbModelSetCamera(0, &pG->Cam);
+        dbModelSetCamera(0, &pG->Camera);
         if (G_ROOM_ID == 0x332 && evtCutNo() == 0 && db_cutNo == 0x19 && db_fcvData) {
             ShapeSet(INFO5(dbModSlot[0].pModel), 0, db_fcvData, 2);
         }
@@ -1612,7 +1612,7 @@ extern "C" void LightToolEnd()
 // Runs the debug camera on pad 1 (CamDbg).
 extern "C" void EspToolCameraMode()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 1);
+    CamDbg.move(&pG->Camera, &Joy[0], 1);
     eprintf(0xD0, 0x10, 0, 0, "CAMERA MODE");
 }
 
@@ -1633,7 +1633,7 @@ extern "C" void DB_GetCamFrontPos(f32 dist, f32* x, f32* y, f32* z)
 {
     Vec dir;
     Vec pos;
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
 
     dir.x = cam->param.at.x - cam->param.pos.x;
     dir.y = cam->param.at.y - cam->param.pos.y;
