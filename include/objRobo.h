@@ -5,19 +5,30 @@
 #include "vec.h"
 #include "obj.h"
 
-// Room-script view of the walking Salazar statue (game/objRobo.cpp defines the class with its
-// virtuals; the rooms only call the out-of-line members, so no vtable is emitted here). The work is
-// cObj::robo (RoboWork in obj.h).
+// Giant statue (Salazar's robot) of room 4-2: waits on the gondola, walks the passage, waits at
+// the door, then chases the player over the bridge, breaking its pieces one by one.
 class cObjRobo : public cObj {
 public:
+    virtual void move();
+
+    void SetBeginEvent(u32 a);
+    void SetEndEvent(u32 a);
+    static void R0Init(cObjRobo* robo);
+    static void R0WaitGondola(cObjRobo* robo);
+    static void R0WalkPassage(cObjRobo* robo);
+    static void R0WaitDoor(cObjRobo* robo);
+    static void R0WalkBridge(cObjRobo* robo);
+    static void R0WaitBreak(cObjRobo* robo);
+    static void R0WaitDie(cObjRobo* robo);
+    static void R0Event(cObjRobo* robo);
     void WalkSequence(cObjRobo* robo, int hitCk);
+    static void TaskSwitchFront(cObjRobo* robo);
+    static void TaskSwitchBack(cObjRobo* robo);
+    int WalkHitCk(cObjRobo* robo);
+    void SatMove(cObjRobo* robo, Vec* pos, int side);
+    int SatMoveSub(cModel* em, Vec* pos, Vec* d);
 };
 
-cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
-
-// SetBeginEvent / SetEndEvent are parameterless in objRobo.cpp; the r226 build passed one
-// argument (`li r4, 0` at every call).
-void cObjRoboSetBeginEvent(cObjRobo* robo, int a) asm("SetBeginEvent__8cObjRobo");
-void cObjRoboSetEndEvent(cObjRobo* robo, int a) asm("SetEndEvent__8cObjRobo");
+cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 #endif

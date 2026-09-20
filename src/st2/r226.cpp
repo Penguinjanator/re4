@@ -264,7 +264,7 @@ void R226Init()
             SceAtSetEnable(0x16, 0);
             Vec pos = {1180.0f, 1000.0f, -16560.0f};
             Vec rot = {0.0f, -1.5707964f, 0.0f};
-            r226_work.p->robo = (cObjRobo*) SetObjRobo(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
+            r226_work.p->robo = SetObjRobo(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
             if (r226_work.p->robo == NULL) {
                 pLog->err(0, 0, "R226Init : obm5000 set failed");
                 return;
@@ -439,7 +439,7 @@ static void R226EventRoboWatchMain()
     RsfSet(G_ROOM_ID, 10);
     SceAtSetEnable(0x18, 0);
     SceEventStart(1);
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     r226_work.p->str = SndStrReq(0, 0x16, 0x80000003, 0, 0, 0.0f);
     SceSetEventCancel(1, (TaskFunc) R226EventRoboWatchCancel, 0, -1, 1);
     CamCtrl.CutCall(0xC);
@@ -463,7 +463,7 @@ static void R226EventRoboWatchCancel()
 // End of the statue-watch cut: the statue leaves event mode, camera back, SceEventEnd, task exit.
 void R226EventRoboWatchEnd()
 {
-    cObjRoboSetEndEvent(r226_work.p->robo, 0);
+    r226_work.p->robo->SetEndEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -490,7 +490,7 @@ static void R226EventRoboStartMain()
         setPosXYZ(o, o->pos.x, 1000.0f, o->pos.z);
     }
     SceEventStart(0);
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     SceSetEventCancel(1, (TaskFunc) R226EventRoboStartEnd, 0, -1, 1);
     CamCtrl.CutCall(9);
     if (r226_work.p->em[9].isActive() == 0) {
@@ -600,7 +600,7 @@ static void R226EventRoboStartEnd()
     SceExec(0x12, (TaskFunc) R226EmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     rw->r_no_0 = 1;
     rw->step = 0;
-    cObjRoboSetEndEvent(robo, 0);
+    robo->SetEndEvent(0);
     SceEventEnd(0);
     SceExit();
 }
@@ -832,7 +832,7 @@ static void R226EventRoboWalkPassageStart()
     if (r226_work.p->eat[0]) {
         r226_work.p->eat[0]->m_Flag &= ~4;
     }
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     i = 0;
     MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x39), 0, 0, 1, 0);
     while (MotionGetState(robo) == 0) {
@@ -842,7 +842,7 @@ static void R226EventRoboWalkPassageStart()
         SceSleep(1);
     }
     SetPlDamage((cEm*) robo, playerRunMovePassage);
-    cObjRoboSetEndEvent(robo, 0);
+    robo->SetEndEvent(0);
     rw->r_no_0 = 2;
     rw->step = 0;
     SceEventEnd(0);
@@ -862,7 +862,7 @@ static void R226EventRoboWalkPassageGoal()
     SceEventStart(0);
     ((cUnitEventView*) pPL)->beginEvent(0);
     pPL->setNoSuspend(1);
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     setPosXYZ(pPL, -57500.0f, 1000.0f, -16400.0f);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x38), 0, 3, 1, 0);
     while (MotionGetState(pPL) == 0) {
@@ -872,7 +872,7 @@ static void R226EventRoboWalkPassageGoal()
         SceSleep(1);
     }
     setPosXYZ(robo, -30000.0f, 1000.0f, -15089.0f);
-    cObjRoboSetEndEvent(robo, 0);
+    robo->SetEndEvent(0);
     rw->r_no_0 = 2;
     rw->step = 0;
     SceAtSetEnable(0x11, 1);
@@ -923,7 +923,7 @@ static void R226EventRoboWalkDoorDie()
     Vec pos;
 
     SceEventStart(0);
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     ((cUnitEventView*) pPL)->beginEvent(0);
     pPL->setNoSuspend(1);
     pos.x = -50000.0f;
@@ -958,7 +958,7 @@ static void R226EventRoboWalkBridgeStart()
     RsfSet(G_ROOM_ID, 5);
     SceAtSetEnable(0xF, 0);
     SceEventStart(0);
-    cObjRoboSetBeginEvent(robo, 0);
+    robo->SetBeginEvent(0);
     setPosXYZ(robo, -53020.0f, 1200.0f, -16731.0f);
     SmdSetTrans(0x1B, 0);
     SmdSetTrans(0x1C, 0);
@@ -976,7 +976,7 @@ static void R226EventRoboWalkBridgeStart()
         SceSleep(1);
     }
     SetPlDamage((cEm*) robo, playerRunMoveBridge);
-    cObjRoboSetEndEvent(robo, 0);
+    robo->SetEndEvent(0);
     rw->r_no_0 = 4;
     rw->step = 0;
     {

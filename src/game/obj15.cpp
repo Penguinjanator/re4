@@ -17,25 +17,8 @@
 #include "quake.h"
 #include "pl_wep.h"
 #include "player.h"
+#include "obj15.h"
 
-// Mounted gatling gun: aims at `target` (the player unless an enemy rides it), fires every third
-// frame once spun up, takes weapon damage on three cEmHit boxes and breaks (R1_Break).
-class cObjGatling : public cObj {
-public:
-    virtual void move();
-    virtual ~cObjGatling() {}
-
-    void setRide(cEm* em);
-    void setFire();
-    void stopFire();
-    int ckReload();
-    void setReload();
-    void setEat(void* data, int type);
-    void setMaxRot(f32 r);
-    int ckBreak();
-    void setBreakMode(u8 mode);
-    void setBreak();
-};
 
 extern "C" {
 void obj15_R1_Set(cObjGatling* obj);
@@ -51,7 +34,7 @@ void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };
 EmAtkInfo Obj15_atk_info_tbl = { 100.0f, 8, 600, 0, 10, 0 };
 
 // Creates the gatling at pos/rot with its three hit bodies, 40 rounds and no rider.
-cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
+cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     GatlingWork* w;
@@ -125,7 +108,7 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
     obj->r_no_3 = 0;
-    return obj;
+    return (cObjGatling*) obj;
 }
 
 // Per-frame: forgets a dead/removed rider, damage check, R1 routine, moves the eat collision with

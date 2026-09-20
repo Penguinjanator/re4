@@ -805,8 +805,8 @@ address	size	section	unit	scope	name	demangled
 0x8003C9EC	0x20	.text	game/objPillar.cpp	global	_._10cObjPillar	cObjPillar::~cObjPillar
 0x8003CA0C	0x1F8	.text	game/objRobo.cpp	global	SetObjRobo__FPvT0P3VecT2	SetObjRobo
 0x8003CC04	0x3C	.text	game/objRobo.cpp	global	move__8cObjRobo	cObjRobo::move
-0x8003CC40	0x58	.text	game/objRobo.cpp	global	SetBeginEvent__8cObjRobo	cObjRobo::SetBeginEvent
-0x8003CC98	0x38	.text	game/objRobo.cpp	global	SetEndEvent__8cObjRobo	cObjRobo::SetEndEvent
+0x8003CC40	0x58	.text	game/objRobo.cpp	global	SetBeginEvent__8cObjRoboUl	cObjRobo::SetBeginEvent
+0x8003CC98	0x38	.text	game/objRobo.cpp	global	SetEndEvent__8cObjRoboUl	cObjRobo::SetEndEvent
 0x8003CCD0	0x408	.text	game/objRobo.cpp	global	R0Init__8cObjRoboP8cObjRobo	cObjRobo::R0Init
 0x8003D0D8	0x324	.text	game/objRobo.cpp	global	R0WaitGondola__8cObjRoboP8cObjRobo	cObjRobo::R0WaitGondola
 0x8003D3FC	0x10C	.text	game/objRobo.cpp	global	R0WalkPassage__8cObjRoboP8cObjRobo	cObjRobo::R0WalkPassage

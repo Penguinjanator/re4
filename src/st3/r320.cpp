@@ -46,13 +46,6 @@
 
 extern "C" void* memcpy(void* d, const void* s, unsigned int n);
 
-// game/obj15.cpp members the rooms call (obj15.h declares the class with setEat only).
-void GatlingSetBreakMode(cObjGatling* g, u8 mode) asm("setBreakMode__11cObjGatlingUc");
-void GatlingSetMaxRot(cObjGatling* g, f32 rot) asm("setMaxRot__11cObjGatlingf");
-void GatlingSetBreak(cObjGatling* g) asm("setBreak__11cObjGatling");
-void GatlingSetFire(cObjGatling* g) asm("setFire__11cObjGatling");
-void GatlingStopFire(cObjGatling* g) asm("stopFire__11cObjGatling");
-
 struct R320Work {
     cEmWrap heri;           // 0x000  the support helicopter (list 0x64)
     cEmWrap em[57];         // 0x00C  the enemies set by emset (list entry per appearance area)
@@ -444,7 +437,7 @@ void R320Init()
         if (r320_work->gatling[1]) {
             r320_work->gatling[1]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
             r320_work->gatling[1]->setNoSuspend(1);
-            GatlingSetMaxRot(r320_work->gatling[1], 1.9634955f);
+            r320_work->gatling[1]->setMaxRot(1.9634955f);
             if (R320_SAVE_FLAGS & 0x00100000) {
                 cEmGanado* em;
 
@@ -470,7 +463,7 @@ void R320Init()
         rot.y = 5.72468f;
         rot.z = 0.0f;
         PSet((void*&) r320_work->gatling[5], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
-        GatlingSetBreakMode(r320_work->gatling[5], 1);
+        r320_work->gatling[5]->setBreakMode(1);
         r320_work->gatling[5]->setNoSuspend(1);
         EvtMgr.EvtReadAram("event/evd/r320s00.evd", 0, 0, 0, 0);
     } else {
@@ -627,13 +620,13 @@ void R320Init()
         SceAtSetEnable(0x31, 0);
         SceAtSetEnable(0x36, 0);
         if (r320_work->gatling[2]) {
-            GatlingSetBreak(r320_work->gatling[2]);
+            r320_work->gatling[2]->setBreak();
         }
         if (r320_work->gatling[3]) {
-            GatlingSetBreak(r320_work->gatling[3]);
+            r320_work->gatling[3]->setBreak();
         }
         if (r320_work->gatling[4]) {
-            GatlingSetBreak(r320_work->gatling[4]);
+            r320_work->gatling[4]->setBreak();
         }
     }
 }
@@ -664,7 +657,7 @@ static void r320_heri_event()
     SmdSetTrans(0x25, 0);
     SmdSetTrans(0x27, 0);
     setMisileUseNum(0);
-    GatlingSetBreak(r320_work->gatling[5]);
+    r320_work->gatling[5]->setBreak();
     if (!ScfFlagChk(pG, SCF_R321_HERI_DOWN)) {
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
     }
@@ -976,30 +969,30 @@ void R320Main()
         IntSet(r320_work->fireTimer, r320_work->fireTimer - 1);
         if (r320_work->fireTimer < 0) {
             if (r320_work->gatling[2]) {
-                GatlingStopFire(r320_work->gatling[2]);
+                r320_work->gatling[2]->stopFire();
             }
             if (r320_work->gatling[3]) {
-                GatlingStopFire(r320_work->gatling[3]);
+                r320_work->gatling[3]->stopFire();
             }
             if (r320_work->gatling[4]) {
-                GatlingStopFire(r320_work->gatling[4]);
+                r320_work->gatling[4]->stopFire();
             }
         }
         if (r320_work->fireTimer < -0x4B) {
             IntSet(r320_work->fireTimer, 0x78);
             if (r320_work->gatling[2]) {
-                GatlingSetFire(r320_work->gatling[2]);
+                r320_work->gatling[2]->setFire();
             }
             if (r320_work->gatling[3]) {
-                GatlingSetFire(r320_work->gatling[3]);
+                r320_work->gatling[3]->setFire();
             }
             if (r320_work->gatling[4]) {
-                GatlingSetFire(r320_work->gatling[4]);
+                r320_work->gatling[4]->setFire();
             }
         }
         if (((pG->Room_flg[2] & 0x02000000) && r320_work->em[0x1B].isActive()) || ((pG->Room_flg[2] & 0x01000000) && r320_work->em[0x1B].isActive())) {
             if (r320_work->gatling[4]) {
-                GatlingStopFire(r320_work->gatling[4]);
+                r320_work->gatling[4]->stopFire();
             }
         }
         {
@@ -1009,23 +1002,23 @@ void R320Main()
 
             if ((f & 0x01000000) && r320_work->em[0x1B].isActive()) {
                 if (r320_work->gatling[2]) {
-                    GatlingStopFire(r320_work->gatling[2]);
+                    r320_work->gatling[2]->stopFire();
                 }
             }
         }
         if ((pG->Room_flg[2] & 0x00800000) && r320_work->em[0x1B].isActive()) {
             if (r320_work->gatling[4]) {
-                GatlingStopFire(r320_work->gatling[4]);
+                r320_work->gatling[4]->stopFire();
             }
         }
         if ((pG->Room_flg[2] & 0x00400000) && r320_work->em[0x25].isActive()) {
             if (r320_work->gatling[3]) {
-                GatlingStopFire(r320_work->gatling[3]);
+                r320_work->gatling[3]->stopFire();
             }
         }
         if (pG->Room_flg[2] & 0x00200000) {
             if (r320_work->gatling[2]) {
-                GatlingStopFire(r320_work->gatling[2]);
+                r320_work->gatling[2]->stopFire();
             }
         }
         if ((pG->Room_flg[0] & 0x10000000) == 0 && r320_work->em[0x25].isAlive() && r320_work->em[0x25].isActive() == 0) {
@@ -1456,13 +1449,13 @@ static void appear_g()
         CamCtrl.CutCall(0x1B);
         SceSleep(0xF);
         if (r320_work->gatling[2]) {
-            GatlingSetFire(r320_work->gatling[2]);
+            r320_work->gatling[2]->setFire();
         }
         if (r320_work->gatling[3]) {
-            GatlingSetFire(r320_work->gatling[3]);
+            r320_work->gatling[3]->setFire();
         }
         if (r320_work->gatling[4]) {
-            GatlingSetFire(r320_work->gatling[4]);
+            r320_work->gatling[4]->setFire();
         }
         IntSet(r320_work->fireTimer, -0x4B);
         SceSleep(0x4B);
@@ -1490,13 +1483,13 @@ static void appear_g()
         r320_work->em[0x22].setNoSuspend(0);
         SceSleep(0xF);
         if (r320_work->gatling[2]) {
-            GatlingStopFire(r320_work->gatling[2]);
+            r320_work->gatling[2]->stopFire();
         }
         if (r320_work->gatling[3]) {
-            GatlingStopFire(r320_work->gatling[3]);
+            r320_work->gatling[3]->stopFire();
         }
         if (r320_work->gatling[4]) {
-            GatlingStopFire(r320_work->gatling[4]);
+            r320_work->gatling[4]->stopFire();
         }
         IntSet(r320_work->fireTimer, 0);
         r320_work->em[0x22].setGoto(&pPL->pos, 0xC);
@@ -1565,7 +1558,7 @@ void Gatling2_set()
             if (r320_work->gatling[2]) {
                 r320_work->gatling[2]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[2]->setNoSuspend(1);
-                GatlingSetMaxRot(r320_work->gatling[2], 1.5707964f);
+                r320_work->gatling[2]->setMaxRot(1.5707964f);
             }
         }
         if ((R320_SAVE_FLAGS & 0x02000000) == 0) {
@@ -1579,7 +1572,7 @@ void Gatling2_set()
             if (r320_work->gatling[3]) {
                 r320_work->gatling[3]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[3]->setNoSuspend(1);
-                GatlingSetMaxRot(r320_work->gatling[3], 1.5707964f);
+                r320_work->gatling[3]->setMaxRot(1.5707964f);
             }
         }
         if ((R320_SAVE_FLAGS & 0x01000000) == 0) {
@@ -1963,7 +1956,7 @@ static void destroy_0()
         SceEventEnd(0);
         r320_work->heri.setNoSuspend(0);
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-        GatlingSetBreak(r320_work->gatling[0]);
+        r320_work->gatling[0]->setBreak();
         r320_work->em[0].destroy();
         r320_work->heriWait = 0x96;
     }

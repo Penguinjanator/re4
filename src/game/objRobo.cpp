@@ -20,36 +20,13 @@
 #include "sce_at.h"
 #include "player.h"
 #include "motion.h"
+#include "objRobo.h"
 
 
-// Giant statue (Salazar's robot) of room 4-2: waits on the gondola, walks the passage, waits at
-// the door, then chases the player over the bridge, breaking its pieces one by one.
-class cObjRobo : public cObj {
-public:
-    virtual void move();
-
-    void SetBeginEvent();
-    void SetEndEvent();
-    static void R0Init(cObjRobo* robo);
-    static void R0WaitGondola(cObjRobo* robo);
-    static void R0WalkPassage(cObjRobo* robo);
-    static void R0WaitDoor(cObjRobo* robo);
-    static void R0WalkBridge(cObjRobo* robo);
-    static void R0WaitBreak(cObjRobo* robo);
-    static void R0WaitDie(cObjRobo* robo);
-    static void R0Event(cObjRobo* robo);
-    void WalkSequence(cObjRobo* robo, int hitCk);
-    static void TaskSwitchFront(cObjRobo* robo);
-    static void TaskSwitchBack(cObjRobo* robo);
-    int WalkHitCk(cObjRobo* robo);
-    void SatMove(cObjRobo* robo, Vec* pos, int side);
-    int SatMoveSub(cModel* em, Vec* pos, Vec* d);
-};
 
 extern "C" {
 void* memset(void* p, int c, unsigned int n);
 }
-cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
 void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // Pointer store through a reference: the following `pG` load is kept behind it.
@@ -85,7 +62,7 @@ struct RoboHitTbl {
 };
 
 // Creates the statue (id 0x37) at pos/rot with a 0x98-byte extra work, tall light volume; R0 0.
-cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
+cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     RoboWork* w;
@@ -131,7 +108,7 @@ cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->partsWorldCalc();
     w->r_no_0 = 0;
     w->step = 0;
-    return obj;
+    return (cObjRobo*) obj;
 }
 
 // Dispatches RoboWork::r_no_0 through R0Tbl (0 Init, 1 WaitGondola, 2 WalkPassage, 3 WaitDoor,
@@ -147,7 +124,7 @@ void cObjRobo::move()
 }
 
 // Event start: the statue keeps moving during the event in the Event routine.
-void cObjRobo::SetBeginEvent()
+void cObjRobo::SetBeginEvent(u32 a)
 {
     RoboWork* w = &robo;
 
@@ -157,7 +134,7 @@ void cObjRobo::SetBeginEvent()
 }
 
 // Event end: normal suspend behaviour again (the room sets the next routine).
-void cObjRobo::SetEndEvent()
+void cObjRobo::SetEndEvent(u32 a)
 {
     setNoSuspend(0);
 }
