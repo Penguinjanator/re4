@@ -32,7 +32,7 @@ static R315Work* r315_work;
 
 // The previous room id read as a raw halfword (not a struct member): the load then depends on the
 // work pointer store before it, which keeps the pG load below that store.
-#define PREV_ROOM_ID (*(u16*) ((u8*) pG + 0x4FA0))
+#define PREV_ROOM_ID (*(u16*) PG_PTR(room_id_prev))
 
 
 

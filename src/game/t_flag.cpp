@@ -144,18 +144,18 @@ static const char* sys_s[29] = {
 const char* kyf_s[1] = {""};
 
 static FE_DATA fe_data[12] = {
-    {"DEBUG", (u32*) ((u8*) &Global + OFS_DEBUG_FLG), 128, 0, dbg_s, 125},
-    {"STOP", (u32*) ((u8*) &Global + OFS_STOP_FLG), 32, 0, spf_s, 27},
-    {"STATUS", (u32*) ((u8*) &Global + OFS_STATUS_FLG), 128, 0, sta_s, 105},
-    {"SYSTEM", (u32*) ((u8*) &Global + OFS_SYSTEM_FLG), 32, 0, sys_s, 29},
-    {"ITEM_SET", (u32*) ((u8*) &Global + 0x519C), 128, 0, itf_s, 16},
-    {"SCENARIO", (u32*) ((u8*) &Global + 0x51BC), 256, 0, scf_s, 64},
-    {"KEY_LOCK", (u32*) ((u8*) &Global + 0x51DC), 64, 0, kyf_s, 1},
-    {"ROOM", (u32*) ((u8*) &Global + 0x174), 128, 0, NULL, 0},
+    {"DEBUG", &Global.Debug_flg[0], 128, 0, dbg_s, 125},
+    {"STOP", &Global.Stop_flg, 32, 0, spf_s, 27},
+    {"STATUS", &Global.Status_flg[0], 128, 0, sta_s, 105},
+    {"SYSTEM", &Global.System_flg, 32, 0, sys_s, 29},
+    {"ITEM_SET", &Global.Item_flg[0], 128, 0, itf_s, 16},
+    {"SCENARIO", &Global.Scenario_flg[0], 256, 0, scf_s, 64},
+    {"KEY_LOCK", &Global.Key_flg[0], 64, 0, kyf_s, 1},
+    {"ROOM", &Global.Room_flg[0], 128, 0, NULL, 0},
     {"ROOM_SAVE", NULL, 32, 0, NULL, 0},
     {"EXTRA", &SystemSave.Extra_flg, 32, 0, cfg_s, 2},
     {"CONFIG", &SystemSave.Config_flg, 32, 0, cfg_s, 6},
-    {"DISP", (u32*) ((u8*) &Global + OFS_DISP_FLG), 32, 0, dpf_s, 21},
+    {"DISP", &Global.Disp_flg, 32, 0, dpf_s, 21},
 };
 
 FE_WORK Test;
@@ -166,15 +166,15 @@ void FlagEdit()
 {
     static void (*func_tbl[2])(FE_WORK*) = {move, die};
 
-    Test.stop_bak = TOOL_FLAG(OFS_STOP_FLG);
-    BitOn(TOOL_FLAG(OFS_STOP_FLG), ~0x4000);
+    Test.stop_bak = pG->Stop_flg;
+    BitOn(pG->Stop_flg, ~0x4000);
     init(&Test);
     TaskSleep(1);
     while (1) {
-        TOOL_FLAG(OFS_STOP_FLG) = Test.stop_bak;
+        pG->Stop_flg = Test.stop_bak;
         func_tbl[Test.mode](&Test);
-        Test.stop_bak = TOOL_FLAG(OFS_STOP_FLG);
-        BitOn(TOOL_FLAG(OFS_STOP_FLG), ~0x4000);
+        Test.stop_bak = pG->Stop_flg;
+        BitOn(pG->Stop_flg, ~0x4000);
         TaskSleep(1);
     }
 }
@@ -185,7 +185,7 @@ static void init(FE_WORK* t)
     Test.mode = 0;
     t->cursor = 0;
     t->page = 0;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
+    pG->Debug_flg[0] |= 0x80000000;
 }
 
 // Editor frame: d-pad moves the cursor bit, C-stick / L / R change the page, A toggles the bit;
@@ -305,8 +305,8 @@ static void move(FE_WORK* t)
 // Editor end: restores Stop_flg, ends the task.
 static void die(FE_WORK* t)
 {
-    TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
-    TOOL_FLAG(OFS_STOP_FLG) = Test.stop_bak;
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    pG->Stop_flg = Test.stop_bak;
     TaskSignal(0);
     TaskExit();
 }

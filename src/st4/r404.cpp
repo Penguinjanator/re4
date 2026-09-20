@@ -54,12 +54,6 @@ struct R404WorkPtr {
     R404Work* p;
 };
 
-// Typed view of pG->emlist (r400): pG is loaded before the index shift.
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData Em_list[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static u8 r404_texTbl[0x20];
 static R404WorkPtr r404_work;
@@ -292,7 +286,7 @@ int r404_setEm(u32 no, int force)
         return 0;
     }
     cEmWrap em;
-    if (!(EM_LIST_V(no).be_flag & 2)) {
+    if (!(pG->Em_list[no].be_flag & 2)) {
         em.setEm(no, -1, 1, 1, 1);
     } else {
         em.setPtr(no, -1, 1);

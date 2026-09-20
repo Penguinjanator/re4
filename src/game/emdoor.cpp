@@ -1038,7 +1038,7 @@ static inline void emDoorHitOff(YARARE_INFO* hit)
 void emDoorSetDmgLock_L(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     YARARE_INFO* hit;
     u16* flg;
     Vec v;
@@ -1105,7 +1105,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
 void emDoorSetDmgLock_R(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     YARARE_INFO* hit;
     u16* flg;
     Vec v;
@@ -1237,7 +1237,7 @@ void emDoorSetDmgDoor(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
     YARARE_INFO* part = em->dmg.m_pDamageYarare;
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     cModel* parts;
     u16* flg;
     Vec v;
@@ -3054,7 +3054,7 @@ void emDoorAction2(cEmDoor* em)
 static inline void emDoorBellSet(Vec* pos)
 {
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), pos, sizeof(Vec));
     pG->bell_stat = 0;
 }
 

@@ -1201,7 +1201,7 @@ void cEmMine::setBomb()
     EffectEfmDelete(0, w->EffKindId, this);
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &p, sizeof(Vec));
     pG->bell_stat = 1;
     setLost();
     // COMPILER-DIFF: candidate #12 (cse wider-mode zero fold): the original stores the known-zero

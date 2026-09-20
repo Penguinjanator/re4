@@ -271,7 +271,7 @@ static void r40e_execEmAppear_end()
     em.setPtr(0xDD, -1, 1);
     em.setNoSuspend(0);
     pPL->setNoSuspend(0);
-    *EM_LIST(0xDD) = *EM_LIST(0xDE);
+    *&pG->Em_list[0xDD] = *&pG->Em_list[0xDE];
     EmListSetAlive(0xDD, 1);
     SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
 }

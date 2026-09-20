@@ -107,13 +107,13 @@ extern "C" void Evt_R101S21_Func(Event* e);
 extern "C" void Evt_R101S30_Func(Event* e);
 
 
-// Clear the death bit of list entry `no` in the loaded enemy list's death words (pG+0x501C + list*0x20).
+// Clear the death bit of list entry `no` in the loaded enemy list's death words (pG->Em_flg[list]).
 static inline void r101_emDeadClear(int no)
 {
     int list = pG->em_list_no;
 
     if (list >= 0) {
-        BitOff(*(u32*) ((list << 5) + (u32) pG + 0x501C), 0x80000000 >> (no & 31));
+        BitOff(*EM_FLG_ROW(list), 0x80000000 >> (no & 31));
     }
 }
 
@@ -234,14 +234,14 @@ void R101Init()
         if (ScfFlagChk(pG, SCF_R106_EVENT)) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
-                EM_LIST(0x14)->be_flag |= 1;
-                EM_LIST(0x15)->be_flag |= 1;
-                EM_LIST(0x16)->be_flag |= 1;
-                EM_LIST(0x17)->be_flag |= 1;
-                EM_LIST(0x18)->be_flag |= 1;
-                EM_LIST(0x19)->be_flag |= 1;
-                EM_LIST(0x1E)->be_flag |= 1;
-                EM_LIST(0x1F)->be_flag |= 1;
+                pG->Em_list[0x14].be_flag |= 1;
+                pG->Em_list[0x15].be_flag |= 1;
+                pG->Em_list[0x16].be_flag |= 1;
+                pG->Em_list[0x17].be_flag |= 1;
+                pG->Em_list[0x18].be_flag |= 1;
+                pG->Em_list[0x19].be_flag |= 1;
+                pG->Em_list[0x1E].be_flag |= 1;
+                pG->Em_list[0x1F].be_flag |= 1;
                 r101_emDeadClear(0x14);
                 r101_emDeadClear(0x15);
                 r101_emDeadClear(0x16);
@@ -250,9 +250,9 @@ void R101Init()
                 r101_emDeadClear(0x19);
                 r101_emDeadClear(0x1E);
                 r101_emDeadClear(0x1F);
-                ((EmListData*) &pGS->Em_list[0x48 * 0x20])->be_flag |= 1;
-                ((EmListData*) &pGS->Em_list[0x49 * 0x20])->be_flag |= 1;
-                ((EmListData*) &pGS->Em_list[0x4A * 0x20])->be_flag |= 1;
+                pGS->Em_list[0x48].be_flag |= 1;
+                pGS->Em_list[0x49].be_flag |= 1;
+                pGS->Em_list[0x4A].be_flag |= 1;
             }
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }

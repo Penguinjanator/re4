@@ -70,7 +70,7 @@ void cObj01::move00()
                 }
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+                memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
                 pG->bell_stat = 1;
                 ObjMgr.destroy(this);
                 return;

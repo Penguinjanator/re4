@@ -166,8 +166,7 @@ void R204Init()
         if (pG->room_id_prev == 0x205 && pG->Part == 0) {
             RsfSet(G_ROOM_ID, 2);
             for (no = 0x4A; no < 0x55; no++) {
-                u8* g = (u8*) pG + no * 0x20;
-                ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
+                pG->Em_list[no].be_flag &= ~1;
             }
         }
         if (!RsfCheck(G_ROOM_ID, 2)) {
@@ -346,8 +345,7 @@ void R204Main()
                 r204_work.p->cnt = 1;
                 SndStrReq(r204_work.p->str, 4, 200, 0);
                 for (no = 0x4A; no < 0x55; no++) {
-                    u8* g = (u8*) pG + no * 0x20;
-                    ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
+                    pG->Em_list[no].be_flag &= ~1;
                 }
             }
         }

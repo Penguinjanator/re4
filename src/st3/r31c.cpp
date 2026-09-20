@@ -1571,7 +1571,7 @@ void r31cEventS01EndProc()
     EmListData* l;
     int i;
 
-    l = EM_LIST(0x13);
+    l = &pG->Em_list[0x13];
     l->set = (pG->Room_flg[0] & 0x10000000) ? 2 : 3;
     r31c_work.p->krauser2.setEm(0x13, -1, 1, 1, 1);
     r31c_work.p->krauser.destroy();

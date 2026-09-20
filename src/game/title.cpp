@@ -1516,7 +1516,7 @@ void titleExit(TitleWork* w)
             break;
         }
         } else {
-            memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
+            memcpy(PG_PTR(sub_pos), &pG->NextPos, sizeof(Vec));
             FSet(pG->sub_angle, pG->NextY);
             G_ROOM_ID = pG->RoomNo_next;
             pG->Part = pG->Part_next;

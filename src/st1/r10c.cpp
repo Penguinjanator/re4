@@ -374,13 +374,13 @@ static void r10c_EmEvent_exit()
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     {
-        EmListData* l = EM_LIST(3);
+        EmListData* l = &pG->Em_list[3];
 
         l->be_flag |= 1;
         l->set = 0;
     }
     EmSetFromList2(3, 1);
-    EM_LIST(4)->be_flag |= 1;
+    pG->Em_list[4].be_flag |= 1;
     EmSetFromList2(4, 1);
     pPL->setPos(6609.0f, 0.0f, 17172.0f);
     pPL->setAng(0.0f, 0.56f, 0.0f);
@@ -398,7 +398,7 @@ static void r10c_EmEvent()
         RsfSet(G_ROOM_ID, 1);
         BitOff(pG->Room_flg[0], 0x04000000);
         {
-            EmListData* l = EM_LIST(2);
+            EmListData* l = &pG->Em_list[2];
 
             em = EmSetFromList2(2, 1);
             l->set = 0;

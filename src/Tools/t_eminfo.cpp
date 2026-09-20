@@ -12,6 +12,7 @@
 #include "dbmodule.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Enemy placement info editor (Tools/t_eminfo.cpp): edits the per-room .emi point list (position,
 // direction and three work bytes per typed point) with a screen cursor, draws the points and the
@@ -161,7 +162,7 @@ static inline void eminfoCursorCenter()
 }
 
 // Blinking cursor mark: on for half of the frames, always while a button is held.
-#define eminfoBlink() ((TOOL_FLAG(0x51E4) & 0x10) || W->joy.on)
+#define eminfoBlink() ((U32Ref(pG->Frame_cnt) & 0x10) || W->joy.on)
 
 // Enemy info editor entry (debug menu 35): loads the room's .emi, then every frame moves the debug
 // camera / cursor (TutilMoveCursor), finds the point nearest the cursor and runs tbl[mode]: 0 menu,
@@ -195,10 +196,10 @@ void eminfoInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
+    BitOn(pG->Debug_flg[0], 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
+    pG->Stop_flg |= 0x800000;
     p = (EmInfoTool*) Debug_alloc(sizeof(EmInfoTool), 1);
     W = p;
     memset(p, 0, sizeof(EmInfoTool));
@@ -217,10 +218,10 @@ void eminfoInit()
 // Frees the work, restores the flags and ends the task.
 void eminfoExit()
 {
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x20000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    BitOff(pG->Debug_flg[0], 0x20000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    pG->Stop_flg &= ~0x800000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -1014,8 +1015,8 @@ void eminfoDisp()
     int on;
 
     eprintf(40, 20, 0, 0, "<<<<< EM INFO TOOL >>>>>");
-    t = TOOL_FLAG(0x51E4) & 0xF;
-    if (TOOL_FLAG(0x51E4) & 0x10) {
+    t = pG->Frame_cnt & 0xF;
+    if (pG->Frame_cnt & 0x10) {
         t = 15 - t;
     }
     t *= 3;
@@ -1372,8 +1373,8 @@ void eminfoCameraMove()
         BitSet(W->joy.on, 0);
         BitSet(W->joy.rep, 0);
         BitSet(W->joy.rep2, 0);
-        TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-        if (TOOL_FLAG(0x51E4) & 0x10) {
+        BitOn(pG->Debug_flg[0], 0x10000000);
+        if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }
         eminfoCursorCenter();

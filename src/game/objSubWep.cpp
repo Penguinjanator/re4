@@ -632,7 +632,7 @@ void cObjGrenade::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 
@@ -643,7 +643,7 @@ void cObjGrenade::waterExplode()
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     SndCall(1, 0x17, &pos, 0, 0, 0);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 
@@ -701,7 +701,7 @@ void cObjGreFire::explode()
     }
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 
@@ -747,7 +747,7 @@ void cObjGreLight::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x17, 0, 15000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 
@@ -781,7 +781,7 @@ void cObjEgg::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x19, 0, 2000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 

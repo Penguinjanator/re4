@@ -69,7 +69,7 @@ static u8 r221_texTbl[0x20];
 static R221WorkPtr r221_work;
 
 // The death bits of enemy list `list` (pG->Em_flg[list]), as an integer base (the r218 idiom).
-static inline u32* emDeadWords(int list) { return (u32*) ((list << 5) + (u32) pG + 0x501C); }
+static inline u32* emDeadWords(int list) { return EM_FLG_ROW(list); }
 
 #define R221_MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
@@ -723,12 +723,12 @@ static void r221_operateElevator()
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
-        EM_LIST(0x8C)->set = 2;
-        U16Set(EM_LIST(0x8C)->hp, em.getHp());
-        S16Set(EM_LIST(0x8C)->pos[0], -1458);
-        S16Set(EM_LIST(0x8C)->pos[1], 0x32);
-        S16Set(EM_LIST(0x8C)->pos[2], -577);
-        EM_LIST(0x8C)->rot[1] = 0x17D2;
+        pG->Em_list[0x8C].set = 2;
+        U16Set(pG->Em_list[0x8C].hp, em.getHp());
+        S16Set(pG->Em_list[0x8C].pos[0], -1458);
+        S16Set(pG->Em_list[0x8C].pos[1], 0x32);
+        S16Set(pG->Em_list[0x8C].pos[2], -577);
+        pG->Em_list[0x8C].rot[1] = 0x17D2;
     }
     if (r221_work.p->str1C) {
         SndStrReq(r221_work.p->str1C, 4, 200, 0);
@@ -777,12 +777,12 @@ static void r221_checkBossAppear_end()
                 emDeadWords(list)[0x8C >> 5] &= ~(0x80000000 >> (0x8C & 31));
             }
         }
-        EM_LIST(0x8C)->set = zero;
-        EM_LIST(0x8C)->be_flag = zero;
-        S16Set(EM_LIST(0x8C)->pos[0], -0x4F8);
-        S16Set(EM_LIST(0x8C)->pos[1], 0x58);
-        S16Set(EM_LIST(0x8C)->pos[2], -0x1FA1);
-        EM_LIST(0x8C)->rot[1] = -0xBBB;
+        pG->Em_list[0x8C].set = zero;
+        pG->Em_list[0x8C].be_flag = zero;
+        S16Set(pG->Em_list[0x8C].pos[0], -0x4F8);
+        S16Set(pG->Em_list[0x8C].pos[1], 0x58);
+        S16Set(pG->Em_list[0x8C].pos[2], -0x1FA1);
+        pG->Em_list[0x8C].rot[1] = -0xBBB;
         em.setEm(0x8C, -1, 1, 1, 1);
         SceAtSetEmItem(em.getPtr(), 0x85);
         if (!(pG->Room_flg[0] & 0x01000000)) {

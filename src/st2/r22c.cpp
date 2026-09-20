@@ -125,11 +125,6 @@ struct R22cWork {
     int scoreTimer[8];   // 0x188
 };
 
-struct R22cHiScore {
-    u8 pad[0x8330];
-    s16 score[4];
-};
-
 struct R22cWorkPtr {
     R22cWork* p;
 };
@@ -1492,15 +1487,13 @@ static void r22cSetWepMan()
     }
 }
 
-// High score per level (pG+0x8330, four s16).
+// High score per level (pG->shootingScore).
 void scoreRegist()
 {
     R22cWork* w = r22c_work.p;
     int lv = w->level - 1;
-    R22cHiScore* hs = (R22cHiScore*) pG;
-
-    if (w->score > hs->score[lv]) {
-        hs->score[lv] = w->score;
+    if (w->score > pG->shootingScore[lv]) {
+        pG->shootingScore[lv] = w->score;
     }
 }
 

@@ -87,6 +87,23 @@ struct ITEM_SAVE_WORK {
 
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
+// One entry of the room enemy list (ESL, pG->Em_list: 256 entries of 0x20 bytes, game/em_set.cpp).
+struct EmListData {
+    u8 be_flag;       // 0x00  bit0: alive flag (EmListSetAlive), bit1: set (an enemy was created from it), bit2/bit3: set toggles  (PS2 EM_LIST.be_flag)
+    u8 id;          // 0x01  enemy id (0 = empty entry, 0xF / 0x25 are created at the back of the work array)
+    u8 type;        // 0x02  -> cModel::type
+    u8 set;          // 0x03  -> cEm::x38D  -> cEm::set
+    u32 flag;     // 0x04  -> cEm::flags_3C8  -> cEm::flag (PS2 EM_LIST.flag)
+    u16 hp;         // 0x08
+    u8 emset_no;//  (PS2 EM_LIST.emset_no; unused on GC, the list index is stored)
+    u8 Character;          // 0x0B  -> cEm::x3D0  -> cEm::Character (PS2 EM_LIST.Character)
+    s16 pos[3];     // 0x0C  * 10
+    s16 rot[3];     // 0x12  * (pi / 0x4000)
+    u16 room;       // 0x18  stage << 8 | room
+    s16 Guard_r;        // 0x1A  * 1000 -> cEm::x3CC  -> cEm::Guard_r (PS2 EM_LIST.Guard_r)
+    u8 pad_1C[4];
+};
+
 struct GlobalWork {
     s32 IsDevConsole;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
     u8 shooting_mode;      // 0x04  shooting range mode (title: shoot_mode[] name table; em10/em39: 9999 damage, marker lines)
@@ -212,7 +229,7 @@ struct GlobalWork {
     u32 Key_flg[2];        // 0x51DC  one bit per locked door (t_flag KEY_LOCK; sce_at SceAtWork::lockFlag)
     u32 Frame_cnt;         // 0x51E4  frame counter (em: `& 3` vs emset_no staggers per-enemy work; tools blink on % 30)
     u32 save_free_work[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
-    u8 Em_list[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
+    EmListData Em_list[256];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     ITEM_SAVE_WORK item_save[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
     u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
@@ -1193,7 +1210,16 @@ struct GlobalWorkPtr {
 };
 #define pGS (((GlobalWorkPtr*) &pG)->p)
 
+// Byte pointer to a GlobalWork member. Copies and stores through it are not struct-member accesses, so GCC
+// 2.95 reloads pG afterwards; `&pG->f` compiles differently. Written as the member's offset (the
+// null-pointer idiom) added to pG.
+#define PG_OFS(f) ((u32) &((GlobalWork*) 0)->f)
+#define PG_PTR(f) ((u8*) pG + PG_OFS(f))
+// Death words of enemy list `list` (Em_flg row: eight u32, one bit per entry). The scaled index is added to pG
+// first and the member offset last; written as `pG->Em_flg[list]` the address is built differently.
+#define EM_FLG_ROW(list) ((u32*) ((list) * 0x20 + (u32) pG + PG_OFS(Em_flg)))
+
 // Same effect for the room camera data pointer store in CameraControl::RoomDataRead.
-#define G_ROOM_CAM_DATA (*(void**) ((u8*) pG + 0x4F28))
+#define G_ROOM_CAM_DATA (*(void**) PG_PTR(pCamRoom))
 
 #endif

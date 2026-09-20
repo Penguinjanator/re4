@@ -118,7 +118,7 @@ static inline u32 r307_emDead(int no)
     u32 v;
 
     if (list >= 0) {
-        v = *(u32*) ((list << 5) + (u32) pG + 0x501C + (((u32) no >> 5) << 2)) & (0x80000000 >> (no & 31));
+        v = FlagChk(EM_FLG_ROW(list), no);
     } else {
         v = 0;
     }
@@ -523,6 +523,6 @@ static void r307_appearEm()
     SceAtSetEnable(2, 0);
     em.setNoSuspend(0);
     SceExec(0x12, (TaskFunc) r307_checkBgm, 0, 0, 2, 0);
-    *EM_LIST(0x32) = *EM_LIST(0x33);
+    *&pG->Em_list[0x32] = *&pG->Em_list[0x33];
     EmListSetAlive(0x32, 1);
 }

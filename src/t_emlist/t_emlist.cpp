@@ -483,11 +483,11 @@ struct EmListEnt {
     u8 pad_1C[4];
 };
 
-#define EMLIST_ENT(no) ((EmListEnt*) &pG->Em_list[(no) * 0x20])
+#define EMLIST_ENT(no) ((EmListEnt*) &pG->Em_list[no])
 // The insert/paste searches address the entries tool-style (pG first in the add, shift index).
-#define EMLIST_ENT_I(no) ((EmListEnt*) ((u32) pG + ((no) << 5) + 0x52E8))
+#define EMLIST_ENT_I(no) ((EmListEnt*) ((u32) pG + ((no) << 5) + PG_OFS(Em_list)))
 // Entry-to-entry copies are byte-pointer memcpys: the stores then alias pG, which is reloaded per iteration.
-#define EMLIST_COPY(dst, src) memcpy((u8*) pG + 0x52E8 + (dst) * 0x20, (u8*) pG + 0x52E8 + (src) * 0x20, 0x20)
+#define EMLIST_COPY(dst, src) memcpy((u8*) pG + PG_OFS(Em_list) + (dst) * 0x20, (u8*) pG + PG_OFS(Em_list) + (src) * 0x20, 0x20)
 
 // Editor state (0x3E0 bytes, Debug_alloc'd by emlist_init).
 struct EmListWork {
@@ -659,13 +659,13 @@ void emlist_init()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x200000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x1000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x200000);
+    BitOn(pG->Disp_flg, 0x1000000);
+    BitOn(pG->Disp_flg, 0x800000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    pG->Debug_flg[0] |= 0x10000000;
     EmListCtrl* ctl = &EmList;
 
     ctl->wk = (EmListWork*) Debug_alloc(sizeof(EmListWork), 1);
@@ -712,12 +712,12 @@ void emlist_init()
 // Restores the flags, frees the work and ends the task.
 void emlist_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x200000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x1000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x200000);
+    BitOff(pG->Disp_flg, 0x1000000);
+    BitOff(pG->Disp_flg, 0x800000);
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    BitOff(pG->Stop_flg, 0x800000);
+    pG->Debug_flg[0] &= ~0x10000000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -1881,13 +1881,13 @@ static void emlist_r0_sort()
             for (i = 0; i <= 0xFD; i++) {
                 for (j = i + 1; j <= 0xFE; j++) {
                     if (EMLIST_ENT_I(i)->room > EMLIST_ENT_I(j)->room && EMLIST_ENT_I(j)->id != 0) {
-                        memcpy(tmp, (u8*) pG + 0x52E8 + i * 0x20, 0x20);
+                        memcpy(tmp, &pG->Em_list[i], 0x20);
                         EMLIST_COPY(i, j);
-                        memcpy((u8*) pG + 0x52E8 + j * 0x20, tmp, 0x20);
+                        memcpy(&pG->Em_list[j], tmp, 0x20);
                     } else if (EMLIST_ENT_I(i)->id == 0 && EMLIST_ENT_I(j)->id != 0) {
-                        memcpy(tmp, (u8*) pG + 0x52E8 + i * 0x20, 0x20);
+                        memcpy(tmp, &pG->Em_list[i], 0x20);
                         EMLIST_COPY(i, j);
-                        memcpy((u8*) pG + 0x52E8 + j * 0x20, tmp, 0x20);
+                        memcpy(&pG->Em_list[j], tmp, 0x20);
                     }
                 }
             }
@@ -1909,7 +1909,7 @@ static void emlist_r0_set_exit()
     for (i = 0; i < 255; i++) {
         int no = pG->em_list_no;
         if (no >= 0) {
-            u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->Em_flg[no], tool style
+            u32* tbl = EM_FLG_ROW(no);  // pG->Em_flg[no], tool style
             BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
         }
     }
@@ -2575,7 +2575,7 @@ void emlist_EmDir_disp()
     }
     blink *= 3;
     for (i = 0; i <= 0xFE; i++) {
-        u32 ofs = i * 0x20 + 0x52E8;
+        u32 ofs = i * 0x20 + PG_OFS(Em_list);
         EmListEnt* p = (EmListEnt*) ((u8*) pG + ofs);
         if (p->id == 0) {
             continue;

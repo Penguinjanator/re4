@@ -940,9 +940,9 @@ static void r100_Sce_zombi_dead(cEm* em)
     W->ems[2]->setNoSuspend(0);
     BitOn(W->ems[1]->flag, 1);
     BitOn(W->ems[2]->flag, 1);
-    l = EM_LIST(4);
+    l = &pG->Em_list[4];
     l->set = zero;
-    l = EM_LIST(5);
+    l = &pG->Em_list[5];
     l->set = zero;
     r100_Car_pos_move();
     SceSleep(1);

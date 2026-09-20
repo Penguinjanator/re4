@@ -124,7 +124,7 @@ void obj14_R1_Set(cObjBell* obj)
         StaFlagOn(pG, STA_SE_BURST);
         // A byte-pointer destination: the copy is then a plain (non-struct) store and the
         // original reloads pG for the following store, as the target shows.
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &p, sizeof(Vec));
         pG->bell_stat = 2;
     }
 }

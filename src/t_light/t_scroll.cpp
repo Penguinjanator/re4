@@ -182,7 +182,7 @@ int ToolScroll()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    pG->Debug_flg[0] |= 0x10000000;
     SmdClear(1);
     Block.dispAllBlock(1);
     init();
@@ -195,8 +195,8 @@ int ToolScroll()
     }
     SmdClear(1);
     Block.dispAllBlock(0);
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    pG->Debug_flg[0] &= ~0x80000000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -376,10 +376,10 @@ int move()
             Joy[0].trg &= ~0x1000;
             switch (pWork->modeSel) {
             case 0:
-                TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+                pG->Debug_flg[0] |= 0x10000000;
                 break;
             case 2:
-                TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+                pG->Debug_flg[0] &= ~0x10000000;
                 break;
             }
         }

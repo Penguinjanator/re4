@@ -105,7 +105,7 @@ static inline u32 r11c_emDead(u32 no)
     u32 v;
 
     if (pG->em_list_no >= 0) {
-        u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
+        u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {
@@ -592,7 +592,7 @@ static void r11c_EventBesiegedStart()
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_CHASE, 0);
     if (!r11c_emDead(0xC8)) {
-        EM_LIST(0xC8)->be_flag &= ~2;
+        pG->Em_list[0xC8].be_flag &= ~2;
         EmSetFromList2(0xC8, 0);
     }
     CamCtrl.AreaOnOff(1, 0, 0);

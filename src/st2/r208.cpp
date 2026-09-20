@@ -89,7 +89,7 @@ static R208WorkPtr r208_work;
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
-#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
+#define EM_LIST_S(no) (&pGS->Em_list[no])
 // Element stores through the vector's address (r202): the address pseudo is shared with the call
 // that follows (`mr r4, rX`).
 static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
@@ -450,8 +450,8 @@ void R208Main()
                             no = 0x14;
                         }
                     }
-                    R208_EmSetEvent(EM_LIST(no));
-                    ((EmListData*) ((u32) pG + (no << 5) + 0x52E8))->be_flag |= 2; // shift form: add operands pG-first, address not tied to no<<5
+                    R208_EmSetEvent(&pG->Em_list[no]);
+                    pG->Em_list[no].be_flag |= 2;
                     incResetNum();
                 }
             }
@@ -976,8 +976,8 @@ extern "C" void emGroupeA_reset()
         return;
     }
     RsfSet(G_ROOM_ID, 1);
-    R208_EmSetEvent(EM_LIST(0x20));
-    R208_EmSetEvent(EM_LIST(0x22));
+    R208_EmSetEvent(&pG->Em_list[0x20]);
+    R208_EmSetEvent(&pG->Em_list[0x22]);
     alive = SceCountEmAlive(0x10, 0x20);
     if (alive <= 8) {
         W->em[11].setEm(0xD, 2, 0, 1, 1);
@@ -1410,7 +1410,7 @@ static void under_set_task()
                 if (pG->Game_level <= 6 && (i == 3 || i == 7)) {
                 } else if (pG->Game_level <= 3 && (i == 3 || i == 5 || i == 7)) {
                 } else if (r208_underEmTbl[i] != -1) {
-                    cEm* em = R208_EmSetEvent(EM_LIST(r208_underEmTbl[i]));
+                    cEm* em = R208_EmSetEvent(&pG->Em_list[r208_underEmTbl[i]]);
 
                     if (em) {
                         W->under[i].setPtr(em, 0);
@@ -1485,7 +1485,7 @@ static void r208_snipe()
             return;
         }
         if (W->footACnt == 1) {
-            cEm* em = R208_EmSetEvent(EM_LIST(0x19));
+            cEm* em = R208_EmSetEvent(&pG->Em_list[0x19]);
 
             if ((pG->Room_flg[0] & 0x20000000) && em != NULL) {
                 ((cEmGanado*) em)->setGoto(&pSUB->pos, 0xC);

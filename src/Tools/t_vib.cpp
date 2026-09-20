@@ -138,7 +138,7 @@ void tvibInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
+    BitOn(pG->Stop_flg, 0x800000);
     CfgFlagOn(pSys, CFG_VIBRATION);
     wp = (TvibWork*) Debug_alloc(sizeof(TvibWork), 1);
     if (wp == NULL) {
@@ -157,7 +157,7 @@ void tvibInit()
 // Frees the work, restores the flags, ends the task.
 void tvibExit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
+    pG->Stop_flg &= ~0x800000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -1126,7 +1126,7 @@ void tvibModeFrameDisp()
         return;
     }
     col = 0xFFFFFFFF;
-    switch (TOOL_FLAG(0x51E4) & 0xF) {
+    switch (U32Ref(pG->Frame_cnt) & 0xF) {
     case 0:
         col = 0x808080FF;
         break;

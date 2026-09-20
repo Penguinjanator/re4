@@ -112,7 +112,7 @@ void cObjRocket::move()
             res = PlWepHitCheck2(0, &rocket.oldPos, &pos, 0xD, 1, 3000.0f);
             if (res) {
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+                memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
                 pG->bell_stat = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                 EstSet(0, -1, &pos, 0, 0, 0x27, 0, 10, 0, 0);
@@ -153,7 +153,7 @@ void cObjRocket::move()
                         EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
                     }
                     StaFlagOn(pG, STA_SE_BURST);
-                    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
+                    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
                     pG->bell_stat = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                     PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);

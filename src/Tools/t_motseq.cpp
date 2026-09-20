@@ -178,12 +178,12 @@ void msqToolInit()
         TaskExit();
     }
     EprintfSetCurrentNo(0);
-    TOOL_FLAG(OFS_STATUS_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00800000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x02000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x00800000;
+    BitOn(pG->Status_flg[0], 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Disp_flg, 0x02000000);
+    pG->Disp_flg |= 0x00800000;
     memclr_asm(MSQ, sizeof(MsqWork));
     for (i = 0; i < 1; i++) {
         MSQ->seq[i].x1090 = 0;
@@ -223,7 +223,7 @@ void msqToolInit()
     TprimInitEnv2D(&rect);
     SetToolLight(2);
     dbModelInit();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x40000000;
+    pG->Stop_flg |= 0x40000000;
     msqSetMode(0);
 }
 
@@ -887,16 +887,16 @@ static void msq_R0_QuitCk()
 static void msq_R0_Quit()
 {
     dbModelQuit();
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+    BitOff(pG->Stop_flg, 0x40000000);
+    pG->Debug_flg[0] &= ~0x80000000;
     ToolWorkPop(0);
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_STATUS_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x00800000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x00800000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x02000000;
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    BitOff(pG->Status_flg[0], 0x80000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Disp_flg, 0x00800000);
+    pG->Disp_flg &= ~0x02000000;
     TutilQuitDefault();
     TaskExit();
 }
@@ -1278,7 +1278,7 @@ void msqCameraMove()
         MSQ->joy.on = 0;
         MSQ->joy.rep = 0;
         U32Set(MSQ->joy.rep2, 0);
-        TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+        BitOn(pG->Debug_flg[0], 0x10000000);
         CamDbg.move(&pG->Camera, Joy, 0);
     }
 }

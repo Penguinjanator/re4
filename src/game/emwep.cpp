@@ -306,7 +306,7 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = stat;
         em->setLost();
         break;
@@ -322,7 +322,7 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = one;
         em->setLost();
         break;
@@ -1277,7 +1277,7 @@ void emWepRocketBobm(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos_old, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &em->pos_old, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
 }
@@ -1301,7 +1301,7 @@ void emWepArrowBomb(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+    memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
 }
@@ -1364,7 +1364,7 @@ void emWep_R1_BombThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();
         return;
@@ -1565,7 +1565,7 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();
         return;

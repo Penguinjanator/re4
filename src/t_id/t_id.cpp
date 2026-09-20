@@ -118,12 +118,12 @@ static void toolIdInit(IdTool* w)
     bio4_GXSetCopyClear(col, 0xFFFFFF);
     ScreenReSize(0x280, 0x1C0);
     TaskSleep(3);
-    TOOL_FLAG(0x60) |= 0x10000000;
-    TOOL_FLAG(0x68) &= ~0x40000000;
-    TOOL_FLAG(0x64) &= ~0x80000000;
-    TOOL_FLAG(0x54) &= ~0x800;
-    TOOL_FLAG(0x60) |= 0x8000;
-    TOOL_FLAG(0x64) |= 0x100000;
+    BitOn(pG->Debug_flg[0], 0x10000000);
+    BitOff(pG->Debug_flg[2], 0x40000000);
+    BitOff(pG->Debug_flg[1], 0x80000000);
+    BitOff(pG->System_flg, 0x800);
+    BitOn(pG->Debug_flg[0], 0x8000);
+    pG->Debug_flg[1] |= 0x100000;
     toolIdSetCamera(w);
     switch (pSys->language) {
     case 0:
@@ -181,12 +181,12 @@ static void toolIdQuit(IdTool* w)
     toolIdSys.free();
     ScreenReSize(0x200, 0x1C0);
     IdDebugFreeBuffer();
-    TOOL_FLAG(0x60) &= ~0x80000000;
-    TOOL_FLAG(0x60) &= ~0x10000000;
-    TOOL_FLAG(0x68) |= 0x40000000;
-    TOOL_FLAG(0x54) |= 0x800;
-    TOOL_FLAG(0x60) &= ~0x8000;
-    TOOL_FLAG(0x64) &= ~0x100000;
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    BitOn(pG->Debug_flg[2], 0x40000000);
+    BitOn(pG->System_flg, 0x800);
+    BitOff(pG->Debug_flg[0], 0x8000);
+    BitOff(pG->Debug_flg[1], 0x100000);
     pG->Camera = w->camSave;
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     ToolWorkPop(0);

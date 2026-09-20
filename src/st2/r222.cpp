@@ -870,7 +870,7 @@ void em_reset()
         } else {
             // the remainder in its own variable: a fresh register (r9) instead of the call result's r3
             u32 idx = (u32) getResetNum() % 3;
-            cEm* em = EmSetEvent(EM_LIST(0x19 + idx));
+            cEm* em = EmSetEvent(&pG->Em_list[0x19 + idx]);
 
             if (em) {
                 em->flag |= 1;

@@ -150,19 +150,19 @@ void seAtInit()
     Camera* cam = &g->Camera;
 
     TutilInitDefault();
-    BitSet(pW->saveStop, TOOL_FLAG(OFS_STOP_FLG));
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    BitSet(pW->saveDisp, TOOL_FLAG(OFS_DISP_FLG));
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitSet(pW->saveStop, pG->Stop_flg);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitSet(pW->saveDisp, pG->Disp_flg);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     SetToolLight(1);
     pW->head.magic[0] = 'E';
     pW->head.magic[1] = 'S';
@@ -199,9 +199,9 @@ void seAtInit()
 // EXIT: restores the se_at list, camera and flags, frees the work, ends the task.
 static void seAtExit()
 {
-    TOOL_FLAG(OFS_DISP_FLG) = pW->saveDisp;
-    TOOL_FLAG(OFS_STOP_FLG) = pW->saveStop;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitSet(pG->Disp_flg, pW->saveDisp);
+    BitSet(pG->Stop_flg, pW->saveStop);
+    pG->Debug_flg[0] &= ~0x10000000;
     SetToolLight(-1);
     Snd.se_at = seAtSaveHead;
     Snd.se_at_list = seAtSaveList;
@@ -1004,9 +1004,9 @@ static void preview_init()
     u32 i;
     int n = 0;
 
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     for (i = 0; i < 64; i++) {
         if (pW->area[i].flags & 1) {
             pW->area[i].no = i;
@@ -1040,15 +1040,15 @@ static void preview_main()
 // Re-pauses the game, back to the main menu.
 static void preview_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] |= 0x10000000;
     Snd.se_at = NULL;
     Snd.se_at_list = NULL;
     pW->mode = 0;

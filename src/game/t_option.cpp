@@ -78,18 +78,6 @@ void tp_scr_flag();
 void tp_scr_view();
 void printCursor(int x, int y);
 
-#define PL_LIFE (*(s16*) ((u8*) pG + OFS_PL_LIFE))
-#define PL_LIFE_MAX (*(s16*) ((u8*) pG + OFS_PL_LIFE_MAX))
-#define SUB_LIFE (*(s16*) ((u8*) pG + OFS_SUB_LIFE))
-#define SUB_LIFE_MAX (*(s16*) ((u8*) pG + OFS_SUB_LIFE_MAX))
-#define WEP_NO (*(u8*) ((u8*) pG + 0x4FB0))
-#define WEP_TYPE (*(u8*) ((u8*) pG + 0x4FB1))
-#define WEP_LV_POWER (*(u8*) ((u8*) pG + 0x4FB3))
-#define WEP_LV_SPEED (*(u8*) ((u8*) pG + 0x4FB4))
-#define WEP_LV_BULLET (*(u8*) ((u8*) pG + 0x4FB5))
-#define WEP_LV_RELOAD (*(u8*) ((u8*) pG + 0x4FBA))
-#define PL_COSTUME (*(u8*) ((u8*) pG + 0x4FB8))
-
 // Resets the menu state (all levels at 0, cursor 0); be_flag = tool active.
 void cDbOption::clear(u8 flag)
 {
@@ -143,7 +131,7 @@ void ToolOption()
         pT->move();
         TaskSleep(1);
     }
-    TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
+    pG->Debug_flg[0] &= 0x7FFFFFFF;
     TaskSignal(0);
     TaskExit();
 }
@@ -260,29 +248,29 @@ void tp_pl_flag()
     if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
-            if ((s32) TOOL_FLAG(OFS_DEBUG_FLG + 12) < 0) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) &= 0x7FFFFFFF;
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x400000;
-            } else if (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x400000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) &= 0x7FFFFFFF;
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~0x400000;
+            if ((s32) pG->Debug_flg[3] < 0) {
+                BitOff(pG->Debug_flg[3], 0x80000000);
+                pG->Debug_flg[2] |= 0x400000;
+            } else if (pG->Debug_flg[2] & 0x400000) {
+                BitOff(pG->Debug_flg[3], 0x80000000);
+                pG->Debug_flg[2] &= ~0x400000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x80000000;
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~0x400000;
+                BitOn(pG->Debug_flg[3], 0x80000000);
+                pG->Debug_flg[2] &= ~0x400000;
             }
             break;
         case 1:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x800000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~0x800000;
+            if (pG->Debug_flg[2] & 0x800000) {
+                pG->Debug_flg[2] &= ~0x800000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x800000;
+                pG->Debug_flg[2] |= 0x800000;
             }
             break;
         case 2:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x10000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~0x10000;
+            if (pG->Debug_flg[2] & 0x10000) {
+                pG->Debug_flg[2] &= ~0x10000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x10000;
+                pG->Debug_flg[2] |= 0x10000;
             }
             break;
         case 3:
@@ -309,10 +297,10 @@ void tp_pl_flag()
             PlDbFlag ^= 2;
             break;
         case 7:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 8) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
+            if (pG->Debug_flg[2] & 8) {
+                pG->Debug_flg[2] &= ~8;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 8;
+                pG->Debug_flg[2] |= 8;
             }
             break;
         }
@@ -327,25 +315,25 @@ void tp_pl_flag()
 void tp_pl_life()
 {
     eprintf(32, 42, 4, 0, "LIFE");
-    eprintf(32, 70, 0, 0, "PLAYER:%4d/%4d", PL_LIFE, PL_LIFE_MAX);
-    DrawGage(168, 70, 8, 100, PL_LIFE, PL_LIFE_MAX, -1);
-    eprintf(32, 84, 0, 0, "ASHLEY:%4d/%4d", SUB_LIFE, SUB_LIFE_MAX);
-    DrawGage(168, 84, 8, 100, SUB_LIFE, SUB_LIFE_MAX, -1);
+    eprintf(32, 70, 0, 0, "PLAYER:%4d/%4d", (s16) pG->pl_life, (s16) pG->pl_life_max);
+    DrawGage(168, 70, 8, 100, (s16) pG->pl_life, (s16) pG->pl_life_max, -1);
+    eprintf(32, 84, 0, 0, "ASHLEY:%4d/%4d", (s16) pG->ashley_life, (s16) pG->ashley_life_max);
+    DrawGage(168, 84, 8, 100, (s16) pG->ashley_life, (s16) pG->ashley_life_max, -1);
     switch (pT->cursor) {
     case 0:
-        PL_LIFE += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
-        if (PL_LIFE < 0) {
-            PL_LIFE = 0;
-        } else if (PL_LIFE > PL_LIFE_MAX) {
-            PL_LIFE = PL_LIFE_MAX;
+        *(s16*) &pG->pl_life += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
+        if ((s16) pG->pl_life < 0) {
+            pG->pl_life = 0;
+        } else if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
+            pG->pl_life = pG->pl_life_max;
         }
         break;
     case 1:
-        SUB_LIFE += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
-        if (SUB_LIFE < 0) {
-            SUB_LIFE = 0;
-        } else if (SUB_LIFE > SUB_LIFE_MAX) {
-            SUB_LIFE = SUB_LIFE_MAX;
+        *(s16*) &pG->ashley_life += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
+        if ((s16) pG->ashley_life < 0) {
+            pG->ashley_life = 0;
+        } else if ((s16) pG->ashley_life > (s16) pG->ashley_life_max) {
+            pG->ashley_life = pG->ashley_life_max;
         }
         break;
     }
@@ -371,14 +359,14 @@ void tp_pl_posmove()
 
     if (pT->rno[2] == 0) {
         TaskSignal(0);
-        sfb = TOOL_FLAG(OFS_STOP_FLG);
-        TOOL_FLAG(OFS_STOP_FLG) = 0xAFFFFFFF;
+        sfb = pG->Stop_flg;
+        BitSet(pG->Stop_flg, 0xAFFFFFFF);
         pT->rno[2] = 1;
     }
     if (Joy[0].on & JOY_X) {
-        TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 8;
+        pG->Debug_flg[2] |= 8;
     } else {
-        TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
+        pG->Debug_flg[2] &= ~8;
     }
     f32 spd = pT->joy[0].on & JOY_A ? 10.0f : 1.0f;
     Vec mv = {0.0f, 0.0f, 0.0f};
@@ -406,9 +394,9 @@ void tp_pl_posmove()
     }
     if (pT->joy[0].rep & JOY_B) {
         int cur = 2;  // kept in a callee-saved register across the calls
-        TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
+        pG->Debug_flg[2] &= ~8;
         TaskSuspend(0);
-        TOOL_FLAG(OFS_STOP_FLG) = sfb;
+        BitSet(pG->Stop_flg, sfb);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = cur;
     }
@@ -474,12 +462,12 @@ void tp_pl_weapon()
 
     switch (pT->rno[2]) {
     case 0:
-        TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-        TOOL_FLAG(OFS_DISP_FLG) |= 0x10000000;
+        BitOn(pG->Disp_flg, 0x40000000);
+        pG->Disp_flg |= 0x10000000;
         TaskSleep(1);
         TaskSuspend(0);
         TaskSleep(1);
-        pT->cursor = WEP_NO;
+        pT->cursor = pG->weapon_no;
         pT->rno[3] = 0;
         pT->rno[4] = 0;
         pT->rno[2] = 1;
@@ -567,7 +555,7 @@ void tp_pl_weapon()
             break;
         }
         if (pT->joy[0].rep & JOY_A) {
-            if (pT->cursor != WEP_NO || pT->rno[3] != WEP_TYPE) {
+            if (pT->cursor != pG->weapon_no || pT->rno[3] != pG->weapon_type) {
                 cPlayer* pl = pPL;
                 pl->weaponRelease();
                 pl->weaponLoad(pT->cursor, pT->rno[3]);
@@ -601,39 +589,39 @@ void tp_pl_weapon()
         switch (pT->cursor) {
         case 0:
             if (pT->joy[0].rep & JOY_RIGHT) {
-                WEP_LV_POWER = (WEP_LV_POWER + 1) % 7;
+                pG->weapon_lv_power = (pG->weapon_lv_power + 1) % 7;
             }
             if (pT->joy[0].rep & JOY_LEFT) {
-                WEP_LV_POWER = (WEP_LV_POWER + 6) % 7;
+                pG->weapon_lv_power = (pG->weapon_lv_power + 6) % 7;
             }
             break;
         case 1:
             if (pT->joy[0].rep & JOY_RIGHT) {
-                WEP_LV_SPEED = (WEP_LV_SPEED + 1) % 3;
+                pG->weapon_lv_speed = (pG->weapon_lv_speed + 1) % 3;
             }
             if (pT->joy[0].rep & JOY_LEFT) {
-                WEP_LV_SPEED = (WEP_LV_SPEED + 2) % 3;
+                pG->weapon_lv_speed = (pG->weapon_lv_speed + 2) % 3;
             }
             break;
         case 2:
             if (pT->joy[0].rep & JOY_RIGHT) {
-                WEP_LV_BULLET = (WEP_LV_BULLET + 1) % 6;
+                pG->weapon_lv_blt = (pG->weapon_lv_blt + 1) % 6;
             }
             if (pT->joy[0].rep & JOY_LEFT) {
-                WEP_LV_BULLET = (WEP_LV_BULLET + 5) % 6;
+                pG->weapon_lv_blt = (pG->weapon_lv_blt + 5) % 6;
             }
             break;
         case 3:
             if (pT->joy[0].rep & JOY_RIGHT) {
-                WEP_LV_RELOAD = (WEP_LV_RELOAD + 1) % 5;
+                pG->weapon_lv_reload = (pG->weapon_lv_reload + 1) % 5;
             }
             if (pT->joy[0].rep & JOY_LEFT) {
-                WEP_LV_RELOAD = (WEP_LV_RELOAD + 4) % 5;
+                pG->weapon_lv_reload = (pG->weapon_lv_reload + 4) % 5;
             }
             break;
         }
         if (pT->joy[0].rep & (JOY_A | JOY_X)) {
-            pT->cursor = WEP_NO;
+            pT->cursor = pG->weapon_no;
             pT->rno[3] = 0;
             pT->rno[2] = 1;
         }
@@ -647,17 +635,17 @@ void tp_pl_weapon()
         eprintf(32, 42, 19, 0, "WEAPON");
     }
     for (i = 0; i < 25; i++) {
-        eprintf(32, (i + 4) * 14, WEP_NO == i ? 0 : 20, 0, strWepName[i + pT->rno[4]]);
+        eprintf(32, (i + 4) * 14, pG->weapon_no == i ? 0 : 20, 0, strWepName[i + pT->rno[4]]);
     }
     eprintf(280, 56, pT->rno[2] == 2 ? 4 : 19, 0, "LEVEL");
-    eprintf(280, 70, 0, 0, "POWER  Lv.%d", WEP_LV_POWER + 1);
-    eprintf(280, 84, 0, 0, "SPEED  Lv.%d", WEP_LV_SPEED + 1);
-    eprintf(280, 98, 0, 0, "BULET  Lv.%d", WEP_LV_BULLET + 1);
-    eprintf(280, 112, 0, 0, "RELOAD Lv.%d", WEP_LV_RELOAD + 1);
+    eprintf(280, 70, 0, 0, "POWER  Lv.%d", pG->weapon_lv_power + 1);
+    eprintf(280, 84, 0, 0, "SPEED  Lv.%d", pG->weapon_lv_speed + 1);
+    eprintf(280, 98, 0, 0, "BULET  Lv.%d", pG->weapon_lv_blt + 1);
+    eprintf(280, 112, 0, 0, "RELOAD Lv.%d", pG->weapon_lv_reload + 1);
     if (pT->joy[0].rep & JOY_B) {
         int zero = 0;  // callee-saved zero reused as setRno's stack argument
-        TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-        TOOL_FLAG(OFS_DISP_FLG) &= ~0x10000000;
+        BitOff(pG->Disp_flg, 0x40000000);
+        pG->Disp_flg &= ~0x10000000;
         TaskSignal(0);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, zero);
         pT->cursor = 1;
@@ -709,8 +697,8 @@ void tp_pl_face()
 
     if (pT->rno[2] == 0) {
         TaskSignal(0);
-        sfb = TOOL_FLAG(OFS_STOP_FLG);
-        TOOL_FLAG(OFS_STOP_FLG) = 0xAFFFFFFF;
+        sfb = pG->Stop_flg;
+        BitSet(pG->Stop_flg, 0xAFFFFFFF);
         pData = NULL;
         pT->rno[2] = 1;
     }
@@ -718,7 +706,7 @@ void tp_pl_face()
     printCursor(3, pT->cursor + 4);
     eprintf(32, 56, 0, 0, "RESET");
     for (i = 0; i < 3; i++) {
-        eprintf(32, (i + 5) * 14, 0, 0, pFileName[PL_COSTUME][i]);
+        eprintf(32, (i + 5) * 14, 0, 0, pFileName[pG->pl_type][i]);
     }
     if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (u32) (pT->cursor + 3) % 4;
@@ -732,7 +720,7 @@ void tp_pl_face()
             if (pData != NULL) {
                 Debug_free(pData);
             }
-            if (HDReadDebugAlloc(pFileName[PL_COSTUME][pT->cursor - 1], &pData, 1)) {
+            if (HDReadDebugAlloc(pFileName[pG->pl_type][pT->cursor - 1], &pData, 1)) {
                 ShapeSet(pl->Body->pShape, 0, pData, 2);
             } else {
                 ShapeEnd(pl->Body->pShape);
@@ -743,10 +731,10 @@ void tp_pl_face()
         if (pData != NULL) {
             Debug_free(pData);
         }
-        TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
+        BitOff(pG->Debug_flg[2], 8);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         TaskSuspend(0);
-        TOOL_FLAG(OFS_STOP_FLG) = sfb;
+        pG->Stop_flg = sfb;
     }
 }
 
@@ -803,24 +791,24 @@ void tp_scr_flag()
     if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 12) & 0x2000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x2000;
+            if (pG->Debug_flg[3] & 0x2000) {
+                pG->Debug_flg[3] &= ~0x2000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x2000;
+                pG->Debug_flg[3] |= 0x2000;
             }
             break;
         case 1:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 12) & 0x4000000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x4000000;
+            if (pG->Debug_flg[3] & 0x4000000) {
+                pG->Debug_flg[3] &= ~0x4000000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x4000000;
+                pG->Debug_flg[3] |= 0x4000000;
             }
             break;
         case 2:
-            if (TOOL_FLAG(OFS_DISP_FLG) & 0x4000) {
-                TOOL_FLAG(OFS_DISP_FLG) &= ~0x4000;
+            if (pG->Disp_flg & 0x4000) {
+                pG->Disp_flg &= ~0x4000;
             } else {
-                TOOL_FLAG(OFS_DISP_FLG) |= 0x4000;
+                pG->Disp_flg |= 0x4000;
             }
             break;
         case 3:
@@ -831,10 +819,10 @@ void tp_scr_flag()
             }
             break;
         case 4:
-            if (TOOL_FLAG(OFS_DEBUG_FLG + 12) & 0x400000) {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x400000;
+            if (pG->Debug_flg[3] & 0x400000) {
+                pG->Debug_flg[3] &= ~0x400000;
             } else {
-                TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x400000;
+                pG->Debug_flg[3] |= 0x400000;
             }
             break;
         }
@@ -866,28 +854,28 @@ void tp_scr_view()
         chg = 1;
     }
     if (chg) {
-        TOOL_FLAG(OFS_DISP_FLG) |= 0x8000000;
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x8000000;
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x4000000;
+        BitOn(pG->Disp_flg, 0x8000000);
+        BitOff(pG->Debug_flg[0], 0x8000000);
+        BitOff(pG->Debug_flg[0], 0x4000000);
         switch (pT->cursor) {
         case 0:
-            TOOL_FLAG(OFS_DISP_FLG) &= ~0x8000000;
+            pG->Disp_flg &= ~0x8000000;
             break;
         case 1:
-            TOOL_FLAG(OFS_DISP_FLG) |= 0x8000000;
-            TOOL_FLAG(OFS_DEBUG_FLG) |= 0x8000000;
+            BitOn(pG->Disp_flg, 0x8000000);
+            pG->Debug_flg[0] |= 0x8000000;
             break;
         case 2:
-            TOOL_FLAG(OFS_DISP_FLG) |= 0x8000000;
-            TOOL_FLAG(OFS_DEBUG_FLG) |= 0x4000000;
+            BitOn(pG->Disp_flg, 0x8000000);
+            pG->Debug_flg[0] |= 0x4000000;
             break;
         case 3:
-            TOOL_FLAG(OFS_DISP_FLG) &= ~0x8000000;
-            TOOL_FLAG(OFS_DEBUG_FLG) |= 0x8000000;
+            BitOff(pG->Disp_flg, 0x8000000);
+            pG->Debug_flg[0] |= 0x8000000;
             break;
         case 4:
-            TOOL_FLAG(OFS_DISP_FLG) &= ~0x8000000;
-            TOOL_FLAG(OFS_DEBUG_FLG) |= 0x4000000;
+            BitOff(pG->Disp_flg, 0x8000000);
+            pG->Debug_flg[0] |= 0x4000000;
             break;
         case 5:
             break;
@@ -897,10 +885,10 @@ void tp_scr_view()
         pT->setRno(2, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
-    if (TOOL_FLAG(OFS_DEBUG_FLG) & 0x8000000) {
+    if (pG->Debug_flg[0] & 0x8000000) {
         SatMgr.disp(0);
     }
-    if (TOOL_FLAG(OFS_DEBUG_FLG) & 0x4000000) {
+    if (pG->Debug_flg[0] & 0x4000000) {
         EatMgr.disp(0);
     }
 }

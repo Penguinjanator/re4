@@ -168,15 +168,15 @@ void rckInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x01000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x00800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x04000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x02000000;
+    BitOn(pG->Stop_flg, 0x00200000);
+    BitOn(pG->Disp_flg, 0x01000000);
+    BitOn(pG->Disp_flg, 0x00800000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Stop_flg, 0x00200000);
+    BitOn(pG->Disp_flg, 0x04000000);
+    pG->Disp_flg |= 0x02000000;
     memclr_asm(RCK, sizeof(RckWork));
     RCK->mode = 2;
     RCK->savedRtp = pGS->Rtp;
@@ -200,12 +200,12 @@ static void tool_quit()
 {
     pG->Rtp = RCK->savedRtp;
     TutilQuitDefault();
-    TOOL_FLAG(OFS_STATUS_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x00200000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x04000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x02000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Status_flg[0], 0x80000000);
+    BitOff(pG->Stop_flg, 0x00200000);
+    BitOff(pG->Stop_flg, 0x00200000);
+    BitOff(pG->Disp_flg, 0x04000000);
+    BitOff(pG->Disp_flg, 0x02000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     TaskSignal(0);
     TaskExit();
 }
@@ -1254,7 +1254,7 @@ void rckCameraMove()
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);
-        TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+        BitOn(pG->Debug_flg[0], 0x10000000);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }

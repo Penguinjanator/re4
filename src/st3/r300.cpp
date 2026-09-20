@@ -461,11 +461,11 @@ void R300Init()
 
             Vec pos;
 
-            l = EM_LIST(0x65);
+            l = &pG->Em_list[0x65];
             r300_getListPos(l, &pos, ry);
             em[0].setPos(&pos);
             r300_setEmAngR(&em[0], ry);
-            l = EM_LIST(0x55);
+            l = &pG->Em_list[0x55];
             r300_getListPos(l, &pos, ry);
             em[1].setPos(&pos);
             r300_setEmAngR(&em[1], ry);

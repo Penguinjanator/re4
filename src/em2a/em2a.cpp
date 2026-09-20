@@ -402,7 +402,7 @@ static void em2a_R1_Trap1Set(cEm2a* em)
 static void em2a_R1_Trap1Bite(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
 
     switch (em->r_no_2) {
     case 0:
@@ -473,7 +473,7 @@ static void plem2a_Trap1Bite(cPlayer* pl)
 static void em2a_R1_Trap1BiteSub(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
     int r;
 
     switch (em->r_no_2) {
@@ -669,7 +669,7 @@ void plem2aTrapCamMove(cModel* m)
 // goes inactive; the list entry is marked sprung.
 static void em2a_R1_Trap1Break(cEm2a* em)
 {
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
 
     switch (em->r_no_2) {
     case 0:
@@ -696,7 +696,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
 {
     switch (em->r_no_2) {
     case 0:
-        EM_LIST(em->emset_no)->set = 0;
+        (&pG->Em_list[em->emset_no])->set = 0;
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 0, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -727,7 +727,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         }
         break;
     case 2:
-        EM_LIST(em->emset_no)->set = 0;
+        (&pG->Em_list[em->emset_no])->set = 0;
         em->hp = 0;
         MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
         em->r_no_2++;

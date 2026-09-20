@@ -516,7 +516,7 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 
 
 // The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
+#define SET_BELL_POS(pos) memcpy(PG_PTR(bell_pos), pos, sizeof(Vec))
 
 
 

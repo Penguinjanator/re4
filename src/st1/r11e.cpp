@@ -444,7 +444,7 @@ static void r11e_EmSet()
 
     RsfSet(G_ROOM_ID, 6);
     r11e_work->em.setEm(0xF1, -1, 1, 1, 1);
-    e = EM_LIST(0xF0);
+    e = &pG->Em_list[0xF0];
     e->pos[0] = -0xA5;
     e->pos[1] = 8;
     e->pos[2] = 0xC06;

@@ -405,7 +405,7 @@ void SceExecInitCondition()
 // Em_flg row address as an integer (the original adds the list offset after the row index), as in sce_at.
 static inline u32 emDeadRow(int n)
 {
-    return n * 32 + (u32) pG + 0x501C;
+    return (u32) EM_FLG_ROW(n);
 }
 
 // Is the condition met? type 0 enemy list entry dead (Em_flg bit), 1 camera area == param, 2

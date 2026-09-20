@@ -807,7 +807,7 @@ void GameContinue(int mode)
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
-    memcpy((u8*) pG + 0x2C, &pG->sub_pos, sizeof(Vec));
+    memcpy(PG_PTR(NextPos), &pG->sub_pos, sizeof(Vec));
     FSet(pG->NextY, pG->sub_angle);
     U16Set(pG->RoomNo_next, pG->room_id);
     pG->Part_next = pG->Part;
@@ -839,11 +839,11 @@ void clearGlobalSaveData()
     u8 x8354 = pG->game_mode;
     s32 game_mode = pG->SaveKind;
 
-    memcpy(&keep2, (u8*) pG + 0x8330, sizeof(keep2));
-    memcpy(&keep, (u8*) pG + 0x4FA4, sizeof(keep));
+    memcpy(&keep2, PG_PTR(shootingScore), sizeof(keep2));
+    memcpy(&keep, PG_PTR(pl_life), sizeof(keep));
     memclr_asm(pG->save_data_start_addr, 0x36F8);
-    memcpy((u8*) pG + 0x8330, &keep2, sizeof(keep2));
-    memcpy((u8*) pG + 0x4FA4, &keep, sizeof(keep));
+    memcpy(PG_PTR(shootingScore), &keep2, sizeof(keep2));
+    memcpy(PG_PTR(pl_life), &keep, sizeof(keep));
     U16Set(pG->game_cnt, x4F8E);
     U32Set(pG->peseta, x4F98);
     pG->language = x4F93;
@@ -863,7 +863,7 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
         return 0;
     }
     checkAddr(data);
-    memcpy((u8*) pG + 0x4F80, data->pGlobal, sizeof(GameSaveBlock));
+    memcpy(PG_PTR(save_data_start_addr), data->pGlobal, sizeof(GameSaveBlock));
     if (pG->SaveKind == 3) {
         clearGlobalSaveData();
         RoomData.clear(data->pRoom);
@@ -894,7 +894,7 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
     }
     checkAddr(data);
     if (pG->Rno0 == 3) {
-        memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
+        memcpy(PG_PTR(sub_pos), &pPL->pos, sizeof(Vec));
         FSet(pG->sub_angle, pPL->ang.y);
     }
     S32Set(pG->SaveKind, mode);
@@ -1303,7 +1303,7 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
-    memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
+    memcpy(PG_PTR(sub_pos), &pG->NextPos, sizeof(Vec));
     FSet(pG->sub_angle, pG->NextY);
     U16Set(pG->room_id, pG->RoomNo_next);
     pG->Part = pG->Part_next;

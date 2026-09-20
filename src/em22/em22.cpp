@@ -982,7 +982,7 @@ static void em22_R1_Turn(cEm22* em)
 }
 
 // The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
+#define SET_BELL_POS(pos) memcpy(PG_PTR(bell_pos), pos, sizeof(Vec))
 
 // R1 == 0xA Escape: runs away from the player (RouteCkEscEm) for 30..60 frames, ringing the bell alarm
 // (Status_flg[1] bit29), then RunAbout (7) or Turn (9).

@@ -397,7 +397,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
                 // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &hit, sizeof(Vec));
+                memcpy(PG_PTR(bell_pos), &hit, sizeof(Vec));
                 pG->bell_stat = 0;
             }
         }
@@ -405,7 +405,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
     if (pl != 0 && !(flag & 1)) {
         if (pl->Wep->m_pWep != 0) {
             wepSetWaterShot(pPos, pPos2, type);
-            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->Wep->m_pWep->wep.marker, sizeof(Vec));
+            memcpy(PG_PTR(bell_pos), &pl->Wep->m_pWep->wep.marker, sizeof(Vec));
             switch (type) {
             case 0xD:
             case 0x12:

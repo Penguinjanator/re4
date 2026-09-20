@@ -12,6 +12,7 @@
 #include "tpl.h"
 #include "t_util.h"
 #include "tools.h"
+#include "ref_access.h"
 
 extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" char* strcpy(char* dst, const char* src);
@@ -57,8 +58,8 @@ void TplViewer();
 // TPL viewer entry (debug menu 18): saves the stop flags / debug mode, runs TplViewer, ends.
 void ToolTplView()
 {
-    tplStopFlagBak = TOOL_FLAG(OFS_STOP_FLG);
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
+    tplStopFlagBak = U32Ref(pG->Stop_flg);
+    BitOn(pG->Stop_flg, 0x10000000);
     ToolArrayPush(0);
     for (;;) {
         TplViewer();
@@ -211,7 +212,7 @@ void TplViewer()
             Mem_free(pTplBuf);
             pTplBuf = 0;
         }
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+        BitOff(pG->Debug_flg[0], 0x80000000);
         pG->debug_mode = wk->debugBak;
         memclr_asm(wk, sizeof(TplViewWork));
         TaskExit();

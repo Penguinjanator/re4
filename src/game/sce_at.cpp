@@ -142,14 +142,14 @@ static inline u32 saveItemBase(int ofs)
 // Em_flg row address as an integer (the original adds the list offset after the row index).
 static inline u32 emDeadRow(int n)
 {
-    return n * 32 + (u32) pG + 0x501C;
+    return (u32) EM_FLG_ROW(n);
 }
 #define EM_DEAD_BIT(n, i) (*(u32*) (((i) << 2) + emDeadRow(n)))
-#define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + ((i) << 4)))
-#define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, 0x72EC)
-#define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
-#define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, 0x72F0)
-#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + ((i) << 4)))
+#define SAVE_ITEM_HALF(i, f) (*(u16*) (saveItemBase(PG_OFS(item_save[0].f)) + ((i) << 4)))
+#define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, room_no)
+#define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, item_id)
+#define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, item_num)
+#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(PG_OFS(item_save[0].pos[k])) + ((i) << 4)))
 #define SAVE_ITEM_TYPE(i) pG->item_save[i].item_type
 #define SAVE_ITEM_ATNO(i) pG->item_save[i].item_at
 #define SAVE_ITEM_EFF(i) pG->item_save[i].item_eff
@@ -3293,7 +3293,7 @@ int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cM
                 SAVE_ITEM_EFF(saveNo) = effType;
                 SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
                 SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
-                SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
+                pG->item_save[saveNo].pos[2] = (s16) (pos->z / 10.0f);
                 w->item.flag2 |= 8;
             } else {
                 pLog->err(0, 0, "SceAtCreateItemAt(): lack save work");
@@ -3392,7 +3392,7 @@ void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, in
         SAVE_ITEM_EFF(saveNo) = effType;
         SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
         SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
-        SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
+        pG->item_save[saveNo].pos[2] = (s16) (pos->z / 10.0f);
     } else {
         pLog->err(0, 0, "SceAtReserveItemAt(): save work over");
     }
@@ -3620,22 +3620,22 @@ void SceAtSetSaveItem()
     SceAtWork* w;
 
     for (i = 0; i <= 0xFF; i++) {
-        if (SAVE_ITEM_ROOM(i) == 0) {
+        if (pG->item_save[i].room_no == 0) {
             continue;
         }
-        if (SAVE_ITEM_ROOM(i) != pG->room_id) {
+        if (pG->item_save[i].room_no != pG->room_id) {
             continue;
         }
         switch (SAVE_ITEM_TYPE(i)) {
         case 0:
-            pos.x = (f32) SAVE_ITEM_POS(i, 0) * 10.0f;
-            pos.y = (f32) SAVE_ITEM_POS(i, 1) * 10.0f;
-            pos.z = (f32) SAVE_ITEM_POS(i, 2) * 10.0f;
-            SceAtCreateItemAt(&pos, SAVE_ITEM_ID(i), SAVE_ITEM_NUM(i), SAVE_ITEM_EFF(i), i, 0, -1);
+            pos.x = (f32) pG->item_save[i].pos[0] * 10.0f;
+            pos.y = (f32) pG->item_save[i].pos[1] * 10.0f;
+            pos.z = (f32) pG->item_save[i].pos[2] * 10.0f;
+            SceAtCreateItemAt(&pos, pG->item_save[i].item_id, pG->item_save[i].item_num, SAVE_ITEM_EFF(i), i, 0, -1);
             break;
         case 1:
             w = SceAtPtr(SAVE_ITEM_ATNO(i));
-            U16Set(w->item.id, SAVE_ITEM_ID(i));
+            U16Set(w->item.id, pG->item_save[i].item_id);
             w->item.num = SAVE_ITEM_NUM(i);
             w->item.flag2 |= 8;
             w->item.saveNo = i;
@@ -3669,7 +3669,7 @@ int SceAtCheckSaveItemId(int id)
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (SAVE_ITEM_ROOM(i) != 0 && SAVE_ITEM_ID(i) == id) {
+        if (pG->item_save[i].room_no != 0 && pG->item_save[i].item_id == id) {
             return 1;
         }
     }

@@ -641,7 +641,7 @@ void cEm39::move()
     em39FootEff(this);
     em39PLVoiceCk(this);
     if (pG->room_id != 0x31C) {
-        EM_LIST(emset_no)->hp = hp;
+        (&pG->Em_list[emset_no])->hp = hp;
     }
     {
         int hide = 0;

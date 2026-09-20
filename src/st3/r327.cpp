@@ -70,12 +70,6 @@ struct R327WorkPtr {
 
 static R327WorkPtr r327_work;
 
-// Typed view of pG->emlist (the r400 idiom).
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData emlist[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
 
 // The original object's .data is 8-aligned (0x170 in the REL after r320's 0x16c).
 asm(".section .data; .balign 8");
@@ -131,7 +125,7 @@ void R327Init()
     IntSet(r327_work.p->first, 1);
     if (ScfFlagChk(pG, SCF_R329_ASHLEY_HELP)) {
         for (i = 0; i < 0x100; i++) {
-            EmListData* e = (EmListData*) ((u8*) pG + (0x52E8 + i * 0x20));
+            EmListData* e = &pG->Em_list[i];
 
             if (e->room == 0x327 && e->id == 0x1D) {
                 e->be_flag &= ~1;

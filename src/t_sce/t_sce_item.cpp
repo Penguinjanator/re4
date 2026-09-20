@@ -257,21 +257,21 @@ void ToolSceItem()
 // Flag setup: pause the game, debug displays on, tool light 1.
 void tSceItemInit_base()
 {
-    *(TOOL_PTR(0x8678)) = 0x11;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x4000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    *((u8*) &pG->debug_mode) = 0x11;
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x4000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     pW->light = 1;
     SetToolLight(1);
 }
@@ -349,7 +349,7 @@ static void tSceItemExit()
     case 9:
         file_unlock(pW->pathX);
         Debug_free(pW);
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();
@@ -1614,10 +1614,10 @@ static void tSceItemPreview()
 // Un-pauses the player / HUD for the preview.
 static void tSceItemPreview_init()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     pW->sub = 1;
     pW->step = 0;
     pW->step2 = 0;
@@ -1682,16 +1682,16 @@ void tSceItemPreview_pl_pos()
 // Restores the tool flags, back to the main menu.
 static void tSceItemPreview_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] |= 0x10000000;
     MODE_RESET();
 }
 

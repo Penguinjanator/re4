@@ -102,13 +102,6 @@ static f32 r320_revaAccel = 0.008f;
 #define R320_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
 
-// Typed view of pG->emlist: the original indexes an EmListData array, so pG is loaded before the
-// index shift and the table offset stays in the displacement (r400).
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData emlist[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
 
 
 
@@ -195,10 +188,10 @@ void emset(int idx, int no)
 {
     int list;
 
-    EM_LIST_V(no).be_flag &= ~2;
+    pG->Em_list[no].be_flag &= ~2;
     list = pG->em_list_no;
     if (list >= 0) {
-        u32* tbl = (u32*) ((list << 5) + (u32) pG + 0x501C);
+        u32* tbl = EM_FLG_ROW(list);
 
         tbl[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
     }
@@ -303,7 +296,7 @@ void R320Init()
     }
     if (ScfFlagChk(pG, SCF_R321_HERI_DOWN)) {
         if (pG->em_list_no >= 0) {
-            u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
+            u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
             tbl[3] |= 0x08000000;
         }
@@ -1053,7 +1046,7 @@ int setChange(int idx, int no, int idx2, int no2)
     if (r320_work->emAlive > 9) {
         goto fail;
     }
-    if ((EM_LIST_V(no).be_flag & 2) == 0) {
+    if ((pG->Em_list[no].be_flag & 2) == 0) {
         goto fail;
     }
     if (idx == idx2) {
@@ -1069,7 +1062,7 @@ int setChange(int idx, int no, int idx2, int no2)
     } else {
         int list;
 
-        if (EM_LIST_V(no2).be_flag & 2) {
+        if (pG->Em_list[no2].be_flag & 2) {
             goto fail;
         }
         if (r320_work->em[idx].isActive()) {
@@ -1077,7 +1070,7 @@ int setChange(int idx, int no, int idx2, int no2)
         }
         list = pG->em_list_no;
         if (list >= 0) {
-            u32* tbl = (u32*) ((list << 5) + (u32) pG + 0x501C);
+            u32* tbl = EM_FLG_ROW(list);
 
             tbl[(u32) no2 >> 5] &= ~(0x80000000 >> (no2 & 31));
         }

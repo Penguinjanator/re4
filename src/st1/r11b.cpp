@@ -117,7 +117,7 @@ void R11bInit()
     if (RsfCheck(G_ROOM_ID, 0)) {
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    l = EM_LIST(0x3C);
+    l = &pG->Em_list[0x3C];
     l->set = 0;
     if (pG->room_id_prev == 0x10D && !SysFlagChk(pG, SYS_LOAD_GAME)) {
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
@@ -276,7 +276,7 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
-#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
+#define EM_LIST_S(no) (&pGS->Em_list[no])
 // Rewrite ESL entries 0x40/0x41/0x3E/0x3F (the shore Ganados) to their post-event positions near the
 // pier, un-set and alive, so they spawn there on later visits.
 extern "C" void EmSetChange()

@@ -411,7 +411,7 @@ static void em21_R1_Escape(cEm21* em)
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
         if (!StaFlagChk(pGS, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
+            memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
             pG->bell_stat = 0;
         }
     }

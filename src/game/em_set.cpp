@@ -18,17 +18,13 @@ cEm* errEm = 0;
 static int emSetDummy = 0;
 
 // Death bit of list entry `no` in the current enemy list (0 when no list is loaded).
-// Death bit table of the current enemy list (pG->Em_flg[pG->emlist_no]); the original computes
-// it with byte arithmetic: the row offset is added to pG before the table offset.
-#define EM_DEAD_TBL() ((u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C))
-
 // Death bit of list entry `no` in the current list (pG->em_list_no); 0 when no list is loaded.
 static inline u32 EmSetDieCk(u32 no)
 {
     u32 v;
 
     if (pG->em_list_no >= 0) {
-        u32* tbl = EM_DEAD_TBL();
+        u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {
@@ -41,7 +37,7 @@ static inline u32 EmSetDieCk(u32 no)
 static inline void EmSetDieOn(u32 no)
 {
     if (pG->em_list_no >= 0) {
-        u32* tbl = EM_DEAD_TBL();
+        u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
         tbl[no >> 5] |= 0x80000000 >> (no & 31);
     }
@@ -152,7 +148,7 @@ void EmSetFromList()
     u32 i;
 
     for (i = 0; i < 256; i++) {
-        EmListData* d = EM_LIST(i);
+        EmListData* d = &pG->Em_list[i];
         cEm* em;
 
         if (!(d->be_flag & 1)) {
@@ -204,7 +200,7 @@ void EmSetFromList()
 // death bit only with chkDead. Returns the enemy, or errEm when nothing was created.
 cEm* EmSetFromList2(int no, int chkDead)
 {
-    EmListData* d = EM_LIST(no);
+    EmListData* d = &pG->Em_list[no];
     cEm* em;
 
     if (EM_SET_ID_NG(d->id)) {
@@ -294,7 +290,7 @@ EmListData* GetListPtrFromEm(cEm* em)
     if (em->emset_no == 0xFF) {
         return 0;
     }
-    return EM_LIST(em->emset_no);
+    return &pG->Em_list[em->emset_no];
 }
 
 // Enemy id of list entry `no` (0xFF for an invalid index).
@@ -305,7 +301,7 @@ u32 GetEmIdFromList(u32 no)
     if (no >= 0xFF) {
         return 0xFF;
     }
-    list = (EmListData*) pG->Em_list;
+    list = pG->Em_list;
     return list[no].id;
 }
 
@@ -313,7 +309,7 @@ u32 GetEmIdFromList(u32 no)
 // stage / room.
 void EmListSetAlive(int no, int on)
 {
-    EmListData* d = EM_LIST(no);
+    EmListData* d = &pG->Em_list[no];
 
     if (pG->stage_no != d->room >> 8) {
         return;
@@ -360,7 +356,7 @@ void EmSetRoomInit()
     int i;
 
     for (i = 0; i < 256; i++) {
-        EmListData* d = EM_LIST(i);
+        EmListData* d = &pG->Em_list[i];
 
         d->be_flag &= ~2;
     }

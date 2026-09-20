@@ -669,7 +669,7 @@ static void r310_pushBox1()
                 SceExec(0x12, (TaskFunc) r310_fallBox1, 0, 0, 2, 0);
                 SceSleep(30);
                 setEm(0x69, -1, 1, 1, 1);
-                *EM_LIST(0x69) = *EM_LIST(0x7D);
+                *&pG->Em_list[0x69] = *&pG->Em_list[0x7D];
                 EmListSetAlive(0x69, 1);
                 SceExit();
             }
@@ -754,18 +754,18 @@ static void r310_checkEmStandUp_end()
     if (pG->Room_flg[0] & 0x20000000) {
         em.destroy();
         if (pG->em_list_no >= 0) {
-            u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
+            u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
             tbl[2] &= ~0x20;
         }
-        *EM_LIST(0x5A) = *EM_LIST(0xBE);
+        *&pG->Em_list[0x5A] = *&pG->Em_list[0xBE];
         em.setEm(0x5A, -1, 1, 1, 1);
         if (em.getPtr() != 0) {
             SceAtSetEmItem(em.getPtr(), 0x85);
         }
     }
     SndCall(6, 2, 0, 0, 0, 0);
-    *EM_LIST(0x5A) = *EM_LIST(0x7C);
+    *&pG->Em_list[0x5A] = *&pG->Em_list[0x7C];
     EmListSetAlive(0x5A, 1);
 }
 

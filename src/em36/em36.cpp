@@ -3956,7 +3956,7 @@ int em36BetweenHitCk(cEm36* em)
 void em36WeakInit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
-    EmListData* list = EM_LIST(em->emset_no);
+    EmListData* list = &pG->Em_list[em->emset_no];
     int sum = 0;
     int a;
     int b;
@@ -4166,7 +4166,7 @@ int em36SetDmVal(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
     YARARE_INFO* part = em->dmg.m_pDamageYarare;
-    EmListData* list = EM_LIST(em->emset_no);
+    EmListData* list = &pG->Em_list[em->emset_no];
     int near;
     int dmg;
 

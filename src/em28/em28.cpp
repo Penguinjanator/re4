@@ -333,7 +333,7 @@ static inline void em28BellSet(cEm28* em)
 {
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + 0x4F3C, &em->pos, sizeof(Vec));
+        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 0;
     }
 }

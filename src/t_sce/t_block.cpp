@@ -223,23 +223,23 @@ void ToolBlock()
 // Flag setup shared with the other room editors: pause the game, debug displays on, tool light 1.
 void tBlockInit_base()
 {
-    *(TOOL_PTR(0x8678)) = 0x11;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x200;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x4000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    *((u8*) &pG->debug_mode) = 0x11;
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Stop_flg, 0x200);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    BitOn(pG->Disp_flg, 0x4000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     SetToolLight(1);
 }
 
@@ -252,8 +252,8 @@ void tBlockInit()
     int j;
 
     TutilInitDefault();
-    U32Set(pW->saveStopFlag, TOOL_FLAG(OFS_STOP_FLG));
-    pW->saveDispFlag = TOOL_FLAG(OFS_DISP_FLG);
+    U32Set(pW->saveStopFlag, pG->Stop_flg);
+    pW->saveDispFlag = pG->Disp_flg;
     tBlockInit_base();
     pW->x0 = 0x28;
     pW->y0 = 0xA;
@@ -349,10 +349,10 @@ static void tBlockExit()
         DC.dbgHeap = 0;
         Block.noMemCtrl = 0;
         file_unlock(pW->pathX);
-        TOOL_FLAG(OFS_DISP_FLG) = pW->saveDispFlag;
-        TOOL_FLAG(OFS_STOP_FLG) = pW->saveStopFlag;
+        BitSet(pG->Disp_flg, pW->saveDispFlag);
+        pG->Stop_flg = pW->saveStopFlag;
         Debug_free(pW);
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();

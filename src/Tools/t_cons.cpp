@@ -353,7 +353,7 @@ static void quit()
             pG->debug_mode = pCons->debugBak;
             pLog->clear();
             pLog->modeReset();
-            TOOL_FLAG(OFS_DISP_FLG) &= ~0x08000000;
+            pG->Disp_flg &= ~0x08000000;
         } else {
             clearWork();
             pCons->step = 0;
