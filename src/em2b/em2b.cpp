@@ -780,12 +780,12 @@ void cEm2b::move()
     } else {
         atari.m_offset.y = 2500.0f;
     }
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     em2bObaHitCk(this);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    moved = VEC_DISTXZ(&pos, &pos_old);
     if (moved < spd * 0.5f) {
         w->HoseiCnt++;
     } else {
@@ -3703,9 +3703,7 @@ void em2bParasiteAtkCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -4447,9 +4445,7 @@ void em2bEscapeCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5370,9 +5366,7 @@ void em2bBlowCamMove(cEm2b* em, f32 rate)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5396,9 +5390,7 @@ void em2bStampCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }

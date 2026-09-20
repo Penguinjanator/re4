@@ -1139,10 +1139,6 @@ int cItemMgr::setUp(int no)
     return ret;
 }
 
-static inline int flagNeg(u32& f)
-{
-    return (s32) f < 0;
-}
 
 
 // Game start: clears the inventory and gives the start set (set_game for Leon, set_ada / set_char for
@@ -1151,7 +1147,7 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!flagNeg(pG->System_flg) && !BitChk(pG->System_flg, 0x40000000)) {
+    if (!((s32) pG->System_flg < 0) && !BitChk(pG->System_flg, 0x40000000)) {
         if (pG->pl_type == 1) {
             type = 0;
         }
@@ -1808,10 +1804,6 @@ static inline void itemInfoIW(ITEM_ID id, ItemInfo* inf)
     itemInfo(id, inf);
 }
 
-static inline void itemInfoW(u16 id, ItemInfo* inf)
-{
-    itemInfo(id, inf);
-}
 
 // Picks up `num` of item `id` (0 = the item's default count): money ids 0x7C..0x7E become pesetas,
 // 0xF? bonus time/points go to the mercenaries timer, stackables top up an existing slot up to
@@ -1869,7 +1861,7 @@ int cItemMgr::get(ITEM_ID id, int num)
                     num = inf.defNum;
                 }
                 total = p->num + num;
-                itemInfoW(p->id, &inf);
+                itemInfo(p->id, &inf);
                 if (total <= inf.maxNum) {
                     {
                         int t = num + p->num;

@@ -729,12 +729,8 @@ void obj16_R1_Critical(cObj16* obj)
         p = pPL->getPartsPtr(3);
         tgt = p->world;
         if (pSUB && w->body) {
-            d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) +
-                      (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) +
-                      (w->body->pos.z - pPL->pos.z) * (w->body->pos.z - pPL->pos.z));
-            if (d > SQRTF((w->body->pos.x - pSUB->pos.x) * (w->body->pos.x - pSUB->pos.x) +
-                          (w->body->pos.y - pSUB->pos.y) * (w->body->pos.y - pSUB->pos.y) +
-                          (w->body->pos.z - pSUB->pos.z) * (w->body->pos.z - pSUB->pos.z)) +
+            d = VEC_DIST(&w->body->pos, &pPL->pos);
+            if (d > VEC_DIST(&w->body->pos, &pSUB->pos) +
                         3000.0f) {
                 p = pSUB->getPartsPtr(3);
                 tgt = p->world;
@@ -1251,12 +1247,8 @@ static void obj16NeckMove(cObj16* obj)
     }
     tgt = pPL->pos;
     if (pSUB) {
-        f32 d = SQRTF((body->pos.x - pPL->pos.x) * (body->pos.x - pPL->pos.x) +
-                      (body->pos.y - pPL->pos.y) * (body->pos.y - pPL->pos.y) +
-                      (body->pos.z - pPL->pos.z) * (body->pos.z - pPL->pos.z));
-        if (d > SQRTF((body->pos.x - pSUB->pos.x) * (body->pos.x - pSUB->pos.x) +
-                      (body->pos.y - pSUB->pos.y) * (body->pos.y - pSUB->pos.y) +
-                      (body->pos.z - pSUB->pos.z) * (body->pos.z - pSUB->pos.z)) +
+        f32 d = VEC_DIST(&body->pos, &pPL->pos);
+        if (d > VEC_DIST(&body->pos, &pSUB->pos) +
                     3000.0f) {
             tgt = pSUB->pos;
         }

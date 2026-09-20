@@ -180,8 +180,7 @@ void obj15_R1_Set(cObjGatling* obj)
         }
         obj->r_no_2++;
     case 1:
-        dist = SQRTF((obj->pos.x - w->target->pos.x) * (obj->pos.x - w->target->pos.x) +
-                     (obj->pos.z - w->target->pos.z) * (obj->pos.z - w->target->pos.z));
+        dist = VEC_DISTXZ(&obj->pos, &w->target->pos);
         if (dist < 5000.0f) {
             dist = 5000.0f;
         }

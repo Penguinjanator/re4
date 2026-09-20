@@ -350,7 +350,7 @@ static void pl0f_R0_Init(cPl0f* em)
             Pl0fNode* m = &w->node[j];
             f32 len;
 
-            len = SQRTF((n->pos.x - m->pos.x) * (n->pos.x - m->pos.x) + (n->pos.y - m->pos.y) * (n->pos.y - m->pos.y) + (n->pos.z - m->pos.z) * (n->pos.z - m->pos.z));
+            len = VEC_DIST(&n->pos, &m->pos);
             n->dist[j] = len;
             m->dist[i] = len;
         }
@@ -1237,7 +1237,7 @@ void pl0fBoatChaseBoss(cPl0f* em)
         b.y = 0.0f;
         b.z = -2000.0f;
         PSMTXMultVec(boss->mat, &b, &b);
-        len = SQRTF((n->wpos.x - b.x) * (n->wpos.x - b.x) + (n->wpos.z - b.z) * (n->wpos.z - b.z));
+        len = VEC_DISTXZ(&n->wpos, &b);
         if (len < n->maxLen && len > 25000.0f) {
             n->maxLen = len;
         } else {
@@ -1252,7 +1252,7 @@ void pl0fBoatChaseBoss(cPl0f* em)
         Vec* cp = &(cam).param.pos;                                                                               \
         Vec* ca = &(cam).param.at;                                                                                \
                                                                                                                   \
-        (cam).dist = SQRTF((cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z)); \
+        (cam).dist = VEC_DIST(cp, ca); \
     }                                                                                                             \
     CameraSetOrientationUp(&(cam))
 
@@ -3406,7 +3406,7 @@ int testSearchEm2f(cPl0f* em)
             v.y = 0.0f;
             v.z = -2000.0f;
             PSMTXMultVec(w->pBoss->mat, &v, &v);
-            len = SQRTF((n->wpos.x - v.x) * (n->wpos.x - v.x) + (n->wpos.z - v.z) * (n->wpos.z - v.z));
+            len = VEC_DISTXZ(&n->wpos, &v);
             if (len > 25000.0f) {
                 n->maxLen = len;
             } else {

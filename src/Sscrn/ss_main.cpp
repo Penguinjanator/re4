@@ -485,11 +485,6 @@ static inline void ssItemInfo(u16 id, ItemInfo* info)
 {
     itemInfo(id, info);
 }
-// Polls a DVD read request: 0 pending, 1 done (size filled), else error.
-static inline int ssReadCheck(int req, int* size)
-{
-    return Dvd.ReadCheck(req, size, 0, 0);
-}
 
 // Item examine: reads the item's model (.bin) and texture (.tpl) into the examine buffer, shows it
 // with the examine camera and returns to the caller widget on cancel.
@@ -532,7 +527,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 1: {
-        int ret = ssReadCheck(exam_read_req, &size);
+        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
         if (ret == 0) {
             break;
         }
@@ -560,7 +555,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 3: {
-        int ret = ssReadCheck(exam_read_req, &size);
+        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
         if (ret == 0) {
             break;
         }

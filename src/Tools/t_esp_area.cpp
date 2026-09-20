@@ -18,8 +18,6 @@ int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 
 class cPlayer;
 extern cPlayer* pPL;
-// cModel::pos without em.h (the unit's .rodata has no atari.h string)
-static inline Vec* PlPos() { return (Vec*) ((u8*) pPL + 0x94); }
 
 struct ESP_AREA {
     u8 no;          // 0x00
@@ -71,7 +69,7 @@ void InitWork(ESP_AREA* w, int no)
 {
     memclr_asm(w, sizeof(ESP_AREA));
     w->no = no;
-    AreaDataInit(&w->area, PlPos(), 1, 7000.0f, 5000.0f);
+    AreaDataInit(&w->area, (Vec*) ((u8*) pPL + 0x94), 1, 7000.0f, 5000.0f);
 }
 
 // Position column pressed: runs the shared AreaDataEdit editor on the slot's area (info / help
@@ -304,7 +302,7 @@ void ToolEspArea()
                 }
             }
         }
-        Draw_sphere(PlPos(), 600.0f, 0xFF404080, 1, 1);
+        Draw_sphere((Vec*) ((u8*) pPL + 0x94), 600.0f, 0xFF404080, 1, 1);
         if (cam) {
             int c = cnt;
 

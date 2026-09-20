@@ -96,11 +96,6 @@ struct SubCharPtr {
 
 
 
-// Effect `no` of the monster's effect set on itself.
-static inline void em2fEstSet(cEm2f* em, Em2fWork* w, int no)
-{
-    EstSet(em, -1, 0, 0, 0x27, no, 0, w->espKind, em, 0);
-}
 
 // The effects the monster owns are removed before it is moved somewhere else.
 static inline void em2fEffectDelete(cEm2f* em, Em2fWork* w)
@@ -540,13 +535,13 @@ static void em2f_R1_Swim(cEm2f* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, flip, 0);
-        em2fEstSet(em, w, 0xC);
+        EstSet(em, -1, 0, 0, 0x27, 0xC, 0, w->espKind, em, 0);
         w->timer = 80;
         em->r_no_2++;
         goto swim;  // the target's case 2 runs the swim step too (tails cross-jumped into case 4's)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xD), ARC(0x1E), 30, flip, 0);
-        em2fEstSet(em, w, 4);
+        EstSet(em, -1, 0, 0, 0x27, 4, 0, w->espKind, em, 0);
         w->timer = 80;
         em->r_no_2++;
     case 3:
@@ -639,7 +634,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
                 MotionSetCore(em, MOTION(em), ARC(0xF), ARC(0x20), 30, flip, 0);
             }
             if (!(w->flags & 0x10)) {
-                em2fEstSet(em, w, 1);
+                EstSet(em, -1, 0, 0, 0x27, 1, 0, w->espKind, em, 0);
             }
         } else {
             if (w->flags & 0x20) {
@@ -648,7 +643,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
                 MotionSetCore(em, MOTION(em), ARC(0x10), ARC(0x21), 30, flip, 0);
             }
             if (!(w->flags & 0x10)) {
-                em2fEstSet(em, w, 0xD);
+                EstSet(em, -1, 0, 0, 0x27, 0xD, 0, w->espKind, em, 0);
             }
         }
         em->r_no_2++;
@@ -681,11 +676,11 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
         if (w->flags & 0x10) {
             MotionSetCore(em, MOTION(em), ARC(0x1A), ARC(0x2B), 30, flip, 0);
             w->flags &= ~0x10;
-            em2fEstSet(em, w, 0x12);
+            EstSet(em, -1, 0, 0, 0x27, 0x12, 0, w->espKind, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x19), ARC(0x2A), 30, flip, 0);
             w->flags |= 0x10;
-            em2fEstSet(em, w, 0x11);
+            EstSet(em, -1, 0, 0, 0x27, 0x11, 0, w->espKind, em, 0);
         }
         em->r_no_2++;
     case 1:
@@ -716,16 +711,16 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
         }
         if (w->flags & 0x10) {
             MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x29), 30, flip, 0);
-            em2fEstSet(em, w, 0x10);
+            EstSet(em, -1, 0, 0, 0x27, 0x10, 0, w->espKind, em, 0);
         } else if (Rnd() & 3) {
             MotionSetCore(em, MOTION(em), ARC(0x16), ARC(0x27), 30, flip, 0);
-            em2fEstSet(em, w, 0xE);
+            EstSet(em, -1, 0, 0, 0x27, 0xE, 0, w->espKind, em, 0);
         } else if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x24), 30, flip, 0);
-            em2fEstSet(em, w, 9);
+            EstSet(em, -1, 0, 0, 0x27, 9, 0, w->espKind, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x14), ARC(0x25), 30, flip, 0);
-            em2fEstSet(em, w, 8);
+            EstSet(em, -1, 0, 0, 0x27, 8, 0, w->espKind, em, 0);
         }
         w->flags &= ~0x10;
         em->r_no_2++;
@@ -807,7 +802,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x15), ARC(0x26), 10, 0x401, 0);
         w->flags &= ~0x10;
-        em2fEstSet(em, w, 7);
+        EstSet(em, -1, 0, 0, 0x27, 7, 0, w->espKind, em, 0);
         w->timer = 0;
         w->timer2 = 90;
         em->r_no_2++;
@@ -912,7 +907,7 @@ static void em2f_R1_Packman(cEm2f* em)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x17), ARC(0x28), 10, 0x401, 0);
         w->flags &= ~0x10;
-        em2fEstSet(em, w, 0xF);
+        EstSet(em, -1, 0, 0, 0x27, 0xF, 0, w->espKind, em, 0);
         w->timer = 0;
         w->timer2 = 90;
         em->r_no_2++;
@@ -952,7 +947,7 @@ static void em2f_R1_Packman(cEm2f* em)
         break;
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, 1, 0);
-        em2fEstSet(em, w, 0xC);
+        EstSet(em, -1, 0, 0, 0x27, 0xC, 0, w->espKind, em, 0);
         em->r_no_2++;
     case 7:
         if (MotionMove(em, 0)) {
@@ -1029,7 +1024,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         em->be_flag |= 2;
         SndRoomStrStart(1, 3, 1);
         w->flags &= ~0x200;
-        em2fEstSet(em, w, 0x15);
+        EstSet(em, -1, 0, 0, 0x27, 0x15, 0, w->espKind, em, 0);
         em->r_no_2++;
     case 5:
         em->flag |= 0x12C;
@@ -1059,7 +1054,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     case 8:
         MotionSetCore(em, MOTION(em), ARC(0x17), ARC(0x28), 10, 0x401, 0);
         w->flags &= ~0x10;
-        em2fEstSet(em, w, 0xF);
+        EstSet(em, -1, 0, 0, 0x27, 0xF, 0, w->espKind, em, 0);
         w->timer2 = 90;
         em->r_no_2++;
     case 9:
@@ -1079,7 +1074,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         break;
     case 0xA:
         MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, flip, 0);
-        em2fEstSet(em, w, 0x16);
+        EstSet(em, -1, 0, 0, 0x27, 0x16, 0, w->espKind, em, 0);
         w->timer2 = 90;
         em->r_no_2++;
     case 0xB:
@@ -1160,7 +1155,7 @@ static void em2f_R1_Critical(cEm2f* em)
         w->timer = 3;
         w->timer2 = 15;
         MotionSetCore(em, MOTION(em), ARC(0x1B), ARC(0x2C), 0, 1, 0);
-        em2fEstSet(em, w, 0x13);
+        EstSet(em, -1, 0, 0, 0x27, 0x13, 0, w->espKind, em, 0);
         em->r_no_2++;
     case 3:
         if (w->timer) {
@@ -1395,7 +1390,7 @@ void em2fWaterEffSet(cEm2f* em)
             w->effTimer2--;
             if (w->effTimer2 == 0) {
                 w->effTimer2 = 9;
-                em2fEstSet(em, w, 3);
+                EstSet(em, -1, 0, 0, 0x27, 3, 0, w->espKind, em, 0);
             }
         }
         if (w->effTimer3) {
@@ -1403,9 +1398,9 @@ void em2fWaterEffSet(cEm2f* em)
             if (w->effTimer3 == 0) {
                 w->effTimer3 = 3;
                 if (w->flags & 0x100) {
-                    em2fEstSet(em, w, 0x14);
+                    EstSet(em, -1, 0, 0, 0x27, 0x14, 0, w->espKind, em, 0);
                 } else {
-                    em2fEstSet(em, w, 6);
+                    EstSet(em, -1, 0, 0, 0x27, 6, 0, w->espKind, em, 0);
                 }
             }
         }
@@ -1414,7 +1409,7 @@ void em2fWaterEffSet(cEm2f* em)
             w->effTimer1--;
             if (w->effTimer1 == 0) {
                 w->effTimer1 = 2;
-                em2fEstSet(em, w, 2);
+                EstSet(em, -1, 0, 0, 0x27, 2, 0, w->espKind, em, 0);
             }
         }
     }

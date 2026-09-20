@@ -829,9 +829,7 @@ int em2aTrap2HitCkPL(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
-                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
-                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
+    len = VEC_DIST(&p0->world, &p2->world)
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     PSMTXMultVec(inv, &pPL->pos, &v);
@@ -854,9 +852,7 @@ int em2aTrap2HitCkEM(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
-                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
-                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
+    len = VEC_DIST(&p0->world, &p2->world)
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.getArrayNum(); i++) {

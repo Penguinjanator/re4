@@ -447,11 +447,11 @@ void cEm3c::move()
     em3cRouteCk(this);
     Em3c_R0_move_tbl[r_no_0](this);
     partsWorldCalc();
-    len = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    len = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < len * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < len * 0.5f) {
         w->HoseiCnt++;
     } else {
         w->HoseiCnt = 0;

@@ -332,7 +332,7 @@ void cEm22::move()
     em22NeckMove(this);
     partsWorldCalc();
     em22ScaleCompress(this);
-    len = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    len = VEC_DISTXZ(&pos, &pos_old);
     atFlags = atari.m_flag;
     if (w->flags & 0x80) {
         atari.m_flag |= 0x10;
@@ -347,7 +347,7 @@ void cEm22::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < len * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < len * 0.5f) {
         w->stuckTimer = 3;
         w->stuckCnt++;
     } else {
@@ -2364,9 +2364,7 @@ void em22CamMove(cEm22* em, int type)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;

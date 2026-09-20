@@ -589,7 +589,7 @@ void cEm39::move()
     em39NeckMove(this);
     em39WaistMove(this);
     partsWorldCalc();
-    dist = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    dist = VEC_DISTXZ(&pos_old, &pos);
     if (seFlags28B & 0x40) {
         atari.m_flag |= 0x10;
     } else {
@@ -600,7 +600,7 @@ void cEm39::move()
     if (!(seFlags28B & 0x40)) {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < dist * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < dist * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -4196,7 +4196,7 @@ static void em39_R1_AppearGR(cEm39* em)
         }
         if ((em->seFlags28B & 1) && w->pBomb) {
             Vec spd;
-            f32 d = SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z)) - 2000.0f;
+            f32 d = VEC_DISTXZ(&em->pos, &pPL->pos) - 2000.0f;
 
             if (d < 5000.0f) {
                 d = 5000.0f;
@@ -4258,7 +4258,7 @@ static void em39_R1_AppearGR2(cEm39* em)
         em->r_no_2++;
     case 1:
         if ((em->seFlags28B & 1) && w->pBomb) {
-            f32 d = (SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z)) - 1000.0f) * 0.025f;
+            f32 d = (VEC_DISTXZ(&em->pos, &pPL->pos) - 1000.0f) * 0.025f;
 
             if (d < 200.0f) {
                 d = 200.0f;
@@ -4374,7 +4374,7 @@ static void em39_R1_ThrowGR(cEm39* em)
                 tpos = p3;
                 break;
             }
-            d = (SQRTF((em->pos.x - tpos.x) * (em->pos.x - tpos.x) + (em->pos.z - tpos.z) * (em->pos.z - tpos.z)) - 1000.0f) * 0.025f;
+            d = (VEC_DISTXZ(&em->pos, &tpos) - 1000.0f) * 0.025f;
             if (d < 200.0f) {
                 d = 200.0f;
             }

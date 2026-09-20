@@ -2788,9 +2788,7 @@ void emlistCamToPoin()
         EmList.wk->cam.up.y = 1.0f;
         EmList.wk->cam.up.z = 0.0f;
         EmList.wk->cam.dist =
-            SQRTF((EmList.wk->cam.param.pos.x - EmList.wk->cam.param.at.x) * (EmList.wk->cam.param.pos.x - EmList.wk->cam.param.at.x) +
-                  (EmList.wk->cam.param.pos.y - EmList.wk->cam.param.at.y) * (EmList.wk->cam.param.pos.y - EmList.wk->cam.param.at.y) +
-                  (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z) * (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z));
+            VEC_DIST(&EmList.wk->cam.param.pos, &EmList.wk->cam.param.at);
         EmList.wk->cam.param.fovy = cam->param.fovy;
         CameraSetOrientationUp(&EmList.wk->cam);
         CamCtrl.m_pExtraCamera = (s32) &EmList.wk->cam;

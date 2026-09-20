@@ -2318,9 +2318,7 @@ void em35EscapeCamMove(cEm35* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -2376,9 +2374,7 @@ void em35StampCamMove(cEm35* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -4605,7 +4601,7 @@ int em35GetBeamNo(Vec* pos, int type)
 
         if (b->type == type && !(fabsf(b->a.y - pos->y) > 500.0f)) {
             f32 ang = GetXZAngle(&b->a, &b->b);
-            f32 len = SQRTF((b->a.x - b->b.x) * (b->a.x - b->b.x) + (b->a.z - b->b.z) * (b->a.z - b->b.z));
+            f32 len = VEC_DISTXZ(&b->a, &b->b);
 
             PSMTXRotRad(m, 'y', ang);
             TransMatrix(m, &b->a);

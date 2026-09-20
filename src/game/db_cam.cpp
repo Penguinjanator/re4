@@ -60,9 +60,6 @@ f32 g_local_fovy[2];
 
 const char* key_str[4] = {"DFLT", "SCR", "????", "????"};
 
-// The menu counters are stepped through a reference (the stores then invalidate every cached
-// load, as in the original: joy->trg is reloaded after each step).
-static inline void Inc(int& v) { v++; }
 static inline void Dec(int& v) { v--; }
 
 // adjust_qFPS keeps the edited shoulder offset record as a byte pointer (the original copies it
@@ -876,7 +873,7 @@ int debugCamera::menuHitDisp(JOY* joy)
         Dec(view_mode);
     }
     if (joy->trg & 0x20002) {
-        Inc(view_mode);
+        view_mode++;
     }
     if (view_mode < 0) {
         view_mode = 8;
@@ -1255,7 +1252,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             Dec(menu_no);
         }
         if (joy->rep & JOY_DOWN) {
-            Inc(menu_no);
+            menu_no++;
         }
         if (flag & 2) {
             menu_no = menu_no < -1 ? -1 : (menu_no > 6 ? 6 : menu_no);
@@ -1330,7 +1327,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 Dec(site_col);
             }
             if (joy->rep & JOY_RIGHT) {
-                Inc(site_col);
+                site_col++;
             }
             site_col = site_col < 0 ? 0 : (site_col > 1 ? 1 : site_col);
             if (symmetry_flag) {
@@ -1340,7 +1337,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 Dec(site_row);
             }
             if (joy->rep & JOY_DOWN) {
-                Inc(site_row);
+                site_row++;
             }
             site_row = site_row < 0 ? 0 : (site_row > 5 ? 5 : site_row);
             if (site_col == 0) {

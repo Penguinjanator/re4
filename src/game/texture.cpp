@@ -17,11 +17,6 @@
 int lod_enable = 0;
 int tex_dummy = 0;
 
-// Power-of-two size test (wrapping textures need it).
-static inline int IsPow2(u32 n)
-{
-    return (n & (n - 1)) == 0;
-}
 
 // Creates a registry `name` with a pool of `num` GX texture objects and their in-use bitmap.
 void cTexSys::Init(const char* name, u32 num)
@@ -217,7 +212,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
         desc = TEXGet(tpl, i);
         hdr = desc->textureHeader;
         if (hdr->format - 8 <= 1) {
-            if (clamp == 0 && IsPow2(hdr->width) && IsPow2(hdr->height)) {
+            if (clamp == 0 && ((hdr->width & (hdr->width - 1)) == 0) && ((hdr->height & (hdr->height - 1)) == 0)) {
                 GXInitTexObjCI(obj, hdr->data, hdr->width, hdr->height, hdr->format, 1, 1, 0, 0);
             } else {
                 GXInitTexObjCI(obj, desc->textureHeader->data, desc->textureHeader->width, desc->textureHeader->height,
@@ -226,7 +221,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
             GXInitTlutObj(&w->tlut, desc->CLUTHeader->data, desc->CLUTHeader->format, desc->CLUTHeader->numEntries);
             GXLoadTlut(&w->tlut, 0);
         } else {
-            if (clamp == 0 && IsPow2(hdr->width) && IsPow2(hdr->height)) {
+            if (clamp == 0 && ((hdr->width & (hdr->width - 1)) == 0) && ((hdr->height & (hdr->height - 1)) == 0)) {
                 GXInitTexObj(obj, hdr->data, hdr->width, hdr->height, hdr->format, 1, 1, 0);
             } else {
                 GXInitTexObj(obj, desc->textureHeader->data, desc->textureHeader->width, desc->textureHeader->height,

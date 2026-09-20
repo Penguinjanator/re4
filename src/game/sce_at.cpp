@@ -127,11 +127,6 @@ static inline u32* itemFindFlags()
 {
     return &pG->Item_flg[4];
 }
-// pG->save_item as a pointer (the original adds the record offset to pG before the index).
-static inline ITEM_SAVE_WORK* saveItemTbl()
-{
-    return pG->item_save;
-}
 // Halfword fields of the save items: the original forms the address as integer arithmetic with the index
 // first (`idx*16 + ((u32)pG + ofs)`): non-struct MEM with an unflagged base, so pG is reloaded after
 // every store and the field offset is added to pG before the index (sthx base, idx).
@@ -3661,7 +3656,7 @@ int sceAtPullItemSaveWork()
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (saveItemTbl()[i].room_no == 0) {
+        if (pG->item_save[i].room_no == 0) {
             return i;
         }
     }

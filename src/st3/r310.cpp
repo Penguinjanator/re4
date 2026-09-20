@@ -49,8 +49,6 @@ static R310Work* r310_work;
 // The room bits live in the second word of the room's save record (RoomData).
 #define R310_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-// Enemy list entry copy (0x20 bytes).
-static inline void EmListCopy(int dst, int src) { *EM_LIST(dst) = *EM_LIST(src); }
 
 // The event player model's per-model work word (cEm+0x328) the S00 event flags.
 struct R310EvtModel {
@@ -671,7 +669,7 @@ static void r310_pushBox1()
                 SceExec(0x12, (TaskFunc) r310_fallBox1, 0, 0, 2, 0);
                 SceSleep(30);
                 setEm(0x69, -1, 1, 1, 1);
-                EmListCopy(0x69, 0x7D);
+                *EM_LIST(0x69) = *EM_LIST(0x7D);
                 EmListSetAlive(0x69, 1);
                 SceExit();
             }
@@ -760,14 +758,14 @@ static void r310_checkEmStandUp_end()
 
             tbl[2] &= ~0x20;
         }
-        EmListCopy(0x5A, 0xBE);
+        *EM_LIST(0x5A) = *EM_LIST(0xBE);
         em.setEm(0x5A, -1, 1, 1, 1);
         if (em.getPtr() != 0) {
             SceAtSetEmItem(em.getPtr(), 0x85);
         }
     }
     SndCall(6, 2, 0, 0, 0, 0);
-    EmListCopy(0x5A, 0x7C);
+    *EM_LIST(0x5A) = *EM_LIST(0x7C);
     EmListSetAlive(0x5A, 1);
 }
 

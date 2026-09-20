@@ -591,7 +591,7 @@ void cEm36::move()
     em36SlopeMove(this);
     partsWorldCalc();
     em36ScaleCompress(this);
-    d = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    d = VEC_DISTXZ(&pos_old, &pos);
     if (seFlags28B & 0x20) {
         atari.m_flag |= 0x10;
     } else {
@@ -609,7 +609,7 @@ void cEm36::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -3895,7 +3895,7 @@ int em36LongCatchCk(cEm36* em)
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return 0;
     }
-    len = SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z));
+    len = VEC_DISTXZ(&em->pos, &pPL->pos);
     PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     a.x = 300.0f;
@@ -4120,7 +4120,7 @@ void em36SlopeMove(cEm36* em)
         if (fa < -1500.0f) {
             fa = -1500.0f;
         }
-        tilt = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        tilt = VEC_DISTXZ(&a, &b);
         ang = -atan2f(fa, tilt);
         if (w->slopeTimer) {
             w->slopeTimer--;

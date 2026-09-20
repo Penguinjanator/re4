@@ -823,7 +823,7 @@ void cEm2d::move()
     if (SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) < pos.y - 100.0f) {
         w->flags |= 0x200000;
     }
-    len = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    len = VEC_DISTXZ(&pos_old, &pos);
     atFlags = atari.m_flag;
     if (w->flags & 0x1000) {
         at->m_flag &= ~0x200;
@@ -843,7 +843,7 @@ void cEm2d::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    moved = VEC_DISTXZ(&pos, &pos_old);
     if (moved < len * 0.5f) {
         w->stuckCnt++;
     } else {
@@ -4719,12 +4719,8 @@ void em2dRouteCk(cEm2d* em)
         }
     }
     if (em->set == 1) {
-        w->plDist = SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) +
-                          (em->pos.y - pPL->pos.y) * (em->pos.y - pPL->pos.y) +
-                          (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z));
-        w->homeDist = SQRTF((w->homePos.x - pPLS->pos.x) * (w->homePos.x - pPLS->pos.x) +
-                            (w->homePos.y - pPLS->pos.y) * (w->homePos.y - pPLS->pos.y) +
-                            (w->homePos.z - pPLS->pos.z) * (w->homePos.z - pPLS->pos.z));
+        w->plDist = VEC_DIST(&em->pos, &pPL->pos);
+        w->homeDist = VEC_DIST(&w->homePos, &pPLS->pos);
     } else {
         w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
         w->homeDist = RouteCkPosToPosDis(&w->homePos, &pPLS->pos);
@@ -5486,9 +5482,7 @@ int em2dCamMove(cEm2d* em, int mode, f32 rate)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
@@ -5513,9 +5507,7 @@ void em2dDieCamMove(cEm2d* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;

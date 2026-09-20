@@ -171,8 +171,6 @@ struct R10fGondolaTbl {
 // `(R10fGondolaTbl*) mot` is `fp+8` copied into a fresh pseudo per site: in GetOff cse1 merges
 // them with the mot copy's destination, in GetOn gcse PREs them into a copy of it (`mr r23,r8`).
 static inline void r10f_setPos(cModel* m, Vec* p) { m->setPos(p); }
-static inline void r10f_setPosA(cModel* m, R10fGondolaTbl* t, int side) { r10f_setPos(m, &t->posA[side]); }
-static inline void r10f_setPosB(cModel* m, R10fGondolaTbl* t, int side) { r10f_setPos(m, &t->posB[side]); }
 
 // Get on the cable car at `side` (0: the village side, 1: the far side): Leon and Ashley step
 // on, the gondolas move to their positions and the ride starts.
@@ -204,7 +202,7 @@ static void r10f_GondolaGetOn(int side)
         {
             cPlayer* pl = pPL;
 
-            r10f_setPosA(pl, (R10fGondolaTbl*) mot, side);
+            r10f_setPos(pl, &((R10fGondolaTbl*) mot)->posA[side]);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -217,7 +215,7 @@ static void r10f_GondolaGetOn(int side)
             {
                 cSubChar* s = pSUB;
 
-                r10f_setPosB(s, (R10fGondolaTbl*) mot, side);
+                r10f_setPos(s, &((R10fGondolaTbl*) mot)->posB[side]);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;
@@ -339,7 +337,7 @@ static void r10f_GondolaGetOff(int side)
         {
             cPlayer* pl = pPL;
 
-            r10f_setPosA(pl, (R10fGondolaTbl*) mot, side);
+            r10f_setPos(pl, &((R10fGondolaTbl*) mot)->posA[side]);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -352,7 +350,7 @@ static void r10f_GondolaGetOff(int side)
             {
                 cSubChar* s = pSUB;
 
-                r10f_setPosB(s, (R10fGondolaTbl*) mot, side);
+                r10f_setPos(s, &((R10fGondolaTbl*) mot)->posB[side]);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;

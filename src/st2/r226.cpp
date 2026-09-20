@@ -120,7 +120,7 @@ static inline void PSetRobo(cObjRobo*& d, cObjRobo* v) { d = v; }
 // Euclidean distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
-    return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
+    return VEC_DIST(a, b);
 }
 
 static void R226EmSetMain();
@@ -1179,10 +1179,6 @@ static void playerRunMovePassage(cPlayer* pl)
     }
 }
 
-static inline u32 evtFlag(u32 no)
-{
-    return eventFlags()[no >> 5] & (0x80000000 >> (no & 31));
-}
 
 static void playerRunMoveBridge(cPlayer* pl)
 {
@@ -1231,7 +1227,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
         }
         for (i = 0; i < 6; i++) {
-            if (evtFlag(smd0[i]) && evtFlag(smd1[i])) {
+            if (eventFlags()[smd0[i] >> 5] & (0x80000000 >> (smd0[i] & 31)) && eventFlags()[smd1[i] >> 5] & (0x80000000 >> (smd1[i] & 31))) {
                 FlagOn(&pG->Room_flg, 33);
             }
         }

@@ -25,9 +25,6 @@ void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
 void drawPoint(Vec* lpos, Vec* lcross);
 }
 
-// Display flag helpers: through a reference with the bit as a parameter the mask stays 32-bit
-// (`rlwinm`), and separate tests are not folded into one `andi.` of the combined mask.
-static inline void DispOn(u8& f, u8 b) { f |= b; }
 static inline void DispOff(u8& f, u8 b) { f &= ~b; }
 static inline int DispChk(u8 f, u8 b) { return f & b; }
 
@@ -104,7 +101,7 @@ void cObjWep::move()
     }
     DispOff(wep.disp, 2);
     if (DispChk(wep.disp, 1)) {
-        DispOn(wep.disp, 2);
+        wep.disp |= 2;
     }
     DispOff(wep.disp, 1);
 }
@@ -116,13 +113,13 @@ void cObjWep::setDisp(int type, int on)
     if (on == 1) {
         switch (type) {
         case 0:
-            DispOn(wep.disp, 4);
+            wep.disp |= 4;
             break;
         case 1:
-            DispOn(wep.disp, 8);
+            wep.disp |= 8;
             break;
         case 2:
-            DispOn(wep.disp, 0x10);
+            wep.disp |= 0x10;
             break;
         }
     } else {

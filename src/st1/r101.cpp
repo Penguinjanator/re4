@@ -106,11 +106,6 @@ static void r101_callGanadoVoice();
 extern "C" void Evt_R101S21_Func(Event* e);
 extern "C" void Evt_R101S30_Func(Event* e);
 
-// Marks list entry `no` alive; clears its death bit of the loaded list.
-static inline void r101_emListOn(int no)
-{
-    EM_LIST(no)->be_flag |= 1;
-}
 
 // Clear the death bit of list entry `no` in the loaded enemy list's death words (pG+0x501C + list*0x20).
 static inline void r101_emDeadClear(int no)
@@ -239,14 +234,14 @@ void R101Init()
         if (ScfFlagChk(pG, SCF_R106_EVENT)) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
-                r101_emListOn(0x14);
-                r101_emListOn(0x15);
-                r101_emListOn(0x16);
-                r101_emListOn(0x17);
-                r101_emListOn(0x18);
-                r101_emListOn(0x19);
-                r101_emListOn(0x1E);
-                r101_emListOn(0x1F);
+                EM_LIST(0x14)->be_flag |= 1;
+                EM_LIST(0x15)->be_flag |= 1;
+                EM_LIST(0x16)->be_flag |= 1;
+                EM_LIST(0x17)->be_flag |= 1;
+                EM_LIST(0x18)->be_flag |= 1;
+                EM_LIST(0x19)->be_flag |= 1;
+                EM_LIST(0x1E)->be_flag |= 1;
+                EM_LIST(0x1F)->be_flag |= 1;
                 r101_emDeadClear(0x14);
                 r101_emDeadClear(0x15);
                 r101_emDeadClear(0x16);

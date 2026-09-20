@@ -1875,11 +1875,6 @@ static inline u32 JoyOn(JOY* j, u32 bit)
     return j->on & bit;
 }
 
-// Button trigger test on a pad.
-static inline u32 JoyTrg(JOY* j, u32 bit)
-{
-    return j->trg & bit;
-}
 
 
 // r0 == 7: the free behind camera: orbits the player at a fixed distance with C-stick yaw /
@@ -1966,7 +1961,7 @@ void CameraControl::r0_Free()
             asm("" : "+r"(st));  // COMPILER-DIFF 2: the original zero-extends the loaded byte again
             switch ((u8) st) {
             case 0:
-                if (JoyTrg(joy, 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
+                if ((joy->trg & 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
                     r2 = st + 1;
                 }
                 break;

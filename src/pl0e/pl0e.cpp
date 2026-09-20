@@ -732,7 +732,7 @@ void pl0eCamMove(cPl0e* em)
         Vec* cp = &pl0e_camera.param.pos;
         Vec* ca = &pl0e_camera.param.at;
 
-        pl0e_camera.dist = SQRTF((cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z));
+        pl0e_camera.dist = VEC_DIST(cp, ca);
     }
     CameraSetOrientationUp(&pl0e_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0e_camera;

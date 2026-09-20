@@ -242,7 +242,7 @@ void cEm28::move()
         return;
     }
     partsWorldCalc();
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (w->flags & 0x10) {
@@ -250,7 +250,7 @@ void cEm28::move()
     } else {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < spd * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;

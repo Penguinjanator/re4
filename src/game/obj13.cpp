@@ -905,7 +905,7 @@ void subobjLadderClimb(cEm* pl)
 // Distance between two points.
 static inline f32 LadderCamDist(Vec* a, Vec* b)
 {
-    return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
+    return VEC_DIST(a, b);
 }
 
 // Extra camera during the climb: follows the climber from behind/below.

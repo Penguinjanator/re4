@@ -131,11 +131,6 @@ struct PlayerPtr {
 
 
 
-// The attack-hit byte written from a promoted int (an SImode pseudo shared with the int stores).
-static inline void em32AtkHitSet(Em32Work* w, int v)
-{
-    w->Atk_ck = v;
-}
 
 // COMPILER-DIFF #12 (cse path knowledge): in a `case` arm reached through the switch's once-used label
 // our cse still knows `w == em + 0x3E0` and folds the reference stores of the difficulty tables into
@@ -584,13 +579,13 @@ void cEm32::move()
     em32NeckMove(this);
     partsWorldCalc();
     em32ScaleCompress(this);
-    d = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    d = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (!(w->flags & 0x40)) {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -2072,7 +2067,7 @@ static void em32_R1_LongAtk(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0x47), ARC(0x48), 10, 1, 0);
         EstSet(em, -1, 0, 0, 0x2A, 0xA, 0, w->espKind[2], em, (void*) step);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
-        em32AtkHitSet(w, step);
+        w->Atk_ck = step;
         IntSet(w->longAtkWait, 600);
         IntSet(w->timer2, 25);
         IntSet(w->timer3, 15);
@@ -2368,9 +2363,7 @@ void em32EscapeCamMove(cEm32* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }

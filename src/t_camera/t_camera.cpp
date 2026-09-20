@@ -25,7 +25,6 @@ void memclr_asm(void* p, u32 size);
 void* memset(void* p, int c, unsigned int n);
 }
 
-static inline void LdatSet(TcLdat*& d, TcLdat* v) { d = v; }
 struct TcWorkPtr {
     TcWork* p;
 };
@@ -748,9 +747,9 @@ void tcEdit_select()
             dst = no;
             if (TC_TRG & 0x100) {
                 if (tcAdatPtr(dst, dstSfx) != 0) {
-                    LdatSet(PTC->pLdat, tcLdatPtr(PTC->adatNo, PTC->adatSuffix, dst, dstSfx));
+                    PTC->pLdat = tcLdatPtr(PTC->adatNo, PTC->adatSuffix, dst, dstSfx);
                     if (PTC->pLdat == 0) {
-                        LdatSet(PTC->pLdat, tcLdatNew());
+                        PTC->pLdat = tcLdatNew();
                         tcLdatInit(PTC->pLdat, PTC->adatNo, PTC->adatSuffix, dst, dstSfx, 0);
                     }
                     PTC->selStep++;

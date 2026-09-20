@@ -691,7 +691,7 @@ void rckPointLineStart()
 // Line length of the a -> b connection in 10 units.
 static inline u16 rckLineLen(RckPoint* pa, RckPoint* pb)
 {
-    return (s16) (SQRTF((pa->pos.x - pb->pos.x) * (pa->pos.x - pb->pos.x) + (pa->pos.z - pb->pos.z) * (pa->pos.z - pb->pos.z)) * 0.1f);
+    return (s16) (VEC_DISTXZ(&pa->pos, &pb->pos) * 0.1f);
 }
 
 // Line modes + A on a second point: toggles the connection start -> near (two-way in mode 1, one

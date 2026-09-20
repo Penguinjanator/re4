@@ -37,11 +37,6 @@ EmBarredFunc EmBarred_R1_move_tbl[4] = {
     emBarred_R1_Break,
 };
 
-// Closes again when the player leaves (setNoClose clears this).
-static inline int emBarredCanClose(EmBarredWork* w)
-{
-    return !(w->be_flag & 1);
-}
 
 // Creates a barred gate enemy (id 0x4E) from a model / TPL at pos / rot unless room etc flag
 // `flagNo` bit0 says it was destroyed. type 1..9 selects the gate size (atari cylinder, hit
@@ -511,7 +506,7 @@ void emBarred_R1_Set(cEmBarred* em)
                     w->pBarred->setOpen(1);
                 }
             }
-        } else if (emBarredCanClose(w)) {
+        } else if ((!(w->be_flag & 1))) {
             w->Timer++;
             if (w->Status == 1 && w->Timer > 30 && w->Lock_mode == 0) {
                 w->Status = 0;

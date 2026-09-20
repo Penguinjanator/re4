@@ -52,12 +52,6 @@ struct RockMotData {
     u16 maxFrame;   // 0x00
 };
 
-// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo shared with the
-// later `= 0` stores (emmine SetMine).
-static inline void LockPartsSet(cEm* em, int no)
-{
-    em->lockParts = no;
-}
 
 // Struct-member view of pPL (the pGS trick): the load stays below the preceding atari flag store.
 struct PlayerPtr {
@@ -156,7 +150,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     // second block's literal zeros are the fresh post-label `li r30, 0` of the original.
     int zero;
     zero = 0;
-    LockPartsSet(em, zero);
+    em->lockParts = zero;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -471,9 +465,7 @@ void emRock_R1_Fall(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -591,9 +583,7 @@ void emRock_R1_Throw(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -705,9 +695,7 @@ void emRock_R1_Throw2(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -843,9 +831,7 @@ void emRock_R1_Roll(cEmRock* em)
 
             PSVECSubtract(&em->pos, &em->pos_old, &d);
             PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-            len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                        (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                        (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+            len = VEC_DIST(&em->pos, &em->pos_old);
             if (len > 500.0f) {
                 len = 500.0f;
             }

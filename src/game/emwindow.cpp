@@ -91,11 +91,6 @@ WindowDataRow WindowData[29] = {
     { 0, 0, 1, 1, "", "", 400.0f, 250.0f, 1.0f, 1, 1, 0, 6, 1 },
 };
 
-// Not broken yet (etc flag bit0 clear).
-static inline int WindowAlive(cEmWindow* em)
-{
-    return !(em->ChkStatus() & 1);
-}
 
 // Bit `no` of a u32 bit table (bit 0 = the top bit of the first word).
 static inline void TblBitOn(u32* tbl, u32 no)
@@ -170,7 +165,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
         }
     }
     if (m->id == 0) {
-        if (WindowAlive(win) && win->type == 1) {
+        if ((!(win->ChkStatus() & 1)) && win->type == 1) {
             return 0;
         }
     }
@@ -360,7 +355,7 @@ void cEmWindow::move()
         w->rotBase.y = ang.y;
         w->rotBase.z = ang.z;
         r_no_0 = 1;
-        if (WindowAlive(this)) {
+        if ((!(this->ChkStatus() & 1))) {
             if (WindowData[type].breakEff == 1) {
                 EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, this, 0);
             }
@@ -564,7 +559,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     for (i = 0; (pPL->motState & 4) == 0; i++) {
         switch (w->breakDir) {
         case 0:
-            if (WindowAlive(pEm) && i == 0xF) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0xF) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0x19 && pG->room_id == 0x11F) {
@@ -593,7 +588,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
             }
             break;
         case 1:
-            if (WindowAlive(pEm) && i == 0x10) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0x10) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
@@ -619,7 +614,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
             }
             break;
         case 2:
-            if (WindowAlive(pEm) && i == 0xD) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0xD) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {

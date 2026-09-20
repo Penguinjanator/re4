@@ -653,9 +653,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         ang = GetXZAngle(&em->pos_old, &em->pos);
         em->ang.y += Muku2(em->ang.y, ang, 0.012271847f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        dist = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                     (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                     (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        dist = VEC_DIST(&em->pos, &em->pos_old);
         if (dist > 500.0f) {
             dist = 500.0f;
         }

@@ -1599,9 +1599,7 @@ void em31EscapeCamMove(cEm31* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -3564,9 +3562,7 @@ void em31StampCamMove(cEm31* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }

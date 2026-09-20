@@ -212,11 +212,11 @@ void cEm21::move()
     }
     em21NeckMove(this);
     partsWorldCalc();
-    d = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    d = VEC_DISTXZ(&pos, &pos_old);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckTimer = 3;
     }
 }

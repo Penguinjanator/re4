@@ -308,11 +308,6 @@ struct MgrPtr {
 // Scalar-reference store: the MEM has neither the struct nor the scalar flag, so sched1 makes every
 // following load (the `sw->` call arguments AND the fixed-scalar `pG`) wait for it.
 
-// The bought item's model: MapMgr work 1 (work 0 is the merchant).
-static inline cMap* shopItemModel()
-{
-    return MapMgr.getWork(1);
-}
 
 // Queues a Z clear before the case (OT 0xF) and before the shown item model (OT 0x14).
 void shopClearZ(SUB_SCREEN* wk)
@@ -2959,7 +2954,7 @@ void setOrientation(int id, cModel* m)
 void dispItem(int id, int sw)
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);
-    cMap* m = shopItemModel();
+    cMap* m = MapMgr.getWork(1);
 
     if (sw == 0) {
         u->be_flag &= ~8;
@@ -3010,7 +3005,7 @@ void screenPos2worldPos(Vec* scr, Vec* out)
 void moveItem()
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);
-    cMap* m = shopItemModel();
+    cMap* m = MapMgr.getWork(1);
     Vec scr;
     Vec pos;
 

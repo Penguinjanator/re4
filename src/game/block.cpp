@@ -49,11 +49,6 @@ static inline void bitOff(u32* set, u32 no)
     set[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
 }
 
-// 1 when a table entry is unused (bit0 clear).
-static inline int isFree(u8 flags)
-{
-    return !(flags & 1);
-}
 
 // Rewinds the trigger-area ordering table cursor to the last (highest priority) slot.
 void cBlock::setOtStart()
@@ -300,7 +295,7 @@ void cBlock::check(int arg)
         pG->AreaNo = area;
         checkBlockConnect(&pConnect[area], pLink, &mramSet, &aramSet);
         for (i = 0; i < nBlock; i++) {
-            if (isFree(pLink[i].flags)) {
+            if ((!(pLink[i].flags & 1))) {
                 continue;
             }
             u = getUnitPtr(i);
@@ -343,7 +338,7 @@ s8 cBlock::checkBlockArea(Vec* pos, int now)
     p.y += 200.0f;
     setOtStart();
     while ((a = (BlockArea*) getOtAddr()) != 0) {
-        if (isFree(a->flags)) {
+        if ((!(a->flags & 1))) {
             continue;
         }
         if (AreaHitCheck(&a->area, &p) != 1) {
@@ -370,7 +365,7 @@ void cBlock::checkBlockConnect(BlockConnect* c, BlockLink* link, u32* mram, u32*
 
     memclr_asm(mram, 4);
     memclr_asm(aram, 4);
-    if (isFree(c->flags)) {
+    if ((!(c->flags & 1))) {
         return;
     }
     bitOn(mram, c->blockNo);
@@ -800,7 +795,7 @@ void cBlock::checkBlockMemSort()
 
     for (i = 0; i < nBlock; i++) {
         u = getUnitPtr(i);
-        if (isFree(u->flags)) {
+        if ((!(u->flags & 1))) {
             continue;
         }
         if (u->state != BLOCK_CREATE) {
@@ -867,7 +862,7 @@ void cBlock::dispDebugInfo()
     y = 58;
     for (i = 0; i < nBlock; i++) {
         u = getUnitPtr(i);
-        if (isFree(u->flags)) {
+        if ((!(u->flags & 1))) {
             continue;
         }
         y += 16;

@@ -890,7 +890,7 @@ void SceSetChapterEnd(int chapter, int doorAt)
 // Distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
-    return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
+    return VEC_DIST(a, b);
 }
 
 // Puts the scenario camera (SceCam) at pos looking at `at` with `fovy` and makes it the extra

@@ -152,7 +152,7 @@ void cEm24::move()
     if (w->Be_flg & 0x10) {
         return;
     }
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (hp > 0) {
@@ -179,7 +179,7 @@ void cEm24::move()
             SatMgr.checkAir(this, 0);
         }
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < spd * 0.5f) {
         w->HoseiCnt++;
     } else {
         w->HoseiCnt = 0;
@@ -627,7 +627,7 @@ void em24SlopeMove(cEm24* em)
     if (fa < -400.0f) {
         fa = -400.0f;
     }
-    len = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+    len = VEC_DISTXZ(&a, &b);
     w->slopeRot.x = w->slopeRot.x * 0.95f + -atan2f(fa, len) * 0.05f;
     RotMatrix(m, &w->slopeRot);
     PSMTXConcat(em->mat, m, em->mat);

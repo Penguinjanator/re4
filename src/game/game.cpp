@@ -116,10 +116,6 @@ void DbMenuRoomInit();
 // pG and reloads it afterwards, as the original does after every GlobalWork store.
 // One flag test per call: fold would merge `(f & A) || (f & B)` on one lvalue into a single mask.
 static inline u32 Flag54(u32 b) { return pG->System_flg & b; }
-// 64-bit key tests kept as u64 values: `(hi & 0) | (lo & b)` is tested with `or.` of both words
-// (a plain `if (Key.trg & b)` is narrowed to the low word).
-static inline u64 KeyTrg(u64 b) { return Key.trg & b; }
-static inline u64 KeyOn(u64 b) { return Key.on & b; }
 
 union FadeColor {
     GXColor c;
@@ -759,7 +755,7 @@ void gameMainLoop()
     if (!SysFlagChk(pG, SYS_DOORDEMO)) {
         gameDebugDisp();
     }
-    if (KeyTrg(0x2000) && !KeyOn(0x400000) && !DbgFlagChk(pG, DBG_TEST_MODE) && OptionOpenCheck() == 1) {
+    if ((Key.trg & 0x2000) && !(Key.on & 0x400000) && !DbgFlagChk(pG, DBG_TEST_MODE) && OptionOpenCheck() == 1) {
         Game.Rno_bak = *(u32*)&pG->Rno0;
         pG->Rno0 = 6;
         pG->Rno1 = 0;
@@ -1159,7 +1155,7 @@ void gameDiedemo(DiedemoWork* w)
             SndStrReq(0, 0, (int) 0x80000003, 0, 0, 0.0f);
             /* fallthrough */
         case 2:
-            if (cnt >= w->exec_frame + 0x10E || KeyTrg(0x80000000)) {
+            if (cnt >= w->exec_frame + 0x10E || (Key.trg & 0x80000000)) {
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, 0x2E, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
@@ -1178,7 +1174,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             break;
         case 4:
-            trg = KeyTrg(0x80000000);
+            trg = Key.trg & 0x80000000;
             if (trg) {
                 if (sel) {
                     timer = 0xB1;
@@ -1196,10 +1192,10 @@ void gameDiedemo(DiedemoWork* w)
             } else {
                 int old = sel;
 
-                if (KeyTrg(0x08000000)) {
+                if ((Key.trg & 0x08000000)) {
                     sel = 1;
                 }
-                if (KeyTrg(0x04000000)) {
+                if ((Key.trg & 0x04000000)) {
                     sel = 0;
                 }
                 if (old != sel) {

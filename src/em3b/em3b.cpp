@@ -999,7 +999,7 @@ void em3bSlopeMove(cEm3b* em)
         fb = em->pos.y;
     }
     fa -= fb;
-    ang = -atan2f(fa, SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)));
+    ang = -atan2f(fa, VEC_DISTXZ(&a, &b));
     if (ang > PI / 6.0f) {
         ang = PI / 6.0f;
     }

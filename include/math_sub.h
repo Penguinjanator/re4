@@ -49,6 +49,10 @@ void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out);
 void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane_n);
 f32 IPOW(f32 x, int n);
 f32 SQRTF(f32 x);
+// Distance between the points a and b (pointers): x, y, z, or x, z on the ground plane. Macros: an inline here
+// would renumber the declarations of every unit that includes this header.
+#define VEC_DIST(a, b) SQRTF(((a)->x - (b)->x) * ((a)->x - (b)->x) + ((a)->y - (b)->y) * ((a)->y - (b)->y) + ((a)->z - (b)->z) * ((a)->z - (b)->z))
+#define VEC_DISTXZ(a, b) SQRTF(((a)->x - (b)->x) * ((a)->x - (b)->x) + ((a)->z - (b)->z) * ((a)->z - (b)->z))
 f32 SINF(f32 x);
 f32 COSF(f32 x);
 f32 LIMIT_ANGLE(f32 x);

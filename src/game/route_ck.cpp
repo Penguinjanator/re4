@@ -55,11 +55,6 @@ static inline s8* rtpNextTbl()
     return (s8*)(r->nextOfs + (u32)r);
 }
 
-// Next hop from `a` towards `b`.
-static inline s8 rtpNext(s8* tbl, int a, int b)
-{
-    return tbl[rtpData()->nPoint * a + b];
-}
 
 extern "C" {
 static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag);
@@ -137,7 +132,7 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
         RtpData* r = (RtpData*) Global.Rtp;
         tbl = (s8*) (r->nextOfs + (u32) r);
     }
-    next = rtpNext(tbl, p, t);
+    next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
         *out = target->pos;
         return 1;
@@ -378,7 +373,7 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
         RtpData* r = (RtpData*) Global.Rtp;
         tbl = (s8*) (r->nextOfs + (u32) r);
     }
-    next = rtpNext(tbl, p, t);
+    next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
         *out = *to;
         return 1;
@@ -416,7 +411,7 @@ int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2)
     if (t == -1) {
         return 0;
     }
-    if (rtpNext(rtpNextTbl(), p, t) == -1) {
+    if ((rtpNextTbl()[rtpData()->nPoint * p + t]) == -1) {
         return 0;
     }
     return 1;
@@ -458,7 +453,7 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
         return RouteCkGetDist(p, t);
     }
 direct:
-    return SQRTF((from->x - to->x) * (from->x - to->x) + (from->z - to->z) * (from->z - to->z));
+    return VEC_DISTXZ(from, to);
 }
 
 // The original zeroes the Vec in place with a memset libcall (`crclr cr1eq` = unprototyped
@@ -508,7 +503,7 @@ f32 RouteCkGetDist(int n0, int n1)
     }
     pt = &rtpPoint(rtpData())[n0];
     do {
-        next = rtpNext(tbl, n0, n1);
+        next = tbl[rtpData()->nPoint * n0 + n1];
         if (next == -1) {
             PSVECSubtract(&rtpPoint(rtpData())[n0].pos, &rtpPoint(rtpData())[n1].pos, &tmp);
             return PSVECMag(&tmp);

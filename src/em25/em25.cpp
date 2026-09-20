@@ -1282,12 +1282,8 @@ void em25OnParent(cEm25* em)
             t = pPL->getPartsPtr(3);
             tgt = t->world;
             if (pSUB) {
-                d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                          (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                          (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-                if (d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                              (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                              (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+                d = VEC_DIST(&parent->pos, &pPL->pos);
+                if (d > VEC_DIST(&parent->pos, &pSUB->pos) +
                             3000.0f) {
                     t = pSUB->getPartsPtr(3);
                     tgt = t->world;
@@ -1815,12 +1811,8 @@ void em25SetPoison(cEm25* em)
     t = pPL->getPartsPtr(3);
     tgt = t->world;
     if (pSUB) {
-        d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                  (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                  (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-        if (d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                      (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                      (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+        d = VEC_DIST(&parent->pos, &pPL->pos);
+        if (d > VEC_DIST(&parent->pos, &pSUB->pos) +
                     3000.0f) {
             t = pSUB->getPartsPtr(3);
             tgt = t->world;
@@ -1872,12 +1864,8 @@ int cEm25::ckLock()
     f32 d;
 
     if (parent && pSUB) {
-        d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                  (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                  (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-        return d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                         (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                         (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+        d = VEC_DIST(&parent->pos, &pPL->pos);
+        return d > VEC_DIST(&parent->pos, &pSUB->pos) +
                        3000.0f;
     }
     return 0;

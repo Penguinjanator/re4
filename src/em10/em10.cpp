@@ -2618,7 +2618,7 @@ void cEm10::move()
         if (!(w->flags & 0x400000)) {
             u16 atFlags;
             f32 moved;
-            dist = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+            dist = VEC_DISTXZ(&pos_old, &pos);
             if ((seFlags28B & 0x40) || (w->flags & 0x10091000)) {
                 atari.m_flag |= 0x10;
             } else {
@@ -2636,7 +2636,7 @@ void cEm10::move()
                 SatMgr.check(this, 0);
             }
             atari.m_flag = atFlags;
-            moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+            moved = VEC_DISTXZ(&pos, &pos_old);
             if (moved < dist * 0.5f) {
                 w->x634++;
             } else {
@@ -21959,7 +21959,7 @@ void em10SlopeMove(cEm10* em)
         if (fa < -1500.0f) {
             fa = 0.0f;
         }
-        t = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        t = VEC_DISTXZ(&a, &b);
         ang = -atan2f(fa, t);
         if (w->Slope_timer != 0) {
             w->Slope_timer--;
