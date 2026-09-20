@@ -38,7 +38,7 @@ class cEmRun : public cEmControl {
 public:
     int run;   // 0x11C  1 while a route is being run
 
-    int SetRoute(s16 no, Vec* tbl, int n);
+    int SetRoute(int no, Vec* tbl, int n);
     int Move();
 };
 
@@ -69,8 +69,6 @@ struct R327WorkPtr {
 };
 
 static R327WorkPtr r327_work;
-
-int cEmRunSetRouteI(cEmRun* r, int no, Vec* tbl, int n) asm("SetRoute__6cEmRunsP3Veci");
 
 // Typed view of pG->emlist (the r400 idiom).
 struct EmListView {
@@ -619,13 +617,13 @@ static void r327_GanadoGotoCheck()
 
                         switch ((u8) (r % 3)) {
                         case 0:
-                            cEmRunSetRouteI(run, e->id, route0, 3);
+                            run->SetRoute(e->id, route0, 3);
                             break;
                         case 1:
-                            cEmRunSetRouteI(run, e->id, route1, 3);
+                            run->SetRoute(e->id, route1, 3);
                             break;
                         case 2:
-                            cEmRunSetRouteI(run, e->id, &route2, 1);
+                            run->SetRoute(e->id, &route2, 1);
                             break;
                         }
                     }
@@ -915,7 +913,7 @@ static void r327_BoxOpened(u32 id)
 }
 
 // Bind the runner to enemy `no` with an n-point route; run = 1 starts Move stepping it.
-int cEmRun::SetRoute(s16 no, Vec* tbl, int n)
+int cEmRun::SetRoute(int no, Vec* tbl, int n)
 {
     if (SetControl(no, tbl, n, 0) == 0) {
         return 0;

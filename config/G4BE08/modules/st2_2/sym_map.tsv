@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x98	st2_2/em_wrap.cpp	global	SetControl__10cEmControlsP3Vecii	cEmControl::SetControl
+.text	0x00000000	0x98	st2_2/em_wrap.cpp	global	SetControl__10cEmControliP3Vecii	cEmControl::SetControl
 .text	0x00000098	0xAC	st2_2/em_wrap.cpp	global	SetTargetPos__10cEmControlP3Veci	cEmControl::SetTargetPos
 .text	0x00000144	0x88	st2_2/em_wrap.cpp	global	EndControl__10cEmControl	cEmControl::EndControl
 .text	0x000001CC	0x64	st2_2/em_wrap.cpp	global	SetPatrol__9cEmPatrolsP3VeciUci	cEmPatrol::SetPatrol

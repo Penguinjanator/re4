@@ -1,4 +1,4 @@
-SetControl__10cEmControlsP3Vecii = .text:0x00000000; // type:function size:0x98 scope:global
+SetControl__10cEmControliP3Vecii = .text:0x00000000; // type:function size:0x98 scope:global
 SetTargetPos__10cEmControlP3Veci = .text:0x00000098; // type:function size:0xAC scope:global
 __7cEmWrap = .text:0x00000144; // type:function size:0x30 scope:global
 initWork__7cEmWrap = .text:0x00000174; // type:function size:0x1C scope:global
@@ -138,7 +138,7 @@ r327_ContinuePointSet__Fv = .text:0x0000F650; // type:function size:0x80 scope:l
 r327_StrCheck__Fv = .text:0x0000F6D0; // type:function size:0x60 scope:local
 r327_BoxOpen__FUl = .text:0x0000F730; // type:function size:0xD4 scope:local
 r327_BoxOpened__FUl = .text:0x0000F804; // type:function size:0xD4 scope:local
-SetRoute__6cEmRunsP3Veci = .text:0x0000F8D8; // type:function size:0x4C scope:global
+SetRoute__6cEmRuniP3Veci = .text:0x0000F8D8; // type:function size:0x4C scope:global
 Move__6cEmRun = .text:0x0000F924; // type:function size:0xBC scope:global
 fn_st3_3_F9E0 = .text:0x0000F9E0; // type:function size:0x3B8 scope:global
 R328Init__Fv = .text:0x0000FD98; // type:function size:0x40 scope:global

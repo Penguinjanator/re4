@@ -30,7 +30,7 @@ struct EmListView {
 #ifndef EM_WRAP_NO_CONTROL
 // Bind the controller to enemy list entry `no` (setPtr: existing enemy or spawn it) and load an
 // n-point position route (max 15). Returns 0 (logging "SetPatrol" when errOn) if the enemy is missing.
-int cEmControl::SetControl(s16 no, Vec* tbl, int n, int errOn)
+int cEmControl::SetControl(int no, Vec* tbl, int n, int errOn)
 {
     if (em.setPtr(no, -1, errOn) == 0) {
         if (errOn == 1) {
@@ -46,7 +46,7 @@ int cEmControl::SetControl(s16 no, Vec* tbl, int n, int errOn)
 #ifdef EM_WRAP_ROUTE
 // Same as the Vec* overload but the route entries carry their own goto mode (EmControlPoint::mode),
 // used by cEmRouteExec.
-int cEmControl::SetControl(s16 no, EmControlPoint* tbl, int n, int errOn)
+int cEmControl::SetControl(int no, EmControlPoint* tbl, int n, int errOn)
 {
     if (em.setPtr(no, -1, errOn) == 0) {
         if (errOn == 1) {

@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x98	st3_3/em_wrap.cpp	global	SetControl__10cEmControlsP3Vecii	cEmControl::SetControl
+.text	0x00000000	0x98	st3_3/em_wrap.cpp	global	SetControl__10cEmControliP3Vecii	cEmControl::SetControl
 .text	0x00000098	0xAC	st3_3/em_wrap.cpp	global	SetTargetPos__10cEmControlP3Veci	cEmControl::SetTargetPos
 .text	0x00000144	0x30	st3_3/em_wrap.cpp	global	__7cEmWrap	cEmWrap::cEmWrap
 .text	0x00000174	0x1C	st3_3/em_wrap.cpp	global	initWork__7cEmWrap	cEmWrap::initWork
@@ -139,7 +139,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000F6D0	0x60	st3_3/r327.cpp	local	r327_StrCheck__Fv	r327_StrCheck
 .text	0x0000F730	0xD4	st3_3/r327.cpp	local	r327_BoxOpen__FUl	r327_BoxOpen
 .text	0x0000F804	0xD4	st3_3/r327.cpp	local	r327_BoxOpened__FUl	r327_BoxOpened
-.text	0x0000F8D8	0x4C	st3_3/r327.cpp	global	SetRoute__6cEmRunsP3Veci	cEmRun::SetRoute
+.text	0x0000F8D8	0x4C	st3_3/r327.cpp	global	SetRoute__6cEmRuniP3Veci	cEmRun::SetRoute
 .text	0x0000F924	0xBC	st3_3/r327.cpp	global	Move__6cEmRun	cEmRun::Move
 .text	0x0000F9E0	0x3B8	st3_3/r327.cpp	global	fn_st3_3_F9E0	.
 .text	0x0000FD98	0x40	st3_3/r328.cpp	global	R328Init__Fv	R328Init

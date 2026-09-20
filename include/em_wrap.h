@@ -153,8 +153,8 @@ public:
     cEmWrap em;                 // 0x10C
     int active;                 // 0x118
 
-    int SetControl(s16 no, Vec* tbl, int n, int errOn);
-    int SetControl(s16 no, EmControlPoint* tbl, int n, int errOn);  // st3 revision (src/st/em_wrap_v3.cpp)
+    int SetControl(int no, Vec* tbl, int n, int errOn);
+    int SetControl(int no, EmControlPoint* tbl, int n, int errOn);  // st3 revision (src/st/em_wrap_v3.cpp)
     void SetTargetPos(Vec* tbl, int n);
     void SetTargetTbl(EmControlPoint* tbl, int n);                   // st3 revision
     void EndControl();
