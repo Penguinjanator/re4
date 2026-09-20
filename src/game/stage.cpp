@@ -376,7 +376,7 @@ void subMissionSt1()
         int base = 0;
 
         IdSys.kill(0xFF, 0x33);
-        IdSys.set((void*) (pG->pArc->ofs_9C + (u32) pG->pArc), 0xFF, 0x33, 0x13, 5, 0);
+        IdSys.set((void*) (pG->pCore->ofs_9C + (u32) pG->pCore), 0xFF, 0x33, 0x13, 5, 0);
         u = IdSys.unitPtr(0, 0x33);
         if (pCoin != NULL) {
             pos = pCoin->pos;

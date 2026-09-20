@@ -44,8 +44,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" int EspMove();
 extern "C" int EspgenMove();
-// SubScreenTask passes a second argument to MotionMove (pl_npc.cpp does the same: `li r4, 0`).
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -331,7 +329,7 @@ void SubScreenTask()
                 ssWepModel->invisible_factor2 = 1.0f - rate;
             }
             if (ssPlMotion) {
-                MotionMoveF(ssPlModel, 0);
+                MotionMove(ssPlModel, 0);
             }
             // Dead test (never-read store): its `high pG` is set in this block and survives as the
             // register of the 0x19/0x1F/0x20 arm (cse1 canon_reg: the arm's own high dies inside the
@@ -353,14 +351,14 @@ void SubScreenTask()
                 case 0x1F:
                 case 0x20:
                     if (pG->pl_type == 0) {
-                        MotionMoveF(ssWepModel, 0);
+                        MotionMove(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
                     if (pG->pl_type == 4) {
-                        MotionMoveF(ssWepModel, 0);
+                        MotionMove(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
@@ -753,7 +751,7 @@ void IdNumErase()
     int i;
 
     for (i = 0; i < 0x3E; i++) {
-        IdNum.killI(0xFF, 0x40 + i);
+        IdNum.kill(0xFF, 0x40 + i);
     }
     IdNum.kill(0xFF, 0x10);
     IdNum.kill(0xFF, 0x11);
@@ -864,7 +862,7 @@ void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit)
 // Three digit number display with the IdNum table `id`: unit 0 is the frame (placed at `pos`), units
 // 1..3 the digits (colour of IdSub 0x14/0xFD or 0xFE when flags bit 1 is set), 0x11..0x13 their
 // shadows; flags bit 0 hides the leading zeros.
-void numDisp(u8 id, int num, Vec* pos, u32 flags)
+void numDisp(int id, int num, Vec* pos, u32 flags)
 {
     IdUnit* col0 = IdSub.unitPtr(0xFD, 0x14);
     IdUnit* col1 = IdSub.unitPtr(0xFE, 0x14);
@@ -1085,8 +1083,8 @@ static void weaponChangeTask()
 
 // Defined after the function-local statics above: objects with constructors are emitted at their
 // definition, the statics at their declaration (.bss 0x27C..0x28C, then the managers).
-cSsPartsMgr ssPartsMgr;
-cSsModInfoMgr ssModInfoMgr;
+cPartsMgr ssPartsMgr;
+cModInfoMgr ssModInfoMgr;
 
 
 // The split object's .data is 4 bytes longer than the variables (the next unit's .data starts

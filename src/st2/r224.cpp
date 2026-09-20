@@ -477,7 +477,7 @@ static void futa_move()
     zero = 0;
     CamCtrl.CutCall(5);
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 0x40, 1, 2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x40, 1, 2, zero, zero);
     gnd_open();
     SceSleep(60);
     CamCtrl.Comeback(0);
@@ -493,7 +493,7 @@ static void futa_move()
     SceSleep(15);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSleep(135);
-    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, zero, zero);
     gnd_close();
     if (RsfCheck(G_ROOM_ID, 0)) {
         pG->Room_flg[0] |= 0x10000000;
@@ -579,7 +579,7 @@ static void reva_move()
         SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         return;
     }
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 1, 0);
     frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     {
@@ -593,7 +593,7 @@ static void reva_move()
             if (--frames == 0) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 5, 0, 5, 0);
                 state = 1;
-                r224_work.p->cam = pG->Cam;
+                r224_work.p->cam = pG->Camera;
             }
         } else if (state == 1) {
             Camera* cam;
@@ -644,7 +644,7 @@ static void reva_move()
     {
         cPlayer* pl = pPL;
 
-        ((cUnitEventView*) pl)->endEvent(0);
+        pl->endEvent(0);
         pl->m_Hokan = 0xC;
     }
 }

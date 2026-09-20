@@ -22,8 +22,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001D4C	0xA0	em3b/em3b.cpp	local	subem3bRunDown__Fv	subem3bRunDown
 .text	0x00001DEC	0x1EC	em3b/em3b.cpp	global	em3bSlopeMove__FP5cEm3b	em3bSlopeMove
 .text	0x00001FD8	0x18	em3b/em3b.cpp	global	ckFire__5cEm3b	cEm3b::ckFire
-.text	0x00001FF0	0x4	em3b/em3b.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00001FF4	0x4	em3b/em3b.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00001FF0	0x4	em3b/em3b.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00001FF4	0x4	em3b/em3b.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00001FF8	0x20	em3b/em3b.cpp	global	_._5cEm3b	cEm3b::~cEm3b
 .text	0x00002018	0x48	em3b/em3b.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00002060	0x4	em3b/em3b.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

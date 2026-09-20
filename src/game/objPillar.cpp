@@ -24,6 +24,7 @@
 #include "pad.h"
 #include "player.h"
 #include "pl_sub.h"
+#include "motion.h"
 
 // Falling pillar (obj 0x1F): breaks (setBreak) or is thrown (setThrow) at the player, who can
 // escape with the action button; the escape / die sequences run as player damage routines.
@@ -40,7 +41,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objPillar_R0_Set(cObjPillar* obj);
 void objPillar_R0_Break(cObjPillar* obj);
 void objPillar_R0_Throw(cObjPillar* obj);
@@ -55,7 +55,7 @@ void objPillarEatSet(cObjPillar* obj);
 void GameAddPoint(int no);   // game/game.cpp
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);   // em_sub.cpp (obj08/obj12 declare it the same way)
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix so the report can pair it with the local symbol.
 #define plemEscape plemEscape_8003C33C
@@ -205,9 +205,9 @@ void objPillar_R0_Break(cObjPillar* obj)
         PSMTXMultVec(inv, &pPL->pos, &v);
         if (v.x > -2000.0f && v.x < 2000.0f && v.z > -1000.0f) {
             if (w->rnd) {
-                ActBtn.set(0x25, 0xB, (int) EscapeAction, (int) obj, 1, 3, 0, 0);
+                ActBtn.set(0x25, 0xB, (void*) EscapeAction, obj, 1, 3, 0, 0);
             } else {
-                ActBtn.set(0x25, 0xB, (int) EscapeAction, (int) obj, 1, 4, 0, 0);
+                ActBtn.set(0x25, 0xB, (void*) EscapeAction, obj, 1, 4, 0, 0);
             }
         }
     }
@@ -232,7 +232,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         MotionSetCore(obj, &obj->pMotion, w->motThrow0, 0, 0, 0x8001, 0x1F);
         w->rnd = Rnd() & 1;
         w->Act_ck = 1;
-        EstSet((int) obj, -1, 0, 0, 0x29, 0x22, 0, 0, (u32) obj, (void*) step);
+        EstSet(obj, -1, 0, 0, 0x29, 0x22, 0, 0, obj, (void*) step);
         w->Seid = step;
         obj->r_no_2++;
     case 1:
@@ -260,7 +260,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         w->rnd = Rnd() & 1;
         w->Act_ck = 0;
         w->Timer = 90;
-        EstSet((int) obj, -1, 0, 0, 0x29, 0x23, 1, 0x40, (u32) obj, 0);
+        EstSet(obj, -1, 0, 0, 0x29, 0x23, 1, 0x40, obj, 0);
         obj->r_no_2++;
     case 3:
         PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
@@ -277,9 +277,9 @@ void objPillar_R0_Throw(cObjPillar* obj)
         if (w->Timer == 0) {
             obj->invisible_factor -= 0.1f;
             if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, 0x40, (u32) obj, 0);
-                EffectEspgenDelete(1, 0x40, (int) obj);
-                EffectEfmDelete(1, 0x40, (int) obj);
+                EffectEspDelete(1, 0x40, obj, 0);
+                EffectEspgenDelete(1, 0x40, obj);
+                EffectEfmDelete(1, 0x40, obj);
                 obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
@@ -340,9 +340,9 @@ void objPillar_R0_Throw(cObjPillar* obj)
             w->Act_ck = 1;
         }
         if (w->rnd) {
-            ActBtn.set(0x25, 0xB, (int) EscapeAction2, (int) obj, 1, 3, 0, 0);
+            ActBtn.set(0x25, 0xB, (void*) EscapeAction2, obj, 1, 3, 0, 0);
         } else {
-            ActBtn.set(0x25, 0xB, (int) EscapeAction2, (int) obj, 1, 4, 0, 0);
+            ActBtn.set(0x25, 0xB, (void*) EscapeAction2, obj, 1, 4, 0, 0);
         }
     }
 }
@@ -363,9 +363,9 @@ void objPillar_R0_Escape(cObjPillar* obj)
         obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
-            EffectEspDelete(1, 0x40, (u32) obj, 0);
-            EffectEspgenDelete(1, 0x40, (int) obj);
-            EffectEfmDelete(1, 0x40, (int) obj);
+            EffectEspDelete(1, 0x40, obj, 0);
+            EffectEspgenDelete(1, 0x40, obj);
+            EffectEfmDelete(1, 0x40, obj);
             obj->invisible_factor = 0.0f;
             ObjMgr.destroy(obj);
             return;
@@ -395,7 +395,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
     case 1:
         PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
         w->Spd.y -= 15.0f;
-        floor = EatMgr.getFloor(&obj->pos_old, 600.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&obj->pos_old, 0, 600.0f, 100000.0f, 0);
         if (obj->pos.y < floor) {
             obj->pos.y = floor;
             SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);
@@ -414,9 +414,9 @@ void objPillar_R0_Fall(cObjPillar* obj)
         if (w->Timer == 0) {
             obj->invisible_factor -= 0.1f;
             if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, 0x40, (u32) obj, 0);
-                EffectEspgenDelete(1, 0x40, (int) obj);
-                EffectEfmDelete(1, 0x40, (int) obj);
+                EffectEspDelete(1, 0x40, obj, 0);
+                EffectEspgenDelete(1, 0x40, obj);
+                EffectEfmDelete(1, 0x40, obj);
                 obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
@@ -527,18 +527,18 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
             PlSetDamage(8, 0, 0);
             EmPlBloodSet2(obj, pos, 1, 0x29, 0x3D);
             if ((s16) pG->pl_life <= 0) {
-                EstSet((int) pPL, -1, 0, 0, 0x29, 0x3A, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x29, 0x3A, 0, 0, pPL, 0);
             } else {
-                EstSet((int) pPL, -1, 0, 0, 0x29, 0x3B, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x29, 0x3B, 0, 0, pPL, 0);
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
             SndCall(8, 0x25, &pPL->pos, 0x31, 0, pPL);
             w->Act_ck = 1;
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         if (hit & 2) {
             QuakeExec(0, 0, 5, 22.0f, 2);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
     }
 }
@@ -574,9 +574,9 @@ static void plemEscape(cPlayer* pl)
         ang = 0.0f;
         ang = Muku(&em->pos, &w->Break_pos, em->ang.y, PI);
         if (ang < 0.0f) {
-            MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 0x41, 0);
+            MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 3, 0x41, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 1, 0);
+            MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 3, 1, 0);
         }
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
@@ -614,7 +614,7 @@ void EscapeCamMove()
     f32 len;
     GlobalWork* g = pG;
 
-    Cam.param.fovy = g->Cam.param.fovy;
+    Cam.param.fovy = g->Camera.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -623,8 +623,8 @@ void EscapeCamMove()
     p1.z = 52.6f;
     PSMTXMultVec(pPL->mat, &p0, &p0);
     PSMTXMultVec(pPL->mat, &p1, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &p0, &Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &p1, &Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &p0, &Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&Cam.param.at, &Cam.param.pos, &hit, 0, 0x8000, 0)) {
         PSVECSubtract(&hit, &Cam.param.at, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;
@@ -677,8 +677,8 @@ void plemEscape2(cPlayer* pl)
     switch (step) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
-        MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 0, 1, 0);
-        EstSet((int) em, -1, 0, 0, 0x29, 0x39, 0, 0, (u32) em, (void*) step);
+        MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 0, 1, 0);
+        EstSet(em, -1, 0, 0, 0x29, 0x39, 0, 0, em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
         em->r_no_2++;
@@ -711,7 +711,7 @@ void objPillarEatSet(cObjPillar* obj)
         poly[3].x = -r;
         poly[3].y = 0.0f;
         poly[3].z = r;
-        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, 0, 0, h);
+        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0);
     } else {
         w->pEat->m_Flag |= 4;
         w->pEat->setCoord(&obj->pos, &obj->ang);

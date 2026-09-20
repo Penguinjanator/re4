@@ -95,8 +95,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000CE2C	0x220	em36/em36.cpp	global	em36SpineScaleMove__FP5cEm36	em36SpineScaleMove
 .text	0x0000D04C	0x128	em36/em36.cpp	global	em36CrashCk__FP5cEm36	em36CrashCk
 .text	0x0000D174	0x9C	em36/em36.cpp	global	em36ScaleCompress__FP5cEm36	em36ScaleCompress
-.text	0x0000D210	0x4	em36/em36.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x0000D214	0x4	em36/em36.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000D210	0x4	em36/em36.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x0000D214	0x4	em36/em36.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x0000D218	0x20	em36/em36.cpp	global	_._5cEm36	cEm36::~cEm36
 .text	0x0000D238	0x48	em36/em36.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000D280	0x4	em36/em36.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

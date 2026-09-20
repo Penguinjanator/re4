@@ -15,7 +15,7 @@
 VIEW View;
 u8 ViewHit[0xD00];
 
-// Boot: the frustum follows camera `cam` (pG->Cam).
+// Boot: the frustum follows camera `cam` (pG->Camera).
 void VIEW::gameInit(Camera* cam)
 {
     pCam = cam;
@@ -278,7 +278,7 @@ static void viewSphereRing(ViewSphere* sp, Vec* out, int div, u32 col)
 // camera matrix.
 void VIEW::orientation()
 {
-    Mtx* m = &pG->Cam.mat;
+    Mtx* m = &pG->Camera.mat;
     u32 i;
 
     for (i = 0; i < 6; i++) {

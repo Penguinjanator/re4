@@ -708,7 +708,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
 {
     calcWeightMat(m);
     for (; info != 0; info = info->pList) {
-        ModelData* d = info->pData;
+        cModelData* d = info->pData;
         ModelTexInfo* t = MODEL_TEX(info);
         void* src;
         void* nsrc;
@@ -762,7 +762,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
         }
-        info->pPosBuf[pG->vtx_buf_no] = buf;
+        info->pPosBuf[pG->DblBufIdx] = buf;
         if (d->flags & 0x20000000) {
             size = d->nNrm * 3;
             asize = size + 31;
@@ -777,7 +777,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;
         }
-        info->pNrmBuf[pG->vtx_buf_no] = buf;
+        info->pNrmBuf[pG->DblBufIdx] = buf;
         if (d->weight_ext_num > 0xFF) {
             MakeWeightPaletteExt((WeightExt*) d->pWeight, d->weight_ext_num);
         } else {
@@ -787,7 +787,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         src = d->vtxOrig;
         if (info->be_flag & 2) {
             int i;
-            src = info->pPosBuf[pG->vtx_buf_no];
+            src = info->pPosBuf[pG->DblBufIdx];
             for (i = 0; i < 5; i++) {
                 if (i == 0) {
                     ResetShape(info, src);
@@ -798,23 +798,23 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             }
         }
         nVtx = d->nVtx;
-        if (PTR_INVALID(info->pPosBuf[pG->vtx_buf_no]) || PTR_INVALID(src)) {
+        if (PTR_INVALID(info->pPosBuf[pG->DblBufIdx]) || PTR_INVALID(src)) {
             pLog->err(0, 0, "ComnScreenMatSub() PTR ERR");
             return 0;
         }
-        CalcSk1_x(info->pPosBuf[pG->vtx_buf_no], src, nVtx);
-        DCStoreRangeNoSync(info->pPosBuf[pG->vtx_buf_no], d->nVtx * 6);
+        CalcSk1_x(info->pPosBuf[pG->DblBufIdx], src, nVtx);
+        DCStoreRangeNoSync(info->pPosBuf[pG->DblBufIdx], d->nVtx * 6);
         setupGQR6(0x32073207);
         nsrc = d->nrmOrig;
         n = d->nNrm;
         if (d->flags & 0x20000000) {
-            void* dst = info->pNrmBuf[pG->vtx_buf_no];
+            void* dst = info->pNrmBuf[pG->DblBufIdx];
             setupGQR6(0x20062006);
             CalcSk1_x2(dst, nsrc, n);
         } else {
-            CalcSk1_x(info->pNrmBuf[pG->vtx_buf_no], nsrc, n);
+            CalcSk1_x(info->pNrmBuf[pG->DblBufIdx], nsrc, n);
         }
-        DCStoreRangeNoSync(info->pNrmBuf[pG->vtx_buf_no], d->nNrm * 6);
+        DCStoreRangeNoSync(info->pNrmBuf[pG->DblBufIdx], d->nNrm * 6);
     }
     return 1;
 }
@@ -991,10 +991,10 @@ void Render()
     StaFlagOff(pG, STA_SCISSOR);
     SetScissorState();
     ExecOt(0x13);
-    save = pG->Cam;
-    pG->Cam = itemCamera;
+    save = pG->Camera;
+    pG->Camera = itemCamera;
     ExecOt(0x14);
-    pG->Cam = save;
+    pG->Camera = save;
     c.r = c.g = c.b = c.a = 0;
     GXSetFog(0, 0.0f, 0.0f, FRef(ZNEAR), FRef(ZFAR), c);
     ExecOt(0x15);
@@ -1039,7 +1039,7 @@ void ModelRender(cModel* m)
         GXSetAlphaUpdate(1);
         GXSetDstAlpha(1, 0);
     }
-    commonModelTrans(m, m->pModelInfo, pG->Cam.v_mat, 0);
+    commonModelTrans(m, m->pModelInfo, pG->Camera.v_mat, 0);
     if (modeltransalphaupdate) {
         GXSetAlphaUpdate(0);
         GXSetDstAlpha(0, 0);
@@ -1094,7 +1094,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     efbDone = 0;
     matSet = 0;
     while (info != 0) {
-        ModelData* d;
+        cModelData* d;
         void* tex;
         f32 (*mat0)[4];
         u16 nParts;
@@ -1187,11 +1187,11 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 GXSetArray(10, d->nrmOrig, 8);
             }
         } else {
-            GXSetArray(9, info->pPosBuf[pG->vtx_buf_no], 6);
+            GXSetArray(9, info->pPosBuf[pG->DblBufIdx], 6);
             if (d->flags & 0x20000000) {
-                GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 3);
+                GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 3);
             } else {
-                GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
+                GXSetArray(10, info->pNrmBuf[pG->DblBufIdx], 6);
             }
         }
         switch (m->CullMode) {
@@ -2085,9 +2085,9 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     u32 mask;
 
     k.a = k.b = k.g = 0xFF;
-    PSMTXMultVec(pG->Cam.v_mat, pos, &p);
+    PSMTXMultVec(pG->Camera.v_mat, pos, &p);
     GXInitLightPos(&lobj, p.x, p.y, p.z);
-    PSMTXMultVecSR(pG->Cam.v_mat, dir, &d);
+    PSMTXMultVecSR(pG->Camera.v_mat, dir, &d);
     GXInitLightDir(&lobj, d.x, d.y, d.z);
     GXInitLightSpot(&lobj, 89.0f, 4);
     GXInitLightDistAttn(&lobj, 0.0f, 0.0f, 0);
@@ -2452,8 +2452,8 @@ void SetPrimBuffPtr()
     if (pG->prim_cnt == 0) {
         return;
     }
-    U32Set(pG->vtx_buf_no, pG->vtx_buf_no ^ 1);
-    gx->prim = (u8*) pG->prim_cnt + pG->nPrim * pG->vtx_buf_no;
+    U32Set(pG->DblBufIdx, pG->DblBufIdx ^ 1);
+    gx->prim = (u8*) pG->prim_cnt + pG->nPrim * pG->DblBufIdx;
 }
 
 // Allocates `size` bytes (32-byte aligned) from this frame's primitive buffer; 0 when exhausted.
@@ -2469,7 +2469,7 @@ void* GetPrimBuff(int size)
         pLog->err(0, 0, "GetPrimBuff() PTR ERR %08X", base);
         return 0;
     }
-    limit = base + pG->nPrim * (pG->vtx_buf_no + 1);
+    limit = base + pG->nPrim * (pG->DblBufIdx + 1);
     size = (size + 0x1F) / 32 * 32;
     p = gx->prim;
     next = p + size;
@@ -2686,7 +2686,7 @@ static void updateMatrices(Mtx m, Mtx dst, cModel* model)
     f32 ind[2][3];
     Mtx inv2;
 
-    PSMTXConcat(pG->Cam.v_mat, m, mv);
+    PSMTXConcat(pG->Camera.v_mat, m, mv);
     PSMTXInverse(mv, inv);
     PSMTXTranspose(inv, t);
     PSMTXInverse(mv, inv2);
@@ -2731,7 +2731,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         Mtx m2;
         Mtx proj;
         mtx = getTexMtx();
-        C_MTXLightPerspective(proj, pG->Cam.param.fovy, 1.33333333f, 0.5f, -0.66666667f, 0.5f, 0.5f);
+        C_MTXLightPerspective(proj, pG->Camera.param.fovy, 1.33333333f, 0.5f, -0.66666667f, 0.5f, 0.5f);
         PSMTXConcat(proj, mv, m2);
         GXLoadTexMtxImm(m2, mtx, 0);
     }

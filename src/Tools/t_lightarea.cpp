@@ -10,6 +10,7 @@
 #include "t_util.h"
 #include "em.h"
 #include "st_mgr_event.h"
+#include "player.h"
 
 // Light area editor (Tools/t_lightarea.cpp): a cDbgToolMain<LIGHT_AREA> over the room's 32 light
 // areas (.sar files, game/light_area.cpp's LightAreaData). The works and the file image live on the
@@ -17,16 +18,10 @@
 
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
-// game/sub2.cpp; really takes Vec*, declared by value here (same ABI) so the caller copies its Vec.
-int GetScreenPos(Vec pos, Vec* scr);
 int LightAreaDataLoad(void* data);
 void LightAreaUpdate();
 }
 
-class cPlayer;
-extern cPlayer* pPL;
-// the player as its cModel base (player.h would bring math_sub.h's pointer GetScreenPos)
-static inline cModel* PlModel() { return (cModel*) pPL; }
 
 // The unit's own debug-heap new/delete (the module's copies: every Tools unit's `new` resolves here).
 void* __builtin_new(unsigned int size)
@@ -101,7 +96,7 @@ void InitWork(LIGHT_AREA* w, int no)
 {
     memclr_asm(w, sizeof(LIGHT_AREA));
     w->no = no;
-    AreaDataInit(&w->area, &PlModel()->pos, 1, 7000.0f, 5000.0f);
+    AreaDataInit(&w->area, &pPL->pos, 1, 7000.0f, 5000.0f);
 }
 
 // Position column pressed: the shared AreaDataEdit editor on the slot's area; 0 on B.
@@ -458,7 +453,8 @@ void ToolLightAreaMain()
                     if (IsWorkAlive(w)) {
                     AreaGetCenterPos(&pos, &w->area);
                     pos.y = (pos.y + w->area.u.xz4.height) * 0.5f;
-                    if (GetScreenPos(pos, &scr) == 1) {
+                    Vec posCopy = pos;
+                    if (GetScreenPos(&posCopy, &scr) == 1) {
                         if (i == tool.GetEdit()->GetCurrentNo()) {
                             AreaDataDisp(&w->area, 0xA0FF8080, 0, 0);
                             eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->pl_light_no);
@@ -472,7 +468,7 @@ void ToolLightAreaMain()
             if (cam) {
                 int c = cnt;
 
-                CamDbg.move(&pG->Cam, &Joy[0], 1);
+                CamDbg.move(&pG->Camera, &Joy[0], 1);
                 cnt = (u8) (c + 1);
                 if (c & 8) {
                     eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");
@@ -501,7 +497,7 @@ void ToolLightAreaMain()
                 if (Joy[0].trg & 0x10) {
                     // preview: play with the edited areas
                     preview ^= 1;
-                    ((cUnitEventView*) pPL)->endEvent(0);
+                    pPL->endEvent(0);
                     DbgFlagOff(pG, DBG_DBG_CAM);
                     SysFlagOn(pG, SYS_SCISSOR_ON);
                 }

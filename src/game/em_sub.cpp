@@ -26,17 +26,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);   // motion.cpp
 }
-
-// EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to
-// them is masked at the call (`clrlwi 24`, EmDmBloodSet2/3).
-void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
-// AtSphereCapsuleCk with the float arguments declared first (atari_init.h idiom): the original
-// issues the `fmr` argument moves before the `addi r4` of the second point (emSphereAtCk).
-u32 AtSphereCapsuleCkF(Vec* c, f32 r, f32 r2, Vec* p0, Vec* p1) asm("AtSphereCapsuleCk");
 
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
@@ -335,7 +328,7 @@ void EmDmBloodSet(cEm* em)
 }
 
 // Effect `no` at the damage position (scattered by 50 when `rnd` is set), owned by `em`.
-void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
+void EmDmBloodSet2(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
 {
     Vec pos;
     Vec dir;
@@ -348,11 +341,11 @@ void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &dir, no, prm, esp_core_flg, f, (u32) em, 0);
+    EstSet(0, -1, &pos, &dir, no, prm, esp_core_flg, f, em, 0);
 }
 
 // EmDmBloodSet2 with the effect aligned to the enemy's rotation instead of the damage direction.
-void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
+void EmDmBloodSet3(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
 {
     Vec pos;
     Vec dir;
@@ -365,11 +358,11 @@ void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, (u32) em, 0);
+    EstSet(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, em, 0);
 }
 
 // Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
-void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
+void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 {
     cPlayer* pl = pPL;
     YARARE_INFO* hit = &pl->hitInfo;
@@ -420,7 +413,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 }
 
 // Blood at the player's registered damage position.
-void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
+void EmPlBloodSet2(cModel* m, Vec* p, u32 type, u8 eff_id, u8 est_id)
 {
     Vec pos;
     Vec dir;
@@ -441,7 +434,7 @@ void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
 }
 
 // EmPlBloodSet for the partner.
-void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
+void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 {
     cSubChar* sub = pSUB;
     YARARE_INFO* hit;
@@ -564,7 +557,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
         up.z = p->width;
         PSMTXMultVecSR(parts->mat, &up, &up);
         r = PSVECMag(&up);
-        if (AtBoxCapsuleCk3(box, &top, r, &bottom) == 0) {
+        if (AtBoxCapsuleCk3(box, &top, &bottom, r) == 0) {
             continue;
         }
         PSMTXMultVec(mat, &center, &up);
@@ -613,7 +606,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
@@ -637,7 +630,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
                 continue;
             }
         }
@@ -680,7 +673,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
@@ -704,7 +697,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
                 continue;
             }
         }
@@ -737,7 +730,7 @@ static f32 emLineAtCkDead(f32 len, f32 step)
 }
 
 // Segment a-b against the capsule top-bottom of radius r: 1 with the entry point in `hit`.
-int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
+int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
 {
     Mtx m;
     Mtx inv;
@@ -798,14 +791,14 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     if ((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z) <= 0.1f) {
         return 0;
     }
-    if (LineSphereCrossCk(a, b, top, &c, r)) {
+    if (LineSphereCrossCk(a, b, top, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
             *hit = c;
             return 1;
         }
     }
-    if (LineSphereCrossCk(a, b, bottom, &c, r)) {
+    if (LineSphereCrossCk(a, b, bottom, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
             *hit = c;
@@ -851,7 +844,7 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
 }
 
 // Segment a-b against the box (sx, sy, sz) at `ofs` in the space of `m`: the six faces as quads.
-int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit)
+int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* hit, f32 sx, f32 sy, f32 sz)
 {
     Mtx mat;
     Vec poly[4];
@@ -1099,7 +1092,7 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             rr = PSVECMag(&s);
-            if (AtSphereCapsuleCkF(pos, r, rr, &top, &bottom) == 0) {
+            if (AtSphereCapsuleCk(pos, r, &top, &bottom, rr) == 0) {
                 continue;
             }
         }
@@ -1675,7 +1668,7 @@ int PlBombHitCk(Vec* pos, f32 r)
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
     PlSetDamage(8, 0, 0);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
 }
 
@@ -1795,7 +1788,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
 
 // Hit box of `em` the sphere (pos, r) touches, stepping along each capsule's axis; the contact
 // point on the axis goes to `out`.
-YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
+YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
 {
     Vec top;
     Vec bottom;
@@ -1806,7 +1799,7 @@ YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
     f32 rr;
     f32 len;  // the axis length, then the step (one variable: it lives across the VECNormalize call)
     u32 n;
-    register s16 hm asm("r5"); // COMPILER-DIFF: #8
+    s16 hm;
 
     // COMPILER-DIFF: #8 -- the original ranks `mr r26,r5` (out) after `fmr f28,f1`, i.e. as if r5
     // did not die at the copy; the HImode read of r5 keeps it live past the copy (docs/matching.md #8).
@@ -1913,7 +1906,7 @@ void EmYarareDisp(cEm* em)
         }
         if (p->flags & 8) {
             parts = HitParts(em, p);
-            AtCubeDisp(parts->mat, p->width, p->height, p->depth, &p->ofs, color);
+            AtCubeDisp(parts->mat, &p->ofs, p->width, p->height, p->depth, color);
         } else {
             bottom = p->ofs;
             top = p->ofs;
@@ -2541,7 +2534,7 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     em->pEmCatch = sub;
     sub->pEmCatch = em;
     sub->subArc = em->subArc;
-    SetSubDamage(em, (void*) a);
+    SetSubDamage(em, (void (*)()) a);
 }
 
 // Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by
@@ -2695,8 +2688,10 @@ int GetBulletPoint()
         pt = n / 2 + 1;
     }
     pt += ItemMgr.bulletNumTotal(0x18) * 2;
-    pt += (u32) ItemMgr.bulletNumTotal(0x20) / 5 + 1;
-    pt += (u32) ItemMgr.bulletNumTotal(0x6A) / 5 + 1;
+    n = ItemMgr.bulletNumTotal(0x20);
+    pt += n / 5 + 1;
+    n = ItemMgr.bulletNumTotal(0x6A);
+    pt += n / 5 + 1;
     ItemMgr.bulletNumTotal(0x72);
     return pt + 5;
 }
@@ -3146,7 +3141,7 @@ void EmSetDropItem(cEm* em)
         if (BullItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
-        SceAtCancelItemAt((int) em);
+        SceAtCancelItemAt(em);
         SceAtCreateItemAt(&em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1, 0, -1);
     } else {
         RandomItemSet(em);
@@ -3175,7 +3170,7 @@ void EmReserveDropItem(cEm* em)
         em->Item_id = id;
         em->Item_num = num;
     }
-    SceAtReserveItemAt((int) em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
+    SceAtReserveItemAt(em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
 }
 
 // Random drop for the enemy type (RandomItemCk) placed at the enemy.
@@ -3425,7 +3420,7 @@ int HandgunCk(int wep)
 }
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame.
-void GetPlPos(Vec* out, cEm* em, f32 t)
+void GetPlPos(Vec* out, f32 t, cEm* em)
 {
     Vec d;
     cModel* parts;
@@ -3440,7 +3435,7 @@ void GetPlPos(Vec* out, cEm* em, f32 t)
 }
 
 // Item dropped on the mine cart (room 21B): created on the cart the position is above; 1 when so.
-int TrolleyItemSetCk(Vec* pos, u16 id, int num)
+int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
 {
     Vec out;
     u8 parts;
@@ -3467,7 +3462,7 @@ int TrolleyItemSetCk(Vec* pos, u16 id, int num)
 }
 
 // Item dropped on the bulldozer (room 30F).
-int BullItemSetCk(Vec* pos, u16 id, int num)
+int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
 {
     Vec out;
     u8 parts;
@@ -3494,9 +3489,9 @@ int BullItemSetCk(Vec* pos, u16 id, int num)
 }
 
 // Sets the offset VehicleAdjust adds to positions on the bulldozer stage.
-void adjust_add_set(Vec* v)
+void adjust_add_set(Vec add)
 {
-    adjust_add = *v;
+    adjust_add = add;
 }
 
 // Move `pos` with the vehicle it stands on (mine cart in room 21B, bulldozer in room 30F): 1 when a

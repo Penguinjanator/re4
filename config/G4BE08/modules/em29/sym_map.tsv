@@ -30,8 +30,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002B74	0x180	em29/em29.cpp	global	em29CallSe__FP5cEm29i	em29CallSe
 .text	0x00002CF4	0x108	em29/em29.cpp	global	em29AtkCk__FP5cEm29i	em29AtkCk
 .text	0x00002DFC	0xCC	em29/em29.cpp	local	plem29_BatRush__FP7cPlayer	plem29_BatRush
-.text	0x00002EC8	0x4	em29/em29.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002ECC	0x4	em29/em29.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00002EC8	0x4	em29/em29.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002ECC	0x4	em29/em29.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002ED0	0x20	em29/em29.cpp	global	_._5cEm29	cEm29::~cEm29
 .text	0x00002EF0	0x48	em29/em29.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00002F38	0x4	em29/em29.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

@@ -79,8 +79,8 @@ void Filter08Trans()
         filter08_ratio += (1.0f - filter08_ratio) * 0.25f;
     }
     if (pl->Wep->getMarkerPos(&pos)) {
-        PSMTXMultVec(pG->Cam.v_mat, &pos, &pos);
-        PSMTX44MultVec(pG->Cam.ProjMat, &pos, &pos);
+        PSMTXMultVec(pG->Camera.v_mat, &pos, &pos);
+        PSMTX44MultVec(pG->Camera.ProjMat, &pos, &pos);
         g_cx2 = pos.x * 0.5f * 1.2f + 0.5f;
         g_cy2 = -pos.y * 0.5f * 0.9f + 0.5f;
     } else {

@@ -15,6 +15,7 @@
 #include "math_sub.h"
 #include "snd.h"
 #include "pl_wep.h"
+#include "motion.h"
 
 // Helicopter missile: follows a parts of the helicopter (R0_Parent), waits (R0_FireWait), flies
 // toward its target and explodes on the scenario / an enemy (R0_Fire, objMissileBomb).
@@ -28,7 +29,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objMissile_R0_Set(cObjMissile* obj);
 void objMissile_R0_Parent(cObjMissile* obj);
 void objMissile_R0_FireWait(cObjMissile* obj);
@@ -82,7 +82,7 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     obj->type = type;
     w->pHit = 0;
     if (obj->type == 1) {
-        w->pHit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, &obj->ang, 1);
+        w->pHit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, &obj->ang, 1);
         if (w->pHit) {
             w->pHit->hp = 0;
             YarareInitCube(w->pHit, 0.0f, -300.0f, -300.0f, 300.0f, 600.0f, 600.0f, 1, 5);
@@ -198,7 +198,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet((int) obj, -1, 0, 0, 0x32, 4, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x32, 4, 0, 0, obj, 0);
             break;
         case 1:
             break;
@@ -300,7 +300,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet((int) obj, -1, 0, 0, 0x32, 5, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x32, 5, 0, 0, obj, 0);
             SndCall(6, 2, &obj->pos, 0, 0, obj);
             w->Spd.x = 0.0f;
             w->Spd.y = 0.0f;

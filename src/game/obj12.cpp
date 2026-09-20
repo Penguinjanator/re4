@@ -10,6 +10,7 @@
 #include "snd.h"
 #include "rnd.h"
 #include "pad.h"
+#include "motion.h"
 
 // Hanging object that can be thrown and falls as a three-point rope (obj00 variant with a rope
 // type, a life counter and a throw routine).
@@ -37,7 +38,6 @@ struct Obj12Node {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 }
 
@@ -330,7 +330,7 @@ void cObj12::fallMove()
     if (!(w->be_flag & 4)) {
         return;
     }
-    floor = EatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         p = &node[i];
         p->spd.x = (f32) w->fallSpd[i][0] * 0.1f;
@@ -512,7 +512,7 @@ void cObj12::throwMove()
         w->be_flag &= ~0x100;
         setFall(0, 0);
     } else if (EmAtkHitCk(&obj12Atk, &pos, &pos_old, 1)) {
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         w->be_flag &= ~0x100;
         setFall(0, 0);
     }

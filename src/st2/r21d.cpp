@@ -101,7 +101,6 @@ R21dTrapData r21d_trapTbl[5] = {
     {0x12, 0x11, 0x14, 0},
 };
 
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 void r21d_checkEmResetPoint(Vec* pos, f32* ang);
 static void r21d_setEmReset(int no);
@@ -331,7 +330,7 @@ static void r21d_checkEmReset()
 // Sets list entry `no` into the next free wrap.
 void r21d_addEmSet(int no)
 {
-    cEmWrapSetEmI(&r21d_work.p->em[r21d_work.p->emNum], no, -1, 0, 1, 1);
+    r21d_work.p->em[r21d_work.p->emNum].setEm(no, -1, 0, 1, 1);
     r21d_work.p->emNum++;
     r21d_work.p->emSetCount++;
 }
@@ -742,7 +741,7 @@ yes:
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The two fence halves (objects 0x13/0x21): 60-frame move1 up by 2800. Not yet raised (Room_flg bit
@@ -865,7 +864,7 @@ void TRAP::stop(int v)
             SndCall(6, 0xA, 0, 0, 0, 0);                                                       \
             pPL->dmg.set(0, 0x80);                                                             \
             pPL->setNoSuspend(1);                                                              \
-            ((cUnitEventView*) pPL)->beginEvent(0);                                            \
+            pPL->beginEvent(0);                                            \
             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 0x101, 0);                 \
             DiedemoExec(30, 0);                                                                \
         }                                                                                      \

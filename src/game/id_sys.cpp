@@ -23,7 +23,7 @@ double strtod(const char*, char**);
 void OSReport(const char* msg, ...);
 // game/path.cpp
 int FuncPathParametrize(void* path, void* data);
-int FuncPathCalc(void* path, void* data, Vec* out, f32 t);
+int FuncPathCalc(void* path, void* data, f32 t, Vec* out);
 }
 
 extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
@@ -89,24 +89,21 @@ void IDSystem::free()
 }
 
 // 1 when a table of class `type` is currently set (m_set_flag bit).
-int IDSystem::setCk(u8 type)
+int IDSystem::setCk(int type)
 {
-    register int raw asm("r4");  // COMPILER-DIFF: #2 (the original masks the incoming u8 at the entry)
-    u8 t = raw;
+    u8 t = type;
     return IdBitChk(m_set_flag, t);
 }
 
 // Shows (sw 1) or hides (sw 0) every unit of class `type` at draw time (m_disp_off bit).
-void IDSystem::dispSw(u8 type, int sw)
+void IDSystem::dispSw(int type, int sw)
 {
-    register int r4v asm("r4");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
-    int raw = r4v;
     switch (sw) {
     case 1:
-        IdBitOff(m_disp_off, (u8) raw);
+        IdBitOff(m_disp_off, (u8) type);
         break;
     case 0:
-        IdBitOn(m_disp_off, (u8) raw);
+        IdBitOn(m_disp_off, (u8) type);
         break;
     }
 }
@@ -182,16 +179,14 @@ void IDSystem::unitParent(IdUnit* parent, IdUnit* child)
 }
 
 // Finds the live unit with mark id `id` of class `type`; logs and returns a static dummy when absent.
-IdUnit* IDSystem::unitPtr(u8 id, u8 type)
+IdUnit* IDSystem::unitPtr(u8 id, int type)
 {
     static IdUnit tmpId;
-    register int r5v asm("r5");  // COMPILER-DIFF: #2 (the original masks the u8 at the use)
-    int raw = r5v;
     int i;
     IdUnit* u = pUnit;
 
     for (i = 0; i < m_maxId; i++, u++) {
-        if (u->be_flag != 0xFF && id == u->markNo && (u8) raw == u->classNo) {
+        if (u->be_flag != 0xFF && id == u->markNo && (u8) type == u->classNo) {
             return u;
         }
     }
@@ -221,7 +216,7 @@ static int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
 // copies geometry/colour/flags, resolves path and curve offsets, links parents by number (v2 also
 // recurses into the children of a selected id) and marks the class set. mode 1 is the recursive
 // child pass.
-void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
+void IDSystem::set(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode)
 {
     IdDataHeader* hdr = (IdDataHeader*) data;
     IdData2* p2 = (IdData2*) ((u8*) data + 8);
@@ -233,11 +228,9 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
     IdUnit* u;
     IdUnit* c;
     u32 a;
-    register int r6v asm("r6");  // COMPILER-DIFF: #2 (the original masks the u8 at the use)
-    int raw = r6v;
 
     setCk(type);
-    IdBitOn(m_set_flag, (u8) raw);
+    IdBitOn(m_set_flag, (u8) type);
 
     ver = (int) (f32) strtod((char*) data, 0);
     sysVer = (int) (f32) strtod("2.00", 0);
@@ -481,10 +474,8 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
 
 // Frees the units of class `type` with mark id `id` (0xFF = whole class; type 0xFF = everything)
 // and clears the class set bit.
-void IDSystem::kill(u8 id, u8 type)
+void IDSystem::kill(u8 id, int type)
 {
-    register int r5v asm("r5");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
-    int raw = r5v;
     int i;
     IdUnit* u = pUnit;
 
@@ -492,9 +483,9 @@ void IDSystem::kill(u8 id, u8 type)
         if (u->be_flag == 0xFF) {
             continue;
         }
-        if (raw == 0xFF) {
+        if (type == 0xFF) {
             unitPush(u);
-        } else if ((u8) raw == u->classNo) {
+        } else if ((u8) type == u->classNo) {
             if (id == 0xFF) {
                 unitPush(u);
             } else if (id == u->markNo) {
@@ -502,7 +493,7 @@ void IDSystem::kill(u8 id, u8 type)
             }
         }
     }
-    IdBitOff(m_set_flag, (u8) raw);
+    IdBitOff(m_set_flag, (u8) type);
 }
 
 // Rewinds every live unit's four timers by one step against their direction (holds the animation
@@ -553,7 +544,7 @@ void IDSystem::move()
         return;
     }
     Vec v = { 0.0f, 0.0f, 1.0f };
-    f32 dist = 240.0 / tan(pG->Cam.param.fovy * 0.5f * (PI / 180.0f));
+    f32 dist = 240.0 / tan(pG->Camera.param.fovy * 0.5f * (PI / 180.0f));
     PSMTXIdentity(m_scrn_mat);
     PSVECScale(&v, &v, -dist);
     m_scrn_mat[0][3] = v.x;
@@ -602,7 +593,7 @@ void IDSystem::beMove(IdUnit* u, int sw)
 }
 
 // Sets all four curve timers of a unit and its children to `time` (frames).
-void IDSystem::setTime(IdUnit* u, u16 time)
+void IDSystem::setTime(IdUnit* u, s16 time)
 {
     int i;
     IdUnit* c = pUnit;
@@ -700,8 +691,8 @@ void idSysMove00(IdUnit* u)
         } else {
             t = 0.0f;
         }
-        if (FuncPathCalc(u->path0, u->path1, &u->pos, t) == 0 ||
-            FuncPathCalc(u->path0, u->path1, &tmp, 0.0f) == 0) {
+        if (FuncPathCalc(u->path0, u->path1, t, &u->pos) == 0 ||
+            FuncPathCalc(u->path0, u->path1, 0.0f, &tmp) == 0) {
             memclr_asm(&u->pos, sizeof(Vec));
         } else {
             u->pos.x -= tmp.x;
@@ -1240,7 +1231,7 @@ void IdNegativeTrans(IdUnit* u, u32 mode)
     Mtx tm2;
     Mtx pm;
     Mtx tm;
-    C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
+    C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
     PSMTXConcat(IDSystem::m_scrn_mat, u->mat, tm);
     PSMTXConcat(pm, tm, tm2);
     GXLoadTexMtxImm(tm2, 0x1E, 0);
@@ -1350,7 +1341,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     Mtx tm2;
     Mtx pm;
     Mtx tm;
-    C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
+    C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
     PSMTXConcat(IDSystem::m_scrn_mat, u->mat, tm);
     PSMTXConcat(pm, tm, tm2);
     GXLoadTexMtxImm(tm2, 0x1E, 0);

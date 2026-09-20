@@ -130,8 +130,8 @@ void SetEsp(EspgenWork* w)
         m[2][3] = 0.0f;
         PSMTXMultVec(m, &p->dir_vec, &dir);
     }
-    PSMTXMultVec(pG->Cam.v_mat, &p->pos, &v);
-    PSMTX44MultVec(pG->Cam.ProjMat, &v, &scr);
+    PSMTXMultVec(pG->Camera.v_mat, &p->pos, &v);
+    PSMTX44MultVec(pG->Camera.ProjMat, &v, &scr);
     scr.x = (scr.x * 0.5f + 0.5f) * Screen.width;
     scr.y = (-scr.y * 0.5f + 0.5f) * Screen.height;
     scr.z = 0.0f;
@@ -231,7 +231,7 @@ f32 GetDistAlpha(EspgenWork* w)
     f32 a;
 
     if (p->dist != 0.0f) {
-        cam = &pG->Cam;
+        cam = &pG->Camera;
         d.x = p->pos.x - cam->param.pos.x;
         d.y = p->pos.y - cam->param.pos.y;
         d.z = p->pos.z - cam->param.pos.z;
@@ -259,7 +259,7 @@ f32 GetDirAlpha(EspgenWork* w, Vec* dir)
     f32 c;
 
     ang = LIMIT_ANGLE(p->dir_ang);
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     d.x = p->pos.x - cam->param.pos.x;
     d.y = p->pos.y - cam->param.pos.y;
     d.z = p->pos.z - cam->param.pos.z;
@@ -305,7 +305,7 @@ void HideCheck(cEsp* esp)
     if (!(p->flg & 2)) {
         return;
     }
-    PSMTXMultVec(pG->Cam.v_mat, &p->pos, &v);
+    PSMTXMultVec(pG->Camera.v_mat, &p->pos, &v);
     v.z += 150.0f;
     tmp = 1.0f / (ZFAR - ZNEAR);
     m22 = -(ZNEAR) * tmp;

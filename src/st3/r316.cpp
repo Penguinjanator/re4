@@ -15,6 +15,7 @@
 #include "em.h"
 #include "em_set.h"
 #include "em_wrap.h"
+#include "emdoor.h"
 #include "etc_model.h"
 #include "player.h"
 #include "esp.h"
@@ -38,17 +39,9 @@ struct R316ItemView {
 
 static R316Work* r316_work;
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r316_memset(void*, ...) asm("memset");
-// COMPILER-DIFF: 4 -- `int` table entries reach setEm's s16 parameter unextended (`lwz r3`); ours
-// narrows the load through the real prototype.
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 // Wait for fade `no` to finish: the index stays a separate `addi` on the array base.
 static inline void FadeWait(int no)
 {
@@ -89,7 +82,7 @@ void R316Init()
     StaFlagOff(pG, STA_SUB_ASHLEY);
     EvtMgr.SetFunc("evt_r316s00_func", (void*) Evt_R316S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        EvtMgr.EvtReadAram("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0, 1, 0);
+        EvtMgr.EvtReadAram("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), 0, 1, 0);
         SceExec(0x12, (TaskFunc) R316EventS00, 0, 2, 2, 0);
     } else if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
@@ -98,7 +91,7 @@ void R316Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R316EventSXX, 0, 1);
         if (getRoomEtcDoor(0xD, &door, 1)) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r316_checkHeatEffect, 0, 0, 2, 0);
@@ -179,7 +172,7 @@ static void r316_checkHeatEffect()
     for (;;) {
         if (on == 0) {
             if (SceAtHitCheck(6) == 1) {
-                EstSet(0, -1, 0, 0, 1, 0, 1, (u8) kind, (u32) zero, zero);
+                EstSet(0, -1, 0, 0, 1, 0, 1, (u8) kind, zero, zero);
                 on = 1;
                 SceSleep(30);
             }
@@ -234,7 +227,7 @@ static void r316_checkEmReset()
         }
         if ((u32) SceCountEmAlive(0x10, 0x20) <= 3) {
             if (a == 1 && i <= 1) {
-                setEmI(tbl2[i], -1, 1, 1, 1);
+                setEm(tbl2[i], -1, 1, 1, 1);
                 i++;
             }
             if (b == 1 && c == 0) {
@@ -256,7 +249,7 @@ static void R316EventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0);
+        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), 0);
         SceSetChapterEnd(0xF, -1);
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
         FadeSetW(1, 0, 0, 0);

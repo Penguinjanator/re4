@@ -175,7 +175,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     default: {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
+        at->init(0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x300;
         break;
@@ -183,7 +183,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     case 3: {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         break;
@@ -192,7 +192,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     case 7: {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         break;
@@ -395,9 +395,9 @@ void emBoxDmCk(cEmBox* em)
 // Each break kind carries its own EstSet + fallback pair (a macro in the original: the arms are
 // full copies whose tails the compiler cross-jumps).
 #define EMBOX_BREAK_EFF(no, fallback)                                                       \
-    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, no, 1, 0, (u32) em, 0);                     \
+    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, no, 1, 0, em, 0);                     \
     if (w->Break_bin == 0 && w->Break_tpl == 0) {                                            \
-        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, 0, (u32) em, 0);           \
+        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, 0, em, 0);           \
     }
 
 // Breaks the box: hides the model, spawns the break est of Eff_id (kind 0 shot / 1 blast / 2
@@ -441,7 +441,7 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
             }
             break;
         case 4:
-            EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 1, 0, (u32) em, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 1, 0, em, 0);
             break;
         }
     }
@@ -604,9 +604,9 @@ void cEmBox::setEff(u8 eff)
     }
     if (w->Break_bin == 0 && w->Break_tpl == 0 && w->Eff_id != 0xFF && type != 4) {
         if (type != 5) {
-            EstSet(0, -1, &pos, &ang, w->Eff_id, 4, 1, 0, (u32) this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 4, 1, 0, this, 0);
         } else {
-            EstSet(0, -1, &pos, &ang, w->Eff_id, 8, 1, 0, (u32) this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 8, 1, 0, this, 0);
         }
     }
     if (w->Break_bin && w->Break_tpl) {
@@ -670,7 +670,7 @@ void emBoxActEvtCk(cEmBox* em)
         return;
     }
     if (pG->room_id == 0x100 || pG->room_id == 0x101 || pG->room_id == 0x103 || pG->room_id == 0x106) {
-        ActBtn.set(1, 5, (int) emBoxAction, (int) em, 0, 1, 0, 0);
+        ActBtn.set(1, 5, (void*) emBoxAction, em, 0, 1, 0, 0);
     }
 }
 

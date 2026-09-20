@@ -43,7 +43,7 @@ struct TexRenderCam {
     CameraMotion cam;    // 0x000
     u8 pad_1D4[0x200 - 0x1D4];
     cCamera* pCam;       // 0x200  &cam
-    Camera save;         // 0x204  pG->Cam while the render camera is active
+    Camera save;         // 0x204  pG->Camera while the render camera is active
     TexRenderEvt* pEvt;  // 0x2FC
     void* data;          // 0x300  motion data for CameraMotion
 };
@@ -62,7 +62,7 @@ void CopyTexRenderMgr(TexRenderMng* m);
 void TransTexRenderMgr();
 void TexRenderInit(TexRenderMng** out, int size, int repType);
 void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepBlendType, int keepRefrect, int keepD6, int keep12C, f32 alpha);
-void TexRenderModRes(cModel* m);
+void TexRenderModRes(cModel* m, u32 parts);
 void TexRenderModAddOt(int ot, cModel* m);
 void TexRenderModAddOtMirror(int ot, cModel* m);
 void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data);

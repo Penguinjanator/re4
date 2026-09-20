@@ -15,7 +15,6 @@
 #include "motion.h"
 
 extern "C" {
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // motion.h declares the one-argument form
 }
 
 static void wep07_r2_ready(cPlayer* pl);
@@ -119,7 +118,7 @@ static void wep07_r3_ready10(cPlayer* pl)
 // ready step 2: finish a motion set by the lock-on turn, then -> set state.
 static void wep07_r3_ready20(cPlayer* pl)
 {
-    if (MotionMoveF(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -187,7 +186,7 @@ static void wep07_r3_fire00(cPlayer* pl)
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x8E), PL_ARC_PTR(arc, 0x90), PL_ARC_PTR(arc, 0x4B), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveF(pl, 0);
+    MotionMove(pl, 0);
     pl->Body->waistMove();
     pl->partsWorldCalc();
     pl->r_no_3 = 1;

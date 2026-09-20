@@ -17,25 +17,8 @@
 #include "quake.h"
 #include "pl_wep.h"
 #include "player.h"
+#include "obj15.h"
 
-// Mounted gatling gun: aims at `target` (the player unless an enemy rides it), fires every third
-// frame once spun up, takes weapon damage on three cEmHit boxes and breaks (R1_Break).
-class cObjGatling : public cObj {
-public:
-    virtual void move();
-    virtual ~cObjGatling() {}
-
-    void setRide(cEm* em);
-    void setFire();
-    void stopFire();
-    int ckReload();
-    void setReload();
-    void setEat(void* data, int type);
-    void setMaxRot(f32 r);
-    int ckBreak();
-    void setBreakMode(u8 mode);
-    void setBreak();
-};
 
 extern "C" {
 void obj15_R1_Set(cObjGatling* obj);
@@ -51,7 +34,7 @@ void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };
 EmAtkInfo Obj15_atk_info_tbl = { 100.0f, 8, 600, 0, 10, 0 };
 
 // Creates the gatling at pos/rot with its three hit bodies, 40 rounds and no rider.
-cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
+cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     GatlingWork* w;
@@ -104,17 +87,17 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         hrot.x = 0.0f;
         hrot.y = 0.0f;
         hrot.z = 0.0f;
-        w->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
+        w->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[0]) {
             w->hit[0]->setParent(obj, 0, 0);
             YarareInitCube(w->hit[0], 430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
         }
-        w->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
+        w->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[1]) {
             w->hit[1]->setParent(obj, 0, 0);
             YarareInitCube(w->hit[1], -430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
         }
-        w->hit[2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
+        w->hit[2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[2]) {
             w->hit[2]->setParent(obj, 0, 0);
             YarareInitCube(w->hit[2], 0.0f, 0.0f, 0.0f, 300.0f, 1600.0f, 300.0f, 1, 1);
@@ -125,7 +108,7 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
     obj->r_no_3 = 0;
-    return obj;
+    return (cObjGatling*) obj;
 }
 
 // Per-frame: forgets a dead/removed rider, damage check, R1 routine, moves the eat collision with
@@ -381,7 +364,7 @@ int obj15GunHitck(cObjGatling* obj)
     cModel* parts;
     u32 attr;
 
-    EstSet((int) obj, -1, 0, 0, 1, 0x1F, 0, 0, (u32) obj, 0);
+    EstSet(obj, -1, 0, 0, 1, 0x1F, 0, 0, obj, 0);
     SndCall(6, 9, &obj->pos, 0, 0, 0);
     ofs.x = 0.0f;
     ofs.y = 0.0f;
@@ -422,7 +405,7 @@ int obj15GunHitck(cObjGatling* obj)
         }
         return 0;
     }
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     SndCall(6, 0x15, &pPL->pos, 0, 0, 0);
     QuakeExec(0, 0, 5, 22.0f, 2);
     EmPlBloodSet2(obj, &obj->pos, 1, 1, 0x1C);

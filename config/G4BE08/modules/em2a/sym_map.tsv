@@ -31,8 +31,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000229C	0x164	em2a/em2a.cpp	global	em2aTrap1CamMove__FP5cEm2a	em2aTrap1CamMove
 .text	0x00002400	0xBC	em2a/em2a.cpp	global	em2aTrap1BiteCk__FP5cEm2a	em2aTrap1BiteCk
 .text	0x000024BC	0xE0	em2a/em2a.cpp	global	em2aTrap1BiteSubCk__FP5cEm2a	em2aTrap1BiteSubCk
-.text	0x0000259C	0x4	em2a/em2a.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000025A0	0x4	em2a/em2a.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000259C	0x4	em2a/em2a.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000025A0	0x4	em2a/em2a.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000025A4	0x20	em2a/em2a.cpp	global	_._5cEm2a	cEm2a::~cEm2a
 .text	0x000025C4	0x48	em2a/em2a.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000260C	0x4	em2a/em2a.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

@@ -123,8 +123,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00010D5C	0xC0	em2d/em2d.cpp	global	em2dReturnPosCk__FP5cEm2d	em2dReturnPosCk
 .text	0x00010E1C	0x21C	em2d/em2d.cpp	global	em2dHumSeMove__FP5cEm2d	em2dHumSeMove
 .text	0x00011038	0x90	em2d/em2d.cpp	global	em2dNoWallCk__FP5cEm2d	em2dNoWallCk
-.text	0x000110C8	0x4	em2d/em2d.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000110CC	0x4	em2d/em2d.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000110C8	0x4	em2d/em2d.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000110CC	0x4	em2d/em2d.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000110D0	0x20	em2d/em2d.cpp	global	_._5cEm2d	cEm2d::~cEm2d
 .text	0x000110F0	0x48	em2d/em2d.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00011138	0x4	em2d/em2d.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

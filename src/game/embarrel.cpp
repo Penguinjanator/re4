@@ -104,7 +104,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -185,7 +185,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -613,7 +613,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         w->rollSe = 0;
         if ((Rnd() & 3) == 0) {
             w->rollSe = 1;
-            EstSet((int) em, -1, 0, 0, 1, 4, 0, w->EffKindId, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 1, 4, 0, w->EffKindId, em, 0);
         }
         w->Se_wait = 0;
         w->floorOfs = 700.0f;
@@ -637,7 +637,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         }
         w->Roll_spd.y -= 10.0f;
         PSVECAdd(&em->pos, &w->Roll_spd, &em->pos);
-        floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < floor + w->floorOfs) {
             em->pos.y = floor + w->floorOfs;
             w->Roll_spd.y *= -0.3f;
@@ -809,7 +809,7 @@ void emBarrelSetBomb(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 6000.0f;
-    cam = &pGS->Cam;
+    cam = &pGS->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
@@ -859,7 +859,7 @@ void emBarrelSetBomb2(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 4000.0f;
-    cam = &pGS->Cam;
+    cam = &pGS->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
@@ -910,7 +910,7 @@ void emBarrelEatSet(cEmBarrel* em)
         v[3].x = -r;
         v[3].y = 0.0f;
         v[3].z = r;
-        w->sat = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, 1250.0f);
+        w->sat = EatMgr.create(&em->pos, &em->ang, v, 1250.0f, 0x400000, 0);
     } else {
         w->sat->m_Flag |= 4;
         w->sat->setCoord(&em->pos, &em->ang);
@@ -958,7 +958,7 @@ int emBarrelRollHitCk(cEmBarrel* em)
     }
     LifeDownSet(pPL, 600, 0);
     PlSetDamage(8, 0, 0);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     return 1;
 }

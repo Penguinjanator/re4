@@ -29,9 +29,6 @@ struct R329Work {
 static R329Work* r329_work;
 
 void Obj18CmfOn(cObj* obj, u32 no);
-// The list id is masked to a byte at the EmReadSearch call: the room build's prototype returned int (r40e's
-// build already had the u8 return that drops the mask).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // The s00 player position is written through the Vec pointer (the target's `mr r4, r9` + `4(r9)`/`8(r9)`
 // stores with the x store folded back onto r1).
@@ -61,7 +58,7 @@ void R329Init()
         if (DebugTrg(1) == 0) {
             SceExec(0x12, (TaskFunc) R329EventS00, 0, 0, 2, 0);
         }
-        EmReadSearch((u8) GetEmIdFromListI(0x95), 0, 0);
+        EmReadSearch((u8) GetEmIdFromList(0x95), 0, 0);
         SmdSetTrans(0x30, 1);
         SmdSetTrans(0x31, 1);
         SmdSetTrans(0x2E, 0);

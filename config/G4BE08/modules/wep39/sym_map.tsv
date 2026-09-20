@@ -22,15 +22,15 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001588	0x174	wep39/wep39.cpp	global	setCartridge__14cObjMachinegun	cObjMachinegun::setCartridge
 .text	0x000016FC	0x12C	wep39/wep39.cpp	global	moveReload__14cObjMachinegun	cObjMachinegun::moveReload
 .text	0x00001828	0x25C	wep39/wep39.cpp	global	setMotion__14cObjMachinegunP7cPlayer	cObjMachinegun::setMotion
-.text	0x00001A84	0x38	wep39/wep39.cpp	global	ObjMachinegun_init__FP4cObj	ObjMachinegun_init
+.text	0x00001A84	0x38	wep39/wep39.cpp	local	ObjMachinegun_init__FP4cObj	ObjMachinegun_init
 .text	0x00001ABC	0x5C	wep39/wep39.cpp	global	_prolog	_prolog
 .text	0x00001B18	0x10	wep39/wep39.cpp	global	_epilog	_epilog
 .text	0x00001B28	0x4	wep39/wep39.cpp	global	_unresolved	_unresolved
 .text	0x00001B2C	0x3B8	wep39/wep39.cpp	global	fn_wep39_1B2C	.
 .text	0x00001EE4	0xBC	wep39/wep39.cpp	global	countActiveWork__t8cManager1Z4cObj	cManager<cObj>::countActiveWork
 .text	0x00001FA0	0x170	wep39/wep39.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
-.text	0x00002110	0x4	wep39/wep39.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002114	0x4	wep39/wep39.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00002110	0x4	wep39/wep39.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002114	0x4	wep39/wep39.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002118	0x20	wep39/wep39.cpp	global	_._14cObjMachinegun	cObjMachinegun::~cObjMachinegun
 .text	0x00002138	0x48	wep39/wep39.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00002180	0x4	wep39/wep39.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

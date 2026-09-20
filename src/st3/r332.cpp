@@ -49,8 +49,6 @@
 
 extern "C" char* strstr(const char* s, const char* sub);
 extern "C" void* memcpy(void* d, const void* s, u32 n);
-// The list id as an int return (the callers mask it themselves).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // game/objPillar.cpp
 class cObjPillar : public cObj {
@@ -78,8 +76,6 @@ struct SceElevatorData {
 };
 
 extern "C" void SceElevator(SceElevatorData* d);
-// MotionMove is called with a second argument by the player routines (the DOL definition ignores it).
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 struct R332Bridge {
     int open;   // 0x0  1 while the bridge is open
@@ -312,7 +308,7 @@ void R332Init()
         } else {
             size = size1;
         }
-        EvtMgr.EvtReadAram("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, size);
+        EvtMgr.EvtReadAram("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), 0, 0, size);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(9, 1);
         BitOff(pG->Key_flg[1], 0x00010000);
@@ -367,7 +363,7 @@ void R332Init()
             // The reference-view store keeps the following `pG` load below it (r30c PSetPtr).
 #line 372 "D:/Bio4/Prog/r332.cpp"
             PSet(crane->p2A4, MEM_ALLOC(0x98, 1, 0xd));
-            R332_ARR_SET(hit[0], i * 4, SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 0, 1));
+            R332_ARR_SET(hit[0], i * 4, SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0, 1));
             if (r332_work->hit[i]) {
                 r332_work->hit[i]->setParent(crane, 4, 0);
             }
@@ -497,7 +493,7 @@ static void playerDieBridge(cPlayer* pl)
             pl->r_no_2++;
             pl->r_no_3 = 0;
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     case 2:
         pl->r_no_3++;
@@ -577,7 +573,7 @@ static void playerBridge(cPlayer* pl)
         if (pl->frame > 29.7f && pl->frame < 30.3f) {
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             FSet(pPL->pos.x, pos1[no].x);
             FSet(pPL->pos.y, pos1[no].y);
             FSet(pPL->pos.z, pos1[no].z);
@@ -585,7 +581,7 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->ang.y, rot[no].y);
             FSet(pPL->ang.z, rot[no].z);
             MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0xA, 0x205, 0);
-            MotionMoveF(pl, 0);
+            MotionMove(pl, 0);
             pl->r_no_2++;
         }
         break;
@@ -595,7 +591,7 @@ static void playerBridge(cPlayer* pl)
             IntSet(r332_work->btnCnt, r332_work->btnCnt + 1);
         }
         ActBtn.set(0x19, 0xC, 0, 0, 2, 2, 0, 0);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         IntSet(r332_work->timer, r332_work->timer + 1);
         SceDebugDisp("Button:[%d/%d]", r332_work->btnCnt, 0xA);
         SceDebugDisp("Timer: [%d/%d]", r332_work->timer, 0x5A);
@@ -608,7 +604,7 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->ang.z, rot[no].z);
             if (r332_work->btnCnt > 0xA) {
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 3, 0x201, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 IntSet(r332_work->strBlk, SndStrPlayBlock(1, 0x2F, 0.0f));
                 pl->r_no_2++;
             } else {
@@ -616,14 +612,14 @@ static void playerBridge(cPlayer* pl)
                 AtariOffRaw(&pl->atari, 0xFCFF);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 3, 0x201, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 pl->r_no_2 = 0xA;
             }
         }
         break;
     case 3:
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             BitOn(pPL->be_flag, 0x10);
             BitOff(pG->Room_flg[0], 0x10000000);
             AtariOnRaw(&pl->atari, 0x300);
@@ -633,7 +629,7 @@ static void playerBridge(cPlayer* pl)
         }
         break;
     case 0xA:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -1015,7 +1011,7 @@ static void R332RocketShootMain(int type)
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         EvtMgr.EvtFree("event/evd/r332s20.evd");
     }
-    EvtMgr.EvtReadAram("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
+    EvtMgr.EvtReadAram("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventStart(0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -1034,7 +1030,7 @@ static void R332RocketShootMain(int type)
     VecCopy((u32*) &r332_work->plPos, (u32*) &pPL->pos);
     VecCopy((u32*) &r332_work->plRot, (u32*) &pPL->ang);
     AtariOffRaw(&pPL->atari, 0xFCFF);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
     em = (cEm31*) r332_work->em[1].getPtr();
@@ -1075,7 +1071,7 @@ static void R332RocketShootMain(int type)
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 0x200, 0);
-        EstSet((int) pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
+        EstSet(pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
         pPL->Wep->m_pWep->setDisp(0, 1);
         pPL->Wep->m_pWep->setDisp(1, 1);
         pPL->Wep->m_pWep->setDisp(2, 1);
@@ -1114,7 +1110,7 @@ static void R332RocketShootMain(int type)
                 obj->be_flag |= 0x1000;
                 obj->setNoSuspend(1);
                 MotionSetCore(obj, &obj->Motion, ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0, 0x200, 0);
-                EstSet((int) obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
+                EstSet(obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
             }
         }
         while (MotionGetState(pPL) == 0) {
@@ -1176,7 +1172,7 @@ static void R332RocketShootEnd(int type)
     }
     pPL->setNoSuspend(0);
     BitOn(pPL->be_flag, 2);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     FSet(pPL->pos.x, -53000.0f);
     FSet(pPL->pos.y, 17500.0f);
     FSet(pPL->pos.z, 82500.0f);
@@ -1338,7 +1334,7 @@ static void R332ExecCrane(int no)
         return;
     }
     SceAtSetEnable(atNo, 0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     setPosXYZ(pPL, plPos.x, plPos.y, plPos.z);
     setAngXYZ(pPL, plRot.x, plRot.y, plRot.z);
     loopOn = 1;
@@ -1367,7 +1363,7 @@ static void R332ExecCrane(int no)
         case 1:
             if (MotionGetState(pPL)) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x35), 5, 0, 0x204, 0);
-                r332_work->cam = pG->Cam;
+                r332_work->cam = pG->Camera;
                 step++; // `li r8,2` before the block copy, `mr r28,r8` after it (cse folds step == 1 in the case arm)
             }
             break;
@@ -1461,7 +1457,7 @@ static void R332ExecCrane(int no)
                         BitOff(r332_work->chain[no][k]->be_flag, 2);
                     }
                     ModelInfoSetTrans(crane, 1, 0);
-                    EstSet((int) crane, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
+                    EstSet(crane, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
                     EstSet(0, -1, 0, 0, 1, (u8) estNo, 1, 0, 0, 0);
                     SndCall(6, 9, &pPL->pos, 0, 0, 0);
                 }
@@ -1485,7 +1481,7 @@ void R332ExecCraneEnd(int no, int atNo)
     cPlayer* pl = pPL;
 
     pl->dmg.clear();
-    ((cUnitEventView*) pl)->endEvent(0);
+    pl->endEvent(0);
     pl->m_Hokan = 0xC;
     AtariOnRaw(&pPL->atari, 0x300);
 }
@@ -1501,7 +1497,7 @@ static void R332EventS00()
     RsfSet(G_ROOM_ID, 0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0);
+    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), 0);
     GamePointBossReset();
     r332_work->em[0].setEm(0xA8, -1, 1, 1, 1);
     r332_work->em[1].setEm(0xA9, -1, 1, 1, 1);
@@ -1513,7 +1509,7 @@ static void R332EventS00()
     r332_work->em[0].setFlag(1);
     r332_work->em[1].setNoSuspend(1);
     r332_work->em[0].setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     setPosXYZ(pPL, -29161.0f, 15811.0f, 61102.0f);
     setAngXYZ(pPL, 0.0f, 3.14f, 0.0f);
@@ -1562,14 +1558,14 @@ void R332EventS00End()
     pPL->setNoSuspend(0);
     setPosXYZ(pPL, -32900.0f, 15811.0f, 47140.0f);
     setAngXYZ(pPL, 0.0f, 0.766f, 0.0f);
-    ((cUnitEventView*) pPL)->endEvent(0);
-    EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
+    pPL->endEvent(0);
+    EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {
         Cckpt.m_LifeMeter.flags = (u32) em;
     }
     SndRoomBgmStart(0, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xA, 1, 4, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xB, 1, 5, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xC, 1, 5, 0, 0);
@@ -1598,7 +1594,7 @@ static void R332EventS10()
     R332BridgeOpened(1, 1);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     if ((pG->Room_flg[0] & 0x02000000) == 0) {
-        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0);
+        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), 0);
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     st3_setCountDownTimer(0x127D);
@@ -1620,7 +1616,7 @@ static void R332EventS10()
     SndRoomStrStart(1, 0, 1);
     SndRoomBgmStart(1, 0);
     SndBgmTblSet(0x331, 2);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
 }
 
@@ -1628,7 +1624,7 @@ static void R332EventS10()
 static void R332EventS20()
 {
     RsfSet(G_ROOM_ID, 2);
-    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromListI(0xA9), 0x200);
+    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0x200);
     SceAtSetEnable(0x84, 1);
 }
 

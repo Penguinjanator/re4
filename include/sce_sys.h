@@ -21,7 +21,7 @@ struct ScePrim {
 struct SceCond {
     u32 next;             // 0x00
     void (*func)();       // 0x04
-    int arg;              // 0x08
+    void* arg;            // 0x08
     u8 prio;              // 0x0C
     u8 flag;              // 0x0D
     u8 type;              // 0x0E  0 em dead flag, 1 camera area, 2 enemy life, 3 callback, 4 etc break, 5 item flag
@@ -33,10 +33,10 @@ class cSceSys {
 public:
     int wait;             // 0x00  1 = GXDrawDone before the next task
     int pause;            // 0x04  nonzero: scenario stopped
-    int pExitFunc;               // 0x08
-    int pExitParam;               // 0x0C
-    int pDoorFunc;              // 0x10
-    int pDoorParam;              // 0x14
+    void (*pExitFunc)();         // 0x08
+    void* pExitParam;             // 0x0C
+    void (*pDoorFunc)();        // 0x10
+    void* pDoorParam;            // 0x14
     void (*pCancelFunc)(); // 0x18  task started by SceExecEventCancel
     int cancelArg;        // 0x1C
     u32 SceTaskOt[16];         // 0x20  ordering table, otag[15] is the list head
@@ -113,8 +113,8 @@ ScePrim* SceCTask();
 void SceExecInitCondition();
 int SceExecCheckCondition_sub(SceCond* pP);
 void SceExecCheckCondition();
-void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg, u8 flag);
-void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, int arg, u8 flag);
+void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, void* arg, u8 flag);
+void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, void* arg, u8 flag);
 int EmMoveActiveCheck(cEm* em);
 void SceExecEventCancel();
 void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag);

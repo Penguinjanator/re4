@@ -708,7 +708,7 @@ static void r201_checkDungeonKeyUse()
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 1);
     ScfFlagOn(pG, SCF_81);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceSleep(12);
     r201_setBattleArea(1, 0);
 }
@@ -1043,7 +1043,7 @@ void r201_setSwitchEnv(int on)
         RsfSet(G_ROOM_ID, 5);
         ((cEmBarred*) r201_work.p->barred)->setOpen(0);
         EffectEspgenDelete(0, r201_work.p->effKind, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 3, 1, 0, zero, zero);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(1, 0);
         SceAtSetEnable(3, 0);
@@ -1053,7 +1053,7 @@ void r201_setSwitchEnv(int on)
         zero = 0;
         RsfClear(G_ROOM_ID, 5);
         ((cEmBarred*) r201_work.p->barred)->setClose(0);
-        EstSet(0, -1, 0, 0, 1, 0, 1, r201_work.p->effKind, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0, 1, r201_work.p->effKind, zero, zero);
         SceAtSetEnable(3, 1);
         SceAtSetEnable(0x28, 1);
         SceAtSetEnable(5, 1);

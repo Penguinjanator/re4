@@ -26,7 +26,7 @@
 extern "C" {
 double atan2(double y, double x);
 void ReleaseWepData();                        // game/read.cpp
-void ShapeMove(void* info);                   // game/shape.cpp
+void ShapeMove(cModelInfo* info);                   // game/shape.cpp
 int fanceWidthCheck(cPlayer* pl);
 void fanceAdjust(cPlayer* pl);
 int fallCheck(cPlayer* pl);
@@ -57,8 +57,6 @@ void pl_R1_BoatDrive(cPlayer* pl);
 }
 void Pl_R0_Damage(cPlayer* pl);   // game/pl_dmg.cpp
 void Pl_R0_Die(cPlayer* pl);
-// cSubChar::registPlAction(Vec*, f32) (pl_npc.h) called with an extra `li r5, 0` the original passes.
-void SubCharRegistPlAction(cSubChar* sub, Vec* pos, int a, f32 ang) asm("registPlAction__8cSubCharP3Vecf");
 
 #line 41 "D:/Bio4/Prog/player.cpp"
 #define PL_MEM_ALLOC(size, line) mem_alloc(size, __FILE__, line, 1, 13)
@@ -274,7 +272,7 @@ void cPlayer::init1()
         LightInfo.init2(0, 1, &lightOfs, &lightSize, 1);
     }
     litArea.on(1);
-    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 400.0f, 200.0f, 400.0f, 800.0f, 1, 0x1000, 10);
+    atari.init(0.0f, -200.0f, 0.0f, 400.0f, 200.0f, 400.0f, 800.0f, 1, 0x1000, 10);
     lockOfs.x = 0.0f;
     lockOfs.y = 0.0f;
     lockOfs.z = 0.0f;
@@ -1050,7 +1048,7 @@ void pl_R1_JumpFall(cPlayer* pl)
     pl->stat &= ~0x180;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x5E), (int) PL_ARC_PTR(pG->pPlayer, 0x60), 3, 0x201, 0);
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x5E), PL_ARC_PTR(pG->pPlayer, 0x60), 3, 0x201, 0);
         pl->Neck->motL = 0;
         pl->atari.throughOn();
         pl->Shd_color = 0xFF;
@@ -1065,7 +1063,7 @@ void pl_R1_JumpFall(cPlayer* pl)
         }
         if (pl->frame >= 7.0f) {
             if (fallCheck(pl)) {
-                MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x5F), (int) PL_ARC_PTR(pG->pPlayer, 0x61), 3, 0x201, 0);
+                MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x5F), PL_ARC_PTR(pG->pPlayer, 0x61), 3, 0x201, 0);
                 pl->dmg.clear();
                 pl->atari.throughOff();
                 pl->r_no_2 = 2;
@@ -1130,7 +1128,7 @@ void pl_R1_LevelUp(cPlayer* pl)
             m0 = pl->m_MotTbl2[8];
             m1 = pl->m_MotTbl2[9];
         }
-        MotionSetCore(pl, MOTION(pl), m0, (int) m1, 6, 5, 0);
+        MotionSetCore(pl, MOTION(pl), m0, m1, 6, 5, 0);
         pl->Neck->motL = 0;
         PSVECScale(&pl->m_ActNorm, &pos, 400.0f);
         PSVECAdd(&pos, &pl->m_ActCross, &pos);
@@ -1162,7 +1160,7 @@ void pl_R1_LevelDown(cPlayer* pl)
     case 0:
         pl->stat &= ~0x800;
         pl->atari.throughOn();
-        MotionSetCore(pl, MOTION(pl), pl->m_MotTbl2[10], (int) pl->m_MotTbl2[11], 6, 5, 0);
+        MotionSetCore(pl, MOTION(pl), pl->m_MotTbl2[10], pl->m_MotTbl2[11], 6, 5, 0);
         pl->Neck->motL = 0;
         PSVECScale(&pl->m_ActNorm, &pos, 400.0f);
         PSVECAdd(&pos, &pl->m_ActCross, &pos);
@@ -1262,13 +1260,13 @@ void pl_R1_Fance(cPlayer* pl)
         pl->atari.clrFlag100();
         pl->atari.setPriority(PRI_LV2);
         if (pG->pl_type == 1 || pG->pl_type == 2 || pG->pl_type == 4) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), (int) PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
         } else if (pl->r_no_3 & 4) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), (int) PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
         } else if ((pl->r_no_3 & 2) || fanceWidthCheck(pl)) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), (int) PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), (int) PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
         }
         PSet(pl->Neck->motL, 0);
         if (PlFanceFlag & 1) {
@@ -1434,12 +1432,12 @@ void pl_R1_Fall(cPlayer* pl)
     }
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2D), (int) PL_ARC_PTR(pG->pPlayer, 0x2E), 3, 5, 0);
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2D), PL_ARC_PTR(pG->pPlayer, 0x2E), 3, 5, 0);
         pl->atari.throughOn();
         pl->Neck->motL = 0;
         pl->atari.setPriority(PRI_LV2);
         if (pSUB) {
-            SubCharRegistPlAction(pSUB, &pl->pos, 0, pl->ang.y);
+            pSUB->registPlAction(&pl->pos, pl->ang.y, 0);
         }
         pl->m_Work0 = 0;
         pl->stat &= ~0x800;
@@ -1480,21 +1478,21 @@ void pl_R1_Fall(cPlayer* pl)
         }
         if (pl->m_Work0 == 0) {
             if (GetWaterHeight(&pl->pos, &water) && water > pl->pos.y) {
-                EstSet((int) pl, -1, 0, 0, 1, 0x24, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
                 pl->m_Work0 = 1;
             }
         }
         pl->motionMove();
         if (pl->frame <= (f32) lim) {
-            pl->ang.y += Muku3(&pl->m_FallVec, pl->ang.y, 0.31415927f);
+            pl->ang.y += Muku3(pl->ang.y, &pl->m_FallVec, 0.31415927f);
             break;
         }
         if (fallCheck(pl)) {
             if (pl->m_Work0 == 0) {
-                EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, 0, pl, 0);
             }
-            FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 600.0f, 100000.0f, 0, 0));
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2F), (int) PL_ARC_PTR(pG->pPlayer, 0x30), 0, 5, 0);
+            FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 0, 600.0f, 100000.0f, 0));
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2F), PL_ARC_PTR(pG->pPlayer, 0x30), 0, 5, 0);
             pl->motionMove();
             pl->r_no_2 = 4;
             pl->stat |= 0x800;
@@ -1524,7 +1522,7 @@ void pl_R0_Dijection(cPlayer* pl)
             face->x70 = 0.0f;
             face->x5C = 0.0f;
         }
-        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x57), (int) PL_ARC_PTR(pG->pPlayer, 0x58), 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x57), PL_ARC_PTR(pG->pPlayer, 0x58), 3, 1, 0);
         pl->r_no_1 = 1;
     }
     if (MotionCheckCrossFrame(MOTION(pl), 60.0f)) {
@@ -1571,5 +1569,5 @@ f32 getHeighAdjust(cPlayer* pl)
 
     PSVECScale(&pl->m_ActNorm, &p, -1000.0f);
     PSVECAdd(&p, &pl->m_ActCross, &p);
-    return SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
+    return SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
 }

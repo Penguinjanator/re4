@@ -49,7 +49,7 @@ void cEsp1a::move()
         if (!AnmMove()) {
             PushEsp(this);
         } else {
-            cam = &pG->Cam;
+            cam = &pG->Camera;
             if (parent != pEffParentWorld) {
                 PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             } else {

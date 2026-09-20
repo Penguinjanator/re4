@@ -24,8 +24,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000C48	0x4	pl02/pl02.cpp	global	_unresolved	_unresolved
 .text	0x00000C4C	0x20	pl02/pl02.cpp	global	_._6cPlAda	cPlAda::~cPlAda
 .text	0x00000C6C	0x48	pl02/pl02.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00000CB4	0x4	pl02/pl02.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00000CB8	0x4	pl02/pl02.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00000CB4	0x4	pl02/pl02.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00000CB8	0x4	pl02/pl02.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00000CBC	0x4	pl02/pl02.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .rodata	0x00000054	0x4	pl02/pl02.cpp	local	lbl_pl02_rodata_54	lbl_pl02_rodata_54
 .rodata	0x00000058	0x4	pl02/pl02.cpp	local	lbl_pl02_rodata_58	lbl_pl02_rodata_58

@@ -229,14 +229,11 @@ void incResetNum()
     setResetNum(getResetNum() + 1);
 }
 
-// COMPILER-DIFF: candidate #2 (narrow extension): the int list number reaches setEm's s16 parameter
-// without an `extsh`.
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 
 // Spawn list entry `no` (any list) already alerted; the raw enemy pointer.
 cEm* emset(int no)
 {
-    cEm* em = setEmI(no, -1, 1, 1, 1);
+    cEm* em = setEm(no, -1, 1, 1, 1);
 
     if (em) {
         ((cEmGanado*) em)->setFindPL();
@@ -342,8 +339,8 @@ void R300Init()
         const f32 w = -250.0f;
         const f32 h = 450.0f;
 
-        EstSet((int) SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
-        r300_wk->hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
+        EstSet(SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
+        r300_wk->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
         YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, 1);
     } else {
@@ -1016,7 +1013,7 @@ static void r300_asl_exit()
     SpfFlagOff(pG, SPF_PL);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Area 1: Ashley carried through the gate.
@@ -1127,7 +1124,7 @@ static void r300_mira_exec()
         SceSleep(1);
         r300_wk->cnt = 0;
         pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Cam;
+        r300_wk->cam = pGS->Camera;
         CameraControl* cc = &CamCtrl;
         while (1) {
             ActBtn.set(0x14, 5, 0, 0, 2, 0xB, 0, 0);
@@ -1212,7 +1209,7 @@ static void r300_mirb_exec()
         SceSleep(1);
         r300_wk->cnt = 0;
         pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Cam;
+        r300_wk->cam = pGS->Camera;
         Vec* lp = r300_laser;
         CameraControl* cc = &CamCtrl;
         while (1) {
@@ -1315,7 +1312,7 @@ static void DoorOpen_exit()
         setEm(0x41, -1, 1, 1, 1);
         setEm(0x42, -1, 1, 1, 1);
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The laser burnt through: the gate opens.

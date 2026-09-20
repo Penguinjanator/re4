@@ -15,7 +15,7 @@
 
 extern cModel* pSUB;
 
-int MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);  // game/motion.cpp
+int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
 extern "C" void EmYarareDisp(cModel* m);                                            // game/em_sub.cpp
 extern "C" void DrawOba(cModel* m);                                                 // game/at_mod.cpp
 
@@ -179,7 +179,7 @@ void satMakeTest(cPlayer* pl)
             }
             RotVector(&z0, &pl->ang, &pos);
             PSVECAdd(&pos, &pl->pos, &pos);
-            pS0 = sat->create(&pos, &pl->ang, quad, 0, 0x200, 0.0f);
+            pS0 = sat->create(&pos, &pl->ang, quad, 0.0f, 0, 0x200);
         }
     }
 }
@@ -202,7 +202,7 @@ void localCoordTest(cPlayer* pl)
         if (Joy[0].trg & JOY_X) {
             pl_db_parts_no--;
         }
-        PSMTXConcat(pG->Cam.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
         Draw_local_pos(&vpos, 1000, m);
         eprintf(40, 100, 0, 0, "%5.2f", vpos.x);
         eprintf(40, 116, 0, 0, "%5.2f", vpos.y);

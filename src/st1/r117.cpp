@@ -49,20 +49,7 @@
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 struct R117Work {
     union {
@@ -159,7 +146,7 @@ void R117Init()
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
         W->evd0 = DC.setData(EvtMgr.NameChange("evd/r117s00.evd"));
         W->evd0->setCommand(CMND_ARAM_LOAD, 0, 0);
@@ -181,8 +168,8 @@ void R117Init()
     if (pG->Part == 1) {
         void* zero = 0;
 
-        EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-        EstSet((int) pPL, -1, 0, 0, 1, 0x26, 0x800, 0, (u32) zero, zero);
+        EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+        EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
     }
 }
 
@@ -198,7 +185,7 @@ extern "C" void r117_MechanismInit()
         W->cur[1] = 0;
         W->cur[2] = 0;
         r117_MechanismDisarm();
-        EstSet(0, -1, 0, 0, 1, 0x25, 1, 2, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0x25, 1, 2, zero, zero);
         for (i = 0; i < 4; i++) {
             if (RsfCheck(G_ROOM_ID, i + 0xF)) {
                 W->tgt[0] = i;
@@ -442,7 +429,7 @@ static void r117_EventSaddlerAppear()
     void* zero = 0;
     EffectEspgenDelete(0x2001, 3, 0);
     EffectEfmDelete(0x2001, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, zero, zero);
     SceEventEnd(0);
     f32 ry = -0.46134f;
     StaFlagOn(pG, STA_SUB_ASHLEY);
@@ -457,8 +444,8 @@ static void r117_EventSaddlerAppear()
     SubCharCtrl(SCC_CHASE, 0);
     SndBgmTblSet(0x117, 1);
     SceSetChapterEnd(CHAPTER_2_1, -1);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 0x26, 0x800, 0, (u32) zero, zero);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
 }
 
 static void (*r117_lightMechTbl[2])() = {r117_LightMechanismInit, r117_LightMechanismMove};
@@ -636,7 +623,7 @@ static void r117_LightMechanismEndProc(int mode)
         EffectEspgenDelete(1, 2, 0);
         EffectEfmDelete(1, 2, 0);
         r117_LightSet(0);
-        EstSet(0, -1, 0, 0, 1, 0x25, 0x801, 2, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0x25, 0x801, 2, zero, zero);
     }
     f32 ry = -3.11f;
     cPlayer* pl = pPL;
@@ -698,8 +685,8 @@ static void r117_EventChandelier()
     int ok;
     int loop;
 
-    BEGIN_EVENT(pPL, 0);
-    BEGIN_EVENT(W->smd, 0);
+    pPL->beginEvent(0);
+    W->smd->beginEvent(0);
     FSet(pPL->pos.x, -258.0f);
     FSet(pPL->pos.z, r117_smdPos.z - 5927.0f);
     {
@@ -802,8 +789,8 @@ static void r117_EventChandelier()
         }
         SceSleep(1);
     }
-    END_EVENT(pPL, 0);
-    END_EVENT(W->smd, 0);
+    pPL->endEvent(0);
+    W->smd->endEvent(0);
 }
 
 // Lightning on: the window object 0 to the bright colour (0x5F/0x87/0x9B).

@@ -13,8 +13,7 @@
 
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
-// game/sub2.cpp; really takes Vec*, declared by value here (same ABI) so the caller copies its Vec.
-int GetScreenPos(Vec pos, Vec* scr);
+int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 }
 
 class cPlayer;
@@ -283,7 +282,8 @@ void ToolEspArea()
             if (IsWorkAlive(w)) {
                 AreaGetCenterPos(&pos, &w->area);
                 pos.y = (pos.y + w->area.u.xz4.height) * 0.5f;
-                if (GetScreenPos(pos, &scr) == 1) {
+                Vec posCopy = pos;
+                if (GetScreenPos(&posCopy, &scr) == 1) {
                     u32 col1;
                     u32 col2;
 
@@ -308,7 +308,7 @@ void ToolEspArea()
         if (cam) {
             int c = cnt;
 
-            CamDbg.move(&pG->Cam, &Joy[0], 1);
+            CamDbg.move(&pG->Camera, &Joy[0], 1);
             cnt = (u8) (c + 1);
             if (c & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");

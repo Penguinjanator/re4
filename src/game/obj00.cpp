@@ -8,6 +8,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "snd.h"
+#include "motion.h"
 
 // Hanging object (lamp, sign, ...): follows a parts of its parent with a slerp blend, falls as a
 // three-point rope when cut, fades out when flagged.
@@ -29,11 +30,9 @@ struct Obj00Node {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void obj00FallMove(cObj00* obj);
 void obj00SetOya(cObj00* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 // Per-frame: plays the motion when set; follows the parent (destroyed with it), runs the fall
 // simulation, updates the parts and collision unless flagged, fades out on be_flag 0x20.
@@ -128,7 +127,7 @@ void MotSetObj00(cObj* obj, void* mot, int prm, int a)
     w->pMot = mot;
     w->mot_attr = prm;
     w->motA = a;
-    MotionSetCore(obj, &obj->pMotion, mot, a, 0, (u16) w->mot_attr, 0);
+    MotionSetCore(obj, &obj->pMotion, mot, (void*) a, 0, (u16) w->mot_attr, 0);
 }
 
 // Attaches the object to parts partsNo of `oya` (motion cleared, no catch-up blend).
@@ -374,6 +373,6 @@ void obj00SetOya(cObj00* obj)
 // Gives the object a scenario collision sphere of radius r.
 void cObj00::setScrAtari(f32 r)
 {
-    atariInitF(&sub2B4.atari, 0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r, 1, 0x2000, 10);
+    sub2B4.atari.init(0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r, 1, 0x2000, 10);
     sub2B4.atari.scrOn();
 }

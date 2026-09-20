@@ -154,7 +154,7 @@ void cObj05::move()
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, -0.8f);
                 }
             } else if (w->flags & 1) {
-                f32 floor = EatMgr.getFloor(&p->world, 600.0f, 100000.0f, &attr, 0);
+                f32 floor = EatMgr.getFloor(&p->world, &attr, 600.0f, 100000.0f, 0);
                 f32 ofs = (f32) w->groundOfs;
 
                 if (DbgFlagChk(pG, DBG_IN_ESP_TOOL) && !DbgFlagChk(pG, DBG_ESPTOOL_ONSCR)) {

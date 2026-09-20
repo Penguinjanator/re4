@@ -102,8 +102,6 @@ static void R10b_chkEmDie();
 static void R10b_chkWater();
 static void r10b_GakeEvent();
 extern "C" void Evt_R10BS00_Func(Event* e);
-// The room passes `li r4,0` to the parameterless IdBinocular::cutin (old prototype, r214 idiom).
-void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular");
 extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode);
 extern "C" void Evt_R10BS10_Func(Event* e);
 extern "C" void Evt_R10BS20_Func(Event* e);
@@ -202,8 +200,8 @@ void R10bInit()
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
-    EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 5, 1, 3, zero, zero);
     r10b_work->boat = EmSetFromList2(0xA2, 1);
     RoomEfmRegist(SmdGetGroupObjPtr(0x58), 0x60);
     SetSstAddAreaFlag(0x800);
@@ -385,8 +383,8 @@ static void R10b_chkWater()
                 r10b_effDelete(2);
                 r10b_effDelete(3);
                 SceSleep(1);
-                EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
-                EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
+                EstSet(0, -1, 0, 0, 1, 5, 1, 3, zero, zero);
+                EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
             }
         } else if (pG->Room_flg[2] & 0x80000000) {
             pG->Room_flg[0] |= 0x80000000;
@@ -486,19 +484,19 @@ extern "C" void Evt_R10BS00_Func(Event* e)
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_BINOCULAR)) {
                 StaFlagOn(pG, STA_BINOCULAR);
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
-                r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
+                r10b_work->bino->init(&pG->Camera, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 if (e->NowCut != 1) {
-                    IdBinocularCutinI(r10b_work->bino, 0);
+                    r10b_work->bino->cutin(0);
                 }
                 PSet(r10b_work->focus, &r10b_work->focusObj);
                 r10b_work->focus->init(-1);
             }
-            r10b_work->bino->move(&pG->Cam);
+            r10b_work->bino->move(&pG->Camera);
             break;
         default:
             if (e->NowFrame == 0 && (StaFlagChk(pG, STA_BINOCULAR))) {
                 StaFlagOff(pG, STA_BINOCULAR);
-                r10b_work->bino->quit(&pG->Cam);
+                r10b_work->bino->quit(&pG->Camera);
                 r10b_work->bino->~IdBinocular();
                 r10b_work->focus->quit();
             }
@@ -508,7 +506,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
     case 2:
         if (StaFlagChk(pG, STA_BINOCULAR)) {
             StaFlagOff(pG, STA_BINOCULAR);
-            r10b_work->bino->quit(&pG->Cam);
+            r10b_work->bino->quit(&pG->Camera);
             r10b_work->bino->~IdBinocular();
         }
         SetSstAddAreaFlag(0x800);

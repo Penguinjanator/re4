@@ -36,8 +36,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000043C0	0xAC	em3a/em3a.cpp	global	em3aBossNearCk__FP5cEm3a	em3aBossNearCk
 .text	0x0000446C	0x84	em3a/em3a.cpp	global	em3aEngineSe__FP5cEm3a	em3aEngineSe
 .text	0x000044F0	0x8	em3a/em3a.cpp	global	setAtkWait__5cEm3ai	cEm3a::setAtkWait
-.text	0x000044F8	0x4	em3a/em3a.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000044FC	0x4	em3a/em3a.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000044F8	0x4	em3a/em3a.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000044FC	0x4	em3a/em3a.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00004500	0x20	em3a/em3a.cpp	global	_._5cEm3a	cEm3a::~cEm3a
 .text	0x00004520	0x48	em3a/em3a.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00004568	0x4	em3a/em3a.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

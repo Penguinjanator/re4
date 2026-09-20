@@ -41,8 +41,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // em_sub.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em2aFunc)(cEm2a*);
 
@@ -337,7 +335,7 @@ static void em2a_R0_Init(cEm2a* em)
     }
     }
     at = &em->atari;
-    at->init(3, 0x2000, 10, 0.0f, 0.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1500.0f);
+    at->init(0.0f, 0.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1500.0f, 3, 0x2000, 10);
     zero = 0;
     AtariOff(at, 0xFCFF);
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
@@ -372,11 +370,11 @@ static void em2a_R0_Init(cEm2a* em)
         }
         break;
     case 1:
-        EstSet((int) em, -1, 0, 0, 0x22, 3, 0x800, (u8) w->espKind, (u32) em, (void*) zero);
+        EstSet(em, -1, 0, 0, 0x22, 3, 0x800, (u8) w->espKind, em, (void*) zero);
         EmRoutineSet(em, 1, 6, zero, zero);
         break;
     case 2:
-        EstSet((int) em, -1, 0, 0, 0x22, 5, 0x800, (u8) w->espKind, (u32) em, (void*) zero);
+        EstSet(em, -1, 0, 0, 0x22, 5, 0x800, (u8) w->espKind, em, (void*) zero);
         EmRoutineSet(em, 1, 6, zero, zero);
         break;
     }
@@ -412,7 +410,7 @@ static void em2a_R1_Trap1Set(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -427,13 +425,13 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, MOTION(em), ARC(0xB), (int) ARC(0xD), 5, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xB), ARC(0xD), 5, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         SndCall(1, 0x39, &pPL->pos, 0, 0, pPL);
         EmCatchPLSet(em, 0.0f, 0, (int) plem2a_Trap1Bite, 34.69f, 0.0f, 250.42f);
         w->camTimer = 120;
         w->biteTimer = 10;
-        VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 7, 1);
         l->set = 2;
         em->r_no_2++;
     case 1:
@@ -444,7 +442,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
                 em->r_no_2++;
             }
         } else {
-            if (MotionMoveF(em, 0)) {
+            if (MotionMove(em, 0)) {
                 em->hp = 0;
                 em->r_no_2++;
             }
@@ -457,7 +455,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->hp = 0;
             em->r_no_2++;
         } else {
@@ -473,9 +471,9 @@ static void plem2a_Trap1Bite(cPlayer* pl)
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x10), (int) PL_ARC(0x11), 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), PL_ARC(0x10), PL_ARC(0x11), 5, 1, 0);
         PlSetFace(1);
-        EstSet((int) pl, -1, 0, 0, 0x22, 1, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 0x22, 1, 0, 0, pl, 0);
         LifeDownSet2(pPL, 300, 0, 1);
         pl->dmg.set(0, 0);
         pl->r_no_2++;
@@ -513,7 +511,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
             w->biteTimer--;
             r = EmCatchMotionMove(em, 1.0f, 1.0f);
         } else {
-            r = MotionMoveF(em, 0);
+            r = MotionMove(em, 0);
         }
         if (r) {
             em->r_no_2++;
@@ -524,22 +522,22 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em2aDeadCk(pSUB)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->hp = 0;
         } else {
             em->x3A8 = em->pos;
         }
         break;
     case 4:
-        MotionSetCore(em, MOTION(em), ARC(0x18), (int) ARC(0x19), 5, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x19), 5, 1, 0);
         em->r_no_2++;
     case 5:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -555,7 +553,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1A), 0, 5, 5, 0);
-        EstSet((int) sub, -1, 0, 0, 0x22, 7, 0, 0, (u32) sub, 0);
+        EstSet(sub, -1, 0, 0, 0x22, 7, 0, 0, sub, 0);
         LifeDownSet2(pSUB, 300, 0, 1);
         sub->dmg.set(0, 2);
         sub->r_no_2++;
@@ -570,28 +568,28 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         break;
     case 2:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1B), 0, 5, 5, 0);
-        sub->subHideMode = 0;
+        sub->m_Work0 = 0;
         sub->r_no_2++;
     case 3:
         EmCatchMotionMove(sub, 0.3f, 0.2f);
         LifeDownSet2(pSUB, 3, 0, 1);
         if (sub->plDist2 < 9000000.0f && fabsf(sub->pos.y - pPL->pos.y) < 1000.0f) {
-            ActBtn.set(0x15, 5, (int) em2aResuceAshleyAction, (int) sub, 0, 1, 0, 0);
+            ActBtn.set(0x15, 5, (void*) em2aResuceAshleyAction, sub, 0, 1, 0, 0);
         }
-        if (sub->subHideMode) {
-            sub->subHideMode--;
+        if (sub->m_Work0) {
+            sub->m_Work0--;
         } else {
-            sub->subHideMode = Rnd() % 15 + 30;
+            sub->m_Work0 = Rnd() % 15 + 30;
             SndCall(8, 0xE, &sub->pos, sub->id, 0, sub);
         }
         break;
     case 4:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1C), 0, 5, 1, 0);
-        EstSet((int) sub, -1, 0, 0, 0x22, 8, 0, 0, (u32) sub, 0);
+        EstSet(sub, -1, 0, 0, 0x22, 8, 0, 0, sub, 0);
         sub->r_no_2++;
     case 5:
         sub->dmg.m_Timer = 2;
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             EndSubDamage();
         }
         if (sub->frame > 107.7f && sub->frame < 108.3f) {
@@ -639,7 +637,7 @@ static void plemResuceAshley(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x1D), 0, 3, 1, 0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -652,7 +650,7 @@ static void plemResuceAshley(cPlayer* pl)
 // Installs the rescue cut camera (em2a_rescue_cam) beside the player looking at the trap.
 void plem2aTrapCamMove(cModel* m)
 {
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Camera* cam;
     Vec v;
     Vec a;
@@ -695,17 +693,17 @@ static void em2a_R1_Trap1Break(cEm2a* em)
     switch (em->r_no_2) {
     case 0:
         if (em->r_no_3) {
-            MotionSetCore(em, MOTION(em), ARC(0xC), (int) ARC(0xF), 0, 1, 0);
+            MotionSetCore(em, MOTION(em), ARC(0xC), ARC(0xF), 0, 1, 0);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0xC), (int) ARC(0xE), 0, 1, 0);
+            MotionSetCore(em, MOTION(em), ARC(0xC), ARC(0xE), 0, 1, 0);
             SndCall(8, 0, &em->pos, em->id, 0, em);
-            EstSet((int) em, -1, 0, 0, 0x22, 2, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x22, 2, 0, 0, em, 0);
         }
         l->set = 2;
         em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -722,7 +720,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->hp = 1;
             em->r_no_0 = 1;
             em->r_no_1 = 0;
@@ -741,8 +739,8 @@ static void em2a_R1_Trap1R100(cEm2a* em)
     case 0:
         em->r_no_2++;
     case 1:
-        MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
+        MotionMove(em, 0);
         if (em->flag & 1) {
             em->r_no_2++;
         }
@@ -750,10 +748,10 @@ static void em2a_R1_Trap1R100(cEm2a* em)
     case 2:
         EM_LIST(em->emset_no)->set = 0;
         em->hp = 0;
-        MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -924,23 +922,23 @@ void em2aTrap2Bomb(cEm2a* em)
     em->be_flag &= ~2;
     em->clearStatus(EM_STATUS_ACTIVE);
     SndCall(1, 0x14, &em->pos, em->id, 0, em);
-    EffectEspDelete(0, (u8) w->espKind, (u32) em, 0);
-    EffectEspgenDelete(0, (u8) w->espKind, (int) em);
-    EffectEfmDelete(0, (u8) w->espKind, (int) em);
+    EffectEspDelete(0, (u8) w->espKind, em, 0);
+    EffectEspgenDelete(0, (u8) w->espKind, em);
+    EffectEfmDelete(0, (u8) w->espKind, em);
     water = 0;
     if (GetWaterHeight(&em->pos, &wh)) {
-        if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < wh) {
+        if (SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) < wh) {
             water = 1;
         }
     }
     if (water) {
-        EstSet((int) em, -1, 0, 0, 0x22, 6, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x22, 6, 0, 0, em, 0);
     } else {
         if (em->type == 1) {
-            EstSet((int) em, -1, 0, 0, 0x22, 0, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x22, 0, 0, 0, em, 0);
         }
         if (em->type == 2) {
-            EstSet((int) em, -1, 0, 0, 0x22, 4, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x22, 4, 0, 0, em, 0);
         }
     }
     p = em->getPartsPtr(0);
@@ -959,7 +957,7 @@ void em2aTrap2Bomb(cEm2a* em)
     PSVECAdd(&p->world, &d, &e);
     PlWepHitCheck2(0, &e, &e, 0x13, 2, 3000.0f);
     {
-        Camera* c = &pG->Cam;
+        Camera* c = &pG->Camera;
         f32 dist;
 
         p = em->getPartsPtr(1);
@@ -988,7 +986,7 @@ void em2aTrap2Bomb(cEm2a* em)
 void em2aTrap1CamMove(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    Camera* c = &pG->Cam;
+    Camera* c = &pG->Camera;
     Mtx m;
     Vec v;
 

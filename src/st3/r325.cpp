@@ -26,8 +26,6 @@ struct R325Work {
 
 static R325Work* r325_work;
 
-// The original reads r4 although its prototype has one parameter (r40e).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 void R325EventS00();
 extern "C" void Evt_R325S00_Func(Event* e);
@@ -105,7 +103,7 @@ extern "C" void Evt_R325S00_Func(Event* e)
         } else {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 6);
+                    TexRenderModRes((cModel*) mod, 6);
                 }
                 EffectEspDelete(r325_work->tex[0]->mask | 0x3001, 0, 0, 0);
                 EffectEspgenDelete(r325_work->tex[0]->mask | 0x3001, 0, 0);
@@ -132,7 +130,7 @@ extern "C" void Evt_R325S00_Func(Event* e)
         } else {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 7);
+                    TexRenderModRes((cModel*) mod, 7);
                 }
                 EffectEspDelete(r325_work->tex[1]->mask | 0x3001, 0, 0, 0);
                 EffectEspgenDelete(r325_work->tex[1]->mask | 0x3001, 0, 0);

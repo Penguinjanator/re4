@@ -19,9 +19,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
@@ -80,7 +80,7 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     YarareAddCube(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 8, 1);
     YarareAddCube(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 9, 1);
     YarareAddCube(em, &w->hit[8], -50.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 10, 1);
-    em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -152,7 +152,7 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start: a shield nobody carries is destroyed.
-void cEmShield::beginEvent()
+void cEmShield::beginEvent(u32 mode)
 {
     if (EMSHIELD_WK(this)->pParent == 0) {
         EmMgr.destroy(this);
@@ -564,7 +564,7 @@ void emShield_R1_Parent(cEmShield* em)
     if (w->Fall_wait) {
         w->Fall_wait--;
         if (w->Fall_wait == 0) {
-            em->setFall(20.0f, 0);
+            em->setFall(0, 20.0f);
         }
     }
 }
@@ -597,7 +597,7 @@ void emShield_R1_Fall(cEmShield* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 80.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 80.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -663,7 +663,7 @@ void emShield_R1_Fall(cEmShield* em)
                     SndCall(8, 0xAF, &parts0->world, w->pOldParent->id, 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
                 }
             }
             EffectEspDelete(0, w->estNo, em, 0);
@@ -760,7 +760,7 @@ void cEmShield::setParent(cModel* parent, int partsNo, int flag)
 // initial speed `spd` (rotated +-90 degrees for nodes 1 / 2) or random speeds, stops the motion.
 // Drops the shield: node speeds from `spd` (node 0 as is, nodes 1 / 2 rotated +-90 degrees around Y)
 // or random when NULL.
-void cEmShield::setFall(f32 gravity, Vec* spd)
+void cEmShield::setFall(Vec* spd, f32 gravity)
 {
     EmShieldWork* w = EMSHIELD_WK(this);
     Mtx m;

@@ -45,9 +45,6 @@
 // Room 1-01 (D:/Bio4/Prog/r101.cpp): the village; the first fight, the tower and the enemy resets,
 // the church bell event (s30), the house event (s20), the binocular view (s00) and the door messages.
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
-// an asm-labelled free declaration reproduces the call (same trick as dvd.h ReadCheckInfo).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 struct R101Work {
     s8 emNum;             // 0x00  enemies alive when the fight started (+5 per reset wave)
@@ -326,7 +323,7 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
     Vec zeroVec = {0.0f, 0.0f, 0.0f};
     obj = SetObj01(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), from, &zeroVec, &dir, spd, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 1, 0x12, 2, 1, 0x11, 0, 0x14, (int) zero, (int) zero);
-    EstSet((int) obj, -1, 0, 0, 1, 0x10, 0, 0, (u32) obj, zero);
+    EstSet(obj, -1, 0, 0, 1, 0x10, 0, 0, obj, zero);
 }
 
 // Starts the bell event (s30): the fight is over.
@@ -585,7 +582,7 @@ static void r101_execOperator2()
         SceAtExecute(0xAC);
     }
     SceSleep(1);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Once (Room_flg bit 10): the typewriter terminal 2 with the overwrite type.
@@ -614,7 +611,7 @@ static void r101_DoorCk()
             SceSleep(1);
         }
         SceSleep(1);
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
         SceSleep(30);
         ((cEmDoor*) door)->setNormal();
     }

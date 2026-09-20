@@ -100,7 +100,7 @@ void EspStrip01_setup(cEsp01* esp)
     PSMTXIdentity(esp->m_Mat);
     RotMatrix(esp->m_Mat, &esp->m_Ang);
     TransMatrix(esp->m_Mat, &w->pos0);
-    PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+    PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
     PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);

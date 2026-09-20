@@ -43,18 +43,6 @@ struct R103Shelf {
     u8 door[2];
 };
 
-// em.h's cEm carries the player fields (EmMgr's stride 0xDE0); the class the original puts on the
-// stack here is 0x3E0 (the r103_setCorpse frame). HEADER DEBT: make it a plain `cEm em;` once em.h
-// splits the work area off (r100 has the same class).
-class R103Em : public cModel {
-public:
-    u8 pad_320[0x378 - 0x320];
-    PlArc* subArc;        // 0x378
-    u8 pad_37C[0x3E0 - 0x37C];
-
-    R103Em() asm("__3cEm");
-};
-
 static R103Work* r103_work;
 
 // The original's .data is 8-aligned (r105 has the same).
@@ -196,11 +184,11 @@ extern "C" void r103_openShelf(R103Shelf* s)
 // The ten corpses: scroll objects with the corpse parts models and a motion, darkened by a third.
 extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, void* m6, void* m7, void* m8, void* m9)
 {
-    R103Em em;
+    cEm em;
     // The ctor's `this` pseudo (`addi r3, r1, 8; mr r29, r3`) is what the original addresses subArc
     // through (`0x378(r29)`); a member access on `em` folds to the frame, so the store and the row
     // loads go through the pointer (see r100's R100Init).
-    R103Em* pe = &em;
+    cEm* pe = &em;
     int i;
 
     *(PlArc**) ((u8*) pe + 0x378) = (PlArc*) EmReadSearch(0x12, 0, 0);
@@ -302,7 +290,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
     cover->be_flag |= 0x20;
     lid->be_flag |= 0x20;
     FSet(cover->ang.x, -0.5235988f);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos, &cover->ang, 0);
+    hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &cover->pos, &cover->ang, 0);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order

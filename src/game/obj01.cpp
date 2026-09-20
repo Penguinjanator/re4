@@ -13,6 +13,7 @@
 #include "snd.h"
 #include "rnd.h"
 #include "pl_wep.h"
+#include "motion.h"
 
 // Grenade (hand / incendiary / flash): thrown under gravity, bounces off the scenario, explodes
 // or drowns when its fuse runs out; can be held by a model until `holdTimer` expires.
@@ -27,10 +28,8 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int obj01AddSpeed(cObj01* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 // r_no_0 dispatch: 0 flying/held, 1 exploded (fading out).
 void cObj01::move()
@@ -91,7 +90,7 @@ void cObj01::move00()
             case 3:
                 StaFlagOn(pG, STA_PL_FIRE);
                 EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
-                EstSet((int) this, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, (u32) this, 0);
+                EstSet(this, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, this, 0);
                 SndCall(6, 0, &pos, 0, 0, 0);
                 if (w->eff_action == 2) {
                     dmgSet(4);
@@ -303,7 +302,7 @@ int obj01AddSpeed(cObj01* obj)
         case 3:
             obj->dmgSet(4);
             EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
-            EstSet((int) obj, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, obj, 0);
             if (w->eff_action == 3) {
                 SndCall(6, 0, &obj->pos, 0, 0, 0);
             } else {

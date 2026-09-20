@@ -44,7 +44,7 @@ public:
     void calcSpeed(f32 damping);
     void move();
     void calcNormal();
-    void disturbance(f32 power, u32 x, u32 y);
+    void disturbance(u32 x, u32 y, f32 power);
 };
 
 extern "C" {

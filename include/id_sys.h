@@ -146,29 +146,19 @@ public:
     void gameInit(int n);
     void roomInit();
     void free();
-    int setCk(u8 type);
-    void dispSw(u8 type, int sw);
+    int setCk(int type);
+    void dispSw(int type, int sw);
     void unitPush(IdUnit* u);
     IdUnit* unitPull();
     void unitLevel(IdUnit* u, u8 level);
     void unitParent(IdUnit* parent, IdUnit* child);
-    IdUnit* unitPtr(u8 id, u8 type);
-    // card.cpp passes `0x40 + i` without the `clrlwi` truncation: int view of the type parameter.
-    IdUnit* unitPtrI(u8 id, int type) asm("unitPtr__8IDSystemUcUc");
-    void set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode);
-    // card.cpp passes `0x40 + i` without the `clrlwi` truncation: int view of the type parameter.
-    void setI(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode) asm("set__8IDSystemPvUcUcUcUcUc");
-    void kill(u8 id, u8 type);
-    // COMPILER-DIFF: item 4 (narrow-argument truncation). Sscrn IdNumErase passes `0x40 + i` without
-    // the `clrlwi`: int view of the type parameter.
-    void killI(u8 id, int type) asm("kill__8IDSystemUcUc");
+    IdUnit* unitPtr(u8 id, int type);
+    void set(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode);
+    void kill(u8 id, int type);
     void stop();
     void move();
     void beMove(IdUnit* u, int sw);
-    void setTime(IdUnit* u, u16 time);
-    // option.cpp passes a sign-extended value (`extsh` before the call): the declaration it was
-    // compiled against took a signed short. Same function, signed view of the parameter.
-    void setTimeS(IdUnit* u, s16 time) asm("setTime__8IDSystemP6IdUnitUs");
+    void setTime(IdUnit* u, s16 time);
     void movePos(IdUnit* u);
     void trans();
     void unitTrans(IdUnit* u);

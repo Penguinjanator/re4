@@ -91,16 +91,6 @@ void EspEmDataSwapPop(int id);
 // game/shape.cpp
 int ShapeSet(void* work, int frame, void* data, int flags);
 
-// The original cUnit::beginEvent takes an int (sscrn.cpp's view of the vtable).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 // Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
@@ -227,7 +217,7 @@ EventDebug EvtDebug;
 #define EVT_FRAME_RATE 29.97f
 
 // Event unit constructor: only records the manager id.
-Event::Event(u8 t) : cUnit(1)
+Event::Event(u32 t) : cUnit(1)
 {
     Type = t;
 }
@@ -913,7 +903,7 @@ int Event::ExePacket_SetPl(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
 
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     if (evt->SetMod(pac->mod.name, pPL, 0, 0, 2, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_SetPl : failed");
@@ -1361,7 +1351,7 @@ int Event::ExePacket_Esp(Event* evt)
         rot.z += evt->PModOya->ang.z;
     }
     if (pac->esp.type == 0) {
-        EstSet((int) m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
     }
     if (pac->esp.type == 5) {
         e = evt->effNo;
@@ -1369,10 +1359,10 @@ int Event::ExePacket_Esp(Event* evt)
             pLog->err(0, 0, "Event::ExePacket_SetEff : NoWork failed");
             return 1;
         }
-        EstSet((int) m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
+        EstSet(m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
     }
     if (pac->esp.type == 6) {
-        EstSet((int) m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
     }
     return 1;
 }
@@ -1602,8 +1592,8 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         EvtMgr.SetBin("em/pl00/pl000b.tpl", PL_ARC_PTR(pG->pPlayer, 7), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000e.bin", PL_ARC_PTR(pG->pPlayer, 0xA), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000l.bin", PL_ARC_PTR(pG->pPlayer, 0x10), 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.bin", (void*) (pG->pArc->ofs_20 + (u32) pG->pArc), 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.bin", (void*) (pG->pCore->ofs_20 + (u32) pG->pCore), 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 2);
     }
     EvtMesDeleteAll();
     SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -2163,7 +2153,7 @@ int EventMgr::construct(Event* p, u32 id)
     Event* e;
     int no;
 
-    e = p->ctorI(id);
+    e = new (p) Event(id);
     if (e) {
         no = EvtWorkNo(this, e);
         e->effNo = no;
@@ -2288,7 +2278,7 @@ int EventMgr::Run()
 }
 
 // 1 when an event named *key is alive (chk != 1 ignores parked ones); *out receives the Event.
-int EventMgr::IsAliveEvt(u32* key, int out, int chk)
+int EventMgr::IsAliveEvt(u32* key, Event** out, int chk)
 {
     char nm[0x20];
     u32 i;
@@ -2310,7 +2300,7 @@ int EventMgr::IsAliveEvt(u32* key, int out, int chk)
             continue;
         }
         if (out != 0) {
-            *(Event**) out = e;
+            *out = e;
         }
         return 1;
     }
@@ -2695,7 +2685,7 @@ int EventMgr::SetEvt(char* nm, Event** out)
 // Finds a live event by name (parked ones included).
 int EventMgr::GetEvt(u32* key, void** out)
 {
-    return IsAliveEvt(key, (int) out, 1);
+    return IsAliveEvt(key, (Event**) out, 1);
 }
 
 // Ends and destroys an event: ExeEndEvt, then (flag == 1) one frame later the unit is destroyed, its
@@ -3119,7 +3109,7 @@ int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
     pos->x = parts->world.x;
     pos->y = parts->world.y;
     pos->z = parts->world.z;
-    pos->y = SatMgr.getFloor(pos, 600.0f, 100000.0f, 0, 0);
+    pos->y = SatMgr.getFloor(pos, 0, 600.0f, 100000.0f, 0);
     if (parts->pParts == 0) {
         return 0;
     }

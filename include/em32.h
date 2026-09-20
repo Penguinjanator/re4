@@ -126,7 +126,7 @@ void em32RouteCk(cEm32* em);
 void em32NeckMove(cEm32* em);
 void em32ClothSet(cEm32* em);
 void em32ClothMove(cEm32* em);
-void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, u16 d);
+void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, int d);
 int em32AtkCk(cEm32* em, int no, int parts);
 int em32AtkCk2(cEm32* em, int no, Vec* pos, Vec* oldPos);
 int em32StepUpCk(cEm32* em);

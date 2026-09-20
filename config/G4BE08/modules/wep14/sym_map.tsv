@@ -10,8 +10,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000008DC	0x17C	wep14/objMine.cpp	global	setCartridge__8cObjMine	cObjMine::setCartridge
 .text	0x00000A58	0x94	wep14/objMine.cpp	global	interrupt__8cObjMine	cObjMine::interrupt
 .text	0x00000AEC	0x260	wep14/objMine.cpp	global	setMotion__8cObjMineP7cPlayer	cObjMine::setMotion
-.text	0x00000D4C	0x4	wep14/objMine.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00000D50	0x4	wep14/objMine.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00000D4C	0x4	wep14/objMine.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00000D50	0x4	wep14/objMine.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00000D54	0x20	wep14/objMine.cpp	global	_._8cObjMine	cObjMine::~cObjMine
 .text	0x00000D74	0x48	wep14/objMine.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00000DBC	0x4	wep14/objMine.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

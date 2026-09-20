@@ -105,11 +105,7 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo);
 static void R213BridgeManager();
 void R213BridgeAngMove(int mode, f32 target);
 void R213BridgeAngSet(f32 ang);
-void R213ChainAngSet(int no, u32 objId, int hitNo, int flag, f32 ang);
-// COMPILER-DIFF 1: R213BridgeAngSet's two calls issue the `fmr f1` after the third / before the
-// first integer argument move.
-void R213ChainAngSetF3(int no, u32 objId, int hitNo, f32 ang, int flag) asm("R213ChainAngSet__FiUliif");
-void R213ChainAngSetF0(f32 ang, int no, u32 objId, int hitNo, int flag) asm("R213ChainAngSet__FiUliif");
+void R213ChainAngSet(int no, u32 objId, int hitNo, f32 ang, int flag);
 void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo);
 void R213ChainBreakNumCalc();
 static void R213EventSwitchMain();
@@ -122,7 +118,7 @@ static void SceBgmCheck();
 static void R213Event();
 extern "C" void Evt_R213S00_Func(Event* e);
 
-#define R213_EM_ARC(no) ((void*) (pG->pArc->ofs_##no + (u32) pG->pArc))
+#define R213_EM_ARC(no) ((void*) (pG->pCore->ofs_##no + (u32) pG->pCore))
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec rot = {0,0,0}`
 // libcall for an explicit call (see R213Init).
 extern "C" void* r213_memset(void*, ...) asm("memset");
@@ -392,9 +388,9 @@ static void R213EventSuBreakMain()
         SceEventStart(1);
         hit = r213_work.p->hit[0];
         if (hit) {
-            EffectEspDelete(0, 2, (u32) hit, 0);
-            EffectEspgenDelete(0, 2, (int) hit);
-            EffectEfmDelete(0, 2, (int) hit);
+            EffectEspDelete(0, 2, hit, 0);
+            EffectEspgenDelete(0, 2, hit);
+            EffectEfmDelete(0, 2, hit);
         }
         EffectEspDelete(1, 2, 0, 0);
         EffectEspgenDelete(1, 2, 0);
@@ -738,12 +734,12 @@ void R213BridgeAngSet(f32 ang)
             r213_work.p->eat[2]->setCoord(&r213_satPos, &obj->ang);
         }
     }
-    R213ChainAngSetF3(0, 0x40, 3, ang, 0);
-    R213ChainAngSetF0(ang, 1, 0x41, 4, 0);
+    R213ChainAngSet(0, 0x40, 3, ang, 0);
+    R213ChainAngSet(1, 0x41, 4, ang, 0);
 }
 
 // Hangs chain `no` from the bridge; the loose chain end object follows it (flag: always).
-void R213ChainAngSet(int no, u32 objId, int hitNo, int flag, f32 ang)
+void R213ChainAngSet(int no, u32 objId, int hitNo, f32 ang, int flag)
 {
     Vec ofs[2] = {{-180.0f, 5500.0f, -900.0f}, {-180.0f, 5500.0f, 900.0f}};
     Vec p;
@@ -1113,7 +1109,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 StaFlagOff(pG, STA_EVENT);
                 SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
                 if (r213_work.p->tex) {
-                    EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
+                    EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
                 }
                 StaFlagOn(pG, STA_EVENT);
                 SpfFlagOff(pG, SPF_ESP_AREA);
@@ -1143,7 +1139,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
         StaFlagOff(pG, STA_EVENT);
         SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
         if (r213_work.p->tex) {
-            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
+            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
         }
         StaFlagOn(pG, STA_EVENT);
         SpfFlagOff(pG, SPF_ESP_AREA);

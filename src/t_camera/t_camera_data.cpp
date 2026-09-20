@@ -390,20 +390,20 @@ void tcPlayerMove()
 void tcCameraDebugMove()
 {
     tcToolCamera2GameCamera();
-    CamDbg.move(&pG->Cam, &Joy[1], 0);
+    CamDbg.move(&pG->Camera, &Joy[1], 0);
     tcGameCamera2ToolCamera();
 }
 
-// Copies pG->Cam into the tool camera.
+// Copies pG->Camera into the tool camera.
 void tcGameCamera2ToolCamera()
 {
-    pTc->cam = pG->Cam;
+    pTc->cam = pG->Camera;
 }
 
-// Copies the tool camera into pG->Cam.
+// Copies the tool camera into pG->Camera.
 void tcToolCamera2GameCamera()
 {
-    pG->Cam = pTc->cam;
+    pG->Camera = pTc->cam;
 }
 
 Camera tcGameCamera;
@@ -411,13 +411,13 @@ Camera tcGameCamera;
 // Saves the game camera (tool entry).
 void tcGameCameraStore()
 {
-    tcGameCamera = pG->Cam;
+    tcGameCamera = pG->Camera;
 }
 
 // Restores the saved game camera (tool exit).
 void tcGameCameraLoad()
 {
-    pG->Cam = tcGameCamera;
+    pG->Camera = tcGameCamera;
 }
 
 // 3D line in RGBA colour (rotated into the ARGB word Draw_line3d takes).

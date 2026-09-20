@@ -159,7 +159,7 @@ public:
 
     // Runtime scenario piece from a 4-corner polygon (createFloorSat / createBoxSat / createSat by
     // flag bits 0x200 / 0x100); returns the registered piece or NULL.
-    cSat* create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h);
+    cSat* create(Vec* pos, Vec* rot, Vec* poly, f32 h, u32 attr, u32 flag);
     // Piece from prebuilt collision data (obj15 cObjGatling::setEat: EatMgr.create(data, 0, &pos, &rot, type)).
     cSat* create(void* data, int flag, Vec* pos, Vec* rot, u8 type);
     // Ray from `top` down to `bottom`; returns the hit attribute, hit point in `hit`; `attr`
@@ -168,7 +168,7 @@ public:
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
     int hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask);
     // Floor height under `pos`, searching `up` above and `down` below it.
-    f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
+    f32 getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag);
     // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the
     // polygons (cLight::hitAdjust). Returns 1 when the sphere was adjusted.
     int polySphereCk(Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask);

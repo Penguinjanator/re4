@@ -28,13 +28,6 @@ extern "C" {
 int sprintf(char* s, const char* fmt, ...);
 }
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation). The font sizes are s16 table entries passed to
-// the s8 parameters without the `extsb` our compiler adds: s16 view of MessageControl::setFontSize.
-class MessageControlS : public MessageControl {
-public:
-    void setFontSizeS(int no, s16 w, s16 h) asm("setFontSize__14MessageControliScSc");
-};
-#define cMesS (*(MessageControlS*) &cMes)
 
 // Message slot address written out as one expression on a pointer variable (not the getMes inline):
 // a reference argument built from it is computed in place into the parameter register, so cse
@@ -418,7 +411,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     disp = new MessageDisplay;
     sel->connect(0, disp);
     disp->connect(0, sel);
-    fileCameraInit(wk, &pG->Cam);
+    fileCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->pFile, 6), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
@@ -613,7 +606,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
     pos = IdSub.unitPtr(0x20, 0x19);
     x = (int) ((pos->scr.x + 320.0f) * 0.8f);
     y = (int) ((240.0f - pos->scr.y) * 0.8f);
-    cMesS.setFontSizeS(4, file_title_w[1], file_title_h[1]);
+    cMes.setFontSize(4, file_title_w[1], file_title_h[1]);
     cMes.getMes(4)->m_line_gap = 0;
     cMes.getMes(4)->charSpace = file_title_space[3];
     cMes.MesSet(fw->cat + 3, x, y, 0x20081, 4, 8, 3);
@@ -648,7 +641,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
             x = (int) ((p->scr.x + 320.0f) * 0.8f);
             y = (int) ((240.0f - p->scr.y) * 0.8f);
         }
-        cMesS.setFontSizeS(slot, file_name_w[1], file_name_h[1]);
+        cMes.setFontSize(slot, file_name_w[1], file_name_h[1]);
         {
             MessageControl* pm = &cMes;
             u16 zero = 0;

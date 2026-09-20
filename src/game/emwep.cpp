@@ -30,9 +30,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
 YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
 void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
@@ -45,14 +45,10 @@ static void emWep_R1_Parent(cEmWep* em);
 #define plemEscape plemEscape_80017688
 static void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);   // obj01.cpp
 void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
-
-// setYarareCube(0, x, y, z) with the float arguments' moves issued before the `li r4, 0`
-// (atari_init.h: GCC emits the argument moves in declaration order).
-void setYarareCubeF(cEmWep* em, f32 x, f32 y, f32 z, Vec* size) asm("setYarareCube__6cEmWepP3Vecfff");
 
 // One rope node of the falling weapon (emWep_R1_Fall): three point masses joined by distance
 // constraints; the model matrix is rebuilt from them every frame.
@@ -135,7 +131,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         return 0;
     }
     em->type = type;
-    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
+    em->atari.init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp = 0;
     em->hp_max = 1000;
     {
@@ -220,7 +216,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 }
 
 // Event start: an unowned type 0 weapon lying around is removed.
-void cEmWep::beginEvent()
+void cEmWep::beginEvent(u32 mode)
 {
     if (EMWEP_WK(this)->pEm_oya == 0 && type == 0) {
         EmMgr.destroy(this);
@@ -299,7 +295,7 @@ void emWepDmCk(cEmWep* em)
         StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
         r.x = 0.0f;
-        r.y = GetXZAngle(&em->pos, &pG->Cam.param.pos);
+        r.y = GetXZAngle(&em->pos, &pG->Camera.param.pos);
         r.z = 0.0f;
         EstSet(0, -1, &em->pos, &r, 0x10, 0x42, 0, 0, 0, 0);
         if (w->pEm_old) {
@@ -511,9 +507,9 @@ void emWep_R1_Lost(cEmWep* em)
         em->be_flag &= ~2;
         em->be_flag &= ~0x20;
         em->setStatus(EM_STATUS_LOCKOFF);
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->espKind, em, 0);
+        EffectEspgenDelete(0, w->espKind, em);
+        EffectEfmDelete(0, w->espKind, em);
         em->r_no_2++;
         EmMgr.destroy(em);
         break;
@@ -566,7 +562,7 @@ void emWep_R1_Fall(cEmWep* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -633,12 +629,12 @@ void emWep_R1_Fall(cEmWep* em)
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
                 }
             }
-            EffectEspDelete(0, w->espKind, (u32) em, 0);
-            EffectEspgenDelete(0, w->espKind, (int) em);
-            EffectEfmDelete(0, w->espKind, (int) em);
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
             switch (w->fall_type) {
             default:
                 n->spd.x *= fRand0_1() * 0.2f + 0.5f;
@@ -753,7 +749,7 @@ void emWep_R1_Throw(cEmWep* em)
         SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -834,7 +830,7 @@ void emWep_R1_ThrowScythe(cEmWep* em)
         SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -936,16 +932,16 @@ void emWep_R1_Shot(cEmWep* em)
         em->pos = hit;
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->espKind, em, 0);
+        EffectEspgenDelete(0, w->espKind, em);
+        EffectEfmDelete(0, w->espKind, em);
         em->r_no_2 = 2;
         return;
     }
     if (w->pAtk) {
         part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -979,9 +975,9 @@ void emWep_R1_Shot(cEmWep* em)
             em->setParent(pPL, no, 0);
             em->hp = 0;
             emWep_R1_Parent(em);
-            EffectEspDelete(0, w->espKind, (u32) em, 0);
-            EffectEspgenDelete(0, w->espKind, (int) em);
-            EffectEfmDelete(0, w->espKind, (int) em);
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
             c = GetCtrlCtrl12();
             Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
             Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
@@ -989,7 +985,7 @@ void emWep_R1_Shot(cEmWep* em)
         }
         part = EmAtkLineHitCkSub(&em->pos_old, &em->pos, &hitPos, &nrm);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1023,9 +1019,9 @@ void emWep_R1_Shot(cEmWep* em)
             em->setParent(pSUB, no, 0);
             em->hp = 0;
             emWep_R1_Parent(em);
-            EffectEspDelete(0, w->espKind, (u32) em, 0);
-            EffectEspgenDelete(0, w->espKind, (int) em);
-            EffectEfmDelete(0, w->espKind, (int) em);
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
             return;
         }
     }
@@ -1052,7 +1048,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0x2F, 7, 0x800, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2F, 7, 0x800, w->espKind, em, 0);
         w->Timer = 0;
         w->Timer2 = 90;
         w->Timer3 = 3;
@@ -1082,7 +1078,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
         w->Bomb_wait = 63;
         w->Timer2 = 15;
         w->Timer = 0;
-        EstSet((int) em, -1, 0, 0, 0x2F, 8, 0x800, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2F, 8, 0x800, w->espKind, em, 0);
         em->r_no_2++;
     case 3:
         em->partsWorldCalc();
@@ -1115,15 +1111,15 @@ void emWep_R1_ShotArrow(cEmWep* em)
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
         em->r_no_2 = 2;
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->espKind, em, 0);
+        EffectEspgenDelete(0, w->espKind, em);
+        EffectEfmDelete(0, w->espKind, em);
         return;
     }
     if (w->pAtk) {
         part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hit, &nrm, 0);
         if (part) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1142,7 +1138,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
             if (part == 0) {
                 goto fly;
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -1157,9 +1153,9 @@ void emWep_R1_ShotArrow(cEmWep* em)
             asm("" : "=m"(hit) : "r"(part));  // COMPILER-DIFF: #13 (keep-alive)
         }
         emWepArrowBomb(em);
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->espKind, em, 0);
+        EffectEspgenDelete(0, w->espKind, em);
+        EffectEfmDelete(0, w->espKind, em);
         return;
     }
 fly:
@@ -1250,16 +1246,16 @@ void emWep_R1_Rocket(cEmWep* em)
 void emWepRocketBobm(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     cModel* p;
     Vec r;
     Vec pos;
     f32 len;
 
     SndStop(w->seid_throw, 0);
-    EffectEspDelete(0, w->espKind, (u32) em, 0);
-    EffectEspgenDelete(0, w->espKind, (int) em);
-    EffectEfmDelete(0, w->espKind, (int) em);
+    EffectEspDelete(0, w->espKind, em, 0);
+    EffectEspgenDelete(0, w->espKind, em);
+    EffectEfmDelete(0, w->espKind, em);
     p = em->getPartsPtr(0);
     len = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
         + (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y)
@@ -1293,9 +1289,9 @@ void emWepArrowBomb(cEmWep* em)
     Vec pos;
 
     SndStop(w->seid_throw, 0);
-    EffectEspDelete(0, w->espKind, (u32) em, 0);
-    EffectEspgenDelete(0, w->espKind, (int) em);
-    EffectEfmDelete(0, w->espKind, (int) em);
+    EffectEspDelete(0, w->espKind, em, 0);
+    EffectEspgenDelete(0, w->espKind, em);
+    EffectEfmDelete(0, w->espKind, em);
     EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
     EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
     em->hp = 0;
@@ -1341,7 +1337,7 @@ void emWep_R1_BombThrow(cEmWep* em)
     }
     if (w->Bomb_wait == 0) {
         GlobalWork* g = pG;
-        Camera* cam = &g->Cam;
+        Camera* cam = &g->Camera;
         cModel* p;
         Vec r;
         Vec pos;
@@ -1575,7 +1571,7 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         return;
     }
     if (w->Bomb_wait <= 0x18 && em->plDist2 < 36000000.0f && w->Act_ck == 0) {
-        ActBtn.set(0x25, 0xB, (int) emWepEscapeAction, (int) em, 1, 3, 0, 0);
+        ActBtn.set(0x25, 0xB, (void*) emWepEscapeAction, em, 1, 3, 0, 0);
     }
     w->spd.y -= 15.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
@@ -1663,9 +1659,9 @@ static void plemEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, (int) w->motEscape2, 3, 0x41, 0);
+            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 0x41, 0);
         } else {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, (int) w->motEscape2, 3, 1, 0);
+            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 1, 0);
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1703,7 +1699,7 @@ void plemBackjump(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motBackjump, 0, 3, 1, 5);
-        EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
@@ -1746,7 +1742,7 @@ void plemFrontEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motFront, 0, 3, 1, 5);
-        EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
@@ -1786,7 +1782,7 @@ void emWepEscapeCamMove(cEmWep* em)
 
     // Store through a cast pointer (no MEM_IN_STRUCT_P): the store may alias the `pPL` load below,
     // which keeps `lwz pPL` after it and ranks the `w` chain above the constant-pool `lis`es.
-    *(f32*) (u8*) &w->Cam.param.fovy = g->Cam.param.fovy;
+    *(f32*) (u8*) &w->Cam.param.fovy = g->Camera.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -1795,8 +1791,8 @@ void emWepEscapeCamMove(cEmWep* em)
     p1.z = 52.6f;
     PSMTXMultVec(pPL->mat, &p0, &p0);
     PSMTXMultVec(pPL->mat, &p1, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &w->Cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &p0, &w->Cam.param.pos, 1.0f);
+    PosToPos(&g->Camera.param.at, &p1, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Camera.param.pos, &p0, &w->Cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->Cam.param.at, &w->Cam.param.pos, &hit, 0, 0x8000, 0)) {
         PSVECSubtract(&hit, &w->Cam.param.at, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;
@@ -1901,7 +1897,7 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
 }
 
 // Throws the weapon with speed `spd` (a random forward throw in the parent's frame when NULL).
-void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
+void cEmWep::setThrow(Vec* spd, EmAtkInfo* atk, f32 grav)
 {
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
@@ -1944,7 +1940,7 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
     }
     w->pEm_oya = 0;
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
@@ -1990,7 +1986,7 @@ void cEmWep::setThrowScythe(Vec* spd, EmAtkInfo* atk)
     }
     w->pEm_oya = 0;
     hp = 1;
-    setYarareCubeF(this, 1500.0f, 1500.0f, 1500.0f, 0);
+    setYarareCube(1500.0f, 1500.0f, 1500.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
@@ -2042,7 +2038,7 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
         w->pEm_old = w->pEm_oya;
     }
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
@@ -2093,7 +2089,7 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
     w->pEm_old = w->pEm_oya;
     w->pEm_oya = 0;
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
@@ -2143,7 +2139,7 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
     pos_old = pos;
     w->pEm_old = owner;
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
@@ -2194,7 +2190,7 @@ void cEmWep::setBombThrow(Vec* spd, int fuse)
     }
     w->pEm_oya = 0;
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     w->Bomb_wait = fuse;
     w->pAtk = 0;
     r_no_0 = 1;
@@ -2289,7 +2285,7 @@ void cEmWep::setGrenadeThrow(Vec* spd, int fuse, void* motEscape, void* motEscap
     }
     w->pEm_oya = 0;
     hp = 1;
-    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
+    setYarareCube(400.0f, 800.0f, 400.0f, 0);
     w->motFront = motFront;
     w->Bomb_wait = fuse;
     w->Mot_escape = motEscape;
@@ -2403,9 +2399,9 @@ void cEmWep::setEffWater(u8 id, u8 type_)
 }
 
 // Attaches a continuous est (torch flame, chainsaw smoke) to the weapon under its Core_kind.
-void cEmWep::setEffAlways(int id, int type_)
+void cEmWep::setEffAlways(u8 id, u8 type_)
 {
-    EstSet((int) this, -1, 0, 0, id, type_, 0x800, EMWEP_WK(this)->espKind, (u32) this, 0);
+    EstSet(this, -1, 0, 0, id, type_, 0x800, EMWEP_WK(this)->espKind, this, 0);
 }
 
 // A repeating est spawned every `wait` frames at `ofs` in parts `parts` while visible.
@@ -2423,7 +2419,7 @@ void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
 
 // Makes the weapon shootable: a cylinder hit box (offset `size` or the origin) of width w /
 // height h, hp 1.
-void cEmWep::setYarare(Vec* size, f32 w, f32 h)
+void cEmWep::setYarare(f32 w, f32 h, Vec* size)
 {
     if (size) {
         YarareInit(this, size->x, size->y, size->z, w, h, 0, 1);
@@ -2434,7 +2430,7 @@ void cEmWep::setYarare(Vec* size, f32 w, f32 h)
 }
 
 // Makes the weapon shootable with a box hit box (offset `size` or 400 below the origin).
-void cEmWep::setYarareCube(Vec* size, f32 x, f32 y, f32 z)
+void cEmWep::setYarareCube(f32 x, f32 y, f32 z, Vec* size)
 {
     if (size) {
         YarareInitCube(this, size->x, size->y, size->z, x, y, z, 0, 1);
@@ -2492,7 +2488,7 @@ void emWepPlHeadLost()
 
     if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
-        EstSet((int) pPL, -1, 0, 0, 0x10, 0x57, 0, 0, (u32) pPL, 0);
+        EstSet(pPL, -1, 0, 0, 0x10, 0x57, 0, 0, pPL, 0);
         return;
     }
     pPL->setHead(0);
@@ -2510,8 +2506,8 @@ void emWepPlHeadLost()
         obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
-    EstSet((int) obj, -1, 0, 0, 0x10, 0x46, 0, 0, (u32) obj, 0);
-    EstSet((int) pPL, -1, 0, 0, 0x10, 0x45, 0, 0, (u32) pPL, 0);
+    EstSet(obj, -1, 0, 0, 0x10, 0x46, 0, 0, obj, 0);
+    EstSet(pPL, -1, 0, 0, 0x10, 0x45, 0, 0, pPL, 0);
     SndCall(1, 0x3E, &pPL->pos, 0, 0, pPL);
 }
 

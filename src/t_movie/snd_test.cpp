@@ -179,8 +179,6 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y);
 void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y);
 void disp_seq_volume(SND_SEQ_WORK* seq);
 static void snd_test_disp_rit();
-// Snd_test_get_str_name with the caller's second argument (see test_play_or_stop).
-const char* Snd_test_get_str_name2(int type, u16 no) asm("Snd_test_get_str_name__Fi");
 int str_get_player_id();
 void disp_cursor(SndTestWork* w, int x, int y);
 void disp_str_status(SndTestWork* w, int x, int y);
@@ -649,10 +647,7 @@ int test_play_or_stop(SndTestWork* w)
                 w->sndId = id;
             }
         } else {
-            // The original passes w->reqCur as a second argument to Snd_test_get_str_name (`lhz r4` before
-            // the call; the callee ignores it) and re-reads it for Snd_str_prepare: a two-argument view of
-            // the same symbol.
-            char* name = (char*) Snd_test_get_str_name2(blk, w->reqCur);
+            char* name = (char*) Snd_test_get_str_name(blk, w->reqCur);
             id = Snd_str_prepare(blk, w->reqCur, name, -1);
             if (id) {
                 w->sndId = id;

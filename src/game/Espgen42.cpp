@@ -774,7 +774,7 @@ void Espgen42_TransSub(EspgenWork* w)
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
-    LightMgr.setClothN(&model, 5);
+    LightMgr.setCloth(&model, 5);
     commonWaterLightSet(model.LightInfo.pLight, 5, p->amb.a);
     GXColor white;
     white.r = white.g = white.b = white.a = 0xFF;
@@ -783,10 +783,10 @@ void Espgen42_TransSub(EspgenWork* w)
     Mtx nrm;
     Mtx mv;
     Mtx tmp;
-    PSMTXConcat(pG->Cam.v_mat, p->mat, mv);
+    PSMTXConcat(pG->Camera.v_mat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
     tmp[1][1] = p->size * 0.05f + 100.0f;
-    PSMTXConcat(pG->Cam.v_mat, tmp, tmp);
+    PSMTXConcat(pG->Camera.v_mat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
     GXLoadNrmMtxImm(nrm, 0);
@@ -811,7 +811,7 @@ void Espgen42_TransSub(EspgenWork* w)
             Mtx pm;
             GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
             GXLoadTexObj(&tex, st->texMap);
-            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+            C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
             PSMTXConcat(pm, mv, tm);
             GXLoadTexMtxImm(tm, 0x1E, 0);
             GXSetTexCoordGen(st->texCoord, 0, 0, 0x1E);
@@ -872,7 +872,7 @@ void Espgen42_TransSub(EspgenWork* w)
             Mtx ms;
             Mtx mt;
             Mtx m3;
-            PSMTXCopy(pG->Cam.v_mat, m3);
+            PSMTXCopy(pG->Camera.v_mat, m3);
             PSMTXInverse(m3, m3);
             PSMTXTranspose(m3, m3);
             PSMTXScale(ms, 1.0f, -0.5f, 0.0f);

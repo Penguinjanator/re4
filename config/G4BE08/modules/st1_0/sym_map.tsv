@@ -33,8 +33,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00003E48	0xBC	st1_0/r100.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
 .text	0x00003F04	0x158	st1_0/r100.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x0000405C	0x48	st1_0/r100.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000040A4	0x4	st1_0/r100.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000040A8	0x4	st1_0/r100.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000040A4	0x4	st1_0/r100.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000040A8	0x4	st1_0/r100.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000040AC	0x4	st1_0/r100.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x000040B0	0xBC	st1_0/r120.cpp	global	R120Init__Fv	R120Init
 .text	0x0000416C	0x4	st1_0/r120.cpp	global	R120Main__Fv	R120Main

@@ -21,8 +21,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002224	0x138	em23/em23.cpp	local	em23_R1_Die_Normal__FP5cEm23	em23_R1_Die_Normal
 .text	0x0000235C	0x138	em23/em23.cpp	global	em23AddSpeedAir__FP5cEm23f	em23AddSpeedAir
 .text	0x00002494	0xA8	em23/em23.cpp	global	em23SetWing__FP5cEm23i	em23SetWing
-.text	0x0000253C	0x4	em23/em23.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002540	0x4	em23/em23.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000253C	0x4	em23/em23.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002540	0x4	em23/em23.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002544	0x20	em23/em23.cpp	global	_._5cEm23	cEm23::~cEm23
 .text	0x00002564	0x48	em23/em23.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000025AC	0x4	em23/em23.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

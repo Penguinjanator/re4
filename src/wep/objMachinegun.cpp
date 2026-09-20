@@ -112,7 +112,7 @@ void cObjMachinegun::moveFire()
         SndCall(2, 0x18, &pos, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xA, 1);
         setCartridge();
         switch (pG->weapon_type) {
         case 0:
@@ -124,7 +124,7 @@ void cObjMachinegun::moveFire()
             type = 1;
             break;
         }
-        EstSet((int) this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
         wep.step = 1;
     }
     if (MotionGetState(this)) {

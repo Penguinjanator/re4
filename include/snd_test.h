@@ -75,6 +75,6 @@ struct SndTestWork {
 extern SndTestWork Snd_test_work;
 
 int Snd_test_mode();
-const char* Snd_test_get_str_name(int type);
+const char* Snd_test_get_str_name(int type, u16 no);
 
 #endif

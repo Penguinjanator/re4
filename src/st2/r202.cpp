@@ -134,9 +134,6 @@ static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
     v->z = z;
 }
 
-// COMPILER-DIFF: #4 — the table entry is an int; the original passes it to the s16 parameter
-// without a truncation.
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
 
 static void r202_execShowView_end();
 static void r202_execShowView();
@@ -248,7 +245,7 @@ void R202Init()
     r202_work.p->box->pos.x = 20221.0f;
     r202_work.p->box->pos.y = 0.0f;
     r202_work.p->box->pos.z = -26500.0f;
-    atariInitF(&r202_work.p->box->atari, 0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
+    r202_work.p->box->atari.init(0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
     SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, (void (*)()) r202_openedBox, 0, 0);
     SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, (void (*)()) r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -443,7 +440,7 @@ static void r202_operateCannon()
     if (pSUB != 0) {
         if (!(SubCharGetStatus() & 0x02000000)) {
             pSUB->setNoSuspend(1);
-            ((cUnitEventView*) pSUB)->endEvent(0);
+            pSUB->endEvent(0);
         } else {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 10000.0f) {
@@ -459,9 +456,9 @@ static void r202_operateCannon()
     CamCtrl.CutCall(5);
     SceSleep(20);
     SceAtSetEnable(0x11, 0);
-    EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
     SndCall(6, 9, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 5, 1, 0, zero, zero);
     SceSleep(35);
     SndCall(6, 0xA, 0, 0, 0, 0);
     SmdGetObjPtr(0x25)->be_flag &= ~2;
@@ -554,11 +551,11 @@ static void r202_operateCrank()
     int accel = 0;
 
     SceAtSetEnable(2, 0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     PlSetHand(1, 0);
-    ((cUnitEventView*) r202_work.p->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x22));
-    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2D));
+    r202_work.p->crank->beginEvent(0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x22));
+    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
     {
         Vec v = {516.5f, 0.0f, -500.0f};
@@ -638,8 +635,8 @@ static void r202_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, (u16) frame, 5, (int) m0);
-            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, frame, 5, m0);
+            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, frame, 5, m1);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
@@ -684,8 +681,8 @@ static void r202_operateCrank()
     }
     r202_work.p->crank->motionPause();
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
-    ((cUnitEventView*) r202_work.p->crank)->endEvent(0);
+    pPL->endEvent(2);
+    r202_work.p->crank->endEvent(0);
     SceAtSetEnable(0x15, 0);
     if (r202_work.p->ido1->pos.y == r202_work.p->idoY1) {
         EstSet(0, -1, 0, 0, 1, 3, 0, 0, 0, 0);
@@ -772,7 +769,7 @@ static void r202_CatapultGo()
     r202_work.p->cat[2].fire = 1;
     pG->Room_flg[0] |= 0x80000000;
     rock = r202_work.p->cat[2].rock;
-    EstSet((int) rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, (u32) rock, zero);
+    EstSet(rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, rock, zero);
     SceSleep(60);
     pG->Room_flg[0] |= 0x02000000;
     r202_work.p->em180.setFlag(1);
@@ -853,7 +850,7 @@ static void r202_checkCatapult()
 
     SceSleep(1);
     for (i = 0; i < 4; i++) {
-        cEmWrapSetPtrI(&r202_work.p->cat[i].em, r202_work.p->cat[i].emNo, 2, 0);
+        r202_work.p->cat[i].em.setPtr(r202_work.p->cat[i].emNo, 2, 0);
     }
     for (;;) {
         int cur = 0;

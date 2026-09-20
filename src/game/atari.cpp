@@ -260,7 +260,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
     mag = PSVECMag(&pos);
     at_pos_calc(m, &pos);
     if (!(info->m_flag & 4)) {
-        floor = getFloor(&m->pos, 600.0f, 100000.0f, (u32*) &m->pFloor_norm, flag);
+        floor = getFloor(&m->pos, (u32*) &m->pFloor_norm, 600.0f, 100000.0f, flag);
         if (fabsf(floor - m->pos.y) < 1000.0f) {
             m->pos.y = floor;
         } else if (pG->shooting_mode == 0) {
@@ -285,7 +285,7 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
     if (link) {
         at_pos_calc(link, &pos);
         if (!(((cEm*) link)->atari.m_flag & 4)) {
-            floor = getFloor(&link->pos, 600.0f, 100000.0f, (u32*) &link->pFloor_norm, flag);
+            floor = getFloor(&link->pos, (u32*) &link->pFloor_norm, 600.0f, 100000.0f, flag);
             if (fabsf(floor - link->pos.y) < 1000.0f) {
                 link->pos.y = floor;
             }
@@ -411,7 +411,7 @@ void cSatMgr::adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask)
 // Floor height under `pos`: casts from pos.y + up to pos.y - down against floor polygons
 // (0x40) and returns the hit y with its attribute word in *attr; -100000 when nothing is below
 // (0 when Debug_flg[1] 0x10000000 disables scenery).
-f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
+f32 cSatMgr::getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag)
 {
     Vec top;
     Vec bottom;
@@ -694,7 +694,7 @@ cSat* cSatMgr::create(void* data, int flag, Vec* pos, Vec* rot, u8 type)
 // Creates a collision piece from a quad: a floor slab (flag 0x200), a closed box of height h
 // (flag 0x100) or open side walls (else), all with attribute `attr`; the built file is freed
 // with the piece (m_Flag bit1).
-cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h)
+cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, f32 h, u32 attr, u32 flag)
 {
     cSatFile* f;
     cSat* sat;
@@ -1188,7 +1188,7 @@ void cSat::disp(int no, u32 color, int zupd)
     Vec* vt = vtx;
     u16 i;
 
-    PSMTXConcat(pG->Cam.v_mat, mat, m);
+    PSMTXConcat(pG->Camera.v_mat, mat, m);
     for (i = 0; i < 3; i++) {
         AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) pt);
         Vec* v = (Vec*) (*(u16*) (i * 2 + (u32) pl) * sizeof(Vec) + (u32) vt);
@@ -1221,7 +1221,7 @@ void cSat::disp(int no, u32 color, int zupd)
     PSVECScale(&n, &p[1], 100.0f);
     PSVECAdd(&p[0], &p[1], &p[1]);
     PSMTXMultVec(mat, &p[0], &w);
-    PSVECSubtract(&w, &pG->Cam.param.pos, &w);
+    PSVECSubtract(&w, &pG->Camera.param.pos, &w);
     PSMTXMultVecSR(mat, &n, &n);
     if (PSVECDotProduct(&n, &w) > 0.0f) {
         color = 0xFFFFFFFF;

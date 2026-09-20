@@ -22,8 +22,8 @@ public:
     ~cEmWrap() {}   // trivial: only the array destructor loop of the rooms' local cEmWrap arrays (r311)
     void initWork();
     void err(const char* msg, int no);
-    int setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive);
-    int setPtr(s16 no, s8 list, int errOn);
+    int setEm(u32 no, int list, int errOn, int chkDead, int setAlive);
+    int setPtr(u32 no, int list, int errOn);
     int setPtr(cEm* em, int errOn);
     cEm* getPtr();
     int isAlive();
@@ -61,7 +61,7 @@ public:
     f32 getAngX();
     f32 getAngY();
     f32 getAngZ();
-    void motionSet(void* data, int a, int b, int c, int d);
+    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq);
     void motionMove();
     void motionPause(int on);
     void addModel(cModelInfo* info);
@@ -153,8 +153,8 @@ public:
     cEmWrap em;                 // 0x10C
     int active;                 // 0x118
 
-    int SetControl(s16 no, Vec* tbl, int n, int errOn);
-    int SetControl(s16 no, EmControlPoint* tbl, int n, int errOn);  // st3 revision (src/st/em_wrap_v3.cpp)
+    int SetControl(int no, Vec* tbl, int n, int errOn);
+    int SetControl(int no, EmControlPoint* tbl, int n, int errOn);  // st3 revision (src/st/em_wrap_v3.cpp)
     void SetTargetPos(Vec* tbl, int n);
     void SetTargetTbl(EmControlPoint* tbl, int n);                   // st3 revision
     void EndControl();
@@ -195,7 +195,7 @@ public:
 };
 
 // Bare enemy pointer of list entry `no` (NULL when it cannot be set).
-cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive);
+cEm* setEm(u32 no, int list, int errOn, int chkDead, int setAlive);
 // 1 when any alive Ganado has found the player; `dist` (optional) receives the nearest one's distance.
 int SceCkFindPL(f32* dist);
 

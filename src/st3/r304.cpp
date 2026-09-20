@@ -40,10 +40,6 @@ struct R304Work {
 
 static R304Work* r304_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
-// The u8 result is passed on unmasked (COMPILER-DIFF 4).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void r304_EnemySet();
 void R304EventS00();
@@ -68,8 +64,8 @@ void R304Init()
     EvtMgr.SetFunc("evt_r304s00_func", (void*) Evt_R304S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R304EventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r304s00.evd", (u8) GetEmIdFromListI(0x28), 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 0, 0, 0, (u32) zero, zero);
+        EvtMgr.EvtReadAram("event/evd/r304s00.evd", (u8) GetEmIdFromList(0x28), 0, 0, 0);
+        EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, zero);
         for (i = 0x19; i <= 0x1F; i++) {
             if (getRoomEtcWindow(i, &win, 1)) {
                 ((cEmWindow*) win)->SetEnableDamage(0);
@@ -77,7 +73,7 @@ void R304Init()
         }
     } else {
         SeAtSetOnOff(0, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 1, 0, 0, zero, zero);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r304_EnemySet, 0, 1);
@@ -137,7 +133,7 @@ void R304EventS00()
         SeAtSetOnOff(0, 0);
         SndRoomStrStop(1);
         EstSet(0, -1, 0, 0, 1, 1, 0x800, 0, 0, 0);
-        EvtMgr.EvtReadExec("event/evd/r304s00.evd", (u8) GetEmIdFromListI(0x28), 0x200);
+        EvtMgr.EvtReadExec("event/evd/r304s00.evd", (u8) GetEmIdFromList(0x28), 0x200);
         FadeSetW(1, 0, 0, 0);
         SubScreenOpen(2, 1);
         SndRoomStrStart(1, 0, 1);
@@ -204,12 +200,12 @@ extern "C" void Evt_R304S00_Func(Event* e)
             if (e->NowFrame == 0) {
                 obj = SmdGetObjPtr(0xA);
                 if (obj) {
-                    TexRenderModResP(obj, 0);
+                    TexRenderModRes(obj, 0);
                     ModelInfoSetTrans(obj, 0, 1);
                 }
                 obj = SmdGetObjPtr(0xB);
                 if (obj) {
-                    TexRenderModResP(obj, 0);
+                    TexRenderModRes(obj, 0);
                     ModelInfoSetTrans(obj, 0, 1);
                 }
             }

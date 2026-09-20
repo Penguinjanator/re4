@@ -76,8 +76,6 @@ static R30dWorkPtr r30d_work;
 // idiom): scalar accesses that keep the following pSUB / pG loads below the stores.
 #define DOOR_UNLOCK(i) (*(u32*) ((u32) &pG->Key_flg[0] + (i) * 4))
 
-// The room build's EstSet prototype takes the effect number as a byte (the digit table is read with lbz).
-void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, int f, u32 g, void* h) asm("EstSet");
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
@@ -91,10 +89,6 @@ static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
 static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
-// COMPILER-DIFF: 1 (argument move order at a mixed int/float call): the first SubCharMoveTo of the
-// front shutter has the `fmr f4, f2` (the shared 0.0) before `li r3, 0`; declaring the float parameters
-// first gives that order (include/atari_init.h). The second call matches with the plain prototype.
-void SubCharMoveToF(f32 x, f32 y, f32 z, f32 w, int flag) asm("SubCharMoveTo");
 
 // Area flag test through a helper: fold would merge two tests of the same word in one `&&`/`||` into a
 // single masked compare; the original keeps one `andis.` per bit.
@@ -190,7 +184,7 @@ void R30dInit()
         EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
     } else {
         for (n = 0; n < 4; n++) {
-            EstSetB(0, -1, 0, 0, 1, r30d_digit[n], 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, 1, r30d_digit[n], 1, 2, 0, 0);
         }
         EstSet(0, -1, 0, 0, 1, 6, 1, 3, 0, 0);
     }
@@ -305,7 +299,7 @@ static void R30dShutterPowerMain()
     SceAtSetEnable(0x14, 0);
     SceEventStart(1);
     SceSetEventCancel(1, (TaskFunc) R30dShutterPowerEnd, 0, -1, 1);
-    SceMesCamSndSet4(5, -1, 1, 0);
+    SceMesCamSndSet(5, -1, 1, 0);
     CamCtrl.CutCall(8);
     getRoomEtcBarred(0xD, &bar, 1);
     if (bar) {
@@ -347,7 +341,7 @@ static void R30dShutterPowerMain()
             bar->setPos(&p);
         }
     }
-    SceMesCamSndSet4(6, -1, -1, 0);
+    SceMesCamSndSet(6, -1, -1, 0);
     SceSetEventCancel(0, 0, 0, -1, 1);
     R30dShutterPowerEnd();
 }
@@ -404,15 +398,15 @@ static void R30dShutterFrontEvent()
     R30D_SAVE_FLAGS |= 0x08000000;
     BitOn(pG->Key_flg[1], 0x40000000);
     pSUB->dmg.m_Timer = 0x80;
-    SubCharMoveToF(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
+    SubCharMoveTo(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
-    SetSubAux((int) funcAshleyShutter, 0);
+    SetSubAux(funcAshleyShutter, 0);
     while ((pG->Room_flg[0] & 0x40000000) == 0) {
         SceSleep(1);
     }
-    SubCharMoveTo(0, 3944.0f, 0.0f, 17837.0f, 193.0f);
+    SubCharMoveTo(3944.0f, 0.0f, 17837.0f, 193.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
@@ -476,8 +470,8 @@ static void R30dCoopSwitch()
         return;
     }
     CamCtrl.CutCall(7);
-    ((cUnitEventView*) pPL)->beginEvent(0);
-    SetSubAux((int) funcAshleySwitch, 0);
+    pPL->beginEvent(0);
+    SetSubAux(funcAshleySwitch, 0);
     if (sceAtFlag(0x01000000)) {
         cObj* o1 = r30d_work.p->obj[1];
         if (o1) {
@@ -641,7 +635,7 @@ static void R30dCoopSwitch()
                         EffectEspgenDelete(1, 2, 0);
                         EffectEfmDelete(1, 2, 0);
                         for (int k = 0; k < 4; k++) {
-                            EstSetB(0, -1, 0, 0, 1, r30d_digit[k], 1, 2, 0, 0);
+                            EstSet(0, -1, 0, 0, 1, r30d_digit[k], 1, 2, 0, 0);
                         }
                         // The final `COOP_ACTIVE(c) = 0` stores the reversed digit-loop counter (`stw r31`): its zero
                         // is a pseudo set here, in the block after the loop exit, and used in the store's block, so
@@ -688,7 +682,7 @@ static void R30dCoopSwitch()
         SceSleep(1);
     } while (COOP_ACTIVE(c) != 0);
     CamCtrl.Comeback(0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     EmRoutineSet(pSUB, 0, 0, 0, 0);
     SubCharCtrl(1, 0);
 }
@@ -711,7 +705,7 @@ static void R30dTimerDisp()
                 break;
             }
             COOP_TIMER(c) = 30;
-            EstSetB(0, -1, 0, 0, 1, r30d_digit[COOP_NUM(c)], 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, 1, r30d_digit[COOP_NUM(c)], 1, 2, 0, 0);
             if (COOP_NUM(c) != 0) {
                 SndCall(6, 7, 0, 0, 0, 0);
             } else {

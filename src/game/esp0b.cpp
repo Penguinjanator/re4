@@ -51,7 +51,7 @@ void cEsp0b::move()
         if (!AnmMove()) {
             PushEsp(this);
         } else if (!(info.Core_flg & 0x8000)) {
-            cam = &pG->Cam;
+            cam = &pG->Camera;
             if (parent != pEffParentWorld) {
                 PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             } else {
@@ -95,7 +95,7 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
 
     if (esp->info.Core_flg & 0x8000) {
         Esp0bWork* w = &esp->m_Free;
-        cam = &pG->Cam;
+        cam = &pG->Camera;
         if (esp->parent != pEffParentWorld) {
             PSMTXMultVec(esp->parent->mat, &esp->m_Pos, &wpos);
         } else {

@@ -10,7 +10,7 @@
 #include "t_camera.h"
 
 // Camera tool (t_camera REL, t_camera_draw.cpp): the per-frame tool camera update (projection / view
-// matrices into pG->Cam), n-gon outline / fill helpers, the TcMenu drawer with the blinking cursor and
+// matrices into pG->Camera), n-gon outline / fill helpers, the TcMenu drawer with the blinking cursor and
 // the CamBSpline preview curve.
 
 // Menu cursor blink timer (a struct: its stores alias the pad reads through pTc, which are
@@ -21,7 +21,7 @@ static int tcMenuDummy = 0;
 #define TC_REP (*(u32*) ((u8*) pTc + 0x128))
 
 // Per frame: rebuilds the tool camera's projection (perspective or ortho by CameraGetProjection)
-// and view matrices, copies it into pG->Cam and updates the view.
+// and view matrices, copies it into pG->Camera and updates the view.
 void tcCameraMove()
 {
     TcWork* w = pTc;
@@ -133,7 +133,7 @@ void tcDrawParametricCurve()
 
     for (i = 0; i < 128; i++) {
         f32 t = (f32) ((bs->num - 1) * i) * (1.0f / 128.0f) + 0.0f;
-        de_Boor_Cox(bs->num, NULL, bs->k, t, bs->basis);
+        de_Boor_Cox(bs->num, NULL, t, bs->k, bs->basis);
         p.x = p.y = p.z = 0.0f;
         for (j = 0; j < bs->num; j++) {
             p.x += bs->basis[j] * bs->px[j];
@@ -145,7 +145,7 @@ void tcDrawParametricCurve()
     }
     for (i = 0; i < 128; i++) {
         f32 t = (f32) ((bs->num - 1) * i) * (1.0f / 128.0f) + 0.0f;
-        de_Boor_Cox(bs->num, NULL, bs->k, t, bs->basis);
+        de_Boor_Cox(bs->num, NULL, t, bs->k, bs->basis);
         p.x = p.y = p.z = 0.0f;
         for (j = 0; j < bs->num; j++) {
             p.x += bs->basis[j] * bs->ax[j];

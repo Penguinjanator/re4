@@ -62,8 +62,6 @@ static const AtEffInfo r11b_eff_info = {
 };
 
 // The original TexRenderModRes reads the parts number from r4 although its prototype has one
-// parameter (game/TexRender.cpp); the rooms pass it.
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 
 static void R11b_bgm_ck();
 static void r11b_ThunderFlagOn();
@@ -114,8 +112,8 @@ void R11bInit()
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11b_eff_info);
     SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EvtMgr.SetFunc("evt_r11bs00_func", (void*) Evt_R11BS00_Func);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
-    EstSet((int) pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
+    EstSet(pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -365,13 +363,13 @@ static void r11b_EmEvent()
         pPL->setNoSuspend(1);
         r11b_setPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
         r11b_setAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
-        EstSet((int) r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[3], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[4], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[5], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet((int) r11b_work.p->em[6], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[3], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[4], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[5], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[6], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         SceSetEventCancel(1, (TaskFunc) r11b_EmEvent_exit, 0, -1, 1);
         CamCtrl.CutCall(3);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -598,9 +596,9 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 6);
-                    TexRenderModResP((cModel*) mod, 7);
-                    TexRenderModResP((cModel*) mod, 8);
+                    TexRenderModRes((cModel*) mod, 6);
+                    TexRenderModRes((cModel*) mod, 7);
+                    TexRenderModRes((cModel*) mod, 8);
                 }
                 r11b_evtEffDelete();
             }

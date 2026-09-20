@@ -218,7 +218,7 @@ int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* 
 int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 parts, Mtx* mtx, Vec* pos, Vec* rot,
                  EspSeqOpt* pSct, int flag);
 void EspgenArrayClear();
-void EspgenDelete(int a, int b, int c);
+void EspgenDelete(int a, int b, void* c);
 void EspgenDeleteEvent();
 int EspgenGetCallNo();
 void EspgenIncCallNo();
@@ -233,8 +233,8 @@ extern cModel* EspEvModList[0x80];
 // game/espgen10.cpp
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* pSct, int flag);
-void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e);
-int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front);
+void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, void* d, int e);
+int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, void* d, int e, int front);
 void Espgen10_Move(EspgenWork* w);
 
 // game/espgen00.cpp

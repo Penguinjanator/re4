@@ -116,7 +116,7 @@ void cToolBugcheck::menuPosMove()
         Vec v = {0.0f, 0.0f, 0.0f};
         JOY joy = Joy[0];
         joy.stickX = 0;
-        CamStick2World(&pG->Cam, &joy, &v);
+        CamStick2World(&pG->Camera, &joy, &v);
         PSVECScale(&v, &v, speed);
         v.y = 0.0f;
         if (Joy[0].on & 0x10000) {
@@ -125,7 +125,7 @@ void cToolBugcheck::menuPosMove()
         if (Joy[0].on & 0x20000) {
             pPL->ang.y -= 0.13962634f;
         }
-        floor = SatMgr.getFloor(&pPL->pos, 600.0f, 100000.0f, 0, 0);
+        floor = SatMgr.getFloor(&pPL->pos, 0, 600.0f, 100000.0f, 0);
         if (pPL->pos.y > floor + 500.0f || (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 8)) {
             v.y = v.y + speed * (f32) (int) Joy[0].triggerRight - speed * (f32) (int) Joy[0].triggerLeft;
         }

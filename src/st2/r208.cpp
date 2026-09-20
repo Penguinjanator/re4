@@ -593,7 +593,7 @@ void R208Main()
         sat->setCoord(&pos, (Vec*) &vecZero);
     }
     if ((pG->Room_flg[0] & 0x00200000) && (SubCharGetStatus() & 0x00800000)) {
-        SetSubAux((int) funcAshley2, 0);
+        SetSubAux(funcAshley2, 0);
         pG->Room_flg[0] &= ~0x00200000;
     }
     if ((u32) W->crankSeCnt > 0x3B) {
@@ -664,8 +664,8 @@ static void funcAshley(cEm* p)
     W->crank->be_flag |= 0x20;
     switch (p->r_no_2) {
     case 0:
-        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x36), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x37));
-        W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x36), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x37));
+        W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
         W->crank->setNoSuspend(0);
         {
             Vec pos = {427.81f, 0.0f, 563.42f};
@@ -719,7 +719,7 @@ static void funcAshley(cEm* p)
                     pos.x = 10603.0f;
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
-                    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
                     pG->Room_flg[0] |= 0x00200000;
                 }
             }
@@ -741,7 +741,7 @@ static void funcAshley(cEm* p)
                     pos.x = -10603.0f;
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
-                    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
                     pG->Room_flg[0] |= 0x00200000;
                 }
             }
@@ -833,7 +833,7 @@ static void asl_yubisasi()
     if (pSUB != NULL) {
         BitOn(pSUB->be_flag, 0x00200000);
     }
-    SetSubAux((int) funcAshley3, 0);
+    SetSubAux(funcAshley3, 0);
     CamCtrl.CutCall(0xF);
     SceSleep(0xF);
     SndCall(6, 4, 0, 0, 0, 0);
@@ -1233,11 +1233,11 @@ static void r208_operateCrank()
     pG->Room_flg[0] |= 0x04000000;
     SmdGetObjPtr(0x4E)->be_flag |= 0x20;
     PSet(W->crank, SmdGetObjPtr(0x4E));   // the pPL load stays below the store
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     PlSetHand(1, 0);
-    ((cUnitEventView*) W->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
-    W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+    W->crank->beginEvent(0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x20));
+    W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
     CamCtrl.CutCall(9);
     {
         Vec v = {500.0f, 4000.0f, -29300.0f};
@@ -1318,8 +1318,8 @@ static void r208_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) m0);
-            W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, frame, 5, m0);
+            W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, frame, 5, m1);
         }
         SmdGetObjPtr(0x21)->be_flag |= 0x20;
         W->crankSeCnt++;
@@ -1343,8 +1343,8 @@ static void r208_operateCrank()
     }
     W->crank->motionPause();
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(0);
-    ((cUnitEventView*) W->crank)->endEvent(0);
+    pPL->endEvent(0);
+    W->crank->endEvent(0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         SceAtSetEnable(2, 1);
     }
@@ -1465,7 +1465,7 @@ static void r208_snipe()
     } else {
         pos = posB;
     }
-    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
     SceSleep(1);
     while (1) {
         if (pG->Room_flg[0] & 0x80000000) {
@@ -1476,7 +1476,7 @@ static void r208_snipe()
         PSVECSubtract(&pSUB->pos, &pos, &d);
         if (PSVECMag(&d) < 500.0f) {
             if (SubCharGetStatus() & 1) {
-                SetSubAux((int) funcAshley, 0);
+                SetSubAux(funcAshley, 0);
             }
         } else {
             if (SubCharGetStatus() & 1) {
@@ -1485,7 +1485,7 @@ static void r208_snipe()
                 } else {
                     pos = posB;
                 }
-                SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
             }
         }
         if ((pG->Room_flg[0] & 0x20000000) && (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
@@ -1774,14 +1774,14 @@ static void SubUnderCrankExec()
             if (dist < 500.0f) {
                 if (SubCharGetStatus() & 1) {
                     set = 1;
-                    SetSubAux((int) funcAshley, 0);
+                    SetSubAux(funcAshley, 0);
                 }
             } else if ((SubCharGetStatus() & 0x01000000) == 0) {
                 if (set != 0) {
                     SubCharCtrl(SCC_CHASE, 0);
                     break;
                 }
-                SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
             }
             SceSleep(1);
         }
@@ -1796,5 +1796,5 @@ static void SubUnderCrankExec()
 extern "C" void r208_continue()
 {
     RsfSet(G_ROOM_ID, 12);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }

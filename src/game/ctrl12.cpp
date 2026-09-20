@@ -49,7 +49,7 @@ cCtrl* GetCtrlCtrl12()
 }
 
 // Sets timer `idx` (0..12) to `val` frames.
-void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val)
+void Ctrl12Set(cCtrl* pCtrl, int idx, s16 val)
 {
     Ctrl12Work* w;
 
@@ -88,7 +88,7 @@ int Ctrl12Ck(cCtrl* pCtrl, int idx)
 }
 
 // Adds `add` to counter `idx` (0..5), saturating at 0xFFFF.
-void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add)
+void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add)
 {
     Ctrl12Work* w;
     u16 v;
@@ -143,7 +143,7 @@ TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* pCtrl)
     if (t == 0) {
         GetTexRenderMgr(&w->tex2b);
         if (w->tex2b != 0) {
-            EstSet(0, -1, 0, 0, 1, 0x42, w->tex2b->mask | 1, 0, (u32) t, t);
+            EstSet(0, -1, 0, 0, 1, 0x42, w->tex2b->mask | 1, 0, t, t);
         }
     }
     return w->tex2b;

@@ -17,8 +17,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000016EC	0x200	em28/em28.cpp	local	em28_R1_Die_Normal__FP5cEm28	em28_R1_Die_Normal
 .text	0x000018EC	0x2A0	em28/em28.cpp	local	em28_R1_Die_Air__FP5cEm28	em28_R1_Die_Air
 .text	0x00001B8C	0x184	em28/em28.cpp	global	em28EscapeCk__FP5cEm28	em28EscapeCk
-.text	0x00001D10	0x4	em28/em28.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00001D14	0x4	em28/em28.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00001D10	0x4	em28/em28.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00001D14	0x4	em28/em28.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00001D18	0x20	em28/em28.cpp	global	_._5cEm28	cEm28::~cEm28
 .text	0x00001D38	0x48	em28/em28.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00001D80	0x4	em28/em28.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

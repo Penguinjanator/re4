@@ -23,8 +23,8 @@ public:
     void stopTarget();
     void getWHY(f32* w, f32* h, f32* y);
     int scrHitCheck();
-    int scrHitCheckSub(Vec* pos, f32 w, f32 h, f32 y, f32 side);
-    int emSandCheck(Vec* pos, f32 w, f32 h, f32 y);
+    int scrHitCheckSub(f32 w, f32 h, f32 y, Vec* pos, f32 side);
+    int emSandCheck(f32 w, f32 h, f32 y, Vec* pos);
     int plAdjust();
 };
 

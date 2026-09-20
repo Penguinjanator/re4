@@ -45,24 +45,10 @@ void jumpFallOn();
 u32 upDownCk(cPlayer* pl);
 }
 
-// cEmWindow::ExeWindowEvent as a SceExec task (the member's address is not a plain function pointer).
-int ExeWindowEventTask(cEmWindow* w) asm("ExeWindowEvent__9cEmWindow");
-
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 // cPlNeck's checks compile to the folded `addis 0x8000; cmplwi 0x02FFFFFF` range form.
 #define VALID_PTR2(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 
-// The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); view class for
-// the r4 argument (emwindow.cpp BEGIN_EVENT).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 // `flags &= 0xFFFE` through a u16 reference: the 16-bit mask survives (`rlwinm 16,30`, BitOff16
 // gives `clrrwi`) and the following `pPL` load stays below the store (cPlNeck::move).
@@ -397,7 +383,7 @@ void fanceOn()
 // Action button: go through the window (its event as a scenario task).
 void windowOn(cEmWindow* w)
 {
-    SceExec(0x12, (TaskFunc) ExeWindowEventTask, (int) w, 2, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) cEmWindow::ExeWindowEvent, (int) w, 2, SCE_PRIO_DEF_2, 0);
     PlFanceFlag = 1;
 }
 
@@ -512,7 +498,7 @@ int jumpCheck(cPlayer* pl)
         PSVECScale(&pl->m_JumpVec, &p2, dist);
         PSVECAdd(&p2, &hit, &p2);
         p2.y += up;
-        h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
+        h = SatMgr.getFloor(&p2, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
         FSet(pl->m_JumpAdjY, h);
         if (pG->stage_no == 2 && pG->room_no == 0x26) {
             if (fabsf(h) > up) {
@@ -534,7 +520,7 @@ void jumpFallOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 0x13, 0, 0);
-    FSet(pPL->ang.y, pPL->ang.y + Muku3(&pl->m_JumpVec, pPL->ang.y, 3.1415927f));
+    FSet(pPL->ang.y, pPL->ang.y + Muku3(pPL->ang.y, &pl->m_JumpVec, 3.1415927f));
     pPL->dmg.set(0, 0x80);
 }
 
@@ -542,9 +528,9 @@ void jumpFallOn()
 void cPlayer::motionSet(void* m0, void* seq0, void* m1, void* seq1, int hokan, int frame)
 {
     if (dmMotCk()) {
-        MotionSetCore(this, MOTION(this), m0, (int) seq0, hokan, 5, frame);
+        MotionSetCore(this, MOTION(this), m0, seq0, hokan, 5, frame);
     } else {
-        MotionSetCore(this, MOTION(this), m1, (int) seq1, hokan, 5, frame);
+        MotionSetCore(this, MOTION(this), m1, seq1, hokan, 5, frame);
     }
 }
 
@@ -620,49 +606,49 @@ int cPlayer::actionSelect()
     }
     actWallCheck(this);
     if (Push->catchCheck()) {
-        ActBtn.set(6, 2, (int) holdOn, 0, 0x10, 1, 0, 0);
+        ActBtn.set(6, 2, (void*) holdOn, 0, 0x10, 1, 0, 0);
     }
     if (fallCheck_80172E38(this)) {
-        ActBtn.set(4, 2, (int) fallOn, 0, 0, 1, 0, 0);
+        ActBtn.set(4, 2, (void*) fallOn, 0, 0, 1, 0, 0);
     }
     if (fanceCheck(this)) {
-        ActBtn.set(5, 2, (int) fanceOn, 0, 0, 1, 0, 0);
+        ActBtn.set(5, 2, (void*) fanceOn, 0, 0, 1, 0, 0);
     }
     if (jumpCheck(this)) {
-        ActBtn.set(5, 2, (int) jumpFallOn, 0, 0, 1, 0, 0);
+        ActBtn.set(5, 2, (void*) jumpFallOn, 0, 0, 1, 0, 0);
     }
     if (windowCheck(this, &dir, &win)) {
         int broken = win->ChkStatus() & 1;
         if (broken) {
             if (dir == 2) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, 0, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, 0, 1, 0, 0);
             } else {
-                ActBtn.set(5, 2, (int) fanceOn, 0, 0, 1, 0, 0);
+                ActBtn.set(5, 2, (void*) fanceOn, 0, 0, 1, 0, 0);
             }
         } else {
             if (dir == 0) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
             if (dir == 1) {
-                ActBtn.set(3, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(3, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
             if (dir == 2) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
         }
     }
     switch (upDownCk(this)) {
     case 1:
-        ActBtn.set(8, 2, (int) levelUpOn, 0, 0, 1, 0, 0);
+        ActBtn.set(8, 2, (void*) levelUpOn, 0, 0, 1, 0, 0);
         break;
     case 2:
-        ActBtn.set(9, 2, (int) levelDownOn, 0, 0, 1, 0, 0);
+        ActBtn.set(9, 2, (void*) levelDownOn, 0, 0, 1, 0, 0);
         break;
     case 3:
-        ActBtn.set(8, 2, (int) level2UpOn, 0, 0, 1, 0, 0);
+        ActBtn.set(8, 2, (void*) level2UpOn, 0, 0, 1, 0, 0);
         break;
     case 4:
-        ActBtn.set(0x40, 2, (int) level2DownOn, 0, 0, 1, 0, 0);
+        ActBtn.set(0x40, 2, (void*) level2DownOn, 0, 0, 1, 0, 0);
         break;
     }
     checkXbutton();
@@ -1037,7 +1023,7 @@ int cPlayer::actCheck()
 void cPlayer::beginDamage()
 {
     if (stat & 2) {
-        END_EVENT(this, 0);
+        this->endEvent(0);
     }
     interrupt();
 }
@@ -1094,12 +1080,9 @@ int cPlayer::getLifeLevel()
     return ret;
 }
 
-// Event start (mode in r4, see player.h): interrupt, routine 5 (0: idle footwork, 1: sub 2).
-void cPlayer::beginEvent()
+// Event start: interrupt, routine 5 (0: idle footwork, 1: sub 2).
+void cPlayer::beginEvent(u32 mode)
 {
-    register int modeReg asm("r4");
-    int mode = modeReg;
-
     interrupt();
     Neck->motL = 0;
     switch (mode) {
@@ -1211,12 +1194,10 @@ int cPlayer::endCamera()
     return ret;
 }
 
-// Event end (mode in r4, see player.h).
-void cPlayer::endEvent()
+// Event end.
+void cPlayer::endEvent(u32 mode)
 {
-    register u32 modeReg asm("r4");
-
-    endEvent0(modeReg);
+    endEvent0(mode);
 }
 
 // Event end (stat bit1 set): the player is drawn / collides / moves again, invulnerable for 10
@@ -1505,7 +1486,7 @@ void cPlayer::shadowCtrl()
 {
     int on;
 
-    if (!(stat & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
+    if (!(stat & 0x800) || pG->Camera.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
         on = 0;
     } else {
         on = 1;
@@ -1775,7 +1756,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     mot1 = m1;
     mot2 = m2;
     m_Mode = c;
-    MotionSetCore(m, MOTION(m), m0, a, mode, d, e);
+    MotionSetCore(m, MOTION(m), m0, (void*) a, mode, d, e);
     set0(m1, e, mode);
     ((cEm*) m)->blendMot->blendRate = 0.0f;
 }

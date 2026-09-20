@@ -49,8 +49,6 @@ struct R21bWorkPtr {
 
 static R21bWorkPtr r21b_work;
 
-// COMPILER-DIFF 4: the table's `int` entry is passed to the s16 parameter untruncated.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static R21bEmSet r21b_emTbl0[] = {{0, 0, 0xAE}, {1, 1, 0xA6}, {0x1C, 0x3D, 0x6D}, {-1, -1, 0}};
 static R21bEmSet r21b_emTbl1[] = {{2, 2, 0x16E}, {3, 3, 0x164}, {0x1D, 0x3E, 0x12C}, {-1, -1, 0}};
@@ -97,7 +95,7 @@ void R21bInit()
         mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x29);
         wp->trolley->setMotion(mot);
     }
-    r21b_work.p->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, 0, 1);
+    r21b_work.p->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
     r21b_work.p->hit[0]->setParent(SmdGetObjPtr(0xC8), 0, 0);
     YarareInit(r21b_work.p->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -157,7 +155,7 @@ static void r21b_GanadoJumpDownCheck(int no)
     int wait;
 
     for (p = r21b_emTbl[no]; p->slot != -1; p++) {
-        cEmWrapSetEmI(&r21b_work.p->em[p->slot].em, p->no, 5, 1, 1, 0);
+        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
     }
     do {
         wait = 0;
@@ -195,7 +193,7 @@ static void r21b_HalfWayGanadoSet()
     while (r21b_work.p->trolley->ckStop() == 0) {
         SceSleep(1);
     }
-    r21b_work.p->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, 0, 1);
+    r21b_work.p->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
     r21b_work.p->hit[1]->setParent(SmdGetObjPtr(0xC9), 0, 0);
     YarareInit(r21b_work.p->hit[1], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
     while (r21b_work.p->trolley->ckStop() == 1) {
@@ -203,7 +201,7 @@ static void r21b_HalfWayGanadoSet()
             for (p = tbl; p->slot != -1; p++) {
                 if (p->frame == 0) {
                     if (Rnd() & 1) {
-                        cEmWrapSetEmI(&r21b_work.p->em[p->slot].em, p->no, 5, 1, 1, 0);
+                        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
                         cnt++;
                         r21b_work.p->em[p->slot].em.setFlag(1);
                         p->frame = 1;

@@ -19,6 +19,7 @@
 #include "quake.h"
 #include "player.h"
 #include "pl_npc.h"
+#include "motion.h"
 
 // Cable car (gondola): carries the player, the partner and up to five enemies along its motion,
 // with five collision quads following the car; the break routine hands the camera over.
@@ -56,7 +57,6 @@ struct SubCharPtr {
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void DiedemoExec(int no, int demo_type);
 void objGondola_R0_Set(cObjGondola* obj);
 void objGondola_R0_Move(cObjGondola* obj);
@@ -67,7 +67,7 @@ void objGondolaSatClear(cObjGondola* obj);
 void objGondolaSatSet(cObjGondola* obj);
 void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 static void (*ObjGondola_R0_move_tbl[5])(cObjGondola*) = {
     objGondola_R0_Set, objGondola_R0_Move, objGondola_R0_Down, objGondola_R0_Up, objGondola_R0_Break,
@@ -460,7 +460,7 @@ void objGondolaSatSet(cObjGondola* obj)
             w->pSat[i]->m_Flag |= 4;
             w->pSat[i]->setCoord(&pos, &rot);
         } else {
-            w->pSat[i] = SatMgr.create(&pos, &rot, poly, 0, 0x100, r);
+            w->pSat[i] = SatMgr.create(&pos, &rot, poly, r, 0, 0x100);
         }
     }
 }
@@ -579,14 +579,14 @@ void cObjGondola::setGetOffEm(cEm* em)
 void cObjGondola::setDamage()
 {
     QuakeExec(0, 0, 5, 22.0f, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
 }
 
 // Break feedback: a 10-frame quake and vibration.
 void cObjGondola::setBreak()
 {
     QuakeExec(0, 0, 10, 30.0f, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     r_no_0 = 4;
     r_no_1 = 0;
     r_no_2 = 0;
@@ -684,6 +684,6 @@ void cObjGondola::setVib()
         ((GondolaMotWork*) motBlend)->blendRate = 1.0f;
         ((GondolaMotWork*) motBlend)->flags2 |= 0x80000000;
         QuakeExec(0, 0, 10, 30.0f, 2);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     }
 }

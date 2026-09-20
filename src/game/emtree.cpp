@@ -15,9 +15,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
@@ -75,7 +75,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     f32 zero = 0.0f;
     f32 h = 5000.0f;
     f32 r = 200.0f;
-    em->atari.init(parts, 2, parts, zero, h, zero, r, r, r, h);
+    em->atari.init(zero, h, zero, r, r, r, h, parts, 2, parts);
     em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -134,7 +134,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start hook: nothing to do for trees.
-void cEmTree::beginEvent()
+void cEmTree::beginEvent(u32 mode)
 {
 }
 
@@ -370,7 +370,7 @@ void emTree_R1_Fall(cEmTree* em)
     f32 d;
 
     em->hp = 0;
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 300.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -439,7 +439,7 @@ void emTree_R1_Fall(cEmTree* em)
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
                     em->be_flag &= ~2;
                     em->r_no_0 = 1;
                     em->r_no_1 = 2;
@@ -547,7 +547,7 @@ void emTree_R1_Throw(cEmTree* em)
         SndStop(w->sndId, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 1)) {
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -651,7 +651,7 @@ void emTree_R1_Shot(cEmTree* em)
         em->partsWorldCalc();
         em->r_no_2 = 2;
     } else if (w->pAtk && (part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0)) != 0) {
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
             SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
         }

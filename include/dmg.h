@@ -15,7 +15,7 @@ public:
     int m_Time;   // 0x14  frames left
 
     virtual ~cDmg() {}
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual int hitCheck(Vec* pos, Vec* out) = 0;
 };
 

@@ -106,7 +106,7 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     }
     YarareInit(em, 0.0f, 0.0f, -100.0f, 300.0f, 10.0f, 1, 1);
     at = &em->atari;
-    at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f);
+    at->init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp = 1;
     em->hp_max = 1000;
     {
@@ -184,7 +184,7 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
 }
 
 // Event start: mines and arrows in flight are removed.
-void cEmMine::beginEvent()
+void cEmMine::beginEvent(u32 mode)
 {
     EmMgr.destroy(this);
 }
@@ -258,7 +258,7 @@ void emMine_R1_Shot(cEmMine* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0, 0x38, 0, w->EffKindId, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0, 0x38, 0, w->EffKindId, em, 0);
         w->Bomb_wait = 210;
         em->r_no_2++;
     case 1:
@@ -430,7 +430,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0, 0x4C, 0, w->EffKindId, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0, 0x4C, 0, w->EffKindId, em, 0);
         w->Bomb_wait = 210;
         em->r_no_2++;
     case 1:
@@ -734,7 +734,7 @@ void emMine_R1_Set(cEmMine* em)
                 if (w->Timer2 <= 4) {
                     w->Timer2 = 5;
                 }
-                EstSet((int) em, -1, 0, 0, 0, 0x37, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0, 0x37, 0, 0, em, 0);
                 p.x = 0.0f;
                 p.y = 0.0f;
                 p.z = -250.0f;
@@ -830,7 +830,7 @@ void emMine_R1_Parent(cEmMine* em)
                 if (w->Timer2 <= 4) {
                     w->Timer2 = 5;
                 }
-                EstSet((int) em, -1, 0, 0, 0, 0x37, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0, 0x37, 0, 0, em, 0);
                 p.x = 0.0f;
                 p.y = 0.0f;
                 p.z = -250.0f;
@@ -1005,7 +1005,7 @@ void emMine_R1_Fall(cEmMine* em)
 
     em->hp = 0;
     em->setStatus(EM_STATUS_LOCKOFF);
-    floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): two dead sets (deleted by flow) take the
     // expression table from 235 to 237 buckets, so `w+48`/`fp+100` (13389) hash below `fp+144` (13433)
     // and the three PRE'd addresses get the original's spill-slot order (256/260/264).

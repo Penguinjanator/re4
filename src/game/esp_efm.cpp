@@ -16,7 +16,7 @@
 #include "db_log.h"
 
 // game/motion.cpp (C++ linkage)
-void MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);
 
 extern "C" {
 u32 GetEfmMoveIdMax();
@@ -79,7 +79,7 @@ u8 GetEfmMoveId(u32 no)
 
 // Destroys every Efm object whose EfmCore matches: flg == a, kind == b, pEm == c (each test skipped
 // when the value is 0). Used to remove the effect models an enemy/effect owner spawned.
-void EfmDelete(int a, int b, int c)
+void EfmDelete(int a, int b, void* c)
 {
     cObjMgr* m = &ObjMgr;
     void (*func)(cObj*) = EfmDeleteSub;
@@ -505,7 +505,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         break;
     }
     if (w->flags & 4) {
-        EstSet((int) obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, (u32) obj, 0);
+        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, obj, 0);
     }
     if (w->flags & 8) {
         w->x7B = gen->WorkSp8[2];
@@ -677,7 +677,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     }
     obj->matUpdate();
     if (w->flags & 4) {
-        EstSet((int) obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, (u32) obj, 0);
+        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, obj, 0);
     }
     if (gen->WorkSp8[2] != 0) {
         setModTexRender(obj, gen->WorkSp8[2] - 1);

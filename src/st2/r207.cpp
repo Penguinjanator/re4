@@ -251,7 +251,7 @@ static void r207_openTerm()
 {
     RsfSet(G_ROOM_ID, 10);
     OpeSetOpenTerm(0xD, 0.0f, 0.0f, 0.0f, 0.0f);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Every 150 frames: the enemy farthest from the player in the area the player just entered is
@@ -777,7 +777,7 @@ static void r207_WallMove()
     CamCtrl.CutCall(3);
     SceSetEventCancel(1, (TaskFunc) r207_WallMoveEndProc, 0, -1, 1);
     RoomSeCall(0, &obj->pos, 0, 0, obj);
-    EstSet(0, -1, 0, 0, 1, 0, 1, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0, 1, 0, zero, zero);
     while (obj->pos.z < -9500.0f) {
         obj->pos.z += 30.0f;
         obj->matUpdate();

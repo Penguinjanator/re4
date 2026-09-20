@@ -16,6 +16,7 @@
 #include "objBull.h"
 #include "em.h"
 #include "emhit.h"
+#include "em_sub.h"
 #include "em10.h"
 #include "em_wrap.h"
 #include "etc_model.h"
@@ -43,10 +44,6 @@
 // gates, fight off the truck and take the lift up.
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
-// The rooms' adjust_add_set prototype takes the Vec by value (copied and passed by reference).
-void adjust_add_setV(Vec v) asm("adjust_add_set");
-// pl_npc.cpp: MotionMove is called with a second argument by the partner code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `pPL->atari.flags &= ~0x100` through a pointer to the collision info; the volatile halfword store keeps
 // the following pPL load below it (r30d).
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
@@ -155,7 +152,7 @@ void R30fInit()
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        adjust_add_setV(zero);
+        adjust_add_set(zero);
     }
 #line 87 "D:/Bio4/Prog/r30f.cpp"
     wp = (R30fWork*) MEM_CALLOC(sizeof(R30fWork), 1, 0xd);
@@ -205,7 +202,7 @@ void R30fInit()
         AreaSet(2);
         r30f_work->truckNo = 2;
         SceExec(0x12, (TaskFunc) R30f_ride, 0, 0, 2, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, (void*) zero, (void*) zero);
         SceAtSetEnable(0x18, 0);
         SceAtSetEnable(0x19, 0);
     } else {
@@ -240,7 +237,7 @@ void R30fInit()
             }
         }
     }
-    EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
     if (pG->room_id_prev == 0xFFF && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
         StaFlagOn(pG, STA_SUB_ASHLEY);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
@@ -636,7 +633,7 @@ static void track_destroy()
     }
     r30f_work->lift->setNoSuspend(1);
     r30f_work->bull->setNoSuspend(1);
-    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
     SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
     if (pSUB) {
         pSUB->setNoSuspend(0);
@@ -669,7 +666,7 @@ static void track_move()
         SceEventStart(1);
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x41), 0, 0, 0x200, 0);
         r30f_work->lift->setNoSuspend(1);
-        EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
+        EstSet(r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
         EffectEspDelete(1, 6, 0, 0);
@@ -688,15 +685,15 @@ static void track_move()
     if (r30f_work->truckNo == 2) {
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0x200, 0);
     }
-    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
     SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
     if (r30f_work->truckNo != 1) {
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
     }
     frames = (u32) MotionGetMaxFrame(&r30f_work->lift->Motion);
-    r30f_work->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
+    r30f_work->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
     YarareInitCube(r30f_work->hit[0], hit0_x, hit0_y, hit0_z, hit0_w, hit0_h, hit0_d, 0, 1);
-    r30f_work->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
+    r30f_work->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
     YarareInitCube(r30f_work->hit[1], hit1_x, hit1_y, hit1_z, hit1_w, hit1_h, hit1_d, 0, 1);
     IntSet(r30f_work->truckLife, 0x1F4);
     if (pG->Game_level > 8) {
@@ -750,9 +747,9 @@ static void track_move()
         }
         if (life > 0 && r30f_work->truckLife <= 0) {
             if (r30f_work->truckNo == 2) {
-                EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x19, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, 1, 0x19, 1, 4, 0, 0);
             } else {
-                EstSet((int) r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
             }
             SndCall(6, 0x13, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         }
@@ -765,7 +762,7 @@ static void track_move()
 
                 if (no == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, no, (void*) no);
+                    EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, (void*) no, (void*) no);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3F), 0, 0, 1, 0);
@@ -773,7 +770,7 @@ static void track_move()
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 0, 0x200, 0);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, (u32) r30f_work->lift, 0);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, r30f_work->lift, 0);
                     last_bomb();
                     SceExec(0x12, (TaskFunc) pl_gurd, 0, 0, 2, 0);
                 }
@@ -797,17 +794,17 @@ static void track_move()
                 BitOn(pG->Room_flg[0], 0x00800000);
                 if (r30f_work->truckNo == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 8, 0, 0, hitT, (void*) hitT);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, (u32) r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 8, 0, 0, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, hitT, (void*) hitT);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, (u32) r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x37), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, hitT, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, (void*) hitT, (void*) hitT);
                 }
                 SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
             }
@@ -832,13 +829,13 @@ static void adjust_func(cObj* obj)
 {
     Vec zero = {0.0f, 0.0f, 0.0f};
 
-    adjust_add_setV(zero);
+    adjust_add_set(zero);
     if (!(pG->Room_flg[0] & 0x00400000)) {
         SmdGetObjPtr(0x1E)->be_flag |= 0x20;
         PSVECSubtract(&r30f_work->bull->pParts->pos, &r30f_work->bullPos, &r30f_work->liftAdd);
         setLiftMoveAdd(&r30f_work->liftAdd);
         r30f_work->liftAdd.y *= lift_y_rate;
-        adjust_add_setV(r30f_work->liftAdd);
+        adjust_add_set(r30f_work->liftAdd);
         r30f_work->bullPos = r30f_work->bull->pParts->pos;
     }
 }
@@ -984,7 +981,7 @@ static void R30f_ride()
         } else {
             r30f_work->bull->setAdjustMode(1, 0);
             Vec zero = {0.0f, 0.0f, 0.0f};
-            adjust_add_setV(zero);
+            adjust_add_set(zero);
         }
         if (r30f_work->bull->ckTruckGo() != 0) {
             if (truck == 0) {
@@ -1012,7 +1009,7 @@ static void plemRide(cPlayer* p)
         p->r_no_2++;
     case 1:
         p->r_no_3++;
-        if (MotionMoveF(p, 0) != 0 || p->r_no_3 == 0x3C) {
+        if (MotionMove(p, 0) != 0 || p->r_no_3 == 0x3C) {
             pPL->dmg.clear();
             AtariFlagsOr(&pPL->atari, 0x100);
             pPL->atari.setPriority(0);
@@ -1294,7 +1291,7 @@ void lift_stop_event()
 {
     SceEventStart(1);
     CamCtrl.CutCall(0x10);
-    EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x16, 1, 5, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x16, 1, 5, 0, 0);
     if (pSUB) {
         SndCall(6, 1, &pSUB->pos, 0, 0, 0);
         pSUB->setNoSuspend(1);
@@ -1332,7 +1329,7 @@ static void lift_stop_task()
     cnt = 0;
     eff = 0;
     R30F_SAVE_FLAGS |= 0x40000000;
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SmdGetObjPtr(0x12)->be_flag |= 0x20;
     SmdGetObjPtr(0x12)->pParts->ang.z = 1.38f;
     o = SmdGetObjPtr(0xD);

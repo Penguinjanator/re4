@@ -564,7 +564,7 @@ void ItemExamine::idSet()
     switch (m_scrn_flag) {
     case 0:
     case 1:
-        m_pIdSys->set((void*) (pG->pArc->ofs_78 + (u32) pG->pArc), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set((void*) (pG->pCore->ofs_78 + (u32) pG->pCore), 0xFF, 0x26, 0x13, 0, 0);
         break;
     case 2:
         m_pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
@@ -649,7 +649,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         p.z = cap_dist_max;
         p0 = &m_pModel->getPartsPtr(0)->world;
         c = c0;
-        VecLinearCombination(p0, &m_pModel->getPartsPtr(1)->world, c, 1.0f - c0, &mid);
+        VecLinearCombination(p0, c, &m_pModel->getPartsPtr(1)->world, 1.0f - c0, &mid);
         PSVECScale(&mid, &mid, 0.5f);
         PSVECAdd(&mid, &p, &at);
         itemCamera.param.at = mid;
@@ -657,7 +657,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         itemCamera.dist = cap_dist_max;
         g_rad_x = 0.0f;
     } else {
-        arc = pG->pArc;
+        arc = pG->pCore;
         lit = (cLit*) (arc->ofs_58 + (u32) arc);
         if (m_pInfo) {
             switch (m_pInfo->light) {
@@ -677,7 +677,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
                 lit = (cLit*) (arc->ofs_68 + (u32) arc);
                 break;
             default:
-                lit = (cLit*) (pG->pArc->ofs_58 + (u32) pG->pArc);
+                lit = (cLit*) (pG->pCore->ofs_58 + (u32) pG->pCore);
                 break;
             }
         }
@@ -701,7 +701,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
             }
         }
         if (EspGetEstAddr(0xD1, (u8) no, 1)) {
-            EstSet((int) m_pModel, -1, 0, 0, 0xD1, (u8) no, 0xA001, 0x3B, (u32) m_pModel, 0);
+            EstSet(m_pModel, -1, 0, 0, 0xD1, (u8) no, 0xA001, 0x3B, m_pModel, 0);
         }
     }
 }
@@ -885,9 +885,9 @@ void ItemExamine::quit()
     int i;
 
     m_pModel->ot_type = m_ot_type_bak;
-    EffectEspDelete(0xA001, 0x3B, (u32) m_pModel, 0);
-    EffectEspgenDelete(0xA001, 0x3B, (int) m_pModel);
-    EffectEfmDelete(0xA001, 0x3B, (int) m_pModel);
+    EffectEspDelete(0xA001, 0x3B, m_pModel, 0);
+    EffectEspgenDelete(0xA001, 0x3B, m_pModel);
+    EffectEfmDelete(0xA001, 0x3B, m_pModel);
     m_pIdSys->kill(0xFF, 0x26);
     m_pIdSys->kill(0xFF, 0x27);
     for (i = 0; i <= 2; i++) {

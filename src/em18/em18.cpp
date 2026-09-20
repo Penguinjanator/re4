@@ -36,11 +36,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// model.h's member; the enemies call it with the old ModelData (em10.cpp).
-extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
-
 typedef void (*Em18Func)(cEm18*);
 
 static void em18_R0_Init(cEm18* em);
@@ -273,7 +268,7 @@ static void em18_R0_Init(cEm18* em)
 
         em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
-    em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1800.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1800.0f, 1, 0x2000, 10);
     em->atari.m_flag |= 8;
     em->litArea.on(1);
     one = 1;
@@ -299,7 +294,7 @@ static void em18_R0_Init(cEm18* em)
     w->neckAng = 0.0f;
     EmRoutineSet(em, one, 0, 0, 0);
     MotionSetCore(em, MOTION(em), ARC(0x14), 0, 0, 1, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em->clearStatus(EM_STATUS_ACTIVE);
     em18_R0_Move(em);
 }
@@ -322,7 +317,7 @@ static void em18_R1_Wait(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em18ActEvtSetTrade(em);
@@ -352,7 +347,7 @@ static void em18_R1_Trade(cEm18* em)
         }
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -374,7 +369,7 @@ static void em18_R1_Trade(cEm18* em)
         if (em->motFrame > 26.7f && em->motFrame < 27.3f) {
             em18GoodsPartsSet(em, 0);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -426,7 +421,7 @@ void em18ActEvtSetTrade(cEm18* em)
             return;
         }
     }
-    ActBtn.set(0, 2, (int) em18TradeAction, (int) em, 0, 1, 0, 0);
+    ActBtn.set(0, 2, (void*) em18TradeAction, em, 0, 1, 0, 0);
 }
 
 // Action button callback: the first time starts the Trade routine (Be_flg bit5) with the player's
@@ -469,7 +464,7 @@ static void em18_R1_Dm_Normal(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 10);
         }
         break;
@@ -501,7 +496,7 @@ static void em18_R1_Die_Normal(cEm18* em)
         SndCall(8, 8, &em->pos, em->id, 0, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(EM_STATUS_ACTIVE);
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;
@@ -566,7 +561,7 @@ void em18ClothPartsSet(cEm18* em, int on)
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         if (w->pCloth) {
-            cModel_swapModelInfo(em, w->pCloth->pData, info);
+            em->swapModelInfo(w->pCloth->pData, info);
         } else {
             em->addModel(info);
         }
@@ -606,7 +601,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binL, ARC(6));
     if (info) {
         if (w->pRHand) {
-            cModel_swapModelInfo(em, w->pRHand->pData, info);
+            em->swapModelInfo(w->pRHand->pData, info);
         } else {
             em->addModel(info);
         }
@@ -615,7 +610,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binR, ARC(6));
     if (info) {
         if (w->pLHand) {
-            cModel_swapModelInfo(em, w->pLHand->pData, info);
+            em->swapModelInfo(w->pLHand->pData, info);
         } else {
             em->addModel(info);
         }

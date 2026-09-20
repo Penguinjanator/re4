@@ -48,12 +48,6 @@ struct R40eWork {
 
 static R40eWork* r40e_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
-// The u8 result is passed on unmasked to SceDestroyEm (COMPILER-DIFF 4).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
-// The result screen's init is called with r4 left as it was (no argument set up).
-void AdaResultInit(AdaResult* r) asm("init__9AdaResulti");
 
 static void r40e_execShowView_end();
 static void r40e_execShowView();
@@ -92,7 +86,7 @@ void R40eInit()
     EvtMgr.SetFunc("evt_r40es99_func", (void*) Evt_R40ES00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) R40EExecEventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r40es00.evd", (u8) GetEmIdFromList(0xDD), 0, 0, 0);
     }
     TexRenderInit(&r40e_work->tex, 0, 1);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -353,9 +347,9 @@ static void R40EExecEventS00()
                 SceEventEnd(0);
             } else {
                 RsfSet(G_ROOM_ID, 0);
-                SceDestroyEm(GetEmIdFromListI(0xDD), -1);
+                SceDestroyEm(GetEmIdFromList(0xDD), -1);
                 SceSleep(1);
-                EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0);
+                EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromList(0xDD), 0);
                 FadeSetW(0, 0, 0, 0);
                 SceSleep(1);
                 SceExec(0x12, (TaskFunc) gameResult, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -420,7 +414,7 @@ static void gameResult()
         size += MARGIN;
         swap.SwapOut((u32) pG->pRoom, size, 0);
         res = new AdaResult;
-        AdaResultInit(res);
+        res->init();
         FadeKillAll();
         FadeSetW(0x80000002, FADE_TIME, 0, 0);
         if (Fade[2].flags & 1) {
@@ -502,7 +496,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                 }
             }
             break;

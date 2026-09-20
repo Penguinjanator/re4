@@ -93,9 +93,9 @@ void cObjStriker::moveFire()
         MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x30), 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 4, &pos, 0, 0, 0);
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         StaFlagOn(pG, STA_PL_FIRE);
-        EstSet((int) this, -1, 0, 0, 0x3C, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x3C, 0, 0, 0xA, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, 21.0f)) {
         setCartridge();

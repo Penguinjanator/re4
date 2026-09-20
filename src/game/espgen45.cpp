@@ -179,8 +179,8 @@ void Espgen45_Move00(EspgenWork* w)
     frame = pG->Frame_cnt % 60;
     StaFlagOn(pG, STA_WATER_ALIVE);
     if (g_bTargetCamera == 1) {
-        FSet(g_Target_x, pG->Cam.param.at.x);
-        FSet(g_Target_z, pG->Cam.param.at.z);
+        FSet(g_Target_x, pG->Camera.param.at.x);
+        FSet(g_Target_z, pG->Camera.param.at.z);
     }
     FSet(p->pos0.x, g_Target_x);
     p->pos0.z = g_Target_z;
@@ -508,7 +508,7 @@ void Espgen45_TransSub(EspgenWork* w)
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
-    LightMgr.setClothN(&model, 5);
+    LightMgr.setCloth(&model, 5);
     GXColor amb = p->amb;
     if (g_bColorOverWrite == 1) {
         amb.r = (u8) (g_sr * 255.0f);
@@ -529,10 +529,10 @@ void Espgen45_TransSub(EspgenWork* w)
     Mtx nrm;
     Mtx mv;
     Mtx tmp;
-    PSMTXConcat(pG->Cam.v_mat, p->mat, mv);
+    PSMTXConcat(pG->Camera.v_mat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
     tmp[1][1] = p->size * 0.05f + 100.0f;
-    PSMTXConcat(pG->Cam.v_mat, tmp, tmp);
+    PSMTXConcat(pG->Camera.v_mat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
     GXLoadNrmMtxImm(nrm, 0);
@@ -557,7 +557,7 @@ void Espgen45_TransSub(EspgenWork* w)
             Mtx pm;
             GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
             GXLoadTexObj(&tex, st->texMap);
-            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+            C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
             PSMTXConcat(pm, mv, tm);
             GXLoadTexMtxImm(tm, 0x1E, 0);
             GXSetTexCoordGen(st->texCoord, 0, 0, 0x1E);
@@ -630,7 +630,7 @@ void Espgen45_TransSub(EspgenWork* w)
             Mtx ms;
             Mtx mt;
             Mtx m3;
-            PSMTXCopy(pG->Cam.v_mat, m3);
+            PSMTXCopy(pG->Camera.v_mat, m3);
             PSMTXInverse(m3, m3);
             PSMTXTranspose(m3, m3);
             PSMTXScale(ms, 1.0f, -0.5f, 0.0f);

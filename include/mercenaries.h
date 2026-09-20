@@ -142,7 +142,7 @@ public:
     u8 _rno2;
     u8 _rno3;
 
-    void init(int no);
+    void init();
     int move(int mesNo);
     void quit();
 };

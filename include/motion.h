@@ -47,9 +47,9 @@ void PartsWorldPosCalc(cModel* m);
 void MotionBlendOff(cModel* m);
 void MotionPause(cModel* m);
 void MotionClear(cModel* m, int flag);
-u16 MotionMove(cModel* m);
+u32 MotionMove(cModel* pEm, Camera* pCamera);
 u16 MotionMoveSub(cModel* m, MotionWork* w);
-void MotionMoveCore(cModel* m, MotionWork* w, int flag);
+void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera);
 void MotionHokan(cModel* m, MotionWork* w);
 void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot);
 void MotionAddSpeed(cModel* m, MotionWork* w, Vec* pos, Vec* rot);
@@ -64,8 +64,7 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist);
 int Fcc_next_axis_addr(int type, int n);
 void IKInit(cModel* m, MotionWork* w);
 void InverseKinematics(cModel* m, int flag);
-void cModel_matBlend(cModel* m, f32 rate) asm("matBlend__6cModelf");   // cModel::matBlend (model.cpp); the C name is what motion.cpp calls
 }
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);
 
 #endif

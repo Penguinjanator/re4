@@ -71,8 +71,8 @@ static inline void BSet(u8& d, u8 v)
 // stage_prev/room_prev written as one u16 through a plain pointer (aliases pG like G_ROOM_ID).
 #define G_ROOM_ID_PREV (*(u16*) &pG->stage_prev)
 
-// Sub-file of the core archive (pG->pArc): `ofs + (u32) arc` (integer arithmetic, ofs first).
-#define G_ARC_PTR(field) ((void*) (pG->pArc->field + (u32) pG->pArc))
+// Sub-file of the core archive (pG->pCore): `ofs + (u32) arc` (integer arithmetic, ofs first).
+#define G_ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Fade colours: word constants passed by address (see sscrn.cpp).
 union FadeColor {
@@ -166,7 +166,7 @@ void titleSet(TitleWork* w, int time)
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, ID_TITLE, 0x13, 6, 0);
     }
-    IdSys.setTimeS(IdSys.unitPtr(0, ID_TITLE), (s16) time);
+    IdSys.setTime(IdSys.unitPtr(0, ID_TITLE), (s16) time);
 }
 
 // State 1: waits for the memory card check and the sound bank, loads "SS/<lang>/title.dat" and its
@@ -215,7 +215,7 @@ void titleWait(TitleWork* w)
                 w->Rno0 = 5;
                 w->counter = 585;
                 titleSet(w, 585);
-                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+                if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveStep = w->Rno1;
                     w->saveSub = w->Rno2;
                     w->saveX3 = w->Rno3;
@@ -226,7 +226,7 @@ void titleWait(TitleWork* w)
             }
         }
         {
-            Camera* cam = &pG->Cam;
+            Camera* cam = &pG->Camera;
             C_MTXPerspective(cam->ProjMat, cam->param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
             cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
             C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
@@ -291,7 +291,7 @@ void titleWarning(TitleWork* w)
         w->counter = 585;
         w->Rno0 = 5;
         w->Rno1 = 0;
-        IdSys.setTimeS(u, (s16) w->counter);
+        IdSys.setTime(u, (s16) w->counter);
         return;
     }
     switch (w->Rno1) {
@@ -314,7 +314,7 @@ void titleWarning(TitleWork* w)
             w->counter = 105;
             w->Rno1 = 0;
             w->Rno0 = 4;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     }
@@ -348,7 +348,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 230;
             w->Rno1 = 2;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 2:
@@ -368,7 +368,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 330;
             w->Rno1 = 4;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 4:
@@ -388,7 +388,7 @@ void titleLogo(TitleWork* w)
             FadeKill(0);
             w->counter = 585;
             w->Rno1 = 6;
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 6:
@@ -790,7 +790,7 @@ void titleMain(TitleWork* w)
             if (w->counter <= 584) {
                 w->counter = 645;
             }
-            IdSys.setTimeS(u, (s16) w->counter);
+            IdSys.setTime(u, (s16) w->counter);
             w->dbg_mode = 1;
             w->Rno2++;
         }
@@ -798,7 +798,7 @@ void titleMain(TitleWork* w)
             if (Joy[0].trg & 0x1100) {
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->Rno0 = 7;
-                if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+                if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveSub = w->Rno2;
                     w->saveStep = w->Rno1;
                     w->saveX3 = w->Rno3;
@@ -909,7 +909,7 @@ void titleSub(TitleWork* w)
         }
         FadeSetW(0, 5, 0, 0);
         w->Rno1++;
-        if ((s32) pG->System_flg < 0) {
+        if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME)) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
         } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             snd_id = SndStrReq(0, 55, 0x80000003, 0, 0, 0.0f);
@@ -1531,8 +1531,8 @@ void titleExit(TitleWork* w)
         } else {
             memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
             FSet(pG->sub_angle, pG->NextY);
-            G_ROOM_ID = pG->next_room;
-            pG->Part = pG->next_point;
+            G_ROOM_ID = pG->RoomNo_next;
+            pG->Part = pG->Part_next;
         }
     }
     if (w->se_id != 0) {
@@ -1548,7 +1548,7 @@ void titleExit(TitleWork* w)
         Mem_free(w->pDat);
         w->pDat = 0;
     }
-    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         Mem_free(w->pOmk);
     }
     StaFlagOff(pG, STA_TITLE);
@@ -1558,10 +1558,6 @@ void titleExit(TitleWork* w)
     ScreenReSize(512, 448);
     TaskChain(GameTask, 0);
 }
-
-// COMPILER-DIFF: #4 (int argument to an s8 parameter: the original passes `no` without the extsb)
-s8 RjGetPointNumI(cRoomJmp* rj, s8 stage, int room) asm("getPointNum__8cRoomJmpScSc");
-s8 RjGetNextPointNoI(cRoomJmp* rj, s8 stage, int room, s8 point, int dir) asm("getNextPointNo__8cRoomJmpScScSci");
 
 // Debug start menu (title): stage / room / point, player type, costume, level and mode, edited
 // with the pad and shown with eprintf; writes the choice into pG before titleExit.
@@ -1582,7 +1578,7 @@ void titleDebugMenu(TitleWork* w)
     s16 y;
     int i;
     int lines = 21;
-    int no;
+    s8 no;
     int num;
 
     if (Joy[0].on & 0x00200000) {
@@ -1696,22 +1692,22 @@ void titleDebugMenu(TitleWork* w)
         }
         break;
     case 5:
-        no = (s8) pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->room;
+        no = pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->room;
         if (Joy[0].rep2 & 0x00020002) {
-            if (RjGetPointNumI(pRj, w->Stage, no) - 1 == w->JumpPoint) {
+            if (pRj->getPointNum(w->Stage, no) - 1 == w->JumpPoint) {
                 w->JumpPoint = 0;
             } else {
-                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, 1);
+                w->JumpPoint = pRj->getNextPointNo(w->Stage, no, w->JumpPoint, 1);
             }
         }
         if (Joy[0].rep2 & 0x00010001) {
             if (w->JumpPoint == 0) {
-                w->JumpPoint = RjGetPointNumI(pRj, w->Stage, no) - 1;
+                w->JumpPoint = pRj->getPointNum(w->Stage, no) - 1;
             } else {
-                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, -1);
+                w->JumpPoint = pRj->getNextPointNo(w->Stage, no, w->JumpPoint, -1);
             }
         }
-        w->JumpPoint = w->JumpPoint < 0 ? 0 : (w->JumpPoint > RjGetPointNumI(pRj, w->Stage, no) - 1 ? RjGetPointNumI(pRj, w->Stage, no) - 1 : w->JumpPoint);
+        w->JumpPoint = w->JumpPoint < 0 ? 0 : (w->JumpPoint > pRj->getPointNum(w->Stage, no) - 1 ? pRj->getPointNum(w->Stage, no) - 1 : w->JumpPoint);
         break;
     case 6:
         num = w->em_list_no;

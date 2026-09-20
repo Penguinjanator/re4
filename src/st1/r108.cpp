@@ -153,7 +153,6 @@ static void r108_operator()
 }
 
 // Ringing the bell: re-create up to three of the outside Ganados when few are left.
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");   // COMPILER-DIFF: 4 (no int->s16 truncation at the call)
 // Called from the module's other rooms: when 7 or fewer Ganados (ids 0x10..0x20) are alive, respawn up to
 // three of the eleven listed ESL entries as reinforcements.
 extern "C" void r108_checkEmReset()
@@ -172,7 +171,7 @@ extern "C" void r108_checkEmReset()
         asm("" : "+r"(tbl));
 
         for (p = tbl; p <= &tbl[10]; p++) {
-            if (setEmI(*p, -1, 0, 1, 1) != 0) {
+            if (setEm(*p, -1, 0, 1, 1) != 0) {
                 cnt++;
                 if (cnt > 2) {
                     break;
@@ -189,7 +188,7 @@ static void r108_initChurchBell()
     cEmHit* hit;
 
     bell = SmdGetObjPtr(0x1C);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &bell->pos, &bell->ang, 1);
+    hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &bell->pos, &bell->ang, 1);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order (the r103 checkCloseCover lever)

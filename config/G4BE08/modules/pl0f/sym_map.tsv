@@ -98,8 +98,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000A70C	0xE8	pl0f/pl0f.cpp	global	subOnBoat__FP8cSubCharP5cPl0f	subOnBoat
 .text	0x0000A7F4	0x14C	pl0f/pl0f.cpp	global	setBossStart__5cPl0fP3Vecf	cPl0f::setBossStart
 .text	0x0000A940	0x28	pl0f/pl0f.cpp	global	stopEngine__5cPl0f	cPl0f::stopEngine
-.text	0x0000A968	0x4	pl0f/pl0f.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x0000A96C	0x4	pl0f/pl0f.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000A968	0x4	pl0f/pl0f.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x0000A96C	0x4	pl0f/pl0f.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x0000A970	0x20	pl0f/pl0f.cpp	global	_._5cPl0f	cPl0f::~cPl0f
 .text	0x0000A990	0x48	pl0f/pl0f.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000A9D8	0x4	pl0f/pl0f.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

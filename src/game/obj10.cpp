@@ -14,13 +14,14 @@
 #include "rnd.h"
 #include "pl_wep.h"
 #include "player.h"
+#include "motion.h"
 
 // Thrown weapon item (bottle / explosive): the grenade (obj01) flight model with its own
 // landing sounds, a player hit check on the explosion and no flash / underwater variants.
 class cWepItem : public cObj {
 public:
     virtual void move();
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual ~cWepItem() {}
 
     void move00();
@@ -30,11 +31,9 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int obj10AddSpeed(cWepItem* obj);
 int effWaterCheck(cModel* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 // r_no_0 dispatch: 0 flying, 1 exploded.
 void cWepItem::move()
@@ -216,7 +215,7 @@ void cWepItem::hitCkPl()
 }
 
 // Event start: the thrown item is removed.
-void cWepItem::beginEvent()
+void cWepItem::beginEvent(u32 mode)
 {
     ObjMgr.destroy(this);
 }

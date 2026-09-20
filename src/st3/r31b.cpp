@@ -72,8 +72,6 @@ cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31b_memset(void*, ...) asm("memset");
-// COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Struct-member view of pPL (r40f BombSet): a mem/s load that alias.c orders after the preceding
 // frame stores, so the `pPL` load of a setPos that follows two `Vec = {..}` template copies is
@@ -111,17 +109,6 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 // Collision flag bits set / cleared through a raw (non-struct) store at the info's address (r210).
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
-
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
-// The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
-void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-// pl_npc.cpp: MotionMove is called with a second argument by the player code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// COMPILER-DIFF: #1 -- cSatMgr::create redeclared with the float parameter before the two ints: the
-// `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
-cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
-
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
@@ -355,7 +342,7 @@ void R31bInit()
         SceAtDataSet_exec(0x23, 0x12, 0, (TaskFunc) R31bExecRoom03U3Main, 0, 1);
         getRoomEtcDoor(4, &door, 1);
         if (door) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
     } else {
         getRoomEtcDoor(4, &door2, 1);
@@ -409,7 +396,7 @@ void R31bInit()
     }
     if (RsfCheck(G_ROOM_ID, 0xC) == 0) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R31bExecEventS00, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r31bs00.evd", (u8) GetEmIdFromListI(0x14), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), 0, 0, 0);
     } else {
         SceExec(0x12, (TaskFunc) R31bEmSetMain, 0, 0, 2, 0);
     }
@@ -419,7 +406,7 @@ void R31bInit()
         SceAtDataSet_exec(0x25, 0x12, 0, (TaskFunc) R31bStartCameraMain, 0, 1);
     }
     r31b_work.p->switchCount = 0;
-    EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, zero, zero);
     U32Set(r31b_work.p->str, 0);
     Vec pos;
     Vec rot;
@@ -505,7 +492,7 @@ static void R31bExecEventS00()
         RsfSet(G_ROOM_ID, 0xC);
         SceAtSetEnable(4, 0);
         SceEventStart(0);
-        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromListI(0x14), 0);
+        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), 0);
         R31bLight(1);
         {
             Vec pos = {-21730.0f, 0.0f, 3800.0f};
@@ -979,7 +966,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
                     CamCtrl.CutCall((s8) cut2);
                 }
                 EstSet(0, -1, 0, 0, 1, (u8) est, 0x2001, 0, 0, 0);
-                ((cUnitEventView*) pPL)->beginEvent(0);
+                pPL->beginEvent(0);
                 pPL->setNoSuspend(1);
                 Vec tbl[3] = {{-10850.0f, 0.0f, 1500.0f}, {8150.0f, 0.0f, 1500.0f}, {26650.0f, 0.0f, 1500.0f}};
                 pPL->setPos(&tbl[no]);
@@ -1089,7 +1076,7 @@ void R31bExecFallMainSub(int no, int flagNo, int cut)
         SceSetEventCancel(1, (TaskFunc) R31bExecFallEnd, no, -1, 1);
         if (pG->Room_flg[0] & 0x80000000) {
             SndCall(6, 0x10, 0, 0, 0, 0);
-            ((cUnitEventView*) pPL)->beginEvent(0);
+            pPL->beginEvent(0);
             pPL->setNoSuspend(1);
             AtariOffRaw(&pPL->atari, 0xFCFF);
             Vec tbl[3] = {{-14000.0f, 0.0f, 0.0f}, {5000.0f, 0.0f, 0.0f}, {23500.0f, 0.0f, 0.0f}};
@@ -1290,7 +1277,7 @@ static void R31bExecEscapeMain()
             SetAngXYZ(smd, 0.0f, 0.0f, 0.0f);
             MotionSetCore(smd, &smd->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
         }
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
         SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
@@ -1349,7 +1336,7 @@ static void R31bExecEscapeEnd()
     R31bSmdTransOff(2);
     SndRoomStrStop(3);
     pPL->motionSet(pPL->m_MotTbl[0], pPL->m_MotTbl[1], pPL->m_MotTbl[0x5F], pPL->m_MotTbl[0x60], 0, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
     SetPosXYZ(pPL, 37120.0f, 4265.0f, -1500.0f);
     SetAngXYZ(pPL, 0.0f, 0.72f, 0.0f);
@@ -1374,7 +1361,7 @@ static void R31bExecEscapeEnd()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    GameSaveSave2(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceExit();
 }
 
@@ -1390,7 +1377,7 @@ static void R31bExecRoom01U3Main()
         LightMgr.onKind(0x13);
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetAngXYZ(pPL, 0.0f, 3.1415927f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 0x201, 0);
@@ -1460,7 +1447,7 @@ static void R31bExecRoom02U3Main()
         CamCtrl.CutCall(0x22);
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 12696.0f, 0.0f, 7280.0f);
         SetAngXYZ(pPL, 0.0f, -2.4f, 0.0f);
@@ -1484,7 +1471,7 @@ static void R31bExecRoom02U3End()
         em->setNext(7);
     }
     pPL->setNoSuspend(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
@@ -1514,7 +1501,7 @@ static void R31bExecRoom03U3Main()
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SndRoomStrStart(1, 0, 1);
         U32Set(r31b_work.p->str, SndStrPlayBlock(1, 0x35, 0.0f));
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
         SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
@@ -1527,10 +1514,10 @@ static void R31bExecRoom03U3Main()
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
         if (pPL) {
-            EstSet((int) pPL, -1, 0, 0, 1, 0xB, 0x2001, 8, (u32) zero, zero);
+            EstSet(pPL, -1, 0, 0, 1, 0xB, 0x2001, 8, zero, zero);
         }
         if (em) {
-            EstSet((int) em, -1, 0, 0, 1, 0xC, 0x2001, 8, 0, 0);
+            EstSet(em, -1, 0, 0, 1, 0xC, 0x2001, 8, 0, 0);
             zero = em;
         }
         SceSleep(1);
@@ -1582,7 +1569,7 @@ static void R31bExecRoom03U3End()
         }
     }
     MotionClear(pPL, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
     SetPosXYZ(pPL, 54117.0f, 4266.0f, 13190.0f);
     SetAngXYZ(pPL, 0.0f, -2.147f, 0.0f);
@@ -1706,7 +1693,7 @@ static void R31bExecGondolaMain(int dir)
     obj->setNoSuspend(1);
     obj->setPos(&r31b_gondolaPos[0][dir]);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     SetPosXYZ(obj, r31b_gondolaPos[0][dir].x, r31b_gondolaPos[0][dir].y, r31b_gondolaPos[0][dir].z);
     SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
     SetAngXYZ(pPL, pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
@@ -1755,7 +1742,7 @@ static void R31bExecGondolaMain(int dir)
     obj->setNoSuspend(1);
     obj->setPos(&r31b_gondolaPos[1][dir]);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     stopDist = CalcStopDist(spd, accel);
     move = stopDist + 4000.0f;
     if (dir != 0) {
@@ -1859,8 +1846,8 @@ void R31bDoorSatSub(int no, u32 objId, int satNo)
     cObj* obj = SmdGetObjPtr(objId);
 
     if (obj) {
-        r31b_work.p->sat[satNo] = SatCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0, 0x100);
-        r31b_work.p->eat[satNo] = SatCreateF(&EatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+        r31b_work.p->sat[satNo] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0x100);
+        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
         r31b_work.p->satPos[satNo] = obj->pos;
     }
 }
@@ -1932,8 +1919,8 @@ void R31bKoushiSatSub1(int no, u32 objId, int satNo, int type)
     }
     obj = SmdGetObjPtr(objId);
     if (obj) {
-        r31b_work.p->sat[satNo] = SatCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0, 0x100);
-        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, 0x40, 0x100, h);
+        r31b_work.p->sat[satNo] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0x100);
+        r31b_work.p->eat[satNo] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
     }
 }
 
@@ -1943,7 +1930,7 @@ void R31bKoushiSatSub2(int no, u32 lampId, int koushiNo)
     cObj* obj = SmdGetObjPtr(lampId);
 
     if (obj) {
-        r31b_work.p->koushi[koushiNo] = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &obj->pos, &obj->ang, 1);
+        r31b_work.p->koushi[koushiNo] = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &obj->pos, &obj->ang, 1);
         if (r31b_work.p->koushi[koushiNo]) {
             YarareInitCube(r31b_work.p->koushi[koushiNo], 0.0f, -400.0f, -150.0f, 300.0f, 800.0f, 150.0f, 0, 1);
         }

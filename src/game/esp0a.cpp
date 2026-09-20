@@ -69,7 +69,7 @@ void cEsp0a::move()
         PushEsp(this);
         break;
     case 1:
-        PSMTXConcat(pG->Cam.v_mat, parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, parent->mat, m);
         PSMTXMultVecSR(m, &m_Speed, &dir);
         PSMTXMultVec(m, &m_Pos, &vpos);
         if (dir.x == 0.0f && dir.y == 0.0f && dir.z == 0.0f) {

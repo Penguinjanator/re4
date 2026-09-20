@@ -149,7 +149,7 @@ int cDmgP4::hitCheck(Vec* p, Vec* out)
 }
 
 // Event start: damage volumes are removed.
-void cDmg::beginEvent()
+void cDmg::beginEvent(u32 mode)
 {
     DmgMgr.destroy(this);
 }

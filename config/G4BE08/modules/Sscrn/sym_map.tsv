@@ -21,7 +21,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000FBC	0x4	Sscrn/ss_cap.cpp	global	move__t6Widget1Z10SUB_SCREENP10SUB_SCREEN	Widget<SUB_SCREEN>::move
 .text	0x00000FC0	0x4C4	Sscrn/ss_debug.cpp	global	SscrnDebugMenu	SscrnDebugMenu
 .text	0x00001484	0x80	Sscrn/ss_debug.cpp	global	init__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::init
-.text	0x00001504	0x2C	Sscrn/ss_debug.cpp	global	quit__9ssDbgPzzl	ssDbgPzzl::quit
+.text	0x00001504	0x2C	Sscrn/ss_debug.cpp	global	quit__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::quit
 .text	0x00001530	0xAAC	Sscrn/ss_debug.cpp	global	move__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::move
 .text	0x00001FDC	0x3B8	Sscrn/ss_debug.cpp	global	fn_Sscrn_1FDC	.
 .text	0x00002394	0xC0	Sscrn/ss_debug.cpp	global	dispWorkNum__t8cManager1Z6cPartsiiii	cManager<cParts>::dispWorkNum
@@ -251,8 +251,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00015568	0x5C	Sscrn/ss_map.cpp	global	quit__13MapModeSelectP10SUB_SCREEN	MapModeSelect::quit
 .text	0x000155C4	0x930	Sscrn/ss_map.cpp	global	fn_Sscrn_155C4	.
 .text	0x00015EF4	0x48	Sscrn/ss_map.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00015F3C	0x4	Sscrn/ss_map.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00015F40	0x4	Sscrn/ss_map.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00015F3C	0x4	Sscrn/ss_map.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00015F40	0x4	Sscrn/ss_map.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00015F44	0x7C	Sscrn/ss_map.cpp	global	fn_Sscrn_15F44	.
 .text	0x00015FC0	0x20	Sscrn/ss_map.cpp	global	_._4cSat	cSat::~cSat
 .text	0x00015FE0	0x50	Sscrn/ss_map.cpp	global	_._9SsMapInit	SsMapInit::~SsMapInit

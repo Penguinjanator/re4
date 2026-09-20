@@ -5,8 +5,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000450	0x174	wep11/objMachinegun.cpp	global	setCartridge__14cObjMachinegun	cObjMachinegun::setCartridge
 .text	0x000005C4	0x184	wep11/objMachinegun.cpp	global	moveReload__14cObjMachinegun	cObjMachinegun::moveReload
 .text	0x00000748	0x28C	wep11/objMachinegun.cpp	global	setMotion__14cObjMachinegunP7cPlayer	cObjMachinegun::setMotion
-.text	0x000009D4	0x4	wep11/objMachinegun.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000009D8	0x4	wep11/objMachinegun.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000009D4	0x4	wep11/objMachinegun.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000009D8	0x4	wep11/objMachinegun.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000009DC	0x20	wep11/objMachinegun.cpp	global	_._14cObjMachinegun	cObjMachinegun::~cObjMachinegun
 .text	0x000009FC	0x48	wep11/objMachinegun.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00000A44	0x4	wep11/objMachinegun.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

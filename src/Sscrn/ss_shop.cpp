@@ -206,14 +206,6 @@ void screenPos2worldPos(Vec* scr, Vec* out);
 void moveItem();
 }
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation). The tune level is an int local passed to the
-// s8 parameter without the `extsb` our compiler adds: int views of the ratio getters.
-extern "C" {
-f32 getPowerRatioI(u16 id, int level) asm("getPowerRatio");
-f32 getSpeedRatioI(u16 id, int level) asm("getSpeedRatio");
-f32 getReloadRatioI(u16 id, int level) asm("getReloadRatio");
-f32 getBulletRatioI(u16 id, int level) asm("getBulletRatio");
-}
 
 // The shop's own item texture table (ss_item.cpp has the inventory's `itemTexNo`).
 static int itemTexNo(int id);
@@ -515,7 +507,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
         }
     }
     setShopMsgQueue(1);
-    puzzleCameraInit(wk, &pG->Cam);
+    puzzleCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
     IdTexDataLoad(SS_ARC_PTR(wk->pShop, 4), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
@@ -527,7 +519,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
             if (i == 0) {
                 IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
             } else {
-                IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
+                IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
             }
         }
     }
@@ -535,7 +527,7 @@ void SsShopMain::init(SUB_SCREEN* wk)
     {
         int i;
         for (i = 0; i < 5; i++) {
-            IdSub.setI(SS_ARC_PTR(wk->pShop, 8), 0xFF, 0x80 + i, 0x13, 5, 0);
+            IdSub.set(SS_ARC_PTR(wk->pShop, 8), 0xFF, 0x80 + i, 0x13, 5, 0);
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pShop, 7), 0xFF, 0x1C, 0x13, 4, 0);
@@ -2079,7 +2071,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 id = 0x70;
                 break;
             }
-            IdSub.unitPtrI(id, 0x1D)->be_flag &= ~8;
+            IdSub.unitPtr(id, 0x1D)->be_flag &= ~8;
         }
         return;
     }
@@ -2165,26 +2157,26 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
 
                 switch (type) {
                 case 0:
-                    val[0] = (int) (getPowerRatioI(id, lv - 1) * 10.0f + 0.5f);
-                    val[1] = (int) (getPowerRatioI(id, lv) * 10.0f + 0.5f);
+                    val[0] = (int) (getPowerRatio(id, lv - 1) * 10.0f + 0.5f);
+                    val[1] = (int) (getPowerRatio(id, lv) * 10.0f + 0.5f);
                     tag[0] = '1';
                     tag[1] = '4';
                     break;
                 case 1:
-                    val[0] = (int) (getSpeedRatioI(id, lv - 1) * 100.0f + 0.5f);
-                    val[1] = (int) (getSpeedRatioI(id, lv) * 100.0f + 0.5f);
+                    val[0] = (int) (getSpeedRatio(id, lv - 1) * 100.0f + 0.5f);
+                    val[1] = (int) (getSpeedRatio(id, lv) * 100.0f + 0.5f);
                     tag[0] = 'Q';
                     tag[1] = 'T';
                     break;
                 case 2:
-                    val[0] = (int) (getReloadRatioI(id, lv - 1) * 100.0f + 0.5f);
-                    val[1] = (int) (getReloadRatioI(id, lv) * 100.0f + 0.5f);
+                    val[0] = (int) (getReloadRatio(id, lv - 1) * 100.0f + 0.5f);
+                    val[1] = (int) (getReloadRatio(id, lv) * 100.0f + 0.5f);
                     tag[0] = 'a';
                     tag[1] = 'd';
                     break;
                 case 3:
-                    val[0] = (int) getBulletRatioI(id, lv - 1);
-                    val[1] = (int) getBulletRatioI(id, lv);
+                    val[0] = (int) getBulletRatio(id, lv - 1);
+                    val[1] = (int) getBulletRatio(id, lv);
                     tag[0] = 'q';
                     tag[1] = 't';
                     break;
@@ -2619,7 +2611,7 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
             }
             if (sw->lvType == 3 || sw->lvType == 4) {
                 ItemWork* item = sw->item;
-                item->bullet = (item->bullet & 0xE000) | (WeaponId2ChargeNumI(item->id, (item->lv8[1] & 0xF) + 1) & 0x1FFF);
+                item->bullet = (item->bullet & 0xE000) | (WeaponId2ChargeNum(item->id, (item->lv8[1] & 0xF) + 1) & 0x1FFF);
             }
             if (ItemMgr.pArm == sw->item) {
                 ItemMgr.arm(ItemMgr.pArm);
@@ -2735,22 +2727,22 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
         }
         switch (type) {
         case 0:
-            val = (int) (getPowerRatioI(id, lv) * 10.0f + 0.5f);
+            val = (int) (getPowerRatio(id, lv) * 10.0f + 0.5f);
             numBase = 0x61;
             barBase = 0x65;
             break;
         case 1:
-            val = (int) (getSpeedRatioI(id, lv) * 100.0f + 0.5f);
+            val = (int) (getSpeedRatio(id, lv) * 100.0f + 0.5f);
             numBase = 0x71;
             barBase = 0x75;
             break;
         case 2:
-            val = (int) (getReloadRatioI(id, lv) * 100.0f + 0.5f);
+            val = (int) (getReloadRatio(id, lv) * 100.0f + 0.5f);
             numBase = 0x81;
             barBase = 0x85;
             break;
         case 3:
-            val = (int) getBulletRatioI(id, lv);
+            val = (int) getBulletRatio(id, lv);
             numBase = 0x91;
             barBase = 0x95;
             break;
@@ -2861,25 +2853,25 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
     int n;
 
     if (flags == 0) {
-        IdSub.unitPtrI(0, type)->be_flag &= ~8;
+        IdSub.unitPtr(0, type)->be_flag &= ~8;
         return;
     }
-    IdSub.unitPtrI(0, type)->be_flag |= 8;
+    IdSub.unitPtr(0, type)->be_flag |= 8;
     if (pos) {
-        IdSub.unitPtrI(0, type)->scr = *pos;
+        IdSub.unitPtr(0, type)->scr = *pos;
     }
     if (price_disp_num & flags) {
         int digit[4];
         int on;
 
-        IdSub.unitPtrI(0x10, type)->be_flag |= 8;
+        IdSub.unitPtr(0x10, type)->be_flag |= 8;
         n = num;
         for (int i = 0; i < 4; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
         for (int i = 0; i < 4; i++) {
-            IdSub.unitPtrI(0x11 + i, type)->be_flag &= ~8;
+            IdSub.unitPtr(0x11 + i, type)->be_flag &= ~8;
         }
         on = 0;
         for (int i = 3; i >= 0; i--) {
@@ -2891,26 +2883,26 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
                 }
                 on = 1;
             }
-            d = IdSub.unitPtrI(0x11 + i, type);
+            d = IdSub.unitPtr(0x11 + i, type);
             d->be_flag |= 8;
             d->tex_flag |= 2;
             d->texNo = digit[i];
         }
     } else {
-        IdSub.unitPtrI(0x10, type)->be_flag &= ~8;
+        IdSub.unitPtr(0x10, type)->be_flag &= ~8;
     }
     if (price_disp_price & flags) {
         int digit[7];
         int on;
 
-        IdSub.unitPtrI(0xFE, type)->be_flag |= 8;
+        IdSub.unitPtr(0xFE, type)->be_flag |= 8;
         n = price;
         for (int i = 0; i < 7; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
         for (int i = 0; i < 7; i++) {
-            IdSub.unitPtrI(1 + i, type)->be_flag &= ~8;
+            IdSub.unitPtr(1 + i, type)->be_flag &= ~8;
         }
         on = 0;
         for (int i = 6; i >= 0; i--) {
@@ -2922,18 +2914,18 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
                 }
                 on = 1;
             }
-            d = IdSub.unitPtrI(1 + i, type);
+            d = IdSub.unitPtr(1 + i, type);
             d->be_flag |= 8;
             d->tex_flag |= 2;
             d->texNo = digit[i];
         }
     } else {
-        IdSub.unitPtrI(0xFE, type)->be_flag &= ~8;
+        IdSub.unitPtr(0xFE, type)->be_flag &= ~8;
     }
     if (price_disp_sold & flags) {
-        IdSub.unitPtrI(0x20, type)->be_flag |= 8;
+        IdSub.unitPtr(0x20, type)->be_flag |= 8;
     } else {
-        IdSub.unitPtrI(0x20, type)->be_flag &= ~8;
+        IdSub.unitPtr(0x20, type)->be_flag &= ~8;
     }
 }
 
@@ -3017,13 +3009,13 @@ void dispItem(int id, int sw)
             m->be_flag &= ~2;
         }
     }
-    itemCamera = pG->Cam;
+    itemCamera = pG->Camera;
 }
 
 // Screen (+-240 half height) -> world x/y at the camera distance, z 0.
 void screenPos2worldPos(Vec* scr, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 z = cam->param.pos.z;
     f32 h = fabsf((f32) (z * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 

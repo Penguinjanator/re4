@@ -23,8 +23,6 @@
 #include "rnd.h"
 #include "math_sub.h"
 
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
@@ -178,7 +176,7 @@ static void wep11_r3_ready10(cPlayer* pl)
         pl->m_Work0 = 0;
     }
 
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
     pl->Waist->set(0.0f, 0.4f);
@@ -187,7 +185,7 @@ static void wep11_r3_ready10(cPlayer* pl)
 // ready step 2: finish a motion set by the lock-on turn, then SE 5/0 and -> set step 0.
 static void wep11_r3_ready20(cPlayer* pl)
 {
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         PlRoutineSet(pl, 0, 6, 1, 0);
         pl->m_Work0 = 0;
@@ -324,7 +322,7 @@ static void wep11_r3_fire00(cPlayer* pl)
     arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x1C), PL_ARC_PTR(arc, 0x20), PL_ARC_PTR(arc, 0x22), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     pl->Body->waistMove();
     pl->partsWorldCalc();
     parts = pl->getPartsPtr(0xA);
@@ -431,7 +429,7 @@ static void wep11_r2_reload(cPlayer* pl)
             break;
         }
         MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         pl->Wep->knifeStance = 1;
         pl->r_no_3 = 1;
         obj = pl->Wep->m_pWep;
@@ -449,13 +447,13 @@ static void wep11_r2_reload(cPlayer* pl)
             } else {
                 pl->r_no_2 = 3;
             }
-        } else if (MotionMoveI(pl, 0)) {
+        } else if (MotionMove(pl, 0)) {
             PlRoutineSet(pl, 0, 6, 1, 0);
             pl->m_Work0 = 0;
         }
         break;
     case 3:
-        if (MotionMoveI(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
             pl->r_no_2 = 0;

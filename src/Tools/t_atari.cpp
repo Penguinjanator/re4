@@ -375,7 +375,7 @@ static void plmove10(AtariToolWork* w)
         // ranks them above the `old` copy's `stw`s in sched1 (the target's stfs-before-stw order). A plain
         // `pG->` read is a fixed scalar and floats above the stores.
         GlobalWork*& gp = pG;
-        Draw_local_pos(&w->pos, 1000, gp->Cam.v_mat);
+        Draw_local_pos(&w->pos, 1000, gp->Camera.v_mat);
     }
     if (w->joy.on & 0x400) {
         int hit = At_poly_sphere_ck((AtPolyData*) satTbl0, &satTbl0[0].poly_p[w->polyNo], &oldPos, &w->pos, 100.0f, 0, 0);
@@ -384,13 +384,13 @@ static void plmove10(AtariToolWork* w)
     } else {
         SatMgr.wallAdjust(0, &oldPos, &w->pos, 100.0f, 0, 0);
     }
-    y = EatMgr.getFloor(&w->pos, 600.0f, 100000.0f, 0, 0);
+    y = EatMgr.getFloor(&w->pos, 0, 600.0f, 100000.0f, 0);
     if (y != -100000.0f) {
         old.y = y;
     } else {
         eprintf(40, 64, 6, 0, "FLOOR LOST!!");
     }
-    Draw_local_pos(&old, 1000, pG->Cam.v_mat);
+    Draw_local_pos(&old, 1000, pG->Camera.v_mat);
     oldPos = w->pos;
     eprintf(40, 320, 6, 0, "%5.0f", w->pos.x);
     eprintf(40, 340, 6, 0, "%5.0f", w->pos.y);

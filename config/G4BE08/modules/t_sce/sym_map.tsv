@@ -117,8 +117,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011334	0x34	t_sce/db_light.cpp	global	limitLower__t8cVarLoop1ZUci	cVarLoop<unsigned char>::limitLower
 .text	0x00011368	0x80	t_sce/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x000113E8	0x48	t_sce/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00011430	0x4	t_sce/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00011434	0x4	t_sce/db_light.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00011430	0x4	t_sce/db_light.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00011434	0x4	t_sce/db_light.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00011438	0x4	t_sce/db_light.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x0001143C	0x4C	t_sce/db_filelist.cpp	global	init__9cFileList	cFileList::init
 .text	0x00011488	0x1B4	t_sce/db_filelist.cpp	global	disp__9cFileListiii	cFileList::disp

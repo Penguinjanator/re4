@@ -238,7 +238,7 @@ void EspCommonTrans(cEsp* esp)
         }
         PSMTXRotRad(m, 'z', esp->m_Ang.z);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m2);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m2);
         PSMTXMultVec(m2, &esp->m_Pos, &p);
         esp->m_Mat[0][3] += p.x;
         esp->m_Mat[1][3] += p.y;
@@ -280,7 +280,7 @@ void EspCommonTrans(cEsp* esp)
         esp->m_Mat[1][3] += esp->m_Pos.y;
         esp->m_Mat[2][3] += esp->m_Pos.z;
         PSMTXConcat(esp->parent->mat, esp->m_Mat, esp->m_Mat);
-        PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
+        PSMTXConcat(pG->Camera.v_mat, esp->m_Mat, esp->m_Mat);
     }
     PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
@@ -420,7 +420,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
 
         PSMTXIdentity(esp->m_Mat);
         PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXMultVec(m, &esp->m_Pos, &p);
         esp->m_Mat[0][3] = p.x;
         esp->m_Mat[1][3] = p.y;
@@ -431,7 +431,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         PSMTXIdentity(esp->m_Mat);
         low_RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     PSMTXInverse(esp->m_Mat, inv);
@@ -508,7 +508,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(texGens, 1, 0, 0x1E);
     } else {
-        C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+        C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(texGens, 0, 0, 0x1E);
@@ -532,7 +532,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         } else {
             p = esp->m_Pos;
         }
-        cam = &pG->Cam;
+        cam = &pG->Camera;
         dir.x = cam->param.at.x - cam->param.pos.x;
         dir.y = cam->param.at.y - cam->param.pos.y;
         dir.z = cam->param.at.z - cam->param.pos.z;
@@ -702,7 +702,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
 
         PSMTXIdentity(esp->m_Mat);
         PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXMultVec(m, &esp->m_Pos, &p);
         esp->m_Mat[0][3] = p.x;
         esp->m_Mat[1][3] = p.y;
@@ -713,7 +713,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
         PSMTXIdentity(esp->m_Mat);
         low_RotMatrix(esp->m_Mat, &esp->m_Ang);
         TransMatrix(esp->m_Mat, &esp->m_Pos);
-        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
         PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     GXTexObj tex;
@@ -772,7 +772,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
         Mtx tm;
         Mtx pm;
 
-        C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+        C_MTXLightPerspective(pm, pG->Camera.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(0, 0, 0, 0x1E);
@@ -1040,7 +1040,7 @@ int cEsp::ChannelSet()
         } else {
             p = m_Pos;
         }
-        cam = &pG->Cam;
+        cam = &pG->Camera;
         dir.x = cam->param.at.x - cam->param.pos.x;
         dir.y = cam->param.at.y - cam->param.pos.y;
         dir.z = cam->param.at.z - cam->param.pos.z;

@@ -164,7 +164,7 @@ static void first_init()
     v.x = 0.0f;
     v.z = 0.0f;
     pPL->setAng(&v);
-    EstSet((int) pPL, -1, 0, 0, 1, 4, 1, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 4, 1, 0, 0, 0);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0xF, 0x201, 0);
     frame = (u32) MotionGetMaxFrame(&pPL->Motion);
     SceSleep(30);

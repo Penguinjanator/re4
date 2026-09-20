@@ -310,7 +310,7 @@ EmListData* GetListPtrFromEm(cEm* em)
 }
 
 // Enemy id of list entry `no` (0xFF for an invalid index).
-u8 GetEmIdFromList(u32 no)
+u32 GetEmIdFromList(u32 no)
 {
     EmListData* list;
 
@@ -360,7 +360,7 @@ void EmSetDie(cEm* em)
 }
 
 // Counts a kill in the chapter and game kill counters (results screen).
-void EmSetDieCnt()
+void EmSetDieCnt(cEm* pEm)
 {
     CntInc(pG->c_kill_cnt);
     CntInc(pG->g_kill_cnt);

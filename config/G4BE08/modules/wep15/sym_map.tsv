@@ -28,8 +28,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001B68	0x3B8	wep15/wep15.cpp	global	fn_wep15_1B68	.
 .text	0x00001F20	0xBC	wep15/wep15.cpp	global	countActiveWork__t8cManager1Z4cObj	cManager<cObj>::countActiveWork
 .text	0x00001FDC	0x170	wep15/wep15.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
-.text	0x0000214C	0x4	wep15/wep15.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002150	0x4	wep15/wep15.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000214C	0x4	wep15/wep15.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002150	0x4	wep15/wep15.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002154	0x20	wep15/wep15.cpp	global	_._10cObjMagnum	cObjMagnum::~cObjMagnum
 .text	0x00002174	0x48	wep15/wep15.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000021BC	0x4	wep15/wep15.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

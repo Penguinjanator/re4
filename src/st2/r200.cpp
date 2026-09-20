@@ -101,7 +101,7 @@ void R200Init()
     SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, (void (*)()) r200_openedBox, 0, 0);
     r200_work.p->eff10 = EspPullCoreKind();
     EstSet(0, -1, 0, 0, 1, 2, 1, (u8) r200_work.p->eff10, 0, 0);
-    if ((int) pG->Em_flg[2][0] < 0 || (int) pG->Em_flg[3][0] < 0 || (pG->Em_flg[4][0] & 4)) {
+    if (FlagChkSign(pG->Em_flg[2], 0) || FlagChkSign(pG->Em_flg[3], 0) || (pG->Em_flg[4][0] & 4)) {
         switch (checkEmListNo(G_ROOM_ID)) {
         case 2:
             EmListSetAlive(0, 0);
@@ -302,7 +302,7 @@ static void r200_execTruckEvent_end()
         if ((pG->Room_flg[0] & 0x80000000) == 0) {
             cEm* em = r200_work.p->em0.getPtr();
 
-            EstSet((int) em, -1, 0, 0, 1, 0x20, 0, 0, (u32) r200_work.p->em0.getPtr(), 0);
+            EstSet(em, -1, 0, 0, 1, 0x20, 0, 0, r200_work.p->em0.getPtr(), 0);
         }
         r200_work.p->em0.setNoSuspend(0);
         r200_work.p->em1.setNoSuspend(0);
@@ -347,14 +347,14 @@ static void r200_execTruckEvent()
     {
         cEm* em = r200_work.p->em0.getPtr();
 
-        EstSet((int) em, -1, 0, 0, 1, 0x20, 0, 0, (u32) r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, 1, 0x20, 0, 0, r200_work.p->em0.getPtr(), 0);
     }
-    EstSet((int) r200_work.p->em0.getPtr(), -1, 0, 0, 1, 1, 1, (u8) r200_work.p->eff0C, 0, 0);
+    EstSet(r200_work.p->em0.getPtr(), -1, 0, 0, 1, 1, 1, (u8) r200_work.p->eff0C, 0, 0);
     SceSleep(70);
     {
         cEm* em = r200_work.p->em0.getPtr();
 
-        EstSet((int) em, -1, 0, 0, 1, 0x22, 1, 0, (u32) r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, 1, 0x22, 1, 0, r200_work.p->em0.getPtr(), 0);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

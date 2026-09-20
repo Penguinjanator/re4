@@ -1657,7 +1657,7 @@ void pzlPlayer::salvCursor()
 // placement nests share i/j); the fill-up loop is a guarded do-while (`cmpwi nOrder,0; ble`).
 // `last` is r31 in the target = an allocno that crosses a call; the three COMPILER-DIFF lines below
 // give it a codeless def before get() (see docs/research/ "DOL puzzle final closer").
-int PutInCase(u16 id, u16 num, int type)
+int PutInCase(ITEM_ID id, u16 num, int type)
 {
     ItemWork item;
     ItemInfo info;

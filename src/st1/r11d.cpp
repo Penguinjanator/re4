@@ -56,10 +56,6 @@ static R11dWork* r11d_work;
 asm(".section .data; .balign 8");
 static u8 r11d_hideCnt = 0;
 
-// COMPILER-DIFF #4: the original passes the int list entries to the s16 parameters without
-// truncation (`lwz` straight into r4); an int-parameter view of the callees.
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 
 // Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
 static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
@@ -98,8 +94,8 @@ void R11dInit()
 #line 52 "D:/Bio4/Prog/r11d.cpp"
     r11d_work = (R11dWork*) MEM_CALLOC(sizeof(R11dWork), 1, 0xd);
 
-    EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, (u32) zero, zero);
+    EstSet(pPL, -1, 0, 0, 3, 1, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 0, 0x800, 0, zero, zero);
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
@@ -171,7 +167,7 @@ static void r11d_checkIronDoorKeyUse()
     pG->Key_flg[0] |= 0x00100000;
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
         ((u8*) pG->pEmi)[0xD08] = 0;
     }
@@ -214,7 +210,7 @@ extern "C" void r11d_appearBigSister()
         Vec rot = {0.0f, 0.0f, 0.0f};
         cObj* obj;
 
-        obj = SetObj00((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, &rot);
+        obj = SetObj00((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, &rot);
         OyaSetObj00(obj, r11d_work->em0.getPtr(), 2);
         obj->setNoSuspend(1);
         PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22)));
@@ -222,7 +218,7 @@ extern "C" void r11d_appearBigSister()
             r11d_work->em0.addModel(r11d_work->mi);
         }
         r11d_work->eff0 = EspPullCoreKind();
-        EstSet((int) obj, -1, 0, 0, 0, 0x2D, 0x801, r11d_work->eff0, (u32) zero, zero);
+        EstSet(obj, -1, 0, 0, 0, 0x2D, 0x801, r11d_work->eff0, zero, zero);
         SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
@@ -244,11 +240,11 @@ extern "C" void r11d_appearLittleSister()
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 0, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 7, 1, 0, (void*) zero, (void*) zero);
     }
     // Outside the `if`: the original's `bne` skips only the first EstSet (a source-logic bug had both
     // inside, which also gave the first call's `li`s output dependents and sank its stack stores).
-    EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 8, 1, 0, (void*) zero, (void*) zero);
 }
 
 // End of the sisters' appearance: set them from flags, drop the flash effect, let them suspend, camera
@@ -276,13 +272,13 @@ static void r11d_execEmAppear_end()
     cEm* ladder;
     for (i = 0; i < 11; i++) {
         cEmWrap em;
-        cEmWrapSetPtrI(&em, list0[i], -1, 0);
+        em.setPtr(list0[i], -1, 0);
         if (!(em.isAlive() == 1 && ((cEmGanado*) em.getPtr())->ckTakeAway() == 1)) {
             em.destroy();
         }
     }
     for (i = 0; i < 9; i++) {
-        setEmI(list1[i], -1, 0, 1, 1);
+        setEm(list1[i], -1, 0, 1, 1);
     }
     if (getRoomEtcLadder(0, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
         ((cObjLadder*) ladder)->setStand();
@@ -370,7 +366,7 @@ static void r11d_execShowView_end()
     SceEventEnd(0);
     SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Show the room: camera cuts 2 and 3 with the stream and the glow.
@@ -391,7 +387,7 @@ static void r11d_execShowView()
     SceEventStart(1);
     StaFlagOff(pG, STA_SUSPEND);
     r11d_work->eff2 = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, 1, 3, 1, r11d_work->eff2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 3, 1, r11d_work->eff2, zero, zero);
     CamCtrl.CutCall(2);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

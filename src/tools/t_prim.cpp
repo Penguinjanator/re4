@@ -147,7 +147,7 @@ void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n)
 
 #ifdef TPRIM_FULL
 // Filled 2D rectangle at depth z.
-void TprimDrawTile2D(TprimRect* rect, GXColor* col, f32 z)
+void TprimDrawTile2D(TprimRect* rect, f32 z, GXColor* col)
 {
     GXBegin(0x80, 0, 4);
     GXPosition3f32(rect->x, rect->y, z);
@@ -162,7 +162,7 @@ void TprimDrawTile2D(TprimRect* rect, GXColor* col, f32 z)
 #endif
 
 // Cross-hair of four triangles around `pos` (the last one's tip has z 0 in the original).
-void TprimDrawCursor(Vec* pos, GXColor* col, f32 z)
+void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
 {
     Vec v[3];
 

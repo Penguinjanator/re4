@@ -66,7 +66,7 @@ struct EmRockWork {
 class cEmRock : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMROCK_WK)
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
 
     void setParent(cEm* parent, int partsNo, int flag);
@@ -75,8 +75,8 @@ public:
     void setThrow2(Vec* spd, EmAtkInfo* atk);
     void setSeFall(u8 blk, u8 no, u8 vol);
     void setEffFall(u8 id, u8 type);
-    void setEffAlways(int id, int type);
-    void setYarareCube(Vec* size, f32 x, f32 y, f32 z);
+    void setEffAlways(u8 id, u8 type);
+    void setYarareCube(f32 x, f32 y, f32 z, Vec* size);
     void setTransMode(int on);
     void setPlMotion(void** mot);
     void setScale(f32 s);

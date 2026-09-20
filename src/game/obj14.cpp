@@ -84,8 +84,8 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
     p1.x = 0.0f;
     p1.y = 0.0f;
     p1.z = 0.0f;
-    w->pEmHit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc),
-                         (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &p0, &p1, 1);
+    w->pEmHit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore),
+                         (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &p0, &p1, 1);
     if (w->pEmHit) {
         w->pEmHit->setParent(obj, 1, 0);
         YarareInit(w->pEmHit, 0.0f, -650.0f, 0.0f, 300.0f, 50.0f, 1, 1);
@@ -120,7 +120,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.y = 0.0f;
         p.z = 250.0f;
         PSMTXMultVec(obj->mat, &p, &p);
-        p.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0);
+        p.y = SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0);
         StaFlagOn(pG, STA_SE_BURST);
         // A byte-pointer destination: the copy is then a plain (non-struct) store and the
         // original reloads pG for the following store, as the target shows.

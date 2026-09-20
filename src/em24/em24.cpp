@@ -28,8 +28,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em24Func)(cEm24*);
 
@@ -177,7 +175,7 @@ void cEm24::move()
         } else {
             f32 wh;
 
-            pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
+            pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
             if (GetWaterHeight(&pos, &wh)) {
                 if (pos.y < wh) {
                     w->Be_flg |= 0x20;
@@ -187,7 +185,7 @@ void cEm24::move()
                             w->Water_eff_wait--;
                         } else {
                             w->Water_eff_wait = 2;
-                            EstSet((int) this, -1, 0, 0, 0x1C, 4, 0, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x1C, 4, 0, 0, this, 0);
                         }
                     }
                 }
@@ -236,7 +234,7 @@ static void em24_R0_Init(cEm24* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    atariInitF(at, 0.0f, -50.0f, 0.0f, 350.0f, 150.0f, 150.0f, 100.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    at->init(0.0f, -50.0f, 0.0f, 350.0f, 150.0f, 150.0f, 100.0f, 1, 0x2000, 10);
     AtariOff(at, 0xFDFF);
     em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x10;
@@ -256,12 +254,12 @@ static void em24_R0_Init(cEm24* em)
     switch (em->set) {
     default:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         EmRoutineSet(em, 1, two, zero, zero);
         break;
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         EmRoutineSet(em, 1, 0, 0, 0);
         break;
     }
@@ -290,7 +288,7 @@ static void em24_R1_BoxWait(cEm24* em)
         em->r_no_2++;
     case 1:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (!(em->flag & 1)) {
             em->dmg.m_Timer = 2;
             break;
@@ -302,14 +300,14 @@ static void em24_R1_BoxWait(cEm24* em)
         }
         break;
     case 2:
-        MotionSetCore(em, MOTION(em), ARC(0x11), (int) ARC(0x18), 3, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x11), ARC(0x18), 3, 1, 0);
         w->spd.x = 0.0f;
         w->spd.y = -100.0f;
         w->spd.z = 200.0f;
         w->motEnd = 0;
         w->Atk_ck = 0;
         SndCall(8, 4, &em->pos, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 0x1C, 5, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1C, 5, 0, 0, em, 0);
         em->r_no_2++;
     case 3: {
         int two = 2;
@@ -329,11 +327,11 @@ static void em24_R1_BoxWait(cEm24* em)
             PSMTXMultVecSR(em->mat, &w->spd, &v);
             PSVECAdd(&em->pos, &v, &em->pos);
             w->spd.y -= 20.0f;
-            fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+            fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
-                if (MotionMoveF(em, 0)) {
+                if (MotionMove(em, 0)) {
                     w->motEnd = 1;
                 }
                 if (w->motEnd) {
@@ -343,7 +341,7 @@ static void em24_R1_BoxWait(cEm24* em)
                 }
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->motEnd = 1;
         }
         break;
@@ -359,7 +357,7 @@ static void em24_R1_CoilWait(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 9000000.0f) {
             em->r_no_2++;
         }
@@ -368,7 +366,7 @@ static void em24_R1_CoilWait(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 0, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -406,7 +404,7 @@ static void em24_R1_Free(cEm24* em)
         }
         em->ang.y += Muku2(em->ang.y, w->Target_dir, PI / 128.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->HoseiCnt > 1) {
                 em->r_no_2++;
             }
@@ -420,7 +418,7 @@ static void em24_R1_Free(cEm24* em)
         }
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -438,7 +436,7 @@ static void em24_R1_Coil(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 5, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -449,7 +447,7 @@ static void em24_R1_Coil(cEm24* em)
     case 3:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -462,7 +460,7 @@ static void em24_R1_Coil(cEm24* em)
     case 5:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -492,14 +490,14 @@ static void em24_R0_Die(cEm24* em)
         }
         if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
-            EstSet((int) em, -1, 0, 0, 0x1C, 7, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 7, 0, 0, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
         }
         EmSetDie(em);
         em->r_no_1++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_1++;
         }
         break;
@@ -512,9 +510,9 @@ static void em24_R0_Die(cEm24* em)
 
         w->Timer = 60;
         if (em->r_no_3) {
-            EstSet((int) em, -1, 0, 0, 0x1C, 3, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 3, 0, 0, em, 0);
         } else {
-            EstSet((int) em, -1, 0, 0, 0x1C, 1, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 1, 0, 0, em, 0);
         }
         pos = em->pos;
         switch (Rnd() & 0xF) {
@@ -542,7 +540,7 @@ static void em24_R0_Die(cEm24* em)
 
             SceAtSetItemModel(no, wep);
             wep->setAtNo(no);
-            wep->setYarare(0, 100.0f, 10.0f);
+            wep->setYarare(100.0f, 10.0f, 0);
             wep->setEffDamage(0x1C, 0x1F);
             wep->setSeDamage(8, 0xC, em->id);
         }
@@ -562,7 +560,7 @@ static void em24_R0_Die(cEm24* em)
                 break;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 4:
         break;
@@ -586,7 +584,7 @@ int em24AtkCk(cEm24* em, Vec* a, Vec* b, int no)
             if (hit & 1) {
                 EmPlBloodSet2(em, a, 1, 0x1C, 6);
                 QuakeExec(0, 0, 5, 22.0f, 2);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
                 return 1;
             }
         }
@@ -618,13 +616,13 @@ void em24SlopeMove(cEm24* em)
     b.z = -200.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
     if (GetWaterHeight(&a, &wh)) {
         if (fa < wh) {
             fa = wh;
         }
     }
-    fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
     if (GetWaterHeight(&b, &wh)) {
         if (fb < wh) {
             fb = wh;

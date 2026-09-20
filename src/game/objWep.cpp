@@ -13,12 +13,12 @@
 #include "eprintf.h"
 #include "gx.h"
 #include "camera.h"
+#include "motion.h"
 
 // Player weapon object: the model the player holds, its mode dispatch (stay / ready / fire /
 // down / reload / drop), the laser sight and the debug collision display.
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int GetWepTargetPos(Vec* from, Vec* to, int mode, int wepNo, cEm** target, u32* attr);
 void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend);
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
@@ -325,7 +325,7 @@ void drawPoint(Vec* p0, Vec* p1)
     if (EspEstSetSelect(0, 0x50, 0, &esp, 1) != 1) {
         return;
     }
-    PSVECSubtract(&pG->Cam.param.pos, p1, &d);
+    PSVECSubtract(&pG->Camera.param.pos, p1, &d);
     size = PSVECMag(&d);
     if (StaFlagChk(pG, STA_BIG_MARKER) || pG->stage_no == 2 && pG->room_no == 0x2C ||
         pG->stage_no == 2 && pG->room_no == 0x28) {
@@ -554,5 +554,5 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
 // Draw_line3d_local_222 in the current camera view matrix.
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend)
 {
-    Draw_line3d_local_222(p0, p1, pG->Cam.v_mat, color, blend);
+    Draw_line3d_local_222(p0, p1, pG->Camera.v_mat, color, blend);
 }

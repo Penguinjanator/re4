@@ -13,10 +13,9 @@
 #include "snd.h"
 #include "esp.h"
 #include "math_sub.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int flag);               // game/motion.cpp
-int MotionCheckCrossFrame(void* work, f32 frame);  // game/motion.cpp
 }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
@@ -159,12 +158,12 @@ void knife_r3_ready00(cPlayer* pl)
 // is put on the back) -> state 1 set, sub-step 4 (finish the motion).
 void knife_r3_ready10(cPlayer* pl)
 {
-    if (MotionCheckCrossFrame(&pl->pMotion, 4.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 4.0f)) {
         setWepTrans(pl, 0);
         FACE_SET(pl, 1.0f);
     }
     if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
-        if (MotionCheckCrossFrame(&pl->pMotion, 10.0f)) {
+        if (MotionCheckCrossFrame(&pl->Motion, 10.0f)) {
             ((cObjLauncher*) pl->Wep->m_pWep)->gripBack();
             pl->r_no_2 = 1;
             pl->r_no_3 = 4;
@@ -352,7 +351,7 @@ void knife_r3_fire00(cPlayer* pl)
     mot3.move(m3r[0]);
     MotionMove(pl, 0);
     pl->Waist->set(pl->m_Fwork0, 0.4f);
-    EstSet((int) pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
+    EstSet(pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
     pl->Body->waistMove();
     pl->partsWorldCalc();
     pl->r_no_3 = 1;
@@ -366,7 +365,7 @@ void knife_r3_fire10(cPlayer* pl)
     f32 ed = 10.0f;
     f32 wh;
 
-    if (MotionCheckCrossFrame(&pl->pMotion, 3.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 3.0f)) {
         SndCall(1, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
     }
     pl->motionMove();
@@ -381,14 +380,14 @@ void knife_r3_fire10(cPlayer* pl)
         }
         hitCheck(pl, (int) (pl->frame - 6.0f), flag);
     }
-    if (MotionCheckCrossFrame(&pl->pMotion, 6.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 6.0f)) {
         Vec* pos = &pl->getPartsPtr(10)->world;
 
         if (GetWaterHeight(pos, &wh) && pos->y < wh + 100.0f) {
             if (pG->stage_no == 1 && pG->room_no == 0xA || pG->stage_no == 1 && pG->room_no == 0x1A) {
-                EstSet((int) pl, -1, 0, 0, 1, 0x25, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 1, 0x25, 0, 0, pl, 0);
             } else {
-                EstSet((int) pl, -1, 0, 0, 3, 0, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 3, 0, 0, 0, pl, 0);
             }
             SndCall(1, 0x51, &pl->getPartsPtr(10)->world, 0, 0, 0);
         }
@@ -450,7 +449,7 @@ void knife_r3_down00(cPlayer* pl)
         pl->r_no_2 = 0;
         pl->r_no_3 = 0;
     } else {
-        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, (int) mot1);
+        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, mot1);
         pl->motionMove();
         pl->r_no_3 = 1;
     }
@@ -469,11 +468,11 @@ void knife_r3_down00(cPlayer* pl)
 // 0/0 or the weapon stance 0/6/1 (m_Work0); a direction key or an aim-key change cuts it short.
 void knife_r3_down10(cPlayer* pl)
 {
-    if (MotionCheckCrossFrame(&pl->pMotion, 4.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 4.0f)) {
         FACE_SET(pl, 0.0f);
         setWepTrans(pl, 1);
     }
-    if (MotionCheckCrossFrame(&pl->pMotion, 15.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 15.0f)) {
         if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
             ((cObjLauncher*) pl->Wep->m_pWep)->grip(0);
         }

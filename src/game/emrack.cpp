@@ -6,6 +6,7 @@
 #include "dmg.h"
 #include "emrack.h"
 #include "emhit.h"
+#include "esp.h"
 #include "etc_model.h"
 #include "snd.h"
 #include "motion.h"
@@ -18,10 +19,6 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
-// esp.h declares the effect id as int; this unit passes the u8 `eff` byte straight into r7
-// (emRack_R1_Break: the byte load is shared by the compare and the calls), so it carries the
-// prototype with a u8 parameter.
-void EstSet(int a, int b, Vec* pos, Vec* rot, u8 c, int d, int e, int f, u32 g, void* h);
 }
 
 typedef void (*EmRackFunc)(cEmRack*);
@@ -125,8 +122,8 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     {
         cAtariInfo* at = &em->atari;
 
-        at->init(0, 2, 0, 0.0f, w->Size_y * 0.5f, 0.0f, w->Size_x - 100.0f, w->Size_z - 100.0f,
-                 w->Size_z - 100.0f, w->Size_y * 0.5f);
+        at->init(0.0f, w->Size_y * 0.5f, 0.0f, w->Size_x - 100.0f, w->Size_z - 100.0f, w->Size_z - 100.0f, w->Size_y * 0.5f, 0,
+                 2, 0);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -272,7 +269,7 @@ void emRackDmCk(cEmRack* em)
                 cModel* p;
 
                 if (w->Eff_id != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 6, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, 0, em, 0);
                 }
                 SndCall(6, 0x36, &em->pos, 0, 0, em);
                 p = em->getPartsPtr(1);
@@ -350,9 +347,9 @@ void emRack_R1_Set(cEmRack* em)
     if (MotionCheckCrossFrame((MotionWork*) &em->pMotion, 2.0f)) {
         if (w->Eff_id != 0xFF) {
             if (em->type == 1) {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 7, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, 0, em, 0);
             } else {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 5, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
             }
         }
     }
@@ -441,19 +438,19 @@ void emRack_R1_Break(cEmRack* em)
             switch (em->r_no_3) {
             case 0:
             default:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 3, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 5, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 4, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
@@ -583,7 +580,7 @@ void emRackSatSet(cEmRack* em)
         h = w->Size_y;
     }
     if (w->pEatUnder == 0) {
-        w->pEatUnder = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatUnder = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatUnder->m_Flag |= 4;
         w->pEatUnder->setCoord(&em->pos, &em->ang);
@@ -597,7 +594,7 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1000.0f;
     h = 500.0f;
     if (w->pEatCenter == 0) {
-        w->pEatCenter = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatCenter = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatCenter->m_Flag |= 4;
         w->pEatCenter->setCoord(&em->pos, &em->ang);
@@ -608,7 +605,7 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1500.0f;
     h = 500.0f;
     if (w->pEatTop == 0) {
-        w->pEatTop = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
+        w->pEatTop = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
     } else {
         w->pEatTop->m_Flag |= 4;
         w->pEatTop->setCoord(&em->pos, &em->ang);
@@ -664,7 +661,7 @@ void emRackYarareInit(cEmRack* em)
 }
 
 // Script entry: breaks the rack (wardrobe type 4 with its own style 5).
-void cEmRack::setBreak()
+void cEmRack::setBreak(Vec* pPos)
 {
     if (type == 4) {
         r_no_0 = 1;

@@ -14,13 +14,14 @@
 #include "rnd.h"
 #include "em.h"
 #include "main_mem.h"
+#include "motion.h"
 
 // Spear (obj 0x1B): thrown by an enemy (R1_Throw), sticks into the enemy it hits (R1_Parent:
 // follows a parts of the target), falls off as a three-point rope (R1_Fall) and fades out (Lost).
 class cObjSpear : public cObj {
 public:
     virtual void move();
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual ~cObjSpear() {}
 
     void setParent(cModel* parent, int partsNo, int noNormalize);
@@ -55,7 +56,6 @@ struct SpearEstOpt {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void obj1b_R1_Set(cObjSpear* obj);
 void obj1b_R1_LostWait(cObjSpear* obj);
 void obj1b_R1_Lost(cObjSpear* obj);
@@ -137,7 +137,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start: a loose spear (no parent) is removed.
-void cObjSpear::beginEvent()
+void cObjSpear::beginEvent(u32 mode)
 {
     if (spear.parent == 0) {
         ObjMgr.destroy(this);
@@ -363,7 +363,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
     f32 mag;
     f32 diff;
 
-    floor = EatMgr.getFloor(&obj->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    floor = EatMgr.getFloor(&obj->pos, 0, 600.0f, 100000.0f, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         p = &node[i];
         p->spd.x = w->spd[i].x;
@@ -430,11 +430,11 @@ void obj1b_R1_Fall(cObjSpear* obj)
                     SndCall(w->seBlk, w->seNo, &obj->pos, w->seId, 0, 0);
                 }
                 if (w->estNo != 0xFF && w->estPrm != 0xFF) {
-                    EstSet((int) obj, -1, 0, 0, w->estNo, w->estPrm, 0, 0, (u32) obj, 0);
+                    EstSet(obj, -1, 0, 0, w->estNo, w->estPrm, 0, 0, obj, 0);
                 }
-                EffectEspDelete(0, w->espId, (u32) obj, 0);
-                EffectEspgenDelete(0, w->espId, (int) obj);
-                EffectEfmDelete(0, w->espId, (int) obj);
+                EffectEspDelete(0, w->espId, obj, 0);
+                EffectEspgenDelete(0, w->espId, obj);
+                EffectEfmDelete(0, w->espId, obj);
             }
             switch (w->type) {
             default:
@@ -631,8 +631,8 @@ int obj1bHitCk(cObjSpear* obj)
             memclr_asm(&opt, sizeof(SpearEstOpt));
             opt.flag = 1;
             opt.spd = d;
-            EstSet((int) obj, -1, 0, 0, 0x27, 0, 0, 0, (u32) obj, &opt);
-            EstSet((int) obj, -1, 0, 0, 0x27, 5, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x27, 0, 0, 0, obj, &opt);
+            EstSet(obj, -1, 0, 0, 0x27, 5, 0, 0, obj, 0);
             SndCall(8, 4, &obj->pos_old, em->id, 0, 0);
             w->estTimer = 600;
         }

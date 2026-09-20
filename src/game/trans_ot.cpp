@@ -114,7 +114,7 @@ OtData* MakeOtData(void* data)
 // 0xFFFF when not added.
 int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimit)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     OtWork* w = otWork(17);
     OtData* p;
     OtData* q;
@@ -175,7 +175,7 @@ int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u
         pLog->warn(2, 0, "AddOtWorldPos():PrimBuffer OVERFLOW!!");
         return 0xFFFF;
     }
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     h = (GeoHexahedron*) CameraViewFrustumPtr(cam);
     sph.pos = *pos;
     sph.r = radius;
@@ -225,7 +225,7 @@ int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u
         pLog->warn(2, 0, "AddOtWorldPos():PrimBuffer OVERFLOW!!");
         return 0xFFFF;
     }
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     h = (GeoHexahedron*) CameraViewFrustumPtr(cam);
     sph.pos = *pos;
     sph.r = radius;
@@ -267,7 +267,7 @@ extern "C" int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag,
     GeoHexahedron* h;
 
     if (radius != 0.0f && pos != 0) {
-        h = (GeoHexahedron*) CameraViewFrustumPtr(&pG->Cam);
+        h = (GeoHexahedron*) CameraViewFrustumPtr(&pG->Camera);
         sph.pos = *pos;
         sph.r = radius;
         if (!collision_sphere_hexahedron(&sph, h)) {

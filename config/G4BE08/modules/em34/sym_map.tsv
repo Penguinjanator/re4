@@ -17,8 +17,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000FE8	0x170	em34/em34.cpp	global	em34RouteCk__FP5cEm34	em34RouteCk
 .text	0x00001158	0xFC	em34/em34.cpp	global	em34NeckMove__FP5cEm34	em34NeckMove
 .text	0x00001254	0x110	em34/em34.cpp	global	em34AtkCk__FP5cEm34ii	em34AtkCk
-.text	0x00001364	0x4	em34/em34.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00001368	0x4	em34/em34.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00001364	0x4	em34/em34.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00001368	0x4	em34/em34.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x0000136C	0x20	em34/em34.cpp	global	_._5cEm34	cEm34::~cEm34
 .text	0x0000138C	0x48	em34/em34.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000013D4	0x4	em34/em34.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

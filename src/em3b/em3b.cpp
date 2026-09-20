@@ -37,8 +37,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em3bFunc)(cEm3b*);
 
@@ -176,7 +174,7 @@ void em3bDmCkTruck(cEm3b* em)
     SndCall(6, 4, pos, 0, 0, em);
     if (em->hp <= 1 && w->dmgWait == 0) {
         w->dmgWait = 150;
-        EstSet((int) em, -1, 0, 0, 1, 0x23, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 1, 0x23, 0, 0, em, 0);
         SndCall(6, 6, pos, 0, 0, em);
         w->sndId = SndCall(6, 0xC, pos, 0, 0, em);
     }
@@ -200,7 +198,7 @@ void em3bDmCkCart(cEm3b* em)
             if (w->dmgWait == 0) {
                 w->dmgWait = 150;
                 EmRoutineSet(em, 1, 5, 0, 0);
-                EstSet((int) em, -1, 0, 0, 0xCA, 1, 0, w->espKind, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0xCA, 1, 0, w->espKind, em, 0);
                 w->dmgWait = 150;
                 return;
             }
@@ -261,7 +259,7 @@ void em3bDmCkCart(cEm3b* em)
             if (w->dmgWait == 0) {
                 w->dmgWait = 150;
                 EmRoutineSet(em, 1, 5, 0, 0);
-                EstSet((int) em, -1, 0, 0, 0xCA, 1, 0, w->espKind, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0xCA, 1, 0, w->espKind, em, 0);
                 w->dmgWait = 150;
             }
             break;
@@ -522,14 +520,14 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
     case 0:
         em3bPosReset(em);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->timer = 10;
         em->r_no_2++;
         break;
     case 1:
         em3bPosReset(em);
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else if (em->flag & 1) {
@@ -555,7 +553,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -564,10 +562,10 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(7), 0, 3, 1, 0);
         w->timer = 450;
         w->seTimer = 30;
-        EstSet((int) em, -1, 0, 0, 1, 0, 1, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 1, 0, 1, 0, em, 0);
         em->r_no_2++;
     case 3: {
-        int end = MotionMoveF(em, 0);
+        int end = MotionMove(em, 0);
 
         if (end) {
             em->r_no_2++;
@@ -576,7 +574,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         em3bRunDownCkTruck(em);
         f = em->frame;
         if (f > 249.7f && f < 250.3f) {
-            // the first stop stores the (zero) MotionMoveF result kept in a callee-saved register; the
+            // the first stop stores the (zero) MotionMove result kept in a callee-saved register; the
             // second test's label has two uses (pDriver == 0 and the `&&` false path), so cse does not
             // carry the known zero into it and its literal zero is a fresh `li` — two copies survive
             if (w->pDriver && w->pDriver->hp <= 0) {
@@ -610,7 +608,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         }
         f = em->frame;
         if (f > 464.7f && f < 465.3f) {
-            EstSet((int) em, -1, 0, 0, 1, 0x24, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 1, 0x24, 0, 0, em, 0);
             em->flag |= 2;
             em->hp = 0;
             em->clearStatus(EM_STATUS_ACTIVE);
@@ -639,17 +637,17 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
 
         if (dir) {
             MotionSetCore(em, MOTION(em), ARC(9), 0, 3, 1, 0);
-            EstSet((int) em, -1, 0, 0, 1, 0x26, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 1, 0x26, 0, 0, em, 0);
             w->timer = 60;
         } else {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 3, 1, 0);
-            EstSet((int) em, -1, 0, 0, 1, 0x25, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 1, 0x25, 0, 0, em, 0);
             w->timer = 120;
         }
         em->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
             break;
@@ -699,7 +697,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
 static void em3b_R1_Cart_Wait(cEm3b* em)
 {
     MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0, 0, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
 }
 
 // Cart r_no_1 == 4: runs down the track (motion 0xD) running over whoever is in front; after 80
@@ -716,7 +714,7 @@ static void em3b_R1_Cart_Run(cEm3b* em)
         w->timer = 80;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         t = w->timer;
         if (t) {
             w->timer--;
@@ -730,10 +728,10 @@ static void em3b_R1_Cart_Run(cEm3b* em)
             zero = 0;
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
             StaFlagOn(pG, STA_PL_FIRE);
-            EffectEspDelete(0, w->espKind, (u32) em, 0);
-            EffectEspgenDelete(0, w->espKind, (int) em);
-            EffectEfmDelete(0, w->espKind, (int) em);
-            EstSet((int) em, -1, 0, 0, 0xCA, 2, 0, 0, (u32) em, 0);
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
+            EstSet(em, -1, 0, 0, 0xCA, 2, 0, 0, em, 0);
             w->dmgWait = 150;
             SndStop(w->sndId2, 0);
             SndCall(6, 0xA, &em->pos, 0, 0, em);
@@ -758,7 +756,7 @@ static void em3b_R1_Cart_Damage(cEm3b* em)
         em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 0, 0);
         }
         break;
@@ -775,14 +773,14 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0xCA, 3, 0, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xCA, 3, 0, w->espKind, em, 0);
         w->dmgWait = 150;
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 1, 0);
         w->timer = 1;
         EmSetDie(em);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         t = w->timer;
         if (t) {
             w->timer--;
@@ -867,7 +865,7 @@ void em3bRunDownCkTruck(cEm3b* em)
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
                 FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
                 pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);
-                SetSubDamage(em, (void*) subem3bRunDown);
+                SetSubDamage(em, subem3bRunDown);
                 SndCall(1, 0x4B, &pSUB->pos, 0, 0, 0);
                 break;
             }
@@ -966,7 +964,7 @@ static void subem3bRunDown()
         pG->ashley_life = st;
         sub->r_no_2++;
     case 1:
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->subArc = sub->subArc2;
@@ -991,7 +989,7 @@ void em3bSlopeMove(cEm3b* em)
     if (em->motFlags2 & 0x40000000) {
         return;
     }
-    fa = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     // two statements into the function-scope fb: the difference and the fabs share fb's register (f1)
     fb = fa - em->pos.y;
     fb = fabsf(fb);
@@ -1008,8 +1006,8 @@ void em3bSlopeMove(cEm3b* em)
     b.z = -500.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
-    fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    fa = SatMgr.getFloor(&a, 0, 600.0f, 100000.0f, 0);
+    fb = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
     if (fa == -100000.0f) {
         fa = em->pos.y;
     }

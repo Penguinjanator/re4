@@ -131,8 +131,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000123DC	0x8	Tools/db_light.cpp	global	__opi__t9cVarRange1ZUc	cVarRange<unsigned char>::operator int
 .text	0x000123E4	0x80	Tools/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x00012464	0x48	Tools/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000124AC	0x4	Tools/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000124B0	0x4	Tools/db_light.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000124AC	0x4	Tools/db_light.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000124B0	0x4	Tools/db_light.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000124B4	0x4	Tools/db_light.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x000124B8	0x18	Tools/db_mod.cpp	global	dbModSetViewFlag	dbModSetViewFlag
 .text	0x000124D0	0x10	Tools/db_mod.cpp	global	dbModGetViewFlag	dbModGetViewFlag
@@ -466,8 +466,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00035F98	0x68	Tools/t_prim.cpp	global	set_attr_s16__Fv	set_attr_s16
 .text	0x00036000	0x4C	Tools/t_prim.cpp	global	TprimDrawLineFn__FP3VecP7GXColorUs	TprimDrawLineFn
 .text	0x0003604C	0x4C	Tools/t_prim.cpp	global	TprimDrawPolyFn__FP3VecP7GXColorUs	TprimDrawPolyFn
-.text	0x00036098	0x13C	Tools/t_prim.cpp	global	TprimDrawTile2D__FP9TprimRectP7GXColorf	TprimDrawTile2D
-.text	0x000361D4	0x19C	Tools/t_prim.cpp	global	TprimDrawCursor__FP3VecP7GXColorf	TprimDrawCursor
+.text	0x00036098	0x13C	Tools/t_prim.cpp	global	TprimDrawTile2D__FP9TprimRectfP7GXColor	TprimDrawTile2D
+.text	0x000361D4	0x19C	Tools/t_prim.cpp	global	TprimDrawCursor__FP3VecfP7GXColor	TprimDrawCursor
 .text	0x00036370	0xA0	Tools/t_prim.cpp	global	TprimDrawHtr__FP3VecP7GXColor	TprimDrawHtr
 .text	0x00036410	0x200	Tools/t_prim.cpp	global	TprimDrawHtrCone__FP3VecP7GXColor	TprimDrawHtrCone
 .text	0x00036610	0x98	Tools/t_prim.cpp	global	TprimDrawFrameFn_s16__FP6S16VecP7GXColorUs	TprimDrawFrameFn_s16
@@ -575,7 +575,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000433CC	0x144	Tools/t_util.cpp	global	TutilQuitDefault__Fv	TutilQuitDefault
 .text	0x00043510	0xD0	Tools/t_util.cpp	global	TutilMoveCursor__FP3Vecff	TutilMoveCursor
 .text	0x000435E0	0x84	Tools/t_util.cpp	global	TutilGetScreenPos__FP3VecPfi	TutilGetScreenPos
-.text	0x00043664	0x230	Tools/t_util.cpp	global	TutilGet3DPosXZ__FP3VecN20f	TutilGet3DPosXZ
+.text	0x00043664	0x230	Tools/t_util.cpp	global	TutilGet3DPosXZ__FP3VecT0fT0	TutilGet3DPosXZ
 .text	0x00043894	0xE0	Tools/t_util.cpp	global	TutilGet3DPosXZ_Mov__FP3VecN20	TutilGet3DPosXZ_Mov
 .text	0x00043974	0xE0	Tools/t_util.cpp	global	TutilGet3DPosXZ_All__FP3VecN20	TutilGet3DPosXZ_All
 .text	0x00043A54	0x34	Tools/t_util.cpp	global	ToolMenuDisp__FiiiP9TOOL_MENUiP3JOY	ToolMenuDisp

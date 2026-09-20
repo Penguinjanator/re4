@@ -194,9 +194,7 @@ public:
     cLit* pLit;            // 0x118  room lit set by ExePacket_Lit
     u8 pad_11C[0x13C - 0x11C];
 
-    Event(u8 type);
-    // int-parameter alias of the constructor: EventMgr::construct passes its u32 id without a clrlwi.
-    Event* ctorI(int type) asm("__5EventUc");
+    Event(u32 type);
     virtual ~Event();
     int init(char* name, EvtHeader* data);
     int Run();
@@ -314,7 +312,7 @@ public:
     int DelAll();
     int SetEvs(void* evs);      // room "EVS" data (game gameRoomInit)
     int Run();
-    int IsAliveEvt(u32* key, int out, int chk);
+    int IsAliveEvt(u32* key, Event** out, int chk);
     int EvtReadAram(char* name, int em, int* out, int wait, u32 size);
     int EvtReadMram(char* name, int em, int* out, int wait, u32 size);
     int NameCheck(char* name);

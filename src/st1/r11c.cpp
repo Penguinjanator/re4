@@ -52,8 +52,6 @@
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 void RoomEfmRegist(void* model, void* tpl, u8 id);   // game/eff_sys.cpp (the bin/tpl overload)
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 extern StockEntry stock_r11c[];               // game/merchant.cpp
 extern StockEntry stock_r11c_after_event[];
@@ -151,9 +149,9 @@ void R11cInit()
     W = (R11cWork*) MEM_CALLOC(sizeof(R11cWork), 1, 0xd);
 
     SceExec(0x12, (TaskFunc) r11c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, 0, 0);
-    EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, 0, 0);
-    EstSet((int) pPL, -1, 0, 0, 0, 0x23, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 0, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 3, 1, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 0, 0x23, 0x800, 0, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     EstSet(0, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
     getRoomEtcLadder(6, (cEm**) &W->ladder[0], 1);
@@ -319,7 +317,7 @@ static void r11c_EventBesiegedStart()
     }
     if (getRoomEtcDoor(0xA, &door, 1)) {
         door->setNoSuspend(0);
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
     }
     SysFlagOn(pG, SYS_SCREEN_STOP);
     err = W->evd0->waitLoadOk() == 0;
@@ -646,7 +644,7 @@ static void r11c_EventBesiegedStart()
         SceAtSetEnable(8, 0);
         SceAtSetEnable(9, 0);
         SmdGetObjPtr(0x3F)->be_flag &= ~2;
-        EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, zero, zero);
     }
     pG->Room_flg[0] &= ~0x40000000;
     SceSetChapterEnd(CHAPTER_2_2, -1);
@@ -1103,7 +1101,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
     {
         Vec pos = {97770.0f, -598.0f, -49354.0f};
@@ -1117,7 +1115,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
     {
         Vec pos = {122765.0f, -516.0f, -51246.0f};
@@ -1131,7 +1129,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
 }
 
@@ -1166,7 +1164,7 @@ extern "C" void Evt_R11CS00_Func(Event* e)
                 EffectEspDelete(0x2001, 3, 0, 0);
                 EffectEspgenDelete(0x2001, 3, 0);
                 EffectEfmDelete(0x2001, 3, 0);
-                EstSet(0, -1, 0, 0, 1, 0xD, 0x2001, 3, frame, (void*) frame);
+                EstSet(0, -1, 0, 0, 1, 0xD, 0x2001, 3, (void*) frame, (void*) frame);
                 o = SmdGetObjPtr(0x3F);
                 if (o) {
                     e->SetMod("scr0000", o, 5, 0, 2, 0);
@@ -1243,7 +1241,7 @@ extern "C" void Evt_R11CS10_Func(Event* e)
 }
 
 // Per-cut effect of the s20 event on the render texture.
-static inline void r11c_evtEsp(Event* e, int no)
+static inline void r11c_evtEsp(Event* e, u8 no)
 {
     if (e->NowFrame == 0) {
         EffectEspDelete(W->tex->mask | 0x3001, 0, 0, 0);

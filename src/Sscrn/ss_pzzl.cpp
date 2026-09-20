@@ -59,8 +59,6 @@ extern "C" f64 tan(f64 x);
 
 
 // ss_main.cpp
-// COMPILER-DIFF: 4 (int view of numDisp(u8, ..): no clrlwi of `0x40 + i` at the call, as in ss_item)
-extern "C" void numDispI(int id, int num, Vec* pos, u32 flags) asm("numDisp");
 extern "C" {
 void clearZbuffer();
 void idMainMenuFade(SUB_SCREEN* wk, int sw);
@@ -77,9 +75,7 @@ public:
     s8 bullet;
 
     void init(SUB_SCREEN* wk);
-    // SsPzzlMain::quit passes wk (`mr r4, r31`) to the parameterless ss_debug.cpp quit: the
-    // caller's view of the class had a SUB_SCREEN* parameter (asm-labelled to the real symbol).
-    void quit(SUB_SCREEN* wk) asm("quit__9ssDbgPzzl");
+    void quit(SUB_SCREEN* wk);
     void move(SUB_SCREEN* wk);
 };
 
@@ -188,12 +184,6 @@ PzzlCursor pzzl_cursor;
 pzlPiece* pzzl_sel;
 ssDbgPzzl pzzl_dbg;
 
-// COMPILER-DIFF: item 4 (narrow-argument truncation): s16 view of MessageControl::setFontSize.
-class MessageControlS : public MessageControl {
-public:
-    void setFontSizeS(int no, s16 w, s16 h) asm("setFontSize__14MessageControliScSc");
-};
-#define cMesS (*(MessageControlS*) &cMes)
 
 #define CMES_FLAGS (*(u32*) ((u8*) &cMes + 0xFC))
 #define CMES_RESULT (*(s8*) ((u8*) &cMes + 0x1D1))
@@ -644,12 +634,12 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
     f32 w;
     f32 ang;
 
-    PSMTXInverse(pG->Cam.mat, inv);
+    PSMTXInverse(pG->Camera.mat, inv);
     PSMTXMultVec(inv, pos, out);
     if (out->z > -fabsf(ZNEAR)) {
         return 0;
     }
-    ang = pG->Cam.param.fovy * 0.5f * 0.017453292f;
+    ang = pG->Camera.param.fovy * 0.5f * 0.017453292f;
     az = fabsf(out->z);
     h = az * tanf(ang);
     w = h * 1.3333334f;
@@ -663,7 +653,7 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
 // case).
 void screenPos2puzzlePos(Vec* pos, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 pz = cam->param.pos.z;
     f32 h = fabsf((f32) (pz * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 
@@ -1011,7 +1001,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
     int no = 0;
 
     for (int i = 0; i < 0x3E; i++) {
-        numDispI(0x40 + i, 0, 0, 0);
+        numDisp(0x40 + i, 0, 0, 0);
     }
     pl = wk->puzzlePlayer;
     hand = pl->m_inhand;
@@ -1049,9 +1039,9 @@ void pieceModelDisp(SUB_SCREEN* wk)
                 u32 num = x8 & 0x1FFF;
 
                 if ((x8 >> 13) == 1) {
-                    numDispI(id, num, &scr, 3);
+                    numDisp(id, num, &scr, 3);
                 } else {
-                    numDispI(id, num, &scr, 1);
+                    numDisp(id, num, &scr, 1);
                 }
                 no++;
             } else {
@@ -1059,7 +1049,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
                 if (info.type != 9) {
                     pzzlItemInfo(item->id, &info);
                     if (info.maxNum != 1 || item->num != 1) {
-                        numDispI(id, item->num, &scr, 1);
+                        numDisp(id, item->num, &scr, 1);
                         no++;
                     }
                 }
@@ -1381,7 +1371,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     combine->connect(1, command);
     exam->connect(0, select);
     caseChange->connect(0, select);
-    puzzleCameraInit(wk, &pG->Cam);
+    puzzleCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
     if (!IdSub.setCk(0x14)) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
@@ -1393,7 +1383,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         if (i == 0) {
             IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
         } else {
-            IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
+            IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, 0x1C, 0x13, 2, 0);
@@ -1537,7 +1527,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         y = (int) ((240.0f - u->pos.y) * 0.8f);
         y -= cMes.getMes(0)->m_font_h / 2;
         if (on && caseMove == 0) {
-            cMesS.setFontSizeS(0, pzzl_font_w[1], pzzl_font_h[1]);
+            cMes.setFontSize(0, pzzl_font_w[1], pzzl_font_h[1]);
             cMes.getMes(0)->m_line_gap = 0;
             cMes.getMes(0)->charSpace = pzzl_font_space[3];
             cMes.MesSet(id, x, y, 0x20088, 0, 0, 4);
@@ -2816,14 +2806,14 @@ int itemCommandType(ItemWork* item)
         case 0xA8:
             return 3;
         }
-        if (itemCombineCheckI(item->id) == 0) {
+        if (itemCombineCheck(item->id) == 0) {
             return 4;
         }
         return 5;
     case 0xE:
         return 9;
     }
-    if (itemCombineCheckI(item->id) == 0) {
+    if (itemCombineCheck(item->id) == 0) {
         return 4;
     }
     return 5;

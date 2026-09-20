@@ -148,7 +148,7 @@ void MotionClear(cModel* m, int flag)
 // (saving the current l_mat as prevMat), and samples the root at the start/end to get the
 // motion's total displacement (Pos_dist/Ang_dist) for looping. Mot_flag 0x20000000 keeps the
 // blend motion.
-void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int flags, int frame)
+void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int flags, int frame)
 {
     MotionWork* w = (MotionWork*) w_;
     MotionData* data = (MotionData*) data_;
@@ -432,7 +432,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
 // an additive pose; runs the leg IK on the unscaled model, the hokan interpolation and the
 // quaternion blend table (blendTbl: dst = slerp(c, a, percent)). Returns Mot_state (1/2 looped,
 // 4/8 ended).
-u16 MotionMove(cModel* m)
+u32 MotionMove(cModel* m, Camera* pCamera)
 {
     static int new_add = 1;
     cModel* p;
@@ -456,15 +456,15 @@ u16 MotionMove(cModel* m)
                     MOTION(m)->blend->Hokan_cnt = 0;
                     MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
                     inv = 1.0f - rate;
-                    VecLinearCombination(&spd2, &spd, rate, inv, &spd);
-                    VecLinearCombination(&rot2, &rot, rate, inv, &rot);
+                    VecLinearCombination(&spd2, rate, &spd, inv, &spd);
+                    VecLinearCombination(&rot2, rate, &rot, inv, &rot);
                 }
             } else {
                 if (rate != 0.0f) {
                     MOTION(m)->blend->Hokan_cnt = 0;
                     MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
-                    VecLinearCombination(&spd2, &spd, rate, 1.0f, &spd);
-                    VecLinearCombination(&rot2, &rot, rate, 1.0f, &rot);
+                    VecLinearCombination(&spd2, rate, &spd, 1.0f, &spd);
+                    VecLinearCombination(&rot2, rate, &rot, 1.0f, &rot);
                 }
             }
         }
@@ -481,7 +481,7 @@ u16 MotionMove(cModel* m)
             if (rate != 0.0f) {
                 MotionMoveCore(m, MOTION(m)->blend, 0);
                 MotionSequenceCtrl(MOTION(m)->blend);
-                cModel_matBlend(m, MOTION(m)->blend->Brate);
+                m->matBlend(MOTION(m)->blend->Brate);
             } else {
                 MotionSequenceCtrl(MOTION(m)->blend);
             }
@@ -529,7 +529,7 @@ u16 MotionMove(cModel* m)
                 }
             }
             if (new_add) {
-                cModel_matBlend(m, MOTION(m)->blend->Brate);
+                m->matBlend(MOTION(m)->blend->Brate);
             }
         }
     }
@@ -646,7 +646,7 @@ u16 MotionMoveSub(cModel* m, MotionWork* w)
 // ang/pos/scale (with the left/right flip remap and mirroring when Mot_attr 0x40), skipping parts
 // flagged 0x20000000; attach-camera channels 6/7 go to the AttachCamera outputs. Rebuilds the
 // model matrix unless Mot_flag 0x40000000.
-void MotionMoveCore(cModel* m, MotionWork* w, int flag)
+void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera)
 {
     HermitePrm prm;
     HermitePrm* pp = &prm;
@@ -1108,7 +1108,7 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
     }
 }
 
-// Advances the sequence frame by Seq_speed * pG->mot_speed per frame (unless paused): forward or
+// Advances the sequence frame by Seq_speed * pG->Speed per frame (unless paused): forward or
 // reverse (Mot_attr bit 1), looping (bit 2: Mot_state 1/2) or clamping at the end (Mot_state
 // 4/8); then resolves the motion frame (10.6 fixed) from the sequence table with interpolation
 // between table entries, or linearly. Returns Mot_state.
@@ -1125,7 +1125,7 @@ u16 MotionSequenceCtrl(MotionWork* w)
                     w->Mot_state = 2;
                     f = w->Seq_frame + (f32) (int) w->Seq_frame_num;
                 } else {
-                    f = w->Seq_frame - w->Seq_speed * pG->mot_speed;
+                    f = w->Seq_frame - w->Seq_speed * pG->Speed;
                 }
                 w->Seq_frame = f;
             } else {
@@ -1133,12 +1133,12 @@ u16 MotionSequenceCtrl(MotionWork* w)
                     w->Mot_state = 8;
                     w->Seq_frame = 0.0f;
                 } else {
-                    f = w->Seq_frame - w->Seq_speed * pG->mot_speed;
+                    f = w->Seq_frame - w->Seq_speed * pG->Speed;
                     w->Seq_frame = f;
                 }
             }
         } else {
-            w->Seq_frame = w->Seq_frame + w->Seq_speed * pG->mot_speed;
+            w->Seq_frame = w->Seq_frame + w->Seq_speed * pG->Speed;
             if (w->Mot_attr & 4) {
                 u16 max = w->Seq_frame_num;
 

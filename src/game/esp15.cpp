@@ -82,11 +82,11 @@ void cEsp15::move()
             range = w->Range;
             half = range * 0.6f;
 
-            PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &dir);
-            PSVECCrossProduct(&dir, &pG->Cam.up, &dir);
+            PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &dir);
+            PSVECCrossProduct(&dir, &pG->Camera.up, &dir);
 #line 111 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&dir, &dir);
-            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
+            PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)((d + half) / (half * 2.0f));
@@ -99,8 +99,8 @@ void cEsp15::move()
             }
 
 #line 130 "D:/Bio4/Prog/esp15.cpp"
-            VECNormalize(&pG->Cam.up, &dir);
-            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
+            VECNormalize(&pG->Camera.up, &dir);
+            PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)((d + half) / (half * 2.0f));
@@ -112,10 +112,10 @@ void cEsp15::move()
                 PSVECAdd(&m_Pos, &sc2, &m_Pos);
             }
 
-            PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &dir);
+            PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &dir);
 #line 152 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&dir, &dir);
-            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
+            PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)(d / range);
@@ -125,7 +125,7 @@ void cEsp15::move()
             if (n != 0) {
                 PSVECScale(&dir, &sc, -(range * (f32)n));
                 PSVECAdd(&m_Pos, &sc, &m_Pos);
-                PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
+                PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
                 d = PSVECDotProduct(&tmp, &dir);
             }
             if (d > range * w->Del_ratio) {

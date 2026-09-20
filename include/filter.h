@@ -27,7 +27,7 @@ void Filter04Trans();
 void Filter05Init();
 void Filter05RoomInit();
 void Filter05Trans();
-void Filter05SetParam(int a, int b, int c, int d, int e, int f, int g, f32 x, f32 y, f32 z);
+void Filter05SetParam(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g);
 void Filter06Init();
 void Filter06RoomInit();
 void Filter06Trans();
@@ -59,7 +59,7 @@ void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u
 // filter03.cpp
 void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
 // filter06.cpp
-void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd, f32 alpha, Vec* spdRand, f32 scale,
+void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, f32 alpha, Vec* spd, Vec* spdRand, f32 scale,
                       int alphaMin);
 }
 

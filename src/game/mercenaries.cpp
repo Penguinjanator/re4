@@ -33,20 +33,8 @@ void* memset(void* dst, int c, unsigned int n);
 static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 }
 
-// The original cUnit::beginEvent/endEvent take an int; the shared cUnit declaration still has
-// the no-argument form, so the player calls go through this view of the vtable (sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
-#define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
+#define ARC_PTR(ofs) ((void*) (pG->pCore->ofs + (u32) pG->pCore))
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -287,7 +275,7 @@ int MercSysMoveStart(MercSysWork* wk)
     memset(st, 0, 5);
     SceSleep(2);
     SceEventStart(1);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     Cckpt.getCountDown()->m_state |= 1;
     Cckpt.getCountDown()->initTime(MercMin, MercSec, MercCes);
@@ -339,7 +327,7 @@ int MercSysMoveStart(MercSysWork* wk)
         SceSleep(1);
     } while (st[0] != 0);
     pPL->setNoSuspend(0);
-    END_EVENT(pPL, 0);
+    pPL->endEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     return 1;
@@ -1254,7 +1242,7 @@ void MercResult::quit()
 }
 
 // Loads the Assignment Ada result id data (omk_r0.dat).
-void AdaResult::init(int no)
+void AdaResult::init()
 {
     static char data_name[] = "SS/___/omk_r0.dat";
     void* addr;

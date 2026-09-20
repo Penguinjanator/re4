@@ -446,7 +446,7 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
 
         v5 = *m_p_floor_norm;
         s_ratio = f * s_ratio + (1.0f - f) * m_floor_ratio;
-        VecInternalDivisionAngle(&up, &v5, s_ratio, &v1, 1.0f - s_ratio);
+        VecInternalDivisionAngle(&up, s_ratio, &v5, 1.0f - s_ratio, &v1);
         getColumn(m, 0, &v0);
         getColumn(m, 3, &v3);
         PSVECCrossProduct(&v0, &v1, &v2);
@@ -662,9 +662,9 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
         int i;
 
         for (i = 0; i < 3; i++) {
-            VecLinearCombination(&old[i].Campos, &cur[i].Campos, r, r1, &o[i].Campos);
-            VecLinearCombination(&old[i].target, &cur[i].target, r, r1, &o[i].target);
-            VecLinearCombination(&old[i].campos2, &cur[i].campos2, r, r1, &o[i].campos2);
+            VecLinearCombination(&old[i].Campos, r, &cur[i].Campos, r1, &o[i].Campos);
+            VecLinearCombination(&old[i].target, r, &cur[i].target, r1, &o[i].target);
+            VecLinearCombination(&old[i].campos2, r, &cur[i].campos2, r1, &o[i].campos2);
             o[i].Roll = r * old[i].Roll + r1 * cur[i].Roll;
             o[i].Fovy = r * old[i].Fovy + r1 * cur[i].Fovy;
         }
@@ -700,18 +700,18 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
         } else if (ay > 0.0f) {
             f32 r1 = 1.0f - ay;
 
-            VecLinearCombination(&o[0].Campos, &o[1].Campos, ay, r1, &a);
-            VecLinearCombination(&o[0].target, &o[1].target, ay, r1, &c);
-            VecLinearCombination(&o[0].campos2, &o[1].campos2, ay, r1, &b);
+            VecLinearCombination(&o[0].Campos, ay, &o[1].Campos, r1, &a);
+            VecLinearCombination(&o[0].target, ay, &o[1].target, r1, &c);
+            VecLinearCombination(&o[0].campos2, ay, &o[1].campos2, r1, &b);
             d = a;
         } else if (ay < 0.0f) {
             f32 r1;
 
             ay = -ay;
             r1 = 1.0f - ay;
-            VecLinearCombination(&o[2].Campos, &o[1].Campos, ay, r1, &a);
-            VecLinearCombination(&o[2].target, &o[1].target, ay, r1, &c);
-            VecLinearCombination(&o[2].campos2, &o[1].campos2, ay, r1, &b);
+            VecLinearCombination(&o[2].Campos, ay, &o[1].Campos, r1, &a);
+            VecLinearCombination(&o[2].target, ay, &o[1].target, r1, &c);
+            VecLinearCombination(&o[2].campos2, ay, &o[1].campos2, r1, &b);
             d = a;
         }
     }

@@ -39,8 +39,6 @@ class cObjWep;
 
 // game/quake.cpp keeps QuakeKill static; the REL imports it by name.
 void QuakeKill(u8 id);
-// The rooms pass the position in the second slot (the DOL definition forwards it there).
-u32 EmSeCallP(int no, Vec* pos, int id, int vol0, int vol1, cUnit* obj) asm("EmSeCall__FiiP3VeciiP5cUnit");
 
 // Room 2-12 (D:/Bio4/Prog/r212.cpp): the four floor switches and the falling roof trap, the
 // three shutter doors, the drill Ganados and Ashley's escape.
@@ -352,7 +350,7 @@ static void r212_PuzzleEndProc()
     r212_work.p->rack[0]->be_flag |= 2;
     r212_work.p->rack[1]->be_flag |= 2;
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Task: the roof trap event (the player steps in behind the first door).
@@ -513,7 +511,7 @@ static void r212_RoofTrapWatcher()
 
     for (i = 0; i < 4; i++) {
         PSVECSubtract(&ofs[i], &o->pos, &d);
-        r212_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &d, 0, 0);
+        r212_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &d, 0, 0);
         r212_work.p->hit[i]->setParent(o, 0, 0);
         YarareInit(r212_work.p->hit[i], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
         EstSet(0, -1, 0, 0, 1, (u8) prm[i][0], 0x800, (u8) prm[i][1], 0, 0);
@@ -559,13 +557,13 @@ static void r212_AdhleyToPointWait()
         pG->Room_flg[0] |= 0x01000000;
         IntSet(r212_work.p->mesNo, 5);
         if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
-            SetSubAux((int) r212_AshleyPointTo, 0);
+            SetSubAux(r212_AshleyPointTo, 0);
         }
     }
     SceSleep(300);
     if (!(pG->Room_flg[0] & 0x20000000)) {
         r212_work.p->mesNo = 4;
-        SetSubAux((int) r212_AshleyPointTo, 0);
+        SetSubAux(r212_AshleyPointTo, 0);
     }
 }
 
@@ -616,7 +614,7 @@ static void r212_AshleyPointToCheck()
     SceSleep(150);
     IntSet(r212_work.p->mesNo, 3);
     if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
-        SetSubAux((int) r212_AshleyPointTo, 0);
+        SetSubAux(r212_AshleyPointTo, 0);
     }
 }
 
@@ -647,18 +645,18 @@ static void r212_DrillAppearCheck()
         v.z = 0.0f;
         sub->setAng(&v);
     }
-    SetSubAux((int) r212_AshleyDrillAction, 0);
+    SetSubAux(r212_AshleyDrillAction, 0);
     CamCtrl.CutCall(9);
     pG->Room_flg[0] &= ~0x40000000;
     SceSetEventCancel(1, (TaskFunc) r212_DrillAppearCheckEndProc, 0, 1, 1);
-    EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, (void*) zero, (void*) zero);
     r212_work.p->door[2].setClose();
     while ((st = r212_work.p->door[2].getStatus()) != 0) {
         SceSleep(1);
     }
     SceSleep(30);
     r212_work.p->se = RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
-    EstSet(0, -1, 0, 0, 1, 9, 1, 2, st, (void*) st);
+    EstSet(0, -1, 0, 0, 1, 9, 1, 2, (void*) st, (void*) st);
     SmdGetObjPtr(0x32)->be_flag &= ~2;
     CamCtrl.CutCall(4);
     SceSleep(10);
@@ -667,12 +665,12 @@ static void r212_DrillAppearCheck()
         SceSleep(1);
     }
     CamCtrl.CutCall(5);
-    r212_work.p->se = EmSeCallP(0x1A, 0, 0x11, 0, 0, 0);
+    r212_work.p->se = EmSeCall(0x1A, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(6);
-    r212_work.p->se = EmSeCallP(0x4E, 0, 0x11, 0, 0, 0);
+    r212_work.p->se = EmSeCall(0x4E, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -830,7 +828,7 @@ static void r212_AshleyDrillAction(cEm* sub)
     case 1:
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 10, 0, 1, 0);
-            EmSeCallP(3, &sub->pos, 3, 0, 0, 0);
+            EmSeCall(3, &sub->pos, 3, 0, 0, 0);
             sub->r_no_2++;
         }
         break;

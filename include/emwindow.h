@@ -30,7 +30,7 @@ public:
 
     int init(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcNo, void* arc);
     void DmCk();
-    int ExeWindowEvent();
+    static int ExeWindowEvent(cEmWindow* pEm);
     void CalFloor();
     u8 GetFloor();
     int ChkBreakDir(Vec* pos);

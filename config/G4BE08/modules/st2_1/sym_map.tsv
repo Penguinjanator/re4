@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x98	st2_1/em_wrap.cpp	global	SetControl__10cEmControlsP3Vecii	cEmControl::SetControl
+.text	0x00000000	0x98	st2_1/em_wrap.cpp	global	SetControl__10cEmControliP3Vecii	cEmControl::SetControl
 .text	0x00000098	0xAC	st2_1/em_wrap.cpp	global	SetTargetPos__10cEmControlP3Veci	cEmControl::SetTargetPos
 .text	0x00000144	0x64	st2_1/em_wrap.cpp	global	SetPatrol__9cEmPatrolsP3VeciUci	cEmPatrol::SetPatrol
 .text	0x000001A8	0xD0	st2_1/em_wrap.cpp	global	TaskMove__9cEmPatrolP9cEmPatrol	cEmPatrol::TaskMove
@@ -8,9 +8,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000052C	0x30	st2_1/em_wrap.cpp	global	__7cEmWrap	cEmWrap::cEmWrap
 .text	0x0000055C	0x1C	st2_1/em_wrap.cpp	global	initWork__7cEmWrap	cEmWrap::initWork
 .text	0x00000578	0x5C	st2_1/em_wrap.cpp	global	err__7cEmWrapPCci	cEmWrap::err
-.text	0x000005D4	0x100	st2_1/em_wrap.cpp	global	setEm__7cEmWrapsSciii	cEmWrap::setEm
-.text	0x000006D4	0x70	st2_1/em_wrap.cpp	global	setEm__FsSciii	setEm
-.text	0x00000744	0xAC	st2_1/em_wrap.cpp	global	setPtr__7cEmWrapsSci	cEmWrap::setPtr
+.text	0x000005D4	0x100	st2_1/em_wrap.cpp	global	setEm__7cEmWrapUliiii	cEmWrap::setEm
+.text	0x000006D4	0x70	st2_1/em_wrap.cpp	global	setEm__FUliiii	setEm
+.text	0x00000744	0xAC	st2_1/em_wrap.cpp	global	setPtr__7cEmWrapUlii	cEmWrap::setPtr
 .text	0x000007F0	0x7C	st2_1/em_wrap.cpp	global	setPtr__7cEmWrapP3cEmi	cEmWrap::setPtr
 .text	0x0000086C	0x54	st2_1/em_wrap.cpp	global	getPtr__7cEmWrap	cEmWrap::getPtr
 .text	0x000008C0	0x40	st2_1/em_wrap.cpp	global	isAlive__7cEmWrap	cEmWrap::isAlive
@@ -29,7 +29,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000DB4	0x60	st2_1/em_wrap.cpp	global	setFlag__7cEmWrapUl	cEmWrap::setFlag
 .text	0x00000E14	0x84	st2_1/em_wrap.cpp	global	getPos__7cEmWrapP3Vec	cEmWrap::getPos
 .text	0x00000E98	0x5C	st2_1/em_wrap.cpp	global	getPosZ__7cEmWrap	cEmWrap::getPosZ
-.text	0x00000EF4	0x7C	st2_1/em_wrap.cpp	global	motionSet__7cEmWrapPviiii	cEmWrap::motionSet
+.text	0x00000EF4	0x7C	st2_1/em_wrap.cpp	global	motionSet__7cEmWrapPvUcUsUsT1	cEmWrap::motionSet
 .text	0x00000F70	0x64	st2_1/em_wrap.cpp	global	isNormalGanade__7cEmWrap	cEmWrap::isNormalGanade
 .text	0x00000FD4	0xB4	st2_1/em_wrap.cpp	global	setGoto__7cEmWrapP3Veci	cEmWrap::setGoto
 .text	0x00001088	0xA8	st2_1/em_wrap.cpp	global	ckGoto__7cEmWrap	cEmWrap::ckGoto

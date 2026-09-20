@@ -81,8 +81,6 @@ static void r310_checkEmStandUp_end();
 static void r310_checkEmStandUp();
 static void R310EventS00();
 static void Evt_R310S00_Func(Event* e);
-// GetEmIdFromList returns int here: the event functions take its low byte (r308).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Room init: JumpPoint 1/2 marks the S00 event seen (save record bit 31); Ashley initialised as the
 // follower; the event pre-loaded (enemy of ESL 0x5A) and run on a first visit; the two lever pairs
@@ -103,7 +101,7 @@ void R310Init()
     StaFlagOn(pG, STA_SUB_ASHLEY);
     EvtMgr.SetFunc("evt_r310s00_func", (void*) Evt_R310S00_Func);
     if ((int) R310_SAVE_FLAGS >= 0) {
-        EvtMgr.EvtReadAram("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0, 1, 0);
+        EvtMgr.EvtReadAram("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), 0, 1, 0);
         SceExec(0x12, (TaskFunc) R310EventS00, 0, 2, 2, 0);
     }
     getRoomEtcSwitch(1, (cEm**) &sw0, 1);
@@ -288,7 +286,7 @@ near:
         goal.z += 800.0f;
     }
     if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
-        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        SubCharMoveTo(goal.x, goal.y, goal.z, 193.0f, 0);
         while ((SubCharGetStatus() & 0x00800000) == 0) {
             SceSleep(1);
         }
@@ -344,7 +342,7 @@ static void r310_pushBox2_leon()
     Vec d;
     Vec goal;
 
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     AtariFlagsOr(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
@@ -413,7 +411,7 @@ done:
     }
 finish:
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     r310_work->pushTask = 0;
 }
 
@@ -424,7 +422,7 @@ static void r310_pushBox2()
     PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
-        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000)) {
+        if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
             FSet(r310_work->box2->pos.x, r310_work->box2->pos.x + 10.0f);
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box2->pos, 0, 0, 0);
@@ -528,7 +526,7 @@ near:
         goal.z -= 800.0f;
     }
     if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
-        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        SubCharMoveTo(goal.x, goal.y, goal.z, 193.0f, 0);
         while ((SubCharGetStatus() & 0x00800000) == 0) {
             SceSleep(1);
         }
@@ -585,7 +583,7 @@ static void r310_pushBox1_leon()
     Vec d;
     Vec goal;
 
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     AtariFlagsOr(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
@@ -654,7 +652,7 @@ done:
     }
 finish:
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     r310_work->pushTask = 0;
 }
 
@@ -666,7 +664,7 @@ static void r310_pushBox1()
     PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
-        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000)) {
+        if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
             FSet(r310_work->box1->pos.x, r310_work->box1->pos.x - 10.0f);
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box1->pos, 0, 0, 0);
@@ -813,7 +811,7 @@ static void R310EventS00()
     if ((int) R310_SAVE_FLAGS >= 0) {
         R310_SAVE_FLAGS |= 0x80000000;
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromListI(0x5A), 0);
+        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), 0);
         cPlayer* pl = pPL;
         p.x = -6877.0f;
         p.y = 0.0f;

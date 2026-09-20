@@ -38,7 +38,7 @@ class cEmRun : public cEmControl {
 public:
     int run;   // 0x11C  1 while a route is being run
 
-    int SetRoute(s16 no, Vec* tbl, int n);
+    int SetRoute(int no, Vec* tbl, int n);
     int Move();
 };
 
@@ -69,11 +69,6 @@ struct R327WorkPtr {
 };
 
 static R327WorkPtr r327_work;
-
-// The table entries are passed to cEmWrap::setEm as ints (no s16 truncation at the call: COMPILER-DIFF 4,
-// the r204/r205/r21d int view of the member).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
-int cEmRunSetRouteI(cEmRun* r, int no, Vec* tbl, int n) asm("SetRoute__6cEmRunsP3Veci");
 
 // Typed view of pG->emlist (the r400 idiom).
 struct EmListView {
@@ -146,7 +141,7 @@ void R327Init()
     }
     if (r327_work.p->first != 0) {
         for (i = 0; i < 11; i++) {
-            cEmWrapSetEmI(&r327_work.p->em[r327_firstTbl[i].idx].em, r327_firstTbl[i].id, 7, 0, 1, 1);
+            r327_work.p->em[r327_firstTbl[i].idx].em.setEm(r327_firstTbl[i].id, 7, 0, 1, 1);
             r327_work.p->em[r327_firstTbl[i].idx].set = 1;
             r327_work.p->em[r327_firstTbl[i].idx].id = r327_firstTbl[i].id;
         }
@@ -239,7 +234,7 @@ int r327_EnemySetSub(R327EmTbl* a, u32 na, R327EmTbl* b, u32 nb)
     }
     for (i = 0; i < na; i++) {
         if (r327_work.p->em[a[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[a[i].idx].em, a[i].id, 7, 0, 1, 1);
+            r327_work.p->em[a[i].idx].em.setEm(a[i].id, 7, 0, 1, 1);
             r327_work.p->em[a[i].idx].set = 1;
             r327_work.p->em[a[i].idx].id = a[i].id;
             ret = 1;
@@ -248,7 +243,7 @@ int r327_EnemySetSub(R327EmTbl* a, u32 na, R327EmTbl* b, u32 nb)
     }
     for (i = 0; i < nb; i++) {
         if (r327_work.p->em[b[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[b[i].idx].em, b[i].id, 7, 0, 1, 1);
+            r327_work.p->em[b[i].idx].em.setEm(b[i].id, 7, 0, 1, 1);
             r327_work.p->em[b[i].idx].set = 1;
             r327_work.p->em[b[i].idx].id = b[i].id;
             ret = 1;
@@ -442,7 +437,7 @@ static void r327_LampSet(int no)
     pG->Room_flg[0] &= ~0x80000000;
     SceSleep(10);
     RoomSeCall(0x1F, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, lamp, 1, 0, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, lamp, 1, 0, (void*) zero, (void*) zero);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
     }
@@ -480,7 +475,7 @@ static void r327_GanadoAppearCut()
     for (i = 0; i < 4; i++) {
         R327EmTbl* t = &r327_appearTbl[side][i];
 
-        cEmWrapSetEmI(&r327_work.p->em[t->idx].em, t->id, 7, 0, 1, 1);
+        r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
         r327_work.p->em[t->idx].set = 1;
         r327_work.p->em[t->idx].id = t->id;
         r327_work.p->em[t->idx].em.setNoSuspend(1);
@@ -496,7 +491,7 @@ static void r327_GanadoAppearCut()
         for (i = 0; i < 4; i++) {
             R327EmTbl* t = &r327_appearTbl[side][i];
 
-            cEmWrapSetEmI(&r327_work.p->em[t->idx].em, t->id, 7, 0, 1, 1);
+            r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
             r327_work.p->em[t->idx].set = 1;
             r327_work.p->em[t->idx].id = t->id;
             r327_work.p->em[t->idx].em.setNoSuspend(1);
@@ -523,7 +518,7 @@ static void r327_GanadoAppearCutEndProc(int side)
 
     for (i = 0; i < 4; i++) {
         if (r327_work.p->em[t[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[t[i].idx].em, t[i].id, 7, 0, 1, 1);
+            r327_work.p->em[t[i].idx].em.setEm(t[i].id, 7, 0, 1, 1);
             r327_work.p->em[t[i].idx].set = 1;
             r327_work.p->em[t[i].idx].id = t[i].id;
         }
@@ -537,7 +532,7 @@ static void r327_GanadoAppearCutEndProc(int side)
         asm("" : "=m"(*t2) : "r"(t2)); // COMPILER-DIFF: #13 (see above)
         for (i = 0; i < 4; i++) {
             if (r327_work.p->em[t2[i].idx].set == 0) {
-                cEmWrapSetEmI(&r327_work.p->em[t2[i].idx].em, t2[i].id, 7, 0, 1, 1);
+                r327_work.p->em[t2[i].idx].em.setEm(t2[i].id, 7, 0, 1, 1);
                 r327_work.p->em[t2[i].idx].set = 1;
                 r327_work.p->em[t2[i].idx].id = t2[i].id;
             }
@@ -622,13 +617,13 @@ static void r327_GanadoGotoCheck()
 
                         switch ((u8) (r % 3)) {
                         case 0:
-                            cEmRunSetRouteI(run, e->id, route0, 3);
+                            run->SetRoute(e->id, route0, 3);
                             break;
                         case 1:
-                            cEmRunSetRouteI(run, e->id, route1, 3);
+                            run->SetRoute(e->id, route1, 3);
                             break;
                         case 2:
-                            cEmRunSetRouteI(run, e->id, &route2, 1);
+                            run->SetRoute(e->id, &route2, 1);
                             break;
                         }
                     }
@@ -668,7 +663,7 @@ static void r327_CheckUseCardKey()
     EffectEspDelete(1, 4, 0, 0);
     EffectEspgenDelete(1, 4, 0);
     EffectEfmDelete(1, 4, 0);
-    EstSet(0, -1, 0, 0, 1, 7, 1, 4, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 7, 1, 4, (void*) zero, (void*) zero);
     SceUpCut(3, 9, 0x1D, 0);
     SceAtSetEnable(0x18, 0);
     SceExec(0x12, (TaskFunc) r327_SetSwitchEnable, 0, 0, 2, 0);
@@ -689,7 +684,7 @@ static void r327_SetSwitchEnable()
     EffectEspDelete(1, 3, 0, 0);
     EffectEspgenDelete(1, 3, 0);
     EffectEfmDelete(1, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 5, 1, 3, (void*) zero, (void*) zero);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
     }
@@ -719,8 +714,8 @@ static void r327_SetSwitchEnableEndProc()
         EffectEspDelete(1, 3, 0, 0);
         EffectEspgenDelete(1, 3, 0);
         EffectEfmDelete(1, 3, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 2, (u32) zero, (void*) zero);
-        EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 3, 1, 2, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 5, 1, 3, (void*) zero, (void*) zero);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -816,12 +811,12 @@ static void r327_SetSwitchDisableEndProc()
         EffectEspDelete(1, 3, 0, 0);
         EffectEspgenDelete(1, 3, 0);
         EffectEfmDelete(1, 3, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, (void*) zero);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 2, 1, 2, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (void*) zero, (void*) zero);
         EffectEspDelete(1, 4, 0, 0);
         EffectEspgenDelete(1, 4, 0);
         EffectEfmDelete(1, 4, 0);
-        EstSet(0, -1, 0, 0, 1, 6, 1, 4, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 6, 1, 4, (void*) zero, (void*) zero);
     }
     r327_work.p->em2.destroy();
     CamCtrl.Comeback(0);
@@ -854,7 +849,7 @@ static void r327_ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
         RsfSet(G_ROOM_ID, 15);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 
@@ -918,7 +913,7 @@ static void r327_BoxOpened(u32 id)
 }
 
 // Bind the runner to enemy `no` with an n-point route; run = 1 starts Move stepping it.
-int cEmRun::SetRoute(s16 no, Vec* tbl, int n)
+int cEmRun::SetRoute(int no, Vec* tbl, int n)
 {
     if (SetControl(no, tbl, n, 0) == 0) {
         return 0;

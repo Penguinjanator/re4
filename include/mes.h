@@ -215,7 +215,7 @@ public:
     int checkState(u32 b);
     void Move();
     void Trans();
-    void setFontSize(int no, s8 w, s8 h);
+    void setFontSize(int no, s16 w, s16 h);
     void MesSet(int no, int x, int y, u32 attr, int slot, int col, int type);
     void Delete(int no);
     void WaitEnd(int no);

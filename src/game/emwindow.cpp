@@ -18,6 +18,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 // One row of WindowData (0x48 bytes), indexed by cModel::type.
 struct WindowDataRow {
@@ -54,20 +55,9 @@ int LadderNearCk(Vec* pos);                                                     
 void LadderEventTrans(int on);
 SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
 int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
-int MotionMove(cModel* m, int a);
 }
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
-// cUnit::beginEvent takes an int in the original (sscrn BEGIN_EVENT).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 WindowDataRow WindowData[29] = {
     { 1, 1, 0, 0, "et0001.bin", "et0000.tpl", 1300.0f, 1400.0f, 1.0f, 0, 1, 1, 6, 1 },
@@ -372,7 +362,7 @@ void cEmWindow::move()
         r_no_0 = 1;
         if (WindowAlive(this)) {
             if (WindowData[type].breakEff == 1) {
-                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, (u32) this, 0);
+                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, this, 0);
             }
         }
         break;
@@ -505,7 +495,7 @@ void cEmWindow::DmCk()
 // stage 4 Ada set) by ChkBreakDir (1 from the front, 2 no floor behind, 0 default), runs it under
 // SceEventStart with the ladder-style camera, breaks the window at the right frame (SetBreakAll
 // size 1, event style) and moves the player through; returns 1 when done.
-int cEmWindow::ExeWindowEvent()
+int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
 {
     EmWindowWork* w;
     Vec plPos;
@@ -513,11 +503,11 @@ int cEmWindow::ExeWindowEvent()
     void* mot;
     int i;
 
-    if (this == 0) {
+    if (pEm == 0) {
         pLog->err(0, 0, "WindowEvent : ptr faild!");
         return 0;
     }
-    w = EMWINDOW_WK(this);
+    w = EMWINDOW_WK(pEm);
     fcv[0] = GetEtcAddr(w->arc, "pl00537.fcv");
     fcv[1] = GetEtcAddr(w->arc, "pl00538.fcv");
     fcv[2] = GetEtcAddr(w->arc, "pl00536.fcv");
@@ -526,15 +516,15 @@ int cEmWindow::ExeWindowEvent()
         EvtMgr.GetEmWindowFcv(&fcv[0], &fcv[1], &fcv[2]);
     }
     SceEventStart(0);
-    SetStatus(2);
+    pEm->SetStatus(2);
     LadderEventTrans(0);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     plPos.x = pPL->pos.x;
     plPos.y = pPL->pos.y;
     plPos.z = pPL->pos.z;
     pPL->setFace(2);
-    w->breakDir = ChkBreakDir(&pPL->pos);
+    w->breakDir = pEm->ChkBreakDir(&pPL->pos);
     switch (w->breakDir) {
     case 0:
         FSet(pPL->pos.x, 90.0f);
@@ -564,24 +554,24 @@ int cEmWindow::ExeWindowEvent()
         mot = fcv[2];
         break;
     }
-    PSMTXMultVec(mat, &pPL->pos, &pPL->pos);
-    FSet(pPL->ang.x, pPL->ang.x + ang.x);
-    FSet(pPL->ang.y, pPL->ang.y + ang.y);
-    FSet(pPL->ang.z, pPL->ang.z + ang.z);
+    PSMTXMultVec(pEm->mat, &pPL->pos, &pPL->pos);
+    FSet(pPL->ang.x, pPL->ang.x + pEm->ang.x);
+    FSet(pPL->ang.y, pPL->ang.y + pEm->ang.y);
+    FSet(pPL->ang.z, pPL->ang.z + pEm->ang.z);
     if (mot) {
         MotionSetCore(pPL, &pPL->pMotion, mot, 0, 0, 0x201, 0);
     }
     for (i = 0; (pPL->motState & 4) == 0; i++) {
         switch (w->breakDir) {
         case 0:
-            if (WindowAlive(this) && i == 0xF) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0xF) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0x19 && pG->room_id == 0x11F) {
                 EstSet(0, -1, 0, 0, 1, 6, 1, 0, 0, 0);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 8, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 8, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -603,11 +593,11 @@ int cEmWindow::ExeWindowEvent()
             }
             break;
         case 1:
-            if (WindowAlive(this) && i == 0x10) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0x10) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -629,11 +619,11 @@ int cEmWindow::ExeWindowEvent()
             }
             break;
         case 2:
-            if (WindowAlive(this) && i == 0xD) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0xD) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);

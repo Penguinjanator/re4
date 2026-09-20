@@ -127,7 +127,7 @@ class cObjLuisItem;
 
 class cSubLuis : public cEm {
 public:
-    cSubLuis* subSelf;    // 0x3E0  the model the routines animate (itself)
+    cSubLuis* pEm;    // 0x3E0  the model the routines animate (itself)
     float dist;           // 0x3E4
     Vec distPos;          // 0x3E8
     float distMargin;     // 0x3F4

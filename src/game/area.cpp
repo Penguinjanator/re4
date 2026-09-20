@@ -29,8 +29,7 @@ f32 sinf(f32 x);
 f32 cosf(f32 x);
 f32 SQRTF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
-// game/sub2.cpp; really takes Vec*, declared by value here (same ABI) so the caller copies its Vec.
-int GetScreenPos(Vec pos, Vec* scr);
+int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 void Draw_line3d(Vec* p0, Vec* p1, u32 color, int blend);
 void Draw_poly(Vec* p, u32 color, int zupd);
 void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd);
@@ -129,7 +128,7 @@ int AreaViewCheck(AreaData* area, GeoCone* cone)
         rot.z = 0.0f;
         RotMatrix(m, &rot);
         PSMTXMultVecSR(m, &dir, &dir);
-        ret = collision_point_cone_rev_play_face(&pos, cone, &dir, area->u.eye.radius, ang);
+        ret = collision_point_cone_rev_play_face(&pos, cone, area->u.eye.radius, &dir, ang);
         break;
     default:
         pLog->warn(0, 0, AREA_TYPE_ERR, area->type);
@@ -912,6 +911,7 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
 {
     Vec pos;
     Vec scr;
+    Vec posCopy;
 
     switch (area->type) {
     case AREA_TYPE_XZ4: {
@@ -931,22 +931,26 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
         pos.x = a->p[0].x;
         pos.y = a->floor;
         pos.z = a->p[0].z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P0");
         pos.x = a->p[1].x;
         pos.y = a->floor;
         pos.z = a->p[1].z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P1");
         pos.x = a->p[2].x;
         pos.y = a->floor;
         pos.z = a->p[2].z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P2");
         pos.x = a->p[3].x;
         pos.y = a->floor;
         pos.z = a->p[3].z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P3");
         break;
     }
@@ -961,7 +965,8 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
         pos.x = a->x;
         pos.y = a->floor;
         pos.z = a->z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P0");
         break;
     }
@@ -984,7 +989,8 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
         pos.x = a->xz;
         pos.y = a->floor;
         pos.z = a->z;
-        GetScreenPos(pos, &scr);
+        posCopy = pos;
+        GetScreenPos(&posCopy, &scr);
         eprintf2(6, 12, (int) scr.x + 8, (int) scr.y + 16, 0, 0, "P0");
         break;
     }

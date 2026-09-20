@@ -304,11 +304,7 @@ public:
     void hokanMove();
     cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
     void setModel2(cModel* m);
-    void setCloth(cModel* m);
-    // Every caller (cloth, espgen42/43/45) passes a light count in r5 that the body never reads:
-    // the original declaration had a second parameter the definition lacks. Same trick as
-    // dvd.h ReadCheckInfo.
-    void setClothN(cModel* m, int n) asm("setCloth__9cLightMgrP6cModel");
+    void setCloth(cModel* m, u32 count);
     void setEsp(EspLightList* list, u8 mask);
     int update(int area_no, int camera_no);
     int setThermo();

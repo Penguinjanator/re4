@@ -46,8 +46,6 @@ char* strncpy(char*, const char*, u32);
 void qsort(void* base, u32 n, u32 size, int (*cmp)(const void*, const void*));
 double strtod(const char*, char**);
 float tanf(float);
-// COMPILER-DIFF #4: the original passes the int coordinates without the s16 truncation.
-void Draw_tileI(int x, int y, int w, int h, GXColor* color) asm("Draw_tile");
 }
 // COMPILER-DIFF #4: the original passes the (u32) converted height without the u16 truncation.
 void ScreenReSizeI(int w, u32 h) asm("ScreenReSize");
@@ -189,7 +187,7 @@ static void toolIdQuit(IdTool* w)
     TOOL_FLAG(0x54) |= 0x800;
     TOOL_FLAG(0x60) &= ~0x8000;
     TOOL_FLAG(0x64) &= ~0x100000;
-    pG->Cam = w->camSave;
+    pG->Camera = w->camSave;
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     ToolWorkPop(0);
     TaskSignal(0);
@@ -1823,19 +1821,19 @@ int idEditColor(IdTool* w, int x, int y)
                 case 6: c0.b = d->col1[2]; break;
                 case 7: c0.r = d->col1[3]; c0.g = d->col1[3]; c0.b = d->col1[3]; break;
                 }
-                Draw_tileI(x + 0x40, (int) ((f32) yy + 2.8f), (int) (*pc / 255.0f * 100.0f), 8, &c0);
-                Draw_tileI((int) ((f32) (x + 0x40) - 0.8f), (int) ((f32) yy + 1.4f), 0x65, 0xB, &c1);
+                Draw_tile(x + 0x40, (int) ((f32) yy + 2.8f), (int) (*pc / 255.0f * 100.0f), 8, &c0);
+                Draw_tile((int) ((f32) (x + 0x40) - 0.8f), (int) ((f32) yy + 1.4f), 0x65, 0xB, &c1);
             }
             c2.r = d->col0[0];
             c2.g = d->col0[1];
             c2.b = d->col0[2];
             c2.a = d->col0[3];
-            Draw_tileI(x2, y, 0x38, 0x38, &c2);
+            Draw_tile(x2, y, 0x38, 0x38, &c2);
             c3.r = d->col1[0];
             c3.g = d->col1[1];
             c3.b = d->col1[2];
             c3.a = d->col1[3];
-            Draw_tileI(x2, y2, 0x38, 0x38, &c3);
+            Draw_tile(x2, y2, 0x38, 0x38, &c3);
         }
         break;
     }
@@ -2220,7 +2218,7 @@ int idEditTrans(IdTool* w, int x, int y)
             }
             break;
         case 4: {
-            register int step asm("r11") = (joy->on & 0x100) ? 10 : 1; // COMPILER-DIFF: pin
+            int step = (joy->on & 0x100) ? 10 : 1;
 
             if (joy->rep & 0x10001) {
                 d->maskTex -= step;
@@ -2612,7 +2610,7 @@ static int editDispColor(IdTool* w, int x, int y)
             c.g = d->col0[1];
             c.b = d->col0[2];
             c.a = d->col0[3];
-            Draw_tileI(x, y, 0x10, 0xE, &c);
+            Draw_tile(x, y, 0x10, 0xE, &c);
             eprintf(x + 0x18, y, (u8) col, 0, "%02x", d->col0[3]);
         }
     }
@@ -3844,16 +3842,16 @@ void toolIdSetCamera(IdTool* w)
     f32 fovy = 55.0f;
     f32 t;
 
-    w->camSave = pG->Cam;
+    w->camSave = pG->Camera;
     w->scrW = 640;
     w->scrH = 480;
     t = tanf(fovy * 0.5f * PI / 180.0f);
     pos.z = (f32) w->scrH * 0.5f / t;
-    pGS->Cam.param.pos = pos;
-    pGS->Cam.param.at = at;
-    pGS->Cam.param.roll = roll;
-    pGS->Cam.param.fovy = fovy;
-    CameraSetOrientationRoll(&pGS->Cam);
+    pGS->Camera.param.pos = pos;
+    pGS->Camera.param.at = at;
+    pGS->Camera.param.roll = roll;
+    pGS->Camera.param.fovy = fovy;
+    CameraSetOrientationRoll(&pGS->Camera);
 }
 
 // Snaps `in` to the grid step.

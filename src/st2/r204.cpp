@@ -71,9 +71,6 @@ struct R204WorkPtr {
 
 static R204WorkPtr r204_work;
 
-// COMPILER-DIFF: #4 — `0x4A + i` is an int; the original passes it to the s16 parameter without a
-// truncation.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void door_rsf_off();
 static void setTexRender();
@@ -177,7 +174,7 @@ void R204Init()
             r204_work.p->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
             SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
             for (i = 0; i <= 10; i++) {
-                cEmWrapSetEmI(&r204_work.p->em[i], 0x4A + i, 3, 0, 1, 1);
+                r204_work.p->em[i].setEm(0x4A + i, 3, 0, 1, 1);
                 if (r204_work.p->em[i].isAlive() == 1) {
                     Vec ofs = {0.0f, 10.0f, 179.0f};
                     Vec rot = {-0.17453292f, 0.0f, 0.0f};
@@ -187,13 +184,13 @@ void R204Init()
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[7].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet((int) r204_work.p->head[i], -1, 0, 0, 0, 0x2D, 0x801, r204_work.p->esp[i], 0, 0);
+                        EstSet(r204_work.p->head[i], -1, 0, 0, 0, 0x2D, 0x801, r204_work.p->esp[i], 0, 0);
                     } else {
-                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &ofs, &rot);
+                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[i].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet((int) r204_work.p->head[i], -1, 0, 0, 1, 0x1F, 0x801, r204_work.p->esp[i], 0, 0);
+                        EstSet(r204_work.p->head[i], -1, 0, 0, 1, 0x1F, 0x801, r204_work.p->esp[i], 0, 0);
                     }
                 }
                 if (0x4A + i == 0x51) {
@@ -220,10 +217,10 @@ void R204Init()
         SmdGetObjPtr(0x1C)->be_flag |= 0x20;
         SmdGetObjPtr(0x1C)->ang.y = -2.72f;
         SceAtSetEnable(0xD, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 1, 1, 0, zero, zero);
         SmdSetTrans(0x3C, 0);
         SmdSetTrans(0x3D, 1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
     } else {
         SmdSetTrans(0x14, 0);
         SmdSetTrans(0x17, 0);
@@ -238,11 +235,11 @@ void R204Init()
         SceAtSetEnable(0x12, 1);
         SceAtSetEnable(0x13, 1);
         zero = NULL;
-        EstSet(0, -1, 0, 0, 1, 2, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 2, 1, 0, zero, zero);
         SceAtSetEnable(0xD, 1);
         SmdSetTrans(0x3C, 1);
         SmdSetTrans(0x3D, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 3, 1, 0, zero, zero);
     }
     if (pG->em_list_no == 3) {
         cEm* em0;
@@ -273,7 +270,7 @@ void R204Init()
         SmdGetObjPtr(0x39)->pos.y = 5300.0f;
         SceAtSetEnable(0xF, 0);
     }
-    SceSetRoomExitFunc((int) door_rsf_off, 0);
+    SceSetRoomExitFunc(door_rsf_off, 0);
     SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
@@ -834,8 +831,8 @@ struct PlPtr {
         register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
         Vec* ang;                                                                                                  \
                                                                                                                    \
-        ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
-        ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
+        pl->beginEvent(0);                                                                     \
+        r204_work.p->chand[no]->beginEvent(0);                                                 \
         low_RotMatrix(m, (Vec*) &crot0);                                                                           \
         ang = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
@@ -928,8 +925,8 @@ struct PlPtr {
         }                                                                                                          \
         pl->dmg.clear();                                                                                           \
         BitOn(pl->be_flag, 0x10);                                                                                  \
-        ((cUnitEventView*) pPL)->endEvent(0);                                                                      \
-        ((cUnitEventView*) r204_work.p->chand[no])->endEvent(0);                                                   \
+        pPL->endEvent(0);                                                                      \
+        r204_work.p->chand[no]->endEvent(0);                                                   \
         postLoop                                                                                                   \
     }
 

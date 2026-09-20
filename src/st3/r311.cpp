@@ -62,8 +62,6 @@ static R311Work* r311_work;
 // The shutter/terminal bits live in the second word of the room's save record (RoomData).
 #define R311_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-// The room build's EstSet prototype takes the effect numbers as bytes.
-void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
 // `pSUB->atari.flags |= 0x300` through a pointer to the collision info; the volatile halfword store keeps
 // the following pG / work load below it (r207).
 static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
@@ -782,7 +780,7 @@ void r311_initIronBall()
     if (r311_work->ball) {
         r311_work->ball->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
         BitOn(r311_work->ball->be_flag, 0x1000);
-        atariInitF(&r311_work->ball->atari, 0.0f, -2000.0f, 0.0f, 0.0f, 1100.0f, 1100.0f, 2000.0f, 10, 0x18, 0);
+        r311_work->ball->atari.init(0.0f, -2000.0f, 0.0f, 0.0f, 1100.0f, 1100.0f, 2000.0f, 10, 0x18, 0);
     }
     {
         Vec pos = {-9219.7f, 2309.3f, -4995.9f};
@@ -802,7 +800,7 @@ void r311_initIronBall()
         SceAtSetEnable(0, 0);
         r311_work->throwCnt = 0;
         IntSet(r311_work->eff, EspPullCoreKind());
-        EstSetB(0, -1, 0, 0, 1, 2, 1, r311_work->eff, 0, 0);
+        EstSet(0, -1, 0, 0, 1, 2, 1, r311_work->eff, 0, 0);
     } else {
         SceAtSetEnable(2, 0);
     }

@@ -66,8 +66,8 @@ void CRoomInfo::setNextPos()
     }
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->Part);
-    U16Set(pG->next_room, roomNo);
-    U8Set(pG->next_point, 0);
+    U16Set(pG->RoomNo_next, roomNo);
+    U8Set(pG->Part_next, 0);
 }
 
 // Wraps the room info table (count, per-stage offsets, CRoomInfo records) and, on first use,
@@ -226,7 +226,7 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
 }
 
 // Next / previous jump point of `room` (stays when the neighbour belongs to another room).
-s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, int dir)
+s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, s8 dir)
 {
     u32 n = getIndexNum(stage);
     s8 idx = getRoomIdx(stage, room) + point;
@@ -240,13 +240,13 @@ s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, int dir)
     return idx - getRoomIdx(stage, room);
 }
 
-// `idx` when it is a valid record of `stage`, else -1.
-int cRoomJmp::checkRoomNo(s8 stage, int idx)
+// `room` when it is a valid record of `stage`, else -1.
+s8 cRoomJmp::checkRoomNo(s8 stage, s8 room)
 {
-    if ((u8) stage >= tbl[0] || getIndexNum(stage) == 0 || getRoomInfo(stage, idx) == 0) {
+    if ((u8) stage >= tbl[0] || getIndexNum(stage) == 0 || getRoomInfo(stage, room) == 0) {
         return -1;
     }
-    return idx;
+    return room;
 }
 
 // Debug room-jump menu task (bugcheck controller): init -> move (menu) -> exec / exit.

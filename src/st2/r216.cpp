@@ -98,8 +98,6 @@ struct R216WorkPtr {
 
 static R216WorkPtr r216_work;
 
-// COMPILER-DIFF: 4 (the int table values are passed to the s16 parameter untruncated).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static int r216_pole_obj[3][3] = {{0x2F, 0x5B, 0x66}, {0x30, 0x5C, 0x65}, {0x31, 0x5A, 0x67}};
 static int r216_em_no[3][3] = {{0xB9, 0xB4, 0xB7}, {0xB8, 0xB2, 0xB6}, {0xBA, 0xB3, 0xB5}};
@@ -173,7 +171,7 @@ static void r216_BattleStart()
     SceEventStart(0);
     for (i = 0; i < 3; i++) {
         e = &r216_work.p->em[r216_em_idx[i][0]];
-        cEmWrapSetEmI(&e->em, r216_em_no[i][0], -1, 1, 1, 1);
+        e->em.setEm(r216_em_no[i][0], -1, 1, 1, 1);
         r216_work.p->pole[i].setEm(&e->em);
         e->em.setNoSuspend(1);
     }
@@ -272,7 +270,7 @@ static void r216_2ndArmorAppear()
     }
     SceSleep(0x3C);
     for (i = 0; i < 3; i++) {
-        cEmWrapSetEmI(&r216_work.p->em[r216_em_idx[i][1]].em, r216_em_no[i][1], -1, 1, 1, 1);
+        r216_work.p->em[r216_em_idx[i][1]].em.setEm(r216_em_no[i][1], -1, 1, 1, 1);
         r216_work.p->pole[i].setEm(&r216_work.p->em[r216_em_idx[i][1]].em);
     }
     r216_work.p->pole[0].setOpen();

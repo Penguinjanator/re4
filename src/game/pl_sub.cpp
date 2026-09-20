@@ -326,7 +326,7 @@ void EndPlDamage()
 }
 
 // Partner: aux routine 0/0xF with two parameters (scenario-specific behaviour).
-void SetSubAux(int a, int b)
+void SetSubAux(void (*ft)(cEm*), void (*ftdm)(cEm*))
 {
     cSubChar* sub = pSUB;
 
@@ -336,14 +336,14 @@ void SetSubAux(int a, int b)
     }
     sub->r_no_0 = 0;
     sub->r_no_2 = 0;
-    sub->subAux0 = a;
-    sub->subAux1 = b;
+    sub->pAux = ft;
+    sub->pAuxDm = ftdm;
     sub->r_no_1 = 0xF;
     sub->r_no_3 = 0;
 }
 
 // Partner: the bulldozer-ride routine (r_no_0 3) with two parameters.
-void SetSubBulldozer(int a, int b)
+void SetSubBulldozer(void (*ft)(cEm*), void (*ftdm)(cEm*))
 {
     cSubChar* sub = pSUB;
 
@@ -353,15 +353,15 @@ void SetSubBulldozer(int a, int b)
     }
     sub->r_no_1 = 0;
     sub->r_no_2 = 0;
-    sub->subAux0 = a;
-    sub->subAux1 = b;
+    sub->pAux = ft;
+    sub->pAuxDm = ftdm;
     sub->r_no_0 = 3;
     sub->r_no_3 = 0;
 }
 
 // Partner damage routine (r_no_0 4): Ashley (id 3) runs the em damage function; the other partners
 // play `mot` (subFlags58C 0x40). pEmCatch = type.
-void SetSubDamage(cEm* em, void* mot)
+void SetSubDamage(cEm* em, void (*ft)())
 {
     cSubChar* sub = pSUB;
 
@@ -369,7 +369,7 @@ void SetSubDamage(cEm* em, void* mot)
         return;
     }
     if (sub->id == 3) {
-        sub->setEmFunc();
+        sub->setEmFunc(ft);
         sub->r_no_0 = 4;
         sub->r_no_1 = 0;
         sub->r_no_2 = 0;
@@ -377,8 +377,8 @@ void SetSubDamage(cEm* em, void* mot)
         sub->dmg.set(0, 10);
         sub->pEmCatch = em;
     } else {
-        sub->subMot0 = mot;
-        sub->subFlags58C |= 0x40;
+        sub->m_MotTbl2[0] = (void*)ft;
+        *(u8*) &sub->m_MotBase |= 0x40;
         sub->r_no_0 = 4;
         sub->r_no_1 = 0;
         sub->r_no_2 = 0;
@@ -465,7 +465,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
 }
 
 // Partner command: mode 0 follow, 1 wait here, 2 destroy, 3 stop, 4 warp to the player, 5 routine
-// 5, 6 re-init, 7 wait; flag bit0 restarts the routine at once, bit1 = manual control (subFlags
+// 5, 6 re-init, 7 wait; flag bit0 restarts the routine at once, bit1 = manual control (flg
 // 0x80). Aux parameters are cleared unless she is in the aux routine.
 void SubCharCtrl(int mode, int flag)
 {
@@ -522,32 +522,32 @@ void SubCharCtrl(int mode, int flag)
         break;
     }
     if (flag & 2) {
-        sub->subFlags |= 0x80;
+        sub->flg |= 0x80;
     } else {
-        BitOff16(sub->subFlags, 0x80);
+        BitOff16(sub->flg, 0x80);
     }
     if (sub->r_no_0 != 0 || sub->r_no_1 != 0xF) {
-        sub->subAux0 = 0;
+        sub->pAux = 0;
     }
-    sub->subAux1 = 0;
+    sub->pAuxDm = 0;
 }
 
 // May the partner take a command now? 1 under manual control, else only when controllable
-// (subFlags 0x40), not stopped / moving-to, and in one of the plain routine-0 states.
+// (flg 0x40), not stopped / moving-to, and in one of the plain routine-0 states.
 int SubCharCheckCtrl()
 {
     cSubChar* sub = pSUB;
 
-    if (sub->subFlags & 0x80) {
+    if (sub->flg & 0x80) {
         return 1;
     }
-    if (!(sub->subFlags & 0x40)) {
+    if (!(sub->flg & 0x40)) {
         return 0;
     }
-    if (sub->subFlags & 1) {
+    if (sub->flg & 1) {
         return 0;
     }
-    if (sub->subFlags & 8) {
+    if (sub->flg & 8) {
         return 0;
     }
     if (sub->r_no_0 != 0) {
@@ -578,7 +578,7 @@ int SubCharCheckCtrl()
     return 1;
 }
 
-// Partner hide: mode 0 flags her hidden (subX534), mode 1 sends her to hide at `pos` (routine
+// Partner hide: mode 0 flags her hidden (m_Work1), mode 1 sends her to hide at `pos` (routine
 // 0/0x10, invulnerable).
 void SubCharCtrlHide(Vec* pos, int mode)
 {
@@ -586,12 +586,12 @@ void SubCharCtrlHide(Vec* pos, int mode)
 
     switch (mode) {
     case 0:
-        sub->subX534 = 1;
+        sub->m_Work1 = 1;
         break;
     case 1:
         sub->dmg.set(0, 0x80);
-        sub->subHidePos = *pos;
-        sub->subHideMode = 1;
+        sub->m_VecWork0 = *pos;
+        sub->m_Work0 = 1;
         sub->r_no_0 = 0;
         sub->r_no_1 = 0x10;
         sub->r_no_2 = 0;
@@ -601,25 +601,25 @@ void SubCharCtrlHide(Vec* pos, int mode)
 }
 
 // Partner: walk to (x, y, z) with parameter w (193 = special values), unless already going there;
-// flag bit0 sets subFlags 0x10.
-void SubCharMoveTo(int flag, f32 x, f32 y, f32 z, f32 w)
+// flag bit0 sets flg 0x10.
+void SubCharMoveTo(f32 x, f32 y, f32 z, f32 w, int flag)
 {
     cSubChar* sub = pSUB;
 
-    if ((sub->subFlags & 8) && x == sub->subMoveTo[0] && y == sub->subMoveTo[1] && z == sub->subMoveTo[2] &&
-        w == sub->subMoveTo[3]) {
+    if ((sub->flg & 8) && x == sub->m_TargetPos.x && y == sub->m_TargetPos.y && z == sub->m_TargetPos.z &&
+        w == sub->m_TargetDir) {
         return;
     }
-    sub->subMoveTo[0] = x;
-    sub->subMoveTo[1] = y;
-    sub->subMoveTo[2] = z;
-    sub->subMoveTo[3] = w;
+    sub->m_TargetPos.x = x;
+    sub->m_TargetPos.y = y;
+    sub->m_TargetPos.z = z;
+    sub->m_TargetDir = w;
     sub->control(4);
     sub->analyze();
     sub->move();
-    BitOff16(sub->subFlags2, 0x40);
+    BitOff16(sub->status, 0x40);
     if (flag & 1) {
-        sub->subFlags |= 0x10;
+        sub->flg |= 0x10;
     }
 }
 
@@ -727,7 +727,7 @@ void PlRegistMotion(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, 
     }
 }
 
-// Partner: room-supplied motions subMot0 / subMot1 (non-zero ones only).
+// Partner: room-supplied motions m_MotTbl2[0] / m_MotTbl2[1] (non-zero ones only).
 void SubCharRegistMotion(void* m0, void* m1)
 {
     cSubChar* sub = pSUB;
@@ -737,10 +737,10 @@ void SubCharRegistMotion(void* m0, void* m1)
         return;
     }
     if (m0) {
-        sub->subMot0 = m0;
+        sub->m_MotTbl2[0] = m0;
     }
     if (m1) {
-        sub->subMot1 = m1;
+        sub->m_MotTbl2[1] = m1;
     }
 }
 
@@ -908,17 +908,17 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, (u32) pl, (void*) t);
+            EstSet(pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, pl, (void*) t);
         }
     }
     dist = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, pl, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, pl, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {

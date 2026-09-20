@@ -174,7 +174,7 @@ void R307Init()
         if (obj) {
             obj->be_flag &= ~2;
         }
-        EstSet(0, -1, 0, 0, 1, 0, 0, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, zero);
         if (r307_emDead(0x32) == 0) {
             SceExec(0x12, (TaskFunc) r307_checkBgm, 0, 0, 2, 0);
         }
@@ -228,8 +228,8 @@ int r307_checkPiece()
             void* zero = 0;
             R307_EFF_DELETE(r307_work.p->eff[i]);
             R307_EFF_DELETE(r307_work.p->eff2[i]);
-            EstSet(0, -1, &r307_piece[i].pos, 0, 1, r307_effDone[r307_piece[i].no][r307_work.p->rot.rot[i]], 1, (u8) r307_work.p->eff[i], (u32) zero, zero);
-            EstSet(0, -1, &r307_piece[i].pos, 0, 1, 0x18, 1, (u8) r307_work.p->eff2[i], (u32) zero, zero);
+            EstSet(0, -1, &r307_piece[i].pos, 0, 1, r307_effDone[r307_piece[i].no][r307_work.p->rot.rot[i]], 1, (u8) r307_work.p->eff[i], zero, zero);
+            EstSet(0, -1, &r307_piece[i].pos, 0, 1, 0x18, 1, (u8) r307_work.p->eff2[i], zero, zero);
         }
     }
     if (ok != 1) {
@@ -301,7 +301,7 @@ void r307_initPiece()
         int no = r307_piece[k].no;
         u8 eff = r307_effPiece[no][r307_work.p->rot.rot[k]];
 
-        EstSet(0, -1, &r307_piece[k].pos, 0, 1, eff, 1, (u8) r307_work.p->eff[k], (u32) zero, zero);
+        EstSet(0, -1, &r307_piece[k].pos, 0, 1, eff, 1, (u8) r307_work.p->eff[k], zero, zero);
     }
     EstSet(0, -1, 0, 0, 1, 0x17, 1, (u8) r307_work.p->effTerm, 0, 0);
 }
@@ -377,7 +377,7 @@ static void r307_checkPuzzleTerminal()
             if (r307_work.p->barred) {
                 SceSleep(10);
                 R307_EFF_DELETE(r307_work.p->effBarred);
-                EstSet((int) r307_work.p->barred, -1, 0, 0, 1, 2, 1, (u8) r307_work.p->effBarred, (u32) zero, zero);
+                EstSet(r307_work.p->barred, -1, 0, 0, 1, 2, 1, (u8) r307_work.p->effBarred, zero, zero);
                 SndCall(6, 7, 0, 0, 0, 0);
                 SceSleep(30);
                 ((cEmBarred*) r307_work.p->barred)->setLockMode(0);
@@ -406,7 +406,7 @@ void r307_initPuzzle()
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r307_checkPuzzleTerminal, 0, 1);
         if (r307_work.p->barred) {
             ((cEmBarred*) r307_work.p->barred)->setLockMode(1);
-            EstSet((int) r307_work.p->barred, -1, 0, 0, 1, 1, 1, (u8) r307_work.p->effBarred, (u32) zero, zero);
+            EstSet(r307_work.p->barred, -1, 0, 0, 1, 1, 1, (u8) r307_work.p->effBarred, zero, zero);
         }
         for (k = 0; k < 9; k++) {
             r307_work.p->eff[k] = EspPullCoreKind();
@@ -416,7 +416,7 @@ void r307_initPuzzle()
     } else {
         SceAtSetEnable(9, 0);
         if (r307_work.p->barred) {
-            EstSet((int) r307_work.p->barred, -1, 0, 0, 1, 3, 1, (u8) r307_work.p->effBarred, (u32) zero, zero);
+            EstSet(r307_work.p->barred, -1, 0, 0, 1, 3, 1, (u8) r307_work.p->effBarred, zero, zero);
         }
     }
 }
@@ -515,7 +515,7 @@ static void r307_appearEm()
     if (obj) {
         obj->be_flag &= ~2;
     }
-    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, zero);
     cEmWrap em;
     em.setPtr(0x32, -1, 1);
     em.setNoSuspend(1);

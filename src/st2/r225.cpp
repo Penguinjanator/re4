@@ -241,12 +241,12 @@ static void r225_operateCrank()
         PSet(r225_work->crank, SmdGetObjPtr(n));
     }
     BitOn(r225_work->crank->be_flag, 0x20);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     PlSetHand(1, 0);
-    ((cUnitEventView*) r225_work->crank)->beginEvent(0);
+    r225_work->crank->beginEvent(0);
     CamCtrl.CutCall(5);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
-    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x20));
+    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
     {
         Vec pos = {82071.0f, 1500.0f, -18900.0f};
         cPlayer* pl;
@@ -350,8 +350,8 @@ static void r225_operateCrank()
                 if (frame >= max) {
                     frame = 0;
                 }
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) mot);
-                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) mot2);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, frame, 5, mot);
+                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, frame, 5, mot2);
             }
             SmdGetObjPtr(0x27)->be_flag |= 0x20;
             if (!(SmdGetObjPtr(0x27)->pos.x < 800.0f)) {
@@ -374,8 +374,8 @@ static void r225_operateCrank()
     }
     r225_work->crank->motionPause();
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(0);
-    ((cUnitEventView*) r225_work->crank)->endEvent(0);
+    pPL->endEvent(0);
+    r225_work->crank->endEvent(0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtSetEnable(4, 1);
     } else {
@@ -568,7 +568,7 @@ void SceElevator_r225(SceElevatorData* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;

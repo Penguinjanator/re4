@@ -458,9 +458,9 @@ void rckPointAdd()
     }
     p = &w->pt[n];
     gy = RCK_GRID_Y(pPL->pos.y);
-    c.x = pG->Cam.param.pos.x;
+    c.x = pG->Camera.param.pos.x;
     c.y = gy;
-    c.z = pG->Cam.param.pos.z;
+    c.z = pG->Camera.param.pos.z;
     TutilGet3DPosXZ_All((Vec*) &w->curX, &c, &out);
     memclr_asm(p, sizeof(RckPoint));
     gy = RCK_GRID_Y(out.y);
@@ -611,7 +611,7 @@ void rckPointChange()
 // Keeps the cursor on the caught point while the camera moves.
 void rckPointCameraMove()
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     RckPoint* p = &RCK->pt[RCK->cur];
     Vec d;
 
@@ -794,7 +794,7 @@ void rckMainDisp()
     if (RCK->flags & 1) {
         c = 1;
     }
-    TprimDrawCursor((Vec*) &RCK->curX, &cursor_col[c], 0.0f);
+    TprimDrawCursor((Vec*) &RCK->curX, 0.0f, &cursor_col[c]);
     rckPointInfoDisp();
     eprintf2(10, 16, 440, 8, 0, 0, "%03x", pG->room_id);
     eprintf(menu_pos[0], menu_pos[1] - 14, 4, 0, "- MENU -");
@@ -821,7 +821,7 @@ void rckMainDisp()
         rckModeDisp("Z:DELETE", "Z:delete", RCK->cur != -1, 30, "Z:     Delete Point");
         break;
     }
-    TprimDrawCursor((Vec*) &RCK->curX, &cursor_col[c], 0.0f);
+    TprimDrawCursor((Vec*) &RCK->curX, 0.0f, &cursor_col[c]);
 }
 
 // Draws every point as a cursor mark: caught / current / nearest / plain colours.
@@ -1256,7 +1256,7 @@ void rckCameraMove()
         RCK->camMode ^= 1;
     }
     if (RCK->camMode) {
-        CamDbg.move(&pG->Cam, Joy, 0);
+        CamDbg.move(&pG->Camera, Joy, 0);
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);

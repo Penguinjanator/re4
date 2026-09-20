@@ -5,7 +5,7 @@
 #include "vec.h"
 #include "camera.h"
 
-// Archive header at pG->pArc: a table of file offsets to the sub-files. Only the entries that
+// Archive header at pG->pCore: a table of file offsets to the sub-files. Only the entries that
 // matched units use are named.
 struct ArcFile {
     u8 pad_0[0x10];
@@ -82,49 +82,44 @@ struct ITEM_SAVE_WORK {
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
-    s32 dev_mode;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
+    s32 IsDevConsole;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
     u8 shooting_mode;      // 0x04  shooting range mode (title: shoot_mode[] name table; em10/em39: 9999 damage, marker lines)
-    u8 save_no;            // 0x05  save file number last loaded/saved (card dataSelect)
+    u8 CardLastSelNo;            // 0x05  save file number last loaded/saved (card dataSelect)
     u8 pad_6[2];
     u32 CardStatus;                // 0x08  card flags (card: 4 loaded, 8/0x10/0x20/0x40/0x80 CardSave modes, bit 31 first check done; main: bit 31 saved into pRK->x3C)
     u8 pad_C[4];
     u64 card_serial;       // 0x10  serial of the card the save file came from (card)
-    void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
+    void* FontData;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 IsMessageInit;     // 0x1C  1 = the message system is usable (mes sets it; dvd error screen tests it)
+    u8 Rno0;        // 0x20  game task step (game_func_tbl index; main_sub: 3/4/6 allow the blur filter)
+    u8 Rno1;        // 0x21  sub step (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
+    u8 Rno2;
+    u8 Rno3;
+    u32 DblBufIdx;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
     union {
-        u32 mode32;        // 0x20  x20..x23 as one word (game: gameOption saves/restores it in Game.mode_bak)
+        u16 RoomNo_next;     // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
         struct {
-            u8 Rno0;        // 0x20  game task step (game_func_tbl index; main_sub: 3/4/6 allow the blur filter)
-            u8 Rno1;        // 0x21  sub step (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
-            u8 Rno2;
-            u8 Rno3;
+            u8 Stage_next; // 0x28  (sce_at sceAtFunc_door stores the door destination byte by byte)
+            u8 Room_next;  // 0x29
         };
     };
-    u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
-    union {
-        u16 next_room;     // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
-        struct {
-            u8 next_stage; // 0x28  (sce_at sceAtFunc_door stores the door destination byte by byte)
-            u8 next_room_no;  // 0x29
-        };
-    };
-    u8 next_point;         // 0x2A  spawn point in the next room (room_jmp CRoomInfo::setNextPos clears it)
+    u8 Part_next;         // 0x2A  spawn point in the next room (room_jmp CRoomInfo::setNextPos clears it)
     u8 pad_2B;
     Vec NextPos;          // 0x2C  player position in the next room (room_jmp)
     f32 NextY;        // 0x38
     void* pStFnt;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
     void* pRoom;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
     void* pWep;         // 0x44  weapon data (read: ReadWepData)
-    struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
+    struct ArcFile* pCore;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     void* pOption;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
     struct PlArc* pPlayer;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
     u32 System_flg;          // 0x54
     u32 Disp_flg;          // 0x58
     u32 game_start_time;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
     u32 Debug_flg[4];      // 0x60  debug option bits ([2] 0x04000000 / [3] 0x00200000 shown in the title debug page)
-    f32 mot_speed;         // 0x70  motion frame step per game frame (MotionSequenceCtrl: speed * mot_speed)
-    Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
-    u8 pad_16C[4];
+    f32 Speed;         // 0x70  motion frame step per game frame (MotionSequenceCtrl: speed * Speed)
+    Camera Camera;            // 0x74 .. 0x16C  (Cam.param at 0x118)
+    u32 room_start_addr[1]; // 0x16C
     u32 Stop_flg;          // 0x170  stop flags (debug tools save/restore it)
     u32 Room_flg[4];       // 0x174  per-room flag words: [0] room scripts (pl_sub joyFireOn 0x20000000 in room 11C), [1] objRobo WalkHitCk bit31 = the statue caught the player, [2]/[3] cleared by SceAtWorkLoopInit every frame
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)

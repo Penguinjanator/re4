@@ -26,8 +26,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em26Func)(cEm26*);
 
@@ -157,7 +155,7 @@ void em26DmCk(cEm26* em)
     case 8:
     case 0x21:
         if (near) {
-            Camera* cam = &pG->Cam;
+            Camera* cam = &pG->Camera;
             cModel* p = em->getPartsPtr(0);
 
             if ((cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
@@ -332,7 +330,7 @@ static void em26_R0_Init(cEm26* em)
     } else {
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 1, 0);
     }
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em26_R0_Move(em);
 }
 
@@ -358,7 +356,7 @@ static void em26_R1_Wait(cEm26* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
+        if (MotionMove(em, 0) && (Rnd() & 3) == 0) {
             em->r_no_2++;
         } else {
             em26BreathSe(em);
@@ -374,7 +372,7 @@ static void em26_R1_Wait(cEm26* em)
         w->sndId = SndCall(8, 4, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -383,7 +381,7 @@ static void em26_R1_Wait(cEm26* em)
         w->estTimer--;
     } else {
         w->estTimer = Rnd() % 30 + 90;
-        EstSet((int) em, -1, 0, 0, 0x1E, 3, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1E, 3, 0, 0, em, 0);
     }
     if (w->dmgTotal > 500) {
         cModel* p = em->getPartsPtr(4);
@@ -411,9 +409,9 @@ static void em26_R1_Atk(cEm26* em)
             mode = 0x41;
         }
         if (ang < 0.0f) {
-            MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x16), 0, mode, 0);
+            MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x16), 0, mode, 0);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0xF), (int) ARC(0x17), 0, mode, 0);
+            MotionSetCore(em, MOTION(em), ARC(0xF), ARC(0x17), 0, mode, 0);
         }
         w->atkHit = 0;
         em->r_no_2++;
@@ -422,7 +420,7 @@ static void em26_R1_Atk(cEm26* em)
         if (em->seFlags28B & 1) {
             em26AtkCk(em);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -431,7 +429,7 @@ static void em26_R1_Atk(cEm26* em)
         w->estTimer--;
     } else {
         w->estTimer = Rnd() % 20 + 10;
-        EstSet((int) em, -1, 0, 0, 0x1E, 3, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1E, 3, 0, 0, em, 0);
     }
 }
 
@@ -484,7 +482,7 @@ static void em26_R1_Dm_Small(cEm26* em)
         em->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -537,11 +535,11 @@ static void em26_R1_Die_Normal(cEm26* em)
         if (w->flags & 0x10) {
             mode = 0x41;
         }
-        MotionSetCore(em, MOTION(em), ARC(0xD), (int) seq, 0, mode, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xD), seq, 0, mode, 0);
         em->atari.m_flag &= ~0x200;
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 0x1E, 2, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1E, 2, 0, 0, em, 0);
         em->r_no_2++;
     }
     case 1:
@@ -555,7 +553,7 @@ static void em26_R1_Die_Normal(cEm26* em)
                 info->color[2] = info->color[1] = info->color[0];
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             cModel* p = em->getPartsPtr(2);
 
             EstSet(0, -1, &p->world, &em->ang, 0x1E, 4, 0, 0, 0, 0);
@@ -601,7 +599,7 @@ int em26AtkCk(cEm26* em)
                 w->atkHit = 1;
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             return 1;
         }
     }

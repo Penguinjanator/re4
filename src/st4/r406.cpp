@@ -170,7 +170,7 @@ static void r406_checkRockWall()
     }
     {
         Vec rot = {0.0f, 0.0f, 0.0f};
-        cEmHit* em = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, &rot, 1);
+        cEmHit* em = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, &rot, 1);
 
         YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 0, 0x41);
         SceSleep(1);
@@ -193,7 +193,7 @@ static void r406_checkRockWall()
                         obj->be_flag &= ~2;
                     }
                     SndCall(6, 2, &obj->pos, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, (void*) zero);
+                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (void*) zero, (void*) zero);
                     SceExit();
                     break;
                 }

@@ -81,22 +81,7 @@ static const AtEffInfo r205_effInfo = {
     1, {0xD2, 0x2C}, {0xD2, 0x2F}, {0xD2, 0x2E}, {0xD2, 0x2D}, {0xD2, 0x20}, {0xD2, 0x20}, {0xD2, 0}, {0xD2, 0},
 };
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
-// COMPILER-DIFF: #4 — the table entry is an int; the original passes it to the s16 parameter
-// without a truncation.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 void r205_Em105AppearCheck();
 void r205_Em106AppearCheck();
@@ -176,7 +161,7 @@ void R205Init()
     }
     for (i = 0; i < 6; i++) {
         if (RsfCheck(G_ROOM_ID, r205_rsfTbl[i])) {
-            if (cEmWrapSetEmI(&r205_work.p->ems[r205_emIdxTbl[i]].em, r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
+            if (r205_work.p->ems[r205_emIdxTbl[i]].em.setEm(r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
                 r205_work.p->ems[r205_emIdxTbl[i]].dead = 1;
             }
         }
@@ -185,12 +170,12 @@ void R205Init()
     SceAtSetEnable(0x22, 0);
     if (getRoomEtcDoor(0x13, &r205_work.p->door0, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
-            cEmDoorSetCloseLock(r205_work.p->door0);
+            ((cEmDoor*) r205_work.p->door0)->setCloseLock();
         }
     }
     if (getRoomEtcDoor(0x14, &r205_work.p->door1, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            cEmDoorSetCloseLock(r205_work.p->door1);
+            ((cEmDoor*) r205_work.p->door1)->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -198,7 +183,7 @@ void R205Init()
         Vec pos = {0.0f, -425.0f, 0.0f};
 
         for (i = 0; i < 4; i++) {
-            r205_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
+            r205_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                          &pos, 0, 1);
             r205_work.p->hit[i]->setParent(r205_work.p->pend[i].obj, 0, 0);
             YarareInitCube(r205_work.p->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, 1);
@@ -449,7 +434,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     }
     BitOn(pG->Room_flg[0], 0x40000000);
     SysFlagOn(pG, SYS_START_EVT_SKIP);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     d = p->rot - p->rotPrev;
     if (pPL->ang.y >= -1.5707964f && pPL->ang.y <= 1.5707964f) {
         pPL->ang.y = 0.0f;
@@ -466,13 +451,13 @@ static void r205_ExecDieDemo(R205Pend* p)
     wp = &pPL->getPartsPtr(2)->world;
     RoomSeCall(0, wp, 0, 0, 0);
     PlSeCall(9, wp, 0, 0, 0);
-    cam = pG->Cam;
+    cam = pG->Camera;
     i = 0;
     parts = pPL->getPartsPtr(r205_camParts);
     while (!(MotionGetState(pPL) & 4)) {
         if (!(pG->Room_flg[0] & 0x20000000)) {
             if (i == 2) {
-                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, pPL, 0);
             }
             cam.param.at = parts->world;
             i++;
@@ -485,7 +470,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     }
     RoomSeCall(1, &pPL->getPartsPtr(2)->world, 0, 0, 0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, (u16) mot, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 0x11, 0, 0, (u32) pPL, 0);
+    EstSet(pPL, -1, 0, 0, 1, 0x11, 0, 0, pPL, 0);
     DiedemoExec(0x19, 0);
     CamCtrl.Disable();
     CamCtrl.camera = cam;
@@ -519,7 +504,7 @@ static void r205_DrainEvent()
         EffectEfmDelete(0, 0xE, 0);
         SetSstDispFlag(0xC, 0);
         SetSstDispFlag(0xD, 1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, 3, zero, zero);
         SceSetEventCancel(1, (TaskFunc) r205_DrainEventEnd, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -614,7 +599,7 @@ static void r205_EnemyAppear()
     SpfFlagOff(pG, SPF_PL);
     DpfFlagOff(pG, DPF_PL);
     pPL->setNoSuspend(1);
-    EstSet(0, -1, 0, 0, 1, 6, 1, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 6, 1, 3, zero, zero);
     CamCtrl.CutCall(9);
     SceSetEventCancel(1, (TaskFunc) r205_EnemyAppearEndProc, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -658,5 +643,5 @@ static void r205_TreasureBoxOpened(int id)
 static void r205_ContinuePointSet()
 {
     RsfSet(G_ROOM_ID, 12);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }

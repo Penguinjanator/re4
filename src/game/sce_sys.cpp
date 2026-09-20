@@ -485,7 +485,7 @@ void SceExecCheckCondition()
         if ((s32) v < 0) {
             if (SceExecCheckCondition_sub(c) == 1) {
                 if (c->func != 0) {
-                    SceExec(c->prio, c->func, c->arg, c->flag, SCE_PRIO_DEF_2, 0);
+                    SceExec(c->prio, c->func, (int) c->arg, c->flag, SCE_PRIO_DEF_2, 0);
                 }
                 DelPrim(&SceExecOt, (u32*) c);
                 Mem_free(c);
@@ -496,7 +496,7 @@ void SceExecCheckCondition()
 }
 
 // Room: run `func(arg)` as a scenario task (prio, flag) once condition `type` / `param` holds.
-void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg, u8 flag)
+void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, void* arg, u8 flag)
 {
 #line 608
     SceCond* c = (SceCond*) MEM_ALLOC(sizeof(SceCond), 1, 13);
@@ -511,7 +511,7 @@ void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg
 }
 
 // Room: run `func(arg)` when enemy `param` has died.
-void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, int arg, u8 flag)
+void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, void* arg, u8 flag)
 {
     SceExecLinkCondition(2, param, prio, func, arg, flag);
 }

@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x98	st2_2/em_wrap.cpp	global	SetControl__10cEmControlsP3Vecii	cEmControl::SetControl
+.text	0x00000000	0x98	st2_2/em_wrap.cpp	global	SetControl__10cEmControliP3Vecii	cEmControl::SetControl
 .text	0x00000098	0xAC	st2_2/em_wrap.cpp	global	SetTargetPos__10cEmControlP3Veci	cEmControl::SetTargetPos
 .text	0x00000144	0x88	st2_2/em_wrap.cpp	global	EndControl__10cEmControl	cEmControl::EndControl
 .text	0x000001CC	0x64	st2_2/em_wrap.cpp	global	SetPatrol__9cEmPatrolsP3VeciUci	cEmPatrol::SetPatrol
@@ -7,9 +7,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000300	0x30	st2_2/em_wrap.cpp	global	__7cEmWrap	cEmWrap::cEmWrap
 .text	0x00000330	0x1C	st2_2/em_wrap.cpp	global	initWork__7cEmWrap	cEmWrap::initWork
 .text	0x0000034C	0x5C	st2_2/em_wrap.cpp	global	err__7cEmWrapPCci	cEmWrap::err
-.text	0x000003A8	0x100	st2_2/em_wrap.cpp	global	setEm__7cEmWrapsSciii	cEmWrap::setEm
-.text	0x000004A8	0x70	st2_2/em_wrap.cpp	global	setEm__FsSciii	setEm
-.text	0x00000518	0xAC	st2_2/em_wrap.cpp	global	setPtr__7cEmWrapsSci	cEmWrap::setPtr
+.text	0x000003A8	0x100	st2_2/em_wrap.cpp	global	setEm__7cEmWrapUliiii	cEmWrap::setEm
+.text	0x000004A8	0x70	st2_2/em_wrap.cpp	global	setEm__FUliiii	setEm
+.text	0x00000518	0xAC	st2_2/em_wrap.cpp	global	setPtr__7cEmWrapUlii	cEmWrap::setPtr
 .text	0x000005C4	0x7C	st2_2/em_wrap.cpp	global	setPtr__7cEmWrapP3cEmi	cEmWrap::setPtr
 .text	0x00000640	0x54	st2_2/em_wrap.cpp	global	getPtr__7cEmWrap	cEmWrap::getPtr
 .text	0x00000694	0x40	st2_2/em_wrap.cpp	global	isAlive__7cEmWrap	cEmWrap::isAlive
@@ -27,7 +27,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000B20	0x5C	st2_2/em_wrap.cpp	global	getPosY__7cEmWrap	cEmWrap::getPosY
 .text	0x00000B7C	0x84	st2_2/em_wrap.cpp	global	getAng__7cEmWrapP3Vec	cEmWrap::getAng
 .text	0x00000C00	0x5C	st2_2/em_wrap.cpp	global	getAngY__7cEmWrap	cEmWrap::getAngY
-.text	0x00000C5C	0x7C	st2_2/em_wrap.cpp	global	motionSet__7cEmWrapPviiii	cEmWrap::motionSet
+.text	0x00000C5C	0x7C	st2_2/em_wrap.cpp	global	motionSet__7cEmWrapPvUcUsUsT1	cEmWrap::motionSet
 .text	0x00000CD8	0x64	st2_2/em_wrap.cpp	global	isNormalGanade__7cEmWrap	cEmWrap::isNormalGanade
 .text	0x00000D3C	0xB4	st2_2/em_wrap.cpp	global	setGoto__7cEmWrapP3Veci	cEmWrap::setGoto
 .text	0x00000DF0	0xA8	st2_2/em_wrap.cpp	global	ckGoto__7cEmWrap	cEmWrap::ckGoto
@@ -100,7 +100,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00006BA0	0x1E4	st2_2/r213.cpp	local	R213BridgeManager__Fv	R213BridgeManager
 .text	0x00006D84	0x1CC	st2_2/r213.cpp	global	R213BridgeAngMove__Fif	R213BridgeAngMove
 .text	0x00006F50	0xE0	st2_2/r213.cpp	global	R213BridgeAngSet__Ff	R213BridgeAngSet
-.text	0x00007030	0x1C4	st2_2/r213.cpp	global	R213ChainAngSet__FiUliif	R213ChainAngSet
+.text	0x00007030	0x1C4	st2_2/r213.cpp	global	R213ChainAngSet__FiUlifi	R213ChainAngSet
 .text	0x000071F4	0x1B4	st2_2/r213.cpp	global	R213ChainDamageCheck__FiUlii	R213ChainDamageCheck
 .text	0x000073A8	0x94	st2_2/r213.cpp	global	R213ChainBreakNumCalc__Fv	R213ChainBreakNumCalc
 .text	0x0000743C	0x370	st2_2/r213.cpp	local	R213EventSwitchMain__Fv	R213EventSwitchMain

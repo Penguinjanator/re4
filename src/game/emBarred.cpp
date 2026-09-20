@@ -28,11 +28,6 @@
 
 extern cModel* pSUB;   // game/em.cpp
 
-// COMPILER-DIFF: 1 (argument-move order). cSatMgr::create(pos, rot, poly, attr, flag, h) with the
-// `fmr f1, h` move issued before the `mr attr` / `li flag` moves (emobj.cpp SatMgrCreateF); only the
-// sub[0] / sub[1] creates of emBarredEatSet show the interleave, the other call sites match as is.
-cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
-
 typedef void (*EmBarredFunc)(cEmBarred*);
 
 EmBarredFunc EmBarred_R1_move_tbl[4] = {
@@ -745,7 +740,7 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         default:
             if (w->Eff_id != 0xFF) {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
             }
             break;
         }
@@ -911,7 +906,7 @@ void emBarredEatSet(cEmBarred* em)
         poly[3].x = -hx;
         poly[3].y = y;
         poly[3].z = hy;
-        w->pEat = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
+        w->pEat = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
     } else {
         w->pEat->m_Flag |= 4;
         w->pEat->setCoord(&em->pos, &em->ang);
@@ -935,7 +930,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[0] = SatMgrCreateF(&EatMgr, &em->pos, &em->ang, poly, h, attr, 0);
+            w->pEatFrame[0] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
         } else {
             w->pEatFrame[0]->m_Flag |= 4;
             w->pEatFrame[0]->setCoord(&em->pos, &em->ang);
@@ -953,7 +948,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = hx - 160.0f;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[1] = SatMgrCreateF(&EatMgr, &em->pos, &em->ang, poly, h, attr, 0);
+            w->pEatFrame[1] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
         } else {
             w->pEatFrame[1]->m_Flag |= 4;
             w->pEatFrame[1]->setCoord(&em->pos, &em->ang);
@@ -971,7 +966,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[2] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, 260.0f);
+            w->pEatFrame[2] = EatMgr.create(&em->pos, &em->ang, poly, 260.0f, attr, 0);
         } else {
             w->pEatFrame[2]->m_Flag |= 4;
             w->pEatFrame[2]->setCoord(&em->pos, &em->ang);
@@ -989,7 +984,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = hz - 260.0f;
             poly[3].z = hy;
-            w->pEatFrame[3] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, 260.0f);
+            w->pEatFrame[3] = EatMgr.create(&em->pos, &em->ang, poly, 260.0f, attr, 0);
         } else {
             w->pEatFrame[3]->m_Flag |= 4;
             w->pEatFrame[3]->setCoord(&em->pos, &em->ang);

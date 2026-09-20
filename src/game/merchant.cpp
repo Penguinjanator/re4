@@ -1346,7 +1346,7 @@ s8 Merchant::levelMax(u16 id, int type)
 }
 
 // 1 when the merchant offers the exclusive (special) upgrade: a level above the weapon's normal max.
-int Merchant::stockSpecial(u16 id)
+int Merchant::stockSpecial(ITEM_ID id)
 {
     if (levelMax(id, 0) > WeaponId2MaxLevel(id, 0) || levelMax(id, 1) > WeaponId2MaxLevel(id, 1) ||
         levelMax(id, 2) > WeaponId2MaxLevel(id, 2) || levelMax(id, 3) > WeaponId2MaxLevel(id, 3)) {
@@ -1404,7 +1404,7 @@ void Merchant::makeList()
 
 // Special availability of Buy items: the Infinite Launcher 0x40 only after the game is cleared and
 // not yet bought (Item_flg[0] 0x10000000); a few ids never.
-int checkSellingItem(u16 id)
+int checkSellingItem(ITEM_ID id)
 {
     int ret = 1;
 
@@ -1473,7 +1473,7 @@ PriceEntry* Merchant::sellingItemId(u16 id)
 }
 
 // Special availability of Sell items (a few ids cannot be sold).
-int checkExerciseItem(u16 id)
+int checkExerciseItem(ITEM_ID id)
 {
     int ret = 1;
 

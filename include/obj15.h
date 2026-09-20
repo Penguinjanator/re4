@@ -5,11 +5,23 @@
 #include "vec.h"
 #include "obj.h"
 
-// Room-script view of the gatling gun object (game/obj15.cpp defines the full class with its
-// virtuals; this declares only the out-of-line members the rooms call, so no vtable is emitted here).
+// Mounted gatling gun: aims at `target` (the player unless an enemy rides it), fires every third
+// frame once spun up, takes weapon damage on three cEmHit boxes and breaks (R1_Break).
 class cObjGatling : public cObj {
 public:
-    void setEat(void* data, int type);   // EatMgr.create(data, 0, &pos, &rot, type)
+    virtual void move();
+    virtual ~cObjGatling() {}
+
+    void setRide(cEm* em);
+    void setFire();
+    void stopFire();
+    int ckReload();
+    void setReload();
+    void setEat(void* data, int type);
+    void setMaxRot(f32 r);
+    int ckBreak();
+    void setBreakMode(u8 mode);
+    void setBreak();
 };
 
 // game/obj15.cpp: creates the gatling object from the room archive model (r209 GatlingAppear).

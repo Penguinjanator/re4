@@ -20,7 +20,7 @@ class cSubWep : public cObj {
 public:
     cSubWep();
     virtual ~cSubWep() {}
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
     virtual void explode() = 0;
     virtual void waterExplode() = 0;
@@ -575,7 +575,7 @@ void setThrowSpeed(Vec* spd, f32 power)
 }
 
 // A thrown sub weapon is dropped when an event starts.
-void cSubWep::beginEvent()
+void cSubWep::beginEvent(u32 mode)
 {
     ObjMgr.destroy(this);
 }
@@ -688,7 +688,7 @@ void cObjGreFire::explode()
             b.z = pos.z;
             attr = EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
             if (nrm.y > 0.9f && !(attr & 0x40)) {
-                if (pos.y - SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) < 200.0f) {
+                if (pos.y - SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) < 200.0f) {
                     EstSet(0, -1, &pos, 0, 0, 0x26, 0, 0, 0, 0);
                 }
             }

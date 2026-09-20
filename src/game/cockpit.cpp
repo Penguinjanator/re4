@@ -17,9 +17,8 @@
 
 // game/item.cpp: life bar level (0..levels) of `max` against `base`
 int lifeLevel(int levels, s16 max, int base);
-extern "C" u16 WeaponId2BulletId(u16 id, int attr);
 
-#define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
+#define ARC_PTR(ofs) ((void*) (pG->pCore->ofs + (u32) pG->pCore))
 
 #define ID_LIFE 0x21
 #define ID_ACT 0x20
@@ -58,7 +57,7 @@ void Cockpit::roomInit()
 // is created (ID_LIFE set).
 void Cockpit::move()
 {
-    if ((s32) pG->Debug_flg[0] < 0 && !DbgFlagChk(pG, DBG_EVENT_TOOL)) {
+    if (FlagChkSign(pG->Debug_flg, DBG_TEST_MODE) && !DbgFlagChk(pG, DBG_EVENT_TOOL)) {
         DbgFlagOn(pG, DBG_COCKPIT_TOOL);
     } else {
         DbgFlagOff(pG, DBG_COCKPIT_TOOL);

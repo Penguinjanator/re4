@@ -31,16 +31,12 @@
 extern "C" {
 void OSReport(const char* fmt, ...);
 void PartsWorldPosCalc(cModel* m);
-void calcModelAddr(ModelData* data);
-void calcModelOffset(ModelData* data);
+void calcModelAddr(cModelData* data);
+void calcModelOffset(cModelData* data);
 void calcTplOffset(TEXPalette* tpl);
-void getBoundingBox(ModelData* data, ModelBound* bound);
+void getBoundingBox(cModelData* data, ModelBound* bound);
 void drawBoundingBox(Mtx m, ModelBound* bound);
 int GetModelInfoNum(cModelInfo* info);
-// MotionMove takes a second argument (pl_npc.cpp MotionMoveF)
-int MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// cAtariInfo lives in cModel's union (no member constructor call): constructed by hand
-cAtariInfo* AtariInfoConstruct(cAtariInfo* p) asm("__10cAtariInfo");
 }
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);
 
@@ -80,7 +76,7 @@ static inline void U8Set(u8& d, u8 v)
 // alpha_omit 0xFF.
 cModel::cModel()
 {
-    AtariInfoConstruct(&atari);
+    new (&atari) cAtariInfo;
     LightAreaInit(&litArea);
     alpha_omit = 0xFF;
     speed.x = 0.0f;
@@ -144,7 +140,7 @@ int cModel::modelInit(void* bin, void* tpl)
         pLog->err(0, 0, "modelInit() : tex_addr == NULL.");
         return 0;
     }
-    calcModelAddr((ModelData*) bin);
+    calcModelAddr((cModelData*) bin);
     calcTplAddr((TEXPalette*) tpl);
     if (pModelInfo != NULL) {
         releaseModelInfo();
@@ -184,7 +180,7 @@ int cModel::modelInit(void* bin, void* tpl)
 int cModel::initJoint(void* bin)
 {
     releaseJoint();
-    nParts = ((ModelData*) bin)->nParts;
+    nParts = ((cModelData*) bin)->nParts;
     if (nParts == 0) {
         return 1;
     }
@@ -217,8 +213,8 @@ void cModel::setPartsOffset(void* bin)
     Vec pos;
     u32 i;
 
-    calcModelAddr((ModelData*) bin);
-    rec = ((ModelData*) bin)->pHead;
+    calcModelAddr((cModelData*) bin);
+    rec = ((cModelData*) bin)->pHead;
     for (i = 0; i < nParts; i++) {
         p->pos.x = rec->center.x;
         p->pos.y = rec->center.y;
@@ -822,7 +818,7 @@ void cModelInfo::setBlendType(u8 type)
 // Sets the specular colour of every material of the model data.
 void cModelInfo::setSpecular(u8 r, u8 g, u8 b)
 {
-    ModelData* d = pData;
+    cModelData* d = pData;
     ModelPart* part = d->pParts;
     u32 n = d->displist_num;
     u32 i;
@@ -871,7 +867,7 @@ static void AddShadowModel(int em, int sh)
 }
 
 // Removes (and destroys) the model info whose data is `data` from the chain; 0 when absent.
-int cModel::deleteModelData(ModelData* data)
+int cModel::deleteModelData(cModelData* data)
 {
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
@@ -917,7 +913,7 @@ int cModel::deleteModelInfo(cModelInfo* target)
 }
 
 // Replaces the model info holding `data` by newInfo in place (costume/damage model swaps).
-int cModel::swapModelInfo(ModelData* data, cModelInfo* newInfo)
+int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
 {
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
@@ -952,7 +948,7 @@ void cModel::moveDataAddr(int ofs)
     }
     for (info = pModelInfo; info; info = info->pList) {
         if (ofs != 0) {
-            info->pData = (ModelData*) ((u8*) info->pData + ofs);
+            info->pData = (cModelData*) ((u8*) info->pData + ofs);
             info->tpl_addr = (u8*) info->tpl_addr + ofs;
         } else {
             calcModelOffset(info->pData);
@@ -965,7 +961,7 @@ void cModel::moveDataAddr(int ofs)
 // vertices/normals, blend/flip tables) to pointers, once (pClr sign bit marks the state). Halts
 // when the parts block is not 32-byte aligned.
 // Relocates the file offsets of a model bin to pointers (once: pClr is a pointer afterwards).
-void calcModelAddr(ModelData* d)
+void calcModelAddr(cModelData* d)
 {
     u8* base = (u8*) d;
 
@@ -994,7 +990,7 @@ void calcModelAddr(ModelData* d)
 }
 
 // Inverse of calcModelAddr: pointers back to offsets (before the file is moved or saved).
-void calcModelOffset(ModelData* d)
+void calcModelOffset(cModelData* d)
 {
     u8* base = (u8*) d;
 
@@ -1021,7 +1017,7 @@ void calcModelOffset(ModelData* d)
 // The bin moved by `ofs` bytes (block.cpp compaction): shift its pointers.
 void slideModelAddr(u32 addr, int ofs)
 {
-    ModelData* d = (ModelData*) addr;
+    cModelData* d = (cModelData*) addr;
 
     if ((int) d->pClr >= 0) {
         calcModelAddr(d);
@@ -1151,7 +1147,7 @@ int cModel::makePartsList(int n)
 // Binds the motion blend table and flip table of a version 0x20030818 model file to the MotionWork.
 void cModel::setJointInfo(void* bin)
 {
-    ModelData* d = (ModelData*) bin;
+    cModelData* d = (cModelData*) bin;
 
     if (d->version == 0x20030818) {
         if (d->blendTbl != 0) {
@@ -1198,15 +1194,15 @@ void cModel::releasePartsList(int no)
 }
 
 // Starts a motion on this model (MotionSetCore wrapper with reordered arguments).
-void cModel::motionSet(void* data, int a, int b, int c, int d)
+void cModel::motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq)
 {
-    MotionSetCore(this, &Motion, data, d, a, c, b);
+    MotionSetCore(this, &Motion, mot, seq, hokan, stat, frame);
 }
 
 // Advances the motion one frame (MotionMove).
 int cModel::motionMove()
 {
-    return MotionMoveF(this, 0);
+    return MotionMove(this, 0);
 }
 
 // Pauses the motion.
@@ -1232,7 +1228,7 @@ cParts::cParts()
 }
 
 // Bounding box of the original vertices (s16 * 2^-shift, 8 bytes each): centre and half size.
-void getBoundingBox(ModelData* d, ModelBound* pBox)
+void getBoundingBox(cModelData* d, ModelBound* pBox)
 {
     f32 maxZ = -65536.0f;
     f32 maxY = -65536.0f;
@@ -1383,7 +1379,7 @@ cModelInfo* cModInfoMgr::create(void* bin, void* tpl)
     cModelInfo* info = cManager<cModelInfo>::create();
 
     if (info != NULL) {
-        ModelData* d = (ModelData*) bin;
+        cModelData* d = (cModelData*) bin;
 
         calcModelAddr(d);
         calcTplAddr((TEXPalette*) tpl);

@@ -24,8 +24,6 @@
 #include "pad.h"
 #include "math_sub.h"
 
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
@@ -296,7 +294,7 @@ static void wep09_r3_fire00(cPlayer* pl)
     if (pG->weapon_no == 9) {
         SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
     }
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
     ISet(pl->m_Work4, 0);
     if (pG->weapon_no == 0xA) {
         obj = pl->Wep->m_pWep;
@@ -501,7 +499,7 @@ static void wep09_r2_reload(cPlayer* pl)
             PlRoutineSet(pl, 0, 6, 1, 2);
             pl->m_Work4 = 10;
         }
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }

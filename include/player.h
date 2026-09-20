@@ -171,10 +171,8 @@ public:
 
     cPlayer();
     virtual ~cPlayer() {}
-    // The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); cPlayer's
-    // read it from r4 (pl_class.cpp).
-    virtual void beginEvent();
-    virtual void endEvent();
+    virtual void beginEvent(u32 mode);
+    virtual void endEvent(u32 mode);
     virtual void move();
     virtual void setNoSuspend(int on);
     virtual int checkXbutton() { return 0; }
@@ -198,9 +196,10 @@ public:
     void init1();
     void startUp();
     // game/pl_class.cpp
-    // m0/seq0 when dmMotCk(), else m1/seq1. The overload hides cModel::motionSet: keep it reachable.
+    // m0/seq0 when dmMotCk(), else m1/seq1.
     void motionSet(void* m0, void* seq0, void* m1, void* seq1, int hokan, int frame);
-    void motionSet(void* data, int a, int b, int c, int d) asm("motionSet__6cModelPviiii");
+    // Hides cModel::motionSet, so it is forwarded here (always inlined; its out-of-line copy is dead-stripped).
+    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq) { cModel::motionSet(mot, hokan, frame, stat, seq); }
     int actionSelect();  // routine 1 selection from the keys / action buttons; returns checkXbutton()
     void dmgCheck();     // DmgMgr areas -> setDamage
     void visibleCtrl();  // alpha fade with pG->flags_500C bit13

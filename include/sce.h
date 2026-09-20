@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "vec.h"
+#include "scheduler.h"
 
 class cEm;
 
@@ -14,11 +15,11 @@ void SceSleep(int frames);
 void SceUpCutStart();
 void SceUpCutEnd();
 int SceCheckEventStart();
-void SceSetRoomExitFunc(int a, int b);
+void SceSetRoomExitFunc(TaskFunc pFunc, void* param);
 void SetFree(int no, u32 v);
 u32 GetFree(int no);
 void SceMesSet(int no, u32 flags, int sel, int x, int y);
-void SceMesCamSndSet(int no, int cut, int se);
+void SceMesCamSndSet(int no, int cut, int se, int flags);
 enum UP_CUT_ATTR {
     UP_CUT_ATTR_NONE = 0,
     UP_CUT_ATTR_MES_COMMON = 1,

@@ -33,7 +33,7 @@ void cEsp17::move()
         } else {
             work = m_Pos;
             FSet(m_Pos.z, -m_Pos.z);
-            PSMTXInverse(pG->Cam.v_mat, inv);
+            PSMTXInverse(pG->Camera.v_mat, inv);
             PSMTXMultVec(inv, &m_Pos, &m_Pos);
         }
     }

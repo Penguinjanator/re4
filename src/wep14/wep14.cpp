@@ -23,8 +23,6 @@
 
 extern "C" {
 f64 atan2(f64 y, f64 x);
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
@@ -397,7 +395,7 @@ static void wep14_r3_set20(cPlayer* pl)
     if ((Key.on & 4) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
 }
 
 // set step 3: the same for the other turn direction (Key.on bit3).
@@ -412,7 +410,7 @@ static void wep14_r3_set30(cPlayer* pl)
 // set step 4: finish the current motion; ends or any fire / aim / action key -> step 0.
 static void wep14_r3_set40(cPlayer* pl)
 {
-    if (MotionMoveI(pl, 0) || (Key.on & 0x10F)) {
+    if (MotionMove(pl, 0) || (Key.on & 0x10F)) {
         pl->r_no_3 = 0;
     }
 }

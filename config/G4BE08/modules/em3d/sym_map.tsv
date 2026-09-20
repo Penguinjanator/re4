@@ -26,8 +26,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002710	0x10	em3d/em3d.cpp	global	setEmLocked__5cEm3d	cEm3d::setEmLocked
 .text	0x00002720	0x28	em3d/em3d.cpp	global	setPatrolPos__5cEm3dP3Vec	cEm3d::setPatrolPos
 .text	0x00002748	0x10	em3d/em3d.cpp	global	setFreeFire__5cEm3d	cEm3d::setFreeFire
-.text	0x00002758	0x4	em3d/em3d.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x0000275C	0x4	em3d/em3d.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00002758	0x4	em3d/em3d.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x0000275C	0x4	em3d/em3d.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002760	0x20	em3d/em3d.cpp	global	_._5cEm3d	cEm3d::~cEm3d
 .text	0x00002780	0x48	em3d/em3d.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000027C8	0x4	em3d/em3d.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

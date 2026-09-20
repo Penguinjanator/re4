@@ -64,16 +64,6 @@ static const AtEffInfo r113_eff_info = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
 };
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
 
@@ -105,9 +95,9 @@ void R113Init()
     r113_work = (R113Work*) MEM_CALLOC(sizeof(R113Work), 1, 0xd);
 
     SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 4, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 3, 0x800, 0, zero, zero);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
     if (!(pG->Key_flg[0] & 0x08000000) && (StaFlagChk(pG, STA_SUB_ASHLEY))) {
@@ -257,7 +247,7 @@ static void r113_EventRideShoulder()
         SceSleep(1);
     }
     PlSetHand(0, 0);
-    END_EVENT(pPL, 0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(1);
     SceSleep(60);
     CamCtrl.Comeback(0);
@@ -283,7 +273,7 @@ static void r113_EventRideShoulder()
 static void r113_checkAshleyPos()
 {
     if (CheckAshleyActive() == 1) {
-        ActBtn.set(0x16, 5, (int) r113_EventRideShoulder, 0, 0, 1, 1, 0);
+        ActBtn.set(0x16, 5, (void*) r113_EventRideShoulder, 0, 0, 1, 1, 0);
     }
 }
 

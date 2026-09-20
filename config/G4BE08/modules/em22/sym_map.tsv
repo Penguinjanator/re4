@@ -66,8 +66,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00006D88	0x94	em22/em22.cpp	global	setGoto__5cEm22P3Veci	cEm22::setGoto
 .text	0x00006E1C	0x128	em22/em22.cpp	global	em22ScreenInCk__FP5cEm22	em22ScreenInCk
 .text	0x00006F44	0x260	em22/em22.cpp	global	em22DoorOpenCk__FP5cEm22	em22DoorOpenCk
-.text	0x000071A4	0x4	em22/em22.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000071A8	0x4	em22/em22.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000071A4	0x4	em22/em22.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000071A8	0x4	em22/em22.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000071AC	0x20	em22/em22.cpp	global	_._5cEm22	cEm22::~cEm22
 .text	0x000071CC	0x48	em22/em22.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00007214	0x4	em22/em22.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

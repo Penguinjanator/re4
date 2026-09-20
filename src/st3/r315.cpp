@@ -32,8 +32,6 @@ static R315Work* r315_work;
 // work pointer store before it, which keeps the pG load below that store.
 #define PREV_ROOM_ID (*(u16*) ((u8*) pG + 0x4FA0))
 
-// pl_npc.cpp: MotionMove is called with a second argument by the partner code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // Collision flag bits cleared through a raw (non-struct) store at the info's address: the
 // following `pG` load stays below it (r210 AtariOnRaw).
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
@@ -119,7 +117,7 @@ static void plemRide(cPlayer* pl)
         pl->r_no_3 = 0;
     case 1:
         pl->r_no_3++;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;
@@ -155,7 +153,7 @@ static void first_in()
     if (pSUB) {
         setPosXYZ(pSUB, 7073.0f, 57.0f, -3109.0f);
         setAngY(pSUB, -0.742f);
-        SetSubAux((int) funcAshley, 0);
+        SetSubAux(funcAshley, 0);
     }
     SetPlDamage(0, plemRide);
     EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);

@@ -88,7 +88,7 @@ int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
 
 // Cone test plus a facing test: the surface normal `face` must point back towards the cone axis
 // within `angle` radians.
-int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, Vec* face, f32 margin, f32 angle)
+int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, f32 margin, Vec* face, f32 angle)
 {
     Vec v;
     int ret = collision_point_cone_rev_play(p, cone, margin);

@@ -6242,27 +6242,27 @@ void ToolEspMain()
                         if (g_evCam == 1) {
                             g_evCam = 0;
                             pLog->warn(0, 0, "EV_CAM OFF");
-                            pG->Cam.param.fovy = g_fovy;
+                            pG->Camera.param.fovy = g_fovy;
                         } else {
                             g_evCam = come;
                             pLog->warn(0, 0, "EV_CAM ON");
                         }
                     }
-                    if (g_evCam == 0) g_fovy = pG->Cam.param.fovy;
+                    if (g_evCam == 0) g_fovy = pG->Camera.param.fovy;
                 } else {
                     if (Joy[0].trg & 0x800000) {
                         if (g_motionCam == 1) {
                             g_motionCam = 0;
                             DB_SetMotionCam(0);
                             pLog->warn(0, 0, "EV_CAM OFF");
-                            pG->Cam.param.fovy = g_fovy;
+                            pG->Camera.param.fovy = g_fovy;
                         } else {
                             g_motionCam = 1;
                             DB_SetMotionCam(1);
                             pLog->warn(0, 0, "EV_CAM ON");
                         }
                     }
-                    if (g_motionCam == 0) g_fovy = pG->Cam.param.fovy;
+                    if (g_motionCam == 0) g_fovy = pG->Camera.param.fovy;
                 }
                 EspToolMain();
                 EspToolTrans();

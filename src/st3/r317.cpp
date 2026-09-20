@@ -89,8 +89,6 @@ static f32 r317_elvStopAddUp = 2000.0f;
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-// The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
-void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
 // Position a model from three components (inline owning the Vec).
 static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -122,7 +120,7 @@ static inline void EffectDelete2001()
                                                                              \
         pG->Disp_flg = v;                                                    \
         v = 0;                                                               \
-        ActBtn.set(0x30, 5, (int) action, 0, 0x42, btn, 0, v);               \
+        ActBtn.set(0x30, 5, (void*) action, 0, 0x42, btn, 0, v);               \
     } while (0)
 
 static void R317ContinuePointSet();
@@ -209,13 +207,13 @@ void R317Main()
 {
 }
 
-// Area 9 once (Room_flg bit 1): area off and a checkpoint save (GameSaveSave2).
+// Area 9 once (Room_flg bit 1): area off and a checkpoint save (GameSave.save).
 static void R317ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
         SceAtSetEnable(9, 0);
-        GameSaveSave2(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
 }
 
@@ -281,7 +279,7 @@ void R317EventS00()
         EvtMgr.EvtReadAram("event/evd/r317s14.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r317s03.evd", 0, 0);
         RsfSet(G_ROOM_ID, 2);
-        GameSaveSave2(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
         if (pG->Room_flg[0] & 0x04000000) {
             EvtMgr.EvtFree("event/evd/r317s13.evd");
             EvtMgr.EvtReadExec("event/evd/r317s14.evd", 0, 2);
@@ -315,7 +313,7 @@ void R317EventS00()
         pPL->setWound();
         ScfFlagOn(pG, SCF_R317_KNIFE_BATTLE);
         OpeSetOpenTerm(0x14, 0.0f, 0.0f, 0.0f, 0.0f);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, zero, zero);
     }
 }
 
@@ -389,7 +387,7 @@ void SceElevator2Main(SceElevator2Data* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;
@@ -469,7 +467,7 @@ void SceElevator2Main(SceElevator2Data* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos2);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos2);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;

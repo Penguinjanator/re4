@@ -334,11 +334,7 @@ static void R402ExecEvent02Main()
     }
 }
 
-// The collision pieces of the two door 02 halves (objects 0x40 / 0x41).
-// COMPILER-DIFF: #1 (the original issues `fmr f1,h` before the `li 0x40; li 0x100` argument moves)
-cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
-
-// Door 02's two halves (objects 0x40/0x41): a 5000-tall collision and attribute plane each (SatMgrCreateF).
+// Door 02's two halves (objects 0x40/0x41): a 5000-tall collision and attribute plane each.
 void R402InitDoor02()
 {
     Vec poly[4] = {{0.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, 200.0f}, {0.0f, -2495.0f, 200.0f}};
@@ -350,8 +346,8 @@ void R402InitDoor02()
         cObj* obj = SmdGetObjPtr(id[i]);
 
         if (obj) {
-            r402_work.p->sat[i] = SatMgrCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
-            r402_work.p->eat[i] = SatMgrCreateF(&EatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+            r402_work.p->sat[i] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+            r402_work.p->eat[i] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
         }
     }
 }

@@ -516,10 +516,10 @@ static void r20d_operateCrank(int no)
     lastMot = 0;
     accel = 0;
     seId = 0;
-    ((cUnitEventView*) pPL)->beginEvent(0);
-    ((cUnitEventView*) crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x35));
-    crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2C));
+    pPL->beginEvent(0);
+    crank->beginEvent(0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x35));
+    crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C));
     {
         Vec v = {427.81f, 0.0f, -563.42f};
         cPlayer* pl;
@@ -598,8 +598,8 @@ static void r20d_operateCrank(int no)
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, (u16) frame, 5, (int) m0);
-            crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, frame, 5, m0);
+            crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, frame, 5, m1);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
@@ -631,9 +631,9 @@ static void r20d_operateCrank(int no)
         SceSleep(1);
     }
     FadeSetW(0x80000001, 5, 0, 0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     crank->motionPause();
-    ((cUnitEventView*) crank)->endEvent(0);
+    crank->endEvent(0);
     if (t >= 1.0f) {
         if (seId != 0) {
             SndStop(seId, 0);
@@ -687,7 +687,7 @@ void cFence::init(R20dFenceData* d)
     hz = d->d * 0.5f + 100.0f;
     Vec rot = {0.0f, 0.0f, 0.0f};
     Vec v[4] = {{-hx, -1100.0f, -hz}, {hx, -1100.0f, -hz}, {hx, -1100.0f, hz}, {-hx, -1100.0f, hz}};
-    sat = SatMgr.create(&obj->pos, &rot, v, 0x40, 0, 4100.0f);
+    sat = SatMgr.create(&obj->pos, &rot, v, 4100.0f, 0x40, 0);
 }
 
 // Area 0x19: marks all three fences raised (Room_flg bits 0/1/8) — the exit shortcut after the puzzle.
@@ -1092,7 +1092,7 @@ void cLanternUnit::check()
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) != 0) {
         return;
     }
-    ActBtn.set(0x17, 5, (int) cLanternUnit::throwLantern, (int) this, 0, 1, 1, 0);
+    ActBtn.set(0x17, 5, (void*) cLanternUnit::throwLantern, this, 0, 1, 1, 0);
 }
 
 // The enemy the lantern flies at (NULL: 10000 units in front of the player, out = that point).
@@ -1146,7 +1146,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     asm("" : "+r"(u));
     IntSet(u->step, st);
     U32Set(u->state, 1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     // pPLS (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
     // invalidates it in cse1 and `dmg.set` reloads pPL (target: two `lwz pPL@l`).
     AtariFlagsOr(&pPLS->atari, 0x100);
@@ -1207,7 +1207,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
         SceSleep(1);
     }
     pPL->dmg.clear();
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
 }
 
 // The lantern leaves the hand: an obj01 flies to the target along a parabola.
@@ -1231,5 +1231,5 @@ void cLanternUnit::setThrowLantern(Vec* target)
     CalcParabolaVector(&spd, &from, target, PSVECDistance(&from, target) / 10.0f + 1.0f);
     obj = SetObj01(bin, tpl, &from, &rot, &spd, spd0, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 0, 0x10, 3, 1, 1, 0, 0x14, (int) zero, (int) zero);
-    EstSet((int) obj, -1, 0, 0, 1, 0, 0, 0, (u32) obj, zero);
+    EstSet(obj, -1, 0, 0, 1, 0, 0, 0, obj, zero);
 }

@@ -56,10 +56,6 @@ idR330 IdR330;
 // Scroll speed (frames per texture cycle) of the five background units 9 / 0x10..0x13.
 static s16 r330_scrollTbl[5] = {30, 15, 20, 25, 40};
 
-// The original reads r4 although its prototype has one parameter (r40e).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
-// The list id is masked to a byte at the EvtRead calls: the room build's prototype returned int.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Position a model from three components (inline owning the Vec).
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -97,7 +93,7 @@ void R330Init()
     EvtMgr.SetFunc("evt_r330s00_func", (void*) Evt_R330S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R330EventS00Main, 0, 1);
-        EvtMgr.EvtReadAram("event/evd/r330s00.evd", (u8) GetEmIdFromListI(0xA0), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), 0, 0, 0);
         {
             cEm* a;
 
@@ -146,10 +142,10 @@ void R330EventS00Main()
             }
             SceEventStart(0);
             SceSetEventCancel(1, (TaskFunc) R330EventS00End, 0, -1, 1);
-            ((cUnitEventView*) pPL)->beginEvent(0);
+            pPL->beginEvent(0);
             pPL->setNoSuspend(1);
             if (pSUB) {
-                ((cUnitEventView*) pSUB)->beginEvent(0);
+                pSUB->beginEvent(0);
                 pSUB->setNoSuspend(1);
             }
             CamCtrl.CutCall(1);
@@ -162,15 +158,15 @@ void R330EventS00Main()
             if (getRoomEtcBarred(0xB, &b, 1)) {
                 b->setNoSuspend(0);
             }
-            ((cUnitEventView*) pPL)->endEvent(0);
+            pPL->endEvent(0);
             pPL->setNoSuspend(0);
             if (pSUB) {
-                ((cUnitEventView*) pSUB)->endEvent(0);
+                pSUB->endEvent(0);
                 pSUB->setNoSuspend(0);
             }
             CamCtrl.Comeback(0);
             SceSetEventCancel(0, 0, 0, -1, 1);
-            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromListI(0xA0), 0);
+            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), 0);
             SceSetEventCancel(0, 0, 0, -1, 1);
             R330EventS00End();
         }
@@ -200,10 +196,10 @@ void R330EventS00End()
             ((cEmBarred*) b)->setClosed();
         }
     }
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(0);
     if (pSUB) {
-        ((cUnitEventView*) pSUB)->endEvent(0);
+        pSUB->endEvent(0);
         pSUB->setNoSuspend(0);
     }
     setPosXYZ(pPL, 7806.0f, -4649.0f, 7377.0f);
@@ -377,11 +373,11 @@ extern "C" void Evt_R330S00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if ((mod = SmdGetObjPtr(0x22)) != 0) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                     ModelInfoSetTrans((cModel*) mod, 0, 1);
                 }
                 if ((mod = SmdGetObjPtr(0x23)) != 0) {
-                    TexRenderModResP((cModel*) mod, 0);
+                    TexRenderModRes((cModel*) mod, 0);
                     ModelInfoSetTrans((cModel*) mod, 0, 1);
                 }
             }

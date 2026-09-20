@@ -208,7 +208,7 @@ public:
 
     virtual void move();   // key function: keeps the vtable in emrack.o (cEmMgr::construct stores it)
 
-    void setBreak();
+    void setBreak(Vec* pPos);
     void setDown(Vec* pos);
     void setShock();
     void setEff(u8 eff);

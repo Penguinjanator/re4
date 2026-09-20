@@ -1,4 +1,4 @@
-// game/camera.cpp: the game camera front end. pG->Cam is the Camera used for rendering; CameraMove
+// game/camera.cpp: the game camera front end. pG->Camera is the Camera used for rendering; CameraMove
 // (game loop) lets the camera controller (CamCtrl, cam_ctrl.cpp) compute the frame's camera,
 // applies the quake offset and the debug camera, rebuilds the projection / view matrices and
 // updates the view frustum. Also small helpers: stick direction in camera space, up / look
@@ -55,17 +55,17 @@ extern f32 ORTHO_R;
 
 int ProjType = 1;
 
-// Loads pG->Cam's projection into GX: type 1 perspective, type 2 orthographic (ProjType
+// Loads pG->Camera's projection into GX: type 1 perspective, type 2 orthographic (ProjType
 // remembers it for CameraCurrentProjection).
 void CameraSetProjection(int type)
 {
     ProjType = type;
     switch (type) {
     case 1:
-        GXSetProjection(pG->Cam.ProjMat, 0);
+        GXSetProjection(pG->Camera.ProjMat, 0);
         break;
     case 2:
-        GXSetProjection(pG->Cam.ProjMat, 1);
+        GXSetProjection(pG->Camera.ProjMat, 1);
         break;
     }
 }
@@ -88,8 +88,8 @@ void CameraGameInit()
     Vec at = {0.0f, 0.0f, 0.0f};
     Vec pos = {0.0f, 1000.0f, 2000.0f};
 
-    CameraSetWithRoll(&pG->Cam, &pos, &at, 0.0f, 50.0f);
-    CameraSetOrientationRoll(&pG->Cam);
+    CameraSetWithRoll(&pG->Camera, &pos, &at, 0.0f, 50.0f);
+    CameraSetOrientationRoll(&pG->Camera);
     ProjType = 1;
     CameraRoomInit();
 }
@@ -101,22 +101,22 @@ void CameraRoomInit()
 }
 
 // Per-frame camera update (game loop): CamCtrl.Check / Move produce the frame's camera, copied
-// into pG->Cam when the camera is live (Status_flg[0] 0x100) and not overridden by the debug
+// into pG->Camera when the camera is live (Status_flg[0] 0x100) and not overridden by the debug
 // camera (Debug_flg[0] 0x10000000; an extra camera pointer wins), then the quake offset (unless
 // Stop_flg 0x10000), the debug camera pad handling, projection (fovy 0 is an error -> 50), dist,
 // the look-at matrix, the view frustum and the camera debug text. Stop_flg 0x40000000 freezes
 // the controller.
 void CameraMove()
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
 
     CamCtrl.Check();
     if (!SpfFlagChk(pG, SPF_CAMERA)) {
         CamCtrl.Move();
         if (StaFlagChk(pG, STA_CAMERA) && !DbgFlagChk(pG, DBG_DBG_CAM)) {
-            pG->Cam = CamCtrl.camera;
+            pG->Camera = CamCtrl.camera;
             if (CamCtrl.m_pExtraCamera != 0) {
-                pG->Cam = *(Camera*) CamCtrl.m_pExtraCamera;
+                pG->Camera = *(Camera*) CamCtrl.m_pExtraCamera;
             }
         }
         CamCtrl.m_pExtraCamera = 0;
@@ -212,9 +212,9 @@ static f32 ScrnY2Ratio(int y)
 // World-space ray direction through screen pixel (sx, sy): the pixel offset from the screen
 // centre in 640 x 480 units, z from the vertical fov, rotated by the camera matrix (aiming /
 // picking).
-void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
+void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out)
 {
-    f32 ang = pG->Cam.param.fovy;
+    f32 ang = pG->Camera.param.fovy;
     f32 h = 480.0f;  // first constant of the pool
 
     out->x = sx - Screen.width * 0.5f;
@@ -225,5 +225,5 @@ void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
     ang = ang / 180.0f;
     out->y *= h / Screen.height;
     FSet(out->z, -(cosf(ang) * 240.0f / sinf(ang)));
-    PSMTXMultVecSR(pG->Cam.mat, out, out);
+    PSMTXMultVecSR(pG->Camera.mat, out, out);
 }

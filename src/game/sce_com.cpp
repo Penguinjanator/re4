@@ -58,17 +58,6 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 void SubScreenWait(int frames);
 }
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 #define HALT()                                                    \
     do {                                                          \
@@ -286,10 +275,10 @@ int SceCheckEventStart()
 }
 
 // Room: function `a` (with parameter `b`) SceSys runs when the room is left.
-void SceSetRoomExitFunc(int a, int b)
+void SceSetRoomExitFunc(TaskFunc pFunc, void* param)
 {
-    SceSys.pExitFunc = a;
-    SceSys.pExitParam = b;
+    SceSys.pExitFunc = pFunc;
+    SceSys.pExitParam = param;
 }
 
 // Room script scratch word `no` (0..63) in the save data (pG->save_free_work).
@@ -354,7 +343,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
 }
 
 // Message `no` with an optional camera cut and SE (block 6), then waits for it.
-void SceMesCamSndSet(int no, int cut, int se)
+void SceMesCamSndSet(int no, int cut, int se, int flags)
 {
     if (cut != -1) {
         CamCtrl.CutCall((s8) cut);
@@ -740,7 +729,7 @@ static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), re
 // Chapter end task (SceSetChapterEnd): kills the running event, freezes the game, swaps the room
 // data out to load the chapter result id data ("SS/<lang>/chapNN.dat"), shows the ChapterEnd
 // screen with the "save?" message (0x80); with a door area the player is moved through it for
-// the save (pG->chapter, counters reset, GameSaveSave), a yes saves to the card; then everything
+// the save (pG->chapter, counters reset, GameSave.save), a yes saves to the card; then everything
 // is restored and the door executed (fade effect 2), or the BGM restarts and the pause ends.
 void SceChapterEnd()
 {
@@ -838,7 +827,7 @@ void SceChapterEnd()
     U32Set(pG->c_kill_cnt, 0);
     U32Set(pG->c_hit_cnt, 0);
     U32Set(pG->c_shot_cnt, 0);
-    GameSaveSave(&GameSave, pSaveData, 2);
+    GameSave.save(pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
         SndCall(0, 4, 0, 0, 0, 0);
@@ -1350,7 +1339,7 @@ void SceElevator(SceElevatorData* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;
@@ -1504,7 +1493,7 @@ void cManager<T>::beginEvent(int mode)
     for (i = 0; i < nArray; i++) {
         T* p = (T*) ((u8*) pArray + size * i);
         if (p->isAlive()) {
-            BEGIN_EVENT(p, mode);
+            p->beginEvent(mode);
         }
     }
 }
@@ -1518,7 +1507,7 @@ void cManager<T>::endEvent(int mode)
     for (i = 0; i < nArray; i++) {
         T* p = (T*) ((u8*) pArray + size * i);
         if (p->isAlive()) {
-            END_EVENT(p, mode);
+            p->endEvent(mode);
         }
     }
 }

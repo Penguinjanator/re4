@@ -7,6 +7,7 @@
 #include "obj.h"
 #include "global.h"
 #include "math_sub.h"
+#include "motion.h"
 
 // Attachment that follows parts 2 of its parent, scales toward a target size (routine 0) and
 // then shrinks/fades away (routine 1). Routine index in xFD, step in xFE.
@@ -16,7 +17,6 @@ public:
 };
 
 extern "C" {
-void MotionMove(cModel* m, int a);
 void obj26_R1_Set(cObj26* obj);
 void obj26_R1_Die(cObj26* obj);
 void obj26MatCalc(cObj26* obj);
@@ -34,8 +34,8 @@ static cObj* SetObj26(cObj* parent, Vec* scale)
     if (obj == 0) {
         return 0;
     }
-    if (obj->modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc),
-                       (void*) (pG->pArc->ofs_24 + (u32) pG->pArc)) == 0) {
+    if (obj->modelInit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore),
+                       (void*) (pG->pCore->ofs_24 + (u32) pG->pCore)) == 0) {
         pLog->err(0, 0, "SetObj26() failed.");
         ObjMgr.destroy(obj);
         return 0;

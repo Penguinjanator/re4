@@ -52,8 +52,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00003E10	0x40	pl0e/pl0e.cpp	global	pl0eSinkCk__FP5cPl0e	pl0eSinkCk
 .text	0x00003E50	0xB4	pl0e/pl0e.cpp	global	pl0eJumpMissCk__FP5cPl0e	pl0eJumpMissCk
 .text	0x00003F04	0xD0	pl0e/pl0e.cpp	global	pl0eWaveMove__FP5cPl0e	pl0eWaveMove
-.text	0x00003FD4	0x4	pl0e/pl0e.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00003FD8	0x4	pl0e/pl0e.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00003FD4	0x4	pl0e/pl0e.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00003FD8	0x4	pl0e/pl0e.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00003FDC	0x20	pl0e/pl0e.cpp	global	_._5cPl0e	cPl0e::~cPl0e
 .text	0x00003FFC	0x48	pl0e/pl0e.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00004044	0x4	pl0e/pl0e.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

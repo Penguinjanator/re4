@@ -121,7 +121,7 @@ void Render_tile(void* data)
 }
 
 // Queues a filled screen-space rectangle (pixels) in OT 13 for this frame.
-void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
+void Draw_tile(int x, int y, int w, int h, GXColor* color)
 {
     TileWork* t = (TileWork*) GetPrimBuff(sizeof(TileWork));
     if (t) {
@@ -229,7 +229,7 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
 // Immediate world-space line (current camera view matrix); blend 1 = additive.
 void Draw_line3d(Vec* p0, Vec* b, u32 color, int blend)
 {
-    Draw_line3d_local(p0, b, pG->Cam.v_mat, color, blend);
+    Draw_line3d_local(p0, b, pG->Camera.v_mat, color, blend);
 }
 
 // Immediate line in the space of matrix `mtx` (view * local): sets the line GX state, draws the
@@ -300,7 +300,7 @@ void Draw_line3d_init()
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(pG->Cam.v_mat, 0);
+    GXLoadPosMtxImm(pG->Camera.v_mat, 0);
 }
 
 // Restores the GX state after a Draw_line3d_init batch.
@@ -312,7 +312,7 @@ void Draw_line3d_end()
 // Immediate world-space filled triangle p[0..2]; zupd 0 leaves the Z buffer alone.
 void Draw_poly(Vec* p, u32 color, int zupd)
 {
-    Draw_poly_local(p, pG->Cam.v_mat, color, zupd);
+    Draw_poly_local(p, pG->Camera.v_mat, color, zupd);
 }
 
 // Immediate filled triangle in matrix `mtx` space with alpha blending.
@@ -393,7 +393,7 @@ void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
     GXSetBlendMode(0, 4, 5, 0);
     PSMTXScale(m, r, r, r);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.v_mat, m, m);
+    PSMTXConcat(pG->Camera.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(sphere_buff, 0x3040);
@@ -421,7 +421,7 @@ void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     PSMTXScale(m, r, h, r);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.v_mat, m, m);
+    PSMTXConcat(pG->Camera.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(cylinder_buff, 0x4C0);
@@ -453,7 +453,7 @@ void Draw_cylinderMtx(Mtx mtx, Vec* pos, f32 r, f32 h, u32 color)
     PSMTXScale(m, r, h, r);
     PSMTXConcat(mtx, m, m);
     TransMatrix(m, &p);
-    PSMTXConcat(pG->Cam.v_mat, m, m);
+    PSMTXConcat(pG->Camera.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(cylinder_buff, 4);
@@ -505,7 +505,7 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
     PSMTXScale(s, w, w, len);
     PSMTXConcat(m, s, m);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.v_mat, m, m);
+    PSMTXConcat(pG->Camera.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(corn_buff, 0x3040);
@@ -623,7 +623,7 @@ void Draw_box(Vec* v, u32 color, int flag)
 // Position marker in world space: a red x axis line and white / green y / z lines of `size`.
 void Draw_pos(Vec* pos, int size)
 {
-    Draw_local_pos(pos, size, pG->Cam.v_mat);
+    Draw_local_pos(pos, size, pG->Camera.v_mat);
 }
 
 // Position marker in matrix `mtx` space.
@@ -887,7 +887,7 @@ static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
 void DrawObjWireframe(cObj* obj, int color)
 {
     const u8 vtx_size[8] = {8, 8, 10, 12, 10, 8, 8, 0};
-    ModelData* md;
+    cModelData* md;
     ModelPart* part;
     u8* cmd;
     s16* vtx;

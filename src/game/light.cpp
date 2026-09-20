@@ -566,7 +566,7 @@ void cLightMgr::setModel2(cModel* m)
 }
 
 // Picks up to 8 cloth lights (xF bit 0x10) hitting the model for the cloth renderer.
-void cLightMgr::setCloth(cModel* m)
+void cLightMgr::setCloth(cModel* m, u32 count)
 {
     cLight* l;
     u32 i;

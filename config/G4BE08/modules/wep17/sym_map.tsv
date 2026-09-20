@@ -6,8 +6,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000330	0x178	wep17/objVp70.cpp	global	moveReload__8cObjVp70	cObjVp70::moveReload
 .text	0x000004A8	0x174	wep17/objVp70.cpp	global	setCartridge__8cObjVp70	cObjVp70::setCartridge
 .text	0x0000061C	0x298	wep17/objVp70.cpp	global	setMotion__8cObjVp70P7cPlayer	cObjVp70::setMotion
-.text	0x000008B4	0x4	wep17/objVp70.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000008B8	0x4	wep17/objVp70.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000008B4	0x4	wep17/objVp70.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000008B8	0x4	wep17/objVp70.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000008BC	0x20	wep17/objVp70.cpp	global	_._8cObjVp70	cObjVp70::~cObjVp70
 .text	0x000008DC	0x48	wep17/objVp70.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00000924	0x4	wep17/objVp70.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

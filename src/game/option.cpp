@@ -144,7 +144,7 @@ void OptionScreen::init(int title)
     if (fromTitle != 0) {
         IdUnit* u = IdSys.unitPtr(0, ID_OPT_BG);
         Hermite1* h = u->curve[2];
-        IdSys.setTimeS(u, (s16) (int) h->key[h->num - 1].t);
+        IdSys.setTime(u, (s16) (int) h->key[h->num - 1].t);
     }
     IdSys.set(OPT_PTR(0x28), 0xFF, ID_OPT, 0x13, 3, 0);
     _rno0 = 0;
@@ -351,7 +351,7 @@ int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    register int old asm("r29") = o->_rno2;  // COMPILER-DIFF: o must outrank old for r31
+    int old = o->_rno2;
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
@@ -403,7 +403,7 @@ int retry_load_menu(OptionScreen* o)
                 o->_rno2++;
             }
             o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
-            if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+            if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                 if (o->_rno2 == 1) {
                     if (Key.trg & KEY_UP) {
                         o->_rno2 = 0;
@@ -428,7 +428,7 @@ int retry_load_menu(OptionScreen* o)
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
-            if (((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) && i == 1) {
+            if ((FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) && i == 1) {
                 u->col0[0] = 0x40;
                 u->col0[1] = 0x40;
                 u->col0[2] = 0x40;
@@ -499,7 +499,7 @@ int retry_load_menu(OptionScreen* o)
             {
                 IdUnit* bg = IdSys.unitPtr(0, ID_OPT_BG);
                 Hermite1* h = bg->curve[2];
-                IdSys.setTimeS(bg, (s16) (int) h->key[h->num - 1].t);
+                IdSys.setTime(bg, (s16) (int) h->key[h->num - 1].t);
             }
             IdSys.kill(0xFF, ID_OPT);
             IdSys.set(OPT_PTR(0x2C), 0xFF, ID_OPT, 0x13, 3, 0);

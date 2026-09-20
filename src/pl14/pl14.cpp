@@ -42,12 +42,11 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define SUBARC(no) PL_ARC_PTR(subSelf->subArc, no)
+#define SUBARC(no) PL_ARC_PTR(pEm->subArc, no)
 #define OARC(no) PL_ARC_PTR(owner->subArc, no)
 #define EM ((cEm*) this)
 #define OEM ((cEm*) owner)
@@ -122,7 +121,7 @@ cSubLuis::cSubLuis()
     analysis.init(this);
     flags = 0;
     pFootShadowTbl = pl_fs_tbl;
-    subSelf = this;
+    pEm = this;
     pSUB = (cSubChar*) this;
     luisEye.r[0] = luisEye.r[1] = 0.0f;   // chain: r[1] first in RTL, the 0.0 dies at r[0] (issued first)
     luisEye.r[2] = 0.4f;
@@ -155,9 +154,9 @@ void cSubLuis::init()
     TevScaleGroup = 1;
     LightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
     // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
-    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
+    atari.init(0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     {
-        cSubLuis* s = subSelf;
+        cSubLuis* s = pEm;
         s->lockParts = 4;
         s->lockOfs.x = 0.0f;
         s->lockOfs.y = 0.0f;
@@ -184,7 +183,7 @@ void cSubLuis::init()
     YarareAdd(EM, &hit[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, 3);
     YarareAdd(EM, &hit[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, 3);
     YarareAdd(EM, &hit[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, 3);
-    MotionSetCore(subSelf, &subSelf->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
+    MotionSetCore(pEm, &pEm->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
     motionMove();
     getRoomEtcRack(0, &rack[0], 1);
     getRoomEtcRack(1, &rack[1], 1);
@@ -405,16 +404,16 @@ void cRoutine::moveDamage()
         }
         break;
     case 0xA:
-        MotionMoveF(owner, 0);
+        MotionMove(owner, 0);
         break;
     case 0x14:
-        if (MotionMoveF(owner, 0)) owner->r_no_1 = 0x15;
+        if (MotionMove(owner, 0)) owner->r_no_1 = 0x15;
         break;
     case 0x15:
         MotionSetCore(owner, &owner->Motion, OARC(0xD8 / 4), 0, 3, 1, 0);
         owner->r_no_1 = 0x16;
     case 0x16:
-        if (MotionMoveF(owner, 0)) {
+        if (MotionMove(owner, 0)) {
             owner->dmg.clear();
             owner->r_no_1 = 0x32;
         }
@@ -434,7 +433,7 @@ void cRoutine::moveDie()
 {
     switch (owner->r_no_1) {
     case 0:
-        MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
+        MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), OARC(0xD0 / 4), 5, 1, 0);
         SndCall(1, 0xD, &owner->getPartsPtr(4)->world, owner->id, 0, 0);
         owner->dmg.m_Timer |= 0x80;
         owner->atari.m_parts_no = 4;
@@ -1349,7 +1348,7 @@ void cRoutine::shot()
     owner->hp = 0;
     PlWepHitCheck2(0, &p, &t, 3, 0, 6000.0f);
     owner->hp = hp;
-    EstSet((int) owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
+    EstSet(owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
     SndCall(8, 0, &owner->pParts->world, owner->id, 0, 0);
 }
 
@@ -1430,7 +1429,7 @@ int cSubLuis::damageCheck()
         dmg.m_Timer = 1;
         if (Front_check(this, &dmg.m_PosFrom, PI / 2)) routine.work[0] = 2;
         else routine.work[0] = 3;
-        SndCall(8, 0x13, &subSelf->pParts->world, subSelf->id, 0, 0);
+        SndCall(8, 0x13, &pEm->pParts->world, pEm->id, 0, 0);
         break;
     case 0x13:
         dmg.m_Timer = 1;
@@ -1571,7 +1570,7 @@ void cSubLuis::neckMove()
     } else {
         neckY += Muku2(neckY, 0.0f, spd);
     }
-    p = subSelf->getPartsPtr(3);
+    p = pEm->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
     ((cParts*) p)->addRot.y = neckY;
 }
@@ -1646,12 +1645,12 @@ void luisItemInit(cObj* obj)
 // towards the player at 7 % of the distance per frame with a small downward acceleration.
 void cObjLuisItem::init(Vec* p, f32 rotY)
 {
-    modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc));
+    modelInit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore));
     setPos(p);
     ang.y = rotY;
     ang.x = 0.0f;
     ang.z = 0.0f;
-    EstSet((int) this, -1, 0, 0, 0, 0x2D, 0, 0x3C, (u32) this, 0);
+    EstSet(this, -1, 0, 0, 0, 0x2D, 0, 0x3C, this, 0);
     PSVECSubtract(&pPL->pos, &pos, &LITEM->spd);
     PSVECScale(&LITEM->spd, &LITEM->spd, 0.07f);
     LITEM->acc.x = 0.0f;
@@ -1680,14 +1679,14 @@ void cObjLuisItem::move()
                 PSVECScale(&nrm, &nrm, 200.0f);
                 PSVECAdd(&hit, &nrm, &pos);
             }
-            pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
+            pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
             r_no_0 = 1;
         }
         LITEM->timer++;
         if (LITEM->timer > 150) {
-            EffectEspDelete(0, 0x3C, (u32) this, 0);
-            EffectEspgenDelete(0, 0x3C, (int) this);
-            EffectEfmDelete(0, 0x3C, (int) this);
+            EffectEspDelete(0, 0x3C, this, 0);
+            EffectEspgenDelete(0, 0x3C, this);
+            EffectEfmDelete(0, 0x3C, this);
             ObjMgr.destroy(this);
         }
         break;
@@ -1711,9 +1710,9 @@ void cObjLuisItem::move()
             item = 4;
             break;
         }
-        EffectEspDelete(0, 0x3C, (u32) this, 0);
-        EffectEspgenDelete(0, 0x3C, (int) this);
-        EffectEfmDelete(0, 0x3C, (int) this);
+        EffectEspDelete(0, 0x3C, this, 0);
+        EffectEspgenDelete(0, 0x3C, this);
+        EffectEfmDelete(0, 0x3C, this);
         SceAtCreateItemAt(&pos, item, 0, -1, -1, 0, -1);
         ObjMgr.destroy(this);
         break;

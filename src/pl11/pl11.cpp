@@ -3,7 +3,7 @@
 //
 // cSubAshley (pl_mod.h) replaces the DOL's partner class for the armour costume: the same
 // cSubChar routines (game/pl_npc.cpp), only modelSet / setFace / setHand differ (the armour body,
-// its head shapes and two hand model slots subHand[0..1]). Pl11Init is registered as EmInitFunc
+// its head shapes and two hand model slots m_pModRHand / m_pModLHand). Pl11Init is registered as EmInitFunc
 // (the partner is enemy id 3 in the em list), constructs her, builds the models, runs
 // cSubChar::init and clears Status_flg[1] bit17.
 
@@ -38,7 +38,7 @@ cSubAshley::cSubAshley()
 }
 
 // Builds the armour model set from the partner archive: the body (4/5) as the base model, the
-// head with the face shapes (7/0xB, subShape), the hair (6/8) and two armour parts (9, 0xA with
+// head with the face shapes (7/0xB, m_pFace), the hair (6/8) and two armour parts (9, 0xA with
 // texture 5), then the hands (setHand(0)).
 void cSubAshley::modelSet()
 {
@@ -48,7 +48,7 @@ void cSubAshley::modelSet()
         pLog->err(0, 0, "cSubChar::modelSet() failed.");
     }
     info = ModInfoMgr.create(ARC(7), ARC(0xB));
-    subShape = info;
+    m_pFace = info;
     if (info) {
         addModel(info);
     }
@@ -74,7 +74,7 @@ void cSubAshley::setFace(int no)
     void* data = 0;
     int type = 0;
 
-    if (subShape == 0) {
+    if (m_pFace == 0) {
         return;
     }
     switch ((u32) no) {
@@ -98,22 +98,22 @@ void cSubAshley::setFace(int no)
         break;
     }
     if (no != 0) {
-        ShapeSet(subShape, 0, data, type);
+        ShapeSet(m_pFace, 0, data, type);
     } else {
-        ShapeEnd(subShape);
+        ShapeEnd(m_pFace);
     }
 }
 
-// Hand models: subHand[0] (right) 0xC / 0xD / 0xE and subHand[1] (left) 0xF / 0x10 / 0xF for
+// Hand models: m_pModRHand (right) 0xC / 0xD / 0xE and m_pModLHand (left) 0xF / 0x10 / 0xF for
 // hand set 0 (open) / 1 / 3, all with the body texture 5.
 void cSubAshley::setHand(int no)
 {
     cModelInfo* info;
     void* data;
 
-    if (subHand[0]) {
-        deleteModelInfo(subHand[0]);
-        subHand[0] = 0;
+    if (m_pModRHand) {
+        deleteModelInfo(m_pModRHand);
+        m_pModRHand = 0;
     }
     switch ((u32) no) {
     case 0:
@@ -127,13 +127,13 @@ void cSubAshley::setHand(int no)
         data = ARC(0xE);
         break;
     }
-    subHand[0] = ModInfoMgr.create(data, ARC(5));
-    if (subHand[0]) {
-        addModel(subHand[0]);
+    m_pModRHand = ModInfoMgr.create(data, ARC(5));
+    if (m_pModRHand) {
+        addModel(m_pModRHand);
     }
-    if (subHand[1]) {
-        deleteModelInfo(subHand[1]);
-        subHand[1] = 0;
+    if (m_pModLHand) {
+        deleteModelInfo(m_pModLHand);
+        m_pModLHand = 0;
     }
     switch ((u32) no) {
     case 0:
@@ -148,7 +148,7 @@ void cSubAshley::setHand(int no)
         break;
     }
     info = ModInfoMgr.create(data, ARC(5));
-    subHand[1] = info;
+    m_pModLHand = info;
     if (info) {
         addModel(info);
     }

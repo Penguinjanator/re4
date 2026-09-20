@@ -22,6 +22,7 @@
 #include "player.h"
 #include "pl_npc.h"
 #include "pl_sub.h"
+#include "motion.h"
 
 // Enemy head (obj 0x16): the head / mouth model of the plaga-carrying enemies, hung on a parts of
 // its body (`o16.body`). It turns toward the player (obj16NeckMove), bites (R1_Atk, R1_Critical),
@@ -55,7 +56,6 @@ struct Obj16Parts {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 void LifeDownSet(cEm* em, int dmg, int rnd);
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
@@ -71,7 +71,7 @@ void obj16PlHeadLost(cObj16* obj);
 static void obj16NeckMove(cObj16* obj);
 void plemDmMStar(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*Obj16_R1_move_tbl[5])(cObj16*) = {
     obj16_R1_Set, obj16_R1_CoreMove, obj16_R1_Atk, obj16_R1_Critical, obj16_R1_Damage,
@@ -189,12 +189,12 @@ cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, 
 
 // Delete the effects the head owns and the head itself.
 #define OBJ16_LOST(obj, w)                                    \
-    EffectEspDelete(0, (w)->EffKindId, (u32) (obj), 0);         \
-    EffectEspgenDelete(0, (w)->EffKindId, (int) (obj));         \
-    EffectEfmDelete(0, (w)->EffKindId, (int) (obj));            \
-    EffectEspDelete(0, (w)->EffKindId2, (u32) (obj), 0);        \
-    EffectEspgenDelete(0, (w)->EffKindId2, (int) (obj));        \
-    EffectEfmDelete(0, (w)->EffKindId2, (int) (obj));           \
+    EffectEspDelete(0, (w)->EffKindId, obj, 0);         \
+    EffectEspgenDelete(0, (w)->EffKindId, obj);         \
+    EffectEfmDelete(0, (w)->EffKindId, obj);            \
+    EffectEspDelete(0, (w)->EffKindId2, obj, 0);        \
+    EffectEspgenDelete(0, (w)->EffKindId2, obj);        \
+    EffectEfmDelete(0, (w)->EffKindId2, obj);           \
     ObjMgr.destroy(obj)
 
 // Per-frame: dies with target/body; fades and shrinks when the target is dead or Lost_wait ran out
@@ -322,9 +322,9 @@ void cObj16::move()
                     if (--w->Eff_wait == 0) {
                         w->Eff_wait = 2;
                         if (be_flag & 0x800) {
-                            EstSet((int) this, -1, 0, 0, 0x10, 0x2E, 1, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x10, 0x2E, 1, 0, this, 0);
                         } else {
-                            EstSet((int) this, -1, 0, 0, 0x10, 0x2E, 0, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x10, 0x2E, 0, 0, this, 0);
                         }
                     }
                 }
@@ -335,9 +335,9 @@ void cObj16::move()
                     if (--w->Eff_wait == 0) {
                         w->Eff_wait = 2;
                         if (be_flag & 0x800) {
-                            EstSet((int) this, -1, 0, 0, 0x31, 0x16, 1, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x31, 0x16, 1, 0, this, 0);
                         } else {
-                            EstSet((int) this, -1, 0, 0, 0x31, 0x16, 0, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x31, 0x16, 0, 0, this, 0);
                         }
                     }
                 }
@@ -351,9 +351,9 @@ void cObj16::move()
             if (--w->Eff_wait2 == 0) {
                 w->Eff_wait2 = (Rnd() & 3) + 15;
                 if (be_flag & 0x800) {
-                    EstSet((int) this, -1, 0, 0, 0x10, 4, 1, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x10, 4, 1, 0, this, 0);
                 } else {
-                    EstSet((int) this, -1, 0, 0, 0x10, 4, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x10, 4, 0, 0, this, 0);
                 }
             }
         }
@@ -363,9 +363,9 @@ void cObj16::move()
             if (--w->Eff_wait2 == 0) {
                 w->Eff_wait2 = (Rnd() & 3) + 15;
                 if (be_flag & 0x800) {
-                    EstSet((int) this, -1, 0, 0, 0x31, 0x10, 1, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x31, 0x10, 1, 0, this, 0);
                 } else {
-                    EstSet((int) this, -1, 0, 0, 0x31, 0x10, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x31, 0x10, 0, 0, this, 0);
                 }
             }
         }
@@ -375,7 +375,7 @@ void cObj16::move()
             if (w->Eff_wait2) {
                 if (--w->Eff_wait2 == 0) {
                     w->Eff_wait2 = 3;
-                    EstSet((int) this, -1, 0, 0, 0x10, 0x52, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x10, 0x52, 0, 0, this, 0);
                 }
             }
         }
@@ -385,7 +385,7 @@ void cObj16::move()
             if (w->Eff_wait2) {
                 if (--w->Eff_wait2 == 0) {
                     w->Eff_wait2 = 3;
-                    EstSet((int) this, -1, 0, 0, 0x31, 0x18, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x31, 0x18, 0, 0, this, 0);
                 }
             }
         }
@@ -395,9 +395,9 @@ void cObj16::move()
             if (--w->Eff_wait2 == 0) {
                 w->Eff_wait2 = (Rnd() & 3) + 15;
                 if (be_flag & 0x800) {
-                    EstSet((int) this, -1, 0, 0, 0x1A, 0xE, 1, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x1A, 0xE, 1, 0, this, 0);
                 } else {
-                    EstSet((int) this, -1, 0, 0, 0x1A, 0xE, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x1A, 0xE, 0, 0, this, 0);
                 }
             }
         }
@@ -407,9 +407,9 @@ void cObj16::move()
             if (--w->Eff_wait2 == 0) {
                 w->Eff_wait2 = (Rnd() & 3) + 9;
                 if (be_flag & 0x800) {
-                    EstSet((int) this, -1, 0, 0, 0x1A, 0xF, 1, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x1A, 0xF, 1, 0, this, 0);
                 } else {
-                    EstSet((int) this, -1, 0, 0, 0x1A, 0xF, 0, 0, (u32) this, 0);
+                    EstSet(this, -1, 0, 0, 0x1A, 0xF, 0, 0, this, 0);
                 }
             }
         }
@@ -514,16 +514,16 @@ void obj16_R1_CoreMove(cObj16* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[10], 0, 3, 0, 0);
         if (obj->type == 2) {
-            EstSet((int) obj, -1, 0, 0, 0x10, 0x53, 0, 0, (u32) obj, 0);
-            EffectEspDelete(0, w->EffKindId2, (u32) obj, 0);
-            EffectEspgenDelete(0, w->EffKindId2, (int) obj);
-            EffectEfmDelete(0, w->EffKindId2, (int) obj);
+            EstSet(obj, -1, 0, 0, 0x10, 0x53, 0, 0, obj, 0);
+            EffectEspDelete(0, w->EffKindId2, obj, 0);
+            EffectEspgenDelete(0, w->EffKindId2, obj);
+            EffectEfmDelete(0, w->EffKindId2, obj);
         }
         if (obj->type == 0xB) {
-            EstSet((int) obj, -1, 0, 0, 0x31, 0x19, 0, 0, (u32) obj, 0);
-            EffectEspDelete(0, w->EffKindId2, (u32) obj, 0);
-            EffectEspgenDelete(0, w->EffKindId2, (int) obj);
-            EffectEfmDelete(0, w->EffKindId2, (int) obj);
+            EstSet(obj, -1, 0, 0, 0x31, 0x19, 0, 0, obj, 0);
+            EffectEspDelete(0, w->EffKindId2, obj, 0);
+            EffectEspgenDelete(0, w->EffKindId2, obj);
+            EffectEfmDelete(0, w->EffKindId2, obj);
         }
         w->Timer = 36;
         obj->r_no_2++;
@@ -541,13 +541,13 @@ void obj16_R1_CoreMove(cObj16* obj)
     case 4:
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 3, 0, 0);
         if (obj->type == 2) {
-            EstSet((int) obj, -1, 0, 0, 0x10, 0xA, 0, 0, (u32) obj, 0);
-            EstSet((int) obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0xA, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, obj, 0);
             w->Eff_wait2 = 3;
         }
         if (obj->type == 0xB) {
-            EstSet((int) obj, -1, 0, 0, 0x31, 0xC, 0, 0, (u32) obj, 0);
-            EstSet((int) obj, -1, 0, 0, 0x31, 0x17, 0, w->EffKindId2, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0xC, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0x17, 0, w->EffKindId2, obj, 0);
             w->Eff_wait2 = 3;
         }
         w->Timer = 20;
@@ -592,13 +592,13 @@ void obj16_R1_Atk(cObj16* obj)
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0xA, 0, 0);
         if (obj->type == 2) {
-            EstSet((int) obj, -1, 0, 0, 0x10, 0xA, 0, 0, (u32) obj, 0);
-            EstSet((int) obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0xA, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0x51, 0, w->EffKindId2, obj, 0);
             w->Eff_wait2 = 3;
         }
         if (obj->type == 0xB) {
-            EstSet((int) obj, -1, 0, 0, 0x31, 0xC, 0, 0, (u32) obj, 0);
-            EstSet((int) obj, -1, 0, 0, 0x31, 0x17, 0, w->EffKindId2, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0xC, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0x17, 0, w->EffKindId2, obj, 0);
             w->Eff_wait2 = 3;
         }
         obj->r_no_2++;
@@ -615,10 +615,10 @@ void obj16_R1_Atk(cObj16* obj)
             w->atkTimer = 8;
             obj->r_no_3 = 0;
             if (obj->type == 2) {
-                EstSet((int) obj, -1, 0, 0, 0x10, 0x6C, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x10, 0x6C, 0, 0, obj, 0);
             }
             if (obj->type == 0xB) {
-                EstSet((int) obj, -1, 0, 0, 0x31, 0x1C, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x31, 0x1C, 0, 0, obj, 0);
             }
         } else {
             MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 3, 0, 0);
@@ -626,10 +626,10 @@ void obj16_R1_Atk(cObj16* obj)
             w->atkTimer = 6;
             obj->r_no_3 = 1;
             if (obj->type == 2) {
-                EstSet((int) obj, -1, 0, 0, 0x10, 0x6F, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x10, 0x6F, 0, 0, obj, 0);
             }
             if (obj->type == 0xB) {
-                EstSet((int) obj, -1, 0, 0, 0x31, 0x1F, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x31, 0x1F, 0, 0, obj, 0);
             }
         }
         if (obj->type == 2) {
@@ -706,11 +706,11 @@ void obj16_R1_Critical(cObj16* obj)
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 3, 0, 0);
         if (obj->type == 3) {
-            EstSet((int) obj, -1, 0, 0, 0x10, 0x5F, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0x5F, 0, 0, obj, 0);
             SndCall(8, 9, &w->target->pos, w->target->id, 0, 0);
         }
         if (obj->type == 0xD) {
-            EstSet((int) obj, -1, 0, 0, 0x31, 0x1B, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0x1B, 0, 0, obj, 0);
             SndCall(8, 0x28, &w->target->pos, w->target->id, 0, 0);
         }
         w->Timer = 0;
@@ -759,11 +759,11 @@ void obj16_R1_Critical(cObj16* obj)
             }
         }
         if (obj->type == 3) {
-            EstSet((int) obj, -1, 0, 0, 0x10, 0x5D, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x10, 0x5D, 0, 0, obj, 0);
             SndCall(8, 0xA, &w->target->pos, w->target->id, 0, 0);
         }
         if (obj->type == 0xD) {
-            EstSet((int) obj, -1, 0, 0, 0x31, 0xB, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x31, 0xB, 0, 0, obj, 0);
             SndCall(8, 0x29, &w->target->pos, w->target->id, 0, 0);
         }
         obj->r_no_2++;
@@ -802,10 +802,10 @@ void obj16_R1_Critical(cObj16* obj)
     if (atk) {
         if (obj16AtkCk(obj, 3, 9)) {
             if (obj->type == 3) {
-                EstSet((int) obj, -1, 0, 0, 0x10, 0x5E, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x10, 0x5E, 0, 0, obj, 0);
             }
             if (obj->type == 0xD) {
-                EstSet((int) obj, -1, 0, 0, 0x31, 0xE, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x31, 0xE, 0, 0, obj, 0);
             }
         }
     }
@@ -835,7 +835,7 @@ void obj16_R1_Damage(cObj16* obj)
         }
         if (obj->type == 3) {
             if (w->body) {
-                EstSet((int) w->body, -1, 0, 0, 0x10, 0x86, 0, 0, (u32) w->body, 0);
+                EstSet(w->body, -1, 0, 0, 0x10, 0x86, 0, 0, w->body, 0);
             }
         }
         w->Timer = 30;
@@ -971,12 +971,12 @@ void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* 
     }
     w->x6C = 0;
     if (type == 3) {
-        EstSet((int) this, -1, 0, 0, 0x10, 0x5C, 0, w->EffKindId, (u32) this, 0);
-        EstSet((int) this, -1, 0, 0, 0x10, 0x70, 0, w->EffKindId2, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 0x10, 0x5C, 0, w->EffKindId, this, 0);
+        EstSet(this, -1, 0, 0, 0x10, 0x70, 0, w->EffKindId2, this, 0);
     }
     if (type == 0xD) {
-        EstSet((int) this, -1, 0, 0, 0x31, 0x1A, 0, w->EffKindId, (u32) this, 0);
-        EstSet((int) this, -1, 0, 0, 0x31, 0xF, 0, w->EffKindId2, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 0x31, 0x1A, 0, w->EffKindId, this, 0);
+        EstSet(this, -1, 0, 0, 0x31, 0xF, 0, w->EffKindId2, this, 0);
     }
     r_no_0 = 1;
     r_no_1 = 1;
@@ -1097,14 +1097,14 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->Mot_pl_dm && (s16) pG->pl_life > 0 && w->body) {
                 if (obj->type == 2) {
-                    EstSet((int) pPL, -1, 0, 0, 0x10, 0x74, 0, 0, (u32) pPL, 0);
+                    EstSet(pPL, -1, 0, 0, 0x10, 0x74, 0, 0, pPL, 0);
                 }
                 if (obj->type == 0xB) {
-                    EstSet((int) pPL, -1, 0, 0, 0x31, 9, 0, 0, (u32) pPL, 0);
+                    EstSet(pPL, -1, 0, 0, 0x31, 9, 0, 0, pPL, 0);
                 }
                 SetPlDamage((cEm*) obj, plemDmMStar);
                 if (fabsf(Muku(&pPL->pos, &w->body->pos, pPL->ang.y, PI)) < PI / 2) {
@@ -1118,10 +1118,10 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
                 }
             } else {
                 if (obj->type == 2) {
-                    EstSet((int) obj, -1, 0, 0, 0x10, 0x73, 0, 0, (u32) obj, 0);
+                    EstSet(obj, -1, 0, 0, 0x10, 0x73, 0, 0, obj, 0);
                 }
                 if (obj->type == 0xB) {
-                    EstSet((int) obj, -1, 0, 0, 0x31, 8, 0, 0, (u32) obj, 0);
+                    EstSet(obj, -1, 0, 0, 0x31, 8, 0, 0, obj, 0);
                 }
             }
             break;
@@ -1136,10 +1136,10 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (obj->type == 2) {
-                EstSet((int) obj, -1, 0, 0, 0x10, 0x73, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x10, 0x73, 0, 0, obj, 0);
             }
             break;
         case 2:
@@ -1157,15 +1157,15 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB && w->target) {
                 SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
             }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (obj->type == 2) {
-                EstSet((int) obj, -1, 0, 0, 0x10, 0x73, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 0x10, 0x73, 0, 0, obj, 0);
             }
             break;
         case 3:
             obj16PlHeadLost(obj);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             break;
         }
@@ -1200,10 +1200,10 @@ void obj16PlHeadLost(cObj16* obj)
             switch (w->body->id) {
             case 0x10 ... 0x17:
             case 0x19 ... 0x20:
-                EstSet((int) pPL, -1, 0, 0, 0x10, 0x57, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x10, 0x57, 0, 0, pPL, 0);
                 break;
             case 0x3C:
-                EstSet((int) pPL, -1, 0, 0, 0x31, 0x28, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x31, 0x28, 0, 0, pPL, 0);
                 break;
             }
         }
@@ -1213,10 +1213,10 @@ void obj16PlHeadLost(cObj16* obj)
             switch (w->body->id) {
             case 0x10 ... 0x17:
             case 0x19 ... 0x20:
-                EstSet((int) pPL, -1, 0, 0, 0x10, 0x45, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x10, 0x45, 0, 0, pPL, 0);
                 break;
             case 0x3C:
-                EstSet((int) pPL, -1, 0, 0, 0x31, 0x27, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, 0, 0, 0x31, 0x27, 0, 0, pPL, 0);
                 break;
             }
         }
@@ -1350,7 +1350,7 @@ void plemDmMStar(cPlayer* pl)
         } else {
             hokan = 1;
         }
-        MotionSetCore(pl, &pl->pMotion, w->Mot_pl_dm, w->Seq_pl_dm, 3, hokan, 0);
+        MotionSetCore(pl, &pl->pMotion, w->Mot_pl_dm, (void*) w->Seq_pl_dm, 3, hokan, 0);
         PlSetDamageSe(0);
         if (pl->r_no_3) {
             pl->dmg.set(0, 0xF);

@@ -1253,7 +1253,7 @@ void tSceItem_PointDisp(f32 x, f32 y, f32 z)
     p.z = z;
     Draw_sphere(&p, 100.0f, 0xFFFFFF80, 1, 1);
     f = p;
-    f.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, NULL, 0);
+    f.y = SatMgr.getFloor(&p, NULL, 600.0f, 100000.0f, 0);
     Draw_line3d(&p, &f, 0x80808020, 0);
     p = f;
     p.x += 200.0f;
@@ -1599,7 +1599,7 @@ void tSceItemSetItemFlgAutoDataCreate()
 // CAMERA MODE (START): the debug camera moves with pad 1.
 void tSceItemData_DebugCamera()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 0);
+    CamDbg.move(&pG->Camera, &Joy[0], 0);
     pW->timer++;
     if (pW->timer & 8) {
         eprintf(0xD0, 0x10, 6, 0, "CAMERA MODE");

@@ -131,7 +131,7 @@ static void R40fDoorEvent00Main()
         EffectEspgenDelete(0x2001, 2, 0);
         EffectEfmDelete(0x2001, 2, 0);
         EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, 0);
-        SceMesCamSndSet4(9, 8, 5, 4);
+        SceMesCamSndSet(9, 8, 5, 4);
         SceSetEventCancel(0, 0, 0, -1, 1);
         R40fDoorEvent00End();
     }
@@ -162,7 +162,7 @@ static void R40fDoorSwitchMain()
         SceUpCut(6, -1, -1, UP_CUT_ATTR_CUT_FIX);
     } else {
         SceEventStart(1);
-        SceMesCamSndSet4(5, -1, -1, 4);
+        SceMesCamSndSet(5, -1, -1, 4);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);
@@ -173,7 +173,7 @@ static void R40fDoorSwitchMain()
             EffectEfmDelete(0x2001, 2, 0);
             EstSet(0, -1, 0, 0, 1, 1, 0x2001, 2, 0, model);
             SndCall(6, 7, 0, 0, 0, 0);
-            SceMesCamSndSet4(0xA, 8, 6, 4);
+            SceMesCamSndSet(0xA, 8, 6, 4);
             r40f_work->bomb0.destroy();
             r40f_work->bomb1.destroy();
             if (RsfCheck(G_ROOM_ID, 6) == 0) {

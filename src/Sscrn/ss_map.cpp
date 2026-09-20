@@ -1237,12 +1237,12 @@ int mapPos2screenPos(Vec* pos, Vec* out)
     f32 w;
     f32 az;
 
-    PSMTXInverse(pG->Cam.mat, inv);
+    PSMTXInverse(pG->Camera.mat, inv);
     PSMTXMultVec(inv, pos, out);
     if (out->z > -fabsf(ZNEAR)) {
         return 0;
     }
-    f32 ang = pG->Cam.param.fovy * 0.5f * 0.017453292f;
+    f32 ang = pG->Camera.param.fovy * 0.5f * 0.017453292f;
     f32 kx;
     f32 ky;
 
@@ -1372,9 +1372,9 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         vtx = satA.vtx;
         PSVECSubtract(&vtx[poly->v[1]], &vtx[poly->v[0]], &a);
         PSVECSubtract(&vtx[poly->v[2]], &vtx[poly->v[0]], &b);
-        VecLinearCombination(&a, &b, s0, t0, &pos);
+        VecLinearCombination(&a, s0, &b, t0, &pos);
         PSVECAdd(&pos, &vtx[poly->v[0]], &pos);
-        VecLinearCombination(&a, &b, s1, t1, &pos2);
+        VecLinearCombination(&a, s1, &b, t1, &pos2);
         PSVECAdd(&pos2, &vtx[poly->v[0]], &pos2);
         if (SubScreenWk.debug_menu & 0x10) {
             PSMTXMultVec(partsMat, &vtx[poly->v[0]], &hit2);
@@ -2207,7 +2207,7 @@ void mapCameraMove(SUB_SCREEN* wk)
 {
     Vec d;
 
-    map_cam_speed = map_cam_speed_base * (pG->Cam.dist / 5000.0f);
+    map_cam_speed = map_cam_speed_base * (pG->Camera.dist / 5000.0f);
     memclr_asm(&d, sizeof(Vec));
     if (Key.on & 0x0C000000) {
         if (Key.on & 0x08000000) {
@@ -2234,16 +2234,16 @@ void mapCameraMove(SUB_SCREEN* wk)
         }
     }
     if (d.x != 0.0f || d.y != 0.0f || d.z != 0.0f) {
-        PSVECAdd(&pG->Cam.param.pos, &d, &pG->Cam.param.pos);
+        PSVECAdd(&pG->Camera.param.pos, &d, &pG->Camera.param.pos);
         d.y = 0.0f;
-        PSVECAdd(&pG->Cam.param.at, &d, &pG->Cam.param.at);
-        if (pG->Cam.param.pos.y <= zoomInLimit()) {
-            pG->Cam.param.pos.y = zoomInLimit();
+        PSVECAdd(&pG->Camera.param.at, &d, &pG->Camera.param.at);
+        if (pG->Camera.param.pos.y <= zoomInLimit()) {
+            pG->Camera.param.pos.y = zoomInLimit();
         }
-        if (pG->Cam.param.pos.y >= zoomOutLimit()) {
-            pG->Cam.param.pos.y = zoomOutLimit();
+        if (pG->Camera.param.pos.y >= zoomOutLimit()) {
+            pG->Camera.param.pos.y = zoomOutLimit();
         }
-        CameraSetOrientationUp(&pG->Cam);
+        CameraSetOrientationUp(&pG->Camera);
     }
 }
 
@@ -2265,7 +2265,7 @@ void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
 // Closest camera height: 4000 units of half-width at the current fov.
 f32 zoomInLimit()
 {
-    return 4000.0f / tanf(pG->Cam.param.fovy * 0.5f * 3.1415927f / 180.0f);
+    return 4000.0f / tanf(pG->Camera.param.fovy * 0.5f * 3.1415927f / 180.0f);
 }
 
 // Zoomed camera into `out`: centred between the player and the goal, high enough to frame both
@@ -2291,7 +2291,7 @@ void mapCameraZoomIn(SUB_SCREEN* wk, CameraParam* out)
     if (!(d.z / d.x >= 0.75f)) {
         d.z = d.x * 0.75f;
     }
-    h = d.z / tanf(pG->Cam.param.fovy * 0.5f * 3.1415927f / 180.0f);
+    h = d.z / tanf(pG->Camera.param.fovy * 0.5f * 3.1415927f / 180.0f);
     if (h <= zoomInLimit()) {
         h = zoomInLimit();
     }
@@ -2321,13 +2321,13 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     PSVECScale(&to->pos, &a, t);
     s = 1.0f - t;
     PSVECScale(&from->pos, &b, s);
-    PSVECAdd(&a, &b, &pG->Cam.param.pos);
+    PSVECAdd(&a, &b, &pG->Camera.param.pos);
     PSVECScale(&to->at, &a, t);
     PSVECScale(&from->at, &b, s);
-    PSVECAdd(&a, &b, &pG->Cam.param.at);
-    // byte-pointer memcpy (&pG->Cam.up): the store may alias pG, which is reloaded for the next call
+    PSVECAdd(&a, &b, &pG->Camera.param.at);
+    // byte-pointer memcpy (&pG->Camera.up): the store may alias pG, which is reloaded for the next call
     memcpy((u8*) pG + 0x138, &up, sizeof(Vec));
-    CameraSetOrientationUp(&pG->Cam);
+    CameraSetOrientationUp(&pG->Camera);
     return t >= 1.0f;
 }
 
@@ -2517,7 +2517,7 @@ void SsMapMain::init(SUB_SCREEN* wk)
 #line 3409 "D:/Bio4/Prog/ss_map.cpp"
     wk->pMapWk = (SsMapWork*) MEM_ALLOC(sizeof(SsMapWork), 1, 0xD);
     mapInitViewport(wk);
-    mapCameraInit(wk, &pG->Cam);
+    mapCameraInit(wk, &pG->Camera);
     IdSub.unitPtr(1, 0x1D)->be_flag &= ~8;
     IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
     IdSub.unitPtr(2, 0x1D)->be_flag &= ~8;
@@ -2799,7 +2799,7 @@ void MapFocus::move(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
 
-    m->from = pG->Cam.param;
+    m->from = pG->Camera.param;
     mapCameraZoomIn(wk, &wk->pMapWk->to);
     transit(0, wk);
 }
@@ -2811,7 +2811,7 @@ void MapEntire::move(SUB_SCREEN* wk)
     if (Key.trg & 0xC0000000) {
         SsMapWork* m = wk->pMapWk;
 
-        m->from = pG->Cam.param;
+        m->from = pG->Camera.param;
         mapCameraZoomIn(wk, &wk->pMapWk->to);
         transit(0, wk);
     } else if (Key.trg & 0x00020000) {
@@ -2833,7 +2833,7 @@ void MapZoomIn::move(SUB_SCREEN* wk)
     if (Key.trg & 0x80000000) {
         SsMapWork* m = wk->pMapWk;
 
-        m->from = pG->Cam.param;
+        m->from = pG->Camera.param;
         mapCameraEntire(wk, &wk->pMapWk->to);
         transit(1, wk);
     } else {
@@ -2856,7 +2856,7 @@ void MapZoomOut::move(SUB_SCREEN* wk)
     if (Key.trg & 0x40000000) {
         SsMapWork* m = wk->pMapWk;
 
-        m->from = pG->Cam.param;
+        m->from = pG->Camera.param;
         mapCameraZoomIn(wk, &wk->pMapWk->to);
         transit(1, wk);
     } else {
@@ -2873,7 +2873,7 @@ void MapRead::move(SUB_SCREEN* wk)
     if (Key.trg & 0x80000000) {
         SsMapWork* m = wk->pMapWk;
 
-        m->from = pG->Cam.param;
+        m->from = pG->Camera.param;
         mapCameraEntire(wk, &wk->pMapWk->to);
         transit(1, wk);
     } else if (Key.trg & 0x00020000) {

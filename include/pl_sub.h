@@ -20,9 +20,8 @@ void PlSetHand(int type, int on);
 void SubCharSetHand(int no);
 void SetPlDamage(cEm* em, void (*func)(cPlayer*));
 void EndPlDamage();
-void SetSubAux(int a, int b);
-void SetSubBulldozer(int a, int b);
-void SetSubDamage(cEm* em, void* mot);
+void SetSubAux(void (*ft)(cEm*), void (*ftdm)(cEm*));
+void SetSubBulldozer(void (*ft)(cEm*), void (*ftdm)(cEm*));
 void EndSubDamage();
 void SubCharInit(int type, Vec* pos, f32 ang);
 enum SCC_MODE {
@@ -39,7 +38,7 @@ enum SCC_MODE {
 void SubCharCtrl(int mode, int flag);
 int SubCharCheckCtrl();
 void SubCharCtrlHide(Vec* pos, int mode);
-void SubCharMoveTo(int flag, f32 x, f32 y, f32 z, f32 w);
+void SubCharMoveTo(f32 x, f32 y, f32 z, f32 w, int flag);
 void PlSetLadder(Vec* pos, int level, f32 ang);
 void PlSetNeck(int mode);
 void PlEndCamera();
@@ -62,6 +61,7 @@ void PlSetFace(int no);
 void SubCharSetFace(int no);
 void PlDataRelease();
 }
+void SetSubDamage(cEm* em, void (*ft)());
 
 int PlSetCostume();
 void PlChangeData();

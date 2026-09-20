@@ -321,7 +321,7 @@ void Cloth::calcNormal()
 }
 
 // Pushes grid point (x, y): adds `power` to its z speed and half to y (bullets / wind).
-void Cloth::disturbance(f32 power, u32 x, u32 y)
+void Cloth::disturbance(u32 x, u32 y, f32 power)
 {
     u32 idx = x + divH * y;
 
@@ -376,7 +376,7 @@ void clothTrans(Cloth* pCL)
         model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos = pCL->center;
-    LightMgr.setClothN(&model, 8);
+    LightMgr.setCloth(&model, 8);
     if (model.LightInfo.Size.x > model.LightInfo.Size.y) {
         r = model.LightInfo.Size.x;
     } else {
@@ -413,7 +413,7 @@ void clothTrans(Cloth* pCL)
         Mtx tmp;
         PSMTXScale(scale, pCL->Scale, pCL->Scale, pCL->Scale);
         PSMTXConcat(pCL->mat, scale, tmp);
-        PSMTXConcat(pG->Cam.v_mat, tmp, scale);
+        PSMTXConcat(pG->Camera.v_mat, tmp, scale);
         GXLoadPosMtxImm(scale, 0);
         PSMTXInverse(scale, tmp);
         PSMTXTranspose(tmp, scale);

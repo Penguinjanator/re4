@@ -21,10 +21,7 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 extern "C" {
-void Filter02GetEFB(int div, void* buf, int mip, f32 scale);
-// DrawBuffer's call sites issue the FPR argument move before the GPR ones (see docs/matching.md,
-// cAtariInfo::init): ABI-identical redeclaration with the float first.
-void Filter02GetEFBF(f32 scale, int div, void* buf, int mip) asm("Filter02GetEFB");
+void Filter02GetEFB(f32 scale, int div, void* buf, int mip);
 void Filter02Render();
 void Filter02GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 s2, void* buf);
 void Filter02DrawBuffer();
@@ -71,7 +68,7 @@ void Filter02Trans()
 }
 
 // Copies the frame buffer at 1/div size into buf (mip = mipmap copy, scale = texture scale).
-void Filter02GetEFB(int div, void* buf, int mip, f32 scale)
+void Filter02GetEFB(f32 scale, int div, void* buf, int mip)
 {
     GXRenderModeObj* rm = &Rmode;
     static u8 vfilter[8] __attribute__((aligned(32))) = { 32, 0, 0, 0, 0, 0, 32, 0 };
@@ -120,7 +117,7 @@ void Filter02Render()
     DCInvalidateRange(filter02_buff, 0x38000);
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
     SetNearClipDist(g_filter02_clip_dist);
-    Filter02GetEFB(1, filter02_buff3, 0, 0.5f);
+    Filter02GetEFB(0.5f, 1, filter02_buff3, 0);
     Filter02DrawBuffer();
     a = 0xFF;
     y = 0.0f;
@@ -208,7 +205,7 @@ void Filter02DrawBuffer()
     GXSetZMode(0, 6, 0);
     px = 0.0f;
     z = 65530.0f;
-    Filter02GetEFBF(1.0f, 1, filter02_buff, 1);
+    Filter02GetEFB(1.0f, 1, filter02_buff, 1);
     py = 0.0f;
     a = 0xFF;
     Filter02GXDraw(px, py, z, 0.0f, 0.0f, (f32) a, 1.0f, 2.0f, filter02_buff);
@@ -218,7 +215,7 @@ void Filter02DrawBuffer()
         static f32 ppy = 0.0f;
         static u32 nFeedLp = 2;
 
-        Filter02GetEFBF(2.0f, 2, filter02_buff, 1);
+        Filter02GetEFB(2.0f, 2, filter02_buff, 1);
         Filter02GXDraw(px, py, z, 0.0f, 0.0f, (f32) a, 2.0f, 4.0f, filter02_buff);
         for (i = 0; i < nFeedLp; i++) {
             n = 4;
@@ -252,7 +249,7 @@ void Filter02DrawBuffer()
                 f32 t;
 
                 a = 0x80;
-                Filter02GetEFBF(4.0f, 4, filter02_buff, 1);
+                Filter02GetEFB(4.0f, 4, filter02_buff, 1);
                 t = level_tbl02[j];
                 switch (j) {
                 case 0:
@@ -281,7 +278,7 @@ void Filter02DrawBuffer()
                 Filter02GXDraw(px, py, z, x, y, (f32) a, 4.0f, 4.0f, filter02_buff);
             }
         }
-        Filter02GetEFBF(4.0f, 4, filter02_buff, 1);
+        Filter02GetEFB(4.0f, 4, filter02_buff, 1);
     } else {
         static f32 ppx = 0.0f;
         static f32 ppy = 0.0f;
@@ -319,7 +316,7 @@ void Filter02DrawBuffer()
                 f32 t;
 
                 a = 0x80;
-                Filter02GetEFBF(2.0f, 2, filter02_buff, 1);
+                Filter02GetEFB(2.0f, 2, filter02_buff, 1);
                 t = level_tbl02[j];
                 switch (j) {
                 case 0:
@@ -348,7 +345,7 @@ void Filter02DrawBuffer()
                 Filter02GXDraw(px, py, z, x, y, (f32) a, 2.0f, 2.0f, filter02_buff);
             }
         }
-        Filter02GetEFBF(2.0f, 2, filter02_buff, 1);
+        Filter02GetEFB(2.0f, 2, filter02_buff, 1);
     }
 }
 

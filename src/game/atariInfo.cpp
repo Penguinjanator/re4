@@ -21,7 +21,7 @@ cAtariInfo::cAtariInfo()
 // Full setup: offset x / y / z, size rx (x radius) / rz (z radius) / w (radius3) / hh (half
 // height), the parts it follows (0 = the model), interpolation frames and flags | 0x300 (scenery
 // and character collision on).
-void cAtariInfo::init0(int parts, int hokan, int flag, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
+void cAtariInfo::init0(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh, int parts, int hokan, int flag)
 {
     m_offset.x = x;
     m_offset.y = y;
@@ -40,9 +40,9 @@ void cAtariInfo::init0(int parts, int hokan, int flag, f32 x, f32 y, f32 z, f32 
 }
 
 // init0 with the argument order most callers use, plus m_flag bit0.
-void cAtariInfo::init(int parts, int flag, int hokan, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
+void cAtariInfo::init(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh, int parts, int flag, int hokan)
 {
-    init0(parts, hokan, flag, x, y, z, rx, rz, w, hh);
+    init0(x, y, z, rx, rz, w, hh, parts, hokan, flag);
     m_flag |= 1;
 }
 
@@ -206,11 +206,11 @@ void cAtariInfo::dispRect(cModel* m)
         cModel* p = m->getPartsPtr(m_parts_no - 1);
         PSMTXRotRad(mat, 'y', p->ang.y);
         TransMatrix(mat, &p->world);
-        PSMTXConcat(pG->Cam.v_mat, mat, mat);
+        PSMTXConcat(pG->Camera.v_mat, mat, mat);
     } else {
         PSMTXRotRad(mat, 'y', m->ang.y);
         TransMatrix(mat, &m->pos);
-        PSMTXConcat(pG->Cam.v_mat, mat, mat);
+        PSMTXConcat(pG->Camera.v_mat, mat, mat);
     }
     for (i = 0; i < 12; i++) {
         u8* t = &ptbl[i * 3];

@@ -24,9 +24,9 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 int ShapeMove(cModelInfo* info);
 void SetOriginalShape(cModelInfo* info);
 void ClrShape(cModel* m);
-int SetShape(cModelInfo* info, ShapeData* data, f32 rate);
+int SetShape(cModelInfo* info, f32 rate, ShapeData* data);
 void ResetShape(cModelInfo* info, void* dst);
-void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, u8* dst);
+void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst);
 }
 
 void ShapeEnd(void* work);
@@ -65,7 +65,7 @@ int ShapeMove(cModelInfo* info)
             ShapeData* sd;
 
             SetOriginalShape(p);
-            SetShape(p, p->pShape, (f32) p->shape_frame);
+            SetShape(p, (f32) p->shape_frame, p->pShape);
             flags = p->shapeFlags;
             sd = p->pShape;
             if (flags & 4) {
@@ -133,7 +133,7 @@ void ClrShape(cModel* m)
 }
 
 // Register a shape at `rate` in the first free channel. Returns 1 when rate == frame count.
-int SetShape(cModelInfo* info, ShapeData* data, f32 rate)
+int SetShape(cModelInfo* info, f32 rate, ShapeData* data)
 {
     int i = 0;
     int n;
@@ -195,7 +195,7 @@ struct ShapeEntry {
 // Applies shape `data` at frame `rate` to the vertex buffer `dst`: for every channel flagged 4 the
 // Hermite weight (percent / 100, x1.37 with shapeFlags bit3) scales that channel's delta list
 // (vertex index + s16 dx/dy/dz from the model's shape table) and adds it to the vertices.
-void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, u8* dst)
+void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst)
 {
     ShapeWork work;
     ShapeWork* w = &work;
@@ -269,6 +269,6 @@ void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, u8* dst)
 static void CalculateShape(cModelInfo* info, ShapeData* data, f32 rate, u8* dst)
 {
     if (rate != 0.0) {
-        CalculateShape_new(info, data, rate, dst);
+        CalculateShape_new(info, rate, data, dst);
     }
 }

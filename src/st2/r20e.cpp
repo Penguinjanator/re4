@@ -234,7 +234,7 @@ void R20eInit()
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);
     }
     if (pG->pl_type == 1) {
-        EstSet((int) pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
     }
     r20e_work->effKind = EspPullCoreKind();
 }
@@ -703,7 +703,7 @@ static void r20d_getSnakeObject()
         em4.setEm(0xB2, 3, 0, 1, 1);
     }
     r20e_startArmor();
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The armor knights wake up.

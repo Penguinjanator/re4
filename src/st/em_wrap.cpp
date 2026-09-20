@@ -30,7 +30,7 @@ struct EmListView {
 #ifndef EM_WRAP_NO_CONTROL
 // Bind the controller to enemy list entry `no` (setPtr: existing enemy or spawn it) and load an
 // n-point position route (max 15). Returns 0 (logging "SetPatrol" when errOn) if the enemy is missing.
-int cEmControl::SetControl(s16 no, Vec* tbl, int n, int errOn)
+int cEmControl::SetControl(int no, Vec* tbl, int n, int errOn)
 {
     if (em.setPtr(no, -1, errOn) == 0) {
         if (errOn == 1) {
@@ -46,7 +46,7 @@ int cEmControl::SetControl(s16 no, Vec* tbl, int n, int errOn)
 #ifdef EM_WRAP_ROUTE
 // Same as the Vec* overload but the route entries carry their own goto mode (EmControlPoint::mode),
 // used by cEmRouteExec.
-int cEmControl::SetControl(s16 no, EmControlPoint* tbl, int n, int errOn)
+int cEmControl::SetControl(int no, EmControlPoint* tbl, int n, int errOn)
 {
     if (em.setPtr(no, -1, errOn) == 0) {
         if (errOn == 1) {
@@ -327,7 +327,7 @@ void cEmWrap::err(const char* msg, int no)
 // Take enemy list entry `no` of list `list` (-1: any): reuse the already-spawned enemy if the ESL entry's
 // be_flag bit 2 is set, else spawn it with EmSetFromList2 (chkDead: refuse dead-flagged entries). setAlive
 // marks the ESL entry alive. Returns 1 on success; on failure pEm = 0 and 0.
-int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
+int cEmWrap::setEm(u32 no, int list, int errOn, int chkDead, int setAlive)
 {
     this->errOn = errOn;
     this->no = no;
@@ -354,7 +354,7 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
 }
 
 // Free-function form: spawn/fetch list entry `no` and return the raw cEm* (0 on failure).
-cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
+cEm* setEm(u32 no, int list, int errOn, int chkDead, int setAlive)
 {
     cEmWrap em;
 
@@ -365,7 +365,7 @@ cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
 }
 
 // Attach to list entry `no` if it is already spawned (GetEmPtrFromList), otherwise spawn it via setEm.
-int cEmWrap::setPtr(s16 no, s8 list, int errOn)
+int cEmWrap::setPtr(u32 no, int list, int errOn)
 {
     cEm* p;
 
@@ -798,10 +798,10 @@ f32 cEmWrap::getAngZ()
 }
 
 // Forward cEm::motionSet (motion data, id, frame, blend, flags): rooms that script an enemy's animation.
-void cEmWrap::motionSet(void* data, int a, int b, int c, int d)
+void cEmWrap::motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq)
 {
     if (isAlive() == 1) {
-        pEm->motionSet(data, a, b, c, d);
+        pEm->motionSet(mot, hokan, frame, stat, seq);
     } else {
         err("EM_SET_NO(%d) cEmWrap::motionSet error", no);
     }
@@ -856,8 +856,10 @@ void cEmWrap::setParent(cModel* parent)
 // Forward cEm::beginEvent: put the enemy into event mode (AI off, event motions).
 void cEmWrap::beginEvent()
 {
+    u32 mode;   // left unset: the original passes r4 through as the caller left it
+
     if (isAlive() == 1) {
-        pEm->beginEvent();
+        pEm->beginEvent(mode);
     } else {
         err("EM_SET_NO(%d) cEmWrap::beginEvent error", no);
     }
@@ -866,8 +868,10 @@ void cEmWrap::beginEvent()
 // Forward cEm::endEvent: leave event mode.
 void cEmWrap::endEvent()
 {
+    u32 mode;   // left unset: the original passes r4 through as the caller left it
+
     if (isAlive() == 1) {
-        pEm->endEvent();
+        pEm->endEvent(mode);
     } else {
         err("EM_SET_NO(%d) cEmWrap::endEvent error", no);
     }

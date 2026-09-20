@@ -70,16 +70,6 @@ Vec r20c_plAng0 = {0.0f, 1.27f, 0.0f};
 Vec r20c_plAng1 = {0.0f, 1.27f, 0.0f};
 static int r20c_resetTbl[7] = {4, 9, 7, 5, 8, 6, 0};
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 // The coordinates are read before `v` is written and the `&v` argument is recomputed per call
 // (an inlined helper: the address goes straight into the argument register).
@@ -104,9 +94,6 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
     m->setAng(&v);
 }
 
-// COMPILER-DIFF: #4 — the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void R20cEmSetMain();
 void R20cExecCageUp();
@@ -140,14 +127,14 @@ void R20cInit()
     r20c_work.p = (R20cWork*) MEM_CALLOC(sizeof(R20cWork), 1, 0xd);
     obj = SmdGetObjPtr(8);
     if (obj) {
-        r20c_work.p->hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, 0, 1);
+        r20c_work.p->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
         if (r20c_work.p->hit) {
             YarareInitCube(r20c_work.p->hit, 0.0f, -100.0f, 0.0f, 100.0f, 200.0f, 100.0f, 0, 1);
         }
     }
     R20cExecShootInit();
     if (checkEmListNo(pG->room_id) == 3 && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
-        EmReadSearch((u8) GetEmIdFromListI(0xCB), 0, 0);
+        EmReadSearch((u8) GetEmIdFromList(0xCB), 0, 0);
     }
     obj = SmdGetObjPtr(6);
     if (obj) {
@@ -319,7 +306,7 @@ static void R20cExecCageMain()
         SceSetEventCancel(1, (TaskFunc) R20cExecCageEnd, 0, -1, 1);
         CamCtrl.CutCall(6);
         EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
-        BEGIN_EVENT(pPL, 0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         pPL->setPos(&r20c_plPos0);
         pPL->setAng(&r20c_plAng0);
@@ -582,7 +569,7 @@ void R20cExecShootInit()
         R20cDoorOpenCancel(0);
         R20cKaigaMoved(1);
         SmdSetTrans(9, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 2, 1, 0, zero, zero);
     } else {
         cEm* barred;
         cObj* obj;
@@ -594,11 +581,11 @@ void R20cExecShootInit()
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 1);
         obj = SmdGetObjPtr(7);
         if (obj) {
-            r20c_work.p->kaigaHit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, 0, 1);
+            r20c_work.p->kaigaHit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
             if (r20c_work.p->kaigaHit[0]) {
                 YarareInitCube(r20c_work.p->kaigaHit[0], 0.0f, 0.0f, -300.0f, 150.0f, 450.0f, 200.0f, 0, 1);
             }
-            r20c_work.p->kaigaHit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, 0, 1);
+            r20c_work.p->kaigaHit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
             if (r20c_work.p->kaigaHit[1]) {
                 YarareInitCube(r20c_work.p->kaigaHit[1], 0.0f, -850.0f, 0.0f, 50.0f, 1700.0f, 1100.0f, 0, 1);
             }
@@ -688,7 +675,7 @@ void R20cDoorOpenEnd(int mode)
 {
     if (mode) {
         SceEventEnd(0);
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
         SceExit();
     }
 }

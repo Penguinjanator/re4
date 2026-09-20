@@ -88,7 +88,7 @@ struct TcWork {
     s8 vtxMenuCursor;            // 0x007  area vertex insert/delete menu cursor
     TcAdat* pAdat;               // 0x008  current area
     TcLdat* pLdat;               // 0x00C  link being edited (tcEdit_select)
-    Camera cam;                  // 0x010  tool copy of pG->Cam
+    Camera cam;                  // 0x010  tool copy of pG->Camera
     u8 pad_108[0x10C - 0x108];
     JOY joy;                     // 0x10C  pad snapshot (Joy[0]; trg at 0x120, rep at 0x128)
     JOY joy2;                    // 0x374  Joy[1]

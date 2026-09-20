@@ -13,9 +13,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
 
@@ -78,7 +78,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         w->size.z = 10.0f;
         break;
     }
-    em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
     em->atari.setPriority(PRI_LV3);
     em->atari.m_flag &= ~0x300;
     emItemYarareInit(em);
@@ -178,7 +178,7 @@ void emItemDmCk(cEmItem* em)
                 em->hp = 0;
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
                 break;
             }
             return;
@@ -226,7 +226,7 @@ void emItemDmCk(cEmItem* em)
         em->hp = 0;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
         break;
     }
     if (em->type == 1) {
@@ -372,7 +372,7 @@ void emItem_R1_Drop(cEmItem* em)
         em->r_no_2++;
     case 1:
         w->spd.y -= 10.0f;
-        floor = EatMgr.getFloor(&em->pos, 0.0f, 100000.0f, 0, 0);
+        floor = EatMgr.getFloor(&em->pos, 0, 0.0f, 100000.0f, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < floor) {
             em->pos.y = floor;

@@ -61,7 +61,7 @@ void cObjMine::init(cModel* parent)
         return;
     }
     at = &sub2B4.atari;
-    at->init(1, 0, 0, 0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f);
+    at->init(0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f, 1, 0, 0);
     AtariFlagsAnd(at, 0xFCFF);
     pParts->pParent = parent->getPartsPtr(9);
     {
@@ -126,9 +126,9 @@ void cObjMine::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
         if (pG->weapon_type == 0) {
-            EstSet((int) this, -1, 0, 0, 0x48, 0, 0, 0xA, 0, 0);
+            EstSet(this, -1, 0, 0, 0x48, 0, 0, 0xA, 0, 0);
         }
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, 24.0f)) {
@@ -224,7 +224,7 @@ void cObjMine::moveReload()
             break;
         }
         motionSet(m, 0, 0, 1, 0);
-        EstSet((int) this, -1, 0, 0, 0x48, 1, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x48, 1, 0, 0xA, 0, 0);
         switch (pG->weapon_lv_reload) {
         default:
             se = 2;

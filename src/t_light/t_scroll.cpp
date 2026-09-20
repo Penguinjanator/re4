@@ -1094,7 +1094,7 @@ static void edit_flag()
 // vertex colour setup) at once.
 void edit_flag_core(cObj* obj)
 {
-    ModelData* data = obj->pModelInfo->pData;
+    cModelData* data = obj->pModelInfo->pData;
     s8 sel = pWork->sub2;
 
     switch (sel) {
@@ -1821,7 +1821,7 @@ static void printEditTable()
         // gives it the original's live length / calls crossed (534/17: priority 262 < the "SCL" string
         // high's 270, so it is the one left without a register and re-materialised at each use; scheduled
         // after the call it is 512/16 -> 273 and takes r14 from the string high). Emits nothing.
-        register int pin asm("r27");
+        int pin;
         asm volatile("" : "=r"(pin));
     }
     eprintf(0x20, 0x15E, 4, 0, "NO= NAME==== ID LIT_MASK OT FLAG COL  TEX POS ANG SCL ========");

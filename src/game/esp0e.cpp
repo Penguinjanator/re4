@@ -109,8 +109,8 @@ void cEsp0e::move()
             PSMTXMultVec(m, &w->dir_vec, &dir);
         }
     }
-    PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &view);
-    PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
+    PSMTXMultVec(pG->Camera.v_mat, &w->wld_pos, &view);
+    PSMTX44MultVec(pG->Camera.ProjMat, &view, &scr);
     sx = (scr.x * 0.5f + 0.5f) * Screen.width;
     sy = (-scr.y * 0.5f + 0.5f) * Screen.height;
     w->scrOld.x = w->scr.x;
@@ -143,7 +143,7 @@ void cEsp0e::move()
     if (m_Be_flg & 1) {
         Vec v;
 
-        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &v);
+        PSMTXMultVec(pG->Camera.v_mat, &w->wld_pos, &v);
         w->scr.z = v.z;
         EspAddOtAfterRender(this, Esp0e_HideCheck);
     }
@@ -191,7 +191,7 @@ static f32 GetDistAlpha(cEsp0e* esp)
     f32 a;
 
     if (w->del_dist != 0.0f) {
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
 
         d.x = w->wld_pos.x - cam->param.pos.x;
         d.y = w->wld_pos.y - cam->param.pos.y;
@@ -220,7 +220,7 @@ static f32 GetDirAlpha(cEsp0e* esp, Vec* dir)
     f32 a;
 
     ang = LIMIT_ANGLE(w->dir_ang);
-    cam = &pG->Cam;
+    cam = &pG->Camera;
     d.x = w->wld_pos.x - cam->param.pos.x;
     d.y = w->wld_pos.y - cam->param.pos.y;
     d.z = w->wld_pos.z - cam->param.pos.z;

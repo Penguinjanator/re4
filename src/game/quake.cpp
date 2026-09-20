@@ -1,5 +1,5 @@
 // game/quake: camera shake — up to 16 QuakeEntry requests (QuakeExec: delay, duration, amplitude,
-// axes) scheduled each frame; the strongest active one shakes pG->Cam by a pseudo-random offset
+// axes) scheduled each frame; the strongest active one shakes pG->Camera by a pseudo-random offset
 // in camera space (QuakeMain). Rooms and effects request quakes for explosions, footsteps of the
 // giants and the like.
 #include "types.h"
@@ -113,12 +113,12 @@ void QuakeScheduler()
 }
 
 // Applies the shake: a pseudo-random offset (table rnd_tbl x power) per enabled axis, in camera
-// space, added to both the camera position and target (pG->Cam), then the up vector is redone.
+// space, added to both the camera position and target (pG->Camera), then the up vector is redone.
 void QuakeMain()
 {
     static s8 rnd_tbl[16] = {0, -1, 1, 2, -1, 0, 1, -1, 1, -1, 0, 1, -1, -2, 0, 1};
     GlobalWork* g = pG;
-    Camera* cam = &g->Cam;
+    Camera* cam = &g->Camera;
     Vec ofs = {0.0f, 0.0f, 0.0f};
 
     if (Quake.axis & 1) {
@@ -134,7 +134,7 @@ void QuakeMain()
         ofs.z = (f32) rnd_tbl[Quake.rnd_idx] * Quake.power;
     }
     PSMTXMultVecSR(cam->mat, &ofs, &ofs);
-    PSVECAdd(&g->Cam.param.pos, &ofs, &g->Cam.param.pos);
-    PSVECAdd(&g->Cam.param.at, &ofs, &g->Cam.param.at);
+    PSVECAdd(&g->Camera.param.pos, &ofs, &g->Camera.param.pos);
+    PSVECAdd(&g->Camera.param.at, &ofs, &g->Camera.param.at);
     CameraSetOrientationUp(cam);
 }

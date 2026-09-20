@@ -30,8 +30,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em29Func)(cEm29*);
 
@@ -286,7 +284,7 @@ void em29DmCk(cEm29* em)
     // The do-while doubles zero's ref weight so global alloc places it (r29) before `kind` (r28)
     // and `b3` (r26) -- with plain refs kind ranks above zero and the two swap registers.
     do {
-        EstSet(0, -1, &em->pos, &em->ang, 0x21, 0, 0, 0, (u32) zero, (void*) zero);
+        EstSet(0, -1, &em->pos, &em->ang, 0x21, 0, 0, 0, (void*) zero, (void*) zero);
         em->be_flag &= ~2;
         Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 1);
         em29LastCk(em);
@@ -454,7 +452,7 @@ static void em29_R0_Init(cEm29* em)
     }
     em->ang.y = fRand1_1() * PI;
     MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em29_R0_Move(em);
 }
 
@@ -478,7 +476,7 @@ static void em29_R1_WaitLand(cEm29* em)
         w->timer = Rnd() % 30;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
@@ -491,14 +489,14 @@ static void em29_R1_WaitLand(cEm29* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 5, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
     case 4:
         em->pos.y += 400.0f;
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->atkTimer = 180;
         EmRoutineSet(em, 1, 2, 0, 0);
         w->spd.x = 0.0f;
@@ -524,7 +522,7 @@ static void em29_R1_WaitCeiling(cEm29* em)
         w->timer = Rnd() % 30;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
@@ -537,7 +535,7 @@ static void em29_R1_WaitCeiling(cEm29* em)
         MotionSetCore(em, MOTION(em), ARC(9), 0, 0, 5, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->atkTimer = 180;
             EmRoutineSet(em, 1, 2, 0, 0);
             w->spd.x = 0.0f;
@@ -567,7 +565,7 @@ static void em29_R1_Walk(cEm29* em)
         }
         w->tgtSpd.x = 0.0f;
         w->tgtSpd.y = fRand1_1() * 100.0f;
-        if (em->pos.y < SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 500.0f) {
+        if (em->pos.y < SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 500.0f) {
             w->tgtSpd.y = fRand0_1() * 50.0f + 50.0f;
         }
         w->tgtSpd.z = fRand1_1() * 30.0f + 120.0f;
@@ -580,7 +578,7 @@ static void em29_R1_Walk(cEm29* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em29SetSPeed(em, 0.1f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         hit = Ctrl12CntCk(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10);
         if (hit) {
             em->hp = 0;
@@ -616,14 +614,14 @@ static void em29_R1_Turn(cEm29* em)
         MotionSetCore(em, MOTION(em), mot, 0, 0, 1, 0);
         w->tgtSpd.x = 0.0f;
         w->tgtSpd.y = fRand1_1() * 100.0f;
-        if (em->pos.y < SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 500.0f) {
+        if (em->pos.y < SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 500.0f) {
             w->tgtSpd.y = fRand0_1() * 50.0f + 50.0f;
         }
         w->tgtSpd.z = fRand1_1() * 40.0f + 80.0f;
         em->r_no_2++;
     case 1:
         em29SetSPeed(em, 0.5f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         if (Ctrl12CntCk(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10)) {
@@ -643,7 +641,7 @@ static void em29_R1_AtkDash(cEm29* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, MOTION(em), ARC(0x12), (int) ARC(0x19), 5, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x12), ARC(0x19), 5, 1, 0);
         w->escTimer = 0;
         w->atkHit = 0;
         w->tgtSpd.x = 0.0f;
@@ -657,7 +655,7 @@ static void em29_R1_AtkDash(cEm29* em)
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 32.0f);
         }
         em29SetSPeed(em, 0.3f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if ((em->seFlags28B & 1) && w->atkHit == 0 && em29AtkCk(em, 0)) {
             Ctrl12Set(w->pCtrl12, CTRL12_ID_EM29_RUSH, 60);
@@ -674,7 +672,7 @@ static void em29_R1_AtkDash(cEm29* em)
         em->r_no_2++;
     case 3:
         em29SetSPeed(em, 0.5f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -710,7 +708,7 @@ static void em29_R1_AtkRush(cEm29* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 10.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em29SetSPeed(em, 0.1f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         dy = fabsf(em->pos.y - (pPL->pos.y + 1300.0f));
         if (w->targetAngAbs < PI / 8.0f && w->targetDist < 360000.0f && dy < 400.0f && w->escTimer == 0) {
             em->r_no_2++;
@@ -737,7 +735,7 @@ static void em29_R1_AtkRush(cEm29* em)
                 cModel* p = GetPartsAddr(em->pParts, 2);
 
                 EmPlBloodSet(em, &p->world, 1, 0xFF, 0xFF);
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xA, 1);
             }
             if ((s16) pG->pl_life <= 0) {
                 PlSetDamage(0, 0, 0);
@@ -748,7 +746,7 @@ static void em29_R1_AtkRush(cEm29* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em29SetSPeed(em, 0.5f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer == 0) {
             em->r_no_2 = 0;
             w->escTimer = 15;
@@ -809,9 +807,9 @@ static void em29_R1_Dm_Air(cEm29* em)
         a.z = em->pos.z;
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 4;
-        } else if (MotionMoveF(em, 0)) {
+        } else if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -836,10 +834,10 @@ static void em29_R1_Dm_Air(cEm29* em)
         a.z = em->pos.z;
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 4;
         } else {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 4:
@@ -853,7 +851,7 @@ static void em29_R1_Dm_Air(cEm29* em)
         }
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 0, 0, 0);
             } else {
@@ -899,10 +897,10 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
         a.z = em->pos.z;
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2++;
         } else {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 2:
@@ -916,7 +914,7 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
         }
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 0, 0, 0);
             } else {
@@ -935,7 +933,7 @@ static void em29_R1_Dm_Land(cEm29* em)
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 0, 0, 0);
             } else {
@@ -954,7 +952,7 @@ static void em29_R1_Dm_Recovery(cEm29* em)
         MotionSetCore(em, MOTION(em), ARC(0x10), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -1014,7 +1012,7 @@ static void em29_R1_Die_Reset(cEm29* em)
         em->pos_old = em->pos;
         em->motFlags2 &= ~0x40000000;
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         PartsWorldPosCalc(em);
         for (p = em->pParts; p; p = p->pParts) {
             p->world_old = p->world;
@@ -1064,7 +1062,7 @@ static void em29_R1_Die_FadeOut(cEm29* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em29SetSPeed(em, 0.1f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->invisible_factor -= 0.1f;
         if (em->invisible_factor < 0.0f) {
             em->invisible_factor = 0.0f;
@@ -1143,7 +1141,7 @@ void em29SetSPeed(cEm29* em, f32 rate)
     PSMTXRotRad(m, 'y', em->ang.y);
     PSMTXMultVecSR(m, &w->spd, &v);
     PSVECAdd(&em->pos, &v, &em->pos);
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
     if (em->pos.y > fl + 2500.0f) {
         em->pos.y = fl + 2500.0f;
     }
@@ -1328,7 +1326,7 @@ int em29AtkCk(cEm29* em, int no)
             EmSubBloodSet(em, &p->world, 1, 0xFF, 0xFF);
             w->atkHit = 1;
         }
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         return 1;
     }
     return 0;
@@ -1345,7 +1343,7 @@ static void plem29_BatRush(cPlayer* pl)
         PlSetDamageSe(0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }

@@ -22,8 +22,8 @@ public:
     // initializer runs there.
     cUnit(u32 flag) { be_flag = flag; }
     virtual ~cUnit() { be_flag &= ~0x601; }
-    virtual void beginEvent() {}
-    virtual void endEvent() {}
+    virtual void beginEvent(u32 mode) {}
+    virtual void endEvent(u32 mode) {}
     // Works are pool-managed: `delete work` only runs the destructor (be_flag cleared).
     // size_t is `unsigned int` for this compiler; with u32 (unsigned long) GCC 2.95 would not
     // treat this as the usual deallocation function.

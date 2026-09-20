@@ -62,9 +62,6 @@ int CRCVerify(u8* data, u32 len, u32 saved);
 void setMsgBG(int a, int flag);
 }
 
-// cGameSave::save reads a mode in r5 (see emrock.cpp).
-int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-
 // Sub screen data archive (SndMem.sub_adr): offsets to its sub-files.
 // Archive header shared by the sub screen sound data (SndMem.sub_adr: [0] icon/banner TPL,
 // [1] message table) and ss/cmn/save_?.dat (CardID textures, save/load frames, file list, ...).
@@ -182,12 +179,10 @@ public:
     void setAction(int a);
 };
 
-void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken);
+void dispSaveInfo(int no, SaveInfo* info, int type, int broken);
 // cCard::exit passes the saved int width as a full word (`lwz`, not the `lhz 0x41a` narrowing a u16
 // parameter gets): int view of ScreenReSize.
 extern "C" void ScreenReSizeI(int w, int h) asm("ScreenReSize");
-// CardID::updateSaveInfo passes `0x40 + i` without the `clrlwi` truncation: int view of `type`.
-void dispSaveInfoI(int no, SaveInfo* info, int type, int broken) asm("dispSaveInfo__FiP8SaveInfoUci");
 
 int isDbgInfoAlloc = 0;
 static int isDbgInfoCached = 0;
@@ -284,7 +279,7 @@ void debugInfoDisp(int slot, int type)
 {
     static u8 col_tbl[2] = { 0x14, 0x05 };
 
-    if (pG->dev_mode == 1) {
+    if (pG->IsDevConsole == 1) {
         eprintf2(12, 16, 32, 38, col_tbl[slot == 0], 0, "CARD SLOT A");
         eprintf2(12, 16, 32, 62, col_tbl[slot == 2], 0, "HARD DISK");
     }
@@ -326,7 +321,7 @@ void cCard::slotSelect()
         }
         break;
     case 1:
-        if (pG->dev_mode == 1) {
+        if (pG->IsDevConsole == 1) {
             if (Key.trg & KEY_DOWN) {
                 m_SlotNo = 2;
             } else if (Key.trg & KEY_UP) {
@@ -518,7 +513,7 @@ void cCard::dataSelect()
     switch (m_Rno1) {
     case 0: {
         if (pG->card_serial == slotw[m_SlotNo].serial) {
-            m_SaveNo = pG->save_no;
+            m_SaveNo = pG->CardLastSelNo;
         } else {
             int found = 0;
             u32 n;
@@ -666,7 +661,7 @@ void cCard::dataSelect()
             m_Rno2 = 0;
             m_Rno3 = 0;
 /*/BF*/
-            pG->save_no = m_SaveNo;
+            pG->CardLastSelNo = m_SaveNo;
             pG->card_serial = slotw[m_SlotNo].serial;
             deleteAllMes();
             break;
@@ -780,7 +775,7 @@ void cCard::loadMain()
         memcpy(SD->p14, buf + SAVE_SSCRN, SscrnDataSize());
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
-        GameSaveSave(&GameSave, pSaveData, pG->SaveKind);
+        GameSave.save(pSaveData, pG->SaveKind);
         BitOn(pG->CardStatus, 4);
         SysFlagOff(pG, SYS_CARD_ACCESS);
         setMsgWindow(1, 0);
@@ -793,7 +788,7 @@ void cCard::loadMain()
 }
 
 // Builds the save file image in pSaveBuf: banner / icons / comment strings ("biohazard4 FILE%02d"),
-// the header (mode, serial, play time...), then the game save blocks (GameSaveSave, room data,
+// the header (mode, serial, play time...), then the game save blocks (GameSave.save, room data,
 // subscreen, merchant) and both CRCs.
 void cCard::makeSaveData()
 {
@@ -836,7 +831,7 @@ void cCard::makeSaveData()
     } else {
         *(u32*) (buf + SAVE_HDR_MODE) = 1;
     }
-    GameSaveSave(&GameSave, pSaveData, *(u32*) (buf + SAVE_HDR_MODE));
+    GameSave.save(pSaveData, *(u32*) (buf + SAVE_HDR_MODE));
     memcpy(buf + SAVE_GAME, SD->p8, SAVE_GAME_SIZE);
     memcpy(buf + SAVE_DATA2, SD->pC, SAVE_DATA2_SIZE);
     memcpy(buf + SAVE_ROOM, SD->p10, RoomData.num * 0xD8 + 0x10);
@@ -1200,7 +1195,7 @@ void cCard::exit()
             }
         }
         BitOff(pG->CardStatus, 0x7FFFFFF8);
-        MesData.ptr[0] = (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc);
+        MesData.ptr[0] = (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore);
         exitFlag = 1;
         break;
     }
@@ -2057,7 +2052,7 @@ void cCard::firstCheck00()
         m_SlotNo = 0;
         if (slotw[0].flags & 0x200) {
             m_Rno0++;
-        } else if (pG->dev_mode == 1) {
+        } else if (pG->IsDevConsole == 1) {
             m_SlotNo = 2;
             m_Rno0++;
         } else {
@@ -2111,7 +2106,7 @@ void cCard::firstCheck10()
             m_Rno1 = 0;
             m_Rno2 = 0;
             m_Rno3 = 0;
-            if (pG->dev_mode == 1) {
+            if (pG->IsDevConsole == 1) {
                 pSys->language = 1;
             }
         }
@@ -3184,7 +3179,7 @@ void CardDbgCacheSet()
     u8* p;
     int i;
 
-    if (pG->dev_mode == 1 && isDbgInfoAlloc == 0) {
+    if (pG->IsDevConsole == 1 && isDbgInfoAlloc == 0) {
         p = (u8*) Debug_alloc(0x2800, 0);
         if (p != 0) {
             memclr_asm(p, 0x2800);
@@ -3214,7 +3209,7 @@ void CardDbgCacheSet()
 
 // Fills save slot `no`'s list entry ids: chapter / difficulty / play time / save count digits
 // from the header (or the "broken" / "no data" variants).
-void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
+void dispSaveInfo(int no, SaveInfo* info, int type, int broken)
 {
     IDSystem* id = &g_id->m_IdSave;
     IdUnit* u;
@@ -3396,16 +3391,16 @@ void CardID::updateSaveInfo(cCard* pCard)
         if (no > 19) {
             no -= 20;
         }
-        g_id->m_IdSave.unitPtrI(0x15, type)->be_flag |= 8;
+        g_id->m_IdSave.unitPtr(0x15, type)->be_flag |= 8;
         f = (&pCard->slotw[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
+                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
+                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
             }
         } else {
-            dispSaveInfoI(no, 0, type, 0);
+            dispSaveInfo(no, 0, type, 0);
         }
     }
 }
@@ -3439,7 +3434,7 @@ void CardID::init(int type, CardArc* data)
     IdSys.kill(0xFF, 0x2A);
     m_IdSave.set(pFrame, 0xFF, 0x18, 9, 3, 0);
     for (i = 0; i < 7; i++) {
-        m_IdSave.setI(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
+        m_IdSave.set(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
     }
     if (this->m_mode == 1) {
         IdSys.set(pSaveDat, 0xFF, 0x10, 0xF, 2, 0);
@@ -3454,7 +3449,7 @@ void CardID::init(int type, CardArc* data)
     IdSys.unitPtr(1, 0x11)->rev_flag |= 0xF;
     zero = 0.0f;
     for (int j = 0; j < 7; j++) {
-        IdUnit* p = g_id->m_IdSave.unitPtrI(0x15, 0x40 + j);
+        IdUnit* p = g_id->m_IdSave.unitPtr(0x15, 0x40 + j);
         IdUnit* q = g_id->m_IdSave.unitPtr((u8) (j + 0x10), 0x18);
         q->type = 1;
         FSet(p->scr.z, zero);
@@ -3513,7 +3508,7 @@ void CardID::move(cCard* pCard)
             a->path1 = b->path1;
             a->scr = b->scr;
             FuncPathParametrize(a->path0, a->path1);
-            m_IdSave.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
+            m_IdSave.setTime(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
             a->rev_flag |= 0xF;
             setAction(0);
             IdSys.unitPtr(5, 0x10)->rev_flag |= 0xF;

@@ -21,8 +21,6 @@
 #include "snd.h"
 #include "math_sub.h"
 
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 #define BOW(pl) ((cObjBow*) (pl)->Wep->m_pWep)
@@ -170,7 +168,7 @@ static void wep28_r3_ready10(cPlayer* pl)
 // ready step 2: finish a motion set by the lock-on turn, then -> set state.
 static void wep28_r3_ready20(cPlayer* pl)
 {
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         PlRoutineSet(pl, 0, 6, 1, 0);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
@@ -225,7 +223,7 @@ static void wep28_r3_set00(cPlayer* pl)
 // set step 1: hold the aim idle.
 static void wep28_r3_set10(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
 }
 
 // set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
@@ -235,7 +233,7 @@ static void wep28_r3_set20(cPlayer* pl)
     if ((Key.on & 4) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -250,7 +248,7 @@ static void wep28_r3_set30(cPlayer* pl)
     if ((Key.on & 8) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -293,7 +291,7 @@ static void wep28_r3_fire00(cPlayer* pl)
     arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x22), PL_ARC_PTR(arc, 0x25), PL_ARC_PTR(arc, 0x28), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     pl->m_Work5 = 1;
     pl->m_Work4 = 1;
     obj = pl->Wep->m_pWep;

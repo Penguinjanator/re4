@@ -7,9 +7,9 @@
 #include "esp.h"
 #include "global.h"
 #include "math_sub.h"
+#include "motion.h"
 
 extern "C" {
-void MotionMove(cModel* m, int a);
 void Efm04RotMatrix(cObj* obj, Mtx m);
 }
 
@@ -143,7 +143,7 @@ void cObj04::move()
                 PSVECScale(&w->rotSpd, &w->rotSpd, -0.8f);
             }
         } else if (w->flags & 1) {
-            f32 floor = EatMgr.getFloor(&pos, 600.0f, 100000.0f, &attr, 0);
+            f32 floor = EatMgr.getFloor(&pos, &attr, 600.0f, 100000.0f, 0);
             f32 ofs = w->groundOfs;
 
             if (DbgFlagChk(pG, DBG_TEST_MODE)) {

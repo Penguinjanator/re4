@@ -14,20 +14,20 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 class cPlayer;
 
 extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp
 int PlBombHitCk(Vec* pos, f32 r);                    // em_sub.cpp
 void SetPlDamage(cEm* em, void (*func)(cPlayer*));  // pl_sub.cpp
 void EndPlDamage();
 void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* mot, void* data, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmBarFunc)(cEmBar*);
 
@@ -74,7 +74,7 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     w->size.y = 400.0f;
     w->size.z = 10.0f;
     w->Eff_id = 0xFF;
-    em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
     em->atari.throughOn();
     emBarYarareInit(em);
     em->hp_max = em->hp;
@@ -293,7 +293,7 @@ void emBar_R1_Set(cEmBar* em)
 
         if (esc == 0) {
             if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f)) < 1.5707964f) {
-                ActBtn.set(0x25, 5, (int) emBarActEscape, (int) em, 1, 3, 0, esc);
+                ActBtn.set(0x25, 5, (void*) emBarActEscape, em, 1, 3, 0, esc);
             }
         }
     }

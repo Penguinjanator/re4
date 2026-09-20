@@ -303,8 +303,8 @@ void EspRoomInit()
         pt->owner = 0xD2;
         pt++;
     }
-    EspDataLoad(pG->pArc->ofs_14 + (u32) pG->pArc, 0, 0);
-    EspDataLoad(pG->pArc->ofs_50 + (u32) pG->pArc, 0xD1, 0);
+    EspDataLoad(pG->pCore->ofs_14 + (u32) pG->pCore, 0, 0);
+    EspDataLoad(pG->pCore->ofs_50 + (u32) pG->pCore, 0xD1, 0);
     g_nLoop = 200;
     sys->pEspBufSave = NULL;
     m = EspEvModList;

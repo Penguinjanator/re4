@@ -262,12 +262,12 @@ void SndSystemReset();
 // 7 door, 8.. enemies (id selects the enemy block). vol: 0 = from the SIT, 0x100/0x200/0x400 set
 // Snd_ctrl_work.x56 bits, 0x80000000 follow pos. Returns the sound id (0 = not played).
 u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj);
-u32 EmSeCall(int no, int id, Vec* pos, int vol0, int vol1, cUnit* obj);
-u32 RoomSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj);
-u32 PlSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj);
-u32 CoreSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj);
-u32 FootSeCall(int no, Vec* pos, int vol0, int vol1);
-u32 DoorSeCall(int no);
+u32 EmSeCall(u16 no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* obj);
+u32 RoomSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
+u32 PlSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
+u32 CoreSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
+u32 FootSeCall(u16 no, Vec* pos, u8 vol, u32 flag);
+u32 DoorSeCall(u16 no);
 int SndSetVol(u32 id, int vol, int time);
 int SndSetDopPitch(u32 id, int pitch);
 int SndStop(u32 id, int time);

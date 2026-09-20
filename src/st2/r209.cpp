@@ -44,9 +44,6 @@
 // leader Ganado that lures the player through the doors, the gatling and bowgun battles, the four-
 // panel picture puzzle that extends the bridge, and the picture behind which the treasure sits.
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
-// an asm-labelled free declaration reproduces the call.
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 // Room door driven by the room itself (the seven `cR209Door` records of the work): the four
 // balcony doors (0xB3..0xB6, rotating), the salon doors 2/3 and the lift 0xA1 (rising).
@@ -141,9 +138,6 @@ struct R209WorkPtr {
 
 static R209WorkPtr r209_work;
 
-// COMPILER-DIFF #4: the original passes the int table entry to the s16 parameter without
-// truncation (`lwzx` straight into r4); an int-parameter view of the callee (r104/r203).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 
 // MSB-first bit `no` of the u32 array `a`.
@@ -287,7 +281,7 @@ void R209Init()
     r209_work.p->door[6].init(0xA1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         if (getRoomEtcDoor(9, &r209_work.p->door9, 1) == 1) {
-            cEmDoorSetCloseLock(r209_work.p->door9);
+            ((cEmDoor*) r209_work.p->door9)->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r209_DoorMessage, 0, 1);
             SceExec(0x12, (TaskFunc) r209_CheckUseSalonKey, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -308,7 +302,7 @@ void R209Init()
         r209_work.p->leader.setEm(0x7D, 3, 1, 0, 0);
         r209_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
         OyaSetObj00(r209_work.p->head, r209_work.p->leader.getPtr(), 2);
-        EstSet((int) r209_work.p->head, -1, 0, 0, 0, 0x2D, 1, 2, 0, 0);
+        EstSet(r209_work.p->head, -1, 0, 0, 0, 0x2D, 1, 2, 0, 0);
         r209_work.p->em[4].w.setEm(0x7E, 3, 1, 0, 0);
         r209_work.p->em[5].w.setEm(0x7F, 3, 1, 0, 0);
         r209_work.p->em[6].w.setEm(0x8B, 3, 1, 0, 0);
@@ -1127,7 +1121,7 @@ static void r209_2ndBattleEmSet()
                 // `li r25,4 .. mr r29,r25` is gcse's PRE of step+1 across the loop.
                 if (pG->Game_level > 7) {
                     for (i = 0; i < 3; i++) {
-                        cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
+                        r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
                         r209_work.p->em[tbl[i].em].active = 1;
                         r209_work.p->em[tbl[i].em].snipe = 1;
                         r209_work.p->em[tbl[i].em].w.setFindPL();
@@ -1212,7 +1206,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
             if (r209_work.p->task[i] != NULL) {
                 SceKill(r209_work.p->task[i]);
             }
-            cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
+            r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
             r209_work.p->em[tbl[i].em].active = 1;
             r209_work.p->em[tbl[i].em].snipe = 1;
             r209_work.p->em[tbl[i].em].w.setPos(&r209_bowgunStartPos[i]);
@@ -1793,7 +1787,7 @@ static void Evt_R209S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         ((cEmDoor*) r209_work.p->door4)->setClose();
-        cEmDoorSetCloseLock(r209_work.p->door4);
+        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
         break;
     case 1:
         if (e->NowCut == 0 && e->NowFrame == 0) {
@@ -2008,7 +2002,7 @@ extern "C" void r209_PanelPazzleEndEndProc()
     SceAtSetEnable(0x31, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // Task (AT 0x2E..0x31): the message of panel `no` for its current state.
@@ -2053,7 +2047,7 @@ static void r209_RotateDoor(int no)
         SceSleep(1);
     }
     e = &r209_work.p->em[em];
-    if (cEmWrapSetEmI(&e->w, id, 3, 1, 0, 0) == 0) {
+    if (e->w.setEm(id, 3, 1, 0, 0) == 0) {
         SceExit();
     }
     r209_work.p->em[em].active = 1;
@@ -2292,7 +2286,7 @@ void cR209Door::close()
             se = -1;
             break;
         case 2:
-            cEmDoorSetCloseLock(r209_work.p->door4);
+            ((cEmDoor*) r209_work.p->door4)->setCloseLock();
             spd = -50.0f;
             se = -1;
             break;
@@ -2461,7 +2455,7 @@ void cR209Door::setClosed()
         SceAtSetEnable(0, 0);
         break;
     case 2:
-        cEmDoorSetCloseLock(r209_work.p->door4);
+        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
         break;
     case 0xA1:
         break;

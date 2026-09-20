@@ -56,7 +56,7 @@ cEsp* Esp09_Create()
 void Esp09_ClearPrevPos(cEsp09* esp)
 {
     Esp09Work* w = &esp->m_Free;
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec* p = &w->Pos[0];
     Vec tmp;
     f32 len;
@@ -89,7 +89,7 @@ void Esp09_ClearPrevPos(cEsp09* esp)
 void cEsp09::move()
 {
     Esp09Work* w = &m_Free;
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     Vec* p;
     Vec tmp;
     f32 len = 0.0f;
@@ -204,7 +204,7 @@ void Esp09_Trans_Setup(cEsp09* esp)
         GXSetCurrentMtx(0);
     } else {
         CameraCurrentProjection();
-        GXLoadPosMtxImm(pG->Cam.v_mat, 0);
+        GXLoadPosMtxImm(pG->Camera.v_mat, 0);
         GXSetCurrentMtx(0);
     }
     EspChannelSet09(esp);
@@ -336,7 +336,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
             up.z = 1.0f;
             half *= 500.0f / p0->z;
         } else {
-            PSVECSubtract(&pG->Cam.param.pos, p0, &up);
+            PSVECSubtract(&pG->Camera.param.pos, p0, &up);
         }
         PSVECCrossProduct(&d, &up, &up);
         if (up.x == 0.0f && up.y == 0.0f && up.z == 0.0f) {
@@ -439,9 +439,9 @@ void Esp09_HideCheck(cEsp* esp0)
     f32 zv;
     u8 old = w->hidden;
 
-    PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+    PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
     PSMTXMultVec(m, &esp->m_Pos, &v);
-    PSMTX44MultVec(pG->Cam.ProjMat, &v, &s);
+    PSMTX44MultVec(pG->Camera.ProjMat, &v, &s);
     s.x = (s.x * 0.5f + 0.5f) * Screen.width;
     s.y = (-s.y * 0.5f + 0.5f) * Screen.height;
     nz = v.z + 150.0f;

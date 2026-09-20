@@ -21,15 +21,6 @@ void Espgen44_Trans(EspgenWork* w)
 {
 }
 
-// Filter05SetParam with all-immediate arguments: the original issues the FPR argument copies
-// interleaved before the trailing `li`s (`fmr f2; li r7; fmr f3; li r8; li r9`), which GCC 2.95
-// only produces when the float parameters are declared first (atari_init.h idiom).
-void Filter05SetParamF(f32 x, f32 y, f32 z, int a, int b, int c, int d, int e, int f, int g) asm("Filter05SetParam__Fiiiiiiifff");
-// Same call with loaded arguments (Espgen44_SetFreeWork): there the original's move order is the
-// five leading ints, the three floats, then the two trailing ints (`lbz r9` early, `lfs f1` after
-// `lbz r7`, `lbz r8` last) — a per-call-site interleaving (the only one of 7 tried that matches).
-void Filter05SetParamM(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g) asm("Filter05SetParam__Fiiiiiiifff");
-
 // Destruct entry: turns the filter the record programmed back off (Filter05SetParam / Filter06SetParam
 // with all-zero parameters).
 void Espgen44_Destruct(EspgenWork* w)
@@ -38,11 +29,11 @@ void Espgen44_Destruct(EspgenWork* w)
 
     switch (p->type) {
     case 0:
-        Filter05SetParamF(0.0f, 0.0f, 0.0f, 0, 0, 0, 0, 0, 0, 0);
+        Filter05SetParam(0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0, 0);
         break;
     case 1: {
         Vec zero = {0.0f, 0.0f, 0.0f};
-        Filter06SetParam(0, 0, 0, 0, 0, 0.0f, &zero, 0.0f, &zero, 0.0f, 0);
+        Filter06SetParam(0, 0, 0, 0, 0, 0.0f, 0.0f, &zero, &zero, 0.0f, 0);
         break;
     }
     }
@@ -66,14 +57,14 @@ int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         int level = (s8) rec->Work8[0] * 100 + 100;
         f32 scale = rec->Size_base_x * 0.005f;
         int kind = rec->Tex_id;
-        Filter05SetParamM(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, scale, rec->Blend_type, kind);
+        Filter05SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, scale, rec->Blend_type, kind);
         break;
     }
     case 1: {
         int level = (s8) rec->Work8[0] * 100 + 100;
         f32 scale = rec->Size_base_x * 0.005f;
         int kind = rec->Work8[1];
-        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, &rec->Speed, 0.0f, &rec->R_speed, scale,
+        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, &rec->Speed, &rec->R_speed, scale,
                          kind);
         break;
     }

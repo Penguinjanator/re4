@@ -65,11 +65,6 @@ struct R20bWorkPtr {
 static u8 r20b_texTbl[0x20];
 static R20bWorkPtr r20b_work;
 
-// The original reads r4 although its prototype has one parameter (r11b).
-void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
-// COMPILER-DIFF: #4 — the original masks the u8 result of GetEmIdFromList before passing it on;
-// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // `(f & a) || (f & b)` tested bit by bit: fold merges the two masks of a plain `||`; a helper keeps
 // the two `andis.` on one load.
@@ -117,7 +112,7 @@ void R20bInit()
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        EvtMgr.EvtReadAram("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0, 0, 0);
+        EvtMgr.EvtReadAram("event/evd/r20bs00.evd", (u8) GetEmIdFromList(0x11), 0, 0, 0);
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) R20bEventS00, 0, 1);
         SmdSetTrans(0x51, 1);
         SmdSetTrans(0x52, 0);
@@ -128,7 +123,7 @@ void R20bInit()
         SmdSetTrans(0x53, 1);
         SceAtSetEnable(0x1B, 0);
         if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
-            EmReadSearch((u8) GetEmIdFromListI(0x11), 0, 0);
+            EmReadSearch((u8) GetEmIdFromList(0x11), 0, 0);
         }
     }
     getRoomEtcDoor(6, &door, 1);
@@ -699,7 +694,7 @@ static void R20bEventS00()
         SceAtSetEnable(2, 0);
         SceDestroyEm(0x22, 0x22);
         SceSleep(1);
-        EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0);
+        EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromList(0x11), 0);
         SceSetChapterEnd(CHAPTER_3_2, -1);
     }
 }
@@ -762,7 +757,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod2, 0);
+                    TexRenderModRes((cModel*) mod2, 0);
                 }
             }
             break;
@@ -821,7 +816,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         default:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
-                    TexRenderModResP((cModel*) mod2, 0);
+                    TexRenderModRes((cModel*) mod2, 0);
                 }
                 EffectEspDelete(r20b_work.p->tex2->mask | 0x3001, 0, 0, 0);
                 EffectEspgenDelete(r20b_work.p->tex2->mask | 0x3001, 0, 0);

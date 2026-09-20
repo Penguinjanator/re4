@@ -69,7 +69,7 @@ void cObj03::move()
         PathGetMatEm(obj03.path, obj03.data, t, &h, parts->mat);
         if (obj03.flags & 1) {
             Mtx m;
-            PSMTXConcat(pG->Cam.v_mat, parts->mat, m);
+            PSMTXConcat(pG->Camera.v_mat, parts->mat, m);
             Draw_local_pos(&bp, 10, m);
         }
         t += 40.0f;

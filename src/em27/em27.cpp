@@ -25,8 +25,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em27Func)(cEm27*);
 
@@ -176,7 +174,7 @@ void em27DmCk(cEm27* em)
             EmDmBloodSet2(em, 0x1F, 6, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x1F, 7, 0, 0, 0);
-            EstSet((int) em, -1, 0, 0, 0x1F, 8, 0, 0, (u32) em, (void*) zero);
+            EstSet(em, -1, 0, 0, 0x1F, 8, 0, 0, em, (void*) zero);
         }
     }
     em->invisible_factor = 1.0f;
@@ -356,7 +354,7 @@ static void em27_R0_Init(cEm27* em)
     em->scale.x = scale;
     em->scale.y = scale;
     em->scale.z = scale;
-    at->init(1, 0x2800, 10, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f);
+    at->init(0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f, 1, 0x2800, 10);
     em->atari.m_flag &= 0xFDFF;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);
@@ -388,7 +386,7 @@ static void em27_R0_Init(cEm27* em)
     EmRoutineSet(em, 1, zero, zero, zero);
     em->ang.y = fRand1_1() * PI;
     MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em27_R0_Move(em);
 }
 
@@ -420,7 +418,7 @@ static void em27_R1_Wait(cEm27* em)
         em->r_no_2++;
     case 1:
         em27SetSPeed(em, 0.1f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else if ((Rnd() & 7) == 0 && em27JumpCk(em)) {
@@ -459,7 +457,7 @@ static void em27_R1_Walk(cEm27* em)
         em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.1f);
-        if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
+        if (MotionMove(em, 0) && (Rnd() & 3) == 0) {
             if (w->L_go > 9000000.0f && (Rnd() & 3) == 0 && em27JumpCk(em)) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
@@ -495,7 +493,7 @@ static void em27_R1_Dash(cEm27* em)
         em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.5f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -529,7 +527,7 @@ static void em27_R1_Bank(cEm27* em)
         em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.1f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -560,7 +558,7 @@ static void em27_R1_Turn180(cEm27* em)
         em->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
@@ -599,7 +597,7 @@ static void em27_R1_Jump(cEm27* em)
         } else {
             flag = 0x40;
         }
-        MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag, 0);
+        MotionSetCore(em, MOTION(em), m0, m1, 5, flag, 0);
         em->r_no_2++;
     }
     case 1:
@@ -639,7 +637,7 @@ static void em27_R1_Dm_Normal(cEm27* em)
             em->r_no_3 = 1;
             flag = 0x40;
         }
-        MotionSetCore(em, MOTION(em), ARC(0x11), (int) ARC(0x1F), 3, flag, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x11), ARC(0x1F), 3, flag, 0);
         em->r_no_2++;
     }
     case 1:
@@ -703,7 +701,7 @@ static void em27_R1_Dm_Air(cEm27* em)
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, flag, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -723,7 +721,7 @@ static void em27_R1_Dm_Air(cEm27* em)
         PSMTXRotRad(m, 'y', em->ang.y);
         PSMTXMultVecSR(m, &w->Spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->pos.y < w->waterHeight) {
             em->r_no_2++;
         }
@@ -739,7 +737,7 @@ static void em27_R1_Dm_Air(cEm27* em)
             em->pos.y = w->waterHeight - 300.0f;
             w->Spd.y = 0.0f;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Spd.y > 0.0f) {
             if (em->hp <= 0) {
                 em->r_no_0 = 3;
@@ -759,7 +757,7 @@ static void em27_R1_Dm_Air(cEm27* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, flag, 0);
         em->r_no_2++;
     case 7:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -826,7 +824,7 @@ static void em27_R1_Die_Normal(cEm27* em)
                 w->upDown = 1;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -866,7 +864,7 @@ static void em27_R1_Die_Normal(cEm27* em)
                 MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 10, flag, 0);
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -1000,7 +998,7 @@ int em27MotionMoveScale(cEm27* em)
     spd.y *= inv.y;
     spd.z *= inv.z;
     MotionAddSpeed(em, MOTION(em), &spd, &rot);
-    ret = MotionMoveF(em, 0);
+    ret = MotionMove(em, 0);
     p = em->getPartsPtr(0);
     p->pos.y *= inv.y;
     p->l_mat[1][3] *= inv.y;
@@ -1030,7 +1028,7 @@ void em27WaterEffSet(cEm27* em)
     if (p->world.y > h && p->world_old.y < h) {
         AddWaterPower(&em->pos, -0.5f);
         EstSet(0, -1, &v, &em->ang, 0x1F, 0, 0, 0, 0, 0);
-        EstSet((int) em, -1, 0, 0, 0x1F, 4, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1F, 4, 0, 0, em, 0);
         SndCall(8, (Rnd() & 3) | 4, &em->pos, em->id, 0, em);
     }
     if (p->world.y < h && p->world_old.y > h) {

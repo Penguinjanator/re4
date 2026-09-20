@@ -162,17 +162,21 @@ struct OptionArc {
 };
 
 // Game task work (`Game`).
-struct GameWork {
-    u32 Rno_bak;   // 0x00  pG->mode32 saved while the option screen runs
-    u8 pad_4[0x14];
-    void* pBuf;     // 0x18  0xE8-byte buffer of the extra game modes (gameInit)
+struct GAME_WORK {
+    u32 Rno_bak;     // 0x00  pG->mode32 saved while the option screen runs
+    u32 Map_addr;    // 0x04
+    u32 Map_size;    // 0x08
+    u32 Option_addr; // 0x0C
+    u32 Option_size; // 0x10
+    u32 Swap_addr;   // 0x14
+    void* omake_wep_addr;      // 0x18  0xE8-byte buffer of the extra game modes (gameInit)
 };
 
 #line 40 "D:/Bio4/Prog/game.cpp"
 
 int lbl_80314B90 = 0;
 
-GameWork Game;
+GAME_WORK Game;
 u32 g_at_cnt[20];
 u32 g_at_cyc[20];
 u32 g_at2_cnt[20];
@@ -194,7 +198,7 @@ void gameDebugDisp();
 void gameDebug();
 }
 
-GameSaveData* pSaveData;
+SAVE_DATA_HEAD* pSaveData;
 cGameSave GameSave;
 cDbWork* DbWork;
 static u32 g_at_total;
@@ -282,7 +286,7 @@ void gameInit()
     }
     if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME) || pG->pl_type == 4) {
 #line 232 "D:/Bio4/Prog/game.cpp"
-        Game.pBuf = MEM_ALLOC(0x70000, 1, 13);
+        Game.omake_wep_addr = MEM_ALLOC(0x70000, 1, 13);
     }
     if (pG->game_mode == 0) {
         pG->game_mode = 5;
@@ -292,7 +296,7 @@ void gameInit()
     Cckpt.gameInit();
     ObjMgr.warnDiv = 100;
     LightMgr.init(LightFuncTbl);
-    LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
+    LightMgr.initPath((LightPathHeader*) (pG->pCore->ofs_3C + (u32) pG->pCore));
     ScenarioInit();
     PlayerInit();
     U16Set(pG->ashley_life, 600);
@@ -302,12 +306,12 @@ void gameInit()
     }
     SysFlagOff(pG, SYS_DOOR_AFTER);
     MerchantGameInit();
-    FSet(pG->mot_speed, 1.0f);
+    FSet(pG->Speed, 1.0f);
     InitGameTime();
     if (SysFlagChk(pG, SYS_LOAD_GAME)) {
         GameLoad();
     }
-    if ((s32) pG->System_flg < 0 || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
+    if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         pG->game_mode = 5;
     }
     if (SysFlagChk(pG, SYS_NEW_GAME) || pG->SaveKind == 3) {
@@ -320,7 +324,7 @@ void gameInit()
 
 // Rno0 == 1: stage/room entry. Marks continue mode (System_flg 0x80), offers the Ashley costume
 // choice at r120 on a new game (unlocked extras), swaps to the disc of the stage (disc 2 from stage
-// 3 on, except r22c), saves the game (GameSaveSave) when allowed and starts the room load
+// 3 on, except r22c), saves the game (GameSave.save) when allowed and starts the room load
 // (StageSet); Rno0 = 2.
 void gameStageInit()
 {
@@ -378,7 +382,7 @@ void gameStageInit()
     }
     SetGameTime();
     if (!StaFlagChk(pG, STA_SAVEDATA_NO_UPDATE) && !SysFlagChk(pG, SYS_LOAD_GAME)) {
-        GameSaveSave(&GameSave, pSaveData, -1);
+        GameSave.save(pSaveData, -1);
     }
     StageSet();
     pG->Rno0 = 2;
@@ -449,10 +453,10 @@ void gameRoomInit()
     EspgenArrayAlloc(ConsGetRoomValue(3));
     CtrlMgr.roomInit();
     CtrlMgr.arrayAlloc(ConsGetRoomValue(4));
-    LightMgr.roomInit((cLit*) (pG->pArc->ofs_2C + (u32) pG->pArc), (cLit*) GetDataExt(pG->pRoom, "LIT", 0),
+    LightMgr.roomInit((cLit*) (pG->pCore->ofs_2C + (u32) pG->pCore), (cLit*) GetDataExt(pG->pRoom, "LIT", 0),
                       (cLit*) GetDataExt(pG->pRoom, "LIT", 1));
     LightMgr.arrayAlloc(ConsGetRoomValue(5));
-    LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
+    LightMgr.initPath((LightPathHeader*) (pG->pCore->ofs_3C + (u32) pG->pCore));
     ShadowRoomInit();
     DmgMgr.roomInit();
     DmgMgr.arrayAlloc(20);
@@ -538,7 +542,7 @@ void gameRoomInit()
     } else {
         pG->pCamRoom = p;
     }
-    CamCtrl.CoreDataRead((CameraDataHeader*) (pG->pArc->ofs_30 + (u32) pG->pArc));
+    CamCtrl.CoreDataRead((CameraDataHeader*) (pG->pCore->ofs_30 + (u32) pG->pCore));
     CamCtrl.roomInit();
     View.roomInit();
     p = GetDataExt(pG->pRoom, "BLK", 0);
@@ -748,7 +752,7 @@ void gameMainLoop()
     }
     LightAreaUpdate();
     Cckpt.move();
-    if ((s32) pG->Debug_flg[0] >= 0) {
+    if (!FlagChkSign(pG->Debug_flg, DBG_TEST_MODE)) {
         SubScreenCall();
     }
     if (pG->debug_mode == 0x10) {
@@ -758,7 +762,7 @@ void gameMainLoop()
         gameDebugDisp();
     }
     if (KeyTrg(0x2000) && !KeyOn(0x400000) && !DbgFlagChk(pG, DBG_TEST_MODE) && OptionOpenCheck() == 1) {
-        Game.Rno_bak = pG->mode32;
+        Game.Rno_bak = *(u32*)&pG->Rno0;
         pG->Rno0 = 6;
         pG->Rno1 = 0;
         pG->Rno2 = 0;
@@ -781,8 +785,8 @@ void GameLoad()
     SysFlagOn(pG, SYS_LOAD_GAME);
     SysFlagOff(pG, SYS_CONTINUE);
     SysFlagOff(pG, SYS_START_EVT_SKIP);
-    U16Set(pG->next_room, pG->room_id);
-    pG->next_point = pG->Part;
+    U16Set(pG->RoomNo_next, pG->room_id);
+    pG->Part_next = pG->Part;
 }
 
 // Continue after death: reloads the save keeping play time and the continue counters (+1 for mode
@@ -811,8 +815,8 @@ void GameContinue(int mode)
     ContinueWepData();
     memcpy((u8*) pG + 0x2C, &pG->sub_pos, sizeof(Vec));
     FSet(pG->NextY, pG->sub_angle);
-    U16Set(pG->next_room, pG->room_id);
-    pG->next_point = pG->Part;
+    U16Set(pG->RoomNo_next, pG->room_id);
+    pG->Part_next = pG->Part;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
@@ -856,13 +860,11 @@ void clearGlobalSaveData()
     InitGameTime();
 }
 
-// Restores the game from a GameSaveData image: the global block (0x4F80..), room flags, sub screen,
+// Restores the game from a SAVE_DATA_HEAD image: the global block (0x4F80..), room flags, sub screen,
 // merchant and item data; SaveKind 3 (new round) clears the block, resets rooms/BGM and starts at
 // r120 with the carried-over merchant/items (2nd round bonuses).
-int cGameSave::load(void* p)
+bool cGameSave::load(SAVE_DATA_HEAD* data)
 {
-    GameSaveData* data = (GameSaveData*) p;
-
     if (data->base == 0) {
         return 0;
     }
@@ -891,13 +893,12 @@ int cGameSave::load(void* p)
 
 // cGameSave::save: writes the game state into the image (player position/angle when in play,
 // SaveKind = mode, global block, room flags, sub screen, merchant, items).
-// cGameSave::save(void*): the original also reads `mode` from r5 (see game.h).
-extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
+bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
 {
     if (data->base == 0) {
         return 0;
     }
-    g->checkAddr(data);
+    checkAddr(data);
     if (pG->Rno0 == 3) {
         memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
         FSet(pG->sub_angle, pPL->ang.y);
@@ -912,18 +913,18 @@ extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
 }
 
 // Re-bases the image's pointers when it was copied from another address (memory card load).
-void cGameSave::checkAddr(GameSaveData* data)
+void cGameSave::checkAddr(SAVE_DATA_HEAD* data)
 {
-    GameSaveData* base = data->base;
+    SAVE_DATA_HEAD* base = data->base;
 
     if (base != 0 && base != data) {
-        calcOffset(data, base);
+        calcOffset(data, (u32) base);
         calcAddr(data);
     }
 }
 
 // Converts the image's section pointers to offsets from base (before writing to card).
-void cGameSave::calcOffset(GameSaveData* data, void* base)
+void cGameSave::calcOffset(SAVE_DATA_HEAD* data, u32 base)
 {
     u32 p;
 
@@ -931,24 +932,24 @@ void cGameSave::calcOffset(GameSaveData* data, void* base)
         return;
     }
     if (base == 0) {
-        base = data;
+        base = (u32) data;
     }
     // One shared temporary: its anti-dependences keep each load below the previous add/sub.
     data->base = 0;
     p = (u32) data->pGlobal;
-    data->pGlobal = (GameSaveBlock*) (p - (u32) base);
+    data->pGlobal = (GameSaveBlock*) (p - base);
     p = (u32) data->pRoom;
-    data->pRoom = (void*) (p - (u32) base);
+    data->pRoom = (void*) (p - base);
     p = (u32) data->pSscrn;
-    data->pSscrn = (u32*) (p - (u32) base);
+    data->pSscrn = (u32*) (p - base);
     p = (u32) data->pMerchant;
-    data->pMerchant = (void*) (p - (u32) base);
+    data->pMerchant = (void*) (p - base);
     p = (u32) data->pItem;
-    data->pItem = (void*) (p - (u32) base);
+    data->pItem = (void*) (p - base);
 }
 
 // Converts the image's section offsets back to pointers (base = the image itself).
-void cGameSave::calcAddr(GameSaveData* data)
+void cGameSave::calcAddr(SAVE_DATA_HEAD* data)
 {
     u32 p;
 
@@ -972,7 +973,7 @@ void cGameSave::calcAddr(GameSaveData* data)
 
 // Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
 // and item sections (32-byte aligned), and fixes the pointers.
-GameSaveData* cGameSave::alloc()
+SAVE_DATA_HEAD* cGameSave::alloc()
 {
     u32 globalOfs = 0x40;
     u32 roomOfs = 0x3740;
@@ -984,7 +985,7 @@ GameSaveData* cGameSave::alloc()
     u32 sscrnSize;
     u32 merchantSize;
     u32 itemSize;
-    GameSaveData* d;
+    SAVE_DATA_HEAD* d;
 
     roomSize = ALIGN32(RoomData.num * 0xD8 + 0x10);
     sscrnSize = ALIGN32(SscrnDataSize());
@@ -995,7 +996,7 @@ GameSaveData* cGameSave::alloc()
     itemOfs = merchantOfs + merchantSize;
     size = itemOfs + itemSize;
 #line 1385 "D:/Bio4/Prog/game.cpp"
-    d = (GameSaveData*) MEM_CALLOC(size, 1, 13);
+    d = (SAVE_DATA_HEAD*) MEM_CALLOC(size, 1, 13);
     d->pGlobal = (GameSaveBlock*) globalOfs;
     d->pRoom = (void*) roomOfs;
     d->pSscrn = (u32*) sscrnOfs;
@@ -1065,7 +1066,7 @@ void gameOption()
         IdSys.dispSw(0x23, 1);
         OptScrn.quit();
         SndSePauseAll(0);
-        pG->mode32 = Game.Rno_bak;
+        *(u32*)&pG->Rno0 = Game.Rno_bak;
         break;
     }
 }
@@ -1280,11 +1281,11 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         cSceSys* s = &SceSys;
         if (s->pDoorFunc != 0) {
-            ((void (*)(int)) s->pDoorFunc)(s->pDoorParam);
+            ((void (*)(void*)) s->pDoorFunc)(s->pDoorParam);
             s->pDoorFunc = 0;
         }
         if (s->pExitFunc != 0) {
-            ((void (*)(int)) s->pExitFunc)(s->pExitParam);
+            ((void (*)(void*)) s->pExitFunc)(s->pExitParam);
             s->pExitFunc = 0;
         }
     }
@@ -1310,9 +1311,9 @@ void gameDoordemo()
     }
     memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
     FSet(pG->sub_angle, pG->NextY);
-    U16Set(pG->room_id, pG->next_room);
-    pG->Part = pG->next_point;
-    if ((s32) pG->Debug_flg[2] >= 0 && !SysFlagChk(pG, SYS_CONTINUE)) {
+    U16Set(pG->room_id, pG->RoomNo_next);
+    pG->Part = pG->Part_next;
+    if (!FlagChkSign(pG->Debug_flg, DBG_ROOMJMP) && !SysFlagChk(pG, SYS_CONTINUE)) {
         pG->JumpPoint = 0;
     }
     pG->Rno0 = 1;
@@ -1342,7 +1343,7 @@ void gameRoomMemInit()
         }
         MemSetCurrentHeap(4);
     }
-    memclr_asm(pG->pad_16C, 0x4E00);
+    memclr_asm(pG->room_start_addr, 0x4E00);
     U32Set(pG->Debug_flg[0], 0);
     U32Set(pG->Debug_flg[1], 0);
     U32Set(pG->Status_flg[0], 0);
@@ -1798,7 +1799,7 @@ void gameDebugDisp()
         DrawRoomWireframe();
     }
     if (DbgFlagChk(pG, DBG_UNDER_CONST)) {
-        DrawTpl((TEXPalette*) (pG->pArc->ofs_90 + (u32) pG->pArc), 0x118, 0x186, 0xDC, 0x1E);
+        DrawTpl((TEXPalette*) (pG->pCore->ofs_90 + (u32) pG->pCore), 0x118, 0x186, 0xDC, 0x1E);
     }
 }
 
@@ -1806,7 +1807,7 @@ void gameDebugDisp()
 // turns the player directly.
 void gameDebug()
 {
-    if ((Joy[0].trg & 0x1000) && (Joy[0].on & 0x40) && (s32) pG->Debug_flg[0] >= 0) {
+    if ((Joy[0].trg & 0x1000) && (Joy[0].on & 0x40) && !FlagChkSign(pG->Debug_flg, DBG_TEST_MODE)) {
         if (SysFlagChk(pG, SYS_PUBLICITY_VER)) {
             if (PadCheckStatus(&Joy[1]) == 1) {
                 DbMenuExec();

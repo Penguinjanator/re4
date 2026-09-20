@@ -52,8 +52,6 @@ static R301WorkPtr r301_work;
 // Hit effects of attribute type 2 (water).
 static const AtEffInfo r301_eff_info = {1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F}};
 
-// COMPILER-DIFF: #4 (int table entries reach the s16 parameter untruncated)
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void r301_checkBgm();
 static void r301_execContinuePoint_end();
@@ -149,7 +147,7 @@ static void r301_execContinuePoint_end()
     SceEventEnd(0);
     SceAtSetEnable(0x10, 0);
     SceAtSetEnable(0x11, 0);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // The continue point: ask, then slide the rock away with a dust effect and save.
@@ -174,7 +172,7 @@ static void r301_execContinuePoint()
         SceEventStart(0);
         CamCtrl.CutCall(6);
         r301_work.p->espKind = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r301_work.p->espKind, zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r301_work.p->espKind, (void*) zero, (void*) zero);
         SndCall(6, 5, 0, 0, 0, 0);
         SceSleep(15);
         r301_work.p->sndId = SndCall(6, 6, 0, 0, 0, 0);
@@ -399,26 +397,26 @@ static void r301_checkEmReset1()
 
             for (;;) {
                 if (f0 == 0 && em0.isActive() == 0) {
-                    cEmWrapSetEmI(&em2, ids[0], -1, 0, 1, 1);
+                    em2.setEm(ids[0], -1, 0, 1, 1);
                     f0 = 1;
                     em2.setFlag(1);
                     em2.setGoto(&pPL->pos, 0xB);
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[1], -1, 0, 1, 1);
+                    em3.setEm(ids[1], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
                 if (f1 == 0 && em1.isActive() == 0) {
                     f1 = 1;
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[2], -1, 0, 1, 1);
+                    em3.setEm(ids[2], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
                 if (f2 == 0 && em2.isActive() == 0) {
                     f2 = 1;
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[3], -1, 0, 1, 1);
+                    em3.setEm(ids[3], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
@@ -460,16 +458,16 @@ static void r301_checkEmReset2()
                     // this copy, which is then scheduled last.
                     if (f0 == 0 && em0.isActive() == 0) {
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[0], -1, 0, 1, 1);
+                        em2.setEm(ids[0], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         f0 = 1;
                     }
                     if (f1 == 0 && em1.isActive() == 0) {
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[1], -1, 0, 1, 1);
+                        em2.setEm(ids[1], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[2], -1, 0, 1, 1);
+                        em2.setEm(ids[2], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         f1 = 1;
                     }
@@ -511,13 +509,13 @@ static void r301_checkEmReset3()
                     while (SceAtHitCheck(0x13) == 1) {
                         SceSleep(1);
                     }
-                    cEmWrapSetEmI(&em1, ids[0], -1, 0, 1, 1);
+                    em1.setEm(ids[0], -1, 0, 1, 1);
                     em1.setGoto(&pos, 0xB);
                     SceSleep(30);
                     while (SceAtHitCheck(0x13) == 1) {
                         SceSleep(1);
                     }
-                    cEmWrapSetEmI(&em2, ids[1], -1, 0, 1, 1);
+                    em2.setEm(ids[1], -1, 0, 1, 1);
                     em2.setGoto(&pos, 0xB);
                     f = 1;
                 }
@@ -611,7 +609,7 @@ static void r301_checkRockWall()
     }
     {
         Vec rot = {0.0f, 0.0f, 0.0f};
-        cEmHit* em = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, &rot, 1);
+        cEmHit* em = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, &rot, 1);
 
         YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 0, 0x41);
         SceSleep(1);
@@ -634,7 +632,7 @@ static void r301_checkRockWall()
                         obj->be_flag &= ~2;
                     }
                     SndCall(6, 2, &obj->pos, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, (void*) zero);
+                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (void*) zero, (void*) zero);
                     SceExit();
                     break;
                 }

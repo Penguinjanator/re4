@@ -121,7 +121,7 @@ public:
     int levelNew(u16 id);
     int levelNew();
     s8 levelMax(u16 id, int type);
-    int stockSpecial(u16 id);
+    int stockSpecial(ITEM_ID id);
     int specialTunable(ItemWork* item);
     int specialTuned(ItemWork* item);
     int tunable(ItemWork* item);
@@ -170,8 +170,8 @@ void add_stock(StockEntry* dst, StockEntry* src);
 void stockDataAdd(MerchantData* d, StockEntry* tbl);
 void levelDataInit(MerchantData* p_data);
 void levelDataAdd(MerchantData* d, LevelEntry* tbl);
-int checkSellingItem(u16 id);
-int checkExerciseItem(u16 id);
+int checkSellingItem(ITEM_ID id);
+int checkExerciseItem(ITEM_ID id);
 }
 
 #endif

@@ -99,10 +99,10 @@ int cEsp0c::SetFreeWork(EspGenWork* gen, u32* seed)
     case 0:
         break;
     case 1:
-        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f + gen->Vec0.y;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, &attr, 600.0f, 100000.0f, 0) + 65.0f + gen->Vec0.y;
         break;
     case 2:
-        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, &attr, 600.0f, 100000.0f, 0) + 65.0f;
         if (GetWaterHeight(&m_Pos, &h)) {
             if (m_Pos.y < h + gen->Vec0.y) {
                 m_Pos.y = h + gen->Vec0.y;

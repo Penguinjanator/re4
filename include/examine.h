@@ -16,7 +16,7 @@ struct ExamInfo {
     u16 x2;     // 0x02
     Vec rot;    // 0x04  initial rotation (degrees)
     f32 scale;  // 0x10  camera distance divisor
-    s32 light;  // 0x14  light cut selected from pG->pArc (0..4)
+    s32 light;  // 0x14  light cut selected from pG->pCore (0..4)
     s32 rot0;   // 0x18  rotation axis for mode 0 (0 world Y, 1 model Y)
     s32 rot1;   // 0x1C  rotation axis for mode 1
 };

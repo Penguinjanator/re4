@@ -38,7 +38,7 @@ struct EmMineWork {
 class cEmMine : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMMINE_WK)
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
 
     void setParent(cEm* parent, int partsNo);

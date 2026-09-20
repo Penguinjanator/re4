@@ -195,7 +195,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002C5B0	0x78	em1d/em10.cpp	global	em10LostHeadCk__FP5cEm10	em10LostHeadCk
 .text	0x0002C628	0x674	em1d/em10.cpp	global	em10LostHead__FP5cEm10ii	em10LostHead
 .text	0x0002CC9C	0x1CC	em1d/em10.cpp	global	em10CallVoiceSe	em10CallVoiceSe
-.text	0x0002CE68	0xC8	em1d/em10.cpp	global	em10CallVoiceSe2__FP5cEm10ii	em10CallVoiceSe2
+.text	0x0002CE68	0xC8	em1d/em10.cpp	global	em10CallVoiceSe2__FP5cEm10UsUs	em10CallVoiceSe2
 .text	0x0002CF30	0xBC	em1d/em10.cpp	global	em10BreathSe__FP5cEm10	em10BreathSe
 .text	0x0002CFEC	0x144	em1d/em10.cpp	global	em10CsawSignSe	em10CsawSignSe
 .text	0x0002D130	0x134	em1d/em10.cpp	global	em10ModelInit__FP5cEm10	em10ModelInit
@@ -340,7 +340,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0003FEA4	0x78	em1d/em10.cpp	global	em10SearchTruck	em10SearchTruck
 .text	0x0003FF1C	0xE8	em1d/em10.cpp	global	em10SearchParasite	em10SearchParasite
 .text	0x00040004	0x94	em1d/em10.cpp	global	em10ParasiteGoOut	em10ParasiteGoOut
-.text	0x00040098	0x124	em1d/em10.cpp	global	em10SetDamageVoice__FP5cEm10ii	em10SetDamageVoice
+.text	0x00040098	0x124	em1d/em10.cpp	global	em10SetDamageVoice__FP5cEm10UsUs	em10SetDamageVoice
 .text	0x000401BC	0xD0	em1d/em10.cpp	global	em10ChgParasiteCk__FP5cEm10	em10ChgParasiteCk
 .text	0x0004028C	0x110	em1d/em10.cpp	global	em10SetDmWaterEff__FP5cEm10i	em10SetDmWaterEff
 .text	0x0004039C	0x424	em1d/em10.cpp	global	em10SetTakeawayPos	em10SetTakeawayPos
@@ -378,8 +378,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000432B0	0xBC	em1d/em10.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
 .text	0x0004336C	0x158	em1d/em10.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x000434C4	0x48	em1d/em10.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x0004350C	0x4	em1d/em10.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00043510	0x4	em1d/em10.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0004350C	0x4	em1d/em10.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00043510	0x4	em1d/em10.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00043514	0x4	em1d/em10.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00043518	0x3B8	em1d/em10_tmpl.cpp	global	fn_em1d_43518	.
 .text	0x000438D0	0x4C	em1d/em1d_set.cpp	global	_prolog	_prolog

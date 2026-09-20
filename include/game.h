@@ -15,8 +15,8 @@ struct GameSaveBlock {
 // Save data image (cGameSave::alloc). The section pointers are stored as offsets from the image
 // start while it travels (calcOffset) and turned back into addresses by calcAddr; `base` is 0 in
 // the offset form.
-struct GameSaveData {
-    GameSaveData* base;       // 0x00  the image's own address (0 = offsets)
+struct SAVE_DATA_HEAD {
+    SAVE_DATA_HEAD* base;     // 0x00  the image's own address (0 = offsets)
     u32 size;                 // 0x04
     GameSaveBlock* pGlobal;   // 0x08  offset 0x40
     void* pItem;              // 0x0C  cItemMgr::save/load
@@ -29,19 +29,15 @@ class cGameSave {
 public:
     u8 pad_0;
 
-    GameSaveData* alloc();
-    int load(void* data);
-    // The original body also reads a `mode` from r5 although the mangled name says one parameter
-    // (sce_com calls it this way); new callers use the GameSaveSave alias below (int result).
-    void save(void* data);
-    void checkAddr(GameSaveData* data);
-    void calcOffset(GameSaveData* data, void* base);
-    void calcAddr(GameSaveData* data);
+    SAVE_DATA_HEAD* alloc();
+    bool load(SAVE_DATA_HEAD* data);
+    bool save(SAVE_DATA_HEAD* data, int mode);
+    void checkAddr(SAVE_DATA_HEAD* data);
+    void calcOffset(SAVE_DATA_HEAD* data, u32 base);
+    void calcAddr(SAVE_DATA_HEAD* data);
 };
 
-int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-
-extern GameSaveData* pSaveData;  // .sbss order: pSaveData before GameSave
+extern SAVE_DATA_HEAD* pSaveData;  // .sbss order: pSaveData before GameSave
 extern cGameSave GameSave;
 
 // Died demo task parameter (DiedemoExec -> gameDiedemo).

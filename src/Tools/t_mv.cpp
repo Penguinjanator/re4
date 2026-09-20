@@ -66,7 +66,7 @@ void ToolMotionViewer()
             if (joy->trg & 0x1000) {
                 pMv->camMode = 0;
             }
-            CamDbg.move(&pG->Cam, joy, 1);
+            CamDbg.move(&pG->Camera, joy, 1);
             break;
         }
         dbModMotionMove();
@@ -96,7 +96,7 @@ static int mvInit()
     bg.a = zero;
     bio4_GXSetCopyClear(bg, 0xFFFFFF);
     {
-        Camera* cam = &pG->Cam;
+        Camera* cam = &pG->Camera;
 
         cam->param.at.x = 0.0f;
         cam->param.at.y = 1000.0f;

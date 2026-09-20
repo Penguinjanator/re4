@@ -311,7 +311,7 @@ static void em3d_R0_Init(cEm3d* em)
         em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     at = &em->atari;
-    at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f);
+    at->init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);
     zero = 0;
     AtariOff(at, 0xFCFF);
     em->setStatus(EM_STATUS_LOCKOFF);
@@ -355,8 +355,8 @@ static void em3d_R0_Init(cEm3d* em)
         }
     }
     w->Patrol_pos = Em3d_pos_tbl[0];
-    EstSet((int) em, -1, 0, 0, 0x32, 0, 1, 0, (u32) em, 0);
-    EstSet((int) em, -1, 0, 0, 0x32, 3, 1, 0, (u32) em, 0);
+    EstSet(em, -1, 0, 0, 0x32, 0, 1, 0, em, 0);
+    EstSet(em, -1, 0, 0, 0x32, 3, 1, 0, em, 0);
     EmRoutineSet(em, 1, 0, 0, 0);
     SndCall(6, 0, &em->pos, 0, 0, em);
     em3d_R0_Move(em);
@@ -708,7 +708,7 @@ void em3dRoterMove(cEm3d* em)
             rot.z = 0.0f;                                                               \
             PSVECScale(&nrm, &s, 30.0f);                                                \
             PSVECAdd(&hit, &s, &hit);                                                   \
-            EstSet(0, -1, &hit, &rot, 0x32, 6, 0, 0, zero, (void*) (zero));             \
+            EstSet(0, -1, &hit, &rot, 0x32, 6, 0, 0, (void*) (zero), (void*) (zero));             \
             if (se) {                                                                   \
                 SndCall(6, 0xA, &hit, 0, 0, em);                                        \
             }                                                                           \
@@ -773,8 +773,8 @@ void em3dChainGunMove(cEm3d* em)
         return;
     }
     w->gunTimer = 2;
-    EstSet((int) em, -1, 0, 0, 0x32, 1, 1, 0, (u32) em, (void*) t);
-    EstSet((int) em, -1, 0, 0, 0x32, 2, 1, 0, (u32) em, (void*) t);
+    EstSet(em, -1, 0, 0, 0x32, 1, 1, 0, em, (void*) t);
+    EstSet(em, -1, 0, 0, 0x32, 2, 1, 0, em, (void*) t);
     SndCall(6, 1, &em->pos, 0, 0, em);
     EM3D_GUN_SHOT(em, 4, 5000.0f, 100000.0f, 1, t);
     EM3D_GUN_SHOT(em, 7, 2000.0f, 300000.0f, 0, t);

@@ -48,7 +48,7 @@ void memclr_asm(void* p, u32 size);
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h);
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 
 extern GXTexObj fontTexObj;  // game/eprintf.cpp
 extern Mtx fontTMtx;
@@ -174,7 +174,6 @@ extern "C" int num_get(char** pp);
 extern "C" int symbol_check(char** pp, const char* sym);
 extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen);
 // COMPILER-DIFF: #1 (the original moves the cModel* argument before the f32 one: `mr r4; fmr f1`)
-int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("PathGetPosEm");
 
 // 1 when the effect tool was entered from the event tool (EvtDebug.FlagEtc bit 30).
 static inline int evtToolOn()
@@ -471,7 +470,7 @@ extern "C" void EprintfDrawing(char* s, f32 x, f32 y, f32 r, f32 g, f32 b, f32 a
 extern "C" void SeqSet(EspSeqData* head, int mode)
 {
     cModel* m;
-    u32 f;
+    u16 f;
     // COMPILER-DIFF: #13 (int shape, em27DmCk): the EstSet stack zero is a function-scope constant with
     // one use in another block, so update_equiv_regs moves the `li` next to the store (r0). It is assigned
     // right before the evtToolOn() test: for sched1 the set is a free insn of that block and takes the t1 slot
@@ -495,7 +494,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     if (evtToolOn()) {
         f |= 0x1000;
     }
-    EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, (void*) zero);
+    EstSet(m, -1, 0, 0, head, f | 1, 0, m, 0xCF, (void*) zero);
 }
 
 // Loads the event's camera data for the event-tool preview (EvtDebug camName).
@@ -1309,7 +1308,7 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
         dbModMotionSet(db_motNo);
         db_motionOn = 1;
         db_frameCnt = 0;
-        dbModelSetCamera(0, &pG->Cam);
+        dbModelSetCamera(0, &pG->Camera);
         if (G_ROOM_ID == 0x332 && evtCutNo() == 0 && db_cutNo == 0x19 && db_fcvData) {
             ShapeSet(INFO5(dbModSlot[0].pModel), 0, db_fcvData, 2);
         }
@@ -1613,7 +1612,7 @@ extern "C" void LightToolEnd()
 // Runs the debug camera on pad 1 (CamDbg).
 extern "C" void EspToolCameraMode()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 1);
+    CamDbg.move(&pG->Camera, &Joy[0], 1);
     eprintf(0xD0, 0x10, 0, 0, "CAMERA MODE");
 }
 
@@ -1634,7 +1633,7 @@ extern "C" void DB_GetCamFrontPos(f32 dist, f32* x, f32* y, f32* z)
 {
     Vec dir;
     Vec pos;
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
 
     dir.x = cam->param.at.x - cam->param.pos.x;
     dir.y = cam->param.at.y - cam->param.pos.y;
@@ -1838,7 +1837,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     t = 0.0f;
     for (i = 0; i < 256; i++) {
         if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
-            PathGetPosEmM(pw->path, em, t, &pw->seg, &pos);
+            PathGetPosEm(pw->path, em, t, &pw->seg, &pos);
         } else {
             PathGetPos(pw->path, t, &pw->seg, &pos);
         }
@@ -1893,7 +1892,7 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
     t = 0.0f;
     for (i = 0; i < 256; i++) {
         if (em && PathHasWeight(path)) {
-            PathGetPosEmM(path, em, t, &seg, &pos);
+            PathGetPosEm(path, em, t, &seg, &pos);
         } else {
             PathGetPos(path, t, &seg, &pos);
         }
@@ -2345,7 +2344,7 @@ extern "C" int symbol_check(char** pp, const char* sym)
 }
 
 // Plays core effect `id` at the origin (EstSet without an owner).
-extern "C" void CoreEstSet(int id)
+extern "C" void CoreEstSet(u8 id)
 {
     EstSet(0, -1, 0, 0, 0, id, 1, 0, 0, 0);
 }

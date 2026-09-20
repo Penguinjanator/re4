@@ -1120,9 +1120,9 @@ void tSceAtDataInput_door_PosSet()
         FSet(pG->NextY, pCur->dstAngle);
         U16Set(pG->room_id_prev, pG->room_id);
         U8Set(pG->Part_old, pG->Part);
-        U8Set(pG->next_stage, pCur->dstStage);
-        U8Set(pG->next_room_no, pCur->dstRoom);
-        U8Set(pG->next_point, pCur->dstPart);
+        U8Set(pG->Stage_next, pCur->dstStage);
+        U8Set(pG->Room_next, pCur->dstRoom);
+        U8Set(pG->Part_next, pCur->dstPart);
     }
     *(TOOL_PTR(0x8678)) = 7;
     TOOL_FLAG(0x68) |= 0x80000000;
@@ -1163,9 +1163,9 @@ void tSceAtDataInput_door_PosSet()
     FSet(pG->NextY, pW->saveRot.y);
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->Part);
-    U8Set(pG->next_stage, pW->saveStage);
-    U8Set(pG->next_room_no, pW->saveRoom);
-    U8Set(pG->next_point, pW->saveX4F9E);
+    U8Set(pG->Stage_next, pW->saveStage);
+    U8Set(pG->Room_next, pW->saveRoom);
+    U8Set(pG->Part_next, pW->saveX4F9E);
     TOOL_FLAG(0x68) |= 0x80000000;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
@@ -2383,7 +2383,7 @@ void tSceAt_PointDisp(f32 x, f32 y, f32 z)
     p.z = z;
     Draw_sphere(&p, 100.0f, 0xFFFFFF80, 1, 1);
     f = p;
-    f.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, NULL, 0);
+    f.y = SatMgr.getFloor(&p, NULL, 600.0f, 100000.0f, 0);
     Draw_line3d(&p, &f, 0x80808020, 0);
     p = f;
     p.x += 200.0f;
@@ -2612,7 +2612,7 @@ void tSceAtSaveDataCreate()
 // CAMERA MODE (START): the debug camera moves with pad 1 while the tool is paused.
 void tSceAtData_DebugCamera()
 {
-    CamDbg.move(&pG->Cam, &Joy[0], 0);
+    CamDbg.move(&pG->Camera, &Joy[0], 0);
     pW->timer++;
     if (pW->timer & 8) {
         eprintf(0xD0, 0x10, 6, 0, "CAMERA MODE");

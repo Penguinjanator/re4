@@ -63,7 +63,6 @@ char* strcpy(char* d, const char* s);
 // game/shape.cpp
 int ShapeMove(cModelInfo* info);
 void ClrShape(cModel* m);
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void* GetModelInfoAddr(cModelInfo* info, int no);
@@ -836,7 +835,7 @@ extern "C" f64 tan(f64 x);
 // follow terminalCameraInit's 1.3333334 in .rodata.
 static void screenPos2terminalPos(Vec* pos, Vec* out)
 {
-    Camera* cam = &pG->Cam;
+    Camera* cam = &pG->Camera;
     f32 pz = cam->param.pos.z;
     f32 h = fabsf((f32) (pz * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 
@@ -882,7 +881,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     ope.wait = 0x1E;
     IdAllocBuffer();
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x15));
-    terminalCameraInit(wk, &pG->Cam);
+    terminalCameraInit(wk, &pG->Camera);
     termModelAlloc(wk);
     ssPlModel = MapMgr.getWork(0);
     ssWepModel = MapMgr.getWork(1);
@@ -904,7 +903,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
             Vec d;
             Vec ang2;
             pos = term_cam_pos;
-            PSVECSubtract(&pG->Cam.param.pos, &pos, &d);
+            PSVECSubtract(&pG->Camera.param.pos, &pos, &d);
             ang2.x = 0.0f;
             ang2.y = atan2f(d.x, d.z);
             ang2.z = 0.0f;
@@ -939,9 +938,9 @@ void SsTermMain::move(SUB_SCREEN* wk)
             u->be_flag |= 8;
             u->rev_flag &= 0xF0;
         }
-        MotionMoveF(MapMgr.getWork(0), 0);
+        MotionMove(MapMgr.getWork(0), 0);
         ShapeMove(MapMgr.getWork(0)->pModelInfo);
-        MotionMoveF(MapMgr.getWork(2), 0);
+        MotionMove(MapMgr.getWork(2), 0);
         ShapeMove(MapMgr.getWork(2)->pModelInfo);
     }
     if (x10 == 0) {

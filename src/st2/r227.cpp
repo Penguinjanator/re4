@@ -69,8 +69,6 @@ static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
-// The room build's cEmRack::setBreak prototype had a Vec* the DOL definition does not read.
-void cEmRackSetBreakV(cEmRack* r, Vec* pos) asm("setBreak__7cEmRack");
 
 void r227_openShelf_main(int id, int opened);
 static void r227_openShelf(int id);
@@ -226,7 +224,7 @@ static void r227_checkBox0Fall()
         }
         SceSleep(1);
     }
-    cEmRackSetBreakV((cEmRack*) r227_work.p->rack[0], &r227_work.p->rack[0]->pos);
+    ((cEmRack*) r227_work.p->rack[0])->setBreak(&r227_work.p->rack[0]->pos);
 }
 
 // Task: rack 1, the same the other way round.
@@ -260,7 +258,7 @@ static void r227_checkBox1Fall()
         }
         SceSleep(1);
     }
-    cEmRackSetBreakV((cEmRack*) r227_work.p->rack[1], &r227_work.p->rack[1]->pos);
+    ((cEmRack*) r227_work.p->rack[1])->setBreak(&r227_work.p->rack[1]->pos);
 }
 
 // Clear the list of enemies watched for falling off the lift.
@@ -486,7 +484,7 @@ static void r227_operateElv()
         SceAtSetEnable(3, 1);
         return;
     }
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
     SceAtSetEnable(0xD, 1);
     SceAtSetEnable(0xF, 1);
     SceAtSetEnable(0x14, 1);
@@ -892,7 +890,7 @@ static void r227_execEvent00()
     SceEventEnd(0);
     r227_setEm1();
     SndBgmTblSet(0x227, 1);
-    GameSaveSave(&GameSave, pSaveData, -1);
+    GameSave.save(pSaveData, -1);
 }
 
 // QTE success callback of the entrance event: Room_flg[0] bit 31.
@@ -934,9 +932,9 @@ static void Evt_R227S00_Func(Event* e)
                 if (e->NowFrame > 15) {
                     DpfFlagOff(pG, DPF_MESSAGE);
                     if (!(pG->Room_flg[0] & 0x40000000)) {
-                        ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 4, 0, 0);
+                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 4, 0, 0);
                     } else {
-                        ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 3, 0, 0);
+                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 3, 0, 0);
                     }
                 }
             } else {

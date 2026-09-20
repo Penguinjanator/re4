@@ -27,8 +27,6 @@
 #include "snd.h"
 #include "math_sub.h"
 
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
@@ -213,7 +211,7 @@ static void wep13_r3_ready10(cPlayer* pl)
 // transition motion m_MotTbl[0x57]/[0x58]; step 3.
 static void wep13_r3_ready20(cPlayer* pl)
 {
-    pl->motionSet(pl->m_MotTbl[0x57], 5, 0, 0, (int) pl->m_MotTbl[0x58]);
+    pl->motionSet(pl->m_MotTbl[0x57], 5, 0, 0, pl->m_MotTbl[0x58]);
     pl->motionMove();
     pl->r_no_3 = 3;
 }
@@ -313,7 +311,7 @@ static void wep13_r3_set00(cPlayer* pl)
 // set step 1: hold the aim idle.
 static void wep13_r3_set10(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
 }
 
 // set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
@@ -323,7 +321,7 @@ static void wep13_r3_set20(cPlayer* pl)
     if ((Key.on & 4) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -338,7 +336,7 @@ static void wep13_r3_set30(cPlayer* pl)
     if ((Key.on & 8) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -350,7 +348,7 @@ static void wep13_r3_set30(cPlayer* pl)
 // set step 4: finish the current motion; ends or any fire / aim / action key -> step 0.
 static void wep13_r3_set40(cPlayer* pl)
 {
-    if (MotionMoveI(pl, 0) || (Key.on & 0x10F)) {
+    if (MotionMove(pl, 0) || (Key.on & 0x10F)) {
         pl->r_no_3 = 0;
     }
 }
@@ -382,12 +380,12 @@ static void wep13_r3_fire00(cPlayer* pl)
     arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x11), PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x15), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     pl->Wep->m_pWep->setDisp(1, 1);
     obj = pl->Wep->m_pWep;
     obj->wep.mode = 2;
     obj->wep.step = 0;
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
+    VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
     pitch = m3r[0];
     PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;

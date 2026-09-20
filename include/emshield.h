@@ -55,11 +55,11 @@ struct EmShieldWork {
 class cEmShield : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMSHIELD_WK)
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
 
     void setParent(cModel* parent, int partsNo, int flag);
-    void setFall(f32 gravity, Vec* spd);
+    void setFall(Vec* spd, f32 gravity);
 };
 
 extern "C" {

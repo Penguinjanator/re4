@@ -16,7 +16,7 @@
 #include "scroll.h"
 
 extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 void slideModelAddr(u32 addr, int ofs);
 void slideTplAddr(void* tpl, int ofs);
 

@@ -138,8 +138,6 @@ static R22cWorkPtr r22c_work;
 
 extern u8 PlCapNum[25];   // game/pl_debug.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static s32 r22c_d0[] = {0, 0, 0, 200, -22000, 0, 2, 240, 1};
 static s32 r22c_d24[] = {300, 0, -2500, 200, -22000, 0, 2, 240, 1};
@@ -493,8 +491,8 @@ void R22cInit()
     SceAtSetActColor(2, 1);
     if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
         ((cEmDoor*) r22c_work.p->door[0])->setDoor((cEmDoor*) r22c_work.p->door[1]);
-        cEmDoorSetCloseLock(r22c_work.p->door[0]);
-        cEmDoorSetCloseLock(r22c_work.p->door[1]);
+        ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
+        ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
     }
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(1)->be_flag &= ~2;
@@ -566,7 +564,7 @@ static void r22c_ShootingStar()
     pos.z = -25337.0f;
     o->setPos(&pos);
     o->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20));
-    EstSet((int) o, -1, 0, 0, 1, 6, 0, 0, (u32) o, 0);
+    EstSet(o, -1, 0, 0, 1, 6, 0, 0, o, 0);
     SceSleep(10);
     pos.x = -3951.0f;
     pos.y = 3000.0f;
@@ -587,7 +585,7 @@ static void r22c_ShootingStar()
     pos.y = 400.0f;
     pos.z = -17100.0f;
     o->setPos(&pos);
-    EffectEspgenDelete(0, 0x3F, (int) o);
+    EffectEspgenDelete(0, 0x3F, o);
     EstSet(0, -1, &o->pos, 0, 1, 7, 0, 0, 0, 0);
     QuakeExec(0, 0, 5, 22.0f, 2);
     SndCall(6, 0x16, 0, 0, 0, 0);
@@ -926,8 +924,8 @@ void gameEnd()
     pl->weaponInit();
     pG->Room_flg[0] &= ~0x80000000;
     SceAtSetEnable(9, 1);
-    cEmDoorSetCloseLock(r22c_work.p->door[0]);
-    cEmDoorSetCloseLock(r22c_work.p->door[1]);
+    ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
+    ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
     FadeSetW(0x80000002, 10, 0, 0);
     SceSleep(1);
     getBottleCap();
@@ -1907,7 +1905,7 @@ void ScoreMove()
             r22c_work.p->scoreTimer[i] = 0;
         }
         if (r22c_work.p->scoreTimer[i] == 0) {
-            r22c_work.p->score2.killI(0xFF, 0x40 + i);
+            r22c_work.p->score2.kill(0xFF, 0x40 + i);
         }
     }
     r22c_work.p->score2.move();
@@ -1944,8 +1942,8 @@ void ScoreSet(int pt, Vec* pos)
     }
     r22c_work.p->scoreTimer[slot] = 30;
     type = slot + 0x40;
-    r22c_work.p->score2.setI(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
-    u = r22c_work.p->score2.unitPtrI(0, type);
+    r22c_work.p->score2.set(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
+    u = r22c_work.p->score2.unitPtr(0, type);
     v = *pos;
     GetScreenPos(&v, &scr);
     scr.x = (scr.x - 256.0f) * 1.25f;
@@ -1955,14 +1953,14 @@ void ScoreSet(int pt, Vec* pos)
         IdUnit* m;
 
         pt = -pt;
-        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag &= ~8;
-        m = r22c_work.p->score2.unitPtrI(0xFD, type);
+        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag &= ~8;
+        m = r22c_work.p->score2.unitPtr(0xFD, type);
         u->col0[0] = m->col0[0];
         u->col0[1] = m->col0[1];
         u->col0[2] = m->col0[2];
         u->col0[3] = m->col0[3];
     } else {
-        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag |= 8;
+        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag |= 8;
     }
     d = digit;
     {
@@ -1987,7 +1985,7 @@ void ScoreSet(int pt, Vec* pos)
         }
     }
     for (i = 3; i >= 0; i--) {
-        IdUnit* du = r22c_work.p->score2.unitPtrI(i + 1, type);
+        IdUnit* du = r22c_work.p->score2.unitPtr(i + 1, type);
 
         if (i - n >= 0) {
             du->tex_flag = 2;

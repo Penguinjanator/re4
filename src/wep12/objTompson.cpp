@@ -59,12 +59,12 @@ void cObjTompson::moveFire()
             mot = WEP_ARC_PTR(0x2A);
         }
         MotionSetCore(this, &this->Motion, mot, 0, 0, 0, 0);
-        EstSet((int) this, -1, 0, 0, 0x46, 0, 0, 0, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 0x46, 0, 0, 0, this, 0);
         SndCall(2, 0, &pParts->world, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
         setCartridge();
-        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xA, 1);
         wep.step = 1;
     }
 }

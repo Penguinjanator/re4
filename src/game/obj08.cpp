@@ -14,6 +14,7 @@
 #include "pad.h"
 #include "dbmodule.h"
 #include "player.h"
+#include "motion.h"
 
 // Thrown object (bottle, dynamite, ...): flies under gravity, optionally spinning, and checks
 // the scenario, the enemies and the player for hits.
@@ -31,7 +32,6 @@ struct WepTarget {
 extern cModel* pSUB;
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, int max, u16 flag);
 void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot);
@@ -42,7 +42,6 @@ int obj08ToEmHitCk(cObj08* obj);
 int obj08ToPlHitCk(cObj08* obj);
 void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 Vec obj08HitBox[8] = {
     { -500.0f, -500.0f, 0.0f },   { 500.0f, -500.0f, 0.0f },
@@ -66,8 +65,8 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
     w = &obj->o8;
     obj->id = 8;
     if (bin == 0) {
-        if (obj->modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc),
-                           (void*) (pG->pArc->ofs_24 + (u32) pG->pArc)) == 0) {
+        if (obj->modelInit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore),
+                           (void*) (pG->pCore->ofs_24 + (u32) pG->pCore)) == 0) {
             ObjMgr.destroy(obj);
             return 0;
         }
@@ -369,7 +368,7 @@ int obj08ToPlHitCk(cObj08* obj)
                     }
                     SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
                 }
-                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+                VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             }
             w->be_flag &= ~0x20;
             return 1;
@@ -398,7 +397,7 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
     }
     if (w->hit_type) {
-        EstSet((int) em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, 0, em, 0);
         return;
     }
     if (part->partsNo != 0) {

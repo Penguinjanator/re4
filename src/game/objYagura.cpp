@@ -10,6 +10,7 @@
 #include "widget.h"
 #include "obj.h"
 #include "global.h"
+#include "motion.h"
 
 // Ladder (yagura = tower): a static collision model that can play a vibration motion.
 class cObjYagura : public cObj {
@@ -21,10 +22,8 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objYagura_R0_Set(cObjYagura* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 void (*ObjYagura_R0_move_tbl[1])(cObjYagura*) = { objYagura_R0_Set };
 
