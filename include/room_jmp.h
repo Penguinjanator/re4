@@ -39,8 +39,8 @@ public:
     void setNextPos(u8 stage, u8 room);
     s8 getNextStageNo(s8 stage, int dir);
     s8 getNextRoomNo(s8 stage, s8 idx, int dir);
-    s8 getNextPointNo(s8 stage, s8 room, s8 point, int dir);
-    int checkRoomNo(s8 stage, int idx);
+    s8 getNextPointNo(s8 stage, s8 room, s8 point, s8 dir);
+    s8 checkRoomNo(s8 stage, s8 room);
 };
 
 // room_jmp.cpp and title.cpp each own a file-scope `cRoomJmp* pRj` of their own.

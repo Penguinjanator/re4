@@ -4348,7 +4348,7 @@ address	size	section	unit	scope	name	demangled
 0x80131EC0	0xC8	.text	game/EtcModel.cpp	global	Et67_init	Et67_init
 0x80131F88	0xF3C	.text	game/EtcModel.cpp	global	EtcModelSet	EtcModelSet
 0x80132EC4	0x24	.text	game/EtcModel.cpp	global	EtcGetDasAddr	EtcGetDasAddr
-0x80132EE8	0x7C	.text	game/EtcModel.cpp	global	GetEtcFlgPtr__Fii	GetEtcFlgPtr
+0x80132EE8	0x7C	.text	game/EtcModel.cpp	global	GetEtcFlgPtr__FUlUs	GetEtcFlgPtr
 0x80132F64	0x110	.text	game/EtcModel.cpp	global	getRoomEtcBreak	getRoomEtcBreak
 0x80133074	0xB4	.text	game/EtcModel.cpp	global	setRoomEtcDisp	setRoomEtcDisp
 0x80133128	0xB8	.text	game/EtcModel.cpp	local	setRoomEtcBreakDisp	setRoomEtcBreakDisp
@@ -5521,8 +5521,8 @@ address	size	section	unit	scope	name	demangled
 0x80180330	0x44	.text	game/room_jmp.cpp	global	setNextPos__8cRoomJmpUcUc	cRoomJmp::setNextPos
 0x80180374	0x3C	.text	game/room_jmp.cpp	global	getNextStageNo__8cRoomJmpSci	cRoomJmp::getNextStageNo
 0x801803B0	0xF8	.text	game/room_jmp.cpp	global	getNextRoomNo__8cRoomJmpScSci	cRoomJmp::getNextRoomNo
-0x801804A8	0xBC	.text	game/room_jmp.cpp	global	getNextPointNo__8cRoomJmpScScSci	cRoomJmp::getNextPointNo
-0x80180564	0x70	.text	game/room_jmp.cpp	global	checkRoomNo__8cRoomJmpSci	cRoomJmp::checkRoomNo
+0x801804A8	0xBC	.text	game/room_jmp.cpp	global	getNextPointNo__8cRoomJmpScScScSc	cRoomJmp::getNextPointNo
+0x80180564	0x70	.text	game/room_jmp.cpp	global	checkRoomNo__8cRoomJmpScSc	cRoomJmp::checkRoomNo
 0x801805D4	0x54	.text	game/room_jmp.cpp	global	RoomJump__Fv	RoomJump
 0x80180628	0xAC	.text	game/room_jmp.cpp	global	roomJumpInit	roomJumpInit
 0x801806D4	0x438	.text	game/room_jmp.cpp	global	roomJumpMove	roomJumpMove

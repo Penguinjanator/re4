@@ -29,7 +29,7 @@ struct EtcSetData {
 
 // EtcModel.cpp is C++ but exports its functions with C linkage (unmangled names in the DOL).
 // C++ linkage (sym_map: GetEtcFlgPtr__Fii, getRoomEtcItem__FiPP7EtcItemi)
-u16* GetEtcFlgPtr(int no, int room);   // etc flag word of etc model `no` in `room` (stage << 8 | room), 0 when none
+u16* GetEtcFlgPtr(u32 no, u16 room);   // etc flag word of etc model `no` in `room` (stage << 8 | room), 0 when none
 int getRoomEtcItem(int room, EtcItem** out, int bErrDisp);
 
 extern "C" {

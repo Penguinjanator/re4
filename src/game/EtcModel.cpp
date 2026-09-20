@@ -208,11 +208,6 @@ void EtcSetAddAmb(cModel* m, int no);
 
 int EspGetEfmTplAddr(int id, void** tpl);   // game/eff_sys.cpp
 
-// cRoomData::getRoomSavePtr(u16) called with GetEtcFlgPtr's int room: the original passes the
-// register through unmasked (narrow-argument compiler difference, see docs/matching.md), so it is called
-// through an int-parameter alias.
-u8* RoomDataGetRoomSavePtr(cRoomData* r, int room) asm("getRoomSavePtr__9cRoomDataUs");
-
 // One slot of the room etc table.
 class cEtcTbl {
 public:
@@ -2562,7 +2557,7 @@ int EtcGetDasAddr(int id, void** out)
 
 // The persistent flag word of etc slot `no` in room `room`'s save record (broken / opened /
 // collected bits the object classes keep); NULL for a bad slot or a room without a record.
-u16* GetEtcFlgPtr(int no, int room)
+u16* GetEtcFlgPtr(u32 no, u16 room)
 {
     u8* p;
 
@@ -2570,7 +2565,7 @@ u16* GetEtcFlgPtr(int no, int room)
         pLog->err(6, 0, "GetEtcFlgPtr() : Invalid EtcModel No[%d](MAX:%d)", no, 0x40);
         return 0;
     }
-    p = RoomDataGetRoomSavePtr(&RoomData, room);
+    p = RoomData.getRoomSavePtr(room);
     if (p == 0) {
         return 0;
     }

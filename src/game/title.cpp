@@ -1559,10 +1559,6 @@ void titleExit(TitleWork* w)
     TaskChain(GameTask, 0);
 }
 
-// COMPILER-DIFF: #4 (int argument to an s8 parameter: the original passes `no` without the extsb)
-s8 RjGetPointNumI(cRoomJmp* rj, s8 stage, int room) asm("getPointNum__8cRoomJmpScSc");
-s8 RjGetNextPointNoI(cRoomJmp* rj, s8 stage, int room, s8 point, int dir) asm("getNextPointNo__8cRoomJmpScScSci");
-
 // Debug start menu (title): stage / room / point, player type, costume, level and mode, edited
 // with the pad and shown with eprintf; writes the choice into pG before titleExit.
 void titleDebugMenu(TitleWork* w)
@@ -1582,7 +1578,7 @@ void titleDebugMenu(TitleWork* w)
     s16 y;
     int i;
     int lines = 21;
-    int no;
+    s8 no;
     int num;
 
     if (Joy[0].on & 0x00200000) {
@@ -1696,22 +1692,22 @@ void titleDebugMenu(TitleWork* w)
         }
         break;
     case 5:
-        no = (s8) pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->room;
+        no = pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->room;
         if (Joy[0].rep2 & 0x00020002) {
-            if (RjGetPointNumI(pRj, w->Stage, no) - 1 == w->JumpPoint) {
+            if (pRj->getPointNum(w->Stage, no) - 1 == w->JumpPoint) {
                 w->JumpPoint = 0;
             } else {
-                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, 1);
+                w->JumpPoint = pRj->getNextPointNo(w->Stage, no, w->JumpPoint, 1);
             }
         }
         if (Joy[0].rep2 & 0x00010001) {
             if (w->JumpPoint == 0) {
-                w->JumpPoint = RjGetPointNumI(pRj, w->Stage, no) - 1;
+                w->JumpPoint = pRj->getPointNum(w->Stage, no) - 1;
             } else {
-                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, -1);
+                w->JumpPoint = pRj->getNextPointNo(w->Stage, no, w->JumpPoint, -1);
             }
         }
-        w->JumpPoint = w->JumpPoint < 0 ? 0 : (w->JumpPoint > RjGetPointNumI(pRj, w->Stage, no) - 1 ? RjGetPointNumI(pRj, w->Stage, no) - 1 : w->JumpPoint);
+        w->JumpPoint = w->JumpPoint < 0 ? 0 : (w->JumpPoint > pRj->getPointNum(w->Stage, no) - 1 ? pRj->getPointNum(w->Stage, no) - 1 : w->JumpPoint);
         break;
     case 6:
         num = w->em_list_no;
