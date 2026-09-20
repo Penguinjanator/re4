@@ -14,6 +14,7 @@
 #include "flr_at.h"
 #include "player.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Floor attribute (room "FSE" file) editor of the Tools REL. No __FILE__ string: the real name is
 // unknown (t_flr_at.cpp by its function prefix). Same skeleton as t_movie's t_se_at.cpp.
@@ -26,11 +27,8 @@ int SetToolLight(int no);  // db_light_tools.cpp
 
 // Reference stores (global.h FSet/BitSet): a scalar MEM, so the following global load (pG, pFlrSys)
 // is not hoisted above it and is reloaded.
-static inline void ISet(int& d, int v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void ASet(FlrAt*& d, FlrAt* v) { d = v; }
 // Reference read: a MEM with neither flag stays below the preceding struct stores (the save counter).
-static inline int IGet(int& v) { return v; }
 
 // Tool-side view of the FlrAt record (flr_at.h), 0x84 bytes.
 struct TFlrAt {

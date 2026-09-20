@@ -31,6 +31,7 @@
 #include "est.h"
 #include "math_sub.h"
 #include "vec.h"
+#include "ref_access.h"
 
 // Room 3-10 (D:/Bio4/Prog/r310.cpp): the two crates Leon and Ashley push together, the lever pairs
 // with their barred doors, the hiding spots and the S00 event with the Ganado that stands up.
@@ -49,10 +50,6 @@ static R310Work* r310_work;
 // The room bits live in the second word of the room's save record (RoomData).
 #define R310_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
-// Pointer stores through a reference: the work and the field are reloaded after them (r102 idiom).
-static inline void PSetObj(cObj*& d, cObj* v) { d = v; }
-static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
 // Enemy list entry copy (0x20 bytes).
 static inline void EmListCopy(int dst, int src) { *EM_LIST(dst) = *EM_LIST(src); }
 
@@ -343,7 +340,7 @@ static void r310_pushBox2_leon()
     Vec goal;
 
     pPL->beginEvent(0);
-    AtariFlagsOr(&pPL->atari, 0x100);
+    AtariOn(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
     plPos.x = pPL->pos.x + 500.0f;
@@ -376,7 +373,7 @@ static void r310_pushBox2_leon()
     FSet(pPL->ang.y, +1.5707964f);
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
+    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -419,7 +416,7 @@ finish:
 static void r310_pushBox2()
 {
     SceAtSetEnable(6, 0);
-    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
+    PSet(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
@@ -584,7 +581,7 @@ static void r310_pushBox1_leon()
     Vec goal;
 
     pPL->beginEvent(0);
-    AtariFlagsOr(&pPL->atari, 0x100);
+    AtariOn(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
     plPos.x = pPL->pos.x - 500.0f;
@@ -617,7 +614,7 @@ static void r310_pushBox1_leon()
     FSet(pPL->ang.y, -1.5707964f);
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
+    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -661,7 +658,7 @@ finish:
 static void r310_pushBox1()
 {
     SceAtSetEnable(1, 0);
-    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
+    PSet(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
@@ -693,7 +690,7 @@ static void r310_pushBox1()
 // 6 / save bit 0x10000000.
 void r310_initBoxPush()
 {
-    PSetObj(r310_work->box1, SmdGetObjPtr(3));
+    PSet(r310_work->box1, SmdGetObjPtr(3));
     if (r310_work->box1) {
         BitOn(r310_work->box1->be_flag, 0x20);
         if (!(R310_SAVE_FLAGS & 0x40000000)) {
@@ -713,7 +710,7 @@ void r310_initBoxPush()
             o->setAng(&rot);
         }
     }
-    PSetObj(r310_work->box2, SmdGetObjPtr(4));
+    PSet(r310_work->box2, SmdGetObjPtr(4));
     if (r310_work->box2) {
         BitOn(r310_work->box2->be_flag, 0x20);
         if (!(R310_SAVE_FLAGS & 0x20000000)) {

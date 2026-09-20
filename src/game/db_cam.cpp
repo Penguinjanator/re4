@@ -22,6 +22,7 @@
 #include "player.h"
 #include "db_cam.h"
 #include "motion.h"
+#include "ref_access.h"
 
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
@@ -76,22 +77,12 @@ const char* key_str[4] = {"DFLT", "SCR", "????", "????"};
 // load, as in the original: joy->trg is reloaded after each step).
 static inline void Inc(int& v) { v++; }
 static inline void Dec(int& v) { v--; }
-static inline void Set(int& v, int x) { v = x; }
 
 // adjust_qFPS keeps the edited shoulder offset record as a byte pointer (the original copies it
 // with memcpy and steps through it by byte offset).
 #define QOFS(p) ((QfpsOfs*) (p))
 #define QOFS_CAMPOS2 0xC
 
-// Matrix column -> vector (cam_sys.cpp's helper): through the `Vec*` parameter the stores go via
-// the address register for the frame-offset-0 local (`stfs 4(r31)`, its pseudo reused by the
-// later PSVECScale(&vx, ..)); for the other locals integrate substitutes the frame address.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Column vectors -> matrix.
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
@@ -1328,7 +1319,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 4:
             if (joy->trg & JOY_A) {
                 menu_level = 4;
-                Set(yes_no, 0);
+                ISet(yes_no, 0);
             }
             break;
         }
@@ -1371,11 +1362,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 site_LR = site_col;
             }
             if (site_row <= 2) {
-                Set(site_UMD, site_row);
-                Set(site_NF, 0);
+                ISet(site_UMD, site_row);
+                ISet(site_NF, 0);
             } else {
-                Set(site_NF, 1);
-                Set(site_UMD, site_row - 3);
+                ISet(site_NF, 1);
+                ISet(site_UMD, site_row - 3);
             }
             if (site_NF) {
                 if (site_LR) {
@@ -1490,10 +1481,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->rep & JOY_LEFT) {
-            Set(yes_no, 1);
+            ISet(yes_no, 1);
         }
         if (joy->rep & JOY_RIGHT) {
-            Set(yes_no, 0);
+            ISet(yes_no, 0);
         }
         if (joy->trg & JOY_A) {
             if (yes_no) {
@@ -1515,10 +1506,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->trg & JOY_UP) {
-            Set(near_far, 0);
+            ISet(near_far, 0);
         }
         if (joy->trg & JOY_DOWN) {
-            Set(near_far, 1);
+            ISet(near_far, 1);
         }
         {
             f32 step = 1.0f;

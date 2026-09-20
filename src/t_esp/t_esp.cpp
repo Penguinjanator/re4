@@ -5,6 +5,7 @@
 #include "db_log.h"
 #include "vec.h"
 #include "esp.h"
+#include "ref_access.h"
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
@@ -437,7 +438,6 @@ void EspToolTrans();
 void DrawPosCursor();
 void ToolEspMain();
 
-static inline void ISet(int& d, int v) { d = v; }
 // reference store of a window pointer: keeps the following `->win` load below the store
 static inline void WSet(TOOL_WINDOW*& d, TOOL_WINDOW* v) { d = v; }
 #define BRING(w) ISet((w)->win->bring, 1)
@@ -5937,12 +5937,6 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     if (g_immFlg[no]) tbl->field = imm->field;                                     \
     else tbl->field = tbl->field + delta->field;                                   \
     no++;
-// Clamp helper of AddSeq.
-static inline void FClamp(f32& v, f32 lo, f32 hi)
-{
-    if (v < lo) v = lo;
-    if (v > hi) v = hi;
-}
 #define ADD_CLAMP(field, lo, hi)                                                   \
     ADD(field)                                                                     \
     if (tbl->field < (lo)) tbl->field = (lo);                                      \

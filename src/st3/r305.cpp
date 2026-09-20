@@ -13,6 +13,7 @@
 #include "em_wrap.h"
 #include "snd.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 3-05 (D:/Bio4/Prog/r305.cpp): the shutter that the bomber Ganado open and close, the enemies reset
 // to their start positions while it is closed, and the three item boxes.
@@ -58,7 +59,6 @@ static R305Work* r305_work;
 static void (cR305Shutter::*r305_shutter_tbl[3])() = {&cR305Shutter::wait, &cR305Shutter::open, &cR305Shutter::close};
 
 // Reference store: the work pointer is reloaded after it.
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 static void r305_GanadoDieCheck();
 static void r305_RoomExitFunc();

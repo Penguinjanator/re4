@@ -33,6 +33,7 @@
 #include "esp.h"
 #include "est.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-2-4 (D:/Bio4/Prog/r224.cpp): the water hall. The lever ("reva") that opens the floor
 // grate ("gnd"), the lid ("futa") that lets the two Novistadors out, the mine cart ("toroko") ride
@@ -77,9 +78,6 @@ public:
     virtual int ckThrow2();   // 0x68
 };
 
-// Atari flag stores through the info's address (r207 idiom): `addi r9, pl, 0x2B4` + lhz/sth 0x1A(r9).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
 struct PlPtr {
     cPlayer* p;
@@ -138,8 +136,8 @@ void R224Init()
     r224_work.p->obj2->pos.y = 0.0f;
     r224_work.p->obj2->pos.z = -543.0f;
     AtariInit(&r224_work.p->obj2->atari, 0.0f, 0.0f, 0.0f, 0.0f, 5100.0f, 5100.0f, 50000.0f, 0, 0x18, 0);
-    AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFEFF);
-    AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFDFF);
+    AtariOff(&r224_work.p->obj2->atari, 0xFEFF);
+    AtariOff(&r224_work.p->obj2->atari, 0xFDFF);
     SmdGetObjPtr(0x13)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
     SceAtSetEnable(5, 0);
@@ -231,14 +229,14 @@ static void r224_em_set_exit()
     SndStop(r224_work.p->se0, 0);
     SndStop(r224_work.p->se1, 0);
     SmdGetObjPtr(0x16)->pos.y = 7838.0f;
-    AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
     pGS->Room_flg[0] |= 0x04000000;
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r224_door_mes, 0, 1);
     SceExec(0x12, (TaskFunc) em_die_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     GamePointBossReset();
-    AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
     v.x = 7812.0f;
     v.y = 0.0f;
     v.z = -2048.0f;
@@ -277,8 +275,8 @@ static void r224_em_set()
     r224_work.p->em0.setNoSuspend(1);
     r224_work.p->em1.setNoSuspend(1);
     if (r224_work.p->em0.getPtr()) {
-        AtariFlagsAnd(&r224_work.p->em0.getPtr()->atari, 0xFCFF);
-        AtariFlagsAnd(&r224_work.p->em1.getPtr()->atari, 0xFCFF);
+        AtariOff(&r224_work.p->em0.getPtr()->atari, 0xFCFF);
+        AtariOff(&r224_work.p->em1.getPtr()->atari, 0xFCFF);
         v.x = 16700.0f;
         v.y = 0.0f;
         v.z = -7320.0f;
@@ -308,8 +306,8 @@ static void r224_em_set()
     SceSleep(10);
     r224_work.p->em1.setFlag(1);
     SceSleep(60);
-    AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -329,8 +327,8 @@ static void r224_toroko()
     }
     pG->Room_flg[0] |= 0x08000000;
     pl->beginAction();
-    AtariFlagsAnd(&pPLS->atari, 0xFEFF);
-    AtariFlagsAnd(&pPLS->atari, 0xFDFF);
+    AtariOff(&pPLS->atari, 0xFEFF);
+    AtariOff(&pPLS->atari, 0xFDFF);
     pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->setRightHand(1);
@@ -361,8 +359,8 @@ static void r224_toroko()
     pl->Wep->setTrans(1, 0);
     pl->endAction(0);
     pPL->dmg.clear();
-    AtariFlagsOr(&pPLS->atari, 0x100);
-    AtariFlagsOr(&pPLS->atari, 0x200);
+    AtariOn(&pPLS->atari, 0x100);
+    AtariOn(&pPLS->atari, 0x200);
     pPLS->atari.setPriority(0);
     pG->Room_flg[0] &= ~0x08000000;
 }
@@ -385,7 +383,6 @@ static void r224_toroko()
 // `lfs acc` depend on the store (target: `lfs f30,acc` last). The dead `if (spd == 1.85f) up = 0;`
 // is a 4th ref for the hoisted 1.85 constant so it ranks above zero in global-alloc (f27 vs f26;
 // zero has no REG_EQUIV doubling, the pool constant has).
-static inline f32 FCRef(const f32& v) { return v; }
 asm(".section \".rodata\"\n\t.align 2\nr224_zero:\n\t.long 0\n\t.section \".text\"");
 extern const f32 r224_zero;
 extern const f32 r224_zero_v asm("r224_zero");
@@ -512,8 +509,8 @@ static void gnd_open()
     SmdGetObjPtr(0x13)->ang.x = 0.0f;
     SmdGetObjPtr(0x14)->ang.x = 0.0f;
     SceAtSetEnable(4, 0);
-    AtariFlagsOr(&r224_work.p->obj2->atari, 0x100);
-    AtariFlagsOr(&r224_work.p->obj2->atari, 0x200);
+    AtariOn(&r224_work.p->obj2->atari, 0x100);
+    AtariOn(&r224_work.p->obj2->atari, 0x200);
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
     SceAtSetEnable(7, 0);
@@ -537,8 +534,8 @@ void gnd_close()
 
     SmdGetObjPtr(0x13)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
-    AtariFlagsOr(&r224_work.p->obj2->atari, 0x100);
-    AtariFlagsOr(&r224_work.p->obj2->atari, 0x200);
+    AtariOn(&r224_work.p->obj2->atari, 0x100);
+    AtariOn(&r224_work.p->obj2->atari, 0x200);
     SndCall(6, 0xB, &SmdGetObjPtr(0x13)->pos, 0, 0, 0);
     for (;;) {
         spd += acc;
@@ -564,8 +561,8 @@ void gnd_close()
     }
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
-    AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFEFF);
-    AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFDFF);
+    AtariOff(&r224_work.p->obj2->atari, 0xFEFF);
+    AtariOff(&r224_work.p->obj2->atari, 0xFDFF);
     pGS->Room_flg[0] &= ~0x40000000;
 }
 

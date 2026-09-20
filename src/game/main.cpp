@@ -55,6 +55,7 @@ f32 ORTHO_R;
 #include "os_vi.h"
 #include "rnd.h"
 #include "sscrn.h"
+#include "ref_access.h"
 
 extern "C" {
 void __main();
@@ -121,10 +122,6 @@ void DbmenuModuleInit();  // game/db_menu.cpp
 
 // Stores through a scalar reference are not struct-member MEMs, so GCC 2.95 assumes they may
 // alias pG/pSys/pRK and reloads the pointer after each one, as the original does.
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void S8Set(s8& d, s8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 // Word store at a byte offset from a member array: `*(u32*) ((u8*) base + ofs)` is an
 // INDIRECT_REF of a cast (not of a PLUS_EXPR), so the MEM is not in-struct either.
 static inline void U32SetOfs(void* base, int ofs, u32 v) { *(u32*) ((u8*) base + ofs) = v; }

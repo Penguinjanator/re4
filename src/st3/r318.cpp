@@ -103,10 +103,6 @@ extern "C" void* r318_memset(void*, ...) asm("memset");
 // cObjScr (game/obj02.cpp) is not in a header: the callback setter of a scripted map object.
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
 
-// Collision flag bits set through a raw (non-struct) store at the info's address: the following
-// `pPL` load stays below it (r210 AtariOnRaw).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
-static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
 // Struct-member view of pPL: stores through it reload the pointer.
 struct PlPtr {
@@ -114,16 +110,6 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)

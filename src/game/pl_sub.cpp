@@ -18,6 +18,7 @@
 #include "act_btn.h"
 #include "rnd.h"
 #include "math_sub.h"
+#include "ref_access.h"
 
 extern "C" {
 void ReleaseWepData();                         // game/read.cpp
@@ -33,9 +34,6 @@ extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
 
 // Stores through references: scalar MEMs, so pG is reloaded after each of them (the original
 // reloads pG after every store to a GlobalWork field in this unit).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // Routine bytes of the player set through one fresh load of pPL (the four byte stores share one
 // register in the original even right after a call, unlike direct `pPL->xFC = ..` stores).

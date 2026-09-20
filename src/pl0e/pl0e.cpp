@@ -41,6 +41,7 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, appended to .bss by snmakerel.
@@ -88,19 +89,12 @@ static void subBoatJumpMiss();
 #define PL_BOAT(pl) ((cPl0e*) (pl)->m_pBoat)
 
 // Store through a reference: a scalar (non-struct) MEM, so a following global load stays below it.
-static inline void PSet(void*& d, void* v) { d = v; }
 // Read through a reference: a MEM with neither the struct nor the scalar flag stays below preceding member stores.
-static inline f32 FRef(f32& v) { return v; }
-static inline void U16And(u16& d, u16 m) { d &= m; }
-static inline void ISet(int& d, int v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 struct SubCharPtr {
     cSubChar* p;
 };
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
-static inline GlobalWork* GRef(GlobalWork*& p) { return p; }
 
 // Struct-member view of pPL: the load stays below a preceding store through a work pointer.
 struct PlayerPtr {
@@ -108,14 +102,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void PlRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Speed towards a limit by 25 per frame: from above it falls, from below it rises, never crossing it.
 #define SPD_ADJUST(spd, lim)                    \
@@ -321,7 +307,7 @@ static void pl0e_R1_Ride(cPl0e* em)
             EffectEspDelete(1, w->espKind, em, 0);
             EffectEspgenDelete(1, w->espKind, em);
             EffectEfmDelete(1, w->espKind, em);
-            PlRoutineSet(em, 1, 2, 0, 0);
+            EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
     }
@@ -350,16 +336,16 @@ static void pl0e_R1_RailMove(cPl0e* em)
         pl0eSlopeControl(em);
         if (pl0eCrashCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 4, 0, 0);
+            EmRoutineSet(em, 1, 4, 0, 0);
         } else if (pl0eSinkCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 5, 0, 0);
+            EmRoutineSet(em, 1, 5, 0, 0);
         } else if (pl0eJumpMissCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 6, 0, 0);
+            EmRoutineSet(em, 1, 6, 0, 0);
         } else if (pl0eJumpCk(em)) {
             w->spdY = 200.0f;
-            PlRoutineSet(em, 1, 3, 0, 0);
+            EmRoutineSet(em, 1, 3, 0, 0);
         }
         break;
     }
@@ -402,7 +388,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         if ((Joy[0].on & 0x60) == 0x60) {
             if (w->flags & 8) {
                 MotionSetCore(em, &em->Motion, ARC(0x14), 0, 0xA, 1, 0);
-                PlRoutineSet(pPL, 0, 0xF, 2, 0);
+                EmRoutineSet(pPL, 0, 0xF, 2, 0);
                 U32Set(pPL->m_Work0, 2);
                 if (pSUB) {
                     SetSubDamage(em, subBoatJump);
@@ -410,7 +396,7 @@ static void pl0e_R1_Jump(cPl0e* em)
                 }
             } else {
                 MotionSetCore(em, &em->Motion, ARC(0xE), 0, 0xA, 1, 0);
-                PlRoutineSet(pPL, 0, 0xF, 2, 0);
+                EmRoutineSet(pPL, 0, 0xF, 2, 0);
                 U32Set(pPL->m_Work0, 1);
                 if (pSUB) {
                     SetSubDamage(em, subBoatJump);
@@ -419,7 +405,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             }
         } else {
             MotionSetCore(em, &em->Motion, ARC(0xB), 0, 0xA, 1, 0);
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
             U32Set(pPL->m_Work0, 0);
             if (pSUB) {
                 SetSubDamage(em, subBoatJump);
@@ -458,7 +444,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         w->blendRate = 0.0f;
         w->frame = 0;
         w->frameOld = 0;
-        PlRoutineSet(pPLS, 0, 0xF, 3, 0);
+        EmRoutineSet(pPLS, 0, 0xF, 3, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatLanding);
         }
@@ -475,19 +461,19 @@ static void pl0e_R1_Jump(cPl0e* em)
         w->frameOld = w->frame;
         pl0eBlendMotSet(em, ARC(0xC), ARC(0x11), ARC(0x10), 0, 0, 0);
         if (MotionMove(em, 0)) {
-            PlRoutineSet(em, 1, 2, 0, 0);
+            EmRoutineSet(em, 1, 2, 0, 0);
         } else if (pl0eCrashCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 4, 0, 0);
+            EmRoutineSet(em, 1, 4, 0, 0);
         } else if (pl0eSinkCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 5, 0, 0);
+            EmRoutineSet(em, 1, 5, 0, 0);
         } else if (pl0eJumpMissCk(em)) {
             pG->pl_life = 0;
-            PlRoutineSet(em, 1, 6, 0, 0);
+            EmRoutineSet(em, 1, 6, 0, 0);
         } else if (pl0eJumpCk(em)) {
             w->spdY = 200.0f;
-            PlRoutineSet(em, 1, 3, 0, 0);
+            EmRoutineSet(em, 1, 3, 0, 0);
         }
         break;
     }
@@ -509,7 +495,7 @@ static void pl0e_R1_Crash(cPl0e* em)
         } else {
             EstSet(em, -1, 0, 0, 0xE, 5, 0, 0, em, 0);
         }
-        PlRoutineSet(pPL, 0, 0xF, 4, 0);
+        EmRoutineSet(pPL, 0, 0xF, 4, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatCrash);
         }
@@ -545,7 +531,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         pGS->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
-        PlRoutineSet(pPLS, 0, 0xF, 5, 0);
+        EmRoutineSet(pPLS, 0, 0xF, 5, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatSink);
         }
@@ -582,7 +568,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         pG->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
-        PlRoutineSet(pPLS, 0, 0xF, 6, 0);
+        EmRoutineSet(pPLS, 0, 0xF, 6, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatJumpMiss);
         }
@@ -779,12 +765,12 @@ void cPl0e::setRide()
         r_no_1 = 1;
         r_no_2 = 0;
         r_no_3 = 0;
-        // Reference store: the pPL reload of PlRoutineSet then depends on it (cost 2) and is not
+        // Reference store: the pPL reload of EmRoutineSet then depends on it (cost 2) and is not
         // ready when the BoatMoveFunc store is, so sched1 issues that store first and the
         // PlBoatMove address dies before the reload is born (both r9; the zero takes r10).
         PSet((void*&) pl->m_pBoat, this);
         BoatMoveFunc = PlBoatMove;
-        PlRoutineSet(pPL, 0, 0xF, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 0, 0);
         if (pSUB) {
             SetSubDamage(this, subBoatRide);
         }
@@ -880,7 +866,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 1, 0);
+            EmRoutineSet(pPL, 0, 0xF, 1, 0);
         }
         break;
     }
@@ -959,7 +945,7 @@ static void plboat_R2_Landing(cPlayer* pl)
         pl->m_Frame = (u8) w->frameOld;
         plOnJet(pl);
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 1, 0);
+            EmRoutineSet(pPL, 0, 0xF, 1, 0);
         }
         break;
     }
@@ -1541,7 +1527,7 @@ void cPl0e::set2ndRail()
     r_no_2 = 0;
     r_no_3 = 0;
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 1, 0);
+    EmRoutineSet(pPL, 0, 0xF, 1, 0);
     if (pSUB) {
         SetSubDamage(this, subBoatRun);
     }

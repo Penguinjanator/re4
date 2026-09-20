@@ -16,6 +16,7 @@
 #include "snd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 3-03 (D:/Bio4/Prog/r303.cpp): the water render target, the shelf, the boxes and the door that
 // falls in once the Ganado of the corridor is set.
@@ -138,7 +139,6 @@ void R303Main()
 }
 
 // Area 6: the one-shot stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Area 6 once (Room_flg bit 3): stream 0x34 plays once.
 static void oneshot_bgm()

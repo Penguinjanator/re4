@@ -12,6 +12,7 @@
 #include "joy.h"
 #include "pl_cloth.h"
 #include "math_sub.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -31,8 +32,6 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // Builds the Ashley player (pl_type 1 / the "Ashley chapter"): common init, model set, bust rest
 // positions (parts 0x1D / 0x1E / 0x1A), motion table, her effect data (archive 0x1A), foot shadows.

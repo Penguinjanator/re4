@@ -951,8 +951,3 @@ void OpeSetOpenTermEnd()
 // `.long 0, 0, 0` here would land before the folded roomInit instantiation); the .bss gap is a
 // zero-initialised static referenced only by a never-called inline (the dmg.cpp trick).
 static u8 sscrn_pad[0x1C];
-// Keeps the 0x1C-byte pad in .bss (matching helper).
-static inline u8* sscrnPad()
-{
-    return sscrn_pad;
-}

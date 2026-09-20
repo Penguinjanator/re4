@@ -26,6 +26,7 @@
 #include "filter.h"
 #include "foot_shadow.h"
 #include "db_cam.h"
+#include "ref_access.h"
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
@@ -129,12 +130,6 @@ struct IntView {
 #define ISET0(x) (((IntView*) &(x))->v = 0)
 
 #define IV(x) (((IntView*) &(x))->v)
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline u16 U16Ref(u16& v) { return v; }
-static inline int IRef(int& v) { return v; }
-static inline f32 FRef(f32& v) { return v; }
-static inline void ISet(int& d, int v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 u8 min_lod;

@@ -36,6 +36,7 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 asm(".comm common_em35,52,4");
 
@@ -121,19 +122,8 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
-// Flag update through a volatile view: keeps the following global load (pPL) below the sth (wep_mod.h).
-static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em35DeadCk(cEm* em)
@@ -2506,7 +2496,7 @@ static void em35_R1_CatchHit(cEm35* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x3C), ARC(0x3D), 0, 1, 0);
-        AtariFlagsOr(&em->atari, 0x100);
+        AtariOnV(&em->atari, 0x100);
         LifeDownSet2(pPL, 500, 0, 0);
         em->r_no_2++;
     case 5:

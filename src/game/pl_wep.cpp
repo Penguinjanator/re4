@@ -18,6 +18,7 @@
 #include "cam_ctrl.h"
 #include "rnd.h"
 #include "math_sub.h"
+#include "ref_access.h"
 
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
@@ -54,13 +55,11 @@ u8 lockCtr;
 static f32 lockRandCtr;
 
 // Stores through references: scalar MEMs, so pG is reloaded after each of them.
-static inline void U8Set(u8& d, u8 v) { d = v; }
 // Aim-rate clamp + sync as one inline taking the limits as PARAMETERS: the actuals -1.0f/1.0f are copied
 // into pseudos before the inlined body (integrate.c copies non-readonly formals), so both constants load
 // up front and the two clamp stores keep distinct registers (no cross-jump); `f32* m` = m3r gives the
 // `addi r10,r9,m3r@l` base pointer of the target (PlWepAutoTrack 24 -> 0, PlWepLockCtrl 45 -> 24).
 static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; else if (m[1] > hi) m[1] = hi; if (m[2] == 0.0f) m[0] = m[1]; }
-static inline void Inc32(u32& d) { d++; }
 
 // No weapon objects yet.
 cPlWep::cPlWep()
@@ -484,11 +483,11 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         default:
             if (!(flag & 2)) {
                 if (n != 0) {
-                    Inc32(pG->c_hit_cnt);
-                    Inc32(pG->g_hit_cnt);
+                    U32Inc(pG->c_hit_cnt);
+                    U32Inc(pG->g_hit_cnt);
                 }
-                Inc32(pG->c_shot_cnt);
-                Inc32(pG->g_shot_cnt);
+                U32Inc(pG->c_shot_cnt);
+                U32Inc(pG->g_shot_cnt);
             }
             break;
         }

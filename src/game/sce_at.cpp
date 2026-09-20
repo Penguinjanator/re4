@@ -44,6 +44,7 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -104,20 +105,8 @@ static inline int bitOff(u32 v)
     return !(v & 1);
 }
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void S16Set(s16& d, s16 v) { d = v; }
-static inline void S8Set(s8& d, s8 v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(u32& d, void* v) { d = (u32) v; }
-static inline void PSet(cModel*& d, cModel* v) { d = v; }
 
-// The room event flag words (Room_flg, kind 0 of the flag areas).
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
 // The item-found flag word (kind 2 of the flag areas).
 static inline u32* flags51BC()
 {

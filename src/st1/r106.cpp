@@ -27,6 +27,7 @@
 #include "pl_sub.h"
 #include "snd.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 1-06 (D:/Bio4/Prog/r106.cpp): the village hall; the boulder, the two Ganado waves, the
 // shelves, the shaking closet (Luis tied up inside) and the r106s00 event that ends chapter 1-1.
@@ -41,7 +42,6 @@ struct R106Work {
 
 static R106Work* r106_work;
 
-static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 
 // Hit effects of attribute type 4 (the hall floor)
 static const AtEffInfo r106_eff_info = {

@@ -64,6 +64,7 @@
 #include "sce_at.h"
 #include "sce.h"
 #include "gx_sub.h"
+#include "ref_access.h"
 
 
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
@@ -75,9 +76,6 @@ asm(".comm common_" EM10_STR(REL_MODULE) ",52,4");
 
 extern "C" double atan2(double y, double x);
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`, pl_npc.cpp).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine dispatch tables (.data).
 static void em10_R0_Init(cEm10* em);
@@ -510,9 +508,7 @@ static inline int em10DeadCk(cEm* em)
 }
 
 // Reference store (same mechanism as FSet): keeps the following global load after the store.
-static inline void U16Set(u16& d, u16 v) { d = v; }
 // Same for an int work field (Dm_Roof: `w->TmpU32 = 1` before the pG load of the water-effect room check).
-static inline void IntSet(int& d, int v) { d = v; }
 
 // Dead test on a cDmgInfo taken by pointer (the upper 16 bits of its flag word), same as em10DeadCk.
 static inline int em10DmgDeadCk(cDmgInfo* d)
@@ -526,15 +522,6 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 // The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
 #define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet): the stores come out
-// in the target's order.
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 
 // Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).

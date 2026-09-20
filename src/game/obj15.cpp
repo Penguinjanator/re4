@@ -230,24 +230,6 @@ void obj15_R1_Set(cObjGatling* obj)
     }
 }
 
-// Shared break work: stops the spin sound, kills the hit bodies, hides the gun, releases the eat.
-static inline void obj15BreakCommon(cObjGatling* obj)
-{
-    GatlingWork* w = &obj->gatling;
-    u32 i;
-
-    SndStop(w->seHandle, 0);
-    for (i = 0; i < 3; i++) {
-        if (w->hit[i]) {
-            w->hit[i]->hp = 0;
-            w->hit[i] = 0;
-        }
-    }
-    obj->be_flag &= ~2;
-    if (w->eat) {
-        w->eat->m_Flag &= ~4;
-    }
-}
 
 // Rno1 == 1 (broken): once spawns the explosion (est 1/0xD) and does the break work.
 void obj15_R1_Break(cObjGatling* obj)
@@ -272,17 +254,6 @@ void obj15_R1_Break(cObjGatling* obj)
     }
 }
 
-// Stops the spin-up loop and plays the spin-down sound.
-static inline void obj15SeStop(cObjGatling* obj)
-{
-    GatlingWork* w = &obj->gatling;
-
-    if (w->seOn) {
-        SndStop(w->seHandle, 0);
-        SndCall(6, 0x25, &obj->pos, 0, 0, 0);
-    }
-    w->seOn = 0;
-}
 
 // Aims the barrel pitch at the target (+1400 y) with 10% easing and spins the barrel parts while
 // firing (with the spin sound); stops the sound when not firing.

@@ -34,6 +34,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
@@ -105,21 +106,8 @@ struct SubCharPtr {
 // The shell motion work as the MotionWork the motion library takes.
 #define SHELL_MOT(w) ((MotionWork*) &(w)->shellMot)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 
-// int stores through a reference: the following pG load stays below them (em3a).
-static inline void IntSet(int& x, int v)
-{
-    x = v;
-}
 
 extern "C" void _prolog()
 {

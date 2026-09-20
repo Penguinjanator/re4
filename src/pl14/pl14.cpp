@@ -38,6 +38,7 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
@@ -53,7 +54,6 @@ extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
 #define LITEM ((LuisItemWork*) work)
 static inline void U32And(u32& d, u32 m) { d &= m; }
 // Reference store: a MEM with neither the struct nor the scalar flag keeps a following member load below it.
-static inline void PSet(void*& d, void* v) { d = v; }
 
 static inline void RoutineSet(cSubLuis* o, int r0)
 {

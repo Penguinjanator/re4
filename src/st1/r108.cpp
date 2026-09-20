@@ -23,6 +23,7 @@
 #include "cam_ctrl.h"
 #include "sscrn.h"
 #include "math_sub.h"
+#include "ref_access.h"
 
 // Room 1-08 (D:/Bio4/Prog/r108.cpp, in st1_1 and st1_3): the church; the symbol puzzle on the
 // balcony, the bell, the doors and the battle streams.
@@ -121,7 +122,6 @@ static void r108_execShowView_end()
 }
 
 // Show the altar: camera cut 11 with its stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // One-shot event (Room_flg bit 1): stream 0x33 and camera cut 0xB (the show view) until the camera
 // motion ends; player-cancellable.

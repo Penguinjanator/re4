@@ -33,6 +33,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -54,20 +55,7 @@ static void subem3bRunDown();
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Scalar-reference store: the following pPL/pSUB loads stay below it (they are reloaded after it).
-static inline void U16Set(u16& d, int v)
-{
-    d = v;
-}
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em3bDeadCk(cEm* em)
@@ -846,7 +834,7 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pPL->pos) < 6250000.0f) {
-                U16Set(pG->pl_life, zero);
+                U16SetI(pG->pl_life, zero);
                 pPL->ang.y += Muku(&pPL->pos, &p->world, pPL->ang.y, PI);
                 pPL->ang.y = LIMIT_ANGLE(em->ang.y);
                 PlSetDamage(8, 0, 0);
@@ -861,7 +849,7 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pSUB->pos) < 6250000.0f) {
-                U16Set(pG->ashley_life, zero);
+                U16SetI(pG->ashley_life, zero);
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
                 FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
                 pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);

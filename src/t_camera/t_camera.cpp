@@ -30,7 +30,6 @@ struct TcWorkPtr {
     TcWork* p;
 };
 #define PTC (((TcWorkPtr*) &pTc)->p)
-static inline void FAdd(f32& d, f32 v) { d += v; }
 // element i of a Vec array through a raw address: the store aliases the tool pointer (pTc is reloaded after it)
 #define VEC_ELEM(p, i) (*(f32*) ((u32) (p) + (i) * 12))
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \

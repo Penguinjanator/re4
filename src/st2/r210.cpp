@@ -20,6 +20,7 @@
 #include "mes.h"
 #include "fade.h"
 #include "snd.h"
+#include "ref_access.h"
 
 // Room 2-10 (D:/Bio4/Prog/r210.cpp): the lift platform of the mine (r222 shares the code), the
 // mine cart ride to and from r212, and Ashley's follow / wait areas.
@@ -30,21 +31,7 @@ struct R210Work {
 
 static R210Work* r210_work;
 
-// Collision flag bits set through a raw (non-struct) store at the info's address: the following
-// `pPL` load stays below it (pl_npc.cpp AtariOnRaw).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 
-// `flags &= 0xEFFF` through a reference with a u16 mask: a halfword `andi.` (BitOff16's promoted
-// `~b` gives a word mask) whose store keeps the following `pSUB` load below it.
-static inline void U16And(u16& d, u16 mask) { d &= mask; }
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
-}
 
 static f32 r210_daiZ = -32012.0f;
 static f32 r210_daiRotGo = -0.04f;
@@ -368,7 +355,6 @@ static void r222_dai_ret()
 }
 
 // Areas 3/4: the cart ride to r212 (dir 0: left cart, 1: right cart).
-static inline f32 FCRef(const f32& v) { return v; }
 // Areas 3/4 (dir 0/1: left / right cart): refused with message 0x67 unless Ashley can jump with Leon;
 // else the cart object is created, both board it (Leon's hand / weapon put away, Ashley's aux motion),
 // stream 0xE4 plays and the cart rolls out to r212 (Part 1/2 tells r212 which cart).
@@ -451,13 +437,6 @@ static void toroko_go(int dir)
     }
 }
 
-// Inline taking the angle by pointer: the caller's `&ang` becomes a hard-register argument set at each
-// call (never a gcse occurrence), so it is recomputed `addi r4,r1,24` instead of sharing the template copy's
-// address pseudo.
-static inline void r210_setAng(cModel* m, Vec* a)
-{
-    m->setAng(a);
-}
 
 // The cart ride back from r212 (dir 0: left cart, 1: right cart).
 static void toroko_ret(int dir)
@@ -492,17 +471,17 @@ static void toroko_ret(int dir)
         Vec* pp = &pos;
 
         p->setPos(pp);
-        r210_setAng(p, &ang);
+        SetAngV(p, &ang);
         {
             cSubChar* sub = pSUB;
 
             if (sub) {
                 sub->setPos(pp);
-                r210_setAng(sub, &ang);
+                SetAngV(sub, &ang);
             }
         }
         obj->setPos(pp);
-        r210_setAng(obj, &ang);
+        SetAngV(obj, &ang);
     }
     pPL->setNoSuspend(1);
     if (pSUB) {

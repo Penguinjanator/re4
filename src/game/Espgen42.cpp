@@ -15,6 +15,7 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
+#include "ref_access.h"
 
 // Effect controller 42: room water surface. A (nx+1) x (ny+1) height field simulated on two
 // ping-pong buffers, rendered as triangle strips through a display list with an indirect bump
@@ -54,9 +55,6 @@ static Vec Cross_Ret_pos;
 static int Cross_find;
 int g_bNoWater = 0;
 
-static inline void ISet(int& d, int v) { d = v; }
-static inline f32 FGet(f32& d) { return d; }
-static inline int IGet(int& d) { return d; }
 
 // Room start: forgets both water generators (42 room water, 45 weather water), resets the
 // Espgen45 override state and clears the no-water debug switch.

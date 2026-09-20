@@ -85,28 +85,7 @@ static void R21aFallRoofEndMain();
 static void R21aFallRoofEndEnd();
 static void SceBgmCheck();
 
-// The position set through an inline owning the Vec: the arguments are evaluated before the stores
-// (and the inline temps of consecutive calls share one frame slot: R21aFallRoofStartEnd).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-// Set a model's rotation from three components (inline owning the Vec).
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
 
 // Room init (the storage house): four shelf item events (items 0x84/0x85/0x88/0x89), window 0x12
 // pre-broken and hidden; until the door is unlocked (Room_flg bit 0) area 5 = the door check with the
@@ -537,8 +516,6 @@ static void R21aFallRoofDie(int no)
     }
 }
 
-// Scalar reference store (st_room.h idiom): the pG load that follows stays below it.
-static inline void S16Set(s16& d, s16 v) { d = v; }
 
 
 // The burning roof: shakes, drops in steps, then falls (onto the player if he stands under it).

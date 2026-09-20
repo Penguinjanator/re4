@@ -23,6 +23,7 @@
 #include "est.h"
 #include "snd.h"
 #include "merchant.h"
+#include "ref_access.h"
 
 // Room 2-00 (D:/Bio4/Prog/r200.cpp): the castle approach (the first stage-2 room, end of chapter 2-3):
 // the show-view pan over the castle, the truck event (a Ganado drives the truck at the gate) with its
@@ -176,7 +177,6 @@ static void r200_execShowView_end()
 }
 
 // The camera pans over the village on the first visit.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Show view once (Room_flg bit 4, and only once per game via System_flg 0x40): stream 0x18, camera cut
 // 5 panning over the castle with an ambient effect; player-cancellable.

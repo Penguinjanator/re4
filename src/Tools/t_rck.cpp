@@ -14,6 +14,7 @@
 #include "db_log.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Route check point editor (Tools/t_rck.cpp): places route points, connects them (two-way / one-way
 // lines), computes the next-hop table with Dijkstra and saves the room's .rtp file.
@@ -23,7 +24,6 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 #define RCK_POINT_MAX 128
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 struct RckPoint {
     Vec pos;      // 0x00
@@ -431,12 +431,6 @@ void menu_print(int* pos, const char** str, int n, int cur)
 
 // Rounds a height to the 500 grid.
 #define RCK_GRID_Y(y) (t = (s8) (((y) + 62.5f) / 500.0f), (f32) t * 500.0f)
-// New points are placed 100 units above the picked ground height.
-static inline f32 rckGridY(f32 y)
-{
-    int t = (s8) ((y + 62.5f) / 500.0f);
-    return (f32) t * 500.0f;
-}
 
 // X: adds a point under the cursor (ground position from TutilGet3DPosXZ_All), no lines; it
 // becomes the nearest point. Up to RCK_POINT_MAX.

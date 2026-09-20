@@ -27,16 +27,6 @@ void damageBlow(cPlayer* pl);
 void damageBlast(cPlayer* pl);
 void Pl_R0_Die(cPlayer* pl);
 
-// Routine bytes through int parameters: the four zeros become one SImode pseudo that cse cannot
-// merge with the QImode zero of `dmg.m_Flag` stored before the EndPlDamage call, so the original's
-// second `li r0, 0` after the call is reproduced instead of a callee-saved zero.
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // Routine 0 == 1 (damage, entered by cPlayer::setDamage): r_no_1 0 normal hit, 1 blown away,
 // 2 blast stagger.
@@ -132,7 +122,7 @@ void damageNormal(cPlayer* pl)
                 pl->dmg.m_Flag = 0;
                 pl->dmg.m_Timer = 5;
                 EndPlDamage();
-                PlRoutineSet(pl, 0, 0, 0, 0);
+                EmRoutineSet(pl, 0, 0, 0, 0);
             }
         }
         if (pl->m_Work1 != 0) {
@@ -170,7 +160,7 @@ void damageNormal(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     default:
@@ -288,7 +278,7 @@ void damageBlow(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -325,7 +315,7 @@ void damageBlast(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }

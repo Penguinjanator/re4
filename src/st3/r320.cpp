@@ -39,6 +39,18 @@
 #include "model.h"
 #include "vec.h"
 #include "rnd.h"
+#include "ref_access.h"
+
+// Rotate a model from three components written y, x, z (the store order the original has).
+static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
+{
+    Vec v;
+
+    v.y = y;
+    v.x = x;
+    v.z = z;
+    m->setAng(&v);
+}
 
 // Room 3-20 (D:/Bio4/Prog/r320.cpp): the island landing site with the support helicopter (em3d,
 // list 0x64): the gatling towers and their gunners, the seven enemy appearance areas, the gates, the
@@ -99,47 +111,12 @@ struct EmListView {
 };
 #define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
 
-static inline void PSet(void*& d, void* v) { d = v; }
 
-// Collision flag bits set / cleared through a raw (non-struct) store at the info's address: the
-// following `pPL` load stays below it (r332 AtariOnRaw).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
-static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
-// Position a model from three components (inline owning the Vec).
-static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-// Rotate a model from three components (inline owning the Vec).
-static inline void setAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
-// Rotate a model from three components written y, x, z (the store order the original has).
-static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
-{
-    Vec v;
-
-    v.y = y;
-    v.x = x;
-    v.z = z;
-    m->setAng(&v);
-}
 
 // 1 while the event is being skipped (EVT status bit 30).
 static inline int r320_evtSkip(Event* e)
@@ -647,7 +624,7 @@ static void r320_heri_event()
     } else {
         SndRoomStrStart(1, 0, 1);
     }
-    setPosXYZ(pPL, 27120.0f, 7699.0f, 45134.0f);
+    SetPosXYZ(pPL, 27120.0f, 7699.0f, 45134.0f);
     setAngYXZ(pPL, 2.46f, 0.0f, 0.0f);
     CamCtrl.Comeback(0);
     EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
@@ -1678,8 +1655,8 @@ static void slide_move()
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
-    setPosXYZ(pPL, 58200.0f, 16588.34f, -11855.78f);
-    setAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
+    SetPosXYZ(pPL, 58200.0f, 16588.34f, -11855.78f);
+    SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
     r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
     r320_work->smd->motSpeedRate = 1.0f;
@@ -2031,7 +2008,7 @@ static void destroy_2()
     SceAtSetEnable(0x26, 1);
     at = SceAtPtr(0x2F);
     if (AreaHitCheck(&at->area, &pPL->pos)) {
-        setPosXYZ(pPL, 58557.0f, 11819.0f, 13270.0f);
+        SetPosXYZ(pPL, 58557.0f, 11819.0f, 13270.0f);
         CamCtrl.Comeback(0);
     }
     w = sceAtSetOtStart();
@@ -2122,7 +2099,7 @@ static void destroy_4()
     SceAtSetEnable(0x28, 1);
     r320_work->heriWait = 0x96;
     if (AreaHitCheck(&SceAtPtr(0x34)->area, &pPL->pos)) {
-        setPosXYZ(pPL, 45469.0f, 9538.0f, -12354.0f);
+        SetPosXYZ(pPL, 45469.0f, 9538.0f, -12354.0f);
         CamCtrl.Comeback(0);
     }
     if (pG->Room_flg[2] & 0x00800000) {
@@ -2158,7 +2135,7 @@ static void destroy_5()
     SatMgr.destroy(r320_work->sat[3]);
     SceAtSetEnable(0x29, 1);
     if (AreaHitCheck(&SceAtPtr(0x35)->area, &pPL->pos)) {
-        setPosXYZ(pPL, 34660.0f, 10469.0f, 5587.0f);
+        SetPosXYZ(pPL, 34660.0f, 10469.0f, 5587.0f);
         CamCtrl.Comeback(0);
     }
     r320_work->heriWait = 0x96;

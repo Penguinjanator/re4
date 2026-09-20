@@ -33,6 +33,7 @@
 #include "sscrn.h"
 #include "fade.h"
 #include "cSceObj.h"
+#include "ref_access.h"
 
 // Room 2-27 (D:/Bio4/Prog/r227.cpp): the entrance event, the cargo lift with its enemy waves and
 // falling crates, the gondola and the shelf items.
@@ -64,11 +65,8 @@ static R227WorkPtr r227_work;
 
 u32 r227_boxNo[4] = {6, 7, 8, 0};
 
-// Pointer store through a reference: the pG load of the next create stays below it.
-static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 void r227_openShelf_main(int id, int opened);
 static void r227_openShelf(int id);
@@ -539,7 +537,7 @@ void r227_initCargoElv()
         r227_work.p->elv2Y0 = r227_work.p->elv2->pos.y;
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
-        PSetSat(r227_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        PSet(r227_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
         r227_work.p->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
         SceAtSetParent(0xA, r227_work.p->elv, 0);
         SceAtSetParent(0xB, r227_work.p->elv, 0);

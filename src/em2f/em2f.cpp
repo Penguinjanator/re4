@@ -33,6 +33,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -93,16 +94,7 @@ struct SubCharPtr {
 };
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-static inline void IntSet(int& d, int v) { d = v; }
 
 // Effect `no` of the monster's effect set on itself.
 static inline void em2fEstSet(cEm2f* em, Em2fWork* w, int no)

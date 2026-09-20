@@ -33,6 +33,7 @@
 #include "cam_ctrl.h"
 #include "sscrn.h"
 #include "snd.h"
+#include "ref_access.h"
 
 // Room 1-1e (D:/Bio4/Prog/r11e.cpp): the village path with the two huts and the two fences the
 // Ganados break through, the two boulders on the props, the giant's appearance and Ashley's
@@ -50,7 +51,6 @@ static R11eWork* r11e_work;
 
 // Pointer stores through references: the work pointer and the field are reloaded after them.
 static inline void PSet(cEmRock*& d, cEmRock* v) { d = v; }
-static inline void PSet(cSat*& d, cSat* v) { d = v; }    // the pG reload of the next create waits for the store
 
 // The original's .data is 8-aligned (r105 has the same).
 asm(".section .data; .balign 8");

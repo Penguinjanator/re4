@@ -16,6 +16,7 @@
 #include "trans_ot.h"
 #include "joy.h"
 #include "eprintf.h"
+#include "ref_access.h"
 
 extern "C" {
 void* GetPrimBuff(int size);
@@ -833,37 +834,8 @@ void init_corn()
 // always converts an s16 through a stack slot).
 #define PSQ_L_S16(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,5" : "=f"(f_) : "b"(p)); f_; })
 
-// Converts `n` indexed s16 vertices into `p` (scaled) and transforms them by `mat`.
-static inline void WireXform(Vec* p, u16* idx, u32 n, s16* vtx, f32 scale, Mtx mat)
-{
-    u32 k;
-    for (k = 0; k < n; k++) {
-        s16* v = (s16*) ((u8*) vtx + *idx * 8);
-        idx++;
-        p->x = PSQ_L_S16(v);
-        p->y = PSQ_L_S16(v + 1);
-        p->z = PSQ_L_S16(v + 2);
-        p->x *= scale;
-        p->y *= scale;
-        p->z *= scale;
-        PSMTXMultVec(mat, p, p);
-        p++;
-    }
-}
 
-static inline void ISet(int& d, int v) { d = v; }
 
-// Emits `n` transformed vertices with a constant colour.
-static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
-{
-    int k;
-    for (k = 0; k < n; k++) {
-        GXMatrixIndex1u8(0);
-        GXPosition3f32(p->x, p->y, p->z);
-        GXColor4u8(r, g, b, a);
-        p++;
-    }
-}
 
 // Byte-identical (was 332 words). The original drives the conversions and the FIFO writes through ONE
 // function-scope `Vec* pv` (`mr r31, r24` = pv = p before each loop, `mr r31, r23` = pv = &p[2]), a

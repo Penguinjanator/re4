@@ -38,6 +38,7 @@
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "item.h"
+#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -224,18 +225,8 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em2dDeadCk(cEm* em)
@@ -243,9 +234,6 @@ static inline int em2dDeadCk(cEm* em)
     return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
 // A macro: an inline copies its constant arguments into pseudos at the call point (the parms

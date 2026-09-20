@@ -76,18 +76,6 @@ static R30dWorkPtr r30d_work;
 // idiom): scalar accesses that keep the following pSUB / pG loads below the stores.
 #define DOOR_UNLOCK(i) (*(u32*) ((u32) &pG->Key_flg[0] + (i) * 4))
 
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
-}
-// `p->atari.flags &= 0xFCFF` through a pointer to the collision info; the volatile halfword store keeps the
-// following pG load below it (r207).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
 
 // Area flag test through a helper: fold would merge two tests of the same word in one `&&`/`||` into a
@@ -739,7 +727,7 @@ static void funcAshleyShutter(cEm* p)
         v.y = 0.0f;
         v.z = 0.0f;
         p->setAng(&v);
-        AtariFlagsAnd(&p->atari, 0xFCFF);
+        AtariOffV(&p->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 3, 0, 0x101, 0);
         SndCall(6, 6, &p->pos, 0, 0, 0);
         p->r_no_2++;
@@ -759,7 +747,7 @@ static void funcAshleyShutter(cEm* p)
     case 3:
         if (p->motionMove() != 0) {
             pG->Room_flg[0] |= 0x40000000;
-            AtariFlagsOr(&p->atari, 0x300);
+            AtariOn(&p->atari, 0x300);
             p->r_no_2++;
         }
         break;

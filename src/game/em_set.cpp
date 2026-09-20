@@ -9,6 +9,7 @@
 #include "em_set.h"
 #include "global.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern cEm* pPL;   // game/em.cpp
 
@@ -45,8 +46,6 @@ static inline void EmSetDieOn(u32 no)
     }
 }
 
-// Counter update through a reference: the store is a plain scalar access, so pG is reloaded after it.
-static inline void CntInc(u32& c) { c++; }
 
 // While flags_68 bit21 is set only the enemies 3 and 4 may be created.
 #define EM_SET_ID_NG(id) (DbgFlagChk(pG, DBG_NO_ENEMY) && ((id) != 3 && (id) != 4))
@@ -362,8 +361,8 @@ void EmSetDie(cEm* em)
 // Counts a kill in the chapter and game kill counters (results screen).
 void EmSetDieCnt(cEm* pEm)
 {
-    CntInc(pG->c_kill_cnt);
-    CntInc(pG->g_kill_cnt);
+    U32Inc(pG->c_kill_cnt);
+    U32Inc(pG->g_kill_cnt);
 }
 
 // Room change: clears the "set" bit of every list entry so the new room can create its enemies.

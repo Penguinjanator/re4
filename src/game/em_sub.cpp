@@ -27,6 +27,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "ref_access.h"
 
 extern "C" {
 }
@@ -76,28 +77,9 @@ static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v)
     d = v;
 }
 
-static inline void PSet(cEm*& d, cEm* v)
-{
-    d = v;
-}
 
-// Reference store helpers (see PSet above): keep the store after preceding loads in the target order.
-static inline void ISet(int& d, int v)
-{
-    d = v;
-}
 
-// u16 store through a reference (same purpose as ISet).
-static inline void HSet(u16& d, int v)
-{
-    d = v;
-}
 
-// `f &= mask` through a reference, same purpose (BitOff16 with its `~b` keeps a 32-bit mask).
-static inline void MaskAnd16(u16& f, u16 mask)
-{
-    f &= mask;
-}
 
 // Struct-member view of pPL (the pGS trick, global.h): loads through it stay after preceding
 // stores through other pointers instead of being shared across them.
@@ -1991,20 +1973,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life < dmg) {
             dmg = (s16) pG->pl_life;
         }
-        HSet(pG->pl_life, pG->pl_life - dmg);
+        U16SetI(pG->pl_life, pG->pl_life - dmg);
         if ((s16) pG->pl_life <= 0) {
             if (flag & 1) {
-                HSet(pG->pl_life, 1);
+                U16SetI(pG->pl_life, 1);
             }
             if ((s16) pG->pl_life < 0) {
-                HSet(pG->pl_life, 0);
+                U16SetI(pG->pl_life, 0);
             }
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->pl_life, pG->pl_life_max);
+            U16SetI(pG->pl_life, pG->pl_life_max);
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->pl_life <= 1) {
-            HSet(pG->pl_life, 2);
+            U16SetI(pG->pl_life, 2);
         }
         ret = (s16) pG->pl_life;
     } else if (em->id <= 0xD) {
@@ -2023,20 +2005,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->ashley_life < dmg) {
             dmg = (s16) pG->ashley_life;
         }
-        HSet(pG->ashley_life, pG->ashley_life - dmg);
+        U16SetI(pG->ashley_life, pG->ashley_life - dmg);
         if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
-                HSet(pG->ashley_life, 1);
+                U16SetI(pG->ashley_life, 1);
             }
             if ((s16) pG->ashley_life < 0) {
-                HSet(pG->ashley_life, 0);
+                U16SetI(pG->ashley_life, 0);
             }
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->ashley_life, pG->ashley_life_max);
+            U16SetI(pG->ashley_life, pG->ashley_life_max);
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->ashley_life <= 1) {
-            HSet(pG->ashley_life, 2);
+            U16SetI(pG->ashley_life, 2);
         }
         ret = (s16) pG->ashley_life;
     } else {
@@ -2098,7 +2080,7 @@ void PlSetDamage(int type, int dmg, int flag)
             type = 7;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->pl_life, pG->pl_life_max);
+            U16SetI(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
             }
@@ -2108,7 +2090,7 @@ void PlSetDamage(int type, int dmg, int flag)
         }
     }
     if ((s16) pG->pl_life <= 1 && (DbgFlagChk(pG, DBG_NO_DEATH2))) {
-        HSet(pG->pl_life, 2);
+        U16SetI(pG->pl_life, 2);
         if (type == 6) {
             type = 2;
         }
@@ -2198,7 +2180,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (part == 0) {
         return 0;
     }
-    MaskAnd16(part->flags, 0xBFFF);
+    U16And(part->flags, 0xBFFF);
     PSet(pPL->dmg.m_pDamageYarare, part);
     if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);

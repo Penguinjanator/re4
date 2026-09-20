@@ -351,6 +351,9 @@ public:
 
 extern EventMgr EvtMgr;
 
+// The running event's name key of the event manager, read through a helper: a plain scalar access, not a member chain.
+static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
+
 // Event debug tool work (game/event.cpp `EvtDebug`, 0xE8 bytes).
 class EventDebug {
 public:

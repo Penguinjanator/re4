@@ -16,6 +16,7 @@
 #include "db_log.h"
 #include "esp.h"
 #include "main_mem.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 
@@ -29,8 +30,6 @@ extern "C" void OSReport(const char* fmt, ...);
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // weskerJacket (the chain tables; the collision volumes are a global: REL field A = 0)
 static u8 weskerJacketP[24] = {64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87};

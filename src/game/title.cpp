@@ -31,6 +31,7 @@
 #include "pl_sub.h"
 #include "eprintf.h"
 #include "title.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
@@ -49,12 +50,6 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 #define KEY_RIGHT 0x04000000
 #define KEY_LEFT 0x08000000
 
-// Reference setters: a store through a scalar reference is not a struct-member MEM, so the
-// following pG load stays below it (see global.h FSet).
-static inline void ISet(int& d, int v)
-{
-    d = v;
-}
 // Store through a reference (matching helper).
 #line 58
 static inline void CSet(s8& d, s8 v)
@@ -63,10 +58,6 @@ static inline void CSet(s8& d, s8 v)
 }
 // Store through a reference (matching helper).
 #line 62
-static inline void BSet(u8& d, u8 v)
-{
-    d = v;
-}
 
 // stage_prev/room_prev written as one u16 through a plain pointer (aliases pG like G_ROOM_ID).
 #define G_ROOM_ID_PREV (*(u16*) &pG->stage_prev)

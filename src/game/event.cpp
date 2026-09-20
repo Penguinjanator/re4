@@ -62,6 +62,7 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "foot_shadow.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -104,11 +105,6 @@ static inline void EvtMesDeleteAll()
     }
 }
 
-// Reference store: keeps a following `pG` load below it (global.h FSet for ints).
-static inline void IntSet(int& d, int v)
-{
-    d = v;
-}
 
 // StatusFlag bit test helper.
 // Status / tool flag test: the `li 1; andis.; bne; li 0; cmpwi` chains.

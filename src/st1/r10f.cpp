@@ -60,8 +60,6 @@ struct R10fMotWork {
     u8 buf[0xD0];
 };
 
-// Pointer store through a reference: the work pointer and the element are reloaded after it.
-static inline void PSet(cObjGondola*& d, cObj* v) { d = (cObjGondola*) v; }
 
 static void r10f_GondolaGetOn(int side);
 static void r10f_GondolaGetOff(int side);

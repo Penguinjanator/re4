@@ -34,6 +34,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "quake.h"
+#include "ref_access.h"
 
 asm(".comm common_em25,52,4");
 
@@ -136,14 +137,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em25DeadCk(cEm* em)
@@ -151,13 +144,7 @@ static inline int em25DeadCk(cEm* em)
     return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
 
-// u8 store through a reference with a promoted parameter: the constant is an SImode pseudo the
-// following routine bytes share (em2d.cpp).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Module entry (SN loader): registers Em25Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()

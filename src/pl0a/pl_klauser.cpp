@@ -21,6 +21,7 @@
 #include "joy.h"
 #include "motion.h"
 #include "TexRender.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 
@@ -34,8 +35,6 @@ extern "C" void OSReport(const char* fmt, ...);
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 static void pl_R1_KlauserAttack(cPlayer* pl);
 

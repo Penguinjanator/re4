@@ -15,6 +15,7 @@
 #include "db_log.h"
 #include "math_sub.h"
 #include "main_mem.h"
+#include "ref_access.h"
 
 extern "C" {
 void LightSetInit();
@@ -37,7 +38,6 @@ void LightDisable();
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-static inline void ISet(int& d, int v) { d = v; }
 
 #define LIGHT_FUNC_TABLE                                                                              \
     static void (*funcLightParam[16])(cLight*, GXLightObj*) = {                                      \

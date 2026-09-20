@@ -563,6 +563,13 @@ public:
 };
 
 
+// Position and angle of a model set from separate components (Vec temporary, then setPos / setAng).
+static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
+static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
+static inline void SetAngV(cModel* m, Vec* v) { m->setAng(v); }
+// A yaw-only SetAngY stays a per-file inline: its 0.0f literals take constant-pool labels in every unit that
+// parses it, so a definition here would move the pool order of units that do not use it.
+
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);
 // game/model.cpp (C linkage): relocate a TPL's file offsets to pointers (trans SpecularInit).

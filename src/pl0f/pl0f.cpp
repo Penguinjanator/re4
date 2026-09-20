@@ -46,6 +46,7 @@
 #include "db_log.h"
 #include "em_sub.h"
 #include "act_btn.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
@@ -121,13 +122,7 @@ struct Em2fWorkView {
     u8 espKind;   // 0x5C8 (0x9A8)
 };
 
-// Store through a reference: a scalar (non-struct) MEM, so a following global load stays below it.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline f32 FRef(f32& v) { return v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void IntSet(int& d, int v) { d = v; }
 static inline void U8Set(u8& d, int v) { d = v; }
-static inline void EmSet(cEm*& d, cEm* v) { d = v; }
 
 struct SubCharPtr {
     cSubChar* p;
@@ -139,14 +134,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void PlRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 static Pl0fFunc Pl0f_R0_move_tbl[5] = {
     pl0f_R0_Init,
@@ -401,29 +388,29 @@ static void pl0f_R0_Init(cPl0f* em)
         switch (em->set) {
         case 0:
         default:
-            PlRoutineSet(em, 1, 0, 0, 0);
+            EmRoutineSet(em, 1, 0, 0, 0);
             break;
         case 1:
-            PlRoutineSet(em, 1, 2, 0, 0);
+            EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
         break;
     case 1:
-        PlRoutineSet(em, 1, 8, 0, 0);
+        EmRoutineSet(em, 1, 8, 0, 0);
         break;
     case 2:
-        PlRoutineSet(em, 1, 0xA, 0, 0);
+        EmRoutineSet(em, 1, 0xA, 0, 0);
         break;
     case 3:
         em->type = 2;
-        PlRoutineSet(em, 1, 0, 0, 0);
+        EmRoutineSet(em, 1, 0, 0, 0);
         break;
     case 4:
-        PlRoutineSet(em, 1, 0xC, 0, 0);
+        EmRoutineSet(em, 1, 0xC, 0, 0);
         break;
     case 5:
         em->type = 4;
-        PlRoutineSet(em, 1, 0, 0, 0);
+        EmRoutineSet(em, 1, 0, 0, 0);
         break;
     }
     pl0f_R0_Move(em);
@@ -502,11 +489,11 @@ static void pl0f_R1_RideMove(cPl0f* em)
     em->partsMatCalc();
     em->partsWorldCalc();
     if (BOSS_NEAR(w->pBoss, em)) {
-        PlRoutineSet(pPL, 0, 0xF, 7, 0);
-        PlRoutineSet(em, 1, 7, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 7, 0);
+        EmRoutineSet(em, 1, 7, 0, 0);
     } else if (pl0fCrashCk(em)) {
-        PlRoutineSet(pPL, 0, 0xF, 7, 0);
-        PlRoutineSet(em, 1, 3, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 7, 0);
+        EmRoutineSet(em, 1, 3, 0, 0);
     }
 }
 
@@ -521,16 +508,16 @@ static void pl0f_R1_RideStart(cPl0f* em)
     pl->Body->initWepHand((u32) ARC(0x8));
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
-    EmSet(pl->m_pBoat, em);
+    PSet(pl->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 2, 0);
+    EmRoutineSet(pPL, 0, 0xF, 2, 0);
     w->Be_flg |= 1;
     w->Seid_engine = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
     if (pSUBS) {
         SetSubDamage(em, subBoatRide);
         pSUB->r_no_2 = 2;
     }
-    PlRoutineSet(em, 1, 1, 0, 0);
+    EmRoutineSet(em, 1, 1, 0, 0);
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
     em->partsMatCalc();
@@ -571,13 +558,13 @@ static void pl0f_R1_BossMove(cPl0f* em)
         em->r_no_2++;
     case 1: {
         if (BOSS_NEAR(w->pBoss, em)) {
-            PlRoutineSet(pPL, 0, 0xF, 7, 0);
-            PlRoutineSet(em, 1, 7, 0, 0);
+            EmRoutineSet(pPL, 0, 0xF, 7, 0);
+            EmRoutineSet(em, 1, 7, 0, 0);
         } else if (w->Timer) {
             w->Timer--;
         } else if (w->pBoss && pl0fCrashCk(em)) {
             if (w->Boat_spd > 200.0f || (w->pBoss->flag & 4)) {
-                PlRoutineSet(pPL, 0, 0xF, 5, 0);
+                EmRoutineSet(pPL, 0, 0xF, 5, 0);
                 {
                     cPlayer* pl = pPL;   // second pPL load (the byte stores above alias it), kept across setLost
 
@@ -586,11 +573,11 @@ static void pl0f_R1_BossMove(cPl0f* em)
                         pl->m_pSpear = 0;
                     }
                 }
-                PlRoutineSet(em, 1, 4, 0, 0);
+                EmRoutineSet(em, 1, 4, 0, 0);
                 w->Boss_chase = 1;
             } else {
-                PlRoutineSet(pPL, 0, 0xF, 7, 0);
-                PlRoutineSet(em, 1, 7, 0, 0);
+                EmRoutineSet(pPL, 0, 0xF, 7, 0);
+                EmRoutineSet(em, 1, 7, 0, 0);
             }
         }
         break;
@@ -612,7 +599,7 @@ static void pl0f_R1_Guard(cPl0f* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            PlRoutineSet(em, 1, 1, 0, 0);
+            EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
     }
@@ -621,11 +608,11 @@ static void pl0f_R1_Guard(cPl0f* em)
     em->partsMatCalc();
     em->partsWorldCalc();
     if (BOSS_NEAR(w->pBoss, em)) {
-        PlRoutineSet(pPL, 0, 0xF, 7, 0);
-        PlRoutineSet(em, 1, 7, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 7, 0);
+        EmRoutineSet(em, 1, 7, 0, 0);
     } else if (pl0fCrashCk(em)) {
-        PlRoutineSet(pPL, 0, 0xF, 7, 0);
-        PlRoutineSet(em, 1, 3, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 7, 0);
+        EmRoutineSet(em, 1, 3, 0, 0);
     }
 }
 
@@ -648,7 +635,7 @@ static void pl0f_R1_Drop(cPl0f* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            PlRoutineSet(em, 1, 0, 0, 0);
+            EmRoutineSet(em, 1, 0, 0, 0);
         } else if (w->Timer) {
             f32 spd;
             u32 i;
@@ -711,7 +698,7 @@ static void pl0f_R1_WaterRide(cPl0f* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            PlRoutineSet(em, 1, 6, 0, 0);
+            EmRoutineSet(em, 1, 6, 0, 0);
         }
         break;
     }
@@ -731,7 +718,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            PlRoutineSet(em, 1, 6, 0, 0);
+            EmRoutineSet(em, 1, 6, 0, 0);
         }
         break;
     }
@@ -751,9 +738,9 @@ static void pl0f_R1_BossGuard(cPl0f* em)
  \
     switch (em->r_no_2) { \
     case 0: \
-        EmSet(pl->m_pBoat, em); \
+        PSet(pl->m_pBoat, em); \
         BoatMoveFunc = PlBoatMove; \
-        PlRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
+        EmRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
             SetSubDamage(em, m_pFunc); \
         } \
@@ -789,8 +776,8 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         pl->m_VecWork0.x = px; \
         pl->m_VecWork0.y = py; \
         pl->m_VecWork0.z = pz; \
-        PlRoutineSet(pl, 0, 0xF, 1, 0); \
-        PlRoutineSet(em, 1, 0, 0, 0); \
+        EmRoutineSet(pl, 0, 0xF, 1, 0); \
+        EmRoutineSet(em, 1, 0, 0, 0); \
         PL0F_WK(em)->Be_flg &= ~1; \
         SndStop(PL0F_WK(em)->Seid_engine, 0); \
         if (pSUB) { \
@@ -1646,10 +1633,10 @@ void pl0fGetoffActEvtCk(cPl0f* em)
 // Lake boat: player state 0, boat ride (1).
 static void pl0fActRide(cPl0f* em)
 {
-    EmSet(pPL->m_pBoat, em);
+    PSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 0, 0);
-    PlRoutineSet(em, 1, 1, 0, 0);
+    EmRoutineSet(pPL, 0, 0xF, 0, 0);
+    EmRoutineSet(em, 1, 1, 0, 0);
     if (pSUB) {
         SetSubDamage(em, subBoatRide);
     }
@@ -1658,10 +1645,10 @@ static void pl0fActRide(cPl0f* em)
 // Room 10D exit: player state 0xE, boat 9.
 static void pl0fActRideR10d(cPl0f* em)
 {
-    EmSet(pPL->m_pBoat, em);
+    PSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 0xE, 0);
-    PlRoutineSet(em, 1, 9, 0, 0);
+    EmRoutineSet(pPL, 0, 0xF, 0xE, 0);
+    EmRoutineSet(em, 1, 9, 0, 0);
     if (pSUB) {
         SetSubDamage(em, subBoatRide);
     }
@@ -1670,10 +1657,10 @@ static void pl0fActRideR10d(cPl0f* em)
 // Room 10E first exit: player state 0x10, boat 11.
 static void pl0fActRideR10e(cPl0f* em)
 {
-    EmSet(pPL->m_pBoat, em);
+    PSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 0x10, 0);
-    PlRoutineSet(em, 1, 0xB, 0, 0);
+    EmRoutineSet(pPL, 0, 0xF, 0x10, 0);
+    EmRoutineSet(em, 1, 0xB, 0, 0);
     if (pSUB) {
         SetSubDamage(em, subBoatRide);
     }
@@ -1682,10 +1669,10 @@ static void pl0fActRideR10e(cPl0f* em)
 // Room 10E second exit: player state 0x12, boat 13.
 static void pl0fActRideR10e2(cPl0f* em)
 {
-    EmSet(pPL->m_pBoat, em);
+    PSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
-    PlRoutineSet(pPL, 0, 0xF, 0x12, 0);
-    PlRoutineSet(em, 1, 0xD, 0, 0);
+    EmRoutineSet(pPL, 0, 0xF, 0x12, 0);
+    EmRoutineSet(em, 1, 0xD, 0, 0);
     if (pSUB) {
         SetSubDamage(em, subBoatRide);
     }
@@ -1700,8 +1687,8 @@ static void pl0fActGetOff(cPl0f* em)
 
     pl->m_Fwork0 = w->Getoff_dir;
     pl->m_VecWork0 = w->Getoff_pos;
-    PlRoutineSet(pl, 0, 0xF, 1, 0);
-    PlRoutineSet(em, 1, 0, 0, 0);
+    EmRoutineSet(pl, 0, 0xF, 1, 0);
+    EmRoutineSet(em, 1, 0, 0, 0);
     w->Be_flg &= ~1;
     SndStop(w->Seid_engine, 0);
     if (pSUB) {
@@ -1981,7 +1968,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         }
         if (MotionMove(pl, 0)) {
             PLBOAT_ENGINE_START();
-            PlRoutineSet(pPLS, 0, 0xF, 2, 0);
+            EmRoutineSet(pPLS, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -2092,7 +2079,7 @@ static void plboat_R2_Move(cPlayer* pl)
         plOnBoat(pl);
         MotionMove(pl, 0);
         if (Key.on & 0x10) {
-            PlRoutineSet(pPL, 0, 0xF, 3, 0);
+            EmRoutineSet(pPL, 0, 0xF, 3, 0);
         }
         break;
     }
@@ -2104,7 +2091,7 @@ static void plboat_R2_Move(cPlayer* pl)
     }
     if (boss) {
         if (boss->flag & 0x20) {
-            PlRoutineSet(pPL, 0, 0xF, 0xA, 0);
+            EmRoutineSet(pPL, 0, 0xF, 0xA, 0);
         }
     } else {
         pl0fGetoffActEvtCk(boat);
@@ -2224,7 +2211,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
                 pl->m_pSpear = 0;
             }
             FSet(pl->m_Blend, 0.0f);   // the pPL load stays below the store
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     case 2:
@@ -2241,7 +2228,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         if ((boss && (boss->flag & 0x20)) || !(Key.on & 0x10)) {
             pl->r_no_3++;
         } else if (Key.trg & 0x80) {
-            PlRoutineSet(pPL, 0, 0xF, 4, 0);
+            EmRoutineSet(pPL, 0, 0xF, 4, 0);
         }
         break;
     case 4:
@@ -2258,7 +2245,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         }
         if (MotionMove(pl, 0)) {
             FSet(pl->m_Blend, 0.0f);
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -2289,7 +2276,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 3, 2);
+            EmRoutineSet(pPL, 0, 0xF, 3, 2);
         } else {
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
                 plboatSpearThrow(pl);
@@ -2301,9 +2288,9 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
             if ((int) pl->m_Work0 > 20 && !(Key.on & 0x10)) {
                 if ((int) pl->m_Work0 >= 31 && (int) pl->m_Work0 <= 49) {
                     FSet(pl->m_Blend, 0.0f);
-                    PlRoutineSet(pPL, 0, 0xF, 2, 0);
+                    EmRoutineSet(pPL, 0, 0xF, 2, 0);
                 } else {
-                    PlRoutineSet(pPL, 0, 0xF, 3, 4);
+                    EmRoutineSet(pPL, 0, 0xF, 3, 4);
                 }
             }
         }
@@ -2367,7 +2354,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         if (boss && !(boss->flag & 0x20)) {
             pl->r_no_3++;
         } else if (Key.trg & 0x80) {
-            PlRoutineSet(pPL, 0, 0xF, 0xB, 0);
+            EmRoutineSet(pPL, 0, 0xF, 0xB, 0);
         }
         break;
     case 4:
@@ -2383,7 +2370,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
             }
         }
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -2413,7 +2400,7 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 0xA, 2);
+            EmRoutineSet(pPL, 0, 0xF, 0xA, 2);
         } else {
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
                 plboatSpearThrow(pl);
@@ -2463,7 +2450,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
             }
         }
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -2488,7 +2475,7 @@ static void plboat_R2_Guard(cPlayer* pl)
     case 1:
         plOnBoat(pl);
         if (MotionMove(pl, 0)) {
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -2567,7 +2554,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         }
         if (MotionMove(pl, 0)) {
             if ((s16) pG->pl_life > 0) {
-                PlRoutineSet(pPL, 0, 0xF, 6, 0);
+                EmRoutineSet(pPL, 0, 0xF, 6, 0);
             }
         }
         break;
@@ -2738,7 +2725,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->pos.y = h - 100.0f;
     }
     if (pl->m_pBoat->plDist2 < 3240000.0f) {
-        PlRoutineSet(pPL, 0, 0xF, 8, 0);
+        EmRoutineSet(pPL, 0, 0xF, 8, 0);
         pl->m_pBoat->r_no_0 = 1;
         pl->m_pBoat->r_no_1 = 5;
         pl->m_pBoat->r_no_2 = 0;
@@ -2805,7 +2792,7 @@ static void plboat_R2_WaterRide(cPlayer* pl)
             pl->Body->initWepHand((u32) PLARC(0x8));
             pl->setRightHand(1);
             pl->Wep->setTrans(0, 0);
-            PlRoutineSet(pPL, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -3950,8 +3937,8 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
         EffectEspDelete(0, 0x35, this, 0);
         EffectEspgenDelete(0, 0x35, this);
         EffectEfmDelete(0, 0x35, this);
-        PlRoutineSet(pPL, 0, 0xF, 2, 0);
-        PlRoutineSet(this, 1, 6, 0, 0);
+        EmRoutineSet(pPL, 0, 0xF, 2, 0);
+        EmRoutineSet(this, 1, 6, 0, 0);
         pl = pPL;
         pl->Body->initWepHand((u32) PL_ARC_PTR(subArc, 8));
         pl->setRightHand(1);

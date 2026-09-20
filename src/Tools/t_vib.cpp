@@ -10,6 +10,7 @@
 #include "db_log.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Pad vibration pattern editor (Tools/t_vib.cpp): 64 patterns of up to 16 keys (VibDataEntry), edited
 // on a level/frame grid and saved as the room's .vib file.
@@ -112,7 +113,6 @@ static s16 frame_w = 30;
 
 
 // Store through a reference: keeps the following global (pG) load below the store.
-static inline void ISet(int& d, int v) { d = v; }
 
 // Vibration editor entry (debug menu 15): init, then tvibFunc[mode] and the display every frame.
 void ToolVibEdit()

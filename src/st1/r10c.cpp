@@ -37,6 +37,7 @@
 #include "rnd.h"
 #include "debug.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 1-0C (D:/Bio4/Prog/r10c.cpp): the dam and the water wheel; the two gates opened by the
 // switch, the hanging crates (hit boxes on ropes) that fall into the water, the ambush after the
@@ -69,7 +70,6 @@ struct R10cWorkPtr {
 };
 
 // Pointer store through a reference: the pG / pPL / pSys loads that follow stay below it.
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 // Struct view of pPL: the load stays below preceding Vec template stores (r102).
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
@@ -360,8 +360,6 @@ static void r10c_TestPosMove(int side)
     }
 }
 
-static inline void r10c_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
-static inline void r10c_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
 
 // End of the axe event: destroys the event Ganado, drops its effects, camera back, SceEventEnd, clears
 // Status_flg[2] 0x02000000, spawns ESL 3 and 4 (the real enemies of the bank), puts Leon at the ladder
@@ -385,8 +383,8 @@ static void r10c_EmEvent_exit()
     EmSetFromList2(3, 1);
     EM_LIST(4)->be_flag |= 1;
     EmSetFromList2(4, 1);
-    r10c_setPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
-    r10c_setAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
+    SetPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
+    SetAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
     pG->Room_flg[0] &= ~0x08000000;
 }
 
@@ -429,8 +427,8 @@ static void r10c_EmEvent()
             SceSleep(1);
         }
         pPL->setNoSuspend(1);
-        r10c_setPosXYZ(pPL, 3145.0f, 0.0f, 10394.0f);
-        r10c_setAngXYZ(pPL, 0.0f, 0.4f, 0.0f);
+        SetPosXYZ(pPL, 3145.0f, 0.0f, 10394.0f);
+        SetAngXYZ(pPL, 0.0f, 0.4f, 0.0f);
         CamCtrl.CutCall(0x13);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -721,7 +719,6 @@ static void r10c_EmSet_exit()
 }
 
 // Area 8: the ambush on the drained pool floor (camera cut 0x1B).
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Area 8 after the drain (once, Room_flg bit 9): 30 frames later stream 7 and camera cut 0x1B show the
 // seven Ganados (ESL 6..0xC) arriving; player-cancellable.

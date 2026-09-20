@@ -39,6 +39,7 @@
 #include "rnd.h"
 #include "room_data.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 1-00 (D:/Bio4/Prog/r100.cpp): the village approach; the police car, the two officers
 // (s03: the first Ganado kills one, s20: the truck runs the car off the bridge, s40: the ravine).
@@ -360,7 +361,6 @@ void R100Init()
     SceAtDataSet_exec(0x23, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu_bgm_up, 0, 1);
 }
 
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Per frame: area 6 first hit pre-reads events 0/3 (bit 0); areas 7/8 set bit 1; once past area 0xD in
 // the after state (bit 3) the three battle streams fade out (bit 12). Before the officers' death the

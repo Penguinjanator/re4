@@ -64,14 +64,6 @@ struct SubCharPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em34DeadCk(cEm* em)

@@ -22,6 +22,8 @@
 #include "TexRender.h"
 #include "db_log.h"
 
+static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
+
 // Room 3-21 (D:/Bio4/Prog/r321.cpp): the yard where the support helicopter is shot down (event
 // r321s00 on area 2, Scenario_flg[2] bit 31): afterwards the wreck model with its smoke and a fire
 // render target, four Ganados and a typewriter.
@@ -35,27 +37,7 @@ static R321Work* r321_work;
 
 static void r321_heri_down();
 
-// Position a model from three components (inline owning the Vec).
-static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-// Rotate a model about Y only.
-static inline void setAngY(cModel* m, f32 y)
-{
-    Vec v;
-
-    v.x = 0.0f;
-    v.y = y;
-    v.z = 0.0f;
-    m->setAng(&v);
-}
 extern "C" void Evt_R321S00_Func(Event* e);
 void setTexRender();
 void break_heri_set();
@@ -91,8 +73,8 @@ static void r321_heri_down()
     RsfSet(G_ROOM_ID, 0);
     ScfFlagOn(pG, SCF_R321_HERI_DOWN);
     EvtMgr.EvtReadExec("event/evd/r321s00.evd", 0, 0);
-    setPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
-    setAngY(pPL, 1.663f);
+    SetPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
+    SetAngY(pPL, 1.663f);
     OpeSetOpenTerm(0x16, 0.0f, 0.0f, 0.0f, 0.0f);
     break_heri_set();
     setEm(0x67, -1, 1, 1, 1);

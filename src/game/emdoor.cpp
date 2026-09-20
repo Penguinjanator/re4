@@ -44,8 +44,6 @@ cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 typedef void (*EmDoorFunc)(cEmDoor*);
 
-// Store through a scalar reference: the following pPL read is not shared with the one before it.
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // Struct-member view of pPL: the load stays below a preceding store through the player pointer.
 struct PlayerPtr {

@@ -354,11 +354,8 @@ static inline void drawColorTile(int x, int y, int w, int h, u32 c)
     DrawTile(x, y, w, h, (GXColor*) &col);
 }
 
-// The current light of the light table.
-static inline cLight* curLight()
-{
-    return LightMgr.getWorkPtr(pTool->table_y + pTool->cy);
-}
+// The current light of the light table. A macro for the same reason as lightWorkNoChk below.
+#define curLight() (LightMgr.getWorkPtr(pTool->table_y + pTool->cy))
 
 #ifdef DB_LIGHT_SET_TOOL_LIGHT
 // Tools / t_esp / t_sce / t_movie builds: load tool%02x.lit as the current light set (-1: reapply the

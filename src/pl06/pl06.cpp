@@ -11,6 +11,7 @@
 #include "pl_mod.h"
 #include "db_log.h"
 #include "esp.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 
@@ -22,7 +23,6 @@ extern "C" void OSReport(const char* fmt, ...);
     }
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
 
 // Builds HUNK: the cPlayer work init (init0), the model set, the equipped weapon module, the
 // routine init (init1), the event motions, the player effects (archive 0x1A as group 3), startUp

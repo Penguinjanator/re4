@@ -41,6 +41,7 @@
 #include "snd.h"
 #include "math_sub.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 1-01 (D:/Bio4/Prog/r101.cpp): the village; the first fight, the tower and the enemy resets,
 // the church bell event (s30), the house event (s20), the binocular view (s00) and the door messages.
@@ -74,8 +75,6 @@ struct SystemWorkPtr {
 
 // Pointer stores through a reference: the work pointer is reloaded after them (see st_room.h).
 static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }
-static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 // Hit effects of attribute type 4
 static const AtEffInfo r101_eff_info = {

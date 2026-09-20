@@ -14,6 +14,7 @@
 #include "TexRender.h"
 #include "esp.h"
 #include "espgen.h"
+#include "ref_access.h"
 
 // laser line: cEsp19 (game/esp19.cpp) work
 struct Esp19Work {
@@ -110,7 +111,6 @@ struct TexRenderMngPtr {
 };
 #define pMgr g_pMgr
 #define pMgrView (((TexRenderMngPtr*) &g_pMgr)->p)
-static inline void ISet(int& d, int v) { d = v; }
 
 // Fills the effect function table: for every effect id 0x00..0x52 registers its Create function and
 // its Trans (draw) function (EspCommonTrans for plain sprites). Called once from the effect system

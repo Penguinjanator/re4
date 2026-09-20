@@ -22,6 +22,7 @@
 #include "pad.h"
 #include "debug.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Scenario attribute ("AEV" room file) editor: the same object in the Tools and t_sce RELs
 // (D:/Bio4/Prog/t_sce_at.cpp). Same skeleton as t_flr_at.cpp / t_movie's t_se_at.cpp.
@@ -1090,10 +1091,7 @@ static void tSceAtDataInput_door()
 }
 
 // jumps through the door to set the destination point with the player, then comes back
-static inline f32 FCRef(const f32& v) { return v; }
 // scalar-reference stores: the following pG load stays below them and pG is reloaded
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
 
 // Door target position: jumps into the destination room (GetNextPos or the stored dstPos), lets the
 // player be moved with the stick / triggers (X fast, A slow) until START, stores his position as

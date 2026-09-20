@@ -488,6 +488,7 @@ void SceInitItemEvent()
 }
 
 #include "flag_rsf.h"
+#include "ref_access.h"
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 
@@ -721,9 +722,6 @@ void getChapterSection(int chapter, int* chap, int* sec)
 }
 
 // Reference setters: the original stores these GlobalWork fields through references (pG reloaded after each).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), reference store
 
 // Chapter end task (SceSetChapterEnd): kills the running event, freezes the game, swaps the room
@@ -1262,19 +1260,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
 
 extern "C" void SceElevator(SceElevatorData* d);
 
-// Inline helpers owning their locals (r225.cpp SceElevator_r225 has the same function): the inlined
-// frame is one BLKmode temp slot popped at the end of each statement, so every call shares frame slot
-// 8. Argument MEMs are evaluated lazily (the pointer before a call in another argument, the load
-// after it: `lwz r30,pPL; bl fRand1_1; lfs 148(r30)`).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
 // pseudo (SImode) and purge_addressof gives it a permanent frame slot instead of the shared temp at

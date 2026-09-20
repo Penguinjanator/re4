@@ -14,9 +14,9 @@
 #include "t_util.h"
 #include "file.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" int sprintf(char* s, const char* fmt, ...);
-static inline int IRef(int& v) { return v; }
 
 
 // Distance curve entry as edited (SndCurveEnt with a signed value).

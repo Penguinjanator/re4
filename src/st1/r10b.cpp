@@ -32,6 +32,7 @@
 #include "cam_extra.h"
 #include "snd.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 1-0b (D:/Bio4/Prog/r10b.cpp): the lake; the boss fight from the boat (enemy 0x2f), the
 // floating islands, the binocular view of the cliff event and the boss's tentacle heads.
@@ -76,12 +77,9 @@ public:
 };
 
 // Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
-static inline void PSet(cEm*& d, cEm* v) { d = v; }
 static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
 static inline void PSet(FocusAnimation*& d, FocusAnimation* v) { d = v; }
 
-// The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Waits for the running event to end.
 static inline void r10b_waitEvt()

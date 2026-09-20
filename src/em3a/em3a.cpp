@@ -39,6 +39,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
@@ -65,18 +66,7 @@ static void em3a_R1_B_Bomb(cEm3a* em);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-static inline void AtariOn(cAtariInfo* at, u16 bits) { at->m_flag |= bits; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
 // stores of a stack copy (cam_ctrl.cpp PlayerPtr).
@@ -91,9 +81,6 @@ static inline int em3aDeadCk(cEm* em)
     return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
-// Stores through a scalar reference: the following pG load is reloaded (em3a_R1_Atk's timer
-// table, em3aPatrolInit's route pointer).
-static inline void IntSet(int& x, int v) { x = v; }
 static inline void EmiSet(EmiEntry*& p, EmiEntry* v) { p = v; }
 // Reference read of pG: the load depends on the preceding `w->pRoute = 0` store (a MEM with neither
 // the struct nor the scalar flag), which ranks the store above the `lis pG@ha` in em3aPatrolInit.

@@ -23,6 +23,7 @@
 
 #define _DOLPHIN_TYPES_H_
 #include <dolphin/os/OSError.h>
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -88,8 +89,6 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar);
 
 // A store through a scalar reference is not a struct-member MEM: the static `addr` is reloaded
 // after it, as the original does.
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void ISet(int& d, int v) { d = v; }
 
 #line 40 "D:/Bio4/Prog/exception.cpp"
 

@@ -18,6 +18,9 @@ static inline f32 fabsf(f32 x)
     return r;
 }
 
+// Column `c` of a matrix read into a Vec.
+static inline void getColumn(Mtx m, int c, Vec* v) { v->x = m[0][c]; v->y = m[1][c]; v->z = m[2][c]; }
+
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);
 void TransMatrix(Mtx m, Vec* pos);

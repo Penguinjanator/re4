@@ -31,6 +31,7 @@
 #include "item.h"
 #include "sscrn.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-0E (D:/Bio4/Prog/r20e.cpp): the maze with its three switch-driven fences, the sliding
 // picture puzzle behind the crest door, the armor statues and the treasure shelves/boxes.
@@ -114,17 +115,7 @@ static R20eWork* r20e_work;
 // grouped with 0x178 (`(k-1)*16` must distribute to `k*16 - 16` under EXPAND_SUM).
 #define PUZZLE_CELL(p, x, y) ((R20eCell*) ((x) * sizeof(R20eCell[3]) + 0x178 + (u32) (p) + (y) * sizeof(R20eCell)))
 
-// The address of the caller's Vec goes straight into the argument register (no PRE'd pseudo).
-static inline void SetAngV(cModel* m, Vec* v)
-{
-    m->setAng(v);
-}
 
-// Store through a scalar reference: pPL is reloaded for the following call (r22a idiom).
-static inline void FSetP(f32& d, f32 v) { d = v; }
-// Atari flag stores through the info's address (r207 idiom): `addi r9, pl, 0x2B4` + lhz/sth 0x1A(r9).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // Struct view of pPL: cse invalidates an in-struct pPL load at the following in-struct flags store
 // (true_dependence), so the next `pPL->atari` reloads pPL and recomputes the address (the plain
 // scalar load survives the store and gets cse'd into `mr r3, r9`).
@@ -494,7 +485,7 @@ static void r20e_execThrough(int no)
     u32 i;
 
     pl->beginAction();
-    AtariFlagsAnd(&pPLS->atari, 0xFEFF);
+    AtariOff(&pPLS->atari, 0xFEFF);
     pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     t = &r20e_throughTbl[no];
@@ -566,7 +557,7 @@ static void r20e_execThrough(int no)
     }
     pl->endAction(8);
     pPL->dmg.clear();
-    AtariFlagsOr(&pPLS->atari, 0x100);
+    AtariOn(&pPLS->atari, 0x100);
     pPLS->atari.setPriority(0);
 }
 

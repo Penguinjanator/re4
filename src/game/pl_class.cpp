@@ -23,6 +23,7 @@
 #include "esp.h"
 #include "rnd.h"
 #include "em_sub.h"
+#include "ref_access.h"
 
 extern "C" {
 double atan2(double y, double x);
@@ -50,19 +51,7 @@ u32 upDownCk(cPlayer* pl);
 #define VALID_PTR2(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 
 
-// `flags &= 0xFFFE` through a u16 reference: the 16-bit mask survives (`rlwinm 16,30`, BitOff16
-// gives `clrrwi`) and the following `pPL` load stays below the store (cPlNeck::move).
-static inline void And16(u16& f, u16 m) { f &= m; }
 
-// Routine bytes (state, routine, sub routine, step) written through an inline taking ints: the
-// stores come out in the original's order (ff, fd, fc, fe for a plain routine change).
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80. An
 // inline member of the class whose vtable this unit owns: emitted here after the destructor.
@@ -70,7 +59,7 @@ inline void cPlayer::subCharLiveCheck()
 {
     cEm* sub = pSubEm;
     if (sub && sub->id == 3 && sub->hp <= 0 && r_no_0 == 0) {
-        PlRoutineSet(this, 6, 0, 0, 0);
+        EmRoutineSet(this, 6, 0, 0, 0);
         dmg.set(0, 0x80);
         Wep->m_pWep->interrupt();
     }
@@ -372,9 +361,9 @@ void fanceOn()
 
     if (pl->m_Work0) {
         PlFanceFlag = 0;
-        PlRoutineSet(pl, 0, 0xC, 0, 0);
+        EmRoutineSet(pl, 0, 0xC, 0, 0);
     } else {
-        PlRoutineSet(pl, 0, 0xC, 0, 5);
+        EmRoutineSet(pl, 0, 0xC, 0, 5);
         PlFanceFlag = 1;
     }
     pl->dmg.set(0, 10);
@@ -404,7 +393,7 @@ void fallOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 0xE, 0, 0);
+    EmRoutineSet(pl, 0, 0xE, 0, 0);
     pPL->dmg.set(0, 0x80);
 }
 
@@ -413,7 +402,7 @@ void levelUpOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 7, 0, 0);
+    EmRoutineSet(pl, 0, 7, 0, 0);
     BitSet(pPL->m_Work0, 0);
     pPL->dmg.set(0, 10);
 }
@@ -423,7 +412,7 @@ void levelDownOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 8, 0, 0);
+    EmRoutineSet(pl, 0, 8, 0, 0);
     BitSet(pPL->m_Work0, 0);
     pPL->dmg.set(0, 10);
 }
@@ -433,7 +422,7 @@ void level2UpOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 7, 0, 0);
+    EmRoutineSet(pl, 0, 7, 0, 0);
     BitSet(pPL->m_Work0, 1);
     pPL->dmg.set(0, 10);
 }
@@ -443,7 +432,7 @@ void level2DownOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 8, 0, 0);
+    EmRoutineSet(pl, 0, 8, 0, 0);
     BitSet(pPL->m_Work0, 1);
     pPL->dmg.set(0, 10);
 }
@@ -453,7 +442,7 @@ void holdOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 9, 0, 0);
+    EmRoutineSet(pl, 0, 9, 0, 0);
 }
 
 // Wall (attribute bit19) 600 ahead at both shoulders the player may jump over: jumpDir = -normal,
@@ -519,7 +508,7 @@ void jumpFallOn()
 {
     cPlayer* pl = pPL;
 
-    PlRoutineSet(pl, 0, 0x13, 0, 0);
+    EmRoutineSet(pl, 0, 0x13, 0, 0);
     FSet(pPL->ang.y, pPL->ang.y + Muku3(pPL->ang.y, &pl->m_JumpVec, 3.1415927f));
     pPL->dmg.set(0, 0x80);
 }
@@ -576,31 +565,31 @@ int cPlayer::actionSelect()
 
             StaFlagOn(pG, STA_SSCRN_ENABLE);
             if (joyKamae()) {
-                PlRoutineSet(this, zero, 6, zero, zero);
+                EmRoutineSet(this, zero, 6, zero, zero);
                 return 1;
             }
     if (joyLKamae()) {
-        PlRoutineSet(this, 0, 0xB, 0, 0);
+        EmRoutineSet(this, 0, 0xB, 0, 0);
         return 1;
     }
     if (r_no_1 != 5 && (Key.trg & 0x100)) {
-        PlRoutineSet(this, 0, 5, 0, 0);
+        EmRoutineSet(this, 0, 5, 0, 0);
         return 1;
     }
     if (r_no_1 == 0 && ((Key.on & 4) || (Key.on & 8))) {
-        PlRoutineSet(this, 0, 4, 0, 0);
+        EmRoutineSet(this, 0, 4, 0, 0);
         return 1;
     }
     if (r_no_1 != 1 && r_no_1 != 3 && (Key.on & 1)) {
-        PlRoutineSet(this, 0, 1, 0, 0);
+        EmRoutineSet(this, 0, 1, 0, 0);
         return 1;
     }
     if (r_no_1 != 2 && (Key.on & 2)) {
-        PlRoutineSet(this, 0, 2, 0, 0);
+        EmRoutineSet(this, 0, 2, 0, 0);
         return 1;
     }
     if (keyReload() && Wep->m_pWep && Wep->m_pWep->reloadable()) {
-        PlRoutineSet(this, 0, 6, 4, 0);
+        EmRoutineSet(this, 0, 6, 4, 0);
         m_Work0 = 1;
         return 1;
     }
@@ -734,14 +723,14 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
         }
         switch (kind) {
         default:
-            PlRoutineSet(this, 1, 0, 0, kind);
+            EmRoutineSet(this, 1, 0, 0, kind);
             break;
         case 7:
         case 8:
-            PlRoutineSet(this, 1, 1, 0, 0);
+            EmRoutineSet(this, 1, 1, 0, 0);
             break;
         case 9:
-            PlRoutineSet(this, 1, 2, 0, 0);
+            EmRoutineSet(this, 1, 2, 0, 0);
             break;
         }
         m_ConDmTimer = 0;
@@ -1087,7 +1076,7 @@ void cPlayer::beginEvent(u32 mode)
     Neck->motL = 0;
     switch (mode) {
     case 0:
-        PlRoutineSet(this, 5, 0, 0, 0);
+        EmRoutineSet(this, 5, 0, 0, 0);
         MotionBlendOff(this);
         atari.throughOn();
         be_flag |= 0x04000000;
@@ -1098,7 +1087,7 @@ void cPlayer::beginEvent(u32 mode)
         m_Flag &= ~0x100;
         break;
     case 1:
-        PlRoutineSet(this, 5, 2, 0, 0);
+        EmRoutineSet(this, 5, 2, 0, 0);
         break;
     }
     stat |= 2;
@@ -1222,13 +1211,13 @@ void cPlayer::endEvent0(u32 mode)
         case 0:
             m_Hokan = 0;
             m_Frame = 0;
-            PlRoutineSet(this, 0, 0, 0, one);
+            EmRoutineSet(this, 0, 0, 0, one);
             break;
         case 1:
             m_Flag |= 0x100;
             break;
         case 2:
-            PlRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
             break;
         default:
             pLog->err(0, 0, "PL::endEvent() UNKNOWN MODE.");
@@ -1248,7 +1237,7 @@ int cPlayer::checkEvent()
 void cPlayer::beginAction()
 {
     endCamera();
-    PlRoutineSet(this, 5, 0, 0, 0);
+    EmRoutineSet(this, 5, 0, 0, 0);
     MotionBlendOff(this);
     if (Wep->m_pWep) {
         Wep->m_pWep->resetMotion();
@@ -1270,7 +1259,7 @@ void cPlayer::endAction(int routine)
         m_Hokan = routine;
         stat &= ~2;
         m_Frame = 0;
-        PlRoutineSet(this, 0, 0, 0, one);
+        EmRoutineSet(this, 0, 0, 0, one);
     }
 }
 
@@ -1627,7 +1616,7 @@ void cPlNeck::move()
             ang = -0.7853981852531433f;
         }
         if (ang < 0.0f && m_Flag) {
-            And16(m_Flag, 0xFFFE);
+            U16And(m_Flag, 0xFFFE);
             motSet(motL, (u16) pPL->frame);
         } else if (ang > 0.0f && !m_Flag) {
             BitOn16(m_Flag, 1);

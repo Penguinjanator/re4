@@ -90,16 +90,6 @@ static f32 r317_elvStopAddUp = 2000.0f;
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // Every s00..s14 handler deletes the same effect on begin.
 static inline void EffectDelete2001()

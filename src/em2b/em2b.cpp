@@ -42,6 +42,7 @@
 #include "camera.h"
 #include "cam_ctrl.h"
 #include "quake.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
@@ -54,10 +55,6 @@ asm(".comm common_em2b,52,4");
 
 // game/obj20.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);
-// wep_mod.h idiom: the volatile scalar access keeps the following `lwz pSUB` below the `sth` and the
-// info address in a register (`addi rX, pl, 0x2b4; lhz/sth 0x1a(rX)`), plem2bDashEscape.
-static inline void AtariFlagsOrV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
-static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
 // game/obj16.cpp (obj16.h includes em10.h, which this module cannot).
 extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 extern "C" void MotSetObj16(cObj* obj, void* mot, int a, int b);
@@ -128,19 +125,7 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 #define pSUBS (((PlayerPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void S16Set(s16& d, s16 v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U32Or(u32& d, u32 v) { d |= v; }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -2493,7 +2478,7 @@ static void em2b_R1_Strangle(cEm2b* em)
             }
         }
         if (MotionMove(em, 0)) {
-            AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+            AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
             if ((s16) pG->pl_life <= 1) {
                 pG->pl_life = 0;
                 em->r_no_2 = 4;
@@ -2514,7 +2499,7 @@ static void em2b_R1_Strangle(cEm2b* em)
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-        AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+        AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         w->Timer = 60;
         em->r_no_2++;
     }
@@ -2532,7 +2517,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 
         MotionSetCore(em, &em->Motion, ARC(0x3B), ARC(0x7E), 10, flip, 0);
         EstSet(em, -1, 0, 0, w->espKind2, 0x23, 0, 0, em, 0);
-        AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+        AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         StaFlagOff(pG, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
@@ -4392,9 +4377,9 @@ static void plem2bDashEscape(cPlayer* pl)
         } else {
             MotionSetCore(pl, &pl->Motion, PL_ARC(0xC1), PL_ARC(0xC2), 3, 0x41, 0);
         }
-        AtariFlagsAndV(&pl->atari, 0xFDFF);
+        AtariOffV(&pl->atari, 0xFDFF);
         if (pSUB) {
-            AtariFlagsAndV(&pSUB->atari, 0xFDFF);
+            AtariOffV(&pSUB->atari, 0xFDFF);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         if (pSUB) {
@@ -4419,9 +4404,9 @@ static void plem2bDashEscape(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
         } else {
-            AtariFlagsOrV(&pl->atari, 0x200);
+            AtariOnV(&pl->atari, 0x200);
             if (pSUB) {
-                AtariFlagsOrV(&pSUB->atari, 0x200);
+                AtariOnV(&pSUB->atari, 0x200);
             }
             EndPlDamage();
             if (pSUB) {

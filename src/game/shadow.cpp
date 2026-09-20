@@ -20,6 +20,7 @@
 #include "eprintf.h"
 #include "os_vi.h"
 #include "shadow.h"
+#include "ref_access.h"
 
 extern cEm* pPL;   // game/em.cpp
 extern cEm* pSUB;  // game/em.cpp
@@ -36,7 +37,6 @@ int g_SelfShdNum = 0;
 f32 shadow_cammove_size = 1.0f;
 // Reference read of a unit static: the load is neither in-struct nor a fixed scalar, so it stays
 // ordered against the `mng->dir` stores (make_comn_parallel_light issues the pool -1.0 first).
-static inline f32 FRef(f32& v) { return v; }
 
 f32 shadow_add_dir_x_default = 0.1f;
 f32 shadow_add_dir_x = shadow_add_dir_x_default;
@@ -48,12 +48,10 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
-static inline void U16Set(u16& d, u16 v) { d = v; }
 // Flag test through a reference: the load is a plain scalar access that the scheduler keeps
 // below the preceding stores (a member read of pG is hoisted above them).
 static inline u32 BitChk(u32& f, u32 b) { return f & b; }
 static inline void PSet(cObj**& d, cObj** v) { d = v; }
-static inline void VSet(void*& d, void* v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.
@@ -658,7 +656,7 @@ void shadowModelRender(ShadowMng* mng)
     StaFlagOn(pG, STA_PROC_SHD_TEX);
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
-        VSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
+        PSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
         DCInvalidateRange(mng->pTex, g_Shd_tex_size * g_Shd_tex_size);
         if (mng->pTex == 0) {
             pLog->warn(0, 0, "ShadowModelRender() : not enough memory");

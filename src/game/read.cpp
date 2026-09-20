@@ -19,6 +19,7 @@
 #include "eprintf.h"
 #include "player.h"
 #include "read.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -129,7 +130,6 @@ ReadModule WepReadModule __attribute__((aligned(32)));
 #define ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
-static inline void PSet(void*& d, void* v) { d = v; }
 // Flag test through a reference: the flag address is materialised, and `&PlReadModule` right
 // after it becomes `addr - 0x82` (cse related-value).
 static inline int BitChk16(u16& f, u16 b) { return f & b; }

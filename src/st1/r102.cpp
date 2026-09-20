@@ -22,6 +22,7 @@
 #include "snd.h"
 #include "cam_ctrl.h"
 #include "em_wrap.h"
+#include "ref_access.h"
 
 // Room 1-02 (D:/Bio4/Prog/r102.cpp, in st1_1 and st1_3): the farm; the well cover event, the
 // r102s00 event and the battle BGM.
@@ -32,7 +33,6 @@ struct R102Work {
 
 static R102Work* r102_work;
 
-static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
 

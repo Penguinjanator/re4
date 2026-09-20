@@ -10,6 +10,7 @@
 #include "obj.h"
 #include "emtorch.h"
 #include "etc_model.h"
+#include "ref_access.h"
 
 // Room 1-09 (D:/Bio4/Prog/r109.cpp): the hut ("koya") interior; extra collision pieces and the
 // hut's scroll-object flags.
@@ -30,7 +31,6 @@ static Vec r109_rot0 = {0.0f, -3.1642818f, 0.0f};
 static Vec r109_rot1 = {0.0f, -3.1642818f, 0.0f};
 static Vec r109_rot2 = {0.0f, -4.00204f, 0.0f};
 
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 // Room init: re-orients scroll objects 0x21/0x22 (fallen props), creates three extra collision (SAT) and
 // hit-attribute (EAT) pieces from room archive entries 0x1F/0x20 at the three hut positions, deletes the

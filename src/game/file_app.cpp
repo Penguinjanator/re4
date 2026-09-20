@@ -29,10 +29,6 @@ static int hd_stat0 = 0;
 static int hd_stat1 = 0;
 static int hd_stat2 = 0;
 static int hd_stat3 = 0;
-static inline void hd_stat_clear()
-{
-    hd_stat0 = hd_stat1 = hd_stat2 = hd_stat3 = 0;
-}
 
 static int hdRead_malloc(const char* path, void** buf, int mode, int flag);
 static int hdWrite_main(const char* path, void* buf, int size);

@@ -26,6 +26,7 @@
 #include "sscrn.h"
 #include "ss_main.h"
 #include "ss_pzzl.h"
+#include "ref_access.h"
 
 extern "C" f64 tan(f64 x);
 
@@ -307,7 +308,6 @@ struct MgrPtr {
 #define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 // Scalar-reference store: the MEM has neither the struct nor the scalar flag, so sched1 makes every
 // following load (the `sw->` call arguments AND the fixed-scalar `pG`) wait for it.
-static inline void IntSet(int& d, int v) { d = v; }
 
 // The bought item's model: MapMgr work 1 (work 0 is the merchant).
 static inline cMap* shopItemModel()
@@ -2017,21 +2017,6 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
     }
 }
 
-// Tune level of `item` for tune type `type` (nibbles of ItemWork::x6, fire first).
-static inline int itemTuneLevel(ItemWork* item, int type)
-{
-    switch (type) {
-    case 0:
-        return item->lv >> 12;
-    case 1:
-        return (item->lv >> 8) & 0xF;
-    case 2:
-        return (item->lv >> 4) & 0xF;
-    case 3:
-        return item->lv8[1] & 0xF;
-    }
-    return 0;
-}
 
 // Draws the tune-up type panel of the cursor weapon: per type (lvType 0 firepower, 1 capacity,
 // 2 firing speed, 3 exclusive) the current level bar, the next-level cost and the "MAX" marks;
@@ -2560,8 +2545,6 @@ struct TuneLevel {
     u16 ex : 4;
 };
 
-static inline void tuneSetFire(TuneLevel* t, u8 v) { t->fire = v; }
-static inline u8 tuneU8(u8 v) { return v; }
 
 // Tune confirm: yes applies the levels (Merchant::levelup / ItemMgr, pesetas paid, sw->lv[]
 // stored) with the thanks line, no / B back to the type pick.

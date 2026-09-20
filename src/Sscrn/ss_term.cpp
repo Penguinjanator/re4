@@ -266,8 +266,8 @@ void cDbgWindow::LocalDisp()
 }
 
 #include "ss_main.h"
+#include "ref_access.h"
 
-static inline void IntSet(int& d, int v) { d = v; }
 
 // Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).
 struct MgrPtr {

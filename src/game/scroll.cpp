@@ -41,15 +41,6 @@ static cObj** scrTbl;      // one entry per SMD work
 int nScrWork;
 static const u8 ScrObjIdNum = 16;
 
-// Never called in this build; keeps ScrIdRefTbl alive (GCC 2.95 emits statics an inline body
-// mentions).
-static inline const char* scrIdName(u32 no)
-{
-    if (no < ScrObjIdNum) {
-        return ScrIdRefTbl[no].Name;
-    }
-    return NULL;
-}
 
 // Not in the DOL: the original linker dead-stripped it (tools/strip_unused.py does the same to
 // every function sym_map.tsv does not list). Taking the address is what makes GCC emit the

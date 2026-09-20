@@ -34,6 +34,7 @@
 #include "esp.h"
 #include "est.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-0C (D:/Bio4/Prog/r20c.cpp): the cage trap dropped on the player, the enemy waves it
 // releases, the painting (kaiga) that swings open when shot and the barred door behind it.
@@ -57,7 +58,6 @@ struct R20cWorkPtr {
 };
 
 static R20cWorkPtr r20c_work;
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 Vec r20c_emGoto0 = {35700.0f, 3500.0f, 17000.0f};
 Vec r20c_emGoto1 = {34000.0f, 3500.0f, 10250.0f};
@@ -71,28 +71,7 @@ Vec r20c_plAng1 = {0.0f, 1.27f, 0.0f};
 static int r20c_resetTbl[7] = {4, 9, 7, 5, 8, 6, 0};
 
 
-// The coordinates are read before `v` is written and the `&v` argument is recomputed per call
-// (an inlined helper: the address goes straight into the argument register).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-// Set a model's rotation from three components (inlined helper, see SetPosXYZ).
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
 
 
 static void R20cEmSetMain();

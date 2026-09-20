@@ -28,6 +28,7 @@
 #include "flr_at.h"
 #include "TexRender.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 1-1B (D:/Bio4/Prog/r11b.cpp): the lake; the boat, the floating islands, the lake water
 // rendered to texture, the Ganado ambush on the shore and the s00 event (Del Lago).
@@ -47,7 +48,6 @@ struct R11bWorkPtr {
 static R11bWorkPtr r11b_work;
 
 // Pointer store through a reference: the pG load that follows stays below it.
-static inline void PSet(cEm*& d, cEm* v) { d = v; }
 // Scale set through references: the pG load of the following setMotion stays below the stores.
 static inline void r11b_setScale(cObj* obj, f32 s)
 {
@@ -334,9 +334,6 @@ static void r11b_EmEvent_exit()
     SceEventEnd(0);
 }
 
-// Area 3: the Ganado ambush on the shore (camera cuts 3..6).
-static inline void r11b_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
-static inline void r11b_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
 
 // Area 3 once (Room_flg bit 1): the shore ambush cutscene — seven Ganados (ESL 0x40..0x46) with torches
 // appear while stream 0x24 plays and Leon is placed at the shore; player-cancellable.
@@ -361,8 +358,8 @@ static void r11b_EmEvent()
         SceEventStart(0);
         SndStrReq(1, 0x24, 0x80000003, 0, 0, 0.0f);
         pPL->setNoSuspend(1);
-        r11b_setPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
-        r11b_setAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
+        SetPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
+        SetAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
         EstSet(r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);

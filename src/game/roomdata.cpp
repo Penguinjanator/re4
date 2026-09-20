@@ -11,6 +11,7 @@
 #include "scheduler.h"
 #include "dvd.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" {
 void* memcpy(void* dst, const void* src, unsigned int n);
@@ -76,7 +77,6 @@ static StageTbl Room_data_tbl[10] = {
     {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
 };
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 cRoomData RoomData;
 

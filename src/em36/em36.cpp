@@ -203,21 +203,8 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 #define pSUBS (((PlayerPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void IntSet(int& d, int v) { d = v; }
 
-// Flag update through a volatile view: keeps the following global load below the sth (wep_mod.h).
-static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
-static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
 
 static inline int em36DeadCk(cEm* em)
 {

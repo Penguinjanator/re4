@@ -83,14 +83,6 @@ static inline cEm* em29EmWork(u32 no)
     return (cEm*) ((u8*) m->pArray + m->size * no);
 }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Damage / death routine per the wait state the bat was in (0: flying, 1: on the ceiling, 2: on the ground).
 static inline void em29DmRoutineSet(cEm29* em, u32 kind)

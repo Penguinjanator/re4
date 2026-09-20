@@ -13,6 +13,7 @@
 #include "camera.h"
 #include "os_vi.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Byte-identical. AddSandPower's `stfs f1, Add_power` is an asm with a hard-register anti-dependence
 // (see the COMPILER-DIFF note there); everything else is plain C.
@@ -53,8 +54,6 @@ static Vec Chk_pos;
 static f32 Height_ret;
 static f32 Add_power;
 static int Height_find;
-static inline void ISet(int& d, int v) { d = v; }
-static inline f32 FGet(f32& d) { return d; }
 
 // Applies Add_power at Chk_pos to sand generator `w`: raises the hit point and lowers rings of
 // radius 3 / 2 / 1 around it by 2% / 10% / 30% of the power, then smooths the grid.

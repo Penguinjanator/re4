@@ -40,14 +40,6 @@ static void em26_R1_Die_Normal(cEm26* em);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Module entry (SN loader): registers Em26Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()

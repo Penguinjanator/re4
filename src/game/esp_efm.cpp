@@ -14,6 +14,7 @@
 #include "scroll.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // game/motion.cpp (C++ linkage)
 void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);
@@ -32,13 +33,6 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);   // embox.cpp decl
 
 #define DEG2RAD (3.14f / 180.0f)
 
-// Read a tuning static through a reference: the load is a MEM with neither the struct nor the
-// scalar flag, so it is not hoisted above the preceding member stores and keeps the store it
-// follows (EfmSetObj09: the original reloads moment_mul three times and keeps both mass stores).
-static inline f32 FRef(f32& v)
-{
-    return v;
-}
 
 // Read a pointer member through a reference (no struct flag): the store to the stack local
 // `model` in between may alias it, so `scr->pInfo` is reloaded for `tpl` (EfmSeqSet).

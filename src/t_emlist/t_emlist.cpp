@@ -455,6 +455,7 @@ static EmListIdInfo EmListIdTbl[64] = {
 #include "dbmodule.h"
 #include "db_cam.h"
 #include "cam_ctrl.h"
+#include "ref_access.h"
 
 extern "C" int sprintf(char* buf, const char* fmt, ...);
 // The player's position is all the tool needs from pPL (player.h would add its header strings).
@@ -463,7 +464,6 @@ extern "C" void memclr_asm(void* p, u32 size);
 extern "C" unsigned int strlen(const char* s);
 // The list index is stored through a reference in emlist_r0_target: the store then keeps the
 // following `pG` loads in the search loops (a plain member store lets them hoist).
-static inline void ISet(int& d, int v) { d = v; }
 
 // The editor's view of a list entry (em_set.h EmListData with signed hp / x1A: the tool prints them
 // with lha).

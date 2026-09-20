@@ -25,6 +25,7 @@
 #include "snd.h"
 #include "flr_at.h"
 #include "rnd.h"
+#include "ref_access.h"
 
 // Room 1-18 (D:/Bio4/Prog/r118.cpp): the church in the storm; the door 117 key, the altar view,
 // r108's symbol puzzle, Ashley's call and the thunder task with the dog.
@@ -127,7 +128,6 @@ static void r118_execShowView_end()
 
 // Show the altar: camera cut 10 with its stream.
 // OPEN (as r108 execShowView): the original issues the stream's `lfs f1, 0.0` after the RsfSet store.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // One-shot event (Room_flg bit 0): start stream 0xE0, play camera cut 0xA (the show view),
 // clearing Status_flg[1] 0x10000000, until the camera motion ends; cancellable by the player.

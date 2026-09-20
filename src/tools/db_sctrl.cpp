@@ -43,14 +43,6 @@ static f32 sctrlIndexF(int i)
     return (f32) i + 1.0f;
 }
 
-// cam_sys.cpp's column accessor: the Vec* parameter gives the target's `stfs 4(rP)` through the address
-// register (the .x store goes through the frame).
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 static int (*sctrl_routine_tbl[3])(DbSctrlWork*) = {sctrlEdit, sctrlMenu, sctrlQuit};
 

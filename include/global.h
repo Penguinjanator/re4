@@ -237,6 +237,9 @@ struct GlobalWork {
 extern GlobalWork* pG;
 extern GlobalWork Global;  // the instance pG points at (game/main.cpp); static initializers take its address
 
+// The first room flag word read through a helper: a plain scalar access, not a member chain.
+static inline u32* eventFlags() { return &pG->Room_flg[0]; }
+
 // The system save block (game/main.cpp `SystemSave`, 0x38 bytes), which pSys also points at.
 struct SYSTEM_SAVE_WORK {
     u32 Config_flg;       // 0x00  CFG_* bits (bit 30 = progressive / 60Hz screen scaling)

@@ -34,6 +34,7 @@ class cObjWep;
 #include "TexRender.h"
 #include "cSceObj.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-21 (D:/Bio4/Prog/r221.cpp): the insect boss arena — the shutter and the switchboard
 // lever, the elevator with its doors and wires, the boss appearance and the gas bombs (the
@@ -68,8 +69,6 @@ struct R221WorkPtr {
 static u8 r221_texTbl[0x20];
 static R221WorkPtr r221_work;
 
-static inline void S16Set(s16& d, s16 v) { d = v; }
-static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
 // The death bits of enemy list `list` (pG->Em_flg[list]), as an integer base (the r218 idiom).
 static inline u32* emDeadWords(int list) { return (u32*) ((list << 5) + (u32) pG + 0x501C); }
 
@@ -694,7 +693,7 @@ static void r221_checkElevatorArrive()
     }
     RsfSet(G_ROOM_ID, 6);
     ScfFlagOn(pG, SCF_88);
-    PSetPrim(r221_work.p->wireTask, 0);
+    PSet(r221_work.p->wireTask, 0);
     U32Set(r221_work.p->doorSe, 0);
     U32Set(r221_work.p->elvSe1, 0);
     pG->Room_flg[0] &= ~0x02000000;
@@ -962,7 +961,7 @@ static void r221_checkSwitchboard()
         }
     }
     ScePrim* wire = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
-    PSetPrim(r221_work.p->wireTask2, wire);
+    PSet(r221_work.p->wireTask2, wire);
     pG->Room_flg[0] |= 0x10000000;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

@@ -45,17 +45,7 @@ static void em27_R1_Die_Normal(cEm27* em);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the inline
 // `cLogPtr::operator->` puts two block notes between `high(pLog)` and the load, which raises the

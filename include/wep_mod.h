@@ -39,8 +39,7 @@ cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
 void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
 // Store through a scalar reference: the following global load stays below it (pl_leon PSet).
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModel*& d, cModel* v) { d = v; }
+#include "ref_access.h"
 static inline void PSet(cObjWep*& d, cObjWep* v) { d = v; }
 static inline void U16Set(u16& d, int v) { d = v; }
 // Collision flag bits changed through the info's address (`addi rX, obj, 0x2b4; lhz 0x1a(rX)`).

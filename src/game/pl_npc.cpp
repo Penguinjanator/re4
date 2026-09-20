@@ -56,12 +56,6 @@ void waterProc(cSubChar* pl);
 // `mr` / `clrlwi` copies when gcse PRE shares them.
 #define SUBFLAG(pl) ((cFlag*) &(pl)->flg)
 #define SUBFLAG2(pl) ((cFlag*) &(pl)->status)
-// Collision flag bits set / cleared through the info's address (`cAtariInfo* at = &atari` locals).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-// Same as a raw (non-struct) store through the info's address: a following global load (pG)
-// stays below it (interrupt(), moveDamage).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
 #define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, seq, a, b, c)
 
@@ -112,16 +106,6 @@ struct SubEyeDir {
     }
 };
 static SubEyeDir eyeDir;
-
-// Routine bytes written through an inline taking ints (pl_class PlRoutineSet): the stores come out
-// in the original's order.
-static inline void SubRoutineSet(cSubChar* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // 1 while the partner has at least half her life: picks the healthy motion set (0x12..) over
 // the hurt one (0x6E..).
@@ -314,7 +298,7 @@ void cSubChar::moveCore()
         case 5:
         case 6:
         case 0xE:
-            SubRoutineSet(this, 6, 0, 0, 0);
+            EmRoutineSet(this, 6, 0, 0, 0);
             dmg.set(0, 0x80);
             break;
         }
@@ -351,7 +335,7 @@ void cSubChar::moveFootwork()
         m_Work0 = 0;
         if (SUBFLAG(this)->check(3)) {
             if (dist > 400.0f) {
-                SubRoutineSet(this, 0, 1, 0, 0);
+                EmRoutineSet(this, 0, 1, 0, 0);
                 return;
             }
             r_no_2 = 0x32;
@@ -498,19 +482,19 @@ void cSubChar::moveFootwork()
     }
     backCheckCtrlFootwork();
     if (SUBFLAG2(this)->check(2)) {
-        SubRoutineSet(this, 0, 6, 0, 0);
+        EmRoutineSet(this, 0, 6, 0, 0);
         return;
     }
     if (SUBFLAG2(this)->check(4)) {
-        SubRoutineSet(this, 0, 4, 0, 0);
+        EmRoutineSet(this, 0, 4, 0, 0);
         return;
     }
     if (plDownCheck()) {
-        SubRoutineSet(this, 0, 0x11, 0, 0);
+        EmRoutineSet(this, 0, 0x11, 0, 0);
         return;
     }
     if (!SUBFLAG2(this)->check(1) && SUBFLAG2(this)->check(0)) {
-        SubRoutineSet(this, 0, 7, 0, 0);
+        EmRoutineSet(this, 0, 7, 0, 0);
         return;
     }
     if (SUBFLAG(this)->check(1)) {
@@ -533,7 +517,7 @@ void cSubChar::moveFootwork()
         return;
     }
     if (StaFlagChk(pG, STA_PL_CATCHED) && SUBFLAG2(this)->check(1)) {
-        SubRoutineSet(this, 0, 7, 0, 0);
+        EmRoutineSet(this, 0, 7, 0, 0);
         return;
     }
     if (StaFlagChk(pG, STA_PL_EM_ACTION) && SUBFLAG2(this)->check(1)) {
@@ -546,7 +530,7 @@ void cSubChar::moveFootwork()
         return;
     }
     if (readyCheck()) {
-        SubRoutineSet(this, 0, 1, 0, 0);
+        EmRoutineSet(this, 0, 1, 0, 0);
         return;
     }
     act = actCheck();
@@ -557,25 +541,25 @@ void cSubChar::moveFootwork()
                 if (!SUBFLAG2(pEm)->check(6)) {
                     pEm->m_Frame = 0;
                     pEm->m_Hokan = 5;
-                    SubRoutineSet(pEm, 0, 1, 0, 0);
+                    EmRoutineSet(pEm, 0, 1, 0, 0);
                     break;
                 }
             }
             if (dist > 1100.0f || m_PlActTime) {
                 pEm->m_Frame = 0;
                 pEm->m_Hokan = 5;
-                SubRoutineSet(pEm, 0, 1, 0, 0);
+                EmRoutineSet(pEm, 0, 1, 0, 0);
             }
         }
         break;
     case 7:
-        SubRoutineSet(this, 0, 2, 0, 0);
+        EmRoutineSet(this, 0, 2, 0, 0);
         break;
     case 8:
-        SubRoutineSet(this, 0, 0xA, 0, 0);
+        EmRoutineSet(this, 0, 0xA, 0, 0);
         break;
     case 9:
-        SubRoutineSet(this, 0, 0xC, 0, 0);
+        EmRoutineSet(this, 0, 0xC, 0, 0);
         break;
     case 5:
     case 6:
@@ -724,7 +708,7 @@ void cSubChar::moveMove()
         if (Muku2(ang.y, m_TargetDir, 3.1415927f) > 0.0f) {
             ang.y = m_TargetDir;
             status |= 0x40;
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     case 0xC:
@@ -732,7 +716,7 @@ void cSubChar::moveMove()
         if (Muku2(ang.y, m_TargetDir, 3.1415927f) < 0.0f) {
             ang.y = m_TargetDir;
             status |= 0x40;
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -776,56 +760,56 @@ void cSubChar::moveMove()
         m_Timer++;
     }
     if (SUBFLAG2(this)->check(2)) {
-        SubRoutineSet(this, 0, 6, 0, 0);
+        EmRoutineSet(this, 0, 6, 0, 0);
     } else if (SUBFLAG2(this)->check(4)) {
-        SubRoutineSet(this, 0, 4, 0, 0);
+        EmRoutineSet(this, 0, 4, 0, 0);
     } else if (StaFlagChk(pG, STA_PL_EM_ACTION) && SUBFLAG2(this)->check(1)) {
-        SubRoutineSet(this, 0, 0, 0x32, 0);
+        EmRoutineSet(this, 0, 0, 0x32, 0);
     } else if (!SUBFLAG2(this)->check(1) && SUBFLAG2(this)->check(0)) {
-        SubRoutineSet(this, 0, 7, 0, 0);
+        EmRoutineSet(this, 0, 7, 0, 0);
     } else if (StaFlagChk(pG, STA_PL_CATCHED) && SUBFLAG2(this)->check(1)) {
-        SubRoutineSet(this, 0, 7, 0, 0);
+        EmRoutineSet(this, 0, 7, 0, 0);
     } else if (SUBFLAG(this)->check(1)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     } else if (SUBFLAG2(this)->check(8)) {
         return;
     } else if (m_FallWaitTimer) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     } else if ((plStat & 0x400) && !SUBFLAG(this)->check(3)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     } else if (plStat & 0x40000) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     } else if ((plStat & 0x20000) && dist < 1000.0f && !SUBFLAG(this)->check(3)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     } else {
         switch ((u32) actCheck()) {
         case 1:
-            SubRoutineSet(this, 0, 8, 0, 0);
+            EmRoutineSet(this, 0, 8, 0, 0);
             break;
         case 2:
-            SubRoutineSet(this, 0, 8, 0, 1);
+            EmRoutineSet(this, 0, 8, 0, 1);
             break;
         case 3:
             status |= 0x80;
-            SubRoutineSet(this, 0, 0x12, 0, 0);
+            EmRoutineSet(this, 0, 0x12, 0, 0);
             break;
         case 4:
-            SubRoutineSet(this, 0, 0x14, 0, 0);
+            EmRoutineSet(this, 0, 0x14, 0, 0);
             break;
         case 5:
         case 6:
             break;
         case 7:
-            SubRoutineSet(this, 0, 2, 0, 0);
+            EmRoutineSet(this, 0, 2, 0, 0);
             break;
         case 8:
-            SubRoutineSet(this, 0, 0xA, 0, 0);
+            EmRoutineSet(this, 0, 0xA, 0, 0);
             break;
         case 9:
-            SubRoutineSet(this, 0, 0xC, 0, 0);
+            EmRoutineSet(this, 0, 0xC, 0, 0);
             break;
         case 0xB:
-            SubRoutineSet(this, 0, 0x13, 0, 0);
+            EmRoutineSet(this, 0, 0x13, 0, 0);
             break;
         }
     }
@@ -919,7 +903,7 @@ void cSubChar::moveBehind()
         AtariOn(&atari, 0x300);
         inSat();
         atari.set(-10, 300.0f, 200.0f);
-        SubRoutineSet(this, 0, 0, 0x28, 0);
+        EmRoutineSet(this, 0, 0, 0x28, 0);
         break;
     }
 }
@@ -973,7 +957,7 @@ void cSubChar::moveKagamu()
             BitOff16(status, 0x20);
         }
         if (pEm->motionMove()) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1016,7 +1000,7 @@ void cSubChar::movePants()
         break;
     case 4:
         if (MotionMove(pEm, 0)) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1053,7 +1037,7 @@ void cSubChar::moveDown()
     case 4:
         if (motionMove()) {
             BitOff16(status, 0x20);
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1114,7 +1098,7 @@ void cSubChar::moveFance()
 
         if (pEm->r_no_3 == 0) {
             if (!getScrActionPoint(&p, &r, 0x20)) {
-                SubRoutineSet(this, 0, 0, 0, 0);
+                EmRoutineSet(this, 0, 0, 0, 0);
                 break;
             }
         } else {
@@ -1137,7 +1121,7 @@ void cSubChar::moveFance()
             AtariOn(&pEm->atari, 0x100);
             atari.setPriority(0);
             pEm->dmg.clear();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1239,7 +1223,7 @@ void cSubChar::moveFall()
             atari.setPriority(0);
             dmg.clear();
             BitOff16(flg, 0x20);
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1300,7 +1284,7 @@ void cSubChar::moveAction()
         if (motionMove()) {
             AtariOn(&atari, 0x300);
             dmg.clear();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     case 2:
@@ -1318,7 +1302,7 @@ void cSubChar::moveAction()
         if (motionMove()) {
             AtariOn(&atari, 0x300);
             dmg.clear();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     case 4:
@@ -1332,7 +1316,7 @@ void cSubChar::moveAction()
         if (motionMove()) {
             AtariOn(&atari, 0x300);
             dmg.clear();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1395,7 +1379,7 @@ void cSubChar::moveLadder()
             AtariOn(&atari, 0x300);
             dmg.clear();
             BitOff16(flg, 0x20);
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1494,7 +1478,7 @@ void cSubChar::moveBack()
         break;
     }
     if (!StaFlagChk(pG, STA_PL_CATCHED)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     }
 }
 
@@ -1689,7 +1673,7 @@ void cSubChar::moveHide()
             pEm->atari.setPriority(0);
             AtariOn(&atari, 0x300);
             dmg.clear();
-            SubRoutineSet(this, z, z, z, z);
+            EmRoutineSet(this, z, z, z, z);
         }
         break;
     }
@@ -1726,7 +1710,7 @@ void cSubChar::moveStoop()
         break;
     case 4:
         if (motionMove()) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1797,7 +1781,7 @@ void cSubChar::moveFallWait()
         r_no_2 = 5;
     case 5:
         if (motionMove()) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -1829,7 +1813,7 @@ void cSubChar::moveFallWait()
     }
     if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0)) {
         BitOff16(status, 0x80);
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     }
 }
 
@@ -1855,7 +1839,7 @@ void cSubChar::moveLadderWait()
     }
     if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0) &&
         !SatMgr.hitCheck(&pPL->pParts->world, &pParts->world, 0, 0, 0, 0)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     }
 }
 
@@ -1881,7 +1865,7 @@ void cSubChar::moveWindowWait()
     }
     if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0) &&
         !SatMgr.hitCheck(&pPL->pParts->world, &pParts->world, 0, 0, 0, 0)) {
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
     }
 }
 
@@ -2035,7 +2019,7 @@ void cSubChar::moveDamage()
             switch (m_Work0) {   // default first (laid out first); separate identical bodies
             default:
                 setFace(0);
-                SubRoutineSet(this, 0, 0, 0, 0);
+                EmRoutineSet(this, 0, 0, 0, 0);
                 break;
             case 6:
             case 7:
@@ -2075,7 +2059,7 @@ void cSubChar::moveDamage()
     case 6:
         if (motionMove()) {
             endDamage();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     case 7:
@@ -2166,7 +2150,7 @@ void cSubChar::moveEvent()
                 } else {
                     MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x6E), 0, 7, 5, 0);
                 }
-                SubRoutineSet(this, 5, 0, 0, 0);
+                EmRoutineSet(this, 5, 0, 0, 0);
             }
             break;
         }
@@ -2394,7 +2378,7 @@ int cSubChar::windowCheck()
         }
         if (w->ChkBreakDir(&pEm->pos) == 2) {
             status |= 0x80;
-            SubRoutineSet(this, 0, 0x12, 0, 0);
+            EmRoutineSet(this, 0, 0x12, 0, 0);
             return 2;
         }
         fWork0 = atan2(-dir.x, -dir.z);
@@ -2454,7 +2438,7 @@ void catchOn()
 
     pPL->dmg.set(0, 0x80);
     sub->dmg.set(0, 0x80);
-    SubRoutineSet(sub, 0, 9, 0, 0);
+    EmRoutineSet(sub, 0, 9, 0, 0);
     if (sub->m_PlActTime) {
         p = sub->m_PlActPos;
         p.y = sub->pos.y;
@@ -2530,7 +2514,7 @@ int cSubChar::actionCheck()
             pEm->m_Work0 = 3;
             ret = 1;
         } else {
-            SubRoutineSet(this, 0, 0x12, 0, 0);
+            EmRoutineSet(this, 0, 0x12, 0, 0);
         }
     }
     return ret;
@@ -3080,7 +3064,7 @@ void cSubChar::control(int mode)
         break;
     case 1:
         if (r_no_0 == 5) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         if (r_no_0 != 0 || r_no_1 != 0x10) {
             BitOff16(flg, 1);
@@ -3090,7 +3074,7 @@ void cSubChar::control(int mode)
         break;
     case 3:
         if (r_no_0 == 5) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         if (r_no_0 != 0 || r_no_1 != 0x10) {
             setPos(&pPL->pos);
@@ -3102,7 +3086,7 @@ void cSubChar::control(int mode)
         AtariOn(&atari, 0x300);
     case 2:
         if (r_no_0 == 5) {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         if (r_no_0 != 0 || r_no_1 != 0x10) {
             BitOff16(flg, 3);
@@ -3115,26 +3099,26 @@ void cSubChar::control(int mode)
         BitOff16(flg, 2);
         flg |= 8;
         if (m_TargetPos.x != 193.0f) {
-            SubRoutineSet(this, 0, md, 0, 0);
+            EmRoutineSet(this, 0, md, 0, 0);
             AtariOn(&atari, 0x300);
         } else if (m_TargetDir != 193.0f) {
             m_TargetPos = pos;
-            SubRoutineSet(this, 0, md, 0, 0);
+            EmRoutineSet(this, 0, md, 0, 0);
             AtariOn(&atari, 0x300);
         } else {
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
     case 5:
         init();
-        SubRoutineSet(this, 0, 0, 0, 0);
+        EmRoutineSet(this, 0, 0, 0, 0);
         break;
     case 6:
         if (r_no_0 == 0 && SUBFLAG(this)->check(6)) {
             flg |= 2;
             BitOff16(flg, 0x40);
-            SubRoutineSet(this, 0, 0, 0, 0);
+            EmRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     }
@@ -3438,7 +3422,7 @@ void cSubChar::damageCheck()
         return;
     }
     if (pAuxDm) {
-        SubRoutineSet(this, 1, 0, 0, 0);
+        EmRoutineSet(this, 1, 0, 0, 0);
         dmg.m_Flag = 0;
         return;
     }
@@ -3449,14 +3433,14 @@ void cSubChar::damageCheck()
         LifeDownSet2(this, 9999, 0, 0);
         int one = 1;
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 11;
         } else if ((s16) pG->ashley_life > 0) {
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3471,7 +3455,7 @@ void cSubChar::damageCheck()
             r_no_3 = 0;
         } else {
             LifeDownSet2(this, 9999, 0, 0);
-            SubRoutineSet(this, 1, 0, 0, 0);
+            EmRoutineSet(this, 1, 0, 0, 0);
             if (Front_check(this, &dmg.m_PosFrom, 1.5707964f)) {
                 m_Work0 = 7;
                 ang.y += Muku(&pos, &dmg.m_PosFrom, 3.1415927f, 3.1415927f);
@@ -3488,11 +3472,11 @@ void cSubChar::damageCheck()
         dmg.m_Timer = 0x3C;
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->ashley_life > 0) {
-            SubRoutineSet(this, 1, 0, 0, 0);
+            EmRoutineSet(this, 1, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3796,29 +3780,29 @@ void cSubChar::dmgCheck()
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 11;
         } else if ((s16) pG->ashley_life > 0) {
             dmg.m_Timer = 0x5A;
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         StaFlagOff(pG, STA_SUB_LADDER);
         int two = 1;
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
-            SubRoutineSet(this, two, 0, 0, 0);
+            EmRoutineSet(this, two, 0, 0, 0);
             m_Work0 = 11;
         } else if ((s16) pG->ashley_life > 0) {
             dmg.m_Timer = 0x5A;
-            SubRoutineSet(this, two, 0, 0, 0);
+            EmRoutineSet(this, two, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3827,15 +3811,15 @@ void cSubChar::dmgCheck()
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 11;
         } else if ((s16) pG->ashley_life > 0) {
             dmg.m_Timer = 0x5A;
-            SubRoutineSet(this, one, 0, 0, 0);
+            EmRoutineSet(this, one, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3843,11 +3827,11 @@ void cSubChar::dmgCheck()
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->ashley_life > 0) {
             dmg.m_Timer = 0x5A;
-            SubRoutineSet(this, 1, 0, 0, 0);
+            EmRoutineSet(this, 1, 0, 0, 0);
             m_Work0 = 2;
         } else {
             dmg.m_Timer = 0x80;
-            SubRoutineSet(this, 2, 0, 0, 0);
+            EmRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }

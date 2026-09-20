@@ -6,11 +6,11 @@
 #include "sce_sys.h"
 #include "player.h"
 #include "math_sub.h"
+#include "ref_access.h"
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // int store through a reference (keeps the following loads below it, like global.h BitOn)
-static inline void IntSet(int& d, int v) { d = v; }
 
 // Typed view of pG->emlist (the r400 idiom): the original indexes an EmListData array, so the
 // element address is `pG + no * 32` (pG first in the add, the table offset in the displacement);

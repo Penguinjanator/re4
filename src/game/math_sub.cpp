@@ -106,13 +106,6 @@ void SetOrientationZY(Vec* z, Vec* y, Mtx m)
     (v).y = (m)[1][c];     \
     (v).z = (m)[2][c]
 
-// Column c of a matrix as a vector.
-static inline void MtxGetCol(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Rotation matrix -> Euler angles (radians) in the RotMatrix convention: x and y from the Z column,
 // then z from the residual rotation.
@@ -128,7 +121,7 @@ void Matrix2AxisAngle(Mtx m, Vec* rot)
 
     PSMTXTranspose(m, t);
     MTX_COL(r, 0, v3);
-    MtxGetCol(t, 0, &v0);
+    getColumn(t, 0, &v0);
     MTX_COL(t, 1, v1);
     MTX_COL(t, 2, v2);
     rot->x = rot->y = rot->z = 0.0f;

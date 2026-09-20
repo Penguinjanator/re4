@@ -16,6 +16,7 @@
 #include "dbmodule.h"
 #include "math_sub.h"
 #include "t_util.h"
+#include "ref_access.h"
 
 // Room block ("BLK" file) editor of the t_sce REL (D:/Bio4/Prog/t_block.cpp is not in the binary:
 // no HALT string). Same skeleton as Tools' t_dr.cpp: block link table, trigger areas, per-area
@@ -159,11 +160,6 @@ static inline void bitOn(u32* tbl, u32 n)
 #define BIT_CHK(tbl, n) bitChk((u32*) (tbl), n)
 #define BIT_ON(tbl, n) bitOn((u32*) (tbl), n)
 
-// a store through a scalar reference keeps the following pG load below it
-static inline void U32Set(u32& d, u32 v)
-{
-    d = v;
-}
 
 #define SUB_RESET() \
     pW->sub = 0;    \

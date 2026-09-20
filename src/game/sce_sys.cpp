@@ -42,12 +42,6 @@ int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)
 // into `stb rX,SceSys+N@l(rH)` (SceSetEventCancel's first store); a plain `SceSys.x = v` legitimises
 // `&SceSys` into a lo_sum pseudo first and stores through `N(rP)`.
 static inline void U8SetI(u8& d, int v) { d = v; }
-// Event flag words at pG->flags_174, indexed by flag number; as an inline the base stays a pointer
-// register (lwzx/stwx) instead of folding into the displacement.
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
 
 cSceSys SceSys;
 static ScePrim* pCSceTask;

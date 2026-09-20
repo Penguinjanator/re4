@@ -16,6 +16,7 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "db_mod.h"
+#include "ref_access.h"
 
 // Motion sequence editor (Tools/t_motseq.cpp): edits the key sequence (u16 count + MotionSeqKey[])
 // of the motion shown in db_mod's slot 0 and saves it as a .seq file.
@@ -29,7 +30,6 @@ void ToolWorkPop(int flag);
 
 #define MSQ_KEY_MAX 1024
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // The sequence being edited: the file image (count + keys) followed by the editor state.
 struct MsqSeq {

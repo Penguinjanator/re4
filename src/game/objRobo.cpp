@@ -21,6 +21,7 @@
 #include "player.h"
 #include "motion.h"
 #include "objRobo.h"
+#include "ref_access.h"
 
 
 
@@ -30,19 +31,10 @@ void* memset(void* p, int c, unsigned int n);
 void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // Pointer store through a reference: the following `pG` load is kept behind it.
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 // Reference read of pG: an unflagged MEM that stays below the preceding `w->hit[i] = 0` store.
 static inline GlobalWork* GRef(GlobalWork*& g) { return g; }
 // Reference read of a .sdata float: an unflagged MEM that stays below the preceding `w->fallX` store.
-static inline f32 FRef(f32& v) { return v; }
 
-// The room flag words (Room_flg) as a bit table for the bridge-plate flags.
-// Event flag words at pG->flags_174 (the sce_sys accessor): recomputed at every use, so the base
-// is reloaded after the hit counter store.
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
 
 f32 RoboFallSpdX = -50.0f;
 f32 RoboFallSpdY = -100.0f;

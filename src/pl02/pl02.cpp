@@ -15,6 +15,7 @@
 #include "pendulum.h"
 #include "db_log.h"
 #include "esp.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -28,8 +29,6 @@ extern CLOTH_AT_SET adaHairAt[6];
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // adaHair (costume 2); the parts table and the holster's collision volume are globals (REL fields A = 0)
 u8 adaHair2P[14] = {64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77};

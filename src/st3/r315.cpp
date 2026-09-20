@@ -19,6 +19,8 @@
 #include "room_data.h"
 #include "snd.h"
 
+static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
+
 // Room 3-15 (D:/Bio4/Prog/r315.cpp): the first-entry cut with Leon and Ashley, the duralumin
 // case and the two sliding shelves.
 
@@ -32,39 +34,8 @@ static R315Work* r315_work;
 // work pointer store before it, which keeps the pG load below that store.
 #define PREV_ROOM_ID (*(u16*) ((u8*) pG + 0x4FA0))
 
-// Collision flag bits cleared through a raw (non-struct) store at the info's address: the
-// following `pG` load stays below it (r210 AtariOnRaw).
-static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
-}
 
-// Position a model from three components (inline owning the Vec).
-static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-// The y angle argument is expanded before the body's zeros: its constant leads the pool.
-static inline void setAngY(cModel* m, f32 y)
-{
-    Vec v;
-
-    v.x = 0.0f;
-    v.y = y;
-    v.z = 0.0f;
-    m->setAng(&v);
-}
 
 static void plemRide(cPlayer* pl);
 static void funcAshley(cEm* p);
@@ -147,12 +118,12 @@ static void funcAshley(cEm* p)
 // First entry: place Leon and Ashley, play the cut.
 static void first_in()
 {
-    setPosXYZ(pPL, 8600.0f, 57.0f, -2276.0f);
-    setAngY(pPL, -1.67f);
+    SetPosXYZ(pPL, 8600.0f, 57.0f, -2276.0f);
+    SetAngY(pPL, -1.67f);
     SceSleep(1);
     if (pSUB) {
-        setPosXYZ(pSUB, 7073.0f, 57.0f, -3109.0f);
-        setAngY(pSUB, -0.742f);
+        SetPosXYZ(pSUB, 7073.0f, 57.0f, -3109.0f);
+        SetAngY(pSUB, -0.742f);
         SetSubAux(funcAshley, 0);
     }
     SetPlDamage(0, plemRide);

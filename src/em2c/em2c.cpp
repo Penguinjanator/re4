@@ -46,6 +46,7 @@ asm(".comm common_em2c,52,4");
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "item.h"
+#include "ref_access.h"
 
 extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
@@ -137,18 +138,8 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em2cDeadCk(cEm* em)
@@ -156,9 +147,6 @@ static inline int em2cDeadCk(cEm* em)
     return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
 static inline void em2cSetAtkWait(Em2cWork* w, int a, int b, int c, int d, int e)
@@ -178,20 +166,6 @@ static inline void em2cSetAtkWait(Em2cWork* w, int a, int b, int c, int d, int e
     }
 }
 
-// Per-frame movement with gravity: the position follows `spd`, which falls 20 per frame, and the
-// enemy lands on the floor under its old position.
-static inline void em2cGravityMove(cEm2c* em, Em2cWork* w)
-{
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos_old, 0, 600.0f, 100000.0f, 0);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        w->spd.y = 0.0f;
-    }
-}
 
 // Turn towards `target` by at most `step` per frame.
 static inline void em2cTurnTo(cEm2c* em, Vec* target, f32 step)

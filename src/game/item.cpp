@@ -18,6 +18,7 @@
 #include "puzzle.h"
 #include "mercenaries.h"
 #include "eprintf.h"
+#include "ref_access.h"
 
 extern "C" {
 void qsort(void* base, u32 n, u32 size, int (*cmp)(const void*, const void*));
@@ -74,8 +75,6 @@ static inline void setBullet(ItemWork* p, u16 n)
     p->bullet = (p->bullet & 0xE000) | (n & 0x1FFF);
 }
 
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // 1 when the slot is in use and belongs to inventory set `type` (0 Leon, 1 Ashley/Ada).
 // slot in use and of inventory type `type`
@@ -1223,7 +1222,6 @@ void cItemMgr::roomInit()
     }
 }
 
-static inline void S32SetI(s32& d, s32 v) { d = v; }
 
 // Boot: allocates the 0x180 slots, the ordering table and the 256-bit availability mask.
 int cItemMgr::init()

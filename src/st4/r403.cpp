@@ -29,6 +29,7 @@
 #include "rnd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
@@ -76,7 +77,6 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 // Store through a reference: the following pG load stays below it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 
 static void r403_DuraluminCaseOpen(int no);

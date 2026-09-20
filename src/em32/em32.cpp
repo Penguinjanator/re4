@@ -43,6 +43,7 @@
 #include "dbmodule.h"
 #include "foot_shadow.h"
 #include "main_mem.h"
+#include "ref_access.h"
 
 asm(".comm common_em32,52,4");
 
@@ -124,21 +125,7 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void F32Set(f32& d, f32 v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em32DeadCk(cEm* em)
@@ -146,27 +133,7 @@ static inline int em32DeadCk(cEm* em)
     return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
-// Difficulty tables: pG is reloaded after every store (reference stores; the inline takes the work
-// pointer so that the store keeps the work base instead of folding into the enemy's).
-static inline void em32Timer2Set(Em32Work* w, int a, int b, int c, int e)
-{
-    if (pG->Game_level <= 3) {
-        IntSet(w->timer2, a);
-    }
-    if (pG->Game_level <= 1) {
-        IntSet(w->timer2, b);
-    }
-    if (pG->Game_level > 6) {
-        IntSet(w->timer2, c);
-    }
-    if (pG->Game_level > 9) {
-        IntSet(w->timer2, e);
-    }
-}
 
 // The attack-hit byte written from a promoted int (an SImode pseudo shared with the int stores).
 static inline void em32AtkHitSet(Em32Work* w, int v)
@@ -2863,7 +2830,7 @@ static void em32_R1_C_Wait(cEm32* em)
         v.y = 0.0f;
         v.z = 2000.0f;
         PSMTXMultVec(pPL->mat, &v, &em->pos);
-        F32Set(em->pos.y, pPL->pos.y + 6000.0f);
+        FSetP(em->pos.y, pPL->pos.y + 6000.0f);
         em->ang.y = pPLS->ang.y + 3.14159274f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);

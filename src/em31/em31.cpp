@@ -252,14 +252,6 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em31DeadCk(cEm* em)
@@ -1434,20 +1426,6 @@ static inline void em31StampEnd(cEm31* em, Em31Work* w)
     }
 }
 
-// Stamp hit: the foot's matrix origin shifted 3000 to the side, the dust effect and the attack.
-static inline void em31StampAtkCk(cEm31* em, int parts, f32 x, Vec* v, Vec* ep)
-{
-    cModel* p = em->getPartsPtr(parts);
-
-    v->x = x;
-    v->y = 0.0f;
-    v->z = 0.0f;
-    *ep = em->pos;
-    PSMTXMultVec(p->mat, v, v);
-    EstSet(0, -1, v, 0, 0x29, 0x10, 0, 0, 0, 0);
-    v->y += 250.0f;
-    em31AtkCk(em, v, ep, 1);
-}
 
 // Body routine 1/9: the stamp. r_no_3 picks the variant (0 / 1 the single stamp, mirrored, when the
 // player is within 30 cm of the centre line, else 2 the double stamp; the tentacle mirrors it). On

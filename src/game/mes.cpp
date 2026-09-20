@@ -19,6 +19,7 @@ extern MessageFont MesFont[4];
 #include "trans_ot.h"
 #include "view.h"
 #include "snd.h"
+#include "ref_access.h"
 
 extern "C" {
 int sprintf(char* buf, const char* fmt, ...);
@@ -59,7 +60,6 @@ static inline void SetU16(u16& d, u16 v) { d = v; }
 // Message slot address as an expression (not an inline call): the multiply lands in the same pseudo
 // as the sum, which is what the original codegen shows.
 #define MES(no) ((Message*) ((no) * sizeof(Message) + (u32) this + sizeof(u32)))
-static inline void PtrSet(void*& d, void* v) { d = v; }
 
 // Font file: offsets to the TPL and to the width table.
 struct MesFontFile {
@@ -494,7 +494,7 @@ void MessageControl::stageInit()
     }
     if (sz != 0) {
 #line 874 "D:/Bio4/Prog/mes.cpp"
-        PtrSet(pG->pStFnt, mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
+        PSet(pG->pStFnt, mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
         fontBuf[2] = pG->pStFnt;
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");

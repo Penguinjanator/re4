@@ -38,6 +38,7 @@
 #include "rnd.h"
 #include "game.h"
 #include "room_data.h"
+#include "ref_access.h"
 
 // Room 3-1b (D:/Bio4/Prog/r31b.cpp): the U-3 ("It") cage corridor: three rooms with shutter
 // pairs opened by switch pairs, a death timer, the cages that fall, and the gondola.
@@ -82,33 +83,9 @@ struct PlPtr {
 };
 #define pPLS (((PlPtr*) &pPL)->p)
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
-static inline void SatSet(cSat*& d, cSat* v) { d = v; }
 
-// Rotate a model from three components (inline owning the Vec).
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
-
-// Collision flag bits set / cleared through a raw (non-struct) store at the info's address (r210).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
-static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
@@ -234,10 +211,10 @@ void R31bInit()
         r31b_work.p->sat[i] = 0;
         r31b_work.p->eat[i] = 0;
     }
-    SatSet(r31b_work.p->eat[13], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 4));
-    SatSet(r31b_work.p->eat[14], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 3));
-    SatSet(r31b_work.p->eat[15], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 2));
-    SatSet(r31b_work.p->eat[16], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 1));
+    PSet(r31b_work.p->eat[13], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 4));
+    PSet(r31b_work.p->eat[14], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 3));
+    PSet(r31b_work.p->eat[15], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 2));
+    PSet(r31b_work.p->eat[16], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 1));
     getRoomEtcSwitch(5, &sw0, 1);
     getRoomEtcSwitch(7, &sw1, 1);
     getRoomEtcBarred(9, &barred, 1);

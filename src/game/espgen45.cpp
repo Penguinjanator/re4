@@ -16,6 +16,7 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
+#include "ref_access.h"
 
 // Effect controller 45: weather water surface (same height-field model as Espgen42, following the
 // camera). The Estgen45Set* entry points let the room script (esp4c) override its parameters.
@@ -76,10 +77,6 @@ static f32 g_sa = 0.0f;
 static f32 inv_mul = 1.0f;
 static Esp4cWork g_Free;
 
-static inline void ISet(int& d, int v) { d = v; }
-static inline int IGet(int& d) { return d; }
-static inline f32 FGet(f32& d) { return d; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 // Resets the room override state (camera-follow on, height-follow on, all overwrites off): called by
 // EspWaterInit (Espgen42.cpp) at effect system init.

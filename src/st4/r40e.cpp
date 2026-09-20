@@ -33,6 +33,7 @@
 #include "mercenaries.h"
 #include "TexRender.h"
 #include "cSceObj.h"
+#include "ref_access.h"
 
 // Room 4-0E (D:/Bio4/Prog/r40e.cpp): the elevator ride with its camera cuts, the enemy that
 // appears on the way, the s00 event with the render-to-texture camera and the Assignment Ada
@@ -108,7 +109,6 @@ static void r40e_execShowView_end()
 }
 
 // Area 3: the camera shows the room (cut 11) with its stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Show view once (Room_flg bit 3): stream 0x33 with camera cut 0xB; player-cancellable.
 static void r40e_execShowView()

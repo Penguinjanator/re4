@@ -32,8 +32,6 @@ static void offsetArrayCorrection(QfpsOfs (*o)[3]);
 
 #define PI 3.1415927f
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void S16Set(s16& d, s16 v) { d = v; }
 
 f32 g_crouch_cam_z_back = 600.0f;
 static f32 g_crouch_cam_y_down = 400.0f;
@@ -375,13 +373,6 @@ void CameraQuasiFPS::setPlayerLocation(Mtx m, Vec* nrm)
     m_p_floor_norm = nrm;
 }
 
-// Column `c` of a matrix as a vector.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Builds a matrix from four column vectors.
 static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)

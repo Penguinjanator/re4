@@ -27,6 +27,7 @@
 #include "cDataSwap.h"
 #include "option.h"
 #include "mercenaries.h"
+#include "ref_access.h"
 
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
@@ -71,11 +72,6 @@ static inline void flagOn(u32* tbl, u32 no)
     tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
 }
 
-// Reading a global through a reference keeps its load below a preceding member store.
-static inline int IRef(int& v)
-{
-    return v;
-}
 
 static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p)
 {

@@ -23,6 +23,7 @@
 #include "rnd.h"
 #include "mes.h"
 #include "cockpit.h"
+#include "ref_access.h"
 
 // Weapon archive (pG->pWepArc): offsets to its sub-files.
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
@@ -333,20 +334,9 @@ void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
 
 // Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
 // flag: the range loads stay below the reticle stores through the call-result pointers.
-static inline f32 FRef(f32& v) { return v; }
 // Same for a global pointer: the `lwz pPL` then waits for a preceding member store in sched1.
 static inline cPlayer* PlRef(cPlayer*& p) { return p; }
 
-// Matrix column -> vector. The destination is the frame-offset-0 local in both users (`inv` in
-// CameraPushObject::move, `dir` in IdBinocular::move), so its address is the bare virtual frame
-// register and integrate keeps it as a pointer pseudo (`addi r9,r1,8`, stores/loads through r9);
-// the other plmat reads are written directly and go via r1.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Scope zoom clamp as an inline returning the value: one store after the join, the 0.0 register
 // doubling as the result (`fmr f13,f0` / `fmr f13,f12` copies).

@@ -31,6 +31,7 @@
 #include "motion.h"
 #include "rnd.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-25 (D:/Bio4/Prog/r225.cpp): the graveyard / crank puzzle; a local copy of sce_com's
 // SceElevator with the chapter end on the way out.
@@ -66,21 +67,7 @@ struct PlPtr {
 #define pPLS (((PlPtr*) &pPL)->p)
 
 // Stores through references (not MEM_IN_STRUCT_P): the static pointer / pPL reload after each one.
-static inline void FSetP(f32& d, f32 v) { d = v; }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
-// Inline helpers owning their locals: the inlined frame is one BLKmode temp slot popped at the end of
-// each statement, so every call shares frame slot 8. Argument MEMs are evaluated lazily (the pointer
-// before a call in another argument, the load after it: `lwz r30,pPL; bl fRand1_1; lfs 148(r30)`).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
 // pseudo (SImode) and purge_addressof gives it a permanent frame slot (24/28, 32/36) instead of the

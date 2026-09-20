@@ -40,6 +40,7 @@
 #include "vec.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 3-00 (D:/Bio4/Prog/r300.cpp): the island landing. The searchlight that follows its target, the two
 // mirrors the player turns to redirect the laser onto the gate, the Ashley "asl" scene, the found-by-camera
@@ -81,31 +82,8 @@ struct R300EspView {
 
 extern "C" void* r300_memset(void*, ...) asm("memset");
 
-// fade.h's FadeSetW with `zero`/`black` locals (zero first, r21d): the end colour's zero is a register
-// held from the function start in R300_Event.
-static inline void r300_FadeSetW(int no, u32 time, u32 z, int late)
-{
-    FadeColorPair col;
-    u32 black;
-    u32 zero;
-
-    zero = 0;
-    black = 0xFF;
-    if (no & 0x80000000) {
-        *(u32*) &col.start = black;
-    } else {
-        *(u32*) &col.start = zero;
-    }
-    if (no & 0x80000000) {
-        *(u32*) &col.end = zero;
-    } else {
-        *(u32*) &col.end = black;
-    }
-    FadeSet(no, &col.start, &col.end, time, z, late);
-}
 
 // Reference store: the work pointer and the field are reloaded after it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 // Room id through the struct-member view of pG: the load stays below a preceding member store.
 #define GS_ROOM_ID (*(u16*) &pGS->stage_no)

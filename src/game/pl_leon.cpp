@@ -10,6 +10,7 @@
 #include "db_log.h"
 #include "main.h"
 #include "snd.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -35,8 +36,6 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // Builds the main player (Leon, and the other gun-carrying characters through pl_type / costume):
 // common init, model set, the equipped weapon (weapon_no / weapon_type) and its motion table, the

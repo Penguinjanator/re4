@@ -160,8 +160,3 @@ cDmgMgr DmgMgr;
 // at the next 32-byte boundary and ngcld does not pad for it. A zero-initialised static referenced
 // only by a never-called inline is emitted after DmgMgr (first-declaration order) without a body.
 static u8 dmg_pad[16];
-// Never called: only keeps dmg_pad emitted (see above).
-static inline u8* dmgPad()
-{
-    return dmg_pad;
-}

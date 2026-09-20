@@ -13,6 +13,7 @@
 #include "eprintf.h"
 #include "file.h"
 #include "libgpu.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -590,7 +591,6 @@ struct DvdFreeSizeView {
 };
 extern DvdFreeSizeView DvdView asm("Dvd");
 
-static inline void ISet(int& d, int v) { d = v; }
 
 #define MEM_TAG_OK(tag) ((tag)[0] == 0 && (tag)[1] == 'M' && (tag)[2] == 'A' && (tag)[3] == 'D')
 

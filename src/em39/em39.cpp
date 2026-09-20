@@ -50,6 +50,7 @@
 #include "item.h"
 #include "sce_at.h"
 #include "game.h"
+#include "ref_access.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -59,7 +60,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 static void em39_R0_Init(cEm39* em);
 static void em39_R0_Move(cEm39* em);
@@ -142,20 +142,7 @@ static void plemDmSide(cPlayer* pl);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-// u16 reference RMW: keeps the following `lwz pPL` below the `sth` (plem39_CliffAtk).
-static inline void AtariOffR(u16& f, u16 mask) { f &= mask; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em39DeadCk(cEm* em)
@@ -5821,7 +5808,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         em39CliffObj.p = ObjMgr.create(0xB);
         if (em39CliffObj.p) {
             em39CliffObj.p->modelInit(PL_ARC_PTR(pl->subArc, 0x129), PL_ARC_PTR(pl->subArc, 0x128));
-            AtariOffR(em39CliffObj.p->atari.m_flag, 0xFCFF);
+            U16And(em39CliffObj.p->atari.m_flag, 0xFCFF);
             em39CliffObj.p->pParts->pParent = pPL->getPartsPtr(0xA);
             em39CliffObj.p->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
             em39CliffObj.p->wep.parent = pPL;

@@ -27,6 +27,7 @@
 #include "snd.h"
 #include "rnd.h"
 #include "debug.h"
+#include "ref_access.h"
 
 // Room 1-19 (D:/Bio4/Prog/r119.cpp): the village square with the giant; the three huts and their
 // roofs the giant breaks, the trees, the thunder lights and the giant / dog / parasite events.
@@ -41,12 +42,6 @@ struct R119Work {
 
 static R119Work* r119_work;
 
-// Pointer store through a reference: the work pointer is reloaded after it.
-static inline void PSet(cEm*& d, cEm* v) { d = v; }
-// The six collision stores are reference stores too: the following `pG` load stays below the
-// `stw` into the work (a plain member store lets ours hoist it, which shifts the `addi` pairs of
-// the pos/rot table addresses apart and ties the rot/pos `lis` pseudos' live lengths).
-static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 
 static Vec r119_koyaPos[3] = {
     {112971.0f, 2262.0f, 16941.0f}, {117073.0f, 2262.0f, 17411.0f}, {121549.0f, 2262.0f, 15823.0f},
@@ -131,12 +126,12 @@ void R119Init()
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     SmdGetObjPtr(0x24)->be_flag |= 0x20;
     SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
-    PSetSat(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSetSat(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSetSat(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
-    PSetSat(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSetSat(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSetSat(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    PSet(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSet(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSet(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    PSet(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSet(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSet(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
     koya_init();
     if (RsfCheck(G_ROOM_ID, 4)) {
         YaneA_delete();

@@ -194,13 +194,13 @@ extern "C" void _unresolved()
 #include "datactrl.h"
 #include "snd.h"
 #include "fade.h"
+#include "ref_access.h"
 
 void st3_checkCountDown();
 void st3_dieDemoEvent();
 void st3_endCountDown();
 
 // Reference store: pG is reloaded after it.
-static inline void S16Set(s16& d, s16 v) { d = v; }
 
 // Sets the count-down (frames, clamped at 0) and mirrors it into free word 2.
 void st3_setCountDownTimer(int frame)

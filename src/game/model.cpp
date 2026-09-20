@@ -16,6 +16,7 @@
 #include "scheduler.h"
 #include "math_sub.h"
 #include "tpl.h"
+#include "ref_access.h"
 
 // Model / parts / model info (cModel, cParts, cModelInfo) and their pools (PartsMgr, ModInfoMgr).
 
@@ -49,10 +50,6 @@ struct ModInfoMgrPtr {
 };
 #define MM (((ModInfoMgrPtr*) &cModel::mm)->p)
 
-static inline u32 U32Get(u32& v)
-{
-    return v;
-}
 
 // Clears a model's light-area state.
 // The 0.0 pool load of the light area sinks below the three word stores: an inlined helper
@@ -65,12 +62,6 @@ static inline void LightAreaInit(EmLightArea* la)
     la->scale = 0.0f;
 }
 
-// Byte stores through this setter come from a word-sized zero pseudo, which the word stores
-// after the following `if` share (modelInit).
-static inline void U8Set(u8& d, u8 v)
-{
-    d = v;
-}
 
 // Empty model: collision/light-area info constructed, no parts, no model info, motion cleared,
 // alpha_omit 0xFF.
@@ -767,7 +758,7 @@ cModelInfo::cModelInfo() : cUnit(1)
 {
     static u32 col = 0xFFFFFFFF;
 
-    colorWord = U32Get(col);
+    colorWord = U32Ref(col);
     PSMTXIdentity(mat);
     be_flag |= 8;
     invisible_factor = 1.0f;

@@ -47,8 +47,6 @@ static inline int r215_evtStatus(Event* e, u32 bit)
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Light kind mask / display flag of an event model.
 #define R215_EVT_MOD_LIGHT(name, kind)                  \

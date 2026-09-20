@@ -22,6 +22,7 @@
 #include "math_sub.h"
 #include "motion.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-2A (D:/Bio4/Prog/r22a.cpp): the mine shaft; the rope down / up (a copy of r10c's ladder
 // event, message and all), the lift and the s00 event.
@@ -44,7 +45,6 @@ static void r22a_EleDown();
 static void r22a_EleUp();
 
 // pPL stores through references: the pPL reload after each one.
-static inline void FSetP(f32& d, f32 v) { d = v; }
 
 // Room init: areas 2/3 = climb down / up the rope; the s00 (and s99) callback; until Room_flg bit 0 area
 // 6 = the s00 event (pre-loaded), else off; object 0x50 hidden; areas 4/5 = the lift down / up; arriving

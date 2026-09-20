@@ -36,6 +36,7 @@
 #include "db_log.h"
 #include "wep_mod.h"
 #include "st_mgr_event.h"
+#include "ref_access.h"
 
 // Room 2-08 (D:/Bio4/Prog/r208.cpp): the castle courtyard with the water mill. The crank drains
 // the moat and lowers the bridge, the two footings rise while Ashley turns the cranks on the far
@@ -96,16 +97,6 @@ static inline void SetPosAng(cModel* m, Vec* pos, Vec* ang)
 {
     m->setPos(pos);
     m->setAng(ang);
-}
-// Store through a scalar reference (wep_mod.h PSet): the following global load stays below it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe (r206).
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
 }
 
 // Hit effects of attribute types 4 and 5

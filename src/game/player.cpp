@@ -22,6 +22,7 @@
 #include "pl_sub.h"
 #include "cam_ctrl.h"
 #include "main_mem.h"
+#include "ref_access.h"
 
 extern "C" {
 double atan2(double y, double x);
@@ -61,26 +62,13 @@ void Pl_R0_Die(cPlayer* pl);
 #line 41 "D:/Bio4/Prog/player.cpp"
 #define PL_MEM_ALLOC(size, line) mem_alloc(size, __FILE__, line, 1, 13)
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
 // Life / life max pair: both addresses are taken before the stores (one pG load per pair).
 static inline void U16Set2(u16& a, u16& b, u16 v)
 {
     b = v;
     a = v;
 }
-static inline void PSet(void*& d, void* v) { d = v; }
 
-// Routine bytes written through an inline taking ints (pl_class.cpp): the stores come out in the
-// original's order and the zero stays an SImode constant. Routine changes that also set the hokan
-// (m_Hokan = 5) or a frame are direct byte stores in the original (see pl_R1_Walk / pl_R1_Run).
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // 1 when the push target is gone or dead.
 static inline int pushTargetDead(cPlPush* p)
@@ -313,7 +301,7 @@ void cPlayer::startUp()
     matUpdate();
     m_Frame = 0;
     m_Hokan = 0;
-    PlRoutineSet(this, 0, 0, 0, 1);
+    EmRoutineSet(this, 0, 0, 0, 1);
     move();
     motionMove();
     motionMove();
@@ -466,7 +454,7 @@ void pl_R1_Footwork(cPlayer* pl)
     }
     if (pl->actionSelect() == 0) {
         if ((Key.on & 1) && (Key.on & 0x40000000) && joyKamae() == 0) {
-            PlRoutineSet(pl, 0, 3, 0, 0);
+            EmRoutineSet(pl, 0, 3, 0, 0);
         } else {
             pl->checkCtrl();
         }
@@ -514,7 +502,7 @@ void pl_R1_Walk(cPlayer* pl)
             pl->m_Hokan = 5;
             pl->m_Frame = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
         } else if (!(Key.on & 1)) {
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         } else {
             if (Key.on & 4) {
                 pl->ang.y -= cPlayer::SPEED_WALK_TURN;
@@ -540,7 +528,7 @@ void pl_R1_Back(cPlayer* pl)
     pl->motionMove();
     if (pl->actionSelect() == 0) {
         if (!(Key.on & 2)) {
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         } else {
             if (Key.on & 4) {
                 pl->ang.y -= cPlayer::SPEED_WALK_TURN;
@@ -641,7 +629,7 @@ void pl_R1_Run(cPlayer* pl)
             }
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             if (joyKamae()) {
-                PlRoutineSet(pl, 0, 0, 0, 0);
+                EmRoutineSet(pl, 0, 0, 0, 0);
             } else if (!(Key.on & 0x40000000) || !(Key.on & 1)) {
                 if (Key.on & 1) {
                     pl->m_Hokan = 5;
@@ -651,7 +639,7 @@ void pl_R1_Run(cPlayer* pl)
                     pl->r_no_2 = 0;
                     pl->m_Frame = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
                 } else {
-                    PlRoutineSet(pl, 0, 0, 0, 0);
+                    EmRoutineSet(pl, 0, 0, 0, 0);
                 }
                 return;
             }
@@ -680,12 +668,12 @@ void pl_R1_Turn(cPlayer* pl)
         break;
     case 1:
         if (!(Key.on & 4)) {
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     case 2:
         if (!(Key.on & 8)) {
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -748,7 +736,7 @@ void pl_R1_Turn180(cPlayer* pl)
         }
         if (end) {
             pl->m_BbtnCnt = 0;
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
             CamCtrlShoulderSetSearchFrame(0);
             return;
         }
@@ -767,7 +755,7 @@ cMot3Rate m3rObj;
 void pl_R1_Weapon(cPlayer* pl)
 {
     if (pG->pl_type == 1) {
-        PlRoutineSet(pl, 0, 0, 0, 0);
+        EmRoutineSet(pl, 0, 0, 0, 0);
     } else if (WeaponMoveFunc == 0) {
         pLog->err(0, 0, "pl_R1_Weapon(): Function is no regist!");
     } else {
@@ -870,7 +858,7 @@ void pl_R1_Ladder(cPlayer* pl)
             pl->m_Fwork0 += 1500.0f;
             pl->dmg.clear();
             pl->atari.throughOff();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
             pl->stat |= 0x800;
         }
         break;
@@ -936,7 +924,7 @@ void pl_R1_Ladder(cPlayer* pl)
             pl->m_Fwork0 -= 500.0f;
             pl->dmg.clear();
             pl->atari.throughOff();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -1024,7 +1012,7 @@ void pl_R1_Crouch(cPlayer* pl)
         pl->pParts->ang.y *= 0.5f;
         if (MotionCheckCrossFrame(MOTION(pl), endFrame)) {
             pl->pParts->ang.y = 0.0f;
-            PlRoutineSet(pl, 0, 0, 2, 0);
+            EmRoutineSet(pl, 0, 0, 2, 0);
         }
         break;
     }
@@ -1036,7 +1024,7 @@ void pl_R1_Crouch(cPlayer* pl)
             pl->stat &= ~0x40;
         }
         if (joyKamae()) {
-            PlRoutineSet(pl, 0, 6, 0, 0);
+            EmRoutineSet(pl, 0, 6, 0, 0);
         }
     }
 }
@@ -1075,7 +1063,7 @@ void pl_R1_JumpFall(cPlayer* pl)
     case 2:
         pl->motionMove();
         if (pl->frame >= 20.0f) {
-            PlRoutineSet(pl, 0, 0, 2, 0);
+            EmRoutineSet(pl, 0, 0, 2, 0);
         }
         break;
     }
@@ -1095,7 +1083,7 @@ void pl_R1_Whistle(cPlayer* pl)
             StaFlagOn(pG, STA_PL_FIRE);
         }
         if (pl->motionMove()) {
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -1142,7 +1130,7 @@ void pl_R1_LevelUp(cPlayer* pl)
     case 1:
         if (pl->motionMove()) {
             pl->stat &= ~0x800;
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
             pl->atari.throughOff();
         }
         break;
@@ -1176,7 +1164,7 @@ void pl_R1_LevelDown(cPlayer* pl)
                 pl->pos.y -= 1000.0f;
             }
             pl->stat |= 0x800;
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
             pl->atari.throughOff();
         }
         break;
@@ -1235,13 +1223,13 @@ void pl_R1_ObjPush(cPlayer* pl)
         CamCtrl.endPushObject();
         BitOff(pl->stat, 8);
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x22), 0, 5, 5, 0);
-        PlRoutineSet(pl, 0, 0, 2, 0);
+        EmRoutineSet(pl, 0, 0, 2, 0);
         break;
     case 0x32:
         CamCtrl.endPushObject();
         BitOff(pl->stat, 8);
         MotionSetCore(pl, MOTION(pl), pl->m_MotTbl[0], 0, 0xF, 5, 0);
-        PlRoutineSet(pl, 0, 0, 2, 0);
+        EmRoutineSet(pl, 0, 0, 2, 0);
         break;
     }
 }
@@ -1326,7 +1314,7 @@ void pl_R1_Fance(cPlayer* pl)
     if (end) {
         pl->atari.setPriority(0);
         pl->atari.setFlag100();
-        PlRoutineSet(pl, 0, 0, 0, 0);
+        EmRoutineSet(pl, 0, 0, 0, 0);
     }
     pl->dmg.set(0, 2);
 }
@@ -1503,7 +1491,7 @@ void pl_R1_Fall(cPlayer* pl)
             pl->atari.setPriority(0);
             pl->atari.throughOff();
             pl->dmg.clear();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }

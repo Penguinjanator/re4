@@ -31,6 +31,7 @@
 #include "est.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-13 (D:/Bio4/Prog/r213.cpp): the drawbridge over the lake - the statue ("Su") that is shot
 // down, the switch, the two chains holding the bridge and the enemies set after the s00 event.
@@ -61,12 +62,7 @@ struct R213WorkPtr {
     R213Work* p;
 };
 
-// Pointer stores through a reference: the pG loads that follow stay below them.
-static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 static inline void PSetTex(TexRenderMng*& d, TexRenderMng* v) { d = v; }
-// The Vec address is substituted into the argument register at each call (no PRE copy of the
-// frame slot two block-scoped Vecs share).
-static inline void SetAngV(cModel* m, Vec* v) { m->setAng(v); }
 static inline void SetPosV(cModel* m, Vec* v) { m->setPos(v); }
 
 static u8 r213_texTbl[0x20];
@@ -153,10 +149,10 @@ void R213Init()
         r213_work.p->sat[i] = 0;
         r213_work.p->eat[i] = 0;
     }
-    PSetSat(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1));
-    PSetSat(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1));
-    PSetSat(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2));
-    PSetSat(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3));
+    PSet(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1));
+    PSet(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1));
+    PSet(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2));
+    PSet(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3));
     r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {

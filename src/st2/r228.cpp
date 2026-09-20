@@ -27,6 +27,7 @@
 #include "fade.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "ref_access.h"
 
 // Room 2-28 (D:/Bio4/Prog/r228.cpp): Salazar's throne room; the s00/s01/s02 event chain, the
 // boss fight and the render-to-texture setup.
@@ -65,10 +66,6 @@ extern "C" void Evt_R228S01_Func(Event* e);
 extern "C" void Evt_R228S02_Func(Event* e);
 void setTexRender();
 
-// Stores through references: the following pG / pPL load stays below the store.
-static inline void FSetP(f32& d, f32 v) { d = v; }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
-static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 // Struct view of pPL: the load stays below a preceding store through the work pointer.
 struct PlayerPtr {
     cPlayer* p;
@@ -322,12 +319,12 @@ void r228_initEvent00()
         }
     }
     r228_work.p->sat = 0;
-    PSetSat(r228_work.p->eat, 0);
+    PSet(r228_work.p->eat, 0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtSetEnable(2, 0);
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
-        PSetSat(r228_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        PSet(r228_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
         r228_work.p->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     } else {
         cObj* o = SmdGetObjPtr(0x32);

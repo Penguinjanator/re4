@@ -66,6 +66,7 @@
 #include "em_set.h"
 #include "db_log.h"
 #include "gx.h"
+#include "ref_access.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -113,9 +114,6 @@ void DbMenuRoomInit();
 
 // Stores through a scalar reference: not struct-member MEMs, so GCC 2.95 assumes they may alias
 // pG and reloads it afterwards, as the original does after every GlobalWork store.
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void S32Set(s32& d, s32 v) { d = v; }
 // One flag test per call: fold would merge `(f & A) || (f & B)` on one lvalue into a single mask.
 static inline u32 Flag54(u32 b) { return pG->System_flg & b; }
 // 64-bit key tests kept as u64 values: `(hi & 0) | (lo & b)` is tested with `or.` of both words
