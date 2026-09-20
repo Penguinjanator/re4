@@ -223,6 +223,22 @@ void GXClearBoundingBox(void);
 void* GXGetTexObjData(GXTexObj* obj);
 // filter08
 void GXSetDither(u8 dither);
+// display copy and EFB setup (main_sub)
+u32 GXSetDispCopyYScale(f32 yscale);
+void GXSetDispCopySrc(u16 left, u16 top, u16 wd, u16 ht);
+void GXSetDispCopyDst(u16 wd, u16 ht);
+void GXSetPixelFmt(int pix_fmt, int z_fmt);
+void GXCopyDisp(void* dest, u8 clear);
+void GXSetDispCopyGamma(int gamma);
+void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
+void GXInvalidateVtxCache(void);
+// projection queries (sub2)
+void GXGetProjectionv(f32* p);
+void GXGetViewportv(f32* vp);
+void GXProject(f32 x, f32 y, f32 z, const f32 mtx[3][4], const f32* pm, const f32* vp, f32* sx, f32* sy, f32* sz);
+// indirect texturing (trans)
+void __GXSetIndirectMask(u32 mask);
+void GXSetTevIndBumpXYZ(int tev_stage, int ind_stage, int matrix_sel);
 #ifdef __cplusplus
 }
 #endif

@@ -34,28 +34,10 @@
 #include <string.h>
 #include <dolphin/os/OSCache.h>
 #include <dolphin/os/OSReset.h>
-
-typedef s64 OSTime;
-
-struct OSCalendarTime {
-    int sec;   // 0x00
-    int min;   // 0x04
-    int hour;  // 0x08
-    int mday;  // 0x0C
-    int mon;   // 0x10
-    int year;  // 0x14
-    int wday;  // 0x18
-    int yday;  // 0x1C
-    int msec;  // 0x20
-    int usec;  // 0x24
-};
+#include <dolphin/os.h>
+#include <dolphin/db.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-OSTime OSGetTime();
-void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
-OSTime OSCalendarTimeToTicks(OSCalendarTime* td);
-int DBIsDebuggerPresent();
 void debugInfoDisp(int slot, int type);
 void CRCInit();
 u32 CRCCalc(u8* data, u32 len);

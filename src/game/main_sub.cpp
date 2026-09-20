@@ -26,50 +26,8 @@
 #include "debug.h"
 #include "sce.h"
 #include "trans_ot.h"
+#include <dolphin/os.h>
 
-typedef s64 OSTime;
-
-struct OSCalendarTime {
-    int sec;   // 0x00
-    int min;   // 0x04
-    int hour;  // 0x08
-    int mday;  // 0x0C
-    int mon;   // 0x10
-    int year;  // 0x14
-    int wday;  // 0x18
-    int yday;  // 0x1C
-    int msec;  // 0x20
-    int usec;  // 0x24
-};
-
-struct OSStopwatch {
-    const char* name;  // 0x00
-    u8 pad_4[4];
-    OSTime total;      // 0x08
-    u32 hits;          // 0x10
-    u8 pad_14[4];
-    OSTime min;        // 0x18
-    OSTime max;        // 0x20
-    OSTime last;       // 0x28
-};
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-OSTime OSGetTime();
-void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
-void OSInitStopwatch(OSStopwatch* sw, const char* name);
-void OSResetStopwatch(OSStopwatch* sw);
-void OSStartStopwatch(OSStopwatch* sw);
-void OSStopStopwatch(OSStopwatch* sw);
-u32 GXSetDispCopyYScale(f32 yscale);
-void GXSetDispCopySrc(u16 left, u16 top, u16 wd, u16 ht);
-void GXSetDispCopyDst(u16 wd, u16 ht);
-void GXSetPixelFmt(int pix_fmt, int z_fmt);
-void GXCopyDisp(void* dest, u8 clear);
-void GXSetDispCopyGamma(int gamma);
-void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
-void GXInvalidateVtxCache();
-}
 void SetDrawTmpBufType(int type);
 
 // game/sce_sys.cpp

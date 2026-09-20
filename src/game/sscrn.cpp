@@ -38,16 +38,8 @@
 #include "motion.h"
 #include "model.h"
 #include "sscrn.h"
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-char* strchr(const char* s, int c);
-char* strrchr(const char* s, int c);
-char* strcpy(char* dst, const char* src);
-char* strncpy(char* dst, const char* src, unsigned int n);
-}
-
+#include <dolphin/os.h>
+#include <string.h>
 
 // Struct-member view of the cModel manager pointers: a plain scalar store lets the scheduler hoist
 // the following pG load above it (the read.cpp EmInitFunc trick).

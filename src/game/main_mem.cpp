@@ -17,22 +17,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <dolphin/os/OSReboot.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-void* OSGetArenaLo();
-void* OSGetArenaHi();
-void OSSetArenaLo(void* lo);
-void OSSetArenaHi(void* hi);
-void* OSInitAlloc(void* lo, void* hi, int maxHeaps);
-int OSCreateHeap(void* start, void* end);
-void OSDestroyHeap(int heap);
-void OSSetCurrentHeap(int heap);
-void* OSAllocFromHeap(int heap, u32 size);
-void OSFreeToHeap(int heap, void* p);
-s32 OSCheckHeap(int heap);
-extern int __OSCurrHeap;
-}
+#include <dolphin/os.h>
+#include <dolphin/os/OSAlloc.h>
 
 extern char* pRK;
 

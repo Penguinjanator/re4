@@ -293,13 +293,7 @@ FileTblEntry FileTbl[] = {
 #include "gx.h"
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-u32 OSGetTick();
-void GXCopyDisp(void* dest, u8 clear);
 void ADXGC_SetupDvdFs(int mode);
-u16 OSGetFontEncode();
-int OSInitFont(void* fontData);
-char* OSGetFontTexture(const char* string, void** image, s32* x, s32* y, s32* width);
 void trans2aram_cb(u32 req);
 void dvdread_callback(s32 result, DVDFileInfo* fi);
 void aram_cb(u32 req);
@@ -311,12 +305,17 @@ extern int vsync_cnt;
 extern int eprintf_init;
 
 
+#include <dolphin/os.h>
+
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
-// address splits into `lis 0x8000` + displacement.
+// address splits into `lis 0x8000` + displacement. Replaces the SDK macros of the same names.
 struct OSLowMem {
     u8 pad_0[0xF8];
     u32 busClock;  // 0xF8
 };
+#undef OS_BUS_CLOCK
+#undef OS_TIMER_CLOCK
+#undef OSTicksToMilliseconds
 #define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
 #define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
 #define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
@@ -2003,7 +2002,7 @@ void RomFontSetting()
     } else {
         pG->FontData = (void*) 0x817D3EE0;
     }
-    OSInitFont(pG->FontData);
+    OSInitFont((OSFontHeader*) pG->FontData);
 }
 
 char* queue_stat[] = {"PUSH", "READ", "COMPLETE", "CANCEL", "ERROR"};

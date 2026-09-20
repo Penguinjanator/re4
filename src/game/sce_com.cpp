@@ -45,11 +45,11 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "va_ppc.h"
+#include <dolphin/os.h>
 
 // Scenario helpers shared by the room scripts: event brackets, messages, chapter end, elevators.
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
 }

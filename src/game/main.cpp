@@ -73,10 +73,6 @@ f32 ORTHO_R;
 
 extern "C" {
 void __main();
-void PADRecalibrate(u32 mask);
-void GXCopyDisp(void* dest, u8 clear);
-// game/trans.cpp
-void Trans();
 // game/eprintf.cpp
 void EprintfInit();
 void EprintfFlush();

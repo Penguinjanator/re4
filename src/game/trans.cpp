@@ -44,12 +44,8 @@ extern f32 shd_tex_scale_x;
 extern "C" {
 int EspTrans();
 void EspgenTrans();
-void GXSetDrawSync(u16 token);
 void bio4_AddBgColor();
 void Filter09Render(int);
-void PSMTXReorder(Mtx src, f32 dst[4][3]);
-void __GXSetIndirectMask(u32 mask);
-void GXSetTevIndBumpXYZ(int tev_stage, int ind_stage, int matrix_sel);
 void LightSetModel(cModel* m);
 void ResetShape(cModelInfo* info, void* dst);
 void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, void* dst);

@@ -30,8 +30,6 @@ extern "C" {
 f32 SQRTF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
 int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
-void Draw_line3d(Vec* p0, Vec* p1, u32 color, int blend);
-void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd);
 }
 
 #define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."

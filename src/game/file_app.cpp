@@ -10,10 +10,7 @@
 #include "eprintf.h"
 #include "scheduler.h"
 #include <string.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os.h>
 
 extern char* pUser_name;
 

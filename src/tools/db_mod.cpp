@@ -17,6 +17,7 @@
 #include "scheduler.h"
 #include <stdio.h>
 #include <dolphin/os.h>
+#include <string.h>
 
 #line 30 "D:/Bio4/Prog/db_mod.cpp"
 
@@ -24,17 +25,6 @@
 // link dead-stripped it at function level (modules.py STRIP_UNUSED): Tools lost DB_MODEL_FILES::append,
 // dbModMotionSet and the dbModBinName..dbModelSetAng0 loader entry points, t_esp lost the view-flag
 // getters, dbModMotionSetSeq and dbModGetMotFilename. .rodata/.data are the same bytes in both.
-
-extern "C" {
-char* strcpy(char*, const char*);
-unsigned int strlen(const char*);
-void* memset(void* dst, int c, unsigned int n);
-int strcmp(const char*, const char*);
-int strncmp(const char*, const char*, u32);
-char* strchr(const char*, int);
-char* strstr(const char*, const char*);
-u32 strspn(const char*, const char*);
-}
 
 #define FILE_NUM 16
 #define DEG2RAD 0.017453292f
