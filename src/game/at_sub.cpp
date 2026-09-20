@@ -99,7 +99,7 @@ static f32 At_half(f32 v)
 
 // Capsule (p0 - p1, radius r) vs axis box: samples spheres along the segment every 2r; 1 on
 // any overlap.
-u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
+u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r)
 {
     Vec dir;
     Vec p;
@@ -134,7 +134,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
 }
 
 // Capsule (p0 - p1, radius r) vs sphere (c, r2): sampled spheres along the segment; 1 on overlap.
-u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
+u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
 {
     Vec dir;
     Vec p;

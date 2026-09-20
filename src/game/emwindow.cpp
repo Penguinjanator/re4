@@ -56,7 +56,7 @@ SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                  
 int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
 int MotionMove(cModel* m, int a);
 }
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
 // cUnit::beginEvent takes an int in the original (sscrn BEGIN_EVENT).
 class cUnitEvent {
@@ -372,7 +372,7 @@ void cEmWindow::move()
         r_no_0 = 1;
         if (WindowAlive(this)) {
             if (WindowData[type].breakEff == 1) {
-                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, (u32) this, 0);
+                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, this, 0);
             }
         }
         break;
@@ -581,7 +581,7 @@ int cEmWindow::ExeWindowEvent()
                 EstSet(0, -1, 0, 0, 1, 6, 1, 0, 0, 0);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 8, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 8, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -607,7 +607,7 @@ int cEmWindow::ExeWindowEvent()
                 SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -633,7 +633,7 @@ int cEmWindow::ExeWindowEvent()
                 SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet((int) pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);

@@ -357,7 +357,7 @@ static int pathGrabLine(DbPathWork* w)
 #line 447 "D:/Bio4/Prog/db_path.cpp"
             basis = (f32*) MEM_ALLOC(param->n * 4, 1, 13);
             t = (f32) ((path->n - 1) * i) / PATH_DRAW_DIV + PATH_T_START;
-            de_Boor_Cox(path->n, 0, param->k, t, basis);
+            de_Boor_Cox(path->n, 0, t, param->k, basis);
             pt.z = 0.0f;
             pt.y = 0.0f;
             pt.x = 0.0f;
@@ -460,7 +460,7 @@ void pathDraw(DbPathWork* w, Vec* ofs)
 #line 586 "D:/Bio4/Prog/db_path.cpp"
             basis = (f32*) MEM_ALLOC(param->n * 4, 1, 13);
             t = (f32) ((path->n - 1) * i) / PATH_DRAW_DIV + PATH_T_START;
-            de_Boor_Cox(path->n, 0, param->k, t, basis);
+            de_Boor_Cox(path->n, 0, t, param->k, basis);
             pt.z = 0.0f;
             pt.y = 0.0f;
             pt.x = 0.0f;

@@ -7,7 +7,7 @@
 struct ActBtnWork {
     u32 tag;       // 0x00  OTag link
     void* func;    // 0x04  void (*)(int arg, int d): the action (NULL = none)
-    int arg;       // 0x08  first argument (type 2: the SceAtWork*)
+    void* arg;     // 0x08  first argument (type 2: the SceAtWork*)
     u8 kind;       // 0x0C  prompt message: cMes number kind + 0x16 (clamped to 0x41)
     u8 slot;       // 0x0D  ot slot / SceExec priority
     u8 type;       // 0x0E  0 call func, 1 SceExec(0x12, func...), 2 SceAt area action
@@ -36,7 +36,7 @@ public:
     int checkPLStatus(ActBtnWork* w);
     ActBtnWork* pullWork();
     // set(kind, slot, func, arg, flags, btn, type, d): pulls a work, fills it and adds the prim
-    void set(int kind, int slot, int func, int arg, int flags, int btn, int type, int d);
+    void set(int kind, int slot, void* func, void* arg, int flags, int btn, int type, int d);
 };
 
 extern cActionButton ActBtn;

@@ -321,7 +321,7 @@ void Cloth::calcNormal()
 }
 
 // Pushes grid point (x, y): adds `power` to its z speed and half to y (bullets / wind).
-void Cloth::disturbance(f32 power, u32 x, u32 y)
+void Cloth::disturbance(u32 x, u32 y, f32 power)
 {
     u32 idx = x + divH * y;
 

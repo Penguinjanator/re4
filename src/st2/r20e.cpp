@@ -234,7 +234,7 @@ void R20eInit()
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);
     }
     if (pG->pl_type == 1) {
-        EstSet((int) pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
     }
     r20e_work->effKind = EspPullCoreKind();
 }

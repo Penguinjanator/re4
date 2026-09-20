@@ -743,7 +743,7 @@ snipe_done:
     SceAtSetEnable(8, 0);
     RsfSet(G_ROOM_ID, 6);
     pSUB->dmg.clear();
-    SubCharMoveTo(1, 0.0f, 0.0f, -2000.0f, 193.0f);
+    SubCharMoveTo(0.0f, 0.0f, -2000.0f, 193.0f, 1);
     r206_work.p->em[0].setEm(0x60, -1, 1, 1, 1);
     r206_work.p->em[1].setEm(0x61, -1, 1, 1, 1);
     r206_work.p->em[2].setEm(0x62, -1, 1, 1, 1);
@@ -758,22 +758,22 @@ snipe_done:
     if ((pG->Room_flg[0] & 0x80000000) == 0) {
         pG->Room_flg[0] |= 0x80000000;
     }
-    SetSubAux((int) funcAshley2, 0);
+    SetSubAux(funcAshley2, 0);
     SceSleep(1);
     while (SubCharGetStatus() & 0x01000000) {
         SceSleep(1);
     }
-    SubCharMoveTo(1, 4316.0f, 0.0f, -6652.0f, 193.0f);
+    SubCharMoveTo(4316.0f, 0.0f, -6652.0f, 193.0f, 1);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
-    SubCharMoveTo(0, 0.0f, 0.0f, -2300.0f, 193.0f);
-    SubCharMoveTo(0, r206_ashleyGoal.x, r206_ashleyGoal.y, r206_ashleyGoal.z, 193.0f);
+    SubCharMoveTo(0.0f, 0.0f, -2300.0f, 193.0f, 0);
+    SubCharMoveTo(r206_ashleyGoal.x, r206_ashleyGoal.y, r206_ashleyGoal.z, 193.0f, 0);
     SceSleep(1);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
-    SetSubAux((int) funcAshley, 0);
+    SetSubAux(funcAshley, 0);
     pSUB->setNoSuspend(1);
     SceEventStart(1);
     SpfFlagOff(pG, SPF_EM);
@@ -834,13 +834,13 @@ snipe_done:
     r206_work.p->em[6].setNoSuspend(0);
     r206_work.p->em[7].setNoSuspend(0);
     SceExec(0x12, (TaskFunc) chkReaderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    SubCharMoveTo(0, 4316.0f, 0.0f, -6652.0f, 193.0f);
+    SubCharMoveTo(4316.0f, 0.0f, -6652.0f, 193.0f, 0);
     moved = 0;
     wave = 1;
     for (;;) {
         if (moved == 0 && (SubCharGetStatus() & 0x00800000) == 0) {
             moved = 1;
-            SubCharMoveTo(0, 0.0f, 0.0f, -2300.0f, 193.0f);
+            SubCharMoveTo(0.0f, 0.0f, -2300.0f, 193.0f, 0);
         }
         if (r206_work.p->em[7].isActive() == 0) {
             goto wave_done;
@@ -878,7 +878,7 @@ wave_done:
     for (;;) {
         if (moved == 0 && (SubCharGetStatus() & 0x00800000) == 0) {
             moved = 1;
-            SubCharMoveTo(0, 0.0f, 0.0f, -2300.0f, 193.0f);
+            SubCharMoveTo(0.0f, 0.0f, -2300.0f, 193.0f, 0);
         }
         if (SceCountEmAlive(0x10, 0x20) == 0) {
             break;
@@ -887,14 +887,14 @@ wave_done:
     }
     at = GetKeyItemAtari();
     if (at != NULL) {
-        SubCharMoveTo(0, at->item.pos.x, at->item.pos.y, at->item.pos.z, 193.0f);
+        SubCharMoveTo(at->item.pos.x, at->item.pos.y, at->item.pos.z, 193.0f, 0);
     } else {
         pLog->err(0, 0, "KEY ATARI NOT FOUND!!");
     }
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
-    SetSubAux((int) funcAshley3, 0);
+    SetSubAux(funcAshley3, 0);
     SceSleep(0xA);
     if (at != NULL) {
         SceAtSetEnable(at->no, 0);
@@ -905,7 +905,7 @@ wave_done:
     while (SubCharGetStatus() & 0x01000000) {
         SceSleep(1);
     }
-    SubCharMoveTo(0, 5316.0f, 0.0f, -18975.0f, 2.27f);
+    SubCharMoveTo(5316.0f, 0.0f, -18975.0f, 2.27f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
@@ -1106,7 +1106,7 @@ void luis_set()
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0xA, 0, 1, 0);
     obj->LightInfo.EnableMask = lit;
     obj->be_flag |= 0x10;
-    EstSet((int) obj, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+    EstSet(obj, -1, 0, 0, 1, 3, 1, 0, 0, 0);
     SceAtSetEnable(0xB, 1);
 }
 

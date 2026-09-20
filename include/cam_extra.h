@@ -56,8 +56,8 @@ public:
     virtual void init(void* type);
     virtual void move(void* zoom);
     virtual void quit(void* p);
-    void save(int);
-    void load(int);
+    void save(void*);
+    void load(void*);
 };
 
 // Filter0a focus blur animation.

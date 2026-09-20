@@ -392,9 +392,9 @@ static void R213EventSuBreakMain()
         SceEventStart(1);
         hit = r213_work.p->hit[0];
         if (hit) {
-            EffectEspDelete(0, 2, (u32) hit, 0);
-            EffectEspgenDelete(0, 2, (int) hit);
-            EffectEfmDelete(0, 2, (int) hit);
+            EffectEspDelete(0, 2, hit, 0);
+            EffectEspgenDelete(0, 2, hit);
+            EffectEfmDelete(0, 2, hit);
         }
         EffectEspDelete(1, 2, 0, 0);
         EffectEspgenDelete(1, 2, 0);
@@ -1113,7 +1113,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 StaFlagOff(pG, STA_EVENT);
                 SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
                 if (r213_work.p->tex) {
-                    EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
+                    EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
                 }
                 StaFlagOn(pG, STA_EVENT);
                 SpfFlagOff(pG, SPF_ESP_AREA);
@@ -1143,7 +1143,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
         StaFlagOff(pG, STA_EVENT);
         SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
         if (r213_work.p->tex) {
-            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
+            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
         }
         StaFlagOn(pG, STA_EVENT);
         SpfFlagOff(pG, SPF_ESP_AREA);

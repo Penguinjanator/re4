@@ -1200,7 +1200,7 @@ void cModel::releasePartsList(int no)
 // Starts a motion on this model (MotionSetCore wrapper with reordered arguments).
 void cModel::motionSet(void* data, int a, int b, int c, int d)
 {
-    MotionSetCore(this, &Motion, data, d, a, c, b);
+    MotionSetCore(this, &Motion, data, (void*) d, a, c, b);
 }
 
 // Advances the motion one frame (MotionMove).

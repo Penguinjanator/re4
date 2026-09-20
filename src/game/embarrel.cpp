@@ -104,7 +104,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -185,7 +185,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     {
         cAtariInfo* at = &em->atari;
 
-        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
+        at->init(0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -613,7 +613,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         w->rollSe = 0;
         if ((Rnd() & 3) == 0) {
             w->rollSe = 1;
-            EstSet((int) em, -1, 0, 0, 1, 4, 0, w->EffKindId, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 1, 4, 0, w->EffKindId, em, 0);
         }
         w->Se_wait = 0;
         w->floorOfs = 700.0f;

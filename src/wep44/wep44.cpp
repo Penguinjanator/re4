@@ -100,7 +100,7 @@ void cObjGovernment::moveFire()
         StaFlagOn(pG, STA_PL_FIRE);
         MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
-        EstSet((int) this, -1, 0, 0, 0x3A, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x3A, type, 0, 0xA, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;

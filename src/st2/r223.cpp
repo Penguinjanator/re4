@@ -449,7 +449,7 @@ void toroko_move1()
     r223_work.p->str = SndStrReq(1, 1, 0x80000003, 0, 0, 0.0f);
     SmdSetTrans(0x16, 0);
     MotionSetCore(r223_work.p->toroko, &r223_work.p->toroko->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
-    EstSet((int) r223_work.p->toroko, -1, 0, 0, 1, 0x1C, 1, 4, 0, 0);
+    EstSet(r223_work.p->toroko, -1, 0, 0, 1, 0x1C, 1, 4, 0, 0);
     CamCtrl.CutCall(8);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

@@ -235,7 +235,7 @@ address	size	section	unit	scope	name	demangled
 0x80017D44	0x258	.text	game/emwep.cpp	global	emWepEscapeCamMove	emWepEscapeCamMove
 0x80017F9C	0x4C	.text	game/emwep.cpp	global	setParent__6cEmWepP3cEmii	cEmWep::setParent
 0x80017FE8	0x1EC	.text	game/emwep.cpp	global	setFall__6cEmWepiP3Vecf	cEmWep::setFall
-0x800181D4	0x21C	.text	game/emwep.cpp	global	setThrow__6cEmWepP3VecfP9EmAtkInfo	cEmWep::setThrow
+0x800181D4	0x21C	.text	game/emwep.cpp	global	setThrow__6cEmWepP3VecP9EmAtkInfof	cEmWep::setThrow
 0x800183F0	0x1C4	.text	game/emwep.cpp	global	setThrowScythe__6cEmWepP3VecP9EmAtkInfo	cEmWep::setThrowScythe
 0x800185B4	0x224	.text	game/emwep.cpp	global	setShot__6cEmWepP3VecP9EmAtkInfo	cEmWep::setShot
 0x800187D8	0x224	.text	game/emwep.cpp	global	setShotArrow__6cEmWepP3VecP9EmAtkInfo	cEmWep::setShotArrow
@@ -256,7 +256,7 @@ address	size	section	unit	scope	name	demangled
 0x800192DC	0x4C	.text	game/emwep.cpp	global	setEffAlways__6cEmWepii	cEmWep::setEffAlways
 0x80019328	0x3C	.text	game/emwep.cpp	global	setEffAlways2__6cEmWepUcUcUcP3VecUs	cEmWep::setEffAlways2
 0x80019364	0x84	.text	game/emwep.cpp	global	setYarare__6cEmWepP3Vecff	cEmWep::setYarare
-0x800193E8	0x84	.text	game/emwep.cpp	global	setYarareCube__6cEmWepP3Vecfff	cEmWep::setYarareCube
+0x800193E8	0x84	.text	game/emwep.cpp	global	setYarareCube__6cEmWepfffP3Vec	cEmWep::setYarareCube
 0x8001946C	0x34	.text	game/emwep.cpp	global	setTransMode__6cEmWepi	cEmWep::setTransMode
 0x800194A0	0x8	.text	game/emwep.cpp	global	setAtNo__6cEmWepi	cEmWep::setAtNo
 0x800194A8	0x30	.text	game/emwep.cpp	global	setLost__6cEmWep	cEmWep::setLost
@@ -2979,7 +2979,7 @@ address	size	section	unit	scope	name	demangled
 0x800C357C	0x26C	.text	game/act_btn.cpp	global	checkButton__13cActionButtonP10ActBtnWork	cActionButton::checkButton
 0x800C37E8	0xB8	.text	game/act_btn.cpp	global	checkPLStatus__13cActionButtonP10ActBtnWork	cActionButton::checkPLStatus
 0x800C38A0	0x34	.text	game/act_btn.cpp	global	pullWork__13cActionButton	cActionButton::pullWork
-0x800C38D4	0xD8	.text	game/act_btn.cpp	global	set__13cActionButtoniiiiiiii	cActionButton::set
+0x800C38D4	0xD8	.text	game/act_btn.cpp	global	set__13cActionButtoniiPvT3iiii	cActionButton::set
 0x800C39AC	0x4	.text	game/act_btn.cpp	local	__static_initialization_and_destruction_0_800C39AC	__static_initialization_and_destruction_0
 0x800C39B0	0x2C	.text	game/act_btn.cpp	global	global_constructors_keyed_to_cActionButton_init	global constructors keyed to cActionButton::init
 0x800C39DC	0x2C	.text	game/act_btn.cpp	global	global_destructors_keyed_to_cActionButton_init	global destructors keyed to cActionButton::init
@@ -3101,8 +3101,8 @@ address	size	section	unit	scope	name	demangled
 0x800CE418	0x2C	.text	game/atari.cpp	global	global_constructors_keyed_to_cSatMgr_check	global constructors keyed to cSatMgr::check
 0x800CE444	0x2C	.text	game/atari.cpp	global	global_destructors_keyed_to_cSatMgr_check	global destructors keyed to cSatMgr::check
 0x800CE470	0x34	.text	game/atariInfo.cpp	global	__10cAtariInfo	cAtariInfo::cAtariInfo
-0x800CE4A4	0x48	.text	game/atariInfo.cpp	global	init0__10cAtariInfoiiifffffff	cAtariInfo::init0
-0x800CE4EC	0x44	.text	game/atariInfo.cpp	global	init__10cAtariInfoiiifffffff	cAtariInfo::init
+0x800CE4A4	0x48	.text	game/atariInfo.cpp	global	init0__10cAtariInfofffffffiii	cAtariInfo::init0
+0x800CE4EC	0x44	.text	game/atariInfo.cpp	global	init__10cAtariInfofffffffiii	cAtariInfo::init
 0x800CE530	0x44	.text	game/atariInfo.cpp	global	set__10cAtariInfoiff	cAtariInfo::set
 0x800CE574	0x10C	.text	game/atariInfo.cpp	global	getSpeedVector__10cAtariInfoP6cModelP3VecT2	cAtariInfo::getSpeedVector
 0x800CE680	0x58	.text	game/atariInfo.cpp	global	move__10cAtariInfo	cAtariInfo::move
@@ -3157,8 +3157,8 @@ address	size	section	unit	scope	name	demangled
 0x800D0D64	0x4D8	.text	game/cam_extra.cpp	global	move__11CameraScope	CameraScope::move
 0x800D123C	0xF4	.text	game/cam_extra.cpp	global	init__7IdScopePv	IdScope::init
 0x800D1330	0x1A4	.text	game/cam_extra.cpp	global	move__7IdScopePv	IdScope::move
-0x800D14D4	0x5C	.text	game/cam_extra.cpp	global	save__7IdScopei	IdScope::save
-0x800D1530	0xA4	.text	game/cam_extra.cpp	global	load__7IdScopei	IdScope::load
+0x800D14D4	0x5C	.text	game/cam_extra.cpp	global	save__7IdScopePv	IdScope::save
+0x800D1530	0xA4	.text	game/cam_extra.cpp	global	load__7IdScopePv	IdScope::load
 0x800D15D4	0x38	.text	game/cam_extra.cpp	global	quit__7IdScopePv	IdScope::quit
 0x800D160C	0x240	.text	game/cam_extra.cpp	global	__15CameraBinocularP3VecT1PvT3	CameraBinocular::CameraBinocular
 0x800D184C	0x70	.text	game/cam_extra.cpp	global	_._15CameraBinocular	CameraBinocular::~CameraBinocular
@@ -3922,7 +3922,7 @@ address	size	section	unit	scope	name	demangled
 0x8010D5CC	0x1C	.text	game/emrock.cpp	global	setSeFall__7cEmRockUcUcUc	cEmRock::setSeFall
 0x8010D5E8	0x10	.text	game/emrock.cpp	global	setEffFall__7cEmRockUcUc	cEmRock::setEffFall
 0x8010D5F8	0x4C	.text	game/emrock.cpp	global	setEffAlways__7cEmRockii	cEmRock::setEffAlways
-0x8010D644	0x84	.text	game/emrock.cpp	global	setYarareCube__7cEmRockP3Vecfff	cEmRock::setYarareCube
+0x8010D644	0x84	.text	game/emrock.cpp	global	setYarareCube__7cEmRockfffP3Vec	cEmRock::setYarareCube
 0x8010D6C8	0x28	.text	game/emrock.cpp	global	setTransMode__7cEmRocki	cEmRock::setTransMode
 0x8010D6F0	0x18C	.text	game/emrock.cpp	global	emRockAtkScrCk	emRockAtkScrCk
 0x8010D87C	0xA8	.text	game/emrock.cpp	global	emRockSetRollRoute	emRockSetRollRoute
@@ -4239,7 +4239,7 @@ address	size	section	unit	scope	name	demangled
 0x8012BCFC	0x34	.text	game/espgen45.cpp	global	Estgen45SetColor	Estgen45SetColor
 0x8012BD30	0x70	.text	game/espgen45.cpp	global	Estgen45SetParam	Estgen45SetParam
 0x8012BDA0	0x84	.text	game/est.cpp	global	EstSet	EstSet
-0x8012BE24	0x25C	.text	game/est.cpp	global	EstSet__FP6cModeliP3VecT2P10EspSeqDataiiUlUlPv	EstSet
+0x8012BE24	0x25C	.text	game/est.cpp	global	EstSet__FP6cModeliP3VecT2P10EspSeqDataiiPvUlT7	EstSet
 0x8012C080	0x108	.text	game/est.cpp	global	AreaSstSet	AreaSstSet
 0x8012C188	0x6C	.text	game/est.cpp	global	GetSstDispFlag	GetSstDispFlag
 0x8012C1F4	0xC4	.text	game/est.cpp	global	SetSstDispFlag	SetSstDispFlag
@@ -4448,7 +4448,7 @@ address	size	section	unit	scope	name	demangled
 0x80138914	0xD0	.text	game/event.cpp	global	myRoomInit__8EventMgr	EventMgr::myRoomInit
 0x801389E4	0x78	.text	game/event.cpp	global	DelAll__8EventMgr	EventMgr::DelAll
 0x80138A5C	0x29C	.text	game/event.cpp	global	Run__8EventMgr	EventMgr::Run
-0x80138CF8	0xE0	.text	game/event.cpp	global	IsAliveEvt__8EventMgrPUlii	EventMgr::IsAliveEvt
+0x80138CF8	0xE0	.text	game/event.cpp	global	IsAliveEvt__8EventMgrPUlPP5Eventi	EventMgr::IsAliveEvt
 0x80138DD8	0x58	.text	game/event.cpp	global	EvtReadAram__8EventMgrPciPiiUl	EventMgr::EvtReadAram
 0x80138E30	0x3C	.text	game/event.cpp	global	EvtReadMram__8EventMgrPciPiiUl	EventMgr::EvtReadMram
 0x80138E6C	0xD4	.text	game/event.cpp	global	NameCheck__8EventMgrPc	EventMgr::NameCheck
@@ -5080,7 +5080,7 @@ address	size	section	unit	scope	name	demangled
 0x8015CF20	0xC	.text	game/motion.cpp	global	MotionBlendOff	MotionBlendOff
 0x8015CF2C	0x10	.text	game/motion.cpp	global	MotionPause	MotionPause
 0x8015CF3C	0x14C	.text	game/motion.cpp	global	MotionClear	MotionClear
-0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore__FP6cModelPvT1iiii	MotionSetCore
+0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore__FP6cModelPvN21iii	MotionSetCore
 0x8015DA98	0x85C	.text	game/motion.cpp	global	MotionMove	MotionMove
 0x8015E2F4	0x58	.text	game/motion.cpp	global	MotionMoveSub	MotionMoveSub
 0x8015E34C	0x53C	.text	game/motion.cpp	global	MotionMoveCore	MotionMoveCore
@@ -6140,7 +6140,7 @@ address	size	section	unit	scope	name	demangled
 0x801B37E0	0x40	.text	game/cloth.cpp	global	PullCloth	PullCloth
 0x801B3820	0xC8	.text	game/cloth.cpp	global	move__5Cloth	Cloth::move
 0x801B38E8	0x1C8	.text	game/cloth.cpp	global	calcNormal__5Cloth	Cloth::calcNormal
-0x801B3AB0	0x44	.text	game/cloth.cpp	global	disturbance__5ClothfUlUl	Cloth::disturbance
+0x801B3AB0	0x44	.text	game/cloth.cpp	global	disturbance__5ClothUlUlf	Cloth::disturbance
 0x801B3AF4	0x70	.text	game/cloth.cpp	global	ClothDraw	ClothDraw
 0x801B3B64	0x550	.text	game/cloth.cpp	global	clothTrans	clothTrans
 0x801B40B4	0x14	.text	game/db_work.cpp	global	__7cDbWork	cDbWork::cDbWork

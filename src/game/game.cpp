@@ -1280,11 +1280,11 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         cSceSys* s = &SceSys;
         if (s->pDoorFunc != 0) {
-            ((void (*)(int)) s->pDoorFunc)(s->pDoorParam);
+            ((void (*)(void*)) s->pDoorFunc)(s->pDoorParam);
             s->pDoorFunc = 0;
         }
         if (s->pExitFunc != 0) {
-            ((void (*)(int)) s->pExitFunc)(s->pExitParam);
+            ((void (*)(void*)) s->pExitFunc)(s->pExitParam);
             s->pExitFunc = 0;
         }
     }

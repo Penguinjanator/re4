@@ -194,7 +194,7 @@ void R318Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) R318ExecSitMain, 0, 1);
     }
-    EstSet(0, -1, 0, 0, 1, 8, 0x2001, 5, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 8, 0x2001, 5, zero, zero);
     r318_memset(&pos, 0, sizeof(Vec));
     r318_memset(&rot, 0, sizeof(Vec));
     for (i = 0; i < 15; i++) {
@@ -579,7 +579,7 @@ static void R318ExecSwitchCheck()
         ((cUnitEventView*) pPL)->beginEvent(0);
         pPL->setNoSuspend(1);
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
-        EstSet((int) pPL, -1, 0, 0, 1, 0xC, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 0xC, 0x2001, 6, 0, 0);
         MotionMoveF(pPL, 0);
         for (i = 0; i < 15; i++) {
             laser = r318_work.p->laser[i];
@@ -705,7 +705,7 @@ static void R226EventLaserStEnd()
         SndCall(6, 3, 0, 0, 0, 0);
     }
     EffectDelete(0x2001, 5);
-    EstSet(0, -1, 0, 0, 1, 9, 0x2001, 5, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 9, 0x2001, 5, zero, zero);
     SceAtSetEnable(0xA, 1);
     SceAtSetEnable(0xB, 1);
     pPL->setNoSuspend(0);
@@ -761,7 +761,7 @@ void R318LaserEspInit(int n, int type, int kind)
                 r318_work.p->laserSnd = SndCall(6, 0xC, &laser->pos, 0, 0, 0);
             }
             zero = 0;
-            EstSet((int) laser, -1, 0, 0, 1, (u8) type, 1, (u8) kind, (u32) zero, zero);
+            EstSet(laser, -1, 0, 0, 1, (u8) type, 1, (u8) kind, zero, zero);
         }
     }
 }
@@ -1016,8 +1016,8 @@ void R318EventLaserEnd(int no)
                 Matrix2AxisAngle(t->mat, &rot[0]);
                 Matrix2AxisAngle(p4->mat, &rot[1]);
                 if (p2->world.x != 0.0f) {
-                    EstSet(0, -1, &t->world, &rot[0], 1, 6, 0x801, 0, (u32) zero, zero);
-                    EstSet(0, -1, &p4->world, &rot[1], 1, 7, 0x801, 0, (u32) zero, zero);
+                    EstSet(0, -1, &t->world, &rot[0], 1, 6, 0x801, 0, zero, zero);
+                    EstSet(0, -1, &p4->world, &rot[1], 1, 7, 0x801, 0, zero, zero);
                 }
                 asm("" : : "r"(laser), "r"(t), "r"(p4));
             }
@@ -1068,7 +1068,7 @@ static void playerEscape02(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
-        EstSet((int) pPL, -1, 0, 0, 1, 0xB, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 0xB, 0x2001, 6, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC3, 0.0f);
         for (i = 0; i < 5; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1117,7 +1117,7 @@ static void playerEscape03(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot0, 0, 0, 0x201, 0);
-        EstSet((int) pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC4, 0.0f);
         for (i = 0; i < 8; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1170,7 +1170,7 @@ static void playerEscape03(cPlayer* pl)
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         MotionSetCore(pl, &pl->Motion, mot1, 0, 0, 0x201, 0);
-        EstSet((int) pPL, -1, 0, 0, 1, 0xF, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 0xF, 0x2001, 6, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC5, 0.0f);
         for (i = 0; i < 8; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1218,7 +1218,7 @@ static void playerEscape04(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
-        EstSet((int) pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC6, 0.0f);
         for (i = 0; i < 15; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1247,7 +1247,7 @@ static void playerDie(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 3, 0x201, 0);
-        EstSet((int) pl, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+        EstSet(pl, -1, 0, 0, 1, 3, 1, 0, 0, 0);
         SndCall(6, 5, 0, 0, 0, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xA);

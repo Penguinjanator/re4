@@ -193,7 +193,7 @@ static void r406_checkRockWall()
                         obj->be_flag &= ~2;
                     }
                     SndCall(6, 2, &obj->pos, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, (void*) zero);
+                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (void*) zero, (void*) zero);
                     SceExit();
                     break;
                 }

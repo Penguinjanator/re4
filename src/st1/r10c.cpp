@@ -128,8 +128,8 @@ void R10cInit()
 
         PSet(r10c_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
     }
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceExec(0x12, (TaskFunc) r10c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) moveWheel, 0, 2, SCE_PRIO_DEF_2, 0);
@@ -408,7 +408,7 @@ static void r10c_EmEvent()
         }
         em->setNoSuspend(1);
         r10c_work.p->em = em;
-        EstSet((int) em, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
+        EstSet(em, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
         BitOn(em->flag, 1);
         MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
@@ -674,7 +674,7 @@ static void chkSwitchA()
         // pseudo set here (`li r29,0` before SmdSetTrans(0x48), callee-saved across the calls) instead of
         // a reload-materialised `li r0,0` at the stores; its live range also orders the two CamCtrl
         // highs (r29/r31) like the target.
-        u32 z = 0;
+        void* z = 0;
         SmdSetTrans(0x48, 0);
         SceAtSetEnable(0xE, 0);
         SceAtSetEnable(0xF, 1);
@@ -690,7 +690,7 @@ static void chkSwitchA()
         EffectEspDelete(0, 0xD, 0, 0);
         EffectEspgenDelete(0, 0xD, 0);
         EffectEfmDelete(0, 0xD, 0);
-        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 6, z, (void*) z); // COMPILER-DIFF: candidate #17 (both 0, see `z`)
+        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 6, z, z); // COMPILER-DIFF: candidate #17 (both 0, see `z`)
         CamCtrl.CutCall(0x19);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);

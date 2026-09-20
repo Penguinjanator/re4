@@ -273,7 +273,7 @@ static void em18_R0_Init(cEm18* em)
 
         em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
-    em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1800.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1800.0f, 1, 0x2000, 10);
     em->atari.m_flag |= 8;
     em->litArea.on(1);
     one = 1;
@@ -426,7 +426,7 @@ void em18ActEvtSetTrade(cEm18* em)
             return;
         }
     }
-    ActBtn.set(0, 2, (int) em18TradeAction, (int) em, 0, 1, 0, 0);
+    ActBtn.set(0, 2, (void*) em18TradeAction, em, 0, 1, 0, 0);
 }
 
 // Action button callback: the first time starts the Trade routine (Be_flg bit5) with the player's

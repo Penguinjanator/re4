@@ -57,7 +57,7 @@ void cObjFn57::init(cModel* parent)
         pLog->err(0, 0, "cObjFn57::init() failed.");
         return;
     }
-    sub2B4.atari.init(1, 0, 0, 0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f);
+    sub2B4.atari.init(0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f, 1, 0, 0);
     AtariFlagsAnd(&sub2B4.atari, 0xFCFF);
     pParts->pParent = parent->getPartsPtr(0xA);
     {
@@ -101,7 +101,7 @@ void cObjFn57::moveFire()
         if (pG->weapon_type == 0) {
             type = 0;
         }
-        EstSet((int) this, -1, 0, 0, 0x35, type, 0, 0xA, zero, 0);
+        EstSet(this, -1, 0, 0, 0x35, type, 0, 0xA, (void*) zero, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;

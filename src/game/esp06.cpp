@@ -60,7 +60,7 @@ int Esp06GetPathPos(cEsp06* esp)
 
     if (PathHasWeight(w->pPath)) {
         if (esp->m_pMod != NULL) {
-            ret = PathGetPosEm(w->pPath, w->Dist, esp->m_pMod, &w->seg, &esp->m_Pos);
+            ret = PathGetPosEm(w->pPath, esp->m_pMod, w->Dist, &w->seg, &esp->m_Pos);
         } else {
             ret = PathGetPos(w->pPath, w->Dist, &w->seg, &esp->m_Pos);
         }

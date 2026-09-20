@@ -69,7 +69,7 @@ void R304Init()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R304EventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r304s00.evd", (u8) GetEmIdFromListI(0x28), 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 0, 0, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, zero);
         for (i = 0x19; i <= 0x1F; i++) {
             if (getRoomEtcWindow(i, &win, 1)) {
                 ((cEmWindow*) win)->SetEnableDamage(0);
@@ -77,7 +77,7 @@ void R304Init()
         }
     } else {
         SeAtSetOnOff(0, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 1, 0, 0, zero, zero);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r304_EnemySet, 0, 1);

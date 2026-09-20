@@ -462,7 +462,7 @@ void wepDown(cPlayer* pl)
             hokan = 5;
             frame = 3;
         }
-        MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x24), (int) WEP_ARC_PTR(0x25), hokan, 5, frame);
+        MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x24), WEP_ARC_PTR(0x25), hokan, 5, frame);
         pl->r_no_0 = 0;
         pl->r_no_1 = 0;
         pl->r_no_2 = 2;

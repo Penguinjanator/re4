@@ -1092,7 +1092,7 @@ void cLanternUnit::check()
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) != 0) {
         return;
     }
-    ActBtn.set(0x17, 5, (int) cLanternUnit::throwLantern, (int) this, 0, 1, 1, 0);
+    ActBtn.set(0x17, 5, (void*) cLanternUnit::throwLantern, this, 0, 1, 1, 0);
 }
 
 // The enemy the lantern flies at (NULL: 10000 units in front of the player, out = that point).
@@ -1231,5 +1231,5 @@ void cLanternUnit::setThrowLantern(Vec* target)
     CalcParabolaVector(&spd, &from, target, PSVECDistance(&from, target) / 10.0f + 1.0f);
     obj = SetObj01(bin, tpl, &from, &rot, &spd, spd0, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 0, 0x10, 3, 1, 1, 0, 0x14, (int) zero, (int) zero);
-    EstSet((int) obj, -1, 0, 0, 1, 0, 0, 0, (u32) obj, zero);
+    EstSet(obj, -1, 0, 0, 1, 0, 0, 0, obj, zero);
 }

@@ -226,7 +226,7 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         }
     }
     if (this->type == 6) {
-        EstSet((int) this, -1, 0, 0, 0x33, 7, 0, 0, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 0x33, 7, 0, 0, this, 0);
     }
     EMMARK(this)->pInst = inst;
     EMMARK(this)->age = 0;
@@ -493,17 +493,17 @@ int cEmMark::setEff(int a, int kind)
         if (dmg.m_Wep != 7 && dmg.m_Wep != 0x13) {
             k = 8;
         }
-        EstSet((int) this, -1, &pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+        EstSet(this, -1, &pos, 0, 0x33, k, 0, 0, this, 0);
         SndCall(6, 7, &p, 0, 0, 0);
         be_flag &= ~2;
     } else if (type == 2) {
         int k = dmg.m_Wep == 7;
 
-        EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+        EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     } else if (kind == 2) {
         modelInit(ARC(0x13), ARC(0x14));
-        EstSet((int) this, -1, &pos, 0, 0x33, 6, 0, 0, (u32) this, 0);
+        EstSet(this, -1, &pos, 0, 0x33, 6, 0, 0, this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
         PlWepHitCheck2(0, &pos, &pos, 0x13, 0, range);
     } else if (kind != 0) {
@@ -521,7 +521,7 @@ int cEmMark::setEff(int a, int kind)
     } else {
         int k = dmg.m_Wep == 7;
 
-        EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+        EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     }
     return 1;
@@ -582,7 +582,7 @@ int cEmMark::setEffWallNormal()
 
     int k = dmg.m_Wep == 7;
 
-    EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+    EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, this, 0);
     p.x = pos.x;
     p.y = pos.y + 1000.0f;
     p.z = pos.z;
@@ -676,7 +676,7 @@ void cEmMark::headBomb()
         break;
     }
     modelInit(bin, tpl);
-    EstSet((int) this, -1, &pos, 0, 0x33, kind, 0, 0, (u32) this, 0);
+    EstSet(this, -1, &pos, 0, 0x33, kind, 0, 0, this, 0);
     SndCall(6, 2, &pos, 0, 0, 0);
 }
 

@@ -74,7 +74,7 @@ public:
 
     void setParent(cEm* parent, int partsNo, int flag);
     void setFall(int type, Vec* spd, f32 grav);
-    void setThrow(Vec* spd, f32 grav, EmAtkInfo* atk);
+    void setThrow(Vec* spd, EmAtkInfo* atk, f32 grav);
     void setThrowScythe(Vec* spd, EmAtkInfo* atk);
     void setShot(Vec* spd, EmAtkInfo* atk);
     void setShotArrow(Vec* spd, EmAtkInfo* atk);
@@ -95,7 +95,7 @@ public:
     void setEffAlways(int id, int type);
     void setEffAlways2(u8 id, u8 type, u8 parts, Vec* ofs, u16 wait);
     void setYarare(Vec* size, f32 w, f32 h);
-    void setYarareCube(Vec* size, f32 x, f32 y, f32 z);
+    void setYarareCube(f32 x, f32 y, f32 z, Vec* size);
     void setTransMode(int on);
     void setAtNo(int no);
     void setLost();

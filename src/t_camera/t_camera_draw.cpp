@@ -133,7 +133,7 @@ void tcDrawParametricCurve()
 
     for (i = 0; i < 128; i++) {
         f32 t = (f32) ((bs->num - 1) * i) * (1.0f / 128.0f) + 0.0f;
-        de_Boor_Cox(bs->num, NULL, bs->k, t, bs->basis);
+        de_Boor_Cox(bs->num, NULL, t, bs->k, bs->basis);
         p.x = p.y = p.z = 0.0f;
         for (j = 0; j < bs->num; j++) {
             p.x += bs->basis[j] * bs->px[j];
@@ -145,7 +145,7 @@ void tcDrawParametricCurve()
     }
     for (i = 0; i < 128; i++) {
         f32 t = (f32) ((bs->num - 1) * i) * (1.0f / 128.0f) + 0.0f;
-        de_Boor_Cox(bs->num, NULL, bs->k, t, bs->basis);
+        de_Boor_Cox(bs->num, NULL, t, bs->k, bs->basis);
         p.x = p.y = p.z = 0.0f;
         for (j = 0; j < bs->num; j++) {
             p.x += bs->basis[j] * bs->ax[j];

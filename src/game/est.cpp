@@ -22,23 +22,23 @@
 cModel* EspEvModList[0x80];
 
 // Effect set table: starts effect controller 10 on the est data block `head`.
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h);
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h);
 
 // The common entry: starts est table (owner c, id d) with parts b (-1 = the table's default) on the
 // model a (0 = none), at pos/rot (NULL = the table's own), core flags e, kind f, Core_pEm g and an
 // optional EspSeqOpt h.
-void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h)
+void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, void* g, void* h)
 {
     EspSeqData* head = EspGetEstAddr(c, d, 0);
 
-    EstSet((cModel*) a, b, pos, rot, head, e, f, g, c, h);
+    EstSet(a, b, pos, rot, head, e, f, g, c, h);
 }
 
 // Starts the sequence `head` on a front-pulled controller 10: stamps the owner info (Core_flg e, plus
 // 0x2000 during a movie / bit 0 in the no-suspend mode from Status_flg[2]), the call number, parts,
 // offset (pos != NULL sets Flg bit 1 = explicit position) and rotation (head->rot is in degrees),
 // and a random seed. Debug_flg[1] 0x01000000 disables all effects.
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h)
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h)
 {
     EspgenWork* w;
     Espgen10Work* p;
@@ -215,19 +215,19 @@ void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
 }
 
 // Deletes sprites by owner info (Core_flg a, kind b, Core_pEm c, attached model).
-void EffectEspDelete(int a, int b, u32 c, cModel* model)
+void EffectEspDelete(int a, int b, void* c, cModel* model)
 {
     EspDelete(a, b, c, model);
 }
 
 // Deletes controllers by owner info.
-void EffectEspgenDelete(int a, int b, int c)
+void EffectEspgenDelete(int a, int b, void* c)
 {
     EspgenDelete(a, b, c);
 }
 
 // Deletes effect models by owner info.
-void EffectEfmDelete(int a, int b, int c)
+void EffectEfmDelete(int a, int b, void* c)
 {
     EfmDelete(a, b, c);
 }
@@ -251,7 +251,7 @@ void EffectEventDelete()
 
 // Releases every live sprite whose owner info matches (a/b/c each skipped when 0) and, when a model is
 // given, that is attached to that model instance (pointer and serial).
-void EspDelete(int a, int b, u32 c, cModel* model)
+void EspDelete(int a, int b, void* c, cModel* model)
 {
     cEspSystem* sys = g_pEspSys;
     u32 i;
@@ -382,12 +382,12 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
     switch (type) {
     case 0:
         if (EspChkInPuddle(pos, nrm) == 1) {
-            EstSet(0, -1, pos, NULL, 0, 0x11, 0, 0, type, (void*) type);
+            EstSet(0, -1, pos, NULL, 0, 0x11, 0, 0, (void*) type, (void*) type);
             SndCall(2, 0xC, pos, 0, 0, NULL);
         } else {
-            EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, type, (void*) type);
+            EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, (void*) type, (void*) type);
             if (DbgFlagChk(pG, DBG_SET_HITMARK_ALL)) {
-                EstSet(0, -1, pos, &rot, 0, 0x87, 0, 0, type, (void*) type);
+                EstSet(0, -1, pos, &rot, 0, 0x87, 0, 0, (void*) type, (void*) type);
             }
         }
         break;
@@ -474,9 +474,9 @@ void EstSetEm10WaterFall(Vec* pos)
     EspSeqData* head = EspGetEstAddr(1, 0x32, 1);
 
     if (head != NULL) {
-        EstSet((int) pos, -1, NULL, NULL, 1, 0x32, 0, 0, (u32) pos, NULL);
+        EstSet((cModel*) pos, -1, NULL, NULL, 1, 0x32, 0, 0, pos, NULL);
     } else {
-        EstSet((int) pos, -1, NULL, NULL, 0x10, 0x8D, 0, 0, (u32) pos, NULL);
+        EstSet((cModel*) pos, -1, NULL, NULL, 0x10, 0x8D, 0, 0, pos, NULL);
     }
 }
 

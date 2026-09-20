@@ -178,7 +178,7 @@ static void r228_checkSalazarBattle()
     em3.setNoSuspend(1);
     cEm* e0 = em0.getPtr();
     cEm* eb = boss.getPtr();
-    EstSet((int) e0, -1, 0, 0, 0x2E, 0x10, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(e0, -1, 0, 0, 0x2E, 0x10, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(9);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -186,7 +186,7 @@ static void r228_checkSalazarBattle()
     EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
     EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet((int) eb, -1, 0, 0, 0x2E, 0x11, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(eb, -1, 0, 0, 0x2E, 0x11, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -194,7 +194,7 @@ static void r228_checkSalazarBattle()
     EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
     EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet((int) e0, -1, 0, 0, 0x2E, 0x12, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(e0, -1, 0, 0, 0x2E, 0x12, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(0xB);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -250,7 +250,7 @@ static void r228_execEvent00()
         }
     }
     SceEventEnd(0);
-    EstSet(0, -1, 0, 0, 1, 2, 0x801, (u8) r228_work.p->eff2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 2, 0x801, (u8) r228_work.p->eff2, zero, zero);
     SceAtSetEnable(8, 1);
     if (r228_work.p->obj76) {
         r228_work.p->obj76->be_flag |= 2;

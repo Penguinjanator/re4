@@ -148,7 +148,7 @@ void MotionClear(cModel* m, int flag)
 // (saving the current l_mat as prevMat), and samples the root at the start/end to get the
 // motion's total displacement (Pos_dist/Ang_dist) for looping. Mot_flag 0x20000000 keeps the
 // blend motion.
-void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int flags, int frame)
+void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int flags, int frame)
 {
     MotionWork* w = (MotionWork*) w_;
     MotionData* data = (MotionData*) data_;
@@ -646,7 +646,7 @@ u16 MotionMoveSub(cModel* m, MotionWork* w)
 // ang/pos/scale (with the left/right flip remap and mirroring when Mot_attr 0x40), skipping parts
 // flagged 0x20000000; attach-camera channels 6/7 go to the AttachCamera outputs. Rebuilds the
 // model matrix unless Mot_flag 0x40000000.
-void MotionMoveCore(cModel* m, MotionWork* w, int flag)
+void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera)
 {
     HermitePrm prm;
     HermitePrm* pp = &prm;

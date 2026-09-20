@@ -131,7 +131,7 @@ void cEsp4e::move()
         for (j = 0; j < c->divH; j++) {
             f32 v = SINF(ax) * wy;
             ax += stepX * rand * fRand0_1() + stepX;
-            c->disturbance((base + v) * s + wk->offset * s, j, i);
+            c->disturbance(j, i, (base + v) * s + wk->offset * s);
             PSVECAdd(&c->pSpd[j + c->divH * i], &sp, &c->pSpd[j + c->divH * i]);
         }
     }

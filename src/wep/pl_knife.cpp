@@ -382,7 +382,7 @@ static void knife_r3_fire00(cPlayer* pl)
     mot3.move(m3r[0]);
     MotionMove(pl, 0);
     pl->Waist->set(pl->m_Fwork0, 0.4f);
-    EstSet((int) pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
+    EstSet(pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
     pl->Body->waistMove();
     pl->partsWorldCalc();
     pl->r_no_3 = 1;
@@ -418,9 +418,9 @@ static void knife_r3_fire10(cPlayer* pl)
 
         if (GetWaterHeight(pos, &wh) && pos->y < wh + 100.0f) {
             if (pG->stage_no == 1 && pG->room_no == 0xA || pG->stage_no == 1 && pG->room_no == 0x1A) {
-                EstSet((int) pl, -1, 0, 0, 1, 0x25, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 1, 0x25, 0, 0, pl, 0);
             } else {
-                EstSet((int) pl, -1, 0, 0, 3, 0, 0, 0, (u32) pl, 0);
+                EstSet(pl, -1, 0, 0, 3, 0, 0, 0, pl, 0);
             }
             SndCall(1, 0x51, &pl->getPartsPtr(10)->world, 0, 0, 0);
         }

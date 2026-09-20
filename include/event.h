@@ -314,7 +314,7 @@ public:
     int DelAll();
     int SetEvs(void* evs);      // room "EVS" data (game gameRoomInit)
     int Run();
-    int IsAliveEvt(u32* key, int out, int chk);
+    int IsAliveEvt(u32* key, Event** out, int chk);
     int EvtReadAram(char* name, int em, int* out, int wait, u32 size);
     int EvtReadMram(char* name, int em, int* out, int wait, u32 size);
     int NameCheck(char* name);

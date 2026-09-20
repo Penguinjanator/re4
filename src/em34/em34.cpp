@@ -325,14 +325,14 @@ static void em34_R0_Init(cEm34* em)
     switch (em->type) {
     case 0:
     default:
-        atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+        em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);
         break;
     case 1:
-        atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 300.0f, 250.0f, 250.0f, 1000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+        em->atari.init(0.0f, 0.0f, 0.0f, 300.0f, 250.0f, 250.0f, 1000.0f, 1, 0x2000, 10);
         break;
     case 2:
     case 3:
-        atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+        em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);
         break;
     }
     em->litArea.on(1);
@@ -464,7 +464,7 @@ static void em34_R1_Atk(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 10, 5, 0);
             break;
         case 1:
-            MotionSetCore(em, MOTION(em), ARC(0x15), (int) ARC(0x16), 10, 1, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x15), ARC(0x16), 10, 1, 0);
             break;
         }
         w->Atk_ck = 0;

@@ -174,7 +174,7 @@ static void r301_execContinuePoint()
         SceEventStart(0);
         CamCtrl.CutCall(6);
         r301_work.p->espKind = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r301_work.p->espKind, zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r301_work.p->espKind, (void*) zero, (void*) zero);
         SndCall(6, 5, 0, 0, 0, 0);
         SceSleep(15);
         r301_work.p->sndId = SndCall(6, 6, 0, 0, 0, 0);
@@ -634,7 +634,7 @@ static void r301_checkRockWall()
                         obj->be_flag &= ~2;
                     }
                     SndCall(6, 2, &obj->pos, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, zero, (void*) zero);
+                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (void*) zero, (void*) zero);
                     SceExit();
                     break;
                 }

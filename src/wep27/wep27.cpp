@@ -142,7 +142,7 @@ void cObjMachinegun::moveFire()
             type = 1;
             break;
         }
-        EstSet((int) this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
         wep.step = 1;
     }
     if (MotionGetState(this)) {

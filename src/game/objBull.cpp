@@ -83,7 +83,7 @@ void Sub_bull_look(cEm* em);
 void Sub_dm_bull(cEm* em);
 int SubCkNearEm();
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*ObjBull_R0_move_tbl[12])(cObjBull*) = {
     objBull_R0_Set,      objBull_R0_Break1st, objBull_R0_To2nd, objBull_R0_Break2nd,
@@ -204,7 +204,7 @@ void objBull_R0_Break1st(cObjBull* obj)
         MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
         break;
@@ -289,7 +289,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
         MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
         break;
@@ -491,7 +491,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
         MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
         break;
@@ -576,7 +576,7 @@ void objBull_R0_Break4th(cObjBull* obj)
         MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
         break;
@@ -642,7 +642,7 @@ void objBull_R0_Collision(cObjBull* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[10], 0, 0, 0x8201, 0);
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
     case 3:
@@ -1130,7 +1130,7 @@ void Sub_bull_drive(cEm* em)
             ((cSubChar*) em)->subHideMode--;
         } else if (SubCkNearEm()) {
             if ((s16) pG->ashley_life > 0) {
-                SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
+                SetSubBulldozer(Sub_bull_lookback, Sub_dm_bull);
             }
         }
         break;
@@ -1151,7 +1151,7 @@ void Sub_bull_operation(cEm* em)
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
             if ((s16) pG->ashley_life > 0) {
-                SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
+                SetSubBulldozer(Sub_bull_drive, Sub_dm_bull);
             }
         }
         break;
@@ -1182,7 +1182,7 @@ void Sub_bull_lookback(cEm* em)
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
             if ((s16) pG->ashley_life > 0) {
-                SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
+                SetSubBulldozer(Sub_bull_drive, Sub_dm_bull);
             }
         }
         break;
@@ -1203,7 +1203,7 @@ void Sub_bull_look(cEm* em)
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
             if ((s16) pG->ashley_life > 0) {
-                SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
+                SetSubBulldozer(Sub_bull_drive, Sub_dm_bull);
             }
         }
         break;
@@ -1261,7 +1261,7 @@ void Sub_dm_bull(cEm* em)
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
             if ((s16) pG->ashley_life > 0) {
-                SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
+                SetSubBulldozer(Sub_bull_drive, Sub_dm_bull);
             }
         }
         break;
@@ -1273,7 +1273,7 @@ void cObjBull::setSubBullDrive()
 {
     if (pSUB) {
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_drive, Sub_dm_bull);
             pSUB->r_no_3 = 1;
             pSUB->pEmCatch = (cEm*) this;
         }
@@ -1285,7 +1285,7 @@ void cObjBull::setSubBullFinger()
 {
     if (pSUB) {
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_look, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_look, Sub_dm_bull);
             pSUB->pEmCatch = (cEm*) this;
         }
     }
@@ -1296,7 +1296,7 @@ void cObjBull::setSubBullLookBack()
 {
     if (pSUB) {
         if ((s16) pG->ashley_life > 0) {
-            SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
+            SetSubBulldozer(Sub_bull_lookback, Sub_dm_bull);
             pSUB->r_no_3 = 1;
             pSUB->pEmCatch = (cEm*) this;
         }

@@ -205,7 +205,7 @@ void R30fInit()
         AreaSet(2);
         r30f_work->truckNo = 2;
         SceExec(0x12, (TaskFunc) R30f_ride, 0, 0, 2, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, (void*) zero, (void*) zero);
         SceAtSetEnable(0x18, 0);
         SceAtSetEnable(0x19, 0);
     } else {
@@ -240,7 +240,7 @@ void R30fInit()
             }
         }
     }
-    EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
     if (pG->room_id_prev == 0xFFF && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
         StaFlagOn(pG, STA_SUB_ASHLEY);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
@@ -636,7 +636,7 @@ static void track_destroy()
     }
     r30f_work->lift->setNoSuspend(1);
     r30f_work->bull->setNoSuspend(1);
-    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
     SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
     if (pSUB) {
         pSUB->setNoSuspend(0);
@@ -669,7 +669,7 @@ static void track_move()
         SceEventStart(1);
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x41), 0, 0, 0x200, 0);
         r30f_work->lift->setNoSuspend(1);
-        EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
+        EstSet(r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
         EffectEspDelete(1, 6, 0, 0);
@@ -688,7 +688,7 @@ static void track_move()
     if (r30f_work->truckNo == 2) {
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0x200, 0);
     }
-    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
     SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
     if (r30f_work->truckNo != 1) {
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
@@ -750,9 +750,9 @@ static void track_move()
         }
         if (life > 0 && r30f_work->truckLife <= 0) {
             if (r30f_work->truckNo == 2) {
-                EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x19, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, 1, 0x19, 1, 4, 0, 0);
             } else {
-                EstSet((int) r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
             }
             SndCall(6, 0x13, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         }
@@ -765,7 +765,7 @@ static void track_move()
 
                 if (no == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, no, (void*) no);
+                    EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, (void*) no, (void*) no);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3F), 0, 0, 1, 0);
@@ -773,7 +773,7 @@ static void track_move()
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 0, 0x200, 0);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, (u32) r30f_work->lift, 0);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, r30f_work->lift, 0);
                     last_bomb();
                     SceExec(0x12, (TaskFunc) pl_gurd, 0, 0, 2, 0);
                 }
@@ -797,17 +797,17 @@ static void track_move()
                 BitOn(pG->Room_flg[0], 0x00800000);
                 if (r30f_work->truckNo == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 8, 0, 0, hitT, (void*) hitT);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, (u32) r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 8, 0, 0, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, hitT, (void*) hitT);
-                    EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, (u32) r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x37), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, hitT, (void*) hitT);
+                    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, (void*) hitT, (void*) hitT);
                 }
                 SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
             }
@@ -1294,7 +1294,7 @@ void lift_stop_event()
 {
     SceEventStart(1);
     CamCtrl.CutCall(0x10);
-    EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x16, 1, 5, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x16, 1, 5, 0, 0);
     if (pSUB) {
         SndCall(6, 1, &pSUB->pos, 0, 0, 0);
         pSUB->setNoSuspend(1);

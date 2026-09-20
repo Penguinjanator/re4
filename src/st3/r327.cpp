@@ -442,7 +442,7 @@ static void r327_LampSet(int no)
     pG->Room_flg[0] &= ~0x80000000;
     SceSleep(10);
     RoomSeCall(0x1F, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, lamp, 1, 0, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, lamp, 1, 0, (void*) zero, (void*) zero);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
     }
@@ -668,7 +668,7 @@ static void r327_CheckUseCardKey()
     EffectEspDelete(1, 4, 0, 0);
     EffectEspgenDelete(1, 4, 0);
     EffectEfmDelete(1, 4, 0);
-    EstSet(0, -1, 0, 0, 1, 7, 1, 4, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 7, 1, 4, (void*) zero, (void*) zero);
     SceUpCut(3, 9, 0x1D, 0);
     SceAtSetEnable(0x18, 0);
     SceExec(0x12, (TaskFunc) r327_SetSwitchEnable, 0, 0, 2, 0);
@@ -689,7 +689,7 @@ static void r327_SetSwitchEnable()
     EffectEspDelete(1, 3, 0, 0);
     EffectEspgenDelete(1, 3, 0);
     EffectEfmDelete(1, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 5, 1, 3, (void*) zero, (void*) zero);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
     }
@@ -719,8 +719,8 @@ static void r327_SetSwitchEnableEndProc()
         EffectEspDelete(1, 3, 0, 0);
         EffectEspgenDelete(1, 3, 0);
         EffectEfmDelete(1, 3, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 2, (u32) zero, (void*) zero);
-        EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 3, 1, 2, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 5, 1, 3, (void*) zero, (void*) zero);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -816,12 +816,12 @@ static void r327_SetSwitchDisableEndProc()
         EffectEspDelete(1, 3, 0, 0);
         EffectEspgenDelete(1, 3, 0);
         EffectEfmDelete(1, 3, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, (void*) zero);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 2, 1, 2, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (void*) zero, (void*) zero);
         EffectEspDelete(1, 4, 0, 0);
         EffectEspgenDelete(1, 4, 0);
         EffectEfmDelete(1, 4, 0);
-        EstSet(0, -1, 0, 0, 1, 6, 1, 4, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 6, 1, 4, (void*) zero, (void*) zero);
     }
     r327_work.p->em2.destroy();
     CamCtrl.Comeback(0);

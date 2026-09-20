@@ -246,7 +246,7 @@ void espgen02_Update(EspgenWork* w)
                 }
                 if (PathHasWeight(path)) {
                     if (p->pMod != NULL) {
-                        ret = PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos);
+                        ret = PathGetPosEm(path, p->pMod, d, &p->PntNo, &pos);
                     } else {
                         ret = PathGetPos(path, d, &p->PntNo, &pos);
                     }
@@ -267,7 +267,7 @@ void espgen02_Update(EspgenWork* w)
                 if (p->mode & 1) {
                     d += 1.0f;
                     if (PathHasWeight(path) && p->pMod != NULL) {
-                        PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos2);
+                        PathGetPosEm(path, p->pMod, d, &p->PntNo, &pos2);
                     } else {
                         PathGetPos(path, d, &p->PntNo, &pos2);
                     }
@@ -311,7 +311,7 @@ void espgen02_Update(EspgenWork* w)
                     }
                     d += 1.0f;
                     if (PathHasWeight(path) && p->pMod != NULL) {
-                        PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos2);
+                        PathGetPosEm(path, p->pMod, d, &p->PntNo, &pos2);
                     } else {
                         PathGetPos(path, d, &p->PntNo, &pos2);
                     }

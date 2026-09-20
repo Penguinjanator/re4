@@ -92,7 +92,7 @@ void objTrolleyHitCk(cObjTrolley* obj);
 void objTrolleyFallEM(cObjTrolley* obj);
 void objTrolleyLostEM(cObjTrolley* obj);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 static void objTrolleySatClear(cObjTrolley* obj);
 
 void (*ObjTrolley_R0_move_tbl[3])(cObjTrolley*) = {
@@ -246,13 +246,13 @@ void objTrolley_R0_Move(cObjTrolley* obj)
                 StaFlagOn(pG, STA_NO_FENCE);
             }
             if (obj->motFrame > 2300.0f) {
-                EstSet((int) obj, -1, 0, 0, 1, 0x13, 0, 0, (u32) obj, 0);
+                EstSet(obj, -1, 0, 0, 1, 0x13, 0, 0, obj, 0);
             }
             if (obj->motFrame > 2865.0f) {
                 if (obj->r_no_3) {
-                    ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 3, 0, 0);
+                    ActBtn.set(4, 0xB, (void*) objTrolleyEscapeAction, obj, 1, 3, 0, 0);
                 } else {
-                    ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 4, 0, 0);
+                    ActBtn.set(4, 0xB, (void*) objTrolleyEscapeAction, obj, 1, 4, 0, 0);
                 }
             }
         }

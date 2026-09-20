@@ -782,7 +782,7 @@ void r311_initIronBall()
     if (r311_work->ball) {
         r311_work->ball->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
         BitOn(r311_work->ball->be_flag, 0x1000);
-        atariInitF(&r311_work->ball->atari, 0.0f, -2000.0f, 0.0f, 0.0f, 1100.0f, 1100.0f, 2000.0f, 10, 0x18, 0);
+        r311_work->ball->atari.init(0.0f, -2000.0f, 0.0f, 0.0f, 1100.0f, 1100.0f, 2000.0f, 10, 0x18, 0);
     }
     {
         Vec pos = {-9219.7f, 2309.3f, -4995.9f};

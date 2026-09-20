@@ -40,9 +40,9 @@ public:
     };
 
     cAtariInfo();
-    void init0(int parts, int hokan, int flags, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h);
-    // init(parts, flags, hokan, ...) = init0(parts, hokan, flags, ...); m_flag |= 1
-    void init(int parts, int flags, int hokan, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h);
+    void init0(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int hokan, int flags);
+    // init(..., parts, flags, hokan) = init0(..., parts, hokan, flags); m_flag |= 1
+    void init(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int flags, int hokan);
     void setPriority(int prio);  // flags bits 3-4
     // mode < 0: rect = (100, 100), rect2 = a/b, cnt = -mode; mode == 0: rect = rect2 = a/b; > 0: rect2 only, cnt = mode
     void set(int mode, f32 a, f32 b);

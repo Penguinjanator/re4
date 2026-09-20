@@ -593,7 +593,7 @@ void R208Main()
         sat->setCoord(&pos, (Vec*) &vecZero);
     }
     if ((pG->Room_flg[0] & 0x00200000) && (SubCharGetStatus() & 0x00800000)) {
-        SetSubAux((int) funcAshley2, 0);
+        SetSubAux(funcAshley2, 0);
         pG->Room_flg[0] &= ~0x00200000;
     }
     if ((u32) W->crankSeCnt > 0x3B) {
@@ -719,7 +719,7 @@ static void funcAshley(cEm* p)
                     pos.x = 10603.0f;
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
-                    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
                     pG->Room_flg[0] |= 0x00200000;
                 }
             }
@@ -741,7 +741,7 @@ static void funcAshley(cEm* p)
                     pos.x = -10603.0f;
                     pos.y = 10000.0f;
                     pos.z = -60554.0f;
-                    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
                     pG->Room_flg[0] |= 0x00200000;
                 }
             }
@@ -833,7 +833,7 @@ static void asl_yubisasi()
     if (pSUB != NULL) {
         BitOn(pSUB->be_flag, 0x00200000);
     }
-    SetSubAux((int) funcAshley3, 0);
+    SetSubAux(funcAshley3, 0);
     CamCtrl.CutCall(0xF);
     SceSleep(0xF);
     SndCall(6, 4, 0, 0, 0, 0);
@@ -1465,7 +1465,7 @@ static void r208_snipe()
     } else {
         pos = posB;
     }
-    SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+    SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
     SceSleep(1);
     while (1) {
         if (pG->Room_flg[0] & 0x80000000) {
@@ -1476,7 +1476,7 @@ static void r208_snipe()
         PSVECSubtract(&pSUB->pos, &pos, &d);
         if (PSVECMag(&d) < 500.0f) {
             if (SubCharGetStatus() & 1) {
-                SetSubAux((int) funcAshley, 0);
+                SetSubAux(funcAshley, 0);
             }
         } else {
             if (SubCharGetStatus() & 1) {
@@ -1485,7 +1485,7 @@ static void r208_snipe()
                 } else {
                     pos = posB;
                 }
-                SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
             }
         }
         if ((pG->Room_flg[0] & 0x20000000) && (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
@@ -1774,14 +1774,14 @@ static void SubUnderCrankExec()
             if (dist < 500.0f) {
                 if (SubCharGetStatus() & 1) {
                     set = 1;
-                    SetSubAux((int) funcAshley, 0);
+                    SetSubAux(funcAshley, 0);
                 }
             } else if ((SubCharGetStatus() & 0x01000000) == 0) {
                 if (set != 0) {
                     SubCharCtrl(SCC_CHASE, 0);
                     break;
                 }
-                SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);
+                SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
             }
             SceSleep(1);
         }

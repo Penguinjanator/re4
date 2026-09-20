@@ -19,7 +19,7 @@ int MotionMove(cModel* m, int a);
 int MotionGetState(cModel* m);
 double atan2(double y, double x);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // Weapon archive (pG->pWepArc): offsets to its sub-files like the player archive.
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
@@ -186,7 +186,7 @@ void cObjRocket::fire()
 {
     MotionSetCore(this, &pMotion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
     MotionMove(this, 0);
-    EstSet((int) this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
+    EstSet(this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
     rocket.timer = 300;
     type = 1;
     r_no_0 = 1;
@@ -341,7 +341,7 @@ void cObjLauncher::launch()
     launcher.rocket->fire();
     launcher.flags |= 1;
     launcher.rocket = 0;
-    EstSet((int) this, -1, 0, 0, 0x47, 0, 0, 10, 0, 0);
+    EstSet(this, -1, 0, 0, 0x47, 0, 0, 10, 0, 0);
     SndCall(2, 0, &pos, 0, 0, 0);
     StaFlagOn(pG, STA_PL_FIRE);
 }

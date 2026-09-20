@@ -51,8 +51,8 @@ public:
     struct EmiEntry* pAnotherRoute;   // 0x554  EMI route entry (type 0xB) walked to (embarrel.h)  (PS2 EMINFO_WK*)
     Vec m_PlActPos;           // 0x558  ledge position to wait at (catchOn / actionCheck)
     f32 m_PlActAngY;          // 0x564  angle to turn to while waiting to be caught
-    int subAux0;              // 0x568  (SetSubAux/SetSubBulldozer arguments)
-    int subAux1;              // 0x56C
+    void (*subAux0)(cEm*);    // 0x568  (SetSubAux/SetSubBulldozer arguments)
+    void (*subAux1)(cEm*);    // 0x56C
     f32 subMoveTo[4];         // 0x570  (SubCharMoveTo x, y, z, w)
     u8 m_PlActTime;           // 0x580  timer  (PS2 cSubChar::m_PlActTime)
     u8 m_PlActType;           // 0x581  (PS2 cSubChar::m_PlActType)

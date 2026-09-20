@@ -32,7 +32,7 @@ int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
-void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
 // Hanging object (game/obj12.cpp): the locks and the chain hang on the door as cObj12 models.
 class cObj12 : public cObj {
@@ -458,7 +458,7 @@ void emDoorDmCkWood(cEmDoor* em)
         emDoorSetDmgChain(em, 0);
         emDoorSetDmgChain(em, 1);
         emDoorSetDmgChain(em, 2);
-        EstSet((int) em, -1, 0, 0, w->Eff_id, 6, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, 0, em, 0);
         SndCall(6, 0x37, &em->pos, 0, 0, em);
         em->r_no_0 = 1;
         em->r_no_1 = 4;
@@ -1059,7 +1059,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
         }
         SndCall(6, 0x52, &em->pos, 0, 0, em);
         EmDmBloodSet2(em, 0xC9, 0, 0, 0, 0);
-        EstSet((int) w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockL, 0);
+        EstSet(w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockL, 0);
         if (w->Lock_L_hp <= 0) {
             SndCall(6, 0x53, &em->pos, 0, 0, em);
             v.x = 0.0f;
@@ -1087,7 +1087,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
         w->pLockL->setFallSe(6, 0x3C, 0);
         SndCall(6, 0x52, &em->pos, 0, 0, em);
         EmDmBloodSet2(em, 0xC9, 0, 0, 0, 0);
-        EstSet((int) w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockL, 0);
+        EstSet(w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockL, 0);
         d->flag &= ~0x80000000;
         em->flag &= ~0x80000000;
         em->setStatus(EM_STATUS_LOCKOFF);
@@ -1126,7 +1126,7 @@ void emDoorSetDmgLock_R(cEmDoor* em, int mode)
         }
         SndCall(6, 0x52, &em->pos, 0, 0, em);
         EmDmBloodSet2(em, 0xC9, 0, 0, 0, 0);
-        EstSet((int) w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockR, 0);
+        EstSet(w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockR, 0);
         if (w->Lock_R_hp <= 0) {
             SndCall(6, 0x53, &em->pos, 0, 0, em);
             v.x = 0.0f;
@@ -1158,7 +1158,7 @@ void emDoorSetDmgLock_R(cEmDoor* em, int mode)
         w->pLockR->setFallSe(6, 0x3C, 0);
         SndCall(6, 0x52, &em->pos, 0, 0, em);
         EmDmBloodSet2(em, 0xC9, 0, 0, 0, 0);
-        EstSet((int) w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockR, 0);
+        EstSet(w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockR, 0);
         d->flag &= ~0x40000000;
         em->flag &= ~0x40000000;
         em->setStatus(EM_STATUS_LOCKOFF);
@@ -1332,9 +1332,9 @@ void emDoorSetBrkDoor(cEmDoor* em, Vec* pos)
     if (w->Eff_id != 0xFF) {
         ang = Muku(&em->pos, pos, em->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 5, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
         } else {
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 4, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, 0, em, 0);
         }
     }
     SndCall(6, 0x37, &em->pos, 0, 0, em);
@@ -1664,10 +1664,10 @@ void emDoor_R1_Down(cEmDoor* em)
         case 2:
         case 3:
             if (water) {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 0xA, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0xA, 0, 0, em, 0);
                 SndCall(6, 3, &em->pos, 0, 0, em);
             } else {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 7, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, 0, em, 0);
             }
             break;
         }
@@ -1736,17 +1736,17 @@ void emDoor_R1_Down(cEmDoor* em)
         case 3:
             if (water) {
                 if (w->Open_flag) {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 0xC, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 0xC, 0, 0, em, 0);
                     SndCall(6, 3, &em->pos, 0, 0, em);
                 } else {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 0xB, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 0xB, 0, 0, em, 0);
                     SndCall(6, 3, &em->pos, 0, 0, em);
                 }
             } else {
                 if (w->Open_flag) {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 9, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 9, 0, 0, em, 0);
                 } else {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 8, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 8, 0, 0, em, 0);
                 }
             }
             break;
@@ -2776,12 +2776,12 @@ void cEmDoor::setShock(int mode, Vec* pos, int se_off)
     ang = fabsf(Muku(&this->pos, pos, w->base_dir, PI));
     if (ang < PI / 2) {
         if (w->pLockL) {
-            EstSet((int) w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockL, 0);
+            EstSet(w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockL, 0);
             w->Lock_L_bend = -PI / 2;
         }
     } else {
         if (w->pLockR) {
-            EstSet((int) w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockR, 0);
+            EstSet(w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockR, 0);
             w->Lock_R_bend = -PI / 2;
         }
     }
@@ -2790,13 +2790,13 @@ void cEmDoor::setShock(int mode, Vec* pos, int se_off)
             if (w->Chain_hp[i] > 0) {
                 switch (i) {
                 case 0:
-                    EstSet((int) w->pChain, -1, 0, 0, 0xCB, 4, 0, 0, (u32) w->pChain, 0);
+                    EstSet(w->pChain, -1, 0, 0, 0xCB, 4, 0, 0, w->pChain, 0);
                     break;
                 case 1:
-                    EstSet((int) w->pChain, -1, 0, 0, 0xCB, 5, 0, 0, (u32) w->pChain, 0);
+                    EstSet(w->pChain, -1, 0, 0, 0xCB, 5, 0, 0, w->pChain, 0);
                     break;
                 case 2:
-                    EstSet((int) w->pChain, -1, 0, 0, 0xCB, 6, 0, 0, (u32) w->pChain, 0);
+                    EstSet(w->pChain, -1, 0, 0, 0xCB, 6, 0, 0, w->pChain, 0);
                     break;
                 }
                 break;
@@ -2819,7 +2819,7 @@ void cEmDoor::setShock(int mode, Vec* pos, int se_off)
                     w->Lock_L_hp--;
                 }
             }
-            EstSet((int) w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockL, 0);
+            EstSet(w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockL, 0);
             w->Lock_L_bend = -PI / 2;
         }
     } else {
@@ -2830,7 +2830,7 @@ void cEmDoor::setShock(int mode, Vec* pos, int se_off)
                     w->Lock_R_hp--;
                 }
             }
-            EstSet((int) w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockR, 0);
+            EstSet(w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, w->pLockR, 0);
             w->Lock_R_bend = -PI / 2;
         }
     }
@@ -2906,7 +2906,7 @@ void cEmDoor::setBreak(Vec* pos)
         return;
     }
     zero = 0;
-    EstSet((int) this, -1, 0, 0, w->Eff_id, 6, 0, 0, (u32) this, (void*) zero);
+    EstSet(this, -1, 0, 0, w->Eff_id, 6, 0, 0, this, (void*) zero);
     SndCall(6, 0x37, &this->pos, 0, 0, this);
     hp = zero;
     r_no_0 = 1;
@@ -2987,9 +2987,9 @@ void emDoorActEvtCk(cEmDoor* em)
         return;
     }
     if (w->pDoor && v.x < -250.0f && w->pDoor->ckOpen() == 0) {
-        ActBtn.set(0x10, 5, (int) emDoorAction2, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x10, 5, (void*) emDoorAction2, em, 0, 1, 0, 0);
     } else {
-        ActBtn.set(0x10, 5, (int) emDoorAction, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x10, 5, (void*) emDoorAction, em, 0, 1, 0, 0);
     }
 }
 

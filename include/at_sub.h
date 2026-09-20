@@ -41,8 +41,8 @@ int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p);
 int At_box_sphere_ck(Vec* box, Vec* p, f32 r);
 // Normal of a triangle.
 void Get_normal(Vec* tri, Vec* out);
-u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1);
-u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1);
+u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r);
+u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2);
 void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color);
 void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color);
 // Segment p0-p1 against one polygon; returns the attribute | 0x01000000 or 0.

@@ -148,10 +148,10 @@ static inline void em3aTurnToPL(cEm3a* em, f32 lim)
 // Attack found: drop the search effects, start the alert effect and sound.
 static inline void em3aFoundSet(cEm3a* em, Em3aWork* w, int est, int parts)
 {
-    EffectEspDelete(1, w->espKind, (u32) em, 0);
-    EffectEspgenDelete(1, w->espKind, (int) em);
-    EffectEfmDelete(1, w->espKind, (int) em);
-    EstSet((int) em, -1, 0, 0, 2, est, 1, w->espKind, (u32) em, 0);
+    EffectEspDelete(1, w->espKind, em, 0);
+    EffectEspgenDelete(1, w->espKind, em);
+    EffectEfmDelete(1, w->espKind, em);
+    EstSet(em, -1, 0, 0, 2, est, 1, w->espKind, em, 0);
     SndCall(8, 0xA, &em->getPartsPtr(parts)->world, em->id, 0, em);
 }
 
@@ -236,7 +236,7 @@ void em3aDmCk(cEm3a* em)
     if (em->type != 2) {
         if (!(w->flags & 4)) {
             w->flags |= 4;
-            EstSet((int) em, -1, 0, 0, 2, 2, 1, w->espKind, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 2, 2, 1, w->espKind, em, 0);
         }
     }
     if (em->hp <= 0) {
@@ -372,7 +372,7 @@ static void em3a_R0_Init(cEm3a* em)
 
         em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
-    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 400.0f, 350.0f, 350.0f, 300.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    em->atari.init(0.0f, 0.0f, 0.0f, 400.0f, 350.0f, 350.0f, 300.0f, 1, 0x2000, 10);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     switch (em->type) {
@@ -435,10 +435,10 @@ static void em3a_R0_Init(cEm3a* em)
     default:
         em->getPartsPtr(4)->ang.z = 0.61086524f;
         em->getPartsPtr(6)->ang.z = -0.61086524f;
-        EstSet((int) em, -1, 0, 0, 2, 0, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 2, 0, 1, w->espKind, em, 0);
         break;
     case 2:
-        EstSet((int) em, -1, 0, 0, 2, 0xA, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 2, 0xA, 1, w->espKind, em, 0);
         break;
     }
     em->setStatus(EM_STATUS_ACTIVE);
@@ -645,7 +645,7 @@ static void em3a_R1_Atk(cEm3a* em)
             w->timer--;
             if (w->timer % 15 == 0) {
                 SndCall(8, 3, &em->pos, em->id, 0, em);
-                EstSet((int) em, -1, 0, 0, 2, 0x11, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 2, 0x11, 0, 0, em, 0);
             }
         } else if (em3aBossCk(em) == 0) {
             if (em->type == 1) {
@@ -878,7 +878,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
             w->timer--;
             if (w->timer % 15 == 0) {
                 SndCall(8, 3, &em->pos, em->id, 0, em);
-                EstSet((int) em, -1, 0, 0, 2, 0x11, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 2, 0x11, 0, 0, em, 0);
             }
         } else if (em3aBossCk(em) == 0) {
             if (em->type == 1) {
@@ -960,10 +960,10 @@ static void em3a_R1_Die(cEm3a* em)
         em->hp = 0;
         EmSetDie(em);
         EmSetDieCntE(em);
-        EffectEspDelete(1, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind, (int) em);
-        EffectEfmDelete(1, w->espKind, (int) em);
-        EstSet((int) em, -1, 0, 0, 2, 6, 0, 0, (u32) em, 0);
+        EffectEspDelete(1, w->espKind, em, 0);
+        EffectEspgenDelete(1, w->espKind, em);
+        EffectEfmDelete(1, w->espKind, em);
+        EstSet(em, -1, 0, 0, 2, 6, 0, 0, em, 0);
         SndStop(w->sndId, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
         if (em->type == 2) {
@@ -1050,11 +1050,11 @@ static void em3a_R1_B_Hide(cEm3a* em)
         AtariOff(&em->atari, 0xFCFF);
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
         SndCall(8, 5, &em->getPartsPtr(0xA)->world, em->id, 0, em);
-        EffectEspDelete(1, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind, (int) em);
-        EffectEfmDelete(1, w->espKind, (int) em);
-        EstSet((int) em, -1, 0, 0, 2, 0xA, 1, w->espKind, (u32) em, 0);
-        EstSet((int) em, -1, 0, 0, 2, 0xC, 0, 0, (u32) em, 0);
+        EffectEspDelete(1, w->espKind, em, 0);
+        EffectEspgenDelete(1, w->espKind, em);
+        EffectEfmDelete(1, w->espKind, em);
+        EstSet(em, -1, 0, 0, 2, 0xA, 1, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, 2, 0xC, 0, 0, em, 0);
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -1075,7 +1075,7 @@ static void em3a_R1_B_Appear(cEm3a* em)
         AtariOn(&em->atari, 0x300);
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
         SndCall(8, 5, &em->getPartsPtr(0xA)->world, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 2, 0xD, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 2, 0xD, 0, 0, em, 0);
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -1144,7 +1144,7 @@ static void em3a_R1_B_Move(cEm3a* em)
     w->routeAngAbs = fabsf(w->routeAng);
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0xF), 5, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0xF), 5, 5, 0);
         w->timer = Rnd() % 3 + 2;
         em->r_no_2++;
     case 1:
@@ -1210,7 +1210,7 @@ static void em3a_R1_B_Move(cEm3a* em)
         w->nearCnt++;
         if (w->nearCnt % 15 == 5) {
             SndCall(8, 3, &em->pos, em->id, 0, em);
-            EstSet((int) em, -1, 0, 0, 2, 0x12, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 2, 0x12, 0, 0, em, 0);
         }
         rank = pG->Game_level;
         lim = 76;
@@ -1252,7 +1252,7 @@ static void em3a_R1_B_Die(cEm3a* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
-        EstSet((int) em, -1, 0, 0, 2, 0xF, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 2, 0xF, 0, 0, em, 0);
         SndCall(8, 7, &em->getPartsPtr(0xA)->world, em->id, 0, em);
         em->hp = 0;
         w->timer = 50;
@@ -1279,7 +1279,7 @@ static void em3a_R1_B_AppearDie(cEm3a* em)
         Vec* wp;
 
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
-        EstSet((int) em, -1, 0, 0, 2, 0xE, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 2, 0xE, 0, 0, em, 0);
         wp = &em->getPartsPtr(0xA)->world;
         SndCall(8, 5, wp, em->id, 0, em);
         SndCall(8, 7, wp, em->id, 0, em);
@@ -1310,10 +1310,10 @@ static void em3a_R1_B_Bomb(cEm3a* em)
         em->hp = 0;
         EmSetDie(em);
         EmSetDieCntE(em);
-        EffectEspDelete(1, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind, (int) em);
-        EffectEfmDelete(1, w->espKind, (int) em);
-        EstSet((int) em, -1, 0, 0, 2, 0x10, 0, 0, (u32) em, 0);
+        EffectEspDelete(1, w->espKind, em, 0);
+        EffectEspgenDelete(1, w->espKind, em);
+        EffectEfmDelete(1, w->espKind, em);
+        EstSet(em, -1, 0, 0, 2, 0x10, 0, 0, em, 0);
         SndStop(w->sndId, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
         em->clearStatus(EM_STATUS_ACTIVE);
@@ -1558,7 +1558,7 @@ int em3aGunHitCk(cEm3a* em)
     f32 len;
     int ret;
 
-    EstSet((int) em, -1, 0, 0, 2, 3, 0, 0, (u32) em, 0);
+    EstSet(em, -1, 0, 0, 2, 3, 0, 0, em, 0);
     SndCall(8, 1, &em->pos, em->id, 0, em);
     a.x = 0.0f;
     a.y = 0.0f;
@@ -1581,7 +1581,7 @@ int em3aGunHitCk(cEm3a* em)
         rot.z = 0.0f;
         PSVECScale(&nrm, &s, 30.0f);
         PSVECAdd(&hit, &s, &hit);
-        EstSet(0, -1, &hit, &rot, 2, 4, 0, 0, (u32) hitEm, hitEm);
+        EstSet(0, -1, &hit, &rot, 2, 4, 0, 0, hitEm, hitEm);
         PSVECSubtract(&hit, &a, &d);
         EspSetGatling(a, d);
         SndCall(6, 0xA, &hit, 0, 0, 0);

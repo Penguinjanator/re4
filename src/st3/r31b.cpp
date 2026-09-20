@@ -419,7 +419,7 @@ void R31bInit()
         SceAtDataSet_exec(0x25, 0x12, 0, (TaskFunc) R31bStartCameraMain, 0, 1);
     }
     r31b_work.p->switchCount = 0;
-    EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, zero, zero);
     U32Set(r31b_work.p->str, 0);
     Vec pos;
     Vec rot;
@@ -1527,10 +1527,10 @@ static void R31bExecRoom03U3Main()
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
         if (pPL) {
-            EstSet((int) pPL, -1, 0, 0, 1, 0xB, 0x2001, 8, (u32) zero, zero);
+            EstSet(pPL, -1, 0, 0, 1, 0xB, 0x2001, 8, zero, zero);
         }
         if (em) {
-            EstSet((int) em, -1, 0, 0, 1, 0xC, 0x2001, 8, 0, 0);
+            EstSet(em, -1, 0, 0, 1, 0xC, 0x2001, 8, 0, 0);
             zero = em;
         }
         SceSleep(1);

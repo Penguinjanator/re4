@@ -447,7 +447,7 @@ void free_2dim_array_f32(int n, int m, f32** p)
 
 // B-spline basis functions of order k + 1 for n control points at parameter t (de Boor-Cox
 // recursion). `knot` may be NULL for a uniform knot vector. Returns 0 on allocation failure.
-int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out)
+int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out)
 {
     int m = k + 1;
     f32** tmp_B;

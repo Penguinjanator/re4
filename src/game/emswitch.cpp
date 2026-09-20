@@ -456,11 +456,11 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
         }
     }
     if (w->state == 2) {
-        ActBtn.set(0x14, 5, (int) emSwitchActOpen, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x14, 5, (void*) emSwitchActOpen, em, 0, 1, 0, 0);
     }
     if (w->state == 1) {
         if (w->Mode != 1) {
-            ActBtn.set(0x14, 5, (int) emSwitchActClose, (int) em, 0, 1, 0, 0);
+            ActBtn.set(0x14, 5, (void*) emSwitchActClose, em, 0, 1, 0, 0);
         }
     }
 }

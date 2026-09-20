@@ -122,7 +122,7 @@ static inline void EffectDelete2001()
                                                                              \
         pG->Disp_flg = v;                                                    \
         v = 0;                                                               \
-        ActBtn.set(0x30, 5, (int) action, 0, 0x42, btn, 0, v);               \
+        ActBtn.set(0x30, 5, (void*) action, 0, 0x42, btn, 0, v);               \
     } while (0)
 
 static void R317ContinuePointSet();
@@ -315,7 +315,7 @@ void R317EventS00()
         pPL->setWound();
         ScfFlagOn(pG, SCF_R317_KNIFE_BATTLE);
         OpeSetOpenTerm(0x14, 0.0f, 0.0f, 0.0f, 0.0f);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, zero, zero);
     }
 }
 

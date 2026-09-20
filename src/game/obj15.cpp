@@ -381,7 +381,7 @@ int obj15GunHitck(cObjGatling* obj)
     cModel* parts;
     u32 attr;
 
-    EstSet((int) obj, -1, 0, 0, 1, 0x1F, 0, 0, (u32) obj, 0);
+    EstSet(obj, -1, 0, 0, 1, 0x1F, 0, 0, obj, 0);
     SndCall(6, 9, &obj->pos, 0, 0, 0);
     ofs.x = 0.0f;
     ofs.y = 0.0f;

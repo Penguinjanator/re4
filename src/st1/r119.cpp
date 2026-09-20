@@ -310,7 +310,7 @@ static void r119_EventGolemAppear()
             SceAtSetEnable(4, 0);
             StaFlagOff(pG, STA_CAMERA_SET_ROOM);
             ((cEmGolem*) r119_work->golem)->setDie();
-            EstSet((int) r119_work->golem, -1, 0, 0, 1, 0xF, 0, 0, (u32) r119_work->golem, (void*) stat);
+            EstSet(r119_work->golem, -1, 0, 0, 1, 0xF, 0, 0, r119_work->golem, (void*) stat);
             if (r119_work->dog != 0) {
                 EmMgr.destroy(r119_work->dog);
             }

@@ -185,7 +185,7 @@ static inline u32* roomItemFindFlags()
 
 // One entry of the scenario area system (`SceAtSys`, 0x124 bytes).
 struct SceAtReserve {
-    u32 key;          // 0x00
+    cEm* key;         // 0x00
     u8 saveNo;        // 0x04
     u8 pad_5[3];
 };
@@ -604,7 +604,7 @@ int sceAtCheck_main(cEm* em, int type)
                     continue;
                 }
                 if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
-                    ActBtn.set(kind, w->otNo, (int) sceAtFunc_tbl[0x12].func, (int) w, 1, 6, 2, (int) em);
+                    ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[0x12].func, w, 1, 6, 2, (int) em);
                 }
                 continue;
             case 3:
@@ -616,7 +616,7 @@ int sceAtCheck_main(cEm* em, int type)
                 }
                 break;
             }
-            ActBtn.set(kind, w->otNo, (int) sceAtFunc_tbl[ft].func, (int) w, c, 1, 2, (int) em);
+            ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[ft].func, w, c, 1, 2, (int) em);
             continue;
         }
         if (!(t == 1 && w->func == 0 && (w->trigger & 2) && (flag & 4))) {
@@ -869,7 +869,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         }
     }
     if (w->doorFunc != 0) {
-        SceSys.pDoorFunc = (int) w->doorFunc;
+        SceSys.pDoorFunc = w->doorFunc;
         SceSys.pDoorParam = w->doorArg;
         w->doorFunc = 0;
     }
@@ -1280,9 +1280,9 @@ static void sceAtGetItem(SceAtWork* w_)
     } else {
         LightMgr.update(0, 0);
     }
-    EffectEspDelete(1, 0x3B, (u32) model, 0);
-    EffectEspgenDelete(1, 0x3B, (int) model);
-    EffectEfmDelete(1, 0x3B, (int) model);
+    EffectEspDelete(1, 0x3B, model, 0);
+    EffectEspgenDelete(1, 0x3B, model);
+    EffectEfmDelete(1, 0x3B, model);
     if (sub_screen_open != 0) {
         while (SubScreenWk.close_flag == 0) {
             SceSleep(1);
@@ -2344,7 +2344,7 @@ int sceAtPullAtNo(u8* out)
 }
 
 // Room: the function SceSys runs after door `no` has been taken (hand-over to the next room).
-void SceAtSetDoorFunc(int no, TaskFunc func, int arg)
+void SceAtSetDoorFunc(int no, TaskFunc func, void* arg)
 {
     SceAtWork* w = SceAtPtr(no);
 
@@ -3378,7 +3378,7 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
 
 // Pre-allocates a save_item record for a persistent item that an enemy / event will drop later
 // (`key` identifies the reservation), so the drop cannot be lost to a room change.
-void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int saveNo)
+void SceAtReserveItemAt(cEm* key, Vec* pos, u16 id, int num, int effType, int saveNo)
 {
     int i;
 
@@ -3421,14 +3421,15 @@ void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int sav
 }
 
 // Releases a reservation made by SceAtReserveItemAt (the item was not dropped after all).
-void SceAtCancelItemAt(int key)
+void SceAtCancelItemAt(cEm* key)
 {
     int i;
 
     for (i = 0; i <= 15; i++) {
         if (SceAtSys.reserve[i].key == key) {
             memclr_asm(&pG->item_save[SceAtSys.reserve[i].saveNo], sizeof(ITEM_SAVE_WORK));
-            SceAtSys.reserve[i].saveNo = SceAtSys.reserve[i].key = 0;
+            SceAtSys.reserve[i].key = 0;
+            SceAtSys.reserve[i].saveNo = 0;
             break;
         }
     }
@@ -4304,33 +4305,33 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 1:
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, parent, parent);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, parent, parent);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, parent, parent);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, (u32) parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, (u32) parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 8:
                 q = p;
                 q.y -= 800.0f;
-                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, (u32) parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 9:
-                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, parent, parent);
                 break;
             case 6:
                 break;
@@ -4347,7 +4348,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             }
             switch (it->effType) {
             case 1:
-                EstSet((int) m, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
+                EstSet(m, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
                 break;
             case 3:
                 EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, 0, 0);
@@ -4425,7 +4426,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             kind = 0xC;
             break;
         }
-        EstSet((int) parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 5:
         switch (w->parentParts) {
@@ -4446,7 +4447,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             kind = 0xE;
             break;
         }
-        EstSet((int) parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 4:
         switch (w->parentParts) {
@@ -4467,7 +4468,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             kind = 0x10;
             break;
         }
-        EstSet((int) parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 2:
         switch (w->parentParts) {
@@ -4483,13 +4484,13 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
         case 8:
             return;
         }
-        EstSet((int) parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         // fall through
     case 1:
     case 7:
     case 8:
     case 9:
-        EstSet((int) parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
         break;
     case 6:
         break;
@@ -4523,23 +4524,23 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, m, m);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, m, m);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, m, m);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, m, m);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, m, m);
                 break;
             case 8:
                 p.y -= 800.0f;
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, (u32) m, m);
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, m, m);
                 break;
             case 1:
             case 6:
@@ -4622,7 +4623,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0xD;
             break;
         }
-        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 5:
         switch (w->parentParts) {
@@ -4643,7 +4644,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0xF;
             break;
         }
-        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 4:
         switch (w->parentParts) {
@@ -4664,7 +4665,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0x11;
             break;
         }
-        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 2:
         switch (w->parentParts) {
@@ -4679,7 +4680,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
         default:
             return;
         }
-        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 1:
     case 6:

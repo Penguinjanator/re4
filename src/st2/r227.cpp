@@ -934,9 +934,9 @@ static void Evt_R227S00_Func(Event* e)
                 if (e->NowFrame > 15) {
                     DpfFlagOff(pG, DPF_MESSAGE);
                     if (!(pG->Room_flg[0] & 0x40000000)) {
-                        ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 4, 0, 0);
+                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 4, 0, 0);
                     } else {
-                        ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 3, 0, 0);
+                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 3, 0, 0);
                     }
                 }
             } else {

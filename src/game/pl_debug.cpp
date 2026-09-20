@@ -15,7 +15,7 @@
 
 extern cModel* pSUB;
 
-int MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);  // game/motion.cpp
+int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
 extern "C" void EmYarareDisp(cModel* m);                                            // game/em_sub.cpp
 extern "C" void DrawOba(cModel* m);                                                 // game/at_mod.cpp
 

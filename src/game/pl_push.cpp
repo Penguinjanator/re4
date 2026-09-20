@@ -9,7 +9,7 @@
 #include "db_log.h"
 #include "math_sub.h"
 
-int MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);  // game/motion.cpp
+int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
 extern "C" {
 void MotionMove(cModel* m, int flag);                                    // game/motion.cpp
 void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp

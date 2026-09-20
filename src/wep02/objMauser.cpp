@@ -63,7 +63,7 @@ void cObjMauser::init(cModel* parent)
         pLog->err(0, 0, "cObjMauser::init() failed.");
         return;
     }
-    sub2B4.atari.init(1, 0, 0, 0.0f, 100.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    sub2B4.atari.init(0.0f, 100.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1, 0, 0);
     AtariFlagsAnd(&sub2B4.atari, 0xFCFF);
     pParts->pParent = parent->getPartsPtr(0xA);
     {
@@ -111,7 +111,7 @@ void cObjMauser::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
-        EstSet((int) this, -1, 0, 0, 0x36, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x36, 0, 0, 0xA, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;

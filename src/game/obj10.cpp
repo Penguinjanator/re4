@@ -34,7 +34,7 @@ int MotionMove(cModel* m, int a);
 int obj10AddSpeed(cWepItem* obj);
 int effWaterCheck(cModel* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // r_no_0 dispatch: 0 flying, 1 exploded.
 void cWepItem::move()

@@ -472,7 +472,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     while (!(MotionGetState(pPL) & 4)) {
         if (!(pG->Room_flg[0] & 0x20000000)) {
             if (i == 2) {
-                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
+                EstSet(pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, pPL, 0);
             }
             cam.param.at = parts->world;
             i++;
@@ -485,7 +485,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     }
     RoomSeCall(1, &pPL->getPartsPtr(2)->world, 0, 0, 0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, (u16) mot, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 0x11, 0, 0, (u32) pPL, 0);
+    EstSet(pPL, -1, 0, 0, 1, 0x11, 0, 0, pPL, 0);
     DiedemoExec(0x19, 0);
     CamCtrl.Disable();
     CamCtrl.camera = cam;
@@ -519,7 +519,7 @@ static void r205_DrainEvent()
         EffectEfmDelete(0, 0xE, 0);
         SetSstDispFlag(0xC, 0);
         SetSstDispFlag(0xD, 1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 4, 1, 3, zero, zero);
         SceSetEventCancel(1, (TaskFunc) r205_DrainEventEnd, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -614,7 +614,7 @@ static void r205_EnemyAppear()
     SpfFlagOff(pG, SPF_PL);
     DpfFlagOff(pG, DPF_PL);
     pPL->setNoSuspend(1);
-    EstSet(0, -1, 0, 0, 1, 6, 1, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 6, 1, 3, zero, zero);
     CamCtrl.CutCall(9);
     SceSetEventCancel(1, (TaskFunc) r205_EnemyAppearEndProc, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {

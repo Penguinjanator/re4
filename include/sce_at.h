@@ -190,7 +190,7 @@ struct SceAtWork {
             s8 doorSe;        // 0x75
             u8 doorNo;        // 0x76
             u8 doorFadeEff;   // 0x77  -> SceSys.m_door_fade_eff (2 = execute now, SceChapterEnd)
-            int doorArg;      // 0x78
+            void* doorArg;    // 0x78
         };
         SceAtCamCtrl cam;
         SceAtLadder ladder;
@@ -241,7 +241,7 @@ void sceAtDeleteScrAt(SceAtWork* w);
 void SceAtCheckMoveScrAt();
 SceAtWork* SceAtPtr(int no);
 int sceAtPullAtNo(u8* out);
-void SceAtSetDoorFunc(int no, TaskFunc func, int arg);
+void SceAtSetDoorFunc(int no, TaskFunc func, void* arg);
 // Area `no`: run `func(obj)` (prio, otPrio) when the player enters it.
 enum SCE_LEVEL {
     SCE_NO_TASK = 0,
@@ -288,8 +288,8 @@ int SceAtDestroy(int no);
 int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag);
 int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int val, SceAtField** out);
 int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts);
-void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int saveNo);
-void SceAtCancelItemAt(int key);
+void SceAtReserveItemAt(cEm* key, Vec* pos, u16 id, int num, int effType, int saveNo);
+void SceAtCancelItemAt(cEm* key);
 int sceAtCheckItemEffectCol(u16 id);
 int sceAtCheckSaveItem(u16 id);
 void SceAtLinkEtcDead(int no, int etcNo, int on);

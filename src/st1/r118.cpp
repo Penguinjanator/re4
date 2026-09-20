@@ -69,8 +69,8 @@ void R118Init()
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(0)->LightInfo.EnableMask = zero;
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
@@ -282,7 +282,7 @@ static void r118_ThunderMove()
                     void* zero;
                     do { } while (0);
                     zero = 0;
-                    EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
+                    EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
                 } else {
                     EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
                 }

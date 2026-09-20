@@ -155,7 +155,7 @@ void cSubLuis::init()
     TevScaleGroup = 1;
     LightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
     // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
-    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
+    atari.init(0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     {
         cSubLuis* s = subSelf;
         s->lockParts = 4;
@@ -434,7 +434,7 @@ void cRoutine::moveDie()
 {
     switch (owner->r_no_1) {
     case 0:
-        MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
+        MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), OARC(0xD0 / 4), 5, 1, 0);
         SndCall(1, 0xD, &owner->getPartsPtr(4)->world, owner->id, 0, 0);
         owner->dmg.m_Timer |= 0x80;
         owner->atari.m_parts_no = 4;
@@ -1349,7 +1349,7 @@ void cRoutine::shot()
     owner->hp = 0;
     PlWepHitCheck2(0, &p, &t, 3, 0, 6000.0f);
     owner->hp = hp;
-    EstSet((int) owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
+    EstSet(owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
     SndCall(8, 0, &owner->pParts->world, owner->id, 0, 0);
 }
 
@@ -1651,7 +1651,7 @@ void cObjLuisItem::init(Vec* p, f32 rotY)
     ang.y = rotY;
     ang.x = 0.0f;
     ang.z = 0.0f;
-    EstSet((int) this, -1, 0, 0, 0, 0x2D, 0, 0x3C, (u32) this, 0);
+    EstSet(this, -1, 0, 0, 0, 0x2D, 0, 0x3C, this, 0);
     PSVECSubtract(&pPL->pos, &pos, &LITEM->spd);
     PSVECScale(&LITEM->spd, &LITEM->spd, 0.07f);
     LITEM->acc.x = 0.0f;
@@ -1685,9 +1685,9 @@ void cObjLuisItem::move()
         }
         LITEM->timer++;
         if (LITEM->timer > 150) {
-            EffectEspDelete(0, 0x3C, (u32) this, 0);
-            EffectEspgenDelete(0, 0x3C, (int) this);
-            EffectEfmDelete(0, 0x3C, (int) this);
+            EffectEspDelete(0, 0x3C, this, 0);
+            EffectEspgenDelete(0, 0x3C, this);
+            EffectEfmDelete(0, 0x3C, this);
             ObjMgr.destroy(this);
         }
         break;
@@ -1711,9 +1711,9 @@ void cObjLuisItem::move()
             item = 4;
             break;
         }
-        EffectEspDelete(0, 0x3C, (u32) this, 0);
-        EffectEspgenDelete(0, 0x3C, (int) this);
-        EffectEfmDelete(0, 0x3C, (int) this);
+        EffectEspDelete(0, 0x3C, this, 0);
+        EffectEspgenDelete(0, 0x3C, this);
+        EffectEfmDelete(0, 0x3C, this);
         SceAtCreateItemAt(&pos, item, 0, -1, -1, 0, -1);
         ObjMgr.destroy(this);
         break;

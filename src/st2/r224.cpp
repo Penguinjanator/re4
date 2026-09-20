@@ -477,7 +477,7 @@ static void futa_move()
     zero = 0;
     CamCtrl.CutCall(5);
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 0x40, 1, 2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x40, 1, 2, zero, zero);
     gnd_open();
     SceSleep(60);
     CamCtrl.Comeback(0);
@@ -493,7 +493,7 @@ static void futa_move()
     SceSleep(15);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSleep(135);
-    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, zero, zero);
     gnd_close();
     if (RsfCheck(G_ROOM_ID, 0)) {
         pG->Room_flg[0] |= 0x10000000;

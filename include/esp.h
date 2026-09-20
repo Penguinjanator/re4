@@ -153,7 +153,7 @@ struct EspInfo {
             u8 x7;     // 0x07
         } b;
     };
-    u32 Core_pEm;            // 0x08
+    void* Core_pEm;          // 0x08
 };
 
 // One effect sprite (game/esp.cpp, game/esp_sub.cpp). sizeof 0xF8; the vptr sits at 0xF4.
@@ -271,7 +271,7 @@ void setPlWaterOtType();
 // game/eff_sys.cpp
 void EffSetAreaState(int no, int on);
 // game/esp_efm.cpp
-void EfmDelete(int a, int b, int c);
+void EfmDelete(int a, int b, void* c);
 void EfmDeleteEvent();
 void EfmArrayClear();
 // game/esp_app.cpp
@@ -295,12 +295,12 @@ void EspGenLoopMove();
 int PathHasWeight(void* path);
 f32 PathGetLength(void* path);
 int PathGetPos(void* path, f32 dist, u16* seg, Vec* out);  // f32 second: callee copies f1 right after r3
-int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out);
+int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out);
 int EspGetTplAddr(int no, void** out);
 // game/est.cpp. void: no caller reads r3 after the call, and with an `int` result the call's
 // set of r3 changes the haifa depend counts, moving `li r3,0` to the end of the arg setup
 // (obj01/obj10 move00, obj10AddSpeed).
-void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h);
+void EstSet(cModel* a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, void* g, void* h);
 }
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();

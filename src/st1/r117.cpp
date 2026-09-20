@@ -181,8 +181,8 @@ void R117Init()
     if (pG->Part == 1) {
         void* zero = 0;
 
-        EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-        EstSet((int) pPL, -1, 0, 0, 1, 0x26, 0x800, 0, (u32) zero, zero);
+        EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+        EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
     }
 }
 
@@ -198,7 +198,7 @@ extern "C" void r117_MechanismInit()
         W->cur[1] = 0;
         W->cur[2] = 0;
         r117_MechanismDisarm();
-        EstSet(0, -1, 0, 0, 1, 0x25, 1, 2, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0x25, 1, 2, zero, zero);
         for (i = 0; i < 4; i++) {
             if (RsfCheck(G_ROOM_ID, i + 0xF)) {
                 W->tgt[0] = i;
@@ -442,7 +442,7 @@ static void r117_EventSaddlerAppear()
     void* zero = 0;
     EffectEspgenDelete(0x2001, 3, 0);
     EffectEfmDelete(0x2001, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, zero, zero);
     SceEventEnd(0);
     f32 ry = -0.46134f;
     StaFlagOn(pG, STA_SUB_ASHLEY);
@@ -457,8 +457,8 @@ static void r117_EventSaddlerAppear()
     SubCharCtrl(SCC_CHASE, 0);
     SndBgmTblSet(0x117, 1);
     SceSetChapterEnd(CHAPTER_2_1, -1);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 0x26, 0x800, 0, (u32) zero, zero);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
 }
 
 static void (*r117_lightMechTbl[2])() = {r117_LightMechanismInit, r117_LightMechanismMove};
@@ -636,7 +636,7 @@ static void r117_LightMechanismEndProc(int mode)
         EffectEspgenDelete(1, 2, 0);
         EffectEfmDelete(1, 2, 0);
         r117_LightSet(0);
-        EstSet(0, -1, 0, 0, 1, 0x25, 0x801, 2, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 0x25, 0x801, 2, zero, zero);
     }
     f32 ry = -3.11f;
     cPlayer* pl = pPL;

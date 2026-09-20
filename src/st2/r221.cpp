@@ -792,9 +792,9 @@ static void r221_checkBossAppear_end()
         }
     }
     if (em.getPtr()) {
-        EffectEspDelete(1, 2, (u32) em.getPtr(), 0);
-        EffectEspgenDelete(1, 2, (int) em.getPtr());
-        EffectEfmDelete(1, 2, (int) em.getPtr());
+        EffectEspDelete(1, 2, em.getPtr(), 0);
+        EffectEspgenDelete(1, 2, em.getPtr());
+        EffectEfmDelete(1, 2, em.getPtr());
     }
     SceAtPtr(1)->actBtnKind = 0x35;
     SceAtPtr(2)->actBtnKind = 0x35;
@@ -833,7 +833,7 @@ static void r221_checkBossAppear()
         SceSetEventCancel(1, (TaskFunc) r221_checkBossAppear_end, 0, 2, 1);
         SceEventStart(1);
         StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
-        EstSet((int) em1.getPtr(), -1, 0, 0, 0x24, 1, 1, 2, (u32) em1.getPtr(), 0);
+        EstSet(em1.getPtr(), -1, 0, 0, 0x24, 1, 1, 2, em1.getPtr(), 0);
         pG->Room_flg[0] |= 0x01000000;
         CamCtrl.clearAttachCamera();
         em1.setFlag(1);
@@ -1374,7 +1374,7 @@ static void r201_throwBonbe(int no)
         i = 0;
         while (MotionGetState(pPL) != 4) {
             if (i == t1) {
-                EstSet((int) bonbe, -1, 0, 0, 1, eff3, 1, 0, 0, 0);
+                EstSet(bonbe, -1, 0, 0, 1, eff3, 1, 0, 0, 0);
             }
             if (t2 != 0 && t2 == i) {
                 EstSet(0, -1, 0, 0, 1, (u8) eff0, 1, (u8) k0, 0, 0);

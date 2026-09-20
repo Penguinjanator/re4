@@ -176,7 +176,7 @@ extern "C" void Evt_R215S00_Func(Event* e)
             if (pG->Room_flg[0] & 0x80000000) {
                 // The button object and the callback are evaluated before the stack argument store.
                 cActionButton* ab = &ActBtn;
-                int func = (int) r215_succeedAction;
+                void* func = (void*) r215_succeedAction;
 
                 ab->set(0x30, 5, func, 0, 0x42, 4, 0, 0);
             } else {

@@ -19,7 +19,7 @@
 
 cActionButton ActBtn;
 
-typedef void (*ActBtnFunc)(int arg, int d);
+typedef void (*ActBtnFunc)(void* arg, int d);
 
 // Clears the prompt table and this frame's flags; remembers whether prompts are disabled
 // (Stop_flg 0x100).
@@ -79,7 +79,7 @@ void cActionButton::move()
                 ((ActBtnFunc) w->func)(w->arg, w->d);
                 break;
             case 1:
-                SceExec(0x12, (TaskFunc) w->func, w->arg, flag, w->slot, (void*) w->d);
+                SceExec(0x12, (TaskFunc) w->func, (int) w->arg, flag, w->slot, (void*) w->d);
                 break;
             case 2: {
                 SceAtWork* at = (SceAtWork*) w->arg;
@@ -347,7 +347,7 @@ ActBtnWork* cActionButton::pullWork()
 
 // Offers an action for this frame: message kind, priority slot 0..15, callback and its
 // arguments, flags, button kind and call type.
-void cActionButton::set(int kind, int slot, int func, int arg, int flags, int btn, int type, int d)
+void cActionButton::set(int kind, int slot, void* func, void* arg, int flags, int btn, int type, int d)
 {
     ActBtnWork* w = pullWork();
 
@@ -358,7 +358,7 @@ void cActionButton::set(int kind, int slot, int func, int arg, int flags, int bt
         kind = 0x41;
     }
     w->kind = kind;
-    w->func = (void*) func;
+    w->func = func;
     w->arg = arg;
     w->type = type;
     w->flags = flags;

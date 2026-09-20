@@ -70,7 +70,7 @@ static Vec r11e_rockARot = {0.0f, 0.0f, 0.0f};
 static Vec r11e_rockBPos = {32079.0f, 10069.0f, 32556.0f};
 static Vec r11e_rockBRot = {0.0f, -1.5707964f, 0.0f};
 
-extern "C" void funcAshley(cModel* m);
+extern "C" void funcAshley(cEm* m);
 static void koya_destroy_check();
 extern "C" void koyaA_destroy();
 extern "C" void koyaB_destroy();
@@ -135,7 +135,7 @@ void R11eInit()
 }
 
 // Ashley's escape motions (SetSubAux routine): three motions in a row, turning towards the target.
-extern "C" void funcAshley(cModel* m)
+extern "C" void funcAshley(cEm* m)
 {
     switch (m->r_no_2) {
     case 0:
@@ -387,9 +387,9 @@ static void r11e_move_sasaeki1()
 // The giant's appearance is over: Leon and Ashley are put back, the second giant is set.
 static void r11e_EmSet_exit()
 {
-    EffectEspDelete(1, 0, (u32) r11e_work->em.getPtr(), 0);
-    EffectEspgenDelete(1, 0, (int) r11e_work->em.getPtr());
-    EffectEfmDelete(1, 0, (int) r11e_work->em.getPtr());
+    EffectEspDelete(1, 0, r11e_work->em.getPtr(), 0);
+    EffectEspgenDelete(1, 0, r11e_work->em.getPtr());
+    EffectEfmDelete(1, 0, r11e_work->em.getPtr());
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r11e_work->em.setNoSuspend(0);
@@ -432,7 +432,7 @@ static void r11e_EmSet_exit()
             pp->y = 3.1f;
             pp->z = 0.0f;
             pSUB->setAng(pp);
-            SetSubAux((int) funcAshley, 0);
+            SetSubAux(funcAshley, 0);
             SndCall(6, 2, &pSUB->pos, 0, 0, 0);
         }
     }

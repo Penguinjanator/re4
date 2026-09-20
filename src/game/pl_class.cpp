@@ -542,9 +542,9 @@ void jumpFallOn()
 void cPlayer::motionSet(void* m0, void* seq0, void* m1, void* seq1, int hokan, int frame)
 {
     if (dmMotCk()) {
-        MotionSetCore(this, MOTION(this), m0, (int) seq0, hokan, 5, frame);
+        MotionSetCore(this, MOTION(this), m0, seq0, hokan, 5, frame);
     } else {
-        MotionSetCore(this, MOTION(this), m1, (int) seq1, hokan, 5, frame);
+        MotionSetCore(this, MOTION(this), m1, seq1, hokan, 5, frame);
     }
 }
 
@@ -620,49 +620,49 @@ int cPlayer::actionSelect()
     }
     actWallCheck(this);
     if (Push->catchCheck()) {
-        ActBtn.set(6, 2, (int) holdOn, 0, 0x10, 1, 0, 0);
+        ActBtn.set(6, 2, (void*) holdOn, 0, 0x10, 1, 0, 0);
     }
     if (fallCheck_80172E38(this)) {
-        ActBtn.set(4, 2, (int) fallOn, 0, 0, 1, 0, 0);
+        ActBtn.set(4, 2, (void*) fallOn, 0, 0, 1, 0, 0);
     }
     if (fanceCheck(this)) {
-        ActBtn.set(5, 2, (int) fanceOn, 0, 0, 1, 0, 0);
+        ActBtn.set(5, 2, (void*) fanceOn, 0, 0, 1, 0, 0);
     }
     if (jumpCheck(this)) {
-        ActBtn.set(5, 2, (int) jumpFallOn, 0, 0, 1, 0, 0);
+        ActBtn.set(5, 2, (void*) jumpFallOn, 0, 0, 1, 0, 0);
     }
     if (windowCheck(this, &dir, &win)) {
         int broken = win->ChkStatus() & 1;
         if (broken) {
             if (dir == 2) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, 0, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, 0, 1, 0, 0);
             } else {
-                ActBtn.set(5, 2, (int) fanceOn, 0, 0, 1, 0, 0);
+                ActBtn.set(5, 2, (void*) fanceOn, 0, 0, 1, 0, 0);
             }
         } else {
             if (dir == 0) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
             if (dir == 1) {
-                ActBtn.set(3, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(3, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
             if (dir == 2) {
-                ActBtn.set(2, 2, (int) windowOn, (int) win, broken, 1, 0, 0);
+                ActBtn.set(2, 2, (void*) windowOn, win, broken, 1, 0, 0);
             }
         }
     }
     switch (upDownCk(this)) {
     case 1:
-        ActBtn.set(8, 2, (int) levelUpOn, 0, 0, 1, 0, 0);
+        ActBtn.set(8, 2, (void*) levelUpOn, 0, 0, 1, 0, 0);
         break;
     case 2:
-        ActBtn.set(9, 2, (int) levelDownOn, 0, 0, 1, 0, 0);
+        ActBtn.set(9, 2, (void*) levelDownOn, 0, 0, 1, 0, 0);
         break;
     case 3:
-        ActBtn.set(8, 2, (int) level2UpOn, 0, 0, 1, 0, 0);
+        ActBtn.set(8, 2, (void*) level2UpOn, 0, 0, 1, 0, 0);
         break;
     case 4:
-        ActBtn.set(0x40, 2, (int) level2DownOn, 0, 0, 1, 0, 0);
+        ActBtn.set(0x40, 2, (void*) level2DownOn, 0, 0, 1, 0, 0);
         break;
     }
     checkXbutton();
@@ -1775,7 +1775,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     mot1 = m1;
     mot2 = m2;
     m_Mode = c;
-    MotionSetCore(m, MOTION(m), m0, a, mode, d, e);
+    MotionSetCore(m, MOTION(m), m0, (void*) a, mode, d, e);
     set0(m1, e, mode);
     ((cEm*) m)->blendMot->blendRate = 0.0f;
 }

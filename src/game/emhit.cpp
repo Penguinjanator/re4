@@ -15,7 +15,7 @@ extern "C" {
 int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
-void MotionSetCore(cModel* m, void* mot, void* data, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmHitFunc)(cEmHit*);
 
@@ -65,7 +65,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     w->size.x = 200.0f;
     w->size.y = 200.0f;
     w->size.z = 200.0f;
-    em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
     em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     emHitYarareInit(em);

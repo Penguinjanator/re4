@@ -102,7 +102,7 @@ void cObjShotgun::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         StaFlagOn(pG, STA_PL_FIRE);
-        EstSet((int) this, -1, 0, 0, 0x3B, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x3B, 0, 0, 0xA, 0, 0);
         wep.step = 1;
     } else {
         if (MotionCheckCrossFrame(&Motion, 20.0f)) {

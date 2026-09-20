@@ -34,9 +34,6 @@ int MotionMove(cModel* m, int a);   // motion.cpp
 // EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to
 // them is masked at the call (`clrlwi 24`, EmDmBloodSet2/3).
 void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
-// AtSphereCapsuleCk with the float arguments declared first (atari_init.h idiom): the original
-// issues the `fmr` argument moves before the `addi r4` of the second point (emSphereAtCk).
-u32 AtSphereCapsuleCkF(Vec* c, f32 r, f32 r2, Vec* p0, Vec* p1) asm("AtSphereCapsuleCk");
 
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
@@ -564,7 +561,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
         up.z = p->width;
         PSMTXMultVecSR(parts->mat, &up, &up);
         r = PSVECMag(&up);
-        if (AtBoxCapsuleCk3(box, &top, r, &bottom) == 0) {
+        if (AtBoxCapsuleCk3(box, &top, &bottom, r) == 0) {
             continue;
         }
         PSMTXMultVec(mat, &center, &up);
@@ -1099,7 +1096,7 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             rr = PSVECMag(&s);
-            if (AtSphereCapsuleCkF(pos, r, rr, &top, &bottom) == 0) {
+            if (AtSphereCapsuleCk(pos, r, &top, &bottom, rr) == 0) {
                 continue;
             }
         }
@@ -3146,7 +3143,7 @@ void EmSetDropItem(cEm* em)
         if (BullItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
-        SceAtCancelItemAt((int) em);
+        SceAtCancelItemAt(em);
         SceAtCreateItemAt(&em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1, 0, -1);
     } else {
         RandomItemSet(em);
@@ -3175,7 +3172,7 @@ void EmReserveDropItem(cEm* em)
         em->Item_id = id;
         em->Item_num = num;
     }
-    SceAtReserveItemAt((int) em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
+    SceAtReserveItemAt(em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
 }
 
 // Random drop for the enemy type (RandomItemCk) placed at the enemy.

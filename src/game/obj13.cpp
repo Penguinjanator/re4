@@ -86,7 +86,7 @@ void objLadderResetCamMove(cEm* em);
 int LadderNearCk(Vec* pos);
 void LadderEventTrans(int mode);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*ObjLadder_R1_move_tbl[4])(cObjLadder*) = {
     objLadder_R1_Set, objLadder_R1_Fall, objLadder_R1_Down, objLadder_R1_Reset,
@@ -390,7 +390,7 @@ void cObjLadder::setDown(void* mot, int a)
     if (w->pair) {
         w->pair->sub2B4.atari.clrFlag200();
     }
-    MotionSetCore(this, &pMotion, mot, a, 0, 1, 0);
+    MotionSetCore(this, &pMotion, mot, (void*) a, 0, 1, 0);
     r_no_0 = 1;
     r_no_1 = 1;
     r_no_2 = 0;
@@ -439,7 +439,7 @@ void cObjLadder::setDown2()
     if (w->pair) {
         w->pair->sub2B4.atari.clrFlag200();
     }
-    MotionSetCore(this, &pMotion, mot, (int) a, 0, 1, frame);
+    MotionSetCore(this, &pMotion, mot, a, 0, 1, frame);
     r_no_0 = 1;
     r_no_1 = 1;
     r_no_2 = 0;
@@ -466,10 +466,10 @@ void cObjLadder::setReset(int t)
     switch (t) {
     case 0:
     default:
-        MotionSetCore(this, &pMotion, w->mot[6], (int) w->mot[11], 0, 1, 0);
+        MotionSetCore(this, &pMotion, w->mot[6], w->mot[11], 0, 1, 0);
         break;
     case 1:
-        MotionSetCore(this, &pMotion, w->mot[8], (int) w->mot[13], 0, 1, 0);
+        MotionSetCore(this, &pMotion, w->mot[8], w->mot[13], 0, 1, 0);
         break;
     }
     r_no_0 = 1;
@@ -578,7 +578,7 @@ void objLadderClimbActEvtCk(cObjLadder* obj)
     if (fabsf(v.y) > 500.0f) {
         return;
     }
-    ActBtn.set(8, 5, (int) objLadderActClimb, (int) obj, 0, 1, 0, 0);
+    ActBtn.set(8, 5, (void*) objLadderActClimb, obj, 0, 1, 0, 0);
 }
 
 // Action button 8: blocks the ladder and puts the player into plobjLadderClimb.
@@ -994,9 +994,9 @@ void objLadderDownActEvtCk(cObjLadder* obj)
         return;
     }
     if (w->flags & 4) {
-        ActBtn.set(0xA, 5, (int) objLadderActDown, (int) obj, 0x20, 1, 0, 0);
+        ActBtn.set(0xA, 5, (void*) objLadderActDown, obj, 0x20, 1, 0, 0);
     } else {
-        ActBtn.set(0xA, 5, (int) objLadderActDown, (int) obj, 0, 1, 0, 0);
+        ActBtn.set(0xA, 5, (void*) objLadderActDown, obj, 0, 1, 0, 0);
     }
 }
 
@@ -1116,7 +1116,7 @@ void objLadderResetActEvtCk(cObjLadder* obj)
     if (fabsf(obj->pos.y - pPL->pos.y) > 500.0f) {
         return;
     }
-    ActBtn.set(0xB, 5, (int) objLadderActReset, (int) obj, 0, 1, 0, 0);
+    ActBtn.set(0xB, 5, (void*) objLadderActReset, obj, 0, 1, 0, 0);
 }
 
 // Action button 0xB: puts the player into plobjLadderReset.

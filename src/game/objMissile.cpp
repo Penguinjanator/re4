@@ -198,7 +198,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet((int) obj, -1, 0, 0, 0x32, 4, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x32, 4, 0, 0, obj, 0);
             break;
         case 1:
             break;
@@ -300,7 +300,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet((int) obj, -1, 0, 0, 0x32, 5, 0, 0, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 0x32, 5, 0, 0, obj, 0);
             SndCall(6, 2, &obj->pos, 0, 0, obj);
             w->Spd.x = 0.0f;
             w->Spd.y = 0.0f;

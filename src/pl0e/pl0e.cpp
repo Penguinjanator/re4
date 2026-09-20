@@ -53,7 +53,6 @@ extern "C" void Em_R0_Scenario(cEm* em);                    // game/em_sub.cpp
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // COMPILER-DIFF: #1 (argument-move order): pl0ePathMove issues `lwz r4, pRailObj` before `lfs f1, dist`;
 // the model-before-dist redeclaration is ABI-identical (GPR / FPR argument registers are numbered independently).
-int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("PathGetPosEm");   // MotionMove called with a second argument (pl_npc.cpp)
 
 #line 1 "D:/Bio4/Prog/pl0e.cpp"
 
@@ -208,9 +207,9 @@ void cPl0e::setPos(Vec* p, f32 ang)
     TransMatrix(mat, &pos);
     partsMatCalc();
     partsWorldCalc();
-    EffectEspDelete(0, 0x35, (u32) this, 0);
-    EffectEspgenDelete(0, 0x35, (int) this);
-    EffectEfmDelete(0, 0x35, (int) this);
+    EffectEspDelete(0, 0x35, this, 0);
+    EffectEspgenDelete(0, 0x35, this);
+    EffectEfmDelete(0, 0x35, this);
 }
 
 // r_no_0 == 0: creation. Loads the ski model (archive 5/6) with a 2 m light area, no IK, no lock-on
@@ -315,16 +314,16 @@ static void pl0e_R1_Ride(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0xF), 0, 0, 1, 0);
-        EstSet((int) em, -1, 0, 0, 0xE, 0xA, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xE, 0xA, 1, w->espKind, em, 0);
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->pos.y = -26663.0f;
             em->ang.y = 2.2f;
             w->seNo = SndCall(8, 0xA, &em->pos, em->id, 0, em);
-            EffectEspDelete(1, w->espKind, (u32) em, 0);
-            EffectEspgenDelete(1, w->espKind, (int) em);
-            EffectEfmDelete(1, w->espKind, (int) em);
+            EffectEspDelete(1, w->espKind, em, 0);
+            EffectEspgenDelete(1, w->espKind, em);
+            EffectEfmDelete(1, w->espKind, em);
             PlRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -467,7 +466,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             SetSubDamage(em, (void*) subBoatLanding);
         }
         if (em->be_flag & 2) {
-            EstSet((int) em, -1, 0, 0, 0xE, 4, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 4, 0, 0, em, 0);
         }
         SndCall(8, 9, &em->pos, em->id, 0, em);
         VibSetData(VIB_TBL, 7, 1);
@@ -509,9 +508,9 @@ static void pl0e_R1_Crash(cPl0e* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0xD), 0, 3, 1, 0);
         if (w->flags & 2) {
-            EstSet((int) em, -1, 0, 0, 0xE, 0xB, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 0xB, 0, 0, em, 0);
         } else {
-            EstSet((int) em, -1, 0, 0, 0xE, 5, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 5, 0, 0, em, 0);
         }
         PlRoutineSet(pPL, 0, 0xF, 4, 0);
         if (pSUB) {
@@ -544,7 +543,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0x12), 0, 0, 1, 0);
-        EstSet((int) em, -1, 0, 0, 0xE, 0xC, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xE, 0xC, 0, 0, em, 0);
         w->flags |= 4;
         pGS->pl_life = 0;
         DiedemoExec(0x1E, 0);
@@ -582,7 +581,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0x13), 0, 0, 1, 0);
-        EstSet((int) em, -1, 0, 0, 0xE, 0xD, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xE, 0xD, 0, 0, em, 0);
         pG->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
@@ -1055,7 +1054,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     void* m;
     int f;
 
-    MotionSetCore(pl, &pl->Motion, m0, a, pl->m_Hokan, 4, pl->m_Frame);
+    MotionSetCore(pl, &pl->Motion, m0, (void*) a, pl->m_Hokan, 4, pl->m_Frame);
     if (pl->m_Blend < 0.0f) {
         m = m1;
         f = b;
@@ -1064,7 +1063,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
         f = c;
     }
     bm = &pl->m_SubMot;
-    MotionSetCore(pl, bm, m, f, pl->m_Hokan, 4, pl->m_Frame);
+    MotionSetCore(pl, bm, m, (void*) f, pl->m_Hokan, 4, pl->m_Frame);
     pl->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (pl->m_Hokan) {
@@ -1085,7 +1084,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
     void* m;
     int f;
 
-    MotionSetCore(sub, &sub->Motion, m0, a, sub->m_Hokan, 4, sub->m_Frame);
+    MotionSetCore(sub, &sub->Motion, m0, (void*) a, sub->m_Hokan, 4, sub->m_Frame);
     if (sub->m_Blend < 0.0f) {
         m = m1;
         f = b;
@@ -1094,7 +1093,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
         f = c;
     }
     bm = &sub->subBackMot;
-    MotionSetCore(sub, bm, m, f, sub->m_Hokan, 4, sub->m_Frame);
+    MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
     sub->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (sub->m_Hokan) {
@@ -1399,7 +1398,7 @@ void pl0ePathMove(cPl0e* em, int jump)
         return;
     }
     w->pathPosOld = w->pathPos;
-    PathGetPosEmM(w->pPath, w->pRailObj, w->dist, &w->seg, &w->pathPos);
+    PathGetPosEm(w->pPath, w->pRailObj, w->dist, &w->seg, &w->pathPos);
     PSMTXRotRad(m, 'y', em->ang.y);
     TransMatrix(m, &w->pathPos);
     if ((Key.on & 0xC) && jump == 0) {
@@ -1491,17 +1490,17 @@ void pl0ePathMove(cPl0e* em, int jump)
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     if (!(w->flags & 1) && (em->be_flag & 2)) {
         if (w->spd > 100.0f) {
-            EstSet((int) em, -1, 0, 0, 0xE, 0, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 0, 0, 0, em, 0);
         }
         if (w->spd > pl0e_spd_max + 100.0f) {
-            EstSet((int) em, -1, 0, 0, 0xE, 3, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 3, 0, 0, em, 0);
         }
         if (Key.trg & 8) {
-            EstSet((int) em, -1, 0, 0, 0xE, 1, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 1, 0, 0, em, 0);
             SndCall(8, 0xC, &em->pos, em->id, 0, em);
         }
         if (Key.trg & 4) {
-            EstSet((int) em, -1, 0, 0, 0xE, 2, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xE, 2, 0, 0, em, 0);
             SndCall(8, 0xC, &em->pos, em->id, 0, em);
         }
     }
@@ -1550,7 +1549,7 @@ void cPl0e::set2ndRail()
         SetSubDamage(this, (void*) subBoatRun);
     }
     if (w->pWave) {
-        EstSet((int) w->pWave, -1, 0, 0, 0xE, 9, 1, 0, (u32) w->pWave, 0);
+        EstSet(w->pWave, -1, 0, 0, 0xE, 9, 1, 0, w->pWave, 0);
     }
 }
 
@@ -1572,7 +1571,7 @@ void pl0ePathGetTarget(cPl0e* em, Vec* out)
         d = w->dist + 15000.0f;
         if (!(d >= w->length)) {
             seg[0] = 0;
-            PathGetPosEm(w->pPath, d, w->pRailObj, seg, &p);
+            PathGetPosEm(w->pPath, w->pRailObj, d, seg, &p);
             out->x = p.x;
             out->z = p.z;
         }
@@ -1641,7 +1640,7 @@ void pl0eBlendMotSet(cPl0e* em, void* m0, void* m1, void* m2, int a, int b, int 
     void* m;
     int f;
 
-    MotionSetCore(em, &em->Motion, m0, a, (u8) w->hokan, 4, (u16) w->frame);
+    MotionSetCore(em, &em->Motion, m0, (void*) a, (u8) w->hokan, 4, (u16) w->frame);
     if (w->blendRate < 0.0f) {
         m = m1;
         f = b;
@@ -1650,7 +1649,7 @@ void pl0eBlendMotSet(cPl0e* em, void* m0, void* m1, void* m2, int a, int b, int 
         f = c;
     }
     bm = &w->blendMot;
-    MotionSetCore(em, bm, m, f, (u8) w->hokan, 4, (u16) w->frame);
+    MotionSetCore(em, bm, m, (void*) f, (u8) w->hokan, 4, (u16) w->frame);
     em->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (w->hokan) {

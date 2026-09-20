@@ -65,7 +65,7 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 // stays below it (interrupt(), moveDamage).
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
-#define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, (int) (seq), a, b, c)
+#define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, seq, a, b, c)
 
 // pSUB stored through a struct view: keeps the base destructor's be_flag load below the store.
 struct SubCharPtr {
@@ -169,7 +169,7 @@ void cSubChar::init()
         static const Vec lightSize = { 1000.0f, 1000.0f, 0.0f };
         LightInfo.init2(0, 1, &lightOfs, &lightSize, 0x40);
     }
-    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
+    atari.init(0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     if (subLight == 0) {
         subLight = LightMgr.createBack(0, 2, 0, 0);
         subLight->setParent(this);
@@ -1828,7 +1828,7 @@ void cSubChar::moveFallWait()
     if (subX534) {
         if (GetDistance(&v, &pPL->pos) < 9000000.0f && !SatMgr.hitCheck(&v, &pPL->pParts->world, 0, 0, 0, 0) &&
             !SatMgr.hitCheck(&pPL->pParts->world, &v, 0, 0, 0, 0)) {
-            ActBtn.set(0x1C, 6, (int) catchOn, 0, 0, 1, 0, 0);
+            ActBtn.set(0x1C, 6, (void*) catchOn, 0, 0, 1, 0, 0);
             sub53C = 1;
         }
     }
@@ -2002,19 +2002,19 @@ void cSubChar::moveDamage()
             break;
         case 7:
             m = SUB_MOT(subSelf, 0x32);
-            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, (u32) subSelf, 0);
+            EstSet(subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, subSelf, 0);
             break;
         case 8:
             m = SUB_MOT(subSelf, 0x32);
-            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, (u32) subSelf, 0);
+            EstSet(subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, subSelf, 0);
             break;
         case 9:
             m = SUB_MOT(subSelf, 0x31);
-            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, (u32) subSelf, 0);
+            EstSet(subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, subSelf, 0);
             break;
         case 10:
             m = SUB_MOT(subSelf, 0x31);
-            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, (u32) subSelf, 0);
+            EstSet(subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, subSelf, 0);
             break;
         case 11:
             m = SUB_MOT(subSelf, 0x6A);
@@ -2029,7 +2029,7 @@ void cSubChar::moveDamage()
         if (subSelf->frame >= 10.0f && subHideMode == 11 && landCheck()) {
             AtariOn(&atari, 0x300);
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x6B), 0, 3, 1, 0);
-            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, 0, (u32) subSelf, 0);
+            EstSet(subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, 0, subSelf, 0);
             r_no_1 = 10;
             if (DbgFlagChk(pG, DBG_NO_DEATH)) {
                 subHideMode = 8;
@@ -2102,7 +2102,7 @@ void cSubChar::moveDie()
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x30), 0, 3, 1, 0x32);
         } else {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x30), 0, 3, 1, 0);
-            EstSet((int) this, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 4 : 3, 0, 0, (u32) this, 0);
+            EstSet(this, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 4 : 3, 0, 0, this, 0);
         }
         SndCall(8, 0xD, &pParts->world, id, 0, 0);
         atari.m_parts_no = 4;
@@ -3584,16 +3584,16 @@ void waterProc(cSubChar* pl)
     }
     hamonTimer++;
     if (hamonTimer % 13 == 0) {
-        EstSet((int) pl, -1, 0, 0, 1, 0x21, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 1, 0x21, 0, 0, pl, 0);
     }
     d = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (d > spd1) {
-        EstSet((int) pl, -1, 0, 0, 1, 0x23, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
         sibukiTimer = 10;
     } else if (d > spd0) {
-        EstSet((int) pl, -1, 0, 0, 1, 0x22, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 1, 0x22, 0, 0, pl, 0);
         sibukiTimer = 16;
     }
     m_PosOldWater = pl->pos;

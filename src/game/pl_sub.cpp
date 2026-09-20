@@ -326,7 +326,7 @@ void EndPlDamage()
 }
 
 // Partner: aux routine 0/0xF with two parameters (scenario-specific behaviour).
-void SetSubAux(int a, int b)
+void SetSubAux(void (*ft)(cEm*), void (*ftdm)(cEm*))
 {
     cSubChar* sub = pSUB;
 
@@ -336,14 +336,14 @@ void SetSubAux(int a, int b)
     }
     sub->r_no_0 = 0;
     sub->r_no_2 = 0;
-    sub->subAux0 = a;
-    sub->subAux1 = b;
+    sub->subAux0 = ft;
+    sub->subAux1 = ftdm;
     sub->r_no_1 = 0xF;
     sub->r_no_3 = 0;
 }
 
 // Partner: the bulldozer-ride routine (r_no_0 3) with two parameters.
-void SetSubBulldozer(int a, int b)
+void SetSubBulldozer(void (*ft)(cEm*), void (*ftdm)(cEm*))
 {
     cSubChar* sub = pSUB;
 
@@ -353,8 +353,8 @@ void SetSubBulldozer(int a, int b)
     }
     sub->r_no_1 = 0;
     sub->r_no_2 = 0;
-    sub->subAux0 = a;
-    sub->subAux1 = b;
+    sub->subAux0 = ft;
+    sub->subAux1 = ftdm;
     sub->r_no_0 = 3;
     sub->r_no_3 = 0;
 }
@@ -602,7 +602,7 @@ void SubCharCtrlHide(Vec* pos, int mode)
 
 // Partner: walk to (x, y, z) with parameter w (193 = special values), unless already going there;
 // flag bit0 sets subFlags 0x10.
-void SubCharMoveTo(int flag, f32 x, f32 y, f32 z, f32 w)
+void SubCharMoveTo(f32 x, f32 y, f32 z, f32 w, int flag)
 {
     cSubChar* sub = pSUB;
 
@@ -908,17 +908,17 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, (u32) pl, (void*) t);
+            EstSet(pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, pl, (void*) t);
         }
     }
     dist = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, pl, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, pl, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {

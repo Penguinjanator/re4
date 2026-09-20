@@ -286,10 +286,10 @@ int SceCheckEventStart()
 }
 
 // Room: function `a` (with parameter `b`) SceSys runs when the room is left.
-void SceSetRoomExitFunc(int a, int b)
+void SceSetRoomExitFunc(TaskFunc pFunc, void* param)
 {
-    SceSys.pExitFunc = a;
-    SceSys.pExitParam = b;
+    SceSys.pExitFunc = pFunc;
+    SceSys.pExitParam = param;
 }
 
 // Room script scratch word `no` (0..63) in the save data (pG->save_free_work).

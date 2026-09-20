@@ -454,7 +454,7 @@ static void em38_R0_Init(cEm38* em)
             break;
         }
     }
-    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);
     em->litArea.on(1);
     em->atari.throughOn();
     switch (em->type) {
@@ -483,7 +483,7 @@ static void em38_R0_Init(cEm38* em)
     w->espKind = EspPullCoreKind();
     w->espKind2 = EspPullCoreKind();
     if (em->type == 0) {
-        EstSet((int) em, -1, 0, 0, 0x2E, 4, 1, w->espKind2, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 4, 1, w->espKind2, em, 0);
     }
     w->pCtrl11 = GetCtrlCtrl11();
     w->flags = 0;
@@ -697,7 +697,7 @@ static void em38_R1_HeadStamp(cEm38* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 30, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 30, 1, 0);
         if (w->pTent[0]) {
             w->pTent[0]->setAtkWait(210);
         }
@@ -705,7 +705,7 @@ static void em38_R1_HeadStamp(cEm38* em)
             w->pTent[1]->setAtkWait(240);
         }
         w->blendRate = 0.0f;
-        EstSet((int) em, -1, 0, 0, 0x2E, 0xF, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 0xF, 1, w->espKind, em, 0);
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
@@ -774,7 +774,7 @@ static void em38_R1_Atk(cEm38* em)
         if (w->pUpper) {
             w->pUpper->setCritical();
         }
-        EstSet((int) em, -1, 0, 0, 0x2E, 6, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 6, 1, w->espKind, em, 0);
         w->timer = 15;
         em->r_no_2++;
     case 1:
@@ -815,7 +815,7 @@ static void em38_R1_AtkHit(cEm38* em)
         MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 0, 1, 0);
         SetPlDamage(em, plem38_AtkHit);
         w->blendRate = 0.0f;
-        EstSet((int) em, -1, 0, 0, 0x2E, 8, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 8, 0, 0, em, 0);
         SndCall(8, 0x21, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
@@ -943,12 +943,12 @@ static void em38_R1_T_In(cEm38* em)
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x30), 0, 0, 5, 0);
-            EstSet(0, -1, 0, 0, 0x2E, 0x1F, 1, w->espKind, (u32) em, 0);
+            EstSet(0, -1, 0, 0, 0x2E, 0x1F, 1, w->espKind, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x30), 0, 0, 0x45, 0);
-            EstSet(0, -1, 0, 0, 0x2E, 0x21, 1, w->espKind, (u32) em, 0);
+            EstSet(0, -1, 0, 0, 0x2E, 0x21, 1, w->espKind, em, 0);
         }
-        EstSet((int) em, -1, 0, 0, 0x2E, 0x23, 1, w->espKind, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 0x23, 1, w->espKind, em, 0);
         w->atkWait = 0;
         SndCall(8, 8, &em->pos, em->id, 0, em);
         w->flags |= 0x40;
@@ -970,15 +970,15 @@ static void em38_R1_T_Out(cEm38* em)
     w->flags |= 0x10;
     switch (em->r_no_2) {
     case 0:
-        EffectEspDelete(1, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind, (int) em);
-        EffectEfmDelete(1, w->espKind, (int) em);
+        EffectEspDelete(1, w->espKind, em, 0);
+        EffectEspgenDelete(1, w->espKind, em);
+        EffectEfmDelete(1, w->espKind, em);
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x31), 0, 10, 1, 0);
-            EstSet(0, -1, 0, 0, 0x2E, 0x20, 1, w->espKind, (u32) em, 0);
+            EstSet(0, -1, 0, 0, 0x2E, 0x20, 1, w->espKind, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x31), 0, 10, 0x41, 0);
-            EstSet(0, -1, 0, 0, 0x2E, 0x21, 1, w->espKind, (u32) em, 0);
+            EstSet(0, -1, 0, 0, 0x2E, 0x21, 1, w->espKind, em, 0);
         }
         SndCall(8, 9, &em->pos, em->id, 0, em);
         w->flags &= ~0x40;
@@ -1025,14 +1025,14 @@ static void em38_R1_T_Atk(cEm38* em)
             w->mot[1] = ARC(0x37);
             w->mot[2] = ARC(0x36);
             w->blendKind = 1;
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x16, 1, w->espKind, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x16, 1, w->espKind, em, 0);
         } else {
             w->mot[0] = ARC(0x34);
             w->mot[3] = ARC(0x35);
             w->mot[1] = ARC(0x36);
             w->mot[2] = ARC(0x37);
             w->blendKind = 0x41;
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x17, 1, w->espKind, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x17, 1, w->espKind, em, 0);
         }
         em38SetTentAtkWait(w);
         w->atkHit = 0;
@@ -1113,15 +1113,15 @@ static void em38_R1_T_Atk(cEm38* em)
                 if ((pPLS->pos.x < -3000.0f && em->type == 1) || (pPLS->pos.x > 3000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (int) em38EscapeAction, (int) em, 3, 3, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 3, 3, 0, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (int) em38EscapeAction, (int) em, 3, 4, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 3, 4, 0, 0);
                         }
                     } else {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (int) em38EscapeAction, (int) em, 1, 3, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 1, 3, 0, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (int) em38EscapeAction, (int) em, 1, 4, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 1, 4, 0, 0);
                         }
                     }
                 }
@@ -1170,11 +1170,11 @@ static void em38_R1_T_MdlAtk(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
-            MotionSetCore(em, MOTION(em), ARC(0x32), (int) ARC(0x33), 10, 1, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x14, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x32), ARC(0x33), 10, 1, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x14, 1, w->espKind, em, 0);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x32), (int) ARC(0x33), 10, 0x41, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x15, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x32), ARC(0x33), 10, 0x41, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x15, 1, w->espKind, em, 0);
         }
         em38SetTentAtkWait(w);
         w->atkHit = 0;
@@ -1203,15 +1203,15 @@ static void em38_R1_T_MdlAtk(cEm38* em)
                 if ((pPLS->pos.x < 4000.0f && em->type == 1) || (pPLS->pos.x > -4000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 3, 3, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 3, 0, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 3, 4, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 4, 0, 0);
                         }
                     } else {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 1, 3, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 3, 0, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 1, 4, 0, 0);
+                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 4, 0, 0);
                         }
                     }
                 }
@@ -1260,11 +1260,11 @@ static void em38_R1_T_BigAtk(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
-            MotionSetCore(em, MOTION(em), ARC(0x3A), (int) ARC(0x3B), 10, 1, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x1B, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x3A), ARC(0x3B), 10, 1, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x1B, 1, w->espKind, em, 0);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x3C), (int) ARC(0x3D), 10, 0x41, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x1A, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x3C), ARC(0x3D), 10, 0x41, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x1A, 1, w->espKind, em, 0);
         }
         em38SetTentAtkWait(w);
         w->atkHit = 0;
@@ -1292,29 +1292,29 @@ static void em38_R1_T_BigAtk(cEm38* em)
                     if (pPL->r_no_0 == 4) {
                         if (em->type == 1) {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (int) em38SitAction, (int) em, 3, 3, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 3, 3, 0, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (int) em38SitAction, (int) em, 3, 4, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 3, 4, 0, 0);
                             }
                         } else {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 3, 3, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 3, 0, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 3, 4, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 4, 0, 0);
                             }
                         }
                     } else {
                         if (em->type == 1) {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (int) em38SitAction, (int) em, 1, 3, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 1, 3, 0, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (int) em38SitAction, (int) em, 1, 4, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 1, 4, 0, 0);
                             }
                         } else {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 1, 3, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 3, 0, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 1, 4, 0, 0);
+                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 4, 0, 0);
                             }
                         }
                     }
@@ -1336,11 +1336,11 @@ static void em38_R1_T_DownAtk(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
-            MotionSetCore(em, MOTION(em), ARC(0x38), (int) ARC(0x39), 10, 1, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x18, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x38), ARC(0x39), 10, 1, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x18, 1, w->espKind, em, 0);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x38), (int) ARC(0x39), 10, 0x41, 0);
-            EstSet((int) em, -1, 0, 0, 0x2E, 0x19, 1, w->espKind, (u32) em, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x38), ARC(0x39), 10, 0x41, 0);
+            EstSet(em, -1, 0, 0, 0x2E, 0x19, 1, w->espKind, em, 0);
         }
         em38SetTentAtkWait(w);
         w->atkHit = 0;
@@ -1383,15 +1383,15 @@ static void em38_R1_T_CatchHit(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
-            MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 1, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x3E), ARC(0x3F), 0, 1, 0);
             SetPlDamage(em, plem38_CatchHit);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 0x41, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x3E), ARC(0x3F), 0, 0x41, 0);
             SetPlDamage(em, plem38_CatchHit);
             pPL->r_no_3 = 1;
         }
         w->timer = 91;
-        EstSet((int) em, -1, 0, 0, 0x2E, 7, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 7, 0, 0, em, 0);
         em->r_no_2++;
     case 1:
         if (em->frame > 14.7f && em->frame < 15.3f && w->pUpper) {
@@ -1438,7 +1438,7 @@ static void plem38_CatchHit(cPlayer* pl)
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 1, 0);
         }
-        EstSet((int) pl, -1, 0, 0, 0x2E, 0xE, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 0x2E, 0xE, 0, 0, pl, 0);
         PlSetFace(1);
         pl->r_no_2++;
     case 1:
@@ -1458,7 +1458,7 @@ static void plem38_CatchHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4C), 0, 0, 1, 0);
         SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
-        EstSet((int) pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, pl, 0);
         pl->r_no_2++;
     case 3:
         if (MotionMoveF(pl, 0)) {
@@ -1558,9 +1558,9 @@ static void em38_R1_Dm_Down(cEm38* em)
         if (w->mode == 3 || w->mode == 5) {
             w->mode = 6;
         }
-        EffectEspDelete(1, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind, (int) em);
-        EffectEfmDelete(1, w->espKind, (int) em);
+        EffectEspDelete(1, w->espKind, em, 0);
+        EffectEspgenDelete(1, w->espKind, em);
+        EffectEfmDelete(1, w->espKind, em);
         em->r_no_2++;
     case 1:
         w->blendRate *= 0.9f;
@@ -1592,7 +1592,7 @@ static void em38_R1_Dm_Down(cEm38* em)
         }
         break;
     case 4:
-        MotionSetCore(em, MOTION(em), ARC(0x18), (int) ARC(0x19), 3, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x19), 3, 1, 0);
         em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -1641,9 +1641,9 @@ static void em38_R1_Die_Body(cEm38* em)
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x28), 0, 3, 1, 0);
         em->clearStatus(EM_STATUS_ACTIVE);
-        EffectEspDelete(1, w->espKind2, (u32) em, 0);
-        EffectEspgenDelete(1, w->espKind2, (int) em);
-        EffectEfmDelete(1, w->espKind2, (int) em);
+        EffectEspDelete(1, w->espKind2, em, 0);
+        EffectEspgenDelete(1, w->espKind2, em);
+        EffectEfmDelete(1, w->espKind2, em);
         SndStrReq(1, 0x30, 0x80000003, 0, 0, 0.0f);
         em->atari.throughOn();
         em->r_no_2++;
@@ -1922,7 +1922,7 @@ void em38ShellControl(cEm38* em)
         MotionSetCore(em, &w->shellMot, ARC(0x42), 0, 0, 0, 0);
         w->mode++;
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 0x2E, 5, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 5, 0, 0, em, 0);
     case 3:
         MotionMoveCore(em, SHELL_MOT(w), 0);
         if (MotionSequenceCtrl(SHELL_MOT(w))) {
@@ -1970,7 +1970,7 @@ void em38ShellControl(cEm38* em)
         MotionSetCore(em, &w->shellMot, ARC(0x42), 0, 0, 0, 0);
         w->mode++;
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 0x2E, 0x24, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x2E, 0x24, 0, 0, em, 0);
     case 0xB:
         MotionMoveCore(em, SHELL_MOT(w), 0);
         if (MotionSequenceCtrl(SHELL_MOT(w))) {
@@ -1989,7 +1989,7 @@ void em38BlendMotSet(cEm38* em, void* m0, void* m1, void* m2, void* m3, int a, i
     void* m;
     int seq;
 
-    MotionSetCore(em, MOTION(em), m0, (int) m3, (u8) w->blendA, (u16) kind, (u16) w->blendB);
+    MotionSetCore(em, MOTION(em), m0, m3, (u8) w->blendA, (u16) kind, (u16) w->blendB);
     if (w->blendRate > 0.0f) {
         m = m1;
         seq = a;
@@ -1998,7 +1998,7 @@ void em38BlendMotSet(cEm38* em, void* m0, void* m1, void* m2, void* m3, int a, i
         seq = b;
     }
     bm = &w->blendMot;
-    MotionSetCore(em, bm, m, seq, (u8) w->blendA, (u16) kind, (u16) w->blendB);
+    MotionSetCore(em, bm, m, (void*) seq, (u8) w->blendA, (u16) kind, (u16) w->blendB);
     em->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (w->blendA) {
@@ -2039,22 +2039,22 @@ void em38BloodSet(cEm38* em)
             case 0x11:
             case 0x26:
             case 0x2B:
-                EstSet((int) em, -1, 0, 0, 0x2E, 9, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0x2E, 9, 0, 0, em, 0);
                 break;
             case 0xB:
             case 0xC:
             case 0x1B:
             case 0x1D:
             case 0x27:
-                EstSet((int) em, -1, 0, 0, 0x2E, 0xA, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0x2E, 0xA, 0, 0, em, 0);
                 break;
             case 7:
             case 8:
             case 0x21:
                 if (near == 0) {
-                    EstSet((int) em, -1, 0, 0, 0x2E, 9, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, 0x2E, 9, 0, 0, em, 0);
                 } else {
-                    EstSet((int) em, -1, 0, 0, 0x2E, 0xB, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, 0x2E, 0xB, 0, 0, em, 0);
                 }
                 break;
             case 5:
@@ -2070,7 +2070,7 @@ void em38BloodSet(cEm38* em)
             case 0x29:
             case 0x2C:
             case 0x2D:
-                EstSet((int) em, -1, 0, 0, 0x2E, 0xB, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0x2E, 0xB, 0, 0, em, 0);
                 break;
             case 0:
             case 0x14:
@@ -2307,11 +2307,11 @@ static void plemDmStamp(cPlayer* pl)
     case 0:
         if ((s16) pG->pl_life <= 0) {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x49), 0, 5, 1, 0);
-            EstSet((int) pl, -1, 0, 0, 0x2E, 0xD, 0, 0, (u32) pl, 0);
+            EstSet(pl, -1, 0, 0, 0x2E, 0xD, 0, 0, pl, 0);
             PlSetDamageSe(0xD);
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x48), 0, 5, 1, 0);
-            EstSet((int) pl, -1, 0, 0, 0x2E, 0xC, 0, 0, (u32) pl, 0);
+            EstSet(pl, -1, 0, 0, 0x2E, 0xC, 0, 0, pl, 0);
             PlSetDamageSe(0);
         }
         PlSetFace(1);
@@ -2420,9 +2420,9 @@ static void plemEscape(cPlayer* pl)
             side = 0;
         }
         if (side) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), (int) PL_ARC(0x4B), 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), PL_ARC(0x4B), 5, 1, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), (int) PL_ARC(0x4B), 5, 0x41, 0);
+            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), PL_ARC(0x4B), 5, 0x41, 0);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
@@ -2519,7 +2519,7 @@ static void plemBackjump(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4E), 0, 5, 1, 5);
-        EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->m_Work0 = 50;

@@ -153,7 +153,7 @@ void cObjXd9::moveFire()
         if (pG->weapon_type == 1) {
             type = 1;
         }
-        EstSet((int) this, -1, 0, 0, 0x38, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, 0x38, type, 0, 0xA, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;

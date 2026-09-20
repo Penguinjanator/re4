@@ -39,10 +39,7 @@ void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t);
 f32 hermite(f32* p, f32* v, f32 t);
 f32** malloc_2dim_array_f32(int n, int m);
 void free_2dim_array_f32(int n, int m, f32** p);
-int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out);
-// COMPILER-DIFF 1: cam_ctrl BSpline issues `lfs f1` (t) before the `addi`/`lwz` of out/k; the
-// floats-first redeclaration reproduces the original's argument-move order (ABI-identical).
-int de_Boor_CoxF(int n, f32* knot, f32 t, int k, f32* out) asm("de_Boor_Cox");
+int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out);
 f32 MtxNNLUDecomposition(int n, f32* A, int* ip);
 f32 MtxNNInverse(int n, f32* m, f32* inv);
 void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out);

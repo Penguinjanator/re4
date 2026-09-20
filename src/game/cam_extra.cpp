@@ -556,14 +556,14 @@ static int IdScopeZoomDisp(f32* zoom)
 }
 
 // Saves the reticle id timers (unit 0x25 ids 0 / 0x10) across a scope re-entry.
-void IdScope::save(int)
+void IdScope::save(void*)
 {
     save_a = (s16) IdSys.unitPtr(0, 0x25)->timer[0];
     save_b = (s16) IdSys.unitPtr(0x10, 0x25)->timer[1];
 }
 
 // Restores the saved reticle id timers (ids 0, 0x10..0x13).
-void IdScope::load(int)
+void IdScope::load(void*)
 {
     IdSys.unitPtr(0, 0x25)->timer[0] = save_a;
     IdSys.unitPtr(0x10, 0x25)->timer[1] = save_b;

@@ -202,8 +202,8 @@ void R10bInit()
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
-    EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 5, 1, 3, zero, zero);
     r10b_work->boat = EmSetFromList2(0xA2, 1);
     RoomEfmRegist(SmdGetGroupObjPtr(0x58), 0x60);
     SetSstAddAreaFlag(0x800);
@@ -385,8 +385,8 @@ static void R10b_chkWater()
                 r10b_effDelete(2);
                 r10b_effDelete(3);
                 SceSleep(1);
-                EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
-                EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
+                EstSet(0, -1, 0, 0, 1, 5, 1, 3, zero, zero);
+                EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
             }
         } else if (pG->Room_flg[2] & 0x80000000) {
             pG->Room_flg[0] |= 0x80000000;

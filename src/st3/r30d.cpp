@@ -91,10 +91,6 @@ static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
 static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
-// COMPILER-DIFF: 1 (argument move order at a mixed int/float call): the first SubCharMoveTo of the
-// front shutter has the `fmr f4, f2` (the shared 0.0) before `li r3, 0`; declaring the float parameters
-// first gives that order (include/atari_init.h). The second call matches with the plain prototype.
-void SubCharMoveToF(f32 x, f32 y, f32 z, f32 w, int flag) asm("SubCharMoveTo");
 
 // Area flag test through a helper: fold would merge two tests of the same word in one `&&`/`||` into a
 // single masked compare; the original keeps one `andis.` per bit.
@@ -404,15 +400,15 @@ static void R30dShutterFrontEvent()
     R30D_SAVE_FLAGS |= 0x08000000;
     BitOn(pG->Key_flg[1], 0x40000000);
     pSUB->dmg.m_Timer = 0x80;
-    SubCharMoveToF(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
+    SubCharMoveTo(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
-    SetSubAux((int) funcAshleyShutter, 0);
+    SetSubAux(funcAshleyShutter, 0);
     while ((pG->Room_flg[0] & 0x40000000) == 0) {
         SceSleep(1);
     }
-    SubCharMoveTo(0, 3944.0f, 0.0f, 17837.0f, 193.0f);
+    SubCharMoveTo(3944.0f, 0.0f, 17837.0f, 193.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
         SceSleep(1);
     }
@@ -477,7 +473,7 @@ static void R30dCoopSwitch()
     }
     CamCtrl.CutCall(7);
     ((cUnitEventView*) pPL)->beginEvent(0);
-    SetSubAux((int) funcAshleySwitch, 0);
+    SetSubAux(funcAshleySwitch, 0);
     if (sceAtFlag(0x01000000)) {
         cObj* o1 = r30d_work.p->obj[1];
         if (o1) {

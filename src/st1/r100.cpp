@@ -320,7 +320,7 @@ void R100Init()
     SceAtSetEnable(0xA, 0);
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
         if (W->em != 0 && W->em != errEm) {
-            SceExecLinkEmDead(W->em, 0x12, (TaskFunc) r100_Sce_zombi_dead, (int) W->em, 0);
+            SceExecLinkEmDead(W->em, 0x12, (TaskFunc) r100_Sce_zombi_dead, W->em, 0);
         }
     } else {
         r100_em_set();

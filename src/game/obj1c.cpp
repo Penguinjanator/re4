@@ -34,7 +34,7 @@ void obj1c_R1_Crash(cObj1c* obj);
 void obj1c_R1_CrashBig(cObj1c* obj);
 void obj1cSpdMove(cObj1c* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*Obj1c_R1_move_tbl[3])(cObj1c*) = { obj1c_R1_Set, obj1c_R1_Crash, obj1c_R1_CrashBig };
 
@@ -125,7 +125,7 @@ void obj1c_R1_Set(cObj1c* obj)
     } else {
         w->estTimer = 30;
         if (obj->be_flag & 2) {
-            EstSet((int) obj, -1, 0, 0, 1, 0, 0, w->espKind, (u32) obj, 0);
+            EstSet(obj, -1, 0, 0, 1, 0, 0, w->espKind, obj, 0);
         }
     }
     if (obj->pMotion) {
@@ -231,7 +231,7 @@ void cObj1c::setCrash()
     }
     if (w->crashEstWait == 0) {
         w->crashEstWait = 15;
-        EstSet((int) this, -1, 0, 0, 1, 1, 0, w->espKind, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 1, 1, 0, w->espKind, this, 0);
     }
 }
 
@@ -264,7 +264,7 @@ void cObj1c::setCrashBig(Vec* from)
     }
     if (w->crashEstWait == 0) {
         w->crashEstWait = 15;
-        EstSet((int) this, -1, 0, 0, 1, 1, 0, w->espKind, (u32) this, 0);
+        EstSet(this, -1, 0, 0, 1, 1, 0, w->espKind, this, 0);
     }
     w->crashTimer = 15;
 }

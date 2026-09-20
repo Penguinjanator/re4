@@ -582,7 +582,7 @@ void R20cExecShootInit()
         R20cDoorOpenCancel(0);
         R20cKaigaMoved(1);
         SmdSetTrans(9, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 2, 1, 0, zero, zero);
     } else {
         cEm* barred;
         cObj* obj;

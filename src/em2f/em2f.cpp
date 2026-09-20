@@ -111,15 +111,15 @@ static inline void IntSet(int& d, int v) { d = v; }
 // Effect `no` of the monster's effect set on itself.
 static inline void em2fEstSet(cEm2f* em, Em2fWork* w, int no)
 {
-    EstSet((int) em, -1, 0, 0, 0x27, no, 0, w->espKind, (u32) em, 0);
+    EstSet(em, -1, 0, 0, 0x27, no, 0, w->espKind, em, 0);
 }
 
 // The effects the monster owns are removed before it is moved somewhere else.
 static inline void em2fEffectDelete(cEm2f* em, Em2fWork* w)
 {
-    EffectEspDelete(0, w->espKind, (u32) em, 0);
-    EffectEspgenDelete(0, w->espKind, (int) em);
-    EffectEfmDelete(0, w->espKind, (int) em);
+    EffectEspDelete(0, w->espKind, em, 0);
+    EffectEspgenDelete(0, w->espKind, em);
+    EffectEfmDelete(0, w->espKind, em);
 }
 
 // Module entry (SN loader): registers Em2fInit as the DOL's enemy constructor (EmInitFunc).
@@ -523,7 +523,7 @@ static void em2f_R1_Swim(cEm2f* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.m_flag &= ~0x100;
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 30, flip, 0);
         w->waitTimer = Rnd() % 90 + 90;
         w->x424 = 0;
         w->x420 = 10;
@@ -551,13 +551,13 @@ static void em2f_R1_Swim(cEm2f* em)
         }
         break;
     case 2:
-        MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, flip, 0);
         em2fEstSet(em, w, 0xC);
         w->timer = 80;
         em->r_no_2++;
         goto swim;  // the target's case 2 runs the swim step too (tails cross-jumped into case 4's)
     case 4:
-        MotionSetCore(em, MOTION(em), ARC(0xD), (int) ARC(0x1E), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xD), ARC(0x1E), 30, flip, 0);
         em2fEstSet(em, w, 4);
         w->timer = 80;
         em->r_no_2++;
@@ -646,18 +646,18 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
     case 0:
         if (Muku(&em->pos, &w->nextPos, em->ang.y, PI) < 0.0f) {
             if (w->flags & 0x20) {
-                MotionSetCore(em, MOTION(em), ARC(0x10), (int) ARC(0x21), 30, flip, 0);
+                MotionSetCore(em, MOTION(em), ARC(0x10), ARC(0x21), 30, flip, 0);
             } else {
-                MotionSetCore(em, MOTION(em), ARC(0xF), (int) ARC(0x20), 30, flip, 0);
+                MotionSetCore(em, MOTION(em), ARC(0xF), ARC(0x20), 30, flip, 0);
             }
             if (!(w->flags & 0x10)) {
                 em2fEstSet(em, w, 1);
             }
         } else {
             if (w->flags & 0x20) {
-                MotionSetCore(em, MOTION(em), ARC(0xF), (int) ARC(0x20), 30, flip, 0);
+                MotionSetCore(em, MOTION(em), ARC(0xF), ARC(0x20), 30, flip, 0);
             } else {
-                MotionSetCore(em, MOTION(em), ARC(0x10), (int) ARC(0x21), 30, flip, 0);
+                MotionSetCore(em, MOTION(em), ARC(0x10), ARC(0x21), 30, flip, 0);
             }
             if (!(w->flags & 0x10)) {
                 em2fEstSet(em, w, 0xD);
@@ -691,11 +691,11 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
     switch (em->r_no_2) {
     case 0:
         if (w->flags & 0x10) {
-            MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x2B), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x1A), ARC(0x2B), 30, flip, 0);
             w->flags &= ~0x10;
             em2fEstSet(em, w, 0x12);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x19), (int) ARC(0x2A), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x19), ARC(0x2A), 30, flip, 0);
             w->flags |= 0x10;
             em2fEstSet(em, w, 0x11);
         }
@@ -727,16 +727,16 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
             w->atkCnt--;
         }
         if (w->flags & 0x10) {
-            MotionSetCore(em, MOTION(em), ARC(0x18), (int) ARC(0x29), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x29), 30, flip, 0);
             em2fEstSet(em, w, 0x10);
         } else if (Rnd() & 3) {
-            MotionSetCore(em, MOTION(em), ARC(0x16), (int) ARC(0x27), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x16), ARC(0x27), 30, flip, 0);
             em2fEstSet(em, w, 0xE);
         } else if (Rnd() & 1) {
-            MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x24), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x24), 30, flip, 0);
             em2fEstSet(em, w, 9);
         } else {
-            MotionSetCore(em, MOTION(em), ARC(0x14), (int) ARC(0x25), 30, flip, 0);
+            MotionSetCore(em, MOTION(em), ARC(0x14), ARC(0x25), 30, flip, 0);
             em2fEstSet(em, w, 8);
         }
         w->flags &= ~0x10;
@@ -771,7 +771,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     case 0:
         em2fSetPosBetweenBoat(em);
         w->flags &= ~0x20;
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 0, 5, 0);
         w->timer = 149;
         w->timer2 = 15;
         w->risingOk = 0;
@@ -803,7 +803,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
             SndRoomStrStart(1, 3, 1);
             w->flags &= ~0x200;
         }
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 75);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 0, 5, 75);
         w->flags |= 0x10;
         w->timer = 170;
         em->r_no_2++;
@@ -817,7 +817,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         }
         break;
     case 4:
-        MotionSetCore(em, MOTION(em), ARC(0x15), (int) ARC(0x26), 10, 0x401, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x15), ARC(0x26), 10, 0x401, 0);
         w->flags &= ~0x10;
         em2fEstSet(em, w, 7);
         w->timer = 0;
@@ -876,7 +876,7 @@ static void em2f_R1_Packman(cEm2f* em)
     case 0:
         em2fSetPosBetweenBoat(em);
         w->flags &= ~0x20;
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 0, 5, 0);
         w->timer = 149;
         w->risingOk = 0;
         w->timer2 = 15;
@@ -908,7 +908,7 @@ static void em2f_R1_Packman(cEm2f* em)
             SndRoomStrStart(1, 3, 1);
             w->flags &= ~0x200;
         }
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 0, 5, 0);
         w->flags |= 0x10;
         w->timer = 180;
         em->r_no_2++;
@@ -922,7 +922,7 @@ static void em2f_R1_Packman(cEm2f* em)
         }
         break;
     case 4:
-        MotionSetCore(em, MOTION(em), ARC(0x17), (int) ARC(0x28), 10, 0x401, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x17), ARC(0x28), 10, 0x401, 0);
         w->flags &= ~0x10;
         em2fEstSet(em, w, 0xF);
         w->timer = 0;
@@ -963,7 +963,7 @@ static void em2f_R1_Packman(cEm2f* em)
         }
         break;
     case 6:
-        MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, 1, 0);
         em2fEstSet(em, w, 0xC);
         em->r_no_2++;
     case 7:
@@ -1001,7 +1001,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     }
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, MOTION(em), ARC(0x1C), (int) ARC(0x2D), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x1C), ARC(0x2D), 30, flip, 0);
         w->flags &= ~0x20;
         w->atkCnt = Rnd() % 3 + 1;
         w->timer = 120;
@@ -1021,7 +1021,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         }
         break;
     case 2:
-        MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xA), ARC(0x1D), 0, 5, 0);
         w->flags |= 0x10;
         w->timer = Rnd() % 90 + 90;
         em->r_no_2++;
@@ -1037,7 +1037,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     case 4:
         em2fSetPosHideMode(em);
         w->hideRush = 0;
-        MotionSetCore(em, MOTION(em), ARC(0x32), (int) ARC(0x34), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x32), ARC(0x34), 30, flip, 0);
         em->be_flag |= 2;
         SndRoomStrStart(1, 3, 1);
         w->flags &= ~0x200;
@@ -1051,7 +1051,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         }
         break;
     case 6:
-        MotionSetCore(em, MOTION(em), ARC(9), (int) ARC(0x33), 30, 5, 0);
+        MotionSetCore(em, MOTION(em), ARC(9), ARC(0x33), 30, 5, 0);
         SndCall(8, 0x1A, &em->pos, em->id, 0, em);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         w->flags &= ~0x10;
@@ -1069,7 +1069,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         }
         break;
     case 8:
-        MotionSetCore(em, MOTION(em), ARC(0x17), (int) ARC(0x28), 10, 0x401, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x17), ARC(0x28), 10, 0x401, 0);
         w->flags &= ~0x10;
         em2fEstSet(em, w, 0xF);
         w->timer2 = 90;
@@ -1090,7 +1090,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         }
         break;
     case 0xA:
-        MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, flip, 0);
+        MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x1F), 30, flip, 0);
         em2fEstSet(em, w, 0x16);
         w->timer2 = 90;
         em->r_no_2++;
@@ -1171,7 +1171,7 @@ static void em2f_R1_Critical(cEm2f* em)
         w->camAt.z = 22609.0f;
         w->timer = 3;
         w->timer2 = 15;
-        MotionSetCore(em, MOTION(em), ARC(0x1B), (int) ARC(0x2C), 0, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x1B), ARC(0x2C), 0, 1, 0);
         em2fEstSet(em, w, 0x13);
         em->r_no_2++;
     case 3:

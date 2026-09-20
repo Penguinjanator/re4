@@ -2954,7 +2954,7 @@ void dbModMotionSetSeq(int no, void* seq, int flag, int frame)
     cEm* model = em->pEm;
 
     em->mot[0].flags = flag;
-    MotionSetCore(model, &model->Motion, em->pMotBuff[0], (int) seq, 0, (u16) (flag | 0x200), (u16) frame);
+    MotionSetCore(model, &model->Motion, em->pMotBuff[0], seq, 0, (u16) (flag | 0x200), (u16) frame);
     MotionGetPosition(model, &model->pos, &model->ang);
 }
 

@@ -105,9 +105,9 @@ void R113Init()
     r113_work = (R113Work*) MEM_CALLOC(sizeof(R113Work), 1, 0xd);
 
     SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
-    EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
+    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 4, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, 1, 3, 0x800, 0, zero, zero);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
     if (!(pG->Key_flg[0] & 0x08000000) && (StaFlagChk(pG, STA_SUB_ASHLEY))) {
@@ -283,7 +283,7 @@ static void r113_EventRideShoulder()
 static void r113_checkAshleyPos()
 {
     if (CheckAshleyActive() == 1) {
-        ActBtn.set(0x16, 5, (int) r113_EventRideShoulder, 0, 0, 1, 1, 0);
+        ActBtn.set(0x16, 5, (void*) r113_EventRideShoulder, 0, 0, 1, 1, 0);
     }
 }
 

@@ -27,7 +27,7 @@ void Filter04Trans();
 void Filter05Init();
 void Filter05RoomInit();
 void Filter05Trans();
-void Filter05SetParam(int a, int b, int c, int d, int e, int f, int g, f32 x, f32 y, f32 z);
+void Filter05SetParam(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g);
 void Filter06Init();
 void Filter06RoomInit();
 void Filter06Trans();

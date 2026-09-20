@@ -123,14 +123,14 @@ void cPlKlauser::move()
     if (x894 > 0) {
         x894--;
         if (x894 == 0) {
-            EstSet((int) this, -1, 0, 0, 3, 0, 0, 0x3F, (u32) this, 0);
-            EstSet((int) this, -1, 0, 0, 3, 0x15, 0, 0x3F, (u32) this, 0);
+            EstSet(this, -1, 0, 0, 3, 0, 0, 0x3F, this, 0);
+            EstSet(this, -1, 0, 0, 3, 0x15, 0, 0x3F, this, 0);
         }
     }
     if ((Joy[0].on & 0x640) == 0x640) {
-        EffectEspDelete(0, 0x3F, (u32) this, 0);
-        EffectEspgenDelete(0, 0x3F, (int) this);
-        EffectEfmDelete(0, 0x3F, (int) this);
+        EffectEspDelete(0, 0x3F, this, 0);
+        EffectEspgenDelete(0, 0x3F, this);
+        EffectEfmDelete(0, 0x3F, this);
         x894 = 1;
     }
 }
@@ -473,10 +473,10 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         StaFlagOn(pGS, STA_KLAUSER_TRANSFORM);
         pl->Neck->motL = 0;
         DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
-        EffectEspDelete(0, 0x3F, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x3F, (int) pl);
-        EffectEfmDelete(0, 0x3F, (int) pl);
-        EstSet((int) pl, -1, 0, 0, 3, 0xA, 0, 0x3F, (u32) pl, 0);
+        EffectEspDelete(0, 0x3F, pl, 0);
+        EffectEspgenDelete(0, 0x3F, pl);
+        EffectEfmDelete(0, 0x3F, pl);
+        EstSet(pl, -1, 0, 0, 3, 0xA, 0, 0x3F, pl, 0);
         SndCall(1, 0x51, &pl->pos, 0, 0, 0);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->Wep->m_pWep->setDisp(1, 0);
@@ -509,7 +509,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->motionSet(PL_ARC(0x8C), 5, 0, 1, 0);
         pl->atari.setPriority(PRI_LV2);
         pl->dmg.set(0, 0x80);
-        EstSet((int) pl, -1, 0, 0, 3, 0xB, 0, 0x3F, (u32) pl, 0);
+        EstSet(pl, -1, 0, 0, 3, 0xB, 0, 0x3F, pl, 0);
         SndCall(1, 0x53, &pl->pos, 0, 0, 0);
         pl->r_no_2 = 0x15;
         // fallthrough
@@ -525,9 +525,9 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
             pl->dmg.clear();
             pl->Wep->m_pWep->setDisp(1, 1);
             pl->atari.setPriority(0);
-            EffectEspDelete(0, 0x3F, (u32) pl, 0);
-            EffectEspgenDelete(0, 0x3F, (int) pl);
-            EffectEfmDelete(0, 0x3F, (int) pl);
+            EffectEspDelete(0, 0x3F, pl, 0);
+            EffectEspgenDelete(0, 0x3F, pl);
+            EffectEfmDelete(0, 0x3F, pl);
             pl->x894 = 0x546;
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
@@ -540,9 +540,9 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->x890 = 0x14;
         StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
         pl->x894 = 1;
-        EffectEspDelete(0, 0x3F, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x3F, (int) pl);
-        EffectEfmDelete(0, 0x3F, (int) pl);
+        EffectEspDelete(0, 0x3F, pl, 0);
+        EffectEspgenDelete(0, 0x3F, pl);
+        EffectEfmDelete(0, 0x3F, pl);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->Wep->m_pWep->setDisp(1, 1);
         pl->r_no_2 = 0x1F;

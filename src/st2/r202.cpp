@@ -248,7 +248,7 @@ void R202Init()
     r202_work.p->box->pos.x = 20221.0f;
     r202_work.p->box->pos.y = 0.0f;
     r202_work.p->box->pos.z = -26500.0f;
-    atariInitF(&r202_work.p->box->atari, 0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
+    r202_work.p->box->atari.init(0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
     SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, (void (*)()) r202_openedBox, 0, 0);
     SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, (void (*)()) r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -459,9 +459,9 @@ static void r202_operateCannon()
     CamCtrl.CutCall(5);
     SceSleep(20);
     SceAtSetEnable(0x11, 0);
-    EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
     SndCall(6, 9, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, (u32) zero, zero);
+    EstSet(0, -1, 0, 0, 1, 5, 1, 0, zero, zero);
     SceSleep(35);
     SndCall(6, 0xA, 0, 0, 0, 0);
     SmdGetObjPtr(0x25)->be_flag &= ~2;
@@ -772,7 +772,7 @@ static void r202_CatapultGo()
     r202_work.p->cat[2].fire = 1;
     pG->Room_flg[0] |= 0x80000000;
     rock = r202_work.p->cat[2].rock;
-    EstSet((int) rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, (u32) rock, zero);
+    EstSet(rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, rock, zero);
     SceSleep(60);
     pG->Room_flg[0] |= 0x02000000;
     r202_work.p->em180.setFlag(1);

@@ -42,7 +42,7 @@ int obj08ToEmHitCk(cObj08* obj);
 int obj08ToPlHitCk(cObj08* obj);
 void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 Vec obj08HitBox[8] = {
     { -500.0f, -500.0f, 0.0f },   { 500.0f, -500.0f, 0.0f },
@@ -398,7 +398,7 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
     }
     if (w->hit_type) {
-        EstSet((int) em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, 0, em, 0);
         return;
     }
     if (part->partsNo != 0) {

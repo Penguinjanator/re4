@@ -216,7 +216,7 @@ void cPl0f::move()
             w->Ripple_wait--;
         } else {
             w->Ripple_wait = 0x1D;
-            EstSet((int) this, -1, 0, 0, 0xF, 7, 0, 0x35, (u32) this, 0);
+            EstSet(this, -1, 0, 0, 0xF, 7, 0, 0x35, this, 0);
         }
     }
     if (w->pRope) {
@@ -311,9 +311,9 @@ void cPl0f::setPos(Vec* p, f32 ang)
     TransMatrix(mat, &pos);
     partsMatCalc();
     partsWorldCalc();
-    EffectEspDelete(0, 0x35, (u32) this, 0);
-    EffectEspgenDelete(0, 0x35, (int) this);
-    EffectEfmDelete(0, 0x35, (int) this);
+    EffectEspDelete(0, 0x35, this, 0);
+    EffectEspgenDelete(0, 0x35, this);
+    EffectEfmDelete(0, 0x35, this);
 }
 
 // r_no_0 == 0: creation. Loads the boat model (archive 5/6) with a 2 m light area, no IK / lock-on,
@@ -392,7 +392,7 @@ static void pl0f_R0_Init(cPl0f* em)
     }
     w->EffKindId = EspPullCoreKind();
     if (pG->room_id != 0x10D && pG->room_id != 0x10E) {
-        EstSet((int) em, -1, 0, 0, 0xF, 0xF, 0x800, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 0xF, 0x800, 0, em, 0);
     }
     pl0fSetAnchor(em);
     pl0fLongRopeSet(em);
@@ -642,7 +642,7 @@ static void pl0f_R1_Drop(cPl0f* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x1F), 0, 0, 5, 0);
-        EstSet((int) em, -1, 0, 0, 0xF, 0xB, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 0xB, 0, 0x35, em, 0);
         LifeDownSet2(em, 100, 0, 1);
         em->getPartsPtr(1)->ang.y = 0.0f;
         w->Timer = 60;
@@ -706,7 +706,7 @@ static void pl0f_R1_WaterRide(cPl0f* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x22), 0, 0, 5, 0);
-        EstSet((int) em, -1, 0, 0, 0xF, 0xC, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 0xC, 0, 0x35, em, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         w->Timer = 60;
         em->r_no_2++;
@@ -765,7 +765,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
     case 1: \
         w->Timer3++; \
         if (w->Timer3 & 1) { \
-            EstSet((int) em, -1, 0, 0, 1, 0xA, 0, 0x35, (u32) em, 0); \
+            EstSet(em, -1, 0, 0, 1, 0xA, 0, 0x35, em, 0); \
         } \
         if (w->Timer) { \
             w->Timer--; \
@@ -1010,7 +1010,7 @@ void pl0fWaterEff(cPl0f* em)
         return;
     }
     if (w->Boat_rot > 2.443461f && w->Boat_spd > 30.0f && !(pG->Frame_cnt & 3)) {
-        EstSet((int) em, -1, 0, 0, 0xF, 0x1D, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 0x1D, 0, 0x35, em, 0);
     }
     if (w->Boat_spd < 150.0f) {
         return;
@@ -1023,9 +1023,9 @@ void pl0fWaterEff(cPl0f* em)
         if (turn == 0) {
             turn = 1;
             if (w->Boat_dir < 0.0f) {
-                EstSet((int) em, -1, 0, 0, 0xF, 3, 0, 0x35, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0xF, 3, 0, 0x35, em, 0);
             } else {
-                EstSet((int) em, -1, 0, 0, 0xF, 4, 0, 0x35, (u32) em, 0);
+                EstSet(em, -1, 0, 0, 0xF, 4, 0, 0x35, em, 0);
             }
             SndCall(8, 0xC, &em->pos, 0xF, 0, 0);
         }
@@ -1034,15 +1034,15 @@ void pl0fWaterEff(cPl0f* em)
     }
     cnt++;
     if (cnt & 1) {
-        EstSet((int) em, -1, 0, 0, 0xF, 0, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 0, 0, 0x35, em, 0);
     }
     if (a < 2.0943952f) {
-        EstSet((int) em, -1, 0, 0, 0xF, 1, 0, 0x35, (u32) em, 0);
-        EstSet((int) em, -1, 0, 0, 0xF, 2, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 1, 0, 0x35, em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 2, 0, 0x35, em, 0);
     }
     cnt3++;
     if (cnt3 % 20 == 0) {
-        EstSet((int) em, -1, 0, 0, 0xF, 9, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 9, 0, 0x35, em, 0);
         SndCall(8, 0x12, &em->pos, 0xF, 0, 0);
     }
     if (StaFlagChk(pG, STA_PL_SPEAR_SET)) {
@@ -1050,10 +1050,10 @@ void pl0fWaterEff(cPl0f* em)
             hideCnt++;
             return;
         }
-        EstSet((int) em, -1, 0, 0, 0xF, 5, 0, 0x35, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0xF, 5, 0, 0x35, em, 0);
     } else {
         if (hideCnt != 0) {
-            EstSet((int) em, -1, 0, 0, 0xF, 8, 0, 0x35, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0xF, 8, 0, 0x35, em, 0);
         }
         hideCnt = 0;
     }
@@ -1592,18 +1592,18 @@ void pl0fRideActEvtCk(cPl0f* em)
     switch (em->type) {
     case 0:
     default:
-        ActBtn.set(0x23, 5, (int) pl0fActRide, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x23, 5, (void*) pl0fActRide, em, 0, 1, 0, 0);
         break;
     case 1:
-        ActBtn.set(0x23, 5, (int) pl0fActRideR10d, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x23, 5, (void*) pl0fActRideR10d, em, 0, 1, 0, 0);
         break;
     case 2:
     case 3:
-        ActBtn.set(0x23, 5, (int) pl0fActRideR10e, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x23, 5, (void*) pl0fActRideR10e, em, 0, 1, 0, 0);
         break;
     case 4:
     case 5:
-        ActBtn.set(0x23, 5, (int) pl0fActRideR10e2, (int) em, 0, 1, 0, 0);
+        ActBtn.set(0x23, 5, (void*) pl0fActRideR10e2, em, 0, 1, 0, 0);
         break;
     }
 }
@@ -1637,7 +1637,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
         if ((pPL->pos.x - pl0f_getoff_ck[i].x) * (pPL->pos.x - pl0f_getoff_ck[i].x) + (pPL->pos.z - pl0f_getoff_ck[i].z) * (pPL->pos.z - pl0f_getoff_ck[i].z) < 4.9e7f) {
             w->Getoff_dir = pl0f_getoff_ang[i];
             w->Getoff_pos = pl0f_getoff_land[i];
-            ActBtn.set(0x24, 5, (int) pl0fActGetOff, (int) em, 0, 1, 0, 0);
+            ActBtn.set(0x24, 5, (void*) pl0fActGetOff, em, 0, 1, 0, 0);
         }
     }
 }
@@ -2525,7 +2525,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         pl->m_Work3 = 0;
         pPLS->endCamera();   // struct view: the pPL load stays below the four stores
         pl00SetDropCam(pl);
-        EstSet((int) pl, -1, 0, 0, 0xF, 0x15, 0, 0x35, (u32) boat, 0);
+        EstSet(pl, -1, 0, 0, 0xF, 0x15, 0, 0x35, boat, 0);
         pl->m_Work2 = 26;
         pl->setRightHand(0);
         SndCall(8, 0x16, &pl->pos, 0xF, 0, 0);
@@ -2557,7 +2557,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         if (pl->m_Work2) {
             pl->m_Work2--;
             if (pl->m_Work2 == 0) {
-                EstSet(0, -1, &pl->pos, 0, 0xF, 0x14, 0, 0x35, (u32) pl, 0);
+                EstSet(0, -1, &pl->pos, 0, 0xF, 0x14, 0, 0x35, pl, 0);
                 SndCall(8, 2, &pl->pos, 0xF, 0, 0);
                 SndStrVolSet(0, 5, 70, 1);
             }
@@ -2609,9 +2609,9 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->ang.x = 0.0f;
         pl->ang.z = 0.0f;
         pl0fSwimPosSet(pl);
-        EffectEspDelete(0, 0x34, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x34, (int) pl);
-        EffectEfmDelete(0, 0x34, (int) pl);
+        EffectEspDelete(0, 0x34, pl, 0);
+        EffectEspgenDelete(0, 0x34, pl);
+        EffectEfmDelete(0, 0x34, pl);
         StaFlagOff(pG, STA_WATER_CAMERA);
         pl->m_Work1 = one;
         pl->m_Work0 = 0;
@@ -2623,10 +2623,10 @@ static void plboat_R2_Swim(cPlayer* pl)
         } else {
             pl00SetChaseCam(pl);
             pl->m_Work3 = 90;
-            EstSet(0, -1, 0, 0, 0xF, 0xE, 0, 0x34, (u32) pl, (void*) first);
+            EstSet(0, -1, 0, 0, 0xF, 0xE, 0, 0x34, pl, (void*) first);
             StaFlagOn(pG, STA_WATER_CAMERA);
         }
-        MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) PLARC(0x15), 5, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x14), PLARC(0x15), 5, 5, 0);
         pl->m_VecWork0.x = 0.0f;
         pl->m_VecWork0.y = 0.0f;
         pl->m_VecWork0.z = 50.0f;
@@ -2688,21 +2688,21 @@ static void plboat_R2_Swim(cPlayer* pl)
             if (f >= cnt) {
                 f = 0;
             }
-            MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) m, pl->motHokanCnt, 5, (u16) f);
+            MotionSetCore(pl, &pl->Motion, PLARC(0x14), m, pl->motHokanCnt, 5, (u16) f);
         }
         if (pl->motEvent & 0x40) {
-            EstSet((int) pl, -1, 0, 0, 0xF, 0x11, 0, 0x35, (u32) boat, 0);
+            EstSet(pl, -1, 0, 0, 0xF, 0x11, 0, 0x35, boat, 0);
             SndCall(8, 0x1A, &pl->pos, 0xF, 0, 0);
         }
         if (pl->motEvent & 0x80) {
-            EstSet((int) pl, -1, 0, 0, 0xF, 0x12, 0, 0x35, (u32) boat, 0);
+            EstSet(pl, -1, 0, 0, 0xF, 0x12, 0, 0x35, boat, 0);
             SndCall(8, 0x19, &pl->pos, 0xF, 0, 0);
         }
         if (pl->m_Work2) {
             pl->m_Work2--;
         } else {
             pl->m_Work2 = 3;
-            EstSet((int) pl, -1, 0, 0, 0xF, 0x10, 0, 0x35, (u32) boat, 0);
+            EstSet(pl, -1, 0, 0, 0xF, 0x10, 0, 0x35, boat, 0);
         }
         lim = 8;
         if (pG->Game_level <= 3) {
@@ -2749,9 +2749,9 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->m_Work3--;
         if (pl->m_Work3 == 0) {
             pl00SetSwimCam(pl);
-            EffectEspDelete(0, 0x34, (u32) pl, 0);
-            EffectEspgenDelete(0, 0x34, (int) pl);
-            EffectEfmDelete(0, 0x34, (int) pl);
+            EffectEspDelete(0, 0x34, pl, 0);
+            EffectEspgenDelete(0, 0x34, pl);
+            EffectEfmDelete(0, 0x34, pl);
             StaFlagOff(pG, STA_WATER_CAMERA);
         }
     }
@@ -2789,7 +2789,7 @@ static void plboat_R2_WaterRide(cPlayer* pl)
         PSVECSubtract(&v, &pl->pos, &pl->m_VecWork0);
         pl->ang.y = pl->m_pBoat->ang.y - PI / 2;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
-        EstSet((int) pl, -1, 0, 0, 0xF, 0x16, 0, 0x35, (u32) boat, 0);
+        EstSet(pl, -1, 0, 0, 0xF, 0x16, 0, 0x35, boat, 0);
         plboat_ride_pos = boat->pos;
         plboat_ride_ang = boat->ang.y;
         pl->r_no_3++;
@@ -2845,10 +2845,10 @@ static void plboat_R2_Die(cPlayer* pl)
             if (boss) {
                 Em2fWorkView* bw = (Em2fWorkView*) ((u8*) boss + 0x3E0);
 
-                EffectEspDelete(0, bw->espKind, (u32) boss, 0);
-                EffectEspgenDelete(0, bw->espKind, (int) boss);
-                EffectEfmDelete(0, bw->espKind, (int) boss);
-                EstSet((int) boss, -1, 0, 0, 0x27, 0xA, 0, 0, (u32) boss, 0);
+                EffectEspDelete(0, bw->espKind, boss, 0);
+                EffectEspgenDelete(0, bw->espKind, boss);
+                EffectEfmDelete(0, bw->espKind, boss);
+                EstSet(boss, -1, 0, 0, 0x27, 0xA, 0, 0, boss, 0);
             }
         } else {
             pl->m_Work0 = eaten;
@@ -2989,15 +2989,15 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl->pos.z = pz; \
         pl->ang.y = a; \
         boat->setPos(&pl->pos, a); \
-        EffectEspDelete(0, 0x35, (u32) boat, 0); \
-        EffectEspgenDelete(0, 0x35, (int) boat); \
-        EffectEfmDelete(0, 0x35, (int) boat); \
+        EffectEspDelete(0, 0x35, boat, 0); \
+        EffectEspgenDelete(0, 0x35, boat); \
+        EffectEfmDelete(0, 0x35, boat); \
         pl->m_Work0 = 0; \
         pl->r_no_3++; \
     case 3: \
         pl->m_Work0++; \
         if (pl->m_Work0 & 1) { \
-            EstSet((int) boat, -1, 0, 0, 1, 0xA, 0, 0x35, (u32) boat, 0); \
+            EstSet(boat, -1, 0, 0, 1, 0xA, 0, 0x35, boat, 0); \
         } \
         if ((int) pl->m_Work0 % 20 == 0) { \
             Vec p; \
@@ -3250,7 +3250,7 @@ void pl00DropCamMove(cPlayer* pl)
         switch (pl->m_Work3) {
         case 0:
             if (h > at.y) {
-                EstSet(0, -1, 0, 0, 0xF, 0xA, 0, 0x34, (u32) pl, 0);
+                EstSet(0, -1, 0, 0, 0xF, 0xA, 0, 0x34, pl, 0);
                 StaFlagOn(pG, STA_WATER_CAMERA);
                 pl->m_Work4 = 10;
                 pl->m_Work3++;
@@ -3269,9 +3269,9 @@ void pl00DropCamMove(cPlayer* pl)
         case 2:
             StaFlagOn(pG, STA_WATER_CAMERA);
             if (h <= at.y) {
-                EffectEspDelete(0, 0x34, (u32) pl, 0);
-                EffectEspgenDelete(0, 0x34, (int) pl);
-                EffectEfmDelete(0, 0x34, (int) pl);
+                EffectEspDelete(0, 0x34, pl, 0);
+                EffectEspgenDelete(0, 0x34, pl);
+                EffectEfmDelete(0, 0x34, pl);
                 StaFlagOff(pG, STA_WATER_CAMERA);
                 pl->m_Work3++;
             }
@@ -3312,7 +3312,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     void* m;
     int f;
 
-    MotionSetCore(pl, &pl->Motion, m0, a, pl->m_Hokan, 4, pl->m_Frame);
+    MotionSetCore(pl, &pl->Motion, m0, (void*) a, pl->m_Hokan, 4, pl->m_Frame);
     if (pl->m_Blend < 0.0f) {
         m = m1;
         f = b;
@@ -3321,7 +3321,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
         f = c;
     }
     bm = &pl->m_SubMot;
-    MotionSetCore(pl, bm, m, f, pl->m_Hokan, 4, pl->m_Frame);
+    MotionSetCore(pl, bm, m, (void*) f, pl->m_Hokan, 4, pl->m_Frame);
     pl->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (pl->m_Hokan) {
@@ -3341,7 +3341,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
     void* m;
     int f;
 
-    MotionSetCore(sub, &sub->Motion, m0, a, sub->m_Hokan, 4, sub->m_Frame);
+    MotionSetCore(sub, &sub->Motion, m0, (void*) a, sub->m_Hokan, 4, sub->m_Frame);
     if (sub->m_Blend < 0.0f) {
         m = m1;
         f = b;
@@ -3350,7 +3350,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
         f = c;
     }
     bm = &sub->subBackMot;
-    MotionSetCore(sub, bm, m, f, sub->m_Hokan, 4, sub->m_Frame);
+    MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
     sub->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
     if (sub->m_Hokan) {
@@ -3446,7 +3446,7 @@ void plboatSightCurMove(cPlayer* pl)
     Vec p;
 
     plboatSightCurGet(pl, &p);
-    EstSet(0, -1, &p, 0, 0xF, 6, 0, 0x35, (u32) pl, 0);
+    EstSet(0, -1, &p, 0, 0xF, 6, 0, 0x35, pl, 0);
 }
 
 // Throws the held harpoon: the target is 25 m along the camera ray through the sight cursor, the
@@ -3603,9 +3603,9 @@ void pl0fSwimPosSet(cPlayer* pl)
     TransMatrix(pl->l_mat, &pl->pos);
     ScaleMatrix(pl->l_mat, &pl->scale);
     PSMTXCopy(pl->l_mat, pl->mat);
-    EffectEspDelete(0, 0x35, (u32) boat, 0);
-    EffectEspgenDelete(0, 0x35, (int) boat);
-    EffectEfmDelete(0, 0x35, (int) boat);
+    EffectEspDelete(0, 0x35, boat, 0);
+    EffectEspgenDelete(0, 0x35, boat);
+    EffectEfmDelete(0, 0x35, boat);
 }
 
 // Start of the mouth chance: the boat is teleported to the hiding spot (40000, 40000) facing one
@@ -3628,9 +3628,9 @@ void pl0fHidePosSet(cPlayer* pl)
     boat->setPos(&v, ang);
     pl->pos = boat->pos;
     pl->ang.y = boat->ang.y;
-    EffectEspDelete(0, 0x35, (u32) boat, 0);
-    EffectEspgenDelete(0, 0x35, (int) boat);
-    EffectEfmDelete(0, 0x35, (int) boat);
+    EffectEspDelete(0, 0x35, boat, 0);
+    EffectEspgenDelete(0, 0x35, boat);
+    EffectEfmDelete(0, 0x35, boat);
 }
 
 // Boss death: the boat is teleported to the death-scene spot (24250, 92250) facing 2.85 rad, the
@@ -3647,9 +3647,9 @@ void pl0fBossDiePosSet(cPlayer* pl)
     pl->ang.y = LIMIT_ANGLE(pl->ang.y);
     boat->setPos(&v, pl->ang.y);   // the just-stored member is forwarded: f1 passes straight through
     pl->pos = boat->pos;
-    EffectEspDelete(0, 0x35, (u32) boat, 0);
-    EffectEspgenDelete(0, 0x35, (int) boat);
-    EffectEfmDelete(0, 0x35, (int) boat);
+    EffectEspDelete(0, 0x35, boat, 0);
+    EffectEspgenDelete(0, 0x35, boat);
+    EffectEfmDelete(0, 0x35, boat);
 }
 
 // The anchor object hung on the boat (room 10B only).
@@ -3703,51 +3703,51 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
     w = PL0F_WK(pl->m_pBoat);
     boss = w->pBoss;
     if (boss == 0) {
-        EffectEspDelete(0, 0x36, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x36, (int) pl);
-        EffectEfmDelete(0, 0x36, (int) pl);
+        EffectEspDelete(0, 0x36, pl, 0);
+        EffectEspgenDelete(0, 0x36, pl);
+        EffectEfmDelete(0, 0x36, pl);
         w->anchorEff = 0;
         return;
     }
     // Two separate ifs: each body is the fall-through of its own test, so cse stores the known-zero `andi.`
     // result (r28) and jump2 merges the two identical bodies; an `||` body starts at a label and gets `li r0,0`.
     if (!(boss->flag & 0x20)) {
-        EffectEspDelete(0, 0x36, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x36, (int) pl);
-        EffectEfmDelete(0, 0x36, (int) pl);
+        EffectEspDelete(0, 0x36, pl, 0);
+        EffectEspgenDelete(0, 0x36, pl);
+        EffectEfmDelete(0, 0x36, pl);
         w->anchorEff = 0;
         return;
     }
     if (!(boss->flag & 4)) {
-        EffectEspDelete(0, 0x36, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x36, (int) pl);
-        EffectEfmDelete(0, 0x36, (int) pl);
+        EffectEspDelete(0, 0x36, pl, 0);
+        EffectEspgenDelete(0, 0x36, pl);
+        EffectEfmDelete(0, 0x36, pl);
         w->anchorEff = 0;
         return;
     }
     ang = Muku(&pl->pos, &boss->pos, pl->ang.y, PI);
     if (fabsf(ang) < PI / 8) {
-        EffectEspDelete(0, 0x36, (u32) pl, 0);
-        EffectEspgenDelete(0, 0x36, (int) pl);
-        EffectEfmDelete(0, 0x36, (int) pl);
+        EffectEspDelete(0, 0x36, pl, 0);
+        EffectEspgenDelete(0, 0x36, pl);
+        EffectEfmDelete(0, 0x36, pl);
         w->anchorEff = 0;
         return;
     }
     if (ang < 0.0f) {
         if (w->anchorEff != 1) {
-            EffectEspDelete(0, 0x36, (u32) pl, 0);
-            EffectEspgenDelete(0, 0x36, (int) pl);
-            EffectEfmDelete(0, 0x36, (int) pl);
+            EffectEspDelete(0, 0x36, pl, 0);
+            EffectEspgenDelete(0, 0x36, pl);
+            EffectEfmDelete(0, 0x36, pl);
             w->anchorEff = 1;
-            EstSet(0, -1, 0, 0, 0xF, 0x1F, 0, 0x36, (u32) pl, 0);
+            EstSet(0, -1, 0, 0, 0xF, 0x1F, 0, 0x36, pl, 0);
         }
     } else {
         if (w->anchorEff != 2) {
-            EffectEspDelete(0, 0x36, (u32) pl, 0);
-            EffectEspgenDelete(0, 0x36, (int) pl);
-            EffectEfmDelete(0, 0x36, (int) pl);
+            EffectEspDelete(0, 0x36, pl, 0);
+            EffectEspgenDelete(0, 0x36, pl);
+            EffectEfmDelete(0, 0x36, pl);
             w->anchorEff = 2;
-            EstSet(0, -1, 0, 0, 0xF, 0x1E, 0, 0x36, (u32) pl, 0);
+            EstSet(0, -1, 0, 0, 0xF, 0x1E, 0, 0x36, pl, 0);
         }
     }
 }
@@ -3948,9 +3948,9 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
         setPos(p, ang);
         FSet(pPL->ang.y, ang);   // scalar-reference store: pPL is reloaded for the pos copy
         pPL->pos = pos;
-        EffectEspDelete(0, 0x35, (u32) this, 0);
-        EffectEspgenDelete(0, 0x35, (int) this);
-        EffectEfmDelete(0, 0x35, (int) this);
+        EffectEspDelete(0, 0x35, this, 0);
+        EffectEspgenDelete(0, 0x35, this);
+        EffectEfmDelete(0, 0x35, this);
         PlRoutineSet(pPL, 0, 0xF, 2, 0);
         PlRoutineSet(this, 1, 6, 0, 0);
         pl = pPL;

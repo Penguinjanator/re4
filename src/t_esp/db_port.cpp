@@ -48,7 +48,7 @@ void memclr_asm(void* p, u32 size);
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h);
+void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, void* g, u32 owner, void* h);
 
 extern GXTexObj fontTexObj;  // game/eprintf.cpp
 extern Mtx fontTMtx;
@@ -174,7 +174,6 @@ extern "C" int num_get(char** pp);
 extern "C" int symbol_check(char** pp, const char* sym);
 extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen);
 // COMPILER-DIFF: #1 (the original moves the cModel* argument before the f32 one: `mr r4; fmr f1`)
-int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("PathGetPosEm");
 
 // 1 when the effect tool was entered from the event tool (EvtDebug.FlagEtc bit 30).
 static inline int evtToolOn()
@@ -495,7 +494,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     if (evtToolOn()) {
         f |= 0x1000;
     }
-    EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, (void*) zero);
+    EstSet(m, -1, 0, 0, head, f | 1, 0, m, 0xCF, (void*) zero);
 }
 
 // Loads the event's camera data for the event-tool preview (EvtDebug camName).
@@ -1838,7 +1837,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     t = 0.0f;
     for (i = 0; i < 256; i++) {
         if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
-            PathGetPosEmM(pw->path, em, t, &pw->seg, &pos);
+            PathGetPosEm(pw->path, em, t, &pw->seg, &pos);
         } else {
             PathGetPos(pw->path, t, &pw->seg, &pos);
         }
@@ -1893,7 +1892,7 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
     t = 0.0f;
     for (i = 0; i < 256; i++) {
         if (em && PathHasWeight(path)) {
-            PathGetPosEmM(path, em, t, &seg, &pos);
+            PathGetPosEm(path, em, t, &seg, &pos);
         } else {
             PathGetPos(path, t, &seg, &pos);
         }

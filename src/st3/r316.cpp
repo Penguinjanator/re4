@@ -179,7 +179,7 @@ static void r316_checkHeatEffect()
     for (;;) {
         if (on == 0) {
             if (SceAtHitCheck(6) == 1) {
-                EstSet(0, -1, 0, 0, 1, 0, 1, (u8) kind, (u32) zero, zero);
+                EstSet(0, -1, 0, 0, 1, 0, 1, (u8) kind, zero, zero);
                 on = 1;
                 SceSleep(30);
             }

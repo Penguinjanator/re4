@@ -187,7 +187,7 @@ void cEm24::move()
                             w->Water_eff_wait--;
                         } else {
                             w->Water_eff_wait = 2;
-                            EstSet((int) this, -1, 0, 0, 0x1C, 4, 0, 0, (u32) this, 0);
+                            EstSet(this, -1, 0, 0, 0x1C, 4, 0, 0, this, 0);
                         }
                     }
                 }
@@ -236,7 +236,7 @@ static void em24_R0_Init(cEm24* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    atariInitF(at, 0.0f, -50.0f, 0.0f, 350.0f, 150.0f, 150.0f, 100.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    at->init(0.0f, -50.0f, 0.0f, 350.0f, 150.0f, 150.0f, 100.0f, 1, 0x2000, 10);
     AtariOff(at, 0xFDFF);
     em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x10;
@@ -302,14 +302,14 @@ static void em24_R1_BoxWait(cEm24* em)
         }
         break;
     case 2:
-        MotionSetCore(em, MOTION(em), ARC(0x11), (int) ARC(0x18), 3, 1, 0);
+        MotionSetCore(em, MOTION(em), ARC(0x11), ARC(0x18), 3, 1, 0);
         w->spd.x = 0.0f;
         w->spd.y = -100.0f;
         w->spd.z = 200.0f;
         w->motEnd = 0;
         w->Atk_ck = 0;
         SndCall(8, 4, &em->pos, em->id, 0, em);
-        EstSet((int) em, -1, 0, 0, 0x1C, 5, 0, 0, (u32) em, 0);
+        EstSet(em, -1, 0, 0, 0x1C, 5, 0, 0, em, 0);
         em->r_no_2++;
     case 3: {
         int two = 2;
@@ -492,7 +492,7 @@ static void em24_R0_Die(cEm24* em)
         }
         if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
-            EstSet((int) em, -1, 0, 0, 0x1C, 7, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 7, 0, 0, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
         }
@@ -512,9 +512,9 @@ static void em24_R0_Die(cEm24* em)
 
         w->Timer = 60;
         if (em->r_no_3) {
-            EstSet((int) em, -1, 0, 0, 0x1C, 3, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 3, 0, 0, em, 0);
         } else {
-            EstSet((int) em, -1, 0, 0, 0x1C, 1, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, 0x1C, 1, 0, 0, em, 0);
         }
         pos = em->pos;
         switch (Rnd() & 0xF) {

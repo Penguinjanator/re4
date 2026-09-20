@@ -308,7 +308,7 @@ void R209Init()
         r209_work.p->leader.setEm(0x7D, 3, 1, 0, 0);
         r209_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
         OyaSetObj00(r209_work.p->head, r209_work.p->leader.getPtr(), 2);
-        EstSet((int) r209_work.p->head, -1, 0, 0, 0, 0x2D, 1, 2, 0, 0);
+        EstSet(r209_work.p->head, -1, 0, 0, 0, 0x2D, 1, 2, 0, 0);
         r209_work.p->em[4].w.setEm(0x7E, 3, 1, 0, 0);
         r209_work.p->em[5].w.setEm(0x7F, 3, 1, 0, 0);
         r209_work.p->em[6].w.setEm(0x8B, 3, 1, 0, 0);

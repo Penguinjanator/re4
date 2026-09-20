@@ -30,7 +30,7 @@ int EspgenArrayPop();
 void EspgenArrayClear();
 int EspgenMove();
 int EspgenTrans();
-void EspgenDelete(int a, int b, int c);
+void EspgenDelete(int a, int b, void* c);
 void EspgenDeleteEvent();
 int EspgenDispInfo();
 int EspgenGetCallNo();
@@ -459,7 +459,7 @@ int EspgenTrans()
 
 // Releases every controller whose owner info matches Core_flg == a, Core_kind == b, Core_pEm == c
 // (each test skipped when 0): effects owned by a dying enemy/object.
-void EspgenDelete(int a, int b, int c)
+void EspgenDelete(int a, int b, void* c)
 {
     EspgenWork* w;
     u32 i;

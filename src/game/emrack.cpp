@@ -21,7 +21,7 @@ void Em_R0_Scenario(cEm* em);                                                   
 // esp.h declares the effect id as int; this unit passes the u8 `eff` byte straight into r7
 // (emRack_R1_Break: the byte load is shared by the compare and the calls), so it carries the
 // prototype with a u8 parameter.
-void EstSet(int a, int b, Vec* pos, Vec* rot, u8 c, int d, int e, int f, u32 g, void* h);
+void EstSet(cModel* a, int b, Vec* pos, Vec* rot, u8 c, int d, int e, int f, void* g, void* h);
 }
 
 typedef void (*EmRackFunc)(cEmRack*);
@@ -125,8 +125,8 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     {
         cAtariInfo* at = &em->atari;
 
-        at->init(0, 2, 0, 0.0f, w->Size_y * 0.5f, 0.0f, w->Size_x - 100.0f, w->Size_z - 100.0f,
-                 w->Size_z - 100.0f, w->Size_y * 0.5f);
+        at->init(0.0f, w->Size_y * 0.5f, 0.0f, w->Size_x - 100.0f, w->Size_z - 100.0f, w->Size_z - 100.0f, w->Size_y * 0.5f, 0,
+                 2, 0);
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
@@ -272,7 +272,7 @@ void emRackDmCk(cEmRack* em)
                 cModel* p;
 
                 if (w->Eff_id != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->Eff_id, 6, 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, 0, em, 0);
                 }
                 SndCall(6, 0x36, &em->pos, 0, 0, em);
                 p = em->getPartsPtr(1);
@@ -350,9 +350,9 @@ void emRack_R1_Set(cEmRack* em)
     if (MotionCheckCrossFrame((MotionWork*) &em->pMotion, 2.0f)) {
         if (w->Eff_id != 0xFF) {
             if (em->type == 1) {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 7, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, 0, em, 0);
             } else {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 5, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
             }
         }
     }
@@ -441,19 +441,19 @@ void emRack_R1_Break(cEmRack* em)
             switch (em->r_no_3) {
             case 0:
             default:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 3, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 5, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 4, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, 0, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:

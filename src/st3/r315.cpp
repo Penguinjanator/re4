@@ -155,7 +155,7 @@ static void first_in()
     if (pSUB) {
         setPosXYZ(pSUB, 7073.0f, 57.0f, -3109.0f);
         setAngY(pSUB, -0.742f);
-        SetSubAux((int) funcAshley, 0);
+        SetSubAux(funcAshley, 0);
     }
     SetPlDamage(0, plemRide);
     EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);

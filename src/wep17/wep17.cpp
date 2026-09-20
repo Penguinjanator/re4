@@ -912,7 +912,7 @@ static void wep17_r2_out(cPlayer* pl)
             StaFlagOn(pG, STA_PL_FIRE);
             SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
-            EstSet((int) WEP_OBJ(pl), -1, 0, 0, 0x4B, 0, 0, 0xA, zero, 0);
+            EstSet(WEP_OBJ(pl), -1, 0, 0, 0x4B, 0, 0, 0xA, (void*) zero, 0);
             parts = pl->getPartsPtr(0xA);
             p0.x = 234.5f;
             p0.y = -24.0f;

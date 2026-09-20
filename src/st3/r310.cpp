@@ -288,7 +288,7 @@ near:
         goal.z += 800.0f;
     }
     if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
-        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        SubCharMoveTo(goal.x, goal.y, goal.z, 193.0f, 0);
         while ((SubCharGetStatus() & 0x00800000) == 0) {
             SceSleep(1);
         }
@@ -528,7 +528,7 @@ near:
         goal.z -= 800.0f;
     }
     if (PSVECSquareDistance(&pSUB->pos, &goal) >= 90000.0f) {
-        SubCharMoveTo(0, goal.x, goal.y, goal.z, 193.0f);
+        SubCharMoveTo(goal.x, goal.y, goal.z, 193.0f, 0);
         while ((SubCharGetStatus() & 0x00800000) == 0) {
             SceSleep(1);
         }

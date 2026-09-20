@@ -105,7 +105,7 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         w->size.z = 400.0f;
         break;
     }
-    em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
+    em->atari.init(0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
     em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     emTorchYarareInit(em);
@@ -306,7 +306,7 @@ void emTorchDmCk(cEmTorch* em)
             SndCall(1, 0x3F, &em->pos, 0, 0, em);
         }
         if (w->Eff_id != 0xFF) {
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 1, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 1, 0, 0, em, 0);
         }
     }
 }
@@ -325,16 +325,16 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
         EffectEfmDelete(1, w->EffKindId, em);
         switch (kind) {
         default:
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
             break;
         case 0:
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
             break;
         case 1:
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
             break;
         case 2:
-            EstSet((int) em, -1, 0, 0, w->Eff_id, 3, 0, 0, (u32) em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, 0, em, 0);
             break;
         }
     }
@@ -595,7 +595,7 @@ void cEmTorch::setEff(u8 eff)
 
     w->Eff_id = eff;
     if (hp > 0) {
-        EstSet((int) this, -1, 0, 0, w->Eff_id, 0, 1, w->EffKindId, (u32) this, 0);
+        EstSet(this, -1, 0, 0, w->Eff_id, 0, 1, w->EffKindId, this, 0);
     }
 }
 

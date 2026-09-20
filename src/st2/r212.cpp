@@ -559,13 +559,13 @@ static void r212_AdhleyToPointWait()
         pG->Room_flg[0] |= 0x01000000;
         IntSet(r212_work.p->mesNo, 5);
         if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
-            SetSubAux((int) r212_AshleyPointTo, 0);
+            SetSubAux(r212_AshleyPointTo, 0);
         }
     }
     SceSleep(300);
     if (!(pG->Room_flg[0] & 0x20000000)) {
         r212_work.p->mesNo = 4;
-        SetSubAux((int) r212_AshleyPointTo, 0);
+        SetSubAux(r212_AshleyPointTo, 0);
     }
 }
 
@@ -616,7 +616,7 @@ static void r212_AshleyPointToCheck()
     SceSleep(150);
     IntSet(r212_work.p->mesNo, 3);
     if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
-        SetSubAux((int) r212_AshleyPointTo, 0);
+        SetSubAux(r212_AshleyPointTo, 0);
     }
 }
 
@@ -647,18 +647,18 @@ static void r212_DrillAppearCheck()
         v.z = 0.0f;
         sub->setAng(&v);
     }
-    SetSubAux((int) r212_AshleyDrillAction, 0);
+    SetSubAux(r212_AshleyDrillAction, 0);
     CamCtrl.CutCall(9);
     pG->Room_flg[0] &= ~0x40000000;
     SceSetEventCancel(1, (TaskFunc) r212_DrillAppearCheckEndProc, 0, 1, 1);
-    EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, zero, (void*) zero);
+    EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, (void*) zero, (void*) zero);
     r212_work.p->door[2].setClose();
     while ((st = r212_work.p->door[2].getStatus()) != 0) {
         SceSleep(1);
     }
     SceSleep(30);
     r212_work.p->se = RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
-    EstSet(0, -1, 0, 0, 1, 9, 1, 2, st, (void*) st);
+    EstSet(0, -1, 0, 0, 1, 9, 1, 2, (void*) st, (void*) st);
     SmdGetObjPtr(0x32)->be_flag &= ~2;
     CamCtrl.CutCall(4);
     SceSleep(10);

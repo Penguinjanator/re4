@@ -75,7 +75,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     f32 zero = 0.0f;
     f32 h = 5000.0f;
     f32 r = 200.0f;
-    em->atari.init(parts, 2, parts, zero, h, zero, r, r, r, h);
+    em->atari.init(zero, h, zero, r, r, r, h, parts, 2, parts);
     em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -439,7 +439,7 @@ void emTree_R1_Fall(cEmTree* em)
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet((int) em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, (u32) em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
                     em->be_flag &= ~2;
                     em->r_no_0 = 1;
                     em->r_no_1 = 2;

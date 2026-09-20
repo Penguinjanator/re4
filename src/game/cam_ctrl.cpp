@@ -2089,7 +2089,7 @@ void Parametrize(CameraCut* cut, CameraBSpline* bs)
             fovy[i] = cut->fovy[i];
         }
         for (i = 0; i < bs->num; i++) {
-            de_Boor_Cox(bs->num, NULL, bs->k, (f32) i, &B[bs->num * i]);
+            de_Boor_Cox(bs->num, NULL, (f32) i, bs->k, &B[bs->num * i]);
         }
         MtxNNInverse(bs->num, B, Binv);
         MtxNNMultVecSR(bs->num, bs->num, Binv, px, bs->px);
@@ -2119,7 +2119,7 @@ void BSpline(CameraBSpline* bs, Camera* cam, int)
     int i;
 
     memclr_asm(cam, sizeof(Camera));
-    de_Boor_CoxF(bs->num, NULL, bs->t, bs->k, bs->basis);  // COMPILER-DIFF 1 (floats-first alias)
+    de_Boor_Cox(bs->num, NULL, bs->t, bs->k, bs->basis);
     for (i = 0; i < bs->num; i++) {
         cam->param.at.x += bs->basis[i] * bs->ax[i];
         cam->param.at.y += bs->basis[i] * bs->ay[i];
@@ -2218,7 +2218,7 @@ void CameraControl::debugDrawRail(CameraCut* cut)
     int j;
 
     for (i = 0; i < 100; i++) {
-        de_Boor_Cox(cut->num, NULL, bs->k, (f32) ((cut->num - 1) * i) / 100.0f + 0.0f, bs->basis);
+        de_Boor_Cox(cut->num, NULL, (f32) ((cut->num - 1) * i) / 100.0f + 0.0f, bs->k, bs->basis);
         fc.x = 0.0f;
         fc.y = 0.0f;
         fc.z = 0.0f;

@@ -745,7 +745,7 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         default:
             if (w->Eff_id != 0xFF) {
-                EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
             }
             break;
         }

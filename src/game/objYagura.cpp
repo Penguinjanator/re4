@@ -24,7 +24,7 @@ extern "C" {
 int MotionMove(cModel* m, int a);
 void objYagura_R0_Set(cObjYagura* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*ObjYagura_R0_move_tbl[1])(cObjYagura*) = { objYagura_R0_Set };
 

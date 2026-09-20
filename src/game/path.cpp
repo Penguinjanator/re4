@@ -69,7 +69,7 @@ int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
 
 // PathGetPos for a path attached to `model`: both segment vertices are first moved by their
 // weighted parts matrices (PathGetVtxMat).
-int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out)
+int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out)
 {
     Path* p = (Path*)path;
     PathVtx* v = p->vtx;
@@ -399,7 +399,7 @@ int FuncPathParametrize(void* path, void* data)
         z[i] = d->pos[i].z;
     }
     for (i = 0; i < w->n; i++) {
-        if (de_Boor_Cox(w->n, NULL, w->k, (f32)i, &A[w->n * i]) == 0) return 0;
+        if (de_Boor_Cox(w->n, NULL, (f32)i, w->k, &A[w->n * i]) == 0) return 0;
     }
     if (MtxNNInverse(w->n, A, Ainv) == 0.0f) {
         pLog->err(0, 0, "FuncPathParametrize(): Can not solve Inverse Matrix.");
@@ -440,7 +440,7 @@ int FuncPathCalc(void* path, void* data, Vec* out, f32 t)
         pLog->err(0, 0, "FuncPathCalc(): B, Memory allocation error!");
         return 0;
     }
-    if (de_Boor_Cox(w->n, NULL, w->k, t, B) == 0) {
+    if (de_Boor_Cox(w->n, NULL, t, w->k, B) == 0) {
         pLog->err(0, 0, "FuncPathCalc(): failed at de_Boor_Cox()");
         Mem_free(B);
         return 0;

@@ -451,10 +451,10 @@ void R31cInit()
     if (r31c_work.p->door8 && RsfCheck(G_ROOM_ID, 0xF) == 0) {
         cEmDoorSetCloseLock(r31c_work.p->door8);
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r31c_Krauser1stBattle, 0, 1);
-        EstSet((int) r31c_work.p->door8, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
+        EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
         BitOff(pG->Key_flg[1], 0x00020000);
     } else {
-        EstSet((int) r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+        EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
         BitOn(pG->Key_flg[1], 0x00020000);
     }
     SceExec(0x12, (TaskFunc) r31c_SeekerFirstSet, 0, 0, 2, 0);
@@ -792,7 +792,7 @@ static void r31c_TalktoKrauser(int no)
     BitOff(pG->Room_flg[0], 0x08000000);
     while (SndEndCheck(r31c_work.p->hSnd) == 0 || CamCtrl.IsMotionEnd() == 0) {
         if ((pG->Room_flg[0] & 0x08000000) == 0) {
-            ActBtn.set(0x36, 5, (int) r31c_TalkToKrauserActBtnSet, 0, 6, 1, 1, 0);
+            ActBtn.set(0x36, 5, (void*) r31c_TalkToKrauserActBtnSet, 0, 6, 1, 1, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
         SceSleep(1);
@@ -1015,7 +1015,7 @@ static void r31c_TimerDoorCountDown()
     CamCtrl.CutCall(0x11);
     SceSleep(10);
     EffectDelete(1, 3);
-    EstSet((int) r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+    EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
     BitOn(pG->Key_flg[1], 0x00020000);
     RoomSeCall(0x12, 0, 0, 0, 0);
     SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -1071,7 +1071,7 @@ void r31c_TimerDoorCancel()
     cEm39* em;
 
     EffectDelete(1, 3);
-    EstSet((int) r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+    EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
     ((cEmDoor*) r31c_work.p->door8)->setNormal();
     SceAtSetEnable(0x11, 0);
     em = (cEm39*) r31c_work.p->krauser.getPtr();
@@ -1796,7 +1796,7 @@ static void Evt_R31CS01_Func(Event* e)
             r31c_evtS01Flag = 0;
             e->CancelSet();
         } else {
-            ActBtn.set(0x25, 5, (int) r31c_EventS01Act, 0, 0x46, r31c_mesNo, 1, 0);
+            ActBtn.set(0x25, 5, (void*) r31c_EventS01Act, 0, 0x46, r31c_mesNo, 1, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
     }

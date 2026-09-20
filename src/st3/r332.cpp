@@ -1075,7 +1075,7 @@ static void R332RocketShootMain(int type)
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 0x200, 0);
-        EstSet((int) pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
+        EstSet(pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
         pPL->Wep->m_pWep->setDisp(0, 1);
         pPL->Wep->m_pWep->setDisp(1, 1);
         pPL->Wep->m_pWep->setDisp(2, 1);
@@ -1114,7 +1114,7 @@ static void R332RocketShootMain(int type)
                 obj->be_flag |= 0x1000;
                 obj->setNoSuspend(1);
                 MotionSetCore(obj, &obj->Motion, ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0, 0x200, 0);
-                EstSet((int) obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
+                EstSet(obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
             }
         }
         while (MotionGetState(pPL) == 0) {
@@ -1461,7 +1461,7 @@ static void R332ExecCrane(int no)
                         BitOff(r332_work->chain[no][k]->be_flag, 2);
                     }
                     ModelInfoSetTrans(crane, 1, 0);
-                    EstSet((int) crane, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
+                    EstSet(crane, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
                     EstSet(0, -1, 0, 0, 1, (u8) estNo, 1, 0, 0, 0);
                     SndCall(6, 9, &pPL->pos, 0, 0, 0);
                 }
@@ -1569,7 +1569,7 @@ void R332EventS00End()
         Cckpt.m_LifeMeter.flags = (u32) em;
     }
     SndRoomBgmStart(0, 0);
-    EstSet((int) pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
+    EstSet(pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xA, 1, 4, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xB, 1, 5, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0xC, 1, 5, 0, 0);

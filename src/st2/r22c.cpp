@@ -566,7 +566,7 @@ static void r22c_ShootingStar()
     pos.z = -25337.0f;
     o->setPos(&pos);
     o->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20));
-    EstSet((int) o, -1, 0, 0, 1, 6, 0, 0, (u32) o, 0);
+    EstSet(o, -1, 0, 0, 1, 6, 0, 0, o, 0);
     SceSleep(10);
     pos.x = -3951.0f;
     pos.y = 3000.0f;
@@ -587,7 +587,7 @@ static void r22c_ShootingStar()
     pos.y = 400.0f;
     pos.z = -17100.0f;
     o->setPos(&pos);
-    EffectEspgenDelete(0, 0x3F, (int) o);
+    EffectEspgenDelete(0, 0x3F, o);
     EstSet(0, -1, &o->pos, 0, 1, 7, 0, 0, 0, 0);
     QuakeExec(0, 0, 5, 22.0f, 2);
     SndCall(6, 0x16, 0, 0, 0, 0);

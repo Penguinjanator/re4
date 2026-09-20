@@ -827,7 +827,7 @@ static void R226EventRoboWalkPassageStart()
     SceSleep(2);
     SmdSetTrans(0x35, 0);
     EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
-    EstSet((int) robo, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+    EstSet(robo, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
     if (r226_work.p->sat[0]) {
         r226_work.p->sat[0]->m_Flag &= ~4;
     }
@@ -934,7 +934,7 @@ static void R226EventRoboWalkDoorDie()
     robo->setPos(&pos);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6D), 0, 0, 0x201, 0);
     MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6E), 0, 0, 1, 0);
-    EstSet((int) robo, -1, 0, 0, 1, 0x22, 1, 0, 0, 0);
+    EstSet(robo, -1, 0, 0, 1, 0x22, 1, 0, 0, 0);
     setAngXYZ(robo, 0.0f, -1.5707964f, 0.0f);
     pos.x = robo->pos.x - 9062.5f;
     pos.y = robo->pos.y + 0.0f;
@@ -964,7 +964,7 @@ static void R226EventRoboWalkBridgeStart()
     setPosXYZ(robo, -53020.0f, 1200.0f, -16731.0f);
     SmdSetTrans(0x1B, 0);
     SmdSetTrans(0x1C, 0);
-    MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5D), (int) ROOM_ARC_PTR(pG->pRoom, 0x68), 0, 1, 0);
+    MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5D), ROOM_ARC_PTR(pG->pRoom, 0x68), 0, 1, 0);
     EffectEspDelete(1, 4, 0, 0);
     EffectEspgenDelete(1, 4, 0);
     EffectEfmDelete(1, 4, 0);
@@ -1067,7 +1067,7 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
         if (frame >= max) {
             frame = 0;
         }
-        MotionSetCore(pl, &pl->Motion, data, (int) m, pl->motHokanCnt, 5, (u16) frame);
+        MotionSetCore(pl, &pl->Motion, data, m, pl->motHokanCnt, 5, (u16) frame);
         ret = 1;
     }
     if (Key.trg & 0x80000) {
@@ -1141,7 +1141,7 @@ static void playerRunMovePassage(cPlayer* pl)
         r226_work.p->sub = 0;
         pl->r_no_2 = 1;
     case 1:
-        MotionSetCore(pl, &pl->Motion, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
+        MotionSetCore(pl, &pl->Motion, data, mot[r226_work.p->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
         pl->m_Fwork0 = 1.0f;
     case 2:
@@ -1247,7 +1247,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         r226_work.p->sub = 0;
         pl->r_no_2 = 1;
     case 1:
-        MotionSetCore(pl, &pl->Motion, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
+        MotionSetCore(pl, &pl->Motion, data, mot[r226_work.p->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
         pl->m_Fwork0 = 1.0f;
     case 2:

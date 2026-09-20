@@ -1361,7 +1361,7 @@ int Event::ExePacket_Esp(Event* evt)
         rot.z += evt->PModOya->ang.z;
     }
     if (pac->esp.type == 0) {
-        EstSet((int) m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
     }
     if (pac->esp.type == 5) {
         e = evt->effNo;
@@ -1369,10 +1369,10 @@ int Event::ExePacket_Esp(Event* evt)
             pLog->err(0, 0, "Event::ExePacket_SetEff : NoWork failed");
             return 1;
         }
-        EstSet((int) m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
+        EstSet(m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
     }
     if (pac->esp.type == 6) {
-        EstSet((int) m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
     }
     return 1;
 }
@@ -2288,7 +2288,7 @@ int EventMgr::Run()
 }
 
 // 1 when an event named *key is alive (chk != 1 ignores parked ones); *out receives the Event.
-int EventMgr::IsAliveEvt(u32* key, int out, int chk)
+int EventMgr::IsAliveEvt(u32* key, Event** out, int chk)
 {
     char nm[0x20];
     u32 i;
@@ -2310,7 +2310,7 @@ int EventMgr::IsAliveEvt(u32* key, int out, int chk)
             continue;
         }
         if (out != 0) {
-            *(Event**) out = e;
+            *out = e;
         }
         return 1;
     }
@@ -2695,7 +2695,7 @@ int EventMgr::SetEvt(char* nm, Event** out)
 // Finds a live event by name (parked ones included).
 int EventMgr::GetEvt(u32* key, void** out)
 {
-    return IsAliveEvt(key, (int) out, 1);
+    return IsAliveEvt(key, (Event**) out, 1);
 }
 
 // Ends and destroys an event: ExeEndEvt, then (flag == 1) one frame later the unit is destroyed, its

@@ -342,7 +342,7 @@ void R300Init()
         const f32 w = -250.0f;
         const f32 h = 450.0f;
 
-        EstSet((int) SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
+        EstSet(SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
         r300_wk->hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
         YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, 1);
