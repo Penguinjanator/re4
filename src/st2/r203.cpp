@@ -42,8 +42,6 @@ struct R203WorkPtr {
 
 static R203WorkPtr r203_work;
 
-// List numbers from the int tables are passed on without truncation (COMPILER-DIFF 4).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static Vec r203_wanderPos[3] = {
     {-54690.0f, 3172.0f, 6440.0f},
@@ -94,7 +92,7 @@ void R203Init()
         u32 i;
 
         for (i = 0; i < 9; i++) {
-            cEmWrapSetEmI(&r203_work.p->em[tbl[i][0]], tbl[i][1], 2, 0, 1, 0);
+            r203_work.p->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
         }
         SceAtDataSet_exec(0x8A, SCE_LEVEL10, 0, (TaskFunc) r203_GetKeyItem, 0, 1);
         SceExec(0x12, (TaskFunc) r203_GanadoEscape, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -198,7 +196,7 @@ static void r203_GetKeyItem()
         n = 5 - cnt;
     }
     for (i = 0; i < n; i++) {
-        cEmWrapSetEmI(&r203_work.p->em[tbl[i][0]], tbl[i][1], 2, 0, 1, 0);
+        r203_work.p->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
         r203_work.p->em[tbl[i][0]].setGoto(&pos[i & 1], 0xD);
     }
 }

@@ -61,8 +61,6 @@ struct R400MercInit {
     u32 x5C[4];
 };
 
-// COMPILER-DIFF 4: the list entry number is passed to the s16 parameter untruncated.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void r400_TreasureBoxOpen(int no);
 static void r400_TreasureBoxOpened(int no);
@@ -458,7 +456,7 @@ void emset_boss(int no, int dir)
     Vec ang;
     f32 ry;
 
-    cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
+    em.setEm(no, -1, 1, 1, 1);
     if (em.isActive()) {
         em.setFindPL();
     }
@@ -502,7 +500,7 @@ int em_reset(int no, int chk)
         return 0;
     }
     cEmWrap em;
-    cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
+    em.setEm(no, -1, 1, 1, 1);
     em.setGoto(&pPL->pos, 0xC);
     r400_work.p->base++;
     r400_work.p->cnt++;

@@ -83,9 +83,6 @@ struct PlayerPtr {
 // Store through a reference: the following pG load stays below it.
 static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
-// COMPILER-DIFF 4: the list entry number is passed to the s16 parameter untruncated.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
 
 void r404_openBox_main(int no, int mode);
 static void r404_openedBox(int no);
@@ -297,9 +294,9 @@ int r404_setEm(u32 no, int force)
     }
     cEmWrap em;
     if (!(EM_LIST_V(no).be_flag & 2)) {
-        cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
+        em.setEm(no, -1, 1, 1, 1);
     } else {
-        cEmWrapSetPtrI(&em, no, -1, 1);
+        em.setPtr(no, -1, 1);
         if (em.ckResetEnable() == 0) {
             return 0;
         }

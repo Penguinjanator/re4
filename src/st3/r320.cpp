@@ -90,8 +90,6 @@ static f32 r320_revaAccel = 0.008f;
 
 #define R320_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-// COMPILER-DIFF 4: the list entry number is passed to the s16 parameter untruncated (r400).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 // Typed view of pG->emlist: the original indexes an EmListData array, so pG is loaded before the
 // index shift and the table offset stays in the displacement (r400).
@@ -238,7 +236,7 @@ void emset(int idx, int no)
 
         tbl[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
     }
-    cEmWrapSetEmI(&r320_work->em[idx], no, -1, 1, 1, 1);
+    r320_work->em[idx].setEm(no, -1, 1, 1, 1);
     if (r320_work->em[idx].isActive()) {
         r320_work->em[idx].setFindPL();
     }
@@ -1117,7 +1115,7 @@ int setChange(int idx, int no, int idx2, int no2)
 
             tbl[(u32) no2 >> 5] &= ~(0x80000000 >> (no2 & 31));
         }
-        cEmWrapSetEmI(&R320_EM(R320_EM_OFS(idx2)), no2, 7, 0, 1, 1);
+        R320_EM(R320_EM_OFS(idx2)).setEm(no2, 7, 0, 1, 1);
         R320_EM(R320_EM_OFS(idx2)).setFindPL();
         return 1;
     }

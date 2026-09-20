@@ -22,8 +22,8 @@ public:
     ~cEmWrap() {}   // trivial: only the array destructor loop of the rooms' local cEmWrap arrays (r311)
     void initWork();
     void err(const char* msg, int no);
-    int setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive);
-    int setPtr(s16 no, s8 list, int errOn);
+    int setEm(u32 no, int list, int errOn, int chkDead, int setAlive);
+    int setPtr(u32 no, int list, int errOn);
     int setPtr(cEm* em, int errOn);
     cEm* getPtr();
     int isAlive();
@@ -195,7 +195,7 @@ public:
 };
 
 // Bare enemy pointer of list entry `no` (NULL when it cannot be set).
-cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive);
+cEm* setEm(u32 no, int list, int errOn, int chkDead, int setAlive);
 // 1 when any alive Ganado has found the player; `dist` (optional) receives the nearest one's distance.
 int SceCkFindPL(f32* dist);
 

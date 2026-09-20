@@ -91,8 +91,6 @@ static void r217_Puzzle();
 static void r217_hikkakari_move();
 extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur);
 
-// COMPILER-DIFF 4: the int table entries are passed to the s16 parameter without truncation.
-int cEmWrapSetEmI(cEmWrap* em, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 // The scaffold objects keep their scale in the first Vec of the object work.
 #define R217_OBJ_VEC(o) ((Vec*) (o)->work)
@@ -145,7 +143,7 @@ void R217Init()
         SceAtSetEnable(5, 0);
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         for (u32 n = 0; n < 3; n++) {
-            cEmWrapSetEmI(&r217_work.p->em[n], r217_emTbl[n], -1, 0, 1, 1);
+            r217_work.p->em[n].setEm(r217_emTbl[n], -1, 0, 1, 1);
         }
     }
     if (!ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
@@ -301,12 +299,12 @@ static void r217_2nd_set()
     SndCall(6, 7, 0, 0, 0, 0);
     SceEventStart(1);
     for (u32 i = 3; i < 8; i++) {
-        cEmWrapSetEmI(&r217_work.p->em[i], r217_emTbl[i], -1, 0, 1, 1);
+        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
         r217_work.p->em[i].setFlag(1);
         r217_work.p->em[i].setNoSuspend(1);
     }
     for (u32 i = 8; i < 10; i++) {
-        cEmWrapSetEmI(&r217_work.p->em[i], r217_emTbl[i], -1, 0, 1, 1);
+        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
         r217_work.p->em[i].setNoSuspend(1);
     }
     r217_work.p->em[3].setGoto(&pPL->pos, 8);
@@ -362,7 +360,7 @@ static void r217_1st_set()
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        cEmWrapSetEmI(&r217_work.p->em[i], r217_emTbl[i], -1, 0, 1, 1);
+        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
     }
 }
 

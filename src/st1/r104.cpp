@@ -92,10 +92,6 @@ R104PatrolData r104_patrolData[7] = {
     {0xF7, {24710.0f, 3570.0f, -27760.0f}},
 };
 
-// COMPILER-DIFF #4: the original passes the int table entry to the s16 parameter without
-// truncation (`lwz` straight into r4); an int-parameter view of the callee (r11d).
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
@@ -362,7 +358,7 @@ extern "C" void cPatrol104_getNextTarget(cPatrol104* p, Vec* out)
 // walking (goto mode 6) toward the table point. Inactive if the enemy is not alive.
 extern "C" void cPatrol104_init(cPatrol104* p, R104PatrolData* d)
 {
-    cEmWrapSetPtrI(&p->em, d->no, -1, 0);
+    p->em.setPtr(d->no, -1, 0);
     if (p->em.isAlive() == 1) {
         p->active = 1;
         p->em.getPos(&p->pos[0]);
@@ -503,9 +499,9 @@ extern "C" int EmReset_set(EmReset* r)
         return 0;
     }
     if (FlagChkVar(&pG->Room_flg, (u32) r->flagD) == 0) {
-        cEmWrapSetEmI(&r->em[0], r->R104ResetData::em[0], -1, 0, 0, 1);
-        cEmWrapSetEmI(&r->em[1], r->R104ResetData::em[1], -1, 0, 0, 1);
-        cEmWrapSetEmI(&r->em[2], r->R104ResetData::em[2], -1, 0, 0, 1);
+        r->em[0].setEm(r->R104ResetData::em[0], -1, 0, 0, 1);
+        r->em[1].setEm(r->R104ResetData::em[1], -1, 0, 0, 1);
+        r->em[2].setEm(r->R104ResetData::em[2], -1, 0, 0, 1);
         FlagOnVar(&pG->Room_flg, (u32) r->flagD);
     } else {
         if (r->em[0].ckResetEnable() != 1 || r->em[1].ckResetEnable() != 1 || r->em[2].ckResetEnable() != 1) {

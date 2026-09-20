@@ -138,9 +138,6 @@ struct R209WorkPtr {
 
 static R209WorkPtr r209_work;
 
-// COMPILER-DIFF #4: the original passes the int table entry to the s16 parameter without
-// truncation (`lwzx` straight into r4); an int-parameter view of the callee (r104/r203).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 
 // MSB-first bit `no` of the u32 array `a`.
@@ -1124,7 +1121,7 @@ static void r209_2ndBattleEmSet()
                 // `li r25,4 .. mr r29,r25` is gcse's PRE of step+1 across the loop.
                 if (pG->Game_level > 7) {
                     for (i = 0; i < 3; i++) {
-                        cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
+                        r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
                         r209_work.p->em[tbl[i].em].active = 1;
                         r209_work.p->em[tbl[i].em].snipe = 1;
                         r209_work.p->em[tbl[i].em].w.setFindPL();
@@ -1209,7 +1206,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
             if (r209_work.p->task[i] != NULL) {
                 SceKill(r209_work.p->task[i]);
             }
-            cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
+            r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
             r209_work.p->em[tbl[i].em].active = 1;
             r209_work.p->em[tbl[i].em].snipe = 1;
             r209_work.p->em[tbl[i].em].w.setPos(&r209_bowgunStartPos[i]);
@@ -2050,7 +2047,7 @@ static void r209_RotateDoor(int no)
         SceSleep(1);
     }
     e = &r209_work.p->em[em];
-    if (cEmWrapSetEmI(&e->w, id, 3, 1, 0, 0) == 0) {
+    if (e->w.setEm(id, 3, 1, 0, 0) == 0) {
         SceExit();
     }
     r209_work.p->em[em].active = 1;

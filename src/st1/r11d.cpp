@@ -56,10 +56,6 @@ static R11dWork* r11d_work;
 asm(".section .data; .balign 8");
 static u8 r11d_hideCnt = 0;
 
-// COMPILER-DIFF #4: the original passes the int list entries to the s16 parameters without
-// truncation (`lwz` straight into r4); an int-parameter view of the callees.
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 
 // Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
 static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
@@ -276,13 +272,13 @@ static void r11d_execEmAppear_end()
     cEm* ladder;
     for (i = 0; i < 11; i++) {
         cEmWrap em;
-        cEmWrapSetPtrI(&em, list0[i], -1, 0);
+        em.setPtr(list0[i], -1, 0);
         if (!(em.isAlive() == 1 && ((cEmGanado*) em.getPtr())->ckTakeAway() == 1)) {
             em.destroy();
         }
     }
     for (i = 0; i < 9; i++) {
-        setEmI(list1[i], -1, 0, 1, 1);
+        setEm(list1[i], -1, 0, 1, 1);
     }
     if (getRoomEtcLadder(0, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
         ((cObjLadder*) ladder)->setStand();

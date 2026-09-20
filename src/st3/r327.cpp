@@ -70,9 +70,6 @@ struct R327WorkPtr {
 
 static R327WorkPtr r327_work;
 
-// The table entries are passed to cEmWrap::setEm as ints (no s16 truncation at the call: COMPILER-DIFF 4,
-// the r204/r205/r21d int view of the member).
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 int cEmRunSetRouteI(cEmRun* r, int no, Vec* tbl, int n) asm("SetRoute__6cEmRunsP3Veci");
 
 // Typed view of pG->emlist (the r400 idiom).
@@ -146,7 +143,7 @@ void R327Init()
     }
     if (r327_work.p->first != 0) {
         for (i = 0; i < 11; i++) {
-            cEmWrapSetEmI(&r327_work.p->em[r327_firstTbl[i].idx].em, r327_firstTbl[i].id, 7, 0, 1, 1);
+            r327_work.p->em[r327_firstTbl[i].idx].em.setEm(r327_firstTbl[i].id, 7, 0, 1, 1);
             r327_work.p->em[r327_firstTbl[i].idx].set = 1;
             r327_work.p->em[r327_firstTbl[i].idx].id = r327_firstTbl[i].id;
         }
@@ -239,7 +236,7 @@ int r327_EnemySetSub(R327EmTbl* a, u32 na, R327EmTbl* b, u32 nb)
     }
     for (i = 0; i < na; i++) {
         if (r327_work.p->em[a[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[a[i].idx].em, a[i].id, 7, 0, 1, 1);
+            r327_work.p->em[a[i].idx].em.setEm(a[i].id, 7, 0, 1, 1);
             r327_work.p->em[a[i].idx].set = 1;
             r327_work.p->em[a[i].idx].id = a[i].id;
             ret = 1;
@@ -248,7 +245,7 @@ int r327_EnemySetSub(R327EmTbl* a, u32 na, R327EmTbl* b, u32 nb)
     }
     for (i = 0; i < nb; i++) {
         if (r327_work.p->em[b[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[b[i].idx].em, b[i].id, 7, 0, 1, 1);
+            r327_work.p->em[b[i].idx].em.setEm(b[i].id, 7, 0, 1, 1);
             r327_work.p->em[b[i].idx].set = 1;
             r327_work.p->em[b[i].idx].id = b[i].id;
             ret = 1;
@@ -480,7 +477,7 @@ static void r327_GanadoAppearCut()
     for (i = 0; i < 4; i++) {
         R327EmTbl* t = &r327_appearTbl[side][i];
 
-        cEmWrapSetEmI(&r327_work.p->em[t->idx].em, t->id, 7, 0, 1, 1);
+        r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
         r327_work.p->em[t->idx].set = 1;
         r327_work.p->em[t->idx].id = t->id;
         r327_work.p->em[t->idx].em.setNoSuspend(1);
@@ -496,7 +493,7 @@ static void r327_GanadoAppearCut()
         for (i = 0; i < 4; i++) {
             R327EmTbl* t = &r327_appearTbl[side][i];
 
-            cEmWrapSetEmI(&r327_work.p->em[t->idx].em, t->id, 7, 0, 1, 1);
+            r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
             r327_work.p->em[t->idx].set = 1;
             r327_work.p->em[t->idx].id = t->id;
             r327_work.p->em[t->idx].em.setNoSuspend(1);
@@ -523,7 +520,7 @@ static void r327_GanadoAppearCutEndProc(int side)
 
     for (i = 0; i < 4; i++) {
         if (r327_work.p->em[t[i].idx].set == 0) {
-            cEmWrapSetEmI(&r327_work.p->em[t[i].idx].em, t[i].id, 7, 0, 1, 1);
+            r327_work.p->em[t[i].idx].em.setEm(t[i].id, 7, 0, 1, 1);
             r327_work.p->em[t[i].idx].set = 1;
             r327_work.p->em[t[i].idx].id = t[i].id;
         }
@@ -537,7 +534,7 @@ static void r327_GanadoAppearCutEndProc(int side)
         asm("" : "=m"(*t2) : "r"(t2)); // COMPILER-DIFF: #13 (see above)
         for (i = 0; i < 4; i++) {
             if (r327_work.p->em[t2[i].idx].set == 0) {
-                cEmWrapSetEmI(&r327_work.p->em[t2[i].idx].em, t2[i].id, 7, 0, 1, 1);
+                r327_work.p->em[t2[i].idx].em.setEm(t2[i].id, 7, 0, 1, 1);
                 r327_work.p->em[t2[i].idx].set = 1;
                 r327_work.p->em[t2[i].idx].id = t2[i].id;
             }

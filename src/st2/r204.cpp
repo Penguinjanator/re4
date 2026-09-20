@@ -71,9 +71,6 @@ struct R204WorkPtr {
 
 static R204WorkPtr r204_work;
 
-// COMPILER-DIFF: #4 — `0x4A + i` is an int; the original passes it to the s16 parameter without a
-// truncation.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void door_rsf_off();
 static void setTexRender();
@@ -177,7 +174,7 @@ void R204Init()
             r204_work.p->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
             SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
             for (i = 0; i <= 10; i++) {
-                cEmWrapSetEmI(&r204_work.p->em[i], 0x4A + i, 3, 0, 1, 1);
+                r204_work.p->em[i].setEm(0x4A + i, 3, 0, 1, 1);
                 if (r204_work.p->em[i].isAlive() == 1) {
                     Vec ofs = {0.0f, 10.0f, 179.0f};
                     Vec rot = {-0.17453292f, 0.0f, 0.0f};

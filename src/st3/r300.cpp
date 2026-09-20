@@ -229,14 +229,11 @@ void incResetNum()
     setResetNum(getResetNum() + 1);
 }
 
-// COMPILER-DIFF: candidate #2 (narrow extension): the int list number reaches setEm's s16 parameter
-// without an `extsh`.
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 
 // Spawn list entry `no` (any list) already alerted; the raw enemy pointer.
 cEm* emset(int no)
 {
-    cEm* em = setEmI(no, -1, 1, 1, 1);
+    cEm* em = setEm(no, -1, 1, 1, 1);
 
     if (em) {
         ((cEmGanado*) em)->setFindPL();

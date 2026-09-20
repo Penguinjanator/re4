@@ -81,9 +81,6 @@ static const AtEffInfo r205_effInfo = {
     1, {0xD2, 0x2C}, {0xD2, 0x2F}, {0xD2, 0x2E}, {0xD2, 0x2D}, {0xD2, 0x20}, {0xD2, 0x20}, {0xD2, 0}, {0xD2, 0},
 };
 
-// COMPILER-DIFF: #4 — the table entry is an int; the original passes it to the s16 parameter
-// without a truncation.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 // cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
 class cUnitEvent {
@@ -174,7 +171,7 @@ void R205Init()
     }
     for (i = 0; i < 6; i++) {
         if (RsfCheck(G_ROOM_ID, r205_rsfTbl[i])) {
-            if (cEmWrapSetEmI(&r205_work.p->ems[r205_emIdxTbl[i]].em, r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
+            if (r205_work.p->ems[r205_emIdxTbl[i]].em.setEm(r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
                 r205_work.p->ems[r205_emIdxTbl[i]].dead = 1;
             }
         }

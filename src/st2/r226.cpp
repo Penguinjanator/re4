@@ -87,9 +87,6 @@ struct SceElevatorData {
 };
 
 extern "C" void SceElevator(SceElevatorData* d);
-// COMPILER-DIFF: 4 -- `int` table entries reach cEmWrap::setEm's s16 parameter unextended
-// (`lwzx r4`); ours narrows the load to `lha` through the real prototype.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static R226WorkPtr r226_work;
 static Camera r226_cam;
@@ -193,7 +190,7 @@ static inline void r226_setEmAll(int noSuspend)
 
     for (i = 0; i < 13; i++) {
         if (r226_work.p->em[R226EmIdx[i]].isActive() == 0) {
-            cEmWrapSetEmI(&r226_work.p->em[R226EmIdx[i]], R226EmNo[i], -1, 0, 1, 1);
+            r226_work.p->em[R226EmIdx[i]].setEm(R226EmNo[i], -1, 0, 1, 1);
         }
         r226_work.p->em[R226EmIdx[i]].setNoSuspend(noSuspend);
     }

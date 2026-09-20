@@ -327,7 +327,7 @@ void cEmWrap::err(const char* msg, int no)
 // Take enemy list entry `no` of list `list` (-1: any): reuse the already-spawned enemy if the ESL entry's
 // be_flag bit 2 is set, else spawn it with EmSetFromList2 (chkDead: refuse dead-flagged entries). setAlive
 // marks the ESL entry alive. Returns 1 on success; on failure pEm = 0 and 0.
-int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
+int cEmWrap::setEm(u32 no, int list, int errOn, int chkDead, int setAlive)
 {
     this->errOn = errOn;
     this->no = no;
@@ -354,7 +354,7 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
 }
 
 // Free-function form: spawn/fetch list entry `no` and return the raw cEm* (0 on failure).
-cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
+cEm* setEm(u32 no, int list, int errOn, int chkDead, int setAlive)
 {
     cEmWrap em;
 
@@ -365,7 +365,7 @@ cEm* setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
 }
 
 // Attach to list entry `no` if it is already spawned (GetEmPtrFromList), otherwise spawn it via setEm.
-int cEmWrap::setPtr(s16 no, s8 list, int errOn)
+int cEmWrap::setPtr(u32 no, int list, int errOn)
 {
     cEm* p;
 

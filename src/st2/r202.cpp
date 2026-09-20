@@ -134,9 +134,6 @@ static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
     v->z = z;
 }
 
-// COMPILER-DIFF: #4 — the table entry is an int; the original passes it to the s16 parameter
-// without a truncation.
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
 
 static void r202_execShowView_end();
 static void r202_execShowView();
@@ -853,7 +850,7 @@ static void r202_checkCatapult()
 
     SceSleep(1);
     for (i = 0; i < 4; i++) {
-        cEmWrapSetPtrI(&r202_work.p->cat[i].em, r202_work.p->cat[i].emNo, 2, 0);
+        r202_work.p->cat[i].em.setPtr(r202_work.p->cat[i].emNo, 2, 0);
     }
     for (;;) {
         int cur = 0;

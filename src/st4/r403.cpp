@@ -78,8 +78,6 @@ struct PlayerPtr {
 // Store through a reference: the following pG load stays below it.
 static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
-// COMPILER-DIFF 4: the list entry number is passed to the s16 parameter untruncated.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void r403_DuraluminCaseOpen(int no);
 static void r403_DuraluminCaseOpened(int no);
@@ -235,7 +233,7 @@ static int em_reset(int no, int chk)
         return 0;
     }
     cEmWrap em;
-    cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
+    em.setEm(no, -1, 1, 1, 1);
     em.setGoto(&pPL->pos, 0xC);
     r403_work.p->base++;
     r403_work.p->cnt++;
@@ -522,7 +520,7 @@ void emset_gatling(int no)
     Vec ang;
     f32 ry;
 
-    cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
+    em.setEm(no, -1, 1, 1, 1);
     if (em.isActive()) {
         em.setFindPL();
     }

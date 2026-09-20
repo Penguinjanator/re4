@@ -52,8 +52,6 @@ static R301WorkPtr r301_work;
 // Hit effects of attribute type 2 (water).
 static const AtEffInfo r301_eff_info = {1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F}};
 
-// COMPILER-DIFF: #4 (int table entries reach the s16 parameter untruncated)
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void r301_checkBgm();
 static void r301_execContinuePoint_end();
@@ -399,26 +397,26 @@ static void r301_checkEmReset1()
 
             for (;;) {
                 if (f0 == 0 && em0.isActive() == 0) {
-                    cEmWrapSetEmI(&em2, ids[0], -1, 0, 1, 1);
+                    em2.setEm(ids[0], -1, 0, 1, 1);
                     f0 = 1;
                     em2.setFlag(1);
                     em2.setGoto(&pPL->pos, 0xB);
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[1], -1, 0, 1, 1);
+                    em3.setEm(ids[1], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
                 if (f1 == 0 && em1.isActive() == 0) {
                     f1 = 1;
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[2], -1, 0, 1, 1);
+                    em3.setEm(ids[2], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
                 if (f2 == 0 && em2.isActive() == 0) {
                     f2 = 1;
                     SceSleep(200);
-                    cEmWrapSetEmI(&em3, ids[3], -1, 0, 1, 1);
+                    em3.setEm(ids[3], -1, 0, 1, 1);
                     em3.setFlag(1);
                     em3.setGoto(&pPL->pos, 0xB);
                 }
@@ -460,16 +458,16 @@ static void r301_checkEmReset2()
                     // this copy, which is then scheduled last.
                     if (f0 == 0 && em0.isActive() == 0) {
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[0], -1, 0, 1, 1);
+                        em2.setEm(ids[0], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         f0 = 1;
                     }
                     if (f1 == 0 && em1.isActive() == 0) {
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[1], -1, 0, 1, 1);
+                        em2.setEm(ids[1], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         SceSleep(300);
-                        cEmWrapSetEmI(&em2, ids[2], -1, 0, 1, 1);
+                        em2.setEm(ids[2], -1, 0, 1, 1);
                         em2.setGoto(&pPL->pos, 0xB);
                         f1 = 1;
                     }
@@ -511,13 +509,13 @@ static void r301_checkEmReset3()
                     while (SceAtHitCheck(0x13) == 1) {
                         SceSleep(1);
                     }
-                    cEmWrapSetEmI(&em1, ids[0], -1, 0, 1, 1);
+                    em1.setEm(ids[0], -1, 0, 1, 1);
                     em1.setGoto(&pos, 0xB);
                     SceSleep(30);
                     while (SceAtHitCheck(0x13) == 1) {
                         SceSleep(1);
                     }
-                    cEmWrapSetEmI(&em2, ids[1], -1, 0, 1, 1);
+                    em2.setEm(ids[1], -1, 0, 1, 1);
                     em2.setGoto(&pos, 0xB);
                     f = 1;
                 }

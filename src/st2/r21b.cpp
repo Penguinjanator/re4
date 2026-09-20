@@ -49,8 +49,6 @@ struct R21bWorkPtr {
 
 static R21bWorkPtr r21b_work;
 
-// COMPILER-DIFF 4: the table's `int` entry is passed to the s16 parameter untruncated.
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static R21bEmSet r21b_emTbl0[] = {{0, 0, 0xAE}, {1, 1, 0xA6}, {0x1C, 0x3D, 0x6D}, {-1, -1, 0}};
 static R21bEmSet r21b_emTbl1[] = {{2, 2, 0x16E}, {3, 3, 0x164}, {0x1D, 0x3E, 0x12C}, {-1, -1, 0}};
@@ -157,7 +155,7 @@ static void r21b_GanadoJumpDownCheck(int no)
     int wait;
 
     for (p = r21b_emTbl[no]; p->slot != -1; p++) {
-        cEmWrapSetEmI(&r21b_work.p->em[p->slot].em, p->no, 5, 1, 1, 0);
+        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
     }
     do {
         wait = 0;
@@ -203,7 +201,7 @@ static void r21b_HalfWayGanadoSet()
             for (p = tbl; p->slot != -1; p++) {
                 if (p->frame == 0) {
                     if (Rnd() & 1) {
-                        cEmWrapSetEmI(&r21b_work.p->em[p->slot].em, p->no, 5, 1, 1, 0);
+                        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
                         cnt++;
                         r21b_work.p->em[p->slot].em.setFlag(1);
                         p->frame = 1;

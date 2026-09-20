@@ -109,10 +109,6 @@ static int r214_emTbl2[3] = {0xCB, 0xCC, 0xCD};
 static int r214_emTbl3[3] = {0xCF, 0xD0, 0xD1};
 static int r214_emTbl4[10] = {0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9};
 
-// Table entries go straight into the argument registers (COMPILER-DIFF 4).
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
-int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
 
 // Local arrays of these get the constructor loop and the (empty) destructor loop.
 class cEmWrapD : public cEmWrap {
@@ -192,11 +188,11 @@ void R214Init()
             setEm(0xEF, 4, 1, 1, 0);
         } else {
             for (i = 0; i < 5; i++) {
-                setEmI(r214_emTbl0[i], 4, 0, 1, 0);
+                setEm(r214_emTbl0[i], 4, 0, 1, 0);
             }
             if (RsfCheck(G_ROOM_ID, 0)) {
                 for (i = 0; i < 3; i++) {
-                    setEmI(r214_emTbl1[i], 4, 0, 1, 0);
+                    setEm(r214_emTbl1[i], 4, 0, 1, 0);
                 }
             }
         }
@@ -231,19 +227,19 @@ void R214Init()
         Vec rot = {0.0f, 0.0f, 0.0f};
         EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 2);
         for (i = 0; i < 3; i++) {
-            setEmI(r214_emTbl3[i], 4, 0, 1, 0);
+            setEm(r214_emTbl3[i], 4, 0, 1, 0);
         }
         if (RsfCheck(G_ROOM_ID, 2) || pG->Part == 1) {
             RsfSet(G_ROOM_ID, 2);
             for (i = 0; i < 3; i++) {
-                setEmI(r214_emTbl2[i], 4, 0, 1, 0);
+                setEm(r214_emTbl2[i], 4, 0, 1, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r214_exec3rdEmSet, 0, 1);
         } else {
             for (i = 0; i < 10; i++) {
-                setEmI(r214_emTbl4[i], 4, 0, 1, 0);
+                setEm(r214_emTbl4[i], 4, 0, 1, 0);
             }
             if (RsfCheck(G_ROOM_ID, 4) == 0) {
                 SceExec(0x12, (TaskFunc) r214_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -324,7 +320,7 @@ static void r214_checkEmReset()
         if ((u32) SceCountEmAlive(0x10, 0x20) < lim) {
             for (i = 0; i < 4; i++) {
                 if (done[i] == 0) {
-                    int r = cEmWrapSetEmI(&em[i], emNo[i], 4, 1, 0, 0);
+                    int r = em[i].setEm(emNo[i], 4, 1, 0, 0);
 
                     if (r == 1) {
                         em[i].setFlag(1);
@@ -614,7 +610,7 @@ static void r214_execCatapult()
         r214_work.p->patrol[1].EndControl();
     } else {
         for (i = 0; i < 5; i++) {
-            setEmI(r214_emTbl0[i], 4, 1, 1, 0);
+            setEm(r214_emTbl0[i], 4, 1, 1, 0);
         }
         SceExit();
     }
@@ -717,7 +713,7 @@ static void r214_checkCatapult()
 
     SceSleep(1);
     for (i = 0; i < 3; i++) {
-        cEmWrapSetPtrI(&r214_work.p->cat[i].em, r214_work.p->cat[i].emNo, 4, 0);
+        r214_work.p->cat[i].em.setPtr(r214_work.p->cat[i].emNo, 4, 0);
     }
     for (;;) {
         for (i = 0; i < 3; i++) {

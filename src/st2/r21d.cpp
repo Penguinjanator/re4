@@ -101,7 +101,6 @@ R21dTrapData r21d_trapTbl[5] = {
     {0x12, 0x11, 0x14, 0},
 };
 
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 void r21d_checkEmResetPoint(Vec* pos, f32* ang);
 static void r21d_setEmReset(int no);
@@ -331,7 +330,7 @@ static void r21d_checkEmReset()
 // Sets list entry `no` into the next free wrap.
 void r21d_addEmSet(int no)
 {
-    cEmWrapSetEmI(&r21d_work.p->em[r21d_work.p->emNum], no, -1, 0, 1, 1);
+    r21d_work.p->em[r21d_work.p->emNum].setEm(no, -1, 0, 1, 1);
     r21d_work.p->emNum++;
     r21d_work.p->emSetCount++;
 }

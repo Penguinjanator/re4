@@ -42,9 +42,6 @@ static R316Work* r316_work;
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r316_memset(void*, ...) asm("memset");
-// COMPILER-DIFF: 4 -- `int` table entries reach setEm's s16 parameter unextended (`lwz r3`); ours
-// narrows the load through the real prototype.
-cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
 // Wait for fade `no` to finish: the index stays a separate `addi` on the array base.
 static inline void FadeWait(int no)
 {
@@ -230,7 +227,7 @@ static void r316_checkEmReset()
         }
         if ((u32) SceCountEmAlive(0x10, 0x20) <= 3) {
             if (a == 1 && i <= 1) {
-                setEmI(tbl2[i], -1, 1, 1, 1);
+                setEm(tbl2[i], -1, 1, 1, 1);
                 i++;
             }
             if (b == 1 && c == 0) {
