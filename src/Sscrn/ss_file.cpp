@@ -23,10 +23,7 @@
 #include "db_log.h"
 #include "sscrn.h"
 #include "ss_main.h"
-
-extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-}
+#include <stdio.h>
 
 
 // Message slot address written out as one expression on a pointer variable (not the getMes inline):

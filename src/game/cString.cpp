@@ -3,12 +3,7 @@
 
 #include "types.h"
 #include "cString.h"
-
-extern "C" {
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-}
+#include <string.h>
 
 // Empty string.
 cString::cString()

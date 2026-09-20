@@ -42,13 +42,12 @@
 #include "TexRender.h"
 #include "db_log.h"
 #include "st_mgr_event.h"
+#include <string.h>
 
 // Room 3-32 (D:/Bio4/Prog/r332.cpp): the final battle. The two cranes drop their steel beams on the
 // boss (R332ExecCrane), the two bridges the boss opens and closes (R332BridgeTask, the player runs
 // across them by the action button), the down / rocket cut scenes and the s00/s10/s20 events.
 
-extern "C" char* strstr(const char* s, const char* sub);
-extern "C" void* memcpy(void* d, const void* s, u32 n);
 
 // game/objPillar.cpp
 class cObjPillar : public cObj {

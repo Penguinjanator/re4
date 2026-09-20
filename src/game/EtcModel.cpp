@@ -23,6 +23,7 @@
 #include "db_log.h"
 #include "eprintf.h"
 #include "math_sub.h"
+#include <string.h>
 
 // obj13.cpp's ladder object; only the two setters the etc list calls are needed here.
 class cObjLadder : public cObj {
@@ -69,7 +70,6 @@ struct EtcAmbRgb {
 extern "C" {
 void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);   // game/obj13.cpp
-int strcmp(const char* a, const char* b);
 
 // game/et00.cpp: the window models
 int Et00_init(void* arc, EtcSetData* d, cModel** out, int flag);

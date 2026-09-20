@@ -17,8 +17,8 @@
 #include "file.h"
 #include "main_mem.h"
 #include "t_util.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 void DrawGage(int x, int y, int h, int w, int val, int max, int color);
 void CamStick2World(Camera* cam, JOY* joy, Vec* out);

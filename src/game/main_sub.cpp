@@ -19,6 +19,7 @@
 #include "eprintf.h"
 #include "tpl.h"
 #include "tv_mode.h"
+#include <stdio.h>
 
 typedef s64 OSTime;
 
@@ -48,7 +49,6 @@ struct OSStopwatch {
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
 OSTime OSGetTime();
 void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
 void OSInitStopwatch(OSStopwatch* sw, const char* name);

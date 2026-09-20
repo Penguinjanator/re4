@@ -15,14 +15,12 @@
 #include "player.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Floor attribute (room "FSE" file) editor of the Tools REL. No __FILE__ string: the real name is
 // unknown (t_flr_at.cpp by its function prefix). Same skeleton as t_movie's t_se_at.cpp.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-}
 int SetToolLight(int no);  // db_light_tools.cpp
 
 // Reference stores (global.h FSet/BitSet): a scalar MEM, so the following global load (pG, pFlrSys)

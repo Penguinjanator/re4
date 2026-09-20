@@ -39,6 +39,7 @@
 #include "model.h"
 #include "vec.h"
 #include "rnd.h"
+#include <string.h>
 
 // Rotate a model from three components written y, x, z (the store order the original has).
 static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
@@ -55,7 +56,6 @@ static inline void setAngYXZ(cModel* m, f32 y, f32 x, f32 z)
 // list 0x64): the gatling towers and their gunners, the seven enemy appearance areas, the gates, the
 // switches, the gun turrets the helicopter destroys and the s00/s01 events.
 
-extern "C" void* memcpy(void* d, const void* s, unsigned int n);
 
 struct R320Work {
     cEmWrap heri;           // 0x000  the support helicopter (list 0x64)

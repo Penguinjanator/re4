@@ -18,13 +18,8 @@
 #include "main_sub.h"
 #include "t_util.h"
 #include "db_light.h"
-
-extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-unsigned int strlen(const char* s);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strncpy(char* dst, const char* src, unsigned int n);
-}
+#include <stdio.h>
+#include <string.h>
 
 // Scroll (room model placement) editor of the t_light REL (t_scroll.cpp; the file name is not in
 // the binary). Edits the cObj scroll objects of the loaded room and writes the `.smx` parameter file.

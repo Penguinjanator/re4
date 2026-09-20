@@ -32,9 +32,9 @@
 #include "eprintf.h"
 #include "title.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" void OSReport(const char* fmt, ...);
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 #define ID_TITLE 0x28
 #define ID_MENU 0x29

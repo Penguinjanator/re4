@@ -294,8 +294,6 @@ FileTblEntry FileTbl[] = {
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
 void DCFlushRange(void* addr, u32 nBytes);
 u32 OSGetTick();
 u32 OSGetConsoleSimulatedMemSize();
@@ -329,6 +327,8 @@ struct OSLowMem {
 
 #include "snd.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
 struct DvdSndStrWork {

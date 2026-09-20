@@ -20,9 +20,9 @@ extern MessageFont MesFont[4];
 #include "view.h"
 #include "snd.h"
 #include "ref_access.h"
+#include <stdio.h>
 
 extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
 void C_MTXOrtho(f32 m[4][4], f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void calcTplOffset(TEXPalette* tpl);  // game/model.cpp
 u16 getCharCode(u16 code);

@@ -20,13 +20,11 @@
 #endif
 #define ATTRIBUTE_ALIGN(num) __attribute__((aligned(num)))
 #include <dolphin/dvd.h>
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-int strcmp(const char* a, const char* b);
-char* strrchr(const char* s, int c);
 }
 
 // newlib ctype.h

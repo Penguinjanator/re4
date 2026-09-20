@@ -16,13 +16,11 @@
 #include "eprintf.h"
 #include "libgpu.h"
 #include "snd.h"
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
 void DCFlushRange(void* addr, u32 nBytes);
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
 }
 
 // Not the do { } while (0) form of the other units: the OSReport stays in the caller's block and

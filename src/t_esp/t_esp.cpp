@@ -6,14 +6,14 @@
 #include "vec.h"
 #include "esp.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
 // InitTool inlines (only ID_WINDOW's, which owns a static name table, stays out of line).
 
 extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-char* strcat(char* dst, const char* src);
 void memclr_asm(void* p, u32 size);
 // db_port.cpp
 int DB_GetStageNo();

@@ -8,10 +8,7 @@
 #include "cam_extra.h"
 #include "cam_motion.h"
 #include "main_mem.h"
-
-extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-}
+#include <string.h>
 
 #define PI 3.1415927f
 

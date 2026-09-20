@@ -5,8 +5,8 @@
 #include "scheduler.h"
 #include "mes.h"
 #include "t_util.h"
+#include <string.h>
 
-extern "C" unsigned int strlen(const char* s);
 
 // Message debug tool (Tools/t_mes.cpp): shows one message of the current message data set, lets the pad
 // move it and edit the message colour table.

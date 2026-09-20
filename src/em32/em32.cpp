@@ -45,6 +45,7 @@
 #include "main_mem.h"
 #include "ref_access.h"
 #include "em.h"
+#include <string.h>
 
 asm(".comm common_em32,52,4");
 
@@ -52,7 +53,6 @@ extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);   // game/obj20.cpp
 
 static void em32_R0_Init(cEm32* em);

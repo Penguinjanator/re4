@@ -19,10 +19,7 @@
 #include "mercenaries.h"
 #include "eprintf.h"
 #include "ref_access.h"
-
-extern "C" {
-void qsort(void* base, u32 n, u32 size, int (*cmp)(const void*, const void*));
-}
+#include <stdlib.h>
 
 extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
 extern f32 PlShotFrameTbl[][5];         // pl_class

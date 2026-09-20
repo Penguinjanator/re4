@@ -52,9 +52,6 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
-int sprintf(char* dst, const char* fmt, ...);
-int vsprintf(char* dst, const char* fmt, va_list ap);
-void* memcpy(void* dst, const void* src, unsigned int n);
 void SubScreenWait(int frames);
 }
 
@@ -489,6 +486,8 @@ void SceInitItemEvent()
 
 #include "flag_rsf.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 

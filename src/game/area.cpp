@@ -16,6 +16,8 @@
 #include "joy.h"
 #include "rnd.h"
 #include "gx.h"
+#include <string.h>
+#include <math.h>
 
 // dbmodule.cpp primitives. Draw_sphere really takes its Vec by value; this unit declares it with a
 // pointer (same ABI: aggregates are passed by reference), so no argument copy is made.
@@ -24,9 +26,6 @@
 void RotMatrix(Mtx m, Vec* rot);  // game/math_sub.cpp
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-f32 sinf(f32 x);
-f32 cosf(f32 x);
 f32 SQRTF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
 int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp

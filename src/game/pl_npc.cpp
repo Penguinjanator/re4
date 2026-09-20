@@ -32,11 +32,11 @@
 #include "dbmodule.h"
 #include "main_mem.h"
 #include "atari_init.h"
+#include <string.h>
 
 extern "C" {
 double atan2(double y, double x);
 f32 sinf(f32 x);
-void* memset(void* dst, int c, unsigned int n);
 void ShapeMove(void* p);
 int SubLadderClimbCk(cModel* m);
 int SubLadderClimbCk2(cModel* m);

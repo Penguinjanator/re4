@@ -9,13 +9,11 @@
 #include "eprintf.h"
 #include "main_mem.h"
 #include "db_log.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int printf(const char* fmt, ...);
-int vsprintf(char* buf, const char* fmt, va_list ap);
-int strcmp(const char* a, const char* b);
-char* strncpy(char* dst, const char* src, unsigned int n);
 }
 
 #define HALT()                                                    \

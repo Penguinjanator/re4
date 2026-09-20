@@ -30,6 +30,7 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include <string.h>
 
 // Room 3-0B (D:/Bio4/Prog/r30b.cpp): the crane puzzle. The player drives the crane's magnet over the four
 // Ganado (the caught ones ride along and are dropped in the pit), the switch-operated door with its guards,
@@ -69,7 +70,6 @@ static R30bWorkPtr r30b_work;
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the rotation
 // clears; the crane work is cleared through the prototyped memset (no crclr).
 extern "C" void* r30b_memset(void*, ...) asm("memset");
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 
 static f32 r30b_cableOfs = 6000.0f;

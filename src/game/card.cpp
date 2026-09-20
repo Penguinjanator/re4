@@ -30,6 +30,8 @@
 #include "hermite.h"
 #include "room_data.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 typedef s64 OSTime;
 
@@ -48,8 +50,6 @@ struct OSCalendarTime {
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
 void DCFlushRange(void* addr, u32 nBytes);
 OSTime OSGetTime();
 void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);

@@ -19,12 +19,8 @@
 #include "quake.h"
 #include "main_sub.h"
 #include "gx.h"
-
-extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-f32 sinf(f32);
-f32 cosf(f32);
-}
+#include <string.h>
+#include <math.h>
 
 extern f32 ORTHO_T;
 extern f32 ORTHO_B;

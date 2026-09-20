@@ -15,6 +15,7 @@
 #include "file.h"
 #include "db_light.h"
 #include "t_camera.h"
+#include <string.h>
 
 // Camera tool entry object (D:/Bio4/Prog/t_camera.cpp): the task loop, menus and the camera / area
 // editors. PARTIAL: the editors (tcEdit_select, tcEdit_area .. tcDrawRail, tcLoad, tcSave) are not
@@ -22,7 +23,6 @@
 
 extern "C" {
 void memclr_asm(void* p, u32 size);
-void* memset(void* p, int c, unsigned int n);
 }
 
 struct TcWorkPtr {

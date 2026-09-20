@@ -29,20 +29,16 @@
 #include "main_sub.h"
 #include "tpl.h"
 #include "debug.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // t_esp REL, D:/Bio4/Prog/db_port.cpp: the bridge between the effect tool (t_esp.cpp) and the game
 // (model viewer, event debug data, light tool, drawing helpers, the sp_*_trans debug draw callbacks of
 // the effect generators and the .cfg model set loader).
 
 extern "C" {
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strcat(char* dst, const char* src);
-int atoi(const char* s);
-long strtol(const char* s, char** end, int base);
-int sprintf(char* s, const char* fmt, ...);
 f32 tanf(f32 x);
-void* memset(void* p, int c, unsigned int n);
 void OSReport(const char* fmt, ...);
 void memclr_asm(void* p, u32 size);
 }

@@ -17,16 +17,13 @@
 #include "math_sub.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Room block ("BLK" file) editor of the t_sce REL (D:/Bio4/Prog/t_block.cpp is not in the binary:
 // no HALT string). Same skeleton as Tools' t_dr.cpp: block link table, trigger areas, per-area
 // connect table, load/save of the file image the game's cBlock reads.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-void* memcpy(void* dst, const void* src, unsigned int n);
-}
 int SetToolLight(int no);  // t_sce's db_light_v2 copy
 
 #define BLOCK_NUM 32

@@ -45,6 +45,8 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "ref_access.h"
+#include <string.h>
+#include <stdio.h>
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -57,9 +59,6 @@
 // accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
 extern "C" {
-int strcmp(const char* a, const char* b);
-int sprintf(char* dst, const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
 void OSReport(const char* fmt, ...);
 int SubCharHideCheck();                                  // game/pl_npc.cpp
 int getRoomEtcBreak(int no, cEm** em, int a);            // game/EtcModel.cpp

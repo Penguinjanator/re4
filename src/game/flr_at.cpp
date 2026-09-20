@@ -11,9 +11,9 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "ref_access.h"
+#include <string.h>
 
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
-extern "C" int strcmp(const char* a, const char* b);
 
 FlrSys FlrAt_sys;
 FlrSys* pFlrSys;

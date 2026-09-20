@@ -18,12 +18,11 @@
 #include "eprintf.h"
 #include "joy.h"
 #include "rnd.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-void* memcpy(void* dst, const void* src, unsigned int n);
 void DCFlushRange(void* addr, u32 nBytes);
 }
 void TaskSleep(int frames);   // game/scheduler.cpp

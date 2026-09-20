@@ -31,6 +31,9 @@
 #include "math_sub.h"
 #include "hermite.h"
 #include "t_id.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 // The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
 // skeleton of this unit defines it as `common_<mod>`, see em10.cpp / st_room.h): make_rel refuses the
@@ -40,11 +43,6 @@
 asm(".comm common_" T_ID_STR(REL_MODULE) ",52,4");
 
 extern "C" {
-int sprintf(char*, const char*, ...);
-unsigned int strlen(const char*);
-char* strncpy(char*, const char*, u32);
-void qsort(void* base, u32 n, u32 size, int (*cmp)(const void*, const void*));
-double strtod(const char*, char**);
 float tanf(float);
 }
 // COMPILER-DIFF #4: the original passes the (u32) converted height without the u16 truncation.

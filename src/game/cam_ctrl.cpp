@@ -25,10 +25,9 @@
 #include "at_mod.h"
 #include "joy.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-int strncmp(const char* a, const char* b, unsigned int n);
-void* memset(void* dst, int c, unsigned int n);
 void OSReport(const char* fmt, ...);
 f32 sinf(f32);
 f32 cosf(f32);

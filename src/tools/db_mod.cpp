@@ -15,6 +15,7 @@
 #include "db_light.h"
 #include "dolphin/mtx.h"
 #include "scheduler.h"
+#include <stdio.h>
 
 #line 30 "D:/Bio4/Prog/db_mod.cpp"
 
@@ -24,8 +25,6 @@
 // getters, dbModMotionSetSeq and dbModGetMotFilename. .rodata/.data are the same bytes in both.
 
 extern "C" {
-int sscanf(const char*, const char*, ...);
-int sprintf(char*, const char*, ...);
 char* strcpy(char*, const char*);
 unsigned int strlen(const char*);
 void OSReport(const char* fmt, ...);

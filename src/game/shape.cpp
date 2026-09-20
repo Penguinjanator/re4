@@ -8,6 +8,7 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "model.h"
+#include <string.h>
 
 // game/motion.cpp
 struct HermiteParam {
@@ -20,7 +21,6 @@ struct HermiteParam {
 extern "C" void HermiteInterpolation(HermiteParam* p, void* result, void* work);
 
 extern "C" {
-void* memcpy(void* dst, const void* src, unsigned int n);
 int ShapeMove(cModelInfo* info);
 void SetOriginalShape(cModelInfo* info);
 void ClrShape(cModel* m);

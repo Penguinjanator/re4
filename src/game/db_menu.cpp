@@ -17,12 +17,9 @@
 #include "main_mem.h"
 #include "db_log.h"
 #include "dvd.h"
+#include <string.h>
 
 extern "C" {
-int strcmp(const char* a, const char* b);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-void* memset(void* dst, int c, unsigned int n);
 u32 GetGameTime(int* h, int* m, int* s); // returns a value (main_sub.h): the call sets r3, so `addi r3,&h` loses its output dependence and issues last
 void DLL_Link(void* module, void* bss);
 void DLL_Unlink(void* module);

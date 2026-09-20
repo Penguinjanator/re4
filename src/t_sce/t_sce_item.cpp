@@ -23,18 +23,14 @@
 #include "etc_model.h"
 #include "debug.h"
 #include "t_util.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 // Item placement ("ITA" room file) editor of the t_sce REL (D:/Bio4/Prog/t_sce_item.cpp). The
 // t_sce_at.cpp skeleton with the item payload editor, the flag auto-numbering and the XML export.
 
 extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strstr(const char* s, const char* sub);
-char* strchr(const char* s, int c);
-char* strpbrk(const char* s, const char* set);
-unsigned long strtoul(const char* s, char** end, int base);
 int EtcModelGetLastNo();
 }
 int SetToolLight(int no);  // t_sce's db_light_v2 copy

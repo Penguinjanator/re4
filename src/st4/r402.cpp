@@ -21,8 +21,8 @@
 #include "mercenaries.h"
 #include "snd.h"
 #include "db_log.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-02 (D:/Bio4/Prog/r402.cpp): the Mercenaries waterworld; the enemy waves per area (sce_at
 // flags 0x17C), the sliding doors, the two boat events and the treasure cases.

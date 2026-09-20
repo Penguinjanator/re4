@@ -26,6 +26,8 @@
 #include "t_util.h"
 #include "t_event.h"
 #include "player.h"
+#include <string.h>
+#include <stdio.h>
 
 // Event tool (D:/Bio4/Prog/t_event.cpp): a task object (ToolEvt) with a file menu, the event preview
 // (EventMgr::SetEvt of a host .evd file, stop / capture / message display) and the preview sub tools
@@ -33,10 +35,6 @@
 
 extern "C" {
 void memclr_asm(void* p, u32 size);
-void* memset(void* p, int c, unsigned int n);
-int sscanf(const char* s, const char* fmt, ...);
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
 }
 
 void DbMenuSetExecTool(const char* name);

@@ -7,12 +7,12 @@
 #include "scheduler.h"
 #include "dbmodule.h"
 #include "t_util.h"
+#include <string.h>
 
 // Effect area editor (Tools/t_esp_area.cpp): a cDbgToolMain<ESP_AREA> over the room's 32 effect
 // trigger areas (.ear files), edited with the area editor of game/area.cpp.
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
 int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 }
 

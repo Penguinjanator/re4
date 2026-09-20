@@ -1,10 +1,7 @@
 #include "types.h"
 #include "snd_test.h"
 #include "eprintf.h"
-
-extern "C" {
-char* strcat(char* dst, const char* src);
-}
+#include <string.h>
 
 // Sound test of the t_movie REL (snd_test.cpp; the file name is not in the binary). Plays ISS / stream
 // requests, edits their SIT/RIT parameters and the AUX effects, shows the driver state and dumps ARAM.

@@ -20,11 +20,11 @@
 #include "player.h"
 #include "read.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
 void Yz2DecodeExec(void* dst);
 void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp

@@ -13,9 +13,9 @@
 #include "t_util.h"
 #include "tools.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
-extern "C" char* strcpy(char* dst, const char* src);
 
 // TPL viewer debug tool (Tools/t_tplview.cpp): lists the sub-screen viewer TPLs, draws the selected one
 // and lets the pad move / resize it.

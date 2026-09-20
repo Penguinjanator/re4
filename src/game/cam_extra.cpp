@@ -24,9 +24,9 @@
 #include "mes.h"
 #include "cockpit.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
 f32 atan2f(f32, f32);
 void Filter01SetParam(int mode, int z, u8 type, f32 level);
 void IdTexRelease(int id);

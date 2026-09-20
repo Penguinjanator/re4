@@ -24,12 +24,11 @@
 #define _DOLPHIN_TYPES_H_
 #include <dolphin/os/OSError.h>
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-char* strchr(const char* s, int c);
 int DBIsDebuggerPresent();
 void PPCMtmsr(u32 msr);
 void OSEnableScheduler();

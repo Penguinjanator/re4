@@ -15,13 +15,12 @@
 #include "snd.h"
 #include "sofdec.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" {
 void DCFlushRangeNoSync(void* addr, u32 nBytes);
 void OSReport(const char* fmt, ...);
-int sprintf(char* dst, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, u32 n);
 }
 
 // CodeWarrior MSL math.h float constants, defined by the CRI headers for this compiler.

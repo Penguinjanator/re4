@@ -12,10 +12,7 @@
 #include "dvd.h"
 #include "db_log.h"
 #include "ref_access.h"
-
-extern "C" {
-void* memcpy(void* dst, const void* src, unsigned int n);
-}
+#include <string.h>
 
 #line 40 "D:/Bio4/Prog/roomdata.cpp"
 

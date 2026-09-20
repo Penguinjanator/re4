@@ -15,6 +15,7 @@
 #include "dbmodule.h"
 #include "main.h"
 #include "gx.h"
+#include <string.h>
 
 #line 30 "D:/Bio4/Prog/atari.cpp"
 
@@ -27,7 +28,6 @@ void PPCMtpmc4(u32 v);
 void PPCMtmmcr0(u32 v);
 void PPCMtmmcr1(u32 v);
 u32 PPCMfpmc1();
-void* memcpy(void* dst, const void* src, unsigned int n);
 }
 
 // at_sub attribute filter bypass mode (cSatMgr::seCk of the manager running the check)

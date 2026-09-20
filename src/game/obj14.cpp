@@ -9,8 +9,8 @@
 #include "global.h"
 #include "math_sub.h"
 #include "snd.h"
+#include <string.h>
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 // Bell: a pendulum model with a hit-receiving enemy work; a shot swings it, rings it (reported to
 // pG for 90 frames) and setBreak() lets it fall.

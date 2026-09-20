@@ -23,9 +23,9 @@
 #include "db_cam.h"
 #include "motion.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
 void CameraSetOrientationZeroRoll(Camera* cam);
 void CameraCamposDistance(Camera* cam, f32 dist);
 void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);

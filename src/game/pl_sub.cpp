@@ -19,12 +19,12 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
 void ReleaseWepData();                         // game/read.cpp
 void ReadPlayerData(int type, int costume);    // game/read.cpp
 void AddWaterPower(Vec* pos, f32 power);       // game/Espgen42.cpp
-void* memset(void* dst, int c, unsigned int n);
 }
 f32 GetDistance(Vec& v0, Vec& v1);               // game/sub2.cpp (second overload)
 

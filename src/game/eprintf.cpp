@@ -13,10 +13,10 @@
 #include "tpl.h"
 #include "va_ppc.h"
 #include "eprintf.h"
+#include <stdio.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-int vsprintf(char* buf, const char* fmt, va_list ap);
 }
 
 #define HALT()                                                    \

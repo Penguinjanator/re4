@@ -28,12 +28,12 @@
 #include "esp.h"
 #include "est.h"
 #include "math_sub.h"
+#include <string.h>
 
 // Room 3-0D (D:/Bio4/Prog/r30d.cpp): the two-lever gate Leon and Ashley pull together (the coop
 // switch with its countdown display), the power shutter, the front shutter Ashley crawls under and
 // the two treasure chests.
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // The coop switch state machine (r30d_work->coop, cleared with memset at every attempt).
 struct R30dCoop {

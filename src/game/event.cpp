@@ -63,17 +63,10 @@
 #include "eprintf.h"
 #include "foot_shadow.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-unsigned int strlen(const char* s);
-char* strchr(const char* s, int c);
-char* strstr(const char* s, const char* sub);
 // game/eff_sys.cpp
 // game/read.cpp: SearchEmModule (C++ linkage) comes from read.h
 // game/shape.cpp

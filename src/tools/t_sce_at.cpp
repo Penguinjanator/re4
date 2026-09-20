@@ -23,18 +23,12 @@
 #include "debug.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Scenario attribute ("AEV" room file) editor: the same object in the Tools and t_sce RELs
 // (D:/Bio4/Prog/t_sce_at.cpp). Same skeleton as t_flr_at.cpp / t_movie's t_se_at.cpp.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strstr(const char* s, const char* sub);
-char* strpbrk(const char* s, const char* set);
-void* memset(void* dst, int c, unsigned int n);
-}
 int SetToolLight(int no);  // db_light_tools.cpp / t_sce's db_light_v2 copy
 
 // AEV file: header + records (game/sce_at.cpp SceAtFileHead).

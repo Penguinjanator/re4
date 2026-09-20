@@ -25,6 +25,8 @@
 #include "main.h"
 #include "db_cam.h"
 #include "player.h"
+#include <stdio.h>
+#include <string.h>
 
 // The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
 // skeleton defines it as `common_<mod>`, see em10.cpp / st_room.h): once db_light is compiled in a module
@@ -40,9 +42,6 @@ asm(".comm common_" DB_LIGHT_STR(REL_MODULE) ",52,4");
 // DB_LIGHT_SET_LOG_MODE); t_sce / t_movie carry an older build (tools/db_light_v2.cpp, unwritten).
 
 extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, unsigned int n);
 f32 atan2f(f32 y, f32 x);
 f64 atan2(f64 y, f64 x);
 f32 asinf(f32 x);

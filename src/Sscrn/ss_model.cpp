@@ -15,8 +15,8 @@
 #include "motion.h"
 #include "sscrn.h"
 #include "ss_main.h"
+#include <stdio.h>
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
 
 extern "C" {
 void wep00Init(int no);

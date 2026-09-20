@@ -13,9 +13,9 @@
 #include "main_mem.h"
 #include "player.h"
 #include "eprintf.h"
+#include <string.h>
 
 extern const Vec vecZero;
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Matrix copy written out as loops (the original never calls PSMTXCopy for these).
 // Shape matters (all four sites byte-identical only this way): dst pointer first, the row

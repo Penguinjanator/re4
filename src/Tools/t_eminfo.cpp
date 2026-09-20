@@ -13,14 +13,14 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <string.h>
+#include <stdio.h>
 
 // Enemy placement info editor (Tools/t_eminfo.cpp): edits the per-room .emi point list (position,
 // direction and three work bytes per typed point) with a screen cursor, draws the points and the
 // routes/areas some enemies build from them.
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-int sprintf(char* dst, const char* fmt, ...);
 f32 LIMIT_ANGLE(f32 x);
 int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y);

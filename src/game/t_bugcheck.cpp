@@ -14,8 +14,8 @@
 #include "player.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 int lifeLevel(int levels, s16 max, int base);
 void DrawGage(int x, int y, int h, int w, int val, int max, int color);

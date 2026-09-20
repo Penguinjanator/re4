@@ -9,15 +9,13 @@
 #include "dbmodule.h"
 #include "db_log.h"
 #include "db_sctrl.h"
+#include <string.h>
 
 // Hermite S-curve editor of the debug tools (D:/Bio4/Prog/db_sctrl.cpp; the same object in t_id and
 // t_event). Screen space is 640x480 centred on the graph centre; the graph is drawn in world space
 // through w->mtx (the camera matrix pushed 240 / tan(fovy / 2) in front of the camera).
 
 extern "C" {
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, unsigned int n);
 double tan(double x);
 double log10(double x);
 float atanf(float x);

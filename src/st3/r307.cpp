@@ -22,6 +22,7 @@
 #include "snd.h"
 #include "mes.h"
 #include "cam_ctrl.h"
+#include <string.h>
 
 // Room 3-07 (D:/Bio4/Prog/r307.cpp): the nine-piece rotation puzzle on the terminal (each terminal choice
 // turns the pieces of one colour; two solution patterns), the barred door it opens, the regenerator that
@@ -73,7 +74,6 @@ struct R307WorkPtr {
 
 static R307WorkPtr r307_work;
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 static R307Piece r307_piece[9] = {
     {2, {-195.5f, 1179.6f, -2038.1f}},

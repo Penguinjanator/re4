@@ -7,8 +7,8 @@
 #include "global.h"
 #include "camera.h"
 #include "quake.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 QuakeWork Quake;
 static Vec QuakeOfsOld[2];

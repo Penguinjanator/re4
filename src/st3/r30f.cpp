@@ -39,11 +39,11 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "vec.h"
+#include <string.h>
 
 // Room 3-0F (D:/Bio4/Prog/r30f.cpp): the bulldozer ride. Leon and Ashley drive through the four
 // gates, fight off the truck and take the lift up.
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 struct SubCharPtr {
     cSubChar* p;
 };

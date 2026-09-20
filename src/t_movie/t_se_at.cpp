@@ -12,15 +12,12 @@
 #include "dbmodule.h"
 #include "light.h"
 #include "t_util.h"
+#include <stdio.h>
+#include <string.h>
 
 // SE attack (room sound area, "ESE" file) editor of the t_movie REL. No __FILE__ string: the real
 // name is unknown (t_se_at.cpp by its function prefix).
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-void* memset(void* dst, int c, unsigned int n);
-}
 void SetToolLight(int on);  // this module's db_light object
 
 // Tool-side view of the SeAt record (block / se number as ints).

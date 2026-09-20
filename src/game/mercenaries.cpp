@@ -28,9 +28,9 @@
 #include "option.h"
 #include "mercenaries.h"
 #include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
 static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 }
 

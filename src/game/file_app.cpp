@@ -9,15 +9,10 @@
 #include "joy.h"
 #include "eprintf.h"
 #include "scheduler.h"
+#include <string.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-char* strstr(const char* s, const char* sub);
-char* strncpy(char* dst, const char* src, unsigned int n);
-int strcmp(const char* a, const char* b);
 }
 
 extern char* pUser_name;

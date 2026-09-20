@@ -10,6 +10,7 @@
 #include "math_sub.h"
 #include "pl_cloth.h"
 #include "motion.h"
+#include <string.h>
 
 // Event costume / cloth model: follows a parts of its parent with a slerp blend and runs the
 // cloth simulation selected by `type` (player costumes, enemy cloth sets, the ribbon / rope).
@@ -20,7 +21,6 @@ public:
 };
 
 extern "C" {
-void* memset(void* p, int c, unsigned int n);
 void obj18SetOya(cObj18* obj);
 void Em34ClothSet1(cModel* m, PlCloth* pCloth);
 void Em34ClothSet2(cModel* m, PlCloth* pCloth);

@@ -21,6 +21,8 @@
 #include "snd.h"
 #include "debug.h"
 #include "ref_access.h"
+#include <string.h>
+#include <stdlib.h>
 
 void bio4_GXSetCopyClear(GXColor color, u32 z);   // game/gx_sub.cpp
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
@@ -28,11 +30,6 @@ void DbMenuExitAfterCheck();                        // game/db_menu.cpp
 extern "C" {
 u32 OSGetTick();
 void OSReport(const char* fmt, ...);
-unsigned int strlen(const char* s);
-unsigned int strcspn(const char* s, const char* reject);
-int strncmp(const char* a, const char* b, unsigned int n);
-long strtol(const char* s, char** end, int base);
-void* memset(void* dst, int c, unsigned int n);
 }
 extern u8 PlMode;       // game/player.cpp
 extern u8 PlFormMode;   // game/player.cpp

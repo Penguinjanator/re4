@@ -27,11 +27,11 @@
 #include "sscrn.h"
 #include "esp.h"
 #include "snd.h"
+#include <string.h>
 
 // Room 1-05 (D:/Bio4/Prog/r105.cpp): the church; the insignia dial puzzle on the door, the
 // cesspit cover with the key item, the Ganado wave after the rescue and the s00/s10 events.
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);   // game/TexRender.cpp
 void Obj18CmfOn(cObj* o, u32 n);                                     // game/obj18.cpp
 

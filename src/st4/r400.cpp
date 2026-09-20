@@ -23,8 +23,8 @@
 #include "player.h"
 #include "mercenaries.h"
 #include "rnd.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-00 (D:/Bio4/Prog/r400.cpp): the Mercenaries village; the enemy resets per area, the
 // bosses after enough kills and the three treasure boxes.

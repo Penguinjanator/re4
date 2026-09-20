@@ -7,8 +7,8 @@
 #include "player.h"
 #include "math_sub.h"
 #include "ref_access.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // int store through a reference (keeps the following loads below it, like global.h BitOn)
 

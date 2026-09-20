@@ -11,13 +11,10 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <stdio.h>
 
 // Pad vibration pattern editor (Tools/t_vib.cpp): 64 patterns of up to 16 keys (VibDataEntry), edited
 // on a level/frame grid and saved as the room's .vib file.
-
-extern "C" {
-int sprintf(char* dst, const char* fmt, ...);
-}
 
 struct TvibData {
     u32 num;             // 0x00

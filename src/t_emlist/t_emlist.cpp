@@ -456,12 +456,12 @@ static EmListIdInfo EmListIdTbl[64] = {
 #include "db_cam.h"
 #include "cam_ctrl.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
-extern "C" int sprintf(char* buf, const char* fmt, ...);
 // The player's position is all the tool needs from pPL (player.h would add its header strings).
 extern cEm* pPLem asm("pPL");
 extern "C" void memclr_asm(void* p, u32 size);
-extern "C" unsigned int strlen(const char* s);
 // The list index is stored through a reference in emlist_r0_target: the store then keeps the
 // following `pG` loads in the search loops (a plain member store lets them hoist).
 

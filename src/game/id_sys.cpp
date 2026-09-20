@@ -16,10 +16,10 @@
 #include "math_sub.h"
 #include "texture.h"
 #include "trans_ot.h"
+#include <stdlib.h>
 
 extern "C" {
 double tan(double);
-double strtod(const char*, char**);
 void OSReport(const char* msg, ...);
 // game/path.cpp
 int FuncPathParametrize(void* path, void* data);

@@ -29,8 +29,8 @@
 #include "rnd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-03 (D:/Bio4/Prog/r403.cpp): the Mercenaries castle; the enemy resets per area, the two
 // gatling gunners after enough kills, the slide down the banister and the three treasure cases.

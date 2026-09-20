@@ -8,8 +8,8 @@
 #include "scheduler.h"
 #include "room_data.h"
 #include "t_util.h"
+#include <string.h>
 
-extern "C" int strcmp(const char* a, const char* b);
 
 // Flag editor tool: pages of bit flags with names.
 

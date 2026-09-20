@@ -54,12 +54,6 @@ static void ssTermWidgetKill(Widget<SUB_SCREEN>* w)
 #include "math_sub.h"
 
 extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-void* memset(void* p, int c, unsigned int n);
-char* strchr(const char* s, int c);
-char* strstr(const char* s, const char* k);
-unsigned int strlen(const char* s);
-char* strcpy(char* d, const char* s);
 // game/shape.cpp
 int ShapeMove(cModelInfo* info);
 void ClrShape(cModel* m);
@@ -266,6 +260,8 @@ void cDbgWindow::LocalDisp()
 }
 
 #include "ss_main.h"
+#include <stdio.h>
+#include <string.h>
 
 
 // Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).

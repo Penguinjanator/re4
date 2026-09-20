@@ -14,6 +14,8 @@
 #include "file.h"
 #include "libgpu.h"
 #include "ref_access.h"
+#include <string.h>
+#include <stdio.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -30,11 +32,6 @@ void OSFreeToHeap(int heap, void* p);
 s32 OSCheckHeap(int heap);
 void OSSetSaveRegion(void* start, void* end);
 extern int __OSCurrHeap;
-int strcmp(const char* a, const char* b);
-char* strcpy(char* dst, const char* src);
-char* strrchr(const char* s, int c);
-int sprintf(char* buf, const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
 }
 
 extern char* pRK;

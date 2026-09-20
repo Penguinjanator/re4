@@ -15,8 +15,8 @@
 #include "file.h"
 #include "db_log.h"
 #include "ref_access.h"
+#include <stdio.h>
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
 
 
 // Distance curve entry as edited (SndCurveEnt with a signed value).

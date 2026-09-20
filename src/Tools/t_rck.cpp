@@ -15,12 +15,12 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Route check point editor (Tools/t_rck.cpp): places route points, connects them (two-way / one-way
 // lines), computes the next-hop table with Dijkstra and saves the room's .rtp file.
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 #define RCK_POINT_MAX 128
 

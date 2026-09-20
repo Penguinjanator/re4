@@ -22,12 +22,10 @@
 #include "motion.h"
 #include "objRobo.h"
 #include "ref_access.h"
+#include <string.h>
 
 
 
-extern "C" {
-void* memset(void* p, int c, unsigned int n);
-}
 void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // Reference read of a .sdata float: an unflagged MEM that stays below the preceding `w->fallX` store.
