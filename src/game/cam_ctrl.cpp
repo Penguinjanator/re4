@@ -24,6 +24,7 @@
 #include "dbmodule.h"
 #include "at_mod.h"
 #include "joy.h"
+#include "ref_access.h"
 
 extern "C" {
 int strncmp(const char* a, const char* b, unsigned int n);
@@ -358,7 +359,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 // Installs the room's camera data (relocated).
 void CameraControl::RoomDataRead(CameraDataHeader* room)
 {
-    G_ROOM_CAM_DATA = calcAddr(room);
+    PSet(pG->pCamRoom, calcAddr(room));
     data = (CameraDataHeader*) pG->pCamRoom;
 }
 

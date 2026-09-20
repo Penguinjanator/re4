@@ -386,8 +386,8 @@ void em2cDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->bell_pos = em->pos;
-    pGS->bell_stat = 0;
+    pGS->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -790,8 +790,8 @@ void em2cTailDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->bell_pos = em->pos;
-    pGS->bell_stat = 0;
+    pGS->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;

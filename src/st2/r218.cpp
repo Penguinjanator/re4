@@ -56,7 +56,7 @@ static inline u32 r218_emDead(int no)
     u32 v;
 
     if (list >= 0) {
-        v = *EM_FLG_ROW(list) & (0x80000000 >> (no & 31));
+        v = *pG->Em_flg[list] & (0x80000000 >> (no & 31));
     } else {
         v = 0;
     }

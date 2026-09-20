@@ -333,8 +333,8 @@ static inline void em28BellSet(cEm28* em)
 {
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 0;
+        pGS->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 0;
     }
 }
 
@@ -773,7 +773,7 @@ int em28EscapeCk(cEm28* em)
 
         // three identical arms + the override after the switch: the arm sets are dead (the
         // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 15000.0f;
             break;
@@ -785,8 +785,8 @@ int em28EscapeCk(cEm28* em)
             break;
         }
         r = 15000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-            + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z) < r * r) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+            + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z) < r * r) {
             esc = 1;
         }
     }

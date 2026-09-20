@@ -411,8 +411,8 @@ static void em21_R1_Escape(cEm21* em)
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
         if (!StaFlagChk(pGS, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;
@@ -1166,7 +1166,7 @@ void em21NeckMove(cEm21* em)
 }
 
 // Should the sleeping / wandering dog notice the player: within 1500 units, within 4000 in front, the
-// alert / bell alarm (Status_flg bits, bell_pos within 15000) or the room's forced alert. 1 = yes.
+// alert / bell alarm (Status_flg bits, SeInfo.pos within 15000) or the room's forced alert. 1 = yes.
 int em21WakeCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1190,7 +1190,7 @@ int em21WakeCk(cEm21* em)
 
         // three identical arms + the override after the switch: the arm sets are dead (the
         // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 15000.0f;
             break;
@@ -1202,8 +1202,8 @@ int em21WakeCk(cEm21* em)
             break;
         }
         r = 15000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < r * r) {
             return 1;
         }

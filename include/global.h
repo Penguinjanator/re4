@@ -85,8 +85,14 @@ struct ITEM_SAVE_WORK {
     s16 pos[3];       // 0x0A  / 10
 };
 
-// Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
-// pads as other units reveal more fields, never rewrite.
+// Position and kind of the last noise that enemies react to (PS2 EM_SE_INFO). Set together with STA_SE_BURST by
+// the rung bell, explosions and door kicks; the enemy find checks read it.
+struct EM_SE_INFO {
+    Vec pos;           // 0x00
+    u8 type;           // 0x0C  0, 1 or 2; 2 = bell rung
+    u8 pad_0D[3];
+};
+
 // One entry of the room enemy list (ESL, pG->Em_list: 256 entries of 0x20 bytes, game/em_set.cpp).
 struct EmListData {
     u8 be_flag;       // 0x00  bit0: alive flag (EmListSetAlive), bit1: set (an enemy was created from it), bit2/bit3: set toggles  (PS2 EM_LIST.be_flag)
@@ -104,6 +110,8 @@ struct EmListData {
     u8 pad_1C[4];
 };
 
+// Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
+// pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
     s32 IsDevConsole;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
     u8 shooting_mode;      // 0x04  shooting range mode (title: shoot_mode[] name table; em10/em39: 9999 damage, marker lines)
@@ -160,9 +168,8 @@ struct GlobalWork {
     void* pOsd;        // 0x4F34  room "OSD" data
     s8 AreaNo;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
     u8 pad_4F39[3];
-    Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
-    u8 bell_stat;          // 0x4F48  2 = bell rung
-    u8 pad_4F49[0x4F70 - 0x4F49];
+    EM_SE_INFO SeInfo;     // 0x4F3C  last noise enemies react to (Status_flg STA_SE_BURST); the rung bell point is pos
+    u8 pad_4F4C[0x4F70 - 0x4F4C];
     Vec quake_ofs;         // 0x4F70
     u8 weapon_no_old;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
@@ -1210,16 +1217,20 @@ struct GlobalWorkPtr {
 };
 #define pGS (((GlobalWorkPtr*) &pG)->p)
 
-// Byte pointer to a GlobalWork member. Copies and stores through it are not struct-member accesses, so GCC
-// 2.95 reloads pG afterwards; `&pG->f` compiles differently. Written as the member's offset (the
-// null-pointer idiom) added to pG.
+// Vec copy whose destination is a word pointer variable. That block move is a store the compiler cannot
+// place against the cached pG / pPL loads, so they are reloaded afterwards; `memcpy(&pG->field, ...)`, a Vec*
+// variable and a struct assignment keep them. A plain block: a do/while wrapper changes the generated code.
+#define VEC_COPY(dst, src)                     \
+    {                                          \
+        u32* copyDst_ = (u32*) &(dst);         \
+        memcpy(copyDst_, &(src), sizeof(Vec)); \
+    }
+
+// Offset of a GlobalWork member, written with the null-pointer idiom. Address arithmetic that adds it to pG
+// keeps the offset as the last term (`pG->field` adds it first), which some callers need.
 #define PG_OFS(f) ((u32) &((GlobalWork*) 0)->f)
-#define PG_PTR(f) ((u8*) pG + PG_OFS(f))
 // Death words of enemy list `list` (Em_flg row: eight u32, one bit per entry). The scaled index is added to pG
 // first and the member offset last; written as `pG->Em_flg[list]` the address is built differently.
 #define EM_FLG_ROW(list) ((u32*) ((list) * 0x20 + (u32) pG + PG_OFS(Em_flg)))
-
-// Same effect for the room camera data pointer store in CameraControl::RoomDataRead.
-#define G_ROOM_CAM_DATA (*(void**) PG_PTR(pCamRoom))
 
 #endif

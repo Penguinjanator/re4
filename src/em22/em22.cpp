@@ -981,9 +981,6 @@ static void em22_R1_Turn(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
-// The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy(PG_PTR(bell_pos), pos, sizeof(Vec))
-
 // R1 == 0xA Escape: runs away from the player (RouteCkEscEm) for 30..60 frames, ringing the bell alarm
 // (Status_flg[1] bit29), then RunAbout (7) or Turn (9).
 static void em22_R1_Escape(cEm22* em)
@@ -1002,8 +999,8 @@ static void em22_R1_Escape(cEm22* em)
         }
         if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            SET_BELL_POS(&em->pos);
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;

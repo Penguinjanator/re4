@@ -3050,12 +3050,12 @@ void emDoorAction2(cEmDoor* em)
     }
 }
 
-// The bell position marks where the door was kicked / opened (pG->bell_pos).
+// The bell position marks where the door was kicked / opened (pG->SeInfo.pos).
 static inline void emDoorBellSet(Vec* pos)
 {
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), pos, sizeof(Vec));
-    pG->bell_stat = 0;
+    pGS->SeInfo.pos = *pos;
+    pGS->SeInfo.type = 0;
 }
 
 // Player damage routine of the kick: a kickable door plays the kick-open motion (0x1C) and

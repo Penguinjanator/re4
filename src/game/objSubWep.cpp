@@ -632,8 +632,8 @@ void cObjGrenade::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = pos;
+    pGS->SeInfo.type = 1;
 }
 
 // Under-water blast: the same 6000-radius damage, water SE and bell noise, no effect.
@@ -643,8 +643,8 @@ void cObjGrenade::waterExplode()
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     SndCall(1, 0x17, &pos, 0, 0, 0);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = pos;
+    pGS->SeInfo.type = 1;
 }
 
 // Incendiary: explodes on the first floor hit (flags bit0).
@@ -701,8 +701,8 @@ void cObjGreFire::explode()
     }
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = pos;
+    pGS->SeInfo.type = 1;
 }
 
 // Fizzles under water (SE only).
@@ -747,8 +747,8 @@ void cObjGreLight::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x17, 0, 15000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = pos;
+    pGS->SeInfo.type = 1;
 }
 
 // Fizzles under water (SE only).
@@ -781,8 +781,8 @@ void cObjEgg::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     PlWepHitCheck2(0, &pos, &pos, 0x19, 0, 2000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = pos;
+    pGS->SeInfo.type = 1;
 }
 
 // Nothing: an egg just sinks.

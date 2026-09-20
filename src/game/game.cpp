@@ -807,8 +807,8 @@ void GameContinue(int mode)
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
-    memcpy(PG_PTR(NextPos), &pG->sub_pos, sizeof(Vec));
-    FSet(pG->NextY, pG->sub_angle);
+    pG->NextPos = pG->sub_pos;
+    FSet(pGS->NextY, pGS->sub_angle);
     U16Set(pG->RoomNo_next, pG->room_id);
     pG->Part_next = pG->Part;
     pG->Rno0 = 4;
@@ -839,11 +839,15 @@ void clearGlobalSaveData()
     u8 x8354 = pG->game_mode;
     s32 game_mode = pG->SaveKind;
 
-    memcpy(&keep2, PG_PTR(shootingScore), sizeof(keep2));
-    memcpy(&keep, PG_PTR(pl_life), sizeof(keep));
+    memcpy(&keep2, &pG->shootingScore, sizeof(keep2));
+    memcpy(&keep, &pG->pl_life, sizeof(keep));
     memclr_asm(pG->save_data_start_addr, 0x36F8);
-    memcpy(PG_PTR(shootingScore), &keep2, sizeof(keep2));
-    memcpy(PG_PTR(pl_life), &keep, sizeof(keep));
+    {
+        u32* score = (u32*) &pG->shootingScore;
+
+        memcpy(score, &keep2, sizeof(keep2));
+    }
+    memcpy(&pG->pl_life, &keep, sizeof(keep));
     U16Set(pG->game_cnt, x4F8E);
     U32Set(pG->peseta, x4F98);
     pG->language = x4F93;
@@ -863,7 +867,11 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
         return 0;
     }
     checkAddr(data);
-    memcpy(PG_PTR(save_data_start_addr), data->pGlobal, sizeof(GameSaveBlock));
+    {
+        u32* save = (u32*) &pG->save_data_start_addr;
+
+        memcpy(save, data->pGlobal, sizeof(GameSaveBlock));
+    }
     if (pG->SaveKind == 3) {
         clearGlobalSaveData();
         RoomData.clear(data->pRoom);
@@ -894,7 +902,7 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
     }
     checkAddr(data);
     if (pG->Rno0 == 3) {
-        memcpy(PG_PTR(sub_pos), &pPL->pos, sizeof(Vec));
+        VEC_COPY(pG->sub_pos, pPL->pos);
         FSet(pG->sub_angle, pPL->ang.y);
     }
     S32Set(pG->SaveKind, mode);
@@ -1303,8 +1311,8 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
-    memcpy(PG_PTR(sub_pos), &pG->NextPos, sizeof(Vec));
-    FSet(pG->sub_angle, pG->NextY);
+    pG->sub_pos = pG->NextPos;
+    FSet(pGS->sub_angle, pGS->NextY);
     U16Set(pG->room_id, pG->RoomNo_next);
     pG->Part = pG->Part_next;
     if (!FlagChkSign(pG->Debug_flg, DBG_ROOMJMP) && !SysFlagChk(pG, SYS_CONTINUE)) {

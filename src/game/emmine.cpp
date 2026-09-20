@@ -1170,7 +1170,7 @@ void cEmMine::setLost()
 // Detonates: a mine stuck to a surface first goes through BombWait (Rno1 5); otherwise spawns
 // the explosion est / SE at the nose, splashes water, deletes the trail, flags the explosion
 // (Status_flg[0] 0x800000, Status_flg[1] 0x20000000) and stores the blast position as the noise
-// source (bell_pos / bell_stat, alerts enemies), then BombWait2 for the damage.
+// source (SeInfo.pos / SeInfo.type, alerts enemies), then BombWait2 for the damage.
 void cEmMine::setBomb()
 {
     EmMineWork* w = EMMINE_WK(this);
@@ -1201,8 +1201,8 @@ void cEmMine::setBomb()
     EffectEfmDelete(0, w->EffKindId, this);
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &p, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = p;
+    pGS->SeInfo.type = 1;
     setLost();
     // COMPILER-DIFF: candidate #12 (cse wider-mode zero fold): the original stores the known-zero
     // `hit` register into xFE (ours folds it to the HImode zero pseudo); the launder keeps `hit` as

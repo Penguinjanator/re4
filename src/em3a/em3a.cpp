@@ -1488,10 +1488,10 @@ int em3aFindPLCk(cEm3a* em)
     if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 225000000.0f) {
         return 1;
     }
-    if (StaFlagChk(pG, STA_SE_BURST) && pG->bell_stat == 2) {
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x)
-                + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+    if (StaFlagChk(pG, STA_SE_BURST) && pG->SeInfo.type == 2) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x)
+                + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < 100000000.0f) {
             return 1;
         }

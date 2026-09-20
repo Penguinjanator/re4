@@ -2310,9 +2310,9 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     PSVECScale(&to->at, &a, t);
     PSVECScale(&from->at, &b, s);
     PSVECAdd(&a, &b, &pG->Camera.param.at);
-    // byte-pointer memcpy (&pG->Camera.up): the store may alias pG, which is reloaded for the next call
-    memcpy(PG_PTR(Camera.up), &up, sizeof(Vec));
-    CameraSetOrientationUp(&pG->Camera);
+    // pGS loads pG separately from the earlier pG loads, so pG is reloaded for the call after the copy
+    pGS->Camera.up = up;
+    CameraSetOrientationUp(&pGS->Camera);
     return t >= 1.0f;
 }
 

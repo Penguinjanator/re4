@@ -4926,7 +4926,7 @@ int em36FindCk(cEm36* em)
     if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 25000.0f;
             break;
@@ -4938,8 +4938,8 @@ int em36FindCk(cEm36* em)
             break;
         }
         r = 25000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y) +
-                (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z) < r * r) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y) +
+                (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z) < r * r) {
             if ((w->flags & 1) && w->plRouteDis < r) {
                 find = 1;
             }

@@ -394,26 +394,26 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
             if (GetWaterHeight(&hit, &wh) == 0 || hit.y > wh) {
                 // nested call: `&nrm` is evaluated into a pseudo before EatGetEffectType (`addi r30,r1,..`
-                // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
+                // ahead of the bl)
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy(PG_PTR(bell_pos), &hit, sizeof(Vec));
-                pG->bell_stat = 0;
+                pG->SeInfo.pos = hit;
+                pGS->SeInfo.type = 0;
             }
         }
     }
     if (pl != 0 && !(flag & 1)) {
         if (pl->Wep->m_pWep != 0) {
             wepSetWaterShot(pPos, pPos2, type);
-            memcpy(PG_PTR(bell_pos), &pl->Wep->m_pWep->wep.marker, sizeof(Vec));
+            pGS->SeInfo.pos = pl->Wep->m_pWep->wep.marker;
             switch (type) {
             case 0xD:
             case 0x12:
             case 0x13:
-                pG->bell_stat = 1;
+                pG->SeInfo.type = 1;
                 break;
             default:
-                pG->bell_stat = 0;
+                pG->SeInfo.type = 0;
                 break;
             }
         }

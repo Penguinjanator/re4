@@ -113,7 +113,7 @@ static inline void r101_emDeadClear(int no)
     int list = pG->em_list_no;
 
     if (list >= 0) {
-        BitOff(*EM_FLG_ROW(list), 0x80000000 >> (no & 31));
+        BitOff(*pG->Em_flg[list], 0x80000000 >> (no & 31));
     }
 }
 

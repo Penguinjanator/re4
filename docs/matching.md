@@ -582,7 +582,11 @@ original: fix the source, do not link it.
 - Bio4.sym scopes are unreliable: symbols marked `local` in `sym_map.tsv` are often global (called from
   other units) — check callers' asm before making them `static`.
 - Stores through raw pointers/references (non-struct MEMs) make GCC reload `pG` afterwards and keep
-  loads in source order; struct-member stores don't (`TOOL_FLAG` raw-offset accessors in `t_util.h`).
+  loads in source order; struct-member stores don't (`BitOn`/`BitOff`/`BitSet` and the `U16Set`-style helpers take references).
+  A `memcpy` whose destination is a `u32*` pointer variable is such a store (`VEC_COPY` in `global.h`); `memcpy(&pG->f, ...)`
+  in any spelling is not. `pGS` (struct view of pG) is loaded separately from plain `pG` loads, so a `pGS->` access after
+  a struct assignment gets a fresh pG load: the `SeInfo` sets are `pG->SeInfo.pos = pos; pGS->SeInfo.type = n;` (or `pGS`
+  on both in the enemy modules).
 - Uninitialised globals are emitted in order of *first declaration*, header externs included, so header
   extern order dictates `.bss`/`.sbss` layout; initialised objects are emitted at their definition.
   Statics/initialised globals ≤ 8 bytes go to `.sdata` (-G 8); 16-byte zero-initialised objects to `.data`.

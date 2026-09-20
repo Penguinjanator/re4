@@ -306,8 +306,8 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = stat;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = stat;
         em->setLost();
         break;
     case 0xC:
@@ -322,8 +322,8 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = one;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = one;
         em->setLost();
         break;
     case 0:
@@ -1277,8 +1277,8 @@ void emWepRocketBobm(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &em->pos_old, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = em->pos_old;
+    pGS->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1301,8 +1301,8 @@ void emWepArrowBomb(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1364,8 +1364,8 @@ void emWep_R1_BombThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 1;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 1;
         em->setLost();
         return;
     }
@@ -1565,8 +1565,8 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy(PG_PTR(bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 1;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 1;
         em->setLost();
         return;
     }

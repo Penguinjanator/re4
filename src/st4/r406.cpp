@@ -56,7 +56,7 @@ static inline u32 r406_emDead(int no)
     u32 v;
 
     if (list >= 0) {
-        v = FlagChk(EM_FLG_ROW(list), no);
+        v = FlagChk(pG->Em_flg[list], no);
     } else {
         v = 0;
     }

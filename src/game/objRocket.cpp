@@ -52,7 +52,7 @@ const Vec cObjRocket::lightSize = { 500.0f, 0.0f, 0.0f };
 
 // r_no_0 0: rides on the launcher (hidden while the weapon is transparent); 1: in flight — moves
 // by its motion, explodes (0x12 blast hit check, 8000 wide) on water, on an enemy / object hit
-// (0xD line check, 3000) or on the map, and rings the bell (bell_pos / bell_stat); 2: destroyed.
+// (0xD line check, 3000) or on the map, and rings the bell (SeInfo.pos / SeInfo.type); 2: destroyed.
 void cObjRocket::move()
 {
     static f32 blastDmWidth = 8000.0f;
@@ -112,8 +112,8 @@ void cObjRocket::move()
             res = PlWepHitCheck2(0, &rocket.oldPos, &pos, 0xD, 1, 3000.0f);
             if (res) {
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-                pG->bell_stat = 1;
+                pG->SeInfo.pos = pos;
+                pGS->SeInfo.type = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                 EstSet(0, -1, &pos, 0, 0, 0x27, 0, 10, 0, 0);
                 SndCall(1, 0x14, &pos, 0, 0, 0);
@@ -153,8 +153,8 @@ void cObjRocket::move()
                         EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
                     }
                     StaFlagOn(pG, STA_SE_BURST);
-                    memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-                    pG->bell_stat = 1;
+                    pG->SeInfo.pos = pos;
+                    pGS->SeInfo.type = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                     PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                     r_no_0 = 2;

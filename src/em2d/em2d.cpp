@@ -412,8 +412,8 @@ void em2dDmCk(cEm2d* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->bell_pos = em->pos;
-    pGS->bell_stat = 0;
+    pGS->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -6295,7 +6295,7 @@ int em2dFindCk(cEm2d* em)
         if (StaFlagChk(pG, STA_SE_BURST)) {
             f32 r;
 
-            switch (pG->bell_stat) {
+            switch (pG->SeInfo.type) {
             case 0:
                 r = 25000.0f;
                 break;
@@ -6309,9 +6309,9 @@ int em2dFindCk(cEm2d* em)
             {
                 // em10FindCk bell idiom: the override makes the arm sets dead (the compares stay) and
                 // `r` a block-local pseudo loaded at the use.
-                f32 dx = em->pos.x - pGS->bell_pos.x;
-                f32 dy = em->pos.y - pGS->bell_pos.y;
-                f32 dz = em->pos.z - pGS->bell_pos.z;
+                f32 dx = em->pos.x - pGS->SeInfo.pos.x;
+                f32 dy = em->pos.y - pGS->SeInfo.pos.y;
+                f32 dz = em->pos.z - pGS->SeInfo.pos.z;
                 r = 25000.0f;
                 if (dx * dx + dy * dy + dz * dz < r * r && (w->flags & 1) && w->plDist < r) {
                     w->flags |= 0x200;

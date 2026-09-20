@@ -71,8 +71,8 @@ void cWepItem::move00()
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
                 hitCkPl();
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy(PG_PTR(bell_pos), &pos, sizeof(Vec));
-                pG->bell_stat = 1;
+                pG->SeInfo.pos = pos;
+                pGS->SeInfo.type = 1;
                 ObjMgr.destroy(this);
                 return;
             case 2:

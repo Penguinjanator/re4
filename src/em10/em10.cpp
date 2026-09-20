@@ -514,12 +514,6 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 
 #define EM10_WINDOW(w) ((w)->pWindow)
 
-
-// The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy(PG_PTR(bell_pos), pos, sizeof(Vec))
-
-
-
 // Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).
 struct SystemWorkPtr {
     SYSTEM_SAVE_WORK* p;
@@ -882,7 +876,7 @@ void cEm10::setNoSuspend(int on)
 // 1/4/5/7 = explosions / fire) blow the Ganado away or kill it outright depending on where it is
 // (ladder, fence, gondola, down); a weapon hit (dmHit) takes em10SetDmVal off hp, dispatches the
 // reaction on the weapon id through Em10DmSetWep_tbl (rifles on a chainsaw Ganado go to the heavy
-// reaction), rings the "bell" damage notify (Status_flg[1] bit29 + bell_pos), lights a bowgun
+// reaction), rings the "bell" damage notify (Status_flg[1] bit29 + SeInfo.pos), lights a bowgun
 // Ganado's arrow on a hit to its quiver part, and makes the Ganado find the player.
 void em10DmCk(cEm10* em)
 {
@@ -1003,8 +997,8 @@ void em10DmCk(cEm10* em)
         em10BloodSet(em, 0);
         if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            SET_BELL_POS(&em->pos);
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
         em->dmg.m_Flag = 0;
         return;
@@ -1102,8 +1096,8 @@ void em10DmCk(cEm10* em)
     }
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        SET_BELL_POS(&em->pos);
-        pG->bell_stat = 0;
+        pGS->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 0;
     }
     em->dmg.m_Flag = 0;
 }
@@ -14288,7 +14282,7 @@ static void em10_R1_Dm_Claw(cEm10* em)
             MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x111), PL_ARC_PTR(em->subArc, 0x112), 3, 1, 0);
         }
         em10SetDamageVoice(em, w->Se_tbl[1], w->Se_tbl[0]);
-        w->x5F0 = pG->bell_pos;
+        w->x5F0 = pG->SeInfo.pos;
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -14330,7 +14324,7 @@ static void em10_R1_Dm_Claw_Big(cEm10* em)
             EstSet(w->pCore, -1, 0, 0, 0x10, 0x77, 0, 0, w->pCore, 0);
         }
         em10CallVoiceSe(em, w->Se_tbl[1]);
-        w->x5F0 = pG->bell_pos;
+        w->x5F0 = pG->SeInfo.pos;
         w->TmpF = em->ang.y + PI;
         em->r_no_2++;
     case 1:
@@ -21374,7 +21368,7 @@ void em10ScaleCompress(cEm10* em)
 // Sight check of the idle routines (a: 1 = also require the player within 2000 units of height,
 // 2 = never for the claw types). The Ganado finds the player when it sees him (flag bit0) within
 // 15000 (6000 when heading somewhere) and 60 deg, or very close, when another Ganado is being hurt
-// nearby, on the bell alarm (Status_flg[1] bit29, bell_pos within 25000), when the room forces the
+// nearby, on the bell alarm (Status_flg[1] bit29, SeInfo.pos within 25000), when the room forces the
 // alert (Status_flg[0] bit23), or when it is dead / headless. Calls em10SetRtnFind and returns 1.
 int em10FindCk(cEm10* em, int a)
 {
@@ -21443,7 +21437,7 @@ int em10FindCk(cEm10* em, int a)
                 // compares stay) and `r` a block-local pseudo loaded at the use (local-alloc gives
                 // it the next free FPR, f9, and the high r10 because r9/r11 hold pG).
                 f32 r;
-                switch (pG->bell_stat) {
+                switch (pG->SeInfo.type) {
                 case 0:
                     r = 25000.0f;
                     break;
@@ -21455,9 +21449,9 @@ int em10FindCk(cEm10* em, int a)
                     break;
                 }
                 {
-                    f32 dx = em->pos.x - pGS->bell_pos.x;
-                    f32 dy = em->pos.y - pGS->bell_pos.y;
-                    f32 dz = em->pos.z - pGS->bell_pos.z;
+                    f32 dx = em->pos.x - pGS->SeInfo.pos.x;
+                    f32 dy = em->pos.y - pGS->SeInfo.pos.y;
+                    f32 dz = em->pos.z - pGS->SeInfo.pos.z;
                     r = 25000.0f;
                     if (dx * dx + dy * dy + dz * dz < r * r) {
                         if ((w->flags & 1) && w->L_pl_route < r) {
@@ -21491,7 +21485,7 @@ int em10FindCk(cEm10* em, int a)
         return 0;
     }
 }
-// "Is there a target to go to" check used by the found Ganados: the bell alarm position (bell_stat
+// "Is there a target to go to" check used by the found Ganados: the bell alarm position (SeInfo.type
 // 1 / 2, within 20000 units), the player when the alert is on (Status_flg[1] bit31) and near, when
 // he is within 1000 units, or when the room forces it; stores the target in x5F0. 1 = target set.
 int em10FindCk2(cEm10* em)
@@ -21502,22 +21496,22 @@ int em10FindCk2(cEm10* em)
         return 0;
     }
     if (StaFlagChk(pG, STA_SE_BURST)) {
-        if (pG->bell_stat == 2) {
-            f32 dx = em->pos.x - pG->bell_pos.x;
-            f32 dy = em->pos.y - pG->bell_pos.y;
-            f32 dz = em->pos.z - pG->bell_pos.z;
+        if (pG->SeInfo.type == 2) {
+            f32 dx = em->pos.x - pG->SeInfo.pos.x;
+            f32 dy = em->pos.y - pG->SeInfo.pos.y;
+            f32 dz = em->pos.z - pG->SeInfo.pos.z;
             if (dx * dx + dy * dy + dz * dz < 400000000.0f) {
-                w->x5F0 = pG->bell_pos;
+                w->x5F0 = pG->SeInfo.pos;
                 w->CriAtk_wait = 0;
                 return 1;
             }
         }
-        if (pG->bell_stat == 1) {
-            f32 dx = em->pos.x - pG->bell_pos.x;
-            f32 dy = em->pos.y - pG->bell_pos.y;
-            f32 dz = em->pos.z - pG->bell_pos.z;
+        if (pG->SeInfo.type == 1) {
+            f32 dx = em->pos.x - pG->SeInfo.pos.x;
+            f32 dy = em->pos.y - pG->SeInfo.pos.y;
+            f32 dz = em->pos.z - pG->SeInfo.pos.z;
             if (dx * dx + dy * dy + dz * dz < 400000000.0f) {
-                w->x5F0 = pG->bell_pos;
+                w->x5F0 = pG->SeInfo.pos;
                 return 1;
             }
         }

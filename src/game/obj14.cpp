@@ -1,6 +1,6 @@
 // game/obj14: object id 0x14, the church bell (D:/Bio4/Prog/obj14.cpp): a two-link pendulum
-// (PenCloth on parts 1/2) with a cEmHit body so shots swing it and ring it (pG->bell_pos /
-// bell_stat 2 for 90 frames: the village Ganados react); setBreak drops it (R1 1).
+// (PenCloth on parts 1/2) with a cEmHit body so shots swing it and ring it (pG->SeInfo.pos /
+// SeInfo.type 2 for 90 frames: the village Ganados react); setBreak drops it (R1 1).
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -106,7 +106,7 @@ void cObjBell::move()
 }
 
 // Rno1 == 0: hanging: matrices, and while ringTimer runs publishes the bell position (floor point
-// 250 units in front) as the ringing bell (Status_flg[1] 0x20000000, bell_stat 2).
+// 250 units in front) as the ringing bell (Status_flg[1] 0x20000000, SeInfo.type 2).
 void obj14_R1_Set(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
@@ -122,10 +122,8 @@ void obj14_R1_Set(cObjBell* obj)
         PSMTXMultVec(obj->mat, &p, &p);
         p.y = SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0);
         StaFlagOn(pG, STA_SE_BURST);
-        // A byte-pointer destination: the copy is then a plain (non-struct) store and the
-        // original reloads pG for the following store, as the target shows.
-        memcpy(PG_PTR(bell_pos), &p, sizeof(Vec));
-        pG->bell_stat = 2;
+        pG->SeInfo.pos = p;
+        pGS->SeInfo.type = 2;
     }
 }
 

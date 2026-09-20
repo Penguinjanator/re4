@@ -105,7 +105,7 @@ static inline u32 r11c_emDead(u32 no)
     u32 v;
 
     if (pG->em_list_no >= 0) {
-        u32* tbl = EM_FLG_ROW(pG->em_list_no);
+        u32* tbl = pG->Em_flg[pG->em_list_no];
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {

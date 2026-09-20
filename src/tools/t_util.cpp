@@ -49,7 +49,11 @@ void TutilInitDefault()
     system_flg_bak = pG->System_flg;
     stop_flg_bak = U32Ref(pG->Stop_flg);
     disp_flg_bak = U32Ref(pG->Disp_flg);
-    memcpy(debug_flg_bak, ((u32*) PG_PTR(Debug_flg[0])), sizeof(debug_flg_bak));
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug_flg_bak, debug, sizeof(debug_flg_bak));
+    }
     memcpy(status_flg_bak, &pG->Status_flg[0], sizeof(status_flg_bak));
     BitOn(pG->Stop_flg, 0x200);
     BitOn(pG->Stop_flg, 0x80);
@@ -62,15 +66,23 @@ void TutilInitDefault()
 // Debug_flg[0] bit 8 if the tool set it), clears Debug_flg[0] bit 31 and sets [3] 0x2000.
 void TutilQuitDefault()
 {
-    memcpy(PG_PTR(Camera), &globalCamera, sizeof(Camera));
+    {
+        u32* cam = (u32*) &pG->Camera;
+
+        memcpy(cam, &globalCamera, sizeof(Camera));
+    }
     BitSet(pG->System_flg, system_flg_bak);
     BitSet(pG->Stop_flg, stop_flg_bak);
     BitSet(pG->Disp_flg, disp_flg_bak);
     if (pG->Debug_flg[0] & 0x100) {
         debug_flg_bak[0] |= 0x100;
     }
-    memcpy(((u32*) PG_PTR(Debug_flg[0])), debug_flg_bak, sizeof(debug_flg_bak));
-    memcpy(((u32*) PG_PTR(Status_flg[0])), status_flg_bak, sizeof(status_flg_bak));
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug, debug_flg_bak, sizeof(debug_flg_bak));
+    }
+    memcpy(&pGS->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
     BitOff(pG->Debug_flg[0], 0x80000000);
     pG->Debug_flg[3] |= 0x2000;
 }

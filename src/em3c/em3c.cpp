@@ -2407,7 +2407,7 @@ int em3cFindCk(cEm3c* em)
     if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 25000.0f;
             break;
@@ -2422,8 +2422,8 @@ int em3cFindCk(cEm3c* em)
         // compares stay) and puts the pool load into the join block; `r` keeps 4 sets so
         // `r * r` is not folded
         r = 25000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < r * r) {
             if ((w->Be_flg & 1) && w->L_pl_route < r) {
                 w->Be_flg |= 0x80;

@@ -205,7 +205,7 @@ void objGondola_R0_Down(cObjGondola* obj)
     PSVECSubtract(&b, &a, &d);
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
-    memcpy(PG_PTR(quake_ofs), &d, sizeof(Vec));
+    VEC_COPY(pG->quake_ofs, d);
     if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
@@ -239,7 +239,7 @@ void objGondola_R0_Up(cObjGondola* obj)
     PSVECSubtract(&b, &a, &d);
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
-    memcpy(PG_PTR(quake_ofs), &d, sizeof(Vec));
+    VEC_COPY(pG->quake_ofs, d);
     if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
@@ -347,7 +347,7 @@ void objGondola_R0_Break(cObjGondola* obj)
     if (w->Ride_pl) {
         PSVECAdd(&pPL->pos, &v, &b);
         pPL->setPos(&b);
-        memcpy(PG_PTR(quake_ofs), &v, sizeof(Vec));
+        VEC_COPY(pG->quake_ofs, v);
         if (pSUB && w->Ride_sub) {
             PSVECAdd(&pSUB->pos, &v, &b);
             pSUB->setPos(&b);

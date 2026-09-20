@@ -203,8 +203,6 @@ static inline void CamCtrlSetCam(CameraControl* cc, Camera* cam)
     }
 
 
-// A Vec copy through word pointers: the block move kills the cached pG / pPL / r332_work.
-static inline void VecCopy(u32* d, const u32* s) { memcpy(d, s, sizeof(Vec)); }
 
 
 
@@ -974,8 +972,8 @@ static void R332RocketShootMain(int type)
     R332BridgeOpened(0, 1);
     R332BridgeOpened(1, 1);
     IntSet(r332_work->strBlk, 0);
-    VecCopy((u32*) &r332_work->plPos, (u32*) &pPL->pos);
-    VecCopy((u32*) &r332_work->plRot, (u32*) &pPL->ang);
+    VEC_COPY(r332_work->plPos, pPL->pos);
+    VEC_COPY(r332_work->plRot, pPL->ang);
     AtariOffRaw(&pPL->atari, 0xFCFF);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
