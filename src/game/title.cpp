@@ -33,8 +33,8 @@
 #include "title.h"
 #include "ref_access.h"
 #include <string.h>
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 
 #define ID_TITLE 0x28
 #define ID_MENU 0x29

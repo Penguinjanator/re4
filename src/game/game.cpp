@@ -67,9 +67,9 @@
 #include "db_log.h"
 #include "gx.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 // game/read.cpp
 void ReadPlayerData(int type, int costume);
 void ReadAreaData();

@@ -56,22 +56,18 @@ f32 ORTHO_R;
 #include "rnd.h"
 #include "sscrn.h"
 #include "ref_access.h"
+#include <dolphin/vi/vifuncs.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/base/PPCArch.h>
+#include <dolphin/os/OSResetSW.h>
+#include <dolphin/os/OSReset.h>
+#include <dolphin/os.h>
+#include <dolphin/os/OSAlarm.h>
+#include <dolphin/db.h>
 
 extern "C" {
 void __main();
-void OSReport(const char* fmt, ...);
-void OSInit();
-u32 OSGetConsoleType();
-void OSInitAlarm();
-void VIInit();
-void VIWaitForRetrace();
-void VISetPostRetraceCallback(void (*cb)());
-void LCEnable();
-void PPCSync();
-int DBIsDebuggerPresent();
-u32 OSGetResetButtonState();
 void PADRecalibrate(u32 mask);
-void OSResetSystem(int reset, u32 resetCode, int forceMenu);
 void GXCopyDisp(void* dest, u8 clear);
 // game/title.cpp
 void Title_task();

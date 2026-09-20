@@ -20,11 +20,9 @@
 #include "rnd.h"
 #include <stdio.h>
 #include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-void DCFlushRange(void* addr, u32 nBytes);
-}
 void TaskSleep(int frames);   // game/scheduler.cpp
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 

@@ -14,10 +14,7 @@
 #include "va_ppc.h"
 #include "eprintf.h"
 #include <stdio.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os.h>
 
 #define HALT()                                                    \
     {                                                             \

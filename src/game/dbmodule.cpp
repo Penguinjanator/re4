@@ -17,18 +17,14 @@
 #include "joy.h"
 #include "eprintf.h"
 #include "ref_access.h"
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXDispList.h>
 
 extern "C" {
 void* GetPrimBuff(int size);
-void DCFlushRange(void* addr, u32 nBytes);
 }
 
 #define DEG (PI / 180.0f)
-
-extern "C" {
-void GXBeginDisplayList(void* list, u32 size);
-u32 GXEndDisplayList(void);
-}
 
 struct TileWork {
     s16 x;       // 0x00

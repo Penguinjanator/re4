@@ -17,9 +17,9 @@
 #include "texture.h"
 #include "trans_ot.h"
 #include <stdlib.h>
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* msg, ...);
 // game/path.cpp
 int FuncPathParametrize(void* path, void* data);
 int FuncPathCalc(void* path, void* data, f32 t, Vec* out);

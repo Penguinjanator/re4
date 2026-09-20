@@ -16,18 +16,12 @@
 #include "main.h"
 #include "gx.h"
 #include <string.h>
+#include <dolphin/base/PPCArch.h>
 
 #line 30 "D:/Bio4/Prog/atari.cpp"
 
 extern "C" {
 // Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
-u32 PPCMfpmc1();
 }
 
 // at_sub attribute filter bypass mode (cSatMgr::seCk of the manager running the check)

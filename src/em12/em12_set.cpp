@@ -9,8 +9,8 @@
 #include "global.h"
 #include "cManager.h"
 #include "em10.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern "C" void Em10SetSeTbl(cEm10* em, int type);
 
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp

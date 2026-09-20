@@ -16,6 +16,7 @@
 #include "main_sub.h"
 #include "joy.h"
 #include "ref_access.h"
+#include <dolphin/base/PPCArch.h>
 
 // Effect controller 42: room water surface. A (nx+1) x (ny+1) height field simulated on two
 // ping-pong buffers, rendered as triangle strips through a display list with an indirect bump
@@ -26,12 +27,6 @@ extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
 // Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
 // game/espgen45.cpp
 extern EspgenWork* g_pWater45;
 

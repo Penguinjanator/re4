@@ -32,6 +32,8 @@
 #include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os/OSReset.h>
 
 typedef s64 OSTime;
 
@@ -50,11 +52,9 @@ struct OSCalendarTime {
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void DCFlushRange(void* addr, u32 nBytes);
 OSTime OSGetTime();
 void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
 OSTime OSCalendarTimeToTicks(OSCalendarTime* td);
-void OSResetSystem(int reset, u32 resetCode, int forceMenu);
 int DBIsDebuggerPresent();
 void debugInfoDisp(int slot, int type);
 void CRCInit();

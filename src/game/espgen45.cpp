@@ -17,6 +17,7 @@
 #include "main_sub.h"
 #include "joy.h"
 #include "ref_access.h"
+#include <dolphin/base/PPCArch.h>
 
 // Effect controller 45: weather water surface (same height-field model as Espgen42, following the
 // camera). The Estgen45Set* entry points let the room script (esp4c) override its parameters.
@@ -43,12 +44,6 @@ extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
 // Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
 void SetIndMtx_801291F4(Espgen42Work* p);   // the DOL's local SetIndMtx (Espgen42 owns the global one); sym_map name

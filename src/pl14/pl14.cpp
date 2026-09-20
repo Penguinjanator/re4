@@ -39,8 +39,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <signal.h>
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"

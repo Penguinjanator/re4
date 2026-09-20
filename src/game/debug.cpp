@@ -23,14 +23,11 @@
 #include "ref_access.h"
 #include <string.h>
 #include <stdlib.h>
+#include <dolphin/os.h>
 
 void bio4_GXSetCopyClear(GXColor color, u32 z);   // game/gx_sub.cpp
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
 
-extern "C" {
-u32 OSGetTick();
-void OSReport(const char* fmt, ...);
-}
 extern u8 PlMode;       // game/player.cpp
 extern u8 PlFormMode;   // game/player.cpp
 

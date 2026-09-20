@@ -40,8 +40,8 @@ extern "C" inline void LightSetModel2(cModel* m)
 
 #include "ss_main.h"
 #include <stdio.h>
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern "C" int EspMove();
 extern "C" int EspgenMove();
 

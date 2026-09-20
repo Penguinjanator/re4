@@ -38,10 +38,10 @@
 #include "db_log.h"
 #include "ref_access.h"
 #include "em.h"
+#include <dolphin/os.h>
 
 asm(".comm common_em35,52,4");
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 // game/em_dm_val.cpp (declared in em10.h, not included here).

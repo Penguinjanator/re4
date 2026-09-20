@@ -11,10 +11,7 @@
 #include "db_log.h"
 #include <stdio.h>
 #include <string.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os.h>
 
 #define HALT()                                                    \
     {                                                             \

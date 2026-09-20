@@ -20,6 +20,9 @@
 #include "tpl.h"
 #include "tv_mode.h"
 #include <stdio.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXManage.h>
+#include <dolphin/vi/vifuncs.h>
 
 typedef s64 OSTime;
 
@@ -55,10 +58,6 @@ void OSInitStopwatch(OSStopwatch* sw, const char* name);
 void OSResetStopwatch(OSStopwatch* sw);
 void OSStartStopwatch(OSStopwatch* sw);
 void OSStopStopwatch(OSStopwatch* sw);
-BOOL OSLink(OSModuleHeader* module, void* bss);
-BOOL OSUnlink(OSModuleHeader* module);
-void DCFlushRange(void* addr, u32 nBytes);
-void* GXInit(void* base, u32 size);
 u32 GXSetDispCopyYScale(f32 yscale);
 void GXSetDispCopySrc(u16 left, u16 top, u16 wd, u16 ht);
 void GXSetDispCopyDst(u16 wd, u16 ht);
@@ -67,10 +66,6 @@ void GXCopyDisp(void* dest, u8 clear);
 void GXSetDispCopyGamma(int gamma);
 void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
 void GXInvalidateVtxCache();
-void VISetNextFrameBuffer(void* fb);
-void VIWaitForRetrace();
-u32 VIGetNextField();
-void VISetBlack(BOOL black);
 void ProcessTickGet(int no, const char* name);
 void ExecOt(int no);
 }
@@ -604,9 +599,9 @@ void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
 void DLL_Unlink(OSModuleHeader* module)
 {
     if (module->epilog) {
-        module->epilog();
+        DLL_EPILOG(module)();
     }
-    if (OSUnlink(module) != 1) {
+    if (OSUnlink(&module->info) != 1) {
         pLog->err(0, 0, "OSUnlink failed : 0x%08x", module);
         TaskSleep(60);
 #line 1424 "D:/Bio4/Prog/main_sub.cpp"
@@ -618,7 +613,7 @@ void DLL_Unlink(OSModuleHeader* module)
 // Links a REL with its bss; a failure logs and halts after 60 frames.
 void DLL_Link(OSModuleHeader* module, void* bss)
 {
-    if (OSLink(module, bss) != 1) {
+    if (OSLink(&module->info, bss) != 1) {
         pLog->err(0, 0, "OSLink failed : 0x%08x", module);
         TaskSleep(60);
 #line 1440 "D:/Bio4/Prog/main_sub.cpp"

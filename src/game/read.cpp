@@ -22,9 +22,9 @@
 #include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
 void Yz2DecodeExec(void* dst);
 void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
@@ -527,7 +527,7 @@ void setEmModule(ReadModule* m, int id)
             DLL_Link(m->pModule, bss);
             m->flag |= 2;
         }
-        m->pModule->prolog();
+        DLL_PROLOG(m->pModule)();
         m->pInitFunc = EmInitFunc;
     } else {
         m->pModule = NULL;
@@ -723,7 +723,7 @@ void ReadPlayerData(int type, int costume)
             }
             BitOn16(PlReadModule.flag, 2);
             DLL_Link(pModule, bss);
-            pModule->prolog();
+            DLL_PROLOG(pModule)();
         } else {
             pModule = NULL;
         }
@@ -984,7 +984,7 @@ void ReadWepData(u32 no, u32 type)
         }
         BitOn16(WepReadModule.flag, 2);
         DLL_Link(pModule, bss);
-        pModule->prolog();
+        DLL_PROLOG(pModule)();
     } else {
         pModule = NULL;
     }

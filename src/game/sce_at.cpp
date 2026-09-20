@@ -47,6 +47,7 @@
 #include "ref_access.h"
 #include <string.h>
 #include <stdio.h>
+#include <dolphin/os.h>
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -59,7 +60,6 @@
 // accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 int RandomItemCk(int a, int* id, int* num, int b);       // game/em_sub.cpp
 int ItemGetBinTplAddr(u8 id, void** bin, void** tpl);    // game/item_model.cpp
 void* EmReadSearch(int id, void* addr, u32 size);        // game/read.cpp

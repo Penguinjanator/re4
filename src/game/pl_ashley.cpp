@@ -13,9 +13,9 @@
 #include "pl_cloth.h"
 #include "math_sub.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 void ReleaseWepData();                          // game/read.cpp
 }

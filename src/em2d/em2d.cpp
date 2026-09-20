@@ -40,12 +40,12 @@
 #include "item.h"
 #include "ref_access.h"
 #include "em.h"
+#include <dolphin/os.h>
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2d,52,4");
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 

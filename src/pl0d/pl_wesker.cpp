@@ -17,8 +17,8 @@
 #include "esp.h"
 #include "main_mem.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 
 // Plain block, not do/while(0) (pl_leon.cpp).
 #define HALT()                                                    \

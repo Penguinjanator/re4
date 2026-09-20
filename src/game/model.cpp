@@ -17,6 +17,7 @@
 #include "math_sub.h"
 #include "tpl.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
 // Model / parts / model info (cModel, cParts, cModelInfo) and their pools (PartsMgr, ModInfoMgr).
 
@@ -30,7 +31,6 @@
 #define PTR_OK(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 void calcModelAddr(cModelData* data);
 void calcModelOffset(cModelData* data);
 void calcTplOffset(TEXPalette* tpl);

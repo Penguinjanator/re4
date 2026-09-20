@@ -17,11 +17,8 @@
 #include "libgpu.h"
 #include "snd.h"
 #include <string.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-void DCFlushRange(void* addr, u32 nBytes);
-}
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
 
 // Not the do { } while (0) form of the other units: the OSReport stays in the caller's block and
 // the preceding pLog->err argument loads are scheduled against it (setData).

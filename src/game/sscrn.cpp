@@ -583,7 +583,7 @@ void SubScreenExec()
             DbgFlagOff(pG, DBG_PROC_BAR);
         case 5:
             SpfFlagOff(pG, SPF_KEY);
-            TaskChain(wk->p_module->prolog, 0);
+            TaskChain(DLL_PROLOG(wk->p_module), 0);
             break;
         }
         TaskSleep(1);

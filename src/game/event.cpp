@@ -64,9 +64,9 @@
 #include "foot_shadow.h"
 #include "ref_access.h"
 #include <string.h>
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 // game/eff_sys.cpp
 // game/read.cpp: SearchEmModule (C++ linkage) comes from read.h
 // game/shape.cpp

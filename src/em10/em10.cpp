@@ -66,6 +66,7 @@
 #include "gx_sub.h"
 #include "ref_access.h"
 #include "em.h"
+#include <dolphin/os.h>
 
 
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
@@ -387,7 +388,6 @@ cEmWep* em10MakeWeapon(cEm10* em, int type);
 void em10WeaponSet(cEm10* em);
 int em10ClimbOverCk(cEm10* em);
 void em10SetDamageVoice(cEm10* em, u16 a, u16 b);
-extern "C" void OSReport(const char* fmt, ...);
 void em10RouteCk(cEm10* em);
 void em10ClawMove(cEm10* em);
 void em10NeckMove(cEm10* em);

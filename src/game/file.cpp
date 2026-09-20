@@ -6,10 +6,7 @@
 #include "fileserver.h"
 #include "file.h"
 #include <stdio.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os.h>
 
 static int usb_fd = -1;
 static void* usb_buf = (void*) 0x81800000;

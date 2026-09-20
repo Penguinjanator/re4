@@ -41,8 +41,8 @@
 #include "db_log.h"
 #include "em.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 

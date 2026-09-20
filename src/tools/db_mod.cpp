@@ -16,6 +16,7 @@
 #include "dolphin/mtx.h"
 #include "scheduler.h"
 #include <stdio.h>
+#include <dolphin/os.h>
 
 #line 30 "D:/Bio4/Prog/db_mod.cpp"
 
@@ -27,7 +28,6 @@
 extern "C" {
 char* strcpy(char*, const char*);
 unsigned int strlen(const char*);
-void OSReport(const char* fmt, ...);
 void* memset(void* dst, int c, unsigned int n);
 int strcmp(const char*, const char*);
 int strncmp(const char*, const char*, u32);

@@ -294,9 +294,7 @@ FileTblEntry FileTbl[] = {
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void DCFlushRange(void* addr, u32 nBytes);
 u32 OSGetTick();
-u32 OSGetConsoleSimulatedMemSize();
 void GXCopyDisp(void* dest, u8 clear);
 void ADXGC_SetupDvdFs(int mode);
 u16 OSGetFontEncode();
@@ -327,6 +325,8 @@ struct OSLowMem {
 #include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os/OSMemory.h>
 
 // Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
 struct DvdSndStrWork {

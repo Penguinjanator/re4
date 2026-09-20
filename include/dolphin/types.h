@@ -37,10 +37,17 @@ typedef int BOOL;
 #define NULL ((void*)0)
 #endif
 
+#ifdef __MWERKS__
 #include "libc/stdio.h"
 #include "libc/stdarg.h"
 #include "libc/string.h"
 #include "libc/ctype.h"
+#else
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <ctype.h>
+#endif
 
 #include "cmath.h"
 

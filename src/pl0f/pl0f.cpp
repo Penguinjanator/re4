@@ -47,8 +47,8 @@
 #include "em_sub.h"
 #include "act_btn.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 

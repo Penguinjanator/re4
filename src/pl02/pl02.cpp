@@ -16,10 +16,8 @@
 #include "db_log.h"
 #include "esp.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
 extern f32 adaHairMax[14];   // game/pl_cloth.cpp
 extern f32 adaHairWindS[14];
 extern f32 adaHairWindR[14];

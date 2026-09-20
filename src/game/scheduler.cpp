@@ -11,13 +11,9 @@
 #include "eprintf.h"
 #include "os_vi.h"
 #include "scheduler.h"
+#include <dolphin/gx/GXFifo.h>
+#include <dolphin/os.h>
 
-extern "C" {
-void OSReport(const char* msg, ...);
-BOOL OSDisableInterrupts(void);
-BOOL OSRestoreInterrupts(BOOL level);
-void GXSetCurrentGXThread(void);
-}
 void DbMenuRestoreStopFlag();
 
 TASK Task[TASK_NUM];

@@ -27,6 +27,10 @@
 #include "foot_shadow.h"
 #include "db_cam.h"
 #include "ref_access.h"
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXFifo.h>
+#include <dolphin/gx/GXManage.h>
+#include <dolphin/os.h>
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
@@ -38,13 +42,9 @@ extern f32 shd_ofs;       // game/shadow.cpp
 extern f32 shd_tex_scale_x;
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 int EspTrans();
 void EspgenTrans();
-void DCStoreRangeNoSync(void* addr, u32 nBytes);
-void GXSetCurrentGXThread();
 void GXSetDrawSync(u16 token);
-void GXSetDrawSyncCallback(void (*cb)(u16));
 void bio4_AddBgColor();
 void Filter09Render(int);
 void PSMTXReorder(Mtx src, f32 dst[4][3]);

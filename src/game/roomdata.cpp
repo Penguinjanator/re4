@@ -313,7 +313,7 @@ void cRoomData::linkRelData(u16 room)
         m_pModule_bss_bak = MEM_ALLOC(pModule->bssSize, 1, 13);
     }
     DLL_Link(pModule, m_pModule_bss);
-    pModule->prolog();
+    DLL_PROLOG(pModule)();
 }
 
 // Temporarily unlinks the room REL (flag bit0), saving its bss to the backup.

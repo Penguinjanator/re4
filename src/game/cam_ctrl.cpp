@@ -26,10 +26,7 @@
 #include "joy.h"
 #include "ref_access.h"
 #include <string.h>
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os.h>
 
 extern f32 ZNEAR;
 u32 SubCharGetStatus();

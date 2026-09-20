@@ -34,8 +34,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "em.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 

@@ -11,9 +11,9 @@
 #include "main.h"
 #include "snd.h"
 #include "ref_access.h"
+#include <dolphin/os.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 int SubCharCheckCtrl();                         // game/pl_sub.cpp
 void SubCharCtrl(int mode, int sccf);                 // game/pl_sub.cpp

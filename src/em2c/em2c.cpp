@@ -47,8 +47,8 @@ asm(".comm common_em2c,52,4");
 #include "quake.h"
 #include "item.h"
 #include "em.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 

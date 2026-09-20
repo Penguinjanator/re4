@@ -17,11 +17,8 @@
 #include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
-
-extern "C" {
-void DCFlushRangeNoSync(void* addr, u32 nBytes);
-void OSReport(const char* fmt, ...);
-}
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
 
 // CodeWarrior MSL math.h float constants, defined by the CRI headers for this compiler.
 f32 __float_nan = 0.0f / 0.0f;

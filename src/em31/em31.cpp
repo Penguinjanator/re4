@@ -43,10 +43,10 @@
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "em.h"
+#include <dolphin/os.h>
 
 asm(".comm common_em31,52,4");
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 

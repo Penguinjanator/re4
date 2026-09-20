@@ -11,11 +11,11 @@
 #include "math_sub.h"
 #include "main_mem.h"
 #include "trans_ot.h"
+#include <dolphin/os.h>
 
 extern "C" {
 // game/trans_lit.cpp
 void commonClothLightSet(cLight** list, int n, Vec pos, f32 radius);
-void OSReport(const char* fmt, ...);
 }
 
 Cloth ClothWk[8];

@@ -24,8 +24,8 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 

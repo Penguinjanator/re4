@@ -16,6 +16,7 @@
 #include "ref_access.h"
 #include <string.h>
 #include <stdio.h>
+#include <dolphin/os/OSReboot.h>
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -30,7 +31,6 @@ void OSSetCurrentHeap(int heap);
 void* OSAllocFromHeap(int heap, u32 size);
 void OSFreeToHeap(int heap, void* p);
 s32 OSCheckHeap(int heap);
-void OSSetSaveRegion(void* start, void* end);
 extern int __OSCurrHeap;
 }
 
