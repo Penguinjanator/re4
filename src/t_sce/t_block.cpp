@@ -147,18 +147,6 @@ void tBlockSaveDataCreate();
 void tBlock_DebugCamera();
 }
 
-// bit `n` of a u32 bit table (the table pointer is materialised, the index is unsigned)
-static inline u32 bitChk(u32* tbl, u32 n)
-{
-    return tbl[n >> 5] & (0x80000000 >> (n & 0x1F));
-}
-// Sets bit `n` in a word table (the used-area bitmap).
-static inline void bitOn(u32* tbl, u32 n)
-{
-    tbl[n >> 5] |= 0x80000000 >> (n & 0x1F);
-}
-#define BIT_CHK(tbl, n) bitChk((u32*) (tbl), n)
-#define BIT_ON(tbl, n) bitOn((u32*) (tbl), n)
 
 
 #define SUB_RESET() \
@@ -821,7 +809,7 @@ static void tBlockAreaInfo_ListDisp()
     int i;
 
     if (Joy[0].trg & JOY_A) {
-        if (BIT_CHK(pW->areaBits, pW->connectNo)) {
+        if (FlagChkVar(pW->areaBits, (u32) pW->connectNo)) {
             pW->sub = 1;
             STEP_RESET();
         }
@@ -856,7 +844,7 @@ void dispAreaInfoList1(int x, int y, int no)
     BlockConnect* c = &pW->connect[no];
     int col;
 
-    if (BIT_CHK(pW->areaBits, no) == 0) {
+    if (FlagChkVar(pW->areaBits, (u32) no) == 0) {
         col = 7;
     } else if (no == pW->connectNo) {
         col = 6;
@@ -891,7 +879,7 @@ static void tBlockAreaInfo_Menu()
         pW->infoMenuCursor = 0;
         SUB_RESET();
     }
-    if (BIT_CHK(pW->areaBits, pW->connectNo)) {
+    if (FlagChkVar(pW->areaBits, (u32) pW->connectNo)) {
         if (!(Joy[0].on & JOY_A)) {
             TBlockWork* w;
             u8 v;
@@ -1046,7 +1034,7 @@ void tBlockArea_disp()
             if (pW->nArea <= a->areaNo) {
                 pW->nArea = a->areaNo + 1;
             }
-            BIT_ON(pW->areaBits, a->areaNo);
+            FlagOnVar(pW->areaBits, (u32) a->areaNo);
             switch (pW->mode) {
             case 2:
                 col = 0x00808080;
@@ -1065,7 +1053,7 @@ void tBlockArea_disp()
                 break;
             }
             // the original's loop had 5 more real insns at loop.c time (72 in pass 1 vs the 71 * savings *
-            // lifetime limit), so BIT_ON's 0x80000000 mask is hoisted in loop pass 2, after the pass-1 giv
+            // lifetime limit), so FlagOnVar's 0x80000000 mask is hoisted in loop pass 2, after the pass-1 giv
             // init `li 1504`; dead sets of a used variable are deleted by flow and counted by loop.c
             col = 7; // COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)
             col = 6;
@@ -1073,7 +1061,7 @@ void tBlockArea_disp()
         }
     }
     for (i = 0; i < CONNECT_NUM; i++) {
-        if (BIT_CHK(pW->areaBits, i)) {
+        if (FlagChkVar(pW->areaBits, (u32) i)) {
             pW->connect[i].flags |= 1;
         } else {
             pW->connect[i].flags &= ~1;
@@ -1111,13 +1099,13 @@ void tBlockArea_dispBlockModel(int on)
         if (on == 1) {
             if (blk == pW->connect[pW->connectNo].blockNo) {
                 obj->be_flag = be | 2;
-            } else if (BIT_CHK(&pW->mram, blk)) {
+            } else if (FlagChkVar(&pW->mram, (u32) blk)) {
                 if (pW->blink & 4) {
                     obj->be_flag = be | 2;
                 } else {
                     obj->be_flag = be & ~2;
                 }
-            } else if (BIT_CHK(&pW->aram, blk)) {
+            } else if (FlagChkVar(&pW->aram, (u32) blk)) {
                 if (pW->blink & 0x10) {
                     obj->be_flag = be | 2;
                 } else {

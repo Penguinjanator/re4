@@ -1935,12 +1935,6 @@ static inline void em2bHandLandingPlCk(cModel* p)
     }
 }
 
-// `Vec* hp = em2bWorldPosOf(p)` (em2b_R1_Catch): the inline's return pseudo is the call argument of the following
-// em2bR11eScrBrkCk2 (`addi r4,p,0x70`) and `hp` its copy (`mr r27,r4`); a plain `&p->worldPos` makes hp the argument.
-static inline Vec* em2bWorldPosOf(cModel* p)
-{
-    return &p->world;
-}
 
 // Both hands slam into the house: the first blow marks it hit, the second breaks it.
 static void em2b_R1_HouseBreak(cEm2b* em)

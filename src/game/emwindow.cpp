@@ -92,17 +92,7 @@ WindowDataRow WindowData[29] = {
 };
 
 
-// Bit `no` of a u32 bit table (bit 0 = the top bit of the first word).
-static inline void TblBitOn(u32* tbl, u32 no)
-{
-    tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
-}
 
-// Clears bit `no` of the bit table.
-static inline void TblBitOff(u32* tbl, u32 no)
-{
-    tbl[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
-}
 
 // Creates a window / fence enemy (id 0x46) from a model / TPL at pos / rot: `type` indexes
 // WindowData (size, hp rule, break model, collision form), `etcNo` the room etc flag that
@@ -877,9 +867,9 @@ int cEmWindow::ChkEnableDamage()
 void cEmWindow::SetEtcFlag(u32 no, int on)
 {
     if (on == 1) {
-        TblBitOn(EMWINDOW_WK(this)->etcFlag, no);
+        FlagOnVar(EMWINDOW_WK(this)->etcFlag, no);
     } else {
-        TblBitOff(EMWINDOW_WK(this)->etcFlag, no);
+        FlagOffVar(EMWINDOW_WK(this)->etcFlag, no);
     }
 }
 

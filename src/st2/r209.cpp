@@ -140,17 +140,14 @@ static R209WorkPtr r209_work;
 
 
 
-// MSB-first bit `no` of the u32 array `a`.
-#define R209_BIT_ON(a, no) (*((a) + ((u32) (no) >> 5)) |= 0x80000000 >> ((no) & 31))
-#define R209_BIT_CK(a, no) (*((a) + ((u32) (no) >> 5)) & (0x80000000 >> ((no) & 31)))
 
 // atCur bit of sniper `i` (0..3) for area `k` (0..7) of the balcony.
-#define R209_SNIPE_AT(at, i, k) R209_BIT_CK(at, (i) * 8 + 8 + (k))
+#define R209_SNIPE_AT(at, i, k) FlagChkVar(at, (u32) ((i) * 8 + 8 + (k)))
 // The same through an inline (the array argument becomes an opaque pointer: `addi base, 0x540`
 // once per block instead of the constant folded into every load).
 static inline u32 r209_SnipeAt(u32* at, int i, int k)
 {
-    return R209_BIT_CK(at, i * 8 + 8 + k);
+    return FlagChkVar(at, (u32) (i * 8 + 8 + k));
 }
 
 // Enemy list entry set by the second battle (r209_2ndBattleEmSet / BowgunAppearEndProc tables).
@@ -408,8 +405,8 @@ void R209Main()
         i = 0;
         do {
             if (SceAtCheckHitModel(atNo[i], pPL)) {
-                R209_BIT_ON(flags, i);
-                R209_BIT_ON(flags, (i >> 1) + 0x80);
+                FlagOnVar(flags, (u32) i);
+                FlagOnVar(flags, (u32) ((i >> 1) + 0x80));
             }
             i++;
         } while (i < atNum);
@@ -426,7 +423,7 @@ void R209Main()
                 u32 bit = j + base8;
                 bit += 8;
                 if (SceAtCheckHitModel(atNo[j], r209_work.p->em[idx].w.getPtr())) {
-                    // Not R209_BIT_ON: the block's three local qtys (idx, amt/shift, val/or) are
+                    // Not a pointer-base bit-set macro: the block's three local qtys (idx, amt/shift, val/or) are
                     // hand-sorted by local-alloc, and with a pointer base the idx pseudo prefers
                     // GENERAL_REGS and takes r0.  An integer (u32) base makes both plus operands
                     // half-BASE_REGS, so idx takes r9 and the shift amount r0 like the target
@@ -1132,7 +1129,7 @@ static void r209_2ndBattleEmSet()
             break;
         }
         open = 0;
-        if (R209_BIT_CK(r209_work.p->atOn, 64) && (pG->Room_flg[0] & 0x04000000) == 0) {
+        if (FlagChkVar(r209_work.p->atOn, 64) && (pG->Room_flg[0] & 0x04000000) == 0) {
             if ((done ^ 1) & 1) {
                 cnt = r209_work.p->em[0].w.isActive() == 0;
                 if (r209_work.p->em[1].w.isActive() == 0) {
@@ -1505,8 +1502,8 @@ extern "C" void r209_BowgunCtrl()
     if (n == 0) {
         return;
     }
-    if (R209_BIT_CK(wp->atOn, 128)) {
-        hit = R209_BIT_CK(wp->atOn, 0);
+    if (FlagChk(wp->atOn, 128)) {
+        hit = FlagChkVar(wp->atOn, 0);
         f = hit == 0;
         switch (n) {
         case 1:
@@ -1528,8 +1525,8 @@ extern "C" void r209_BowgunCtrl()
             r209_BowgunActionSet1(3, f, 10);
             break;
         }
-    } else if (R209_BIT_CK(wp->atOn, 129)) {
-        hit = R209_BIT_CK(wp->atOn, 2);
+    } else if (FlagChk(wp->atOn, 129)) {
+        hit = FlagChk(wp->atOn, 2);
         f = hit == 0;
         switch (n) {
         case 1:
@@ -1551,8 +1548,8 @@ extern "C" void r209_BowgunCtrl()
             r209_BowgunActionSet2(3, f, 6);
             break;
         }
-    } else if (R209_BIT_CK(wp->atOn, 130)) {
-        hit = R209_BIT_CK(wp->atOn, 4);
+    } else if (FlagChk(wp->atOn, 130)) {
+        hit = FlagChk(wp->atOn, 4);
         f = hit == 0;
         switch (n) {
         case 1:
@@ -1574,8 +1571,8 @@ extern "C" void r209_BowgunCtrl()
             r209_BowgunActionSet3(3, f, 4);
             break;
         }
-    } else if (R209_BIT_CK(wp->atOn, 131)) {
-        hit = R209_BIT_CK(wp->atOn, 6);
+    } else if (FlagChk(wp->atOn, 131)) {
+        hit = FlagChk(wp->atOn, 6);
         f = hit == 0;
         switch (n) {
         case 1:

@@ -549,7 +549,7 @@ void SceExecEventCancel()
     }
     if (s->cancelFlagNo >= 0) {
         no = s->cancelFlagNo;
-        eventFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(eventFlags(), no);
     }
     for (slot = 5; slot <= 17; slot++) {
         if (s->prim[slot - 5].cancel == 1) {
@@ -578,7 +578,7 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
     SceCTask()->cancel = on;
     if (flagNo >= 0) {
         no = flagNo;
-        eventFlags()[no >> 5] &= ~(0x80000000 >> (no & 31));
+        FlagOff(eventFlags(), no);
     }
     // COMPILER-DIFF: 12 (AROUND form): the loop notes end cse1's path from the skipped `if` block, so
     // the tail's `&SceSys` is a fresh lis/addi instead of `eventCancel's address - 113`.

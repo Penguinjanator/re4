@@ -373,7 +373,7 @@ void SceAtSetHitFlg(u32 no)
 {
     u32* f = pS->hitFlg;
 
-    f[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(f, no);
 }
 
 // Clears the "executed this frame" bits.
@@ -387,7 +387,7 @@ void SceAtSetExecFlg(u32 no)
 {
     u32* f = pS->execFlg;
 
-    f[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(f, no);
 }
 
 // Per frame: clears Room_flg[2..3] (per-frame event flags) and the hit / exec bits.
@@ -789,7 +789,7 @@ static void sceInLock(SceAtWork* w)
         while (cMes.mes[0].flags2 & 1) {
             TaskSleep(1);
         }
-        doorUnlock()[w->lockFlag >> 5] |= 0x80000000 >> (w->lockFlag & 31);
+        FlagOn(doorUnlock(), w->lockFlag);
         break;
     }
     SceAtStopSemiautoCheck();
@@ -1591,9 +1591,9 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
     switch (f->kind) {
     case 0:
         if (f->off == 0) {
-            eventFlags()[f->no >> 5] |= 0x80000000 >> (f->no & 31);
+            FlagOn(eventFlags(), f->no);
         } else {
-            eventFlags()[f->no >> 5] &= ~(0x80000000 >> (f->no & 31));
+            FlagOff(eventFlags(), f->no);
         }
         break;
     case 1: {
@@ -1614,9 +1614,9 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
     }
     case 2:
         if (f->off == 0) {
-            flags51BC()[f->no >> 5] |= 0x80000000 >> (f->no & 31);
+            FlagOn(flags51BC(), f->no);
         } else {
-            flags51BC()[f->no >> 5] &= ~(0x80000000 >> (f->no & 31));
+            FlagOff(flags51BC(), f->no);
         }
         break;
     }
@@ -2299,12 +2299,6 @@ SceAtWork* SceAtPtr(int no)
     return 0;
 }
 
-// Bit table test with the table as an integer address: the index is not pointer-flagged, so the word offset
-// lands in a base register and comes first in `lwzx`.
-static inline u32 bitTblChk(u32 tbl, u32 i)
-{
-    return *(u32*) (((i >> 5) << 2) + tbl) & (0x80000000 >> (i & 31));
-}
 
 // A free area number (0..255 not used by any record); 0 when none.
 int sceAtPullAtNo(u8* out)
@@ -2319,7 +2313,7 @@ int sceAtPullAtNo(u8* out)
         ((u32*) used)[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
     for (i = 0; i < 256; i++) {
-        if (!bitTblChk((u32) used, i)) {
+        if (!FlagChkVar((u32) used, i)) {
             *out = i;
             return 1;
         }
@@ -3041,10 +3035,10 @@ static void sceAtItemFindCheck()
 void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
 {
     if (flagNo != 0) {
-        itemFlags()[flagNo >> 5] |= 0x80000000 >> (flagNo & 31);
+        FlagOn(itemFlags(), flagNo);
     } else if (saveNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFlags()[saveNo >> 5] |= 0x80000000 >> (saveNo & 31);
+            FlagOn(roomItemFlags(), saveNo);
         }
     }
 }
@@ -3095,10 +3089,10 @@ void sceAtItemFlgOn(SceAtItem* it)
     u16 no = it->flagNo;
 
     if (no != 0) {
-        itemFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(itemFlags(), no);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            FlagOn(roomItemFlags(), it->findFlagNo);
         }
     }
 }
@@ -3128,10 +3122,10 @@ void sceAtItemFindFlgOn(SceAtItem* it)
     u16 no = it->flagNo;
 
     if (no != 0) {
-        itemFindFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(itemFindFlags(), no);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFindFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            FlagOn(roomItemFindFlags(), it->findFlagNo);
         }
     }
 }

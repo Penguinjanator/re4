@@ -162,23 +162,8 @@ static inline u32 r332_flgCk(u32* f, int no)
     return f[(u32) no >> 5] & (0x80000000 >> (no & 31));
 }
 
-// Set bit `no` of the room's flag words (pG->flags_174 on).
-static inline void r332_flgOn(u32* f, int no)
-{
-    f[(u32) no >> 5] |= 0x80000000 >> (no & 31);
-}
 
-// Clear bit `no` of the room's flag words.
-static inline void r332_flgOff(u32* f, int no)
-{
-    f[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
-}
 
-// The same through a u32& view: the following `pG` load is reissued after the store (R332ExecCrane).
-static inline void r332_flgOnRef(u32* f, int no)
-{
-    BitOn(f[(u32) no >> 5], 0x80000000 >> (no & 31));
-}
 
 // Through the manager pointer (an inline `this`): `&CamCtrl` in a register, the field at 0x250 off it.
 static inline void CamCtrlSetCam(CameraControl* cc, Camera* cam)
@@ -857,7 +842,7 @@ static void R332BridgeTask(int no)
                 EffectEfmDelete(1, (u8) estNo, 0);
                 EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
             }
-            if (r332_flgCk(R332_FLAGS, flgArea) && r332_work->bridge[no].cnt > 0x77) {
+            if (FlagChkVar(R332_FLAGS, (u32) flgArea) && r332_work->bridge[no].cnt > 0x77) {
                 IntSet(r332_work->nearBridge, R332ChkNearBridge());
                 if (r332_work->nearBridge != 4) {
                     ActBtn.set(0xC, 0xC, 0, 0, 0x42, 3, 1, 0);
@@ -872,10 +857,10 @@ static void R332BridgeTask(int no)
                     }
                 }
             }
-            if (r332_flgCk(R332_FLAGS, flgArea)) {
-                r332_flgOn(R332_FLAGS, flgOpen);
+            if (FlagChkVar(R332_FLAGS, (u32) flgArea)) {
+                FlagOnVar(R332_FLAGS, (u32) flgOpen);
             } else {
-                r332_flgOff(R332_FLAGS, flgOpen);
+                FlagOffVar(R332_FLAGS, (u32) flgOpen);
             }
             SceSleep(1);
             R332_BRIDGE_SET(cnt, no, r332_work->bridge[no].cnt + 1);
@@ -1403,7 +1388,7 @@ static void R332ExecCrane(int no)
     }
     SndCall(6, 3, &pPL->pos, 0, 0, 0);
     while (MotionGetState(crane) == 0) {
-        if (r332_flgCk(R332_FLAGS, flgNo) == 0 && hitDone == 1) {
+        if (FlagChkVar(R332_FLAGS, (u32) flgNo) == 0 && hitDone == 1) {
             cEmHit* hit = r332_work->hit[no];
 
             if (hit && em) {
@@ -1413,7 +1398,7 @@ static void R332ExecCrane(int no)
                     int k;
 
                     em->setHitCrane(&hit->pParts->world);
-                    r332_flgOnRef(R332_FLAGS, flgNo);
+                    FlagOnVar(R332_FLAGS, (u32) flgNo);
                     RsfSet(G_ROOM_ID, rsfNo);
                     for (k = 0; k < 5; k++) {
                         BitOff(r332_work->chain[no][k]->be_flag, 2);
@@ -1434,7 +1419,7 @@ static void R332ExecCrane(int no)
     if (RsfCheck(G_ROOM_ID, rsfNo) == 0) {
         SceExec(0x12, (TaskFunc) R332RevaCommonMoveUp, no, 0, 2, 0);
     }
-    r332_flgOff(R332_FLAGS, flgNo);
+    FlagOffVar(R332_FLAGS, (u32) flgNo);
 }
 
 // End of a crane use: the player's damage state cleared, out of event mode, walk state 0xC, collision back.

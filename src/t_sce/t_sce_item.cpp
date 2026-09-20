@@ -205,9 +205,6 @@ char* getItemIdStr(u32 id);
 // link types 1 (enemy) and 2 (etc model) place the item on another model
 #define LINKED(a) ((a)->linkType == 1 || (a)->linkType == 2)
 
-// 128-bit flag table
-static inline u32 bitChk(u32* tbl, u32 n) { return tbl[n >> 5] & (0x80000000 >> (n & 0x1F)); }
-static inline void bitOn(u32* tbl, u32 n) { tbl[n >> 5] |= 0x80000000 >> (n & 0x1F); }
 
 // ITEM SET TOOL entry (debug menu 34): edits the room's ITA item placement records (SceAtWork with
 // the item payload). Loops: sub stick moves the panel, START toggles the debug camera, Z the tool
@@ -1550,8 +1547,8 @@ int tSceItemSetItemFlgAuto_on()
     u32 n;
 
     for (n = 1; n < 128; n++) {
-        if (!bitChk(pW->flgAuto, n)) {
-            bitOn(pW->flgAuto, n);
+        if (!FlagChkVar(pW->flgAuto, n)) {
+            FlagOnVar(pW->flgAuto, n);
             return n;
         }
     }
@@ -1569,7 +1566,7 @@ int tSceItemSetItemFlgAuto_ck(u32 no)
         return 1;
     }
     if (no == 0) return 1;
-    return bitChk(pW->flgAuto, no);
+    return FlagChkVar(pW->flgAuto, no);
 }
 
 // gives every item without an explicit ITEM_SET flag an automatic one
@@ -1588,7 +1585,7 @@ void tSceItemSetItemFlgAutoDataCreate()
             if (tSceItemSetItemFlgAuto_ck(it->findFlagNo)) {
                 it->findFlagNo = tSceItemSetItemFlgAuto_on();
             } else {
-                bitOn(pW->flgAuto, it->findFlagNo);
+                FlagOnVar(pW->flgAuto, it->findFlagNo);
             }
         } else {
             it->findFlagNo = 0;

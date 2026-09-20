@@ -31,23 +31,8 @@ void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 cBlock Block;
 
-// Bit `no` of a block set (bit 31 - n of the word).
-static inline int bitChk(u32* set, u32 no)
-{
-    return set[no >> 5] & (0x80000000 >> (no & 0x1F));
-}
 
-// Sets bit `no` of a block set.
-static inline void bitOn(u32* set, u32 no)
-{
-    set[no >> 5] |= 0x80000000 >> (no & 0x1F);
-}
 
-// Clears bit `no` of a block set.
-static inline void bitOff(u32* set, u32 no)
-{
-    set[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
-}
 
 
 // Rewinds the trigger-area ordering table cursor to the last (highest priority) slot.
@@ -165,7 +150,7 @@ int cBlock::checkBlockMemory()
         if (c->flags & 1) {
             checkBlockConnect(c, pLink, &mramSet, &aramSet);
             for (j = 0; j < nBlock; j++) {
-                if (bitChk(&mramSet, j)) {
+                if (FlagChkVar(&mramSet, j)) {
                     size += getUnitPtr(j)->pData->m_size;
                 }
             }
@@ -299,9 +284,9 @@ void cBlock::check(int arg)
                 continue;
             }
             u = getUnitPtr(i);
-            if (bitChk(&mramSet, i)) {
+            if (FlagChkVar(&mramSet, i)) {
                 u->setBlockCommand(BLOCK_CMD_MRAM_LOAD, arg);
-            } else if (bitChk(&aramSet, i)) {
+            } else if (FlagChkVar(&aramSet, i)) {
                 u->setBlockCommand(BLOCK_CMD_ARAM_LOAD, arg);
             } else {
                 u->setBlockCommand(BLOCK_CMD_DELETE, arg);
@@ -368,26 +353,26 @@ void cBlock::checkBlockConnect(BlockConnect* c, BlockLink* link, u32* mram, u32*
     if ((!(c->flags & 1))) {
         return;
     }
-    bitOn(mram, c->blockNo);
+    FlagOnVar(mram, c->blockNo);
     checkBlockConnect_sub(c->blockNo, link, mram);
     for (i = 0; i < nBlock; i++) {
-        if (bitChk(mram, i)) {
+        if (FlagChkVar(mram, i)) {
             checkBlockConnect_sub(i, link, aram);
         }
     }
     for (i = 0; i < nBlock; i++) {
-        if (bitChk(mram, i)) {
-            bitOff(aram, i);
+        if (FlagChkVar(mram, i)) {
+            FlagOffVar(aram, i);
         }
     }
     for (i = 0; i < 8; i++) {
         if (c->mram[i] != -1) {
-            bitOn(aram, c->mram[i]);
+            FlagOnVar(aram, (u32) c->mram[i]);
         }
     }
     for (i = 0; i < 8; i++) {
         if (c->aram[i] != -1) {
-            bitOff(aram, c->aram[i]);
+            FlagOffVar(aram, (u32) c->aram[i]);
         }
     }
 }
@@ -403,13 +388,13 @@ void cBlock::checkBlockConnect_sub(u8 blk, BlockLink* link, u32* set)
         if (i == blk) {
             for (j = 0; j < 8; j++) {
                 if (l->link[j] != -1) {
-                    bitOn(set, l->link[j]);
+                    FlagOnVar(set, (u32) l->link[j]);
                 }
             }
         } else {
             for (j = 0; j < 8; j++) {
                 if (l->link[j] == blk) {
-                    bitOn(set, i);
+                    FlagOnVar(set, i);
                 }
             }
         }

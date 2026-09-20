@@ -2452,7 +2452,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 // Marks item `id` usable here (the sub screen offers "Use"); the room/scenario sets these.
 int cItemMgr::available(ITEM_ID id)
 {
-    m_pAvailable[id >> 5] |= 0x80000000 >> (id & 0x1F);
+    FlagOn(m_pAvailable, id);
 }
 
 // Clears the usable-item mask.

@@ -1839,7 +1839,7 @@ void emDoor_R1_Break(cEmDoor* em)
         if (w->Key_flag != 0x36) {
             u32* tbl = pG->Key_flg;
 
-            tbl[w->Key_flag >> 5] |= 0x80000000 >> (w->Key_flag & 0x1F);
+            FlagOn(tbl, w->Key_flag);
         }
         em->r_no_2++;
     }

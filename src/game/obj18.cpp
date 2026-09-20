@@ -535,6 +535,6 @@ void Obj18CmfOn(cObj* obj, u32 no)
 
     cmf[0] = Obj18CmfGet(obj);
     p = cmf;
-    p[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(p, no);
     Obj18CmfSet(obj, cmf[0]);
 }

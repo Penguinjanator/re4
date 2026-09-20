@@ -1721,7 +1721,6 @@ cLight* pAliveBak;
 // Scalar (reference) accesses: a struct-member access through `this` and a global scalar are
 // assumed independent, and the scheduler would hoist the load above the store.
 static inline cLight* PGet(cLight*& p) { return p; }
-static inline void PSet(cLight*& d, cLight* v) { d = v; }
 
 // Entering the sub screen: drops the room lights, limits the pool to 10 and disables kind 0x7F.
 void cLightMgr::inSscrn()

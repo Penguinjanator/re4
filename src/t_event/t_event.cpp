@@ -56,8 +56,6 @@ struct EvtDebugView {
 
 // cFlag-style bit numbering (from the MSB of flags) over the tool's flag word
 static inline u32 FlagBit(u32 f, u32 bit) { return f & bit; }
-static inline void TE_FLG_ON(ToolEvt* t, int bit) { u32* p = (u32*) &t->EtcFlag; p[(u32) bit >> 5] |= 0x80000000 >> (bit & 0x1F); }
-static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->EtcFlag; p[(u32) bit >> 5] &= ~(0x80000000 >> (bit & 0x1F)); }
 
 #define CAM_MOTION_FLAGS(p) (*(u16*) ((u8*) (p) + 0x40))
 
@@ -1391,12 +1389,12 @@ void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
 {
     if (sw == 1) {
         t->EtcFlag &= ~0x02000000;
-        TE_FLG_ON(t, bit);
+        FlagOnVar(&t->EtcFlag, (u32) bit);
         t->pJoy0 = &Joy[2];
         t->pJoy2 = &Joy[3];
     } else {
         t->EtcFlag |= 0x02000000;
-        TE_FLG_OFF(t, bit);
+        FlagOffVar(&t->EtcFlag, (u32) bit);
         t->pJoy0 = &Joy[0];
         t->pJoy2 = &Joy[1];
     }

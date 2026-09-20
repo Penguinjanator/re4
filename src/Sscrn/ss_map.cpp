@@ -693,7 +693,7 @@ int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
     }
     no = 0;
     for (i = 1; i < n; i++) {
-        if (flagBit((u32) &pG->Scenario_flg[0], tbl[i])) {
+        if (FlagChkVar((u32) &pG->Scenario_flg[0], (u32) tbl[i])) {
             no = i;
         }
     }
@@ -799,7 +799,7 @@ int markMerchantPosition(SUB_SCREEN* wk, int no, Vec* pos)
         }
         idx = -1;
         for (i = 0; i < n; i++) {
-            if (flagBit((u32) &pG->Scenario_flg[0], tbl[i * 2])) {
+            if (FlagChkVar((u32) &pG->Scenario_flg[0], (u32) (tbl[i * 2]))) {
                 idx = i;
             }
         }
@@ -942,25 +942,25 @@ int markTreasureExist(int no)
 
     switch (SubScreenWk.pMapWk->area) {
     case 1:
-        return flagBit((u32) pG->Item_flg, st1[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st1[no]) == 0;
     case 2:
-        return flagBit((u32) pG->Item_flg, st2a[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st2a[no]) == 0;
     case 3:
-        return flagBit((u32) pG->Item_flg, st2b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st2b[no]) == 0;
     case 4:
         return flagBit((u32) pG->Item_flg, st2c[no]) == 0;
     case 6:
-        return flagBit((u32) pG->Item_flg, st3b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st3b[no]) == 0;
     case 9:
-        return flagBit((u32) pG->Item_flg, st3e[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st3e[no]) == 0;
     case 11:
-        return flagBit((u32) pG->Item_flg, st4a[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4a[no]) == 0;
     case 12:
-        return flagBit((u32) pG->Item_flg, st4b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4b[no]) == 0;
     case 13:
-        return flagBit((u32) pG->Item_flg, st4c[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4c[no]) == 0;
     case 14:
-        return flagBit((u32) pG->Item_flg, st4d[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4d[no]) == 0;
     }
     return 0;
 }
@@ -1552,7 +1552,7 @@ int mapColor(u16 room)
     if (room == SubScreenWk.room_no) {
         return 0;
     }
-    if (flagBit((u32) &pG->Scenario_flg[0], p->hide)) {
+    if (FlagChkVar((u32) &pG->Scenario_flg[0], p->hide)) {
         return 4;
     }
     passed = RoomData.checkPassed(room, 0);
@@ -1560,8 +1560,8 @@ int mapColor(u16 room)
     // shares): the clear arm's `li r3,3` stays inline and the `high pG` / 0x80000000 pseudos of the
     // three stageFlag tests are PRE'd into r29/r30 across the call (with `if (!open && !passed)
     // return 4;` the return-4 block is inline and the highs are re-materialised per test).
-    if (flagBit((u32) &pG->Scenario_flg[0], p->open) || passed) {
-        if (flagBit((u32) &pG->Scenario_flg[0], p->clear)) {
+    if (FlagChkVar((u32) &pG->Scenario_flg[0], p->open) || passed) {
+        if (FlagChkVar((u32) &pG->Scenario_flg[0], p->clear)) {
             return 3;
         }
         if (passed) {
@@ -2147,12 +2147,12 @@ void doorModelDisp(SUB_SCREEN* wk)
         mdl = MapMgr.getWork(base + i);
         if (e->flagType == 1) {
             open = 1;
-            if (!flagBit((u32) &pG->Scenario_flg[0], e->flagNo)) {
+            if (!FlagChkVar((u32) &pG->Scenario_flg[0], e->flagNo)) {
                 open = 0;
             }
         } else if (e->flagType == 2) {
             open = 1;
-            if (!flagBit((u32) pG->Key_flg, e->flagNo)) {
+            if (!FlagChkVar((u32) pG->Key_flg, e->flagNo)) {
                 open = 0;
             }
         } else {
