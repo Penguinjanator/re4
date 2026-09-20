@@ -49,17 +49,6 @@ u32 upDownCk(cPlayer* pl);
 // cPlNeck's checks compile to the folded `addis 0x8000; cmplwi 0x02FFFFFF` range form.
 #define VALID_PTR2(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 
-// The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); view class for
-// the r4 argument (emwindow.cpp BEGIN_EVENT).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 // `flags &= 0xFFFE` through a u16 reference: the 16-bit mask survives (`rlwinm 16,30`, BitOff16
 // gives `clrrwi`) and the following `pPL` load stays below the store (cPlNeck::move).
@@ -1034,7 +1023,7 @@ int cPlayer::actCheck()
 void cPlayer::beginDamage()
 {
     if (stat & 2) {
-        END_EVENT(this, 0);
+        this->endEvent(0);
     }
     interrupt();
 }
@@ -1091,12 +1080,9 @@ int cPlayer::getLifeLevel()
     return ret;
 }
 
-// Event start (mode in r4, see player.h): interrupt, routine 5 (0: idle footwork, 1: sub 2).
-void cPlayer::beginEvent()
+// Event start: interrupt, routine 5 (0: idle footwork, 1: sub 2).
+void cPlayer::beginEvent(u32 mode)
 {
-    register int modeReg asm("r4");
-    int mode = modeReg;
-
     interrupt();
     Neck->motL = 0;
     switch (mode) {
@@ -1208,12 +1194,10 @@ int cPlayer::endCamera()
     return ret;
 }
 
-// Event end (mode in r4, see player.h).
-void cPlayer::endEvent()
+// Event end.
+void cPlayer::endEvent(u32 mode)
 {
-    register u32 modeReg asm("r4");
-
-    endEvent0(modeReg);
+    endEvent0(mode);
 }
 
 // Event end (stat bit1 set): the player is drawn / collides / moves again, invulnerable for 10

@@ -184,7 +184,7 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
 }
 
 // Event start: mines and arrows in flight are removed.
-void cEmMine::beginEvent()
+void cEmMine::beginEvent(u32 mode)
 {
     EmMgr.destroy(this);
 }

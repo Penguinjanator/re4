@@ -234,7 +234,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 }
 
 // Event start hook: nothing to do for rocks.
-void cEmRock::beginEvent()
+void cEmRock::beginEvent(u32 mode)
 {
 }
 

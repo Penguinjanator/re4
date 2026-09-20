@@ -20,8 +20,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000010B0	0xA8	em18/em18.cpp	global	em18ClothPartsSet__FP5cEm18i	em18ClothPartsSet
 .text	0x00001158	0x9C	em18/em18.cpp	global	em18GoodsPartsSet__FP5cEm18i	em18GoodsPartsSet
 .text	0x000011F4	0xE0	em18/em18.cpp	global	em18HandSet__FP5cEm18	em18HandSet
-.text	0x000012D4	0x4	em18/em18.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000012D8	0x4	em18/em18.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000012D4	0x4	em18/em18.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000012D8	0x4	em18/em18.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000012DC	0x20	em18/em18.cpp	global	_._5cEm18	cEm18::~cEm18
 .text	0x000012FC	0x48	em18/em18.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00001344	0x4	em18/em18.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

@@ -16,8 +16,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000774	0x4	pl06/pl06.cpp	global	initCloth__7cPlHunk	cPlHunk::initCloth
 .text	0x00000778	0x4	pl06/pl06.cpp	global	moveCloth__7cPlHunk	cPlHunk::moveCloth
 .text	0x0000077C	0x48	pl06/pl06.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000007C4	0x4	pl06/pl06.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000007C8	0x4	pl06/pl06.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000007C4	0x4	pl06/pl06.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000007C8	0x4	pl06/pl06.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000007CC	0x4	pl06/pl06.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .rodata	0x00000054	0x1C	pl06/pl06.cpp	local	lbl_pl06_rodata_54	lbl_pl06_rodata_54
 .rodata	0x00000070	0x10	pl06/pl06.cpp	local	lbl_pl06_rodata_70	lbl_pl06_rodata_70

@@ -966,7 +966,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
                     CamCtrl.CutCall((s8) cut2);
                 }
                 EstSet(0, -1, 0, 0, 1, (u8) est, 0x2001, 0, 0, 0);
-                ((cUnitEventView*) pPL)->beginEvent(0);
+                pPL->beginEvent(0);
                 pPL->setNoSuspend(1);
                 Vec tbl[3] = {{-10850.0f, 0.0f, 1500.0f}, {8150.0f, 0.0f, 1500.0f}, {26650.0f, 0.0f, 1500.0f}};
                 pPL->setPos(&tbl[no]);
@@ -1076,7 +1076,7 @@ void R31bExecFallMainSub(int no, int flagNo, int cut)
         SceSetEventCancel(1, (TaskFunc) R31bExecFallEnd, no, -1, 1);
         if (pG->Room_flg[0] & 0x80000000) {
             SndCall(6, 0x10, 0, 0, 0, 0);
-            ((cUnitEventView*) pPL)->beginEvent(0);
+            pPL->beginEvent(0);
             pPL->setNoSuspend(1);
             AtariOffRaw(&pPL->atari, 0xFCFF);
             Vec tbl[3] = {{-14000.0f, 0.0f, 0.0f}, {5000.0f, 0.0f, 0.0f}, {23500.0f, 0.0f, 0.0f}};
@@ -1277,7 +1277,7 @@ static void R31bExecEscapeMain()
             SetAngXYZ(smd, 0.0f, 0.0f, 0.0f);
             MotionSetCore(smd, &smd->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
         }
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
         SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
@@ -1377,7 +1377,7 @@ static void R31bExecRoom01U3Main()
         LightMgr.onKind(0x13);
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetAngXYZ(pPL, 0.0f, 3.1415927f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 0x201, 0);
@@ -1447,7 +1447,7 @@ static void R31bExecRoom02U3Main()
         CamCtrl.CutCall(0x22);
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 12696.0f, 0.0f, 7280.0f);
         SetAngXYZ(pPL, 0.0f, -2.4f, 0.0f);
@@ -1471,7 +1471,7 @@ static void R31bExecRoom02U3End()
         em->setNext(7);
     }
     pPL->setNoSuspend(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
@@ -1501,7 +1501,7 @@ static void R31bExecRoom03U3Main()
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SndRoomStrStart(1, 0, 1);
         U32Set(r31b_work.p->str, SndStrPlayBlock(1, 0x35, 0.0f));
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
         SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
@@ -1693,7 +1693,7 @@ static void R31bExecGondolaMain(int dir)
     obj->setNoSuspend(1);
     obj->setPos(&r31b_gondolaPos[0][dir]);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     SetPosXYZ(obj, r31b_gondolaPos[0][dir].x, r31b_gondolaPos[0][dir].y, r31b_gondolaPos[0][dir].z);
     SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
     SetAngXYZ(pPL, pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
@@ -1742,7 +1742,7 @@ static void R31bExecGondolaMain(int dir)
     obj->setNoSuspend(1);
     obj->setPos(&r31b_gondolaPos[1][dir]);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     stopDist = CalcStopDist(spd, accel);
     move = stopDist + 4000.0f;
     if (dir != 0) {

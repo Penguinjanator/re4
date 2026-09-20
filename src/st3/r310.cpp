@@ -342,7 +342,7 @@ static void r310_pushBox2_leon()
     Vec d;
     Vec goal;
 
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     AtariFlagsOr(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
@@ -411,7 +411,7 @@ done:
     }
 finish:
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     r310_work->pushTask = 0;
 }
 
@@ -583,7 +583,7 @@ static void r310_pushBox1_leon()
     Vec d;
     Vec goal;
 
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     AtariFlagsOr(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
@@ -652,7 +652,7 @@ done:
     }
 finish:
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     r310_work->pushTask = 0;
 }
 

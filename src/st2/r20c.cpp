@@ -70,16 +70,6 @@ Vec r20c_plAng0 = {0.0f, 1.27f, 0.0f};
 Vec r20c_plAng1 = {0.0f, 1.27f, 0.0f};
 static int r20c_resetTbl[7] = {4, 9, 7, 5, 8, 6, 0};
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 // The coordinates are read before `v` is written and the `&v` argument is recomputed per call
 // (an inlined helper: the address goes straight into the argument register).
@@ -316,7 +306,7 @@ static void R20cExecCageMain()
         SceSetEventCancel(1, (TaskFunc) R20cExecCageEnd, 0, -1, 1);
         CamCtrl.CutCall(6);
         EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
-        BEGIN_EVENT(pPL, 0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         pPL->setPos(&r20c_plPos0);
         pPL->setAng(&r20c_plAng0);

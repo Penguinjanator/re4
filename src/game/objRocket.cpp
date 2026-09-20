@@ -193,7 +193,7 @@ void cObjRocket::fire()
 }
 
 // A rocket in flight is dropped when an event starts.
-void cObjRocket::beginEvent()
+void cObjRocket::beginEvent(u32 mode)
 {
     if (r_no_0) {
         ObjMgr.destroy(this);

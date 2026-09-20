@@ -58,17 +58,6 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 void SubScreenWait(int frames);
 }
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 #define HALT()                                                    \
     do {                                                          \
@@ -1350,7 +1339,7 @@ void SceElevator(SceElevatorData* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;
@@ -1504,7 +1493,7 @@ void cManager<T>::beginEvent(int mode)
     for (i = 0; i < nArray; i++) {
         T* p = (T*) ((u8*) pArray + size * i);
         if (p->isAlive()) {
-            BEGIN_EVENT(p, mode);
+            p->beginEvent(mode);
         }
     }
 }
@@ -1518,7 +1507,7 @@ void cManager<T>::endEvent(int mode)
     for (i = 0; i < nArray; i++) {
         T* p = (T*) ((u8*) pArray + size * i);
         if (p->isAlive()) {
-            END_EVENT(p, mode);
+            p->endEvent(mode);
         }
     }
 }

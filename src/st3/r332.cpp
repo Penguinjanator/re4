@@ -1030,7 +1030,7 @@ static void R332RocketShootMain(int type)
     VecCopy((u32*) &r332_work->plPos, (u32*) &pPL->pos);
     VecCopy((u32*) &r332_work->plRot, (u32*) &pPL->ang);
     AtariOffRaw(&pPL->atari, 0xFCFF);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
     em = (cEm31*) r332_work->em[1].getPtr();
@@ -1172,7 +1172,7 @@ static void R332RocketShootEnd(int type)
     }
     pPL->setNoSuspend(0);
     BitOn(pPL->be_flag, 2);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     FSet(pPL->pos.x, -53000.0f);
     FSet(pPL->pos.y, 17500.0f);
     FSet(pPL->pos.z, 82500.0f);
@@ -1334,7 +1334,7 @@ static void R332ExecCrane(int no)
         return;
     }
     SceAtSetEnable(atNo, 0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     setPosXYZ(pPL, plPos.x, plPos.y, plPos.z);
     setAngXYZ(pPL, plRot.x, plRot.y, plRot.z);
     loopOn = 1;
@@ -1481,7 +1481,7 @@ void R332ExecCraneEnd(int no, int atNo)
     cPlayer* pl = pPL;
 
     pl->dmg.clear();
-    ((cUnitEventView*) pl)->endEvent(0);
+    pl->endEvent(0);
     pl->m_Hokan = 0xC;
     AtariOnRaw(&pPL->atari, 0x300);
 }
@@ -1509,7 +1509,7 @@ static void R332EventS00()
     r332_work->em[0].setFlag(1);
     r332_work->em[1].setNoSuspend(1);
     r332_work->em[0].setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     setPosXYZ(pPL, -29161.0f, 15811.0f, 61102.0f);
     setAngXYZ(pPL, 0.0f, 3.14f, 0.0f);
@@ -1558,7 +1558,7 @@ void R332EventS00End()
     pPL->setNoSuspend(0);
     setPosXYZ(pPL, -32900.0f, 15811.0f, 47140.0f);
     setAngXYZ(pPL, 0.0f, 0.766f, 0.0f);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {

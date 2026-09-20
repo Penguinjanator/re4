@@ -50,17 +50,6 @@
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
 struct R117Work {
     union {
@@ -696,8 +685,8 @@ static void r117_EventChandelier()
     int ok;
     int loop;
 
-    BEGIN_EVENT(pPL, 0);
-    BEGIN_EVENT(W->smd, 0);
+    pPL->beginEvent(0);
+    W->smd->beginEvent(0);
     FSet(pPL->pos.x, -258.0f);
     FSet(pPL->pos.z, r117_smdPos.z - 5927.0f);
     {
@@ -800,8 +789,8 @@ static void r117_EventChandelier()
         }
         SceSleep(1);
     }
-    END_EVENT(pPL, 0);
-    END_EVENT(W->smd, 0);
+    pPL->endEvent(0);
+    W->smd->endEvent(0);
 }
 
 // Lightning on: the window object 0 to the bright colour (0x5F/0x87/0x9B).

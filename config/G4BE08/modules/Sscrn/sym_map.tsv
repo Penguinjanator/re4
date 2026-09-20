@@ -251,8 +251,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00015568	0x5C	Sscrn/ss_map.cpp	global	quit__13MapModeSelectP10SUB_SCREEN	MapModeSelect::quit
 .text	0x000155C4	0x930	Sscrn/ss_map.cpp	global	fn_Sscrn_155C4	.
 .text	0x00015EF4	0x48	Sscrn/ss_map.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00015F3C	0x4	Sscrn/ss_map.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00015F40	0x4	Sscrn/ss_map.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00015F3C	0x4	Sscrn/ss_map.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00015F40	0x4	Sscrn/ss_map.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00015F44	0x7C	Sscrn/ss_map.cpp	global	fn_Sscrn_15F44	.
 .text	0x00015FC0	0x20	Sscrn/ss_map.cpp	global	_._4cSat	cSat::~cSat
 .text	0x00015FE0	0x50	Sscrn/ss_map.cpp	global	_._9SsMapInit	SsMapInit::~SsMapInit

@@ -864,7 +864,7 @@ void TRAP::stop(int v)
             SndCall(6, 0xA, 0, 0, 0, 0);                                                       \
             pPL->dmg.set(0, 0x80);                                                             \
             pPL->setNoSuspend(1);                                                              \
-            ((cUnitEventView*) pPL)->beginEvent(0);                                            \
+            pPL->beginEvent(0);                                            \
             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 0x101, 0);                 \
             DiedemoExec(30, 0);                                                                \
         }                                                                                      \

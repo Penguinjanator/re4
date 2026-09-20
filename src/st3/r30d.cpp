@@ -470,7 +470,7 @@ static void R30dCoopSwitch()
         return;
     }
     CamCtrl.CutCall(7);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     SetSubAux(funcAshleySwitch, 0);
     if (sceAtFlag(0x01000000)) {
         cObj* o1 = r30d_work.p->obj[1];
@@ -682,7 +682,7 @@ static void R30dCoopSwitch()
         SceSleep(1);
     } while (COOP_ACTIVE(c) != 0);
     CamCtrl.Comeback(0);
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
     EmRoutineSet(pSUB, 0, 0, 0, 0);
     SubCharCtrl(1, 0);
 }

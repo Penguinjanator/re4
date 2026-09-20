@@ -133,7 +133,7 @@ static void toroko_go(int dir)
         PlSetHand(1, 0);
         SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
-            ((cUnitEventView*) pSUB)->beginEvent(0);
+            pSUB->beginEvent(0);
         }
         torokoPlace(pPL, &pos, &ang);
         if (pSUB) {
@@ -207,7 +207,7 @@ static void toroko_ret(int dir)
         SceSleep(1);
         SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
-            ((cUnitEventView*) pSUB)->beginEvent(0);
+            pSUB->beginEvent(0);
         }
         torokoPlace(pPL, &pos, &ang);
         if (pSUB) {
@@ -230,7 +230,7 @@ static void toroko_ret(int dir)
         pPL->setNoSuspend(0);
         if (pSUB) {
             pSUB->setNoSuspend(0);
-            ((cUnitEventView*) pSUB)->endEvent(0);
+            pSUB->endEvent(0);
         }
         SubCharCtrl(SCC_CHASE, 1);
         ObjMgr.destroy(obj);

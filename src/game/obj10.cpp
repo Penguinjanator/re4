@@ -21,7 +21,7 @@
 class cWepItem : public cObj {
 public:
     virtual void move();
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual ~cWepItem() {}
 
     void move00();
@@ -215,7 +215,7 @@ void cWepItem::hitCkPl()
 }
 
 // Event start: the thrown item is removed.
-void cWepItem::beginEvent()
+void cWepItem::beginEvent(u32 mode)
 {
     ObjMgr.destroy(this);
 }

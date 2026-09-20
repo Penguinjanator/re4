@@ -243,7 +243,7 @@ static void r22a_EleDown()
 
     pPL->setNoSuspend(1);
     SceEventStart(0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     DpfFlagOn(pG, DPF_SHADOW);
     CamCtrl.CutCall(2);
     obj = SmdGetObjPtr(0x4F);
@@ -279,7 +279,7 @@ static void r22a_EleDown()
     SceSleep(15);
     DpfFlagOff(pG, DPF_SHADOW);
     SceEventEnd(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(0);
 }
 
@@ -291,7 +291,7 @@ static void r22a_EleUp()
 
     pPL->setNoSuspend(1);
     SceEventStart(0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     DpfFlagOn(pG, DPF_SHADOW);
     CamCtrl.CutCall(4);
     obj = SmdGetObjPtr(0x4F);
@@ -327,6 +327,6 @@ static void r22a_EleUp()
     SceSleep(15);
     DpfFlagOff(pG, DPF_SHADOW);
     SceEventEnd(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(0);
 }

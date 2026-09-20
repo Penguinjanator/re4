@@ -1233,9 +1233,9 @@ static void r208_operateCrank()
     pG->Room_flg[0] |= 0x04000000;
     SmdGetObjPtr(0x4E)->be_flag |= 0x20;
     PSet(W->crank, SmdGetObjPtr(0x4E));   // the pPL load stays below the store
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     PlSetHand(1, 0);
-    ((cUnitEventView*) W->crank)->beginEvent(0);
+    W->crank->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x20));
     W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
     CamCtrl.CutCall(9);
@@ -1343,8 +1343,8 @@ static void r208_operateCrank()
     }
     W->crank->motionPause();
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(0);
-    ((cUnitEventView*) W->crank)->endEvent(0);
+    pPL->endEvent(0);
+    W->crank->endEvent(0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         SceAtSetEnable(2, 1);
     }

@@ -114,8 +114,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000FF34	0x15C	em2c/em2c.cpp	global	em2cGetFallPos__FP5cEm2c	em2cGetFallPos
 .text	0x00010090	0x6C	em2c/em2c.cpp	global	em2cBreathSe__FP5cEm2c	em2cBreathSe
 .text	0x000100FC	0xD0	em2c/em2c.cpp	global	em2cBreathSeStopCk__FP5cEm2c	em2cBreathSeStopCk
-.text	0x000101CC	0x4	em2c/em2c.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000101D0	0x4	em2c/em2c.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000101CC	0x4	em2c/em2c.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000101D0	0x4	em2c/em2c.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000101D4	0x20	em2c/em2c.cpp	global	_._5cEm2c	cEm2c::~cEm2c
 .text	0x000101F4	0x48	em2c/em2c.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0001023C	0x4	em2c/em2c.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

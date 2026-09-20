@@ -72,8 +72,8 @@ public:
     Vec subBustBase[3];       // 0x7E0 .. 0x804  rest positions of parts 0x1D, 0x1E, 0x1A (moveBust)
     cSubChar();
     virtual ~cSubChar();
-    virtual void beginEvent();
-    virtual void endEvent();
+    virtual void beginEvent(u32 mode);
+    virtual void endEvent(u32 mode);
     virtual void move();
     virtual void modelSet() = 0;   // slot 9: pure here (`cSubAshley::modelSet` in pl11); pl_sub EndSubDamage calls it for id 4
     virtual void setFace(int no);

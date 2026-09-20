@@ -32,8 +32,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001EBC	0x10	wep30/wep30.cpp	global	_epilog	_epilog
 .text	0x00001ECC	0x4	wep30/wep30.cpp	global	_unresolved	_unresolved
 .text	0x00001ED0	0x62C	wep30/wep30.cpp	global	fn_wep30_1ED0	.
-.text	0x000024FC	0x4	wep30/wep30.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002500	0x4	wep30/wep30.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000024FC	0x4	wep30/wep30.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002500	0x4	wep30/wep30.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00002504	0x20	wep30/wep30.cpp	global	_._11cObjHandGre	cObjHandGre::~cObjHandGre
 .text	0x00002524	0x48	wep30/wep30.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000256C	0x4	wep30/wep30.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

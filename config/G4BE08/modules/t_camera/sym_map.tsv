@@ -130,8 +130,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001232C	0x8	t_camera/db_light.cpp	global	__opi__t9cVarRange1ZUc	cVarRange<unsigned char>::operator int
 .text	0x00012334	0x80	t_camera/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x000123B4	0x48	t_camera/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000123FC	0x4	t_camera/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00012400	0x4	t_camera/db_light.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000123FC	0x4	t_camera/db_light.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00012400	0x4	t_camera/db_light.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00012404	0x4	t_camera/db_light.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00012408	0x264	t_camera/t_camera.cpp	global	ToolCamera__Fv	ToolCamera
 .text	0x0001266C	0xE0	t_camera/t_camera.cpp	global	tcDataInitialize__Fv	tcDataInitialize

@@ -516,8 +516,8 @@ static void r20d_operateCrank(int no)
     lastMot = 0;
     accel = 0;
     seId = 0;
-    ((cUnitEventView*) pPL)->beginEvent(0);
-    ((cUnitEventView*) crank)->beginEvent(0);
+    pPL->beginEvent(0);
+    crank->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x35));
     crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C));
     {
@@ -631,9 +631,9 @@ static void r20d_operateCrank(int no)
         SceSleep(1);
     }
     FadeSetW(0x80000001, 5, 0, 0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     crank->motionPause();
-    ((cUnitEventView*) crank)->endEvent(0);
+    crank->endEvent(0);
     if (t >= 1.0f) {
         if (seId != 0) {
             SndStop(seId, 0);
@@ -1146,7 +1146,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     asm("" : "+r"(u));
     IntSet(u->step, st);
     U32Set(u->state, 1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     // pPLS (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
     // invalidates it in cse1 and `dmg.set` reloads pPL (target: two `lwz pPL@l`).
     AtariFlagsOr(&pPLS->atari, 0x100);
@@ -1207,7 +1207,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
         SceSleep(1);
     }
     pPL->dmg.clear();
-    ((cUnitEventView*) pPL)->endEvent(2);
+    pPL->endEvent(2);
 }
 
 // The lantern leaves the hand: an obj01 flies to the target along a parabola.

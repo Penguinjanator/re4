@@ -440,7 +440,7 @@ static void r202_operateCannon()
     if (pSUB != 0) {
         if (!(SubCharGetStatus() & 0x02000000)) {
             pSUB->setNoSuspend(1);
-            ((cUnitEventView*) pSUB)->endEvent(0);
+            pSUB->endEvent(0);
         } else {
             BitOn(pG->Room_flg[0], 0x01000000);
             if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 10000.0f) {
@@ -551,9 +551,9 @@ static void r202_operateCrank()
     int accel = 0;
 
     SceAtSetEnable(2, 0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     PlSetHand(1, 0);
-    ((cUnitEventView*) r202_work.p->crank)->beginEvent(0);
+    r202_work.p->crank->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x22));
     r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
@@ -681,8 +681,8 @@ static void r202_operateCrank()
     }
     r202_work.p->crank->motionPause();
     PlSetHand(0, 0);
-    ((cUnitEventView*) pPL)->endEvent(2);
-    ((cUnitEventView*) r202_work.p->crank)->endEvent(0);
+    pPL->endEvent(2);
+    r202_work.p->crank->endEvent(0);
     SceAtSetEnable(0x15, 0);
     if (r202_work.p->ido1->pos.y == r202_work.p->idoY1) {
         EstSet(0, -1, 0, 0, 1, 3, 0, 0, 0, 0);

@@ -857,7 +857,7 @@ static void R226EventRoboWalkPassageGoal()
     }
     RsfSet(G_ROOM_ID, 3);
     SceEventStart(0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     robo->SetBeginEvent(0);
     setPosXYZ(pPL, -57500.0f, 1000.0f, -16400.0f);
@@ -921,7 +921,7 @@ static void R226EventRoboWalkDoorDie()
 
     SceEventStart(0);
     robo->SetBeginEvent(0);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     pos.x = -50000.0f;
     pos.y = 1200.0f;

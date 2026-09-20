@@ -3055,14 +3055,14 @@ void cSubChar::anaSatInfo()
 }
 
 // Event start: interrupts her routine, collision off (bits 0x300).
-void cSubChar::beginEvent()
+void cSubChar::beginEvent(u32 mode)
 {
     interrupt();
     AtariOff(&atari, 0xFCFF);
 }
 
 // Event end: cloth reset (be_flag 0x200000), collision on.
-void cSubChar::endEvent()
+void cSubChar::endEvent(u32 mode)
 {
     be_flag |= 0x200000;
     AtariOn(&atari, 0x300);

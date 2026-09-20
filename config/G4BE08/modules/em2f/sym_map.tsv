@@ -35,8 +35,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000039F8	0x270	em2f/em2f.cpp	global	em2fChangeRoute__FP5cEm2f	em2fChangeRoute
 .text	0x00003C68	0x1E4	em2f/em2f.cpp	global	em2fIslandCrashCk__FP5cEm2f	em2fIslandCrashCk
 .text	0x00003E4C	0x220	em2f/em2f.cpp	global	em2fTentacleMove__FP5cEm2f	em2fTentacleMove
-.text	0x0000406C	0x4	em2f/em2f.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00004070	0x4	em2f/em2f.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0000406C	0x4	em2f/em2f.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00004070	0x4	em2f/em2f.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00004074	0x20	em2f/em2f.cpp	global	_._5cEm2f	cEm2f::~cEm2f
 .text	0x00004094	0x48	em2f/em2f.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000040DC	0x4	em2f/em2f.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

@@ -228,7 +228,7 @@ static void R318ExecSitMain()
     FSet(pPL->ang.y, 0.0f);
     FSet(pPL->ang.z, 0.0f);
     AtariOffRaw(&pPL->atari, 0xFCFF);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     pl->Wep->setTrans(0, 1);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x87), 0, 0, 0x201, 0);
@@ -264,7 +264,7 @@ static void R318ExecSitEnd()
     FSet(pPL->ang.y, -1.57f);
     FSet(pPL->ang.z, 0.0f);
     pPL->setNoSuspend(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     AtariOnRaw(&pPL->atari, 0x300);
     pl->Wep->setTrans(1, 0);
     SndStrReq(r318_work.p->str, 8, 0, 0);
@@ -571,7 +571,7 @@ static void R318ExecSwitchCheck()
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, 1, 0xC, 0x2001, 6, 0, 0);
@@ -601,7 +601,7 @@ void R318ExecSwitchCheckEnd()
 {
     AtariOnRaw(&pPL->atari, 0x300);
     pPL->setNoSuspend(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     FSet(pPL->pos.x, r318_work.p->plPos.x);
     FSet(pPL->pos.y, r318_work.p->plPos.y);
     FSet(pPL->pos.z, r318_work.p->plPos.z);
@@ -633,7 +633,7 @@ static void R318EventLaserStMain()
         pG->Room_flg[0] &= ~0x20;
         SceEventStart(0);
         SceSetEventCancel(1, (TaskFunc) R226EventLaserStEnd, 0, -1, 1);
-        ((cUnitEventView*) pPL)->beginEvent(0);
+        pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         CamCtrl.CutCall(3);
         d = &r318_work.p->door[0];
@@ -704,7 +704,7 @@ static void R226EventLaserStEnd()
     SceAtSetEnable(0xA, 1);
     SceAtSetEnable(0xB, 1);
     pPL->setNoSuspend(0);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     SceEventEnd(0);
     SceExit();
 }

@@ -21,8 +21,7 @@ extern "C" {
 void* memset(void* dst, int c, unsigned int n);
 int sprintf(char* dst, const char* fmt, ...);
 f32 LIMIT_ANGLE(f32 x);
-// game/sub2.cpp; really takes Vec*, declared by value here (same ABI) so the caller copies its Vec.
-int GetScreenPos(Vec pos, Vec* scr);
+int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y);
 }
 void TransMatrix(Mtx m, Vec* pos);
@@ -976,7 +975,8 @@ void eminfoGetNearPoint(Vec* cursor)
         EmInfoWork* p = &W->work[i];
 
         if (p->type != 0) {
-            if (GetScreenPos(p->Pos, &scr)) {
+            Vec posCopy = p->Pos;
+            if (GetScreenPos(&posCopy, &scr)) {
                 f32 d = (scr.x - cursor->x) * (scr.x - cursor->x) + (scr.y - cursor->y) * (scr.y - cursor->y);
 
                 if (!(d > min)) {
@@ -996,7 +996,8 @@ void eminfoCursorToWork(int no)
     EmInfoWork* p = &W->work[no];
 
     if (p->type != 0) {
-        if (GetScreenPos(p->Pos, &scr)) {
+        Vec posCopy = p->Pos;
+        if (GetScreenPos(&posCopy, &scr)) {
             W->cx = scr.x;
             W->cy = scr.y;
         }
@@ -1082,7 +1083,9 @@ void eminfoDispNo(Vec* pos, int no)
 {
     Vec scr;
 
-    if (GetScreenPos(*pos, &scr)) {
+    Vec posCopy = *pos;
+
+    if (GetScreenPos(&posCopy, &scr)) {
         if (no == W->cur) {
             eprintf2(10, 16, (u32) scr.x - 20, (u32) scr.y + 16, 4, 0, "[%02d]", no);
         } else {

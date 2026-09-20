@@ -387,7 +387,7 @@ void SceElevator2Main(SceElevator2Data* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;
@@ -467,7 +467,7 @@ void SceElevator2Main(SceElevator2Data* d)
     obj->setNoSuspend(1);
     obj->setPos(&d->pos2);
     pPL->setNoSuspend(1);
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->setPos(&d->plPos2);
     pPL->setAng(&d->plRot);
     pPL->be_flag &= ~0x10;

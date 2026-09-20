@@ -152,7 +152,7 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start: a shield nobody carries is destroyed.
-void cEmShield::beginEvent()
+void cEmShield::beginEvent(u32 mode)
 {
     if (EMSHIELD_WK(this)->pParent == 0) {
         EmMgr.destroy(this);

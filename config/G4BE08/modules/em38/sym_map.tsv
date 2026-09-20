@@ -70,8 +70,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00006E98	0x2C	em38/em38.cpp	global	ckDown__5cEm38	cEm38::ckDown
 .text	0x00006EC4	0xD8	em38/em38.cpp	global	em38WeakInit__FP5cEm38	em38WeakInit
 .text	0x00006F9C	0x60	em38/em38.cpp	global	em38WeakMove__FP5cEm38	em38WeakMove
-.text	0x00006FFC	0x4	em38/em38.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00007000	0x4	em38/em38.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00006FFC	0x4	em38/em38.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00007000	0x4	em38/em38.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00007004	0x20	em38/em38.cpp	global	_._5cEm38	cEm38::~cEm38
 .text	0x00007024	0x48	em38/em38.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000706C	0x4	em38/em38.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

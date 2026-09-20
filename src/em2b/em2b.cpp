@@ -894,9 +894,9 @@ static void em2b_R0_Init(cEm2b* em)
     f32 one;
     // COMPILER-DIFF: #13 -- the 900/0x23/1.0 init constants are reload-materialised in the original
     // (never allocated), so the 25-store block is issued in pure source order; here the three
-    // pseudos are kept alive past the block by a dead asm whose output lives in r7 (any pseudo
-    // output lands in r8 and perturbs the init2 argument order; r11 is the original's spill reg).
-    register int r11c asm("r11");
+    // pseudos are kept alive past the block by a dead asm whose output is pinned to r7 (any pseudo
+    // output lands in r8 and perturbs the init2 argument order).
+    int r11c;
     register int dmy7 asm("r7");
     Vec v;
 

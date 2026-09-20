@@ -831,8 +831,8 @@ struct PlPtr {
         register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
         Vec* ang;                                                                                                  \
                                                                                                                    \
-        ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
-        ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
+        pl->beginEvent(0);                                                                     \
+        r204_work.p->chand[no]->beginEvent(0);                                                 \
         low_RotMatrix(m, (Vec*) &crot0);                                                                           \
         ang = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
@@ -925,8 +925,8 @@ struct PlPtr {
         }                                                                                                          \
         pl->dmg.clear();                                                                                           \
         BitOn(pl->be_flag, 0x10);                                                                                  \
-        ((cUnitEventView*) pPL)->endEvent(0);                                                                      \
-        ((cUnitEventView*) r204_work.p->chand[no])->endEvent(0);                                                   \
+        pPL->endEvent(0);                                                                      \
+        r204_work.p->chand[no]->endEvent(0);                                                   \
         postLoop                                                                                                   \
     }
 

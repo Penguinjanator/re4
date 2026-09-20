@@ -132,8 +132,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00012418	0x8	t_esp/db_light.cpp	global	__opi__t9cVarRange1ZUc	cVarRange<unsigned char>::operator int
 .text	0x00012420	0x80	t_esp/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x000124A0	0x48	t_esp/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000124E8	0x4	t_esp/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000124EC	0x4	t_esp/db_light.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000124E8	0x4	t_esp/db_light.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000124EC	0x4	t_esp/db_light.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000124F0	0x4	t_esp/db_light.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x000124F4	0x18	t_esp/db_mod.cpp	global	dbModSetViewFlag	dbModSetViewFlag
 .text	0x0001250C	0x168	t_esp/db_mod.cpp	global	init_dbEm__FP5DB_EMii	init_dbEm

@@ -59,8 +59,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000042D4	0x18	em25/em25.cpp	global	ckAtkEnable__5cEm25	cEm25::ckAtkEnable
 .text	0x000042EC	0x1C	em25/em25.cpp	global	setDamage__5cEm25	cEm25::setDamage
 .text	0x00004308	0xE0	em25/em25.cpp	global	ckLock__5cEm25	cEm25::ckLock
-.text	0x000043E8	0x4	em25/em25.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000043EC	0x4	em25/em25.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000043E8	0x4	em25/em25.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000043EC	0x4	em25/em25.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000043F0	0x20	em25/em25.cpp	global	_._5cEm25	cEm25::~cEm25
 .text	0x00004410	0x48	em25/em25.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00004458	0x4	em25/em25.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

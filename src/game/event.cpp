@@ -91,16 +91,6 @@ void EspEmDataSwapPop(int id);
 // game/shape.cpp
 int ShapeSet(void* work, int frame, void* data, int flags);
 
-// The original cUnit::beginEvent takes an int (sscrn.cpp's view of the vtable).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 // Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
@@ -913,7 +903,7 @@ int Event::ExePacket_SetPl(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
 
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     if (evt->SetMod(pac->mod.name, pPL, 0, 0, 2, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_SetPl : failed");

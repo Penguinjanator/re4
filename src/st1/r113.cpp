@@ -64,16 +64,6 @@ static const AtEffInfo r113_eff_info = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
 };
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
 
@@ -257,7 +247,7 @@ static void r113_EventRideShoulder()
         SceSleep(1);
     }
     PlSetHand(0, 0);
-    END_EVENT(pPL, 0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(1);
     SceSleep(60);
     CamCtrl.Comeback(0);

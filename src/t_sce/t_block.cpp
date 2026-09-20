@@ -25,8 +25,6 @@ extern "C" {
 int sprintf(char* buf, const char* fmt, ...);
 int strcmp(const char* a, const char* b);
 void* memcpy(void* dst, const void* src, unsigned int n);
-// the tool passes the world position by value (the caller copies it and passes the address)
-int GetScreenPosV(Vec pos, Vec* scr) asm("GetScreenPos");
 }
 int SetToolLight(int no);  // t_sce's db_light_v2 copy
 
@@ -1152,7 +1150,8 @@ void tBlockArea_dispBlockArea(u8 no, u32 col)
 
     AreaDataDisp(area, col | 0x40000000, 1, NULL);
     AreaGetCenterPos(&c, area);
-    GetScreenPosV(c, &c);
+    Vec cCopy = c;
+    GetScreenPos(&cCopy, &c);
     eprintf2(0xA, 0x14, (int) c.x - 5, (int) c.y - 10, 0, 0, "%d", a->areaNo);
 }
 
@@ -1267,7 +1266,8 @@ void tBlockArea_dispBlockBox(u8 no, u32 col)
         center.z = (minZ + maxZ) * 0.5f;
         Draw_sphere(&center, 1000.0f, 0x80808080, 0, 0);
         pW->pos[no] = center;
-        GetScreenPosV(center, &scr);
+        Vec centerCopy = center;
+        GetScreenPos(&centerCopy, &scr);
         c = 7;
         if (col == 0x00FF8080) c = 6;
         eprintf2(8, 0x10, (int) scr.x - 5, (int) scr.y - 10, c, 0, "B%d", no);

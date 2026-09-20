@@ -25,6 +25,7 @@
 #include "db_sctrl.h"
 #include "t_util.h"
 #include "t_event.h"
+#include "player.h"
 
 // Event tool (D:/Bio4/Prog/t_event.cpp): a task object (ToolEvt) with a file menu, the event preview
 // (EventMgr::SetEvt of a host .evd file, stop / capture / message display) and the preview sub tools
@@ -39,8 +40,6 @@ char* strcpy(char* dst, const char* src);
 }
 
 void DbMenuSetExecTool(const char* name);
-class cPlayer;
-extern cPlayer* pPL;
 
 // cFileList::init really takes the list buffer and the host directory (the symbol keeps the
 // parameterless name); XmlSimple::SetXmlElemStart/End take the element name as well.
@@ -402,7 +401,7 @@ ToolEvt::~ToolEvt()
 {
     delete pLightTool;
     DbgFlagOff(pG, DBG_EVENT_TOOL);
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     EvtTaskSignal(0);
     TutilQuitDefault();
     TaskExit();

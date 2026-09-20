@@ -856,8 +856,10 @@ void cEmWrap::setParent(cModel* parent)
 // Forward cEm::beginEvent: put the enemy into event mode (AI off, event motions).
 void cEmWrap::beginEvent()
 {
+    u32 mode;   // left unset: the original passes r4 through as the caller left it
+
     if (isAlive() == 1) {
-        pEm->beginEvent();
+        pEm->beginEvent(mode);
     } else {
         err("EM_SET_NO(%d) cEmWrap::beginEvent error", no);
     }
@@ -866,8 +868,10 @@ void cEmWrap::beginEvent()
 // Forward cEm::endEvent: leave event mode.
 void cEmWrap::endEvent()
 {
+    u32 mode;   // left unset: the original passes r4 through as the caller left it
+
     if (isAlive() == 1) {
-        pEm->endEvent();
+        pEm->endEvent(mode);
     } else {
         err("EM_SET_NO(%d) cEmWrap::endEvent error", no);
     }

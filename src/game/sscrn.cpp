@@ -48,18 +48,6 @@ char* strcpy(char* dst, const char* src);
 char* strncpy(char* dst, const char* src, unsigned int n);
 }
 
-// The original cUnit::beginEvent takes an int (every caller passes one: sce_com's
-// cManager<T>::beginEvent(int) loops, OpeSetOpenTerm's `pPL->beginEvent(0)`); the shared cUnit
-// declaration still has the no-argument form, so the call goes through this view of the vtable.
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 // Struct-member view of the cModel manager pointers: a plain scalar store lets the scheduler hoist
 // the following pG load above it (the read.cpp EmInitFunc trick).
@@ -874,7 +862,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     wk->pObjWep = 0;
     wk->opeMdtNo = no;
     OpeMdtSetInit();
-    BEGIN_EVENT(pl, 0);
+    pl->beginEvent(0);
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
     wk->sndId = SndStrPlayBlock(1, strTbl[no], 0.0f);

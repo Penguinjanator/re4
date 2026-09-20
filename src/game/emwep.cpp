@@ -216,7 +216,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 }
 
 // Event start: an unowned type 0 weapon lying around is removed.
-void cEmWep::beginEvent()
+void cEmWep::beginEvent(u32 mode)
 {
     if (EMWEP_WK(this)->pEm_oya == 0 && type == 0) {
         EmMgr.destroy(this);

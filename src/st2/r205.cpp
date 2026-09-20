@@ -82,16 +82,6 @@ static const AtEffInfo r205_effInfo = {
 };
 
 
-// cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 void r205_Em105AppearCheck();
 void r205_Em106AppearCheck();
@@ -444,7 +434,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     }
     BitOn(pG->Room_flg[0], 0x40000000);
     SysFlagOn(pG, SYS_START_EVT_SKIP);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     d = p->rot - p->rotPrev;
     if (pPL->ang.y >= -1.5707964f && pPL->ang.y <= 1.5707964f) {
         pPL->ang.y = 0.0f;

@@ -30,8 +30,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001EF4	0x3B8	wep04/wep04.cpp	global	fn_wep04_1EF4	.
 .text	0x000022AC	0xBC	wep04/wep04.cpp	global	countActiveWork__t8cManager1Z4cObj	cManager<cObj>::countActiveWork
 .text	0x00002368	0x170	wep04/wep04.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
-.text	0x000024D8	0x4	wep04/wep04.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000024DC	0x4	wep04/wep04.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000024D8	0x4	wep04/wep04.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000024DC	0x4	wep04/wep04.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000024E0	0x20	wep04/wep04.cpp	global	_._7cObjXd9	cObjXd9::~cObjXd9
 .text	0x00002500	0x48	wep04/wep04.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00002548	0x4	wep04/wep04.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

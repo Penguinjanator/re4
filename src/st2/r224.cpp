@@ -579,7 +579,7 @@ static void reva_move()
         SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         return;
     }
-    ((cUnitEventView*) pPL)->beginEvent(0);
+    pPL->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 1, 0);
     frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     {
@@ -644,7 +644,7 @@ static void reva_move()
     {
         cPlayer* pl = pPL;
 
-        ((cUnitEventView*) pl)->endEvent(0);
+        pl->endEvent(0);
         pl->m_Hokan = 0xC;
     }
 }

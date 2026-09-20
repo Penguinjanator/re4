@@ -378,8 +378,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000432B0	0xBC	em20/em10.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
 .text	0x0004336C	0x158	em20/em10.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x000434C4	0x48	em20/em10.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x0004350C	0x4	em20/em10.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00043510	0x4	em20/em10.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x0004350C	0x4	em20/em10.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00043510	0x4	em20/em10.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00043514	0x4	em20/em10.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00043518	0x3B8	em20/em10_tmpl.cpp	global	fn_em20_43518	.
 .text	0x000438D0	0x4C	em20/em20_set.cpp	global	_prolog	_prolog

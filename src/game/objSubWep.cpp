@@ -20,7 +20,7 @@ class cSubWep : public cObj {
 public:
     cSubWep();
     virtual ~cSubWep() {}
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
     virtual void explode() = 0;
     virtual void waterExplode() = 0;
@@ -575,7 +575,7 @@ void setThrowSpeed(Vec* spd, f32 power)
 }
 
 // A thrown sub weapon is dropped when an event starts.
-void cSubWep::beginEvent()
+void cSubWep::beginEvent(u32 mode)
 {
     ObjMgr.destroy(this);
 }

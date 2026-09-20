@@ -130,8 +130,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001232C	0x8	t_light/db_light.cpp	global	__opi__t9cVarRange1ZUc	cVarRange<unsigned char>::operator int
 .text	0x00012334	0x80	t_light/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x000123B4	0x48	t_light/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x000123FC	0x4	t_light/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00012400	0x4	t_light/db_light.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000123FC	0x4	t_light/db_light.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00012400	0x4	t_light/db_light.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00012404	0x4	t_light/db_light.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00012408	0x1A8	t_light/t_light.cpp	global	ToolLight__Fv	ToolLight
 .text	0x000125B0	0x3B8	t_light/t_light.cpp	global	fn_t_light_125B0	.
@@ -171,7 +171,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001722C	0x1EC	t_light/t_scroll.cpp	local	option__Fv	option
 .text	0x00017418	0x184	t_light/t_scroll.cpp	local	quit__Fv	quit
 .text	0x0001759C	0x48	t_light/t_scroll.cpp	global	setMirrorModel__FP4cObji	setMirrorModel
-.text	0x000175E4	0x440	t_light/t_scroll.cpp	global	printEditTable__Fv	printEditTable
+.text	0x000175E4	0x440	t_light/t_scroll.cpp	local	printEditTable__Fv	printEditTable
 .text	0x00017A24	0x50	t_light/t_scroll.cpp	global	printCursor__Fii	printCursor
 .text	0x00017A74	0x24	t_light/t_scroll.cpp	global	clearWork__Fv	clearWork
 .text	0x00017A98	0x54	t_light/t_scroll.cpp	global	wkck__FP4cObji	wkck

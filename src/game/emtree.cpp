@@ -134,7 +134,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start hook: nothing to do for trees.
-void cEmTree::beginEvent()
+void cEmTree::beginEvent(u32 mode)
 {
 }
 

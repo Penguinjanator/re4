@@ -16,8 +16,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000B54	0x170	em30/em30.cpp	global	em30RouteCk__FP5cEm30	em30RouteCk
 .text	0x00000CC4	0xFC	em30/em30.cpp	global	em30NeckMove__FP5cEm30	em30NeckMove
 .text	0x00000DC0	0x3F4	em30/em30.cpp	global	em30SetParasite__FP5cEm30i	em30SetParasite
-.text	0x000011B4	0x4	em30/em30.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000011B8	0x4	em30/em30.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000011B4	0x4	em30/em30.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000011B8	0x4	em30/em30.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000011BC	0x20	em30/em30.cpp	global	_._5cEm30	cEm30::~cEm30
 .text	0x000011DC	0x48	em30/em30.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00001224	0x4	em30/em30.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

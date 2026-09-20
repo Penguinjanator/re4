@@ -21,7 +21,7 @@
 class cObjSpear : public cObj {
 public:
     virtual void move();
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual ~cObjSpear() {}
 
     void setParent(cModel* parent, int partsNo, int noNormalize);
@@ -137,7 +137,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start: a loose spear (no parent) is removed.
-void cObjSpear::beginEvent()
+void cObjSpear::beginEvent(u32 mode)
 {
     if (spear.parent == 0) {
         ObjMgr.destroy(this);

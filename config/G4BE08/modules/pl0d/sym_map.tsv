@@ -4,8 +4,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000378	0x174	pl0d/objRuger.cpp	global	moveReload__9cObjRuger	cObjRuger::moveReload
 .text	0x000004EC	0x174	pl0d/objRuger.cpp	global	setCartridge__9cObjRuger	cObjRuger::setCartridge
 .text	0x00000660	0x2D4	pl0d/objRuger.cpp	global	setMotion__9cObjRugerP7cPlayer	cObjRuger::setMotion
-.text	0x00000934	0x4	pl0d/objRuger.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00000938	0x4	pl0d/objRuger.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00000934	0x4	pl0d/objRuger.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00000938	0x4	pl0d/objRuger.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x0000093C	0x20	pl0d/objRuger.cpp	global	_._9cObjRuger	cObjRuger::~cObjRuger
 .text	0x0000095C	0x48	pl0d/objRuger.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000009A4	0x4	pl0d/objRuger.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

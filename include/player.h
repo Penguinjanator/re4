@@ -171,10 +171,8 @@ public:
 
     cPlayer();
     virtual ~cPlayer() {}
-    // The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); cPlayer's
-    // read it from r4 (pl_class.cpp).
-    virtual void beginEvent();
-    virtual void endEvent();
+    virtual void beginEvent(u32 mode);
+    virtual void endEvent(u32 mode);
     virtual void move();
     virtual void setNoSuspend(int on);
     virtual int checkXbutton() { return 0; }

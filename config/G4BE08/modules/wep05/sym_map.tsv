@@ -4,8 +4,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000001B4	0xFC	wep05/objCivilian.cpp	global	moveFire__12cObjCivilian	cObjCivilian::moveFire
 .text	0x000002B0	0x120	wep05/objCivilian.cpp	global	moveReload__12cObjCivilian	cObjCivilian::moveReload
 .text	0x000003D0	0x2F8	wep05/objCivilian.cpp	global	setMotion__12cObjCivilianP7cPlayer	cObjCivilian::setMotion
-.text	0x000006C8	0x4	wep05/objCivilian.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000006CC	0x4	wep05/objCivilian.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000006C8	0x4	wep05/objCivilian.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000006CC	0x4	wep05/objCivilian.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000006D0	0x20	wep05/objCivilian.cpp	global	_._12cObjCivilian	cObjCivilian::~cObjCivilian
 .text	0x000006F0	0x48	wep05/objCivilian.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00000738	0x4	wep05/objCivilian.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

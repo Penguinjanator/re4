@@ -142,10 +142,10 @@ void R330EventS00Main()
             }
             SceEventStart(0);
             SceSetEventCancel(1, (TaskFunc) R330EventS00End, 0, -1, 1);
-            ((cUnitEventView*) pPL)->beginEvent(0);
+            pPL->beginEvent(0);
             pPL->setNoSuspend(1);
             if (pSUB) {
-                ((cUnitEventView*) pSUB)->beginEvent(0);
+                pSUB->beginEvent(0);
                 pSUB->setNoSuspend(1);
             }
             CamCtrl.CutCall(1);
@@ -158,10 +158,10 @@ void R330EventS00Main()
             if (getRoomEtcBarred(0xB, &b, 1)) {
                 b->setNoSuspend(0);
             }
-            ((cUnitEventView*) pPL)->endEvent(0);
+            pPL->endEvent(0);
             pPL->setNoSuspend(0);
             if (pSUB) {
-                ((cUnitEventView*) pSUB)->endEvent(0);
+                pSUB->endEvent(0);
                 pSUB->setNoSuspend(0);
             }
             CamCtrl.Comeback(0);
@@ -196,10 +196,10 @@ void R330EventS00End()
             ((cEmBarred*) b)->setClosed();
         }
     }
-    ((cUnitEventView*) pPL)->endEvent(0);
+    pPL->endEvent(0);
     pPL->setNoSuspend(0);
     if (pSUB) {
-        ((cUnitEventView*) pSUB)->endEvent(0);
+        pSUB->endEvent(0);
         pSUB->setNoSuspend(0);
     }
     setPosXYZ(pPL, 7806.0f, -4649.0f, 7377.0f);

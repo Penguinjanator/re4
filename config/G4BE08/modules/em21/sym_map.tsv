@@ -29,8 +29,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002D7C	0x144	em21/em21.cpp	global	em21SetWanderPos__FP5cEm21	em21SetWanderPos
 .text	0x00002EC0	0x10C	em21/em21.cpp	global	em21TrapSearch__FP5cEm21	em21TrapSearch
 .text	0x00002FCC	0x110	em21/em21.cpp	global	em21GetBarkPos__FP5cEm21	em21GetBarkPos
-.text	0x000030DC	0x4	em21/em21.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x000030E0	0x4	em21/em21.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x000030DC	0x4	em21/em21.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x000030E0	0x4	em21/em21.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x000030E4	0x20	em21/em21.cpp	global	_._5cEm21	cEm21::~cEm21
 .text	0x00003104	0x48	em21/em21.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000314C	0x4	em21/em21.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

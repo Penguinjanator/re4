@@ -48,8 +48,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000025D8	0x2B4	st1_3/r103.cpp	global	r103_initCesspit	r103_initCesspit
 .text	0x0000288C	0x40	st1_3/r103.cpp	local	r103_BgmStartCheck__Fv	r103_BgmStartCheck
 .text	0x000028CC	0x48	st1_3/r103.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00002914	0x4	st1_3/r103.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00002918	0x4	st1_3/r103.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00002914	0x4	st1_3/r103.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00002918	0x4	st1_3/r103.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x0000291C	0x4	st1_3/r103.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00002920	0x188	st1_3/r108.cpp	global	R108Init__Fv	R108Init
 .text	0x00002AA8	0x4	st1_3/r108.cpp	global	R108Main__Fv	R108Main

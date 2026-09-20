@@ -705,9 +705,10 @@ static void em39_R0_Init(cEm39* em)
     // COMPILER-DIFF: #13 -- the original never allocates its REG_EQUIV constants: the shared literal
     // zero is reload's callee-saved r20, the 0x1D/300/10/-1/450 init constants its spill registers
     // r0/r8/r11/r9/r10 and the subArc load of the routine MotionSetCore its r11, and the post-call
-    // init block is issued in pure source order (no store carries a register death). Pinned here.
+    // init block is issued in pure source order (no store carries a register death). Pinned here,
+    // except r0, which the allocator picks by itself.
     register int z0 asm("r20");
-    register int r0c asm("r0");
+    int r0c;
     register int r8c asm("r8");
     register int r9c asm("r9");
     register int r10c asm("r10");

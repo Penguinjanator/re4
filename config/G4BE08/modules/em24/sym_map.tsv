@@ -15,8 +15,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000010C8	0x380	em24/em24.cpp	local	em24_R0_Die__FP5cEm24	em24_R0_Die
 .text	0x00001448	0xD4	em24/em24.cpp	global	em24AtkCk__FP5cEm24P3VecT1i	em24AtkCk
 .text	0x0000151C	0x224	em24/em24.cpp	global	em24SlopeMove__FP5cEm24	em24SlopeMove
-.text	0x00001740	0x4	em24/em24.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00001744	0x4	em24/em24.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00001740	0x4	em24/em24.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00001744	0x4	em24/em24.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00001748	0x20	em24/em24.cpp	global	_._5cEm24	cEm24::~cEm24
 .text	0x00001768	0x48	em24/em24.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000017B0	0x4	em24/em24.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete

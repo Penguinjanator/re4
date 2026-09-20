@@ -58,16 +58,6 @@ int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f3
 }
 void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
-// cUnit::beginEvent takes an int in the original (sscrn BEGIN_EVENT).
-class cUnitEvent {
-public:
-    u32 be_flag;
-    cUnit* next;
-    virtual ~cUnitEvent();
-    virtual void beginEvent(int mode);
-    virtual void endEvent(int mode);
-};
-#define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
 WindowDataRow WindowData[29] = {
     { 1, 1, 0, 0, "et0001.bin", "et0000.tpl", 1300.0f, 1400.0f, 1.0f, 0, 1, 1, 6, 1 },
@@ -528,7 +518,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     SceEventStart(0);
     pEm->SetStatus(2);
     LadderEventTrans(0);
-    BEGIN_EVENT(pPL, 0);
+    pPL->beginEvent(0);
     pPL->setNoSuspend(1);
     plPos.x = pPL->pos.x;
     plPos.y = pPL->pos.y;

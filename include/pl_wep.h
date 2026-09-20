@@ -58,7 +58,7 @@ public:
 class cObjRocket : public cObj {
 public:
     virtual ~cObjRocket() {}
-    virtual void beginEvent();
+    virtual void beginEvent(u32 mode);
     virtual void move();
 
     void init();

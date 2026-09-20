@@ -74,8 +74,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00004848	0x170	pl14/pl14.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
 .text	0x000049B8	0x38	pl14/pl14.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
 .text	0x000049F0	0x48	pl14/pl14.cpp	global	_._5cUnit	cUnit::~cUnit
-.text	0x00004A38	0x4	pl14/pl14.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
-.text	0x00004A3C	0x4	pl14/pl14.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00004A38	0x4	pl14/pl14.cpp	global	beginEvent__5cUnitUl	cUnit::beginEvent
+.text	0x00004A3C	0x4	pl14/pl14.cpp	global	endEvent__5cUnitUl	cUnit::endEvent
 .text	0x00004A40	0x20	pl14/pl14.cpp	global	_._12cObjLuisItem	cObjLuisItem::~cObjLuisItem
 .text	0x00004A60	0x4	pl14/pl14.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00004A64	0x2C	pl14/pl14.cpp	local	global_constructors_keyed_to_LuisInit	global constructors keyed to LuisInit
