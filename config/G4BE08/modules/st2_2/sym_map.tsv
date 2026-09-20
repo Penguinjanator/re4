@@ -27,7 +27,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000B20	0x5C	st2_2/em_wrap.cpp	global	getPosY__7cEmWrap	cEmWrap::getPosY
 .text	0x00000B7C	0x84	st2_2/em_wrap.cpp	global	getAng__7cEmWrapP3Vec	cEmWrap::getAng
 .text	0x00000C00	0x5C	st2_2/em_wrap.cpp	global	getAngY__7cEmWrap	cEmWrap::getAngY
-.text	0x00000C5C	0x7C	st2_2/em_wrap.cpp	global	motionSet__7cEmWrapPviiii	cEmWrap::motionSet
+.text	0x00000C5C	0x7C	st2_2/em_wrap.cpp	global	motionSet__7cEmWrapPvUcUsUsT1	cEmWrap::motionSet
 .text	0x00000CD8	0x64	st2_2/em_wrap.cpp	global	isNormalGanade__7cEmWrap	cEmWrap::isNormalGanade
 .text	0x00000D3C	0xB4	st2_2/em_wrap.cpp	global	setGoto__7cEmWrapP3Veci	cEmWrap::setGoto
 .text	0x00000DF0	0xA8	st2_2/em_wrap.cpp	global	ckGoto__7cEmWrap	cEmWrap::ckGoto

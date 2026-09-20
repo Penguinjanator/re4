@@ -245,8 +245,8 @@ static void r225_operateCrank()
     PlSetHand(1, 0);
     ((cUnitEventView*) r225_work->crank)->beginEvent(0);
     CamCtrl.CutCall(5);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
-    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x20));
+    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
     {
         Vec pos = {82071.0f, 1500.0f, -18900.0f};
         cPlayer* pl;
@@ -350,8 +350,8 @@ static void r225_operateCrank()
                 if (frame >= max) {
                     frame = 0;
                 }
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) mot);
-                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) mot2);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, frame, 5, mot);
+                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, frame, 5, mot2);
             }
             SmdGetObjPtr(0x27)->be_flag |= 0x20;
             if (!(SmdGetObjPtr(0x27)->pos.x < 800.0f)) {

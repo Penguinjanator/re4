@@ -61,7 +61,7 @@ public:
     f32 getAngX();
     f32 getAngY();
     f32 getAngZ();
-    void motionSet(void* data, int a, int b, int c, int d);
+    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq);
     void motionMove();
     void motionPause(int on);
     void addModel(cModelInfo* info);

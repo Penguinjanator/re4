@@ -163,7 +163,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001651C	0x618	t_camera/t_camera.cpp	global	tcEdit_camera_qfps__Fv	tcEdit_camera_qfps
 .text	0x00016B34	0xB24	t_camera/t_camera.cpp	global	tcEdit_camera_rail__Fv	tcEdit_camera_rail
 .text	0x00017658	0x78	t_camera/t_camera.cpp	global	tcNextCdatPtr__FSci	tcNextCdatPtr
-.text	0x000176D0	0xCC	t_camera/t_camera.cpp	global	tcNextAdatPtr__FScii	tcNextAdatPtr
+.text	0x000176D0	0xCC	t_camera/t_camera.cpp	global	tcNextAdatPtr__FScSci	tcNextAdatPtr
 .text	0x0001779C	0x5C	t_camera/t_camera.cpp	global	head_suffix__FSc	head_suffix
 .text	0x000177F8	0x58	t_camera/t_camera.cpp	global	tail_suffix__FSc	tail_suffix
 .text	0x00017850	0xA0	t_camera/t_camera.cpp	global	next_suffix__FSci	next_suffix

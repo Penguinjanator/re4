@@ -3502,7 +3502,7 @@ address	size	section	unit	scope	name	demangled
 0x800E9CE8	0x80	.text	game/dvd.cpp	global	ReadCancelAll__4cDvd	cDvd::ReadCancelAll
 0x800E9D68	0xAC	.text	game/dvd.cpp	global	pullReadQueue__4cDvd	cDvd::pullReadQueue
 0x800E9E14	0x70	.text	game/dvd.cpp	global	ReadCheck__4cDvdiPiT2PPv	cDvd::ReadCheck
-0x800E9E84	0x20	.text	game/dvd.cpp	global	ReadCheck__4cDvdi	cDvd::ReadCheck
+0x800E9E84	0x20	.text	game/dvd.cpp	global	ReadCheck__4cDvdiP11DvdReadInfo	cDvd::ReadCheck
 0x800E9EA4	0x1FC	.text	game/dvd.cpp	global	readCheckMain__4cDvdiP11DvdReadInfo	cDvd::readCheckMain
 0x800EA0A0	0x30	.text	game/dvd.cpp	global	getQueuePtr__4cDvdUc	cDvd::getQueuePtr
 0x800EA0D0	0x398	.text	game/dvd.cpp	global	ErrCheck__4cDvdii	cDvd::ErrCheck
@@ -4033,7 +4033,7 @@ address	size	section	unit	scope	name	demangled
 0x801156C0	0x5C4	.text	game/emwindow.cpp	global	init__9cEmWindowPvT1P3VecT3iUcT1	cEmWindow::init
 0x80115C84	0x198	.text	game/emwindow.cpp	global	move__9cEmWindow	cEmWindow::move
 0x80115E1C	0x284	.text	game/emwindow.cpp	global	DmCk__9cEmWindow	cEmWindow::DmCk
-0x801160A0	0x7C0	.text	game/emwindow.cpp	global	ExeWindowEvent__9cEmWindow	cEmWindow::ExeWindowEvent
+0x801160A0	0x7C0	.text	game/emwindow.cpp	global	ExeWindowEvent__9cEmWindowP9cEmWindow	cEmWindow::ExeWindowEvent
 0x80116860	0x184	.text	game/emwindow.cpp	global	CalFloor__9cEmWindow	cEmWindow::CalFloor
 0x801169E4	0x8	.text	game/emwindow.cpp	global	GetFloor__9cEmWindow	cEmWindow::GetFloor
 0x801169EC	0x58	.text	game/emwindow.cpp	global	ChkBreakDir__9cEmWindowP3Vec	cEmWindow::ChkBreakDir
@@ -5020,7 +5020,7 @@ address	size	section	unit	scope	name	demangled
 0x8015AED4	0xB0	.text	game/model.cpp	global	makePartsList__6cModeli	cModel::makePartsList
 0x8015AF84	0x50	.text	game/model.cpp	global	setJointInfo__6cModelPv	cModel::setJointInfo
 0x8015AFD4	0x228	.text	game/model.cpp	global	releasePartsList__6cModeli	cModel::releasePartsList
-0x8015B1FC	0x40	.text	game/model.cpp	global	motionSet__6cModelPviiii	cModel::motionSet
+0x8015B1FC	0x40	.text	game/model.cpp	global	motionSet__6cModelPvUcUsUsT1	cModel::motionSet
 0x8015B23C	0x24	.text	game/model.cpp	global	motionMove__6cModel	cModel::motionMove
 0x8015B260	0x20	.text	game/model.cpp	global	motionPause__6cModel	cModel::motionPause
 0x8015B280	0x84	.text	game/model.cpp	global	matUpdate__6cModel	cModel::matUpdate

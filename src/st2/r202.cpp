@@ -554,8 +554,8 @@ static void r202_operateCrank()
     ((cUnitEventView*) pPL)->beginEvent(0);
     PlSetHand(1, 0);
     ((cUnitEventView*) r202_work.p->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x22));
-    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2D));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x22));
+    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
     {
         Vec v = {516.5f, 0.0f, -500.0f};
@@ -635,8 +635,8 @@ static void r202_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, (u16) frame, 5, (int) m0);
-            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, frame, 5, m0);
+            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, frame, 5, m1);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);

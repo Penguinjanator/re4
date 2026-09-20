@@ -84,7 +84,7 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m);
 void make_comn_parallel_light(ShadowMng* mng, cModel* m);
 void make_fix_light(ShadowMng* mng);
 void SoftShadowGetEFB(ShadowMng* mng, f32 sx, f32 sy, int clear);
-void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 scale);
+void SoftShadowGXDraw(ShadowMng* mng, f32 x, f32 y, f32 z, u32 div, f32 u, f32 v, f32 alpha, f32 scale);
 void MakeSoftShadow(ShadowMng* mng);
 void make_shadow_texture(ShadowMng* mng);
 int shadowChkInFrustum(ShadowMng* mng, cModel* m);

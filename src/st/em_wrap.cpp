@@ -798,10 +798,10 @@ f32 cEmWrap::getAngZ()
 }
 
 // Forward cEm::motionSet (motion data, id, frame, blend, flags): rooms that script an enemy's animation.
-void cEmWrap::motionSet(void* data, int a, int b, int c, int d)
+void cEmWrap::motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq)
 {
     if (isAlive() == 1) {
-        pEm->motionSet(data, a, b, c, d);
+        pEm->motionSet(mot, hokan, frame, stat, seq);
     } else {
         err("EM_SET_NO(%d) cEmWrap::motionSet error", no);
     }

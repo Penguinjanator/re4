@@ -64,7 +64,7 @@ int CheckInWater(cModel* m, int parts);
 int HandgunCk(int wep);
 int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num);
 int BullItemSetCk(Vec* pos, ITEM_ID id, int num);
-void adjust_add_set(Vec* v);
+void adjust_add_set(Vec add);
 }
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame (C++ linkage;

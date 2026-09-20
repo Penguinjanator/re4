@@ -1503,11 +1503,9 @@ int cDvd::ReadCheck(int req, int* result, int* size, void** addr)
     }
 }
 
-// Poll variant used by read.cpp that also fills a DvdReadInfo (see the header note).
-int cDvd::ReadCheck(int req)
+// Poll variant used by read.cpp that also fills a DvdReadInfo.
+int cDvd::ReadCheck(int req, DvdReadInfo* info)
 {
-    DvdReadInfo* info;
-
     return readCheckMain(req, info);
 }
 

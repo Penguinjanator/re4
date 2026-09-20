@@ -45,9 +45,6 @@ void jumpFallOn();
 u32 upDownCk(cPlayer* pl);
 }
 
-// cEmWindow::ExeWindowEvent as a SceExec task (the member's address is not a plain function pointer).
-int ExeWindowEventTask(cEmWindow* w) asm("ExeWindowEvent__9cEmWindow");
-
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 // cPlNeck's checks compile to the folded `addis 0x8000; cmplwi 0x02FFFFFF` range form.
 #define VALID_PTR2(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
@@ -397,7 +394,7 @@ void fanceOn()
 // Action button: go through the window (its event as a scenario task).
 void windowOn(cEmWindow* w)
 {
-    SceExec(0x12, (TaskFunc) ExeWindowEventTask, (int) w, 2, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) cEmWindow::ExeWindowEvent, (int) w, 2, SCE_PRIO_DEF_2, 0);
     PlFanceFlag = 1;
 }
 

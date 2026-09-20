@@ -64,7 +64,6 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist);
 int Fcc_next_axis_addr(int type, int n);
 void IKInit(cModel* m, MotionWork* w);
 void InverseKinematics(cModel* m, int flag);
-void cModel_matBlend(cModel* m, f32 rate) asm("matBlend__6cModelf");   // cModel::matBlend (model.cpp); the C name is what motion.cpp calls
 }
 void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);
 

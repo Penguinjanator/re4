@@ -206,7 +206,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00016B80	0x2C	t_movie/t_movie.cpp	local	movie_test_exit__FP13MovieTestWork	movie_test_exit
 .text	0x00016BAC	0xF8	t_movie/t_movie.cpp	global	file_search__FPCcT0	file_search
 .text	0x00016CA4	0x90	t_movie/t_movie.cpp	global	SoundTest__Fv	SoundTest
-.text	0x00016D34	0x38	t_movie/t_movie.cpp	global	Snd_test_get_str_name__Fi	Snd_test_get_str_name
+.text	0x00016D34	0x38	t_movie/t_movie.cpp	global	Snd_test_get_str_name__FiUs	Snd_test_get_str_name
 .text	0x00016D6C	0x54	t_movie/t_movie.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
 .text	0x00016DC0	0x2C	t_movie/t_movie.cpp	local	global_constructors_keyed_to_prolog	global constructors keyed to _prolog
 .text	0x00016DEC	0x2C	t_movie/t_movie.cpp	local	global_destructors_keyed_to_prolog	global destructors keyed to _prolog
@@ -252,7 +252,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001B230	0x288	t_movie/t_snd_vol.cpp	local	data_delete__Fv	data_delete
 .text	0x0001B4B8	0x1B8	t_movie/t_snd_vol.cpp	local	data_select__Fv	data_select
 .text	0x0001B670	0x884	t_movie/t_snd_vol.cpp	local	data_edit__Fv	data_edit
-.text	0x0001BEF4	0x224	t_movie/t_snd_vol.cpp	global	markDraw__FsUlif	markDraw
+.text	0x0001BEF4	0x224	t_movie/t_snd_vol.cpp	global	markDraw__FfsUli	markDraw
 .text	0x0001C118	0xA8	t_movie/t_snd_vol.cpp	global	mainFrameDisp__Fv	mainFrameDisp
 .text	0x0001C1C0	0x248	t_movie/t_snd_vol.cpp	global	editDataLineDraw__FP6TblEntUl	editDataLineDraw
 .text	0x0001C408	0xDC	t_movie/t_snd_vol.cpp	global	editDataDraw__FP7EditTbl	editDataDraw

@@ -57,11 +57,10 @@ void tcEdit_camera();
 void tcDrawOffset();
 void tcDrawRail();
 TcCdat* tcNextCdatPtr(s8 no, int dir);
-TcAdat* tcNextAdatPtr(s8 area, int cam, int dir);
+TcAdat* tcNextAdatPtr(s8 area, s8 cam, int dir);
 int head_suffix(s8 area);
 int tail_suffix(s8 area);
 int next_suffix(s8 cam, int dir);
-int next_suffixI(int cam, int dir) asm("next_suffix__FSci"); // COMPILER-DIFF: #4 int-view (no truncation at the call site)
 void tcCameraPullPoint(TcCdat* c);
 void tcToolCameraMove(Camera* cam);
 void tcPreviewOnOff(int on);
@@ -2016,9 +2015,9 @@ TcCdat* tcNextCdatPtr(s8 no, int dir)
 
 // The next / previous live area after (area, suffix): steps the suffix within the area first, then
 // the area number.
-TcAdat* tcNextAdatPtr(s8 area, int cam, int dir)
+TcAdat* tcNextAdatPtr(s8 area, s8 cam, int dir)
 {
-    int suffix = next_suffixI(cam, dir);
+    int suffix = next_suffix(cam, dir);
 
     // the result copy `mr r4,r3` and the `dir > 0` compare are both ready after the call; the original
     // issues the copy first, ours the compare (its branch gives it the higher priority). The launder is a

@@ -505,7 +505,7 @@ void cEmWindow::DmCk()
 // stage 4 Ada set) by ChkBreakDir (1 from the front, 2 no floor behind, 0 default), runs it under
 // SceEventStart with the ladder-style camera, breaks the window at the right frame (SetBreakAll
 // size 1, event style) and moves the player through; returns 1 when done.
-int cEmWindow::ExeWindowEvent()
+int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
 {
     EmWindowWork* w;
     Vec plPos;
@@ -513,11 +513,11 @@ int cEmWindow::ExeWindowEvent()
     void* mot;
     int i;
 
-    if (this == 0) {
+    if (pEm == 0) {
         pLog->err(0, 0, "WindowEvent : ptr faild!");
         return 0;
     }
-    w = EMWINDOW_WK(this);
+    w = EMWINDOW_WK(pEm);
     fcv[0] = GetEtcAddr(w->arc, "pl00537.fcv");
     fcv[1] = GetEtcAddr(w->arc, "pl00538.fcv");
     fcv[2] = GetEtcAddr(w->arc, "pl00536.fcv");
@@ -526,7 +526,7 @@ int cEmWindow::ExeWindowEvent()
         EvtMgr.GetEmWindowFcv(&fcv[0], &fcv[1], &fcv[2]);
     }
     SceEventStart(0);
-    SetStatus(2);
+    pEm->SetStatus(2);
     LadderEventTrans(0);
     BEGIN_EVENT(pPL, 0);
     pPL->setNoSuspend(1);
@@ -534,7 +534,7 @@ int cEmWindow::ExeWindowEvent()
     plPos.y = pPL->pos.y;
     plPos.z = pPL->pos.z;
     pPL->setFace(2);
-    w->breakDir = ChkBreakDir(&pPL->pos);
+    w->breakDir = pEm->ChkBreakDir(&pPL->pos);
     switch (w->breakDir) {
     case 0:
         FSet(pPL->pos.x, 90.0f);
@@ -564,18 +564,18 @@ int cEmWindow::ExeWindowEvent()
         mot = fcv[2];
         break;
     }
-    PSMTXMultVec(mat, &pPL->pos, &pPL->pos);
-    FSet(pPL->ang.x, pPL->ang.x + ang.x);
-    FSet(pPL->ang.y, pPL->ang.y + ang.y);
-    FSet(pPL->ang.z, pPL->ang.z + ang.z);
+    PSMTXMultVec(pEm->mat, &pPL->pos, &pPL->pos);
+    FSet(pPL->ang.x, pPL->ang.x + pEm->ang.x);
+    FSet(pPL->ang.y, pPL->ang.y + pEm->ang.y);
+    FSet(pPL->ang.z, pPL->ang.z + pEm->ang.z);
     if (mot) {
         MotionSetCore(pPL, &pPL->pMotion, mot, 0, 0, 0x201, 0);
     }
     for (i = 0; (pPL->motState & 4) == 0; i++) {
         switch (w->breakDir) {
         case 0:
-            if (WindowAlive(this) && i == 0xF) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0xF) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0x19 && pG->room_id == 0x11F) {
                 EstSet(0, -1, 0, 0, 1, 6, 1, 0, 0, 0);
@@ -603,8 +603,8 @@ int cEmWindow::ExeWindowEvent()
             }
             break;
         case 1:
-            if (WindowAlive(this) && i == 0x10) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0x10) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
                 EstSet(pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
@@ -629,8 +629,8 @@ int cEmWindow::ExeWindowEvent()
             }
             break;
         case 2:
-            if (WindowAlive(this) && i == 0xD) {
-                SetBreakAll(&plPos, 1, 1);
+            if (WindowAlive(pEm) && i == 0xD) {
+                pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
                 EstSet(pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);

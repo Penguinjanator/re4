@@ -3489,9 +3489,9 @@ int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
 }
 
 // Sets the offset VehicleAdjust adds to positions on the bulldozer stage.
-void adjust_add_set(Vec* v)
+void adjust_add_set(Vec add)
 {
-    adjust_add = *v;
+    adjust_add = add;
 }
 
 // Move `pos` with the vehicle it stands on (mine cart in room 21B, bulldozer in room 30F): 1 when a

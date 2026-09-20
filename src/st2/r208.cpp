@@ -664,8 +664,8 @@ static void funcAshley(cEm* p)
     W->crank->be_flag |= 0x20;
     switch (p->r_no_2) {
     case 0:
-        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x36), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x37));
-        W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x36), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x37));
+        W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
         W->crank->setNoSuspend(0);
         {
             Vec pos = {427.81f, 0.0f, 563.42f};
@@ -1236,8 +1236,8 @@ static void r208_operateCrank()
     ((cUnitEventView*) pPL)->beginEvent(0);
     PlSetHand(1, 0);
     ((cUnitEventView*) W->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
-    W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x20));
+    W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2B));
     CamCtrl.CutCall(9);
     {
         Vec v = {500.0f, 4000.0f, -29300.0f};
@@ -1318,8 +1318,8 @@ static void r208_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) m0);
-            W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, frame, 5, m0);
+            W->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, frame, 5, m1);
         }
         SmdGetObjPtr(0x21)->be_flag |= 0x20;
         W->crankSeCnt++;

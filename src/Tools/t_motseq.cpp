@@ -313,7 +313,7 @@ static void msq_R0_SeqLoad()
     } else if (MSQ->joy.trg & 0x100) {
         if (msqLoadFile()) {
             w->seq[0].loaded = 1;
-            dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, 0);
+            dbModMotionSetSeq(0, w, w->seq[0].viewFlag, 0);
             msqFrameSizeCk();
             msqSetMode(3);
         } else {
@@ -471,7 +471,7 @@ done:
         w->seq[0].num = 1;
         k->Free = 0;
         k->Se = 0;
-        dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, 0);
+        dbModMotionSetSeq(0, w, w->seq[0].viewFlag, 0);
         msqSetMode(3);
         return;
     }
@@ -501,7 +501,7 @@ done:
             }
         }
     }
-    dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, 0);
+    dbModMotionSetSeq(0, w, w->seq[0].viewFlag, 0);
     msqSetMode(3);
 }
 
@@ -935,7 +935,7 @@ void msqMakeSequence(int start, int end, int add)
     if (start > end) {
         w->seq[0].reverse = 1;
     }
-    dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, 0);
+    dbModMotionSetSeq(0, w, w->seq[0].viewFlag, 0);
 }
 
 // Removes key `no`.
@@ -958,7 +958,7 @@ void msqSeqDelete(u32 no)
         if (no >= w->seq[0].num) {
             no = w->seq[0].num - 1;
         }
-        dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, no);
+        dbModMotionSetSeq(0, w, w->seq[0].viewFlag, no);
         w->seq[0].changed = 1;
     }
 }
@@ -981,7 +981,7 @@ void msqSeqAdd(u32 no)
             prev = tmp;
             p++;
         }
-        dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, no);
+        dbModMotionSetSeq(0, w, w->seq[0].viewFlag, no);
         w->seq[0].changed = 1;
     }
 }

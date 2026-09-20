@@ -867,7 +867,7 @@ void SoftShadowGetEFB(ShadowMng* mng, f32 sx, f32 sy, int clear)
 
 // Draws the shadow texture as a screen quad (size / div, at x / y, texture offset u / v, alpha,
 // scale) — one blur tap of the soft shadow.
-void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 scale)
+void SoftShadowGXDraw(ShadowMng* mng, f32 x, f32 y, f32 z, u32 div, f32 u, f32 v, f32 alpha, f32 scale)
 {
     GXTexObj tex;
     Mtx44 proj;
@@ -927,8 +927,6 @@ void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
-// COMPILER-DIFF: 1 (argument-move order): MakeSoftShadow issues the x/y/z moves before `li r4, div`.
-extern "C" void SoftShadowGXDrawF(ShadowMng* mng, f32 x, f32 y, f32 z, u32 div, f32 u, f32 v, f32 alpha, f32 scale) asm("SoftShadowGXDraw");
 
 // Blurs the shadow texture: several down / up-scaled draw-and-copy passes (more with the light's
 // `soft` count) over the EFB.
@@ -953,22 +951,22 @@ void MakeSoftShadow(ShadowMng* mng)
     SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     a = 0xFF;
     alpha = (f32) (u8) a;
-    SoftShadowGXDrawF(mng, zero, zero, z, 1, zero, zero, alpha, 1.0f);
+    SoftShadowGXDraw(mng, zero, zero, z, 1, zero, zero, alpha, 1.0f);
     w = (ShadowLightWork*) mng->pLight->work;
     if (w->soft > 1) {
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 2.0f);
+        SoftShadowGXDraw(mng, zero, zero, z, 2, zero, zero, alpha, 2.0f);
         if (w->soft > 2) {
             SoftShadowGetEFB(mng, fa, fb, 1);
             a = 0x80;
-            SoftShadowGXDrawF(mng, zero, zero, z, fd, zero, zero, (f32) (u8) a, fc);
+            SoftShadowGXDraw(mng, zero, zero, z, fd, zero, zero, (f32) (u8) a, fc);
         }
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.25f);
+        SoftShadowGXDraw(mng, zero, zero, z, 2, zero, zero, alpha, 0.25f);
     } else {
         zero = zero0;
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.5f);
+        SoftShadowGXDraw(mng, zero, zero, z, 2, zero, zero, alpha, 0.5f);
     }
     SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     SetScissorState();

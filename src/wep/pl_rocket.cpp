@@ -211,7 +211,7 @@ static void wep13_r3_ready10(cPlayer* pl)
 // transition motion m_MotTbl[0x57]/[0x58]; step 3.
 static void wep13_r3_ready20(cPlayer* pl)
 {
-    pl->motionSet(pl->m_MotTbl[0x57], 5, 0, 0, (int) pl->m_MotTbl[0x58]);
+    pl->motionSet(pl->m_MotTbl[0x57], 5, 0, 0, pl->m_MotTbl[0x58]);
     pl->motionMove();
     pl->r_no_3 = 3;
 }

@@ -102,9 +102,7 @@ static void data_copy();
 static void data_delete();
 static void data_select();
 static void data_edit();
-void markDraw(s16 val, u32 col, int kind, f32 dist);
-// COMPILER-DIFF: 1 -- floats-first view of markDraw: the original loads `lha val` before `lfs dist`
-void markDrawF(f32 dist, s16 val, u32 col, int kind) asm("markDraw__FsUlif");
+void markDraw(f32 dist, s16 val, u32 col, int kind);
 void mainFrameDisp();
 void editDataLineDraw(TblEnt* e, u32 col);
 void editDataDraw(EditTbl* tbl);
@@ -766,7 +764,7 @@ static u8 blink_r = 0;
 static s8 blink_dir = 1;
 
 // A point mark at (dist, val) on the edit graph; kind picks the mark shape.
-void markDraw(s16 val, u32 col, int kind, f32 dist)
+void markDraw(f32 dist, s16 val, u32 col, int kind)
 {
     S16Vec pt[4];
     int x = (int) dist - IRef(work->left);
@@ -958,7 +956,7 @@ void editDataDraw(EditTbl* tbl)
                 kind = 2;
             }
         }
-        markDrawF(e->dist, e->val, col, kind);
+        markDraw(e->dist, e->val, col, kind);
     }
     for (i = 0; i < (int) tbl->num - 1; i++) {
         editDataLineDraw(&tbl->e[i], 0xFFFFFFFF);

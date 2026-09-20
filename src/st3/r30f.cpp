@@ -16,6 +16,7 @@
 #include "objBull.h"
 #include "em.h"
 #include "emhit.h"
+#include "em_sub.h"
 #include "em10.h"
 #include "em_wrap.h"
 #include "etc_model.h"
@@ -43,8 +44,6 @@
 // gates, fight off the truck and take the lift up.
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
-// The rooms' adjust_add_set prototype takes the Vec by value (copied and passed by reference).
-void adjust_add_setV(Vec v) asm("adjust_add_set");
 // `pPL->atari.flags &= ~0x100` through a pointer to the collision info; the volatile halfword store keeps
 // the following pPL load below it (r30d).
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
@@ -153,7 +152,7 @@ void R30fInit()
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        adjust_add_setV(zero);
+        adjust_add_set(zero);
     }
 #line 87 "D:/Bio4/Prog/r30f.cpp"
     wp = (R30fWork*) MEM_CALLOC(sizeof(R30fWork), 1, 0xd);
@@ -830,13 +829,13 @@ static void adjust_func(cObj* obj)
 {
     Vec zero = {0.0f, 0.0f, 0.0f};
 
-    adjust_add_setV(zero);
+    adjust_add_set(zero);
     if (!(pG->Room_flg[0] & 0x00400000)) {
         SmdGetObjPtr(0x1E)->be_flag |= 0x20;
         PSVECSubtract(&r30f_work->bull->pParts->pos, &r30f_work->bullPos, &r30f_work->liftAdd);
         setLiftMoveAdd(&r30f_work->liftAdd);
         r30f_work->liftAdd.y *= lift_y_rate;
-        adjust_add_setV(r30f_work->liftAdd);
+        adjust_add_set(r30f_work->liftAdd);
         r30f_work->bullPos = r30f_work->bull->pParts->pos;
     }
 }
@@ -982,7 +981,7 @@ static void R30f_ride()
         } else {
             r30f_work->bull->setAdjustMode(1, 0);
             Vec zero = {0.0f, 0.0f, 0.0f};
-            adjust_add_setV(zero);
+            adjust_add_set(zero);
         }
         if (r30f_work->bull->ckTruckGo() != 0) {
             if (truck == 0) {

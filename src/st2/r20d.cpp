@@ -518,8 +518,8 @@ static void r20d_operateCrank(int no)
     seId = 0;
     ((cUnitEventView*) pPL)->beginEvent(0);
     ((cUnitEventView*) crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x35));
-    crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2C));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x35));
+    crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C));
     {
         Vec v = {427.81f, 0.0f, -563.42f};
         cPlayer* pl;
@@ -598,8 +598,8 @@ static void r20d_operateCrank(int no)
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, (u16) frame, 5, (int) m0);
-            crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, frame, 5, m0);
+            crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, frame, 5, m1);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);

@@ -481,7 +481,7 @@ u32 MotionMove(cModel* m, Camera* pCamera)
             if (rate != 0.0f) {
                 MotionMoveCore(m, MOTION(m)->blend, 0);
                 MotionSequenceCtrl(MOTION(m)->blend);
-                cModel_matBlend(m, MOTION(m)->blend->Brate);
+                m->matBlend(MOTION(m)->blend->Brate);
             } else {
                 MotionSequenceCtrl(MOTION(m)->blend);
             }
@@ -529,7 +529,7 @@ u32 MotionMove(cModel* m, Camera* pCamera)
                 }
             }
             if (new_add) {
-                cModel_matBlend(m, MOTION(m)->blend->Brate);
+                m->matBlend(MOTION(m)->blend->Brate);
             }
         }
     }

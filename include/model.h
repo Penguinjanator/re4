@@ -541,7 +541,7 @@ public:
     void debugSkeletonDisp();
     void error();  // too many lights: flags the model and logs it
     // MotionSetCore(this, &motion (0x1D8), data, a, b, c, d) / MotionMove(this, 0)
-    void motionSet(void* data, int a, int b, int c, int d);  // void: a following call then keeps its arg li`s ranked below the `this` copy (pl_knife down00)
+    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq);  // void: a following call then keeps its arg li`s ranked below the `this` copy (pl_knife down00)
     int motionMove();
     int isTrans();  // be_flag bit1 (visible) and be_flag != 0 (objWep / objRocket)
     // Hang parts 0 on `parent` at pos / rot (objRocket loadRocket); the 4-argument form

@@ -311,7 +311,7 @@ void SoundTest()
     TaskExit();
 }
 
-const char* Snd_test_get_str_name(int type)
+const char* Snd_test_get_str_name(int type, u16 no)
 {
     switch (type) {
     case 0:

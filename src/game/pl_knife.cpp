@@ -449,7 +449,7 @@ void knife_r3_down00(cPlayer* pl)
         pl->r_no_2 = 0;
         pl->r_no_3 = 0;
     } else {
-        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, (int) mot1);
+        pl->motionSet(mot0, 5, 0, (pG->weapon_no == 0xE && pG->weapon_type == 0) ? 0x100 : 0, mot1);
         pl->motionMove();
         pl->r_no_3 = 1;
     }
