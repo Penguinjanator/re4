@@ -1536,7 +1536,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     GXSetCurrentMtx(0);
 
     for (; info != 0; info = info->pList) {
-        ModelData* d = info->pData;
+        cModelData* d = info->pData;
         void* texArr = d->pTex;
         u16 nParts;
         ModelPart* part;
@@ -1610,7 +1610,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     GXSetCurrentMtx(0);
 
     for (; info != 0; info = info->pList) {
-        ModelData* d = info->pData;
+        cModelData* d = info->pData;
         void* texArr = d->pTex;
         u16 nParts;
         ModelPart* part;

@@ -462,7 +462,6 @@ extern "C" int em10ThrowScaCk(cEm10* em);
 extern "C" int em10ThrowNearCk(cEm10* em);
 extern "C" int em10WindowCk2(cEm10* em);
 extern "C" int em10ClimbOverCk2(cEm10* em);
-extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
 extern "C" void plem10KickCamMove(cPlayer* pl, int a);
 int em10HideRtnCk2(cEm10* em);
 extern "C" void em10SetAccesory(cEm10* em);
@@ -18900,7 +18899,7 @@ void em10HandSet(cEm10* em, int type)
     info = ModInfoMgr.create(bin, w->mot[0]);
     if (info) {
         if (w->pRHand) {
-            cModel_swapModelInfo(em, w->pRHand->pData, info);
+            em->swapModelInfo(w->pRHand->pData, info);
         } else {
             em->addModel(info);
         }
@@ -18909,7 +18908,7 @@ void em10HandSet(cEm10* em, int type)
     info = ModInfoMgr.create(tpl, w->mot[0]);
     if (info) {
         if (w->pLHand) {
-            cModel_swapModelInfo(em, w->pLHand->pData, info);
+            em->swapModelInfo(w->pLHand->pData, info);
         } else {
             em->addModel(info);
         }
@@ -18977,7 +18976,7 @@ void cEm10::setHand(int no, int type)
             return;
         }
         if (w->pRHand) {
-            cModel_swapModelInfo(this, w->pRHand->pData, info);
+            swapModelInfo(w->pRHand->pData, info);
         } else {
             addModel(info);
         }
@@ -18988,7 +18987,7 @@ void cEm10::setHand(int no, int type)
             return;
         }
         if (w->pLHand) {
-            cModel_swapModelInfo(this, w->pLHand->pData, info);
+            swapModelInfo(w->pLHand->pData, info);
         } else {
             addModel(info);
         }
@@ -19028,7 +19027,7 @@ void em10HeadSet(cEm10* em, int no)
     info = ModInfoMgr.create(bin, w->mot[5]);
     if (info) {
         if (w->pHead) {
-            cModel_swapModelInfo(em, w->pHead->pData, info);
+            em->swapModelInfo(w->pHead->pData, info);
         } else {
             em->addModel(info);
         }
@@ -19059,7 +19058,7 @@ extern "C" void em10ClothPartsSet(cEm10* em, int no)
     info = ModInfoMgr.create(bin, w->mot[17]);
     if (info) {
         if (w->pCloth) {
-            cModel_swapModelInfo(em, w->pCloth->pData, info);
+            em->swapModelInfo(w->pCloth->pData, info);
         } else {
             em->addModel(info);
         }
@@ -19104,7 +19103,7 @@ extern "C" void em10SackSet(cEm10* em)
     info = ModInfoMgr.create(w->mot[21], w->mot[22]);
     if (info) {
         if (w->pSack) {
-            cModel_swapModelInfo(em, w->pSack->pData, info);
+            em->swapModelInfo(w->pSack->pData, info);
         } else {
             em->addModel(info);
         }

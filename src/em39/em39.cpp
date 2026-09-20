@@ -63,8 +63,6 @@ extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 // truncation ours emits (`mr` instead of `clrlwi 16`): int-view declaration (em39SetVoice, em39FootEff,
 // em39PLVoiceCk).
 u32 SndCallI(u16 blk, int no, Vec* pos, int id, int vol, cUnit* obj) asm("SndCall__FUsUsP3VeciiP5cUnit");
-// model.h's member; the enemies call it with the old ModelData (em10.cpp).
-extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
 
 static inline void U8Set(u8& d, u8 v) { d = v; }
 
@@ -1003,7 +1001,7 @@ void em39HandSet(cEm39* em, int type)
     info = ModInfoMgr.create(bin, ARC(0x14));
     if (info) {
         if (w->pHandInfo) {
-            cModel_swapModelInfo(em, w->pHandInfo->pData, info);
+            em->swapModelInfo(w->pHandInfo->pData, info);
         } else {
             em->addModel(info);
         }
@@ -1031,7 +1029,7 @@ void em39HandSet(cEm39* em, int type)
     info = ModInfoMgr.create(bin, ARC(0x14));
     if (info) {
         if (w->pHandL) {
-            cModel_swapModelInfo(em, w->pHandL->pData, info);
+            em->swapModelInfo(w->pHandL->pData, info);
         } else {
             em->addModel(info);
         }
@@ -1046,7 +1044,7 @@ void em39DieModelSet(cEm39* em)
     cModelInfo* info = ModInfoMgr.create(ARC(0x21), ARC(0x22));
 
     if (info) {
-        cModel_swapModelInfo(em, em->pModelInfo->pData, info);
+        em->swapModelInfo(em->pModelInfo->pData, info);
     }
 }
 

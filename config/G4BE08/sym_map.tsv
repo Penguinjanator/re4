@@ -5006,9 +5006,9 @@ address	size	section	unit	scope	name	demangled
 0x8015A7A0	0x8	.text	game/model.cpp	global	setBlendRatio__10cModelInfoUs	cModelInfo::setBlendRatio
 0x8015A7A8	0x8	.text	game/model.cpp	global	setBlendType__10cModelInfoUc	cModelInfo::setBlendType
 0x8015A7B0	0x40	.text	game/model.cpp	global	setSpecular__10cModelInfoUcUcUc	cModelInfo::setSpecular
-0x8015A7F0	0x8C	.text	game/model.cpp	global	deleteModelData__6cModelP9ModelData	cModel::deleteModelData
+0x8015A7F0	0x8C	.text	game/model.cpp	global	deleteModelData__6cModelP10cModelData	cModel::deleteModelData
 0x8015A87C	0x84	.text	game/model.cpp	global	deleteModelInfo__6cModelP10cModelInfo	cModel::deleteModelInfo
-0x8015A900	0xD0	.text	game/model.cpp	global	swapModelInfo__6cModelP9ModelDataP10cModelInfo	cModel::swapModelInfo
+0x8015A900	0xD0	.text	game/model.cpp	global	swapModelInfo__6cModelP10cModelDataP10cModelInfo	cModel::swapModelInfo
 0x8015A9D0	0x90	.text	game/model.cpp	global	moveDataAddr__6cModeli	cModel::moveDataAddr
 0x8015AA60	0xEC	.text	game/model.cpp	global	calcModelAddr	calcModelAddr
 0x8015AB4C	0x9C	.text	game/model.cpp	global	calcModelOffset	calcModelOffset

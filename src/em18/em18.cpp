@@ -36,9 +36,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// model.h's member; the enemies call it with the old ModelData (em10.cpp).
-extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
-
 typedef void (*Em18Func)(cEm18*);
 
 static void em18_R0_Init(cEm18* em);
@@ -564,7 +561,7 @@ void em18ClothPartsSet(cEm18* em, int on)
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         if (w->pCloth) {
-            cModel_swapModelInfo(em, w->pCloth->pData, info);
+            em->swapModelInfo(w->pCloth->pData, info);
         } else {
             em->addModel(info);
         }
@@ -604,7 +601,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binL, ARC(6));
     if (info) {
         if (w->pRHand) {
-            cModel_swapModelInfo(em, w->pRHand->pData, info);
+            em->swapModelInfo(w->pRHand->pData, info);
         } else {
             em->addModel(info);
         }
@@ -613,7 +610,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binR, ARC(6));
     if (info) {
         if (w->pLHand) {
-            cModel_swapModelInfo(em, w->pLHand->pData, info);
+            em->swapModelInfo(w->pLHand->pData, info);
         } else {
             em->addModel(info);
         }

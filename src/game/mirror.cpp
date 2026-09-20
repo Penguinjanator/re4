@@ -35,7 +35,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     u32 i;
     u16 nParts;
     ModelPart* part;
-    ModelData* d;
+    cModelData* d;
 
     st->tevStage = 0;
     st->texMap = 0;

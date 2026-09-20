@@ -708,7 +708,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
 {
     calcWeightMat(m);
     for (; info != 0; info = info->pList) {
-        ModelData* d = info->pData;
+        cModelData* d = info->pData;
         ModelTexInfo* t = MODEL_TEX(info);
         void* src;
         void* nsrc;
@@ -1094,7 +1094,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     efbDone = 0;
     matSet = 0;
     while (info != 0) {
-        ModelData* d;
+        cModelData* d;
         void* tex;
         f32 (*mat0)[4];
         u16 nParts;

@@ -887,7 +887,7 @@ static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
 void DrawObjWireframe(cObj* obj, int color)
 {
     const u8 vtx_size[8] = {8, 8, 10, 12, 10, 8, 8, 0};
-    ModelData* md;
+    cModelData* md;
     ModelPart* part;
     u8* cmd;
     s16* vtx;

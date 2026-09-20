@@ -55,7 +55,7 @@ public:
 class cModel;
 class cLight;
 
-// One primitive part of a ModelData (dbmodule DrawObjWireframe): 0x20 header, then the GX-style stream.
+// One primitive part of a cModelData (dbmodule DrawObjWireframe): 0x20 header, then the GX-style stream.
 struct ModelPart {
     u8 pad_0[0xB];
     u8 flags;        // 0x0B  material flags (trans shaderSetup): bit0 bump, bit1, bit2 alpha texture, bit4 specular texture in the tpl, bit7 specularSetup2
@@ -75,7 +75,7 @@ struct ModelPart {
     u32 nPoly;       // 0x1C  polygon count (debug statistics)
 };
 
-// Header block ModelData::pHead points at (examine: the item's centre offset).
+// Header block cModelData::pHead points at (examine: the item's centre offset).
 struct ModelDataHead {
     union {
         u32 x0;      // 0x00
@@ -89,8 +89,8 @@ struct ModelDataHead {
     Vec center;      // 0x04  (examine copies it into parts 0's position); parts record: parts position
 };
 
-// Model data referenced by a bin (game/model.cpp `ModelData`); only the flag word is known.
-struct ModelData {
+// Model data referenced by a bin (game/model.cpp `cModelData`); only the flag word is known.
+struct cModelData {
     ModelDataHead* pHead;  // 0x00
     u8 pad_4[0xC - 0x4];
     void* pClr;      // 0x0C  vertex colour array (GX_VA_CLR0, RGBA8; used when flags bit31 is set)
@@ -142,7 +142,7 @@ struct ModelBound {
 // vptr 0x08). Partial layout.
 class cModelInfo : public cUnit {
 public:
-    ModelData* pData;    // 0x0C
+    cModelData* pData;    // 0x0C
     void* tpl_addr;          // 0x10  texture palette of the model (eff_sys RoomEfmRegist)
     cModelInfo* pList;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
@@ -522,8 +522,8 @@ public:
     void setPartsParent();        // pParent of every parts from the bin records
     void matBlend(f32 rate);      // parts pose = rate * own pose + (1 - rate) * worldMat pose (motion.cpp MotionMove blends)
     void setSca(Vec* scale);      // scale = *scale; matUpdate()
-    int deleteModelData(ModelData* data);   // destroy the info using `data` (1 when found)
-    int swapModelInfo(ModelData* data, cModelInfo* info);   // replace the info using `data` by `info` (1 when found)
+    int deleteModelData(cModelData* data);   // destroy the info using `data` (1 when found)
+    int swapModelInfo(cModelData* data, cModelInfo* info);   // replace the info using `data` by `info` (1 when found)
     void releaseModelInfo();      // destroy every info
     int makePartsList(int n);     // n parts (0: nParts) from PartsMgr, sequential when possible (be_flag bit13)
     void setJointInfo(void* bin); // mot.blendTbl / mot.flip from the bin (version 0x20030818)
