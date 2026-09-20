@@ -1062,8 +1062,8 @@ void releaseModel(SceAtWork* w, int keep)
 // area, frees the model / allocation and ends the cut.
 static void sceAtGetItem(SceAtWork* w_)
 {
-    // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): value pin of the parameter copy.
-    register SceAtWork* w asm("r24") = w_;
+    // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): the parameter is copied into a local.
+    SceAtWork* w = w_;
     static int disp_flag_bak;
     static int sub_screen_open;
     static int swep_flag;

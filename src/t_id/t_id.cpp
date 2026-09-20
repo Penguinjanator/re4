@@ -2218,7 +2218,7 @@ int idEditTrans(IdTool* w, int x, int y)
             }
             break;
         case 4: {
-            register int step asm("r11") = (joy->on & 0x100) ? 10 : 1; // COMPILER-DIFF: pin
+            int step = (joy->on & 0x100) ? 10 : 1;
 
             if (joy->rep & 0x10001) {
                 d->maskTex -= step;

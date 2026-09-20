@@ -351,7 +351,7 @@ int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    register int old asm("r29") = o->_rno2;  // COMPILER-DIFF: o must outrank old for r31
+    int old = o->_rno2;
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
