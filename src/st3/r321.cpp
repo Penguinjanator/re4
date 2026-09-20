@@ -73,7 +73,7 @@ static void r321_heri_down()
     RsfSet(G_ROOM_ID, 0);
     ScfFlagOn(pG, SCF_R321_HERI_DOWN);
     EvtMgr.EvtReadExec("event/evd/r321s00.evd", 0, 0);
-    SetPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
+    pPL->setPos(38020.0f, 13688.0f, -39718.0f);
     SetAngY(pPL, 1.663f);
     OpeSetOpenTerm(0x16, 0.0f, 0.0f, 0.0f, 0.0f);
     break_heri_set();

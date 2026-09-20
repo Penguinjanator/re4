@@ -188,16 +188,16 @@ void R20cExecCageUp()
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
         r20c_work.p->cageY = obj->pos.y;
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + 4000.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + 4000.0f, obj->pos.z);
     }
     if (door0) {
         r20c_work.p->doorY[0] = door0->pos.y;
-        SetPosXYZ(door0, door0->pos.x, door0->pos.y + 4000.0f, door0->pos.z);
+        door0->setPos(door0->pos.x, door0->pos.y + 4000.0f, door0->pos.z);
         door0->satPos = door0->pos;
     }
     if (door1) {
         r20c_work.p->doorY[1] = door1->pos.y;
-        SetPosXYZ(door1, door1->pos.x, door1->pos.y + 4000.0f, door1->pos.z);
+        door1->setPos(door1->pos.x, door1->pos.y + 4000.0f, door1->pos.z);
         door1->satPos = door1->pos;
     }
     if (r20c_work.p->sat[0]) {
@@ -223,14 +223,14 @@ void R20cExecCageDown(int lock)
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
-        SetPosXYZ(obj, obj->pos.x, r20c_work.p->cageY, obj->pos.z);
+        obj->setPos(obj->pos.x, r20c_work.p->cageY, obj->pos.z);
     }
     if (door0) {
-        SetPosXYZ(door0, door0->pos.x, r20c_work.p->doorY[0], door0->pos.z);
+        door0->setPos(door0->pos.x, r20c_work.p->doorY[0], door0->pos.z);
         door0->satPos = door0->pos;
     }
     if (door1) {
-        SetPosXYZ(door1, door1->pos.x, r20c_work.p->doorY[1], door1->pos.z);
+        door1->setPos(door1->pos.x, r20c_work.p->doorY[1], door1->pos.z);
         door1->satPos = door1->pos;
     }
     if (lock == 1) {
@@ -292,14 +292,14 @@ static void R20cExecCageMain()
         SndCall(6, 0, &pPL->pos, 0, 0, 0);
         for (i = 0; i < 20; i++) {
             if (obj) {
-                SetPosXYZ(obj, obj->pos.x, r20c_work.p->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f, obj->pos.z);
+                obj->setPos(obj->pos.x, r20c_work.p->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f, obj->pos.z);
             }
             if (door0) {
-                SetPosXYZ(door0, door0->pos.x, r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
+                door0->setPos(door0->pos.x, r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
                 door0->satPos = door0->pos;
             }
             if (door1) {
-                SetPosXYZ(door1, door1->pos.x, r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
+                door1->setPos(door1->pos.x, r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
                 door1->satPos = door1->pos;
             }
             SceSleep(1);
@@ -433,8 +433,8 @@ void R20cKaigaMoved(int mode)
     obj9 = SmdGetObjPtr(9);
     if (obj7 && obj9) {
         if (mode == 1) {
-            SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 0.0f);
-            SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 0.0f);
+            obj7->setAng(obj7->ang.x, obj7->ang.y, 0.0f);
+            obj9->setAng(obj9->ang.x, obj9->ang.y, 0.0f);
             pG->Room_flg[0] |= 0x01000000;
             if (r20c_work.p->kaigaHit[0]) {
                 r20c_work.p->kaigaHit[0]->hp = 1;
@@ -446,8 +446,8 @@ void R20cKaigaMoved(int mode)
         } else {
             s16 hp;
 
-            SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 3.1415927f);
-            SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 3.1415927f);
+            obj7->setAng(obj7->ang.x, obj7->ang.y, 3.1415927f);
+            obj9->setAng(obj9->ang.x, obj9->ang.y, 3.1415927f);
             pG->Room_flg[0] &= ~0x01000000;
             // COMPILER-DIFF: #5 — the original's `li r8,0` of the two `hp = 0` stores is one constant
             // hoisted above the first null test (interblock motion); a local set here gives the shape.
@@ -475,13 +475,13 @@ void R20cKaigaMove(int mode)
         if (mode == 1) {
             SndCall(6, 3, &obj7->pos, 0, 0, 0);
             if (pG->Room_flg[0] & 0x01000000) {
-                SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 0.0f);
-                SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 0.0f);
+                obj7->setAng(obj7->ang.x, obj7->ang.y, 0.0f);
+                obj9->setAng(obj9->ang.x, obj9->ang.y, 0.0f);
             } else {
                 pG->Room_flg[0] |= 0x01000000;
                 while (obj7->ang.z >= 0.0f) {
-                    SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, obj7->ang.z - 0.08726647f);
-                    SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, obj9->ang.z - 0.08726647f);
+                    obj7->setAng(obj7->ang.x, obj7->ang.y, obj7->ang.z - 0.08726647f);
+                    obj9->setAng(obj9->ang.x, obj9->ang.y, obj9->ang.z - 0.08726647f);
                     SceSleep(1);
                 }
                 R20cKaigaMoved(mode);
@@ -489,13 +489,13 @@ void R20cKaigaMove(int mode)
         } else {
             SndCall(6, 4, &obj7->pos, 0, 0, 0);
             if (!(pG->Room_flg[0] & 0x01000000)) {
-                SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, 3.1415927f);
-                SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, 3.1415927f);
+                obj7->setAng(obj7->ang.x, obj7->ang.y, 3.1415927f);
+                obj9->setAng(obj9->ang.x, obj9->ang.y, 3.1415927f);
             } else {
                 pG->Room_flg[0] &= ~0x01000000;
                 while (obj7->ang.z <= 3.1415927f) {
-                    SetAngXYZ(obj7, obj7->ang.x, obj7->ang.y, obj7->ang.z + 0.34906587f);
-                    SetAngXYZ(obj9, obj9->ang.x, obj9->ang.y, obj9->ang.z + 0.34906587f);
+                    obj7->setAng(obj7->ang.x, obj7->ang.y, obj7->ang.z + 0.34906587f);
+                    obj9->setAng(obj9->ang.x, obj9->ang.y, obj9->ang.z + 0.34906587f);
                     SceSleep(1);
                 }
                 R20cKaigaMoved(mode);

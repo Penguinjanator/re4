@@ -357,8 +357,8 @@ static void r11b_EmEvent()
         SceEventStart(0);
         SndStrReq(1, 0x24, 0x80000003, 0, 0, 0.0f);
         pPL->setNoSuspend(1);
-        SetPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
-        SetAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
+        pPL->setPos(-60735.0f, 2008.0f, -8455.0f);
+        pPL->setAng(0.0f, 2.64f, 0.0f);
         EstSet(r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);

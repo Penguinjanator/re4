@@ -62,7 +62,6 @@ struct R213WorkPtr {
 };
 
 static inline void PSetTex(TexRenderMng*& d, TexRenderMng* v) { d = v; }
-static inline void SetPosV(cModel* m, Vec* v) { m->setPos(v); }
 
 static u8 r213_texTbl[0x20];
 static R213WorkPtr r213_work;
@@ -777,7 +776,7 @@ void R213ChainAngSet(int no, u32 objId, int hitNo, f32 ang, int flag)
                         t.y = obj->pos.y;
                         t.z = obj->pos.z;
                         ry = GetXYAngle(&obj->pos, &((cModel*) chain)->pos);
-                        SetPosV(obj, &t);
+                        obj->setPos(&t);
                         rx = obj->ang.x;
                         ry2 = obj->ang.y;
                         a2.x = rx;

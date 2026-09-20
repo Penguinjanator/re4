@@ -349,14 +349,14 @@ void R332Init()
                 {
                     cObj* smd = SmdGetObjPtr(smdNo[i]);
 
-                    SetPosXYZ(smd, smd->pos.x, r332_craneUpY[i], smd->pos.z);
+                    smd->setPos(smd->pos.x, r332_craneUpY[i], smd->pos.z);
                 }
             } else {
                 cObj* smd;
 
                 ModelInfoSetTrans(crane, 1, 0);
                 smd = SmdGetObjPtr(smdNo[i]);
-                SetPosXYZ(smd, smd->pos.x, r332_craneDownY[i], smd->pos.z);
+                smd->setPos(smd->pos.x, r332_craneDownY[i], smd->pos.z);
             }
         }
     }
@@ -476,7 +476,7 @@ static void playerDieBridge(cPlayer* pl)
     }
     pl->dmg.m_Timer = 0x78;
     FAdd(r332_work->dieY, step);
-    SetPosXYZ(pl, pl->pos.x, pl->pos.y - r332_work->dieY, pl->pos.z);
+    pl->setPos(pl->pos.x, pl->pos.y - r332_work->dieY, pl->pos.z);
     {
         f32 fovy = 50.0f;
         Vec camPos;
@@ -678,8 +678,8 @@ void R332BridgeOpened(int no, int open)
         EffectEfmDelete(1, (u8) estNo, 0);
         EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
         SceAtSetEnable(atNo, 1);
-        SetAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0]);
-        SetAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1]);
+        a->setAng(a->ang.x, a->ang.y, -r332_bridgeAng[0]);
+        b->setAng(b->ang.x, b->ang.y, r332_bridgeAng[1]);
         if (r332_work->sat[satA]) {
             r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
@@ -687,8 +687,8 @@ void R332BridgeOpened(int no, int open)
             r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
     } else {
-        SetAngXYZ(a, a->ang.x, a->ang.y, -R332_FLAT);
-        SetAngXYZ(b, b->ang.x, b->ang.y, R332_FLAT);
+        a->setAng(a->ang.x, a->ang.y, -R332_FLAT);
+        b->setAng(b->ang.x, b->ang.y, R332_FLAT);
         if (r332_work->sat[satA]) {
             r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
@@ -768,8 +768,8 @@ void R332BridgeOpen(int no, int open)
             f32 za = (r332_bridgeAng[0] - R332_FLAT) * (f32) i / 10.0f + R332_FLAT;
             f32 zb = (r332_bridgeAng[1] - R332_FLAT) * (f32) i / 10.0f + R332_FLAT;
 
-            SetAngXYZ(a, a->ang.x, a->ang.y, -za);
-            SetAngXYZ(b, b->ang.x, b->ang.y, zb);
+            a->setAng(a->ang.x, a->ang.y, -za);
+            b->setAng(b->ang.x, b->ang.y, zb);
             if (r332_work->sat[satA]) {
                 r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
             }
@@ -778,8 +778,8 @@ void R332BridgeOpen(int no, int open)
             }
             SceSleep(1);
         }
-        SetAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0]);
-        SetAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1]);
+        a->setAng(a->ang.x, a->ang.y, -r332_bridgeAng[0]);
+        b->setAng(b->ang.x, b->ang.y, r332_bridgeAng[1]);
         if (r332_work->sat[satA]) {
             r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
@@ -787,8 +787,8 @@ void R332BridgeOpen(int no, int open)
             r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
         for (int i = 0; i < 5; i++) {
-            SetAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0] + fRand1_1() * PI / 180.0f * 2.0f);
-            SetAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1] + fRand1_1() * PI / 180.0f * 2.0f);
+            a->setAng(a->ang.x, a->ang.y, -r332_bridgeAng[0] + fRand1_1() * PI / 180.0f * 2.0f);
+            b->setAng(b->ang.x, b->ang.y, r332_bridgeAng[1] + fRand1_1() * PI / 180.0f * 2.0f);
             SceSleep(1);
         }
     } else {
@@ -797,8 +797,8 @@ void R332BridgeOpen(int no, int open)
             f32 za = (R332_FLAT - r332_bridgeAng[0]) * (f32) i / 50.0f + r332_bridgeAng[0];
             f32 zb = (R332_FLAT - r332_bridgeAng[1]) * (f32) i / 50.0f + r332_bridgeAng[1];
 
-            SetAngXYZ(a, a->ang.x, a->ang.y, -za);
-            SetAngXYZ(b, b->ang.x, b->ang.y, zb);
+            a->setAng(a->ang.x, a->ang.y, -za);
+            b->setAng(b->ang.x, b->ang.y, zb);
             if (r332_work->sat[satA]) {
                 r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
             }
@@ -807,8 +807,8 @@ void R332BridgeOpen(int no, int open)
             }
             SceSleep(1);
         }
-        SetAngXYZ(a, a->ang.x, a->ang.y, -R332_FLAT);
-        SetAngXYZ(b, b->ang.x, b->ang.y, R332_FLAT);
+        a->setAng(a->ang.x, a->ang.y, -R332_FLAT);
+        b->setAng(b->ang.x, b->ang.y, R332_FLAT);
         if (r332_work->sat[satA]) {
             r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
@@ -1297,8 +1297,8 @@ static void R332ExecCrane(int no)
     }
     SceAtSetEnable(atNo, 0);
     pPL->beginEvent(0);
-    SetPosXYZ(pPL, plPos.x, plPos.y, plPos.z);
-    SetAngXYZ(pPL, plRot.x, plRot.y, plRot.z);
+    pPL->setPos(plPos.x, plPos.y, plPos.z);
+    pPL->setAng(plRot.x, plRot.y, plRot.z);
     loopOn = 1;
     step = 0;
     do {
@@ -1473,8 +1473,8 @@ static void R332EventS00()
     r332_work->em[0].setNoSuspend(1);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
-    SetPosXYZ(pPL, -29161.0f, 15811.0f, 61102.0f);
-    SetAngXYZ(pPL, 0.0f, 3.14f, 0.0f);
+    pPL->setPos(-29161.0f, 15811.0f, 61102.0f);
+    pPL->setAng(0.0f, 3.14f, 0.0f);
     if (pG->Room_flg[0] & 0x04000000) {
         SceSetEventCancel(0, 0, 0, -1, 1);
         R332EventS00End();
@@ -1518,8 +1518,8 @@ void R332EventS00End()
     (void*&) r332_work->task[0] = SceExec(0x12, (TaskFunc) R332BridgeTask, 0, 0, 2, 0);
     (void*&) r332_work->task[1] = SceExec(0x12, (TaskFunc) R332BridgeTask, 1, 0, 2, 0);
     pPL->setNoSuspend(0);
-    SetPosXYZ(pPL, -32900.0f, 15811.0f, 47140.0f);
-    SetAngXYZ(pPL, 0.0f, 0.766f, 0.0f);
+    pPL->setPos(-32900.0f, 15811.0f, 47140.0f);
+    pPL->setAng(0.0f, 0.766f, 0.0f);
     pPL->endEvent(0);
     EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0, 0, 0);
     em = (cEm31*) r332_work->em[0].getPtr();

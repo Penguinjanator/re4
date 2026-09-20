@@ -192,7 +192,7 @@ void R330EventS00End()
         pSUB->endEvent(0);
         pSUB->setNoSuspend(0);
     }
-    SetPosXYZ(pPL, 7806.0f, -4649.0f, 7377.0f);
+    pPL->setPos(7806.0f, -4649.0f, 7377.0f);
     {
         Vec ang;
 

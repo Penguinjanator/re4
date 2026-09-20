@@ -730,7 +730,7 @@ static void r31c_TalktoKrauser(int no)
     r31c_work.p->krauser.setNoSuspend(1);
     if (no == 0) {
         BitOn(pG->Room_flg[0], 0x40);
-        SetPosXYZ(em, 29231.0f, 8609.0f, -10844.0f);
+        em->setPos(29231.0f, 8609.0f, -10844.0f);
         SetPosAngY(pPL, 35137.0f, 5200.0f, -12965.0f, -1.25f);
         em->setTalk1st();
     } else {

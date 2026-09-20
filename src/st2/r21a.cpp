@@ -387,16 +387,16 @@ static void R21aFallRoofStartMain()
     if (obj) {
         SndCall(6, 5, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
-            SetPosXYZ(obj, obj->pos.x, (f32) i * -2361.0f / 10.0f + 1503.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, (f32) i * -2361.0f / 10.0f + 1503.0f, obj->pos.z);
             SceSleep(1);
         }
-        SetPosXYZ(obj, obj->pos.x, -858.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, -858.0f, obj->pos.z);
         SndCall(6, 6, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
-            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
+            obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
             SceSleep(1);
         }
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        obj->setAng(0.0f, 0.0f, 0.0f);
     }
     SceSleep(10);
     CamCtrl.CutCall(5);
@@ -413,13 +413,13 @@ static void R21aFallRoofStartMain()
         EstSet(0, -1, 0, 0, 1, 0xD, 1, 0, 0, 0);
         r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
-            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
+            obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
             SceSleep(1);
         }
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        obj->setAng(0.0f, 0.0f, 0.0f);
         SceSleep(20);
         for (int i = 0; i < 40; i++) {
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y - 10.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y - 10.0f, obj->pos.z);
             SceSleep(1);
         }
     }
@@ -439,16 +439,16 @@ static void R21aFallRoofStartEnd()
     SmdSetTrans(0x41, 1);
     obj = SmdGetObjPtr(0x41);
     if (obj) {
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
-        SetPosXYZ(obj, obj->pos.x, -858.0f, obj->pos.z);
+        obj->setAng(0.0f, 0.0f, 0.0f);
+        obj->setPos(obj->pos.x, -858.0f, obj->pos.z);
     }
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
         if (r21a_work.p->se == 0) {
             r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         }
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
-        SetPosXYZ(obj, obj->pos.x, 3095.0f, obj->pos.z);
+        obj->setAng(0.0f, 0.0f, 0.0f);
+        obj->setPos(obj->pos.x, 3095.0f, obj->pos.z);
     }
     getRoomEtcDoor(5, &door, 1);
     if (door) {
@@ -481,7 +481,7 @@ static void R21aFallRoofDie(int no)
         Vec camAt = {-31480.0f, 429.0f, -32174.0f};
         f32 fovy = 50.0f;
         SceEventStart(0);
-        SetPosXYZ(obj, obj->pos.x, 1500.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, 1500.0f, obj->pos.z);
         SndCall(6, 0xC, &obj->pos, 0, 0, 0);
         // A real loop (rotated by expand_end_loop into `b body; sleep: ..; body: ..; bns sleep`):
         // its preheader is where loop.c/gcse put the `mr r27,r29; mr r26,r30` copies of &camAt and
@@ -489,7 +489,7 @@ static void R21aFallRoofDie(int no)
         for (;;) {
             SceCamMove(&camPos, &camAt, fovy);
             spd += 10.0f;
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= -1500.0f) {
                 break;
             }
@@ -504,10 +504,10 @@ static void R21aFallRoofDie(int no)
             SceCamMove(&camPos, &camAt, fovy);
             ax = fRand1_1() * 3.1415927f / 180.0f * 2.0f;
             az = fRand1_1() * 3.1415927f / 180.0f * 2.0f;
-            SetAngXYZ(obj, ax, 0.0f, az);
+            obj->setAng(ax, 0.0f, az);
             SceSleep(1);
         }
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        obj->setAng(0.0f, 0.0f, 0.0f);
         for (int i = 0; i < 60; i++) {
             SceCamMove(&camPos, &camAt, fovy);
             SceSleep(1);
@@ -538,11 +538,11 @@ static void R21aFallRoofMove()
         switch (step) {
         case 0:
             cnt++;
-            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.1f, 0.0f);
+            obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.1f, 0.0f);
             if (cnt % 10 == 0) {
                 EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + -0.88611114f, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + -0.88611114f, obj->pos.z);
             if (obj->pos.y <= 1500.0f) {
                 EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
                 spd = 0.0f;
@@ -552,12 +552,12 @@ static void R21aFallRoofMove()
             break;
         case 1:
             cnt++;
-            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.3f, 0.0f);
+            obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.3f, 0.0f);
             if (cnt % 5 == 0) {
                 EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
             }
             if (cnt > 30) {
-                SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+                obj->setAng(0.0f, 0.0f, 0.0f);
                 spd = 0.0f;
                 cnt = 0;
                 step = 2;
@@ -565,7 +565,7 @@ static void R21aFallRoofMove()
             break;
         case 2:
             spd += 10.0f;
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 1400.0f) {
                 cnt = 0;
                 spd = 0.0f;
@@ -582,7 +582,7 @@ static void R21aFallRoofMove()
             break;
         case 4:
             spd += 10.0f;
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 1100.0f) {
                 cnt = 0;
                 step++;
@@ -600,7 +600,7 @@ static void R21aFallRoofMove()
             spd += 10.0f;
             EffectEspgenDelete(1, 6, 0);
             EffectEfmDelete(1, 6, 0);
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 0.0f) {
                 SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, SCE_PRIO_DEF_2, 0);
                 return;

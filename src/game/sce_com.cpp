@@ -1339,8 +1339,8 @@ void SceElevator(SceElevatorData* d)
         for (i = 0; i < 10; i++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
@@ -1364,8 +1364,8 @@ void SceElevator(SceElevatorData* d)
             if (d->dir == 1) {
                 step = -spd;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + step, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
             if (faded == 0) {
                 if (spd >= maxSpd) {
                     FadeSetRGBA(2, 0, white);
@@ -1385,8 +1385,8 @@ void SceElevator(SceElevatorData* d)
         if (d->dir == 0) {
             move = -move;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+        pPL->setPos(pl->pos.x, pPL->pos.y + move, pl->pos.z);
         CamCtrl.Comeback(0);
         FadeSetRGBA(0x80000002, 0xFF, 0);
         hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
@@ -1405,8 +1405,8 @@ void SceElevator(SceElevatorData* d)
             if (d->dir != 0) {
                 move = -move;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
             {
                 Vec q = {0.0f, 0.0f, 0.0f};
                 q.y = move;
@@ -1438,8 +1438,8 @@ void SceElevator(SceElevatorData* d)
         for (j = 0; j < 10; j++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);

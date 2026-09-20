@@ -378,8 +378,8 @@ void R318AutoDoorReset(int no)
     if (d->obj0 && d->obj1) {
         d->open = 0;
         d->done = 0;
-        SetPosXYZ(d->obj0, d->obj0->pos.x, d->obj0->pos.y, d->z0);
-        SetPosXYZ(d->obj1, d->obj1->pos.x, d->obj1->pos.y, d->z1);
+        d->obj0->setPos(d->obj0->pos.x, d->obj0->pos.y, d->z0);
+        d->obj1->setPos(d->obj1->pos.x, d->obj1->pos.y, d->z1);
         if (d->sat0) {
             d->sat0->setCoord(&d->obj0->pos, &d->obj0->ang);
         }
@@ -462,8 +462,8 @@ void R318AutoDoor(int no, int flagNo, u32 id0, u32 id1)
                     d->done = 0;
                 }
             }
-            SetPosXYZ(d->obj0, d->obj0->pos.x, d->obj0->pos.y, d->obj0->pos.z);
-            SetPosXYZ(d->obj1, d->obj1->pos.x, d->obj1->pos.y, d->obj1->pos.z);
+            d->obj0->setPos(d->obj0->pos.x, d->obj0->pos.y, d->obj0->pos.z);
+            d->obj1->setPos(d->obj1->pos.x, d->obj1->pos.y, d->obj1->pos.z);
             if (d->sat0) {
                 d->sat0->setCoord(&d->obj0->pos, &d->obj0->ang);
             }

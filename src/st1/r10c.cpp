@@ -382,8 +382,8 @@ static void r10c_EmEvent_exit()
     EmSetFromList2(3, 1);
     EM_LIST(4)->be_flag |= 1;
     EmSetFromList2(4, 1);
-    SetPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
-    SetAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
+    pPL->setPos(6609.0f, 0.0f, 17172.0f);
+    pPL->setAng(0.0f, 0.56f, 0.0f);
     pG->Room_flg[0] &= ~0x08000000;
 }
 
@@ -426,8 +426,8 @@ static void r10c_EmEvent()
             SceSleep(1);
         }
         pPL->setNoSuspend(1);
-        SetPosXYZ(pPL, 3145.0f, 0.0f, 10394.0f);
-        SetAngXYZ(pPL, 0.0f, 0.4f, 0.0f);
+        pPL->setPos(3145.0f, 0.0f, 10394.0f);
+        pPL->setAng(0.0f, 0.4f, 0.0f);
         CamCtrl.CutCall(0x13);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);

@@ -118,11 +118,11 @@ static void funcAshley(cEm* p)
 // First entry: place Leon and Ashley, play the cut.
 static void first_in()
 {
-    SetPosXYZ(pPL, 8600.0f, 57.0f, -2276.0f);
+    pPL->setPos(8600.0f, 57.0f, -2276.0f);
     SetAngY(pPL, -1.67f);
     SceSleep(1);
     if (pSUB) {
-        SetPosXYZ(pSUB, 7073.0f, 57.0f, -3109.0f);
+        pSUB->setPos(7073.0f, 57.0f, -3109.0f);
         SetAngY(pSUB, -0.742f);
         SetSubAux(funcAshley, 0);
     }

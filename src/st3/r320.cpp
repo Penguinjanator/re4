@@ -613,7 +613,7 @@ static void r320_heri_event()
     } else {
         SndRoomStrStart(1, 0, 1);
     }
-    SetPosXYZ(pPL, 27120.0f, 7699.0f, 45134.0f);
+    pPL->setPos(27120.0f, 7699.0f, 45134.0f);
     setAngYXZ(pPL, 2.46f, 0.0f, 0.0f);
     CamCtrl.Comeback(0);
     EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
@@ -1644,8 +1644,8 @@ static void slide_move()
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
-    SetPosXYZ(pPL, 58200.0f, 16588.34f, -11855.78f);
-    SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
+    pPL->setPos(58200.0f, 16588.34f, -11855.78f);
+    pPL->setAng(0.0f, 0.0f, 0.0f);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
     r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
     r320_work->smd->motSpeedRate = 1.0f;
@@ -1997,7 +1997,7 @@ static void destroy_2()
     SceAtSetEnable(0x26, 1);
     at = SceAtPtr(0x2F);
     if (AreaHitCheck(&at->area, &pPL->pos)) {
-        SetPosXYZ(pPL, 58557.0f, 11819.0f, 13270.0f);
+        pPL->setPos(58557.0f, 11819.0f, 13270.0f);
         CamCtrl.Comeback(0);
     }
     w = sceAtSetOtStart();
@@ -2088,7 +2088,7 @@ static void destroy_4()
     SceAtSetEnable(0x28, 1);
     r320_work->heriWait = 0x96;
     if (AreaHitCheck(&SceAtPtr(0x34)->area, &pPL->pos)) {
-        SetPosXYZ(pPL, 45469.0f, 9538.0f, -12354.0f);
+        pPL->setPos(45469.0f, 9538.0f, -12354.0f);
         CamCtrl.Comeback(0);
     }
     if (pG->Room_flg[2] & 0x00800000) {
@@ -2124,7 +2124,7 @@ static void destroy_5()
     SatMgr.destroy(r320_work->sat[3]);
     SceAtSetEnable(0x29, 1);
     if (AreaHitCheck(&SceAtPtr(0x35)->area, &pPL->pos)) {
-        SetPosXYZ(pPL, 34660.0f, 10469.0f, 5587.0f);
+        pPL->setPos(34660.0f, 10469.0f, 5587.0f);
         CamCtrl.Comeback(0);
     }
     r320_work->heriWait = 0x96;
