@@ -62,10 +62,6 @@ static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &
 extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 extern "C" void MotSetObj16(cObj* obj, void* mot, int a, int b);
 
-// COMPILER-DIFF #4: the original passes the int work field to the u16 parameter without the
-// truncation ours emits (`lwz` instead of `lhz`); int-view declaration of the blend setter.
-void em2bBlendMotSetI(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, int d) asm("em2bBlendMotSet__FP5cEm2bPvN21iiiUs");
-
 static void em2b_R0_Init(cEm2b* em);
 static void em2b_R0_Move(cEm2b* em);
 static void em2b_R1_Wait(cEm2b* em);
@@ -1319,7 +1315,7 @@ static void em2b_R1_Walk(cEm2b* em)
         em->r_no_2++;
     }
     case 1:
-        em2bBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, w->blendB, w->blendC, w->blendD);
+        em2bBlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, w->blendB, w->blendC, w->blendD);
         if (MotionMove(em, 0)) {
             em2bSearchRockCk(em);
             if (em2bGetRockCk(em)) {
@@ -1467,7 +1463,7 @@ static void em2b_R1_Stamp(cEm2b* em)
                 w->Blend = -255.0f;
             }
         }
-        em2bBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, w->blendB, w->blendC, w->blendD);
+        em2bBlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, w->blendB, w->blendC, w->blendD);
         if (em->seFlags28B & 1) {
             if (em->motFlags & 0x40) {
                 cModel* p = em->getPartsPtr(0x14);
@@ -4131,7 +4127,7 @@ void em2bNeckMove(cEm2b* em)
 
 // Two-motion blend: m0 on the main motion work, m1 (Blend < 0) or m2 on the blend work with the
 // weight |Blend|; blendCnt / blendSeq give the hokan frames and start frame (the stamp aim).
-void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
+void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, int d)
 {
     Em2bWork* w = EM2B_WK(em);
     MotionWork* bm;

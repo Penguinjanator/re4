@@ -31,10 +31,6 @@
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-
-
-extern "C" void numDispI(int id, int num, Vec* pos, u32 flags) asm("numDisp");
-
 // Item list select (two columns), command menu and combine widgets of the item screen.
 class ItemSelect : public Widget<SUB_SCREEN> {
 public:
@@ -261,7 +257,7 @@ void SsItemMain::init(SUB_SCREEN* wk)
     for (int i = 0; i < 32; i++) {
         int no = i + 0x40;
         IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
-        numDispI(no, 0, 0, 0);
+        numDisp(no, 0, 0, 0);
     }
     for (int k = 0; k < 2; k++) {
         int type = k * 8 + 0x40;
@@ -641,7 +637,7 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
         if (off) {
         HIDE:
             m->be_flag &= ~8;
-            numDispI(no, 0, 0, 0);
+            numDisp(no, 0, 0, 0);
         } else {
             ItemInfo info;
             m->be_flag |= 8;
@@ -657,9 +653,9 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
                 pos.x = (f32) item_num_x;
                 pos.y = (f32) item_num_y;
                 pos.z = 0.0f;
-                numDispI(no, item->num, &pos, 1);
+                numDisp(no, item->num, &pos, 1);
             } else {
-                numDispI(no, 0, 0, 0);
+                numDisp(no, 0, 0, 0);
             }
         }
         no++;

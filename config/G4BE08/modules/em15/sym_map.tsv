@@ -195,7 +195,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002C5B0	0x78	em15/em10.cpp	global	em10LostHeadCk__FP5cEm10	em10LostHeadCk
 .text	0x0002C628	0x674	em15/em10.cpp	global	em10LostHead__FP5cEm10ii	em10LostHead
 .text	0x0002CC9C	0x1CC	em15/em10.cpp	global	em10CallVoiceSe	em10CallVoiceSe
-.text	0x0002CE68	0xC8	em15/em10.cpp	global	em10CallVoiceSe2__FP5cEm10ii	em10CallVoiceSe2
+.text	0x0002CE68	0xC8	em15/em10.cpp	global	em10CallVoiceSe2__FP5cEm10UsUs	em10CallVoiceSe2
 .text	0x0002CF30	0xBC	em15/em10.cpp	global	em10BreathSe__FP5cEm10	em10BreathSe
 .text	0x0002CFEC	0x144	em15/em10.cpp	global	em10CsawSignSe	em10CsawSignSe
 .text	0x0002D130	0x134	em15/em10.cpp	global	em10ModelInit__FP5cEm10	em10ModelInit
@@ -340,7 +340,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0003FEA4	0x78	em15/em10.cpp	global	em10SearchTruck	em10SearchTruck
 .text	0x0003FF1C	0xE8	em15/em10.cpp	global	em10SearchParasite	em10SearchParasite
 .text	0x00040004	0x94	em15/em10.cpp	global	em10ParasiteGoOut	em10ParasiteGoOut
-.text	0x00040098	0x124	em15/em10.cpp	global	em10SetDamageVoice__FP5cEm10ii	em10SetDamageVoice
+.text	0x00040098	0x124	em15/em10.cpp	global	em10SetDamageVoice__FP5cEm10UsUs	em10SetDamageVoice
 .text	0x000401BC	0xD0	em15/em10.cpp	global	em10ChgParasiteCk__FP5cEm10	em10ChgParasiteCk
 .text	0x0004028C	0x110	em15/em10.cpp	global	em10SetDmWaterEff__FP5cEm10i	em10SetDmWaterEff
 .text	0x0004039C	0x424	em15/em10.cpp	global	em10SetTakeawayPos	em10SetTakeawayPos

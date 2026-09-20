@@ -170,7 +170,7 @@ int em39SetDmVal(cEm39* em);
 int em39AtkRtnCk(cEm39* em);
 int em39GotoCk(cEm39* em);
 void em39VoiceMove(cEm39* em);
-void em39SetVoice(cEm39* em, int no);
+void em39SetVoice(cEm39* em, u16 no);
 void em39SetSpeech(cEm39* em, int no, int time);
 void em39SpeechMove(cEm39* em);
 int em39SlantCk(cEm39* em);

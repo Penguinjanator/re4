@@ -1,9 +1,9 @@
 __7cEmWrap = .text:0x00000000; // type:function size:0x30 scope:global
 initWork__7cEmWrap = .text:0x00000030; // type:function size:0x1C scope:global
 err__7cEmWrapPCci = .text:0x0000004C; // type:function size:0x5C scope:global
-setEm__7cEmWrapsSciii = .text:0x000000A8; // type:function size:0x100 scope:global
-setEm__FsSciii = .text:0x000001A8; // type:function size:0x70 scope:global
-setPtr__7cEmWrapsSci = .text:0x00000218; // type:function size:0xAC scope:global
+setEm__7cEmWrapUliiii = .text:0x000000A8; // type:function size:0x100 scope:global
+setEm__FUliiii = .text:0x000001A8; // type:function size:0x70 scope:global
+setPtr__7cEmWrapUlii = .text:0x00000218; // type:function size:0xAC scope:global
 setPtr__7cEmWrapP3cEmi = .text:0x000002C4; // type:function size:0x7C scope:global
 getPtr__7cEmWrap = .text:0x00000340; // type:function size:0x54 scope:global
 isAlive__7cEmWrap = .text:0x00000394; // type:function size:0x40 scope:global

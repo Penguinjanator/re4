@@ -153,7 +153,7 @@ void em2bPlFallCK(cEm2b* em);
 void em2bParasiteAtkCamMove(cEm2b* em);
 void em2bRouteCk(cEm2b* em);
 void em2bNeckMove(cEm2b* em);
-void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d);
+void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, int d);
 void em2bClothSet(cEm2b* em);
 void em2bClothMove(cEm2b* em);
 int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no);

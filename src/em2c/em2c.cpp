@@ -51,11 +51,6 @@ extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// COMPILER-DIFF #4: the original passes the int work field to the u16 parameter without the
-// truncation ours emits (`lwz` instead of `lhz`); int-view declarations of the two blend setters.
-void em2cBlendMotSetI(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int c, int d) asm("em2cBlendMotSet__FP5cEm2cPvN21iiiUs");
-void em2cBlendMotSet2I(cEm2c* em, void* m0, void* m1, int a, int b, int d) asm("em2cBlendMotSet2__FP5cEm2cPvT1iiUs");
-
 static void em2c_R0_Init(cEm2c* em);
 static void em2c_R0_Move(cEm2c* em);
 static void em2c_R1_br_Dummy(cEm2c* em);
@@ -1338,7 +1333,7 @@ static void em2c_R1_Walk(cEm2c* em)
         }
         em->ang.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
+        em2cBlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
         MotionMove(em, 0);
         break;
     }
@@ -1530,7 +1525,7 @@ static void em2c_R1_Dash(cEm2c* em)
                 w->blendVal = 0.0f;
             }
         }
-        em2cBlendMotSet2I(em, w->blendM0, w->blendM1, w->blendA, 0, w->blendD);
+        em2cBlendMotSet2(em, w->blendM0, w->blendM1, w->blendA, 0, w->blendD);
         if (MotionMove(em, 0)) {
             if (w->timer == 0) {
                 EmRoutineSet(em, 1, 0, 0, 0);
@@ -3144,7 +3139,7 @@ static void em2c_R1_F_Walk(cEm2c* em)
         }
         em->ang.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
+        em2cBlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
         MotionMove(em, 0);
         break;
     }
@@ -6185,7 +6180,7 @@ static void plemBackjump2(cPlayer* pl)
 
 // Two-motion blend: m0 on the main work, m1 or m2 (by the sign of blendVal) on the blend work,
 // weighted by |blendVal| / 256.
-void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
+void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int c, int d)
 {
     Em2cWork* w = EM2C_WK(em);
     MotionWork* bm;
@@ -6220,7 +6215,7 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
 
 // Two-motion blend with one blend motion: m0 on the main work, m1 on the blend work weighted by
 // |blendVal| (F_Walk steering).
-void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
+void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, int d)
 {
     Em2cWork* w = EM2C_WK(em);
     MotionWork* bm;

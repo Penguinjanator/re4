@@ -4,9 +4,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000144	0x30	st3_3/em_wrap.cpp	global	__7cEmWrap	cEmWrap::cEmWrap
 .text	0x00000174	0x1C	st3_3/em_wrap.cpp	global	initWork__7cEmWrap	cEmWrap::initWork
 .text	0x00000190	0x5C	st3_3/em_wrap.cpp	global	err__7cEmWrapPCci	cEmWrap::err
-.text	0x000001EC	0x100	st3_3/em_wrap.cpp	global	setEm__7cEmWrapsSciii	cEmWrap::setEm
-.text	0x000002EC	0x70	st3_3/em_wrap.cpp	global	setEm__FsSciii	setEm
-.text	0x0000035C	0xAC	st3_3/em_wrap.cpp	global	setPtr__7cEmWrapsSci	cEmWrap::setPtr
+.text	0x000001EC	0x100	st3_3/em_wrap.cpp	global	setEm__7cEmWrapUliiii	cEmWrap::setEm
+.text	0x000002EC	0x70	st3_3/em_wrap.cpp	global	setEm__FUliiii	setEm
+.text	0x0000035C	0xAC	st3_3/em_wrap.cpp	global	setPtr__7cEmWrapUlii	cEmWrap::setPtr
 .text	0x00000408	0x7C	st3_3/em_wrap.cpp	global	setPtr__7cEmWrapP3cEmi	cEmWrap::setPtr
 .text	0x00000484	0x54	st3_3/em_wrap.cpp	global	getPtr__7cEmWrap	cEmWrap::getPtr
 .text	0x000004D8	0x40	st3_3/em_wrap.cpp	global	isAlive__7cEmWrap	cEmWrap::isAlive

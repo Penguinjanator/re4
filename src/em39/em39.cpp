@@ -59,11 +59,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// COMPILER-DIFF #4: the original passes an int SE number to SndCall's u16 parameter without the
-// truncation ours emits (`mr` instead of `clrlwi 16`): int-view declaration (em39SetVoice, em39FootEff,
-// em39PLVoiceCk).
-u32 SndCallI(u16 blk, int no, Vec* pos, int id, int vol, cUnit* obj) asm("SndCall__FUsUsP3VeciiP5cUnit");
-
 static inline void U8Set(u8& d, u8 v) { d = v; }
 
 static void em39_R0_Init(cEm39* em);
@@ -8513,13 +8508,13 @@ void em39VoiceMove(cEm39* em)
 }
 
 // Stops the current voice and plays voice `no` at the head part 4; any queued line is dropped.
-void em39SetVoice(cEm39* em, int no)
+void em39SetVoice(cEm39* em, u16 no)
 {
     Em39Work* w = EM39_WK(em);
     cModel* p = em->getPartsPtr(4);
 
     SndStop(w->Se_id, 0);
-    w->Se_id = SndCallI(8, no, &p->world, em->id, 0, em);
+    w->Se_id = SndCall(8, no, &p->world, em->id, 0, em);
     w->Speech_wait = 0;
 }
 
@@ -8667,7 +8662,7 @@ int em39GuardCk(cEm39* em)
 void em39FootEff(cEm39* em)
 {
     u32 v = em->seNo;
-    int no;
+    u16 no;
 
     if (v == 0) {
         return;
@@ -8714,14 +8709,14 @@ void em39FootEff(cEm39* em)
         return;
     }
     em->seNo = 0;
-    SndCallI(8, no, &em->getPartsPtr(0)->world, em->id, 0, pPL);
+    SndCall(8, no, &em->getPartsPtr(0)->world, em->id, 0, pPL);
 }
 
 // Motion-key player voice (seNo - 1 = 0x43 / 0x44 / 0x54), Ashley's numbers in her chapter.
 void em39PLVoiceCk(cEm39* em)
 {
     u32 v = em->seNo;
-    int no;
+    u16 no;
 
     if (v == 0) {
         return;
@@ -8747,7 +8742,7 @@ void em39PLVoiceCk(cEm39* em)
         return;
     }
     em->seNo = 0;
-    SndCallI(8, no, &pPL->getPartsPtr(4)->world, em->id, 0, pPL);
+    SndCall(8, no, &pPL->getPartsPtr(4)->world, em->id, 0, pPL);
 }
 
 // For the level script: 1 while hidden (Be_flg 0x400).

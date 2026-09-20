@@ -53,10 +53,6 @@ extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
 extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);   // game/obj20.cpp
 
-// COMPILER-DIFF #4: the original passes the int work field to the u16 parameter without the
-// truncation ours emits (`lwz` instead of `lhz`); int-view declaration of the blend setter.
-void em32BlendMotSetI(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, int d) asm("em32BlendMotSet__FP5cEm32PvN31iiUs");
-
 static void em32_R0_Init(cEm32* em);
 static void em32_R0_Move(cEm32* em);
 static void em32_R1_br_Dummy(cEm32* em);
@@ -1253,7 +1249,7 @@ static void em32_R1_Walk(cEm32* em)
         em->r_no_2++;
     case 1:
         EM32_BLEND_TURN(em, w, &w->targetPos, 0.785398185f);
-        em32BlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
+        em32BlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
         if (MotionMove(em, 0)) {
             if (em32StepUpCk(em)) {
                 break;
@@ -1384,7 +1380,7 @@ static void em32_R1_Dash(cEm32* em)
         em->r_no_2++;
     case 1:
         EM32_BLEND_TURN(em, w, &w->targetPos, 0.785398185f);
-        em32BlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
+        em32BlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
         if (MotionMove(em, 0)) {
             timer = w->timer;
             if (timer == 0) {
@@ -1534,7 +1530,7 @@ static void em32_R1_AtkWalk(cEm32* em)
         em->r_no_2++;
     case 1:
         EM32_BLEND_TURN2(em, w, &w->targetPos, 0.785398185f);
-        em32BlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
+        em32BlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
         if (MotionMove(em, 0)) {
             if (w->Atk_ck) {
                 w->wait = 60;
@@ -1562,7 +1558,7 @@ static void em32_R1_AtkWalk(cEm32* em)
         em->r_no_2++;
     case 3:
         EM32_BLEND_TURN2(em, w, &w->targetPos, 0.785398185f);
-        em32BlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
+        em32BlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
         if (MotionMove(em, 0) || (em->motEvent & 4)) {
             if (w->Atk_ck) {
                 goto threat;
@@ -3874,7 +3870,7 @@ void em32ClothMove(cEm32* em)
 // motion, blended with m1 (sequence a) when blendVal is positive or m2 (b) when negative, at weight
 // |blendVal| / 256 through the second motion work (motBlend). blendCnt is the MotionSetCore
 // interpolation count and blendSeq the frame, both kept in step by this call; `d` the motion flags.
-void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, u16 d)
+void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, int d)
 {
     Em32Work* w = EM32_WK(em);
     MotionWork* bm;

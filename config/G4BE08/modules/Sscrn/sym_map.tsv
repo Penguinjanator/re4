@@ -21,7 +21,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000FBC	0x4	Sscrn/ss_cap.cpp	global	move__t6Widget1Z10SUB_SCREENP10SUB_SCREEN	Widget<SUB_SCREEN>::move
 .text	0x00000FC0	0x4C4	Sscrn/ss_debug.cpp	global	SscrnDebugMenu	SscrnDebugMenu
 .text	0x00001484	0x80	Sscrn/ss_debug.cpp	global	init__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::init
-.text	0x00001504	0x2C	Sscrn/ss_debug.cpp	global	quit__9ssDbgPzzl	ssDbgPzzl::quit
+.text	0x00001504	0x2C	Sscrn/ss_debug.cpp	global	quit__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::quit
 .text	0x00001530	0xAAC	Sscrn/ss_debug.cpp	global	move__9ssDbgPzzlP10SUB_SCREEN	ssDbgPzzl::move
 .text	0x00001FDC	0x3B8	Sscrn/ss_debug.cpp	global	fn_Sscrn_1FDC	.
 .text	0x00002394	0xC0	Sscrn/ss_debug.cpp	global	dispWorkNum__t8cManager1Z6cPartsiiii	cManager<cParts>::dispWorkNum

@@ -58,7 +58,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00009F74	0x1A0	em2b/em2b.cpp	local	em2b_R1_Die_R224Drop__FP5cEm2b	em2b_R1_Die_R224Drop
 .text	0x0000A114	0x5AC	em2b/em2b.cpp	global	em2bRouteCk__FP5cEm2b	em2bRouteCk
 .text	0x0000A6C0	0x144	em2b/em2b.cpp	global	em2bNeckMove__FP5cEm2b	em2bNeckMove
-.text	0x0000A804	0x100	em2b/em2b.cpp	global	em2bBlendMotSet__FP5cEm2bPvN21iiiUs	em2bBlendMotSet
+.text	0x0000A804	0x100	em2b/em2b.cpp	global	em2bBlendMotSet__FP5cEm2bPvN21iiii	em2bBlendMotSet
 .text	0x0000A904	0x114	em2b/em2b.cpp	global	em2bClothSet__FP5cEm2b	em2bClothSet
 .text	0x0000AA18	0x30	em2b/em2b.cpp	global	em2bClothMove__FP5cEm2b	em2bClothMove
 .text	0x0000AA48	0x228	em2b/em2b.cpp	global	em2bAtkCk__FP5cEm2bP3VecT1i	em2bAtkCk

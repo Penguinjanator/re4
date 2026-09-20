@@ -704,48 +704,43 @@ static void seRandomCheck(int blk, u16* no)
     t->last = *no;
 }
 
-// The wrappers call SndCall through int-parameter function pointer types: no `clrlwi` on `no`, and
-// EmSeCall passes `id` in the pos slot and `pos` in the id slot, as the original binary does.
-typedef u32 (*SndCallFn)(int blk, int no, Vec* pos, int id, int vol, cUnit* obj);
-typedef u32 (*SndCallFn2)(int blk, int no, int id, Vec* pos, int vol, cUnit* obj);
-
 // Enemy SE `no` of enemy `id` (block 8 + the enemy's block).
-u32 EmSeCall(int no, int id, Vec* pos, int vol0, int vol1, cUnit* obj)
+u32 EmSeCall(u16 no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* obj)
 {
-    return ((SndCallFn2) SndCall)(8, no, id, pos, vol0 | vol1, obj);
+    return SndCall(8, no, pos, id, vol | flag, obj);
 }
 
 // Room SE `no` (block 6).
-u32 RoomSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+u32 RoomSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
 {
-    return ((SndCallFn) SndCall)(6, no, pos, 0, vol1 | vol0, obj);
+    return SndCall(6, no, pos, 0, flag | vol, obj);
 }
 
 // Player SE `no` (block 1).
-u32 PlSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+u32 PlSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
 {
-    return ((SndCallFn) SndCall)(1, no, pos, 0, vol0 | vol1, obj);
+    return SndCall(1, no, pos, 0, vol | flag, obj);
 }
 
 // Core (system / common) SE `no` (block 0).
-u32 CoreSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+u32 CoreSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
 {
-    return ((SndCallFn) SndCall)(0, no, pos, 0, vol0 | vol1, obj);
+    return SndCall(0, no, pos, 0, vol | flag, obj);
 }
 
 // Footstep SE `no` (block 5) at `pos`.
-u32 FootSeCall(int no, Vec* pos, int vol0, int vol1)
+u32 FootSeCall(u16 no, Vec* pos, u8 vol, u32 flag)
 {
-    return ((SndCallFn) SndCall)(5, no, pos, 0, vol0 | vol1, 0);
+    return SndCall(5, no, pos, 0, vol | flag, 0);
 }
 
 // Door SE `no` (block 7) when the door block is loaded.
-u32 DoorSeCall(int no)
+u32 DoorSeCall(u16 no)
 {
     if (!SND_BIT_CK(pSnd->blk_flag, 7)) {
         return 0;
     }
-    return ((SndCallFn) SndCall)(7, no, 0, 0, 0, 0);
+    return SndCall(7, no, 0, 0, 0, 0);
 }
 
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);

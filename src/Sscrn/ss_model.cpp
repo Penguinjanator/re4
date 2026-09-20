@@ -203,45 +203,35 @@ void hunniganModelInit(cModel* m, void* data, u32 type)
     ssModelLight(m);
 }
 
-// COMPILER-DIFF: 4 (the u8 weapon number / type are passed to the u16 parameters without the
-// `clrlwi 16` our compiler adds). Same functions, int views.
-extern "C" {
-void leonModelInitI(int no, int type) asm("leonModelInit");
-void adaModelInitI(int no, int type) asm("adaModelInit");
-void klauserModelInitI(int no, int type) asm("klauserModelInit");
-void hunkModelInitI(int no, int type) asm("hunkModelInit");
-void weskerModelInitI(int no, int type) asm("weskerModelInit");
-}
-
 // Builds the sub screen's character (MapMgr work 0) and weapon (work 1) models for the equipped
 // weapon (ItemMgr.m_wep_id -> number / type) by pl_type; called at screen entry and by
 // weaponChangeTask after a re-equip.
 void playerModelInit()
 {
     cItemMgr* im = &ItemMgr;
-    u8 no = WeaponId2WeaponNo(im->m_wep_id);
-    u8 type = WeaponId2WeaponType(im->m_wep_id);
+    u16 no = WeaponId2WeaponNo(im->m_wep_id);
+    u16 type = WeaponId2WeaponType(im->m_wep_id);
 
     ssPlModel = MapMgr.getWork(0);
     ssWepModel = MapMgr.getWork(1);
     switch (pG->pl_type) {
     case 0:
-        leonModelInitI(no, type);
+        leonModelInit(no, type);
         break;
     case 1:
         ashleyModelInit();
         break;
     case 2:
-        adaModelInitI(no, type);
+        adaModelInit(no, type);
         break;
     case 4:
-        klauserModelInitI(no, type);
+        klauserModelInit(no, type);
         break;
     case 3:
-        hunkModelInitI(no, type);
+        hunkModelInit(no, type);
         break;
     case 5:
-        weskerModelInitI(no, type);
+        weskerModelInit(no, type);
         break;
     }
 }

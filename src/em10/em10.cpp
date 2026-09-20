@@ -350,11 +350,6 @@ extern "C" int em10SearchParasite(cEm10* em);
 // EstSet with the enemy as owner argument (esp.h declares the int form).
 void EstSetEm(cModel* em, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, cModel* g, void* h) asm("EstSet");
 
-// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of the u16 se number / block.
-u32 Ctrl11SetSe2I(cCtrl* c, cModel* m, s16 time, int no, int idx, int blk) asm("Ctrl11SetSe2__FP5cCtrlP6cModelsUsiUs");
-// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of em10CallVoiceSe's u16 se number (em10SetDamageVoice).
-extern "C" void em10CallVoiceSeI(cEm10* em, int no) asm("em10CallVoiceSe");
-
 // Helpers of this unit used before their definition.
 int em10CrashCk(cEm10* em);
 int em10LostHead(cEm10* em, int a, int b);
@@ -393,11 +388,11 @@ void em10HeadSet(cEm10* em, int a);
 void em10DragonFireCk(cEm10* em);
 int em10JumpDownCk(cEm10* em);
 cObjGondola* em10GetGondola(cEm10* em);
-void em10CallVoiceSe2(cEm10* em, int no, int a);
+void em10CallVoiceSe2(cEm10* em, u16 no, u16 a);
 cEmWep* em10MakeWeapon(cEm10* em, int type);
 void em10WeaponSet(cEm10* em);
 int em10ClimbOverCk(cEm10* em);
-void em10SetDamageVoice(cEm10* em, int a, int b);
+void em10SetDamageVoice(cEm10* em, u16 a, u16 b);
 extern "C" void OSReport(const char* fmt, ...);
 void em10RouteCk(cEm10* em);
 void em10ClawMove(cEm10* em);
@@ -17938,14 +17933,14 @@ extern "C" void em10CallVoiceSe(cEm10* em, u16 no)
 }
 
 // Voice `no` on ctrl11 bank `a` without stopping the current voice (only while none plays).
-void em10CallVoiceSe2(cEm10* em, int no, int a)
+void em10CallVoiceSe2(cEm10* em, u16 no, u16 a)
 {
     Em10Work* w = EM10_WK(em);
 
     SndStop(w->Seid_voice, 0);
     SndStop(w->Seid_breath, 0);
     if (!(w->flags & 0x80)) {
-        w->Seid_voice = Ctrl11SetSe2I(w->pCtrlSe, em, Rnd() % 20 + 20, no, 6, a);
+        w->Seid_voice = Ctrl11SetSe2(w->pCtrlSe, em, Rnd() % 20 + 20, no, 6, a);
         w->Breath_se_wait = Rnd() % 120 + 120;
     }
 }
@@ -26173,7 +26168,7 @@ extern "C" void em10ParasiteGoOut(cEm10* em)
 
 // Damage voice: `b` (the death cry) when the Ganado is dead, the parasite screech 0x89 when the
 // parasite is out, else `a`.
-void em10SetDamageVoice(cEm10* em, int a, int b)
+void em10SetDamageVoice(cEm10* em, u16 a, u16 b)
 {
     Em10Work* w = EM10_WK(em);
 
@@ -26188,7 +26183,7 @@ void em10SetDamageVoice(cEm10* em, int a, int b)
             w->Breath_se_wait = Rnd() % 120 + 120;
         }
     } else if (!(w->flags & 0x80)) {
-        em10CallVoiceSeI(em, a);
+        em10CallVoiceSe(em, a);
     }
 }
 

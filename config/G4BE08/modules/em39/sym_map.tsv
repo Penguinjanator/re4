@@ -126,7 +126,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00015F24	0x18	em39/em39.cpp	global	set1stDoorClear__5cEm39	cEm39::set1stDoorClear
 .text	0x00015F3C	0x18	em39/em39.cpp	global	set2ndDoorClear__5cEm39	cEm39::set2ndDoorClear
 .text	0x00015F54	0x8C	em39/em39.cpp	global	em39VoiceMove__FP5cEm39	em39VoiceMove
-.text	0x00015FE0	0x70	em39/em39.cpp	global	em39SetVoice__FP5cEm39i	em39SetVoice
+.text	0x00015FE0	0x70	em39/em39.cpp	global	em39SetVoice__FP5cEm39Us	em39SetVoice
 .text	0x00016050	0x10	em39/em39.cpp	global	em39SetSpeech__FP5cEm39ii	em39SetSpeech
 .text	0x00016060	0x48	em39/em39.cpp	global	em39SpeechMove__FP5cEm39	em39SpeechMove
 .text	0x000160A8	0x17C	em39/em39.cpp	global	em39SlantCk__FP5cEm39	em39SlantCk

@@ -29,7 +29,7 @@ public:
     s8 m_bllt_no;      // 0x07  0 normal, 1 infinite, 2 infinite + no reload
 
     void init(SUB_SCREEN* wk);
-    void quit();
+    void quit(SUB_SCREEN* wk);
     void move(SUB_SCREEN* wk);
 };
 
@@ -168,7 +168,7 @@ void ssDbgPzzl::init(SUB_SCREEN* wk)
 }
 
 // Frees the inventory backup.
-void ssDbgPzzl::quit()
+void ssDbgPzzl::quit(SUB_SCREEN* wk)
 {
     if (m_p_save_bak) {
         Mem_free(m_p_save_bak);

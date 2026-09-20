@@ -862,7 +862,7 @@ void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit)
 // Three digit number display with the IdNum table `id`: unit 0 is the frame (placed at `pos`), units
 // 1..3 the digits (colour of IdSub 0x14/0xFD or 0xFE when flags bit 1 is set), 0x11..0x13 their
 // shadows; flags bit 0 hides the leading zeros.
-void numDisp(u8 id, int num, Vec* pos, u32 flags)
+void numDisp(int id, int num, Vec* pos, u32 flags)
 {
     IdUnit* col0 = IdSub.unitPtr(0xFD, 0x14);
     IdUnit* col1 = IdSub.unitPtr(0xFE, 0x14);

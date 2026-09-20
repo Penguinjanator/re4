@@ -59,8 +59,6 @@ extern "C" f64 tan(f64 x);
 
 
 // ss_main.cpp
-// COMPILER-DIFF: 4 (int view of numDisp(u8, ..): no clrlwi of `0x40 + i` at the call, as in ss_item)
-extern "C" void numDispI(int id, int num, Vec* pos, u32 flags) asm("numDisp");
 extern "C" {
 void clearZbuffer();
 void idMainMenuFade(SUB_SCREEN* wk, int sw);
@@ -77,9 +75,7 @@ public:
     s8 bullet;
 
     void init(SUB_SCREEN* wk);
-    // SsPzzlMain::quit passes wk (`mr r4, r31`) to the parameterless ss_debug.cpp quit: the
-    // caller's view of the class had a SUB_SCREEN* parameter (asm-labelled to the real symbol).
-    void quit(SUB_SCREEN* wk) asm("quit__9ssDbgPzzl");
+    void quit(SUB_SCREEN* wk);
     void move(SUB_SCREEN* wk);
 };
 
@@ -1005,7 +1001,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
     int no = 0;
 
     for (int i = 0; i < 0x3E; i++) {
-        numDispI(0x40 + i, 0, 0, 0);
+        numDisp(0x40 + i, 0, 0, 0);
     }
     pl = wk->puzzlePlayer;
     hand = pl->m_inhand;
@@ -1043,9 +1039,9 @@ void pieceModelDisp(SUB_SCREEN* wk)
                 u32 num = x8 & 0x1FFF;
 
                 if ((x8 >> 13) == 1) {
-                    numDispI(id, num, &scr, 3);
+                    numDisp(id, num, &scr, 3);
                 } else {
-                    numDispI(id, num, &scr, 1);
+                    numDisp(id, num, &scr, 1);
                 }
                 no++;
             } else {
@@ -1053,7 +1049,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
                 if (info.type != 9) {
                     pzzlItemInfo(item->id, &info);
                     if (info.maxNum != 1 || item->num != 1) {
-                        numDispI(id, item->num, &scr, 1);
+                        numDisp(id, item->num, &scr, 1);
                         no++;
                     }
                 }

@@ -39,8 +39,6 @@ class cObjWep;
 
 // game/quake.cpp keeps QuakeKill static; the REL imports it by name.
 void QuakeKill(u8 id);
-// The rooms pass the position in the second slot (the DOL definition forwards it there).
-u32 EmSeCallP(int no, Vec* pos, int id, int vol0, int vol1, cUnit* obj) asm("EmSeCall__FiiP3VeciiP5cUnit");
 
 // Room 2-12 (D:/Bio4/Prog/r212.cpp): the four floor switches and the falling roof trap, the
 // three shutter doors, the drill Ganados and Ashley's escape.
@@ -667,12 +665,12 @@ static void r212_DrillAppearCheck()
         SceSleep(1);
     }
     CamCtrl.CutCall(5);
-    r212_work.p->se = EmSeCallP(0x1A, 0, 0x11, 0, 0, 0);
+    r212_work.p->se = EmSeCall(0x1A, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(6);
-    r212_work.p->se = EmSeCallP(0x4E, 0, 0x11, 0, 0, 0);
+    r212_work.p->se = EmSeCall(0x4E, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -830,7 +828,7 @@ static void r212_AshleyDrillAction(cEm* sub)
     case 1:
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 10, 0, 1, 0);
-            EmSeCallP(3, &sub->pos, 3, 0, 0, 0);
+            EmSeCall(3, &sub->pos, 3, 0, 0, 0);
             sub->r_no_2++;
         }
         break;
