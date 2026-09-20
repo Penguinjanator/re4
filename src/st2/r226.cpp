@@ -90,8 +90,6 @@ extern "C" void SceElevator(SceElevatorData* d);
 // COMPILER-DIFF: 4 -- `int` table entries reach cEmWrap::setEm's s16 parameter unextended
 // (`lwzx r4`); ours narrows the load to `lha` through the real prototype.
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
-// MotionMove is called with a second argument by the player routines (the DOL definition ignores it).
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 static R226WorkPtr r226_work;
 static Camera r226_cam;
@@ -1185,7 +1183,7 @@ static void playerRunMovePassage(cPlayer* pl)
                 break;
             }
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     case 3:
         playerRunCamMovePassage(pl, 1.0f);
@@ -1195,7 +1193,7 @@ static void playerRunMovePassage(cPlayer* pl)
     case 4:
         playerRunCamMovePassage(pl, 1.0f);
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             BitOff(pG->Room_flg[0], 0x10000000);
             if (pG->Room_flg[0] & 0x08000000) {
                 pl->r_no_2 = 5;
@@ -1273,7 +1271,7 @@ static void playerRunMoveBridge(cPlayer* pl)
                 FlagOn(&pG->Room_flg, 33);
             }
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     case 3:
         FSetP(pPL->pos.x, -92879.0f);
@@ -1284,7 +1282,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         FSetP(pPL->ang.z, 0.0f);
         BitOff(pPL->be_flag, 0x10);
         MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x69), 0, 3, 0x201, 0);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         pl->r_no_2 = 4;
     case 4:
         pl->dmg.m_Timer = 0x78;
@@ -1304,11 +1302,11 @@ static void playerRunMoveBridge(cPlayer* pl)
         if (pl->frame > 29.7f && pl->frame < 30.3f) {
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             IntSet(r226_work.p->btnCnt, 0);
             IntSet(r226_work.p->timer, 0);
             MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6A), 0, 10, 0x204, 0);
-            MotionMoveF(pl, 0);
+            MotionMove(pl, 0);
             pl->r_no_2 = 5;
         }
         break;
@@ -1318,14 +1316,14 @@ static void playerRunMoveBridge(cPlayer* pl)
             r226_work.p->btnCnt++;
         }
         ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         r226_work.p->timer++;
         SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);
         SceDebugDisp("Timer: [%d/%d]", r226_work.p->timer, 90);
         if (r226_work.p->timer > 90) {
             if (r226_work.p->btnCnt > 10) {
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6B), 0, 3, 0x201, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 r226_work.p->str = SndStrPlayBlock(1, 0x2F, 0.0f);
                 pl->r_no_2 = 6;
             } else {
@@ -1333,14 +1331,14 @@ static void playerRunMoveBridge(cPlayer* pl)
                 AtariFlagsAndV(&pl->atari, 0xFCFF);
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6C), 0, 3, 0x201, 0);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 pl->r_no_2 = 7;
             }
         }
         break;
     case 6:
         pl->dmg.m_Timer = 0x82;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             BitOff(pG->Room_flg[0], 0x10000000);
             RsfSet(G_ROOM_ID, 13);
             pPL->be_flag |= 0x10;
@@ -1356,7 +1354,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         }
         break;
     case 7:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -1388,7 +1386,7 @@ static void playerRunDiePassage(cPlayer* pl)
         if (pl->frame > 22.7f && pl->frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     playerRunCamDiePassage(pl);
@@ -1415,7 +1413,7 @@ static void playerRunDieBridge(cPlayer* pl)
         if (pl->frame > 22.7f && pl->frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }

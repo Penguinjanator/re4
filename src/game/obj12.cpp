@@ -10,6 +10,7 @@
 #include "snd.h"
 #include "rnd.h"
 #include "pad.h"
+#include "motion.h"
 
 // Hanging object that can be thrown and falls as a three-point rope (obj00 variant with a rope
 // type, a life counter and a throw routine).
@@ -37,7 +38,6 @@ struct Obj12Node {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 }
 

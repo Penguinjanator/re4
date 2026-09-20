@@ -42,10 +42,6 @@ asm(".comm common_em38,52,4");
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.h declares EmSetDieCnt without arguments; this module passes the enemy.
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 // game/em_dm_val.cpp (declared in em10.h, which is not included here: emwep.h's extern "C" plemBackjump would
 // turn this unit's static plemBackjump into a global C function).
 int GetWepDmVal(cEm* em, u32 wep_no, int near);
@@ -196,7 +192,7 @@ void em38DmCk(cEm38* em)
     }
     if (em->hp <= 1 && em->type == 3) {
         EmSetDie(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em->hp = 0;
         em->r_no_0 = 3;
         em->r_no_1 = 1;
@@ -506,30 +502,30 @@ static void em38_R0_Init(cEm38* em)
         em->r_no_2 = 0;
         em->r_no_3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 1:
         EmRoutineSet(em, 1, 5, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0x2F), 0, 0, 5, 0);
         em->hp = 200;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 2:
         EmRoutineSet(em, 1, 5, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0x2F), 0, 0, 5, 0);
         em->hp = 200;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 3:
         em->setStatus(EM_STATUS_ACTIVE);
         EmRoutineSet(em, 1, 0xE, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0x29), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 4:
         EmRoutineSet(em, 1, 0x10, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0x50), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em38_R0_Move(em);
@@ -581,7 +577,7 @@ static void em38_R1_Wait(cEm38* em)
         ang = t * 365.26062f;
         w->blendRate = w->blendRate * 0.98f + ang * 0.02f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], 0, 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->timer++;
             if (pGS->Game_level <= 1 && w->timer <= 1) {
                 if ((u8) (Rnd() % 10) > 4) {
@@ -634,7 +630,7 @@ static void em38_R1_HeadUp(cEm38* em)
         w->flags |= 0x20;
         w->blendRate *= 0.98f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0) == 0) {
+        if (MotionMove(em, 0) == 0) {
             return;
         }
         em->r_no_2++;
@@ -650,7 +646,7 @@ static void em38_R1_HeadUp(cEm38* em)
         w->flags |= 0x20;
         w->blendRate *= 0.98f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], 0, 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->pTent[0] && w->pTent[1]) {
                 if (w->pTent[0]->ckIn() == 0 || w->pTent[1]->ckIn() == 0) {
                     EmRoutineSet(em, 1, 2, 0, 0);
@@ -680,7 +676,7 @@ static void em38_R1_HeadUp(cEm38* em)
         ang = t * 365.26062f;
         w->blendRate = w->blendRate * 0.98f + ang * 0.02f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -709,7 +705,7 @@ static void em38_R1_HeadStamp(cEm38* em)
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->atkHit == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -792,7 +788,7 @@ static void em38_R1_Atk(cEm38* em)
             w->blendRate = w->blendRate * 0.995f + ang * 0.005f;
         }
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             w->atkWait = 210;
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -819,7 +815,7 @@ static void em38_R1_AtkHit(cEm38* em)
         SndCall(8, 0x21, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -847,7 +843,7 @@ static void plem38_AtkHit(cPlayer* pl)
         pl->r_no_2++;
     }
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     pl->x3A8 = pl->pos;
@@ -872,7 +868,7 @@ static void em38_R1_T_Wait(cEm38* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->pBody && w->pBody->hp <= 0) {
             EmRoutineSet(em, 1, 8, 0, 0);
             break;
@@ -927,7 +923,7 @@ static void em38_R1_T_Hide(cEm38* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x30), 0, 0, 0x45, 0);
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -954,7 +950,7 @@ static void em38_R1_T_In(cEm38* em)
         w->flags |= 0x40;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 5, 0, 0);
         }
         break;
@@ -984,7 +980,7 @@ static void em38_R1_T_Out(cEm38* em)
         w->flags &= ~0x40;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 6, 0, 0);
         }
         break;
@@ -1082,7 +1078,7 @@ static void em38_R1_T_Atk(cEm38* em)
         }
         w->blendRate = w->blendRate * 0.8f + ang * 0.2f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->atkHit == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
@@ -1184,7 +1180,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         w->actVar = Rnd() & 1;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->atkHit == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
@@ -1274,7 +1270,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
         w->actVar = Rnd() & 1;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 5, 0, 0);
@@ -1346,7 +1342,7 @@ static void em38_R1_T_DownAtk(cEm38* em)
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->atkHit == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
@@ -1401,7 +1397,7 @@ static void em38_R1_T_CatchHit(cEm38* em)
         if (em->frame > 9.7f && em->frame < 10.3f) {
             SndCall(8, 0x26, &em->getPartsPtr(4)->world, em->id, 0, pPL);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 5, 0, 0);
         }
         break;
@@ -1442,7 +1438,7 @@ static void plem38_CatchHit(cPlayer* pl)
         PlSetFace(1);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             LifeDownSet(pPL, 0x226, 0);
             if ((s16) pG->pl_life > 0) {
                 pl->r_no_2++;
@@ -1461,7 +1457,7 @@ static void plem38_CatchHit(cPlayer* pl)
         EstSet(pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, pl, 0);
         pl->r_no_2++;
     case 3:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
@@ -1488,7 +1484,7 @@ static void em38_R1_U_Wait(cEm38* em)
         em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -1508,7 +1504,7 @@ static void em38_R1_U_Critical(cEm38* em)
         em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0xE, 0, 0);
         }
         break;
@@ -1525,7 +1521,7 @@ static void em38_R1_L_Wait(cEm38* em)
         MotionSetCore(em, MOTION(em), ARC(0x50), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -1565,7 +1561,7 @@ static void em38_R1_Dm_Down(cEm38* em)
     case 1:
         w->blendRate *= 0.9f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->mode == 1 || w->mode == 7) {
                 if (w->flags & 0x100) {
                     w->mode = 2;
@@ -1584,7 +1580,7 @@ static void em38_R1_Dm_Down(cEm38* em)
         w->timer = 190;
         em->r_no_2++;
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -1595,7 +1591,7 @@ static void em38_R1_Dm_Down(cEm38* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x19), 3, 1, 0);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0xA);
         }
         break;
@@ -1616,7 +1612,7 @@ static void em38_R1_Dm_Upper(cEm38* em)
         em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0xE, 0, 0);
         }
         break;
@@ -1648,7 +1644,7 @@ static void em38_R1_Die_Body(cEm38* em)
         em->atari.throughOn();
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0) == 0) {
+        if (MotionMove(em, 0) == 0) {
             if (em->frame > 199.7f && em->frame < 200.3f) {
                 w->mode = 8;
             }
@@ -1668,7 +1664,7 @@ static void em38_R1_Die_Upper(cEm38* em)
         em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->atari.m_flag &= ~0x300;
         }
         break;
@@ -2317,7 +2313,7 @@ static void plemDmStamp(cPlayer* pl)
         PlSetFace(1);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0) && (s16) pG->pl_life > 0) {
+        if (MotionMove(pl, 0) && (s16) pG->pl_life > 0) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
@@ -2443,7 +2439,7 @@ static void plemEscape(cPlayer* pl)
             pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->m_Work0 = 0;
         }
         if (pl->m_Work0) {
@@ -2543,7 +2539,7 @@ static void plemBackjump(cPlayer* pl)
         if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->m_Work0 = 0;
         }
         if (pl->m_Work0) {
@@ -2578,7 +2574,7 @@ static void plemSit(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;

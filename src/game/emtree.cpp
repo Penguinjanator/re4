@@ -15,9 +15,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);

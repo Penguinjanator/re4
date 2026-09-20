@@ -51,7 +51,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 extern "C" void Em_R0_Scenario(cEm* em);         // game/em_sub.cpp
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // MotionMove called with a second argument (pl_npc.cpp)
 
 // The module's 0x30-byte COMMON block: uninitialised template statics of the original object,
 // appended to .bss by snmakerel.
@@ -612,7 +611,7 @@ static void pl0f_R1_Guard(cPl0f* em)
         VibSetData(VIB_TBL, 0xB, 1);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             PlRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -648,7 +647,7 @@ static void pl0f_R1_Drop(cPl0f* em)
         w->Timer = 60;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             PlRoutineSet(em, 1, 0, 0, 0);
         } else if (w->Timer) {
             f32 spd;
@@ -711,7 +710,7 @@ static void pl0f_R1_WaterRide(cPl0f* em)
         w->Timer = 60;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             PlRoutineSet(em, 1, 6, 0, 0);
         }
         break;
@@ -731,7 +730,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             PlRoutineSet(em, 1, 6, 0, 0);
         }
         break;
@@ -1980,7 +1979,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         if (pl->frame > 27.7f && pl->frame < 28.3f) {
             SndCall(8, 5, &pl->pos, boat->id, 0, 0);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PLBOAT_ENGINE_START();
             PlRoutineSet(pPLS, 0, 0xF, 2, 0);
         }
@@ -2032,7 +2031,7 @@ static void plboat_R2_Getoff(cPlayer* pl)
         if (pl->frame > 45.7f && pl->frame < 46.3f) {
             SndCall(5, 3, &pl->pos, pl->id, 0, 0);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             cPlayer* p;
 
             EndPlDamage();
@@ -2091,7 +2090,7 @@ static void plboat_R2_Move(cPlayer* pl)
         }
         pl->m_BoatPlDir *= 0.9f;
         plOnBoat(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         if (Key.on & 0x10) {
             PlRoutineSet(pPL, 0, 0xF, 3, 0);
         }
@@ -2217,7 +2216,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         if (pl->frame > 6.7f && pl->frame < 7.3f) {
             plboatSetSpear(pl);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->r_no_3++;
         } else if (!(Key.on & 0x10) || (boss && (boss->flag & 0x20))) {
             if (pl->m_pSpear) {
@@ -2237,7 +2236,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         plboatBlendMotSet(pl, PLARC(0xE), PLARC(0xF), PLARC(0xD), 0, 0, 0);
         PLBOAT_AIM_CONTROL();
         plOnBoat(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         plboatSightCurMove(pl);
         if ((boss && (boss->flag & 0x20)) || !(Key.on & 0x10)) {
             pl->r_no_3++;
@@ -2257,7 +2256,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
                 pl->m_pSpear = 0;
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             FSet(pl->m_Blend, 0.0f);
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
         }
@@ -2289,7 +2288,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 3, 2);
         } else {
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
@@ -2349,7 +2348,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         if (pl->frame > 89.7f && pl->frame < 90.3f) {
             plboatSetSpear(pl);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->r_no_3++;
         }
         break;
@@ -2363,7 +2362,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         plboatBlendMotSet(pl, PLARC(0xE), PLARC(0xF), PLARC(0xD), 0, 0, 0);
         PLBOAT_AIM_CONTROL();
         plOnBoat(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         plboatSightCurMove(pl);
         if (boss && !(boss->flag & 0x20)) {
             pl->r_no_3++;
@@ -2383,7 +2382,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
                 pl->m_pSpear = 0;
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2413,7 +2412,7 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 0xA, 2);
         } else {
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
@@ -2444,7 +2443,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         plOnBoat(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         if (pl->m_Work0) {
             pl->m_Work0--;
         } else {
@@ -2463,7 +2462,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
                 pl->m_pSpear = 0;
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2488,7 +2487,7 @@ static void plboat_R2_Guard(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         plOnBoat(pl);
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2566,7 +2565,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
             SndCall(8, 3, &pl->pos, 0xF, 0, 0);
             SndStrVolReset(0, 5, 1);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             if ((s16) pG->pl_life > 0) {
                 PlRoutineSet(pPL, 0, 0xF, 6, 0);
             }
@@ -2731,7 +2730,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         }
         PSMTXMultVecSR(pl->mat, &pl->m_VecWork0, &v);
         PSVECAdd(&pl->pos, &v, &pl->pos);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     }
@@ -2802,7 +2801,7 @@ static void plboat_R2_WaterRide(cPlayer* pl)
         PSVECAdd(&pl->pos, &v, &pl->pos);
         pl->ang.y += Muku2(plboat_ride_ang, boat->ang.y, PI);
         plboat_ride_ang = boat->ang.y;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->Body->initWepHand((u32) PLARC(0x8));
             pl->setRightHand(1);
             pl->Wep->setTrans(0, 0);
@@ -2871,7 +2870,7 @@ static void plboat_R2_Die(cPlayer* pl)
             PSMTXConcat(boss->getPartsPtr(8)->mat, pl->mat, pl->mat);
             pl->motFlags2 |= 0x40000000;
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         if (pl->m_Work1) {
             pl->m_Work1--;
             if (pl->m_Work1 == 0) {
@@ -2907,7 +2906,7 @@ static void plboat_R2_Die(cPlayer* pl)
     case 1: \
         plboatBlendMotSet(pl, PLARC(0x9), PLARC(0xB), PLARC(0xA), 0, 0, 0); \
         plOnBoat(pl); \
-        MotionMoveF(pl, 0); \
+        MotionMove(pl, 0); \
         break; \
     } \
     if (pl->m_Work7) { \
@@ -2975,7 +2974,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         if (pl->frame > 27.7f && pl->frame < 28.3f) { \
             SndCall(8, 5, &pl->pos, boat->id, 0, 0); \
         } \
-        if (MotionMoveF(pl, 0)) { \
+        if (MotionMove(pl, 0)) { \
             PLBOAT_ENGINE_START(); \
             pl->r_no_3++; \
         } \
@@ -3010,7 +3009,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl0fRideCamMove(boat, 1.0f); \
         plboatBlendMotSet(pl, PLARC(0x9), PLARC(0xB), PLARC(0xA), 0, 0, 0); \
         plOnBoat(pl); \
-        MotionMoveF(pl, 0); \
+        MotionMove(pl, 0); \
         break; \
     } \
 }
@@ -3774,7 +3773,7 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         subBlendMotSet(sub, SUBARC(0x2E), SUBARC(0x2F), SUBARC(0x30), 0, 0, 0); \
     } \
     subOnBoat(sub, boat); \
-    MotionMoveF(sub, 0); \
+    MotionMove(sub, 0); \
 }
 
 // Partner damage-routine handlers (SetSubDamage(boat, fn); the boat pointer sits in the partner's
@@ -3816,7 +3815,7 @@ static void subBoatRide()
             sub->pos.y += dy;
             sub->fWork0 -= dy;
         }
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             sub->r_no_2++;
         } else {
             if (sub->frame > 21.7f && sub->frame < 22.3f) {
@@ -3865,7 +3864,7 @@ static void subBoatGetoff()
             sub->pos.y += dy;
             sub->fWork0 -= dy;
         }
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             EndSubDamage();
         }
         break;

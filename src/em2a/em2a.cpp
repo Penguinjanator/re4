@@ -41,8 +41,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // em_sub.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em2aFunc)(cEm2a*);
 
@@ -412,7 +410,7 @@ static void em2a_R1_Trap1Set(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -444,7 +442,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
                 em->r_no_2++;
             }
         } else {
-            if (MotionMoveF(em, 0)) {
+            if (MotionMove(em, 0)) {
                 em->hp = 0;
                 em->r_no_2++;
             }
@@ -457,7 +455,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->hp = 0;
             em->r_no_2++;
         } else {
@@ -513,7 +511,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
             w->biteTimer--;
             r = EmCatchMotionMove(em, 1.0f, 1.0f);
         } else {
-            r = MotionMoveF(em, 0);
+            r = MotionMove(em, 0);
         }
         if (r) {
             em->r_no_2++;
@@ -524,12 +522,12 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em2aDeadCk(pSUB)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->hp = 0;
         } else {
             em->x3A8 = em->pos;
@@ -539,7 +537,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), ARC(0x19), 5, 1, 0);
         em->r_no_2++;
     case 5:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -591,7 +589,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         sub->r_no_2++;
     case 5:
         sub->dmg.m_Timer = 2;
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             EndSubDamage();
         }
         if (sub->frame > 107.7f && sub->frame < 108.3f) {
@@ -639,7 +637,7 @@ static void plemResuceAshley(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x1D), 0, 3, 1, 0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -705,7 +703,7 @@ static void em2a_R1_Trap1Break(cEm2a* em)
         em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -722,7 +720,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->hp = 1;
             em->r_no_0 = 1;
             em->r_no_1 = 0;
@@ -742,7 +740,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         em->r_no_2++;
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->flag & 1) {
             em->r_no_2++;
         }
@@ -753,7 +751,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;

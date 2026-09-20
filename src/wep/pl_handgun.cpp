@@ -28,8 +28,6 @@
 
 extern "C" {
 f64 atan2(f64 y, f64 x);
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
@@ -194,7 +192,7 @@ static void wep02_r3_ready10(cPlayer* pl)
 // set by the shotgun-style callers; unused by the handgun's own transitions). Frame 4 -> set step 4.
 static void wep02_r3_ready20(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -225,7 +223,7 @@ static void wep02_r3_ready30(cPlayer* pl)
     f32* r;
     Vec* t;
 
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -393,7 +391,7 @@ static void wep02_r3_fire00(cPlayer* pl)
     arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x29), PL_ARC_PTR(arc, 0x2A), PL_ARC_PTR(arc, 0x2B), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
     pl->Waist->set(pl->m_Fwork0, 0.4f);

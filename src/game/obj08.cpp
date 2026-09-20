@@ -14,6 +14,7 @@
 #include "pad.h"
 #include "dbmodule.h"
 #include "player.h"
+#include "motion.h"
 
 // Thrown object (bottle, dynamite, ...): flies under gravity, optionally spinning, and checks
 // the scenario, the enemies and the player for hits.
@@ -31,7 +32,6 @@ struct WepTarget {
 extern cModel* pSUB;
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, int max, u16 flag);
 void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot);
@@ -42,7 +42,6 @@ int obj08ToEmHitCk(cObj08* obj);
 int obj08ToPlHitCk(cObj08* obj);
 void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 Vec obj08HitBox[8] = {
     { -500.0f, -500.0f, 0.0f },   { 500.0f, -500.0f, 0.0f },

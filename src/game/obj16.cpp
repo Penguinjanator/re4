@@ -22,6 +22,7 @@
 #include "player.h"
 #include "pl_npc.h"
 #include "pl_sub.h"
+#include "motion.h"
 
 // Enemy head (obj 0x16): the head / mouth model of the plaga-carrying enemies, hung on a parts of
 // its body (`o16.body`). It turns toward the player (obj16NeckMove), bites (R1_Atk, R1_Critical),
@@ -55,7 +56,6 @@ struct Obj16Parts {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 void LifeDownSet(cEm* em, int dmg, int rnd);
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);

@@ -360,7 +360,7 @@ void EmSetDie(cEm* em)
 }
 
 // Counts a kill in the chapter and game kill counters (results screen).
-void EmSetDieCnt()
+void EmSetDieCnt(cEm* pEm)
 {
     CntInc(pG->c_kill_cnt);
     CntInc(pG->g_kill_cnt);

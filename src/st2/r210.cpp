@@ -34,8 +34,6 @@ static R210Work* r210_work;
 // `pPL` load stays below it (pl_npc.cpp AtariOnRaw).
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 
-// pl_npc.cpp: MotionMove is called with a second argument by the partner code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `flags &= 0xEFFF` through a reference with a u16 mask: a halfword `andi.` (BitOff16's promoted
 // `~b` gives a word mask) whose store keeps the following `pSUB` load below it.
 static inline void U16And(u16& d, u16 mask) { d &= mask; }
@@ -617,7 +615,7 @@ static void plemRide(cPlayer* pl)
         pl->r_no_3 = 0;
     case 1:
         pl->r_no_3++;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;

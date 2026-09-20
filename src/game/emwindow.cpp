@@ -18,6 +18,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 // One row of WindowData (0x48 bytes), indexed by cModel::type.
 struct WindowDataRow {
@@ -54,7 +55,6 @@ int LadderNearCk(Vec* pos);                                                     
 void LadderEventTrans(int on);
 SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
 int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
-int MotionMove(cModel* m, int a);
 }
 void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 

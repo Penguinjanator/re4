@@ -26,9 +26,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);   // motion.cpp
 }
 
 // EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to

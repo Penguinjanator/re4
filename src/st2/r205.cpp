@@ -81,8 +81,6 @@ static const AtEffInfo r205_effInfo = {
     1, {0xD2, 0x2C}, {0xD2, 0x2F}, {0xD2, 0x2E}, {0xD2, 0x2D}, {0xD2, 0x20}, {0xD2, 0x20}, {0xD2, 0}, {0xD2, 0},
 };
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 // COMPILER-DIFF: #4 — the table entry is an int; the original passes it to the s16 parameter
 // without a truncation.
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
@@ -185,12 +183,12 @@ void R205Init()
     SceAtSetEnable(0x22, 0);
     if (getRoomEtcDoor(0x13, &r205_work.p->door0, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
-            cEmDoorSetCloseLock(r205_work.p->door0);
+            ((cEmDoor*) r205_work.p->door0)->setCloseLock();
         }
     }
     if (getRoomEtcDoor(0x14, &r205_work.p->door1, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            cEmDoorSetCloseLock(r205_work.p->door1);
+            ((cEmDoor*) r205_work.p->door1)->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);

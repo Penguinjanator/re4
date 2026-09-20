@@ -52,8 +52,6 @@
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 void RoomEfmRegist(void* model, void* tpl, u8 id);   // game/eff_sys.cpp (the bin/tpl overload)
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 extern StockEntry stock_r11c[];               // game/merchant.cpp
 extern StockEntry stock_r11c_after_event[];
@@ -319,7 +317,7 @@ static void r11c_EventBesiegedStart()
     }
     if (getRoomEtcDoor(0xA, &door, 1)) {
         door->setNoSuspend(0);
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
     }
     SysFlagOn(pG, SYS_SCREEN_STOP);
     err = W->evd0->waitLoadOk() == 0;

@@ -51,10 +51,6 @@ extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.h declares EmSetDieCnt without arguments; this module passes the enemy.
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 // COMPILER-DIFF #4: the original passes the int work field to the u16 parameter without the
 // truncation ours emits (`lwz` instead of `lhz`); int-view declarations of the two blend setters.
 void em2cBlendMotSetI(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int c, int d) asm("em2cBlendMotSet__FP5cEm2cPvN21iiiUs");
@@ -1204,7 +1200,7 @@ static void em2c_R0_Init(cEm2c* em)
     w->startPos = em->pos;
     w->startRot = em->ang;
     em2cInitRtnSet(em);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em2c_R0_Move(em);
     OSReport("em2c free size = 0x%x\n", 0x6C0);
 }
@@ -1243,7 +1239,7 @@ static void em2c_R1_Wait(cEm2c* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((s16) pG->pl_life <= 0) {
             break;
         }
@@ -1343,7 +1339,7 @@ static void em2c_R1_Walk(cEm2c* em)
         em->ang.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em2cDoorOpenCk(em);
@@ -1535,7 +1531,7 @@ static void em2c_R1_Dash(cEm2c* em)
             }
         }
         em2cBlendMotSet2I(em, w->blendM0, w->blendM1, w->blendA, 0, w->blendD);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer == 0) {
                 EmRoutineSet(em, 1, 0, 0, 0);
                 break;
@@ -1660,7 +1656,7 @@ static void em2c_R1_Turn180(cEm2c* em)
             em->ang.y += d;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             r = em2cAmbushCk(em);
             if (r) {
                 break;
@@ -1710,7 +1706,7 @@ static void em2c_R1_Ambush(cEm2c* em)
         MotionSetCore(em, &em->Motion, ARC(7), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 100000000.0f) {
             em->r_no_2++;
         }
@@ -1725,7 +1721,7 @@ static void em2c_R1_Ambush(cEm2c* em)
         SndCall(8, 0x40, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2cNextWalkSet2(em, w);
         }
         break;
@@ -1777,7 +1773,7 @@ static void em2c_R1_SideStep(cEm2c* em)
         if ((w->flags & 1) && w->routeAngAbs < 0.52359879f) {
             em2cTurnTo(em, &w->routePos, 0.0981747732f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2cNextWalkSet2(em, w);
             break;
         }
@@ -1848,7 +1844,7 @@ static void em2c_R1_BackJump(cEm2c* em)
             w->timer--;
             em2cTurnTo(em, &w->routePos, 0.196349546f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             r = em2cAmbushCk(em);
             if (r) {
                 break;
@@ -1886,7 +1882,7 @@ static void em2c_R1_Threat(cEm2c* em)
         em->r_no_2++;
     case 1:
         em2cTurnTo(em, &pPL->pos, 0.157079637f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->flags & 1) {
                 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
                 lim = 12250000.0f;
@@ -1941,7 +1937,7 @@ static void em2c_R1_AtkSign(cEm2c* em)
         em->r_no_2++;
     case 1:
         em2cTurnTo(em, &pPL->pos, 0.157079637f);
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->flags & 1) {
                 f32 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
@@ -2047,7 +2043,7 @@ static void em2c_R1_Atk(cEm2c* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->atkHit == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -2168,7 +2164,7 @@ static void em2c_R1_JumpAtk(cEm2c* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2cAtkEndSet(em, w);
         } else if (em->seFlags28B & 1) {
             em2cClawAtkCk(em, 1);
@@ -2219,7 +2215,7 @@ static void em2c_R1_BackKnuckle(cEm2c* em)
                 ActBtn.set(0x13, 0xB, (void*) em2cSitAction, em, 1, 3, 0, hit);
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2cAtkEndSet(em, w);
         } else if (em->seFlags28B & 1) {
             em2cClawAtkCk(em, 2);
@@ -2266,7 +2262,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
                 ActBtn.set(0x25, 0xB, (void*) em2cEscapeAction, em, 1, 3, 0, hit);
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2cAtkEndSet(em, w);
             break;
         }
@@ -2312,7 +2308,7 @@ static void plem2c_CriticalHit(cPlayer* pl)
         em2cPlHeadLost();
         pl->r_no_2++;
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -2350,7 +2346,7 @@ static void em2c_R1_SwayBack(cEm2c* em)
         } else {
             w->flags |= 0x40000;
         }
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             em2cNextWalkSet2(em, w);
             break;
@@ -2401,7 +2397,7 @@ static void em2c_R1_WakeupWait(cEm2c* em)
         w->x56C = Rnd() % 30 + 30;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((w->flags & 0x800) && w->guardCnt == 0) {
             w->x56C = w->guardCnt;
         }
@@ -2437,7 +2433,7 @@ static void em2c_R1_Wakeup(cEm2c* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->dmgTotal = 0;
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -2502,7 +2498,7 @@ static void em2c_R1_DownJump(cEm2c* em)
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         a = em->pos_old;
         b = em->pos;
         a.y += 1000.0f;
@@ -2528,7 +2524,7 @@ static void em2c_R1_DownJump(cEm2c* em)
         w->flags |= 0x120;
         em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->wallNrm.x = 0.0f;
             w->wallNrm.y = -1.0f;
             w->wallNrm.z = 0.0f;
@@ -2566,7 +2562,7 @@ static void em2c_R1_ToCeiling(cEm2c* em)
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         a = em->pos_old;
         b = em->pos;
         a.y += 1000.0f;
@@ -2592,7 +2588,7 @@ static void em2c_R1_ToCeiling(cEm2c* em)
         w->flags |= 0x120;
         em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->wallNrm.x = 0.0f;
             w->wallNrm.y = -1.0f;
             w->wallNrm.z = 0.0f;
@@ -2630,7 +2626,7 @@ static void em2c_R1_ToHide(cEm2c* em)
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         a = em->pos_old;
         b = em->pos;
         a.y += 1000.0f;
@@ -2662,7 +2658,7 @@ static void em2c_R1_ToHide(cEm2c* em)
         w->flags |= 0x120;
         em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EffectEspDelete(0, w->espKind, em, 0);
             EffectEspgenDelete(0, w->espKind, em);
             EffectEfmDelete(0, w->espKind, em);
@@ -2702,7 +2698,7 @@ static void em2c_R1_HideWait(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         r = em2cDoorCk(em);
         if (r) {
             w->timer = Rnd() % 6 * 30 + 150;
@@ -2759,7 +2755,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->pTail->flag & 4) {
             em->r_no_3 = 1;
         }
@@ -2817,7 +2813,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         w->timer = 10;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0x15, 0, 0);
             break;
         }
@@ -2860,7 +2856,7 @@ static void em2c_R1_HideFall(cEm2c* em)
     case 1:
         em->dmg.m_Timer = 2;
         MotionSetCore(em, &em->Motion, ARC(0x89), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->dmg.m_Timer = 2;
         if (w->timer) {
             w->timer--;
@@ -2882,7 +2878,7 @@ static void em2c_R1_HideFall(cEm2c* em)
             em->invisible_factor = 1.0f;
         }
         em->dmg.m_Timer = 2;
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
@@ -2894,7 +2890,7 @@ static void em2c_R1_HideFall(cEm2c* em)
             em->ang.y = atan2f(v.x, v.z);
             em->invisible_factor = 1.0f;
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 6;
         } else if (end) {
             AtariOn(&em->atari, 0x300);
@@ -2925,10 +2921,10 @@ static void em2c_R1_HideFall(cEm2c* em)
             w->wallNrm.y = 1.0f;
             w->wallNrm.z = 0.0f;
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 6;
         } else {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 6:
@@ -2939,7 +2935,7 @@ static void em2c_R1_HideFall(cEm2c* em)
         w->wallNrm.z = 0.0f;
         em->r_no_2++;
     case 7:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else if ((w->flags & 1) && (Rnd() & 1) && w->targetAngAbs < 0.52359879f) {
@@ -2975,7 +2971,7 @@ static void em2c_R1_JumpDown(cEm2c* em)
             spd.z *= 0.5f;
         }
         MotionAddSpeed(em, &em->Motion, &spd, &rot);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -2995,13 +2991,13 @@ static void em2c_R1_JumpDown(cEm2c* em)
             em->pos.y = fl;
             em->r_no_2++;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 4:
         MotionSetCore(em, &em->Motion, ARC(0x57), ARC(0x5B), 5, 1, 0);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else if (w->flags & 0x800) {
@@ -3029,7 +3025,7 @@ static void em2c_R1_WallOver(cEm2c* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->jumpAng, 0.392699093f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -3041,7 +3037,7 @@ static void em2c_R1_WallOver(cEm2c* em)
         w->flags |= 0x20;
         em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 0.400000006f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         t = w->timer;
         if (t) {
             w->timer = t - 1;
@@ -3083,7 +3079,7 @@ static void em2c_R1_F_Wait(cEm2c* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((s16) pG->pl_life <= 0) {
             break;
         }
@@ -3149,7 +3145,7 @@ static void em2c_R1_F_Walk(cEm2c* em)
         em->ang.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em2cDoorOpenCk(em);
@@ -3220,7 +3216,7 @@ static void em2c_R1_F_Atk(cEm2c* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->atkWait = 30;
             w->dmgTotal = 0;
             EmRoutineSet(em, 1, 0x17, 0, 0);
@@ -3255,7 +3251,7 @@ static void em2c_R1_F_Clear(cEm2c* em)
         EstSet(em, -1, 0, 0, 0x24, 0x26, 0, 0, em, (void*) fe);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->dmgTotal = 0;
             w->atkWait = 30;
             if (w->targetAngAbs > 2.09439516f) {
@@ -3294,7 +3290,7 @@ static void em2c_R1_W_Wait(cEm2c* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         em2cSetWallMatrix2(em, 0.400000006f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->atkWait == 0) {
             EmRoutineSet(em, 1, 0x1D, 0, 0);
         } else if (plPos.z < -8000.0f) {
@@ -3353,7 +3349,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
             w->plDir -= ang;
         }
         em2cSetWallMatrix2(em, 0.400000006f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             t = w->timer8;
             if (t) {
                 w->timer8 = t - 1;
@@ -3452,7 +3448,7 @@ static void em2c_R1_W_Atk(cEm2c* em)
         em->r_no_2++;
     case 1:
         em2cSetWallMatrix2(em, 0.400000006f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (Rnd() % 10 > 4) {
                 EmRoutineSet(em, 1, 0x20, 0, 0);
             } else if (w->atkHit) {
@@ -3496,7 +3492,7 @@ static void em2c_R1_W_Turn180(cEm2c* em)
         PSMTXConcat(em->mat, m, em->mat);
         MotionAddSpeed(em, &em->Motion, &spd, &rot);
         em2cSetWallMatrix2(em, 0.400000006f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0x1C, 0, 0);
         }
         break;
@@ -3535,7 +3531,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
         if (w->timer) {
             w->timer--;
             em2cSetWallMatrix2(em, 0.400000006f);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             if (w->timer == 0) {
                 em->r_no_2++;
             }
@@ -3553,12 +3549,12 @@ static void em2c_R1_W_Fall(cEm2c* em)
             PSMTXMultVecSR(em->mat, &v, &v);
             em->ang.y = atan2f(v.x, v.z);
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 6;
             break;
         }
         em2cSetFallMatrix(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -3580,12 +3576,12 @@ static void em2c_R1_W_Fall(cEm2c* em)
             PSMTXMultVecSR(em->mat, &v, &v);
             em->ang.y = atan2f(v.x, v.z);
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 6;
             break;
         }
         em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 4:
         MotionSetCore(em, &em->Motion, ARC(0x63), 0, 5, 5, 0);
@@ -3605,12 +3601,12 @@ static void em2c_R1_W_Fall(cEm2c* em)
             PSMTXMultVecSR(em->mat, &v, &v);
             em->ang.y = atan2f(v.x, v.z);
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 6;
             break;
         }
         em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 6:
         em2cSetdLandingEff(em);
@@ -3620,7 +3616,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
         em->r_no_2++;
     case 7:
         w->flags &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else {
@@ -3669,7 +3665,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->flag & 2) {
             break;
         }
@@ -3711,7 +3707,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer % 3) {
             EstSet(0, -1, &em->pos, 0, 0x24, 0xC, 0, 0, 0, 0);
         }
@@ -3744,7 +3740,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         pGS->Room_flg[0] |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
             break;
         }
@@ -3770,7 +3766,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         {
             int t7 = w->timer;  // its own variable: with case 1's `t` the three `timer = t - 1` copies are cross-jumped into this one
 
@@ -3810,7 +3806,7 @@ static void em2c_R1_C_Fall(cEm2c* em)
         MotionSetCore(em, &em->Motion, ARC(0x94), ARC(0x95), 5, 1, 0);
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             em->flag |= 8;
             if (w->targetAngAbs > 2.09439516f) {
@@ -3853,7 +3849,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
         em->pos.y = 4330.0f;
         MotionSetCore(em, &em->Motion, ARC(0x89), 0, 5, 1, 0);
         if (!(em->flag & 1)) {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->hp = fe;
             em->be_flag &= ~2;
             break;
@@ -3864,7 +3860,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
     case 1:
         w->flags |= 0x1000;
         em->dmg.m_Timer = 2;
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < fl) {
@@ -3878,7 +3874,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
             w->wallNrm.y = 1.0f;
             w->wallNrm.z = 0.0f;
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 4;
         } else if (end) {
             AtariOn(&em->atari, 0x300);
@@ -3909,10 +3905,10 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
             w->wallNrm.y = 1.0f;
             w->wallNrm.z = 0.0f;
             MotionSetCore(em, &em->Motion, ARC(0x7B), 0, 5, 1, 0);
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             em->r_no_2 = 4;
         } else {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 4:
@@ -3920,7 +3916,7 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
         em2cSetdLandingEff(em);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else if ((w->flags & 1) && (Rnd() & 1) && w->targetAngAbs < 0.52359879f) {
@@ -3954,7 +3950,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->flag & 2) {
             EM_LIST(em->emset_no)->set = 3;
             EmRoutineSet(em, 1, 0x25, 0, 0);
@@ -4002,7 +3998,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
                 EstSet(0, -1, &em->pos, 0, 0x24, 0xC, 0, 0, 0, 0);
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer > 17) {
             if ((em->flag & 0x40000000) && em2cDoorCk(em)) {
                 em->r_no_2 = 0;
@@ -4054,7 +4050,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         pGS->Room_flg[0] |= 0x40000000;
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
             break;
         }
@@ -4093,7 +4089,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
         em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8E), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->flag & 1) {
             em->flag &= ~1;
             em->r_no_2++;
@@ -4112,7 +4108,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
         em->flag |= 0x40000000;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
             break;
         }
@@ -4198,7 +4194,7 @@ static void em2c_R1_Dm_Normal(cEm2c* em)
         w->timer = 30;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             end = 0;
             em2cDmEndSet(em, w, end);
@@ -4242,7 +4238,7 @@ static void em2c_R1_Dm_Down(cEm2c* em)
         em2cDmStartSet(em, w);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             r = em2cDownJumpCk(em);
             if (r == 0) {
                 EmRoutineSet(em, 1, 0xF, r, r);
@@ -4276,7 +4272,7 @@ static void em2c_R1_Dm_Down(cEm2c* em)
             PSMTXMultVecSR((em)->mat, &v_, &v_);                                               \
             (em)->ang.y = atan2f(v_.x, v_.z);                                                  \
             MotionSetCore(em, &(em)->Motion, ARC(0x69), ARC(0x6A), 5, 1, 0);               \
-            MotionMoveF(em, 0);                                                                \
+            MotionMove(em, 0);                                                                \
             if (DOWN) {                                                                        \
                 em2cSetDownEff(em);                                                            \
             } else {                                                                           \
@@ -4291,11 +4287,11 @@ static void em2c_R1_Dm_Down(cEm2c* em)
                 em2cSetFallMatrix(em);                                                         \
             }                                                                                  \
             if (END_INC) {                                                                     \
-                if (MotionMoveF(em, 0)) {                                                      \
+                if (MotionMove(em, 0)) {                                                      \
                     (em)->r_no_2++;                                                               \
                 }                                                                              \
             } else {                                                                           \
-                MotionMoveF(em, 0);                                                            \
+                MotionMove(em, 0);                                                            \
             }                                                                                  \
         }                                                                                      \
     }
@@ -4348,7 +4344,7 @@ static void em2c_R1_Dm_Jump(cEm2c* em)
         em->r_no_2++;
     case 5:
         w->flags &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp > 0) {
                 EmRoutineSet(em, 1, 0xE, 0, 0);
             } else {
@@ -4395,7 +4391,7 @@ static void em2c_R1_Dm_Wall(cEm2c* em)
         em->r_no_2++;
     case 3:
         w->flags &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp > 0) {
                 EmRoutineSet(em, 1, 0xE, 0, 0);
             } else {
@@ -4423,7 +4419,7 @@ static void em2c_R1_Dm_Guard(cEm2c* em)
         EffectEfmDelete(0, w->espKind2, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->dmgTotal = 0;
             lock = em2cLockCk(em);
             if (lock) {
@@ -4518,7 +4514,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
         w->x6B8 = fe;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0x18, 0, 0);
             break;
         }
@@ -4571,7 +4567,7 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
         em->r_no_2++;
     case 3:
         w->flags &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp > 0) {
                 EmRoutineSet(em, 1, 0xE, 0, 0);
             } else {
@@ -4648,7 +4644,7 @@ static void plemKick(cPlayer* pl)
                 }
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 15);
             break;
@@ -4692,7 +4688,7 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
         w->timer = 30;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->dmgTotal = 0;
             if (w->guardCnt == 0) {
                 EmRoutineSet(em, 1, 0x1A, 0, 0);
@@ -4752,7 +4748,7 @@ static void em2c_R1_Dm_F_Blow(cEm2c* em)
         w->flags |= 0x4000;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 3, 0, 0);
             } else {
@@ -4816,12 +4812,12 @@ static void em2c_R1_Die_Normal(cEm2c* em)
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x90), ARC(0x91), 5, 1, 0);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em2cDieEffDelete(em, w);
         EstSet(em, -1, 0, 0, 0x24, 0x33, 0, 0, em, (void*) fe);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 3, 0, 0, 0);
         }
         break;
@@ -4837,7 +4833,7 @@ static void em2c_R1_Die_Freeze(cEm2c* em)
 
     switch (em->r_no_2) {
     case 0:
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         w->timer = 11;
         w->timer8 = 8;
         em->r_no_2++;
@@ -4878,11 +4874,11 @@ static void em2c_R1_Die_Down(cEm2c* em)
         } else {
             MotionSetCore(em, &em->Motion, ARC(0x6D), ARC(0x6E), 5, 1, 0);
         }
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em2cDieEffDelete(em, w);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 3, 0, 0, 0);
         }
         break;
@@ -4911,7 +4907,7 @@ static void em2c_R1_Die_Wall(cEm2c* em)
         MotionSetCore(em, &em->Motion, ARC(0x68), 0, 0, 5, 0);
         w->flags |= 0x4000;
         em2cDieEffDelete(em, w);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em->r_no_2++;
     case 1:
         EM2C_DM_FALL(em, w, ofs, 0, 0, 0, 2, 1, 0);
@@ -4920,7 +4916,7 @@ static void em2c_R1_Die_Wall(cEm2c* em)
         em->r_no_2++;
     case 3:
         w->flags &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 3, 3, 0, 0);
         }
         break;
@@ -5850,7 +5846,7 @@ static void plemDmSide(cPlayer* pl)
         PlSetDamageSe(0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 0xF);
         }
@@ -5894,7 +5890,7 @@ static void plemDmTail(cPlayer* pl)
         PlSetDamageSe(0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;
@@ -5923,7 +5919,7 @@ static void plem2cSit(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;
@@ -6036,7 +6032,7 @@ static void plem2cEscape(cPlayer* pl)
             pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.392699093f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->m_Work0 = 0;
         }
         if (pl->m_Work0) {
@@ -6130,7 +6126,7 @@ static void plemBackjump(cPlayer* pl)
         if (pl->frame > 33.7000008f && pl->frame < 34.2999992f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -6179,7 +6175,7 @@ static void plemBackjump2(cPlayer* pl)
         if (pl->frame > 33.7000008f && pl->frame < 34.2999992f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;

@@ -15,6 +15,7 @@
 #include "em.h"
 #include "em_set.h"
 #include "em_wrap.h"
+#include "emdoor.h"
 #include "etc_model.h"
 #include "player.h"
 #include "esp.h"
@@ -38,8 +39,6 @@ struct R316ItemView {
 
 static R316Work* r316_work;
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 // COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on;
 // ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
@@ -98,7 +97,7 @@ void R316Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R316EventSXX, 0, 1);
         if (getRoomEtcDoor(0xD, &door, 1)) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r316_checkHeatEffect, 0, 0, 2, 0);

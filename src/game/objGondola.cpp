@@ -19,6 +19,7 @@
 #include "quake.h"
 #include "player.h"
 #include "pl_npc.h"
+#include "motion.h"
 
 // Cable car (gondola): carries the player, the partner and up to five enemies along its motion,
 // with five collision quads following the car; the break routine hands the camera over.
@@ -56,7 +57,6 @@ struct SubCharPtr {
 #define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void DiedemoExec(int no, int demo_type);
 void objGondola_R0_Set(cObjGondola* obj);
 void objGondola_R0_Move(cObjGondola* obj);

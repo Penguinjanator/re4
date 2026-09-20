@@ -7,9 +7,9 @@
 #include "esp.h"
 #include "global.h"
 #include "math_sub.h"
+#include "motion.h"
 
 extern "C" {
-void MotionMove(cModel* m, int a);
 void Efm04RotMatrix(cObj* obj, Mtx m);
 }
 

@@ -45,8 +45,6 @@
 extern "C" void* memset(void* dst, int c, unsigned int n);
 // The rooms' adjust_add_set prototype takes the Vec by value (copied and passed by reference).
 void adjust_add_setV(Vec v) asm("adjust_add_set");
-// pl_npc.cpp: MotionMove is called with a second argument by the partner code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `pPL->atari.flags &= ~0x100` through a pointer to the collision info; the volatile halfword store keeps
 // the following pPL load below it (r30d).
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
@@ -1012,7 +1010,7 @@ static void plemRide(cPlayer* p)
         p->r_no_2++;
     case 1:
         p->r_no_3++;
-        if (MotionMoveF(p, 0) != 0 || p->r_no_3 == 0x3C) {
+        if (MotionMove(p, 0) != 0 || p->r_no_3 == 0x3C) {
             pPL->dmg.clear();
             AtariFlagsOr(&pPL->atari, 0x100);
             pPL->atari.setPriority(0);

@@ -2987,8 +2987,6 @@ void dbModPlayMode(u16* flag)
     }
 }
 
-// MotionMove's second argument (the game's callers pass 0); motion.h declares the one-argument form
-u16 dbmodMotionMove(cModel* m, int flag) asm("MotionMove");
 
 // Per frame: orders the slots parents first, advances every alive model's motions (MotionMove,
 // blend of the secondary motions, the PLAY mode), attaches children to their parent's parts, wraps
@@ -3056,7 +3054,7 @@ void dbModMotionMove()
         }
         if (noMotion == 0 && !SpfFlagChk(pG, SPF_OBJ)) {
             model->Motion.Mot_attr = em->mot[0].flags;
-            dbmodMotionMove(model, 0);
+            MotionMove(model, 0);
             if (model->Motion.blend == 0 && em->mot_num > 1 && model->Motion.Mot_state != 0) {
                 em->mot_cnt++;
                 if (em->mot_cnt > em->mot_num - 1) {

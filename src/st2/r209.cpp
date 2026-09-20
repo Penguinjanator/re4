@@ -44,9 +44,6 @@
 // leader Ganado that lures the player through the doors, the gatling and bowgun battles, the four-
 // panel picture puzzle that extends the bridge, and the picture behind which the treasure sits.
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
-// an asm-labelled free declaration reproduces the call.
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 // Room door driven by the room itself (the seven `cR209Door` records of the work): the four
 // balcony doors (0xB3..0xB6, rotating), the salon doors 2/3 and the lift 0xA1 (rising).
@@ -287,7 +284,7 @@ void R209Init()
     r209_work.p->door[6].init(0xA1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         if (getRoomEtcDoor(9, &r209_work.p->door9, 1) == 1) {
-            cEmDoorSetCloseLock(r209_work.p->door9);
+            ((cEmDoor*) r209_work.p->door9)->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r209_DoorMessage, 0, 1);
             SceExec(0x12, (TaskFunc) r209_CheckUseSalonKey, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -1793,7 +1790,7 @@ static void Evt_R209S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         ((cEmDoor*) r209_work.p->door4)->setClose();
-        cEmDoorSetCloseLock(r209_work.p->door4);
+        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
         break;
     case 1:
         if (e->NowCut == 0 && e->NowFrame == 0) {
@@ -2292,7 +2289,7 @@ void cR209Door::close()
             se = -1;
             break;
         case 2:
-            cEmDoorSetCloseLock(r209_work.p->door4);
+            ((cEmDoor*) r209_work.p->door4)->setCloseLock();
             spd = -50.0f;
             se = -1;
             break;
@@ -2461,7 +2458,7 @@ void cR209Door::setClosed()
         SceAtSetEnable(0, 0);
         break;
     case 2:
-        cEmDoorSetCloseLock(r209_work.p->door4);
+        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
         break;
     case 0xA1:
         break;

@@ -36,8 +36,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // model.h's member; the enemies call it with the old ModelData (em10.cpp).
 extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
 
@@ -299,7 +297,7 @@ static void em18_R0_Init(cEm18* em)
     w->neckAng = 0.0f;
     EmRoutineSet(em, one, 0, 0, 0);
     MotionSetCore(em, MOTION(em), ARC(0x14), 0, 0, 1, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em->clearStatus(EM_STATUS_ACTIVE);
     em18_R0_Move(em);
 }
@@ -322,7 +320,7 @@ static void em18_R1_Wait(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em18ActEvtSetTrade(em);
@@ -352,7 +350,7 @@ static void em18_R1_Trade(cEm18* em)
         }
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -374,7 +372,7 @@ static void em18_R1_Trade(cEm18* em)
         if (em->motFrame > 26.7f && em->motFrame < 27.3f) {
             em18GoodsPartsSet(em, 0);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -469,7 +467,7 @@ static void em18_R1_Dm_Normal(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 10);
         }
         break;
@@ -501,7 +499,7 @@ static void em18_R1_Die_Normal(cEm18* em)
         SndCall(8, 8, &em->pos, em->id, 0, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(EM_STATUS_ACTIVE);
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;

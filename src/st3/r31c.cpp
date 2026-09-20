@@ -145,8 +145,6 @@ static R31cWorkPtr r31c_work;   // .bss 0x20
 extern "C" void* r31c_memset(void*, ...) asm("memset");
 // COMPILER-DIFF: #4 -- the original masks the u8 result of GetEmIdFromList before passing it on.
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 // The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
 void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 // The scheduler's kill-by-function overload (sce_sys.cpp).
@@ -449,7 +447,7 @@ void R31cInit()
     }
     getRoomEtcDoor(8, &r31c_work.p->door8, 1);
     if (r31c_work.p->door8 && RsfCheck(G_ROOM_ID, 0xF) == 0) {
-        cEmDoorSetCloseLock(r31c_work.p->door8);
+        ((cEmDoor*) r31c_work.p->door8)->setCloseLock();
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r31c_Krauser1stBattle, 0, 1);
         EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
         BitOff(pG->Key_flg[1], 0x00020000);

@@ -46,8 +46,6 @@
 void Obj18CmfOn(cObj* o, u32 n);        // game/obj18.cpp
 extern "C" void EventCarInit(Event* e);  // st1_0/r120.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 struct R100Work {
     TexRenderMng* tex;    // 0x00  the pond render target (setTexRender)
@@ -678,7 +676,7 @@ static void r100_DoorCk()
     }
     i = 0;
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
         SceSleep(1);
         if (i++ == 19) {
             SceAtSetEnable(0xB, 1);

@@ -664,7 +664,7 @@ void emRackYarareInit(cEmRack* em)
 }
 
 // Script entry: breaks the rack (wardrobe type 4 with its own style 5).
-void cEmRack::setBreak()
+void cEmRack::setBreak(Vec* pPos)
 {
     if (type == 4) {
         r_no_0 = 1;

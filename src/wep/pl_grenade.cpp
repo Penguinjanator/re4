@@ -27,8 +27,6 @@
 
 extern "C" {
 f64 atan2(f64 y, f64 x);
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
@@ -199,7 +197,7 @@ static void wep19_r3_ready10(cPlayer* pl)
 // ready step 2: like step 1 without the camera turn; frame 4 -> set step 4.
 static void wep19_r3_ready20(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -225,7 +223,7 @@ static void wep19_r3_ready30(cPlayer* pl)
     f32* r;
     Vec* t;
 
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -363,7 +361,7 @@ static void wep19_r3_set20(cPlayer* pl)
     if ((Key.on & 4) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -378,7 +376,7 @@ static void wep19_r3_set30(cPlayer* pl)
     if ((Key.on & 8) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -390,7 +388,7 @@ static void wep19_r3_set30(cPlayer* pl)
 // set step 4: finish the draw / throw motion, then step 0.
 static void wep19_r3_set40(cPlayer* pl)
 {
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         pl->r_no_3 = 0;
     }
 }
@@ -426,7 +424,7 @@ static void wep19_r3_fire00(cPlayer* pl)
         pl->m_Work4 = 1;
     }
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     SndCall(1, 1, &pl->pParts->world, 0, 0, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);

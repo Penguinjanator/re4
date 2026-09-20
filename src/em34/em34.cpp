@@ -38,8 +38,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em34Func)(cEm34*);
 
@@ -362,7 +360,7 @@ static void em34_R0_Init(cEm34* em)
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 5, 0);
         break;
     }
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em34_R0_Move(em);
 }
 
@@ -396,7 +394,7 @@ static void em34_R1_Wait(cEm34* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em34DeadCk(em)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -430,7 +428,7 @@ static void em34_R1_Walk(cEm34* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->type == 1 && em->hp < 500) {
             if (em->plDist2 < 1000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
@@ -472,7 +470,7 @@ static void em34_R1_Atk(cEm34* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         } else if (em->seFlags28B & 1) {
             em34AtkCk(em, 0, 0xA);
@@ -513,7 +511,7 @@ static void em34_R1_Dm_Normal(cEm34* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 10);
         }
         break;
@@ -553,7 +551,7 @@ static void em34_R1_Die_Normal(cEm34* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(0);
             em->clearStatus(EM_STATUS_ACTIVE);
             em->clearStatus(EM_STATUS_DOGCK);

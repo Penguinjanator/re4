@@ -432,7 +432,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int 
 // an additive pose; runs the leg IK on the unscaled model, the hokan interpolation and the
 // quaternion blend table (blendTbl: dst = slerp(c, a, percent)). Returns Mot_state (1/2 looped,
 // 4/8 ended).
-u16 MotionMove(cModel* m)
+u32 MotionMove(cModel* m, Camera* pCamera)
 {
     static int new_add = 1;
     cModel* p;

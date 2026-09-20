@@ -43,11 +43,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.h declares the empty form; this unit passes the dying enemy (the original prototype
-// took it; em_set.cpp ignores its arguments).
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 
 typedef void (*Em3aFunc)(cEm3a*);
 
@@ -488,7 +483,7 @@ static void em3a_R0_Init(cEm3a* em)
             MotionSetCore(em, MOTION(em), ARC(0x12), 0, 0, 1, 0);
             break;
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em3a_R0_Move(em);
@@ -611,7 +606,7 @@ static void em3a_R1_Atk(cEm3a* em)
         if (w->flags & 1) {
             em3aTurnToPL(em, 0.034906585f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->flags |= 2;
             em->r_no_2++;
         }
@@ -700,7 +695,7 @@ static void em3a_R1_Atk(cEm3a* em)
         if (w->flags & 1) {
             em3aTurnToPL(em, 0.017453292f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->atkWait = 60;
             em->r_no_2 = 0;
         }
@@ -847,7 +842,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
         if (w->flags & 1) {
             em3aTurnToPL(em, 0.034906585f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->flags |= 2;
             em->r_no_2++;
         }
@@ -938,7 +933,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
         if (w->flags & 1) {
             em3aTurnToPL(em, 0.034906585f);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->atkWait = 60;
             em->r_no_2 = 0;
         }
@@ -959,7 +954,7 @@ static void em3a_R1_Die(cEm3a* em)
     if (em->r_no_2 == 0) {
         em->hp = 0;
         EmSetDie(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         EffectEspDelete(1, w->espKind, em, 0);
         EffectEspgenDelete(1, w->espKind, em);
         EffectEfmDelete(1, w->espKind, em);
@@ -994,7 +989,7 @@ static void em3a_R1_B_HideWait(cEm3a* em)
         em->r_no_2++;
     case 1:
         if (em->r_no_3) {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
             break;
         }
         if (w->turnDir) {
@@ -1021,7 +1016,7 @@ static void em3a_R1_B_HideWait(cEm3a* em)
                 w->timer = 60;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     if (em->r_no_3) {
@@ -1057,7 +1052,7 @@ static void em3a_R1_B_Hide(cEm3a* em)
         EstSet(em, -1, 0, 0, 2, 0xC, 0, 0, em, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 6, 0, 0);
         }
         break;
@@ -1078,7 +1073,7 @@ static void em3a_R1_B_Appear(cEm3a* em)
         EstSet(em, -1, 0, 0, 2, 0xD, 0, 0, em, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->lostCnt = 0;
             EmRoutineSet(em, 1, 0xA, 0, 0);
         }
@@ -1100,7 +1095,7 @@ static void em3a_R1_B_Wait(cEm3a* em)
         w->turnDir = 0;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -1113,7 +1108,7 @@ static void em3a_R1_B_Wait(cEm3a* em)
         w->timer = Rnd() % 3 + 2;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -1150,7 +1145,7 @@ static void em3a_R1_B_Move(cEm3a* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.05235988f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer == 0) {
                 em->r_no_2 = 4;
                 break;
@@ -1174,7 +1169,7 @@ static void em3a_R1_B_Move(cEm3a* em)
         w->timer = Rnd() % 3 + 2;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->routeAngAbs < 0.5235988f) {
                 em->r_no_2 = 0;
             } else {
@@ -1187,7 +1182,7 @@ static void em3a_R1_B_Move(cEm3a* em)
         w->timer = Rnd() % 60 + 60;
         em->r_no_2++;
     case 5:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer == 0) {
             em->r_no_2 = 0;
             break;
@@ -1258,7 +1253,7 @@ static void em3a_R1_B_Die(cEm3a* em)
         w->timer = 50;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -1288,7 +1283,7 @@ static void em3a_R1_B_AppearDie(cEm3a* em)
         em->r_no_2++;
     }
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -1309,7 +1304,7 @@ static void em3a_R1_B_Bomb(cEm3a* em)
 
         em->hp = 0;
         EmSetDie(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         EffectEspDelete(1, w->espKind, em, 0);
         EffectEspgenDelete(1, w->espKind, em);
         EffectEfmDelete(1, w->espKind, em);

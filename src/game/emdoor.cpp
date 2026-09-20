@@ -26,9 +26,9 @@
 #include "math_sub.h"
 #include "cmath.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
@@ -3328,7 +3328,7 @@ void cEmDoor::setOpenLock(int type)
 }
 
 // Script: closes the door and locks it closed until setNormal.
-void cEmDoor::setCloseLock(int a)
+void cEmDoor::setCloseLock()
 {
     EmDoorWork* w = EMDOOR_WK(this);
 

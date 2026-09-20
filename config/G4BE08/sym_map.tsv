@@ -410,7 +410,7 @@ address	size	section	unit	scope	name	demangled
 0x80023F94	0x174	.text	game/mercenaries.cpp	global	init__10MercResultP11MercSysWork	MercResult::init
 0x80024108	0x62C	.text	game/mercenaries.cpp	global	move__10MercResultP11MercSysWork	MercResult::move
 0x80024734	0x38	.text	game/mercenaries.cpp	global	quit__10MercResult	MercResult::quit
-0x8002476C	0xF0	.text	game/mercenaries.cpp	global	init__9AdaResulti	AdaResult::init
+0x8002476C	0xF0	.text	game/mercenaries.cpp	global	init__9AdaResult	AdaResult::init
 0x8002485C	0x1A0	.text	game/mercenaries.cpp	global	move__9AdaResulti	AdaResult::move
 0x800249FC	0x38	.text	game/mercenaries.cpp	global	quit__9AdaResult	AdaResult::quit
 0x80024A34	0x18	.text	game/mercenaries.cpp	global	checkState__9CountDownUl	CountDown::checkState
@@ -3810,7 +3810,7 @@ address	size	section	unit	scope	name	demangled
 0x80103940	0x3B4	.text	game/emdoor.cpp	global	plemDoorOpen	plemDoorOpen
 0x80103CF4	0x4F8	.text	game/emdoor.cpp	global	ckObj__7cEmDoor	cEmDoor::ckObj
 0x801041EC	0x38	.text	game/emdoor.cpp	global	setOpenLock__7cEmDoori	cEmDoor::setOpenLock
-0x80104224	0x38	.text	game/emdoor.cpp	global	setCloseLock__7cEmDoori	cEmDoor::setCloseLock
+0x80104224	0x38	.text	game/emdoor.cpp	global	setCloseLock__7cEmDoor	cEmDoor::setCloseLock
 0x8010425C	0x80	.text	game/emdoor.cpp	global	setClose__7cEmDoor	cEmDoor::setClose
 0x801042DC	0x8C	.text	game/emdoor.cpp	global	setDowned__7cEmDoori	cEmDoor::setDowned
 0x80104368	0x10	.text	game/emdoor.cpp	global	setNormal__7cEmDoor	cEmDoor::setNormal
@@ -3889,7 +3889,7 @@ address	size	section	unit	scope	name	demangled
 0x8010A034	0x234	.text	game/emrack.cpp	global	emRackSatSet	emRackSatSet
 0x8010A268	0x60	.text	game/emrack.cpp	global	emRackSatClear	emRackSatClear
 0x8010A2C8	0x1FC	.text	game/emrack.cpp	global	emRackYarareInit	emRackYarareInit
-0x8010A4C4	0x50	.text	game/emrack.cpp	global	setBreak__7cEmRack	cEmRack::setBreak
+0x8010A4C4	0x50	.text	game/emrack.cpp	global	setBreak__7cEmRackP3Vec	cEmRack::setBreak
 0x8010A514	0xDC	.text	game/emrack.cpp	global	setDown__7cEmRackP3Vec	cEmRack::setDown
 0x8010A5F0	0x20	.text	game/emrack.cpp	global	setShock__7cEmRack	cEmRack::setShock
 0x8010A610	0x8	.text	game/emrack.cpp	global	setEff__7cEmRackUc	cEmRack::setEff

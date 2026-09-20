@@ -69,8 +69,6 @@ static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
-// The room build's cEmRack::setBreak prototype had a Vec* the DOL definition does not read.
-void cEmRackSetBreakV(cEmRack* r, Vec* pos) asm("setBreak__7cEmRack");
 
 void r227_openShelf_main(int id, int opened);
 static void r227_openShelf(int id);
@@ -226,7 +224,7 @@ static void r227_checkBox0Fall()
         }
         SceSleep(1);
     }
-    cEmRackSetBreakV((cEmRack*) r227_work.p->rack[0], &r227_work.p->rack[0]->pos);
+    ((cEmRack*) r227_work.p->rack[0])->setBreak(&r227_work.p->rack[0]->pos);
 }
 
 // Task: rack 1, the same the other way round.
@@ -260,7 +258,7 @@ static void r227_checkBox1Fall()
         }
         SceSleep(1);
     }
-    cEmRackSetBreakV((cEmRack*) r227_work.p->rack[1], &r227_work.p->rack[1]->pos);
+    ((cEmRack*) r227_work.p->rack[1])->setBreak(&r227_work.p->rack[1]->pos);
 }
 
 // Clear the list of enemies watched for falling off the lift.

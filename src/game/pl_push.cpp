@@ -8,10 +8,9 @@
 #include "atari.h"
 #include "db_log.h"
 #include "math_sub.h"
+#include "motion.h"
 
-int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
 extern "C" {
-void MotionMove(cModel* m, int flag);                                    // game/motion.cpp
 void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp
 int At_em_rect_rect_ck(cModel* pl, cEm* em);                            // game/at_mod.cpp
 void EmAtCheck(cEm* em);                                                // game/at_mod.cpp

@@ -138,8 +138,6 @@ static R22cWorkPtr r22c_work;
 
 extern u8 PlCapNum[25];   // game/pl_debug.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static s32 r22c_d0[] = {0, 0, 0, 200, -22000, 0, 2, 240, 1};
 static s32 r22c_d24[] = {300, 0, -2500, 200, -22000, 0, 2, 240, 1};
@@ -493,8 +491,8 @@ void R22cInit()
     SceAtSetActColor(2, 1);
     if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
         ((cEmDoor*) r22c_work.p->door[0])->setDoor((cEmDoor*) r22c_work.p->door[1]);
-        cEmDoorSetCloseLock(r22c_work.p->door[0]);
-        cEmDoorSetCloseLock(r22c_work.p->door[1]);
+        ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
+        ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
     }
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(1)->be_flag &= ~2;
@@ -926,8 +924,8 @@ void gameEnd()
     pl->weaponInit();
     pG->Room_flg[0] &= ~0x80000000;
     SceAtSetEnable(9, 1);
-    cEmDoorSetCloseLock(r22c_work.p->door[0]);
-    cEmDoorSetCloseLock(r22c_work.p->door[1]);
+    ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
+    ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
     FadeSetW(0x80000002, 10, 0, 0);
     SceSleep(1);
     getBottleCap();

@@ -35,9 +35,6 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);   // game/TexRender.cpp
 void Obj18CmfOn(cObj* o, u32 n);                                     // game/obj18.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
-// an asm-labelled free declaration reproduces the call (same trick as dvd.h ReadCheckInfo).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 // One dial part of the door puzzle: the object and its rest matrix.
 struct R105MarkObj {
@@ -201,7 +198,7 @@ void R105Main()
             SceAtSetEnable(8, 1);
             SceAtDataSet_exec(8, SCE_LEVEL10, 0, r105_Event, 0, 1);
             if (door) {
-                cEmDoorSetCloseLock(door);
+                ((cEmDoor*) door)->setCloseLock();
             }
         }
     }

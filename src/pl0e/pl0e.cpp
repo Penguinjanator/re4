@@ -50,9 +50,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 extern "C" void Em_R0_Scenario(cEm* em);                    // game/em_sub.cpp
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// COMPILER-DIFF: #1 (argument-move order): pl0ePathMove issues `lwz r4, pRailObj` before `lfs f1, dist`;
-// the model-before-dist redeclaration is ABI-identical (GPR / FPR argument registers are numbered independently).
 
 #line 1 "D:/Bio4/Prog/pl0e.cpp"
 
@@ -317,7 +314,7 @@ static void pl0e_R1_Ride(cPl0e* em)
         EstSet(em, -1, 0, 0, 0xE, 0xA, 1, w->espKind, em, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->pos.y = -26663.0f;
             em->ang.y = 2.2f;
             w->seNo = SndCall(8, 0xA, &em->pos, em->id, 0, em);
@@ -384,7 +381,7 @@ static void pl0e_R1_RailMove(cPl0e* em)
     }
     w->frameOld = w->frame;
     pl0eBlendMotSet(em, ARC(0x8), ARC(0xA), ARC(0x9), 0, 0, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em->partsWorldCalc();
 }
 
@@ -453,7 +450,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         if (w->fall && w->spdY > -15.0f) {
             em->r_no_2++;
         } else {
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 2:
@@ -477,7 +474,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         pl0eSlopeControl(em);
         w->frameOld = w->frame;
         pl0eBlendMotSet(em, ARC(0xC), ARC(0x11), ARC(0x10), 0, 0, 0);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             PlRoutineSet(em, 1, 2, 0, 0);
         } else if (pl0eCrashCk(em)) {
             pG->pl_life = 0;
@@ -521,7 +518,7 @@ static void pl0e_R1_Crash(cPl0e* em)
         VibSetData(VIB_TBL, 0xD, 1);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em->partsWorldCalc();
@@ -556,7 +553,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         SndStrReq(1, 0x39, 0x80000003, 0, 0, 0.0f);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->frame > 17.7f && em->frame < 18.3f) {
             VibSetData(VIB_TBL, 0xD, 1);
         }
@@ -593,7 +590,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         SndStrReq(1, 0x72, 0x80000003, 0, 0, 0.0f);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->frame > 32.7f && em->frame < 33.3f) {
             VibSetData(VIB_TBL, 0xD, 1);
         }
@@ -882,7 +879,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         pl->Wep->setTrans(0, 0);
         pl->r_no_3++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 1, 0);
         }
         break;
@@ -907,7 +904,7 @@ static void plboat_R2_Move(cPlayer* pl)
         pl->m_Blend = w->blendRate;
         pl->m_Frame = (u8) w->frameOld;
         plOnJet(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     if (pl->m_pBoat) {
@@ -936,7 +933,7 @@ static void plboat_R2_Jump(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         plOnJet(pl);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     if (pl->m_pBoat) {
@@ -961,7 +958,7 @@ static void plboat_R2_Landing(cPlayer* pl)
         pl->m_Blend = w->blendRate;
         pl->m_Frame = (u8) w->frameOld;
         plOnJet(pl);
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             PlRoutineSet(pPL, 0, 0xF, 1, 0);
         }
         break;
@@ -988,7 +985,7 @@ static void plboat_R2_Crash(cPlayer* pl)
         pG->pl_life = 0;
         pl->r_no_3++;
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -1014,7 +1011,7 @@ static void plboat_R2_Sink(cPlayer* pl)
         pGS->pl_life = 0;
         pl->r_no_3++;
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -1039,7 +1036,7 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
         pGS->pl_life = 0;
         pl->r_no_3++;
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
@@ -1148,7 +1145,7 @@ static void subBoatRide()
         }
         sub->r_no_2++;
     case 1:
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             SetSubDamage(boat, (void*) subBoatRun);
         } else {
             if (sub->frame > 21.7f && sub->frame < 22.3f) {
@@ -1187,7 +1184,7 @@ static void subBoatRun()
         sub->m_Frame = (u8) w->frameOld;
         subOnJet(sub, boat);
         subBlendMotSet(sub, SUBARC(0x25), SUBARC(0x27), SUBARC(0x26), 0, 0, 0);
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->motFlags2 &= ~0x40000000;
@@ -1222,7 +1219,7 @@ static void subBoatJump()
         sub->r_no_2++;
     case 1:
         subOnJet(sub, boat);
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->motFlags2 &= ~0x40000000;
@@ -1252,7 +1249,7 @@ static void subBoatLanding()
         sub->m_Frame = (u8) w->frameOld;
         subOnJet(sub, boat);
         subBlendMotSet(sub, SUBARC(0x29), SUBARC(0x2E), SUBARC(0x2D), 0, 0, 0);
-        if (MotionMoveF(sub, 0)) {
+        if (MotionMove(sub, 0)) {
             SetSubDamage(boat, (void*) subBoatRun);
         }
         break;
@@ -1277,7 +1274,7 @@ static void subBoatCrash()
         sub->r_no_2++;
     case 1:
         subOnJet(sub, boat);
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->motFlags2 &= ~0x40000000;
@@ -1304,7 +1301,7 @@ static void subBoatSink()
         MotionSetCore(sub, &sub->Motion, SUBARC(0x2F), 0, 0, 1, 0);
         sub->r_no_2++;
     case 1:
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->motFlags2 &= ~0x40000000;
@@ -1331,7 +1328,7 @@ static void subBoatJumpMiss()
         MotionSetCore(sub, &sub->Motion, SUBARC(0x30), 0, 0, 1, 0);
         sub->r_no_2++;
     case 1:
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->motFlags2 &= ~0x40000000;

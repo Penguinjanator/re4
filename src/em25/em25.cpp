@@ -39,10 +39,6 @@ asm(".comm common_em25,52,4");
 
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.h declares EmSetDieCnt without arguments; this module passes the enemy.
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 
 static void em25_R0_Init(cEm25* em);
 static void em25_R0_Move(cEm25* em);
@@ -236,7 +232,7 @@ void em25DmCk(cEm25* em)
         case 0:
         default:
             em->be_flag &= ~0x10000;
-            EmSetDieCntE(em);
+            EmSetDieCnt(em);
             EmRoutineSet(em, 3, 2, zero, zero);
             break;
         case 1:
@@ -429,7 +425,7 @@ static void em25_R1_Hide(cEm25* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(8), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x10000;
@@ -491,7 +487,7 @@ static void em25_R1_Birth(cEm25* em)
         em25SetParasite(em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -513,7 +509,7 @@ static void em25_R1_Wait(cEm25* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((s16) pG->pl_life > 0) {
             if (w->targetAngAbs > 1.22173047f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
@@ -550,7 +546,7 @@ static void em25_R1_Walk(cEm25* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.0981747732f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Timer == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
@@ -584,7 +580,7 @@ static void em25_R1_Run(cEm25* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.0981747732f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Timer == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
@@ -620,7 +616,7 @@ static void em25_R1_Turn90(cEm25* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f)) > 1.22173047f) {
                 em->r_no_2 = 0;
             } else if (em->plDist2 > 9000000.0f) {
@@ -668,7 +664,7 @@ static void em25_R1_JumpAtk(cEm25* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.0981747732f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 2, 0, 0);
         }
@@ -706,7 +702,7 @@ static void em25_R1_Bite(cEm25* em)
             w->Timer2--;
             end = EmCatchMotionMove(em, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(em, 0);
+            end = MotionMove(em, 0);
         }
         if (end) {
             at = &em->atari;
@@ -745,7 +741,7 @@ static void em25_R1_Bite(cEm25* em)
         pPL->r_no_2 = fe;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             at = &em->atari;
             at->setPriority(0);
             AtariOn(at, 0x300);
@@ -779,7 +775,7 @@ static void plem25_Bite(cPlayer* pl)
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(pl, 0);
+            end = MotionMove(pl, 0);
         }
         if (end) {
             EndPlDamage();
@@ -791,7 +787,7 @@ static void plem25_Bite(cPlayer* pl)
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->r_no_2++;
     case 3:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     pl->x3A8 = pl->pos;
@@ -830,7 +826,7 @@ static void em25_R1_P_Appear(cEm25* em)
             em->invisible_factor = 1.0f;
         }
         em25OnParent(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->scale.x = 1.0f;
             em->scale.y = 1.0f;
             em->scale.z = 1.0f;
@@ -879,7 +875,7 @@ static void em25_R1_P_Wait(cEm25* em)
         em->r_no_2++;
     case 1:
         em25OnParent(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
             break;
@@ -905,7 +901,7 @@ static void em25_R1_P_Wait(cEm25* em)
         em->r_no_2++;
     case 3:
         em25OnParent(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         p = em->getPartsPtr(0);
         d = (pPL->pos.x - p->world.x) * (pPL->pos.x - p->world.x) +
             (pPL->pos.y - p->world.y) * (pPL->pos.y - p->world.y) +
@@ -919,7 +915,7 @@ static void em25_R1_P_Wait(cEm25* em)
         em->r_no_2++;
     case 5:
         em25OnParent(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (ang > -0.785398185f) {
             em->r_no_2 = 0;
         }
@@ -943,7 +939,7 @@ static void em25_R1_P_Atk(cEm25* em)
         em->r_no_2++;
     case 1:
         em25OnParent(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
         } else if (em->seFlags28B & 1) {
             em25AtkCk(em, 1, 2);
@@ -965,7 +961,7 @@ static void em25_R1_P_Poison(cEm25* em)
         em->r_no_2++;
     case 1:
         em25OnParent(em);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
         } else if (em->frame > 17.7000008f && em->frame < 18.2999992f) {
             em25SetPoison(em);
@@ -1004,7 +1000,7 @@ static void em25_R1_Dm_P_Normal(cEm25* em)
         } else {
             w->Atk_enable = 1;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
         }
         break;
@@ -1055,13 +1051,13 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
         SndCall(8, 5, &em->pos, em->id, 0, em);
         w->Compress_y = 1.0f;
         em->dmg.m_Timer = 2;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->partsWorldCalc();
         em->r_no_2++;
         break;
     case 1:
         AtariOn(&em->atari, 0x300);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, fe, 2, 0, 0);
         }
         break;
@@ -1078,7 +1074,7 @@ static void em25_R1_Dm_Small(cEm25* em)
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1095,7 +1091,7 @@ static void em25_R1_Dm_Big(cEm25* em)
         SndCall(8, 5, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 1, 0, 0);
             } else {
@@ -1107,7 +1103,7 @@ static void em25_R1_Dm_Big(cEm25* em)
         MotionSetCore(em, &em->Motion, ARC(0x24), ARC(0x25), 5, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1127,9 +1123,9 @@ static void em25_R1_Dm_Frame(cEm25* em)
         SndCall(8, 5, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
-                EmSetDieCntE(em);
+                EmSetDieCnt(em);
                 em->be_flag &= ~0x10000;
                 EmRoutineSet(em, 3, 1, 0, 0);
             } else {
@@ -1148,7 +1144,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
         MotionSetCore(em, &em->Motion, ARC(0x24), ARC(0x25), 5, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1180,7 +1176,7 @@ static void em25_R1_Die_P_Normal(cEm25* em)
         em->r_no_2++;
     case 1:
         em25OnParent(em);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -1220,7 +1216,7 @@ static void em25_R1_Die_Normal(cEm25* em)
         em->hp = 0;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
             em->r_no_2++;
             em->setStatus(EM_STATUS_ITEMSET);
@@ -1230,7 +1226,7 @@ static void em25_R1_Die_Normal(cEm25* em)
         break;
     case 2:
         em->pos.y -= 3.0f;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->Compress_y -= 0.00999999978f;
         if (w->Compress_y < 0.100000001f) {
             w->Compress_y = 0.100000001f;
@@ -1262,7 +1258,7 @@ static void em25_R1_Die_Big(cEm25* em)
         em->hp = 0;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
             em->r_no_2++;
             em->setStatus(EM_STATUS_ITEMSET);
@@ -1271,7 +1267,7 @@ static void em25_R1_Die_Big(cEm25* em)
         break;
     case 2:
         em->pos.y -= 3.0f;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->Compress_y -= 0.00999999978f;
         if (w->Compress_y < 0.100000001f) {
             w->Compress_y = 0.100000001f;

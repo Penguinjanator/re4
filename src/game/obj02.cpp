@@ -4,8 +4,8 @@
 #include "atari.h"
 #include "obj.h"
 #include "math_sub.h"
+#include "motion.h"
 
-extern "C" void MotionMove(cModel* m, int a);
 
 struct ObjScrSwingWork {
     f32 phaseZ;   // 0x00

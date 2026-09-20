@@ -8,6 +8,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "snd.h"
+#include "motion.h"
 
 // Hanging object (lamp, sign, ...): follows a parts of its parent with a slerp blend, falls as a
 // three-point rope when cut, fades out when flagged.
@@ -29,11 +30,9 @@ struct Obj00Node {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void obj00FallMove(cObj00* obj);
 void obj00SetOya(cObj00* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // Per-frame: plays the motion when set; follows the parent (destroyed with it), runs the fall
 // simulation, updates the parts and collision unless flagged, fades out on be_flag 0x20.

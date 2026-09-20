@@ -29,8 +29,6 @@
 
 extern "C" {
 f64 atan2(f64 y, f64 x);
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
@@ -357,7 +355,7 @@ static void wep17_r3_ready10(cPlayer* pl)
         }
         SndCall(1, se, &pl->getPartsPtr(0)->world, 0, 0, 0);
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -372,7 +370,7 @@ static void wep17_r3_ready10(cPlayer* pl)
 // ready step 2: like step 1 without the SE; frame 4 -> set step 4.
 static void wep17_r3_ready20(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -395,7 +393,7 @@ static void wep17_r3_ready30(cPlayer* pl)
     f32* r;
     Vec* t;
 
-    if (MotionMoveI(pl, 0)) {
+    if (MotionMove(pl, 0)) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -521,7 +519,7 @@ static void wep17_r3_set00(cPlayer* pl)
 // set step 1: hold the aim idle.
 static void wep17_r3_set10(cPlayer* pl)
 {
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
 }
 
 // set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
@@ -531,7 +529,7 @@ static void wep17_r3_set20(cPlayer* pl)
     if ((Key.on & 4) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -546,7 +544,7 @@ static void wep17_r3_set30(cPlayer* pl)
     if ((Key.on & 8) == 0) {
         pl->r_no_3 = 0;
     }
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
@@ -608,7 +606,7 @@ static void wep17_r3_fire00(cPlayer* pl)
     }
     mot3.set(pl, m0, m1, m2, 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
-    MotionMoveI(pl, 0);
+    MotionMove(pl, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
     pl->Waist->set(pl->m_Fwork0, 0.4f);
@@ -718,7 +716,7 @@ static void wep17_r2_reload(cPlayer* pl)
             mot = WEP_ARC_PTR(0x24);
         }
         MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         pl->Wep->knifeStance = 1;
         pl->r_no_3 = 1;
         obj = WEP_OBJ(pl);
@@ -726,7 +724,7 @@ static void wep17_r2_reload(cPlayer* pl)
         obj->wep.step = 0;
         break;
     case 1:
-        if (MotionMoveI(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             if (joyKamae()) {
                 pl->r_no_0 = 0;
                 pl->r_no_1 = 6;
@@ -759,7 +757,7 @@ static void wep17_r2_next(cPlayer* pl)
 
     switch (step) {
     case 0:
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         pl->m_Work0 = 0;
         pl->m_Work1 = 0;
         if (em) {
@@ -789,7 +787,7 @@ static void wep17_r2_next(cPlayer* pl)
         if (pl->m_Work1 == 0) {
             pl->partsFixMemory(0x19);
         }
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         if ((int) pl->m_Work0 > 9) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
@@ -799,7 +797,7 @@ static void wep17_r2_next(cPlayer* pl)
         pl->m_Work0++;
         break;
     case 2:
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         if (fabsf(pl->Waist->set(pl->m_Fwork0, 0.4f)) < 0.01f) {
             pl->Waist->m_Ang.y = pl->m_Fwork0;
             pl->r_no_0 = 0;
@@ -864,7 +862,7 @@ static void wep17_r2_out(cPlayer* pl)
         if ((int) pl->frameMax > (int) pl->frameMax - 7 && pCkEm) {
             pl->ang.y += Muku(&pl->pos, &pCkEm->pos, pl->ang.y, 0.31415927f);
         }
-        if (MotionMoveI(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             if (pl->m_Work0 == 0) {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
             } else {
@@ -881,7 +879,7 @@ static void wep17_r2_out(cPlayer* pl)
         if (Key.on & 8) {
             pl->ang.y += 0.05235988f;
         }
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         if (Key.trg & 0x40000000) {
             pl->m_Work1 = 0;
         }
@@ -943,7 +941,7 @@ static void wep17_r2_out(cPlayer* pl)
                 pl->ang.y += 0.05235988f;
             }
         }
-        end = MotionMoveI(pl, 0);
+        end = MotionMove(pl, 0);
         if (pl->frame > (f32) (pl->frameMax - 5) && joyFireOn()) {
             end |= 1;
         }
@@ -959,7 +957,7 @@ static void wep17_r2_out(cPlayer* pl)
     }
     case 5:
         CamCtrl.resetCameraAngle();
-        if ((Key.on & 0x10F) || MotionMoveI(pl, 0)) {
+        if ((Key.on & 0x10F) || MotionMove(pl, 0)) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
             pl->r_no_2 = 0;
@@ -971,7 +969,7 @@ static void wep17_r2_out(cPlayer* pl)
         if ((int) pl->frameMax > (int) pl->frameMax - 7 && pCkEm) {
             pl->ang.y += Muku(&pl->pos, &pCkEm->pos, pl->ang.y, 0.31415927f);
         }
-        if (MotionMoveI(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
             pl->r_no_2 = 0;

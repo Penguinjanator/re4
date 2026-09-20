@@ -6,6 +6,7 @@
 #include "obj.h"
 #include "global.h"
 #include "math_sub.h"
+#include "motion.h"
 
 // Chain link: a model hung between two parts of a parent (the interpolated orientation and
 // position of the two parts), with an optional pendulum cloth. Fades out when the parent is lost.
@@ -21,7 +22,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void obj1d_R1_Set(cObjChain* obj);
 void obj1d_R1_LostWait(cObjChain* obj);
 void obj1d_R1_Lost(cObjChain* obj);

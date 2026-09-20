@@ -44,10 +44,6 @@ asm(".comm common_em22,52,4");
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.h declares EmSetDieCnt without arguments; this module passes the enemy.
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 
 typedef void (*Em22Func)(cEm22*);
 
@@ -474,7 +470,7 @@ static void em22_R0_Init(cEm22* em)
         em22SetParasite(em);
     }
     MotionSetCore(em, mot, ARC(7), 0, 0, 5, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em22_R0_Move(em);
 }
 
@@ -539,7 +535,7 @@ static void em22_R1_Goto(cEm22* em)
         em->r_no_2++;
     case 1:
         em22RunTurn(em, w);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((em->pos.x - w->gotoPos.x) * (em->pos.x - w->gotoPos.x) + (em->pos.y - w->gotoPos.y) * (em->pos.y - w->gotoPos.y) +
                 (em->pos.z - w->gotoPos.z) * (em->pos.z - w->gotoPos.z) <
             1000000.0f) {
@@ -570,7 +566,7 @@ static void em22_R1_R11B_A(cEm22* em)
         w->timer = 58;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -582,7 +578,7 @@ static void em22_R1_R11B_A(cEm22* em)
         w->timer = 252;
         em->r_no_2++;
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -607,7 +603,7 @@ static void em22_R1_R11B_B(cEm22* em)
         w->timer = 150;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -622,7 +618,7 @@ static void em22_R1_R11B_B(cEm22* em)
         f32 fl;
 
         em22DirMatrix(em, 0.0f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         v = em->pos;
         v.y = em->pos_old.y;
         fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
@@ -637,7 +633,7 @@ static void em22_R1_R11B_B(cEm22* em)
         em->atari.m_flag |= 0x300;
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -651,7 +647,7 @@ static void em22_R1_R11B_B(cEm22* em)
         em->r_no_2++;
     case 7:
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         } else if (em->motEvent & 1) {
             em22SetParasite(em);
@@ -662,7 +658,7 @@ static void em22_R1_R11B_B(cEm22* em)
         w->timer = 28;
         em->r_no_2++;
     case 9:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -687,7 +683,7 @@ static void em22_R1_R11B_C(cEm22* em)
         w->timer = 310;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer == 0) {
             em->hp = 0;
             em->clearStatus(EM_STATUS_ACTIVE);
@@ -714,7 +710,7 @@ static void em22_R1_InCage(cEm22* em)
         MotionSetCore(em, MOTION(em), ARC(0xD), ARC(0x27), 0, 4, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->flag & 1) {
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 8, 0, 0);
@@ -737,7 +733,7 @@ static void em22_R1_JumpWait(cEm22* em)
         MotionSetCore(em, MOTION(em), ARC(7), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em22GotoCk(em)) {
             return;
         }
@@ -764,7 +760,7 @@ static void em22_R1_JumpWait(cEm22* em)
             em->atari.throughOff();
         }
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em)) {
                 return;
             }
@@ -789,7 +785,7 @@ static void em22_R1_Wait(cEm22* em)
         MotionSetCore(em, MOTION(em), ARC(7), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->routeAngAbs > 0.7853982f) {
             em->r_no_2++;
         }
@@ -801,7 +797,7 @@ static void em22_R1_Wait(cEm22* em)
         em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.049087387f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em22DirMatrix(em, 0.0f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->routeAngAbs < 0.2617994f) {
             em->r_no_2 = 0;
         }
@@ -848,7 +844,7 @@ static void em22_R1_RunAbout(cEm22* em)
         em->r_no_2++;
     case 1:
         em22RunTurn(em, w);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((w->flags & 1) && em->plDist2 < 49000000.0f && w->routeAngAbs < 0.5235988f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
         } else if (w->stuckCnt > 5) {
@@ -892,7 +888,7 @@ static void em22_R1_Run(cEm22* em)
         em->r_no_2++;
     case 1:
         em22RunTurn(em, w);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 20250000.0f && w->routeAngAbs < 0.5235988f && em22PlRunCk(em) == 0) {
             if (w->plDeadWait == 0) {
                 a = em->pos;
@@ -973,7 +969,7 @@ static void em22_R1_Turn(cEm22* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         w->delta -= d;
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em) == 0) {
                 if (em->plDist2 < 6250000.0f) {
                     EmRoutineSet(em, 1, 0xA, 0, 0);
@@ -1030,7 +1026,7 @@ static void em22_R1_Escape(cEm22* em)
         em->r_no_2++;
     case 1:
         em22RunTurn(em, w);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x40), ARC(0x43), 3, 1, 0);
@@ -1038,7 +1034,7 @@ static void em22_R1_Escape(cEm22* em)
     case 3:
         w->timer = (u8) (Rnd() % 30) + 30;
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -1083,7 +1079,7 @@ static void em22_R1_Threat(cEm22* em)
         em->r_no_2++;
     case 1:
         em22DirMatrix(em, 0.0f);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) < 1.0471976f) {
             if (w->timer) {
                 w->timer--;
@@ -1188,7 +1184,7 @@ static void em22_R1_SideStep(cEm22* em)
     }
     case 1:
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em)) {
                 return;
             }
@@ -1300,7 +1296,7 @@ static void em22_R1_JumpAtk(cEm22* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             if (em22GotoCk(em)) {
                 return;
@@ -1349,7 +1345,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
         em22CamMove(em, w->camType);
         PlGachaMove();
         LifeDownSet2(pPL, 10, 0, 1);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if ((u32) PlGachaGet() < 15) {
                 LifeDownSet2(pPL, 200, 0, 0);
             }
@@ -1385,7 +1381,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
         if ((em->motEvent & 2) && ChkWaterEffectEnable(&em->pos)) {
             EstSet(0, -1, &em->pos, 0, 0x1A, 4, 0, 0, 0, 0);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
             EmRoutineSet(em, 1, 0x11, 0, 0);
         } else if (w->timer) {
@@ -1404,7 +1400,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
         em->r_no_2++;
     case 7:
         em22CamMove(em, w->camType);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em->x3A8 = em->pos;
@@ -1450,7 +1446,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         pl->r_no_2++;
     }
     case 3:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         pl->r_no_2 = pPL->pEmCatch->r_no_2;
         break;
     case 4:
@@ -1465,7 +1461,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
                 pl->Wep->setTrans(1, 0);
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -1474,7 +1470,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x38), 0, 3, 1, 0);
         pl->r_no_2++;
     case 7:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     pl->x3A8 = pl->pos;
@@ -1533,7 +1529,7 @@ static void em22_R1_ParaAtk(cEm22* em)
             }
         }
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 0xA, 0, 0);
         } else {
@@ -1570,7 +1566,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
     case 1:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.098174773f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
             w->plDeadWait = 30;
             em22ParaSetMotWait(em);
@@ -1607,7 +1603,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
                 break;
             }
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
@@ -1641,7 +1637,7 @@ static void em22_R1_Wakeup(cEm22* em)
             w->flags |= 2;
         }
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 7, 0, 0);
             }
@@ -1668,7 +1664,7 @@ static void em22_R1_Parasite(cEm22* em)
         em->r_no_2++;
     case 1:
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 7, 0, 0);
             }
@@ -1710,7 +1706,7 @@ static void em22_R1_Jump(cEm22* em)
         w->delta -= fl;
         w->flags |= 0x88;
         em22DirMatrix(em, 0.0f);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
@@ -1761,7 +1757,7 @@ static void em22_R1_Dm_Small(cEm22* em)
         w->timer = 8;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em22LockCk(em)) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else if (Rnd() & 1) {
@@ -1867,7 +1863,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         w->timer2 = 0;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 em->atari.m_flag &= ~0x300;
                 EmRoutineSet(em, 3, 0, 0, 0);
@@ -1921,7 +1917,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         w->timer2++;
         PSVECAdd(&em->pos, &w->blowSpd, &em->pos);
         w->blowSpd.y -= 20.0f;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y < fl) {
             em->pos.y = fl;
@@ -1957,7 +1953,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         SndCall(8, 0x10, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->hp <= 0) {
                 em->atari.m_flag &= ~0x300;
                 EmRoutineSet(em, 3, 0, 0, 0);
@@ -1997,7 +1993,7 @@ static void em22_R1_Die_Lost(cEm22* em)
         em->atari.m_flag |= 0x10;
         EmSetDie(em);
         EmReserveDropItem(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em->clearStatus(EM_STATUS_ACTIVE);
         em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);

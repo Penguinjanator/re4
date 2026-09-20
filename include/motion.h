@@ -47,7 +47,7 @@ void PartsWorldPosCalc(cModel* m);
 void MotionBlendOff(cModel* m);
 void MotionPause(cModel* m);
 void MotionClear(cModel* m, int flag);
-u16 MotionMove(cModel* m);
+u32 MotionMove(cModel* pEm, Camera* pCamera);
 u16 MotionMoveSub(cModel* m, MotionWork* w);
 void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera);
 void MotionHokan(cModel* m, MotionWork* w);

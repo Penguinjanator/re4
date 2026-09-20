@@ -19,6 +19,7 @@
 #include "sce_sys.h"
 #include "sce_at.h"
 #include "player.h"
+#include "motion.h"
 
 
 // Giant statue (Salazar's robot) of room 4-2: waits on the gondola, walks the passage, waits at
@@ -46,7 +47,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void* memset(void* p, int c, unsigned int n);
 }
 cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);

@@ -70,8 +70,6 @@ R21aRoof r21a_roofTbl[4] = {
 
 static Vec r21a_patrolTbl[2] = {{-38800.0f, 4452.0f, 19400.0f}, {-37540.0f, 4452.0f, 15230.0f}};
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static void r21a_movedShelf(int no);
 static void r21a_moveShelf(int no);
@@ -163,7 +161,7 @@ void R21aInit()
         SmdSetTrans(0x40, 0);
         getRoomEtcDoor(5, &door, 1);
         if (door) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
         r21a_work.p->em[13].setPtr(0x64, -1, 0);
         r21a_work.p->em[14].setPtr(0x65, -1, 0);
@@ -475,7 +473,7 @@ static void R21aFallRoofStartEnd()
     }
     getRoomEtcDoor(5, &door, 1);
     if (door) {
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
     }
     if (r21a_work.p->em[13].isActive() == 0) {
         r21a_work.p->em[13].setEm(0x64, -1, 0, 1, 1);

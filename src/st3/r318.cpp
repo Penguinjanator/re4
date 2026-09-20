@@ -102,8 +102,6 @@ static SceElevatorData r318_elvLeave = {1, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826
 extern "C" void* r318_memset(void*, ...) asm("memset");
 // cObjScr (game/obj02.cpp) is not in a header: the callback setter of a scripted map object.
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
-// pl_npc.cpp: MotionMove is called with a second argument by the player routines.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // cSatMgr::create redeclared with the float parameter before the two ints: the `fmr f1` is issued
 // between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
 cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
@@ -237,7 +235,7 @@ static void R318ExecSitMain()
     pPL->setNoSuspend(1);
     pl->Wep->setTrans(0, 1);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x87), 0, 0, 0x201, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     while (MotionGetState(pPL) == 0) {
         SceSleep(1);
     }
@@ -248,7 +246,7 @@ static void R318ExecSitMain()
         U32Set(r318_work.p->str, str);
     }
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x88), 0, 0, 0x201, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     while (MotionGetState(pPL) == 0) {
         SceSleep(1);
     }
@@ -580,7 +578,7 @@ static void R318ExecSwitchCheck()
         pPL->setNoSuspend(1);
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, 1, 0xC, 0x2001, 6, 0, 0);
-        MotionMoveF(pPL, 0);
+        MotionMove(pPL, 0);
         for (i = 0; i < 15; i++) {
             laser = r318_work.p->laser[i];
             if (laser) {
@@ -1080,7 +1078,7 @@ static void playerEscape02(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(2);
             AtariOnRaw(&pPL->atari, 0x300);
@@ -1153,7 +1151,7 @@ static void playerEscape03(cPlayer* pl)
                 break;
             }
         }
-        if (MotionMoveF(pl, 0) || r318_work.p->escFrame > 0x3E) {
+        if (MotionMove(pl, 0) || r318_work.p->escFrame > 0x3E) {
             BitOn(pG->Room_flg[0], 0x00040000);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
@@ -1184,7 +1182,7 @@ static void playerEscape03(cPlayer* pl)
     }
     case 3:
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(3);
             AtariOnRaw(&pPL->atari, 0x300);
@@ -1230,7 +1228,7 @@ static void playerEscape04(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(4);
             AtariOnRaw(&pPL->atari, 0x300);
@@ -1259,7 +1257,7 @@ static void playerDie(cPlayer* pl)
         if (pl->frame > 22.7f && pl->frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }

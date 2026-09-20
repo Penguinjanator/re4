@@ -49,8 +49,6 @@
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 // cUnit::beginEvent / endEvent take an int in the original (see sscrn.cpp).
 class cUnitEvent {
@@ -159,7 +157,7 @@ void R117Init()
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
         W->evd0 = DC.setData(EvtMgr.NameChange("evd/r117s00.evd"));
         W->evd0->setCommand(CMND_ARAM_LOAD, 0, 0);

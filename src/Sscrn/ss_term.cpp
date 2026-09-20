@@ -63,7 +63,6 @@ char* strcpy(char* d, const char* s);
 // game/shape.cpp
 int ShapeMove(cModelInfo* info);
 void ClrShape(cModel* m);
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 }
 int ShapeSet(void* work, int frame, void* data, int flags);
 void* GetModelInfoAddr(cModelInfo* info, int no);
@@ -939,9 +938,9 @@ void SsTermMain::move(SUB_SCREEN* wk)
             u->be_flag |= 8;
             u->rev_flag &= 0xF0;
         }
-        MotionMoveF(MapMgr.getWork(0), 0);
+        MotionMove(MapMgr.getWork(0), 0);
         ShapeMove(MapMgr.getWork(0)->pModelInfo);
-        MotionMoveF(MapMgr.getWork(2), 0);
+        MotionMove(MapMgr.getWork(2), 0);
         ShapeMove(MapMgr.getWork(2)->pModelInfo);
     }
     if (x10 == 0) {

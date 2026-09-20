@@ -69,7 +69,7 @@ public:
     void setBreak(Vec* pos);
     int ckObj();            // 0 when a cEm 0x45 object stands in the door
     void setOpenLock(int type);
-    void setCloseLock(int a);
+    void setCloseLock();
     void setClose();
     void setDowned(int dir);
     void setNormal();

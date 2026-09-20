@@ -13,6 +13,7 @@
 #include "snd.h"
 #include "rnd.h"
 #include "pl_wep.h"
+#include "motion.h"
 
 // Grenade (hand / incendiary / flash): thrown under gravity, bounces off the scenario, explodes
 // or drowns when its fuse runs out; can be held by a model until `holdTimer` expires.
@@ -27,10 +28,8 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int obj01AddSpeed(cObj01* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 // r_no_0 dispatch: 0 flying/held, 1 exploded (fading out).
 void cObj01::move()

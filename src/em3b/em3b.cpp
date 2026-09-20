@@ -37,8 +37,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em3bFunc)(cEm3b*);
 
@@ -522,14 +520,14 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
     case 0:
         em3bPosReset(em);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->timer = 10;
         em->r_no_2++;
         break;
     case 1:
         em3bPosReset(em);
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else if (em->flag & 1) {
@@ -555,7 +553,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -567,7 +565,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         EstSet(em, -1, 0, 0, 1, 0, 1, 0, em, 0);
         em->r_no_2++;
     case 3: {
-        int end = MotionMoveF(em, 0);
+        int end = MotionMove(em, 0);
 
         if (end) {
             em->r_no_2++;
@@ -576,7 +574,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         em3bRunDownCkTruck(em);
         f = em->frame;
         if (f > 249.7f && f < 250.3f) {
-            // the first stop stores the (zero) MotionMoveF result kept in a callee-saved register; the
+            // the first stop stores the (zero) MotionMove result kept in a callee-saved register; the
             // second test's label has two uses (pDriver == 0 and the `&&` false path), so cse does not
             // carry the known zero into it and its literal zero is a fresh `li` — two copies survive
             if (w->pDriver && w->pDriver->hp <= 0) {
@@ -649,7 +647,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
         em->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
             break;
@@ -699,7 +697,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
 static void em3b_R1_Cart_Wait(cEm3b* em)
 {
     MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0, 0, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
 }
 
 // Cart r_no_1 == 4: runs down the track (motion 0xD) running over whoever is in front; after 80
@@ -716,7 +714,7 @@ static void em3b_R1_Cart_Run(cEm3b* em)
         w->timer = 80;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         t = w->timer;
         if (t) {
             w->timer--;
@@ -758,7 +756,7 @@ static void em3b_R1_Cart_Damage(cEm3b* em)
         em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 0, 0);
         }
         break;
@@ -782,7 +780,7 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
         EmSetDie(em);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         t = w->timer;
         if (t) {
             w->timer--;
@@ -966,7 +964,7 @@ static void subem3bRunDown()
         pG->ashley_life = st;
         sub->r_no_2++;
     case 1:
-        MotionMoveF(sub, 0);
+        MotionMove(sub, 0);
         break;
     }
     sub->subArc = sub->subArc2;

@@ -10,12 +10,12 @@
 #include "pl_wep.h"
 #include "player.h"
 #include "pl_body.h"
+#include "motion.h"
 
 // Rocket launcher (weapon 0x13) and its rocket: the launcher carries a loaded cObjRocket on its
 // muzzle parts, launch() sends it along the marker line, drop() leaves an empty launcher model.
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int MotionGetState(cModel* m);
 double atan2(double y, double x);
 }

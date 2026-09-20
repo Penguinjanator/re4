@@ -34,7 +34,7 @@ EmListData* GetListPtrFromEm(cEm* em);
 u8 GetEmIdFromList(u32 no);
 void EmListSetAlive(int no, int on);
 void EmSetDie(cEm* em);                     // remember the death of `em` in pG->Em_flg
-void EmSetDieCnt();
+void EmSetDieCnt(cEm* pEm);
 void EmSetRoomInit();                       // clear the "set" bit of every entry
 void EmListWaitDelete();
 }

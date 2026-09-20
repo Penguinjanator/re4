@@ -42,7 +42,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
@@ -405,16 +404,16 @@ void cRoutine::moveDamage()
         }
         break;
     case 0xA:
-        MotionMoveF(owner, 0);
+        MotionMove(owner, 0);
         break;
     case 0x14:
-        if (MotionMoveF(owner, 0)) owner->r_no_1 = 0x15;
+        if (MotionMove(owner, 0)) owner->r_no_1 = 0x15;
         break;
     case 0x15:
         MotionSetCore(owner, &owner->Motion, OARC(0xD8 / 4), 0, 3, 1, 0);
         owner->r_no_1 = 0x16;
     case 0x16:
-        if (MotionMoveF(owner, 0)) {
+        if (MotionMove(owner, 0)) {
             owner->dmg.clear();
             owner->r_no_1 = 0x32;
         }

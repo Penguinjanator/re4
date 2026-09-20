@@ -44,8 +44,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" int EspMove();
 extern "C" int EspgenMove();
-// SubScreenTask passes a second argument to MotionMove (pl_npc.cpp does the same: `li r4, 0`).
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -331,7 +329,7 @@ void SubScreenTask()
                 ssWepModel->invisible_factor2 = 1.0f - rate;
             }
             if (ssPlMotion) {
-                MotionMoveF(ssPlModel, 0);
+                MotionMove(ssPlModel, 0);
             }
             // Dead test (never-read store): its `high pG` is set in this block and survives as the
             // register of the 0x19/0x1F/0x20 arm (cse1 canon_reg: the arm's own high dies inside the
@@ -353,14 +351,14 @@ void SubScreenTask()
                 case 0x1F:
                 case 0x20:
                     if (pG->pl_type == 0) {
-                        MotionMoveF(ssWepModel, 0);
+                        MotionMove(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
                     if (pG->pl_type == 4) {
-                        MotionMoveF(ssWepModel, 0);
+                        MotionMove(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }

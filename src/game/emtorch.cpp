@@ -12,9 +12,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp

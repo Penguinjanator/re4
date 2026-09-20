@@ -24,8 +24,6 @@
 #include "pad.h"
 #include "math_sub.h"
 
-// motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
-int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
@@ -501,7 +499,7 @@ static void wep09_r2_reload(cPlayer* pl)
             PlRoutineSet(pl, 0, 6, 1, 2);
             pl->m_Work4 = 10;
         }
-        MotionMoveI(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }

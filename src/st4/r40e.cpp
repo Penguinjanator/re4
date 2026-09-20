@@ -52,8 +52,6 @@ static R40eWork* r40e_work;
 void TexRenderModResP(cModel* m, int parts) asm("TexRenderModRes");
 // The u8 result is passed on unmasked to SceDestroyEm (COMPILER-DIFF 4).
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
-// The result screen's init is called with r4 left as it was (no argument set up).
-void AdaResultInit(AdaResult* r) asm("init__9AdaResulti");
 
 static void r40e_execShowView_end();
 static void r40e_execShowView();
@@ -420,7 +418,7 @@ static void gameResult()
         size += MARGIN;
         swap.SwapOut((u32) pG->pRoom, size, 0);
         res = new AdaResult;
-        AdaResultInit(res);
+        res->init();
         FadeKillAll();
         FadeSetW(0x80000002, FADE_TIME, 0, 0);
         if (Fade[2].flags & 1) {

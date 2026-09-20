@@ -10,6 +10,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "rnd.h"
+#include "motion.h"
 
 // Floating island (the lake raft): drifts back to its home position, gets pushed and plays a
 // crash motion when hit, spawns water effects while alive.
@@ -24,7 +25,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 u8 EspPullCoreKind();
 void EffectEspDelete(int a, int kind, cObj* obj, int b);
 void EffectEspgenDelete(int Core_flg, int kind, cObj* obj);
@@ -34,7 +34,6 @@ void obj1c_R1_Crash(cObj1c* obj);
 void obj1c_R1_CrashBig(cObj1c* obj);
 void obj1cSpdMove(cObj1c* obj);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 void (*Obj1c_R1_move_tbl[3])(cObj1c*) = { obj1c_R1_Set, obj1c_R1_Crash, obj1c_R1_CrashBig };
 

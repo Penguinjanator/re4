@@ -21,6 +21,7 @@
 #include "pl_npc.h"
 #include "pl_sub.h"
 #include "pl_wep.h"
+#include "motion.h"
 
 // Bulldozer (obj 0x3E): parts 2 carries the player, the partner and the enemies standing on it
 // through the break / move / lift routines of its motion table; the partner drives it
@@ -52,7 +53,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void LifeDownSet(cEm* em, int dmg, int rnd);
 void objBull_R0_Set(cObjBull* obj);
 void objBull_R0_Break1st(cObjBull* obj);

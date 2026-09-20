@@ -1254,7 +1254,7 @@ void MercResult::quit()
 }
 
 // Loads the Assignment Ada result id data (omk_r0.dat).
-void AdaResult::init(int no)
+void AdaResult::init()
 {
     static char data_name[] = "SS/___/omk_r0.dat";
     void* addr;

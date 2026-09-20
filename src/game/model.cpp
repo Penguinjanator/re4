@@ -37,8 +37,6 @@ void calcTplOffset(TEXPalette* tpl);
 void getBoundingBox(ModelData* data, ModelBound* bound);
 void drawBoundingBox(Mtx m, ModelBound* bound);
 int GetModelInfoNum(cModelInfo* info);
-// MotionMove takes a second argument (pl_npc.cpp MotionMoveF)
-int MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // cAtariInfo lives in cModel's union (no member constructor call): constructed by hand
 cAtariInfo* AtariInfoConstruct(cAtariInfo* p) asm("__10cAtariInfo");
 }
@@ -1206,7 +1204,7 @@ void cModel::motionSet(void* data, int a, int b, int c, int d)
 // Advances the motion one frame (MotionMove).
 int cModel::motionMove()
 {
-    return MotionMoveF(this, 0);
+    return MotionMove(this, 0);
 }
 
 // Pauses the motion.

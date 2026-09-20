@@ -24,8 +24,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em23Func)(cEm23*);
 
@@ -315,7 +313,7 @@ static void em23_R0_Init(cEm23* em)
         break;
     }
     MotionSetCore(em, MOTION(em), ARC(9), 0, 0, 5, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em23_R0_Move(em);
 }
 
@@ -456,7 +454,7 @@ static void em23_R1_R20ALanding(cEm23* em)
         em->r_no_2++;
     case 1:
         em->partsFixMemory(0x14);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         if (EM23_PL_NEAR(em, 25000000.0f, 100000000.0f)) {
@@ -496,7 +494,7 @@ static void em23_R1_R20ALanding(cEm23* em)
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
             w->spd.x = 0.0f;
             w->spd.y = 20.0f;
@@ -509,7 +507,7 @@ static void em23_R1_R20ALanding(cEm23* em)
         w->timer = 20;
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -535,7 +533,7 @@ static void em23_R1_Wait(cEm23* em)
         em->r_no_2++;
     case 1:
         em->partsFixMemory(0x14);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         if (EM23_PL_NEAR(em, 25000000.0f, 100000000.0f)) {
@@ -569,7 +567,7 @@ static void em23_R1_Takeoff(cEm23* em)
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 0, 0);
             w->spd.x = 0.0f;
             w->spd.y = 20.0f;
@@ -602,7 +600,7 @@ static void em23_R1_TakeoffDash(cEm23* em)
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 0, 0);
             w->spd.x = 0.0f;
             w->spd.y = 20.0f;
@@ -684,7 +682,7 @@ static void em23_R1_Turn(cEm23* em)
         }
         em->ang.y = y;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -716,7 +714,7 @@ static void em23_R1_Landing(cEm23* em)
             em->ang.y += Muku(&em->pos, &w->pCorpse->pos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->pCorpse
             && (em->pos.x - w->pCorpse->pos.x) * (em->pos.x - w->pCorpse->pos.x)
                        + (em->pos.z - w->pCorpse->pos.z) * (em->pos.z - w->pCorpse->pos.z)
@@ -748,7 +746,7 @@ static void em23_R1_Landing(cEm23* em)
             em->ang.y += Muku(&em->pos, &w->pCorpse->pos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         w->spd.z -= 5.0f;
         if (w->spd.z < 100.0f) {
             w->spd.z = 100.0f;
@@ -772,7 +770,7 @@ static void em23_R1_Landing(cEm23* em)
         w->spd.z = 0.0f;
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->pCorpse) {
                 if (fabsf(em->pos.y - w->pCorpse->pos.y) < 200.0f) {
                     EmRoutineSet(em, 1, 6, 0, 0);
@@ -843,7 +841,7 @@ static void em23_R1_ToCorpse(cEm23* em)
             em->ang.y += Muku(&em->pos, &w->pCorpse->pos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0) && w->pCorpse
+        if (MotionMove(em, 0) && w->pCorpse
             && (em->pos.x - w->pCorpse->pos.x) * (em->pos.x - w->pCorpse->pos.x)
                        + (em->pos.z - w->pCorpse->pos.z) * (em->pos.z - w->pCorpse->pos.z)
                    < 360000.0f) {
@@ -863,7 +861,7 @@ static void em23_R1_ToCorpse(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 5, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -871,7 +869,7 @@ static void em23_R1_ToCorpse(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 5, 1, 0);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -879,7 +877,7 @@ static void em23_R1_ToCorpse(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 5, 0x41, 0);
         em->r_no_2++;
     case 7:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -896,7 +894,7 @@ static void em23_R1_Eat(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 5, 5, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0) && (Rnd() & 1)) {
+        if (MotionMove(em, 0) && (Rnd() & 1)) {
             em->r_no_2++;
         }
         break;
@@ -904,7 +902,7 @@ static void em23_R1_Eat(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (Rnd() & 1) {
                 em->r_no_2 = 0;
             } else {
@@ -916,7 +914,7 @@ static void em23_R1_Eat(cEm23* em)
         em23WaitMotion(em);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -967,7 +965,7 @@ static void em23_R1_Dm_Air(cEm23* em)
             }
         } else {
             w->targetAng = em->pos.y;
-            MotionMoveF(em, 0);
+            MotionMove(em, 0);
         }
         break;
     case 2:
@@ -981,7 +979,7 @@ static void em23_R1_Dm_Air(cEm23* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         w->spd.z *= 0.85f;
         em23AddSpeedAir(em, w->dmAng);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1022,7 +1020,7 @@ static void em23_R1_Die_Normal(cEm23* em)
                 info->color[2] = info->color[1] = info->color[0];
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;

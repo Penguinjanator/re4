@@ -24,6 +24,7 @@
 #include "pad.h"
 #include "player.h"
 #include "pl_sub.h"
+#include "motion.h"
 
 // Falling pillar (obj 0x1F): breaks (setBreak) or is thrown (setThrow) at the player, who can
 // escape with the action button; the escape / die sequences run as player damage routines.
@@ -40,7 +41,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objPillar_R0_Set(cObjPillar* obj);
 void objPillar_R0_Break(cObjPillar* obj);
 void objPillar_R0_Throw(cObjPillar* obj);

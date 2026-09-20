@@ -13,12 +13,12 @@
 #include "eprintf.h"
 #include "gx.h"
 #include "camera.h"
+#include "motion.h"
 
 // Player weapon object: the model the player holds, its mode dispatch (stay / ready / fire /
 // down / reload / drop), the laser sight and the debug collision display.
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 int GetWepTargetPos(Vec* from, Vec* to, int mode, int wepNo, cEm** target, u32* attr);
 void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend);
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);

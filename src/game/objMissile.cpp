@@ -15,6 +15,7 @@
 #include "math_sub.h"
 #include "snd.h"
 #include "pl_wep.h"
+#include "motion.h"
 
 // Helicopter missile: follows a parts of the helicopter (R0_Parent), waits (R0_FireWait), flies
 // toward its target and explodes on the scenario / an enemy (R0_Fire, objMissileBomb).
@@ -28,7 +29,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objMissile_R0_Set(cObjMissile* obj);
 void objMissile_R0_Parent(cObjMissile* obj);
 void objMissile_R0_FireWait(cObjMissile* obj);

@@ -22,6 +22,7 @@
 #include "pl_sub.h"
 #include "at_mod.h"
 #include "etc_model.h"
+#include "motion.h"
 
 // Ladder (obj 0x13): the player and the partner climb it (plobjLadderClimb / subobjLadderClimb),
 // the player kicks it down (plobjLadderDown) and puts it up again (plobjLadderReset); the ladder
@@ -53,7 +54,7 @@ public:
     void setCamera(int no);
 };
 
-// cMotBase.h drags in motion.h's one-argument MotionMove; only the base setter is needed here.
+// cMotBase.h drags in motion.h; only the base setter is needed here.
 class cMotModel;
 class cMotBase {
 public:
@@ -61,7 +62,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);
 void objLadder_R1_Set(cObjLadder* obj);
 void objLadder_R1_Fall(cObjLadder* obj);

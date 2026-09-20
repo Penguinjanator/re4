@@ -45,9 +45,6 @@
 // Room 1-01 (D:/Bio4/Prog/r101.cpp): the village; the first fight, the tower and the enemy resets,
 // the church bell event (s30), the house event (s20), the binocular view (s00) and the door messages.
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup before the bl);
-// an asm-labelled free declaration reproduces the call (same trick as dvd.h ReadCheckInfo).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 struct R101Work {
     s8 emNum;             // 0x00  enemies alive when the fight started (+5 per reset wave)
@@ -614,7 +611,7 @@ static void r101_DoorCk()
             SceSleep(1);
         }
         SceSleep(1);
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
         SceSleep(30);
         ((cEmDoor*) door)->setNormal();
     }

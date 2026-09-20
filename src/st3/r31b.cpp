@@ -112,12 +112,8 @@ static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 // The room build's cGameSave::save had a second (unused) parameter: `li r5, -1` before the call.
 void GameSaveSave2(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
-// pl_npc.cpp: MotionMove is called with a second argument by the player code.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // COMPILER-DIFF: #1 -- cSatMgr::create redeclared with the float parameter before the two ints: the
 // `fmr f1` is issued between the pointer moves and the `li r7/r8` (the include/atari_init.h lever).
 cSat* SatCreateF(cSatMgr* mgr, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
@@ -355,7 +351,7 @@ void R31bInit()
         SceAtDataSet_exec(0x23, 0x12, 0, (TaskFunc) R31bExecRoom03U3Main, 0, 1);
         getRoomEtcDoor(4, &door, 1);
         if (door) {
-            cEmDoorSetCloseLock(door);
+            ((cEmDoor*) door)->setCloseLock();
         }
     } else {
         getRoomEtcDoor(4, &door2, 1);
@@ -1349,7 +1345,7 @@ static void R31bExecEscapeEnd()
     R31bSmdTransOff(2);
     SndRoomStrStop(3);
     pPL->motionSet(pPL->m_MotTbl[0], pPL->m_MotTbl[1], pPL->m_MotTbl[0x5F], pPL->m_MotTbl[0x60], 0, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
     SetPosXYZ(pPL, 37120.0f, 4265.0f, -1500.0f);
     SetAngXYZ(pPL, 0.0f, 0.72f, 0.0f);
@@ -1582,7 +1578,7 @@ static void R31bExecRoom03U3End()
         }
     }
     MotionClear(pPL, 0);
-    MotionMoveF(pPL, 0);
+    MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
     SetPosXYZ(pPL, 54117.0f, 4266.0f, 13190.0f);
     SetAngXYZ(pPL, 0.0f, -2.147f, 0.0f);

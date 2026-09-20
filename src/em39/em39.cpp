@@ -59,15 +59,10 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // COMPILER-DIFF #4: the original passes an int SE number to SndCall's u16 parameter without the
 // truncation ours emits (`mr` instead of `clrlwi 16`): int-view declaration (em39SetVoice, em39FootEff,
 // em39PLVoiceCk).
 u32 SndCallI(u16 blk, int no, Vec* pos, int id, int vol, cUnit* obj) asm("SndCall__FUsUsP3VeciiP5cUnit");
-// em_set.h declares the empty form; this unit passes the dying enemy (the original prototype
-// took it; em_set.cpp ignores its arguments).
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 // model.h's member; the enemies call it with the old ModelData (em10.cpp).
 extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
 
@@ -298,7 +293,7 @@ void em39DmCk(cEm39* em)
                 }
                 if (em->hp <= 0) {
                     EmSetDie(em);
-                    EmSetDieCntE(em);
+                    EmSetDieCnt(em);
                     if (pG->room_id == 0x31C) {
                         return;
                     }
@@ -349,7 +344,7 @@ void em39DmCk(cEm39* em)
     SndCall(8, 0xD, &em->pos, em->id, 0, em);
     if (em->hp <= 0) {
         EmSetDie(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         if (pG->room_id == 0x31C) {
             return;
         }
@@ -974,7 +969,7 @@ static void em39_R0_Init(cEm39* em)
         }
         MotionSetCore(em, MOTION(em), ARC(0xF5), 0, 0, 1, 0);
     }
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em39_R0_Move(em);
 }
 
@@ -1087,7 +1082,7 @@ static void em39_R1_Talk1st(cEm39* em)
         em39WepSet(em, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -1111,7 +1106,7 @@ static void em39_R1_Talk2nd(cEm39* em)
         em39WepSet(em, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -1137,7 +1132,7 @@ static void em39_R1_Success(cEm39* em)
         w->Arm_rno = 6;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Be_flg |= 0x00800000;
             AtariOn(&em->atari, 0x300);
             EmRoutineSet(em, 1, 4, 0, 0);
@@ -1168,7 +1163,7 @@ static void plem39_Success(cPlayer* pl)
         pl->Wep->setTrans(0, 0);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->Wep->setTrans(1, 0);
             AtariOn(&pl->atari, 0x300);
             EndPlDamage();
@@ -1201,7 +1196,7 @@ static void em39_R1_Failure(cEm39* em)
         w->Arm_rno = 6;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em39GetCliffPos(em)) {
                 EmRoutineSetW(em, 1, 0x2E, 0, 0);
             } else {
@@ -1234,7 +1229,7 @@ static void plem39_Failure(cPlayer* pl)
         pl->Wep->setTrans(0, 0);
         pl->r_no_2++;
     case 1:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
     pl->x3A8 = pl->pos;
@@ -1268,7 +1263,7 @@ static void em39_R1_Wait(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -1287,7 +1282,7 @@ static void em39_R1_Wait(cEm39* em)
         }
         em->r_no_2++;
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((s16) pG->pl_life > 0 && em->hp > 0 && em->set != 1) {
             if (em39DeadCk(em)) {
                 if (em39JumpUpCk3(em)) {
@@ -1380,7 +1375,7 @@ static void em39_R1_Sit(cEm39* em)
         }
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         AtariOff(&em->atari, 0xFCFF);
         if (w->pGotoPoint) {
             if ((em->pos.x - w->pGotoPoint->pos.x) * (em->pos.x - w->pGotoPoint->pos.x) + (em->pos.z - w->pGotoPoint->pos.z) * (em->pos.z - w->pGotoPoint->pos.z) < 22500.0f) {
@@ -1452,7 +1447,7 @@ static void em39_R1_SitDown(cEm39* em)
         AtariOff(&em->atari, 0xFCFF);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if ((s16) w->dmgTotal > 400) {
                 if (em39AreaMoveCk(em) == 0) {
                     w->Hide_timer = 200;
@@ -1490,7 +1485,7 @@ static void em39_R1_WallWait(cEm39* em)
         w->Timer = 60;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if ((s16) pG->pl_life > 0) {
             if (w->pGotoPoint) {
                 f32 ang;
@@ -1571,7 +1566,7 @@ static void em39_R1_Walk(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.09817477f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         {
             f32 ang = Muku(&pPL->pos, &em->pos, pPL->ang.y, PI);
 
@@ -1687,7 +1682,7 @@ static void em39_R1_Run(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.2617994f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         {
             f32 ang = Muku(&pPL->pos, &em->pos, pPL->ang.y, PI);
 
@@ -1786,7 +1781,7 @@ static void em39_R1_Goto(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         {
             f32 ang = Muku(&pPL->pos, &em->pos, pPL->ang.y, PI);
 
@@ -1851,7 +1846,7 @@ static void em39_R1_Turn180(cEm39* em)
             em->ang.y += d;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else if (w->Atk_wait == 0 && (em->seFlags28B & 4)) {
             if (em39AtkRtnCk(em)) {
@@ -1897,7 +1892,7 @@ static void em39_R1_Threat(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (em->r_no_3 && (u8) (Rnd() % 10) > 3) {
                 if ((u8) (Rnd() % 10) > 4 && em->plDist2 > 25000000.0f) {
@@ -2016,7 +2011,7 @@ static void em39_R1_Escape(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -2107,7 +2102,7 @@ static void em39_R1_Backjump(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->r_no_3 == 3) {
                 EmRoutineSet(em, 1, 0x1E, 0, 0);
             } else if (w->targetAngAbs > 2.3561945f) {
@@ -2245,7 +2240,7 @@ static void em39_R1_Step(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
                 break;
@@ -2317,7 +2312,7 @@ static void em39_R1_Slant(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             } else if (w->Dash_wait == 0) {
@@ -2390,7 +2385,7 @@ static void em39_R1_Slant2(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             } else {
@@ -2461,7 +2456,7 @@ static void em39_R1_SuperDash(cEm39* em)
             PSMTXMultVecSR(em->mat, &spd, &spd);
             PSVECAdd(&em->pos, &spd, &em->pos);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 2, 0);
         } else if (em->seFlags28B & 4) {
             if (em39AtkRtnCk(em)) {
@@ -2507,7 +2502,7 @@ static void em39_R1_JumpDown(cEm39* em)
         em->ang.y += Muku2(em->ang.y, w->Target_dir, 0.39269908f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em->dmg.m_Timer = 2;
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (em->seFlags28B & 0x10) {
             v = em->pos;
             v.y = em->pos_old.y;
@@ -2521,7 +2516,7 @@ static void em39_R1_JumpDown(cEm39* em)
                 SndCall(8, 0xE, &em->pos, em->id, 0, em);
                 MotionSetCore(em, MOTION(em), ARC(0x54), ARC(0x55), 3, 1, 0);
                 EstSet(em, -1, 0, 0, 0x2F, 0x13, 0, 0, em, 0);
-                MotionMoveF(em, 0);
+                MotionMove(em, 0);
                 em->r_no_2 = 2;
                 break;
             }
@@ -2533,7 +2528,7 @@ static void em39_R1_JumpDown(cEm39* em)
     case 2:
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->pos.y < -4000.0f) {
                 w->Hide_timer = 200;
                 EmRoutineSet(em, 1, 0x26, 0, 0);
@@ -2590,7 +2585,7 @@ static void em39_R1_JumpUp(cEm39* em)
             PSVECSubtract(&w->TmpV, &v, &w->TmpV);
             w->Be_flg |= 0x01000000;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             AtariOn(&em->atari, 0x300);
             if (em39GotoCk(em)) {
                 break;
@@ -2666,7 +2661,7 @@ static void em39_R1_JumpUp2(cEm39* em)
             PSVECSubtract(&w->TmpV, &v, &w->TmpV);
             w->Be_flg |= 0x01000000;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             AtariOn(&em->atari, 0x300);
             if (em39GotoCk(em)) {
                 break;
@@ -2792,7 +2787,7 @@ static void em39_R1_JumpUp3(cEm39* em)
             PSVECSubtract(&w->TmpV, &v, &w->TmpV);
             w->Be_flg |= 0x01000000;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             AtariOn(&em->atari, 0x300);
             w->Be_flg |= 0x8000;
             if (w->Be_flg & 0x00400000) {
@@ -2827,7 +2822,7 @@ static void em39_R1_FanceJump(cEm39* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->Target_dir, 0.39269908f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em39GotoCk(em)) {
                 break;
             }
@@ -2875,7 +2870,7 @@ static void em39_R1_AtkKnife(cEm39* em)
         if (em->seFlags28B & 2) {
             em39SetVoice(em, 0x19);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -2915,7 +2910,7 @@ static void em39_R1_AtkKnife(cEm39* em)
                 MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -2984,7 +2979,7 @@ static void em39_R1_AtkDoor(cEm39* em)
         if (em->seFlags28B & 2) {
             em39SetVoice(em, 0x19);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 9, 0, 0);
             } else {
@@ -3015,7 +3010,7 @@ static void em39_R1_AtkDoor(cEm39* em)
         if (em->seFlags28B & 2) {
             em39SetVoice(em, 0x19);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 9, 0, 0);
             } else {
@@ -3087,7 +3082,7 @@ static void em39_R1_KnifeCatch(cEm39* em)
             em->ang.y += d;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -3176,7 +3171,7 @@ static void em39_R1_KnifeHit(cEm39* em)
         }
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->pWep) {
                 MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
             }
@@ -3213,7 +3208,7 @@ static void em39_R1_KnifeHit(cEm39* em)
             w->Timer--;
             end = EmCatchMotionMove(em, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(em, 0);
+            end = MotionMove(em, 0);
         }
         if (end) {
             if (em39JumpUpCk3(em)) {
@@ -3262,7 +3257,7 @@ static void plem39_KnifeHit(cPlayer* pl)
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
         pl->r_no_2++;
     case 3:
-        if (MotionMoveF(pl, 0) && (s16) pG->pl_life > 0) {
+        if (MotionMove(pl, 0) && (s16) pG->pl_life > 0) {
         END:
             pl->Wep->setTrans(1, 0);
             EndPlDamage();
@@ -3278,7 +3273,7 @@ static void plem39_KnifeHit(cPlayer* pl)
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(pl, 0);
+            end = MotionMove(pl, 0);
         }
         if (end) {
             pl->Wep->setTrans(1, 0);
@@ -3492,7 +3487,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
             w->Timer--;
             end = EmCatchMotionMove(em, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(em, 0);
+            end = MotionMove(em, 0);
         }
         if (end) {
             if ((s16) pG->pl_life > 0) {
@@ -3529,7 +3524,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
             w->Timer--;
             end = EmCatchMotionMove(em, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(em, 0);
+            end = MotionMove(em, 0);
         }
         if (end) {
             em->r_no_2++;
@@ -3546,7 +3541,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em39JumpUpCk3(em)) {
                 break;
             }
@@ -3616,7 +3611,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(pl, 0);
+            end = MotionMove(pl, 0);
         }
         if (end && (s16) pG->pl_life > 0) {
             EndPlDamage();
@@ -3633,7 +3628,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
-            end = MotionMoveF(pl, 0);
+            end = MotionMove(pl, 0);
         }
         if (end) {
             EndPlDamage();
@@ -3700,7 +3695,7 @@ static void em39_R1_Atk_MG(cEm39* em)
         t = LIMIT_ANGLE(GetXZAngle(&em->pos, &target) + -0.2617994f);
         em->ang.y += Muku2(em->ang.y, t, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -3720,7 +3715,7 @@ static void em39_R1_Atk_MG(cEm39* em)
         EM39_GUN_PITCH(ang, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + ang * 0.1f;
         em39BlendMotSet(em, ARC(0x7C), ARC(0x7D), ARC(0x7E), 0, 0, 0, 5);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer3) {
             w->Timer3--;
             break;
@@ -3746,7 +3741,7 @@ static void em39_R1_Atk_MG(cEm39* em)
         EM39_GUN_PITCH(ang, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + ang * 0.1f;
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -3790,7 +3785,7 @@ static void em39_R1_Atk_MG(cEm39* em)
         em->r_no_2++;
     case 7:
         w->Be_flg &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (em->r_no_3) {
                 EmRoutineSet(em, 1, 0x1E, 0, 1);
             } else {
@@ -3821,7 +3816,7 @@ static void em39_R1_Reload(cEm39* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (em->r_no_3 && (u8) (Rnd() % 10) > 3) {
@@ -3886,7 +3881,7 @@ static void em39_R1_AppearMG(cEm39* em)
         t = LIMIT_ANGLE(GetXZAngle(&em->pos, &target) + -0.2617994f);
         em->ang.y += Muku2(em->ang.y, t, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -3906,7 +3901,7 @@ static void em39_R1_AppearMG(cEm39* em)
         EM39_GUN_PITCH(ang, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + ang * 0.1f;
         em39BlendMotSet(em, ARC(0x7C), ARC(0x7D), ARC(0x7E), 0, 0, 0, 5);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer3) {
             w->Timer3--;
             break;
@@ -3932,7 +3927,7 @@ static void em39_R1_AppearMG(cEm39* em)
         EM39_GUN_PITCH(ang, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + ang * 0.1f;
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -3970,7 +3965,7 @@ static void em39_R1_AppearMG(cEm39* em)
         em->r_no_2++;
     case 7:
         w->Be_flg &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Atk_wait = (u8) (Rnd() % 45) + 90;
             EmRoutineSet(em, 1, 5, 0, 0);
         }
@@ -4043,7 +4038,7 @@ static void em39_R1_AppearMG2(cEm39* em)
         w->TmpF = LIMIT_ANGLE(w->TmpF);
         em->ang.y += ang;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -4063,7 +4058,7 @@ static void em39_R1_AppearMG2(cEm39* em)
         EM39_GUN_PITCH2(ang, t, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + t * 0.1f;
         em39BlendMotSet(em, ARC(0x7C), ARC(0x7D), ARC(0x7E), 0, 0, 0, 5);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer3) {
             w->Timer3--;
             break;
@@ -4087,7 +4082,7 @@ static void em39_R1_AppearMG2(cEm39* em)
         EM39_GUN_PITCH2(ang, t, target, a, b);
         w->gunPitch = w->gunPitch * 0.9f + t * 0.1f;
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -4127,7 +4122,7 @@ static void em39_R1_AppearMG2(cEm39* em)
         em->r_no_2++;
     case 7:
         w->Be_flg &= ~0x40;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Atk_wait = (u8) (Rnd() % 30) + 60;
             EmRoutineSet(em, 1, 7, 0, 0);
         }
@@ -4236,7 +4231,7 @@ static void em39_R1_AppearGR(cEm39* em)
             PSMTXMultVecSR(em->mat, &spd, &spd);
             EM39_GRENADE_THROW(em, w, spd);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Atk_wait = (u8) (Rnd() % 45) + 90;
             EmRoutineSet(em, 1, 5, 0, 0);
         }
@@ -4298,7 +4293,7 @@ static void em39_R1_AppearGR2(cEm39* em)
             PSMTXMultVecSR(m, &spd, &spd);
             EM39_GRENADE_THROW(em, w, spd);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Atk_wait = (u8) (Rnd() % 30) + 60;
             EmRoutineSet(em, 1, 7, 0, 0);
         }
@@ -4419,7 +4414,7 @@ static void em39_R1_ThrowGR(cEm39* em)
             w->pBomb = 0;
             em39WepSet(em, 0);
         }
-        if (MotionMoveF(em, 0) || (em->seFlags28B & 4)) {
+        if (MotionMove(em, 0) || (em->seFlags28B & 4)) {
             if (em->r_no_3) {
                 em->r_no_3--;
                 if (em->r_no_3 == 0) {
@@ -4510,7 +4505,7 @@ static void em39_R1_AppearBow(cEm39* em)
     case 1:
         em->ang.y += Muku(&em->pos, &target, em->ang.y, 0.09817477f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         } else if (em->seFlags28B & 0x10) {
             em39BowSet(em, 1);
@@ -4541,7 +4536,7 @@ static void em39_R1_AppearBow(cEm39* em)
         }
         w->gunPitch = w->gunPitch * 0.8f + ang * 0.2f;
         em39BlendMotSet(em, ARC(0xC6), ARC(0xC7), ARC(0xC8), 0, 0, 0, 5);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em39ExitCk(em)) {
             em->r_no_2 = 6;
         }
@@ -4600,7 +4595,7 @@ static void em39_R1_AppearBow(cEm39* em)
         if (em39ExitCk(em)) {
             w->TmpU32 = 0;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->TmpU32) {
                 w->TmpU32--;
                 if (w->TmpU32) {
@@ -4625,7 +4620,7 @@ static void em39_R1_AppearBow(cEm39* em)
         w->Timer = 30;
         em->r_no_2++;
     case 7:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->Atk_wait = (u8) (Rnd() % 45) + 90;
             EmRoutineSet(em, 1, 5, 0, 0);
         }
@@ -4663,7 +4658,7 @@ static void em39_R1_Flash(cEm39* em)
         em->r_no_2++;
     }
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             w->Hide_timer = 200;
             EmRoutineSet(em, 1, 0x26, 0, 0);
@@ -4730,7 +4725,7 @@ static void em39_R1_Hide(cEm39* em)
         em->r_no_2++;
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x73), 0, 0, 0, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Locate == 5) {
             w->Be_flg |= 0x100000;
         }
@@ -4867,7 +4862,7 @@ static void em39_R1_T_Atk(cEm39* em)
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         EM39_T_ATK_END(em, w, end);
         break;
     }
@@ -4896,7 +4891,7 @@ static void em39_R1_T_BackKnuckle(cEm39* em)
         if (em->seFlags28B & 1) {
             em39LeftArmAtkCk(em, 5);
         }
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         EM39_T_ATK_END(em, w, end);
         break;
     }
@@ -4993,7 +4988,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             int zero = 0;
 
@@ -5073,7 +5068,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         if (w->Timer3) {
             w->Be_flg |= 0x100;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             int zero = 0;
 
             w->Arm_rno = zero;
@@ -5132,7 +5127,7 @@ static void plem39_Stamp(cPlayer* pl)
         PlSetFace(1);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0) && (s16) pG->pl_life > 0) {
+        if (MotionMove(pl, 0) && (s16) pG->pl_life > 0) {
             EndPlDamage();
             pl->dmg.set(0, 0x1E);
             break;
@@ -5184,7 +5179,7 @@ static void plem39Sit(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;
@@ -5253,7 +5248,7 @@ static void plemBackjump(cPlayer* pl)
         if (PL_FRAME_IN(pl, 37.7f, 38.3f) || PL_FRAME_IN(pl, 50.7f, 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -5271,7 +5266,7 @@ static void plemBackjump(cPlayer* pl)
         if (PL_FRAME_IN(pl, 34.7f, 35.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -5353,7 +5348,7 @@ static void em39_R1_T_Kick(cEm39* em)
         if (em->seFlags28B & 0x10) {
             w->Atk_ck = 0;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
@@ -5438,7 +5433,7 @@ static void em39_R1_T_LowKick(cEm39* em)
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
@@ -5573,7 +5568,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
             w->Timer--;
             end = EmCatchMotionMove(em, 1.0f, 1.0f);
         } else {
-            end = MotionMoveF(em, 0);
+            end = MotionMove(em, 0);
         }
         if (end || (em->seFlags28B & 4)) {
             w->Atk_wait = 30;
@@ -5650,7 +5645,7 @@ static void plem39_LowKickHit(cPlayer* pl)
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 1.0f, 1.0f);
         } else {
-            end = MotionMoveF(pl, 0);
+            end = MotionMove(pl, 0);
         }
         if (end) {
             pl->Wep->setTrans(1, 0);
@@ -5734,7 +5729,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         w->Timer = st;
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -5772,7 +5767,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         pPL->r_no_2 = st;
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0) || (em->seFlags28B & 1)) {
+        if (MotionMove(em, 0) || (em->seFlags28B & 1)) {
             w->Be_flg |= 0x800000;
             AtariOn(&em->atari, 0x300);
             w->Atk_wait = 30;
@@ -5819,7 +5814,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         if (PL_FRAME_IN(pl, 142.7f, 143.3f)) {
             SndCall(1, 0x4A, &p->world, 0, 0, pl);
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     case 2:
         pl->pos.x = 54.86f;
@@ -5844,7 +5839,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         if (PL_FRAME_IN(pl, 18.7f, 19.3f)) {
             SndCall(1, 0x10, &p->world, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             pl->r_no_2++;
         }
         break;
@@ -5867,7 +5862,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         if (PL_FRAME_IN(pl, 30.7f, 31.3f)) {
             SndCall(5, 0xE, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             AtariOn(&pl->atari, 0x300);
             EndPlDamage();
             pl->dmg.set(0, 0x1E);
@@ -6007,7 +6002,7 @@ static void em39_R1_Dm_Normal(cEm39* em)
         w->Timer = 10;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0xA);
         }
         if (em->seFlags28B & 4) {
@@ -6058,7 +6053,7 @@ static void em39_R1_Dm_Head(cEm39* em)
         w->Timer = 10;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0xA);
         }
         if (em->seFlags28B & 4) {
@@ -6118,7 +6113,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
         EM39_DM_DROP(em, w, 9, 0x5A);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0) || (em->hp > 0 && (em->seFlags28B & 4))) {
+        if (MotionMove(em, 0) || (em->hp > 0 && (em->seFlags28B & 4))) {
             em->r_no_2++;
         }
         break;
@@ -6131,7 +6126,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
         }
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->pGotoPoint && w->pGotoPoint->sub == 0) {
                 EmRoutineSet(em, 1, 6, 0, 0);
                 break;
@@ -6224,7 +6219,7 @@ static void em39_R1_Dm_T_Head(cEm39* em)
         w->Timer = 10;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         EM39_DM_T_RECOVER(em, w, end);
         break;
     }
@@ -6252,7 +6247,7 @@ static void em39_R1_Dm_T_Down(cEm39* em)
         w->Timer = 10;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end == 0) {
             w->Be_flg |= 0x1000;
             if (!(em->seFlags28B & 0x10)) {
@@ -6286,7 +6281,7 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
         w->No_fire_timer = st;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end) {
             if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -6351,7 +6346,7 @@ static void em39_R1_Die_Normal(cEm39* em)
         w->Str_seid = SndStrReq(1, 0xE7, 0x80000003, 0, 0, 0.0f);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -6369,7 +6364,7 @@ static void em39_R1_Die_Normal(cEm39* em)
         em->r_no_2++;
     }
     case 3:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -6403,7 +6398,7 @@ static void em39_R1_Die_Flash(cEm39* em)
         w->Timer = st;
         em->r_no_2++;
     case 1:
-        end = MotionMoveF(em, 0);
+        end = MotionMove(em, 0);
         if (end == 0) {
             if ((em->seFlags28B & 1) && w->pFlash) {
                 spd.x = 0.0f;
@@ -6738,7 +6733,7 @@ static void plemDmSide(cPlayer* pl)
         pl->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             EndPlDamage();
         }
         break;

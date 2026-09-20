@@ -41,8 +41,6 @@ struct R20aWorkPtr {
 static u8 r20a_texTbl[0x20];
 static R20aWorkPtr r20a_work;
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static void r20a_CarryOnShoulder();
 static void r20a_CarryOnShoulderEndProc();
@@ -65,7 +63,7 @@ void R20aInit()
         if (getRoomEtcDoor(0x11, &r20a_work.p->door, 1) == 0) {
             r20a_work.p->door = NULL;
         } else {
-            cEmDoorSetCloseLock(r20a_work.p->door);
+            ((cEmDoor*) r20a_work.p->door)->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r20a_DoorLockMessage, 0, 1);
         }
     } else {

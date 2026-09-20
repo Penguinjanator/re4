@@ -28,8 +28,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em28Func)(cEm28*);
 
@@ -318,7 +316,7 @@ static void em28_R0_Init(cEm28* em)
     em->setStatus(EM_STATUS_ACTIVE);
     EmRoutineSet(em, 1, zero, zero, zero);
     MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 5, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em28_R0_Move(em);
 }
 
@@ -360,7 +358,7 @@ static void em28_R1_Wait(cEm28* em)
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0x1E, 5, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (!(em->flag & 0x80000000)) {
                 if (Rnd() & 1) {
                     if (Rnd() & 3) {
@@ -378,7 +376,7 @@ static void em28_R1_Wait(cEm28* em)
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0xA, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (Rnd() & 1) {
                 em->r_no_2 = 0;
             } else {
@@ -390,7 +388,7 @@ static void em28_R1_Wait(cEm28* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 0xA, 1, 0);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (Rnd() & 1) {
                 em->r_no_2 = 0;
             } else {
@@ -447,7 +445,7 @@ static void em28_R1_Wait(cEm28* em)
                 }
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -478,7 +476,7 @@ static void em28_R1_Walk(cEm28* em)
         if (w->stuckCnt > 30) {
             w->timer = 0;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -529,7 +527,7 @@ static void em28_R1_Dash(cEm28* em)
             }
             w->targetAng = LIMIT_ANGLE(w->targetAng);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -569,7 +567,7 @@ static void em28_R1_Jump(cEm28* em)
             }
             w->targetAng = LIMIT_ANGLE(w->targetAng);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -604,18 +602,18 @@ static void em28_R1_Jump(cEm28* em)
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
                 em->r_no_2++;
-                MotionMoveF(em, 0);
+                MotionMove(em, 0);
                 break;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x14), ARC(0x1E), 3, 1, 0);
         em->r_no_2++;
     case 5:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -640,7 +638,7 @@ static void em28_R1_Dm_Small(cEm28* em)
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 0, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -704,7 +702,7 @@ static void em28_R1_Die_Normal(cEm28* em)
                 SndCall(8, 1, &em->getPartsPtr(0)->world, em->id, 0, em);
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             em->r_no_2++;
@@ -741,11 +739,11 @@ static void em28_R1_Die_Air(cEm28* em)
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
                 em->r_no_2++;
-                MotionMoveF(em, 0);
+                MotionMove(em, 0);
                 break;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     case 2:
@@ -756,7 +754,7 @@ static void em28_R1_Die_Air(cEm28* em)
         em->r_no_2++;
     case 3:
         em28DieFade(em, w);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             em->r_no_2++;

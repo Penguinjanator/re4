@@ -41,10 +41,6 @@ asm(".comm common_em2f,52,4");
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
-// em_set.cpp's EmSetDieCnt takes no argument; the module passes the enemy.
-void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 
 // game/obj16.cpp: the tentacle objects (obj16.h pulls in em10.h).
 extern "C" {
@@ -209,7 +205,7 @@ void em2fDmCk(cEm2f* em)
     LifeDownSet2(em, dmg, 0, 0);
     if (em->hp <= 0) {
         EmSetDie(em);
-        EmSetDieCntE(em);
+        EmSetDieCnt(em);
         em->clearStatus(EM_STATUS_ACTIVE);
     }
 }
@@ -406,7 +402,7 @@ static void em2f_R0_Init(cEm2f* em)
         em->r_no_2 = 0;
         em->r_no_3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 1:
         em->atari.m_flag &= ~0x100;
@@ -416,7 +412,7 @@ static void em2f_R0_Init(cEm2f* em)
         em->scale.z = 2.0f;
         EmRoutineSet(em, 1, 2, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 2:
         em->atari.m_flag &= ~0x100;
@@ -428,7 +424,7 @@ static void em2f_R0_Init(cEm2f* em)
         em->atari.m_flag |= 8;
         EmRoutineSet(em, 1, 0xA, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
     em2f_R0_Move(em);
@@ -459,7 +455,7 @@ static void em2f_R1_Wait(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 10, 0x405, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     }
 }
@@ -476,7 +472,7 @@ static void em2f_R1_Walk(cEm2f* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 1000000.0f) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -494,7 +490,7 @@ static void em2f_R1_SwimWait(cEm2f* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->be_flag &= ~2;
         em->r_no_2++;
     case 1:
@@ -538,7 +534,7 @@ static void em2f_R1_Swim(cEm2f* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->nextPos, em->ang.y, PI / 200.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->seFlags28B & 0x40) {
             w->flags |= 0x20;
         } else {
@@ -566,7 +562,7 @@ static void em2f_R1_Swim(cEm2f* em)
     swim:
         em->ang.y += Muku(&em->pos, &w->nextPos, em->ang.y, PI / 200.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -669,7 +665,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
             em->ang.y += Muku(&em->pos, &w->nextPos, em->ang.y, PI / 200.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
         break;
@@ -701,7 +697,7 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
         break;
@@ -742,7 +738,7 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
         w->flags &= ~0x10;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->flags &= ~0x10;
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -779,7 +775,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         em->r_no_2++;
     case 1:
         em->flag |= 0x108;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer == 0) {
             hide = StaFlagChk(pG, STA_PL_SWIM);
             if (hide == 0) {
@@ -809,7 +805,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         em->r_no_2++;
     case 3:
         em->flag |= 0x108;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -828,7 +824,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
             w->timer2--;
             em->flag |= 0x100;
         }
-        r = MotionMoveF(em, 0);
+        r = MotionMove(em, 0);
         if (r) {
             em2fChangeRoute(em);
             EmRoutineSet(em, 1, 3, 0, 0);
@@ -884,7 +880,7 @@ static void em2f_R1_Packman(cEm2f* em)
         em->r_no_2++;
     case 1:
         em->flag |= 0x108;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer == 0) {
             hide = StaFlagChk(pG, STA_PL_SWIM);
             if (hide == 0) {
@@ -914,7 +910,7 @@ static void em2f_R1_Packman(cEm2f* em)
         em->r_no_2++;
     case 3:
         em->flag |= 0x108;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -936,7 +932,7 @@ static void em2f_R1_Packman(cEm2f* em)
         if (em->seFlags28B & 4) {
             SndCall(8, 0x19, &em->pos, em->id, 0, em);
         }
-        r = MotionMoveF(em, 0);
+        r = MotionMove(em, 0);
         if (r) {
             if ((s16) pG->pl_life > 0) {
                 em2fChangeRoute(em);
@@ -967,7 +963,7 @@ static void em2f_R1_Packman(cEm2f* em)
         em2fEstSet(em, w, 0xC);
         em->r_no_2++;
     case 7:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2fChangeRoute(em);
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -1015,7 +1011,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         } else {
             em->flag |= 0x28;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->be_flag &= ~2;
             em->r_no_2++;
         }
@@ -1027,7 +1023,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         em->r_no_2++;
     case 3:
         em->flag |= 0x128;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
@@ -1046,7 +1042,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     case 5:
         em->flag |= 0x12C;
         w->flags |= 0x480;
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -1059,7 +1055,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     case 7:
         em->flag |= 0x12C;
         w->flags |= 0x580;
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 900000000.0f) {
             if (w->hideRush) {
                 em->r_no_2 = 0xA;
@@ -1084,7 +1080,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         if (em->seFlags28B & 4) {
             SndCall(8, 0x1B, &em->pos, em->id, 0, em);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2fChangeRoute(em);
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -1100,7 +1096,7 @@ static void em2f_R1_HideMode(cEm2f* em)
             w->timer2--;
             em->flag |= 0x100;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em2fChangeRoute(em);
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -1131,7 +1127,7 @@ static void em2f_R1_Critical(cEm2f* em)
         PSMTXMultVecSR(m, &v, &v);
         PSVECAdd(&em2f_die_pos, &v, &em->pos);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x405, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         em->be_flag &= ~2;
         w->timer = 5;
         em->r_no_2++;
@@ -1198,7 +1194,7 @@ static void em2f_R1_Critical(cEm2f* em)
             DiedemoExec(2, 0);
             pG->pl_life = 0;
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->hp = 0;
             em->be_flag &= ~2;
             em->r_no_2++;
@@ -1262,7 +1258,7 @@ static void em2f_R1_Dm_Normal(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(9), 0, 3, 0x401, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -1304,7 +1300,7 @@ static void em2f_R1_Die_Normal(cEm2f* em)
         w->timer = 112;
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
         } else if (w->timer) {

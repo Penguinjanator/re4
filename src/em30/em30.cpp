@@ -38,8 +38,6 @@ extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em30Func)(cEm30*);
 
@@ -304,7 +302,7 @@ static void em30_R0_Init(cEm30* em)
     em->r_no_2 = 0;
     em->r_no_3 = 0;
     MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 1, 0);
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em30_R0_Move(em);
 }
 
@@ -326,7 +324,7 @@ static void em30_R1_Wait(cEm30* em)
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 30, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em30DeadCk(em)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -348,7 +346,7 @@ static void em30_R1_Walk(cEm30* em)
     case 1:
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 4000000.0f) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -376,7 +374,7 @@ static void em30_R1_Dm_Normal(cEm30* em)
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 10);
         }
         break;
@@ -404,7 +402,7 @@ static void em30_R1_Die_Normal(cEm30* em)
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->clearStatus(0);
             em->clearStatus(EM_STATUS_ACTIVE);
             em->clearStatus(EM_STATUS_DOGCK);

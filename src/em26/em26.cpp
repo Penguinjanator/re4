@@ -26,8 +26,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em26Func)(cEm26*);
 
@@ -332,7 +330,7 @@ static void em26_R0_Init(cEm26* em)
     } else {
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 1, 0);
     }
-    MotionMoveF(em, 0);
+    MotionMove(em, 0);
     em26_R0_Move(em);
 }
 
@@ -358,7 +356,7 @@ static void em26_R1_Wait(cEm26* em)
         }
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
+        if (MotionMove(em, 0) && (Rnd() & 3) == 0) {
             em->r_no_2++;
         } else {
             em26BreathSe(em);
@@ -374,7 +372,7 @@ static void em26_R1_Wait(cEm26* em)
         w->sndId = SndCall(8, 4, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -422,7 +420,7 @@ static void em26_R1_Atk(cEm26* em)
         if (em->seFlags28B & 1) {
             em26AtkCk(em);
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -484,7 +482,7 @@ static void em26_R1_Dm_Small(cEm26* em)
         em->r_no_2++;
     }
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -555,7 +553,7 @@ static void em26_R1_Die_Normal(cEm26* em)
                 info->color[2] = info->color[1] = info->color[0];
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             cModel* p = em->getPartsPtr(2);
 
             EstSet(0, -1, &p->world, &em->ang, 0x1E, 4, 0, 0, 0, 0);

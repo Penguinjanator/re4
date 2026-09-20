@@ -25,8 +25,6 @@ struct R411Work {
 
 static R411Work* r411_work;
 
-// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
-void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static void r411_checkDoorUnlock();
 extern "C" void r411_lockDoor();
@@ -86,7 +84,7 @@ extern "C" void r411_lockDoor()
     cEm* door;
 
     if (getRoomEtcDoor(1, &door, 1)) {
-        cEmDoorSetCloseLock(door);
+        ((cEmDoor*) door)->setCloseLock();
     }
     SceAtSetEnable(0xF, 1);
 }

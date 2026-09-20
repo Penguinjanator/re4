@@ -39,9 +39,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);   // em_sub.cpp
 }
@@ -50,8 +50,7 @@ void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int fla
 // ABI-identical redeclaration (dvd.h ReadCheckInfo).
 int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
-// Head of a key-frame motion data block (motion.h MotionData; motion.h's one-argument MotionMove
-// prototype keeps it out of the em units).
+// Head of a key-frame motion data block (motion.h MotionData).
 struct RockMotData {
     u16 maxFrame;   // 0x00
 };

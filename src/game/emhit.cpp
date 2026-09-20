@@ -8,11 +8,11 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "motion.h"
 
 extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
 void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);

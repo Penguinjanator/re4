@@ -4,9 +4,9 @@
 #include "atari.h"
 #include "emobj.h"
 #include "math_sub.h"
+#include "motion.h"
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void YarareInit(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h);            // at_mod.cpp
 void YarareInitCube(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h, f32 rad);
 }

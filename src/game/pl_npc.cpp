@@ -38,7 +38,6 @@ double atan2(double y, double x);
 f32 sinf(f32 x);
 void* memset(void* dst, int c, unsigned int n);
 void ShapeMove(void* p);
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // motion.h declares the one-argument form
 int SubLadderClimbCk(cModel* m);
 int SubLadderClimbCk2(cModel* m);
 void pl_fall_ok0();
@@ -993,14 +992,14 @@ void cSubChar::movePants()
         subSndId = SndCall(8, 0x16, &subSelf->pParts->world, id, 0, 0);
         subSelf->r_no_2 = 1;
     case 1:
-        if (MotionMoveF(subSelf, 0)) {
+        if (MotionMove(subSelf, 0)) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x22), 0, 7, 5, 0);
             subSelf->r_no_2 = 2;
         }
         ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         break;
     case 2:
-        MotionMoveF(subSelf, 0);
+        MotionMove(subSelf, 0);
         ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         if (!SUBFLAG2(this)->check(2)) {
             subSelf->r_no_2 = 3;
@@ -1008,7 +1007,7 @@ void cSubChar::movePants()
         }
         break;
     case 3:
-        MotionMoveF(subSelf, 0);
+        MotionMove(subSelf, 0);
         ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         if (SUBFLAG2(this)->check(2)) {
             subSelf->r_no_2 = 2;
@@ -1020,7 +1019,7 @@ void cSubChar::movePants()
         }
         break;
     case 4:
-        if (MotionMoveF(subSelf, 0)) {
+        if (MotionMove(subSelf, 0)) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         break;
@@ -2062,7 +2061,7 @@ void cSubChar::moveDamage()
         }
         break;
     case 2:
-        if (MotionMoveF(subSelf, 0)) {
+        if (MotionMove(subSelf, 0)) {
             if (subHideMode == 7 || subHideMode == 9) {
                 hp = 0;
                 pG->ashley_life = 0;
@@ -2132,7 +2131,7 @@ void cSubChar::moveEvent()
 
     switch (r_no_1) {
     case 0:
-        MotionMoveF(this, 0);
+        MotionMove(this, 0);
         break;
     case 1:
         switch (r_no_2) {

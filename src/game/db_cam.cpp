@@ -21,6 +21,7 @@
 #include "obj.h"
 #include "player.h"
 #include "db_cam.h"
+#include "motion.h"
 
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
@@ -31,7 +32,6 @@ void CameraCamposRot(Camera* cam, char axis, f32 rad);
 void CameraTargetRot(Camera* cam, char axis, f32 rad);
 void CameraDolly(Camera* cam, Vec* mv);
 void Draw_line3d(Vec* a, Vec* b, u32 color, int flag);
-void MotionMove(cModel* m, int flag);
 }
 
 extern int ProjType;

@@ -14,6 +14,7 @@
 #include "rnd.h"
 #include "em.h"
 #include "main_mem.h"
+#include "motion.h"
 
 // Spear (obj 0x1B): thrown by an enemy (R1_Throw), sticks into the enemy it hits (R1_Parent:
 // follows a parts of the target), falls off as a three-point rope (R1_Fall) and fades out (Lost).
@@ -55,7 +56,6 @@ struct SpearEstOpt {
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void obj1b_R1_Set(cObjSpear* obj);
 void obj1b_R1_LostWait(cObjSpear* obj);
 void obj1b_R1_Lost(cObjSpear* obj);

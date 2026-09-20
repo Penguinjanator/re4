@@ -28,8 +28,6 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// motion.h declares the one-argument form; the enemies pass a second argument.
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 typedef void (*Em24Func)(cEm24*);
 
@@ -256,12 +254,12 @@ static void em24_R0_Init(cEm24* em)
     switch (em->set) {
     default:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         EmRoutineSet(em, 1, two, zero, zero);
         break;
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         EmRoutineSet(em, 1, 0, 0, 0);
         break;
     }
@@ -290,7 +288,7 @@ static void em24_R1_BoxWait(cEm24* em)
         em->r_no_2++;
     case 1:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (!(em->flag & 1)) {
             em->dmg.m_Timer = 2;
             break;
@@ -333,7 +331,7 @@ static void em24_R1_BoxWait(cEm24* em)
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
-                if (MotionMoveF(em, 0)) {
+                if (MotionMove(em, 0)) {
                     w->motEnd = 1;
                 }
                 if (w->motEnd) {
@@ -343,7 +341,7 @@ static void em24_R1_BoxWait(cEm24* em)
                 }
             }
         }
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             w->motEnd = 1;
         }
         break;
@@ -359,7 +357,7 @@ static void em24_R1_CoilWait(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
         em->r_no_2++;
     case 1:
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (em->plDist2 < 9000000.0f) {
             em->r_no_2++;
         }
@@ -368,7 +366,7 @@ static void em24_R1_CoilWait(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 0, 1, 0);
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -406,7 +404,7 @@ static void em24_R1_Free(cEm24* em)
         }
         em->ang.y += Muku2(em->ang.y, w->Target_dir, PI / 128.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             if (w->HoseiCnt > 1) {
                 em->r_no_2++;
             }
@@ -420,7 +418,7 @@ static void em24_R1_Free(cEm24* em)
         }
         em->r_no_2++;
     case 3:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2 = 0;
         }
         break;
@@ -438,7 +436,7 @@ static void em24_R1_Coil(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 5, 0);
         em->r_no_2++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_2++;
         }
         break;
@@ -449,7 +447,7 @@ static void em24_R1_Coil(cEm24* em)
     case 3:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
@@ -462,7 +460,7 @@ static void em24_R1_Coil(cEm24* em)
     case 5:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -499,7 +497,7 @@ static void em24_R0_Die(cEm24* em)
         EmSetDie(em);
         em->r_no_1++;
     case 1:
-        if (MotionMoveF(em, 0)) {
+        if (MotionMove(em, 0)) {
             em->r_no_1++;
         }
         break;
@@ -562,7 +560,7 @@ static void em24_R0_Die(cEm24* em)
                 break;
             }
         }
-        MotionMoveF(em, 0);
+        MotionMove(em, 0);
         break;
     case 4:
         break;

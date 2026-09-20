@@ -17,6 +17,7 @@
 #include "main.h"
 #include "player.h"
 #include "pl_sub.h"
+#include "motion.h"
 
 // The work area of the enemy thrown off the car: the trolley only uses the yaw at 0x9BC.
 struct TrolleyEmWork {
@@ -73,7 +74,6 @@ public:
 };
 
 extern "C" {
-int MotionMove(cModel* m, int a);
 void objTrolley_R0_Set(cObjTrolley* obj);
 void objTrolley_R0_Move(cObjTrolley* obj);
 void objTrolley_R0_Break(cObjTrolley* obj);

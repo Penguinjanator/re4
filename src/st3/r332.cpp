@@ -78,8 +78,6 @@ struct SceElevatorData {
 };
 
 extern "C" void SceElevator(SceElevatorData* d);
-// MotionMove is called with a second argument by the player routines (the DOL definition ignores it).
-u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 struct R332Bridge {
     int open;   // 0x0  1 while the bridge is open
@@ -497,7 +495,7 @@ static void playerDieBridge(cPlayer* pl)
             pl->r_no_2++;
             pl->r_no_3 = 0;
         }
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     case 2:
         pl->r_no_3++;
@@ -577,7 +575,7 @@ static void playerBridge(cPlayer* pl)
         if (pl->frame > 29.7f && pl->frame < 30.3f) {
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             FSet(pPL->pos.x, pos1[no].x);
             FSet(pPL->pos.y, pos1[no].y);
             FSet(pPL->pos.z, pos1[no].z);
@@ -585,7 +583,7 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->ang.y, rot[no].y);
             FSet(pPL->ang.z, rot[no].z);
             MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0xA, 0x205, 0);
-            MotionMoveF(pl, 0);
+            MotionMove(pl, 0);
             pl->r_no_2++;
         }
         break;
@@ -595,7 +593,7 @@ static void playerBridge(cPlayer* pl)
             IntSet(r332_work->btnCnt, r332_work->btnCnt + 1);
         }
         ActBtn.set(0x19, 0xC, 0, 0, 2, 2, 0, 0);
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         IntSet(r332_work->timer, r332_work->timer + 1);
         SceDebugDisp("Button:[%d/%d]", r332_work->btnCnt, 0xA);
         SceDebugDisp("Timer: [%d/%d]", r332_work->timer, 0x5A);
@@ -608,7 +606,7 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->ang.z, rot[no].z);
             if (r332_work->btnCnt > 0xA) {
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 3, 0x201, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 IntSet(r332_work->strBlk, SndStrPlayBlock(1, 0x2F, 0.0f));
                 pl->r_no_2++;
             } else {
@@ -616,14 +614,14 @@ static void playerBridge(cPlayer* pl)
                 AtariOffRaw(&pl->atari, 0xFCFF);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 3, 0x201, 0);
-                MotionMoveF(pl, 0);
+                MotionMove(pl, 0);
                 pl->r_no_2 = 0xA;
             }
         }
         break;
     case 3:
         pl->dmg.m_Timer = 0x78;
-        if (MotionMoveF(pl, 0)) {
+        if (MotionMove(pl, 0)) {
             BitOn(pPL->be_flag, 0x10);
             BitOff(pG->Room_flg[0], 0x10000000);
             AtariOnRaw(&pl->atari, 0x300);
@@ -633,7 +631,7 @@ static void playerBridge(cPlayer* pl)
         }
         break;
     case 0xA:
-        MotionMoveF(pl, 0);
+        MotionMove(pl, 0);
         break;
     }
 }
