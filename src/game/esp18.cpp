@@ -14,9 +14,9 @@
 #include "main_sub.h"
 #include "tpl.h"
 #include "espgen.h"
+#include "view.h"
+#include "trans.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 struct Esp18Work {
     Vec base_pos;    // 0x00 initial position
@@ -38,7 +38,6 @@ cEsp* Esp18_Create();
 void Esp18_Trans(cEsp18* esp);
 }
 int GetDrawTmpBufType();       // game/TmpBuf.cpp (C++ linkage)
-extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
 // EspCreateTbl[0x18] factory.
 cEsp* Esp18_Create()

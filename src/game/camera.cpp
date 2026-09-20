@@ -21,13 +21,8 @@
 #include "gx.h"
 #include <string.h>
 #include <math.h>
+#include "math_sub_decl.h"
 
-extern f32 ORTHO_T;
-extern f32 ORTHO_B;
-extern f32 ORTHO_L;
-extern f32 ORTHO_R;
-
-#define PI 3.1415927f
 
 // Matrix copy written out as loops (same as motion.cpp; the original never calls PSMTXCopy here).
 #define MTX_COPY(src, dst)               \

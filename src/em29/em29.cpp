@@ -28,8 +28,8 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em29Func)(cEm29*);

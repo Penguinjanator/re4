@@ -10,6 +10,7 @@
 #include "os_vi.h"
 #include "db_log.h"
 #include "trans_ot.h"
+#include "view.h"
 
 // Depth-of-field filter: copies the frame buffer to a half-size texture and draws it back
 // shifted by `level_tbl1[level]` pixels, in front of / behind the focus depth.
@@ -25,8 +26,6 @@ struct LensEffectWork {
     u8 type;    // 0x0D  0 quads by level, 1 four quads + fade
 };
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 void* filter01_buff = 0;
 LensEffectWork g_LeNear;

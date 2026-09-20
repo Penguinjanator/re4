@@ -1140,8 +1140,6 @@ void tcAreaSelectSide(TcAdat* a);
 void tcAreaInsertVertex(TcAdat* a);
 void tcAreaDeleteVertex(TcAdat* a);
 
-#define PI2 6.2831855f
-
 // area editor: vertex / floor / height / attribute / direction / character / address / camera link
 void tcEdit_area()
 {

@@ -16,6 +16,7 @@
 #include "player.h"
 #include "motion.h"
 #include "em_sub.h"
+#include "pl_npc.h"
 
 // Thrown object (bottle, dynamite, ...): flies under gravity, optionally spinning, and checks
 // the scenario, the enemies and the player for hits.
@@ -24,7 +25,6 @@ public:
     virtual void move();
 };
 
-extern cModel* pSUB;
 
 extern "C" {
 void obj08AddSpeed(cObj08* obj);

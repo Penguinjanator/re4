@@ -27,7 +27,6 @@
 // getters, dbModMotionSetSeq and dbModGetMotFilename. .rodata/.data are the same bytes in both.
 
 #define FILE_NUM 16
-#define DEG2RAD 0.017453292f
 #define NAME_LEN 0x80
 #define SLOT_NUM 64
 

@@ -9,8 +9,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp

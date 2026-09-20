@@ -25,8 +25,8 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "pl_npc.h"
 
-extern cModel* pSUB;   // game/em.cpp
 
 typedef void (*EmBarredFunc)(cEmBarred*);
 

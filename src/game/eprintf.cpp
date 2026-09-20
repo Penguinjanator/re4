@@ -15,6 +15,7 @@
 #include "eprintf.h"
 #include <stdio.h>
 #include <dolphin/os.h>
+#include "main.h"
 
 #define HALT()                                                    \
     {                                                             \
@@ -22,7 +23,6 @@
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-extern SYSTEM_SAVE_WORK* pSys;
 
 // Current text environment
 struct MojiWork {

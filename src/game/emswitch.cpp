@@ -15,8 +15,8 @@
 #include "db_log.h"
 #include "at_mod.h"
 #include "embarrel.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 
 typedef void (*EmSwitchFunc)(cEmSwitch*);
 

@@ -31,11 +31,11 @@
 #include <dolphin/gx/GXFifo.h>
 #include <dolphin/gx/GXManage.h>
 #include <dolphin/os.h>
+#include "player.h"
+#include "pl_npc.h"
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
-extern cEm* pPL;   // game/em.cpp
-extern cEm* pSUB;  // game/em.cpp
 extern int isSelfUse;     // game/shadow.cpp
 extern int g_SelfShdNum;  // game/shadow.cpp
 extern f32 shd_ofs;       // game/shadow.cpp

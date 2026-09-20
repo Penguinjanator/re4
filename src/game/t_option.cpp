@@ -23,8 +23,6 @@
 #include "pl_sub.h"
 #include "pl_mod.h"
 
-extern u8 PlKaiou;
-extern u8 PlDbFlag;
 
 // Debug option menu tool (player / scroll settings).
 class cDbOption {

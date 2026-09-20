@@ -30,8 +30,6 @@ void offsetCorrection(QfpsOfs* o);
 static void offsetArrayCorrection(QfpsOfs (*o)[3]);
 }
 
-#define PI 3.1415927f
-
 
 f32 g_crouch_cam_z_back = 600.0f;
 static f32 g_crouch_cam_y_down = 400.0f;

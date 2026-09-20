@@ -11,8 +11,8 @@
 #include "scheduler.h"
 #include <string.h>
 #include <dolphin/os.h>
+#include "main.h"
 
-extern char* pUser_name;
 
 // The original object carries 16 zero bytes of .sdata that no function references: four
 // zero-initialised statics (the names are lost) kept alive by an inline function this build never

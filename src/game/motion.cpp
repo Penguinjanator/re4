@@ -15,7 +15,6 @@
 #include "eprintf.h"
 #include <string.h>
 
-extern const Vec vecZero;
 
 // Matrix copy written out as loops (the original never calls PSMTXCopy for these).
 // Shape matters (all four sites byte-identical only this way): dst pointer first, the row

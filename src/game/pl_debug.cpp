@@ -15,8 +15,8 @@
 #include "at_mod.h"
 #include "motion.h"
 #include "em_sub.h"
+#include "pl_npc.h"
 
-extern cModel* pSUB;
 
 
 int scr_hit_check = 0;

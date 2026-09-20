@@ -28,9 +28,9 @@
 #include "sscrn.h"
 #include "ss_main.h"
 #include "ss_pzzl.h"
+#include "pl_npc.h"
 
 class cSubChar;
-extern cSubChar* pSUB;
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 

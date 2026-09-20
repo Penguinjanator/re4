@@ -27,17 +27,10 @@
 #include "sce.h"
 #include "trans_ot.h"
 #include <dolphin/os.h>
+#include "sce_sys.h"
 
 void SetDrawTmpBufType(int type);
 
-// game/sce_sys.cpp
-class cSceSys {
-public:
-    int wait;  // 0x00
-    u8 pad_4[0x138 - 4];
-    int checkCTaskRange();
-};
-extern cSceSys SceSys;
 
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.

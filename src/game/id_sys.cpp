@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <dolphin/os.h>
 #include "path.h"
+#include "trans.h"
 
-extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
 Mtx IDSystem::m_scrn_mat;
 

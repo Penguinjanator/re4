@@ -19,8 +19,8 @@
 #include <dolphin/os/OSReboot.h>
 #include <dolphin/os.h>
 #include <dolphin/os/OSAlloc.h>
+#include "main.h"
 
-extern char* pRK;
 
 // Fixed memory map of the debug build.
 struct SystemMemMap {
@@ -129,11 +129,11 @@ void SystemMemInit()
     MemSetCurrentHeap(0);
     pMemTile = NULL;
 #line 145
-    pRK = (char*) MEM_ALLOC(0x40, 1, MEM_HEAP_CURRENT);
-    OSSetSaveRegion(pRK, pRK + 0x40);
-    if (strcmp(pRK, "_reset_keep_") != 0) {
+    pRK = (RESET_KEEP_WORK*) MEM_ALLOC(0x40, 1, MEM_HEAP_CURRENT);
+    OSSetSaveRegion(pRK, (u8*) pRK + 0x40);
+    if (strcmp(pRK->head, "_reset_keep_") != 0) {
         memclr_asm(pRK, 0x40);
-        strcpy(pRK, "_reset_keep_");
+        strcpy(pRK->head, "_reset_keep_");
         OSReport("RESET_KEEP_WORK memory clear...\n");
     }
 }
@@ -566,7 +566,6 @@ struct SysFlagsView {
 extern SysFlagsView* pSysView asm("pSys");
 // Reference read: the load stays below the preceding tile stores (see mercenaries.cpp SysRef).
 static inline SysFlagsView* SysRef(SysFlagsView*& p) { return p; }
-extern u32 MainOt[5];
 
 struct DvdFreeSizeView {
     u32 freeSize;  // 0x00  cDvd::freeSize

@@ -12,8 +12,6 @@
 #include <string.h>
 
 
-#define PI2 6.2831855f
-
 // v * s into a static (unused).
 // Never called in this build: only their static results survive (.bss).
 static inline Vec* VecScaled(Vec* v, f32 s)

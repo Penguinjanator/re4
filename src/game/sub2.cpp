@@ -12,8 +12,6 @@
 #include "gx.h"
 #include "db_log.h"
 
-#define PI2 6.2831855f
-
 #line 30 "D:/Bio4/Prog/sub2.cpp"
 
 // 1 when the XZ point `p` lies inside the convex quad (4 corners in order).

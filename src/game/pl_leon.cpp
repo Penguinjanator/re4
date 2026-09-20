@@ -17,7 +17,6 @@
 #include "pl_npc.h"
 #include "pl_mod.h"
 
-extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 // Plain block, not do/while(0): the do-while's deleted back-jump lets cse rewrite the HALT store's
 // zero as `info` (one more ref), which makes `info` outrank `data` in global allocation order.

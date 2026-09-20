@@ -35,7 +35,6 @@ extern u8 filter0a_mask_flag;
 extern u8 filter0a_mask_id;
 extern u8 filter0a_mask_alpha;
 
-#define PI 3.1415927f
 #define DEG 0.017453292f
 
 #define MTX_COPY(src, dst)               \

@@ -22,8 +22,6 @@
 #include "dbmodule.h"
 #include "math_sub_decl.h"
 
-#define PI 3.1415927f
-
 #define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."
 
 // 1 when `pos` is inside area (quad or cylinder types; the eye type never hits). Unknown types

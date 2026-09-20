@@ -25,12 +25,9 @@
 #include "ref_access.h"
 #include <string.h>
 #include "dbmodule.h"
+#include "view.h"
 
 extern int ProjType;
-extern f32 ORTHO_T;
-extern f32 ORTHO_B;
-extern f32 ORTHO_L;
-extern f32 ORTHO_R;
 
 #define DEG 0.017453292f
 

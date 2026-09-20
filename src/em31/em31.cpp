@@ -44,10 +44,10 @@
 #include "quake.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 asm(".comm common_em31,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 // Falling pillar object (game/objPillar.cpp; the class is local to that unit).

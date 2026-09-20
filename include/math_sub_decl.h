@@ -1,12 +1,17 @@
 #ifndef MATH_SUB_DECL_H
 #define MATH_SUB_DECL_H
 
-// Declarations of game/math_sub.cpp and game/sub2.cpp, without the inline definitions of math_sub.h
-// (fabsf as a volatile asm, getColumn). For units that read <math.h> with its own fabsf.
+// Declarations of game/math_sub.cpp and game/sub2.cpp and the angle constants, without the inline
+// definitions of math_sub.h (fabsf as a volatile asm, getColumn). For units that read <math.h> with
+// its own fabsf.
 
 #include "types.h"
 #include "vec.h"
 #include "db_log.h"
+
+#define PI 3.1415927f
+#define PI2 6.2831855f       // 2 * PI
+#define DEG2RAD 0.017453292f // PI / 180
 
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);

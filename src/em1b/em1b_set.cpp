@@ -10,10 +10,10 @@
 #include "cManager.h"
 #include "em10.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 extern "C" void Em10SetSeTbl(cEm10* em, int type);
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 void Em1bInit(cEm* em);
 void Em1bSet(cEm10* em);

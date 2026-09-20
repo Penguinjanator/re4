@@ -47,7 +47,6 @@ static inline void ssMapWidgetDelete(Widget<SUB_SCREEN>* w)
 #include "sscrn.h"
 
 class cSubChar;
-extern cSubChar* pSUB;
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -108,6 +107,7 @@ int map_room_num;
 
 #include "ss_main.h"
 #include <stdio.h>
+#include "pl_npc.h"
 
 // One door model of an area (5 packed bytes).
 struct MapDoor {

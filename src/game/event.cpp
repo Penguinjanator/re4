@@ -73,7 +73,6 @@ void ClrShape(cModel* m);
 // game/filter01.cpp
 void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
 // game/foot_shadow_tbl.cpp (incomplete types: full address, not @sda21)
-extern u8 pl_fs_tbl[];
 extern u8 Em10_fs_tbl[];
 extern u8 Em2c_fs_tbl[];
 }

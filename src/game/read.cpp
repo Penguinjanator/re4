@@ -25,6 +25,7 @@
 #include <dolphin/os.h>
 #include "sce.h"
 #include "trans.h"
+#include "sce_sys.h"
 
 extern "C" {
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
@@ -39,16 +40,6 @@ struct EmInitFuncPtr {
 };
 #define EM_INIT_FUNC (((EmInitFuncPtr*) &EmInitFunc)->p)
 
-// game/sce_sys.cpp
-class cSceSys {
-public:
-    int wait;   // 0x00
-    u8 pad_4[0x73 - 0x04];
-    u8 x73;     // 0x73  set while readEmData waits inside a scenario task
-    u8 pad_74[0x138 - 0x74];
-    int checkCTaskRange();
-};
-extern cSceSys SceSys;
 
 // game/game.cpp
 struct GameWork {
@@ -437,9 +428,9 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             return 0;
         }
         if (SceSys.checkCTaskRange() == 1) {
-            SceSys.x73 = 1;
+            SceSys.m_init_loop_flag = 1;
             SceSleep(1);
-            SceSys.x73 = 0;
+            SceSys.m_init_loop_flag = 0;
         } else {
             TaskSleep(1);
         }

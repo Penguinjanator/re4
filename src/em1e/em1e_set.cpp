@@ -12,10 +12,10 @@
 #include "light.h"
 #include "esp.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 extern "C" void Em10SetSeTbl(cEm10* em, int type);
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 void Em1eInit(cEm* em);
 void Em1eSet(cEm10* em);

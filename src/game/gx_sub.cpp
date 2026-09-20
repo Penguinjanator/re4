@@ -8,9 +8,8 @@
 #include "gx.h"
 #include "light.h"
 #include "gx_sub.h"
+#include "view.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 GXColor g_sysBgColor = {0, 0, 0, 0};
 GXColor clr_black = {0, 0, 0, 0};

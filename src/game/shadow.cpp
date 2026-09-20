@@ -22,9 +22,9 @@
 #include "shadow.h"
 #include "ref_access.h"
 #include "trans.h"
+#include "player.h"
+#include "pl_npc.h"
 
-extern cEm* pPL;   // game/em.cpp
-extern cEm* pSUB;  // game/em.cpp
 // game/trans.cpp
 extern GXTexObj IndTex[2];
 

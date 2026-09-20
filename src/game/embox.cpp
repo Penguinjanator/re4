@@ -20,8 +20,8 @@
 #include "at_mod.h"
 #include "em_sub.h"
 #include "sce_at.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 // Struct-member view of pPL (the pGS trick): the load stays below the preceding stack stores.
 struct EmPtr {
     cEm* p;

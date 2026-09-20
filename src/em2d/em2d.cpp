@@ -41,12 +41,12 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2d,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 static void em2d_R0_Init(cEm2d* em);

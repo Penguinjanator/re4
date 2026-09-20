@@ -24,6 +24,8 @@
 #include "sscrn.h"
 #include "trans.h"
 #include "examine.h"
+#include "view.h"
+#include "ss_main.h"
 
 // Item examine view: renders the item model through the item camera into a temporary buffer
 // and pastes it back as a screen-sized quad (mode 0 in game, 1 sub screen, 2 puzzle).
@@ -31,9 +33,6 @@
 #define SCR_W ((u32) Screen.width)
 #define SCR_H ((u32) Screen.height)
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
-extern IDSystem IdSub;  // game/sscrn.cpp
 int GetDrawTmpBufType();
 
 extern "C" {

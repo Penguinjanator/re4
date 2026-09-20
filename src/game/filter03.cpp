@@ -11,6 +11,7 @@
 #include "db_log.h"
 #include "trans_ot.h"
 #include "global.h"
+#include "view.h"
 
 // Glow filter: the frame buffer's alpha is copied to quarter-size textures, blurred by drawing it
 // back with pixel offsets, then blended over the screen with the requested color.
@@ -29,8 +30,6 @@ struct Flt03Work {
     int flag;    // 0x10  sets pG->flags_5010 bit 0x80 while active
 };
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 void* filter03_buff = 0;
 Flt03Work flt03;

@@ -11,8 +11,8 @@
 #include "db_log.h"
 #include "ref_access.h"
 #include "em.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 
 cEm* errEm = 0;
 static int emSetDummy = 0;

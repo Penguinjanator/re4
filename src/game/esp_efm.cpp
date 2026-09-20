@@ -28,6 +28,8 @@ void setModTexRender(cObj* obj, int no);
 cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);   // embox.cpp declares it `void` locally
 }
 
+// The effect code converts with 3.14, not PI.
+#undef DEG2RAD
 #define DEG2RAD (3.14f / 180.0f)
 
 

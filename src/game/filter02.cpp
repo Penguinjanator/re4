@@ -10,6 +10,7 @@
 #include "os_vi.h"
 #include "db_log.h"
 #include "trans_ot.h"
+#include "view.h"
 
 // Depth-of-field filter: the frame is blurred through the half-size feedback buffer
 // (Filter02DrawBuffer) and blended back through a Z-derived C8 mask (Filter02DrawBuffer2).
@@ -17,8 +18,6 @@
 #define SCR_W ((u32) Screen.width)
 #define SCR_H ((u32) Screen.height)
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 extern "C" {
 void Filter02GetEFB(f32 scale, int div, void* buf, int mip);

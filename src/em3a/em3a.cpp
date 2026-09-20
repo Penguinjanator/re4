@@ -42,8 +42,8 @@
 #include "em.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em3aFunc)(cEm3a*);

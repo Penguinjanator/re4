@@ -11,9 +11,8 @@
 #include "rnd.h"
 #include "esp.h"
 #include "main_sub.h"
+#include "view.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 struct Esp0eWork {
     Vec wld_pos;       // 0x00 world position

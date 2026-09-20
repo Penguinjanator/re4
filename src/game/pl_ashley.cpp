@@ -15,12 +15,12 @@
 #include "ref_access.h"
 #include <dolphin/os.h>
 #include "esp.h"
+#include "pl_mod.h"
 
 extern "C" {
 void ReleaseWepData();                          // game/read.cpp
 }
 
-extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 #define HALT()                                                    \
     {                                                             \

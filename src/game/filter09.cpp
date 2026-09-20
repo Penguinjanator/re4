@@ -10,6 +10,7 @@
 #include "os_vi.h"
 #include "db_log.h"
 #include "trans_ot.h"
+#include "view.h"
 
 // Screen fade-out filter: keeps a half-size copy of the last frame and blends it back,
 // spreading it outwards (g_bSpred) while the game is stopped.
@@ -17,8 +18,6 @@
 #define SCR_W ((u32) Screen.width)
 #define SCR_H ((u32) Screen.height)
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 int GetDrawTmpBufType();
 
 extern "C" {

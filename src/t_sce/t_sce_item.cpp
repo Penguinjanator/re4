@@ -623,8 +623,6 @@ static void tSceItemAreaEdit_AreaDelete()
     pW->editCursor = 0;
 }
 
-#define DEG2RAD 0.017453292f
-
 // the hit-angle arrow of an area: centre, direction and the +-range fan (the older RotMatrix build
 // of t_sce_at's angle_arrow_disp)
 static void angle_arrow_disp(SceAtWork* a)

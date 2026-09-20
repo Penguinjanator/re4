@@ -31,12 +31,11 @@
 #include "esp.h"
 #include "quake.h"
 #include "eprintf.h"
+#include "view.h"
+#include "t_camera.h"
 
-extern f32 ZNEAR;
 
 
-#define PI 3.1415927f
-#define PI2 6.2831855f
 #define DEG 0.017453292f
 
 struct PlayerPtr {
@@ -48,7 +47,6 @@ void* g_pToolCamData = NULL;
 
 #define CAMERA_MOTION_BUFFER_SIZE 0x440
 static u8 CameraMotionBuffer[CAMERA_MOTION_BUFFER_SIZE];
-extern CameraBSpline CamBSpline;
 
 // internal linkage: the table is deferred behind the cManager template strings in .rodata
 static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};

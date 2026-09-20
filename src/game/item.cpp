@@ -20,10 +20,9 @@
 #include "eprintf.h"
 #include "ref_access.h"
 #include <stdlib.h>
+#include "player.h"
 
 extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
-extern f32 PlShotFrameTbl[][5];         // pl_class
-extern f32 PlReloadSpeedTbl[][3];       // pl_class
 
 // One weapon (22 bytes): item id, bullet attribute, weapon number/type, bullet item id, magazine size per
 // exclusive tune level (1..7).

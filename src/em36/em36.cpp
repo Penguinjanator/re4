@@ -41,10 +41,10 @@
 #include "main_mem.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 asm(".comm common_em36,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 typedef void (*Em36Func)(cEm36*);
 

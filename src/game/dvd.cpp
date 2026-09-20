@@ -301,7 +301,6 @@ void readcancel_cb(s32 result, DVDCommandBlock* cb);
 void EprintfFlush();
 }
 
-extern int vsync_cnt;
 extern int eprintf_init;
 
 

@@ -9,12 +9,12 @@
 #include "t_util.h"
 #include <string.h>
 #include "math_sub.h"
+#include "player.h"
 
 // Effect area editor (Tools/t_esp_area.cpp): a cDbgToolMain<ESP_AREA> over the room's 32 effect
 // trigger areas (.ear files), edited with the area editor of game/area.cpp.
 
 class cPlayer;
-extern cPlayer* pPL;
 
 struct ESP_AREA {
     u8 no;          // 0x00

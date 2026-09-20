@@ -54,12 +54,12 @@
 #include "em.h"
 #include <dolphin/os.h>
 #include "wep_mod.h"
+#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em39,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
 

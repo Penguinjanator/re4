@@ -17,10 +17,10 @@
 #include "motion.h"
 #include "em_sub.h"
 #include "pl_sub.h"
+#include "player.h"
 
 class cPlayer;
 
-extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp

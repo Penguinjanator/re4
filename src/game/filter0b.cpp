@@ -10,6 +10,7 @@
 #include "os_vi.h"
 #include "db_log.h"
 #include "trans_ot.h"
+#include "view.h"
 
 // Captured-screen overlay: Filter0bCapture copies the frame buffer to a half-size texture that
 // is blended back with filter0b_alpha (once per SetAlpha) inside the letterbox area.
@@ -17,8 +18,6 @@
 #define SCR_W ((u32) Screen.width)
 #define SCR_H ((u32) Screen.height)
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 extern "C" {
 void Filter0bAllocBuf();

@@ -17,11 +17,10 @@
 #include <string.h>
 #include "item.h"
 #include "dbmodule.h"
+#include "pl_npc.h"
 
 
 
-extern u8 PlKaiou;
-extern cModel* pSUB;
 
 // Bug-check (cheat) menu tool.
 class cToolBugcheck {

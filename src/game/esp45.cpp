@@ -11,9 +11,8 @@
 #include "filter.h"
 #include "cam_ctrl.h"
 #include "gx.h"
+#include "view.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 struct Esp45Work {
     Vec wld_pos;       // 0x00 world position

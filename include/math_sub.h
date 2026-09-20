@@ -11,10 +11,6 @@
 #include <math.h>
 #undef fabsf
 
-#ifndef PI
-#define PI 3.1415927f
-#endif
-
 // Float abs as the original SDK header defines it: a volatile asm, which also acts as a
 // scheduling barrier (loads after it are not hoisted above it).
 static inline f32 fabsf(f32 x)

@@ -48,8 +48,8 @@
 #include "act_btn.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
-extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 
 // The module's 0x30-byte COMMON block: uninitialised template statics of the original object,

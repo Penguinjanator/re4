@@ -36,10 +36,10 @@
 #include "quake.h"
 #include "ref_access.h"
 #include "em.h"
+#include "pl_mod.h"
 
 asm(".comm common_em25,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 static void em25_R0_Init(cEm25* em);

@@ -617,8 +617,6 @@ static void tSceAtAreaEdit_AreaDelete()
     pW->editCursor = 0;
 }
 
-#define DEG2RAD 0.017453292f
-
 // the hit-angle arrow of an area: centre, direction and the +-range fan
 void angle_arrow_disp(SceAtWork* a)
 {

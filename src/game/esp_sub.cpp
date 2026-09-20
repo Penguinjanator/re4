@@ -18,12 +18,13 @@
 #include "db_log.h"
 #include "tpl.h"
 #include "trans_ot.h"
+#include "view.h"
+#include "trans.h"
 
 // game/trans_lit.cpp
 extern "C" void commonEspLightSet(cLight** list, int n);
 
 int GetDrawTmpBufType();        // game/TmpBuf.cpp (C++ linkage)
-extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
 extern "C" {
 static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
@@ -34,9 +35,9 @@ void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out);
 void Esp1b_SpTrans(cEsp* esp);
 }
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
+// The effect code converts with 3.14, not PI.
+#undef DEG2RAD
 #define DEG2RAD (3.14f / 180.0f)
 
 // The pulled effect is kept in a one-member struct: the original reloads the pointer from its

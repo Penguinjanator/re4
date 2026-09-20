@@ -35,12 +35,12 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
+#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
 asm(".comm common_em38,52,4");
 
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 // game/em_dm_val.cpp (declared in em10.h, which is not included here: emwep.h's extern "C" plemBackjump would
 // turn this unit's static plemBackjump into a global C function).

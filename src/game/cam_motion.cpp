@@ -9,8 +9,7 @@
 #include "cam_motion.h"
 #include "main_mem.h"
 #include <string.h>
-
-#define PI 3.1415927f
+#include "math_sub_decl.h"
 
 // Binds the motion file: frame count, parts (track) table, key offsets relocated to pointers,
 // key history cleared; blend frames `hokan`, flags (bit2 loop, bit3 pause) and the start frame.
