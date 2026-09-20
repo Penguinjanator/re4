@@ -39,13 +39,11 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "em10.h"
 
 asm(".comm common_em35,52,4");
 
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
-
-// game/em_dm_val.cpp (declared in em10.h, not included here).
-int GetWepDmVal(cEm* em, u32 a, int b);
 
 typedef void (*Em35Func)(cEm35*);
 

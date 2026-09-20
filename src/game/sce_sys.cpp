@@ -22,16 +22,16 @@
 #include "db_log.h"
 #include "sce_sys.h"
 #include "ref_access.h"
+#include "sce.h"
+#include "stage.h"
+#include "sscrn.h"
 
 extern "C" {
-void SceInitItemEvent();                       // game/sce_com.cpp
 void SceAtSetSaveItem();                       // game/sce_at.cpp
 void SceAtRoomSet();
 void SceAtCheckMoveScrAt();
 void* SceAtPtr(int no);
-void SubMissionCheck();                        // game/stage.cpp
 int getRoomEtcBreak(void* p, cEm** em, int a); // game/EtcModel.cpp
-void SubScreenWait(int frames);                // game/sscrn.cpp
 }
 
 int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)

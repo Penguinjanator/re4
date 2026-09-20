@@ -23,13 +23,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <dolphin/os.h>
+#include "sce.h"
 
 extern "C" {
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
 void Yz2DecodeExec(void* dst);
 void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
 void GlobalIlmTexInit(void* p);
-void SceSleep(int frames);                // game/sce_sys.cpp
 extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
 

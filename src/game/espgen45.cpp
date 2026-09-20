@@ -43,7 +43,6 @@ struct Esp4cWork {
 extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
 void SetIndMtx_801291F4(Espgen42Work* p);   // the DOL's local SetIndMtx (Espgen42 owns the global one); sym_map name

@@ -34,13 +34,13 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "em10.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2a,52,4");
 
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
-void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // em_sub.cpp
 
 
 typedef void (*Em2aFunc)(cEm2a*);

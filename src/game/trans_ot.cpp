@@ -14,10 +14,7 @@
 #include "main_mem.h"
 #include "trans_ot.h"
 #include "ref_access.h"
-
-extern "C" {
-void* GetPrimBuff(int size);
-}
+#include "trans.h"
 
 
 // Table `type`. As an inline accessor the constant index stays `addi 0x88` after the symbol load

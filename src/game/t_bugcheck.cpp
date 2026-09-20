@@ -15,10 +15,10 @@
 #include "t_util.h"
 #include "ref_access.h"
 #include <string.h>
+#include "item.h"
+#include "dbmodule.h"
 
 
-int lifeLevel(int levels, s16 max, int base);
-extern "C" void Draw_pos(Vec* pos, int size);  // dbmodule.cpp, C linkage (the DOL symbol is `Draw_pos`)
 
 extern u8 PlKaiou;
 extern cModel* pSUB;

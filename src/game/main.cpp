@@ -64,39 +64,29 @@ f32 ORTHO_R;
 #include <dolphin/os.h>
 #include <dolphin/os/OSAlarm.h>
 #include <dolphin/db.h>
+#include "title.h"
+#include "debug.h"
+#include "trans.h"
+#include "shadow.h"
+#include "item_model.h"
+#include "read.h"
 
 extern "C" {
 void __main();
 void PADRecalibrate(u32 mask);
 void GXCopyDisp(void* dest, u8 clear);
-// game/title.cpp
-void Title_task();
-// game/debug.cpp
-void ProcessTickInit();
-void ProcessTickGet(int no, const char* name);
-void DebugControl();
-void ConfigSet();
 // game/trans.cpp
-void Render();
-void SetPrimBuffPtr();
 void Trans();
 // game/eprintf.cpp
 void EprintfInit();
 void EprintfFlush();
 // game/trans_lit.cpp
 void LightSetInit();
-// game/id_tex.cpp
 // game/eff_sys.cpp
 void EspInit();
-// game/shadow.cpp
-void ShadowInit();
-// game/item_model.cpp
-void ItemModelInit();
 // game/EtcModel.cpp
 void EtcModelInit();
-// game/card.cpp
 // game/read.cpp
-void EmReadInit();
 void ReleasePlData();
 void ReleaseWepData();
 // game/exception.cpp

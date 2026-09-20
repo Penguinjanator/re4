@@ -20,12 +20,12 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "em_sub.h"
 
 extern "C" {
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 }
 
 typedef void (*EmShieldFunc)(cEmShield*);

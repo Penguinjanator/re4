@@ -22,8 +22,8 @@
 #include <string.h>
 #include <dolphin/os/OSCache.h>
 #include <dolphin/os.h>
+#include "scheduler.h"
 
-void TaskSleep(int frames);   // game/scheduler.cpp
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 cBlock Block;

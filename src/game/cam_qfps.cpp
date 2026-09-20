@@ -22,8 +22,8 @@
 #include "pl_sub.h"
 #include "dbmodule.h"
 #include "view.h"
+#include "pl_npc.h"
 
-u32 SubCharGetStatus();
 
 extern "C" {
 void offsetCorrection(QfpsOfs* o);

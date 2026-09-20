@@ -18,12 +18,7 @@
 #include "trans_ot.h"
 #include <stdlib.h>
 #include <dolphin/os.h>
-
-extern "C" {
-// game/path.cpp
-int FuncPathParametrize(void* path, void* data);
-int FuncPathCalc(void* path, void* data, f32 t, Vec* out);
-}
+#include "path.h"
 
 extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 

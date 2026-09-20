@@ -18,6 +18,7 @@
 #include "db_log.h"
 #include "dvd.h"
 #include <string.h>
+#include "room_jmp.h"
 
 extern "C" {
 u32 GetGameTime(int* h, int* m, int* s); // returns a value (main_sub.h): the call sets r3, so `addi r3,&h` loses its output dependence and issues last
@@ -61,7 +62,6 @@ struct test {
     char name[0x20];   // 0x14
 };
 
-void RoomJump();
 void FlagEdit();
 void ToolDebugPage();
 void ToolOption();

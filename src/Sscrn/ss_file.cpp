@@ -64,7 +64,6 @@ void sscrn_file_out_init(SUB_SCREEN* wk);
 void dispFileList(SUB_SCREEN* wk, int n);
 // ss_main.cpp
 void dispScrollBar(int top, int n, int num, IdUnit* bar, IdUnit* up, IdUnit* down);
-// ss_model.cpp
 }
 
 // files per category

@@ -20,10 +20,6 @@
 
 #line 30 "D:/Bio4/Prog/atari.cpp"
 
-extern "C" {
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
-}
-
 // at_sub attribute filter bypass mode (cSatMgr::seCk of the manager running the check)
 int SEck;
 struct SEckView {

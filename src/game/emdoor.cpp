@@ -27,10 +27,10 @@
 #include "cmath.h"
 #include "db_log.h"
 #include "motion.h"
+#include "em_sub.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
-void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
 
 // Hanging object (game/obj12.cpp): the locks and the chain hang on the door as cObj12 models.

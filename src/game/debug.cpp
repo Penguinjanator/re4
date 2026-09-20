@@ -24,8 +24,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <dolphin/os.h>
+#include "gx_sub.h"
 
-void bio4_GXSetCopyClear(GXColor color, u32 z);   // game/gx_sub.cpp
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
 
 extern u8 PlMode;       // game/player.cpp

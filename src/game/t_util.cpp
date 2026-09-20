@@ -12,8 +12,8 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include "game.h"
 
-void GameStopModeEnd();
 
 // Copies of the pG flag words the tools modify, restored by TutilQuitDefault.
 Camera globalCamera;

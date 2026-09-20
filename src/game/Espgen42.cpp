@@ -26,7 +26,6 @@
 extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
 // game/espgen45.cpp
 extern EspgenWork* g_pWater45;
 

@@ -15,6 +15,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "em_sub.h"
+#include "pl_sub.h"
 
 class cPlayer;
 
@@ -22,9 +24,6 @@ extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp
-int PlBombHitCk(Vec* pos, f32 r);                    // em_sub.cpp
-void SetPlDamage(cEm* em, void (*func)(cPlayer*));  // pl_sub.cpp
-void EndPlDamage();
 void plemEscape(cPlayer* pl);
 }
 

@@ -9,13 +9,13 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "ref_access.h"
+#include "game.h"
 
 // Debug tool helpers for the tool modules (D:/Bio4/Prog/t_util.cpp, the same object in every t_*/Tools
 // REL with a tool). The DOL's game/t_util.cpp is a different version of this file: there the menu drawer
 // is out of line and the cursor helpers were dead-stripped; here ToolMenuDisp_cur is an inline nobody
 // calls (its strings and statics still land in the object) and TutilMoveCursor/TutilGetScreenPos exist.
 
-void GameStopModeEnd();
 extern "C" void GXGetProjectionv(f32* p);
 extern "C" void GXGetViewportv(f32* vp);
 extern "C" void GXProject(f32 x, f32 y, f32 z, const f32 mtx[3][4], const f32* pm, const f32* vp, f32* sx, f32* sy, f32* sz);

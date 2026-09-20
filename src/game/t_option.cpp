@@ -18,10 +18,10 @@
 #include "main_mem.h"
 #include "t_util.h"
 #include <string.h>
+#include "dbmodule.h"
+#include "emhit.h"
 
 
-extern "C" void Draw_pos(Vec* pos, int size);
-void PlSetDamage(int type, int dmg, int flag);
 void PlSetCostume();
 void PlChangeData();
 int ShapeSet(void* shape, int no, void* data, int flag);

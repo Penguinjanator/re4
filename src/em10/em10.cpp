@@ -67,6 +67,7 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "obj16.h"
 
 
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
@@ -364,7 +365,6 @@ int em10LostHeadCk(cEm10* em);
 int em10ModelInit(cEm10* em);
 void em10InitRtnSet(cEm10* em);
 void Em1fClothSet(cModel* m, PlCloth* c);
-extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void em10SetWaitMotion(cEm10* em, int a);
 void em10SetWalkMotion(cEm10* em, int a);
 void em10BeltSet(cEm10* em);

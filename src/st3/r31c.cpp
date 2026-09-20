@@ -145,7 +145,6 @@ static R31cWorkPtr r31c_work;   // .bss 0x20
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31c_memset(void*, ...) asm("memset");
-// The scheduler's kill-by-function overload (sce_sys.cpp).
 
 
 

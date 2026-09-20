@@ -15,17 +15,12 @@
 #include "ref_access.h"
 #include <string.h>
 #include <stdio.h>
+#include "math_sub.h"
+#include "model.h"
 
 // Enemy placement info editor (Tools/t_eminfo.cpp): edits the per-room .emi point list (position,
 // direction and three work bytes per typed point) with a screen cursor, draws the points and the
 // routes/areas some enemies build from them.
-
-extern "C" {
-f32 LIMIT_ANGLE(f32 x);
-int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
-void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y);
-}
-void TransMatrix(Mtx m, Vec* pos);
 
 struct EmInfoWork {
     u8 type;   // 0x00  0 = free slot, else workTypeName index

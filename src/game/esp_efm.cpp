@@ -16,8 +16,6 @@
 #include "db_log.h"
 #include "ref_access.h"
 
-// game/motion.cpp (C++ linkage)
-
 extern "C" {
 u32 GetEfmMoveIdMax();
 u8 GetEfmMoveId(u32 no);

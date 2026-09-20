@@ -15,10 +15,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "at_mod.h"
+#include "em_sub.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
 }
 
 typedef void (*EmRackFunc)(cEmRack*);

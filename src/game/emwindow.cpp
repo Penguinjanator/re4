@@ -19,6 +19,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "obj13.h"
 
 // One row of WindowData (0x48 bytes), indexed by cModel::type.
 struct WindowDataRow {
@@ -52,7 +53,6 @@ void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
 void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 void EmDmBloodSet3(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);                           // em_sub.cpp
 int LadderNearCk(Vec* pos);                                                                  // obj13.cpp
-void LadderEventTrans(int on);
 SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
 int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
 }

@@ -31,6 +31,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "game.h"
+#include "em10.h"
 
 extern "C" {
 int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
@@ -38,15 +40,12 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);      
 void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
 YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
 int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
-void GameAddPoint(int no);                                                                   // game.cpp
 static void emWep_R1_Parent(cEmWep* em);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix in sym_map.
 #define plemEscape plemEscape_80017688
 static void plemEscape(cPlayer* pl);
 }
-cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);   // obj01.cpp
-void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
 
 // One rope node of the falling weapon (emWep_R1_Fall): three point masses joined by distance

@@ -68,12 +68,14 @@
 #include "gx.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "read.h"
+#include "trans.h"
+#include "cons.h"
 
 extern "C" {
 // game/read.cpp
 void ReadPlayerData(int type, int costume);
 void ReadAreaData();
-void EmReadInit();
 void ContinueWepData();
 // game/eff_sys.cpp / esp.cpp / espgen.cpp
 void EspRoomInit();
@@ -95,8 +97,6 @@ int LightAreaDataLoad(void* data);
 void LightAreaUpdate();
 // game/player.cpp
 void PlayerInit();
-// game/trans.cpp
-void SetPrimBuffPtr();
 // game/filter09.cpp
 void Filter09GetEFB_801D19E0();
 void Filter09SetbUse(int use, int spred);
@@ -106,7 +106,6 @@ void* GetDataExt(void* arc, const char* tag, int no);
 // game/cons.cpp (C++ linkage)
 struct ConsRoom;
 int ConsInitRoom(ConsRoom* p);
-u32 ConsGetRoomValue(u32 no);
 // game/db_menu.cpp (C++ linkage)
 void DbMenuExec();
 void DbMenuRoomInit();

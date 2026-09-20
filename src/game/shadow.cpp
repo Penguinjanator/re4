@@ -21,13 +21,12 @@
 #include "os_vi.h"
 #include "shadow.h"
 #include "ref_access.h"
+#include "trans.h"
 
 extern cEm* pPL;   // game/em.cpp
 extern cEm* pSUB;  // game/em.cpp
 // game/trans.cpp
 extern GXTexObj IndTex[2];
-int commonScreenMat(cModel* m);
-extern "C" void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag);
 
 static int SHADOW_NUM_MAX = 0;
 static int g_Shd_render_size = 0x100;

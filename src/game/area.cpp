@@ -18,21 +18,20 @@
 #include "gx.h"
 #include <string.h>
 #include <math.h>
+#include "model.h"
+#include "dbmodule.h"
 
 // dbmodule.cpp primitives. Draw_sphere really takes its Vec by value; this unit declares it with a
 // pointer (same ABI: aggregates are passed by reference), so no argument copy is made.
 #define PI 3.1415927f
 
-void RotMatrix(Mtx m, Vec* rot);  // game/math_sub.cpp
 
 extern "C" {
 f32 SQRTF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
 int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
 void Draw_line3d(Vec* p0, Vec* p1, u32 color, int blend);
-void Draw_poly(Vec* p, u32 color, int zupd);
 void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd);
-void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color);
 }
 
 #define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."

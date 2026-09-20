@@ -25,6 +25,7 @@
 #include "player.h"
 #include "pl_sub.h"
 #include "motion.h"
+#include "game.h"
 
 // Falling pillar (obj 0x1F): breaks (setBreak) or is thrown (setThrow) at the player, who can
 // escape with the action button; the escape / die sequences run as player damage routines.
@@ -52,7 +53,6 @@ void EscapeCamMove();
 void EscapeAction2(cObjPillar* obj);
 void plemEscape2(cPlayer* pl);
 void objPillarEatSet(cObjPillar* obj);
-void GameAddPoint(int no);   // game/game.cpp
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);   // em_sub.cpp (obj08/obj12 declare it the same way)
 }
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's

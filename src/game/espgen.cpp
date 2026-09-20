@@ -36,8 +36,6 @@ int EspgenDispInfo();
 int EspgenGetCallNo();
 void EspgenIncCallNo();
 int EspgenApplyFunc(void (*func)(EspgenWork* w));
-// game/Espgen42.cpp
-// game/eff_sys.cpp
 
 // generator entry points (game/espgen0*.cpp, Espgen4*.cpp)
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,

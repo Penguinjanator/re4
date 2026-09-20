@@ -48,6 +48,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <dolphin/os.h>
+#include "em_sub.h"
+#include "item_model.h"
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -60,8 +62,6 @@
 // accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
 extern "C" {
-int RandomItemCk(int a, int* id, int* num, int b);       // game/em_sub.cpp
-int ItemGetBinTplAddr(u8 id, void** bin, void** tpl);    // game/item_model.cpp
 void* EmReadSearch(int id, void* addr, u32 size);        // game/read.cpp
 }
 int DbMenuActiveCheck();                                 // game/db_menu.cpp

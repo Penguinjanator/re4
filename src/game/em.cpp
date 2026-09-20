@@ -26,9 +26,9 @@
 #include "db_log.h"
 #include "va_ppc.h"
 #include "at_mod.h"
+#include "route_ck.h"
 
 extern "C" {
-void RouteCk();                                     // route_ck.cpp
 void* EmReadSearch(u8 id, int a, int b);            // read.cpp: the enemy's read table entry, 0 when not loaded
 void ShapeMove(cModelInfo* info);                   // shape.cpp
 void EmYarareDisp(cEm* em);                         // em_sub.cpp

@@ -12,11 +12,10 @@
 #include "snd.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "pl_sub.h"
 
 extern "C" {
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
-int SubCharCheckCtrl();                         // game/pl_sub.cpp
-void SubCharCtrl(int mode, int sccf);                 // game/pl_sub.cpp
 }
 u32 SubCharGetStatus();                         // game/pl_npc.cpp
 void ShapeSet(void* info, int a, void* data, int b);  // game/shape.cpp

@@ -13,13 +13,12 @@
 #include "snd.h"
 #include "esp.h"
 #include "math_sub.h"
+#include "pl_sub.h"
+#include "est.h"
 
 void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp (result unused here: void keeps the `mr r3` before the arg li`s)
 extern "C" {
 int MotionCheckCrossFrame(void* work, f32 frame);  // game/motion.cpp
-void PlSetDamageSe(int no);                        // game/pl_sub.cpp
-void EndPlDamage();                                // game/pl_sub.cpp
-int ChkWaterEffectEnable(Vec* pos);                // game/est.cpp
 }
 
 void damageNormal(cPlayer* pl);

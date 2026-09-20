@@ -43,6 +43,7 @@
 #include "db_log.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "em_sub.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, appended to .bss by snmakerel.
@@ -50,7 +51,6 @@ asm(".comm common_pl0e,52,4");
 
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
-extern "C" void Em_R0_Scenario(cEm* em);                    // game/em_sub.cpp
 
 #line 1 "D:/Bio4/Prog/pl0e.cpp"
 

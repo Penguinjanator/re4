@@ -19,10 +19,7 @@
 #include "ref_access.h"
 #include <dolphin/os/OSCache.h>
 #include <dolphin/gx/GXDispList.h>
-
-extern "C" {
-void* GetPrimBuff(int size);
-}
+#include "trans.h"
 
 #define DEG (PI / 180.0f)
 

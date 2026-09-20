@@ -19,6 +19,7 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "ref_access.h"
+#include "game.h"
 
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
@@ -36,7 +37,6 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec
                       int flag, f32 len);
 void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
 void EspSetWaterHitmark(Vec* pos);
-void GameAddPoint(int no);                                // game/game.cpp
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
 cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);

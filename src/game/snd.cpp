@@ -35,12 +35,11 @@
 #include "eprintf.h"
 #include "flr_at.h"
 #include "ref_access.h"
+#include "area.h"
+#include "esp.h"
 
 extern "C" void ADXT_SetOutputMono(int sw);
 void* GetDataExt(void* arc, const char* tag, int no);
-int AreaHitCheck(void* area, Vec* pos);
-int EspPlWaterCall(int no, Vec* pos);
-void EspFootCall(int no, int type, Vec* pos);
 
 
 

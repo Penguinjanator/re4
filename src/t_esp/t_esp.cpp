@@ -8,6 +8,7 @@
 #include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
+#include "scheduler.h"
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
@@ -63,7 +64,6 @@ void sp_PosRand_trans_1a(EspSeqData* head, void* seq);
 void sp_tex_trans(u8 id);
 void GetTexRenderMgr(void** pp);
 }
-void TaskSleep(int n);
 extern int db_modelNo;  // db_port.cpp (the BasePos "WorKNo" numeric edits the model slot)
 extern void* g_EspToolSeqHedAddr;  // eff_sys.cpp
 

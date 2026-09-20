@@ -13,14 +13,11 @@
 #include "model.h"
 #include "trans_ot.h"
 #include "TexRender.h"
+#include "trans.h"
 
 // game/model.cpp
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);
 void ModelInfoRefrectOffAll(cModel* m);
-// game/trans.cpp
-int commonScreenMat(cModel* m);
-void lightSetEm(cModel* m);
-void ModelRender(cModel* m);
 // game/mirror.cpp
 void MirrorDraw2(cModel* m);
 

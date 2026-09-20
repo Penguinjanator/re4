@@ -67,8 +67,6 @@
 #include <dolphin/os.h>
 
 extern "C" {
-// game/eff_sys.cpp
-// game/read.cpp: SearchEmModule (C++ linkage) comes from read.h
 // game/shape.cpp
 void ClrShape(cModel* m);
 // game/filter01.cpp
@@ -79,7 +77,6 @@ extern u8 Em10_fs_tbl[];
 extern u8 Em2c_fs_tbl[];
 }
 
-// game/emdata.cpp
 // game/shape.cpp
 int ShapeSet(void* work, int frame, void* data, int flags);
 

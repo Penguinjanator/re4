@@ -23,6 +23,8 @@
 #include <dolphin/os/OSCache.h>
 #include <dolphin/gx/GXManage.h>
 #include <dolphin/vi/vifuncs.h>
+#include "debug.h"
+#include "sce.h"
 
 typedef s64 OSTime;
 
@@ -66,7 +68,6 @@ void GXCopyDisp(void* dest, u8 clear);
 void GXSetDispCopyGamma(int gamma);
 void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
 void GXInvalidateVtxCache();
-void ProcessTickGet(int no, const char* name);
 void ExecOt(int no);
 }
 void SetDrawTmpBufType(int type);
@@ -79,7 +80,6 @@ public:
     int checkCTaskRange();
 };
 extern cSceSys SceSys;
-extern "C" void SceSleep(int frames);
 
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.

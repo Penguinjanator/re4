@@ -53,6 +53,7 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
+#include "wep_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -6511,8 +6512,6 @@ void em39RouteCk(cEm39* em)
 }
 
 extern "C" void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
-cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);
-void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
 // Neck: turn the head (parts 3 addRot) towards the player while flags bit 4 is set, else relax.
 void em39NeckMove(cEm39* em)

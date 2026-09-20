@@ -27,11 +27,11 @@
 #include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
+#include "pl_npc.h"
+#include "esp.h"
+#include "quake.h"
 
 extern f32 ZNEAR;
-u32 SubCharGetStatus();
-int GetWaterHeight(Vec* pos, f32* height);
-void QuakeInit();
 void eprintf(int x, int y, int color, int p, const char* fmt, ...);
 
 
