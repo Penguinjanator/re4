@@ -28,7 +28,7 @@ cCtrl* GetCtrlCtrl11()
 {
     cCtrl* c;
     u32 i;
-    u32 n = CtrlMgr.nArray;
+    u32 n = CtrlMgr.getArrayNum();
 
     for (i = 0; i < n; i++) {
         c = CtrlMgr.at(i);

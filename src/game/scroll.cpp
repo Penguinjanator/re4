@@ -427,7 +427,7 @@ void BlockCreate(int blk, cSmd* smd)
 // Scroll block `blk` unloaded: destroys its objects (kind 2 with that blk).
 void BlockDestroy(int blk)
 {
-    cObj* p = ObjMgr.pAlive;
+    cObj* p = ObjMgr.getActiveWork();
     cObj* cur;
     cObj* next;
 

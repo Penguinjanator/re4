@@ -215,7 +215,7 @@ int init()
     pWork->ret = 1;
     pWork->flags = 1;
     pWork->rows = 5;
-    pWork->names = (char*) Debug_alloc(ObjMgr.nArray * 17, 1);
+    pWork->names = (char*) Debug_alloc(ObjMgr.getArrayNum() * 17, 1);
     pWork->nameTbl = (char**) Debug_alloc(1000, 1);
     for (i = 0; i < 250; i++) {
         pWork->nameTbl[i] = 0;
@@ -942,8 +942,8 @@ static void edit_litmask()
     cObj* obj;
     u32 i;
 
-    if (LightMgr.nArray < 32) {
-        num = LightMgr.nArray;
+    if (LightMgr.getArrayNum() < 32) {
+        num = LightMgr.getArrayNum();
     }
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
     if (pWork->sub2 == 0) {

@@ -96,7 +96,7 @@ void LightAreaUpdate()
     if (g_pLightAreaHed->num == 0) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         int type;
 

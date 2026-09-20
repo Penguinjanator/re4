@@ -4794,7 +4794,7 @@ int em2bSearchTree(cEm2b* em)
     if (w->Be_flg & 4) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmTree* e = (cEmTree*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -5079,7 +5079,7 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
             }
         }
     }
-    for (i = 0; i < (int) EmMgr.nArray; i++) {
+    for (i = 0; i < (int) EmMgr.getArrayNum(); i++) {
         cEmRock* e = (cEmRock*) EmMgr.fastAt(i);
         cModel* p;
 
@@ -5479,7 +5479,7 @@ int em2bSearchDog(cEm2b* em)
     if (w->pFriend) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6198,7 +6198,7 @@ int em2bStayCk(cEm2b* em)
     int cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6238,7 +6238,7 @@ void em2bObaHitCk(cEm2b* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         Vec d;
 
@@ -6320,7 +6320,7 @@ int em2bFriendCk(cEm2b* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6390,7 +6390,7 @@ void em2bYaguraSearch(cEm2b* em)
     u32 i;
 
     w->pYagura = 0;
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) != 1) {

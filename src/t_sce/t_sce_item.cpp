@@ -1469,7 +1469,7 @@ void tSceItemSetRoomData(int size)
     TSceItemFile* p;
 
     if (SceAtSys.x11D == 1) Mem_free(SceAtSys.pItemData);
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         o = ObjMgr.fastAt(i);
         if (o->isAlive() && o->id == 0x19) ObjMgr.destroy(o);
     }

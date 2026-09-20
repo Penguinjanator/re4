@@ -1147,7 +1147,7 @@ void em29ObaHitCk(cEm29* em)
     if (!(em->be_flag & 2)) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
@@ -1210,7 +1210,7 @@ int em29LastCk(cEm29* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
@@ -1247,7 +1247,7 @@ int em29FriendCk(cEm29* em)
     if (Ctrl12CntCk(EM29_WK(em)->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10)) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {

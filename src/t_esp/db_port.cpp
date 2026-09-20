@@ -842,7 +842,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         SpfFlagOff(pG, SPF_LIGHT);
         LightMgr.roomLitSet((cLit*) db_litData);
         LightMgr.update(0, -1);
-        nLit = LightMgr.nArray;
+        nLit = LightMgr.getArrayNum();
         for (k = 0; k < nLit; k++) {
             cLight* l = LightMgr.at(k);
             if ((l->be_flag & 3) == 3 && l->ParentType == 1) {

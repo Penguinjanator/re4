@@ -819,7 +819,7 @@ int em3dGetTargetEm(cEm3d* em)
     VECNormalizeP(&dir, &dir);
     a = em->pos;
     w->pTargetEm = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         int dead = !(e->be_flag & 1);
 

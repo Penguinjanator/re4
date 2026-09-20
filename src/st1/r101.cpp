@@ -944,7 +944,7 @@ static void r101_setChickenFlag()
     u32 i;
 
     SceSleep(1);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if (em->id == 0x28 && em->isAlive()) {
@@ -958,7 +958,7 @@ static inline void r101_setEmSuspend(int on)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if (em->id >= 0x10 && em->id <= 0x20 && em->isAlive()) {

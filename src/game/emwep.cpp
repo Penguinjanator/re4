@@ -2540,7 +2540,7 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
     }
     TransMatrix(m, pPos);
     PSMTXInverse(m, m);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         YARARE_INFO* part;
 
@@ -2615,7 +2615,7 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
     }
     TransMatrix(m, pPos);
     PSMTXInverse(m, m);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         YARARE_INFO* part = 0;
 

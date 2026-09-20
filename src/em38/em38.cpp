@@ -1745,7 +1745,7 @@ void em38SearchParts(cEm38* em)
     Em38Work* w = EM38_WK(em);
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm38* p = (cEm38*) EmMgr.fastAt(i);
 
         if ((p->be_flag & 0x201) == 1 && p->id == 0x38 && p != em) {
@@ -1831,7 +1831,7 @@ void em38BirthParasite(cEm38* em)
     u32 i;
 
     if (w->birthTimer == 0 && em->type == 4 && em->hp > 0) {
-        for (i = 0; i < EmMgr.nArray; i++) {
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
             cEm25* p = (cEm25*) (cEm38*) EmMgr.fastAt(i);
 
             // isAlive() (not the open-coded flag test): the inline's extra RTL keeps the loop

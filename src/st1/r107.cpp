@@ -73,7 +73,7 @@ static void r107_setFish()
     u32 i;
 
     SceSleep(1);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if (em->id == 0x27 && (em->be_flag & 0x201) == 1) {

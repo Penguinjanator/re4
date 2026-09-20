@@ -341,7 +341,7 @@ static void r119_EventGolemAppear()
             if (cnt > 899) {
                 cObj* o;
 
-                for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
+                for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
                     if (o->id == 0x1A || o->id == 0x29 || o->id == 0x2A || (*(u32*) &o->id & 0xFFFF0000) == 0x22010000) {
                         cnt = 600;
                     }

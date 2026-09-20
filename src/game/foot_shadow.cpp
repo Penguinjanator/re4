@@ -62,7 +62,7 @@ void DrawFootShadow(cEm* em)
         pos = em->pos;
     }
 
-    l = LightMgr.pAlive;
+    l = LightMgr.getActiveWork();
     cnt = 0;
     while (l) {
         FootLightWork* w;

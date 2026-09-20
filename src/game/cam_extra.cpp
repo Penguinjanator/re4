@@ -995,7 +995,7 @@ void CameraPushObject::move()
     plmat[1][0] = inv[0][1]; plmat[1][1] = inv[1][1]; plmat[1][2] = inv[2][1];
     getColumn(inv, 2, (Vec*) plmat[2]);
     plpos.x = inv[0][3]; plpos.y = inv[1][3]; plpos.z = inv[2][3];
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = (cModel*) EmMgr.fastAt(i);
         if ((e->id == 0x41 || e->id == 0x44 || e->id == 0x46) && (e->be_flag & 0x201) == 1) {
             PSMTXMultVec(m, &e->pos, &em_pos);

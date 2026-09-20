@@ -323,7 +323,7 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
     cLightPathData* path;
     void (*func)(cCtrl*) = funcDelCtrl;
 
-    c = CtrlMgr.pAlive;
+    c = CtrlMgr.getActiveWork();
     while (c) {
         n = c;
         c = (cCtrl*) c->pNext;
@@ -382,7 +382,7 @@ cLight* cLightMgr::getKindLight(u8 kind)
 {
     cLight* l;
 
-    for (l = LightMgr.pAlive; l; l = (cLight*) l->pNext) {
+    for (l = LightMgr.getActiveWork(); l; l = LightMgr.getNext(l)) {
         if (l->Kind == kind) {
             return l;
         }
@@ -1233,7 +1233,7 @@ int cLight::setParent(cModel* m)
         pLog->err(0, 0, "cLight::setParent() INVALID PTR %08x", m);
         return 0;
     }
-    n = EmMgr.nArray;
+    n = EmMgr.getArrayNum();
     for (i = 0; i < n; i++) {
         if ((cModel*) EmMgr.fastAt(i) == m) {
             setParent(1, (ParentNo & 0xFFFF0000) | m->id);
@@ -1246,7 +1246,7 @@ int cLight::setParent(cModel* m)
             return 1;
         }
     }
-    n = ObjMgr.nArray;
+    n = ObjMgr.getArrayNum();
     for (i = 0; i < n; i++) {
         if ((cModel*) ObjMgr.fastAt(i) == m) {
             setParent(4, (ParentNo & 0xFFFF0000) | i);

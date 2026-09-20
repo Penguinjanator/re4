@@ -428,7 +428,7 @@ int SceCountEmAlive(int lo, int hi)
     int cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;
@@ -447,7 +447,7 @@ void SceDestroyEm(int lo, int hi)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;

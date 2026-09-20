@@ -5407,7 +5407,7 @@ void em2cDoorOpenCk(cEm2c* em)
     if (w->stuckCnt > 3) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
@@ -5490,7 +5490,7 @@ void em2cDoorOpenCk2(cEm2c* em)
     f32 ang;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
@@ -6278,7 +6278,7 @@ void em2cGetTail(cEm2c* em)
     if (w->pTail) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6306,7 +6306,7 @@ int em2cDoorCk(cEm2c* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {

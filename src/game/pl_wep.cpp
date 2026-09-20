@@ -80,7 +80,7 @@ void cPlayer::weaponRelease()
 
     // Guarded do-while testing `next` (a different pseudo than `obj`) at the bottom: jump2 cannot
     // merge the two tests, so the loop keeps the rotated shape with the entry test.
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     if (obj) {
         do {
             objCur = obj;
@@ -795,7 +795,7 @@ cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
     f32 bestD = 1000000000000.0f;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         f32 d;
 

@@ -728,7 +728,7 @@ void cObjRobo::SatMove(cObjRobo* robo, Vec* pos, int side)
             pG->quake_ofs = d;
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20) {
             SatMoveSub(em, &a, &d);

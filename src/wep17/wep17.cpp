@@ -196,7 +196,7 @@ int ckEmWep(cPlayer* pl)
     u32 i;
 
     pCkEm = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if (!em->isAlive()) {

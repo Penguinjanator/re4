@@ -1099,7 +1099,7 @@ void tBlockArea_dispBlockModel(int on)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* obj = ObjMgr.fastAt(i);
         u32 be = obj->be_flag;
         int blk;
@@ -1158,7 +1158,7 @@ void tBlockArea_dispBlockBox(u8 no, u32 col)
     int found = 0;
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* obj = ObjMgr.fastAt(i);
         cModelInfo* info;
         Mtx m;

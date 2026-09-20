@@ -1602,7 +1602,7 @@ int em3aBossCk(cEm3a* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0 && (e->be_flag & 2)) {
@@ -1623,7 +1623,7 @@ int em3aBossNearCk(cEm3a* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0

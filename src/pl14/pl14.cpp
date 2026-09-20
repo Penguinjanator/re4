@@ -1203,7 +1203,7 @@ int doorHitCheck(Vec* a, Vec* b)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         if (em && (em->be_flag & 0x201) == 1 && em->hp > 0 && (em->id == 0x41 || em->id == 0x4E) &&
             emLineAtCk(em, a, b, 1e16f, 0)) {
@@ -1228,7 +1228,7 @@ void cAnalysis::move()
     time++;
     // Round-robin scan from the entry after idx, until a target is found or it wraps around.
     i = idx;
-    while (!isTarget(owner, em = EmMgr.fastAt((i = (i + 1) % EmMgr.nArray)))) {
+    while (!isTarget(owner, em = EmMgr.fastAt((i = (i + 1) % EmMgr.getArrayNum())))) {
         if (i == idx) {
             found = 0;
             goto scanned;
@@ -1724,7 +1724,7 @@ int greThrowCheck()
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o; o = (cObj*) o->pNext) {
+    for (o = ObjMgr.getActiveWork(); o; o = ObjMgr.getNext(o)) {
         if (fabsf(o->pos.y - (pSUB->pos.y + 2000.0f)) < 2500.0f) {
             switch (o->id) {
             case 0x1A: return 0x13;

@@ -138,7 +138,7 @@ static void r311_checkEmMoveCtrl()
         }
         SceSleep(15);
         n = 0;
-        for (i = 0; i < EmMgr.nArray; i++) {
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
             cEm* p = EmMgr.fastAt(i);
 
             if (p->id >= 0x10 && p->id <= 0x20 && (p->be_flag & 0x201) == 1) {

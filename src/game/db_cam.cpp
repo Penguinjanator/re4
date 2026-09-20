@@ -147,7 +147,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         if (joy->trg & JOY_A) {
             int i;
             cEm* e;
-            int num = EmMgr.nArray;
+            int num = EmMgr.getArrayNum();
             i = num;
             numEm++;
             if (num <= numEm) {
@@ -207,7 +207,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     case 1: {
         if (joy->trg & JOY_A) {
             int i;
-            int num = ObjMgr.nArray;
+            int num = ObjMgr.getArrayNum();
             cObj* obj;
             i = num;
             numObj++;

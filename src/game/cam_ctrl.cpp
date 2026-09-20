@@ -479,7 +479,7 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
             }
             if (hit == 1) {
                 at->m_radius *= GAIN;
-                if (ObaLineHitChk(pSubEm, at, from, &p, &hp, &hn)) {
+                if (ObaLineHitChk(pSubEm, at, *from, p, hp, hn)) {
                     ret = 1;
                     *pos = hp;
                 }

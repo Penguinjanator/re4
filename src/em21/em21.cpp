@@ -908,7 +908,7 @@ int em21SearchElgigante(cEm21* em)
     Em21Work* w = EM21_WK(em);
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
@@ -1229,7 +1229,7 @@ void em21EscapeWithYou(cEm21* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
@@ -1295,7 +1295,7 @@ int em21TrapSearch(cEm21* em)
     if (w->pTrap) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {

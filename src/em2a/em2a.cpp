@@ -859,7 +859,7 @@ int em2aTrap2HitCkEM(cEm2a* em)
                 + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
           + 100.0f;
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {

@@ -515,7 +515,7 @@ void em_destroy()
     int lo = 0x10;  // a variable: `id >= 0x10` would fold to `id > 0xF`
     int hi = 0x20;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         int id;
 

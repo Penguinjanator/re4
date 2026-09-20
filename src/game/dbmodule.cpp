@@ -1074,7 +1074,7 @@ void DrawRoomWireframe()
     DB_quads_num = 0;
     DB_tri_num = 0;
     DB_strip_num = 0;
-    for (obj = ObjMgr.pAlive; obj; obj = (cObj*) obj->pNext) {
+    for (obj = ObjMgr.getActiveWork(); obj; obj = ObjMgr.getNext(obj)) {
         if ((obj->be_flag & 2) && obj->id == 2) {
             DrawObjWireframe(obj, -1);
         }

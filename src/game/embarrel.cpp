@@ -18,11 +18,11 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "at_mod.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
-void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 u8 EspPullCoreKind();                                                                        // eff_sys.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
 void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
@@ -973,7 +973,7 @@ void emBarrelRunDownCk(cEmBarrel* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;

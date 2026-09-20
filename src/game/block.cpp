@@ -433,7 +433,7 @@ void cBlockUnit::setTrans(int on)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
         if ((o->be_flag & 0x201) == 1 && o->id == 2 && o->blk == no) {
             if (on == 1) {
@@ -645,7 +645,7 @@ void cBlockUnit::recalcModelAddr(int ofs)
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
+    for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
         if (o->id == 2 && o->blk == no) {
             o->moveDataAddr(ofs);
         }

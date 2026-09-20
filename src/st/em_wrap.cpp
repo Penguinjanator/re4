@@ -1106,7 +1106,7 @@ int SceCkFindPL(f32* dist)
     f32 min = 100000000000000.0f;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* p = EmMgr.fastAt(i);
         cEmWrap em;
         Vec pos;

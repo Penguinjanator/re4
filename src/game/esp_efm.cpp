@@ -160,7 +160,7 @@ void EfmArrayClear()
     g_Core_kind = 0;
     g_Core_pEm = 0;
     func = EfmDeleteSub;
-    p = ObjMgr.pAlive;
+    p = ObjMgr.getActiveWork();
     while (p) {
         n = p;
         p = (cObj*) p->pNext;

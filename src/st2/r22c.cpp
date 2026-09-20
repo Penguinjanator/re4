@@ -1361,7 +1361,7 @@ int countMark()
     int n = 0;
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em->isAlive() && em->id == 0x3E && em->hp > 0) {
             switch (em->type) {
             case 0:
@@ -1447,7 +1447,7 @@ void deleteAllMark()
 {
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em->id == 0x3E && em->type <= 9 && em->hp > 0) {
             ((cEmMark*) em)->setDown();
         }

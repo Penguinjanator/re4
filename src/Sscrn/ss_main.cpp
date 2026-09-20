@@ -407,14 +407,14 @@ void SubScreenTask()
             void (*func)(cModel*);
             // `m->next` read before the call (`lwz r30, 4(r30)` above the `blrl`).
             func = sscrnModelTrans;
-            m = mgr->pAlive;
+            m = mgr->getActiveWork();
             while (m) {
                 cModel* p = m;
                 m = (cModel*) m->pNext;
                 func(p);
             }
             func = LightSetModel2;
-            m = mgr->pAlive;
+            m = mgr->getActiveWork();
             while (m) {
                 cModel* p = m;
                 m = (cModel*) m->pNext;

@@ -856,7 +856,7 @@ void em3bRunDownCkTruck(cEm3b* em)
         }
     }
     p = em->getPartsPtr(0);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 
@@ -907,7 +907,7 @@ void em3bRunDownCkCart(cEm3b* em)
         }
     }
     p = em->getPartsPtr(1);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 

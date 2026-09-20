@@ -1122,7 +1122,7 @@ void PlDataRelease()
 
     // Guarded do/while loops testing `next` at the bottom: a `while (obj)` with the switch body
     // is not rotated by expand_end_loop (test at the top, `b top` at the bottom).
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     if (obj) {
         do {
             objCur = obj;
@@ -1139,7 +1139,7 @@ void PlDataRelease()
             }
         } while (objNext);
     }
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     if (em) {
         do {
             emCur = em;

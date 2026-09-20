@@ -404,7 +404,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     color = pGS->debug_mode;
     PrintNoBak = pGS->debug_mode;
     pLightEnv = LightMgr.getEnvPtr();
-    nLightWork = LightMgr.nArray;
+    nLightWork = LightMgr.getArrayNum();
     Lit.init(*LightMgr.getLitPPtr());
     CutNum = CamCtrl.AreaNum();
     EditCutNo = cutNo = getCutNo();
@@ -412,7 +412,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     CutTmp = NULL;
     initLightWork(&LitTmp);
     pTool->Flag |= 0x20;
-    anaTbl = (u8*) Debug_alloc(ObjMgr.nArray * 4, 1);
+    anaTbl = (u8*) Debug_alloc(ObjMgr.getArrayNum() * 4, 1);
     if (!PTR_OK(anaTbl)) {
         TOOL_ERR("cLightTool() MEMORY ERROR");
     }
@@ -521,7 +521,7 @@ int cLightTool::move()
     if (Joy[0].rep) {
         cursorCtr = 0;
     }
-    for (u32 n = 0; n < LightMgr.nArray; n++) {
+    for (u32 n = 0; n < LightMgr.getArrayNum(); n++) {
         LightMgr.fastAt(n)->LitIndex = n;
     }
     routine_tbl[rno0]();
@@ -544,7 +544,7 @@ int cLightTool::move()
         lightAnalysis();
     }
     if (pTool->Flag & 0x10) {
-        for (i = 0; i < ObjMgr.nArray; i++) {
+        for (i = 0; i < ObjMgr.getArrayNum(); i++) {
             cObj* obj = ObjMgr.at(i);
             if (obj->isAlive() && obj->LightInfo.getLightNum()) {
                 obj->drawAllBoundingBox(obj->pModelInfo);
@@ -1993,7 +1993,7 @@ static void edit_light_parent()
             n = 0x40;
             break;
         case 4:
-            n = ObjMgr.nArray;
+            n = ObjMgr.getArrayNum();
             break;
         }
         if (pTool->Pad1.rep & JOY_RIGHT) {
@@ -5811,7 +5811,7 @@ int cLightTool::lightAnalysis()
     if (!PTR_OK(anaTbl)) {
         return 0;
     }
-    n = ObjMgr.nArray;
+    n = ObjMgr.getArrayNum();
     memclr_asm(anaTbl, n * 4);
     LitAnaIdx = 0;
     for (i = 0; i < n; i++) {

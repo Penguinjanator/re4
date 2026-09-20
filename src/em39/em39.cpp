@@ -7070,7 +7070,7 @@ int em39JumpUpCk(cEm39* em)
     if (w->targetPos.y - em->pos.y < 1000.0f) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
         int alive = o->be_flag & 0x201;
 
@@ -7952,7 +7952,7 @@ int em39DoorOpenCk(cEm39* em)
     Vec p;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* d = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;

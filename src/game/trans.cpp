@@ -388,13 +388,13 @@ void Trans()
         }
     }
     func = objTrans;
-    for (u = ObjMgr.pAlive; u != 0;) {
+    for (u = ObjMgr.getActiveWork(); u != 0;) {
         cUnit* cur = u;
         u = u->pNext;
         func((cModel*) cur);
     }
     func = emTrans;
-    for (u = EmMgr.pAlive; u != 0;) {
+    for (u = EmMgr.getActiveWork(); u != 0;) {
         cUnit* cur = u;
         u = u->pNext;
         func((cModel*) cur);

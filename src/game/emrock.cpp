@@ -2104,7 +2104,7 @@ void emRockRunDownCk(cEmRock* em)
     f32 r;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -2175,7 +2175,7 @@ void emRockPushCk(cEmRock* em, int frame)
     u32 i;
 
     n = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -2324,7 +2324,7 @@ int emRockDropHitCkEm2b(cEmRock* em)
     f32 r;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;

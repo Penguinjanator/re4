@@ -3581,7 +3581,7 @@ void em31SearchBody(cEm31* em)
     if (w->pBody) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm31* p = (cEm31*) EmMgr.fastAt(i);
 
         if ((p->be_flag & 0x201) == 1 && p->id == 0x31 && p != em && p->type == 0) {
@@ -4319,7 +4319,7 @@ int em31PillarCk(cEm31* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
@@ -4355,7 +4355,7 @@ int em31PillarCk2(cEm31* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
@@ -4380,7 +4380,7 @@ void em31PillarAtkCk(cEm31* em, Vec* pos)
     Em31Work* w = EM31_WK(em);
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
@@ -4431,7 +4431,7 @@ int em31JumpCk(cEm31* em)
     PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     PSMTXInverse(m, m);
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {

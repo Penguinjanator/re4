@@ -1707,7 +1707,7 @@ int pl0fCrashCk(cPl0f* em)
     u32 i;
     u32 n;
 
-    for (n = 0; n < EmMgr.nArray; n++) {
+    for (n = 0; n < EmMgr.getArrayNum(); n++) {
         cEm* e = EmMgr.fastAt(n);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0) {
@@ -1727,7 +1727,7 @@ int pl0fCrashCk(cPl0f* em)
             }
         }
     }
-    for (n = 0; n < ObjMgr.nArray; n++) {
+    for (n = 0; n < ObjMgr.getArrayNum(); n++) {
         cObj* o = ObjMgr.fastAt(n);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1C) {
@@ -3376,7 +3376,7 @@ int testSearchEm2f(cPl0f* em)
     u32 n;
 
     w->pBoss = 0;
-    for (n = 0; n < EmMgr.nArray; n++) {
+    for (n = 0; n < EmMgr.getArrayNum(); n++) {
         cEm* e = EmMgr.fastAt(n);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0 && e->set == 1) {

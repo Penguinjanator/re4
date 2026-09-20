@@ -1670,7 +1670,7 @@ cEm* cPlNeck::getTarget()
     Vec* from;
 
     from = &pPL->getPartsPtr(3)->world;
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em->checkStatus(EM_STATUS_LOCKOFF)) {
             continue;
         }

@@ -2248,7 +2248,7 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
             return 0;
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -3240,7 +3240,7 @@ int cEmDoor::ckObj()
     f32 width = w->Width;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         // loop.c hoists `&EmMgr` only if threshold*savings*lifetime >= the 387-insn loop: the
         // pointer local and the two statements put luids between the high/lo_sum and their uses
         // (high life 6, lo_sum life 2 + the matched bottom-test lo_sum); the dead `rw = 0` is the
@@ -3393,7 +3393,7 @@ cEmDoor* DoorOpenCk(cModel* m)
     f32 ang;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* em = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* w;
 
@@ -3527,7 +3527,7 @@ void emDoorDropWeapon(cEmDoor* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmWep* e = (cEmWep*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {

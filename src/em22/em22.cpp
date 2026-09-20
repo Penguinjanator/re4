@@ -2878,7 +2878,7 @@ void em22DoorOpenCk(cEm22* em)
     if (w->stuckCnt % 10 != 5) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* door = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 

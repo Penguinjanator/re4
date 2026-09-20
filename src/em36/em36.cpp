@@ -4286,7 +4286,7 @@ void em36DoorOpenCk(cEm36* em)
     u32 i;
     u32 r;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;

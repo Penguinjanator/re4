@@ -4892,7 +4892,7 @@ void em32RackBreakCk(cEm32* em)
     v.y = 0.0f;
     v.z = 2000.0f;
     PSMTXMultVec(em->mat, &v, &v);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -4951,7 +4951,7 @@ void em32BreakBarred(cEm32* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {

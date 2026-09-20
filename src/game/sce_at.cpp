@@ -460,7 +460,7 @@ void SceAtCheck()
         }
     }
     sceAtCheck_main(pPL, 1);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         em = EmMgr.fastAt(i);
         if (pSUB != 0 && pSUB == em) {
             sceAtCheck_main(em, 8);
@@ -1926,7 +1926,7 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
 
     sceAtGetLadderPos(l, &pos, &ang);
     AreaDataInit(&area, &pos, 2, 500.0f, 2000.0f);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if (em->id <= 0x20 && m != em) {

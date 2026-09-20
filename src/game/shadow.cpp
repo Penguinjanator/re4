@@ -289,7 +289,7 @@ void ShadowTrans()
     StaFlagOff(pG, STA_USE_SHADOW_LIGHT);
 
     found = 0;
-    l = LightMgr.pAlive;
+    l = LightMgr.getActiveWork();
     cnt = 0;
     while (l) {
         ShadowLightWork* w;
@@ -335,7 +335,7 @@ void ShadowTrans()
         return;
     }
 
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt2 = 0;
     while (em) {
         if (cnt2 != 0) {
@@ -389,7 +389,7 @@ void ShadowTrans()
         }
     }
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt2 = 0;
     while (obj) {
         if (cnt2 != 0) {
@@ -438,7 +438,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
     cLight* l;
     int cnt;
 
-    l = LightMgr.pAlive;
+    l = LightMgr.getActiveWork();
     cnt = 0;
     while (l) {
         ShadowLightWork* w;
@@ -545,7 +545,7 @@ void FixShadowLightSet(cLight* l)
     tmp.pLight = l;
     make_fix_light(&tmp);
 
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt = 0;
     while (em) {
         if (cnt != 0) {
@@ -595,7 +595,7 @@ void FixShadowLightSet(cLight* l)
         mng->pModel[mng->num++] = em;
     }
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
@@ -1296,7 +1296,7 @@ void shadowScrModelRender(ShadowMng* mngs)
     int n;
     int num;
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
@@ -1316,7 +1316,7 @@ void shadowScrModelRender(ShadowMng* mngs)
             }
         }
     }
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt = 0;
     while (em) {
         if (cnt != 0) {
@@ -1776,7 +1776,7 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
 {
     ShadowMng tmp;
     u32 i;
-    u32 n = LightMgr.nArray;
+    u32 n = LightMgr.getArrayNum();
 
     for (i = 0; i < n; i++) {
         cLight* l = (cLight*) LightMgr.fastAt(i);

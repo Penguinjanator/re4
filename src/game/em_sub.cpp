@@ -1112,7 +1112,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
     f32 wr;
 
     i = 0;
-    if (i < EmMgr.nArray) {
+    if (i < EmMgr.getArrayNum()) {
         do {
         em = EmMgr.at(i);
         if (!(em->be_flag & 1)) {
@@ -1188,7 +1188,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
             wp->part = part;
             WEP_LIST(worst)->em = em;
         }
-        } while (++i < EmMgr.nArray);
+        } while (++i < EmMgr.getArrayNum());
     }
     return cnt;
 }
@@ -1247,7 +1247,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     bestPart = 0;
     bestEm = 0;
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
         em = EmMgr.at(i);
 
@@ -1294,7 +1294,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
         bestPart = part;
         bestEm = em;
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     if (bestPart) {
         if (!(bestPart->flags & 0x20)) {
@@ -1309,7 +1309,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
     }
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
         em = EmMgr.at(i);
 
@@ -1398,7 +1398,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             list[worst].part = part;
             list[worst].em = em;
         }
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     for (i = 0; i < (int) cnt - 1; i++) {
         for (j = i + 1; j < (int) cnt; j++) {
@@ -1458,7 +1458,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     }
     cnt = 0;
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
         em = EmMgr.at(i);
 
@@ -1580,7 +1580,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
             list[worst].part = part;
             list[worst].em = em;
         }
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     for (i = 0; i < cnt - 1; i++) {
         for (j = i + 1; j < cnt; j++) {
@@ -1682,7 +1682,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) != 1) {
             continue;
@@ -2570,7 +2570,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         off = EmMgr.size * i;
         e = (cEm*) ((u8*) EmMgr.pArray + off);
         if ((e->be_flag & 0x201) != 1) {
@@ -3412,7 +3412,7 @@ int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
     if (pG->room_id != 0x21B) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         obj = ObjMgr.fastAt(i);
         if ((obj->be_flag & 0x201) != 1) {
             continue;
@@ -3439,7 +3439,7 @@ int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
     if (pG->room_id != 0x30F) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         obj = ObjMgr.fastAt(i);
         if ((obj->be_flag & 0x201) != 1) {
             continue;
@@ -3469,7 +3469,7 @@ int VehicleAdjust(Vec* pos)
     cObj* obj;
 
     if (pG->room_id == 0x21B) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
+        for (obj = ObjMgr.getActiveWork(); obj != 0; obj = ObjMgr.getNext(obj)) {
             if (obj->id != 0x3B) {
                 continue;
             }
@@ -3480,7 +3480,7 @@ int VehicleAdjust(Vec* pos)
         }
     }
     if (pG->room_id == 0x30F) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
+        for (obj = ObjMgr.getActiveWork(); obj != 0; obj = ObjMgr.getNext(obj)) {
             if (obj->id != 0x3E) {
                 continue;
             }

@@ -2782,7 +2782,7 @@ int cSubChar::checkBackEm()
     const f32 distNear = 25000000.0f;
     const f32 angFar = 2.617994f;
     int i;
-    int n = EmMgr.nArray;
+    int n = EmMgr.getArrayNum();
 
     for (i = 0; i < n; i++) {
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
@@ -2854,7 +2854,7 @@ void cSubChar::analyze()
     } else {
         BitOff16(status, 2);
     }
-    n = EmMgr.nArray;
+    n = EmMgr.getArrayNum();
     BitOff16(status, 0x201);
     if (!SUBFLAG(this)->check(3)) {
         for (i = 0; i < n; i++) {

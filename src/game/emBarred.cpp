@@ -1022,7 +1022,7 @@ int emBarredNearCk(cEmBarred* em)
     if (d < r2) {
         return 1;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
@@ -1137,7 +1137,7 @@ int emBarredUnderCk(cEmBarred* em)
             return 1;
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {

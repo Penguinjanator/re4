@@ -101,6 +101,10 @@ public:
         return (T*)((u8*)pArray + size * no);
     }
     T* fastAt(u32 no) { return (T*)((u8*)pArray + size * no); }
+    u32 getArrayNum() { return nArray; }
+    // Alive list: the first active work and the one after `p`.
+    T* getActiveWork() { return pAlive; }
+    T* getNext(T* p) { return (T*)p->pNext; }
     int deleteList(T* p) {
         T* q;
         if (!p->isAlive()) {

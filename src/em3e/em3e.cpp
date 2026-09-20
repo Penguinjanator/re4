@@ -266,7 +266,7 @@ int countOldMark(cEmMark* self, int age)
     int n = 0;
     cEm* em;
 
-    for (em = (cEm*) EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = (cEm*) EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em == self) {
             continue;
         }

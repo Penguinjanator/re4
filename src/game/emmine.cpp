@@ -592,7 +592,7 @@ void emMineSearchEm(cEmMine* em, int mode)
     } else {
         best = 0.0f;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         cModel* parts;
 

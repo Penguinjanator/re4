@@ -2363,7 +2363,7 @@ int em3cStayCk(cEm3c* em)
     u32 cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE)
@@ -2454,7 +2454,7 @@ void em3cDoorOpenCk(cEm3c* em)
     if (EM3C_WK(em)->HoseiCnt % 10 != 5) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
@@ -2530,7 +2530,7 @@ void em3cAtkSuspend(cEm3c* em, int on)
         }
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e != em && e->r_no_0 == 1 && e->r_no_1 <= 1) {

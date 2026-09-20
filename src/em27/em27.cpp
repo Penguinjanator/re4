@@ -911,7 +911,7 @@ void em27ObaHitCk(cEm27* em)
     if (em->hp <= 0) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.at(i);
 
         {
@@ -1025,7 +1025,7 @@ int em27JumpCk(cEm27* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (e->isAlive() && e->id == 0xF) {

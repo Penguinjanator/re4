@@ -182,7 +182,7 @@ u32 r227_checkEmNumOnElv()
     u32 n = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         if (SceAtCheckHitModel(0xE, EmMgr.fastAt(i)) == 1) {
             n++;
         }

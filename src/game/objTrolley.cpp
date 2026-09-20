@@ -665,7 +665,7 @@ void objTrolleyMoveAdjustEM(cObjTrolley* obj)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1) {
@@ -777,7 +777,7 @@ void objTrolleyFallEM(cObjTrolley* obj)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20 && em->hp > 0) {
@@ -797,7 +797,7 @@ void objTrolleyLostEM(cObjTrolley* obj)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20 && (em->be_flag & 2)) {

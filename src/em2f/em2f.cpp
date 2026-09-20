@@ -1479,7 +1479,7 @@ void em2fSetPosBetweenBoat(cEm2f* em)
     Vec v;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
@@ -1514,7 +1514,7 @@ void em2fSetPosRisingD(cEm2f* em)
     Vec a;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
@@ -1553,7 +1553,7 @@ void em2fSetPosPackman(cEm2f* em)
     Vec a;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
@@ -1730,7 +1730,7 @@ void em2fIslandCrashCk(cEm2f* em)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObj1c* o = (cObj1c*) ObjMgr.fastAt(i);
         cModel* p;
         f32 r;

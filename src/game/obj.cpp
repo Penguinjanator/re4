@@ -10,6 +10,7 @@
 #include "va_ppc.h"
 #include "main_mem.h"
 #include "pl_wep.h"
+#include "at_mod.h"
 
 // Map object manager (ObjMgr): 0x3D8-byte cObj works, constructed by id (construct), moved once per
 // frame (move / objMove). The per-id classes live in the obj* units; only their constructors are
@@ -24,7 +25,6 @@
 extern "C" {
 void OSReport(const char* fmt, ...);
 void ShapeMove(cModelInfo* info);    // shape.cpp
-void DrawOba(cModel* m);             // at_mod.cpp
 void objMove(cObj* p);
 }
 

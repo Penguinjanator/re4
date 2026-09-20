@@ -603,7 +603,7 @@ extern "C" cEm* getMostFarEm(f32 range)
     u32 cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         Vec d;
         f32 len;

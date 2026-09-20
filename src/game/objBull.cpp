@@ -865,7 +865,7 @@ void objBullMoveAdjustEM(cObjBull* obj)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1) {
@@ -1359,7 +1359,7 @@ int SubCkNearEm()
     if (v.y > 2000.0f) {
         zmin = -6000.0f;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20 && em->hp > 0 && (em->be_flag & 2)) {

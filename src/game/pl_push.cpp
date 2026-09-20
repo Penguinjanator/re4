@@ -9,11 +9,10 @@
 #include "db_log.h"
 #include "math_sub.h"
 #include "motion.h"
+#include "at_mod.h"
 
 extern "C" {
 void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp
-int At_em_rect_rect_ck(cModel* pl, cEm* em);                            // game/at_mod.cpp
-void EmAtCheck(cEm* em);                                                // game/at_mod.cpp
 int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp
 }
 
@@ -32,7 +31,7 @@ int cPlPush::catchCheck()
     bak = pl->pos;
     AddSpeed(pl, &sp);
     m_Target = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) != 1) {
             continue;

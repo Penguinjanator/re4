@@ -432,7 +432,7 @@ static void r11b_str_check()
             int n = 0;
             u32 i;
 
-            for (i = 0; i < EmMgr.nArray; i++) {
+            for (i = 0; i < EmMgr.getArrayNum(); i++) {
                 cEm* em = EmMgr.fastAt(i);
 
                 if (em->id == 0x22 && em->hp > 0 && (em->be_flag & 0x201) == 1) {

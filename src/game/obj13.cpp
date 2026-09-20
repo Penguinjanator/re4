@@ -720,7 +720,7 @@ int SubLadderClimbCk(cEm* em)
     if (pSUB->Route_h < 1000.0f) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && obj->ckClimb()) {
@@ -751,7 +751,7 @@ int SubLadderClimbCk2(cEm* em)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && obj->getStatus() != 0) {
@@ -1229,7 +1229,7 @@ int LadderNearCk(Vec* pos)
     Vec v;
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
         LadderWork* w = &obj->ladder;
 
@@ -1256,7 +1256,7 @@ void LadderEventTrans(int mode)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         cObjLadder* obj = (cObjLadder*) ObjMgr.fastAt(i);
 
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13) {
@@ -1289,7 +1289,7 @@ void cObjLadder::breakWindow()
     if (type == 1) {
         v.y -= 1000.0f;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEmWindow* em = (cEmWindow*) EmMgr.fastAt(i);
 
         if ((em->be_flag & 0x201) == 1 && em->id == 0x46 && em->hp > 0 && (em->ChkStatus() & 1) == 0) {

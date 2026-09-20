@@ -70,7 +70,7 @@ static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag);
 void RouteCk()
 {
     u32 i;
-    u32 n = EmMgr.nArray;
+    u32 n = EmMgr.getArrayNum();
 
     for (i = 0; i < n; i++) {
         cEm* em = EmMgr.fastAt(i);

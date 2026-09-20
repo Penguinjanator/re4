@@ -2080,7 +2080,7 @@ void mapModelDisp(SUB_SCREEN* wk)
 
     MapMgr.move();
     func = LightSetModel2;
-    m = MapMgr.pAlive;
+    m = MapMgr.getActiveWork();
     while (m) {
         cModel* p = m;
 

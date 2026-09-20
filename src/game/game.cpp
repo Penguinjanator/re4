@@ -1697,7 +1697,7 @@ void gameDebugDisp()
             }
         }
         if (DbgFlagChk(pG, DBG_EM_LIFE_DISP)) {
-            for (i = 0; i < EmMgr.nArray; i++) {
+            for (i = 0; i < EmMgr.getArrayNum(); i++) {
                 cEm* em = EmMgr.fastAt(i);
                 Vec pos2;
                 Vec pos;
