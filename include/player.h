@@ -198,9 +198,10 @@ public:
     void init1();
     void startUp();
     // game/pl_class.cpp
-    // m0/seq0 when dmMotCk(), else m1/seq1. The overload hides cModel::motionSet: keep it reachable.
+    // m0/seq0 when dmMotCk(), else m1/seq1.
     void motionSet(void* m0, void* seq0, void* m1, void* seq1, int hokan, int frame);
-    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq) asm("motionSet__6cModelPvUcUsUsT1");
+    // Hides cModel::motionSet, so it is forwarded here (always inlined; its out-of-line copy is dead-stripped).
+    void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq) { cModel::motionSet(mot, hokan, frame, stat, seq); }
     int actionSelect();  // routine 1 selection from the keys / action buttons; returns checkXbutton()
     void dmgCheck();     // DmgMgr areas -> setDamage
     void visibleCtrl();  // alpha fade with pG->flags_500C bit13

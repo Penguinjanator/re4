@@ -431,11 +431,10 @@ cLightTool::~cLightTool()
     pLog->modeReset();
 }
 
-// Light work `no` without the range check (the editor indexes past nArray on purpose).
-static inline cLight* lightWorkNoChk(u32 no)
-{
-    return (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * no);
-}
+// Light work `no` without the range check (the editor indexes past nArray on purpose). A macro because an
+// inline definition would raise the declaration number of everything after it by 3, and draw_light_graph's
+// register allocation follows those numbers.
+#define lightWorkNoChk(no) ((cLight*) ((u8*) LightMgr.pArray + LightMgr.size * (no)))
 
 // Object work `no`, 0 when out of range.
 static inline cObj* objWorkChkP(u32 no)

@@ -691,6 +691,7 @@ STRIP_UNUSED = {
     "game/model.cpp",
     "game/trans.cpp",
     "game/pl_npc.cpp",
+    "game/pl_class.cpp",
     "game/emobj.cpp",
     "game/emrock.cpp",
     "game/shadow.cpp",
