@@ -20,16 +20,11 @@
 #include <string.h>
 #include "dbmodule.h"
 #include "emhit.h"
-
-
-void PlSetCostume();
-void PlChangeData();
-int ShapeSet(void* shape, int no, void* data, int flag);
-void ShapeEnd(void* shape);
+#include "pl_sub.h"
+#include "pl_mod.h"
 
 extern u8 PlKaiou;
 extern u8 PlDbFlag;
-extern cModel* pSUB;
 
 // Debug option menu tool (player / scroll settings).
 class cDbOption {

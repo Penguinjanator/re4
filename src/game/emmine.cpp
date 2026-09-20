@@ -19,21 +19,8 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
-
-// GetWepTargetList entry (em_sub.cpp).
-struct WepTarget {
-    cEm* em;
-    YARARE_INFO* part;
-};
-
-extern "C" {
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-// em_sub.cpp: enemies on the line p0-p1 (at most `prio` of them) into `list`; hit point / normal / attribute out.
-u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
-int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
-}
+#include "est.h"
+#include "em_sub.h"
 
 // Rope node of the falling arrow (emMine_R1_Fall).
 struct MineNode {

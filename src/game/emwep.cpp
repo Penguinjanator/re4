@@ -33,13 +33,9 @@
 #include "motion.h"
 #include "game.h"
 #include "em10.h"
+#include "em_sub.h"
 
 extern "C" {
-int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
-YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
-void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
-YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
-int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 static void emWep_R1_Parent(cEmWep* em);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix in sym_map.
