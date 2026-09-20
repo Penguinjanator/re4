@@ -20,17 +20,9 @@
 #include <math.h>
 #include "model.h"
 #include "dbmodule.h"
+#include "math_sub_decl.h"
 
-// dbmodule.cpp primitives. Draw_sphere really takes its Vec by value; this unit declares it with a
-// pointer (same ABI: aggregates are passed by reference), so no argument copy is made.
 #define PI 3.1415927f
-
-
-extern "C" {
-f32 SQRTF(f32 x);
-f32 LIMIT_ANGLE(f32 x);
-int GetScreenPos(Vec* pos, Vec* scr);   // game/sub2.cpp
-}
 
 #define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."
 

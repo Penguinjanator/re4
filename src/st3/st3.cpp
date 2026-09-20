@@ -5,13 +5,12 @@
 #include "widget.h"
 #include "sofdec.h"
 #include "event.h"
+#include <dolphin/os.h>
 
 // Stage 3 (island) room module entry (D:/Bio4/Prog/st3.cpp, the same object ends every st3_* REL): registers
 // the room Init/Main pairs of every stage-3 room in the DOL's St3_data_tbl, then the SN REL entry points (like
 // st2.cpp/st4.cpp). Includes map_obj.h/light.h/widget.h/sofdec.h/event.h (their strings and the cManager<cLight>
 // template block follow the code) and carries a never-called inline whose "movie/r333_ev.sfd" string survives.
-
-extern "C" void OSReport(const char* fmt, ...);
 
 #define HALT()                                                    \
     {                                                             \

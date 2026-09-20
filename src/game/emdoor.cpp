@@ -24,7 +24,6 @@
 #include "pl_wep.h"
 #include "global.h"
 #include "math_sub.h"
-#include "cmath.h"
 #include "db_log.h"
 #include "motion.h"
 #include "em_sub.h"
