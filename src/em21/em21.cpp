@@ -25,11 +25,11 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "em.h"
+#include "em_mod.h"
 
 // The module's 0x30-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em21,48,4");
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 

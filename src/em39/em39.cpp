@@ -15,6 +15,7 @@
 #include "ctrl.h"
 #include "map_obj.h"
 #include "widget.h"
+#include "em_mod.h"
 // emwep.h declares the DOL's plemBackjump (game/emwep.cpp); this unit has a local routine of the
 // same name, so the header's declaration is renamed out of the way.
 #define plemBackjump plemBackjump_emwep
@@ -58,7 +59,6 @@
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em39,52,4");
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 

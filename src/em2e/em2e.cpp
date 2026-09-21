@@ -18,7 +18,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+#include "em_mod.h"
 
 
 typedef void (*Em2eFunc)(cEm2e*);

@@ -36,9 +36,9 @@
 #include "quake.h"
 #include "ref_access.h"
 #include "em.h"
+#include "em_mod.h"
 
 asm(".comm common_em25,52,4");
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 

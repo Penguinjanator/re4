@@ -35,7 +35,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+#include "em_mod.h"
 
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 

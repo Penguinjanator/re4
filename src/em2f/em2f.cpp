@@ -36,11 +36,11 @@
 #include "db_log.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
+#include "em_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2f,52,4");
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 // Floating island (game/obj1c.cpp): only what the crash check calls.

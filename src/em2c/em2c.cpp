@@ -38,6 +38,7 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
+#include "em_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
@@ -50,7 +51,6 @@ asm(".comm common_em2c,52,4");
 #include <dolphin/os.h>
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 static void em2c_R0_Init(cEm2c* em);
 static void em2c_R0_Move(cEm2c* em);

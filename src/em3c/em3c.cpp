@@ -37,7 +37,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+#include "em_mod.h"
 
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
