@@ -339,7 +339,7 @@ static void r20d_openDrawer(int no)
 // and switches control back to Leon (PlSelect(0)) before running the door area.
 static void r20d_checkDoor()
 {
-    if (!(pG->Key_flg[0] & 0x00200000)) {
+    if (!KyfFlagChk(pG, KYF_R20D_TO_R206_DOOR)) {
         SceAtExecute(0x10);
     } else {
         ScfFlagOn(pG, SCF_R20D_END_OF_ASHLEY_PLAY);
