@@ -71,4 +71,32 @@ static inline void FadeSetW(int no, u32 time, u32 z, int late)
     FadeSet(no, &col.start, &col.end, time, z, late);
 }
 
+// The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
+// pseudo (SImode) and purge_addressof gives it a permanent frame slot instead of the shared temp at
+// 8/12; a 12-byte struct reuses the Vec slot (temp reuse needs equal modes).
+struct FadeColors {
+    GXColor c0;
+    GXColor c1;
+    u32 pad;
+};
+
+// 30-frame fade between two packed RGBA colours (sce_com, r225).
+static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
+{
+    FadeColors c;
+
+    *(u32*) &c.c0 = rgba0;
+    *(u32*) &c.c1 = rgba1;
+    FadeSet(mode, &c.c0, &c.c1, 30, 0, 0);
+}
+
+// Wait for fade `no` to finish: the index stays a separate `addi` on the array base (r316, r31c).
+extern "C" void SceSleep(int frames);
+static inline void FadeWait(int no)
+{
+    while (Fade[no].flags & 1) {
+        SceSleep(1);
+    }
+}
+
 #endif

@@ -42,13 +42,6 @@ static R316Work* r316_work;
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r316_memset(void*, ...) asm("memset");
-// Wait for fade `no` to finish: the index stays a separate `addi` on the array base.
-static inline void FadeWait(int no)
-{
-    while (Fade[no].flags & 1) {
-        SceSleep(1);
-    }
-}
 
 void r316_openShelf_main(int no, int mode);
 static void r316_openedShelf(int no);

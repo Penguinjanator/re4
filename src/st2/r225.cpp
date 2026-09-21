@@ -61,26 +61,6 @@ static R225Work* r225_work;
 
 // Stores through references (not MEM_IN_STRUCT_P): the static pointer / pPL reload after each one.
 
-
-// The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
-// pseudo (SImode) and purge_addressof gives it a permanent frame slot (24/28, 32/36) instead of the
-// shared temp at 8/12; a 12-byte struct reuses the Vec slot (temp reuse needs equal modes).
-struct FadeColors {
-    GXColor c0;
-    GXColor c1;
-    u32 pad;
-};
-
-// FadeSet with two packed RGBA colour words over 30 frames.
-static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
-{
-    FadeColors c;
-
-    *(u32*) &c.c0 = rgba0;
-    *(u32*) &c.c1 = rgba1;
-    FadeSet(mode, &c.c0, &c.c1, 30, 0, 0);
-}
-
 static SceElevatorData r225_elvArrive = {2, 0x15, {0.0f, 0.0f, 0.0f}, {80130.0f, 1500.0f, -22530.0f}, {0.0f, -1.6f, 0.0f}, -1, 0, 0xE, 0, 0xF, {-3300.0f, 5000.0f, 22200.0f}, {0.0f, 3.14f, 0.0f}, 0x226};
 static SceElevatorData r225_elvLeave = {3, 0x15, {0.0f, 0.0f, 0.0f}, {80130.0f, 1500.0f, -22530.0f}, {0.0f, -1.6f, 0.0f}, 8, 0, 0xD, 0, 0xF, {-3300.0f, 5000.0f, 22200.0f}, {0.0f, 3.14f, 0.0f}, 0x226};
 

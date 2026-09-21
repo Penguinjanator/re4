@@ -1259,25 +1259,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
 extern "C" void SceElevator(SceElevatorData* d);
 
 
-// The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
-// pseudo (SImode) and purge_addressof gives it a permanent frame slot instead of the shared temp at
-// 8/12; a 12-byte struct reuses the Vec slot (temp reuse needs equal modes).
-struct FadeColors {
-    GXColor c0;
-    GXColor c1;
-    u32 pad;
-};
-
-// 30-frame fade between two packed RGBA colours.
-static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
-{
-    FadeColors c;
-
-    *(u32*) &c.c0 = rgba0;
-    *(u32*) &c.c1 = rgba1;
-    FadeSet(mode, &c.c0, &c.c1, 30, 0, 0);
-}
-
 // Shape from r225.cpp's SceElevator_r225 (SetPosXYZ / FadeSetRGBA inline helpers, the goto-entered up
 // loop, the down loop with its tail inside). Residue closed by the `jp` pin: `done` (10 refs, live
 // length 106 x4 from update_equiv_regs' two `done = 0` REG_EQUIV doublings = 424, priority 707) sorts

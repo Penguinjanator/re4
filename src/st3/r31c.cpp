@@ -181,17 +181,6 @@ static inline void SetPosAngY(cModel* m, f32 x, f32 y, f32 z, f32 ry)
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-
-
-// Wait for fade `no` to finish: the index stays a separate `addi` on the array base (r316).
-static inline void FadeWait(int no)
-{
-    while (Fade[no].flags & 1) {
-        SceSleep(1);
-    }
-}
-
-
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
 {
