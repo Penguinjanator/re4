@@ -167,7 +167,7 @@ struct DbModState {
     u8 prevNo;             // 0x011
     u16 prevSetNo;         // 0x012
     u8 x14;
-    u8 x15;                // 0x015  LOOP page: loop flag
+    u8 loopFlag;           // 0x015  LOOP page: motion flags bit 2 (loop) on / off
     s8 transMode;          // 0x016  TRANS page: 0 on / 1 off / 2 add / 3 inf
     u8 x17;
     u8 flipFlag;           // 0x018  FLIP page
@@ -405,7 +405,7 @@ void dbModelInit()
     init_dbEm(dbModSlotSub, SLOT_NUM, SLOT_NUM * 2 - 1);
     pDbModState.p->no = 0;
     pDbModState.p->blendMode = 2;
-    pDbModState.p->x15 = 1;
+    pDbModState.p->loopFlag = 1;
     pDbModState.p->scale = 1.0f;
     pDbModState.p->type = 0;
     pDbModState.p->lightMode = 0;
@@ -1995,9 +1995,9 @@ static int dbmod_loop()
     switch (pDbModState.p->step) {
     case 0:
         if (em->mot[0].flags & 4) {
-            pDbModState.p->x15 = 1;
+            pDbModState.p->loopFlag = 1;
         } else {
-            pDbModState.p->x15 = 0;
+            pDbModState.p->loopFlag = 0;
         }
         pDbModState.p->step++;
     case 1:
@@ -2006,12 +2006,12 @@ static int dbmod_loop()
             break;
         }
         if (joy->rep & 0x00010001) {
-            pDbModState.p->x15 = 1;
+            pDbModState.p->loopFlag = 1;
         }
         if (joy->rep & 0x00020002) {
-            pDbModState.p->x15 = 0;
+            pDbModState.p->loopFlag = 0;
         }
-        if (pDbModState.p->x15) {
+        if (pDbModState.p->loopFlag) {
             *flag |= 4;
         } else {
             *flag &= ~4;
@@ -2020,7 +2020,7 @@ static int dbmod_loop()
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- LOOP -----");
-    if (pDbModState.p->x15) {
+    if (pDbModState.p->loopFlag) {
         eprintf(6 * 8, 4 * 14, 0, 0, "ON-/---");
     } else {
         eprintf(6 * 8, 4 * 14, 0, 0, "---/OFF");
