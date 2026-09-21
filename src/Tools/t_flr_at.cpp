@@ -37,14 +37,13 @@ struct TFlrAt {
     u8 priority;     // 0x04  save order (15 first)
     u8 pad_5[0x14 - 0x05];
     AreaData area;   // 0x14
-    u8 x44;          // 0x44  (0) foot SE, (2) BGM block bits / 0x10 stream, (3) volume
-    u8 x45;          // 0x45  (0) foot effect, (2) set-volume bits / 0x10 stream play, (3) sub volume
-    u8 x46[2];       // 0x46  (0) cartridge, (2) BGM volume per block; 0x47 the type 0 flag bits
-    s32 x48[2];      // 0x48  (2) fade time per block
-    u16 str_blk;     // 0x50  (2) stream block
-    u16 str_no;      // 0x52  (2) stream number
-    s32 str_vol;     // 0x54  (2) stream volume
-    u8 pad_58[0x84 - 0x58];
+    union {          // 0x44  payload by `id` (flr_at.h)
+        u8 dmy[64];
+        FLR_AT_SE_TYPE se;
+        FLR_AT_SE_VOLCTRL sectrl;
+        FLR_AT_BGM_VOL bgmctrl;
+        FLR_AT_THUNDER_VOL thunder;
+    };
 };
 
 struct FlrAtWork {
@@ -82,7 +81,7 @@ struct FlrAtWork {
     int dispType;     // 0x38
     char path[0x40];  // 0x3C
     s8 flagCursor;    // 0x7C
-    u8 defCartridge;  // 0x7D  FlrAtHead pad_8[0]
+    u8 defCartridge;  // 0x7D  FlrAtHead cartridge_type
     u8 pad_7E[2];
     FlrAtHead head;   // 0x80
     TFlrAt area[256]; // 0x90
@@ -157,7 +156,7 @@ void flrAtInit()
     BitOn(pG->Disp_flg, 0x80000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Disp_flg, 0x100000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
     pW->x0 = 0x2D;
     pW->y0 = 0x1E;
@@ -167,7 +166,7 @@ void flrAtInit()
     pW->head.magic[3] = zero;
     pW->head.version = 0x103;
     pW->head.num = 256;
-    pW->head.pad_8[0] = zero;
+    pW->head.cartridge_type = zero;
     pW->copySrc = zero;
     pW->copyValid = zero;
     pW->saveFlrSys = pFlrSys;
@@ -183,7 +182,7 @@ static void flrAtExit()
 {
     BitSet(pG->Disp_flg, pW->saveDisp);
     BitSet(pG->Stop_flg, pW->saveStop);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     SetToolLight(-1);
     pFlrSys = pW->saveFlrSys;
     TutilQuitDefault();
@@ -381,7 +380,7 @@ static void flrAtAreaEdit_AreaCreate()
     pCur->priority = 8;
     pCur->be_flg |= 3;
     if (pW->editType == 0) {
-        pCur->x46[1] = 7;
+        pCur->se.use_kind = 7;
     } else {
         pCur->id = 2;
     }
@@ -613,33 +612,33 @@ static void flrAtDataInput_sedata()
         if (Joy[0].rep & REP_LEFT) pW->flagCursor++;
         pW->flagCursor = pW->flagCursor < 0 ? 0 : (pW->flagCursor > 7 ? 7 : pW->flagCursor);
         for (i = 0; i < 8; i++) {
-            eprintf(x + i * 8, y, (pW->flagCursor == 7 - i) ? 4 : 0, 0, "%d", (pCur->x46[1] >> (7 - i)) & 1);
+            eprintf(x + i * 8, y, (pW->flagCursor == 7 - i) ? 4 : 0, 0, "%d", (pCur->se.use_kind >> (7 - i)) & 1);
         }
         eprintf(x + 0x58, y, 4, 0, "%s", flrAtSeFlagName[pW->flagCursor]);
         if (Joy[0].trg & JOY_A) {
-            pCur->x46[1] ^= 1 << pW->flagCursor;
+            pCur->se.use_kind ^= 1 << pW->flagCursor;
         }
         break;
     case 4:
-        n = pCur->x44;
+        n = pCur->se.se_type;
         if (Joy[0].rep & REP_RIGHT) n++;
         if (Joy[0].rep & REP_LEFT) n--;
         n = n < 0 ? 0 : (n > 0x32 ? 0x32 : n);
-        pCur->x44 = n;
+        pCur->se.se_type = n;
         break;
     case 5:
-        n = pCur->x45;
+        n = pCur->se.eff_type;
         if (Joy[0].rep & REP_RIGHT) n++;
         if (Joy[0].rep & REP_LEFT) n--;
         n = n < 0 ? 0 : (n > 0xA ? 0xA : n);
-        pCur->x45 = n;
+        pCur->se.eff_type = n;
         break;
     case 6:
-        n = pCur->x46[0];
+        n = pCur->se.cartridge_type;
         if (Joy[0].rep & REP_RIGHT) n++;
         if (Joy[0].rep & REP_LEFT) n--;
         n = n < 0 ? 0 : (n > 0xA ? 0xA : n);
-        pCur->x46[0] = n;
+        pCur->se.cartridge_type = n;
         break;
     case 7:
         n = pW->defCartridge;
@@ -652,15 +651,15 @@ static void flrAtDataInput_sedata()
     if (pW->inputCursor != 3) {
         y += 0x10;
         for (i = 0; i < 8; i++) {
-            eprintf(x + i * 8, y, 0, 0, "%d", (pCur->x46[1] >> (7 - i)) & 1);
+            eprintf(x + i * 8, y, 0, 0, "%d", (pCur->se.use_kind >> (7 - i)) & 1);
         }
     }
     y += 0x10;
-    eprintf(x, y, 0, 0, "%d", pCur->x44);
+    eprintf(x, y, 0, 0, "%d", pCur->se.se_type);
     y += 0x10;
-    eprintf(x, y, 0, 0, "%d", pCur->x45);
+    eprintf(x, y, 0, 0, "%d", pCur->se.eff_type);
     y += 0x10;
-    eprintf(x, y, 0, 0, "%d", pCur->x46[0]);
+    eprintf(x, y, 0, 0, "%d", pCur->se.cartridge_type);
     y += 0x10;
     eprintf(x, y, 0, 0, "%d", pW->defCartridge);
 }
@@ -707,10 +706,10 @@ static void flrAtDataInput_bgm_volctrl()
     int v;
     int col;
 
-    if (pCur->x44 & 1) {
+    if (pCur->bgmctrl.blk_no & 1) {
         flrAtBgmMenu[4].Be_flg = 1;
         flrAtBgmMenu[5].Be_flg = 1;
-        if (pCur->x45 & 1) {
+        if (pCur->bgmctrl.sw & 1) {
             flrAtBgmMenu[6].Be_flg = 1;
         } else {
             flrAtBgmMenu[6].Be_flg = 0;
@@ -720,10 +719,10 @@ static void flrAtDataInput_bgm_volctrl()
         flrAtBgmMenu[5].Be_flg = 0;
         flrAtBgmMenu[6].Be_flg = 0;
     }
-    if (pCur->x44 & 2) {
+    if (pCur->bgmctrl.blk_no & 2) {
         flrAtBgmMenu[8].Be_flg = 1;
         flrAtBgmMenu[9].Be_flg = 1;
-        if (pCur->x45 & 2) {
+        if (pCur->bgmctrl.sw & 2) {
             flrAtBgmMenu[10].Be_flg = 1;
         } else {
             flrAtBgmMenu[10].Be_flg = 0;
@@ -733,7 +732,7 @@ static void flrAtDataInput_bgm_volctrl()
         flrAtBgmMenu[9].Be_flg = 0;
         flrAtBgmMenu[10].Be_flg = 0;
     }
-    if (pCur->x44 & 0x10) {
+    if (pCur->bgmctrl.blk_no & 0x10) {
         flrAtBgmMenu[12].Be_flg = 1;
         flrAtBgmMenu[13].Be_flg = 1;
         flrAtBgmMenu[14].Be_flg = 1;
@@ -748,110 +747,110 @@ static void flrAtDataInput_bgm_volctrl()
     flrAtDataInput_common_menu(pW->inputCursor);
     switch (pW->inputCursor) {
     case 3:
-        if (Joy[0].trg & REP_LR) pCur->x44 ^= 1;
+        if (Joy[0].trg & REP_LR) pCur->bgmctrl.blk_no ^= 1;
         break;
     case 4:
-        if (pCur->x44 & 1) {
-            v = pCur->x48[0];
+        if (pCur->bgmctrl.blk_no & 1) {
+            v = pCur->bgmctrl.time[0];
             FLRAT_STEP(v);
             v = v < 0 ? 0 : (v > 50000 ? 50000 : v);
-            pCur->x48[0] = v;
+            pCur->bgmctrl.time[0] = v;
         }
         break;
     case 5:
-        if ((pCur->x44 & 1) && (Joy[0].trg & REP_LR)) pCur->x45 ^= 1;
+        if ((pCur->bgmctrl.blk_no & 1) && (Joy[0].trg & REP_LR)) pCur->bgmctrl.sw ^= 1;
         break;
     case 6:
-        if ((pCur->x44 & 1) && (pCur->x45 & 1)) {
-            v = (s8) pCur->x46[0];
+        if ((pCur->bgmctrl.blk_no & 1) && (pCur->bgmctrl.sw & 1)) {
+            v = pCur->bgmctrl.set_vol[0];
             FLRAT_STEP(v);
             v = v < 0 ? 0 : (v > 0x7F ? 0x7F : v);
-            pCur->x46[0] = v;
+            pCur->bgmctrl.set_vol[0] = v;
         }
         break;
     case 7:
-        if (Joy[0].trg & REP_LR) pCur->x44 ^= 2;
+        if (Joy[0].trg & REP_LR) pCur->bgmctrl.blk_no ^= 2;
         break;
     case 8:
-        if (pCur->x44 & 2) {
-            v = pCur->x48[1];
+        if (pCur->bgmctrl.blk_no & 2) {
+            v = pCur->bgmctrl.time[1];
             FLRAT_STEP(v);
             v = v < 0 ? 0 : (v > 50000 ? 50000 : v);
-            pCur->x48[1] = v;
+            pCur->bgmctrl.time[1] = v;
         }
         break;
     case 9:
-        if ((pCur->x44 & 2) && (Joy[0].trg & REP_LR)) pCur->x45 ^= 2;
+        if ((pCur->bgmctrl.blk_no & 2) && (Joy[0].trg & REP_LR)) pCur->bgmctrl.sw ^= 2;
         break;
     case 10:
         // (separate tests: `&&` folds the two byte tests into one halfword andis.)
-        if (pCur->x44 & 2) {
-            if (pCur->x45 & 2) {
-                v = (s8) pCur->x46[1];
+        if (pCur->bgmctrl.blk_no & 2) {
+            if (pCur->bgmctrl.sw & 2) {
+                v = pCur->bgmctrl.set_vol[1];
                 FLRAT_STEP(v);
                 v = v < 0 ? 0 : (v > 0x7F ? 0x7F : v);
-                pCur->x46[1] = v;
+                pCur->bgmctrl.set_vol[1] = v;
             }
         }
         break;
     case 11:
-        if (Joy[0].trg & REP_LR) pCur->x44 ^= 0x10;
+        if (Joy[0].trg & REP_LR) pCur->bgmctrl.blk_no ^= 0x10;
         break;
     case 12:
-        if ((pCur->x44 & 0x10) && (Joy[0].trg & REP_LR)) pCur->x45 ^= 0x10;
+        if ((pCur->bgmctrl.blk_no & 0x10) && (Joy[0].trg & REP_LR)) pCur->bgmctrl.sw ^= 0x10;
         break;
     case 13:
-        if (pCur->x44 & 0x10) {
-            if (Joy[0].rep2 & REP_RIGHT) pCur->str_blk = 1;
-            if (Joy[0].rep2 & REP_LEFT) pCur->str_blk = 0;
+        if (pCur->bgmctrl.blk_no & 0x10) {
+            if (Joy[0].rep2 & REP_RIGHT) pCur->bgmctrl.str_blk = 1;
+            if (Joy[0].rep2 & REP_LEFT) pCur->bgmctrl.str_blk = 0;
         }
         break;
     case 14:
-        if (pCur->x44 & 0x10) {
-            v = pCur->str_no;
+        if (pCur->bgmctrl.blk_no & 0x10) {
+            v = pCur->bgmctrl.str_no;
             FLRAT_STEP(v);
             v = v < 0 ? 0 : (v > 0x200 ? 0x200 : v);
-            pCur->str_no = v;
+            pCur->bgmctrl.str_no = v;
         }
         break;
     case 15:
-        if (pCur->x44 & 0x10) {
-            v = pCur->str_vol;
+        if (pCur->bgmctrl.blk_no & 0x10) {
+            v = pCur->bgmctrl.str_fade_time;
             FLRAT_STEP(v);
             v = v < 0 ? 0 : (v > 50000 ? 50000 : v);
-            pCur->str_vol = v;
+            pCur->bgmctrl.str_fade_time = v;
         }
         break;
     }
     x = pW->x + 0x80;
     y = pW->y + 0x10;
     for (i = 0; i < 2; i++) {
-        eprintf(x, y, 0, 0, "%s", ((pCur->x44 >> i) & 1) ? "ON" : "OFF");
+        eprintf(x, y, 0, 0, "%s", ((pCur->bgmctrl.blk_no >> i) & 1) ? "ON" : "OFF");
         y += 0x10;
         col = 0x14;
-        if ((pCur->x44 >> i) & 1) col = 0;
-        eprintf(x, y, col, 0, "%d", pCur->x48[i]);
+        if ((pCur->bgmctrl.blk_no >> i) & 1) col = 0;
+        eprintf(x, y, col, 0, "%d", pCur->bgmctrl.time[i]);
         y += 0x10;
-        eprintf(x, y, col, 0, "%s", ((pCur->x45 >> i) & 1) ? "SET" : "RESET");
+        eprintf(x, y, col, 0, "%s", ((pCur->bgmctrl.sw >> i) & 1) ? "SET" : "RESET");
         y += 0x10;
         if (col == 0) {
             col = 0x14;
-            if ((pCur->x45 >> i) & 1) col = 0;
+            if ((pCur->bgmctrl.sw >> i) & 1) col = 0;
         }
-        eprintf(x, y, col, 0, "%d", (s8) pCur->x46[i]);
+        eprintf(x, y, col, 0, "%d", pCur->bgmctrl.set_vol[i]);
         y += 0x10;
     }
-    eprintf(x, y, 0, 0, "%s", (pCur->x44 & 0x10) ? "ON" : "OFF");
+    eprintf(x, y, 0, 0, "%s", (pCur->bgmctrl.blk_no & 0x10) ? "ON" : "OFF");
     y += 0x10;
     col = 0x14;
-    if (pCur->x44 & 0x10) col = 0;
-    eprintf(x, y, col, 0, "%s", (pCur->x45 & 0x10) ? "PLAY" : "STOP");
+    if (pCur->bgmctrl.blk_no & 0x10) col = 0;
+    eprintf(x, y, col, 0, "%s", (pCur->bgmctrl.sw & 0x10) ? "PLAY" : "STOP");
     y += 0x10;
-    eprintf(x, y, col, 0, "%s", pCur->str_blk == 0 ? "BGM" : "VOICE");
+    eprintf(x, y, col, 0, "%s", pCur->bgmctrl.str_blk == 0 ? "BGM" : "VOICE");
     y += 0x10;
-    eprintf(x, y, col, 0, "%d", pCur->str_no);
+    eprintf(x, y, col, 0, "%d", pCur->bgmctrl.str_no);
     y += 0x10;
-    eprintf(x, y, col, 0, "%d", pCur->str_vol);
+    eprintf(x, y, col, 0, "%d", pCur->bgmctrl.str_fade_time);
 }
 
 static TOOL_MENU flrAtThunderMenu[5] = {
@@ -873,22 +872,22 @@ static void flrAtDataInput_thunder_volctrl()
     flrAtDataInput_common_menu(pW->inputCursor);
     switch (pW->inputCursor) {
     case 3:
-        v = (s8) pCur->x44;
+        v = pCur->thunder.vol;
         FLRAT_STEP(v);
         v = v < 0 ? 0 : (v > 0x7F ? 0x7F : v);
-        pCur->x44 = v;
+        pCur->thunder.vol = v;
         break;
     case 4:
-        v = (s8) pCur->x45;
+        v = pCur->thunder.svol;
         FLRAT_STEP(v);
         v = v < 0 ? 0 : (v > 0x7F ? 0x7F : v);
-        pCur->x45 = v;
+        pCur->thunder.svol = v;
         break;
     }
     x = pW->x + 0x80;
     y = pW->y + 0x10;
-    eprintf(x, y, 0, 0, "%d", (s8) pCur->x44);
-    eprintf(x, y + 0x10, 0, 0, "%d", (s8) pCur->x45);
+    eprintf(x, y, 0, 0, "%d", pCur->thunder.vol);
+    eprintf(x, y + 0x10, 0, 0, "%d", pCur->thunder.svol);
 }
 
 // marks the player position, lit when it is inside an area of the edited kind
@@ -1065,7 +1064,7 @@ static void flrAtDataLoad()
                 switch (pW->editType) {
                 case -1:
                     pW->area[pW->file[i].no] = pW->file[i];
-                    pW->defCartridge = pW->fileHead.pad_8[0];
+                    pW->defCartridge = pW->fileHead.cartridge_type;
                     if (pW->area[i].id == 2) pW->area[i].id = 2;
                     break;
                 case 0:
@@ -1192,7 +1191,7 @@ static void flrAtDataSave()
         pW->fileHead.magic[3] = 0;
         pW->fileHead.version = 0x103;
         pW->fileHead.num = *(u16*) ((u8*) &flrAtSaveNum + 2);
-        pW->fileHead.pad_8[0] = pW->defCartridge;
+        pW->fileHead.cartridge_type = pW->defCartridge;
         pW->sub = 1;
         pW->step = 0;
         pW->step2 = 0;
@@ -1278,7 +1277,7 @@ static void preview_init()
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     pFlrSys = &pW->flrSys;
     PSet(pFlrSys->pData, &pW->head);
     ASet(pFlrSys->pList, (FlrAt*) pW->area);
@@ -1314,7 +1313,7 @@ static void preview_exit()
     BitOn(pG->Stop_flg, 0x2000);
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     pW->dispGroup = -1;
     pW->mode = 5;
     pW->sub = 0;

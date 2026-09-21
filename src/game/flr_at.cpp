@@ -84,7 +84,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
         }
         if (type != 0) {
             hit = 1;
-        } else if (at->x46[1] & flag) {
+        } else if (at->se.use_kind & flag) {
             hit = 1;
         }
         if (hit == 1) {

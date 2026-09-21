@@ -519,16 +519,16 @@ int footSeCheck(u16* no, Vec* pos)
             if (at == NULL) {
                 goto check;
             }
-            *no += at->x44 * 30;
+            *no += at->se.se_type * 30;
         } else if (EspPlWaterCall(*no >> 1, pos) == 1) {
             *no += 30;
         } else {
             at = FlrAtCheck(0, pos, 1);
             if (at != NULL) {
                 if (*no <= 3) {
-                    EspFootCall(*no >> 1, at->x45, pos);
+                    EspFootCall(*no >> 1, at->se.eff_type, pos);
                 }
-                *no += at->x44 * 30;
+                *no += at->se.se_type * 30;
             } else {
                 if (*no <= 3) {
                     EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->group], pos);
@@ -632,9 +632,9 @@ int wepSeCheck(u16* no, Vec* pos)
     if (pos != NULL && *no == 0xF) {
         FlrAt* at = FlrAtCheck(0, pos, 4);
         if (at != NULL) {
-            *no += at->x46[0];
+            *no += at->se.cartridge_type;
         } else if (pFlrSys->pData != NULL) {
-            *no += ((u8*) pFlrSys->pData)[8];
+            *no += ((FlrAtHead*) pFlrSys->pData)->cartridge_type;
         }
     }
     ret = sndExistCheck(2, *no);
@@ -1358,17 +1358,6 @@ void sndSurroundCalc();
 void debug_mute_check();
 void debugDisp();
 
-// BGM/stream control part of a type-2 floor attribute (FlrAt + 0x44), addressed as one block.
-struct SndFlrAtBgm {
-    u8 slot_bits;    // 0x44  bit i: BGM slot i controlled, 0x10: stream
-    u8 set_bits;     // 0x45  bit i: set volume (else reset), 0x10: stream set
-    u8 vol[2];       // 0x46
-    s32 time[2];     // 0x48
-    u16 str_blk;     // 0x50
-    u16 str_no;      // 0x52
-    s32 str_vol;     // 0x54
-};
-
 // Once per frame (main loop): positional SE update and ambient emitters (unless Stop_flg 0x800),
 // the driver tick, house-keeping of the BGM / stream slots (finished ones freed, a stream paused
 // for 300 frames is stopped), the enemy SE history timers, and the floor-attribute BGM control
@@ -1378,7 +1367,7 @@ void SndWatcher()
 {
     u32 i;
     FlrAt* at;
-    SndFlrAtBgm* b;
+    FLR_AT_BGM_VOL* b;
 
     if (StaFlagChk(pG, STA_MOVIE_ON)) {
         return;
@@ -1442,30 +1431,30 @@ void SndWatcher()
     if (!StaFlagChk(pG, STA_SUB_SCRN) && !SysFlagChk(pG, SYS_TYPEWRITER) && pSndRaw->room_ok != 0) {
         at = FlrAtCheck(2, &pPL->pos, 0xFF);
         if (at != NULL) {
-            b = (SndFlrAtBgm*) &at->x44;
+            b = &at->bgmctrl;
             for (i = 0; i < 2; i++) {
-                if ((b->slot_bits >> i) & 0x1) {
-                    if (pSndRaw->bgm_at[i] != at->x2) {
+                if ((b->blk_no >> i) & 0x1) {
+                    if (pSndRaw->bgm_at[i] != at->no) {
                         int r;
-                        if ((b->set_bits >> i) & 0x1) {
-                            r = SndRoomBgmVolSet(i, (s8) b->vol[i], b->time[i]);
+                        if ((b->sw >> i) & 0x1) {
+                            r = SndRoomBgmVolSet(i, b->set_vol[i], b->time[i]);
                         } else {
                             r = SndRoomBgmVolReset(i, b->time[i]);
                         }
-                        pSndRaw->bgm_at[i] = (r == 1) ? at->x2 : -1;
+                        pSndRaw->bgm_at[i] = (r == 1) ? at->no : -1;
                     }
                 }
             }
-            if (b->slot_bits & 0x10) {
-                if (b->set_bits & 0x10) {
-                    if (b->str_vol != 0) {
-                        SndStrReq(b->str_blk, b->str_no, 0x80000003, b->str_vol, 0, 0.0f);
+            if (b->blk_no & 0x10) {
+                if (b->sw & 0x10) {
+                    if (b->str_fade_time != 0) {
+                        SndStrReq(b->str_blk, b->str_no, 0x80000003, b->str_fade_time, 0, 0.0f);
                     } else {
                         SndStrReq(b->str_blk, b->str_no, 0x80000003, 0, 0, 0.0f);
                     }
                 } else {
-                    if (b->str_vol != 0) {
-                        SndStrReq(b->str_blk, b->str_no, 4, b->str_vol, 0, 0.0f);
+                    if (b->str_fade_time != 0) {
+                        SndStrReq(b->str_blk, b->str_no, 4, b->str_fade_time, 0, 0.0f);
                     } else {
                         SndStrReq(b->str_blk, b->str_no, 8, 0, 0, 0.0f);
                     }
