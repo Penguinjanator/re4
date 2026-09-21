@@ -143,10 +143,10 @@ void R10fInit()
     if (getRoomEtcWindow(0xC, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
     }
-    SceSetItemEvent(0xA, 0x81, 1, 0xD, (void (*)(int)) r10f_LockerOpen, (void (*)()) r10f_LockerOpened, 0x35, 0);
-    SceSetItemEvent(0xB, 0x8E, 2, 0xF, (void (*)(int)) r10f_LockerOpen, (void (*)()) r10f_LockerOpened, 0x36, 0);
-    SceSetItemEvent(0xC, 0x8D, 3, 0xE, (void (*)(int)) r10f_LockerOpen, (void (*)()) r10f_LockerOpened, 0x38, 0);
-    SceSetItemEvent(0xE, 0x87, 4, 0x10, (void (*)(int)) r10f_TreasureBoxOpen, (void (*)()) r10f_TreasureBoxOpened, 0x5E, 0);
+    SceSetItemEvent(0xA, 0x81, 1, 0xD, r10f_LockerOpen, r10f_LockerOpened, 0x35, 0);
+    SceSetItemEvent(0xB, 0x8E, 2, 0xF, r10f_LockerOpen, r10f_LockerOpened, 0x36, 0);
+    SceSetItemEvent(0xC, 0x8D, 3, 0xE, r10f_LockerOpen, r10f_LockerOpened, 0x38, 0);
+    SceSetItemEvent(0xE, 0x87, 4, 0x10, r10f_TreasureBoxOpen, r10f_TreasureBoxOpened, 0x5E, 0);
 }
 
 // Per-frame room main: nothing.

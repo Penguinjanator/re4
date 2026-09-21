@@ -753,7 +753,7 @@ void emRock_R1_Roll(cEmRock* em)
         emRockPushCk(em, 0);
         em->atari.m_flag &= ~0x200;
         pPLS->ang.y = em->ang.y;
-        SetPlDamage(em, (void (*)(cPlayer*)) plemRockEscape);
+        SetPlDamage(em, plemRockEscape);
         w->Roll_wait = 75;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
@@ -940,7 +940,7 @@ void emRock_R1_Drop2(cEmRock* em)
         FSet(pPL->pos.z, -14770.0f);
         pPL->setPos(&pPL->pos);
         pPL->dmg.m_Timer = 2;
-        SetPlDamage(em, (void (*)(cPlayer*)) plemDropFind);
+        SetPlDamage(em, plemDropFind);
         em->r_no_2++;
     case 3:
         MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
@@ -977,7 +977,7 @@ void emRock_R1_Drop2(cEmRock* em)
                 }
                 if ((s16) pG->pl_life > 0) {
                     w->Act_ck = 1;
-                    SetPlDamage(em, (void (*)(cPlayer*)) plemDropDie);
+                    SetPlDamage(em, plemDropDie);
                     pPL->r_no_3 = 1;
                     break;
                 }
@@ -1004,7 +1004,7 @@ void plemDropEscAction(cEmRock* em)
 {
     EMROCK_WK(em)->Act_ck = 1;
     pPL->dmg.m_Timer = 2;
-    SetPlDamage(em, (void (*)(cPlayer*)) plemDropEscape);
+    SetPlDamage(em, plemDropEscape);
 }
 
 // Player damage routine of the drop: notices the rock, then the escape / death routine takes over.

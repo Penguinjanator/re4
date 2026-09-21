@@ -108,7 +108,7 @@ static void r327_EnemySet2nd();
 static void r327_ContinuePointSet();
 static void r327_StrCheck();
 static void r327_BoxOpen(u32 id);
-static void r327_BoxOpened(u32 id);
+static void r327_BoxOpened(u32 id);   // u32 (not int): an int parameter reorders the unit's functions
 
 // Room init (the Ganado camp): on a return after Scenario_flg[2] 0x40000000 the room's 0x1D enemies are
 // dropped from the list, else the first-visit tables set the eleven camp Ganados; the two lamp switches
@@ -182,13 +182,13 @@ void R327Init()
     } else {
         EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
     }
-    SceSetItemEvent(0x10, 0x83, 3, 0x15, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x68, 0);
-    SceSetItemEvent(0x11, 0x82, 4, 0x18, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x4A, 0);
-    SceSetItemEvent(0x13, -1, 6, 0x17, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x48, 0);
-    SceSetItemEvent(0x12, -1, 5, 0x13, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x4C, 0);
-    SceSetItemEvent(0x14, -1, 7, 0x12, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x4E, 0);
-    SceSetItemEvent(0x16, 0x87, 9, 0x14, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x79, 0);
-    SceSetItemEvent(0x1A, 0x89, 0xE, 0x16, (void (*)(int)) r327_BoxOpen, (void (*)()) r327_BoxOpened, 0x6A, 0);
+    SceSetItemEvent(0x10, 0x83, 3, 0x15, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x68, 0);
+    SceSetItemEvent(0x11, 0x82, 4, 0x18, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x4A, 0);
+    SceSetItemEvent(0x13, -1, 6, 0x17, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x48, 0);
+    SceSetItemEvent(0x12, -1, 5, 0x13, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x4C, 0);
+    SceSetItemEvent(0x14, -1, 7, 0x12, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x4E, 0);
+    SceSetItemEvent(0x16, 0x87, 9, 0x14, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x79, 0);
+    SceSetItemEvent(0x1A, 0x89, 0xE, 0x16, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x6A, 0);
     SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r327_ContinuePointSet, 0, 1);
     SceExec(0x12, (TaskFunc) r327_StrCheck, 0, 0, 2, 0);
     SceExec(0x12, (TaskFunc) r327_EnemySet2nd, 0, 0, 2, 0);

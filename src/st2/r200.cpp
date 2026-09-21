@@ -96,7 +96,7 @@ void R200Init()
         SmdGetObjPtr(9)->pParts->ang.x = 0.87266463f;
     }
     EvtMgr.SetFunc("evt_r200s00_func", (void*) Evt_R200S00_Func);
-    SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, (void (*)()) r200_openedBox, 0, 0);
+    SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, r200_openedBox, 0, 0);
     r200_work.p->eff10 = EspPullCoreKind();
     EstSet(0, -1, 0, 0, 1, 2, 1, (u8) r200_work.p->eff10, 0, 0);
     if (FlagChkSign(pG->Em_flg[2], 0) || FlagChkSign(pG->Em_flg[3], 0) || (pG->Em_flg[4][0] & 4)) {

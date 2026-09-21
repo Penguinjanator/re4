@@ -302,9 +302,9 @@ static void setTexRender()
     obj->pModelInfo->setBlendType(2);
     SceAtLinkEtcDead(8, 0x2B, 1);
     SceAtLinkEtcDead(0x16, 2, 1);
-    SceSetItemEvent(8, 0x88, 3, 5, r204_openBox, (void (*)()) r204_openedBox, 0, 0);
-    SceSetItemEvent(0x16, 0x81, 4, 6, r204_openBox, (void (*)()) r204_openedBox, 1, 0);
-    SceSetItemEvent(0x17, 0x87, 5, 7, (void (*)(int)) r204_openTana, r204_openedTana, 0, 0);
+    SceSetItemEvent(8, 0x88, 3, 5, r204_openBox, r204_openedBox, 0, 0);
+    SceSetItemEvent(0x16, 0x81, 4, 6, r204_openBox, r204_openedBox, 1, 0);
+    SceSetItemEvent(0x17, 0x87, 5, 7, (void (*)(int)) r204_openTana, (void (*)(int)) r204_openedTana, 0, 0);
 }
 
 // Per frame during the chase (Room_flg bit 1): when barred door 1 opens (Room_flg[0] bit 31 once) every

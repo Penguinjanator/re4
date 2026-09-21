@@ -99,9 +99,9 @@ void R103Init()
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
     }
-    SceSetItemEvent(7, 0x92, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf0, 0);
-    SceSetItemEvent(8, 0x81, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf1, 0);
-    SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf2, 0);
+    SceSetItemEvent(7, 0x92, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r103_shelf0, 0);
+    SceSetItemEvent(8, 0x81, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r103_shelf1, 0);
+    SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r103_shelf2, 0);
     if (!ItfFlagChk(pG, ITF_R103_FILE)) {
         U32Set(r103_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, (u8) r103_work->eff, 0, 0);

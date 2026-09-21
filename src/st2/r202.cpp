@@ -235,8 +235,8 @@ void R202Init()
     r202_work.p->box->pos.y = 0.0f;
     r202_work.p->box->pos.z = -26500.0f;
     r202_work.p->box->atari.init(0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
-    SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, (void (*)()) r202_openedBox, 0, 0);
-    SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, (void (*)()) r202_openedBox, 1, 0);
+    SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, r202_openedBox, 0, 0);
+    SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         SceAtDataSet_exec(0x17, SCE_LEVEL10, 0, (TaskFunc) r202_execEmSet2, 0, 1);
     }

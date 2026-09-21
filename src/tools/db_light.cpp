@@ -712,7 +712,7 @@ static void edit_cutsel()
             }
             eprintf(0x168, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[0] & 3]);
             eprintf(0x170, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[1] & 3]);
-            eprintf(0x178, line * 14, 0, pTool->color, "%s", cut_onoff[env->pad_42[0] & 3]);
+            eprintf(0x178, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[2] & 3]);
         }
     }
     cutsel_tbl[pTool->rno2]();
@@ -944,7 +944,7 @@ int lightPasteFog(int no)
 int lightPasteMFog(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
-        *(LightFog*) ((u8*) pTool->Lit.getCut(no) + 0x18) = *(LightFog*) ((u8*) pTool->CutTmp + 0x18);
+        pTool->Lit.getCut(no)->MirrorFog = pTool->CutTmp->MirrorFog;
         return 1;
     }
     return 0;
@@ -992,8 +992,8 @@ int lightPasteScale(int no)
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
         pTool->Lit.getCut(no)->tev_scale[0] = pTool->CutTmp->tev_scale[0];
         pTool->Lit.getCut(no)->tev_scale[1] = pTool->CutTmp->tev_scale[1];
-        pTool->Lit.getCut(no)->pad_42[0] = pTool->CutTmp->pad_42[0];
-        pTool->Lit.getCut(no)->pad_42[1] = pTool->CutTmp->pad_42[1];
+        pTool->Lit.getCut(no)->tev_scale[2] = pTool->CutTmp->tev_scale[2];
+        pTool->Lit.getCut(no)->tev_scale[3] = pTool->CutTmp->tev_scale[3];
         return 1;
     }
     return 0;
@@ -1260,16 +1260,16 @@ void lightCopyWork(cLight* dst, cLight* src)
     dst->Attribute = src->Attribute;
     dst->Priority = src->Priority;
     dst->HitRadius = src->HitRadius;
-    dst->x32 = src->x32;
-    dst->x34 = src->x34;
+    dst->Dummy82 = src->Dummy82;
+    dst->Dummy9 = src->Dummy9;
     dst->setParent(src->ParentType, src->ParentNo);
     dst->spot = src->spot;
     dst->sub = src->sub;
     dst->path = src->path;
     dst->Rno0 = src->Rno0;
-    dst->pad_139[0] = src->pad_139[0];
-    dst->pad_139[1] = src->pad_139[1];
-    dst->pad_139[2] = src->pad_139[2];
+    dst->Rno1 = src->Rno1;
+    dst->Rno2 = src->Rno2;
+    dst->Rno3 = src->Rno3;
     dst->DispCol = src->DispCol;
 }
 
@@ -5485,7 +5485,7 @@ void initLightWork(cLight* l)
     memclr_asm(&l->spot, sizeof(LightSpot));
     memclr_asm(&l->sub, 0x40);
     memclr_asm(&l->path, sizeof(LightPath));
-    l->Rno0 = l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
+    l->Rno0 = l->Rno1 = l->Rno2 = l->Rno3 = 0;
     l->DispCol.r = 0x80;
     l->DispCol.g = 0x80;
     l->DispCol.b = 0x80;

@@ -142,7 +142,7 @@ void R30cInit()
     }
     r30c_work.p->em[0].setEm(0x40, 6, 0, 1, 1);
     r30c_work.p->em[1].setEm(0x50, 6, 0, 1, 1);
-    SceSetItemEvent(7, 0x80, 2, 3, r30c_ItemBoxOpen, (void (*)()) r30c_ItemBoxOpened, 0xF, 0);
+    SceSetItemEvent(7, 0x80, 2, 3, r30c_ItemBoxOpen, r30c_ItemBoxOpened, 0xF, 0);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtSetEnable(0x82, 0);
     } else {

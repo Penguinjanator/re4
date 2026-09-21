@@ -2315,7 +2315,7 @@ void SceAtSetDoorFunc(int no, TaskFunc func, void* arg)
     if (w == 0) {
         pLog->err(0, 0, "SceAtSetDoorFunc(): AT NOT FOUND");
     } else {
-        w->doorFunc = (void (*)()) func;
+        w->doorFunc = func;
         w->doorArg = arg;
     }
 }

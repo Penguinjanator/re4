@@ -109,7 +109,7 @@ void R316Init()
     }
     SmdSetTrans(0x3D, 1);
     SmdSetTrans(0x3E, 0);
-    SceSetItemEvent(7, 0x84, 3, 2, r316_openShelf, (void (*)()) r316_openedShelf, 0, 0);
+    SceSetItemEvent(7, 0x84, 3, 2, r316_openShelf, r316_openedShelf, 0, 0);
 }
 
 // Per-frame room main: nothing.

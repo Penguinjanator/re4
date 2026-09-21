@@ -374,7 +374,7 @@ void R209Init()
 
         m->setSca(&sca);
     }
-    SceSetItemEvent(0x17, 0x82, 0xA, 0x17, r209_TreasureBoxOpen, (void (*)()) r209_TreasureBoxOpened, 0xB7, 0);
+    SceSetItemEvent(0x17, 0x82, 0xA, 0x17, r209_TreasureBoxOpen, r209_TreasureBoxOpened, 0xB7, 0);
 }
 
 // Per frame during the bowgun battle (stage flag 3): builds the occupancy bits of the eight balcony

@@ -98,8 +98,8 @@ void R211Init()
         setEm(0xAE, -1, 0, 1, 0);
         setEm(0xAF, -1, 0, 1, 0);
     }
-    SceSetItemEvent(7, 0x80, 3, 6, r211_ShelfOpen, (void (*)()) r211_ShelfOpened, 0, 0);
-    SceSetItemEvent(8, 0x84, 4, 5, r211_ShelfOpen, (void (*)()) r211_ShelfOpened, 1, 0);
+    SceSetItemEvent(7, 0x80, 3, 6, r211_ShelfOpen, r211_ShelfOpened, 0, 0);
+    SceSetItemEvent(8, 0x84, 4, 5, r211_ShelfOpen, r211_ShelfOpened, 1, 0);
 }
 
 // Per-frame room main: nothing.

@@ -541,7 +541,7 @@ void SceExecItemEvent(SceItemEvent* data)
 // (added to an existing event on the same area) with camera cut `cut` and `func(arg)`; if room
 // save flag `flagNo` is already set the event is skipped, the item enabled (unless taken) and
 // `doneFunc(arg)` run instead. `enable` shows the item model beforehand.
-void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), TaskFunc doneFunc, int arg, int enable)
+void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), void (*doneFunc)(int), int arg, int enable)
 {
     u16 room = pG->room_id;
     SceItemEvent* e;   // the searched entry; the new'd one is a second variable (one pseudo for both
@@ -558,7 +558,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
                 SceAtSetEnable(itemNo, 1);
             }
         }
-        SceExec(0x12, doneFunc, arg, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) doneFunc, arg, 0, SCE_PRIO_DEF_2, 0);
         return;
     }
     if (itemNo >= 0) {
@@ -846,6 +846,7 @@ void SceChapterEnd()
     FadeSetW(0, 0, 0, 0);
     FadeKill(FADE_NO_ROOM);
     if (SceSys.m_chapter_door >= 0) {
+        // pos / ang through byte pointers: `&pPL->pos` changes the schedule of this block (27 words)
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);

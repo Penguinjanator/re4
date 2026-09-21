@@ -17,6 +17,7 @@
 // reloaded after `blink = 8` in the target).
 static int tcMenuBlink = 4;
 static int tcMenuDummy = 0;
+// joy.trg / rep through byte pointers: the member forms reschedule tcMenuSelect (60 words)
 #define TC_TRG (*(u32*) ((u8*) pTc + 0x120))
 #define TC_REP (*(u32*) ((u8*) pTc + 0x128))
 

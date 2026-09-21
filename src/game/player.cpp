@@ -263,12 +263,10 @@ void cPlayer::init1()
     lockOfs.z = 0.0f;
     lockParts = 2;
     YarareInit(this, 0.0f, -30.0f, 0.0f, 200.0f, 100.0f, 2, 1);
-    // TODO: the four extra hit boxes live at cEm+0x530/0x564/0x598/0x5CC (the cSubChar fields of em.h
-    // overlay them); give them names in em.h.
-    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x530), 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
-    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x564), 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
-    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x598), -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
-    YarareAdd(this, (YARARE_INFO*) ((u8*) this + 0x5CC), 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
+    YarareAdd(this, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
+    YarareAdd(this, &m_Yarare[1], 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
+    YarareAdd(this, &m_Yarare[2], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
+    YarareAdd(this, &m_Yarare[3], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
     MOTION(this)->flip = pl00_mirror;
     m_BbtnCnt = 0;
     invisible_factor = 1.0f;
@@ -1503,9 +1501,9 @@ void pl_R0_Dijection(cPlayer* pl)
         pl->endCamera();
         face = pl->Body->pFace;
         if (VALID_PTR(face)) {
-            face->x84 = 0.0f;
-            face->x70 = 0.0f;
-            face->x5C = 0.0f;
+            face->mat[2][2] = 0.0f;
+            face->mat[1][1] = 0.0f;
+            face->mat[0][0] = 0.0f;
         }
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x57), PL_ARC_PTR(pG->pPlayer, 0x58), 3, 1, 0);
         pl->r_no_1 = 1;

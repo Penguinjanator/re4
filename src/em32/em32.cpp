@@ -4589,6 +4589,7 @@ void em32GetStepDownPos(cEm32* em)
             continue;
         }
         best = d;
+        // stepPos through a byte pointer: `&w->stepPos` shrinks the loop by 6 instructions
         memcpy((u8*) w + 0x79C, &e->pos, sizeof(Vec));
     }
 }

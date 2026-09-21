@@ -80,8 +80,8 @@ void R309Init()
         }
     }
     SceExec(0x12, (TaskFunc) r309_checkBgm, 0, 0, 2, 0);
-    SceSetItemEvent(2, 0x81, 0, 4, r309_openShelf, (void (*)()) r309_openedShelf, 0, 0);
-    SceSetItemEvent(4, 0x85, 3, 5, r309_openShelf, (void (*)()) r309_openedShelf, 1, 0);
+    SceSetItemEvent(2, 0x81, 0, 4, r309_openShelf, r309_openedShelf, 0, 0);
+    SceSetItemEvent(4, 0x85, 3, 5, r309_openShelf, r309_openedShelf, 1, 0);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         SceExec(0x12, (TaskFunc) r309_checkBgmTblRewrite, 0, 0, 2, 0);
     }

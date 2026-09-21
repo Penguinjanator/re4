@@ -21,6 +21,7 @@
 #include "atari.h"
 #include "light.h"
 #include "pl0f.h"
+#include "em2f.h"
 #include "player.h"
 #include "pl_npc.h"
 #include "pl_sub.h"
@@ -111,12 +112,6 @@ static void subBoatR10eIn2();
 // The lake boat player `pl` rides (cPlayer::m_pBoat; pl0e reads the same field as its jet ski, PL_JETSKI).
 #define PL_BOAT(pl) ((cPl0f*) (pl)->m_pBoat)
 #define ROPE(w) ((cObj*) (w)->pRope)
-
-// The boss (em2f) work as far as the boat reads it.
-struct Em2fWorkView {
-    u8 pad[0x5C8];
-    u8 espKind;   // 0x5C8 (0x9A8)
-};
 
 static inline void U8Set(u8& d, int v) { d = v; }
 
@@ -2815,7 +2810,7 @@ static void plboat_R2_Die(cPlayer* pl)
             pl->m_Work0 = 1;
             pl->m_Work1 = 60;
             if (boss) {
-                Em2fWorkView* bw = (Em2fWorkView*) ((u8*) boss + 0x3E0);
+                Em2fWork* bw = EM2F_WK(boss);
 
                 EffectEspDelete(0, bw->espKind, boss, 0);
                 EffectEspgenDelete(0, bw->espKind, boss);

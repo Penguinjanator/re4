@@ -215,7 +215,7 @@ void R30bInit()
     } else {
         R30bDoorOpened(0);
     }
-    SceSetItemEvent(5, 0x80, 1, 4, r30b_moveShelf, (void (*)()) r30b_movedShelf, 0x80, 0);
+    SceSetItemEvent(5, 0x80, 1, 4, r30b_moveShelf, r30b_movedShelf, 0x80, 0);
 }
 
 // Per-frame room main: nothing.

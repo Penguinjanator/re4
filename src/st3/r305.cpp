@@ -62,7 +62,7 @@ static void (cR305Shutter::*r305_shutter_tbl[3])() = {&cR305Shutter::wait, &cR30
 static void r305_GanadoDieCheck();
 static void r305_RoomExitFunc();
 static void r305_ItemBoxOpen(u32 no);
-static void r305_ItemBoxOpened(u32 no);
+static void r305_ItemBoxOpened(u32 no);   // u32 (not int): an int parameter reorders the unit's functions
 static void r305_ShutterCtrl();
 
 // Room init: the shutter (posed open once Room_flg bit 1, else area 3 = the bomber Ganado's shutter
@@ -98,9 +98,9 @@ void R305Init()
         SceExec(0x12, (TaskFunc) r305_GanadoDieCheck, 0, 0, 2, 0);
     }
     SceAtSetDoorFunc(1, (TaskFunc) r305_RoomExitFunc, 0);
-    SceSetItemEvent(6, 0x81, 2, 1, (void (*)(int)) r305_ItemBoxOpen, (void (*)()) r305_ItemBoxOpened, 0x14, 0);
-    SceSetItemEvent(7, 0x85, 3, 2, (void (*)(int)) r305_ItemBoxOpen, (void (*)()) r305_ItemBoxOpened, 0x16, 0);
-    SceSetItemEvent(8, 0x86, 4, 3, (void (*)(int)) r305_ItemBoxOpen, (void (*)()) r305_ItemBoxOpened, 0x17, 0);
+    SceSetItemEvent(6, 0x81, 2, 1, (void (*)(int)) r305_ItemBoxOpen, (void (*)(int)) r305_ItemBoxOpened, 0x14, 0);
+    SceSetItemEvent(7, 0x85, 3, 2, (void (*)(int)) r305_ItemBoxOpen, (void (*)(int)) r305_ItemBoxOpened, 0x16, 0);
+    SceSetItemEvent(8, 0x86, 4, 3, (void (*)(int)) r305_ItemBoxOpen, (void (*)(int)) r305_ItemBoxOpened, 0x17, 0);
 }
 
 // Per frame: step the shutter state machine.

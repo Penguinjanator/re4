@@ -28,6 +28,7 @@ struct TcWorkPtr {
 // element i of a Vec array through a raw address: the store aliases the tool pointer (pTc is reloaded after it)
 #define VEC_ELEM(p, i) (*(f32*) ((u32) (p) + (i) * 12))
 
+// joy.on / trg / rep through byte pointers (and the memcpys into joy / joy2 in ToolCamera): the member forms reschedule the pad reads
 #define TC_ON (*(u32*) ((u8*) PTC + 0x11C))
 #define TC_TRG (*(u32*) ((u8*) PTC + 0x120))
 #define TC_REP (*(u32*) ((u8*) PTC + 0x128))

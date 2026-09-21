@@ -72,7 +72,7 @@ void R219Init()
     if ((pG->room_id_prev == 0x219 && pG->Part == 2) || pG->room_id_prev == 0x201) {
         SndRoomBgmStart(0, 0);
     }
-    SceSetItemEvent(4, 0x84, 1, 3, r219_openShelf, (void (*)()) r219_openedShelf, 0, 0);
+    SceSetItemEvent(4, 0x84, 1, 3, r219_openShelf, r219_openedShelf, 0, 0);
 }
 
 // Place a model on the cart (an inline: the `&ang` arguments are recomputed per call, `&pos` shared).

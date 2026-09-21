@@ -113,8 +113,8 @@ void R203Init()
         EvtMgr.SetFunc("evt_r203s00_func", (void*) Evt_R203S00_Func);
     }
     SceExec(0x12, (TaskFunc) r203_StreamCheck, 0, 0, SCE_PRIO_DEF_2, 0);
-    SceSetItemEvent(7, 0x8A, 4, 3, r203_TreasureBoxOpen, (void (*)()) r203_TreasureBoxOpened, 0x17, 0);
-    SceSetItemEvent(8, 0x88, 6, 4, (void (*)(int)) r203_ShelfOpen, r203_ShelfOpened, 0, 0);
+    SceSetItemEvent(7, 0x8A, 4, 3, r203_TreasureBoxOpen, r203_TreasureBoxOpened, 0x17, 0);
+    SceSetItemEvent(8, 0x88, 6, 4, (void (*)(int)) r203_ShelfOpen, (void (*)(int)) r203_ShelfOpened, 0, 0);
 }
 
 // Per-frame room main: nothing.

@@ -103,9 +103,9 @@ void R402Init()
     R402Work*& wp = r402_work.p;
 #line 45 "D:/Bio4/Prog/r402.cpp"
     wp = (R402Work*) MEM_CALLOC(sizeof(R402Work), 1, 0xd);
-    SceSetItemEvent(0x14, 0x80, 2, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x80, 0);
-    SceSetItemEvent(0x15, 0x81, 3, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x81, 0);
-    SceSetItemEvent(0x16, 0x82, 4, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x82, 0);
+    SceSetItemEvent(0x14, 0x80, 2, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x80, 0);
+    SceSetItemEvent(0x15, 0x81, 3, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x81, 0);
+    SceSetItemEvent(0x16, 0x82, 4, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x82, 0);
     if (getRoomEtcDoor(0x18, &door0, 1) && getRoomEtcDoor(0x19, &door1, 1)) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
     }

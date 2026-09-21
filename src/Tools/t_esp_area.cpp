@@ -66,7 +66,7 @@ void InitWork(ESP_AREA* w, int no)
 {
     memclr_asm(w, sizeof(ESP_AREA));
     w->no = no;
-    AreaDataInit(&w->area, (Vec*) ((u8*) pPL + 0x94), 1, 7000.0f, 5000.0f);
+    AreaDataInit(&w->area, &pPL->pos, 1, 7000.0f, 5000.0f);
 }
 
 // Position column pressed: runs the shared AreaDataEdit editor on the slot's area (info / help
@@ -299,7 +299,7 @@ void ToolEspArea()
                 }
             }
         }
-        Draw_sphere((Vec*) ((u8*) pPL + 0x94), 600.0f, 0xFF404080, 1, 1);
+        Draw_sphere(&pPL->pos, 600.0f, 0xFF404080, 1, 1);
         if (cam) {
             int c = cnt;
 

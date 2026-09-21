@@ -91,8 +91,8 @@ void R106Init()
     if (getRoomEtcDoor(8, &door, 1)) {
         ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0);
     }
-    SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, (void (*)()) r106_openedShelf, 0, 0);
-    SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, (void (*)()) r106_openedShelf, 1, 0);
+    SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, r106_openedShelf, 0, 0);
+    SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, r106_openedShelf, 1, 0);
     if (!ScfFlagChk(pG, SCF_R106_EVENT)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r106_Event, 0, 1);
         PSet(r106_work->evd, DC.setData(EvtMgr.NameChange("evd/r106s00.evd")));

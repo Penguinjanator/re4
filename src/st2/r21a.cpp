@@ -100,10 +100,10 @@ void R21aInit()
     R21aWork*& wp = r21a_work.p;
 #line 50 "D:/Bio4/Prog/r21a.cpp"
     wp = (R21aWork*) MEM_CALLOC(sizeof(R21aWork), 1, 0xd);
-    SceSetItemEvent(0xA, 0x84, 5, 1, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x84, 0);
-    SceSetItemEvent(9, 0x85, 4, 2, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x85, 0);
-    SceSetItemEvent(9, 0x88, 4, 2, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x88, 0);
-    SceSetItemEvent(9, 0x89, 4, 2, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x89, 0);
+    SceSetItemEvent(0xA, 0x84, 5, 1, r21a_moveShelf, r21a_movedShelf, 0x84, 0);
+    SceSetItemEvent(9, 0x85, 4, 2, r21a_moveShelf, r21a_movedShelf, 0x85, 0);
+    SceSetItemEvent(9, 0x88, 4, 2, r21a_moveShelf, r21a_movedShelf, 0x88, 0);
+    SceSetItemEvent(9, 0x89, 4, 2, r21a_moveShelf, r21a_movedShelf, 0x89, 0);
     if (getRoomEtcWindow(0x12, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
         win->be_flag &= ~2;

@@ -72,8 +72,8 @@ asm(".section .data\n\t.balign 8\n\t.text");
 static void r222_TreasureBoxOpen(int id);
 static void r222_TreasureBoxOpened(int id);
 void r222_BoxMove(cObj* obj, int opened);
-static void r222_TreasureBox2Open(u32 id);
-static void r222_TreasureBox2Opened(u32 id);
+static void r222_TreasureBox2Open(int id);
+static void r222_TreasureBox2Opened(int id);
 void EmHitUpdate(cEmHit* h);
 void Hit(int no);
 static void dragon_down_ck();
@@ -229,9 +229,9 @@ void R222Init()
 
         m->setSca(&sca);
     }
-    SceSetItemEvent(1, 0x80, 6, 8, r222_TreasureBoxOpen, (void (*)()) r222_TreasureBoxOpened, 0x1A, 0);
-    SceSetItemEvent(9, 0x82, 7, 0xD, (void (*)(int)) r222_TreasureBox2Open, (void (*)()) r222_TreasureBox2Opened, 9, 0);
-    SceSetItemEvent(0xA, 0x81, 8, 0xF, (void (*)(int)) r222_TreasureBox2Open, (void (*)()) r222_TreasureBox2Opened, 7, 0);
+    SceSetItemEvent(1, 0x80, 6, 8, r222_TreasureBoxOpen, r222_TreasureBoxOpened, 0x1A, 0);
+    SceSetItemEvent(9, 0x82, 7, 0xD, r222_TreasureBox2Open, r222_TreasureBox2Opened, 9, 0);
+    SceSetItemEvent(0xA, 0x81, 8, 0xF, r222_TreasureBox2Open, r222_TreasureBox2Opened, 7, 0);
 }
 
 // Item-event opener: chest `id` lid up (+Z).
@@ -293,13 +293,13 @@ void r222_BoxMove(cObj* obj, int opened)
 }
 
 // Item-event opener for the risen boxes: object `id`'s lid swings open.
-static void r222_TreasureBox2Open(u32 id)
+static void r222_TreasureBox2Open(int id)
 {
     r222_BoxMove(SmdGetObjPtr(id), 0);
 }
 
 // Item-event "already opened": object `id`'s lid posed open.
-static void r222_TreasureBox2Opened(u32 id)
+static void r222_TreasureBox2Opened(int id)
 {
     r222_BoxMove(SmdGetObjPtr(id), 1);
 }

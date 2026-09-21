@@ -116,9 +116,9 @@ void R400Init()
         init.m.mes[9] = 0xB;
         MercSysInitRoom(&init.m);
     }
-    SceSetItemEvent(0xB, 0x98, 3, -1, r400_TreasureBoxOpen, (void (*)()) r400_TreasureBoxOpened, 0x46, 0);
-    SceSetItemEvent(0xD, 0x9A, 4, -1, r400_TreasureBoxOpen, (void (*)()) r400_TreasureBoxOpened, 0x47, 0);
-    SceSetItemEvent(0xE, 0x9B, 5, -1, r400_TreasureBoxOpen, (void (*)()) r400_TreasureBoxOpened, 0x48, 0);
+    SceSetItemEvent(0xB, 0x98, 3, -1, r400_TreasureBoxOpen, r400_TreasureBoxOpened, 0x46, 0);
+    SceSetItemEvent(0xD, 0x9A, 4, -1, r400_TreasureBoxOpen, r400_TreasureBoxOpened, 0x47, 0);
+    SceSetItemEvent(0xE, 0x9B, 5, -1, r400_TreasureBoxOpen, r400_TreasureBoxOpened, 0x48, 0);
 }
 
 // Item-event opener: chest `no` lid up (+X).

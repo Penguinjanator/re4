@@ -130,7 +130,7 @@ void R406Init()
 
         r406_work.p->shelf.initMove1_pos(obj, 90, &d, 20.0f, 0.0f);
         r406_work.p->shelf.setEndPos();
-        SceSetItemEvent(6, 0x82, 4, 5, r406_openShelf, (void (*)()) r406_openedShelf, 0, 0);
+        SceSetItemEvent(6, 0x82, 4, 5, r406_openShelf, r406_openedShelf, 0, 0);
     }
 }
 

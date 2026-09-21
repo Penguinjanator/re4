@@ -195,9 +195,9 @@ void R20eInit()
         }
         r20e_initMaze();
     }
-    SceSetItemEvent(2, 0x81, 0, 2, (void (*)(int)) r20e_openShelf, (void (*)()) r20e_openedShelf, 0, 0);
-    SceSetItemEvent(3, 0x83, 1, 3, (void (*)(int)) r20e_openShelf, (void (*)()) r20e_openedShelf, 1, 0);
-    SceSetItemEvent(4, 0x82, 2, 4, (void (*)(int)) r20e_openBox, (void (*)()) r20e_openedBox, 0, 0);
+    SceSetItemEvent(2, 0x81, 0, 2, r20e_openShelf, r20e_openedShelf, 0, 0);
+    SceSetItemEvent(3, 0x83, 1, 3, r20e_openShelf, r20e_openedShelf, 1, 0);
+    SceSetItemEvent(4, 0x82, 2, 4, r20e_openBox, r20e_openedBox, 0, 0);
     SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r20e_execThrough, 0, 1);
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r20e_execThrough, (void*) 1, 1);
     obj = SmdGetObjPtr(0x43);

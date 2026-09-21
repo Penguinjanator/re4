@@ -309,7 +309,7 @@ void ToolSceAt()
 void tSceAtInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
-    BitOn(pG->Debug_flg[0], 0x20000000);
+    DbgFlagOn(pG, DBG_BACK_CLIP);
     BitOn(pG->Stop_flg, 0x20000000);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Stop_flg, 0x8000000);
@@ -323,10 +323,10 @@ void tSceAtInit_base()
     BitOn(pG->Disp_flg, 0x4000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Disp_flg, 0x100000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     pW->light = 1;
     SetToolLight(1);
-    pG->Status_flg[1] |= 0x1000000;
+    StaFlagOn(pG, STA_NO_LIGHTMASK);
 }
 
 // Tool init: default tool state, AEV header (version 0x104, 128 records), file names for the room,
@@ -406,9 +406,9 @@ static void tSceAtExit()
         file_unlock(pW->pathX);
         Debug_free(pW);
         CamDbg.m_target_type = CamDbg.pad_10[0];
-        pG->Debug_flg[0] &= ~0x10000000;
+        DbgFlagOff(pG, DBG_DBG_CAM);
         SetToolLight(-1);
-        pG->Status_flg[1] &= ~0x1000000;
+        StaFlagOff(pG, STA_NO_LIGHTMASK);
         TutilQuitDefault();
         TaskExit();
         break;
@@ -1093,11 +1093,12 @@ void tSceAtDataInput_door_PosSet()
     f32 spd;
     f32 z;
 
-    BitOn(pG->Debug_flg[3], 0x10000);
-    BitOn(pG->Debug_flg[2], 0x4000000);
+    DbgFlagOn(pG, DBG_DOOR_SET_MODE);
+    DbgFlagOn(pG, DBG_NO_SCE_EXE);
     pW->saveStage = pG->stage_no;
     pW->saveRoom = pG->room_no;
     pW->saveX4F9E = pG->Part;
+    // savePos / saveRot through byte pointers: `&pW->savePos` changes the schedule (74 words)
     memcpy((u8*) pW + 0x14, &pPL->pos, sizeof(Vec));
     memcpy((u8*) pW + 0x20, &pPL->ang, sizeof(Vec));
     if (pCur->dstPos.x == (z = zero) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
@@ -1114,7 +1115,7 @@ void tSceAtDataInput_door_PosSet()
         pG->Part_next = pCur->dstPart;
     }
     *((u8*) &pG->debug_mode) = 7;
-    BitOn(pG->Debug_flg[2], 0x80000000);
+    DbgFlagOn(pG, DBG_ROOMJMP);
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
@@ -1122,7 +1123,7 @@ void tSceAtDataInput_door_PosSet()
     while (pG->Rno0 != 3) TaskSleep(1);
     while (!(Joy[0].trg & JOY_START)) {
         if (Joy[0].on & JOY_X) {
-            pG->Debug_flg[2] |= 8;
+            DbgFlagOn(pG, DBG_PL_NOHIT);
             KeyStop(0xEFCF0000);
             if (Joy[0].on & JOY_A) {
                 spd = 10.0f;
@@ -1138,7 +1139,7 @@ void tSceAtDataInput_door_PosSet()
             Draw_pos(&pPL->pos, 2000);
         } else {
             BitOff(pG->Stop_flg, 0x80000000);
-            pG->Debug_flg[2] &= ~8;
+            DbgFlagOff(pG, DBG_PL_NOHIT);
         }
         TaskSleep(1);
     }
@@ -1155,15 +1156,15 @@ void tSceAtDataInput_door_PosSet()
     pG->Stage_next = pW->saveStage;
     pG->Room_next = pW->saveRoom;
     pG->Part_next = pW->saveX4F9E;
-    BitOn(pG->Debug_flg[2], 0x80000000);
+    DbgFlagOn(pG, DBG_ROOMJMP);
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
     pG->Rno3 = 0;
     while (pG->Rno0 != 3) TaskSleep(1);
     tSceAtInit_base();
-    BitOff(pG->Debug_flg[3], 0x10000);
-    pG->Debug_flg[2] &= ~0x4000000;
+    DbgFlagOff(pG, DBG_DOOR_SET_MODE);
+    DbgFlagOff(pG, DBG_NO_SCE_EXE);
 }
 
 static TOOL_MENU tSceAtMesMenu[13] = {
@@ -2622,7 +2623,7 @@ static void tSceAtPreview_init()
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     pW->sub = 1;
     pW->step = 0;
     pW->step2 = 0;
@@ -2696,7 +2697,7 @@ static void tSceAtPreview_exit()
     BitOn(pG->Stop_flg, 0x2000);
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     MODE_RESET();
 }
 

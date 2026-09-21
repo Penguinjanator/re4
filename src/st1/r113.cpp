@@ -106,9 +106,9 @@ void R113Init()
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
     }
-    SceSetItemEvent(8, 0x8E, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf0, 0);
-    SceSetItemEvent(9, 0x8F, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf1, 0);
-    SceSetItemEvent(0xA, 0x8B, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r113_shelf2, 0);
+    SceSetItemEvent(8, 0x8E, 0, 0xA, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r113_shelf0, 0);
+    SceSetItemEvent(9, 0x8F, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r113_shelf1, 0);
+    SceSetItemEvent(0xA, 0x8B, 2, 9, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r113_shelf2, 0);
     SceAtDataSet_hide(4, r113_execHide);
     FlrAtSetDefVal(0, 0, 3);
     if (!ItfFlagChk(pG, ITF_R103_FILE)) {

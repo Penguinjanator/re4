@@ -1058,6 +1058,7 @@ static void emlist_r0_target()
                 p->xB = EmList.wk->cur.xB;
                 p->x1A = EmList.wk->cur.x1A;
                 p->hp = EmList.wk->cur.hp;
+                // rot / room through byte pointers: the member forms change the pG reloads around them
                 memcpy((u32*) ((u8*) p + 0x12), (u32*) ((u8*) &EmList.wk->cur + 0x12), 6);
                 p->flags |= 1;
                 *(u16*) ((u8*) p + 0x18) = (pG->stage_no << 8) | pG->room_no;

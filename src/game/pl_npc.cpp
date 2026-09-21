@@ -1476,7 +1476,7 @@ void cSubChar::moveBack()
 // Routine 0 / 0xF: run the scenario's own handler (SetSubAux).
 void cSubChar::moveAux()
 {
-    ((void (*)(cSubChar*)) pAux)(this);
+    pAux(this);
 }
 
 // Routine 0 / 0x10: run to the hide spot (SubCharCtrlHide) and duck / climb into it.
@@ -2092,7 +2092,7 @@ void cSubChar::moveDie()
 // Routine 3: the bulldozer scenario's own handler (SetSubBulldozer).
 void cSubChar::moveBull()
 {
-    ((void (*)(cSubChar*)) pAux)(this);
+    pAux(this);
 }
 
 // Routine 5: scenario event: walk to m_VecWork0 along the route.

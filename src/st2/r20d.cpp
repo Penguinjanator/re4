@@ -197,10 +197,10 @@ void R20dInit()
         r20d_work.p->fence[2].move(1.0f);
     }
     r20d_initRoundSwitch();
-    SceSetItemEvent(0x14, 0x81, 4, 6, r20d_openShelf, (void (*)()) r20d_openedShelf, 0, 0);
-    SceSetItemEvent(0x15, 0x80, 5, 5, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 0, 0);
-    SceSetItemEvent(0x16, 0x83, 6, 7, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 1, 0);
-    SceSetItemEvent(0x17, 0x86, 7, 8, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 2, 0);
+    SceSetItemEvent(0x14, 0x81, 4, 6, r20d_openShelf, r20d_openedShelf, 0, 0);
+    SceSetItemEvent(0x15, 0x80, 5, 5, r20d_openDrawer, r20d_openedDrawer, 0, 0);
+    SceSetItemEvent(0x16, 0x83, 6, 7, r20d_openDrawer, r20d_openedDrawer, 1, 0);
+    SceSetItemEvent(0x17, 0x86, 7, 8, r20d_openDrawer, r20d_openedDrawer, 2, 0);
     SceExec(0x12, (TaskFunc) r20d_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetActColor(0x1B, 1);
 }

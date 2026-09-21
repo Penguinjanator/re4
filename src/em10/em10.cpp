@@ -22,6 +22,7 @@
 #include "map_obj.h"
 #include "widget.h"
 #include "em10.h"
+#include "em3b.h"
 #include "em_sub.h"
 #include "em_set.h"
 #include "emhit.h"
@@ -26070,7 +26071,7 @@ extern "C" cModel* em10SearchTruck(cEm10* em)
     for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3B) {
-            *(cEm10**) ((u8*) e + 0x64C) = em;  // truck (em3b) work: driver
+            EM3B_WK(e)->pDriver = em;
             w->pTruck = e;
             return (cModel*) 1;
         }

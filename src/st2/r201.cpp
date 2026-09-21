@@ -232,8 +232,8 @@ void R201Init()
         r201_work.p->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
     SceExec(0x12, (TaskFunc) r201_checkBellBreak, 0, 0, SCE_PRIO_DEF_2, 0);
-    SceSetItemEvent(0x26, 0x8F, 0xC, 0x10, (void (*)(int)) r201_openShelf, (void (*)()) r201_openedShelf, 0, 0);
-    SceSetItemEvent(0x27, 0x90, 0xD, 0x11, (void (*)(int)) r201_openShelf, (void (*)()) r201_openedShelf, 1, 0);
+    SceSetItemEvent(0x26, 0x8F, 0xC, 0x10, r201_openShelf, r201_openedShelf, 0, 0);
+    SceSetItemEvent(0x27, 0x90, 0xD, 0x11, r201_openShelf, r201_openedShelf, 1, 0);
     {
         u8 kind = 1;
 

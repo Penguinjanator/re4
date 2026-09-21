@@ -5185,6 +5185,7 @@ public:
             int sx = 0;
             n = pa_->CreateNumeric(win_, &g_pSeqHead->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
+            // nameNum / nameTbl through byte pointers: the member form reorders the next block's g_pSeqHead / rodata loads
             *(u32*) ((u8*) n + 0xC4) = 256;
             *(const char***) ((u8*) n + 0xC0) = g_partsNameTbl;
         }

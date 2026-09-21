@@ -142,7 +142,7 @@ void R206Init()
 {
 #line 102 "D:/Bio4/Prog/r206.cpp"
     r206_work.p = (R206Work*) MEM_CALLOC(sizeof(R206Work), 1, 0xd);
-    SceSetItemEvent(9, 0x80, 8, 0xA, r206_openShelf, (void (*)()) r206_openedShelf, 0, 0);
+    SceSetItemEvent(9, 0x80, 8, 0xA, r206_openShelf, r206_openedShelf, 0, 0);
     SceAtSetEnable(0xB, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         Vec pos = {0.0f, 0.0f, 900.0f};

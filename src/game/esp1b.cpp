@@ -59,6 +59,7 @@ int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     m_Flg |= 0x10;
     w->n = n;
+    // Vec0..Vec2 through byte pointers: `&w->Vec1` changes the schedule (7 words)
     memcpy((u8*)w + 4, &gen->Vec0.x, sizeof(Vec));
     memcpy((u8*)w + 0x10, &gen->Vec1.x, sizeof(Vec));
     memcpy((u8*)w + 0x1C, &gen->Vec2.x, sizeof(Vec));

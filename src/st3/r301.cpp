@@ -104,7 +104,7 @@ void R301Init()
             obj->be_flag &= ~2;
         }
     }
-    SceSetItemEvent(0xA, 0x80, 4, 5, r301_openShelf, (void (*)()) r301_openedShelf, 0, 0);
+    SceSetItemEvent(0xA, 0x80, 4, 5, r301_openShelf, r301_openedShelf, 0, 0);
     EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x21), 0xCA, 0);
     r301_initContinuePoint();
     SceExec(0x12, (TaskFunc) r301_checkBgm, 0, 0, 2, 0);

@@ -141,7 +141,7 @@ void R20cInit()
         }
         obj->matUpdate();
     }
-    SceSetItemEvent(0xA, 0x85, 4, 0xD, (void (*)(int)) OpenBoxTreasure, OpenedBoxTreasure, 0, 0);
+    SceSetItemEvent(0xA, 0x85, 4, 0xD, (void (*)(int)) OpenBoxTreasure, (void (*)(int)) OpenedBoxTreasure, 0, 0);
 }
 
 // Per frame, while the barred door is still closed (Room_flg bit 0) and the painting closed (Room_flg[0]
