@@ -156,10 +156,10 @@ void em35DmCk(cEm35* em)
 
     if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->dieTimer == 0) {
                 w->dieTimer = 120;
                 if (w->flags & 8) {

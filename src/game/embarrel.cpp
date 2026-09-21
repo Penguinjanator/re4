@@ -84,14 +84,14 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     em->type = type;
     switch (em->type) {
     case 0:
-        EtcSetAddAmb(em, 10);
+        EtcSetAddAmb(em, ETC_AMB_DRAM);
         break;
     case 1:
     default:
-        EtcSetAddAmb(em, 1);
+        EtcSetAddAmb(em, ETC_AMB_BARREL);
         break;
     case 2:
-        EtcSetAddAmb(em, 1);
+        EtcSetAddAmb(em, ETC_AMB_BARREL);
         break;
     }
     w->Eff_id = 0xFF;
@@ -215,10 +215,10 @@ void emBarrelDmCk(cEmBarrel* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hit)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             emBarrelSetBreak(em, 2);
             return;
         }
@@ -313,10 +313,10 @@ void emBarrelDmCk2(cEmBarrel* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hit)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             emBarrelSetBreak(em, 2);
             return;
         }

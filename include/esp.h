@@ -482,6 +482,22 @@ struct EspInfo {
     void* Core_pEm;          // 0x08
 };
 
+// Special cEsp::m_Parts_no values (PS2 ESP_PARTS_NO): 248..253 are the screen layers (esp.cpp AddOtDirect
+// ot slots), 254 the world, 255 none.
+enum ESP_PARTS_NO {
+    ESP_PARTS_NULL = 255,
+    ESP_PARTS_WORLD = 254,
+    ESP_PARTS_SCR_NO_START = 253,
+    ESP_PARTS_SCREEN = 253,
+    ESP_PARTS_SCREEN_AFTER1 = 252,
+    ESP_PARTS_SCREEN_AFTER2 = 251,
+    ESP_PARTS_SCREEN_PRE1 = 250,
+    ESP_PARTS_SCREEN_PRE2 = 249,
+    ESP_PARTS_SCREEN_FIRST = 248,
+    ESP_PARTS_SCR_NO_END = 248,
+    ESP_PARTS_NOPARTS = 248
+};
+
 // One effect sprite (game/esp.cpp, game/esp_sub.cpp). sizeof 0xF8; the vptr sits at 0xF4.
 class cEsp {
 public:
@@ -500,7 +516,7 @@ public:
     cModel* m_pMod;    // 0x1C model the effect is attached to
     u32 m_Guid_pMod;           // 0x20
     cCoord* parent;    // 0x24 parent coordinate (pEffParentWorld = world)
-    u8 m_Parts_no;        // 0x28 parts of pModel the effect follows
+    u8 m_Parts_no;        // 0x28 parts of pModel the effect follows, or an ESP_PARTS_NO sentinel
     u8 m_Release_time;      // 0x29 frames to stay attached to parent (0xFF = forever)
     u16 m_Flg;      // 0x2A bit1: sizeY is a world-space length (beam sprites)
     Vec m_Pos;           // 0x2C

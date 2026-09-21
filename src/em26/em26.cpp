@@ -77,10 +77,10 @@ void em26DmCk(cEm26* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             em->hp = 0;
             EmSetDie(em);
             w->flags |= 0x20;

@@ -17,7 +17,7 @@ void ObjMachinegun_init(cObj* obj);   // wep/objMachinegun.cpp
 void Wep29_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x2D);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_MACHINE);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep11_init() cObjWep CREATE FAILED");

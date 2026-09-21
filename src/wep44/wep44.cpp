@@ -35,7 +35,7 @@ void ObjGovernment_init(cObj* obj);
 void Wep44_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x31);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_GOVERNMENT);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep15_init() cObjMagnum CREATE FAILED");

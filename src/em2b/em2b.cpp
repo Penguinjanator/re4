@@ -2571,7 +2571,7 @@ static void plem2b_Strangle(cPlayer* pl)
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         PlSetFace(1);
         pl->Wep->setTrans(0, 0);
-        em2bCatchObj.p = ObjMgr.create(0xB);
+        em2bCatchObj.p = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         if (em2bCatchObj.p) {
             em2bCatchObj.p->modelInit(EM_ARC(pl, 0x18), EM_ARC(pl, 0x17));
             em2bCatchObj.p->atari.m_flag &= 0xFCFF;
@@ -3459,7 +3459,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
             MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0xB9), 0, 0, 1, 0);
         }
         pl->Wep->setTrans(0, 0);
-        em2bCatchObj.p = ObjMgr.create(0xB);
+        em2bCatchObj.p = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         if (em2bCatchObj.p) {
             em2bCatchObj.p->modelInit(EM_ARC(pl, 0x18), EM_ARC(pl, 0x17));
             em2bCatchObj.p->atari.m_flag &= 0xFCFF;

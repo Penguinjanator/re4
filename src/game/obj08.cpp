@@ -49,7 +49,7 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
     cObj* obj;
     Obj08Work* w;
 
-    obj = ObjMgr.create(8);
+    obj = ObjMgr.create(cObjMgr::ID_MISSILE);
     if (obj == 0) {
         return 0;
     }

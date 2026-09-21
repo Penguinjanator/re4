@@ -162,7 +162,7 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
         *p = *esp;
         p->m_Id = 0;
         p->m_pMod = NULL;
-        p->m_Parts_no = 0xF8;
+        p->m_Parts_no = ESP_PARTS_NOPARTS;
         p->m_Life_max = 1;
         p->m_Pos.x = w->scr.x + w->gen->R_pos.x * fRandSeed1_1(&w->Rand_seed);
         p->m_Pos.y = w->scr.y + w->gen->R_pos.y * fRandSeed1_1(&w->Rand_seed);
@@ -373,7 +373,7 @@ int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     w->Rand_seed = 0x12345678;
     w->gen = gen;
-    if (m_Parts_no != 0xFE && m_Release_time == 0) {
+    if (m_Parts_no != ESP_PARTS_WORLD && m_Release_time == 0) {
         m_Release_time = 0xFF;
     }
     return 1;

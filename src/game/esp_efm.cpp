@@ -228,7 +228,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
     case 0:
     case 3: {
         int light;
-        obj = ObjMgr.createBack(4);
+        obj = ObjMgr.createBack(cObjMgr::ID_ESP);
         if (obj == 0) {
             break;
         }
@@ -265,7 +265,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
     }
     case 1: {
         int light;
-        obj = ObjMgr.createBack(5);
+        obj = ObjMgr.createBack(cObjMgr::ID_KABOOM);
         if (obj == 0) {
             break;
         }
@@ -291,7 +291,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         break;
     }
     case 2:
-        obj = ObjMgr.createBack(9);
+        obj = ObjMgr.createBack(cObjMgr::ID_ESP2);
         if (obj == 0) {
             break;
         }
@@ -744,7 +744,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     Efm04Work* w;
 
-    obj = ObjMgr.createBack(4);
+    obj = ObjMgr.createBack(cObjMgr::ID_ESP);
     if (obj) {
         if (obj->modelInit(bin, tpl) == 0) {
             ObjMgr.destroy(obj);

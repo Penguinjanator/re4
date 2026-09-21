@@ -1651,7 +1651,7 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
         return;
     }
     PSMTXIdentity(base);
-    if (em && (em->be_flag & 1) && gen->Parts_no != 0xFE && gen->Parts_no != 0xFD && gen->Parts_no != 0xFF) {
+    if (em && (em->be_flag & 1) && gen->Parts_no != ESP_PARTS_WORLD && gen->Parts_no != ESP_PARTS_SCREEN && gen->Parts_no != ESP_PARTS_NULL) {
         if (gen->Parts_no >= em->nParts) {
             return;
         }

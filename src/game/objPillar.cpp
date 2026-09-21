@@ -77,7 +77,7 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     PillarWork* w;
 
-    obj = ObjMgr.create(0x1F);
+    obj = ObjMgr.create(cObjMgr::ID_PILLAR);
     if (obj == 0) {
         return 0;
     }

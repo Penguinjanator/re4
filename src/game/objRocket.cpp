@@ -250,7 +250,7 @@ void cObjLauncher::loadRocket()
     if (launcher.rocket) {
         return;
     }
-    launcher.rocket = (cObjRocket*) ObjMgr.createBack(0x22);
+    launcher.rocket = (cObjRocket*) ObjMgr.createBack(cObjMgr::ID_WEP_ROCKET);
     if (launcher.rocket == 0) {
         pLog->err(0, 0, "Wep13_init() cObjRocket CREATE FAILED");
         return;
@@ -349,7 +349,7 @@ void cObjLauncher::drop(int se)
     cObjWep* w;
     f32 len = 10000.0f;   // unused in the original too: it only puts 10000 before 0.0 in the constant pool
 
-    w = (cObjWep*) ObjMgr.createBack(0x23);
+    w = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_LAUNCHER);
     if (w) {
         Vec a;
         Vec b;

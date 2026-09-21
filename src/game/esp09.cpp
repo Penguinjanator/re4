@@ -121,7 +121,7 @@ void cEsp09::move()
             }
         }
         p = &w->Pos[w->nPos];
-        if (m_Parts_no > 0xFD) {
+        if (m_Parts_no > ESP_PARTS_SCREEN) {
             *p = m_Pos;
         } else {
             PSMTXMultVec(parent->mat, &m_Pos, p);

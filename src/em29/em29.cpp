@@ -168,9 +168,9 @@ void em29DmCk(cEm29* em)
     }
     if ((em->be_flag & 2) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 2:
-        case 6:
-        case 8:
+        case DMG_TYPE_GRENADE_BLAST:
+        case DMG_TYPE_ENV_LIGHT:
+        case DMG_TYPE_GRENADE:
             em->hp = 0;
             Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 1);
             Ctrl11SetSe(w->pCtrl11, em, 1, 0x1C, 0xA);

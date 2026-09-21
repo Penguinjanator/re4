@@ -77,10 +77,10 @@ void em24DmCk(cEm24* em)
 
     if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             goto die;
         }
     }

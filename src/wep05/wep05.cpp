@@ -16,7 +16,7 @@ void ObjCivilian_init(cObj* obj);  // wep05/objCivilian.cpp
 void Wep05_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x2E);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_CIVILIAN);
 
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep05_init() wep model init failed.");

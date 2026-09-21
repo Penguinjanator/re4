@@ -406,22 +406,22 @@ int EspTrans()
             }
             if ((u8) (esp->m_Parts_no + 8) <= 5) {
                 switch (esp->m_Parts_no) {
-                case 0xFD:
+                case ESP_PARTS_SCREEN:
                     AddOtDirect(ot, esp, (void (*)()) trans, 3, prio, NULL, 0.0f);
                     break;
-                case 0xFC:
+                case ESP_PARTS_SCREEN_AFTER1:
                     AddOtDirect(ot, esp, (void (*)()) trans, 2, prio, NULL, 0.0f);
                     break;
-                case 0xFB:
+                case ESP_PARTS_SCREEN_AFTER2:
                     AddOtDirect(ot, esp, (void (*)()) trans, 1, prio, NULL, 0.0f);
                     break;
-                case 0xFA:
+                case ESP_PARTS_SCREEN_PRE1:
                     AddOtDirect(ot, esp, (void (*)()) trans, 5, prio, NULL, 0.0f);
                     break;
-                case 0xF9:
+                case ESP_PARTS_SCREEN_PRE2:
                     AddOtDirect(ot, esp, (void (*)()) trans, 4, prio, NULL, 0.0f);
                     break;
-                case 0xF8:
+                case ESP_PARTS_SCREEN_FIRST:
                     AddOtDirect(ot, esp, (void (*)()) trans, 6, prio, NULL, 0.0f);
                     break;
                 default:

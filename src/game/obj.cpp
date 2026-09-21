@@ -188,112 +188,112 @@ void cObjMgr::log(const char* fmt, ...)
 int cObjMgr::construct(cObj* p, int id)
 {
     switch (id) {
-    case 0:
+    case ID_NORMAL:
         p = new (p) cObj00();
         break;
-    case 1:
+    case ID_MAGAZINE:
         p = new (p) cObj01();
         break;
-    case 2:
+    case ID_SCROLL:
         p = new (p) cObjScr();
         break;
-    case 3:
+    case ID_03:
         p = new (p) cObj03();
         break;
-    case 4:
+    case ID_ESP:
         p = new (p) cObj04();
         break;
-    case 5:
+    case ID_KABOOM:
         p = new (p) cObj05();
         break;
-    case 6:
+    case ID_BOX:
         p = new (p) cObjBox();
         break;
-    case 8:
+    case ID_MISSILE:
         p = new (p) cObj08();
         break;
-    case 9:
+    case ID_ESP2:
         p = new (p) cObj09();
         break;
-    case 0xA:
+    case ID_WEP_ITEM:
         p = new (p) cWepItem();
         break;
-    case 0xB:
+    case ID_PL_WEAPON:
         p = new (p) cObjWep();
         break;
-    case 0x12:
+    case ID_EM12_WEAPON:
         p = new (p) cObj12();
         break;
-    case 0x13:
+    case ID_LADDER:
         p = new (p) cObjLadder();
         break;
-    case 0x14:
+    case ID_BELL:
         p = new (p) cObjBell();
         break;
-    case 0x15:
+    case ID_GATLING:
         p = new (p) cObjGatling();
         break;
-    case 0x16:
+    case ID_EM10_PARASITE:
         p = new (p) cObj16();
         break;
-    case 0x18:
+    case ID_EVENT:
         p = new (p) cObj18();
         break;
-    case 0x19:
+    case ID_ITEM:
         p = new (p) cItemObj();
         break;
-    case 0x1A:
+    case ID_WEP_GRENADE:
         p = new (p) cObjGrenade();
         break;
-    case 0x1B:
+    case ID_SPEAR:
         p = new (p) cObjSpear();
         break;
-    case 0x1C:
+    case ID_FLOATISLAND:
         p = new (p) cObj1c();
         break;
-    case 0x1D:
+    case ID_CHAIN:
         p = new (p) cObjChain();
         break;
-    case 0x20:
+    case ID_OBAMODEL:
         p = new (p) cObjObaModel();
         break;
-    case 0x22:
+    case ID_WEP_ROCKET:
         p = new (p) cObjRocket();
         break;
-    case 0x23:
+    case ID_WEP_LAUNCHER:
         p = new (p) cObjLauncher();
         break;
-    case 0x26:
+    case ID_EM2B_PARASITE:
         p = new (p) cObj26();
         break;
-    case 0x29:
+    case ID_WEP_GRE_FIRE:
         p = new (p) cObjGreFire();
         break;
-    case 0x2A:
+    case ID_WEP_GRE_LIGHT:
         p = new (p) cObjGreLight();
         break;
-    case 0x35:
+    case ID_GONDOLA:
         p = new (p) cObjGondola();
         break;
-    case 0x37:
+    case ID_ROBO:
         p = new (p) cObjRobo();
         break;
-    case 0x38:
+    case ID_HELI_MISSILE:
         p = new (p) cObjMissile();
         break;
-    case 0x39:
+    case ID_YAGURA:
         p = new (p) cObjYagura();
         break;
-    case 0x3A:
+    case ID_WEP_EGG:
         p = new (p) cObjEgg();
         break;
-    case 0x3B:
+    case ID_TROLLEY:
         p = new (p) cObjTrolley();
         break;
-    case 0x3E:
+    case ID_BULL:
         p = new (p) cObjBull();
         break;
-    case 0x1F:
+    case ID_PILLAR:
         p = new (p) cObjPillar();
         break;
     default:

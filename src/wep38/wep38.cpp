@@ -41,7 +41,7 @@ void Wep38_init(cModel* m)
     cPlayer* pl = (cPlayer*) m;
     cObjWep* obj;
 
-    obj = (cObjWep*) ObjMgr.createBack(0x21);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_RUGER);
     if (obj == 0) {
         pLog->err(0, 0, "Wep38_init() cObjWep CREATE FAILED");
     } else {

@@ -40,7 +40,7 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     IslandWork* w;
 
-    obj = ObjMgr.create(0x1C);
+    obj = ObjMgr.create(cObjMgr::ID_FLOATISLAND);
     if (obj == 0) {
         return 0;
     }

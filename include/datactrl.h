@@ -11,11 +11,23 @@ enum DATA_COMMAND {
     CMND_DEL_DATA = 4
 };
 
+// Where a data unit's file is (PS2 DATA_CONDITION): cDataUnit::m_condition / setCondition.
+enum DATA_CONDITION {
+    COND_NO_DATA = 0,
+    COND_MRAM_LOAD = 1,
+    COND_MRAM_OK = 2,
+    COND_ARAM_LOAD = 3,
+    COND_ARAM_OK = 4,
+    COND_ARAM_TO_MRAM = 5,
+    COND_MRAM_TO_ARAM = 6,
+    COND_ARAM_TO_ARAM = 7,
+    COND_MRAM_TO_MRAM = 8
+};
+
 // One streamed data file (game/datactrl.cpp, 0x50 bytes).
 class cDataUnit {
 public:
-    s32 m_condition;   // 0x00  0 none, 1 MRAM loading, 2 MRAM ok, 3 ARAM loading, 4 ARAM ok,
-                     //       5 ARAM->MRAM, 6 MRAM->ARAM, 7 ARAM->ARAM, 8 MRAM->MRAM
+    s32 m_condition;   // 0x00  DATA_CONDITION
     s32 m_command;     // 0x04  0 none, 1 load to MRAM, 2 load to ARAM, 3 clear, 4 delete
     s32 m_err;         // 0x08
     u8 m_be_flag;         // 0x0C  bit0 in use, bit1 memory allocated by the unit

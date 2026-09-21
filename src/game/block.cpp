@@ -502,10 +502,10 @@ int cBlockUnit::checkBlockLoadToMramSet()
     void* p;
 
     switch (pData->getCondition()) {
-    case 0:
-    case 1:
+    case COND_NO_DATA:
+    case COND_MRAM_LOAD:
         Block.stopFlagSet = 1;
-    case 4:
+    case COND_ARAM_OK:
         if (Block.noMemCtrl == 1) {
             pData->setCommand(CMND_MRAM_LOAD, 0, arg);
         } else {
@@ -515,14 +515,14 @@ int cBlockUnit::checkBlockLoadToMramSet()
             }
             pData->setCommand(CMND_MRAM_LOAD, (u32) p, arg);
         }
-    case 2:
-    case 5:
-    case 8:
+    case COND_MRAM_OK:
+    case COND_ARAM_TO_MRAM:
+    case COND_MRAM_TO_MRAM:
         state = BLOCK_MRAM_LOAD;
         break;
-    case 3:
-    case 6:
-    case 7:
+    case COND_ARAM_LOAD:
+    case COND_MRAM_TO_ARAM:
+    case COND_ARAM_TO_ARAM:
         Block.stopFlagSet = 1;
         break;
     }
@@ -534,11 +534,11 @@ int cBlockUnit::checkBlockLoadToMramSet()
 int cBlockUnit::checkBlockLoadToMram()
 {
     switch (pData->getCondition()) {
-    case 0:
-    case 1:
+    case COND_NO_DATA:
+    case COND_MRAM_LOAD:
         Block.stopFlagSet = 1;
         break;
-    case 2:
+    case COND_MRAM_OK:
         BlockCreate(no, (cSmd*) GetDataExt(pData->m_addr, "SMD", 0));
         setTrans(1);
         state = BLOCK_CREATE;
@@ -558,19 +558,19 @@ int cBlockUnit::checkBlockLoadToAramSet()
     int ret = 0;
 
     switch (pData->getCondition()) {
-    case 1:
-    case 5:
+    case COND_MRAM_LOAD:
+    case COND_ARAM_TO_MRAM:
         break;
-    case 0:
+    case COND_NO_DATA:
         ret = 1;
-    case 2:
+    case COND_MRAM_OK:
         pData->setCommand(CMND_ARAM_LOAD, 0, arg);
-    case 6:
+    case COND_MRAM_TO_ARAM:
         state = BLOCK_ARAM_LOAD;
         break;
-    case 3:
-    case 4:
-    case 7:
+    case COND_ARAM_LOAD:
+    case COND_ARAM_OK:
+    case COND_ARAM_TO_ARAM:
         state = BLOCK_ARAM_LOAD;
         ret = 1;
         break;
@@ -582,11 +582,11 @@ int cBlockUnit::checkBlockLoadToAramSet()
 int cBlockUnit::checkBlockLoadToAram()
 {
     switch (pData->getCondition()) {
-    case 4:
+    case COND_ARAM_OK:
         state = BLOCK_ARAM_OK;
         return 1;
-    case 3:
-    case 7:
+    case COND_ARAM_LOAD:
+    case COND_ARAM_TO_ARAM:
         return 1;
     }
     return 0;
@@ -598,18 +598,18 @@ int cBlockUnit::checkBlockDelete()
     int ret = 0;
 
     switch (pData->getCondition()) {
-    case 1:
-    case 5:
-    case 6:
-    case 8:
+    case COND_MRAM_LOAD:
+    case COND_ARAM_TO_MRAM:
+    case COND_MRAM_TO_ARAM:
+    case COND_MRAM_TO_MRAM:
         break;
-    case 0:
-    case 2:
-    case 4:
+    case COND_NO_DATA:
+    case COND_MRAM_OK:
+    case COND_ARAM_OK:
         pData->setClear();
         state = BLOCK_NO_DATA;
-    case 3:
-    case 7:
+    case COND_ARAM_LOAD:
+    case COND_ARAM_TO_ARAM:
         ret = 1;
         break;
     }

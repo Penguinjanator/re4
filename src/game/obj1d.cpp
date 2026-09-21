@@ -37,7 +37,7 @@ cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     ChainWork* w;
 
-    obj = ObjMgr.createBack(0x1D);
+    obj = ObjMgr.createBack(cObjMgr::ID_CHAIN);
     if (obj == 0) {
         return 0;
     }

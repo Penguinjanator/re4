@@ -169,6 +169,36 @@ int EtcGetDasAddr(int id, void** out);   // archive of etc model `id` (r400 setL
 int getRoomEtc(int no, ETCMODEL_ID id, cEm** out, int flag);
 }
 
+// Additive ambient kind of an etc model (PS2 ETC_AMB_KIND): EtcSetAddAmb `kind`, the row of the etc_*_rgb tables.
+enum ETC_AMB_KIND {
+    ETC_AMB_TORCH = 0,
+    ETC_AMB_BARREL = 1,
+    ETC_AMB_DOOR = 2,
+    ETC_AMB_BOX = 3,
+    ETC_AMB_ITEM = 4,
+    ETC_AMB_HIT = 5,
+    ETC_AMB_WINDOW00 = 6,
+    ETC_AMB_WINDOW90 = 7,
+    ETC_AMB_RACK = 8,
+    ETC_AMB_NEST = 9,
+    ETC_AMB_DRAM = 10,
+    ETC_AMB_TUBO = 11,
+    ETC_AMB_FALL_LANTERN = 12,
+    ETC_AMB_BAR = 13,
+    ETC_AMB_WINDOW30 = 14,
+    ETC_AMB_WINDOW40 = 15,
+    ETC_AMB_WINDOW50 = 16
+};
+
+// Which etc_*_rgb table the room uses (PS2 ETC_AMB_TYPE): GetEtcAmbType.
+enum ETC_AMB_TYPE {
+    ETC_AMB_DAY = 0,
+    ETC_AMB_NIGHT = 1,
+    ETC_AMB_DAY2 = 2,
+    ETC_AMB_DAY3 = 3,
+    ETC_AMB_DAY4 = 4
+};
+
 // Init, room setup, room data load and the debug list (main.cpp / game.cpp / t_sce_item.cpp).
 struct EtcList;
 extern "C" {
@@ -179,7 +209,7 @@ int EtcModelListSet(EtcList* list);
 int EtcModelGetLastNo();
 void EtcModelDebugDisp();
 // Adds the room etc model's ambient to `m` (the object enemies call it from their model setup).
-void EtcSetAddAmb(class cModel* m, int no);
+void EtcSetAddAmb(class cModel* m, int no);   // no: ETC_AMB_KIND
 }
 
 #endif

@@ -24,7 +24,7 @@ extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h
     cObj* obj;
     ObaModelWork* w;
 
-    obj = ObjMgr.create(0x20);
+    obj = ObjMgr.create(cObjMgr::ID_OBAMODEL);
     if (obj == 0) {
         return 0;
     }

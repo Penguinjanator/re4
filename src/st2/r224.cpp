@@ -120,7 +120,7 @@ void R224Init()
         obj->AddAmb_g = 0x50;
         obj->AddAmb_b = 0x64;
     }
-    r224_work.p->obj2 = ObjMgr.create(2);
+    r224_work.p->obj2 = ObjMgr.create(cObjMgr::ID_SCROLL);
     r224_work.p->obj2->pos.x = -4413.0f;
     r224_work.p->obj2->pos.y = 0.0f;
     r224_work.p->obj2->pos.z = -543.0f;

@@ -595,7 +595,7 @@ cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
 
-    obj = (cObjWep*) ObjMgr.createBack(0x36);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_MINE);
     if (obj == 0) {
         pLog->err(0, 0, "Wep14_init() cObjWep CREATE FAILED");
         return 0;

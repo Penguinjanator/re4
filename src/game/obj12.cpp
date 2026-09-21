@@ -177,7 +177,7 @@ cObj12* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj12* obj;
     Obj12Work* w;
 
-    obj = (cObj12*) ObjMgr.createBack(0x12);
+    obj = (cObj12*) ObjMgr.createBack(cObjMgr::ID_EM12_WEAPON);
     if (obj) {
         w = &obj->o12;
         if (obj->modelInit(bin, tpl) == 0) {

@@ -212,14 +212,14 @@ void cObj01::dmgSet(int kind)
 {
     switch ((u32) kind) {
     case 8:
-        DmgMgr.set(2, 2, &pos, 3000.0f, 3000.0f);
-        DmgMgr.set(8, 2, &pos, 15000.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_GRENADE_BLAST, 2, &pos, 3000.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_GRENADE, 2, &pos, 15000.0f, 3000.0f);
         break;
     case 4:
-        DmgMgr.set(4, 90, &pos, 1500.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_FLAME, 90, &pos, 1500.0f, 3000.0f);
         break;
     case 5:
-        DmgMgr.set(5, 90, &pos, 1500.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_LAMP, 90, &pos, 1500.0f, 3000.0f);
         break;
     }
 }
@@ -331,7 +331,7 @@ cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
     cObj* obj;
     Obj01Work* w;
 
-    obj = ObjMgr.create(1);
+    obj = ObjMgr.create(cObjMgr::ID_MAGAZINE);
     if (obj == 0) {
         return 0;
     }

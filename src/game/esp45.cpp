@@ -86,7 +86,7 @@ void Esp45_Trans(cEsp* esp0)
     cEsp45* esp = (cEsp45*) esp0;
     Esp45Work* w = &esp->m_Free;
 
-    if (esp->m_Parts_no >= 0xF8 && esp->m_Parts_no <= 0xFD) {
+    if (esp->m_Parts_no >= ESP_PARTS_SCR_NO_END && esp->m_Parts_no <= ESP_PARTS_SCR_NO_START) {
         f32 cx = esp->m_Pos.x * 0.001953125f - 0.5f;
         f32 cy = esp->m_Pos.y * 0.001953125f - 0.5f;
         Filter00SetAddSpread(w->type, 1, (u8) esp->m_Col_r, (u8) esp->m_Col_g, (u8) esp->m_Col_b, w->alpha, w->rate, 1,

@@ -842,7 +842,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
         SceSleep(1);
     }
-    wk->pObjWep = (cObjWep*) ObjMgr.createBack(0xB);
+    wk->pObjWep = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_PL_WEAPON);
     if (wk->pObjWep == 0) {
         pLog->err(0, 0, "OpeSetOpenTerm cObjWep CREATE FAILED");
         return;

@@ -224,11 +224,11 @@ void cSubWep::dmgSet(int kind)
 {
     switch (kind) {
     case 8:
-        DmgMgr.set(2, 2, &pos, 3000.0f, 3000.0f);
-        DmgMgr.set(8, 2, &pos, 15000.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_GRENADE_BLAST, 2, &pos, 3000.0f, 3000.0f);
+        DmgMgr.set(DMG_TYPE_GRENADE, 2, &pos, 15000.0f, 3000.0f);
         break;
     case 1:
-        DmgMgr.set(1, 75, &pos, 2500.0f, 1500.0f);
+        DmgMgr.set(DMG_TYPE_FIRE, 75, &pos, 2500.0f, 1500.0f);
         break;
     }
 }

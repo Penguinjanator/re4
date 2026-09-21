@@ -167,10 +167,10 @@ void em25DmCk(cEm25* em)
 
     if ((em->be_flag & 2) && EmDeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->Fire_timer == 0) {
                 w->Fire_timer = 120;
                 EmRoutineSet(em, 2, 4, 0, 0);

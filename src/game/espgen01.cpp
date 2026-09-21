@@ -158,7 +158,7 @@ void SetEsp(EspgenWork* w)
                 PushEspgen(w);
                 return;
             }
-            esp->m_Parts_no = 0xF8;
+            esp->m_Parts_no = ESP_PARTS_NOPARTS;
             esp->m_Life_max = 1;
             x0 = esp->m_Pos.x;
             esp->m_Pos.x = p->pos_x;
@@ -179,7 +179,7 @@ void SetEsp(EspgenWork* w)
                     return;
                 }
                 PSVECScale(&d, &v, (esp->m_Pos.x - x0) / (Screen.width * 0.5f - x0));
-                esp->m_Parts_no = 0xF8;
+                esp->m_Parts_no = ESP_PARTS_NOPARTS;
                 esp->m_Life_max = 1;
                 esp->m_Pos.x = p->pos_x;
                 esp->m_Pos.y = p->pos_y;

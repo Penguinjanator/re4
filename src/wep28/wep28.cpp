@@ -26,7 +26,7 @@ void ObjKlauAllow_init(cObj* obj);
 void Wep28_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x11);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_BOW);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep28_init() cObjWep CREATE FAILED");
@@ -35,7 +35,7 @@ void Wep28_init(cModel* m)
     pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
-    obj = (cObjWep*) ObjMgr.createBack(0x10);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_ALLOW);
     if (obj == 0) {
         pLog->err(0, 0, "Wep28_init() cObjWep CREATE FAILED");
         return;

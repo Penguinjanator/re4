@@ -276,10 +276,10 @@ void em36DmCk(cEm36* em)
     }
     if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->dieTimer == 0) {
                 w->dieTimer = 120;
                 w->flags |= 0x200;
@@ -5243,7 +5243,7 @@ int em36CrashCk(cEm36* em)
     if (w->flags & 0x20) {
         return 0;
     }
-    if (DmgMgr.hitCheck(&em->pos, &hit) != 3) {
+    if (DmgMgr.hitCheck(&em->pos, &hit) != DMG_TYPE_PUSH) {
         return 0;
     }
     if (w->flags & 0x100) {

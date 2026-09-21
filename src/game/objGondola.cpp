@@ -74,7 +74,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     int i;
     cEm** p;
 
-    obj = ObjMgr.create(0x35);
+    obj = ObjMgr.create(cObjMgr::ID_GONDOLA);
     if (obj == 0) {
         return 0;
     }

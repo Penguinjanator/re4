@@ -35,7 +35,7 @@ void Wep00_move(cPlayer* pl)
 // (an event holds the hand models) is clear. Returns the object, NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x3D);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HAND);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep13_init() cObjWep CREATE FAILED");

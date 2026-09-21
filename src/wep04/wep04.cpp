@@ -57,7 +57,7 @@ void Wep04_init(cModel* m)
 // Creates the cObjXd9 (ObjMgr id 0x33) and inits it on the player; NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x33);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_XD9);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep04_init() cObjWep CREATE FAILED");

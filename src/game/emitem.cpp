@@ -60,7 +60,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     }
     em->type = type;
     em->be_flag |= 0x4000;
-    EtcSetAddAmb(em, 4);
+    EtcSetAddAmb(em, ETC_AMB_ITEM);
     w->Eff_id = 0xFF;
     switch (em->type) {
     case 0:
@@ -156,10 +156,10 @@ void emItemDmCk(cEmItem* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hit)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             switch (em->type) {
             case 0:
             default:

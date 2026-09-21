@@ -19,12 +19,12 @@ cDmgMgr::cDmgMgr() : cManager<cDmg>(0x118, 2)
 int cDmgMgr::construct(cDmg* p, int id)
 {
     switch (id) {
-    case 0:
+    case ID_CYLINDER:
     default:
         new (p) cDmgCyl;
         p->be_flag = 1;
         break;
-    case 1:
+    case ID_POINT4:
         new (p) cDmgP4;
         p->be_flag = 1;
         break;
@@ -59,7 +59,7 @@ void cDmgMgr::move()
 // a work was free.
 int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
 {
-    cDmgCyl* p = (cDmgCyl*) create(0);
+    cDmgCyl* p = (cDmgCyl*) create(ID_CYLINDER);
 
     if (p == 0) {
         return 0;
@@ -75,7 +75,7 @@ int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
 // Registers an XZ quad volume (4 corners, half height) of `kind` for `time` frames.
 int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
 {
-    cDmgP4* p = (cDmgP4*) create(1);
+    cDmgP4* p = (cDmgP4*) create(ID_POINT4);
 
     if (p == 0) {
         return 0;

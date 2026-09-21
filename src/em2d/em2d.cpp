@@ -337,10 +337,10 @@ void em2dDmCk(cEm2d* em)
     }
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->dmGuard == 0) {
                 w->dmGuard = 120;
                 LifeDownSet2(em, 500, 0, 0);
@@ -5524,7 +5524,7 @@ int em2dStayCk(cEm2d* em)
 // Registers a kind 3 crash volume of radius `r` at the insect (a falling one knocks the others over).
 void em2dSetCrash(cEm2d* em, f32 r)
 {
-    DmgMgr.set(3, 2, &em->pos, 1500.0f, r);
+    DmgMgr.set(DMG_TYPE_PUSH, 2, &em->pos, 1500.0f, r);
 }
 
 // Hit by a kind 3 crash volume while standing on the floor -> Dm_Blow (R2 1). 1 = crashed.
@@ -5553,7 +5553,7 @@ int em2dCrashCk(cEm2d* em)
     if (zero) {
         return 0;
     }
-    if (DmgMgr.hitCheck(&em->pos, &out) != 3) {
+    if (DmgMgr.hitCheck(&em->pos, &out) != DMG_TYPE_PUSH) {
         return 0;
     }
     EmRoutineSet(em, 2, 1, zero, zero);

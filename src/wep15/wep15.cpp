@@ -33,7 +33,7 @@ void ObjMagnum_init(cObj* obj);
 void Wep15_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x2C);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_MAGNUM);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep15_init() cObjMagnum CREATE FAILED");

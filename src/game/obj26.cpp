@@ -30,7 +30,7 @@ static cObj* SetObj26(cObj* parent, Vec* scale)
 {
     cObj* obj;
 
-    obj = ObjMgr.create(0x26);
+    obj = ObjMgr.create(cObjMgr::ID_EM2B_PARASITE);
     if (obj == 0) {
         return 0;
     }

@@ -80,7 +80,7 @@ cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     Obj00Work* w;
 
-    obj = ObjMgr.create(0);
+    obj = ObjMgr.create(cObjMgr::ID_NORMAL);
     if (obj == 0) {
         return 0;
     }

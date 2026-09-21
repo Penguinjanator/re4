@@ -171,10 +171,10 @@ void em3bDmCkCart(cEm3b* em)
 
     if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             // the death body is written here AND in case 0x16 (jump2 cross-jumps the copies into the
             // later one; each copy stores the dmgWait register cse knows to be 0)
             if (w->dmgWait == 0) {
@@ -257,10 +257,10 @@ void em3bDmCkStopCart(cEm3b* em)
 
     if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             // the death body is written here AND in case 0x16 (jump2 cross-jumps the copies into the
             // later one; each copy stores the dmgWait register cse knows to be 0)
             if (w->dmgWait == 0) {

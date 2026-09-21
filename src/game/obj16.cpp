@@ -102,7 +102,7 @@ cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, 
     if (body->pParts == 0) {
         return 0;
     }
-    obj = ObjMgr.createBack(0x16);
+    obj = ObjMgr.createBack(cObjMgr::ID_EM10_PARASITE);
     if (obj == 0) {
         return 0;
     }

@@ -17,7 +17,7 @@ void ObjHkSniper_init(cObj* obj);   // wep10/objHkSniper.cpp
 void Wep10_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x30);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HKSNIPER);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep10_init() cObjWep CREATE FAILED");

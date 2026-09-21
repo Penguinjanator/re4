@@ -86,10 +86,10 @@ void em21DmCk(cEm21* em)
 
     if (EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hitPos)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             mode = em->set;
             {
                 register int c asm("r9"); // COMPILER-DIFF: #13

@@ -65,7 +65,7 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         EmMgr.destroy(em);
         return 0;
     }
-    EtcSetAddAmb(em, 0xD);
+    EtcSetAddAmb(em, ETC_AMB_BAR);
     u32 zero = 0;
     w->size.x = 3500.0f;
     w->size.y = 400.0f;

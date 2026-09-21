@@ -41,9 +41,19 @@ public:
     void move();
 };
 
+// CountDown::m_state bits (PS2 TIMER_STATE): checkState `state`.
+enum TIMER_STATE {
+    TIMER_STA_NULL = 0,
+    TIMER_STA_ALIVE = 1,
+    TIMER_STA_UP = 2,
+    TIMER_STA_DOWN = 4,
+    TIMER_STA_PAUSE = 8,
+    TIMER_STA_ERASE = 16
+};
+
 class CountDown {
 public:
-    u32 m_state;         // 0x00  bit0 running, bit3 paused by the game flags, bit4 hidden
+    u32 m_state;         // 0x00  TIMER_STATE bits: ALIVE running, PAUSE by the game flags, ERASE hidden
     s8 m_minute;            // 0x04
     s8 m_second;            // 0x05
     s8 cs;             // 0x06  1/100 s

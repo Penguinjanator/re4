@@ -37,7 +37,7 @@ cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 500.0f, 500.0f, 0.0f };
     cObj* obj;
 
-    obj = ObjMgr.create(0x19);
+    obj = ObjMgr.create(cObjMgr::ID_ITEM);
     if (obj == 0) {
         return 0;
     }

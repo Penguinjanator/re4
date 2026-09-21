@@ -80,7 +80,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     }
     pl->Wep->m_pWep = 0;
     pl->Wep->pObj2 = 0;
-    obj = (cObjWep*) ObjMgr.createBack(0x3C);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HANDGRE);
     if (obj == 0) {
         goto fail;
     }
@@ -101,7 +101,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     if (ItemMgr.bulletNum() <= 1) {
         obj->setDisp(0, 0);
     }
-    obj = (cObjWep*) ObjMgr.createBack(0x3C);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HANDGRE);
     if (obj == 0) {
     fail:
         pLog->err(0, 0, "Wep19_init() cObjWep CREATE FAILED");

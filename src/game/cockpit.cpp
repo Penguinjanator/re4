@@ -716,8 +716,8 @@ void CountDown::roomInit()
     IdSys.set(ARC_PTR(ofs_84), 0xFF, IDC_COUNT_DOWN, 0x13, 5, 0);
     IdSys.unitPtr(0x10, IDC_COUNT_DOWN)->be_flag &= ~8;
     IdSys.unitPtr(0x10, IDC_COUNT_DOWN)->rev_flag &= ~0xF;
-    m_state &= ~1;
-    m_state &= ~0x10;
+    m_state &= ~TIMER_STA_ALIVE;
+    m_state &= ~TIMER_STA_ERASE;
     initTime(0, 0, 0);
     warnTime(0, 0, 0);
 }
@@ -756,7 +756,7 @@ void CountDown::move()
     s8 newTens;
     f32 ft;
 
-    if ((m_state & 1) == 0) {
+    if ((m_state & TIMER_STA_ALIVE) == 0) {
         run = 0;
     }
     if (run == 0) {
@@ -764,15 +764,15 @@ void CountDown::move()
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
         (StaFlagChk(pG, STA_SUSPEND) || (SpfFlagChk(pG, SPF_PL)))) {
-        m_state |= 8;
+        m_state |= TIMER_STA_PAUSE;
     } else {
-        m_state &= ~8;
+        m_state &= ~TIMER_STA_PAUSE;
     }
     if (pG->cdown_add_sec != 0) {
         U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!DbgFlagChk(pG, DBG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & 8)) {
+    if (!DbgFlagChk(pG, DBG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & TIMER_STA_PAUSE)) {
         if (m_frame != 0) {
             m_frame = m_frame - 1;
         } else {
@@ -853,13 +853,13 @@ void CountDown::disp(int sw)
         u = IdSys.unitPtr(0x10, IDC_COUNT_DOWN);
         u->rev_flag |= 0xF;
         u->be_flag |= 8;
-        m_state &= ~0x10;
+        m_state &= ~TIMER_STA_ERASE;
         break;
     case 0:
         u = IdSys.unitPtr(0x10, IDC_COUNT_DOWN);
         u->rev_flag &= ~0xF;
         u->be_flag &= ~8;
-        m_state |= 0x10;
+        m_state |= TIMER_STA_ERASE;
         break;
     }
 }
@@ -938,7 +938,7 @@ void CountDown::saveDisp()
 
     savedFlags = m_state;
     run = 1;
-    if ((m_state & 1) == 0) {
+    if ((m_state & TIMER_STA_ALIVE) == 0) {
         run = 0;
     }
     if (run) {
@@ -951,7 +951,7 @@ void CountDown::loadDisp()
 {
     int run = 1;
 
-    if ((m_state & 1) == 0) {
+    if ((m_state & TIMER_STA_ALIVE) == 0) {
         run = 0;
     }
     if (run) {

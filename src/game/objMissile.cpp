@@ -48,7 +48,7 @@ cObjMissile* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     cObjMissile* obj;
     MissileWork* w;
 
-    obj = (cObjMissile*) ObjMgr.create(0x38);
+    obj = (cObjMissile*) ObjMgr.create(cObjMgr::ID_HELI_MISSILE);
     if (obj == 0) {
         return 0;
     }

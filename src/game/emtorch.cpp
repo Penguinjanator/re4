@@ -62,9 +62,9 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     }
     em->type = type;
     if (type != 5) {
-        EtcSetAddAmb(em, 0);
+        EtcSetAddAmb(em, ETC_AMB_TORCH);
     } else {
-        EtcSetAddAmb(em, 12);
+        EtcSetAddAmb(em, ETC_AMB_FALL_LANTERN);
     }
     w->Eff_id = 0xFF;
     switch (em->type) {
@@ -518,7 +518,7 @@ void emTorch_R1_Fall(cEmTorch* em)
             EffectEfmDelete(1, w->EffKindId, em);
             EstSet(0, -1, &em->pos, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 0x58, &em->pos, 0, 0, em);
-            DmgMgr.set(5, 0x4B, &em->pos, 2500.0f, 1500.0f);
+            DmgMgr.set(DMG_TYPE_LAMP, 0x4B, &em->pos, 2500.0f, 1500.0f);
             em->be_flag &= ~2;
             em->r_no_2++;
         } else {

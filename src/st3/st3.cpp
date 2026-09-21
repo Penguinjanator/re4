@@ -204,7 +204,7 @@ void st3_setCountDownTimer(int frame)
         frame = 0;
     }
     cd = Cckpt.getCountDown();
-    cd->m_state |= 1;
+    cd->m_state |= TIMER_STA_ALIVE;
     cd->initTimeFrame(frame);
     SetFree(2, cd->getFrame());
 }
@@ -221,7 +221,7 @@ static inline void st3_resumeCountDown()
     u32 frame = GetFree(2);
     CountDown* cd = Cckpt.getCountDown();
 
-    cd->m_state |= 1;
+    cd->m_state |= TIMER_STA_ALIVE;
     cd->initTimeFrame(frame);
     cd->frameIn();
 }
@@ -247,7 +247,7 @@ void st3_checkCountDown()
         CountDown* cd = Cckpt.getCountDown();
 
         SetFree(2, cd->getFrame());
-        if (cd->checkState(1)) {
+        if (cd->checkState(TIMER_STA_ALIVE)) {
             over = (cd->m_frame == 0);
         }
         if (over == 1) {

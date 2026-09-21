@@ -464,7 +464,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->x890 = 10;
         StaFlagOn(pGS, STA_KLAUSER_TRANSFORM);
         pl->Neck->motL = 0;
-        DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
+        DmgMgr.set(DMG_TYPE_PUSH, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);
         EffectEfmDelete(0, ESP_CORE_KIND_MARK, pl);

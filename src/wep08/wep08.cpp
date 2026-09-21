@@ -36,7 +36,7 @@ void ObjStriker_init(cObj* obj);
 void Wep08_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x2F);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_STRIKER);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep08_init() cObjWep CREATE FAILED");

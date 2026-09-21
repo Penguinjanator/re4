@@ -55,7 +55,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         return 0;
     }
     em->type = type;
-    EtcSetAddAmb(em, 5);
+    EtcSetAddAmb(em, ETC_AMB_HIT);
     cModel* parent = 0;
     w->x248 = 0xFF;
     w->size.x = 200.0f;

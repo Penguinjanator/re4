@@ -20,7 +20,7 @@ void ObjKnife_init(cObj* obj);
 void Wep16_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjKnife* obj = (cObjKnife*) ObjMgr.createBack(0x24);
+    cObjKnife* obj = (cObjKnife*) ObjMgr.createBack(cObjMgr::ID_WEP_KNIFE);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep16_init() cObjWep CREATE FAILED");

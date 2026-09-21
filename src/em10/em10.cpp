@@ -868,10 +868,10 @@ void em10DmCk(cEm10* em)
     }
     if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->Eff_timer == 0) {
                 if (w->pGatling) {
                     w->Eff_timer = 120;
@@ -6737,7 +6737,7 @@ static void em10_R1_Dash(cEm10* em)
     em10CsawSignSe(em);
     em10BehindSeCk(em);
     if (em->type == 0xA || em->type == 0xD) {
-        DmgMgr.set(3, 2, &em->pos, 1500.0f, 1000.0f);
+        DmgMgr.set(DMG_TYPE_PUSH, 2, &em->pos, 1500.0f, 1000.0f);
     }
 }
 
@@ -14716,7 +14716,7 @@ static void em10_R1_Dm_Showtay(cEm10* em)
                 break;
             }
         }
-        DmgMgr.set(3, 2, &em->pos, 1500.0f, 800.0f);
+        DmgMgr.set(DMG_TYPE_PUSH, 2, &em->pos, 1500.0f, 800.0f);
         break;
     case 2:
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x2B6), 0, 3, 1, 0);
@@ -24615,7 +24615,7 @@ static void plem10NeckBreak(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
             end = EmCatchMotionMove(pl, 1.0f, 1.0f);
-            DmgMgr.set(3, 2, &pl->pos, 1500.0f, 1500.0f);
+            DmgMgr.set(DMG_TYPE_PUSH, 2, &pl->pos, 1500.0f, 1500.0f);
         } else {
             end = MotionMove(pl, 0);
         }
@@ -24866,7 +24866,7 @@ extern "C" void plem10KickCamMove(cPlayer* pl, int a)
 void em10SetCrash(cEm10* em, f32 r)
 {
     if (em->seFlags28B & 0x10) {
-        DmgMgr.set(3, 2, &em->pos, 1500.0f, r);
+        DmgMgr.set(DMG_TYPE_PUSH, 2, &em->pos, 1500.0f, r);
     }
 }
 
@@ -24909,7 +24909,7 @@ int em10CrashCk(cEm10* em)
     if (em->type == 6) {
         return 0;
     }
-    r = DmgMgr.hitCheck(&em->pos, &v) == 3;
+    r = DmgMgr.hitCheck(&em->pos, &v) == DMG_TYPE_PUSH;
     if (w->pShield && w->pShield->hp <= 0) {
         v.x = 0.0f;
         v.y = 1000.0f;

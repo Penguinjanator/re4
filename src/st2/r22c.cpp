@@ -550,7 +550,7 @@ static void r22c_ShootingStar()
     SceSleep(90);
     SndCall(6, 0x15, 0, 0, 0, 0);
     SceSleep(90);
-    cObj* o = ObjMgr.create(2);
+    cObj* o = ObjMgr.create(cObjMgr::ID_SCROLL);
     pos.x = -3951.0f;
     pos.y = 9000.0f;
     pos.z = -25337.0f;

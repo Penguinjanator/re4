@@ -105,7 +105,7 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     int i;
     void** p;
 
-    obj = ObjMgr.create(0x3E);
+    obj = ObjMgr.create(cObjMgr::ID_BULL);
     if (obj == 0) {
         return 0;
     }

@@ -125,24 +125,24 @@ void cDataUnit::fixMramAddr(u32 a)
 // 1 when the data is in MRAM and usable (condition 2); 0 while idle or elsewhere.
 int cDataUnit::isUseOk()
 {
-    if (m_condition == 0 && m_command == 0) {
+    if (m_condition == COND_NO_DATA && m_command == 0) {
         m_err = 5;
         return 0;
     }
-    return getCondition() == 2;
+    return getCondition() == COND_MRAM_OK;
 }
 
 // Blocks (TaskSleep) until the data is in MRAM; 0 when the unit is idle or the wait failed.
 int cDataUnit::waitUseOk()
 {
-    if (m_condition == 0 && m_command == 0) {
+    if (m_condition == COND_NO_DATA && m_command == 0) {
         m_err = 5;
         return 0;
     }
     while (isUseOk() == 0) {
         m_wait = 1;
         checkCondition();
-        if (getCondition() == 4) {
+        if (getCondition() == COND_ARAM_OK) {
             checkCommand();
         }
         if (m_err != 0) {
@@ -155,11 +155,11 @@ int cDataUnit::waitUseOk()
 // 1 when the data is resident in MRAM or ARAM (condition 2 or 4).
 int cDataUnit::isLoadOk()
 {
-    if (m_condition == 0 && m_command == 0) {
+    if (m_condition == COND_NO_DATA && m_command == 0) {
         m_err = 5;
         return 0;
     }
-    if (m_condition == 2 || m_condition == 4) {
+    if (m_condition == COND_MRAM_OK || m_condition == COND_ARAM_OK) {
         return 1;
     }
     return 0;
@@ -168,7 +168,7 @@ int cDataUnit::isLoadOk()
 // Blocks until the data is resident somewhere.
 int cDataUnit::waitLoadOk()
 {
-    if (m_condition == 0 && m_command == 0) {
+    if (m_condition == COND_NO_DATA && m_command == 0) {
         m_err = 5;
         return 0;
     }
@@ -191,14 +191,14 @@ void cDataUnit::setLoadToMram()
     int no;
 
     switch (m_condition) {
-    case 1:
-    case 3:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
+    case COND_MRAM_LOAD:
+    case COND_ARAM_LOAD:
+    case COND_ARAM_TO_MRAM:
+    case COND_MRAM_TO_ARAM:
+    case COND_ARAM_TO_ARAM:
+    case COND_MRAM_TO_MRAM:
         break;
-    case 0:
+    case COND_NO_DATA:
         if (m_fix_addr == 0) {
             if (arg == 0) {
                 if (DC.dbgHeap == 1) {
@@ -229,7 +229,7 @@ void cDataUnit::setLoadToMram()
         m_id = no;
         if (no >= 0) {
             m_command = 0;
-            m_condition = 1;
+            m_condition = COND_MRAM_LOAD;
             if (wait == 1) {
                 checkLoadToMram();
             }
@@ -240,7 +240,7 @@ void cDataUnit::setLoadToMram()
             pLog->err(0, 0, "cDataUnit::setLoadToMram command error");
         }
         break;
-    case 2:
+    case COND_MRAM_OK:
         if (m_fix_addr == 0) {
             if (arg != 0 && arg != (u32) m_addr) {
                 checkMallocRelease();
@@ -257,7 +257,7 @@ void cDataUnit::setLoadToMram()
         m_command = 0;
         OSReport("DC:%s set MRAM_TO_MRAM\n", m_name);
         break;
-    case 4:
+    case COND_ARAM_OK:
         if (m_fix_addr == 0) {
             if (arg == 0) {
                 if (DC.dbgHeap == 1) {
@@ -283,7 +283,7 @@ void cDataUnit::setLoadToMram()
         m_id = no;
         if (no >= 0) {
             m_command = 0;
-            m_condition = 5;
+            m_condition = COND_ARAM_TO_MRAM;
             if (wait == 1) {
                 checkAramToMram();
             }
@@ -305,14 +305,14 @@ void cDataUnit::setLoadToAram()
     int no;
 
     switch (m_condition) {
-    case 1:
-    case 3:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
+    case COND_MRAM_LOAD:
+    case COND_ARAM_LOAD:
+    case COND_ARAM_TO_MRAM:
+    case COND_MRAM_TO_ARAM:
+    case COND_ARAM_TO_ARAM:
+    case COND_MRAM_TO_MRAM:
         break;
-    case 0:
+    case COND_NO_DATA:
         if (arg == 0) {
             dest = DC.getAramFree(m_size);
             if (dest == 0) {
@@ -332,7 +332,7 @@ void cDataUnit::setLoadToAram()
         m_id = no;
         if (no >= 0) {
             m_command = 0;
-            m_condition = 3;
+            m_condition = COND_ARAM_LOAD;
             if (wait == 1) {
                 checkLoadToAram();
             }
@@ -343,7 +343,7 @@ void cDataUnit::setLoadToAram()
             pLog->err(0, 0, "cDataUnit::setLoadToAram command error");
         }
         break;
-    case 2:
+    case COND_MRAM_OK:
         if (arg == 0) {
             dest = DC.getAramFree(m_size);
             if (dest == 0) {
@@ -358,7 +358,7 @@ void cDataUnit::setLoadToAram()
         m_id = no;
         if (no >= 0) {
             m_command = 0;
-            m_condition = 6;
+            m_condition = COND_MRAM_TO_ARAM;
             if (wait == 1) {
                 checkMramToAram();
             }
@@ -369,7 +369,7 @@ void cDataUnit::setLoadToAram()
             pLog->err(0, 0, "cDataUnit::setLoadToAram command error");
         }
         break;
-    case 4:
+    case COND_ARAM_OK:
         if (arg != 0 && arg != (u32) m_addr) {
             if (DC.dbgHeap == 1) {
                 dest = (u32) Debug_alloc(m_size, 1);
@@ -383,7 +383,7 @@ void cDataUnit::setLoadToAram()
                 m_id = no;
                 if (no >= 0) {
                     m_command = 0;
-                    m_condition = 7;
+                    m_condition = COND_ARAM_TO_ARAM;
                     OSReport("DC:%s set ARAM_TO_ARAM\n", m_name);
                 } else {
                     m_err = 3;
@@ -405,21 +405,21 @@ int cDataUnit::setClear()
 {
     m_command = 0;
     switch (m_condition) {
-    case 5:
-    case 6:
-    case 7:
+    case COND_ARAM_TO_MRAM:
+    case COND_MRAM_TO_ARAM:
+    case COND_ARAM_TO_ARAM:
         Aram.DmaCancel(m_id);
         break;
-    case 2:
-    case 4:
-    case 8:
+    case COND_MRAM_OK:
+    case COND_ARAM_OK:
+    case COND_MRAM_TO_MRAM:
         break;
-    case 1:
-    case 3:
+    case COND_MRAM_LOAD:
+    case COND_ARAM_LOAD:
         Dvd.ReadCancel(m_id, 0x40);
         Dvd.ReadCheck(m_id, NULL, NULL, NULL);
         break;
-    case 0:
+    case COND_NO_DATA:
         goto clear;
     default:
         goto ret;
@@ -429,7 +429,7 @@ clear:
     checkMallocRelease();
     m_addr = NULL;
     dest = 0;
-    m_condition = 0;
+    m_condition = COND_NO_DATA;
 ret:
     return 1;
 }
@@ -455,7 +455,7 @@ void cDataUnit::checkLoadToMram()
     }
     ret = Dvd.ReadCheck(m_id, NULL, NULL, NULL);
     if (ret > 0) {
-        m_condition = 2;
+        m_condition = COND_MRAM_OK;
         m_addr = (void*) dest;
         OSReport("DC:%s check MRAM_OK\n", m_name);
     } else if (ret < 0) {
@@ -476,7 +476,7 @@ void cDataUnit::checkLoadToAram()
     }
     ret = Dvd.ReadCheck(m_id, NULL, NULL, NULL);
     if (ret > 0) {
-        m_condition = 4;
+        m_condition = COND_ARAM_OK;
         m_addr = (void*) dest;
         OSReport("DC:%s check ARAM_OK\n", m_name);
     } else if (ret < 0) {
@@ -498,7 +498,7 @@ void cDataUnit::checkAramToMram()
         done = 1;
     }
     if (Aram.TransCheck(m_id) == 1 || done == 1) {
-        m_condition = 2;
+        m_condition = COND_MRAM_OK;
         m_addr = (void*) dest;
         OSReport("DC:%s check MRAM_OK\n", m_name);
     }
@@ -518,7 +518,7 @@ void cDataUnit::checkMramToAram()
     }
     if (Aram.TransCheck(m_id) == 1 || done == 1) {
         checkMallocRelease();
-        m_condition = 4;
+        m_condition = COND_ARAM_OK;
         m_addr = (void*) dest;
         OSReport("DC:%s check ARAM_OK\n", m_name);
     }
@@ -541,7 +541,7 @@ void cDataUnit::checkAramToAram()
         m_id = Aram.DmaTransReq(0, dest, arg, m_size, wait);
         dest = arg;
         if (m_id >= 0) {
-            m_condition = 6;
+            m_condition = COND_MRAM_TO_ARAM;
             OSReport("DC:%s set MRAM_TO_ARAM\n", m_name);
         } else {
             m_err = 3;
@@ -631,27 +631,27 @@ u32 cDataCtrl::getAramFree(u32 size)
         u = &m_DataUnit[i];
         if (u->chk(1) != 0) {
             switch (u->getCondition()) {
-            case 7:
+            case COND_ARAM_TO_ARAM:
                 tbl[n].addr = u->arg;
                 tbl[n].size = u->m_size;
                 n++;
                 // fallthrough
-            case 4:
-            case 5:
+            case COND_ARAM_OK:
+            case COND_ARAM_TO_MRAM:
                 tbl[n].addr = (u32) u->m_addr;
                 tbl[n].size = u->m_size;
                 n++;
                 break;
-            case 3:
-            case 6:
+            case COND_ARAM_LOAD:
+            case COND_MRAM_TO_ARAM:
                 tbl[n].addr = u->dest;
                 tbl[n].size = u->m_size;
                 n++;
                 break;
-            case 0:
-            case 1:
-            case 2:
-            case 8:
+            case COND_NO_DATA:
+            case COND_MRAM_LOAD:
+            case COND_MRAM_OK:
+            case COND_MRAM_TO_MRAM:
                 break;
             }
         }
@@ -712,7 +712,7 @@ void cDataCtrl::initDataUnit()
         u = &m_DataUnit[i];
         memclr_asm(u, sizeof(cDataUnit));
         u->m_be_flag &= ~1;
-        u->setCondition(0);
+        u->setCondition(COND_NO_DATA);
         u->setCommand(0, 0, 0);
         u->m_err = 0;
         u->fixMramAddr(0);
@@ -760,7 +760,7 @@ cDataUnit* cDataCtrl::getNewUnit()
         u = &m_DataUnit[i];
         if (u->chk(1) == 0) {
             u->m_be_flag |= 1;
-            u->setCondition(0);
+            u->setCondition(COND_NO_DATA);
             u->setCommand(0, 0, 0);
             u->m_err = 0;
             u->m_size = 0;
@@ -800,20 +800,20 @@ int cDataCtrl::checkAramSort()
         if (u->chk(1) != 0) {
             if (u->getCommand() == 0) {
                 switch (u->getCondition()) {
-                case 0:
-                case 1:
-                case 2:
+                case COND_NO_DATA:
+                case COND_MRAM_LOAD:
+                case COND_MRAM_OK:
                     break;
-                case 4:
+                case COND_ARAM_OK:
                     tbl[n] = u;
                     n++;
                     break;
-                case 3:
-                case 5:
-                case 6:
-                case 7:
+                case COND_ARAM_LOAD:
+                case COND_ARAM_TO_MRAM:
+                case COND_MRAM_TO_ARAM:
+                case COND_ARAM_TO_ARAM:
                     return 0;
-                case 8:
+                case COND_MRAM_TO_MRAM:
                     break;
                 }
             } else {

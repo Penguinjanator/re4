@@ -330,10 +330,10 @@ void em31DmCk(cEm31* em)
     }
     if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->Fire_timer == 0) {
                 w->Fire_timer = 120;
             }
@@ -3025,7 +3025,7 @@ static void plem31_Climb(cPlayer* pl)
         PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
         pl->ang.y = pl->pEmCatch->ang.y;
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x83), 0, 0, 0x201, 0);
-        em31CatchObj.p = ObjMgr.create(0xB);
+        em31CatchObj.p = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         if (em31CatchObj.p) {
             em31CatchObj.p->modelInit(EM_ARC(pl, 0x86), EM_ARC(pl, 0x85));
             em31CatchObj.p->atari.m_flag &= 0xFCFF;

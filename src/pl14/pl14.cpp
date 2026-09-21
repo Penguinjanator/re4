@@ -636,7 +636,7 @@ void cRoutine::moveThrowItem()
 // Creates the thrown item (ObjMgr id 0x1E) at his right hand, flying towards the player.
 void cRoutine::setItem()
 {
-    cObjLuisItem* item = (cObjLuisItem*) ObjMgr.create(0x1E);
+    cObjLuisItem* item = (cObjLuisItem*) ObjMgr.create(cObjMgr::ID_LUIS_ITEM);
     item->init(&owner->getPartsPtr(10)->world, owner->ang.y);
 }
 
@@ -1450,7 +1450,7 @@ int cSubLuis::damageCheck()
 // (parts 10) with a light area and himself as the weapon parent.
 void cSubLuis::equipWeapon()
 {
-    pItem = (cObjLuisItem*) ObjMgr.createBack(0xB);
+    pItem = (cObjLuisItem*) ObjMgr.createBack(cObjMgr::ID_PL_WEAPON);
     if (pItem == 0) {
         pLog->err(0, 0, "Luis.equipWeapon() CREATE FAILED");
     } else {

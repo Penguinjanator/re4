@@ -112,7 +112,7 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     int i;
     void** p;
 
-    obj = ObjMgr.create(0x3B);
+    obj = ObjMgr.create(cObjMgr::ID_TROLLEY);
     if (obj == 0) {
         return 0;
     }

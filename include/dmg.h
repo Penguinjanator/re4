@@ -6,12 +6,26 @@
 #include "cManager.h"
 #include "main_mem.h"
 
+// Damage volume kind (PS2 DMG_TYPE): cDmgMgr::set `type` / cDmg::kind, returned by hitCheck.
+enum DMG_TYPE {
+    DMG_TYPE_NO_HIT = 0,
+    DMG_TYPE_FIRE = 1,
+    DMG_TYPE_GRENADE_BLAST = 2,
+    DMG_TYPE_PUSH = 3,
+    DMG_TYPE_FLAME = 4,
+    DMG_TYPE_LAMP = 5,
+    DMG_TYPE_ENV_LIGHT = 6,
+    DMG_TYPE_ENV_FIRE = 7,
+    DMG_TYPE_GRENADE = 8,
+    DMG_TYPE_GIRL = 9
+};
+
 // Damage volume (game/dmg.cpp): a cylinder (id 0) or an XZ quad (id 1) that hurts whatever
 // stands in it for `timer` frames.
 class cDmg : public cUnit {
 public:
-    u32 m_Id;      // 0x0C  construct id: 0 cylinder, 1 quad
-    int kind;    // 0x10  damage kind, returned by hitCheck (1/4/5/7 break the item enemies)
+    u32 m_Id;      // 0x0C  construct id (cDmgMgr::ID): ID_CYLINDER, ID_POINT4
+    int kind;    // 0x10  DMG_TYPE, returned by hitCheck (FIRE/FLAME/LAMP/ENV_FIRE break the item enemies)
     int m_Time;   // 0x14  frames left
 
     virtual ~cDmg() {}
@@ -44,6 +58,12 @@ public:
     virtual void* memAlloc(u32 size) { return MEM_ALLOC(size, 1, 13); }
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(cDmg* p, u32 size) { memclr_asm(p, size); }
+    // Construct ids (PS2 cDmgMgr::ID): cDmg::m_Id.
+    enum ID {
+        ID_CYLINDER = 0,
+        ID_POINT4 = 1
+    };
+
     virtual int construct(cDmg* p, u32 id);
     int construct(cDmg* p, int id);
 

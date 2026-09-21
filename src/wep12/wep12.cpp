@@ -33,7 +33,7 @@ void Wep12_init(cModel* m)
 // Creates the cObjTompson (ObjMgr id 0x25) and inits it on the player; NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x25);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_TOMPSON);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep12_init() cObjWep CREATE FAILED");

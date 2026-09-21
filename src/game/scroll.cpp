@@ -129,7 +129,7 @@ int setObj(int blk)
         if (w->id == 0xFF) {
             continue;
         }
-        obj = ObjMgr.createBack(2);
+        obj = ObjMgr.createBack(cObjMgr::ID_SCROLL);
         if (obj == NULL) {
             pLog->err(0, 0, "SmdInit() setObj() CAN'T ALLOC cObj WORK %d", i);
             continue;
@@ -637,9 +637,9 @@ cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int fro
     Vec d;
 
     if (front == 1) {
-        obj = ObjMgr.create(2);
+        obj = ObjMgr.create(cObjMgr::ID_SCROLL);
     } else {
-        obj = ObjMgr.createBack(2);
+        obj = ObjMgr.createBack(cObjMgr::ID_SCROLL);
     }
     if (obj == NULL) {
         return NULL;

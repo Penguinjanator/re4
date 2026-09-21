@@ -33,7 +33,7 @@ void Wep36_move(cPlayer* pl)
 // hand model from the player archive (0x12; right hand 1, left hand 0). NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x3d);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HAND);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep36_init() cObjWep CREATE FAILED");

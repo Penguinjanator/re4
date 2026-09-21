@@ -3766,8 +3766,8 @@ void cSubChar::dmgCheck()
         return;
     }
     switch (DmgMgr.hitCheck(&getPartsPtr(0)->world, 0)) {
-    case 2:
-    case 8: {
+    case DMG_TYPE_GRENADE_BLAST:
+    case DMG_TYPE_GRENADE: {
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
@@ -3797,8 +3797,8 @@ void cSubChar::dmgCheck()
         }
         break;
     }
-    case 1:
-    case 4: {
+    case DMG_TYPE_FIRE:
+    case DMG_TYPE_FLAME: {
         LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (StaFlagChk(pG, STA_SUB_LADDER)) {
@@ -3814,7 +3814,7 @@ void cSubChar::dmgCheck()
         }
         break;
     }
-    case 5:
+    case DMG_TYPE_LAMP:
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->ashley_life > 0) {
             dmg.m_Timer = 0x5A;

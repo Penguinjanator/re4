@@ -707,7 +707,7 @@ void Event::ControlTransFlag()
                 m->be_flag |= 0x20;
                 m->be_flag |= 2;
             }
-            if (m->kindid == 1 && m->id == 0x18) {
+            if (m->kindid == 1 && m->id == cObjMgr::ID_EVENT) {
                 w = &((cObj*) m)->o18;
                 if (w->type == OBJ18_TYPE_ADA && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
                     if ((m->be_flag & 0x20) == 0) {
@@ -1196,7 +1196,7 @@ int Event::ExePacket_Pos(Event* evt)
         rot.z += oya->ang.z;
     }
     if (pac->flag & 0x40000000) {
-        if (m->kindid == 1 && m->id == 0x18) {
+        if (m->kindid == 1 && m->id == cObjMgr::ID_EVENT) {
             OyaSetObj18((cObj*) m, oya, pac->pos.partsNo);
             m->LightInfo.Flag = 1;
         }
@@ -1251,7 +1251,7 @@ int Event::ExePacket_Mot(Event* evt)
         m->be_flag |= 0x00200000;
     }
     ClrShape(m);
-    if (m->kindid == 1 && m->id == 0x18) {
+    if (m->kindid == 1 && m->id == cObjMgr::ID_EVENT) {
         Obj18Work* w = &((cObj*) m)->o18;
         t = w->type;
         if ((t >= 1 && t <= 4) || t == 7 || t == 8 || t == 9 || t == 0xA || t == 0x13 || t == 0x14 || t == 0x15 || t == 0x16

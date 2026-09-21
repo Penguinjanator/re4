@@ -63,7 +63,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         EmMgr.destroy(em);
         return 0;
     }
-    EtcSetAddAmb(em, 8);
+    EtcSetAddAmb(em, ETC_AMB_RACK);
     w->Eff_id = 0xFF;
     em->type = type;
     switch (em->type) {
@@ -172,10 +172,10 @@ void emRackDmCk(cEmRack* em)
         if (type >= 0) {
             if (type <= 1) {
                 switch (DmgMgr.hitCheck(&em->pos, &hit)) {
-                case 1:
-                case 4:
-                case 5:
-                case 7:
+                case DMG_TYPE_FIRE:
+                case DMG_TYPE_FLAME:
+                case DMG_TYPE_LAMP:
+                case DMG_TYPE_ENV_FIRE:
                     em->hp = 0;
                     em->r_no_0 = 1;
                     em->r_no_1 = 2;

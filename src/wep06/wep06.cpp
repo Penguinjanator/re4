@@ -37,7 +37,7 @@ void Wep06_init(cModel* m)
     cPlayer* pl = (cPlayer*) m;
     cObjWep* obj;
 
-    obj = (cObjWep*) ObjMgr.createBack(0x31);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_GOVERNMENT);
     if (obj == 0) {
         pLog->err(0, 0, "Wep06_init() cObjWep CREATE FAILED");
     } else {

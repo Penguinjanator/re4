@@ -2370,7 +2370,7 @@ void cR31CDoor::setClosed()
 
 void cR31CCountDown::countStart()
 {
-    Cckpt.countDown.m_state |= 1;
+    Cckpt.countDown.m_state |= TIMER_STA_ALIVE;
     Cckpt.getCountDown()->initTime(3, 0, 0);
     Cckpt.getCountDown()->warnTime(0, 0, 0);
     setDisp(1);
@@ -2392,7 +2392,7 @@ void cR31CCountDown::countEnd()
 void cR31CCountDown::setPause(int on)
 {
     if (on == 1) {
-        Cckpt.countDown.m_state |= 8;
+        Cckpt.countDown.m_state |= TIMER_STA_PAUSE;
         state = 2;
     } else {
         Cckpt.countDown.m_state &= ~8;
@@ -2419,7 +2419,7 @@ int cR31CCountDown::isTimeOut()
         CountDown* cd = Cckpt.getCountDown();
         int over = 0;
 
-        if (cd->checkState(1)) {
+        if (cd->checkState(TIMER_STA_ALIVE)) {
             over = cd->m_frame == 0;
         }
         return over;

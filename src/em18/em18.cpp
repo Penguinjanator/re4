@@ -80,8 +80,8 @@ void em18DmCk(cEm18* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_ENV_FIRE:
             em->hp = 0;
             EmSetDie(em);
             EmRoutineSet(em, 3, 0, 0, 0);

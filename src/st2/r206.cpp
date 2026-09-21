@@ -541,7 +541,7 @@ int fire_die_ck()
     int kind;
 
     kind = DmgMgr.hitCheck(&pSUB->pos, &out);
-    if (kind != 1 && kind != 7) {
+    if (kind != DMG_TYPE_FIRE && kind != DMG_TYPE_ENV_FIRE) {
         return 0;
     }
     return 1;

@@ -73,18 +73,18 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     em->type = type;
     switch (em->type) {
     default:
-        EtcSetAddAmb(em, 3);
+        EtcSetAddAmb(em, ETC_AMB_BOX);
         break;
     case 4:
-        EtcSetAddAmb(em, 9);
+        EtcSetAddAmb(em, ETC_AMB_NEST);
         break;
     case 6:
     case 7:
-        EtcSetAddAmb(em, 11);
+        EtcSetAddAmb(em, ETC_AMB_TUBO);
         break;
     case 3:
     case 5:
-        EtcSetAddAmb(em, 1);
+        EtcSetAddAmb(em, ETC_AMB_BARREL);
         break;
     }
     w->Eff_id = 0xFF;
@@ -244,10 +244,10 @@ void emBoxDmCk(cEmBox* em)
 
     if (em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hit)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             emBoxSetBreak(em, 0);
             return;
         }

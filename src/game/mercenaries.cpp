@@ -243,7 +243,7 @@ int MercSysMoveStart(MercSysWork* wk)
     SceEventStart(1);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
-    Cckpt.getCountDown()->m_state |= 1;
+    Cckpt.getCountDown()->m_state |= TIMER_STA_ALIVE;
     Cckpt.getCountDown()->initTime(MercMin, MercSec, MercCes);
     // Codeless fake store surviving to global alloc: one more real insn in the range of the
     // hoisted `mercId.idsys` high (r24) but not in `&cMes`'s (r25), so their equal-priority
@@ -477,7 +477,7 @@ int MercSysMoveMain(MercSysWork* wk)
             CountDown* cd = Cckpt.getCountDown();
             int end = 0;
 
-            if (cd->checkState(1)) {
+            if (cd->checkState(TIMER_STA_ALIVE)) {
                 end = cd->m_frame == 0;
             }
             if (end == 1) {

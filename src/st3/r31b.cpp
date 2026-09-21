@@ -805,7 +805,7 @@ void R31bExecDeathTimerMainSub(int no, int light, int frames)
 
     BitOn(pG->Room_flg[0], 0x40000000);
     cd->frameIn();
-    Cckpt.countDown.m_state |= 1;
+    Cckpt.countDown.m_state |= TIMER_STA_ALIVE;
     cd->initTime(0, 30, 0);
     cd->warnTime(0, 10, 0);
     frame = 0;
@@ -821,7 +821,7 @@ void R31bExecDeathTimerMainSub(int no, int light, int frames)
         }
         cd = Cckpt.getCountDown();
         over = 0;
-        if (cd->checkState(1)) {
+        if (cd->checkState(TIMER_STA_ALIVE)) {
             over = cd->m_frame == 0;
         }
         if (over == 1) {

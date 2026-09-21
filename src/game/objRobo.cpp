@@ -53,7 +53,7 @@ cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     RoboWork* w;
 
-    obj = ObjMgr.create(0x37);
+    obj = ObjMgr.create(cObjMgr::ID_ROBO);
     if (obj == 0) {
         return 0;
     }

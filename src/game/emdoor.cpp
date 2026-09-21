@@ -119,7 +119,7 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
         em->type = 1;
     }
     em->pXFlip = emDoor_xflip_tbl;
-    EtcSetAddAmb(em, 2);
+    EtcSetAddAmb(em, ETC_AMB_DOOR);
     zero = 0;
     w->Eff_id = 0xFF;
     AtariInit(&em->atari, -w->Width, w->Height * 0.5f, 0.0f, w->Width + 50.0f, 150.0f, 150.0f, w->Height * 0.5f + 50.0f, zero, 2, zero);

@@ -46,7 +46,7 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
     Vec p0;
     Vec p1;
 
-    obj = ObjMgr.create(0x14);
+    obj = ObjMgr.create(cObjMgr::ID_BELL);
     if (obj == 0) {
         return 0;
     }

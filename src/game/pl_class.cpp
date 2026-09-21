@@ -659,15 +659,15 @@ void cPlayer::dmgCheck()
         return;
     }
     switch (DmgMgr.hitCheck(&getPartsPtr(0)->world, 0)) {
-    case 2:
-    case 8:
+    case DMG_TYPE_GRENADE_BLAST:
+    case DMG_TYPE_GRENADE:
         setDamage(0, 0, 123.0f, 0, 8);
         break;
-    case 1:
-    case 5:
+    case DMG_TYPE_FIRE:
+    case DMG_TYPE_LAMP:
         setDamage(0, 3, 123.0f, 0, 0x19);
         break;
-    case 4:
+    case DMG_TYPE_FLAME:
         setDamage(0, 10, 123.0f, 0, 0x18);
         break;
     }

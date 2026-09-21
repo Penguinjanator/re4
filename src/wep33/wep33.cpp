@@ -35,7 +35,7 @@ void ObjShotgun_init(cObj* obj);
 void Wep33_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x2B);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_SHOTGUN);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep33_init() cObjWep CREATE FAILED");

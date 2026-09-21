@@ -20,7 +20,7 @@ void Wep13_init(cModel* m)
     cObjWep* obj;
 
     pl->stat &= ~0x400;
-    obj = (cObjWep*) ObjMgr.createBack(0x23);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_LAUNCHER);
     if (obj == 0) {
         pLog->err(0, 0, "Wep13_init() cObjWep CREATE FAILED");
     } else {

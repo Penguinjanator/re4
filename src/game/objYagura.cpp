@@ -34,7 +34,7 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     YaguraWork* w;
 
-    obj = ObjMgr.create(0x39);
+    obj = ObjMgr.create(cObjMgr::ID_YAGURA);
     if (obj == 0) {
         return 0;
     }

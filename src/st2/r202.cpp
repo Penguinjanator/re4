@@ -230,7 +230,7 @@ void R202Init()
             }
         }
     }
-    r202_work.p->box = ObjMgr.create(2);
+    r202_work.p->box = ObjMgr.create(cObjMgr::ID_SCROLL);
     r202_work.p->box->pos.x = 20221.0f;
     r202_work.p->box->pos.y = 0.0f;
     r202_work.p->box->pos.z = -26500.0f;

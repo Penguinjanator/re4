@@ -231,10 +231,10 @@ void em39DmCk(cEm39* em)
 
     if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->Fire_timer == 0) {
                 if (w->Be_flg & 0x100) {
                     return;
@@ -5783,7 +5783,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         pl->ang.y = pl->pEmCatch->ang.y + PI;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x122), 0, 0, 1, 0);
-        em39CliffObj.p = ObjMgr.create(0xB);
+        em39CliffObj.p = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         if (em39CliffObj.p) {
             em39CliffObj.p->modelInit(PL_ARC_PTR(pl->subArc, 0x129), PL_ARC_PTR(pl->subArc, 0x128));
             U16And(em39CliffObj.p->atari.m_flag, 0xFCFF);

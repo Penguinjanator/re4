@@ -68,7 +68,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     SpearWork* w;
 
-    obj = ObjMgr.create(0x1B);
+    obj = ObjMgr.create(cObjMgr::ID_SPEAR);
     if (obj == 0) {
         return 0;
     }

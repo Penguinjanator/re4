@@ -64,7 +64,7 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     cModelInfo* info;
     ModelBound* b;
 
-    obj = ObjMgr.createBack(0x18);
+    obj = ObjMgr.createBack(cObjMgr::ID_EVENT);
     if (obj == 0) {
         return 0;
     }

@@ -202,7 +202,7 @@ int getRoomEtcTorch(int no, cEm** out, int flag);
 int getRoomEtcSwitch(int no, cEm** out, int flag);
 int getRoomEtcBarred(int no, cEm** out, int flag);
 int getRoomEtcDram(int no, cEm** out, int flag);
-int GetEtcAmbType();
+ETC_AMB_TYPE GetEtcAmbType();
 int GetEm10EyeEffectEnable();
 void EtcSetAddAmb(cModel* m, int no);
 }
@@ -2661,91 +2661,91 @@ int getRoomEtcOnLight(u32 id, cModel** out, int flag)
 // The window (any of the et00.cpp window ids) in slot `no`.
 int getRoomEtcWindow(int no, cEm** out, int flag)
 {
-    if (getRoomEtc(no, ETC_WINDOW00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW00, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW07, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW07, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW1D, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW1D, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW25, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW25, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW29, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW29, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW2C, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW2C, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW35, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW35, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW36, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW36, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW44, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW44, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW48, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW48, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW4A, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW4A, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW50, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW50, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW51, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW51, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW52, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW52, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW53, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW53, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW54, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW54, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW55, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW55, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW56, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW56, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW57, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW57, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW58, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW58, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5A, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5A, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5B, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5B, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5C, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5C, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5D, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5D, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5E, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5E, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5F, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5F, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW60, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW60, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW64, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW64, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW65, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW65, (cEm**) out, 0) == 1) {
         return 1;
     }
     if (flag) {
@@ -2787,112 +2787,112 @@ int getRoomEtcBox(int no, cEm** out, int flag)
 // The door (any door etc id) in slot `no`.
 int getRoomEtcDoor(int no, cEm** out, int flag)
 {
-    if (getRoomEtc(no, ETC_DOOR00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR00, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR01, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR02, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR03, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR03, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR04, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR04, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR05, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR05, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR06, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR06, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR00, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR01, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR02, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR03, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR03, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR04, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR04, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR05, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR05, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR06, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR06, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR07, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR07, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR08, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR08, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR10, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR10, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR11, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR11, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR12, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR12, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR13, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR13, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR14, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR14, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR15, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR15, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR17, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR17, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR18, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR18, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR19, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR19, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR20, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR20, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR21, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR21, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR22, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR22, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR23, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR23, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR24, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR24, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR25, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR25, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN00, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN01, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN02, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED06, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED06, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR_SP00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR_SP00, (cEm**) out, 0) == 1) {
         return 1;
     }
     if (flag) {
@@ -2928,10 +2928,10 @@ int getRoomEtcRack(int no, cEm** out, int flag)
 // The ladder (ids 06 / 08) in slot `no`.
 int getRoomEtcLadder(int no, cEm** out, int flag)
 {
-    if (getRoomEtc(no, ETC_HASIGO00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_HASIGO00, (cEm**) out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_HASIGO01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_HASIGO01, (cEm**) out, 0) == 1) {
         return 1;
     }
     if (flag) {
@@ -3064,34 +3064,34 @@ int getRoomEtcItem(int no, EtcItem** out, int flag)
 // copy's cross-jump in iteration 1 and delete the first copy into it in iteration 2. The empty
 // `asm volatile("")` at the top of the else arm (no code) keeps the else block from starting with
 // a set of r3, so the first copy survives as in the original.
-int GetEtcAmbType()
+ETC_AMB_TYPE GetEtcAmbType()
 {
     if (pG->room_id == 0x400 || pG->room_id == 0x403) {
-        return 0;
+        return ETC_AMB_DAY;
     } else if (pG->room_id == 0x402) {
-        return 3;
+        return ETC_AMB_DAY3;
     } else if (pG->room_id >= 0x404 && pG->room_id <= 0x411) {
-        return 1;
+        return ETC_AMB_NIGHT;
     } else if (pG->room_id == 0x331) {
-        return 2;
+        return ETC_AMB_DAY2;
     } else if (pG->room_id == 0x108) {
-        return 1;
+        return ETC_AMB_NIGHT;
     } else if (pG->room_id == 0x106) {
-        return 4;
+        return ETC_AMB_DAY4;
     } else if (pG->room_id == 0x102 || pG->room_id == 0x109 || pG->room_id == 0x119 || pG->room_id == 0x10A ||
                pG->room_id == 0x10B || pG->room_id == 0x327 || pG->room_id == 0x30F || pG->room_id == 0x31D) {
-        return 2;
+        return ETC_AMB_DAY2;
     } else if (pG->room_id >= 0x100 && pG->room_id <= 0x10B) {
-        return 0;
+        return ETC_AMB_DAY;
     } else if (pG->room_id >= 0x10C && pG->room_id <= 0x11E) {
-        return 1;
+        return ETC_AMB_NIGHT;
     } else {
         asm volatile("");
         u32 room = pG->room_id;
         if (room >= 0x200 && room <= 0x22A) {
-            return 3;
+            return ETC_AMB_DAY3;
         }
-        return room >= 0x300;
+        return (ETC_AMB_TYPE) (room >= 0x300);   // ETC_AMB_NIGHT in stage 3 and up, ETC_AMB_DAY below
     }
 }
 
@@ -3172,27 +3172,27 @@ void EtcSetAddAmb(cModel* m, int no)
     u8 b = 0;
 
     switch (GetEtcAmbType()) {
-    case 0:
+    case ETC_AMB_DAY:
         r = etc_day_rgb[no].r;
         g = etc_day_rgb[no].g;
         b = etc_day_rgb[no].b;
         break;
-    case 1:
+    case ETC_AMB_NIGHT:
         r = etc_night_rgb[no].r;
         g = etc_night_rgb[no].g;
         b = etc_night_rgb[no].b;
         break;
-    case 2:
+    case ETC_AMB_DAY2:
         r = etc_day2_rgb[no].r;
         g = etc_day2_rgb[no].g;
         b = etc_day2_rgb[no].b;
         break;
-    case 3:
+    case ETC_AMB_DAY3:
         r = etc_day3_rgb[no].r;
         g = etc_day3_rgb[no].g;
         b = etc_day3_rgb[no].b;
         break;
-    case 4:
+    case ETC_AMB_DAY4:
         r = etc_day4_rgb[no].r;
         g = etc_day4_rgb[no].g;
         b = etc_day4_rgb[no].b;

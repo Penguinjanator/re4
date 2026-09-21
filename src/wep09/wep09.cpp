@@ -35,7 +35,7 @@ void Wep09_init(cModel* m)
 // player's weapon) when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
-    cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x28);
+    cObjWep* obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_SNIPER);
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep09_init() cObjWep CREATE FAILED");

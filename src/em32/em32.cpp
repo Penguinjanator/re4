@@ -322,10 +322,10 @@ void em32DmCk(cEm32* em)
 
     if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
-        case 1:
-        case 4:
-        case 5:
-        case 7:
+        case DMG_TYPE_FIRE:
+        case DMG_TYPE_FLAME:
+        case DMG_TYPE_LAMP:
+        case DMG_TYPE_ENV_FIRE:
             if (w->dmGuard == 0) {
                 w->dmGuard = 120;
                 flag = 0;
@@ -3312,7 +3312,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
         pl->be_flag |= 2;
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0xA0), 0, 0, 1, 0);
         pl->Wep->setTrans(0, 0);
-        obj = ObjMgr.create(0xB);
+        obj = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         w->pCatchObj = obj;
         if (obj) {
             obj->modelInit(EM_ARC(pl, 0xAC), EM_ARC(pl, 0xAB));

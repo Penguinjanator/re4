@@ -18,7 +18,7 @@ void Wep01_init(cModel* m)
     cPlayer* pl = (cPlayer*) m;
     cObjWep* obj;
 
-    obj = (cObjWep*) ObjMgr.createBack(0x32);
+    obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_FN57);
     if (obj == 0) {
         pLog->err(0, 0, "Wep01_init() cObjFn57 CREATE FAILED");
     } else {

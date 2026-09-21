@@ -97,7 +97,7 @@ cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no)
     if (flg && (*flg & 1)) {
         return 0;
     }
-    obj = ObjMgr.create(0x13);
+    obj = ObjMgr.create(cObjMgr::ID_LADDER);
     if (obj == 0) {
         return 0;
     }
@@ -231,13 +231,13 @@ void objLadder_R1_Fall(cObjLadder* obj)
     v.z = 0.0f;
     PSMTXMultVec(obj->mat, &v, &v);
     v.y = obj->pos.y;
-    DmgMgr.set(3, 2, &v, 1500.0f, 1000.0f);
+    DmgMgr.set(DMG_TYPE_PUSH, 2, &v, 1500.0f, 1000.0f);
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 2000.0f;
     PSMTXMultVec(obj->mat, &v, &v);
     v.y = obj->pos.y;
-    DmgMgr.set(3, 2, &v, 1500.0f, 1000.0f);
+    DmgMgr.set(DMG_TYPE_PUSH, 2, &v, 1500.0f, 1000.0f);
     objLadderSatSet(obj);
     obj->sub2B4.atari.clrFlag200();
     if (w->pair) {

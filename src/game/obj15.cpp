@@ -37,7 +37,7 @@ cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     GatlingWork* w;
-    obj = ObjMgr.create(0x15);
+    obj = ObjMgr.create(cObjMgr::ID_GATLING);
     if (obj == 0) {
         return 0;
     }
