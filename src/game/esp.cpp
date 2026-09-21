@@ -374,7 +374,7 @@ int EspTrans()
             }
         }
         prio = 0x10;
-        if (trans == EspCommonTrans && esp->pad_EC[0] == 0 && !(esp->m_Tool_flg & 0x6000)) {
+        if (trans == EspCommonTrans && esp->m_Shimmer_type == 0 && !(esp->m_Tool_flg & 0x6000)) {
             prio = 8;
         }
         if (StaFlagChk(pG, STA_ITEM_GET)) {

@@ -55,7 +55,7 @@ struct TSceItemSys {
     u32 pAtWork;             // 0x04
     TSceItemFile* pItemData; // 0x08
     u8 pad_C[0x11D - 0xC];
-    u8 x11D;                 // 0x11D  pItemData was allocated by the tool
+    u8 m_use_tool_data_i;    // 0x11D  pItemData was allocated by the tool (PS2 SCE_AT_SYS m_use_tool_data_i)
     u8 pad_11E[2];
 };
 extern TSceItemSys SceAtSys;   // game/sce_at.cpp (static SceAtSysWork there, so not in sce_at.h; the REL link resolves the local symbol)
@@ -1455,7 +1455,7 @@ void tSceItemSetRoomData(int size)
     cObj* o;
     TSceItemFile* p;
 
-    if (SceAtSys.x11D == 1) Mem_free(SceAtSys.pItemData);
+    if (SceAtSys.m_use_tool_data_i == 1) Mem_free(SceAtSys.pItemData);
     for (i = 0; i < ObjMgr.getArrayNum(); i++) {
         o = ObjMgr.fastAt(i);
         if (o->isAlive() && o->id == 0x19) ObjMgr.destroy(o);
@@ -1465,7 +1465,7 @@ void tSceItemSetRoomData(int size)
     memcpy(p, &pW->file, size);
     SceAtInit(SceAtSys.pAtData, p);
     SceAtRoomSet();
-    SceAtSys.x11D = 1;
+    SceAtSys.m_use_tool_data_i = 1;
 }
 
 static s8 xmlDepth = 0;

@@ -47,7 +47,7 @@ struct TBlockArea {
     u32 tag;          // 0x00
     AreaData area;    // 0x04
     u8 flags;         // 0x34  bit0: active, bit1: initialised
-    u8 x35;           // 0x35  slot of the area in the tool's table
+    u8 slot;          // 0x35  slot of the area in the tool's table (written with pW->areaNo, indexes pW->area)
     u8 areaNo;        // 0x36
     u8 pri;           // 0x37
 };
@@ -733,7 +733,7 @@ static void tBlockArea_Create()
         AreaDataInit(&a->area, &pPL->pos, AREA_TYPE_XZ4, 10000.0f, 5000.0f);
     }
     a->flags |= 3;
-    a->x35 = pW->areaNo;
+    a->slot = pW->areaNo;
     a->areaNo = 0;
     a->pri = 0;
     pW->areaCursor = 0;
@@ -1345,7 +1345,7 @@ static void tBlockDataLoad()
             for (i = 0; i < pW->pFile->nArea; i++) {
                 TBlockArea* src = (TBlockArea*) (i * sizeof(TBlockArea) + (u32) pW->pArea);
 
-                *(TBlockArea*) (src->x35 * sizeof(TBlockArea) + (u32) pW->area) = *src;
+                *(TBlockArea*) (src->slot * sizeof(TBlockArea) + (u32) pW->area) = *src;
             }
             for (i = 0; i < pW->pFile->nConnect; i++) {
                 pW->connect[i] = pW->pConnect[i];

@@ -213,6 +213,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/esp_sub.cpp`
 
 - esp closer: sprite corner idiom in Shimmer/Nega, EspSeqSet real parameter order (f32 before out)
+- EspGenWork x10C..x10F / x124..x127 are the PS2 `signed char Espgen_work8[4]` / `Espgen_work8_2[4]` (esp.h); the u8 halves were kept only for lack of a name, espgen00/02 compile identically with the s8 arrays. EspGenPrm (0xCC..0xD4) stays: the PS2 has one `int Work32[3]` that every effect reads as its own bytes / halves, no per-view name exists
 
 ## `game/espgen02.cpp`
 
@@ -245,6 +246,10 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/file_app.cpp`
 
 - system units: file_lock reads pUser_name directly in each arm (a `path =` reassignment gives a phantom r31 save); pl_sub: `cPlayer* pl = pPL` before a switch, `goto` to a shared `return 0`, `const f32` limit across a call, guarded do/while list walks testing `next`
+
+## `game/flr_at.cpp`
+
+- FlrAt's per-type payload at 0x44 is the PS2 union (FLR_AT_SE_TYPE / SE_VOLCTRL / BGM_VOL / THUNDER_VOL, flr_at.h): the flat x44..x54 bytes were three overlapping records; snd.cpp's SndFlrAtBgm block was FLR_AT_BGM_VOL, and its `str_vol` is `str_fade_time` (SndStrReq's `time` argument). set_vol / vol / svol are s8 as on the PS2; every reader already cast them (bytes identical in snd, flr_at, est, t_flr_at)
 
 ## `game/filter06.cpp`
 
