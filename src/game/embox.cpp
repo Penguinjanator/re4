@@ -21,17 +21,13 @@
 #include "em_sub.h"
 #include "sce_at.h"
 #include "player.h"
+#include "esp_efm.h"
 
 // Struct-member view of pPL (the pGS trick): the load stays below the preceding stack stores.
 struct EmPtr {
     cEm* p;
 };
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);                                  // esp_efm.cpp
-extern u32 tubo_amb;                                                                         // esp.cpp
-}
 
 typedef void (*EmBoxFunc)(cEmBox*);
 

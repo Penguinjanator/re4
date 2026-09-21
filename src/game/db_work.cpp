@@ -15,6 +15,8 @@
 #include "scroll.h"
 #include "db_work.h"
 
+// game/dbmodule.cpp. dbmodule.h is not included: this unit was built with a by-value Vec prototype for
+// Draw_sphere (the definition takes Vec*), and the header's conflicts with it.
 extern "C" {
 void Draw_pos(Vec* pos, int size);
 void Draw_sphere(Vec pos, f32 r, int color, int zcmp, int zupd);

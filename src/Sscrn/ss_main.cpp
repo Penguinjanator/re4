@@ -27,6 +27,7 @@
 #include "motion.h"
 #include "esp.h"
 #include "sscrn.h"
+#include "espgen.h"
 
 // `inline`, defined BEFORE ss_main.h: a deferred inline whose address SubScreenTask takes is output
 // at the end of the file (after __static_initialization_and_destruction_0), in the order the deferred
@@ -42,8 +43,6 @@ extern "C" inline void LightSetModel2(cModel* m)
 #include <stdio.h>
 #include <dolphin/os.h>
 
-extern "C" int EspMove();
-extern "C" int EspgenMove();
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 

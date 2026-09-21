@@ -23,10 +23,10 @@
 #include "cam_ctrl.h"
 #include "main_mem.h"
 #include "ref_access.h"
+#include "read.h"
+#include "shape.h"
 
 extern "C" {
-void ReleaseWepData();                        // game/read.cpp
-void ShapeMove(cModelInfo* info);                   // game/shape.cpp
 int fanceWidthCheck(cPlayer* pl);
 void fanceAdjust(cPlayer* pl);
 int fallCheck(cPlayer* pl);

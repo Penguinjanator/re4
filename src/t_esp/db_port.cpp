@@ -41,25 +41,10 @@
 
 void DbMenuSetExecTool(const char* name);
 
-extern GXTexObj fontTexObj;  // game/eprintf.cpp
+// game/eprintf.cpp. Not in eprintf.h: a declaration of fontTexObj ahead of its definition reorders eprintf.cpp's
+// .bss; fontTMtx is static there (the REL link resolves the local symbol).
+extern GXTexObj fontTexObj;
 extern Mtx fontTMtx;
-
-// db_mod.cpp (t_esp build) exports without a header yet
-extern "C" {
-cModel* dbModGetEmPtr(int slot);
-int dbModelIsAlive(int slot);
-char* dbModBinName();
-void dbModMotionSet(int no);
-void dbModelSetCamera(int a, Camera* cam);
-void dbModelLoad(int slot, DB_MODEL_FILES* bin, DB_MODEL_FILES* tpl, DB_MODEL_FILES* xtra);
-void dbModelParentChild(s8 child, s8 parent, s8 parts, Vec* pos, Vec* rot);
-void dbModelSetPos0(int slot, Vec* pos);
-void dbModelSetAng0(int slot, Vec* ang);
-int LoadModelSetName(char* name, int motNo, int slot);
-void SetLoopFlag(int on, int slot);
-void SetTransMode(int mode, int slot);
-void SetXFlipFlag(int on, int slot);
-}
 
 // esp06 (path) work behind the cEsp
 struct DbPathWork {

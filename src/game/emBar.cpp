@@ -23,7 +23,6 @@ class cPlayer;
 
 
 extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp
 void plemEscape(cPlayer* pl);
 }
 

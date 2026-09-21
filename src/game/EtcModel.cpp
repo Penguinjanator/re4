@@ -69,7 +69,8 @@ struct EtcAmbRgb {
 };
 
 extern "C" {
-cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);   // game/obj13.cpp
+// game/obj13.cpp (obj13.h is not included: this unit keeps its own cObjLadder view)
+cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);
 
 // game/et00.cpp: the window models
 int Et00_init(void* arc, EtcSetData* d, cModel** out, int flag);

@@ -12,15 +12,11 @@
 #include "st_mgr_event.h"
 #include "player.h"
 #include <string.h>
+#include "light_area.h"
 
 // Light area editor (Tools/t_lightarea.cpp): a cDbgToolMain<LIGHT_AREA> over the room's 32 light
 // areas (.sar files, game/light_area.cpp's LightAreaData). The works and the file image live on the
 // debug heap; every frame the image is rebuilt and handed to LightAreaDataLoad so the game shows it.
-
-extern "C" {
-int LightAreaDataLoad(void* data);
-void LightAreaUpdate();
-}
 
 
 // The unit's own debug-heap new/delete (the module's copies: every Tools unit's `new` resolves here).
@@ -492,7 +488,7 @@ void ToolLightAreaMain()
                 tool.Disp();
                 // the edited areas as the game sees them
                 tool.MakeSaveData(light_area_buf, light_area_work, LIGHT_AREA_MAX);
-                LightAreaDataLoad(light_area_buf);
+                LightAreaDataLoad((LightAreaHed*) light_area_buf);
                 LightAreaUpdate();
                 if (Joy[0].trg & 0x10) {
                     // preview: play with the edited areas

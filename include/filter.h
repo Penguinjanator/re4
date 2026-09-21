@@ -61,6 +61,17 @@ void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
 // filter06.cpp
 void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, f32 alpha, Vec* spd, Vec* spdRand, f32 scale,
                       int alphaMin);
+// filter01.cpp: depth-of-field request (cam_extra.cpp; the event camera passes the focus z itself)
+void Filter01SetParam(int mode, int z, u8 type, f32 level);
+void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
+// filter09.cpp: EFB capture of the pause screen and the blur-use switch (game.cpp)
+void Filter09GetEFB_801D19E0();
+void Filter09SetbUse(int use, int spred);
+// filter0b.cpp: capture buffer of the r333 screen effect
+void Filter0bAllocBuf();
+void Filter0bFreeBuf();
+void Filter0bCapture();
+void Filter0bSetAlpha(u8 alpha);
 }
 
 #endif

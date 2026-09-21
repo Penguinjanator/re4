@@ -25,10 +25,8 @@
 #include "cockpit.h"
 #include "ref_access.h"
 #include <string.h>
+#include "filter.h"
 
-extern "C" {
-void Filter01SetParam(int mode, int z, u8 type, f32 level);
-}
 
 extern u8 use_filter0a;
 extern u8 filter0a_mask_flag;

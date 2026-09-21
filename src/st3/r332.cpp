@@ -74,7 +74,6 @@ struct SceElevatorData {
     u16 room;
 };
 
-extern "C" void SceElevator(SceElevatorData* d);
 
 struct R332Bridge {
     int open;   // 0x0  1 while the bridge is open
@@ -162,8 +161,6 @@ static inline u32 r332_flgCk(u32* f, int no)
 }
 
 
-
-
 // Through the manager pointer (an inline `this`): `&CamCtrl` in a register, the field at 0x250 off it.
 static inline void CamCtrlSetCam(CameraControl* cc, Camera* cam)
 {
@@ -200,11 +197,6 @@ static inline void CamCtrlSetCam(CameraControl* cc, Camera* cam)
                                                              \
         *(ScePrim**) ((u8*) p_ + ofs_) = t_;                 \
     }
-
-
-
-
-
 
 
 // Room init (the final battle arena): Ashley marked separated; area 0 = the elevator out; the s00/s10/

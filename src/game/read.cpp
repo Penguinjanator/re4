@@ -26,10 +26,9 @@
 #include "sce.h"
 #include "trans.h"
 #include "sce_sys.h"
+#include "yz2code.h"
 
 extern "C" {
-u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
-void Yz2DecodeExec(void* dst);
 extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
 

@@ -14,7 +14,6 @@
 GXColor g_sysBgColor = {0, 0, 0, 0};
 GXColor clr_black = {0, 0, 0, 0};
 
-extern "C" void bio4_AddBgColor();
 
 // Overrides the background colour for the next frame (Status_flg[1] 0x40 = override active).
 // Copy-clear colour: the frame buffer is cleared to black, the background colour is drawn

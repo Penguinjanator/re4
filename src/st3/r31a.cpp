@@ -34,7 +34,6 @@ struct SceElevatorData {
     u16 room;
 };
 
-extern "C" void SceElevator(SceElevatorData* d);
 
 static R31aWork* r31a_work;
 

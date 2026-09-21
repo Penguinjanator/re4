@@ -33,6 +33,9 @@
 #include <dolphin/os.h>
 #include "player.h"
 #include "pl_npc.h"
+#include "gx_sub.h"
+#include "trans_lit.h"
+#include "shape.h"
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
@@ -42,13 +45,11 @@ extern f32 shd_ofs;       // game/shadow.cpp
 extern f32 shd_tex_scale_x;
 
 extern "C" {
+// esp.cpp / espgen.cpp. esp.h (and espgen.h, which includes it) is not included: it declares Specular as a
+// scalar, this unit defines Specular[9].
 int EspTrans();
 void EspgenTrans();
-void bio4_AddBgColor();
-void Filter09Render(int);
-void LightSetModel(cModel* m);
-void ResetShape(cModelInfo* info, void* dst);
-void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, void* dst);
+void Filter09Render(int);   // filter09.cpp defines it with no parameter; this unit passes one (vendor prototype), so it stays local
 }
 void SetDrawTmpBufType(int type);   // game/TmpBuf.cpp (C++)
 
@@ -779,7 +780,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
                     ResetShape(info, src);
                 }
                 if (info->shape[i].data) {
-                    CalculateShape_new(info, info->shape[i].data, info->shape[i].rate, src);
+                    CalculateShape_new(info, info->shape[i].rate, info->shape[i].data, (u8*) src);
                 }
             }
         }

@@ -57,11 +57,6 @@ class cSubChar;
 
 
 // ss_main.cpp
-extern "C" {
-void clearZbuffer();
-void idMainMenuFade(SUB_SCREEN* wk, int sw);
-void weaponChangeRequest(u16 no, u16 type);
-}
 
 // ss_debug.cpp: the attache case editor
 class ssDbgPzzl {

@@ -21,4 +21,15 @@ public:
 // game/obj13.cpp: shows / hides the ladders of the running event (r101 Evt_R101S30_Func).
 extern "C" void LadderEventTrans(int on);
 
+class cEm;
+extern "C" {
+// Creates ladder `no` from the etc model files (EtcModel.cpp).
+cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);
+// 1 when a ladder is within reach of `pos` (emwindow.cpp).
+int LadderNearCk(Vec* pos);
+// Partner ladder climb checks (pl_npc.cpp).
+int SubLadderClimbCk(cEm* em);
+int SubLadderClimbCk2(cEm* em);
+}
+
 #endif

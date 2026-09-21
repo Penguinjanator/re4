@@ -57,4 +57,17 @@ int EtcGetDasAddr(int id, void** out);   // archive of etc model `id` (r400 setL
 int getRoomEtc(int no, int type, cEm** out, int flag);
 }
 
+// Init, room setup, room data load and the debug list (main.cpp / game.cpp / t_sce_item.cpp).
+struct EtcList;
+extern "C" {
+void EtcModelInit();
+void EtcModelRoomInit();
+int EtcModelDataLoad(void* addr);
+int EtcModelListSet(EtcList* list);
+int EtcModelGetLastNo();
+void EtcModelDebugDisp();
+// Adds the room etc model's ambient to `m` (the object enemies call it from their model setup).
+void EtcSetAddAmb(class cModel* m, int no);
+}
+
 #endif

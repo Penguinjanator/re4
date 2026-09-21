@@ -577,6 +577,8 @@ static inline void SetAngV(cModel* m, Vec* v) { m->setAng(v); }
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);
 // game/model.cpp (C linkage): relocate a TPL's file offsets to pointers (trans SpecularInit).
 extern "C" void calcTplAddr(struct TEXPalette* tpl);
+// game/model.cpp (C linkage): the inverse, pointers back to file offsets (mes.cpp releases the font TPL).
+extern "C" void calcTplOffset(struct TEXPalette* tpl);
 
 // game/model.cpp: shows / hides model info `no` of `m` (the rooms hide the player's weapon models).
 extern "C" void ModelInfoSetTrans(cModel* m, int no, int on);

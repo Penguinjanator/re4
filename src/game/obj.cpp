@@ -12,6 +12,7 @@
 #include "pl_wep.h"
 #include "at_mod.h"
 #include <dolphin/os.h>
+#include "shape.h"
 
 // Map object manager (ObjMgr): 0x3D8-byte cObj works, constructed by id (construct), moved once per
 // frame (move / objMove). The per-id classes live in the obj* units; only their constructors are
@@ -24,7 +25,6 @@
     } while (0)
 
 extern "C" {
-void ShapeMove(cModelInfo* info);    // shape.cpp
 void objMove(cObj* p);
 }
 

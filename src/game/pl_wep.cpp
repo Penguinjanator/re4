@@ -21,6 +21,7 @@
 #include "ref_access.h"
 #include "game.h"
 #include "est.h"
+#include "read.h"
 
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
@@ -29,7 +30,6 @@ struct WepTarget {
 };
 
 extern "C" {
-void ReadWepData(int no, int type);                       // game/read.cpp
 u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag, f32 len);

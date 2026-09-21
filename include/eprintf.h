@@ -9,4 +9,11 @@ void eprintf(int x, int y, int color, int p, const char* fmt, ...);
 int BtoX(int bits);
 void eprintf2(int x, int y, int a, int b, int c, int p, const char* fmt, ...);
 
+// Init and the per-frame flush of the queued text (main.cpp, dvd.cpp, exception.cpp). C linkage.
+extern "C" {
+void EprintfInit();
+void EprintfFlush();
+}
+extern int eprintf_init;   // 1 once the font is loaded (dvd.cpp waits for it before printing)
+
 #endif

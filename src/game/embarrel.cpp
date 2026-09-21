@@ -22,9 +22,6 @@
 #include "em_sub.h"
 #include "est.h"
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-}
 
 typedef void (*EmBarrelFunc)(cEmBarrel*);
 

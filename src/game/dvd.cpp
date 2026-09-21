@@ -298,7 +298,6 @@ void trans2aram_cb(u32 req);
 void dvdread_callback(s32 result, DVDFileInfo* fi);
 void aram_cb(u32 req);
 void readcancel_cb(s32 result, DVDCommandBlock* cb);
-void EprintfFlush();
 }
 
 extern int eprintf_init;

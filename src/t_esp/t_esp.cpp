@@ -10,50 +10,22 @@
 #include <string.h>
 #include "scheduler.h"
 #include "TexRender.h"
+#include "db_port.h"
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
 // InitTool inlines (only ID_WINDOW's, which owns a static name table, stays out of line).
 
+// db_port.cpp exports whose prototypes here differ from the definitions (parameter list, order or
+// return type): kept local, the db_port.h prototype would change the call bytes or not compile.
 extern "C" {
-// db_port.cpp
-int DB_GetStageNo();
-int DB_GetRoomNo();
-void LoadData(char* path, EspSeqData* head);
-void SaveData(char* path, EspSeqData* head, int num);
-void DB_ConfigLoad(char* path);
-void DB_SetFog(int on);
-void DB_SetCinesco(int on);
-void DB_SetMotionCam(int on);
-void DB_SetBgColor(u8 r, u8 g, u8 b, int a);
-void DB_DrawGrid(int on);
-void DB_DrawMod_sk(int on);
-void DB_WorkPush(int a, int b);
-void DB_WorkPop(int a, int b);
-void DB_GetCamFrontPos(f32 dist, f32* x, f32* y, f32* z);
-void DB_DrawCursor2D(Vec* pos);
 void DB_DrawCursor3D(EspSeqData* head, void* seq, f32 size, int col);
 void DB_DrawCross3D(Vec* pos, int col, f32 size);
-int DB_isGetComeEventTool();
 void DB_EventCamLoad(int a, int b);
-void DB_EventCamStart();
-void DB_RoomCamStart(int mode);
-void DB_EffDelete();
-void DB_DispProc();
-void DB_Sleep(int n);
-int DB_IsEmLoad();
-int DB_IsWorkPush();
-void DB_GetKeybordData(DB_KEYBORD* k);
 void DB_GetMouseData(DB_MOUSE* m);
-int LoadModel();
-int LightToolExec();
-void EspToolInit(int* p, u8* evt, u8* evtS);
 void EspToolExit(EspSeqData* head);
-void EspToolExitEstSet(EspSeqData* head, int a, u8 b);
-void EspToolCameraMode();
 void EspToolUpdate(DB_KEYBORD* k, u8 no);
-void CoreEstSet(u8 no);
-void SeqSet(EspSeqData* head, u8 mode);
+int LightToolExec();
 void sp_sphere(EspSeqData* head, void* seq);
 void sp_ctrl01_trans(void* seq);
 void sp_3dgrid_trans(EspSeqData* head, void* seq);
@@ -62,10 +34,8 @@ void sp_path_trans2(EspSeqData* head, void* seq);
 void sp_nobigenkai_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans_1a(EspSeqData* head, void* seq);
-void sp_tex_trans(u8 id);
 }
-extern int db_modelNo;  // db_port.cpp (the BasePos "WorKNo" numeric edits the model slot)
-extern void* g_EspToolSeqHedAddr;  // eff_sys.cpp
+extern void* g_EspToolSeqHedAddr;  // eff_sys.cpp (static there; the REL link resolves the local symbol)
 
 void* __builtin_new(u32 size) { return Debug_alloc(size, 1); }
 void* __builtin_vec_new(u32 size) { return Debug_alloc(size, 1); }

@@ -31,10 +31,6 @@
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 // ss_main.cpp
-extern "C" {
-void clearZbuffer();
-void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* down);
-}
 
 // Shop screen state (SUB_SCREEN::pShopWk, MEM_ALLOC(0x48)).
 struct ShopWork {

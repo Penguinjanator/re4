@@ -10,11 +10,8 @@
 #include "db_log.h"
 #include "motion.h"
 #include "player.h"
+#include "etc_model.h"
 
-
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-}
 
 typedef void (*EmHitFunc)(cEmHit*);
 

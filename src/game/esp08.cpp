@@ -43,7 +43,6 @@ extern "C" {
 cEsp* Esp08_Create();
 void Esp08_Trans(cEsp08* esp);
 void Esp08_TransShimmer(cEsp08* esp, int type);
-f32 EspGetCameraPan2();   // game/esp.cpp
 }
 
 

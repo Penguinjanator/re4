@@ -16,6 +16,7 @@
 #include "map_obj.h"
 #include "widget.h"
 #include "em_mod.h"
+#include "objWep.h"
 // emwep.h declares the DOL's plemBackjump (game/emwep.cpp); this unit has a local routine of the
 // same name, so the header's declaration is renamed out of the way.
 #define plemBackjump plemBackjump_emwep
@@ -141,10 +142,6 @@ static void em39_R1_Die_Normal(cEm39* em);
 static void em39_R1_Die_Flash(cEm39* em);
 static void em39ActOn(cEm39* em);
 static void plemDmSide(cPlayer* pl);
-
-
-
-
 
 
 extern "C" void _prolog()
@@ -6499,7 +6496,6 @@ void em39RouteCk(cEm39* em)
     }
 }
 
-extern "C" void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
 
 // Neck: turn the head (parts 3 addRot) towards the player while flags bit 4 is set, else relax.
 void em39NeckMove(cEm39* em)

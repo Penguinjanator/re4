@@ -29,10 +29,8 @@
 #include "route_ck.h"
 #include "em_sub.h"
 #include "read.h"
+#include "shape.h"
 
-extern "C" {
-void ShapeMove(cModelInfo* info);                   // shape.cpp
-}
 
 // cManager<T>::arrayFree / arrayAlloc: definitions in cManager.h (game.cpp instantiates them too).
 

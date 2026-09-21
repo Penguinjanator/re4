@@ -31,6 +31,13 @@ void OptionDataRead();
 void* EmReadSearch(int id, void* addr, u32 size);
 // Runs the module's prolog (the rooms re-link an enemy module after swapping event data into it).
 void InitModule(ReadModule* m);
+// Room archive, player and weapon module reads / releases (game.cpp, main.cpp, the player units).
+void ReadAreaData();
+void ReadPlayerData(int type, int costume);
+void ReleasePlData();
+void ReadWepData(u32 no, u32 type);
+void ReleaseWepData();
+void ContinueWepData();
 }
 
 // Clears the enemy module list (r106 before the chapter-end event reloads them).

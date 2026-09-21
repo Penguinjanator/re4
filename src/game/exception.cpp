@@ -35,7 +35,6 @@
 #include <dolphin/db.h>
 
 extern "C" {
-void EprintfFlush();
 // game/exception.cpp
 void ExceptionInit();
 int excepLoadSymbolSub(char* name, OSModuleHeader* module);

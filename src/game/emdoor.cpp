@@ -29,9 +29,6 @@
 #include "em_sub.h"
 #include "obj12.h"
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
-}
 
 typedef void (*EmDoorFunc)(cEmDoor*);
 

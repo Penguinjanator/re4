@@ -46,6 +46,7 @@
 #include "em.h"
 #include <dolphin/os.h>
 #include "em_mod.h"
+#include "obj20.h"
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
@@ -54,8 +55,6 @@ extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
 // merged into .bss by the REL link.
 asm(".comm common_em2b,52,4");
 
-// game/obj20.cpp
-extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);
 
 static void em2b_R0_Init(cEm2b* em);
 static void em2b_R0_Move(cEm2b* em);
@@ -114,8 +113,6 @@ static void plem2bEscapeTree(cPlayer* pl);
 static void plem2bDmBlow(cPlayer* pl);
 
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-
 
 
 // The motion flip argument of the two model variants.

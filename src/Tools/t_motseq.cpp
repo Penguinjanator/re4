@@ -24,7 +24,7 @@
 // Motion sequence editor (Tools/t_motseq.cpp): edits the key sequence (u16 count + MotionSeqKey[])
 // of the motion shown in db_mod's slot 0 and saves it as a .seq file.
 
-extern "C" void EprintfSetCurrentNo(int no);
+extern "C" void EprintfSetCurrentNo(int no);   // game/eprintf.cpp defines `int EprintfSetCurrentNo()`: this unit was built with the vendor's one-argument prototype, so it is not in eprintf.h
 int SetToolLight(int no);      // db_light_tools.cpp
 
 #define MSQ_KEY_MAX 1024

@@ -48,12 +48,12 @@
 #include <string.h>
 #include <dolphin/os.h>
 #include "em_mod.h"
+#include "obj20.h"
 
 asm(".comm common_em32,52,4");
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
-extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);   // game/obj20.cpp
 
 static void em32_R0_Init(cEm32* em);
 static void em32_R0_Move(cEm32* em);
@@ -118,11 +118,6 @@ static void plemEscape(cPlayer* pl);
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
-
-
-
-
-
 
 
 // COMPILER-DIFF #12 (cse path knowledge): in a `case` arm reached through the switch's once-used label

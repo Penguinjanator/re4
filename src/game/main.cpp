@@ -70,25 +70,15 @@ f32 ORTHO_R;
 #include "shadow.h"
 #include "item_model.h"
 #include "read.h"
+#include "eprintf.h"
+#include "trans_lit.h"
+#include "eff_sys.h"
+#include "etc_model.h"
+#include "exception.h"
+#include "espgen.h"
 
 extern "C" {
 void __main();
-// game/eprintf.cpp
-void EprintfInit();
-void EprintfFlush();
-// game/trans_lit.cpp
-void LightSetInit();
-// game/eff_sys.cpp
-void EspInit();
-// game/EtcModel.cpp
-void EtcModelInit();
-// game/read.cpp
-void ReleasePlData();
-void ReleaseWepData();
-// game/exception.cpp
-void ExceptionInit();
-// game/espgen.cpp
-int EspgenInit();
 }
 void AllocDrawTmpBuf();   // game/TmpBuf.cpp
 void DbmenuModuleInit();  // game/db_menu.cpp

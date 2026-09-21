@@ -15,9 +15,6 @@
 #include "db_log.h"
 #include "motion.h"
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-}
 
 typedef void (*EmItemFunc)(cEmItem*);
 

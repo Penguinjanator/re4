@@ -79,7 +79,6 @@ struct SceElevatorData {
     u16 room;
 };
 
-extern "C" void SceElevator(SceElevatorData* d);
 
 // Effect sequence record tail: the second position at cEsp+0x100 (a laser beam end point).
 struct R318EspView {

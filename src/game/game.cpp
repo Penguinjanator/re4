@@ -71,36 +71,10 @@
 #include "read.h"
 #include "trans.h"
 #include "cons.h"
+#include "eff_sys.h"
+#include "etc_model.h"
+#include "light_area.h"
 
-extern "C" {
-// game/read.cpp
-void ReadPlayerData(int type, int costume);
-void ReadAreaData();
-void ContinueWepData();
-// game/eff_sys.cpp / esp.cpp / espgen.cpp
-void EspRoomInit();
-int EspArrayAlloc(u32 n);
-int EspMove();
-int EspDispInfo();
-int EspgenRoomInit();
-int EspgenArrayAlloc(int n);
-int EspgenMove();
-int EspgenDispInfo();
-// game/EtcModel.cpp
-void EtcModelRoomInit();
-int EtcModelDataLoad(void* data);
-void EtcModelListSet(void* data);
-void EtcModelDebugDisp();
-// game/light_area.cpp
-void LightAreaInit();
-int LightAreaDataLoad(void* data);
-void LightAreaUpdate();
-// game/player.cpp
-void PlayerInit();
-// game/filter09.cpp
-void Filter09GetEFB_801D19E0();
-void Filter09SetbUse(int use, int spred);
-}
 // game/read.cpp (C++ linkage)
 void* GetDataExt(void* arc, const char* tag, int no);
 // game/cons.cpp (C++ linkage)
@@ -509,7 +483,7 @@ void gameRoomInit()
         EffAreaDataLoad((SstArea*) p);
     }
     if ((p = GetDataExt(pG->pRoom, "SAR", 0)) != 0) {
-        LightAreaDataLoad(p);
+        LightAreaDataLoad((LightAreaHed*) p);
     }
     if ((p = GetDataExt(pG->pRoom, "TEX", 0)) != 0) {
         RoomTexDataLoad((TexData*) p, 2);
@@ -522,7 +496,7 @@ void gameRoomInit()
     }
     ClothRoomInit();
     if ((p = GetDataExt(pG->pRoom, "ETS", 0)) != 0) {
-        EtcModelListSet(p);
+        EtcModelListSet((EtcList*) p);
     }
     LightMgr.update(0, -1);
     FlrAtInit();

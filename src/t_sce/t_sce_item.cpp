@@ -30,9 +30,6 @@
 // Item placement ("ITA" room file) editor of the t_sce REL (D:/Bio4/Prog/t_sce_item.cpp). The
 // t_sce_at.cpp skeleton with the item payload editor, the flag auto-numbering and the XML export.
 
-extern "C" {
-int EtcModelGetLastNo();
-}
 int SetToolLight(int no);  // t_sce's db_light_v2 copy
 
 // ITA file: header + records (game/sce_at.cpp SceAtFileHead).

@@ -20,11 +20,8 @@
 #include "math_sub.h"
 #include "ref_access.h"
 #include <string.h>
+#include "read.h"
 
-extern "C" {
-void ReleaseWepData();                         // game/read.cpp
-void ReadPlayerData(int type, int costume);    // game/read.cpp
-}
 
 extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
 

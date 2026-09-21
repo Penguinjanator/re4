@@ -86,7 +86,6 @@ struct SceElevatorData {
     u16 room;
 };
 
-extern "C" void SceElevator(SceElevatorData* d);
 
 static R226WorkPtr r226_work;
 static Camera r226_cam;
@@ -114,7 +113,6 @@ static f32 r226_fovyDie = 27.0f;
 static f32 r226_pillarSpd = 160.0f;
 
 static inline void PSetRobo(cObjRobo*& d, cObjRobo* v) { d = v; }
-
 
 
 // Euclidean distance between two points.

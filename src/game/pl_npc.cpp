@@ -33,11 +33,10 @@
 #include "main_mem.h"
 #include "atari_init.h"
 #include <string.h>
+#include "shape.h"
+#include "obj13.h"
 
 extern "C" {
-void ShapeMove(void* p);
-int SubLadderClimbCk(cModel* m);
-int SubLadderClimbCk2(cModel* m);
 void pl_fall_ok0();
 void pl_fall_ok(cPlayer* pl);
 void catchOn();

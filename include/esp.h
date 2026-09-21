@@ -411,4 +411,17 @@ extern "C" int EspDataRelease(u32 owner, int flag, int warn);
 extern "C" int EspArrayPush(u32 num);
 extern "C" int EspArrayPop();
 
+// game/esp.cpp: the effect pool's frame update / draw / allocation and its debug view (C linkage).
+extern "C" {
+void EspFuncTblInit();
+int EspMove();
+int EspTrans();
+int EspArrayAlloc(u32 n);
+int EspDispInfo();
+// Camera pan angles the billboard effects face (esp_sub.cpp, esp08.cpp).
+f32 EspGetCameraPan();
+f32 EspGetCameraPan2();
+}
+extern u32 tubo_amb;   // ambient colour the breakable pots add (embox.cpp)
+
 #endif

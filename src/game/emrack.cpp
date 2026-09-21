@@ -17,9 +17,6 @@
 #include "at_mod.h"
 #include "em_sub.h"
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-}
 
 typedef void (*EmRackFunc)(cEmRack*);
 

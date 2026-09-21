@@ -41,16 +41,11 @@
 #include "est.h"
 #include "esp.h"
 #include "db_log.h"
+#include "filter.h"
 
 // Room 3-33 (D:/Bio4/Prog/r333.cpp): the jet ski escape: the ride start (s00), the collapsing cave
 // (fall_a..d), the escape event (s10) with the screen capture filter, and the game result screen.
 
-extern "C" {
-void Filter0bAllocBuf();
-void Filter0bFreeBuf();
-void Filter0bCapture();
-void Filter0bSetAlpha(u8 alpha);
-}
 
 struct R333Work {
     TexRenderMng* tex;   // 0x00  the water render target

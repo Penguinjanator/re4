@@ -16,10 +16,7 @@
 #include <dolphin/os.h>
 #include "esp.h"
 #include "pl_mod.h"
-
-extern "C" {
-void ReleaseWepData();                          // game/read.cpp
-}
+#include "read.h"
 
 
 #define HALT()                                                    \

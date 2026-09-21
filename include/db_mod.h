@@ -53,6 +53,20 @@ void dbModUnsetViewFlag(u32 flag);
 void dbModMotionSetSeq(int slot, void* seq, int flag, int no);
 // Copies the motion file name of slot `slot` into `dst`.
 void dbModGetMotFilename(int slot, char* dst);
+// Slot access and the model set loader (db_port.cpp drives them for the effect tool).
+class cEm* dbModGetEmPtr(u32 no);
+int dbModelIsAlive(int no);
+char* dbModBinName();
+void dbModMotionSet(int frame);
+void dbModelSetCamera(int no, struct Camera* cam);
+int dbModelLoad(int no, DB_MODEL_FILES* bin, DB_MODEL_FILES* tex, DB_MODEL_FILES* mot);
+void dbModelParentChild(s8 no, s8 parentNo, s8 parts, Vec* pos, Vec* rot);
+void dbModelSetPos0(int no, Vec* pos);
+void dbModelSetAng0(int no, Vec* rot);
+int LoadModelSetName(char* name, int motNum, int no);
+void SetLoopFlag(int on, int no);
+void SetTransMode(int mode, int no);
+void SetXFlipFlag(int on, int no);
 }
 
 #endif

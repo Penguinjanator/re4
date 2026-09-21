@@ -43,11 +43,6 @@ struct WindowDataRow {
     u8 pad_45[3];
 };
 
-extern "C" {
-void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-int LadderNearCk(Vec* pos);                                                                  // obj13.cpp
-}
-
 
 WindowDataRow WindowData[29] = {
     { 1, 1, 0, 0, "et0001.bin", "et0000.tpl", 1300.0f, 1400.0f, 1.0f, 0, 1, 1, 6, 1 },
@@ -80,8 +75,6 @@ WindowDataRow WindowData[29] = {
     { 0, 0, 1, 1, "", "", 570.0f, 480.0f, 1.0f, 1, 1, 0, 6, 1 },
     { 0, 0, 1, 1, "", "", 400.0f, 250.0f, 1.0f, 1, 1, 0, 6, 1 },
 };
-
-
 
 
 // Creates a window / fence enemy (id 0x46) from a model / TPL at pos / rot: `type` indexes

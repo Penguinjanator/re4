@@ -63,11 +63,6 @@ struct EffData {
 };
 
 extern "C" {
-// game/esp.cpp
-void EspFuncTblInit();
-int EspMove();
-// game/espgen.cpp
-int EspgenMove();
 
 void EspInit();
 void EspRoomInit();

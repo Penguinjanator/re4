@@ -299,4 +299,15 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
 extern "C" int EspgenArrayPush(int num);
 extern "C" int EspgenArrayPop();
 
+// game/espgen.cpp: the generator pool's init / room setup / frame update / draw and its debug view (C linkage).
+extern "C" {
+int EspgenInit();
+int EspgenRoomInit();
+int EspgenArrayAlloc(int n);
+int EspgenMove();
+int EspgenTrans();
+int EspgenDispInfo();
+}
+extern EspgenWork* g_pWater45;   // espgen45.cpp: the running water surface generator (Espgen42 rain hits it)
+
 #endif

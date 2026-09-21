@@ -8,6 +8,7 @@
 #include "map_obj.h"
 #include "widget.h"
 #include "sscrn.h"
+#include "shape.h"
 
 // Widget<SUB_SCREEN> is completed here (by the specialization declaration), before dbg_button.h:
 // its vtable is the last one of the unit (vtables come out in reverse declaration order), after the
@@ -53,11 +54,6 @@ static void ssTermWidgetKill(Widget<SUB_SCREEN>* w)
 #include "motion.h"
 #include "math_sub.h"
 
-extern "C" {
-// game/shape.cpp
-int ShapeMove(cModelInfo* info);
-void ClrShape(cModel* m);
-}
 void* GetModelInfoAddr(cModelInfo* info, int no);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)

@@ -20,16 +20,14 @@
 #include "trans_ot.h"
 #include "view.h"
 #include "trans.h"
+#include "trans_lit.h"
 
-// game/trans_lit.cpp
-extern "C" void commonEspLightSet(cLight** list, int n);
 
 int GetDrawTmpBufType();        // game/TmpBuf.cpp (C++ linkage)
 
 extern "C" {
 static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
 void EspCommonTransNega(cEsp* esp, u32 type);
-f32 EspGetCameraPan();   // game/esp.cpp
 int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);
 void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out);
 void Esp1b_SpTrans(cEsp* esp);

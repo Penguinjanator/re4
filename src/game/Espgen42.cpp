@@ -17,6 +17,7 @@
 #include "joy.h"
 #include "ref_access.h"
 #include <dolphin/base/PPCArch.h>
+#include "trans_lit.h"
 
 // Effect controller 42: room water surface. A (nx+1) x (ny+1) height field simulated on two
 // ping-pong buffers, rendered as triangle strips through a display list with an indirect bump
@@ -24,10 +25,6 @@
 // AddWaterPower / GetWaterHeight / GetWaterCrossPos test both generators.
 
 extern "C" {
-// game/trans_lit.cpp
-void commonWaterLightSet(cLight** list, int n, u32 alpha);
-// game/espgen45.cpp
-extern EspgenWork* g_pWater45;
 
 void AddWaterPowerSub(EspgenWork* w);
 void GetWaterHeightSub(EspgenWork* w);
