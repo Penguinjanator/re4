@@ -29,9 +29,9 @@ void ToolLight()
     if ((u32) tool >= 0x80000000 && (u32) tool <= 0x82FFFFFF) {
         int ret;
 
-        BitOn(pG->Debug_flg[0], 0x20000000);
-        BitOn(pG->Debug_flg[0], 0x10000000);
-        pG->Debug_flg[0] |= 0x10;
+        DbgFlagOn(pG, DBG_BACK_CLIP);
+        DbgFlagOn(pG, DBG_DBG_CAM);
+        DbgFlagOn(pG, DBG_LIGHT_TOOL);
         while ((ret = tool->move()) != 0) {
             if (ret == 2) {
                 pPL->move();
@@ -42,13 +42,13 @@ void ToolLight()
         }
         delete tool;
         Block.dispAllBlock(0);
-        BitOff(pG->Debug_flg[0], 0x10);
-        BitOff(pG->Debug_flg[0], 0x10000000);
-        pG->Debug_flg[0] &= ~0x20000000;
+        DbgFlagOff(pG, DBG_LIGHT_TOOL);
+        DbgFlagOff(pG, DBG_DBG_CAM);
+        DbgFlagOff(pG, DBG_BACK_CLIP);
     } else {
         pLog->err(0, 0, "BOOT LIGHT TOOL WAS FAILED. MEMORY LACK");
     }
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();

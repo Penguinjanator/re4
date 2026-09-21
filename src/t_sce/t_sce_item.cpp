@@ -250,7 +250,7 @@ void ToolSceItem()
 void tSceItemInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
-    BitOn(pG->Debug_flg[0], 0x20000000);
+    DbgFlagOn(pG, DBG_BACK_CLIP);
     BitOn(pG->Stop_flg, 0x20000000);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Stop_flg, 0x8000000);
@@ -263,7 +263,7 @@ void tSceItemInit_base()
     BitOn(pG->Disp_flg, 0x4000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Disp_flg, 0x100000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     pW->light = 1;
     SetToolLight(1);
 }
@@ -341,7 +341,7 @@ static void tSceItemExit()
     case 9:
         file_unlock(pW->pathX);
         Debug_free(pW);
-        pG->Debug_flg[0] &= ~0x10000000;
+        DbgFlagOff(pG, DBG_DBG_CAM);
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();
@@ -1607,7 +1607,7 @@ static void tSceItemPreview_init()
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     pW->sub = 1;
     pW->step = 0;
     pW->step2 = 0;
@@ -1681,7 +1681,7 @@ static void tSceItemPreview_exit()
     BitOn(pG->Stop_flg, 0x2000);
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     MODE_RESET();
 }
 

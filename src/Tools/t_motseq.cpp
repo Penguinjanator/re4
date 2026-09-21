@@ -177,8 +177,8 @@ void msqToolInit()
         TaskExit();
     }
     EprintfSetCurrentNo(0);
-    BitOn(pG->Status_flg[0], 0x80000000);
-    BitOn(pG->Debug_flg[0], 0x10000000);
+    StaFlagOn(pG, STA_BG_OFF);
+    DbgFlagOn(pG, DBG_DBG_CAM);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Stop_flg, 0x00800000);
     BitOn(pG->Disp_flg, 0x02000000);
@@ -887,11 +887,11 @@ static void msq_R0_Quit()
 {
     dbModelQuit();
     BitOff(pG->Stop_flg, 0x40000000);
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     ToolWorkPop(0);
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
-    BitOff(pG->Debug_flg[0], 0x10000000);
-    BitOff(pG->Status_flg[0], 0x80000000);
+    DbgFlagOff(pG, DBG_DBG_CAM);
+    StaFlagOff(pG, STA_BG_OFF);
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Stop_flg, 0x00800000);
     BitOff(pG->Disp_flg, 0x00800000);
@@ -1277,7 +1277,7 @@ void msqCameraMove()
         MSQ->joy.on = 0;
         MSQ->joy.rep = 0;
         U32Set(MSQ->joy.rep2, 0);
-        BitOn(pG->Debug_flg[0], 0x10000000);
+        DbgFlagOn(pG, DBG_DBG_CAM);
         CamDbg.move(&pG->Camera, Joy, 0);
     }
 }

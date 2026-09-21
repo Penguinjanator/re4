@@ -450,7 +450,7 @@ static void option(AtariToolWork* w)
 // EXIT: clears the tool flags (Debug_flg[0] bit 31, Disp_flg bit 27) and ends the task.
 static void quit(AtariToolWork* w)
 {
-    BitOff(pG->Debug_flg[0], 0x80000000);
+    DbgFlagOff(pG, DBG_TEST_MODE);
     pG->Disp_flg &= ~0x08000000;
     TaskSignal(0);
     TaskExit();

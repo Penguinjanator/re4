@@ -185,7 +185,7 @@ static void init(FE_WORK* t)
     Test.mode = 0;
     t->cursor = 0;
     t->page = 0;
-    pG->Debug_flg[0] |= 0x80000000;
+    DbgFlagOn(pG, DBG_TEST_MODE);
 }
 
 // Editor frame: d-pad moves the cursor bit, C-stick / L / R change the page, A toggles the bit;
@@ -305,7 +305,7 @@ static void move(FE_WORK* t)
 // Editor end: restores Stop_flg, ends the task.
 void die(FE_WORK* t)
 {
-    BitOff(pG->Debug_flg[0], 0x80000000);
+    DbgFlagOff(pG, DBG_TEST_MODE);
     pG->Stop_flg = Test.stop_bak;
     TaskSignal(0);
     TaskExit();

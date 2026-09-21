@@ -178,7 +178,7 @@ int ToolScroll()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     SmdClear(1);
     Block.dispAllBlock(1);
     init();
@@ -191,8 +191,8 @@ int ToolScroll()
     }
     SmdClear(1);
     Block.dispAllBlock(0);
-    BitOff(pG->Debug_flg[0], 0x10000000);
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -372,10 +372,10 @@ int move()
             Joy[0].trg &= ~0x1000;
             switch (pWork->modeSel) {
             case 0:
-                pG->Debug_flg[0] |= 0x10000000;
+                DbgFlagOn(pG, DBG_DBG_CAM);
                 break;
             case 2:
-                pG->Debug_flg[0] &= ~0x10000000;
+                DbgFlagOff(pG, DBG_DBG_CAM);
                 break;
             }
         }

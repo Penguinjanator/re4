@@ -221,7 +221,7 @@ void ToolBlock()
 void tBlockInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
-    BitOn(pG->Debug_flg[0], 0x20000000);
+    DbgFlagOn(pG, DBG_BACK_CLIP);
     BitOn(pG->Stop_flg, 0x20000000);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Stop_flg, 0x8000000);
@@ -236,7 +236,7 @@ void tBlockInit_base()
     BitOn(pG->Disp_flg, 0x4000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Disp_flg, 0x100000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
 }
 
@@ -349,7 +349,7 @@ static void tBlockExit()
         BitSet(pG->Disp_flg, pW->saveDispFlag);
         pG->Stop_flg = pW->saveStopFlag;
         Debug_free(pW);
-        pG->Debug_flg[0] &= ~0x10000000;
+        DbgFlagOff(pG, DBG_DBG_CAM);
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();

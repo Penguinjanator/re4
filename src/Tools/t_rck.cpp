@@ -171,8 +171,8 @@ void rckInit()
     BitOn(pG->Stop_flg, 0x00200000);
     BitOn(pG->Disp_flg, 0x01000000);
     BitOn(pG->Disp_flg, 0x00800000);
-    BitOn(pG->Debug_flg[0], 0x80000000);
-    BitOn(pG->Debug_flg[0], 0x20000000);
+    DbgFlagOn(pG, DBG_TEST_MODE);
+    DbgFlagOn(pG, DBG_BACK_CLIP);
     BitOn(pG->Stop_flg, 0x00800000);
     BitOn(pG->Stop_flg, 0x00200000);
     BitOn(pG->Disp_flg, 0x04000000);
@@ -200,12 +200,12 @@ static void tool_quit()
 {
     pG->Rtp = RCK->savedRtp;
     TutilQuitDefault();
-    BitOff(pG->Status_flg[0], 0x80000000);
+    StaFlagOff(pG, STA_BG_OFF);
     BitOff(pG->Stop_flg, 0x00200000);
     BitOff(pG->Stop_flg, 0x00200000);
     BitOff(pG->Disp_flg, 0x04000000);
     BitOff(pG->Disp_flg, 0x02000000);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     TaskSignal(0);
     TaskExit();
 }
@@ -1254,7 +1254,7 @@ void rckCameraMove()
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);
-        BitOn(pG->Debug_flg[0], 0x10000000);
+        DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }

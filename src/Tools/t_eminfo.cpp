@@ -191,9 +191,9 @@ void eminfoInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    BitOn(pG->Debug_flg[0], 0x80000000);
-    BitOn(pG->Debug_flg[0], 0x20000000);
-    BitOn(pG->Debug_flg[0], 0x10000000);
+    DbgFlagOn(pG, DBG_TEST_MODE);
+    DbgFlagOn(pG, DBG_BACK_CLIP);
+    DbgFlagOn(pG, DBG_DBG_CAM);
     pG->Stop_flg |= 0x800000;
     p = (EmInfoTool*) Debug_alloc(sizeof(EmInfoTool), 1);
     W = p;
@@ -213,9 +213,9 @@ void eminfoInit()
 // Frees the work, restores the flags and ends the task.
 void eminfoExit()
 {
-    BitOff(pG->Debug_flg[0], 0x80000000);
-    BitOff(pG->Debug_flg[0], 0x20000000);
-    BitOff(pG->Debug_flg[0], 0x10000000);
+    DbgFlagOff(pG, DBG_TEST_MODE);
+    DbgFlagOff(pG, DBG_BACK_CLIP);
+    DbgFlagOff(pG, DBG_DBG_CAM);
     pG->Stop_flg &= ~0x800000;
     TutilQuitDefault();
     TaskSignal(0);
@@ -1368,7 +1368,7 @@ void eminfoCameraMove()
         BitSet(W->joy.on, 0);
         BitSet(W->joy.rep, 0);
         BitSet(W->joy.rep2, 0);
-        BitOn(pG->Debug_flg[0], 0x10000000);
+        DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }

@@ -12,6 +12,16 @@
 #include "player.h"
 #include "obj.h"
 
+// Room_flg bits of room 1-1C (the besieged cabin), from the PS2 symbols; RmfFlagChk(pG, n).
+enum R11C_FLAG {
+    RMF_DEBUG_00 = 0,
+    RMF_BESIEGEDING = 1,
+    RMF_LUIS_ANGRY = 2,
+    RMF_ROUTE_EVT_CANCEL = 3,
+    RMF_GATE_OPEN = 64,
+    RMF_EMSET_2F = 65,
+};
+
 class cSubLuis;
 
 // Spoken line: the sound and the subtitle it shows.

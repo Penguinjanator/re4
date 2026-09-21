@@ -115,7 +115,7 @@ void MovieTest()
 
     w = (MovieTestWork*) Debug_alloc(sizeof(MovieTestWork), 1);
     if (w == 0) {
-        pG->Debug_flg[0] &= ~0x80000000;
+        DbgFlagOff(pG, DBG_TEST_MODE);
         TaskExit();
     }
     memclr_asm(w, sizeof(MovieTestWork));
@@ -124,7 +124,7 @@ void MovieTest()
         TaskSleep(1);
     } while (w->quit == 0);
     Debug_free(w);
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TaskSignal(0);
     TaskExit();
 }
@@ -135,7 +135,7 @@ static void movie_test_init(MovieTestWork* w)
     int on = 1;
 
     w->routine++;
-    if ((pGS->Debug_flg[2] & 0x40000000) == 0) {
+    if (DbgFlagChk(pGS, DBG_PROC_BAR) == 0) {
         on = 0;
     }
     w->flag = on;
@@ -228,7 +228,7 @@ static void movie_test_main(MovieTestWork* w)
 static void movie_test_exit(MovieTestWork* w)
 {
     if (w->flag) {
-        pG->Debug_flg[2] |= 0x40000000;
+        DbgFlagOn(pG, DBG_PROC_BAR);
     }
     w->quit = 1;
 }
@@ -301,7 +301,7 @@ void SoundTest()
         }
     }
     TaskSignal(0);
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TaskExit();
 }
 

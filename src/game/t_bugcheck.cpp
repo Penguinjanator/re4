@@ -89,7 +89,7 @@ void cToolBugcheck::main()
 // Restores Stop_flg, clears the debug-menu-active bit, ends the task.
 void cToolBugcheck::exit()
 {
-    BitOff(pG->Debug_flg[0], 0x80000000);
+    DbgFlagOff(pG, DBG_TEST_MODE);
     pG->Stop_flg = m_stop_flag_bak;
     TaskExit();
 }
@@ -106,9 +106,9 @@ void cToolBugcheck::menuPosMove()
     BitOff(pG->Stop_flg, 0x40000000);
     while (1) {
         if (Joy[0].on & JOY_X) {
-            pG->Debug_flg[2] |= 8;
+            DbgFlagOn(pG, DBG_PL_NOHIT);
         } else {
-            pG->Debug_flg[2] &= ~8;
+            DbgFlagOff(pG, DBG_PL_NOHIT);
         }
         speed = (Joy[0].on & JOY_A) ? 8.0f : 2.0f;
         Vec v = {0.0f, 0.0f, 0.0f};
@@ -124,7 +124,7 @@ void cToolBugcheck::menuPosMove()
             pPL->ang.y -= 0.13962634f;
         }
         floor = SatMgr.getFloor(&pPL->pos, 0, 600.0f, 100000.0f, 0);
-        if (pPL->pos.y > floor + 500.0f || (pG->Debug_flg[2] & 8)) {
+        if (pPL->pos.y > floor + 500.0f || DbgFlagChk(pG, DBG_PL_NOHIT)) {
             v.y = v.y + speed * (f32) (int) Joy[0].triggerRight - speed * (f32) (int) Joy[0].triggerLeft;
         }
         PSVECAdd(&pPL->pos, &v, &pPL->pos);
@@ -149,7 +149,7 @@ void cToolBugcheck::menuPosMove()
         eprintf(32, 70, 0, 0, "Y:%.0f", pPL->pos.y);
         eprintf(32, 84, 0, 0, "Z:%.0f", pPL->pos.z);
         eprintf(32, 98, 0, 0, "R:%.2f", pPL->ang.y);
-        eprintf(32, 126, (pG->Debug_flg[2] & 8) ? 0 : 0x14, 0, "[X]:SCR_NO_HIT");
+        eprintf(32, 126, DbgFlagChk(pG, DBG_PL_NOHIT) ? 0 : 0x14, 0, "[X]:SCR_NO_HIT");
         eprintf(32, 140, 0, 0, "[A]:SPPED_UP");
         eprintf(32, 154, 0, 0, "[L]:POS_UP");
         eprintf(32, 168, 0, 0, "[R]:POS_DOWN");
@@ -163,7 +163,7 @@ void cToolBugcheck::menuPosMove()
         }
         TaskSleep(1);
     }
-    BitOff(pG->Debug_flg[2], 8);
+    DbgFlagOff(pG, DBG_PL_NOHIT);
     BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Stop_flg, 0x40000000);
 }
@@ -341,9 +341,9 @@ void cToolBugcheck::menu()
     ToolMenuDisp_cur(px, py, 0, &cursor, menu, sizeof(menu), Joy);
     switch (cursor) {
     case 0:
-        if (pG->Debug_flg[2] & 0x400000) {
+        if (DbgFlagChk(pG, DBG_INF_BULLET)) {
             i = 1;
-        } else if (pG->Debug_flg[3] & 0x80000000) {
+        } else if (DbgFlagChk(pG, DBG_INF_BULLET2)) {
             i = 2;
         } else {
             i = 0;
@@ -358,21 +358,21 @@ void cToolBugcheck::menu()
             i++;
         }
         i = i < 0 ? 2 : (i > 2 ? 0 : i);
-        BitOff(pG->Debug_flg[2], 0x400000);
-        BitOff(pG->Debug_flg[3], 0x80000000);
+        DbgFlagOff(pG, DBG_INF_BULLET);
+        DbgFlagOff(pG, DBG_INF_BULLET2);
         switch (i) {
         case 0:
             break;
         case 1:
-            pG->Debug_flg[2] |= 0x400000;
+            DbgFlagOn(pG, DBG_INF_BULLET);
             break;
         case 2:
-            pG->Debug_flg[3] |= 0x80000000;
+            DbgFlagOn(pG, DBG_INF_BULLET2);
             break;
         }
         break;
     case 1:
-        if (pG->Debug_flg[2] & 0x10000) {
+        if (DbgFlagChk(pG, DBG_KAIOUKEN)) {
             i = PlKaiou + 1;
         } else {
             i = 0;
@@ -388,20 +388,20 @@ void cToolBugcheck::menu()
         }
         i = i < 0 ? 4 : (i > 4 ? 0 : i);
         if (i == 0) {
-            pG->Debug_flg[2] &= ~0x10000;
+            DbgFlagOff(pG, DBG_KAIOUKEN);
         } else {
-            pG->Debug_flg[2] |= 0x10000;
+            DbgFlagOn(pG, DBG_KAIOUKEN);
             PlKaiou = i - 1;
         }
         break;
     case 2:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x800000;
+            DbgFlagXor(pG, DBG_NO_DEATH);
         }
         break;
     case 3:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x20000;
+            DbgFlagXor(pG, DBG_EM_NO_DEATH);
         }
         break;
     case 4:
@@ -409,42 +409,42 @@ void cToolBugcheck::menu()
         break;
     case 6:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x10000000;
+            DbgFlagXor(pG, DBG_OBA_VIEW);
         }
         break;
     case 7:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x20000000;
+            DbgFlagXor(pG, DBG_SCA_VIEW);
         }
         break;
     case 8:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[0] ^= 0x8000000;
+            DbgFlagXor(pG, DBG_SAT_DISP);
         }
         break;
     case 9:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[0] ^= 0x4000000;
+            DbgFlagXor(pG, DBG_EAT_DISP);
         }
         break;
     case 10:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[0] ^= 0x400000;
+            DbgFlagXor(pG, DBG_SCE_AT_DISP);
         }
         break;
     case 11:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[3] ^= 0x10;
+            DbgFlagXor(pG, DBG_SHOP_FULL);
         }
         break;
     case 12:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x100000;
+            DbgFlagXor(pG, DBG_BGM_STOP);
         }
         break;
     case 13:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x80000;
+            DbgFlagXor(pG, DBG_SE_STOP);
         }
         break;
     case 14:
@@ -470,58 +470,58 @@ void cToolBugcheck::menu()
         break;
     case 16:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x2000;
+            DbgFlagXor(pG, DBG_EM_WEAK);
         }
         break;
     case 17:
         if (Joy[0].trg & 0x30103) {
-            pG->Debug_flg[2] ^= 0x1000;
+            DbgFlagXor(pG, DBG_EM_LIFE_DISP);
         }
         break;
     }
 
     px += 128;
-    if (pG->Debug_flg[2] & 0x400000) {
+    if (DbgFlagChk(pG, DBG_INF_BULLET)) {
         i = 1;
-    } else if (pG->Debug_flg[3] & 0x80000000) {
+    } else if (DbgFlagChk(pG, DBG_INF_BULLET2)) {
         i = 2;
     } else {
         i = 0;
     }
     eprintf(px, py, 0, 0, "%s", i >= 0 && i <= 2 ? wep_mugen_str[i] : "...no string");
     py += 16;
-    if (!(pG->Debug_flg[2] & 0x10000)) {
+    if (!DbgFlagChk(pG, DBG_KAIOUKEN)) {
         i = 0;
     } else {
         i = PlKaiou + 1;
     }
     eprintf(px, py, 0, 0, "%s", i >= 0 && i <= 4 ? pl_speed_str[i] : "...no string");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x800000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_NO_DEATH) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x20000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_EM_NO_DEATH) ? "ON" : "OFF");
     py += 48;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x10000000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_OBA_VIEW) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x20000000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_SCA_VIEW) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[0] & 0x8000000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_SAT_DISP) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[0] & 0x4000000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_EAT_DISP) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[0] & 0x400000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_SCE_AT_DISP) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[3] & 0x10) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_SHOP_FULL) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x100000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_BGM_STOP) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x80000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_SE_STOP) ? "ON" : "OFF");
     py += 16;
     eprintf(px, py, 0, 0, "%s", (pG->Disp_flg & 0x40000000) ? "ON" : "OFF");
     py += 16;
     eprintf(px, py, 0, 0, "%s", (pG->Disp_flg & 0x8000000) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x2000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_EM_WEAK) ? "ON" : "OFF");
     py += 16;
-    eprintf(px, py, 0, 0, "%s", (pG->Debug_flg[2] & 0x1000) ? "ON" : "OFF");
+    eprintf(px, py, 0, 0, "%s", DbgFlagChk(pG, DBG_EM_LIFE_DISP) ? "ON" : "OFF");
 }

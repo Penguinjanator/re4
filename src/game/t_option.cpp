@@ -122,7 +122,7 @@ void ToolOption()
         pT->move();
         TaskSleep(1);
     }
-    pG->Debug_flg[0] &= 0x7FFFFFFF;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TaskSignal(0);
     TaskExit();
 }
@@ -239,29 +239,29 @@ void tp_pl_flag()
     if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
-            if ((s32) pG->Debug_flg[3] < 0) {
-                BitOff(pG->Debug_flg[3], 0x80000000);
-                pG->Debug_flg[2] |= 0x400000;
-            } else if (pG->Debug_flg[2] & 0x400000) {
-                BitOff(pG->Debug_flg[3], 0x80000000);
-                pG->Debug_flg[2] &= ~0x400000;
+            if (FlagChkSignW(pG->Debug_flg[3], DBG_INF_BULLET2)) {
+                DbgFlagOff(pG, DBG_INF_BULLET2);
+                DbgFlagOn(pG, DBG_INF_BULLET);
+            } else if (DbgFlagChk(pG, DBG_INF_BULLET)) {
+                DbgFlagOff(pG, DBG_INF_BULLET2);
+                DbgFlagOff(pG, DBG_INF_BULLET);
             } else {
-                BitOn(pG->Debug_flg[3], 0x80000000);
-                pG->Debug_flg[2] &= ~0x400000;
+                DbgFlagOn(pG, DBG_INF_BULLET2);
+                DbgFlagOff(pG, DBG_INF_BULLET);
             }
             break;
         case 1:
-            if (pG->Debug_flg[2] & 0x800000) {
-                pG->Debug_flg[2] &= ~0x800000;
+            if (DbgFlagChk(pG, DBG_NO_DEATH)) {
+                DbgFlagOff(pG, DBG_NO_DEATH);
             } else {
-                pG->Debug_flg[2] |= 0x800000;
+                DbgFlagOn(pG, DBG_NO_DEATH);
             }
             break;
         case 2:
-            if (pG->Debug_flg[2] & 0x10000) {
-                pG->Debug_flg[2] &= ~0x10000;
+            if (DbgFlagChk(pG, DBG_KAIOUKEN)) {
+                DbgFlagOff(pG, DBG_KAIOUKEN);
             } else {
-                pG->Debug_flg[2] |= 0x10000;
+                DbgFlagOn(pG, DBG_KAIOUKEN);
             }
             break;
         case 3:
@@ -288,10 +288,10 @@ void tp_pl_flag()
             PlDbFlag ^= 2;
             break;
         case 7:
-            if (pG->Debug_flg[2] & 8) {
-                pG->Debug_flg[2] &= ~8;
+            if (DbgFlagChk(pG, DBG_PL_NOHIT)) {
+                DbgFlagOff(pG, DBG_PL_NOHIT);
             } else {
-                pG->Debug_flg[2] |= 8;
+                DbgFlagOn(pG, DBG_PL_NOHIT);
             }
             break;
         }
@@ -355,9 +355,9 @@ void tp_pl_posmove()
         pT->rno[2] = 1;
     }
     if (Joy[0].on & JOY_X) {
-        pG->Debug_flg[2] |= 8;
+        DbgFlagOn(pG, DBG_PL_NOHIT);
     } else {
-        pG->Debug_flg[2] &= ~8;
+        DbgFlagOff(pG, DBG_PL_NOHIT);
     }
     f32 spd = pT->joy[0].on & JOY_A ? 10.0f : 1.0f;
     Vec mv = {0.0f, 0.0f, 0.0f};
@@ -385,7 +385,7 @@ void tp_pl_posmove()
     }
     if (pT->joy[0].rep & JOY_B) {
         int cur = 2;  // kept in a callee-saved register across the calls
-        pG->Debug_flg[2] &= ~8;
+        DbgFlagOff(pG, DBG_PL_NOHIT);
         TaskSuspend(0);
         BitSet(pG->Stop_flg, sfb);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
@@ -722,7 +722,7 @@ void tp_pl_face()
         if (pData != NULL) {
             Debug_free(pData);
         }
-        BitOff(pG->Debug_flg[2], 8);
+        DbgFlagOff(pG, DBG_PL_NOHIT);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         TaskSuspend(0);
         pG->Stop_flg = sfb;
@@ -782,17 +782,17 @@ void tp_scr_flag()
     if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
-            if (pG->Debug_flg[3] & 0x2000) {
-                pG->Debug_flg[3] &= ~0x2000;
+            if (DbgFlagChk(pG, DBG_FOG_FAR_GREEN)) {
+                DbgFlagOff(pG, DBG_FOG_FAR_GREEN);
             } else {
-                pG->Debug_flg[3] |= 0x2000;
+                DbgFlagOn(pG, DBG_FOG_FAR_GREEN);
             }
             break;
         case 1:
-            if (pG->Debug_flg[3] & 0x4000000) {
-                pG->Debug_flg[3] &= ~0x4000000;
+            if (DbgFlagChk(pG, DBG_LOG_OFF)) {
+                DbgFlagOff(pG, DBG_LOG_OFF);
             } else {
-                pG->Debug_flg[3] |= 0x4000000;
+                DbgFlagOn(pG, DBG_LOG_OFF);
             }
             break;
         case 2:
@@ -810,10 +810,10 @@ void tp_scr_flag()
             }
             break;
         case 4:
-            if (pG->Debug_flg[3] & 0x400000) {
-                pG->Debug_flg[3] &= ~0x400000;
+            if (DbgFlagChk(pG, DBG_ERROR_CK)) {
+                DbgFlagOff(pG, DBG_ERROR_CK);
             } else {
-                pG->Debug_flg[3] |= 0x400000;
+                DbgFlagOn(pG, DBG_ERROR_CK);
             }
             break;
         }
@@ -846,27 +846,27 @@ void tp_scr_view()
     }
     if (chg) {
         BitOn(pG->Disp_flg, 0x8000000);
-        BitOff(pG->Debug_flg[0], 0x8000000);
-        BitOff(pG->Debug_flg[0], 0x4000000);
+        DbgFlagOff(pG, DBG_SAT_DISP);
+        DbgFlagOff(pG, DBG_EAT_DISP);
         switch (pT->cursor) {
         case 0:
             pG->Disp_flg &= ~0x8000000;
             break;
         case 1:
             BitOn(pG->Disp_flg, 0x8000000);
-            pG->Debug_flg[0] |= 0x8000000;
+            DbgFlagOn(pG, DBG_SAT_DISP);
             break;
         case 2:
             BitOn(pG->Disp_flg, 0x8000000);
-            pG->Debug_flg[0] |= 0x4000000;
+            DbgFlagOn(pG, DBG_EAT_DISP);
             break;
         case 3:
             BitOff(pG->Disp_flg, 0x8000000);
-            pG->Debug_flg[0] |= 0x8000000;
+            DbgFlagOn(pG, DBG_SAT_DISP);
             break;
         case 4:
             BitOff(pG->Disp_flg, 0x8000000);
-            pG->Debug_flg[0] |= 0x4000000;
+            DbgFlagOn(pG, DBG_EAT_DISP);
             break;
         case 5:
             break;
@@ -876,10 +876,10 @@ void tp_scr_view()
         pT->setRno(2, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
-    if (pG->Debug_flg[0] & 0x8000000) {
+    if (DbgFlagChk(pG, DBG_SAT_DISP)) {
         SatMgr.disp(0);
     }
-    if (pG->Debug_flg[0] & 0x4000000) {
+    if (DbgFlagChk(pG, DBG_EAT_DISP)) {
         EatMgr.disp(0);
     }
 }

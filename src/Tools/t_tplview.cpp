@@ -212,7 +212,7 @@ void TplViewer()
             Mem_free(pTplBuf);
             pTplBuf = 0;
         }
-        BitOff(pG->Debug_flg[0], 0x80000000);
+        DbgFlagOff(pG, DBG_TEST_MODE);
         pG->debug_mode = wk->debugBak;
         memclr_asm(wk, sizeof(TplViewWork));
         TaskExit();

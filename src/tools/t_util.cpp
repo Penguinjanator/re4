@@ -53,9 +53,9 @@ void TutilInitDefault()
     memcpy(status_flg_bak, &pG->Status_flg[0], sizeof(status_flg_bak));
     BitOn(pG->Stop_flg, 0x200);
     BitOn(pG->Stop_flg, 0x80);
-    BitOn(pG->Debug_flg[0], 0x8000);
-    BitOn(pG->Debug_flg[2], 0x800000);
-    pG->Debug_flg[3] &= ~0x2000;
+    DbgFlagOn(pG, DBG_CINESCO_OFF);
+    DbgFlagOn(pG, DBG_NO_DEATH);
+    DbgFlagOff(pG, DBG_FOG_FAR_GREEN);
 }
 
 // Common tool exit: restores the camera and flag words saved by TutilInitDefault (keeping
@@ -70,7 +70,7 @@ void TutilQuitDefault()
     BitSet(pG->System_flg, system_flg_bak);
     BitSet(pG->Stop_flg, stop_flg_bak);
     BitSet(pG->Disp_flg, disp_flg_bak);
-    if (pG->Debug_flg[0] & 0x100) {
+    if (DbgFlagChk(pG, DBG_ESPTOOL_MEM_USE)) {
         debug_flg_bak[0] |= 0x100;
     }
     {
@@ -79,8 +79,8 @@ void TutilQuitDefault()
         memcpy(debug, debug_flg_bak, sizeof(debug_flg_bak));
     }
     memcpy(&pGS->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
-    BitOff(pG->Debug_flg[0], 0x80000000);
-    pG->Debug_flg[3] |= 0x2000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
+    DbgFlagOn(pG, DBG_FOG_FAR_GREEN);
 }
 
 // Moves a 2D cursor with the analog stick (scaled by `speed`) and the digital pad (by `step`).

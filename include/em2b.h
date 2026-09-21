@@ -10,6 +10,19 @@
 #include "obj.h"
 #include "obj16.h"
 
+// Room_flg bits of room 1-19 (the quarry: the huts the rocks and the giant destroy, the dog), from
+// the PS2 symbols; RmfFlagChk(pG, n).
+enum R119_FLAG {
+    RMF_R119_DESTROY_KOYA_A = 0,
+    RMF_R119_DESTROY_KOYA_B = 1,
+    RMF_R119_DESTROY_KOYA_C = 2,
+    RMF_R119_DESTROY_YANE_A = 3,
+    RMF_R119_DESTROY_YANE_B = 4,
+    RMF_R119_DESTROY_YANE_C = 5,
+    RMF_R119_DOG_APPEAR = 6,
+    RMF_R119_PARASIET = 7,
+};
+
 class cCtrl;
 class cEmTree;
 class cObjYagura;

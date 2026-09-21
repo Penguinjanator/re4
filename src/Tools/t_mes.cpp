@@ -75,7 +75,7 @@ void ToolMes()
     dbg.init();
     TaskSuspend(0);
     dbg.move();
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_TEST_MODE);
     TaskSignal(0);
     TaskExit();
 }

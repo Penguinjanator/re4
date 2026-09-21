@@ -88,7 +88,7 @@ static int mvInit()
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Stop_flg, 0x800000);
     BitOff(pG->System_flg, 0x800);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     ToolArrayPush(0);
     bg.r = bg.g = bg.b = 0x30;
     bg.a = zero;
@@ -202,8 +202,8 @@ static int mvQuit()
     BitOff(pG->Disp_flg, 0x2000000);
     BitOff(pG->Stop_flg, 0x800000);
     BitOn(pG->System_flg, 0x800);
-    BitOff(pG->Debug_flg[0], 0x10000000);
-    pG->Debug_flg[0] &= ~0x80000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
+    DbgFlagOff(pG, DBG_TEST_MODE);
     SetToolLight(-1);
     pMv->step = ret;
     TaskExit();

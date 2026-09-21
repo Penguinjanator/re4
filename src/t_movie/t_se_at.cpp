@@ -159,7 +159,7 @@ void seAtInit()
     BitOn(pG->Disp_flg, 0x80000000);
     BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->Disp_flg, 0x100000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
     pW->head.magic[0] = 'E';
     pW->head.magic[1] = 'S';
@@ -198,7 +198,7 @@ static void seAtExit()
 {
     BitSet(pG->Disp_flg, pW->saveDisp);
     BitSet(pG->Stop_flg, pW->saveStop);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     SetToolLight(-1);
     Snd.se_at = seAtSaveHead;
     Snd.se_at_list = seAtSaveList;
@@ -999,7 +999,7 @@ static void preview_init()
 
     BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
-    pG->Debug_flg[0] &= ~0x10000000;
+    DbgFlagOff(pG, DBG_DBG_CAM);
     for (i = 0; i < 64; i++) {
         if (pW->area[i].flags & 1) {
             pW->area[i].no = i;
@@ -1041,7 +1041,7 @@ static void preview_exit()
     BitOn(pG->Stop_flg, 0x2000);
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x80000000);
-    pG->Debug_flg[0] |= 0x10000000;
+    DbgFlagOn(pG, DBG_DBG_CAM);
     Snd.se_at = NULL;
     Snd.se_at_list = NULL;
     pW->mode = 0;

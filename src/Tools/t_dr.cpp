@@ -141,7 +141,7 @@ static void tDrExit()
     case 9:
         file_unlock(DR->fileB);
         Debug_free(DR);
-        pG->Debug_flg[0] &= ~0x10000000;
+        DbgFlagOff(pG, DBG_DBG_CAM);
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();

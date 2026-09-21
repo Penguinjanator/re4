@@ -1150,7 +1150,7 @@ void cItemMgr::gameInit()
         pG->peseta = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if (BitChk(pG->Debug_flg[3], 0x00800000) || BitChk(pG->Debug_flg[3], 0x00040000)) {
+        if (FlagChkSign(pG->Debug_flg, DBG_START_ST2) || FlagChkSign(pG->Debug_flg, DBG_START_ST3)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);
