@@ -223,7 +223,8 @@ int loadMesName(const char* path, char* names);
     if (Joy[0].j & REP_LEFT) v--;
 
 // 0..hi clamp with a second variable (blt / li-at-end shape)
-#define CLAMP(v, n, hi)      \
+// n = v limited to [0, hi] (a statement, unlike CLAMP in math_sub_decl.h).
+#define CLAMP_SET(v, n, hi)      \
     if ((v) >= 0) {          \
         n = v;               \
         if (n > (hi)) n = hi; \
@@ -791,7 +792,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
             n--;
             if (n == 3) n = 2;
         }
-        CLAMP(n, m, 0x14);
+        CLAMP_SET(n, m, 0x14);
         pCur->type = m;
         break;
     case 1:
@@ -820,7 +821,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
             n = PC(c3)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
-            CLAMP(n, m, 0x5A);
+            CLAMP_SET(n, m, 0x5A);
             pCur->angleRange = m;
         }
         break;
@@ -880,13 +881,13 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
     case 6:
         n = PC(c6)->checkType;
         STEP(rep, n);
-        CLAMP(n, m, 0xF);
+        CLAMP_SET(n, m, 0xF);
         pCur->checkType = m;
         break;
     case 7:
         n = PC(c7)->otNo;
         STEP(rep, n);
-        CLAMP(n, m, 0xF);
+        CLAMP_SET(n, m, 0xF);
         pCur->otNo = m;
         break;
     default:
@@ -1024,7 +1025,7 @@ static void tSceAtDataInput_door()
     case 0x10:
         n = pCur->lockType;
         STEP(rep, n);
-        CLAMP(n, m, 2);
+        CLAMP_SET(n, m, 2);
         pCur->lockType = m;
         break;
     case 0x11:
@@ -1198,7 +1199,7 @@ static void tSceAtDataInput_mes()
     case 8:
         n = d->type;
         STEP(rep, n);
-        CLAMP(n, m, 1);
+        CLAMP_SET(n, m, 1);
         d->type = m;
         break;
     case 9:
@@ -1234,19 +1235,19 @@ static void tSceAtDataInput_mes()
     case 0xA:
         n = d->camCut;
         STEP(rep2, n);
-        CLAMP(n, m, 0xFF);
+        CLAMP_SET(n, m, 0xFF);
         d->camCut = m;
         break;
     case 0xB:
         n = d->seBlk;
         STEP(rep, n);
-        CLAMP(n, m, 1);
+        CLAMP_SET(n, m, 1);
         d->seBlk = m;
         break;
     case 0xC:
         n = d->se;
         STEP(rep2, n);
-        CLAMP(n, m, 0x1FF);
+        CLAMP_SET(n, m, 0x1FF);
         d->se = m;
         break;
     }
@@ -1313,7 +1314,7 @@ static void tSceAtDataInput_flg()
     case 8:
         n = d->kind;
         STEP(rep, n);
-        CLAMP(n, m, 2);
+        CLAMP_SET(n, m, 2);
         d->kind = m;
         break;
     case 9:
@@ -1408,13 +1409,13 @@ static void tSceAtDataInput_shd_disp()
     case 8:
         n = d->no;
         STEP(rep, n);
-        CLAMP(n, m, 0xFF);
+        CLAMP_SET(n, m, 0xFF);
         d->no = m;
         break;
     case 9:
         n = d->on;
         STEP(rep, n);
-        CLAMP(n, m, 1);
+        CLAMP_SET(n, m, 1);
         d->on = m;
         break;
     }
@@ -1462,7 +1463,7 @@ static void tSceAtDataInput_damage()
         STEP(rep, n);
         em = pCur->checkType & 9;
         if (em != 0) {
-            CLAMP(n, m, 0x1E);
+            CLAMP_SET(n, m, 0x1E);
             n = m;
         }
         d->kind = n;
@@ -1473,13 +1474,13 @@ static void tSceAtDataInput_damage()
         if (Joy[0].rep2 & JOY_LEFT) n--;
         if (Joy[0].rep2 & 0x20000) n += 30;
         if (Joy[0].rep2 & 0x10000) n -= 30;
-        CLAMP(n, m, 1800);
+        CLAMP_SET(n, m, 1800);
         d->time = m;
         break;
     case 0xA:
         n = d->arg;
         STEP(rep2, n);
-        CLAMP(n, m, 1000);
+        CLAMP_SET(n, m, 1000);
         d->arg = m;
         break;
     case 0xB:
@@ -1630,7 +1631,7 @@ static void tSceAtDataInput_scr_at()
         break;
     case 0x12:
         STEP(rep, eff);
-        CLAMP(eff, m, 7);
+        CLAMP_SET(eff, m, 7);
         eff = m;
         if (eff & 1) {
             d->attr2 |= 0x800000;
@@ -1762,7 +1763,7 @@ static void tSceAtDataInput_cam_ctrl_main()
     case 8:
         n = pCur->cam.mode;
         STEP(rep, n);
-        CLAMP(n, m, 1);
+        CLAMP_SET(n, m, 1);
         pCur->cam.mode = m;
         break;
     case 9:
@@ -1882,7 +1883,7 @@ static void tSceAtDataInput_field_info()
     if (pW->inputCursor == 8) {
         n = d->value;
         STEP(rep, n);
-        CLAMP(n, m, 3);
+        CLAMP_SET(n, m, 3);
         d->value = m;
     }
     eprintf((s16) (pW->x + 0x80), pW->y, 0, 0, "%d", d->value);
@@ -1912,7 +1913,7 @@ static void tSceAtDataInput_save()
     if (pW->inputCursor == 8) {
         n = d->value;
         STEP(rep, n);
-        CLAMP(n, m, 0xA);
+        CLAMP_SET(n, m, 0xA);
         d->value = m;
     }
     eprintf((s16) (pW->x + 0x80), pW->y, 0, 0, "%d", d->value);
@@ -2119,7 +2120,7 @@ static void tSceAtDataInput_use()
         if (Joy[0].rep2 & JOY_LEFT) n--;
         if (Joy[0].rep2 & 0x20000) n += 0x10;
         if (Joy[0].rep2 & 0x10000) n -= 0x10;
-        CLAMP(n, m, 0xFE);
+        CLAMP_SET(n, m, 0xFE);
         d->value = m;
     }
     eprintf((s16) (pW->x + 0x80), pW->y, 0, 0, "%x", d->value);
@@ -2162,7 +2163,7 @@ static void tSceAtDataInput_hide_main()
     case 8:
         n = pCur->hide.mode;
         STEP(rep, n);
-        CLAMP(n, m, 3);
+        CLAMP_SET(n, m, 3);
         pCur->hide.mode = m;
         break;
     case 9:
@@ -2174,7 +2175,7 @@ static void tSceAtDataInput_hide_main()
     case 0xB:
         n = pCur->hide.cut;
         STEP(rep, n);
-        CLAMP(n, m, 0xFF);
+        CLAMP_SET(n, m, 0xFF);
         pCur->hide.cut = m;
         break;
     }

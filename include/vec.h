@@ -71,4 +71,27 @@ void PSMTXQuat(Mtx m, const Quaternion* q);
 
 #endif
 
+// Mtx copy as the original's inlined word loop (three rows of four f32 through row pointers); a plain
+// block. The loop shape is a register-allocation lever: units whose bytes need another one keep a
+// local variant (motion.cpp MTX_COPY_DOWN, at_mod.cpp / ss_pzzl.cpp MTX_COPY_DO, sce_at.cpp
+// MTX_COPY_LATE_DST), see docs/matching.md "Mtx copy loops".
+#define MTX_COPY(src, dst)               \
+    {                                    \
+        MtxPtr d_ = (dst);               \
+        MtxPtr s_ = (src);               \
+        int i_ = 3;                      \
+        int j_;                          \
+        f32* sp_;                        \
+        f32* dp_;                        \
+        while (i_--) {                   \
+            dp_ = *d_;                   \
+            sp_ = *s_;                   \
+            for (j_ = 0; j_ < 4; j_++) { \
+                *dp_++ = *sp_++;         \
+            }                            \
+            d_++;                        \
+            s_++;                        \
+        }                                \
+    }
+
 #endif

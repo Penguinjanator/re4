@@ -51,17 +51,6 @@ static void knife_r3_fire10(cPlayer* pl);
 static void knife_r3_down00(cPlayer* pl);
 static void knife_r3_down10(cPlayer* pl);
 
-// face model info: the face blend weights (0x5C/0x70/0x84) are reset to `v`
-#define FACE_SET(pl, v)                                 \
-    do {                                                \
-        cModelInfo* face = (pl)->Body->pFace;          \
-        if (VALID_PTR(face)) {                          \
-            face->x84 = v;                              \
-            face->x70 = v;                              \
-            face->x5C = v;                              \
-        }                                               \
-    } while (0)
-
 // Routine 0xB (knife): dispatches on r_no_2, runs the lock-on stick control and the character's
 // X-button (partner command) check.
 void PlKnifeMove(cPlayer* pl)

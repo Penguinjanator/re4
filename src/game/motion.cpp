@@ -16,12 +16,12 @@
 #include <string.h>
 
 
-// Matrix copy written out as loops (the original never calls PSMTXCopy for these).
-// Shape matters (all four sites byte-identical only this way): dst pointer first, the row
-// counter `i_ = 2` between the two pointers, `for (; i_ != -1; i_--)` (a `while (i_--)` leaves
-// the folded `li 2` behind the source pointer), `d_++` before `s_++` (gcse numbers the
+// Matrix copy written out as loops (the original never calls PSMTXCopy for these), a variant of
+// MTX_COPY (vec.h). Shape matters (all four sites byte-identical only this way): dst pointer first,
+// the row counter `i_ = 2` between the two pointers, `for (; i_ != -1; i_--)` (a `while (i_--)`
+// leaves the folded `li 2` behind the source pointer), `d_++` before `s_++` (gcse numbers the
 // hoisted `+16` pseudos in that order).
-#define MTX_COPY(src, dst)               \
+#define MTX_COPY_DOWN(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
         int i_ = 2;                      \
@@ -411,7 +411,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int 
             if (cam->type == 1) {
                 cam->pMat = &m->mat;
             } else if (cam->type == 2) {
-                MTX_COPY(m->mat, cam->mat);
+                MTX_COPY_DOWN(m->mat, cam->mat);
                 cam->pMat = &cam->mat;
             }
         }
@@ -536,17 +536,17 @@ u32 MotionMove(cModel* m, Camera* pCamera)
         Mtx tmp;
         Mtx save;
 
-        MTX_COPY(m->mat, save);
+        MTX_COPY_DOWN(m->mat, save);
         if (m->scale.x != 0.0f || m->scale.y != 0.0f || m->scale.z != 0.0f) {
             PSMTXScale(tmp, 1.0f / m->scale.x, 1.0f / m->scale.y, 1.0f / m->scale.z);
         } else {
             PSMTXIdentity(tmp);
         }
         PSMTXConcat(m->mat, tmp, tmp);
-        MTX_COPY(tmp, m->mat);
+        MTX_COPY_DOWN(tmp, m->mat);
         m->partsWorldCalc();
         InverseKinematics(m, 1);
-        MTX_COPY(save, m->mat);
+        MTX_COPY_DOWN(save, m->mat);
         m->partsWorldCalc();
     }
     if (MOTION(m)->Hokan_cnt != 0) {

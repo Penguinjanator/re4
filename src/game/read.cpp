@@ -93,14 +93,10 @@ ReadModule EmReadModule[4] __attribute__((aligned(32)));
 ReadModule PlReadModule __attribute__((aligned(32)));
 ReadModule WepReadModule __attribute__((aligned(32)));
 
-// Plain block, not do/while(0): the loop notes of a do/while are a sched1 barrier, and the
-// original's argument order around HALT (`lwz r4` / `addi r4,r31,__FILE__` before the string
-// `lis/addi r3` in decodeData, the `mfcr` form in ReadPlayerData) needs one scheduling region.
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
+// HALT() (db_log.h) is a plain block, not do/while(0): the loop notes of a do/while are a sched1
+// barrier, and the original's argument order around HALT (`lwz r4` / `addi r4,r31,__FILE__` before
+// the string `lis/addi r3` in decodeData, the `mfcr` form in ReadPlayerData) needs one scheduling
+// region.
 
 #define DVD_READ(no, dst, a, b, c, mode) DvdRead(no, dst, a, b, c, mode, __FILE__, __LINE__)
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
@@ -115,8 +111,6 @@ ReadModule WepReadModule __attribute__((aligned(32)));
 #define WEP_DATA_ADDR ((void*) 0x80904000)
 #define WEP_DATA_MAX 0x70000
 #define DLL_BSS_MAX 0x80
-
-#define ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
 // Flag test through a reference: the flag address is materialised, and `&PlReadModule` right

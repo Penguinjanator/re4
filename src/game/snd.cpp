@@ -43,10 +43,8 @@ void* GetDataExt(void* arc, const char* tag, int no);
 
 
 #define SND_FILE "D:/Bio4/Prog/snd.cpp"
-#define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
 #define SND_DATA_TOP 0x80370000
 #define LOOP_IDX(x, max) ((x) < 0 ? (max) : ((x) > (max) ? 0 : (x)))
-#define CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
 
 SndWork Snd;
 SndMemWork SndMem;

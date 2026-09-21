@@ -943,8 +943,6 @@ void cGameSave::calcAddr(SAVE_DATA_HEAD* data)
     data->pItem = (void*) ((u32) data + p);
 }
 
-#define ALIGN32(n) (((n) + 0x1F) & ~0x1F)
-
 // Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
 // and item sections (32-byte aligned), and fixes the pointers.
 SAVE_DATA_HEAD* cGameSave::alloc()

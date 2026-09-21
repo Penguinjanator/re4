@@ -27,10 +27,6 @@
 #include "math_sub.h"
 #include "em.h"
 
-#define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
-// The weapon object's own cAtariInfo (the object's collision with enemies while it is held).
-#define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
-
 void ObjMauser_init(cObj* obj);   // wep02/objMauser.cpp (module import)
 void ObjVp70_init(cObj* obj);     // wep17/objVp70.cpp
 

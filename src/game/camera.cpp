@@ -23,27 +23,6 @@
 #include <math.h>
 #include "math_sub_decl.h"
 
-
-// Matrix copy written out as loops (same as motion.cpp; the original never calls PSMTXCopy here).
-#define MTX_COPY(src, dst)               \
-    {                                    \
-        MtxPtr d_ = (dst);               \
-        MtxPtr s_ = (src);               \
-        int i_ = 3;                      \
-        int j_;                          \
-        f32* sp_;                        \
-        f32* dp_;                        \
-        while (i_--) {                   \
-            dp_ = *d_;                   \
-            sp_ = *s_;                   \
-            for (j_ = 0; j_ < 4; j_++) { \
-                *dp_++ = *sp_++;         \
-            }                            \
-            d_++;                        \
-            s_++;                        \
-        }                                \
-    }
-
 int ProjType = 1;
 
 // Loads pG->Camera's projection into GX: type 1 perspective, type 2 orthographic (ProjType

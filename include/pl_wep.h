@@ -131,6 +131,11 @@ public:
     void setTrans(int on, int type);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
 };
 
+// The weapon object of player `pl` and its own cAtariInfo (the object's collision with enemies
+// while it is held).
+#define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
+#define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
+
 // knife/weapon collision (pl, top, bottom, type, flags, length)
 u32 PlWepHitCheck2(cModel* pl, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len);
 void PlWepLockCtrl(cModel* pl);

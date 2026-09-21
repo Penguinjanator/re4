@@ -28,17 +28,6 @@ void knife_r3_fire10(cPlayer* pl);
 void knife_r3_down00(cPlayer* pl);
 void knife_r3_down10(cPlayer* pl);
 
-// face model info: the face blend weights (0x5C/0x70/0x84) are reset to `v`
-#define FACE_SET(pl, v)                                 \
-    do {                                                \
-        cModelInfo* face = (pl)->Body->pFace;          \
-        if (VALID_PTR(face)) {                          \
-            face->x84 = v;                              \
-            face->x70 = v;                              \
-            face->x5C = v;                              \
-        }                                               \
-    } while (0)
-
 // Routine 1 == 0xB (knife, the L-trigger stance): r_no_2 0 ready (draw), 1 set (hold / turn),
 // 2 fire (slash), 3 down (put away); also runs the lock-on and the X-button check.
 void PlKnifeMove(cPlayer* pl)

@@ -52,14 +52,6 @@ static inline void Dec(int& v) { v--; }
 #define QOFS(p) ((QfpsOfs*) (p))
 #define QOFS_CAMPOS2 0xC
 
-
-// Column vectors -> matrix.
-#define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
-    (m)[0][0] = (c0).x; (m)[1][0] = (c0).y; (m)[2][0] = (c0).z;                               \
-    (m)[0][1] = (c1).x; (m)[1][1] = (c1).y; (m)[2][1] = (c1).z;                               \
-    (m)[0][2] = (c2).x; (m)[1][2] = (c2).y; (m)[2][2] = (c2).z;                               \
-    (m)[0][3] = (c3).x; (m)[1][3] = (c3).y; (m)[2][3] = (c3).z
-
 // Per-frame: Z toggles the menu (pauses the debug page), the menu page runs when open; otherwise
 // input claims the camera (Debug_flg[0] 0x10000000, B releases unless `flag` bit0), the target
 // type (EM / OBJ / PL / ORG) with A snaps the look-at to the selected work (Left / Right pick it,
@@ -356,7 +348,7 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
 #line 452 "D:/Bio4/Prog/db_cam.cpp"
             VECNormalize(&dir, &dir);
             PSVECCrossProduct(&up, &dir, &axis);
-            MTX_SET_COLUMNS(m, axis, up, dir, trans);
+            MTX_SET_COLUMNS(m, &axis, &up, &dir, &trans);
         } else {
             PSMTXIdentity(m);
         }
@@ -1104,7 +1096,7 @@ void moveOnPlaneXZ(Vec* in, Vec* out)
         PSVECSubtract(&r, &s, &dz);
 #line 1434 "D:/Bio4/Prog/db_cam.cpp"
         VECNormalize(&dz, &dz);
-        MTX_SET_COLUMNS(m, dx, dz, zero0, zero1);
+        MTX_SET_COLUMNS(m, &dx, &dz, &zero0, &zero1);
         PSMTXMultVecSR(m, in, out);
     } else {
         Vec v;

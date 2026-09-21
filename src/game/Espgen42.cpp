@@ -443,12 +443,12 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
 
-// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot). volatile (no
-// memory clobber): a volatile asm is a scheduling barrier for everything in RTL order around it, which is what puts
-// the pos/cur address adds before the noise lbzx and the neighbour loads after it in the target's loop A.
-// Loads straight into the destination variable (no statement-expression temp): the target's `psq_l f10; fsubs f10,f10`
-// is one pseudo, the function-level `n`.
-#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p), "m"(*(p)))
+// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot): a volatile asm
+// is a scheduling barrier for everything in RTL order around it, which is what puts the pos/cur address adds before
+// the noise lbzx and the neighbour loads after it in the target's loop A. Loads straight into the destination
+// variable (no statement-expression temp): the target's `psq_l f10; fsubs f10,f10` is one pseudo, the
+// function-level `n`. The same definition as trans.cpp (asm stays in the unit so asmcheck.py counts it).
+#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p) : "memory")
 
 // Step 0, every frame: the wave simulation. Sets Status_flg[0] 0x200 (water present), then for
 // every interior grid point integrates the two height buffers (neighbour sum spring, damping

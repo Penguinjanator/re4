@@ -27,11 +27,6 @@ struct TcWorkPtr {
 #define PTC (((TcWorkPtr*) &pTc)->p)
 // element i of a Vec array through a raw address: the store aliases the tool pointer (pTc is reloaded after it)
 #define VEC_ELEM(p, i) (*(f32*) ((u32) (p) + (i) * 12))
-#define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
-    (m)[0][0] = (c0).x; (m)[1][0] = (c0).y; (m)[2][0] = (c0).z;                               \
-    (m)[0][1] = (c1).x; (m)[1][1] = (c1).y; (m)[2][1] = (c1).z;                               \
-    (m)[0][2] = (c2).x; (m)[1][2] = (c2).y; (m)[2][2] = (c2).z;                               \
-    (m)[0][3] = (c3).x; (m)[1][3] = (c3).y; (m)[2][3] = (c3).z
 
 #define TC_ON (*(u32*) ((u8*) PTC + 0x11C))
 #define TC_TRG (*(u32*) ((u8*) PTC + 0x120))
@@ -2423,7 +2418,7 @@ void tcCameraMovePoint(TcCdat* c, int mode)
 #line 3204 "D:/Bio4/Prog/t_camera.cpp"
             VECNormalize(&fwd, &fwd);
             PSVECCrossProduct(&axis, &fwd, &right);
-            MTX_SET_COLUMNS(m, right, axis, fwd, zero);
+            MTX_SET_COLUMNS(m, &right, &axis, &fwd, &zero);
             PSMTXMultVecSR(m, &d, &d);
         }
         break;

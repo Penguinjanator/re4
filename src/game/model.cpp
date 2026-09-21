@@ -21,15 +21,6 @@
 
 // Model / parts / model info (cModel, cParts, cModelInfo) and their pools (PartsMgr, ModInfoMgr).
 
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
-
-// A relocated pointer into main memory.
-#define PTR_OK(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 extern "C" {
 void calcModelAddr(cModelData* data);
 void calcModelOffset(cModelData* data);
@@ -310,7 +301,7 @@ inline cModel* cModel::getPartsPtr(int no)
         return this;
     }
     cnt = no;
-    if (!PTR_OK(p)) {
+    if (!VALID_PTR(p)) {
         return 0;
     }
     if (be_flag & 0x2000) {
@@ -318,7 +309,7 @@ inline cModel* cModel::getPartsPtr(int no)
     } else if (no--) {
         do {
             cModel* next = p->pParts;
-            if (!PTR_OK(next)) {
+            if (!VALID_PTR(next)) {
                 pLog->err(0, 0, "cModel::getPartsPtr() cParts NO ERROR %d", cnt);
                 return 0;
             }
@@ -434,11 +425,11 @@ void cModel::partsWorldCalc()
 
     r_scale = scale;
     p = pList;
-    if (!PTR_OK(p)) {
+    if (!VALID_PTR(p)) {
         pLog->err(2, 0, "partsWorldCalc() MODEL HAS NO PARTS");
         return;
     }
-    if (!PTR_OK(p->pParent)) {
+    if (!VALID_PTR(p->pParent)) {
         pLog->err(2, 0, "partsWorldCalc() PARENT ADDR ERR %08x", p->pParent);
         return;
     }
@@ -1163,7 +1154,7 @@ void cModel::releasePartsList(int no)
     cParts* prev;
 
     p = (cParts*) getPartsPtr(no);
-    if (!PTR_OK(p)) {
+    if (!VALID_PTR(p)) {
         if (no != 0) {
             pLog->err(0, 0, "releasePartsList() idx INVALID. %d", no);
         }
@@ -1393,14 +1384,14 @@ cModel* GetPartsAddr(cModel* parts, int no)
 {
     int cnt = no;
 
-    if (!PTR_OK(parts)) {
+    if (!VALID_PTR(parts)) {
         pLog->err(0, 0, "GetPartsAddr() PTR ERROR %08X", parts);
         return 0;
     }
     if (no--) {
         do {
             cModel* next = parts->pParts;
-            if (!PTR_OK(next)) {
+            if (!VALID_PTR(next)) {
                 pLog->err(0, 0, "GetPartsAddr() cParts NO ERROR %d", cnt);
                 break;
             }
@@ -1415,14 +1406,14 @@ cModelInfo* GetModelInfoAddr(cModelInfo* info, int no)
 {
     int cnt = no;
 
-    if (!PTR_OK(info)) {
+    if (!VALID_PTR(info)) {
         pLog->err(0, 0, "GetModelInfoAddr() PTR ERROR %08X", info);
         return 0;
     }
     if (no--) {
         do {
             cModelInfo* next = info->pList;
-            if (!PTR_OK(next)) {
+            if (!VALID_PTR(next)) {
                 pLog->err(0, 0, "GetModelInfoAddr() cModelInfo NO ERROR %d", cnt);
                 break;
             }
@@ -1438,13 +1429,13 @@ int GetModelInfoNum(cModelInfo* info)
     int n = 1;
     int i;
 
-    if (!PTR_OK(info)) {
+    if (!VALID_PTR(info)) {
         pLog->err(0, 0, "GetModelInfoNum() PTR ERROR %08X", info);
         return 0;
     }
     for (i = 0; i < 100; i++) {
         cModelInfo* next = info->pList;
-        if (!PTR_OK(next)) {
+        if (!VALID_PTR(next)) {
             return n;
         }
         info = next;

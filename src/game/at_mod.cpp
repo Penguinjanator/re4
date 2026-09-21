@@ -34,7 +34,9 @@ static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad);
 // so cse's extended block ends at the join and the `&p0` argument after the call stays a fresh
 // `addi r4,r1,8` (with `pm = m` hoisted before the `if`, cse skips the arm and folds `&p0` into the
 // copy's address pseudo).
-#define MTX_COPY(src, dst)               \
+// MTX_COPY (vec.h) as a do/while with `i_ = 2` between the two pointer inits: the counter `li` is
+// issued between the `d_` and `s_` inits (ComnHitCheck).
+#define MTX_COPY_DO(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
         int i_ = 2;                      \
@@ -50,7 +52,7 @@ static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad);
             }                            \
             d_++;                        \
             s_++;                        \
-        } while (i_-- != 0);             \
+        } while (i_--);                  \
     }
 
 // Fills one hit box: offset, width (radius) / height, the parts it follows (1-based, 0 = model),
@@ -684,9 +686,9 @@ int ComnHitCheck(Vec* hit, Vec* nrm, cModel* m, Vec* pos0, Vec* pos1, u32 flag)
             return 0;
         }
         if (m->atari.m_parts_no > 0) {
-            MTX_COPY(m->getPartsPtr(m->atari.m_parts_no - 1)->mat, mat);
+            MTX_COPY_DO(m->getPartsPtr(m->atari.m_parts_no - 1)->mat, mat);
         } else {
-            MTX_COPY(m->mat, mat);
+            MTX_COPY_DO(m->mat, mat);
         }
         r = emLineCubeCrossCk(pos0, pos1, mat, &m->atari.m_offset, hit, m->atari.m_radius, m->atari.m_height,
                               m->atari.m_radius2);

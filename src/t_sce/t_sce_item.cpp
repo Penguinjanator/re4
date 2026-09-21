@@ -171,7 +171,8 @@ char* getItemIdStr(u32 id);
     if (Joy[0].j & REP_LEFT) v--;
 
 // 0..hi clamp with a second variable (blt / li-at-end shape)
-#define CLAMP(v, n, hi)      \
+// n = v limited to [0, hi] (a statement, unlike CLAMP in math_sub_decl.h).
+#define CLAMP_SET(v, n, hi)      \
     if ((v) >= 0) {          \
         n = v;               \
         if (n > (hi)) n = hi; \
@@ -824,14 +825,14 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
             n = PC(c2)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
-            CLAMP(n, m, 0x5A);
+            CLAMP_SET(n, m, 0x5A);
             pCur->angleRange = m;
         }
         break;
     case 3:
         n = PC(c3)->otNo;
         STEP(rep, n);
-        CLAMP(n, m, 0xF);
+        CLAMP_SET(n, m, 0xF);
         pCur->otNo = m;
         break;
     default:
@@ -972,7 +973,7 @@ static void tSceItemDataInput_item_main()
         int m;
         n = pCur->linkType;
         STEP(rep2, n);
-        CLAMP(n, m, 2);
+        CLAMP_SET(n, m, 2);
         pCur->linkType = m;
         break;
     }
@@ -1016,7 +1017,7 @@ static void tSceItemDataInput_item_main()
         int m;
         n = pCur->item.effType;
         STEP(rep, n);
-        CLAMP(n, m, 9);
+        CLAMP_SET(n, m, 9);
         pCur->item.effType = m;
         break;
     }
@@ -1052,7 +1053,7 @@ static void tSceItemDataInput_item_main()
         int m;
         n = pCur->item.seFind;
         STEP(rep2, n);
-        CLAMP(n, m, 0xFF);
+        CLAMP_SET(n, m, 0xFF);
         pCur->item.seFind = m;
         break;
     }
@@ -1060,7 +1061,7 @@ static void tSceItemDataInput_item_main()
         int m;
         n = pCur->item.seDamage;
         STEP(rep2, n);
-        CLAMP(n, m, 0xFF);
+        CLAMP_SET(n, m, 0xFF);
         pCur->item.seDamage = m;
         break;
     }
@@ -1072,7 +1073,7 @@ static void tSceItemDataInput_item_main()
         int m;
         n = pCur->langDisable;
         STEP(rep2, n);
-        CLAMP(n, m, 2);
+        CLAMP_SET(n, m, 2);
         pCur->langDisable = m;
         break;
     }

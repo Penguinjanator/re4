@@ -436,8 +436,6 @@ void ScoreClear();
 void ScoreMove();
 }
 
-#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
-
 // Room init (the shooting range): the result screen data file, the floating scores, the target enemy
 // (0x3E) pre-read; the game level (A..D) from the room the player came from (r204 / r211 / ... each
 // range entrance is a level); the range keeper and gate tasks, area 0 = start the game, area 7 = the
@@ -651,7 +649,7 @@ static void r22c_talkWepMan()
     SceAtSetEnable(1, 0);
     SndCall(8, 9, &r22c_work.p->wepMan->pos, r22c_work.p->wepMan->id, 0, 0);
     if (pG->Room_flg[0] & 0x80000000) {
-        SceMesSet(6, 0, 1, 0x64, MES_Y);
+        SceMesSet(6, 0, 1, 0x64, MES_Y(cMes.getWork()));
         switch (SceMesGetSelection()) {
         case 1:
             SndCall(0, 4, 0, 0, 0, 0);
@@ -677,7 +675,7 @@ static void r22c_talkWepMan()
 // The exit door prompt: message 0xD yes (1) -> leave the game (gameEnd), no (2) -> stay.
 void r22c_exitDoor()
 {
-    SceMesSet(0xD, 0, 1, 0x64, MES_Y);
+    SceMesSet(0xD, 0, 1, 0x64, MES_Y(cMes.getWork()));
     switch (SceMesGetSelection()) {
     case 1:
         SndCall(0, 4, 0, 0, 0, 0);
@@ -779,7 +777,7 @@ void getBottleCap()
     }
     if (total > 0) {
         cMes.getWork()->setNumber(total, 0);
-        SceMesSet(5, 0, 1, 0x64, MES_Y);
+        SceMesSet(5, 0, 1, 0x64, MES_Y(cMes.getWork()));
         SndCall(0, 0x13, &r22c_work.p->wepMan->pos, 0, 0, 0);
         if (ItemMgr.num(0xA2) == 0) {
             ItemMgr.get(0xA2, 0);
@@ -797,7 +795,7 @@ int weaponSelect(int sel)
     u8 wep;
 
     if (ask) {
-        SceMesSet(4, 0, 1, 0x64, MES_Y);
+        SceMesSet(4, 0, 1, 0x64, MES_Y(cMes.getWork()));
         sel = SceMesGetSelection();
         if (sel != 3) {
             SndCall(0, 4, 0, 0, 0, 0);
@@ -876,7 +874,7 @@ void itemSave()
         }                                                                   \
         if (n == 6) {                                                       \
             pG->Scenario_flg[1] |= (bit);                                        \
-            SceMesSet((mes), 0, 1, 0x64, MES_Y);                            \
+            SceMesSet((mes), 0, 1, 0x64, MES_Y(cMes.getWork()));                            \
             SceAtExecute(flg);                                              \
             while (SceAtItemFlgCk(flg) == 0) {                              \
                 SceSleep(1);                                                \
@@ -935,10 +933,10 @@ int r22c_checkGameLevel()
     int sel;
 
     while (1) {
-        SceMesSet(0xA, 0, 1, 0x64, MES_Y);
+        SceMesSet(0xA, 0, 1, 0x64, MES_Y(cMes.getWork()));
         sel = SceMesGetSelection();
         if (sel == 7) {
-            SceMesSet(0xB, 0, 1, 0x64, MES_Y);
+            SceMesSet(0xB, 0, 1, 0x64, MES_Y(cMes.getWork()));
             sel = SceMesGetSelection();
             if (sel == 4) {
                 sel = 0;
@@ -1007,21 +1005,21 @@ int r22c_checkGame()
         sel = 1;
         break;
     case 0x211:
-        SceMesSet(1, 0, 1, 0x64, MES_Y);
+        SceMesSet(1, 0, 1, 0x64, MES_Y(cMes.getWork()));
         sel = SceMesGetSelection();
         if (sel == 3) {
             sel = 0;
         }
         break;
     case 0x220:
-        SceMesSet(2, 0, 1, 0x64, MES_Y);
+        SceMesSet(2, 0, 1, 0x64, MES_Y(cMes.getWork()));
         sel = SceMesGetSelection();
         if (sel == 4) {
             sel = 0;
         }
         break;
     case 0x305:
-        SceMesSet(3, 0, 1, 0x64, MES_Y);
+        SceMesSet(3, 0, 1, 0x64, MES_Y(cMes.getWork()));
         sel = SceMesGetSelection();
         if (sel == 5) {
             sel = 0;

@@ -30,21 +30,6 @@
 
 #define LAUNCHER(pl) ((cObjLauncher*) (pl)->Wep->m_pWep)
 
-
-
-// face model info: the face blend weights (0x5C/0x70/0x84) are reset to `v`
-// (a plain block: a do/while(0) body's loop notes lengthen the live ranges around it and flip
-// the callee-saved order of down30's pl / joyLKamae result)
-#define FACE_SET(pl, v)                                 \
-    {                                                   \
-        cModelInfo* face = (pl)->Body->pFace;          \
-        if (VALID_PTR(face)) {                          \
-            face->x84 = v;                              \
-            face->x70 = v;                              \
-            face->x5C = v;                              \
-        }                                               \
-    }
-
 u8 lockCtr = 0;
 
 static void wep13_r2_ready(cPlayer* pl);

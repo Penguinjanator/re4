@@ -23,6 +23,8 @@ struct ItemWork {
     s8 orient;     // 0x0C
     u8 board;      // 0x0D  1 = in the case, 0 = on the spare board
 };
+// The exclusive-tune nibble of ItemWork::lv (the other nibbles are read in merchant.cpp / item.cpp).
+#define LV_EX(p) ((u8) (p)->lv & 0xF)
 
 // cItemMgr::ordering() output (cItemMgr::pOrder[], 8 bytes): the in-use slots holding one item id.
 struct ItemOrder {

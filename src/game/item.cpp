@@ -56,7 +56,6 @@ struct ItemSet {
 };
 
 // ItemWork::lv tune level nibbles
-#define LV_EX(p) ((u8) (p)->lv & 0xF)
 #define LV_FIRE_SET(p, v) ((p)->lv = ((p)->lv & 0x0FFF) | ((v) << 12))
 #define LV_MAG_SET(p, v) ((p)->lv = ((p)->lv & 0xF0FF) | ((v) << 8))
 #define LV_SPEED_SET(p, v) ((p)->lv = ((p)->lv & 0xFF0F) | ((v) << 4))

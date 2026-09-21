@@ -43,7 +43,7 @@ public:
 
 cToolBugcheck BC;
 
-#define ROUND(x) ((int) ((x) + 0.5f))
+#define ROUND_TO_INT(x) ((int) ((x) + 0.5f))
 
 // Debug menu entry: runs the bug-check menu until B.
 void ToolBugcheck()
@@ -238,7 +238,7 @@ void cToolBugcheck::menuLife()
                     lv = 0;
                 }
                 U16Set(pG->pl_life_max, 1200);
-                U16Set(pG->pl_life_max, pG->pl_life_max + ROUND((f32) (lv * 60)));
+                U16Set(pG->pl_life_max, pG->pl_life_max + ROUND_TO_INT((f32) (lv * 60)));
                 pG->pl_life = pG->pl_life_max;
             }
             break;
@@ -267,7 +267,7 @@ void cToolBugcheck::menuLife()
                     lv = 0;
                 }
                 U16Set(pG->ashley_life_max, 600);
-                U16Set(pG->ashley_life_max, pG->ashley_life_max + ROUND((f32) (lv * 120)));
+                U16Set(pG->ashley_life_max, pG->ashley_life_max + ROUND_TO_INT((f32) (lv * 120)));
                 pG->ashley_life = pG->ashley_life_max;
             }
             break;

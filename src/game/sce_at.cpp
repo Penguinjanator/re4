@@ -65,7 +65,9 @@
 int DbMenuActiveCheck();                                 // game/db_menu.cpp
 cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot);  // game/obj19.cpp
 
-#define MTX_COPY(src, dst)               \
+// MTX_COPY (vec.h) with `d_` assigned after the declarations: the pointer order sceAtGetArea and
+// SceAtItemHitCheck need.
+#define MTX_COPY_LATE_DST(src, dst)               \
     {                                    \
         MtxPtr d_;                       \
         MtxPtr s_ = (src);               \
@@ -150,8 +152,6 @@ static inline u32* roomItemFindFlags()
 {
     return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18);
 }
-
-#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 // One entry of the scenario area system (`SceAtSys`, 0x124 bytes).
 struct SceAtReserve {
@@ -627,9 +627,9 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
         return;
     }
     if (w->parentParts >= 0) {
-        MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
+        MTX_COPY_LATE_DST(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
     } else {
-        MTX_COPY(w->pParent->mat, pmat);
+        MTX_COPY_LATE_DST(w->pParent->mat, pmat);
     }
     if (w->flag & 8) {
         Vec zero = { 0.0f, 0.0f, 0.0f };
@@ -638,7 +638,7 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
         mat[1][3] = pmat[1][3];
         mat[2][3] = pmat[2][3];
     } else {
-        MTX_COPY(pmat, mat);
+        MTX_COPY_LATE_DST(pmat, mat);
     }
     Vec p[4];
     switch (out->type) {
@@ -764,14 +764,14 @@ static void sceInLock(SceAtWork* w)
     switch (w->lockType) {
     case 1:
         SndCall(6, (s8) w->doorSe, &pPL->pos, 0, 0, 0);
-        SceMesSet(0xA, 0x11, 1, 0x64, MES_Y);
+        SceMesSet(0xA, 0x11, 1, 0x64, MES_Y(cMes.getWork()));
         while (cMes.mes[0].flags2 & 1) {
             TaskSleep(1);
         }
         break;
     case 2:
         SndCall(6, (s8) w->doorSe, &pPL->pos, 0, 0, 0);
-        SceMesSet(0xB, 0x11, 1, 0x64, MES_Y);
+        SceMesSet(0xB, 0x11, 1, 0x64, MES_Y(cMes.getWork()));
         while (cMes.mes[0].flags2 & 1) {
             TaskSleep(1);
         }
@@ -822,7 +822,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         return 0;
     }
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, MES_Y, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
         return 1;
     }
     pS->x94 = pG->Stop_flg;
@@ -1637,9 +1637,9 @@ void SceAtSetMes(SceAtMesData* m)
     }
     if (m->no >= 0) {
         if (m->type == 0) {
-            SceMesSet(m->no, flags, 1, 0x64, MES_Y);
+            SceMesSet(m->no, flags, 1, 0x64, MES_Y(cMes.getWork()));
         } else {
-            SceMesSet(m->no, flags | 1, 1, 0x64, MES_Y);
+            SceMesSet(m->no, flags | 1, 1, 0x64, MES_Y(cMes.getWork()));
         }
     }
     if (m->se != 0) {
@@ -1665,7 +1665,7 @@ void SceAtSetMes(SceAtMesData* m)
 static int sceAtFunc_save(SceAtWork* w, cModel* m)
 {
     if (pSUB != 0 && (StaFlagChk(pG, STA_SUB_CATCHED) || (SubCharGetStatus() & 0x02000000))) {
-        cMes.MesSet(0x97, 0x64, MES_Y, 1, 0, 0, 4);
+        cMes.MesSet(0x97, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
     } else {
         CardSave(w->value, 1);
     }
@@ -1830,7 +1830,7 @@ static int sceAtFunc_skey(SceAtWork* w, cModel* m)
 // Task: message 0xC, then restores Stop_flg.
 static void sceAtSkey(SceAtWork* w)
 {
-    cMes.MesSet(0xC, 0x64, MES_Y, 1, 0, 0, 4);
+    cMes.MesSet(0xC, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
     while (cMes.mes[0].flags2 & 1) {
         TaskSleep(1);
     }
@@ -2864,9 +2864,9 @@ static void sceAtDebugDisp()
             AreaDataDisp(&w->area, 0x80808080, 1, 0);
         } else {
             if (w->parentParts >= 0) {
-                MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
+                MTX_COPY_LATE_DST(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
             } else {
-                MTX_COPY(w->pParent->mat, pmat);
+                MTX_COPY_LATE_DST(w->pParent->mat, pmat);
             }
             if (w->flag & 8) {
                 Vec zero = { 0.0f, 0.0f, 0.0f };
@@ -2875,7 +2875,7 @@ static void sceAtDebugDisp()
                 mat[1][3] = pmat[1][3];
                 mat[2][3] = pmat[2][3];
             } else {
-                MTX_COPY(pmat, mat);
+                MTX_COPY_LATE_DST(pmat, mat);
             }
             AreaDataDisp(&w->area, 0x80808080, 1, mat);
         }
@@ -3817,9 +3817,9 @@ int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
             Mtx pmat;
 
             if (w->parentParts >= 0) {
-                MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
+                MTX_COPY_LATE_DST(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
             } else {
-                MTX_COPY(w->pParent->mat, pmat);
+                MTX_COPY_LATE_DST(w->pParent->mat, pmat);
             }
             if (w->flag & 8) {
                 Vec zero = { 0.0f, 0.0f, 0.0f };
@@ -3828,7 +3828,7 @@ int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
                 mat[1][3] = pmat[1][3];
                 mat[2][3] = pmat[2][3];
             } else {
-                MTX_COPY(pmat, mat);
+                MTX_COPY_LATE_DST(pmat, mat);
             }
             PSMTXMultVec(mat, &p, &p);
         }

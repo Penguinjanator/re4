@@ -15,8 +15,6 @@
 #include "pl_npc.h"
 #include "cockpit.h"
 
-#define ARC_PTR(ofs) ((void*) (pG->pCore->ofs + (u32) pG->pCore))
-
 #define ID_LIFE 0x21
 #define ID_ACT 0x20
 #define ID_CDOWN 0x23

@@ -46,25 +46,6 @@
 #define SS_ARAM 0xD00000
 #define SS_ARAM_SIZE 0x300000
 
-#define MTX_COPY(src, dst)               \
-    {                                    \
-        MtxPtr d_ = (dst);               \
-        MtxPtr s_ = (src);               \
-        int i_ = 3;                      \
-        int j_;                          \
-        f32* sp_;                        \
-        f32* dp_;                        \
-        while (i_--) {                   \
-            dp_ = *d_;                   \
-            sp_ = *s_;                   \
-            for (j_ = 0; j_ < 4; j_++) { \
-                *dp_++ = *sp_++;         \
-            }                            \
-            d_++;                        \
-            s_++;                        \
-        }                                \
-    }
-
 SubScreenWork SubScreenWk;
 IDSystem IdSub;
 IDSystem IdNum;

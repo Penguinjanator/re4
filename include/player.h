@@ -333,6 +333,20 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
+// Face model info of `pl`: the face blend weights (0x5C/0x70/0x84) reset to `v` (pl_knife, pl_rocket).
+// A plain block: a do/while(0) body's loop notes lengthen the live ranges around it and flip the
+// callee-saved order of pl_rocket down30's pl / joyLKamae result. Needs main_mem.h (VALID_PTR) and
+// pl_body.h at the use site.
+#define FACE_SET(pl, v)                                 \
+    {                                                   \
+        cModelInfo* face = (pl)->Body->pFace;          \
+        if (VALID_PTR(face)) {                          \
+            face->x84 = v;                              \
+            face->x70 = v;                              \
+            face->x5C = v;                              \
+        }                                               \
+    }
+
 // game/player.cpp
 extern Vec PlFancePos;    // point behind the fence / window the player climbs to (pl_class windowCheck)
 extern int PlFanceFlag;   // 1 while a fence / window action runs

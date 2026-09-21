@@ -16,7 +16,6 @@
 #define LV_FIRE(it) ((it)->lv >> 12)
 #define LV_MAG(it) (((it)->lv >> 8) & 0xF)
 #define LV_SPEED(it) (((it)->lv >> 4) & 0xF)
-#define LV_EX(it) ((u8) (it)->lv & 0xF)
 
 MerchantInfo merchant_info_A = {0, -10, -10, -10, -10, 10000, 5, 10, 10, 10, 20, 30, 70, 30, 10};
 

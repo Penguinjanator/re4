@@ -10987,12 +10987,12 @@ static void em10_R1_CSawWalkAtk(cEm10* em)
 #undef EM10_CSAW_SWEEP_CK
 
 // One claw sweep segment: a point offset along the claw part's x axis, checked against the sweep base (em10_R1_ClawWalkAtk).
-#define EM10_CLAW_SWEEP_CK(px) \
+#define EM10_CLAW_SWEEP_CK(px, part) \
     v2.x = px; \
     v2.y = 0.0f; \
     v2.z = 0.0f; \
     PSMTXMultVec(*m, &v2, &v2); \
-    em10AtkCk(em, &v2, &v, 0xD, 0)
+    em10AtkCk(em, &v2, &v, 0xD, part)
 
 // R1 == 0x2C ClawWalkAtk: the claw Ganado swiping while walking (motion 0x121), 10..15 frames of
 // approach then the claw sweeps (kind 0xD); step 2/3 pulls the stuck claws out again (0x115).
@@ -11041,10 +11041,10 @@ static void em10_R1_ClawWalkAtk(cEm10* em)
                 v.z = 0.0f;
                 m = &em->getPartsPtr(0x10)->mat;
                 PSMTXMultVec(*m, &v, &v);
-                EM10_CLAW_SWEEP_CK(-300.0f);
-                EM10_CLAW_SWEEP_CK(0.0f);
-                EM10_CLAW_SWEEP_CK(300.0f);
-                EM10_CLAW_SWEEP_CK(600.0f);
+                EM10_CLAW_SWEEP_CK(-300.0f, 0);
+                EM10_CLAW_SWEEP_CK(0.0f, 0);
+                EM10_CLAW_SWEEP_CK(300.0f, 0);
+                EM10_CLAW_SWEEP_CK(600.0f, 0);
             } else {
                 Mtx* m;
                 v.x = 500.0f;
@@ -11052,10 +11052,10 @@ static void em10_R1_ClawWalkAtk(cEm10* em)
                 v.z = 0.0f;
                 m = &em->getPartsPtr(10)->mat;
                 PSMTXMultVec(*m, &v, &v);
-                EM10_CLAW_SWEEP_CK(300.0f);
-                EM10_CLAW_SWEEP_CK(0.0f);
-                EM10_CLAW_SWEEP_CK(-300.0f);
-                EM10_CLAW_SWEEP_CK(-600.0f);
+                EM10_CLAW_SWEEP_CK(300.0f, 0);
+                EM10_CLAW_SWEEP_CK(0.0f, 0);
+                EM10_CLAW_SWEEP_CK(-300.0f, 0);
+                EM10_CLAW_SWEEP_CK(-600.0f, 0);
             }
         }
         if (end || (em->seFlags28B & 4)) {

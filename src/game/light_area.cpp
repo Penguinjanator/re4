@@ -48,7 +48,8 @@ struct LightAreaLauncher {
     cEm* rocket;  // 0x384
 };
 
-#define WEP_OBJ() (((LightAreaWep*) ((cPlayer*) em)->Wep)->pObj)
+// The player's weapon object as a cEm (pl_wep.h WEP_OBJ reads the same field as cObjWep*); `em` is the player.
+#define WEP_OBJ_EM() (((LightAreaWep*) ((cPlayer*) em)->Wep)->pObj)
 #define WEP_ROCKET(w) (((LightAreaLauncher*) (w))->rocket)
 
 // Sets a light-area flag bit (1 = active, 2 = inside an area).
@@ -181,18 +182,18 @@ void LightAreaUpdateSub(cEm* em, int type)
     }
     FSet(la->scale, scale);
     if (em == pPL) {
-        if (WEP_OBJ() != 0) {
+        if (WEP_OBJ_EM() != 0) {
             cEm* wep;
 
-            LitAreaSet(&WEP_OBJ()->litArea, 1);
-            WEP_OBJ()->litArea.scale = scale;
-            WEP_OBJ()->litArea.lightNo = la->lightNo;
+            LitAreaSet(&WEP_OBJ_EM()->litArea, 1);
+            WEP_OBJ_EM()->litArea.scale = scale;
+            WEP_OBJ_EM()->litArea.lightNo = la->lightNo;
             if (la->chk(2)) {
-                LitAreaSet(&WEP_OBJ()->litArea, 2);
+                LitAreaSet(&WEP_OBJ_EM()->litArea, 2);
             } else {
-                LitAreaReset(&WEP_OBJ()->litArea, 2);
+                LitAreaReset(&WEP_OBJ_EM()->litArea, 2);
             }
-            wep = WEP_OBJ();
+            wep = WEP_OBJ_EM();
             if (wep->id == 0x23) {
                 if (WEP_ROCKET(wep) != 0) {
                     LitAreaSet(&WEP_ROCKET(wep)->litArea, 1);

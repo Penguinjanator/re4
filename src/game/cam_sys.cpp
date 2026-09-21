@@ -9,14 +9,6 @@
 #include "db_log.h"
 #include "math_sub.h"
 
-// Column vectors -> matrix.
-#define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
-    (m)[0][0] = (c0)->x; (m)[1][0] = (c0)->y; (m)[2][0] = (c0)->z;                            \
-    (m)[0][1] = (c1)->x; (m)[1][1] = (c1)->y; (m)[2][1] = (c1)->z;                            \
-    (m)[0][2] = (c2)->x; (m)[1][2] = (c2)->y; (m)[2][2] = (c2)->z;                            \
-    (m)[0][3] = (c3)->x; (m)[1][3] = (c3)->y; (m)[2][3] = (c3)->z
-
-
 // Builds a matrix from four column vectors (right, up, look, position).
 // local copy: a header definition changes game/esp's allocation (static-local renumbering)
 static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)

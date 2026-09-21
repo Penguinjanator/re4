@@ -32,7 +32,6 @@
 
 // wrap / clamp helpers (the option pages)
 #define LOOP(x, lo, hi) (((x) < (lo)) ? (hi) : ((x) > (hi)) ? (lo) : (x))
-#define CLAMP(x, lo, hi) (((x) < (lo)) ? (lo) : ((x) > (hi)) ? (hi) : (x))
 
 // The motion work of this build: model.h's MotionWork without the trailing blend/flip/blendTbl pointers
 // (0xD0 bytes; em.h MotionWorkSub is the same block).

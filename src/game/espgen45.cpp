@@ -95,12 +95,12 @@ void Espgen45_static_init()
     g_sa = 0.0f;
 }
 
-// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot). volatile (no
-// memory clobber): a volatile asm is a scheduling barrier for everything in RTL order around it, which is what puts
-// the pos/cur address adds before the noise lbzx and the neighbour loads after it in the target's loop A.
-// Loads straight into the destination variable (no statement-expression temp): the target's `psq_l f10; fsubs f10,f10`
-// is one pseudo, the function-level `n`.
-#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p), "m"(*(p)))
+// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot): a volatile asm
+// is a scheduling barrier for everything in RTL order around it, which is what puts the pos/cur address adds before
+// the noise lbzx and the neighbour loads after it in the target's loop A. Loads straight into the destination
+// variable (no statement-expression temp): the target's `psq_l f10; fsubs f10,f10` is one pseudo, the
+// function-level `n`. The same definition as trans.cpp (asm stays in the unit so asmcheck.py counts it).
+#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p) : "memory")
 
 // Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
 // separate blocks, so their order is the source order) and `(y / 4) << 5`: with `* 32` fold would

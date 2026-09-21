@@ -88,19 +88,12 @@ struct Weight {
 };
 
 #define PTR_INVALID(p) ((s32) (p) >= 0 || (u32) (p) > 0x82FFFFFF)
-// Written as shifts, not `& ~0x1F`: combine folds (x >> 5) << 5 into an AND whose mask is narrowed by
-// nonzero_bits (u16 * 6 -> rlwinm 0,12,26), which a literal `& ~0x1F` never gets.
-#define ALIGN32(x) ((((x) + 0x1F) >> 5) << 5)
 #define PTR_INVALID2(p) ((u32) (p) - 0x80000000 > 0x02FFFFFF)
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 // u8 -> f32 through GQR2 straight from memory: the compiler only emits psq_l from a stack slot.
 #define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p) : "memory"); f_; })
-// Loads straight into the named variable so the asm output shares the variable's (global) register.
+// Loads straight into the named variable so the asm output shares the variable's (global) register
+// (espgen42/45 too; asm stays in the unit so asmcheck.py counts it).
 #define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p) : "memory")
 
 // Bit test as 0 / 1 (matching helper).

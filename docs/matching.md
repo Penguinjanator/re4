@@ -1287,7 +1287,7 @@ original: fix the source, do not link it.
   register with the double trick first in the pool; `(f32)x + 1.0f` ties to the converted value.
 - `tbl = (u32*)((u32)w->partsNo + w->nParts); tbl = (u32*)(((u32)tbl + 3) & ~3);` keeps the sum in its
   own register (cam_motion ctor) where the single expression reuses it.
-- Mtx copy loops (`while (i_--) { for (j...) *dp_++ = *sp_++; }`, MTX_COPY in motion.cpp/camera.cpp):
+- Mtx copy loops (`while (i_--) { for (j...) *dp_++ = *sp_++; }`, MTX_COPY in vec.h, MTX_COPY_DOWN in motion.cpp):
   declaring/incrementing `d_` before `s_` decides which pointer gets r9/r11 and the `addi` order.
 - `for (i = 0; i < 2; i++) memclr_asm(&g_Arr[i], n)` gives a pointer loop with a *signed* `cmpw` end test;
   the do/while pointer form gives `cmplw`. `for (j = 0; j < 1; j++) a[j] = 0` with `u32 j` gives the odd
@@ -3076,7 +3076,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   message-open flag, AD0 a 20-byte unreferenced table behind an `int = 0`; the second
   `setCommandId` of the module is `static` here.
 - ss_pzzl second pass (2026-09, 45/64 byte-identical, .rodata/.data/.bss identical): the Mtx copies
-  are the word-copy loop, written as `MTX_COPY` = `MtxPtr d_ = dst; int i_ = 2; MtxPtr s_ = src;
+  are the word-copy loop, written as `MTX_COPY_DO` = `MtxPtr d_ = dst; int i_ = 2; MtxPtr s_ = src;
   do { dp_ = *d_; sp_ = *s_; for (j_..4) *dp_++ = *sp_++; d_++; s_++; } while (i_--);` (the
   `li rX,2` of the counter is issued between the `d_` and `s_` inits in every copy of the unit, which
   the motion.cpp `while (i_--)`/`i_ = 3` form gets wrong for a `src` that needs an `addi`).

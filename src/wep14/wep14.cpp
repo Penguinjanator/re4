@@ -21,11 +21,6 @@
 #include "snd.h"
 #include "math_sub.h"
 
-#define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
-// The weapon object's own cAtariInfo (the object's collision with enemies while it is held).
-#define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
-
-
 // Scalar-reference stores (the following pG load stays below them).
 
 void ObjMine_init(cObj* obj);   // wep14/objMine.cpp

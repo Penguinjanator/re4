@@ -162,8 +162,7 @@ struct cLightToolPtr {
 
 int tcCurrentCameraNo();
 
-// Debug heap pointers are checked for the MEM1 range before use.
-#define PTR_OK(p) (!((u32)(p) < 0x80000000 || (u32)(p) > 0x82FFFFFF))
+// Debug heap pointers are checked for the MEM1 range (VALID_PTR) before use.
 // Error messages go through pLog when bit 5 is set.
 #define TOOL_ERR(args...)            \
     if (pTool->Flag & 0x20) {       \
@@ -401,7 +400,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     initLightWork(&LitTmp);
     pTool->Flag |= 0x20;
     anaTbl = (u8*) Debug_alloc(ObjMgr.getArrayNum() * 4, 1);
-    if (!PTR_OK(anaTbl)) {
+    if (!VALID_PTR(anaTbl)) {
         TOOL_ERR("cLightTool() MEMORY ERROR");
     }
     Flag |= 4;
@@ -584,7 +583,7 @@ void cLightTool::updateLit()
         LitSaveWork(&Lit, cutNo);
     }
     if (LightMgr.dbFlag & 1) {
-        if (PTR_OK(LightMgr.dbMem)) {
+        if (VALID_PTR(LightMgr.dbMem)) {
             Mem_free(LightMgr.dbMem);
         } else {
             TOOL_ERR("cLightTool::updateLit() PTR ERR %08X", LightMgr.dbMem);
@@ -593,7 +592,7 @@ void cLightTool::updateLit()
     LightMgr.dbFlag |= 1;
 #line 577 "D:/Bio4/Prog/db_light.cpp"
     LightMgr.dbMem = (cLit*) MEM_ALLOC(Lit.size(), 1, 13);
-    if (!PTR_OK(LightMgr.dbMem)) {
+    if (!VALID_PTR(LightMgr.dbMem)) {
         TOOL_ERR("cLightTool::updateLit() MEM ALLOC FAILED");
         return;
     }
@@ -700,7 +699,7 @@ static void edit_cutsel()
             asm("" : "+r"(t)); // combine would fold the hard-reg copy into the addi
             line = t;
         }
-        if (PTR_OK(env)) {
+        if (VALID_PTR(env)) {
             eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
                     env->FocusZ / 10, env->blur_rate);
             drawColorTile(0x58, 0x57 + i * 14, 0x18, 8, env->x0);
@@ -1713,7 +1712,7 @@ static void edit_light_id_path()
         }
         if (pTool->Pad1.rep & JOY_A) {
             cLightPathData* p = pTool->litPath.path[w->pathNo];
-            if (PTR_OK(p)) {
+            if (VALID_PTR(p)) {
                 memcpy(pTool->litPath.edit, p, p->getSize());
                 pTool->pno0 = pTool->pno1 = pTool->pno2 = pTool->pno3 = 0;
                 pTool->rno3 = 100;
@@ -1749,7 +1748,7 @@ static void edit_light_id_path()
         eprintf(0x40, 0xB6, 0, pTool->color, "LOOP    %s", (w->flag & 1) ? "OFF" : "ON");
         eprintf(0x40, 0xC4, 0, pTool->color, "INVERSE %s", (w->flag & 2) ? "ON" : "OFF");
         drawLightInfo(cur, 0xFFFFFFFF);
-        if (PTR_OK(w->pStart)) {
+        if (VALID_PTR(w->pStart)) {
             drawPath(0xC8, 0x64, w->pStart, w->flag, 0xFFFFFFFF);
         } else {
             eprintf(0xC8, 0xA8, 0, pTool->color, "NO DATA");
@@ -4648,7 +4647,7 @@ static void option()
                 }
             }
             q = LightMgr.getPathPtr(pTool->rno3);
-            if (PTR_OK(q)) {
+            if (VALID_PTR(q)) {
                 drawPath(0x32, 0xFA, q, 0, 0xFFFFFFFF);
             } else {
                 eprintf(0x32, 0xFA, 0, pTool->color, "NO DATA");
@@ -5090,7 +5089,7 @@ int cDbLit::init(cLit* lit)
     u32 i;
     u32* tbl;
 
-    if (!PTR_OK(lit)) {
+    if (!VALID_PTR(lit)) {
         TOOL_ERR("cDbLit::init() MEMORY ERROR");
         return 0;
     }
@@ -5166,7 +5165,7 @@ u32 cDbLit::createLit(cLit* dst)
     u32 n;
     cLightEnv* c;
 
-    if (!PTR_OK(dst)) {
+    if (!VALID_PTR(dst)) {
         TOOL_ERR("cDbLit::createLit() POINTER ERR %08X", dst);
         return 0;
     }
@@ -5675,7 +5674,7 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
         }
         break;
     }
-    if (PTR_OK(pTool->litPath.path[pTool->pno1])) {
+    if (VALID_PTR(pTool->litPath.path[pTool->pno1])) {
         drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, 0xFFFFFFFF);
         eprintf(x + 0x140, y + 0x68, 0, pTool->color, "%2.2fsec",
                 (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
@@ -5733,7 +5732,7 @@ int pathEdit(int x, int y, u8 no, u8 flag, int mode)
     if (pTool->Pad1.trg & JOY_Y) {
         pTool->litPath.edit[pTool->pno1 + 1] = 0xFF;
     }
-    if (PTR_OK(pTool->litPath.path[no])) {
+    if (VALID_PTR(pTool->litPath.path[no])) {
         drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, pTool->pno1);
         eprintf(x + 0x120, y + 0x68, 0, pTool->color, "%3d%% %2.2f/%2.2f", (pTool->litPath.edit[pTool->pno1] + 1) >> 1,
                 (f32) pTool->pno1 / 30.0f, (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
@@ -5796,7 +5795,7 @@ int cLightTool::lightAnalysis()
     u32 i;
     u32 n;
 
-    if (!PTR_OK(anaTbl)) {
+    if (!VALID_PTR(anaTbl)) {
         return 0;
     }
     n = ObjMgr.getArrayNum();
@@ -5851,7 +5850,7 @@ cLitPathTool::cLitPathTool()
             size = 0xC800;
         }
         pLitPath = (cLightPathHeader*) Debug_alloc(size, 0);
-        if (!PTR_OK(pLitPath)) {
+        if (!VALID_PTR(pLitPath)) {
             TOOL_ERR("cLitPathTool() Memory Alloc Failed");
             return;
         }
@@ -5864,7 +5863,7 @@ cLitPathTool::cLitPathTool()
         p = (cLightPathHeader*) LightMgr.getPathHeader();
     }
     expand(pLitPath);
-    if (PTR_OK(path[0])) {
+    if (VALID_PTR(path[0])) {
         memcpy(edit, path[0], path[0]->getSize());
     }
 }
@@ -5879,7 +5878,7 @@ int cLitPathTool::expand(cLightPathHeader* hdr)
 {
     u32 i;
 
-    if (!PTR_OK(hdr)) {
+    if (!VALID_PTR(hdr)) {
         return 0;
     }
     memclr_asm(path, sizeof(path));

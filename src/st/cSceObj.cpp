@@ -10,25 +10,6 @@
 // Scenario object mover (D:/Bio4/Prog/cSceObj.cpp), shared by the st2_0/st2_3/st4_0 stage RELs.
 // The original REL link dead-stripped the members no room of the module calls (STRIP_UNUSED).
 
-#define MTX_COPY(src, dst)               \
-    {                                    \
-        MtxPtr d_ = (dst);               \
-        MtxPtr s_ = (src);               \
-        int i_ = 3;                      \
-        int j_;                          \
-        f32* sp_;                        \
-        f32* dp_;                        \
-        while (i_--) {                   \
-            sp_ = *s_;                   \
-            dp_ = *d_;                   \
-            for (j_ = 0; j_ < 4; j_++) { \
-                *dp_++ = *sp_++;         \
-            }                            \
-            s_++;                        \
-            d_++;                        \
-        }                                \
-    }
-
 // Move obj and the attached models by d.
 inline void cSceObj::addPos(Vec* d)
 {

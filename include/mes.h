@@ -233,6 +233,8 @@ public:
 };
 
 extern MessageControl cMes;
+// Scenario message y of MesWork `m`: below the bottom line of the message window (336 = 0x150).
+#define MES_Y(m) (336 - (m)->lineSpace - (m)->m_font_h - 1)
 extern MessageData MesData;
 extern u32 mes_col_tbl[10];
 

@@ -322,7 +322,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 ## `game/motion.cpp`
 
-- MTX_COPY: dst pointer first, `int i_ = 2` between the two pointers, `for (; i_ != -1; i_--)`, `d_++` before `s_++`; tbl end pointer as two statements; `u32 zero` with a dead-use anchor (COMPILER-DIFF) and a memory anchor in MotionSetCore; nearZero(1.0f - v) inline with `f32 one` loaded first
+- MTX_COPY_DOWN (a variant of vec.h MTX_COPY): dst pointer first, `int i_ = 2` between the two pointers, `for (; i_ != -1; i_--)`, `d_++` before `s_++`; tbl end pointer as two statements; `u32 zero` with a dead-use anchor (COMPILER-DIFF) and a memory anchor in MotionSetCore; nearZero(1.0f - v) inline with `f32 one` loaded first
 
 ## `game/obj00.cpp`
 

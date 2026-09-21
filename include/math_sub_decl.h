@@ -13,6 +13,8 @@
 #define PI2 6.2831855f       // 2 * PI
 #define DEG2RAD 0.017453292f // PI / 180
 #define DEG(d) ((d) * DEG2RAD)
+// `x` limited to [lo, hi] (an expression; the arguments are evaluated more than once).
+#define CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
 
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);
