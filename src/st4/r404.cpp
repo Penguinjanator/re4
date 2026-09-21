@@ -139,7 +139,7 @@ void R404Init()
         memset(&init, 0, sizeof(init));
         init.m.pos = pPL->pos;
         init.m.rot = pPL->ang;
-        init.m.x18 = 0;
+        init.m.CamNo = 0;
         switch ((u32) n) {
         case 0:
         case 1:
@@ -150,11 +150,11 @@ void R404Init()
             init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x26);
             break;
         }
-        init.m.x20 = 30000;
+        init.m.ClearScore = 30000;
         init.m.mesStart = 1;
         init.m.mesA8 = 0xC;
         init.m.mesAC = 0xD;
-        init.m.x58 = 0xE;
+        init.m.MesNoStart03 = 0xE;
         init.m.mes[0] = 2;
         init.m.mes[1] = 3;
         init.m.mes[2] = 4;

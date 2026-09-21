@@ -136,13 +136,13 @@ void R403Init()
 
         init.m.pos = r403_pos[n];
         init.m.rot = r403_rot[n];
-        init.m.x18 = 0;
+        init.m.CamNo = 0;
         init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x2E);
-        init.m.x20 = 30000;
+        init.m.ClearScore = 30000;
         init.m.mesStart = one;
         init.m.mesA8 = 0xC;
         init.m.mesAC = 0xD;
-        init.m.x58 = 0xE;
+        init.m.MesNoStart03 = 0xE;
         init.m.mes[0] = 2;
         init.m.mes[1] = 3;
         init.m.mes[2] = 4;

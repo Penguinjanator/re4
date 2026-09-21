@@ -52,14 +52,14 @@ struct MercSysWork {
     cObj* smd;       // 0x64  dummy model (SetObjSmd)
     u32 SceAtNo;     // 0x68  (PS2 MercSysData SceAtNo)
     u32 strId;       // 0x6C  SndStrReq handle
-    void* CamNo;     // 0x70  copy of MercInit x18 (PS2 MercSysData CamNo; always 0 on GC)
+    void* CamNo;     // 0x70  copy of MercInit CamNo (PS2 MercSysData CamNo; always 0 on GC)
     void* smdMot;    // 0x74  MotionSetCore data of the dummy model
-    u32 ClearScore;  // 0x78  copy of MercInit x20 (30000) (PS2 MercSysData ClearScore)
+    u32 ClearScore;  // 0x78  copy of MercInit ClearScore (30000) (PS2 MercSysData ClearScore)
     int mesStart;    // 0x7C  start message
     int mes[10];     // 0x80  [4]: x4FB8 == 4 message, [5..8]: rank messages, [9]: result end message
     int mesA8;       // 0xA8
     int mesAC;       // 0xAC
-    u32 MesNoStart03; // 0xB0  copy of MercInit x58 (PS2 MercSysData MesNoStart03)
+    u32 MesNoStart03; // 0xB0  copy of MercInit MesNoStart03 (PS2 MercSysData MesNoStart03)
     u8 startSt[5];   // 0xB4  MercSysMoveStart: [0] running, [1] step
     u8 mainSt[5];    // 0xB9  MercSysMoveMain: [0] running
     u8 pad_BE[2];
@@ -70,14 +70,14 @@ struct MercSysWork {
 struct MercInit {
     Vec pos;         // 0x00  player start position
     Vec rot;         // 0x0C
-    void* x18;       // 0x18  (PS2 MercSysInitWork CamNo; the rooms pass 0)
+    void* CamNo;     // 0x18  camera number, the rooms pass 0 (PS2 MercSysInitWork CamEnum CamNo)
     void* smdMot;    // 0x1C
-    u32 x20;         // 0x20  (PS2 MercSysInitWork ClearScore; the rooms pass 30000)
+    u32 ClearScore;  // 0x20  the rooms pass 30000 (PS2 MercSysInitWork ClearScore)
     int mesStart;    // 0x24
     int mes[10];     // 0x28
     int mesA8;       // 0x50
     int mesAC;       // 0x54
-    u32 x58;         // 0x58  (PS2 MercSysInitWork MesNoStart03)
+    u32 MesNoStart03; // 0x58  (PS2 MercSysInitWork MesNoStart03)
 };
 
 // Save data view of the Mercenaries records (pSys->x10[] / pSys->x20[] bits), 0x80 bytes.

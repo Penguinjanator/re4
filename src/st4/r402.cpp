@@ -140,13 +140,13 @@ void R402Init()
         init.m.rot.x = 0.0f;
         init.m.rot.y = -1.53f;
         init.m.rot.z = 0.0f;
-        init.m.x18 = 0;
+        init.m.CamNo = 0;
         init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x26);
-        init.m.x20 = 30000;
+        init.m.ClearScore = 30000;
         init.m.mesStart = 2;
         init.m.mesA8 = 0xD;
         init.m.mesAC = 0xE;
-        init.m.x58 = 0xF;
+        init.m.MesNoStart03 = 0xF;
         init.m.mes[0] = 3;
         init.m.mes[1] = 4;
         init.m.mes[2] = 5;

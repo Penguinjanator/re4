@@ -180,13 +180,13 @@ int MercSysInitRoom(MercInit* pMInit)
     if (pG->pl_type == 5) {
         wk->mode = 4;
     }
-    wk->CamNo = pMInit->x18;
+    wk->CamNo = pMInit->CamNo;
     wk->smdMot = pMInit->smdMot;
-    wk->ClearScore = pMInit->x20;
+    wk->ClearScore = pMInit->ClearScore;
     wk->mesStart = pMInit->mesStart;
     wk->mesA8 = pMInit->mesA8;
     wk->mesAC = pMInit->mesAC;
-    wk->MesNoStart03 = pMInit->x58;
+    wk->MesNoStart03 = pMInit->MesNoStart03;
     wk->mes[0] = pMInit->mes[0];
     wk->mes[1] = pMInit->mes[1];
     wk->mes[2] = pMInit->mes[2];
