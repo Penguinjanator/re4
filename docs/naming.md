@@ -88,6 +88,12 @@ Where the vendor renamed a type between the ports, the alias table at the top of
 mangled GC symbols (`P10MotionWork` in `sym_map.tsv`) are GC vendor names and keep the GC spelling even
 when the PS2 used another.
 
+The tool aligns on names first, so a wrong name already in the header can pull a PS2 field onto the
+wrong row. `Em10Work` had that: the `Vec` at 0x4EC, between `Keep_pos` and `Return_ck_pos` exactly as
+the PS2's `Route_target` is, had been named `Goto_pos`, and the real `Goto_pos` (0x5F0, between
+`Target_pos` and `Scale` as on the PS2) was a placeholder. When the row order around a field disagrees
+with the tool's name match, the row order wins (2026-09-21: `Route_target` / `Target_pos` / `Goto_pos`).
+
 Enums (`EM_STATUS`, `DATA_COMMAND`, `SCE_LEVEL`, ...) are from the same dump; where an enum was
 introduced, the magic constants at typed call sites were replaced with its enumerators and the
 parameter types left alone.
