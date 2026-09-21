@@ -346,8 +346,9 @@ static inline void drawColorTile(int x, int y, int w, int h, u32 c)
 
 #ifdef DB_LIGHT_SET_TOOL_LIGHT
 // Tools / t_esp / t_sce / t_movie builds: load tool%02x.lit as the current light set (-1: reapply the
-// current camera area's lit). The first function of those objects.
-static int SetToolLight(int no)
+// current camera area's lit). The first function of those objects; global (called from t_mv, db_port's
+// LightToolStart, t_sce_at / t_se_at).
+int SetToolLight(int no)
 {
     char path[0x100];
 

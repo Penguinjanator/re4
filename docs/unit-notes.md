@@ -834,3 +834,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 - edit_reverb_param: p pin at the four helper call sites + efx_param_move as a macro (inlining drops RTX_UNCHANGING_P on pool loads)
 
+## `wep16/pl_knife.cpp` (also `wep26`)
+
+- knife_r2_ready/r2_set/r2_fire/r2_down and the twelve knife_r3_* steps stay `static` although the .sym marks them global: the REL's `.data` func_tbl step tables hold their addresses with S+A written in the field (ngcld's local-symbol form); non-static definitions relink with 0 there and the REL changes (25 bytes in wep16, likewise wep26); .text is unaffected, so bytecmp (which masks relocated fields) still says IDENTICAL and only `dtk shasum` catches it
+

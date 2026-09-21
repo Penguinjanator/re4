@@ -65,7 +65,7 @@ struct DataExtHeader {
 };
 
 extern "C" {
-static void decodeData();
+void decodeData();
 static void* readEm(int id, void* addr, u32 size);
 static int checkAshleyId(int id);
 void ReadAreaData();
@@ -136,7 +136,7 @@ static inline int BitChk16(u16& f, u16 b) { return f & b; }
 // iTask body of ReadAreaData: decompresses (Yz2) the room archive read into the top of the heap
 // into a fresh pG->pRoom allocation sized to the output (at least the room budget ROOM_ARC_SIZE
 // minus what the font already uses); HALTs when it would overlap the read buffer.
-static void decodeData()
+void decodeData()
 {
     char buf[64];
     u32 used;

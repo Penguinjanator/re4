@@ -48,8 +48,8 @@ void espgen01_Move01(EspgenWork* w);
 void SetEsp(EspgenWork* w);
 u32 GetEstTblnum(EspSeqData* head);
 cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no);
-f32 GetDistAlpha(EspgenWork* w);
-f32 GetDirAlpha(EspgenWork* w, Vec* dir);
+static f32 GetDistAlpha(EspgenWork* w);
+static f32 GetDirAlpha(EspgenWork* w, Vec* dir);
 void HideCheck(cEsp* esp);
 }
 
@@ -223,7 +223,7 @@ cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no)
 }
 
 // Alpha factor from the camera distance: 1 at the light fading to 0 at `dist` (1 when dist == 0).
-f32 GetDistAlpha(EspgenWork* w)
+static f32 GetDistAlpha(EspgenWork* w)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
     Camera* cam;
@@ -249,7 +249,7 @@ f32 GetDistAlpha(EspgenWork* w)
 
 // Alpha factor from the light direction: 1 when the camera is on the light axis, 0 outside the cone
 // of half-angle dir_ang (radians), linear in the cosine in between.
-f32 GetDirAlpha(EspgenWork* w, Vec* dir)
+static f32 GetDirAlpha(EspgenWork* w, Vec* dir)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
     Camera* cam;

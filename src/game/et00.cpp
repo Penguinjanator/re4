@@ -45,7 +45,7 @@ int Et65_init(void* arc, EtcSetData* d, cEmWindow** out, int flag);
 // cEmWindow at the EtcSetData position/angle with its type, loads the window's effect data under
 // effect owner effId, keeps it alive through suspends and, when the window is already flagged broken
 // (ChkStatus bit 0, from the room flags), switches to the broken model. Returns 0 when SetWindow failed.
-static int EtXX_init(void* arc, EtcSetData* d, cEmWindow** out, int flag, const char* bin, const char* tpl, const char* eff, int effId)
+int EtXX_init(void* arc, EtcSetData* d, cEmWindow** out, int flag, const char* bin, const char* tpl, const char* eff, int effId)
 {
     void* pBin;
     cEmWindow* em;

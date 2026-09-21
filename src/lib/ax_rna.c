@@ -84,10 +84,10 @@ typedef struct AXRNA_OBJ {
 } AXRNA_OBJ;
 typedef AXRNA_OBJ *AXRNA;
 
-static void axrna_end_flash(u32 req);
-static void axrna_end_trans(u32 req);
-static void axrna_update_play(AXRNA rna);
-static void axrna_voice_drop(void *p);
+void axrna_end_flash(u32 req);
+void axrna_end_trans(u32 req);
+void axrna_update_play(AXRNA rna);
+void axrna_voice_drop(void *p);
 void AXRNA_SetPlaySw(AXRNA rna, Sint32 sw);
 void AXRNA_SetTransSw(AXRNA rna, Sint32 sw);
 
@@ -390,7 +390,7 @@ static void AXRNA_ExecHndl(AXRNA rna)
 }
 
 // ARQ completion callback of a zero-fill DMA: publishes the ring chunk as data and clears flash_busy.
-static void axrna_end_flash(u32 req)
+void axrna_end_flash(u32 req)
 {
 	Sint32 id;
 	AXRNA rna;
@@ -410,7 +410,7 @@ static void axrna_end_flash(u32 req)
 
 // ARQ completion callback of a PCM DMA: frees the input chunk, publishes the ARAM chunk as data and
 // clears trans_busy; totals the samples on the last channel.
-static void axrna_end_trans(u32 req)
+void axrna_end_trans(u32 req)
 {
 	Sint32 id;
 	AXRNA rna;
@@ -432,7 +432,7 @@ static void axrna_end_trans(u32 req)
 // Reads the last voice's current ARAM address, converts the advance since the previous tick (in whole
 // 0x800-sample steps, wrapping at the 0x1000-sample ring) into freed ring space on every channel and
 // records it in axrna_update_hist. Halts if the DSP address left the ring.
-static void axrna_update_play(AXRNA rna)
+void axrna_update_play(AXRNA rna)
 {
 	SJCK ck;
 	Sint32 nch = rna->nch;
@@ -738,7 +738,7 @@ AXRNA AXRNA_Create(SJ *sj, Sint32 maxnch)
 }
 
 // AX voice-drop callback: releases the MIX channel and forgets the stolen voice.
-static void axrna_voice_drop(void *p)
+void axrna_voice_drop(void *p)
 {
 	Sint32 i;
 	Sint32 j;

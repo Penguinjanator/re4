@@ -343,7 +343,7 @@ static asm void __AICallbackStackSwitch(register void* cb) {
     blr
 }
 
-void __AI_SRC_INIT(void) {
+static void __AI_SRC_INIT(void) {
     OSTime rising_32khz = 0;
     OSTime rising_48khz = 0;
     OSTime diff = 0;

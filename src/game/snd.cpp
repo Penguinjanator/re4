@@ -65,7 +65,7 @@ u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
 
 // "Illegal SE No." error for block / number, printed once per SE (callErr bits) unless Debug_flg[2]
 // bit2 asks for every occurrence.
-static void sndCallErr(int blk, int no)
+void sndCallErr(int blk, int no)
 {
     u32* p;
 
@@ -83,7 +83,7 @@ static void sndCallErr(int blk, int no)
 
 // AXFX allocator hook: reverb buffers from the game heap.
 #line 78 SND_FILE
-static void* reverb_mem_alloc(u32 size)
+void* reverb_mem_alloc(u32 size)
 {
     return MEM_ALLOC(size, 1, 13);
 }
@@ -233,7 +233,7 @@ void SndSystemReset()
 
 // Pan (0..127, 64 centre) from the angle of the source around the listener (radians; behind is
 // mirrored to the front).
-static s8 sndPanCalc(f32 angle)
+s8 sndPanCalc(f32 angle)
 {
     f32 a = fabsf(angle);
     s8 pan;
@@ -250,18 +250,18 @@ static s8 sndPanCalc(f32 angle)
 }
 
 // Surround pan (127 in front, falling with |angle|).
-static s8 sndSpanCalc(f32 angle)
+s8 sndSpanCalc(f32 angle)
 {
     return (s8) (127.0f - fabsf(angle) * 40.743664f);
 }
 
-static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol);
-static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist);
+s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol);
+s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist);
 
 // .text order of the original: the callers precede their curve helpers.
 // Volume through the room's distance curve `no` (SndRoomHdr vol_ofs); `vol` unchanged when the
 // room has none.
-static int sndVolCalc(int vol, int no, f32 dist)
+int sndVolCalc(int vol, int no, f32 dist)
 {
     SndRoomHdr* h;
     u32 ofs;
@@ -281,7 +281,7 @@ static int sndVolCalc(int vol, int no, f32 dist)
 }
 
 // Interpolates the curve's value at `dist` (clamped to the ends) and scales `vol` by it / 128.
-static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
+s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
 {
     u32 i;
     SndCurveEnt* e = t->e;
@@ -310,7 +310,7 @@ static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
 }
 
 // Pitch offset from the room's distance curve `no` (pitch_ofs); 0 when none.
-static s16 sndPitchCalc(int no, f32 dist)
+s16 sndPitchCalc(int no, f32 dist)
 {
     SndRoomHdr* h;
     u32 ofs;
@@ -330,7 +330,7 @@ static s16 sndPitchCalc(int no, f32 dist)
 }
 
 // Interpolated curve value at `dist`.
-static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
+s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
 {
     u32 i;
     SndCurveEnt* e = t->e;
@@ -390,7 +390,7 @@ static int sndFilterCalc(int no, f32 dist)
 }
 
 // 1 when block `blk` is loaded and has SE `no` (type != 0x8000).
-static int sndExistCheck(int blk, u32 no)
+int sndExistCheck(int blk, u32 no)
 {
     u32* f = pSnd->blk_flag;
 
@@ -406,11 +406,11 @@ static int sndExistCheck(int blk, u32 no)
     return 1;
 }
 
-static int sndWallCheckSub(Vec* pos);
+int sndWallCheckSub(Vec* pos);
 
 // Muffles the SE (sit->wall_vol percent, 1..99) when a wall (effect collision 0x404000) lies
 // between the source and the player's head.
-static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 {
     if (pos == NULL) {
         return;
@@ -436,7 +436,7 @@ static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 }
 
 // 1 when the effect collision blocks the line from `pos` to the player + 1500.
-static int sndWallCheckSub(Vec* pos)
+int sndWallCheckSub(Vec* pos)
 {
     Vec a;
     Vec b;
@@ -456,7 +456,7 @@ static int sndWallCheckSub(Vec* pos)
 
 // SEs flagged se_flag 0x20 drop to volume 1 when the player stands in a volume-control floor area
 // (FlrAt kind 1) that does not contain the source.
-static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 {
     FlrAt* at;
 
@@ -483,7 +483,7 @@ static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 
 // While the player is in an "inner" floor area (FlrAt kind 3), SEs with inner_vol are scaled by
 // that percent. Returns 1 when applied.
-static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
+int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
 {
     int ret = 0;
 
@@ -505,12 +505,12 @@ static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
     return ret;
 }
 
-static void seRandomCheck(int blk, u16* no);
+void seRandomCheck(int blk, u16* no);
 
 // Footstep SE selection: numbers 0x10..0x13 pick the surface variant (+30 per surface index) from
 // the floor attribute; the others use the water check (+30) or the floor's surface (with the foot
 // effect for 0..3, else the floor system default); then the random table and existence check.
-static int footSeCheck(u16* no, Vec* pos)
+int footSeCheck(u16* no, Vec* pos)
 {
     FlrAt* at;
     int ret;
@@ -551,7 +551,7 @@ check:
 // Enemy SE: finds the loaded enemy block (8..13) whose enemy id matches (family aliases: 0x10 group,
 // 0x11 group, 0x1D group; 0xFF = block 8), applies the random table, and refuses a repeat of the
 // same id / number already in the 32-entry recent history (SndEmHist). Returns 1 to play.
-static int emSeCheck(u16* blk, u16* no, int id)
+int emSeCheck(u16* blk, u16* no, int id)
 {
     int i;
     int ret;
@@ -627,7 +627,7 @@ static int emSeCheck(u16* blk, u16* no, int id)
 }
 
 // Weapon SE: number 0xF (shell drop) picks the surface variant from the floor attribute.
-static int wepSeCheck(u16* no, Vec* pos)
+int wepSeCheck(u16* no, Vec* pos)
 {
     int ret;
 
@@ -654,7 +654,7 @@ struct SndRndTbl {
 
 // SEs with a random group (SIT rnd_no) are replaced by a random member of the block's random
 // table, avoiding the last one played (5 tries).
-static void seRandomCheck(int blk, u16* no)
+void seRandomCheck(int blk, u16* no)
 {
     s8 retry = 5;
     SND_SIT* sit;
@@ -726,7 +726,7 @@ u32 DoorSeCall(u16 no)
     return SndCall(7, no, 0, 0, 0, 0);
 }
 
-static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
+void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
 
 // Plays SE `no` of block `blk` (SIT entry): block-specific number fix-ups, then pan / surround
 // pan from the camera angle, volume / pitch / filter from the room's distance curves (curve_sel)
@@ -1126,9 +1126,9 @@ int SndEndCheck(u32 id)
     return ret;
 }
 
-static s8 pullStrWorkNo();
-static SndPlayWork* getStrWork(int blk, int no);
-static SndPlayWork* getStrWork(u32 id);
+s8 pullStrWorkNo();
+SndPlayWork* getStrWork(int blk, int no);
+SndPlayWork* getStrWork(u32 id);
 
 // Stream request: req bit0 = start stream `no` of block `blk` (0 room streams, 1 events) in a free
 // str_work slot (a paused one of the same number just resumes; `pos` = start seconds), bit1 =
@@ -1284,7 +1284,7 @@ int SndStrStatusCk(u32 id, u32 status)
 }
 
 // A free stream slot (0..3), -1 when none.
-static s8 pullStrWorkNo()
+s8 pullStrWorkNo()
 {
     int i;
 
@@ -1297,7 +1297,7 @@ static s8 pullStrWorkNo()
 }
 
 // The slot playing stream blk / no, or NULL.
-static SndPlayWork* getStrWork(int blk, int no)
+SndPlayWork* getStrWork(int blk, int no)
 {
     SndPlayWork* w;
     int i;
@@ -1315,7 +1315,7 @@ static SndPlayWork* getStrWork(int blk, int no)
 }
 
 // The slot playing stream `id`, or NULL.
-static SndPlayWork* getStrWork(u32 id)
+SndPlayWork* getStrWork(u32 id)
 {
     SndPlayWork* w;
     int i;
@@ -1356,9 +1356,9 @@ int SndStrVolReset(int blk, int no, int time)
     return ret;
 }
 
-static void sndSurroundCalc();
-static void debug_mute_check();
-static void debugDisp();
+void sndSurroundCalc();
+void debug_mute_check();
+void debugDisp();
 
 // BGM/stream control part of a type-2 floor attribute (FlrAt + 0x44), addressed as one block.
 struct SndFlrAtBgm {
@@ -1481,7 +1481,7 @@ void SndWatcher()
 
 // Room change: streams not continued by the next room's save record (same number with the
 // "keep" bits 0x8000 | 0x4000) are faded (200) or stopped.
-static void nextRoomStreamCheck()
+void nextRoomStreamCheck()
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->RoomNo_next);
     int i;
@@ -1521,7 +1521,7 @@ static void nextRoomStreamCheck()
 // Room change: BGM slot 0 keeps playing when the next room's record names the same BGM with the
 // keep bit (0x8000; 0x4000 clear = fade it), else both slots fade out and their blocks are freed
 // (the BGM MRAM / ARAM tops reset).
-static void nextRoomBgmCheck()
+void nextRoomBgmCheck()
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->RoomNo_next);
     int i;
@@ -1972,7 +1972,7 @@ int SndRoomStrVolReset(int time)
     return ret;
 }
 
-static void sndMuteSetMain(SndMute* m, u32 type, int on);
+void sndMuteSetMain(SndMute* m, u32 type, int on);
 
 // Mutes / unmutes output groups: bit4 SE (headphones type), bit5 BGM, bit6 SE (TV), bit7 BGM (TV).
 void SndMuteSet(int bits, int on)
@@ -1992,7 +1992,7 @@ void SndMuteSet(int bits, int on)
 }
 
 // Mutes one group by saving its master volume and setting 0, or restores it.
-static void sndMuteSetMain(SndMute* m, u32 type, int on)
+void sndMuteSetMain(SndMute* m, u32 type, int on)
 {
     if (on == 1) {
         if (m->on == 0) {
@@ -2092,7 +2092,7 @@ void SndSetOutputMode(int mode, int init)
 
 // Angle of `pos` around the listener: yaw (pan) and elevation (span) in a frame at the player's
 // position aligned with the camera, and the distance from the camera.
-static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
+void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
 {
     Camera* cam = &pG->Camera;
     Vec out;
@@ -2144,7 +2144,7 @@ static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
 // current position (following `ppos` / the owning unit while alive): distance curves, wall /
 // volume-control / inner areas, pitch and filter; a sound that attenuates to 0 is stopped;
 // finished ones free their slot. Sequences only get their volume refreshed.
-static void sndSurroundCalc()
+void sndSurroundCalc()
 {
     static int (*end_check_tbl[2])(u32) = { Snd_se_end_check, Snd_seq_end_check };
     int i;
@@ -2614,7 +2614,7 @@ void SndSetReverb()
 }
 
 // Debug: Debug_flg[2] 0x80000 / 0x100000 mute the SE / BGM groups while set.
-static void debug_mute_check()
+void debug_mute_check()
 {
     static u8 flag_bak = 0; // explicit `= 0` puts it in .sdata (GCC 2.95 keeps zero initializers out of bss)
     u8 f = 0;
@@ -2685,7 +2685,7 @@ int SndStatDisp(int req)
 }
 
 // Debug (Debug_flg): the SE call history, output / reverb mode, ARAM use per block and the voice list.
-static void debugDisp()
+void debugDisp()
 {
     static const char* mode_tbl[3] = { "  MONO", "STEREO", "  DPL2" };
     static const char* rev_tbl[8] = { "   OFF", "    HI", "   STD", "CHORUS", " DELAY", "  DPL2", "  STOP", " ERROR" };

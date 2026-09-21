@@ -11,14 +11,14 @@
 // 0x60 anonymous .rodata words in front of t_prim's data).
 
 
-static void set_attr_common();
-static void set_attr_f32();
-static void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n);
+void set_attr_common();
+void set_attr_f32();
+void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n);
 #ifdef TPRIM_FULL
 // The Tools REL carries the full file (18 functions, src/Tools/t_prim.cpp defines TPRIM_FULL and includes
 // this one); t_emlist/t_camera have the build without the 2D/s16/Htr helpers.
-static void set_attr_s16();
-static void set_vtx_flat_s16(S16Vec* v, GXColor* col, u16 n);
+void set_attr_s16();
+void set_vtx_flat_s16(S16Vec* v, GXColor* col, u16 n);
 #endif
 
 static TprimView Vrect = {{0.0f, 0.0f, 512.0f, 448.0f}, 0.0f, 1.0f};
@@ -91,7 +91,7 @@ void TprimSetBlend(u32 blend)
 
 // TEV / channel setup for flat vertex-coloured primitives: no textures, one colour channel, no
 // culling, z test only in FlipMode bit 0, line width 6, f32 positions.
-static void set_attr_common()
+void set_attr_common()
 {
     GXSetCullMode(0);
     if (FlipMode & 1) {
@@ -110,7 +110,7 @@ static void set_attr_common()
 }
 
 // Vertex format: f32 position + RGBA8 colour, direct.
-static void set_attr_f32()
+void set_attr_f32()
 {
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -121,7 +121,7 @@ static void set_attr_f32()
 
 #ifdef TPRIM_FULL
 // Vertex format: s16 position + RGBA8 colour, direct.
-static void set_attr_s16()
+void set_attr_s16()
 {
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -392,7 +392,7 @@ void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n)
 #endif
 
 // Emits `n` f32 vertices with the same colour.
-static void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n)
+void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n)
 {
     u16 i = 0;
 
@@ -404,7 +404,7 @@ static void set_vtx_flat_f32(Vec* v, GXColor* col, u16 n)
 
 #ifdef TPRIM_FULL
 // Emits `n` s16 vertices with the same colour.
-static void set_vtx_flat_s16(S16Vec* v, GXColor* col, u16 n)
+void set_vtx_flat_s16(S16Vec* v, GXColor* col, u16 n)
 {
     u16 i = 0;
 

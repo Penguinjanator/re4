@@ -31,7 +31,7 @@ struct FE_DATA {
 
 static void init(FE_WORK* t);
 static void move(FE_WORK* t);
-static void die(FE_WORK* t);
+void die(FE_WORK* t);
 int CkBit(u32* flags, u32 bit);
 
 static const char* dbg_s[125] = {
@@ -303,7 +303,7 @@ static void move(FE_WORK* t)
 }
 
 // Editor end: restores Stop_flg, ends the task.
-static void die(FE_WORK* t)
+void die(FE_WORK* t)
 {
     BitOff(pG->Debug_flg[0], 0x80000000);
     pG->Stop_flg = Test.stop_bak;

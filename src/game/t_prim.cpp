@@ -5,8 +5,8 @@
 #include "camera.h"
 
 
-static void set_attr_common();
-static void set_attr_f32();
+void set_attr_common();
+void set_attr_f32();
 
 // Never called in this build. GCC 2.95 still emits the initializer templates of local aggregates
 // in inline functions at parse time, and the original t_prim.o carries exactly these 0x60 bytes
@@ -73,7 +73,7 @@ void TprimSetBlend(u32 blend)
 
 // Common GX setup for the debug primitives: no culling, z test by FlipMode bit0, one colour TEV
 // stage, line width 6.
-static void set_attr_common()
+void set_attr_common()
 {
     GXSetCullMode(0);
     if (FlipMode & 1) {
@@ -92,7 +92,7 @@ static void set_attr_common()
 }
 
 // Vertex format: f32 position + RGBA8 colour, direct.
-static void set_attr_f32()
+void set_attr_f32()
 {
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);

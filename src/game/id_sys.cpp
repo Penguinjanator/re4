@@ -185,7 +185,7 @@ IdUnit* IDSystem::unitPtr(u8 id, int type)
 }
 
 // v2 record match: mode 0 compares the record id, mode 1 (child pass) its parent number.
-static int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
+int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
 {
     u8 no;
 

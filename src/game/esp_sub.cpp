@@ -26,7 +26,7 @@
 int GetDrawTmpBufType();        // game/TmpBuf.cpp (C++ linkage)
 
 extern "C" {
-static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
+void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
 void EspCommonTransNega(cEsp* esp, u32 type);
 int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);
 void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out);
@@ -360,7 +360,7 @@ void EspCommonTrans(cEsp* esp)
 
 // Heat shimmer sprite: the frame is copied into a texture and drawn back through an indirect
 // texture (blur 1..3 select the warp mode; type scales the distortion).
-static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
+void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
 {
     static Mtx Matrix1 = {
         {0.001953125f, 0.0f, 0.0f, 0.0f},

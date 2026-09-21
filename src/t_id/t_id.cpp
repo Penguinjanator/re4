@@ -92,7 +92,7 @@ static inline void IdBufAlloc(void*& p, u32 size)
 // Tool start: 640x448 screen, tool flags (HUD off, Debug_flg bits), the work cleared (level 0, no
 // parent, language / type from the previous run), every ID_DATA slot freed, the four file buffers
 // (0x20000 .. 0x900000) and the tool's own IDSystem (0x200 units).
-static void toolIdInit(IdTool* w)
+void toolIdInit(IdTool* w)
 {
     GXColor col;
     int i;

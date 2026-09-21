@@ -22,9 +22,9 @@ static int hd_stat1 = 0;
 static int hd_stat2 = 0;
 static int hd_stat3 = 0;
 
-static int hdRead_malloc(const char* path, void** buf, int mode, int flag);
-static int hdWrite_main(const char* path, void* buf, int size);
-static void createBackupFile(const char* path);
+int hdRead_malloc(const char* path, void** buf, int mode, int flag);
+int hdWrite_main(const char* path, void* buf, int size);
+void createBackupFile(const char* path);
 
 // Reads the whole host file into buf; returns the byte count (0 = not found / empty).
 int HDRead(const char* path, void* buf)
@@ -87,7 +87,7 @@ int HDReadDebugAlloc(const char* path, void** buf, int flag)
 }
 
 // Shared body: opens, measures, allocates (mode 0 game heap, 1 debug heap), reads and closes.
-static int hdRead_malloc(const char* path, void** buf, int mode, int flag)
+int hdRead_malloc(const char* path, void** buf, int mode, int flag)
 {
     int fd;
     int size;
@@ -147,7 +147,7 @@ int HDWrite_only(const char* path, void* buf, int size)
 }
 
 // Shared body: creates (size 0 -> truncates) or rewrites the file. Returns bytes written.
-static int hdWrite_main(const char* path, void* buf, int size)
+int hdWrite_main(const char* path, void* buf, int size)
 {
     int fd;
     int ret;
@@ -175,7 +175,7 @@ static int hdWrite_main(const char* path, void* buf, int size)
 }
 
 // Copies the current contents of path to path.bak (debug heap temporaries).
-static void createBackupFile(const char* path)
+void createBackupFile(const char* path)
 {
     void* data;
     int size;

@@ -5,5 +5,3 @@
 // units in STRIP_UNUSED; .rodata/.data/.bss are byte-identical to t_camera's object.
 #define DB_LIGHT_SET_TOOL_LIGHT
 #include "db_light.cpp"
-// t_sce_at.cpp / t_se_at.cpp call SetToolLight: global in both RELs (the .sym marks it local).
-asm(".globl SetToolLight__Fi");

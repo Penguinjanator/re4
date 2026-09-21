@@ -14,7 +14,7 @@ static const Char8 *dctac_version_dummy;
 
 // Reference 8x8 transform by two matrix multiplications with the given cosine matrix (rows, then
 // columns) in double precision.
-static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 c[8][8])
+void dctac_TransDouble(Float64 *in, Float64 *out, Float64 c[8][8])
 {
 	Float64 tmp[64];
 	Float64 s;
