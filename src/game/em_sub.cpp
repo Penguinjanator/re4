@@ -2384,12 +2384,12 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
 
     r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
-    FSet(em->catchTurn, Muku2(em->ang.y, r, PI));
+    FSet(em->Catch_dir, Muku2(em->ang.y, r, PI));
     r = pPL->ang.y;
     r += Muku(&pPL->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    FSet(pPL->catchTurn, Muku2(pPL->ang.y, r, PI));
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->ang.y + pPL->catchTurn));
+    FSet(pPL->Catch_dir, Muku2(pPL->ang.y, r, PI));
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->ang.y + pPL->Catch_dir));
     TransMatrix(m, &pPL->pos);
     p.x = x;
     p.y = y;
@@ -2401,21 +2401,21 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     switch (type) {
     case 0:
     default:
-        FSet(pPL->catchOfs.x, 0.0f);
-        FSet(pPL->catchOfs.y, 0.0f);
-        FSet(pPL->catchOfs.z, 0.0f);
-        em->catchOfs = d;
+        FSet(pPL->Catch_pos_adj.x, 0.0f);
+        FSet(pPL->Catch_pos_adj.y, 0.0f);
+        FSet(pPL->Catch_pos_adj.z, 0.0f);
+        em->Catch_pos_adj = d;
         break;
     case 1:
-        PSVECScale(&d, &pPL->catchOfs, -1.0f);
-        em->catchOfs.x = 0.0f;
-        em->catchOfs.y = 0.0f;
-        em->catchOfs.z = 0.0f;
+        PSVECScale(&d, &pPL->Catch_pos_adj, -1.0f);
+        em->Catch_pos_adj.x = 0.0f;
+        em->Catch_pos_adj.y = 0.0f;
+        em->Catch_pos_adj.z = 0.0f;
         break;
     case 2:
         PSVECScale(&d, &d, 0.5f);
-        PSVECScale(&d, &pPL->catchOfs, -1.0f);
-        em->catchOfs = d;
+        PSVECScale(&d, &pPL->Catch_pos_adj, -1.0f);
+        em->Catch_pos_adj = d;
         break;
     }
     em->Catch_at_adj = em->pos;
@@ -2442,12 +2442,12 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
 
     r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &sub->pos, r, PI));
-    em->catchTurn = Muku2(em->ang.y, r, PI);
+    em->Catch_dir = Muku2(em->ang.y, r, PI);
     r = sub->ang.y;
     r += Muku(&sub->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    sub->catchTurn = Muku2(sub->ang.y, r, PI);
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->ang.y + em->catchTurn));
+    sub->Catch_dir = Muku2(sub->ang.y, r, PI);
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->ang.y + em->Catch_dir));
     TransMatrix(m, &em->pos);
     p.x = x;
     p.y = y;
@@ -2460,21 +2460,21 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     switch (type) {
     case 0:
     default:
-        sub->catchOfs.x = 0.0f;
-        sub->catchOfs.y = 0.0f;
-        sub->catchOfs.z = 0.0f;
-        em->catchOfs = d;
+        sub->Catch_pos_adj.x = 0.0f;
+        sub->Catch_pos_adj.y = 0.0f;
+        sub->Catch_pos_adj.z = 0.0f;
+        em->Catch_pos_adj = d;
         break;
     case 1:
-        PSVECScale(&d, &sub->catchOfs, -1.0f);
-        em->catchOfs.x = 0.0f;
-        em->catchOfs.y = 0.0f;
-        em->catchOfs.z = 0.0f;
+        PSVECScale(&d, &sub->Catch_pos_adj, -1.0f);
+        em->Catch_pos_adj.x = 0.0f;
+        em->Catch_pos_adj.y = 0.0f;
+        em->Catch_pos_adj.z = 0.0f;
         break;
     case 2:
         PSVECScale(&d, &d, 0.5f);
-        PSVECScale(&d, &sub->catchOfs, -1.0f);
-        em->catchOfs = d;
+        PSVECScale(&d, &sub->Catch_pos_adj, -1.0f);
+        em->Catch_pos_adj = d;
         break;
     }
     em->Catch_at_adj = em->pos;
@@ -2501,18 +2501,18 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     PSVECSubtract(&target->pos, &target->Catch_at_adj, &d);
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
-    PSVECScale(&em->catchOfs, &d, rate2);
+    PSVECScale(&em->Catch_pos_adj, &d, rate2);
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
-    PSVECSubtract(&em->catchOfs, &d, &em->catchOfs);
+    PSVECSubtract(&em->Catch_pos_adj, &d, &em->Catch_pos_adj);
     tmp = em->ang.y;
     ry = tmp;
-    em->ang.y = ry + em->catchTurn;
+    em->ang.y = ry + em->Catch_dir;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     ret = MotionMove(em, 0);
-    tmp = em->catchTurn * rate;
+    tmp = em->Catch_dir * rate;
     ry += tmp;
-    em->catchTurn -= tmp;
+    em->Catch_dir -= tmp;
     em->ang.y = ry;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     RotMatrix(em->mat, &em->ang);
