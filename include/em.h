@@ -113,10 +113,10 @@ public:
             u8 x39D;      // 0x39D  (obj16: the type 1 head is drawn at half scale while set)
             u8 pad_39E[0x3A8 - 0x39E];
         };
-        Vec catchOfs;     // 0x39C  em_sub EmCatchPLSet: offset the caught model keeps to the catcher
+        Vec Catch_pos_adj;  // 0x39C  em_sub EmCatchPLSet: offset the caught model keeps to the catcher (PS2 Catch_pos_adj)
     };
-    Vec Catch_at_adj;     // 0x3A8  pos at the end of the catcher's frame; EmCatchMotionMove moves the catcher by pos - Catch_at_adj (objTrolleySetAdjust adds the car movement to it) (PS2 Catch_at_adj, next to Catch_pos_adj = catchOfs)
-    f32 catchTurn;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it)
+    Vec Catch_at_adj;     // 0x3A8  pos at the end of the catcher's frame; EmCatchMotionMove moves the catcher by pos - Catch_at_adj (objTrolleySetAdjust adds the car movement to it) (PS2 Catch_at_adj)
+    f32 Catch_dir;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it) (PS2 Catch_dir)
     cEm* pEmCatch;         // 0x3B8  what damaged this one (pl_sub SetPlDamage/SetSubDamage
                           //         first argument); object enemies store a cObj of their own
     u8 RckStat;           // 0x3BC  route_ck: bit0 = RckNear valid this frame (RouteCk clears it)
