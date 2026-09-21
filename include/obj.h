@@ -479,23 +479,22 @@ struct YaguraWork {
 
 // Player weapon object work (game/objWep.cpp `cObjWep`, a cObj subclass; see pl_wep.h).
 struct ObjWepWork {
-    void* pMotNormal;     // 0x00 (0x328)  idle motion (pWepArc)
-    void* pMotEmpty;      // 0x04 (0x32C)  idle motion with an empty magazine
-    f32 lockRandPitch;    // 0x08 (0x330)  lock random: pitch range (pl_wep PlWepLockRand), degrees -> radians in setAbility
-    f32 lockRandYaw;      // 0x0C (0x334)
-    f32 lockRandPitchStep;  // 0x10 (0x338)
-    f32 lockRandYawStep;  // 0x14 (0x33C)
+    void* motReset[2];    // 0x00 (0x328)  resetMotion idle motions: [0] normal, [1] empty magazine (pWepArc) (PS2 motReset[2])
+    f32 bureX;            // 0x08 (0x330)  aim sway (lock random, pl_wep PlWepLockRand): pitch range, degrees -> radians in setAbility (PS2 bureX)
+    f32 bureY;            // 0x0C (0x334)  yaw range (PS2 bureY)
+    f32 bureSpeedX;       // 0x10 (0x338)  pitch step per frame (PS2 bureSpeedX)
+    f32 bureSpeedY;       // 0x14 (0x33C)  yaw step per frame (PS2 bureSpeedY)
     u8 shotFrame[4];      // 0x18 (0x340)  fire motion shot frames, from each weapon's const table (ruger_tbl, xd9_tbl, ...) (PS2 shotFrame[4])
-    u8 pad_1C[4];
+    u32 m_EraseTime;      // 0x1C (0x344)  (PS2 m_EraseTime; setEraseTime is not in the GC code)
     cModel* parent;       // 0x20 (0x348)  model the weapon hangs on (parentSet)
     u16 itemId;           // 0x24 (0x34C)  weapon item id (cObjLauncher::init: 0x35) (PS2 ITEM_ID itemId)
     u8 mode;              // 0x26 (0x34E)  0 stay, 1 ready, 2 fire, 3 down, 4 reload, 5 drop (move dispatch)
     u8 step;              // 0x27 (0x34F)  step inside the mode
     u8 disp;              // 0x28 (0x350)  bit0 draw the laser this frame, bit1 drawn last frame, bits 2-4 setDisp types 0/1/2
     u8 pad_29[3];
-    u32 seHandle;         // 0x2C (0x354)  SndCall handle stopped by resetMotion
-    Vec marker;           // 0x30 (0x358)  laser sight end / hit marker position (pl_wep getMarkerPos, PlWepHitCheck2)
-    class cEm* target;    // 0x3C (0x364)  enemy the laser points at (GetWepTargetPos)
+    u32 m_StopSeId;       // 0x2C (0x354)  SndCall handle stopped by resetMotion (PS2 m_StopSeId)
+    Vec m_ShotPos;        // 0x30 (0x358)  laser sight end / hit marker position (pl_wep getMarkerPos, PlWepHitCheck2) (PS2 m_ShotPos)
+    class cEm* m_SightEm; // 0x3C (0x364)  enemy the laser points at (GetWepTargetPos) (PS2 m_SightEm)
 };
 
 // Rocket launcher work (game/objRocket.cpp `cObjLauncher` : cObjWep).
