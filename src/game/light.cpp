@@ -847,25 +847,25 @@ int cLit::getSafeCutNo(int no)
 // Event fog curve: sets the fog start distance.
 void cLightMgr::setFogStart(f32 v)
 {
-    LightEnv.fogStart = v;
+    LightEnv.Fog.Start = v;
 }
 
 // Event fog curve: sets the fog end distance.
 void cLightMgr::setFogEnd(f32 v)
 {
-    LightEnv.fogEnd = v;
+    LightEnv.Fog.End = v;
 }
 
 // Current fog start distance.
 f32 cLightMgr::getFogStart()
 {
-    return LightEnv.fogStart;
+    return LightEnv.Fog.Start;
 }
 
 // Current fog end distance.
 f32 cLightMgr::getFogEnd()
 {
-    return LightEnv.fogEnd;
+    return LightEnv.Fog.End;
 }
 
 // Programs GX fog from LightEnv.Fog (black when Disp_flg 0x4000 or thermal) and the view far plane.
@@ -957,13 +957,13 @@ int cLightMgr::setEnv(cLightEnv* cut, int hokan)
         m_Hokan = hokan;
     }
     if (m_Hokan != 0) {
-        f32 fs = LightEnv.fogStart;
-        f32 fe = LightEnv.fogEnd;
-        GXColor fc = LightEnv.bgColor;
+        f32 fs = LightEnv.Fog.Start;
+        f32 fe = LightEnv.Fog.End;
+        GXColor fc = LightEnv.Fog.Color;
         LightEnv = *cut;
-        LightEnv.fogStart = fs;
-        LightEnv.fogEnd = fe;
-        LightEnv.bgColor = fc;
+        LightEnv.Fog.Start = fs;
+        LightEnv.Fog.End = fe;
+        LightEnv.Fog.Color = fc;
     } else {
         LightEnv = *cut;
     }
@@ -1578,8 +1578,8 @@ int cLit::versionUp()
         for (i = 0; i < CutNum; i++) {
             if (VALID_PTR(cut = getCut(i))) {
                 changed = 1;
-                cut->x100 = cut->x0;
-                cut->xFC = cut->x0;
+                cut->AmbientEsp = cut->AmbientScr;
+                cut->AmbientEm = cut->AmbientScr;
             }
         }
     }

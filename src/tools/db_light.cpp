@@ -702,8 +702,8 @@ static void edit_cutsel()
         if (VALID_PTR(env)) {
             eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
                     env->FocusZ / 10, env->blur_rate);
-            drawColorTile(0x58, 0x57 + i * 14, 0x18, 8, env->x0);
-            drawColorTile(0x78, 0x57 + i * 14, 0x20, 8, *(u32*) &env->bgColor);
+            drawColorTile(0x58, 0x57 + i * 14, 0x18, 8, *(u32*) &env->AmbientScr);
+            drawColorTile(0x78, 0x57 + i * 14, 0x20, 8, *(u32*) &env->Fog.Color);
             drawColorTile(0xA0, 0x57 + i * 14, 0x20, 8, *(u32*) &env->MirrorFog.Color);
             if (env->tuneOn & 1) {
                 drawColorTile(0x140, 0x57 + i * 14, 0x20, 8, *(u32*) &env->Tune[0]);
@@ -924,7 +924,7 @@ int lightPasteCut(int no)
 int lightPasteAmbient(int no)
 {
     if (pTool->Lit.isCut(no) && pTool->CutTmp) {
-        pTool->Lit.getCut(no)->x0 = pTool->CutTmp->x0;
+        pTool->Lit.getCut(no)->AmbientScr = pTool->CutTmp->AmbientScr;
         return 1;
     }
     return 0;
@@ -3196,7 +3196,7 @@ static void edit_light_prop_sub() {}
 // Ambient colours of the cut: model / enemy+object / effect.
 static void edit_ambient()
 {
-    static u32 amb_copy = 0;
+    static GXColor amb_copy = { 0, 0, 0, 0 };
     cLightEnv* env = LightMgr.getEnvPtr();
     int ret = 0;
 
@@ -3254,26 +3254,26 @@ static void edit_ambient()
             case 0:
                 switch (pTool->rno5) {
                 case 0:
-                    amb_copy = env->x0;
+                    amb_copy = env->AmbientScr;
                     break;
                 case 1:
-                    amb_copy = env->xFC;
+                    amb_copy = env->AmbientEm;
                     break;
                 case 2:
-                    amb_copy = env->x100;
+                    amb_copy = env->AmbientEsp;
                     break;
                 }
                 break;
             case 1:
                 switch (pTool->rno5) {
                 case 0:
-                    env->x0 = amb_copy;
+                    env->AmbientScr = amb_copy;
                     break;
                 case 1:
-                    env->xFC = amb_copy;
+                    env->AmbientEm = amb_copy;
                     break;
                 case 2:
-                    env->x100 = amb_copy;
+                    env->AmbientEsp = amb_copy;
                     break;
                 }
                 break;
@@ -3286,11 +3286,11 @@ static void edit_ambient()
         break;
     }
     eprintf(0x20, 0x38, 0, pTool->color, "SCROLL");
-    drawColorTile(0x60, 0x38, 0x30, 0xD, env->x0);
+    drawColorTile(0x60, 0x38, 0x30, 0xD, *(u32*) &env->AmbientScr);
     eprintf(0x20, 0x46, 0, pTool->color, "EM+OBJ");
-    drawColorTile(0x60, 0x46, 0x30, 0xD, env->xFC);
+    drawColorTile(0x60, 0x46, 0x30, 0xD, *(u32*) &env->AmbientEm);
     eprintf(0x20, 0x54, 0, pTool->color, "EFFECT");
-    drawColorTile(0x60, 0x54, 0x30, 0xD, env->x100);
+    drawColorTile(0x60, 0x54, 0x30, 0xD, *(u32*) &env->AmbientEsp);
     pTool->printCursor(3, pTool->rno5 + 4);
 }
 // FOG page of the cut (edit_fog_common on cLightEnv::Fog).

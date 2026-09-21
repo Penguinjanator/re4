@@ -180,24 +180,10 @@ public:
 // Light cut: environment block (0x104 bytes) followed by nLight cLightWork entries. The
 // manager keeps a copy of the current one at cLightMgr+0x38 (returned by getEnvPtr).
 struct cLightEnv {
-    union {
-        u32 x0;          // 0x00  (versionUp 0x23 copies it to xFC / x100)
-        GXColor AmbientScr;     // 0x00  model ambient (trans_lit LightSetModel / cloth / water)
-    };
+    GXColor AmbientScr;     // 0x00  model ambient (trans_lit LightSetModel / cloth / water; versionUp 0x23 copies it to AmbientEm / AmbientEsp)
     u32 nLight;      // 0x04
-    union {
-        LightFog Fog;    // 0x08
-        struct {
-            s32 x8;          // 0x08  fog type; gx_sub: 0 = the background colour has no rgb (alpha only)
-            f32 fogStart;    // 0x0C
-            f32 fogEnd;      // 0x10
-            GXColor bgColor; // 0x14  fog / background colour (gx_sub)
-        };
-    };
-    union {
-        LightFog MirrorFog;   // 0x18  mirror fog (db_light "MIRROR FOG")
-        u8 pad_18[0x28 - 0x18];
-    };
+    LightFog Fog;    // 0x08  Type: gx_sub: 0 = the background colour has no rgb (alpha only); Color: fog / background colour
+    LightFog MirrorFog;   // 0x18  mirror fog (db_light "MIRROR FOG")
     s32 FocusZ;         // 0x28  focus depth (screen z, 0..65535)
     u8 FocusFlag;          // 0x2C
     u8 FocusLevel;          // 0x2D  focus level (0 = depth of field off)
@@ -219,14 +205,8 @@ struct cLightEnv {
     u8 aniso;        // 0xF4
     s8 contrast[3];  // 0xF5  Filter00SetContrast
     f32 lod_bias;     // 0xF8
-    union {
-        u32 xFC;         // 0xFC
-        GXColor AmbientEm;  // 0xFC  ambient of models without lightInfo.x50 bits 3/4 (trans_lit)
-    };
-    union {
-        u32 x100;        // 0x100
-        GXColor AmbientEsp;  // 0x100  ambient of effects / lightInfo.x50 bit3 models (trans_lit)
-    };
+    GXColor AmbientEm;  // 0xFC  ambient of models without lightInfo.x50 bits 3/4 (trans_lit)
+    GXColor AmbientEsp;  // 0x100  ambient of effects / lightInfo.x50 bit3 models (trans_lit)
 
     cLightWork* getLightWork(int no);
     u32 getSize();

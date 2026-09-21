@@ -56,8 +56,8 @@ void bio4_AddBgColor()
     }
     if (!StaFlagChk(pG, STA_SET_BG_COLOR)) {
         cLightEnv* env = LightMgr.getEnvPtr();
-        bg = env->bgColor;
-        if (env->x8 == 0) {
+        bg = env->Fog.Color;
+        if (env->Fog.Type == 0) {
             bg.b = 0;
             bg.g = 0;
             bg.r = 0;
