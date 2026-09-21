@@ -125,7 +125,7 @@ struct Em10Work {
     s16 Csaw_sign_wait;             // 0x65E (0xA3E)  em10CsawSignSe: chainsaw rev sound timer  (PS2 Csaw_sign_wait)
     u16 Anger_timer;             // 0x660 (0xA40)  300 after damage (em10DmCk); no flanking while set (PS2 Anger_timer)
     u8 pad_662[2];
-    u32 Jcatch_wait;             // 0x664 (0xA44)  em10CatchPLRtnCk: frames until the next DashCatch (Rnd % 300 + 300) (PS2 Jcatch_wait)
+    u32 Jcatch_wait;             // 0x664 (0xA44)  em10CatchPLRtnCk: frames until the next DashCatch lunge (Rnd % 300 + 300 after one ends or is declined) (PS2 Jcatch_wait: same row, between Parasite_wait and Slope_spd; the PS2 em10 code is not in the dump, so the use is the match: a wait set after the jumping grab and gated before the next)
     u16 Slope_timer;             // 0x668 (0xA48)  em10SlopeMove: 30 while no floor (PS2 Slope_timer)
     u8 pad_66A[2];
     f32 Slope_spd;             // 0x66C (0xA4C)  em10SlopeMove: smoothed forward displacement (PS2 Slope_spd)
