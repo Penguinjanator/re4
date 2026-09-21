@@ -292,7 +292,7 @@ struct Obj18Work {
     u8 pad_20[0x14];
     Mtx mat;              // 0x34  previous parent matrix
     u32 x64;              // 0x64
-    u32 type;             // 0x68  SetObj18 type (cloth set)
+    u32 type;             // 0x68  OBJ18_TYPE (SetObj18 type, cloth set)
     u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
     cObj* child;          // 0x70  ribbon / rope object created by SetObj18
     int ObjChainFlagCommon;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags

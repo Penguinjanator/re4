@@ -58,9 +58,9 @@ class cObjWep;
 struct R22cResultData {
     u8 pad_0[0x10];
     u32 ofsTexResult;   // 0x10  IdTexDataLoad(.., 7)
-    u32 ofsIdResult;    // 0x14  IdSys.set(.., 0xFF, 0x28, ..)
+    u32 ofsIdResult;    // 0x14  IdSys.set(.., 0xFF, IDC_TITLE, ..)
     u32 ofsIdHigh;      // 0x18  the high-score variant of the result table
-    u32 ofsIdReload;    // 0x1C  IdSys.set(.., 0xFF, 0x2C, ..)
+    u32 ofsIdReload;    // 0x1C  IdSys.set(.., 0xFF, IDC_EVENT, ..)
     u32 ofsTexReload;   // 0x20  IdTexDataLoad(.., 6)
 };
 
@@ -1714,8 +1714,8 @@ void ResultScreen::reloadtime()
 {
     IdTexRelease(TEX_OWNER_ID_EVENT);
     IdTexDataLoad(RES_PTR(data, ofsTexReload), TEX_OWNER_ID_EVENT);
-    IdSys.kill(0xFF, 0x2C);
-    IdSys.set(RES_PTR(data, ofsIdReload), 0xFF, 0x2C, 0x13, 6, 0);
+    IdSys.kill(0xFF, IDC_EVENT);
+    IdSys.set(RES_PTR(data, ofsIdReload), 0xFF, IDC_EVENT, 0x13, 6, 0);
 }
 
 // Show the high-score variant of the result board with `score` split into seven digits.
@@ -1728,7 +1728,7 @@ void ResultScreen::highscore(int score)
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
     IdTexDataLoad(RES_PTR(data, ofsTexResult), TEX_OWNER_ID_TITLE);
-    IdSys.set(RES_PTR(data, ofsIdHigh), 0xFF, 0x28, 0x13, 6, 0);
+    IdSys.set(RES_PTR(data, ofsIdHigh), 0xFF, IDC_TITLE, 0x13, 6, 0);
     for (i = 0; i < 7; i++) {
         digit[i] = score % 10;
         score /= 10;
@@ -1741,7 +1741,7 @@ void ResultScreen::highscore(int score)
     asm("" : : "r"(pin));
     score = 0;
     for (i = 6; i >= 0; i--) {
-        IdUnit* u = IdSys.unitPtr(i + 1, 0x28);
+        IdUnit* u = IdSys.unitPtr(i + 1, IDC_TITLE);
 
         if (score == 0 && digit[i] == 0 && i != 0) {
             u->be_flag &= ~8;
@@ -1760,7 +1760,7 @@ void ResultScreen::init()
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
     IdTexDataLoad(RES_PTR(data, ofsTexResult), TEX_OWNER_ID_TITLE);
-    IdSys.set(RES_PTR(data, ofsIdResult), 0xFF, 0x28, 0x13, 6, 0);
+    IdSys.set(RES_PTR(data, ofsIdResult), 0xFF, IDC_TITLE, 0x13, 6, 0);
     if (r22c_work.p->capId == 0xFFFF) {
         SndCall(6, 0xA, 0, 0, 0, 0);
     } else {
@@ -1782,8 +1782,8 @@ int ResultScreen::move(int flag)
     int on;
     int sum;
 
-    u0 = IdSys.unitPtr(0, 0x28);
-    u3 = IdSys.unitPtr(3, 0x28);
+    u0 = IdSys.unitPtr(0, IDC_TITLE);
+    u3 = IdSys.unitPtr(3, IDC_TITLE);
     if (flag != 0) {
         u0->rev_flag |= 0xF;
         u3->rev_flag |= 0xF;
@@ -1797,19 +1797,19 @@ int ResultScreen::move(int flag)
         }
     }
     n = r22c_work.p->hits;
-    u = IdSys.unitPtr(1, 0x28);
+    u = IdSys.unitPtr(1, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     n /= 10;
-    u = IdSys.unitPtr(2, 0x28);
+    u = IdSys.unitPtr(2, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     n = r22c_work.p->total;
-    u = IdSys.unitPtr(0x11, 0x28);
+    u = IdSys.unitPtr(0x11, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     n /= 10;
-    u = IdSys.unitPtr(0x12, 0x28);
+    u = IdSys.unitPtr(0x12, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     n = r22c_work.p->score;
@@ -1819,7 +1819,7 @@ int ResultScreen::move(int flag)
     }
     on = 0;
     for (i = 5; i >= 0; i--) {
-        u = IdSys.unitPtr(i + 0x21, 0x28);
+        u = IdSys.unitPtr(i + 0x21, IDC_TITLE);
         if (on == 0 && digit[i] == 0 && i != 0) {
             u->be_flag &= ~8;
         } else {
@@ -1834,25 +1834,25 @@ int ResultScreen::move(int flag)
         sum += r22c_work.p->cap[i];
     }
     n = sum;
-    u = IdSys.unitPtr(0x31, 0x28);
+    u = IdSys.unitPtr(0x31, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     n /= 10;
-    u = IdSys.unitPtr(0x32, 0x28);
+    u = IdSys.unitPtr(0x32, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
     switch (r22c_work.p->capId) {
     case 0xFFFF:
-        IdSys.unitPtr(0xFD, 0x28)->be_flag &= ~8;
-        IdSys.unitPtr(0xFE, 0x28)->be_flag &= ~8;
+        IdSys.unitPtr(0xFD, IDC_TITLE)->be_flag &= ~8;
+        IdSys.unitPtr(0xFE, IDC_TITLE)->be_flag &= ~8;
         break;
     case 0xE3:
-        IdSys.unitPtr(0xFD, 0x28)->be_flag &= ~8;
-        IdSys.unitPtr(0xFE, 0x28)->be_flag |= 8;
+        IdSys.unitPtr(0xFD, IDC_TITLE)->be_flag &= ~8;
+        IdSys.unitPtr(0xFE, IDC_TITLE)->be_flag |= 8;
         break;
     default:
-        IdSys.unitPtr(0xFD, 0x28)->be_flag |= 8;
-        IdSys.unitPtr(0xFE, 0x28)->be_flag &= ~8;
+        IdSys.unitPtr(0xFD, IDC_TITLE)->be_flag |= 8;
+        IdSys.unitPtr(0xFE, IDC_TITLE)->be_flag &= ~8;
         break;
     }
     return ret;

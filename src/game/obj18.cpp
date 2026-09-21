@@ -192,15 +192,15 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     w->oya_parts = 0;
     w->ObjChainFlagCommon = 0;
     switch (w->type) {
-    case 1:
+    case OBJ18_TYPE_LEON:
         if (pG->pl_type == 0) {
             PlClothSetLeon(obj, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
         }
         break;
-    case 2:
+    case OBJ18_TYPE_ASHLEY:
         PlClothSetGirl(obj, &Evt_girlHair, &Evt_girlSkirt, &Evt_girlSweater, 1);
         break;
-    case 3:
+    case OBJ18_TYPE_ADA:
         PlClothSetAda(obj, &Evt_adaRibbon, &Evt_adaDress, &Evt_adaHair, 1);
         if (pG->game_costume == 0) {
             if (EvtMgr.GetBin(&cbin, "em/pl02/pl020f.bin", 0)) {
@@ -214,40 +214,40 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
             }
         }
         break;
-    case 4:
+    case OBJ18_TYPE_LUIS:
         PlClothSetLuis(obj, &Evt_luisHair);
         break;
-    case 7:
+    case OBJ18_TYPE_TRADER:
         break;
-    case 8:
+    case OBJ18_TYPE_MAYOR1:
         Em34ClothSet2(obj, &Obj18Cloth2);
         Em34ClothSet1(obj, &Obj18Cloth1);
         break;
-    case 9:
+    case OBJ18_TYPE_NO2:
         Em37HairSet(obj, &Obj18Cloth1);
         Em37CoatSet(obj, &Obj18Cloth2);
         break;
-    case 0xA:
+    case OBJ18_TYPE_SADDLER:
         Em30ClothSet1(obj, &Obj18Cloth1);
         Em30ClothSet2(obj, &Obj18Cloth2);
         break;
-    case 0x13:
+    case OBJ18_TYPE_INSECTBOSS0:
         Em33ClothSet(obj, &Obj18Cloth3, 0);
         Em33ClothSet2(obj, &Obj18Cloth4, 0);
         break;
-    case 0x15:
+    case OBJ18_TYPE_INSECTBOSS0S:
         Em33ClothSet(obj, &Obj18Cloth3, 1);
         Em33ClothSet2(obj, &Obj18Cloth4, 1);
         break;
-    case 0x14:
+    case OBJ18_TYPE_INSECTBOSS1:
         Em33ClothSet(obj, &Obj18Cloth5, 0);
         Em33ClothSet2(obj, &Obj18Cloth6, 0);
         break;
-    case 0x16:
+    case OBJ18_TYPE_INSECTBOSS1S:
         Em33ClothSet(obj, &Obj18Cloth5, 1);
         Em33ClothSet2(obj, &Obj18Cloth6, 1);
         break;
-    case 0xB:
+    case OBJ18_TYPE_ELGIGANTE:
         if (EvtMgr.GetBin(&cbin, "obj/objmodel/obm0700.bin", 0) == 0) {
             pLog->err(0, 0, "Event::ExePacket_Mot : dat failed");
             return 0;
@@ -308,64 +308,64 @@ void cObj18::move()
         partsWorldCalc();
     }
     if (pG->game_costume == 1) {
-        if (w->type == 2) {
+        if (w->type == OBJ18_TYPE_ASHLEY) {
             w->be_flag &= ~0x40;
         }
     }
     if (!(w->be_flag & 0x40)) {
         switch (w->type) {
-        case 1:
+        case OBJ18_TYPE_LEON:
             if (pG->pl_type == 0) {
                 PlClothMoveLeon(this, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
             }
             break;
-        case 2:
+        case OBJ18_TYPE_ASHLEY:
             PlClothMoveGirl(this, &Evt_girlHair, &Evt_girlSkirt, &Evt_girlSweater);
             break;
-        case 3:
+        case OBJ18_TYPE_ADA:
             PlClothMoveAda(this, &Evt_adaRibbon, &Evt_adaDress, &Evt_adaHair);
             break;
-        case 4:
+        case OBJ18_TYPE_LUIS:
             PlClothMoveLuis(this, &Evt_luisHair);
             break;
-        case 7:
+        case OBJ18_TYPE_TRADER:
             break;
-        case 8:
+        case OBJ18_TYPE_MAYOR1:
             Em34ClothMove1(this, &Obj18Cloth1);
             Em34ClothMove2(this, &Obj18Cloth2);
             Em34ClothReset(this);
             break;
-        case 9:
+        case OBJ18_TYPE_NO2:
             Em37HairMove(this, &Obj18Cloth1);
             Em37CoatMove(this, &Obj18Cloth2);
             Em37ClothReset(this);
             break;
-        case 0xA:
+        case OBJ18_TYPE_SADDLER:
             Em30ClothMove1(this, &Obj18Cloth1);
             Em30ClothMove2(this, &Obj18Cloth2);
             Em30ClothReset(this);
             break;
-        case 0x13:
+        case OBJ18_TYPE_INSECTBOSS0:
             Em33ClothMove(this, &Obj18Cloth3);
             Em33ClothMove2(this, &Obj18Cloth4);
             Em33ClothReset(this);
             break;
-        case 0x15:
+        case OBJ18_TYPE_INSECTBOSS0S:
             Em33ClothMove(this, &Obj18Cloth3);
             Em33ClothMove2(this, &Obj18Cloth4);
             Em33ClothReset(this);
             break;
-        case 0x14:
+        case OBJ18_TYPE_INSECTBOSS1:
             Em33ClothMove(this, &Obj18Cloth5);
             Em33ClothMove2(this, &Obj18Cloth6);
             Em33ClothReset(this);
             break;
-        case 0x16:
+        case OBJ18_TYPE_INSECTBOSS1S:
             Em33ClothMove(this, &Obj18Cloth5);
             Em33ClothMove2(this, &Obj18Cloth6);
             Em33ClothReset(this);
             break;
-        case 0xB:
+        case OBJ18_TYPE_ELGIGANTE:
             break;
         }
     }

@@ -417,9 +417,9 @@ static void r101_Event30_TitleCall()
         }
         SceSleep(1);
     } while (1);
-    IdSys.dispSw(0x21, 0);
+    IdSys.dispSw(IDC_LIFE_METER, 0);
     IdTexDataLoad(tex->m_addr, TEX_OWNER_ID_EVENT);
-    IdSys.set(id->m_addr, 0xFF, 0x2C, 0x13, 6, 0);
+    IdSys.set(id->m_addr, 0xFF, IDC_EVENT, 0x13, 6, 0);
     while (1) {
         if (pG->Room_flg[0] & 0x20000000) {
             goto end;
@@ -429,9 +429,9 @@ static void r101_Event30_TitleCall()
 end:
     tex->setCommand(CMND_DEL_DATA, 0, 0);
     id->setCommand(CMND_DEL_DATA, 0, 0);
-    IdSys.kill(0xFF, 0x2C);
+    IdSys.kill(0xFF, IDC_EVENT);
     IdTexRelease(TEX_OWNER_ID_EVENT);
-    IdSys.dispSw(0x21, 1);
+    IdSys.dispSw(IDC_LIFE_METER, 1);
 }
 
 // The bell event: the Ganados leave, the s30 event plays out of the enemy module block.

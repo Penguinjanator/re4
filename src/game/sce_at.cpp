@@ -394,7 +394,7 @@ static void sceAtDataLoopInit()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type == 0) {
+        if (w->type == SCEAT_ID_NORMAL) {
             memclr_asm(w->data, sizeof(w->data));
         }
     }
@@ -524,7 +524,7 @@ int sceAtCheck_main(cEm* em, int type)
             continue;
         }
         if (sceAtHitCheck(w, em, &front, &pos) == 0) {
-            if (w->type == 9) {
+            if (w->type == SCEAT_ID_SHD_DISP) {
                 sceAtFunc_shd_disp_reverse(w);
             }
             continue;
@@ -541,10 +541,10 @@ int sceAtCheck_main(cEm* em, int type)
         cnt++;
         cnt &= 7;
         t = w->type;
-        if (t == 2 && w->func == 0) {
+        if (t == SCEAT_ID_EXEC && w->func == 0) {
             continue;
         }
-        ft = 2;
+        ft = SCEAT_ID_EXEC;
         if (w->func == 0) {
             ft = t;
         }
@@ -554,19 +554,19 @@ int sceAtCheck_main(cEm* em, int type)
             if (w->actBtnColor != 0) {
                 c = (w->actBtnColor == 1) << 7;
             }
-            if (t == 1) {
+            if (t == SCEAT_ID_DOOR) {
                 c |= 0x80;
             }
             switch (ft) {
-            case 1:
+            case SCEAT_ID_DOOR:
                 c |= 0x80;
                 break;
-            case 0xE:
+            case SCEAT_ID_STOOP:
                 if (PlGetStatus() & 0x8000) {
                     continue;
                 }
                 break;
-            case 0x12:
+            case SCEAT_ID_HIDE:
                 if (SceAtCheckHideActive() != 0) {
                     continue;
                 }
@@ -574,10 +574,10 @@ int sceAtCheck_main(cEm* em, int type)
                     continue;
                 }
                 if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
-                    ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[0x12].func, w, 1, 6, 2, (int) em);
+                    ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[SCEAT_ID_HIDE].func, w, 1, DISP_X, ACT_FUNC_SCE_AT, (int) em);
                 }
                 continue;
-            case 3:
+            case SCEAT_ID_ITEM:
                 if (pG->shooting_mode != 0) {
                     itemInfo(w->item.id, &info);
                     if (info.type != 7) {
@@ -586,7 +586,7 @@ int sceAtCheck_main(cEm* em, int type)
                 }
                 break;
             }
-            ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[ft].func, w, c, 1, 2, (int) em);
+            ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[ft].func, w, c, DISP_A_NORMAL, ACT_FUNC_SCE_AT, (int) em);
             continue;
         }
         if (!(t == 1 && w->func == 0 && (w->trigger & 2) && (flag & 4))) {
@@ -734,7 +734,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
                 ret = 0;
             }
         }
-        if (w->type == 3 && ret == 1) {
+        if (w->type == SCEAT_ID_ITEM && ret == 1) {
             if (SceAtItemHitCheck(w, 0) == 0) {
                 ret = 0;
             }
@@ -1945,7 +1945,7 @@ void SceAtDataSet_hide(int no, void (*func)(int))
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtDataSet_hide(): AT NOT FOUND");
-    } else if (w->type != 0x12) {
+    } else if (w->type != SCEAT_ID_HIDE) {
         pLog->err(0, 0, "SceAtDataSet_hide(): ID is not HIDE");
     } else {
         w->hide.func = func;
@@ -1978,7 +1978,7 @@ void SceAtCheckHideProc()
         if (off) {
             continue;
         }
-        if (w->type != 0x12) {
+        if (w->type != SCEAT_ID_HIDE) {
             continue;
         }
         step = w->hide.step;
@@ -2152,7 +2152,7 @@ void SceAtRoomSet()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type == 3) {
+        if (w->type == SCEAT_ID_ITEM) {
             if (w->item.id == 0x1000) {
                 EmReadSearch(0x24, 0, 0);
             }
@@ -2257,7 +2257,7 @@ void SceAtCheckMoveScrAt()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type != 0xB) {
+        if (w->type != SCEAT_ID_SCR_AT) {
             continue;
         }
         if (w->pParent == 0) {
@@ -2331,7 +2331,7 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
         pLog->err(0, 0, "SceAtDataSet_exec(): AT NOT FOUND");
         return;
     }
-    if (w->type == 0xF) {
+    if (w->type == SCEAT_ID_SKEY) {
         w->skey.obj = obj;
         w->skey.func = func;
         w->skey.flag = b;
@@ -2391,14 +2391,14 @@ void SceAtSetEnable(int no, int on)
         w->flag &= ~1;
     }
     switch (w->type) {
-    case 3:
+    case SCEAT_ID_ITEM:
         if (on == 1) {
             sceAtSetItem(w);
         } else {
             sceAtDeleteItem(w);
         }
         break;
-    case 0xB:
+    case SCEAT_ID_SCR_AT:
         if (on == 1) {
             sceAtSetScrAt(w);
         } else {
@@ -2545,7 +2545,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     default:
         return 0;
     }
-    if (w->type == 3) {
+    if (w->type == SCEAT_ID_ITEM) {
         w->item.pos.x -= parent->pos.x;
         w->item.pos.y -= parent->pos.y;
         w->item.pos.z -= parent->pos.z;
@@ -2643,7 +2643,7 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type != 0xD) {
+        if (w->type != SCEAT_ID_FIELD_INFO) {
             continue;
         }
         if (sceAtHitCheck(w, 0, pos, pos) == 1) {
@@ -2673,7 +2673,7 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type != 0x10) {
+        if (w->type != SCEAT_ID_LADDER) {
             continue;
         }
         if (sceAtHitCheck(w, 0, mp, mp) != 1) {
@@ -2753,7 +2753,7 @@ void sceAtCamCtrlCheck()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->type != 0xC) {
+        if (w->type != SCEAT_ID_CAM_CTRL) {
             continue;
         }
         c = &w->cam;
@@ -2879,7 +2879,7 @@ void sceAtDebugDisp()
             }
             AreaDataDisp(&w->area, 0x80808080, 1, mat);
         }
-        if (w->type == 3 && (w->item.flag & 1)) {
+        if (w->type == SCEAT_ID_ITEM && (w->item.flag & 1)) {
             SceAtDataEyeTriggreCopy(&eye, w);
             AreaDataDisp(&eye, 0x80808080, 1, 0);
         }
@@ -2894,7 +2894,7 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
 
     out->Be_flag = 1;
     out->type = 3;
-    if (w->type != 3) {
+    if (w->type != SCEAT_ID_ITEM) {
         return;
     }
     it = &w->item;
@@ -2925,7 +2925,7 @@ void sceAtItemFindCheck()
         if (off) {
             continue;
         }
-        if (w->type != 3) {
+        if (w->type != SCEAT_ID_ITEM) {
             continue;
         }
         it = &w->item;
@@ -3052,7 +3052,7 @@ int SceAtItemFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0 && w->type == 3) {
+    if (w != 0 && w->type == SCEAT_ID_ITEM) {
         return sceAtItemFlgCk(&w->item);
     }
     return 0;
@@ -3063,7 +3063,7 @@ int SceAtItemFindFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0 && w->type == 3) {
+    if (w != 0 && w->type == SCEAT_ID_ITEM) {
         return sceAtItemFindFlgCk(&w->item);
     }
     return 0;
@@ -3506,7 +3506,7 @@ void sceAtLink_check()
         case 1:
             em = GetEmPtrFromList(w->linkNo);
             if (em != 0) {
-                if (w->type == 3) {
+                if (w->type == SCEAT_ID_ITEM) {
                     flag = em->checkStatus(EM_STATUS_ITEMSET) == 1;
                 } else {
                     flag = em->checkStatus(EM_STATUS_ACTIVE) == 0;
@@ -3528,7 +3528,7 @@ void sceAtLink_check()
             if (flag == 1) {
                 if (w->flag & 1) {
                     SceAtSetEnable(w->no, 0);
-                } else if (w->type == 3) {
+                } else if (w->type == SCEAT_ID_ITEM) {
                     if (w->item.effType == 0 || w->item.effType == 6) {
                         w->item.effType = sceAtCheckItemEffectCol(w->item.id);
                     }
@@ -3546,7 +3546,7 @@ void sceAtLink_check()
                 w->linkType = 0;
                 w->linkNo = 0;
             }
-            if (w->type == 3 && bitOff(w->item.flag2)) {
+            if (w->type == SCEAT_ID_ITEM && bitOff(w->item.flag2)) {
                 em = GetEmPtrFromList(w->linkNo);
                 if (em != 0 && bitOff(w->item.flag2)) {
                     SceAtSetEmItem(em, w);
@@ -3790,7 +3790,7 @@ cModel* SceAtItemModelPtr(int no)
         pLog->err(0, 0, "SceAtItemModelPtr(): AT NOT FOUND");
         return 0;
     }
-    if (w->type != 3) {
+    if (w->type != SCEAT_ID_ITEM) {
         pLog->err(0, 0, "SceAtItemModelPtr(): not ID == ITEM");
         return 0;
     }

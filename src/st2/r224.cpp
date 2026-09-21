@@ -185,7 +185,7 @@ void R224Main()
         // its `li` waits for the `stw` that reads v and it shares v's r0, like the
         // reload-materialised original; a fresh `0` is born early and takes r9 from pG)
         v = 0;
-        ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, v);
+        ActBtn.set(ACT_SLIDE_DOWN, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, v);
         if (Key.trg & 0x00080000) {
             SceExec(0x12, (TaskFunc) r224_toroko, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -588,7 +588,7 @@ static void reva_move()
             f32 ang;
             f32 add;
 
-            ActBtn.set(0x14, 5, 0, 0, 2, 1, 0, 0);
+            ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             cam = &r224_work.p->cam;
             add = 0.0f;
             d.x = cam->param.at.x - cam->param.pos.x;

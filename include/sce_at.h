@@ -154,7 +154,7 @@ struct SceAtWork {
     u32 next;         // 0x00  OTag link
     AreaData area;    // 0x04 .. 0x34
     u8 flag;          // 0x34  bit0 enabled, bit2 allocated (SceAtCreate*), bit3 parent rotation ignored
-    u8 type;          // 0x35  area type (index into sceAtFunc_tbl)
+    u8 type;          // 0x35  SCEAT_ID area type (index into sceAtFunc_tbl)
     u8 no;            // 0x36  area number (SceAtPtr key; ITA records + 0x80)
     u8 checkFlag;     // 0x37  bit0 test the front point instead of the position, bit1 angle check
     u8 trigger;       // 0x38  hit state bits that fire the area (1/2/4), bit3 (8) action button, bit7 disable after use

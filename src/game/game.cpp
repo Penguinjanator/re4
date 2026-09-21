@@ -1033,9 +1033,9 @@ void gameOption()
         break;
     case 2:
         pG->Stop_flg = stop_bak;
-        IdSys.dispSw(0x21, 1);
-        IdSys.dispSw(0x20, 1);
-        IdSys.dispSw(0x23, 1);
+        IdSys.dispSw(IDC_LIFE_METER, 1);
+        IdSys.dispSw(IDC_ACT_BUTTON, 1);
+        IdSys.dispSw(IDC_COUNT_DOWN, 1);
         OptScrn.quit();
         SndSePauseAll(0);
         *(u32*)&pG->Rno0 = Game.Rno_bak;
@@ -1056,7 +1056,7 @@ void DiedemoExec(int time, int type)
     KeyStop(0xEFCF0000);
     SpfFlagOn(pG, SPF_SCE_AT);
     SpfFlagOn(pG, SPF_ACTBTN);
-    IdSys.kill(0xFF, 0x20);
+    IdSys.kill(0xFF, IDC_ACT_BUTTON);
     Cckpt.getCountDown()->m_state &= ~1;
     Cckpt.getCountDown()->frameOut();
     PlEndCamera();
@@ -1106,7 +1106,7 @@ void gameDiedemo(DiedemoWork* w)
             break;
         case 1:
             IdTexDataLoad((void*) (((OptionArc*) pG->pOption)->ofs_10 + (u32) pG->pOption), TEX_OWNER_ID_DEAD);
-            IdSys.kill(0xFF, 0x21);
+            IdSys.kill(0xFF, IDC_LIFE_METER);
             kind = w->demo_type;
             if (kind == 0) {
                 kind = 1;
@@ -1116,17 +1116,17 @@ void gameDiedemo(DiedemoWork* w)
             }
             switch (kind) {
             case 1:
-                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_14 + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_14 + (u32) pG->pOption), 0xFF, IDC_DEAD, 0x13, 6, 0);
                 break;
             case 2:
-                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, IDC_DEAD, 0x13, 6, 0);
                 break;
             }
             if (StaFlagChk(pG, STA_EVENT_CANCEL)) {
-                IdSys.unitPtr(0, 0x2D)->be_flag |= 8;
+                IdSys.unitPtr(0, IDC_DEAD)->be_flag |= 8;
                 fadeSetG(0x80000002, 1, 0, 0);
             } else {
-                IdSys.unitPtr(0, 0x2D)->be_flag &= ~8;
+                IdSys.unitPtr(0, IDC_DEAD)->be_flag &= ~8;
             }
             SndAllFadeOut();
             step++;
@@ -1134,13 +1134,13 @@ void gameDiedemo(DiedemoWork* w)
             /* fallthrough */
         case 2:
             if (cnt >= w->exec_frame + 0x10E || (Key.trg & 0x80000000)) {
-                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, 0x2E, 0x13, 5, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, IDC_CONTINUE, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
-                IdSys.beMove(IdSys.unitPtr(0x30, 0x2E), 0);
-                IdSys.beMove(IdSys.unitPtr(0x40, 0x2E), 0);
-                IdSys.unitPtr(0, 0x2E)->be_flag |= 8;
-                IdSys.unitPtr(1, 0x2E)->be_flag &= ~8;
+                IdSys.beMove(IdSys.unitPtr(0x30, IDC_CONTINUE), 0);
+                IdSys.beMove(IdSys.unitPtr(0x40, IDC_CONTINUE), 0);
+                IdSys.unitPtr(0, IDC_CONTINUE)->be_flag |= 8;
+                IdSys.unitPtr(1, IDC_CONTINUE)->be_flag &= ~8;
                 BitSet(pG->Stop_flg, 0xFFFFFFFF);
                 SpfFlagOff(pG, SPF_ID_SYSTEM);
             }
@@ -1163,7 +1163,7 @@ void gameDiedemo(DiedemoWork* w)
                     id = 0x30;
                     SndCall(0, 5, 0, 0, 0, 0);
                 }
-                IdSys.beMove(IdSys.unitPtr(id, 0x2E), 1);
+                IdSys.beMove(IdSys.unitPtr(id, IDC_CONTINUE), 1);
                 DpfFlagOn(pG, DPF_PL);
                 DpfFlagOn(pG, DPF_OBJ);
                 step++;
@@ -1177,16 +1177,16 @@ void gameDiedemo(DiedemoWork* w)
                     sel = 0;
                 }
                 if (old != sel) {
-                    IdSys.unitPtr(0, 0x2E)->timer[2] = 0;
-                    IdSys.unitPtr(1, 0x2E)->timer[2] = 0;
+                    IdSys.unitPtr(0, IDC_CONTINUE)->timer[2] = 0;
+                    IdSys.unitPtr(1, IDC_CONTINUE)->timer[2] = 0;
                     SndCall(0, 6, 0, 0, 0, 0);
                 }
                 if (sel) {
-                    IdSys.unitPtr(0, 0x2E)->be_flag |= 8;
-                    IdSys.unitPtr(1, 0x2E)->be_flag &= ~8;
+                    IdSys.unitPtr(0, IDC_CONTINUE)->be_flag |= 8;
+                    IdSys.unitPtr(1, IDC_CONTINUE)->be_flag &= ~8;
                 } else {
-                    IdSys.unitPtr(0, 0x2E)->be_flag &= ~8;
-                    IdSys.unitPtr(1, 0x2E)->be_flag |= 8;
+                    IdSys.unitPtr(0, IDC_CONTINUE)->be_flag &= ~8;
+                    IdSys.unitPtr(1, IDC_CONTINUE)->be_flag |= 8;
                 }
             }
             break;

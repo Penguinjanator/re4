@@ -1499,7 +1499,7 @@ static void em31_R1_Stamp(cEm31* em)
         if ((em->motEvent & 4) && w->Atk_ck == 0 && w->Act_ck == 0) {
             if (lp.x > -2500.0f && lp.x < 2500.0f && lp.y > -500.0f && lp.y < 500.0f && lp.z > 0.0f &&
                 lp.z < 5000.0f) {
-                ActBtn.set(0x25, 0xB, (void*) em31ActEscape, em, 1, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em31ActEscape, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
         }
         break;
@@ -2776,7 +2776,7 @@ static inline void em31ClimbBtnCk(cEm31* em)
     f32 dy = fabsf(em->pos.y - pPLS->pos.y);
 
     if (em->plDist2 < 56250000.0f && dy < 100.0f) {
-        ActBtn.set(0x19, 0xB, (void*) em31SetActClimb, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_CLIMB, 0xB, (void*) em31SetActClimb, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 

@@ -829,7 +829,7 @@ static void Evt_R310S00_Func(Event* e)
             void* mod;
             int skip = 1;
 
-            if ((e->StatusFlag & 0x40000000) == 0) {
+            if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -842,7 +842,7 @@ static void Evt_R310S00_Func(Event* e)
         if (e->NowFrame == 50) {
             int skip = 1;
 
-            if ((e->StatusFlag & 0x40000000) == 0) {
+            if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) {
                 skip = 0;
             }
             if (skip == 0) {

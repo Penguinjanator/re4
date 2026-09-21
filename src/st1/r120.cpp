@@ -143,7 +143,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         r120_setTrans(0);
-        IdSys.dispSw(0x21, 0);
+        IdSys.dispSw(IDC_LIFE_METER, 0);
         break;
     case 1:
         if (e->NowCut == 1 || e->NowCut == 8) {
@@ -164,7 +164,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0) {
                 skip = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -195,7 +195,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
             }
             if (e->NowFrame == 120) {
                 skip = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -374,7 +374,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
                     ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 skip = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -579,7 +579,7 @@ extern "C" void EvtTexRenderCamTrans(Event* e, int cut)
     int skip;
 
     skip = 1;
-    if (!(e->StatusFlag & 0x40000000)) {
+    if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
         skip = 0;
     }
     if (skip == 0) {

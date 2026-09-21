@@ -570,7 +570,7 @@ void objLadderClimbActEvtCk(cObjLadder* obj)
     if (fabsf(v.y) > 500.0f) {
         return;
     }
-    ActBtn.set(8, 5, (void*) objLadderActClimb, obj, 0, 1, 0, 0);
+    ActBtn.set(ACT_GO_UP, 5, (void*) objLadderActClimb, obj, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button 8: blocks the ladder and puts the player into plobjLadderClimb.
@@ -986,9 +986,9 @@ void objLadderDownActEvtCk(cObjLadder* obj)
         return;
     }
     if (w->flags & 4) {
-        ActBtn.set(0xA, 5, (void*) objLadderActDown, obj, 0x20, 1, 0, 0);
+        ActBtn.set(ACT_KNOCK_DOWN, 5, (void*) objLadderActDown, obj, 0x20, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     } else {
-        ActBtn.set(0xA, 5, (void*) objLadderActDown, obj, 0, 1, 0, 0);
+        ActBtn.set(ACT_KNOCK_DOWN, 5, (void*) objLadderActDown, obj, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 
@@ -1108,7 +1108,7 @@ void objLadderResetActEvtCk(cObjLadder* obj)
     if (fabsf(obj->pos.y - pPL->pos.y) > 500.0f) {
         return;
     }
-    ActBtn.set(0xB, 5, (void*) objLadderActReset, obj, 0, 1, 0, 0);
+    ActBtn.set(ACT_STAND, 5, (void*) objLadderActReset, obj, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button 0xB: puts the player into plobjLadderReset.

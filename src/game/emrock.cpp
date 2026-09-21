@@ -986,10 +986,10 @@ void emRock_R1_Drop2(cEmRock* em)
                 switch (w->rnd) {
                 case 0:
                 default:
-                    ActBtn.set(0x25, 5, (void*) plemDropEscAction, em, 0x42, 3, 0, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) plemDropEscAction, em, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
                     break;
                 case 1:
-                    ActBtn.set(0x25, 5, (void*) plemDropEscAction, em, 0x42, 4, 0, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) plemDropEscAction, em, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
                     break;
                 }
             }
@@ -1557,7 +1557,7 @@ void plemRockEscape(cPlayer* pl)
             MotionMove(pl, 0);
         } else {
             emRockPushCamMove2((cEmRock*)pl->pEmCatch);
-            ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_SPRINT, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             if (MotionMove(pl, 0)) {
                 pl->r_no_2++;
             }
@@ -1667,12 +1667,12 @@ void plemRockEscape(cPlayer* pl)
         }
         if (pl->m_Work6 && w->Act_ck == 0) {
             if (pl->m_Work7) {
-                ActBtn.set(0x25, 5, (void*) plemRockEscAction, pl, 0x42, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 5, (void*) plemRockEscAction, pl, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(0x25, 5, (void*) plemRockEscAction, pl, 0x42, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 5, (void*) plemRockEscAction, pl, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
             }
         } else {
-            ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_SPRINT, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 4:

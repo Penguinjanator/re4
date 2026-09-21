@@ -399,7 +399,7 @@ void setLadderMotion(int no)
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
         if (pG->pl_type == 2) {
-            if (EtcGetDasAddr(6, &das)) {
+            if (EtcGetDasAddr(ETC_HASIGO00, &das)) {
                 void* mot[20];
 
                 mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x27);

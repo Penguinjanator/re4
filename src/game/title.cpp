@@ -35,13 +35,6 @@
 #include <string.h>
 #include <dolphin/os.h>
 
-
-#define ID_TITLE 0x28
-#define ID_MENU 0x29
-#define ID_OMAKE 0x2A
-#define ID_OMAKE_BG 0x2B
-#define ID_OPTION 0x2C
-
 #define KEY_START 0x1000
 
 // Store through a reference (matching helper).
@@ -141,13 +134,13 @@ void titleInit(TitleWork* w)
 // unlock_flg 0x40000000) at animation time `time`.
 void titleSet(TitleWork* w, int time)
 {
-    IdSys.kill(0xFF, ID_TITLE);
+    IdSys.kill(0xFF, IDC_TITLE);
     if (!ExtFlagChk(pSys, EXT_HARD_MODE)) {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 6), 0xFF, ID_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pDat, 6), 0xFF, IDC_TITLE, 0x13, 6, 0);
     } else {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, ID_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, IDC_TITLE, 0x13, 6, 0);
     }
-    IdSys.setTime(IdSys.unitPtr(0, ID_TITLE), (s16) time);
+    IdSys.setTime(IdSys.unitPtr(0, IDC_TITLE), (s16) time);
 }
 
 // State 1: waits for the memory card check and the sound bank, loads "SS/<lang>/title.dat" and its
@@ -234,7 +227,7 @@ void titleNintendo(TitleWork* w)
     }
     switch (w->Rno1) {
     case 0:
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 0xB), 0xFF, ID_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pDat, 0xB), 0xFF, IDC_TITLE, 0x13, 6, 0);
         c0.w = 0x000000FF;
         c1.w = 0x00000000;
         FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
@@ -263,7 +256,7 @@ void titleNintendo(TitleWork* w)
 // State 3: the health warning for 105 frames; START (after 45) fades it early.
 void titleWarning(TitleWork* w)
 {
-    IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
+    IdUnit* u = IdSys.unitPtr(0, IDC_TITLE);
     FadeColor c0;
     FadeColor c1;
 
@@ -305,7 +298,7 @@ void titleWarning(TitleWork* w)
 // skippable with START after its TTL_CANCEL_* frame; the title BGM starts at LOGO_CALL_FRAME.
 void titleLogo(TitleWork* w)
 {
-    IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
+    IdUnit* u = IdSys.unitPtr(0, IDC_TITLE);
     static u32 LOGO_CALL_FRAME = TTL_CANCEL_DOLBY;
     FadeColor c0;
     FadeColor c1;
@@ -387,22 +380,22 @@ void titleLogo(TitleWork* w)
 // is unlocked, else 3 (new game, load, options); cursor on "load".
 void titleMenuInit(TitleWork* w)
 {
-    IdSys.kill(0xFF, ID_MENU);
+    IdSys.kill(0xFF, IDC_TITLE_MENU);
     if (ExtFlagChk(pSys, EXT_HARD_MODE)) {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, ID_MENU, 0x13, 5, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
         w->menu_num = 5;
-        w->menu[0] = IdSys.unitPtr(1, ID_MENU);
-        w->menu[1] = IdSys.unitPtr(7, ID_MENU);
-        w->menu[2] = IdSys.unitPtr(9, ID_MENU);
-        w->menu[3] = IdSys.unitPtr(3, ID_MENU);
-        w->menu[4] = IdSys.unitPtr(5, ID_MENU);
+        w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+        w->menu[1] = IdSys.unitPtr(7, IDC_TITLE_MENU);
+        w->menu[2] = IdSys.unitPtr(9, IDC_TITLE_MENU);
+        w->menu[3] = IdSys.unitPtr(3, IDC_TITLE_MENU);
+        w->menu[4] = IdSys.unitPtr(5, IDC_TITLE_MENU);
         w->cursor = 3;
     } else {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 8), 0xFF, ID_MENU, 0x13, 5, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pDat, 8), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
         w->menu_num = 3;
-        w->menu[0] = IdSys.unitPtr(1, ID_MENU);
-        w->menu[1] = IdSys.unitPtr(5, ID_MENU);
-        w->menu[2] = IdSys.unitPtr(3, ID_MENU);
+        w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+        w->menu[1] = IdSys.unitPtr(5, IDC_TITLE_MENU);
+        w->menu[2] = IdSys.unitPtr(3, IDC_TITLE_MENU);
         w->cursor = 1;
     }
     w->scroll = 0;
@@ -492,14 +485,14 @@ int titleMenuSelect(TitleWork* w)
 // Loads the difficulty menu (easy / normal, plus professional when unlocked... 2 or 3 entries).
 void titleLevelInit(TitleWork* w)
 {
-    IdSys.kill(0xFF, ID_MENU);
-    IdSys.set(TITLE_ARC_PTR(w->pDat, 0xA), 0xFF, ID_MENU, 0x13, 5, 0);
-    w->menu[0] = IdSys.unitPtr(1, ID_MENU);
-    w->menu[1] = IdSys.unitPtr(3, ID_MENU);
-    w->menu[2] = IdSys.unitPtr(5, ID_MENU);
+    IdSys.kill(0xFF, IDC_TITLE_MENU);
+    IdSys.set(TITLE_ARC_PTR(w->pDat, 0xA), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
+    w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+    w->menu[1] = IdSys.unitPtr(3, IDC_TITLE_MENU);
+    w->menu[2] = IdSys.unitPtr(5, IDC_TITLE_MENU);
     if (pSys->language == 1) {
-        IdSys.unitPtr(5, ID_MENU)->be_flag &= ~8;
-        IdSys.unitPtr(6, ID_MENU)->be_flag &= ~8;
+        IdSys.unitPtr(5, IDC_TITLE_MENU)->be_flag &= ~8;
+        IdSys.unitPtr(6, IDC_TITLE_MENU)->be_flag &= ~8;
         w->menu_num = 2;
     } else {
         w->menu_num = 3;
@@ -619,13 +612,13 @@ void titleMain(TitleWork* w)
             break;
         case 5:
             IdTexRelease(TEX_OWNER_ID_TITLE);
-            IdSys.kill(0xFF, ID_TITLE);
-            IdSys.kill(0xFF, ID_MENU);
+            IdSys.kill(0xFF, IDC_TITLE);
+            IdSys.kill(0xFF, IDC_TITLE_MENU);
             MesData.ptr[2] = (u8*) G_ARC_PTR(ofs_28);
             OptScrn.init(1);
             IdTexDataLoad(G_ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), TEX_OWNER_ID_EVENT);
-            IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, ID_OPTION, 0x13, 5, 0);
+            IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, IDC_EVENT, 0x13, 5, 0);
             w->saveCnt = w->counter;
             w->Rno1 = 4;
             SndCall(0, 0x33, 0, 0, 0, 0);
@@ -675,7 +668,7 @@ void titleMain(TitleWork* w)
         if (OptScrn.move() == 1) {
             IdTexRelease(TEX_OWNER_ID_COCKPIT);
             IdTexRelease(TEX_OWNER_ID_EVENT);
-            IdSys.kill(0xFF, ID_OPTION);
+            IdSys.kill(0xFF, IDC_EVENT);
             OptScrn.quit();
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), TEX_OWNER_ID_TITLE);
             w->Rno0 = 5;
@@ -767,7 +760,7 @@ void titleMain(TitleWork* w)
     case 8:
         switch (w->Rno2) {
         case 0: {
-            IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
+            IdUnit* u = IdSys.unitPtr(0, IDC_TITLE);
             if (w->counter <= 584) {
                 w->counter = 645;
             }
@@ -811,12 +804,12 @@ void titleLoop(TitleWork* w)
     static f32 zoom_in_limit = 170.0f;
     IdUnit* u;
 
-    IdSys.unitPtr(1, ID_TITLE)->scr.x = width * 0.0f;
-    IdSys.unitPtr(2, ID_TITLE)->scr.x = width * 1.0f;
-    IdSys.unitPtr(3, ID_TITLE)->scr.x = width * -1.0f;
-    IdSys.unitPtr(4, ID_TITLE)->scr.x = width * -2.0f;
-    IdSys.unitPtr(5, ID_TITLE)->scr.x = width * 2.0f;
-    u = IdSys.unitPtr(6, ID_TITLE);
+    IdSys.unitPtr(1, IDC_TITLE)->scr.x = width * 0.0f;
+    IdSys.unitPtr(2, IDC_TITLE)->scr.x = width * 1.0f;
+    IdSys.unitPtr(3, IDC_TITLE)->scr.x = width * -1.0f;
+    IdSys.unitPtr(4, IDC_TITLE)->scr.x = width * -2.0f;
+    IdSys.unitPtr(5, IDC_TITLE)->scr.x = width * 2.0f;
+    u = IdSys.unitPtr(6, IDC_TITLE);
     if (w->scroll == 0) {
         u->scr.x -= w->scroll_add;
         if (Key.on & (KEY_RIGHT | KEY_LEFT)) {
@@ -910,22 +903,22 @@ void titleSub(TitleWork* w)
     case 3: {
         FadeSetW(0x80000000, 5, 0, 0);
         IdTexDataLoad(OMK_PTR(4), TEX_OWNER_ID_EVENT);
-        IdSys.kill(0xFF, ID_TITLE);
-        IdSys.kill(0xFF, ID_MENU);
-        IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
-        IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
+        IdSys.kill(0xFF, IDC_TITLE);
+        IdSys.kill(0xFF, IDC_TITLE_MENU);
+        IdSys.set(OMK_PTR(5), 0xFF, IDC_OPTION_BG, 0x13, 5, 0);
+        IdSys.set(OMK_PTR(6), 0xFF, IDC_OPTION, 0x13, 4, 0);
         if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
             if (!ExtFlagChk(pSys, EXT_GET_ADA)) {
-                IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
+                IdSys.unitPtr(4, IDC_OPTION_BG)->be_flag &= ~8;
             }
             if (!ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
-                IdSys.unitPtr(1, ID_OMAKE_BG)->be_flag &= ~8;
+                IdSys.unitPtr(1, IDC_OPTION_BG)->be_flag &= ~8;
             }
             if (!ExtFlagChk(pSys, EXT_GET_HUNK)) {
-                IdSys.unitPtr(2, ID_OMAKE_BG)->be_flag &= ~8;
+                IdSys.unitPtr(2, IDC_OPTION_BG)->be_flag &= ~8;
             }
             if (!ExtFlagChk(pSys, EXT_GET_WESKER)) {
-                IdSys.unitPtr(3, ID_OMAKE_BG)->be_flag &= ~8;
+                IdSys.unitPtr(3, IDC_OPTION_BG)->be_flag &= ~8;
             }
         }
         w->omk_menu_no = 0;
@@ -1000,18 +993,18 @@ void titleSub(TitleWork* w)
             }
         }
         if (w->omk_menu_no == 0) {
-            IdSys.unitPtr(0, ID_OMAKE)->be_flag |= 8;
-            IdSys.unitPtr(1, ID_OMAKE)->be_flag &= ~8;
+            IdSys.unitPtr(0, IDC_OPTION)->be_flag |= 8;
+            IdSys.unitPtr(1, IDC_OPTION)->be_flag &= ~8;
         } else {
-            IdSys.unitPtr(0, ID_OMAKE)->be_flag &= ~8;
-            IdSys.unitPtr(1, ID_OMAKE)->be_flag |= 8;
+            IdSys.unitPtr(0, IDC_OPTION)->be_flag &= ~8;
+            IdSys.unitPtr(1, IDC_OPTION)->be_flag |= 8;
         }
         break;
     case 5:
         if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(TEX_OWNER_ID_EVENT);
-            IdSys.kill(0xFF, ID_OMAKE_BG);
-            IdSys.kill(0xFF, ID_OMAKE);
+            IdSys.kill(0xFF, IDC_OPTION_BG);
+            IdSys.kill(0xFF, IDC_OPTION);
             Mem_free(w->pOmk);
             FadeSetW(0x80000000, 5, 0, 0);
             w->Rno0 = 5;
@@ -1026,8 +1019,8 @@ void titleSub(TitleWork* w)
     case 6:
         if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(TEX_OWNER_ID_EVENT);
-            IdSys.kill(0xFF, ID_OMAKE_BG);
-            IdSys.kill(0xFF, ID_OMAKE);
+            IdSys.kill(0xFF, IDC_OPTION_BG);
+            IdSys.kill(0xFF, IDC_OPTION);
             w->Rno1++;
         }
         break;
@@ -1035,9 +1028,9 @@ void titleSub(TitleWork* w)
         int i;
         FadeSetW(0x80000000, 5, 0, 0);
         IdTexDataLoad(OMK_PTR(4), TEX_OWNER_ID_EVENT);
-        IdSys.set(OMK_PTR(7), 0xFF, ID_OMAKE, 0x13, 4, 0);
+        IdSys.set(OMK_PTR(7), 0xFF, IDC_OPTION, 0x13, 4, 0);
         for (i = 0; i < 5; i++) {
-            IdUnit* u = IdSys.unitPtr(i, ID_OMAKE);
+            IdUnit* u = IdSys.unitPtr(i, IDC_OPTION);
             u->texNo = i;
             u->tex_flag |= 2;
         }
@@ -1046,24 +1039,24 @@ void titleSub(TitleWork* w)
     }
     case 8: {
         if (!ExtFlagChk(pSys, EXT_GET_ADA)) {
-            id_color_copy(0xFD, 1, ID_OMAKE);
+            id_color_copy(0xFD, 1, IDC_OPTION);
         } else {
-            id_color_copy(0xFC, 1, ID_OMAKE);
+            id_color_copy(0xFC, 1, IDC_OPTION);
         }
         if (!ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
-            id_color_copy(0xFD, 2, ID_OMAKE);
+            id_color_copy(0xFD, 2, IDC_OPTION);
         } else {
-            id_color_copy(0xFC, 2, ID_OMAKE);
+            id_color_copy(0xFC, 2, IDC_OPTION);
         }
         if (!ExtFlagChk(pSys, EXT_GET_HUNK)) {
-            id_color_copy(0xFD, 3, ID_OMAKE);
+            id_color_copy(0xFD, 3, IDC_OPTION);
         } else {
-            id_color_copy(0xFC, 3, ID_OMAKE);
+            id_color_copy(0xFC, 3, IDC_OPTION);
         }
         if (!ExtFlagChk(pSys, EXT_GET_WESKER)) {
-            id_color_copy(0xFD, 4, ID_OMAKE);
+            id_color_copy(0xFD, 4, IDC_OPTION);
         } else {
-            id_color_copy(0xFC, 4, ID_OMAKE);
+            id_color_copy(0xFC, 4, IDC_OPTION);
         }
         if ((Key.on & 0x20000) && w->omk_char_no != 0) {
             u32 bit = charBit[w->omk_char_no];
@@ -1123,37 +1116,37 @@ void titleSub(TitleWork* w)
         }
         {
             s8 sel = w->omk_char_no;
-            IdUnit* a = IdSys.unitPtr(sel, ID_OMAKE);
-            IdUnit* b = IdSys.unitPtr(0xFE, ID_OMAKE);
+            IdUnit* a = IdSys.unitPtr(sel, IDC_OPTION);
+            IdUnit* b = IdSys.unitPtr(0xFE, IDC_OPTION);
             IdUnit* u;
             b->scr = a->scr;
-            u = IdSys.unitPtr(5, ID_OMAKE);
+            u = IdSys.unitPtr(5, IDC_OPTION);
             u->texNo = sel;
             u->tex_flag |= 2;
-            u = IdSys.unitPtr(6, ID_OMAKE);
+            u = IdSys.unitPtr(6, IDC_OPTION);
             u->texNo = sel;
             u->tex_flag |= 2;
         }
         if (w->omk_char_no == 0 || FlagChkVar(&pSys->Extra_flg, (u32) charBit[w->omk_char_no])) {
-            id_color_copy(0xFC, 5, ID_OMAKE);
+            id_color_copy(0xFC, 5, IDC_OPTION);
         } else {
-            id_color_copy(0xFD, 5, ID_OMAKE);
-            IdSys.unitPtr(6, ID_OMAKE)->texNo = 5;
+            id_color_copy(0xFD, 5, IDC_OPTION);
+            IdSys.unitPtr(6, IDC_OPTION)->texNo = 5;
         }
         break;
     }
     case 9:
         if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(TEX_OWNER_ID_EVENT);
-            IdSys.kill(0xFF, ID_OMAKE_BG);
-            IdSys.kill(0xFF, ID_OMAKE);
+            IdSys.kill(0xFF, IDC_OPTION_BG);
+            IdSys.kill(0xFF, IDC_OPTION);
             w->Rno1 = 3;
         }
         break;
     case 10:
         if ((Fade[0].flags & 1) == 0) {
-            IdSys.kill(0xFF, ID_OMAKE_BG);
-            IdSys.kill(0xFF, ID_OMAKE);
+            IdSys.kill(0xFF, IDC_OPTION_BG);
+            IdSys.kill(0xFF, IDC_OPTION);
             w->Rno1 = 11;
         }
         break;
@@ -1190,8 +1183,8 @@ void stageSelectInit(TitleWork* w)
 {
     TitleArc* omk = w->pOmk;
 
-    IdSys.kill(0xFF, ID_OMAKE);
-    IdSys.set(TITLE_ARC_PTR(omk, 8), 0xFF, ID_OMAKE, 0x13, 4, 0);
+    IdSys.kill(0xFF, IDC_OPTION);
+    IdSys.set(TITLE_ARC_PTR(omk, 8), 0xFF, IDC_OPTION, 0x13, 4, 0);
     w->omk_stage_no = 0;
 }
 
@@ -1232,7 +1225,7 @@ int stageSelect(TitleWork* w)
     {
         int i;
         for (i = 0; i < 4; i++) {
-            IdUnit* u = IdSys.unitPtr(i + 0x11, ID_OMAKE);
+            IdUnit* u = IdSys.unitPtr(i + 0x11, IDC_OPTION);
             u->texNo = i;
             u->tex_flag |= 2;
         }
@@ -1240,7 +1233,7 @@ int stageSelect(TitleWork* w)
     {
         int i;
         for (i = 0; i < 4; i++) {
-            IdUnit* u = IdSys.unitPtr(i + 0x21, ID_OMAKE);
+            IdUnit* u = IdSys.unitPtr(i + 0x21, IDC_OPTION);
             if (w->omk_stage_no == i) {
                 u->be_flag &= ~8;
             } else {
@@ -1248,18 +1241,18 @@ int stageSelect(TitleWork* w)
             }
         }
     }
-    IdSys.unitPtr(0x31, ID_OMAKE)->be_flag &= ~8;
-    IdSys.unitPtr(0x32, ID_OMAKE)->be_flag &= ~8;
-    IdSys.unitPtr(0x33, ID_OMAKE)->be_flag &= ~8;
-    IdSys.unitPtr(0x34, ID_OMAKE)->be_flag &= ~8;
+    IdSys.unitPtr(0x31, IDC_OPTION)->be_flag &= ~8;
+    IdSys.unitPtr(0x32, IDC_OPTION)->be_flag &= ~8;
+    IdSys.unitPtr(0x33, IDC_OPTION)->be_flag &= ~8;
+    IdSys.unitPtr(0x34, IDC_OPTION)->be_flag &= ~8;
     if (ret == 1) {
-        IdUnit* u = IdSys.unitPtr(w->omk_stage_no + 0x31, ID_OMAKE);
+        IdUnit* u = IdSys.unitPtr(w->omk_stage_no + 0x31, IDC_OPTION);
         u->be_flag |= 8;
         IdSys.setTime(u, 0);
     }
     {
         IdUnit* u;
-        u = IdSys.unitPtr(1, ID_OMAKE);
+        u = IdSys.unitPtr(1, IDC_OPTION);
         if (ExtFlagChk(pSys, EXT_GET_ADA)) {
             u->be_flag &= ~8;
         } else {
@@ -1267,7 +1260,7 @@ int stageSelect(TitleWork* w)
         }
         u->texNo = 0;
         u->tex_flag |= 2;
-        u = IdSys.unitPtr(2, ID_OMAKE);
+        u = IdSys.unitPtr(2, IDC_OPTION);
         if (ExtFlagChk(pSys, EXT_GET_KLAUSER)) {
             u->be_flag &= ~8;
         } else {
@@ -1275,7 +1268,7 @@ int stageSelect(TitleWork* w)
         }
         u->texNo = 1;
         u->tex_flag |= 2;
-        u = IdSys.unitPtr(3, ID_OMAKE);
+        u = IdSys.unitPtr(3, IDC_OPTION);
         if (ExtFlagChk(pSys, EXT_GET_HUNK)) {
             u->be_flag &= ~8;
         } else {
@@ -1283,7 +1276,7 @@ int stageSelect(TitleWork* w)
         }
         u->texNo = 2;
         u->tex_flag |= 2;
-        u = IdSys.unitPtr(4, ID_OMAKE);
+        u = IdSys.unitPtr(4, IDC_OPTION);
         if (ExtFlagChk(pSys, EXT_GET_WESKER)) {
             u->be_flag &= ~8;
         } else {
@@ -1318,15 +1311,15 @@ int stageSelect(TitleWork* w)
             int j;
             rank = save.rank[mode][i];
             if (rank == 0) {
-                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->be_flag &= ~8;
+                IdSys.unitPtr(i * 16 + 0x40, IDC_OPTION)->be_flag &= ~8;
             } else {
-                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->be_flag |= 8;
+                IdSys.unitPtr(i * 16 + 0x40, IDC_OPTION)->be_flag |= 8;
             }
             for (j = 0; j < 5; j++) {
                 if (j < rank) {
-                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->be_flag |= 8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, IDC_OPTION)->be_flag |= 8;
                 } else {
-                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->be_flag &= ~8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, IDC_OPTION)->be_flag &= ~8;
                 }
             }
             // A do-while(0) body (a macro in the original): its loop depth weights the two
@@ -1334,13 +1327,13 @@ int stageSelect(TitleWork* w)
             do {
             if (save.stage[i].score == 0) {
                 for (j = 0; j < 8; j++) {
-                    IdSys.unitPtr(i * 16 + 0x80 + j, ID_OMAKE)->be_flag &= ~8;
+                    IdSys.unitPtr(i * 16 + 0x80 + j, IDC_OPTION)->be_flag &= ~8;
                 }
             } else {
-                IdUnit* u = IdSys.unitPtr(i * 16 + 0x88, ID_OMAKE);
+                IdUnit* u = IdSys.unitPtr(i * 16 + 0x88, IDC_OPTION);
                 u->be_flag |= 8;
                 u->tex_flag |= 2;
-                IdSetNum(&IdSys, i * 16 + 0x81, ID_OMAKE, save.stage[i].score, 9999999, 7, 0);
+                IdSetNum(&IdSys, i * 16 + 0x81, IDC_OPTION, save.stage[i].score, 9999999, 7, 0);
             }
             } while (0);
         }

@@ -141,7 +141,7 @@ void SceEventStart(int mode)
         CamCtrl.LowerBinocular();
     }
     Cckpt.lifeMeterDisp(0);
-    IdSys.dispSw(0x21, 0);
+    IdSys.dispSw(IDC_LIFE_METER, 0);
     SceSys.dmg = pPL->dmg;
     pPL->dmg.set(0, 0x80);
     SysFlagOn(pG, SYS_SCISSOR_ON);
@@ -182,7 +182,7 @@ void SceEventEnd(int mode)
     SpfFlagOff(pG, SPF_KEY);
     SysFlagOff(pG, SYS_SCREEN_STOP);
     Cckpt.lifeMeterDisp(1);
-    IdSys.dispSw(0x21, 1);
+    IdSys.dispSw(IDC_LIFE_METER, 1);
     SpfFlagOff(pG, SPF_ACTBTN);
     SpfFlagOff(pG, SPF_SCE_AT);
     ShadowMemClear();
@@ -235,7 +235,7 @@ void SceUpCutStart()
     SpfFlagOff(pG, SPF_LIGHT);
     SpfFlagOff(pG, SPF_ID_SYSTEM);
     Cckpt.lifeMeterDisp(0);
-    IdSys.dispSw(0x21, 0);
+    IdSys.dispSw(IDC_LIFE_METER, 0);
 }
 
 // Ends an up cut: restores Stop_flg, the display flags, the player collision flag, the task kind
@@ -262,7 +262,7 @@ void SceUpCutEnd()
     }
     SceSys.task_kind_back = 0;
     Cckpt.lifeMeterDisp(1);
-    IdSys.dispSw(0x21, 1);
+    IdSys.dispSw(IDC_LIFE_METER, 1);
     SubScreenWait(10);
 }
 

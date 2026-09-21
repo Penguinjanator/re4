@@ -367,9 +367,9 @@ void subMissionSt1()
         int n = 0;
         int base = 0;
 
-        IdSys.kill(0xFF, 0x33);
-        IdSys.set((void*) (pG->pCore->ofs_9C + (u32) pG->pCore), 0xFF, 0x33, 0x13, 5, 0);
-        u = IdSys.unitPtr(0, 0x33);
+        IdSys.kill(0xFF, IDC_SUB_MISSION);
+        IdSys.set((void*) (pG->pCore->ofs_9C + (u32) pG->pCore), 0xFF, IDC_SUB_MISSION, 0x13, 5, 0);
+        u = IdSys.unitPtr(0, IDC_SUB_MISSION);
         if (pCoin != NULL) {
             pos = pCoin->pos;
             GetScreenPos(&pos, &scr);
@@ -393,7 +393,7 @@ void subMissionSt1()
                 n /= 10;
             }
             for (j = 0; j <= 1; j++) {
-                u = IdSys.unitPtr(base + j, 0x33);
+                u = IdSys.unitPtr(base + j, IDC_SUB_MISSION);
                 u->be_flag |= 0x8;
                 u->tex_flag |= 0x2;
                 u->texNo = digit[j];
@@ -403,7 +403,7 @@ void subMissionSt1()
     if (timer > 0) {
         timer--;
         if (timer == 0) {
-            IdSys.kill(0xFF, 0x33);
+            IdSys.kill(0xFF, IDC_SUB_MISSION);
         }
     }
 }

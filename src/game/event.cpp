@@ -285,7 +285,7 @@ int Event::Run()
         }
         CalNextPacket();
     }
-    if (EvtChk(StatusFlag, 0x400)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfFadeOut))) {
         if (NowTotalFrame == MaxTotalFrame - 0x1E) {
             FadeSetW(2, 0x2D, 0, 0);
             IntSet(DelTimer, 0xF);
@@ -293,8 +293,8 @@ int Event::Run()
             EvtMesDeleteAll();
         }
     }
-    if (EvtChk(StatusFlag, 0x200)) {
-        if (!EvtChk(StatusFlag, 0x100)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfDiedemo))) {
+        if (!EvtChk(StatusFlag, EvtStfBit(EvtStfDiedemoSet))) {
             if (NowTotalFrame == MaxTotalFrame - 0x1E || NowTotalFrame == MaxTotalFrame) {
                 SetDiedemoExec();
                 IntSet(DelTimer, 0xF);
@@ -325,12 +325,12 @@ int Event::Run()
     if (wait == 1) {
         n = 0;
     }
-    if (EvtChk(StatusFlag, 0x10000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfStrTime))) {
         frm = (f32) NowTotalFrame;
         n = (u32) (frm / EVT_STR_FRAME);
         if (frm - (f32) n * EVT_STR_FRAME < 1.0f) {
             EventMgr* m = &EvtMgr;
-            StatusFlag &= ~0x10000;
+            StatusFlag &= ~EvtStfBit(EvtStfStrTime);
             m->EvtSndStrPlay(&m->NowExeEvtKey, 1, EvtDebug.NowStr[1], 1, frm / EVT_FRAME_RATE);
         }
     }
@@ -369,18 +369,18 @@ int Event::EspToolSetDat()
     EvtDebug.ClrModelFiles();
     while (IsExePacket()) {
         pac = pPacket;
-        if (pac->id > 0x20) {
+        if (pac->id > EvpTpMax - 1) {
             pLog->err(0, 0, "Event::ExePacket : id over");
             return 0;
         }
         switch (pac->id) {
-        case 6:
+        case EvpTpCam:
             strcpy(EvtDebug.getEvName(), pac->mod.name);
             break;
-        case 0xE:
+        case EvpTpLit:
             strcpy(EvtDebug.getCamName(), pac->mod.name);
             break;
-        case 0xB:
+        case EvpTpMot:
             no = EvtDebug.NumMod;
             strcpy(EvtDebug.pModel[no].name, pac->mod.bin);
             EspToolSetMod(no, pac->mod.name);
@@ -565,7 +565,7 @@ int Event::RunTool(int mode, int subFrame)
         pLog->err(0, 0, "Event::init : data failed");
         return 0;
     }
-    StatusFlag |= 0x40000000;
+    StatusFlag |= EvtStfBit(EvtStfToolFrontExec);
     while (frm > NowFrame || c > NowCut) {
         if (Run() == 0) {
             pLog->err(0, 0, "Event::ToolRun : failed");
@@ -573,7 +573,7 @@ int Event::RunTool(int mode, int subFrame)
         }
     }
     FFNowFrame = 0;
-    StatusFlag &= ~0x80000000;
+    StatusFlag &= ~EvtStfBit(EvtStfToolStop);
     if (CalMaxFrame(&MaxFrame, NowCut) == 0) {
         pLog->err(0, 0, "Event::init : data failed");
         return 0;
@@ -589,19 +589,19 @@ int Event::RunEvtCancel()
 {
     u32* key;
 
-    if (EvtChk(StatusFlag, 0x10000000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelCut))) {
         if (EvtCancelCut <= NowCut) {
             return 1;
         }
     }
-    BitOn(StatusFlag, 0x04000000);
+    BitOn(StatusFlag, EvtStfBit(EvtStfEvtCancelOn));
     StaFlagOn(pG, STA_EVENT_CANCEL);
     EvtMesDeleteAll();
     FadeSetW(1, 1, 0, 0);
     TaskSleep(2);
-    StatusFlag |= 0x08000000;
-    while (!EvtChk(StatusFlag, 0x00800000)) {
-        if (EvtChk(StatusFlag, 0x10000000)) {
+    StatusFlag |= EvtStfBit(EvtStfEvtCancelExe);
+    while (!EvtChk(StatusFlag, EvtStfBit(EvtStfEventEnd))) {
+        if (EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelCut))) {
             if (EvtCancelCut <= NowCut) {
                 goto cancel_end;
             }
@@ -621,14 +621,14 @@ int Event::RunEvtCancel()
         }
     }
 cancel_end:
-    StatusFlag &= ~0x08000000;
+    StatusFlag &= ~EvtStfBit(EvtStfEvtCancelExe);
     EvtMesDeleteAll();
     key = (u32*) Name;
     IntSet(TimerMes, 0);
     DpfFlagOff(pG, DPF_MESSAGE);
     EvtMgr.EvtSndStrStop(key, 1, 1);
     ExeFunc(3, 0);
-    if (EvtChk(StatusFlag, 0x10000000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelCut))) {
         FadeKill(FADE_NO_ROOM);
         FadeSetW(0x80000001, 0xA, 0, 0);
     }
@@ -638,15 +638,15 @@ cancel_end:
 // Requests a cancel from game code (StatusFlag 0x4000) and clears the cancel-to-cut mode.
 void Event::CancelSet()
 {
-    StatusFlag |= 0x4000;
-    StatusFlag &= ~0x04000000;
-    StatusFlag &= ~0x10000000;
+    StatusFlag |= EvtStfBit(EvtStfEvtCancelSet);
+    StatusFlag &= ~EvtStfBit(EvtStfEvtCancelOn);
+    StatusFlag &= ~EvtStfBit(EvtStfEvtCancelCut);
 }
 
 // Forbids the player from skipping this event (StatusFlag 0x02000000).
 void Event::CancelNoSet()
 {
-    StatusFlag |= 0x02000000;
+    StatusFlag |= EvtStfBit(EvtStfEvtCancelFalse);
 }
 
 // Per-frame visibility of the event models (types 0..2): a model whose motion has ended or is not
@@ -692,7 +692,7 @@ void Event::ControlTransFlag()
             if (m->kindid == 2) {
                 return;
             }
-            if (EvtChk(StatusFlag, 0x00100000) || EvtChk(StatusFlag, 0x00400000)) {
+            if (EvtChk(StatusFlag, EvtStfBit(EvtStfEndSleepOrder)) || EvtChk(StatusFlag, EvtStfBit(EvtStfEndWaitOrder))) {
                 if (NowCut >= MaxCut) {
                     break;
                 }
@@ -709,7 +709,7 @@ void Event::ControlTransFlag()
             }
             if (m->kindid == 1 && m->id == 0x18) {
                 w = &((cObj*) m)->o18;
-                if (w->type == 3 && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
+                if (w->type == OBJ18_TYPE_ADA && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
                     if ((m->be_flag & 0x20) == 0) {
                         w->child->be_flag &= ~0x20;
                     } else {
@@ -779,12 +779,12 @@ int Event::IsExePacket()
 {
     EvtPacket* pac;
 
-    if (EvtChk(StatusFlag, 0x20000000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfToolExec))) {
         if (NowCut >= MaxCut) {
             return 0;
         }
     }
-    if (EvtChk(StatusFlag, 0x00800000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfEventEnd))) {
         goto ng;
     }
     pac = pPacket;
@@ -837,25 +837,25 @@ int Event::ExePacket()
     };
     int id = pPacket->id;
 
-    if (id > 0x20) {
+    if (id > EvpTpMax - 1) {
         pLog->err(0, 0, "Event::ExePacket : id over");
         return 0;
     }
-    if (!EvtChk(StatusFlag, 0x08000000)) {
-        if (EvtChk(StatusFlag, 0x40000000)) {
+    if (!EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
+        if (EvtChk(StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
             switch (id) {
-            case 6 ... 0xC:
-            case 0xE:
-            case 0x11 ... 0x14:
-            case 0x1D ... 0x1F:
+            case EvpTpCam ... EvpTpShp:
+            case EvpTpLit:
+            case EvpTpMes ... EvpTpParentOff:
+            case EvpTpFade ... EvpTpFocus:
                 break;
             default:
                 return 1;
             }
-        } else if (EvtChk(StatusFlag, 0x20000000)) {
+        } else if (EvtChk(StatusFlag, EvtStfBit(EvtStfToolExec))) {
             switch (id) {
-            case 6 ... 0x14:
-            case 0x1D ... 0x1F:
+            case EvpTpCam ... EvpTpParentOff:
+            case EvpTpFade ... EvpTpFocus:
                 break;
             default:
                 return 1;
@@ -920,16 +920,23 @@ int Event::ExePacket_SetOm(Event* evt)
     }
     {
         OmTbl tbl[] = {
-            {"pl00", 4, 1},     {"pl01", 4, 2},      {"evm90", 5, 2},    {"evm72", 5, 0x10},  {"pl02", 4, 3},
-            {"pl04", 4, 4},     {"pl0c", 4, 3},      {"pl03", 4, 3},     {"em10", 4, 6},      {"em11", 4, 6},
-            {"em12", 4, 6},     {"em13", 4, 6},      {"em14", 4, 6},     {"em15", 4, 6},      {"em16", 4, 6},
-            {"em17", 4, 6},     {"em18", 4, 7},      {"evm54", 5, 7},    {"em19", 4, 6},      {"em1a", 4, 6},
-            {"em1b", 4, 6},     {"em1c", 4, 6},      {"em1d", 4, 6},     {"em1e", 4, 6},      {"em1h", 4, 6},
-            {"evm50", 5, 6},    {"em1g", 4, 6},      {"em1f", 4, 6},     {"em2b", 4, 0xB},    {"em34", 4, 8},
-            {"evm35", 5, 0x12}, {"em37", 4, 9},      {"em30", 4, 0xA},   {"em3300a", 7, 0x14}, {"em3300", 6, 0x13},
-            {"evm51", 5, 0x15}, {"evm52", 5, 0x16},  {"evm53", 5, 0x15}, {"evm82", 5, 0x17},  {"em39", 4, 0x18},
-            {"pl", 2, 5},       {"em", 2, 0xC},      {"evm", 3, 0},      {"ev", 2, 0xD},      {"obm", 3, 0},
-            {"et", 2, 0xE},     {"scr", 3, 0xF},     {"wep", 3, 0x10},   {"eff", 3, 0x11},
+            {"pl00", 4, OBJ18_TYPE_LEON}, {"pl01", 4, OBJ18_TYPE_ASHLEY}, {"evm90", 5, OBJ18_TYPE_ASHLEY},
+            {"evm72", 5, OBJ18_TYPE_WEPXX}, {"pl02", 4, OBJ18_TYPE_ADA}, {"pl04", 4, OBJ18_TYPE_LUIS},
+            {"pl0c", 4, OBJ18_TYPE_ADA}, {"pl03", 4, OBJ18_TYPE_ADA}, {"em10", 4, OBJ18_TYPE_GANADO},
+            {"em11", 4, OBJ18_TYPE_GANADO}, {"em12", 4, OBJ18_TYPE_GANADO}, {"em13", 4, OBJ18_TYPE_GANADO},
+            {"em14", 4, OBJ18_TYPE_GANADO}, {"em15", 4, OBJ18_TYPE_GANADO}, {"em16", 4, OBJ18_TYPE_GANADO},
+            {"em17", 4, OBJ18_TYPE_GANADO}, {"em18", 4, OBJ18_TYPE_TRADER}, {"evm54", 5, OBJ18_TYPE_TRADER},
+            {"em19", 4, OBJ18_TYPE_GANADO}, {"em1a", 4, OBJ18_TYPE_GANADO}, {"em1b", 4, OBJ18_TYPE_GANADO},
+            {"em1c", 4, OBJ18_TYPE_GANADO}, {"em1d", 4, OBJ18_TYPE_GANADO}, {"em1e", 4, OBJ18_TYPE_GANADO},
+            {"em1h", 4, OBJ18_TYPE_GANADO}, {"evm50", 5, OBJ18_TYPE_GANADO}, {"em1g", 4, OBJ18_TYPE_GANADO},
+            {"em1f", 4, OBJ18_TYPE_GANADO}, {"em2b", 4, OBJ18_TYPE_ELGIGANTE}, {"em34", 4, OBJ18_TYPE_MAYOR1},
+            {"evm35", 5, OBJ18_TYPE_MAYOR2}, {"em37", 4, OBJ18_TYPE_NO2}, {"em30", 4, OBJ18_TYPE_SADDLER},
+            {"em3300a", 7, OBJ18_TYPE_INSECTBOSS1}, {"em3300", 6, OBJ18_TYPE_INSECTBOSS0}, {"evm51", 5, OBJ18_TYPE_INSECTBOSS0S},
+            {"evm52", 5, OBJ18_TYPE_INSECTBOSS1S}, {"evm53", 5, OBJ18_TYPE_INSECTBOSS0S}, {"evm82", 5, OBJ18_TYPE_ADA_SKIRT},
+            {"em39", 4, OBJ18_TYPE_NO3}, {"pl", 2, OBJ18_TYPE_PLXX}, {"em", 2, OBJ18_TYPE_EMXX},
+            {"evm", 3, OBJ18_TYPE_OBMXX}, {"ev", 2, OBJ18_TYPE_EVXX}, {"obm", 3, OBJ18_TYPE_OBMXX},
+            {"et", 2, OBJ18_TYPE_ETXX}, {"scr", 3, OBJ18_TYPE_SCRXX}, {"wep", 3, OBJ18_TYPE_WEPXX},
+            {"eff", 3, OBJ18_TYPE_EFFECT},
         };
         int num = sizeof(tbl) / sizeof(OmTbl);
         type = 0;
@@ -948,26 +955,26 @@ int Event::ExePacket_SetOm(Event* evt)
     *(EvtName*) obj->o18.evName = *(EvtName*) pac->mod.name;
     obj->sub2B4.atari.throughOn();
     switch (type) {
-    case 1 ... 4:
-    case 7 ... 0xB:
-    case 0x10:
-    case 0x12 ... 0x16:
-    case 0x18:
+    case OBJ18_TYPE_LEON ... OBJ18_TYPE_LUIS:
+    case OBJ18_TYPE_TRADER ... OBJ18_TYPE_ELGIGANTE:
+    case OBJ18_TYPE_WEPXX:
+    case OBJ18_TYPE_MAYOR2 ... OBJ18_TYPE_INSECTBOSS1S:
+    case OBJ18_TYPE_NO3:
         obj->be_flag |= 0x10;
         obj->be_flag |= 0x05000000;
         break;
     }
     switch (type) {
-    case 1 ... 4:
-    case 0x18:
+    case OBJ18_TYPE_LEON ... OBJ18_TYPE_LUIS:
+    case OBJ18_TYPE_NO3:
         obj->be_flag |= 0x10;
         obj->sub2B4.pFootShadowTbl = pl_fs_tbl;
         break;
-    case 6:
+    case OBJ18_TYPE_GANADO:
         obj->be_flag |= 0x10;
         obj->sub2B4.pFootShadowTbl = Em10_fs_tbl;
         break;
-    case 0x13 ... 0x16:
+    case OBJ18_TYPE_INSECTBOSS0 ... OBJ18_TYPE_INSECTBOSS1S:
         obj->be_flag |= 0x10;
         obj->sub2B4.pFootShadowTbl = Em2c_fs_tbl;
         break;
@@ -1079,7 +1086,7 @@ int Event::ExePacket_SetEff(Event* evt)
         pLog->err(0, 0, "Event::ExePacket_SetEff : failed");
         return 1;
     }
-    evt->StatusFlag |= 0x00040000;
+    evt->StatusFlag |= EvtStfBit(EvtStfSetEff);
     return 1;
 }
 
@@ -1095,7 +1102,7 @@ int Event::ExePacket_SetMdt(Event* evt)
         return 1;
     }
     MesData.ptr[1] = (u8*) dat;
-    evt->StatusFlag |= 0x2000;
+    evt->StatusFlag |= EvtStfBit(EvtStfSetMdt);
     return 1;
 }
 
@@ -1114,10 +1121,10 @@ int Event::ExePacket_Cam(Event* evt)
         return 1;
     }
     zero = 0;
-    if (EvtChk(evt->StatusFlag, 0x40000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
         frm = evt->FFNowFrame;
     }
-    if (EvtChk(evt->StatusFlag, 0x08000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         frm = evt->MaxFrame - 1;
     }
     CamCtrl.MotionSet(dat, 0, (f32) frm);
@@ -1125,9 +1132,9 @@ int Event::ExePacket_Cam(Event* evt)
     evt->pDatFog = (EvtFogData*) zero;
     evt->pDatFocus = (EvtFocusData*) zero;
     evt->MotClear();
-    if (!EvtChk(evt->StatusFlag, 0x08000000)) {
+    if (!EvtChk(evt->StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         EventCutEffDelete();
-        if (EvtChk(evt->StatusFlag, 0x40000000) == 0 || (EvtChk(evt->StatusFlag, 0x40000000) && pac->cut == evt->toolCut)) {
+        if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec)) == 0 || (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec)) && pac->cut == evt->toolCut)) {
             EventCutEstSet(evt->effNo + 0xC4, evt->NowCut);
         }
     }
@@ -1221,10 +1228,10 @@ int Event::ExePacket_Mot(Event* evt)
     int frm = 0;
     u32 t;
 
-    if (EvtChk(evt->StatusFlag, 0x40000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
         frm = evt->FFNowFrame;
     }
-    if (EvtChk(evt->StatusFlag, 0x08000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         frm = evt->MaxFrame - 1;
     }
     if (evt->GetMod((void**) &m, pac->mod.name, 0, 0) == 0) {
@@ -1268,10 +1275,10 @@ int Event::ExePacket_Shp(Event* evt)
     int frm = 0;
     void* w;
 
-    if (EvtChk(evt->StatusFlag, 0x40000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
         frm = evt->FFNowFrame;
     }
-    if (EvtChk(evt->StatusFlag, 0x08000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         frm = evt->MaxFrame - 1;
     }
     if (evt->GetMod((void**) &m, pac->mod.name, &type, 0) == 0) {
@@ -1357,7 +1364,7 @@ int Event::ExePacket_Lit(Event* evt)
         pLog->err(0, 0, "Event::ExePacket_Lit : dat failed");
         return 1;
     }
-    if (EvtChk(evt->StatusFlag, 0x40000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
         if (evt->toolCut != evt->NowCut || evt->pLit == dat) {
             return 1;
         }
@@ -1551,7 +1558,7 @@ void Event::ExeBeginEvt(Event* evt, int mode)
 {
     int i;
 
-    if (EvtChk(evt->StatusFlag, 0x80)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfSceEventStartTrue))) {
         pLog->mes(0, 0, "Event::ExeBeginEvt : SceEventStart(true)");
         SceEventStart(1);
     } else {
@@ -1594,7 +1601,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
     int i;
     cPlayer* pl;
 
-    if (!EvtChk(evt->StatusFlag, 0x800)) {
+    if (!EvtChk(evt->StatusFlag, EvtStfBit(EvtStfPlPosNoSet))) {
         pos = pPL->pos;
         rot = pPL->ang;
         if (evt->PPl != 0) {
@@ -1603,7 +1610,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         }
         pPL->zeroPartsPosInit(&pos, &rot);
     }
-    if (!EvtChk(evt->StatusFlag, 0x40)) {
+    if (!EvtChk(evt->StatusFlag, EvtStfBit(EvtStfSubCharNoCtrl))) {
         SubCharCtrl(SCC_BEHIND, 0);
     }
     n = evt->ModTbl.GetNumDat();
@@ -1636,7 +1643,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         evt->ModTbl.DelDatWkNo(i);
     }
     if (evt->effNo != -1 && evt->effNo <= 1) {
-        if (EvtChk(evt->StatusFlag, 0x00040000)) {
+        if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfSetEff))) {
             EspDataRelease(evt->effNo + 0xC4, 1, 1);
         } else {
             pLog->err(0, 0, "Event::ExeEndEvt: no EspDataRelease");
@@ -1678,10 +1685,10 @@ int Event::ExeFunc(int mode, int param)
     char b[8];
     void* fn;
 
-    if (EvtChk(StatusFlag, 0x00020000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfNoFunc))) {
         return 1;
     }
-    if (mode == 1 && EvtChk(StatusFlag, 0x08000000)) {
+    if (mode == 1 && EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         return 1;
     }
     funcMode = mode;
@@ -1708,7 +1715,7 @@ void Event::CalNextPacket()
     pPrevPacket = pPacket;
     pPacket = (EvtPacket*) ((u8*) pPacket + pPacket->size);
     if ((u32) pPacket >= (u32) pData + pData->pacOfs + pData->pacSize) {
-        StatusFlag |= 0x00800000;
+        StatusFlag |= EvtStfBit(EvtStfEventEnd);
     }
 }
 
@@ -1719,7 +1726,7 @@ void Event::CalNextFrame()
     char buf[0x20];
     int zero = 0;
 
-    if (EvtChk(StatusFlag, 0x20000000)) {
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfToolExec))) {
         if (NowCut >= MaxCut) {
             return;
         }
@@ -1761,15 +1768,15 @@ int Event::CalMaxCut(int* out)
     *out = 0;
     n = 0;
     p = (EvtPacket*) (pData->pacOfs + (u32) pData);
-    while (p->id != 0x1B) {
-        if (p->id > 0x20) {
+    while (p->id != EvpTpEndPac) {
+        if (p->id > EvpTpMax - 1) {
             pLog->err(0, 0, "Event::CalMaxFrame : id over");
             return 0;
         }
-        if (p->id == 6) {
+        if (p->id == EvpTpCam) {
             n++;
         }
-        if (p->id == 8) {
+        if (p->id == EvpTpCamDammy) {
             n++;
         }
         p = (EvtPacket*) ((u8*) p + p->size);
@@ -1791,12 +1798,12 @@ int Event::CalMaxFrame(int* out, int noCut)
     *out = 0;
     n = 0;
     p = (EvtPacket*) (pData->pacOfs + (u32) pData);
-    while (p->id != 0x1B) {
-        if (p->id > 0x20) {
+    while (p->id != EvpTpEndPac) {
+        if (p->id > EvpTpMax - 1) {
             pLog->err(0, 0, "Event::CalMaxFrame : id over");
             return 0;
         }
-        if (p->id == 6) {
+        if (p->id == EvpTpCam) {
             if (noCut == n) {
                 if (EvtMgr.GetBin(&dat, p->mod.name, 0) == 0) {
                     pLog->err(0, 0, "Event::CalMaxFrame : dat failed");
@@ -1807,7 +1814,7 @@ int Event::CalMaxFrame(int* out, int noCut)
             }
             n++;
         }
-        if (p->id == 8) {
+        if (p->id == EvpTpCamDammy) {
             if (noCut == n) {
                 *out = p->val.no;
                 return 1;
@@ -1874,8 +1881,8 @@ static inline void EvtFadeSetW(int no, u32 time, u32 z, int late)
 // fade is up.
 void Event::SetDiedemoExec()
 {
-    StatusFlag |= 0x100;
-    if (EvtChk(StatusFlag, 0x04000000)) {
+    StatusFlag |= EvtStfBit(EvtStfDiedemoSet);
+    if (EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelOn))) {
         FadeKill(FADE_NO_ROOM);
         EvtFadeSetW(0x80000001, 0xA, 0, 0);
     }
@@ -1909,7 +1916,7 @@ void Event::ExecActBtn()
         return;
     }
     DpfFlagOff(pG, DPF_MESSAGE);
-    ActBtn.set(actBtnNo, 5, 0, 0, 2, 2, 0, 0);
+    ActBtn.set(actBtnNo, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
     SpfFlagOff(pG, SPF_ACTBTN);
     if (Key.trg & 0x80000) {
         actBtnCount++;
@@ -1928,7 +1935,7 @@ void Event::MesSet(int no, int time, int x, int y)
             cMes.WaitEnd(0);
         } else {
             EvtMesDeleteAll();
-            if (EvtChk(StatusFlag, 0x2000)) {
+            if (EvtChk(StatusFlag, EvtStfBit(EvtStfSetMdt))) {
                 SceMesSet(no, 0xF2, 1, x, y);
             } else {
                 SceMesSet(no, 0xF0, 1, x, y);
@@ -1986,7 +1993,7 @@ void Event::FocusMove(Event* evt, void* focus)
     EvtFocusData* d = (EvtFocusData*) focus;
     int frame = evt->NowFrame;
 
-    if (EvtChk(evt->StatusFlag, 0x40000000)) {
+    if (EvtChk(evt->StatusFlag, EvtStfBit(EvtStfToolFrontExec))) {
         return;
     }
     if (d == 0) {
@@ -2207,45 +2214,45 @@ int EventMgr::Run()
         if (!e->isAlive()) {
             continue;
         }
-        if (EvtChk(e->StatusFlag, 0x00080000)) {
+        if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEndSleep))) {
             continue;
         }
-        if (EvtChk(e->StatusFlag, 0x00200000)) {
+        if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEndWait))) {
             continue;
         }
-        if (EvtChk(e->StatusFlag, 0x80000000)) {
+        if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfToolStop))) {
             continue;
         }
         e->DebugDisp();
-        if (EvtChk(e->StatusFlag, 0x01000000)) {
-            e->StatusFlag &= ~0x01000000;
+        if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEvtInit))) {
+            e->StatusFlag &= ~EvtStfBit(EvtStfEvtInit);
             e->ExeBeginEvt(e, 0);
         }
-        if (!EvtChk(e->StatusFlag, 0x00800000)) {
+        if (!EvtChk(e->StatusFlag, EvtStfBit(EvtStfEventEnd))) {
             if (e->Run() == 0) {
                 pLog->err(0, 0, "EventMgr::Run : failed");
                 DelEvt(e, 0);
                 continue;
             }
-            if (EvtChk(e->StatusFlag, 0x20000000)) {
+            if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfToolExec))) {
                 continue;
             }
-            if (!EvtChk(e->StatusFlag, 0x02000000) && !EvtChk(e->StatusFlag, 0x04000000) && !EvtChk(e->StatusFlag, 0x00800000)
-                && !EvtChk(e->StatusFlag, 0x100) && ((Key.trg & 0x20000000) || EvtChk(e->StatusFlag, 0x4000))) {
+            if (!EvtChk(e->StatusFlag, EvtStfBit(EvtStfEvtCancelFalse)) && !EvtChk(e->StatusFlag, EvtStfBit(EvtStfEvtCancelOn)) && !EvtChk(e->StatusFlag, EvtStfBit(EvtStfEventEnd))
+                && !EvtChk(e->StatusFlag, EvtStfBit(EvtStfDiedemoSet)) && ((Key.trg & 0x20000000) || EvtChk(e->StatusFlag, EvtStfBit(EvtStfEvtCancelSet)))) {
                 e->RunEvtCancel();
             }
         }
-        if (EvtChk(e->StatusFlag, 0x00800000)) {
+        if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEventEnd))) {
             if (e->DelTimer != 0) {
                 e->DelTimer--;
                 continue;
             }
-            if (EvtChk(e->StatusFlag, 0x00100000)) {
-                e->StatusFlag |= 0x00080000;
+            if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEndSleepOrder))) {
+                e->StatusFlag |= EvtStfBit(EvtStfEndSleep);
                 continue;
             }
-            if (EvtChk(e->StatusFlag, 0x00400000)) {
-                e->StatusFlag |= 0x00200000;
+            if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEndWaitOrder))) {
+                e->StatusFlag |= EvtStfBit(EvtStfEndWait);
                 continue;
             }
             DelEvt(e, 1);
@@ -2268,7 +2275,7 @@ int EventMgr::IsAliveEvt(u32* key, Event** out, int chk)
             continue;
         }
         if (chk != 1) {
-            if (EvtChk(e->StatusFlag, 0x00080000)) {
+            if (EvtChk(e->StatusFlag, EvtStfBit(EvtStfEndSleep))) {
                 continue;
             }
         }
@@ -2490,23 +2497,23 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     if (EvtReadMram(nm, em, &addr, 0, 0)) {
         if (EvtMgr.SetEvt((void*) addr, (u32*) &evt)) {
             if (flags & 2) {
-                BitOn(evt->StatusFlag, 0x00100000);
-                BitOn(evt->StatusFlag, 0x200);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfDiedemo));
             }
             if (flags & 0x40) {
-                BitOn(evt->StatusFlag, 0x00100000);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
             }
             if (flags & 0x20) {
-                BitOn(evt->StatusFlag, 0x800);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfPlPosNoSet));
             }
             if (flags & 0x10) {
-                BitOn(evt->StatusFlag, 0x400);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfFadeOut));
             }
             if (flags & 0x80) {
-                BitOn(evt->StatusFlag, 0x80);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfSceEventStartTrue));
             }
             if (flags & 0x100) {
-                BitOn(evt->StatusFlag, 0x40);
+                BitOn(evt->StatusFlag, EvtStfBit(EvtStfSubCharNoCtrl));
             }
         }
         if (flags & 4) {
@@ -2648,7 +2655,7 @@ int EventMgr::SetEvt(char* nm, Event** out)
         DelEvt(evt, 0);
         return 0;
     }
-    evt->StatusFlag |= 0x01000000;
+    evt->StatusFlag |= EvtStfBit(EvtStfEvtInit);
     {
         EventMgr* m = &EvtMgr;
         strcpy(m->NowExeEvtName, nm);
@@ -2671,7 +2678,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
 {
     char nm[0x20];
     Event* evt = (Event*) evt_;
-    int fade = EvtChk(evt->StatusFlag, 0x04000000);
+    int fade = EvtChk(evt->StatusFlag, EvtStfBit(EvtStfEvtCancelOn));
     int zero;
 
     switch (evt->EndRNo2) {

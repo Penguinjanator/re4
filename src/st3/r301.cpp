@@ -105,7 +105,7 @@ void R301Init()
         }
     }
     SceSetItemEvent(0xA, 0x80, 4, 5, r301_openShelf, r301_openedShelf, 0, 0);
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x21), 0xCA, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x21), EFF_OBM34, 0);
     r301_initContinuePoint();
     SceExec(0x12, (TaskFunc) r301_checkBgm, 0, 0, 2, 0);
 }

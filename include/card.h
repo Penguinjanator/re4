@@ -167,7 +167,7 @@ public:
     int sysfileRead(u8* sub, u8* sub2, int errMode);
     void createSysfile();
     void screenTrans();
-    void cardMesSet(int no, int slot, u32 attr);
+    void cardMesSet(int no, int slot, u32 attr);   // no: CARD_MES_NO
     void calcTplAddr(struct TEXPalette* tpl);
     void setMsgWindow(int a, int sw);
 

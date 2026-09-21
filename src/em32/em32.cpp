@@ -1781,7 +1781,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
                 w->timer3--;
             } else if (w->timer2 && w->Atk_ck == 0 && em->plDist2 < 36000000.0f) {
                 w->timer2--;
-                ActBtn.set(0x25, 0xB, (void*) em32SitAction, em, 1, 3, 0, w->Atk_ck);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32SitAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, w->Atk_ck);
             }
         }
         break;
@@ -2107,7 +2107,7 @@ static void em32_R1_LongAtk(cEm32* em)
                     PSMTXInverse(em->mat, inv);
                     PSMTXMultVec(inv, &pPL->pos, &lp);
                     if (lp.x > -1000.0f && lp.x < 1000.0f && lp.z > -500.0f && lp.z < 7000.0f) {
-                        ActBtn.set(0x25, 0xB, (void*) em32EscapeAction, em, 1, 3, 0, hit);
+                        ActBtn.set(ACT_GUARD, 0xB, (void*) em32EscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, hit);
                     }
                 }
             }
@@ -2570,10 +2570,10 @@ static void em32_R1_TunnelAtk(cEm32* em)
             switch (w->TmpU32) {
             case 0:
             default:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 3, 0, act);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_L_R, ACT_FUNC_NORMAL, act);
                 break;
             case 1:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 4, 0, act);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, act);
                 break;
             }
             if (w->actionSet) {
@@ -2610,10 +2610,10 @@ static void em32_R1_TunnelAtk(cEm32* em)
             switch (w->TmpU32) {
             case 0:
             default:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 break;
             case 1:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 break;
             }
         }
@@ -2913,10 +2913,10 @@ static void em32_R1_C_Atk(cEm32* em)
             switch (x10) {
             case 0:
             default:
-                ActBtn.set(0x13, 0xB, (void*) em32SitUpAction, em, 1, 3, 0, w->Atk_ck);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em32SitUpAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, w->Atk_ck);
                 break;
             case 1:
-                ActBtn.set(0x13, 0xB, (void*) em32SitUpAction, em, 1, 4, 0, w->Atk_ck);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em32SitUpAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, w->Atk_ck);
                 break;
             }
         }
@@ -3413,10 +3413,10 @@ static void em32_R1_Ground(cEm32* em)
             switch (w->TmpU32) {
             case 0:
             default:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 break;
             case 1:
-                ActBtn.set(0x25, 0xB, (void*) em32BackjumpAction, em, 2, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em32BackjumpAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 break;
             }
         }

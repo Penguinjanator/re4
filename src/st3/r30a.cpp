@@ -288,7 +288,7 @@ extern "C" void Evt_R30AS00_Func(Event* e)
 
                 int skip = 1;
 
-                if ((e->StatusFlag & 0x40000000) == 0) {
+                if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -303,7 +303,7 @@ extern "C" void Evt_R30AS00_Func(Event* e)
             if (e->NowFrame == 50) {
                 int skip = 1;
 
-                if ((e->StatusFlag & 0x40000000) == 0) {
+                if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) {
                     skip = 0;
                 }
                 if (skip == 0) {

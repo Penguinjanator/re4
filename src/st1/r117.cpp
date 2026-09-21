@@ -415,7 +415,7 @@ static void r117_EventSaddlerAppear()
     if (W->evd1->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         if (EvtMgr.SetEvt(W->mod->pArc, (u32*) &ev)) {
-            ev->StatusFlag |= 0x400;
+            ev->StatusFlag |= EvtStfBit(EvtStfFadeOut);
         }
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
@@ -727,7 +727,7 @@ static void r117_EventChandelier()
             RoomSeCall(0x13, &pPL->pos, 0, 0, 0);
         }
         if (ok != 0) {
-            ActBtn.set(0x3E, 5, 0, 0, 2, 1, 0, 0);
+            ActBtn.set(ACT_JUMP_MOVE, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             if (Key.trg & 0x80000ULL) {
                 if (pPL->pos.z >= -1000.0f) {
                     dir = 1;
@@ -995,7 +995,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
         if (e->NowFrame == 0x23) {
             int skip = 1;
 
-            if (!(e->StatusFlag & 0x40000000)) {
+            if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -1008,7 +1008,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
         if (e->NowFrame == 0x19) {
             int skip = 1;
 
-            if (!(e->StatusFlag & 0x40000000)) {
+            if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -1027,7 +1027,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
         if (e->NowFrame == 0x55) {
             int skip = 1;
 
-            if (!(e->StatusFlag & 0x40000000)) {
+            if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                 skip = 0;
             }
             if (skip == 0) {

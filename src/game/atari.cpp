@@ -795,10 +795,10 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, 
     int i;
     u16* idx;
 
-    if (flag & 0x40) {
+    if (flag & SAT_CK_FLOOR) {
         start = 0;
         end = blk->m_nFloor + blk->m_nSlope;
-    } else if (flag & 0x80) {
+    } else if (flag & SAT_CK_WALL) {
         start = blk->m_nFloor + blk->m_nSlope;
         end = start + blk->m_nWall;
     } else {
@@ -953,10 +953,10 @@ int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag,
     int n;
     u16* idx;
 
-    if (flag & 0x40) {
+    if (flag & SAT_CK_FLOOR) {
         start = 0;
         end = blk->m_nFloor + blk->m_nSlope;
-    } else if (flag & 0x80) {
+    } else if (flag & SAT_CK_WALL) {
         start = blk->m_nFloor + blk->m_nSlope;
         end = start + blk->m_nWall;
     } else {

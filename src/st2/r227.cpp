@@ -847,7 +847,7 @@ static void r227_execEvent00()
         u32 key0;
 
         EvtMgr.SetEvt(r227_work.p->evd[0]->m_addr, &key0);
-        ((Event*) key0)->StatusFlag |= 0x800;
+        ((Event*) key0)->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
         r227_waitEvt();
         SysFlagOn(pG, SYS_SCREEN_STOP);
         r227_work.p->evd[0]->setCommand(CMND_DEL_DATA, 0, 0);
@@ -857,7 +857,7 @@ static void r227_execEvent00()
 
                 r227_work.p->evd[1]->setCommand(CMND_MRAM_LOAD, 0, 1);
                 if (EvtMgr.SetEvt(r227_work.p->evd[1]->m_addr, &key1)) {
-                    ((Event*) key1)->StatusFlag |= 0x800;
+                    ((Event*) key1)->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
                 }
                 r227_waitEvt();
             }
@@ -867,8 +867,8 @@ static void r227_execEvent00()
 
                 r227_work.p->evd[2]->setCommand(CMND_MRAM_LOAD, 0, 1);
                 if (EvtMgr.SetEvt(r227_work.p->evd[2]->m_addr, &key2)) {
-                    ((Event*) key2)->StatusFlag |= 0x100000;
-                    ((Event*) key2)->StatusFlag |= 0x200;
+                    ((Event*) key2)->StatusFlag |= EvtStfBit(EvtStfEndSleepOrder);
+                    ((Event*) key2)->StatusFlag |= EvtStfBit(EvtStfDiedemo);
                 }
                 r227_waitEvt();
                 SceExit();
@@ -929,9 +929,9 @@ static void Evt_R227S00_Func(Event* e)
                 if (e->NowFrame > 15) {
                     DpfFlagOff(pG, DPF_MESSAGE);
                     if (!(pG->Room_flg[0] & 0x40000000)) {
-                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 4, 0, 0);
+                        ActBtn.set(ACT_GUARD, 5, (void*) r227_succeedAction, 0, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
                     } else {
-                        ActBtn.set(0x25, 5, (void*) r227_succeedAction, 0, 0x42, 3, 0, 0);
+                        ActBtn.set(ACT_GUARD, 5, (void*) r227_succeedAction, 0, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
                     }
                 }
             } else {
@@ -988,7 +988,7 @@ static void Evt_R227S00_Func(Event* e)
         break;
     case 3:
         v = 1;
-        if (!(e->StatusFlag & 0x4000)) {
+        if (!(e->StatusFlag & EvtStfBit(EvtStfEvtCancelSet))) {
             v = 0;
         }
         if (v == 0) {

@@ -180,7 +180,7 @@ void R327Init()
             EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM02, 0, 0);
         }
     } else {
-        EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     SceSetItemEvent(0x10, 0x83, 3, 0x15, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x68, 0);
     SceSetItemEvent(0x11, 0x82, 4, 0x18, (void (*)(int)) r327_BoxOpen, (void (*)(int)) r327_BoxOpened, 0x4A, 0);

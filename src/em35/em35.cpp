@@ -1495,7 +1495,7 @@ static void em35_R1_Atk(cEm35* em)
             }
         } else {
             if ((em->motEvent & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
-                ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 1, 3, 0, 0);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
             if (em->motEvent & 1) {
                 if (em->r_no_3 == 0) {
@@ -1599,14 +1599,14 @@ static void em35_R1_AtkDouble(cEm35* em)
                 w->walkType = 1;
             }
             if ((em->motEvent & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
-                ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 1, 3, 0, 0);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
             if ((em->motEvent & 0x10) && w->atkHit == 0 && w->routeAngAbs < 1.5707964f &&
                 em->plDist2 < 25000000.0f) {
                 if (w->walkType) {
-                    ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 2, 4, 0, 0);
+                    ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 } else {
-                    ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 1, 4, 0, 0);
+                    ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 }
             }
         }
@@ -1941,7 +1941,7 @@ static void em35_R1_LongAtk(cEm35* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if ((em->motEvent & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 64000000.0f) {
-            ActBtn.set(0x25, 0xB, (void*) em35DashEscapeAction, em, 1, 3, 0, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) em35DashEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
         }
         if (em->motEvent & 0x20) {
             EstSet(em, -1, 0, 0, EFF_EM35, 0x12, 0, ESP_CORE_KIND_NONE, em, 0);
@@ -2144,7 +2144,7 @@ static void em35_R1_Critical(cEm35* em)
             EM35_CRITICAL_TURN(em, ang);
         }
         if (em->motEvent & 4) {
-            ActBtn.set(0x25, 0xB, (void*) em35DashEscapeAction, em, 1, 3, 0, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) em35DashEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
         }
         if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
@@ -2701,7 +2701,7 @@ static void em35_R1_U_Jump(cEm35* em)
                 }
             }
             if ((em->motEvent & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
-                ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 1, 3, 0, 0);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
         }
         break;
@@ -2971,7 +2971,7 @@ static void em35_R1_U_StepDown(cEm35* em)
                 em35AtkCk(em, 8, 0x2F);
             }
             if ((em->motEvent & 4) && em->plDist2 < 9000000.0f) {
-                ActBtn.set(0x13, 0xB, (void*) em35AtkEscapeAction, em, 1, 3, 0, 0);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
         }
         break;

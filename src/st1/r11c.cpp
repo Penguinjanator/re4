@@ -237,7 +237,7 @@ void R11cInit()
     if (!ScfFlagChk(pG, SCF_R11C_OPERATOR)) {
         SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r11c_operator, 0, 1);
     }
-    if (EtcGetDasAddr(0x14, &arc)) {
+    if (EtcGetDasAddr(ETC_TAIMATU01, &arc)) {
         RoomEfmRegist(GetEtcAddr(arc, "et1400.bin"), GetEtcAddr(arc, "et1400.tpl"), 0x6F);
     }
     FlrAtSetDefVal(0, 0, 3);
@@ -567,7 +567,7 @@ static void r11c_EventBesiegedStart()
         } else {
             MemorySwap(mod2->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
             if (EvtMgr.SetEvt(mod2->pArc, (u32*) &ev)) {
-                ev->StatusFlag |= 0x400;
+                ev->StatusFlag |= EvtStfBit(EvtStfFadeOut);
             }
             while (EvtMgr.IsAliveEvt(evtKey(&EvtMgr), 0, 0) != 0) {
                 SceSleep(1);

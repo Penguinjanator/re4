@@ -724,7 +724,7 @@ static void r31c_TalktoKrauser(int no)
     BitOff(pG->Room_flg[0], 0x08000000);
     while (SndEndCheck(r31c_work.p->hSnd) == 0 || CamCtrl.IsMotionEnd() == 0) {
         if ((pG->Room_flg[0] & 0x08000000) == 0) {
-            ActBtn.set(0x36, 5, (void*) r31c_TalkToKrauserActBtnSet, 0, 6, 1, 1, 0);
+            ActBtn.set(ACT_ANSWER, 5, (void*) r31c_TalkToKrauserActBtnSet, 0, 6, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
         SceSleep(1);
@@ -1728,7 +1728,7 @@ static void Evt_R31CS01_Func(Event* e)
             r31c_evtS01Flag = 0;
             e->CancelSet();
         } else {
-            ActBtn.set(0x25, 5, (void*) r31c_EventS01Act, 0, 0x46, r31c_mesNo, 1, 0);
+            ActBtn.set(ACT_GUARD, 5, (void*) r31c_EventS01Act, 0, 0x46, r31c_mesNo, ACT_FUNC_SCE, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
     }

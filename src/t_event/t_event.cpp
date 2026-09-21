@@ -428,7 +428,7 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
 {
     int i;
 
-    ev->StatusFlag |= 0x80000000;
+    ev->StatusFlag |= EvtStfBit(EvtStfToolStop);
     EvtTaskSuspend(0);
     if ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xC00)) {
         int flg;
@@ -573,7 +573,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
         t->SubToolFogWkInit(t, ev);
         t->SubToolFocusWkInit(t, ev);
         t->StopTimer = 1;
-        ev->StatusFlag |= 0x8000;
+        ev->StatusFlag |= EvtStfBit(EvtStfStartWait);
         t->r_no_1++;
         break;
     }
@@ -655,7 +655,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             if (--t->StopTimer <= 0) {
                 t->StopTimer = 0;
                 t->EtcFlag |= 0x40000000;
-                ev->StatusFlag |= 0x20000000;
+                ev->StatusFlag |= EvtStfBit(EvtStfToolExec);
             }
         }
         if ((!(t->EtcFlag & 0x40000000) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
@@ -680,13 +680,13 @@ void ToolEvt::MainPreview(ToolEvt* t)
                 t->EvtTaskSignal(0);
                 if (!FlagBit(t->EtcFlag, 0x00400000) && !FlagBit(t->EtcFlag, 0x01000000)) {
                     if (EvtStatusChk(ev, 0x8000) == 0) {
-                        ev->StatusFlag |= 0x10000;
+                        ev->StatusFlag |= EvtStfBit(EvtStfStrTime);
                         EvtDebug.StfStrTimer = 60;
                         SndAllStop();
                     }
                 }
             }
-            ev->StatusFlag &= ~0x8000;
+            ev->StatusFlag &= ~EvtStfBit(EvtStfStartWait);
         }
         {
             u32* sp = &ev->StatusFlag;
@@ -755,11 +755,11 @@ void ToolEvt::MainExit(ToolEvt* t)
 void ToolEvt::EventDel(Event* ev)
 {
     EvtTaskSignal(0);
-    ev->StatusFlag &= ~0x20000000;
-    ev->StatusFlag |= 0x00020000;
+    ev->StatusFlag &= ~EvtStfBit(EvtStfToolExec);
+    ev->StatusFlag |= EvtStfBit(EvtStfNoFunc);
     ev->RunEvtCancel();
     EvtMgr.DelEvt(ev, 0);
-    ev->StatusFlag &= ~0x00020000;
+    ev->StatusFlag &= ~EvtStfBit(EvtStfNoFunc);
 }
 
 static TOOL_MENU subMainMenu[8] = {

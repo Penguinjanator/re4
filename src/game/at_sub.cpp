@@ -330,36 +330,36 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* ver
     }
     attr = Get_poly_attr(poly);
     if (SEck == 0) {
-        if ((flag & 0x1000) && (attr & 0x400000)) {
+        if ((flag & SAT_TYPE_PL) && (attr & SAT_ATTR_PL_NOHIT)) {
             return 0;
         }
-        if ((flag & 0x2000) && (attr & 0x4000)) {
+        if ((flag & SAT_TYPE_EM) && (attr & SAT_ATTR_EM_NOHIT)) {
             return 0;
         }
-        if ((flag & 0x4000) && (attr & 0x40)) {
+        if ((flag & SAT_TYPE_ROUTE) && (attr & SAT_ATTR_ROUTE_NOHIT)) {
             return 0;
         }
-        if ((attr & 0x400) && !(flag & 0x8000)) {
+        if ((attr & SAT_ATTR_ONLY_SEE_HIT) && !(flag & SAT_TYPE_SEE)) {
             return 0;
         }
-        if ((flag & 0x800) && (attr & 0x8000)) {
+        if ((flag & SAT_TYPE_SMALL) && (attr & SAT_ATTR_SMALL_NOHIT)) {
             return 0;
         }
-        if ((flag & 0x8000) && (attr & 0x800000)) {
+        if ((flag & SAT_TYPE_SEE) && (attr & SAT_ATTR_SEE_NOHIT)) {
             return 0;
         }
     } else {
-        if ((flag & 0x400) && (attr & 0x4000)) {
+        if ((flag & SAT_TYPE_MIDDLE) && (attr & EAT_ATTR_MIDDLE_NOHIT)) {
             return 0;
         }
-        if ((flag & 0x800) && (attr & 0x400000)) {
+        if ((flag & SAT_TYPE_SMALL) && (attr & EAT_ATTR_SMALL_NOHIT)) {
             return 0;
         }
     }
     if (mask & attr) {
         return 0;
     }
-    return attr | 0x01000000;
+    return attr | SAT_ATTR_HIT;
 }
 
 // Dead-stripped by the original linker (only its constant pool survives in .rodata).
@@ -439,7 +439,7 @@ u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r,
             nn = *n;
             hp2 = hp;
             if (At_poly_point_rel(tri, &nn, &hp2) == 0) {
-                if (flag & 0x20) {
+                if (flag & SAT_EDGE_CANCEL) {
                     hit = 0;
                 } else {
                     for (i = 0; i < 3; i++) {
@@ -476,23 +476,23 @@ u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r,
     }
     if (hit != 0) {
         if (SEck == 0) {
-            if ((flag & 0x1000) && (attr & 0x400000)) {
+            if ((flag & SAT_TYPE_PL) && (attr & SAT_ATTR_PL_NOHIT)) {
                 hit = 0;
-            } else if ((flag & 0x2000) && (attr & 0x4000)) {
+            } else if ((flag & SAT_TYPE_EM) && (attr & SAT_ATTR_EM_NOHIT)) {
                 hit = 0;
-            } else if ((flag & 0x4000) && (attr & 0x40)) {
+            } else if ((flag & SAT_TYPE_ROUTE) && (attr & SAT_ATTR_ROUTE_NOHIT)) {
                 hit = 0;
-            } else if ((attr & 0x400) && !(flag & 0x8000)) {
+            } else if ((attr & SAT_ATTR_ONLY_SEE_HIT) && !(flag & SAT_TYPE_SEE)) {
                 hit = 0;
-            } else if ((flag & 0x8000) && (attr & 0x800000)) {
+            } else if ((flag & SAT_TYPE_SEE) && (attr & SAT_ATTR_SEE_NOHIT)) {
                 hit = 0;
-            } else if ((flag & 0x800) && (attr & 0x8000)) {
+            } else if ((flag & SAT_TYPE_SMALL) && (attr & SAT_ATTR_SMALL_NOHIT)) {
                 hit = 0;
             }
         } else {
-            if ((flag & 0x400) && (attr & 0x4000)) {
+            if ((flag & SAT_TYPE_MIDDLE) && (attr & EAT_ATTR_MIDDLE_NOHIT)) {
                 hit = 0;
-            } else if ((flag & 0x800) && (attr & 0x400000)) {
+            } else if ((flag & SAT_TYPE_SMALL) && (attr & EAT_ATTR_SMALL_NOHIT)) {
                 hit = 0;
             }
         }
@@ -656,13 +656,13 @@ int EatGetEffectType(u32 attr)
 {
     int type = 0;
 
-    if (attr & 0x800000) {
+    if (attr & EAT_ATTR_EFF_BIT0) {
         type = 1;
     }
-    if (attr & 0x8000) {
+    if (attr & EAT_ATTR_EFF_BIT1) {
         type += 2;
     }
-    if (attr & 0x80) {
+    if (attr & EAT_ATTR_EFF_BIT2) {
         type += 4;
     }
     return type;

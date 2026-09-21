@@ -1559,18 +1559,18 @@ void pl0fRideActEvtCk(cPl0f* em)
     switch (em->type) {
     case 0:
     default:
-        ActBtn.set(0x23, 5, (void*) pl0fActRide, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_RIDE, 5, (void*) pl0fActRide, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 1:
-        ActBtn.set(0x23, 5, (void*) pl0fActRideR10d, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_RIDE, 5, (void*) pl0fActRideR10d, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 2:
     case 3:
-        ActBtn.set(0x23, 5, (void*) pl0fActRideR10e, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_RIDE, 5, (void*) pl0fActRideR10e, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 4:
     case 5:
-        ActBtn.set(0x23, 5, (void*) pl0fActRideR10e2, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_RIDE, 5, (void*) pl0fActRideR10e2, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     }
 }
@@ -1604,7 +1604,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
         if ((pPL->pos.x - pl0f_getoff_ck[i].x) * (pPL->pos.x - pl0f_getoff_ck[i].x) + (pPL->pos.z - pl0f_getoff_ck[i].z) * (pPL->pos.z - pl0f_getoff_ck[i].z) < 4.9e7f) {
             w->Getoff_dir = pl0f_getoff_ang[i];
             w->Getoff_pos = pl0f_getoff_land[i];
-            ActBtn.set(0x24, 5, (void*) pl0fActGetOff, em, 0, 1, 0, 0);
+            ActBtn.set(ACT_GET_OFF, 5, (void*) pl0fActGetOff, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
     }
 }
@@ -2326,7 +2326,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         plboatSetSpear(pl);
         pl->r_no_3++;
     case 3:
-        ActBtn.set(0x17, 5, 0, 0, 0, 1, 0, 0);
+        ActBtn.set(ACT_SEARCH_ATTACK, 5, 0, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         plboatBlendMotSet(pl, EM_ARC(pl, 0xE), EM_ARC(pl, 0xF), EM_ARC(pl, 0xD), 0, 0, 0);
         PLBOAT_AIM_CONTROL();
         plOnBoat(pl);
@@ -2370,7 +2370,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
 // and the next is drawn at frame 46; at the end -> the hiding aim (0xA) step 2. Hidden view.
 static void plboat_R2_SpearThrow2(cPlayer* pl)
 {
-    ActBtn.set(0x17, 5, 0, 0, 0, 1, 0, 0);
+    ActBtn.set(ACT_SEARCH_ATTACK, 5, 0, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     switch (pl->r_no_3) {
     case 0:
         pl->m_Hokan = 0xA;
@@ -2727,7 +2727,7 @@ static void plboat_R2_Swim(cPlayer* pl)
     } else {
         pl00SwimCamMove(pl);
     }
-    ActBtn.set(0x11, 5, 0, 0, 0, 2, 0, 0);
+    ActBtn.set(ACT_SWIM, 5, 0, 0, 0, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
 }
 
 static Vec plboat_ride_pos;

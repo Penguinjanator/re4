@@ -1115,26 +1115,26 @@ static void playerRunMovePassage(cPlayer* pl)
         playerPillarDownCk(robo, 0xE, 0xB, 0, -4500.0f);
         if (!(pG->Room_flg[0] & 0x20000000)) {
             ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
-            ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_SPRINT, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         } else {
             int hit = 0;
 
             switch ((u32) rw->pillar) {
             case 0:
             default:
-                ActBtn.set(0x25, 5, 0, 0, 0x42, 3, 1, 0);
+                ActBtn.set(ACT_GUARD, 5, 0, 0, 0x42, DISP_L_R, ACT_FUNC_SCE, 0);
                 if (((Key.trg & 0x400000) && (Key.on & 0x800000)) || ((Key.on & 0x400000) && (Key.trg & 0x800000))) {
                     hit = 1;
                 }
                 break;
             case 1:
-                ActBtn.set(0x25, 5, 0, 0, 0x42, 9, 1, 0);
+                ActBtn.set(ACT_GUARD, 5, 0, 0, 0x42, DISP_L, ACT_FUNC_SCE, 0);
                 if (Key.trg & 0x400000) {
                     hit = 1;
                 }
                 break;
             case 2:
-                ActBtn.set(0x25, 5, 0, 0, 0x42, 0xA, 1, 0);
+                ActBtn.set(ACT_GUARD, 5, 0, 0, 0x42, DISP_R, ACT_FUNC_SCE, 0);
                 if (Key.trg & 0x800000) {
                     hit = 1;
                 }
@@ -1216,7 +1216,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             }
         } else {
             ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
-            ActBtn.set(0x18, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_SPRINT, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         }
         for (i = 0; i < 6; i++) {
             if (eventFlags()[smd0[i] >> 5] & (0x80000000 >> (smd0[i] & 31)) && eventFlags()[smd1[i] >> 5] & (0x80000000 >> (smd1[i] & 31))) {
@@ -1242,7 +1242,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             if (Key.trg & 0x80000) {
                 r226_work.p->btnCnt++;
             }
-            ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_CLIMB, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);
         }
         if (pl->frame > 9.7f && pl->frame < 10.3f) {
@@ -1267,7 +1267,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         if (Key.trg & 0x80000) {
             r226_work.p->btnCnt++;
         }
-        ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
+        ActBtn.set(ACT_CLIMB, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         MotionMove(pl, 0);
         r226_work.p->timer++;
         SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);

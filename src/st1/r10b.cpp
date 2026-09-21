@@ -303,7 +303,7 @@ static void R10b_chkEmDie()
             if (r10b_work->count > 14) {
                 if (readEvent(2, 1, &evt)) {
                     if (EvtMgr.SetEvt(evt, &key) != 0) {
-                        ((Event*) key)->StatusFlag |= 0x400;
+                        ((Event*) key)->StatusFlag |= EvtStfBit(EvtStfFadeOut);
                     }
                     r10b_waitEvt();
                     freeEvent(2);
@@ -311,8 +311,8 @@ static void R10b_chkEmDie()
             } else {
                 if (readEvent(1, 1, &evt)) {
                     if (EvtMgr.SetEvt(evt, &key2) != 0) {
-                        ((Event*) key2)->StatusFlag |= 0x100000;
-                        ((Event*) key2)->StatusFlag |= 0x200;
+                        ((Event*) key2)->StatusFlag |= EvtStfBit(EvtStfEndSleepOrder);
+                        ((Event*) key2)->StatusFlag |= EvtStfBit(EvtStfDiedemo);
                     }
                     r10b_waitEvt();
                     return;

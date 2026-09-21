@@ -199,9 +199,9 @@ void objPillar_R0_Break(cObjPillar* obj)
         PSMTXMultVec(inv, &pPL->pos, &v);
         if (v.x > -2000.0f && v.x < 2000.0f && v.z > -1000.0f) {
             if (w->rnd) {
-                ActBtn.set(0x25, 0xB, (void*) EscapeAction, obj, 1, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(0x25, 0xB, (void*) EscapeAction, obj, 1, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
             }
         }
     }
@@ -334,9 +334,9 @@ void objPillar_R0_Throw(cObjPillar* obj)
             w->Act_ck = 1;
         }
         if (w->rnd) {
-            ActBtn.set(0x25, 0xB, (void*) EscapeAction2, obj, 1, 3, 0, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(0x25, 0xB, (void*) EscapeAction2, obj, 1, 4, 0, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
         }
     }
 }

@@ -75,13 +75,13 @@ void cActionButton::move()
                 flag = 2;
             }
             switch (w->type) {
-            case 0:
+            case ACT_FUNC_NORMAL:
                 ((ActBtnFunc) w->func)(w->arg, w->d);
                 break;
-            case 1:
+            case ACT_FUNC_SCE:
                 SceExec(0x12, (TaskFunc) w->func, (int) w->arg, flag, w->slot, (void*) w->d);
                 break;
-            case 2: {
+            case ACT_FUNC_SCE_AT: {
                 SceAtWork* at = (SceAtWork*) w->arg;
 
                 SceAtSetExecFlg(at->no);
@@ -118,12 +118,12 @@ void cActionButton::disp(ActBtnWork* w)
     }
     cMes.setLayout(1, LAYOUT_ACT_BTN);
     switch (btn) {
-    case 1:
-    case 6:
-    case 0xC:
-    case 0xF:
-    case 0x10:
-        u = IdSys.unitPtr(1, 0x20);
+    case DISP_A_NORMAL:
+    case DISP_X:
+    case DISP_ROTATE:
+    case DISP_STICK_A:
+    case DISP_STICK_UP:
+        u = IdSys.unitPtr(1, IDC_ACT_BUTTON);
         sx = (s16) u->scr.x;
         sy = (s16) u->scr.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
@@ -132,7 +132,7 @@ void cActionButton::disp(ActBtnWork* w)
         cMes.MesSet(kind + 0x16, x, (s16) y, 0x200F1, 1, col, 4);
         break;
     default:
-        u = IdSys.unitPtr(0xF0, 0x20);
+        u = IdSys.unitPtr(0xF0, IDC_ACT_BUTTON);
         sx = (s16) u->scr.x;
         sy = (s16) u->scr.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
@@ -169,9 +169,9 @@ int cActionButton::checkButton(ActBtnWork* w)
     u32 flags;
 
     switch (w->btn) {
-    case 1:
-    case 2:
-    case 0xE:
+    case DISP_A_NORMAL:
+    case DISP_A_RAPID:
+    case DISP_A_ACCENT:
         flags = w->flags;
         if (!(flags & 0x40)) {
             if (!(flags & 2)) {
@@ -235,7 +235,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             break;
         }
         return 1;
-    case 3:
+    case DISP_L_R:
         if ((trg & 0xC00000) == 0xC00000 || ((on & 0x400000) && (trg & 0x800000)) ||
             ((trg & 0x400000) && (on & 0x800000))) {
             if (!(w->flags & 0x40)) {
@@ -247,7 +247,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             return 1;
         }
         break;
-    case 4:
+    case DISP_A_B:
         if ((trg & 0xC0000) == 0xC0000 || ((on & 0x80000) && (trg & 0x40000)) ||
             ((trg & 0x80000) && (on & 0x40000))) {
             if (!(w->flags & 0x40)) {
@@ -259,7 +259,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             return 1;
         }
         break;
-    case 5:
+    case DISP_B:
         if (!(trg & 0x40000)) {
             break;
         }
@@ -271,7 +271,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             break;
         }
         return 1;
-    case 6:
+    case DISP_X:
         if (!(trg & 0x20000)) {
             break;
         }
@@ -283,7 +283,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             break;
         }
         return 1;
-    case 7:
+    case DISP_Y:
         if (!(trg & 0x10000)) {
             break;
         }
@@ -295,11 +295,11 @@ int cActionButton::checkButton(ActBtnWork* w)
             break;
         }
         return 1;
-    case 9:
+    case DISP_L:
         // COMPILER-DIFF: 6 (cross-jump): codeless real insn, see the header comment
         asm volatile("");
         break;
-    case 0xA:
+    case DISP_R:
         break;
     }
     return 0;
@@ -313,10 +313,10 @@ int cActionButton::checkPLStatus(ActBtnWork* w)
     if (pPL->hp > 0) {
         if ((w->flags & 2) || pPL->actCheck() != 0) {
             switch (w->btn) {
-            case 1:
-            case 2:
-            case 4:
-            case 0xE:
+            case DISP_A_NORMAL:
+            case DISP_A_RAPID:
+            case DISP_A_B:
+            case DISP_A_ACCENT:
                 if (PlGetStatus() & 0x10) {
                     if (w->flags & 1) {
                         StaFlagOn(pG, STA_ACT_DONT_FIRE);
@@ -367,10 +367,10 @@ void cActionButton::set(int kind, int slot, void* func, void* arg, int flags, in
     w->d = d;
     AddPrim(&m_ot[slot], (u32*) w);
     switch (w->btn) {
-    case 1:
-    case 2:
-    case 4:
-    case 0xE:
+    case DISP_A_NORMAL:
+    case DISP_A_RAPID:
+    case DISP_A_B:
+    case DISP_A_ACCENT:
         if (w->flags & 1) {
             StaFlagOn(pG, STA_ACT_DONT_FIRE);
         }

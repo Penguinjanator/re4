@@ -115,14 +115,14 @@ void cPlKlauser::move()
     if (krEffWait > 0) {
         krEffWait--;
         if (krEffWait == 0) {
-            EstSet(this, -1, 0, 0, 3, 0, 0, 0x3F, this, 0);
-            EstSet(this, -1, 0, 0, 3, 0x15, 0, 0x3F, this, 0);
+            EstSet(this, -1, 0, 0, EFF_PL00, 0, 0, ESP_CORE_KIND_MARK, this, 0);
+            EstSet(this, -1, 0, 0, EFF_PL00, 0x15, 0, ESP_CORE_KIND_MARK, this, 0);
         }
     }
     if ((Joy[0].on & 0x640) == 0x640) {
-        EffectEspDelete(0, 0x3F, this, 0);
-        EffectEspgenDelete(0, 0x3F, this);
-        EffectEfmDelete(0, 0x3F, this);
+        EffectEspDelete(0, ESP_CORE_KIND_MARK, this, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_MARK, this);
+        EffectEfmDelete(0, ESP_CORE_KIND_MARK, this);
         krEffWait = 1;
     }
 }
@@ -517,9 +517,9 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
             pl->dmg.clear();
             pl->Wep->m_pWep->setDisp(1, 1);
             pl->atari.setPriority(0);
-            EffectEspDelete(0, 0x3F, pl, 0);
-            EffectEspgenDelete(0, 0x3F, pl);
-            EffectEfmDelete(0, 0x3F, pl);
+            EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);
+            EffectEfmDelete(0, ESP_CORE_KIND_MARK, pl);
             pl->krEffWait = 0x546;
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
@@ -532,9 +532,9 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->x890 = 0x14;
         StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
         pl->krEffWait = 1;
-        EffectEspDelete(0, 0x3F, pl, 0);
-        EffectEspgenDelete(0, 0x3F, pl);
-        EffectEfmDelete(0, 0x3F, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_MARK, pl);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->Wep->m_pWep->setDisp(1, 1);
         pl->r_no_2 = 0x1F;

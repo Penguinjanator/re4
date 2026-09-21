@@ -37,10 +37,6 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-#define ID_MERC 0x22
-#define ID_MERC_MES 0x2C
-#define ID_RESULT 0x28
-
 // Combo counter shown (bit 24) / hiding (bit 23), bonus time shown / hiding (22 / 21),
 // bonus points shown (20), time warning colour (19), time added (18), all ranks S (25),
 // per-stage record unlock (26..29, mercSysGetFlag), 31: cleared at room start.
@@ -321,33 +317,33 @@ int MercSysMoveScore(MercSysWork* wk)
     // combo counter
     if (wk->flags & MF_COMBO_ON) {
         wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
-        IdSetTrans(MID, 0x30, ID_MERC, 1);
-        IdSetAnmStart(MID, 0x30, ID_MERC, 1);
-        IdSetColInit(MID, 0x30, ID_MERC);
-        IdSetColLoop(MID, 0x30, ID_MERC, 0);
+        IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
+        IdSetAnmStart(MID, 0x30, IDC_GAUGE, 1);
+        IdSetColInit(MID, 0x30, IDC_GAUGE);
+        IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
     }
     if (!(wk->flags & MF_COMBO_OFF)) {
         if (wk->comboTimer > 0) {
             wk->comboTimer--;
             if (wk->comboTimer > IRef(ComboTimerFlash)) {
-                IdSetTrans(MID, 0x30, ID_MERC, 1);
-                IdSetColInit(MID, 0x30, ID_MERC);
-                IdSetColLoop(MID, 0x30, ID_MERC, 0);
+                IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
+                IdSetColInit(MID, 0x30, IDC_GAUGE);
+                IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
             }
             if (wk->comboTimer == ComboTimerFlash) {
-                IdSetTrans(MID, 0x30, ID_MERC, 1);
-                IdSetColStart(MID, 0x30, 0x3F, ID_MERC);
-                IdSetColLoop(MID, 0x30, ID_MERC, 1);
+                IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
+                IdSetColStart(MID, 0x30, 0x3F, IDC_GAUGE);
+                IdSetColLoop(MID, 0x30, IDC_GAUGE, 1);
             }
             if (wk->comboTimer == 0) {
-                IdSetTrans(MID, 0x30, ID_MERC, 1);
-                IdSetColStart(MID, 0x30, 0x3E, ID_MERC);
-                IdSetColLoop(MID, 0x30, ID_MERC, 0);
+                IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
+                IdSetColStart(MID, 0x30, 0x3E, IDC_GAUGE);
+                IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
                 wk->flags |= MF_COMBO_OFF;
             }
         }
     } else {
-        if (IdIsAnimEnd(MID, 0x30, ID_MERC)) {
+        if (IdIsAnimEnd(MID, 0x30, IDC_GAUGE)) {
             wk->combo = 0;
             wk->flags &= ~MF_COMBO_OFF;
         }
@@ -355,33 +351,33 @@ int MercSysMoveScore(MercSysWork* wk)
     // bonus time
     if (wk->flags & MF_BONUS_ON) {
         wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
-        IdSetTrans(MID, 0x40, ID_MERC, 1);
-        IdSetAnmStart(MID, 0x40, ID_MERC, 1);
-        IdSetColInit(MID, 0x40, ID_MERC);
-        IdSetColLoop(MID, 0x40, ID_MERC, 0);
+        IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
+        IdSetAnmStart(MID, 0x40, IDC_GAUGE, 1);
+        IdSetColInit(MID, 0x40, IDC_GAUGE);
+        IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
     }
     if (!(wk->flags & MF_BONUS_OFF)) {
         if (wk->bonusTimer > 0) {
             wk->bonusTimer--;
             if (wk->bonusTimer > IRef(BonusTimerFlash)) {
-                IdSetTrans(MID, 0x40, ID_MERC, 1);
-                IdSetColInit(MID, 0x40, ID_MERC);
-                IdSetColLoop(MID, 0x40, ID_MERC, 0);
+                IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
+                IdSetColInit(MID, 0x40, IDC_GAUGE);
+                IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
             }
             if (wk->bonusTimer == BonusTimerFlash) {
-                IdSetTrans(MID, 0x40, ID_MERC, 1);
-                IdSetColStart(MID, 0x40, 0x3F, ID_MERC);
-                IdSetColLoop(MID, 0x40, ID_MERC, 1);
+                IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
+                IdSetColStart(MID, 0x40, 0x3F, IDC_GAUGE);
+                IdSetColLoop(MID, 0x40, IDC_GAUGE, 1);
             }
             if (wk->bonusTimer <= 1) {
-                IdSetTrans(MID, 0x40, ID_MERC, 1);
-                IdSetColStart(MID, 0x40, 0x3E, ID_MERC);
-                IdSetColLoop(MID, 0x40, ID_MERC, 0);
+                IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
+                IdSetColStart(MID, 0x40, 0x3E, IDC_GAUGE);
+                IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
                 wk->flags |= MF_BONUS_OFF;
             }
         }
     } else {
-        if (IdIsAnimEnd(MID, 0x40, ID_MERC)) {
+        if (IdIsAnimEnd(MID, 0x40, IDC_GAUGE)) {
             wk->bonusTimer = 0;
             wk->flags &= ~MF_BONUS_OFF;
         }
@@ -396,22 +392,22 @@ int MercSysMoveScore(MercSysWork* wk)
     }
     if (!(wk->flags & MF_BONUS_SCORE)) {
         if (wk->bonusScore > 0 && wk->combo == 0 && wk->bonusTimer == 0) {
-            IdSetTrans(MID, 0x60, ID_MERC, 1);
-            IdSetAnmStart(MID, 0x60, ID_MERC, 1);
-            IdSetNum(MID, 0x61, ID_MERC, wk->bonusScore, 9999999, 7, 0);
+            IdSetTrans(MID, 0x60, IDC_GAUGE, 1);
+            IdSetAnmStart(MID, 0x60, IDC_GAUGE, 1);
+            IdSetNum(MID, 0x61, IDC_GAUGE, wk->bonusScore, 9999999, 7, 0);
             wk->flags |= MF_BONUS_SCORE;
             wk->bonusDisp = wk->bonusScore;
             wk->bonusScore = 0;
         }
     } else {
-        if (IdIsAnimEnd(MID, 0x60, ID_MERC)) {
+        if (IdIsAnimEnd(MID, 0x60, IDC_GAUGE)) {
             wk->flags &= ~MF_BONUS_SCORE;
             wk->score += wk->bonusDisp;
         }
     }
     // score
-    IdSetTrans(MID, 0x20, ID_MERC, 1);
-    IdSetNum(MID, 0x21, ID_MERC, wk->score, 9999999, 7, 0);
+    IdSetTrans(MID, 0x20, IDC_GAUGE, 1);
+    IdSetNum(MID, 0x21, IDC_GAUGE, wk->score, 9999999, 7, 0);
     // time added
     zero = 0;
     if (wk->flags & MF_ADD_TIME) {
@@ -420,18 +416,18 @@ int MercSysMoveScore(MercSysWork* wk)
         sec = wk->addTime % 60;
         cs = zero;
         wk->addTime = zero;
-        IdSetTrans(MID, 0x10, ID_MERC, 1);
-        IdSetAnmStart(MID, 0x10, ID_MERC, 1);
-        IdSetNum(MID, 0x15, ID_MERC, min, 9, 1, 1);
-        IdSetNum(MID, 0x13, ID_MERC, sec, 99, 2, 1);
-        IdSetNum(MID, 0x11, ID_MERC, cs, 99, 2, 1);
+        IdSetTrans(MID, 0x10, IDC_GAUGE, 1);
+        IdSetAnmStart(MID, 0x10, IDC_GAUGE, 1);
+        IdSetNum(MID, 0x15, IDC_GAUGE, min, 9, 1, 1);
+        IdSetNum(MID, 0x13, IDC_GAUGE, sec, 99, 2, 1);
+        IdSetNum(MID, 0x11, IDC_GAUGE, cs, 99, 2, 1);
     }
     // remaining time
     Cckpt.getCountDown()->getTime(&min, &sec, &cs);
-    IdSetTrans(MID, 0, ID_MERC, 1);
-    IdSetNum(MID, 5, ID_MERC, min, 99, 2, 1);
-    IdSetNum(MID, 3, ID_MERC, sec, 99, 2, 1);
-    IdSetNum(MID, 1, ID_MERC, cs, 99, 2, 1);
+    IdSetTrans(MID, 0, IDC_GAUGE, 1);
+    IdSetNum(MID, 5, IDC_GAUGE, min, 99, 2, 1);
+    IdSetNum(MID, 3, IDC_GAUGE, sec, 99, 2, 1);
+    IdSetNum(MID, 1, IDC_GAUGE, cs, 99, 2, 1);
     {
         int safe = 1;
 
@@ -440,21 +436,21 @@ int MercSysMoveScore(MercSysWork* wk)
         }
         if (safe == 0) {
             if (!(wk->flags & MF_TIME_WARN)) {
-                IdSetColStart(MID, 0, 0xFE, ID_MERC);
-                IdSetColLoop(MID, 0, ID_MERC, 1);
+                IdSetColStart(MID, 0, 0xFE, IDC_GAUGE);
+                IdSetColLoop(MID, 0, IDC_GAUGE, 1);
             }
             wk->flags |= MF_TIME_WARN;
         } else {
             if (wk->flags & MF_TIME_WARN) {
-                IdSetColStart(MID, 0, 0xFD, ID_MERC);
-                IdSetColLoop(MID, 0, ID_MERC, 0);
+                IdSetColStart(MID, 0, 0xFD, IDC_GAUGE);
+                IdSetColLoop(MID, 0, IDC_GAUGE, 0);
             }
             wk->flags &= ~MF_TIME_WARN;
         }
     }
-    IdSetNum(MID, 0x31, ID_MERC, wk->combo, 999, 3, 0);
-    IdSetNum(MID, 0x51, ID_MERC, BonusTimeAdd, 9999, 4, 0);
-    IdSetNum(MID, 0x41, ID_MERC, wk->bonusKill, 99, 2, 0);
+    IdSetNum(MID, 0x31, IDC_GAUGE, wk->combo, 999, 3, 0);
+    IdSetNum(MID, 0x51, IDC_GAUGE, BonusTimeAdd, 9999, 4, 0);
+    IdSetNum(MID, 0x41, IDC_GAUGE, wk->bonusKill, 99, 2, 0);
     wk->killCnt = 0;
     return 1;
 }
@@ -504,10 +500,10 @@ int MercSysMoveMain(MercSysWork* wk)
         SceSleep(1);
     } while (st[0] != 0);
     wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
-    IdSetTrans(&mercId._idSys, 0x30, ID_MERC, 0);
+    IdSetTrans(&mercId._idSys, 0x30, IDC_GAUGE, 0);
     int zero = 0;
     wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
-    IdSetTrans(&mercId._idSys, 0x40, ID_MERC, 0);
+    IdSetTrans(&mercId._idSys, 0x40, IDC_GAUGE, 0);
     wk->combo = zero;
     wk->comboTimer = zero;
     wk->bonusTimer = zero;
@@ -627,7 +623,7 @@ int MercSysResultMove(MercSysWork* wk)
                 rs->step++;
             case 1:
                 MercSysMoveScore(wk);
-                if (IdIsAnimEnd(&mercId._idSys, 0, ID_MERC_MES)) {
+                if (IdIsAnimEnd(&mercId._idSys, 0, IDC_EVENT)) {
                     FadeSetW(2, 0, 0, 0);
                     MercSysResultInit(wk);
                     disp_bak = pG->Disp_flg;
@@ -1011,13 +1007,13 @@ void MercID::init(int num)
     pIdStart = DATA_PTR(pData, 0x18);
     pIdTimeUp = DATA_PTR(pData, 0x1C);
     set();
-    _idSys.set(pIdMain, 0xFF, ID_MERC, 0x13, 5, 0);
-    IdSetTrans(&_idSys, 0x20, ID_MERC, 0);
-    IdSetTrans(&_idSys, 0x60, ID_MERC, 0);
-    IdSetTrans(&_idSys, 0, ID_MERC, 0);
-    IdSetTrans(&_idSys, 0x10, ID_MERC, 0);
-    IdSetTrans(&_idSys, 0x30, ID_MERC, 0);
-    IdSetTrans(&_idSys, 0x40, ID_MERC, 0);
+    _idSys.set(pIdMain, 0xFF, IDC_GAUGE, 0x13, 5, 0);
+    IdSetTrans(&_idSys, 0x20, IDC_GAUGE, 0);
+    IdSetTrans(&_idSys, 0x60, IDC_GAUGE, 0);
+    IdSetTrans(&_idSys, 0, IDC_GAUGE, 0);
+    IdSetTrans(&_idSys, 0x10, IDC_GAUGE, 0);
+    IdSetTrans(&_idSys, 0x30, IDC_GAUGE, 0);
+    IdSetTrans(&_idSys, 0x40, IDC_GAUGE, 0);
 }
 
 // Registers the HUD textures under the event id texture owner.
@@ -1031,21 +1027,21 @@ void MercID::set()
 void MercID::kill()
 {
     IdTexRelease(TEX_OWNER_ID_EVENT);
-    _idSys.kill(0xFF, ID_MERC);
-    _idSys.kill(0xFF, ID_MERC_MES);
+    _idSys.kill(0xFF, IDC_GAUGE);
+    _idSys.kill(0xFF, IDC_EVENT);
 }
 
 // Shows the "mission start" id animation with its sound.
 void MercID::dispMissionStart()
 {
-    _idSys.set(pIdStart, 0xFF, ID_MERC_MES, 0x13, 4, 0);
+    _idSys.set(pIdStart, 0xFF, IDC_EVENT, 0x13, 4, 0);
     SndCall(6, 0x7C, 0, 0, 0, 0);
 }
 
 // Shows the "time up" id animation with its sound.
 void MercID::dispTimeUp()
 {
-    _idSys.set(pIdTimeUp, 0xFF, ID_MERC_MES, 0x13, 4, 0);
+    _idSys.set(pIdTimeUp, 0xFF, IDC_EVENT, 0x13, 4, 0);
     SndCall(6, 0x7E, 0, 0, 0, 0);
 }
 
@@ -1074,7 +1070,7 @@ int MercResult::init(MercSysWork* wk)
     pIdExtra = DATA_PTR(pData, 0x28);
     pIdEnd = DATA_PTR(pData, 0x2C);
     IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
-    IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
+    IdSys.set(pIdRank[wk->rslt.mode], 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
     _rno2 = 0;
@@ -1103,15 +1099,15 @@ int MercResult::move(MercSysWork* wk)
         _rno0++;
         break;
     case 1:
-        IdSetNum(&IdSys, 0x11, ID_RESULT, wk->rslt.kill, 9999, 4, 0);
-        IdSetNum(&IdSys, 0x21, ID_RESULT, wk->rslt.score, 999999, 6, 0);
-        IdSetNum(&IdSys, 0x31, ID_RESULT, wk->rslt.maxCombo, 999, 3, 0);
+        IdSetNum(&IdSys, 0x11, IDC_TITLE, wk->rslt.kill, 9999, 4, 0);
+        IdSetNum(&IdSys, 0x21, IDC_TITLE, wk->rslt.score, 999999, 6, 0);
+        IdSetNum(&IdSys, 0x31, IDC_TITLE, wk->rslt.maxCombo, 999, 3, 0);
         for (int i = 1; i <= 5; i++) {
-            IdSetTrans(&IdSys, i, ID_RESULT, i <= wk->rslt.rank);
+            IdSetTrans(&IdSys, i, IDC_TITLE, i <= wk->rslt.rank);
         }
-        IdSetTrans(&IdSys, 0, ID_RESULT, 1);
-        IdSetTexNo(&IdSys, 0, ID_RESULT, wk->rslt.hiMode);
-        IdSetNum(&IdSys, 0x41, ID_RESULT, wk->rslt.hiScore, 999999, 6, 0);
+        IdSetTrans(&IdSys, 0, IDC_TITLE, 1);
+        IdSetTexNo(&IdSys, 0, IDC_TITLE, wk->rslt.hiMode);
+        IdSetNum(&IdSys, 0x41, IDC_TITLE, wk->rslt.hiScore, 999999, 6, 0);
         if (Key.trg & KEY_A) {
             FadeSetW(2, 10, 0, 0);
             if (FlagChkVar(&wk->flags, mercSysGetFlag[wk->stage])) {
@@ -1128,19 +1124,19 @@ int MercResult::move(MercSysWork* wk)
             break;
         }
         FadeSetW(0x80000002, 10, 0, 0);
-        IdSys.kill(0xFF, ID_RESULT);
-        IdSys.set(pIdExtra, 0xFF, ID_RESULT, 0x13, 4, 0);
+        IdSys.kill(0xFF, IDC_TITLE);
+        IdSys.set(pIdExtra, 0xFF, IDC_TITLE, 0x13, 4, 0);
         for (int i = 0; i < 4; i++) {
             int on = 0;
 
             if (FlagChkVar(EXT_FLAG_TBL, extFlagTbl[i])) {
                 on = 1;
             }
-            IdSetTrans(&IdSys, i + 1, ID_RESULT, on);
+            IdSetTrans(&IdSys, i + 1, IDC_TITLE, on);
         }
-        IdSetTrans(&IdSys, wk->stage + 1, ID_RESULT, 1);
-        IdSetAnmStart(&IdSys, wk->stage + 1, ID_RESULT, 1);
-        IdSetColStart(&IdSys, wk->stage + 1, 0, ID_RESULT);
+        IdSetTrans(&IdSys, wk->stage + 1, IDC_TITLE, 1);
+        IdSetAnmStart(&IdSys, wk->stage + 1, IDC_TITLE, 1);
+        IdSetColStart(&IdSys, wk->stage + 1, 0, IDC_TITLE);
         _rno1 = 0;
         _rno0++;
         break;
@@ -1174,8 +1170,8 @@ int MercResult::move(MercSysWork* wk)
             break;
         }
         FadeSetW(0x80000002, 10, 0, 0);
-        IdSys.kill(0xFF, ID_RESULT);
-        IdSys.set(pIdEnd, 0xFF, ID_RESULT, 0x13, 4, 0);
+        IdSys.kill(0xFF, IDC_TITLE);
+        IdSys.set(pIdEnd, 0xFF, IDC_TITLE, 0x13, 4, 0);
         _rno1 = 0;
         _rno0++;
         break;
@@ -1226,7 +1222,7 @@ void AdaResult::init()
     pTex = DATA_PTR(pData, 0x10);
     pId = DATA_PTR(pData, 0x14);
     IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
-    IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 6, 0);
+    IdSys.set(pId, 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
     _rno2 = 0;
@@ -1241,7 +1237,7 @@ int AdaResult::move(int mesNo)
     switch (_rno0) {
     case 0:
         FadeSetW(0x80000002, 10, 0, 0);
-        IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 4, 0);
+        IdSys.set(pId, 0xFF, IDC_TITLE, 0x13, 4, 0);
         _rno1 = 0;
         _rno0++;
         break;

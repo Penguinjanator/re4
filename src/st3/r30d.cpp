@@ -583,7 +583,7 @@ static void R30dCoopSwitch()
                         COOP_MODE(c) = 2;
                         COOP_STEP(c) = 0;
                     } else {
-                        ActBtn.set(0x14, 5, 0, 0, 2, 1, 0, 0);
+                        ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
                         if (Key.trg & 0x00080000) {
                             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 5, 0, 1, 0);
                             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 5, 0, 1, 0);

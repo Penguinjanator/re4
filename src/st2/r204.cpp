@@ -856,7 +856,7 @@ static void door5_close()
             if (MotionGetState(pPL) & 1) {                                                                         \
                 RoomSeCall(0x13, &pPL->pos, 0, 0, 0);                                                              \
             }                                                                                                      \
-            ActBtn.set(0x3E, 5, 0, 0, 2, 1, 0, 0);                                                                 \
+            ActBtn.set(ACT_JUMP_MOVE, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);                                                                 \
             mf = (u32) MotionGetCurrentFrame(MOTION(pPL));                                                         \
             eprintf(0x140, 0x15E, 0, 0, "%d", mf);                                                                 \
             if (mf - 5 > 0x41) {                                                                                   \

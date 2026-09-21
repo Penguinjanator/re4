@@ -24,7 +24,7 @@ struct AtPoly {
             u16 attrHi;  // 0x10  attribute word high half
             u16 attrLo;  // 0x12
         };
-        u32 attr;        // 0x10  the attribute word (atari createSat)
+        u32 attr;        // 0x10  the attribute word (SAT_ATTR / EAT_ATTR; atari createSat)
     };
 };
 
@@ -45,7 +45,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r);
 u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2);
 void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color);
 void AtCubeDisp(Mtx m, Vec* pos, f32 sx, f32 sy, f32 sz, u32 color);
-// Segment p0-p1 against one polygon; returns the attribute | 0x01000000 or 0.
+// Segment p0-p1 against one polygon; returns the attribute | SAT_ATTR_HIT or 0.
 u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask);
 // Sphere moving from `oldPos` to `pos` against one polygon; `pos` is pushed out. Returns the hit
 // kind (1 crossed the plane, 2 touching) or 0.

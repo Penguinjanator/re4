@@ -14,7 +14,7 @@ struct EtcItem {
 // One room etc model record (0x28 bytes, EtcModelListSet steps through them) handed to the
 // Et*_init functions (EtcModel.cpp, et00.cpp).
 struct EtcSetData {
-    u16 id;          // 0x00  etc model id (EtcModelSet switch, 0x00..0x67)
+    u16 id;          // 0x00  ETCMODEL_ID (EtcModelSet switch, 0x00..0x67)
     union {
         u16 no;      // 0x02  g_EtcTbl slot (< 0x40)
         struct {
@@ -54,7 +54,7 @@ int getRoomEtcBarred(int no, cEm** out, int flag);
 int getRoomEtcDram(int no, cEm** out, int flag);
 int EtcGetDasAddr(int id, void** out);   // archive of etc model `id` (r400 setLadderMotion)
 // Generic lookup by etc type (getRoomEtc* call it; r20d counts the torches / lamps with it).
-int getRoomEtc(int no, int type, cEm** out, int flag);
+int getRoomEtc(int no, ETCMODEL_ID id, cEm** out, int flag);
 }
 
 // Init, room setup, room data load and the debug list (main.cpp / game.cpp / t_sce_item.cpp).

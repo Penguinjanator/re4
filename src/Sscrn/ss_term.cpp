@@ -545,11 +545,11 @@ int SsTermMain::OpeMesMove()
         FadeKillAll();
         termMotionSet(SubScreenWk.pPartner, 10);
         modelOn = 1;
-        u = IdSub.unitPtr(0x13, 0x10);
+        u = IdSub.unitPtr(0x13, IDC_SSCRN_NEAR_0);
         IdSub.setTime(u, 0);
         u->be_flag |= 8;
         u->rev_flag &= 0xF0;
-        u = IdSub.unitPtr(0x14, 0x10);
+        u = IdSub.unitPtr(0x14, IDC_SSCRN_NEAR_0);
         IdSub.setTime(u, 0);
         u->be_flag |= 8;
         u->rev_flag &= 0xF0;
@@ -612,7 +612,7 @@ void SsTermMain::OpeMesSet(int no, int wait)
     if (no == -1) {
         cMes.WaitEnd(0);
     } else {
-        IdUnit* u = IdSub.unitPtr(0xFE, 0x10);
+        IdUnit* u = IdSub.unitPtr(0xFE, IDC_SSCRN_NEAR_0);
         int x = (int) ((u->scr.x + 320.0f) * 0.8f);
         int y = (int) ((240.0f - u->scr.y) * 0.8f);
         MessageControl* m = &cMes;
@@ -721,8 +721,8 @@ void SsTermInit::move(SUB_SCREEN* wk)
     case 0:
     case 1:
     case 2:
-        IdSys.dispSw(0x21, 0);
-        IdSub.dispSw(2, 0);
+        IdSys.dispSw(IDC_LIFE_METER, 0);
+        IdSub.dispSw(IDC_SSCRN_PESETA, 0);
         sscrnModelFree(wk);
         sscrnLightClear(wk);
         wk->pTerm = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
@@ -842,15 +842,15 @@ void SsTermMain::init(SUB_SCREEN* wk)
     cModel* m;
 
     IdTexDataLoad(SS_ARC_PTR(wk->pTerm, 5), TEX_OWNER_ID_SSCRN);
-    IdSub.set(SS_ARC_PTR(wk->pTerm, 8), 0xFF, 0x14, 0xC, 5, 0);
-    IdSub.set(SS_ARC_PTR(wk->pTerm, 9), 0xFF, 0x10, 0xF, 2, 0);
-    u = IdSub.unitPtr(0x12, 0x10);
+    IdSub.set(SS_ARC_PTR(wk->pTerm, 8), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
+    IdSub.set(SS_ARC_PTR(wk->pTerm, 9), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
+    u = IdSub.unitPtr(0x12, IDC_SSCRN_NEAR_0);
     u->be_flag &= ~8;
     u->rev_flag |= 0xF;
-    u = IdSub.unitPtr(0x13, 0x10);
+    u = IdSub.unitPtr(0x13, IDC_SSCRN_NEAR_0);
     u->be_flag &= ~8;
     u->rev_flag |= 0xF;
-    u = IdSub.unitPtr(0x14, 0x10);
+    u = IdSub.unitPtr(0x14, IDC_SSCRN_NEAR_0);
     u->be_flag &= ~8;
     u->rev_flag |= 0xF;
     sscrnMainMenuInit(wk, 0);
@@ -913,11 +913,11 @@ void SsTermMain::move(SUB_SCREEN* wk)
             ClrShape(MapMgr.getWork(0));
             ClrShape(MapMgr.getWork(2));
             ended = 1;
-            u = IdSub.unitPtr(0x13, 0x10);
+            u = IdSub.unitPtr(0x13, IDC_SSCRN_NEAR_0);
             IdSub.setTime(u, 0);
             u->be_flag |= 8;
             u->rev_flag &= 0xF0;
-            u = IdSub.unitPtr(0x14, 0x10);
+            u = IdSub.unitPtr(0x14, IDC_SSCRN_NEAR_0);
             IdSub.setTime(u, 0);
             u->be_flag |= 8;
             u->rev_flag &= 0xF0;

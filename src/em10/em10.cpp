@@ -875,7 +875,7 @@ void em10DmCk(cEm10* em)
             if (w->Eff_timer == 0) {
                 if (w->pGatling) {
                     w->Eff_timer = 120;
-                    EstSet(em, -1, 0, 0, 0x10, 0x1E, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM10, 0x1E, 0, ESP_CORE_KIND_NONE, em, 0);
                     LifeDownSet(em, 1200, 0);
                     if (em->hp > 0) {
                         if (w->No_dmg_timer == 0) {
@@ -888,11 +888,11 @@ void em10DmCk(cEm10* em)
                 }
                 if ((em->r_no_0 == 1 && em->r_no_1 == 0x5E) && (w->flags & 8)) {
                     w->Eff_timer = 120;
-                    EstSet(em, -1, 0, 0, 0x10, 0x1E, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM10, 0x1E, 0, ESP_CORE_KIND_NONE, em, 0);
                     return;
                 }
                 w->Eff_timer = 120;
-                EstSet(em, -1, 0, 0, 0x10, 0x1E, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM10, 0x1E, 0, ESP_CORE_KIND_NONE, em, 0);
                 if (w->flags & 0x4000) {
                     LifeDownSet(em, 500, 0);
                     EmRoutineSet(em, 2, 0xC, 0, 0);
@@ -2717,7 +2717,7 @@ void cEm10::move()
             w->Eff_wait--;
         } else {
             w->Eff_wait = 0x1D;
-            EstSet(this, -1, 0, 0, 0x10, 0x33, 0, 0, this, 0);
+            EstSet(this, -1, 0, 0, EFF_EM10, 0x33, 0, ESP_CORE_KIND_NONE, this, 0);
         }
     }
     em10FootSe(this);
@@ -24182,36 +24182,36 @@ extern "C" void em10ActEvtSetKick(cEm10* em)
     switch (pG->pl_type) {
     default:
         if (w->flags & 0x40000000) {
-            ActBtn.set(7, 0xB, (void*) em10KneeDownAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(7, 0xB, (void*) em10KickAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 5:
         if (w->flags & 0x40000000) {
-            ActBtn.set(0x3D, 0xB, (void*) em10KneeDownAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_NERICHAGI, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(0x3C, 0xB, (void*) em10KickAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_PALM_SHOCK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 2:
         if (w->flags & 0x40000000) {
-            ActBtn.set(0x39, 0xB, (void*) em10KneeDownAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_BACKKICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(0x38, 0xB, (void*) em10KickAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_SENPUU, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 3:
         if (w->flags & 0x40000000) {
-            ActBtn.set(7, 0xB, (void*) em10KneeDownAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else if (w->pCore != 0 || w->pParasite != 0 || (w->flags & 0x80)) {
-            ActBtn.set(7, 0xB, (void*) em10KneeDownAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(0x3B, 0xB, (void*) em10KickAction, em, 1, 1, 0, 0);
+            ActBtn.set(ACT_EXECUTE, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 4:
-        ActBtn.set(7, 0xB, (void*) em10KickAction, em, 1, 1, 0, 0);
+        ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     }
 }
@@ -24488,9 +24488,9 @@ extern "C" void em10ActEvtSetFS(cEm10* em)
         return;
     }
     if (pG->pl_type == 4) {
-        ActBtn.set(0x3A, 0xB, (void*) em10FSAction, em, 1, 1, 0, hit);
+        ActBtn.set(ACT_POISON_NEEDLE, 0xB, (void*) em10FSAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
     } else {
-        ActBtn.set(0x2C, 0xB, (void*) em10FSAction, em, 1, 1, 0, hit);
+        ActBtn.set(ACT_SUPLEX, 0xB, (void*) em10FSAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
     }
 }
 
@@ -24830,7 +24830,7 @@ void em10ActEvtSetTrade(cEm10* em)
             }
         }
     }
-    ActBtn.set(0, 2, (void*) em10TradeAction, em, 0, 1, 0, 0);
+    ActBtn.set(ACT_TALK, 2, (void*) em10TradeAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button callback of the trade prompt: opens the shop sub screen (SS_OPEN_SHOP), the first

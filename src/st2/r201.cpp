@@ -1103,7 +1103,7 @@ static void r201_execEvent00()
         m = SearchEmModule(0x1B);
         MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
         EvtMgr.SetEvt(m->pArc, &key);
-        ((Event*) key)->StatusFlag |= 0x800;
+        ((Event*) key)->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }

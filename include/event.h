@@ -85,7 +85,7 @@ struct EvtHeader {
 // Event packet stream: a 0x10 header followed by the per-id parameters (`size` bytes in total).
 // The union members below are the shapes the handlers read.
 struct EvtPacket {
-    int id;            // 0x00  packetTbl index (0..0x20)
+    int id;            // 0x00  EvpTp: packetTbl index (0..0x20)
     u32 flag;          // 0x04  bit31: position relative to the base model, bit30: OyaSetObj18, bit29: Str one-shot
     s16 cut;           // 0x08
     s16 frame;         // 0x0A
@@ -152,7 +152,7 @@ public:
     EvtHeader* pData;      // 0x38
     EvtPacket* pPacket;    // 0x3C  current packet
     EvtPacket* pPrevPacket;  // 0x40  packet executed before it
-    u32 StatusFlag;            // 0x44  EVT_ST_* bits (FlgOnStatus numbers them from bit 31 down)
+    u32 StatusFlag;            // 0x44  EvtStfBit(EvtStatusFlag) bits (FlgOnStatus numbers them from bit 31 down)
     DatTbl ModTbl;         // 0x48  models of the event (name -> cModel*, type)
     Mtx MatCamOya;            // 0x50  camera base matrix (ExePacket_Pos "cam0000")
     cModel* PPl;          // 0x80  the "pl0000" object model (player stand-in)
@@ -180,7 +180,7 @@ public:
     int FFNowFrame;         // 0xE0  RunTool: frame the tool seeks to
     int actBtnOn;          // 0xE4
     int actBtnCount;       // 0xE8
-    int actBtnNo;          // 0xEC
+    int actBtnNo;          // 0xEC ACTION_TYPE (PS2 EvtActBtnCtrl::ActType)
     int funcMode;          // 0xF0  ExeFunc mode the Evt_*_Func handler sees (0 begin, 1 run, 2 end, 3 cancel)
     int EmListNo;         // 0xF4  EspEvModList entries used
     void* pDatFog;            // 0xF8  fog Hermite curves (ExePacket_Fog)
@@ -357,7 +357,7 @@ static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 // Event::StatusFlag bit test as a 0/1 value: an inline gives the `li 1; and.; bne; li 0` chain.
 static inline int EvtStatusCk(Event* e, u32 bit) { int on = 1; if ((e->StatusFlag & bit) == 0) { on = 0; } return on; }
 // The skip bit of StatusFlag (0x40000000) the same way.
-static inline int EvtSkipCk(Event* e) { int skip = 1; if ((e->StatusFlag & 0x40000000) == 0) { skip = 0; } return skip; }
+static inline int EvtSkipCk(Event* e) { int skip = 1; if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) { skip = 0; } return skip; }
 
 // Event debug tool work (game/event.cpp `EvtDebug`, 0xE8 bytes).
 class EventDebug {

@@ -294,7 +294,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         case 3:
             if (e->NowFrame == 160) {
                 skip = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -305,7 +305,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         case 4:
             if (e->NowFrame == 0) {
                 skip = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -322,7 +322,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         break;
     case 3:
         skip = 1;
-        if (!(e->StatusFlag & 0x4000)) {
+        if (!(e->StatusFlag & EvtStfBit(EvtStfEvtCancelSet))) {
             skip = 0;
         }
         if (skip == 0) {
@@ -337,7 +337,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
             e->CancelSet();
         } else {
             DpfFlagOff(pG, DPF_MESSAGE);
-            ActBtn.set(0x25, 5, (void*) r11f_EventS00_Act, 0, 0x46, r11f_actNo, 1, 0);
+            ActBtn.set(ACT_GUARD, 5, (void*) r11f_EventS00_Act, 0, 0x46, r11f_actNo, ACT_FUNC_SCE, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
     }

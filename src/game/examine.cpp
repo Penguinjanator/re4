@@ -462,7 +462,7 @@ void ItemExamine::idSet()
     }
     switch (m_scrn_flag) {
     case 1:
-        m_pIdSys->set(SS_ARC_PTR(wk->pCmmn, 15), 0xFF, 0x27, 0x15, 2, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pCmmn, 15), 0xFF, IDC_DATA, 0x15, 2, 0);
         itemInfo(m_item_id, &inf);
         if (inf.type == 1) {
             val = 0;
@@ -497,7 +497,7 @@ void ItemExamine::idSet()
                 }
                 started = 0;
                 for (j = 2; j >= 0; j--) {
-                    IdUnit* u = m_pIdSys->unitPtr(base2 + j, 0x27);
+                    IdUnit* u = m_pIdSys->unitPtr(base2 + j, IDC_DATA);
                     u->tex_flag |= 2;
                     u->texNo = d[j];
                     if (kind == 3) {
@@ -522,15 +522,15 @@ void ItemExamine::idSet()
                     IdUnit* u;
                     int l;
 
-                    u = m_pIdSys->unitPtr(base + n, 0x27);
+                    u = m_pIdSys->unitPtr(base + n, IDC_DATA);
                     if (n < WeaponId2MaxLevel(m_item_id, kind)) {
                         u->be_flag |= 8;
                     } else {
                         u->be_flag &= ~8;
                     }
-                    a = IdSub.unitPtr(1, 0x27);
-                    b = IdSub.unitPtr(2, 0x27);
-                    c = IdSub.unitPtr(3, 0x27);
+                    a = IdSub.unitPtr(1, IDC_DATA);
+                    b = IdSub.unitPtr(2, IDC_DATA);
+                    c = IdSub.unitPtr(3, IDC_DATA);
                     l = lv[kind];
                     if (n < l) {
                         if (l > WeaponId2MaxLevel(m_item_id, kind)) {
@@ -546,23 +546,23 @@ void ItemExamine::idSet()
                 }
             }
         } else {
-            IdUnit* u = m_pIdSys->unitPtr(0, 0x27);
+            IdUnit* u = m_pIdSys->unitPtr(0, IDC_DATA);
             u->be_flag &= ~8;
             u->rev_flag |= 0xF;
         }
         break;
     case 2:
-        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 8), 0xFF, 0x27, 0x15, 2, 0);
-        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 9), 0xFF, 0x27, 0x15, 2, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 8), 0xFF, IDC_DATA, 0x15, 2, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 9), 0xFF, IDC_DATA, 0x15, 2, 0);
         break;
     }
     switch (m_scrn_flag) {
     case 0:
     case 1:
-        m_pIdSys->set((void*) (pG->pCore->ofs_78 + (u32) pG->pCore), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set((void*) (pG->pCore->ofs_78 + (u32) pG->pCore), 0xFF, IDC_EXAMINE, 0x13, 0, 0);
         break;
     case 2:
-        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, IDC_EXAMINE, 0x13, 0, 0);
         break;
     }
 }
@@ -838,8 +838,8 @@ void ItemExamine::move()
         if (m_pInfo) {
             len /= m_pInfo->scale;
         }
-        a = m_pIdSys->unitPtr(0xF2, 0x26)->scr;
-        c = m_pIdSys->unitPtr(0xF3, 0x26)->scr;
+        a = m_pIdSys->unitPtr(0xF2, IDC_EXAMINE)->scr;
+        c = m_pIdSys->unitPtr(0xF3, IDC_EXAMINE)->scr;
         PSVECAdd(&a, &c, &e);
         PSVECScale(&e, &e, 0.5f);
         h = 0.5f;
@@ -883,8 +883,8 @@ void ItemExamine::quit()
     EffectEspDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel, 0);
     EffectEspgenDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel);
     EffectEfmDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel);
-    m_pIdSys->kill(0xFF, 0x26);
-    m_pIdSys->kill(0xFF, 0x27);
+    m_pIdSys->kill(0xFF, IDC_EXAMINE);
+    m_pIdSys->kill(0xFF, IDC_DATA);
     for (i = 0; i <= 2; i++) {
         LightMgr.destroy(m_pLight[i]);
     }

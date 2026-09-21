@@ -621,7 +621,7 @@ static void r20d_operateCrank(int no)
                 spd = 159;
             }
         }
-        ActBtn.set(0x2A, 5, 0, 0, 2, 2, 0, 0);
+        ActBtn.set(ACT_ROTATE, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         SceSleep(1);
     }
     FadeSetW(0x80000001, 5, 0, 0);
@@ -1002,7 +1002,7 @@ void cLantern::initLantern(void* arc, void* m1, void* m2, void* m3, void* m4, vo
 
     num = 0;
     for (i = 0; i < 64; i++) {
-        if (getRoomEtc(i, 0xB, &em, 0) == 1 || getRoomEtc(i, 0x10, &em, 0) == 1) {
+        if (getRoomEtc(i, ETC_LANTERN_A, &em, 0) == 1 || getRoomEtc(i, ETC_LANTERN_B, &em, 0) == 1) {
             num++;
         }
     }
@@ -1010,7 +1010,7 @@ void cLantern::initLantern(void* arc, void* m1, void* m2, void* m3, void* m4, vo
     units = (cLanternUnit*) MEM_ALLOC(num * sizeof(cLanternUnit), 1, 0xd);
     num = 0;
     for (i = 0; i < 64; i++) {
-        if (getRoomEtc(i, 0xB, &em, 0) == 1 || getRoomEtc(i, 0x10, &em, 0) == 1) {
+        if (getRoomEtc(i, ETC_LANTERN_A, &em, 0) == 1 || getRoomEtc(i, ETC_LANTERN_B, &em, 0) == 1) {
             units[num].em = em;
             units[num].active = 1;
             units[num].state = 0;
@@ -1086,7 +1086,7 @@ void cLanternUnit::check()
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) != 0) {
         return;
     }
-    ActBtn.set(0x17, 5, (void*) cLanternUnit::throwLantern, this, 0, 1, 1, 0);
+    ActBtn.set(ACT_SEARCH_ATTACK, 5, (void*) cLanternUnit::throwLantern, this, 0, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
 }
 
 // The enemy the lantern flies at (NULL: 10000 units in front of the player, out = that point).

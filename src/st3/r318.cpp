@@ -893,7 +893,7 @@ static void R318EventLaserMove(int no)
                                 IntSet(r318_work.p->dodgeTimer, 60);
                                 pG->Room_flg[0] |= 0x00010000;
                             }
-                            ActBtn.set(0x25, 5, 0, 0, 2, 3, 1, zero);
+                            ActBtn.set(ACT_GUARD, 5, 0, 0, 2, DISP_L_R, ACT_FUNC_SCE, zero);
                             if (DodgePressed()) {
                                 pG->Room_flg[0] |= 0x00040000;
                                 SetPlDamage(0, playerEscape03);
@@ -923,7 +923,7 @@ static void R318EventLaserMove(int no)
 
                     if (p2) {
                         if (__builtin_fabsf(p2->world.x - pPL->pos.x) <= dist[no]) {
-                            ActBtn.set(0x25, 5, 0, 0, 2, 3, 1, mode);
+                            ActBtn.set(ACT_GUARD, 5, 0, 0, 2, DISP_L_R, ACT_FUNC_SCE, mode);
                             if (DodgePressed()) {
                                 pG->Room_flg[0] |= 0x00040000;
                                 switch (no) {
@@ -1111,7 +1111,7 @@ static void playerEscape03(cPlayer* pl)
         pl->dmg.m_Timer = 0x78;
         r318_work.p->escFrame++;
         if (r318_work.p->escFrame > 0x20) {
-            ActBtn.set(0x25, 5, 0, 0, 2, 3, 1, 0);
+            ActBtn.set(ACT_GUARD, 5, 0, 0, 2, DISP_L_R, ACT_FUNC_SCE, 0);
             if (DodgePressed()) {
                 pl->r_no_2++;
                 break;

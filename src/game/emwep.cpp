@@ -1559,7 +1559,7 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         return;
     }
     if (w->Bomb_wait <= 0x18 && em->plDist2 < 36000000.0f && w->Act_ck == 0) {
-        ActBtn.set(0x25, 0xB, (void*) emWepEscapeAction, em, 1, 3, 0, 0);
+        ActBtn.set(ACT_GUARD, 0xB, (void*) emWepEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
     }
     w->spd.y -= 15.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);

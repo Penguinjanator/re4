@@ -365,7 +365,7 @@ static void r106_Event()
         EventMgr* evt;
 
         if (EvtMgr.SetEvt(r106_work->evd->m_addr, (u32*) &ev)) {
-            ev->StatusFlag |= 0x400;
+            ev->StatusFlag |= EvtStfBit(EvtStfFadeOut);
         }
         evt = &EvtMgr;
         while (evt->IsAliveEvt(&evt->NowExeEvtKey, 0, 0) != 0) {

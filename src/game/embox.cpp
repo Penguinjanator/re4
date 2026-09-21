@@ -665,7 +665,7 @@ void emBoxActEvtCk(cEmBox* em)
         return;
     }
     if (pG->room_id == 0x100 || pG->room_id == 0x101 || pG->room_id == 0x103 || pG->room_id == 0x106) {
-        ActBtn.set(1, 5, (void*) emBoxAction, em, 0, 1, 0, 0);
+        ActBtn.set(ACT_CHECK, 5, (void*) emBoxAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 
@@ -677,7 +677,7 @@ int checkNearOtherBarrel(cEmBox* em)
     cEm* other;
 
     for (i = 0; i <= 0x3F; i++) {
-        if (getRoomEtc(i, 0x11, &other, 0) == 1 || getRoomEtc(i, 0x1E, &other, 0) == 1) {
+        if (getRoomEtc(i, ETC_WOODBOX_BARREL, &other, 0) == 1 || getRoomEtc(i, ETC_WOODBOX_BARREL2, &other, 0) == 1) {
             if (em != other && other->hp > 0 && PSVECSquareDistance(&em->pos, &other->pos) < 2250000.0f) {
                 return 1;
             }

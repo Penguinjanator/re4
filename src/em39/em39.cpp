@@ -3108,9 +3108,9 @@ static void em39_R1_KnifeHit(cEm39* em)
             PlGachaMove();
         } else if (w->Act_ck == 0) {
             if (w->TmpU32) {
-                ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);
             }
         }
         if (EmCatchMotionMove(em, 0.3f, 0.2f)) {
@@ -3258,10 +3258,10 @@ static void plem39_KnifeHit(cPlayer* pl)
         switch ((u32) (w)->TmpU32) {                                                                  \
         case 0:                                                                                    \
         default:                                                                                   \
-            ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 3, 0, 0);                        \
+            ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_L_R, ACT_FUNC_NORMAL, 0);                        \
             break;                                                                                 \
         case 1:                                                                                    \
-            ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 4, 0, 0);                        \
+            ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);                        \
             break;                                                                                 \
         }                                                                                          \
     }                                                                                              \
@@ -4751,10 +4751,10 @@ static void em39_R1_br_T_Atk(cEm39* em)
         switch ((u32) w->TmpU32) {                                                                    \
         case 0:                                                                                    \
         default:                                                                                   \
-            ActBtn.set(0x25, 0xB, (void*) action, em, 1, 3, 0, 0);                             \
+            ActBtn.set(ACT_GUARD, 0xB, (void*) action, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);                             \
             break;                                                                                 \
         case 1:                                                                                    \
-            ActBtn.set(0x25, 0xB, (void*) action, em, 1, 4, 0, 0);                             \
+            ActBtn.set(ACT_GUARD, 0xB, (void*) action, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);                             \
             break;                                                                                 \
         }                                                                                          \
     }
@@ -4892,10 +4892,10 @@ static void em39_R1_br_T_LongAtk(cEm39* em)
             switch ((u32) w->TmpU32) {                                                                \
             case 0:                                                                                \
             default:                                                                               \
-                ActBtn.set(0x25, 0xB, (void*) action, em, 1, 3, 0, 0);                         \
+                ActBtn.set(ACT_GUARD, 0xB, (void*) action, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);                         \
                 break;                                                                             \
             case 1:                                                                                \
-                ActBtn.set(0x25, 0xB, (void*) action, em, 1, 4, 0, 0);                         \
+                ActBtn.set(ACT_GUARD, 0xB, (void*) action, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);                         \
                 break;                                                                             \
             }                                                                                      \
         }                                                                                          \
@@ -5502,9 +5502,9 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         if (w->TmpU32B == 0) {
             if (w->TmpU32) {
-                ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 3, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(0x25, 0xB, (void*) em39ActOn, em, 2, 4, 0, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em39ActOn, em, 2, DISP_A_B, ACT_FUNC_NORMAL, 0);
             }
         }
         break;
@@ -5699,7 +5699,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
             pG->pl_life = 0;
         }
         if (em->seFlags28B & 4) {
-            ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
+            ActBtn.set(ACT_CLIMB, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             if (Key.trg & 0x80000) {
                 if (w->TmpU32 == 0) {
                     em->r_no_2++;

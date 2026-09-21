@@ -808,7 +808,7 @@ static void Evt_R104S00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0) {
                 fadeOn = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -826,7 +826,7 @@ static void Evt_R104S00_Func(Event* e)
             }
             if (e->NowFrame == 120) {
                 fadeOn = 1;
-                if (!(e->StatusFlag & 0x40000000)) {
+                if (!(e->StatusFlag & EvtStfBit(EvtStfToolFrontExec))) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -839,9 +839,9 @@ static void Evt_R104S00_Func(Event* e)
             if (!(pG->Room_flg[0] & 0x80000000)) {
                 DpfFlagOff(pG, DPF_MESSAGE);
                 if (!(pG->Room_flg[0] & 0x04000000)) {
-                    ActBtn.set(0x25, 5, (void*) r104_succeedAction, 0, 0x42, 4, 0, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 } else {
-                    ActBtn.set(0x25, 5, (void*) r104_succeedAction, 0, 0x42, 3, 0, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 }
             } else {
                 e->CancelSet();
@@ -853,7 +853,7 @@ static void Evt_R104S00_Func(Event* e)
         break;
     case 3:
         fadeOn = 1;
-        if (!(e->StatusFlag & 0x4000)) {
+        if (!(e->StatusFlag & EvtStfBit(EvtStfEvtCancelSet))) {
             fadeOn = 0;
         }
         if (fadeOn == 0) {

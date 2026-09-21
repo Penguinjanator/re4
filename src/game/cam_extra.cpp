@@ -454,13 +454,13 @@ void IdScope::init(void* type)
     IdTexDataLoad(WEP_ARC_PTR(4), TEX_OWNER_ID_SCOPE);
     switch (t) {
     case 0:
-        IdSys.set(WEP_ARC_PTR(5), 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(5), 0xFF, IDC_SCOPE, 0x13, 6, 0);
         break;
     case 1:
-        IdSys.set(WEP_ARC_PTR(6), 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(6), 0xFF, IDC_SCOPE, 0x13, 6, 0);
         break;
     case 2:
-        IdSys.set(WEP_ARC_PTR(7), 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(7), 0xFF, IDC_SCOPE, 0x13, 6, 0);
         break;
     }
 }
@@ -487,8 +487,8 @@ void IdScope::move(void* p)
     }
     ra = ampA * SINF((f32) (pG->Frame_cnt % spdA) * 6.2831855f / (f32) spdA) + *zoom;
     rb = ampB * COSF((f32) (pG->Frame_cnt % spdB) * 6.2831855f / (f32) spdB) + *zoom;
-    a = IdSys.unitPtr(1, 0x25);
-    b = IdSys.unitPtr(2, 0x25);
+    a = IdSys.unitPtr(1, IDC_SCOPE);
+    b = IdSys.unitPtr(2, IDC_SCOPE);
     a->curve[3] = 0;
     b->curve[3] = 0;
     a->rot0.y = 0.0f;
@@ -509,25 +509,25 @@ static int IdScopeZoomDisp(f32* zoom)
 // Saves the reticle id timers (unit 0x25 ids 0 / 0x10) across a scope re-entry.
 void IdScope::save(void*)
 {
-    save_a = (s16) IdSys.unitPtr(0, 0x25)->timer[0];
-    save_b = (s16) IdSys.unitPtr(0x10, 0x25)->timer[1];
+    save_a = (s16) IdSys.unitPtr(0, IDC_SCOPE)->timer[0];
+    save_b = (s16) IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1];
 }
 
 // Restores the saved reticle id timers (ids 0, 0x10..0x13).
 void IdScope::load(void*)
 {
-    IdSys.unitPtr(0, 0x25)->timer[0] = save_a;
-    IdSys.unitPtr(0x10, 0x25)->timer[1] = save_b;
-    IdSys.unitPtr(0x11, 0x25)->timer[1] = save_b;
-    IdSys.unitPtr(0x12, 0x25)->timer[1] = save_b;
-    IdSys.unitPtr(0x13, 0x25)->timer[1] = save_b;
+    IdSys.unitPtr(0, IDC_SCOPE)->timer[0] = save_a;
+    IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1] = save_b;
+    IdSys.unitPtr(0x11, IDC_SCOPE)->timer[1] = save_b;
+    IdSys.unitPtr(0x12, IDC_SCOPE)->timer[1] = save_b;
+    IdSys.unitPtr(0x13, IDC_SCOPE)->timer[1] = save_b;
 }
 
 // Kills the reticle ids (unit 0x25).
 void IdScope::quit(void*)
 {
     IdTexRelease(TEX_OWNER_ID_SCOPE);
-    IdSys.kill(0xFF, 0x25);
+    IdSys.kill(0xFF, IDC_SCOPE);
 }
 
 // ---------------------------------------------------------------------------
@@ -708,23 +708,23 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
 {
     IdUnit* u;
 
-    IdSys.kill(0xFF, 0x21);
-    IdSys.kill(0xFF, 0x20);
-    IdSys.kill(0xFF, 0x23);
-    IdSys.kill(0xFF, 0x30);
+    IdSys.kill(0xFF, IDC_LIFE_METER);
+    IdSys.kill(0xFF, IDC_ACT_BUTTON);
+    IdSys.kill(0xFF, IDC_COUNT_DOWN);
+    IdSys.kill(0xFF, IDC_CINESCO);
     SpfFlagOn(pG, SPF_ACTBTN);
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdTexDataLoad(a, TEX_OWNER_ID_COCKPIT);
-    IdSys.set(b, 0xFF, 0x24, 0x13, 5, 0);
-    m_pos0_L = IdSys.unitPtr(1, 0x24)->scr;
-    m_pos0_C = IdSys.unitPtr(2, 0x24)->scr;
-    m_pos0_R = IdSys.unitPtr(3, 0x24)->scr;
+    IdSys.set(b, 0xFF, IDC_BINOCULAR, 0x13, 5, 0);
+    m_pos0_L = IdSys.unitPtr(1, IDC_BINOCULAR)->scr;
+    m_pos0_C = IdSys.unitPtr(2, IDC_BINOCULAR)->scr;
+    m_pos0_R = IdSys.unitPtr(3, IDC_BINOCULAR)->scr;
     if (StaFlagChk(pGS, STA_EVENT)) {
-        IdSys.unitPtr(0x30, 0x24)->be_flag &= ~8;
-        IdSys.unitPtr(0x1B, 0x24)->be_flag &= ~8;
+        IdSys.unitPtr(0x30, IDC_BINOCULAR)->be_flag &= ~8;
+        IdSys.unitPtr(0x1B, IDC_BINOCULAR)->be_flag &= ~8;
     }
     m_fovy_old = cam->param.fovy;
-    u = IdSys.unitPtr(0x35, 0x24);
+    u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
     m_meter_pos0 = u->scr;
     m_meter_h0 = u->size_H;
     m_meter_w0 = u->sizeX;
@@ -746,7 +746,7 @@ void IdBinocular::cutin(void* arg)
         case 0x3B:
             continue;
         }
-        IdUnit* u = IdSys.unitPtr(i, 0x24);
+        IdUnit* u = IdSys.unitPtr(i, IDC_BINOCULAR);
         u->timer[0] = 0x96;
         u->timer[1] = 0x96;
         u->timer[2] = 0x96;
@@ -779,7 +779,7 @@ void IdBinocular::move(void* p)
     getColumn(cam->mat, 2, &dir);
     ang = (4.712389f - atan2f(-dir.x, -dir.z)) / PI;
     {
-        IdUnit* u = IdSys.unitPtr(0, 0x24);
+        IdUnit* u = IdSys.unitPtr(0, IDC_BINOCULAR);
         u->u0 = ang;
         u->u1 = ang + 1.0f;
         lo = ang - 0.5f;
@@ -790,7 +790,7 @@ void IdBinocular::move(void* p)
     // unitPtr calls (REG_N_CALLS_CROSSED == 0 anchor) and global gives cnt the temp's r30.
     cnt = 0;
     if (lo <= 0.0f && hi >= 0.0f) {
-        IdUnit* u = IdSys.unitPtr(1, 0x24);
+        IdUnit* u = IdSys.unitPtr(1, IDC_BINOCULAR);
         u->be_flag |= 8;
         u->texNo = 3;
         u->tex_flag |= 2;
@@ -798,7 +798,7 @@ void IdBinocular::move(void* p)
         cnt = 1;
     }
     if (lo <= 0.5f && hi >= 0.5f) {
-        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, IDC_BINOCULAR);
         u->be_flag |= 8;
         u->texNo = 0;
         u->tex_flag |= 2;
@@ -806,7 +806,7 @@ void IdBinocular::move(void* p)
         cnt++;
     }
     if (lo <= 1.0f && hi >= 1.0f) {
-        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, IDC_BINOCULAR);
         u->be_flag |= 8;
         u->texNo = 1;
         u->tex_flag |= 2;
@@ -814,7 +814,7 @@ void IdBinocular::move(void* p)
         cnt++;
     }
     if (lo <= 1.5f && hi >= 1.5f) {
-        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, IDC_BINOCULAR);
         u->be_flag |= 8;
         u->texNo = 2;
         u->tex_flag |= 2;
@@ -822,7 +822,7 @@ void IdBinocular::move(void* p)
         cnt++;
     }
     if (lo <= 2.0f && hi >= 2.0f) {
-        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, IDC_BINOCULAR);
         u->be_flag |= 8;
         u->texNo = 3;
         u->tex_flag |= 2;
@@ -834,10 +834,10 @@ void IdBinocular::move(void* p)
     i = cnt;
     while (i <= 2) {
         i++;
-        IdSys.unitPtr(i, 0x24)->be_flag &= ~8;
+        IdSys.unitPtr(i, IDC_BINOCULAR)->be_flag &= ~8;
     }
     if (!StaFlagChk(pG, STA_EVENT)) {
-        IdUnit* u = IdSys.unitPtr(0x36, 0x24);
+        IdUnit* u = IdSys.unitPtr(0x36, IDC_BINOCULAR);
         MessageControl* mc;
         Message* ms;
         s16 x = (s16) ((u->scr.x + 320.0f) * 0.8f);
@@ -846,7 +846,7 @@ void IdBinocular::move(void* p)
         mc = &cMes;
         ms = &mc->mes[1];
         mc->MesSet(1, x, (s16) (y - ms->m_font_h / 2), 0x20081, 1, 0, 4);
-        u = IdSys.unitPtr(0x1B, 0x24);
+        u = IdSys.unitPtr(0x1B, IDC_BINOCULAR);
         rate = u->col[3] / 255.0f;
         ms->m_col = ((u8) ((f32) (ms->m_col >> 24) * rate) << 24) |
                     ((u8) ((f32) ((ms->m_col >> 16) & 0xFF) * rate) << 16) |
@@ -864,14 +864,14 @@ void IdBinocular::move(void* p)
             d /= 10;
         }
         for (int k = 0; k <= 3; k++) {
-            IdUnit* u = IdSys.unitPtr(0x20 + k, 0x24);
+            IdUnit* u = IdSys.unitPtr(0x20 + k, IDC_BINOCULAR);
             u->tex_flag |= 2;
             u->texNo = digit[k];
         }
         ratio = 1.0f - ((f32) dist - t0[0]) / (t0[1] - t0[0]);
     }
     {
-        IdUnit* u = IdSys.unitPtr(0x35, 0x24);
+        IdUnit* u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
         u->v0 = FRef(ratio);
         u->v1 = 1.0f;
         u->scr = m_meter_pos0;
@@ -880,19 +880,19 @@ void IdBinocular::move(void* p)
         y = (m_meter_h0 * 0.5f * 0.5f + u->scr.y) * 2.0f;
     }
     for (int k = 0; k <= 3; k++) {
-        IdUnit* u = IdSys.unitPtr(5 + k, 0x24);
+        IdUnit* u = IdSys.unitPtr(5 + k, IDC_BINOCULAR);
         if (y < u->pos.y) {
             u->be_flag &= ~8;
         } else {
             u->be_flag |= 8;
         }
     }
-    IdSys.unitPtr(0x1C, 0x24)->be_flag &= ~8;
-    IdSys.unitPtr(0x1D, 0x24)->be_flag &= ~8;
+    IdSys.unitPtr(0x1C, IDC_BINOCULAR)->be_flag &= ~8;
+    IdSys.unitPtr(0x1D, IDC_BINOCULAR)->be_flag &= ~8;
     if (cam->param.fovy > m_fovy_old) {
-        IdSys.unitPtr(0x1D, 0x24)->be_flag |= 8;
+        IdSys.unitPtr(0x1D, IDC_BINOCULAR)->be_flag |= 8;
     } else if (cam->param.fovy < m_fovy_old) {
-        IdSys.unitPtr(0x1C, 0x24)->be_flag |= 8;
+        IdSys.unitPtr(0x1C, IDC_BINOCULAR)->be_flag |= 8;
     }
     m_fovy_old = cam->param.fovy;
 }
@@ -900,13 +900,13 @@ void IdBinocular::move(void* p)
 // Removes the binocular HUD ids (unit 0x24), releases the pause stop flag and the mask texture.
 void IdBinocular::quit(void*)
 {
-    IdUnit* u = IdSys.unitPtr(0x35, 0x24);
+    IdUnit* u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
     int i;
 
     u->scr = m_meter_pos0;
     u->size_H = m_meter_h0;
     u->sizeX = m_meter_w0;
-    IdSys.kill(0xFF, 0x24);
+    IdSys.kill(0xFF, IDC_BINOCULAR);
     SpfFlagOff(pG, SPF_ACTBTN);
     Cckpt.roomInit();
     if (StaFlagChk(pG, STA_EVENT)) {

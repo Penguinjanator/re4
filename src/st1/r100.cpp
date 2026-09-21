@@ -927,7 +927,7 @@ static void r100_Sce_zombi_dead(cEm* em)
     r100_em_set();
     if (readEvent(3, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) &ev);
-        ev->StatusFlag |= 0x800;
+        ev->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }

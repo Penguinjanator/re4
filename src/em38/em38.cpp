@@ -1082,15 +1082,15 @@ static void em38_R1_T_Atk(cEm38* em)
                 if ((pPLS->pos.x < -3000.0f && em->type == 1) || (pPLS->pos.x > 3000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 3, 3, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38EscapeAction, em, 3, DISP_L_R, ACT_FUNC_NORMAL, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 3, 4, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38EscapeAction, em, 3, DISP_A_B, ACT_FUNC_NORMAL, 0);
                         }
                     } else {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 1, 3, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38EscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (void*) em38EscapeAction, em, 1, 4, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38EscapeAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
                         }
                     }
                 }
@@ -1172,15 +1172,15 @@ static void em38_R1_T_MdlAtk(cEm38* em)
                 if ((pPLS->pos.x < 4000.0f && em->type == 1) || (pPLS->pos.x > -4000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 3, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 3, DISP_L_R, ACT_FUNC_NORMAL, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 4, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 3, DISP_A_B, ACT_FUNC_NORMAL, 0);
                         }
                     } else {
                         if (w->actVar) {
-                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 3, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
                         } else {
-                            ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 4, 0, 0);
+                            ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
                         }
                     }
                 }
@@ -1261,29 +1261,29 @@ static void em38_R1_T_BigAtk(cEm38* em)
                     if (pPL->r_no_0 == 4) {
                         if (em->type == 1) {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 3, 3, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38SitAction, em, 3, DISP_L_R, ACT_FUNC_NORMAL, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 3, 4, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38SitAction, em, 3, DISP_A_B, ACT_FUNC_NORMAL, 0);
                             }
                         } else {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 3, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 3, DISP_L_R, ACT_FUNC_NORMAL, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 3, 4, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 3, DISP_A_B, ACT_FUNC_NORMAL, 0);
                             }
                         }
                     } else {
                         if (em->type == 1) {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 1, 3, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38SitAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (void*) em38SitAction, em, 1, 4, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38SitAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
                             }
                         } else {
                             if (w->actVar) {
-                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 3, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
                             } else {
-                                ActBtn.set(0x25, 0xB, (void*) em38BackjumpAction, em, 1, 4, 0, 0);
+                                ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
                             }
                         }
                     }

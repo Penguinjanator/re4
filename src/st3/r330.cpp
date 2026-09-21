@@ -408,7 +408,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->StatusFlag & 0x40000000) == 0) {
+    if ((e->StatusFlag & EvtStfBit(EvtStfToolFrontExec)) == 0) {
         skip = 0;
     }
     if (skip == 0) {
@@ -468,13 +468,13 @@ void idR330::init(u32 no)
     IdTexDataLoad(ROOM_ARC_PTR(pG->pRoom, 0x1F), 7);
     switch (mode) {
     case 0:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x22), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x22), 0xFF, IDC_EVENT, 0xC, 6, 0);
         break;
     case 1:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x20), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x20), 0xFF, IDC_EVENT, 0xC, 6, 0);
         break;
     case 2:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xFF, IDC_EVENT, 0xC, 6, 0);
         break;
     }
     cnt = 0;
@@ -495,7 +495,7 @@ void idR330::init(u32 no)
         }                                                           \
         on = 0;                                                     \
         for (i = 2; i >= 0; i--) {                                  \
-            u = IdSys.unitPtr((id) + (2 - i), 0x2C);                \
+            u = IdSys.unitPtr((id) + (2 - i), IDC_EVENT);                \
             if (on == 0 && digit[i] == 0 && i != 0) {               \
                 u->be_flag &= ~8;                                   \
             } else {                                                \
@@ -505,7 +505,7 @@ void idR330::init(u32 no)
                 u->texNo = digit[i];                                \
             }                                                       \
         }                                                           \
-        u = IdSys.unitPtr((id) + 3, 0x2C);                          \
+        u = IdSys.unitPtr((id) + 3, IDC_EVENT);                          \
         u->texNo = 10;                                              \
         u->tex_flag |= 2;                                           \
     }
@@ -544,7 +544,7 @@ void idR330::move()
             id = 0x13;
             break;
         }
-        u = IdSys.unitPtr(id, 0x2C);
+        u = IdSys.unitPtr(id, IDC_EVENT);
         rate = (f32) (cnt % r330_scrollTbl[i]) / (f32) r330_scrollTbl[i];
         u->v0 = rate;
         u->v1 = rate + 1.0f;
@@ -555,9 +555,9 @@ void idR330::move()
         b = (int) ((f32) cnt * 0.8f) + 15;
         break;
     case 1:
-        u = IdSys.unitPtr(0x14, 0x2C);
+        u = IdSys.unitPtr(0x14, IDC_EVENT);
         a = (int) (Hermite_1CurveCalc(u->curve[1], (f32) (s16) u->timer[1]) * 100.0f);
-        u = IdSys.unitPtr(0x15, 0x2C);
+        u = IdSys.unitPtr(0x15, IDC_EVENT);
         b = (int) (Hermite_1CurveCalc(u->curve[1], (f32) (s16) u->timer[1]) * 100.0f);
         break;
     case 2:
@@ -578,5 +578,5 @@ void idR330::quit()
 {
     Cckpt.roomInit();
     Cckpt.move();
-    IdSys.dispSw(0x21, 0);
+    IdSys.dispSw(IDC_LIFE_METER, 0);
 }

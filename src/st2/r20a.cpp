@@ -182,7 +182,7 @@ static void r20a_AshleyPosCheck()
     const f32 lim = 25000000.0f;
 
     if (PSVECSquareDistance(&pPL->pos, &pSUB->pos) < lim) {
-        ActBtn.set(0x16, 5, (void*) r20a_CarryOnShoulder, 0, 0, 1, 1, 0);
+        ActBtn.set(ACT_RIDE_SHOULDER, 5, (void*) r20a_CarryOnShoulder, 0, 0, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
     }
 }
 

@@ -60,7 +60,7 @@ struct R333Work {
 struct R333IdData {
     u8 pad_0[0x10];
     u32 ofsTex;   // 0x10  IdTexDataLoad(.., 7)
-    u32 ofsId;    // 0x14  IdSys.set(.., 0xFF, 0x28, ..)
+    u32 ofsId;    // 0x14  IdSys.set(.., 0xFF, IDC_TITLE, ..)
 };
 
 static R333Work* r333_work;
@@ -237,7 +237,7 @@ void R333EventS00()
             SceSleep(15);
             i = 0;
             do {
-                ActBtn.set(0x31, 5, 0, 0, 2, 0x10, 0, 0);
+                ActBtn.set(ACT_ACCELERATE, 5, 0, 0, 2, DISP_STICK_UP, ACT_FUNC_NORMAL, 0);
                 i++;
                 SceSleep(1);
             } while (i <= 0x95);
@@ -781,12 +781,12 @@ void disp_id_data()
     R333IdData* d = (R333IdData*) r333_work->idData;
 
     IdTexDataLoad((void*) (d->ofsTex + (u32) d), 7);
-    IdSys.set((void*) (d->ofsId + (u32) d), 0xFF, 0x28, 0x13, 6, 0);
+    IdSys.set((void*) (d->ofsId + (u32) d), 0xFF, IDC_TITLE, 0x13, 6, 0);
 }
 
 // Drop the result id table (owner 7 textures, id table 0x28).
 void erase_id_data()
 {
     IdTexRelease(7);
-    IdSys.kill(0xFF, 0x28);
+    IdSys.kill(0xFF, IDC_TITLE);
 }

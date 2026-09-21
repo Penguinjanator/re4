@@ -8,10 +8,10 @@ struct ActBtnWork {
     u32 tag;       // 0x00  OTag link
     void* func;    // 0x04  void (*)(int arg, int d): the action (NULL = none)
     void* arg;     // 0x08  first argument (type 2: the SceAtWork*)
-    u8 kind;       // 0x0C  prompt message: cMes number kind + 0x16 (clamped to 0x41)
+    u8 kind;       // 0x0C  ACTION_TYPE: prompt message kind + 0x16 (clamped to 0x41)
     u8 slot;       // 0x0D  ot slot / SceExec priority
-    u8 type;       // 0x0E  0 call func, 1 SceExec(0x12, func...), 2 SceAt area action
-    u8 btn;        // 0x0F  button kind (checkButton)
+    u8 type;       // 0x0E  ACTION_FUNC_TYPE: 0 call func, 1 SceExec(0x12, func...), 2 SceAt area action
+    u8 btn;        // 0x0F  DISP_FLAG: button kind (checkButton)
     int d;         // 0x10  second argument
     u32 flags;     // 0x14  bit0 sets pG->flags_500C 0x200000, bit1 no actCheck / trigger, bit2 exec flag 2,
                    //       bit3 no prompt, bit4 hold, bit5 skip, bit6 exclusive, bit7 message colour 7

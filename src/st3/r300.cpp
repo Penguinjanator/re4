@@ -1099,7 +1099,7 @@ static void r300_mira_exec()
         r300_wk->cam = pGS->Camera;
         CameraControl* cc = &CamCtrl;
         while (1) {
-            ActBtn.set(0x14, 5, 0, 0, 2, 0xB, 0, 0);
+            ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_GACHA, ACT_FUNC_NORMAL, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
             if (r300_wk->cnt == 0) {
                 if (Key.trg & 0x40000000) {
@@ -1185,7 +1185,7 @@ static void r300_mirb_exec()
         Vec* lp = r300_laser;
         CameraControl* cc = &CamCtrl;
         while (1) {
-            ActBtn.set(0x14, 5, 0, 0, 2, 0xB, 0, 0);
+            ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_GACHA, ACT_FUNC_NORMAL, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
             if (r300_wk->cnt == 0) {
                 if (Key.trg & 0x40000000) {
