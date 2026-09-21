@@ -2456,7 +2456,7 @@ void em10KickHitMark(cEm10* em)
 // Per-frame Ganado update: damage check, route check, the work timers (attack / dash / throw waits,
 // Lose_timer), the R0 routine table (Init / Move / Damage / Die / Scenario), then the model post
 // processing: scale return, claw / neck / waist / slope / compress / bomb-neck moves, collision and
-// scenario check (checkAir while jumping, flag 0x80000), the stuck counter x634, shadow fade, work
+// scenario check (checkAir while jumping, flag 0x80000), the stuck counter HoseiCnt, shadow fade, work
 // effect cleanup per set, cloth, chainsaw idle SE, cart release, bowgun / parasite / water / foot SE,
 // the lit dynamite countdown (Fire_timer -> Die_Bomb), and the hit boxes of the core and shield.
 void cEm10::move()
@@ -7891,7 +7891,7 @@ static void em10_R1_Crash(cEm10* em)
 }
 
 // R1 == 0x3C ClimbOver: climbs over the low obstacle found by em10ClimbOverCk (motion 0x1F), sliding
-// the remaining x5E0 offset in over the motion (flag 0x20000 = on the fence), then walks.
+// the remaining Target_pos offset in over the motion (flag 0x20000 = on the fence), then walks.
 static void em10_R1_ClimbOver(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
@@ -8499,7 +8499,7 @@ static void em10_R1_LadderReset(cEm10* em)
     MotionMove(em, 0);                                                                                \
     em->r_no_2 = 4;
 
-// R1 == 0x43 JumpDown: drops off an edge / down to Keep_pos (motion 0x23 with the x5E0 run-off, 0x21
+// R1 == 0x43 JumpDown: drops off an edge / down to Keep_pos (motion 0x23 with the Target_pos run-off, 0x21
 // when starting from a stand): falls with flags 0x10080000 (airborne, no adjust), water splash on
 // the way (em10FallWaterCk), lands with the snap / SE 5 / motion 0x25 and a dust effect, then walks.
 static void em10_R1_JumpDown(cEm10* em)
@@ -8729,7 +8729,7 @@ static void em10_R1_Jump(cEm10* em)
 #undef EM10_FALL_WATER_EFFECT
 #undef EM10_JUMP_DOWN_LAND
 
-// R1 == 0x45 JumpUp: climbs up a ledge (motion 0x1A0, TmpV = the position delta to x5E0 fed in over
+// R1 == 0x45 JumpUp: climbs up a ledge (motion 0x1A0, TmpV = the position delta to Target_pos fed in over
 // the motion, work flag 0x180000), then walks with Atk_wait 15.
 static void em10_R1_JumpUp(cEm10* em)
 {
@@ -14236,7 +14236,7 @@ static void em10_R1_Dm_Flash(cEm10* em)
 }
 
 // R0 2 / R1 == 0x0E Dm_Claw: the claw Ganado's (type 0xA/0xD) flinch (0x10F front / 0x111 back),
-// then the walk; sets the 150..300 frame claw attack retry wait x686.
+// then the walk; sets the 150..300 damage Claw_hp and the 450 frame Find_timer.
 static void em10_R1_Dm_Claw(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
@@ -19066,7 +19066,7 @@ extern "C" void em10SackSet(cEm10* em)
     }
 }
 
-// Low obstacle test in front (scenario flag 0x20 wall): 0 none, 1 climb over (x5E0 = the landing
+// Low obstacle test in front (scenario flag 0x20 wall): 0 none, 1 climb over (Target_pos = the landing
 // point behind it), 2 the floor behind is far below (jump down instead). Not for Character 5.
 extern "C" int em10ClimbOverCk2(cEm10* em)
 {
@@ -19180,7 +19180,7 @@ int em10ClimbOverCk(cEm10* em)
     }
 }
 
-// Window / low wall test in front: 0 none, 1 climb through (x5E0 set), 2 drop behind, 3 a window
+// Window / low wall test in front: 0 none, 1 climb through (Target_pos set), 2 drop behind, 3 a window
 // object (pWindow) to smash, 4 a door to bash (em10DootAtkCk).
 extern "C" int em10WindowCk2(cEm10* em)
 {
@@ -19809,7 +19809,7 @@ int em10LadderClimbCk(cEm10* em)
     return 0;
 }
 
-// Vertical wall-ladder in front (the room's climb objects, Ganado ids only): sets x5E0 at its top
+// Vertical wall-ladder in front (the room's climb objects, Ganado ids only): sets Target_pos at its top
 // and goes to VLadderClimb (0x41, r_no_3 = level) or JumpUp (0x45) for a one-level ledge.
 int em10VLadderClimbCk(cEm10* em)
 {
@@ -21467,7 +21467,7 @@ int em10FindCk(cEm10* em, int a)
 }
 // "Is there a target to go to" check used by the found Ganados: the bell alarm position (SeInfo.type
 // 1 / 2, within 20000 units), the player when the alert is on (Status_flg[1] bit31) and near, when
-// he is within 1000 units, or when the room forces it; stores the target in x5F0. 1 = target set.
+// he is within 1000 units, or when the room forces it; stores the target in Goto_pos. 1 = target set.
 int em10FindCk2(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
@@ -24061,7 +24061,7 @@ u32 cEm10::ckGoto()
     return EM10_WK(this)->Goto_mode;
 }
 
-// Sends the Ganado to `pos` (x5F0 snapped to the floor; Goto_mode = `range`, the goto kind the Goto
+// Sends the Ganado to `pos` (Goto_pos snapped to the floor; Goto_mode = `range`, the goto kind the Goto
 // routine interprets) and marks it heading somewhere (work flags 0x04000004); some kinds forget the player.
 void cEm10::setGoto(Vec* pos, int range)
 {
@@ -24871,7 +24871,7 @@ void em10SetCrash(cEm10* em, f32 r)
 }
 
 // Start of em10DmCk: hit by a kind 3 crash volume (or its own broken shield) while alive, standing and
-// not in a ladder / jump / catapult routine -> Crash (0x3B, r_no_3 1 when hit from behind), x5E0 = the
+// not in a ladder / jump / catapult routine -> Crash (0x3B, r_no_3 1 when hit from behind), Target_pos = the
 // source; a held ladder is dropped. 1 = crashed (no further damage check this frame).
 int em10CrashCk(cEm10* em)
 {
@@ -26802,7 +26802,7 @@ int em10ClawStickCK(cEm10* em)
     return 1;
 }
 
-// A claw type that has lost the player for a while (x656) with no target goes to FindLost (0x5D). 1 when set.
+// A claw type that has lost the player for a while (Wander_timer) with no target goes to FindLost (0x5D). 1 when set.
 int em10FindLostCk(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
