@@ -115,9 +115,9 @@ static void (*r105_markTbl[4])() = {
 // once (bit 11). Window 5 takes no damage; door 1 light mask 4; then the cesspit setup.
 void R105Init()
 {
-    cEm* win;
-    cEm* win2;
-    cEm* door;
+    cEmWindow* win;
+    cEmWindow* win2;
+    cEmDoor* door;
     cObj* obj;
 
     if (DebugTrg(1)) {
@@ -162,7 +162,7 @@ void R105Init()
         SceAtSetEnable(0x17, 0);
     } else {
         if (getRoomEtcWindow(5, &win, 1)) {
-            ((cEmWindow*) win)->SetBreakModel();
+            win->SetBreakModel();
         }
         SceAtSetEnable(0x17, 1);
     }
@@ -175,8 +175,8 @@ void R105Init()
         }
     }
     if (getRoomEtcWindow(5, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableDamage(0);
-        ((cEmWindow*) win2)->SetEnableFence(0, 0);
+        win2->SetEnableDamage(0);
+        win2->SetEnableFence(0, 0);
     }
     SceAtSetEnable(8, 0);
     if (getRoomEtcDoor(1, &door, 1)) {
@@ -189,7 +189,7 @@ void R105Init()
 // (Room_flg[0] 0x40000000), arm area 8 with the s00/s10 event and close-lock door 1.
 void R105Main()
 {
-    cEm* door;
+    cEmDoor* door;
 
     getRoomEtcDoor(1, &door, 1);
     if (ItfFlagChk(pG, ITF_R105_ITEM) && !(pG->Room_flg[0] & 0x40000000)) {
@@ -198,7 +198,7 @@ void R105Main()
             SceAtSetEnable(8, 1);
             SceAtDataSet_exec(8, SCE_LEVEL10, 0, r105_Event, 0, 1);
             if (door) {
-                ((cEmDoor*) door)->setCloseLock();
+                door->setCloseLock();
             }
         }
     }
@@ -558,7 +558,7 @@ extern "C" void r105_markMtxCopy(Mtx dst, Mtx src)
 // Area 8: the s00 event (first visit) or the s10 event (after the rescue).
 static void r105_Event()
 {
-    cEm* door;
+    cEmDoor* door;
 
     SceEventStart(0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
@@ -576,7 +576,7 @@ static void r105_Event()
         SceAtSetEnable(8, 0);
         getRoomEtcDoor(1, &door, 1);
         if (door) {
-            ((cEmDoor*) door)->setNormal();
+            door->setNormal();
         }
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
@@ -718,8 +718,8 @@ extern "C" void Evt_R105S00_Func(Event* e)
 extern "C" void Evt_R105S10_Func(Event* e)
 {
     void* mod;
-    cEm* win;
-    cEm* win2;
+    cEmWindow* win;
+    cEmWindow* win2;
 
     switch (e->funcMode) {
     case 0:
@@ -753,7 +753,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
         case 0x14:
             if (e->NowFrame == 2) {
                 if (getRoomEtcWindow(5, &win, 1)) {
-                    ((cEmWindow*) win)->SetBreakModel();
+                    win->SetBreakModel();
                 }
             }
             break;
@@ -810,7 +810,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
     case 2:
         setRoomEtcDisp(1, 1, 1);
         if (getRoomEtcWindow(5, &win2, 1)) {
-            ((cEmWindow*) win2)->SetBreakModel();
+            win2->SetBreakModel();
         }
         SceAtSetEnable(0x17, 1);
         break;

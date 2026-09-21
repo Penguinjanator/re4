@@ -96,9 +96,9 @@ int R402CalcActiveEmWarp();
 // the room's messages; the two boat event areas.
 void R402Init()
 {
-    cEm* door0;
-    cEm* door1;
-    cEm* ladder;
+    cEmDoor* door0;
+    cEmDoor* door1;
+    cObjLadder* ladder;
 
     R402Work*& wp = r402_work.p;
 #line 45 "D:/Bio4/Prog/r402.cpp"
@@ -107,7 +107,7 @@ void R402Init()
     SceSetItemEvent(0x15, 0x81, 3, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x81, 0);
     SceSetItemEvent(0x16, 0x82, 4, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x82, 0);
     if (getRoomEtcDoor(0x18, &door0, 1) && getRoomEtcDoor(0x19, &door1, 1)) {
-        ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
+        door0->setDoor(door1);
     }
     R402EmSetSub(0x27, 0xA0, 0);
     R402EmSetSub(0x28, 0xA1, 0);
@@ -123,10 +123,10 @@ void R402Init()
     SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) R402ExecEvent01Main, 0, 1);
     SceAtSetEnable(0x11, 0);
     if (getRoomEtcLadder(0x15, &ladder, 1)) {
-        ((cObjLadder*) ladder)->setOff();
+        ladder->setOff();
     }
     if (getRoomEtcLadder(0x1E, &ladder, 1)) {
-        ((cObjLadder*) ladder)->setOff();
+        ladder->setOff();
     }
     setLadderMotion(0x15);
     setLadderMotion(0x1E);
@@ -179,7 +179,7 @@ void R402Main()
 // The ladder motions of the Ada game (her own climb set from the etc archive).
 static void setLadderMotion(int no)
 {
-    cEm* ladder;
+    cObjLadder* ladder;
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
@@ -209,7 +209,7 @@ static void setLadderMotion(int no)
                 mot[17] = GetEtcAddr(das, "pl01107.fcv");
                 mot[18] = GetEtcAddr(das, "pl01108.fcv");
                 mot[19] = GetEtcAddr(das, "pl01118.fcv");
-                ((cObjLadder*) ladder)->setMotion(mot);
+                ladder->setMotion(mot);
             }
         }
     }
@@ -246,7 +246,7 @@ static void OpenBoxTreasure(int no)
 // Area 15: door 02 opens with the camera on it and three enemies walk in.
 static void R402ExecEvent01Main()
 {
-    cEm* ladder;
+    cObjLadder* ladder;
     int i;
 
     if (pG->Room_flg[0] & 0x80000000) {
@@ -264,12 +264,12 @@ static void R402ExecEvent01Main()
     r402_work.p->em[0x5B].setNoSuspend(1);
     r402_work.p->em[0x5C].setNoSuspend(1);
     if (getRoomEtcLadder(0x15, &ladder, 1)) {
-        ((cObjLadder*) ladder)->setOn();
-        ((cObjLadder*) ladder)->setDowned();
+        ladder->setOn();
+        ladder->setDowned();
     }
     if (getRoomEtcLadder(0x1E, &ladder, 1)) {
-        ((cObjLadder*) ladder)->setOn();
-        ((cObjLadder*) ladder)->setDowned();
+        ladder->setOn();
+        ladder->setDowned();
     }
     SceEventStart(1);
     SceSetEventCancel(1, (TaskFunc) R402ExecEvent01End, 0, -1, 1);
@@ -764,7 +764,7 @@ static void R402EmSetMain()
         }
         if ((pG->Room_flg[2] & 0x800000) && n <= 8) {
             if (!(pG->Room_flg[0] & 0x8000)) {
-                cEm* door;
+                cEmDoor* door;
 
                 getRoomEtcDoor(0x1B, &door, 1);
                 if (door->flag & 0x10000000) {

@@ -160,8 +160,8 @@ void R20cMain()
 // Cage already down at entry: the enemies of the cage event are placed at once.
 static void R20cEmSetMain()
 {
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
 
     SceSleep(1);
     r20c_work.p->em[4].setEm(0xD6, -1, 0, 1, 1);
@@ -169,10 +169,10 @@ static void R20cEmSetMain()
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
     if (door0) {
-        ((cEmDoor*) door0)->setDowned(0);
+        door0->setDowned(0);
     }
     if (door1) {
-        ((cEmDoor*) door1)->setDowned(0);
+        door1->setDowned(0);
     }
 }
 
@@ -180,8 +180,8 @@ static void R20cEmSetMain()
 void R20cExecCageUp()
 {
     cObj* obj;
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
 
     obj = SmdGetObjPtr(6);
     getRoomEtcDoor(0xD, &door0, 1);
@@ -212,8 +212,8 @@ void R20cExecCageUp()
 void R20cExecCageDown(int lock)
 {
     cObj* obj;
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
 
     if (pG->Room_flg[0] & 0x80000000) {
         return;
@@ -235,10 +235,10 @@ void R20cExecCageDown(int lock)
     }
     if (lock == 1) {
         if (door0) {
-            ((cEmDoor*) door0)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 1);
+            door0->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 1);
         }
         if (door1) {
-            ((cEmDoor*) door1)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 1);
+            door1->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 1);
         }
     }
     if (r20c_work.p->sat[0]) {
@@ -254,8 +254,8 @@ void R20cExecCageDown(int lock)
 static void R20cExecCageMain()
 {
     cObj* obj;
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
     int i;
     int k;
 

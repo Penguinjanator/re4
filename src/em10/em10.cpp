@@ -503,10 +503,10 @@ extern "C" int em10GatlingHitCk(cEm10* em);
 // Reference store (same mechanism as FSet): keeps the following global load after the store.
 // Same for an int work field (Dm_Roof: `w->TmpU32 = 1` before the pG load of the water-effect room check).
 
-// Dead test on a cDmgInfo taken by pointer (the upper 16 bits of its flag word), same as em10DeadCk.
+// Dead test on a cDmgInfo taken by pointer (m_Flag or m_Timer set), EmDeadCk without the cEm.
 static inline int em10DmgDeadCk(cDmgInfo* d)
 {
-    return (*(u32*) d & 0xFFFF0000) ? 1 : 0;
+    return (d->m_Flag || d->m_Timer) ? 1 : 0;
 }
 
 #define EM10_WINDOW(w) ((w)->pWindow)
@@ -16987,7 +16987,7 @@ extern "C" void em10GetWanderRoutePos(cEm10* em, Vec* pos)
 
     if (emi && (int) w->Wander_route >= 0 && (int) w->Wander_route < emi->n) {
         EmiEntry* e = &emi->entry[w->Wander_route];
-        if ((*(u32*) e & 0xFFFF0000) == 0x01030000) {
+        if (e->type == 1 && e->sub == 3) {
             *pos = e->pos;
             return;
         }

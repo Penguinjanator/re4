@@ -160,8 +160,8 @@ void R31bInit()
     cEm* sw0;
     cEm* sw1;
     cEm* barred;
-    cEm* door;
-    cEm* door2;
+    cEmDoor* door;
+    cEmDoor* door2;
     cObj* obj;
     cEmHit* hit;
     int i;
@@ -297,12 +297,12 @@ void R31bInit()
         SceAtDataSet_exec(0x23, 0x12, 0, (TaskFunc) R31bExecRoom03U3Main, 0, 1);
         getRoomEtcDoor(4, &door, 1);
         if (door) {
-            ((cEmDoor*) door)->setCloseLock();
+            door->setCloseLock();
         }
     } else {
         getRoomEtcDoor(4, &door2, 1);
         if (door2) {
-            ((cEmDoor*) door2)->setNormal();
+            door2->setNormal();
         }
         SceAtSetEnable(0x24, 0);
     }
@@ -1582,7 +1582,7 @@ static void R31bExecRoom03U3DieMain()
 void R31bExecRoom03U3DieEnd()
 {
     cObj* obj = SmdGetObjPtr(0xEA);
-    cEm* door;
+    cEmDoor* door;
 
     if (obj) {
         obj->setPos(obj->pos.x, 7313.0f, obj->pos.z);
@@ -1599,7 +1599,7 @@ void R31bExecRoom03U3DieEnd()
     }
     getRoomEtcDoor(4, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setNormal();
+        door->setNormal();
     }
     SceAtSetEnable(0x24, 0);
     KyfFlagOn(pG, KYF_ST1_15);

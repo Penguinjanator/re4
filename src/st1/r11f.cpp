@@ -51,7 +51,7 @@ struct R11fWork {
     cEmWrap em0;      // 0x00  the boss (list 0xF8, then 0xF9)
     cEmWrap em1;      // 0x0C  list 0xFA
     cEm* dram;        // 0x18  etc dram 9
-    cEm* win;         // 0x1C  etc window 0xB
+    cEmWindow* win;         // 0x1C  etc window 0xB
     u32 strId;        // 0x20  SndStrReq handle of the fight stream
 };
 
@@ -113,9 +113,9 @@ void R11fInit()
         SceAtSetEnable(4, 0);
     }
     if (getRoomEtcWindow(0xB, &r11f_work->win, 1)) {
-        ((cEmWindow*) r11f_work->win)->SetEnableDamage(0);
-        ((cEmWindow*) r11f_work->win)->SetEtcFlag(3, 1);
-        ((cEmWindow*) r11f_work->win)->SetEnableFence(0, 0);
+        r11f_work->win->SetEnableDamage(0);
+        r11f_work->win->SetEtcFlag(3, 1);
+        r11f_work->win->SetEnableFence(0, 0);
         BitOff(r11f_work->win->be_flag, 2);
         r11f_work->win->hp = 0;
     }
@@ -601,7 +601,7 @@ static void r11f_EventS11()
     CamCtrl.AreaOnOff(6, 0, 1);
     CamCtrl.UnsetAreaAttr(6, 0, 4);
     CamCtrl.SetAreaAttr(6, 0, 3);
-    ((cEmWindow*) r11f_work->win)->SetEnableFence(1, 0);
+    r11f_work->win->SetEnableFence(1, 0);
     while (EffGetAreaState(0) == 1) {
         SceSleep(1);
     }

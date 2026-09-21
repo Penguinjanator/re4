@@ -33,7 +33,7 @@
 // plane that crashes through the wall (with its cut), the cell door key and the item box.
 
 struct R30cWork {
-    cEm* door;          // 0x00  the cell door
+    cEmDoor* door;          // 0x00  the cell door
     cEmWrap em[2];      // 0x04
     cSubChar* ashley;   // 0x1C  pSUB while she is locked away
     u32 strId;          // 0x20  SndStrReq handle of the plane stream
@@ -84,7 +84,7 @@ void R30cInit()
 #line 51 "D:/Bio4/Prog/r30c.cpp"
     wp = (R30cWork*) MEM_CALLOC(sizeof(R30cWork), 1, 0xd);
     if (getRoomEtcDoor(1, &r30c_work.p->door, 1)) {
-        ((cEmDoor*) r30c_work.p->door)->setKey(0x13);
+        r30c_work.p->door->setKey(0x13);
     }
     if (!KyfFlagChk(pG, KYF_R30C_DOOR)) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r30c_checkImprisonDoor, 0, 1);

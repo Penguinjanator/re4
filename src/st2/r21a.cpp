@@ -93,8 +93,8 @@ static void SceBgmCheck();
 // roof state per the saved flags; the Ganado waves and patrol; the battle stream.
 void R21aInit()
 {
-    cEm* win;
-    cEm* door;
+    cEmWindow* win;
+    cEmDoor* door;
     u32 i;
 
     R21aWork*& wp = r21a_work.p;
@@ -105,7 +105,7 @@ void R21aInit()
     SceSetItemEvent(9, 0x88, 4, 2, r21a_moveShelf, r21a_movedShelf, 0x88, 0);
     SceSetItemEvent(9, 0x89, 4, 2, r21a_moveShelf, r21a_movedShelf, 0x89, 0);
     if (getRoomEtcWindow(0x12, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
         win->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -140,7 +140,7 @@ void R21aInit()
         SmdSetTrans(0x40, 0);
         getRoomEtcDoor(5, &door, 1);
         if (door) {
-            ((cEmDoor*) door)->setCloseLock();
+            door->setCloseLock();
         }
         r21a_work.p->em[13].setPtr(0x64, -1, 0);
         r21a_work.p->em[14].setPtr(0x65, -1, 0);
@@ -433,7 +433,7 @@ static void R21aFallRoofStartMain()
 static void R21aFallRoofStartEnd()
 {
     cObj* obj;
-    cEm* door;
+    cEmDoor* door;
 
     SceAtSetEnable(8, 1);
     SmdSetTrans(0x41, 1);
@@ -452,7 +452,7 @@ static void R21aFallRoofStartEnd()
     }
     getRoomEtcDoor(5, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setCloseLock();
+        door->setCloseLock();
     }
     if (r21a_work.p->em[13].isActive() == 0) {
         r21a_work.p->em[13].setEm(0x64, -1, 0, 1, 1);

@@ -139,8 +139,8 @@ void R104Init()
 #line 49 "D:/Bio4/Prog/r104.cpp"
     r104_work = (R104Work*) MEM_CALLOC(sizeof(R104Work), 1, 0xd);
 
-    if (getRoomEtcDoor(1, (cEm**) &r104_work->door0, 1)) {
-        if (getRoomEtcDoor(2, (cEm**) &r104_work->door1, 1)) {
+    if (getRoomEtcDoor(1, &r104_work->door0, 1)) {
+        if (getRoomEtcDoor(2, &r104_work->door1, 1)) {
             r104_work->door0->setDoor(r104_work->door1);
         }
         {

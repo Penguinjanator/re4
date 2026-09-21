@@ -193,11 +193,11 @@ int EtcGetDasAddr(int id, void** out);
 int getRoomEtcBreak(int no, cEm** out, int flag);
 int setRoomEtcDisp(int no, int on, int flag);
 static int setRoomEtcBreakDisp(int no, int on, int flag);
-int getRoomEtcWindow(int no, cEm** out, int flag);
+int getRoomEtcWindow(int no, cEmWindow** out, int flag);
 int getRoomEtcBox(int no, cEm** out, int flag);
-int getRoomEtcDoor(int no, cEm** out, int flag);
+int getRoomEtcDoor(int no, cEmDoor** out, int flag);
 int getRoomEtcRack(int no, cEm** out, int flag);
-int getRoomEtcLadder(int no, cEm** out, int flag);
+int getRoomEtcLadder(int no, cObjLadder** out, int flag);
 int getRoomEtcTorch(int no, cEm** out, int flag);
 int getRoomEtcSwitch(int no, cEm** out, int flag);
 int getRoomEtcBarred(int no, cEm** out, int flag);
@@ -2586,13 +2586,13 @@ static inline void etcDispSet(cUnit* u, int on)
 // (error when flag) when it is none of those.
 int getRoomEtcBreak(int no, cEm** out, int flag)
 {
-    if (getRoomEtcWindow(no, out, 0) == 1) {
+    if (getRoomEtcWindow(no, (cEmWindow**) out, 0) == 1) {
         return 1;
     }
     if (getRoomEtcBox(no, out, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcDoor(no, out, 0) == 1) {
+    if (getRoomEtcDoor(no, (cEmDoor**) out, 0) == 1) {
         return 1;
     }
     if (getRoomEtcTorch(no, out, 0) == 1) {
@@ -2659,7 +2659,7 @@ int getRoomEtcOnLight(u32 id, cModel** out, int flag)
 }
 
 // The window (any of the et00.cpp window ids) in slot `no`.
-int getRoomEtcWindow(int no, cEm** out, int flag)
+int getRoomEtcWindow(int no, cEmWindow** out, int flag)
 {
     if (getRoomEtc(no, ETC_WINDOW00, (cEm**) out, 0) == 1) {
         return 1;
@@ -2785,7 +2785,7 @@ int getRoomEtcBox(int no, cEm** out, int flag)
 }
 
 // The door (any door etc id) in slot `no`.
-int getRoomEtcDoor(int no, cEm** out, int flag)
+int getRoomEtcDoor(int no, cEmDoor** out, int flag)
 {
     if (getRoomEtc(no, ETC_DOOR00, (cEm**) out, 0) == 1) {
         return 1;
@@ -2926,7 +2926,7 @@ int getRoomEtcRack(int no, cEm** out, int flag)
 }
 
 // The ladder (ids 06 / 08) in slot `no`.
-int getRoomEtcLadder(int no, cEm** out, int flag)
+int getRoomEtcLadder(int no, cObjLadder** out, int flag)
 {
     if (getRoomEtc(no, ETC_HASIGO00, (cEm**) out, 0) == 1) {
         return 1;

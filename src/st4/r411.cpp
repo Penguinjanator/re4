@@ -62,7 +62,7 @@ void R411Main()
 // The door unlocks once the first wave's leader is gone.
 static void r411_checkDoorUnlock()
 {
-    cEm* door;
+    cEmDoor* door;
 
     SceSleep(1);
     cEmWrap em;
@@ -73,7 +73,7 @@ static void r411_checkDoorUnlock()
     RsfClear(G_ROOM_ID, 3);
     SceAtSetEnable(0xF, 0);
     if (getRoomEtcDoor(1, &door, 1)) {
-        ((cEmDoor*) door)->setNormal();
+        door->setNormal();
     }
     SceExec(0x12, (TaskFunc) r411_checkEmSet3, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -81,10 +81,10 @@ static void r411_checkDoorUnlock()
 // Close-lock door 1 and enable its area 0xF.
 extern "C" void r411_lockDoor()
 {
-    cEm* door;
+    cEmDoor* door;
 
     if (getRoomEtcDoor(1, &door, 1)) {
-        ((cEmDoor*) door)->setCloseLock();
+        door->setCloseLock();
     }
     SceAtSetEnable(0xF, 1);
 }

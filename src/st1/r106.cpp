@@ -78,7 +78,7 @@ void R106Init()
 {
     Vec pos;
     Vec rot;
-    cEm* door;
+    cEmDoor* door;
     cEm* rack;
     cEmHit* hit;
 
@@ -89,7 +89,7 @@ void R106Init()
     EvtMgr.SetFunc("evt_r106s00_func", (void*) Evt_R106S00_Func);
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r106_eff_info);
     if (getRoomEtcDoor(8, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0);
     }
     SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, r106_openedShelf, 0, 0);
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, r106_openedShelf, 1, 0);

@@ -33,15 +33,15 @@ static void r40b_checkEmSet1();
 // bit 0; the pedestal item (area 0x81, kept updating) with its camera show on area 1 until Item_flg[0] 8.
 void R40bInit()
 {
-    cEm* win;
+    cEmWindow* win;
 
 #line 37 "D:/Bio4/Prog/r40b.cpp"
     r40b_work = (R40bWork*) MEM_CALLOC(sizeof(R40bWork), 1, 0xd);
     if (getRoomEtcWindow(0xA, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 0);
+        win->SetEnableFence(0, 0);
     }
     if (getRoomEtcWindow(0xB, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 0);
+        win->SetEnableFence(0, 0);
     }
     {
         cObj* obj = SmdGetObjPtr(6);

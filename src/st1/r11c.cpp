@@ -144,10 +144,10 @@ void R11cInit()
     EstSet(pPL, -1, 0, 0, EFF_CORE, 0x23, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-    getRoomEtcLadder(6, (cEm**) &W->ladder[0], 1);
-    getRoomEtcLadder(7, (cEm**) &W->ladder[1], 1);
-    getRoomEtcLadder(8, (cEm**) &W->ladder[2], 1);
-    getRoomEtcLadder(9, (cEm**) &W->ladder[3], 1);
+    getRoomEtcLadder(6, &W->ladder[0], 1);
+    getRoomEtcLadder(7, &W->ladder[1], 1);
+    getRoomEtcLadder(8, &W->ladder[2], 1);
+    getRoomEtcLadder(9, &W->ladder[3], 1);
     if (!(r11c_save()->flags & 0x02000000)) {
         if (W->ladder[0]) {
             W->ladder[0]->setOff();
@@ -253,19 +253,19 @@ void R11cInit()
 // The ladders the player knocked down are remembered in the room save block.
 void R11cMain()
 {
-    cEm* ladder;
+    cObjLadder* ladder;
 
     if (r11c_save()->flags & 0x02000000) {
-        if (getRoomEtcLadder(6, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 0) {
+        if (getRoomEtcLadder(6, &ladder, 1) && ladder->getStatus() == 0) {
             r11c_save()->flags |= 0x01000000;
         }
-        if (getRoomEtcLadder(7, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 0) {
+        if (getRoomEtcLadder(7, &ladder, 1) && ladder->getStatus() == 0) {
             r11c_save()->flags |= 0x00800000;
         }
-        if (getRoomEtcLadder(8, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 0) {
+        if (getRoomEtcLadder(8, &ladder, 1) && ladder->getStatus() == 0) {
             r11c_save()->flags |= 0x00400000;
         }
-        if (getRoomEtcLadder(9, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 0) {
+        if (getRoomEtcLadder(9, &ladder, 1) && ladder->getStatus() == 0) {
             r11c_save()->flags |= 0x00200000;
         }
     }
@@ -291,7 +291,7 @@ extern "C" void r11c_eventInit()
 // 3600 frames passed, then the s10 event and the chapter end.
 static void r11c_EventBesiegedStart()
 {
-    cEm* door;
+    cEmDoor* door;
     ReadModule* mod;
     int err;
 
@@ -307,7 +307,7 @@ static void r11c_EventBesiegedStart()
     }
     if (getRoomEtcDoor(0xA, &door, 1)) {
         door->setNoSuspend(0);
-        ((cEmDoor*) door)->setCloseLock();
+        door->setCloseLock();
     }
     SysFlagOn(pG, SYS_SCREEN_STOP);
     err = W->evd0->waitLoadOk() == 0;
@@ -392,11 +392,11 @@ static void r11c_EventBesiegedStart()
     }
     cEm* em[20];
     cEm* e;
-    cEm* win;
-    cEm* ladder;
+    cEmWindow* win;
+    cObjLadder* ladder;
     Event* ev;
-    cEm* door2;
-    cEm* win2;
+    cEmDoor* door2;
+    cEmWindow* win2;
     int n;
     int i;
     int kill;
@@ -416,25 +416,25 @@ static void r11c_EventBesiegedStart()
     EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
     setFire();
     if (getRoomEtcWindow(3, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(4, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(5, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(0x12, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(0x13, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(0x14, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     if (getRoomEtcWindow(0x15, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 1);
+        win->SetEnableFence(0, 1);
     }
     n = 0;
     e = EmSetFromList2(0xC9, 0);
@@ -511,16 +511,16 @@ static void r11c_EventBesiegedStart()
             r11c_save()->flags |= 0x02000000;
             W->ashley->set = 2;
             if (getRoomEtcLadder(6, &ladder, 1)) {
-                ((cObjLadder*) ladder)->setOn();
+                ladder->setOn();
             }
             if (getRoomEtcLadder(7, &ladder, 1)) {
-                ((cObjLadder*) ladder)->setOn();
+                ladder->setOn();
             }
             if (getRoomEtcLadder(8, &ladder, 1)) {
-                ((cObjLadder*) ladder)->setOn();
+                ladder->setOn();
             }
             if (getRoomEtcLadder(9, &ladder, 1)) {
-                ((cObjLadder*) ladder)->setOn();
+                ladder->setOn();
             }
         }
         if (kill > 39 || t > 8999 || DebugTrg(0) == 1) {
@@ -588,28 +588,28 @@ static void r11c_EventBesiegedStart()
     }
     CamCtrl.AreaOnOff(1, 0, 0);
     if (getRoomEtcDoor(0xA, &door2, 1)) {
-        ((cEmDoor*) door2)->setNormal();
+        door2->setNormal();
     }
     if (getRoomEtcWindow(3, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(4, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(5, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(0x12, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(0x13, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(0x14, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (getRoomEtcWindow(0x15, &win2, 1)) {
-        ((cEmWindow*) win2)->SetEnableFence(1, 1);
+        win2->SetEnableFence(1, 1);
     }
     if (W->ladder[0]) {
         W->ladder[0]->be_flag |= 2;
@@ -1246,7 +1246,7 @@ extern "C" void Evt_R11CS20_Func(Event* e)
 {
     // Function scope: the address-taken `door` of a case block is kept until the switch ends, so
     // a second block-local `door` would get its own slot.
-    cEm* door;
+    cEmDoor* door;
 
     switch (e->funcMode) {
     case 0:

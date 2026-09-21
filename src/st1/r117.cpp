@@ -141,10 +141,10 @@ void R117Init()
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
     if (!ScfFlagChk(pG, SCF_R117_FIND_ASHLEY)) {
-        cEm* door;
+        cEmDoor* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
-            ((cEmDoor*) door)->setCloseLock();
+            door->setCloseLock();
         }
         W->evd0 = DC.setData(EvtMgr.NameChange("evd/r117s00.evd"));
         W->evd0->setCommand(CMND_ARAM_LOAD, 0, 0);
@@ -367,7 +367,7 @@ extern "C" void r117_LightDirCalc(int n)
 // Area 7: Ashley is found (the s00 event), the sub screen terminal, the door opens.
 static void r117_EventAshleyFind()
 {
-    cEm* door;
+    cEmDoor* door;
 
     ScfFlagOn(pG, SCF_R117_FIND_ASHLEY);
     ScfFlagOff(pG, SCF_90);
@@ -395,7 +395,7 @@ static void r117_EventAshleyFind()
     W->evd1->setCommand(CMND_ARAM_LOAD, 0, 0);
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r117_EventSaddlerAppear, 0, 1);
     if (getRoomEtcDoor(0, &door, 1)) {
-        ((cEmDoor*) door)->setNormal();
+        door->setNormal();
     }
 }
 

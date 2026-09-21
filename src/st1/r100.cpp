@@ -620,7 +620,7 @@ static void r100_StartEvent()
 // ambush hunts the player, then a normal door.
 static void r100_DoorCk()
 {
-    cEm* door;
+    cEmDoor* door;
     int found = 0;
     int i;
 
@@ -628,7 +628,7 @@ static void r100_DoorCk()
         return;
     }
     while (RsfCheck(G_ROOM_ID, 3) == 0) {
-        ((cEmDoor*) door)->setOpenLock(0);
+        door->setOpenLock(0);
         SceSleep(1);
     }
     pG->Room_flg[0] &= ~0x80000000;
@@ -658,26 +658,26 @@ static void r100_DoorCk()
                 found = 1;
             }
         }
-        ((cEmDoor*) door)->setOpenLock(0);
+        door->setOpenLock(0);
         SceSleep(1);
     }
     i = 0;
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        ((cEmDoor*) door)->setCloseLock();
+        door->setCloseLock();
         SceSleep(1);
         if (i++ == 19) {
             SceAtSetEnable(0xB, 1);
         }
     }
     SceAtSetEnable(0xB, 0);
-    ((cEmDoor*) door)->setNormal();
+    door->setNormal();
 }
 
 // The two windows of the first house: fenced while the ambush hunts the player.
 static void r100_WindowBreakCk()
 {
-    cEm* win0;
-    cEm* win1;
+    cEmWindow* win0;
+    cEmWindow* win1;
 
     if (getRoomEtcWindow(0, &win0, 1) == 0) {
         return;
@@ -686,12 +686,12 @@ static void r100_WindowBreakCk()
         return;
     }
     while (RsfCheck(G_ROOM_ID, 10) == 0) {
-        ((cEmWindow*) win0)->SetEnableFence(0, 0);
-        ((cEmWindow*) win1)->SetEnableFence(0, 0);
+        win0->SetEnableFence(0, 0);
+        win1->SetEnableFence(0, 0);
         SceSleep(1);
     }
-    ((cEmWindow*) win0)->SetEnableFence(1, 0);
-    ((cEmWindow*) win1)->SetEnableFence(1, 0);
+    win0->SetEnableFence(1, 0);
+    win1->SetEnableFence(1, 0);
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
         if (!(pG->Room_flg[2] & 0x80000000)) {
             RsfSet(G_ROOM_ID, 4);

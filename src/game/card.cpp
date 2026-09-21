@@ -1779,7 +1779,7 @@ int cCard::initialize(int type)
             s = Snd.str_work;
             i = 0;
             do {
-                if ((*(u32*) s & 0xFFFF0000) == 0x01000000) {
+                if (s->used == 1 && s->stat == 0) {
                     str[i].id = s->id;
                     str[i].vol = s->vol;
                     SndStrReq(s->id, 4, 100, 1);

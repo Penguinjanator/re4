@@ -89,7 +89,7 @@ static void r11e_checkDoor();
 // props, the giant's appearance area and the battle stream.
 void R11eInit()
 {
-    cEm* door;
+    cEmDoor* door;
 
 #line 75 "D:/Bio4/Prog/r11e.cpp"
     r11e_work = (R11eWork*) MEM_CALLOC(sizeof(R11eWork), 1, 0xd);
@@ -256,12 +256,12 @@ extern "C" void sakuA_destroy()
 {
     Vec pos = {1329.0f, 0.0f, 35360.0f};
     Vec rot = {0.0f, -2.3561945f, 0.0f};
-    cEm* door;
+    cEmDoor* door;
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
     EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     if (getRoomEtcDoor(0xE, &door, 1)) {
-        ((cEmDoor*) door)->setBreak(&r11e_sakuATarget);
+        door->setBreak(&r11e_sakuATarget);
     }
     sakuA_delete();
 }
@@ -271,12 +271,12 @@ extern "C" void sakuB_destroy()
 {
     Vec pos = {44629.0f, 0.0f, 37658.0f};
     Vec rot = {0.0f, -1.5707964f, 0.0f};
-    cEm* door;
+    cEmDoor* door;
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
     EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     if (getRoomEtcDoor(0xF, &door, 1)) {
-        ((cEmDoor*) door)->setBreak(&r11e_sakuBTarget);
+        door->setBreak(&r11e_sakuBTarget);
     }
     sakuB_delete();
 }

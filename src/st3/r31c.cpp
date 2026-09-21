@@ -123,7 +123,7 @@ struct R31cWork {
     cR31CPost post[8];      // 0x030
     cEmWrap krauser;        // 0x2B0  Krauser of the knife fight (list 0x19)
     cEmWrap krauser2;       // 0x2BC  Krauser of the second battle (list 0x13)
-    cEm* door8;             // 0x2C8  etc door 8 (the battle arena door)
+    cEmDoor* door8;             // 0x2C8  etc door 8 (the battle arena door)
     cEm* rack;              // 0x2CC  etc rack 0x10
     ScePrim* talkTask;      // 0x2D0  the running r31c_TalktoKrauser task
     cR31CDoor door[9];      // 0x2D4  ids 0x78 0x79 0x7C 0x7B 0x7D 0x7E 0x7F 0x80 0x6D
@@ -381,7 +381,7 @@ void R31cInit()
     }
     getRoomEtcDoor(8, &r31c_work.p->door8, 1);
     if (r31c_work.p->door8 && RsfCheck(G_ROOM_ID, 0xF) == 0) {
-        ((cEmDoor*) r31c_work.p->door8)->setCloseLock();
+        r31c_work.p->door8->setCloseLock();
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r31c_Krauser1stBattle, 0, 1);
         EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
         BitOff(pG->Key_flg[1], 0x00020000);
@@ -964,7 +964,7 @@ void r31c_TimerDoorCountDownEndProc()
 {
     cEm39* em;
 
-    ((cEmDoor*) r31c_work.p->door8)->setNormal();
+    r31c_work.p->door8->setNormal();
     CamCtrl.Comeback(0);
     SceAtSetEnable(0x11, 0);
     em = (cEm39*) r31c_work.p->krauser.getPtr();
@@ -1004,7 +1004,7 @@ void r31c_TimerDoorCancel()
 
     EffectDelete(1, ESP_CORE_KIND_ROOM01);
     EstSet(r31c_work.p->door8, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_NONE, 0, 0);
-    ((cEmDoor*) r31c_work.p->door8)->setNormal();
+    r31c_work.p->door8->setNormal();
     SceAtSetEnable(0x11, 0);
     em = (cEm39*) r31c_work.p->krauser.getPtr();
     if (em) {

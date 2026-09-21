@@ -33,7 +33,7 @@ static void r111_ThunderMove();
 void R111Init()
 {
     cEm* rack;
-    cEm* win;
+    cEmWindow* win;
 
 #line 47 "D:/Bio4/Prog/r111.cpp"
     r111_work = (R111Work*) MEM_CALLOC(sizeof(R111Work), 1, 0xd);
@@ -60,10 +60,10 @@ void R111Init()
     }
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (getRoomEtcWindow(0, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
     }
     if (getRoomEtcWindow(0x13, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
     }
     FlrAtSetDefVal(0, 0, 3);
 }

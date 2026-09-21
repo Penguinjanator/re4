@@ -55,7 +55,7 @@ static void r304_LockerOpened(int no);
 // effect 1. Area 3 = the two Ganados until bit 1; case / locker item events; the two monitor render targets.
 void R304Init()
 {
-    cEm* win;
+    cEmWindow* win;
     int i;
     void* zero = 0;
 
@@ -68,7 +68,7 @@ void R304Init()
         EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, zero, zero);
         for (i = 0x19; i <= 0x1F; i++) {
             if (getRoomEtcWindow(i, &win, 1)) {
-                ((cEmWindow*) win)->SetEnableDamage(0);
+                win->SetEnableDamage(0);
             }
         }
     } else {
@@ -124,7 +124,7 @@ static void r304_EnemySet()
 // Area 2: the s00 event.
 void R304EventS00()
 {
-    cEm* win;
+    cEmWindow* win;
     int i;
 
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -139,7 +139,7 @@ void R304EventS00()
         SndRoomStrStart(1, 0, 1);
         for (i = 0x19; i <= 0x1F; i++) {
             if (getRoomEtcWindow(i, &win, 1)) {
-                ((cEmWindow*) win)->SetEnableDamage(1);
+                win->SetEnableDamage(1);
             }
         }
     }

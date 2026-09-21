@@ -96,9 +96,9 @@ void EvtTexRenderCamTrans(Event* e, int cut);
 // the entry camera once (bit 21); waves, stream and floor render target.
 void R20bInit()
 {
-    cEm* door0;
-    cEm* door1;
-    cEm* door;
+    cEmDoor* door0;
+    cEmDoor* door1;
+    cEmDoor* door;
     cModel* item;
     int zero;
 
@@ -109,7 +109,7 @@ void R20bInit()
     pG->Room_flg[0] &= 0x7FFFFFFF;
     R20bScrTrans(1);
     if (getRoomEtcDoor(3, &door0, 1) != 0 && getRoomEtcDoor(8, &door1, 1) != 0) {
-        ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
+        door0->setDoor(door1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r20bs00.evd", (u8) GetEmIdFromList(0x11), 0, 0, 0);
@@ -128,11 +128,11 @@ void R20bInit()
     }
     getRoomEtcDoor(6, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     getRoomEtcDoor(7, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     SceAtSetEnable(0x8C, 1);
     item = SceAtItemModelPtr(0x8C);
@@ -318,9 +318,9 @@ static void OpenBoxTreasure(int id)
 // The enemy waves of the hall, keyed to the at areas the player crosses.
 static void R20bEmSetMain()
 {
-    cEm* door0;
-    cEm* door1;
-    cEm* door;
+    cEmDoor* door0;
+    cEmDoor* door1;
+    cEmDoor* door;
     int hurt;
     int open;
 
@@ -383,7 +383,7 @@ static void R20bEmSetMain()
                         Vec pos = {17000.0f, 87.0f, -3600.0f};
 
                         if (door0) {
-                            ((cEmDoor*) door0)->setOpen(&pos, 0, 0, 1);
+                            door0->setOpen(&pos, 0, 0, 1);
                         }
                     }
                 }
@@ -405,7 +405,7 @@ static void R20bEmSetMain()
                         Vec pos = {-1100.0f, 0.0f, -39000.0f};
 
                         if (door1) {
-                            ((cEmDoor*) door1)->setOpen(&pos, 0, 0, 1);
+                            door1->setOpen(&pos, 0, 0, 1);
                         }
                     }
                 }
@@ -521,11 +521,11 @@ static void R20bEmSetMain()
         open = 0;
         getRoomEtcDoor(6, &door, 1);
         if (door) {
-            open = ((cEmDoor*) door)->ckOpen() == 1;
+            open = door->ckOpen() == 1;
         }
         getRoomEtcDoor(7, &door, 1);
         if (door) {
-            if (((cEmDoor*) door)->ckOpen() == 1) {
+            if (door->ckOpen() == 1) {
                 open = 1;
             }
         }

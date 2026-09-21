@@ -83,7 +83,7 @@ void R10fInit()
 {
     Vec pos;
     Vec rot;
-    cEm* win;
+    cEmWindow* win;
 
 #line 57 "D:/Bio4/Prog/r10f.cpp"
     r10f_work.p = (R10fWork*) MEM_CALLOC(sizeof(R10fWork), 1, 0xd);
@@ -141,7 +141,7 @@ void R10fInit()
         }
     }
     if (getRoomEtcWindow(0xC, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
     }
     SceSetItemEvent(0xA, 0x81, 1, 0xD, r10f_LockerOpen, r10f_LockerOpened, 0x35, 0);
     SceSetItemEvent(0xB, 0x8E, 2, 0xF, r10f_LockerOpen, r10f_LockerOpened, 0x36, 0);

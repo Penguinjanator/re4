@@ -102,14 +102,14 @@ static void setLadderMotion(int no);
 // with the room's messages; three duralumin case item events.
 void R403Init()
 {
-    cEm* win;
+    cEmWindow* win;
 
 #line 53 "D:/Bio4/Prog/r403.cpp"
     r403_work.p = (R403Work*) MEM_CALLOC(sizeof(R403Work), 1, 0xd);
     setLadderMotion(0);
     setLadderMotion(0x1D);
     if (getRoomEtcWindow(0x1E, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
         win->be_flag &= ~2;
     }
     EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoom, 0x36), ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x38));
@@ -729,7 +729,7 @@ static void setTexRender()
 // The ladder motions of the Ada game (her own climb set from the etc archive).
 static void setLadderMotion(int no)
 {
-    cEm* ladder;
+    cObjLadder* ladder;
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
@@ -760,7 +760,7 @@ static void setLadderMotion(int no)
                 mot[18] = GetEtcAddr(das, "pl01108.fcv");
                 mot[19] = GetEtcAddr(das, "pl01118.fcv");
 
-                ((cObjLadder*) ladder)->setMotion(mot);
+                ladder->setMotion(mot);
             }
         }
     }

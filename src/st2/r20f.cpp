@@ -91,7 +91,7 @@ void R20fInit()
     wp = (R20fWork*) MEM_CALLOC(sizeof(R20fWork), 1, 0xd);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    cEm* door;
+    cEmDoor* door;
     for (i = 0; i < 3; i++) {
         r20f_work.p->sat[i] = NULL;
         r20f_work.p->eat[i] = NULL;
@@ -106,7 +106,7 @@ void R20fInit()
     }
     getRoomEtcDoor(0xF, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     obj0 = SmdGetObjPtr(0x18);
     obj1 = SmdGetObjPtr(0x19);

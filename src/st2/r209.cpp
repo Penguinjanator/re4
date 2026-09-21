@@ -96,11 +96,11 @@ struct R209Work {
     int pad_010[9];      // 0x010
     cObj* head;          // 0x034  the leader's head object
     R209Em em[23];       // 0x038
-    cEm* door9;          // 0x4E4
+    cEmDoor* door9;          // 0x4E4
     int pad_4E8;         // 0x4E8
-    cEm* door4;          // 0x4EC
-    cEm* door2;          // 0x4F0
-    cEm* door3;          // 0x4F4
+    cEmDoor* door4;          // 0x4EC
+    cEmDoor* door2;          // 0x4F0
+    cEmDoor* door3;          // 0x4F4
     u32 plInPlaceCnt;    // 0x4F8
     int leaderInPlace;   // 0x4FC
     int plInPlace;       // 0x500
@@ -278,7 +278,7 @@ void R209Init()
     r209_work.p->door[6].init(0xA1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         if (getRoomEtcDoor(9, &r209_work.p->door9, 1) == 1) {
-            ((cEmDoor*) r209_work.p->door9)->setCloseLock();
+            r209_work.p->door9->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r209_DoorMessage, 0, 1);
             SceExec(0x12, (TaskFunc) r209_CheckUseSalonKey, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -552,7 +552,7 @@ static void r209_LeaderAction()
 // updating) points at the player and the escorts 6/7 turn hostile; player-cancellable.
 static void r209_LeaderPointAtPlayer()
 {
-    cEm* door;
+    cEmDoor* door;
     int opened = 0;
 
     getRoomEtcDoor(1, &door, 1);
@@ -892,7 +892,7 @@ static void r209_CheckUseSalonKey()
     RsfSet(G_ROOM_ID, 2);
     ScfFlagOn(pG, SCF_73);
     SceAtSetEnable(2, 0);
-    ((cEmDoor*) r209_work.p->door9)->setNormal();
+    r209_work.p->door9->setNormal();
     SceUpCut(1, -1, 2, 0);
 }
 
@@ -1248,7 +1248,7 @@ static void r209_2ndBattleFinishEndProc()
         r209_work.p->door[5].setOpened();
     }
     SceAtSetEnable(0, 1);
-    ((cEmDoor*) r209_work.p->door4)->setNormal();
+    r209_work.p->door4->setNormal();
     SmdGetObjPtr(2)->be_flag &= ~2;
     SmdGetObjPtr(3)->be_flag &= ~2;
     CamCtrl.Comeback(0);
@@ -1385,7 +1385,7 @@ static void r209_BridgeAppearCheck()
 static void r209_BridgeAppearCheckEnd()
 {
     cObj* obj = SmdGetObjPtr(0xAD);
-    cEm* door;
+    cEmDoor* door;
 
     if (pG->Room_flg[0] & 0x00100000) {
         if (r209_work.p->seId) {
@@ -1783,8 +1783,8 @@ static void Evt_R209S00_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        ((cEmDoor*) r209_work.p->door4)->setClose();
-        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
+        r209_work.p->door4->setClose();
+        r209_work.p->door4->setCloseLock();
         break;
     case 1:
         if (e->NowCut == 0 && e->NowFrame == 0) {
@@ -2224,7 +2224,7 @@ void cR209Door::open()
             break;
         case 2:
             se = 6;
-            ((cEmDoor*) r209_work.p->door4)->setNormal();
+            r209_work.p->door4->setNormal();
             break;
         case 3:
             se = 4;
@@ -2283,7 +2283,7 @@ void cR209Door::close()
             se = -1;
             break;
         case 2:
-            ((cEmDoor*) r209_work.p->door4)->setCloseLock();
+            r209_work.p->door4->setCloseLock();
             spd = -50.0f;
             se = -1;
             break;
@@ -2422,7 +2422,7 @@ void cR209Door::setOpened()
         SceAtSetEnable(0, 1);
         break;
     case 2:
-        ((cEmDoor*) r209_work.p->door4)->setNormal();
+        r209_work.p->door4->setNormal();
         break;
     case 0xA1:
         break;
@@ -2452,7 +2452,7 @@ void cR209Door::setClosed()
         SceAtSetEnable(0, 0);
         break;
     case 2:
-        ((cEmDoor*) r209_work.p->door4)->setCloseLock();
+        r209_work.p->door4->setCloseLock();
         break;
     case 0xA1:
         break;

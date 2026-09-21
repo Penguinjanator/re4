@@ -26,8 +26,8 @@
 // Ganado that follow the player in from 30B and the item boxes.
 
 struct R306Work {
-    cEm* door1;    // 0x00
-    cEm* door2;    // 0x04
+    cEmDoor* door1;    // 0x00
+    cEmDoor* door2;    // 0x04
     cEmWrap em[2]; // 0x08
 };
 
@@ -72,7 +72,7 @@ void R306Init()
 #line 48 "D:/Bio4/Prog/r306.cpp"
     r306_work = (R306Work*) MEM_CALLOC(sizeof(R306Work), 1, 0xd);
     if (getRoomEtcDoor(0x14, &r306_work->door1, 1) && getRoomEtcDoor(0x15, &r306_work->door2, 1)) {
-        ((cEmDoor*) r306_work->door1)->setDoor((cEmDoor*) r306_work->door2);
+        r306_work->door1->setDoor(r306_work->door2);
     }
     if (!KyfFlagChk(pG, KYF_R306_TO_R308_DOOR)) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r306_checkDoor308, 0, 1);

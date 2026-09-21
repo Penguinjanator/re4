@@ -10,6 +10,7 @@
 #include "scroll.h"
 #include "em.h"
 #include "etc_model.h"
+#include "emdoor.h"
 #include "player.h"
 #include "pl_npc.h"
 #include "pl_sub.h"
@@ -50,7 +51,7 @@ static void r315_TanaOpened(int no);
 // once (Room_flg bit 0); the duralumin case and two shelf item events; door 6 loses light select bit 4.
 void R315Init()
 {
-    cEm* door;
+    cEmDoor* door;
 
 #line 45 "D:/Bio4/Prog/r315.cpp"
     r315_work = (R315Work*) MEM_CALLOC(sizeof(R315Work), 1, 0xd);

@@ -149,16 +149,16 @@ static void r307_appearEm();
 // the stream if the regenerator 0x32 still lives, areas 7/8 off); the rotation puzzle.
 void R307Init()
 {
-    cEm* win;
+    cEmWindow* win;
 
     R307Work*& wp = r307_work.p;
 #line 43 "D:/Bio4/Prog/r307.cpp"
     wp = (R307Work*) MEM_CALLOC(sizeof(R307Work), 1, 0xd);
     if (getRoomEtcWindow(0xA, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 0);
+        win->SetEnableFence(0, 0);
     }
     if (getRoomEtcWindow(0xB, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableFence(0, 0);
+        win->SetEnableFence(0, 0);
     }
     void* zero = 0;
     if (RsfCheck(G_ROOM_ID, 1) == 0) {

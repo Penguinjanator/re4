@@ -112,7 +112,7 @@ void R311Init()
     r311_initEmDoor();
     r311_initIronBall();
     SceExec(0x12, (TaskFunc) r311_checkBgm, 0, 0, 2, 0);
-    if (getRoomEtcDoor(4, (cEm**) &door4, 1) != 0 && getRoomEtcDoor(5, (cEm**) &door5, 1) != 0) {
+    if (getRoomEtcDoor(4, &door4, 1) != 0 && getRoomEtcDoor(5, &door5, 1) != 0) {
         door4->setDoor(door5);
     }
     SceExec(0x12, (TaskFunc) r311_checkAshleyKidnap, 0, 0, 2, 0);

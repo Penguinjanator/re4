@@ -42,14 +42,14 @@ static void r107_checkBgmPlay();
 // kiln 1, reusing r104's opener), the water hit effects and the fish height task.
 void R107Init()
 {
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
 
 #line 50 "D:/Bio4/Prog/r107.cpp"
     r107_work = (R107Work*) MEM_CALLOC(1, 1, 0xd);
 
     if (getRoomEtcDoor(0, &door0, 1) && getRoomEtcDoor(0x15, &door1, 1)) {
-        ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
+        door0->setDoor(door1);
     }
     SceExec(0x12, (TaskFunc) r107_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {

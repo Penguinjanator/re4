@@ -152,14 +152,17 @@ int getRoomEtcOnLight(u32 id, class cModel** out, int flag);
 
 // Room etc enemies by etc number (the stage rooms delete / hide them); 1 = found.
 class cEm;
+class cEmWindow;   // emwindow.h
+class cEmDoor;     // emdoor.h
+class cObjLadder;  // obj13.h
 extern "C" {
 int getRoomEtcBreak(int no, cEm** out, int flag);
 int setRoomEtcDisp(int no, int on, int flag);
-int getRoomEtcWindow(int no, cEm** out, int flag);
+int getRoomEtcWindow(int no, cEmWindow** out, int flag);
 int getRoomEtcBox(int no, cEm** out, int flag);
-int getRoomEtcDoor(int no, cEm** out, int flag);
+int getRoomEtcDoor(int no, cEmDoor** out, int flag);
 int getRoomEtcRack(int no, cEm** out, int flag);
-int getRoomEtcLadder(int no, cEm** out, int flag);
+int getRoomEtcLadder(int no, cObjLadder** out, int flag);
 int getRoomEtcTorch(int no, cEm** out, int flag);
 int getRoomEtcSwitch(int no, cEm** out, int flag);
 int getRoomEtcBarred(int no, cEm** out, int flag);

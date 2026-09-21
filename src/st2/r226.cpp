@@ -171,7 +171,7 @@ static inline void r226_setEmAll(int noSuspend)
 // waking; area 0x18 = the statue watching once (bit 10); the chase BGM task.
 void R226Init()
 {
-    cEm* door;
+    cEmDoor* door;
     u32 i;
     cObj* o;
 
@@ -205,7 +205,7 @@ void R226Init()
     }
     getRoomEtcDoor(0xA, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x5A), ROOM_ARC_PTR(pG->pRoom, 0x5B), 1, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x5A), ROOM_ARC_PTR(pG->pRoom, 0x5B), 1, 0);
     }
     Vec zeroPos = {0.0f, 0.0f, 0.0f};
     Vec zeroRot = {0.0f, 0.0f, 0.0f};
@@ -847,7 +847,7 @@ static void R226EventRoboWalkPassageGoal()
 // Task: the player looks up at the tower once the door is open (event cut 15).
 static void R226EventTowerLookMain()
 {
-    cEm* door;
+    cEmDoor* door;
 
     if (RsfCheck(G_ROOM_ID, 14)) {
         return;

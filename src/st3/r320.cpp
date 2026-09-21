@@ -277,8 +277,8 @@ void addMisileUseNum()
 // s01 callbacks.
 void R320Init()
 {
-    cEm* win;
-    cEm* door;
+    cEmWindow* win;
+    cEmDoor* door;
     u32 i;
 
 #line 224 "D:/Bio4/Prog/r320.cpp"
@@ -299,7 +299,7 @@ void R320Init()
     PartsMgr.warnDiv = 100;
     DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (getRoomEtcWindow(0x1E, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
         win->be_flag &= ~2;
     }
     ShadowMngReAlloc(0x100);
@@ -377,11 +377,11 @@ void R320Init()
     (void*&) r320_work->sat[7] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
     getRoomEtcDoor(2, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
     }
     getRoomEtcDoor(0x18, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
     }
     if ((R320_SAVE_FLAGS & 0x40000000) == 0) {
         pos.x = 60203.0f;
@@ -1225,7 +1225,7 @@ static void appear_c()
 static void appear_d()
 {
     cEmGanado* em;
-    cEm* door;
+    cEmDoor* door;
     u32 i;
 
     if (SceCheckEventStart()) {
@@ -1258,7 +1258,7 @@ static void appear_d()
         r320_work->em[0x11].setGoto(&r320_posB[3], 6);
         getRoomEtcDoor(0x18, &door, 1);
         if (door) {
-            ((cEmDoor*) door)->setBreak(&pPL->pos);
+            door->setBreak(&pPL->pos);
         }
         r320_work->em[0x12].setNoSuspend(1);
         r320_work->em[0x14].setNoSuspend(1);
@@ -1294,11 +1294,11 @@ static void appear_e()
     scr_set();
     {
         Vec pos = {72593.0f, 9390.0f, 7073.0f};
-        cEm* door;
+        cEmDoor* door;
 
         getRoomEtcDoor(2, &door, 1);
         if (door) {
-            ((cEmDoor*) door)->setBreak(&pos);
+            door->setBreak(&pos);
         }
     }
     emset(0x17, 0x28);
@@ -2033,7 +2033,7 @@ static void destroy_2()
 // Target 3 destroyed (as destroy_1).
 static void destroy_3()
 {
-    cEm* door;
+    cEmDoor* door;
 
     while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
@@ -2050,7 +2050,7 @@ static void destroy_3()
     SceSleep(0xF);
     getRoomEtcDoor(2, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setBreak(&pPL->pos);
+        door->setBreak(&pPL->pos);
     }
     r320_work->heri.setNoSuspend(1);
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);

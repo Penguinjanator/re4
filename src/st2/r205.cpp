@@ -58,8 +58,8 @@ struct R205Work {
     cObj* pole[4];       // 0x38  the blade poles that rise with the swing ([1] unused)
     cEmHit* hit[4];      // 0x48
     R205Em ems[8];       // 0x58
-    cEm* door0;          // 0xD8
-    cEm* door1;          // 0xDC
+    cEmDoor* door0;          // 0xD8
+    cEmDoor* door1;          // 0xDC
 };
 
 static u8 r205_texTbl[0x20];
@@ -170,12 +170,12 @@ void R205Init()
     SceAtSetEnable(0x22, 0);
     if (getRoomEtcDoor(0x13, &r205_work.p->door0, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
-            ((cEmDoor*) r205_work.p->door0)->setCloseLock();
+            r205_work.p->door0->setCloseLock();
         }
     }
     if (getRoomEtcDoor(0x14, &r205_work.p->door1, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            ((cEmDoor*) r205_work.p->door1)->setCloseLock();
+            r205_work.p->door1->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -249,7 +249,7 @@ void r205_Em105AppearCheck()
             r205_work.p->ems[1].em.setEm(0x69, -1, 1, 1, 1);
             r205_work.p->ems[1].em.setFlag(1);
             r205_work.p->ems[1].em.getPos(&pos);
-            ((cEmDoor*) r205_work.p->door1)->setOpen(&pos, 0, 0, 0);
+            r205_work.p->door1->setOpen(&pos, 0, 0, 0);
             SceAtSetEnable(0x22, 0);
         }
     }
@@ -313,7 +313,7 @@ void r205_Em111AppearCheck()
                     r205_work.p->ems[5].em.setEm(0x6F, -1, 1, 1, 1);
                     r205_work.p->ems[5].em.setFlag(1);
                     r205_work.p->ems[5].em.getPos(&pos);
-                    ((cEmDoor*) r205_work.p->door0)->setOpen(&pos, 0, 0, 0);
+                    r205_work.p->door0->setOpen(&pos, 0, 0, 0);
                     SceAtSetEnable(0x21, 0);
                 }
             }

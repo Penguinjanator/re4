@@ -16,6 +16,7 @@
 #include "em_set.h"
 #include "em_wrap.h"
 #include "etc_model.h"
+#include "emdoor.h"
 #include "player.h"
 #include "cam_ctrl.h"
 #include "mes.h"
@@ -824,7 +825,7 @@ static void r327_SetSwitchDisableEndProc()
 static void r327_EnemySet2nd()
 {
     if (RsfCheck(G_ROOM_ID, 16) == 0) {
-        cEm* door;
+        cEmDoor* door;
 
         getRoomEtcDoor(1, &door, 1);
         if (door != 0) {

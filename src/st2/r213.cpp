@@ -132,8 +132,8 @@ void R213Init()
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot;
     Vec* pr;
-    cEm* door0;
-    cEm* door1;
+    cEmDoor* door0;
+    cEmDoor* door1;
     u32 i;
 
     {
@@ -154,7 +154,7 @@ void R213Init()
     r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {
-        ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
+        door0->setDoor(door1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtSetEnable(2, 1);

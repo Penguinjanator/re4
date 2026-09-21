@@ -54,7 +54,7 @@ struct R101Work {
     cDataUnit* evt30;     // 0x10  evd/r101s30.evd
     cObj* obj00;          // 0x14
     u8 pad_18[8];
-    cEm* ladder[3];       // 0x20  etc ladders 5 / 6 / 7
+    cObjLadder* ladder[3];       // 0x20  etc ladders 5 / 6 / 7
     cEmWrap em[10];       // 0x2C  the reset waves (5 per side)
     cEmWrap* pEm[10];     // 0xA4
 };
@@ -113,9 +113,9 @@ static inline void r101_emDeadClear(int no)
 // 0x02000000, area 0x19 (door 102 with its key) until 0x20000000; item area 0xA3.
 void R101Init()
 {
-    cEm* door;
+    cEmDoor* door;
     cEm* rack;
-    cEm* win;
+    cEmWindow* win;
 
 #line 81 "D:/Bio4/Prog/r101.cpp"
     r101_work = (R101Work*) MEM_CALLOC(sizeof(R101Work), 1, 0xd);
@@ -138,7 +138,7 @@ void R101Init()
     EvtMgr.SetFunc("evt_r101s30_func", (void*) Evt_R101S30_Func);
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r101_eff_info);
     if (getRoomEtcDoor(0xB, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0);
     }
     if (getRoomEtcRack(0xD, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 1000.0f, 0.0f, 2000.0f);
@@ -154,13 +154,13 @@ void R101Init()
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         if (getRoomEtcLadder(5, &r101_work->ladder[0], 1)) {
-            ((cObjLadder*) r101_work->ladder[0])->setOff();
+            r101_work->ladder[0]->setOff();
         }
         if (getRoomEtcLadder(6, &r101_work->ladder[1], 1)) {
-            ((cObjLadder*) r101_work->ladder[1])->setOff();
+            r101_work->ladder[1]->setOff();
         }
         if (getRoomEtcLadder(7, &r101_work->ladder[2], 1)) {
-            ((cObjLadder*) r101_work->ladder[2])->setOff();
+            r101_work->ladder[2]->setOff();
         }
     }
     if (pSys->eff_country == 0) {
@@ -204,10 +204,10 @@ void R101Init()
                 EmReadSearch(0x15, 0, r101_work->evt30->m_size);
             }
             if (getRoomEtcWindow(0, &win, 1)) {
-                ((cEmWindow*) win)->SetEnableDamage(0);
+                win->SetEnableDamage(0);
             }
             if (getRoomEtcWindow(0x13, &win, 1)) {
-                ((cEmWindow*) win)->SetEnableDamage(0);
+                win->SetEnableDamage(0);
             }
             SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r101_Event20, 0, 2);
             SceExec(0x12, (TaskFunc) r101_DoorCk, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -440,8 +440,8 @@ static void r101_Event30()
     int fail = 0;
     u32 unused[2];   // an 8-byte aggregate slot precedes `win`/`ladder` in the original's frame (0x30)
     ReadModule* m;
-    cEm* win;
-    cEm* ladder;
+    cEmWindow* win;
+    cObjLadder* ladder;
 
     RsfSet(G_ROOM_ID, 7);
     ScfFlagOff(pG, SCF_R101_IMPRISON);
@@ -493,10 +493,10 @@ static void r101_Event30()
     SceAtDataReset(0);
     SceAtDataReset(2);
     if (getRoomEtcWindow(0, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableDamage(1);
+        win->SetEnableDamage(1);
     }
     if (getRoomEtcWindow(0x13, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableDamage(1);
+        win->SetEnableDamage(1);
     }
     EmListSetAlive(0x14, 0);
     EmListSetAlive(0x15, 0);
@@ -539,14 +539,14 @@ static void r101_Event30()
     EmListSetAlive(0x45, 0);
     EmListSetAlive(0x46, 0);
     if (RsfCheck(G_ROOM_ID, 8)) {
-        if (getRoomEtcLadder(5, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
-            ((cObjLadder*) ladder)->setStand();
+        if (getRoomEtcLadder(5, &ladder, 1) && ladder->getStatus() == 4) {
+            ladder->setStand();
         }
-        if (getRoomEtcLadder(6, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
-            ((cObjLadder*) ladder)->setStand();
+        if (getRoomEtcLadder(6, &ladder, 1) && ladder->getStatus() == 4) {
+            ladder->setStand();
         }
-        if (getRoomEtcLadder(7, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
-            ((cObjLadder*) ladder)->setStand();
+        if (getRoomEtcLadder(7, &ladder, 1) && ladder->getStatus() == 4) {
+            ladder->setStand();
         }
     }
     pG->Room_flg[0] &= ~0x10000000;
@@ -576,7 +576,7 @@ static void r101_execOperator()
 // The house door stays open-locked during the fight, then closes and locks.
 static void r101_DoorCk()
 {
-    cEm* door;
+    cEmDoor* door;
 
     if (getRoomEtcDoor(2, &door, 1)) {
         door->setNoSuspend(0);
@@ -587,13 +587,13 @@ static void r101_DoorCk()
             if (RsfCheck(G_ROOM_ID, 7)) {
                 break;
             }
-            ((cEmDoor*) door)->setOpenLock(0);
+            door->setOpenLock(0);
             SceSleep(1);
         }
         SceSleep(1);
-        ((cEmDoor*) door)->setCloseLock();
+        door->setCloseLock();
         SceSleep(30);
-        ((cEmDoor*) door)->setNormal();
+        door->setNormal();
     }
 }
 
@@ -607,7 +607,7 @@ static void r101_Event20()
     ReadModule* m;
     cEm* rack;
     cEm* r;
-    cEm* win;
+    cEmWindow* win;
 
     if (RsfCheck(G_ROOM_ID, 7)) {
         SceExit();
@@ -653,7 +653,7 @@ static void r101_Event20()
                 }
                 if (em->GetEvt(key, &evt) && ((Event*) evt)->NowCut == 0xA && ((Event*) evt)->NowFrame == 0x20) {
                     if (getRoomEtcWindow(0, &win, 1)) {
-                        ((cEmWindow*) win)->SetBreakModel();
+                        win->SetBreakModel();
                     }
                 }
                 SceSleep(1);
@@ -676,19 +676,19 @@ static void r101_Event20()
     setEm(0x46, -1, 1, 1, 1);
     r101_work->emNum = diff + SceCountEmAlive(0x10, 0x20);
     if (getRoomEtcWindow(0, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
     }
     if (getRoomEtcWindow(0x13, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableDamage(1);
+        win->SetEnableDamage(1);
     }
     if (r101_work->ladder[0] != 0) {
-        ((cObjLadder*) r101_work->ladder[0])->setOn();
+        r101_work->ladder[0]->setOn();
     }
     if (r101_work->ladder[1] != 0) {
-        ((cObjLadder*) r101_work->ladder[1])->setOn();
+        r101_work->ladder[1]->setOn();
     }
     if (r101_work->ladder[2] != 0) {
-        ((cObjLadder*) r101_work->ladder[2])->setOn();
+        r101_work->ladder[2]->setOn();
     }
     {
         static const Vec r101_plPos20 = {2666.0f, 0.0f, -8495.0f};

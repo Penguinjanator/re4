@@ -971,7 +971,7 @@ void PlWepLockCtrl(cModel* plm)
         spd2 = spd;
         break;
     }
-    if (*(u32*) &Joy[0].stickX & 0xFFFF0000) {  // main stick (sx, sy) deflected
+    if (Joy[0].stickX || Joy[0].stickY) {  // main stick deflected
         if (repCtr < 7.0f) {
             repCtr = repCtr + 1.0f;
         }

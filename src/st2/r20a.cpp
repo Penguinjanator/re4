@@ -28,7 +28,7 @@
 // treasure boxes and a texture-rendered object.
 
 struct R20aWork {
-    cEm* door;           // 0x00
+    cEmDoor* door;           // 0x00
     u8 pad_4[4];
     TexRenderMng* tex;   // 0x08
 };
@@ -63,7 +63,7 @@ void R20aInit()
         if (getRoomEtcDoor(0x11, &r20a_work.p->door, 1) == 0) {
             r20a_work.p->door = NULL;
         } else {
-            ((cEmDoor*) r20a_work.p->door)->setCloseLock();
+            r20a_work.p->door->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r20a_DoorLockMessage, 0, 1);
         }
     } else {
@@ -170,7 +170,7 @@ static void r20a_CarryOnShoulderEndProc()
     SubCharCtrl(0, 0);
     SceEventEnd(0);
     if (r20a_work.p->door) {
-        ((cEmDoor*) r20a_work.p->door)->setNormal();
+        r20a_work.p->door->setNormal();
     }
     ScfFlagOn(pG, SCF_8d);
     SceAtSetEnable(2, 0);
@@ -262,13 +262,13 @@ static void r20a_TreasureBoxOpened(int id)
 // The second door: locked with the padlock model until the player breaks it.
 static void r20a_DoorLock()
 {
-    cEm* door;
+    cEmDoor* door;
 
     if (getRoomEtcDoor(0xB, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0);
     }
     if (door) {
-        while (((cEmDoor*) door)->ckLock()) {
+        while (door->ckLock()) {
             SceSleep(1);
         }
         ScfFlagOn(pG, SCF_8a);

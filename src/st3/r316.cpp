@@ -16,6 +16,7 @@
 #include "em_set.h"
 #include "em_wrap.h"
 #include "emdoor.h"
+#include "emwindow.h"
 #include "etc_model.h"
 #include "player.h"
 #include "esp.h"
@@ -61,8 +62,8 @@ extern "C" void Evt_R316S00_Func(Event* e);
 // objects, one shelf item event.
 void R316Init()
 {
-    cEm* door;
-    cEm* win;
+    cEmDoor* door;
+    cEmWindow* win;
 
     SysFlagOff(pG, SYS_SCREEN_STOP);
     DbgFlagOn(pG, DBG_CAST_ERR_NO_DISP);
@@ -84,7 +85,7 @@ void R316Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R316EventSXX, 0, 1);
         if (getRoomEtcDoor(0xD, &door, 1)) {
-            ((cEmDoor*) door)->setCloseLock();
+            door->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r316_checkHeatEffect, 0, 0, 2, 0);

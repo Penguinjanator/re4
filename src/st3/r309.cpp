@@ -62,7 +62,7 @@ static void r309_checkBgm();
 // (0x34) while it lives. The stream watcher, two shelf item events, the BGM table rewrite once (bit 4).
 void R309Init()
 {
-    cEm* win;
+    cEmWindow* win;
 
 #line 40 "D:/Bio4/Prog/r309.cpp"
     r309_work = (R309Work*) MEM_CALLOC(sizeof(R309Work), 1, 0xd);
@@ -70,7 +70,7 @@ void R309Init()
         EmReadSearch(0x36, 0, 0);
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r309_execEmAppear, 0, 1);
         if (getRoomEtcWindow(0x1C, &win, 1)) {
-            ((cEmWindow*) win)->SetEnableDamage(0);
+            win->SetEnableDamage(0);
         }
     } else {
         if (r309_emDead(0x34) == 0) {
@@ -117,7 +117,7 @@ static void r309_checkBgmTblRewrite()
 // window 0x1C breakable again.
 static void r309_execEmAppear_end()
 {
-    cEm* win;
+    cEmWindow* win;
 
     if (r309_work->em.isAlive() == 0) {
         r309_work->em.setEm(0x34, -1, 1, 1, 1);
@@ -133,7 +133,7 @@ static void r309_execEmAppear_end()
     EffectEfmDelete(0, (u8) r309_work->kind1, 0);
     SceEventEnd(0);
     if (getRoomEtcWindow(0x1C, &win, 1)) {
-        ((cEmWindow*) win)->SetEnableDamage(1);
+        win->SetEnableDamage(1);
     }
 }
 

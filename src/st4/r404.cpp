@@ -638,11 +638,11 @@ void r404_checkEmSetF()
 // Area poll: one-shot wave 9 when in area 0x11 (or 0x15 with the door open).
 void r404_checkEmSetG()
 {
-    cEm* door;
+    cEmDoor* door;
 
     getRoomEtcDoor(0x11, &door, 1);
     if (door != 0 && r404_work.p->cnt <= 0xF) {
-        if (SceAtHitCheck(0x11) == 1 || (SceAtHitCheck(0x15) == 1 && ((cEmDoor*) door)->ckOpen() == 1)) {
+        if (SceAtHitCheck(0x11) == 1 || (SceAtHitCheck(0x15) == 1 && door->ckOpen() == 1)) {
             r404_setEm9();
         }
     }

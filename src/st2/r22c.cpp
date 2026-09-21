@@ -116,7 +116,7 @@ struct R22cWork {
     int cap[24];         // 0x58
     u16 capId;           // 0xB8
     u8 pad_BA[2];
-    cEm* door[2];        // 0xBC
+    cEmDoor* door[2];        // 0xBC
     u32 strId;           // 0xC4  SndStrReq handle
     cEm* wepMan;         // 0xC8
     int effTimer;        // 0xCC
@@ -482,9 +482,9 @@ void R22cInit()
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r22c_checkExitDoor, 0, 1);
     SceAtSetActColor(2, 1);
     if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
-        ((cEmDoor*) r22c_work.p->door[0])->setDoor((cEmDoor*) r22c_work.p->door[1]);
-        ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
-        ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
+        r22c_work.p->door[0]->setDoor(r22c_work.p->door[1]);
+        r22c_work.p->door[0]->setCloseLock();
+        r22c_work.p->door[1]->setCloseLock();
     }
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(1)->be_flag &= ~2;
@@ -852,8 +852,8 @@ void itemSave()
     r22c_work.p->wepType = pG->weapon_type;
     pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(9, 0);
-    ((cEmDoor*) r22c_work.p->door[0])->setNormal();
-    ((cEmDoor*) r22c_work.p->door[1])->setNormal();
+    r22c_work.p->door[0]->setNormal();
+    r22c_work.p->door[1]->setNormal();
 #line 2565 "D:/Bio4/Prog/r22c.cpp"
     r22c_work.p->itemSaveBuf = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 0xd);
     if (r22c_work.p->itemSaveBuf == 0) {
@@ -916,8 +916,8 @@ void gameEnd()
     pl->weaponInit();
     pG->Room_flg[0] &= ~0x80000000;
     SceAtSetEnable(9, 1);
-    ((cEmDoor*) r22c_work.p->door[0])->setCloseLock();
-    ((cEmDoor*) r22c_work.p->door[1])->setCloseLock();
+    r22c_work.p->door[0]->setCloseLock();
+    r22c_work.p->door[1]->setCloseLock();
     FadeSetW(0x80000002, 10, 0, 0);
     SceSleep(1);
     getBottleCap();

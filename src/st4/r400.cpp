@@ -78,7 +78,7 @@ void em_destroy();
 void R400Init()
 {
     R400MercInit init;
-    cEm* win;
+    cEmWindow* win;
 
 #line 49 "D:/Bio4/Prog/r400.cpp"
     r400_work.p = (R400Work*) MEM_CALLOC(sizeof(R400Work), 1, 0xd);
@@ -88,7 +88,7 @@ void R400Init()
     setLadderMotion(0x24);
     EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30));
     if (getRoomEtcWindow(0, &win, 1)) {
-        ((cEmWindow*) win)->SetBreakModel();
+        win->SetBreakModel();
     }
     MercSysInitStage();
     memset(&init, 0, sizeof(init));
@@ -394,7 +394,7 @@ void R400Main()
 // The ladder motions of the Ada game (her own climb set from the etc archive).
 void setLadderMotion(int no)
 {
-    cEm* ladder;
+    cObjLadder* ladder;
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
@@ -425,7 +425,7 @@ void setLadderMotion(int no)
                 mot[18] = GetEtcAddr(das, "pl01108.fcv");
                 mot[19] = GetEtcAddr(das, "pl01118.fcv");
 
-                ((cObjLadder*) ladder)->setMotion(mot);
+                ladder->setMotion(mot);
             }
         }
     }

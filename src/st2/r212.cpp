@@ -845,13 +845,13 @@ static void r212_DoorMessage()
 // Task: the entrance door lock.
 static void r212_DoorLock()
 {
-    cEm* door;
+    cEmDoor* door;
 
     if (getRoomEtcDoor(0, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
+        door->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     if (door) {
-        while (((cEmDoor*) door)->ckLock()) {
+        while (door->ckLock()) {
             SceSleep(1);
         }
         ScfFlagOn(pG, SCF_76);

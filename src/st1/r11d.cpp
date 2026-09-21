@@ -45,7 +45,7 @@ struct R11dWork {
     u8 pad_3;
     cEmWrap em0;          // 0x04  the big sister
     cEmWrap em1;          // 0x10  the little sister
-    cEm* door;            // 0x1C  the iron door (etc door 0x26)
+    cEmDoor* door;            // 0x1C  the iron door (etc door 0x26)
     u32 strId;            // 0x20  SndStrReq handle of the show-view stream
     cModelInfo* mi;       // 0x24  the big sister's extra model
     cEmPatrol patrol[5];  // 0x28
@@ -88,7 +88,7 @@ void R11dInit()
 {
     void* zero = 0;
     Vec pos[2];
-    cEm* ladder;
+    cObjLadder* ladder;
 
 #line 52 "D:/Bio4/Prog/r11d.cpp"
     r11d_work = (R11dWork*) MEM_CALLOC(sizeof(R11dWork), 1, 0xd);
@@ -124,7 +124,7 @@ void R11dInit()
     }
     if (!KyfFlagChk(pG, KYF_R11D_IRON_DOOR)) {
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
-            ((cEmDoor*) r11d_work->door)->setKey(0xB);
+            r11d_work->door->setKey(0xB);
         }
         SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -148,7 +148,7 @@ void R11dInit()
     r11d_work->patrol[4].SetPatrol(0xE7, pos, 2, 0, 0);
     FlrAtSetDefVal(0, 0, 3);
     if (getRoomEtcLadder(1, &ladder, 1)) {
-        ((cObjLadder*) ladder)->setCamera(0xC);
+        ladder->setCamera(0xC);
     }
 }
 
@@ -268,7 +268,7 @@ static void r11d_execEmAppear_end()
     BitOff(pG->Room_flg[0], 0x20000000);
     int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
     int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
-    cEm* ladder;
+    cObjLadder* ladder;
     for (i = 0; i < 11; i++) {
         cEmWrap em;
         em.setPtr(list0[i], -1, 0);
@@ -279,11 +279,11 @@ static void r11d_execEmAppear_end()
     for (i = 0; i < 9; i++) {
         setEm(list1[i], -1, 0, 1, 1);
     }
-    if (getRoomEtcLadder(0, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
-        ((cObjLadder*) ladder)->setStand();
+    if (getRoomEtcLadder(0, &ladder, 1) && ladder->getStatus() == 4) {
+        ladder->setStand();
     }
-    if (getRoomEtcLadder(0x27, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
-        ((cObjLadder*) ladder)->setStand();
+    if (getRoomEtcLadder(0x27, &ladder, 1) && ladder->getStatus() == 4) {
+        ladder->setStand();
     }
 }
 
