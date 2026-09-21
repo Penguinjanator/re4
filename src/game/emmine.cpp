@@ -31,12 +31,6 @@ struct MineNode {
     int onFloor;      // 0x28
 };
 
-// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo that every later
-// `= 0` store of SetMine reuses (one `li r30, 0`; a direct `lockParts = 0` gets its own QImode zero).
-static inline void LockPartsSet(cEm* em, int no)
-{
-    em->lockParts = no;
-}
 
 typedef void (*EmMineFunc)(cEmMine*);
 

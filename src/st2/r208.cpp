@@ -88,15 +88,6 @@ static R208WorkPtr r208_work;
 #define W r208_work.p
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
 #define EM_LIST_S(no) (&pGS->Em_list[no])
-// Element stores through the vector's address (r202): the address pseudo is shared with the call
-// that follows (`mr r4, rX`).
-static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
-{
-    v->x = x;
-    v->y = y;
-    v->z = z;
-}
-
 // Hit effects of attribute types 4 and 5
 static const AtEffInfo r208_eff_info4 = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
@@ -1105,7 +1096,7 @@ static void brige1_down()
     pG->Room_flg[0] |= 0x10000000;
     W->sat->setCoord(&r208_satPos, &SmdGetObjPtr(0x21)->ang);
     plPos = pPL->pos;
-    SetVecXYZ(&pos, 0.0f, -4000.0f, -500.0f);
+    VecSet(&pos, 0.0f, -4000.0f, -500.0f);
     pPL->setPos(&pos);
     hard = pG->Game_level > 6;
     if (hard) {

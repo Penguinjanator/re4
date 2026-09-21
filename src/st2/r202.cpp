@@ -123,14 +123,6 @@ struct R202CatapultData {
     int emNo;
 };
 
-// Fill a Vec from three components.
-static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
-{
-    v->x = x;
-    v->y = y;
-    v->z = z;
-}
-
 
 static void r202_execShowView_end();
 static void r202_execShowView();
@@ -522,7 +514,7 @@ static void r202_operateCannon()
                 if (pG->Room_flg[0] & 0x00800000) {
                     Vec p;
 
-                    SetVecXYZ(&p, -6366.0f, 6600.0f, -39153.0f);
+                    VecSet(&p, -6366.0f, 6600.0f, -39153.0f);
                     sub->setPos(&p);
                 } else if (pG->Room_flg[0] & 0x00400000) {
                     sub->setPos(&pPL->pos);

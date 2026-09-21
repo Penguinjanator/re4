@@ -54,12 +54,6 @@ struct EmWepNode {
     int onFloor;  // 0x28
 };
 
-// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo shared with the
-// later `= 0` stores (emrock SetRock).
-static inline void LockPartsSet(cEm* em, int no)
-{
-    em->lockParts = no;
-}
 
 typedef void (*EmWepFunc)(cEmWep*);
 

@@ -82,15 +82,6 @@ static inline void torokoPlace(cModel* m, Vec* pos, Vec* ang)
     m->setAng(ang);
 }
 
-// Fill a Vec (x, y, z) and return it, for the cart placement calls.
-static inline Vec* VecSet(Vec* v, f32 x, f32 y, f32 z)
-{
-    v->x = x;
-    v->y = y;
-    v->z = z;
-    return v;
-}
-
 // Fill a Vec as a Y-only rotation and return it.
 static inline Vec* AngSetY(Vec* v, f32 y)
 {

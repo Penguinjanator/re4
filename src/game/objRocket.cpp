@@ -16,9 +16,6 @@
 // Rocket launcher (weapon 0x13) and its rocket: the launcher carries a loaded cObjRocket on its
 // muzzle parts, launch() sends it along the marker line, drop() leaves an empty launcher model.
 
-// Pointer store through a reference: the following `pG` load stays below it.
-static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
-
 // Builds the rocket model (player archive 0x70/0x71; pink tint for the special launcher,
 // weapon_type 1), no collision, a 500-unit light; type 0 = loaded, waiting on the launcher.
 void cObjRocket::init()

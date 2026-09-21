@@ -18,6 +18,7 @@
 
 
 // Builds a matrix from four column vectors (right, up, look, position).
+// local copy: a header definition changes game/esp's allocation (static-local renumbering)
 static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)
 {
     MTX_SET_COLUMNS(m, c0, c1, c2, c3);

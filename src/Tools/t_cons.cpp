@@ -153,16 +153,6 @@ int ConsMove()
 
 static char* consMenu[5] = {"ROOM", "CORE", "SAVE", "QUIT"};
 
-// menu list printer; inlined (the giv inits land after the PRE'd pointer high parts in the preheader)
-static inline void dispList(int x, int y, char** tbl, int n)
-{
-    int i;
-
-    for (i = 0; i < n; i++) {
-        eprintf(x, y + i * 14, 0, 0, tbl[i]);
-    }
-}
-
 // MENU: ROOM / CORE / SAVE / QUIT (step = row + 1); B jumps to QUIT.
 static void soft_menu()
 {

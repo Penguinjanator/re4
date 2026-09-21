@@ -2,6 +2,7 @@
 #define REF_ACCESS_H
 
 #include "types.h"
+#include "vec.h"
 
 class cObj;
 class cSat;
@@ -13,6 +14,13 @@ class cEmHit;
 struct ScePrim;
 struct GlobalWork;
 struct SYSTEM_SAVE_WORK;
+struct YARARE_INFO;
+class cCoord;
+struct ShadowMng;
+class cEmWrap;
+class cEmRock;
+class IdBinocular;
+struct FocusAnimation;
 
 // Reads and writes of a variable through a reference parameter. The original code reaches many globals and
 // struct fields through inline helpers like these: the access is then a plain scalar load or store, which
@@ -41,6 +49,16 @@ static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 static inline void PSet(cEm*& d, cEm* v) { d = v; }
 static inline void PSet(cEmHit*& d, cEmHit* v) { d = v; }
 static inline void PSet(ScePrim*& d, ScePrim* v) { d = v; }
+static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v) { d = v; }
+static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
+static inline void PSet(ShadowMng*& d, ShadowMng* v) { d = v; }
+static inline void PSet(cObj**& d, cObj** v) { d = v; }
+static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }
+static inline void PSet(cEmRock*& d, cEmRock* v) { d = v; }
+static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
+static inline void PSet(FocusAnimation*& d, FocusAnimation* v) { d = v; }
+// A pointer stored into a u32 field (sce_at).
+static inline void PSet(u32& d, void* v) { d = (u32) v; }
 
 static inline u16 U16Ref(u16& v) { return v; }
 static inline u32 BitChk(u32& f, u32 b) { return f & b; }
@@ -53,5 +71,15 @@ static inline f32 FRef(f32& v) { return v; }
 static inline f32 FGet(f32& d) { return d; }
 static inline int IRef(int& v) { return v; }
 static inline int IGet(int& d) { return d; }
+
+// Fill a Vec (x, y, z) and return it: the element stores go through the vector's address, so the
+// address pseudo is shared with a call that follows (`mr r4, rX`) (model, r202, r208, r219).
+static inline Vec* VecSet(Vec* v, f32 x, f32 y, f32 z)
+{
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    return v;
+}
 
 #endif

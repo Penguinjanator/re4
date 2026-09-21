@@ -48,9 +48,6 @@ struct R11eWork {
 
 static R11eWork* r11e_work;
 
-// Pointer stores through references: the work pointer and the field are reloaded after them.
-static inline void PSet(cEmRock*& d, cEmRock* v) { d = v; }
-
 // The original's .data is 8-aligned (r105 has the same).
 asm(".section .data; .balign 8");
 static Vec r11e_koyaAPos = {13389.0f, -56.0f, 38152.0f};

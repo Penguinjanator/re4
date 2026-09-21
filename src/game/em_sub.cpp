@@ -61,13 +61,6 @@ static inline int PlLifeOver(int lim)
     return (s16) pG->pl_life >= lim;
 }
 
-// Pointer store through a scalar reference (the FSet mechanism, global.h): a following `pPL` load
-// is not hoisted above / shared across it.
-static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v)
-{
-    d = v;
-}
-
 
 
 

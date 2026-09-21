@@ -75,10 +75,6 @@ public:
     virtual void setDie();                        // 0x60
 };
 
-// Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
-static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
-static inline void PSet(FocusAnimation*& d, FocusAnimation* v) { d = v; }
-
 
 // Waits for the running event to end.
 static inline void r10b_waitEvt()

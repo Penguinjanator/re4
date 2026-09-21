@@ -95,8 +95,8 @@ const TplMenu2 tplWhMenu = {{"FullScrn", "Texture"}};
 // from loop.c, after the PRE'd "%s" high part) while the main-menu call is only reversed with the
 // `*tbl++` biv form (with `tbl[i]` gcse copy-propagates the pointer-flagged `&menu` pseudo into the
 // giv and maybe_eliminate_biv replaces the counter): two helpers, one per form (the "%s" literal is
-// shared).
-static inline void dispList(int x, int y, const char** tbl, int n)
+// shared). Not t_util.h's dispList: that one passes the string as the format.
+static inline void dispListP(int x, int y, const char** tbl, int n)
 {
     int i;
 
@@ -330,7 +330,7 @@ void TplViewer()
         }
         break;
     }
-    dispList(0x28, 0x46, menu.s, 3);
+    dispListP(0x28, 0x46, menu.s, 3);
     eprintf(0x20, (wk->cursor + 5) * 14, 0, 0, ">");
     if (pTplBuf) {
         DrawTpl((TEXPalette*) pTplBuf, wk->x, wk->y, wk->w, wk->h);

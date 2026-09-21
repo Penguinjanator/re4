@@ -47,7 +47,6 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
-static inline void PSet(cObj**& d, cObj** v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.

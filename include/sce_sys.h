@@ -4,6 +4,7 @@
 #include "types.h"
 #include "em.h"
 #include "scheduler.h"
+#include "global.h"
 
 // game/sce_sys.cpp: scenario task system. Scenario tasks run in scheduler slots 5..17 and are
 // linked into an ordering table (libgpu OTag) by priority.
@@ -125,5 +126,11 @@ void SceKill(int prio);
 void SceKill(ScePrim* p);
 void SceKill(TASK* t);
 void SceKill(void (*func)(int));
+
+// Em_flg row address as an integer (the original adds the list offset after the row index) (sce_at, sce_sys).
+static inline u32 emDeadRow(int n)
+{
+    return (u32) EM_FLG_ROW(n);
+}
 
 #endif

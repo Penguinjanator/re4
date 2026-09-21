@@ -4,6 +4,7 @@
 #include "types.h"
 #include "global.h"
 #include "joy.h"
+#include "eprintf.h"
 
 // Debug tool helpers (game/t_util.cpp).
 
@@ -32,5 +33,16 @@ int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy);
 int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out);
 int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out);
 int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out);
+
+// Prints `n` menu strings one row (14 px) apart; inlined (the giv inits land after the PRE'd pointer
+// high parts in the preheader) (t_cons, t_scroll; t_tplview has its own `*tbl++` form).
+static inline void dispList(int x, int y, char** tbl, int n)
+{
+    int i;
+
+    for (i = 0; i < n; i++) {
+        eprintf(x, y + i * 14, 0, 0, tbl[i]);
+    }
+}
 
 #endif

@@ -115,12 +115,6 @@ static f32 r226_pillarSpd = 160.0f;
 static inline void PSetRobo(cObjRobo*& d, cObjRobo* v) { d = v; }
 
 
-// Euclidean distance between two points.
-static inline f32 vecDist(Vec* a, Vec* b)
-{
-    return VEC_DIST(a, b);
-}
-
 static void R226EmSetMain();
 static void R226EventRoboWatchMain();
 static void R226EventRoboWatchCancel();
@@ -1399,7 +1393,7 @@ void playerRunCamMovePassage(cPlayer* pl, f32 t)
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
-    cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -1428,7 +1422,7 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
-    cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -1447,7 +1441,7 @@ void playerRunCamDiePassage(cPlayer* pl)
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
-    cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }

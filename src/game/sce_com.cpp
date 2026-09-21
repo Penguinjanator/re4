@@ -885,12 +885,6 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SceEventEnd(0);
 }
 
-// Distance between two points.
-static inline f32 vecDist(Vec* a, Vec* b)
-{
-    return VEC_DIST(a, b);
-}
-
 // Puts the scenario camera (SceCam) at pos looking at `at` with `fovy` and makes it the extra
 // camera (CamCtrl.m_pExtraCamera).
 void SceCamMove(Vec* pos, Vec* at, f32 fovy)
@@ -901,7 +895,7 @@ void SceCamMove(Vec* pos, Vec* at, f32 fovy)
     SceCam.up.x = 0.0f;
     SceCam.up.y = 1.0f;
     SceCam.up.z = 0.0f;
-    SceCam.dist = vecDist(&SceCam.param.pos, &SceCam.param.at);
+    SceCam.dist = VEC_DIST(&SceCam.param.pos, &SceCam.param.at);
     CameraSetOrientationUp(&SceCam);
     CamCtrl.m_pExtraCamera = (s32) &SceCam;
 }

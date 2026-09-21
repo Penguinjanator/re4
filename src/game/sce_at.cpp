@@ -98,8 +98,6 @@ static inline int bitOff(u32 v)
     return !(v & 1);
 }
 
-static inline void PSet(u32& d, void* v) { d = (u32) v; }
-
 // The item-found flag word (kind 2 of the flag areas).
 static inline u32* flags51BC()
 {
@@ -132,11 +130,6 @@ static inline u32 saveItemBase(int ofs)
 #define RAW_F32(p, ofs) (*(f32*) ((u32) (p) + (ofs)))
 #define RAW_U32(p, ofs) (*(u32*) ((u32) (p) + (ofs)))
 
-// Em_flg row address as an integer (the original adds the list offset after the row index).
-static inline u32 emDeadRow(int n)
-{
-    return (u32) EM_FLG_ROW(n);
-}
 #define EM_DEAD_BIT(n, i) (*(u32*) (((i) << 2) + emDeadRow(n)))
 #define SAVE_ITEM_HALF(i, f) (*(u16*) (saveItemBase(PG_OFS(item_save[0].f)) + ((i) << 4)))
 #define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, room_no)

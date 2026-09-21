@@ -226,21 +226,6 @@ static void* g_p_spln_org[1];
 // Free blocks of a slot (free bytes rounded up to the sector size).
 #define FREE_BLOCKS(s) (((s).sectorSize ? ROUNDUP((s).freeBytes, (s).sectorSize) : 0) / (s).sectorSize)
 
-// Language id test.
-static inline int isLang(u8 lang, int n)
-{
-    return lang == n;
-}
-
-// 1 for the European languages (2..6).
-static inline int isEurope(u8 lang)
-{
-    if (isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6)) {
-        return 1;
-    }
-    return 0;
-}
-
 // Removes every message window.
 static inline void deleteAllMes()
 {

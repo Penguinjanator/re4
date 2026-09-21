@@ -118,7 +118,6 @@ struct IntView {
 #define ISET0(x) (((IntView*) &(x))->v = 0)
 
 #define IV(x) (((IntView*) &(x))->v)
-static inline void PSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -255,9 +254,9 @@ static inline int getTevRegA(int no)
     return tbl[no];
 }
 
-// Variants reading the global directly: the original reloads `tev_reg` after the error call
-// instead of keeping a copy in a callee-saved register.
-static inline int getTevReg()
+// Variants reading the global directly (not overloads of the slot forms above): the original reloads
+// `tev_reg` after the error call instead of keeping a copy in a callee-saved register.
+static inline int getTevRegCur()
 {
     int tbl[3] = {1, 2, 3};
     if (tev_reg > 2) {
@@ -267,7 +266,7 @@ static inline int getTevReg()
 }
 
 // The colour-input selector of the current tev_reg slot.
-static inline int getTevRegC()
+static inline int getTevRegCurC()
 {
     int tbl[3] = {2, 4, 6};
     if (tev_reg > 2) {
@@ -1511,7 +1510,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
             }
-            reg = getTevReg();
+            reg = getTevRegCur();
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1530,9 +1529,9 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             GXSetTevKAlphaSel(st, getKAlphaSel());
             tev_kcolor++;
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
-            GXSetTevColorIn(st, 0, getTevRegC(), 0xE, 0xF);
+            GXSetTevColorIn(st, 0, getTevRegCurC(), 0xE, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-            GXSetTevAlphaIn(st, 0, getTevReg(), 6, 7);
+            GXSetTevAlphaIn(st, 0, getTevRegCur(), 6, 7);
             GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
             tev_stage++;
             tev_reg++;
@@ -1593,7 +1592,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
             }
-            reg = getTevReg();
+            reg = getTevRegCur();
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1612,7 +1611,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             GXSetTevKAlphaSel(st, getKAlphaSel());
             tev_kcolor++;
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
-            GXSetTevColorIn(st, 0, getTevRegC(), 0xE, 0xF);
+            GXSetTevColorIn(st, 0, getTevRegCurC(), 0xE, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
             GXSetTevAlphaIn(st, 7, 7, 7, 0);
             GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
@@ -1674,7 +1673,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 int reg2;
                 GXColor k;
                 GXColor kc;
-                reg = getTevReg();
+                reg = getTevRegCur();
                 GXSetTevOrder(st, coord, map, 4);
                 GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1716,14 +1715,14 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 tex_coord++;
                 st = TEV_STAGE_ID();
                 GXSetTevOrder(st, 0xFF, 0xFF, 4);
-                GXSetTevColorIn(st, 0, getTevRegC(), getTevRegA(reg2), 0xF);
+                GXSetTevColorIn(st, 0, getTevRegCurC(), getTevRegA(reg2), 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, 0);
                 GXSetTevAlphaIn(st, 0, alphaIn, getTevReg(reg2), 7);
                 GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
                 tev_stage++;
                 tev_reg += 2;
             } else {
-                int reg = getTevReg();
+                int reg = getTevRegCur();
                 GXSetTevOrder(st, coord, map, 4);
                 GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1742,9 +1741,9 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
                 }
                 GXSetTevOrder(st, coord, map, 0xFF);
-                GXSetTevColorIn(st, 0, getTevRegC(), 9, 0xF);
+                GXSetTevColorIn(st, 0, getTevRegCurC(), 9, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-                GXSetTevAlphaIn(st, 0, getTevReg(), 4, 7);
+                GXSetTevAlphaIn(st, 0, getTevRegCur(), 4, 7);
                 GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
                 tev_stage++;
                 tex_map++;
@@ -1878,7 +1877,7 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     GXSetTevOrder(st, coord, map, 4);
     switch (type) {
     case 0: {
-        int reg = getTevReg();
+        int reg = getTevRegCur();
         GXSetTevColorIn(st, 0xF, 8, 0xA, 0xF);
         if (flag) {
             GXSetTevColorOp(st, 0, 0, 2, 1, reg);
@@ -1895,7 +1894,7 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
         GXSetTevKColor(getKColor(), kc);
         tev_kcolor++;
         GXSetTevOrder(st, 0xFF, 0xFF, 4);
-        GXSetTevColorIn(st, 0xF, 0xE, getTevRegC(), 0);
+        GXSetTevColorIn(st, 0xF, 0xE, getTevRegCurC(), 0);
         GXSetTevColorOp(st, 0, 0, 0, 1, 0);
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
@@ -1939,7 +1938,7 @@ static void specularSetup2(ModelPart* part, int flag)
         GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
         GXSetTevOrder(st, coord, map, 4);
         GXSetTevColorIn(st, 0xF, 8, 0xC, 0xF);
-        GXSetTevColorOp(st, 0, 0, 0, 1, getTevReg());
+        GXSetTevColorOp(st, 0, 0, 0, 1, getTevRegCur());
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         tev_stage++;
@@ -1994,15 +1993,15 @@ static void specularSetup2(ModelPart* part, int flag)
             tex_map++;
             tex_coord++;
         }
-        GXSetTevColorIn(st, 0xF, getTevRegC(), 0xC, 8);
-        GXSetTevColorOp(st, 1, 1, 0, 1, getTevReg());
+        GXSetTevColorIn(st, 0xF, getTevRegCurC(), 0xC, 8);
+        GXSetTevColorOp(st, 1, 1, 0, 1, getTevRegCur());
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         tev_stage++;
     }
     st = TEV_STAGE_ID();
     GXSetTevOrder(st, 0xFF, 0xFF, 4);
-    GXSetTevColorIn(st, 0xF, 0, getTevRegC(), 0xF);
+    GXSetTevColorIn(st, 0xF, 0, getTevRegCurC(), 0xF);
     GXSetTevColorOp(st, 0, 0, 1, 1, 0);
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
@@ -2744,7 +2743,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXSetTevAlphaIn(st, 7, 7, 7, 5);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
     } else {
-        int reg = getTevReg();
+        int reg = getTevRegCur();
         GXSetTevColorIn(st, 0xF, 8, 0xE, 0xF);
         GXSetTevColorOp(st, 0, 0, 0, 1, reg);
         GXSetTevAlphaIn(st, 7, 7, 7, 5);

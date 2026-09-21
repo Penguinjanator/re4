@@ -187,4 +187,19 @@ void CardDbgCacheSet();
 void CardMainTask(int mode);
 }
 
+// pSys->language == n (0 jpn, 1 eng(US), 2 eng(EU), 3 ger, 4 fra, 5 esp, 6 ita, 7 eng) (card, option).
+static inline int isLang(u8 lang, int n)
+{
+    return lang == n;
+}
+
+// One of the five European languages (2..6).
+static inline int isEurope(u8 lang)
+{
+    if (isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6)) {
+        return 1;
+    }
+    return 0;
+}
+
 #endif

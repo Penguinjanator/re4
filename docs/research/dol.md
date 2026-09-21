@@ -191,8 +191,8 @@
     biv is eliminated for a pointer compare (`cmpw; ble`). With a *frame-address* table whose `&tbl`
     pseudo is gcse's reaching reg (`addi r11,r1,N; mr r24,r11` at the top), cprop puts that
     pointer-flagged reg into the giv and maybe_eliminate_biv wins over the reversal: only the `*tbl++`
-    biv form reverses there (t_tplview main menu), the `tbl[i]` giv form is needed for a fresh table
-    (t_tplview size menu) — OPEN: one helper cannot give both.
+    biv form reverses there (t_tplview main menu: `dispListP`), the `tbl[i]` giv form is needed for a fresh table
+    (t_tplview size menu: `dispListI`; the shared `dispList` is in t_util.h) — OPEN: one helper cannot give both.
   - A string literal inside a `static inline` is emitted when the helper is parsed; when the target
     puts it after a function's aggregate templates, the templates are public `const` objects defined
     between (`extern const TplMenu3 x; const TplMenu3 x = {{..}};`, copied with `TplMenu3 m = x;`).

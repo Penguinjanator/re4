@@ -62,9 +62,6 @@ struct R101Work {
 static R101Work* r101_work;
 
 
-// Pointer stores through a reference: the work pointer is reloaded after them (see st_room.h).
-static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }
-
 // Hit effects of attribute type 4
 static const AtEffInfo r101_eff_info = {
     0, {0xD2, 0}, {1, 0xF}, {0, 0xB}, {0, 0xC}, {1, 0xE}, {1, 0xE}, {0, 0x36}, {0xD2, 0},

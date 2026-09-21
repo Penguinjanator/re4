@@ -1502,13 +1502,6 @@ void ModelInfoSetTrans(cModel* m, int no, int on)
     }
 }
 
-static inline void VecSet(Vec* v, f32 x, f32 y, f32 z)
-{
-    v->x = x;
-    v->y = y;
-    v->z = z;
-}
-
 // Debug: draws a bounding box transformed by m as 12 lines.
 void drawBoundingBox(Mtx m, ModelBound* bound)
 {
