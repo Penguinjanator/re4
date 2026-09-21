@@ -46,10 +46,10 @@ cObjWep::cObjWep()
     sub2B4.atari.throughOn();
     LightInfo.init2(1, 1, &p0, &p1, 1);
     pMotion = 0;
-    wep.pMotEmpty = 0;
-    wep.pMotNormal = 0;
+    wep.motReset[1] = 0;
+    wep.motReset[0] = 0;
     wep.parent = 0;
-    wep.seHandle = 0;
+    wep.m_StopSeId = 0;
     wep.disp = 0x1C;
 }
 
@@ -178,10 +178,10 @@ void cObjWep::resetMotion()
 {
     void* mot;
 
-    if (ItemMgr.bulletNum() == 0 && wep.pMotEmpty) {
-        mot = wep.pMotEmpty;
-    } else if (wep.pMotNormal) {
-        mot = wep.pMotNormal;
+    if (ItemMgr.bulletNum() == 0 && wep.motReset[1]) {
+        mot = wep.motReset[1];
+    } else if (wep.motReset[0]) {
+        mot = wep.motReset[0];
     } else {
         mot = 0;
     }
@@ -189,8 +189,8 @@ void cObjWep::resetMotion()
         motionSet(mot, 0, 0, 1, 0);
         motionMove();
     }
-    if (wep.seHandle) {
-        SndStop(wep.seHandle, 0);
+    if (wep.m_StopSeId) {
+        SndStop(wep.m_StopSeId, 0);
     }
     motSpeedRate = 1.0f;
     wep.mode = 0;
@@ -219,7 +219,7 @@ int cObjWep::reloadable()
 }
 
 // Laser sight: from the marker line (getMarkerPos) finds the target (GetWepTargetPos: 1 map, 2
-// enemy), sets wep.target / wep.marker, draws the laser line (thicker in rooms 22C/228; a plain
+// enemy), sets wep.m_SightEm / wep.m_ShotPos, draws the laser line (thicker in rooms 22C/228; a plain
 // line in shooting range mode) and the dot on an enemy; Status_flg[2] bit31 = "don't fire"
 // (target with EM_STATUS_DONT_FIRE, or a map hit with an AtEffInfo flag 2 surface within 20000).
 // In the debug collision display modes it shows satCheck() instead.
@@ -242,8 +242,8 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
         donfire = 0;
         partsWorldCalc();
         getMarkerPos(&lpos, &lcross);
-        res = GetWepTargetPos(&lpos, &lcross, 0, pG->weapon_no, &wep.target, &attr);
-        if (wep.target && wep.target->checkStatus(EM_STATUS_DONT_FIRE)) {
+        res = GetWepTargetPos(&lpos, &lcross, 0, pG->weapon_no, &wep.m_SightEm, &attr);
+        if (wep.m_SightEm && wep.m_SightEm->checkStatus(EM_STATUS_DONT_FIRE)) {
             donfire = 1;
         }
         dist = (lcross.x - lpos.x) * (lcross.x - lpos.x) + (lcross.y - lpos.y) * (lcross.y - lpos.y) +
@@ -302,7 +302,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
     if (donfire) {
         StaFlagOn(pG, STA_PL_DONT_FIRE);
     }
-    wep.marker = lcross;
+    wep.m_ShotPos = lcross;
 }
 
 // Laser dot (esp 0x50) at p1, scaled with the camera distance (bigger in the 22C/228 rooms / when

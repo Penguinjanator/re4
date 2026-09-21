@@ -57,8 +57,8 @@ void cObjVp70::init(cModel* parent)
     }
     wep.parent = parent;
     wep.itemId = 3;
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
-    wep.pMotEmpty = WEP_ARC_PTR(0x38);
+    PSet(wep.motReset[0], WEP_ARC_PTR(0x36));
+    wep.motReset[1] = WEP_ARC_PTR(0x38);
     resetMotion();
     wep.shotFrame[0] = vp70_tbl[0];
     wep.shotFrame[1] = vp70_tbl[1];
@@ -147,7 +147,7 @@ void cObjVp70::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
         wep.step = 1;
     }
     {

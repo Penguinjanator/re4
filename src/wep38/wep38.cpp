@@ -77,8 +77,8 @@ void cObjRuger::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
-    wep.pMotEmpty = WEP_ARC_PTR(0x3B);
+    PSet(wep.motReset[0], WEP_ARC_PTR(0x36));
+    wep.motReset[1] = WEP_ARC_PTR(0x3B);
     resetMotion();
     wep.shotFrame[0] = ruger_tbl[0];
     wep.shotFrame[1] = ruger_tbl[1];
@@ -170,7 +170,7 @@ void cObjRuger::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();

@@ -396,7 +396,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
     if (pl != 0 && !(flag & 1)) {
         if (pl->Wep->m_pWep != 0) {
             wepSetWaterShot(pPos, pPos2, type);
-            pGS->SeInfo.pos = pl->Wep->m_pWep->wep.marker;
+            pGS->SeInfo.pos = pl->Wep->m_pWep->wep.m_ShotPos;
             switch (type) {
             case 0xD:
             case 0x12:
@@ -571,7 +571,7 @@ int cPlWep::getMarkerPos(Vec* out)
     if ((pl->r_no_0 != 0 || pl->r_no_1 != 6 || pl->r_no_2 != 1) || pl->r_no_3 == 0) {
         return 0;
     }
-    *out = m_pWep->wep.marker;
+    *out = m_pWep->wep.m_ShotPos;
     return 1;
 }
 
@@ -1085,10 +1085,10 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
     f32 sY;
 
     *pitch *= PI / 2.0f;
-    rP = wep->m_pWep->wep.lockRandPitch;
-    rY = wep->m_pWep->wep.lockRandYaw;
-    sP = wep->m_pWep->wep.lockRandPitchStep;
-    sY = wep->m_pWep->wep.lockRandYawStep;
+    rP = wep->m_pWep->wep.bureX;
+    rY = wep->m_pWep->wep.bureY;
+    sP = wep->m_pWep->wep.bureSpeedX;
+    sY = wep->m_pWep->wep.bureSpeedY;
     if (flag & 1) {
         wep->pitch = *pitch;
         wep->m_CenterY = *yaw;

@@ -327,7 +327,7 @@ void cPlayer::move()
     clearStatus(EM_STATUS_IK_OFF);
     StaFlagOff(pG, STA_PL_DONT_FIRE);
     if (Wep->m_pWep) {
-        Wep->m_pWep->wep.target = 0;
+        Wep->m_pWep->wep.m_SightEm = 0;
     }
     MotBase->adjust();
     dmg.move();

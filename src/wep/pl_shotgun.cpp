@@ -409,7 +409,7 @@ static void wep07_r3_fire00(cPlayer* pl)
 
             p1.y += fRand1_1() * 100.0f;
             p1.z += fRand1_1() * 100.0f;
-            mk = &pl->Wep->m_pWep->wep.marker;
+            mk = &pl->Wep->m_pWep->wep.m_ShotPos;
             if (GetWaterHeight(mk, &wh) && mk->y <= wh) {
                 SndCall(2, 0xB, mk, 0, 0, 0);
             }

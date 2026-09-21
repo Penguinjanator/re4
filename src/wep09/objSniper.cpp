@@ -55,7 +55,7 @@ void cObjSniper::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
-    wep.pMotNormal = WEP_ARC_PTR(0x23);
+    wep.motReset[0] = WEP_ARC_PTR(0x23);
     resetMotion();
     wep.shotFrame[0] = sniper_tbl[0];
     wep.shotFrame[1] = sniper_tbl[1];
@@ -148,7 +148,7 @@ void cObjSniper::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, 10.0f)) {

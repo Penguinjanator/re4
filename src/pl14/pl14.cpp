@@ -1308,7 +1308,7 @@ int cAnalysis::aimCheck()
         break;
     default:
         if (PlGetStatus() & 0x10) {
-            if (pPL->Wep->m_pWep->wep.target == (cEm*) owner) {
+            if (pPL->Wep->m_pWep->wep.m_SightEm == (cEm*) owner) {
                 flags |= 2;
             } else {
                 f32 dir = PlGetDirY();

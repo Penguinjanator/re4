@@ -226,11 +226,11 @@ void cObjLauncher::init(cModel* parent)
     grip(0);
     PSet(wep.parent, parent);
     if (pG->weapon_type != 2) {
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x1E));
-        wep.pMotEmpty = WEP_ARC_PTR(0x1E);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x1E));
+        wep.motReset[1] = WEP_ARC_PTR(0x1E);
     } else {
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x1D));
-        wep.pMotEmpty = WEP_ARC_PTR(0x1D);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x1D));
+        wep.motReset[1] = WEP_ARC_PTR(0x1D);
     }
     resetMotion();
     if (ItemMgr.bulletNum()) {

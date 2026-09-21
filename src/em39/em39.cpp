@@ -6748,7 +6748,7 @@ int em39LockCk(cEm39* em)
     if (ItemMgr.bulletNumCurrent() == 0) {
         return 0;
     }
-    if (pPL->Wep->m_pWep->wep.target && pPL->Wep->m_pWep->wep.target == em) {
+    if (pPL->Wep->m_pWep->wep.m_SightEm && pPL->Wep->m_pWep->wep.m_SightEm == em) {
         return 1;
     }
     if (em->plDist2 > 144000000.0f) {

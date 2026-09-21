@@ -90,7 +90,7 @@ void cObjHkSniper::init(cModel* parent)
     wep.shotFrame[0] = hksniper_tbl[0];
     wep.shotFrame[1] = hksniper_tbl[1];
     wep.shotFrame[2] = hksniper_tbl[2];
-    wep.pMotNormal = WEP_ARC_PTR(0x22);
+    wep.motReset[0] = WEP_ARC_PTR(0x22);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
@@ -115,7 +115,7 @@ void cObjHkSniper::moveReload()
 {
     if (wep.step == 0) {
         MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x25), 0, 0, 0, 0);
-        wep.seHandle = SndCall(2, 2, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, 2, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, 34.0f)) {

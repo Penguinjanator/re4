@@ -76,7 +76,7 @@ void cObjStriker::init(cModel* parent)
     }
     wep.parent = parent;
     U16Set(wep.itemId, 0x2D);
-    wep.pMotNormal = WEP_ARC_PTR(0x31);
+    wep.motReset[0] = WEP_ARC_PTR(0x31);
     resetMotion();
     wep.shotFrame[0] = 0x2E;
     wep.shotFrame[1] = 0x2E;
@@ -133,7 +133,7 @@ void cObjStriker::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, 35.0f)) {
         ItemMgr.reload();

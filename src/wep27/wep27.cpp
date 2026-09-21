@@ -61,26 +61,26 @@ void cObjMachinegun::init(cModel* parent)
     switch (pG->weapon_type) {
     case 0:
     default:
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x2A));
-        wep.pMotEmpty = WEP_ARC_PTR(0x2F);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x2A));
+        wep.motReset[1] = WEP_ARC_PTR(0x2F);
         wep.itemId = 0x30;
         setAbility(7.0f, 2.1f, 0.2864f * 0.7f, 0.2864f * 0.7f);
         break;
     case 1:
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x2A));
-        wep.pMotEmpty = WEP_ARC_PTR(0x2F);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x2A));
+        wep.motReset[1] = WEP_ARC_PTR(0x2F);
         wep.itemId = 0x31;
         setAbility(5.73f * 0.7f, 2.86f * 0.7f, 0.2864f * 0.7f, 0.2864f * 0.7f);
         break;
     case 2:
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x2B));
-        wep.pMotEmpty = WEP_ARC_PTR(0x2F);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x2B));
+        wep.motReset[1] = WEP_ARC_PTR(0x2F);
         wep.itemId = 0x32;
         setAbility(5.73f * 0.2f, 2.86f * 0.2f, 0.2864f * 0.5f, 0.2864f * 0.5f);
         break;
     case 3:
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x2B));
-        wep.pMotEmpty = WEP_ARC_PTR(0x2F);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x2B));
+        wep.motReset[1] = WEP_ARC_PTR(0x2F);
         wep.itemId = 0x33;
         setAbility(5.73f * 0.2f, 2.86f * 0.2f, 0.2864f * 0.5f, 0.2864f * 0.5f);
         break;
@@ -218,7 +218,7 @@ void cObjMachinegun::moveReload()
             }
         }
         motionSet(mot, 0, 0, 1, 0);
-        wep.seHandle = SndCall(2, 2, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, 2, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, (f32) reloadEnd[pG->weapon_type])) {

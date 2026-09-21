@@ -71,7 +71,7 @@ void cObjMagnum::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
-    wep.pMotNormal = WEP_ARC_PTR(0x34);
+    wep.motReset[0] = WEP_ARC_PTR(0x34);
     resetMotion();
     wep.shotFrame[0] = 0x20;
     wep.shotFrame[1] = 0x20;
@@ -125,7 +125,7 @@ void cObjMagnum::moveReload()
             se = 0x18;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, 34.0f)) {
         ItemMgr.reload();

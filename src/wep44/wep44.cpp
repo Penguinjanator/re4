@@ -58,8 +58,8 @@ void ObjGovernment_init(cObj* obj)
 // wep.shotFrame[0..2] = 0x14, default lock spread.
 void cObjGovernment::init(cModel* parent)
 {
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
-    PSet(wep.pMotEmpty, WEP_ARC_PTR(0x3A));
+    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+    PSet(wep.motReset[1], WEP_ARC_PTR(0x3A));
     wep.itemId = 0x2A;
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
         pLog->err(0, 0, "cObjWep::init() failed.");
@@ -155,7 +155,7 @@ void cObjGovernment::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {

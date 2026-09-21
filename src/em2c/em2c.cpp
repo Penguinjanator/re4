@@ -5138,7 +5138,7 @@ int em2cLockCk(cEm2c* em)
     if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f)) > 0.785398185f) {
         return 0;
     }
-    if (pPL->Wep->m_pWep->wep.target && pPL->Wep->m_pWep->wep.target == em) {
+    if (pPL->Wep->m_pWep->wep.m_SightEm && pPL->Wep->m_pWep->wep.m_SightEm == em) {
         return 1;
     }
     PSMTXInverse(pPL->getPartsPtr(10)->mat, inv);

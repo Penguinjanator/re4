@@ -71,7 +71,7 @@ void cObjMine::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
-    wep.pMotNormal = WEP_ARC_PTR(0x21);
+    wep.motReset[0] = WEP_ARC_PTR(0x21);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
@@ -233,7 +233,7 @@ void cObjMine::moveReload()
             se = 0x20;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else {
         // reload frame (the mine change) by reload tune level

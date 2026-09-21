@@ -66,13 +66,13 @@ void cObjGovernment::init(cModel* parent)
 
     if (pG->weapon_type != 1) {
         bin = WEP_ARC_PTR(0x6);
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
-        wep.pMotEmpty = WEP_ARC_PTR(0x3A);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+        wep.motReset[1] = WEP_ARC_PTR(0x3A);
         wep.itemId = 0x2A;
     } else {
         bin = WEP_ARC_PTR(0x7);
-        PSet(wep.pMotNormal, WEP_ARC_PTR(0x39));
-        wep.pMotEmpty = WEP_ARC_PTR(0x3A);
+        PSet(wep.motReset[0], WEP_ARC_PTR(0x39));
+        wep.motReset[1] = WEP_ARC_PTR(0x3A);
         wep.itemId = 0x2B;
     }
     if (modelInit(bin, WEP_ARC_PTR(0x5)) == 0) {
@@ -167,7 +167,7 @@ void cObjGovernment::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {

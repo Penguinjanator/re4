@@ -40,7 +40,7 @@ void cObjTompson::init(cModel* parent)
     }
     wep.parent = parent;
     U16Set(wep.itemId, 0x34);
-    wep.pMotNormal = WEP_ARC_PTR(0x29);
+    wep.motReset[0] = WEP_ARC_PTR(0x29);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
@@ -103,7 +103,7 @@ void cObjTompson::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();

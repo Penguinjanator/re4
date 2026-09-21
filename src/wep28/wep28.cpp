@@ -136,8 +136,8 @@ void cObjBow::init(cModel* parent)
     pParts->pParent = parent->getPartsPtr(0x10);
     wepLightInit(this);
     wep.parent = parent;
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x2D));
-    wep.pMotEmpty = WEP_ARC_PTR(0x2D);
+    PSet(wep.motReset[0], WEP_ARC_PTR(0x2D));
+    wep.motReset[1] = WEP_ARC_PTR(0x2D);
     resetMotion();
     setDispAllow(0);
     bow.allow = 0;

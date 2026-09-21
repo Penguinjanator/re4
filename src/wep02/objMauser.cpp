@@ -76,8 +76,8 @@ void cObjMauser::init(cModel* parent)
     wep.shotFrame[0] = mauser_tbl[0];
     wep.shotFrame[1] = mauser_tbl[1];
     wep.shotFrame[2] = mauser_tbl[2];
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
-    wep.pMotEmpty = WEP_ARC_PTR(0x38);
+    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+    wep.motReset[1] = WEP_ARC_PTR(0x38);
     resetMotion();
 }
 
@@ -233,7 +233,7 @@ void cObjMauser::moveReload()
             break;
         }
         motionSet(m, 0, 0, 1, 0);
-        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
+        wep.m_StopSeId = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, reloadFrame)) {

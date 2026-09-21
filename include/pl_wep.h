@@ -32,10 +32,10 @@ public:
     // Aim sway ranges / per-frame steps in degrees (stored in radians) — each weapon module's
     // init() calls it (pl_wep PlWepLockRand).
     void setAbility(f32 pitch, f32 yaw, f32 pitchStep, f32 yawStep) {
-        wep.lockRandPitch = pitch * 0.017453292f;
-        wep.lockRandYaw = yaw * 0.017453292f;
-        wep.lockRandPitchStep = pitchStep * 0.017453292f;
-        wep.lockRandYawStep = yawStep * 0.017453292f;
+        wep.bureX = pitch * 0.017453292f;
+        wep.bureY = yaw * 0.017453292f;
+        wep.bureSpeedX = pitchStep * 0.017453292f;
+        wep.bureSpeedY = yawStep * 0.017453292f;
     }
     virtual int keyKamae() { return (Key.on >> 4) & 1; }   // pl_sub joyKamae
     virtual void fire() {}
