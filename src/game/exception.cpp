@@ -23,18 +23,18 @@
 
 #define _DOLPHIN_TYPES_H_
 #include <dolphin/os/OSError.h>
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
+#include <dolphin/base/PPCArch.h>
+#include <dolphin/os/OSThread.h>
+#include <dolphin/os/OSAlloc.h>
+#include <dolphin/os/OSResetSW.h>
+#include <dolphin/os/OSReset.h>
+#include <dolphin/os.h>
+#include <dolphin/db.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-char* strchr(const char* s, int c);
-int DBIsDebuggerPresent();
-void PPCMtmsr(u32 msr);
-void OSEnableScheduler();
-s32 OSCheckHeap(int heap);
-u32 OSGetResetButtonState();
-void OSResetSystem(int reset, u32 resetCode, int forceMenu);
 void EprintfFlush();
 // game/exception.cpp
 void ExceptionInit();
@@ -88,8 +88,6 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar);
 
 // A store through a scalar reference is not a struct-member MEM: the static `addr` is reloaded
 // after it, as the original does.
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void ISet(int& d, int v) { d = v; }
 
 #line 40 "D:/Bio4/Prog/exception.cpp"
 
@@ -231,7 +229,7 @@ int excepLoadSymbolSub(char* name, OSModuleHeader* module)
         p->symbol_ptr = (SymHeader*) addr;
         nSymbolInfo++;
         if (module) {
-            p->base = module->sectionInfo[1].offset - 1;
+            p->base = OSGetSectionInfo(module)[1].offset - 1;
         } else {
             p->base = (u32) module;
         }
@@ -301,13 +299,13 @@ void excepLoadSymbol()
     }
     if (SubScreenWk.p_module) {
         OSModuleHeader* mod = SubScreenWk.p_module;
-        if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->sectionInfo < 0) {
+        if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->info.sectionInfoOffset < 0) {
             symbol_err = excepLoadSymbolSub("Bio4.Sscrn.sym", mod);
         }
     }
     if (RoomData.pModule) {
         OSModuleHeader* mod = RoomData.pModule;
-        if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->sectionInfo < 0) {
+        if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->info.sectionInfoOffset < 0) {
             strcpy(buf, FileTbl[RoomData.m_RelNo].name + 4);
             *strchr(buf, '.') = 0;
             sprintf(tmp_str, "Bio4.%s.sym", buf);

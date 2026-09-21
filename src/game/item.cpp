@@ -18,14 +18,11 @@
 #include "puzzle.h"
 #include "mercenaries.h"
 #include "eprintf.h"
-
-extern "C" {
-void qsort(void* base, u32 n, u32 size, int (*cmp)(const void*, const void*));
-}
+#include "ref_access.h"
+#include <stdlib.h>
+#include "player.h"
 
 extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
-extern f32 PlShotFrameTbl[][5];         // pl_class
-extern f32 PlReloadSpeedTbl[][3];       // pl_class
 
 // One weapon (22 bytes): item id, bullet attribute, weapon number/type, bullet item id, magazine size per
 // exclusive tune level (1..7).
@@ -74,8 +71,6 @@ static inline void setBullet(ItemWork* p, u16 n)
     p->bullet = (p->bullet & 0xE000) | (n & 0x1FFF);
 }
 
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // 1 when the slot is in use and belongs to inventory set `type` (0 Leon, 1 Ashley/Ada).
 // slot in use and of inventory type `type`
@@ -1140,15 +1135,7 @@ int cItemMgr::setUp(int no)
     return ret;
 }
 
-static inline int flagNeg(u32& f)
-{
-    return (s32) f < 0;
-}
 
-static inline u32 chkFlag(u32& f, u32 b)
-{
-    return f & b;
-}
 
 // Game start: clears the inventory and gives the start set (set_game for Leon, set_ada / set_char for
 // the extra modes; debug presets via Debug_flg[3]) with 0 pesetas.
@@ -1156,7 +1143,7 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!flagNeg(pG->System_flg) && !chkFlag(pG->System_flg, 0x40000000)) {
+    if (!((s32) pG->System_flg < 0) && !BitChk(pG->System_flg, 0x40000000)) {
         if (pG->pl_type == 1) {
             type = 0;
         }
@@ -1165,7 +1152,7 @@ void cItemMgr::gameInit()
         pG->peseta = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if (chkFlag(pG->Debug_flg[3], 0x00800000) || chkFlag(pG->Debug_flg[3], 0x00040000)) {
+        if (BitChk(pG->Debug_flg[3], 0x00800000) || BitChk(pG->Debug_flg[3], 0x00040000)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);
@@ -1223,7 +1210,6 @@ void cItemMgr::roomInit()
     }
 }
 
-static inline void S32SetI(s32& d, s32 v) { d = v; }
 
 // Boot: allocates the 0x180 slots, the ordering table and the 256-bit availability mask.
 int cItemMgr::init()
@@ -1814,10 +1800,6 @@ static inline void itemInfoIW(ITEM_ID id, ItemInfo* inf)
     itemInfo(id, inf);
 }
 
-static inline void itemInfoW(u16 id, ItemInfo* inf)
-{
-    itemInfo(id, inf);
-}
 
 // Picks up `num` of item `id` (0 = the item's default count): money ids 0x7C..0x7E become pesetas,
 // 0xF? bonus time/points go to the mercenaries timer, stackables top up an existing slot up to
@@ -1875,7 +1857,7 @@ int cItemMgr::get(ITEM_ID id, int num)
                     num = inf.defNum;
                 }
                 total = p->num + num;
-                itemInfoW(p->id, &inf);
+                itemInfo(p->id, &inf);
                 if (total <= inf.maxNum) {
                     {
                         int t = num + p->num;
@@ -2466,7 +2448,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 // Marks item `id` usable here (the sub screen offers "Use"); the room/scenario sets these.
 int cItemMgr::available(ITEM_ID id)
 {
-    m_pAvailable[id >> 5] |= 0x80000000 >> (id & 0x1F);
+    FlagOn(m_pAvailable, id);
 }
 
 // Clears the usable-item mask.

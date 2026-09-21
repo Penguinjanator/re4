@@ -30,12 +30,6 @@
 #define ID_RESULT 0x28
 
 #define KEY_START 0x2000
-#define KEY_A 0x80000000
-#define KEY_B 0x40000000
-#define KEY_UP 0x01000000
-#define KEY_DOWN 0x02000000
-#define KEY_LEFT 0x08000000
-#define KEY_RIGHT 0x04000000
 
 extern "C" {
 int top_menu(OptionScreen* o);

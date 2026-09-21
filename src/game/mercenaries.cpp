@@ -27,9 +27,10 @@
 #include "cDataSwap.h"
 #include "option.h"
 #include "mercenaries.h"
+#include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
 static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 }
 
@@ -45,8 +46,6 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 #define ID_MERC_MES 0x2C
 #define ID_RESULT 0x28
 
-#define KEY_A 0x80000000
-
 // Combo counter shown (bit 24) / hiding (bit 23), bonus time shown / hiding (22 / 21),
 // bonus points shown (20), time warning colour (19), time added (18), all ranks S (25),
 // per-stage record unlock (26..29, mercSysGetFlag), 31: cleared at room start.
@@ -59,28 +58,9 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 #define MF_ADD_TIME 0x00040000
 #define MF_ALL_RANK 0x02000000
 
-// Bit `no` of the u32 array `tbl`, MSB first (pSys->Extra_flg / pSys->MercSysRank / MercSysWork::flags).
-static inline u32 flagCk(u32* tbl, u32 no)
-{
-    return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
-}
 
-// Bit set in a big-endian bit table.
-static inline void flagOn(u32* tbl, u32 no)
-{
-    tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
-}
 
-// Reading a global through a reference keeps its load below a preceding member store.
-static inline int IRef(int& v)
-{
-    return v;
-}
 
-static inline SYSTEM_SAVE_WORK* SysRef(SYSTEM_SAVE_WORK*& p)
-{
-    return p;
-}
 
 // 1 while a fade slot is still fading.
 // Through a pointer parameter: `&Fade[2]` stays a loop-invariant pseudo (`addi rX, Fade+0x48@l`).
@@ -91,11 +71,6 @@ static inline int fadeIsOn(FadeWork* f)
 
 #define EXT_FLAG_TBL ((u32*) &pSys->Extra_flg)
 
-// Struct-member view of pSys (the pLog trick): its load stays below preceding stores through `wk`.
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
 #define EXT_FLAG_TBL_S ((u32*) &pSysS->Extra_flg)
 #define MID (&mercId._idSys)
 
@@ -298,7 +273,7 @@ int MercSysMoveStart(MercSysWork* wk)
             MesWork* m = cMes.getWork();
 
             SceMesSet(wk->mesStart, 0x20, 1, 100, MES_Y(m));
-            if (!flagCk(EXT_FLAG_TBL, extFlagTbl[wk->stage])) {
+            if (!FlagChkVar(EXT_FLAG_TBL, extFlagTbl[wk->stage])) {
                 SceMesSet(wk->mesA8, 0x20, 1, 100, MES_Y(m));
             } else {
                 MercSaveWork save;
@@ -594,10 +569,10 @@ int MercSysResultInit(MercSysWork* wk)
     wk->rslt.hiScore = save.stage[wk->stage].score;
     wk->rslt.hiMode = save.stage[wk->stage].mode;
     wk->rslt.newRecord = save.stage[wk->stage].newFlag;
-    if (!flagCk(EXT_FLAG_TBL_S, extFlagTbl[wk->stage])) {
+    if (!FlagChkVar(EXT_FLAG_TBL_S, extFlagTbl[wk->stage])) {
         if (wk->rslt.rank > 3) {
-            flagOn(EXT_FLAG_TBL_S, extFlagTbl[wk->stage]);
-            flagOn(&wk->flags, mercSysGetFlag[wk->stage]);
+            FlagOnVar(EXT_FLAG_TBL_S, extFlagTbl[wk->stage]);
+            FlagOnVar(&wk->flags, mercSysGetFlag[wk->stage]);
         }
     }
     {
@@ -742,13 +717,13 @@ void MercSysGetSaveWork(MercSaveWork* save)
         for (j = 0; j < 5; j++) {
             int r = 0;
 
-            if (flagCk(SysRef(pSys)->MercSysRank, i * 15 + j * 3)) {
+            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3))) {
                 r = 4;
             }
-            if (flagCk(SysRef(pSys)->MercSysRank, i * 15 + j * 3 + 1)) {
+            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 1))) {
                 r |= 2;
             }
-            if (flagCk(SysRef(pSys)->MercSysRank, i * 15 + j * 3 + 2)) {
+            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 2))) {
                 r |= 1;
             }
             save->rank[j][i] = r;
@@ -778,13 +753,13 @@ void MercSysSetSaveWork(MercSaveWork* save)
             int r = save->rank[j][i];
 
             if (r & 4) {
-                flagOn(SysRef(pSys)->MercSysRank, i * 15 + j * 3);
+                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3));
             }
             if (r & 2) {
-                flagOn(SysRef(pSys)->MercSysRank, i * 15 + j * 3 + 1);
+                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 1));
             }
             if (r & 1) {
-                flagOn(SysRef(pSys)->MercSysRank, i * 15 + j * 3 + 2);
+                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 2));
             }
         }
     }
@@ -1144,7 +1119,7 @@ int MercResult::move(MercSysWork* wk)
         IdSetNum(&IdSys, 0x41, ID_RESULT, wk->rslt.hiScore, 999999, 6, 0);
         if (Key.trg & KEY_A) {
             FadeSetW(2, 10, 0, 0);
-            if (flagCk(&wk->flags, mercSysGetFlag[wk->stage])) {
+            if (FlagChkVar(&wk->flags, mercSysGetFlag[wk->stage])) {
                 _rno0 = 0xA;
             } else if (wk->flags & MF_ALL_RANK) {
                 _rno0 = 0x14;
@@ -1163,7 +1138,7 @@ int MercResult::move(MercSysWork* wk)
         for (int i = 0; i < 4; i++) {
             int on = 0;
 
-            if (flagCk(EXT_FLAG_TBL, extFlagTbl[i])) {
+            if (FlagChkVar(EXT_FLAG_TBL, extFlagTbl[i])) {
                 on = 1;
             }
             IdSetTrans(&IdSys, i + 1, ID_RESULT, on);

@@ -57,16 +57,6 @@ idR330 IdR330;
 static s16 r330_scrollTbl[5] = {30, 15, 20, 25, 40};
 
 
-// Position a model from three components (inline owning the Vec).
-static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 void R330EventS00Main();
 void R330EventS00End();
@@ -202,7 +192,7 @@ void R330EventS00End()
         pSUB->endEvent(0);
         pSUB->setNoSuspend(0);
     }
-    setPosXYZ(pPL, 7806.0f, -4649.0f, 7377.0f);
+    pPL->setPos(7806.0f, -4649.0f, 7377.0f);
     {
         Vec ang;
 

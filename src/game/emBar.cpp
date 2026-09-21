@@ -15,19 +15,17 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "em_sub.h"
+#include "pl_sub.h"
+#include "player.h"
 
 class cPlayer;
 
-extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp
-int PlBombHitCk(Vec* pos, f32 r);                    // em_sub.cpp
-void SetPlDamage(cEm* em, void (*func)(cPlayer*));  // pl_sub.cpp
-void EndPlDamage();
 void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmBarFunc)(cEmBar*);
 
@@ -320,7 +318,7 @@ void plemEscape(cPlayer* pl)
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->pMotion, w->motion, 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, w->motion, 0, 5, 1, 0);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {

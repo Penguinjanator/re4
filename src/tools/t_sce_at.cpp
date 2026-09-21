@@ -22,18 +22,13 @@
 #include "pad.h"
 #include "debug.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Scenario attribute ("AEV" room file) editor: the same object in the Tools and t_sce RELs
 // (D:/Bio4/Prog/t_sce_at.cpp). Same skeleton as t_flr_at.cpp / t_movie's t_se_at.cpp.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strstr(const char* s, const char* sub);
-char* strpbrk(const char* s, const char* set);
-void* memset(void* dst, int c, unsigned int n);
-}
 int SetToolLight(int no);  // db_light_tools.cpp / t_sce's db_light_v2 copy
 
 // AEV file: header + records (game/sce_at.cpp SceAtFileHead).
@@ -221,8 +216,6 @@ int loadMesName(const char* path, char* names);
 #define TYPE_NAME(t) ((u32) (t) <= 0x14 ? tSceAtTypeName[t] : "...no string")
 
 // pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
-#define REP_RIGHT (JOY_RIGHT | 0x20000)
-#define REP_LEFT (JOY_LEFT | 0x10000)
 
 // +1 / -1 on a value
 #define STEP(j, v)                     \
@@ -314,25 +307,25 @@ void ToolSceAt()
 // areas (Disp_flg bits), Debug_flg bit 28 (tool running), tool light 1 on, flags_5010 bit 24.
 void tSceAtInit_base()
 {
-    *(TOOL_PTR(0x8678)) = 0x11;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x4000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    *((u8*) &pG->debug_mode) = 0x11;
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    BitOn(pG->Disp_flg, 0x4000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     pW->light = 1;
     SetToolLight(1);
-    TOOL_FLAG(0x5010) |= 0x1000000;
+    pG->Status_flg[1] |= 0x1000000;
 }
 
 // Tool init: default tool state, AEV header (version 0x104, 128 records), file names for the room,
@@ -412,9 +405,9 @@ static void tSceAtExit()
         file_unlock(pW->pathX);
         Debug_free(pW);
         CamDbg.m_target_type = CamDbg.pad_10[0];
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
-        TOOL_FLAG(0x5010) &= ~0x1000000;
+        pG->Status_flg[1] &= ~0x1000000;
         TutilQuitDefault();
         TaskExit();
         break;
@@ -621,8 +614,6 @@ static void tSceAtAreaEdit_AreaDelete()
     pCur->flag &= ~1;
     pW->editCursor = 0;
 }
-
-#define DEG2RAD 0.017453292f
 
 // the hit-angle arrow of an area: centre, direction and the +-range fan
 void angle_arrow_disp(SceAtWork* a)
@@ -1090,10 +1081,7 @@ static void tSceAtDataInput_door()
 }
 
 // jumps through the door to set the destination point with the player, then comes back
-static inline f32 FCRef(const f32& v) { return v; }
 // scalar-reference stores: the following pG load stays below them and pG is reloaded
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
 
 // Door target position: jumps into the destination room (GetNextPos or the stored dstPos), lets the
 // player be moved with the stick / triggers (X fast, A slow) until START, stores his position as
@@ -1104,14 +1092,14 @@ void tSceAtDataInput_door_PosSet()
     f32 spd;
     f32 z;
 
-    TOOL_FLAG(0x6C) |= 0x10000;
-    TOOL_FLAG(0x68) |= 0x4000000;
+    BitOn(pG->Debug_flg[3], 0x10000);
+    BitOn(pG->Debug_flg[2], 0x4000000);
     pW->saveStage = pG->stage_no;
     pW->saveRoom = pG->room_no;
     pW->saveX4F9E = pG->Part;
     memcpy((u8*) pW + 0x14, &pPL->pos, sizeof(Vec));
     memcpy((u8*) pW + 0x20, &pPL->ang, sizeof(Vec));
-    if (pCur->dstPos.x == (z = FCRef(zero)) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
+    if (pCur->dstPos.x == (z = zero) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
         GetNextPos(pCur->dstStage, pCur->dstRoom);
     } else {
         FSet(pG->NextPos.x, pCur->dstPos.x);
@@ -1119,13 +1107,13 @@ void tSceAtDataInput_door_PosSet()
         FSet(pG->NextPos.z, pCur->dstPos.z);
         FSet(pG->NextY, pCur->dstAngle);
         U16Set(pG->room_id_prev, pG->room_id);
-        U8Set(pG->Part_old, pG->Part);
-        U8Set(pG->Stage_next, pCur->dstStage);
-        U8Set(pG->Room_next, pCur->dstRoom);
-        U8Set(pG->Part_next, pCur->dstPart);
+        pG->Part_old = pG->Part;
+        pG->Stage_next = pCur->dstStage;
+        pG->Room_next = pCur->dstRoom;
+        pG->Part_next = pCur->dstPart;
     }
-    *(TOOL_PTR(0x8678)) = 7;
-    TOOL_FLAG(0x68) |= 0x80000000;
+    *((u8*) &pG->debug_mode) = 7;
+    BitOn(pG->Debug_flg[2], 0x80000000);
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
@@ -1133,7 +1121,7 @@ void tSceAtDataInput_door_PosSet()
     while (pG->Rno0 != 3) TaskSleep(1);
     while (!(Joy[0].trg & JOY_START)) {
         if (Joy[0].on & JOY_X) {
-            TOOL_FLAG(0x68) |= 8;
+            pG->Debug_flg[2] |= 8;
             KeyStop(0xEFCF0000);
             if (Joy[0].on & JOY_A) {
                 spd = 10.0f;
@@ -1148,8 +1136,8 @@ void tSceAtDataInput_door_PosSet()
             PSVECAdd(&pPL->pos, &d, &pPL->pos);
             Draw_pos(&pPL->pos, 2000);
         } else {
-            TOOL_FLAG(OFS_STOP_FLG) &= ~0x80000000;
-            TOOL_FLAG(0x68) &= ~8;
+            BitOff(pG->Stop_flg, 0x80000000);
+            pG->Debug_flg[2] &= ~8;
         }
         TaskSleep(1);
     }
@@ -1162,19 +1150,19 @@ void tSceAtDataInput_door_PosSet()
     FSet(pG->NextPos.z, pW->savePos.z);
     FSet(pG->NextY, pW->saveRot.y);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->Part);
-    U8Set(pG->Stage_next, pW->saveStage);
-    U8Set(pG->Room_next, pW->saveRoom);
-    U8Set(pG->Part_next, pW->saveX4F9E);
-    TOOL_FLAG(0x68) |= 0x80000000;
+    pG->Part_old = pG->Part;
+    pG->Stage_next = pW->saveStage;
+    pG->Room_next = pW->saveRoom;
+    pG->Part_next = pW->saveX4F9E;
+    BitOn(pG->Debug_flg[2], 0x80000000);
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
     pG->Rno3 = 0;
     while (pG->Rno0 != 3) TaskSleep(1);
     tSceAtInit_base();
-    TOOL_FLAG(0x6C) &= ~0x10000;
-    TOOL_FLAG(0x68) &= ~0x4000000;
+    BitOff(pG->Debug_flg[3], 0x10000);
+    pG->Debug_flg[2] &= ~0x4000000;
 }
 
 static TOOL_MENU tSceAtMesMenu[13] = {
@@ -2630,10 +2618,10 @@ static void tSceAtPreview()
 // Un-pauses the player and HUD (Stop / Disp / Debug flag bits) for the preview.
 static void tSceAtPreview_init()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     pW->sub = 1;
     pW->step = 0;
     pW->step2 = 0;
@@ -2698,16 +2686,16 @@ void tSceAtPreview_pl_pos()
 // Restores the tool flags and returns to the main menu.
 static void tSceAtPreview_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] |= 0x10000000;
     MODE_RESET();
 }
 

@@ -44,7 +44,6 @@ struct R20fWorkPtr {
 static R20fWorkPtr r20f_work;
 
 // Stores into the work the original keeps below the following `pG` load (scalar-reference stores).
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 static Vec r20f_guardPos0 = {54000.0f, 3500.0f, 24000.0f};
 static Vec r20f_guardPos1 = {54500.0f, 3500.0f, 26000.0f};

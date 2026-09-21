@@ -34,13 +34,13 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include <dolphin/os.h>
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
 asm(".comm common_em38,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 // game/em_dm_val.cpp (declared in em10.h, which is not included here: emwep.h's extern "C" plemBackjump would
 // turn this unit's static plemBackjump into a global C function).
@@ -87,39 +87,14 @@ static void plemBackjump(cPlayer* pl);
 static void em38SitAction(cEm38* em);
 static void plemSit(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-// Struct-member view of pG (global.h pGS is the same idea): its load stays below a preceding store through the work.
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 // The shell motion work as the MotionWork the motion library takes.
 #define SHELL_MOT(w) ((MotionWork*) &(w)->shellMot)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 
-// int stores through a reference: the following pG load stays below them (em3a).
-static inline void IntSet(int& x, int v)
-{
-    x = v;
-}
 
 extern "C" void _prolog()
 {
@@ -990,12 +965,12 @@ static void em38_R1_T_Out(cEm38* em)
 // The attack wait of the tentacle routines by difficulty (pG reloaded after every store).
 static inline void em38SetTentAtkWait(Em38Work* w)
 {
-    IntSet(w->atkWait, 270);
+    w->atkWait = 270;
     if (pG->Game_level <= 2) {
-        IntSet(w->atkWait, 330);
+        w->atkWait = 330;
     }
     if (pG->Game_level > 7) {
-        IntSet(w->atkWait, 210);
+        w->atkWait = 210;
     }
 }
 
@@ -1751,11 +1726,6 @@ void em38EyeMove(cEm38* em)
     }
 }
 
-// Work `no` of the enemy manager without the range check (the callers loop over nArray).
-static inline cEm38* em38EmWork(u32 no)
-{
-    return (cEm38*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Finds the other parts of the boss among the alive enemies.
 void em38SearchParts(cEm38* em)
@@ -1763,8 +1733,8 @@ void em38SearchParts(cEm38* em)
     Em38Work* w = EM38_WK(em);
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm38* p = em38EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm38* p = (cEm38*) EmMgr.fastAt(i);
 
         if ((p->be_flag & 0x201) == 1 && p->id == 0x38 && p != em) {
             switch (p->type) {
@@ -1849,8 +1819,8 @@ void em38BirthParasite(cEm38* em)
     u32 i;
 
     if (w->birthTimer == 0 && em->type == 4 && em->hp > 0) {
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm25* p = (cEm25*) em38EmWork(i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm25* p = (cEm25*) (cEm38*) EmMgr.fastAt(i);
 
             // isAlive() (not the open-coded flag test): the inline's extra RTL keeps the loop
             // above loop.c's 71-insn threshold in pass 2, so `li 240` stays inside the loop
@@ -2488,9 +2458,7 @@ void em38EscapeCamMove(cEm38* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }

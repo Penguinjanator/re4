@@ -70,8 +70,8 @@ void cObj01::move00()
                 }
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
-                pG->bell_stat = 1;
+                pG->SeInfo.pos = pos;
+                pGS->SeInfo.type = 1;
                 ObjMgr.destroy(this);
                 return;
             case 2:
@@ -114,7 +114,7 @@ void cObj01::move00()
         return;
     }
     if (w->be_flag & 1) {
-        MotionSetCore(this, &pMotion, w->pMot, 0, 0, w->motPrm, 0);
+        MotionSetCore(this, &Motion, w->pMot, 0, 0, w->motPrm, 0);
         w->be_flag = (w->be_flag & ~1) | 2;
     }
     if (w->be_flag & 2) {

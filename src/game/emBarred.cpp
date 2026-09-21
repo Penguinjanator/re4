@@ -25,8 +25,8 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "pl_npc.h"
 
-extern cModel* pSUB;   // game/em.cpp
 
 typedef void (*EmBarredFunc)(cEmBarred*);
 
@@ -37,11 +37,6 @@ EmBarredFunc EmBarred_R1_move_tbl[4] = {
     emBarred_R1_Break,
 };
 
-// Closes again when the player leaves (setNoClose clears this).
-static inline int emBarredCanClose(EmBarredWork* w)
-{
-    return !(w->be_flag & 1);
-}
 
 // Creates a barred gate enemy (id 0x4E) from a model / TPL at pos / rot unless room etc flag
 // `flagNo` bit0 says it was destroyed. type 1..9 selects the gate size (atari cylinder, hit
@@ -511,7 +506,7 @@ void emBarred_R1_Set(cEmBarred* em)
                     w->pBarred->setOpen(1);
                 }
             }
-        } else if (emBarredCanClose(w)) {
+        } else if ((!(w->be_flag & 1))) {
             w->Timer++;
             if (w->Status == 1 && w->Timer > 30 && w->Lock_mode == 0) {
                 w->Status = 0;
@@ -1022,8 +1017,8 @@ int emBarredNearCk(cEmBarred* em)
     if (d < r2) {
         return 1;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -1137,8 +1132,8 @@ int emBarredUnderCk(cEmBarred* em)
             return 1;
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

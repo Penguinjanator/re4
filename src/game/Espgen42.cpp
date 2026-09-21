@@ -15,6 +15,8 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
+#include "ref_access.h"
+#include <dolphin/base/PPCArch.h>
 
 // Effect controller 42: room water surface. A (nx+1) x (ny+1) height field simulated on two
 // ping-pong buffers, rendered as triangle strips through a display list with an indirect bump
@@ -24,13 +26,6 @@
 extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
 // game/espgen45.cpp
 extern EspgenWork* g_pWater45;
 
@@ -54,9 +49,6 @@ static Vec Cross_Ret_pos;
 static int Cross_find;
 int g_bNoWater = 0;
 
-static inline void ISet(int& d, int v) { d = v; }
-static inline f32 FGet(f32& d) { return d; }
-static inline int IGet(int& d) { return d; }
 
 // Room start: forgets both water generators (42 room water, 45 weather water), resets the
 // Espgen45 override state and clears the no-water debug switch.
@@ -149,7 +141,7 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
             } else {
                 h = p->hA + k;
             }
-            *h += FGet(Add_power) * pw;
+            *h += Add_power * pw;
         }
     }
 }
@@ -225,7 +217,7 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
             } else {
                 h = p->hA + k;
             }
-            *h += FGet(Add_power) * pw;
+            *h += Add_power * pw;
         }
     }
 }
@@ -313,7 +305,7 @@ int GetWaterHeight(Vec* pos, f32* height)
     if (g_bNoWater == 1) {
         return 0;
     }
-    ISet(Height_find, 0);
+    Height_find = 0;
     FSet(Height_ret, -100000000.0f);
     Chk_pos = *pos;
     if (g_pWater != NULL) {

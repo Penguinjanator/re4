@@ -19,21 +19,8 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
-
-// GetWepTargetList entry (em_sub.cpp).
-struct WepTarget {
-    cEm* em;
-    YARARE_INFO* part;
-};
-
-extern "C" {
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-// em_sub.cpp: enemies on the line p0-p1 (at most `prio` of them) into `list`; hit point / normal / attribute out.
-u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
-int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
-}
+#include "est.h"
+#include "em_sub.h"
 
 // Rope node of the falling arrow (emMine_R1_Fall).
 struct MineNode {
@@ -592,8 +579,8 @@ void emMineSearchEm(cEmMine* em, int mode)
     } else {
         best = 0.0f;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         cModel* parts;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -1170,7 +1157,7 @@ void cEmMine::setLost()
 // Detonates: a mine stuck to a surface first goes through BombWait (Rno1 5); otherwise spawns
 // the explosion est / SE at the nose, splashes water, deletes the trail, flags the explosion
 // (Status_flg[0] 0x800000, Status_flg[1] 0x20000000) and stores the blast position as the noise
-// source (bell_pos / bell_stat, alerts enemies), then BombWait2 for the damage.
+// source (SeInfo.pos / SeInfo.type, alerts enemies), then BombWait2 for the damage.
 void cEmMine::setBomb()
 {
     EmMineWork* w = EMMINE_WK(this);
@@ -1201,8 +1188,8 @@ void cEmMine::setBomb()
     EffectEfmDelete(0, w->EffKindId, this);
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = p;
+    pGS->SeInfo.type = 1;
     setLost();
     // COMPILER-DIFF: candidate #12 (cse wider-mode zero fold): the original stores the known-zero
     // `hit` register into xFE (ours folds it to the HImode zero pseudo); the launder keeps `hit` as

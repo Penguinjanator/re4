@@ -28,8 +28,8 @@
 #include "eprintf.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-04 (D:/Bio4/Prog/r404.cpp): the Mercenaries castle courtyard; the enemy waves per area, the
 // chainsaw sister after enough kills, the banister slide and the three treasure cases.
@@ -54,12 +54,6 @@ struct R404WorkPtr {
     R404Work* p;
 };
 
-// Typed view of pG->emlist (r400): pG is loaded before the index shift.
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData Em_list[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static u8 r404_texTbl[0x20];
 static R404WorkPtr r404_work;
@@ -74,14 +68,7 @@ struct R404MercInit {
     u32 x5C[4];
 };
 
-// Struct view of pPL: the in-struct load is invalidated by the collision flag stores (pPL reloaded per statement).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 // Store through a reference: the following pG load stays below it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 
 void r404_openBox_main(int no, int mode);
@@ -293,7 +280,7 @@ int r404_setEm(u32 no, int force)
         return 0;
     }
     cEmWrap em;
-    if (!(EM_LIST_V(no).be_flag & 2)) {
+    if (!(pG->Em_list[no].be_flag & 2)) {
         em.setEm(no, -1, 1, 1, 1);
     } else {
         em.setPtr(no, -1, 1);

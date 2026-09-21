@@ -25,6 +25,8 @@
 #include "main.h"
 #include "db_cam.h"
 #include "player.h"
+#include <stdio.h>
+#include <string.h>
 
 // The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
 // skeleton defines it as `common_<mod>`, see em10.cpp / st_room.h): once db_light is compiled in a module
@@ -38,17 +40,6 @@ asm(".comm common_" DB_LIGHT_STR(REL_MODULE) ",52,4");
 // t_camera / t_light / t_event; Tools adds SetToolLight in front of it (tools/db_light_tools.cpp,
 // DB_LIGHT_SET_TOOL_LIGHT), t_esp also cLightTool::setLogMode (tools/db_light_esp.cpp,
 // DB_LIGHT_SET_LOG_MODE); t_sce / t_movie carry an older build (tools/db_light_v2.cpp, unwritten).
-
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, unsigned int n);
-f32 atan2f(f32 y, f32 x);
-f64 atan2(f64 y, f64 x);
-f32 asinf(f32 x);
-f32 cosf(f32 x);
-f32 sinf(f32 x);
-}
 
 // A colour as one word (DrawTile swatches). The user copy constructor makes it BLKmode: every inlined
 // drawColorTile shares one frame slot (see the FadeSet colour pair note in docs/matching.md).
@@ -168,12 +159,8 @@ struct cLightToolPtr {
     cLightTool* p;
 };
 
-void RotVector(Vec* v, Vec* rot);
-f32 LIMIT_ANGLE(f32 a);
-void moveOnPlaneXZ(Vec* pos, Vec* dir);
 int tcCurrentCameraNo();
 extern int DebugMenuSelected;
-cModel* getRoomEtcOnLight(int no);
 
 // Debug heap pointers are checked for the MEM1 range before use.
 #define PTR_OK(p) (!((u32)(p) < 0x80000000 || (u32)(p) > 0x82FFFFFF))
@@ -355,10 +342,7 @@ static inline void drawColorTile(int x, int y, int w, int h, u32 c)
 }
 
 // The current light of the light table.
-static inline cLight* curLight()
-{
-    return LightMgr.getWorkPtr(pTool->table_y + pTool->cy);
-}
+#define curLight() (LightMgr.at(pTool->table_y + pTool->cy))
 
 #ifdef DB_LIGHT_SET_TOOL_LIGHT
 // Tools / t_esp / t_sce / t_movie builds: load tool%02x.lit as the current light set (-1: reapply the
@@ -407,7 +391,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     color = pGS->debug_mode;
     PrintNoBak = pGS->debug_mode;
     pLightEnv = LightMgr.getEnvPtr();
-    nLightWork = LightMgr.nArray;
+    nLightWork = LightMgr.getArrayNum();
     Lit.init(*LightMgr.getLitPPtr());
     CutNum = CamCtrl.AreaNum();
     EditCutNo = cutNo = getCutNo();
@@ -415,7 +399,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     CutTmp = NULL;
     initLightWork(&LitTmp);
     pTool->Flag |= 0x20;
-    anaTbl = (u8*) Debug_alloc(ObjMgr.nArray * 4, 1);
+    anaTbl = (u8*) Debug_alloc(ObjMgr.getArrayNum() * 4, 1);
     if (!PTR_OK(anaTbl)) {
         TOOL_ERR("cLightTool() MEMORY ERROR");
     }
@@ -429,21 +413,6 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
 cLightTool::~cLightTool()
 {
     pLog->modeReset();
-}
-
-// Light work `no` without the range check (the editor indexes past nArray on purpose). A macro because an
-// inline definition would raise the declaration number of everything after it by 3, and draw_light_graph's
-// register allocation follows those numbers.
-#define lightWorkNoChk(no) ((cLight*) ((u8*) LightMgr.pArray + LightMgr.size * (no)))
-
-// Object work `no`, 0 when out of range.
-static inline cObj* objWorkChkP(u32 no)
-{
-    cObjMgr* m = &ObjMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cObj*) ((u8*) m->pArray + m->size * no);
 }
 
 // Light editor frame. Mode 0 copies the pads (pad 1 edits, pad 2 moves the camera), 1 CAMERA MODE
@@ -539,8 +508,8 @@ int cLightTool::move()
     if (Joy[0].rep) {
         cursorCtr = 0;
     }
-    for (u32 n = 0; n < LightMgr.nArray; n++) {
-        lightWorkNoChk(n)->LitIndex = n;
+    for (u32 n = 0; n < LightMgr.getArrayNum(); n++) {
+        LightMgr.fastAt(n)->LitIndex = n;
     }
     routine_tbl[rno0]();
     LightMgr.move();
@@ -562,8 +531,8 @@ int cLightTool::move()
         lightAnalysis();
     }
     if (pTool->Flag & 0x10) {
-        for (i = 0; i < ObjMgr.nArray; i++) {
-            cObj* obj = objWorkChkP(i);
+        for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+            cObj* obj = ObjMgr.at(i);
             if (obj->isAlive() && obj->LightInfo.getLightNum()) {
                 obj->drawAllBoundingBox(obj->pModelInfo);
             }
@@ -1143,7 +1112,7 @@ static void edit_light_select()
         pTool->clearWork();
     }
     for (i = 0; i < nLightWork; i++) {
-        cLight* l = LightMgr.getWorkPtr(i);
+        cLight* l = LightMgr.at(i);
         if ((l->be_flag & 3) == 3) {
             if (l == cur) {
                 u32 c = ((pG->Frame_cnt << 4) | 0xF) & 0xFF;
@@ -1310,12 +1279,12 @@ void lightCutWork(int no)
     int i;
 
     for (i = no; i < (int) nLightWork - 2; i++) {
-        cLight* p = LightMgr.getWorkPtr(i);
+        cLight* p = LightMgr.at(i);
         cLight* n;
         if (p && p->isAlive()) {
             LightMgr.destroy(p);
         }
-        n = LightMgr.getWorkPtr(i + 1);
+        n = LightMgr.at(i + 1);
         if (n && n->isAlive()) {
             cLightMgr* m = &LightMgr;
             m->cManager<cLight>::create(n->Type, i);
@@ -1331,12 +1300,12 @@ void lightInsertWork(int no)
     int i;
 
     for (i = nLightWork - 2; i >= no; i--) {
-        cLight* p = LightMgr.getWorkPtr(i + 1);
+        cLight* p = LightMgr.at(i + 1);
         cLight* n;
         if (p && p->isAlive()) {
             LightMgr.destroy(p);
         }
-        n = LightMgr.getWorkPtr(i);
+        n = LightMgr.at(i);
         if (n && n->isAlive()) {
             cLightMgr* m = &LightMgr;
             m->cManager<cLight>::create(n->Type, i + 1);
@@ -1351,7 +1320,7 @@ void lightInsertWork(int no)
 static void edit_light_no()
 {
     u32 no = pTool->table_y + pTool->cy;
-    cLight* cur = LightMgr.getWorkPtr(no);
+    cLight* cur = LightMgr.at(no);
 
     if (cur->be_flag & 1) {
         cur->be_flag ^= 2;
@@ -2011,7 +1980,7 @@ static void edit_light_parent()
             n = 0x40;
             break;
         case 4:
-            n = ObjMgr.nArray;
+            n = ObjMgr.getArrayNum();
             break;
         }
         if (pTool->Pad1.rep & JOY_RIGHT) {
@@ -2066,7 +2035,7 @@ static void edit_light_parent()
     case 4:
         eprintf(0x40, 0xA8, 0, pTool->color, "ID    %d", cur->parent.no);
         eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
-        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * cur->parent.no);
+        obj = ObjMgr.fastAt(cur->parent.no);
         if (obj) {
             switch (obj->id) {
             case 2:
@@ -4910,7 +4879,7 @@ void printEditTable()
 
     eprintf(0x20, 0x142, 4, pTool->color, table_head[page]);
     for (i = 0, no = pTool->table_y; i < pTool->table_height; i++, no++) {
-        l = LightMgr.getWorkPtr(no);
+        l = LightMgr.at(no);
         x = 4;
         if (pTool->editEnable()) {
             if ((l->be_flag & 3) == 3) {
@@ -5818,11 +5787,6 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
     }
 }
 
-// Object work `no` without the range check.
-static inline cObj* objWorkNoChk(u32 no)
-{
-    return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
-}
 
 // Light usage analysis (Flag 4): per scroll object the lights hitting it (anaTbl: count, .., id),
 // printed with the player's light count (red above 3); 0 without the table.
@@ -5834,12 +5798,12 @@ int cLightTool::lightAnalysis()
     if (!PTR_OK(anaTbl)) {
         return 0;
     }
-    n = ObjMgr.nArray;
+    n = ObjMgr.getArrayNum();
     memclr_asm(anaTbl, n * 4);
     LitAnaIdx = 0;
     for (i = 0; i < n; i++) {
-        if (objWorkNoChk(i)->isAlive()) {
-            cObj* obj = objWorkNoChk(i);
+        if (ObjMgr.fastAt(i)->isAlive()) {
+            cObj* obj = ObjMgr.fastAt(i);
             if (obj->kindid == 2) {
                 if (obj->LightInfo.getLightNum() > 4) {
                     int id = SmdGetWorkId(obj);

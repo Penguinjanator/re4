@@ -39,9 +39,9 @@ extern "C" inline void LightSetModel2(cModel* m)
 }
 
 #include "ss_main.h"
+#include <stdio.h>
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
-extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" int EspMove();
 extern "C" int EspgenMove();
 
@@ -166,12 +166,6 @@ void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* dow
         bar->be_flag &= ~8;
     }
 }
-
-// Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 
 // Switches cModel to the DLL's own parts/model-info managers (0x100 parts, 0xA0 infos) and creates
 // the 0xA0 MapMgr model works the screens use; attr_flag bit 0 records it for sscrnModelFree.
@@ -407,14 +401,14 @@ void SubScreenTask()
             void (*func)(cModel*);
             // `m->next` read before the call (`lwz r30, 4(r30)` above the `blrl`).
             func = sscrnModelTrans;
-            m = mgr->pAlive;
+            m = mgr->getActiveWork();
             while (m) {
                 cModel* p = m;
                 m = (cModel*) m->pNext;
                 func(p);
             }
             func = LightSetModel2;
-            m = mgr->pAlive;
+            m = mgr->getActiveWork();
             while (m) {
                 cModel* p = m;
                 m = (cModel*) m->pNext;
@@ -485,11 +479,6 @@ static inline void ssItemInfo(u16 id, ItemInfo* info)
 {
     itemInfo(id, info);
 }
-// Polls a DVD read request: 0 pending, 1 done (size filled), else error.
-static inline int ssReadCheck(int req, int* size)
-{
-    return Dvd.ReadCheck(req, size, 0, 0);
-}
 
 // Item examine: reads the item's model (.bin) and texture (.tpl) into the examine buffer, shows it
 // with the examine camera and returns to the caller widget on cancel.
@@ -532,7 +521,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 1: {
-        int ret = ssReadCheck(exam_read_req, &size);
+        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
         if (ret == 0) {
             break;
         }
@@ -560,7 +549,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 3: {
-        int ret = ssReadCheck(exam_read_req, &size);
+        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
         if (ret == 0) {
             break;
         }

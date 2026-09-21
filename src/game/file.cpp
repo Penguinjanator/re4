@@ -5,11 +5,8 @@
 #include "global.h"
 #include "fileserver.h"
 #include "file.h"
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-}
+#include <stdio.h>
+#include <dolphin/os.h>
 
 static int usb_fd = -1;
 static void* usb_buf = (void*) 0x81800000;

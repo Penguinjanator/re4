@@ -7,8 +7,6 @@
 #include "light.h"
 #include "esp.h"
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 void PlMachineMove(cPlayer* pl);   // wep/pl_machine.cpp
 cObjWep* equipWeapon(cPlayer* pl);
 

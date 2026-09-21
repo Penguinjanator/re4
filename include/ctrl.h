@@ -42,15 +42,6 @@ class cCtrl00 : public cCtrl {};
 class cCtrl01 : public cCtrl {};
 class cCtrl10 : public cCtrl {};
 
-// Work `no` of CtrlMgr, 0 when out of range (GetCtrlCtrl11/12 scan the array with it).
-static inline cCtrl* CtrlMgrWork(u32 no)
-{
-    if (no >= CtrlMgr.nArray) {
-        return 0;
-    }
-    return (cCtrl*)((u8*)CtrlMgr.pArray + CtrlMgr.size * no);
-}
-
 // ctrl11: sound effect handles kept per object (GetCtrlCtrl11 / Ctrl11SetSe*).
 struct Ctrl11Work {
     s16 timer[16];   // 0x00  frames until the slot may play again

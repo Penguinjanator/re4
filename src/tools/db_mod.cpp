@@ -15,6 +15,9 @@
 #include "db_light.h"
 #include "dolphin/mtx.h"
 #include "scheduler.h"
+#include <stdio.h>
+#include <dolphin/os.h>
+#include <string.h>
 
 #line 30 "D:/Bio4/Prog/db_mod.cpp"
 
@@ -23,23 +26,7 @@
 // dbModMotionSet and the dbModBinName..dbModelSetAng0 loader entry points, t_esp lost the view-flag
 // getters, dbModMotionSetSeq and dbModGetMotFilename. .rodata/.data are the same bytes in both.
 
-extern "C" {
-int sscanf(const char*, const char*, ...);
-int sprintf(char*, const char*, ...);
-char* strcpy(char*, const char*);
-unsigned int strlen(const char*);
-void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-int strcmp(const char*, const char*);
-int strncmp(const char*, const char*, u32);
-char* strchr(const char*, int);
-char* strstr(const char*, const char*);
-u32 strspn(const char*, const char*);
-f64 log10(f64);
-}
-
 #define FILE_NUM 16
-#define DEG2RAD 0.017453292f
 #define NAME_LEN 0x80
 #define SLOT_NUM 64
 

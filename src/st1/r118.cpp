@@ -83,9 +83,9 @@ void R118Init()
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (ScfFlagChk(pG, SCF_R117_FIND_ASHLEY)) {
-        EM_LIST(0x82)->be_flag &= ~1;
-        EM_LIST(0x83)->be_flag &= ~1;
-        EM_LIST(0x84)->be_flag &= ~1;
+        pG->Em_list[0x82].be_flag &= ~1;
+        pG->Em_list[0x83].be_flag &= ~1;
+        pG->Em_list[0x84].be_flag &= ~1;
         EmSetFromList2(0x79, 1);
         EmSetFromList2(0x7A, 1);
         EmSetFromList2(0x7B, 1);
@@ -127,7 +127,6 @@ static void r118_execShowView_end()
 
 // Show the altar: camera cut 10 with its stream.
 // OPEN (as r108 execShowView): the original issues the stream's `lfs f1, 0.0` after the RsfSet store.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // One-shot event (Room_flg bit 0): start stream 0xE0, play camera cut 0xA (the show view),
 // clearing Status_flg[1] 0x10000000, until the camera motion ends; cancellable by the player.

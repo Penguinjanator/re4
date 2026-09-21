@@ -11,6 +11,7 @@
 #include "math_sub.h"
 #include "rnd.h"
 #include "motion.h"
+#include "est.h"
 
 // Floating island (the lake raft): drifts back to its home position, gets pushed and plays a
 // crash motion when hit, spawns water effects while alive.
@@ -25,10 +26,6 @@ public:
 };
 
 extern "C" {
-u8 EspPullCoreKind();
-void EffectEspDelete(int a, int kind, cObj* obj, int b);
-void EffectEspgenDelete(int Core_flg, int kind, cObj* obj);
-void EffectEfmDelete(int Core_flg, int kind, cObj* obj);
 void obj1c_R1_Set(cObj1c* obj);
 void obj1c_R1_Crash(cObj1c* obj);
 void obj1c_R1_CrashBig(cObj1c* obj);
@@ -148,9 +145,9 @@ void obj1c_R1_Crash(cObj1c* obj)
         if (MotionMove(obj, 0)) {
             if (w->motIdle) {
                 if (obj->scale.x >= 1.5f) {
-                    MotionSetCore(obj, &obj->pMotion, w->motIdleBig, 0, 0, 5, 0);
+                    MotionSetCore(obj, &obj->Motion, w->motIdleBig, 0, 0, 5, 0);
                 } else {
-                    MotionSetCore(obj, &obj->pMotion, w->motIdle, 0, 0, 5, 0);
+                    MotionSetCore(obj, &obj->Motion, w->motIdle, 0, 0, 5, 0);
                 }
                 obj->r_no_0 = 1;
                 obj->r_no_1 = 0;
@@ -177,9 +174,9 @@ void obj1c_R1_CrashBig(cObj1c* obj)
         if (MotionMove(obj, 0)) {
             if (w->motIdle) {
                 if (obj->scale.x >= 1.5f) {
-                    MotionSetCore(obj, &obj->pMotion, w->motIdleBig, 0, 0, 5, 0);
+                    MotionSetCore(obj, &obj->Motion, w->motIdleBig, 0, 0, 5, 0);
                 } else {
-                    MotionSetCore(obj, &obj->pMotion, w->motIdle, 0, 0, 5, 0);
+                    MotionSetCore(obj, &obj->Motion, w->motIdle, 0, 0, 5, 0);
                 }
                 obj->r_no_0 = 1;
                 obj->r_no_1 = 0;
@@ -206,9 +203,9 @@ void cObj1c::setMotion(void* idle, void* crash, void* idleBig, void* crashBig)
     w->motIdleBig = idleBig;
     w->motCrashBig = crashBig;
     if (scale.x >= 1.5f) {
-        MotionSetCore(this, &pMotion, idleBig, 0, 0, 5, 0);
+        MotionSetCore(this, &Motion, idleBig, 0, 0, 5, 0);
     } else {
-        MotionSetCore(this, &pMotion, idle, 0, 0, 5, 0);
+        MotionSetCore(this, &Motion, idle, 0, 0, 5, 0);
     }
 }
 
@@ -219,9 +216,9 @@ void cObj1c::setCrash()
 
     if (w->motCrash) {
         if (scale.x >= 1.5f) {
-            MotionSetCore(this, &pMotion, w->motCrashBig, 0, 0, 1, 0);
+            MotionSetCore(this, &Motion, w->motCrashBig, 0, 0, 1, 0);
         } else {
-            MotionSetCore(this, &pMotion, w->motCrash, 0, 0, 1, 0);
+            MotionSetCore(this, &Motion, w->motCrash, 0, 0, 1, 0);
         }
         r_no_0 = 1;
         r_no_2 = 0;
@@ -252,9 +249,9 @@ void cObj1c::setCrashBig(Vec* from)
     PSVECScale(&dir, &w->spd, 300.0f);
     if (w->motCrash) {
         if (scale.x >= 1.5f) {
-            MotionSetCore(this, &pMotion, w->motCrashBig, 0, 0, 1, 0);
+            MotionSetCore(this, &Motion, w->motCrashBig, 0, 0, 1, 0);
         } else {
-            MotionSetCore(this, &pMotion, w->motCrash, 0, 0, 1, 0);
+            MotionSetCore(this, &Motion, w->motCrash, 0, 0, 1, 0);
         }
         r_no_0 = 1;
         r_no_1 = 2;

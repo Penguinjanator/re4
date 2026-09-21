@@ -39,9 +39,11 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em3aFunc)(cEm3a*);
@@ -63,41 +65,10 @@ static void em3a_R1_B_Die(cEm3a* em);
 static void em3a_R1_B_AppearDie(cEm3a* em);
 static void em3a_R1_B_Bomb(cEm3a* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-static inline void AtariOn(cAtariInfo* at, u16 bits) { at->m_flag |= bits; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores of a stack copy (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3aDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
-
-// Stores through a scalar reference: the following pG load is reloaded (em3a_R1_Atk's timer
-// table, em3aPatrolInit's route pointer).
-static inline void IntSet(int& x, int v) { x = v; }
 static inline void EmiSet(EmiEntry*& p, EmiEntry* v) { p = v; }
-// Reference read of pG: the load depends on the preceding `w->pRoute = 0` store (a MEM with neither
-// the struct nor the scalar flag), which ranks the store above the `lis pG@ha` in em3aPatrolInit.
-static inline GlobalWork* GRef(GlobalWork*& p) { return p; }
 
 // Hover: keep the height between fl + 1800 and fl + 2000, apply and damp the speed, vibrate.
 static inline void em3aHoverMove(cEm3a* em, Em3aWork* w, f32 fl)
@@ -296,7 +267,7 @@ void cEm3a::move()
     if (w->atkWait) {
         w->atkWait--;
     }
-    if (em3aDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->atkWait = 90;
     }
     Em3a_R0_move_tbl[r_no_0](this);
@@ -566,18 +537,18 @@ static void em3a_R1_Patrol(cEm3a* em)
 // Gun / rocket attack wait by difficulty rank (R1_Atk / R1_FixAtk step 2).
 static inline void em3aSetAtkTimer(Em3aWork* w)
 {
-    IntSet(w->timer, 46);
+    w->timer = 46;
     if (pG->Game_level <= 1) {
-        IntSet(w->timer, 76);
+        w->timer = 76;
     }
     if (pG->Game_level <= 3) {
-        IntSet(w->timer, 61);
+        w->timer = 61;
     }
     if (pG->Game_level > 6) {
-        IntSet(w->timer, 31);
+        w->timer = 31;
     }
     if (pG->Game_level > 9) {
-        IntSet(w->timer, 16);
+        w->timer = 16;
     }
 }
 
@@ -1502,16 +1473,16 @@ int em3aFindPLCk(cEm3a* em)
     if (em->type == 2) {
         return 0;
     }
-    if (em3aDeadCk(em)) {
+    if (EmDeadCk(em)) {
         return 1;
     }
     if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 225000000.0f) {
         return 1;
     }
-    if (StaFlagChk(pG, STA_SE_BURST) && pG->bell_stat == 2) {
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x)
-                + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+    if (StaFlagChk(pG, STA_SE_BURST) && pG->SeInfo.type == 2) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x)
+                + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < 100000000.0f) {
             return 1;
         }
@@ -1622,8 +1593,8 @@ int em3aBossCk(cEm3a* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0 && (e->be_flag & 2)) {
             PSMTXMultVec(inv, &e->pos, &lp);
@@ -1643,8 +1614,8 @@ int em3aBossNearCk(cEm3a* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x39 && e->hp > 0
             && (em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y)

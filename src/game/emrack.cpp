@@ -14,11 +14,11 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "at_mod.h"
+#include "em_sub.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
-void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
 }
 
 typedef void (*EmRackFunc)(cEmRack*);
@@ -344,7 +344,7 @@ void emRack_R1_Set(cEmRack* em)
 {
     FREE_EMRACK* w = EMRACK_WK(em);
 
-    if (MotionCheckCrossFrame((MotionWork*) &em->pMotion, 2.0f)) {
+    if (MotionCheckCrossFrame((MotionWork*) &em->Motion, 2.0f)) {
         if (w->Eff_id != 0xFF) {
             if (em->type == 1) {
                 EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, 0, em, 0);

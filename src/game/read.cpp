@@ -19,16 +19,17 @@
 #include "eprintf.h"
 #include "player.h"
 #include "read.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
+#include <dolphin/os.h>
+#include "sce.h"
+#include "trans.h"
+#include "sce_sys.h"
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
 u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
 void Yz2DecodeExec(void* dst);
-void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
-void GlobalIlmTexInit(void* p);
-void SceSleep(int frames);                // game/sce_sys.cpp
 extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
 
@@ -39,16 +40,6 @@ struct EmInitFuncPtr {
 };
 #define EM_INIT_FUNC (((EmInitFuncPtr*) &EmInitFunc)->p)
 
-// game/sce_sys.cpp
-class cSceSys {
-public:
-    int wait;   // 0x00
-    u8 pad_4[0x73 - 0x04];
-    u8 x73;     // 0x73  set while readEmData waits inside a scenario task
-    u8 pad_74[0x138 - 0x74];
-    int checkCTaskRange();
-};
-extern cSceSys SceSys;
 
 // game/game.cpp
 struct GameWork {
@@ -129,7 +120,6 @@ ReadModule WepReadModule __attribute__((aligned(32)));
 #define ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
-static inline void PSet(void*& d, void* v) { d = v; }
 // Flag test through a reference: the flag address is materialised, and `&PlReadModule` right
 // after it becomes `addr - 0x82` (cse related-value).
 static inline int BitChk16(u16& f, u16 b) { return f & b; }
@@ -215,7 +205,7 @@ void ReadAreaData()
     PSet(pG->Rtp, GetDataExt(pG->pRoom, "RTP", 0));
     PSet(pG->RoomMes, GetDataExt(pG->pRoom, "MDT", 0));
     PSet(pG->pOsd, GetDataExt(pG->pRoom, "OSD", 0));
-    PSet(pG->pEmi, GetDataExt(pG->pRoom, "EMI", 0));
+    pG->pEmi = GetDataExt(pG->pRoom, "EMI", 0);
 }
 
 // Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pCore) and initialises the
@@ -229,8 +219,9 @@ void CoreDataRead()
 #line 219 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ(3, CORE_DATA_ADDR, 0, 0, 0, 0x8001);
     Dvd.ReadCheck(req, &info);
-    SpecularInit(ARC_PTR(ofs_10), ARC_PTR(ofs_44), ARC_PTR(ofs_48), ARC_PTR(ofs_4C));
-    GlobalIlmTexInit(ARC_PTR(ofs_40));
+    SpecularInit((TEXPalette*) ARC_PTR(ofs_10), (TEXPalette*) ARC_PTR(ofs_44), (TEXPalette*) ARC_PTR(ofs_48),
+                 (TEXPalette*) ARC_PTR(ofs_4C));
+    GlobalIlmTexInit((TEXPalette*) ARC_PTR(ofs_40));
     if (info.size[0][0] > CORE_DATA_MAX) {
         pLog->err(0, 0, "CORE_DATA IS TOO LARGE(%d/%d)", 0, CORE_DATA_MAX);
         TaskSleep(60);
@@ -437,9 +428,9 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             return 0;
         }
         if (SceSys.checkCTaskRange() == 1) {
-            SceSys.x73 = 1;
+            SceSys.m_init_loop_flag = 1;
             SceSleep(1);
-            SceSys.x73 = 0;
+            SceSys.m_init_loop_flag = 0;
         } else {
             TaskSleep(1);
         }
@@ -527,7 +518,7 @@ void setEmModule(ReadModule* m, int id)
             DLL_Link(m->pModule, bss);
             m->flag |= 2;
         }
-        m->pModule->prolog();
+        DLL_PROLOG(m->pModule)();
         m->pInitFunc = EmInitFunc;
     } else {
         m->pModule = NULL;
@@ -723,7 +714,7 @@ void ReadPlayerData(int type, int costume)
             }
             BitOn16(PlReadModule.flag, 2);
             DLL_Link(pModule, bss);
-            pModule->prolog();
+            DLL_PROLOG(pModule)();
         } else {
             pModule = NULL;
         }
@@ -984,7 +975,7 @@ void ReadWepData(u32 no, u32 type)
         }
         BitOn16(WepReadModule.flag, 2);
         DLL_Link(pModule, bss);
-        pModule->prolog();
+        DLL_PROLOG(pModule)();
     } else {
         pModule = NULL;
     }

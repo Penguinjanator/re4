@@ -985,8 +985,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
             case 1:
                 // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
                 // and load stay below it (the store is on the critical path).
-                PSet((void*&) wk->p_exam_model, MapMgr.getWork(2));
-                PSet((void*&) wk->p_exam_item, item_sel);
+                (void*&) wk->p_exam_model = MapMgr.getWork(2);
+                (void*&) wk->p_exam_item = item_sel;
                 if (item_sel->id == 0xA2) {
                     state = 2;
                     return;
@@ -1255,23 +1255,9 @@ static const char* item_make_name[3] = {"KEY ITEM", "TREASURE", "REMOVE  "};
 static int item_make_mes_x = 0;
 static int item_make_mes_y = -0x13;
 
-// 1 when item `id` is of type `hi` or `lo` (the item-make menu skips every other id).
-static inline int itemMakeMatch(u16 id, int hi, int lo)
-{
-    ItemInfo info;
-    itemInfo(id, &info);
-    return info.type == hi || info.type == lo;
-}
 
 #define ITEM_MAKE_CLAMP(v) ((v) < 0 ? 0xFE : ((v) > 0xFE ? 0 : (v)))
 
-// 1 when item `id` is of one of the two types packed in `types` (hi << 8 | lo).
-static inline int itemMakeMatch2(u16 id, u16 types)
-{
-    ItemInfo info;
-    itemInfo(id, &info);
-    return info.type == types >> 8 || info.type == (types & 0xFF);
-}
 
 // Debug item-make menu: sets the two id slots to the first key item (types 7) and treasure
 // (types 5/0xC) ids, cursor on the first row.

@@ -14,9 +14,7 @@
 #include "scroll.h"
 #include "TexRender.h"
 #include "db_log.h"
-
-// game/motion.cpp (C++ linkage)
-void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);
+#include "ref_access.h"
 
 extern "C" {
 u32 GetEfmMoveIdMax();
@@ -30,15 +28,10 @@ void setModTexRender(cObj* obj, int no);
 cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);   // embox.cpp declares it `void` locally
 }
 
+// The effect code converts with 3.14, not PI.
+#undef DEG2RAD
 #define DEG2RAD (3.14f / 180.0f)
 
-// Read a tuning static through a reference: the load is a MEM with neither the struct nor the
-// scalar flag, so it is not hoisted above the preceding member stores and keeps the store it
-// follows (EfmSetObj09: the original reloads moment_mul three times and keeps both mass stores).
-static inline f32 FRef(f32& v)
-{
-    return v;
-}
 
 // Read a pointer member through a reference (no struct flag): the store to the stack local
 // `model` in between may alias it, so `scr->pInfo` is reloaded for `tpl` (EfmSeqSet).
@@ -89,7 +82,7 @@ void EfmDelete(int a, int b, void* c)
     g_Core_kind = b;
     g_Core_pEm = (cModel*) c;
     for (i = 0; i < m->nArray; i++) {
-        func((cObj*) ((u8*) m->pArray + m->size * i));
+        func(m->fastAt(i));
     }
 }
 
@@ -128,7 +121,7 @@ void EfmDeleteEvent()
     u32 i;
 
     for (i = 0; i < m->nArray; i++) {
-        func((cObj*) ((u8*) m->pArray + m->size * i));
+        func(m->fastAt(i));
     }
 }
 
@@ -166,7 +159,7 @@ void EfmArrayClear()
     g_Core_kind = 0;
     g_Core_pEm = 0;
     func = EfmDeleteSub;
-    p = ObjMgr.pAlive;
+    p = ObjMgr.getActiveWork();
     while (p) {
         n = p;
         p = (cObj*) p->pNext;
@@ -512,10 +505,10 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         if (EspGetEfmMotAddr(gen->Tex_id, w->x7B, &mot)) {
             switch (gen->WorkSp8[3]) {
             case 0:
-                MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 0, 0);
+                MotionSetCore(obj, &obj->Motion, mot, 0, 0, 0, 0);
                 break;
             case 1:
-                MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 4, 0);
+                MotionSetCore(obj, &obj->Motion, mot, 0, 0, 4, 0);
                 break;
             default:
                 pLog->err(0, 0, "ESP_EFM04 : MotionType[%d] is invalid.", gen->WorkSp8[3]);

@@ -25,13 +25,13 @@
 #include "global.h"
 #include "db_log.h"
 #include "va_ppc.h"
+#include "at_mod.h"
+#include "route_ck.h"
+#include "em_sub.h"
+#include "read.h"
 
 extern "C" {
-void RouteCk();                                     // route_ck.cpp
-void* EmReadSearch(u8 id, int a, int b);            // read.cpp: the enemy's read table entry, 0 when not loaded
 void ShapeMove(cModelInfo* info);                   // shape.cpp
-void EmYarareDisp(cEm* em);                         // em_sub.cpp
-void DrawOba(cModel* m);                            // at_mod.cpp
 }
 
 // cManager<T>::arrayFree / arrayAlloc: definitions in cManager.h (game.cpp instantiates them too).
@@ -112,7 +112,7 @@ int cEmMgr::construct(cEm* p, u32 id)
     case 0xC:
     case 0xD:
     case 0xE:
-        p->subArc = (PlArc*)EmReadSearch(id, 0, 0);
+        p->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
         if (p->subArc == 0) {
             return 0;
         }
@@ -173,7 +173,7 @@ int cEmMgr::construct(cEm* p, u32 id)
         p = new (p) cEm;
         break;
     default:
-        p->subArc = (PlArc*)EmReadSearch(id, 0, 0);
+        p->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
         if (p->subArc == 0) {
             return 0;
         }

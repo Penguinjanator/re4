@@ -23,8 +23,8 @@
 #include "player.h"
 #include "mercenaries.h"
 #include "rnd.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-00 (D:/Bio4/Prog/r400.cpp): the Mercenaries village; the enemy resets per area, the
 // bosses after enough kills and the three treasure boxes.
@@ -42,13 +42,6 @@ struct R400WorkPtr {
     R400Work* p;
 };
 
-// Typed view of pG->emlist: the original indexes an EmListData array, so pG is loaded before the
-// index shift and the table offset stays in the displacement (EM_LIST's byte form shifts first).
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData Em_list[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static R400WorkPtr r400_work;
 
@@ -443,10 +436,10 @@ void emset_boss(int no, int dir)
 {
     int list;
 
-    EM_LIST_V(no).be_flag &= ~2;
+    pG->Em_list[no].be_flag &= ~2;
     list = pG->em_list_no;
     if (list >= 0) {
-        u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);  // pG->Em_flg[list], em_set.cpp style
+        u32* tbl = EM_FLG_ROW(list);  // pG->Em_flg[list], em_set.cpp style
 
         tbl[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
     }
@@ -462,21 +455,21 @@ void emset_boss(int no, int dir)
     }
     if (pG->Room_flg[2] & 0x20000000) {
         if (dir == 0) {
-            l = EM_LIST(0x11);
+            l = &pG->Em_list[0x11];
         } else {
-            l = EM_LIST(0x12);
+            l = &pG->Em_list[0x12];
         }
     } else if (pG->Room_flg[3] & 0x80000000) {
         if (dir == 0) {
-            l = EM_LIST(0x61);
+            l = &pG->Em_list[0x61];
         } else {
-            l = EM_LIST(0x62);
+            l = &pG->Em_list[0x62];
         }
     } else {
         if (dir == 0) {
-            l = EM_LIST(0x75);
+            l = &pG->Em_list[0x75];
         } else {
-            l = EM_LIST(0x76);
+            l = &pG->Em_list[0x76];
         }
     }
     pos.x = (f32) l->pos[0] * 10.0f;
@@ -496,7 +489,7 @@ int em_reset(int no, int chk)
     if (chk == 1 && r400_work.p->cnt > 9) {
         return 0;
     }
-    if (EM_LIST_V(no).be_flag & 2) {
+    if (pG->Em_list[no].be_flag & 2) {
         return 0;
     }
     cEmWrap em;
@@ -515,8 +508,8 @@ void em_destroy()
     int lo = 0x10;  // a variable: `id >= 0x10` would fold to `id > 0xF`
     int hi = 0x20;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         int id;
 
         if (hi == -1) {

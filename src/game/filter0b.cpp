@@ -10,18 +10,13 @@
 #include "os_vi.h"
 #include "db_log.h"
 #include "trans_ot.h"
+#include "view.h"
 
 // Captured-screen overlay: Filter0bCapture copies the frame buffer to a half-size texture that
 // is blended back with filter0b_alpha (once per SetAlpha) inside the letterbox area.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 extern "C" {
-void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht);
 void Filter0bAllocBuf();
 void Filter0bFreeBuf();
 void Filter0bCapture();

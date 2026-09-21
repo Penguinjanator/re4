@@ -29,8 +29,8 @@
 #include "rnd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-03 (D:/Bio4/Prog/r403.cpp): the Mercenaries castle; the enemy resets per area, the two
 // gatling gunners after enough kills, the slide down the banister and the three treasure cases.
@@ -50,12 +50,6 @@ struct R403WorkPtr {
     R403Work* p;
 };
 
-// Typed view of pG->emlist (r400): pG is loaded before the index shift.
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData Em_list[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static u8 r403_texTbl[0x20];
 static R403WorkPtr r403_work;
@@ -69,14 +63,7 @@ struct R403MercInit {
     u32 x5C[4];
 };
 
-// Struct view of pPL: the in-struct load is invalidated by the collision flag stores (pPL reloaded per statement).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 // Store through a reference: the following pG load stays below it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 
 static void r403_DuraluminCaseOpen(int no);
@@ -229,7 +216,7 @@ static int em_reset(int no, int chk)
     if (chk == 1 && r403_work.p->cnt > 9) {
         return 0;
     }
-    if (EM_LIST_V(no).be_flag & 2) {
+    if (pG->Em_list[no].be_flag & 2) {
         return 0;
     }
     cEmWrap em;
@@ -486,8 +473,8 @@ static void em_destroy()
     int lo = 0x10;  // a variable: `id >= 0x10` would fold to `id > 0xF`
     int hi = 0x20;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         int id;
 
         if (hi == -1) {
@@ -507,10 +494,10 @@ void emset_gatling(int no)
 {
     int list;
 
-    EM_LIST_V(no).be_flag &= ~2;
+    pG->Em_list[no].be_flag &= ~2;
     list = pG->em_list_no;
     if (list >= 0) {
-        u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);
+        u32* tbl = EM_FLG_ROW(list);
 
         tbl[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
     }
@@ -525,9 +512,9 @@ void emset_gatling(int no)
         em.setFindPL();
     }
     if (pG->Room_flg[3] & 0x80000000) {
-        l = EM_LIST(0x89);
+        l = &pG->Em_list[0x89];
     } else {
-        l = EM_LIST(0x8A);
+        l = &pG->Em_list[0x8A];
     }
     pos.x = (f32) l->pos[0] * 10.0f;
     pos.y = (f32) l->pos[1] * 10.0f;

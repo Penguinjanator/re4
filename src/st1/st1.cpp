@@ -1,10 +1,10 @@
 #include "types.h"
 #include "room_data.h"
+#include <dolphin/os.h>
 
 // Stage 1 room module entry (D:/Bio4/Prog/st1.cpp; the same object ends every st1_* REL): registers the room
 // Init/Main pairs of every stage-1 room in the DOL's St1_data_tbl, then the SN REL entry points (like st2.cpp).
 
-extern "C" void OSReport(const char* fmt, ...);
 
 #define HALT()                                                    \
     {                                                             \

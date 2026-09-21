@@ -71,7 +71,7 @@ void cObjMine::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
-    PSet(wep.pMotNormal, WEP_ARC_PTR(0x21));
+    wep.pMotNormal = WEP_ARC_PTR(0x21);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
@@ -299,29 +299,29 @@ void cObjMine::interrupt()
 // player archive's). The hands are set by the module's own code (wep14changeRightHand).
 void cObjMine::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x0B));
-    PSet(pl->m_MotTbl[0x01], WEP_ARC_PTR(0x26));
-    PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x0E));
-    PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x27));
-    PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x10));
-    PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x28));
-    PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x0F));
-    PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x29));
-    PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x11));
-    PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x2A));
-    PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x2B));
-    PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0D));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x2C));
-    PSet(pl->m_MotTbl[0x39], WEP_ARC_PTR(0x31));
-    PSet(pl->m_MotTbl[0x3A], WEP_ARC_PTR(0x32));
-    PSet(pl->m_MotTbl[0x3D], PLA_ARC_PTR(0x5D));
-    PSet(pl->m_MotTbl[0x41], WEP_ARC_PTR(0x33));
-    PSet(pl->m_MotTbl[0x42], WEP_ARC_PTR(0x34));
-    PSet(pl->m_MotTbl[0x3F], WEP_ARC_PTR(0x2F));
-    PSet(pl->m_MotTbl[0x40], WEP_ARC_PTR(0x30));
-    PSet(pl->m_MotTbl[0x5B], WEP_ARC_PTR(0x1C));
-    PSet(pl->m_MotTbl[0x5C], WEP_ARC_PTR(0x2D));
-    PSet(pl->m_MotTbl[0x57], WEP_ARC_PTR(0x1D));
-    PSet(pl->m_MotTbl[0x58], WEP_ARC_PTR(0x2E));
+    WEP_MOT(pl, 0x00, 0x0B);
+    WEP_MOT(pl, 0x01, 0x26);
+    WEP_MOT(pl, 0x02, 0x0E);
+    WEP_MOT(pl, 0x03, 0x27);
+    WEP_MOT(pl, 0x06, 0x10);
+    WEP_MOT(pl, 0x07, 0x28);
+    WEP_MOT(pl, 0x08, 0x0F);
+    WEP_MOT(pl, 0x09, 0x29);
+    WEP_MOT(pl, 0x0B, 0x11);
+    WEP_MOT(pl, 0x0C, 0x2A);
+    WEP_MOT(pl, 0x0D, 0x0C);
+    WEP_MOT(pl, 0x0E, 0x2B);
+    WEP_MOT(pl, 0x0F, 0x0D);
+    WEP_MOT(pl, 0x10, 0x2C);
+    WEP_MOT(pl, 0x39, 0x31);
+    WEP_MOT(pl, 0x3A, 0x32);
+    PLA_MOT(pl, 0x3D, 0x5D);
+    WEP_MOT(pl, 0x41, 0x33);
+    WEP_MOT(pl, 0x42, 0x34);
+    WEP_MOT(pl, 0x3F, 0x2F);
+    WEP_MOT(pl, 0x40, 0x30);
+    WEP_MOT(pl, 0x5B, 0x1C);
+    WEP_MOT(pl, 0x5C, 0x2D);
+    WEP_MOT(pl, 0x57, 0x1D);
+    WEP_MOT(pl, 0x58, 0x2E);
 }

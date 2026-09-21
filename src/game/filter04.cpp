@@ -10,12 +10,10 @@
 #include "db_log.h"
 #include "trans_ot.h"
 #include "joy.h"
+#include "view.h"
 
 // Radial glow filter: like filter03 (alpha glow), but the blurred copy is spread from
 // (spread_center_x, spread_center_y) with pow_x/pow_y and blended additively.
-
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
 
 struct Flt04Work {
     int on;      // 0x00
@@ -28,8 +26,6 @@ struct Flt04Work {
     u8 amb;      // 0x10  ambient color
 };
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 void* filter04_buff = 0;
 void* filter04_buff2 = 0;

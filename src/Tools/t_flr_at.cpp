@@ -14,23 +14,19 @@
 #include "flr_at.h"
 #include "player.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Floor attribute (room "FSE" file) editor of the Tools REL. No __FILE__ string: the real name is
 // unknown (t_flr_at.cpp by its function prefix). Same skeleton as t_movie's t_se_at.cpp.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-}
 int SetToolLight(int no);  // db_light_tools.cpp
 
 // Reference stores (global.h FSet/BitSet): a scalar MEM, so the following global load (pG, pFlrSys)
 // is not hoisted above it and is reloaded.
-static inline void ISet(int& d, int v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void ASet(FlrAt*& d, FlrAt* v) { d = v; }
 // Reference read: a MEM with neither flag stays below the preceding struct stores (the save counter).
-static inline int IGet(int& v) { return v; }
 
 // Tool-side view of the FlrAt record (flr_at.h), 0x84 bytes.
 struct TFlrAt {
@@ -149,19 +145,19 @@ void flrAtInit()
     int zero = 0;
 
     TutilInitDefault();
-    BitSet(pW->saveStop, TOOL_FLAG(OFS_STOP_FLG));
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    BitSet(pW->saveDisp, TOOL_FLAG(OFS_DISP_FLG));
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitSet(pW->saveStop, pG->Stop_flg);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitSet(pW->saveDisp, pG->Disp_flg);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     SetToolLight(1);
     pW->x0 = 0x2D;
     pW->y0 = 0x1E;
@@ -185,9 +181,9 @@ void flrAtInit()
 // EXIT: restores the FlrAt system pointer, the tool light and flags, frees the work, ends the task.
 static void flrAtExit()
 {
-    TOOL_FLAG(OFS_DISP_FLG) = pW->saveDisp;
-    TOOL_FLAG(OFS_STOP_FLG) = pW->saveStop;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitSet(pG->Disp_flg, pW->saveDisp);
+    BitSet(pG->Stop_flg, pW->saveStop);
+    pG->Debug_flg[0] &= ~0x10000000;
     SetToolLight(-1);
     pFlrSys = pW->saveFlrSys;
     TutilQuitDefault();
@@ -515,10 +511,6 @@ static void flrAtAreaEdit_DataInput()
 }
 
 // pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
-#define REP_RIGHT (JOY_RIGHT | 0x20000)
-#define REP_LEFT (JOY_LEFT | 0x10000)
-#define REP_UP (JOY_UP | JOY_SUP)
-#define REP_DOWN (JOY_DOWN | JOY_SDOWN)
 #define REP_LR (REP_RIGHT | REP_LEFT)
 
 // +-1 / +-10 (with A) on a value driven by the fast auto-repeat
@@ -1189,7 +1181,7 @@ static void flrAtDataSave()
                     if (pW->area[i].priority == 15 - j) {
                         pW->area[i].no = i;
                         pW->file[flrAtSaveNum] = pW->area[i];
-                        ISet(flrAtSaveNum, IGet(flrAtSaveNum) + 1);
+                        flrAtSaveNum = IGet(flrAtSaveNum) + 1;
                     }
                 }
             }
@@ -1283,10 +1275,10 @@ static void flrAtPreview()
 static void preview_init()
 {
     ISet(pW->dispType, -1);
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     pFlrSys = &pW->flrSys;
     PSet(pFlrSys->pData, &pW->head);
     ASet(pFlrSys->pList, (FlrAt*) pW->area);
@@ -1314,15 +1306,15 @@ static void preview_main()
 // Restores the tool flags, back to the sub menu.
 static void preview_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] |= 0x10000000;
     pW->dispGroup = -1;
     pW->mode = 5;
     pW->sub = 0;

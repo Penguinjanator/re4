@@ -88,7 +88,7 @@ spider, 0x2F Del Lago, 0x30.. the bosses and late enemies). Ganado weapon reacti
 8/0xE, hands 9/0xF. Groups coordinate through the room's ctrl12 timers (`CTRL12_ID_EM10_ATK/THROW/
 NOT_NEAR` lock all Ganados out of attacking for 30..120 frames by rank), `em10StayCk` limits how
 many close in, `CNT_PARASITE` caps head parasites at two; a hit anywhere sets `Status_flg[1]` bit 29
-+ `bell_pos` and wakes every enemy within 15000..25000 units. Ashley targeting (`em10RouteTargetSet`,
++ `SeInfo.pos` and wakes every enemy within 15000..25000 units. Ashley targeting (`em10RouteTargetSet`,
 flag 0x08000000; the catch chain `br_Catch` -> `NeckHang`/`Backhold`/`Bombhold`/`TakeAway`) drives
 the `PlGacha*` button mashing. Room enemy-info (`EMI`) point types: 1 cover/perch/wander, 2 Del Lago
 route, 5 take-away exit/waypoint, 0xA dog bark, 0xB partner route, 0xC return-to-post, 0xF ambush

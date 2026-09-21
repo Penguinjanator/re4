@@ -47,9 +47,6 @@ static inline void ssMapWidgetDelete(Widget<SUB_SCREEN>* w)
 #include "sscrn.h"
 
 class cSubChar;
-extern cSubChar* pSUB;
-extern "C" int sprintf(char* s, const char* fmt, ...);
-extern "C" f32 tanf(f32 x);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -109,6 +106,8 @@ MapRoomData map_room[48];
 int map_room_num;
 
 #include "ss_main.h"
+#include <stdio.h>
+#include "pl_npc.h"
 
 // One door model of an area (5 packed bytes).
 struct MapDoor {
@@ -368,21 +367,6 @@ static const int mark_model_tbl[18][5] = {
 static inline u32 flagBit(u32 tbl, u32 no)
 {
     return *(u32*) ((no >> 5) * 4 + tbl) & (0x80000000 >> (no & 0x1F));
-}
-// Stage progress flag bit `no` (the Scenario_flg[0] word run in pG).
-static inline u32 stageFlag(u32 no)
-{
-    return flagBit((u32) &pG->Scenario_flg[0], no);
-}
-// Door unlock flag bit `no` (pG->Key_flg).
-static inline u32 doorFlag(u32 no)
-{
-    return flagBit((u32) pG->Key_flg, no);
-}
-// Item taken flag bit `no` (pG->Item_flg).
-static inline u32 itemFlag(u32 no)
-{
-    return flagBit((u32) pG->Item_flg, no);
 }
 
 // Map stage of the current progress: 4 the island (stage_no 4), 3 / 2 by the Scenario_flg chapter
@@ -708,7 +692,7 @@ int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
     }
     no = 0;
     for (i = 1; i < n; i++) {
-        if (stageFlag(tbl[i])) {
+        if (FlagChkVar((u32) &pG->Scenario_flg[0], (u32) tbl[i])) {
             no = i;
         }
     }
@@ -814,7 +798,7 @@ int markMerchantPosition(SUB_SCREEN* wk, int no, Vec* pos)
         }
         idx = -1;
         for (i = 0; i < n; i++) {
-            if (stageFlag(tbl[i * 2])) {
+            if (FlagChkVar((u32) &pG->Scenario_flg[0], (u32) (tbl[i * 2]))) {
                 idx = i;
             }
         }
@@ -957,25 +941,25 @@ int markTreasureExist(int no)
 
     switch (SubScreenWk.pMapWk->area) {
     case 1:
-        return itemFlag(st1[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st1[no]) == 0;
     case 2:
-        return itemFlag(st2a[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st2a[no]) == 0;
     case 3:
-        return itemFlag(st2b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st2b[no]) == 0;
     case 4:
-        return itemFlag(st2c[no]) == 0;
+        return flagBit((u32) pG->Item_flg, st2c[no]) == 0;
     case 6:
-        return itemFlag(st3b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st3b[no]) == 0;
     case 9:
-        return itemFlag(st3e[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st3e[no]) == 0;
     case 11:
-        return itemFlag(st4a[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4a[no]) == 0;
     case 12:
-        return itemFlag(st4b[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4b[no]) == 0;
     case 13:
-        return itemFlag(st4c[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4c[no]) == 0;
     case 14:
-        return itemFlag(st4d[no]) == 0;
+        return FlagChkVar((u32) pG->Item_flg, st4d[no]) == 0;
     }
     return 0;
 }
@@ -1567,7 +1551,7 @@ int mapColor(u16 room)
     if (room == SubScreenWk.room_no) {
         return 0;
     }
-    if (stageFlag(p->hide)) {
+    if (FlagChkVar((u32) &pG->Scenario_flg[0], p->hide)) {
         return 4;
     }
     passed = RoomData.checkPassed(room, 0);
@@ -1575,8 +1559,8 @@ int mapColor(u16 room)
     // shares): the clear arm's `li r3,3` stays inline and the `high pG` / 0x80000000 pseudos of the
     // three stageFlag tests are PRE'd into r29/r30 across the call (with `if (!open && !passed)
     // return 4;` the return-4 block is inline and the highs are re-materialised per test).
-    if (stageFlag(p->open) || passed) {
-        if (stageFlag(p->clear)) {
+    if (FlagChkVar((u32) &pG->Scenario_flg[0], p->open) || passed) {
+        if (FlagChkVar((u32) &pG->Scenario_flg[0], p->clear)) {
             return 3;
         }
         if (passed) {
@@ -1931,12 +1915,6 @@ void mapTblInit(SUB_SCREEN* wk)
     }
 }
 
-// Struct-member view of the cModel manager pointers (ss_main generalModelAlloc).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
-
 // Map screen model managers: 0x80 model infos / 0x100 parts / 0x80 MapMgr works (no player model).
 void mapModelAlloc(SUB_SCREEN* wk)
 {
@@ -2080,7 +2058,7 @@ void mapModelDisp(SUB_SCREEN* wk)
 
     MapMgr.move();
     func = LightSetModel2;
-    m = MapMgr.pAlive;
+    m = MapMgr.getActiveWork();
     while (m) {
         cModel* p = m;
 
@@ -2162,12 +2140,12 @@ void doorModelDisp(SUB_SCREEN* wk)
         mdl = MapMgr.getWork(base + i);
         if (e->flagType == 1) {
             open = 1;
-            if (!stageFlag(e->flagNo)) {
+            if (!FlagChkVar((u32) &pG->Scenario_flg[0], e->flagNo)) {
                 open = 0;
             }
         } else if (e->flagType == 2) {
             open = 1;
-            if (!doorFlag(e->flagNo)) {
+            if (!FlagChkVar((u32) pG->Key_flg, e->flagNo)) {
                 open = 0;
             }
         } else {
@@ -2325,9 +2303,9 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     PSVECScale(&to->at, &a, t);
     PSVECScale(&from->at, &b, s);
     PSVECAdd(&a, &b, &pG->Camera.param.at);
-    // byte-pointer memcpy (&pG->Camera.up): the store may alias pG, which is reloaded for the next call
-    memcpy((u8*) pG + 0x138, &up, sizeof(Vec));
-    CameraSetOrientationUp(&pG->Camera);
+    // pGS loads pG separately from the earlier pG loads, so pG is reloaded for the call after the copy
+    pGS->Camera.up = up;
+    CameraSetOrientationUp(&pGS->Camera);
     return t >= 1.0f;
 }
 

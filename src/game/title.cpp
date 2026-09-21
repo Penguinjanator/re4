@@ -31,9 +31,10 @@
 #include "pl_sub.h"
 #include "eprintf.h"
 #include "title.h"
+#include "ref_access.h"
+#include <string.h>
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 #define ID_TITLE 0x28
 #define ID_MENU 0x29
@@ -41,32 +42,12 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 #define ID_OMAKE_BG 0x2B
 #define ID_OPTION 0x2C
 
-#define KEY_A 0x80000000
-#define KEY_B 0x40000000
 #define KEY_START 0x1000
-#define KEY_UP 0x01000000
-#define KEY_DOWN 0x02000000
-#define KEY_RIGHT 0x04000000
-#define KEY_LEFT 0x08000000
 
-// Reference setters: a store through a scalar reference is not a struct-member MEM, so the
-// following pG load stays below it (see global.h FSet).
-static inline void ISet(int& d, int v)
-{
-    d = v;
-}
 // Store through a reference (matching helper).
 #line 58
-static inline void CSet(s8& d, s8 v)
-{
-    d = v;
-}
 // Store through a reference (matching helper).
 #line 62
-static inline void BSet(u8& d, u8 v)
-{
-    d = v;
-}
 
 // stage_prev/room_prev written as one u16 through a plain pointer (aliases pG like G_ROOM_ID).
 #define G_ROOM_ID_PREV (*(u16*) &pG->stage_prev)
@@ -205,11 +186,11 @@ void titleWait(TitleWork* w)
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
-                CSet(w->Rno0, 2);
+                S8Set(w->Rno0, 2);
                 ISet(w->sndFlag, 1);
                 w->Rno1 = z;
-                ISet(w->counter, 0);
-                ISet(w->dbg_mode, 0);
+                w->counter = 0;
+                w->dbg_mode = 0;
             }
             if (pRK->logo_skip_enable != 0) {
                 w->Rno0 = 5;
@@ -1529,8 +1510,8 @@ void titleExit(TitleWork* w)
             break;
         }
         } else {
-            memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
-            FSet(pG->sub_angle, pG->NextY);
+            pG->sub_pos = pG->NextPos;
+            FSet(pGS->sub_angle, pGS->NextY);
             G_ROOM_ID = pG->RoomNo_next;
             pG->Part = pG->Part_next;
         }

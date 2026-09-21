@@ -5,16 +5,10 @@
 #include "joy.h"
 #include "eprintf.h"
 #include "file.h"
+#include <string.h>
 
 // Host file list of the debug tools (t_event / t_sce db_filelist.cpp, real name unknown): the same code
 // sits inside Sscrn's ss_term.cpp. t_event's object is Tools' db_toolbase.cpp followed by this file.
-
-extern "C" {
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-char* strchr(const char* s, int c);
-char* strstr(const char* s, const char* sub);
-}
 
 // Host file list start: default directory (\bio4\data\*.*) and a first read (dir() reads two
 // uninitialised locals here, as the original does).

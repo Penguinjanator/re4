@@ -13,30 +13,15 @@
 #include "snd.h"
 #include "esp.h"
 #include "math_sub.h"
-
-void MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp (result unused here: void keeps the `mr r3` before the arg li`s)
-extern "C" {
-int MotionCheckCrossFrame(void* work, f32 frame);  // game/motion.cpp
-void PlSetDamageSe(int no);                        // game/pl_sub.cpp
-void EndPlDamage();                                // game/pl_sub.cpp
-int ChkWaterEffectEnable(Vec* pos);                // game/est.cpp
-}
+#include "pl_sub.h"
+#include "est.h"
+#include "motion.h"
 
 void damageNormal(cPlayer* pl);
 void damageBlow(cPlayer* pl);
 void damageBlast(cPlayer* pl);
 void Pl_R0_Die(cPlayer* pl);
 
-// Routine bytes through int parameters: the four zeros become one SImode pseudo that cse cannot
-// merge with the QImode zero of `dmg.m_Flag` stored before the EndPlDamage call, so the original's
-// second `li r0, 0` after the call is reproduced instead of a callee-saved zero.
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // Routine 0 == 1 (damage, entered by cPlayer::setDamage): r_no_1 0 normal hit, 1 blown away,
 // 2 blast stagger.
@@ -99,7 +84,7 @@ void damageNormal(cPlayer* pl)
             pl->m_Work0 = 0x3E7;
             break;
         }
-        MotionSetCore(pl, &pl->pMotion, mot, mot2, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, mot, mot2, 5, 1, 0);
         if (pl->m_Fwork0 != 123.0f) {
             ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
             pl->ang.y += ang;
@@ -132,7 +117,7 @@ void damageNormal(cPlayer* pl)
                 pl->dmg.m_Flag = 0;
                 pl->dmg.m_Timer = 5;
                 EndPlDamage();
-                PlRoutineSet(pl, 0, 0, 0, 0);
+                EmRoutineSet(pl, 0, 0, 0, 0);
             }
         }
         if (pl->m_Work1 != 0) {
@@ -141,7 +126,7 @@ void damageNormal(cPlayer* pl)
         }
         break;
     case 0xA:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
         EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, pl, 0);
         pl->r_no_2 = 0xB;
     case 0xB:
@@ -156,13 +141,13 @@ void damageNormal(cPlayer* pl)
             SndCall(1, 0x29, &pl->getPartsPtr(2)->world, 0, 0, 0);
         }
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
-            if (MotionCheckCrossFrame(&pl->pMotion, 48.0f) || MotionCheckCrossFrame(&pl->pMotion, 54.0f) ||
-                MotionCheckCrossFrame(&pl->pMotion, 65.0f)) {
+            if (MotionCheckCrossFrame(&pl->Motion, 48.0f) || MotionCheckCrossFrame(&pl->Motion, 54.0f) ||
+                MotionCheckCrossFrame(&pl->Motion, 65.0f)) {
                 EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
             }
         }
         if (GetWaterHeight(pos, &wh) && pl->pParts->world.y < wh) {
-            if (MotionCheckCrossFrame(&pl->pMotion, 18.0f)) {
+            if (MotionCheckCrossFrame(&pl->Motion, 18.0f)) {
                 EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
             }
         }
@@ -170,7 +155,7 @@ void damageNormal(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     default:
@@ -208,7 +193,7 @@ void damageBlow(cPlayer* pl)
             mot = PL_ARC_PTR(pG->pPlayer, 0x51);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x67);
         }
-        MotionSetCore(pl, &pl->pMotion, mot, mot2, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, mot, mot2, 5, 1, 0);
         n = pl->m_Work0;
         if (n) {
             EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0xE : 0xD, 0, 0, pl, 0);
@@ -234,7 +219,7 @@ void damageBlow(cPlayer* pl)
         pl->r_no_2 = 1;
         pl->dmg.m_Timer |= 0x80;
     case 1:
-        if (MotionCheckCrossFrame(&pl->pMotion, 20.0f)) {
+        if (MotionCheckCrossFrame(&pl->Motion, 20.0f)) {
             pl->setFace(0);
         }
         if (pl->m_Work0 == 0 && pl->frame > 9.7f && pl->frame < 10.3f) {
@@ -259,7 +244,7 @@ void damageBlow(cPlayer* pl)
         }
         break;
     case 0xA:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
         EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, pl, 0);
         pl->r_no_2 = 0xB;
     case 0xB:
@@ -274,13 +259,13 @@ void damageBlow(cPlayer* pl)
             SndCall(1, 0x29, &pl->getPartsPtr(2)->world, 0, 0, 0);
         }
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
-            if (MotionCheckCrossFrame(&pl->pMotion, 48.0f) || MotionCheckCrossFrame(&pl->pMotion, 54.0f) ||
-                MotionCheckCrossFrame(&pl->pMotion, 65.0f)) {
+            if (MotionCheckCrossFrame(&pl->Motion, 48.0f) || MotionCheckCrossFrame(&pl->Motion, 54.0f) ||
+                MotionCheckCrossFrame(&pl->Motion, 65.0f)) {
                 EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
             }
         }
         if (GetWaterHeight(pos, &wh) && pl->pParts->world.y < wh) {
-            if (MotionCheckCrossFrame(&pl->pMotion, 18.0f)) {
+            if (MotionCheckCrossFrame(&pl->Motion, 18.0f)) {
                 EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
             }
         }
@@ -288,7 +273,7 @@ void damageBlow(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -304,7 +289,7 @@ void damageBlast(cPlayer* pl)
     switch (no) {
     case 0:
         pl->beginDamage();
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x52), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x52), 0, 5, 1, 0);
         if (pl->m_Fwork0 != 123.0f) {
             ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
             pl->ang.y += ang;
@@ -325,7 +310,7 @@ void damageBlast(cPlayer* pl)
             pl->dmg.m_Flag = 0;
             pl->dmg.m_Timer = 5;
             EndPlDamage();
-            PlRoutineSet(pl, 0, 0, 0, 0);
+            EmRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -341,7 +326,7 @@ void Pl_R0_Die(cPlayer* pl)
     switch (no) {
     case 0:
         pl->beginDamage();
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x4C), (void*) (pG->pPlayer->ofs[0x4D] + (u32) pG->pPlayer), 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4C), (void*) (pG->pPlayer->ofs[0x4D] + (u32) pG->pPlayer), 5, 1, 0);
         EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 4 : 3, 0, 0, pl, (void*) no);
         pl->dmg.m_Timer |= 0x80;
         if (pl->Body->pHair) {

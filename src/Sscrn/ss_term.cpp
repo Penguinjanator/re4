@@ -54,17 +54,10 @@ static void ssTermWidgetKill(Widget<SUB_SCREEN>* w)
 #include "math_sub.h"
 
 extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-void* memset(void* p, int c, unsigned int n);
-char* strchr(const char* s, int c);
-char* strstr(const char* s, const char* k);
-unsigned int strlen(const char* s);
-char* strcpy(char* d, const char* s);
 // game/shape.cpp
 int ShapeMove(cModelInfo* info);
 void ClrShape(cModel* m);
 }
-int ShapeSet(void* work, int frame, void* data, int flags);
 void* GetModelInfoAddr(cModelInfo* info, int no);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
@@ -266,14 +259,10 @@ void cDbgWindow::LocalDisp()
 }
 
 #include "ss_main.h"
+#include <stdio.h>
+#include <string.h>
+#include "pl_mod.h"
 
-static inline void IntSet(int& d, int v) { d = v; }
-
-// Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 
 // Host file list (d:\bio4\room\filelist.txt through the SN file server): a scrolling list of the
 // names under one directory.
@@ -828,7 +817,6 @@ void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
     C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
 }
 
-extern "C" f64 tan(f64 x);
 
 // Never called (the ss_pzzl screenPos2puzzlePos formula): the original REL link dead-stripped the
 // body (modules.py STRIP_UNUSED) and kept its pool, the four floats 0.5 / pi / 180 / 240 that

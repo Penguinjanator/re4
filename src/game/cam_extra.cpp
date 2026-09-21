@@ -23,25 +23,17 @@
 #include "rnd.h"
 #include "mes.h"
 #include "cockpit.h"
-
-// Weapon archive (pG->pWepArc): offsets to its sub-files.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
+#include "ref_access.h"
+#include <string.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-f32 atan2f(f32, f32);
 void Filter01SetParam(int mode, int z, u8 type, f32 level);
-void IdTexRelease(int id);
-int IdTexDataLoad(void* data, int id);
 }
 
 extern u8 use_filter0a;
 extern u8 filter0a_mask_flag;
 extern u8 filter0a_mask_id;
 extern u8 filter0a_mask_alpha;
-
-#define PI 3.1415927f
-#define DEG 0.017453292f
 
 #define MTX_COPY(src, dst)               \
     {                                    \
@@ -248,10 +240,6 @@ void FocusAnimation::clear()
         }                                                                                            \
     }
 
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 // The rifle scope camera: the eye offset and look direction come from pos / at in the player's
 // frame (type picks the scope reticle set by the equipped rifle), fov 45, pitch limited to
 // +-70 degrees, zoom 0, and the reticle ids are created.
@@ -333,20 +321,9 @@ void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
 
 // Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
 // flag: the range loads stay below the reticle stores through the call-result pointers.
-static inline f32 FRef(f32& v) { return v; }
 // Same for a global pointer: the `lwz pPL` then waits for a preceding member store in sched1.
 static inline cPlayer* PlRef(cPlayer*& p) { return p; }
 
-// Matrix column -> vector. The destination is the frame-offset-0 local in both users (`inv` in
-// CameraPushObject::move, `dir` in IdBinocular::move), so its address is the bare virtual frame
-// register and integrate keeps it as a pointer pseudo (`addi r9,r1,8`, stores/loads through r9);
-// the other plmat reads are written directly and go via r1.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Scope zoom clamp as an inline returning the value: one store after the join, the 0.0 register
 // doubling as the result (`fmr f13,f0` / `fmr f13,f12` copies).
@@ -419,7 +396,7 @@ void CameraScope::move()
     gain = zoom * -0.9f + 1.0f;
     if (Key.on & 0x10) {
         if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
-            add = gain * (f32) Joy[0].stickX * -0.05f * DEG;
+            add = gain * (f32) Joy[0].stickX * -0.05f * DEG2RAD;
             if (Joy[0].on & 1) {
                 add = gain * SCOP_VEL_Y + add;
             }
@@ -431,7 +408,7 @@ void CameraScope::move()
     }
     if (Key.on & 0x10) {
         if (Joy[0].stickY != 0 || (Joy[0].on & 0xC)) {
-            add = gain * (f32) Joy[0].stickY * -0.05f * DEG;
+            add = gain * (f32) Joy[0].stickY * -0.05f * DEG2RAD;
             if (Joy[0].on & 8) {
                 add = add - gain * SCOP_VEL_X;
             }
@@ -542,10 +519,10 @@ void IdScope::move(void* p)
     b->curve[3] = 0;
     a->rot0.y = 0.0f;
     a->rot0.x = 0.0f;
-    a->rot0.z = (FRef(maxA) - FRef(minA)) * ra + FRef(minA);
+    a->rot0.z = (FRef(maxA) - minA) * ra + minA;
     b->rot0.y = 0.0f;
     b->rot0.x = 0.0f;
-    b->rot0.z = (FRef(maxB) - FRef(minB)) * rb + FRef(minB);
+    b->rot0.z = (FRef(maxB) - minB) * rb + FRef(minB);
 }
 
 // Never called: its body is stripped at link (STRIP_UNUSED) but its pool words (0.5f, 100000.0f)
@@ -696,7 +673,7 @@ void CameraBinocular::move()
     gain = m_zoom_ratio * -0.9f + 1.0f;
     if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
         Vec axis = {0.0f, 1.0f, 0.0f}; // initialised inside this block (the stores sit below the stb)
-        add = gain * (f32) Joy[0].stickX * -0.05f * DEG;
+        add = gain * (f32) Joy[0].stickX * -0.05f * DEG2RAD;
         if (Joy[0].on & 1) {
             add = gain * BINO_VEL_Y + add;
         }
@@ -713,7 +690,7 @@ void CameraBinocular::move()
         m_rad.y = m_rad.y + add;
     }
     if (Joy[0].stickY != 0 || (Joy[0].on & 0xC)) {
-        add = gain * (f32) Joy[0].stickY * 0.05f * DEG;
+        add = gain * (f32) Joy[0].stickY * 0.05f * DEG2RAD;
         if (Joy[0].on & 8) {
             add = gain * BINO_VEL_X + add;
         }
@@ -1008,8 +985,8 @@ void CameraPushObject::move()
     plmat[1][0] = inv[0][1]; plmat[1][1] = inv[1][1]; plmat[1][2] = inv[2][1];
     getColumn(inv, 2, (Vec*) plmat[2]);
     plpos.x = inv[0][3]; plpos.y = inv[1][3]; plpos.z = inv[2][3];
-    for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        e = (cModel*) EmMgr.fastAt(i);
         if ((e->id == 0x41 || e->id == 0x44 || e->id == 0x46) && (e->be_flag & 0x201) == 1) {
             PSMTXMultVec(m, &e->pos, &em_pos);
             // negated tests: `blt` / `cror so,eq,gt; bso` (a positive `>=`/`<=` gives cror + bns)

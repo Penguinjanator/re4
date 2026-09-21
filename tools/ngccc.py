@@ -128,6 +128,11 @@ def main(argv: List[str]) -> int:
 
     env = os.environ.copy()
     env["SN_NGC_PATH"] = str(prodg_dir)
+    # include/prodg holds ProDG's own libc / GCC headers, the compiler's default system include directory:
+    # searched after every -I directory, so a project header of the same name wins.
+    sys_include = str(Path(__file__).resolve().parent.parent / "include" / "prodg")
+    env["C_INCLUDE_PATH"] = sys_include
+    env["CPLUS_INCLUDE_PATH"] = sys_include
     # mbchar/lexer behaviour must not depend on the host locale (the Windows build under
     # wibo runs in the "C" locale).
     env["LANG"] = "C"

@@ -14,14 +14,12 @@
 #include "t_util.h"
 #include "db_mod.h"
 #include "motion.h"
+#include "tools.h"
 
 // Motion viewer debug tool (Tools/t_mv.cpp): a three-step menu (init / main / quit through mvFunc) around
 // db_mod's model viewer, with the debug camera on the Z button.
 
-void drawGround(int on);
 int SetToolLight(int no);      // db_light_tools.cpp exports it (asm .globl; static in db_light.cpp)
-void ToolArrayPush(int flag);  // tools.cpp linkonce tail
-void ToolWorkPop(int flag);
 
 struct MvWork {
     s8 step;      // 0x00  index into mvFunc
@@ -86,11 +84,11 @@ static int mvInit()
     GXColor bg;
     u8 zero = 0;
 
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_SYSTEM_FLG) &= ~0x800;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOff(pG->System_flg, 0x800);
+    pG->Debug_flg[0] |= 0x10000000;
     ToolArrayPush(0);
     bg.r = bg.g = bg.b = 0x30;
     bg.a = zero;
@@ -200,12 +198,12 @@ static int mvQuit()
     ToolWorkPop(0);
     bg = g_sysBgColor;
     bio4_GXSetCopyClear(bg, 0xFFFFFF);
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x2000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
-    TOOL_FLAG(OFS_SYSTEM_FLG) |= 0x800;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x2000000);
+    BitOff(pG->Stop_flg, 0x800000);
+    BitOn(pG->System_flg, 0x800);
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    pG->Debug_flg[0] &= ~0x80000000;
     SetToolLight(-1);
     pMv->step = ret;
     TaskExit();

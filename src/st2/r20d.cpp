@@ -131,12 +131,6 @@ static const R20dThroughData r20d_throughData[10] = {
     {{-10242.0f, 0.0f, 12142.0f}, 3.1415927f, 1500.0f, -1},
 };
 
-static inline void ObjPSet(cObj*& d, cObj* v) { d = v; }
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
-
 static void r20d_checkBgmPlay();
 void r20d_openShelf_main(int no, int opened);
 static void r20d_openedShelf(int no);
@@ -457,9 +451,9 @@ void r20d_initCrank()
     Vec p1 = {-1630.0f, 1000.0f, 18360.0f};
     Vec p2 = {-1630.0f, 1000.0f, 24914.0f};
 
-    ObjPSet(r20d_work.p->crank[0], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p0, &rot, 0x10, 1));
-    ObjPSet(r20d_work.p->crank[1], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p1, &rot, 0x10, 1));
-    ObjPSet(r20d_work.p->crank[2], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p2, &rot, 0x10, 1));
+    PSet(r20d_work.p->crank[0], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p0, &rot, 0x10, 1));
+    PSet(r20d_work.p->crank[1], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p1, &rot, 0x10, 1));
+    PSet(r20d_work.p->crank[2], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p2, &rot, 0x10, 1));
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 0, 1);
     } else {
@@ -925,7 +919,7 @@ static void r20d_execThrough(int no)
     pl->beginAction();
     // pPLS (struct view) on both sides of the `sth atari.flags` store: cse1 then invalidates the first
     // pPL load and setPriority reloads pPL (target: `lwz r3,pPL@l; addi r3,r3,0x2b4`).
-    AtariFlagsAnd(&pPLS->atari, 0xFEFF);
+    AtariOff(&pPLS->atari, 0xFEFF);
     pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     d = &r20d_throughData[no];
@@ -996,7 +990,7 @@ static void r20d_execThrough(int no)
     CamCtrl.Comeback(0);
     pl->endAction(8);
     pPL->dmg.clear();
-    AtariFlagsOr(&pPLS->atari, 0x100);
+    AtariOn(&pPLS->atari, 0x100);
     pPLS->atari.setPriority(0);
 }
 
@@ -1149,7 +1143,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     pPL->beginEvent(0);
     // pPLS (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
     // invalidates it in cse1 and `dmg.set` reloads pPL (target: two `lwz pPL@l`).
-    AtariFlagsOr(&pPLS->atari, 0x100);
+    AtariOn(&pPLS->atari, 0x100);
     pPLS->dmg.set(0, 0x80);
     u->target = u->getTargetPos(&pos);
     // `u + st + 0x18` (not `u->mot + st + 4`): the target adds `u` first (`add r29,u,st`).

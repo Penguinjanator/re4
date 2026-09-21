@@ -33,22 +33,10 @@ extern "C" void Evt_R215S00_Func(Event* e);
 extern "C" void Evt_R215S01_Func(Event* e);
 extern "C" void Evt_R215S02_Func(Event* e);
 
-// 1 while the event is being skipped / cancelled (an EVT status bit).
-static inline int r215_evtStatus(Event* e, u32 bit)
-{
-    int on = 1;
-
-    if ((e->StatusFlag & bit) == 0) {
-        on = 0;
-    }
-    return on;
-}
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Light kind mask / display flag of an event model.
 #define R215_EVT_MOD_LIGHT(name, kind)                  \
@@ -189,7 +177,7 @@ extern "C" void Evt_R215S00_Func(Event* e)
         ResetShadowCamMoveSize();
         break;
     case 3:
-        if (r215_evtStatus(e, 0x4000) == 0) {
+        if (EvtStatusCk(e, 0x4000) == 0) {
             EvtMgr.EvtSndStrPlay(evtKey(&EvtMgr), 1, 0x89, 1, 0.0f);
         }
         break;
@@ -249,7 +237,7 @@ extern "C" void Evt_R215S01_Func(Event* e)
             break;
         case 0x12:
             if (e->NowFrame == 0x5A) {
-                if (r215_evtStatus(e, 0x40000000) == 0) {
+                if (EvtStatusCk(e, 0x40000000) == 0) {
                     FadeSetW(2, 30, 0, 0);
                 }
             }

@@ -9,19 +9,11 @@
 #include "dbmodule.h"
 #include "db_log.h"
 #include "db_sctrl.h"
+#include <string.h>
 
 // Hermite S-curve editor of the debug tools (D:/Bio4/Prog/db_sctrl.cpp; the same object in t_id and
 // t_event). Screen space is 640x480 centred on the graph centre; the graph is drawn in world space
 // through w->mtx (the camera matrix pushed 240 / tan(fovy / 2) in front of the camera).
-
-extern "C" {
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, unsigned int n);
-double tan(double x);
-double log10(double x);
-float atanf(float x);
-}
 
 #define SCTRL_MAX_KEY 64
 #define SCTRL_GRAB_DIST 10.0f
@@ -43,14 +35,6 @@ static f32 sctrlIndexF(int i)
     return (f32) i + 1.0f;
 }
 
-// cam_sys.cpp's column accessor: the Vec* parameter gives the target's `stfs 4(rP)` through the address
-// register (the .x store goes through the frame).
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 static int (*sctrl_routine_tbl[3])(DbSctrlWork*) = {sctrlEdit, sctrlMenu, sctrlQuit};
 

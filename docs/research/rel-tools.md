@@ -30,7 +30,7 @@
 - `while (*p) { int c = *p; if (islower(c)) c -= 0x20; *p = c; p++; }` with `int c` keeps `subi` in
   place (`char c` re-extends with `extsb`); `islower` is newlib's `(_ctype_ + 1)[(int)(c)] & _L`.
 - `pGS->debug_mode = ...` / `(*(u32*)((u8*)pGS + 0x68) & bit)` (the struct-view pG) keep the `lwz pG`
-  below a preceding store through the work pointer where plain `pG`/`TOOL_FLAG` let ours hoist it.
+  below a preceding store through the work pointer where a plain `pG` let ours hoist it.
 - Clamps on s8 members: `w->cursor = w->cursor < 0 ? 0 : (w->cursor > 1 ? 1 : w->cursor);` gives the
   target's `extsb r9,r0 ... li r0,0/1 ... stb r0` with the raw byte kept for the store; `s8 c = ...` locals
   or if/else chains extend in place.
@@ -103,7 +103,7 @@
   copy (scope global in symbols.txt although the .sym says local). Table definitions sit right before
   the first function using them (menu strings in .rodata parse order: block names, ToolSeAt,
   seAtInit, main menu, seAtAreaEdit, create+edit menus, AreaMove pool, input/rnd/flag names,
-  DataInput, DataLoad, save menu, DataSave). Idioms: `BitSet(w->save, TOOL_FLAG(..))` for the two
+  DataInput, DataLoad, save menu, DataSave). Idioms: `BitSet(w->saveStop, pG->Stop_flg)` for the two
   flag backups (pG reloaded after the store); `int zero = 0` at the top of seAtInit (`li r28,0`
   before the first call, reused for every zero store); `u8 valid = w->copyValid` loaded once for the
   four menu-enable stores (order edit[4], edit[3], create[2], create[1] -> issued create[1] first);

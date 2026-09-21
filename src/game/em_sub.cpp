@@ -27,9 +27,8 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
-
-extern "C" {
-}
+#include "ref_access.h"
+#include "em.h"
 
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
@@ -48,19 +47,12 @@ public:
 // register (`add r9, r9, r31` / `stwx r29, r9, r31`) instead of the pointer.
 #define WEP_LIST(n) ((WepTarget*) ((n) * sizeof(WepTarget) + (u32) list))
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Position offset by the trolley / bulldozer movement (adjust_add_set / VehicleAdjust).
 static Vec adjust_add = {0.0f, 0.0f, 0.0f};
 
 u32 No_drop_cnt = 0;
 u32 No_drop_cnt2 = 0;
 
-// Dead (upper 16 bits of cDmgInfo::flags set): the `li 1; andis.; bne; li 0; cmpwi` chain.
-static inline int EmIsDead(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Player life at least `lim`: the compare keeps its `>=` form (`cmpwi 0x1f5; cror un,eq,gt`) because
 // the constant only arrives at RTL inlining time, after fold's `>= C` -> `> C-1` rewrite.
@@ -76,35 +68,9 @@ static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v)
     d = v;
 }
 
-static inline void PSet(cEm*& d, cEm* v)
-{
-    d = v;
-}
 
-// Reference store helpers (see PSet above): keep the store after preceding loads in the target order.
-static inline void ISet(int& d, int v)
-{
-    d = v;
-}
 
-// u16 store through a reference (same purpose as ISet).
-static inline void HSet(u16& d, int v)
-{
-    d = v;
-}
 
-// `f &= mask` through a reference, same purpose (BitOff16 with its `~b` keeps a 32-bit mask).
-static inline void MaskAnd16(u16& f, u16 mask)
-{
-    f &= mask;
-}
-
-// Struct-member view of pPL (the pGS trick, global.h): loads through it stay after preceding
-// stores through other pointers instead of being shared across them.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // The parts a hit box belongs to (partsNo is 1-based, 0 = the model itself).
 static inline cModel* HitParts(cEm* em, YARARE_INFO* p)
@@ -115,17 +81,6 @@ static inline cModel* HitParts(cEm* em, YARARE_INFO* p)
     return em;
 }
 
-// Work `no` of the enemy manager through a local manager pointer (map_obj.h getWork): the range
-// check survives at the top of the guarded do-while scans below (thread_jumps cannot fold it).
-static inline cEm* emWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 // Shared Rno0 routine of the object classes (emdoor / emrack tables): the "scenario" state where an
 // event script drives the object; just advances the current motion.
@@ -1145,9 +1100,9 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
     f32 wr;
 
     i = 0;
-    if (i < EmMgr.nArray) {
+    if (i < EmMgr.getArrayNum()) {
         do {
-        em = emWork(i);
+        em = EmMgr.at(i);
         if (!(em->be_flag & 1)) {
             continue;
         }
@@ -1160,7 +1115,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         if (em->hp <= 0) {
             continue;
         }
-        if (EmIsDead(em)) {
+        if (EmDeadCk(em)) {
             continue;
         }
         if (flag == 0xE && em->id == 0x4F) {
@@ -1221,7 +1176,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
             wp->part = part;
             WEP_LIST(worst)->em = em;
         }
-        } while (++i < EmMgr.nArray);
+        } while (++i < EmMgr.getArrayNum());
     }
     return cnt;
 }
@@ -1280,9 +1235,9 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     bestPart = 0;
     bestEm = 0;
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
-        em = emWork(i);
+        em = EmMgr.at(i);
 
         if ((em->be_flag & 0x201) != 1) {
             continue;
@@ -1327,7 +1282,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
         bestPart = part;
         bestEm = em;
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     if (bestPart) {
         if (!(bestPart->flags & 0x20)) {
@@ -1342,9 +1297,9 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
     }
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
-        em = emWork(i);
+        em = EmMgr.at(i);
 
         if (!(em->be_flag & 1)) {
             continue;
@@ -1373,7 +1328,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             continue;
         }
         if (em->id != 0x50) {
-            if (EmIsDead(em)) {
+            if (EmDeadCk(em)) {
                 continue;
             }
         }
@@ -1431,7 +1386,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             list[worst].part = part;
             list[worst].em = em;
         }
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     for (i = 0; i < (int) cnt - 1; i++) {
         for (j = i + 1; j < (int) cnt; j++) {
@@ -1491,9 +1446,9 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     }
     cnt = 0;
     i = 0;
-    if (i < (int) EmMgr.nArray) {
+    if (i < (int) EmMgr.getArrayNum()) {
         do {
-        em = emWork(i);
+        em = EmMgr.at(i);
 
         if (!(em->be_flag & 1)) {
             continue;
@@ -1507,7 +1462,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         if (em->hp <= 0) {
             continue;
         }
-        if (EmIsDead(em)) {
+        if (EmDeadCk(em)) {
             continue;
         }
         if (type == 0xE && em->id == 0x4F) {
@@ -1613,7 +1568,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
             list[worst].part = part;
             list[worst].em = em;
         }
-        } while (++i < (int) EmMgr.nArray);
+        } while (++i < (int) EmMgr.getArrayNum());
     }
     for (i = 0; i < cnt - 1; i++) {
         for (j = i + 1; j < cnt; j++) {
@@ -1641,7 +1596,7 @@ int PlBombHitCk(Vec* pos, f32 r)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (EmIsDead(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     parts = pPL->getPartsPtr(0);
@@ -1674,7 +1629,7 @@ int PlBombHitCk(Vec* pos, f32 r)
 
 // Point the weapon line p0-p1 hits: the scenario (1), an enemy (2, 3 with flag 0x40) or nothing (0);
 // p1 is moved to the hit point.
-int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, int* outAttr)
+int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, u32* outAttr)
 {
     Mtx m;
     Vec hit;
@@ -1715,8 +1670,8 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) != 1) {
             continue;
         }
@@ -1895,7 +1850,7 @@ void EmYarareDisp(cEm* em)
             continue;
         }
         color = 0x60606060;
-        if (EmIsDead(em) && p == em->dmg.m_pDamageYarare) {
+        if (EmDeadCk(em) && p == em->dmg.m_pDamageYarare) {
             color = 0xFF000000;
         }
         if (em->hp <= 0) {
@@ -1991,20 +1946,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life < dmg) {
             dmg = (s16) pG->pl_life;
         }
-        HSet(pG->pl_life, pG->pl_life - dmg);
+        U16SetI(pG->pl_life, pG->pl_life - dmg);
         if ((s16) pG->pl_life <= 0) {
             if (flag & 1) {
-                HSet(pG->pl_life, 1);
+                pG->pl_life = 1;
             }
             if ((s16) pG->pl_life < 0) {
-                HSet(pG->pl_life, 0);
+                pG->pl_life = 0;
             }
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->pl_life, pG->pl_life_max);
+            pG->pl_life = pG->pl_life_max;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->pl_life <= 1) {
-            HSet(pG->pl_life, 2);
+            pG->pl_life = 2;
         }
         ret = (s16) pG->pl_life;
     } else if (em->id <= 0xD) {
@@ -2023,20 +1978,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->ashley_life < dmg) {
             dmg = (s16) pG->ashley_life;
         }
-        HSet(pG->ashley_life, pG->ashley_life - dmg);
+        U16SetI(pG->ashley_life, pG->ashley_life - dmg);
         if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
-                HSet(pG->ashley_life, 1);
+                pG->ashley_life = 1;
             }
             if ((s16) pG->ashley_life < 0) {
-                HSet(pG->ashley_life, 0);
+                pG->ashley_life = 0;
             }
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->ashley_life, pG->ashley_life_max);
+            pG->ashley_life = pG->ashley_life_max;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH2) && (s16) pG->ashley_life <= 1) {
-            HSet(pG->ashley_life, 2);
+            pG->ashley_life = 2;
         }
         ret = (s16) pG->ashley_life;
     } else {
@@ -2098,7 +2053,7 @@ void PlSetDamage(int type, int dmg, int flag)
             type = 7;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            HSet(pG->pl_life, pG->pl_life_max);
+            U16SetI(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
             }
@@ -2108,7 +2063,7 @@ void PlSetDamage(int type, int dmg, int flag)
         }
     }
     if ((s16) pG->pl_life <= 1 && (DbgFlagChk(pG, DBG_NO_DEATH2))) {
-        HSet(pG->pl_life, 2);
+        pG->pl_life = 2;
         if (type == 6) {
             type = 2;
         }
@@ -2187,7 +2142,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (EmIsDead(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     parts = pPL->getPartsPtr(0);
@@ -2198,7 +2153,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (part == 0) {
         return 0;
     }
-    MaskAnd16(part->flags, 0xBFFF);
+    U16And(part->flags, 0xBFFF);
     PSet(pPL->dmg.m_pDamageYarare, part);
     if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
@@ -2254,7 +2209,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (EmIsDead(pl)) {
+    if (EmDeadCk(pl)) {
         return 0;
     }
     PSVECSubtract(pPos2, pPos, &d);
@@ -2318,7 +2273,7 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
     if ((s16) pG->ashley_life <= 0) {
         return 0;
     }
-    if (EmIsDead(sub)) {
+    if (EmDeadCk(sub)) {
         return 0;
     }
     PSVECSubtract(pPos2, pPos, &d);
@@ -2410,7 +2365,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (pSUB->hp <= 0) {
         return 0;
     }
-    if (EmIsDead(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     parts = pSUB->getPartsPtr(0);
@@ -2603,7 +2558,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         off = EmMgr.size * i;
         e = (cEm*) ((u8*) EmMgr.pArray + off);
         if ((e->be_flag & 0x201) != 1) {
@@ -3445,8 +3400,8 @@ int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
     if (pG->room_id != 0x21B) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        obj = ObjMgr.fastAt(i);
         if ((obj->be_flag & 0x201) != 1) {
             continue;
         }
@@ -3472,8 +3427,8 @@ int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
     if (pG->room_id != 0x30F) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        obj = ObjMgr.fastAt(i);
         if ((obj->be_flag & 0x201) != 1) {
             continue;
         }
@@ -3502,7 +3457,7 @@ int VehicleAdjust(Vec* pos)
     cObj* obj;
 
     if (pG->room_id == 0x21B) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
+        for (obj = ObjMgr.getActiveWork(); obj != 0; obj = ObjMgr.getNext(obj)) {
             if (obj->id != 0x3B) {
                 continue;
             }
@@ -3513,7 +3468,7 @@ int VehicleAdjust(Vec* pos)
         }
     }
     if (pG->room_id == 0x30F) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
+        for (obj = ObjMgr.getActiveWork(); obj != 0; obj = ObjMgr.getNext(obj)) {
             if (obj->id != 0x3E) {
                 continue;
             }

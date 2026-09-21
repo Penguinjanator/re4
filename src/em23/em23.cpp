@@ -20,9 +20,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em23Func)(cEm23*);
@@ -42,26 +42,7 @@ static void em23_R1_Dm_Air(cEm23* em);
 static void em23_R0_Die(cEm23* em);
 static void em23_R1_Die_Normal(cEm23* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits changed through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-static inline void AtariOn(cAtariInfo* at, u16 bits) { at->m_flag |= bits; }
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // Module entry (SN loader): registers Em23Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()

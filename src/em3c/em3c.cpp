@@ -35,9 +35,10 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
@@ -69,31 +70,10 @@ static void em3c_R1_Dm_Head(cEm3c* em);
 static void em3c_R0_Die(cEm3c* em);
 static void em3c_R1_Die_Normal(cEm3c* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3cDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: hands the module's constructor to the enemy manager (EmInitFunc) so an enemy set
 // with id 0x3C is built as a cEm3c.
@@ -451,7 +431,7 @@ void cEm3c::move()
     if (w->Run_wait) {
         w->Run_wait--;
     }
-    if (em3cDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         if (w->Atk_wait <= 4) {
             w->Atk_wait = 5;
         }
@@ -459,11 +439,11 @@ void cEm3c::move()
     em3cRouteCk(this);
     Em3c_R0_move_tbl[r_no_0](this);
     partsWorldCalc();
-    len = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    len = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < len * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < len * 0.5f) {
         w->HoseiCnt++;
     } else {
         w->HoseiCnt = 0;
@@ -2375,8 +2355,8 @@ int em3cStayCk(cEm3c* em)
     u32 cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE)
             && EM3C_WK(e)->L_pl_route < w->L_pl_route) {
@@ -2419,7 +2399,7 @@ int em3cFindCk(cEm3c* em)
     if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 25000.0f;
             break;
@@ -2434,8 +2414,8 @@ int em3cFindCk(cEm3c* em)
         // compares stay) and puts the pool load into the join block; `r` keeps 4 sets so
         // `r * r` is not folded
         r = 25000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < r * r) {
             if ((w->Be_flg & 1) && w->L_pl_route < r) {
                 w->Be_flg |= 0x80;
@@ -2447,7 +2427,7 @@ int em3cFindCk(cEm3c* em)
         w->Be_flg |= 0x80;
         return 1;
     }
-    if (em3cDeadCk(em)) {
+    if (EmDeadCk(em)) {
         w->Be_flg |= 0x80;
         return 1;
     }
@@ -2466,8 +2446,8 @@ void em3cDoorOpenCk(cEm3c* em)
     if (EM3C_WK(em)->HoseiCnt % 10 != 5) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -2542,8 +2522,8 @@ void em3cAtkSuspend(cEm3c* em, int on)
         }
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e != em && e->r_no_0 == 1 && e->r_no_1 <= 1) {
             if (on) {

@@ -45,17 +45,13 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "va_ppc.h"
+#include <dolphin/os.h>
 
 // Scenario helpers shared by the room scripts: event brackets, messages, chapter end, elevators.
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
-int sprintf(char* dst, const char* fmt, ...);
-int vsprintf(char* dst, const char* fmt, va_list ap);
-void* memcpy(void* dst, const void* src, unsigned int n);
-void SubScreenWait(int frames);
 }
 
 
@@ -428,8 +424,8 @@ int SceCountEmAlive(int lo, int hi)
     int cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;
         }
@@ -447,8 +443,8 @@ void SceDestroyEm(int lo, int hi)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         if (hi == -1) {
             hi = lo;
         }
@@ -488,6 +484,9 @@ void SceInitItemEvent()
 }
 
 #include "flag_rsf.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 
@@ -721,9 +720,6 @@ void getChapterSection(int chapter, int* chap, int* sec)
 }
 
 // Reference setters: the original stores these GlobalWork fields through references (pG reloaded after each).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), reference store
 
 // Chapter end task (SceSetChapterEnd): kills the running event, freezes the game, swaps the room
@@ -813,12 +809,12 @@ void SceChapterEnd()
             pPL->pos.z = SceAtPtr(SceSys.m_chapter_door)->dstPos.z;
             FSet(pPL->ang.y, SceAtPtr(SceSys.m_chapter_door)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
-            U8Set(pG->Part_old, pG->Part);
-            U8Set(pG->stage_no, SceAtPtr(SceSys.m_chapter_door)->dstStage);
-            U8Set(pG->room_no, SceAtPtr(SceSys.m_chapter_door)->dstRoom);
-            U8Set(pG->Part, SceAtPtr(SceSys.m_chapter_door)->dstPart);
-            U8Set(pG->JumpPoint, 0);
-            U16Set(pG->r_continue_cnt, 0);
+            pG->Part_old = pG->Part;
+            pG->stage_no = SceAtPtr(SceSys.m_chapter_door)->dstStage;
+            pG->room_no = SceAtPtr(SceSys.m_chapter_door)->dstRoom;
+            pG->Part = SceAtPtr(SceSys.m_chapter_door)->dstPart;
+            pG->JumpPoint = 0;
+            pG->r_continue_cnt = 0;
         } else {
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
@@ -851,7 +847,7 @@ void SceChapterEnd()
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);
-        U8Set(pG->Part, x4F9E);
+        pG->Part = x4F9E;
         if (SceAtPtr(SceSys.m_chapter_door)) {
             SceAtPtr(SceSys.m_chapter_door)->doorFadeEff = 2;
             SceAtExecute(SceSys.m_chapter_door);
@@ -892,7 +888,7 @@ void SceSetChapterEnd(int chapter, int doorAt)
 // Distance between two points.
 static inline f32 vecDist(Vec* a, Vec* b)
 {
-    return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
+    return VEC_DIST(a, b);
 }
 
 // Puts the scenario camera (SceCam) at pos looking at `at` with `fovy` and makes it the extra
@@ -1262,19 +1258,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
 
 extern "C" void SceElevator(SceElevatorData* d);
 
-// Inline helpers owning their locals (r225.cpp SceElevator_r225 has the same function): the inlined
-// frame is one BLKmode temp slot popped at the end of each statement, so every call shares frame slot
-// 8. Argument MEMs are evaluated lazily (the pointer before a call in another argument, the load
-// after it: `lwz r30,pPL; bl fRand1_1; lfs 148(r30)`).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
 // pseudo (SImode) and purge_addressof gives it a permanent frame slot instead of the shared temp at
@@ -1354,8 +1337,8 @@ void SceElevator(SceElevatorData* d)
         for (i = 0; i < 10; i++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
@@ -1379,8 +1362,8 @@ void SceElevator(SceElevatorData* d)
             if (d->dir == 1) {
                 step = -spd;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + step, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
             if (faded == 0) {
                 if (spd >= maxSpd) {
                     FadeSetRGBA(2, 0, white);
@@ -1400,8 +1383,8 @@ void SceElevator(SceElevatorData* d)
         if (d->dir == 0) {
             move = -move;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+        pPL->setPos(pl->pos.x, pPL->pos.y + move, pl->pos.z);
         CamCtrl.Comeback(0);
         FadeSetRGBA(0x80000002, 0xFF, 0);
         hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
@@ -1420,8 +1403,8 @@ void SceElevator(SceElevatorData* d)
             if (d->dir != 0) {
                 move = -move;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
             {
                 Vec q = {0.0f, 0.0f, 0.0f};
                 q.y = move;
@@ -1453,8 +1436,8 @@ void SceElevator(SceElevatorData* d)
         for (j = 0; j < 10; j++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
@@ -1491,7 +1474,7 @@ void cManager<T>::beginEvent(int mode)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->isAlive()) {
             p->beginEvent(mode);
         }
@@ -1505,7 +1488,7 @@ void cManager<T>::endEvent(int mode)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->isAlive()) {
             p->endEvent(mode);
         }

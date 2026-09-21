@@ -21,9 +21,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em27Func)(cEm27*);
@@ -43,19 +44,7 @@ static void em27_R1_Dm_Air(cEm27* em);
 static void em27_R0_Die(cEm27* em);
 static void em27_R1_Die_Normal(cEm27* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the inline
 // `cLogPtr::operator->` puts two block notes between `high(pLog)` and the load, which raises the
@@ -68,15 +57,6 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     } else                                                                              \
         PSVECNormalize(src, dst)
 
-// Work `no` of the enemy manager with the range check read through a manager copy (em_set.cpp).
-static inline cEm* em27MgrWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 // Module entry (SN loader): registers Em27Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -929,8 +909,8 @@ void em27ObaHitCk(cEm27* em)
     if (em->hp <= 0) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em27MgrWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         {
             int dead = !(e->be_flag & 1);
@@ -1043,8 +1023,8 @@ int em27JumpCk(cEm27* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if (e->isAlive() && e->id == 0xF) {
             if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z)

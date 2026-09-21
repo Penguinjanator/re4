@@ -605,7 +605,7 @@ void cObj09::move()
     }
     pObj_ck = this;
     func = Obj09HitCheck;
-    p = (cObj*) ObjMgr.pAlive;
+    p = (cObj*) ObjMgr.getActiveWork();
     while (p) {
         q = p;
         p = (cObj*) p->pNext;

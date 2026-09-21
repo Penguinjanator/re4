@@ -58,7 +58,6 @@ static u8 r11d_hideCnt = 0;
 
 
 // Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 static void r11d_checkIronDoorKeyUse();
 static void r11d_checkIronDoor();
@@ -370,7 +369,6 @@ static void r11d_execShowView_end()
 }
 
 // Show the room: camera cuts 2 and 3 with the stream and the glow.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // One-shot (Room_flg bit 2) on entry: stream 0x16, event start, camera cuts 2 then 3 over the village
 // with a rain effect; player-cancellable.

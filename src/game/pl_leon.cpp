@@ -10,19 +10,13 @@
 #include "db_log.h"
 #include "main.h"
 #include "snd.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
+#include "pl_sub.h"
+#include "esp.h"
+#include "pl_npc.h"
+#include "pl_mod.h"
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
-int SubCharCheckCtrl();                         // game/pl_sub.cpp
-void SubCharCtrl(int mode, int sccf);                 // game/pl_sub.cpp
-}
-u32 SubCharGetStatus();                         // game/pl_npc.cpp
-void ShapeSet(void* info, int a, void* data, int b);  // game/shape.cpp
-void ShapeEnd(void* info);
-
-extern cModel* pSUB;
-extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 // Plain block, not do/while(0): the do-while's deleted back-jump lets cse rewrite the HALT store's
 // zero as `info` (one more ref), which makes `info` outrank `data` in global allocation order.
@@ -32,11 +26,7 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // Builds the main player (Leon, and the other gun-carrying characters through pl_type / costume):
 // common init, model set, the equipped weapon (weapon_no / weapon_type) and its motion table, the
@@ -53,7 +43,7 @@ cPlLeon::cPlLeon()
     init1();
     setMotion();
     arc = pG->pPlayer;
-    EspDataLoad(PL_ARC_PTR(arc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
 }
@@ -61,20 +51,20 @@ cPlLeon::cPlLeon()
 // Fills m_MotTbl 0x5F..0x6C (the ladder / crouch / partner-command motions) from archive 0x32..0x3F.
 void cPlLeon::setMotion()
 {
-    PSet(m_MotTbl[0x5F], PL_ARC_PTR(pG->pPlayer, 0x32));
-    PSet(m_MotTbl[0x60], PL_ARC_PTR(pG->pPlayer, 0x33));
-    PSet(m_MotTbl[0x61], PL_ARC_PTR(pG->pPlayer, 0x34));
-    PSet(m_MotTbl[0x62], PL_ARC_PTR(pG->pPlayer, 0x35));
-    PSet(m_MotTbl[0x63], PL_ARC_PTR(pG->pPlayer, 0x36));
-    PSet(m_MotTbl[0x64], PL_ARC_PTR(pG->pPlayer, 0x37));
-    PSet(m_MotTbl[0x65], PL_ARC_PTR(pG->pPlayer, 0x38));
-    PSet(m_MotTbl[0x66], PL_ARC_PTR(pG->pPlayer, 0x39));
-    PSet(m_MotTbl[0x6B], PL_ARC_PTR(pG->pPlayer, 0x3A));
-    PSet(m_MotTbl[0x6C], PL_ARC_PTR(pG->pPlayer, 0x3B));
-    PSet(m_MotTbl[0x67], PL_ARC_PTR(pG->pPlayer, 0x3C));
-    PSet(m_MotTbl[0x68], PL_ARC_PTR(pG->pPlayer, 0x3D));
-    PSet(m_MotTbl[0x69], PL_ARC_PTR(pG->pPlayer, 0x3E));
-    PSet(m_MotTbl[0x6A], PL_ARC_PTR(pG->pPlayer, 0x3F));
+    PLA_MOT(this, 0x5F, 0x32);
+    PLA_MOT(this, 0x60, 0x33);
+    PLA_MOT(this, 0x61, 0x34);
+    PLA_MOT(this, 0x62, 0x35);
+    PLA_MOT(this, 0x63, 0x36);
+    PLA_MOT(this, 0x64, 0x37);
+    PLA_MOT(this, 0x65, 0x38);
+    PLA_MOT(this, 0x66, 0x39);
+    PLA_MOT(this, 0x6B, 0x3A);
+    PLA_MOT(this, 0x6C, 0x3B);
+    PLA_MOT(this, 0x67, 0x3C);
+    PLA_MOT(this, 0x68, 0x3D);
+    PLA_MOT(this, 0x69, 0x3E);
+    m_MotTbl[0x6A] = PL_ARC_PTR(pG->pPlayer, 0x3F);
 }
 
 // Just cPlayer::move (the cloth runs through the moveCloth virtual).

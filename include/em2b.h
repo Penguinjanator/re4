@@ -8,30 +8,13 @@
 #include "model.h"
 #include "pendulum.h"
 #include "obj.h"
+#include "obj16.h"
 
 class cCtrl;
 class cEmTree;
 class cObjYagura;
 class TexRenderMng;
 class cEmRock;
-
-// Enemy head object of the parasite (game/obj16.cpp; em10.h declares the same class, which this
-// module cannot include).
-class cObj16 : public cObj {
-public:
-    int ckAtkEnable();
-    void setDamage();
-    void setAtk(u8 a);
-    void clearLostWait();
-    void setMotData(void* a, void* b, void* c, void* d, void* e, void* f, void* g, void* h, void* i, void* j, void* k);
-    void setLostWait(int a);
-    void setBurn();
-    void setPlDmgMot(void* m, int a);
-    void setDieEff();
-    void setCritical();
-    int ckAtkHit();
-    void setScale(Vec* s);
-};
 
 // One entry of the room's EMI data (pG->pRoomEmi): kind 3 = a village house the giant can break
 // (room 119 sets pG->flags_174 bits per house), kind 4 = a rock spot, kind 0xD = a catch spot.

@@ -15,8 +15,8 @@
 #include "motion.h"
 #include "sscrn.h"
 #include "ss_main.h"
+#include <stdio.h>
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
 
 extern "C" {
 void wep00Init(int no);
@@ -161,11 +161,6 @@ static inline void ssModelLight(cModel* m)
     m->LightInfo.init2(0, 1, &light_ofs, &light_size, 1);
 }
 
-// Adds a part model (bin + tpl) to `m` through the DLL's model-info manager.
-static inline void ssModelAdd(cModel* m, void* bin, void* tpl)
-{
-    m->addModel(ssModInfoMgr.create(bin, tpl));
-}
 
 // Codec screen: the player's radio pose model from the player archive plus the radio/hand parts of
 // ss_term.dat (sub-files 10..13).
@@ -174,10 +169,10 @@ void tel00ModelInit(cModel* m, SsArc* arc)
     SUB_SCREEN* wk = &SubScreenWk;
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(10), PL_ARC(5));
-    ssModelAdd(m, SS_ARC_PTR(wk->pTerm, 10), SS_ARC_PTR(wk->pTerm, 11));
-    ssModelAdd(m, SS_ARC_PTR(wk->pTerm, 12), SS_ARC_PTR(wk->pTerm, 13));
-    ssModelAdd(m, PL_ARC(9), PL_ARC(7));
+    m->addModel(ssModInfoMgr.create(PL_ARC(10), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTerm, 10), SS_ARC_PTR(wk->pTerm, 11)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTerm, 12), SS_ARC_PTR(wk->pTerm, 13)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(9), PL_ARC(7)));
     ssModelLight(m);
 }
 
@@ -188,14 +183,14 @@ void hunniganModelInit(cModel* m, void* data, u32 type)
     SsArc* d = (SsArc*) data;
 
     m->modelInit(SS_ARC_PTR(d, 6), SS_ARC_PTR(d, 5));
-    ssModelAdd(m, SS_ARC_PTR(d, 7), SS_ARC_PTR(d, 5));
-    ssModelAdd(m, SS_ARC_PTR(d, 8), SS_ARC_PTR(d, 5));
-    ssModelAdd(m, SS_ARC_PTR(d, 9), SS_ARC_PTR(d, 5));
-    ssModelAdd(m, SS_ARC_PTR(d, 10), SS_ARC_PTR(d, 5));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(d, 7), SS_ARC_PTR(d, 5)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(d, 8), SS_ARC_PTR(d, 5)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(d, 9), SS_ARC_PTR(d, 5)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(d, 10), SS_ARC_PTR(d, 5)));
     switch (type) {
     case 0:
     case 2:
-        ssModelAdd(m, SS_ARC_PTR(d, 11), SS_ARC_PTR(d, 5));
+        m->addModel(ssModInfoMgr.create(SS_ARC_PTR(d, 11), SS_ARC_PTR(d, 5)));
         break;
     case 1:
         break;
@@ -274,12 +269,12 @@ void ashleyModelInit()
     static f32 ashley_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(7), PL_ARC(9));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(11));
-    ssModelAdd(m, PL_ARC(8), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(10), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(17), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(PL_ARC(7), PL_ARC(9)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(11)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(8), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(10), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(17), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(5)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, ashley_pos, ashley_rot, ashley_scale);
     MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(wk->pCmmn, 22), 0, 0, 4, 0);
@@ -298,9 +293,9 @@ void adaModelInit(u16 no, u16 type)
     static f32 ada_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(8), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(9), PL_ARC(10));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(8), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(9), PL_ARC(10)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, ada_pos, ada_rot, ada_scale);
     MotionClear(wep, 0);
@@ -358,8 +353,8 @@ void wep34Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(17), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(18), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(PL_ARC(17), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(5)));
     ssModelLight(wep);
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
@@ -383,8 +378,8 @@ void wep38Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(18), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(5)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HANG(m, wep, 10, 22.0f, 0.0f, -5.0f, 1.0f);
     ssModelLight(wep);
@@ -398,8 +393,8 @@ void wep39Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(19), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(19), PL_ARC(5)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HANG(m, wep, 10, 35.0f, -25.0f, 4.0f, 1.0f);
     ssModelLight(wep);
@@ -413,8 +408,8 @@ void wep40Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(5)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     wep->pParts->pParent = m->getPartsPtr(10);
     wep->scale.z = 1.0f;
@@ -436,8 +431,8 @@ void wep30Init(int no, int type)
     void* bin;
     void* tpl;
 
-    ssModelAdd(m, WEP_ARC(wk, 4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(18), PL_ARC(5));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 4), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(5)));
     switch (no) {
     case 0x13:
     default:
@@ -520,10 +515,10 @@ void klauserModelInit(u16 no, u16 type)
     static f32 klauser_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(8), PL_ARC(9));
-    ssModelAdd(m, PL_ARC(15), PL_ARC(16));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(8), PL_ARC(9)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(15), PL_ARC(16)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, klauser_pos, klauser_rot, klauser_scale);
     MotionClear(wep, 0);
@@ -575,8 +570,8 @@ void wep36Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(14), PL_ARC(9));
-    ssModelAdd(m, PL_ARC(18), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(14), PL_ARC(9)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(17)));
     ssModelLight(wep);
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
@@ -589,7 +584,7 @@ void wep28Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     wep->pParts->pParent = m->getPartsPtr(16);
     wep->scale.z = 1.0f;
@@ -609,7 +604,7 @@ void wep42Init(int no, int type)
     void* bin;
     void* tpl;
 
-    ssModelAdd(m, WEP_ARC(wk, 4), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 4), PL_ARC(17)));
     switch (no) {
     case 0x13:
     default:
@@ -692,8 +687,8 @@ void hunkModelInit(u16 no, u16 type)
     static f32 hunk_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, hunk_pos, hunk_rot, hunk_scale);
     switch (no) {
@@ -744,7 +739,7 @@ void wep35Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(18), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(17)));
     ssModelLight(wep);
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
@@ -757,7 +752,7 @@ void wep29Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     wep->pParts->pParent = m->getPartsPtr(10);
     wep->scale.z = 1.0f;
@@ -776,7 +771,7 @@ void wep41Init(int no, int type)
     void* bin;
     void* tpl;
 
-    ssModelAdd(m, WEP_ARC(wk, 4), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 4), PL_ARC(17)));
     switch (no) {
     case 0x13:
     default:
@@ -859,9 +854,9 @@ void weskerModelInit(u16 no, u16 type)
     static f32 wesker_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(10), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(8), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(7));
+    m->addModel(ssModInfoMgr.create(PL_ARC(10), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(8), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(7)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, wesker_pos, wesker_rot, wesker_scale);
     switch (no) {
@@ -918,8 +913,8 @@ void wep37Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(18), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     ssModelLight(wep);
     MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
@@ -932,8 +927,8 @@ void wep43Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     if (no == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else {
@@ -954,8 +949,8 @@ void wep44Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(18), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     wep->pParts->pParent = m->getPartsPtr(10);
     wep->scale.z = 1.0f;
@@ -974,8 +969,8 @@ void wep45Init(int no, int type)
     void* bin;
     void* tpl;
 
-    ssModelAdd(m, WEP_ARC(wk, 4), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 4), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     switch (no) {
     case 0x13:
     default:
@@ -1054,8 +1049,8 @@ void wep47Init(int no)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     wep->pParts->pParent = m->getPartsPtr(10);
     wep->scale.z = 1.0f;
@@ -1075,10 +1070,10 @@ void leonModelInit(u16 no, u16 type)
     static f32 leon_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(10), PL_ARC(5));
-    ssModelAdd(m, PL_ARC(8), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(6), PL_ARC(7));
-    ssModelAdd(m, PL_ARC(9), PL_ARC(7));
+    m->addModel(ssModInfoMgr.create(PL_ARC(10), PL_ARC(5)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(8), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(6), PL_ARC(7)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(9), PL_ARC(7)));
     ssModelLight(m);
     SS_MODEL_PLACE(m, leon_pos, leon_rot, leon_scale);
     MotionClear(wep, 0);
@@ -1188,8 +1183,8 @@ void wep00Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, PL_ARC(18), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(PL_ARC(18), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     wep->pParts->pParent = m->getPartsPtr(10);
     wep->be_flag &= ~2;
@@ -1208,8 +1203,8 @@ void wep01Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1227,8 +1222,8 @@ void wep02Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1246,8 +1241,8 @@ void wep03Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 2) {
@@ -1269,8 +1264,8 @@ void wep04Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1288,8 +1283,8 @@ void wep05Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1303,8 +1298,8 @@ void wep06Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, WEP_ARC(wk, 8), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 8), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1322,8 +1317,8 @@ void wep07Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1337,8 +1332,8 @@ void wep08Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(25), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(25), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1352,8 +1347,8 @@ void wep09Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 8), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 8), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1373,8 +1368,8 @@ void wep10Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 8), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 8), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
@@ -1395,8 +1390,8 @@ void wep11Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 9), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(21), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 9), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(21), PL_ARC(17)));
     switch (type) {
     case 0:
     default:
@@ -1433,8 +1428,8 @@ void wep12Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1463,7 +1458,7 @@ void wep13Init(int type)
         info->color[2] = 0xE0;
         info->color[3] = 0xFF;
     }
-    PSet((void*&) wep->pParts->pParent, m->getPartsPtr(10));
+    (void*&) wep->pParts->pParent = m->getPartsPtr(10);
     info = ssModInfoMgr.create(PL_ARC(0x70), PL_ARC(0x71));
     {
         f32(*mat)[4] = (f32(*)[4]) & info->x5C;
@@ -1502,8 +1497,8 @@ void wep14Init(int type)
     cModel* wep = ssWepModel;
     cModel* p;
 
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else {
@@ -1535,8 +1530,8 @@ void wep15Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, WEP_ARC(wk, 7), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 7), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1550,8 +1545,8 @@ void wep16Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1565,8 +1560,8 @@ void wep17Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(24), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(24), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1580,8 +1575,8 @@ void wep33Init(int type)
     cModel* m = ssPlModel;
     cModel* wep = ssWepModel;
 
-    ssModelAdd(m, WEP_ARC(wk, 6), PL_ARC(17));
-    ssModelAdd(m, PL_ARC(22), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 6), PL_ARC(17)));
+    m->addModel(ssModInfoMgr.create(PL_ARC(22), PL_ARC(17)));
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
@@ -1598,17 +1593,17 @@ void wep19Init(int no, int type)
     void* bin;
     void* tpl;
 
-    ssModelAdd(m, WEP_ARC(wk, 4), PL_ARC(17));
+    m->addModel(ssModInfoMgr.create(WEP_ARC(wk, 4), PL_ARC(17)));
     switch (no) {
     case 0x13:
     case 0x16:
     case 0x17:
-        ssModelAdd(m, PL_ARC(20), PL_ARC(17));
+        m->addModel(ssModInfoMgr.create(PL_ARC(20), PL_ARC(17)));
         break;
     case 0x19:
     case 0x1F:
     case 0x20:
-        ssModelAdd(m, PL_ARC(21), PL_ARC(17));
+        m->addModel(ssModInfoMgr.create(PL_ARC(21), PL_ARC(17)));
         break;
     }
     switch (no) {

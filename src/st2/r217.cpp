@@ -286,9 +286,6 @@ void R217Main()
     }
 }
 
-// The second wave: the camera shows the enemies arriving (cuts 4 / 9) while the player is held.
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 // The second wave: shout SEs, Ganados em[3..9] (table entries 3..9) spawn alerted; em[3] runs at the
 // player, em[7] runs to a fixed point under camera cut 4, then cut 9 while em[8] is turned to face 2.99
 // rad; cutscene ends after the camera motions.

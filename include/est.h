@@ -22,7 +22,7 @@ void EspDeleteEvent();
 void EspSetWaterBomb(Vec* pos);
 void EspSetWaterHitmark(Vec* pos);
 int EspChkInPuddle(Vec* pos, Vec* nrm);
-void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep);
+void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);
 void EventCutEstSet(int owner, u32 no);
 void EventCutEffDelete();
 void EventAllEffDelete();

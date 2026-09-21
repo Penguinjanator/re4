@@ -14,9 +14,6 @@
 #include "cam_ctrl.h"
 #include "motion.h"
 
-extern "C" {
-}
-
 static void wep07_r2_ready(cPlayer* pl);
 static void wep07_r3_ready00(cPlayer* pl);
 static void wep07_r3_ready10(cPlayer* pl);
@@ -209,7 +206,7 @@ void wepDown(cPlayer* pl)
 {
     pl->motionMove();
     if (dmMotCk()) {
-        MotionSetCore(pl, &pl->pMotion, PL_ARC(0x8C), 0, 3, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC(0x8C), 0, 3, 5, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 0;
         pl->r_no_2 = 2;

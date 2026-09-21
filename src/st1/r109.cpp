@@ -30,7 +30,6 @@ static Vec r109_rot0 = {0.0f, -3.1642818f, 0.0f};
 static Vec r109_rot1 = {0.0f, -3.1642818f, 0.0f};
 static Vec r109_rot2 = {0.0f, -4.00204f, 0.0f};
 
-static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 // Room init: re-orients scroll objects 0x21/0x22 (fallen props), creates three extra collision (SAT) and
 // hit-attribute (EAT) pieces from room archive entries 0x1F/0x20 at the three hut positions, deletes the
@@ -56,7 +55,7 @@ void R109Init()
     PSet(r109_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos2, &r109_rot2, 0));
     PSet(r109_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos0, &r109_rot0, 0));
     PSet(r109_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos1, &r109_rot1, 0));
-    PSet(r109_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos2, &r109_rot2, 0));
+    r109_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos2, &r109_rot2, 0);
 
     if (getRoomEtcTorch(0, &torch, 1)) {
         ((cEmTorch*) torch)->setDelete();

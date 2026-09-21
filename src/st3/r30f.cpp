@@ -39,18 +39,10 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "vec.h"
+#include <string.h>
 
 // Room 3-0F (D:/Bio4/Prog/r30f.cpp): the bulldozer ride. Leon and Ashley drive through the four
 // gates, fight off the truck and take the lift up.
-
-extern "C" void* memset(void* dst, int c, unsigned int n);
-// `pPL->atari.flags &= ~0x100` through a pointer to the collision info; the volatile halfword store keeps
-// the following pPL load below it (r30d).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
-struct SubCharPtr {
-    cSubChar* p;
-};
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
 
 struct R30fWork {
     cObj* lift;           // 0x000  the lift platform (room arc 0xC0/0xC4)
@@ -1002,7 +994,7 @@ static void plemRide(cPlayer* p)
     switch (p->r_no_2) {
     case 0:
         pPL->dmg.set(0, 0x80);
-        AtariFlagsAnd(&pPL->atari, 0xFEFF);
+        AtariOffV(&pPL->atari, 0xFEFF);
         pPL->atari.setPriority(2);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x27), 0, 0, 0x201, 0);
         p->r_no_3 = 0;
@@ -1011,7 +1003,7 @@ static void plemRide(cPlayer* p)
         p->r_no_3++;
         if (MotionMove(p, 0) != 0 || p->r_no_3 == 0x3C) {
             pPL->dmg.clear();
-            AtariFlagsOr(&pPL->atari, 0x100);
+            AtariOnV(&pPL->atari, 0x100);
             pPL->atari.setPriority(0);
             EndPlDamage();
             p->dmg.set(0, 0x1E);
@@ -1566,8 +1558,8 @@ void setLiftMoveAdd(Vec* add)
     }
     pG->quake_ofs = v;
     // Struct-member view of pSUB: its load is not hoisted above the quake_ofs copy (the pGS trick).
-    if (((SubCharPtr*) &pSUB)->p) {
-        addPos(add, ((SubCharPtr*) &pSUB)->p);
+    if (pSUBS) {
+        addPos(add, pSUBS);
     }
     addPos(add, SmdGetObjPtr(0x1E));
     for (i = 0; i < 90; i++) {

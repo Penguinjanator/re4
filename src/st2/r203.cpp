@@ -320,8 +320,8 @@ static void r203_StreamCheck()
         int find = 0;
         u32 i;
 
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
                 && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < lim) {

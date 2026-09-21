@@ -24,34 +24,17 @@
 #include "pl_wep.h"
 #include "global.h"
 #include "math_sub.h"
-#include "cmath.h"
 #include "db_log.h"
 #include "motion.h"
+#include "em_sub.h"
+#include "obj12.h"
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
-void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
-
-// Hanging object (game/obj12.cpp): the locks and the chain hang on the door as cObj12 models.
-class cObj12 : public cObj {
-public:
-    void setFall(Vec* spd, u8 type);
-    void setFallSe(u8 blk, u8 no, u8 id);
-};
-cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 typedef void (*EmDoorFunc)(cEmDoor*);
 
-// Store through a scalar reference: the following pPL read is not shared with the one before it.
-static inline void U32Set(u32& d, u32 v) { d = v; }
-
-// Struct-member view of pPL: the load stays below a preceding store through the player pointer.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 static void emDoor_R1_Open2(cEmDoor* em);
 
@@ -1040,7 +1023,7 @@ static inline void emDoorHitOff(YARARE_INFO* hit)
 void emDoorSetDmgLock_L(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     YARARE_INFO* hit;
     u16* flg;
     Vec v;
@@ -1107,7 +1090,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
 void emDoorSetDmgLock_R(cEmDoor* em, int mode)
 {
     EmDoorWork* w = EMDOOR_WK(em);
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     YARARE_INFO* hit;
     u16* flg;
     Vec v;
@@ -1239,7 +1222,7 @@ void emDoorSetDmgDoor(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
     YARARE_INFO* part = em->dmg.m_pDamageYarare;
-    EmListData* d = EM_LIST(em->emset_no);
+    EmListData* d = &pG->Em_list[em->emset_no];
     cModel* parts;
     u16* flg;
     Vec v;
@@ -1570,15 +1553,15 @@ static void emDoor_R1_Open2(cEmDoor* em)
         em->hp = 1000;
         switch (em->r_no_3) {
         case 1:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
             break;
         case 0:
         case 2:
         default:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 1, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 1, 0);
             break;
         case 3:
-            MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
+            MotionSetCore(em, &em->Motion, PL_ARC_PTR(pG->pPlayer, 0x1F), 0, 0, 0x41, 0);
             break;
         }
         emDoorDropWeapon(em);
@@ -1841,7 +1824,7 @@ void emDoor_R1_Break(cEmDoor* em)
         if (w->Key_flag != 0x36) {
             u32* tbl = pG->Key_flg;
 
-            tbl[w->Key_flag >> 5] |= 0x80000000 >> (w->Key_flag & 0x1F);
+            FlagOn(tbl, w->Key_flag);
         }
         em->r_no_2++;
     }
@@ -2250,8 +2233,8 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
             return 0;
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -3052,12 +3035,12 @@ void emDoorAction2(cEmDoor* em)
     }
 }
 
-// The bell position marks where the door was kicked / opened (pG->bell_pos).
+// The bell position marks where the door was kicked / opened (pG->SeInfo.pos).
 static inline void emDoorBellSet(Vec* pos)
 {
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec));
-    pG->bell_stat = 0;
+    pGS->SeInfo.pos = *pos;
+    pGS->SeInfo.type = 0;
 }
 
 // Player damage routine of the kick: a kickable door plays the kick-open motion (0x1C) and
@@ -3093,7 +3076,7 @@ void plemDoorKick(cPlayer* pl)
     }
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1D), 0, 5, 1, frame);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1D), 0, 5, 1, frame);
         pl->r_no_2++;
     case 1:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -3114,7 +3097,7 @@ void plemDoorKick(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1C), 0, 5, 1, frame);
+        MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1C), 0, 5, 1, frame);
         pl->r_no_2++;
     case 3:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -3162,7 +3145,7 @@ void plemDoorOpen(cPlayer* pl)
             pl->m_VecWork0.y = 0.0f;
             pl->m_Fwork0 = pl->pEmCatch->ang.y + PI;
             FSet(pl->m_Fwork0, LIMIT_ANGLE(pl->m_Fwork0));
-            MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
+            MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(0);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setOpen2(1);
@@ -3176,7 +3159,7 @@ void plemDoorOpen(cPlayer* pl)
             PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
             pl->m_VecWork0.y = 0.0f;
             FSet(pl->m_Fwork0, ((cEmDoor*) pl->pEmCatch)->ang.y);
-            MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
+            MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(1);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setOpen2(0);
@@ -3242,7 +3225,7 @@ int cEmDoor::ckObj()
     f32 width = w->Width;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         // loop.c hoists `&EmMgr` only if threshold*savings*lifetime >= the 387-insn loop: the
         // pointer local and the two statements put luids between the high/lo_sum and their uses
         // (high life 6, lo_sum life 2 + the matched bottom-test lo_sum); the dead `rw = 0` is the
@@ -3395,8 +3378,8 @@ cEmDoor* DoorOpenCk(cModel* m)
     f32 ang;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* em = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* em = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* w;
 
         if ((em->be_flag & 0x201) != 1) {
@@ -3488,7 +3471,7 @@ void subDoorKick()
     }
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->Motion, PL_ARC_PTR(sub->subArc, 0x2B), 0, 5, 1, 0);
         sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 1:
@@ -3505,7 +3488,7 @@ void subDoorKick()
         }
         break;
     case 2:
-        MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
+        MotionSetCore(sub, &sub->Motion, PL_ARC_PTR(sub->subArc, 0x2A), 0, 5, 1, 0);
         sub->m_Work0 = 0xE;
         sub->r_no_2++;
     case 3:
@@ -3529,8 +3512,8 @@ void emDoorDropWeapon(cEmDoor* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmWep* e = (cEmWep*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmWep* e = (cEmWep*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

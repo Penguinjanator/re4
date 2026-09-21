@@ -14,14 +14,11 @@
 #include "scheduler.h"
 #include "snd.h"
 #include "sofdec.h"
-
-extern "C" {
-void DCFlushRangeNoSync(void* addr, u32 nBytes);
-void OSReport(const char* fmt, ...);
-int sprintf(char* dst, const char* fmt, ...);
-char* strcpy(char* dst, const char* src);
-void* memset(void* dst, int c, u32 n);
-}
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
 
 // CodeWarrior MSL math.h float constants, defined by the CRI headers for this compiler.
 f32 __float_nan = 0.0f / 0.0f;
@@ -29,11 +26,6 @@ f32 __float_huge = 1.0f / 0.0f;
 
 cSofdec Sofdec;
 
-// Store through a reference (matching helper).
-static inline void SetU32(u32& d, u32 v)
-{
-    d = v;
-}
 
 // Sofdec frame count (1/100 s units after scaling) -> h:m:s.frac.
 void UsrSfcnt2time(int tscale, int count, int* h, int* m, int* s, int* f)
@@ -496,8 +488,8 @@ void cSofdec::finishMovie()
     if (resized != 0) {
         ScreenReSize(0x280, 0x1C0);
     }
-    SetU32(pG->Disp_flg, m_disp_flg_bak);
-    SetU32(pG->Stop_flg, save170);
+    U32Set(pG->Disp_flg, m_disp_flg_bak);
+    pG->Stop_flg = save170;
     SetSystemVcnt(m_vcnt_save);
     StaFlagOff(pG, STA_MOVIE_ON);
     if (!StaFlagChk(pG, STA_TITLE)) {
@@ -525,10 +517,10 @@ int cSofdec::initWork(const char* fname)
             return 0;
         }
     }
-    SetU32(save170, pG->Stop_flg);
-    SetU32(pG->Stop_flg, 0xFFFFFFFF);
-    SetU32(m_disp_flg_bak, pG->Disp_flg);
-    SetU32(pG->Disp_flg, 0xFFFFFFFF);
+    U32Set(save170, pG->Stop_flg);
+    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    U32Set(m_disp_flg_bak, pG->Disp_flg);
+    U32Set(pG->Disp_flg, 0xFFFFFFFF);
     if (!StaFlagChk(pG, STA_TITLE)) {
         m_save_cur_heap = MemGetCurrentHeap();
         heapStart = MemGetHeapStartAddr(m_save_cur_heap);

@@ -50,16 +50,18 @@
 #include "item.h"
 #include "sce_at.h"
 #include "game.h"
+#include "ref_access.h"
+#include "em.h"
+#include <dolphin/os.h>
+#include "wep_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em39,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 static void em39_R0_Init(cEm39* em);
 static void em39_R0_Move(cEm39* em);
@@ -140,39 +142,9 @@ static void em39_R1_Die_Flash(cEm39* em);
 static void em39ActOn(cEm39* em);
 static void plemDmSide(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
-// u16 reference RMW: keeps the following `lwz pPL` below the `sth` (plem39_CliffAtk).
-static inline void AtariOffR(u16& f, u16 mask) { f &= mask; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em39DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
-
-// Struct-member views of the player / partner pointers: a load through them is not hoisted above
-// the preceding stores (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
 extern "C" void _prolog()
@@ -262,7 +234,7 @@ void em39DmCk(cEm39* em)
     YARARE_INFO* hit;
     int dmg;
 
-    if (em->hp > 0 && !em39DeadCk(em)) {
+    if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -606,7 +578,7 @@ void cEm39::move()
     em39NeckMove(this);
     em39WaistMove(this);
     partsWorldCalc();
-    dist = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    dist = VEC_DISTXZ(&pos_old, &pos);
     if (seFlags28B & 0x40) {
         atari.m_flag |= 0x10;
     } else {
@@ -617,7 +589,7 @@ void cEm39::move()
     if (!(seFlags28B & 0x40)) {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < dist * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < dist * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -658,7 +630,7 @@ void cEm39::move()
     em39FootEff(this);
     em39PLVoiceCk(this);
     if (pG->room_id != 0x31C) {
-        EM_LIST(emset_no)->hp = hp;
+        (&pG->Em_list[emset_no])->hp = hp;
     }
     {
         int hide = 0;
@@ -1278,7 +1250,7 @@ static void em39_R1_Wait(cEm39* em)
     case 3:
         MotionMove(em, 0);
         if ((s16) pG->pl_life > 0 && em->hp > 0 && em->set != 1) {
-            if (em39DeadCk(em)) {
+            if (EmDeadCk(em)) {
                 if (em39JumpUpCk3(em)) {
                     return;
                 }
@@ -1392,7 +1364,7 @@ static void em39_R1_Sit(cEm39* em)
                     EmRoutineSet(em, 1, 0x26, 0, 0);
                 }
             } else {
-                if (em39DeadCk(pPL)) {
+                if (EmDeadCk(pPL)) {
                     w->Atk_wait = 30;
                 }
                 if (w->Atk_wait == 0) {
@@ -3766,7 +3738,7 @@ static void em39_R1_Atk_MG(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
             if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 1.5707964f) {
@@ -3943,7 +3915,7 @@ static void em39_R1_AppearMG(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
             if (em39ExitCk(em) && (u32) w->TmpU32 > 5) {
@@ -4102,7 +4074,7 @@ static void em39_R1_AppearMG2(cEm39* em)
                     }
                 }
             }
-            if (em39DeadCk(pPL) && (u32) w->TmpU32 > 5) {
+            if (EmDeadCk(pPL) && (u32) w->TmpU32 > 5) {
                 w->TmpU32 = 5;
             }
         }
@@ -4213,7 +4185,7 @@ static void em39_R1_AppearGR(cEm39* em)
         }
         if ((em->seFlags28B & 1) && w->pBomb) {
             Vec spd;
-            f32 d = SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z)) - 2000.0f;
+            f32 d = VEC_DISTXZ(&em->pos, &pPL->pos) - 2000.0f;
 
             if (d < 5000.0f) {
                 d = 5000.0f;
@@ -4275,7 +4247,7 @@ static void em39_R1_AppearGR2(cEm39* em)
         em->r_no_2++;
     case 1:
         if ((em->seFlags28B & 1) && w->pBomb) {
-            f32 d = (SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z)) - 1000.0f) * 0.025f;
+            f32 d = (VEC_DISTXZ(&em->pos, &pPL->pos) - 1000.0f) * 0.025f;
 
             if (d < 200.0f) {
                 d = 200.0f;
@@ -4391,7 +4363,7 @@ static void em39_R1_ThrowGR(cEm39* em)
                 tpos = p3;
                 break;
             }
-            d = (SQRTF((em->pos.x - tpos.x) * (em->pos.x - tpos.x) + (em->pos.z - tpos.z) * (em->pos.z - tpos.z)) - 1000.0f) * 0.025f;
+            d = (VEC_DISTXZ(&em->pos, &tpos) - 1000.0f) * 0.025f;
             if (d < 200.0f) {
                 d = 200.0f;
             }
@@ -5821,7 +5793,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         em39CliffObj.p = ObjMgr.create(0xB);
         if (em39CliffObj.p) {
             em39CliffObj.p->modelInit(PL_ARC_PTR(pl->subArc, 0x129), PL_ARC_PTR(pl->subArc, 0x128));
-            AtariOffR(em39CliffObj.p->atari.m_flag, 0xFCFF);
+            U16And(em39CliffObj.p->atari.m_flag, 0xFCFF);
             em39CliffObj.p->pParts->pParent = pPL->getPartsPtr(0xA);
             em39CliffObj.p->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
             em39CliffObj.p->wep.parent = pPL;
@@ -6528,8 +6500,6 @@ void em39RouteCk(cEm39* em)
 }
 
 extern "C" void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
-cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);
-void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
 // Neck: turn the head (parts 3 addRot) towards the player while flags bit 4 is set, else relax.
 void em39NeckMove(cEm39* em)
@@ -7087,8 +7057,8 @@ int em39JumpUpCk(cEm39* em)
     if (w->targetPos.y - em->pos.y < 1000.0f) {
         return 0;
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
         int alive = o->be_flag & 0x201;
 
         if (alive != 1) {
@@ -7969,8 +7939,8 @@ int em39DoorOpenCk(cEm39* em)
     Vec p;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* d = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;
         u32 st;

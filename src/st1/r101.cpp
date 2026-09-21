@@ -61,21 +61,9 @@ struct R101Work {
 
 static R101Work* r101_work;
 
-// pPL read as a struct member: the load stays below the preceding Vec template stores (r102).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-// Same for pSys (em10.cpp): the load stays below the preceding `ang = pPL->pos` copy stores (Event00).
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
 
 // Pointer stores through a reference: the work pointer is reloaded after them (see st_room.h).
 static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }
-static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 // Hit effects of attribute type 4
 static const AtEffInfo r101_eff_info = {
@@ -108,19 +96,14 @@ static void r101_callGanadoVoice();
 extern "C" void Evt_R101S21_Func(Event* e);
 extern "C" void Evt_R101S30_Func(Event* e);
 
-// Marks list entry `no` alive; clears its death bit of the loaded list.
-static inline void r101_emListOn(int no)
-{
-    EM_LIST(no)->be_flag |= 1;
-}
 
-// Clear the death bit of list entry `no` in the loaded enemy list's death words (pG+0x501C + list*0x20).
+// Clear the death bit of list entry `no` in the loaded enemy list's death words (pG->Em_flg[list]).
 static inline void r101_emDeadClear(int no)
 {
     int list = pG->em_list_no;
 
     if (list >= 0) {
-        BitOff(*(u32*) ((list << 5) + (u32) pG + 0x501C), 0x80000000 >> (no & 31));
+        BitOff(*pG->Em_flg[list], 0x80000000 >> (no & 31));
     }
 }
 
@@ -241,14 +224,14 @@ void R101Init()
         if (ScfFlagChk(pG, SCF_R106_EVENT)) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
-                r101_emListOn(0x14);
-                r101_emListOn(0x15);
-                r101_emListOn(0x16);
-                r101_emListOn(0x17);
-                r101_emListOn(0x18);
-                r101_emListOn(0x19);
-                r101_emListOn(0x1E);
-                r101_emListOn(0x1F);
+                pG->Em_list[0x14].be_flag |= 1;
+                pG->Em_list[0x15].be_flag |= 1;
+                pG->Em_list[0x16].be_flag |= 1;
+                pG->Em_list[0x17].be_flag |= 1;
+                pG->Em_list[0x18].be_flag |= 1;
+                pG->Em_list[0x19].be_flag |= 1;
+                pG->Em_list[0x1E].be_flag |= 1;
+                pG->Em_list[0x1F].be_flag |= 1;
                 r101_emDeadClear(0x14);
                 r101_emDeadClear(0x15);
                 r101_emDeadClear(0x16);
@@ -257,9 +240,9 @@ void R101Init()
                 r101_emDeadClear(0x19);
                 r101_emDeadClear(0x1E);
                 r101_emDeadClear(0x1F);
-                ((EmListData*) &pGS->Em_list[0x48 * 0x20])->be_flag |= 1;
-                ((EmListData*) &pGS->Em_list[0x49 * 0x20])->be_flag |= 1;
-                ((EmListData*) &pGS->Em_list[0x4A * 0x20])->be_flag |= 1;
+                pGS->Em_list[0x48].be_flag |= 1;
+                pGS->Em_list[0x49].be_flag |= 1;
+                pGS->Em_list[0x4A].be_flag |= 1;
             }
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -946,8 +929,8 @@ static void r101_setChickenFlag()
     u32 i;
 
     SceSleep(1);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id == 0x28 && em->isAlive()) {
             em->flag &= ~0x80000000;
@@ -960,8 +943,8 @@ static inline void r101_setEmSuspend(int on)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id >= 0x10 && em->id <= 0x20 && em->isAlive()) {
             em->setNoSuspend(on);

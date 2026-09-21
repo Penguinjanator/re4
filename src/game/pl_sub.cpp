@@ -18,24 +18,18 @@
 #include "act_btn.h"
 #include "rnd.h"
 #include "math_sub.h"
+#include "ref_access.h"
+#include <string.h>
 
 extern "C" {
 void ReleaseWepData();                         // game/read.cpp
 void ReadPlayerData(int type, int costume);    // game/read.cpp
-void AddWaterPower(Vec* pos, f32 power);       // game/Espgen42.cpp
-void* memset(void* dst, int c, unsigned int n);
 }
-f32 GetDistance(Vec& v0, Vec& v1);               // game/sub2.cpp (second overload)
 
 extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Stores through references: scalar MEMs, so pG is reloaded after each of them (the original
 // reloads pG after every store to a GlobalWork field in this unit).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // Routine bytes of the player set through one fresh load of pPL (the four byte stores share one
 // register in the original even right after a call, unlike direct `pPL->xFC = ..` stores).
@@ -64,9 +58,9 @@ void PlSelect(int no)
         ReleaseWepData();
         tmp = pG->peseta;
         U32Set(pG->peseta, pG->peseta_bak);
-        U32Set(pG->peseta_bak, tmp);
+        pG->peseta_bak = tmp;
     }
-    U8Set(pG->pl_type, no);
+    pG->pl_type = no;
     PlSetCostume();
     BitOn16(pG->pl_flag, 1);
 }
@@ -82,17 +76,17 @@ int PlSetCostume()
     if (pG->pl_type == 0) {
         if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
-                U8Set(pG->pl_costume, 2);
+                pG->pl_costume = 2;
             } else if (ScfFlagChk(pG, SCF_R106_EVENT)) {
-                U8Set(pG->pl_costume, 1);
+                pG->pl_costume = 1;
             } else {
-                U8Set(pG->pl_costume, 0);
+                pG->pl_costume = 0;
             }
         } else {
-            U8Set(pG->pl_costume, 3);
+            pG->pl_costume = 3;
         }
     } else {
-        U8Set(pG->pl_costume, pG->game_costume);
+        pG->pl_costume = pG->game_costume;
     }
     BitOn16(pG->pl_flag, 1);
     return pG->pl_costume;
@@ -1124,7 +1118,7 @@ void PlDataRelease()
 
     // Guarded do/while loops testing `next` at the bottom: a `while (obj)` with the switch body
     // is not rotated by expand_end_loop (test at the top, `b top` at the bottom).
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     if (obj) {
         do {
             objCur = obj;
@@ -1141,7 +1135,7 @@ void PlDataRelease()
             }
         } while (objNext);
     }
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     if (em) {
         do {
             emCur = em;

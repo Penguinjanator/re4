@@ -4,10 +4,10 @@
 // (a 0x500-symbol main model and a 0x100-symbol one) and the 256-entry dictionary in a work
 // buffer, then hands over to the assembly decoder (yz2asm.cpp yz2Decode_Decode).
 #include "types.h"
+#include <string.h>
+#include <stdlib.h>
 
 extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-unsigned long strtoul(const char* s, char** end, int base);
 void yz2Decode_Decode(void* ctx, void* dst, u32 size, void* ev);
 u32 Yz2DecodeSet(char* str, void* buf);
 void Yz2DecodeExec(void* dst);

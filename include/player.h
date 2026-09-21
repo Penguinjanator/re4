@@ -326,6 +326,13 @@ void pl_R1_Event_Smooth(cPlayer* pl);
 
 extern cPlayer* pPL;
 
+// Struct-member view of pPL. GCC 2.95 does not reload a pointer read through a struct member after
+// stores through other pointers, so the load stays below such stores, as in the original code.
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
+
 // game/player.cpp
 extern Vec PlFancePos;    // point behind the fence / window the player climbs to (pl_class windowCheck)
 extern int PlFanceFlag;   // 1 while a fence / window action runs

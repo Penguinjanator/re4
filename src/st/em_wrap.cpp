@@ -6,19 +6,12 @@
 #include "sce_sys.h"
 #include "player.h"
 #include "math_sub.h"
+#include "ref_access.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // int store through a reference (keeps the following loads below it, like global.h BitOn)
-static inline void IntSet(int& d, int v) { d = v; }
 
-// Typed view of pG->emlist (the r400 idiom): the original indexes an EmListData array, so the
-// element address is `pG + no * 32` (pG first in the add, the table offset in the displacement);
-// EM_LIST's `&pG->emlist[no * 0x20]` is a pointer sum whose MULT term expand puts first.
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData emlist[0x100];
-};
 
 // Room-script enemy handle (include/em_wrap.h): the first object of every stage REL (st1_0..st4_0). No
 // __FILE__ string: the file name is not in the binary. The original REL link dead-stripped the members no
@@ -337,7 +330,7 @@ int cEmWrap::setEm(u32 no, int list, int errOn, int chkDead, int setAlive)
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", this->no);
         return 0;
     }
-    if (((EmListView*) pG)->emlist[no].be_flag & 2) {
+    if (pG->Em_list[no].be_flag & 2) {
         pEm = GetEmPtrFromList(no);
     } else {
         pEm = EmSetFromList2(no, chkDead == 1);
@@ -1106,8 +1099,8 @@ int SceCkFindPL(f32* dist)
     f32 min = 100000000000000.0f;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* p = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* p = EmMgr.fastAt(i);
         cEmWrap em;
         Vec pos;
 

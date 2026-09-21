@@ -23,10 +23,7 @@
 #include "db_log.h"
 #include "sscrn.h"
 #include "ss_main.h"
-
-extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-}
+#include <stdio.h>
 
 
 // Message slot address written out as one expression on a pointer variable (not the getMes inline):
@@ -66,14 +63,7 @@ int fileNo(int cat, int no);
 void sscrn_file_out_init(SUB_SCREEN* wk);
 void dispFileList(SUB_SCREEN* wk, int n);
 // ss_main.cpp
-void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam);
-int sscrnKey2Game(SUB_SCREEN* wk);
 void dispScrollBar(int top, int n, int num, IdUnit* bar, IdUnit* up, IdUnit* down);
-void generalModelAlloc(SUB_SCREEN* wk);
-void sscrnModelFree(SUB_SCREEN* wk);
-int sscrnMainMenu(SUB_SCREEN* wk);
-// ss_model.cpp
-void playerModelInit();
 }
 
 // files per category
@@ -810,7 +800,7 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     IdUnit* u;
     SsFileWork* fw;
 
-    S16Set(x, (int) ((pos->scr.x + 320.0f) * 0.8f));
+    x = (int) ((pos->scr.x + 320.0f) * 0.8f);
     S16Set(y, (int) ((240.0f - pos->scr.y) * 0.8f));
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);

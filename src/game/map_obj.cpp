@@ -84,7 +84,7 @@ int cMapMgr::dispInfo()
     }
     n = 0;
     for (i = 0; i < nArray; i++) {
-        cMap* p = (cMap*)((u8*)pArray + size * i);
+        cMap* p = fastAt(i);
         if ((p->be_flag & 0x201) == 1) {
             n++;
         }

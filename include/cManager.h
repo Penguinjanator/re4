@@ -93,6 +93,18 @@ public:
     int arrayPush(int n);
     int arrayPop();
 
+    // Work `no`: at() gives NULL when out of range, fastAt() does not check.
+    T* at(u32 no) {
+        if (no >= nArray) {
+            return 0;
+        }
+        return (T*)((u8*)pArray + size * no);
+    }
+    T* fastAt(u32 no) { return (T*)((u8*)pArray + size * no); }
+    u32 getArrayNum() { return nArray; }
+    // Alive list: the first active work and the one after `p`.
+    T* getActiveWork() { return pAlive; }
+    T* getNext(T* p) { return (T*)p->pNext; }
     int deleteList(T* p) {
         T* q;
         if (!p->isAlive()) {

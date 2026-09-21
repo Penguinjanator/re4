@@ -22,17 +22,8 @@
 #include "math_sub.h"
 
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 #define BOW(pl) ((cObjBow*) (pl)->Wep->m_pWep)
 
-// Routine bytes through int parameters (player.cpp PlRoutineSet).
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 static void wep28_r2_ready(cPlayer* pl);
 static void wep28_r3_ready00(cPlayer* pl);
@@ -158,7 +149,7 @@ static void wep28_r3_ready10(cPlayer* pl)
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
@@ -169,7 +160,7 @@ static void wep28_r3_ready10(cPlayer* pl)
 static void wep28_r3_ready20(cPlayer* pl)
 {
     if (MotionMove(pl, 0)) {
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
@@ -202,10 +193,10 @@ static void wep28_r2_set(cPlayer* pl)
         }
     } else if (joyFireTrg()) {
         if (pl->Wep->m_pWep->bulletNum()) {
-            PlRoutineSet(pl, 0, 6, 2, 0);
+            EmRoutineSet(pl, 0, 6, 2, 0);
         }
     } else if (joyFireOn() && pl->Wep->m_pWep->bulletNum()) {
-        PlRoutineSet(pl, 0, 6, 2, 0);
+        EmRoutineSet(pl, 0, 6, 2, 0);
     }
 }
 
@@ -323,7 +314,7 @@ static void wep28_r3_fire10(cPlayer* pl)
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
     } else if (pl->frame >= (f32) endFrame && joyKamae() == 0) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -346,7 +337,7 @@ static void wepDown(cPlayer* pl)
     obj->wep.step = 0;
     if (dmMotCk()) {
         pl->motionSet(WEP_ARC_PTR(0x20), 3, pl->r_no_3, 1, 0);
-        PlRoutineSet(pl, 0, 0, 2, 0);
+        EmRoutineSet(pl, 0, 0, 2, 0);
     } else {
         pl->r_no_3 = 1;
         pl->m_Hokan = 0xF;

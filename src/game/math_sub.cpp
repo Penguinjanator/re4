@@ -8,25 +8,9 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "math_sub.h"
+#include <stdio.h>
+#include <string.h>
 
-extern "C" {
-f32 asinf(f32 x);
-f32 acosf(f32 x);
-void* memcpy(void* dst, const void* src, unsigned int n);
-int printf(const char* fmt, ...);
-int fprintf(void* fp, const char* fmt, ...);
-struct ReentStd {
-    int _errno;
-    void* _stdin;
-    void* _stdout;
-    void* _stderr;
-};
-extern ReentStd* _impure_ptr;
-#define stderr (_impure_ptr->_stderr)
-
-}
-
-#define PI2 6.2831855f
 
 // v * s into a static (unused).
 // Never called in this build: only their static results survive (.bss).
@@ -106,13 +90,6 @@ void SetOrientationZY(Vec* z, Vec* y, Mtx m)
     (v).y = (m)[1][c];     \
     (v).z = (m)[2][c]
 
-// Column c of a matrix as a vector.
-static inline void MtxGetCol(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Rotation matrix -> Euler angles (radians) in the RotMatrix convention: x and y from the Z column,
 // then z from the residual rotation.
@@ -128,7 +105,7 @@ void Matrix2AxisAngle(Mtx m, Vec* rot)
 
     PSMTXTranspose(m, t);
     MTX_COL(r, 0, v3);
-    MtxGetCol(t, 0, &v0);
+    getColumn(t, 0, &v0);
     MTX_COL(t, 1, v1);
     MTX_COL(t, 2, v2);
     rot->x = rot->y = rot->z = 0.0f;

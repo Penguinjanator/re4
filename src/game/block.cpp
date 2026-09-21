@@ -18,42 +18,19 @@
 #include "eprintf.h"
 #include "joy.h"
 #include "rnd.h"
+#include <stdio.h>
+#include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
+#include "scheduler.h"
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-void* memcpy(void* dst, const void* src, unsigned int n);
-void DCFlushRange(void* addr, u32 nBytes);
-}
-void TaskSleep(int frames);   // game/scheduler.cpp
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 cBlock Block;
 
-// Bit `no` of a block set (bit 31 - n of the word).
-static inline int bitChk(u32* set, u32 no)
-{
-    return set[no >> 5] & (0x80000000 >> (no & 0x1F));
-}
 
-// Sets bit `no` of a block set.
-static inline void bitOn(u32* set, u32 no)
-{
-    set[no >> 5] |= 0x80000000 >> (no & 0x1F);
-}
 
-// Clears bit `no` of a block set.
-static inline void bitOff(u32* set, u32 no)
-{
-    set[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
-}
 
-// 1 when a table entry is unused (bit0 clear).
-static inline int isFree(u8 flags)
-{
-    return !(flags & 1);
-}
 
 // Rewinds the trigger-area ordering table cursor to the last (highest priority) slot.
 void cBlock::setOtStart()
@@ -170,7 +147,7 @@ int cBlock::checkBlockMemory()
         if (c->flags & 1) {
             checkBlockConnect(c, pLink, &mramSet, &aramSet);
             for (j = 0; j < nBlock; j++) {
-                if (bitChk(&mramSet, j)) {
+                if (FlagChkVar(&mramSet, j)) {
                     size += getUnitPtr(j)->pData->m_size;
                 }
             }
@@ -300,13 +277,13 @@ void cBlock::check(int arg)
         pG->AreaNo = area;
         checkBlockConnect(&pConnect[area], pLink, &mramSet, &aramSet);
         for (i = 0; i < nBlock; i++) {
-            if (isFree(pLink[i].flags)) {
+            if ((!(pLink[i].flags & 1))) {
                 continue;
             }
             u = getUnitPtr(i);
-            if (bitChk(&mramSet, i)) {
+            if (FlagChkVar(&mramSet, i)) {
                 u->setBlockCommand(BLOCK_CMD_MRAM_LOAD, arg);
-            } else if (bitChk(&aramSet, i)) {
+            } else if (FlagChkVar(&aramSet, i)) {
                 u->setBlockCommand(BLOCK_CMD_ARAM_LOAD, arg);
             } else {
                 u->setBlockCommand(BLOCK_CMD_DELETE, arg);
@@ -343,7 +320,7 @@ s8 cBlock::checkBlockArea(Vec* pos, int now)
     p.y += 200.0f;
     setOtStart();
     while ((a = (BlockArea*) getOtAddr()) != 0) {
-        if (isFree(a->flags)) {
+        if ((!(a->flags & 1))) {
             continue;
         }
         if (AreaHitCheck(&a->area, &p) != 1) {
@@ -370,29 +347,29 @@ void cBlock::checkBlockConnect(BlockConnect* c, BlockLink* link, u32* mram, u32*
 
     memclr_asm(mram, 4);
     memclr_asm(aram, 4);
-    if (isFree(c->flags)) {
+    if ((!(c->flags & 1))) {
         return;
     }
-    bitOn(mram, c->blockNo);
+    FlagOnVar(mram, c->blockNo);
     checkBlockConnect_sub(c->blockNo, link, mram);
     for (i = 0; i < nBlock; i++) {
-        if (bitChk(mram, i)) {
+        if (FlagChkVar(mram, i)) {
             checkBlockConnect_sub(i, link, aram);
         }
     }
     for (i = 0; i < nBlock; i++) {
-        if (bitChk(mram, i)) {
-            bitOff(aram, i);
+        if (FlagChkVar(mram, i)) {
+            FlagOffVar(aram, i);
         }
     }
     for (i = 0; i < 8; i++) {
         if (c->mram[i] != -1) {
-            bitOn(aram, c->mram[i]);
+            FlagOnVar(aram, (u32) c->mram[i]);
         }
     }
     for (i = 0; i < 8; i++) {
         if (c->aram[i] != -1) {
-            bitOff(aram, c->aram[i]);
+            FlagOffVar(aram, (u32) c->aram[i]);
         }
     }
 }
@@ -408,13 +385,13 @@ void cBlock::checkBlockConnect_sub(u8 blk, BlockLink* link, u32* set)
         if (i == blk) {
             for (j = 0; j < 8; j++) {
                 if (l->link[j] != -1) {
-                    bitOn(set, l->link[j]);
+                    FlagOnVar(set, (u32) l->link[j]);
                 }
             }
         } else {
             for (j = 0; j < 8; j++) {
                 if (l->link[j] == blk) {
-                    bitOn(set, i);
+                    FlagOnVar(set, i);
                 }
             }
         }
@@ -433,8 +410,8 @@ void cBlockUnit::setTrans(int on)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
         if ((o->be_flag & 0x201) == 1 && o->id == 2 && o->blk == no) {
             if (on == 1) {
                 o->be_flag |= 2;
@@ -645,7 +622,7 @@ void cBlockUnit::recalcModelAddr(int ofs)
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
+    for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
         if (o->id == 2 && o->blk == no) {
             o->moveDataAddr(ofs);
         }
@@ -800,7 +777,7 @@ void cBlock::checkBlockMemSort()
 
     for (i = 0; i < nBlock; i++) {
         u = getUnitPtr(i);
-        if (isFree(u->flags)) {
+        if ((!(u->flags & 1))) {
             continue;
         }
         if (u->state != BLOCK_CREATE) {
@@ -867,7 +844,7 @@ void cBlock::dispDebugInfo()
     y = 58;
     for (i = 0; i < nBlock; i++) {
         u = getUnitPtr(i);
-        if (isFree(u->flags)) {
+        if ((!(u->flags & 1))) {
             continue;
         }
         y += 16;

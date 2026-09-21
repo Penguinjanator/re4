@@ -7,8 +7,8 @@
 #include "obj.h"
 #include "global.h"
 #include "math_sub.h"
+#include "at_mod.h"
 
-extern "C" void EmAtCheck(cModel* m);
 
 // Obstacle model (Oba): an invisible collision model attached to a parent object (type 0: to
 // one of its parts, type 1: to the object itself) or standing alone.

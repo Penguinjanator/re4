@@ -13,13 +13,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "at_mod.h"
+#include "embarrel.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
-
-extern "C" {
-void EmAtCheck(cModel* m);                        // at_mod.cpp
-cEm* SetR227Barrel(Vec* pos, Vec* rot);           // embarrel.cpp
-}
 
 typedef void (*EmSwitchFunc)(cEmSwitch*);
 

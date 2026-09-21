@@ -5,15 +5,17 @@
 #include "db_log.h"
 #include "vec.h"
 #include "esp.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
+#include "scheduler.h"
+#include "TexRender.h"
 
 // t_esp REL, D:/Bio4/Prog/t_esp.cpp: the effect sequence editor (namespace t_esp_namespace). Every
 // window is a heap struct {DB_PRIM_ARRAY* pa; DB_WINDOW* win;} built by an in-class constructor that
 // InitTool inlines (only ID_WINDOW's, which owns a static name table, stays out of line).
 
 extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-char* strcat(char* dst, const char* src);
-void memclr_asm(void* p, u32 size);
 // db_port.cpp
 int DB_GetStageNo();
 int DB_GetRoomNo();
@@ -61,9 +63,7 @@ void sp_nobigenkai_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans(EspSeqData* head, void* seq);
 void sp_PosRand_trans_1a(EspSeqData* head, void* seq);
 void sp_tex_trans(u8 id);
-void GetTexRenderMgr(void** pp);
 }
-void TaskSleep(int n);
 extern int db_modelNo;  // db_port.cpp (the BasePos "WorKNo" numeric edits the model slot)
 extern void* g_EspToolSeqHedAddr;  // eff_sys.cpp
 
@@ -313,7 +313,7 @@ static char g_filePath[256];
 static char g_modelPath[256];
 static char g_modelFile[256];
 static u8 g_modelNo;
-static void* g_pTexRender;
+static TexRenderMng* g_pTexRender;
 static DB_NUMERIC* g_editNum[5][43];
 static char g_dir[64];
 static int g_dirLocal;
@@ -437,7 +437,6 @@ void EspToolTrans();
 void DrawPosCursor();
 void ToolEspMain();
 
-static inline void ISet(int& d, int v) { d = v; }
 // reference store of a window pointer: keeps the following `->win` load below the store
 static inline void WSet(TOOL_WINDOW*& d, TOOL_WINDOW* v) { d = v; }
 #define BRING(w) ISet((w)->win->bring, 1)
@@ -5937,12 +5936,6 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     if (g_immFlg[no]) tbl->field = imm->field;                                     \
     else tbl->field = tbl->field + delta->field;                                   \
     no++;
-// Clamp helper of AddSeq.
-static inline void FClamp(f32& v, f32 lo, f32 hi)
-{
-    if (v < lo) v = lo;
-    if (v > hi) v = hi;
-}
 #define ADD_CLAMP(field, lo, hi)                                                   \
     ADD(field)                                                                     \
     if (tbl->field < (lo)) tbl->field = (lo);                                      \

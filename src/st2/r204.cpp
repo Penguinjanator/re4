@@ -166,8 +166,7 @@ void R204Init()
         if (pG->room_id_prev == 0x205 && pG->Part == 0) {
             RsfSet(G_ROOM_ID, 2);
             for (no = 0x4A; no < 0x55; no++) {
-                u8* g = (u8*) pG + no * 0x20;
-                ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
+                pG->Em_list[no].be_flag &= ~1;
             }
         }
         if (!RsfCheck(G_ROOM_ID, 2)) {
@@ -346,8 +345,7 @@ void R204Main()
                 r204_work.p->cnt = 1;
                 SndStrReq(r204_work.p->str, 4, 200, 0);
                 for (no = 0x4A; no < 0x55; no++) {
-                    u8* g = (u8*) pG + no * 0x20;
-                    ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
+                    pG->Em_list[no].be_flag &= ~1;
                 }
             }
         }
@@ -516,7 +514,6 @@ static void r204_first_cut()
     r204_first_cut_exit();
 }
 
-static inline int r204_isDead(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
 
 // The chase task ("nige" = escape): counts frames from the mob's first move; camera cuts 0xF/0x10 as
 // the Ganado with the torch (em[7]) charges, scripted run orders to the far points at fixed counts, the
@@ -539,7 +536,7 @@ static void r204_nige_check()
             if (r204_work.p->cnt == 1) {
                 cEm* em = r204_work.p->em[7].getPtr();
 
-                if (em != 0 && r204_isDead(em)) {
+                if (em != 0 && EmDeadCk(em)) {
                     started = 1;
                     SndStrReq(r204_work.p->str, 4, 200, 0);
                     r204_work.p->cnt = 0x23;
@@ -771,12 +768,6 @@ static void door5_close()
         r204_work.p->em[k].setGoto(&pPL->pos, 0xC);
     }
 }
-
-// Struct view of pPL (r20e idiom): the load after the FSet stores through it is a fresh `lwz pPL`.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
 
 // Swing on a chandelier: `no` picks the chandelier, `pos`/`rot` its placement, the four offsets the
 // landing spots and `ofsBase` the swing-start offsets. Shapes (the r117 EventChandelier idioms): the

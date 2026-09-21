@@ -13,30 +13,14 @@
 #include "eprintf.h"
 #include "file.h"
 #include "libgpu.h"
+#include "ref_access.h"
+#include <string.h>
+#include <stdio.h>
+#include <dolphin/os/OSReboot.h>
+#include <dolphin/os.h>
+#include <dolphin/os/OSAlloc.h>
+#include "main.h"
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-void* OSGetArenaLo();
-void* OSGetArenaHi();
-void OSSetArenaLo(void* lo);
-void OSSetArenaHi(void* hi);
-void* OSInitAlloc(void* lo, void* hi, int maxHeaps);
-int OSCreateHeap(void* start, void* end);
-void OSDestroyHeap(int heap);
-void OSSetCurrentHeap(int heap);
-void* OSAllocFromHeap(int heap, u32 size);
-void OSFreeToHeap(int heap, void* p);
-s32 OSCheckHeap(int heap);
-void OSSetSaveRegion(void* start, void* end);
-extern int __OSCurrHeap;
-int strcmp(const char* a, const char* b);
-char* strcpy(char* dst, const char* src);
-char* strrchr(const char* s, int c);
-int sprintf(char* buf, const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-}
-
-extern char* pRK;
 
 // Fixed memory map of the debug build.
 struct SystemMemMap {
@@ -145,11 +129,11 @@ void SystemMemInit()
     MemSetCurrentHeap(0);
     pMemTile = NULL;
 #line 145
-    pRK = (char*) MEM_ALLOC(0x40, 1, MEM_HEAP_CURRENT);
-    OSSetSaveRegion(pRK, pRK + 0x40);
-    if (strcmp(pRK, "_reset_keep_") != 0) {
+    pRK = (RESET_KEEP_WORK*) MEM_ALLOC(0x40, 1, MEM_HEAP_CURRENT);
+    OSSetSaveRegion(pRK, (u8*) pRK + 0x40);
+    if (strcmp(pRK->head, "_reset_keep_") != 0) {
         memclr_asm(pRK, 0x40);
-        strcpy(pRK, "_reset_keep_");
+        strcpy(pRK->head, "_reset_keep_");
         OSReport("RESET_KEEP_WORK memory clear...\n");
     }
 }
@@ -582,7 +566,6 @@ struct SysFlagsView {
 extern SysFlagsView* pSysView asm("pSys");
 // Reference read: the load stays below the preceding tile stores (see mercenaries.cpp SysRef).
 static inline SysFlagsView* SysRef(SysFlagsView*& p) { return p; }
-extern u32 MainOt[5];
 
 struct DvdFreeSizeView {
     u32 freeSize;  // 0x00  cDvd::freeSize
@@ -590,7 +573,6 @@ struct DvdFreeSizeView {
 };
 extern DvdFreeSizeView DvdView asm("Dvd");
 
-static inline void ISet(int& d, int v) { d = v; }
 
 #define MEM_TAG_OK(tag) ((tag)[0] == 0 && (tag)[1] == 'M' && (tag)[2] == 'A' && (tag)[3] == 'D')
 

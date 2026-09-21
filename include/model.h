@@ -535,6 +535,9 @@ public:
     void partsWorldCalc();
     void setPos(Vec* pos);
     void setAng(Vec* ang);
+    // Component overloads: a Vec temporary, then setPos / setAng.
+    void setPos(f32 x, f32 y, f32 z) { Vec tpos; tpos.x = x; tpos.y = y; tpos.z = z; setPos(&tpos); }
+    void setAng(f32 ax, f32 ay, f32 az) { Vec tang; tang.x = ax; tang.y = ay; tang.z = az; setAng(&tang); }
     void updateOldPos();   // oldPos = pos for the model and its parts (emMove)
     void push();   // pl_sub PlChangeData
     void drawAllBoundingBox(cModelInfo* info);
@@ -562,6 +565,12 @@ public:
     static class cPartsMgr* pm;
 };
 
+
+// setAng(v) through a free function (r20e / r210 / r213 build the yaw Vec by hand around it).
+static inline void SetAngV(cModel* m, Vec* v) { m->setAng(v); }
+// There is no yaw-only setAng(f32) member (PS2 has one): its 0.0f literals take constant-pool labels in every
+// unit that parses it, which moves the pool order of units that do not use it. The rooms that need it keep a
+// per-file SetAngY.
 
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);

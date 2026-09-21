@@ -29,7 +29,6 @@ extern f32 lod_bias;
 extern u32 aniso;
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define IN_RANGE(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 #define IS_ALIVE(p) (((p)->be_flag & 0x201) == 1)
 
@@ -323,7 +322,7 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
     cLightPathData* path;
     void (*func)(cCtrl*) = funcDelCtrl;
 
-    c = CtrlMgr.pAlive;
+    c = CtrlMgr.getActiveWork();
     while (c) {
         n = c;
         c = (cCtrl*) c->pNext;
@@ -382,7 +381,7 @@ cLight* cLightMgr::getKindLight(u8 kind)
 {
     cLight* l;
 
-    for (l = LightMgr.pAlive; l; l = (cLight*) l->pNext) {
+    for (l = LightMgr.getActiveWork(); l; l = LightMgr.getNext(l)) {
         if (l->Kind == kind) {
             return l;
         }
@@ -514,7 +513,7 @@ void cLightMgr::setModel2(cModel* m)
 
     memclr_asm(m->LightInfo.pLight, sizeof(m->LightInfo.pLight));
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -578,7 +577,7 @@ void cLightMgr::setCloth(cModel* m, u32 count)
     }
     n = 0;
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -614,7 +613,7 @@ void cLightMgr::setEsp(EspLightList* list, u8 mask)
 
     list->num = 0;
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
@@ -911,7 +910,7 @@ void cLightMgr::deleteScr()
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             destroy(l);
         }
@@ -925,7 +924,7 @@ void cLightMgr::offScr(u8 mask)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             l->xF &= ~mask;
         }
@@ -939,7 +938,7 @@ int cLightMgr::countScr()
     int n = 0;
 
     for (i = 0; i < nArray; i++) {
-        if (((cLight*) ((u8*) pArray + size * i))->checkScr()) {
+        if ((fastAt(i))->checkScr()) {
             n++;
         }
     }
@@ -1080,7 +1079,7 @@ int cLightMgr::saveLit(cLightWork* w)
     u32 i;
 
     for (i = 0; i < nArray; i++) {
-        l = (cLight*) ((u8*) pArray + size * i);
+        l = fastAt(i);
         if (l->checkScr()) {
             *w = *l;
             w++;
@@ -1233,9 +1232,9 @@ int cLight::setParent(cModel* m)
         pLog->err(0, 0, "cLight::setParent() INVALID PTR %08x", m);
         return 0;
     }
-    n = EmMgr.nArray;
+    n = EmMgr.getArrayNum();
     for (i = 0; i < n; i++) {
-        if ((cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i) == m) {
+        if ((cModel*) EmMgr.fastAt(i) == m) {
             setParent(1, (ParentNo & 0xFFFF0000) | m->id);
             return 1;
         }
@@ -1246,9 +1245,9 @@ int cLight::setParent(cModel* m)
             return 1;
         }
     }
-    n = ObjMgr.nArray;
+    n = ObjMgr.getArrayNum();
     for (i = 0; i < n; i++) {
-        if ((cModel*) ((u8*) ObjMgr.pArray + ObjMgr.size * i) == m) {
+        if ((cModel*) ObjMgr.fastAt(i) == m) {
             setParent(4, (ParentNo & 0xFFFF0000) | i);
             return 1;
         }
@@ -1279,7 +1278,7 @@ cModel* cLight::calcParent()
         }
         break;
     case 4:
-        pParent = (cModel*) ((u8*) ObjMgr.pArray + ObjMgr.size * parent.no);
+        pParent = (cModel*) ObjMgr.fastAt(parent.no);
         break;
     }
     return pParent;
@@ -1721,7 +1720,6 @@ cLight* pAliveBak;
 // Scalar (reference) accesses: a struct-member access through `this` and a global scalar are
 // assumed independent, and the scheduler would hoist the load above the store.
 static inline cLight* PGet(cLight*& p) { return p; }
-static inline void PSet(cLight*& d, cLight* v) { d = v; }
 
 // Entering the sub screen: drops the room lights, limits the pool to 10 and disables kind 0x7F.
 void cLightMgr::inSscrn()
@@ -1738,7 +1736,7 @@ void cLightMgr::inSscrn()
 void cLightMgr::outSscrn(u32 mode)
 {
     BitSet(nArray, nArrayBak);
-    PSet(pAlive, pAliveBak);
+    pAlive = pAliveBak;
     switch (mode) {
     case 0:
     default:

@@ -27,6 +27,7 @@ void PSMTXCopy(const Mtx src, Mtx dst);
 void PSMTXConcat(const Mtx lhs, const Mtx rhs, Mtx ab);
 void PSMTXTranspose(const Mtx src, Mtx xPose);
 u32 PSMTXInverse(const Mtx src, Mtx inv);
+void PSMTXReorder(Mtx src, f32 dst[4][3]);
 void PSMTXRotRad(Mtx m, char axis, f32 rad);
 void PSMTXRotTrig(Mtx m, char axis, f32 sinA, f32 cosA);
 void PSMTXRotAxisRad(Mtx m, const Vec* axis, f32 rad);

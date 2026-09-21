@@ -61,4 +61,15 @@ public:
     void scrOn() { m_flag &= ~0x200; m_flag |= 0x100; }  // obj00 setScrAtari
 };
 
+// Collision flag bits of a cAtariInfo changed through helpers. Applied inline the same stores compile
+// differently: the helpers make the flag halfword a plain scalar access. The V forms go
+// through a volatile halfword, so a following pPL / work load stays below the store; the Raw forms address
+// the halfword by offset (`addi rX, obj, 0x2b4; lhz 0x1a(rX)`).
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
+static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
+static inline void AtariOffV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
+static inline void AtariOnV(cAtariInfo* at, u16 b) { *(volatile u16*) &at->m_flag |= b; }
+static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
+static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
+
 #endif

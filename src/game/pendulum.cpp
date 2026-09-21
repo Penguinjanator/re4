@@ -14,7 +14,6 @@
 #include "dbmodule.h"
 
 extern "C" {
-f32 asinf(f32 x);
 // static but declared with C linkage: Bio4.sym names it unmangled
 static void PenClothReset(cModel* m, PenCloth* c);
 }

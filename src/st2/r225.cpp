@@ -59,28 +59,8 @@ struct SceElevatorData {
 
 static R225Work* r225_work;
 
-// Struct-member view of pPL (MEM_IN_STRUCT_P load): sched2 keeps it below preceding in-struct frame stores.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // Stores through references (not MEM_IN_STRUCT_P): the static pointer / pPL reload after each one.
-static inline void FSetP(f32& d, f32 v) { d = v; }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
-// Inline helpers owning their locals: the inlined frame is one BLKmode temp slot popped at the end of
-// each statement, so every call shares frame slot 8. Argument MEMs are evaluated lazily (the pointer
-// before a call in another argument, the load after it: `lwz r30,pPL; bl fRand1_1; lfs 148(r30)`).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
 // pseudo (SImode) and purge_addressof gives it a permanent frame slot (24/28, 32/36) instead of the
@@ -581,8 +561,8 @@ void SceElevator_r225(SceElevatorData* d)
         for (i = 0; i < 10; i++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
@@ -616,8 +596,8 @@ void SceElevator_r225(SceElevatorData* d)
             if (d->dir == 1) {
                 step = -spd;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + step, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
             if (faded == 0) {
                 if (spd >= maxSpd) {
                     FadeSetRGBA(2, 0, white);
@@ -649,8 +629,8 @@ void SceElevator_r225(SceElevatorData* d)
         if (d->dir == 0) {
             move = -move;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+        pPL->setPos(pl->pos.x, pPL->pos.y + move, pl->pos.z);
         CamCtrl.Comeback(0);
         FadeSetRGBA(0x80000002, 0xFF, 0);
         hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
@@ -674,8 +654,8 @@ void SceElevator_r225(SceElevatorData* d)
             if (d->dir != 0) {
                 move = -move;
             }
-            SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
+            obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+            pPL->setPos(pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
             {
                 Vec q = {0.0f, 0.0f, 0.0f};
                 q.y = move;
@@ -707,8 +687,8 @@ void SceElevator_r225(SceElevatorData* d)
         for (j = 0; j < 10; j++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+            obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);

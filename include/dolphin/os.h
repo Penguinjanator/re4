@@ -4,6 +4,11 @@
 #include <dolphin/types.h>
 #include <dolphin/gx/GXStruct.h>
 
+#ifndef __MWERKS__
+#include <stdarg.h>  // va_list for OSVReport, normally reached through dolphin/types.h
+#define __declspec(attr)  // Metrowerks keyword (weak symbols); GCC has none
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

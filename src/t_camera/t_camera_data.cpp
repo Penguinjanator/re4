@@ -13,11 +13,8 @@
 #include "light.h"
 #include "atari.h"
 #include "t_camera.h"
-
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-char* strncpy(char* dst, const char* src, unsigned int n);
-}
+#include <stdio.h>
+#include <string.h>
 
 // Camera tool (t_camera REL, t_camera_data.cpp): the bridge between the tool pools (tcAdat / tcCdat /
 // tcLdat) and the game's room camera data image (tcDataExport / tcDataImport, the format CamCtrl

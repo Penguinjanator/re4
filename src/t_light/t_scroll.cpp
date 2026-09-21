@@ -18,13 +18,8 @@
 #include "main_sub.h"
 #include "t_util.h"
 #include "db_light.h"
-
-extern "C" {
-int sprintf(char* s, const char* fmt, ...);
-unsigned int strlen(const char* s);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strncpy(char* dst, const char* src, unsigned int n);
-}
+#include <stdio.h>
+#include <string.h>
 
 // Scroll (room model placement) editor of the t_light REL (t_scroll.cpp; the file name is not in
 // the binary). Edits the cObj scroll objects of the loaded room and writes the `.smx` parameter file.
@@ -182,7 +177,7 @@ int ToolScroll()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    pG->Debug_flg[0] |= 0x10000000;
     SmdClear(1);
     Block.dispAllBlock(1);
     init();
@@ -195,8 +190,8 @@ int ToolScroll()
     }
     SmdClear(1);
     Block.dispAllBlock(0);
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+    BitOff(pG->Debug_flg[0], 0x10000000);
+    pG->Debug_flg[0] &= ~0x80000000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -215,7 +210,7 @@ int init()
     pWork->ret = 1;
     pWork->flags = 1;
     pWork->rows = 5;
-    pWork->names = (char*) Debug_alloc(ObjMgr.nArray * 17, 1);
+    pWork->names = (char*) Debug_alloc(ObjMgr.getArrayNum() * 17, 1);
     pWork->nameTbl = (char**) Debug_alloc(1000, 1);
     for (i = 0; i < 250; i++) {
         pWork->nameTbl[i] = 0;
@@ -376,10 +371,10 @@ int move()
             Joy[0].trg &= ~0x1000;
             switch (pWork->modeSel) {
             case 0:
-                TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+                pG->Debug_flg[0] |= 0x10000000;
                 break;
             case 2:
-                TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+                pG->Debug_flg[0] &= ~0x10000000;
                 break;
             }
         }
@@ -942,8 +937,8 @@ static void edit_litmask()
     cObj* obj;
     u32 i;
 
-    if (LightMgr.nArray < 32) {
-        num = LightMgr.nArray;
+    if (LightMgr.getArrayNum() < 32) {
+        num = LightMgr.getArrayNum();
     }
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
     if (pWork->sub2 == 0) {
@@ -952,8 +947,8 @@ static void edit_litmask()
         pWork->sub2 = 1;
     }
     eprintf(0x40, 0x8C, 4, 0, "MODEL PROPATY");
-    if ((u32) LightMgr.getWorkPtr(pWork->id) >= 0x80000000 && (u32) LightMgr.getWorkPtr(pWork->id) <= 0x82FFFFFF &&
-        (LightMgr.getWorkPtr(pWork->id)->be_flag & 1)) {
+    if ((u32) LightMgr.at(pWork->id) >= 0x80000000 && (u32) LightMgr.at(pWork->id) <= 0x82FFFFFF &&
+        (LightMgr.at(pWork->id)->be_flag & 1)) {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d %s", pWork->id,
                 (obj->LightInfo.SelectMask & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
     } else {
@@ -964,7 +959,7 @@ static void edit_litmask()
         eprintf((pWork->id + 8) * 8, 0xC4, 0, 0, "A");
     }
     for (i = 0; i < num; i++) {
-        cLight* l = LightMgr.getWorkPtr(i);
+        cLight* l = LightMgr.at(i);
         int col = 0;
 
         if (!(obj->LightInfo.SelectMask & (1 << i))) {
@@ -989,7 +984,7 @@ static void edit_litmask()
         pWork->id = (num + pWork->id - 1) % num;
     }
     for (i = 0; i < num; i++) {
-        cLight* l = LightMgr.getWorkPtr(i);
+        cLight* l = LightMgr.at(i);
 
         if (!(l->be_flag & 1)) {
             obj->LightInfo.SelectMask |= 1 << i;

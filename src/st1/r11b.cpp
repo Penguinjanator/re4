@@ -47,7 +47,6 @@ struct R11bWorkPtr {
 static R11bWorkPtr r11b_work;
 
 // Pointer store through a reference: the pG load that follows stays below it.
-static inline void PSet(cEm*& d, cEm* v) { d = v; }
 // Scale set through references: the pG load of the following setMotion stays below the stores.
 static inline void r11b_setScale(cObj* obj, f32 s)
 {
@@ -118,7 +117,7 @@ void R11bInit()
     if (RsfCheck(G_ROOM_ID, 0)) {
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    l = EM_LIST(0x3C);
+    l = &pG->Em_list[0x3C];
     l->set = 0;
     if (pG->room_id_prev == 0x10D && !SysFlagChk(pG, SYS_LOAD_GAME)) {
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
@@ -277,7 +276,7 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
-#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
+#define EM_LIST_S(no) (&pGS->Em_list[no])
 // Rewrite ESL entries 0x40/0x41/0x3E/0x3F (the shore Ganados) to their post-event positions near the
 // pier, un-set and alive, so they spawn there on later visits.
 extern "C" void EmSetChange()
@@ -334,9 +333,6 @@ static void r11b_EmEvent_exit()
     SceEventEnd(0);
 }
 
-// Area 3: the Ganado ambush on the shore (camera cuts 3..6).
-static inline void r11b_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
-static inline void r11b_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
 
 // Area 3 once (Room_flg bit 1): the shore ambush cutscene — seven Ganados (ESL 0x40..0x46) with torches
 // appear while stream 0x24 plays and Leon is placed at the shore; player-cancellable.
@@ -361,8 +357,8 @@ static void r11b_EmEvent()
         SceEventStart(0);
         SndStrReq(1, 0x24, 0x80000003, 0, 0, 0.0f);
         pPL->setNoSuspend(1);
-        r11b_setPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
-        r11b_setAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
+        pPL->setPos(-60735.0f, 2008.0f, -8455.0f);
+        pPL->setAng(0.0f, 2.64f, 0.0f);
         EstSet(r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet(r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
@@ -436,8 +432,8 @@ static void r11b_str_check()
             int n = 0;
             u32 i;
 
-            for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            for (i = 0; i < EmMgr.getArrayNum(); i++) {
+                cEm* em = EmMgr.fastAt(i);
 
                 if (em->id == 0x22 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                     n++;
@@ -455,16 +451,6 @@ static void r11b_str_check()
     }
 }
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r11b_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Water render setup of the event's player stand-in: parts 6 (lake) and 7 / 8 (the two shores).
 static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
@@ -508,7 +494,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 30, 0, 0);
@@ -520,7 +506,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 2:
             if (e->NowFrame == 0x84) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -529,7 +515,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 3:
             if (e->NowFrame == 0x55) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -538,7 +524,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 4:
             if (e->NowFrame == 0x26) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -547,7 +533,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         case 5:
             if (e->NowFrame == 0x5D) {
-                int skip = r11b_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
@@ -555,13 +541,13 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 8: {
-            int skip = r11b_evtSkip(e);
+            int skip = EvtSkipCk(e);
 
             if (skip == 0) {
                 SetNearClipDist(1.0f);
             }
             if (e->NowFrame == 0x68) {
-                int skip2 = r11b_evtSkip(e);
+                int skip2 = EvtSkipCk(e);
 
                 if (skip2 == 0) {
                     EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);

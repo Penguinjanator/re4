@@ -16,14 +16,9 @@
 #include "eprintf.h"
 #include "libgpu.h"
 #include "snd.h"
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
-void DCFlushRange(void* addr, u32 nBytes);
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-}
+#include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os.h>
 
 // Not the do { } while (0) form of the other units: the OSReport stays in the caller's block and
 // the preceding pLog->err argument loads are scheduled against it (setData).

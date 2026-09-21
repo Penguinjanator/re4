@@ -11,9 +11,8 @@
 #include "math_sub.h"
 #include "esp.h"
 #include "main_sub.h"
+#include "view.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 struct Esp09Work {
     s8 maxPoints;         // 0x00 number of trail points (2..6)

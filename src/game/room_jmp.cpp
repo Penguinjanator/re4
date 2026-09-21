@@ -14,6 +14,7 @@
 #include "main.h"
 #include "mes.h"
 #include "room_jmp.h"
+#include "ref_access.h"
 
 // Room jump tool work (0x38 bytes)
 struct test {
@@ -36,10 +37,6 @@ void roomJumpExit(test* w);
 }
 
 // The original stores GlobalWork fields through references: GCC then reloads pG after every store.
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void S8Set(s8& d, s8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // Stage offset table right after the count; as an inline the base stays a pointer register (lwzx).
 static inline u32* ofsTbl(u32* tbl)
@@ -65,9 +62,9 @@ void CRoomInfo::setNextPos()
         FSet(pG->NextY, 0.0f);
     }
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->Part);
+    pG->Part_old = pG->Part;
     U16Set(pG->RoomNo_next, roomNo);
-    U8Set(pG->Part_next, 0);
+    pG->Part_next = 0;
 }
 
 // Wraps the room info table (count, per-stage offsets, CRoomInfo records) and, on first use,
@@ -376,7 +373,7 @@ void roomJumpExec(test* w)
         }
     }
     U16Set(pG->pl_life, pG->pl_life_max);
-    U16Set(pG->r_continue_cnt, 0);
+    pG->r_continue_cnt = 0;
     w->flag = 1;
 }
 

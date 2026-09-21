@@ -31,23 +31,17 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "game.h"
+#include "em10.h"
+#include "em_sub.h"
 
 extern "C" {
-int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
-YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
-void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
-YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
-int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
-void GameAddPoint(int no);                                                                   // game.cpp
 static void emWep_R1_Parent(cEmWep* em);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix in sym_map.
 #define plemEscape plemEscape_80017688
 static void plemEscape(cPlayer* pl);
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
-cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);   // obj01.cpp
-void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
 
 // One rope node of the falling weapon (emWep_R1_Fall): three point masses joined by distance
@@ -306,8 +300,8 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = stat;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = stat;
         em->setLost();
         break;
     case 0xC:
@@ -322,8 +316,8 @@ void emWepDmCk(cEmWep* em)
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = one;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = one;
         em->setLost();
         break;
     case 0:
@@ -1277,8 +1271,8 @@ void emWepRocketBobm(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos_old, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = em->pos_old;
+    pGS->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1301,8 +1295,8 @@ void emWepArrowBomb(cEmWep* em)
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-    pG->bell_stat = 1;
+    pG->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1364,8 +1358,8 @@ void emWep_R1_BombThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 1;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 1;
         em->setLost();
         return;
     }
@@ -1565,8 +1559,8 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 1;
+        pG->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 1;
         em->setLost();
         return;
     }
@@ -1659,9 +1653,9 @@ static void plemEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 0x41, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_escape, w->motEscape2, 3, 0x41, 0);
         } else {
-            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, w->motEscape2, 3, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_escape, w->motEscape2, 3, 1, 0);
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1698,7 +1692,7 @@ void plemBackjump(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->motBackjump, 0, 3, 1, 5);
+        MotionSetCore(pl, &pl->Motion, w->motBackjump, 0, 3, 1, 5);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1741,7 +1735,7 @@ void plemFrontEscape(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->motFront, 0, 3, 1, 5);
+        MotionSetCore(pl, &pl->Motion, w->motFront, 0, 3, 1, 5);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -2540,8 +2534,8 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
     }
     TransMatrix(m, pPos);
     PSMTXInverse(m, m);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         YARARE_INFO* part;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -2615,8 +2609,8 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
     }
     TransMatrix(m, pPos);
     PSMTXInverse(m, m);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         YARARE_INFO* part = 0;
 
         if ((e->be_flag & 0x201) != 1) {

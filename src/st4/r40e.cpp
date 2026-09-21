@@ -108,7 +108,6 @@ static void r40e_execShowView_end()
 }
 
 // Area 3: the camera shows the room (cut 11) with its stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Show view once (Room_flg bit 3): stream 0x33 with camera cut 0xB; player-cancellable.
 static void r40e_execShowView()
@@ -272,7 +271,7 @@ static void r40e_execEmAppear_end()
     em.setPtr(0xDD, -1, 1);
     em.setNoSuspend(0);
     pPL->setNoSuspend(0);
-    *EM_LIST(0xDD) = *EM_LIST(0xDE);
+    *&pG->Em_list[0xDD] = *&pG->Em_list[0xDE];
     EmListSetAlive(0xDD, 1);
     SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
 }

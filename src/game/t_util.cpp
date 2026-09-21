@@ -11,8 +11,9 @@
 #include "main_sub.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include "game.h"
 
-void GameStopModeEnd();
 
 // Copies of the pG flag words the tools modify, restored by TutilQuitDefault.
 Camera globalCamera;
@@ -38,33 +39,45 @@ void TutilInitDefault()
     view.farz = 1.0f;
     TprimInitEnv2D3D(&view, pG->Camera.ProjMat, pG->Camera.v_mat);
     globalCamera = pG->Camera;
-    system_flg_bak = TOOL_FLAG(OFS_SYSTEM_FLG);
-    stop_flg_bak = TOOL_FLAG(OFS_STOP_FLG);
-    disp_flg_bak = TOOL_FLAG(OFS_DISP_FLG);
-    memcpy(debug_flg_bak, TOOL_FLAG_PTR(OFS_DEBUG_FLG), sizeof(debug_flg_bak));
-    memcpy(status_flg_bak, TOOL_FLAG_PTR(OFS_STATUS_FLG), sizeof(status_flg_bak));
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x200;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x80;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x8000;
-    TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x2000;
+    system_flg_bak = pG->System_flg;
+    stop_flg_bak = U32Ref(pG->Stop_flg);
+    disp_flg_bak = U32Ref(pG->Disp_flg);
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug_flg_bak, debug, sizeof(debug_flg_bak));
+    }
+    memcpy(status_flg_bak, &pG->Status_flg[0], sizeof(status_flg_bak));
+    BitOn(pG->Stop_flg, 0x200);
+    BitOn(pG->Stop_flg, 0x80);
+    BitOn(pG->Debug_flg[0], 0x8000);
+    BitOn(pG->Debug_flg[2], 0x800000);
+    pG->Debug_flg[3] &= ~0x2000;
 }
 
 // Common debug tool end: restores the camera and the saved flag words (keeping the debug 0x100 bit
 // if it was set meanwhile), clears the tool-active bit.
 void TutilQuitDefault()
 {
-    memcpy(TOOL_PTR(OFS_CAMERA), &globalCamera, sizeof(Camera));
-    TOOL_FLAG(OFS_SYSTEM_FLG) = system_flg_bak;
-    TOOL_FLAG(OFS_STOP_FLG) = stop_flg_bak;
-    TOOL_FLAG(OFS_DISP_FLG) = disp_flg_bak;
-    if (TOOL_FLAG(OFS_DEBUG_FLG) & 0x100) {
+    {
+        u32* cam = (u32*) &pG->Camera;
+
+        memcpy(cam, &globalCamera, sizeof(Camera));
+    }
+    BitSet(pG->System_flg, system_flg_bak);
+    BitSet(pG->Stop_flg, stop_flg_bak);
+    BitSet(pG->Disp_flg, disp_flg_bak);
+    if (pG->Debug_flg[0] & 0x100) {
         debug_flg_bak[0] |= 0x100;
     }
-    memcpy(TOOL_FLAG_PTR(OFS_DEBUG_FLG), debug_flg_bak, sizeof(debug_flg_bak));
-    memcpy(TOOL_FLAG_PTR(OFS_STATUS_FLG), status_flg_bak, sizeof(status_flg_bak));
-    TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
-    TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x2000;
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug, debug_flg_bak, sizeof(debug_flg_bak));
+    }
+    memcpy(&pGS->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    pG->Debug_flg[3] |= 0x2000;
 }
 
 // Never called in this build. GCC 2.95 emits the initializer templates of local aggregates in

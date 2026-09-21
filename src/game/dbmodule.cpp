@@ -16,20 +16,10 @@
 #include "trans_ot.h"
 #include "joy.h"
 #include "eprintf.h"
-
-extern "C" {
-void* GetPrimBuff(int size);
-void DCFlushRange(void* addr, u32 nBytes);
-float tanf(float);
-}
-
-#define DEG (PI / 180.0f)
-
-extern "C" {
-void GXBeginDisplayList(void* list, u32 size);
-u32 GXEndDisplayList(void);
-void GXCallDisplayList(void* list, u32 nbytes);
-}
+#include "ref_access.h"
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXDispList.h>
+#include "trans.h"
 
 struct TileWork {
     s16 x;       // 0x00
@@ -527,7 +517,7 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
     f32 h;
     u32 i;
 
-    ang = ang * DEG;
+    ang = ang * DEG2RAD;
     PSMTXIdentity(m);
     axis.x = 1.0f;
     axis.y = 0.0f;
@@ -833,37 +823,8 @@ void init_corn()
 // always converts an s16 through a stack slot).
 #define PSQ_L_S16(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,5" : "=f"(f_) : "b"(p)); f_; })
 
-// Converts `n` indexed s16 vertices into `p` (scaled) and transforms them by `mat`.
-static inline void WireXform(Vec* p, u16* idx, u32 n, s16* vtx, f32 scale, Mtx mat)
-{
-    u32 k;
-    for (k = 0; k < n; k++) {
-        s16* v = (s16*) ((u8*) vtx + *idx * 8);
-        idx++;
-        p->x = PSQ_L_S16(v);
-        p->y = PSQ_L_S16(v + 1);
-        p->z = PSQ_L_S16(v + 2);
-        p->x *= scale;
-        p->y *= scale;
-        p->z *= scale;
-        PSMTXMultVec(mat, p, p);
-        p++;
-    }
-}
 
-static inline void ISet(int& d, int v) { d = v; }
 
-// Emits `n` transformed vertices with a constant colour.
-static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
-{
-    int k;
-    for (k = 0; k < n; k++) {
-        GXMatrixIndex1u8(0);
-        GXPosition3f32(p->x, p->y, p->z);
-        GXColor4u8(r, g, b, a);
-        p++;
-    }
-}
 
 // Byte-identical (was 332 words). The original drives the conversions and the FIFO writes through ONE
 // function-scope `Vec* pv` (`mr r31, r24` = pv = p before each loop, `mr r31, r23` = pv = &p[2]), a
@@ -1102,7 +1063,7 @@ void DrawRoomWireframe()
     DB_quads_num = 0;
     DB_tri_num = 0;
     DB_strip_num = 0;
-    for (obj = ObjMgr.pAlive; obj; obj = (cObj*) obj->pNext) {
+    for (obj = ObjMgr.getActiveWork(); obj; obj = ObjMgr.getNext(obj)) {
         if ((obj->be_flag & 2) && obj->id == 2) {
             DrawObjWireframe(obj, -1);
         }

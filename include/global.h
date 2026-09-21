@@ -53,6 +53,12 @@ struct PlArc {
     u32 ofs[0x100];   // pl_knife indexes up to 0x87
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
+// Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
+// Slot `idx` of player `pl`'s motion table (m_MotTbl) set to entry `no` of the weapon / player archive.
+#define WEP_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], WEP_ARC_PTR(no))
+#define PLA_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], PL_ARC_PTR(pG->pPlayer, no))
+#define NO_MOT(pl, idx) PSet((pl)->m_MotTbl[idx], (void*) 0)
 
 // Room archive at pG->pRoomArc: offsets to its sub-files (GetDataExt finds them by tag; ctrl14 indexes it).
 struct RoomArc {
@@ -77,6 +83,31 @@ struct ITEM_SAVE_WORK {
     u16 item_id;           // 0x06
     u16 item_num;          // 0x08
     s16 pos[3];       // 0x0A  / 10
+};
+
+// Position and kind of the last noise that enemies react to (PS2 EM_SE_INFO). Set together with STA_SE_BURST by
+// the rung bell, explosions and door kicks; the enemy find checks read it.
+struct EM_SE_INFO {
+    Vec pos;           // 0x00
+    u8 type;           // 0x0C  0, 1 or 2; 2 = bell rung
+    u8 pad_0D[3];
+};
+
+// One entry of the room enemy list (ESL, pG->Em_list: 256 entries of 0x20 bytes, game/em_set.cpp).
+struct EmListData {
+    u8 be_flag;       // 0x00  bit0: alive flag (EmListSetAlive), bit1: set (an enemy was created from it), bit2/bit3: set toggles  (PS2 EM_LIST.be_flag)
+    u8 id;          // 0x01  enemy id (0 = empty entry, 0xF / 0x25 are created at the back of the work array)
+    u8 type;        // 0x02  -> cModel::type
+    u8 set;          // 0x03  -> cEm::x38D  -> cEm::set
+    u32 flag;     // 0x04  -> cEm::flags_3C8  -> cEm::flag (PS2 EM_LIST.flag)
+    u16 hp;         // 0x08
+    u8 emset_no;//  (PS2 EM_LIST.emset_no; unused on GC, the list index is stored)
+    u8 Character;          // 0x0B  -> cEm::x3D0  -> cEm::Character (PS2 EM_LIST.Character)
+    s16 pos[3];     // 0x0C  * 10
+    s16 rot[3];     // 0x12  * (pi / 0x4000)
+    u16 room;       // 0x18  stage << 8 | room
+    s16 Guard_r;        // 0x1A  * 1000 -> cEm::x3CC  -> cEm::Guard_r (PS2 EM_LIST.Guard_r)
+    u8 pad_1C[4];
 };
 
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
@@ -137,9 +168,8 @@ struct GlobalWork {
     void* pOsd;        // 0x4F34  room "OSD" data
     s8 AreaNo;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
     u8 pad_4F39[3];
-    Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
-    u8 bell_stat;          // 0x4F48  2 = bell rung
-    u8 pad_4F49[0x4F70 - 0x4F49];
+    EM_SE_INFO SeInfo;     // 0x4F3C  last noise enemies react to (Status_flg STA_SE_BURST); the rung bell point is pos
+    u8 pad_4F4C[0x4F70 - 0x4F4C];
     Vec quake_ofs;         // 0x4F70
     u8 weapon_no_old;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
@@ -206,7 +236,7 @@ struct GlobalWork {
     u32 Key_flg[2];        // 0x51DC  one bit per locked door (t_flag KEY_LOCK; sce_at SceAtWork::lockFlag)
     u32 Frame_cnt;         // 0x51E4  frame counter (em: `& 3` vs emset_no staggers per-enemy work; tools blink on % 30)
     u32 save_free_work[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
-    u8 Em_list[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
+    EmListData Em_list[256];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     ITEM_SAVE_WORK item_save[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
     u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
@@ -236,6 +266,9 @@ struct GlobalWork {
 
 extern GlobalWork* pG;
 extern GlobalWork Global;  // the instance pG points at (game/main.cpp); static initializers take its address
+
+// The first room flag word read through a helper: a plain scalar access, not a member chain.
+static inline u32* eventFlags() { return &pG->Room_flg[0]; }
 
 // The system save block (game/main.cpp `SystemSave`, 0x38 bytes), which pSys also points at.
 struct SYSTEM_SAVE_WORK {
@@ -1184,7 +1217,20 @@ struct GlobalWorkPtr {
 };
 #define pGS (((GlobalWorkPtr*) &pG)->p)
 
-// Same effect for the room camera data pointer store in CameraControl::RoomDataRead.
-#define G_ROOM_CAM_DATA (*(void**) ((u8*) pG + 0x4F28))
+// Vec copy whose destination is a word pointer variable. That block move is a store the compiler cannot
+// place against the cached pG / pPL loads, so they are reloaded afterwards; `memcpy(&pG->field, ...)`, a Vec*
+// variable and a struct assignment keep them. A plain block: a do/while wrapper changes the generated code.
+#define VEC_COPY(dst, src)                     \
+    {                                          \
+        u32* copyDst_ = (u32*) &(dst);         \
+        memcpy(copyDst_, &(src), sizeof(Vec)); \
+    }
+
+// Offset of a GlobalWork member, written with the null-pointer idiom. Address arithmetic that adds it to pG
+// keeps the offset as the last term (`pG->field` adds it first), which some callers need.
+#define PG_OFS(f) ((u32) &((GlobalWork*) 0)->f)
+// Death words of enemy list `list` (Em_flg row: eight u32, one bit per entry). The scaled index is added to pG
+// first and the member offset last; written as `pG->Em_flg[list]` the address is built differently.
+#define EM_FLG_ROW(list) ((u32*) ((list) * 0x20 + (u32) pG + PG_OFS(Em_flg)))
 
 #endif

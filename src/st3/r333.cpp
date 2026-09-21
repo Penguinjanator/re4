@@ -102,16 +102,6 @@ void st3_startCountDown();
 void st3_checkCountDown();
 void st3_endCountDown();
 
-// 1 while the event is being skipped (EVT status bit 30).
-static inline int r333_evtSkip(Event* e)
-{
-    int skip = 1;
-
-    if ((e->StatusFlag & 0x40000000) == 0) {
-        skip = 0;
-    }
-    return skip;
-}
 
 // Room init (the jet ski escape, the last room): the result id data; a fresh entry marks Ashley as
 // following and gives the jet ski key (item 0x88); JumpPoint 2 skips to the escape event. Area 0xE =
@@ -419,7 +409,7 @@ extern "C" void Evt_R333S10_Func(Event* e)
             break;
         case 0x13:
             if (e->NowFrame == 380) {
-                int skip = r333_evtSkip(e);
+                int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
                     FadeSetW(2, e->MaxFrame - 380, 0, 0);
@@ -575,12 +565,6 @@ void ride()
         SceExec(0x12, (TaskFunc) R333EventS00, 0, 0, 2, 0);
     }
 }
-
-// The result screen after the escape movie: the game result, the extras unlocked, the save question.
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
 
 // One frame's wait on fade `no` (r31c FadeWait): the index is a separate `addi` on the array base,
 // shared by the two waits of the omake path (`Fade+0x48` in r31), folded at the single-use ones.

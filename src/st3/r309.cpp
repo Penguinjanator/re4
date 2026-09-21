@@ -41,7 +41,7 @@ static inline u32 r309_emDead(int no)
     u32 v;
 
     if (list >= 0) {
-        v = *(u32*) ((list << 5) + (u32) pG + 0x501C + (((u32) no >> 5) << 2)) & (0x80000000 >> (no & 31));
+        v = FlagChk(pG->Em_flg[list], no);
     } else {
         v = 0;
     }
@@ -126,7 +126,7 @@ static void r309_execEmAppear_end()
     } else {
         r309_work->em.setNoSuspend(0);
     }
-    *EM_LIST(0x34) = *EM_LIST(0x66);
+    *&pG->Em_list[0x34] = *&pG->Em_list[0x66];
     EmListSetAlive(0x34, 1);
     EffectEspDelete(0, (u8) r309_work->kind1, 0, 0);
     EffectEspgenDelete(0, (u8) r309_work->kind1, 0);

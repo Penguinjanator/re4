@@ -16,6 +16,8 @@
 #include "scheduler.h"
 #include "math_sub.h"
 #include "tpl.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
 
 // Model / parts / model info (cModel, cParts, cModelInfo) and their pools (PartsMgr, ModInfoMgr).
 
@@ -29,8 +31,6 @@
 #define PTR_OK(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-void PartsWorldPosCalc(cModel* m);
 void calcModelAddr(cModelData* data);
 void calcModelOffset(cModelData* data);
 void calcTplOffset(TEXPalette* tpl);
@@ -49,10 +49,6 @@ struct ModInfoMgrPtr {
 };
 #define MM (((ModInfoMgrPtr*) &cModel::mm)->p)
 
-static inline u32 U32Get(u32& v)
-{
-    return v;
-}
 
 // Clears a model's light-area state.
 // The 0.0 pool load of the light area sinks below the three word stores: an inlined helper
@@ -65,12 +61,6 @@ static inline void LightAreaInit(EmLightArea* la)
     la->scale = 0.0f;
 }
 
-// Byte stores through this setter come from a word-sized zero pseudo, which the word stores
-// after the following `if` share (modelInit).
-static inline void U8Set(u8& d, u8 v)
-{
-    d = v;
-}
 
 // Empty model: collision/light-area info constructed, no parts, no model info, motion cleared,
 // alpha_omit 0xFF.
@@ -164,7 +154,7 @@ int cModel::modelInit(void* bin, void* tpl)
     be_flag |= 6;
     invisible_factor2 = 1.0f;
     U8Set(TevScaleGroup, 0);
-    U8Set(CullMode, 0);
+    CullMode = 0;
     if (kindid == 0) {
         be_flag |= 0x10;
     }
@@ -767,7 +757,7 @@ cModelInfo::cModelInfo() : cUnit(1)
 {
     static u32 col = 0xFFFFFFFF;
 
-    colorWord = U32Get(col);
+    colorWord = U32Ref(col);
     PSMTXIdentity(mat);
     be_flag |= 8;
     invisible_factor = 1.0f;
@@ -1305,7 +1295,7 @@ static inline cParts* PartsMgrWork(cPartsMgr* m, u32 no)
     if (no >= m->nArray) {
         return 0;
     }
-    return (cParts*) ((u8*) m->pArray + m->size * no);
+    return m->fastAt(no);
 }
 
 // Allocates n consecutive free parts slots (linked as pList) so the model can index them directly;

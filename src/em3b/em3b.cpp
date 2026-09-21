@@ -33,9 +33,11 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "ref_access.h"
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em3bFunc)(cEm3b*);
@@ -52,28 +54,8 @@ static void em3b_R1_StopCart_Damage(cEm3b* em);
 static void em3b_R1_Cart_Lost(cEm3b* em);
 static void subem3bRunDown();
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Scalar-reference store: the following pPL/pSUB loads stay below it (they are reloaded after it).
-static inline void U16Set(u16& d, int v)
-{
-    d = v;
-}
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em3bDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: registers the enemy constructor.
 extern "C" void _prolog()
@@ -187,7 +169,7 @@ void em3bDmCkCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
 
-    if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -273,7 +255,7 @@ void em3bDmCkStopCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
 
-    if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -846,7 +828,7 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pPL->pos) < 6250000.0f) {
-                U16Set(pG->pl_life, zero);
+                U16SetI(pG->pl_life, zero);
                 pPL->ang.y += Muku(&pPL->pos, &p->world, pPL->ang.y, PI);
                 pPL->ang.y = LIMIT_ANGLE(em->ang.y);
                 PlSetDamage(8, 0, 0);
@@ -861,7 +843,7 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pSUB->pos) < 6250000.0f) {
-                U16Set(pG->ashley_life, zero);
+                U16SetI(pG->ashley_life, zero);
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
                 FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
                 pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);
@@ -872,8 +854,8 @@ void em3bRunDownCkTruck(cEm3b* em)
         }
     }
     p = em->getPartsPtr(0);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -910,7 +892,7 @@ void em3bRunDownCkCart(cEm3b* em)
     cModel* p;
     u32 i;
 
-    if ((s16) pG->pl_life > 0 && !em3bDeadCk(pPL)) {
+    if ((s16) pG->pl_life > 0 && !EmDeadCk(pPL)) {
         for (i = 0; i < 2; i++) {
             p = em->getPartsPtr(1);
             if (em3bDistXZ(p, &pPL->pos) < 2250000.0f) {
@@ -923,8 +905,8 @@ void em3bRunDownCkCart(cEm3b* em)
         }
     }
     p = em->getPartsPtr(1);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -1015,7 +997,7 @@ void em3bSlopeMove(cEm3b* em)
         fb = em->pos.y;
     }
     fa -= fb;
-    ang = -atan2f(fa, SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)));
+    ang = -atan2f(fa, VEC_DISTXZ(&a, &b));
     if (ang > PI / 6.0f) {
         ang = PI / 6.0f;
     }

@@ -80,10 +80,6 @@ int IdTexDataLoad(void* data, int id)
     return 1;
 }
 
-static inline int getTexObj(u8 id, u16 no, GXTexObj** t)
-{
-    return g_pIdTexSys->GetTexObj(id, no, t);
-}
 
 // Loads frame `no` of texture `id` (and its TLUT when CI) into texture map 0 with an identity texture matrix.
 void IdTexSet(u8 id, u8 no)

@@ -42,11 +42,12 @@
 #include "camera.h"
 #include "cam_ctrl.h"
 #include "quake.h"
+#include "em.h"
+#include <dolphin/os.h>
 
 asm(".comm common_em31,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 // Falling pillar object (game/objPillar.cpp; the class is local to that unit).
@@ -240,44 +241,13 @@ static f32 em31ClothMax3[18] = {
     0.3f, 0.6f, 0.9f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f,
 };
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
-// Struct-member views of the player pointer / pG: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em31DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
-// Work `no` of the object manager without the range check (the pillar scans loop over nArray).
-static inline cObj* em31ObjWork(u32 no)
-{
-    return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
-}
-
-// Enemy manager work `no` the same way (em31SearchBody).
-static inline cEm31* em31EmWork(u32 no)
-{
-    return (cEm31*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 extern "C" void _prolog()
 {
@@ -360,7 +330,7 @@ void em31DmCk(cEm31* em)
             }
         }
     }
-    if (em->hp > 0 && em31DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -559,7 +529,7 @@ void cEm31::move()
     if (!(w->Be_flg & 0x40) && w->Berserk_wait) {
         w->Berserk_wait--;
     }
-    if (em31DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->Atk_wait = 60;
     }
     if (w->Flash_timer) {
@@ -1434,20 +1404,6 @@ static inline void em31StampEnd(cEm31* em, Em31Work* w)
     }
 }
 
-// Stamp hit: the foot's matrix origin shifted 3000 to the side, the dust effect and the attack.
-static inline void em31StampAtkCk(cEm31* em, int parts, f32 x, Vec* v, Vec* ep)
-{
-    cModel* p = em->getPartsPtr(parts);
-
-    v->x = x;
-    v->y = 0.0f;
-    v->z = 0.0f;
-    *ep = em->pos;
-    PSMTXMultVec(p->mat, v, v);
-    EstSet(0, -1, v, 0, 0x29, 0x10, 0, 0, 0, 0);
-    v->y += 250.0f;
-    em31AtkCk(em, v, ep, 1);
-}
 
 // Body routine 1/9: the stamp. r_no_3 picks the variant (0 / 1 the single stamp, mirrored, when the
 // player is within 30 cm of the centre line, else 2 the double stamp; the tentacle mirrors it). On
@@ -1635,9 +1591,7 @@ void em31EscapeCamMove(cEm31* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -1723,7 +1677,7 @@ static void em31_R1_Kick(cEm31* em)
     if (!(w->pTen->motEvent & 2)) {                                                                 \
         return;                                                                                     \
     }                                                                                               \
-    if (em31DeadCk(pPL)) {                                                                          \
+    if (EmDeadCk(pPL)) {                                                                          \
         return;                                                                                     \
     }                                                                                               \
     if ((s16) pG->pl_life <= 0) {                                                                   \
@@ -3600,9 +3554,7 @@ void em31StampCamMove(cEm31* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -3617,8 +3569,8 @@ void em31SearchBody(cEm31* em)
     if (w->pBody) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm31* p = em31EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm31* p = (cEm31*) EmMgr.fastAt(i);
 
         if ((p->be_flag & 0x201) == 1 && p->id == 0x31 && p != em && p->type == 0) {
             w->pBody = p;
@@ -4355,8 +4307,8 @@ int em31PillarCk(cEm31* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = em31ObjWork(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
             PSMTXMultVec(inv, &o->pos, &lp);
@@ -4391,8 +4343,8 @@ int em31PillarCk2(cEm31* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = em31ObjWork(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
             PSMTXMultVec(inv, &o->pos, &lp);
@@ -4416,8 +4368,8 @@ void em31PillarAtkCk(cEm31* em, Vec* pos)
     Em31Work* w = EM31_WK(em);
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = em31ObjWork(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
             if ((pos->x - o->pos.x) * (pos->x - o->pos.x) + (pos->z - o->pos.z) * (pos->z - o->pos.z) <
@@ -4467,8 +4419,8 @@ int em31JumpCk(cEm31* em)
     PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     PSMTXInverse(m, m);
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = em31ObjWork(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
             PSMTXMultVec(m, &o->pos, &lp);

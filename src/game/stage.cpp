@@ -20,16 +20,8 @@
 #include "etc_model.h"
 
 #include "dvd.h"
-
-// game/sce_com.cpp: per-scenario free counters (pG + 0x51E8)
-extern "C" int GetFree(int no);
-extern "C" void SetFree(int no, int val);
-
-// game/merchant.cpp
-struct MerchantData;
-extern MerchantData merchantData;
-extern u16 stock_1st_mission[];
-extern "C" void stockDataAdd(MerchantData* m, u16* stock);
+#include "sce.h"
+#include "merchant.h"
 
 extern "C" {
 int checkEmListNo(u16 room);
@@ -366,7 +358,7 @@ void subMissionSt1()
         if (count == 10) {
             ScfFlagOn(pG, SCF_ST1_SUB_MISSION);
             timer = 450;
-            stockDataAdd(&merchantData, stock_1st_mission);
+            stockDataAdd(merchantData, stock_1st_mission);
             StaFlagOff(pG, STA_INTO_SHOP);
         }
         if (count == 15) {

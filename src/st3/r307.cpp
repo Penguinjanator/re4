@@ -22,6 +22,7 @@
 #include "snd.h"
 #include "mes.h"
 #include "cam_ctrl.h"
+#include <string.h>
 
 // Room 3-07 (D:/Bio4/Prog/r307.cpp): the nine-piece rotation puzzle on the terminal (each terminal choice
 // turns the pieces of one colour; two solution patterns), the barred door it opens, the regenerator that
@@ -73,7 +74,6 @@ struct R307WorkPtr {
 
 static R307WorkPtr r307_work;
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 static R307Piece r307_piece[9] = {
     {2, {-195.5f, 1179.6f, -2038.1f}},
@@ -118,7 +118,7 @@ static inline u32 r307_emDead(int no)
     u32 v;
 
     if (list >= 0) {
-        v = *(u32*) ((list << 5) + (u32) pG + 0x501C + (((u32) no >> 5) << 2)) & (0x80000000 >> (no & 31));
+        v = FlagChk(pG->Em_flg[list], no);
     } else {
         v = 0;
     }
@@ -400,7 +400,7 @@ void r307_initPuzzle()
     void* zero = 0;
     u32 k;
 
-    U32Set(r307_work.p->effBarred, EspPullCoreKind());
+    r307_work.p->effBarred = EspPullCoreKind();
     getRoomEtcBarred(0x32, &r307_work.p->barred, 1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r307_checkPuzzleTerminal, 0, 1);
@@ -523,6 +523,6 @@ static void r307_appearEm()
     SceAtSetEnable(2, 0);
     em.setNoSuspend(0);
     SceExec(0x12, (TaskFunc) r307_checkBgm, 0, 0, 2, 0);
-    *EM_LIST(0x32) = *EM_LIST(0x33);
+    *&pG->Em_list[0x32] = *&pG->Em_list[0x33];
     EmListSetAlive(0x32, 1);
 }

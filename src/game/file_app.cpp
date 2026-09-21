@@ -9,18 +9,10 @@
 #include "joy.h"
 #include "eprintf.h"
 #include "scheduler.h"
+#include <string.h>
+#include <dolphin/os.h>
+#include "main.h"
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-char* strstr(const char* s, const char* sub);
-char* strncpy(char* dst, const char* src, unsigned int n);
-int strcmp(const char* a, const char* b);
-}
-
-extern char* pUser_name;
 
 // The original object carries 16 zero bytes of .sdata that no function references: four
 // zero-initialised statics (the names are lost) kept alive by an inline function this build never
@@ -29,10 +21,6 @@ static int hd_stat0 = 0;
 static int hd_stat1 = 0;
 static int hd_stat2 = 0;
 static int hd_stat3 = 0;
-static inline void hd_stat_clear()
-{
-    hd_stat0 = hd_stat1 = hd_stat2 = hd_stat3 = 0;
-}
 
 static int hdRead_malloc(const char* path, void** buf, int mode, int flag);
 static int hdWrite_main(const char* path, void* buf, int size);

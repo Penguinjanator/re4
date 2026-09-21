@@ -10,16 +10,16 @@
 #include "global.h"
 #include "db_log.h"
 #include "main_mem.h"
+#include "ref_access.h"
+#include <string.h>
 
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
-extern "C" int strcmp(const char* a, const char* b);
 
 FlrSys FlrAt_sys;
 FlrSys* pFlrSys;
 
 // Reference store: a scalar (non-struct) MEM, so the following pFlrSys load is not hoisted
 // above it and is reloaded (light.cpp PSet).
-static inline void PSet(void*& d, void* v) { d = v; }
 
 // Room init: binds the room archive's "FSE" block (version 0x103) as the floor attribute list.
 void FlrAtInit()

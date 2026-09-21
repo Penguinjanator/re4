@@ -19,82 +19,28 @@
 #include "eprintf.h"
 #include "tpl.h"
 #include "tv_mode.h"
+#include <stdio.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXManage.h>
+#include <dolphin/vi/vifuncs.h>
+#include "debug.h"
+#include "sce.h"
+#include "trans_ot.h"
+#include <dolphin/os.h>
+#include "sce_sys.h"
 
-typedef s64 OSTime;
-
-struct OSCalendarTime {
-    int sec;   // 0x00
-    int min;   // 0x04
-    int hour;  // 0x08
-    int mday;  // 0x0C
-    int mon;   // 0x10
-    int year;  // 0x14
-    int wday;  // 0x18
-    int yday;  // 0x1C
-    int msec;  // 0x20
-    int usec;  // 0x24
-};
-
-struct OSStopwatch {
-    const char* name;  // 0x00
-    u8 pad_4[4];
-    OSTime total;      // 0x08
-    u32 hits;          // 0x10
-    u8 pad_14[4];
-    OSTime min;        // 0x18
-    OSTime max;        // 0x20
-    OSTime last;       // 0x28
-};
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-OSTime OSGetTime();
-void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
-void OSInitStopwatch(OSStopwatch* sw, const char* name);
-void OSResetStopwatch(OSStopwatch* sw);
-void OSStartStopwatch(OSStopwatch* sw);
-void OSStopStopwatch(OSStopwatch* sw);
-BOOL OSLink(OSModuleHeader* module, void* bss);
-BOOL OSUnlink(OSModuleHeader* module);
-void DCFlushRange(void* addr, u32 nBytes);
-void* GXInit(void* base, u32 size);
-u32 GXSetDispCopyYScale(f32 yscale);
-void GXSetDispCopySrc(u16 left, u16 top, u16 wd, u16 ht);
-void GXSetDispCopyDst(u16 wd, u16 ht);
-void GXSetPixelFmt(int pix_fmt, int z_fmt);
-void GXSetZCompLoc(u8 before_tex);
-void GXCopyDisp(void* dest, u8 clear);
-void GXSetDispCopyGamma(int gamma);
-void GXSetViewport(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz);
-void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field);
-void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht);
-void GXInvalidateVtxCache();
-void VISetNextFrameBuffer(void* fb);
-void VIWaitForRetrace();
-u32 VIGetNextField();
-void VISetBlack(BOOL black);
-void ProcessTickGet(int no, const char* name);
-void ExecOt(int no);
-}
 void SetDrawTmpBufType(int type);
 
-// game/sce_sys.cpp
-class cSceSys {
-public:
-    int wait;  // 0x00
-    u8 pad_4[0x138 - 4];
-    int checkCTaskRange();
-};
-extern cSceSys SceSys;
-extern "C" void SceSleep(int frames);
-
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
-// address splits into `lis 0x8000` + displacement.
+// address splits into `lis 0x8000` + displacement. Replaces the SDK macros of the same names.
 struct OSLowMem {
     u8 pad_0[0xF8];
     u32 busClock;  // 0xF8
 };
+#undef OS_BUS_CLOCK
+#undef OS_TIMER_CLOCK
+#undef OSTicksToSeconds
+#undef OSTicksToMicroseconds
 #define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
 #define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
 #define OSTicksToSeconds(ticks) ((ticks) / OS_TIMER_CLOCK)
@@ -109,8 +55,6 @@ struct OSLowMem {
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
     }
-
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 #line 30 "D:/Bio4/Prog/main_sub.cpp"
 
@@ -607,9 +551,9 @@ void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
 void DLL_Unlink(OSModuleHeader* module)
 {
     if (module->epilog) {
-        module->epilog();
+        DLL_EPILOG(module)();
     }
-    if (OSUnlink(module) != 1) {
+    if (OSUnlink(&module->info) != 1) {
         pLog->err(0, 0, "OSUnlink failed : 0x%08x", module);
         TaskSleep(60);
 #line 1424 "D:/Bio4/Prog/main_sub.cpp"
@@ -621,7 +565,7 @@ void DLL_Unlink(OSModuleHeader* module)
 // Links a REL with its bss; a failure logs and halts after 60 frames.
 void DLL_Link(OSModuleHeader* module, void* bss)
 {
-    if (OSLink(module, bss) != 1) {
+    if (OSLink(&module->info, bss) != 1) {
         pLog->err(0, 0, "OSLink failed : 0x%08x", module);
         TaskSleep(60);
 #line 1440 "D:/Bio4/Prog/main_sub.cpp"

@@ -21,33 +21,16 @@
 #include "pad.h"
 #include "db_log.h"
 #include "sce_sys.h"
+#include "ref_access.h"
+#include "sce.h"
+#include "stage.h"
+#include "sscrn.h"
+#include "sce_at.h"
+#include "etc_model.h"
 
-extern "C" {
-void SceInitItemEvent();                       // game/sce_com.cpp
-void SceAtSetSaveItem();                       // game/sce_at.cpp
-void SceAtRoomSet();
-void SceAtCheckMoveScrAt();
-void* SceAtPtr(int no);
-void SubMissionCheck();                        // game/stage.cpp
-int getRoomEtcBreak(void* p, cEm** em, int a); // game/EtcModel.cpp
-void SubScreenWait(int frames);                // game/sscrn.cpp
-void GXDrawDone();
-}
-
-int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)
 
 #line 34 "D:/Bio4/Prog/sce_sys.cpp"
 
-// Reference store of a SceSys byte: the inline's `&member` reaches the MEM as a CONST address and folds
-// into `stb rX,SceSys+N@l(rH)` (SceSetEventCancel's first store); a plain `SceSys.x = v` legitimises
-// `&SceSys` into a lo_sum pseudo first and stores through `N(rP)`.
-static inline void U8SetI(u8& d, int v) { d = v; }
-// Event flag words at pG->flags_174, indexed by flag number; as an inline the base stays a pointer
-// register (lwzx/stwx) instead of folding into the displacement.
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
 
 cSceSys SceSys;
 static ScePrim* pCSceTask;
@@ -414,7 +397,7 @@ void SceExecInitCondition()
 // Em_flg row address as an integer (the original adds the list offset after the row index), as in sce_at.
 static inline u32 emDeadRow(int n)
 {
-    return n * 32 + (u32) pG + 0x501C;
+    return (u32) EM_FLG_ROW(n);
 }
 
 // Is the condition met? type 0 enemy list entry dead (Em_flg bit), 1 camera area == param, 2
@@ -458,7 +441,7 @@ int SceExecCheckCondition_sub(SceCond* pP)
         }
         break;
     case 4:
-        if (getRoomEtcBreak(pP->param, &em, 1) == 1 && em->hp <= 0) {
+        if (getRoomEtcBreak((int) pP->param, &em, 1) == 1 && em->hp <= 0) {
             return 1;
         }
         break;
@@ -558,7 +541,7 @@ void SceExecEventCancel()
     }
     if (s->cancelFlagNo >= 0) {
         no = s->cancelFlagNo;
-        eventFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(eventFlags(), no);
     }
     for (slot = 5; slot <= 17; slot++) {
         if (s->prim[slot - 5].cancel == 1) {
@@ -587,7 +570,7 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
     SceCTask()->cancel = on;
     if (flagNo >= 0) {
         no = flagNo;
-        eventFlags()[no >> 5] &= ~(0x80000000 >> (no & 31));
+        FlagOff(eventFlags(), no);
     }
     // COMPILER-DIFF: 12 (AROUND form): the loop notes end cse1's path from the skipped `if` block, so
     // the tail's `&SceSys` is a fresh lis/addi instead of `eventCancel's address - 113`.

@@ -2,15 +2,8 @@
 // node files: <Node> blocks of <name>value</name> elements); string search only, no parser.
 #include "types.h"
 #include "xml.h"
-
-extern "C" {
-unsigned int strlen(const char* s);
-char* strcpy(char* dst, const char* src);
-char* strncpy(char* dst, const char* src, unsigned int n);
-char* strcat(char* dst, const char* src);
-char* strstr(const char* s, const char* sub);
-int sprintf(char* buf, const char* fmt, ...);
-}
+#include <string.h>
+#include <stdio.h>
 
 // Finds "<tag" in `src`; *out = its position. 0 when absent.
 int XmlSimple::GetXmlStart(char** out, const char* src, const char* tag)

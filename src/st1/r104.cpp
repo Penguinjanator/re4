@@ -97,8 +97,6 @@ R104PatrolData r104_patrolData[7] = {
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 static void r104_checkBgmPlay();
 static void r104_execEmDash();
@@ -228,9 +226,9 @@ static void r104_checkBgmPlay()
 static void r104_execEmDash()
 {
     RsfSet(G_ROOM_ID, 15);
-    EM_LIST(0xF2)->be_flag |= 1;
-    EM_LIST(0xFC)->be_flag |= 1;
-    EM_LIST(0xFD)->be_flag |= 1;
+    pG->Em_list[0xF2].be_flag |= 1;
+    pG->Em_list[0xFC].be_flag |= 1;
+    pG->Em_list[0xFD].be_flag |= 1;
     setEm(0xF2, -1, 0, 1, 1);
     setEm(0xFC, -1, 0, 1, 1);
     setEm(0xFD, -1, 0, 1, 1);
@@ -418,7 +416,6 @@ static void r104_execShowView_end()
 }
 
 // Show the farm: camera cut 4 with the stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Area 0xA once (Room_flg bit 14): stream 0x15 with camera cut 4 (the look over the area), clearing
 // Status_flg[1] 0x10000000, until the camera motion ends; player-cancellable.

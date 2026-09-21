@@ -153,11 +153,6 @@ cCoord* pEffParentWorld;
 cEspSystem* g_pEspSys;
 static void* g_EspToolSeqHedAddr;
 
-// never called (keeps the static alive)
-static inline void EffSetToolSeqHedAddr(void* p)
-{
-    g_EspToolSeqHedAddr = p;
-}
 
 // Boot-time init (once): clears g_pEspSys, resets the create / trans tables, assigns the effect
 // ids (EffSetId) and builds g_EspCommonDisplayList, the 4-vertex quad display list every sprite

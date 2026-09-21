@@ -50,7 +50,6 @@ static R200WorkPtr r200_work;
 extern "C" int setRoomEtcBreakDisp(int no, int on, int flag);
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 extern LevelEntry level_r200[];
-extern StockEntry stock_2st_first[];
 
 void r200_openBox_main(int id, int mode);
 static void r200_openedBox(int id);
@@ -176,7 +175,6 @@ static void r200_execShowView_end()
 }
 
 // The camera pans over the village on the first visit.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Show view once (Room_flg bit 4, and only once per game via System_flg 0x40): stream 0x18, camera cut
 // 5 panning over the castle with an ambient effect; player-cancellable.

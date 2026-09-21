@@ -41,7 +41,6 @@ struct R106Work {
 
 static R106Work* r106_work;
 
-static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 
 // Hit effects of attribute type 4 (the hall floor)
 static const AtEffInfo r106_eff_info = {

@@ -131,12 +131,6 @@ static void r21d_checkDeathTrapSwitch();
 void r21d_initDeathTrapSwitch();
 static void setTexRender();
 
-// Struct-member view of pPL: the load stays below a preceding store (r10c).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // Event skip: the skip key or the skip flag; the event is marked skipped.
 #define R21D_SKIP ((Key.trg & 0x20000000) || (pG->Room_flg[0] & 0x80000000))
 #define R21D_SKIP_SET() pG->Room_flg[0] |= 0x80000000

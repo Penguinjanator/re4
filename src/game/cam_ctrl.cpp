@@ -24,36 +24,22 @@
 #include "dbmodule.h"
 #include "at_mod.h"
 #include "joy.h"
-
-extern "C" {
-int strncmp(const char* a, const char* b, unsigned int n);
-void* memset(void* dst, int c, unsigned int n);
-void OSReport(const char* fmt, ...);
-f32 sinf(f32);
-f32 cosf(f32);
-}
-
-extern f32 ZNEAR;
-u32 SubCharGetStatus();
-int GetWaterHeight(Vec* pos, f32* height);
-void QuakeInit();
-void eprintf(int x, int y, int color, int p, const char* fmt, ...);
+#include "ref_access.h"
+#include <string.h>
+#include <dolphin/os.h>
+#include "pl_npc.h"
+#include "esp.h"
+#include "quake.h"
+#include "eprintf.h"
+#include "view.h"
+#include "t_camera.h"
 
 
-#define PI 3.1415927f
-#define PI2 6.2831855f
-#define DEG 0.017453292f
-
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 void* g_pToolCamData = NULL;
 
 #define CAMERA_MOTION_BUFFER_SIZE 0x440
 static u8 CameraMotionBuffer[CAMERA_MOTION_BUFFER_SIZE];
-extern CameraBSpline CamBSpline;
 
 // internal linkage: the table is deferred behind the cManager template strings in .rodata
 static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
@@ -162,9 +148,9 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
                     v = cut->fovy[k];
                     v0 = cut->fovy[k0];
                     v1 = cut->fovy[k1];
-                    v1 *= DEG;
-                    v *= DEG;
-                    v0 *= DEG;
+                    v1 *= DEG2RAD;
+                    v *= DEG2RAD;
+                    v0 *= DEG2RAD;
                     break;
                 }
                 tmp = v;
@@ -358,7 +344,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 // Installs the room's camera data (relocated).
 void CameraControl::RoomDataRead(CameraDataHeader* room)
 {
-    G_ROOM_CAM_DATA = calcAddr(room);
+    PSet(pG->pCamRoom, calcAddr(room));
     data = (CameraDataHeader*) pG->pCamRoom;
 }
 
@@ -479,7 +465,7 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
             }
             if (hit == 1) {
                 at->m_radius *= GAIN;
-                if (ObaLineHitChk(pSubEm, at, from, &p, &hp, &hn)) {
+                if (ObaLineHitChk(pSubEm, at, *from, p, hp, hn)) {
                     ret = 1;
                     *pos = hp;
                 }
@@ -1414,7 +1400,7 @@ void CameraControl::r0_Debug()
         Vec* da = &this->target_ofs;
 
         if (joy->substickX != 0) {
-            PSMTXRotRad(m, 'y', (f32) joy->substickX * 0.05f * DEG);
+            PSMTXRotRad(m, 'y', (f32) joy->substickX * 0.05f * DEG2RAD);
             PSMTXMultVec(m, dp, dp);
             PSMTXMultVec(m, da, da);
         }
@@ -1422,7 +1408,7 @@ void CameraControl::r0_Debug()
             Vec up = {0.0f, 1.0f, 0.0f};
 
             PSVECCrossProduct(dp, &up, &up);
-            PSMTXRotAxisRad(m, &up, (f32) joy->substickY * 0.05f * DEG);
+            PSMTXRotAxisRad(m, &up, (f32) joy->substickY * 0.05f * DEG2RAD);
             PSMTXMultVec(m, dp, dp);
             PSMTXMultVec(m, da, da);
         }
@@ -1875,11 +1861,6 @@ static inline u32 JoyOn(JOY* j, u32 bit)
     return j->on & bit;
 }
 
-// Button trigger test on a pad.
-static inline u32 JoyTrg(JOY* j, u32 bit)
-{
-    return j->trg & bit;
-}
 
 
 // r0 == 7: the free behind camera: orbits the player at a fixed distance with C-stick yaw /
@@ -1966,7 +1947,7 @@ void CameraControl::r0_Free()
             asm("" : "+r"(st));  // COMPILER-DIFF 2: the original zero-extends the loaded byte again
             switch ((u8) st) {
             case 0:
-                if (JoyTrg(joy, 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
+                if ((joy->trg & 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
                     r2 = st + 1;
                 }
                 break;

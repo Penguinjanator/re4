@@ -8,16 +8,13 @@
 #include "main_sub.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include "game.h"
 
 // Debug tool helpers for the tool modules (D:/Bio4/Prog/t_util.cpp, the same object in every t_*/Tools
 // REL with a tool). The DOL's game/t_util.cpp is a different version of this file: there the menu drawer
 // is out of line and the cursor helpers were dead-stripped; here ToolMenuDisp_cur is an inline nobody
 // calls (its strings and statics still land in the object) and TutilMoveCursor/TutilGetScreenPos exist.
-
-void GameStopModeEnd();
-extern "C" void GXGetProjectionv(f32* p);
-extern "C" void GXGetViewportv(f32* vp);
-extern "C" void GXProject(f32 x, f32 y, f32 z, const f32 mtx[3][4], const f32* pm, const f32* vp, f32* sx, f32* sy, f32* sz);
 
 // Copies of the pG flag words the tools modify, restored by TutilQuitDefault. The camera copy is a
 // static (its relocations carry the section offset), the flag words are globals (theirs do not).
@@ -45,33 +42,45 @@ void TutilInitDefault()
     view.farz = 1.0f;
     TprimInitEnv2D3D(&view, pG->Camera.ProjMat, pG->Camera.v_mat);
     globalCamera = pG->Camera;
-    system_flg_bak = TOOL_FLAG(OFS_SYSTEM_FLG);
-    stop_flg_bak = TOOL_FLAG(OFS_STOP_FLG);
-    disp_flg_bak = TOOL_FLAG(OFS_DISP_FLG);
-    memcpy(debug_flg_bak, TOOL_FLAG_PTR(OFS_DEBUG_FLG), sizeof(debug_flg_bak));
-    memcpy(status_flg_bak, TOOL_FLAG_PTR(OFS_STATUS_FLG), sizeof(status_flg_bak));
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x200;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x80;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x8000;
-    TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x800000;
-    TOOL_FLAG(OFS_DEBUG_FLG + 12) &= ~0x2000;
+    system_flg_bak = pG->System_flg;
+    stop_flg_bak = U32Ref(pG->Stop_flg);
+    disp_flg_bak = U32Ref(pG->Disp_flg);
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug_flg_bak, debug, sizeof(debug_flg_bak));
+    }
+    memcpy(status_flg_bak, &pG->Status_flg[0], sizeof(status_flg_bak));
+    BitOn(pG->Stop_flg, 0x200);
+    BitOn(pG->Stop_flg, 0x80);
+    BitOn(pG->Debug_flg[0], 0x8000);
+    BitOn(pG->Debug_flg[2], 0x800000);
+    pG->Debug_flg[3] &= ~0x2000;
 }
 
 // Common tool exit: restores the camera and flag words saved by TutilInitDefault (keeping
 // Debug_flg[0] bit 8 if the tool set it), clears Debug_flg[0] bit 31 and sets [3] 0x2000.
 void TutilQuitDefault()
 {
-    memcpy(TOOL_PTR(OFS_CAMERA), &globalCamera, sizeof(Camera));
-    TOOL_FLAG(OFS_SYSTEM_FLG) = system_flg_bak;
-    TOOL_FLAG(OFS_STOP_FLG) = stop_flg_bak;
-    TOOL_FLAG(OFS_DISP_FLG) = disp_flg_bak;
-    if (TOOL_FLAG(OFS_DEBUG_FLG) & 0x100) {
+    {
+        u32* cam = (u32*) &pG->Camera;
+
+        memcpy(cam, &globalCamera, sizeof(Camera));
+    }
+    BitSet(pG->System_flg, system_flg_bak);
+    BitSet(pG->Stop_flg, stop_flg_bak);
+    BitSet(pG->Disp_flg, disp_flg_bak);
+    if (pG->Debug_flg[0] & 0x100) {
         debug_flg_bak[0] |= 0x100;
     }
-    memcpy(TOOL_FLAG_PTR(OFS_DEBUG_FLG), debug_flg_bak, sizeof(debug_flg_bak));
-    memcpy(TOOL_FLAG_PTR(OFS_STATUS_FLG), status_flg_bak, sizeof(status_flg_bak));
-    TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
-    TOOL_FLAG(OFS_DEBUG_FLG + 12) |= 0x2000;
+    {
+        u32* debug = (u32*) &pG->Debug_flg[0];
+
+        memcpy(debug, debug_flg_bak, sizeof(debug_flg_bak));
+    }
+    memcpy(&pGS->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    pG->Debug_flg[3] |= 0x2000;
 }
 
 // Moves a 2D cursor with the analog stick (scaled by `speed`) and the digital pad (by `step`).

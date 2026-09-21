@@ -18,6 +18,9 @@
 #include "cam_ctrl.h"
 #include "rnd.h"
 #include "math_sub.h"
+#include "ref_access.h"
+#include "game.h"
+#include "est.h"
 
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
@@ -26,20 +29,10 @@ struct WepTarget {
 };
 
 extern "C" {
-void EffectEspDelete(int a, int b, cModel* m, int c);     // game/est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 void ReadWepData(int no, int type);                       // game/read.cpp
 u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag, f32 len);
-void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
-void EspSetWaterHitmark(Vec* pos);
-void GameAddPoint(int no);                                // game/game.cpp
-f32 GetXZAngleLocal(Vec* v0, Vec* v1, f32 ang);             // game/sub2.cpp
-int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);       // game/Espgen42.cpp
-void AddWaterPower(Vec* pos, f32 power);
-f64 atan2(f64 y, f64 x);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
 cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);
@@ -47,20 +40,17 @@ int cnCkSub(Vec* pos, Vec* nrm, f32 len, Vec* outA, Vec* outB);
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type);
 void setWaterShot(Vec* pos);
 }
-int Front_check(cModel* a, cModel* b, f32 ang);           // game/sub2.cpp
 
 void (*WeaponInitFunc)(cModel*) = 0;
 u8 lockCtr;
 static f32 lockRandCtr;
 
 // Stores through references: scalar MEMs, so pG is reloaded after each of them.
-static inline void U8Set(u8& d, u8 v) { d = v; }
 // Aim-rate clamp + sync as one inline taking the limits as PARAMETERS: the actuals -1.0f/1.0f are copied
 // into pseudos before the inlined body (integrate.c copies non-readonly formals), so both constants load
 // up front and the two clamp stores keep distinct registers (no cross-jump); `f32* m` = m3r gives the
 // `addi r10,r9,m3r@l` base pointer of the target (PlWepAutoTrack 24 -> 0, PlWepLockCtrl 45 -> 24).
 static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; else if (m[1] > hi) m[1] = hi; if (m[2] == 0.0f) m[0] = m[1]; }
-static inline void Inc32(u32& d) { d++; }
 
 // No weapon objects yet.
 cPlWep::cPlWep()
@@ -81,7 +71,7 @@ void cPlayer::weaponRelease()
 
     // Guarded do-while testing `next` (a different pseudo than `obj`) at the bottom: jump2 cannot
     // merge the two tests, so the loop keeps the rotated shape with the entry test.
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     if (obj) {
         do {
             objCur = obj;
@@ -179,8 +169,8 @@ void cPlayer::weaponRelease()
 // Sets weapon_no / weapon_type and reads the weapon module's data (ReadWepData).
 void cPlayer::weaponLoad(int no, int type)
 {
-    U8Set(pG->weapon_no, no);
-    U8Set(pG->weapon_type, type);
+    pG->weapon_no = no;
+    pG->weapon_type = type;
     ReadWepData(no, type);
 }
 
@@ -395,26 +385,26 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
             if (GetWaterHeight(&hit, &wh) == 0 || hit.y > wh) {
                 // nested call: `&nrm` is evaluated into a pseudo before EatGetEffectType (`addi r30,r1,..`
-                // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
+                // ahead of the bl)
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &hit, sizeof(Vec));
-                pG->bell_stat = 0;
+                pG->SeInfo.pos = hit;
+                pGS->SeInfo.type = 0;
             }
         }
     }
     if (pl != 0 && !(flag & 1)) {
         if (pl->Wep->m_pWep != 0) {
             wepSetWaterShot(pPos, pPos2, type);
-            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->Wep->m_pWep->wep.marker, sizeof(Vec));
+            pGS->SeInfo.pos = pl->Wep->m_pWep->wep.marker;
             switch (type) {
             case 0xD:
             case 0x12:
             case 0x13:
-                pG->bell_stat = 1;
+                pG->SeInfo.type = 1;
                 break;
             default:
-                pG->bell_stat = 0;
+                pG->SeInfo.type = 0;
                 break;
             }
         }
@@ -484,11 +474,11 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         default:
             if (!(flag & 2)) {
                 if (n != 0) {
-                    Inc32(pG->c_hit_cnt);
-                    Inc32(pG->g_hit_cnt);
+                    U32Inc(pG->c_hit_cnt);
+                    pG->g_hit_cnt++;
                 }
-                Inc32(pG->c_shot_cnt);
-                Inc32(pG->g_shot_cnt);
+                U32Inc(pG->c_shot_cnt);
+                pG->g_shot_cnt++;
             }
             break;
         }
@@ -796,8 +786,8 @@ cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
     f32 bestD = 1000000000000.0f;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         f32 d;
 
         if (em == skip) {

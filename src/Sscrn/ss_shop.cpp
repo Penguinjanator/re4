@@ -27,7 +27,6 @@
 #include "ss_main.h"
 #include "ss_pzzl.h"
 
-extern "C" f64 tan(f64 x);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -300,20 +299,9 @@ static int shop_read_req;
 Vec shop_pos_save;
 void* shop_msg_buf[5];
 
-// Struct-member view of the cModel manager pointers (ss_main.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 // Scalar-reference store: the MEM has neither the struct nor the scalar flag, so sched1 makes every
 // following load (the `sw->` call arguments AND the fixed-scalar `pG`) wait for it.
-static inline void IntSet(int& d, int v) { d = v; }
 
-// The bought item's model: MapMgr work 1 (work 0 is the merchant).
-static inline cMap* shopItemModel()
-{
-    return MapMgr.getWork(1);
-}
 
 // Queues a Z clear before the case (OT 0xF) and before the shown item model (OT 0x14).
 void shopClearZ(SUB_SCREEN* wk)
@@ -963,7 +951,7 @@ void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
         slot = row + 8;
         cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
-        U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+        cMes.getMes(slot)->m_ot_type = 0x13;
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
         IdSub.unitPtr(row + 0x80, 0x1D)->be_flag &= ~8;
         if (i == sw->cursor) {
@@ -1424,7 +1412,7 @@ void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
         slot = row + 8;
         cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
-        U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+        cMes.getMes(slot)->m_ot_type = 0x13;
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
         if (wk->merchant->stockNew(pe->id)) {
             IdSub.unitPtr(row + 0x80, 0x1D)->be_flag |= 8;
@@ -2017,21 +2005,6 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
     }
 }
 
-// Tune level of `item` for tune type `type` (nibbles of ItemWork::x6, fire first).
-static inline int itemTuneLevel(ItemWork* item, int type)
-{
-    switch (type) {
-    case 0:
-        return item->lv >> 12;
-    case 1:
-        return (item->lv >> 8) & 0xF;
-    case 2:
-        return (item->lv >> 4) & 0xF;
-    case 3:
-        return item->lv8[1] & 0xF;
-    }
-    return 0;
-}
 
 // Draws the tune-up type panel of the cursor weapon: per type (lvType 0 firepower, 1 capacity,
 // 2 firing speed, 3 exclusive) the current level bar, the next-level cost and the "MAX" marks;
@@ -2105,7 +2078,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             }
             cMes.setLayout(slot, LAYOUT_SHOP_LIST);
             cMes.MesSet(type + 6, x, y, 0x200A1, slot, 0, 3);
-            U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
+            cMes.getMes(slot)->m_ot_type = 0x13;
             U16Set(cMes.getMes(slot)->m_ot_no, 6);
             switch (type) {
             case 0:
@@ -2560,8 +2533,6 @@ struct TuneLevel {
     u16 ex : 4;
 };
 
-static inline void tuneSetFire(TuneLevel* t, u8 v) { t->fire = v; }
-static inline u8 tuneU8(u8 v) { return v; }
 
 // Tune confirm: yes applies the levels (Merchant::levelup / ItemMgr, pesetas paid, sw->lv[]
 // stored) with the thanks line, no / B back to the type pick.
@@ -2977,7 +2948,7 @@ void setOrientation(int id, cModel* m)
 void dispItem(int id, int sw)
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);
-    cMap* m = shopItemModel();
+    cMap* m = MapMgr.getWork(1);
 
     if (sw == 0) {
         u->be_flag &= ~8;
@@ -3028,7 +2999,7 @@ void screenPos2worldPos(Vec* scr, Vec* out)
 void moveItem()
 {
     IdUnit* u = IdSub.unitPtr(0xF3, 0x1C);
-    cMap* m = shopItemModel();
+    cMap* m = MapMgr.getWork(1);
     Vec scr;
     Vec pos;
 

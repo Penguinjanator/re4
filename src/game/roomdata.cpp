@@ -11,10 +11,8 @@
 #include "scheduler.h"
 #include "dvd.h"
 #include "db_log.h"
-
-extern "C" {
-void* memcpy(void* dst, const void* src, unsigned int n);
-}
+#include "ref_access.h"
+#include <string.h>
 
 #line 40 "D:/Bio4/Prog/roomdata.cpp"
 
@@ -76,7 +74,6 @@ static StageTbl Room_data_tbl[10] = {
     {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
 };
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 cRoomData RoomData;
 
@@ -316,7 +313,7 @@ void cRoomData::linkRelData(u16 room)
         m_pModule_bss_bak = MEM_ALLOC(pModule->bssSize, 1, 13);
     }
     DLL_Link(pModule, m_pModule_bss);
-    pModule->prolog();
+    DLL_PROLOG(pModule)();
 }
 
 // Temporarily unlinks the room REL (flag bit0), saving its bss to the backup.

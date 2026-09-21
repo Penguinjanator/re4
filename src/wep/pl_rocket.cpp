@@ -28,19 +28,8 @@
 #include "math_sub.h"
 
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 #define LAUNCHER(pl) ((cObjLauncher*) (pl)->Wep->m_pWep)
 
-// Routine bytes through int parameters (player.cpp PlRoutineSet): SImode constants that the
-// preceding QImode byte stores (`wep.step = 0` in r2_throw) do not share.
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 
 // face model info: the face blend weights (0x5C/0x70/0x84) are reset to `v`
@@ -269,7 +258,7 @@ static void wep13_r2_set(cPlayer* pl)
         } else {
             int md = 3;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     } else if (joyFireOn() && pl->Wep->m_pWep->bulletNum()) {
         Vec from;
@@ -597,7 +586,7 @@ static void wep13_r2_throw(cPlayer* pl)
             obj->wep.mode = 5;
             obj->wep.step = 0;
             pl->Wep->m_pWep->setMotion(pl);
-            PlRoutineSet(pl, 0, 0, 2, 0);
+            EmRoutineSet(pl, 0, 0, 2, 0);
         }
         pl->motionMove();
         break;
@@ -655,7 +644,7 @@ static void wep13_r2_next(cPlayer* pl)
         } else {
             int md = 1;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     }
 }

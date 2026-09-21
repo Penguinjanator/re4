@@ -19,7 +19,6 @@ static inline void U64Set(u64& d, u64 v) { d = v; }
 
 #define STICK_DEAD 10
 #define STICK_ON 30.0f
-#define DEG(d) ((d) * (PI / 180.0f))
 
 u32 Key_type_tbl[2][64] = {
     {

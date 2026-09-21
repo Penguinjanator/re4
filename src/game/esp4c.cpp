@@ -6,6 +6,7 @@
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
+#include "espgen.h"
 
 // Est generator 45 parameter block filled from this effect (game/espgen45.cpp).
 struct Esp4cWork {
@@ -21,20 +22,6 @@ struct Esp4cWork {
     u8 flag;      // 0x1C
     u8 x1D;       // 0x1D
 };
-
-extern "C" {
-void Estgen45SetTargetCamera(int on);
-void Estgen45SetTargetPos(f32 x, f32 z);
-void Estgen45SetTargetHeight(int on);
-void Estgen45SetHeight(f32 h);
-void Estgen45SetSizeOverWrite(int on);
-void Estgen45SetSize(f32 size);
-void Estgen45SetColorMul(int on);
-void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as);
-void Estgen45SetColorOverWrite(int on);
-void Estgen45SetParamOverWrite(int on);
-void Estgen45SetParam(Esp4cWork* w);
-}
 
 // Weather (est generator 45) controller: pushes its color/size into the generator every frame.
 class cEsp4c : public cEsp {

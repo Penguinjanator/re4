@@ -38,23 +38,8 @@
 #include "motion.h"
 #include "model.h"
 #include "sscrn.h"
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-char* strchr(const char* s, int c);
-char* strrchr(const char* s, int c);
-char* strcpy(char* dst, const char* src);
-char* strncpy(char* dst, const char* src, unsigned int n);
-}
-
-
-// Struct-member view of the cModel manager pointers: a plain scalar store lets the scheduler hoist
-// the following pG load above it (the read.cpp EmInitFunc trick).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
+#include <dolphin/os.h>
+#include <string.h>
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -583,7 +568,7 @@ void SubScreenExec()
             DbgFlagOff(pG, DBG_PROC_BAR);
         case 5:
             SpfFlagOff(pG, SPF_KEY);
-            TaskChain(wk->p_module->prolog, 0);
+            TaskChain(DLL_PROLOG(wk->p_module), 0);
             break;
         }
         TaskSleep(1);
@@ -866,7 +851,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
     wk->sndId = SndStrPlayBlock(1, strTbl[no], 0.0f);
-    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x79), 0, 0, 0x201, 0);
+    MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
     SysFlagOff(pG, SYS_SCREEN_STOP);
     for (i = 0; i <= 20; i++) {
@@ -951,8 +936,3 @@ void OpeSetOpenTermEnd()
 // `.long 0, 0, 0` here would land before the folded roomInit instantiation); the .bss gap is a
 // zero-initialised static referenced only by a never-called inline (the dmg.cpp trick).
 static u8 sscrn_pad[0x1C];
-// Keeps the 0x1C-byte pad in .bss (matching helper).
-static inline u8* sscrnPad()
-{
-    return sscrn_pad;
-}

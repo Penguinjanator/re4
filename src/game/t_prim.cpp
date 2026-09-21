@@ -2,8 +2,8 @@
 #include "vec.h"
 #include "gx.h"
 #include "t_prim.h"
+#include "camera.h"
 
-void CameraCurrentProjection();
 
 static void set_attr_common();
 static void set_attr_f32();

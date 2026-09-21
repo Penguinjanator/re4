@@ -14,9 +14,9 @@
 #include "model.h"
 #include "obj.h"
 #include "scroll.h"
+#include <string.h>
+#include "motion.h"
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
-int MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 void slideModelAddr(u32 addr, int ofs);
 void slideTplAddr(void* tpl, int ofs);
 
@@ -41,15 +41,6 @@ static cObj** scrTbl;      // one entry per SMD work
 int nScrWork;
 static const u8 ScrObjIdNum = 16;
 
-// Never called in this build; keeps ScrIdRefTbl alive (GCC 2.95 emits statics an inline body
-// mentions).
-static inline const char* scrIdName(u32 no)
-{
-    if (no < ScrObjIdNum) {
-        return ScrIdRefTbl[no].Name;
-    }
-    return NULL;
-}
 
 // Not in the DOL: the original linker dead-stripped it (tools/strip_unused.py does the same to
 // every function sym_map.tsv does not list). Taking the address is what makes GCC emit the
@@ -219,7 +210,7 @@ int SmdSetParam(cObj* obj, SmdWork* w)
             mot = pSmd->getMotPtr(w->motNo);
         }
         if (mot != NULL) {
-            MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 5, 0);
+            MotionSetCore(obj, &obj->Motion, mot, 0, 0, 5, 0);
         }
     }
     obj->pos = w->pos;
@@ -436,7 +427,7 @@ void BlockCreate(int blk, cSmd* smd)
 // Scroll block `blk` unloaded: destroys its objects (kind 2 with that blk).
 void BlockDestroy(int blk)
 {
-    cObj* p = ObjMgr.pAlive;
+    cObj* p = ObjMgr.getActiveWork();
     cObj* cur;
     cObj* next;
 

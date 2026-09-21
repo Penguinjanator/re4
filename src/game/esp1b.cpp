@@ -4,8 +4,8 @@
 
 #include "atari.h"
 #include "esp.h"
+#include <string.h>
 
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 struct Esp1bWork {
     int n;   // 0x00 number of points

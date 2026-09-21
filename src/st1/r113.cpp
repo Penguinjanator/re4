@@ -64,9 +64,6 @@ static const AtEffInfo r113_eff_info = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
 };
 
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // r103.cpp (the same module)
 extern "C" void r103_initCesspit(R113Cesspit* c);
 extern "C" void r103_setSubMissionTarget(u32 objNo);

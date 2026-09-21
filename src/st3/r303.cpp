@@ -138,7 +138,6 @@ void R303Main()
 }
 
 // Area 6: the one-shot stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // Area 6 once (Room_flg bit 3): stream 0x34 plays once.
 static void oneshot_bgm()

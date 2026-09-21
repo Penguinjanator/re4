@@ -11,6 +11,9 @@ void* mem_calloc(u32 size, const char* file, int line, int a, int b);
 #define MEM_ALLOC(size, a, b) mem_alloc(size, __FILE__, __LINE__, a, b)
 #define MEM_CALLOC(size, a, b) mem_calloc(size, __FILE__, __LINE__, a, b)
 
+// Address inside the console main memory (MEM1: 0x80000000 to 0x82FFFFFF).
+#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
+
 // Debug heap (CurrentDbgHeap). Debug_free is the out-of-line copy owned by main_mem.
 void* Debug_alloc(u32 size, int flag);
 void Debug_free(void* p);

@@ -29,26 +29,17 @@
 #include "main_sub.h"
 #include "tpl.h"
 #include "debug.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <dolphin/os.h>
+#include "pl_mod.h"
 
 // t_esp REL, D:/Bio4/Prog/db_port.cpp: the bridge between the effect tool (t_esp.cpp) and the game
 // (model viewer, event debug data, light tool, drawing helpers, the sp_*_trans debug draw callbacks of
 // the effect generators and the .cfg model set loader).
 
-extern "C" {
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strcat(char* dst, const char* src);
-int atoi(const char* s);
-long strtol(const char* s, char** end, int base);
-int sprintf(char* s, const char* fmt, ...);
-f32 tanf(f32 x);
-void* memset(void* p, int c, unsigned int n);
-void OSReport(const char* fmt, ...);
-void memclr_asm(void* p, u32 size);
-}
-int ShapeSet(void* work, int frame, void* data, int flags);
 void DbMenuSetExecTool(const char* name);
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
 
 extern GXTexObj fontTexObj;  // game/eprintf.cpp
 extern Mtx fontTMtx;
@@ -229,7 +220,7 @@ extern "C" cModel* GetActiveModel(EspGenWork* gen)
     }
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
-        m = EmMgrWork(db_modelNo);
+        m = EmMgr.at(db_modelNo);
     }
     return m;
 }
@@ -480,7 +471,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
 
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
-        m = EmMgrWork(db_modelNo);
+        m = EmMgr.at(db_modelNo);
     }
     if (m != 0 && !(m->be_flag & 1)) {
         m = 0;
@@ -842,9 +833,9 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         SpfFlagOff(pG, SPF_LIGHT);
         LightMgr.roomLitSet((cLit*) db_litData);
         LightMgr.update(0, -1);
-        nLit = LightMgr.nArray;
+        nLit = LightMgr.getArrayNum();
         for (k = 0; k < nLit; k++) {
-            cLight* l = LightMgr.getWorkPtr(k);
+            cLight* l = LightMgr.at(k);
             if ((l->be_flag & 3) == 3 && l->ParentType == 1) {
                 l->be_flag &= 2; // sic: the original masks with 2, not ~2 (`rlwinm 0,30,30`)
             }

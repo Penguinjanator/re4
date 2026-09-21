@@ -43,14 +43,16 @@
 #include "dbmodule.h"
 #include "foot_shadow.h"
 #include "main_mem.h"
+#include "ref_access.h"
+#include "em.h"
+#include <string.h>
+#include <dolphin/os.h>
 
 asm(".comm common_em32,52,4");
 
-extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);   // game/obj20.cpp
 
 static void em32_R0_Init(cEm32* em);
@@ -113,66 +115,15 @@ static void plemBackjump(cPlayer* pl);
 static void plemEscape(cPlayer* pl);
 }
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void F32Set(f32& d, f32 v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em32DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
-// Difficulty tables: pG is reloaded after every store (reference stores; the inline takes the work
-// pointer so that the store keeps the work base instead of folding into the enemy's).
-static inline void em32Timer2Set(Em32Work* w, int a, int b, int c, int e)
-{
-    if (pG->Game_level <= 3) {
-        IntSet(w->timer2, a);
-    }
-    if (pG->Game_level <= 1) {
-        IntSet(w->timer2, b);
-    }
-    if (pG->Game_level > 6) {
-        IntSet(w->timer2, c);
-    }
-    if (pG->Game_level > 9) {
-        IntSet(w->timer2, e);
-    }
-}
-
-// The attack-hit byte written from a promoted int (an SImode pseudo shared with the int stores).
-static inline void em32AtkHitSet(Em32Work* w, int v)
-{
-    U8Set(w->Atk_ck, v);
-}
 
 // COMPILER-DIFF #12 (cse path knowledge): in a `case` arm reached through the switch's once-used label
 // our cse still knows `w == em + 0x3E0` and folds the reference stores of the difficulty tables into
@@ -376,7 +327,7 @@ void em32DmCk(cEm32* em)
     int flag;
     int wep;
 
-    if (em->hp > 0 && em32DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -621,13 +572,13 @@ void cEm32::move()
     em32NeckMove(this);
     partsWorldCalc();
     em32ScaleCompress(this);
-    d = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    d = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (!(w->flags & 0x40)) {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -1146,7 +1097,7 @@ static void em32_R1_Ambush(cEm32* em)
         case 2:
             break;
         }
-        if (em32DeadCk(em)) {
+        if (EmDeadCk(em)) {
             if ((w->flags & 0x1000) && em32StepUpCk2(em)) {
                 break;
             }
@@ -1981,7 +1932,7 @@ static void em32_R1_CatchHit(cEm32* em)
             em->r_no_2 = 2;
             break;
         }
-        dead = em32DeadCk(em);
+        dead = EmDeadCk(em);
         if (dead) {
             em->r_no_2 = 2;
             break;
@@ -2109,26 +2060,26 @@ static void em32_R1_LongAtk(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0x47), ARC(0x48), 10, 1, 0);
         EstSet(em, -1, 0, 0, 0x2A, 0xA, 0, w->espKind[2], em, (void*) step);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
-        em32AtkHitSet(w, step);
+        w->Atk_ck = step;
         IntSet(w->longAtkWait, 600);
         IntSet(w->timer2, 25);
         IntSet(w->timer3, 15);
         IntSet(w->timer, 10);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer2, 27);
-            IntSet(w->timer3, 13);
+            w->timer2 = 27;
+            w->timer3 = 13;
         }
         if (pG->Game_level <= 1) {
-            IntSet(w->timer3, 10);
-            IntSet(w->timer2, 30);
+            w->timer3 = 10;
+            w->timer2 = 30;
         }
         if (pG->Game_level > 6) {
-            IntSet(w->timer2, 22);
-            IntSet(w->timer3, 18);
+            w->timer2 = 22;
+            w->timer3 = 18;
         }
         if (pG->Game_level > 9) {
-            IntSet(w->timer2, 20);
-            IntSet(w->timer3, 20);
+            w->timer2 = 20;
+            w->timer3 = 20;
         }
         em->r_no_2++;
     case 1:
@@ -2405,9 +2356,7 @@ void em32EscapeCamMove(cEm32* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -2607,16 +2556,16 @@ static void em32_R1_TunnelAtk(cEm32* em)
         w->Atk_ck = 0;
         IntSet(w->timer, 15);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer2, 18);
+            w->timer2 = 18;
         }
         if (pG->Game_level <= 1) {
-            IntSet(w->timer2, 20);
+            w->timer2 = 20;
         }
         if (pG->Game_level > 6) {
-            IntSet(w->timer2, 12);
+            w->timer2 = 12;
         }
         if (pG->Game_level > 9) {
-            IntSet(w->timer2, 10);
+            w->timer2 = 10;
         }
         w->TmpU32 = Rnd() & 1;
         em->r_no_2++;
@@ -2863,7 +2812,7 @@ static void em32_R1_C_Wait(cEm32* em)
         v.y = 0.0f;
         v.z = 2000.0f;
         PSMTXMultVec(pPL->mat, &v, &em->pos);
-        F32Set(em->pos.y, pPL->pos.y + 6000.0f);
+        FSetP(em->pos.y, pPL->pos.y + 6000.0f);
         em->ang.y = pPLS->ang.y + 3.14159274f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
@@ -3421,7 +3370,7 @@ static void em32_R1_Ground(cEm32* em)
         IntSet(w->timer2, Rnd() % 90 + 90);
         IntSet(w->timer3, 20);
         if (pG->Game_level <= 3) {
-            IntSet(w->timer3, 25);
+            w->timer3 = 25;
         }
         EstSet(em, -1, 0, 0, 0x2A, 0x1A, 0, 0, em, (void*) step);
         em->r_no_2++;
@@ -4314,7 +4263,7 @@ void em32GetJumpDownNo(cEm32* em)
         if (d > best) {
             continue;
         }
-        PSet((void*&) w->pPoint, e);
+        (void*&) w->pPoint = e;
         best = d;
     }
 }
@@ -4929,8 +4878,8 @@ void em32RackBreakCk(cEm32* em)
     v.y = 0.0f;
     v.z = 2000.0f;
     PSMTXMultVec(em->mat, &v, &v);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = EmMgrWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -4988,8 +4937,8 @@ void em32BreakBarred(cEm32* em)
     u32 i;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = EmMgrWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

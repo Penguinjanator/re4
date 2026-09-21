@@ -25,6 +25,8 @@
 #include "player.h"
 #include "pl_sub.h"
 #include "motion.h"
+#include "game.h"
+#include "em_sub.h"
 
 // Falling pillar (obj 0x1F): breaks (setBreak) or is thrown (setThrow) at the player, who can
 // escape with the action button; the escape / die sequences run as player damage routines.
@@ -52,21 +54,13 @@ void EscapeCamMove();
 void EscapeAction2(cObjPillar* obj);
 void plemEscape2(cPlayer* pl);
 void objPillarEatSet(cObjPillar* obj);
-void GameAddPoint(int no);   // game/game.cpp
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);   // em_sub.cpp (obj08/obj12 declare it the same way)
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
 // address suffix so the report can pair it with the local symbol.
 #define plemEscape plemEscape_8003C33C
 extern "C" {
 static void plemEscape(cPlayer* pl);
 
-// struct view of pPL: the load stays below the preceding member stores (see cam_ctrl.cpp)
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 }
 
 void (*ObjPillar_R0_move_tbl[5])(cObjPillar*) = {
@@ -161,7 +155,7 @@ void objPillar_R0_Break(cObjPillar* obj)
     switch (step) {
     case 0:
         w->Timer = (*(u16*) w->motBreak & 0x3FFF) - 10;
-        MotionSetCore(obj, &obj->pMotion, w->motBreak, 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->motBreak, 0, 0, 0x8001, 0);
         w->rnd = Rnd() & 1;
         w->Act_ck = step;
         w->Seid = step;
@@ -229,7 +223,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
 
     switch (step) {
     case 0:
-        MotionSetCore(obj, &obj->pMotion, w->motThrow0, 0, 0, 0x8001, 0x1F);
+        MotionSetCore(obj, &obj->Motion, w->motThrow0, 0, 0, 0x8001, 0x1F);
         w->rnd = Rnd() & 1;
         w->Act_ck = 1;
         EstSet(obj, -1, 0, 0, 0x29, 0x22, 0, 0, obj, (void*) step);
@@ -256,7 +250,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
             w->Spd.y = d.y / len;
         }
         PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
-        MotionSetCore(obj, &obj->pMotion, w->motThrow1, 0, 0, 0x8005, 0);
+        MotionSetCore(obj, &obj->Motion, w->motThrow1, 0, 0, 0x8005, 0);
         w->rnd = Rnd() & 1;
         w->Act_ck = 0;
         w->Timer = 90;
@@ -357,7 +351,7 @@ void objPillar_R0_Escape(cObjPillar* obj)
     case 0:
         memcpy((u8*) obj + ((u32) &((cObj*) 0)->pos), &pPL->pos, sizeof(Vec));
         memcpy((u8*) obj + ((u32) &((cObj*) 0)->ang), &pPL->ang, sizeof(Vec));
-        MotionSetCore(obj, &obj->pMotion, w->Mot_escape, 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_escape, 0, 0, 0x8001, 0);
         SndStop(w->Seid, 0);
         w->Seid = SndCall(8, 0x2C, &obj->getPartsPtr(0)->world, 0x31, 0, obj);
         obj->r_no_2++;
@@ -387,7 +381,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
 
     switch (obj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->pMotion, w->motFall0, 0, 0, 0x8004, 0);
+        MotionSetCore(obj, &obj->Motion, w->motFall0, 0, 0, 0x8004, 0);
         w->Spd.x = 0.0f;
         w->Spd.y = -100.0f;
         w->Spd.z = 0.0f;
@@ -399,7 +393,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
         if (obj->pos.y < floor) {
             obj->pos.y = floor;
             SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);
-            MotionSetCore(obj, &obj->pMotion, w->motFall1, 0, 0, 0x8001, 0);
+            MotionSetCore(obj, &obj->Motion, w->motFall1, 0, 0, 0x8001, 0);
             MotionMove(obj, 0);
             obj->r_no_2++;
         } else {
@@ -574,9 +568,9 @@ static void plemEscape(cPlayer* pl)
         ang = 0.0f;
         ang = Muku(&em->pos, &w->Break_pos, em->ang.y, PI);
         if (ang < 0.0f) {
-            MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 3, 0x41, 0);
+            MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 3, 0x41, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 3, 1, 0);
+            MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 3, 1, 0);
         }
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
@@ -677,7 +671,7 @@ void plemEscape2(cPlayer* pl)
     switch (step) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
-        MotionSetCore(em, &em->pMotion, w->plMot, (void*) w->plMotA, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 0, 1, 0);
         EstSet(em, -1, 0, 0, 0x29, 0x39, 0, 0, em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);

@@ -21,27 +21,12 @@
 #include "snd.h"
 #include "math_sub.h"
 
-extern "C" {
-f64 atan2(f64 y, f64 x);
-}
-
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
 // The weapon object's own cAtariInfo (the object's collision with enemies while it is held).
 #define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
 
-// Routine bytes through int parameters (player.cpp PlRoutineSet).
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 // Scalar-reference stores (the following pG load stays below them).
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void IntSet(int& d, int v) { d = v; }
 
 void ObjMine_init(cObj* obj);   // wep14/objMine.cpp
 
@@ -237,7 +222,7 @@ static void wep14_r3_ready20(cPlayer* pl)
 {
     if (pl->motionMove()) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
@@ -257,7 +242,7 @@ static void wep14_r3_ready30(cPlayer* pl)
 
     if (pl->motionMove()) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
     }
     pl->ang.y += Muku(&pl->pos, &tgt, pl->ang.y, PI / 8.0f);
     pl->pos.x = pl->pos.x * 0.6f + pos.x * 0.4f;
@@ -327,7 +312,7 @@ static void wep14_r2_set(cPlayer* pl)
         } else {
             int md = 3;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     } else if ((fire = joyFireTrg())) {
         fire = WEP_OBJ(pl)->bulletNum();
@@ -489,7 +474,7 @@ static void wep14_r2_down(cPlayer* pl)
     }
     if (dmMotCk()) {
         pl->motionSet(WEP_ARC_PTR(0x15), 7, 0, 1, 0);
-        PlRoutineSet(pl, 0, 0, 2, 0);
+        EmRoutineSet(pl, 0, 0, 2, 0);
     } else {
         pl->r_no_3 = 1;
         pl->m_Hokan = 0xF;
@@ -580,7 +565,7 @@ static void wep14_r2_next(cPlayer* pl)
         pl->Body->waistMove();
         pl->motionMove();
         if ((int) pl->m_Work0++ > 9) {
-            PlRoutineSet(pl, 0, 6, 1, 0);
+            EmRoutineSet(pl, 0, 6, 1, 0);
         }
         break;
     }
@@ -605,7 +590,7 @@ static void wep14_r2_next(cPlayer* pl)
         } else {
             int md = 1;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     }
 }

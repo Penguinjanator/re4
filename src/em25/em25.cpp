@@ -34,10 +34,12 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "quake.h"
+#include "ref_access.h"
+#include "em.h"
 
 asm(".comm common_em25,52,4");
-
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 static void em25_R0_Init(cEm25* em);
@@ -126,38 +128,11 @@ static EmAtkInfo em25_poison_atk[1] = {
 };
 static int em25_atk_pad = 0;
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member views of the player pointer / pG: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em25DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-
-// u8 store through a reference with a promoted parameter: the constant is an SImode pseudo the
-// following routine bytes share (em2d.cpp).
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Module entry (SN loader): registers Em25Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -192,7 +167,7 @@ void em25DmCk(cEm25* em)
     int wep;
     int zero;
 
-    if ((em->be_flag & 2) && em25DeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
+    if ((em->be_flag & 2) && EmDeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -285,7 +260,7 @@ void cEm25::move()
     if (w->Atk_wait) {
         w->Atk_wait--;
     }
-    if (em25DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->Atk_wait = 120;
     }
     if (w->Fire_timer) {
@@ -1299,12 +1274,8 @@ void em25OnParent(cEm25* em)
             t = pPL->getPartsPtr(3);
             tgt = t->world;
             if (pSUB) {
-                d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                          (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                          (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-                if (d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                              (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                              (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+                d = VEC_DIST(&parent->pos, &pPL->pos);
+                if (d > VEC_DIST(&parent->pos, &pSUB->pos) +
                             3000.0f) {
                     t = pSUB->getPartsPtr(3);
                     tgt = t->world;
@@ -1499,7 +1470,7 @@ int em25CatchCk(cEm25* em)
     Vec b;
     Mtx m;
 
-    if (em25DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -1832,12 +1803,8 @@ void em25SetPoison(cEm25* em)
     t = pPL->getPartsPtr(3);
     tgt = t->world;
     if (pSUB) {
-        d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                  (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                  (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-        if (d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                      (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                      (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+        d = VEC_DIST(&parent->pos, &pPL->pos);
+        if (d > VEC_DIST(&parent->pos, &pSUB->pos) +
                     3000.0f) {
             t = pSUB->getPartsPtr(3);
             tgt = t->world;
@@ -1889,12 +1856,8 @@ int cEm25::ckLock()
     f32 d;
 
     if (parent && pSUB) {
-        d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
-                  (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
-                  (parent->pos.z - pPL->pos.z) * (parent->pos.z - pPL->pos.z));
-        return d > SQRTF((parent->pos.x - pSUB->pos.x) * (parent->pos.x - pSUB->pos.x) +
-                         (parent->pos.y - pSUB->pos.y) * (parent->pos.y - pSUB->pos.y) +
-                         (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
+        d = VEC_DIST(&parent->pos, &pPL->pos);
+        return d > VEC_DIST(&parent->pos, &pSUB->pos) +
                        3000.0f;
     }
     return 0;

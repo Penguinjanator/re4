@@ -5,11 +5,7 @@
 #include "emobj.h"
 #include "math_sub.h"
 #include "motion.h"
-
-extern "C" {
-void YarareInit(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h);            // at_mod.cpp
-void YarareInitCube(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h, f32 rad);
-}
+#include "emhit.h"
 
 // Constructor-time defaults of an object enemy: no motion / collision flags, no collision
 // pieces, effect and etc ids 0xFF.
@@ -193,9 +189,9 @@ void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 r
     asm("" : "+r"(f));
     f |= 1;
     if (cube == 0) {
-        YarareInitCube(this, n, f, p.x, p.y, p.z, w, h, rad);
+        YarareInitCube(this, p.x, p.y, p.z, w, h, rad, n, f);
     } else {
-        YarareInit(this, n, f, p.x, p.y, p.z, w, h);
+        YarareInit(this, p.x, p.y, p.z, w, h, n, f);
     }
 }
 

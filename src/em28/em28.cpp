@@ -24,9 +24,9 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em28Func)(cEm28*);
@@ -43,22 +43,6 @@ static void em28_R0_Die(cEm28* em);
 static void em28_R1_Die_Normal(cEm28* em);
 static void em28_R1_Die_Air(cEm28* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // Module entry (SN loader): registers Em28Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -250,7 +234,7 @@ void cEm28::move()
         return;
     }
     partsWorldCalc();
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (w->flags & 0x10) {
@@ -258,7 +242,7 @@ void cEm28::move()
     } else {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < spd * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -341,8 +325,8 @@ static inline void em28BellSet(cEm28* em)
 {
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        memcpy((u8*) pG + 0x4F3C, &em->pos, sizeof(Vec));
-        pG->bell_stat = 0;
+        pGS->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 0;
     }
 }
 
@@ -781,7 +765,7 @@ int em28EscapeCk(cEm28* em)
 
         // three identical arms + the override after the switch: the arm sets are dead (the
         // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 15000.0f;
             break;
@@ -793,8 +777,8 @@ int em28EscapeCk(cEm28* em)
             break;
         }
         r = 15000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-            + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z) < r * r) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+            + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z) < r * r) {
             esc = 1;
         }
     }

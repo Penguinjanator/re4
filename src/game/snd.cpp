@@ -34,30 +34,15 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "flr_at.h"
+#include "ref_access.h"
+#include "area.h"
+#include "esp.h"
 
 extern "C" void ADXT_SetOutputMono(int sw);
 void* GetDataExt(void* arc, const char* tag, int no);
-int AreaHitCheck(void* area, Vec* pos);
-int EspPlWaterCall(int no, Vec* pos);
-void EspFootCall(int no, int type, Vec* pos);
 
-// Reference read of pG: the load stays inside the store loop (SndBgmTblSet; mercenaries.cpp SysRef).
-static inline GlobalWork* GRefS(GlobalWork*& p)
-{
-    return p;
-}
 
-// Reads an address-taken u16 through a reference (matching helper, no semantics).
-static inline u16 RefU16(u16& x)
-{
-    return x;
-}
 
-// Reads a u32 through a reference (matching helper, no semantics).
-static inline u32 RefU32(u32& x)
-{
-    return x;
-}
 
 #define SND_FILE "D:/Bio4/Prog/snd.cpp"
 #define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
@@ -777,7 +762,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     int ok = 1;
     int i;
 
-    if (RefU32(pG->Debug_flg[2]) & 0x80000) {
+    if (U32Ref(pG->Debug_flg[2]) & 0x80000) {
         return 0;
     }
     pan_calc = 1;
@@ -985,12 +970,12 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     snd_id = Snd_iss_req_para(blk, no, 0);
 
     if (blk == 3 || blk == 4) {
-        pSnd->bgm_work[RefU16(blk) - 3].used = 1;
-        pSnd->bgm_work[RefU16(blk) - 3].id = snd_id;
-        pSnd->bgm_work[RefU16(blk) - 3].vol = v;
-        pSnd->bgm_work[RefU16(blk) - 3].vol_def = sit->vol;
-        pSnd->bgm_work[RefU16(blk) - 3].no = RefU16(no);
-        OSReport("BGM%d seq %d play\n", RefU16(blk) - 3, RefU16(no));
+        pSnd->bgm_work[U16Ref(blk) - 3].used = 1;
+        pSnd->bgm_work[U16Ref(blk) - 3].id = snd_id;
+        pSnd->bgm_work[U16Ref(blk) - 3].vol = v;
+        pSnd->bgm_work[U16Ref(blk) - 3].vol_def = sit->vol;
+        pSnd->bgm_work[U16Ref(blk) - 3].no = U16Ref(no);
+        OSReport("BGM%d seq %d play\n", U16Ref(blk) - 3, U16Ref(no));
     }
     if (sit->srd_type == 3) {
         vol_calc = 0;
@@ -1004,8 +989,8 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
                     u32 t = seq | 0x80;
                     w->type = t;
                     w->id = snd_id;
-                    w->no = RefU16(no);
-                    w->blk = RefU16(blk);
+                    w->no = no;
+                    w->blk = U16Ref(blk);
                     w->svol_ofs = svol_ofs;
                     w->vol_ofs = vol_ofs;
                     w->pitch_ofs = pitch_ofs;
@@ -2366,7 +2351,7 @@ int SndBgmTblSet(u16 room, int no)
                     for (k = 0; k < 6; k++) {
                         rs->bgm[k] = r->e[j].bgm[k];
                         rs->str[k] = r->e[j].str[k];
-                        if (room == GRefS(pG)->room_id) {
+                        if (room == GRef(pG)->room_id) {
                             pSnd->room_bgm_tbl[k] = r->e[j].bgm[k];
                             pSnd->room_str_tbl[k] = r->e[j].str[k];
                         }

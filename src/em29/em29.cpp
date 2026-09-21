@@ -26,9 +26,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em29Func)(cEm29*);
@@ -52,15 +53,7 @@ static void em29_R1_Die_Reset(cEm29* em);
 static void em29_R1_Die_FadeOut(cEm29* em);
 static void plem29_BatRush(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the `lis pLog@ha`
 // is not hoisted out of the scan loop (em27.cpp).
@@ -71,26 +64,7 @@ struct PlayerPtr {
     } else                                                                              \
         PSVECNormalize(src, dst)
 
-// Work `no` of the enemy manager with the range check kept (em.h's EmMgrWork lets jump threading
-// fold it away inside the scan loops; the manager pointer local defeats it, db_light objWorkChkP).
-static inline cEm* em29EmWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
 
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Damage / death routine per the wait state the bat was in (0: flying, 1: on the ceiling, 2: on the ground).
 static inline void em29DmRoutineSet(cEm29* em, u32 kind)
@@ -1165,8 +1139,8 @@ void em29ObaHitCk(cEm29* em)
     if (!(em->be_flag & 2)) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1228,8 +1202,8 @@ int em29LastCk(cEm29* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1265,8 +1239,8 @@ int em29FriendCk(cEm29* em)
     if (Ctrl12CntCk(EM29_WK(em)->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10)) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em29EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;

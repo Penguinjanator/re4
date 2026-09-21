@@ -10,6 +10,8 @@
 #include "math_sub.h"
 #include "pl_cloth.h"
 #include "motion.h"
+#include <string.h>
+#include "em_cloth.h"
 
 // Event costume / cloth model: follows a parts of its parent with a slerp blend and runs the
 // cloth simulation selected by `type` (player costumes, enemy cloth sets, the ribbon / rope).
@@ -20,29 +22,7 @@ public:
 };
 
 extern "C" {
-void* memset(void* p, int c, unsigned int n);
 void obj18SetOya(cObj18* obj);
-void Em34ClothSet1(cModel* m, PlCloth* pCloth);
-void Em34ClothSet2(cModel* m, PlCloth* pCloth);
-void Em34ClothMove1(cModel* m, PlCloth* pCloth);
-void Em34ClothMove2(cModel* m, PlCloth* pCloth);
-void Em34ClothReset(cModel* m);
-void Em37HairSet(cModel* m, PlCloth* pCloth);
-void Em37CoatSet(cModel* m, PlCloth* pCloth);
-void Em37HairMove(cModel* m, PlCloth* pCloth);
-void Em37CoatMove(cModel* m, PlCloth* pCloth);
-void Em37ClothReset(cModel* m);
-void Em30ClothSet1(cModel* m, PlCloth* pCloth);
-void Em30ClothSet2(cModel* m, PlCloth* pCloth);
-void Em30ClothMove1(cModel* m, PlCloth* pCloth);
-void Em30ClothMove2(cModel* m, PlCloth* pCloth);
-void Em30ClothReset(cModel* m);
-void Em33ClothSet(cModel* m, PlCloth* pCloth, int mode);
-void Em33ClothSet2(cModel* m, PlCloth* pCloth, int mode);
-void Em33ClothMove(cModel* m, PlCloth* pCloth);
-void Em33ClothMove2(cModel* m, PlCloth* pCloth);
-void Em33ClothReset(cModel* m);
-cObj* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl);
 }
 
 // Unused work-size error message.
@@ -276,7 +256,7 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
             pLog->err(0, 0, "Event::ExePacket_Mot : dat failed");
             return 0;
         }
-        w->child = Em2bShortRopeSet(obj, &Obj18Cloth1, cbin, ctpl);
+        w->child = (cObj*) Em2bShortRopeSet(obj, &Obj18Cloth1, cbin, ctpl);
         if (w->child) {
             w->child->setNoSuspend(1);
         }
@@ -535,6 +515,6 @@ void Obj18CmfOn(cObj* obj, u32 no)
 
     cmf[0] = Obj18CmfGet(obj);
     p = cmf;
-    p[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(p, no);
     Obj18CmfSet(obj, cmf[0]);
 }

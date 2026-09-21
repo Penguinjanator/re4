@@ -21,8 +21,8 @@
 #include "mercenaries.h"
 #include "snd.h"
 #include "db_log.h"
+#include <string.h>
 
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Room 4-02 (D:/Bio4/Prog/r402.cpp): the Mercenaries waterworld; the enemy waves per area (sce_at
 // flags 0x17C), the sliding doors, the two boat events and the treasure cases.
@@ -53,12 +53,6 @@ struct R402WorkPtr {
     R402Work* p;
 };
 
-// Typed view of pG->emlist (r400): pG is loaded before the index shift.
-struct EmListView {
-    u8 pad[0x52E8];
-    EmListData Em_list[0x100];
-};
-#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static R402WorkPtr r402_work;
 
@@ -580,7 +574,7 @@ int R402EmSetSubMugen(int no, int list, int* cnt, int max, int findPl)
 // Creates list entry `list` into slot `no`; findPl 1: walk to the player, else search for him.
 void R402EmSetSub(int no, int list, int findPl)
 {
-    cEm* em = EmSetEvent(&EM_LIST_V(list));
+    cEm* em = EmSetEvent(&pG->Em_list[list]);
 
     if (em == errEm) {
         pLog->err(0, 0, "R402EmSetSub : EmSetEvent error");

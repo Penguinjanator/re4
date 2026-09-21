@@ -38,14 +38,13 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include <signal.h>
+#include <dolphin/os.h>
+#include "wep_mod.h"
 
-extern "C" void OSReport(const char* fmt, ...);
-extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
-extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define SUBARC(no) PL_ARC_PTR(pEm->subArc, no)
 #define OARC(no) PL_ARC_PTR(owner->subArc, no)
 #define EM ((cEm*) this)
@@ -53,7 +52,6 @@ extern void (*ObjInitFunc[0x40])(cObj*);        // game/obj.cpp
 #define LITEM ((LuisItemWork*) work)
 static inline void U32And(u32& d, u32 m) { d &= m; }
 // Reference store: a MEM with neither the struct nor the scalar flag keeps a following member load below it.
-static inline void PSet(void*& d, void* v) { d = v; }
 
 static inline void RoutineSet(cSubLuis* o, int r0)
 {
@@ -131,7 +129,7 @@ cSubLuis::cSubLuis()
 cSubLuis::~cSubLuis()
 {
     ObjMgr.destroy(pItem);
-    PSet((void*&) pSUB, 0);   // the inlined ~cUnit's be_flag load stays below the store
+    (void*&) pSUB = 0;   // the inlined ~cUnit's be_flag load stays below the store
 }
 
 // The light info origin both models use (one static: the inline is expanded where it is defined).
@@ -1204,8 +1202,8 @@ int doorHitCheck(Vec* a, Vec* b)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         if (em && (em->be_flag & 0x201) == 1 && em->hp > 0 && (em->id == 0x41 || em->id == 0x4E) &&
             emLineAtCk(em, a, b, 1e16f, 0)) {
             return 1;
@@ -1229,7 +1227,7 @@ void cAnalysis::move()
     time++;
     // Round-robin scan from the entry after idx, until a target is found or it wraps around.
     i = idx;
-    while (!isTarget(owner, em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * (i = (i + 1) % EmMgr.nArray)))) {
+    while (!isTarget(owner, em = EmMgr.fastAt((i = (i + 1) % EmMgr.getArrayNum())))) {
         if (i == idx) {
             found = 0;
             goto scanned;
@@ -1725,7 +1723,7 @@ int greThrowCheck()
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o; o = (cObj*) o->pNext) {
+    for (o = ObjMgr.getActiveWork(); o; o = ObjMgr.getNext(o)) {
         if (fabsf(o->pos.y - (pSUB->pos.y + 2000.0f)) < 2500.0f) {
             switch (o->id) {
             case 0x1A: return 0x13;

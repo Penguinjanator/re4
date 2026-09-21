@@ -62,35 +62,20 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "foot_shadow.h"
+#include "ref_access.h"
+#include <string.h>
+#include <dolphin/os.h>
+#include "pl_mod.h"
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-char* strcpy(char* dst, const char* src);
-char* strcat(char* dst, const char* src);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-unsigned int strlen(const char* s);
-char* strchr(const char* s, int c);
-char* strstr(const char* s, const char* sub);
-// game/eff_sys.cpp
-// game/read.cpp: SearchEmModule (C++ linkage) comes from read.h
 // game/shape.cpp
 void ClrShape(cModel* m);
 // game/filter01.cpp
 void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
 // game/foot_shadow_tbl.cpp (incomplete types: full address, not @sda21)
-extern u8 pl_fs_tbl[];
 extern u8 Em10_fs_tbl[];
 extern u8 Em2c_fs_tbl[];
 }
-
-// game/emdata.cpp
-void EspEmDataSwapPush(int id);
-void EspEmDataSwapPop(int id);
-// game/shape.cpp
-int ShapeSet(void* work, int frame, void* data, int flags);
-
 
 // Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
@@ -104,11 +89,6 @@ static inline void EvtMesDeleteAll()
     }
 }
 
-// Reference store: keeps a following `pG` load below it (global.h FSet for ints).
-static inline void IntSet(int& d, int v)
-{
-    d = v;
-}
 
 // StatusFlag bit test helper.
 // Status / tool flag test: the `li 1; andis.; bne; li 0; cmpwi` chains.
@@ -2207,7 +2187,7 @@ int EventMgr::DelAll()
     Event* e;
 
     for (i = 0; i < nArray; i++) {
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (e->isAlive()) {
             DelEvt(e, 0);
         }
@@ -2226,7 +2206,7 @@ int EventMgr::Run()
 
     dieCheck();
     for (i = 0; i < nArray; i++) {
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (!e->isAlive()) {
             continue;
         }
@@ -2286,7 +2266,7 @@ int EventMgr::IsAliveEvt(u32* key, Event** out, int chk)
 
     for (i = 0; i < nArray; i++) {
         char* p = nm;
-        e = (Event*) ((u8*) pArray + size * i);
+        e = fastAt(i);
         if (!e->isAlive()) {
             continue;
         }

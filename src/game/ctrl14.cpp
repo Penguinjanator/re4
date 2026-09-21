@@ -16,11 +16,7 @@
 #include "esp.h"
 #include "snd.h"
 #include "math_sub.h"
-
-extern "C" {
-u8 EspPullCoreKind();
-void EffectEspgenDelete(int Core_flg, int kind, cModel* obj);
-}
+#include "est.h"
 
 // Creates the control for dragon `type` from the room's scroll objects (base / head / jaws, ids
 // 0xA.., 0xF.., 0x14..), gives it an effect Core_kind and three collision pieces from room

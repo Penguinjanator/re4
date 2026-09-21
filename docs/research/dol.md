@@ -347,8 +347,8 @@
     low bound; `default:` written first lays its body first). `if (a > 3 || a < 2)` and every other
     if-form is range-folded to `subi 2; cmplwi 1`. Conversely `subi 1; cmplwi 1; bgt` (em3cFootSe)
     is `if (em->seNo == 1 || em->seNo == 2)`; a `case 1: case 2:` switch gives the two compares.
-  - The dead `lbz bell_stat; cmpwi 0; beq L; cmpwi 1; L:` pair (also em10FindCk's TODO) is
-    `f32 r; switch (pG->bell_stat) { case 0: r = 25000.0f; break; case 1: r = 25000.0f; break;
+  - The dead `lbz SeInfo.type; cmpwi 0; beq L; cmpwi 1; L:` pair (also em10FindCk's TODO) is
+    `f32 r; switch (pG->SeInfo.type) { case 0: r = 25000.0f; break; case 1: r = 25000.0f; break;
     default: r = 25000.0f; break; }` with `d < r * r` and `w->plDist < r`: the identical arms are
     cross-jumped, the compares survive, and `r` (three definitions) is never constant-folded so
     `fmuls r, r` is emitted. OPEN: the target issues `lfs r` and the `fmuls` late in the block
@@ -2066,7 +2066,7 @@
   the compare skeleton; tag every line `// COMPILER-DIFF: #13`. For the em21DmCk/MercSysInitRoom integer
   shape the analogous form is `register int c asm("rN")` set right before the store.
   **#13 sweep (2026-09-10, see "COMPILER-DIFF #13 sweep" below): the bell-radius shape does NOT need the
-  hard register.** `f32 r; switch (bell_stat) {three identical arms} r = K;` (the em3cFindCk override) gives
+  hard register.** `f32 r; switch (SeInfo.type) {three identical arms} r = K;` (the em3cFindCk override) gives
   0 words in em10 FindCk, em21 WakeCk, em28 EscapeCk and the em2d FindCk bell block: the arm sets are dead,
   `r` becomes a block-local pseudo loaded at the use and local-alloc hands it the next free FPR (f9 after
   f0/f13/f12/f11/f10 in FindCk, f0 in WakeCk, f13 in EscapeCk where f0 holds the chain's result) and the
@@ -2226,7 +2226,7 @@
   launder changes the parameter register order).
 - em2d recipes verified privately in the #13 sweep (2026-09-10, NOT applied — the em2c/em2d owner applies
   them): em2dFindCk 34 -> 12 words with the untagged bell override, i.e. `r = 25000.0f;` written right after
-  the three-arm `switch (pG->bell_stat)` (the bell block then matches byte for byte incl. `lis r10`/`lfs
+  the three-arm `switch (pG->SeInfo.type)` (the bell block then matches byte for byte incl. `lis r10`/`lfs
   f9`/`fmuls f13,f9,f9`); the 12 left are the `&&` chain's failing branches (three separate out-of-line
   targets in ours, one label in the target). InitRtnSet's case-4 shared 0.0 in f31 is an ALLOCATED
   constant in the original (the opposite of the #13 shape): not a #13 candidate.
@@ -2644,8 +2644,8 @@
   `0x17/0x2A` arm is `EmRoutineSet(em, 2, 0, 0, 0)` (was 2,2,0,0) — with r0 = zero / r9 = 2 in that last arm, the guard
   block's RS(2,6) shares only the `stb r0,fe` before `end` (cross jump minimum 1 against the code before the label) and
   the two full RS(2,6) copies survive as in the target (jump_chain never lists jumps to the new label, so two copies
-  redirected there are never merged with each other). `pGS->bell_pos = em->pos` (struct view on the Vec copy) reloads pG
-  for the following `pGS->bell_stat = 0` (em2cDmCk / em2cTailDmCk too). em2cDmCk (501 -> 283): blood switch default
+  redirected there are never merged with each other). `pGS->SeInfo.pos = em->pos` (struct view on the Vec copy) reloads pG
+  for the following `pGS->SeInfo.type = 0` (em2cDmCk / em2cTailDmCk too). em2cDmCk (501 -> 283): blood switch default
   group adds 0x14 (`5,6,9,A,D,F,12,13,14,28,29,2C,2D`), hp<=0 switch = the em2d set and order, `flags & 0x400` switch
   default-first, last switch explicit default `D,12,13,29,2D` written BEFORE `case 0x17`, and `int two = 2` declared
   between `!em2cDeadCk(em)` and the `(int) pG->sceat_x17C < 0` test (nested if) for the r28 `2` of the first two arms.
@@ -8197,8 +8197,8 @@ Harness ~/.cache/dol_pz5 (variant copies judged with tools/research/kit/variant.
   PlWepLockCtrl 2 -> 0: `asm("" : "=m"(repCtr))` (alias anchor: the target reloads repCtr in the shared `rot.y -=` arm).
 - **pl_wep PlWepHitCheck2 242 -> 180, zero code, OPEN:** the `switch (type)` is 29 SEPARATE case nodes (every value its own
   `prio = K; break;` body -- identical bodies are merged only by the post-reload cross-jump, so no two consecutive values
-  share a label and the balanced tree is the target's: root 0xF, left root 7, right root 0x17); `pG->bell_pos = hit` as a
-  byte-pointer `memcpy((u8*) pG + offsetof, &hit, sizeof(Vec))` (keeps the pG reload below the Vec stores); the nested call
+  share a label and the balanced tree is the target's: root 0xF, left root 7, right root 0x17); `pG->SeInfo.pos = hit; pGS->SeInfo.type = 0`
+  (the `pGS` type store gives the pG reload); the nested call
   `EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type)` (`&nrm` is evaluated into a pseudo before the inner call:
   `addi r30,r1,..` ahead of the `bl`); the 0xD/0x12/0x13 test as a switch with `default:`. Residue: gcse PRE places the
   second switch's `cmpwi cr7,type,0x17` into the left-root block, the 4/8/0xC body and the 0xF body only in the target; our

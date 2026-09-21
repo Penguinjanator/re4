@@ -66,20 +66,22 @@
 #include "em_set.h"
 #include "db_log.h"
 #include "gx.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
+#include "read.h"
+#include "trans.h"
+#include "cons.h"
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 // game/read.cpp
 void ReadPlayerData(int type, int costume);
 void ReadAreaData();
-void EmReadInit();
 void ContinueWepData();
 // game/eff_sys.cpp / esp.cpp / espgen.cpp
 void EspRoomInit();
 int EspArrayAlloc(u32 n);
 int EspMove();
 int EspDispInfo();
-int EspDataLoad(u32 addr, u32 owner, int flag);
 int EspgenRoomInit();
 int EspgenArrayAlloc(int n);
 int EspgenMove();
@@ -95,8 +97,6 @@ int LightAreaDataLoad(void* data);
 void LightAreaUpdate();
 // game/player.cpp
 void PlayerInit();
-// game/trans.cpp
-void SetPrimBuffPtr();
 // game/filter09.cpp
 void Filter09GetEFB_801D19E0();
 void Filter09SetbUse(int use, int spred);
@@ -106,22 +106,14 @@ void* GetDataExt(void* arc, const char* tag, int no);
 // game/cons.cpp (C++ linkage)
 struct ConsRoom;
 int ConsInitRoom(ConsRoom* p);
-u32 ConsGetRoomValue(u32 no);
 // game/db_menu.cpp (C++ linkage)
 void DbMenuExec();
 void DbMenuRoomInit();
 
 // Stores through a scalar reference: not struct-member MEMs, so GCC 2.95 assumes they may alias
 // pG and reloads it afterwards, as the original does after every GlobalWork store.
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void S32Set(s32& d, s32 v) { d = v; }
 // One flag test per call: fold would merge `(f & A) || (f & B)` on one lvalue into a single mask.
 static inline u32 Flag54(u32 b) { return pG->System_flg & b; }
-// 64-bit key tests kept as u64 values: `(hi & 0) | (lo & b)` is tested with `or.` of both words
-// (a plain `if (Key.trg & b)` is narrowed to the low word).
-static inline u64 KeyTrg(u64 b) { return Key.trg & b; }
-static inline u64 KeyOn(u64 b) { return Key.on & b; }
 
 union FadeColor {
     GXColor c;
@@ -761,7 +753,7 @@ void gameMainLoop()
     if (!SysFlagChk(pG, SYS_DOORDEMO)) {
         gameDebugDisp();
     }
-    if (KeyTrg(0x2000) && !KeyOn(0x400000) && !DbgFlagChk(pG, DBG_TEST_MODE) && OptionOpenCheck() == 1) {
+    if ((Key.trg & 0x2000) && !(Key.on & 0x400000) && !DbgFlagChk(pG, DBG_TEST_MODE) && OptionOpenCheck() == 1) {
         Game.Rno_bak = *(u32*)&pG->Rno0;
         pG->Rno0 = 6;
         pG->Rno1 = 0;
@@ -808,13 +800,13 @@ void GameContinue(int mode)
     if (mode == 0) {
         U16Set(pG->r_continue_cnt, x4F90 + 1);
         U16Set(pG->c_continue_cnt, x8338 + 1);
-        U16Set(pG->g_continue_cnt, g_continue_cnt + 1);
+        pG->g_continue_cnt = g_continue_cnt + 1;
     }
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
-    memcpy((u8*) pG + 0x2C, &pG->sub_pos, sizeof(Vec));
-    FSet(pG->NextY, pG->sub_angle);
+    pG->NextPos = pG->sub_pos;
+    FSet(pGS->NextY, pGS->sub_angle);
     U16Set(pG->RoomNo_next, pG->room_id);
     pG->Part_next = pG->Part;
     pG->Rno0 = 4;
@@ -845,18 +837,22 @@ void clearGlobalSaveData()
     u8 x8354 = pG->game_mode;
     s32 game_mode = pG->SaveKind;
 
-    memcpy(&keep2, (u8*) pG + 0x8330, sizeof(keep2));
-    memcpy(&keep, (u8*) pG + 0x4FA4, sizeof(keep));
+    memcpy(&keep2, &pG->shootingScore, sizeof(keep2));
+    memcpy(&keep, &pG->pl_life, sizeof(keep));
     memclr_asm(pG->save_data_start_addr, 0x36F8);
-    memcpy((u8*) pG + 0x8330, &keep2, sizeof(keep2));
-    memcpy((u8*) pG + 0x4FA4, &keep, sizeof(keep));
+    {
+        u32* score = (u32*) &pG->shootingScore;
+
+        memcpy(score, &keep2, sizeof(keep2));
+    }
+    memcpy(&pG->pl_life, &keep, sizeof(keep));
     U16Set(pG->game_cnt, x4F8E);
     U32Set(pG->peseta, x4F98);
     pG->language = x4F93;
     pG->game_mode = x8354;
     S32Set(pG->SaveKind, game_mode);
     U16Set(pG->pl_life, pG->pl_life_max);
-    U16Set(pG->ashley_life, pG->ashley_life_max);
+    pG->ashley_life = pG->ashley_life_max;
     InitGameTime();
 }
 
@@ -869,7 +865,11 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
         return 0;
     }
     checkAddr(data);
-    memcpy((u8*) pG + 0x4F80, data->pGlobal, sizeof(GameSaveBlock));
+    {
+        u32* save = (u32*) &pG->save_data_start_addr;
+
+        memcpy(save, data->pGlobal, sizeof(GameSaveBlock));
+    }
     if (pG->SaveKind == 3) {
         clearGlobalSaveData();
         RoomData.clear(data->pRoom);
@@ -880,7 +880,7 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
             Merchant2ndRoundInit();
         }
         ItemMgr.dumpType(7);
-        U16Set(pG->room_id, 0x120);
+        pG->room_id = 0x120;
     } else {
         RoomData.load(data->pRoom);
         SscrnDataLoad(data->pSscrn);
@@ -900,7 +900,7 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
     }
     checkAddr(data);
     if (pG->Rno0 == 3) {
-        memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
+        VEC_COPY(pG->sub_pos, pPL->pos);
         FSet(pG->sub_angle, pPL->ang.y);
     }
     S32Set(pG->SaveKind, mode);
@@ -1161,7 +1161,7 @@ void gameDiedemo(DiedemoWork* w)
             SndStrReq(0, 0, (int) 0x80000003, 0, 0, 0.0f);
             /* fallthrough */
         case 2:
-            if (cnt >= w->exec_frame + 0x10E || KeyTrg(0x80000000)) {
+            if (cnt >= w->exec_frame + 0x10E || (Key.trg & 0x80000000)) {
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, 0x2E, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
@@ -1180,7 +1180,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             break;
         case 4:
-            trg = KeyTrg(0x80000000);
+            trg = Key.trg & 0x80000000;
             if (trg) {
                 if (sel) {
                     timer = 0xB1;
@@ -1198,10 +1198,10 @@ void gameDiedemo(DiedemoWork* w)
             } else {
                 int old = sel;
 
-                if (KeyTrg(0x08000000)) {
+                if ((Key.trg & 0x08000000)) {
                     sel = 1;
                 }
-                if (KeyTrg(0x04000000)) {
+                if ((Key.trg & 0x04000000)) {
                     sel = 0;
                 }
                 if (old != sel) {
@@ -1309,8 +1309,8 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
-    memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
-    FSet(pG->sub_angle, pG->NextY);
+    pG->sub_pos = pG->NextPos;
+    FSet(pGS->sub_angle, pGS->NextY);
     U16Set(pG->room_id, pG->RoomNo_next);
     pG->Part = pG->Part_next;
     if (!FlagChkSign(pG->Debug_flg, DBG_ROOMJMP) && !SysFlagChk(pG, SYS_CONTINUE)) {
@@ -1483,27 +1483,27 @@ void GameAddPoint(int type)
                     add = (int) (((f32) add - 0.5f) * rate);
                 }
             }
-            S32Set(pG->point, pG->point + add);
+            pG->point = pG->point + add;
         }
     }
     if (pG->point > 0x2AF7) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->point < 0) {
-        S32Set(pG->point, 0);
+        pG->point = 0;
     }
     if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
-        S32Set(pG->point, 0x270F);
+        pG->point = 0x270F;
     }
     if (SysFlagChk(pG, SYS_HARD_MODE)) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->shooting_mode != 0) {
-        S32Set(pG->point, 0x2AF7);
+        pG->point = 0x2AF7;
     }
     if (pG->language != 0) {
         if (pG->point < 1000) {
-            S32Set(pG->point, 1000);
+            pG->point = 1000;
         }
     }
     if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
@@ -1699,8 +1699,8 @@ void gameDebugDisp()
             }
         }
         if (DbgFlagChk(pG, DBG_EM_LIFE_DISP)) {
-            for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            for (i = 0; i < EmMgr.getArrayNum(); i++) {
+                cEm* em = EmMgr.fastAt(i);
                 Vec pos2;
                 Vec pos;
                 Vec scr2;
@@ -1881,7 +1881,7 @@ int cManager<T>::dispWorkNum(int x, int y, int col, int sub)
     }
     n = 0;
     for (i = 0; i < nArray; i++) {
-        T* p = (T*) ((u8*) pArray + size * i);
+        T* p = fastAt(i);
         if (p->be_flag & 0x601) {
             n++;
         }

@@ -24,9 +24,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em24Func)(cEm24*);
@@ -40,32 +41,8 @@ static void em24_R1_Coil(cEm24* em);
 static void em24_R0_Damage(cEm24* em);
 static void em24_R0_Die(cEm24* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em24DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em24Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -98,7 +75,7 @@ void em24DmCk(cEm24* em)
     Em24Work* w = EM24_WK(em);
     int wep;
 
-    if (em->hp > 0 && !em24DeadCk(em)) {
+    if (em->hp > 0 && !EmDeadCk(em)) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -166,7 +143,7 @@ void cEm24::move()
     if (w->Be_flg & 0x10) {
         return;
     }
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     EmAtCheck(this);
     atari.move();
     if (hp > 0) {
@@ -193,7 +170,7 @@ void cEm24::move()
             SatMgr.checkAir(this, 0);
         }
     }
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < spd * 0.5f) {
         w->HoseiCnt++;
     } else {
         w->HoseiCnt = 0;
@@ -641,7 +618,7 @@ void em24SlopeMove(cEm24* em)
     if (fa < -400.0f) {
         fa = -400.0f;
     }
-    len = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+    len = VEC_DISTXZ(&a, &b);
     w->slopeRot.x = w->slopeRot.x * 0.95f + -atan2f(fa, len) * 0.05f;
     RotMatrix(m, &w->slopeRot);
     PSMTXConcat(em->mat, m, em->mat);

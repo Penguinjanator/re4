@@ -2,6 +2,7 @@
 #include "vec.h"
 #include "gx.h"
 #include "t_prim.h"
+#include "camera.h"
 
 // Debug primitive drawing for the tool modules (D:/Bio4/Prog/t_prim.cpp, the same object in every
 // t_*/Tools REL that draws). The DOL's game/t_prim.cpp is the dead-stripped version of this file: the
@@ -9,7 +10,6 @@
 // TprimDrawCursor/TprimDrawMtxDirection come from (their constant pools survived in the DOL as the
 // 0x60 anonymous .rodata words in front of t_prim's data).
 
-void CameraCurrentProjection();
 
 static void set_attr_common();
 static void set_attr_f32();

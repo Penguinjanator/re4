@@ -40,30 +40,14 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
-
-extern "C" {
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);   // em_sub.cpp
-}
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+#include "est.h"
+#include "em_sub.h"
 
 // Head of a key-frame motion data block (motion.h MotionData).
 struct RockMotData {
     u16 maxFrame;   // 0x00
 };
 
-// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo shared with the
-// later `= 0` stores (emmine SetMine).
-static inline void LockPartsSet(cEm* em, int no)
-{
-    em->lockParts = no;
-}
-
-// Struct-member view of pPL (the pGS trick): the load stays below the preceding atari flag store.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define PLS (((PlayerPtr*) &pPL)->p)
 
 typedef void (*EmRockFunc)(cEmRock*);
 
@@ -156,7 +140,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     // second block's literal zeros are the fresh post-label `li r30, 0` of the original.
     int zero;
     zero = 0;
-    LockPartsSet(em, zero);
+    em->lockParts = zero;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -471,9 +455,7 @@ void emRock_R1_Fall(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -591,9 +573,7 @@ void emRock_R1_Throw(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -705,9 +685,7 @@ void emRock_R1_Throw2(cEmRock* em)
 
         PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+        len = VEC_DIST(&em->pos, &em->pos_old);
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -774,7 +752,7 @@ void emRock_R1_Roll(cEmRock* em)
         }
         emRockPushCk(em, 0);
         em->atari.m_flag &= ~0x200;
-        PLS->ang.y = em->ang.y;
+        pPLS->ang.y = em->ang.y;
         SetPlDamage(em, (void (*)(cPlayer*)) plemRockEscape);
         w->Roll_wait = 75;
         w->spd.x = 0.0f;
@@ -843,9 +821,7 @@ void emRock_R1_Roll(cEmRock* em)
 
             PSVECSubtract(&em->pos, &em->pos_old, &d);
             PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-            len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
-                        (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
-                        (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
+            len = VEC_DIST(&em->pos, &em->pos_old);
             if (len > 500.0f) {
                 len = 500.0f;
             }
@@ -886,7 +862,7 @@ void emRock_R1_Drop(cEmRock* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.m_flag &= ~0x200;
-        MotionSetCore(em, &em->pMotion, w->mot0, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->mot0, 0, 0, 1, 0);
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
@@ -895,7 +871,7 @@ void emRock_R1_Drop(cEmRock* em)
         }
         em->r_no_2++;
     case 2:
-        MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
         EstSet(em, -1, 0, 0, 1, 4, 0, w->espKind, em, 0);
         SndCall(6, 8, &em->pos, 0, 0, em);
         w->Timer = 37;
@@ -945,7 +921,7 @@ void emRock_R1_Drop2(cEmRock* em)
         em->r_no_2++;
         em->atari.m_flag &= ~0x200;
     case 1:
-        MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
         MotionMove(em, 0);
         if (!(em->flag & 1)) {
             break;
@@ -967,7 +943,7 @@ void emRock_R1_Drop2(cEmRock* em)
         SetPlDamage(em, (void (*)(cPlayer*)) plemDropFind);
         em->r_no_2++;
     case 3:
-        MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
         MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
@@ -976,7 +952,7 @@ void emRock_R1_Drop2(cEmRock* em)
         em->r_no_2++;
         break;
     case 4:
-        MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
         EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
         SndCall(6, 4, &em->pos, 0, 0, em);
         w->Timer = 31;
@@ -1045,7 +1021,7 @@ void plemDropFind(cPlayer* pl)
     case 1:
         if (pl->m_Work0) {
             pl->m_Work0--;
-            MotionSetCore(pl, &pl->pMotion, w->mot5, 0, 3, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->mot5, 0, 3, 1, 0);
             emRockPushCamMove((cEmRock*)pl->pEmCatch);
         } else {
             emRockDropCamMove((cEmRock*)pl->pEmCatch);
@@ -1067,7 +1043,7 @@ void plemDropEscape(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->mot4, 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, w->mot4, 0, 3, 1, 0);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1575,7 +1551,7 @@ void plemRockEscape(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
             emRockPushCamMove((cEmRock*)pl->pEmCatch);
-            MotionSetCore(pl, &pl->pMotion, w->plMot[0], w->plMot[1], 0, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->plMot[0], w->plMot[1], 0, 1, 0);
             pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 3.1415927f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionMove(pl, 0);
@@ -1588,7 +1564,7 @@ void plemRockEscape(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->pMotion, mot, mot2, 10, 5, 0);
+        MotionSetCore(pl, &pl->Motion, mot, mot2, 10, 5, 0);
         pl->m_Work0 = 0;
         pl->m_Work1 = 0;
         pl->m_Work2 = 0;
@@ -1666,7 +1642,7 @@ void plemRockEscape(cPlayer* pl)
             if (fr >= cnt) {
                 fr = 0;
             }
-            MotionSetCore(pl, &pl->pMotion, mot, mot2, pl->motHokanCnt, 5, (u16) fr);
+            MotionSetCore(pl, &pl->Motion, mot, mot2, pl->motHokanCnt, 5, (u16) fr);
         }
         if (Key.trg & 0x80000) {
             pl->m_Work0 += pl->m_Work4;
@@ -1705,7 +1681,7 @@ void plemRockEscape(cPlayer* pl)
         if (pl->m_Work5) {
             flag = 0x41;
         }
-        MotionSetCore(pl, &pl->pMotion, mot, 0, 3, flag, 0);
+        MotionSetCore(pl, &pl->Motion, mot, 0, 3, flag, 0);
         pl->m_Work0 = 20;
         SndCall(1, 0x48, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -2104,8 +2080,8 @@ void emRockRunDownCk(cEmRock* em)
     f32 r;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -2175,8 +2151,8 @@ void emRockPushCk(cEmRock* em, int frame)
     u32 i;
 
     n = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -2192,13 +2168,13 @@ void emRockPushCk(cEmRock* em, int frame)
         switch (n) {
         case 0:
         default:
-            MotionSetCore(e, &e->pMotion, w->plMot[13], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->plMot[13], 0, 0, 1, (u16) frame);
             break;
         case 1:
-            MotionSetCore(e, &e->pMotion, w->plMot[14], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->plMot[14], 0, 0, 1, (u16) frame);
             break;
         case 2:
-            MotionSetCore(e, &e->pMotion, w->plMot[15], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->plMot[15], 0, 0, 1, (u16) frame);
             break;
         }
         n++;
@@ -2324,8 +2300,8 @@ int emRockDropHitCkEm2b(cEmRock* em)
     f32 r;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -2364,7 +2340,7 @@ void plemDropDie(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->pMotion, w->mot2, 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, w->mot2, 0, 3, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
         pl->r_no_2++;
@@ -2389,7 +2365,7 @@ void subemDropDie()
     sub->subArc = sub->pEmCatch->subArc;
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->pMotion, w->mot3, 0, 3, 1, 0);
+        MotionSetCore(sub, &sub->Motion, w->mot3, 0, 3, 1, 0);
         pG->ashley_life = 0;
         sub->r_no_2++;
     case 1:

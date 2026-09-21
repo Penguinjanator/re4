@@ -170,7 +170,7 @@ void init(AtariToolWork* w)
     w->satSel = 0;
     w->count = 0;
     set_at(w, satTbl0);
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x08000000;
+    pG->Disp_flg |= 0x08000000;
     TaskSleep(4);
     w->polyNo = 0;
     w->x4F0 = 0;
@@ -450,8 +450,8 @@ static void option(AtariToolWork* w)
 // EXIT: clears the tool flags (Debug_flg[0] bit 31, Disp_flg bit 27) and ends the task.
 static void quit(AtariToolWork* w)
 {
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x08000000;
+    BitOff(pG->Debug_flg[0], 0x80000000);
+    pG->Disp_flg &= ~0x08000000;
     TaskSignal(0);
     TaskExit();
 }

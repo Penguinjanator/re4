@@ -10,8 +10,8 @@
 #include "file.h"
 #include "db_log.h"
 #include "t_util.h"
+#include <stdio.h>
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
 
 // Room constant editor (Tools/t_cons.cpp): edits the per-room / core `.cns` limit tables (work counts) and
 // writes them back to the host.
@@ -353,7 +353,7 @@ static void quit()
             pG->debug_mode = pCons->debugBak;
             pLog->clear();
             pLog->modeReset();
-            TOOL_FLAG(OFS_DISP_FLG) &= ~0x08000000;
+            pG->Disp_flg &= ~0x08000000;
         } else {
             clearWork();
             pCons->step = 0;

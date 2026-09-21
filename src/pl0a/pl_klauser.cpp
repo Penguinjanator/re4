@@ -21,8 +21,9 @@
 #include "joy.h"
 #include "motion.h"
 #include "TexRender.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 
 // Plain block, not do/while(0) (pl_leon.cpp).
 #define HALT()                                                    \
@@ -31,11 +32,7 @@ extern "C" void OSReport(const char* fmt, ...);
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 static void pl_R1_KlauserAttack(cPlayer* pl);
 
@@ -98,20 +95,20 @@ cPlKlauser::cPlKlauser()
 // 0x32..0x3F); the weapon module fills the footwork slots.
 void cPlKlauser::setMotion()
 {
-    PSet(m_MotTbl[0x5F], PL_ARC(0x32));
-    PSet(m_MotTbl[0x60], PL_ARC(0x33));
-    PSet(m_MotTbl[0x61], PL_ARC(0x34));
-    PSet(m_MotTbl[0x62], PL_ARC(0x35));
-    PSet(m_MotTbl[0x63], PL_ARC(0x36));
-    PSet(m_MotTbl[0x64], PL_ARC(0x37));
-    PSet(m_MotTbl[0x65], PL_ARC(0x38));
-    PSet(m_MotTbl[0x66], PL_ARC(0x39));
-    PSet(m_MotTbl[0x6B], PL_ARC(0x3A));
-    PSet(m_MotTbl[0x6C], PL_ARC(0x3B));
-    PSet(m_MotTbl[0x67], PL_ARC(0x3C));
-    PSet(m_MotTbl[0x68], PL_ARC(0x3D));
-    PSet(m_MotTbl[0x69], PL_ARC(0x3E));
-    PSet(m_MotTbl[0x6A], PL_ARC(0x3F));
+    PLA_MOT(this, 0x5F, 0x32);
+    PLA_MOT(this, 0x60, 0x33);
+    PLA_MOT(this, 0x61, 0x34);
+    PLA_MOT(this, 0x62, 0x35);
+    PLA_MOT(this, 0x63, 0x36);
+    PLA_MOT(this, 0x64, 0x37);
+    PLA_MOT(this, 0x65, 0x38);
+    PLA_MOT(this, 0x66, 0x39);
+    PLA_MOT(this, 0x6B, 0x3A);
+    PLA_MOT(this, 0x6C, 0x3B);
+    PLA_MOT(this, 0x67, 0x3C);
+    PLA_MOT(this, 0x68, 0x3D);
+    PLA_MOT(this, 0x69, 0x3E);
+    PLA_MOT(this, 0x6A, 0x3F);
 }
 
 // Per-frame update: the common cPlayer::move, then the arm's idle effects (EstSet types 0 and

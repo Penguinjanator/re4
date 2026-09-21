@@ -10,13 +10,11 @@
 #include "db_log.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include <stdio.h>
 
 // Pad vibration pattern editor (Tools/t_vib.cpp): 64 patterns of up to 16 keys (VibDataEntry), edited
 // on a level/frame grid and saved as the room's .vib file.
-
-extern "C" {
-int sprintf(char* dst, const char* fmt, ...);
-}
 
 struct TvibData {
     u32 num;             // 0x00
@@ -112,7 +110,6 @@ static s16 frame_w = 30;
 
 
 // Store through a reference: keeps the following global (pG) load below the store.
-static inline void ISet(int& d, int v) { d = v; }
 
 // Vibration editor entry (debug menu 15): init, then tvibFunc[mode] and the display every frame.
 void ToolVibEdit()
@@ -138,7 +135,7 @@ void tvibInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
+    BitOn(pG->Stop_flg, 0x800000);
     CfgFlagOn(pSys, CFG_VIBRATION);
     wp = (TvibWork*) Debug_alloc(sizeof(TvibWork), 1);
     if (wp == NULL) {
@@ -157,7 +154,7 @@ void tvibInit()
 // Frees the work, restores the flags, ends the task.
 void tvibExit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x800000;
+    pG->Stop_flg &= ~0x800000;
     TutilQuitDefault();
     TaskSignal(0);
     TaskExit();
@@ -266,13 +263,13 @@ static void tvib_R0_SelectMenu()
             return;
         case 1:
             ISet(V->stage, pG->stage_no);
-            ISet(V->room, pG->room_no);
+            V->room = pG->room_no;
             V->mode = 7;
             V->cursor = 0;
             break;
         case 2:
             ISet(V->stage, pG->stage_no);
-            ISet(V->room, pG->room_no);
+            V->room = pG->room_no;
             V->mode = 8;
             V->cursor = 0;
             break;
@@ -1126,7 +1123,7 @@ void tvibModeFrameDisp()
         return;
     }
     col = 0xFFFFFFFF;
-    switch (TOOL_FLAG(0x51E4) & 0xF) {
+    switch (U32Ref(pG->Frame_cnt) & 0xF) {
     case 0:
         col = 0x808080FF;
         break;

@@ -26,39 +26,31 @@
 #include "filter.h"
 #include "foot_shadow.h"
 #include "db_cam.h"
+#include "ref_access.h"
+#include <dolphin/os/OSCache.h>
+#include <dolphin/gx/GXFifo.h>
+#include <dolphin/gx/GXManage.h>
+#include <dolphin/os.h>
+#include "player.h"
+#include "pl_npc.h"
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
-extern cEm* pPL;   // game/em.cpp
-extern cEm* pSUB;  // game/em.cpp
 extern int isSelfUse;     // game/shadow.cpp
 extern int g_SelfShdNum;  // game/shadow.cpp
 extern f32 shd_ofs;       // game/shadow.cpp
 extern f32 shd_tex_scale_x;
 
 extern "C" {
-void OSReport(const char* fmt, ...);
 int EspTrans();
 void EspgenTrans();
-void ProcessTickGet(int no, const char* name);
-void DCStoreRangeNoSync(void* addr, u32 nBytes);
-void GXSetCurrentGXThread();
-void GXSetDrawSync(u16 token);
-void GXSetDrawSyncCallback(void (*cb)(u16));
 void bio4_AddBgColor();
 void Filter09Render(int);
-void PSMTXReorder(Mtx src, f32 dst[4][3]);
-void __GXSetIndirectMask(u32 mask);
-void GXSetTevIndBumpXYZ(int tev_stage, int ind_stage, int matrix_sel);
 void LightSetModel(cModel* m);
 void ResetShape(cModelInfo* info, void* dst);
 void CalculateShape_new(cModelInfo* info, ShapeData* data, f32 rate, void* dst);
 }
 void SetDrawTmpBufType(int type);   // game/TmpBuf.cpp (C++)
-void drawGround(int big);           // game/db_cam.cpp (C++)
-int Filter09GetbUse();              // game/filter09.cpp (C++)
-void CameraCurrentProjection();     // game/camera.cpp (C++)
-void* GetDrawTmpBufAddr(int type);
 
 // The renderer's view of pG+0x184..0x4F14: the stage counters, the skinning matrix palette, the
 // texture objects of the current model and the primitive buffer write pointer.
@@ -129,12 +121,6 @@ struct IntView {
 #define ISET0(x) (((IntView*) &(x))->v = 0)
 
 #define IV(x) (((IntView*) &(x))->v)
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline u16 U16Ref(u16& v) { return v; }
-static inline int IRef(int& v) { return v; }
-static inline f32 FRef(f32& v) { return v; }
-static inline void ISet(int& d, int v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 u8 min_lod;
@@ -393,13 +379,13 @@ void Trans()
         }
     }
     func = objTrans;
-    for (u = ObjMgr.pAlive; u != 0;) {
+    for (u = ObjMgr.getActiveWork(); u != 0;) {
         cUnit* cur = u;
         u = u->pNext;
         func((cModel*) cur);
     }
     func = emTrans;
-    for (u = EmMgr.pAlive; u != 0;) {
+    for (u = EmMgr.getActiveWork(); u != 0;) {
         cUnit* cur = u;
         u = u->pNext;
         func((cModel*) cur);
@@ -1069,7 +1055,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int efbDone;
     int matSet;
 
-    PSet(g_pShdMng, 0);
+    g_pShdMng = 0;
     if (StaFlagChk(pG, STA_USE_SHADOW_LIGHT) && (m->be_flag & 0x02000000) && !DpfFlagChk(pG, DPF_CAST_SHADOW) &&
         (StaFlagChk(pG, STA_USE_CAST_SHADOW))) {
         if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
@@ -2907,8 +2893,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         GXSetNumTevStages(++tev_stage);
-        GXSetNumTexGens(IRef(tex_coord));
-        GXSetNumIndStages(IRef(ind_stage));
+        GXSetNumTexGens(tex_coord);
+        GXSetNumIndStages(ind_stage);
     }
 }
 

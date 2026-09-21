@@ -32,14 +32,15 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
+#include <dolphin/os.h>
+#include "em10.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2a,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
-void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // em_sub.cpp
+
 
 
 typedef void (*Em2aFunc)(cEm2a*);
@@ -61,39 +62,12 @@ static void em2a_R1_Trap1R100(cEm2a* em);
 static void em2a_R1_Trap2Set(cEm2a* em);
 static void em2a_R1_Trap2Bomb(cEm2a* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
 
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2aDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
-
-// Work `no` of the enemy manager without the range check (em2aTrap2HitCkEM).
-static inline cEm* em2aMgrWork(u32 no)
-{
-    return (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Module entry (SN loader): registers Em2aInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -421,7 +395,7 @@ static void em2a_R1_Trap1Set(cEm2a* em)
 static void em2a_R1_Trap1Bite(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
 
     switch (em->r_no_2) {
     case 0:
@@ -451,7 +425,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             em2aTrap1CamMove(em);
             w->camTimer--;
         }
-        if ((em->seFlags28B & 4) && em2aDeadCk(pPL)) {
+        if ((em->seFlags28B & 4) && EmDeadCk(pPL)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
@@ -492,7 +466,7 @@ static void plem2a_Trap1Bite(cPlayer* pl)
 static void em2a_R1_Trap1BiteSub(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
     int r;
 
     switch (em->r_no_2) {
@@ -523,7 +497,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         em->r_no_2++;
     case 3:
         MotionMove(em, 0);
-        if (em2aDeadCk(pSUB)) {
+        if (EmDeadCk(pSUB)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
@@ -688,7 +662,7 @@ void plem2aTrapCamMove(cModel* m)
 // goes inactive; the list entry is marked sprung.
 static void em2a_R1_Trap1Break(cEm2a* em)
 {
-    EmListData* l = EM_LIST(em->emset_no);
+    EmListData* l = &pG->Em_list[em->emset_no];
 
     switch (em->r_no_2) {
     case 0:
@@ -715,7 +689,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
 {
     switch (em->r_no_2) {
     case 0:
-        EM_LIST(em->emset_no)->set = 0;
+        (&pG->Em_list[em->emset_no])->set = 0;
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 0, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -746,7 +720,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         }
         break;
     case 2:
-        EM_LIST(em->emset_no)->set = 0;
+        (&pG->Em_list[em->emset_no])->set = 0;
         em->hp = 0;
         MotionSetCore(em, MOTION(em), ARC(0x13), ARC(0x14), 0, 1, 0);
         em->r_no_2++;
@@ -848,9 +822,7 @@ int em2aTrap2HitCkPL(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
-                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
-                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
+    len = VEC_DIST(&p0->world, &p2->world)
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     PSMTXMultVec(inv, &pPL->pos, &v);
@@ -873,13 +845,11 @@ int em2aTrap2HitCkEM(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
-                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
-                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
+    len = VEC_DIST(&p0->world, &p2->world)
           + 100.0f;
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em2aMgrWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
             continue;
@@ -1026,7 +996,7 @@ int em2aTrap1BiteCk(cEm2a* em)
         > 90000.0f) {
         return 0;
     }
-    dead = em2aDeadCk(pPL);
+    dead = EmDeadCk(pPL);
     if (dead) {
         return 0;
     }
@@ -1054,7 +1024,7 @@ int em2aTrap1BiteSubCk(cEm2a* em)
     if (StaFlagChk(pG, STA_SUB_CATCHED)) {
         return 0;
     }
-    dead = em2aDeadCk(pSUB);
+    dead = EmDeadCk(pSUB);
     if (dead) {
         return 0;
     }

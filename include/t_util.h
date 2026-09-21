@@ -18,24 +18,6 @@ struct TOOL_MENU {
 #define TOOL_MENU_B_LAST   1  // B button jumps to the last entry
 #define TOOL_MENU_START_LAST 2  // cursor starts on the last entry for a new menu
 
-// The tools address pG's flag words through raw u32 pointers instead of struct members. GCC 2.95
-// then treats every such store as possibly aliasing pG itself and reloads pG afterwards, and
-// keeps the loads in source order; struct-member accesses compile differently.
-#define TOOL_FLAG(ofs) (*(u32*) ((u8*) pG + (ofs)))
-#define TOOL_FLAG_PTR(ofs) ((u32*) ((u8*) pG + (ofs)))
-#define TOOL_HALF(ofs) (*(u16*) ((u8*) pG + (ofs)))
-#define TOOL_PTR(ofs) ((u8*) pG + (ofs))
-#define OFS_CAMERA 0x74       // Camera Cam
-#define OFS_SYSTEM_FLG 0x54
-#define OFS_DISP_FLG 0x58
-#define OFS_DEBUG_FLG 0x60   // 4 words
-#define OFS_STOP_FLG 0x170
-#define OFS_STATUS_FLG 0x500C  // 4 words
-#define OFS_PL_LIFE 0x4FA4
-#define OFS_PL_LIFE_MAX 0x4FA6
-#define OFS_SUB_LIFE 0x4FA8
-#define OFS_SUB_LIFE_MAX 0x4FAA
-
 void TutilInitDefault();
 void TutilQuitDefault();
 // Draws `menu` (size in bytes) at x,y and moves the cursor with `joy`. Returns the selected

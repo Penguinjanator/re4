@@ -5,6 +5,7 @@
 #include "rnd.h"
 #include "db_log.h"
 #include "cSceObj.h"
+#include "ref_access.h"
 
 // Scenario object mover (D:/Bio4/Prog/cSceObj.cpp), shared by the st2_0/st2_3/st4_0 stage RELs.
 // The original REL link dead-stripped the members no room of the module calls (STRIP_UNUSED).
@@ -452,7 +453,6 @@ void cSceObj::initMove1_all(cModel* o, u32 nFrame, Vec* dp, Vec* dr, f32 acc, f3
     setMove1_all(nFrame, dp, dr, acc, dec, flg);
 }
 
-static inline f32 FCRef(const f32& v) { return v; }
 
 // The 0.01 load is issued after the two Vec copies: a constant-pool load (RTX_UNCHANGING_P) never
 // depends on stores, so the constant is a function-local `static const f32` (emitted where the pool

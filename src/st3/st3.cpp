@@ -5,13 +5,12 @@
 #include "widget.h"
 #include "sofdec.h"
 #include "event.h"
+#include <dolphin/os.h>
 
 // Stage 3 (island) room module entry (D:/Bio4/Prog/st3.cpp, the same object ends every st3_* REL): registers
 // the room Init/Main pairs of every stage-3 room in the DOL's St3_data_tbl, then the SN REL entry points (like
 // st2.cpp/st4.cpp). Includes map_obj.h/light.h/widget.h/sofdec.h/event.h (their strings and the cManager<cLight>
 // template block follow the code) and carries a never-called inline whose "movie/r333_ev.sfd" string survives.
-
-extern "C" void OSReport(const char* fmt, ...);
 
 #define HALT()                                                    \
     {                                                             \
@@ -194,13 +193,13 @@ extern "C" void _unresolved()
 #include "datactrl.h"
 #include "snd.h"
 #include "fade.h"
+#include "ref_access.h"
 
 void st3_checkCountDown();
 void st3_dieDemoEvent();
 void st3_endCountDown();
 
 // Reference store: pG is reloaded after it.
-static inline void S16Set(s16& d, s16 v) { d = v; }
 
 // Sets the count-down (frames, clamped at 0) and mirrors it into free word 2.
 void st3_setCountDownTimer(int frame)

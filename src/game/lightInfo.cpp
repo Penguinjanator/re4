@@ -6,7 +6,6 @@
 #include "math_sub.h"
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Empty info: no lights, no masks, zero volume.
 cLightInfo::cLightInfo()

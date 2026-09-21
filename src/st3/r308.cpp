@@ -259,7 +259,7 @@ static void R308EnemySetEnd()
     r308_work->em.setEm(0x58, -1, 0, 1, 1);
     r308_work->em.setFlag(1);
     r308_work->em.setNoSuspend(0);
-    EM_LIST(0x58)->set = 0;
+    pG->Em_list[0x58].set = 0;
     SceExec(0x12, (TaskFunc) R308EnemyDieCheck, 0, 0, 2, 0);
     R308HandOpen();
     SceEventEnd(0);

@@ -20,6 +20,7 @@
 #include "player.h"
 #include "pl_npc.h"
 #include "motion.h"
+#include "game.h"
 
 // Cable car (gondola): carries the player, the partner and up to five enemies along its motion,
 // with five collision quads following the car; the break routine hands the camera over.
@@ -49,15 +50,7 @@ struct GondolaMotWork {
     f32 blendRate;        // 0xC8
 };
 
-// Struct-member view of pSUB (the pLog trick): the load stays below the preceding work store
-// (setRidePL: `w->rideSUB = 0; if (pSUB)`).
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
 extern "C" {
-void DiedemoExec(int no, int demo_type);
 void objGondola_R0_Set(cObjGondola* obj);
 void objGondola_R0_Move(cObjGondola* obj);
 void objGondola_R0_Down(cObjGondola* obj);
@@ -67,7 +60,6 @@ void objGondolaSatClear(cObjGondola* obj);
 void objGondolaSatSet(cObjGondola* obj);
 void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec);
 }
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
 
 static void (*ObjGondola_R0_move_tbl[5])(cObjGondola*) = {
     objGondola_R0_Set, objGondola_R0_Move, objGondola_R0_Down, objGondola_R0_Up, objGondola_R0_Break,
@@ -205,7 +197,7 @@ void objGondola_R0_Down(cObjGondola* obj)
     PSVECSubtract(&b, &a, &d);
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &d, sizeof(Vec));
+    VEC_COPY(pG->quake_ofs, d);
     if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
@@ -239,7 +231,7 @@ void objGondola_R0_Up(cObjGondola* obj)
     PSVECSubtract(&b, &a, &d);
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &d, sizeof(Vec));
+    VEC_COPY(pG->quake_ofs, d);
     if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
@@ -347,7 +339,7 @@ void objGondola_R0_Break(cObjGondola* obj)
     if (w->Ride_pl) {
         PSVECAdd(&pPL->pos, &v, &b);
         pPL->setPos(&b);
-        memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &v, sizeof(Vec));
+        VEC_COPY(pG->quake_ofs, v);
         if (pSUB && w->Ride_sub) {
             PSVECAdd(&pSUB->pos, &v, &b);
             pSUB->setPos(&b);
@@ -521,7 +513,7 @@ static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
 // Starts the car's travel motion at `frame` (looping, sequence frame from the table).
 void cObjGondola::setMoveMotion(void* mot, int frame)
 {
-    MotionSetCore(this, &pMotion, mot, 0, 0, 0x8005, frame);
+    MotionSetCore(this, &Motion, mot, 0, 0, 0x8005, frame);
     r_no_0 = 1;
     r_no_1 = 0;
     r_no_2 = 0;

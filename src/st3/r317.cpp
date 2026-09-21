@@ -90,16 +90,6 @@ static f32 r317_elvStopAddUp = 2000.0f;
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
 // Every s00..s14 handler deletes the same effect on begin.
 static inline void EffectDelete2001()
@@ -299,7 +289,7 @@ void R317EventS00()
         EvtMgr.EvtReadExec("event/evd/r317s05.evd", 0, 0);
         SceEventEnd(0);
         void* zero = 0;
-        SetPosXYZ(pPL, 6970.0f, 3006.0f, -26415.0f);
+        pPL->setPos(6970.0f, 3006.0f, -26415.0f);
         {
             Vec v;
 
@@ -403,8 +393,8 @@ void SceElevator2Main(SceElevator2Data* d)
     for (i = 0; i < 10; i++) {
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
-        SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-        SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+        obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+        pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
         SceSleep(1);
     }
     obj->setPos(&d->pos);
@@ -424,8 +414,8 @@ void SceElevator2Main(SceElevator2Data* d)
         } else {
             step = -r317_elvSpd;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
-        SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + step, obj->pos.z);
+        pPL->setPos(pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
         if (rot > rotMax) {
             rot = rotMax;
         }
@@ -480,8 +470,8 @@ void SceElevator2Main(SceElevator2Data* d)
     if (d->dir == 3) {
         move = -move;
     }
-    SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-    SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
+    obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+    pPL->setPos(pl->pos.x, pPL->pos.y + move, pl->pos.z);
     FadeSetW(0x80000002, 30, 0, 0);
     if ((s16) d->seMove != -1) {
         *hSnd = SndCall(6, d->seMove, &obj->pos, 0, 0, 0);
@@ -507,8 +497,8 @@ void SceElevator2Main(SceElevator2Data* d)
         } else {
             move = -r317_elvSpd;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
-        SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
+        obj->setPos(obj->pos.x, obj->pos.y + move, obj->pos.z);
+        pPL->setPos(pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
         gearSpd = rot;
         if (d->dir != 3) {
             gearSpd = -rot;
@@ -546,8 +536,8 @@ void SceElevator2Main(SceElevator2Data* d)
     for (j = 0; j < 10; j++) {
         obj->setPos(&d->pos2);
         pPL->setPos(&d->plPos2);
-        SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
-        SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
+        obj->setPos(obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+        pPL->setPos(pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
         SceSleep(1);
     }
     obj->setPos(&d->pos2);

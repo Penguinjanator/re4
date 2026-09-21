@@ -81,39 +81,11 @@ struct R300EspView {
 
 extern "C" void* r300_memset(void*, ...) asm("memset");
 
-// fade.h's FadeSetW with `zero`/`black` locals (zero first, r21d): the end colour's zero is a register
-// held from the function start in R300_Event.
-static inline void r300_FadeSetW(int no, u32 time, u32 z, int late)
-{
-    FadeColorPair col;
-    u32 black;
-    u32 zero;
-
-    zero = 0;
-    black = 0xFF;
-    if (no & 0x80000000) {
-        *(u32*) &col.start = black;
-    } else {
-        *(u32*) &col.start = zero;
-    }
-    if (no & 0x80000000) {
-        *(u32*) &col.end = zero;
-    } else {
-        *(u32*) &col.end = black;
-    }
-    FadeSet(no, &col.start, &col.end, time, z, late);
-}
 
 // Reference store: the work pointer and the field are reloaded after it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
 
 // Room id through the struct-member view of pG: the load stays below a preceding member store.
 #define GS_ROOM_ID (*(u16*) &pGS->stage_no)
-
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
 
 static u8 r300_texTbl0[0x20];
 static u8 r300_texTbl1[0x20];
@@ -484,11 +456,11 @@ void R300Init()
 
             Vec pos;
 
-            l = EM_LIST(0x65);
+            l = &pG->Em_list[0x65];
             r300_getListPos(l, &pos, ry);
             em[0].setPos(&pos);
             r300_setEmAngR(&em[0], ry);
-            l = EM_LIST(0x55);
+            l = &pG->Em_list[0x55];
             r300_getListPos(l, &pos, ry);
             em[1].setPos(&pos);
             r300_setEmAngR(&em[1], ry);

@@ -121,7 +121,6 @@ static void r108_execShowView_end()
 }
 
 // Show the altar: camera cut 11 with its stream.
-static inline f32 FCRef(const f32& v) { return v; }
 
 // One-shot event (Room_flg bit 1): stream 0x33 and camera cut 0xB (the show view) until the camera
 // motion ends; player-cancellable.
@@ -438,8 +437,8 @@ static void r108_str_check()
         u32 i;
         int found = 0;
 
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
                 && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < near) {

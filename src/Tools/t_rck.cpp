@@ -14,16 +14,16 @@
 #include "db_log.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Route check point editor (Tools/t_rck.cpp): places route points, connects them (two-way / one-way
 // lines), computes the next-hop table with Dijkstra and saves the room's .rtp file.
 
-extern "C" int sprintf(char* s, const char* fmt, ...);
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 #define RCK_POINT_MAX 128
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
 struct RckPoint {
     Vec pos;      // 0x00
@@ -168,15 +168,15 @@ void rckInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x01000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x00800000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x04000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x02000000;
+    BitOn(pG->Stop_flg, 0x00200000);
+    BitOn(pG->Disp_flg, 0x01000000);
+    BitOn(pG->Disp_flg, 0x00800000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Stop_flg, 0x00200000);
+    BitOn(pG->Disp_flg, 0x04000000);
+    pG->Disp_flg |= 0x02000000;
     memclr_asm(RCK, sizeof(RckWork));
     RCK->mode = 2;
     RCK->savedRtp = pGS->Rtp;
@@ -200,12 +200,12 @@ static void tool_quit()
 {
     pG->Rtp = RCK->savedRtp;
     TutilQuitDefault();
-    TOOL_FLAG(OFS_STATUS_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x00200000;
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x00200000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x04000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x02000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Status_flg[0], 0x80000000);
+    BitOff(pG->Stop_flg, 0x00200000);
+    BitOff(pG->Stop_flg, 0x00200000);
+    BitOff(pG->Disp_flg, 0x04000000);
+    BitOff(pG->Disp_flg, 0x02000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     TaskSignal(0);
     TaskExit();
 }
@@ -431,12 +431,6 @@ void menu_print(int* pos, const char** str, int n, int cur)
 
 // Rounds a height to the 500 grid.
 #define RCK_GRID_Y(y) (t = (s8) (((y) + 62.5f) / 500.0f), (f32) t * 500.0f)
-// New points are placed 100 units above the picked ground height.
-static inline f32 rckGridY(f32 y)
-{
-    int t = (s8) ((y + 62.5f) / 500.0f);
-    return (f32) t * 500.0f;
-}
 
 // X: adds a point under the cursor (ground position from TutilGet3DPosXZ_All), no lines; it
 // becomes the nearest point. Up to RCK_POINT_MAX.
@@ -697,7 +691,7 @@ void rckPointLineStart()
 // Line length of the a -> b connection in 10 units.
 static inline u16 rckLineLen(RckPoint* pa, RckPoint* pb)
 {
-    return (s16) (SQRTF((pa->pos.x - pb->pos.x) * (pa->pos.x - pb->pos.x) + (pa->pos.z - pb->pos.z) * (pa->pos.z - pb->pos.z)) * 0.1f);
+    return (s16) (VEC_DISTXZ(&pa->pos, &pb->pos) * 0.1f);
 }
 
 // Line modes + A on a second point: toggles the connection start -> near (two-way in mode 1, one
@@ -1260,7 +1254,7 @@ void rckCameraMove()
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
         U32Set(RCK->joy.rep, 0);
-        TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+        BitOn(pG->Debug_flg[0], 0x10000000);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");
         }

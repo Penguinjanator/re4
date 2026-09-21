@@ -62,12 +62,6 @@ static R311Work* r311_work;
 // The shutter/terminal bits live in the second word of the room's save record (RoomData).
 #define R311_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-// `pSUB->atari.flags |= 0x300` through a pointer to the collision info; the volatile halfword store keeps
-// the following pG / work load below it (r207).
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
-// Pointer store through a reference: the work and the field are reloaded after it (r102 idiom).
-static inline void PSetObj(cObj*& d, cObj* v) { d = v; }
-static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
 // The skip-to-black of the crane cuts: FadeSet(0x80000000, black, clear, 10 frames).
 static inline void r311_fadeOut()
 {
@@ -144,8 +138,8 @@ static void r311_checkEmMoveCtrl()
         }
         SceSleep(15);
         n = 0;
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* p = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm* p = EmMgr.fastAt(i);
 
             if (p->id >= 0x10 && p->id <= 0x20 && (p->be_flag & 0x201) == 1) {
                 em.setPtr(p, 1);
@@ -671,7 +665,7 @@ static void r311_execAshleyOperateTerminal()
     wait = 0;
     pSUB->atari.setPriority(3);
     pSUB->atari.set(0, 100.0f, 200.0f);
-    AtariFlagsOr(&pSUB->atari, 0x300);
+    AtariOnV(&pSUB->atari, 0x300);
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 10, 0, 1, 0);
     if (r311_work->throwing == 1) {
         step = 3;
@@ -716,7 +710,7 @@ static void r311_execAshleyOperateTerminal()
     }
     SubCharCtrl(1, 0);
     pSUB->atari.setPriority(0);
-    AtariFlagsOr(&pSUB->atari, 0x300);
+    AtariOnV(&pSUB->atari, 0x300);
     r311_work->terminal = 0;
 }
 
@@ -776,7 +770,7 @@ static void r311_checkIronBallTerminal()
 // The iron ball (arc 0x1F/0x20, hit box 1100 x 2000 below it) and the crane (0x23/0x24).
 void r311_initIronBall()
 {
-    PSetObj(r311_work->ball, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1));
+    PSet(r311_work->ball, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1));
     if (r311_work->ball) {
         r311_work->ball->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
         BitOn(r311_work->ball->be_flag, 0x1000);
@@ -786,14 +780,14 @@ void r311_initIronBall()
         Vec pos = {-9219.7f, 2309.3f, -4995.9f};
         Vec rot = {0.0f, -2.9146998f, 0.0f};
 
-        PSetObj(r311_work->crane, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1));
+        PSet(r311_work->crane, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1));
     }
     if (r311_work->crane) {
         r311_work->crane->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 10, 0, 1, 0);
         r311_work->crane->be_flag |= 0x1000;
     }
     IntSet(r311_work->throwing, 0);
-    PSetPrim(r311_work->terminal, 0);
+    PSet(r311_work->terminal, 0);
     IntSet(r311_work->eff, 0);
     if (!(R311_SAVE_FLAGS & 0x40000000)) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r311_checkIronBallTerminal, 0, 1);

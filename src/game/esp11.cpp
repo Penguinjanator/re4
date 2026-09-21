@@ -30,7 +30,6 @@ public:
 };
 
 extern "C" {
-void EffSetToolState(int state);
 void Esp11_SetParam(cEsp11* esp);
 }
 

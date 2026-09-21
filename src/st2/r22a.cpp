@@ -44,7 +44,6 @@ static void r22a_EleDown();
 static void r22a_EleUp();
 
 // pPL stores through references: the pPL reload after each one.
-static inline void FSetP(f32& d, f32 v) { d = v; }
 
 // Room init: areas 2/3 = climb down / up the rope; the s00 (and s99) callback; until Room_flg bit 0 area
 // 6 = the s00 event (pre-loaded), else off; object 0x50 hidden; areas 4/5 = the lift down / up; arriving
@@ -263,7 +262,7 @@ static void r22a_EleDown()
     SceSleep(30);
     FSetP(pPL->pos.y, -3500.0f);
     FSetP(pPL->pos.x, 15430.0f);
-    FSetP(pPL->pos.z, -38962.0f);
+    pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = -3500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
     CamCtrl.CutCall(3);
@@ -311,7 +310,7 @@ static void r22a_EleUp()
     SceSleep(30);
     FSetP(pPL->pos.y, 21500.0f);
     FSetP(pPL->pos.x, 15430.0f);
-    FSetP(pPL->pos.z, -38962.0f);
+    pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = 21500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
     CamCtrl.CutCall(5);

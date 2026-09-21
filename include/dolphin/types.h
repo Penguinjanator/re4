@@ -37,11 +37,24 @@ typedef int BOOL;
 #define NULL ((void*)0)
 #endif
 
+#ifdef __MWERKS__
 #include "libc/stdio.h"
 #include "libc/stdarg.h"
 #include "libc/string.h"
 #include "libc/ctype.h"
+#else
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <ctype.h>
+#endif
 
+#ifdef __MWERKS__
 #include "cmath.h"
+#else
+#define fabsf fabsf_libm  // math_sub.h defines its own inline fabsf
+#include <math.h>
+#undef fabsf
+#endif
 
 #endif

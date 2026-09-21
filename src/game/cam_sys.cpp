@@ -16,13 +16,6 @@
     (m)[0][2] = (c2)->x; (m)[1][2] = (c2)->y; (m)[2][2] = (c2)->z;                            \
     (m)[0][3] = (c3)->x; (m)[1][3] = (c3)->y; (m)[2][3] = (c3)->z
 
-// Column `c` of a matrix as a vector.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Builds a matrix from four column vectors (right, up, look, position).
 static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)

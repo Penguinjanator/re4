@@ -13,14 +13,10 @@
 #include "global.h"
 #include "id_sys.h"
 #include "texture.h"
+#include "view.h"
 
 // Blur filter with an optional ID-texture mask (filter0a_mask_id) blended over the result.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 extern "C" {
 void filter0a_mask_tex();

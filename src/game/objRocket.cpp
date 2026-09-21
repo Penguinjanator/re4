@@ -11,22 +11,12 @@
 #include "player.h"
 #include "pl_body.h"
 #include "motion.h"
+#include "ref_access.h"
 
 // Rocket launcher (weapon 0x13) and its rocket: the launcher carries a loaded cObjRocket on its
 // muzzle parts, launch() sends it along the marker line, drop() leaves an empty launcher model.
 
-extern "C" {
-int MotionGetState(cModel* m);
-double atan2(double y, double x);
-}
-void MotionSetCore(cModel* m, void* work, void* mot, void* a, int b, int c, int d);
-
-// Weapon archive (pG->pWepArc): offsets to its sub-files like the player archive.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
 // Pointer store through a reference: the following `pG` load stays below it.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModel*& d, cModel* v) { d = v; }
 static inline void PSet(cCoord*& d, cCoord* v) { d = v; }
 
 // Builds the rocket model (player archive 0x70/0x71; pink tint for the special launcher,
@@ -56,7 +46,7 @@ const Vec cObjRocket::lightSize = { 500.0f, 0.0f, 0.0f };
 
 // r_no_0 0: rides on the launcher (hidden while the weapon is transparent); 1: in flight — moves
 // by its motion, explodes (0x12 blast hit check, 8000 wide) on water, on an enemy / object hit
-// (0xD line check, 3000) or on the map, and rings the bell (bell_pos / bell_stat); 2: destroyed.
+// (0xD line check, 3000) or on the map, and rings the bell (SeInfo.pos / SeInfo.type); 2: destroyed.
 void cObjRocket::move()
 {
     static f32 blastDmWidth = 8000.0f;
@@ -116,8 +106,8 @@ void cObjRocket::move()
             res = PlWepHitCheck2(0, &rocket.oldPos, &pos, 0xD, 1, 3000.0f);
             if (res) {
                 StaFlagOn(pG, STA_SE_BURST);
-                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
-                pG->bell_stat = 1;
+                pG->SeInfo.pos = pos;
+                pGS->SeInfo.type = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                 EstSet(0, -1, &pos, 0, 0, 0x27, 0, 10, 0, 0);
                 SndCall(1, 0x14, &pos, 0, 0, 0);
@@ -157,8 +147,8 @@ void cObjRocket::move()
                         EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
                     }
                     StaFlagOn(pG, STA_SE_BURST);
-                    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
-                    pG->bell_stat = 1;
+                    pG->SeInfo.pos = pos;
+                    pGS->SeInfo.type = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                     PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                     r_no_0 = 2;
@@ -184,7 +174,7 @@ void cObjRocket::move()
 // Starts the flight: flight motion (player archive 0x74), exhaust effect 0x29, 300 frames of life.
 void cObjRocket::fire()
 {
-    MotionSetCore(this, &pMotion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
+    MotionSetCore(this, &Motion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
     MotionMove(this, 0);
     EstSet(this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
     rocket.timer = 300;
@@ -240,10 +230,10 @@ void cObjLauncher::init(cModel* parent)
     PSet(wep.parent, parent);
     if (pG->weapon_type != 2) {
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x1E));
-        PSet(wep.pMotEmpty, WEP_ARC_PTR(0x1E));
+        wep.pMotEmpty = WEP_ARC_PTR(0x1E);
     } else {
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x1D));
-        PSet(wep.pMotEmpty, WEP_ARC_PTR(0x1D));
+        wep.pMotEmpty = WEP_ARC_PTR(0x1D);
     }
     resetMotion();
     if (ItemMgr.bulletNum()) {
@@ -447,33 +437,33 @@ int cObjLauncher::keyKamae()
 // stat 0x400: no rocket).
 void cObjLauncher::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0], WEP_ARC_PTR(0x8));
-    PSet(pl->m_MotTbl[2], WEP_ARC_PTR(0x9));
-    PSet(pl->m_MotTbl[6], WEP_ARC_PTR(0xB));
-    PSet(pl->m_MotTbl[8], WEP_ARC_PTR(0xA));
-    PSet(pl->m_MotTbl[0xB], WEP_ARC_PTR(0xC));
-    PSet(pl->m_MotTbl[0xD], WEP_ARC_PTR(0xD));
-    PSet(pl->m_MotTbl[0xF], WEP_ARC_PTR(0xE));
-    PSet(pl->m_MotTbl[1], WEP_ARC_PTR(0x21));
-    PSet(pl->m_MotTbl[3], WEP_ARC_PTR(0x22));
-    PSet(pl->m_MotTbl[7], WEP_ARC_PTR(0x24));
-    PSet(pl->m_MotTbl[9], WEP_ARC_PTR(0x23));
-    PSet(pl->m_MotTbl[0xC], WEP_ARC_PTR(0x25));
-    PSet(pl->m_MotTbl[0xE], WEP_ARC_PTR(0x26));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x27));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
+    WEP_MOT(pl, 0, 0x8);
+    WEP_MOT(pl, 2, 0x9);
+    WEP_MOT(pl, 6, 0xB);
+    WEP_MOT(pl, 8, 0xA);
+    WEP_MOT(pl, 0xB, 0xC);
+    WEP_MOT(pl, 0xD, 0xD);
+    WEP_MOT(pl, 0xF, 0xE);
+    WEP_MOT(pl, 1, 0x21);
+    WEP_MOT(pl, 3, 0x22);
+    WEP_MOT(pl, 7, 0x24);
+    WEP_MOT(pl, 9, 0x23);
+    WEP_MOT(pl, 0xC, 0x25);
+    WEP_MOT(pl, 0xE, 0x26);
+    WEP_MOT(pl, 0x10, 0x27);
+    PLA_MOT(pl, 0x3D, 0x5D);
     if (pG->weapon_type != 2) {
-        PSet(pl->m_MotTbl[0x39], WEP_ARC_PTR(0x2A));
-        PSet(pl->m_MotTbl[0x3A], WEP_ARC_PTR(0x2B));
-        PSet(pl->m_MotTbl[0x41], WEP_ARC_PTR(0x2C));
-        PSet(pl->m_MotTbl[0x42], WEP_ARC_PTR(0x2D));
-        PSet(pl->m_MotTbl[0x3F], WEP_ARC_PTR(0x28));
-        PSet(pl->m_MotTbl[0x40], WEP_ARC_PTR(0x29));
+        WEP_MOT(pl, 0x39, 0x2A);
+        WEP_MOT(pl, 0x3A, 0x2B);
+        WEP_MOT(pl, 0x41, 0x2C);
+        WEP_MOT(pl, 0x42, 0x2D);
+        WEP_MOT(pl, 0x3F, 0x28);
+        WEP_MOT(pl, 0x40, 0x29);
     }
-    PSet(pl->m_MotTbl[0x55], WEP_ARC_PTR(0x1A));
-    PSet(pl->m_MotTbl[0x59], WEP_ARC_PTR(0x2E));
-    PSet(pl->m_MotTbl[0x5B], WEP_ARC_PTR(0x1B));
-    PSet(pl->m_MotTbl[0x57], WEP_ARC_PTR(0x1C));
+    WEP_MOT(pl, 0x55, 0x1A);
+    WEP_MOT(pl, 0x59, 0x2E);
+    WEP_MOT(pl, 0x5B, 0x1B);
+    WEP_MOT(pl, 0x57, 0x1C);
     if (!(pl->stat & 0x400)) {
         pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
         pl->setRightHand(1);

@@ -36,13 +36,14 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
+#include <dolphin/os.h>
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
 asm(".comm common_em22,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em22Func)(cEm22*);
@@ -80,34 +81,10 @@ static void em22_R1_Dm_Blow(cEm22* em);
 static void em22_R0_Die(cEm22* em);
 static void em22_R1_Die_Lost(cEm22* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member views of the player / partner / pG pointers: a load through them is not hoisted above
-// the preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em22DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em22Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -140,7 +117,7 @@ void em22DmCk(cEm22* em)
     Em22Work* w = EM22_WK(em);
     int near;
 
-    if (em->hp > 0 && em22DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -319,7 +296,7 @@ void cEm22::move()
     if (w->plDeadWait) {
         w->plDeadWait--;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         w->plDeadWait = 30;
     }
     if (w->stuckTimer) {
@@ -344,7 +321,7 @@ void cEm22::move()
     em22NeckMove(this);
     partsWorldCalc();
     em22ScaleCompress(this);
-    len = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    len = VEC_DISTXZ(&pos, &pos_old);
     atFlags = atari.m_flag;
     if (w->flags & 0x80) {
         atari.m_flag |= 0x10;
@@ -359,7 +336,7 @@ void cEm22::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < len * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < len * 0.5f) {
         w->stuckTimer = 3;
         w->stuckCnt++;
     } else {
@@ -993,9 +970,6 @@ static void em22_R1_Turn(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
-// The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
-
 // R1 == 0xA Escape: runs away from the player (RouteCkEscEm) for 30..60 frames, ringing the bell alarm
 // (Status_flg[1] bit29), then RunAbout (7) or Turn (9).
 static void em22_R1_Escape(cEm22* em)
@@ -1014,8 +988,8 @@ static void em22_R1_Escape(cEm22* em)
         }
         if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            SET_BELL_POS(&em->pos);
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;
@@ -1217,7 +1191,7 @@ static void em22_R1_br_JumpAtk(cEm22* em)
     if (!(em->motEvent & 1)) {
         return;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return;
     }
     if (!(w->flags & 1)) {
@@ -1487,7 +1461,7 @@ static void em22_R1_br_ParaAtk(cEm22* em)
     if (!(em->motEvent & 1)) {
         return;
     }
-    if (em22DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return;
     }
     PSMTXInverse(em->mat, inv);
@@ -2376,9 +2350,7 @@ void em22CamMove(cEm22* em, int type)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
@@ -2878,11 +2850,6 @@ int em22ScreenInCk(cEm22* em)
     return 0;
 }
 
-// Work `no` of the enemy manager without the range check (the callers loop over nArray).
-static inline cEmDoor* em22EmWork(u32 no)
-{
-    return (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * no);
-}
 
 // Opens a closed door (cEmDoor) the dog runs into from its side (within reach and angle).
 void em22DoorOpenCk(cEm22* em)
@@ -2895,8 +2862,8 @@ void em22DoorOpenCk(cEm22* em)
     if (w->stuckCnt % 10 != 5) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* door = em22EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* door = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((door->be_flag & 0x201) != 1) {

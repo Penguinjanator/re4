@@ -43,14 +43,11 @@
 #include "db_log.h"
 #include "eprintf.h"
 
-#define DEG(d) ((d) * (PI / 180.0f))
-
 // Room 1-1C (D:/Bio4/Prog/r11c.cpp): the village square at night; the besieged cabin (s00: Luis
 // arrives, s10: the Ganado wave, s20: the escape), the two gate levers with the gear/chain machinery,
 // the merchant.
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
-void RoomEfmRegist(void* model, void* tpl, u8 id);   // game/eff_sys.cpp (the bin/tpl overload)
 
 
 extern StockEntry stock_r11c[];               // game/merchant.cpp
@@ -93,9 +90,6 @@ struct R11cSave {
     u32 x0;
     u32 flags;
 };
-static inline u32* r11c_evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 
 static inline R11cSave* r11c_save() { return (R11cSave*) RoomData.getRoomSavePtr(pGS->room_id); }
 
@@ -106,7 +100,7 @@ static inline u32 r11c_emDead(u32 no)
     u32 v;
 
     if (pG->em_list_no >= 0) {
-        u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
+        u32* tbl = pG->Em_flg[pG->em_list_no];
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {
@@ -579,7 +573,7 @@ static void r11c_EventBesiegedStart()
             if (EvtMgr.SetEvt(mod2->pArc, (u32*) &ev)) {
                 ev->StatusFlag |= 0x400;
             }
-            while (EvtMgr.IsAliveEvt(r11c_evtKey(&EvtMgr), 0, 0) != 0) {
+            while (EvtMgr.IsAliveEvt(evtKey(&EvtMgr), 0, 0) != 0) {
                 SceSleep(1);
             }
             MemorySwap(mod2->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
@@ -593,7 +587,7 @@ static void r11c_EventBesiegedStart()
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_CHASE, 0);
     if (!r11c_emDead(0xC8)) {
-        EM_LIST(0xC8)->be_flag &= ~2;
+        pG->Em_list[0xC8].be_flag &= ~2;
         EmSetFromList2(0xC8, 0);
     }
     CamCtrl.AreaOnOff(1, 0, 0);

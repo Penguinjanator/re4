@@ -8,12 +8,8 @@
 #include "cam_extra.h"
 #include "cam_motion.h"
 #include "main_mem.h"
-
-extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-}
-
-#define PI 3.1415927f
+#include <string.h>
+#include "math_sub_decl.h"
 
 // Binds the motion file: frame count, parts (track) table, key offsets relocated to pointers,
 // key history cleared; blend frames `hokan`, flags (bit2 loop, bit3 pause) and the start frame.

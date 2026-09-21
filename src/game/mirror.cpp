@@ -7,9 +7,7 @@
 #include "model.h"
 #include "gx.h"
 #include "TexRender.h"
-
-// game/trans.cpp
-int commonScreenMat(cModel* m);
+#include "trans.h"
 
 static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat);
 

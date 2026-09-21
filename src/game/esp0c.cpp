@@ -39,7 +39,6 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
-extern "C" int EffAreaCheckInRoom(Vec* pos);
 
 // EspCreateTbl[0x0C] factory.
 cEsp* Esp0c_Create()

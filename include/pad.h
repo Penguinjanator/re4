@@ -49,6 +49,7 @@ void PADInit();
 u32 PADRead(PADStatus* status);
 void PADClamp(PADStatus* status);
 BOOL PADReset(u32 mask);
+void PADRecalibrate(u32 mask);
 void PADControlMotor(int chan, u32 cmd);
 void PADSetAnalogMode(u32 mode);
 

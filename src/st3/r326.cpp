@@ -29,8 +29,6 @@ struct R326Work {
 static R326Work* r326_work;
 
 // Reference stores: the work pointer (and pG) are reloaded after them.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
-static inline void PSet(cEmHit*& d, cEmHit* v) { d = v; }
 
 static void r326_setSubCharMotion();
 static void r326_DoorLock();

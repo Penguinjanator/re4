@@ -43,6 +43,7 @@
 #include "rnd.h"
 #include "TexRender.h"
 #include "db_log.h"
+#include "pl_mod.h"
 
 // Room 2-06 (D:/Bio4/Prog/r206.cpp): the sniper sequence where Ashley runs through the hall while
 // the player covers her, Luis' body, the key item pickup and the shelf.
@@ -70,25 +71,6 @@ struct R206WorkPtr {
 };
 
 static R206WorkPtr r206_work;
-
-// game/shape.cpp (C++ linkage, declared locally by its users).
-void ShapeSet(void* info, int a, void* data, int b);
-
-// `pSUB->atari.flags &= 0xFCFF` through a pointer to the collision info (r207).
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe (r210).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
-// Upper half of the damage flags set = the enemy is dead (db_cam idiom); the inline's result is
-// materialised as 0/1 before the test.
-static inline int isDeadEm(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
-// Set an enemy's four routine bytes (r_no_0..3) at once — Ashley's aux-routine steps.
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
-}
 
 void r206_die_event();
 static void r206_gouryuu_event();
@@ -448,7 +430,7 @@ static void funcAshley(cEm* p)
     pSUB->setPos(&d);
     switch (p->r_no_2) {
     case 0:
-        AtariFlagsAnd(&pSUB->atari, 0xFCFF);
+        AtariOff(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xA, 0, 1, 0);
         SndCall(6, 0xD, &pSUB->pos, 0, 0, 0);
         p->r_no_2 = 1;
@@ -471,7 +453,7 @@ static void funcAshley(cEm* p)
     default:
         if (p->motionMove() != 0) {
             EmRoutineSet(p, 0, 0, 0, 0);
-            AtariFlagsOr(&pSUB->atari, 0x300);
+            AtariOn(&pSUB->atari, 0x300);
             SubCharCtrl(SCC_CHASE, 0);
         }
         break;
@@ -483,13 +465,13 @@ static void funcAshley(cEm* p)
 static void funcAshley2(cEm* p)
 {
     if (p->r_no_2 == 0) {
-        AtariFlagsAnd(&pSUB->atari, 0xFCFF);
+        AtariOff(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x19, 0, 1, 0);
         p->r_no_2 = 1;
     }
     if (p->motionMove() != 0) {
         EmRoutineSet(p, 0, 0, 0, 0);
-        AtariFlagsOr(&pSUB->atari, 0x300);
+        AtariOn(&pSUB->atari, 0x300);
         SubCharCtrl(SCC_CHASE, 0);
     }
 }
@@ -501,7 +483,7 @@ static void funcAshley3(cEm* p)
 
     switch (step) {
     case 0:
-        AtariFlagsAnd(&pSUB->atari, 0xFCFF);
+        AtariOff(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x31), 0x19, 0, 1, 0);
         r206_work.p->cnt3 = step;
         p->r_no_2 = 1;
@@ -518,7 +500,7 @@ static void funcAshley3(cEm* p)
         break;
     default:
         EmRoutineSet(p, 0, 0, 0, 0);
-        AtariFlagsOr(&pSUB->atari, 0x300);
+        AtariOn(&pSUB->atari, 0x300);
         SubCharCtrl(SCC_CHASE, 0);
         break;
     }
@@ -530,8 +512,8 @@ int chkAliveGanadeNum()
     int cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && (em->be_flag & 0x201) == 1) {
             cnt++;
@@ -961,7 +943,7 @@ static void chkReaderMove()
                 }
                 if ((r206_work.p->gotoNo == 0 && cnt == 0x1A4)
                     || (cnt > 0x257 && (em->be_flag & 0x201) == 1 && em->checkStatus(EM_STATUS_ACTIVE) == 1
-                        && isDeadEm(em))) {
+                        && EmDeadCk(em))) {
                     timer = 0x5A;
                 }
                 if (timer != 0) {

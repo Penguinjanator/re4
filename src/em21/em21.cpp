@@ -24,12 +24,13 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
+#include "em.h"
 
 // The module's 0x30-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em21,48,4");
-
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 
 
 typedef void (*Em21Func)(cEm21*);
@@ -48,42 +49,10 @@ static void em21_R1_VsElgigante(cEm21* em);
 static void em21TrapCancelAction(cEm21* em);
 static void plemTrapCancel(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Work `no` of the enemy manager with the range check kept (em.h's EmMgrWork lets jump threading
-// fold it away inside the scan loops; the manager pointer local defeats it, db_light objWorkChkP).
-static inline cEm* em21EmWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
 
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em21DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Module entry (SN loader): registers Em21Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
@@ -117,7 +86,7 @@ void em21DmCk(cEm21* em)
     Vec hitPos;
     u8 mode;
 
-    if (em21DeadCk(em) == 0) {
+    if (EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, &hitPos)) {
         case 1:
         case 4:
@@ -235,11 +204,11 @@ void cEm21::move()
     }
     em21NeckMove(this);
     partsWorldCalc();
-    d = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    d = VEC_DISTXZ(&pos, &pos_old);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckTimer = 3;
     }
 }
@@ -434,8 +403,8 @@ static void em21_R1_Escape(cEm21* em)
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
         if (!StaFlagChk(pGS, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;
@@ -766,7 +735,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         } else {
             ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
@@ -803,7 +772,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         } else {
             ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
@@ -865,7 +834,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 0xC;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -877,7 +846,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 8;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -889,7 +858,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 2;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -911,7 +880,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->r_no_2 = 6;
             break;
         }
-        if (em21DeadCk(em)) {
+        if (EmDeadCk(em)) {
             em->r_no_2 = 6;
         }
         break;
@@ -931,8 +900,8 @@ int em21SearchElgigante(cEm21* em)
     Em21Work* w = EM21_WK(em);
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if (!e->isAlive()) {
             continue;
@@ -1189,7 +1158,7 @@ void em21NeckMove(cEm21* em)
 }
 
 // Should the sleeping / wandering dog notice the player: within 1500 units, within 4000 in front, the
-// alert / bell alarm (Status_flg bits, bell_pos within 15000) or the room's forced alert. 1 = yes.
+// alert / bell alarm (Status_flg bits, SeInfo.pos within 15000) or the room's forced alert. 1 = yes.
 int em21WakeCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1213,7 +1182,7 @@ int em21WakeCk(cEm21* em)
 
         // three identical arms + the override after the switch: the arm sets are dead (the
         // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 15000.0f;
             break;
@@ -1225,8 +1194,8 @@ int em21WakeCk(cEm21* em)
             break;
         }
         r = 15000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
-                + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y)
+                + (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z)
             < r * r) {
             return 1;
         }
@@ -1252,8 +1221,8 @@ void em21EscapeWithYou(cEm21* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em21EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;
@@ -1318,8 +1287,8 @@ int em21TrapSearch(cEm21* em)
     if (w->pTrap) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = em21EmWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.at(i);
 
         if (!(e->be_flag & 1)) {
             continue;

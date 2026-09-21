@@ -51,9 +51,23 @@ struct KeyWork {
 
 extern KeyWork Key;
 
+// Logical key bits of Key.on / trg / rep for the menu screens.
+#define KEY_A 0x80000000
+#define KEY_B 0x40000000
+#define KEY_UP 0x01000000
+#define KEY_DOWN 0x02000000
+#define KEY_RIGHT 0x04000000
+#define KEY_LEFT 0x08000000
+
 // pSys points at SystemSave, the save block declared in global.h.
 struct SYSTEM_SAVE_WORK;
 extern SYSTEM_SAVE_WORK* pSys;
+
+// Struct-member view of pSys (see pPLS in player.h).
+struct SystemWorkPtr {
+    SYSTEM_SAVE_WORK* p;
+};
+#define pSysS (((SystemWorkPtr*) &pSys)->p)
 
 extern "C" int GetSystemVcnt();
 extern "C" void SetSystemVcnt(int vcnt);

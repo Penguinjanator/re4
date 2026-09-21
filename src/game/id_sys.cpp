@@ -16,17 +16,11 @@
 #include "math_sub.h"
 #include "texture.h"
 #include "trans_ot.h"
+#include <stdlib.h>
+#include <dolphin/os.h>
+#include "path.h"
+#include "trans.h"
 
-extern "C" {
-double tan(double);
-double strtod(const char*, char**);
-void OSReport(const char* msg, ...);
-// game/path.cpp
-int FuncPathParametrize(void* path, void* data);
-int FuncPathCalc(void* path, void* data, f32 t, Vec* out);
-}
-
-extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
 Mtx IDSystem::m_scrn_mat;
 
@@ -44,11 +38,7 @@ struct IdBlend2 {
 };
 
 // Bit tables indexed by table type (ck / disp).
-#define ID_BIT_WORD(tbl, n) (*(u32*) (((n) >> 5 << 2) + (u32) (tbl)))
-static inline u32 IdBitGet(u32* tbl, u8 n) { return ID_BIT_WORD(tbl, n) & (0x80000000 >> (n & 0x1F)); }
-static inline int IdBitChk(u32* tbl, u8 n) { return IdBitGet(tbl, n) ? 1 : 0; }
-static inline void IdBitOn(u32* tbl, u8 n) { ID_BIT_WORD(tbl, n) |= 0x80000000 >> (n & 0x1F); }
-static inline void IdBitOff(u32* tbl, u8 n) { ID_BIT_WORD(tbl, n) &= ~(0x80000000 >> (n & 0x1F)); }
+static inline int IdBitChk(u32* tbl, u8 n) { return FlagChkVar(tbl, (u32) n) ? 1 : 0; }
 #define ID_UNIT(i) ((IdUnit*) ((i) * sizeof(IdUnit) + (u32) pUnit))
 
 // Allocates the pool of n IdUnits (memory group 13) and clears it.
@@ -100,10 +90,10 @@ void IDSystem::dispSw(int type, int sw)
 {
     switch (sw) {
     case 1:
-        IdBitOff(m_disp_off, (u8) type);
+        FlagOffVar(m_disp_off, (u32) ((u8) type));
         break;
     case 0:
-        IdBitOn(m_disp_off, (u8) type);
+        FlagOnVar(m_disp_off, (u32) ((u8) type));
         break;
     }
 }
@@ -230,7 +220,7 @@ void IDSystem::set(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode)
     u32 a;
 
     setCk(type);
-    IdBitOn(m_set_flag, (u8) type);
+    FlagOnVar(m_set_flag, (u32) ((u8) type));
 
     ver = (int) (f32) strtod((char*) data, 0);
     sysVer = (int) (f32) strtod("2.00", 0);
@@ -493,7 +483,7 @@ void IDSystem::kill(u8 id, int type)
             }
         }
     }
-    IdBitOff(m_set_flag, (u8) type);
+    FlagOffVar(m_set_flag, (u32) ((u8) type));
 }
 
 // Rewinds every live unit's four timers by one step against their direction (holds the animation
@@ -1024,7 +1014,7 @@ void IDSystem::trans()
         if (DpfFlagChk(pG, DPF_COCKPIT) && u->otType == 0x13) {
             continue;
         }
-        if (IdBitGet(m_disp_off, u->classNo)) {
+        if (FlagChkVar(m_disp_off, (u32) u->classNo)) {
             continue;
         }
         if (u->be_flag == 0xFF || !(u->be_flag & 0x1)) {

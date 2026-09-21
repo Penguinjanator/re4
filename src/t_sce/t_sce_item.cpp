@@ -23,18 +23,14 @@
 #include "etc_model.h"
 #include "debug.h"
 #include "t_util.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 // Item placement ("ITA" room file) editor of the t_sce REL (D:/Bio4/Prog/t_sce_item.cpp). The
 // t_sce_at.cpp skeleton with the item payload editor, the flag auto-numbering and the XML export.
 
 extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-int strncmp(const char* a, const char* b, unsigned int n);
-char* strstr(const char* s, const char* sub);
-char* strchr(const char* s, int c);
-char* strpbrk(const char* s, const char* set);
-unsigned long strtoul(const char* s, char** end, int base);
 int EtcModelGetLastNo();
 }
 int SetToolLight(int no);  // t_sce's db_light_v2 copy
@@ -171,8 +167,6 @@ char* getItemIdStr(u32 id);
 #define AREA_NUM 128
 
 // pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
-#define REP_RIGHT (JOY_RIGHT | 0x20000)
-#define REP_LEFT (JOY_LEFT | 0x10000)
 
 // +1 / -1 on a value
 #define STEP(j, v)                     \
@@ -205,9 +199,6 @@ char* getItemIdStr(u32 id);
 // link types 1 (enemy) and 2 (etc model) place the item on another model
 #define LINKED(a) ((a)->linkType == 1 || (a)->linkType == 2)
 
-// 128-bit flag table
-static inline u32 bitChk(u32* tbl, u32 n) { return tbl[n >> 5] & (0x80000000 >> (n & 0x1F)); }
-static inline void bitOn(u32* tbl, u32 n) { tbl[n >> 5] |= 0x80000000 >> (n & 0x1F); }
 
 // ITEM SET TOOL entry (debug menu 34): edits the room's ITA item placement records (SceAtWork with
 // the item payload). Loops: sub stick moves the panel, START toggles the debug camera, Z the tool
@@ -260,21 +251,21 @@ void ToolSceItem()
 // Flag setup: pause the game, debug displays on, tool light 1.
 void tSceItemInit_base()
 {
-    *(TOOL_PTR(0x8678)) = 0x11;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x4000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    *((u8*) &pG->debug_mode) = 0x11;
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x4000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     pW->light = 1;
     SetToolLight(1);
 }
@@ -352,7 +343,7 @@ static void tSceItemExit()
     case 9:
         file_unlock(pW->pathX);
         Debug_free(pW);
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();
@@ -629,8 +620,6 @@ static void tSceItemAreaEdit_AreaDelete()
     pCur->flag &= ~1;
     pW->editCursor = 0;
 }
-
-#define DEG2RAD 0.017453292f
 
 // the hit-angle arrow of an area: centre, direction and the +-range fan (the older RotMatrix build
 // of t_sce_at's angle_arrow_disp)
@@ -1469,8 +1458,8 @@ void tSceItemSetRoomData(int size)
     TSceItemFile* p;
 
     if (SceAtSys.x11D == 1) Mem_free(SceAtSys.pItemData);
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        o = ObjMgr.fastAt(i);
         if (o->isAlive() && o->id == 0x19) ObjMgr.destroy(o);
     }
 #line 1694 "D:/Bio4/Prog/t_sce_item.cpp"
@@ -1550,8 +1539,8 @@ int tSceItemSetItemFlgAuto_on()
     u32 n;
 
     for (n = 1; n < 128; n++) {
-        if (!bitChk(pW->flgAuto, n)) {
-            bitOn(pW->flgAuto, n);
+        if (!FlagChkVar(pW->flgAuto, n)) {
+            FlagOnVar(pW->flgAuto, n);
             return n;
         }
     }
@@ -1569,7 +1558,7 @@ int tSceItemSetItemFlgAuto_ck(u32 no)
         return 1;
     }
     if (no == 0) return 1;
-    return bitChk(pW->flgAuto, no);
+    return FlagChkVar(pW->flgAuto, no);
 }
 
 // gives every item without an explicit ITEM_SET flag an automatic one
@@ -1588,7 +1577,7 @@ void tSceItemSetItemFlgAutoDataCreate()
             if (tSceItemSetItemFlgAuto_ck(it->findFlagNo)) {
                 it->findFlagNo = tSceItemSetItemFlgAuto_on();
             } else {
-                bitOn(pW->flgAuto, it->findFlagNo);
+                FlagOnVar(pW->flgAuto, it->findFlagNo);
             }
         } else {
             it->findFlagNo = 0;
@@ -1617,10 +1606,10 @@ static void tSceItemPreview()
 // Un-pauses the player / HUD for the preview.
 static void tSceItemPreview_init()
 {
-    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) &= ~0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] &= ~0x10000000;
     pW->sub = 1;
     pW->step = 0;
     pW->step2 = 0;
@@ -1685,16 +1674,16 @@ void tSceItemPreview_pl_pos()
 // Restores the tool flags, back to the main menu.
 static void tSceItemPreview_exit()
 {
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Debug_flg[0] |= 0x10000000;
     MODE_RESET();
 }
 

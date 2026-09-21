@@ -8,10 +8,9 @@
 #include "trans.h"
 #include "trans_ot.h"
 #include "camera.h"
+#include "main_sub.h"
 
 extern "C" {
-void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h);
-void calcTplAddr(TEXPalette* tpl);
 void ss_Draw_tpl(void* tpl, u32 id, int x, int y, int w, int h, int ot, int prio);
 void ss_Draw_tpl_local(TEXPalette* tpl, u32 id, int x, int y, int w, int h);
 void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, int ot, int prio);

@@ -29,32 +29,15 @@
 #include "path.h"
 #include "hermite.h"
 #include "room_data.h"
-
-typedef s64 OSTime;
-
-struct OSCalendarTime {
-    int sec;   // 0x00
-    int min;   // 0x04
-    int hour;  // 0x08
-    int mday;  // 0x0C
-    int mon;   // 0x10
-    int year;  // 0x14
-    int wday;  // 0x18
-    int yday;  // 0x1C
-    int msec;  // 0x20
-    int usec;  // 0x24
-};
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
+#include <dolphin/os/OSCache.h>
+#include <dolphin/os/OSReset.h>
+#include <dolphin/os.h>
+#include <dolphin/db.h>
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
-void DCFlushRange(void* addr, u32 nBytes);
-OSTime OSGetTime();
-void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td);
-OSTime OSCalendarTimeToTicks(OSCalendarTime* td);
-void OSResetSystem(int reset, u32 resetCode, int forceMenu);
-int DBIsDebuggerPresent();
 void debugInfoDisp(int slot, int type);
 void CRCInit();
 u32 CRCCalc(u8* data, u32 len);
@@ -138,14 +121,8 @@ struct MesPos {
 #define SYS_SIZE 0x1E7C
 
 static inline void U16Inc(u16& v) { v++; }
-// Member read through a reference (no struct flag): stays below a preceding store to a static.
-static inline s32 IRef(s32& v) { return v; }
 static inline u32 bitChk(u32 f, u32 b) { return f & b; }
 
-#define KEY_A 0x80000000
-#define KEY_B 0x40000000
-#define KEY_UP 0x01000000
-#define KEY_DOWN 0x02000000
 #define KEY_START 0x00080000
 #define KEY_Z 0x00040000
 
@@ -1478,7 +1455,7 @@ void cCard::errorDisp()
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
         cardcheck = 1;
-        switch (IRef(m_ErrCode)) {
+        switch (S32Ref(m_ErrCode)) {
         case -3:
             if (type == 2) {
                 mesNo = 0x18;

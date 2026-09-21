@@ -11,9 +11,8 @@
 #include "math_sub.h"
 #include "esp.h"
 #include "main_sub.h"
+#include "view.h"
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 struct Esp0fWork {
     u8 Pow;  // 0x00 TEV colour scale of the copied frame (0..2)

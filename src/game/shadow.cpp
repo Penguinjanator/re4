@@ -20,13 +20,13 @@
 #include "eprintf.h"
 #include "os_vi.h"
 #include "shadow.h"
+#include "ref_access.h"
+#include "trans.h"
+#include "player.h"
+#include "pl_npc.h"
 
-extern cEm* pPL;   // game/em.cpp
-extern cEm* pSUB;  // game/em.cpp
 // game/trans.cpp
 extern GXTexObj IndTex[2];
-int commonScreenMat(cModel* m);
-extern "C" void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag);
 
 static int SHADOW_NUM_MAX = 0;
 static int g_Shd_render_size = 0x100;
@@ -36,7 +36,6 @@ int g_SelfShdNum = 0;
 f32 shadow_cammove_size = 1.0f;
 // Reference read of a unit static: the load is neither in-struct nor a fixed scalar, so it stays
 // ordered against the `mng->dir` stores (make_comn_parallel_light issues the pool -1.0 first).
-static inline f32 FRef(f32& v) { return v; }
 
 f32 shadow_add_dir_x_default = 0.1f;
 f32 shadow_add_dir_x = shadow_add_dir_x_default;
@@ -48,12 +47,7 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
-static inline void U16Set(u16& d, u16 v) { d = v; }
-// Flag test through a reference: the load is a plain scalar access that the scheduler keeps
-// below the preceding stores (a member read of pG is hoisted above them).
-static inline u32 BitChk(u32& f, u32 b) { return f & b; }
 static inline void PSet(cObj**& d, cObj** v) { d = v; }
-static inline void VSet(void*& d, void* v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.
@@ -294,7 +288,7 @@ void ShadowTrans()
     StaFlagOff(pG, STA_USE_SHADOW_LIGHT);
 
     found = 0;
-    l = LightMgr.pAlive;
+    l = LightMgr.getActiveWork();
     cnt = 0;
     while (l) {
         ShadowLightWork* w;
@@ -340,7 +334,7 @@ void ShadowTrans()
         return;
     }
 
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt2 = 0;
     while (em) {
         if (cnt2 != 0) {
@@ -394,7 +388,7 @@ void ShadowTrans()
         }
     }
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt2 = 0;
     while (obj) {
         if (cnt2 != 0) {
@@ -443,7 +437,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
     cLight* l;
     int cnt;
 
-    l = LightMgr.pAlive;
+    l = LightMgr.getActiveWork();
     cnt = 0;
     while (l) {
         ShadowLightWork* w;
@@ -550,7 +544,7 @@ void FixShadowLightSet(cLight* l)
     tmp.pLight = l;
     make_fix_light(&tmp);
 
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt = 0;
     while (em) {
         if (cnt != 0) {
@@ -600,7 +594,7 @@ void FixShadowLightSet(cLight* l)
         mng->pModel[mng->num++] = em;
     }
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
@@ -658,7 +652,7 @@ void shadowModelRender(ShadowMng* mng)
     StaFlagOn(pG, STA_PROC_SHD_TEX);
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
-        VSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
+        PSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
         DCInvalidateRange(mng->pTex, g_Shd_tex_size * g_Shd_tex_size);
         if (mng->pTex == 0) {
             pLog->warn(0, 0, "ShadowModelRender() : not enough memory");
@@ -751,7 +745,7 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     mng->lightPos = mng->target;
     mng->dir.x = FRef(shadow_add_dir_x);
     FSet(mng->dir.y, -1.0f);
-    mng->dir.z = FRef(shadow_add_dir_x);
+    mng->dir.z = shadow_add_dir_x;
     PSVECNormalize(&mng->dir, &mng->dir);
     w = (ShadowLightWork*) l->work;
     {
@@ -1301,7 +1295,7 @@ void shadowScrModelRender(ShadowMng* mngs)
     int n;
     int num;
 
-    obj = ObjMgr.pAlive;
+    obj = ObjMgr.getActiveWork();
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
@@ -1321,7 +1315,7 @@ void shadowScrModelRender(ShadowMng* mngs)
             }
         }
     }
-    em = EmMgr.pAlive;
+    em = EmMgr.getActiveWork();
     cnt = 0;
     while (em) {
         if (cnt != 0) {
@@ -1781,10 +1775,10 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
 {
     ShadowMng tmp;
     u32 i;
-    u32 n = LightMgr.nArray;
+    u32 n = LightMgr.getArrayNum();
 
     for (i = 0; i < n; i++) {
-        cLight* l = (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * i);
+        cLight* l = (cLight*) LightMgr.fastAt(i);
         ShadowLightWork* w;
         ShadowMng* mng;
 

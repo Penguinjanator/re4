@@ -4,12 +4,8 @@
 #include "obj.h"
 #include "global.h"
 #include "db_log.h"
-
-extern "C" {
-void PathGetMatEm(void* path, void* data, f32 t, u16* hist, Mtx m);
-void Draw_local_pos(Vec* pos, int size, Mtx m);
-void Draw_line3d(Vec* p0, Vec* p1, int color, int type);
-}
+#include "path.h"
+#include "dbmodule.h"
 
 // Path object: every parts is placed along a path, spaced 40 units apart.
 class cObj03 : public cObj {

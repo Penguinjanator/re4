@@ -9,24 +9,22 @@
 #include "em_set.h"
 #include "global.h"
 #include "db_log.h"
+#include "ref_access.h"
+#include "em.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 
 cEm* errEm = 0;
 static int emSetDummy = 0;
 
 // Death bit of list entry `no` in the current enemy list (0 when no list is loaded).
-// Death bit table of the current enemy list (pG->Em_flg[pG->emlist_no]); the original computes
-// it with byte arithmetic: the row offset is added to pG before the table offset.
-#define EM_DEAD_TBL() ((u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C))
-
 // Death bit of list entry `no` in the current list (pG->em_list_no); 0 when no list is loaded.
 static inline u32 EmSetDieCk(u32 no)
 {
     u32 v;
 
     if (pG->em_list_no >= 0) {
-        u32* tbl = EM_DEAD_TBL();
+        u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {
@@ -39,14 +37,12 @@ static inline u32 EmSetDieCk(u32 no)
 static inline void EmSetDieOn(u32 no)
 {
     if (pG->em_list_no >= 0) {
-        u32* tbl = EM_DEAD_TBL();
+        u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
         tbl[no >> 5] |= 0x80000000 >> (no & 31);
     }
 }
 
-// Counter update through a reference: the store is a plain scalar access, so pG is reloaded after it.
-static inline void CntInc(u32& c) { c++; }
 
 // While flags_68 bit21 is set only the enemies 3 and 4 may be created.
 #define EM_SET_ID_NG(id) (DbgFlagChk(pG, DBG_NO_ENEMY) && ((id) != 3 && (id) != 4))
@@ -124,18 +120,6 @@ static inline void EmSetDist(cEm* em)
     em->plDist2 = dx * dx + dz * dz;
 }
 
-// Work `no` with the range check read through a manager copy (map_obj.h getWork). A plain
-// `for (i = 0; i < EmMgr.nArray; i++)` around it gives the original shape: gcse PRE turns the second
-// nArray read into a copy of the first (`mr r10, r0`), the bottom test uses that copy and the back
-// edge is threaded past the check.
-static inline cEm* emSetWork(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 // 1 when no live enemy already carries list entry `no` (0xFF: always 1).
 int checkListId(int no)
@@ -145,8 +129,8 @@ int checkListId(int no)
     if (no == 0xFF) {
         return 1;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = emSetWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.at(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return 0;
@@ -164,7 +148,7 @@ void EmSetFromList()
     u32 i;
 
     for (i = 0; i < 256; i++) {
-        EmListData* d = EM_LIST(i);
+        EmListData* d = &pG->Em_list[i];
         cEm* em;
 
         if (!(d->be_flag & 1)) {
@@ -216,7 +200,7 @@ void EmSetFromList()
 // death bit only with chkDead. Returns the enemy, or errEm when nothing was created.
 cEm* EmSetFromList2(int no, int chkDead)
 {
-    EmListData* d = EM_LIST(no);
+    EmListData* d = &pG->Em_list[no];
     cEm* em;
 
     if (EM_SET_ID_NG(d->id)) {
@@ -290,8 +274,8 @@ cEm* GetEmPtrFromList(int no)
     if (no == 0xFF) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = emSetWork(i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.at(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return em;
@@ -306,7 +290,7 @@ EmListData* GetListPtrFromEm(cEm* em)
     if (em->emset_no == 0xFF) {
         return 0;
     }
-    return EM_LIST(em->emset_no);
+    return &pG->Em_list[em->emset_no];
 }
 
 // Enemy id of list entry `no` (0xFF for an invalid index).
@@ -317,7 +301,7 @@ u32 GetEmIdFromList(u32 no)
     if (no >= 0xFF) {
         return 0xFF;
     }
-    list = (EmListData*) pG->Em_list;
+    list = pG->Em_list;
     return list[no].id;
 }
 
@@ -325,7 +309,7 @@ u32 GetEmIdFromList(u32 no)
 // stage / room.
 void EmListSetAlive(int no, int on)
 {
-    EmListData* d = EM_LIST(no);
+    EmListData* d = &pG->Em_list[no];
 
     if (pG->stage_no != d->room >> 8) {
         return;
@@ -362,8 +346,8 @@ void EmSetDie(cEm* em)
 // Counts a kill in the chapter and game kill counters (results screen).
 void EmSetDieCnt(cEm* pEm)
 {
-    CntInc(pG->c_kill_cnt);
-    CntInc(pG->g_kill_cnt);
+    U32Inc(pG->c_kill_cnt);
+    pG->g_kill_cnt++;
 }
 
 // Room change: clears the "set" bit of every list entry so the new room can create its enemies.
@@ -372,7 +356,7 @@ void EmSetRoomInit()
     int i;
 
     for (i = 0; i < 256; i++) {
-        EmListData* d = EM_LIST(i);
+        EmListData* d = &pG->Em_list[i];
 
         d->be_flag &= ~2;
     }

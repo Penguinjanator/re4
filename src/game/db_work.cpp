@@ -88,14 +88,14 @@ void cDbWork::dispEm()
     cEm* em;
 
     eprintf(32, 28, 4, 0, "ENEMY %d", wkNo);
-    em = EmMgrWork(wkNo);
+    em = EmMgr.at(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
         wkNo++;
     }
     if (Joy[0].rep & JOY_LEFT) {
         wkNo--;
     }
-    wkNo = (wkNo + EmMgr.nArray) % EmMgr.nArray;
+    wkNo = (wkNo + EmMgr.getArrayNum()) % EmMgr.getArrayNum();
     if ((em->be_flag & 0x201) == 1) {
         dispModel(em, 4, 3);
         eprintf(32, 280, 0, 0, "HP       %d", em->hp);
@@ -121,7 +121,7 @@ void cDbWork::dispObj()
     if (Joy[0].rep & JOY_LEFT) {
         wkNo--;
     }
-    wkNo = (wkNo + ObjMgr.nArray) % ObjMgr.nArray;
+    wkNo = (wkNo + ObjMgr.getArrayNum()) % ObjMgr.getArrayNum();
     if ((obj->be_flag & 0x201) == 1) {
         dispModel(obj, 4, 3);
         x = 4;
@@ -224,14 +224,14 @@ void cDbWork::dispLit()
     cLight* l;
 
     eprintf(32, 28, 4, 0, "LIGHT %d", wkNo);
-    l = LightMgr.getWorkPtr(wkNo);
+    l = LightMgr.at(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
         wkNo++;
     }
     if (Joy[0].rep & JOY_LEFT) {
         wkNo--;
     }
-    wkNo = (wkNo + LightMgr.nArray) % LightMgr.nArray;
+    wkNo = (wkNo + LightMgr.getArrayNum()) % LightMgr.getArrayNum();
     if ((l->be_flag & 0x201) == 1) {
         eprintf(32, 280, 0, 0, "BE FLAG  %08X", l->be_flag);
         eprintf(32, 294, 0, 0, "POSITION %7.0f %7.0f %7.0f", l->Pos.x, l->Pos.y, l->Pos.z);

@@ -13,17 +13,9 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "trans_ot.h"
+#include "ref_access.h"
+#include "trans.h"
 
-extern "C" {
-void* GetPrimBuff(int size);
-}
-
-// The original stores g_NowExecOtType through a reference: that keeps the following loads through the
-// OtWork pointer below the store (a plain global store lets ProDG hoist them).
-static inline void ISet(int& d, int v)
-{
-    d = v;
-}
 
 // Table `type`. As an inline accessor the constant index stays `addi 0x88` after the symbol load
 // instead of folding into `g_OtWork+0x88`.
@@ -32,15 +24,6 @@ static inline OtWork* otWork(int type)
     return &g_OtWork[type];
 }
 
-// Depth of `pos` along the camera look vector.
-static inline f32 OtDepth(Camera* cam, Vec* pos, Vec* look, Vec* d)
-{
-    CameraGetLookVecInverse(cam, look);
-    d->x = pos->x - cam->param.pos.x;
-    d->y = pos->y - cam->param.pos.y;
-    d->z = pos->z - cam->param.pos.z;
-    return PSVECDotProduct(look, d);
-}
 
 static int Ot_max_tbl[OT_MAX] = {
     10, 10, 10, 10, 10, 10, 10, 10, 3, 4, 3, 6, 8, 0x80, 3, 3, 5, 0x400, 10, 10, 3, 3, 1,

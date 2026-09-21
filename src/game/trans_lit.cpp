@@ -15,6 +15,7 @@
 #include "db_log.h"
 #include "math_sub.h"
 #include "main_mem.h"
+#include "ref_access.h"
 
 extern "C" {
 void LightSetInit();
@@ -37,7 +38,6 @@ void LightDisable();
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-static inline void ISet(int& d, int v) { d = v; }
 
 #define LIGHT_FUNC_TABLE                                                                              \
     static void (*funcLightParam[16])(cLight*, GXLightObj*) = {                                      \
@@ -221,7 +221,7 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
     u32 mask;
     int i;
 
-    ISet(obj_flag, 0);
+    obj_flag = 0;
     mask = 0;
     amb.a = amb.b = amb.g = amb.r = 0;
     for (i = 0; i < n; i++) {

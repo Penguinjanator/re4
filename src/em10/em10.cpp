@@ -64,6 +64,10 @@
 #include "sce_at.h"
 #include "sce.h"
 #include "gx_sub.h"
+#include "ref_access.h"
+#include "em.h"
+#include <dolphin/os.h>
+#include "obj16.h"
 
 
 // The 0x34-byte COMMON block every original module carries (uninitialised static data members of
@@ -73,11 +77,7 @@
 #define EM10_STR(x) EM10_STR2(x)
 asm(".comm common_" EM10_STR(REL_MODULE) ",52,4");
 
-extern "C" double atan2(double y, double x);
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`, pl_npc.cpp).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine dispatch tables (.data).
 static void em10_R0_Init(cEm10* em);
@@ -365,8 +365,6 @@ int em10LostHeadCk(cEm10* em);
 int em10ModelInit(cEm10* em);
 void em10InitRtnSet(cEm10* em);
 void Em1fClothSet(cModel* m, PlCloth* c);
-extern "C" int EspDataLoad(u32 addr, u32 owner, int flag);
-extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void em10SetWaitMotion(cEm10* em, int a);
 void em10SetWalkMotion(cEm10* em, int a);
 void em10BeltSet(cEm10* em);
@@ -390,7 +388,6 @@ cEmWep* em10MakeWeapon(cEm10* em, int type);
 void em10WeaponSet(cEm10* em);
 int em10ClimbOverCk(cEm10* em);
 void em10SetDamageVoice(cEm10* em, u16 a, u16 b);
-extern "C" void OSReport(const char* fmt, ...);
 void em10RouteCk(cEm10* em);
 void em10ClawMove(cEm10* em);
 void em10NeckMove(cEm10* em);
@@ -503,16 +500,9 @@ extern "C" void em10BlendMotSet(cEm10* em, void* m0, void* m1, void* m2, int a, 
 extern "C" int em10HideRtnCk(cEm10* em);
 extern "C" int em10GatlingHitCk(cEm10* em);
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em10DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // Reference store (same mechanism as FSet): keeps the following global load after the store.
-static inline void U16Set(u16& d, u16 v) { d = v; }
 // Same for an int work field (Dm_Roof: `w->TmpU32 = 1` before the pG load of the water-effect room check).
-static inline void IntSet(int& d, int v) { d = v; }
 
 // Dead test on a cDmgInfo taken by pointer (the upper 16 bits of its flag word), same as em10DeadCk.
 static inline int em10DmgDeadCk(cDmgInfo* d)
@@ -522,35 +512,6 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 
 #define EM10_WINDOW(w) ((w)->pWindow)
 
-
-// The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
-#define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet): the stores come out
-// in the target's order.
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-
-// Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
-// Same for pSUB: its load stays below the preceding member stores and is redone after the flag store (em10_R1_TakeAway).
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 Em10Func Em10SetFunc = 0;
 
@@ -899,7 +860,7 @@ void cEm10::setNoSuspend(int on)
 // 1/4/5/7 = explosions / fire) blow the Ganado away or kill it outright depending on where it is
 // (ladder, fence, gondola, down); a weapon hit (dmHit) takes em10SetDmVal off hp, dispatches the
 // reaction on the weapon id through Em10DmSetWep_tbl (rifles on a chainsaw Ganado go to the heavy
-// reaction), rings the "bell" damage notify (Status_flg[1] bit29 + bell_pos), lights a bowgun
+// reaction), rings the "bell" damage notify (Status_flg[1] bit29 + SeInfo.pos), lights a bowgun
 // Ganado's arrow on a hit to its quiver part, and makes the Ganado find the player.
 void em10DmCk(cEm10* em)
 {
@@ -909,7 +870,7 @@ void em10DmCk(cEm10* em)
     if (em10CrashCk(em)) {
         return;
     }
-    if ((em->be_flag & 2) && !em10DeadCk(em) && em->hp > 0) {
+    if ((em->be_flag & 2) && !EmDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -1020,8 +981,8 @@ void em10DmCk(cEm10* em)
         em10BloodSet(em, 0);
         if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            SET_BELL_POS(&em->pos);
-            pG->bell_stat = 0;
+            pGS->SeInfo.pos = em->pos;
+            pGS->SeInfo.type = 0;
         }
         em->dmg.m_Flag = 0;
         return;
@@ -1119,8 +1080,8 @@ void em10DmCk(cEm10* em)
     }
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        SET_BELL_POS(&em->pos);
-        pG->bell_stat = 0;
+        pGS->SeInfo.pos = em->pos;
+        pGS->SeInfo.type = 0;
     }
     em->dmg.m_Flag = 0;
 }
@@ -2635,7 +2596,7 @@ void cEm10::move()
         if (!(w->flags & 0x400000)) {
             u16 atFlags;
             f32 moved;
-            dist = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+            dist = VEC_DISTXZ(&pos_old, &pos);
             if ((seFlags28B & 0x40) || (w->flags & 0x10091000)) {
                 atari.m_flag |= 0x10;
             } else {
@@ -2653,7 +2614,7 @@ void cEm10::move()
                 SatMgr.check(this, 0);
             }
             atari.m_flag = atFlags;
-            moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+            moved = VEC_DISTXZ(&pos, &pos_old);
             if (moved < dist * 0.5f) {
                 w->x634++;
             } else {
@@ -5671,8 +5632,8 @@ static void em10_R1_R100Cliff(cEm10* em)
             if (em->set == 2) {
                 SndCall(6, 4, &em->pos, 0, 0, em);
             }
-            for (i = 0; i < EmMgr.nArray; i++) {
-                cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+            for (i = 0; i < EmMgr.getArrayNum(); i++) {
+                cEm* e = EmMgr.fastAt(i);
                 if ((e->be_flag & 0x201) != 1) {
                     continue;
                 }
@@ -9209,7 +9170,7 @@ static void em10_R1_ShotBowgun(cEm10* em)
             if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW)) {
                 break;
             }
-            if (em10DeadCk(pPL)) {
+            if (EmDeadCk(pPL)) {
                 break;
             }
             if (pG->Game_level <= 4) {
@@ -9303,7 +9264,7 @@ static void em10_R1_ShotBowgun(cEm10* em)
                 em->r_no_2 = 2;
             } else {
                 w->Timer--;
-                if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW) || em10DeadCk(pPL)) {
+                if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW) || EmDeadCk(pPL)) {
                     em->r_no_2 = 2;
                 }
             }
@@ -9455,7 +9416,7 @@ static void em10_R1_ShotRocket(cEm10* em)
             if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM10_THROW)) {
                 break;
             }
-            if (em10DeadCk(pPL)) {
+            if (EmDeadCk(pPL)) {
                 break;
             }
         }
@@ -9609,7 +9570,7 @@ static void em10_R1_ShotGatling(cEm10* em)
             w->Timer--;
         } else {
             if (!(em->flag & 1)) {
-                if (em10DeadCk(pPL)) {
+                if (EmDeadCk(pPL)) {
                     break;
                 }
                 if (pG->Game_level <= 4) {
@@ -9984,7 +9945,7 @@ static void em10_R1_FixBomber(cEm10* em)
         if (em->r_no_3 && !(w->flags & 1)) {
             break;
         }
-        if (em10DeadCk(pPL)) {
+        if (EmDeadCk(pPL)) {
             break;
         }
         if ((s16) pG->pl_life <= 0) {
@@ -13272,14 +13233,14 @@ static void em10_R1_TakeAway(cEm10* em)
         DbgFlagOff(pG, DBG_FOG_FAR_GREEN);
         StaFlagOn(pG, STA_SET_BG_COLOR);
         bio4_GXSetCopyClear(GXColor(), 0xFFFFFF);
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm* e = EmMgr.fastAt(i);
             if (e && e != em && pSUB && e != pSUB && e->isAlive()) {
                 e->setNoSuspend(0);
             }
         }
-        for (i = 0; i < ObjMgr.nArray; i++) {
-            cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+            cObj* o = ObjMgr.fastAt(i);
             if (o && o->isAlive()) {
                 o->setNoSuspend(0);
             }
@@ -13377,7 +13338,7 @@ static void subem10_TakeAway(cSubChar* sub)
         } else {
             r = MotionMove(s, 0);
         }
-        if (em10DeadCk(s->pEmCatch)) {
+        if (EmDeadCk(s->pEmCatch)) {
             EndSubDamage();
         }
         if (r) {
@@ -14305,7 +14266,7 @@ static void em10_R1_Dm_Claw(cEm10* em)
             MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x111), PL_ARC_PTR(em->subArc, 0x112), 3, 1, 0);
         }
         em10SetDamageVoice(em, w->Se_tbl[1], w->Se_tbl[0]);
-        w->x5F0 = pG->bell_pos;
+        w->x5F0 = pG->SeInfo.pos;
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -14347,7 +14308,7 @@ static void em10_R1_Dm_Claw_Big(cEm10* em)
             EstSet(w->pCore, -1, 0, 0, 0x10, 0x77, 0, 0, w->pCore, 0);
         }
         em10CallVoiceSe(em, w->Se_tbl[1]);
-        w->x5F0 = pG->bell_pos;
+        w->x5F0 = pG->SeInfo.pos;
         w->TmpF = em->ang.y + PI;
         em->r_no_2++;
     case 1:
@@ -16859,8 +16820,8 @@ extern "C" int em10GetGoSub(cEm10* em)
     int n = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -17355,7 +17316,7 @@ int em10CatchCk(cEm10* em)
     Vec b;
     Mtx m;
 
-    if (em10DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -17447,7 +17408,7 @@ int em10CatchSubCk(cEm10* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (em10DeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     if (pSUB->hp <= 0) {
@@ -19337,8 +19298,8 @@ int em10DoorOpenCk(cEm10* em, int kick)
     if (w->x644 != 0) {
         kick = 1;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -19417,8 +19378,8 @@ extern "C" int em10AtkDoorCk(cEm10* em)
     Mtx m;
     Vec v;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* d = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 hw;
         if (!(d->be_flag & 1)) {
@@ -19499,7 +19460,7 @@ int em10SetDamageDoor(cEm10* em, int kind)
     EmDoorWork* dw;
 
     PSMTXInverse(em->mat, inv);
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
         d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
         if (!(d->be_flag & 1)) {
             continue;
@@ -19617,8 +19578,8 @@ int em10RackBreakCk(cEm10* em)
     if (w->x634 % 15 != 8) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmRack* e = (cEmRack*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmRack* e = (cEmRack*) EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19687,8 +19648,8 @@ extern "C" int em10AtkRackCk(cEm10* em)
     Mtx inv;
     Vec v;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19735,8 +19696,8 @@ void em10SetDamageRack(cEm10* em, int a)
     Mtx inv;
     Vec v;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmRack* e = (cEmRack*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmRack* e = (cEmRack*) EmMgr.fastAt(i);
         if (!(e->be_flag & 1)) {
             continue;
         }
@@ -19806,7 +19767,7 @@ int em10LadderClimbCk(cEm10* em)
     // A while loop with the `o = o->next` step repeated before every `continue` (jump2 cross-jumps
     // the copies into one): the copies keep the loop at 82 real insns in loop pass 2, above the
     // 71-insn invariant threshold, so the Muku PI `lis` stays inside the loop like the target.
-    o = (cObjLadder*) ObjMgr.pAlive;
+    o = (cObjLadder*) ObjMgr.getActiveWork();
     while (o) {
         if (o->id != 0x13) {
             o = (cObjLadder*) o->pNext;
@@ -19906,8 +19867,8 @@ int em10VLadderClimbCk(cEm10* em)
     if ((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.y - pPL->pos.y) * (em->pos.y - pPL->pos.y) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z) < 4000000.0f) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* o = EmMgr.fastAt(i);
         if ((o->be_flag & 0x201) != 1) {
             continue;
         }
@@ -19960,7 +19921,7 @@ int em10LadderResetCk(cEm10* em)
     if (w->Go_pos.y - em->pos.y < 1000.0f) {
         return 0;
     }
-    for (o = (cObjLadder*) ObjMgr.pAlive; o; o = (cObjLadder*) o->pNext) {
+    for (o = (cObjLadder*) ObjMgr.getActiveWork(); o; o = (cObjLadder*) ObjMgr.getNext(o)) {
         f32 d;
         if (o->id != 0x13) {
             continue;
@@ -20175,7 +20136,7 @@ extern "C" int em10BullJumpCk(cEm10* em)
     if (pG->room_id != 0x30F) {
         return 0;
     }
-    for (o = (cObjBull*) ObjMgr.pAlive; o; o = (cObjBull*) o->pNext) {
+    for (o = (cObjBull*) ObjMgr.getActiveWork(); o; o = (cObjBull*) ObjMgr.getNext(o)) {
         if (o->id != 0x3E) {
             continue;
         }
@@ -21391,7 +21352,7 @@ void em10ScaleCompress(cEm10* em)
 // Sight check of the idle routines (a: 1 = also require the player within 2000 units of height,
 // 2 = never for the claw types). The Ganado finds the player when it sees him (flag bit0) within
 // 15000 (6000 when heading somewhere) and 60 deg, or very close, when another Ganado is being hurt
-// nearby, on the bell alarm (Status_flg[1] bit29, bell_pos within 25000), when the room forces the
+// nearby, on the bell alarm (Status_flg[1] bit29, SeInfo.pos within 25000), when the room forces the
 // alert (Status_flg[0] bit23), or when it is dead / headless. Calls em10SetRtnFind and returns 1.
 int em10FindCk(cEm10* em, int a)
 {
@@ -21460,7 +21421,7 @@ int em10FindCk(cEm10* em, int a)
                 // compares stay) and `r` a block-local pseudo loaded at the use (local-alloc gives
                 // it the next free FPR, f9, and the high r10 because r9/r11 hold pG).
                 f32 r;
-                switch (pG->bell_stat) {
+                switch (pG->SeInfo.type) {
                 case 0:
                     r = 25000.0f;
                     break;
@@ -21472,9 +21433,9 @@ int em10FindCk(cEm10* em, int a)
                     break;
                 }
                 {
-                    f32 dx = em->pos.x - pGS->bell_pos.x;
-                    f32 dy = em->pos.y - pGS->bell_pos.y;
-                    f32 dz = em->pos.z - pGS->bell_pos.z;
+                    f32 dx = em->pos.x - pGS->SeInfo.pos.x;
+                    f32 dy = em->pos.y - pGS->SeInfo.pos.y;
+                    f32 dz = em->pos.z - pGS->SeInfo.pos.z;
                     r = 25000.0f;
                     if (dx * dx + dy * dy + dz * dz < r * r) {
                         if ((w->flags & 1) && w->L_pl_route < r) {
@@ -21491,7 +21452,7 @@ int em10FindCk(cEm10* em, int a)
             break;
         }
     }
-    dead = em10DeadCk(em);
+    dead = EmDeadCk(em);
     if (dead) {
         find = 1;
     }
@@ -21508,7 +21469,7 @@ int em10FindCk(cEm10* em, int a)
         return 0;
     }
 }
-// "Is there a target to go to" check used by the found Ganados: the bell alarm position (bell_stat
+// "Is there a target to go to" check used by the found Ganados: the bell alarm position (SeInfo.type
 // 1 / 2, within 20000 units), the player when the alert is on (Status_flg[1] bit31) and near, when
 // he is within 1000 units, or when the room forces it; stores the target in x5F0. 1 = target set.
 int em10FindCk2(cEm10* em)
@@ -21519,22 +21480,22 @@ int em10FindCk2(cEm10* em)
         return 0;
     }
     if (StaFlagChk(pG, STA_SE_BURST)) {
-        if (pG->bell_stat == 2) {
-            f32 dx = em->pos.x - pG->bell_pos.x;
-            f32 dy = em->pos.y - pG->bell_pos.y;
-            f32 dz = em->pos.z - pG->bell_pos.z;
+        if (pG->SeInfo.type == 2) {
+            f32 dx = em->pos.x - pG->SeInfo.pos.x;
+            f32 dy = em->pos.y - pG->SeInfo.pos.y;
+            f32 dz = em->pos.z - pG->SeInfo.pos.z;
             if (dx * dx + dy * dy + dz * dz < 400000000.0f) {
-                w->x5F0 = pG->bell_pos;
+                w->x5F0 = pG->SeInfo.pos;
                 w->CriAtk_wait = 0;
                 return 1;
             }
         }
-        if (pG->bell_stat == 1) {
-            f32 dx = em->pos.x - pG->bell_pos.x;
-            f32 dy = em->pos.y - pG->bell_pos.y;
-            f32 dz = em->pos.z - pG->bell_pos.z;
+        if (pG->SeInfo.type == 1) {
+            f32 dx = em->pos.x - pG->SeInfo.pos.x;
+            f32 dy = em->pos.y - pG->SeInfo.pos.y;
+            f32 dz = em->pos.z - pG->SeInfo.pos.z;
             if (dx * dx + dy * dy + dz * dz < 400000000.0f) {
-                w->x5F0 = pG->bell_pos;
+                w->x5F0 = pG->SeInfo.pos;
                 return 1;
             }
         }
@@ -21565,8 +21526,8 @@ extern "C" int em10SomebodyFindNowCk(cEm10* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21615,8 +21576,8 @@ extern "C" int em10SomebodyDamageNowCk(cEm10* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         int dm;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -21670,8 +21631,8 @@ int em10SomebodyNearCk(cEm10* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21708,8 +21669,8 @@ void em10FindNotify(cEm10* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -21976,7 +21937,7 @@ void em10SlopeMove(cEm10* em)
         if (fa < -1500.0f) {
             fa = 0.0f;
         }
-        t = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        t = VEC_DISTXZ(&a, &b);
         ang = -atan2f(fa, t);
         if (w->Slope_timer != 0) {
             w->Slope_timer--;
@@ -22933,8 +22894,8 @@ extern "C" int em10DashCk(cEm10* em)
         return 0;
     }
     cnt = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* o = EmMgr.fastAt(i);
         if ((o->be_flag & 0x201) != 1) {
             continue;
         }
@@ -23052,8 +23013,8 @@ extern "C" int em10StayCk(cEm10* em)
         return 0;
     }
     n = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) == 1 && e->id > 0xF && e->id <= 0x20 && e->hp > 0 && e != em &&
             e->checkStatus(EM_STATUS_ACTIVE) && EM10_WK(e)->L_pl_route < w->L_pl_route) {
             n++;
@@ -23104,8 +23065,8 @@ extern "C" int em10GoSubStayCk(cEm10* em)
         return 0;
     }
     cnt = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         Em10Work* ew;
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -23578,7 +23539,7 @@ extern "C" void em10BellAtkCk(cEm10* em, Vec* pos, u32 no)
     switch (no) {
     case 0xD:
     case 0xE:
-        for (o = (cObjBell*) ObjMgr.pAlive; o; o = (cObjBell*) o->pNext) {
+        for (o = (cObjBell*) ObjMgr.getActiveWork(); o; o = (cObjBell*) ObjMgr.getNext(o)) {
             if (o->id != 0x14) {
                 continue;
             }
@@ -23615,7 +23576,7 @@ extern "C" int em10TorchFrameAtkCk(cEm10* em)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (em10DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if (w->Atk_ck) {
@@ -23649,7 +23610,7 @@ extern "C" int em10TorchFrameAtkCkSub(cEm10* em)
     if (pSUB->hp <= 0) {
         return 0;
     }
-    if (em10DeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     old = w->Atk_ck2;
@@ -23695,7 +23656,7 @@ void em10DragonFireCk(cEm10* em)
         return;
     }
     if ((s16) pG->pl_life > 0) {
-        int dead = em10DeadCk(pPL);
+        int dead = EmDeadCk(pPL);
         if (!dead) {
             if (EM10_DRAGON(w)->ckHitFire(&pPL->pos)) {
                 SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
@@ -23706,8 +23667,8 @@ void em10DragonFireCk(cEm10* em)
             }
         }
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm10* e = (cEm10*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm10* e = (cEm10*) EmMgr.fastAt(i);
         int dead;
         cDmgInfo* d;
         if ((e->be_flag & 0x201) != 1) {
@@ -24844,8 +24805,8 @@ void em10ActEvtSetTrade(cEm10* em)
         }
         break;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -25259,8 +25220,8 @@ extern "C" int em10DootAtkCk(cEm10* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -25309,8 +25270,8 @@ extern "C" int em10ThrowNearCk(cEm10* em)
     PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     PSMTXInverse(m, m);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -26111,8 +26072,8 @@ extern "C" cModel* em10SearchTruck(cEm10* em)
     Em10Work* w = EM10_WK(em);
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) == 1 && e->id == 0x3B) {
             *(cEm10**) ((u8*) e + 0x64C) = em;  // truck (em3b) work: driver
             w->pTruck = e;
@@ -26129,8 +26090,8 @@ extern "C" int em10SearchParasite(cEm10* em)
     u32 i;
 
     w->pParasite = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmPartner* e = (cEmPartner*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmPartner* e = (cEmPartner*) EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -26507,8 +26468,8 @@ int em10GotoPosCk(cEm10* em)
             continue;
         }
         cnt = 0;
-        for (j = 0; j < EmMgr.nArray; j++) {
-            cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * j);
+        for (j = 0; j < EmMgr.getArrayNum(); j++) {
+            cEm* o = EmMgr.fastAt(j);
             if ((o->be_flag & 0x201) != 1) {
                 continue;
             }
@@ -26955,7 +26916,7 @@ cObjGondola* em10GetGondola(cEm10* em)
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o; o = (cObj*) o->pNext) {
+    for (o = ObjMgr.getActiveWork(); o; o = ObjMgr.getNext(o)) {
         if (o->id == 0x35 && ((cObjGondola*) o)->ckRide()) {
             return (cObjGondola*) o;
         }

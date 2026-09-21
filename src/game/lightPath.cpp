@@ -3,9 +3,9 @@
 // brightness 0..200, 0xFF ends the path; cLightPath walks one string, looping.
 #include "lightPath.h"
 #include "db_log.h"
+#include "main_mem.h"
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // Total byte size of the path block (header, offset table and the last string up to its 0xFF).
 u32 cLightPathHeader::getSize()

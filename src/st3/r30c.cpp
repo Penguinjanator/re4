@@ -54,12 +54,6 @@ struct R30cWorkPtr {
 static R30cWorkPtr r30c_work;
 
 
-// Halfword read-modify-write of the collision flags through a volatile access: the pSUB load that
-// follows stays below the store (r311 idiom).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
-// Pointer store through a reference: the loads that follow stay below it (r102 idiom).
-static inline void PSetPtr(void*& d, void* v) { d = v; }
 
 static void r30c_checkImprisonDoorKeyUse();
 static void r30c_checkImprisonDoor();
@@ -114,7 +108,7 @@ void R30cInit()
             pa->y = rotY;
             ang.z = 0.0f;
             sub->setAng(pa);
-            AtariFlagsAnd(&pSUB->atari, ~0x100);
+            AtariOffV(&pSUB->atari, ~0x100);
             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 9, 0);
             pSUB->dmg.m_Timer = 0x80;
         } else {
@@ -129,8 +123,8 @@ void R30cInit()
             pa->y = rotY;
             ang.z = 0.0f;
             sub->setAng(pa);
-            AtariFlagsAnd(&pSUB->atari, ~0x100);
-            AtariFlagsAnd(&pSUB->atari, ~0x200);
+            AtariOffV(&pSUB->atari, ~0x100);
+            AtariOffV(&pSUB->atari, ~0x200);
             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 4, 0);
             r30c_work.p->shout = SceExec(0x12, (TaskFunc) r30c_AshleyShout, 0, 0, 2, 0);
             if (RsfCheck(*(u16*) &pGS->stage_no, 1) == 0) {
@@ -212,7 +206,7 @@ static void R30cEventS00()
         }
         StaFlagOn(pG, STA_SUB_ASHLEY);
         pSUB = r30c_work.p->ashley;
-        AtariFlagsOr(&pSUB->atari, 0x100);
+        AtariOnV(&pSUB->atari, 0x100);
         MotionClear(pSUB, 1);
         pSUB->be_flag |= 0x200000;
         SubCharCtrl(4, 0);
@@ -367,7 +361,7 @@ static void r30c_PlaneMove()
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &pos, 0x10, 1);
     obj->setNoSuspend(1);
 #line 494 "D:/Bio4/Prog/r30c.cpp"
-    PSetPtr(obj->p2A4, MEM_ALLOC(0x98, 1, 0xd));
+    PSet(obj->p2A4, MEM_ALLOC(0x98, 1, 0xd));
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 0x201, 0);
     SndStrReq(r30c_work.p->strId, 2, 0, 0);
     pG->Room_flg[0] &= 0x7FFFFFFF;

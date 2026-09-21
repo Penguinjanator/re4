@@ -8,19 +8,10 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "model.h"
-
-// game/motion.cpp
-struct HermiteParam {
-    f32 t;           // 0x00  current frame
-    f32 frames;      // 0x04  total frames
-    s32 x8;          // 0x08  = 2
-    u8 type;         // 0x0C  interpolation type
-    void* table;     // 0x10  key table
-};
-extern "C" void HermiteInterpolation(HermiteParam* p, void* result, void* work);
+#include <string.h>
+#include "motion.h"
 
 extern "C" {
-void* memcpy(void* dst, const void* src, unsigned int n);
 int ShapeMove(cModelInfo* info);
 void SetOriginalShape(cModelInfo* info);
 void ClrShape(cModel* m);
@@ -199,8 +190,8 @@ void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst)
 {
     ShapeWork work;
     ShapeWork* w = &work;
-    HermiteParam prm;
-    HermiteParam* pp = &prm;
+    HermitePrm prm;
+    HermitePrm* pp = &prm;
     f32 result[4];
     s16 tmp[1];
     u8 out[8];
@@ -229,16 +220,16 @@ void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst)
     if (dst != NULL) {
         ShapeEntry* tbl = (ShapeEntry*) (info->pData->shapeOfs + (u32) info->pData + 4);
 
-        pp->t = rate;
-        pp->frames = w->frames;
-        pp->x8 = 2;
+        pp->frame = rate;
+        pp->maxFrame = w->frames;
+        pp->flags = 2;
         for (i = 0; i < w->num; i++) {
             if (w->flags[i] & 4) {
                 f32 v;
                 pp->type = w->flags[i] >> 12;
-                pp->table = (void*) w->table[i];
+                pp->key = (u8*) w->table[i];
                 memclr_asm(out, 6);
-                HermiteInterpolation(pp, result, out);
+                HermiteInterpolation(pp, (Vec*) result, (u16*) out);
                 v = result[1] / 100.0f;
                 if (info->shapeFlags & 8) {
                     v *= 1.37f;

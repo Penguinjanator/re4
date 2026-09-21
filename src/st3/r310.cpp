@@ -49,12 +49,6 @@ static R310Work* r310_work;
 // The room bits live in the second word of the room's save record (RoomData).
 #define R310_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
-// Pointer stores through a reference: the work and the field are reloaded after them (r102 idiom).
-static inline void PSetObj(cObj*& d, cObj* v) { d = v; }
-static inline void PSetPrim(ScePrim*& d, ScePrim* v) { d = v; }
-// Enemy list entry copy (0x20 bytes).
-static inline void EmListCopy(int dst, int src) { *EM_LIST(dst) = *EM_LIST(src); }
 
 // The event player model's per-model work word (cEm+0x328) the S00 event flags.
 struct R310EvtModel {
@@ -343,7 +337,7 @@ static void r310_pushBox2_leon()
     Vec goal;
 
     pPL->beginEvent(0);
-    AtariFlagsOr(&pPL->atari, 0x100);
+    AtariOn(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
     plPos.x = pPL->pos.x + 500.0f;
@@ -376,7 +370,7 @@ static void r310_pushBox2_leon()
     FSet(pPL->ang.y, +1.5707964f);
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
+    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -419,7 +413,7 @@ finish:
 static void r310_pushBox2()
 {
     SceAtSetEnable(6, 0);
-    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0));
+    r310_work->pushTask = SceExec(0x12, (TaskFunc) r310_pushBox2_leon, 0, 0, 2, 0);
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
@@ -584,7 +578,7 @@ static void r310_pushBox1_leon()
     Vec goal;
 
     pPL->beginEvent(0);
-    AtariFlagsOr(&pPL->atari, 0x100);
+    AtariOn(&pPL->atari, 0x100);
     PlSetHand(1, 0);
     Vec plPos = {0.0f, 0.0f, 0.0f};
     plPos.x = pPL->pos.x - 500.0f;
@@ -617,7 +611,7 @@ static void r310_pushBox1_leon()
     FSet(pPL->ang.y, -1.5707964f);
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSetPrim(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
+    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -661,7 +655,7 @@ finish:
 static void r310_pushBox1()
 {
     SceAtSetEnable(1, 0);
-    PSetPrim(r310_work->pushTask, SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0));
+    r310_work->pushTask = SceExec(0x12, (TaskFunc) r310_pushBox1_leon, 0, 0, 2, 0);
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
@@ -675,7 +669,7 @@ static void r310_pushBox1()
                 SceExec(0x12, (TaskFunc) r310_fallBox1, 0, 0, 2, 0);
                 SceSleep(30);
                 setEm(0x69, -1, 1, 1, 1);
-                EmListCopy(0x69, 0x7D);
+                *&pG->Em_list[0x69] = *&pG->Em_list[0x7D];
                 EmListSetAlive(0x69, 1);
                 SceExit();
             }
@@ -693,7 +687,7 @@ static void r310_pushBox1()
 // 6 / save bit 0x10000000.
 void r310_initBoxPush()
 {
-    PSetObj(r310_work->box1, SmdGetObjPtr(3));
+    PSet(r310_work->box1, SmdGetObjPtr(3));
     if (r310_work->box1) {
         BitOn(r310_work->box1->be_flag, 0x20);
         if (!(R310_SAVE_FLAGS & 0x40000000)) {
@@ -713,7 +707,7 @@ void r310_initBoxPush()
             o->setAng(&rot);
         }
     }
-    PSetObj(r310_work->box2, SmdGetObjPtr(4));
+    PSet(r310_work->box2, SmdGetObjPtr(4));
     if (r310_work->box2) {
         BitOn(r310_work->box2->be_flag, 0x20);
         if (!(R310_SAVE_FLAGS & 0x20000000)) {
@@ -760,18 +754,18 @@ static void r310_checkEmStandUp_end()
     if (pG->Room_flg[0] & 0x20000000) {
         em.destroy();
         if (pG->em_list_no >= 0) {
-            u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
+            u32* tbl = EM_FLG_ROW(pG->em_list_no);
 
             tbl[2] &= ~0x20;
         }
-        EmListCopy(0x5A, 0xBE);
+        *&pG->Em_list[0x5A] = *&pG->Em_list[0xBE];
         em.setEm(0x5A, -1, 1, 1, 1);
         if (em.getPtr() != 0) {
             SceAtSetEmItem(em.getPtr(), 0x85);
         }
     }
     SndCall(6, 2, 0, 0, 0, 0);
-    EmListCopy(0x5A, 0x7C);
+    *&pG->Em_list[0x5A] = *&pG->Em_list[0x7C];
     EmListSetAlive(0x5A, 1);
 }
 

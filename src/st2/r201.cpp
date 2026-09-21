@@ -72,7 +72,6 @@ struct R201WorkPtr {
 
 static R201WorkPtr r201_work;
 
-static inline u32 BitCk(u32 f, u32 b) { return f & b; }
 
 static void r201_openShelf(int no);
 static void r201_openedShelf(int no);

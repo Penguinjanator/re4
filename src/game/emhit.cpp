@@ -9,13 +9,12 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "player.h"
 
-extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
-void MotionSetCore(cModel* m, void* mot, void* data, void* a, int b, int c, int d);
 
 typedef void (*EmHitFunc)(cEmHit*);
 
@@ -280,7 +279,7 @@ void emHit_R1_Beetle(cEmHit* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->pMotion, w->mot0, 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, w->mot0, 0, 0, 5, 0);
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
@@ -294,7 +293,7 @@ void emHit_R1_Beetle(cEmHit* em)
         }
         break;
     case 2:
-        MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0x1F);
+        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0x1F);
         em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
@@ -302,7 +301,7 @@ void emHit_R1_Beetle(cEmHit* em)
         }
         break;
     case 4:
-        MotionSetCore(em, &em->pMotion, w->mot2, 0, 3, 5, 0);
+        MotionSetCore(em, &em->Motion, w->mot2, 0, 3, 5, 0);
         w->spd.x = 0.0f;
         w->spd.y = 10.0f;
         w->spd.z = 10.0f;

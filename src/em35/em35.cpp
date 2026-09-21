@@ -36,14 +36,14 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include "ref_access.h"
+#include "em.h"
+#include <dolphin/os.h>
+#include "em10.h"
 
 asm(".comm common_em35,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-// game/em_dm_val.cpp (declared in em10.h, not included here).
-int GetWepDmVal(cEm* em, u32 a, int b);
 
 typedef void (*Em35Func)(cEm35*);
 
@@ -109,37 +109,13 @@ static void em35_R0_Die(cEm35* em);
 static void em35_R1_Die_Normal(cEm35* em);
 static void em35_R1_Die_Pose(cEm35* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
 
-// Flag update through a volatile view: keeps the following global load (pPL) below the sth (wep_mod.h).
-static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em35DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 extern "C" void _prolog()
 {
@@ -180,7 +156,7 @@ void em35DmCk(cEm35* em)
     cModel* p;
     f32 d;
 
-    if (em->hp > 0 && em35DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -1185,7 +1161,7 @@ static void em35_R1_Wait(cEm35* em)
     }
     case 1:
         MotionMove(em, 0);
-        if (em35DeadCk(em)) {
+        if (EmDeadCk(em)) {
             if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
@@ -2332,9 +2308,7 @@ void em35EscapeCamMove(cEm35* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -2390,9 +2364,7 @@ void em35StampCamMove(cEm35* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -2506,7 +2478,7 @@ static void em35_R1_CatchHit(cEm35* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x3C), ARC(0x3D), 0, 1, 0);
-        AtariFlagsOr(&em->atari, 0x100);
+        AtariOnV(&em->atari, 0x100);
         LifeDownSet2(pPL, 500, 0, 0);
         em->r_no_2++;
     case 5:
@@ -4155,7 +4127,7 @@ int em35CatchCk(cEm35* em)
     cModel* p;
     int hit;
 
-    if (em35DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -4619,7 +4591,7 @@ int em35GetBeamNo(Vec* pos, int type)
 
         if (b->type == type && !(fabsf(b->a.y - pos->y) > 500.0f)) {
             f32 ang = GetXZAngle(&b->a, &b->b);
-            f32 len = SQRTF((b->a.x - b->b.x) * (b->a.x - b->b.x) + (b->a.z - b->b.z) * (b->a.z - b->b.z));
+            f32 len = VEC_DISTXZ(&b->a, &b->b);
 
             PSMTXRotRad(m, 'y', ang);
             TransMatrix(m, &b->a);

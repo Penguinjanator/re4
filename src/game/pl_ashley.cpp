@@ -12,15 +12,15 @@
 #include "joy.h"
 #include "pl_cloth.h"
 #include "math_sub.h"
+#include "ref_access.h"
+#include <dolphin/os.h>
+#include "esp.h"
+#include "pl_mod.h"
 
 extern "C" {
-void OSReport(const char* fmt, ...);
-void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 void ReleaseWepData();                          // game/read.cpp
-f32 sinf(f32 x);
 }
 
-extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 #define HALT()                                                    \
     {                                                             \
@@ -28,11 +28,7 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
-static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 // Builds the Ashley player (pl_type 1 / the "Ashley chapter"): common init, model set, bust rest
 // positions (parts 0x1D / 0x1E / 0x1A), motion table, her effect data (archive 0x1A), foot shadows.
@@ -47,7 +43,7 @@ cPlAshley::cPlAshley()
     pl01weaponSet(this);
     ReleaseWepData();
     init1();
-    EspDataLoad(PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
 }
@@ -118,73 +114,73 @@ void pl01weaponSet(cPlayer* pl)
         pl->m_MotTbl[i] = 0;
     }
     if (pG->stage_no == 2 && pG->room_no == 0xE) {
-        PSet(pl->m_MotTbl[0x00], PL_ARC_PTR(pG->pPlayer, 0x80));
-        PSet(pl->m_MotTbl[0x02], PL_ARC_PTR(pG->pPlayer, 0x81));
-        PSet(pl->m_MotTbl[0x03], PL_ARC_PTR(pG->pPlayer, 0x9A));
-        PSet(pl->m_MotTbl[0x06], PL_ARC_PTR(pG->pPlayer, 0x83));
-        PSet(pl->m_MotTbl[0x07], PL_ARC_PTR(pG->pPlayer, 0x9C));
-        PSet(pl->m_MotTbl[0x08], PL_ARC_PTR(pG->pPlayer, 0x82));
-        PSet(pl->m_MotTbl[0x09], PL_ARC_PTR(pG->pPlayer, 0x9B));
-        PSet(pl->m_MotTbl[0x0B], PL_ARC_PTR(pG->pPlayer, 0x84));
-        PSet(pl->m_MotTbl[0x0C], PL_ARC_PTR(pG->pPlayer, 0x9D));
-        PSet(pl->m_MotTbl[0x0D], PL_ARC_PTR(pG->pPlayer, 0x86));
-        PSet(pl->m_MotTbl[0x0E], PL_ARC_PTR(pG->pPlayer, 0x9F));
-        PSet(pl->m_MotTbl[0x0F], PL_ARC_PTR(pG->pPlayer, 0x85));
-        PSet(pl->m_MotTbl[0x10], PL_ARC_PTR(pG->pPlayer, 0x9E));
-        PSet(pl->m_MotTbl[0x3F], PL_ARC_PTR(pG->pPlayer, 0x8E));
-        PSet(pl->m_MotTbl[0x40], PL_ARC_PTR(pG->pPlayer, 0x8F));
-        PSet(pl->m_MotTbl[0x39], PL_ARC_PTR(pG->pPlayer, 0x90));
-        PSet(pl->m_MotTbl[0x3A], PL_ARC_PTR(pG->pPlayer, 0x91));
-        PSet(pl->m_MotTbl[0x41], PL_ARC_PTR(pG->pPlayer, 0x92));
-        PSet(pl->m_MotTbl[0x42], PL_ARC_PTR(pG->pPlayer, 0x93));
-        PSet(pl->m_MotTbl[0x5F], PL_ARC_PTR(pG->pPlayer, 0x87));
-        PSet(pl->m_MotTbl[0x60], PL_ARC_PTR(pG->pPlayer, 0xA0));
-        PSet(pl->m_MotTbl[0x61], PL_ARC_PTR(pG->pPlayer, 0x88));
-        PSet(pl->m_MotTbl[0x62], PL_ARC_PTR(pG->pPlayer, 0xA1));
-        PSet(pl->m_MotTbl[0x63], PL_ARC_PTR(pG->pPlayer, 0x89));
-        PSet(pl->m_MotTbl[0x64], PL_ARC_PTR(pG->pPlayer, 0xA2));
-        PSet(pl->m_MotTbl[0x65], PL_ARC_PTR(pG->pPlayer, 0x8A));
-        PSet(pl->m_MotTbl[0x66], PL_ARC_PTR(pG->pPlayer, 0xA3));
-        PSet(pl->m_MotTbl[0x6B], PL_ARC_PTR(pG->pPlayer, 0x8B));
-        PSet(pl->m_MotTbl[0x6C], PL_ARC_PTR(pG->pPlayer, 0xA4));
-        PSet(pl->m_MotTbl[0x67], PL_ARC_PTR(pG->pPlayer, 0x8D));
-        PSet(pl->m_MotTbl[0x68], PL_ARC_PTR(pG->pPlayer, 0xA6));
-        PSet(pl->m_MotTbl[0x69], PL_ARC_PTR(pG->pPlayer, 0x8C));
-        PSet(pl->m_MotTbl[0x6A], PL_ARC_PTR(pG->pPlayer, 0xA5));
+        PLA_MOT(pl, 0x00, 0x80);
+        PLA_MOT(pl, 0x02, 0x81);
+        PLA_MOT(pl, 0x03, 0x9A);
+        PLA_MOT(pl, 0x06, 0x83);
+        PLA_MOT(pl, 0x07, 0x9C);
+        PLA_MOT(pl, 0x08, 0x82);
+        PLA_MOT(pl, 0x09, 0x9B);
+        PLA_MOT(pl, 0x0B, 0x84);
+        PLA_MOT(pl, 0x0C, 0x9D);
+        PLA_MOT(pl, 0x0D, 0x86);
+        PLA_MOT(pl, 0x0E, 0x9F);
+        PLA_MOT(pl, 0x0F, 0x85);
+        PLA_MOT(pl, 0x10, 0x9E);
+        PLA_MOT(pl, 0x3F, 0x8E);
+        PLA_MOT(pl, 0x40, 0x8F);
+        PLA_MOT(pl, 0x39, 0x90);
+        PLA_MOT(pl, 0x3A, 0x91);
+        PLA_MOT(pl, 0x41, 0x92);
+        PLA_MOT(pl, 0x42, 0x93);
+        PLA_MOT(pl, 0x5F, 0x87);
+        PLA_MOT(pl, 0x60, 0xA0);
+        PLA_MOT(pl, 0x61, 0x88);
+        PLA_MOT(pl, 0x62, 0xA1);
+        PLA_MOT(pl, 0x63, 0x89);
+        PLA_MOT(pl, 0x64, 0xA2);
+        PLA_MOT(pl, 0x65, 0x8A);
+        PLA_MOT(pl, 0x66, 0xA3);
+        PLA_MOT(pl, 0x6B, 0x8B);
+        PLA_MOT(pl, 0x6C, 0xA4);
+        PLA_MOT(pl, 0x67, 0x8D);
+        PLA_MOT(pl, 0x68, 0xA6);
+        PLA_MOT(pl, 0x69, 0x8C);
+        PLA_MOT(pl, 0x6A, 0xA5);
     } else {
-        PSet(pl->m_MotTbl[0x00], PL_ARC_PTR(pG->pPlayer, 0x6A));
-        PSet(pl->m_MotTbl[0x02], PL_ARC_PTR(pG->pPlayer, 0x6B));
-        PSet(pl->m_MotTbl[0x03], PL_ARC_PTR(pG->pPlayer, 0x6C));
-        PSet(pl->m_MotTbl[0x06], PL_ARC_PTR(pG->pPlayer, 0x6F));
-        PSet(pl->m_MotTbl[0x07], PL_ARC_PTR(pG->pPlayer, 0x70));
-        PSet(pl->m_MotTbl[0x08], PL_ARC_PTR(pG->pPlayer, 0x6D));
-        PSet(pl->m_MotTbl[0x09], PL_ARC_PTR(pG->pPlayer, 0x6E));
-        PSet(pl->m_MotTbl[0x0B], PL_ARC_PTR(pG->pPlayer, 0x71));
-        PSet(pl->m_MotTbl[0x0C], PL_ARC_PTR(pG->pPlayer, 0x72));
-        PSet(pl->m_MotTbl[0x0D], PL_ARC_PTR(pG->pPlayer, 0x73));
-        PSet(pl->m_MotTbl[0x0E], PL_ARC_PTR(pG->pPlayer, 0x78));
-        PSet(pl->m_MotTbl[0x0F], PL_ARC_PTR(pG->pPlayer, 0x74));
-        PSet(pl->m_MotTbl[0x10], PL_ARC_PTR(pG->pPlayer, 0x79));
-        PSet(pl->m_MotTbl[0x3F], PL_ARC_PTR(pG->pPlayer, 0x7A));
-        PSet(pl->m_MotTbl[0x40], PL_ARC_PTR(pG->pPlayer, 0x7B));
-        PSet(pl->m_MotTbl[0x39], PL_ARC_PTR(pG->pPlayer, 0x7C));
-        PSet(pl->m_MotTbl[0x3A], PL_ARC_PTR(pG->pPlayer, 0x7D));
-        PSet(pl->m_MotTbl[0x41], PL_ARC_PTR(pG->pPlayer, 0x7E));
-        PSet(pl->m_MotTbl[0x42], PL_ARC_PTR(pG->pPlayer, 0x7F));
-        PSet(pl->m_MotTbl[0x5F], PL_ARC_PTR(pG->pPlayer, 0x32));
-        PSet(pl->m_MotTbl[0x60], PL_ARC_PTR(pG->pPlayer, 0x33));
-        PSet(pl->m_MotTbl[0x61], PL_ARC_PTR(pG->pPlayer, 0x34));
-        PSet(pl->m_MotTbl[0x62], PL_ARC_PTR(pG->pPlayer, 0x35));
-        PSet(pl->m_MotTbl[0x63], PL_ARC_PTR(pG->pPlayer, 0x36));
-        PSet(pl->m_MotTbl[0x64], PL_ARC_PTR(pG->pPlayer, 0x37));
-        PSet(pl->m_MotTbl[0x65], PL_ARC_PTR(pG->pPlayer, 0x38));
-        PSet(pl->m_MotTbl[0x66], PL_ARC_PTR(pG->pPlayer, 0x39));
-        PSet(pl->m_MotTbl[0x6B], PL_ARC_PTR(pG->pPlayer, 0x3A));
-        PSet(pl->m_MotTbl[0x6C], PL_ARC_PTR(pG->pPlayer, 0x3B));
-        PSet(pl->m_MotTbl[0x67], PL_ARC_PTR(pG->pPlayer, 0x3C));
-        PSet(pl->m_MotTbl[0x68], PL_ARC_PTR(pG->pPlayer, 0x3D));
-        PSet(pl->m_MotTbl[0x69], PL_ARC_PTR(pG->pPlayer, 0x3E));
-        PSet(pl->m_MotTbl[0x6A], PL_ARC_PTR(pG->pPlayer, 0x3F));
+        PLA_MOT(pl, 0x00, 0x6A);
+        PLA_MOT(pl, 0x02, 0x6B);
+        PLA_MOT(pl, 0x03, 0x6C);
+        PLA_MOT(pl, 0x06, 0x6F);
+        PLA_MOT(pl, 0x07, 0x70);
+        PLA_MOT(pl, 0x08, 0x6D);
+        PLA_MOT(pl, 0x09, 0x6E);
+        PLA_MOT(pl, 0x0B, 0x71);
+        PLA_MOT(pl, 0x0C, 0x72);
+        PLA_MOT(pl, 0x0D, 0x73);
+        PLA_MOT(pl, 0x0E, 0x78);
+        PLA_MOT(pl, 0x0F, 0x74);
+        PLA_MOT(pl, 0x10, 0x79);
+        PLA_MOT(pl, 0x3F, 0x7A);
+        PLA_MOT(pl, 0x40, 0x7B);
+        PLA_MOT(pl, 0x39, 0x7C);
+        PLA_MOT(pl, 0x3A, 0x7D);
+        PLA_MOT(pl, 0x41, 0x7E);
+        PLA_MOT(pl, 0x42, 0x7F);
+        PLA_MOT(pl, 0x5F, 0x32);
+        PLA_MOT(pl, 0x60, 0x33);
+        PLA_MOT(pl, 0x61, 0x34);
+        PLA_MOT(pl, 0x62, 0x35);
+        PLA_MOT(pl, 0x63, 0x36);
+        PLA_MOT(pl, 0x64, 0x37);
+        PLA_MOT(pl, 0x65, 0x38);
+        PLA_MOT(pl, 0x66, 0x39);
+        PLA_MOT(pl, 0x6B, 0x3A);
+        PLA_MOT(pl, 0x6C, 0x3B);
+        PLA_MOT(pl, 0x67, 0x3C);
+        PLA_MOT(pl, 0x68, 0x3D);
+        PLA_MOT(pl, 0x69, 0x3E);
+        PLA_MOT(pl, 0x6A, 0x3F);
     }
 }
 

@@ -57,25 +57,25 @@ void ObjHand_init(cObj* obj)
 // resets both hands to the bare models (right 0 / left 0).
 void cObjHand::setMotion(cPlayer* pl)
 {
-    PSet(pl->m_MotTbl[0x00], WEP_ARC_PTR(0x04));
-    PSet(pl->m_MotTbl[0x02], WEP_ARC_PTR(0x05));
-    PSet(pl->m_MotTbl[0x03], WEP_ARC_PTR(0x0B));
-    PSet(pl->m_MotTbl[0x04], WEP_ARC_PTR(0x05));
-    PSet(pl->m_MotTbl[0x05], WEP_ARC_PTR(0x05));
-    PSet(pl->m_MotTbl[0x06], WEP_ARC_PTR(0x07));
-    PSet(pl->m_MotTbl[0x07], WEP_ARC_PTR(0x0D));
-    PSet(pl->m_MotTbl[0x08], WEP_ARC_PTR(0x06));
-    PSet(pl->m_MotTbl[0x09], WEP_ARC_PTR(0x0C));
-    PSet(pl->m_MotTbl[0x0A], WEP_ARC_PTR(0x06));
-    PSet(pl->m_MotTbl[0x0B], WEP_ARC_PTR(0x08));
-    PSet(pl->m_MotTbl[0x0C], WEP_ARC_PTR(0x0E));
-    PSet(pl->m_MotTbl[0x0D], WEP_ARC_PTR(0x09));
-    PSet(pl->m_MotTbl[0x0E], WEP_ARC_PTR(0x0F));
-    PSet(pl->m_MotTbl[0x0F], WEP_ARC_PTR(0x0A));
-    PSet(pl->m_MotTbl[0x10], WEP_ARC_PTR(0x10));
-    PSet(pl->m_MotTbl[0x12], WEP_ARC_PTR(0x07));
-    PSet(pl->m_MotTbl[0x13], WEP_ARC_PTR(0x07));
-    PSet(pl->m_MotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
+    WEP_MOT(pl, 0x00, 0x04);
+    WEP_MOT(pl, 0x02, 0x05);
+    WEP_MOT(pl, 0x03, 0x0B);
+    WEP_MOT(pl, 0x04, 0x05);
+    WEP_MOT(pl, 0x05, 0x05);
+    WEP_MOT(pl, 0x06, 0x07);
+    WEP_MOT(pl, 0x07, 0x0D);
+    WEP_MOT(pl, 0x08, 0x06);
+    WEP_MOT(pl, 0x09, 0x0C);
+    WEP_MOT(pl, 0x0A, 0x06);
+    WEP_MOT(pl, 0x0B, 0x08);
+    WEP_MOT(pl, 0x0C, 0x0E);
+    WEP_MOT(pl, 0x0D, 0x09);
+    WEP_MOT(pl, 0x0E, 0x0F);
+    WEP_MOT(pl, 0x0F, 0x0A);
+    WEP_MOT(pl, 0x10, 0x10);
+    WEP_MOT(pl, 0x12, 0x07);
+    WEP_MOT(pl, 0x13, 0x07);
+    PLA_MOT(pl, 0x3D, 0x5D);
     pl->setRightHand(0);
     pl->setLeftHand(0);
 }

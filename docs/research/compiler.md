@@ -129,7 +129,7 @@ confirmed on the units named):
   scheduled unlike a reload insn (issued first, so the `rot.z` store overtakes `rot.y`: 2 words in all six
   store orders); pseudo forms (`f32 z = 0.0f` first, laundered `a`) keep 5.
 - Bell-radius rule of record (supersedes the hard-register recipe for this shape): keep the three
-  identical `switch (pG->bell_stat)` arms and write `r = K;` once after the switch; no tag needed. em3c
+  identical `switch (pG->SeInfo.type)` arms and write `r = K;` once after the switch; no tag needed. em3c
   FindCk, em10 FindCk, em21 WakeCk, em28 EscapeCk, em2d FindCk (recipe recorded for its owner) all match.
 
 #### #13 compiler-side research (2026-09-10, /tmp/equiv13; NEGATIVE: no configuration or one-line change reproduces it; nothing installed)

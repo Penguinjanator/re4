@@ -19,6 +19,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
+#include "obj13.h"
+#include "est.h"
+#include "em_sub.h"
+#include "sce_at.h"
 
 // One row of WindowData (0x48 bytes), indexed by cModel::type.
 struct WindowDataRow {
@@ -39,24 +43,10 @@ struct WindowDataRow {
     u8 pad_45[3];
 };
 
-// Field info returned by SceAtCheckFieldInfo.
-struct SceAtFieldInfo {
-    int id;
-    cEmWindow* pWindow;
-};
-
 extern "C" {
 void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
-void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
-void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
-void EmDmBloodSet3(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);                           // em_sub.cpp
 int LadderNearCk(Vec* pos);                                                                  // obj13.cpp
-void LadderEventTrans(int on);
-SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
-int SceAtCreateFieldAt(cModel* m, Vec* pt, int a, int b, int c, f32 r, int d, f32 ang, int e, f32 w, int f, void* out);
 }
-void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 
 
 WindowDataRow WindowData[29] = {
@@ -91,23 +81,8 @@ WindowDataRow WindowData[29] = {
     { 0, 0, 1, 1, "", "", 400.0f, 250.0f, 1.0f, 1, 1, 0, 6, 1 },
 };
 
-// Not broken yet (etc flag bit0 clear).
-static inline int WindowAlive(cEmWindow* em)
-{
-    return !(em->ChkStatus() & 1);
-}
 
-// Bit `no` of a u32 bit table (bit 0 = the top bit of the first word).
-static inline void TblBitOn(u32* tbl, u32 no)
-{
-    tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
-}
 
-// Clears bit `no` of the bit table.
-static inline void TblBitOff(u32* tbl, u32 no)
-{
-    tbl[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
-}
 
 // Creates a window / fence enemy (id 0x46) from a model / TPL at pos / rot: `type` indexes
 // WindowData (size, hp rule, break model, collision form), `etcNo` the room etc flag that
@@ -135,7 +110,7 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
 // direction (window -z or +z in world), the window position, its status word and the window.
 int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
 {
-    SceAtFieldInfo* info;
+    SceAtField* info;
     cEmWindow* win;
 
     if (out) {
@@ -149,10 +124,10 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
     if (info == 0) {
         return 0;
     }
-    if (info->id != id) {
+    if (info->value != id) {
         return 0;
     }
-    win = info->pWindow;
+    win = (cEmWindow*) info->pModel;
     if (win == 0) {
         pLog->err(0, 0, "SceAtCheck : failed");
         return 0;
@@ -170,7 +145,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
         }
     }
     if (m->id == 0) {
-        if (WindowAlive(win) && win->type == 1) {
+        if ((!(win->ChkStatus() & 1)) && win->type == 1) {
             return 0;
         }
     }
@@ -220,7 +195,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     Vec pt[4];
     Vec size;
     Vec satPos;
-    void* out;
+    SceAtField* out;
     f32 frame;
     int cube;
     int no;
@@ -360,7 +335,7 @@ void cEmWindow::move()
         w->rotBase.y = ang.y;
         w->rotBase.z = ang.z;
         r_no_0 = 1;
-        if (WindowAlive(this)) {
+        if ((!(this->ChkStatus() & 1))) {
             if (WindowData[type].breakEff == 1) {
                 EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, this, 0);
             }
@@ -559,12 +534,12 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     FSet(pPL->ang.y, pPL->ang.y + pEm->ang.y);
     FSet(pPL->ang.z, pPL->ang.z + pEm->ang.z);
     if (mot) {
-        MotionSetCore(pPL, &pPL->pMotion, mot, 0, 0, 0x201, 0);
+        MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
     }
     for (i = 0; (pPL->motState & 4) == 0; i++) {
         switch (w->breakDir) {
         case 0:
-            if (WindowAlive(pEm) && i == 0xF) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0xF) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0x19 && pG->room_id == 0x11F) {
@@ -593,7 +568,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
             }
             break;
         case 1:
-            if (WindowAlive(pEm) && i == 0x10) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0x10) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
@@ -619,7 +594,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
             }
             break;
         case 2:
-            if (WindowAlive(pEm) && i == 0xD) {
+            if ((!(pEm->ChkStatus() & 1)) && i == 0xD) {
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
@@ -882,9 +857,9 @@ int cEmWindow::ChkEnableDamage()
 void cEmWindow::SetEtcFlag(u32 no, int on)
 {
     if (on == 1) {
-        TblBitOn(EMWINDOW_WK(this)->etcFlag, no);
+        FlagOnVar(EMWINDOW_WK(this)->etcFlag, no);
     } else {
-        TblBitOff(EMWINDOW_WK(this)->etcFlag, no);
+        FlagOffVar(EMWINDOW_WK(this)->etcFlag, no);
     }
 }
 

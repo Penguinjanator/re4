@@ -46,8 +46,9 @@ asm(".comm common_em2c,52,4");
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "item.h"
+#include "em.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
@@ -127,71 +128,32 @@ static void plemKick(cPlayer* pl);
 static void plemBackjump(cPlayer* pl);
 }
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2cDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
-// Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
 static inline void em2cSetAtkWait(Em2cWork* w, int a, int b, int c, int d, int e)
 {
-    IntSet(w->atkWait, a);
+    w->atkWait = a;
     if (pG->Game_level > 1) {
-        IntSet(w->atkWait, b);
+        w->atkWait = b;
     }
     if (pG->Game_level > 3) {
-        IntSet(w->atkWait, c);
+        w->atkWait = c;
     }
     if (pG->Game_level > 6) {
-        IntSet(w->atkWait, d);
+        w->atkWait = d;
     }
     if (pG->Game_level == 10) {
-        IntSet(w->atkWait, e);
+        w->atkWait = e;
     }
 }
 
-// Per-frame movement with gravity: the position follows `spd`, which falls 20 per frame, and the
-// enemy lands on the floor under its old position.
-static inline void em2cGravityMove(cEm2c* em, Em2cWork* w)
-{
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos_old, 0, 600.0f, 100000.0f, 0);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        w->spd.y = 0.0f;
-    }
-}
 
 // Turn towards `target` by at most `step` per frame.
 static inline void em2cTurnTo(cEm2c* em, Vec* target, f32 step)
@@ -331,7 +293,7 @@ void em2cDmCk(cEm2c* em)
     f32 py;
 
     if (em->hp > 0) {
-        if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
+        if (!(w->flags & 0x100840) && !EmDeadCk(em)) {
             int two = 2;      // the routine 2 of the first two arms in a callee-saved register
 
             if (pG->Room_flg[2] & 0x80000000) {
@@ -356,7 +318,7 @@ void em2cDmCk(cEm2c* em)
             return;
             }
         }
-        if (em->hp > 0 && !em2cDeadCk(em)) {
+        if (em->hp > 0 && !EmDeadCk(em)) {
             switch (DmgMgr.hitCheck(&em->pos, 0)) {
             case 1:
             case 4:
@@ -417,8 +379,8 @@ void em2cDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->bell_pos = em->pos;
-    pGS->bell_stat = 0;
+    pGS->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -821,8 +783,8 @@ void em2cTailDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->bell_pos = em->pos;
-    pGS->bell_stat = 0;
+    pGS->SeInfo.pos = em->pos;
+    pGS->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -974,7 +936,7 @@ void cEm2c::move()
     if (w->guardCnt) {
         w->guardCnt--;
     }
-    if (w->atkWait == 0 && em2cDeadCk(pPL)) {
+    if (w->atkWait == 0 && EmDeadCk(pPL)) {
         w->atkWait = 10;
     }
     if (w->Dash_wait) {
@@ -1007,7 +969,7 @@ void cEm2c::move()
     em2cNeckMove(this);
     partsWorldCalc();
     em2cScaleCompress(this);
-    len = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    len = VEC_DISTXZ(&pos_old, &pos);
     atFlags = atari.m_flag;
     if (w->flags & 0x1000) {
         at->m_flag &= ~0x200;
@@ -1024,7 +986,7 @@ void cEm2c::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    moved = VEC_DISTXZ(&pos, &pos_old);
     if (moved < len * 0.5f) {
         w->stuckCnt++;
     } else {
@@ -1244,7 +1206,7 @@ static void em2c_R1_Wait(cEm2c* em)
         if (em->plDist2 > 25000000.0f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
-        if (em2cDeadCk(em) && pG->Game_level > 1) {
+        if (EmDeadCk(em) && pG->Game_level > 1) {
             w->atkWait = 0;
         }
         if (w->atkWait) {
@@ -3947,7 +3909,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
         MotionMove(em, 0);
         if (em->flag & 2) {
-            EM_LIST(em->emset_no)->set = 3;
+            (&pG->Em_list[em->emset_no])->set = 3;
             EmRoutineSet(em, 1, 0x25, 0, 0);
             break;
         }
@@ -4584,7 +4546,7 @@ static void em2cKickAction(cEm2c* em)
     if (pSUB) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
 
-        if (!em2cDeadCk(pSUB)) {
+        if (!EmDeadCk(pSUB)) {
             d->set(0, 30);
         }
     }
@@ -5438,8 +5400,8 @@ void em2cDoorOpenCk(cEm2c* em)
     if (w->stuckCnt > 3) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -5521,8 +5483,8 @@ void em2cDoorOpenCk2(cEm2c* em)
     f32 ang;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6073,9 +6035,7 @@ void em2cEscapeCamMove(cEm2c* em)
     w->cam.up.x = 0.0f;
     w->cam.up.y = 1.0f;
     w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF((w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x) +
-                        (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
-                        (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
+    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -6309,8 +6269,8 @@ void em2cGetTail(cEm2c* em)
     if (w->pTail) {
         return;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6337,8 +6297,8 @@ int em2cDoorCk(cEm2c* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

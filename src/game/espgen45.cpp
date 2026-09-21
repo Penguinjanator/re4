@@ -16,6 +16,8 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
+#include "ref_access.h"
+#include <dolphin/base/PPCArch.h>
 
 // Effect controller 45: weather water surface (same height-field model as Espgen42, following the
 // camera). The Estgen45Set* entry points let the room script (esp4c) override its parameters.
@@ -41,13 +43,6 @@ struct Esp4cWork {
 extern "C" {
 // game/trans_lit.cpp
 void commonWaterLightSet(cLight** list, int n, u32 alpha);
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
 void SetIndMtx_801291F4(Espgen42Work* p);   // the DOL's local SetIndMtx (Espgen42 owns the global one); sym_map name
@@ -76,10 +71,6 @@ static f32 g_sa = 0.0f;
 static f32 inv_mul = 1.0f;
 static Esp4cWork g_Free;
 
-static inline void ISet(int& d, int v) { d = v; }
-static inline int IGet(int& d) { return d; }
-static inline f32 FGet(f32& d) { return d; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
 
 // Resets the room override state (camera-follow on, height-follow on, all overwrites off): called by
 // EspWaterInit (Espgen42.cpp) at effect system init.
@@ -648,7 +639,7 @@ void Espgen45_TransSub(EspgenWork* w)
         st->tevStage++;
         st->texMap++;
         st->texCoord++;
-        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (IGet(g_bSetParam) == 0 && (p->flag & 2))) {
+        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (g_bSetParam == 0 && (p->flag & 2))) {
             u8 texId;
             EspTexWk* tw;
             if (g_bSetParam == 1) {
@@ -1167,10 +1158,10 @@ void Estgen45SetSize(f32 size)
 // Sets the override tev colour (r,g,b,a) and ambient/scale factors (rs..as, 0..1).
 void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
 {
-    U8Set(g_r, r);
-    U8Set(g_g, g);
-    U8Set(g_b, b);
-    U8Set(g_a, a);
+    g_r = r;
+    g_g = g;
+    g_b = b;
+    g_a = a;
     FSet(g_sr, rs);
     FSet(g_sg, gs);
     FSet(g_sb, bs);

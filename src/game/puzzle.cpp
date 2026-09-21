@@ -25,8 +25,6 @@ void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
 void* __builtin_vec_new(unsigned int size);
 void __builtin_vec_delete(void* p);
-float sinf(float);
-float cosf(float);
 }
 
 static u8 piece_max = 0x79;

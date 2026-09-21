@@ -15,22 +15,16 @@
 #include "file.h"
 #include "db_light.h"
 #include "t_camera.h"
+#include <string.h>
 
 // Camera tool entry object (D:/Bio4/Prog/t_camera.cpp): the task loop, menus and the camera / area
 // editors. PARTIAL: the editors (tcEdit_select, tcEdit_area .. tcDrawRail, tcLoad, tcSave) are not
 // written yet; see the report.
 
-extern "C" {
-void memclr_asm(void* p, u32 size);
-void* memset(void* p, int c, unsigned int n);
-}
-
-static inline void LdatSet(TcLdat*& d, TcLdat* v) { d = v; }
 struct TcWorkPtr {
     TcWork* p;
 };
 #define PTC (((TcWorkPtr*) &pTc)->p)
-static inline void FAdd(f32& d, f32 v) { d += v; }
 // element i of a Vec array through a raw address: the store aliases the tool pointer (pTc is reloaded after it)
 #define VEC_ELEM(p, i) (*(f32*) ((u32) (p) + (i) * 12))
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
@@ -749,9 +743,9 @@ void tcEdit_select()
             dst = no;
             if (TC_TRG & 0x100) {
                 if (tcAdatPtr(dst, dstSfx) != 0) {
-                    LdatSet(PTC->pLdat, tcLdatPtr(PTC->adatNo, PTC->adatSuffix, dst, dstSfx));
+                    PTC->pLdat = tcLdatPtr(PTC->adatNo, PTC->adatSuffix, dst, dstSfx);
                     if (PTC->pLdat == 0) {
-                        LdatSet(PTC->pLdat, tcLdatNew());
+                        PTC->pLdat = tcLdatNew();
                         tcLdatInit(PTC->pLdat, PTC->adatNo, PTC->adatSuffix, dst, dstSfx, 0);
                     }
                     PTC->selStep++;
@@ -1145,8 +1139,6 @@ void tcAreaSelectVertex(TcAdat* a);
 void tcAreaSelectSide(TcAdat* a);
 void tcAreaInsertVertex(TcAdat* a);
 void tcAreaDeleteVertex(TcAdat* a);
-
-#define PI2 6.2831855f
 
 // area editor: vertex / floor / height / attribute / direction / character / address / camera link
 void tcEdit_area()

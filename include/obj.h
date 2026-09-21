@@ -8,6 +8,9 @@
 #include "pendulum.h"
 #include "main_mem.h"
 
+class cModel;
+struct EmAtkInfo;
+
 // Per-object work layouts (game/obj03.cpp ...), all overlaid at cObj+0x328.
 struct Obj03Work {
     u8 x0;        // 0x00
@@ -18,7 +21,7 @@ struct Obj03Work {
     f32 t;        // 0x08 current position on the path
     f32 speed;    // 0x0C
     u32 flags;    // 0x10 bit0: debug draw
-    void* data;   // 0x14
+    cModel* data; // 0x14  the path follower (PathGetMatEm pMod)
     void* path;   // 0x18
 };
 
@@ -226,7 +229,7 @@ struct Obj08Work {
     f32 r;              // 0x28  hit radius (min 1.0)
     cModel* parent;       // 0x2C  thrower (its id goes to SndCall)
     int life;             // 0x30  frames left (-1 = forever)
-    void* pAtk;           // 0x34  EmAtkHitCk attack data
+    EmAtkInfo* pAtk;      // 0x34  attack record for EmAtkHitCk
     u32 atkFlags;         // 0x38  low 16 bits: GetWepTargetList flag, low byte: damage kind
     u32 estNo[4];         // 0x3C  effects: 0 ?, 1 scenario hit / timeout, 2 floor hit, 3 enemy / player hit
     u32 estPrm[4];        // 0x4C

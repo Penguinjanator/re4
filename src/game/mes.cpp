@@ -19,10 +19,10 @@ extern MessageFont MesFont[4];
 #include "trans_ot.h"
 #include "view.h"
 #include "snd.h"
+#include "ref_access.h"
+#include <stdio.h>
 
 extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-void C_MTXOrtho(f32 m[4][4], f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void calcTplOffset(TEXPalette* tpl);  // game/model.cpp
 u16 getCharCode(u16 code);
 int isCtrlCode(u16 code);
@@ -55,11 +55,9 @@ struct OSFontHeader {
     u32 sheetFullSize;  // 0x28
 };
 
-static inline void SetU16(u16& d, u16 v) { d = v; }
 // Message slot address as an expression (not an inline call): the multiply lands in the same pseudo
 // as the sum, which is what the original codegen shows.
 #define MES(no) ((Message*) ((no) * sizeof(Message) + (u32) this + sizeof(u32)))
-static inline void PtrSet(void*& d, void* v) { d = v; }
 
 // Font file: offsets to the TPL and to the width table.
 struct MesFontFile {
@@ -310,8 +308,8 @@ void MessageControl::setLayout(int no, int layout)
 
     p_layout = layout_tbl[MesData.lang][layout];
     setFontSize(no, p_layout[0], p_layout[1]);
-    SetU16(MES(no)->charSpace, p_layout[3]);
-    SetU16(MES(no)->m_line_gap, p_layout[5]);
+    U16Set(MES(no)->charSpace, p_layout[3]);
+    U16Set(MES(no)->m_line_gap, p_layout[5]);
 }
 
 // Selects the language block of the message files (0 Japanese, 1 English, 2..5 French/German/
@@ -494,7 +492,7 @@ void MessageControl::stageInit()
     }
     if (sz != 0) {
 #line 874 "D:/Bio4/Prog/mes.cpp"
-        PtrSet(pG->pStFnt, mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
+        PSet(pG->pStFnt, mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
         fontBuf[2] = pG->pStFnt;
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");

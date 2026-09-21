@@ -16,16 +16,14 @@
 #include "dbmodule.h"
 #include "math_sub.h"
 #include "t_util.h"
+#include "ref_access.h"
+#include <stdio.h>
+#include <string.h>
 
 // Room block ("BLK" file) editor of the t_sce REL (D:/Bio4/Prog/t_block.cpp is not in the binary:
 // no HALT string). Same skeleton as Tools' t_dr.cpp: block link table, trigger areas, per-area
 // connect table, load/save of the file image the game's cBlock reads.
 
-extern "C" {
-int sprintf(char* buf, const char* fmt, ...);
-int strcmp(const char* a, const char* b);
-void* memcpy(void* dst, const void* src, unsigned int n);
-}
 int SetToolLight(int no);  // t_sce's db_light_v2 copy
 
 #define BLOCK_NUM 32
@@ -146,24 +144,7 @@ void tBlockSaveDataCreate();
 void tBlock_DebugCamera();
 }
 
-// bit `n` of a u32 bit table (the table pointer is materialised, the index is unsigned)
-static inline u32 bitChk(u32* tbl, u32 n)
-{
-    return tbl[n >> 5] & (0x80000000 >> (n & 0x1F));
-}
-// Sets bit `n` in a word table (the used-area bitmap).
-static inline void bitOn(u32* tbl, u32 n)
-{
-    tbl[n >> 5] |= 0x80000000 >> (n & 0x1F);
-}
-#define BIT_CHK(tbl, n) bitChk((u32*) (tbl), n)
-#define BIT_ON(tbl, n) bitOn((u32*) (tbl), n)
 
-// a store through a scalar reference keeps the following pG load below it
-static inline void U32Set(u32& d, u32 v)
-{
-    d = v;
-}
 
 #define SUB_RESET() \
     pW->sub = 0;    \
@@ -239,23 +220,23 @@ void ToolBlock()
 // Flag setup shared with the other room editors: pause the game, debug displays on, tool light 1.
 void tBlockInit_base()
 {
-    *(TOOL_PTR(0x8678)) = 0x11;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x8000000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
-    TOOL_FLAG(OFS_STOP_FLG) |= 0x200;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x20000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x4000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
-    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
-    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    *((u8*) &pG->debug_mode) = 0x11;
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x8000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Stop_flg, 0x400000);
+    BitOn(pG->Stop_flg, 0x10000);
+    BitOn(pG->Stop_flg, 0x2000);
+    BitOn(pG->Stop_flg, 0x200);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x80000000);
+    BitOn(pG->Disp_flg, 0x4000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Disp_flg, 0x100000);
+    pG->Debug_flg[0] |= 0x10000000;
     SetToolLight(1);
 }
 
@@ -268,8 +249,8 @@ void tBlockInit()
     int j;
 
     TutilInitDefault();
-    U32Set(pW->saveStopFlag, TOOL_FLAG(OFS_STOP_FLG));
-    U32Set(pW->saveDispFlag, TOOL_FLAG(OFS_DISP_FLG));
+    U32Set(pW->saveStopFlag, pG->Stop_flg);
+    pW->saveDispFlag = pG->Disp_flg;
     tBlockInit_base();
     pW->x0 = 0x28;
     pW->y0 = 0xA;
@@ -365,10 +346,10 @@ static void tBlockExit()
         DC.dbgHeap = 0;
         Block.noMemCtrl = 0;
         file_unlock(pW->pathX);
-        TOOL_FLAG(OFS_DISP_FLG) = pW->saveDispFlag;
-        TOOL_FLAG(OFS_STOP_FLG) = pW->saveStopFlag;
+        BitSet(pG->Disp_flg, pW->saveDispFlag);
+        pG->Stop_flg = pW->saveStopFlag;
         Debug_free(pW);
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();
@@ -825,7 +806,7 @@ static void tBlockAreaInfo_ListDisp()
     int i;
 
     if (Joy[0].trg & JOY_A) {
-        if (BIT_CHK(pW->areaBits, pW->connectNo)) {
+        if (FlagChkVar(pW->areaBits, (u32) pW->connectNo)) {
             pW->sub = 1;
             STEP_RESET();
         }
@@ -860,7 +841,7 @@ void dispAreaInfoList1(int x, int y, int no)
     BlockConnect* c = &pW->connect[no];
     int col;
 
-    if (BIT_CHK(pW->areaBits, no) == 0) {
+    if (FlagChkVar(pW->areaBits, (u32) no) == 0) {
         col = 7;
     } else if (no == pW->connectNo) {
         col = 6;
@@ -895,7 +876,7 @@ static void tBlockAreaInfo_Menu()
         pW->infoMenuCursor = 0;
         SUB_RESET();
     }
-    if (BIT_CHK(pW->areaBits, pW->connectNo)) {
+    if (FlagChkVar(pW->areaBits, (u32) pW->connectNo)) {
         if (!(Joy[0].on & JOY_A)) {
             TBlockWork* w;
             u8 v;
@@ -1050,7 +1031,7 @@ void tBlockArea_disp()
             if (pW->nArea <= a->areaNo) {
                 pW->nArea = a->areaNo + 1;
             }
-            BIT_ON(pW->areaBits, a->areaNo);
+            FlagOnVar(pW->areaBits, (u32) a->areaNo);
             switch (pW->mode) {
             case 2:
                 col = 0x00808080;
@@ -1069,7 +1050,7 @@ void tBlockArea_disp()
                 break;
             }
             // the original's loop had 5 more real insns at loop.c time (72 in pass 1 vs the 71 * savings *
-            // lifetime limit), so BIT_ON's 0x80000000 mask is hoisted in loop pass 2, after the pass-1 giv
+            // lifetime limit), so FlagOnVar's 0x80000000 mask is hoisted in loop pass 2, after the pass-1 giv
             // init `li 1504`; dead sets of a used variable are deleted by flow and counted by loop.c
             col = 7; // COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)
             col = 6;
@@ -1077,7 +1058,7 @@ void tBlockArea_disp()
         }
     }
     for (i = 0; i < CONNECT_NUM; i++) {
-        if (BIT_CHK(pW->areaBits, i)) {
+        if (FlagChkVar(pW->areaBits, (u32) i)) {
             pW->connect[i].flags |= 1;
         } else {
             pW->connect[i].flags &= ~1;
@@ -1096,11 +1077,6 @@ void tBlockArea_disp()
     eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
-// Object work `no` without the range check.
-static inline cObj* objWorkNoChk(u32 no)
-{
-    return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
-}
 
 // Shows only the scroll models of the current block (on) or every block's models (off) by toggling
 // their be_flag bit 1.
@@ -1108,8 +1084,8 @@ void tBlockArea_dispBlockModel(int on)
 {
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* obj = objWorkNoChk(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* obj = ObjMgr.fastAt(i);
         u32 be = obj->be_flag;
         int blk;
 
@@ -1120,13 +1096,13 @@ void tBlockArea_dispBlockModel(int on)
         if (on == 1) {
             if (blk == pW->connect[pW->connectNo].blockNo) {
                 obj->be_flag = be | 2;
-            } else if (BIT_CHK(&pW->mram, blk)) {
+            } else if (FlagChkVar(&pW->mram, (u32) blk)) {
                 if (pW->blink & 4) {
                     obj->be_flag = be | 2;
                 } else {
                     obj->be_flag = be & ~2;
                 }
-            } else if (BIT_CHK(&pW->aram, blk)) {
+            } else if (FlagChkVar(&pW->aram, (u32) blk)) {
                 if (pW->blink & 0x10) {
                     obj->be_flag = be | 2;
                 } else {
@@ -1167,8 +1143,8 @@ void tBlockArea_dispBlockBox(u8 no, u32 col)
     int found = 0;
     u32 i;
 
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* obj = objWorkNoChk(i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* obj = ObjMgr.fastAt(i);
         cModelInfo* info;
         Mtx m;
         Mtx r;

@@ -5,8 +5,8 @@
 #include "scheduler.h"
 #include "mes.h"
 #include "t_util.h"
+#include <string.h>
 
-extern "C" unsigned int strlen(const char* s);
 
 // Message debug tool (Tools/t_mes.cpp): shows one message of the current message data set, lets the pad
 // move it and edit the message colour table.
@@ -75,7 +75,7 @@ void ToolMes()
     dbg.init();
     TaskSuspend(0);
     dbg.move();
-    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x80000000;
+    pG->Debug_flg[0] &= ~0x80000000;
     TaskSignal(0);
     TaskExit();
 }

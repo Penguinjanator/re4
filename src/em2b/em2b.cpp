@@ -42,8 +42,10 @@
 #include "camera.h"
 #include "cam_ctrl.h"
 #include "quake.h"
+#include "ref_access.h"
+#include "em.h"
+#include <dolphin/os.h>
 
-extern "C" void OSReport(const char* fmt, ...);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
@@ -54,13 +56,6 @@ asm(".comm common_em2b,52,4");
 
 // game/obj20.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);
-// wep_mod.h idiom: the volatile scalar access keeps the following `lwz pSUB` below the `sth` and the
-// info address in a register (`addi rX, pl, 0x2b4; lhz/sth 0x1a(rX)`), plem2bDashEscape.
-static inline void AtariFlagsOrV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
-static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
-// game/obj16.cpp (obj16.h includes em10.h, which this module cannot).
-extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
-extern "C" void MotSetObj16(cObj* obj, void* mot, int a, int b);
 
 static void em2b_R0_Init(cEm2b* em);
 static void em2b_R0_Move(cEm2b* em);
@@ -118,36 +113,10 @@ static void em2bEscapeAction(cEm2b* em);
 static void plem2bEscapeTree(cPlayer* pl);
 static void plem2bDmBlow(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member views of the player / partner pointers (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-#define pSUBS (((PlayerPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-// Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
-static inline void IntSet(int& d, int v) { d = v; }
-static inline void S16Set(s16& d, s16 v) { d = v; }
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U32Or(u32& d, u32 v) { d |= v; }
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em2bDeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // The motion flip argument of the two model variants.
 static inline int em2bFlip(Em2bWork* w, int a, int b)
@@ -800,12 +769,12 @@ void cEm2b::move()
     } else {
         atari.m_offset.y = 2500.0f;
     }
-    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    spd = VEC_DISTXZ(&pos_old, &pos);
     em2bObaHitCk(this);
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    moved = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    moved = VEC_DISTXZ(&pos, &pos_old);
     if (moved < spd * 0.5f) {
         w->HoseiCnt++;
     } else {
@@ -1087,11 +1056,11 @@ static void em2b_R1_Wait(cEm2b* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em2bDeadCk(em) && em2bStayCk(em)) {
+        if (EmDeadCk(em) && em2bStayCk(em)) {
             EmRoutineSet(em, 1, 2, 0, 0xA);
             return;
         }
-        if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+        if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->Dash_wait = 30;
         }
         if (em->plDist2 > 25000000.0f) {
@@ -1945,7 +1914,7 @@ static inline void em2bHandLandingP(cEm2b* em, cModel* p)
 // The player inside 6000 of the landing hand is knocked down.
 static inline void em2bHandLandingPlCk(cModel* p)
 {
-    if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS)) {
+    if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS)) {
         f32 dx = pPLS->pos.x - p->world.x;
         f32 dy = pPLS->pos.y - p->world.y;
         f32 dz = pPLS->pos.z - p->world.z;
@@ -1955,12 +1924,6 @@ static inline void em2bHandLandingPlCk(cModel* p)
     }
 }
 
-// `Vec* hp = em2bWorldPosOf(p)` (em2b_R1_Catch): the inline's return pseudo is the call argument of the following
-// em2bR11eScrBrkCk2 (`addi r4,p,0x70`) and `hp` its copy (`mr r27,r4`); a plain `&p->worldPos` makes hp the argument.
-static inline Vec* em2bWorldPosOf(cModel* p)
-{
-    return &p->world;
-}
 
 // Both hands slam into the house: the first blow marks it hit, the second breaks it.
 static void em2b_R1_HouseBreak(cEm2b* em)
@@ -2411,7 +2374,7 @@ static void em2b_R1_Catch(cEm2b* em)
                 v.y += 1000.0f;
                 d = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y)
                     + (p->world.z - v.z) * (p->world.z - v.z);
-                if (d < 4000000.0f && !em2bDeadCk(pPLS)) {
+                if (d < 4000000.0f && !EmDeadCk(pPLS)) {
                     pPLS->dmg.m_Timer = 2;
                     SetPlDamage(em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->world, em->id, 0, em);
@@ -2493,7 +2456,7 @@ static void em2b_R1_Strangle(cEm2b* em)
             }
         }
         if (MotionMove(em, 0)) {
-            AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+            AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
             if ((s16) pG->pl_life <= 1) {
                 pG->pl_life = 0;
                 em->r_no_2 = 4;
@@ -2514,7 +2477,7 @@ static void em2b_R1_Strangle(cEm2b* em)
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
         StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-        AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+        AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         w->Timer = 60;
         em->r_no_2++;
     }
@@ -2532,7 +2495,7 @@ static void em2b_R1_Strangle(cEm2b* em)
 
         MotionSetCore(em, &em->Motion, ARC(0x3B), ARC(0x7E), 10, flip, 0);
         EstSet(em, -1, 0, 0, w->espKind2, 0x23, 0, 0, em, 0);
-        AtariFlagsOrV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
+        AtariOnV(&em->atari, 0x300); // throughOff(): the volatile view keeps the following `lwz pG` below the sth
         StaFlagOff(pG, STA_SUSPEND);
         pPLS->setNoSuspend(0);
         em->setNoSuspend(0);
@@ -2965,7 +2928,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             em->r_no_2 = 4;
             break;
         }
-        if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS)) {
+        if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS)) {
             f32 dx = pPLS->pos.x - em2b_r11e_pos.x;
             f32 dz = pPLS->pos.z - em2b_r11e_pos.z;
             d = dx * dx + dz * dz;
@@ -2990,7 +2953,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         if (em->seFlags28B & 2) {
             SndCall(6, 0xE, &p->world, 0, 0, em);
         }
-        if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS) && (em->seFlags28B & 1) && w->Atk_ck == 0) {
+        if ((s16) pG->pl_life > 0 && !EmDeadCk(pPLS) && (em->seFlags28B & 1) && w->Atk_ck == 0) {
             Vec v;
             f32 dx;
             f32 dz;
@@ -3000,7 +2963,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             dz = hp->world.z - v.z;
             dx = hp->world.x - v.x;
             d = dx * dx + dz * dz;
-            if (d < 2250000.0f && !em2bDeadCk(pPLS)) {
+            if (d < 2250000.0f && !EmDeadCk(pPLS)) {
                 pPLS->dmg.m_Timer = 0x80;
                 pG->pl_life = 0;
                 SetPlDamage(em, plem2b_CatchHand);
@@ -3018,7 +2981,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
 // The player standing higher than the giant's feet + 2000 (on the tower) falls off.
 void em2bPlFallCK(cEm2b* em)
 {
-    if (em2bDeadCk(pPLS)) {
+    if (EmDeadCk(pPLS)) {
         return;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -3723,9 +3686,7 @@ void em2bParasiteAtkCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -4392,9 +4353,9 @@ static void plem2bDashEscape(cPlayer* pl)
         } else {
             MotionSetCore(pl, &pl->Motion, PL_ARC(0xC1), PL_ARC(0xC2), 3, 0x41, 0);
         }
-        AtariFlagsAndV(&pl->atari, 0xFDFF);
+        AtariOffV(&pl->atari, 0xFDFF);
         if (pSUB) {
-            AtariFlagsAndV(&pSUB->atari, 0xFDFF);
+            AtariOffV(&pSUB->atari, 0xFDFF);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         if (pSUB) {
@@ -4419,9 +4380,9 @@ static void plem2bDashEscape(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
         } else {
-            AtariFlagsOrV(&pl->atari, 0x200);
+            AtariOnV(&pl->atari, 0x200);
             if (pSUB) {
-                AtariFlagsOrV(&pSUB->atari, 0x200);
+                AtariOnV(&pSUB->atari, 0x200);
             }
             EndPlDamage();
             if (pSUB) {
@@ -4467,9 +4428,7 @@ void em2bEscapeCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -4814,8 +4773,8 @@ int em2bSearchTree(cEm2b* em)
     if (w->Be_flg & 4) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmTree* e = (cEmTree*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmTree* e = (cEmTree*) EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -4949,7 +4908,7 @@ int em2bTreeAtkCk(cEm2b* em)
     if (w->Atk_ck) {
         return 0;
     }
-    if (em2bDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -5099,8 +5058,8 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
             }
         }
     }
-    for (i = 0; i < (int) EmMgr.nArray; i++) {
-        cEmRock* e = (cEmRock*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < (int) EmMgr.getArrayNum(); i++) {
+        cEmRock* e = (cEmRock*) EmMgr.fastAt(i);
         cModel* p;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -5390,9 +5349,7 @@ void em2bBlowCamMove(cEm2b* em, f32 rate)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5416,9 +5373,7 @@ void em2bStampCamMove(cEm2b* em)
     w->Cam.up.x = 0.0f;
     w->Cam.up.y = 1.0f;
     w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF((w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x) +
-                        (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
-                        (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
+    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5499,8 +5454,8 @@ int em2bSearchDog(cEm2b* em)
     if (w->pFriend) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -5546,7 +5501,7 @@ int em2bAtkRtnCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
 
-    if (StaFlagChk(pG, STA_PL_CATCHED) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
+    if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
         if (em->plDist2 < 49000000.0f) {
             em2bThreatSet(em, w);
             return 1;
@@ -5896,7 +5851,7 @@ int em2bPressPlCk(cEm2b* em)
     Vec pos;
     u32 i;
 
-    if (em2bDeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     pos = pPL->pos;
@@ -5926,7 +5881,7 @@ int em2bPressSubCk(cEm2b* em)
     if (pSUB == 0) {
         return 0;
     }
-    if (em2bDeadCk(pSUB)) {
+    if (EmDeadCk(pSUB)) {
         return 0;
     }
     pos = pSUB->pos;
@@ -6218,8 +6173,8 @@ int em2bStayCk(cEm2b* em)
     int cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6258,8 +6213,8 @@ void em2bObaHitCk(cEm2b* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
         Vec d;
 
         if ((e->be_flag & 0x201) != 1) {
@@ -6340,8 +6295,8 @@ int em2bFriendCk(cEm2b* em)
 {
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -6410,8 +6365,8 @@ void em2bYaguraSearch(cEm2b* em)
     u32 i;
 
     w->pYagura = 0;
-    for (i = 0; i < ObjMgr.nArray; i++) {
-        cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+    for (i = 0; i < ObjMgr.getArrayNum(); i++) {
+        cObj* o = ObjMgr.fastAt(i);
 
         if ((o->be_flag & 0x201) != 1) {
             continue;

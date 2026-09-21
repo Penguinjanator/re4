@@ -9,10 +9,7 @@
 #include "main_mem.h"
 #include "datactrl.h"
 #include "cDataSwap.h"
-
-extern "C" {
-void SubScreenAramRead();
-}
+#include "sscrn.h"
 
 // Nothing swapped yet.
 cDataSwap::cDataSwap()

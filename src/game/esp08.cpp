@@ -14,6 +14,7 @@
 #include "main_sub.h"
 #include "tpl.h"
 #include "espgen.h"
+#include "view.h"
 
 // Scrolling-texture sprite (Esp08_Trans) and the heat-shimmer variant (Esp08_TransShimmer).
 struct Esp08Work {
@@ -45,8 +46,6 @@ void Esp08_TransShimmer(cEsp08* esp, int type);
 f32 EspGetCameraPan2();   // game/esp.cpp
 }
 
-extern f32 ZNEAR;
-extern f32 ZFAR;
 
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 

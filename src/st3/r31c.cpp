@@ -46,6 +46,8 @@
 #include "room_data.h"
 #include "eprintf.h"
 
+static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
+
 // Room 3-1c (D:/Bio4/Prog/r31c.cpp): the ruins with the three crest doors, Krauser's two
 // battles, the timer doors and the tower that explodes.
 
@@ -143,42 +145,10 @@ static R31cWorkPtr r31c_work;   // .bss 0x20
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
 // libcall for an explicit call (r213).
 extern "C" void* r31c_memset(void*, ...) asm("memset");
-// The scheduler's kill-by-function overload (sce_sys.cpp).
-void SceKill(void (*func)(int));
 
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
-// Rotate a model from three components (inline owning the Vec).
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
-
-// Rotate a model about Y only.
-static inline void SetAngY(cModel* m, f32 ry)
-{
-    Vec v;
-
-    v.x = 0.0f;
-    v.y = ry;
-    v.z = 0.0f;
-    m->setAng(&v);
-}
 
 // The same through a caller's Vec (R31cInit reuses its `pos`).
 static inline void SetPosAngYV(cModel* m, Vec* v, f32 x, f32 y, f32 z, f32 ry)
@@ -211,19 +181,7 @@ static inline void SetPosAngY(cModel* m, f32 x, f32 y, f32 z, f32 ry)
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
-// 1 while the event is being skipped / cancelled (an EVT status bit, r215).
-static inline int r31c_evtStatus(Event* e, u32 bit)
-{
-    int on = 1;
 
-    if ((e->StatusFlag & bit) == 0) {
-        on = 0;
-    }
-    return on;
-}
-
-// The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Wait for fade `no` to finish: the index stays a separate `addi` on the array base (r316).
 static inline void FadeWait(int no)
@@ -233,8 +191,6 @@ static inline void FadeWait(int no)
     }
 }
 
-// Pointer store through a reference: the pG load of the next call stays below it (r102 idiom).
-static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
@@ -772,7 +728,7 @@ static void r31c_TalktoKrauser(int no)
     r31c_work.p->krauser.setNoSuspend(1);
     if (no == 0) {
         BitOn(pG->Room_flg[0], 0x40);
-        SetPosXYZ(em, 29231.0f, 8609.0f, -10844.0f);
+        em->setPos(29231.0f, 8609.0f, -10844.0f);
         SetPosAngY(pPL, 35137.0f, 5200.0f, -12965.0f, -1.25f);
         em->setTalk1st();
     } else {
@@ -1613,7 +1569,7 @@ void r31cEventS01EndProc()
     EmListData* l;
     int i;
 
-    l = EM_LIST(0x13);
+    l = &pG->Em_list[0x13];
     l->set = (pG->Room_flg[0] & 0x10000000) ? 2 : 3;
     r31c_work.p->krauser2.setEm(0x13, -1, 1, 1, 1);
     r31c_work.p->krauser.destroy();
@@ -1771,7 +1727,7 @@ static void Evt_R31CS01_Func(Event* e)
                 IntSet(r31c_evtS01Flag, 1);
             }
             if (e->NowFrame == 0x78) {
-                IntSet(r31c_evtS01Flag, 0);
+                r31c_evtS01Flag = 0;
             }
             break;
         }
@@ -1780,7 +1736,7 @@ static void Evt_R31CS01_Func(Event* e)
         SmdGetObjPtr(0x97)->be_flag |= 2;
         break;
     case 3:
-        if (r31c_evtStatus(e, 0x4000) == 0) {
+        if (EvtStatusCk(e, 0x4000) == 0) {
             EvtMgr.EvtSndStrPlay(evtKey(&EvtMgr), 1, 0x8B, 1, 0.0f);
         }
         break;
@@ -2026,7 +1982,7 @@ void cR31CDoor::init(u32 id)
             unlockNo = 0x2F;
             break;
         case 0x7B:
-            PSetSat(sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 4));
+            PSet(sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 4));
             eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 4);
             dist = 3583.0f;
             break;

@@ -30,6 +30,7 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include <string.h>
 
 // Room 3-0B (D:/Bio4/Prog/r30b.cpp): the crane puzzle. The player drives the crane's magnet over the four
 // Ganado (the caught ones ride along and are dropped in the pit), the switch-operated door with its guards,
@@ -69,7 +70,6 @@ static R30bWorkPtr r30b_work;
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the rotation
 // clears; the crane work is cleared through the prototyped memset (no crclr).
 extern "C" void* r30b_memset(void*, ...) asm("memset");
-extern "C" void* memset(void* dst, int c, unsigned int n);
 
 
 static f32 r30b_cableOfs = 6000.0f;
@@ -112,18 +112,6 @@ int CkCatchEm(int no);
 static void SceBgmCheck();
 }
 
-// The cable / light positions go through an inline (r315 setPosXYZ): its Vec is the inliner's own frame
-// slot and its address is not a PRE candidate, unlike a block-local `Vec p` whose `&p` gets inserted
-// at the end of every switch arm (the light setPos is the loop tail's unconditional occurrence).
-static inline void r30b_setObjPos(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec p;
-
-    p.x = x;
-    p.y = y;
-    p.z = z;
-    m->setPos(&p);
-}
 
 // Room init (the crane hall): the s00 callback. With Ashley along (Status_flg[3] 0x04000000): area 3 =
 // the s00 escape event until Room_flg bit 0, area 2 off; without her: area 4 = the crane puzzle and area
@@ -200,7 +188,7 @@ void R30bInit()
                     cObj* light = SmdGetObjPtr(0xD);
 
                     if (light) {
-                        r30b_setObjPos(light, light->pos.x, light->pos.y, crane->pos.z);
+                        light->setPos(light->pos.x, light->pos.y, crane->pos.z);
                     }
                 }
             }
@@ -856,8 +844,8 @@ static void R30bCrane()
             crane->setPos(&c->pos);
             magnet->setPos(&c->pos);
             cable->setPos(&c->pos);
-            r30b_setObjPos(cable, cable->pos.x, cable->pos.y + r30b_cableOfs, cable->pos.z);
-            r30b_setObjPos(light, light->pos.x, light->pos.y, c->pos.z);
+            cable->setPos(cable->pos.x, cable->pos.y + r30b_cableOfs, cable->pos.z);
+            light->setPos(light->pos.x, light->pos.y, c->pos.z);
             if (c->nCatch > 0) {
                 for (i = 0; i < c->nCatch; i++) {
                     if (c->nCatch == 1) {

@@ -157,6 +157,13 @@ public:
 #define EmRoutineSetW(em, r0, r1, r2, r3) \
     (*(u32*) &(em)->r_no_0 = ((u32) (r0) << 24) | ((u32) (r1) << 16) | ((u32) (r2) << 8) | (u32) (r3))
 
+// The four routine numbers of an enemy written through a helper: the stores stay in this order and the
+// arguments keep the registers of the call, which is not the case when they are assigned inline.
+static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3) { em->r_no_0 = r0; em->r_no_1 = r1; em->r_no_2 = r2; em->r_no_3 = r3; }
+
+// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
+static inline int EmDeadCk(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
+
 // Enemy manager (game/em.cpp). The construct id selects the class: 0 player, 1..0xE / others a
 // read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {
@@ -184,16 +191,6 @@ public:
 
 extern cEmMgr EmMgr;
 
-// Work `no` of the enemy manager, NULL when out of range. A free function: a cEmMgr member (even an
-// out-of-class inline) is emitted out of line into em.cpp, which owns the vtable (ctrl.h CtrlMgrWork).
-static inline cEm* EmMgrWork(u32 no)
-{
-    if (no >= EmMgr.nArray) {
-        return 0;
-    }
-    return (cEm*)((u8*)EmMgr.pArray + EmMgr.size * no);
-}
-
 // Pushable rack/crate enemy (game/emrack.cpp); only what pl_push calls.
 class cEmRack : public cEm {
     // PS2 keeps the size of the free area in this static; the GC build allocates no storage for it
@@ -215,6 +212,9 @@ public:
     void setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     int adjustRange(u8 dir);
 };
+
+// Motion / model data `no` of the enemy module's own archive; the enemy is the local `em`.
+#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 extern "C" {
 void emMove(cEm* em);        // per-frame update of one alive work: distance to the player, damage info, move()

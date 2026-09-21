@@ -44,6 +44,13 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include "ref_access.h"
+#include <string.h>
+#include <stdio.h>
+#include <dolphin/os.h>
+#include "em_sub.h"
+#include "item_model.h"
+#include "read.h"
 
 // Scenario trigger areas: the room's AEV (areas) / ITA (items) records plus the areas created at
 // run time, checked against the player, the partner and the enemies every frame.
@@ -55,21 +62,8 @@
 // SceAtRoomSet at room start, SceAtCheck once per frame from the scenario move, the SceAt*
 // accessors for the room scripts (enable, exec function, parent, item drops, save items).
 
-extern "C" {
-int strcmp(const char* a, const char* b);
-int sprintf(char* dst, const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
-void OSReport(const char* fmt, ...);
-int SubCharHideCheck();                                  // game/pl_npc.cpp
-int getRoomEtcBreak(int no, cEm** em, int a);            // game/EtcModel.cpp
-int RandomItemCk(int a, int* id, int* num, int b);       // game/em_sub.cpp
-int ItemGetBinTplAddr(u8 id, void** bin, void** tpl);    // game/item_model.cpp
-void* EmReadSearch(int id, void* addr, u32 size);        // game/read.cpp
-}
-u32 SubCharGetStatus();                                  // game/pl_npc.cpp
 int DbMenuActiveCheck();                                 // game/db_menu.cpp
 cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot);  // game/obj19.cpp
-cEm* EmSetEvent(EmListData* d);                          // game/em_set.cpp
 
 #define MTX_COPY(src, dst)               \
     {                                    \
@@ -104,20 +98,8 @@ static inline int bitOff(u32 v)
     return !(v & 1);
 }
 
-static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void U16Set(u16& d, u16 v) { d = v; }
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void S16Set(s16& d, s16 v) { d = v; }
-static inline void S8Set(s8& d, s8 v) { d = v; }
-static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(u32& d, void* v) { d = (u32) v; }
-static inline void PSet(cModel*& d, cModel* v) { d = v; }
 
-// The room event flag words (Room_flg, kind 0 of the flag areas).
-static inline u32* eventFlags()
-{
-    return &pG->Room_flg[0];
-}
 // The item-found flag word (kind 2 of the flag areas).
 static inline u32* flags51BC()
 {
@@ -138,11 +120,6 @@ static inline u32* itemFindFlags()
 {
     return &pG->Item_flg[4];
 }
-// pG->save_item as a pointer (the original adds the record offset to pG before the index).
-static inline ITEM_SAVE_WORK* saveItemTbl()
-{
-    return pG->item_save;
-}
 // Halfword fields of the save items: the original forms the address as integer arithmetic with the index
 // first (`idx*16 + ((u32)pG + ofs)`): non-struct MEM with an unflagged base, so pG is reloaded after
 // every store and the field offset is added to pG before the index (sthx base, idx).
@@ -158,14 +135,14 @@ static inline u32 saveItemBase(int ofs)
 // Em_flg row address as an integer (the original adds the list offset after the row index).
 static inline u32 emDeadRow(int n)
 {
-    return n * 32 + (u32) pG + 0x501C;
+    return (u32) EM_FLG_ROW(n);
 }
 #define EM_DEAD_BIT(n, i) (*(u32*) (((i) << 2) + emDeadRow(n)))
-#define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + ((i) << 4)))
-#define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, 0x72EC)
-#define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
-#define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, 0x72F0)
-#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + ((i) << 4)))
+#define SAVE_ITEM_HALF(i, f) (*(u16*) (saveItemBase(PG_OFS(item_save[0].f)) + ((i) << 4)))
+#define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, room_no)
+#define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, item_id)
+#define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, item_num)
+#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(PG_OFS(item_save[0].pos[k])) + ((i) << 4)))
 #define SAVE_ITEM_TYPE(i) pG->item_save[i].item_type
 #define SAVE_ITEM_ATNO(i) pG->item_save[i].item_at
 #define SAVE_ITEM_EFF(i) pG->item_save[i].item_eff
@@ -323,7 +300,7 @@ void SceAtInit(void* atData, void* itemData)
     }
     SceAtWorkLoopInit();
     U8Set(pS->x11C, 0);
-    U8Set(pS->x11D, 0);
+    pS->x11D = 0;
     if (atData != 0) {
         if (strcmp((char*) atData, "AEV") != 0) {
             pLog->err(0, 0, "THIS DATA IS NOT SCENARIO ATARI DATA");
@@ -389,7 +366,7 @@ void SceAtSetHitFlg(u32 no)
 {
     u32* f = pS->hitFlg;
 
-    f[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(f, no);
 }
 
 // Clears the "executed this frame" bits.
@@ -403,14 +380,14 @@ void SceAtSetExecFlg(u32 no)
 {
     u32* f = pS->execFlg;
 
-    f[no >> 5] |= 0x80000000 >> (no & 31);
+    FlagOn(f, no);
 }
 
 // Per frame: clears Room_flg[2..3] (per-frame event flags) and the hit / exec bits.
 void SceAtWorkLoopInit()
 {
     U32Set(pG->Room_flg[2], 0);
-    U32Set(pG->Room_flg[3], 0);
+    pG->Room_flg[3] = 0;
     SceAtClearHitFlg();
     SceAtClearExecFlg();
 }
@@ -471,8 +448,8 @@ void SceAtCheck()
         }
     }
     sceAtCheck_main(pPL, 1);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        em = EmMgr.fastAt(i);
         if (pSUB != 0 && pSUB == em) {
             sceAtCheck_main(em, 8);
             continue;
@@ -805,7 +782,7 @@ static void sceInLock(SceAtWork* w)
         while (cMes.mes[0].flags2 & 1) {
             TaskSleep(1);
         }
-        doorUnlock()[w->lockFlag >> 5] |= 0x80000000 >> (w->lockFlag & 31);
+        FlagOn(doorUnlock(), w->lockFlag);
         break;
     }
     SceAtStopSemiautoCheck();
@@ -879,7 +856,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->NextPos.z, w->dstPos.z);
     FSet(pG->NextY, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->Part_old, pG->Part);
+    pG->Part_old = pG->Part;
     pG->Stage_next = w->dstStage;
     pG->Room_next = w->dstRoom;
     pG->Part_next = w->dstPart;
@@ -1607,9 +1584,9 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
     switch (f->kind) {
     case 0:
         if (f->off == 0) {
-            eventFlags()[f->no >> 5] |= 0x80000000 >> (f->no & 31);
+            FlagOn(eventFlags(), f->no);
         } else {
-            eventFlags()[f->no >> 5] &= ~(0x80000000 >> (f->no & 31));
+            FlagOff(eventFlags(), f->no);
         }
         break;
     case 1: {
@@ -1630,9 +1607,9 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
     }
     case 2:
         if (f->off == 0) {
-            flags51BC()[f->no >> 5] |= 0x80000000 >> (f->no & 31);
+            FlagOn(flags51BC(), f->no);
         } else {
-            flags51BC()[f->no >> 5] &= ~(0x80000000 >> (f->no & 31));
+            FlagOff(flags51BC(), f->no);
         }
         break;
     }
@@ -1937,8 +1914,8 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
 
     sceAtGetLadderPos(l, &pos, &ang);
     AreaDataInit(&area, &pos, 2, 500.0f, 2000.0f);
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
 
         if (em->id <= 0x20 && m != em) {
             if (AreaHitCheck(&area, &em->pos) == 1) {
@@ -2315,12 +2292,6 @@ SceAtWork* SceAtPtr(int no)
     return 0;
 }
 
-// Bit table test with the table as an integer address: the index is not pointer-flagged, so the word offset
-// lands in a base register and comes first in `lwzx`.
-static inline u32 bitTblChk(u32 tbl, u32 i)
-{
-    return *(u32*) (((i >> 5) << 2) + tbl) & (0x80000000 >> (i & 31));
-}
 
 // A free area number (0..255 not used by any record); 0 when none.
 int sceAtPullAtNo(u8* out)
@@ -2335,7 +2306,7 @@ int sceAtPullAtNo(u8* out)
         ((u32*) used)[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
     for (i = 0; i < 256; i++) {
-        if (!bitTblChk((u32) used, i)) {
+        if (!FlagChkVar((u32) used, i)) {
             *out = i;
             return 1;
         }
@@ -3057,10 +3028,10 @@ static void sceAtItemFindCheck()
 void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
 {
     if (flagNo != 0) {
-        itemFlags()[flagNo >> 5] |= 0x80000000 >> (flagNo & 31);
+        FlagOn(itemFlags(), flagNo);
     } else if (saveNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFlags()[saveNo >> 5] |= 0x80000000 >> (saveNo & 31);
+            FlagOn(roomItemFlags(), saveNo);
         }
     }
 }
@@ -3111,10 +3082,10 @@ void sceAtItemFlgOn(SceAtItem* it)
     u16 no = it->flagNo;
 
     if (no != 0) {
-        itemFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(itemFlags(), no);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            FlagOn(roomItemFlags(), it->findFlagNo);
         }
     }
 }
@@ -3144,10 +3115,10 @@ void sceAtItemFindFlgOn(SceAtItem* it)
     u16 no = it->flagNo;
 
     if (no != 0) {
-        itemFindFlags()[no >> 5] |= 0x80000000 >> (no & 31);
+        FlagOn(itemFindFlags(), no);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            roomItemFindFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            FlagOn(roomItemFindFlags(), it->findFlagNo);
         }
     }
 }
@@ -3315,7 +3286,7 @@ int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cM
                 SAVE_ITEM_EFF(saveNo) = effType;
                 SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
                 SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
-                SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
+                pG->item_save[saveNo].pos[2] = (s16) (pos->z / 10.0f);
                 w->item.flag2 |= 8;
             } else {
                 pLog->err(0, 0, "SceAtCreateItemAt(): lack save work");
@@ -3414,7 +3385,7 @@ void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, in
         SAVE_ITEM_EFF(saveNo) = effType;
         SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
         SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
-        SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
+        pG->item_save[saveNo].pos[2] = (s16) (pos->z / 10.0f);
     } else {
         pLog->err(0, 0, "SceAtReserveItemAt(): save work over");
     }
@@ -3642,22 +3613,22 @@ void SceAtSetSaveItem()
     SceAtWork* w;
 
     for (i = 0; i <= 0xFF; i++) {
-        if (SAVE_ITEM_ROOM(i) == 0) {
+        if (pG->item_save[i].room_no == 0) {
             continue;
         }
-        if (SAVE_ITEM_ROOM(i) != pG->room_id) {
+        if (pG->item_save[i].room_no != pG->room_id) {
             continue;
         }
         switch (SAVE_ITEM_TYPE(i)) {
         case 0:
-            pos.x = (f32) SAVE_ITEM_POS(i, 0) * 10.0f;
-            pos.y = (f32) SAVE_ITEM_POS(i, 1) * 10.0f;
-            pos.z = (f32) SAVE_ITEM_POS(i, 2) * 10.0f;
-            SceAtCreateItemAt(&pos, SAVE_ITEM_ID(i), SAVE_ITEM_NUM(i), SAVE_ITEM_EFF(i), i, 0, -1);
+            pos.x = (f32) pG->item_save[i].pos[0] * 10.0f;
+            pos.y = (f32) pG->item_save[i].pos[1] * 10.0f;
+            pos.z = (f32) pG->item_save[i].pos[2] * 10.0f;
+            SceAtCreateItemAt(&pos, pG->item_save[i].item_id, pG->item_save[i].item_num, SAVE_ITEM_EFF(i), i, 0, -1);
             break;
         case 1:
             w = SceAtPtr(SAVE_ITEM_ATNO(i));
-            U16Set(w->item.id, SAVE_ITEM_ID(i));
+            U16Set(w->item.id, pG->item_save[i].item_id);
             w->item.num = SAVE_ITEM_NUM(i);
             w->item.flag2 |= 8;
             w->item.saveNo = i;
@@ -3672,7 +3643,7 @@ int sceAtPullItemSaveWork()
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (saveItemTbl()[i].room_no == 0) {
+        if (pG->item_save[i].room_no == 0) {
             return i;
         }
     }
@@ -3691,7 +3662,7 @@ int SceAtCheckSaveItemId(int id)
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (SAVE_ITEM_ROOM(i) != 0 && SAVE_ITEM_ID(i) == id) {
+        if (pG->item_save[i].room_no != 0 && pG->item_save[i].item_id == id) {
             return 1;
         }
     }

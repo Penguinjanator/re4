@@ -37,6 +37,14 @@
 #include "wep_mod.h"
 #include "st_mgr_event.h"
 
+// Position and angle set together: both addresses are taken before the first call, so the angle
+// pointer is kept in a register across setPos (`lwz; addi 0xa0` before `bl setPos`).
+static inline void SetPosAng(cModel* m, Vec* pos, Vec* ang)
+{
+    m->setPos(pos);
+    m->setAng(ang);
+}
+
 // Room 2-08 (D:/Bio4/Prog/r208.cpp): the castle courtyard with the water mill. The crank drains
 // the moat and lowers the bridge, the two footings rise while Ashley turns the cranks on the far
 // side, Ganado groups are reset by the areas the player crosses, and the enemies below the walls
@@ -78,10 +86,8 @@ struct R208WorkPtr {
 static u8 r208_texTbl[0x20];
 static R208WorkPtr r208_work;
 #define W r208_work.p
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
-#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
+#define EM_LIST_S(no) (&pGS->Em_list[no])
 // Element stores through the vector's address (r202): the address pseudo is shared with the call
 // that follows (`mr r4, rX`).
 static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
@@ -89,23 +95,6 @@ static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
     v->x = x;
     v->y = y;
     v->z = z;
-}
-// Position and angle set together: both addresses are taken before the first call, so the angle
-// pointer is kept in a register across setPos (`lwz; addi 0xa0` before `bl setPos`).
-static inline void SetPosAng(cModel* m, Vec* pos, Vec* ang)
-{
-    m->setPos(pos);
-    m->setAng(ang);
-}
-// Store through a scalar reference (wep_mod.h PSet): the following global load stays below it.
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
-// Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe (r206).
-static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
-{
-    p->r_no_0 = fc;
-    p->r_no_1 = fd;
-    p->r_no_2 = fe;
-    p->r_no_3 = ff;
 }
 
 // Hit effects of attribute types 4 and 5
@@ -459,8 +448,8 @@ void R208Main()
                             no = 0x14;
                         }
                     }
-                    R208_EmSetEvent(EM_LIST(no));
-                    ((EmListData*) ((u32) pG + (no << 5) + 0x52E8))->be_flag |= 2; // shift form: add operands pG-first, address not tied to no<<5
+                    R208_EmSetEvent(&pG->Em_list[no]);
+                    pG->Em_list[no].be_flag |= 2;
                     incResetNum();
                 }
             }
@@ -612,8 +601,8 @@ extern "C" cEm* getMostFarEm(f32 range)
     u32 cnt = 0;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         Vec d;
         f32 len;
 
@@ -985,8 +974,8 @@ extern "C" void emGroupeA_reset()
         return;
     }
     RsfSet(G_ROOM_ID, 1);
-    R208_EmSetEvent(EM_LIST(0x20));
-    R208_EmSetEvent(EM_LIST(0x22));
+    R208_EmSetEvent(&pG->Em_list[0x20]);
+    R208_EmSetEvent(&pG->Em_list[0x22]);
     alive = SceCountEmAlive(0x10, 0x20);
     if (alive <= 8) {
         W->em[11].setEm(0xD, 2, 0, 1, 1);
@@ -1419,7 +1408,7 @@ static void under_set_task()
                 if (pG->Game_level <= 6 && (i == 3 || i == 7)) {
                 } else if (pG->Game_level <= 3 && (i == 3 || i == 5 || i == 7)) {
                 } else if (r208_underEmTbl[i] != -1) {
-                    cEm* em = R208_EmSetEvent(EM_LIST(r208_underEmTbl[i]));
+                    cEm* em = R208_EmSetEvent(&pG->Em_list[r208_underEmTbl[i]]);
 
                     if (em) {
                         W->under[i].setPtr(em, 0);
@@ -1494,7 +1483,7 @@ static void r208_snipe()
             return;
         }
         if (W->footACnt == 1) {
-            cEm* em = R208_EmSetEvent(EM_LIST(0x19));
+            cEm* em = R208_EmSetEvent(&pG->Em_list[0x19]);
 
             if ((pG->Room_flg[0] & 0x20000000) && em != NULL) {
                 ((cEmGanado*) em)->setGoto(&pSUB->pos, 0xC);

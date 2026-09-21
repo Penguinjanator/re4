@@ -50,7 +50,6 @@ static R11eWork* r11e_work;
 
 // Pointer stores through references: the work pointer and the field are reloaded after them.
 static inline void PSet(cEmRock*& d, cEmRock* v) { d = v; }
-static inline void PSet(cSat*& d, cSat* v) { d = v; }    // the pG reload of the next create waits for the store
 
 // The original's .data is 8-aligned (r105 has the same).
 asm(".section .data; .balign 8");
@@ -111,7 +110,7 @@ void R11eInit()
     PSet(r11e_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
     PSet(r11e_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
     PSet(r11e_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
-    PSet(r11e_work->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
+    r11e_work->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0);
     getRoomEtcDoor(0xE, &door, 1);
     getRoomEtcDoor(0xF, &door, 1);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -445,7 +444,7 @@ static void r11e_EmSet()
 
     RsfSet(G_ROOM_ID, 6);
     r11e_work->em.setEm(0xF1, -1, 1, 1, 1);
-    e = EM_LIST(0xF0);
+    e = &pG->Em_list[0xF0];
     e->pos[0] = -0xA5;
     e->pos[1] = 8;
     e->pos[2] = 0xC06;
@@ -479,8 +478,8 @@ static void r11e_str_check()
         int find = 0;
         u32 i;
 
-        for (i = 0; i < EmMgr.nArray; i++) {
-            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        for (i = 0; i < EmMgr.getArrayNum(); i++) {
+            cEm* em = EmMgr.fastAt(i);
 
             if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 find = 1;

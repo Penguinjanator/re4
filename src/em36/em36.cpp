@@ -18,6 +18,7 @@
 #include "esp.h"
 #include "est.h"
 #include "obj00.h"
+#include "em10.h"
 #include "obj16.h"
 #include "camera.h"
 #include "cam_ctrl.h"
@@ -38,13 +39,13 @@
 #include "eprintf.h"
 #include "db_log.h"
 #include "main_mem.h"
+#include "em.h"
+#include <dolphin/os.h>
 
 asm(".comm common_em36,52,4");
-
-extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
-void EmReserveDropItem(cEm* em);
+
 typedef void (*Em36Func)(cEm36*);
 
 static void em36_R0_Init(cEm36* em);
@@ -191,38 +192,13 @@ static Vec em36_weak_rot[5] = {
     { 0.0f, 0.0f, 0.0f },
 };
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-#define pSUBS (((PlayerPtr*) &pSUB)->p)
 
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
 
-static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void IntSet(int& d, int v) { d = v; }
 
-// Flag update through a volatile view: keeps the following global load below the sth (wep_mod.h).
-static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
-static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
-
-static inline int em36DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // The appearance effects (type 0/1: two, type 2/3: one).
 static inline void em36AppearEsp(cEm36* em, Em36Work* w)
@@ -300,7 +276,7 @@ void em36DmCk(cEm36* em)
     if (em36CrashCk(em)) {
         return;
     }
-    if (em->hp > 0 && em36DeadCk(em) == 0) {
+    if (em->hp > 0 && EmDeadCk(em) == 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
@@ -607,7 +583,7 @@ void cEm36::move()
     em36SlopeMove(this);
     partsWorldCalc();
     em36ScaleCompress(this);
-    d = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
+    d = VEC_DISTXZ(&pos_old, &pos);
     if (seFlags28B & 0x20) {
         atari.m_flag |= 0x10;
     } else {
@@ -625,7 +601,7 @@ void cEm36::move()
         SatMgr.check(this, 0);
     }
     atari.m_flag = atFlags;
-    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
+    if (VEC_DISTXZ(&pos, &pos_old) < d * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -3774,7 +3750,7 @@ void em36YarareCk(cEm36* em)
     Vec a; \
     Vec b; \
     Mtx m; \
-    if (em36DeadCk(pPL)) { \
+    if (EmDeadCk(pPL)) { \
         return 0; \
     } \
     if ((s16) pG->pl_life <= 0) { \
@@ -3872,7 +3848,7 @@ int em36LongCatchCk(cEm36* em)
     cModel* p;
     f32 len;
 
-    if (em36DeadCk(pPL)) {
+    if (EmDeadCk(pPL)) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -3911,7 +3887,7 @@ int em36LongCatchCk(cEm36* em)
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return 0;
     }
-    len = SQRTF((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z));
+    len = VEC_DISTXZ(&em->pos, &pPL->pos);
     PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     a.x = 300.0f;
@@ -3972,7 +3948,7 @@ int em36BetweenHitCk(cEm36* em)
 void em36WeakInit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
-    EmListData* list = EM_LIST(em->emset_no);
+    EmListData* list = &pG->Em_list[em->emset_no];
     int sum = 0;
     int a;
     int b;
@@ -4136,7 +4112,7 @@ void em36SlopeMove(cEm36* em)
         if (fa < -1500.0f) {
             fa = -1500.0f;
         }
-        tilt = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        tilt = VEC_DISTXZ(&a, &b);
         ang = -atan2f(fa, tilt);
         if (w->slopeTimer) {
             w->slopeTimer--;
@@ -4182,7 +4158,7 @@ int em36SetDmVal(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
     YARARE_INFO* part = em->dmg.m_pDamageYarare;
-    EmListData* list = EM_LIST(em->emset_no);
+    EmListData* list = &pG->Em_list[em->emset_no];
     int near;
     int dmg;
 
@@ -4302,8 +4278,8 @@ void em36DoorOpenCk(cEm36* em)
     u32 i;
     u32 r;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEmDoor* e = (cEmDoor*) EmMgr.fastAt(i);
         EmDoorWork* dw;
         f32 ang;
 
@@ -4942,7 +4918,7 @@ int em36FindCk(cEm36* em)
     if (StaFlagChk(pG, STA_SE_BURST)) {
         f32 r;
 
-        switch (pG->bell_stat) {
+        switch (pG->SeInfo.type) {
         case 0:
             r = 25000.0f;
             break;
@@ -4954,8 +4930,8 @@ int em36FindCk(cEm36* em)
             break;
         }
         r = 25000.0f;
-        if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y) +
-                (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z) < r * r) {
+        if ((em->pos.x - pG->SeInfo.pos.x) * (em->pos.x - pG->SeInfo.pos.x) + (em->pos.y - pG->SeInfo.pos.y) * (em->pos.y - pG->SeInfo.pos.y) +
+                (em->pos.z - pG->SeInfo.pos.z) * (em->pos.z - pG->SeInfo.pos.z) < r * r) {
             if ((w->flags & 1) && w->plRouteDis < r) {
                 find = 1;
             }
@@ -4964,7 +4940,7 @@ int em36FindCk(cEm36* em)
     if (StaFlagChk(pG, STA_PL_FIRE) && w->plRouteDis < 25000.0f) {
         find = 1;
     }
-    if (em36DeadCk(em)) {
+    if (EmDeadCk(em)) {
         find = 1;
     }
     if (find) {

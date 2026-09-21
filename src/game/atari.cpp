@@ -15,20 +15,10 @@
 #include "dbmodule.h"
 #include "main.h"
 #include "gx.h"
+#include <string.h>
+#include <dolphin/base/PPCArch.h>
 
 #line 30 "D:/Bio4/Prog/atari.cpp"
-
-extern "C" {
-// Dolphin SDK performance monitor registers (base/PPCArch.h)
-void PPCMtpmc1(u32 v);
-void PPCMtpmc2(u32 v);
-void PPCMtpmc3(u32 v);
-void PPCMtpmc4(u32 v);
-void PPCMtmmcr0(u32 v);
-void PPCMtmmcr1(u32 v);
-u32 PPCMfpmc1();
-void* memcpy(void* dst, const void* src, unsigned int n);
-}
 
 // at_sub attribute filter bypass mode (cSatMgr::seCk of the manager running the check)
 int SEck;
@@ -43,7 +33,6 @@ extern u32 g_at2_cyc[];
 extern u32 g_at2_total_cyc;
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 // polygons already tested during one check (one bit per polygon index)
 u8 polyBit[0x400];
@@ -744,7 +733,7 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
     }
     ret = 0;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         if (sat->isAlive()) {
             Vec lo;
             Vec lp;
@@ -868,7 +857,7 @@ int cSatMgr::hitCheck2(Vec* pos0, Vec* pos1, Vec* hit, u32* attr, int flag, int 
     ((SEckView*) &SEck)->v = seCk;
     cur = *pos1;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         if (sat->isAlive()) {
             cSatBlock* blk = sat->block_p;
             int r;
@@ -1035,7 +1024,7 @@ void cSatMgr::disp(int flag)
     GXSetLineWidth(6, 0);
     sel = (flag >> 8) & 0xFF0000;
     for (i = 0; i < nArray; i++) {
-        cSat* sat = (cSat*) ((u8*) pArray + size * i);
+        cSat* sat = fastAt(i);
         int s;
         int e;
         int j;

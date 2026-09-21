@@ -24,16 +24,6 @@
 #include "math_sub.h"
 
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
-
-// Routine bytes through int parameters (player.cpp PlRoutineSet).
-static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
-{
-    pl->r_no_0 = r0;
-    pl->r_no_1 = r1;
-    pl->r_no_2 = r2;
-    pl->r_no_3 = r3;
-}
 
 u8 lockCtr = 0;
 
@@ -172,7 +162,7 @@ static void wep11_r3_ready10(cPlayer* pl)
         SndCall(1, (u16) se, &pl->getPartsPtr(0)->world, 0, 0, 0);
     }
     if (pl->frame >= endFrame) {
-        PlRoutineSet(pl, 0, 6, 1, 4);
+        EmRoutineSet(pl, 0, 6, 1, 4);
         pl->m_Work0 = 0;
     }
 
@@ -187,7 +177,7 @@ static void wep11_r3_ready20(cPlayer* pl)
 {
     if (MotionMove(pl, 0)) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
-        PlRoutineSet(pl, 0, 6, 1, 0);
+        EmRoutineSet(pl, 0, 6, 1, 0);
         pl->m_Work0 = 0;
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
@@ -221,30 +211,30 @@ static void wep11_r2_set(cPlayer* pl)
         } else {
             int md = 3;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     } else if (joyFireTrg()) {
         if (pl->Wep->m_pWep->bulletNum()) {
-            PlRoutineSet(pl, 0, 6, 2, 0);
+            EmRoutineSet(pl, 0, 6, 2, 0);
             pl->m_Work6 = 0;
             PlWepLockRandInit();
         } else if (pl->Wep->m_pWep->reloadable()) {
 
             pl->Wep->m_Flag |= 1;
-            PlRoutineSet(pl, 0, 6, 4, 0);
+            EmRoutineSet(pl, 0, 6, 4, 0);
         } else {
             SndCall(2, 0x17, &pl->getPartsPtr(4)->world, 0, 0, 0);
             goto reload;
         }
     } else if (joyFireOn() && pl->Wep->m_pWep->bulletNum()) {
-        PlRoutineSet(pl, 0, 6, 2, 0);
+        EmRoutineSet(pl, 0, 6, 2, 0);
         pl->m_Work6 = 0;
         PlWepLockRandInit();
     } else {
     reload:
         if ((Joy[0].trg & 0x200) && pl->Wep->m_pWep->reloadable()) {
             pl->Wep->m_Flag |= 1;
-            PlRoutineSet(pl, 0, 6, 4, 0);
+            EmRoutineSet(pl, 0, 6, 4, 0);
             pl->m_Work0 = 1;
         }
     }
@@ -366,12 +356,12 @@ static void wep11_r3_fire10(cPlayer* pl)
                     pl->r_no_3 = 0;
                 } else {
                     SndCall(2, 0x17, &pl->getPartsPtr(4)->world, 0, 0, 0);
-                    PlRoutineSet(pl, 0, 6, 1, 0);
+                    EmRoutineSet(pl, 0, 6, 1, 0);
                 }
                 pl->m_Work0 = 1;
             } else {
                 pl->m_Work0 = 0;
-                PlRoutineSet(pl, 0, 6, 1, 0);
+                EmRoutineSet(pl, 0, 6, 1, 0);
             }
 
         } else if (pl->stat & 0x40) {
@@ -382,7 +372,7 @@ static void wep11_r3_fire10(cPlayer* pl)
         } else {
             int md = 3;
 
-            PlRoutineSet(pl, 0, 6, md, 0);
+            EmRoutineSet(pl, 0, 6, md, 0);
         }
     }
 }
@@ -394,7 +384,7 @@ static void wep11_r2_down(cPlayer* pl)
 {
     if (dmMotCk()) {
         MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x1D), 0, 3, 5, 0);
-        PlRoutineSet(pl, 0, 0, 2, 0);
+        EmRoutineSet(pl, 0, 0, 2, 0);
     } else {
         pl->r_no_3 = 1;
         pl->m_Hokan = 0xF;
@@ -448,7 +438,7 @@ static void wep11_r2_reload(cPlayer* pl)
                 pl->r_no_2 = 3;
             }
         } else if (MotionMove(pl, 0)) {
-            PlRoutineSet(pl, 0, 6, 1, 0);
+            EmRoutineSet(pl, 0, 6, 1, 0);
             pl->m_Work0 = 0;
         }
         break;

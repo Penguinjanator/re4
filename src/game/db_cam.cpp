@@ -22,25 +22,12 @@
 #include "player.h"
 #include "db_cam.h"
 #include "motion.h"
-
-extern "C" {
-void* memset(void* dst, int c, unsigned int n);
-void CameraSetOrientationZeroRoll(Camera* cam);
-void CameraCamposDistance(Camera* cam, f32 dist);
-void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);
-void CameraCamposRot(Camera* cam, char axis, f32 rad);
-void CameraTargetRot(Camera* cam, char axis, f32 rad);
-void CameraDolly(Camera* cam, Vec* mv);
-void Draw_line3d(Vec* a, Vec* b, u32 color, int flag);
-}
+#include "ref_access.h"
+#include <string.h>
+#include "dbmodule.h"
+#include "view.h"
 
 extern int ProjType;
-extern f32 ORTHO_T;
-extern f32 ORTHO_B;
-extern f32 ORTHO_L;
-extern f32 ORTHO_R;
-
-#define DEG 0.017453292f
 
 // Orthographic zoom: the top/left extents move together (plain block: a do-while's loop notes
 // flip the f0/f13 allocation of the two chains).
@@ -50,19 +37,6 @@ extern f32 ORTHO_R;
         ORTHO_L -= (t);                  \
     }
 
-// EmMgrWork with the manager through a pointer (one `&EmMgr` instead of three per-field
-// `high/lo_sum` pairs): four fewer expand-time insns, so the enemy search loop's `break` sits
-// within stmt.c's 30-insn rotation window and the loop rotates at the match test (`bdz` at the
-// top, the two tests jumping back to the increment) instead of at the `--i` test (`bdnz`).
-// Same final code as em.h's EmMgrWork everywhere else (cse folds the pointer).
-static inline cEm* EmMgrWorkP(u32 no)
-{
-    cEmMgr* m = &EmMgr;
-    if (no >= m->nArray) {
-        return 0;
-    }
-    return (cEm*) ((u8*) m->pArray + m->size * no);
-}
 
 debugCamera CamDbg;
 QfpsOfs g_local_ready[2][3];
@@ -72,26 +46,13 @@ f32 g_local_fovy[2];
 
 const char* key_str[4] = {"DFLT", "SCR", "????", "????"};
 
-// The menu counters are stepped through a reference (the stores then invalidate every cached
-// load, as in the original: joy->trg is reloaded after each step).
-static inline void Inc(int& v) { v++; }
 static inline void Dec(int& v) { v--; }
-static inline void Set(int& v, int x) { v = x; }
 
 // adjust_qFPS keeps the edited shoulder offset record as a byte pointer (the original copies it
 // with memcpy and steps through it by byte offset).
 #define QOFS(p) ((QfpsOfs*) (p))
 #define QOFS_CAMPOS2 0xC
 
-// Matrix column -> vector (cam_sys.cpp's helper): through the `Vec*` parameter the stores go via
-// the address register for the frame-offset-0 local (`stfs 4(r31)`, its pseudo reused by the
-// later PSVECScale(&vx, ..)); for the other locals integrate substitutes the frame address.
-static inline void getColumn(Mtx m, int c, Vec* v)
-{
-    v->x = m[0][c];
-    v->y = m[1][c];
-    v->z = m[2][c];
-}
 
 // Column vectors -> matrix.
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
@@ -169,14 +130,14 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         if (joy->trg & JOY_A) {
             int i;
             cEm* e;
-            int num = EmMgr.nArray;
+            int num = EmMgr.getArrayNum();
             i = num;
             numEm++;
             if (num <= numEm) {
                 numEm = 0;
             }
             while (--i) {
-                e = EmMgrWorkP(numEm);
+                e = EmMgr.at(numEm);
                 if ((e->be_flag & 1) && e->id <= 0x3F) {
                     break;
                 }
@@ -187,10 +148,10 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
         }
         if (joy->on & JOY_A) {
-            if (EmMgrWork(numEm)->be_flag & 1) {
-                cModel* parts = EmMgrWork(numEm)->getPartsPtr(0);
+            if (EmMgr.at(numEm)->be_flag & 1) {
+                cModel* parts = EmMgr.at(numEm)->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = EmMgrWork(numEm)->pos;
+                    cam->param.at = EmMgr.at(numEm)->pos;
                 } else {
                     cam->param.at = parts->world;
                 }
@@ -201,7 +162,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
             CameraSetOrientationZeroRoll(cam);
         }
-        em = EmMgrWork(numEm);
+        em = EmMgr.at(numEm);
         if (em != NULL) {
             if ((em->be_flag & 1) && em != (cEm*) pPL) {
                 int col = 0;
@@ -229,7 +190,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     case 1: {
         if (joy->trg & JOY_A) {
             int i;
-            int num = ObjMgr.nArray;
+            int num = ObjMgr.getArrayNum();
             cObj* obj;
             i = num;
             numObj++;
@@ -352,10 +313,10 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     }
     if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG2RAD);
     }
     if (joy->stickY) {
-        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG);
+        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG2RAD);
     }
     if (joy->on & JOY_LEFT) {
         mv.x = -100.0f;
@@ -405,10 +366,10 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     }
     if (joy->substickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG2RAD);
     }
     if (joy->substickY) {
-        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG);
+        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG2RAD);
     }
 }
 
@@ -463,10 +424,10 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
     }
     if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG2RAD);
     }
     if (joy->stickY) {
-        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG);
+        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG2RAD);
     }
 }
 
@@ -628,7 +589,7 @@ int debugCamera::menuCamera(JOY* joy)
     if (d) {
         switch (m_sel1) {
         case 0:
-            cam->param.roll += (f32) d * DEG;
+            cam->param.roll += (f32) d * DEG2RAD;
             if (cam->param.roll < -PI) {
                 cam->param.roll = -PI;
             }
@@ -898,7 +859,7 @@ int debugCamera::menuHitDisp(JOY* joy)
         Dec(view_mode);
     }
     if (joy->trg & 0x20002) {
-        Inc(view_mode);
+        view_mode++;
     }
     if (view_mode < 0) {
         view_mode = 8;
@@ -1277,7 +1238,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             Dec(menu_no);
         }
         if (joy->rep & JOY_DOWN) {
-            Inc(menu_no);
+            menu_no++;
         }
         if (flag & 2) {
             menu_no = menu_no < -1 ? -1 : (menu_no > 6 ? 6 : menu_no);
@@ -1328,7 +1289,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 4:
             if (joy->trg & JOY_A) {
                 menu_level = 4;
-                Set(yes_no, 0);
+                yes_no = 0;
             }
             break;
         }
@@ -1352,7 +1313,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 Dec(site_col);
             }
             if (joy->rep & JOY_RIGHT) {
-                Inc(site_col);
+                site_col++;
             }
             site_col = site_col < 0 ? 0 : (site_col > 1 ? 1 : site_col);
             if (symmetry_flag) {
@@ -1362,7 +1323,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 Dec(site_row);
             }
             if (joy->rep & JOY_DOWN) {
-                Inc(site_row);
+                site_row++;
             }
             site_row = site_row < 0 ? 0 : (site_row > 5 ? 5 : site_row);
             if (site_col == 0) {
@@ -1371,11 +1332,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 site_LR = site_col;
             }
             if (site_row <= 2) {
-                Set(site_UMD, site_row);
-                Set(site_NF, 0);
+                site_UMD = site_row;
+                site_NF = 0;
             } else {
-                Set(site_NF, 1);
-                Set(site_UMD, site_row - 3);
+                site_NF = 1;
+                site_UMD = site_row - 3;
             }
             if (site_NF) {
                 if (site_LR) {
@@ -1490,10 +1451,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->rep & JOY_LEFT) {
-            Set(yes_no, 1);
+            ISet(yes_no, 1);
         }
         if (joy->rep & JOY_RIGHT) {
-            Set(yes_no, 0);
+            yes_no = 0;
         }
         if (joy->trg & JOY_A) {
             if (yes_no) {
@@ -1515,10 +1476,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->trg & JOY_UP) {
-            Set(near_far, 0);
+            ISet(near_far, 0);
         }
         if (joy->trg & JOY_DOWN) {
-            Set(near_far, 1);
+            near_far = 1;
         }
         {
             f32 step = 1.0f;

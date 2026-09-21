@@ -13,11 +13,9 @@
 #include "tpl.h"
 #include "va_ppc.h"
 #include "eprintf.h"
-
-extern "C" {
-void OSReport(const char* fmt, ...);
-int vsprintf(char* buf, const char* fmt, va_list ap);
-}
+#include <stdio.h>
+#include <dolphin/os.h>
+#include "main.h"
 
 #define HALT()                                                    \
     {                                                             \
@@ -25,7 +23,6 @@ int vsprintf(char* buf, const char* fmt, va_list ap);
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-extern SYSTEM_SAVE_WORK* pSys;
 
 // Current text environment
 struct MojiWork {

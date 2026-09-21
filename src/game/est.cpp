@@ -21,9 +21,6 @@
 
 cModel* EspEvModList[0x80];
 
-// Effect set table: starts effect controller 10 on the est data block `head`.
-void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, u8 f, void* g, u32 owner, void* h);
-
 // The common entry: starts est table (owner c, id d) with parts b (-1 = the table's default) on the
 // model a (0 = none), at pos/rot (NULL = the table's own), core flags e, kind f, Core_pEm g and an
 // optional EspSeqOpt h.
@@ -361,7 +358,7 @@ int EspChkInPuddle(Vec* pos, Vec* nrm)
 // / puddle, 1 spark pair, 2 and 4..7 per-weapon effects from the AtEffInfo table, 3 unused), `nrm`
 // the surface normal (rotation for the decal, flipped for flag-bit-0 infos), `wep` the weapon id.
 // Hit effect for the eat (effect collision) attribute type.
-void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
+void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
 {
     AtEffInfo* info = EatMgr.getEffInfo(type);
     Vec rot;

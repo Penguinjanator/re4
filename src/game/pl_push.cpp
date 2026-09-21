@@ -9,13 +9,8 @@
 #include "db_log.h"
 #include "math_sub.h"
 #include "motion.h"
-
-extern "C" {
-void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp
-int At_em_rect_rect_ck(cModel* pl, cEm* em);                            // game/at_mod.cpp
-void EmAtCheck(cEm* em);                                                // game/at_mod.cpp
-int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp
-}
+#include "at_mod.h"
+#include "em_sub.h"
 
 // Looks for a pushable object (cEmRack, id 0x45, not type 4, alive, within 500 in height, not
 // behind a wall) touching the player moved 300 forward; remembers it as m_Target with the side the
@@ -32,8 +27,8 @@ int cPlPush::catchCheck()
     bak = pl->pos;
     AddSpeed(pl, &sp);
     m_Target = 0;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) != 1) {
             continue;
         }
@@ -102,7 +97,7 @@ void cPlPush::pushTargetInit(u8 flag)
 {
     PlArc* arc = pG->pPlayer;
 
-    MotionSetCore(m_Target, &m_Target->pMotion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
+    MotionSetCore(m_Target, &m_Target->Motion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
     x9 = flag;
 }
 

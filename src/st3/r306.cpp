@@ -97,9 +97,9 @@ void R306Init()
             EmListData* l;
             f32 ry;
 
-            l = EM_LIST(0x2E);
+            l = &pG->Em_list[0x2E];
             r306_setEmPos(0, l, ry);
-            l = EM_LIST(0x2F);
+            l = &pG->Em_list[0x2F];
             r306_setEmPos(1, l, ry);
         }
         SndBgmTblSet(0x306, 1);

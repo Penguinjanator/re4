@@ -10,18 +10,14 @@
 #include "file.h"
 #include "db_filelist.h"
 #include "t_util.h"
+#include <string.h>
+#include <stdio.h>
 
 // Data-read area editor (Tools/t_dr.cpp): trigger areas of a room saved as a `.dra` file (header, area
 // records, file-name strings). The tool entry is gone from tools.cpp; the routine table and the
 // routines remain.
 
-extern "C" unsigned int strlen(const char* s);
-extern "C" char* strcpy(char* dst, const char* src);
-extern "C" int strcmp(const char* a, const char* b);
-extern "C" char* strrchr(const char* s, int c);
-extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 int SetToolLight(int no);  // db_light_tools.cpp
-extern "C" int sprintf(char* s, const char* fmt, ...);
 
 struct DrArea {
     u32 x0;           // 0x00
@@ -145,7 +141,7 @@ static void tDrExit()
     case 9:
         file_unlock(DR->fileB);
         Debug_free(DR);
-        TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+        pG->Debug_flg[0] &= ~0x10000000;
         SetToolLight(-1);
         TutilQuitDefault();
         TaskExit();

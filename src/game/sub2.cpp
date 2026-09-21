@@ -12,15 +12,6 @@
 #include "gx.h"
 #include "db_log.h"
 
-extern "C" {
-double atan2(double y, double x);
-void GXGetProjectionv(f32* p);
-void GXGetViewportv(f32* vp);
-void GXProject(f32 x, f32 y, f32 z, const Mtx mtx, const f32* pm, const f32* vp, f32* sx, f32* sy, f32* sz);
-}
-
-#define PI2 6.2831855f
-
 #line 30 "D:/Bio4/Prog/sub2.cpp"
 
 // 1 when the XZ point `p` lies inside the convex quad (4 corners in order).

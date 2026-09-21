@@ -125,11 +125,6 @@ struct R22cWork {
     int scoreTimer[8];   // 0x188
 };
 
-struct R22cHiScore {
-    u8 pad[0x8330];
-    s16 score[4];
-};
-
 struct R22cWorkPtr {
     R22cWork* p;
 };
@@ -1110,7 +1105,7 @@ static void shootInit()
     r22c_work.p->cnt46 = zero;
     r22c_work.p->cnt47 = zero;
     U32Set(r22c_work.p->shotHit, pG->g_hit_cnt);
-    U32Set(r22c_work.p->shotTotal, pG->g_shot_cnt);
+    r22c_work.p->shotTotal = pG->g_shot_cnt;
     r22c_work.p->effTimer = zero;
     r22c_work.p->effFlags = zero;
     LightMgr.onKind(1);
@@ -1361,7 +1356,7 @@ int countMark()
     int n = 0;
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em->isAlive() && em->id == 0x3E && em->hp > 0) {
             switch (em->type) {
             case 0:
@@ -1447,7 +1442,7 @@ void deleteAllMark()
 {
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
+    for (em = EmMgr.getActiveWork(); em; em = EmMgr.getNext(em)) {
         if (em->id == 0x3E && em->type <= 9 && em->hp > 0) {
             ((cEmMark*) em)->setDown();
         }
@@ -1492,15 +1487,13 @@ static void r22cSetWepMan()
     }
 }
 
-// High score per level (pG+0x8330, four s16).
+// High score per level (pG->shootingScore).
 void scoreRegist()
 {
     R22cWork* w = r22c_work.p;
     int lv = w->level - 1;
-    R22cHiScore* hs = (R22cHiScore*) pG;
-
-    if (w->score > hs->score[lv]) {
-        hs->score[lv] = w->score;
+    if (w->score > pG->shootingScore[lv]) {
+        pG->shootingScore[lv] = w->score;
     }
 }
 

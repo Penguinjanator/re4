@@ -33,9 +33,10 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-
-extern "C" void OSReport(const char* fmt, ...);
+#include "em.h"
+#include <dolphin/os.h>
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
+
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
 
@@ -51,33 +52,7 @@ static void em34_R1_Dm_Normal(cEm34* em);
 static void em34_R0_Die(cEm34* em);
 static void em34_R1_Die_Normal(cEm34* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-// Struct-member views of the character pointers: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
-// Routine bytes written through an int inline (player.cpp PlRoutineSet).
-static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
-{
-    em->r_no_0 = r0;
-    em->r_no_1 = r1;
-    em->r_no_2 = r2;
-    em->r_no_3 = r3;
-}
-
-// Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
-static inline int em34DeadCk(cEm* em)
-{
-    return em->dmg.m_Flag || em->dmg.m_Timer;
-}
 
 // REL entry: registers the enemy constructor.
 extern "C" void _prolog()
@@ -395,7 +370,7 @@ static void em34_R1_Wait(cEm34* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em34DeadCk(em)) {
+        if (EmDeadCk(em)) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;

@@ -83,17 +83,6 @@ static Vec r207_wallPos = {-10600.0f, 5200.0f, -10950.0f};
 static Vec r207_swordRot = {0.0f, 0.0f, 0.0f};
 static Vec r207_wallRot = {0.0f, -1.5707964f, 0.0f};
 
-// `pSUB->atari.flags &= 0xFDFF` through a pointer to the collision info: `addi r9,pSUB,0x2B4` is
-// kept (two uses); the volatile halfword store makes the following `work->sub = pSUB` reload pSUB
-// (EnemySet: `lwz r0,pSUB` after the `sth`, and pSUB@ha stays in a callee-saved register).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
-// pPL read as a struct member: the load stays below the preceding store into the work (R207Main).
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-// pSUB written as a struct member: the following flags load stays below the store (EnemySetEndProc).
-struct SubPtr { cSubChar* p; };
-#define pSUBS (((SubPtr*) &pSUB)->p)
 
 static void r207_openTerm();
 void r207_EmMoveCk();
@@ -484,7 +473,7 @@ static void r207_EnemySet()
     RsfSet(G_ROOM_ID, 11);
     SceEventStart(1);
     if (pSUB) {
-        AtariFlagsAnd(&pSUB->atari, 0xFDFF);
+        AtariOffV(&pSUB->atari, 0xFDFF);
         r207_work.p->sub = pSUB;
         pSUB = zero;
     }
@@ -529,7 +518,7 @@ static void r207_EnemySetEndProc()
     r207_work.p->em[4].em.setNoSuspend(0);
     if (r207_work.p->sub) {
         pSUBS = r207_work.p->sub;
-        AtariFlagsOr(&pSUB->atari, 0x200);
+        AtariOn(&pSUB->atari, 0x200);
     }
     SceEventEnd(0);
     do {

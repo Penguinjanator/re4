@@ -73,42 +73,9 @@ cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 // libcall for an explicit call (r213).
 extern "C" void* r31b_memset(void*, ...) asm("memset");
 
-// Struct-member view of pPL (r40f BombSet): a mem/s load that alias.c orders after the preceding
-// frame stores, so the `pPL` load of a setPos that follows two `Vec = {..}` template copies is
-// issued after the copies' stores and the copies' loads/stores interleave as in the original (a
-// plain pointer load is a fixed scalar and floats up between them).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
 
-// Position a model from three components (inline owning the Vec).
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
 
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
 
-static inline void SatSet(cSat*& d, cSat* v) { d = v; }
-
-// Rotate a model from three components (inline owning the Vec).
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
-
-// Collision flag bits set / cleared through a raw (non-struct) store at the info's address (r210).
-static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
-static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0x1a) &= mask; }
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)
@@ -234,10 +201,10 @@ void R31bInit()
         r31b_work.p->sat[i] = 0;
         r31b_work.p->eat[i] = 0;
     }
-    SatSet(r31b_work.p->eat[13], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 4));
-    SatSet(r31b_work.p->eat[14], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 3));
-    SatSet(r31b_work.p->eat[15], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 2));
-    SatSet(r31b_work.p->eat[16], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 1));
+    PSet(r31b_work.p->eat[13], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 4));
+    PSet(r31b_work.p->eat[14], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 3));
+    PSet(r31b_work.p->eat[15], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 2));
+    r31b_work.p->eat[16] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos0, &rot0, 1);
     getRoomEtcSwitch(5, &sw0, 1);
     getRoomEtcSwitch(7, &sw1, 1);
     getRoomEtcBarred(9, &barred, 1);
@@ -284,7 +251,7 @@ void R31bInit()
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) R31bExecDoorMain, (void*) 1, 1);
         obj = SmdGetObjPtr(0xC1);
         if (obj) {
-            SetPosXYZ(obj, obj->pos.x, 3000.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, 3000.0f, obj->pos.z);
             if (r31b_work.p->sat[8]) {
                 r31b_work.p->sat[8]->setCoord(&obj->pos, &obj->ang);
             }
@@ -310,7 +277,7 @@ void R31bInit()
         SceAtDataSet_exec(0x22, 0x12, 0, (TaskFunc) R31bExecEscapeMain, (void*) 0, 1);
         obj = SmdGetObjPtr(0x93);
         if (obj) {
-            SetPosXYZ(obj, obj->pos.x, 125.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, 125.0f, obj->pos.z);
             if (r31b_work.p->sat[11]) {
                 r31b_work.p->sat[11]->setCoord(&obj->pos, &obj->ang);
             }
@@ -353,7 +320,7 @@ void R31bInit()
     }
     obj = SmdGetObjPtr(0xEA);
     if (obj) {
-        SetPosXYZ(obj, obj->pos.x, 7313.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, 7313.0f, obj->pos.z);
         if (r31b_work.p->sat[12]) {
             r31b_work.p->sat[12]->setCoord(&obj->pos, &obj->ang);
         }
@@ -389,7 +356,7 @@ void R31bInit()
             }
             side = 0;
         }
-        SetPosXYZ(obj, r31b_gondolaPos[0][side].x, r31b_gondolaPos[0][side].y, r31b_gondolaPos[0][side].z);
+        obj->setPos(r31b_gondolaPos[0][side].x, r31b_gondolaPos[0][side].y, r31b_gondolaPos[0][side].z);
         if (r31b_work.p->eat[16]) {
             r31b_work.p->eat[16]->setCoord(&obj->pos, &obj->ang);
         }
@@ -605,7 +572,7 @@ void R31bExecSwitchMainSub(int no, int flagNo, int count, int atNo, int cut)
 
                 r31b_work.p->snd = SndCall(6, 4, &obj->pos, 0, 0, 0);
                 for (i = 0; i < 30; i++) {
-                    SetPosXYZ(obj, obj->pos.x, (f32) i * 2875.0f / 30.0f + 125.0f, obj->pos.z);
+                    obj->setPos(obj->pos.x, (f32) i * 2875.0f / 30.0f + 125.0f, obj->pos.z);
                     SceSleep(1);
                 }
                 SndCall(6, 5, &obj->pos, 0, 0, 0);
@@ -670,7 +637,7 @@ void R31bExecSwitchEndSub(int no, int room, int flagNo, int count, int emMode, i
         cObj* obj = SmdGetObjPtr(0x93);
 
         if (obj) {
-            SetPosXYZ(obj, obj->pos.x, 3000.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, 3000.0f, obj->pos.z);
             if (r31b_work.p->sat[11]) {
                 r31b_work.p->sat[11]->setCoord(&obj->pos, &obj->ang);
             }
@@ -754,7 +721,7 @@ void R31bExecShutterOpenMainSub(int no, int flagNo, u32 objId, int satNo, u32 la
 
             r31b_work.p->snd = SndCall(6, 4, &obj->pos, 0, 0, 0);
             for (i = 0; i < 30; i++) {
-                SetPosXYZ(obj, obj->pos.x, (f32) i * 2875.0f / 30.0f + 125.0f, obj->pos.z);
+                obj->setPos(obj->pos.x, (f32) i * 2875.0f / 30.0f + 125.0f, obj->pos.z);
                 if (r31b_work.p->sat[satNo]) {
                     r31b_work.p->sat[satNo]->setCoord(&obj->pos, &obj->ang);
                 }
@@ -808,7 +775,7 @@ void R31bExecShutterOpenEndSub(int no, int atNo, u32 objId, int satNo)
     cObj* obj = SmdGetObjPtr(objId);
 
     if (obj) {
-        SetPosXYZ(obj, obj->pos.x, 3000.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, 3000.0f, obj->pos.z);
         if (r31b_work.p->sat[satNo]) {
             r31b_work.p->sat[satNo]->setCoord(&obj->pos, &obj->ang);
         }
@@ -926,8 +893,8 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
                 for (i = 0; i < 60; i++) {
                     f32 z = (f32) i * -4000.0f / 60.0f + 1277.0f;
 
-                    SetPosXYZ(obj0, obj0->pos.x, obj0->pos.y, z);
-                    SetPosXYZ(obj1, obj1->pos.x, obj1->pos.y, z);
+                    obj0->setPos(obj0->pos.x, obj0->pos.y, z);
+                    obj1->setPos(obj1->pos.x, obj1->pos.y, z);
                     SceSleep(1);
                 }
             }
@@ -945,7 +912,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
                 if (smd) {
                     SndCall(6, 0x12, &smd->pos, 0, 0, 0);
                     smd->setNoSuspend(1);
-                    SetPosXYZ(smd, 0.0f, 0.0f, 0.0f);
+                    smd->setPos(0.0f, 0.0f, 0.0f);
                     {
                         Vec ang;
 
@@ -1025,8 +992,8 @@ void R31bExecDoorEndSub(int no, int emMode, int light, u32 objId0, u32 objId1, i
     cObj* obj1 = SmdGetObjPtr(objId1);
 
     if (obj0 && obj1) {
-        SetPosXYZ(obj0, obj0->pos.x, obj0->pos.y, -2723.0f);
-        SetPosXYZ(obj1, obj1->pos.x, obj1->pos.y, -2723.0f);
+        obj0->setPos(obj0->pos.x, obj0->pos.y, -2723.0f);
+        obj1->setPos(obj1->pos.x, obj1->pos.y, -2723.0f);
         if (r31b_work.p->sat[satNo]) {
             r31b_work.p->sat[satNo]->setCoord(&obj0->pos, &obj0->ang);
         }
@@ -1116,7 +1083,7 @@ void R31bExecFallRoom(int no, f32 spd)
             return;
         }
         do {
-            SetPosXYZ(o, o->pos.x, o->pos.y - spd, o->pos.z);
+            o->setPos(o->pos.x, o->pos.y - spd, o->pos.z);
             o = SmdGetGroupNext(o);
         } while (o);
     }
@@ -1129,7 +1096,7 @@ void R31bExecFallRoom(int no, f32 spd)
             return;
         }
         do {
-            SetPosXYZ(o, o->pos.x, o->pos.y - spd, o->pos.z);
+            o->setPos(o->pos.x, o->pos.y - spd, o->pos.z);
             o = SmdGetGroupNext(o);
         } while (o);
     }
@@ -1171,7 +1138,7 @@ void R31bExecFallEndSub(int no, u32 objId, int satNo, int flagNo)
         DiedemoExec(0, 0);
     } else {
         pPL->setPos(&r31b_fallPlPos[no]);
-        SetAngXYZ(pPL, 0.0f, 1.5f, 0.0f);
+        pPL->setAng(0.0f, 1.5f, 0.0f);
         CamCtrl.Comeback(0);
         SceEventEnd(0);
         SceExit();
@@ -1267,20 +1234,20 @@ static void R31bExecEscapeMain()
         if (em) {
             em->setNext(2);
             em->setNoSuspend(1);
-            SetPosXYZ(em, 0.0f, 0.0f, 0.0f);
-            SetAngXYZ(em, 0.0f, 0.0f, 0.0f);
+            em->setPos(0.0f, 0.0f, 0.0f);
+            em->setAng(0.0f, 0.0f, 0.0f);
         }
         smd = r31b_work.p->smd;
         if (smd) {
             smd->setNoSuspend(1);
-            SetPosXYZ(smd, 0.0f, 0.0f, 0.0f);
-            SetAngXYZ(smd, 0.0f, 0.0f, 0.0f);
+            smd->setPos(0.0f, 0.0f, 0.0f);
+            smd->setAng(0.0f, 0.0f, 0.0f);
             MotionSetCore(smd, &smd->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
         }
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
-        SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
-        SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
+        pPL->setPos(0.0f, 0.0f, 0.0f);
+        pPL->setAng(0.0f, 0.0f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 0x201, 0);
         EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
         SmdSetTrans(0x4D, 0);
@@ -1338,8 +1305,8 @@ static void R31bExecEscapeEnd()
     pPL->motionSet(pPL->m_MotTbl[0], pPL->m_MotTbl[1], pPL->m_MotTbl[0x5F], pPL->m_MotTbl[0x60], 0, 0);
     MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
-    SetPosXYZ(pPL, 37120.0f, 4265.0f, -1500.0f);
-    SetAngXYZ(pPL, 0.0f, 0.72f, 0.0f);
+    pPL->setPos(37120.0f, 4265.0f, -1500.0f);
+    pPL->setAng(0.0f, 0.72f, 0.0f);
     em = r31b_work.p->em.getPtr();
     if (em) {
         em->be_flag &= ~2;
@@ -1379,9 +1346,9 @@ static void R31bExecRoom01U3Main()
         r31b_work.p->em.setNoSuspend(1);
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
-        SetAngXYZ(pPL, 0.0f, 3.1415927f, 0.0f);
+        pPL->setAng(0.0f, 3.1415927f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 0x201, 0);
-        SetPosXYZ(pPL, -2357.5f, pPL->pos.y, -36.0f);
+        pPL->setPos(-2357.5f, pPL->pos.y, -36.0f);
         // Declared after the player set-up: its slot is the freed SetPosXYZ/SetAngXYZ temp (8(r1)); the
         // `= {0,0,0}` memset libcall puts the address in a pseudo that the setPos below reuses (r27).
         Vec zero = {0, 0, 0};
@@ -1415,7 +1382,7 @@ static void R31bExecRoom01U3End()
     SceAtSetEnable(0x18, 1);
     obj = SmdGetObjPtr(0xC1);
     if (obj) {
-        SetPosXYZ(obj, r31b_work.p->savePos.x, 125.0f, r31b_work.p->savePos.z);
+        obj->setPos(r31b_work.p->savePos.x, 125.0f, r31b_work.p->savePos.z);
         if (r31b_work.p->sat[8]) {
             r31b_work.p->sat[8]->setCoord(&obj->pos, &obj->ang);
         }
@@ -1430,8 +1397,8 @@ static void R31bExecRoom01U3End()
         em->setNext(6);
     }
     pPL->setNoSuspend(0);
-    SetPosXYZ(pPL, -1450.0f, 0.0f, 113.0f);
-    SetAngXYZ(pPL, 0.0f, -0.48f, 0.0f);
+    pPL->setPos(-1450.0f, 0.0f, 113.0f);
+    pPL->setAng(0.0f, -0.48f, 0.0f);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceExit();
@@ -1449,8 +1416,8 @@ static void R31bExecRoom02U3Main()
         r31b_work.p->em.setNoSuspend(1);
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
-        SetPosXYZ(pPL, 12696.0f, 0.0f, 7280.0f);
-        SetAngXYZ(pPL, 0.0f, -2.4f, 0.0f);
+        pPL->setPos(12696.0f, 0.0f, 7280.0f);
+        pPL->setAng(0.0f, -2.4f, 0.0f);
         SceSetEventCancel(1, (TaskFunc) R31bExecRoom02U3End, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -1503,8 +1470,8 @@ static void R31bExecRoom03U3Main()
         U32Set(r31b_work.p->str, SndStrPlayBlock(1, 0x35, 0.0f));
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
-        SetPosXYZ(pPL, 0.0f, 0.0f, 0.0f);
-        SetAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
+        pPL->setPos(0.0f, 0.0f, 0.0f);
+        pPL->setAng(0.0f, 0.0f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 0x201, 0);
         em = (cEm32*) r31b_work.p->em.getPtr();
         if (em) {
@@ -1530,10 +1497,10 @@ static void R31bExecRoom03U3Main()
         if (obj) {
             r31b_work.p->snd = SndCall(6, 4, &obj->pos, 0, 0, 0);
             for (int i = 0; i < 10; i++) {
-                SetPosXYZ(obj, obj->pos.x, (f32) i * -3000.0f / 10.0f + 7313.0f, obj->pos.z);
+                obj->setPos(obj->pos.x, (f32) i * -3000.0f / 10.0f + 7313.0f, obj->pos.z);
                 SceSleep(1);
             }
-            SetPosXYZ(obj, obj->pos.x, 4313.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, 4313.0f, obj->pos.z);
             SndCall(6, 5, &obj->pos, 0, 0, 0);
             r31b_work.p->snd = 0;
         }
@@ -1556,7 +1523,7 @@ static void R31bExecRoom03U3End()
     EffectDelete(0x2001, 8);
     obj = SmdGetObjPtr(0xEA);
     if (obj) {
-        SetPosXYZ(obj, obj->pos.x, 4313.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, 4313.0f, obj->pos.z);
         if (r31b_work.p->sat[12]) {
             r31b_work.p->sat[12]->setCoord(&obj->pos, &obj->ang);
         }
@@ -1571,8 +1538,8 @@ static void R31bExecRoom03U3End()
     MotionClear(pPL, 0);
     MotionMove(pPL, 0);
     pPL->setNoSuspend(0);
-    SetPosXYZ(pPL, 54117.0f, 4266.0f, 13190.0f);
-    SetAngXYZ(pPL, 0.0f, -2.147f, 0.0f);
+    pPL->setPos(54117.0f, 4266.0f, 13190.0f);
+    pPL->setAng(0.0f, -2.147f, 0.0f);
     em = (cEm32*) r31b_work.p->em.getPtr();
     if (em) {
         em->setNext(5);
@@ -1608,10 +1575,10 @@ static void R31bExecRoom03U3DieMain()
 
             r31b_work.p->snd = SndCall(6, 4, &obj->pos, 0, 0, 0);
             for (i = 0; i < 60; i++) {
-                SetPosXYZ(obj, obj->pos.x, (f32) i * 3000.0f / 60.0f + 4313.0f, obj->pos.z);
+                obj->setPos(obj->pos.x, (f32) i * 3000.0f / 60.0f + 4313.0f, obj->pos.z);
                 SceSleep(1);
             }
-            SetPosXYZ(obj, obj->pos.x, 7313.0f, obj->pos.z);
+            obj->setPos(obj->pos.x, 7313.0f, obj->pos.z);
             SndCall(6, 5, &obj->pos, 0, 0, 0);
             r31b_work.p->snd = 0;
         }
@@ -1630,7 +1597,7 @@ void R31bExecRoom03U3DieEnd()
     cEm* door;
 
     if (obj) {
-        SetPosXYZ(obj, obj->pos.x, 7313.0f, obj->pos.z);
+        obj->setPos(obj->pos.x, 7313.0f, obj->pos.z);
         if (r31b_work.p->sat[12]) {
             r31b_work.p->sat[12]->setCoord(&obj->pos, &obj->ang);
         }
@@ -1649,8 +1616,8 @@ void R31bExecRoom03U3DieEnd()
     SceAtSetEnable(0x24, 0);
     BitOn(pG->Key_flg[1], 0x02000000);
     BitOn(pG->Key_flg[1], 0x01000000);
-    SetPosXYZ(pPL, 55080.0f, 4266.0f, 13710.0f);
-    SetAngXYZ(pPL, 0.0f, -2.718f, 0.0f);
+    pPL->setPos(55080.0f, 4266.0f, 13710.0f);
+    pPL->setAng(0.0f, -2.718f, 0.0f);
     pPL->matUpdate();
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
@@ -1694,9 +1661,9 @@ static void R31bExecGondolaMain(int dir)
     obj->setPos(&r31b_gondolaPos[0][dir]);
     pPL->setNoSuspend(1);
     pPL->beginEvent(0);
-    SetPosXYZ(obj, r31b_gondolaPos[0][dir].x, r31b_gondolaPos[0][dir].y, r31b_gondolaPos[0][dir].z);
-    SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
-    SetAngXYZ(pPL, pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
+    obj->setPos(r31b_gondolaPos[0][dir].x, r31b_gondolaPos[0][dir].y, r31b_gondolaPos[0][dir].z);
+    pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
+    pPL->setAng(pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
     spd = 0.0f;
     if (dir == 0) {
         CamCtrl.CutCall(0x1F);
@@ -1710,10 +1677,10 @@ static void R31bExecGondolaMain(int dir)
         if (rate < 0.1f) {
             rate = 0.1f;
         }
-        SetAngXYZ(obj, obj->ang.x, obj->ang.y, fRand1_1() * rate * 3.1415927f / 180.0f);
+        obj->setAng(obj->ang.x, obj->ang.y, fRand1_1() * rate * 3.1415927f / 180.0f);
         SceSleep(1);
     }
-    SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+    obj->setAng(0.0f, 0.0f, 0.0f);
     frame = 0;
     fade = &Fade[2];
     for (;;) {
@@ -1722,11 +1689,11 @@ static void R31bExecGondolaMain(int dir)
             spd = maxSpd;
         }
         if (dir == 0) {
-            SetPosXYZ(obj, obj->pos.x - spd, obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
+            obj->setPos(obj->pos.x - spd, obj->pos.y, obj->pos.z);
+            pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
         } else {
-            SetPosXYZ(obj, obj->pos.x + spd, obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
+            obj->setPos(obj->pos.x + spd, obj->pos.y, obj->pos.z);
+            pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
         }
         if (faded == 0) {
             if (frame == 90) {
@@ -1748,9 +1715,9 @@ static void R31bExecGondolaMain(int dir)
     if (dir != 0) {
         move = 0.0f - move;
     }
-    SetPosXYZ(obj, r31b_gondolaPos[1][dir].x + move, r31b_gondolaPos[1][dir].y, r31b_gondolaPos[1][dir].z);
+    obj->setPos(r31b_gondolaPos[1][dir].x + move, r31b_gondolaPos[1][dir].y, r31b_gondolaPos[1][dir].z);
     spd = maxSpd;
-    SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
+    pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
     CamCtrl.Comeback(0);
     FadeSetW(0x80000002, 30, 0, 0);
     while (1) {
@@ -1761,8 +1728,8 @@ static void R31bExecGondolaMain(int dir)
             }
         }
         if (dir == 0) {
-            SetPosXYZ(obj, obj->pos.x - spd, obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
+            obj->setPos(obj->pos.x - spd, obj->pos.y, obj->pos.z);
+            pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
             if (obj->pos.x <= r31b_gondolaPos[1][dir].x) {
                 break;
             }
@@ -1771,8 +1738,8 @@ static void R31bExecGondolaMain(int dir)
             q.x = -spd;
             pG->quake_ofs = q;
         } else {
-            SetPosXYZ(obj, obj->pos.x + spd, obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
+            obj->setPos(obj->pos.x + spd, obj->pos.y, obj->pos.z);
+            pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
             if (obj->pos.x >= r31b_gondolaPos[1][dir].x) {
                 break;
             }
@@ -1791,10 +1758,10 @@ static void R31bExecGondolaMain(int dir)
         if (rate < 0.1f) {
             rate = 0.1f;
         }
-        SetAngXYZ(obj, obj->ang.x, obj->ang.y, fRand1_1() * rate * 3.1415927f / 180.0f);
+        obj->setAng(obj->ang.x, obj->ang.y, fRand1_1() * rate * 3.1415927f / 180.0f);
         SceSleep(1);
     }
-    SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+    obj->setAng(0.0f, 0.0f, 0.0f);
     SceSetEventCancel(0, 0, 0, -1, 1);
     R31bExecGondolaEnd(dir);
 }
@@ -1807,10 +1774,10 @@ static void R31bExecGondolaEnd(int dir)
 
     FadeKill(2);
     if (obj) {
-        SetPosXYZ(obj, r31b_gondolaPos[1][dir].x, r31b_gondolaPos[1][dir].y, r31b_gondolaPos[1][dir].z);
-        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
-        SetPosXYZ(pPL, obj->pos.x, pPL->pos.y, obj->pos.z);
-        SetAngXYZ(pPL, pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
+        obj->setPos(r31b_gondolaPos[1][dir].x, r31b_gondolaPos[1][dir].y, r31b_gondolaPos[1][dir].z);
+        obj->setAng(0.0f, 0.0f, 0.0f);
+        pPL->setPos(obj->pos.x, pPL->pos.y, obj->pos.z);
+        pPL->setAng(pPL->ang.x, r31b_gondolaAng[dir], pPL->ang.z);
         if (r31b_work.p->eat[16]) {
             r31b_work.p->eat[16]->setCoord(&obj->pos, &obj->ang);
         }

@@ -12,12 +12,12 @@
 #include "eprintf.h"
 #include "dbmodule.h"
 #include "math_sub.h"
+#include "at_mod.h"
+#include "motion.h"
+#include "em_sub.h"
+#include "pl_npc.h"
 
-extern cModel* pSUB;
 
-int MotionSetCore(cModel* m, void* work, void* data, void* a, int b, int c, int d);  // game/motion.cpp
-extern "C" void EmYarareDisp(cModel* m);                                            // game/em_sub.cpp
-extern "C" void DrawOba(cModel* m);                                                 // game/at_mod.cpp
 
 int scr_hit_check = 0;
 static int sat_make_test = 0;
@@ -242,8 +242,8 @@ void cPlayer::emSearch()
     f32 min = 100000.0f;
     u32 i;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+    for (i = 0; i < EmMgr.getArrayNum(); i++) {
+        cEm* em = EmMgr.fastAt(i);
         if ((em->be_flag & 0x201) == 1 && em->hp > 0) {
             f32 d = GetDistance3(&pos, &em->pos);
             if (d > min) {
@@ -274,7 +274,7 @@ void PlWepMotSet(int no)
         mot = pl->m_MotTbl[0];
         break;
     }
-    MotionSetCore(pl, &pl->pMotion, mot, 0, 3, 5, 0);
+    MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
 }
 
 // Empty cheat table.

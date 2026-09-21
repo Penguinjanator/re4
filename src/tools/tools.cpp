@@ -1,4 +1,5 @@
 #include "types.h"
+#include <dolphin/os.h>
 
 // Debug tool module entry (D:/Bio4/Prog/tools.cpp; the same object ends every t_* / Tools REL): the SN REL
 // entry points _prolog (ctors, then ToolsTask), _epilog (dtors) and _unresolved (HALT), and ToolsTask,
@@ -6,7 +7,6 @@
 // DOL or in other tool modules). The game headers are included after the functions: their inline strings
 // follow the entry points' strings in the original .rodata.
 
-extern "C" void OSReport(const char* fmt, ...);
 
 #define HALT()                                                    \
     {                                                             \
