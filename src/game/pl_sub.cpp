@@ -128,7 +128,7 @@ void PlGachaMove()
 {
     cPlayer* pl = pPL;
 
-    ActBtn.set(ACT_RESIST, 5, 0, 0, 2, DISP_GACHA, ACT_FUNC_NORMAL, 0);
+    ActBtn.set(ACT_RESIST, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_GACHA, ACT_FUNC_NORMAL, 0);
     if (Key.trg & 0xF) {
         pl->m_GachaCtr++;
     }

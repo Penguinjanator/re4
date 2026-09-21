@@ -58,20 +58,20 @@ void cActionButton::move()
         if ((s32) tag >= 0) {
             continue;
         }
-        if (w->flags & 0x20) {
+        if (w->flags & ACTCTR_NO_EXEC) {
             break;
         }
         if (checkPLStatus(w) == 0) {
             continue;
         }
         m_active_flag = 1;
-        if (!DpfFlagChk(pG, DPF_ACTBTN) && !(w->flags & 8)) {
+        if (!DpfFlagChk(pG, DPF_ACTBTN) && !(w->flags & ACTCTR_NO_DISP)) {
             disp(w);
         }
         if (checkButton(w) == 1 && w->func != 0) {
             int flag = 1;
 
-            if (w->flags & 4) {
+            if (w->flags & ACTCTR_NO_SUSPEND) {
                 flag = 2;
             }
             switch (w->type) {
@@ -113,7 +113,7 @@ void cActionButton::disp(ActBtnWork* w)
     // register r6 in the target; here the third fpmem-address scratch copy (`mr r6,r10`) takes r6 first.
     register int y asm("r6");
 
-    if (w->flags & 0x80) {
+    if (w->flags & ACTCTR_DOOR_COLOR) {
         col = 7;
     }
     cMes.setLayout(1, LAYOUT_ACT_BTN);
@@ -173,9 +173,9 @@ int cActionButton::checkButton(ActBtnWork* w)
     case DISP_A_RAPID:
     case DISP_A_ACCENT:
         flags = w->flags;
-        if (!(flags & 0x40)) {
-            if (!(flags & 2)) {
-                if (flags & 0x10) {
+        if (!(flags & ACTCTR_EXACT_KEY)) {
+            if (!(flags & ACTCTR_ENFORCE_EXEC)) {
+                if (flags & ACTCTR_NO_TRG) {
                     if (on & 0x80000) {
                         return 1;
                     }
@@ -186,7 +186,7 @@ int cActionButton::checkButton(ActBtnWork* w)
                 }
                 break;
             }
-            if (flags & 0x10) {
+            if (flags & ACTCTR_NO_TRG) {
                 if (on & 0x80000) {
                     return 1;
                 }
@@ -197,8 +197,8 @@ int cActionButton::checkButton(ActBtnWork* w)
             }
             break;
         }
-        if (!(flags & 2)) {
-            if (flags & 0x10) {
+        if (!(flags & ACTCTR_ENFORCE_EXEC)) {
+            if (flags & ACTCTR_NO_TRG) {
                 if (!(on & 0x80000)) {
                     break;
                 }
@@ -217,7 +217,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             }
             return 1;
         }
-        if (flags & 0x10) {
+        if (flags & ACTCTR_NO_TRG) {
             if (!(on & 0x80000)) {
                 break;
             }
@@ -238,7 +238,7 @@ int cActionButton::checkButton(ActBtnWork* w)
     case DISP_L_R:
         if ((trg & 0xC00000) == 0xC00000 || ((on & 0x400000) && (trg & 0x800000)) ||
             ((trg & 0x400000) && (on & 0x800000))) {
-            if (!(w->flags & 0x40)) {
+            if (!(w->flags & ACTCTR_EXACT_KEY)) {
                 return 1;
             }
             if ((on & 0xC0000) == 0xC0000) {
@@ -250,7 +250,7 @@ int cActionButton::checkButton(ActBtnWork* w)
     case DISP_A_B:
         if ((trg & 0xC0000) == 0xC0000 || ((on & 0x80000) && (trg & 0x40000)) ||
             ((trg & 0x80000) && (on & 0x40000))) {
-            if (!(w->flags & 0x40)) {
+            if (!(w->flags & ACTCTR_EXACT_KEY)) {
                 return 1;
             }
             if ((on & 0xC00000) == 0xC00000) {
@@ -263,7 +263,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x40000)) {
             break;
         }
-        if (!(w->flags & 0x40)) {
+        if (!(w->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -275,7 +275,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x20000)) {
             break;
         }
-        if (!(w->flags & 0x40)) {
+        if (!(w->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -287,7 +287,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x10000)) {
             break;
         }
-        if (!(w->flags & 0x40)) {
+        if (!(w->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -311,14 +311,14 @@ int cActionButton::checkButton(ActBtnWork* w)
 int cActionButton::checkPLStatus(ActBtnWork* w)
 {
     if (pPL->hp > 0) {
-        if ((w->flags & 2) || pPL->actCheck() != 0) {
+        if ((w->flags & ACTCTR_ENFORCE_EXEC) || pPL->actCheck() != 0) {
             switch (w->btn) {
             case DISP_A_NORMAL:
             case DISP_A_RAPID:
             case DISP_A_B:
             case DISP_A_ACCENT:
                 if (PlGetStatus() & 0x10) {
-                    if (w->flags & 1) {
+                    if (w->flags & ACTCTR_WEP_SET_IGNORE) {
                         StaFlagOn(pG, STA_ACT_DONT_FIRE);
                         return 1;
                     }
@@ -371,7 +371,7 @@ void cActionButton::set(int kind, int slot, void* func, void* arg, int flags, in
     case DISP_A_RAPID:
     case DISP_A_B:
     case DISP_A_ACCENT:
-        if (w->flags & 1) {
+        if (w->flags & ACTCTR_WEP_SET_IGNORE) {
             StaFlagOn(pG, STA_ACT_DONT_FIRE);
         }
         break;

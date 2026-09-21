@@ -326,7 +326,7 @@ static void r225_operateCrank()
                     spd = 159;
                 }
             }
-            ActBtn.set(ACT_ROTATE, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_ROTATE, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             SceSleep(1);
         } else {
             break;

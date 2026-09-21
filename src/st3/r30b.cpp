@@ -589,7 +589,7 @@ static void R30bCrane()
             c->pos.z = crane->pos.z;
             switch (c->step) {
             case 0:
-                ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_STICK_A, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_STICK_A, ACT_FUNC_NORMAL, 0);
                 SpfFlagOff(pG, SPF_ACTBTN);
                 if (Key.trg & 0x00040000) {
                     if (r30b_work.p->se) {

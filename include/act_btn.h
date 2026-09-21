@@ -90,6 +90,20 @@ enum ACTION_TYPE {
     ACTION_TYPE_MAX = 81
 };
 
+// Prompt control bits (PS2 ACTCTR_FLAG): set `ctrl_flag` / ActBtnWork::flags.
+enum ACTCTR_FLAG {
+    ACTCTR_NONE = 0,
+    ACTCTR_WEP_SET_IGNORE = 1,
+    ACTCTR_ENFORCE_EXEC = 2,
+    ACTCTR_NO_SUSPEND = 4,
+    ACTCTR_NO_DISP = 8,
+    ACTCTR_NO_TRG = 16,
+    ACTCTR_NO_EXEC = 32,
+    ACTCTR_EXACT_KEY = 64,
+    ACTCTR_DOOR_COLOR = 128,
+    ACTCTR_HOOKSHOT_COLOR = 256
+};
+
 // Button shown by the prompt (PS2 DISP_FLAG): set `button_type` / ActBtnWork::btn (checkButton).
 enum DISP_FLAG {
     DISP_OFF = 0,
@@ -128,8 +142,9 @@ struct ActBtnWork {
     u8 type;       // 0x0E  ACTION_FUNC_TYPE: 0 call func, 1 SceExec(0x12, func...), 2 SceAt area action
     u8 btn;        // 0x0F  DISP_FLAG: button kind (checkButton)
     int d;         // 0x10  second argument
-    u32 flags;     // 0x14  bit0 sets pG->flags_500C 0x200000, bit1 no actCheck / trigger, bit2 exec flag 2,
-                   //       bit3 no prompt, bit4 hold, bit5 skip, bit6 exclusive, bit7 message colour 7
+    u32 flags;     // 0x14  ACTCTR_FLAG bits: WEP_SET_IGNORE sets pG->flags_500C 0x200000, ENFORCE_EXEC no actCheck /
+                   //       trigger, NO_SUSPEND exec flag 2, NO_DISP no prompt, NO_TRG hold, NO_EXEC skip,
+                   //       EXACT_KEY exclusive, DOOR_COLOR message colour 7
 };
 
 // Action button prompt manager (game/act_btn.cpp `ActBtn`, 0x104 bytes).

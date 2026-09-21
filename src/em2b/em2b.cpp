@@ -1831,7 +1831,7 @@ static void em2b_R1_DashAtk(cEm2b* em)
         break;
     }
     if (em2bPlDashEscapeCk(em)) {
-        ActBtn.set(ACT_GUARD, 0xB, (void*) em2bDashEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_GUARD, 0xB, (void*) em2bDashEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
     }
 }
 
@@ -2212,7 +2212,7 @@ static void em2b_R1_TreeAtk(cEm2b* em)
             em->flag |= 4;
         }
         if (em->seFlags28B & 4) {
-            ActBtn.set(ACT_STOOP, 0xB, (void*) em2bEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_STOOP, 0xB, (void*) em2bEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
         }
         if (w->Timer) {
             w->Timer--;
@@ -3129,7 +3129,7 @@ static void em2b_R1_Dm_Face(cEm2b* em)
         if (end) {
             em->r_no_2++;
         } else if (em->plDist2 < 25000000.0f) {
-            ActBtn.set(ACT_CLIMB, 0xB, (void*) em2bSetActAtkParasite, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, end);
+            ActBtn.set(ACT_CLIMB, 0xB, (void*) em2bSetActAtkParasite, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, end);
         }
         break;
     }
@@ -3218,9 +3218,9 @@ static inline void em2bParasiteDieSet(cEm2b* em)
 static inline void em2bParasiteBtnSet(Em2bWork* w)
 {
     if (w->Button_mode) {
-        ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, 2, DISP_B_RAPID, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_B_RAPID, ACT_FUNC_NORMAL, 0);
     } else {
-        ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
     }
 }
 
@@ -3276,12 +3276,12 @@ static void em2b_R1_Dm_Parasite(cEm2b* em)
             if (Key.trg & 0x40000) {
                 w->mode++;
             }
-            ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, 2, DISP_B_RAPID, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_B_RAPID, ACT_FUNC_NORMAL, 0);
         } else {
             if (Key.trg & 0x80000) {
                 w->mode++;
             }
-            ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_QUICK_STICK, 0xB, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         }
         if (MotionMove(em, 0)) {
             em->atari.throughOff();
@@ -3818,7 +3818,7 @@ static void em2b_R1_Die_Normal(cEm2b* em)
                 PSMTXInverse(em->mat, inv);
                 PSMTXMultVec(inv, &pPL->pos, &v);
                 if (v.x > -3000.0f && v.x < 3000.0f && v.y > -2000.0f && v.y < 2000.0f && v.z > 0.0f && v.z < 12000.0f) {
-                    ActBtn.set(ACT_GUARD, 0xB, (void*) em2bDashEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_GUARD, 0xB, (void*) em2bDashEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 }
             }
         }

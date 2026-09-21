@@ -410,7 +410,7 @@ void em18ActEvtSetTrade(cEm18* em)
             return;
         }
     }
-    ActBtn.set(ACT_TALK, 2, (void*) em18TradeAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+    ActBtn.set(ACT_TALK, 2, (void*) em18TradeAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button callback: the first time starts the Trade routine (Be_flg bit5) with the player's

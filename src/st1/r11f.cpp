@@ -337,7 +337,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
             e->CancelSet();
         } else {
             DpfFlagOff(pG, DPF_MESSAGE);
-            ActBtn.set(ACT_GUARD, 5, (void*) r11f_EventS00_Act, 0, 0x46, r11f_actNo, ACT_FUNC_SCE, 0);
+            ActBtn.set(ACT_GUARD, 5, (void*) r11f_EventS00_Act, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_NO_SUSPEND | ACTCTR_EXACT_KEY, r11f_actNo, ACT_FUNC_SCE, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
         }
     }

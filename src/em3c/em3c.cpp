@@ -775,10 +775,10 @@ static void em3c_R1_AtkWait(cEm3c* em)
     if (w->Act_ck == 0) {
         switch (w->actMode) {
         case 1:
-            ActBtn.set(ACT_GUARD, 5, (void*) plemEscapeAction, em, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_GUARD, 5, (void*) plemEscapeAction, em, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_NORMAL, 0);
             break;
         case 2:
-            ActBtn.set(ACT_GUARD, 5, (void*) plemEscapeAction, em, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_GUARD, 5, (void*) plemEscapeAction, em, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_A_B, ACT_FUNC_NORMAL, 0);
             break;
         }
     }

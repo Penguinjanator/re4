@@ -155,6 +155,20 @@ extern u32 mercSysGetFlag[4];
 extern u32 extFlagTbl[4];
 extern u32 RankTbl[4][6];
 
+// Score kind (PS2 MERCE_TYPE): MercSysSetPoint , the row of addScoreTbl / defaultScoreTbl.
+enum MERCE_TYPE {
+    MT_MURABITO_MAN = 0,
+    MT_MURABITO_WOMAN = 1,
+    MT_CHAIN_SAW = 2,
+    MT_JYAKYOTO_BLACK = 3,
+    MT_JYAKYOTO_RED = 4,
+    MT_TUME = 5,
+    MT_3ST_GANADO1 = 6,
+    MT_3ST_GANADO2 = 7,
+    MT_GADORING = 8,
+    MT_ITEM = 9
+};
+
 extern "C" {
 int MercSysInitStage();
 int MercSysInitRoom(MercInit* pMInit);
@@ -165,7 +179,7 @@ int MercSysResultInit(MercSysWork* wk);
 int MercSysResultMove(MercSysWork* wk);
 void MercSysGetSaveWork(MercSaveWork* save);
 void MercSysSetSaveWork(MercSaveWork* save);
-int MercSysSetPoint(int kind, int pt);
+int MercSysSetPoint(int kind, int pt);   // kind: MERCE_TYPE
 int MercSysSetAddTime(int sec);
 int MercSysSetBonusTime(int frames);
 // id unit helpers (IDSystem `id`, unit `no` of table `type`)

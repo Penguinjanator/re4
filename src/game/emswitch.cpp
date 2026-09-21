@@ -453,11 +453,11 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
         }
     }
     if (w->state == 2) {
-        ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActOpen, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActOpen, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (w->state == 1) {
         if (w->Mode != 1) {
-            ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActClose, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActClose, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
     }
 }

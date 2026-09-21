@@ -270,7 +270,7 @@ static void r113_EventRideShoulder()
 static void r113_checkAshleyPos()
 {
     if (CheckAshleyActive() == 1) {
-        ActBtn.set(ACT_RIDE_SHOULDER, 5, (void*) r113_EventRideShoulder, 0, 0, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
+        ActBtn.set(ACT_RIDE_SHOULDER, 5, (void*) r113_EventRideShoulder, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
     }
 }
 

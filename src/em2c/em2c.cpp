@@ -2108,9 +2108,9 @@ static void em2c_R1_JumpAtk(cEm2c* em)
             if (hit == 0) {
                 w->timer8--;
                 if (fabsf(Muku(&pPLS->pos, &em->pos, pPLS->ang.y, 3.14159274f)) < 1.04719758f) {
-                    ActBtn.set(ACT_GUARD, 0xB, (void*) em2cEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, hit);
+                    ActBtn.set(ACT_GUARD, 0xB, (void*) em2cEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
                 } else {
-                    ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, hit);
+                    ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
                 }
             }
         }
@@ -2167,7 +2167,7 @@ static void em2c_R1_BackKnuckle(cEm2c* em)
             hit = w->atkHit;
             if (hit == 0) {
                 w->timer8--;
-                ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, hit);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
             }
         }
         if (MotionMove(em, 0)) {
@@ -2214,7 +2214,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
             hit = w->mode;
             if (hit == 0) {
                 w->timer8--;
-                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cEscapeAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, hit);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
             }
         }
         if (MotionMove(em, 0)) {
@@ -2743,9 +2743,9 @@ static void em2c_R1_HideAtk(cEm2c* em)
             if (w->actDone == 0) {
                 if (em->r_no_3 == 0) {
                     if (w->mode) {
-                        ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction2, em, 2, DISP_L_R, ACT_FUNC_NORMAL, em->r_no_3);
+                        ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction2, em, ACTCTR_ENFORCE_EXEC, DISP_L_R, ACT_FUNC_NORMAL, em->r_no_3);
                     } else {
-                        ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, w->mode);
+                        ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_ENFORCE_EXEC, DISP_A_B, ACT_FUNC_NORMAL, w->mode);
                     }
                 }
             } else {
@@ -2775,7 +2775,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         if (w->timer) {
             w->timer--;
             if (w->actDone == 0 && em->r_no_3 == 0) {
-                ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, 2, DISP_A_B, ACT_FUNC_NORMAL, em->r_no_3);
+                ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_ENFORCE_EXEC, DISP_A_B, ACT_FUNC_NORMAL, em->r_no_3);
             }
         }
         if (em->seFlags28B & 1) {
@@ -3673,7 +3673,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
                 break;
             }
         } else if (w->actDone == 0) {
-            ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, w->actDone);
+            ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, w->actDone);
         }
         if (w->timer) {
             w->timer--;
@@ -3702,7 +3702,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         if (w->timer) {
             w->timer--;
             if (w->actDone == 0) {
-                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, 1, DISP_A_B, ACT_FUNC_NORMAL, w->actDone);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, w->actDone);
             }
         }
         if (em->seFlags28B & 1) {
@@ -3960,7 +3960,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
                 break;
             }
         } else if (w->actDone == 0) {
-            ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, w->actDone);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, w->actDone);
         }
         if (em->r_no_3) {
             int r = em2cFloorTypeCk(em);
@@ -4012,7 +4012,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         if (w->timer) {
             w->timer--;
             if (w->actDone == 0) {
-                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, 1, DISP_L_R, ACT_FUNC_NORMAL, w->actDone);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, w->actDone);
             }
         }
         if (em->seFlags28B & 1) {
@@ -4476,7 +4476,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
         if (em->plDist2 < 2250000.0f) {
             hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
-                ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
+                ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
             }
         }
         break;
@@ -4667,7 +4667,7 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
         if (em->plDist2 < 2250000.0f) {
             hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
-                ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
+                ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
             }
         }
         break;

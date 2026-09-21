@@ -593,24 +593,24 @@ int cPlayer::actionSelect()
     }
     actWallCheck(this);
     if (Push->catchCheck()) {
-        ActBtn.set(ACT_PUSH, 2, (void*) holdOn, 0, 0x10, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_PUSH, 2, (void*) holdOn, 0, ACTCTR_NO_TRG, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (fallCheck_80172E38(this)) {
-        ActBtn.set(ACT_JUMP_DOWN, 2, (void*) fallOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_JUMP_DOWN, 2, (void*) fallOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (fanceCheck(this)) {
-        ActBtn.set(ACT_JUMP_OVER, 2, (void*) fanceOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_JUMP_OVER, 2, (void*) fanceOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (jumpCheck(this)) {
-        ActBtn.set(ACT_JUMP_OVER, 2, (void*) jumpFallOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_JUMP_OVER, 2, (void*) jumpFallOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (windowCheck(this, &dir, &win)) {
         int broken = win->ChkStatus() & 1;
         if (broken) {
             if (dir == 2) {
-                ActBtn.set(ACT_JUMP_OUT, 2, (void*) windowOn, win, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_JUMP_OUT, 2, (void*) windowOn, win, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(ACT_JUMP_OVER, 2, (void*) fanceOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_JUMP_OVER, 2, (void*) fanceOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             }
         } else {
             if (dir == 0) {
@@ -626,16 +626,16 @@ int cPlayer::actionSelect()
     }
     switch (upDownCk(this)) {
     case 1:
-        ActBtn.set(ACT_GO_UP, 2, (void*) levelUpOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_GO_UP, 2, (void*) levelUpOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 2:
-        ActBtn.set(ACT_GET_DOWN, 2, (void*) levelDownOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_GET_DOWN, 2, (void*) levelDownOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 3:
-        ActBtn.set(ACT_GO_UP, 2, (void*) level2UpOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_GO_UP, 2, (void*) level2UpOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     case 4:
-        ActBtn.set(ACT_GET_DOWN_1M, 2, (void*) level2DownOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_GET_DOWN_1M, 2, (void*) level2DownOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     }
     checkXbutton();

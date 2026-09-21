@@ -555,11 +555,11 @@ int sceAtCheck_main(cEm* em, int type)
                 c = (w->actBtnColor == 1) << 7;
             }
             if (t == SCEAT_ID_DOOR) {
-                c |= 0x80;
+                c |= ACTCTR_DOOR_COLOR;
             }
             switch (ft) {
             case SCEAT_ID_DOOR:
-                c |= 0x80;
+                c |= ACTCTR_DOOR_COLOR;
                 break;
             case SCEAT_ID_STOOP:
                 if (PlGetStatus() & 0x8000) {
@@ -574,7 +574,7 @@ int sceAtCheck_main(cEm* em, int type)
                     continue;
                 }
                 if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
-                    ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[SCEAT_ID_HIDE].func, w, 1, DISP_X, ACT_FUNC_SCE_AT, (int) em);
+                    ActBtn.set(kind, w->otNo, (void*) sceAtFunc_tbl[SCEAT_ID_HIDE].func, w, ACTCTR_WEP_SET_IGNORE, DISP_X, ACT_FUNC_SCE_AT, (int) em);
                 }
                 continue;
             case SCEAT_ID_ITEM:

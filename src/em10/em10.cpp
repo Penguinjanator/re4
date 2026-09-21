@@ -24182,36 +24182,36 @@ extern "C" void em10ActEvtSetKick(cEm10* em)
     switch (pG->pl_type) {
     default:
         if (w->flags & 0x40000000) {
-            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 5:
         if (w->flags & 0x40000000) {
-            ActBtn.set(ACT_NERICHAGI, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_NERICHAGI, 0xB, (void*) em10KneeDownAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(ACT_PALM_SHOCK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_PALM_SHOCK, 0xB, (void*) em10KickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 2:
         if (w->flags & 0x40000000) {
-            ActBtn.set(ACT_BACKKICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_BACKKICK, 0xB, (void*) em10KneeDownAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(ACT_SENPUU, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_SENPUU, 0xB, (void*) em10KickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 3:
         if (w->flags & 0x40000000) {
-            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else if (w->pCore != 0 || w->pParasite != 0 || (w->flags & 0x80)) {
-            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_KICK, 0xB, (void*) em10KneeDownAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(ACT_EXECUTE, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_EXECUTE, 0xB, (void*) em10KickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         break;
     case 4:
-        ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_KICK, 0xB, (void*) em10KickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         break;
     }
 }
@@ -24488,9 +24488,9 @@ extern "C" void em10ActEvtSetFS(cEm10* em)
         return;
     }
     if (pG->pl_type == 4) {
-        ActBtn.set(ACT_POISON_NEEDLE, 0xB, (void*) em10FSAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
+        ActBtn.set(ACT_POISON_NEEDLE, 0xB, (void*) em10FSAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
     } else {
-        ActBtn.set(ACT_SUPLEX, 0xB, (void*) em10FSAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
+        ActBtn.set(ACT_SUPLEX, 0xB, (void*) em10FSAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
     }
 }
 
@@ -24830,7 +24830,7 @@ void em10ActEvtSetTrade(cEm10* em)
             }
         }
     }
-    ActBtn.set(ACT_TALK, 2, (void*) em10TradeAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+    ActBtn.set(ACT_TALK, 2, (void*) em10TradeAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button callback of the trade prompt: opens the shop sub screen (SS_OPEN_SHOP), the first
@@ -27501,89 +27501,89 @@ void em10SetPoint(cEm10* em)
     w->Omake_set = 1;
     switch (em->type) {
     case 0:
-        pt = 0;
+        pt = MT_MURABITO_MAN;
         break;
     case 1:
-        pt = 0;
+        pt = MT_MURABITO_MAN;
         break;
     case 2:
-        pt = 8;
+        pt = MT_GADORING;
         break;
     case 3:
-        pt = 0;
+        pt = MT_MURABITO_MAN;
         break;
     case 4:
-        pt = 0;
+        pt = MT_MURABITO_MAN;
         break;
     default:
-        pt = 0;
+        pt = MT_MURABITO_MAN;
         break;
     case 5:
-        pt = 4;
+        pt = MT_JYAKYOTO_RED;
         break;
     case 6:
-        pt = 4;
+        pt = MT_JYAKYOTO_RED;
         break;
     case 7:
-        pt = 3;
+        pt = MT_JYAKYOTO_BLACK;
         break;
     case 8:
-        pt = 4;
+        pt = MT_JYAKYOTO_RED;
         break;
     case 9:
-        pt = 3;
+        pt = MT_JYAKYOTO_BLACK;
         break;
     case 0xa:
-        pt = 5;
+        pt = MT_TUME;
         break;
     case 0xb:
-        pt = 1;
+        pt = MT_MURABITO_WOMAN;
         break;
     case 0xc:
-        pt = 1;
+        pt = MT_MURABITO_WOMAN;
         break;
     case 0xd:
-        pt = 5;
+        pt = MT_TUME;
         break;
     case 0xe:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0xf:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x10:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x11:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x12:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x13:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x14:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x15:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x16:
-        pt = 2;
+        pt = MT_CHAIN_SAW;
         break;
     case 0x17:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x18:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     case 0x19:
-        pt = 6;
+        pt = MT_3ST_GANADO1;
         break;
     }
     if (em->flag & 0x10000000) {
-        pt = 2;
+        pt = MT_CHAIN_SAW;
     }
     MercSysSetPoint(pt, 0);
 }

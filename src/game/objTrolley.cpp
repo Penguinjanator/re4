@@ -249,9 +249,9 @@ void objTrolley_R0_Move(cObjTrolley* obj)
             }
             if (obj->motFrame > 2865.0f) {
                 if (obj->r_no_3) {
-                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, 1, DISP_L_R, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 } else {
-                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, 1, DISP_A_B, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 }
             }
         }
@@ -442,7 +442,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         }
         em->r_no_2++;
     case 3:
-        ActBtn.set(ACT_CLIMB, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_CLIMB, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         if (Key.trg & 0x80000000) {
             if (((cPlayer*) em)->m_Work1) {
                 ((cPlayer*) em)->m_Work1--;

@@ -1916,7 +1916,7 @@ void Event::ExecActBtn()
         return;
     }
     DpfFlagOff(pG, DPF_MESSAGE);
-    ActBtn.set(actBtnNo, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+    ActBtn.set(actBtnNo, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
     SpfFlagOff(pG, SPF_ACTBTN);
     if (Key.trg & 0x80000) {
         actBtnCount++;

@@ -583,7 +583,7 @@ static void em21_R1_R100TrapWait(cEm21* em)
         break;
     }
     if (!(em->plDist2 > 9000000.0f)) {
-        ActBtn.set(ACT_RESCUE, 5, (void*) em21TrapCancelAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_RESCUE, 5, (void*) em21TrapCancelAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 

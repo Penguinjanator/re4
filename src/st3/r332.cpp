@@ -497,7 +497,7 @@ static void playerBridge(cPlayer* pl)
             if (Key.trg & 0x00080000) {
                 r332_work->btnCnt = r332_work->btnCnt + 1;
             }
-            ActBtn.set(ACT_CLIMB, 0xC, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_CLIMB, 0xC, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             SceDebugDisp("Button:[%d/%d]", r332_work->btnCnt, 0xA);
         }
         if (pl->frame > 9.7f && pl->frame < 10.3f) {
@@ -526,7 +526,7 @@ static void playerBridge(cPlayer* pl)
         if (Key.trg & 0x00080000) {
             r332_work->btnCnt = r332_work->btnCnt + 1;
         }
-        ActBtn.set(ACT_CLIMB, 0xC, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_CLIMB, 0xC, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         MotionMove(pl, 0);
         IntSet(r332_work->timer, r332_work->timer + 1);
         SceDebugDisp("Button:[%d/%d]", r332_work->btnCnt, 0xA);
@@ -834,7 +834,7 @@ static void R332BridgeTask(int no)
             if (FlagChkVar(R332_FLAGS, (u32) flgArea) && r332_work->bridge[no].cnt > 0x77) {
                 IntSet(r332_work->nearBridge, R332ChkNearBridge());
                 if (r332_work->nearBridge != 4) {
-                    ActBtn.set(ACT_JUMP_AT, 0xC, 0, 0, 0x42, DISP_L_R, ACT_FUNC_SCE, 0);
+                    ActBtn.set(ACT_JUMP_AT, 0xC, 0, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_SCE, 0);
                     if ((Key.trg & 0x00400000 && Key.on & 0x00800000) || (Key.on & 0x00400000 && Key.trg & 0x00800000)) {
                         SetPlDamage(0, playerBridge);
                         BitOn(pG->Room_flg[0], 0x10000000);
@@ -1308,7 +1308,7 @@ static void R332ExecCrane(int no)
             Mtx m;
             f32 ang;
 
-            ActBtn.set(ACT_OPERATION, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             Camera* cam = &r332_work->cam;
             f32 roll = 0.0f;
             dir.x = cam->param.at.x - cam->param.pos.x;

@@ -665,7 +665,7 @@ void emBoxActEvtCk(cEmBox* em)
         return;
     }
     if (pG->room_id == 0x100 || pG->room_id == 0x101 || pG->room_id == 0x103 || pG->room_id == 0x106) {
-        ActBtn.set(ACT_CHECK, 5, (void*) emBoxAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_CHECK, 5, (void*) emBoxAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 

@@ -237,7 +237,7 @@ void R333EventS00()
             SceSleep(15);
             i = 0;
             do {
-                ActBtn.set(ACT_ACCELERATE, 5, 0, 0, 2, DISP_STICK_UP, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_ACCELERATE, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_STICK_UP, ACT_FUNC_NORMAL, 0);
                 i++;
                 SceSleep(1);
             } while (i <= 0x95);

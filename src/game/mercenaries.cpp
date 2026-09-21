@@ -773,7 +773,7 @@ int MercSysSetPoint(int kind, int pt)
     if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
-    if (kind == 9) {
+    if (kind == MT_ITEM) {
         wk->score += pt;
         return 1;
     }

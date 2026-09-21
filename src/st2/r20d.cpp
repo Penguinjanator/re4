@@ -621,7 +621,7 @@ static void r20d_operateCrank(int no)
                 spd = 159;
             }
         }
-        ActBtn.set(ACT_ROTATE, 5, 0, 0, 2, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_ROTATE, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         SceSleep(1);
     }
     FadeSetW(0x80000001, 5, 0, 0);
@@ -1086,7 +1086,7 @@ void cLanternUnit::check()
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) != 0) {
         return;
     }
-    ActBtn.set(ACT_SEARCH_ATTACK, 5, (void*) cLanternUnit::throwLantern, this, 0, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
+    ActBtn.set(ACT_SEARCH_ATTACK, 5, (void*) cLanternUnit::throwLantern, this, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_SCE, 0);
 }
 
 // The enemy the lantern flies at (NULL: 10000 units in front of the player, out = that point).

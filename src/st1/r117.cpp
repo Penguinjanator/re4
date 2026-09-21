@@ -727,7 +727,7 @@ static void r117_EventChandelier()
             RoomSeCall(0x13, &pPL->pos, 0, 0, 0);
         }
         if (ok != 0) {
-            ActBtn.set(ACT_JUMP_MOVE, 5, 0, 0, 2, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_JUMP_MOVE, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             if (Key.trg & 0x80000ULL) {
                 if (pPL->pos.z >= -1000.0f) {
                     dir = 1;

@@ -1798,7 +1798,7 @@ void cSubChar::moveFallWait()
     if (m_Work1) {
         if (GetDistance(&v, &pPL->pos) < 9000000.0f && !SatMgr.hitCheck(&v, &pPL->pParts->world, 0, 0, 0, 0) &&
             !SatMgr.hitCheck(&pPL->pParts->world, &v, 0, 0, 0, 0)) {
-            ActBtn.set(ACT_CATCH, 6, (void*) catchOn, 0, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_CATCH, 6, (void*) catchOn, 0, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
             m_Work3 = 1;
         }
     }

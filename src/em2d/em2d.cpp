@@ -2303,7 +2303,7 @@ void em2dActEvtSetKick(cEm2d* em, int side)
     if (fabsf(em->pos.y - pPL->pos.y) > 700.0f) {
         return;
     }
-    ActBtn.set(ACT_KICK, 0xB, (void*) em2dKickAction, em, 1, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+    ActBtn.set(ACT_KICK, 0xB, (void*) em2dKickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
 }
 
 // Action button callback of the kick: the player's kick routine (plem2dKick), the insect's

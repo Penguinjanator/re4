@@ -110,7 +110,7 @@ static inline void EffectDelete2001()
                                                                              \
         pG->Disp_flg = v;                                                    \
         v = 0;                                                               \
-        ActBtn.set(ACT_NO_DISP, 5, (void*) action, 0, 0x42, btn, ACT_FUNC_NORMAL, v);               \
+        ActBtn.set(ACT_NO_DISP, 5, (void*) action, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, btn, ACT_FUNC_NORMAL, v);               \
     } while (0)
 
 static void R317ContinuePointSet();
@@ -1519,7 +1519,7 @@ void Evt_R317S13_Func(Event* e)
                 }
             }
             DpfFlagOff(pG, DPF_MESSAGE);
-            ActBtn.set(ACT_NO_DISP, 5, 0, 0, 0x42, btn, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_NO_DISP, 5, 0, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, btn, ACT_FUNC_NORMAL, 0);
             if (btn == 2) {
                 if (Key.trg & 0x00080000) {
                     r317_work.p->btnCount++;

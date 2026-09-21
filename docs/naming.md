@@ -97,6 +97,10 @@ with the tool's name match, the row order wins (2026-09-21: `Route_target` / `Ta
 Enums (`EM_STATUS`, `DATA_COMMAND`, `SCE_LEVEL`, ...) are from the same dump; where an enum was
 introduced, the magic constants at typed call sites were replaced with its enumerators and the
 parameter types left alone.
+Where the GC and PS2 numbering differ, the header says so and carries the GC values: `ESP_OWNER`
+(esp.h) uses the PS2 names at the index of the same name in eff_sys.cpp `owner_name_tbl`, the GC
+table lacking EM3F/EM4E/EM4B/WEP51. The nested `cObjMgr::ID` / `cDmgMgr::ID` keep the PS2 nesting
+because the three `enum ID`s share constant names.
 
 The pG flag words (`Debug_flg`, `Status_flg`, `Key_flg`, ...) are read and written through the
 `XxxFlagChk/On/Off(pG, NAME)` macros of `global.h`; bit `no` is bit `31 - (no & 31)` of word `no >> 5`,

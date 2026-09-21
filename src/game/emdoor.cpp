@@ -2967,9 +2967,9 @@ void emDoorActEvtCk(cEmDoor* em)
         return;
     }
     if (w->pDoor && v.x < -250.0f && w->pDoor->ckOpen() == 0) {
-        ActBtn.set(ACT_OPEN, 5, (void*) emDoorAction2, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_OPEN, 5, (void*) emDoorAction2, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     } else {
-        ActBtn.set(ACT_OPEN, 5, (void*) emDoorAction, em, 0, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_OPEN, 5, (void*) emDoorAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
 

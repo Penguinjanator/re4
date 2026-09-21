@@ -839,9 +839,9 @@ static void Evt_R104S00_Func(Event* e)
             if (!(pG->Room_flg[0] & 0x80000000)) {
                 DpfFlagOff(pG, DPF_MESSAGE);
                 if (!(pG->Room_flg[0] & 0x04000000)) {
-                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, 0x42, DISP_A_B, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 } else {
-                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, 0x42, DISP_L_R, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_GUARD, 5, (void*) r104_succeedAction, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 }
             } else {
                 e->CancelSet();
