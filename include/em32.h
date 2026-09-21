@@ -66,8 +66,8 @@ struct Em32Work {
     int x7C4;             // 0x7C4 (0xBA4)
     f32 blendVal;         // 0x7C8 (0xBA8)  signed blend weight of the two-motion blend (em32BlendMotSet: sign picks the motion)
     int blendCnt;         // 0x7CC (0xBAC)  counts down; its low byte is the MotionSetCore frame argument
-    int blendSeq;         // 0x7D0 (0xBB0)  wraps at cModel::frameMax; its low half is the MotionSetCore last argument
-    MotionWorkSub blendMot;  // 0x7D4 (0xBB4)  second motion work (cModel::motBlend)
+    int blendSeq;         // 0x7D0 (0xBB0)  wraps at Motion.Seq_frame_num; its low half is the MotionSetCore last argument
+    MotionWorkSub blendMot;  // 0x7D4 (0xBB4)  second motion work (cModel::Motion.blend)
     void* blendM0;        // 0x8A4 (0xC84)  walk blend motions (em32_R1_Walk / Dash: em32BlendMotSet arguments)
     void* blendM1;        // 0x8A8 (0xC88)
     void* blendM2;        // 0x8AC (0xC8C)

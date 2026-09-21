@@ -60,7 +60,7 @@ struct Em2bWork {
     f32 Blend;         // 0x2A8 (0x688)
     int blendCnt;         // 0x2AC (0x68C)
     int blendSeq;         // 0x2B0 (0x690)
-    MotionWorkSub blendMot;  // 0x2B4 (0x694)  second motion work (cModel::motBlend)
+    MotionWorkSub blendMot;  // 0x2B4 (0x694)  second motion work (cModel::Motion.blend)
     void* blendM0;        // 0x384 (0x764)
     void* blendM1;        // 0x388 (0x768)
     void* blendM2;        // 0x38C (0x76C)
