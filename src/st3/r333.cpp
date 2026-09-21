@@ -566,12 +566,6 @@ void ride()
     }
 }
 
-// The result screen after the escape movie: the game result, the extras unlocked, the save question.
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
-
 // One frame's wait on fade `no` (r31c FadeWait): the index is a separate `addi` on the array base,
 // shared by the two waits of the omake path (`Fade+0x48` in r31), folded at the single-use ones.
 static inline void r333_fadeWait(int no)

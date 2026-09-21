@@ -14,8 +14,6 @@
 #include "snd.h"
 #include "pad.h"
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 void PlRifleMove(cPlayer* pl);   // wep/pl_rifle.cpp
 cObjWep* equipWeapon(cPlayer* pl);
 void ObjHkSniper_init(cObj* obj);

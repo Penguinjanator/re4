@@ -48,9 +48,9 @@ asm(".comm common_em2c,52,4");
 #include "item.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 static void em2c_R0_Init(cEm2c* em);
 static void em2c_R0_Move(cEm2c* em);
@@ -128,14 +128,7 @@ static void plemKick(cPlayer* pl);
 static void plemBackjump(cPlayer* pl);
 }
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

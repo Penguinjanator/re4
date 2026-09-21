@@ -78,8 +78,6 @@ static inline int pushTargetDead(cPlPush* p)
     return 0;
 }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Parts index mirror table (left <-> right parts of the player model).
 u16 pl00_mirror[80] = {
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F, 0x0010, 0x0005, 0x0006, 0x0007,

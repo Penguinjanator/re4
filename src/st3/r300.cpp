@@ -87,11 +87,6 @@ extern "C" void* r300_memset(void*, ...) asm("memset");
 // Room id through the struct-member view of pG: the load stays below a preceding member store.
 #define GS_ROOM_ID (*(u16*) &pGS->stage_no)
 
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 static u8 r300_texTbl0[0x20];
 static u8 r300_texTbl1[0x20];
 // The work pointer is read through a struct-member view (r300_wk): every store through the work

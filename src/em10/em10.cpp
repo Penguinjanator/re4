@@ -512,20 +512,6 @@ static inline int em10DmgDeadCk(cDmgInfo* d)
 
 #define EM10_WINDOW(w) ((w)->pWindow)
 
-// Struct-member view of pSys (global.h pGS): its load stays below a preceding store (em10_R1_C_SawHit).
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
-// Same for pSUB: its load stays below the preceding member stores and is redone after the flag store (em10_R1_TakeAway).
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 Em10Func Em10SetFunc = 0;
 

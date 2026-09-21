@@ -36,11 +36,11 @@
 #include "db_log.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2f,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 // Floating island (game/obj1c.cpp): only what the crash check calls.
@@ -70,17 +70,6 @@ static void em2f_R1_Dm_Normal(cEm2f* em);
 static void em2f_R0_Die(cEm2f* em);
 static void em2f_R1_Die_Normal(cEm2f* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
 

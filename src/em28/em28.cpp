@@ -25,7 +25,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -43,14 +43,6 @@ static void em28_R0_Die(cEm28* em);
 static void em28_R1_Die_Normal(cEm28* em);
 static void em28_R1_Die_Air(cEm28* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
-
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // Module entry (SN loader): registers Em28Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()

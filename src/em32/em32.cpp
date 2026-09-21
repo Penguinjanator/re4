@@ -47,11 +47,11 @@
 #include "em.h"
 #include <string.h>
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 asm(".comm common_em32,52,4");
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type);   // game/obj20.cpp
 
@@ -115,16 +115,9 @@ static void plemBackjump(cPlayer* pl);
 static void plemEscape(cPlayer* pl);
 }
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

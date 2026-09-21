@@ -43,8 +43,6 @@
 #include "db_log.h"
 #include "eprintf.h"
 
-#define DEG(d) ((d) * (PI / 180.0f))
-
 // Room 1-1C (D:/Bio4/Prog/r11c.cpp): the village square at night; the besieged cabin (s00: Luis
 // arrives, s10: the Ganado wave, s20: the escape), the two gate levers with the gear/chain machinery,
 // the merchant.
@@ -92,8 +90,6 @@ struct R11cSave {
     u32 x0;
     u32 flags;
 };
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 
 static inline R11cSave* r11c_save() { return (R11cSave*) RoomData.getRoomSavePtr(pGS->room_id); }
 

@@ -31,13 +31,16 @@
 
 void SetDrawTmpBufType(int type);
 
-
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
-// address splits into `lis 0x8000` + displacement.
+// address splits into `lis 0x8000` + displacement. Replaces the SDK macros of the same names.
 struct OSLowMem {
     u8 pad_0[0xF8];
     u32 busClock;  // 0xF8
 };
+#undef OS_BUS_CLOCK
+#undef OS_TIMER_CLOCK
+#undef OSTicksToSeconds
+#undef OSTicksToMicroseconds
 #define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
 #define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
 #define OSTicksToSeconds(ticks) ((ticks) / OS_TIMER_CLOCK)
@@ -52,8 +55,6 @@ struct OSLowMem {
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
     }
-
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
 #line 30 "D:/Bio4/Prog/main_sub.cpp"
 

@@ -40,9 +40,9 @@
 #include "em.h"
 #include <dolphin/os.h>
 #include "em10.h"
-#include "pl_mod.h"
 
 asm(".comm common_em35,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em35Func)(cEm35*);
@@ -109,17 +109,9 @@ static void em35_R0_Die(cEm35* em);
 static void em35_R1_Die_Normal(cEm35* em);
 static void em35_R1_Die_Pose(cEm35* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

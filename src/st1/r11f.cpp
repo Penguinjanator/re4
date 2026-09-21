@@ -58,8 +58,6 @@ struct R11fWork {
 static int r11f_actNo;
 static R11fWork* r11f_work;
 
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 // the split object's .data is 8-aligned
 asm(".section .data; .balign 8");
 static int r11f_actOn = 0;

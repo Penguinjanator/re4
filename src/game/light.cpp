@@ -29,7 +29,6 @@ extern f32 lod_bias;
 extern u32 aniso;
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define IN_RANGE(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 #define IS_ALIVE(p) (((p)->be_flag & 0x201) == 1)
 

@@ -55,6 +55,7 @@ int proc_tick_idx;
 int proc_tick_idx_bak;
 int g_proc_cnt;
 
+#undef OS_BUS_CLOCK
 #define OS_BUS_CLOCK (((OSClock*) 0x80000000)->busClock)
 struct OSClock {
     u8 pad_0[0xF8];

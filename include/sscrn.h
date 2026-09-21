@@ -204,4 +204,11 @@ void OpeSetOpenTermCancel();
 void OpeSetOpenTermEnd();
 }
 
+// Struct-member view of a manager pointer (the cModel managers): a plain scalar store lets the
+// scheduler hoist the following pG load above it; through a struct member it stays below the store.
+struct MgrPtr {
+    void* p;
+};
+#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
+
 #endif

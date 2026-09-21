@@ -216,8 +216,6 @@ int loadMesName(const char* path, char* names);
 #define TYPE_NAME(t) ((u32) (t) <= 0x14 ? tSceAtTypeName[t] : "...no string")
 
 // pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
-#define REP_RIGHT (JOY_RIGHT | 0x20000)
-#define REP_LEFT (JOY_LEFT | 0x10000)
 
 // +1 / -1 on a value
 #define STEP(j, v)                     \

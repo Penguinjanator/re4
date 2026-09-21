@@ -23,7 +23,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -43,8 +43,6 @@ static void em27_R1_Dm_Big(cEm27* em);
 static void em27_R1_Dm_Air(cEm27* em);
 static void em27_R0_Die(cEm27* em);
 static void em27_R1_Die_Normal(cEm27* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 

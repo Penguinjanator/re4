@@ -65,12 +65,6 @@ extern "C" void Evt_R228S01_Func(Event* e);
 extern "C" void Evt_R228S02_Func(Event* e);
 void setTexRender();
 
-// Struct view of pPL: the load stays below a preceding store through the work pointer.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 
 // Room init (Salazar's throne room): the two room render targets, the s00/s01/s02 callbacks, the fight
 // effect kind, the event chain / fight setup (r228_initEvent00), and an event render target with its effect.

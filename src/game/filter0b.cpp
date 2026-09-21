@@ -15,9 +15,6 @@
 // Captured-screen overlay: Filter0bCapture copies the frame buffer to a half-size texture that
 // is blended back with filter0b_alpha (once per SetAlpha) inside the letterbox area.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
 
 extern "C" {
 void Filter0bAllocBuf();

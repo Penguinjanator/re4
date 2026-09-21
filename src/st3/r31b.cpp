@@ -73,15 +73,6 @@ cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 // libcall for an explicit call (r213).
 extern "C" void* r31b_memset(void*, ...) asm("memset");
 
-// Struct-member view of pPL (r40f BombSet): a mem/s load that alias.c orders after the preceding
-// frame stores, so the `pPL` load of a setPos that follows two `Vec = {..}` template copies is
-// issued after the copies' stores and the copies' loads/stores interleave as in the original (a
-// plain pointer load is a fixed scalar and floats up between them).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 
 
 

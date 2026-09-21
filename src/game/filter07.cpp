@@ -20,9 +20,6 @@
 // Thermal vision filter: the frame buffer's green channel is copied to a half-size I8 texture,
 // blurred with pixel offsets, and drawn back through the ThermoTlut palette.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
 extern GXTlutObj ThermoTlut;
 
 extern "C" {

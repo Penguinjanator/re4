@@ -28,8 +28,6 @@ void ReleaseWepData();                          // game/read.cpp
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 
 // Builds the Ashley player (pl_type 1 / the "Ashley chapter"): common init, model set, bust rest

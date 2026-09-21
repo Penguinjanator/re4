@@ -131,9 +131,6 @@ static const R20dThroughData r20d_throughData[10] = {
     {{-10242.0f, 0.0f, 12142.0f}, 3.1415927f, 1500.0f, -1},
 };
 
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-
 static void r20d_checkBgmPlay();
 void r20d_openShelf_main(int no, int opened);
 static void r20d_openedShelf(int no);

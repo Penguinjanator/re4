@@ -78,11 +78,6 @@ public:
 };
 
 
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 
 static void r224_cam_task();
 static void r224_em_set_exit();

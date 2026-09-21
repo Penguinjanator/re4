@@ -41,9 +41,9 @@
 #include "main_mem.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 asm(".comm common_em36,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em36Func)(cEm36*);
@@ -192,17 +192,9 @@ static Vec em36_weak_rot[5] = {
     { 0.0f, 0.0f, 0.0f },
 };
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-#define pSUBS (((PlayerPtr*) &pSUB)->p)
 
 
 

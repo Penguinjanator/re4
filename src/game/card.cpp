@@ -123,10 +123,6 @@ struct MesPos {
 static inline void U16Inc(u16& v) { v++; }
 static inline u32 bitChk(u32 f, u32 b) { return f & b; }
 
-#define KEY_A 0x80000000
-#define KEY_B 0x40000000
-#define KEY_UP 0x01000000
-#define KEY_DOWN 0x02000000
 #define KEY_START 0x00080000
 #define KEY_Z 0x00040000
 

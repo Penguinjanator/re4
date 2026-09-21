@@ -86,8 +86,6 @@ struct R208WorkPtr {
 static u8 r208_texTbl[0x20];
 static R208WorkPtr r208_work;
 #define W r208_work.p
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
 #define EM_LIST_S(no) (&pGS->Em_list[no])
 // Element stores through the vector's address (r202): the address pseudo is shared with the call

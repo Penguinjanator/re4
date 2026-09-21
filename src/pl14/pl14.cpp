@@ -45,7 +45,6 @@
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define SUBARC(no) PL_ARC_PTR(pEm->subArc, no)
 #define OARC(no) PL_ARC_PTR(owner->subArc, no)
 #define EM ((cEm*) this)

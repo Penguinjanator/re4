@@ -23,8 +23,6 @@ extern f32 adaHairWindS[14];
 extern f32 adaHairWindR[14];
 extern CLOTH_AT_SET adaHairAt[6];
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 
 // adaHair (costume 2); the parts table and the holster's collision volume are globals (REL fields A = 0)

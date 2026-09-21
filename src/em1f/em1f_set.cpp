@@ -12,16 +12,14 @@
 #include "light.h"
 #include "esp.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 extern "C" void Em10SetSeTbl(cEm10* em, int type);
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 void Em1fInit(cEm* em);
 void Em1fSet(cEm10* em);
 void Em1fWeaponSet(cEm10* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Module entry (SN loader): registers Em1fInit as the DOL's enemy constructor (EmInitFunc) and Em1fSet as
 // em10.cpp's per-enemy set function (Em10SetFunc).

@@ -12,6 +12,7 @@
 #define PI 3.1415927f
 #define PI2 6.2831855f       // 2 * PI
 #define DEG2RAD 0.017453292f // PI / 180
+#define DEG(d) ((d) * DEG2RAD)
 
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);

@@ -25,11 +25,11 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "em.h"
-#include "pl_mod.h"
 
 // The module's 0x30-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em21,48,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -49,15 +49,7 @@ static void em21_R1_VsElgigante(cEm21* em);
 static void em21TrapCancelAction(cEm21* em);
 static void plemTrapCancel(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

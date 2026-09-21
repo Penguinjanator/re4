@@ -23,7 +23,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -37,8 +37,6 @@ static void em26_R0_Damage(cEm26* em);
 static void em26_R1_Dm_Small(cEm26* em);
 static void em26_R0_Die(cEm26* em);
 static void em26_R1_Die_Normal(cEm26* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 // Module entry (SN loader): registers Em26Init as the DOL's enemy constructor (EmInitFunc).

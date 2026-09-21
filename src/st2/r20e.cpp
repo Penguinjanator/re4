@@ -115,14 +115,6 @@ static R20eWork* r20e_work;
 #define PUZZLE_CELL(p, x, y) ((R20eCell*) ((x) * sizeof(R20eCell[3]) + 0x178 + (u32) (p) + (y) * sizeof(R20eCell)))
 
 
-// Struct view of pPL: cse invalidates an in-struct pPL load at the following in-struct flags store
-// (true_dependence), so the next `pPL->atari` reloads pPL and recomputes the address (the plain
-// scalar load survives the store and gets cse'd into `mr r3, r9`).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 struct R20eThrough {
     Vec pos;       // 0x00
     f32 angY;      // 0x0C

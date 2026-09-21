@@ -1915,12 +1915,6 @@ void mapTblInit(SUB_SCREEN* wk)
     }
 }
 
-// Struct-member view of the cModel manager pointers (ss_main generalModelAlloc).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
-
 // Map screen model managers: 0x80 model infos / 0x100 parts / 0x80 MapMgr works (no player model).
 void mapModelAlloc(SUB_SCREEN* wk)
 {

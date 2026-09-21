@@ -26,7 +26,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*EmMarkFunc)(cEmMark*);
@@ -37,6 +37,7 @@ static void emmark_stay(cEmMark* em);
 static void emmark_move(cEmMark* em);
 static void emmark_none(cEmMark* em);
 
+#undef ARC
 #define ARC(no) PL_ARC_PTR(subArc, no)
 
 // EmInitFunc: placement-constructs a target in the cEm work.

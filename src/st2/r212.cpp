@@ -106,12 +106,6 @@ static void (cR212Door::*r212_doorTbl[3])() = {
     &cR212Door::close,
 };
 
-// Struct-member view of pPL: the load stays below a preceding store.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // The four roof-trap flags (event flags 3..6).
 #define R212_TRAP_FLAGS_ALL(f) \
     (FlagChkSignW(f, 3) && FlagChkSignW(f, 4) && FlagChkSignW(f, 5) && FlagChkSignW(f, 6))

@@ -83,12 +83,6 @@ static Vec r207_wallPos = {-10600.0f, 5200.0f, -10950.0f};
 static Vec r207_swordRot = {0.0f, 0.0f, 0.0f};
 static Vec r207_wallRot = {0.0f, -1.5707964f, 0.0f};
 
-// pPL read as a struct member: the load stays below the preceding store into the work (R207Main).
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-// pSUB written as a struct member: the following flags load stays below the store (EnemySetEndProc).
-struct SubPtr { cSubChar* p; };
-#define pSUBS (((SubPtr*) &pSUB)->p)
 
 static void r207_openTerm();
 void r207_EmMoveCk();

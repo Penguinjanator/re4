@@ -61,11 +61,6 @@ void objPillarEatSet(cObjPillar* obj);
 extern "C" {
 static void plemEscape(cPlayer* pl);
 
-// struct view of pPL: the load stays below the preceding member stores (see cam_ctrl.cpp)
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 }
 
 void (*ObjPillar_R0_move_tbl[5])(cObjPillar*) = {

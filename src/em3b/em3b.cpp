@@ -36,7 +36,7 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -53,8 +53,6 @@ static void em3b_R1_Cart_Damage(cEm3b* em);
 static void em3b_R1_StopCart_Damage(cEm3b* em);
 static void em3b_R1_Cart_Lost(cEm3b* em);
 static void subem3bRunDown();
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 

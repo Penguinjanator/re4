@@ -15,9 +15,6 @@
 // Screen fade-out filter: keeps a half-size copy of the last frame and blends it back,
 // spreading it outwards (g_bSpred) while the game is stopped.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
 int GetDrawTmpBufType();
 
 extern "C" {

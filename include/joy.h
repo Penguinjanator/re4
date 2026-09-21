@@ -75,4 +75,10 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 #define JOY_SSDOWN  0x00400000
 #define JOY_SSUP    0x00800000
 
+// Pad direction or main stick direction, as the tool screens test them in the repeat state.
+#define REP_LEFT (JOY_LEFT | JOY_SRIGHT)
+#define REP_RIGHT (JOY_RIGHT | JOY_SLEFT)
+#define REP_DOWN (JOY_DOWN | JOY_SDOWN)
+#define REP_UP (JOY_UP | JOY_SUP)
+
 #endif

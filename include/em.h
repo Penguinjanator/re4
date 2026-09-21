@@ -213,6 +213,9 @@ public:
     int adjustRange(u8 dir);
 };
 
+// Motion / model data `no` of the enemy module's own archive; the enemy is the local `em`.
+#define ARC(no) PL_ARC_PTR(em->subArc, no)
+
 extern "C" {
 void emMove(cEm* em);        // per-frame update of one alive work: distance to the player, damage info, move()
 void battleCheck(cEm* em);

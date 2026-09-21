@@ -15,9 +15,6 @@
 // Depth-of-field filter: copies the frame buffer to a half-size texture and draws it back
 // shifted by `level_tbl1[level]` pixels, in front of / behind the focus depth.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
 struct LensEffectWork {
     int on;     // 0x00
     int z;      // 0x04  focus depth (screen z, 0..65535)

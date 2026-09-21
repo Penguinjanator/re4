@@ -68,11 +68,6 @@ struct R10cWorkPtr {
     R10cWork* p;
 };
 
-// Pointer store through a reference: the pG / pPL / pSys loads that follow stay below it.
-// Struct view of pPL: the load stays below preceding Vec template stores (r102).
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-
 u8 r10c_texTbl[0x20];
 static R10cWorkPtr r10c_work;
 

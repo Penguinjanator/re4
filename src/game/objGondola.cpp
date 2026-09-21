@@ -50,13 +50,6 @@ struct GondolaMotWork {
     f32 blendRate;        // 0xC8
 };
 
-// Struct-member view of pSUB (the pLog trick): the load stays below the preceding work store
-// (setRidePL: `w->rideSUB = 0; if (pSUB)`).
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
 extern "C" {
 void objGondola_R0_Set(cObjGondola* obj);
 void objGondola_R0_Move(cObjGondola* obj);

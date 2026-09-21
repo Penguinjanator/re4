@@ -36,12 +36,6 @@ void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 typedef void (*EmDoorFunc)(cEmDoor*);
 
 
-// Struct-member view of pPL: the load stays below a preceding store through the player pointer.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 static void emDoor_R1_Open2(cEmDoor* em);
 
 // Parts index remap for the flipped motions (MotionWork::flip): identity.

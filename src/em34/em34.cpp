@@ -35,7 +35,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
@@ -51,19 +51,6 @@ static void em34_R0_Damage(cEm34* em);
 static void em34_R1_Dm_Normal(cEm34* em);
 static void em34_R0_Die(cEm34* em);
 static void em34_R1_Die_Normal(cEm34* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
-
-// Struct-member views of the character pointers: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
 

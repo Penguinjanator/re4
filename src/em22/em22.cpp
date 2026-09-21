@@ -38,11 +38,11 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
 asm(".comm common_em22,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -81,19 +81,8 @@ static void em22_R1_Dm_Blow(cEm22* em);
 static void em22_R0_Die(cEm22* em);
 static void em22_R1_Die_Lost(cEm22* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member views of the player / partner / pG pointers: a load through them is not hoisted above
-// the preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 
 

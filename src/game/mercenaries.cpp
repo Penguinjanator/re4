@@ -46,8 +46,6 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on);
 #define ID_MERC_MES 0x2C
 #define ID_RESULT 0x28
 
-#define KEY_A 0x80000000
-
 // Combo counter shown (bit 24) / hiding (bit 23), bonus time shown / hiding (22 / 21),
 // bonus points shown (20), time warning colour (19), time added (18), all ranks S (25),
 // per-stage record unlock (26..29, mercSysGetFlag), 31: cleared at room start.
@@ -73,11 +71,6 @@ static inline int fadeIsOn(FadeWork* f)
 
 #define EXT_FLAG_TBL ((u32*) &pSys->Extra_flg)
 
-// Struct-member view of pSys (the pLog trick): its load stays below preceding stores through `wk`.
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
 #define EXT_FLAG_TBL_S ((u32*) &pSysS->Extra_flg)
 #define MID (&mercId._idSys)
 

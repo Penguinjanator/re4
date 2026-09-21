@@ -36,9 +36,9 @@
 #include "quake.h"
 #include "ref_access.h"
 #include "em.h"
-#include "pl_mod.h"
 
 asm(".comm common_em25,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -128,15 +128,7 @@ static EmAtkInfo em25_poison_atk[1] = {
 };
 static int em25_atk_pad = 0;
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member views of the player pointer / pG: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

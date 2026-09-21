@@ -12,12 +12,6 @@
 
 void ObjKnife_init(cObj* obj);
 
-// pPL read as a struct member: the load stays below the collision-flag store before it.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 // WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjKnife (ObjMgr id 0x24),
 // inits it, stores it as Wep->m_pWep, installs the knife footwork motions, loads the effects
 // (archive 0x4 as group 0x4E) and points the debug preview PlWepMot at the stance motions.

@@ -28,11 +28,11 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em18,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
@@ -47,8 +47,6 @@ static void em18_R0_Damage(cEm18* em);
 static void em18_R1_Dm_Normal(cEm18* em);
 static void em18_R0_Die(cEm18* em);
 static void em18_R1_Die_Normal(cEm18* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 // Module entry (SN loader): registers Em18Init as the DOL's enemy constructor (EmInitFunc).

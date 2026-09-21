@@ -264,12 +264,6 @@ void cDbgWindow::LocalDisp()
 #include "pl_mod.h"
 
 
-// Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
-
 // Host file list (d:\bio4\room\filelist.txt through the SN file server): a scrolling list of the
 // names under one directory.
 class cFileList {

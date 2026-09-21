@@ -511,10 +511,6 @@ static void flrAtAreaEdit_DataInput()
 }
 
 // pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
-#define REP_RIGHT (JOY_RIGHT | 0x20000)
-#define REP_LEFT (JOY_LEFT | 0x10000)
-#define REP_UP (JOY_UP | JOY_SUP)
-#define REP_DOWN (JOY_DOWN | JOY_SDOWN)
 #define REP_LR (REP_RIGHT | REP_LEFT)
 
 // +-1 / +-10 (with A) on a value driven by the fast auto-repeat

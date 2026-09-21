@@ -80,8 +80,6 @@ struct R117WorkPtr {
 };
 static R117WorkPtr r117_work;
 #define W r117_work.p
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
 
 static const Vec r117_smdPos = {0.0f, 9826.0f, -2072.0f};
 static const Vec r117_smdRot = {0.0f, 0.0f, 0.0f};

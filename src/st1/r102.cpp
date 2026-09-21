@@ -32,9 +32,6 @@ struct R102Work {
 
 static R102Work* r102_work;
 
-struct PlPtr { cPlayer* p; };
-#define pPLS (((PlPtr*) &pPL)->p)
-
 static void r102_execEvent00();
 void r102_checkBgm();
 static void r102_openCover();

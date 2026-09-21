@@ -299,11 +299,6 @@ static int shop_read_req;
 Vec shop_pos_save;
 void* shop_msg_buf[5];
 
-// Struct-member view of the cModel manager pointers (ss_main.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
 // Scalar-reference store: the MEM has neither the struct nor the scalar flag, so sched1 makes every
 // following load (the `sw->` call arguments AND the fixed-scalar `pG`) wait for it.
 

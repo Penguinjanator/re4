@@ -28,7 +28,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -53,15 +53,7 @@ static void em29_R1_Die_Reset(cEm29* em);
 static void em29_R1_Die_FadeOut(cEm29* em);
 static void plem29_BatRush(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the `lis pLog@ha`
 // is not hoisted out of the scan loop (em27.cpp).

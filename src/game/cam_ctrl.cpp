@@ -36,13 +36,6 @@
 
 
 
-#define DEG 0.017453292f
-
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 void* g_pToolCamData = NULL;
 
 #define CAMERA_MOTION_BUFFER_SIZE 0x440
@@ -155,9 +148,9 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
                     v = cut->fovy[k];
                     v0 = cut->fovy[k0];
                     v1 = cut->fovy[k1];
-                    v1 *= DEG;
-                    v *= DEG;
-                    v0 *= DEG;
+                    v1 *= DEG2RAD;
+                    v *= DEG2RAD;
+                    v0 *= DEG2RAD;
                     break;
                 }
                 tmp = v;
@@ -1407,7 +1400,7 @@ void CameraControl::r0_Debug()
         Vec* da = &this->target_ofs;
 
         if (joy->substickX != 0) {
-            PSMTXRotRad(m, 'y', (f32) joy->substickX * 0.05f * DEG);
+            PSMTXRotRad(m, 'y', (f32) joy->substickX * 0.05f * DEG2RAD);
             PSMTXMultVec(m, dp, dp);
             PSMTXMultVec(m, da, da);
         }
@@ -1415,7 +1408,7 @@ void CameraControl::r0_Debug()
             Vec up = {0.0f, 1.0f, 0.0f};
 
             PSVECCrossProduct(dp, &up, &up);
-            PSMTXRotAxisRad(m, &up, (f32) joy->substickY * 0.05f * DEG);
+            PSMTXRotAxisRad(m, &up, (f32) joy->substickY * 0.05f * DEG2RAD);
             PSMTXMultVec(m, dp, dp);
             PSMTXMultVec(m, da, da);
         }

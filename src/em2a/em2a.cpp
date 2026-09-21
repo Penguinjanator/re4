@@ -35,11 +35,11 @@
 #include "em.h"
 #include <dolphin/os.h>
 #include "em10.h"
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2a,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -62,15 +62,8 @@ static void em2a_R1_Trap1R100(cEm2a* em);
 static void em2a_R1_Trap2Set(cEm2a* em);
 static void em2a_R1_Trap2Bomb(cEm2a* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
-
-// Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

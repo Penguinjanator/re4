@@ -18,6 +18,8 @@ struct ScreenInfo {
 };
 
 extern ScreenInfo Screen;
+#define SCR_W ((u32) Screen.width)
+#define SCR_H ((u32) Screen.height)
 extern GXRenderModeObj Rmode;  // game/main_sub.cpp
 
 // game/main.cpp frame buffers

@@ -40,7 +40,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em3dFunc)(cEm3d*);
@@ -51,8 +51,6 @@ static void em3d_R1_Patrol(cEm3d* em);
 static void em3d_R1_TargetMove(cEm3d* em);
 static void em3d_R1_Atk(cEm3d* em);
 static void em3d_R1_WarpMove(cEm3d* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 

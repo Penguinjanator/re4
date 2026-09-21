@@ -26,8 +26,6 @@
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 
 // Builds the main player (Leon, and the other gun-carrying characters through pl_type / costume):

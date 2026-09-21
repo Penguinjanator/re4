@@ -28,7 +28,6 @@
 #include "math_sub.h"
 
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 #define LAUNCHER(pl) ((cObjLauncher*) (pl)->Wep->m_pWep)
 
 

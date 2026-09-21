@@ -10,16 +10,14 @@
 #include "cManager.h"
 #include "em10.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 extern "C" void Em10SetSeTbl(cEm10* em, int type);
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 void Em16Init(cEm* em);
 void Em16Set(cEm10* em);
 void Em16WeaponSet(cEm10* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Module entry (SN loader): registers Em16Init as the DOL's enemy constructor (EmInitFunc) and Em16Set as
 // em10.cpp's per-enemy set function (Em10SetFunc).

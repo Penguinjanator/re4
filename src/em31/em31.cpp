@@ -44,9 +44,9 @@
 #include "quake.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 asm(".comm common_em31,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -241,17 +241,9 @@ static f32 em31ClothMax3[18] = {
     0.3f, 0.6f, 0.9f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f,
 };
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
-
-// Struct-member views of the player pointer / pG: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

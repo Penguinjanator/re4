@@ -49,12 +49,6 @@ struct RockMotData {
 };
 
 
-// Struct-member view of pPL (the pGS trick): the load stays below the preceding atari flag store.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define PLS (((PlayerPtr*) &pPL)->p)
-
 typedef void (*EmRockFunc)(cEmRock*);
 
 extern "C" void emRock_R0_Move(cEmRock* em);
@@ -758,7 +752,7 @@ void emRock_R1_Roll(cEmRock* em)
         }
         emRockPushCk(em, 0);
         em->atari.m_flag &= ~0x200;
-        PLS->ang.y = em->ang.y;
+        pPLS->ang.y = em->ang.y;
         SetPlDamage(em, (void (*)(cPlayer*)) plemRockEscape);
         w->Roll_wait = 75;
         w->spd.x = 0.0f;

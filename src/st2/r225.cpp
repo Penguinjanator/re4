@@ -59,12 +59,6 @@ struct SceElevatorData {
 
 static R225Work* r225_work;
 
-// Struct-member view of pPL (MEM_IN_STRUCT_P load): sched2 keeps it below preceding in-struct frame stores.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // Stores through references (not MEM_IN_STRUCT_P): the static pointer / pPL reload after each one.
 
 

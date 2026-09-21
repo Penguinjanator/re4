@@ -42,13 +42,7 @@
 #define ID_OMAKE_BG 0x2B
 #define ID_OPTION 0x2C
 
-#define KEY_A 0x80000000
-#define KEY_B 0x40000000
 #define KEY_START 0x1000
-#define KEY_UP 0x01000000
-#define KEY_DOWN 0x02000000
-#define KEY_RIGHT 0x04000000
-#define KEY_LEFT 0x08000000
 
 // Store through a reference (matching helper).
 #line 58

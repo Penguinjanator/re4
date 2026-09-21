@@ -44,10 +44,6 @@
 // Room 3-0F (D:/Bio4/Prog/r30f.cpp): the bulldozer ride. Leon and Ashley drive through the four
 // gates, fight off the truck and take the lift up.
 
-struct SubCharPtr {
-    cSubChar* p;
-};
-
 struct R30fWork {
     cObj* lift;           // 0x000  the lift platform (room arc 0xC0/0xC4)
     cObjBull* bull;       // 0x004  the bulldozer (SetBull)
@@ -1562,8 +1558,8 @@ void setLiftMoveAdd(Vec* add)
     }
     pG->quake_ofs = v;
     // Struct-member view of pSUB: its load is not hoisted above the quake_ofs copy (the pGS trick).
-    if (((SubCharPtr*) &pSUB)->p) {
-        addPos(add, ((SubCharPtr*) &pSUB)->p);
+    if (pSUBS) {
+        addPos(add, pSUBS);
     }
     addPos(add, SmdGetObjPtr(0x1E));
     for (i = 0; i < 90; i++) {

@@ -37,7 +37,7 @@
 #include "db_log.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
@@ -70,16 +70,8 @@ static void em3c_R1_Dm_Head(cEm3c* em);
 static void em3c_R0_Die(cEm3c* em);
 static void em3c_R1_Die_Normal(cEm3c* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 

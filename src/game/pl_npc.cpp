@@ -45,8 +45,6 @@ int getFallPos(cSubChar* pl, Vec* pos, Vec* rot);
 void waterProc(cSubChar* pl);
 }
 
-#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-
 // Motion data `no` of the partner's motion archive.
 #define SUB_MOT(pl, no) PL_ARC_PTR((pl)->subArc, no)
 #define SUB_MOTBASE(pl) (&(pl)->m_MotBase)
@@ -56,11 +54,6 @@ void waterProc(cSubChar* pl);
 #define SUBFLAG2(pl) ((cFlag*) &(pl)->status)
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
 #define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, seq, a, b, c)
-
-// pSUB stored through a struct view: keeps the base destructor's be_flag load below the store.
-struct SubCharPtr {
-    cSubChar* p;
-};
 
 const Vec cSubChar::atckPos = { -100.0f, 0.0f, -500.0f };
 const Vec cSubChar::atckPos2 = { 300.0f, 0.0f, -500.0f };
@@ -131,7 +124,8 @@ cSubChar::~cSubChar()
     if (m_pLiF && m_pLiF->isAlive()) {
         LightMgr.destroy(m_pLiF);
     }
-    ((SubCharPtr*) &pSUB)->p = 0;
+    // Stored through the struct view: keeps the base destructor's be_flag load below the store.
+    pSUBS = 0;
 }
 
 // Set up after creation (EmMgr.createBack): cloth, a 1000-unit light and a back light, the 300 x

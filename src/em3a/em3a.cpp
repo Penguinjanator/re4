@@ -42,7 +42,7 @@
 #include "em.h"
 #include "ref_access.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -65,16 +65,7 @@ static void em3a_R1_B_Die(cEm3a* em);
 static void em3a_R1_B_AppearDie(cEm3a* em);
 static void em3a_R1_B_Bomb(cEm3a* em);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
-
-
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores of a stack copy (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 static inline void EmiSet(EmiEntry*& p, EmiEntry* v) { p = v; }

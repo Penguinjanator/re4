@@ -104,12 +104,6 @@ extern "C" void* r318_memset(void*, ...) asm("memset");
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
 
 
-// Struct-member view of pPL: stores through it reload the pointer.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 
 // Drop effect (owner a, kind b) in all three effect systems.
 static inline void EffectDelete(int a, int b)

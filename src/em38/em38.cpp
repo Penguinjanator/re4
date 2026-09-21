@@ -35,11 +35,11 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.
 asm(".comm common_em38,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 // game/em_dm_val.cpp (declared in em10.h, which is not included here: emwep.h's extern "C" plemBackjump would
@@ -87,20 +87,8 @@ static void plemBackjump(cPlayer* pl);
 static void em38SitAction(cEm38* em);
 static void plemSit(cPlayer* pl);
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
 
-// Struct-member view of the player pointer: a load through it is not hoisted above the preceding
-// stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-// Struct-member view of pG (global.h pGS is the same idea): its load stays below a preceding store through the work.
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
 
 // The shell motion work as the MotionWork the motion library takes.
 #define SHELL_MOT(w) ((MotionWork*) &(w)->shellMot)

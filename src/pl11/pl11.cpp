@@ -13,6 +13,7 @@
 #include "db_log.h"
 #include "esp.h"
 
+#undef ARC
 #define ARC(no) SUB_ARC(this, no)
 
 // EmInitFunc of the module: placement-constructs the partner in the cEm work, builds her models,

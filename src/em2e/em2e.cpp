@@ -18,7 +18,7 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-#include "pl_mod.h"
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 typedef void (*Em2eFunc)(cEm2e*);
@@ -34,8 +34,6 @@ static void em2e_R1_W_Turn(cEm2e* em);
 static void em2e_R0_Damage(cEm2e* em);
 static void em2e_R0_Die(cEm2e* em);
 static void em2e_R1_Die_Normal(cEm2e* em);
-
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 
 

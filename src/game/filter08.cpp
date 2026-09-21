@@ -21,9 +21,6 @@
 // Zoom-blur filter centred on the weapon marker (filter08_ratio fades it in/out); the last pass
 // blends a tinted (sr/sg/sb[ptn]) I8 copy back over the frame.
 
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
-
 
 extern "C" {
 void Filter08GetEFB(int div, int div2, int mip, int mode);

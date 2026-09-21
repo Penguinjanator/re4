@@ -167,12 +167,6 @@ void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* dow
     }
 }
 
-// Struct-member view of the cModel manager pointers (game/sscrn.cpp MGR_PTR).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
-
 // Switches cModel to the DLL's own parts/model-info managers (0x100 parts, 0xA0 infos) and creates
 // the 0xA0 MapMgr model works the screens use; attr_flag bit 0 records it for sscrnModelFree.
 void generalModelAlloc(SUB_SCREEN* wk)

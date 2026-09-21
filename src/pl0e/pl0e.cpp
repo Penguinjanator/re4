@@ -82,7 +82,6 @@ static void subBoatCrash();
 static void subBoatSink();
 static void subBoatJumpMiss();
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define SUBARC(no) PL_ARC_PTR(sub->subArc, no)
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
@@ -90,17 +89,6 @@ static void subBoatJumpMiss();
 
 // Store through a reference: a scalar (non-struct) MEM, so a following global load stays below it.
 // Read through a reference: a MEM with neither the struct nor the scalar flag stays below preceding member stores.
-
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
-// Struct-member view of pPL: the load stays below a preceding store through a work pointer.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 // Speed towards a limit by 25 per frame: from above it falls, from below it rises, never crossing it.

@@ -21,8 +21,6 @@
 #include <dolphin/gx/GXDispList.h>
 #include "trans.h"
 
-#define DEG (PI / 180.0f)
-
 struct TileWork {
     s16 x;       // 0x00
     s16 y;       // 0x02
@@ -519,7 +517,7 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
     f32 h;
     u32 i;
 
-    ang = ang * DEG;
+    ang = ang * DEG2RAD;
     PSMTXIdentity(m);
     axis.x = 1.0f;
     axis.y = 0.0f;

@@ -61,16 +61,6 @@ struct R101Work {
 
 static R101Work* r101_work;
 
-// pPL read as a struct member: the load stays below the preceding Vec template stores (r102).
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-// Same for pSys (em10.cpp): the load stays below the preceding `ang = pPL->pos` copy stores (Event00).
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
 
 // Pointer stores through a reference: the work pointer is reloaded after them (see st_room.h).
 static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }

@@ -41,13 +41,6 @@
 #include <dolphin/os.h>
 #include <string.h>
 
-// Struct-member view of the cModel manager pointers: a plain scalar store lets the scheduler hoist
-// the following pG load above it (the read.cpp EmInitFunc trick).
-struct MgrPtr {
-    void* p;
-};
-#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
-
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 #define SS_ARAM 0xD00000

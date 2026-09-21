@@ -20,8 +20,6 @@
 #define BLUR_BUFF_SIZE 0x38000
 static const int zero = 0;
 #define SET_COL(c, R, G, B, A) ((c).r = (R), (c).g = (G), (c).b = (B), (c).a = (A))
-#define SCR_W ((u32) Screen.width)
-#define SCR_H ((u32) Screen.height)
 
 static u8 blur_rate = 0x40;
 u8 blur_type = 0;

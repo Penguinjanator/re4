@@ -63,12 +63,6 @@ struct R403MercInit {
     u32 x5C[4];
 };
 
-// Struct view of pPL: the in-struct load is invalidated by the collision flag stores (pPL reloaded per statement).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 // Store through a reference: the following pG load stays below it.
 
 

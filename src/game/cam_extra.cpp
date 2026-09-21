@@ -35,8 +35,6 @@ extern u8 filter0a_mask_flag;
 extern u8 filter0a_mask_id;
 extern u8 filter0a_mask_alpha;
 
-#define DEG 0.017453292f
-
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
@@ -242,10 +240,6 @@ void FocusAnimation::clear()
         }                                                                                            \
     }
 
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 // The rifle scope camera: the eye offset and look direction come from pos / at in the player's
 // frame (type picks the scope reticle set by the equipped rifle), fov 45, pitch limited to
 // +-70 degrees, zoom 0, and the reticle ids are created.
@@ -402,7 +396,7 @@ void CameraScope::move()
     gain = zoom * -0.9f + 1.0f;
     if (Key.on & 0x10) {
         if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
-            add = gain * (f32) Joy[0].stickX * -0.05f * DEG;
+            add = gain * (f32) Joy[0].stickX * -0.05f * DEG2RAD;
             if (Joy[0].on & 1) {
                 add = gain * SCOP_VEL_Y + add;
             }
@@ -414,7 +408,7 @@ void CameraScope::move()
     }
     if (Key.on & 0x10) {
         if (Joy[0].stickY != 0 || (Joy[0].on & 0xC)) {
-            add = gain * (f32) Joy[0].stickY * -0.05f * DEG;
+            add = gain * (f32) Joy[0].stickY * -0.05f * DEG2RAD;
             if (Joy[0].on & 8) {
                 add = add - gain * SCOP_VEL_X;
             }
@@ -679,7 +673,7 @@ void CameraBinocular::move()
     gain = m_zoom_ratio * -0.9f + 1.0f;
     if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
         Vec axis = {0.0f, 1.0f, 0.0f}; // initialised inside this block (the stores sit below the stb)
-        add = gain * (f32) Joy[0].stickX * -0.05f * DEG;
+        add = gain * (f32) Joy[0].stickX * -0.05f * DEG2RAD;
         if (Joy[0].on & 1) {
             add = gain * BINO_VEL_Y + add;
         }
@@ -696,7 +690,7 @@ void CameraBinocular::move()
         m_rad.y = m_rad.y + add;
     }
     if (Joy[0].stickY != 0 || (Joy[0].on & 0xC)) {
-        add = gain * (f32) Joy[0].stickY * 0.05f * DEG;
+        add = gain * (f32) Joy[0].stickY * 0.05f * DEG2RAD;
         if (Joy[0].on & 8) {
             add = gain * BINO_VEL_X + add;
         }

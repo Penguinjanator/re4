@@ -29,8 +29,6 @@
 
 extern int ProjType;
 
-#define DEG 0.017453292f
-
 // Orthographic zoom: the top/left extents move together (plain block: a do-while's loop notes
 // flip the f0/f13 allocation of the two chains).
 #define ORTHO_ZOOM(t)                    \
@@ -315,10 +313,10 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     }
     if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG2RAD);
     }
     if (joy->stickY) {
-        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG);
+        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG2RAD);
     }
     if (joy->on & JOY_LEFT) {
         mv.x = -100.0f;
@@ -368,10 +366,10 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     }
     if (joy->substickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG2RAD);
     }
     if (joy->substickY) {
-        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG);
+        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG2RAD);
     }
 }
 
@@ -426,10 +424,10 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
     }
     if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG2RAD);
     }
     if (joy->stickY) {
-        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG);
+        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG2RAD);
     }
 }
 
@@ -591,7 +589,7 @@ int debugCamera::menuCamera(JOY* joy)
     if (d) {
         switch (m_sel1) {
         case 0:
-            cam->param.roll += (f32) d * DEG;
+            cam->param.roll += (f32) d * DEG2RAD;
             if (cam->param.roll < -PI) {
                 cam->param.roll = -PI;
             }

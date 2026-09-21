@@ -769,12 +769,6 @@ static void door5_close()
     }
 }
 
-// Struct view of pPL (r20e idiom): the load after the FSet stores through it is a fresh `lwz pPL`.
-struct PlPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlPtr*) &pPL)->p)
-
 // Swing on a chandelier: `no` picks the chandelier, `pos`/`rot` its placement, the four offsets the
 // landing spots and `ofsBase` the swing-start offsets. Shapes (the r117 EventChandelier idioms): the
 // first wait is a `do {} while (1)` (a `while (1)` gets rotated by jump.c: `b TOP; SLEEP: ..; TOP:`,

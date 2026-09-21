@@ -108,7 +108,6 @@ static void subBoatR10dIn();
 static void subBoatR10eIn();
 static void subBoatR10eIn2();
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define SUBARC(no) PL_ARC_PTR(sub->subArc, no)
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
@@ -122,16 +121,6 @@ struct Em2fWorkView {
 };
 
 static inline void U8Set(u8& d, int v) { d = v; }
-
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 static Pl0fFunc Pl0f_R0_move_tbl[5] = {

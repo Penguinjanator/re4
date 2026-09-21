@@ -41,11 +41,11 @@
 #include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
-#include "pl_mod.h"
 
 // The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
 // object, merged into .bss by the REL link.
 asm(".comm common_em2d,52,4");
+extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
 
 
@@ -215,15 +215,7 @@ static EmAtkInfo em2d_poison_atk[1] = {
 // TexRender flag written to cModel::x137 every frame (em2dCamouflageMove).
 static u8 em2d_tex_flag = 0xF;
 
-#define ARC(no) PL_ARC_PTR(em->subArc, no)
 #define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
-// Struct-member views of the player pointer / pG: a load through them is not hoisted above the
-// preceding stores through the work pointer (cam_ctrl.cpp PlayerPtr).
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
 
 
 
