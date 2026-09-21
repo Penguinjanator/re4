@@ -57,8 +57,8 @@ public:
     u8 Priority;            // 0x1F
     u32 ParentNo;      // 0x20  parts no << 16 | parent no
     u16 HitRadius;           // 0x24  hit adjust radius
-    u16 x32;           // 0x26
-    u32 x34;           // 0x28
+    u16 Dummy82;       // 0x26  (PS2 cLightWork Dummy82)
+    u32 Dummy9;        // 0x28  (PS2 cLightWork Dummy9)
     LightSpot spot;    // 0x2C
     LightSub sub;      // 0x6C
     LightPath path;    // 0xEC
@@ -89,8 +89,8 @@ public:
         } parent;
     };
     u16 HitRadius;           // 0x30  hit adjust radius
-    u16 x32;           // 0x32
-    u32 x34;           // 0x34
+    u16 Dummy82;       // 0x32  (PS2 cLight Dummy82)
+    u32 Dummy9;        // 0x34  (PS2 cLight Dummy9)
     union {
         Vec normal;        // 0x38 direction
         LightSpot spot;    // 0x38 .. 0x78
@@ -101,7 +101,9 @@ public:
     };
     LightPath path;    // 0xF8 .. 0x138
     u8 Rno0;           // 0x138  per-type routine step (light05/light07 path lights)
-    u8 pad_139[3];
+    u8 Rno1;           // 0x139  (PS2 Rno1; db_light clears Rno0..Rno3 together)
+    u8 Rno2;           // 0x13A  (PS2 Rno2)
+    u8 Rno3;           // 0x13B  (PS2 Rno3)
     GXColor DispCol;  // 0x13C color actually applied
     u16 LitIndex;      // 0x140  index in the cut (0xFFFF = none; trans_lit compares it zero-extended)
     u8 pad_142[2];
@@ -204,8 +206,7 @@ struct cLightEnv {
     u8 tuneOn;       // 0x30  bit0: tune colours below are valid
     u8 pad_31[3];
     GXColor Tune[3]; // 0x34
-    u8 tev_scale[2];  // 0x40  -> gxCsScale
-    u8 pad_42[2];
+    u8 tev_scale[4];  // 0x40  [0..1] -> gxCsScale; db_light shows [2] as a third on/off (PS2 tev_scale[4])
     f32 far_play_ratio;     // 0x44  far plane = fog end * (1 - farRate) + 1
     u8 Hokan;        // 0x48  fog interpolation frames
     u8 pad_49[0xEC - 0x49];
