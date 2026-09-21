@@ -8,6 +8,7 @@
 #include "player.h"
 #include "pl_npc.h"
 #include "pl_sub.h"
+#include "pl14.h"
 #include "global.h"
 #include "db_log.h"
 #include "main.h"
@@ -763,7 +764,7 @@ int joyFireOn()
         if (StaFlagChk(pG, STA_ACT_DONT_FIRE) || (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
             StaFlagOn(pG, STA_PL_ACTION);
             if (pG->stage_no == 1 && pG->room_no == 0x1C && (StaFlagChk(pG, STA_PL_DONT_FIRE))) {
-                BitOn(pG->Room_flg[0], 0x20000000);
+                RmfFlagOn(pG, RMF_LUIS_ANGRY);
             }
             return 0;
         }

@@ -1841,28 +1841,28 @@ static inline void em2bHouseFlagSet(Em2bEmi* h)
     if (h->state == 0) {
         switch (h->no) {
         case 0:
-            U32Or(pG->Room_flg[0], 0x80000000);
-            U32Or(pG->Room_flg[0], 0x10000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
+            RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
             break;
         case 1:
-            U32Or(pG->Room_flg[0], 0x40000000);
-            U32Or(pG->Room_flg[0], 0x08000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
+            RmfFlagOn(pG, RMF_R119_DESTROY_YANE_B);
             break;
         case 2:
-            U32Or(pG->Room_flg[0], 0x20000000);
-            U32Or(pG->Room_flg[0], 0x04000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
+            RmfFlagOn(pG, RMF_R119_DESTROY_YANE_C);
             break;
         }
     } else {
         switch (h->no) {
         case 0:
-            U32Or(pG->Room_flg[0], 0x80000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
             break;
         case 1:
-            U32Or(pG->Room_flg[0], 0x40000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
             break;
         case 2:
-            U32Or(pG->Room_flg[0], 0x20000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
             break;
         }
     }
@@ -2008,13 +2008,13 @@ static void em2b_R1_HouseBreak(cEm2b* em)
             if (w->pHouse) {
                 switch (w->pHouse->no) {
                 case 0:
-                    U32Or(pG->Room_flg[0], 0x10000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
                     break;
                 case 1:
-                    U32Or(pG->Room_flg[0], 0x08000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_B);
                     break;
                 case 2:
-                    U32Or(pG->Room_flg[0], 0x04000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_C);
                     break;
                 }
                 w->pHouse->state = 1;
@@ -2918,7 +2918,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0xE6), ARC(0xE7), 0, 1, 0);
         MotionMove(em, 0);
-        if (!(pG->Room_flg[0] & 0x80000000)) {
+        if (!RmfFlagChk(pG, RMF_R119_DESTROY_KOYA_A)) {
             em->r_no_2 = 4;
             break;
         }
@@ -3011,7 +3011,7 @@ static void plem2bDmFall(cPlayer* pl)
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         if (pl->m_Work1) {
             pl->m_Work1--;
-            pGS->Room_flg[0] |= 0x20000000;
+            RmfFlagOn(pGS, RMF_R119_DESTROY_KOYA_C);
         }
         if (pl->m_Work0) {
             pl->m_Work0--;
@@ -5034,19 +5034,19 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
         if (pG->stage_no == 1 && pG->room_no == 0x1E && h->state == 0) {
             switch (h->no) {
             case 0:
-                U32Or(pG->Room_flg[0], 0x20000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
                 h->state = 3;
                 break;
             case 1:
-                U32Or(pG->Room_flg[0], 0x10000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
                 h->state = 3;
                 break;
             case 2:
-                U32Or(pG->Room_flg[0], 0x80000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
                 h->state = 3;
                 break;
             case 3:
-                U32Or(pG->Room_flg[0], 0x40000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
                 h->state = 3;
                 break;
             }
@@ -5127,22 +5127,22 @@ void em2bR11eScrBrkCk(cEm2b* em)
         switch (h->no) {
         case 0:
             if (w->HoseiCnt > 2) {
-                U32Or(pG->Room_flg[0], 0x20000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
                 h->state = 3;
             }
             break;
         case 1:
             if (w->HoseiCnt > 2) {
-                U32Or(pG->Room_flg[0], 0x10000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
                 h->state = 3;
             }
             break;
         case 2:
-            U32Or(pG->Room_flg[0], 0x80000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
             h->state = 3;
             break;
         case 3:
-            U32Or(pG->Room_flg[0], 0x40000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
             h->state = 3;
             break;
         }
@@ -5179,11 +5179,11 @@ void em2bR11eScrBrkCk2(cEm2b* em, Vec* pos, f32 rad)
         case 1:
             break;
         case 2:
-            U32Or(pG->Room_flg[0], 0x80000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
             h->state = 3;
             break;
         case 3:
-            U32Or(pG->Room_flg[0], 0x40000000);
+            RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
             h->state = 3;
             break;
         }
@@ -5217,19 +5217,19 @@ void em2bPlBlowAtkScrCk(cPlayer* pl)
         if (pG->stage_no == 1 && pG->room_no == 0x1E && h->state == 0) {
             switch (h->no) {
             case 0:
-                U32Or(pG->Room_flg[0], 0x20000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
                 h->state = 3;
                 break;
             case 1:
-                U32Or(pG->Room_flg[0], 0x10000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
                 h->state = 3;
                 break;
             case 2:
-                U32Or(pG->Room_flg[0], 0x80000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
                 h->state = 3;
                 break;
             case 3:
-                U32Or(pG->Room_flg[0], 0x40000000);
+                RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
                 h->state = 3;
                 break;
             }
@@ -5558,7 +5558,7 @@ int em2bAtkRtnCk(cEm2b* em)
         if (pSUB) {
             dash = 0;
         }
-        if (pG->room_id == 0x224 && !(pG->Room_flg[0] & 0x10000000)) {
+        if (pG->room_id == 0x224 && !RmfFlagChk(pG, RMF_R119_DESTROY_YANE_A)) {
             dash = 0;
         }
         if (dash && em2bInScreenCk(em)) {
@@ -6329,7 +6329,7 @@ int cEm2b::ckR224Drop()
     if (dist > 64000000.0f) {
         return 0;
     }
-    if (!(pG->Room_flg[0] & 0x80000000)) {
+    if (!RmfFlagChk(pG, RMF_R119_DESTROY_KOYA_A)) {
         return 0;
     }
     if (dist > 25000000.0f) {

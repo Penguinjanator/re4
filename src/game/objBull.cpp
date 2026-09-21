@@ -374,7 +374,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
         MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
         MotionMove(obj, 0);
         zero = 0;
-        if (pG->Room_flg[0] & 0x08000000) {
+        if (pG->Room_flg[0] & 0x08000000) {  // RMF_LIFT_START (r30f)
             obj->r_no_0 = 6;
             obj->r_no_1 = zero;
             obj->r_no_2 = zero;
@@ -420,7 +420,7 @@ void objBull_R0_Lift(cObjBull* obj)
     case 3:
         MotionMove(obj, 0);
         zero = 0;
-        if (pG->Room_flg[0] & 0x00400000) {
+        if (pG->Room_flg[0] & 0x00400000) {  // RMF_LIFT_END (r30f)
             obj->r_no_0 = 7;
             obj->r_no_1 = zero;
             obj->r_no_2 = zero;

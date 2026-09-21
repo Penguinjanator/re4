@@ -758,7 +758,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     int ok = 1;
     int i;
 
-    if (U32Ref(pG->Debug_flg[2]) & 0x80000) {
+    if (DbgFlagChk(pG, DBG_SE_STOP)) {
         return 0;
     }
     pan_calc = 1;

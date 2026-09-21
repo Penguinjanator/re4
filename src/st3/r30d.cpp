@@ -165,7 +165,7 @@ void R30dInit()
             b2->setPos(&v);
         }
     }
-    if (!(pG->Key_flg[0] & 0x400)) {
+    if (!KyfFlagChk(pG, KYF_R30D_TO_R30F_DOOR)) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R30dDoorCheck, 0, 1);
         SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R30dCoopSwitch, 0, 1);
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) R30dCoopSwitch, 0, 1);
@@ -384,7 +384,7 @@ static void R30dShutterFrontEvent()
     }
     SceAtSetEnable(0x18, 0);
     R30D_SAVE_FLAGS |= 0x08000000;
-    BitOn(pG->Key_flg[1], 0x40000000);
+    KyfFlagOn(pG, KYF_ST1_09);
     pSUB->dmg.m_Timer = 0x80;
     SubCharMoveTo(2670.0f, 0.0f, 15200.0f, 0.0f, 0);
     while ((SubCharGetStatus() & 0x00800000) == 0) {
@@ -435,7 +435,7 @@ static void R30dShutterFrontEvent()
 // Area 1, the coop gate: up-cut 0/2 while locked (Key_flg[0] 0x400 clear), else run the door area.
 static void R30dDoorCheck()
 {
-    if (!(pG->Key_flg[0] & 0x400)) {
+    if (!KyfFlagChk(pG, KYF_R30D_TO_R30F_DOOR)) {
         SceUpCut(0, -1, 2, 0);
     } else {
         SceAtExecute(1);
@@ -635,8 +635,8 @@ static void R30dCoopSwitch()
                         if (!(pG->Room_flg[0] & 0x10000000)) {
                             SndCall(6, 9, 0, 0, 0, 0);
                         }
-                        BitOn(pG->Key_flg[0], 0x400);
-                        BitOn(pG->Key_flg[1], 0x20000000);
+                        KyfFlagOn(pG, KYF_R30D_TO_R30F_DOOR);
+                        KyfFlagOn(pG, KYF_ST1_10);
                         SceUpCut(3, 6, 4, 0);
                         COOP_ACTIVE(c) = zero;
                         break;

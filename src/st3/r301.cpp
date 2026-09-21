@@ -164,7 +164,7 @@ static void r301_execContinuePoint()
         u32 zero = 0;
 
         RsfSet(G_ROOM_ID, 5);
-        pG->Key_flg[0] |= 0x40;
+        KyfFlagOn(pG, KYF_ST1_01);
         SceAtSetEnable(0xF, 0);
         r301_work.p->espKind = 0;
         r301_work.p->sndId = 0;

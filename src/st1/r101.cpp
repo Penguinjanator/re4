@@ -244,10 +244,10 @@ void R101Init()
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    if (!(pG->Key_flg[0] & 0x02000000)) {
+    if (!KyfFlagChk(pG, KYF_R105_TO_R101_DOOR)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen3, 0, 1);
     }
-    if (!(pG->Key_flg[0] & 0x20000000)) {
+    if (!KyfFlagChk(pG, KYF_R101_IRON_DOOR)) {
         SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r101_checkDoor102, 0, 1);
         SceExec(0x12, (TaskFunc) r101_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -851,7 +851,7 @@ static void r101_checkDoor102KeyUse()
     }
     SndCall(6, 0x25, 0, 0, 0, 0);
     SceMesSet(0xB, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->Key_flg[0] |= 0x20000000;
+    KyfFlagOn(pG, KYF_R101_IRON_DOOR);
     SceAtDataReset(0x19);
 }
 

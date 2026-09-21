@@ -98,6 +98,15 @@ Enums (`EM_STATUS`, `DATA_COMMAND`, `SCE_LEVEL`, ...) are from the same dump; wh
 introduced, the magic constants at typed call sites were replaced with its enumerators and the
 parameter types left alone.
 
+The pG flag words (`Debug_flg`, `Status_flg`, `Key_flg`, ...) are read and written through the
+`XxxFlagChk/On/Off(pG, NAME)` macros of `global.h`; bit `no` is bit `31 - (no & 31)` of word `no >> 5`,
+the numbering of the t_flag.cpp tables and of the PS2 enums (`DBG_FLAG`, `STA_FLAG`, `KEY_FLAG`, ...).
+`Room_flg` has no global enum: the bits mean something different in every room. The five rooms whose
+flags the PS2 build names (`enum ROOM_FLAG` blocks, matched to a GC room by the set of bits its code
+uses) have an `enum R<xxx>_FLAG { RMF_... }` at the top of the room source, or in the header of the
+object that shares the bits (`objRobo.h` r226, `em2b.h` r119, `pl14.h` r11c), and use `RmfFlagChk`;
+every other room keeps the raw mask, since there is no vendor name to give the bit.
+
 ### 2. Names given from usage by the decompilers
 
 Where the PS2 dump has no counterpart for a field (the struct was reorganised, or the field is

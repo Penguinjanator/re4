@@ -459,7 +459,7 @@ static void exec_no_ret()
 {
     int zero = 0;
 
-    BitOn(pG->Key_flg[1], 0x4000);
+    KyfFlagOn(pG, KYF_ST1_26);
     RsfSet(G_ROOM_ID, 3);
     SceEventStart(1);
     SndStrReq(1, 0x3A, 0x80000003, 0, 0, 0.0f);

@@ -97,7 +97,7 @@ void R113Init()
     EstSet(pPL, -1, 0, 0, EFF_ROOM, 3, 0x800, ESP_CORE_KIND_NONE, zero, zero);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
-    if (!(pG->Key_flg[0] & 0x08000000) && (StaFlagChk(pG, STA_SUB_ASHLEY))) {
+    if (!KyfFlagChk(pG, KYF_R113_TO_R11C_DOOR) && StaFlagChk(pG, STA_SUB_ASHLEY)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
     }
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r113_eff_info);
@@ -190,7 +190,7 @@ static void r113_EventRideShoulder()
     int i;
 
     SceAtSetEnable(3, 0);
-    BitOn(pG->Key_flg[0], 0x08000000);
+    KyfFlagOn(pG, KYF_R113_TO_R11C_DOOR);
     r113_work->strId = 0;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
@@ -277,7 +277,7 @@ static void r113_checkAshleyPos()
 // The front door: the up-cut until the window event is done.
 static void r113_DoorCheck()
 {
-    if (!(pG->Key_flg[0] & 0x08000000)) {
+    if (!KyfFlagChk(pG, KYF_R113_TO_R11C_DOOR)) {
         SceUpCut(0, -1, 0xA, 0);
     } else {
         SceAtExecute(2);

@@ -182,7 +182,7 @@ void R104Init()
         m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
-    if (!(pG->Key_flg[0] & 0x00400000)) {
+    if (!KyfFlagChk(pG, KYF_R104_TO_R107_DOOR)) {
         SceAtSetEnable(0x97, 0);
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r104_checkDoor107, 0, 1);
         SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -449,7 +449,7 @@ static void r104_checkDoor107KeyUse()
     SceAtSetEnable(0x97, 1);
     SndCall(6, 3, 0, 0, 0, 0);
     SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->Key_flg[0] |= 0x00400000;
+    KyfFlagOn(pG, KYF_R104_TO_R107_DOOR);
     SceAtDataReset(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

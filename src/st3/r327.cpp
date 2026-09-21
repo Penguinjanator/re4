@@ -584,7 +584,7 @@ static void r327_DoorOpenEndProc(int se)
     CamCtrl.Comeback(0);
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);
-    pG->Key_flg[1] |= 0x00400000;
+    KyfFlagOn(pG, KYF_ST1_18);
     SceEventEnd(0);
 }
 
