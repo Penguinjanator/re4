@@ -218,34 +218,34 @@ static cModel* p_imodel_bak = NULL;
 static void* lbl_80314D6C = NULL;
 
 extern "C" {
-static int sceAtFunc_normal(SceAtWork* w, cModel* m);
-static int sceAtFunc_door(SceAtWork* w, cModel* m);
+int sceAtFunc_normal(SceAtWork* w, cModel* m);
+int sceAtFunc_door(SceAtWork* w, cModel* m);
 static int sceAtFunc_exec(SceAtWork* w, cModel* m);
-static int sceAtFunc_item(SceAtWork* w, cModel* m);
-static int sceAtFunc_flg(SceAtWork* w, cModel* m);
-static int sceAtFunc_mes(SceAtWork* w, cModel* m);
-static int sceAtFunc_save(SceAtWork* w, cModel* m);
+int sceAtFunc_item(SceAtWork* w, cModel* m);
+int sceAtFunc_flg(SceAtWork* w, cModel* m);
+int sceAtFunc_mes(SceAtWork* w, cModel* m);
+int sceAtFunc_save(SceAtWork* w, cModel* m);
 static int sceAtFunc_shd_disp(SceAtWork* w, cModel* m);
-static int sceAtFunc_damage(SceAtWork* w, cModel* m);
-static int sceAtFunc_scr_at(SceAtWork* w, cModel* m);
-static int sceAtFunc_field_info(SceAtWork* w, cModel* m);
-static int sceAtFunc_stoop(SceAtWork* w, cModel* m);
-static int sceAtFunc_skey(SceAtWork* w, cModel* m);
-static int sceAtFunc_ladder(SceAtWork* w, cModel* m);
-static int sceAtFunc_use(SceAtWork* w, cModel* m);
-static int sceAtFunc_hide(SceAtWork* w, cModel* m);
-static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m);
-static void sceInLock(SceAtWork* w);
+int sceAtFunc_damage(SceAtWork* w, cModel* m);
+int sceAtFunc_scr_at(SceAtWork* w, cModel* m);
+int sceAtFunc_field_info(SceAtWork* w, cModel* m);
+int sceAtFunc_stoop(SceAtWork* w, cModel* m);
+int sceAtFunc_skey(SceAtWork* w, cModel* m);
+int sceAtFunc_ladder(SceAtWork* w, cModel* m);
+int sceAtFunc_use(SceAtWork* w, cModel* m);
+int sceAtFunc_hide(SceAtWork* w, cModel* m);
+int sceAtFunc_pos_jump(SceAtWork* w, cModel* m);
+void sceInLock(SceAtWork* w);
 static void sceAtSkey(SceAtWork* w);
-static void sceAtGetItem(SceAtWork* w);
-static void sceAtGetItem_NoModel(SceAtWork* w);
+void sceAtGetItem(SceAtWork* w);
+void sceAtGetItem_NoModel(SceAtWork* w);
 static void sceAtDeleteItem(SceAtWork* w);
-static void initReleaseModelTbl();
-static void setReleaseModelTbl(void* bin, void* tpl);
-static void checkReleaseModelTbl();
-static void sceAtCamCtrlCheck();
-static void sceAtDebugDisp();
-static void sceAtItemFindCheck();
+void initReleaseModelTbl();
+void setReleaseModelTbl(void* bin, void* tpl);
+void checkReleaseModelTbl();
+void sceAtCamCtrlCheck();
+void sceAtDebugDisp();
+void sceAtItemFindCheck();
 static void sceAtDataLoopInit();
 }
 
@@ -744,7 +744,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
 }
 
 // Type 0 / 6 / 7 / 0xC / 0x14 handler: records `m` in the area's hitModel list (SceAtCheckHitModel).
-static int sceAtFunc_normal(SceAtWork* w, cModel* m)
+int sceAtFunc_normal(SceAtWork* w, cModel* m)
 {
     u32 i;
 
@@ -759,7 +759,7 @@ static int sceAtFunc_normal(SceAtWork* w, cModel* m)
 
 // Task for a locked door: the locked SE and message 0xA ("locked") or 0xB ("unlocked with the
 // key", lockType 2 sets the unlock bit); then re-enables the area and restores Stop_flg.
-static void sceInLock(SceAtWork* w)
+void sceInLock(SceAtWork* w)
 {
     switch (w->lockType) {
     case 1:
@@ -814,7 +814,7 @@ int CheckDoorJumpWithAshley()
 // its unlock bit clear) runs sceInLock; else hands the door function to SceSys and sets the next
 // room (NextPos / NextY, next_stage / next_room_no / next_point, door_no) and the game routine 4
 // (room change).
-static int sceAtFunc_door(SceAtWork* w, cModel* m)
+int sceAtFunc_door(SceAtWork* w, cModel* m)
 {
     u8 lt;
 
@@ -880,13 +880,13 @@ static int sceAtFunc_exec(SceAtWork* w, cModel* m)
 }
 
 // Empties the deferred item-model free list.
-static void initReleaseModelTbl()
+void initReleaseModelTbl()
 {
     memclr_asm(releaseModelTbl, sizeof(releaseModelTbl));
 }
 
 // Queues an item model's bin / tpl to be freed 3 frames later (after the GPU is done with it).
-static void setReleaseModelTbl(void* bin, void* tpl)
+void setReleaseModelTbl(void* bin, void* tpl)
 {
     u32 i;
 
@@ -903,7 +903,7 @@ break;
 }
 
 // Per frame: counts the deferred frees down and frees the buffers.
-static void checkReleaseModelTbl()
+void checkReleaseModelTbl()
 {
     u32 i;
 
@@ -1030,7 +1030,7 @@ void releaseModel(SceAtWork* w, int keep)
 // messages, treasure, key items...), shows the "got X" message with the item zoom (itemExam; B
 // cancels), opens the sub screen when the case is full, then marks the item taken, disables the
 // area, frees the model / allocation and ends the cut.
-static void sceAtGetItem(SceAtWork* w_)
+void sceAtGetItem(SceAtWork* w_)
 {
     // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): the parameter is copied into a local.
     SceAtWork* w = w_;
@@ -1294,7 +1294,7 @@ static void sceAtGetItem(SceAtWork* w_)
 
 // The same pick-up sequence without a model to zoom (the item's model failed to load or is a
 // no-model item): messages, case placement (PutInCase) or the sub screen, flags and clean-up.
-static void sceAtGetItem_NoModel(SceAtWork* w)
+void sceAtGetItem_NoModel(SceAtWork* w)
 {
     static int sub_screen_open;
     static int swep_flag;
@@ -1514,7 +1514,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
 
 // Type 3 handler (item): keys blocked, the item model prepared (itemZoom) and the pick-up task
 // started (sceAtGetItem or the no-model variant); SceSys.m_item_get = 1 while it runs.
-static int sceAtFunc_item(SceAtWork* w, cModel* m)
+int sceAtFunc_item(SceAtWork* w, cModel* m)
 {
     SceAtItem* it = &w->item;
     int ret;
@@ -1570,7 +1570,7 @@ static inline void RsfClear(u16 room, int no)
 
 // Type 4 handler (flag): sets or clears (flg.off) flag `no` of kind 0 event flags (Room_flg),
 // 1 room save flags, 2 Scenario_flg[0].
-static int sceAtFunc_flg(SceAtWork* w, cModel* m)
+int sceAtFunc_flg(SceAtWork* w, cModel* m)
 {
     SceAtFlg* f = &w->flg;
 
@@ -1611,7 +1611,7 @@ static int sceAtFunc_flg(SceAtWork* w, cModel* m)
 
 // Type 5 handler (message): shows the message at once, or as a scenario task when a camera cut is
 // requested.
-static int sceAtFunc_mes(SceAtWork* w, cModel* m)
+int sceAtFunc_mes(SceAtWork* w, cModel* m)
 {
     SceAtMesData* d = &w->mes;
 
@@ -1662,7 +1662,7 @@ void SceAtSetMes(SceAtMesData* m)
 
 // Type 8 handler (typewriter): saves to the memory card (CardSave, slot `value`), refused with
 // message 0x97 while Ashley is carried / away.
-static int sceAtFunc_save(SceAtWork* w, cModel* m)
+int sceAtFunc_save(SceAtWork* w, cModel* m)
 {
     if (pSUB != 0 && (StaFlagChk(pG, STA_SUB_CATCHED) || (SubCharGetStatus() & 0x02000000))) {
         cMes.MesSet(0x97, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
@@ -1708,7 +1708,7 @@ void sceAtFunc_shd_disp_reverse(SceAtWork* w)
 // Type 0xA handler (damage area): damages the player (checkType bit0) / partner (bit3) through
 // setDamage(kind, arg, power or 123 = no direction, flags bit0, time) when alive and not already
 // dying, and registers a DmgMgr area of the same shape for the enemies (bit1).
-static int sceAtFunc_damage(SceAtWork* w, cModel* m)
+int sceAtFunc_damage(SceAtWork* w, cModel* m)
 {
     Vec pt[4];
     Vec c;
@@ -1796,13 +1796,13 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
 }
 
 // Type 0xB (runtime scenario collision) has no trigger action.
-static int sceAtFunc_scr_at(SceAtWork* w, cModel* m)
+int sceAtFunc_scr_at(SceAtWork* w, cModel* m)
 {
     return 0;
 }
 
 // Type 0xD handler (field info): value 0 flags the model inside (litArea.x0 bit0, dark area).
-static int sceAtFunc_field_info(SceAtWork* w, cModel* m)
+int sceAtFunc_field_info(SceAtWork* w, cModel* m)
 {
     if (w->field.value == 0) {
         ((cEm*) m)->litArea.x0 |= 1;
@@ -1811,14 +1811,14 @@ static int sceAtFunc_field_info(SceAtWork* w, cModel* m)
 }
 
 // Type 0xE handler (stoop): the player crouches (low passage).
-static int sceAtFunc_stoop(SceAtWork* w, cModel* m)
+int sceAtFunc_stoop(SceAtWork* w, cModel* m)
 {
     PlSetCrouch();
     return 0;
 }
 
 // Type 0xF handler (special key): stops the game and shows the "needs a key" message task.
-static int sceAtFunc_skey(SceAtWork* w, cModel* m)
+int sceAtFunc_skey(SceAtWork* w, cModel* m)
 {
     pS->x94 = pG->Stop_flg;
     KeyStop(0xEFCF0000);
@@ -1867,7 +1867,7 @@ void sceAtLadder(SceAtWork* w)
 
 // Type 0x10 handler (ladder): puts the player on the ladder (PlSetLadder at the area's foot
 // position / angle / level) and starts the camera task when cut1 is set.
-static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
+int sceAtFunc_ladder(SceAtWork* w, cModel* m)
 {
     Vec pos;
     f32 ang;
@@ -1921,7 +1921,7 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
 
 // Type 0x11 handler (use item): the item useItem[1] becomes usable from the inventory while the
 // player stands here (ItemMgr.available).
-static int sceAtFunc_use(SceAtWork* w, cModel* m)
+int sceAtFunc_use(SceAtWork* w, cModel* m)
 {
     ItemMgr.available(w->useItem[1]);
     return 0;
@@ -1929,7 +1929,7 @@ static int sceAtFunc_use(SceAtWork* w, cModel* m)
 
 // Type 0x12 handler (hide spot, action button): sends Ashley to hide at hide.pos (SubCharCtrlHide
 // with hide.mode), starts the hide sequence (step 1) with its SE.
-static int sceAtFunc_hide(SceAtWork* w, cModel* m)
+int sceAtFunc_hide(SceAtWork* w, cModel* m)
 {
     SubCharCtrlHide(&w->hide.pos, w->hide.mode);
     w->hide.step = 1;
@@ -2050,7 +2050,7 @@ FOUND:
 // swapped: local-alloc qty priority); store orders, chains and a zero local tried.
 // Type 0x13 handler (position jump): teleports the player to jumpPos / dstAngle and re-seats the
 // quasi-FPS camera.
-static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
+int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
 {
     Vec rot;
     // COMPILER-DIFF: #13. The original's 0.0 is a reload-materialised constant (f13, the FPR after
@@ -2734,7 +2734,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
 // area's angle, 1: toward its position) — and hands it to the quasi-FPS camera (LRinfo). Without
 // one, a corner found by PlCornerCheck (2 = right) makes a temporary area at the player; the
 // current one is dropped when he moves 500 away or turns 70 degrees from it.
-static void sceAtCamCtrlCheck()
+void sceAtCamCtrlCheck()
 {
     static SceAtCamCtrl auto_work;
     SceAtCamCtrl* found = 0;
@@ -2840,7 +2840,7 @@ static void sceAtCamCtrlCheck()
 
 // Debug (debug_mode 0x11 / Debug_flg[0] 0x00400000): draws every enabled area (and the items'
 // eye triggers) with its number, type letter and state.
-static void sceAtDebugDisp()
+void sceAtDebugDisp()
 {
     AreaData eye;
     Mtx mat;
@@ -2911,7 +2911,7 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
 // damage SE and, once landed, becomes a normal item (found flag, auto area, glow effect 2); a
 // dropped item (bit6) falls to the floor the same way; a disappearing item (bit5) counts its
 // timer in half seconds (fade effect at 6) and is removed at 0.
-static void sceAtItemFindCheck()
+void sceAtItemFindCheck()
 {
     Vec pos;
     Vec rot;

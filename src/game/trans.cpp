@@ -298,26 +298,26 @@ public:
 #define IND_STAGE_ID() (((cIndTexStage*) &ind_stage)->getID())
 
 extern "C" {
-static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part);
-static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv);
-static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
-static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
-static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
-static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
+void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part);
+void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv);
+void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
+void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
+void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
+void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn);
 static void specularSetup(ModelPart* part, cModelInfo* info, int flag);
-static void specularSetup2(ModelPart* part, int flag);
-static void GlobalIlluminationSetup(ModelPart* part, int nrm8);
-static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng);
-static void ShadowCastSetup(ModelPart* part, cModel* m);
-static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng);
-static void bumpSetup(ModelPart* part, cModelInfo* info);
-static void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo);
-static void CalcSk1_x(void* dst, void* src, u32 n);
-static void CalcSk1_x2(void* dst, void* src, u32 n);
-static int MakeWeightPaletteExt(WeightExt* w, int n);
-static int MakeWeightPalette(Weight* w, int n);
-static void updateMatrices(Mtx m, Mtx dst, cModel* model);
-static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv);
+void specularSetup2(ModelPart* part, int flag);
+void GlobalIlluminationSetup(ModelPart* part, int nrm8);
+void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng);
+void ShadowCastSetup(ModelPart* part, cModel* m);
+void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng);
+void bumpSetup(ModelPart* part, cModelInfo* info);
+void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo);
+void CalcSk1_x(void* dst, void* src, u32 n);
+void CalcSk1_x2(void* dst, void* src, u32 n);
+int MakeWeightPaletteExt(WeightExt* w, int n);
+int MakeWeightPalette(Weight* w, int n);
+void updateMatrices(Mtx m, Mtx dst, cModel* model);
+void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv);
 }
 
 // Binds model texture `id` to texture map `map`: from the GX work's texture objects (0..0xF7), or
@@ -816,7 +816,7 @@ void calcWeightMat(cModel* m)
 
 // Builds the blended skinning matrices for the extended weight table (u8 percentages, more than
 // 255 palette entries). Returns the count.
-static int MakeWeightPaletteExt(WeightExt* w0, int n)
+int MakeWeightPaletteExt(WeightExt* w0, int n)
 {
     GxWork* gx = GXWORK();
     int cnt = 0;
@@ -863,7 +863,7 @@ static int MakeWeightPaletteExt(WeightExt* w0, int n)
 
 // Builds the blended skinning matrices for the weight table (sum of parts matrices x weights, the
 // last weight takes the remainder). Returns the count.
-static int MakeWeightPalette(Weight* w0, int n)
+int MakeWeightPalette(Weight* w0, int n)
 {
     GxWork* gx = GXWORK();
     int cnt;
@@ -1299,7 +1299,7 @@ void cTexChg::move(GXTexObj* texObj)
 
 // Thermal-scope view (Status_flg[1] 0x04000000, the rifle's infrared scope): the part is drawn
 // with the thermo palette instead of its material.
-static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
+void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
 {
     int st;
     int map;
@@ -1334,7 +1334,7 @@ static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
 // or cast-shadow stages, the material (texture, blends), specular / bump (part flags), global
 // illumination (be_flag 0x01000000), the alpha texture (part flags 4), and the colour scale of
 // the model's TevScaleGroup (gxCsScale).
-static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
+void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
 {
     int selfDone;
     int st;
@@ -1452,7 +1452,7 @@ static inline void loadBlendTex(ModelPart* part, u8* tbl, int map)
 
 // Material blend type 0 (blendType 0): the blend-table textures (matched to the part's texture)
 // layered over the base stage with the info's blendRatio as constant-colour weight.
-static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
+void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
     ModelTexInfo* t;
@@ -1534,7 +1534,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
 
 // Material blend type 1: the blend-table texture layered over the base with the blendRatio
 // weight; the alpha comes from the second texture (probably: differs from type 0 in the alpha path).
-static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
+void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
     ModelTexInfo* t;
@@ -1616,7 +1616,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
 
 // Material blend type 2: the blend-table texture over the base (blendRatio 0 = no second
 // texture) with the alpha kept from the input (`use_alp`).
-static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
+void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     static int use_alp = 1;
     ModelTexInfo* t;
@@ -1750,7 +1750,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
 // Base material stage: the part's texture (animated frame when the info animates), texgen by UV
 // or by the UV-scroll matrix, then one of the blend types when the info blends (flags bit2),
 // producing the colour from `colIn` / `alphaIn`.
-static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
+void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
     ModelTexInfo* t;
@@ -1909,7 +1909,7 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
 
 // Bump-mapped specular variant (part flags 0x80): indirect stage with the bump texture
 // perturbing the specular lookup.
-static void specularSetup2(ModelPart* part, int flag)
+void specularSetup2(ModelPart* part, int flag)
 {
     static f32 bp_mx = 0.0f;
     static f32 bp_my = 0.0f;
@@ -2004,7 +2004,7 @@ static void specularSetup2(ModelPart* part, int flag)
 
 // Adds the global illumination texture stage (normal-based lookup; scale 0.25 for 8-bit normals);
 // off with Disp_flg 0x00080000.
-static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
+void GlobalIlluminationSetup(ModelPart* part, int nrm8)
 {
     Mtx tmp;
     int st;
@@ -2046,7 +2046,7 @@ static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
 
 // The GX light used by the shadow-cast pass: at the shadow light's position / direction, with the
 // cast colours (cast_col1..3) as material / ambient.
-static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
+void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
 {
     static u8 cast_col1 = 0xC0;
     static GXColor cast_col2 = {0xFF, 0xFF, 0xFF, 0xFF};
@@ -2094,7 +2094,7 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
 
 // Adds the stage that projects the shadow light's texture (g_pShdMng texMat x the parts matrix)
 // onto the part, modulating the colour.
-static void ShadowCastSetup(ModelPart* part, cModel* m)
+void ShadowCastSetup(ModelPart* part, cModel* m)
 {
     GXTexObj* tex;
     GXTlutObj* tlut;
@@ -2256,7 +2256,7 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
 
 // Self-shadow stage: the model's own depth shadow map compared through an indirect texture (the
 // IndTex ramp) so parts in their own shadow darken.
-static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
+void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
 {
     static int shd_tex_no = 0;
     static f32 shd_z = -1.001f;
@@ -2345,7 +2345,7 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
 
 // Bump stage (part flags bit0): the part's bump texture (or the blend table's) as an indirect
 // texture perturbing the base lookup.
-static void bumpSetup(ModelPart* part, cModelInfo* info)
+void bumpSetup(ModelPart* part, cModelInfo* info)
 {
     int off = !(part->flags & 1);
     ModelTexInfo* t;
@@ -2385,7 +2385,7 @@ static void bumpSetup(ModelPart* part, cModelInfo* info)
 
 // Alpha texture stage (part flags 4): alpha compare against the part's alphaRef (or the model's
 // alpha_omit), the alpha texture multiplied into the output alpha.
-static void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo)
+void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo)
 {
     int map;
     int st;
@@ -2496,7 +2496,7 @@ static void primBuffDebugDisp(int n)
 
 // Skin `n` vertices (s16 x/y/z + s16 matrix index, 8 bytes) from src into dst (s16 x/y/z, 6 bytes)
 // with the matrix palette in locked cache (0xE0000000, ROMtx 0x30 each). GQR6 holds the fixed point scale.
-static void CalcSk1_x(void* dst, void* src, u32 n)
+void CalcSk1_x(void* dst, void* src, u32 n)
 {
     asm volatile(
         "lha 9, 6(4)\n"
@@ -2532,7 +2532,7 @@ static void CalcSk1_x(void* dst, void* src, u32 n)
 }
 
 // Same for s8 normals (s8 x/y/z + u8 matrix index, 4 bytes) into s8 x/y/z (3 bytes).
-static void CalcSk1_x2(void* dst, void* src, u32 n)
+void CalcSk1_x2(void* dst, void* src, u32 n)
 {
     asm volatile(
         "lbz 9, 3(4)\n"
@@ -2652,7 +2652,7 @@ void GlobalIlmTexInit(TEXPalette* tpl)
 
 // Refraction: model-view matrix and its inverse transpose loaded as the position / normal
 // matrices, `dst` = the texture matrix mapping normals to the screen.
-static void updateMatrices(Mtx m, Mtx dst, cModel* model)
+void updateMatrices(Mtx m, Mtx dst, cModel* model)
 {
     Mtx mv;
     Mtx t;
@@ -2679,7 +2679,7 @@ static void updateMatrices(Mtx m, Mtx dst, cModel* model)
 
 // Refraction shader (Shader_type 1 / 2, Refract_ratio): the captured screen (render texture)
 // looked up through an indirect texture built from the normals, mixed by the refract ratio.
-static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
+void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
 {
     static f32 mul_x = 1.0f;
     static f32 mul_y = 1.0f;
