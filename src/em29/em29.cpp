@@ -378,7 +378,7 @@ static void em29_R0_Init(cEm29* em)
         return;
     }
     em->be_flag &= ~0x10;
-    em->pXFlip = em29_flip_tbl;
+    em->Motion.flip = em29_flip_tbl;
     em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -629,7 +629,7 @@ static void em29_R1_AtkDash(cEm29* em)
         em29SetSPeed(em, 0.3f);
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
-        } else if ((em->seFlags28B & 1) && w->atkHit == 0 && em29AtkCk(em, 0)) {
+        } else if ((em->Motion.Seq_old.Free & 1) && w->atkHit == 0 && em29AtkCk(em, 0)) {
             Ctrl12Set(w->pCtrl12, CTRL12_ID_EM29_RUSH, 60);
             em->r_no_2++;
         }
@@ -982,7 +982,7 @@ static void em29_R1_Die_Reset(cEm29* em)
         em->pos = w->initPos;
         em->ang = w->initRot;
         em->pos_old = em->pos;
-        em->motFlags2 &= ~0x40000000;
+        em->Motion.Mot_flag &= ~0x40000000;
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 1, 0);
         MotionMove(em, 0);
         PartsWorldPosCalc(em);

@@ -48,18 +48,10 @@ struct Efm04Work {
     f32 scale;            // 0x30  scale = scale + scaleSpd, scaleSpd *= scaleDamp
     f32 scaleSpd;         // 0x34
     f32 scaleDamp;        // 0x38
-    union {
-        struct {
-            u8 pad_3C[3];
-            u8 alpha0;    // 0x3F  alpha at the end of the fade-in
-        };
-        struct {
-            u8 r0;        // 0x3C  start colour (EspGenWork x9C..x9F)
-            u8 g0;        // 0x3D
-            u8 b0;        // 0x3E
-            u8 a0;        // 0x3F
-        };
-    };
+    u8 r0;                // 0x3C  start colour (EspGenWork x9C..x9F; PS2 OBJ04_FREE Col_start_r..a)
+    u8 g0;                // 0x3D
+    u8 b0;                // 0x3E
+    u8 a0;                // 0x3F  alpha at the end of the fade-in
     f32 r;                // 0x40
     f32 g;                // 0x44
     f32 b;                // 0x48
@@ -83,14 +75,7 @@ struct Efm04Work {
     u8 Motion_no;         // 0x7B  EspGetEfmMotAddr motion (EspGenWork WorkSp8[2]) (PS2 OBJ04_FREE Motion_no)
     u32 flags;            // 0x7C  bit0: floor collision, bit1: scenario collision, bit3: MotionMove
     f32 groundOfs;        // 0x80
-    union {
-        struct {
-            f32 bounceXZ; // 0x84
-            f32 bounceY;  // 0x88
-            f32 x8C;      // 0x8C
-        };
-        Vec bounce;       // 0x84  (EfmSetObj04: EspGenWork xE4 * 0.1)
-    };
+    Vec bounce;           // 0x84  x/z: horizontal, y: vertical rebound rate (EfmSetObj04: EspGenWork xE4 * 0.1; PS2 OBJ04_FREE RefRate)
 };
 
 // Effect model with loose parts (game/obj05.cpp `Efm05`): the obj04 scale / colour fade with the
@@ -103,18 +88,10 @@ struct Efm05Work {
     f32 scale;            // 0x20  scale = scale + scaleSpd, scaleSpd *= scaleDamp
     f32 scaleSpd;         // 0x24
     f32 scaleDamp;        // 0x28
-    union {
-        struct {
-            u8 pad_2C[3];
-            u8 alpha0;    // 0x2F  alpha at the end of the fade-in
-        };
-        struct {
-            u8 r0;        // 0x2C  start colour (EspGenWork x9C..x9F)
-            u8 g0;        // 0x2D
-            u8 b0;        // 0x2E
-            u8 a0;        // 0x2F
-        };
-    };
+    u8 r0;                // 0x2C  start colour (EspGenWork x9C..x9F; PS2 OBJ05_FREE Col_start_r..a)
+    u8 g0;                // 0x2D
+    u8 b0;                // 0x2E
+    u8 a0;                // 0x2F  alpha at the end of the fade-in
     f32 r;                // 0x30
     f32 g;                // 0x34
     f32 b;                // 0x38
@@ -138,14 +115,7 @@ struct Efm05Work {
     f32 grav;             // 0x70  added to the parts speed y
     f32 spdDamp;          // 0x74  parts speed *= spdDamp
     u32 groundOfs;        // 0x78
-    union {
-        struct {
-            f32 bounceXZ; // 0x7C
-            f32 bounceY;  // 0x80
-            u8 pad_84[4];
-        };
-        Vec bounce;       // 0x7C  (EfmSetObj05: EspGenWork xE4 * 0.1)
-    };
+    Vec bounce;           // 0x7C  x/z: horizontal, y: vertical rebound rate (EfmSetObj05: EspGenWork xE4 * 0.1; PS2 OBJ05_FREE RefRate)
     u32 seed;             // 0x88  fRandSeed1_1 seed
 };
 
@@ -154,14 +124,7 @@ struct Efm05Work {
 struct Efm09Work {
     EfmCore core;         // 0x00
     f32 mass;             // 0x0C  size.x * size.y * size.z / 1e9 * mass_mul
-    union {
-        struct {
-            f32 momentX;  // 0x10  moment_mul * mass * (size.y^2 + size.z^2) / 12
-            f32 momentY;  // 0x14
-            f32 momentZ;  // 0x18
-        };
-        Vec moment;       // 0x10  (obj09 dwdt)
-    };
+    Vec moment;           // 0x10  moments of inertia: moment_mul * mass * (size.y^2 + size.z^2) / 12, ... (obj09 dwdt; PS2 OBJ09_FREE Ig)
     u8 pad_1C[4];
     Vec pos;              // 0x20  = basePos at set up
     Vec basePos;          // 0x2C  EspGenWork x0C + random (y + 0.0001)
@@ -326,10 +289,7 @@ struct Obj18Work {
     u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
     cObj* child;          // 0x70  ribbon / rope object created by SetObj18
     int ObjChainFlagCommon;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags
-    union {
-        u8 pad_78[0xC];
-        u32 evName[3];    // 0x78  event model name of the packet that created it (event ExePacket_SetOm)
-    };
+    char NameMod[12];     // 0x78  event model name of the packet that created it (event ExePacket_SetOm; PS2 NameMod)
     u8 DebugFlag;         // 0x84
     u8 pad_85[3];
 };
@@ -704,8 +664,8 @@ struct Obj16Work {
     class cCtrl* pCtrlGroup;  // 0x88  GetCtrlCtrl12() (Ctrl12Set on a hit)
 };
 
-// Map object work (game/obj.cpp), sizeof 0x3D8: the cModel (0x320; motion work `mot` / `pMotion`
-// / `motFrame`.., `sub2B4.atari`, `sub2B4.pFootShadowTbl` are cModel members, see model.h), the
+// Map object work (game/obj.cpp), sizeof 0x3D8: the cModel (0x320; motion work `mot` / `Motion.pMot`
+// / `Motion.Seq_frame`.., `sub2B4.atari`, `sub2B4.pFootShadowTbl` are cModel members, see model.h), the
 // scroll block and the per-object work area. Per-object modules keep their state in `work`.
 class cObj : public cModel {
 public:

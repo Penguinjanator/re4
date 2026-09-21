@@ -952,7 +952,7 @@ int Event::ExePacket_SetOm(Event* evt)
         pLog->err(0, 0, "Event::ExePacket_SetOm : om set failed");
         return 1;
     }
-    *(EvtName*) obj->o18.evName = *(EvtName*) pac->mod.name;
+    *(EvtName*) obj->o18.NameMod = *(EvtName*) pac->mod.name;
     obj->sub2B4.atari.throughOn();
     switch (type) {
     case OBJ18_TYPE_LEON ... OBJ18_TYPE_LUIS:
@@ -1246,7 +1246,7 @@ int Event::ExePacket_Mot(Event* evt)
         return 1;
     }
     MotionClear(m, 1);
-    MotionSetCore(m, &((cEm*) m)->pMotion, dat, 0, 0, 1, (u16) frm);
+    MotionSetCore(m, &((cEm*) m)->Motion.pMot, dat, 0, 0, 1, (u16) frm);
     if (m->kindid == 0 && m->id == 0) {
         m->be_flag |= 0x00200000;
     }

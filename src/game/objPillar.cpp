@@ -585,7 +585,7 @@ static void plemEscape(cPlayer* pl)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionMove(em, 0);
-        if (em->frame > 11.7f && em->frame < 12.3f) {
+        if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
             EstSet(0, -1, &em->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &em->pos, 0, 0, em);
         }

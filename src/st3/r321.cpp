@@ -195,7 +195,7 @@ void break_heri_set()
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
-    obj->motSpeedRate = 0.0f;
+    obj->Motion.Seq_speed = 0.0f;
     obj->setNoSuspend(1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
     EspGenSetMoveLoop(0xC8);

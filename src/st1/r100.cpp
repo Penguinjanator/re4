@@ -50,7 +50,7 @@ extern "C" void EventCarInit(Event* e);  // st1_0/r120.cpp
 struct R100Work {
     TexRenderMng* tex;    // 0x00  the pond render target (setTexRender)
     cEm* em;              // 0x04  the s03 Ganado (enemy list entry set up by hand)
-    cEm* ems[7];          // 0x08  the ambush after s03 (r100_em_set)
+    cEmGanado* ems[7];    // 0x08  the ambush after s03 (r100_em_set)
     cEm* emHouse;         // 0x24  the Ganado of the house event
     cObj* car;            // 0x28  the police car
     cObj* carSub;         // 0x2C  the car's second model
@@ -502,13 +502,13 @@ extern "C" void freeEvent(int no, int swap)
 // The ambush after the officer's death.
 extern "C" void r100_em_set()
 {
-    W->ems[0] = EmSetFromList2(3, 1);
-    W->ems[1] = EmSetFromList2(4, 1);
-    W->ems[2] = EmSetFromList2(5, 1);
-    W->ems[3] = EmSetFromList2(0x12, 1);
-    W->ems[4] = EmSetFromList2(0x13, 1);
-    W->ems[5] = EmSetFromList2(0x26, 1);
-    W->ems[6] = EmSetFromList2(0x27, 1);
+    W->ems[0] = (cEmGanado*) EmSetFromList2(3, 1);
+    W->ems[1] = (cEmGanado*) EmSetFromList2(4, 1);
+    W->ems[2] = (cEmGanado*) EmSetFromList2(5, 1);
+    W->ems[3] = (cEmGanado*) EmSetFromList2(0x12, 1);
+    W->ems[4] = (cEmGanado*) EmSetFromList2(0x13, 1);
+    W->ems[5] = (cEmGanado*) EmSetFromList2(0x26, 1);
+    W->ems[6] = (cEmGanado*) EmSetFromList2(0x27, 1);
 }
 
 // Looking down the ravine at the car: the s40 event once, then a camera cut with a message.
@@ -644,9 +644,9 @@ static void r100_DoorCk()
             break;
         }
         if (RsfCheck(G_ROOM_ID, 10)) {
-            cEmGanado* em0 = (cEmGanado*) W->ems[0];
-            cEmGanado* em1 = (cEmGanado*) W->ems[1];
-            cEmGanado* em2 = (cEmGanado*) W->ems[2];
+            cEmGanado* em0 = W->ems[0];
+            cEmGanado* em1 = W->ems[1];
+            cEmGanado* em2 = W->ems[2];
 
             if (em0 != errEm && em0->ckFindPL() == 1) {
                 found = 1;
@@ -803,13 +803,13 @@ static void r100_StreanChk()
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 10)) {
             found = 0;
-            cEmGanado* em0 = (cEmGanado*) W->ems[0];
-            cEmGanado* em1 = (cEmGanado*) W->ems[1];
-            cEmGanado* em2 = (cEmGanado*) W->ems[2];
-            cEmGanado* em3 = (cEmGanado*) W->ems[3];
-            cEmGanado* em4 = (cEmGanado*) W->ems[4];
-            cEmGanado* em5 = (cEmGanado*) W->ems[5];
-            cEmGanado* em6 = (cEmGanado*) W->ems[6];
+            cEmGanado* em0 = W->ems[0];
+            cEmGanado* em1 = W->ems[1];
+            cEmGanado* em2 = W->ems[2];
+            cEmGanado* em3 = W->ems[3];
+            cEmGanado* em4 = W->ems[4];
+            cEmGanado* em5 = W->ems[5];
+            cEmGanado* em6 = W->ems[6];
             if (em0 != errEm && em0->ckFindPL() == 1 && em0->plDist2 < lim) {
                 found = 1;
             }

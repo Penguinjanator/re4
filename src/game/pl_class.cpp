@@ -807,7 +807,7 @@ void cPlayer::setFootwork()
         hokan = 5;
     }
     motionSet(m_MotTbl[0], m_MotTbl[1], PL_ARC_PTR(pG->pPlayer, 0x32), PL_ARC_PTR(pG->pPlayer, 0x33), hokan, frame);
-    blendMot = 0;
+    Motion.blend = 0;
 }
 
 // Motion sequence sound (seNo, set by the motion key): foot sounds by parts / kind, sand splash.
@@ -819,10 +819,10 @@ void cPlayer::seqSeCtrl()
     u16 kind;
 
     StaFlagOff(pG, STA_PL_SE_FOOT);
-    if (seNo == 0) {
+    if (Motion.Seq_old.Se == 0) {
         return;
     }
-    no = seNo - 1;
+    no = Motion.Seq_old.Se - 1;
     switch (no) {
     case 0:
     case 2:
@@ -849,7 +849,7 @@ void cPlayer::seqSeCtrl()
         kind = 1;
         break;
     }
-    sub = seFlags28B & 7;
+    sub = Motion.Seq_old.Free & 7;
     if (sub == 0) {
         switch (no) {
         case 0:
@@ -881,8 +881,8 @@ void cPlayer::seqSeCtrl()
         break;
     }
     SndCall(kind, no, &getPartsPtr(parts)->world, id, 0, 0);
-    seNo = 0;
-    if ((frame >= 1.0f && frame <= 4.0f) || (frame >= 8.0f && frame <= 16.0f)) {
+    Motion.Seq_old.Se = 0;
+    if ((Motion.Seq_frame >= 1.0f && Motion.Seq_frame <= 4.0f) || (Motion.Seq_frame >= 8.0f && Motion.Seq_frame <= 16.0f)) {
         AddSandPower(&pPL->pos, -0.5f);
     }
 }
@@ -1615,10 +1615,10 @@ void cPlNeck::move()
         }
         if (ang < 0.0f && m_Flag) {
             U16And(m_Flag, 0xFFFE);
-            motSet(motL, (u16) pPL->frame);
+            motSet(motL, (u16) pPL->Motion.Seq_frame);
         } else if (ang > 0.0f && !m_Flag) {
             BitOn16(m_Flag, 1);
-            motSet(motR, (u16) pPL->frame);
+            motSet(motR, (u16) pPL->Motion.Seq_frame);
         }
         m_lockCtr--;
     } else {
@@ -1632,12 +1632,12 @@ void cPlNeck::move()
             }
         }
     }
-    if (pPL->blendMot) {
+    if (pPL->Motion.blend) {
         f32 rate = ang / 0.7853981852531433f;
         if (!(m_Flag & 1)) {
             rate = -rate;
         }
-        pPL->blendMot->blendRate = rate;
+        pPL->Motion.blend->Brate = rate;
     }
 }
 
@@ -1650,12 +1650,12 @@ void cPlNeck::motSet(void* data, int frame)
         pLog->err(0, 0, "cPlNeck::motSet() ILEGAL PTR WAS SET %08X", data);
         return;
     }
-    p->m_SubMot.flags2 |= 0x10000000;
+    p->m_SubMot.Mot_flag |= 0x10000000;
     MotionSetCore(p, &p->m_SubMot, data, 0, 8, 5, frame);
-    p->m_SubMot.flags2 &= ~0x10000000;
-    p->blendMot = &p->m_SubMot;
-    p->blendMot->blendRate = 1.0f;
-    p->blendMot->flags2 |= 0x80000000;
+    p->m_SubMot.Mot_flag &= ~0x10000000;
+    p->Motion.blend = &p->m_SubMot;
+    p->Motion.blend->Brate = 1.0f;
+    p->Motion.blend->Mot_flag |= 0x80000000;
 }
 
 // Nearest alive enemy (not in battle) within 5000 of parts 3, seen from there; enemies with status
@@ -1745,7 +1745,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     m_Mode = c;
     MotionSetCore(m, MOTION(m), m0, (void*) a, mode, d, e);
     set0(m1, e, mode);
-    ((cEm*) m)->blendMot->blendRate = 0.0f;
+    ((cEm*) m)->Motion.blend->Brate = 0.0f;
 }
 
 // Blend motion `m` (frame a, hokan b) into the model's motion.
@@ -1756,10 +1756,10 @@ void cMot3::set0(void* m, u8 a, int b)
     case 0:
         break;
     case 1:
-        work.flags2 |= 0x80000000;
+        work.Mot_flag |= 0x80000000;
         break;
     }
-    ((cEm*) m_pEm)->blendMot = &work;
+    ((cEm*) m_pEm)->Motion.blend = &work;
 }
 
 // Blend rate -1..1: crossing 0 switches the blended motion (mot1 below, mot2 above) at the current
@@ -1769,7 +1769,7 @@ void cMot3::move(f32 r)
     if (m_pEm == 0) {
         return;
     }
-    if (((cEm*) m_pEm)->blendMot == 0) {
+    if (((cEm*) m_pEm)->Motion.blend == 0) {
         return;
     }
     if (r > 1.0f) {
@@ -1779,15 +1779,15 @@ void cMot3::move(f32 r)
         r = -1.0f;
     }
     if (m_Rate < 0.0f && r >= 0.0f) {
-        set0(mot1, (u8) ((cEm*) m_pEm)->frame, 2);
+        set0(mot1, (u8) ((cEm*) m_pEm)->Motion.Seq_frame, 2);
     } else if (m_Rate >= 0.0f && r < 0.0f) {
-        set0(mot2, (u8) ((cEm*) m_pEm)->frame, 2);
+        set0(mot2, (u8) ((cEm*) m_pEm)->Motion.Seq_frame, 2);
     }
     m_Rate = r;
     if (r < 0.0f) {
         r = -r;
     }
-    ((cEm*) m_pEm)->blendMot->blendRate = r;
+    ((cEm*) m_pEm)->Motion.blend->Brate = r;
 }
 
 const f32 cPlayer::SPEED_WALK_TURN = 0.0418879f;

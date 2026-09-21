@@ -529,7 +529,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     if (mot) {
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
     }
-    for (i = 0; (pPL->motState & 4) == 0; i++) {
+    for (i = 0; (pPL->Motion.Mot_state & 4) == 0; i++) {
         switch (w->breakDir) {
         case 0:
             if ((!(pEm->ChkStatus() & 1)) && i == 0xF) {

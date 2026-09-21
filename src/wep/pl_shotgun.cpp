@@ -75,7 +75,7 @@ static void wep07_r2_ready(cPlayer* pl)
 
     func_tbl[pl->r_no_3](pl);
     if (joyKamae() == 0) {
-        pl->motSpeedRate = 1.0f;
+        pl->Motion.Seq_speed = 1.0f;
         if (pl->stat & 0x40) {
             pl->r_no_0 = 0;
             pl->r_no_2 = 0;
@@ -88,7 +88,7 @@ static void wep07_r2_ready(cPlayer* pl)
             pl->r_no_3 = 0;
         }
     } else if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
-        pl->motSpeedRate = 1.0f;
+        pl->Motion.Seq_speed = 1.0f;
         pl->Wep->m_Flag |= 1;
         EmRoutineSet(pl, 0, 6, 4, 0);
         pl->m_Work0 = 1;
@@ -137,7 +137,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     mot = WEP_ARC_PTR(0x18);
     mot3.set(pl, mot, mot, mot, 0, 3, 0, hokan, 0);
     if (pG->weapon_no == 8) {
-        pl->motSpeedRate = 1.4f;
+        pl->Motion.Seq_speed = 1.4f;
     }
     mot3.move(m3r[0]);
     pl->r_no_3 = 1;
@@ -150,10 +150,10 @@ static void wep07_r3_ready10(cPlayer* pl)
 {
     f32 endFrame;
 
-    if (pl->frame >= 5.0f) {
+    if (pl->Motion.Seq_frame >= 5.0f) {
         PlWepLockCtrl(pl);
     }
-    if (pl->frame > 1.7f && pl->frame < 2.3f) {
+    if (pl->Motion.Seq_frame > 1.7f && pl->Motion.Seq_frame < 2.3f) {
         int se = 0x28;
 
         if (pl->m_Work2 == 1) {
@@ -161,8 +161,8 @@ static void wep07_r3_ready10(cPlayer* pl)
         }
         SndCall(1, (u16) se, &pl->getPartsPtr(0)->world, 0, 0, 0);
     }
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
@@ -173,8 +173,8 @@ static void wep07_r3_ready10(cPlayer* pl)
     } else {
         endFrame = 10.0f;
     }
-    if (pl->frame >= endFrame) {
-        pl->motSpeedRate = 1.0f;
+    if (pl->Motion.Seq_frame >= endFrame) {
+        pl->Motion.Seq_speed = 1.0f;
         SndCall(2, 9, &pl->getPartsPtr(0xA)->world, 0, 0, 0);
         EmRoutineSet(pl, 0, 6, 1, 0);
     }
@@ -269,10 +269,10 @@ static void wep07_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -284,10 +284,10 @@ static void wep07_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -470,11 +470,11 @@ static void wep07_r3_fire10(cPlayer* pl)
         endFrame = 0x28;
         break;
     }
-    if (pl->frame >= 10.0f && joyKamae()) {
+    if (pl->Motion.Seq_frame >= 10.0f && joyKamae()) {
         PlWepLockCtrl(pl);
     }
     pl->motionMove();
-    if (pl->frame >= (f32) endFrame) {
+    if (pl->Motion.Seq_frame >= (f32) endFrame) {
         if (joyKamae() && joyFireOn() && pl->Wep->m_pWep->bulletNum() == 0) {
             SndCall(2, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
         }
@@ -483,7 +483,7 @@ static void wep07_r3_fire10(cPlayer* pl)
         pl->r_no_2 = 1;
         pl->r_no_3 = 4;
     }
-    if (pl->frame >= 10.0f) {
+    if (pl->Motion.Seq_frame >= 10.0f) {
         pl->Body->waistMove();
         pl->partsWorldCalc();
     }
@@ -544,7 +544,7 @@ static void wep07_r2_reload(cPlayer* pl)
     case 1:
         pl->motionMove();
         if (m3r[0] < -0.1f || m3r[0] > 0.1f) {
-            if (pl->frame >= PlReloadEndTbl[pG->weapon_no][pG->weapon_lv_reload]) {
+            if (pl->Motion.Seq_frame >= PlReloadEndTbl[pG->weapon_no][pG->weapon_lv_reload]) {
                 if (joyKamae()) {
                     pl->r_no_3 = 2;
                 } else if (pl->stat & 0x40) {
@@ -562,7 +562,7 @@ static void wep07_r2_reload(cPlayer* pl)
                 }
             }
         } else {
-            if (joyKamae() == 0 && pl->frame >= PlReloadEndTbl[pG->weapon_no][pG->weapon_lv_reload]) {
+            if (joyKamae() == 0 && pl->Motion.Seq_frame >= PlReloadEndTbl[pG->weapon_no][pG->weapon_lv_reload]) {
                 if (pl->stat & 0x40) {
                     pl->r_no_0 = 0;
                     pl->r_no_2 = 0;
@@ -577,7 +577,7 @@ static void wep07_r2_reload(cPlayer* pl)
                     pl->r_no_3 = 2;
                 }
             }
-            if (pl->frame >= (f32) (pl->frameMax - 1)) {
+            if (pl->Motion.Seq_frame >= (f32) (pl->Motion.Seq_frame_num - 1)) {
                 EmRoutineSet(pl, 0, 6, 1, 0);
             }
         }

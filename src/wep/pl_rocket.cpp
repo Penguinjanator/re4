@@ -159,8 +159,8 @@ static void wep13_r3_ready00(cPlayer* pl)
 // launcher is gripped (grip(1)) at frame 11, at frame 32 -> set state (the scope).
 static void wep13_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
@@ -296,10 +296,10 @@ static void wep13_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -311,10 +311,10 @@ static void wep13_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -386,7 +386,7 @@ static void wep13_r3_fire10(cPlayer* pl)
         }
         return;
     }
-    if (joyKamae() == 0 && pl->frame >= 45.0f) {
+    if (joyKamae() == 0 && pl->Motion.Seq_frame >= 45.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 3;
@@ -472,7 +472,7 @@ static void wep13_r3_down10(cPlayer* pl)
     const f32 seFrame = 18.0f;
     int end = pl->motionMove();
 
-    if (dmMotCk() == 0 && pl->frame >= 15.0f) {
+    if (dmMotCk() == 0 && pl->Motion.Seq_frame >= 15.0f) {
         pl->r_no_3 = 1;
         pl->m_Hokan = 0xF;
         pl->r_no_0 = 0;

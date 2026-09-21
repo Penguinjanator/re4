@@ -124,7 +124,7 @@ void obj1c_R1_Set(cObj1c* obj)
             EstSet(obj, -1, 0, 0, EFF_ROOM, 0, 0, w->espKind, obj, 0);
         }
     }
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         MotionMove(obj, 0);
     } else {
         RotMatrix(obj->mat, &obj->ang);
@@ -141,7 +141,7 @@ void obj1c_R1_Crash(cObj1c* obj)
     IslandWork* w = &obj->island;
 
     obj1cSpdMove(obj);
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         if (MotionMove(obj, 0)) {
             if (w->motIdle) {
                 if (obj->scale.x >= 1.5f) {
@@ -170,7 +170,7 @@ void obj1c_R1_CrashBig(cObj1c* obj)
     IslandWork* w = &obj->island;
 
     obj1cSpdMove(obj);
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         if (MotionMove(obj, 0)) {
             if (w->motIdle) {
                 if (obj->scale.x >= 1.5f) {

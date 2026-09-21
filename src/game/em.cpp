@@ -415,12 +415,12 @@ void emMove(cEm* em)
     }
     em->be_flag &= ~0x20000000;
     ShapeMove(em->pModelInfo);
-    if (em->seNo) {
-        int no = em->seNo - 1;
+    if (em->Motion.Seq_old.Se) {
+        int no = em->Motion.Seq_old.Se - 1;
         cModel* parts = em->getPartsPtr(0);
 
         SndCall(8, no, &parts->world, em->id, 0, em);
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
     }
     em->updateOldPos();
     EmYarareDisp(em);

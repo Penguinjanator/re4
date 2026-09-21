@@ -1133,7 +1133,7 @@ void CameraControl::Check()
     if (m_state_flag & 4) {
         return;
     }
-    if (pPL->p2A4 && ((EmWork2A4*) pPL->p2A4)->x5) {
+    if (pPL->Motion.pAttachCam && pPL->Motion.pAttachCam->type) {
         return;
     }
     PSVECSubtract(&pPL->getPartsPtr(1)->world, &pPL->pos, &d);

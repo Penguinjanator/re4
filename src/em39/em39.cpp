@@ -574,14 +574,14 @@ void cEm39::move()
     em39WaistMove(this);
     partsWorldCalc();
     dist = VEC_DISTXZ(&pos_old, &pos);
-    if (seFlags28B & 0x40) {
+    if (Motion.Seq_old.Free & 0x40) {
         atari.m_flag |= 0x10;
     } else {
         atari.m_flag &= ~0x10;
     }
     EmAtCheck(this);
     atari.move();
-    if (!(seFlags28B & 0x40)) {
+    if (!(Motion.Seq_old.Free & 0x40)) {
         SatMgr.check(this, 0);
     }
     if (VEC_DISTXZ(&pos, &pos_old) < dist * 0.5f) {
@@ -597,7 +597,7 @@ void cEm39::move()
             invisible_factor = 1.0f;
         }
     }
-    if (seFlags28B & 0x40) {
+    if (Motion.Seq_old.Free & 0x40) {
         if (Shd_color <= 0xF6) {
             Shd_color += 8;
         } else {
@@ -800,9 +800,9 @@ static void em39_R0_Init(cEm39* em)
     z0 = 0;
     w->pArrow = (cEmWep*) z0;
     em->pFootShadowTbl = &Em39_fs_tbl;
-    em->pXFlip = em39_flip_tbl;
+    em->Motion.flip = em39_flip_tbl;
 #line 1268 "D:/Bio4/Prog/em39.cpp"
-    em->p2A4 = MEM_ALLOC(0x98, 1, 0xD);
+    em->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xD);
     // GNU constructor expressions: emitted at the statement like strings, and shared through the
     // constant hash (plem39_CliffAtk reuses this zero vector).
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
@@ -1097,7 +1097,7 @@ static void em39_R1_Success(cEm39* em)
             w->Be_flg |= 0x00800000;
             AtariOn(&em->atari, 0x300);
             EmRoutineSet(em, 1, 4, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             AtariOn(&em->atari, 0x300);
             w->Arm_rno = 0;
         }
@@ -1799,7 +1799,7 @@ static void em39_R1_Turn180(cEm39* em)
         w->TmpF = em->ang.y + PI;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 d = Muku(&em->pos, &w->targetPos, w->TmpF, 0.09817477f);
 
             w->TmpF += d;
@@ -1809,7 +1809,7 @@ static void em39_R1_Turn180(cEm39* em)
         }
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0);
-        } else if (w->Atk_wait == 0 && (em->seFlags28B & 4)) {
+        } else if (w->Atk_wait == 0 && (em->Motion.Seq_old.Free & 4)) {
             if (em39AtkRtnCk(em)) {
                 break;
             }
@@ -1981,7 +1981,7 @@ static void em39_R1_Escape(cEm39* em)
             }
             break;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             if (em39LockCk(em) && em->type != 2 && em->r_no_3 <= 3) {
                 if ((u8) (Rnd() % 10) > 6 && em39JumpUpCk3(em)) {
                     break;
@@ -1992,7 +1992,7 @@ static void em39_R1_Escape(cEm39* em)
         } else {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4) {
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -2073,7 +2073,7 @@ static void em39_R1_Backjump(cEm39* em)
             }
             break;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             jump = em39JumpUpCk3(em);
             if (jump) {
                 break;
@@ -2107,7 +2107,7 @@ static void em39_R1_Backjump(cEm39* em)
         } else {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if (em->r_no_3 == 4 && em->type == 2) {
                 if (em39AtkRtnCk(em)) {
                     break;
@@ -2116,7 +2116,7 @@ static void em39_R1_Backjump(cEm39* em)
                 break;
             }
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4 && em->r_no_3 == 0) {
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -2216,10 +2216,10 @@ static void em39_R1_Step(cEm39* em)
             }
             break;
         }
-        if (!(em->seFlags28B & 4)) {
+        if (!(em->Motion.Seq_old.Free & 4)) {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if (em39AtkRtnCk(em)) {
                 break;
             }
@@ -2283,7 +2283,7 @@ static void em39_R1_Slant(cEm39* em)
             }
             break;
         }
-        if ((em->seFlags28B & 4) && w->targetAngAbs < 0.7853982f) {
+        if ((em->Motion.Seq_old.Free & 4) && w->targetAngAbs < 0.7853982f) {
             if (em39SlantCk(em)) {
                 break;
             }
@@ -2296,7 +2296,7 @@ static void em39_R1_Slant(cEm39* em)
             }
             break;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4) {
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -2354,7 +2354,7 @@ static void em39_R1_Slant2(cEm39* em)
             }
             break;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             if (pG->Game_level > 3) {
                 if (em->plDist2 > 12250000.0f && (u8) (Rnd() % 10) > 4) {
                     EmRoutineSet(em, 1, 0x11, 0, 0);
@@ -2401,11 +2401,11 @@ static void em39_R1_SuperDash(cEm39* em)
         w->Arm_rno = 8;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if (w->TmpU32 == 0) {
                 w->TmpU32 = 1;
                 d = GetDistance3(&em->pos, &pPLS->pos) - 7100.0f;
@@ -2419,7 +2419,7 @@ static void em39_R1_SuperDash(cEm39* em)
         }
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 4, 2, 0);
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if (em39AtkRtnCk(em)) {
                 break;
             }
@@ -2464,7 +2464,7 @@ static void em39_R1_JumpDown(cEm39* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em->dmg.m_Timer = 2;
         end = MotionMove(em, 0);
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             v = em->pos;
             v.y = em->pos_old.y;
             fl = SatMgr.getFloor(&v, 0, 600.0f, 100000.0f, 0);
@@ -2540,7 +2540,7 @@ static void em39_R1_JumpUp(cEm39* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->Target_dir, 0.39269908f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             PSVECScale(&w->TmpV, &v, 0.1f);
             PSVECAdd(&em->pos, &v, &em->pos);
             PSVECSubtract(&w->TmpV, &v, &w->TmpV);
@@ -2609,8 +2609,8 @@ static void em39_R1_JumpUp2(cEm39* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->Target_dir, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (em->seFlags28B & 0x40) {
-            if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x40) {
+            if (em->Motion.Seq_old.Free & 0x10) {
                 PSVECAdd(&em->pos, &w->Spd, &em->pos);
                 w->Spd.y -= 35.714287f;
             } else {
@@ -2735,8 +2735,8 @@ static void em39_R1_JumpUp3(cEm39* em)
             em->ang.y += Muku(&em->pos, &w->jumpPos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 0x40) {
-            if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x40) {
+            if (em->Motion.Seq_old.Free & 0x10) {
                 PSVECAdd(&em->pos, &w->Spd, &em->pos);
                 w->Spd.y -= 35.714287f;
             } else {
@@ -2825,10 +2825,10 @@ static void em39_R1_AtkKnife(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.2617994f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em39AtkCk(em, 2, 0xA);
         }
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             em39SetVoice(em, 0x19);
         }
         if (MotionMove(em, 0)) {
@@ -2865,7 +2865,7 @@ static void em39_R1_AtkKnife(cEm39* em)
     case 3:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             em39WepSet(em, 1);
             if (w->pWep) {
                 MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
@@ -2888,7 +2888,7 @@ static void em39_R1_AtkKnife(cEm39* em)
                     EmRoutineSet(em, 1, 4, 0, 0);
                 }
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em39AtkCk(em, 2, 0xA);
         }
         break;
@@ -2899,7 +2899,7 @@ static void em39_R1_AtkKnife(cEm39* em)
 // The knife swing at a door (cEmDoor): break or open it at the hit frame.
 static inline void em39DoorHit(cEm39* em, Em39Work* w)
 {
-    if ((em->seFlags28B & 1) && w->pDoor) {
+    if ((em->Motion.Seq_old.Free & 1) && w->pDoor) {
         if (w->pDoor->isAlive()) {
             if (w->pDoor->type == 0) {
                 w->pDoor->setBreak(&em->pos);
@@ -2937,7 +2937,7 @@ static void em39_R1_AtkDoor(cEm39* em)
         em->r_no_2++;
     case 1:
         em39DoorHit(em, w);
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             em39SetVoice(em, 0x19);
         }
         if (MotionMove(em, 0)) {
@@ -2961,14 +2961,14 @@ static void em39_R1_AtkDoor(cEm39* em)
         w->Timer2 = 22;
         em->r_no_2++;
     case 3:
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             em39WepSet(em, 1);
             if (w->pWep) {
                 MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
             }
         }
         em39DoorHit(em, w);
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             em39SetVoice(em, 0x19);
         }
         if (MotionMove(em, 0)) {
@@ -2987,7 +2987,7 @@ static void em39_R1_AtkDoor(cEm39* em)
 // rumbles and switches to KnifeHit (1/0x1B).
 static void em39_R1_br_KnifeCatch(cEm39* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em39CatchCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em39CatchCk(em)) {
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         EmRoutineSetW(em, 1, 0x1B, 0, 0);
     }
@@ -3104,7 +3104,7 @@ static void em39_R1_KnifeHit(cEm39* em)
         }
         em->r_no_2++;
     case 1:
-        if ((u32) PlGachaGet() < (u32) w->Timer || !(em->seFlags28B & 1)) {
+        if ((u32) PlGachaGet() < (u32) w->Timer || !(em->Motion.Seq_old.Free & 1)) {
             PlGachaMove();
         } else if (w->Act_ck == 0) {
             if (w->TmpU32) {
@@ -3145,11 +3145,11 @@ static void em39_R1_KnifeHit(cEm39* em)
                 EmRoutineSet(em, 1, 0xE, 0, 1);
             }
         } else if ((s16) pG->pl_life <= 0) {
-            if (em->frame > 22.7f && em->frame < 23.3f) {
+            if (em->Motion.Seq_frame > 22.7f && em->Motion.Seq_frame < 23.3f) {
                 PlSetDamageSe(0xD);
             }
         } else {
-            if (em->frame > 10.7f && em->frame < 11.3f) {
+            if (em->Motion.Seq_frame > 10.7f && em->Motion.Seq_frame < 11.3f) {
                 PlSetDamageSe(0);
             }
         }
@@ -3460,11 +3460,11 @@ static void em39_R1_Knife4Atk(cEm39* em)
                 EmRoutineSet(em, 1, 4, 0, 0);
             }
         } else if ((s16) pG->pl_life <= 0) {
-            if (em->frame > 11.7f && em->frame < 12.3f) {
+            if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
                 PlSetDamageSe(0xD);
             }
         } else {
-            if (em->frame > 2.7f && em->frame < 3.3f) {
+            if (em->Motion.Seq_frame > 2.7f && em->Motion.Seq_frame < 3.3f) {
                 PlSetDamageSe(0);
             }
         }
@@ -4158,7 +4158,7 @@ static void em39_R1_AppearGR(cEm39* em)
             em->ang.y += Muku(&em->pos, &target, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             if (w->pBomb == 0) {
                 Vec pos;
                 Vec rot;
@@ -4176,7 +4176,7 @@ static void em39_R1_AppearGR(cEm39* em)
             }
             em39WepSet(em, 2);
         }
-        if ((em->seFlags28B & 1) && w->pBomb) {
+        if ((em->Motion.Seq_old.Free & 1) && w->pBomb) {
             Vec spd;
             f32 d = VEC_DISTXZ(&em->pos, &pPL->pos) - 2000.0f;
 
@@ -4239,7 +4239,7 @@ static void em39_R1_AppearGR2(cEm39* em)
         w->TmpF = em->ang.y + PI;
         em->r_no_2++;
     case 1:
-        if ((em->seFlags28B & 1) && w->pBomb) {
+        if ((em->Motion.Seq_old.Free & 1) && w->pBomb) {
             f32 d = (VEC_DISTXZ(&em->pos, &pPL->pos) - 1000.0f) * 0.025f;
 
             if (d < 200.0f) {
@@ -4317,7 +4317,7 @@ static void em39_R1_ThrowGR(cEm39* em)
                 break;
             }
         }
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             if (w->pBomb == 0) {
                 Vec pos;
                 Vec rot;
@@ -4335,7 +4335,7 @@ static void em39_R1_ThrowGR(cEm39* em)
             }
             em39WepSet(em, 2);
         }
-        if ((em->seFlags28B & 1) && w->pBomb) {
+        if ((em->Motion.Seq_old.Free & 1) && w->pBomb) {
             Vec spd;
             Mtx m;
             Vec tpos;
@@ -4373,7 +4373,7 @@ static void em39_R1_ThrowGR(cEm39* em)
             w->pBomb = 0;
             em39WepSet(em, 0);
         }
-        if (MotionMove(em, 0) || (em->seFlags28B & 4)) {
+        if (MotionMove(em, 0) || (em->Motion.Seq_old.Free & 4)) {
             if (em->r_no_3) {
                 em->r_no_3--;
                 if (em->r_no_3 == 0) {
@@ -4466,7 +4466,7 @@ static void em39_R1_AppearBow(cEm39* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMove(em, 0)) {
             em->r_no_2++;
-        } else if (em->seFlags28B & 0x10) {
+        } else if (em->Motion.Seq_old.Free & 0x10) {
             em39BowSet(em, 1);
         }
         break;
@@ -4565,10 +4565,10 @@ static void em39_R1_AppearBow(cEm39* em)
             }
             em->r_no_2++;
         } else {
-            if (em->seFlags28B & 0x10) {
+            if (em->Motion.Seq_old.Free & 0x10) {
                 em39BowSet(em, 1);
             }
-            if (em->seFlags28B & 2) {
+            if (em->Motion.Seq_old.Free & 2) {
                 em39ArrowSet(em);
                 em39HandSet(em, 3);
             }
@@ -4623,7 +4623,7 @@ static void em39_R1_Flash(cEm39* em)
             EmRoutineSet(em, 1, 0x26, 0, 0);
             break;
         }
-        if ((em->seFlags28B & 1) && w->pFlash) {
+        if ((em->Motion.Seq_old.Free & 1) && w->pFlash) {
             spd.x = 0.0f;
             spd.y = 100.0f;
             spd.z = 150.0f;
@@ -4722,7 +4722,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    if (em->hp > 0 && (em->seFlags28B & 1) && w->Atk_ck == 0) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 1) && w->Atk_ck == 0) {
         em39LeftArmAtkCk(em, 4);
         if (w->Atk_ck) {
             SndCall(8, 0x3D, &pPL->pos, em->id, 0, pPL);
@@ -4742,7 +4742,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
 
 // The mutated-arm swings share the wait / cancel handling.
 #define EM39_T_ATK_TAIL(em, w, action)                                                              \
-    if (em->seFlags28B & 2) {                                                                      \
+    if (em->Motion.Seq_old.Free & 2) {                                                                      \
         w->Act_ck = 1;                                                                               \
     }                                                                                              \
     if (w->Timer2) {                                                                                   \
@@ -4793,7 +4793,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
             w->Atk_wait = 30;                                                                          \
             EmRoutineSet(em, 1, 0xE, zero, 1);                                                     \
         }                                                                                          \
-    } else if (em->seFlags28B & 4) {                                                               \
+    } else if (em->Motion.Seq_old.Free & 4) {                                                               \
         if (w->Atk_ck == 0) {                                                                        \
             GameAddPoint(LVADD_ESCAPEATTACK);                                                                     \
         }                                                                                          \
@@ -4817,7 +4817,7 @@ static void em39_R1_T_Atk(cEm39* em)
         EM39_T_ATK_INIT(em, w, 0x30);
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -4843,11 +4843,11 @@ static void em39_R1_T_BackKnuckle(cEm39* em)
         EM39_T_ATK_INIT(em, w, 0x31);
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em39LeftArmAtkCk(em, 5);
         }
         end = MotionMove(em, 0);
@@ -4863,7 +4863,7 @@ static void em39_R1_br_T_LongAtk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    if (em->hp > 0 && (em->seFlags28B & 1) && w->Atk_ck == 0) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 1) && w->Atk_ck == 0) {
         em39LeftArmAtkCk(em, 6);
         if (w->Atk_ck) {
             SndCall(8, 0x3D, &pPL->pos, em->id, 0, pPL);
@@ -4943,7 +4943,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
             w->Timer--;
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -4958,12 +4958,12 @@ static void em39_R1_T_LongAtk(cEm39* em)
                 w->Atk_wait = 30;
                 EmRoutineSet(em, 1, 0xE, zero, 1);
             }
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EmRoutineSet(em, 1, 0xE, end, 1);
-        } else if (em->seFlags28B & 2) {
+        } else if (em->Motion.Seq_old.Free & 2) {
             w->Act_ck = 1;
         }
         break;
@@ -5014,14 +5014,14 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         w->Arm_rno = 4;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em39LeftArmAtkCk(em, 7);
         }
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             w->Timer3 = 0;
         }
         if (w->Timer3) {
@@ -5037,7 +5037,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
                 w->Atk_wait = 30;
                 EmRoutineSet(em, 1, 0xE, zero, 1);
             }
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
                 if (w->Atk_ck == 0) {
@@ -5056,14 +5056,14 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         }
         break;
     }
-    if (em->seFlags28B & 2) {
+    if (em->Motion.Seq_old.Free & 2) {
         w->Act_ck = 1;
     }
     EM39_T_LONG_TAIL(em, w, em39BackjumpAction);
 }
 
 // Frame window test on the player's motion frame (sound cues of the damage motions).
-#define PL_FRAME_IN(pl, lo, hi) ((pl)->frame > (lo) && (pl)->frame < (hi))
+#define PL_FRAME_IN(pl, lo, hi) ((pl)->Motion.Seq_frame > (lo) && (pl)->Motion.Seq_frame < (hi))
 
 // Player damage callback of the arm kick / stamp hits: the knock-down motion (the death variant
 // at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
@@ -5238,7 +5238,7 @@ static void plemBackjump(cPlayer* pl)
 // knock-down facing the boss.
 static void em39_R1_br_T_Kick(cEm39* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em39KickHitCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em39KickHitCk(em)) {
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         SndCall(8, 0x38, &pPL->pos, em->id, 0, pPL);
         if (em39GetCliffPos(em)) {
@@ -5285,7 +5285,7 @@ static void em39_R1_T_Kick(cEm39* em)
         w->Timer = 10;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -5294,7 +5294,7 @@ static void em39_R1_T_Kick(cEm39* em)
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             cModel* p;
 
             b = em->pos;
@@ -5304,7 +5304,7 @@ static void em39_R1_T_Kick(cEm39* em)
             EM39_KICK_CK(em, p->mat, a, b, -400.0f);
             EM39_KICK_CK(em, p->mat, a, b, -600.0f);
         }
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             w->Atk_ck = 0;
         }
         if (MotionMove(em, 0)) {
@@ -5314,7 +5314,7 @@ static void em39_R1_T_Kick(cEm39* em)
                 w->Atk_wait = 30;
                 EmRoutineSet(em, 1, 0xE, 0, 1);
             }
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
@@ -5355,7 +5355,7 @@ static void em39_R1_T_Kick(cEm39* em)
 // and the trample follow-up (stat -> T_LowKickHit 1/0x2D).
 static void em39_R1_br_T_LowKick(cEm39* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em39KickHitCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em39KickHitCk(em)) {
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         LifeDownSet2(pPL, 500, 0, 1);
         SndCall(8, 0x38, &pPL->pos, em->id, 0, pPL);
@@ -5388,7 +5388,7 @@ static void em39_R1_T_LowKick(cEm39* em)
         w->Action_timer = 0x19;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -5399,7 +5399,7 @@ static void em39_R1_T_LowKick(cEm39* em)
                 w->Atk_wait = 30;
                 EmRoutineSet(em, 1, 0xE, 0, 1);
             }
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             int f;
 
             if (w->Atk_ck == 0) {
@@ -5486,10 +5486,10 @@ static void em39_R1_T_LowKickHit(cEm39* em)
     case 1:
         em->dmg.m_Timer = 2;
         EmCatchMotionMove(em, 1.0f, 1.0f);
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             w->TmpU32B = 1;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             pG->pl_life = 0;
         }
         if (w->Act_ck) {
@@ -5529,7 +5529,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         } else {
             end = MotionMove(em, 0);
         }
-        if (end || (em->seFlags28B & 4)) {
+        if (end || (em->Motion.Seq_old.Free & 4)) {
             w->Atk_wait = 30;
             EmRoutineSet(em, 1, 0xE, 0, 1);
         }
@@ -5695,10 +5695,10 @@ static void em39_R1_T_CliffAtk(cEm39* em)
             w->Timer = 4;
             EstSet(0, -1, 0, 0, EFF_EM39, 0x38, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             pG->pl_life = 0;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             ActBtn.set(ACT_CLIMB, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             if (Key.trg & 0x80000) {
                 if (w->TmpU32 == 0) {
@@ -5708,13 +5708,13 @@ static void em39_R1_T_CliffAtk(cEm39* em)
                 w->TmpU32--;
             }
         }
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             em39SetVoice(em, 0x52);
         }
-        if (em->frame > 48.7f && em->frame < 49.3f) {
+        if (em->Motion.Seq_frame > 48.7f && em->Motion.Seq_frame < 49.3f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
-        if (em->frame > 139.7f && em->frame < 140.3f) {
+        if (em->Motion.Seq_frame > 139.7f && em->Motion.Seq_frame < 140.3f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
         }
         break;
@@ -5726,12 +5726,12 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         pPL->r_no_2 = st;
         em->r_no_2++;
     case 3:
-        if (MotionMove(em, 0) || (em->seFlags28B & 1)) {
+        if (MotionMove(em, 0) || (em->Motion.Seq_old.Free & 1)) {
             w->Be_flg |= 0x800000;
             AtariOn(&em->atari, 0x300);
             w->Atk_wait = 30;
             EmRoutineSet(em, 1, 0xE, 0, 1);
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             AtariOn(&em->atari, 0x300);
         }
         break;
@@ -5883,7 +5883,7 @@ static void em39_R0_Damage(cEm39* em)
     (w)->No_fire_timer = 0;                                                                                 \
     AtariOn(&(em)->atari, 0x300);
 
-// Damage recovery decision on the return-to-idle frame (seFlags28B bit 2).
+// Damage recovery decision on the return-to-idle frame (Motion.Seq_old.Free bit 2).
 #define EM39_DM_RECOVER(em, w)                                                                      \
     {                                                                                              \
         int lim;                                                                                   \
@@ -5964,12 +5964,12 @@ static void em39_R1_Dm_Normal(cEm39* em)
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0xA);
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             EM39_DM_RECOVER(em, w);
         } else {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4) {
                 int rtn;
 
@@ -6015,12 +6015,12 @@ static void em39_R1_Dm_Head(cEm39* em)
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 8, 0, 0xA);
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             EM39_DM_RECOVER(em, w);
         } else {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4) {
                 int rtn;
 
@@ -6072,7 +6072,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
         EM39_DM_DROP(em, w, 9, 0x5A);
         em->r_no_2++;
     case 1:
-        if (MotionMove(em, 0) || (em->hp > 0 && (em->seFlags28B & 4))) {
+        if (MotionMove(em, 0) || (em->hp > 0 && (em->Motion.Seq_old.Free & 4))) {
             em->r_no_2++;
         }
         break;
@@ -6096,12 +6096,12 @@ static void em39_R1_Dm_Blow(cEm39* em)
             }
             EmRoutineSet(em, 1, 8, rtn, 0xA);
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             EM39_DM_RECOVER(em, w);
         } else {
             w->Be_flg |= 0x100;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if ((u8) (Rnd() % 10) > 4) {
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -6131,7 +6131,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
         } else {                                                                                   \
             EmRoutineSet(em, 1, 8, rtn, rtn);                                                      \
         }                                                                                          \
-    } else if ((em)->seFlags28B & 4) {                                                             \
+    } else if ((em)->Motion.Seq_old.Free & 4) {                                                             \
         if (pG->Game_level <= 3) {                                                                      \
             EmRoutineSet(em, 1, 0xE, end, 1);                                                      \
         } else if (em39LockCk(em)) {                                                               \
@@ -6152,7 +6152,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
                 EmRoutineSet(em, 1, 8, rtn, rtn);                                                  \
             }                                                                                      \
         }                                                                                          \
-    } else if ((em)->seFlags28B & 1) {                                                             \
+    } else if ((em)->Motion.Seq_old.Free & 1) {                                                             \
         (w)->Arm_rno = 8;                                                                             \
     }
 
@@ -6209,7 +6209,7 @@ static void em39_R1_Dm_T_Down(cEm39* em)
         end = MotionMove(em, 0);
         if (end == 0) {
             w->Be_flg |= 0x1000;
-            if (!(em->seFlags28B & 0x10)) {
+            if (!(em->Motion.Seq_old.Free & 0x10)) {
                 w->Be_flg |= 0x10000;
             }
         }
@@ -6247,7 +6247,7 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
             } else {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if (pG->Game_level <= 3) {
                 EmRoutineSet(em, 1, 0xE, end, 1);
             } else if (em39LockCk(em)) {
@@ -6268,7 +6268,7 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
                     EmRoutineSet(em, 1, 8, rtn, rtn);
                 }
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->Arm_rno = 8;
         }
         break;
@@ -6359,7 +6359,7 @@ static void em39_R1_Die_Flash(cEm39* em)
     case 1:
         end = MotionMove(em, 0);
         if (end == 0) {
-            if ((em->seFlags28B & 1) && w->pFlash) {
+            if ((em->Motion.Seq_old.Free & 1) && w->pFlash) {
                 spd.x = 0.0f;
                 spd.y = 100.0f;
                 spd.z = 150.0f;
@@ -7300,13 +7300,13 @@ void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int 
     }
     bm = &w->blendMot;
     MotionSetCore(em, bm, m, (void*) seq, (u8) w->Hokan, (u16) dd, (u16) w->Frame);
-    em->blendMot = bm;
-    bm->blendRate = rate * 0.00390625f;
+    em->Motion.blend = bm;
+    bm->Brate = rate * 0.00390625f;
     if (w->Hokan) {
         w->Hokan--;
     }
     w->Frame++;
-    if ((u32) w->Frame >= em->frameMax) {
+    if ((u32) w->Frame >= em->Motion.Seq_frame_num) {
         w->Frame = 0;
     }
 }
@@ -7697,7 +7697,7 @@ void em39WepSet(cEm39* em, int no)
     if ((em)->hp <= 0) {                                                                           \
         return 0;                                                                                  \
     }                                                                                              \
-    if (!((em)->seFlags28B & 2)) {                                                                 \
+    if (!((em)->Motion.Seq_old.Free & 2)) {                                                                 \
         return 0;                                                                                  \
     }                                                                                              \
     noFlag = !((w)->Be_flg & 1);                                                                    \
@@ -8019,8 +8019,8 @@ void em39ArmControl(cEm39* em)
     if (em->type != 2) {
         return;
     }
-    w->Arm_mot.speedRate = 1.0f;
-    w->Arm_mot.flags2 |= 0x10000000;
+    w->Arm_mot.Seq_speed = 1.0f;
+    w->Arm_mot.Mot_flag |= 0x10000000;
     switch (w->Arm_rno) {
     case 0:
         switch (w->Arm_type) {
@@ -8100,24 +8100,24 @@ void em39ArmControl(cEm39* em)
         w->Arm_rno++;
         goto MOVE;
     case 0xC:
-        w->Arm_mot.speedRate = 1.0f;
-        w->Arm_mot.flags2 |= 0x10000000;
+        w->Arm_mot.Seq_speed = 1.0f;
+        w->Arm_mot.Mot_flag |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x108), 0, 0, 1, 0);
         w->Arm_type = 1;
         se = 1;
         w->Arm_rno++;
         goto MOVE;
     case 0xE:
-        w->Arm_mot.speedRate = 1.0f;
-        w->Arm_mot.flags2 |= 0x10000000;
+        w->Arm_mot.Seq_speed = 1.0f;
+        w->Arm_mot.Mot_flag |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x109), 0, 0, 1, 0);
         w->Arm_type = 1;
         se = 1;
         w->Arm_rno++;
         goto MOVE;
     case 0x10:
-        w->Arm_mot.speedRate = 1.0f;
-        w->Arm_mot.flags2 |= 0x10000000;
+        w->Arm_mot.Seq_speed = 1.0f;
+        w->Arm_mot.Mot_flag |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x10A), 0, 0, 1, 0);
         w->Arm_type = se;
         w->Arm_rno++;
@@ -8134,8 +8134,8 @@ void em39ArmControl(cEm39* em)
     case 0x12: {
         int mf = ((MotionData*) ARC(0x10A))->maxFrame;
 
-        w->Arm_mot.speedRate = 1.0f;
-        w->Arm_mot.flags2 |= 0x10000000;
+        w->Arm_mot.Seq_speed = 1.0f;
+        w->Arm_mot.Mot_flag |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x10A), 0, 0, 0, (u16) ((mf & 0x3FFF) - 1));
         w->Arm_type = se;
         w->Arm_rno++;
@@ -8429,7 +8429,7 @@ void cEm39::set2ndDoorClear()
 // Motion-key voice request (seNo - 1) for the voice numbers the enemy owns.
 void em39VoiceMove(cEm39* em)
 {
-    u32 v = em->seNo;
+    u32 v = em->Motion.Seq_old.Se;
 
     if (v == 0) {
         return;
@@ -8464,7 +8464,7 @@ void em39VoiceMove(cEm39* em)
     case 0x34:
     case 0x3E:
     case 0x3F:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em39SetVoice(em, (u8) v);
         break;
     }
@@ -8624,7 +8624,7 @@ int em39GuardCk(cEm39* em)
 // Motion-key foot sounds (seNo - 1) with the footstep dust in the tower room.
 void em39FootEff(cEm39* em)
 {
-    u32 v = em->seNo;
+    u32 v = em->Motion.Seq_old.Se;
     u16 no;
 
     if (v == 0) {
@@ -8671,14 +8671,14 @@ void em39FootEff(cEm39* em)
     default:
         return;
     }
-    em->seNo = 0;
+    em->Motion.Seq_old.Se = 0;
     SndCall(8, no, &em->getPartsPtr(0)->world, em->id, 0, pPL);
 }
 
 // Motion-key player voice (seNo - 1 = 0x43 / 0x44 / 0x54), Ashley's numbers in her chapter.
 void em39PLVoiceCk(cEm39* em)
 {
-    u32 v = em->seNo;
+    u32 v = em->Motion.Seq_old.Se;
     u16 no;
 
     if (v == 0) {
@@ -8704,7 +8704,7 @@ void em39PLVoiceCk(cEm39* em)
     default:
         return;
     }
-    em->seNo = 0;
+    em->Motion.Seq_old.Se = 0;
     SndCall(8, no, &pPL->getPartsPtr(4)->world, em->id, 0, pPL);
 }
 

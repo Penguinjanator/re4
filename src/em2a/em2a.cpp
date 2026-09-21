@@ -422,7 +422,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             em2aTrap1CamMove(em);
             w->camTimer--;
         }
-        if ((em->seFlags28B & 4) && EmDeadCk(pPL)) {
+        if ((em->Motion.Seq_old.Free & 4) && EmDeadCk(pPL)) {
             u16 frame = (*(u16*) ARC(0xB) & 0x3FFF) - 1;
 
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
@@ -533,7 +533,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
             sub->r_no_2++;
             break;
         }
-        if (sub->frame > 15.7f && sub->frame < 16.3f) {
+        if (sub->Motion.Seq_frame > 15.7f && sub->Motion.Seq_frame < 16.3f) {
             SndCall(8, 9, &sub->pos, sub->id, 0, sub);
         }
         break;
@@ -563,10 +563,10 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         if (MotionMove(sub, 0)) {
             EndSubDamage();
         }
-        if (sub->frame > 107.7f && sub->frame < 108.3f) {
+        if (sub->Motion.Seq_frame > 107.7f && sub->Motion.Seq_frame < 108.3f) {
             SndCall(8, 0x11, &sub->pos, sub->id, 0, sub);
         }
-        if ((sub->frame > 23.7f && sub->frame < 24.3f) || (sub->frame > 58.7f && sub->frame < 59.3f)) {
+        if ((sub->Motion.Seq_frame > 23.7f && sub->Motion.Seq_frame < 24.3f) || (sub->Motion.Seq_frame > 58.7f && sub->Motion.Seq_frame < 59.3f)) {
             SndCall(8, 0xE, &sub->pos, sub->id, 0, sub);
         }
         break;

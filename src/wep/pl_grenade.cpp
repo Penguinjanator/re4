@@ -170,14 +170,14 @@ static void wep19_r3_ready00(cPlayer* pl)
 // step 4 (finish the motion).
 static void wep19_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
     }
     pl->motionMove();
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -192,7 +192,7 @@ static void wep19_r3_ready10(cPlayer* pl)
 static void wep19_r3_ready20(cPlayer* pl)
 {
     MotionMove(pl, 0);
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -326,7 +326,7 @@ static void wep19_r3_set50(cPlayer* pl)
     p.x = 200.0f;
     p.y = 500.0f;
     p.z = 300.0f;
-    if (pl->frame != 0.0f) {
+    if (pl->Motion.Seq_frame != 0.0f) {
         PSMTXMultVec(pl->mat, &p, &p);
         pl->setPos(&p);
     }
@@ -338,7 +338,7 @@ static void wep19_r3_set60(cPlayer* pl)
     static Vec rot = {-0.2617994f, 0.0f, 0.0f};
     f32 d;
 
-    d = pl->frame * 30.000002f + 283.5f;
+    d = pl->Motion.Seq_frame * 30.000002f + 283.5f;
     d = d * 20.0f + 0.1f;
     rot.y = (1.0f - d) + -0.2f;
     rot.z = d * 0.4f;
@@ -356,10 +356,10 @@ static void wep19_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -371,10 +371,10 @@ static void wep19_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -444,18 +444,18 @@ static void wep19_r3_fire10(cPlayer* pl)
         }
     }
     if (pl->m_Work4 == 0) {
-        if (pl->frame > 24.7f && pl->frame < 25.3f) {
+        if (pl->Motion.Seq_frame > 24.7f && pl->Motion.Seq_frame < 25.3f) {
             readyWeapon(pl);
             SndCall(1, 0, &pl->pParts->world, 0, 0, 0);
         }
-        if (pl->frame >= 30.0f) {
+        if (pl->Motion.Seq_frame >= 30.0f) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 1;
             pl->r_no_3 = 4;
         }
     } else {
-        if (pl->frame >= 15.0f) {
+        if (pl->Motion.Seq_frame >= 15.0f) {
             pl->setRightHand(1);
             if (pl->stat & 0x40) {
                 pl->r_no_0 = 0;

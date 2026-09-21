@@ -57,7 +57,7 @@ void cObjScr::move()
     };
 
     (this->*funcTbl[type])();
-    if (pMotion) {
+    if (Motion.pMot) {
         MotionMove(this, 0);
     } else {
         matUpdate();

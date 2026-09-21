@@ -506,7 +506,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->r_no_2 = 0x15;
         // fallthrough
     case 0x15:
-        if (pl->frame <= 15.0f) {
+        if (pl->Motion.Seq_frame <= 15.0f) {
             PlWepHitCheck2(0, &pl->pos, &pl->pos, 0x2D, 0, hitLen);
         }
         if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {

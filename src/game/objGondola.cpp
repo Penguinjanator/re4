@@ -237,7 +237,7 @@ void objGondola_R0_Up(cObjGondola* obj)
         pSUB->setPos(&b);
     }
     objGondolaSatSet(obj);
-    if (obj->motFrame >= 4105.0f && obj->motFrame <= 4105.0f) {
+    if (obj->Motion.Seq_frame >= 4105.0f && obj->Motion.Seq_frame <= 4105.0f) {
         b.x = 21722.0f;
         b.y = 10274.0f;
         b.z = -35327.0f;
@@ -315,9 +315,9 @@ void objGondola_R0_Break(cObjGondola* obj)
                     ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
                     MotionSetCore(obj, w->subWork, w->breakMot, 0, 0, 0, 0);
                     ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
-                    obj->motBlend = w->subWork;
-                    ((GondolaMotWork*) obj->motBlend)->blendRate = 1.0f;
-                    ((GondolaMotWork*) obj->motBlend)->flags2 |= 0x80000000;
+                    obj->Motion.blend = w->subWork;
+                    ((GondolaMotWork*) obj->Motion.blend)->blendRate = 1.0f;
+                    ((GondolaMotWork*) obj->Motion.blend)->flags2 |= 0x80000000;
                 }
             }
         }
@@ -672,9 +672,9 @@ void cObjGondola::setVib()
         ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
         MotionSetCore(this, w->subWork, w->subMot, 0, 0, 0, 0);
         ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
-        motBlend = w->subWork;
-        ((GondolaMotWork*) motBlend)->blendRate = 1.0f;
-        ((GondolaMotWork*) motBlend)->flags2 |= 0x80000000;
+        Motion.blend = w->subWork;
+        ((GondolaMotWork*) Motion.blend)->blendRate = 1.0f;
+        ((GondolaMotWork*) Motion.blend)->flags2 |= 0x80000000;
         QuakeExec(0, 0, 10, 30.0f, 2);
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     }

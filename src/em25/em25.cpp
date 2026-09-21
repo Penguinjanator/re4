@@ -249,7 +249,7 @@ void cEm25::move()
         EmRoutineSet(this, 1, 0, 0, 0);
     }
     be_flag &= ~0x4000;
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     em25DmCk(this);
     w->Be_flg &= ~0x2F;
     if (!DbgFlagChk(pGS, DBG_EM_NO_DEATH) && w->Alive_timer) {
@@ -321,7 +321,7 @@ static void em25_R0_Init(cEm25* em)
     }
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     zero = 0;
-    em->pXFlip = em25_flip_tbl;
+    em->Motion.flip = em25_flip_tbl;
     EspDataLoad((u32) ARC(7), EFF_EM25, 0);
     {
         static const Vec ofs = {0.0f, 0.0f, 0.0f};
@@ -614,7 +614,7 @@ static void em25_R1_Turn90(cEm25* em)
 // Branch check of JumpAtk (6): the catch test em25CatchCk on the leap's hit frame -> Bite (7).
 static void em25_R1_br_JumpAtk(cEm25* em)
 {
-    if ((em->seFlags28B & 1) && em25CatchCk(em)) {
+    if ((em->Motion.Seq_old.Free & 1) && em25CatchCk(em)) {
         EmRoutineSet(em, 1, 7, 0, 0);
     }
 }
@@ -686,7 +686,7 @@ static void em25_R1_Bite(cEm25* em)
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
-        if (em->frame > 19.7000008f && em->frame < 20.2999992f) {
+        if (em->Motion.Seq_frame > 19.7000008f && em->Motion.Seq_frame < 20.2999992f) {
             w->sndId = SndCall(8, 0x13, &em->pos, em->id, 0, em);
         }
         if (w->Timer) {
@@ -914,7 +914,7 @@ static void em25_R1_P_Atk(cEm25* em)
         em25OnParent(em);
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em25AtkCk(em, 1, 2);
         }
         break;
@@ -936,7 +936,7 @@ static void em25_R1_P_Poison(cEm25* em)
         em25OnParent(em);
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
-        } else if (em->frame > 17.7000008f && em->frame < 18.2999992f) {
+        } else if (em->Motion.Seq_frame > 17.7000008f && em->Motion.Seq_frame < 18.2999992f) {
             em25SetPoison(em);
         }
         break;
@@ -1287,7 +1287,7 @@ void em25OnParent(cEm25* em)
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         PSMTXConcat(p->mat, em->mat, em->mat);
-        em->motFlags2 |= 0x40000000;
+        em->Motion.Mot_flag |= 0x40000000;
     }
 }
 
@@ -1369,7 +1369,7 @@ void cEm25::setPoison()
 // Motion state of the attack: non-zero when the attack motion ended.
 int cEm25::ckAtkEnd()
 {
-    return motState;
+    return Motion.Mot_state;
 }
 
 // Host request: die with the host (Die_P_Normal, R3 0).
@@ -1477,7 +1477,7 @@ int em25CatchCk(cEm25* em)
     if (em->hp <= 0) {
         return 0;
     }
-    if (!(em->seFlags28B & 1)) {
+    if (!(em->Motion.Seq_old.Free & 1)) {
         return 0;
     }
     if (!(w->Be_flg & 1)) {

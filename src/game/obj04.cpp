@@ -106,7 +106,7 @@ void cObj04::move()
         }
     } else if (w->fadeStart != 0) {
         f32 ratio = (f32) w->frame / (f32) w->fadeStart;
-        w->a = (f32) w->alpha0 * ratio;
+        w->a = (f32) w->a0 * ratio;
     }
     if (ot_type != 2) {
         if (w->a < 250.0f) {
@@ -139,7 +139,7 @@ void cObj04::move()
                 neg.y = -nrm.y;
                 neg.z = -nrm.z;
                 C_VECReflect(&speed, &neg, &ref);
-                PSVECScale(&ref, &speed, len * w->bounceY);
+                PSVECScale(&ref, &speed, len * w->bounce.y);
                 PSVECScale(&w->rotSpd, &w->rotSpd, -0.8f);
             }
         } else if (w->flags & 1) {
@@ -152,9 +152,9 @@ void cObj04::move()
                 }
             }
             if (pos.y - ofs < floor) {
-                FSet(speed.x, speed.x * w->bounceXZ);
-                FSet(speed.y, speed.y * -w->bounceY);
-                FSet(speed.z, speed.z * w->bounceXZ);
+                FSet(speed.x, speed.x * w->bounce.x);
+                FSet(speed.y, speed.y * -w->bounce.y);
+                FSet(speed.z, speed.z * w->bounce.x);
                 FSet(pos.y, floor + ofs);
                 hit = 1;
                 PSVECScale(&w->rotSpd, &w->rotSpd, obj04_gnd_ratio);

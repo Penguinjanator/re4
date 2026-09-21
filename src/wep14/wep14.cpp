@@ -194,8 +194,8 @@ static void wep14_r3_ready00(cPlayer* pl)
 // end the load SE 2/9 and -> set state.
 static void wep14_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;

@@ -502,9 +502,9 @@ void R208Main()
         SceAtSetEnable(0x16, 0);
     }
     if ((pG->Room_flg[0] & 0x04000000) == 0 && (SubCharGetStatus() & 0x01000000) == 0) {
-        SmdGetObjPtr(0x4E)->motFlags |= 8;
-        SmdGetObjPtr(0x50)->motFlags |= 8;
-        BitOn16(SmdGetObjPtr(0x52)->motFlags, 8);
+        SmdGetObjPtr(0x4E)->Motion.Mot_attr |= 8;
+        SmdGetObjPtr(0x50)->Motion.Mot_attr |= 8;
+        BitOn16(SmdGetObjPtr(0x52)->Motion.Mot_attr, 8);
         if (pSUB != NULL) {
             pSUB->atari.setPriority(0);
         }
@@ -1090,7 +1090,7 @@ static void brige1_down()
     SceEventStart(1);
     CamCtrl.CutCall(6);
     SndCall(6, 1, 0, 0, 0, 0);
-    SmdGetObjPtr(0x4E)->motFlags |= 8;
+    SmdGetObjPtr(0x4E)->Motion.Mot_attr |= 8;
     SmdGetObjPtr(0x4E)->setNoSuspend(1);
     RsfSet(G_ROOM_ID, 6);
     pG->Room_flg[0] |= 0x10000000;
@@ -1291,7 +1291,7 @@ static void r208_operateCrank()
                 m1 = ROOM_ARC_PTR(pG->pRoom, 0x32);
                 break;
             }
-            rate = pPL->frame / (f32) pPL->frameMax;
+            rate = pPL->Motion.Seq_frame / (f32) pPL->Motion.Seq_frame_num;
             n = *(u16*) m0;
             frame = (u32) ((f32) n * rate);
             frame++;

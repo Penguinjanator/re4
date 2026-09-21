@@ -79,7 +79,7 @@ void cObj05::move()
         }
     } else if (w->fadeStart != 0) {
         f32 ratio = (f32) w->frame / (f32) w->fadeStart;
-        w->a = (f32) w->alpha0 * ratio;
+        w->a = (f32) w->a0 * ratio;
     }
     if (ot_type != 2) {
         if (w->a < 250.0f) {
@@ -150,7 +150,7 @@ void cObj05::move()
                     nrm.y = -nrm.y;
                     nrm.z = -nrm.z;
                     C_VECReflect(&p->efmSpd, &nrm, &ref);
-                    PSVECScale(&ref, &p->efmSpd, len * w->bounceXZ);
+                    PSVECScale(&ref, &p->efmSpd, len * w->bounce.x);
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, -0.8f);
                 }
             } else if (w->flags & 1) {
@@ -161,9 +161,9 @@ void cObj05::move()
                     floor = 0.0f;
                 }
                 if (p->world.y - ofs < floor) {
-                    FSet(p->efmSpd.x, p->efmSpd.x * w->bounceXZ);
-                    FSet(p->efmSpd.y, p->efmSpd.y * -w->bounceY);
-                    FSet(p->efmSpd.z, p->efmSpd.z * w->bounceXZ);
+                    FSet(p->efmSpd.x, p->efmSpd.x * w->bounce.x);
+                    FSet(p->efmSpd.y, p->efmSpd.y * -w->bounce.y);
+                    FSet(p->efmSpd.z, p->efmSpd.z * w->bounce.x);
                     FSet(p->world.y, floor + ofs);
                     hit = 1;
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, 0.8f);

@@ -306,7 +306,7 @@ void cEm22::move()
     if ((s16) pG->pl_life <= 0) {
         w->escTimer = 1;
     }
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     Em22RouteCk(this);
     Em22_R0_move_tbl[r_no_0](this);
     if (r_no_0 == 0xFF) {
@@ -379,7 +379,7 @@ static void em22_R0_Init(cEm22* em)
     zero = 0;
     mot = MOTION(em);
     EspDataLoad((u32) ARC(6), EFF_EM22, 0);
-    em->pXFlip = em22_flip;
+    em->Motion.flip = em22_flip;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
@@ -624,7 +624,7 @@ static void em22_R1_R11B_B(cEm22* em)
         em22DirMatrix(em, 0.0f);
         if (MotionMove(em, 0)) {
             em->r_no_2++;
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em22SetParasite(em);
         }
         break;
@@ -1174,7 +1174,7 @@ static void em22_R1_SideStep(cEm22* em)
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
-// Branch check of JumpAtk (0xD): on the motion's hit key (motEvent bit0) with the player alive, seen,
+// Branch check of JumpAtk (0xD): on the motion's hit key (Motion.Seq_old.Free bit0) with the player alive, seen,
 // inside the 1000 x 1200 box in front and reachable (scenario probes at 500 / 1500 height and the two
 // side lanes) -> JumpAtkHit (0xE), both damage-held, controller vibration.
 static void em22_R1_br_JumpAtk(cEm22* em)
@@ -1186,7 +1186,7 @@ static void em22_R1_br_JumpAtk(cEm22* em)
     Vec b;
     Mtx m;
 
-    if (!(em->motEvent & 1)) {
+    if (!(em->Motion.Seq_old.Free & 1)) {
         return;
     }
     if (EmDeadCk(pPL)) {
@@ -1343,14 +1343,14 @@ static void em22_R1_JumpAtkHit(cEm22* em)
             w->timer--;
             em22CamMove(em, w->camType);
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             SndStop(w->sndId[0], 0);
             SndStop(w->sndId[1], 0);
             SndCall(8, 0x11, &em->pos, em->id, 0, em);
             SndStop(w->sndId[2], 0);
             SndCall(8, 0x22, &pPL->pos, em->id, 0, em);
         }
-        if ((em->motEvent & 2) && ChkWaterEffectEnable(&em->pos)) {
+        if ((em->Motion.Seq_old.Free & 2) && ChkWaterEffectEnable(&em->pos)) {
             EstSet(0, -1, &em->pos, 0, EFF_EM22, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         if (MotionMove(em, 0)) {
@@ -1396,7 +1396,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         VibSetData(VIB_TBL, 0xF, 1);
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 6.7f && pl->frame < 7.3f) {
+        if (pl->Motion.Seq_frame > 6.7f && pl->Motion.Seq_frame < 7.3f) {
             SndCall(5, 0xC, &pl->pos, 0, 0, pl);
         }
         EmCatchMotionMove(pl, 1.0f, 1.0f);
@@ -1456,7 +1456,7 @@ static void em22_R1_br_ParaAtk(cEm22* em)
     Mtx inv;
     Vec v;
 
-    if (!(em->motEvent & 1)) {
+    if (!(em->Motion.Seq_old.Free & 1)) {
         return;
     }
     if (EmDeadCk(pPL)) {
@@ -1505,11 +1505,11 @@ static void em22_R1_ParaAtk(cEm22* em)
             GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 0xA, 0, 0);
         } else {
-            if (em->motEvent & 0x80) {
+            if (em->Motion.Seq_old.Free & 0x80) {
                 em22SetParasiteAtk(em);
                 em22SetParasite(em);
             }
-            if (em->motEvent & 0x40) {
+            if (em->Motion.Seq_old.Free & 0x40) {
                 em22ParaSetMotAtk(em);
             }
         }
@@ -1593,7 +1593,7 @@ static void em22_R1_Wakeup(cEm22* em)
     switch (em->r_no_2) {
     case 0:
         flip = 1;
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             flip = 0x41;
         }
         if (w->targetAngAbs < 1.5707964f) {
@@ -1640,7 +1640,7 @@ static void em22_R1_Parasite(cEm22* em)
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 7, 0, 0);
             }
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em22SetParasite(em);
         }
         break;
@@ -1843,7 +1843,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
                 EmRoutineSet(em, 1, 0x11, 0, 0);
             }
         } else {
-            if (em->motEvent & 2) {
+            if (em->Motion.Seq_old.Free & 2) {
                 if (ChkWaterEffectEnable(&em->pos)) {
                     EstSet(0, -1, &em->pos, 0, EFF_EM22, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
@@ -2090,7 +2090,7 @@ void em22DirMatrix(cEm22* em, f32 dir)
     RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     t = 0.0f;
     if (dir > 0.0f) {
         t = -0.5235988f;
@@ -2434,7 +2434,7 @@ void em22SetParasiteAtk(cEm22* em)
             sc.y = 1.0f;
             sc.z = 1.0f;
             w->pParaAtk[i]->setScale(&sc);
-            w->pParaAtk[i]->pXFlip = em22_para_flip;
+            w->pParaAtk[i]->Motion.flip = em22_para_flip;
         }
     }
 }
@@ -2602,7 +2602,7 @@ void em22ScaleCompress(cEm22* em)
         s.y = w->scale;
         s.z = 1.0f;
         ScaleMatrix(m, &s);
-        for (p = (cParts*) em->pParts; p; p = p->pList) {
+        for (p = em->pList; p; p = p->pList) {
             PSMTXConcat(m, p->mat, p->mat);
             p->mat[0][3] = p->world.x;
             p->mat[1][3] = p->world.y;
@@ -2617,7 +2617,7 @@ void em22FootSeControl(cEm22* em)
     Em22Work* w = EM22_WK(em);
     u8 no;
 
-    no = em->seNo;
+    no = em->Motion.Seq_old.Se;
     if (no == 0) {
         return;
     }
@@ -2626,11 +2626,11 @@ void em22FootSeControl(cEm22* em)
     case 0:
     case 1:
         Ctrl11SetSe(w->pCtrl11, em, 3, no, 0xC);
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         break;
     case 2:
         Ctrl11SetSe(w->pCtrl11, em, 3, no, 0xD);
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         break;
     case 4:
     case 5:
@@ -2639,7 +2639,7 @@ void em22FootSeControl(cEm22* em)
         // Allocation lever (loop notes, no code): at depth 2 the two `w` refs count 3x (w 9 refs /
         // 30 insns beats em 11 / 47), so w takes r31 and em r30.
         do { do { w->Seid_foot = Ctrl11SetSe(w->pCtrl11, em, 10, no, 0xE); } while (0); } while (0);
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         break;
     }
 }
@@ -2730,22 +2730,22 @@ static inline void em22FootSplash(cEm22* em, int no)
 // dog stands in water.
 void em22FootEff(cEm22* em)
 {
-    if (!(em->motEvent & 0x3C)) {
+    if (!(em->Motion.Seq_old.Free & 0x3C)) {
         return;
     }
     if (ChkWaterEffectEnable(&em->pos) == 0) {
         return;
     }
-    if (em->motEvent & 4) {
+    if (em->Motion.Seq_old.Free & 4) {
         em22FootSplash(em, 0xC);
     }
-    if (em->motEvent & 8) {
+    if (em->Motion.Seq_old.Free & 8) {
         em22FootSplash(em, 0x10);
     }
-    if (em->motEvent & 0x10) {
+    if (em->Motion.Seq_old.Free & 0x10) {
         em22FootSplash(em, 0x15);
     }
-    if (em->motEvent & 0x20) {
+    if (em->Motion.Seq_old.Free & 0x20) {
         em22FootSplash(em, 0x19);
     }
 }

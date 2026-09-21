@@ -223,9 +223,9 @@ void R30fInit()
             mot[11] = ROOM_ARC_PTR(pG->pRoom, 0x36);
             r30f_work->bull->setMotion(mot);
             r30f_work->bull->setNoSuspend(0);
-            if (r30f_work->bull->p2A4 == 0) {
+            if (r30f_work->bull->Motion.pAttachCam == 0) {
 #line 163 "D:/Bio4/Prog/r30f.cpp"
-                r30f_work->bull->p2A4 = MEM_ALLOC(0x98, 1, 0xd);
+                r30f_work->bull->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd);
             }
         }
     }
@@ -243,7 +243,7 @@ void R30fInit()
         r30f_work->lift = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x30), ROOM_ARC_PTR(pG->pRoom, 0x31), &zero, &zero, 0x10, 1);
         if (r30f_work->lift) {
 #line 195 "D:/Bio4/Prog/r30f.cpp"
-            r30f_work->lift->p2A4 = MEM_ALLOC(0x98, 1, 0xd);
+            r30f_work->lift->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd);
         }
     }
     r30f_work->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 2);
@@ -667,7 +667,7 @@ static void track_move()
         SceEventEnd(0);
     }
     r30f_work->lift->setNoSuspend(0);
-    r30f_work->lift->motSpeedRate = 1.0f;
+    r30f_work->lift->Motion.Seq_speed = 1.0f;
     if (r30f_work->truckNo == 0) {
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3B), 0, 0, 0x200, 0);
     }

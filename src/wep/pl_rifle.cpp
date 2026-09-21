@@ -140,8 +140,8 @@ static void wep09_r3_ready00(cPlayer* pl)
 // frames; at its end -> set state (the scope) with a 10-frame fire delay (m_Work4).
 static void wep09_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
@@ -345,7 +345,7 @@ static void wep09_r3_fire20(cPlayer* pl)
 // aiming -> back into the scope (loadScopeParam) and the set state, else the down state.
 static void wep09_r3_fire30(cPlayer* pl)
 {
-    if (joyKamae() == 0 && pl->frame >= 25.0f) {
+    if (joyKamae() == 0 && pl->Motion.Seq_frame >= 25.0f) {
         if (pl->stat & 0x40) {
             pl->r_no_0 = 0;
             pl->r_no_2 = 0;
@@ -481,7 +481,7 @@ static void wep09_r2_reload(cPlayer* pl)
                 pl->m_Work0 = 1;
             }
         }
-        if (pl->frame >= (f32) (pl->frameMax - 5)) {
+        if (pl->Motion.Seq_frame >= (f32) (pl->Motion.Seq_frame_num - 5)) {
             CamCtrl.startScope(0, 0);
             CameraMove();
             scopeOn(pl);

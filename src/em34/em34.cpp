@@ -444,7 +444,7 @@ static void em34_R1_Atk(cEm34* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMove(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em34AtkCk(em, 0, 0xA);
         }
         break;

@@ -298,7 +298,7 @@ void R332Init()
             MotionSetCore(crane, &crane->Motion, craneMot[i], 0, 0, 5, 0);
             // The reference-view store keeps the following `pG` load below it (r30c PSetPtr).
 #line 372 "D:/Bio4/Prog/r332.cpp"
-            PSet(crane->p2A4, MEM_ALLOC(0x98, 1, 0xd));
+            PSet(crane->Motion.pAttachCam, (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd));
             R332_ARR_SET(hit[0], i * 4, SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0, 1));
             if (r332_work->hit[i]) {
                 r332_work->hit[i]->setParent(crane, 4, 0);
@@ -424,7 +424,7 @@ static void playerDieBridge(cPlayer* pl)
         FSet(r332_work->dieY, start);
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 22.7f && pl->frame < 23.3f) {
+        if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             PlSetDamageSe(0xD);
             pl->r_no_2++;
             pl->r_no_3 = 0;
@@ -493,20 +493,20 @@ static void playerBridge(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         pl->dmg.m_Timer = 0x78;
-        if (pl->frame >= (f32) r332_btnFrame) {
+        if (pl->Motion.Seq_frame >= (f32) r332_btnFrame) {
             if (Key.trg & 0x00080000) {
                 r332_work->btnCnt = r332_work->btnCnt + 1;
             }
             ActBtn.set(ACT_CLIMB, 0xC, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             SceDebugDisp("Button:[%d/%d]", r332_work->btnCnt, 0xA);
         }
-        if (pl->frame > 9.7f && pl->frame < 10.3f) {
+        if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
             SndCall(1, 0x10, &pPL->pos, 0, 0, 0);
         }
-        if (pl->frame > 23.7f && pl->frame < 24.3f) {
+        if (pl->Motion.Seq_frame > 23.7f && pl->Motion.Seq_frame < 24.3f) {
             SndCall(1, 0x34, &pPL->pos, 0, 0, 0);
         }
-        if (pl->frame > 29.7f && pl->frame < 30.3f) {
+        if (pl->Motion.Seq_frame > 29.7f && pl->Motion.Seq_frame < 30.3f) {
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
         if (MotionMove(pl, 0)) {
@@ -891,7 +891,7 @@ static void R332BossDown()
     StaFlagOff(pG, STA_SUSPEND);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->p2A4, em);
+        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
         em->setDownBody();
     }
@@ -968,15 +968,15 @@ static void R332RocketShootMain(int type)
     AtariOffRaw(&pPL->atari, 0xFCFF);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
-    CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
+    CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->p2A4, em);
+        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
     }
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->p2A4, em);
+        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
     }
     CamCtrl.clearAttachCamera();
@@ -1042,7 +1042,7 @@ static void R332RocketShootMain(int type)
                 obj->LightInfo.EnableMask |= 1;
                 obj->LightInfo.EnableMask &= ~0x10;
 #line 1648 "D:/Bio4/Prog/r332.cpp"
-                obj->p2A4 = MEM_ALLOC(0x98, 1, 0xd);
+                obj->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd);
                 obj->be_flag |= 0x1000;
                 obj->setNoSuspend(1);
                 MotionSetCore(obj, &obj->Motion, ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0, 0x200, 0);
@@ -1061,7 +1061,7 @@ static void R332RocketShootMain(int type)
                 SceSleep(1);
             }
             obj->be_flag &= ~2;
-            CamCtrl.deleteAttachCamera((AttachCamera*) obj->p2A4, obj);
+            CamCtrl.deleteAttachCamera((AttachCamera*) obj->Motion.pAttachCam, obj);
         }
         obj = r332_work->rocket;
         if (obj) {
@@ -1360,7 +1360,7 @@ static void R332ExecCrane(int no)
         if (d < r332_craneRange + reach && em->hp > 0) {
             hitDone = 1;
             em->setCranePos((u8) no);
-            CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
+            CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
             MotionSetCore(crane, &crane->Motion, mot, 0, 3, 0x201, 0);
             while (MotionGetState(pPL) == 0) {
                 SceSleep(1);
@@ -1402,7 +1402,7 @@ static void R332ExecCrane(int no)
         SceSleep(1);
     }
     if (endDone == 0) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) crane->p2A4, crane);
+        CamCtrl.deleteAttachCamera((AttachCamera*) crane->Motion.pAttachCam, crane);
         R332ExecCraneEnd(no, atNo);
     }
     if (RsfCheck(G_ROOM_ID, rsfNo) == 0) {

@@ -304,7 +304,7 @@ static void r225_operateCrank()
                 // threshold reaches 65 (4*65 = 260 < 264) before the magic is considered.
                 ratio = pPL->pos.y * 3.7f;
                 max = *(u16*) mot;
-                ratio = pPL->frame / (f32) pPL->frameMax;
+                ratio = pPL->Motion.Seq_frame / (f32) pPL->Motion.Seq_frame_num;
                 frame = (u32) ((f32) max * ratio);
                 frame++;
                 if (frame >= max) {

@@ -1203,7 +1203,7 @@ void cEmMine::setFall()
     EmMineWork* w = EMMINE_WK(this);
     u32 i;
 
-    pMotion = 0;
+    Motion.pMot = 0;
     for (i = 0; i < 3; i++) {
         w->pts[i].x = fRand1_1() * 10.0f;
         w->pts[i].y = fRand1_1() * 10.0f + 50.0f;

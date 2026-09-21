@@ -24,7 +24,7 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos);
 // (flags bit 2), stores the bend axis (kind >> 8), the bone lengths from the bind pose and the
 // root->effector direction, and the options: 0x20 = also correct the toe angle (ikAng), 0x80 =
 // the chain has an extra joint (0x210). A degenerate bend plane disables the chain.
-void IKInit(cModel* m, MotionWork* w)
+void IKInit(cModel* m, MotionWorkSub* w)
 {
     Vec axis;
     Mtx mtx;
@@ -305,7 +305,7 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
 void InverseKinematics(cModel* m, int flag)
 {
     cEm* em = (cEm*) m;
-    MotionWork* blend = MOTION(m)->blend;
+    MotionWorkSub* blend = MOTION(m)->blend;
     Mtx inv;
     Vec target;
     Vec a;

@@ -78,7 +78,7 @@ void obj26_R1_Set(cObj26* obj)
         obj->scale.x = obj->scale.x * 0.9f + w->tgtScale.x * 0.1f;
         obj->scale.y = obj->scale.y * 0.9f + w->tgtScale.y * 0.1f;
         obj->scale.z = obj->scale.z * 0.9f + w->tgtScale.z * 0.1f;
-        if (obj->pMotion) {
+        if (obj->Motion.pMot) {
             MotionMove(obj, 0);
         }
         break;
@@ -98,7 +98,7 @@ void obj26_R1_Die(cObj26* obj)
         if (obj->invisible_factor <= 0.01f) {
             obj->invisible_factor = 0.0f;
             obj->r_no_2++;
-        } else if (obj->pMotion) {
+        } else if (obj->Motion.pMot) {
             MotionMove(obj, 0);
         }
         break;
@@ -117,7 +117,7 @@ void obj26MatCalc(cObj26* obj)
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         PSMTXConcat(parts->mat, obj->mat, obj->mat);
-        obj->motFlags2 |= 0x40000000;
+        obj->Motion.Mot_flag |= 0x40000000;
     } else {
         RotMatrix(obj->l_mat, &obj->ang);
         TransMatrix(obj->l_mat, &obj->pos);

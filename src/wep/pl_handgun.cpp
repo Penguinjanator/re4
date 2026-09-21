@@ -153,21 +153,21 @@ static void wep02_r3_ready00(cPlayer* pl)
 // aim pitch m3r and straightens the waist.
 static void wep02_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame > 1.7f && pl->frame < 2.3f) {
+    if (pl->Motion.Seq_frame > 1.7f && pl->Motion.Seq_frame < 2.3f) {
         if (pl->m_Work2 == 1) {
             SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, 0);
         } else {
             SndCall(1, 0x28, &pl->getPartsPtr(0)->world, 0, 0, 0);
         }
     }
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
     }
     pl->motionMove();
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -183,7 +183,7 @@ static void wep02_r3_ready10(cPlayer* pl)
 static void wep02_r3_ready20(cPlayer* pl)
 {
     MotionMove(pl, 0);
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -529,7 +529,7 @@ static void wep02_r2_reload(cPlayer* pl)
                     wepDown(pl);
                     pl->r_no_3 = step;
                 }
-            } else if (pl->frame >= (f32) (pl->frameMax - 1)) {
+            } else if (pl->Motion.Seq_frame >= (f32) (pl->Motion.Seq_frame_num - 1)) {
                 pl->r_no_0 = 0;
                 pl->r_no_1 = 6;
                 pl->r_no_2 = 1;

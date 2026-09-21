@@ -573,7 +573,7 @@ void cEm36::move()
         EmMgr.destroy(this);
         return;
     }
-    if (seFlags28B & 0x80) {
+    if (Motion.Seq_old.Free & 0x80) {
         w->flags |= 0xA0;
         setStatus(EM_STATUS_IK_OFF);
     }
@@ -582,13 +582,13 @@ void cEm36::move()
     partsWorldCalc();
     em36ScaleCompress(this);
     d = VEC_DISTXZ(&pos_old, &pos);
-    if (seFlags28B & 0x20) {
+    if (Motion.Seq_old.Free & 0x20) {
         atari.m_flag |= 0x10;
     } else {
         atari.m_flag &= ~0x10;
     }
     atFlags = atari.m_flag;
-    if (seFlags28B & 0x20) {
+    if (Motion.Seq_old.Free & 0x20) {
         atari.m_flag &= ~0x100;
     }
     EmAtCheck(this);
@@ -655,10 +655,10 @@ static void em36_R0_Init(cEm36* em)
     em36PartsSet(em, 4, 0);
     em36PartsSet(em, 5, 0);
     em36PartsSet(em, 6, 0);
-    em->pXFlip = em36_flip;
+    em->Motion.flip = em36_flip;
     EspDataLoad((u32) ARC(0x25), EFF_EM36, 0);
 #line 966 "D:/Bio4/Prog/em36.cpp"
-    em->p2A4 = MEM_ALLOC(0x98, 1, 0xD);
+    em->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xD);
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
@@ -949,7 +949,7 @@ static void em36_R1_R310Appear(cEm36* em)
         w->timer = 98;
         em->r_no_2++;
     case 3:
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             w->flags |= 0x40;
         }
         if (w->timer) {
@@ -1204,7 +1204,7 @@ static void em36_R1_JumpDown(cEm36* em)
         w->flags |= 0x440;
         em->setStatus(EM_STATUS_IK_OFF);
         end = MotionMove(em, 0);
-        if (!(em->seFlags28B & 0x20)) {
+        if (!(em->Motion.Seq_old.Free & 0x20)) {
             Vec v;
             f32 fl;
 
@@ -1299,7 +1299,7 @@ static void em36_R1_Threat(cEm36* em)
                 }
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x2000;
         }
         break;
@@ -1429,11 +1429,11 @@ static void em36_R1_Atk(cEm36* em)
             }
             break;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             cModel* p;
             Vec a;
 
-            if (!(em->motFlags & 0x40)) {
+            if (!(em->Motion.Mot_attr & 0x40)) {
                 em36AtkCk(em, 0, 7);
                 em36AtkCk(em, 0, 8);
                 em36AtkCk(em, 0, 9);
@@ -1453,7 +1453,7 @@ static void em36_R1_Atk(cEm36* em)
                 em36AtkCk2(em, 0, &a, &p->world_old);
             }
         }
-        if (!(em->motFlags & 0x40)) {
+        if (!(em->Motion.Mot_attr & 0x40)) {
             w->flags |= 0x1A000;
         } else {
             w->flags |= 0x2A000;
@@ -1488,7 +1488,7 @@ static void em36_R1_SpineAtk(cEm36* em)
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0xA000;
             em36AtkCk(em, 1, 0);
         }
@@ -1522,17 +1522,17 @@ static void plem36_Stamp(cPlayer* pl)
             pl->dmg.set(0, 30);
             break;
         }
-        if (pl->frame > 4.7f && pl->frame < 5.3f) {
+        if (pl->Motion.Seq_frame > 4.7f && pl->Motion.Seq_frame < 5.3f) {
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if ((s16) pG->pl_life > 0) {
-            if ((pl->frame > 87.7f && pl->frame < 88.3f) || (pl->frame > 116.7f && pl->frame < 117.3f)) {
+            if ((pl->Motion.Seq_frame > 87.7f && pl->Motion.Seq_frame < 88.3f) || (pl->Motion.Seq_frame > 116.7f && pl->Motion.Seq_frame < 117.3f)) {
                 SndCall(5, 0, &pl->pos, 0, 0, pl);
             }
-            if ((pl->frame > 106.7f && pl->frame < 107.3f) || (pl->frame > 130.7f && pl->frame < 131.3f)) {
+            if ((pl->Motion.Seq_frame > 106.7f && pl->Motion.Seq_frame < 107.3f) || (pl->Motion.Seq_frame > 130.7f && pl->Motion.Seq_frame < 131.3f)) {
                 SndCall(5, 1, &pl->pos, 0, 0, pl);
             }
-            if (pl->frame > 59.7f && pl->frame < 60.3f) {
+            if (pl->Motion.Seq_frame > 59.7f && pl->Motion.Seq_frame < 60.3f) {
                 SndCall(1, 4, &pl->pos, 0, 0, pl);
                 SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
             }
@@ -1571,7 +1571,7 @@ static void subem36_Stamp()
         if (MotionMove(sub, 0) && (s16) pG->ashley_life > 0) {
             EndSubDamage();
         }
-        if (sub->frame > 4.7f && sub->frame < 5.3f) {
+        if (sub->Motion.Seq_frame > 4.7f && sub->Motion.Seq_frame < 5.3f) {
             SndCall(5, 5, &sub->pos, 0, 0, sub);
         }
         break;
@@ -1583,7 +1583,7 @@ static void subem36_Stamp()
 // rumbles and switches to CatchHit (1/0xB).
 static void em36_R1_br_Catch(cEm36* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em36CatchCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em36CatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         EmRoutineSetW(em, 1, 0xB, 0, 0);
     }
@@ -1637,7 +1637,7 @@ static void em36_R1_Catch(cEm36* em)
                 GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 d;
 
             d = Muku(&em->pos, &v, w->turnAng, 0.12566371f);
@@ -1722,7 +1722,7 @@ static void em36_R1_CatchHit(cEm36* em)
             }
         } else if ((u32) PlGachaGet() > 30 && (s16) pG->pl_life > 1) {
             em->r_no_2 = 4;
-        } else if (em->frame > 22.7f && em->frame < 23.3f) {
+        } else if (em->Motion.Seq_frame > 22.7f && em->Motion.Seq_frame < 23.3f) {
             em36VoiceSet(em, 0xB, 2);
         }
         break;
@@ -1778,7 +1778,7 @@ static void em36_R1_CatchHit(cEm36* em)
         if (MotionMove(em, 0)) {
             em->atari.m_flag &= ~8;
             EmRoutineSet(em, 1, 1, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             SndStop(w->sndId, 0);
         }
         break;
@@ -1811,7 +1811,7 @@ static void plem36_CatchHit(cPlayer* pl)
         } else {
             MotionMove(pl, 0);
         }
-        if (pl->frame > 14.7f && pl->frame < 15.3f) {
+        if (pl->Motion.Seq_frame > 14.7f && pl->Motion.Seq_frame < 15.3f) {
             VibSetData(VIB_TBL, 0xF, 1);
         }
         if (pPL->pEmCatch->r_no_0 != 1 && pPL->pEmCatch->r_no_1 != 0xB) {
@@ -1820,7 +1820,7 @@ static void plem36_CatchHit(cPlayer* pl)
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
-            if (pl->frame > 24.7f && pl->frame < 25.3f) {
+            if (pl->Motion.Seq_frame > 24.7f && pl->Motion.Seq_frame < 25.3f) {
                 pl->m_Work1 = SndCall(8, 0x37, &pPL->getPartsPtr(4)->world, pl->pEmCatch->id, 0, pl);
             }
             pl->r_no_2 = pPL->pEmCatch->r_no_2;
@@ -1834,10 +1834,10 @@ static void plem36_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 3:
         MotionMove(pl, 0);
-        if (pl->frame > 91.7f && pl->frame < 92.3f) {
+        if (pl->Motion.Seq_frame > 91.7f && pl->Motion.Seq_frame < 92.3f) {
             SndCall(5, 4, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 125.7f && pl->frame < 126.3f) {
+        if (pl->Motion.Seq_frame > 125.7f && pl->Motion.Seq_frame < 126.3f) {
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         break;
@@ -1875,7 +1875,7 @@ static inline void em36SetFindWait(Em36Work* w)
 // (em36LongCatchCk) it rumbles and switches to LongCatchHit (1/0xD).
 static void em36_R1_br_LongCatch(cEm36* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em36LongCatchCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em36LongCatchCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         EmRoutineSetW(em, 1, 0xD, 0, 0);
     }
@@ -1917,7 +1917,7 @@ static void em36_R1_LongCatch(cEm36* em)
                 GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 d;
 
             d = Muku(&em->pos, &v, w->turnAng, 0.12566371f);
@@ -1974,7 +1974,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
                 break;
             }
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             SndCall(8, 0x23, &pPL->getPartsPtr(3)->world, em->id, 0, pPL);
         }
         if (em36BetweenHitCk(em)) {
@@ -2111,14 +2111,14 @@ static void plem36_SpineCatchHit(cPlayer* pl)
             pl->dmg.set(0, 30);
             break;
         }
-        if (pl->frame > 6.7f && pl->frame < 7.3f) {
+        if (pl->Motion.Seq_frame > 6.7f && pl->Motion.Seq_frame < 7.3f) {
             if ((s16) pG->pl_life <= 0) {
                 PlSetDamageSe(0xD);
             } else {
                 PlSetDamageSe(0);
             }
         }
-        if ((s16) pG->pl_life > 0 && pl->frame > 61.7f && pl->frame < 62.3f) {
+        if ((s16) pG->pl_life > 0 && pl->Motion.Seq_frame > 61.7f && pl->Motion.Seq_frame < 62.3f) {
             SndCall(8, 0x3E, &pl->getPartsPtr(4)->world, 0x36, 0, pl);
         }
         break;
@@ -2132,7 +2132,7 @@ static void plem36_SpineCatchHit(cPlayer* pl)
 // (em36BiteCk) it rumbles and switches to D_CatchHit (1/0x15).
 static void em36_R1_br_LostCatch(cEm36* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em36BiteCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         EmRoutineSetW(em, 1, 0x15, 0, 0);
     }
@@ -2172,7 +2172,7 @@ static void em36_R1_LostCatch(cEm36* em)
                 GetPlPos(&v, (f32) w->timer2, 0);
             }
         }
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 d;
 
             d = Muku(&em->pos, &v, w->turnAng, 0.12566371f);
@@ -2195,8 +2195,8 @@ static void em36_R1_LostCatch(cEm36* em)
 // The lost arm grows back: the motion key events reattach the parts.
 static inline void em36RegeneArmParts(cEm36* em, Em36Work* w)
 {
-    if (em->seFlags28B & 1) {
-        if (em->motFlags & 0x40) {
+    if (em->Motion.Seq_old.Free & 1) {
+        if (em->Motion.Mot_attr & 0x40) {
             w->flags2 &= ~2;
             em36PartsSet(em, 3, 0);
             em36RegeneTenClear(em, 3);
@@ -2206,8 +2206,8 @@ static inline void em36RegeneArmParts(cEm36* em, Em36Work* w)
             em36RegeneTenClear(em, 2);
         }
     }
-    if (em->seFlags28B & 2) {
-        if (em->motFlags & 0x40) {
+    if (em->Motion.Seq_old.Free & 2) {
+        if (em->Motion.Mot_attr & 0x40) {
             w->flags2 &= ~1;
             em36PartsSet(em, 2, 0);
             em36RegeneTenClear(em, 2);
@@ -2323,8 +2323,8 @@ static void em36_R1_RegeneFoot(cEm36* em)
             }
             break;
         }
-        if (em->seFlags28B & 1) {
-            if (em->motFlags & 0x40) {
+        if (em->Motion.Seq_old.Free & 1) {
+            if (em->Motion.Mot_attr & 0x40) {
                 w->flags2 &= ~8;
                 em36PartsSet(em, 5, 0);
                 em36RegeneTenClear(em, 5);
@@ -2334,8 +2334,8 @@ static void em36_R1_RegeneFoot(cEm36* em)
                 em36RegeneTenClear(em, 4);
             }
         }
-        if (em->seFlags28B & 2) {
-            if (em->motFlags & 0x40) {
+        if (em->Motion.Seq_old.Free & 2) {
+            if (em->Motion.Mot_attr & 0x40) {
                 w->flags2 &= ~4;
                 em36PartsSet(em, 4, 0);
                 em36RegeneTenClear(em, 4);
@@ -2500,7 +2500,7 @@ static void em36_R1_D_Turn(cEm36* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 d;
 
             d = Muku(&em->pos, &w->targetPos, w->turnAng, 0.09817477f);
@@ -2565,7 +2565,7 @@ static void em36_R1_D_SpineAtk(cEm36* em)
         if (MotionMove(em, 0)) {
             w->wait = 30;
             EmRoutineSet(em, 1, 0x10, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0xA000;
             em36AtkCk(em, 1, 0);
         }
@@ -2577,7 +2577,7 @@ static void em36_R1_D_SpineAtk(cEm36* em)
 // (em36BiteCk) it rumbles and switches to D_CatchHit (1/0x15).
 static void em36_R1_br_D_Catch(cEm36* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em36BiteCk(em)) {
         VibSetData(VIB_TBL, 7, 1);
         EmRoutineSetW(em, 1, 0x15, 0, 0);
     }
@@ -2616,7 +2616,7 @@ static void em36_R1_D_Catch(cEm36* em)
         }
         break;
     }
-    if (em->seFlags28B & 0x40) {
+    if (em->Motion.Seq_old.Free & 0x40) {
         w->flags |= 0x100;
     }
 }
@@ -2737,7 +2737,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         } else {
             MotionMove(pl, 0);
         }
-        if (pl->frame > 15.7f && pl->frame < 16.3f) {
+        if (pl->Motion.Seq_frame > 15.7f && pl->Motion.Seq_frame < 16.3f) {
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         break;
@@ -2781,7 +2781,7 @@ static void em36_R1_Wakeup(cEm36* em)
         MotionSetCore(em, MOTION(em), ARC(0x6A), ARC(0x6B), 5, 1, 0);
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 0x80) {
+        if (em->Motion.Seq_old.Free & 0x80) {
             w->flags |= 0x20;
         } else {
             w->flags &= ~0x20;
@@ -3211,7 +3211,7 @@ static inline void em36DieCore(cEm36* em, int mot0, int mot1)
             em->r_no_2++;
             break;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em36PartsSet(em, 6, 1);
             if (w->pParts[0]) {
                 w->pParts[0]->be_flag &= ~8;
@@ -3755,7 +3755,7 @@ void em36YarareCk(cEm36* em)
     if (em->hp <= 0) { \
         return 0; \
     } \
-    if (!(em->seFlags28B & 2)) { \
+    if (!(em->Motion.Seq_old.Free & 2)) { \
         return 0; \
     } \
     if (!(w->flags & 1)) { \
@@ -3853,7 +3853,7 @@ int em36LongCatchCk(cEm36* em)
     if (em->hp <= 0) {
         return 0;
     }
-    if (!(em->seFlags28B & 2)) {
+    if (!(em->Motion.Seq_old.Free & 2)) {
         return 0;
     }
     if (!(w->flags & 1)) {
@@ -5104,7 +5104,7 @@ void em36BreathSe(cEm36* em)
 // (em36VoiceSet) and are consumed.
 void em36BreathSeStopCk(cEm36* em)
 {
-    u32 no = em->seNo;
+    u32 no = em->Motion.Seq_old.Se;
 
     if (no) {
         no--;
@@ -5120,7 +5120,7 @@ void em36BreathSeStopCk(cEm36* em)
         case 0xE:
         case 0x38:
             em36VoiceSet(em, no, 2);
-            em->seNo = 0;
+            em->Motion.Seq_old.Se = 0;
             break;
         }
     }

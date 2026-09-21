@@ -147,8 +147,8 @@ static void wep11_r3_ready10(cPlayer* pl)
 {
     const f32 endFrame = 5.0f;   // pool order: 5.0 before the 3.0 / 4.0 / 2.0 of the statements above
 
-    if (pl->frame <= 3.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame <= 3.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
@@ -161,7 +161,7 @@ static void wep11_r3_ready10(cPlayer* pl)
         }
         SndCall(1, (u16) se, &pl->getPartsPtr(0)->world, 0, 0, 0);
     }
-    if (pl->frame >= endFrame) {
+    if (pl->Motion.Seq_frame >= endFrame) {
         EmRoutineSet(pl, 0, 6, 1, 4);
         pl->m_Work0 = 0;
     }
@@ -349,7 +349,7 @@ static void wep11_r3_fire10(cPlayer* pl)
 {
     pl->motionMove();
     pl->Wep->m_pWep->drawLaserSight(1, 1);
-    if (pl->frame >= 3.0f) {
+    if (pl->Motion.Seq_frame >= 3.0f) {
         if (joyKamae()) {
             if (joyFireOn()) {
                 if (pl->Wep->m_pWep->bulletNum()) {

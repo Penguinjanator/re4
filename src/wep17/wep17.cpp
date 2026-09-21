@@ -336,7 +336,7 @@ static void wep17_r3_ready00(cPlayer* pl)
 // 0x28); at frame 4 -> set state step 4 (finish the motion). Blends the pitch and straightens the waist.
 static void wep17_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame > 1.7f && pl->frame < 2.3f) {
+    if (pl->Motion.Seq_frame > 1.7f && pl->Motion.Seq_frame < 2.3f) {
         int se;
 
         if (pl->m_Work2 == 1) {
@@ -347,7 +347,7 @@ static void wep17_r3_ready10(cPlayer* pl)
         SndCall(1, se, &pl->getPartsPtr(0)->world, 0, 0, 0);
     }
     MotionMove(pl, 0);
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -362,7 +362,7 @@ static void wep17_r3_ready10(cPlayer* pl)
 static void wep17_r3_ready20(cPlayer* pl)
 {
     MotionMove(pl, 0);
-    if (pl->frame >= 4.0f) {
+    if (pl->Motion.Seq_frame >= 4.0f) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
@@ -521,10 +521,10 @@ static void wep17_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -536,10 +536,10 @@ static void wep17_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -850,7 +850,7 @@ static void wep17_r2_out(cPlayer* pl)
         }
         pl->r_no_3 = 1;
     case 1:
-        if ((int) pl->frameMax > (int) pl->frameMax - 7 && pCkEm) {
+        if ((int) pl->Motion.Seq_frame_num > (int) pl->Motion.Seq_frame_num - 7 && pCkEm) {
             pl->ang.y += Muku(&pl->pos, &pCkEm->pos, pl->ang.y, 0.31415927f);
         }
         if (MotionMove(pl, 0)) {
@@ -924,7 +924,7 @@ static void wep17_r2_out(cPlayer* pl)
     case 3: {
         int end;
 
-        if (pl->frame >= 5.0f) {
+        if (pl->Motion.Seq_frame >= 5.0f) {
             if (Key.on & 4) {
                 pl->ang.y -= 0.05235988f;
             }
@@ -933,7 +933,7 @@ static void wep17_r2_out(cPlayer* pl)
             }
         }
         end = MotionMove(pl, 0);
-        if (pl->frame > (f32) (pl->frameMax - 5) && joyFireOn()) {
+        if (pl->Motion.Seq_frame > (f32) (pl->Motion.Seq_frame_num - 5) && joyFireOn()) {
             end |= 1;
         }
         if (end) {
@@ -957,7 +957,7 @@ static void wep17_r2_out(cPlayer* pl)
         }
         break;
     case 6:
-        if ((int) pl->frameMax > (int) pl->frameMax - 7 && pCkEm) {
+        if ((int) pl->Motion.Seq_frame_num > (int) pl->Motion.Seq_frame_num - 7 && pCkEm) {
             pl->ang.y += Muku(&pl->pos, &pCkEm->pos, pl->ang.y, 0.31415927f);
         }
         if (MotionMove(pl, 0)) {

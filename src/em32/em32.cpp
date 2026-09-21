@@ -655,7 +655,7 @@ static void em32_R0_Init(cEm32* em)
     ((cParts*) em->getPartsPtr(0x2D))->motParts.flags |= 0x1000;
     ((cParts*) em->getPartsPtr(0x33))->motParts.flags |= 0x1000;
 #line 836 "D:/Bio4/Prog/em32.cpp"
-    em->p2A4 = MEM_ALLOC(0x98, 1, 0xD);
+    em->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xD);
     // Compound literals: the zero template is shared with plem32_P_CatchHit's light init.
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1500.0f, 1, 0x2000, 10);
@@ -759,7 +759,7 @@ static void em32_R0_Init(cEm32* em)
     MotionMove(em, 0);
     em32_R0_Move(em);
     if (w->pMot) {
-        w->pMot->speedRate = 1.0f;
+        w->pMot->Seq_speed = 1.0f;
         MotionSetCore(em, w->pMot, ARC(0xAD), 0, 0, 4, 0);
     }
     OSReport("em32 free size = 0x%x\n", sizeof(Em32Work));
@@ -830,7 +830,7 @@ static void em32_R1_LastMode(cEm32* em)
             } else {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->mode = 2;
         }
         break;
@@ -1265,7 +1265,7 @@ static void em32_R1_Walk(cEm32* em)
             }
             break;
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em32AtkCk(em, 4, 0x54);
             em32AtkCk(em, 4, 0x55);
             em32AtkCk(em, 4, 0x56);
@@ -1484,7 +1484,7 @@ static void em32_R1_AtkWalk(cEm32* em)
             } else {
                 em->r_no_2++;
             }
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             EM32_TAIL_ATK(em, 4);
         }
         break;
@@ -1503,7 +1503,7 @@ static void em32_R1_AtkWalk(cEm32* em)
     case 3:
         EM32_BLEND_TURN2(em, w, &w->targetPos, 0.785398185f);
         em32BlendMotSet(em, w->blendM0, w->blendM1, w->blendM2, w->blendM3, 0, 0, w->blendC);
-        if (MotionMove(em, 0) || (em->motEvent & 4)) {
+        if (MotionMove(em, 0) || (em->Motion.Seq_old.Free & 4)) {
             if (w->Atk_ck) {
                 goto threat;
             }
@@ -1548,7 +1548,7 @@ static void em32_R1_AtkWalk(cEm32* em)
             }
             EstSet(em, -1, 0, 0, EFF_EM32, 0x26, 0, w->espKind[1], em, 0);
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             EM32_TAIL_ATK(em, 4);
         }
         break;
@@ -1753,7 +1753,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
         w->timer3 = 0;
         em->r_no_2++;
     case 1:
-        if (em->motEvent & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             ang = Muku(&em->pos, &w->targetPos, w->turnAng, 0.0981747732f);
             w->turnAng += ang;
             w->turnAng = LIMIT_ANGLE(w->turnAng);
@@ -1774,7 +1774,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
         } else {
-            if (em->motEvent & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 EM32_CLAW_ATK(em, 0);
             }
             if (w->timer3) {
@@ -1818,7 +1818,7 @@ static void em32_R1_Atk(cEm32* em)
             } else {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             EM32_CLAW_ATK(em, 0);
         }
         break;
@@ -1834,7 +1834,7 @@ static void em32_R1_br_Catch(cEm32* em)
 
     if (em->hp > 0 && em->r_no_2 != 0) {
         int lost = !(w->flags & 1);
-        if (lost == 0 && (w->flags & 0x80000) && (em->motEvent & 1)) {
+        if (lost == 0 && (w->flags & 0x80000) && (em->Motion.Seq_old.Free & 1)) {
             f32 ang = GetXZAngle(&pPL->pos, &em->pos);
             fabsf(Muku2(pPL->ang.y, ang, 3.14159274f));
             EM32_CLAW_ATK(em, 1);
@@ -1913,10 +1913,10 @@ static void em32_R1_CatchHit(cEm32* em)
             w->timer2 = 4;
             EstSet(em, -1, 0, 0, EFF_EM32, 7, 0, ESP_CORE_KIND_NONE, em, 0);
         }
-        if (em->frame > 9.69999981f && em->frame < 10.3000002f) {
+        if (em->Motion.Seq_frame > 9.69999981f && em->Motion.Seq_frame < 10.3000002f) {
             w->TmpU32 = SndCall(8, 0xE, &em->pos, em->id, 0, em);
         }
-        if (em->frame > 29.7000008f && em->frame < 30.2999992f) {
+        if (em->Motion.Seq_frame > 29.7000008f && em->Motion.Seq_frame < 30.2999992f) {
             SndCall(8, 0x12, &pPL->pos, em->id, 0, pPL);
         }
         LifeDownSet2(pPL, 20, 0, 1);
@@ -1970,7 +1970,7 @@ static void em32_R1_CatchHit(cEm32* em)
                 break;
             }
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             SndStop(w->TmpU32, 0);
             SndStop(w->sndId2, 0);
         }
@@ -2029,7 +2029,7 @@ static void plem32_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 5:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (pl->frame > 39.7000008f && pl->frame < 40.2999992f) {
+        if (pl->Motion.Seq_frame > 39.7000008f && pl->Motion.Seq_frame < 40.2999992f) {
             VibSetData(VIB_TBL, 0xB, 1);
         }
         break;
@@ -2095,7 +2095,7 @@ static void em32_R1_LongAtk(cEm32* em)
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
         } else {
-            if (em->motEvent & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 EM32_CLAW_ATK(em, 2);
             }
             if (w->timer3) {
@@ -2211,18 +2211,18 @@ static void plemBackjump(cPlayer* pl)
         } else if (Key.on & 0x1F) {
             pl->m_Work1 = 1;
         }
-        if (pl->frame > 10.6999998f && pl->frame < 11.3000002f) {
+        if (pl->Motion.Seq_frame > 10.6999998f && pl->Motion.Seq_frame < 11.3000002f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 21.7000008f && pl->frame < 22.2999992f) {
+        if (pl->Motion.Seq_frame > 21.7000008f && pl->Motion.Seq_frame < 22.2999992f) {
             SndCall(5, 0x14, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 36.7000008f && pl->frame < 37.2999992f) ||
-            (pl->frame > 49.7000008f && pl->frame < 50.2999992f)) {
+        if ((pl->Motion.Seq_frame > 36.7000008f && pl->Motion.Seq_frame < 37.2999992f) ||
+            (pl->Motion.Seq_frame > 49.7000008f && pl->Motion.Seq_frame < 50.2999992f)) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 37.7000008f && pl->frame < 38.2999992f) ||
-            (pl->frame > 50.7000008f && pl->frame < 51.2999992f)) {
+        if ((pl->Motion.Seq_frame > 37.7000008f && pl->Motion.Seq_frame < 38.2999992f) ||
+            (pl->Motion.Seq_frame > 50.7000008f && pl->Motion.Seq_frame < 51.2999992f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0) || pl->m_Work1) {
@@ -2295,7 +2295,7 @@ static void plemEscape(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         em32EscapeCamMove((cEm32*)pl->pEmCatch);
-        if (pl->frame > 11.6999998f && pl->frame < 12.3000002f) {
+        if (pl->Motion.Seq_frame > 11.6999998f && pl->Motion.Seq_frame < 12.3000002f) {
             EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
@@ -2385,7 +2385,7 @@ static void em32_R1_StepUp(cEm32* em)
         PSVECAdd(&w->spd, &v, &w->spd);
         em->r_no_2++;
     case 1:
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if (w->flags & 0x1000) {
                 pos = &em->pos;
                 em->ang.y = LIMIT_ANGLE(em->ang.y += Muku2(em->ang.y, w->stepAng, 0.392699093f));
@@ -2488,7 +2488,7 @@ static void em32_R1_StepDown(cEm32* em)
         w->spd.y = 0.0f;
         em->r_no_2++;
     case 1:
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             if (w->flags & 0x1000) {
                 pos = &em->pos;
                 em->ang.y = LIMIT_ANGLE(em->ang.y += Muku2(em->ang.y, w->stepAng, 0.392699093f));
@@ -2599,7 +2599,7 @@ static void em32_R1_TunnelAtk(cEm32* em)
             EmRoutineSet(em, 1, 0x14, 0, 1);
             break;
         }
-        if ((em->motEvent & 4) && w->Atk_ck == 0 && em->r_no_3 == 0) {
+        if ((em->Motion.Seq_old.Free & 4) && w->Atk_ck == 0 && em->r_no_3 == 0) {
             w->breakNo2 = w->pPoint->no;
             if (em32TunnelAtkCk(em)) {
                 em->r_no_3 = 1;
@@ -2617,7 +2617,7 @@ static void em32_R1_TunnelAtk(cEm32* em)
                 break;
             }
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             EM32_TAIL_ATK(em, 5);
             w->timer = 0;
         }
@@ -2651,12 +2651,12 @@ static void em32_R1_JumpUp(cEm32* em)
         w->spd.y = 0.0f;
         em->r_no_2++;
     case 1:
-        if (em->motEvent & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             PSVECScale(&w->spd, &v, 0.1f);
             PSVECAdd(&em->pos, &v, &em->pos);
             PSVECSubtract(&w->spd, &v, &w->spd);
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             pt = w->pPoint;
             if (pt->flag == 0) {
                 pt->flag = 1;
@@ -2717,12 +2717,12 @@ static void em32_R1_JumpDown(cEm32* em)
         if (em->invisible_factor > 1.0f) {
             em->invisible_factor = 1.0f;
         }
-        if (em->motEvent & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             PSVECScale(&w->spd, &v, 0.15f);
             PSVECAdd(&em->pos, &v, &em->pos);
             PSVECSubtract(&w->spd, &v, &w->spd);
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             pt = w->pPoint;
             if (pt && pt->flag == 0) {
                 pt->flag = 1;
@@ -2843,7 +2843,7 @@ static void em32_R1_br_C_Atk(cEm32* em)
     Em32Work* w = EM32_WK(em);
 
     if (em->hp > 0 && em->r_no_2 != 0) {
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             EM32_CLAW_ATK(em, 3);
         }
         if (w->Atk_ck) {
@@ -2886,12 +2886,12 @@ static void em32_R1_C_Atk(cEm32* em)
         if (em->invisible_factor > 1.0f) {
             em->invisible_factor = 1.0f;
         }
-        if (em->motEvent & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             PSVECScale(&w->spd, &v, 0.1f);
             PSVECAdd(&em->pos, &v, &em->pos);
             PSVECSubtract(&w->spd, &v, &w->spd);
         }
-        if (em->motEvent & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             pt = w->pPoint;
             if (pt->flag == 0) {
                 pt->flag = 1;
@@ -2969,21 +2969,21 @@ static void em32_R1_C_AtkHit(cEm32* em)
                 EstSet(em, -1, 0, 0, EFF_EM32, 7, 0, ESP_CORE_KIND_NONE, em, 0);
             }
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em32PlHeadLost();
             U16Set(pG->pl_life, 0);
             VibSetData(VIB_TBL, 0xB, 1);
         }
-        if (em->motEvent & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             em32PlHeadFall();
         }
-        if (em->frame > 13.6999998f && em->frame < 14.3000002f) {
+        if (em->Motion.Seq_frame > 13.6999998f && em->Motion.Seq_frame < 14.3000002f) {
             w->TmpU32 = SndCall(8, 0xE, &em->pos, em->id, 0, em);
         }
-        if (em->frame > 17.7000008f && em->frame < 18.2999992f) {
+        if (em->Motion.Seq_frame > 17.7000008f && em->Motion.Seq_frame < 18.2999992f) {
             SndCall(8, 0x12, &pPL->pos, em->id, 0, pPL);
         }
-        if (em->frame > 188.699997f && em->frame < 189.300003f) {
+        if (em->Motion.Seq_frame > 188.699997f && em->Motion.Seq_frame < 189.300003f) {
             em->be_flag &= ~2;
         }
         break;
@@ -3006,7 +3006,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
             EmRoutineSet(em, 1, 0x19, 0, 0);
             break;
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             SndStop(w->TmpU32, 0);
             SndStop(w->sndId2, 0);
         }
@@ -3032,7 +3032,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (pl->frame > 259.700012f && pl->frame < 260.299988f) {
+        if (pl->Motion.Seq_frame > 259.700012f && pl->Motion.Seq_frame < 260.299988f) {
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         break;
@@ -3102,7 +3102,7 @@ static void em32_R1_P_Atk(cEm32* em)
         }
         break;
     }
-    if (em->motEvent & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         EM32_TAIL_ATK(em, 4);
         p = em->getPartsPtr(0x5A);
         v.x = 0.0f;
@@ -3127,7 +3127,7 @@ static void em32_R1_br_P_Catch(cEm32* em)
 
     if (em->hp > 0 && em->r_no_2 != 0) {
         int lost = !(w->flags & 1);
-        if (lost == 0 && (w->flags & 0x80000) && (em->motEvent & 1)) {
+        if (lost == 0 && (w->flags & 0x80000) && (em->Motion.Seq_old.Free & 1)) {
             f32 ang = GetXZAngle(&pPL->pos, &em->pos);
             fabsf(Muku2(pPL->ang.y, ang, 3.14159274f));
             EM32_CLAW_ATK(em, 1);
@@ -3201,7 +3201,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         em->r_no_2++;
     case 1:
         EmCatchMotionMove(em, 1.0f, 1.0f);
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             pG->pl_life = 0;
         }
         if ((s16) pG->pl_life > 1) {
@@ -3212,7 +3212,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
                 break;
             }
         }
-        if (em->motEvent & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             w->TmpU32 = SndCall(8, 0xE, &em->pos, em->id, 0, em);
         }
         if (em32BetweenHitCk(em)) {
@@ -3261,7 +3261,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
                 break;
             }
         }
-        if (em->motEvent & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             SndStop(w->TmpU32, 0);
             SndStop(w->sndId2, 0);
         }
@@ -3299,7 +3299,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
         break;
     case 1:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
-        if (pl->frame > 109.699997f && pl->frame < 110.300003f && pSys->eff_country) {
+        if (pl->Motion.Seq_frame > 109.699997f && pl->Motion.Seq_frame < 110.300003f && pSys->eff_country) {
             em32PlDivideSet2((cEm32*)pl->pEmCatch);
             pl->be_flag &= ~2;
         }
@@ -3447,7 +3447,7 @@ static void em32_R1_Ground(cEm32* em)
             } else {
                 em->r_no_2++;
             }
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             EM32_TAIL_ATK(em, 4);
         }
         break;
@@ -3501,7 +3501,7 @@ static void em32_R1_BreakBarred(cEm32* em)
         }
         break;
     }
-    if (em->motEvent & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         EM32_TAIL_ATK(em, 4);
         p = em->getPartsPtr(0x5A);
         v.x = 0.0f;
@@ -3586,7 +3586,7 @@ static void em32_R1_Dm_Normal(cEm32* em)
                 EmRoutineSet(em, 1, 9, 0, 0);
             }
         }
-        if (em->motEvent & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             if (em->hp <= 1 && em->pos.x <= 25338.0f && em32JumpUpCk(em)) {
                 return;
             }
@@ -3810,7 +3810,7 @@ void em32ClothMove(cEm32* em)
 
 // The two-motion turn blend of the walk / dash / attack walk: m0 (sequence m3) is the straight
 // motion, blended with m1 (sequence a) when blendVal is positive or m2 (b) when negative, at weight
-// |blendVal| / 256 through the second motion work (motBlend). blendCnt is the MotionSetCore
+// |blendVal| / 256 through the second motion work (Motion.blend). blendCnt is the MotionSetCore
 // interpolation count and blendSeq the frame, both kept in step by this call; `d` the motion flags.
 void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, int b, int d)
 {
@@ -3838,13 +3838,13 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
     }
     bm = EM32_BLEND_MOT(w);
     MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
-    em->motBlend = bm;
+    em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->blendCnt) {
         w->blendCnt--;
     }
     w->blendSeq++;
-    if ((u32) w->blendSeq >= em->frameMax) {
+    if ((u32) w->blendSeq >= em->Motion.Seq_frame_num) {
         w->blendSeq = 0;
     }
 }
@@ -4983,10 +4983,10 @@ void em32BreathSeStopCk(cEm32* em)
     Em32Work* w = EM32_WK(em);
     u32 no;
 
-    if (em->seNo == 0) {
+    if (em->Motion.Seq_old.Se == 0) {
         return;
     }
-    no = em->seNo - 1;
+    no = em->Motion.Seq_old.Se - 1;
     switch (no) {
     case 4:
     case 5:

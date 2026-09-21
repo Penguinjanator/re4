@@ -290,12 +290,12 @@ static void em24_R1_BoxWait(cEm24* em)
         int two = 2;
 
         em->dmg.m_Timer = two;
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             cModel* p = em->getPartsPtr(5);
 
             em24AtkCk(em, &p->world, &p->world_old, 0);
         }
-        if (!(em->seFlags28B & 0x80)) {
+        if (!(em->Motion.Seq_old.Free & 0x80)) {
             cAtariInfo* at = &em->atari;
             Vec v;
             f32 fl;

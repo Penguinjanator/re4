@@ -193,7 +193,7 @@ void cEm21::move()
     if ((s16) pG->pl_life <= 0) {
         w->escTimer = 1;
     }
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     Em21RouteCk(this);
     Em21_R0_move_tbl[r_no_0](this);
     if (r_no_0 == 0xFF) {
@@ -242,7 +242,7 @@ static void em21_R0_Init(cEm21* em)
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     at = &em->atari;
     em->hp = 1000;
-    em->pXFlip = em21_flip_tbl;
+    em->Motion.flip = em21_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 0.0f };
@@ -465,7 +465,7 @@ static void em21_R1_Escape(cEm21* em)
         em->r_no_2++;
     case 3:
         w->timer = Rnd() % 30 + 30;
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             if (w->stuckTimer) {
                 t = 0.058904864f;
             } else {
@@ -656,7 +656,7 @@ static void em21_R1_R100Escape(cEm21* em)
         MotionMove(em, 0);
         em->r_no_2++;
     case 3:
-        if (em->motFrame > 2.7f && em->motFrame < 3.3f) {
+        if (em->Motion.Seq_frame > 2.7f && em->Motion.Seq_frame < 3.3f) {
             SndCall(8, 7, &em->pos, em->id, 0, em);
         }
         em21DirMatrix(em, 0.0f);
@@ -1057,7 +1057,7 @@ void em21DirMatrix(cEm21* em, f32 dir)
     RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     t = 0.0f;
     if (dir > 0.0f) {
         t = -0.5235988f;

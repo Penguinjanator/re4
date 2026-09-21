@@ -284,7 +284,7 @@ void cPlayer::init1()
     if (pG->pl_type == 0) {
         Body->makeSpaeData();
     }
-    p2A4 = (EmWork2A4*) PL_MEM_ALLOC(0x98, 510);
+    Motion.pAttachCam = (AttachCamera*) PL_MEM_ALLOC(0x98, 510);
 }
 
 // Place the player at the room start position and run the first frames of its motion.
@@ -495,7 +495,7 @@ void pl_R1_Walk(cPlayer* pl)
             pl->r_no_2 = 2;
             pl->r_no_3 = 4;
             pl->m_Hokan = 5;
-            pl->m_Frame = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
+            pl->m_Frame = (u8) (pl->Motion.Seq_frame * 255.0f / (f32) pl->Motion.Seq_frame_num);
         } else if (!(Key.on & 1)) {
             EmRoutineSet(pl, 0, 0, 0, 0);
         } else {
@@ -592,7 +592,7 @@ void pl_R1_Run(cPlayer* pl)
             if ((int) pl->m_Work0 < 150) {
                 pl->m_Work0++;
             } else {
-                if (pl->frame > 4.7f && pl->frame < 5.3f) {
+                if (pl->Motion.Seq_frame > 4.7f && pl->Motion.Seq_frame < 5.3f) {
                     switch (breath_ctr) {
                     case 0:
                         SndCall(1, 0x25, &pl->getPartsPtr(3)->world, 0, 0, 0);
@@ -614,7 +614,7 @@ void pl_R1_Run(cPlayer* pl)
             pl->r_no_2 = 0;
             pl->r_no_3 = 4;
             pl->m_Hokan = 5;
-            pl->m_Frame = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
+            pl->m_Frame = (u8) (pl->Motion.Seq_frame * 255.0f / (f32) pl->Motion.Seq_frame_num);
         } else {
             u64 key = Key.on;
             if (key & 4) {
@@ -632,7 +632,7 @@ void pl_R1_Run(cPlayer* pl)
                     pl->r_no_1 = 1;
                     pl->r_no_3 = 4;
                     pl->r_no_2 = 0;
-                    pl->m_Frame = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
+                    pl->m_Frame = (u8) (pl->Motion.Seq_frame * 255.0f / (f32) pl->Motion.Seq_frame_num);
                 } else {
                     EmRoutineSet(pl, 0, 0, 0, 0);
                 }
@@ -700,9 +700,9 @@ void pl_R1_Turn180(cPlayer* pl)
     }
     case 1: {
         u32 frame;
-        if (pl->frame <= 5.0f) {
+        if (pl->Motion.Seq_frame <= 5.0f) {
             CamCtrlShoulderSetAim(&dd0);
-        } else if (pl->frame > 5.7f && pl->frame < 6.3f) {
+        } else if (pl->Motion.Seq_frame > 5.7f && pl->Motion.Seq_frame < 6.3f) {
             CamCtrlShoulderSetSearchFrame(0);
         }
         end = pl->motionMove();
@@ -724,7 +724,7 @@ void pl_R1_Turn180(cPlayer* pl)
             frame = dmMotCk() ? 0xE : 0x13;
             break;
         }
-        if (pl->frame >= (f32) frame) {
+        if (pl->Motion.Seq_frame >= (f32) frame) {
             if ((Key.on & 0x10F) || joyKamae()) {
                 end |= 1;
             }
@@ -794,7 +794,7 @@ void pl_R1_Ladder(cPlayer* pl)
         pl->r_no_2 = 1;
         pl->stat &= ~0x800;
     case 1:
-        if (pl->frame > 11.7f && pl->frame < 12.3f) {
+        if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -810,11 +810,11 @@ void pl_R1_Ladder(cPlayer* pl)
         }
         break;
     case 2:
-        if (pl->frame > 0.7f && pl->frame < 1.3f) {
+        if (pl->Motion.Seq_frame > 0.7f && pl->Motion.Seq_frame < 1.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 12.7f && pl->frame < 13.3f) {
+        if (pl->Motion.Seq_frame > 12.7f && pl->Motion.Seq_frame < 13.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -829,23 +829,23 @@ void pl_R1_Ladder(cPlayer* pl)
         }
         break;
     case 3:
-        if (pl->frame > 0.7f && pl->frame < 1.3f) {
+        if (pl->Motion.Seq_frame > 0.7f && pl->Motion.Seq_frame < 1.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 23.7f && pl->frame < 24.3f) {
+        if (pl->Motion.Seq_frame > 23.7f && pl->Motion.Seq_frame < 24.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 33.7f && pl->frame < 34.3f) {
+        if (pl->Motion.Seq_frame > 33.7f && pl->Motion.Seq_frame < 34.3f) {
             SndCall(5, 3, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 38.7f && pl->frame < 39.3f) {
+        if (pl->Motion.Seq_frame > 38.7f && pl->Motion.Seq_frame < 39.3f) {
             SndCall(5, 2, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -864,11 +864,11 @@ void pl_R1_Ladder(cPlayer* pl)
         pl->r_no_2 = 0xB;
         pl->stat &= ~0x800;
     case 0xB:
-        if (pl->frame > 7.7f && pl->frame < 8.3f) {
+        if (pl->Motion.Seq_frame > 7.7f && pl->Motion.Seq_frame < 8.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 25.7f && pl->frame < 26.3f) {
+        if (pl->Motion.Seq_frame > 25.7f && pl->Motion.Seq_frame < 26.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -884,11 +884,11 @@ void pl_R1_Ladder(cPlayer* pl)
         }
         break;
     case 0xC:
-        if (pl->frame > 0.7f && pl->frame < 1.3f) {
+        if (pl->Motion.Seq_frame > 0.7f && pl->Motion.Seq_frame < 1.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 12.7f && pl->frame < 13.3f) {
+        if (pl->Motion.Seq_frame > 12.7f && pl->Motion.Seq_frame < 13.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -903,15 +903,15 @@ void pl_R1_Ladder(cPlayer* pl)
         }
         break;
     case 0xD:
-        if (pl->frame > 3.7f && pl->frame < 4.3f) {
+        if (pl->Motion.Seq_frame > 3.7f && pl->Motion.Seq_frame < 4.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 9.7f && pl->frame < 10.3f) {
+        if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
             SndCall(6, 0x61, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame > 22.7f && pl->frame < 23.3f) {
+        if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             SndCall(6, 0x60, &pl->pos, 0, 0, 0);
             SndCall(1, 0x2A, &pl->pos, 0, 0, 0);
         }
@@ -1044,7 +1044,7 @@ void pl_R1_JumpFall(cPlayer* pl)
         if (pl->m_Work0 >= 5 && pl->m_Work0 <= 14) {
             pl->pos.y += pl->m_JumpAdjY * 0.1f;
         }
-        if (pl->frame >= 7.0f) {
+        if (pl->Motion.Seq_frame >= 7.0f) {
             if (fallCheck(pl)) {
                 MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x5F), PL_ARC_PTR(pG->pPlayer, 0x61), 3, 0x201, 0);
                 pl->dmg.clear();
@@ -1057,7 +1057,7 @@ void pl_R1_JumpFall(cPlayer* pl)
         break;
     case 2:
         pl->motionMove();
-        if (pl->frame >= 20.0f) {
+        if (pl->Motion.Seq_frame >= 20.0f) {
             EmRoutineSet(pl, 0, 0, 2, 0);
         }
         break;
@@ -1273,7 +1273,7 @@ void pl_R1_Fance(cPlayer* pl)
         pl->r_no_2 = 1;
     case 1:
         if (!(pl->r_no_3 & 1)) {
-            if (pl->frame <= 24.0f) {
+            if (pl->Motion.Seq_frame <= 24.0f) {
                 fanceAdjust(pl);
             }
         }
@@ -1284,26 +1284,26 @@ void pl_R1_Fance(cPlayer* pl)
         switch (pG->pl_type) {
         case 0:
         default:
-            if (pl->frame >= 30.0f) {
+            if (pl->Motion.Seq_frame >= 30.0f) {
                 end |= 1;
             }
             break;
         case 1:
-            if (pl->frame >= 60.0f) {
+            if (pl->Motion.Seq_frame >= 60.0f) {
                 end |= 1;
             }
             break;
         case 2:
-            if (pl->frame >= 60.0f) {
+            if (pl->Motion.Seq_frame >= 60.0f) {
                 end |= 1;
             }
             break;
         }
     }
-    if (pl->frame > 27.7f && pl->frame < 28.3f) {
+    if (pl->Motion.Seq_frame > 27.7f && pl->Motion.Seq_frame < 28.3f) {
         SndCall(5, 0xE, &pl->pos, 0, 0, 0);
     }
-    if (pl->frame > 29.7f && pl->frame < 30.3f) {
+    if (pl->Motion.Seq_frame > 29.7f && pl->Motion.Seq_frame < 30.3f) {
         SndCall(5, 0xD, &pl->pos, 0, 0, 0);
     }
     if (end) {
@@ -1433,7 +1433,7 @@ void pl_R1_Fall(cPlayer* pl)
         pl->MotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
         pl->r_no_2 = 3;
     case 3:
-        if (pl->frame <= adjustFrame) {
+        if (pl->Motion.Seq_frame <= adjustFrame) {
             v.x = 0.0f;
             v.y = 1.5707964f;
             v.z = 0.0f;
@@ -1466,7 +1466,7 @@ void pl_R1_Fall(cPlayer* pl)
             }
         }
         pl->motionMove();
-        if (pl->frame <= (f32) lim) {
+        if (pl->Motion.Seq_frame <= (f32) lim) {
             pl->ang.y += Muku3(pl->ang.y, &pl->m_FallVec, 0.31415927f);
             break;
         }

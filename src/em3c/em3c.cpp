@@ -742,14 +742,14 @@ static void em3c_R1_AtkWait(cEm3c* em)
     case 5:
         MotionMove(em, 0);
         em3cAtkCk2(em, 2);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->actMode = 0;
         }
         if (w->Atk_ck) {
             w->Act_ck = 1;
             em->flag |= 2;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             Vec v;
 
             if (w->female) {
@@ -868,24 +868,24 @@ static void plemEscape(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         if (pG->pl_type == 1) {
-            if (pl->frame > 24.7f && pl->frame < 25.3f) {
+            if (pl->Motion.Seq_frame > 24.7f && pl->Motion.Seq_frame < 25.3f) {
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
-            if (pl->frame > 60.7f && pl->frame < 61.3f) {
+            if (pl->Motion.Seq_frame > 60.7f && pl->Motion.Seq_frame < 61.3f) {
                 SndCall(1, 6, &pl->pos, pl->id, 0, pl);
                 SndCall(1, 0x12, &pl->pos, pl->id, 0, pl);
             }
         } else {
-            if (pl->frame > 10.7f && pl->frame < 11.3f) {
+            if (pl->Motion.Seq_frame > 10.7f && pl->Motion.Seq_frame < 11.3f) {
                 SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
             }
-            if (pl->frame > 21.7f && pl->frame < 22.3f) {
+            if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
                 SndCall(5, 0x14, &pl->pos, 0, 0, pl);
             }
-            if ((pl->frame > 36.7f && pl->frame < 37.3f) || (pl->frame > 49.7f && pl->frame < 50.3f)) {
+            if ((pl->Motion.Seq_frame > 36.7f && pl->Motion.Seq_frame < 37.3f) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
                 SndCall(5, 2, &pl->pos, 0, 0, pl);
             }
-            if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
+            if ((pl->Motion.Seq_frame > 37.7f && pl->Motion.Seq_frame < 38.3f) || (pl->Motion.Seq_frame > 50.7f && pl->Motion.Seq_frame < 51.3f)) {
                 SndCall(5, 3, &pl->pos, 0, 0, pl);
             }
         }
@@ -938,7 +938,7 @@ static void subemSurprised()
         SndCall(8, 4, &sub->pos, sub->id, 0, sub);
         sub->r_no_2++;
     case 3:
-        if (sub->frame > 24.7f && sub->frame < 25.3f) {
+        if (sub->Motion.Seq_frame > 24.7f && sub->Motion.Seq_frame < 25.3f) {
             SndCall(5, 5, &sub->pos, 0, 0, sub);
         }
         if (MotionMove(sub, 0)) {
@@ -1036,7 +1036,7 @@ static void em3c_R1_Walk(cEm3c* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->motHokanCnt == 0) {
+        if (em->Motion.Hokan_cnt == 0) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -1105,7 +1105,7 @@ static void em3c_R1_Run(cEm3c* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->motHokanCnt == 0) {
+        if (em->Motion.Hokan_cnt == 0) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 48.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -1169,7 +1169,7 @@ static void em3c_R1_Turn180(cEm3c* em)
         w->turnAng = em->ang.y + PI;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             f32 a = Muku(&em->pos, &w->targetPos, w->turnAng, PI / 32.0f);
 
             w->turnAng += a;
@@ -1273,7 +1273,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
             }
         } else {
             em3cAtkCk2(em, w->Atk_type);
-            if (em->seFlags28B & 4) {
+            if (em->Motion.Seq_old.Free & 4) {
                 if (w->female) {
                     v.x = 100.0f;
                     v.y = 0.0f;
@@ -1549,7 +1549,7 @@ static void em3c_R1_Dm_Head(cEm3c* em)
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
             }
-        } else if ((em->seFlags28B & 1) && w->Head_hp <= 0) {
+        } else if ((em->Motion.Seq_old.Free & 1) && w->Head_hp <= 0) {
             em3cPartsBombHead(em);
         }
         break;
@@ -1689,7 +1689,7 @@ int em3cAtkCk2(cEm3c* em, int no)
     if (w->Atk_ck) {
         return 0;
     }
-    if (!(em->seFlags28B & 1)) {
+    if (!(em->Motion.Seq_old.Free & 1)) {
         return 0;
     }
     p = GetPartsAddr(em->pParts, 0x1A);
@@ -2157,7 +2157,7 @@ void em3cPartsBombControl(cEm3c* em)
         }
     }
     // the walk reuses `p`: the extra refs rank p above bomb in global alloc (r26/r25)
-    p = (cParts*) em->pParts;
+    p = em->pList;
     while (p) {
         p = p->pList;
         if (p == 0) {
@@ -2335,9 +2335,9 @@ void em3cSetParasite(cEm3c* em)
 // Plays the footstep at the root part on motion sound events 1 / 2 and consumes the event.
 void em3cFootSe(cEm3c* em)
 {
-    if (em->seNo) {
-        if (em->seNo == 1 || em->seNo == 2) {
-            em->seNo = 0;
+    if (em->Motion.Seq_old.Se) {
+        if (em->Motion.Seq_old.Se == 1 || em->Motion.Seq_old.Se == 2) {
+            em->Motion.Seq_old.Se = 0;
             SndCall(8, 0, &em->getPartsPtr(0)->world, em->id, 0, em);
         }
     }

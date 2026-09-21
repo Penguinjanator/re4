@@ -101,7 +101,7 @@ void damageNormal(cPlayer* pl)
         pl->r_no_2 = 1;
         pl->dmg.m_Timer |= 0x80;
     case 1:
-        if (pl->frame > 19.7f && pl->frame < 20.3f) {
+        if (pl->Motion.Seq_frame > 19.7f && pl->Motion.Seq_frame < 20.3f) {
             pl->setFace(0);
         }
         if (pl->m_Work0 != 0) {
@@ -131,13 +131,13 @@ void damageNormal(cPlayer* pl)
         pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
-        if (pl->frame > 34.7f && pl->frame < 35.3f) {
+        if (pl->Motion.Seq_frame > 34.7f && pl->Motion.Seq_frame < 35.3f) {
             SndCall(5, 3, pos, 0, 0, 0);
         }
-        if (pl->frame > 52.7f && pl->frame < 53.3f) {
+        if (pl->Motion.Seq_frame > 52.7f && pl->Motion.Seq_frame < 53.3f) {
             SndCall(5, 2, pos, 0, 0, 0);
         }
-        if (pl->frame > 59.7f && pl->frame < 60.3f) {
+        if (pl->Motion.Seq_frame > 59.7f && pl->Motion.Seq_frame < 60.3f) {
             SndCall(1, 0x29, &pl->getPartsPtr(2)->world, 0, 0, 0);
         }
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
@@ -222,10 +222,10 @@ void damageBlow(cPlayer* pl)
         if (MotionCheckCrossFrame(&pl->Motion, 20.0f)) {
             pl->setFace(0);
         }
-        if (pl->m_Work0 == 0 && pl->frame > 9.7f && pl->frame < 10.3f) {
+        if (pl->m_Work0 == 0 && pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
             SndCall(5, 5, &pl->pos, 0, 0, 0);
         }
-        if (pl->frame >= 5.0f) {
+        if (pl->Motion.Seq_frame >= 5.0f) {
             splash = pl->m_Work2;
             if (splash == 0 && GetWaterHeight(&pl->pParts->world, &wh) && pl->pParts->world.y < wh + 400.0f) {
                 pl->m_Work2 = 1;
@@ -249,13 +249,13 @@ void damageBlow(cPlayer* pl)
         pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
-        if (pl->frame > 34.7f && pl->frame < 35.3f) {
+        if (pl->Motion.Seq_frame > 34.7f && pl->Motion.Seq_frame < 35.3f) {
             SndCall(5, 3, pos, 0, 0, 0);
         }
-        if (pl->frame > 52.7f && pl->frame < 53.3f) {
+        if (pl->Motion.Seq_frame > 52.7f && pl->Motion.Seq_frame < 53.3f) {
             SndCall(5, 2, pos, 0, 0, 0);
         }
-        if (pl->frame > 59.7f && pl->frame < 60.3f) {
+        if (pl->Motion.Seq_frame > 59.7f && pl->Motion.Seq_frame < 60.3f) {
             SndCall(1, 0x29, &pl->getPartsPtr(2)->world, 0, 0, 0);
         }
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
@@ -303,7 +303,7 @@ void damageBlast(cPlayer* pl)
         pl->r_no_2 = 1;
         pl->dmg.m_Timer |= 0x80;
     case 1:
-        if (pl->frame > 19.7f && pl->frame < 20.3f) {
+        if (pl->Motion.Seq_frame > 19.7f && pl->Motion.Seq_frame < 20.3f) {
             pl->setFace(0);
         }
         if (pl->motionMove()) {
@@ -337,10 +337,10 @@ void Pl_R0_Die(cPlayer* pl)
         pl->r_no_1 = 1;
         pl->m_Work0 = no;
     case 1:
-        if (pl->frame > 39.7f && pl->frame < 40.3f) {
+        if (pl->Motion.Seq_frame > 39.7f && pl->Motion.Seq_frame < 40.3f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 3, 1);
         }
-        if (pl->frame > 69.7f && pl->frame < 70.3f) {
+        if (pl->Motion.Seq_frame > 69.7f && pl->Motion.Seq_frame < 70.3f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 3, 1);
         }
         if (pl->motionMove()) {

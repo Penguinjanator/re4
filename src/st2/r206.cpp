@@ -1073,7 +1073,7 @@ void luis_set()
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
     zero = 0.0f;
-    obj->motSpeedRate = zero;
+    obj->Motion.Seq_speed = zero;
     obj->setNoSuspend(1);
     obj->LightInfo.EnableMask = lit;
     obj->be_flag |= 0x10;
@@ -1081,7 +1081,7 @@ void luis_set()
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x3A), ROOM_ARC_PTR(pG->pRoom, 0x3B), &pos, &rot, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
-    obj->motSpeedRate = zero;
+    obj->Motion.Seq_speed = zero;
     obj->setNoSuspend(1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0xA, 0, 1, 0);
     obj->LightInfo.EnableMask = lit;

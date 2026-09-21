@@ -166,7 +166,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 eprintf2(8, 14, 32, 372, col, 7, "POS[%.2f, %.2f, %.2f], Dir[%.2f]", em->pos.x, em->pos.y,
                          em->pos.z, em->ang.y);
                 eprintf2(8, 14, 32, 386, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[ %d], FRAME[%d/%d] ", em->r_no_0,
-                         em->r_no_1, em->r_no_2, em->r_no_3, em->hp, (u32) em->frame, em->frameMax);
+                         em->r_no_1, em->r_no_2, em->r_no_3, em->hp, (u32) em->Motion.Seq_frame, em->Motion.Seq_frame_num);
                 eprintf2(8, 14, 32, 344, col, 7, "Flag=[%08x], L_pl[%.2f]", em->flag, SQRTF(em->plDist2));
                 if (em->checkStatus(EM_STATUS_LOCKOFF)) {
                     eprintf2(10, 16, 400, 344, col, 7, "LOCKOFF");

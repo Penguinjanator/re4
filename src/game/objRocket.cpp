@@ -152,7 +152,7 @@ void cObjRocket::move()
                 }
             }
         }
-        if (motFrame >= (f32) (motSeqMax - 1)) {
+        if (Motion.Seq_frame >= (f32) (Motion.Seq_frame_num - 1)) {
             r_no_0 = 2;
         }
         rocket.timer--;
@@ -358,7 +358,7 @@ void cObjLauncher::drop(int se)
 
         w->init(pPL);
         w->parentRelease();
-        w->pMotion = 0;
+        w->Motion.pMot = 0;
         w->pParts->ang.x = 0.0f;
         w->pParts->ang.y = 0.0f;
         w->pParts->ang.z = 0.0f;

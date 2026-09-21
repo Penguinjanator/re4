@@ -718,9 +718,9 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->mass = w->size.x * w->size.y * w->size.z / 1000000000.0f;
     w->mass *= FRef(mass_mul);
     PSVECScale(&w->spd, &w->spd, w->mass * 100.0f);
-    w->momentX = FRef(moment_mul) * w->mass * (w->size.y * w->size.y + w->size.z * w->size.z) / 12.0f;
-    w->momentY = FRef(moment_mul) * w->mass * (w->size.x * w->size.x + w->size.z * w->size.z) / 12.0f;
-    w->momentZ = FRef(moment_mul) * w->mass * (w->size.x * w->size.x + w->size.y * w->size.y) / 12.0f;
+    w->moment.x = FRef(moment_mul) * w->mass * (w->size.y * w->size.y + w->size.z * w->size.z) / 12.0f;
+    w->moment.y = FRef(moment_mul) * w->mass * (w->size.x * w->size.x + w->size.z * w->size.z) / 12.0f;
+    w->moment.z = FRef(moment_mul) * w->mass * (w->size.x * w->size.x + w->size.y * w->size.y) / 12.0f;
     obj->scale = w->size;
     PSVECScale(&obj->scale, &obj->scale, 0.01f);
     if (gen->Tex_id == 0x7C) {

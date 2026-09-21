@@ -100,7 +100,7 @@ void cObjHkSniper::init(cModel* parent)
 void cObjHkSniper::moveFire()
 {
     if (wep.step == 0) {
-        pMotion = 0;
+        Motion.pMot = 0;
         SndCall(2, 0, &pParts->world, 0, 0, 0);
         SndCall(2, 4, &pParts->world, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);

@@ -275,7 +275,7 @@ static void em26_R0_Init(cEm26* em)
         break;
     }
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
-    em->pXFlip = em26_flip_tbl;
+    em->Motion.flip = em26_flip_tbl;
     if (Rnd() & 1) {
         w->flags |= 0x10;
     } else {
@@ -407,7 +407,7 @@ static void em26_R1_Atk(cEm26* em)
         em->r_no_2++;
     }
     case 1:
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em26AtkCk(em);
         }
         if (MotionMove(em, 0)) {

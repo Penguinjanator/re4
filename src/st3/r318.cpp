@@ -1217,10 +1217,10 @@ static void playerDie(cPlayer* pl)
         PlSetDamageSe(0xA);
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 19.7f && pl->frame < 20.3f) {
+        if (pl->Motion.Seq_frame > 19.7f && pl->Motion.Seq_frame < 20.3f) {
             SndCall(5, 5, 0, 0, 0, 0);
         }
-        if (pl->frame > 22.7f && pl->frame < 23.3f) {
+        if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
         MotionMove(pl, 0);

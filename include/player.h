@@ -11,12 +11,6 @@
 #include "pl_cloth.h"
 
 // 0x98-byte work at cEm::p2A4 (player.cpp init1 mem_alloc); only the byte cam_ctrl reads is named.
-struct EmWork2A4 {
-    u8 x0;
-    u8 pad_1[4];
-    u8 x5;                       // 0x05
-};
-
 class cPlayer;
 
 // Neck control (game/pl_class.cpp), 0x1C bytes at cEm::pNeck: turns the head towards the nearest

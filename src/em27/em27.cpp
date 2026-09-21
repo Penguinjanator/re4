@@ -312,7 +312,7 @@ static void em27_R0_Init(cEm27* em)
         return;
     }
     em->be_flag &= ~0x10;
-    em->pXFlip = em27_flip_tbl;
+    em->Motion.flip = em27_flip_tbl;
     em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -624,7 +624,7 @@ static void em27_R1_Dm_Normal(cEm27* em)
         if (em27MotionMoveScale(em)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
-        if ((em->seFlags28B & 4) && em->hp <= 0) {
+        if ((em->Motion.Seq_old.Free & 4) && em->hp <= 0) {
             em->r_no_0 = 3;
             em->r_no_1 = 0;
             em->r_no_2 = 0;

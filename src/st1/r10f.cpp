@@ -415,7 +415,7 @@ static void r10f_GondolaEmSet(int idx)
     for (k = 0; k < 6; k++) {
         u32 n;
 
-        while (r10f_work.p->gondola[cur]->motFrame <= 2000.0f) {
+        while (r10f_work.p->gondola[cur]->Motion.Seq_frame <= 2000.0f) {
             SceSleep(1);
         }
         for (n = 0; n < 3 && *(s16*) (t + (k * 6 + n * 2)) != -1; n++) {

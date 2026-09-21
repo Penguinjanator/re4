@@ -250,7 +250,7 @@ static void em18_R0_Init(cEm18* em)
     em18ClothPartsSet(em, 0);
     em18GoodsPartsSet(em, 0);
     em->pFootShadowTbl = &Em10_fs_tbl;
-    em->pXFlip = em18_flip_tbl;
+    em->Motion.flip = em18_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
@@ -327,11 +327,11 @@ static void em18_R1_Trade(cEm18* em)
         em->r_no_2++;
     case 1:
         em->dmg.m_Timer = 2;
-        if (em->motFrame > 35.7f && em->motFrame < 36.3f) {
+        if (em->Motion.Seq_frame > 35.7f && em->Motion.Seq_frame < 36.3f) {
             em18ClothPartsSet(em, 1);
             SndCall(8, 0xA, &em->pos, em->id, 0, 0);
         }
-        if (em->motFrame > 40.7f && em->motFrame < 41.3f) {
+        if (em->Motion.Seq_frame > 40.7f && em->Motion.Seq_frame < 41.3f) {
             em18GoodsPartsSet(em, 1);
         }
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 16.0f);
@@ -352,10 +352,10 @@ static void em18_R1_Trade(cEm18* em)
         pGS->Stop_flg &= 0x7FFFFFFF;
         em->r_no_2++;
     case 4:
-        if (em->motFrame > 33.7f && em->motFrame < 34.3f) {
+        if (em->Motion.Seq_frame > 33.7f && em->Motion.Seq_frame < 34.3f) {
             em18ClothPartsSet(em, 0);
         }
-        if (em->motFrame > 26.7f && em->motFrame < 27.3f) {
+        if (em->Motion.Seq_frame > 26.7f && em->Motion.Seq_frame < 27.3f) {
             em18GoodsPartsSet(em, 0);
         }
         if (MotionMove(em, 0)) {
@@ -490,10 +490,10 @@ static void em18_R1_Die_Normal(cEm18* em)
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;
         } else {
-            if (em->motFrame > 34.7f && em->motFrame < 35.3f) {
+            if (em->Motion.Seq_frame > 34.7f && em->Motion.Seq_frame < 35.3f) {
                 SndCall(8, 5, &em->pos, em->id, 0, 0);
             }
-            if (em->motFrame > 65.7f && em->motFrame < 66.3f) {
+            if (em->Motion.Seq_frame > 65.7f && em->Motion.Seq_frame < 66.3f) {
                 SndCall(8, 6, &em->pos, em->id, 0, 0);
             }
         }

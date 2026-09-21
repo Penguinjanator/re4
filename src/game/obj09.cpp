@@ -533,9 +533,9 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     PSVECScale(&d, &d, frc);
     PSVECSubtract(hit, &w->basePos, &r);
     rr = r;
-    ix = 1.0f / w->momentX;
-    iy = 1.0f / w->momentY;
-    iz = 1.0f / w->momentZ;
+    ix = 1.0f / w->moment.x;
+    iy = 1.0f / w->moment.y;
+    iz = 1.0f / w->moment.z;
     im = 1.0f / w->mass;
     A[0][0] = iy * rr.z * rr.z + iz * rr.y * rr.y + im;
     A[0][1] = -iz * rr.x * rr.y;

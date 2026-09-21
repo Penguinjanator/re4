@@ -98,7 +98,7 @@ static void wep07_r3_ready00(cPlayer* pl)
 // ready step 1: the draw plays with the lock-on control from frame 5; at its end -> set state.
 static void wep07_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame >= 5.0f) {
+    if (pl->Motion.Seq_frame >= 5.0f) {
         PlWepLockCtrl(pl);
     }
     if (pl->motionMove()) {

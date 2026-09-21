@@ -240,8 +240,8 @@ void emHit_R1_Parent(cEmHit* em)
         }
         PSMTXCopy(m, em->mat);
     }
-    if (em->pMotion) {
-        em->motFlags2 |= 0x40000000;
+    if (em->Motion.pMot) {
+        em->Motion.Mot_flag |= 0x40000000;
         MotionMove(em, 0);
     } else {
         em->partsMatCalc();

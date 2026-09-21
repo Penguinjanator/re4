@@ -400,7 +400,7 @@ static void em38_R0_Init(cEm38* em)
         break;
     }
     em->be_flag |= 0x1000;
-    em->pXFlip = em38_flip;
+    em->Motion.flip = em38_flip;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
@@ -684,7 +684,7 @@ static void em38_R1_HeadStamp(cEm38* em)
             }
             w->blendRate = 0.0f;
             EmRoutineSet(em, 1, 0, 0, 0);
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em38AtkCk(em, 4, 0x17);
             em38AtkCk(em, 4, 0x18);
             em38AtkCk(em, 4, 0x19);
@@ -700,7 +700,7 @@ static void em38_R1_br_Atk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    if (em->motEvent & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         w->atkHit = 0;
         em38AtkCk(em, 3, 0x19);
         if (w->atkHit) {
@@ -1017,14 +1017,14 @@ static void em38_R1_T_Atk(cEm38* em)
         v.y = 0.0f;
         v.z = 4000.0f;
         PSMTXMultVec(em->mat, &v, &v);
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             ang = em->ang.y - 0.6981317f;
         } else {
             ang = em->ang.y + 0.6981317f;
         }
         ang = LIMIT_ANGLE(ang);
         ang = Muku(&v, &pPL->pos, ang, PI);
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             if (ang > 0.0f) {
                 if (ang > 0.34906584f) {
                     ang = 0.34906584f;
@@ -1060,7 +1060,7 @@ static void em38_R1_T_Atk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (em->motEvent & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 em38AtkCk(em, 0, 7);
                 em38AtkCk(em, 0, 8);
                 em38AtkCk(em, 0, 9);
@@ -1107,7 +1107,7 @@ static void em38_R1_br_T_MdlAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    if (em->motEvent & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         w->atkHit = 0;
         em38AtkCk(em, 1, 7);
         em38AtkCk(em, 1, 8);
@@ -1196,7 +1196,7 @@ static void em38_R1_br_T_BigAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    if (em->motEvent & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         w->atkHit = 0;
         em38AtkCk(em, 1, 7);
         em38AtkCk(em, 1, 8);
@@ -1323,7 +1323,7 @@ static void em38_R1_T_DownAtk(cEm38* em)
             EmRoutineSet(em, 1, 5, 0, 0);
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
-        } else if (em->motEvent & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em38AtkCk(em, 2, 7);
             em38AtkCk(em, 2, 8);
             em38AtkCk(em, 2, 9);
@@ -1363,11 +1363,11 @@ static void em38_R1_T_CatchHit(cEm38* em)
         EstSet(em, -1, 0, 0, EFF_EM38, 7, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 1:
-        if (em->frame > 14.7f && em->frame < 15.3f && w->pUpper) {
+        if (em->Motion.Seq_frame > 14.7f && em->Motion.Seq_frame < 15.3f && w->pUpper) {
             Ctrl11SetSeEm38(w->pCtrl11, w->pUpper, 0x29);
             w->seWait = 180;
         }
-        if (em->frame > 9.7f && em->frame < 10.3f) {
+        if (em->Motion.Seq_frame > 9.7f && em->Motion.Seq_frame < 10.3f) {
             SndCall(8, 0x26, &em->getPartsPtr(4)->world, em->id, 0, pPL);
         }
         if (MotionMove(em, 0)) {
@@ -1416,7 +1416,7 @@ static void plem38_CatchHit(cPlayer* pl)
             if ((s16) pG->pl_life > 0) {
                 pl->r_no_2++;
             }
-        } else if (pl->frame > 87.7f && pl->frame < 88.3f) {
+        } else if (pl->Motion.Seq_frame > 87.7f && pl->Motion.Seq_frame < 88.3f) {
             PlSetDamageSe(0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
@@ -1434,10 +1434,10 @@ static void plem38_CatchHit(cPlayer* pl)
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
-            if (pl->frame > 21.7f && pl->frame < 22.3f) {
+            if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
                 SndCall(5, 2, &pl->pos, 0, 0, pl);
             }
-            if (pl->frame > 19.7f && pl->frame < 20.3f) {
+            if (pl->Motion.Seq_frame > 19.7f && pl->Motion.Seq_frame < 20.3f) {
                 SndCall(5, 3, &pl->pos, 0, 0, pl);
             }
         }
@@ -1618,7 +1618,7 @@ static void em38_R1_Die_Body(cEm38* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0) == 0) {
-            if (em->frame > 199.7f && em->frame < 200.3f) {
+            if (em->Motion.Seq_frame > 199.7f && em->Motion.Seq_frame < 200.3f) {
                 w->mode = 8;
             }
         }
@@ -1773,7 +1773,7 @@ void em38UpperOnBody(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    em->motFlags2 &= ~0x40000000;
+    em->Motion.Mot_flag &= ~0x40000000;
     if (em->type == 3 && w->pBody) {
         cModel* p = w->pBody->getPartsPtr(4);
 
@@ -1787,7 +1787,7 @@ void em38UpperOnBody(cEm38* em)
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         PSMTXConcat(p->mat, em->mat, em->mat);
-        em->motFlags2 |= 0x40000000;
+        em->Motion.Mot_flag |= 0x40000000;
     }
 }
 
@@ -1871,7 +1871,7 @@ void em38ShellControl(cEm38* em)
     }
     switch (w->mode) {
     case 0:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x41), 0, 0, 4, 0);
         w->mode++;
     case 1:
@@ -1882,7 +1882,7 @@ void em38ShellControl(cEm38* em)
         }
         break;
     case 2:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x42), 0, 0, 0, 0);
         w->mode++;
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
@@ -1894,7 +1894,7 @@ void em38ShellControl(cEm38* em)
         }
         break;
     case 4:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x40), 0, 0, 4, 0);
         w->mode++;
     case 5:
@@ -1909,7 +1909,7 @@ void em38ShellControl(cEm38* em)
         }
         break;
     case 6:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x43), 0, 0, 0, 0);
         SndCall(8, 0x13, &em->pos, em->id, 0, em);
         w->mode++;
@@ -1922,7 +1922,7 @@ void em38ShellControl(cEm38* em)
         }
         break;
     case 8:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x44), 0, 0, 0, 0);
         w->mode++;
     case 9:
@@ -1930,7 +1930,7 @@ void em38ShellControl(cEm38* em)
         MotionSequenceCtrl(SHELL_MOT(w));
         break;
     case 0xA:
-        w->shellMot.speedRate = 1.0f;
+        w->shellMot.Seq_speed = 1.0f;
         MotionSetCore(em, &w->shellMot, ARC(0x42), 0, 0, 0, 0);
         w->mode++;
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
@@ -1963,13 +1963,13 @@ void em38BlendMotSet(cEm38* em, void* m0, void* m1, void* m2, void* m3, int a, i
     }
     bm = &w->blendMot;
     MotionSetCore(em, bm, m, (void*) seq, (u8) w->blendA, (u16) kind, (u16) w->blendB);
-    em->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    em->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (w->blendA) {
         w->blendA--;
     }
     w->blendB++;
-    if (w->blendB >= em->frameMax) {
+    if (w->blendB >= em->Motion.Seq_frame_num) {
         w->blendB = 0;
     }
 }
@@ -2285,17 +2285,17 @@ static void plemDmStamp(cPlayer* pl)
             EndPlDamage();
             pl->dmg.set(0, 30);
         } else {
-            if (pl->frame > 4.7f && pl->frame < 5.3f) {
+            if (pl->Motion.Seq_frame > 4.7f && pl->Motion.Seq_frame < 5.3f) {
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
             if ((s16) pG->pl_life > 0) {
-                if ((pl->frame > 87.7f && pl->frame < 88.3f) || (pl->frame > 116.7f && pl->frame < 117.3f)) {
+                if ((pl->Motion.Seq_frame > 87.7f && pl->Motion.Seq_frame < 88.3f) || (pl->Motion.Seq_frame > 116.7f && pl->Motion.Seq_frame < 117.3f)) {
                     SndCall(5, 0, &pl->pos, 0, 0, pl);
                 }
-                if ((pl->frame > 106.7f && pl->frame < 107.3f) || (pl->frame > 130.7f && pl->frame < 131.3f)) {
+                if ((pl->Motion.Seq_frame > 106.7f && pl->Motion.Seq_frame < 107.3f) || (pl->Motion.Seq_frame > 130.7f && pl->Motion.Seq_frame < 131.3f)) {
                     SndCall(5, 1, &pl->pos, 0, 0, pl);
                 }
-                if (pl->frame > 59.7f && pl->frame < 60.3f) {
+                if (pl->Motion.Seq_frame > 59.7f && pl->Motion.Seq_frame < 60.3f) {
                     SndCall(1, 4, &pl->pos, 0, 0, pl);
                     SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
                 }
@@ -2398,7 +2398,7 @@ static void plemEscape(cPlayer* pl)
     case 1:
         if (pl->m_Work2) {
             em38EscapeCamMove((cEm38*)pl->pEmCatch);
-            if (pl->frame > 11.7f && pl->frame < 12.3f) {
+            if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
                 EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
@@ -2493,16 +2493,16 @@ static void plemBackjump(cPlayer* pl)
             pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        if (pl->frame > 10.7f && pl->frame < 11.3f) {
+        if (pl->Motion.Seq_frame > 10.7f && pl->Motion.Seq_frame < 11.3f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 21.7f && pl->frame < 22.3f) {
+        if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
             SndCall(5, 0x14, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 36.7f && pl->frame < 37.3f) || (pl->frame > 49.7f && pl->frame < 50.3f)) {
+        if ((pl->Motion.Seq_frame > 36.7f && pl->Motion.Seq_frame < 37.3f) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
+        if ((pl->Motion.Seq_frame > 37.7f && pl->Motion.Seq_frame < 38.3f) || (pl->Motion.Seq_frame > 50.7f && pl->Motion.Seq_frame < 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {

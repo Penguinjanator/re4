@@ -193,12 +193,12 @@ void R20cExecCageUp()
     if (door0) {
         r20c_work.p->doorY[0] = door0->pos.y;
         door0->setPos(door0->pos.x, door0->pos.y + 4000.0f, door0->pos.z);
-        door0->satPos = door0->pos;
+        door0->Motion.Pos_world = door0->pos;
     }
     if (door1) {
         r20c_work.p->doorY[1] = door1->pos.y;
         door1->setPos(door1->pos.x, door1->pos.y + 4000.0f, door1->pos.z);
-        door1->satPos = door1->pos;
+        door1->Motion.Pos_world = door1->pos;
     }
     if (r20c_work.p->sat[0]) {
         r20c_work.p->sat[0]->m_Flag &= ~4;
@@ -227,11 +227,11 @@ void R20cExecCageDown(int lock)
     }
     if (door0) {
         door0->setPos(door0->pos.x, r20c_work.p->doorY[0], door0->pos.z);
-        door0->satPos = door0->pos;
+        door0->Motion.Pos_world = door0->pos;
     }
     if (door1) {
         door1->setPos(door1->pos.x, r20c_work.p->doorY[1], door1->pos.z);
-        door1->satPos = door1->pos;
+        door1->Motion.Pos_world = door1->pos;
     }
     if (lock == 1) {
         if (door0) {
@@ -296,11 +296,11 @@ static void R20cExecCageMain()
             }
             if (door0) {
                 door0->setPos(door0->pos.x, r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
-                door0->satPos = door0->pos;
+                door0->Motion.Pos_world = door0->pos;
             }
             if (door1) {
                 door1->setPos(door1->pos.x, r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
-                door1->satPos = door1->pos;
+                door1->Motion.Pos_world = door1->pos;
             }
             SceSleep(1);
         }

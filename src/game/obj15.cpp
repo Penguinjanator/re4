@@ -313,7 +313,7 @@ void obj15MatCalc(cObjGatling* obj)
     TransMatrix(obj->l_mat, &obj->pos);
     ScaleMatrix(obj->l_mat, &obj->scale);
     PSMTXCopy(obj->l_mat, obj->mat);
-    if (obj->pMotion == 0) {
+    if (obj->Motion.pMot == 0) {
         obj->partsMatCalc();
     }
     obj->partsWorldCalc();

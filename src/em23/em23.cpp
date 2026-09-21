@@ -224,7 +224,7 @@ void cEm23::move()
     } else {
         w->flags &= ~2;
     }
-    if ((seFlags28B & 0x80) && pos.y - pPL->pos.y < 3000.0f) {
+    if ((Motion.Seq_old.Free & 0x80) && pos.y - pPL->pos.y < 3000.0f) {
         SndCall(8, 0xB, &pos, id, 0, this);
     }
 }
@@ -253,7 +253,7 @@ static void em23_R0_Init(cEm23* em)
     em->setStatus(EM_STATUS_LOCKOFF);
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     EspDataLoad((u32) ARC(4), EFF_EM23, 0);
-    em->pXFlip = em23_flip_tbl;
+    em->Motion.flip = em23_flip_tbl;
     YarareInit(em, 0.0f, -100.0f, 0.0f, 250.0f, 200.0f, 1, YAT_FLAG_ON);
     if (em->modelInit(ARC(5), ARC(8)) == 0) {
         pLog->err(0, 0, "em23() ModelInit failed.");
@@ -471,7 +471,7 @@ static void em23_R1_R20ALanding(cEm23* em)
         w->timer = 7;
         em->r_no_2++;
     case 3:
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }
@@ -544,7 +544,7 @@ static void em23_R1_Takeoff(cEm23* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }
@@ -577,7 +577,7 @@ static void em23_R1_TakeoffDash(cEm23* em)
     case 1:
         em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 16.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em23SetWing(em, 0);
             Ctrl11SetSe(w->pCtrl11, em, 10, 10, 0xB);
         }

@@ -135,8 +135,8 @@ static void wep28_r3_ready00(cPlayer* pl)
 // bow arrow on). Motion end -> set state.
 static void wep28_r3_ready10(cPlayer* pl)
 {
-    if (pl->frame < 4.0f) {
-        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
+    if (pl->Motion.Seq_frame < 4.0f) {
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->Motion.Seq_frame);
 
         pl->ang.y += d;
         pl->Wep->m_CamAdjY -= d;
@@ -225,10 +225,10 @@ static void wep28_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -240,10 +240,10 @@ static void wep28_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -315,7 +315,7 @@ static void wep28_r3_fire10(cPlayer* pl)
     }
     if (pl->motionMove()) {
         EmRoutineSet(pl, 0, 6, 1, 0);
-    } else if (pl->frame >= (f32) endFrame && joyKamae() == 0) {
+    } else if (pl->Motion.Seq_frame >= (f32) endFrame && joyKamae() == 0) {
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 3;

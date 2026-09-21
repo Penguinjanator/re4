@@ -53,7 +53,7 @@ void cObj12::move()
     Quaternion q;
 
     w->Motion_info = 0;
-    if (pMotion) {
+    if (Motion.pMot) {
         w->Motion_info = MotionMove(this, 0);
     }
     if (!(w->be_flag & 0x106)) {

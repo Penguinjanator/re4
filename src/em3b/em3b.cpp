@@ -554,7 +554,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
             break;
         }
         em3bRunDownCkTruck(em);
-        f = em->frame;
+        f = em->Motion.Seq_frame;
         if (f > 249.7f && f < 250.3f) {
             // the first stop stores the (zero) MotionMove result kept in a callee-saved register; the
             // second test's label has two uses (pDriver == 0 and the `&&` false path), so cse does not
@@ -568,14 +568,14 @@ static void em3b_R1_Truck_Run(cEm3b* em)
                 break;
             }
         }
-        f = em->frame;
+        f = em->Motion.Seq_frame;
         if (f > 319.7f && f < 320.3f) {
             if ((w->pDriver && w->pDriver->hp <= 0) || em->hp <= 1) {
                 EmRoutineSet(em, 1, 2, 0, 1);
                 break;
             }
         }
-        f = em->frame;
+        f = em->Motion.Seq_frame;
         if (f > 469.7f && f < 470.3f) {
             SndCall(6, 9, &p->world, 0, 0, em);
         }
@@ -588,7 +588,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
                 SndCall(6, 7, &p->world, 0, 0, em);
             }
         }
-        f = em->frame;
+        f = em->Motion.Seq_frame;
         if (f > 464.7f && f < 465.3f) {
             EstSet(em, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, em, 0);
             em->flag |= 2;
@@ -645,11 +645,11 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
             }
         }
         if (em->r_no_3) {
-            f = em->frame;
+            f = em->Motion.Seq_frame;
             if (f > 19.7f && f < 20.3f) {
                 SndCall(6, 0xA, &p->world, 0, 0, em);
             }
-            f = em->frame;
+            f = em->Motion.Seq_frame;
             if (f > 42.7f && f < 43.3f) {
                 SndCall(6, 8, &p->world, 0, 0, em);
                 em->flag |= 2;
@@ -657,11 +657,11 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
                 SndStop(w->sndId, 0);
             }
         } else {
-            f = em->frame;
+            f = em->Motion.Seq_frame;
             if (f > 12.7f && f < 13.3f) {
                 SndCall(6, 0xB, &p->world, 0, 0, em);
             }
-            f = em->frame;
+            f = em->Motion.Seq_frame;
             if (f > 110.7f && f < 111.3f) {
                 SndCall(6, 8, &p->world, 0, 0, em);
                 em->flag |= 2;
@@ -953,7 +953,7 @@ static void subem3bRunDown()
 }
 
 // Tilt the running cart to the slope of the track.
-// Type 1 only, while the motion places it (motFlags2 bit30 clear): snaps pos.y to the floor when
+// Type 1 only, while the motion places it (Motion.Mot_flag bit30 clear): snaps pos.y to the floor when
 // within 500 of it and pitches the matrix by the floor slope between 500 ahead and behind (clamped
 // +-30 degrees).
 void em3bSlopeMove(cEm3b* em)
@@ -968,7 +968,7 @@ void em3bSlopeMove(cEm3b* em)
     if (em->type != 1) {
         return;
     }
-    if (em->motFlags2 & 0x40000000) {
+    if (em->Motion.Mot_flag & 0x40000000) {
         return;
     }
     fa = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);

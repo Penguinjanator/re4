@@ -40,7 +40,7 @@ void cObj00::move()
 {
     Obj00Work* w = &o0;
 
-    if (pMotion) {
+    if (Motion.pMot) {
         MotionMove(this, 0);
     } else if (!(w->be_flag & 0x16)) {
         RotMatrix(l_mat, &ang);
@@ -56,7 +56,7 @@ void cObj00::move()
     }
     obj00SetOya(this);
     obj00FallMove(this);
-    if (pMotion == 0) {
+    if (Motion.pMot == 0) {
         if (!(w->be_flag & 0x16)) {
             partsMatCalc();
         }
@@ -140,7 +140,7 @@ void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
     }
     w->oya = oya;
     w->oya_parts = partsNo;
-    obj->pMotion = 0;
+    obj->Motion.pMot = 0;
     w->be_flag &= ~8;
 }
 

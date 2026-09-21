@@ -225,9 +225,9 @@ struct MotionData {
 
 struct AttachCamera;   // cam_ctrl.h
 
-// Per-model motion work (game/motion.cpp), cModel::mot at cModel+0x1D8, 0xDC bytes. The first
-// 0xD0 bytes are what cModel::cModel clears (MotionWorkSub in em.h is that prefix).
-struct MotionWork {
+// Per-model motion work (game/motion.cpp; PS2 MOTION_INFO), 0xD0 bytes: what cModel::cModel clears, what
+// a blend motion (MotionWork::blend, the enemy works' blendMot) is, and the prefix of cModel::Motion.
+struct MotionWorkSub {
     MotionData* pMot;     // 0x00  NULL = no motion
     u32* pHermite_data;          // 0x04  per parts key data
     u16 Key_hist[2][2][3];    // 0x08  root key history [flip][rot/pos][axis]
@@ -265,7 +265,12 @@ struct MotionWork {
     u8 pad_C6[2];
     f32 Brate;        // 0xC8  weight of this work when it is another model's blend motion
     AttachCamera* pAttachCam;    // 0xCC
-    MotionWork* blend;    // 0xD0  second motion blended in by MotionMove
+};
+
+// cModel::Motion at cModel+0x1D8, 0xDC bytes: the motion work with the GC's three pointers after it
+// (the PS2 keeps them as cModel members pMotionB / pXFlip / pDblJnt).
+struct MotionWork : public MotionWorkSub {
+    MotionWorkSub* blend;    // 0xD0  second motion blended in by MotionMove (PS2 cModel pMotionB)
     u16* flip;            // 0xD4  parts index remap for flipped motions
     u16* blendTbl;        // 0xD8  {count, (dst, a, b, percent)...} quaternion blended parts
 };
@@ -276,10 +281,7 @@ struct MotionParts {
     Vec pos;         // 0x174  pose before the blend motion was applied
     Vec rot;         // 0x180
     Vec scale;       // 0x18C
-    union {
-        u32 x198;    // 0x198
-        f32 ikAng;   // 0x198  ik: previous twist angle of the effector (InverseKinematics)
-    };
+    f32 ikAng;       // 0x198  ik: previous twist angle of the effector (InverseKinematics; PS2 cParts ang_x_bak)
     u16 hist[6][3];  // 0x19C  key history: rot, pos, scale; then the same for the flipped histories
     u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit1: skip partsWorldCalc, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit30: apply cParts::addRot, bit31: hokan pending (blend)
                      //        ik (game/ik.cpp): bit2: IK chain root, bit4: 4-joint chain, bit6/bit11: floor search range, bit7: no IK,
@@ -374,7 +376,6 @@ public:
 };
 extern cPartsMgr PartsMgr;
 
-struct MotionWorkSub;   // em.h
 class cTexChg;          // trans.h
 
 // Model (game/model.cpp), sizeof 0x320: cEm / cObj / cMap fields start at 0x320. The parts hanging
@@ -438,47 +439,7 @@ public:
     cModelInfo* pShadowModelInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo LightInfo;  // 0x164 .. 0x1D8
 
-    // 0x1D8 .. 0x2B4  motion work (motion.h MOTION(m), cMotBase `m->Motion`). The names the
-    // character (cEm) and object (cObj) units use for its fields alias it.
-    union {
-        MotionWork Motion;                // 0x1D8
-        struct {
-            void* pMotion;             // 0x1D8  Motion.pMot: current motion data, NULL = stopped (pl_push stopTarget)
-            u8 pad_1DC[0x218 - 0x1DC];
-            u16 motFlags;              // 0x218  Motion.Mot_attr (bit0: move the model by the root speed; pl_npc clears it)
-            u16 motState;              // 0x21A  Motion.Mot_state (emobj EmObjMove clears it when no motion plays)
-            u32 motFlags2;             // 0x21C  Motion.Mot_flag (emhit: bit30 = no matrix update before MotionMove; obj26MatCalc/objMissile set it when following a parent)
-            u8 pad_220[0x244 - 0x220];
-            Vec satPos;                // 0x244  Motion.Pos_world: pos after the scenario collision moved the model (atari at_pos_calc)
-            u8 pad_250[0x28A - 0x250];
-            u8 seNo;                   // 0x28A  Motion.Seq_old.x2: sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
-            union {
-                u8 seFlags28B;         // 0x28B  Motion.Seq_old.x3: player: sound kind of the motion key (low 3 bits, pl_class seqSeCtrl)
-                u8 motEvent;           // 0x28B  event bits of the current sequence key (objRobo SE / effects)
-            };
-            u8 pad_28C[4];
-            union {
-                f32 frame;             // 0x290  Motion.Seq_frame: motion frame (db_cam prints it as an int)
-                f32 motFrame;          // 0x290  (objGondola R0_Up waits for frame 4105)
-            };
-            union {
-                u16 frameMax;          // 0x294  Motion.Seq_frame_num
-                u16 motSeqMax;         // 0x294  (objRocket: the rocket burns out at seqFrame >= seqMax - 1)
-            };
-            u8 pad_296[2];
-            f32 motSpeedRate;          // 0x298  Motion.Seq_speed (objWep resetMotion: 1.0)
-            u8 pad_29C;
-            u8 motHokanCnt;            // 0x29D  Motion.Hokan_cnt: blend frames passed back to MotionSetCore (emrock/em2b/pl0f escape run)
-            u8 pad_29E[6];
-            void* p2A4;                // 0x2A4  Motion.pAttachCam: AttachCamera / 0x98-byte EmWork2A4 (player.cpp mem_alloc; cam_ctrl reads its byte 5; objRobo SetObjRobo)
-            union {
-                MotionWorkSub* blendMot;   // 0x2A8  Motion.blend: second motion blended in (pl_class: &m_SubMot / cMot3::work)
-                MotionWork* motBlend;      // 0x2A8  (objGondola setVib: the sub motion work)
-            };
-            u16* pXFlip;              // 0x2AC  Motion.flip: parts index remap of flipped motions (emdoor: emDoor_xflip_tbl)
-            u32 pDblJnt;                  // 0x2B0  Motion.blendTbl (obj18: parts matrices are only recomputed while 0)
-        };
-    };
+    MotionWork Motion;     // 0x1D8 .. 0x2B4  motion work (motion.h MOTION(m), cMotBase `m->Motion`; PS2 MOTION_INFO Motion)
     // 0x2B4 .. 0x320  collision info, foot shadow table, light area, texture change. cAtariInfo
     // has a constructor, so it is wrapped in an anonymous struct (no member constructor call);
     // cModel::cModel constructs it explicitly where the original does (after cLightInfo's).

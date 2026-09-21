@@ -78,7 +78,7 @@ void cObjChain::move()
             return;
         }
     }
-    if (pMotion) {
+    if (Motion.pMot) {
         MotionMove(this, 0);
     }
     Obj1d_R1_move_tbl[r_no_1](this);
@@ -90,7 +90,7 @@ void cObjChain::move()
 // Rno1 == 0: free: motion and matrices.
 void obj1d_R1_Set(cObjChain* obj)
 {
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         MotionMove(obj, 0);
     } else {
         RotMatrix(obj->mat, &obj->ang);
@@ -262,8 +262,8 @@ void obj1d_R1_Parent(cObjChain* obj)
         PosToPos(&pa, &pb, &p, 0.5f);
         TransMatrix(obj->mat, &p);
     }
-    if (obj->pMotion) {
-        obj->motFlags2 |= 0x40000000;
+    if (obj->Motion.pMot) {
+        obj->Motion.Mot_flag |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();

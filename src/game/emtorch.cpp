@@ -457,8 +457,8 @@ void emTorch_R1_Parent(cEmTorch* em)
         }
         PSMTXCopy(m, em->mat);
     }
-    if (em->pMotion) {
-        em->motFlags2 |= 0x40000000;
+    if (em->Motion.pMot) {
+        em->Motion.Mot_flag |= 0x40000000;
         MotionMove(em, 0);
     } else {
         em->partsMatCalc();
@@ -525,8 +525,8 @@ void emTorch_R1_Fall(cEmTorch* em)
             RotMatrix(em->mat, &em->ang);
             TransMatrix(em->mat, &em->pos);
             ScaleMatrix(em->mat, &em->scale);
-            if (em->pMotion) {
-                em->motFlags2 |= 0x40000000;
+            if (em->Motion.pMot) {
+                em->Motion.Mot_flag |= 0x40000000;
                 MotionMove(em, 0);
             } else {
                 em->partsMatCalc();

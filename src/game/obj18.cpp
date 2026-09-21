@@ -288,7 +288,7 @@ void cObj18::move()
     if (w->DebugFlag) {
         pLog->mes(0, 0, "cObj18:move DebugFlag");
     }
-    if (pMotion) {
+    if (Motion.pMot) {
         MotionMove(this, 0);
         partsWorldCalc();
     } else {
@@ -303,7 +303,7 @@ void cObj18::move()
         }
     }
     obj18SetOya(this);
-    if (pDblJnt == 0) {
+    if (Motion.blendTbl == 0) {
         partsMatCalc();
         partsWorldCalc();
     }

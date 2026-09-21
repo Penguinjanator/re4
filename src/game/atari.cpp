@@ -1717,7 +1717,7 @@ void at_pos_calc(cModel* m, Vec* vec)
         m->mat[0][3] = m->pos.x;
         m->mat[1][3] = m->pos.y;
         m->mat[2][3] = m->pos.z;
-        ((cEm*) m)->satPos = m->pos;
+        ((cEm*) m)->Motion.Pos_world = m->pos;
     } else {
         m->mat[0][3] = m->pos.x;
         m->mat[1][3] = m->pos.y;

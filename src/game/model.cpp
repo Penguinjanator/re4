@@ -152,7 +152,7 @@ int cModel::modelInit(void* bin, void* tpl)
     pShadowModelInfo = 0;
     Motion.Seq_speed = 1.0f;
     pCldShMd = 0;
-    p2A4 = 0;
+    Motion.pAttachCam = 0;
     return (int) info;
 }
 

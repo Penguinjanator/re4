@@ -70,7 +70,7 @@ void cObjSniper::moveFire()
 {
     if (wep.step == 0) {
         MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x21), 0, 0, 0, 0);
-        motSpeedRate = 1.0f;
+        Motion.Seq_speed = 1.0f;
         SndCall(2, 4, &getPartsPtr(0)->world, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
         wep.step = 1;

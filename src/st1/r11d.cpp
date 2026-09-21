@@ -7,6 +7,7 @@
 #include "widget.h"
 #include "flag_rsf.h"
 #include "global.h"
+#include "embarrel.h"
 #include "game.h"
 #include "sce.h"
 #include "sce_sys.h"
@@ -128,8 +129,8 @@ void R11dInit()
         }
         SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
-    } else if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
-        ((u8*) pG->pEmi)[0xD08] = 0;
+    } else if (pG->pEmi != 0 && pG->pEmi->entry[0x34].type == 5) {
+        pG->pEmi->entry[0x34].type = 0;
     }
     AreaGetCenterPos(&pos[0], &SceAtPtr(0xA)->area);
     AreaGetCenterPos(&pos[1], &SceAtPtr(0xB)->area);
@@ -167,8 +168,8 @@ static void r11d_checkIronDoorKeyUse()
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
     GameSave.save(pSaveData, -1);
-    if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
-        ((u8*) pG->pEmi)[0xD08] = 0;
+    if (pG->pEmi != 0 && pG->pEmi->entry[0x34].type == 5) {
+        pG->pEmi->entry[0x34].type = 0;
     }
 }
 

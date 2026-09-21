@@ -758,7 +758,7 @@ void cEm2d::move()
     f32 moved;
     int n;
 
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     if (r_no_0 != 0) {
         em2dDmCk(this);
     }
@@ -796,7 +796,7 @@ void cEm2d::move()
         return;
     }
     w->flags &= ~0x400;
-    if (seFlags28B & 0x80) {
+    if (Motion.Seq_old.Free & 0x80) {
         w->flags |= 0x400;
     }
     at = &atari;
@@ -1028,7 +1028,7 @@ static void em2d_R0_Init(cEm2d* em)
         em->r_no_0 = 0xFF;
         return;
     }
-    em->pXFlip = em2d_xflip_tbl;
+    em->Motion.flip = em2d_xflip_tbl;
     {
         static const Vec ofs = {0.0f, 0.0f, 0.0f};
         static const Vec size = {2000.0f, 2000.0f, 2000.0f};
@@ -1388,7 +1388,7 @@ static void em2d_R1_Turn180(cEm2d* em)
         em->r_no_2++;
     case 1:
         em2dGravityMove(em, w);
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             ang = Muku(&em->pos, &w->targetPos, w->turnAng, 0.0981747732f);
             w->turnAng += ang;
             w->turnAng = LIMIT_ANGLE(w->turnAng);
@@ -1460,13 +1460,13 @@ static void em2d_R1_SideStep(cEm2d* em)
             }
             break;
         }
-        if ((em->seFlags28B & 1) && !(em->flag & 0x40000000)) {
+        if ((em->Motion.Seq_old.Free & 1) && !(em->flag & 0x40000000)) {
             cModel* p = em->getPartsPtr(0);
             RotMatrix(m, &em->ang);
             TransMatrix(m, &p->world);
             // The whole probe is written in both arms (jump2 cross-jumps everything from `addi &b` on; the arms
             // keep their own `lfs 0.0` / `addi &a` / `lfs +-900` and the join block has no label).
-            if (em->motFlags & 0x40) {
+            if (em->Motion.Mot_attr & 0x40) {
                 a.x = 0.0f;
                 a.y = 0.0f;
                 a.z = 0.0f;
@@ -1583,8 +1583,8 @@ static void em2d_R1_Atk(cEm2d* em)
             }
             break;
         }
-        if (em->seFlags28B & 1) {
-            if (em->motFlags & 0x40) {
+        if (em->Motion.Seq_old.Free & 1) {
+            if (em->Motion.Mot_attr & 0x40) {
                 em2dAtkCk(em, 0, 0xB);
                 em2dAtkCk(em, 0, 0xC);
                 em2dAtkCk(em, 0, 0xD);
@@ -1634,7 +1634,7 @@ static void em2d_R1_AtkPoison(cEm2d* em)
             EmRoutineSet(em, 1, 1, 0, 0);
             break;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             EstSet(em, -1, 0, 0, EFF_EM2D, 3, 0, ESP_CORE_KIND_NONE, em, 0);
             em2dSetPoison(em, 0);
         }
@@ -1681,8 +1681,8 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
             EmRoutineSet(em, 1, 1, 0, 0);
             break;
         }
-        if ((em->seFlags28B & 1) && w->atkHit == 0) {
-            if (em->motFlags & 0x40) {
+        if ((em->Motion.Seq_old.Free & 1) && w->atkHit == 0) {
+            if (em->Motion.Mot_attr & 0x40) {
                 em2dAtkCk(em, 2, 0xB);
                 em2dAtkCk(em, 2, 0xC);
                 em2dAtkCk(em, 2, 0xD);
@@ -1728,7 +1728,7 @@ static void em2d_R1_JumpSign(cEm2d* em)
         w->timer = 20;
         em->r_no_2++;
     case 1:
-        if (MotionMove(em, 0) || (em->seFlags28B & 4)) {
+        if (MotionMove(em, 0) || (em->Motion.Seq_old.Free & 4)) {
             EmRoutineSet(em, 1, 8, 0, 0);
         }
         break;
@@ -1739,7 +1739,7 @@ static void em2d_R1_JumpSign(cEm2d* em)
 // the face grab) or, half the time on a healthy player, JumpKickHit (0xC, knocked down).
 static void em2d_R1_br_JumpAtk(cEm2d* em)
 {
-    if (em->hp > 0 && (em->seFlags28B & 2) && em2dCatchCk(em)) {
+    if (em->hp > 0 && (em->Motion.Seq_old.Free & 2) && em2dCatchCk(em)) {
         if ((Rnd() & 1) || (s16) pG->pl_life > 300) {
             EmRoutineSetW(em, 1, 0xC, 0, 0);
         } else {
@@ -1781,7 +1781,7 @@ static void em2d_R1_JumpAtk(cEm2d* em)
             em2dTurnTo(em, &pPLS->pos, 0.261799395f);
             em2dActEvtSetKick(em, w->kickSide);
         }
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             w->flags |= 0x10;
         }
         if (MotionMove(em, 0)) {
@@ -1839,7 +1839,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 1:
         em->setStatus(EM_STATUS_IK_OFF);
         PlGachaMove();
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
             PlSetDamageSe(9);
         }
@@ -1915,13 +1915,13 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
             PSVECScale(&spd, &spd, 2.0f);
         }
         MotionAddSpeed(em, &em->Motion, &spd, &rot);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
             PlSetDamageSe(9);
         }
         if (MotionMove(em, 0)) {
             em->r_no_2 = 8;
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if ((s16) pG->pl_life <= 1) {
                 em->r_no_2 = 10;
                 pGS->pl_life = 0;
@@ -1998,7 +1998,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             pl->dmg.set(0, 30);
             break;
         }
-        if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
+        if (pl->Motion.Seq_frame > 64.6999969f && pl->Motion.Seq_frame < 65.3000031f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         pl->r_no_2 = pl->pEmCatch->r_no_2;
@@ -2028,7 +2028,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
-        if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
+        if (pl->Motion.Seq_frame > 14.6999998f && pl->Motion.Seq_frame < 15.3000002f) {
             SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         break;
@@ -2051,7 +2051,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
                 pl->r_no_3 = 7;
             }
         }
-        if (pl->frame > 27.7000008f && pl->frame < 28.2999992f) {
+        if (pl->Motion.Seq_frame > 27.7000008f && pl->Motion.Seq_frame < 28.2999992f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         MotionMove(pl, 0);
@@ -2076,7 +2076,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
                 pl->r_no_3 = 7;
             }
         }
-        if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
+        if (pl->Motion.Seq_frame > 14.6999998f && pl->Motion.Seq_frame < 15.3000002f) {
             SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         if (MotionMove(pl, 0)) {
@@ -2282,7 +2282,7 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
             }
             break;
         }
-        if (em->frame > 14.6999998f && em->frame < 15.3000002f) {
+        if (em->Motion.Seq_frame > 14.6999998f && em->Motion.Seq_frame < 15.3000002f) {
             w->timer = 5;
         }
         if (w->timer) {
@@ -2347,7 +2347,7 @@ static void plem2dKick(cPlayer* pl)
             pl->dmg.set(0, 15);
             break;
         }
-        if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
+        if (pl->Motion.Seq_frame > 14.6999998f && pl->Motion.Seq_frame < 15.3000002f) {
             SndCall(1, 0x3A, &pPL->pos, 0, 0, pPL);
             SndCall(1, 0x3B, &pPL->pos, 0, 0, pPL);
             pos.x = 0.0f;
@@ -2568,7 +2568,7 @@ static void em2d_R1_JumpDown(cEm2d* em)
         em->ang.y += Muku2(em->ang.y, w->jumpAng, 0.196349546f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x40;
             spd.x *= 0.5f;
             spd.z *= 0.5f;
@@ -2887,8 +2887,8 @@ static void em2d_R1_W_Atk(cEm2d* em)
             }
             break;
         }
-        if (em->seFlags28B & 1) {
-            if (em->motFlags & 0x40) {
+        if (em->Motion.Seq_old.Free & 1) {
+            if (em->Motion.Mot_attr & 0x40) {
                 em2dAtkCk(em, 1, 0xB);
                 em2dAtkCk(em, 1, 0xC);
                 em2dAtkCk(em, 1, 0xD);
@@ -2946,7 +2946,7 @@ static void em2d_R1_W_AtkPoison(cEm2d* em)
         if (end) {
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
             EmRoutineSet(em, 1, 0x14, 0, 0);
-        } else if (em->frame > 22.7000008f && em->frame < 23.2999992f) {
+        } else if (em->Motion.Seq_frame > 22.7000008f && em->Motion.Seq_frame < 23.2999992f) {
             EstSet(em, -1, 0, 0, EFF_EM2D, 9, 0, ESP_CORE_KIND_NONE, em, (void*) end);
             em2dSetPoison(em, 1);
         }
@@ -3116,11 +3116,11 @@ static void em2d_R1_ToAir(cEm2d* em)
         w->turnAng = 0.0f;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 8) {
+        if (em->Motion.Seq_old.Free & 8) {
             w->flags |= 0x10;
         }
         MotionMove(em, 0);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             EmRoutineSet(em, 1, 0x1D, 0, 10);
         }
         break;
@@ -3559,8 +3559,8 @@ static void em2d_R1_A_Atk(cEm2d* em)
         if (em->pos.y < fl) {
             em->pos.y = fl;
         }
-        if (em->seFlags28B & 1) {
-            if (em->motFlags & 0x40) {
+        if (em->Motion.Seq_old.Free & 1) {
+            if (em->Motion.Mot_attr & 0x40) {
                 em2dAtkCk(em, 0, 0xB);
                 em2dAtkCk(em, 0, 0xC);
                 em2dAtkCk(em, 0, 0xD);
@@ -3687,7 +3687,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     case 1:
         em->setStatus(EM_STATUS_IK_OFF);
         PlGachaMove();
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
             PlSetDamageSe(9);
         }
@@ -3748,13 +3748,13 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
             PSVECScale(&spd, &spd, 2.0f);
         }
         MotionAddSpeed(em, &em->Motion, &spd, &rot);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
             PlSetDamageSe(9);
         }
         if (MotionMove(em, 0)) {
             em->r_no_2 = 8;
-        } else if (em->seFlags28B & 4) {
+        } else if (em->Motion.Seq_old.Free & 4) {
             if ((s16) pG->pl_life <= 1) {
                 em->r_no_2 = 10;
                 pGS->pl_life = 0;
@@ -3819,7 +3819,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
             pl->dmg.set(0, 30);
             break;
         }
-        if (pl->frame > 64.6999969f && pl->frame < 65.3000031f) {
+        if (pl->Motion.Seq_frame > 64.6999969f && pl->Motion.Seq_frame < 65.3000031f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         pl->r_no_2 = pl->pEmCatch->r_no_2;
@@ -3836,7 +3836,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
             EndPlDamage();
             pl->dmg.set(0, 30);
         }
-        if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
+        if (pl->Motion.Seq_frame > 14.6999998f && pl->Motion.Seq_frame < 15.3000002f) {
             SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         break;
@@ -3846,7 +3846,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 7:
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
-        if (pl->frame > 27.7000008f && pl->frame < 28.2999992f) {
+        if (pl->Motion.Seq_frame > 27.7000008f && pl->Motion.Seq_frame < 28.2999992f) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         }
         MotionMove(pl, 0);
@@ -3858,7 +3858,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         pl->r_no_2++;
     case 9:
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
-        if (pl->frame > 14.6999998f && pl->frame < 15.3000002f) {
+        if (pl->Motion.Seq_frame > 14.6999998f && pl->Motion.Seq_frame < 15.3000002f) {
             SndCall(8, 0x35, &pl->pos, pl->pEmCatch->id, 0, pl);
         }
         if (MotionMove(pl, 0)) {
@@ -4801,7 +4801,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
     if (hit & 1) {
         switch ((u32) no) {
         case 0:
-            if (em->motFlags & 0x40) {
+            if (em->Motion.Mot_attr & 0x40) {
                 pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xE);
             } else {
@@ -4813,7 +4813,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             }
             break;
         case 1:
-            if (em->motFlags & 0x40) {
+            if (em->Motion.Mot_attr & 0x40) {
                 pPL->dmg.m_PosFrom = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xD);
             } else {
@@ -4939,7 +4939,7 @@ void em2dSetWallMatrix(cEm2d* em)
         em->pos = hit;
         w->wallNrm = nrm;
     }
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
@@ -5039,7 +5039,7 @@ int em2dSetWallMatrix2(cEm2d* em, f32 rate)
     }
 #line 7866 "D:/Bio4/Prog/em2d.cpp"
     VECNormalize(&sum, &w->wallNrm);
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
@@ -5089,7 +5089,7 @@ void em2dSetFallMatrix(cEm2d* em)
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     PSMTXMultVecSR(em->mat, &up, &up);
 #line 7956 "D:/Bio4/Prog/em2d.cpp"
     VECNormalize(&up, &up);
@@ -5279,7 +5279,7 @@ int em2dCatchCk(cEm2d* em)
     if ((s16) pG->pl_life <= 0) {
         return 0;
     }
-    if (!(em->seFlags28B & 2)) {
+    if (!(em->Motion.Seq_old.Free & 2)) {
         return 0;
     }
     if (!(w->flags & 1)) {
@@ -5809,10 +5809,10 @@ void em2dFootSeMove(cEm2d* em)
     int parts;
     u32 no;
 
-    if (em->seNo == 0) {
+    if (em->Motion.Seq_old.Se == 0) {
         return;
     }
-    no = em->seNo - 1;
+    no = em->Motion.Seq_old.Se - 1;
     parts = 0x12;
     switch (no) {
     case 0:
@@ -5821,15 +5821,15 @@ void em2dFootSeMove(cEm2d* em)
         parts = 0x16;
         break;
     case 4:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2dSetdLandingEff(em);
         return;
     case 5:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2dSetDownEff(em);
         return;
     case 7:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2dSetJumpEff(em);
         return;
     default:
@@ -5841,7 +5841,7 @@ void em2dFootSeMove(cEm2d* em)
         EstSet(0, -1, &p->world, 0, EFF_EM2D, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (w->wallNrm.y > 0.699999988f && ChkWaterEffectEnable(&p->world)) {
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         if ((w->flags & 0x80000) && (pG->room_id == 0x205 || pG->room_id == 0x21D)) {
             pos = p->world;
             pos.y = w->waterH;

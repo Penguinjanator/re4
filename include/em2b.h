@@ -29,24 +29,6 @@ class cObjYagura;
 class TexRenderMng;
 class cEmRock;
 
-// One entry of the room's EMI data (pG->pRoomEmi): kind 3 = a village house the giant can break
-// (room 119 sets pG->flags_174 bits per house), kind 4 = a rock spot, kind 0xD = a catch spot.
-struct Em2bEmi {
-    u8 kind;              // 0x00
-    u8 no;                // 0x01
-    u8 state;             // 0x02  house: 0 intact, 1 hit, 3 broken
-    u8 pad_3;
-    Vec pos;              // 0x04
-    f32 rot;              // 0x10  kind 0xD (catch spot): y angle
-    u8 pad_14[0x40 - 0x14];
-};
-
-struct Em2bEmiTbl {
-    int num;              // 0x00
-    int x4;
-    Em2bEmi e[1];         // 0x08
-};
-
 // Work of the em2b enemy (em2b module, D:/Bio4/Prog/em2b.cpp): the giant, overlaid on cEm from
 // 0x3E0. Field names are work-relative offsets; the comment gives the cEm offset.
 struct Em2bWork {
@@ -99,8 +81,8 @@ struct Em2bWork {
     cEmTree* pTreeBrk;   // 0x504 (0x8E4)
     cEm* pTreeTarget;      // 0x508 (0x8E8)
     cEmRock* pRock;       // 0x50C (0x8EC)  rock held
-    Em2bEmi* pHouse;      // 0x510 (0x8F0)  house being broken (em2bPlInHouseCk, kind 3)
-    Em2bEmi* pGoto;       // 0x514 (0x8F4)  rock spot walked to (em2bSearchRockCk, kind 4)
+    struct EmiEntry* pHouse;   // 0x510 (0x8F0)  EMI entry (embarrel.h) of the house being broken (em2bPlInHouseCk, type 3; state: 0 intact, 1 hit, 3 broken)  (PS2 EMINFO_WK* pHouse)
+    struct EmiEntry* pGoto;    // 0x514 (0x8F4)  rock spot walked to (em2bSearchRockCk, type 4); type 0xD = a catch spot (rotY)
     Camera Cam;           // 0x518 (0x8F8)  event camera of the catch / escape scenes
     int Total_damage;         // 0x610 (0x9F0)
     int Rock_wait;         // 0x614 (0x9F4)

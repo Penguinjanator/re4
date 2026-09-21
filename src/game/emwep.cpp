@@ -414,7 +414,7 @@ void emWep_R1_Set(cEmWep* em)
         if (w->Timer) {
             w->Timer--;
         }
-        if (em->pMotion) {
+        if (em->Motion.pMot) {
             MotionMove(em, 0);
         } else {
             if (em->type != 1 || w->Timer != 0) {
@@ -1663,7 +1663,7 @@ static void plemEscape(cPlayer* pl)
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionMove(pl, 0);
-        if (pl->frame > 11.7f && pl->frame < 12.3f) {
+        if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
             EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
@@ -1700,16 +1700,16 @@ void plemBackjump(cPlayer* pl)
         } else if (Key.on & 0x1F) {
             pl->m_Work1 = 1;
         }
-        if (pl->frame > 10.7f && pl->frame < 11.3f) {
+        if (pl->Motion.Seq_frame > 10.7f && pl->Motion.Seq_frame < 11.3f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 21.7f && pl->frame < 22.3f) {
+        if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
             SndCall(5, 0x14, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 36.7f && pl->frame < 37.3f) || (pl->frame > 49.7f && pl->frame < 50.3f)) {
+        if ((pl->Motion.Seq_frame > 36.7f && pl->Motion.Seq_frame < 37.3f) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
+        if ((pl->Motion.Seq_frame > 37.7f && pl->Motion.Seq_frame < 38.3f) || (pl->Motion.Seq_frame > 50.7f && pl->Motion.Seq_frame < 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0) || pl->m_Work1) {
@@ -1743,10 +1743,10 @@ void plemFrontEscape(cPlayer* pl)
         } else if (Key.on & 0x1F) {
             pl->m_Work1 = 1;
         }
-        if (pl->frame > 21.7f && pl->frame < 22.3f) {
+        if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 34.7f && pl->frame < 35.3f) {
+        if (pl->Motion.Seq_frame > 34.7f && pl->Motion.Seq_frame < 35.3f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0) || pl->m_Work1) {
@@ -1828,7 +1828,7 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
     f32 ang;
     u32 i;
 
-    pMotion = 0;
+    Motion.pMot = 0;
     for (i = 0; i < 3; i++) {
         if (spd) {
             switch (i) {
@@ -2754,8 +2754,8 @@ void cEmWep::setParentMatCalc(int noMotion)
         PSMTXCopy(m, mat);
     }
     if (noMotion == 0) {
-        if (pMotion) {
-            motFlags2 |= 0x40000000;
+        if (Motion.pMot) {
+            Motion.Mot_flag |= 0x40000000;
             MotionMove(this, 0);
         } else {
             partsMatCalc();

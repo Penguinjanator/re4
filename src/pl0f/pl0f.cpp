@@ -1882,11 +1882,11 @@ static void PlBoatMove(cPlayer* pl)
     pl->atari.m_flag &= 0xFCFF;
     pl->dmg.m_Timer = 0x1E;
     pl->subArc = pl->m_pBoat->subArc;
-    pl->motFlags2 &= ~0x40000000;
-    pl->m_SubMot.flags2 &= ~0x40000000;
+    pl->Motion.Mot_flag &= ~0x40000000;
+    pl->m_SubMot.Mot_flag &= ~0x40000000;
     plboat_R2_move_tbl[pl->r_no_2](pl);
-    pl->motFlags2 &= ~0x40000000;
-    pl->m_SubMot.flags2 &= ~0x40000000;
+    pl->Motion.Mot_flag &= ~0x40000000;
+    pl->m_SubMot.Mot_flag &= ~0x40000000;
     pl0fSetAnchorEm2f(pl);
     pl->subArc = pl->subArc2;
 }
@@ -1941,10 +1941,10 @@ static void plboat_R2_Ride(cPlayer* pl)
             pl->pos.y += dy;
             pl->m_Fwork0 -= dy;
         }
-        if (pl->frame > 25.7f && pl->frame < 26.3f) {
+        if (pl->Motion.Seq_frame > 25.7f && pl->Motion.Seq_frame < 26.3f) {
             SndCall(8, 4, &pl->pos, boat->id, 0, 0);
         }
-        if (pl->frame > 27.7f && pl->frame < 28.3f) {
+        if (pl->Motion.Seq_frame > 27.7f && pl->Motion.Seq_frame < 28.3f) {
             SndCall(8, 5, &pl->pos, boat->id, 0, 0);
         }
         if (MotionMove(pl, 0)) {
@@ -1993,10 +1993,10 @@ static void plboat_R2_Getoff(cPlayer* pl)
             pl->pos.y += dy;
             pl->m_Fwork0 -= dy;
         }
-        if (pl->frame > 30.7f && pl->frame < 31.3f) {
+        if (pl->Motion.Seq_frame > 30.7f && pl->Motion.Seq_frame < 31.3f) {
             SndCall(5, 2, &pl->pos, pl->id, 0, 0);
         }
-        if (pl->frame > 45.7f && pl->frame < 46.3f) {
+        if (pl->Motion.Seq_frame > 45.7f && pl->Motion.Seq_frame < 46.3f) {
             SndCall(5, 3, &pl->pos, pl->id, 0, 0);
         }
         if (MotionMove(pl, 0)) {
@@ -2181,7 +2181,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         plOnBoat(pl);
-        if (pl->frame > 6.7f && pl->frame < 7.3f) {
+        if (pl->Motion.Seq_frame > 6.7f && pl->Motion.Seq_frame < 7.3f) {
             plboatSetSpear(pl);
         }
         if (MotionMove(pl, 0)) {
@@ -2218,7 +2218,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         pl->r_no_3++;
     case 5:
         plOnBoat(pl);
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             if (pl->m_pSpear) {
                 pl->m_pSpear->setLost();
                 pl->m_pSpear = 0;
@@ -2259,10 +2259,10 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
         if (MotionMove(pl, 0)) {
             EmRoutineSet(pPL, 0, 0xF, 3, 2);
         } else {
-            if (pl->frame > 11.7f && pl->frame < 12.3f) {
+            if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
                 plboatSpearThrow(pl);
             }
-            if (pl->frame > 45.7f && pl->frame < 46.3f) {
+            if (pl->Motion.Seq_frame > 45.7f && pl->Motion.Seq_frame < 46.3f) {
                 plboatSetSpear(pl);
             }
             pl->m_Work0++;
@@ -2313,7 +2313,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         pl->r_no_3++;
     case 1:
         plOnBoat(pl);
-        if (pl->frame > 89.7f && pl->frame < 90.3f) {
+        if (pl->Motion.Seq_frame > 89.7f && pl->Motion.Seq_frame < 90.3f) {
             plboatSetSpear(pl);
         }
         if (MotionMove(pl, 0)) {
@@ -2344,7 +2344,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         pl->r_no_3++;
     case 5:
         plOnBoat(pl);
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             if (pl->m_pSpear) {
                 pl->m_pSpear->setLost();
                 pl->m_pSpear = 0;
@@ -2383,10 +2383,10 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
         if (MotionMove(pl, 0)) {
             EmRoutineSet(pPL, 0, 0xF, 0xA, 2);
         } else {
-            if (pl->frame > 11.7f && pl->frame < 12.3f) {
+            if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
                 plboatSpearThrow(pl);
             }
-            if (pl->frame > 45.7f && pl->frame < 46.3f) {
+            if (pl->Motion.Seq_frame > 45.7f && pl->Motion.Seq_frame < 46.3f) {
                 plboatSetSpear(pl);
             }
         }
@@ -2424,7 +2424,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
         pl->r_no_3++;
     case 3:
         plOnBoat(pl);
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             if (pl->m_pSpear) {
                 pl->m_pSpear->setLost();
                 pl->m_pSpear = 0;
@@ -2529,7 +2529,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
                 SndStrVolSet(0, 5, 70, 1);
             }
         }
-        if (pl->frame > 122.7f && pl->frame < 123.3f) {
+        if (pl->Motion.Seq_frame > 122.7f && pl->Motion.Seq_frame < 123.3f) {
             SndCall(8, 3, &pl->pos, 0xF, 0, 0);
             SndStrVolReset(0, 5, 1);
         }
@@ -2649,19 +2649,19 @@ static void plboat_R2_Swim(cPlayer* pl)
                 pl->m_VecWork0.z = 170.0f;
                 break;
             }
-            rate = pl->frame / (f32) pl->frameMax;
+            rate = pl->Motion.Seq_frame / (f32) pl->Motion.Seq_frame_num;
             cnt = *(u16*) m;
             f = (u32) ((f32) cnt * rate) + 1;
             if (f >= cnt) {
                 f = 0;
             }
-            MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x14), m, pl->motHokanCnt, 5, (u16) f);
+            MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x14), m, pl->Motion.Hokan_cnt, 5, (u16) f);
         }
-        if (pl->motEvent & 0x40) {
+        if (pl->Motion.Seq_old.Free & 0x40) {
             EstSet(pl, -1, 0, 0, 0xF, 0x11, 0, 0x35, boat, 0);
             SndCall(8, 0x1A, &pl->pos, 0xF, 0, 0);
         }
-        if (pl->motEvent & 0x80) {
+        if (pl->Motion.Seq_old.Free & 0x80) {
             EstSet(pl, -1, 0, 0, 0xF, 0x12, 0, 0x35, boat, 0);
             SndCall(8, 0x19, &pl->pos, 0xF, 0, 0);
         }
@@ -2836,7 +2836,7 @@ static void plboat_R2_Die(cPlayer* pl)
             TransMatrix(pl->mat, &pl->pos);
             ScaleMatrix(pl->mat, &pl->scale);
             PSMTXConcat(boss->getPartsPtr(8)->mat, pl->mat, pl->mat);
-            pl->motFlags2 |= 0x40000000;
+            pl->Motion.Mot_flag |= 0x40000000;
         }
         MotionMove(pl, 0);
         if (pl->m_Work1) {
@@ -2936,10 +2936,10 @@ static void plboat_R2_R10dIn(cPlayer* pl)
             pl->pos.y += dy; \
             pl->m_Fwork0 -= dy; \
         } \
-        if (pl->frame > 25.7f && pl->frame < 26.3f) { \
+        if (pl->Motion.Seq_frame > 25.7f && pl->Motion.Seq_frame < 26.3f) { \
             SndCall(8, 4, &pl->pos, boat->id, 0, 0); \
         } \
-        if (pl->frame > 27.7f && pl->frame < 28.3f) { \
+        if (pl->Motion.Seq_frame > 27.7f && pl->Motion.Seq_frame < 28.3f) { \
             SndCall(8, 5, &pl->pos, boat->id, 0, 0); \
         } \
         if (MotionMove(pl, 0)) { \
@@ -3271,7 +3271,7 @@ void plboatSetSpear(cPlayer* pl)
 
 // Lean blend of the rider: m0 straight, m1 left / m2 right by the sign of the blend rate.
 // The straight motion on the player's own work, the lean into m_SubMot as the blend work with
-// weight |m_Blend| / 256; m_Hokan is the blend-in counter, m_Frame the frame (wraps at frameMax).
+// weight |m_Blend| / 256; m_Hokan is the blend-in counter, m_Frame the frame (wraps at Motion.Seq_frame_num).
 void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(pl->m_Blend);
@@ -3289,13 +3289,13 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     }
     bm = &pl->m_SubMot;
     MotionSetCore(pl, bm, m, (void*) f, pl->m_Hokan, 4, pl->m_Frame);
-    pl->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    pl->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (pl->m_Hokan) {
         pl->m_Hokan--;
     }
     pl->m_Frame++;
-    if (pl->m_Frame >= pl->frameMax) {
+    if (pl->m_Frame >= pl->Motion.Seq_frame_num) {
         pl->m_Frame = 0;
     }
 }
@@ -3318,13 +3318,13 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
     }
     bm = &sub->subMot;
     MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
-    sub->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    sub->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (sub->m_Hokan) {
         sub->m_Hokan--;
     }
     sub->m_Frame++;
-    if (sub->m_Frame >= sub->frameMax) {
+    if (sub->m_Frame >= sub->Motion.Seq_frame_num) {
         sub->m_Frame = 0;
     }
 }
@@ -3332,7 +3332,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
 // Seats the player on the boat: position from the boat's matrix, the matrix and rotation copied,
 // the waist follows the sight.
 // Seats the player on the boat: position / matrix / angles from the boat, the motion's root
-// translation suppressed (motFlags2 bit30), and the waist twisted by the harpoon sight rate.
+// translation suppressed (Motion.Mot_flag bit30), and the waist twisted by the harpoon sight rate.
 void plOnBoat(cPlayer* pl)
 {
     Vec v;
@@ -3343,8 +3343,8 @@ void plOnBoat(cPlayer* pl)
     PSMTXMultVec(pl->m_pBoat->mat, &v, &pl->pos);
     PSMTXCopy(pl->m_pBoat->mat, pl->mat);
     pl->ang = pl->m_pBoat->ang;
-    pl->motFlags2 |= 0x40000000;
-    pl->m_SubMot.flags2 |= 0x40000000;
+    pl->Motion.Mot_flag |= 0x40000000;
+    pl->m_SubMot.Mot_flag |= 0x40000000;
     pl->Waist->set(pl->m_BoatPlDir, 0.4f);
 }
 
@@ -3758,7 +3758,7 @@ static void subBoatRide()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->Motion, EM_ARC(sub, 0x2B), 0, 5, 5, 0);
@@ -3786,10 +3786,10 @@ static void subBoatRide()
         if (MotionMove(sub, 0)) {
             sub->r_no_2++;
         } else {
-            if (sub->frame > 21.7f && sub->frame < 22.3f) {
+            if (sub->Motion.Seq_frame > 21.7f && sub->Motion.Seq_frame < 22.3f) {
                 SndCall(8, 6, &sub->pos, boat->id, 0, 0);
             }
-            if (sub->frame > 22.7f && sub->frame < 23.3f) {
+            if (sub->Motion.Seq_frame > 22.7f && sub->Motion.Seq_frame < 23.3f) {
                 SndCall(8, 6, &sub->pos, boat->id, 0, 0);
             }
         }
@@ -3803,7 +3803,7 @@ static void subBoatRide()
         SUB_BOAT_SIT(50.0f, 30.0f);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -3816,7 +3816,7 @@ static void subBoatGetoff()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->Motion, EM_ARC(sub, 0x2D), 0, 5, 5, 0);
@@ -3837,7 +3837,7 @@ static void subBoatGetoff()
         }
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -3849,7 +3849,7 @@ static void subBoatGetoff()
  \
     sub->subArc = boat->subArc; \
     sub->dmg.m_Timer = 0x1E; \
-    sub->motFlags2 &= ~0x40000000; \
+    sub->Motion.Mot_flag &= ~0x40000000; \
     switch (sub->r_no_2) { \
     case 0: \
         MotionSetCore(sub, &sub->Motion, EM_ARC(sub, 0x2C), 0, 0, 5, 0); \
@@ -3860,7 +3860,7 @@ static void subBoatGetoff()
         SUB_BOAT_SIT(50.0f, 30.0f); \
         break; \
     } \
-    sub->motFlags2 &= ~0x40000000; \
+    sub->Motion.Mot_flag &= ~0x40000000; \
     sub->subArc = sub->subArc2; \
 }
 
@@ -3900,7 +3900,7 @@ void subOnBoat(cSubChar* sub, cPl0f* boat)
     sub->ang = boat->ang;
     sub->ang.y += PI;
     sub->ang.y = LIMIT_ANGLE(sub->ang.y);
-    sub->motFlags2 |= 0x40000000;
+    sub->Motion.Mot_flag |= 0x40000000;
 }
 
 // Room script (the Del Lago fight starts): hooks the boat to the boss (testSearchEm2f), moves the

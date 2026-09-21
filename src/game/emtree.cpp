@@ -121,7 +121,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->sndId = 0;
     w->effHit[0] = 0xFF;
     w->effHit[1] = 0xFF;
-    em->pMotion = 0;
+    em->Motion.pMot = 0;
     w->estNo = 50;
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -158,7 +158,7 @@ void cEmTree::move()
 {
     EmTreeWork* w = EMTREE_WK(this);
 
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     emTreeDmCk(this);
     EmTree_R0_move_tbl[r_no_0](this);
     if ((be_flag & 0x201) == 1) {
@@ -197,7 +197,7 @@ static void emTree_R0_Move(cEmTree* em)
 // Rno1 == 0: a standing tree; plays its motion or rebuilds the matrices from pos / ang.
 void emTree_R1_Set(cEmTree* em)
 {
-    if (em->pMotion) {
+    if (em->Motion.pMot) {
         MotionMove(em, 0);
     } else {
         RotMatrix(em->mat, &em->ang);
@@ -327,8 +327,8 @@ void emTree_R1_Parent(cEmTree* em)
         }
         PSMTXCopy(m, em->mat);
     }
-    if (em->pMotion) {
-        em->motFlags2 |= 0x40000000;
+    if (em->Motion.pMot) {
+        em->Motion.Mot_flag |= 0x40000000;
         MotionMove(em, 0);
     } else {
         em->partsMatCalc();
@@ -728,7 +728,7 @@ void cEmTree::setFall()
     cModel* parts;
     u32 i;
 
-    pMotion = 0;
+    Motion.pMot = 0;
     for (i = 0; i < 3; i++) {
         w->pt[i].x = fRand1_1() * 10.0f;
         w->pt[i].y = fRand1_1() * 10.0f + 50.0f;

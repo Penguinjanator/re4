@@ -1640,7 +1640,7 @@ void gameDebugDisp()
             eprintf2(8, 14, 32, 0x19C, col, 7, "POS[%.2f, %.2f, %.2f], Dir[%.2f]", pPL->pos.x, pPL->pos.y + 0.01f,
                      pPL->pos.z, pPL->ang.y);
             eprintf2(8, 14, 32, 0x1AA, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[%04d],FRAME[%03d/%03d]", pPL->r_no_0,
-                     pPL->r_no_1, pPL->r_no_2, pPL->r_no_3, (s16) pG->pl_life, (u32) pPL->frame, pPL->frameMax);
+                     pPL->r_no_1, pPL->r_no_2, pPL->r_no_3, (s16) pG->pl_life, (u32) pPL->Motion.Seq_frame, pPL->Motion.Seq_frame_num);
         }
         if (!StaFlagChk(pG, STA_EVENT)) {
             eprintf(20, 30, 0, 0, "P[%.0f,%.0f,%.0f]", pPL->pos.x, pPL->pos.y, pPL->pos.z);

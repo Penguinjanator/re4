@@ -163,7 +163,7 @@ static void r21b_GanadoJumpDownCheck(int no)
             R21bEm* e = &r21b_work.p->em[p->slot];
 
             if (e->set == 0) {
-                if (r21b_work.p->trolley->motFrame == (f32) p->frame) {
+                if (r21b_work.p->trolley->Motion.Seq_frame == (f32) p->frame) {
                     e->em.setFlag(1);
                     e->set = 1;
                 } else {
@@ -324,7 +324,7 @@ static void r21b_DoorOpen()
 // The ride stream starts once the cart passes frame 80 and the player reaches area 5.
 static void r21b_StrPlay()
 {
-    while (r21b_work.p->trolley->motFrame != 80.0f) {
+    while (r21b_work.p->trolley->Motion.Seq_frame != 80.0f) {
         SceSleep(1);
     }
     SndRoomStrStart(1, 0, 1);
@@ -342,7 +342,7 @@ static void r21b_HalfWaySwitchMove()
 
     obj->ang.x = 1.5707964f;
     obj->be_flag |= 0x20;
-    while (r21b_work.p->trolley->motFrame != 1878.0f) {
+    while (r21b_work.p->trolley->Motion.Seq_frame != 1878.0f) {
         SceSleep(1);
     }
     SceEventStart(1);

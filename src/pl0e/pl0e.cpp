@@ -526,7 +526,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->frame > 17.7f && em->frame < 18.3f) {
+        if (em->Motion.Seq_frame > 17.7f && em->Motion.Seq_frame < 18.3f) {
             VibSetData(VIB_TBL, 0xD, 1);
         }
         break;
@@ -563,7 +563,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->frame > 32.7f && em->frame < 33.3f) {
+        if (em->Motion.Seq_frame > 32.7f && em->Motion.Seq_frame < 33.3f) {
             VibSetData(VIB_TBL, 0xD, 1);
         }
         break;
@@ -803,7 +803,7 @@ static PlBoatFunc plboat_R2_move_tbl[7] = {
 // player's for the duration of the routine.
 // Every frame: the sub screen is held (SubScreenWait), Status_flg[1] bit21 (hands busy) set, the
 // neck mode 2, the player's atari bits 8/9 off, damage type 0x1E (boat), then the plboat_R2_*
-// state of r_no_2; the motion "no root translation" flag (motFlags2 bit30) is cleared around it.
+// state of r_no_2; the motion "no root translation" flag (Motion.Mot_flag bit30) is cleared around it.
 static void PlBoatMove(cPlayer* pl)
 {
     if (pl->m_pBoat == 0) {
@@ -816,11 +816,11 @@ static void PlBoatMove(cPlayer* pl)
     pl->atari.m_flag &= 0xFCFF;
     pl->dmg.m_Timer = 0x1E;
     pl->subArc = pl->m_pBoat->subArc;
-    pl->motFlags2 &= ~0x40000000;
-    pl->m_SubMot.flags2 &= ~0x40000000;
+    pl->Motion.Mot_flag &= ~0x40000000;
+    pl->m_SubMot.Mot_flag &= ~0x40000000;
     plboat_R2_move_tbl[pl->r_no_2](pl);
-    pl->motFlags2 &= ~0x40000000;
-    pl->m_SubMot.flags2 &= ~0x40000000;
+    pl->Motion.Mot_flag &= ~0x40000000;
+    pl->m_SubMot.Mot_flag &= ~0x40000000;
     pl->subArc = pl->subArc2;
 }
 
@@ -1015,7 +1015,7 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
 
 // Lean blend of the rider: m0 straight, m1 left / m2 right by the sign of the blend rate.
 // The straight motion goes on the player's own work, the lean into m_SubMot as the blend work with
-// weight |m_Blend| / 256; m_Hokan is the blend-in counter, m_Frame the frame (wraps at frameMax).
+// weight |m_Blend| / 256; m_Hokan is the blend-in counter, m_Frame the frame (wraps at Motion.Seq_frame_num).
 void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(pl->m_Blend);
@@ -1033,13 +1033,13 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     }
     bm = &pl->m_SubMot;
     MotionSetCore(pl, bm, m, (void*) f, pl->m_Hokan, 4, pl->m_Frame);
-    pl->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    pl->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (pl->m_Hokan) {
         pl->m_Hokan--;
     }
     pl->m_Frame++;
-    if (pl->m_Frame >= pl->frameMax) {
+    if (pl->m_Frame >= pl->Motion.Seq_frame_num) {
         pl->m_Frame = 0;
     }
 }
@@ -1063,13 +1063,13 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
     }
     bm = &sub->subMot;
     MotionSetCore(sub, bm, m, (void*) f, sub->m_Hokan, 4, sub->m_Frame);
-    sub->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    sub->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (sub->m_Hokan) {
         sub->m_Hokan--;
     }
     sub->m_Frame++;
-    if (sub->m_Frame >= sub->frameMax) {
+    if (sub->m_Frame >= sub->Motion.Seq_frame_num) {
         sub->m_Frame = 0;
     }
 }
@@ -1085,8 +1085,8 @@ void plOnJet(cPlayer* pl)
     PSMTXMultVec(pl->m_pBoat->mat, &v, &pl->pos);
     PSMTXCopy(pl->m_pBoat->mat, pl->mat);
     pl->ang = pl->m_pBoat->ang;
-    pl->motFlags2 |= 0x40000000;
-    pl->m_SubMot.flags2 |= 0x40000000;
+    pl->Motion.Mot_flag |= 0x40000000;
+    pl->m_SubMot.Mot_flag |= 0x40000000;
 }
 
 // Partner damage-routine handlers (SetSubDamage(boat, fn) installs them; the boat pointer sits in
@@ -1100,7 +1100,7 @@ static void subBoatRide()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         sub->pos.x = 0.0f;
@@ -1120,16 +1120,16 @@ static void subBoatRide()
         if (MotionMove(sub, 0)) {
             SetSubDamage(boat, subBoatRun);
         } else {
-            if (sub->frame > 21.7f && sub->frame < 22.3f) {
+            if (sub->Motion.Seq_frame > 21.7f && sub->Motion.Seq_frame < 22.3f) {
                 SndCall(5, 0x16, &sub->pos, 0, 0, 0);
             }
-            if (sub->frame > 22.7f && sub->frame < 23.3f) {
+            if (sub->Motion.Seq_frame > 22.7f && sub->Motion.Seq_frame < 23.3f) {
                 SndCall(5, 0x17, &sub->pos, 0, 0, 0);
             }
         }
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1143,7 +1143,7 @@ static void subBoatRun()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         sub->atari.m_flag &= 0xFCFF;
@@ -1159,7 +1159,7 @@ static void subBoatRun()
         MotionMove(sub, 0);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1172,7 +1172,7 @@ static void subBoatJump()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         switch (sub->r_no_3) {
@@ -1194,7 +1194,7 @@ static void subBoatJump()
         MotionMove(sub, 0);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1208,7 +1208,7 @@ static void subBoatLanding()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         sub->atari.m_flag &= 0xFCFF;
@@ -1226,7 +1226,7 @@ static void subBoatLanding()
         }
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1238,7 +1238,7 @@ static void subBoatCrash()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->Motion, EM_ARC(sub, 0x2A), 0, 3, 1, 0);
@@ -1249,7 +1249,7 @@ static void subBoatCrash()
         MotionMove(sub, 0);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1261,7 +1261,7 @@ static void subBoatSink()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         sub->pos.x = 0.0f;
@@ -1276,7 +1276,7 @@ static void subBoatSink()
         MotionMove(sub, 0);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
@@ -1288,7 +1288,7 @@ static void subBoatJumpMiss()
 
     sub->subArc = boat->subArc;
     sub->dmg.m_Timer = 0x1E;
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
         sub->pos.x = 0.0f;
@@ -1303,12 +1303,12 @@ static void subBoatJumpMiss()
         MotionMove(sub, 0);
         break;
     }
-    sub->motFlags2 &= ~0x40000000;
+    sub->Motion.Mot_flag &= ~0x40000000;
     sub->subArc = sub->subArc2;
 }
 
 // Seats the partner on the ski: position and matrix from the ski's, the ski's angles, and the
-// motion's root translation suppressed (motFlags2 bit30).
+// motion's root translation suppressed (Motion.Mot_flag bit30).
 void subOnJet(cSubChar* sub, cPl0e* boat)
 {
     Vec v;
@@ -1320,7 +1320,7 @@ void subOnJet(cSubChar* sub, cPl0e* boat)
     PSMTXCopy(boat->mat, sub->mat);
     TransMatrix(sub->mat, &sub->pos);
     sub->ang = boat->ang;
-    sub->motFlags2 |= 0x40000000;
+    sub->Motion.Mot_flag |= 0x40000000;
 }
 
 // Room script: attaches the ski to a rail path: creates the rail object (SetObj00 from the room
@@ -1600,7 +1600,7 @@ int pl0eSlopeControl(cPl0e* em)
 
 // The ski's own lean blend: m0 straight on the ski's motion work, m1 left / m2 right (by the
 // sign of blendRate) into blendMot with weight |blendRate| / 256; hokan is the blend-in counter,
-// frame the shared frame the riders copy (wraps at frameMax).
+// frame the shared frame the riders copy (wraps at Motion.Seq_frame_num).
 void pl0eBlendMotSet(cPl0e* em, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -1619,13 +1619,13 @@ void pl0eBlendMotSet(cPl0e* em, void* m0, void* m1, void* m2, int a, int b, int 
     }
     bm = &w->blendMot;
     MotionSetCore(em, bm, m, (void*) f, (u8) w->hokan, 4, (u16) w->frame);
-    em->blendMot = bm;
-    bm->blendRate = rate * (1.0f / 256.0f);
+    em->Motion.blend = bm;
+    bm->Brate = rate * (1.0f / 256.0f);
     if (w->hokan) {
         w->hokan--;
     }
     w->frame++;
-    if (w->frame >= em->frameMax) {
+    if (w->frame >= em->Motion.Seq_frame_num) {
         w->frame = 0;
     }
 }

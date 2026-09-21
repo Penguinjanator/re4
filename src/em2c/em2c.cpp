@@ -908,7 +908,7 @@ void cEm2c::move()
     u16 atFlags;
     int n;
 
-    motFlags2 &= ~0x40000000;
+    Motion.Mot_flag &= ~0x40000000;
     if (r_no_0 != 0) {
         switch (type) {
         case 0:
@@ -955,7 +955,7 @@ void cEm2c::move()
         return;
     }
     w->flags &= ~0x400;
-    if (seFlags28B & 0x80) {
+    if (Motion.Seq_old.Free & 0x80) {
         w->flags |= 0x400;
     }
     if (w->wallNrm.y < 0.699999988f) {  // member calls in the arms: `&atari` is PRE'd into both (`mr r30,r0` copy)
@@ -1103,9 +1103,9 @@ static void em2c_R0_Init(cEm2c* em)
     EspDataLoad((u32) ARC(4), EFF_EM2C, 0);
     w->pCtrl12 = GetCtrlCtrl12();
     em2cTexrenderInit(em);
-    em->pXFlip = em2c_xflip_tbl;
+    em->Motion.flip = em2c_xflip_tbl;
 #line 1623 "D:/Bio4/Prog/em2c.cpp"
-    em->p2A4 = MEM_ALLOC(0x98, 1, 13);
+    em->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 13);
     {
         static const Vec ofs = {0.0f, 0.0f, 0.0f};
         static const Vec size = {10000.0f, 10000.0f, 10000.0f};
@@ -1187,7 +1187,7 @@ static void em2c_R1_Wait(cEm2c* em)
     w->flags |= 0x40000;
     switch (em->r_no_2) {
     case 0:
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             MotionSetCore(em, &em->Motion, ARC(7), 0, 30, 0x45, 0);
         } else {
             MotionSetCore(em, &em->Motion, ARC(7), 0, 30, 5, 0);
@@ -1264,7 +1264,7 @@ static void em2c_R1_Walk(cEm2c* em)
     switch (em->r_no_2) {
         do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 0xB;
         } else {
             w->blendSeq = 0x20;
@@ -1450,7 +1450,7 @@ static void em2c_R1_Dash(cEm2c* em)
     switch (em->r_no_2) {
         do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 8;
         } else {
             w->blendSeq = 0;
@@ -1590,12 +1590,12 @@ static void em2c_R1_Turn180(cEm2c* em)
     switch (em->r_no_2) {
     case 0:
         if (w->flags & 0x800) {
-            if (em->motFlags & 0x40) {
+            if (em->Motion.Mot_attr & 0x40) {
                 MotionSetCore(em, &em->Motion, ARC(0x34), ARC(0x35), 5, 0x41, 0);
             } else {
                 MotionSetCore(em, &em->Motion, ARC(0x34), ARC(0x35), 5, 1, 0);
             }
-        } else if (em->motFlags & 0x40) {
+        } else if (em->Motion.Mot_attr & 0x40) {
             MotionSetCore(em, &em->Motion, ARC(0x13), ARC(0x14), 5, 0x41, 0);
         } else {
             MotionSetCore(em, &em->Motion, ARC(0x13), ARC(0x14), 5, 1, 0);
@@ -1604,7 +1604,7 @@ static void em2c_R1_Turn180(cEm2c* em)
         w->timer = 60;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 0x10) {
+        if (em->Motion.Seq_old.Free & 0x10) {
             d = Muku(&em->pos, &w->targetPos, w->turnAng, 0.0981747732f);
             w->turnAng += d;
             w->turnAng = LIMIT_ANGLE(w->turnAng);
@@ -1732,7 +1732,7 @@ static void em2c_R1_SideStep(cEm2c* em)
             em2cNextWalkSet2(em, w);
             break;
         }
-        if ((em->seFlags28B & 4) && (w->flags & 1)) {
+        if ((em->Motion.Seq_old.Free & 4) && (w->flags & 1)) {
             plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
             lim = 12250000.0f;
             if (plAng > 1.57079637f) {
@@ -1870,7 +1870,7 @@ static void em2c_R1_Threat(cEm2c* em)
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if (em->frame > 24.7000008f && em->frame < 25.2999992f) {
+        } else if (em->Motion.Seq_frame > 24.7000008f && em->Motion.Seq_frame < 25.2999992f) {
             SndCall(8, 0x45, &em->pos, em->id, 0, em);
         }
         break;
@@ -1926,7 +1926,7 @@ static void em2c_R1_AtkSign(cEm2c* em)
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if ((em->seFlags28B & 4) && (Rnd() & 1) && pG->Game_level > 3) {
+        } else if ((em->Motion.Seq_old.Free & 4) && (Rnd() & 1) && pG->Game_level > 3) {
             if (w->flags & 1) {
                 f32 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
                 f32 lim = 12250000.0f;
@@ -2015,9 +2015,9 @@ static void em2c_R1_Atk(cEm2c* em)
                 }
             }
             EmRoutineSet(em, 1, 0, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em2cDoorOpenCk2(em);
-            if (em->motFlags & 0x40) {
+            if (em->Motion.Mot_attr & 0x40) {
                 em2cAtkCk(em, 0, 0xB);
                 em2cAtkCk(em, 0, 0xC);
                 em2cAtkCk(em, 0, 0xD);
@@ -2055,7 +2055,7 @@ static inline void em2cAtkEndSet(cEm2c* em, Em2cWork* w)
 // Attack hit frames: the claw parts of the swinging side.
 static inline void em2cClawAtkCk(cEm2c* em, int no)
 {
-    if (em->motFlags & 0x40) {
+    if (em->Motion.Mot_attr & 0x40) {
         em2cAtkCk(em, no, 0xB);
         em2cAtkCk(em, no, 0xC);
         em2cAtkCk(em, no, 0xD);
@@ -2121,7 +2121,7 @@ static void em2c_R1_JumpAtk(cEm2c* em)
         }
         if (MotionMove(em, 0)) {
             em2cAtkEndSet(em, w);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em2cClawAtkCk(em, 1);
         }
         break;
@@ -2172,7 +2172,7 @@ static void em2c_R1_BackKnuckle(cEm2c* em)
         }
         if (MotionMove(em, 0)) {
             em2cAtkEndSet(em, w);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em2cClawAtkCk(em, 2);
         }
         break;
@@ -2224,7 +2224,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
         if (pPL->r_no_0 == 1 && (pPL->dmg.m_Timer & 0x80)) {
             pPL->dmg.m_Timer = 8;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->atkHit = 0;
             em->flag &= ~4;
             em2cAtkCk(em, 5, 0x3C);
@@ -2296,7 +2296,7 @@ static void em2c_R1_SwayBack(cEm2c* em)
         em->dmg.m_Timer = 3;
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x80000;
         } else {
             w->flags |= 0x40000;
@@ -2306,7 +2306,7 @@ static void em2c_R1_SwayBack(cEm2c* em)
             em2cNextWalkSet2(em, w);
             break;
         }
-        if ((em->seFlags28B & 4) && (Rnd() & 1)) {
+        if ((em->Motion.Seq_old.Free & 4) && (Rnd() & 1)) {
             if (w->flags & 1) {
                 f32 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
                 f32 lim = 12250000.0f;
@@ -2406,7 +2406,7 @@ static void em2c_R1_Wakeup(cEm2c* em)
         }
         if (em->r_no_3 && (w->flags & 0x800)) {
             w->flags |= 0x8000;
-            if (em->seFlags28B & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 w->flags &= ~0x800;
                 SndCall(8, 0x35, &em->pos, em->id, 0, em);
                 SndCall(8, 0x36, &em->pos, em->id, 0, em);
@@ -2417,8 +2417,8 @@ static void em2c_R1_Wakeup(cEm2c* em)
                 }
             }
         }
-        if ((em->seFlags28B & 4) && w->guardCnt == 0) {
-            if (em->seFlags28B & 0x80) {
+        if ((em->Motion.Seq_old.Free & 4) && w->guardCnt == 0) {
+            if (em->Motion.Seq_old.Free & 0x80) {
                 EmRoutineSet(em, 1, 0xF, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 0x1A, 0, 0);
@@ -2513,7 +2513,7 @@ static void em2c_R1_ToCeiling(cEm2c* em)
         EstSet(em, -1, 0, 0, EFF_EM2C, 0x2C, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
         }
@@ -2577,7 +2577,7 @@ static void em2c_R1_ToHide(cEm2c* em)
         EstSet(em, -1, 0, 0, EFF_EM2C, 0x2C, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
         }
@@ -2778,7 +2778,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
                 ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_ENFORCE_EXEC, DISP_A_B, ACT_FUNC_NORMAL, em->r_no_3);
             }
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em2cAtkCk(em, 4, 0xB);
             em2cAtkCk(em, 4, 0xC);
             em2cAtkCk(em, 4, 0xD);
@@ -2919,7 +2919,7 @@ static void em2c_R1_JumpDown(cEm2c* em)
         em->ang.y += Muku2(em->ang.y, w->jumpAng, 0.196349546f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             w->flags |= 0x40;
             em->dmg.m_Timer = 2;
             spd.x *= 0.5f;
@@ -3027,7 +3027,7 @@ static void em2c_R1_F_Wait(cEm2c* em)
     w->flags |= 0x180;
     switch (em->r_no_2) {
     case 0:
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 30, 0x45, 0);
         } else {
             MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 30, 5, 0);
@@ -3070,7 +3070,7 @@ static void em2c_R1_F_Walk(cEm2c* em)
     switch (em->r_no_2) {
         do { } while (0);  // dead loop before the label: the arm does not know xFE == 0 (fresh `li 0` for the zero stores)
     case 0:
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 0xB;
         } else {
             w->blendSeq = 0x22;
@@ -3175,7 +3175,7 @@ static void em2c_R1_F_Atk(cEm2c* em)
             w->atkWait = 30;
             w->dmgTotal = 0;
             EmRoutineSet(em, 1, 0x17, 0, 0);
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             em2cDoorOpenCk2(em);
             if (w->mode) {
                 em2cAtkCk(em, 6, 7);
@@ -3216,7 +3216,7 @@ static void em2c_R1_F_Clear(cEm2c* em)
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             w->flags &= ~0x800;
             if (w->pTex) {
                 em->pModelInfo->setTexBlendTbl(w->texBlend);
@@ -3412,7 +3412,7 @@ static void em2c_R1_W_Atk(cEm2c* em)
             } else {
                 EmRoutineSet(em, 1, 0x1D, w->atkHit, w->atkHit);
             }
-        } else if (em->seFlags28B & 1) {
+        } else if (em->Motion.Seq_old.Free & 1) {
             if (em->r_no_3) {
                 em2cAtkCk(em, 3, 0xB);
                 em2cAtkCk(em, 3, 0xC);
@@ -3705,7 +3705,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
                 ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, w->actDone);
             }
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em2cAtkCk(em, 4, 0xB);
             em2cAtkCk(em, 4, 0xC);
             em2cAtkCk(em, 4, 0xD);
@@ -3773,10 +3773,10 @@ static void em2c_R1_C_Fall(cEm2c* em)
             }
             break;
         }
-        if (em->frame > 69.6999969f && em->frame < 70.3000031f) {
+        if (em->Motion.Seq_frame > 69.6999969f && em->Motion.Seq_frame < 70.3000031f) {
             EstSet(em, -1, 0, 0, EFF_EM2C, 7, 0, ESP_CORE_KIND_NONE, (void*) end, (void*) end);
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             em2cSetdLandingEff(em);
             AtariOn(&em->atari, 0x300);
         }
@@ -4015,7 +4015,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
                 ActBtn.set(ACT_GUARD, 0xB, (void*) em2cBackjumpAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, w->actDone);
             }
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             for (i = 1; i <= 0x12; i++) {
                 em2cAtkCk(em, 7, i);
             }
@@ -4067,7 +4067,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
             em->r_no_2 = 0;
             break;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             for (i = 1; i <= 0x12; i++) {
                 em2cAtkCk(em, 7, i);
             }
@@ -4155,7 +4155,7 @@ static void em2c_R1_Dm_Normal(cEm2c* em)
             em2cDmEndSet(em, w, end);
             break;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             if (Rnd() & 1) {
                 em2cDmEndSet(em, w, end);
                 break;
@@ -4397,7 +4397,7 @@ static void em2c_R1_Dm_Guard(cEm2c* em)
             }
             break;
         }
-        if ((em->seFlags28B & 4) && (w->flags & 1)) {
+        if ((em->Motion.Seq_old.Free & 4) && (w->flags & 1)) {
             f32 plAng = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
             f32 lim = 12250000.0f;
             if (plAng > 1.57079637f) {
@@ -4629,7 +4629,7 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
     switch (em->r_no_2) {
     case 0:
         flip = 0x41;
-        if (em->motFlags & 0x40) {
+        if (em->Motion.Mot_attr & 0x40) {
             flip = 1;
         }
         if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f)) < 1.57079637f) {
@@ -4970,7 +4970,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
         if (hit & 1) {
             switch ((u32) no) {
             case 0:
-                if (em->motFlags & 0x40) {
+                if (em->Motion.Mot_attr & 0x40) {
                     pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x24, 0x18);
                 } else {
@@ -4986,7 +4986,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                         pPLS->ang.y += Muku(&em->pos, &pPL->pos, pPL->ang.y, 3.14159274f);
                         pPLS->r_no_3 = 1;
                     }
-                    if (em->motFlags & 0x40) {
+                    if (em->Motion.Mot_attr & 0x40) {
                         if (pPL->r_no_3) {
                             pPL->r_no_3 = 0;
                         } else {
@@ -4998,7 +4998,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                 }
                 break;
             case 3:
-                if (em->motFlags & 0x40) {
+                if (em->Motion.Mot_attr & 0x40) {
                     pPL->dmg.m_PosFrom = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x24, 0x18);
                 } else {
@@ -5242,7 +5242,7 @@ int em2cSetWallMatrix2(cEm2c* em, f32 rate)
     }
 #line 7932 "D:/Bio4/Prog/em2c.cpp"
     VECNormalize(&sum, &w->wallNrm);
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
@@ -5292,7 +5292,7 @@ void em2cSetFallMatrix(cEm2c* em)
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
-    em->motFlags2 |= 0x40000000;
+    em->Motion.Mot_flag |= 0x40000000;
     PSMTXMultVecSR(em->mat, &up, &up);
 #line 8022 "D:/Bio4/Prog/em2c.cpp"
     VECNormalize(&up, &up);
@@ -5616,13 +5616,13 @@ void em2cFootSeMove(cEm2c* em)
     int parts;
     u32 no;
 
-    if (em->seNo == 0) {
+    if (em->Motion.Seq_old.Se == 0) {
         return;
     }
     if (em->type != 0) {
         return;
     }
-    no = em->seNo - 1;
+    no = em->Motion.Seq_old.Se - 1;
     parts = 0x12;
     switch (no) {
     case 0:
@@ -5631,15 +5631,15 @@ void em2cFootSeMove(cEm2c* em)
         parts = 0x16;
         break;
     case 4:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2cSetdLandingEff(em);
         return;
     case 5:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2cSetDownEff(em);
         return;
     case 0xE:
-        em->seNo = 0;
+        em->Motion.Seq_old.Se = 0;
         em2cSetJumpEff(em);
         return;
     default:
@@ -5963,23 +5963,23 @@ static void plem2cEscape(cPlayer* pl)
     case 1:
         if (pl->m_Work2) {
             em2cEscapeCamMove((cEm2c*)pl->pEmCatch);
-            if (pl->frame > 11.6999998f && pl->frame < 12.3000002f) {
+            if (pl->Motion.Seq_frame > 11.6999998f && pl->Motion.Seq_frame < 12.3000002f) {
                 EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
         } else {
-            if (pl->frame > 10.6999998f && pl->frame < 11.3000002f) {
+            if (pl->Motion.Seq_frame > 10.6999998f && pl->Motion.Seq_frame < 11.3000002f) {
                 SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
             }
-            if (pl->frame > 21.7000008f && pl->frame < 22.2999992f) {
+            if (pl->Motion.Seq_frame > 21.7000008f && pl->Motion.Seq_frame < 22.2999992f) {
                 SndCall(5, 0x14, &pl->pos, 0, 0, pl);
             }
-            if ((pl->frame > 36.7000008f && pl->frame < 37.2999992f) ||
-                (pl->frame > 49.7000008f && pl->frame < 50.2999992f)) {
+            if ((pl->Motion.Seq_frame > 36.7000008f && pl->Motion.Seq_frame < 37.2999992f) ||
+                (pl->Motion.Seq_frame > 49.7000008f && pl->Motion.Seq_frame < 50.2999992f)) {
                 SndCall(5, 2, &pl->pos, 0, 0, pl);
             }
-            if ((pl->frame > 37.7000008f && pl->frame < 38.2999992f) ||
-                (pl->frame > 50.7000008f && pl->frame < 51.2999992f)) {
+            if ((pl->Motion.Seq_frame > 37.7000008f && pl->Motion.Seq_frame < 38.2999992f) ||
+                (pl->Motion.Seq_frame > 50.7000008f && pl->Motion.Seq_frame < 51.2999992f)) {
                 SndCall(5, 3, &pl->pos, 0, 0, pl);
             }
         }
@@ -6073,10 +6073,10 @@ static void plemBackjump(cPlayer* pl)
         } else if (Key.on & 0x1F) {
             pl->m_Work1 = 1;
         }
-        if (pl->frame > 20.7000008f && pl->frame < 21.2999992f) {
+        if (pl->Motion.Seq_frame > 20.7000008f && pl->Motion.Seq_frame < 21.2999992f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 33.7000008f && pl->frame < 34.2999992f) {
+        if (pl->Motion.Seq_frame > 33.7000008f && pl->Motion.Seq_frame < 34.2999992f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0) || pl->m_Work1) {
@@ -6122,10 +6122,10 @@ static void plemBackjump2(cPlayer* pl)
         } else if (Key.on & 0x1F) {
             pl->m_Work1 = 1;
         }
-        if (pl->frame > 20.7000008f && pl->frame < 21.2999992f) {
+        if (pl->Motion.Seq_frame > 20.7000008f && pl->Motion.Seq_frame < 21.2999992f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 33.7000008f && pl->frame < 34.2999992f) {
+        if (pl->Motion.Seq_frame > 33.7000008f && pl->Motion.Seq_frame < 34.2999992f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0) || pl->m_Work1) {
@@ -6160,13 +6160,13 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
     }
     bm = EM2C_BLEND_MOT(w);
     MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
-    em->motBlend = bm;
+    em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->blendCnt) {
         w->blendCnt--;
     }
     w->blendSeq++;
-    if ((u32) w->blendSeq >= em->frameMax) {
+    if ((u32) w->blendSeq >= em->Motion.Seq_frame_num) {
         w->blendSeq = 0;
     }
 }
@@ -6184,13 +6184,13 @@ void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, int d)
     MotionSetCore(em, &em->Motion, m0, (void*) a, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     bm = EM2C_BLEND_MOT(w);
     MotionSetCore(em, bm, m1, (void*) b, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
-    em->motBlend = bm;
+    em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->blendCnt) {
         w->blendCnt--;
     }
     w->blendSeq++;
-    if ((u32) w->blendSeq >= em->frameMax) {
+    if ((u32) w->blendSeq >= em->Motion.Seq_frame_num) {
         w->blendSeq = 0;
     }
 }
@@ -6439,10 +6439,10 @@ void em2cBreathSeStopCk(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
     u32 no;
 
-    if (em->seNo == 0) {
+    if (em->Motion.Seq_old.Se == 0) {
         return;
     }
-    no = em->seNo - 1;
+    no = em->Motion.Seq_old.Se - 1;
     switch (no) {
     case 4:
     case 5:

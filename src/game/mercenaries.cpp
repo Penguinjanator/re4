@@ -204,9 +204,9 @@ int MercSysInitRoom(MercInit* pMInit)
     } else {
         smd->setNoSuspend(1);
         smd->be_flag |= 0x20;
-        if (smd->p2A4 == NULL) {
+        if (smd->Motion.pAttachCam == NULL) {
 #line 274 "D:/Bio4/Prog/mercenaries.cpp"
-            smd->p2A4 = MEM_CALLOC(0x98, 1, 13);
+            smd->Motion.pAttachCam = (AttachCamera*) MEM_CALLOC(0x98, 1, 13);
         }
     }
     pPL->setPos(&pMInit->pos);

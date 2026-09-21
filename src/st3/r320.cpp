@@ -585,7 +585,7 @@ void R320Init()
 
         (void*&) r320_work->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &smdPos, &smdRot, 0x10, 1);
         r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
-        FSet(r320_work->smd->motSpeedRate, 0.0f);
+        FSet(r320_work->smd->Motion.Seq_speed, 0.0f);
         r320_work->smd->be_flag |= 0x1000;
         EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         SmdSetTrans(0x22, 0);
@@ -1665,7 +1665,7 @@ static void slide_move()
     pPL->setAng(0.0f, 0.0f, 0.0f);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
     r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
-    r320_work->smd->motSpeedRate = 1.0f;
+    r320_work->smd->Motion.Seq_speed = 1.0f;
     SndCall(6, 0x18, 0, 0, 0, 0);
     frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < frames; i++) {

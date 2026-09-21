@@ -430,7 +430,7 @@ void cObj16::move()
 // Rno1 == 0: plays the current motion and follows the body.
 void obj16_R1_Set(cObj16* obj)
 {
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         MotionMove(obj, 0);
     }
     obj16MatCalc(obj);
@@ -659,7 +659,7 @@ void obj16_R1_Atk(cObj16* obj)
                     atk = 1;
                 }
             }
-            if (obj->motFrame > 44.7f && obj->motFrame < 45.3f) {
+            if (obj->Motion.Seq_frame > 44.7f && obj->Motion.Seq_frame < 45.3f) {
                 if (obj->type == 2) {
                     SndCall(8, 0xF, &w->target->pos, w->target->id, 0, 0);
                 }
@@ -773,7 +773,7 @@ void obj16_R1_Critical(cObj16* obj)
                     atk = 1;
                 }
             }
-            if (obj->motFrame > 9.7f && obj->motFrame < 10.3f) {
+            if (obj->Motion.Seq_frame > 9.7f && obj->Motion.Seq_frame < 10.3f) {
                 if (obj->type == 3) {
                     SndCall(8, 0xAB, &w->target->pos, w->target->id, 0, 0);
                 }
@@ -781,7 +781,7 @@ void obj16_R1_Critical(cObj16* obj)
                     SndCall(8, 0x2B, &w->target->pos, w->target->id, 0, 0);
                 }
             }
-            if (obj->motFrame > 41.7f && obj->motFrame < 42.3f) {
+            if (obj->Motion.Seq_frame > 41.7f && obj->Motion.Seq_frame < 42.3f) {
                 if (obj->type == 3) {
                     SndCall(8, 0xF, &w->target->pos, w->target->id, 0, 0);
                 }
@@ -900,14 +900,14 @@ void obj16MatCalc(cObj16* obj)
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         PSMTXConcat(p->mat, obj->mat, obj->mat);
-        obj->motFlags2 |= 0x40000000;
+        obj->Motion.Mot_flag |= 0x40000000;
     } else {
         RotMatrix(obj->l_mat, &obj->ang);
         TransMatrix(obj->l_mat, &obj->pos);
         ScaleMatrix(obj->l_mat, &obj->scale);
         PSMTXCopy(obj->l_mat, obj->mat);
     }
-    if (obj->pMotion == 0) {
+    if (obj->Motion.pMot == 0) {
         obj->partsMatCalc();
     }
     obj16NeckMove(obj);

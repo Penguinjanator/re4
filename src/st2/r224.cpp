@@ -111,7 +111,7 @@ void R224Init()
     Vec rot = {0.0f, 0.0f, 0.0f};
     r224_work.p->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
     r224_work.p->obj->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x23), 0xA, 0, 1, 0);
-    r224_work.p->obj->motSpeedRate = 0.0f;
+    r224_work.p->obj->Motion.Seq_speed = 0.0f;
     {
         cObj* obj = r224_work.p->obj;
 
@@ -338,7 +338,7 @@ static void r224_toroko()
     pPLS->setNoSuspend(1);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 0x201, 0);
     r224_work.p->obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
-    r224_work.p->obj->motSpeedRate = 1.0f;
+    r224_work.p->obj->Motion.Seq_speed = 1.0f;
     frames = (u32) MotionGetMaxFrame(&pPLS->Motion);
     SceSleep(90);
     SndCall(6, 9, 0, 0, 0, 0);

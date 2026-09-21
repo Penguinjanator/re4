@@ -153,7 +153,7 @@ void knife_r3_ready10(cPlayer* pl)
             pl->r_no_3 = 4;
         }
     } else {
-        if (pl->frame >= 10.0f) {
+        if (pl->Motion.Seq_frame >= 10.0f) {
             pl->r_no_2 = 1;
             pl->r_no_3 = 4;
         }
@@ -226,10 +226,10 @@ void knife_r3_set20(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -241,10 +241,10 @@ void knife_r3_set30(cPlayer* pl)
         pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
-    if (pl->frame > 9.7f && pl->frame < 10.3f) {
+    if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
         SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
-    if (pl->frame > 22.7f && pl->frame < 23.3f) {
+    if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
         SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
@@ -353,16 +353,16 @@ void knife_r3_fire10(cPlayer* pl)
         SndCall(1, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
     }
     pl->motionMove();
-    if (pl->frame >= 6.0f && pl->frame <= 10.0f) {
+    if (pl->Motion.Seq_frame >= 6.0f && pl->Motion.Seq_frame <= 10.0f) {
         u32 flag = 0;
 
-        if (!(pl->frame >= 7.0f && pl->frame <= 8.0f)) {
+        if (!(pl->Motion.Seq_frame >= 7.0f && pl->Motion.Seq_frame <= 8.0f)) {
             flag = 4;
         }
-        if (pl->frame > 5.7f && pl->frame < 6.3f) {
+        if (pl->Motion.Seq_frame > 5.7f && pl->Motion.Seq_frame < 6.3f) {
             flag |= 8;
         }
-        hitCheck(pl, (int) (pl->frame - 6.0f), flag);
+        hitCheck(pl, (int) (pl->Motion.Seq_frame - 6.0f), flag);
     }
     if (MotionCheckCrossFrame(&pl->Motion, 6.0f)) {
         Vec* pos = &pl->getPartsPtr(10)->world;
@@ -376,7 +376,7 @@ void knife_r3_fire10(cPlayer* pl)
             SndCall(1, 0x51, &pl->getPartsPtr(10)->world, 0, 0, 0);
         }
     }
-    if (pl->frame >= (f32) (pl->frameMax - 2)) {
+    if (pl->Motion.Seq_frame >= (f32) (pl->Motion.Seq_frame_num - 2)) {
         pl->r_no_2 = 1;
         pl->r_no_3 = 4;
     }

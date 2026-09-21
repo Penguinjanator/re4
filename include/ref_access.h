@@ -21,6 +21,7 @@ class cEmWrap;
 class cEmRock;
 class IdBinocular;
 struct FocusAnimation;
+struct AttachCamera;
 
 // Reads and writes of a variable through a reference parameter. The original code reaches many globals and
 // struct fields through inline helpers like these: the access is then a plain scalar load or store, which
@@ -48,6 +49,7 @@ static inline void PSet(cModel*& d, cModel* v) { d = v; }
 static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 static inline void PSet(cEm*& d, cEm* v) { d = v; }
 static inline void PSet(cEmHit*& d, cEmHit* v) { d = v; }
+static inline void PSet(AttachCamera*& d, AttachCamera* v) { d = v; }
 static inline void PSet(ScePrim*& d, ScePrim* v) { d = v; }
 static inline void PSet(YARARE_INFO*& d, YARARE_INFO* v) { d = v; }
 static inline void PSet(cCoord*& d, cCoord* v) { d = v; }

@@ -241,13 +241,13 @@ void objTrolley_R0_Move(cObjTrolley* obj)
             obj->r_no_2 = 0;
             obj->r_no_3 = 0;
         } else {
-            if (obj->motFrame > 2250.0f) {
+            if (obj->Motion.Seq_frame > 2250.0f) {
                 StaFlagOn(pG, STA_NO_FENCE);
             }
-            if (obj->motFrame > 2300.0f) {
+            if (obj->Motion.Seq_frame > 2300.0f) {
                 EstSet(obj, -1, 0, 0, EFF_ROOM, 0x13, 0, ESP_CORE_KIND_NONE, obj, 0);
             }
-            if (obj->motFrame > 2865.0f) {
+            if (obj->Motion.Seq_frame > 2865.0f) {
                 if (obj->r_no_3) {
                     ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 } else {
@@ -414,13 +414,13 @@ void plobjTrolleyEscape(cPlayer* pl)
         if (MotionMove(em, 0)) {
             em->r_no_2++;
         } else {
-            if (em->frame > 15.7f && em->frame < 16.3f) {
+            if (em->Motion.Seq_frame > 15.7f && em->Motion.Seq_frame < 16.3f) {
                 SndCall(1, 0x10, &parts->world, 0, 0, em);
             }
-            if (em->frame > 23.7f && em->frame < 24.3f) {
+            if (em->Motion.Seq_frame > 23.7f && em->Motion.Seq_frame < 24.3f) {
                 SndCall(1, 0x34, &parts->world, 0, 0, em);
             }
-            if (em->frame > 29.7f && em->frame < 30.3f) {
+            if (em->Motion.Seq_frame > 29.7f && em->Motion.Seq_frame < 30.3f) {
                 SndCall(1, 0x4F, &parts->world, 0, 0, em);
             }
         }
@@ -472,10 +472,10 @@ void plobjTrolleyEscape(cPlayer* pl)
             em->atari.throughOff();
             EndPlDamage();
         } else {
-            if (em->frame == 140.0f) {
+            if (em->Motion.Seq_frame == 140.0f) {
                 FootSeCall(SE_LEON_WALK_R, &em->pos, 0, 0);
             }
-            if (em->frame == 173.0f) {
+            if (em->Motion.Seq_frame == 173.0f) {
                 FootSeCall(SE_LEON_WALK_L, &em->pos, 0, 0);
             }
         }

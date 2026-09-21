@@ -830,7 +830,7 @@ static void R226EventRoboWalkPassageGoal()
     pPL->setPos(-57500.0f, 1000.0f, -16400.0f);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x38), 0, 3, 1, 0);
     while (MotionGetState(pPL) == 0) {
-        if (pPL->frame > 11.7f && pPL->frame < 12.3f) {
+        if (pPL->Motion.Seq_frame > 11.7f && pPL->Motion.Seq_frame < 12.3f) {
             EstSet(0, -1, &pPL->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SceSleep(1);
@@ -1021,7 +1021,7 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
         u32 frame;
 
         *spdOld = *spdNew;
-        rate = pl->frame / (f32) pl->frameMax;
+        rate = pl->Motion.Seq_frame / (f32) pl->Motion.Seq_frame_num;
         m = mot[*spdNew];
         max = *(u16*) m;
         frame = (u32) ((f32) max * rate);
@@ -1029,7 +1029,7 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
         if (frame >= max) {
             frame = 0;
         }
-        MotionSetCore(pl, &pl->Motion, data, m, pl->motHokanCnt, 5, (u16) frame);
+        MotionSetCore(pl, &pl->Motion, data, m, pl->Motion.Hokan_cnt, 5, (u16) frame);
         ret = 1;
     }
     if (Key.trg & 0x80000) {
@@ -1238,20 +1238,20 @@ static void playerRunMoveBridge(cPlayer* pl)
         pl->r_no_2 = 4;
     case 4:
         pl->dmg.m_Timer = 0x78;
-        if (pl->frame >= (f32) r226_pushFrame) {
+        if (pl->Motion.Seq_frame >= (f32) r226_pushFrame) {
             if (Key.trg & 0x80000) {
                 r226_work.p->btnCnt++;
             }
             ActBtn.set(ACT_CLIMB, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
             SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);
         }
-        if (pl->frame > 9.7f && pl->frame < 10.3f) {
+        if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
             SndCall(1, 0x10, &pPL->pos, 0, 0, 0);
         }
-        if (pl->frame > 23.7f && pl->frame < 24.3f) {
+        if (pl->Motion.Seq_frame > 23.7f && pl->Motion.Seq_frame < 24.3f) {
             SndCall(1, 0x34, &pPL->pos, 0, 0, 0);
         }
-        if (pl->frame > 29.7f && pl->frame < 30.3f) {
+        if (pl->Motion.Seq_frame > 29.7f && pl->Motion.Seq_frame < 30.3f) {
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
         if (MotionMove(pl, 0)) {
@@ -1335,7 +1335,7 @@ static void playerRunDiePassage(cPlayer* pl)
         PlSetDamageSe(0xA);
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 22.7f && pl->frame < 23.3f) {
+        if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
         MotionMove(pl, 0);
@@ -1362,7 +1362,7 @@ static void playerRunDieBridge(cPlayer* pl)
     case 1:
         r226_work.p->dieY += step;
         pl->setPos(pl->pos.x, pl->pos.y - r226_work.p->dieY, pl->pos.z);
-        if (pl->frame > 22.7f && pl->frame < 23.3f) {
+        if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
         MotionMove(pl, 0);

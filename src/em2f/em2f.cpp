@@ -251,7 +251,7 @@ void cEm2f::move()
     atari.move();
     SatMgr.check(this, 0);
     em2fIslandCrashCk(this);
-    if (seFlags28B & 0x10) {
+    if (Motion.Seq_old.Free & 0x10) {
         if (w->seTimer1) {
             w->seTimer1--;
         } else {
@@ -323,7 +323,7 @@ static void em2f_R0_Init(cEm2f* em)
     YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 700.0f, 600.0f, 0x1C, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     YarareAdd(em, &w->hit[6], 0.0f, 0.0f, -600.0f, 500.0f, 600.0f, 0x1D, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     em->hp = 1000;
-    em->pXFlip = em2f_flip_tbl;
+    em->Motion.flip = em2f_flip_tbl;
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
@@ -400,13 +400,13 @@ static void em2f_R0_Move(cEm2f* em)
 {
     em->flag &= ~0x1FC;
     Em2f_R1_move_tbl[em->r_no_1](em);
-    if (em->seFlags28B & 1) {
+    if (em->Motion.Seq_old.Free & 1) {
         em->flag |= 4;
     }
-    if (em->seFlags28B & 0x80) {
+    if (em->Motion.Seq_old.Free & 0x80) {
         em->flag |= 8;
     }
-    if (em->seFlags28B & 8) {
+    if (em->Motion.Seq_old.Free & 8) {
         em->flag |= 0x10;
     }
 }
@@ -499,7 +499,7 @@ static void em2f_R1_Swim(cEm2f* em)
         em->ang.y += Muku(&em->pos, &w->nextPos, em->ang.y, PI / 200.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
-        if (em->seFlags28B & 0x40) {
+        if (em->Motion.Seq_old.Free & 0x40) {
             w->flags |= 0x20;
         } else {
             w->flags &= ~0x20;
@@ -625,7 +625,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->seFlags28B & 2) {
+        if (em->Motion.Seq_old.Free & 2) {
             em->ang.y += Muku(&em->pos, &w->nextPos, em->ang.y, PI / 200.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -793,7 +793,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
             em2fChangeRoute(em);
             EmRoutineSet(em, 1, 3, 0, 0);
         } else {
-            if (em->seFlags28B & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 if (StaFlagChk(pG, STA_PL_SWIM)) {
                     EmRoutineSet(pPL, r, 0xF, 9, r);
                     SndCall(8, 0x1E, &em->pos, em->id, 0, em);
@@ -806,7 +806,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
                 w->timer--;
                 AddWaterPower(&em->pos, 3.0f);
             }
-            if (em->motFrame > 129.7f && em->motFrame < 130.3f) {
+            if (em->Motion.Seq_frame > 129.7f && em->Motion.Seq_frame < 130.3f) {
                 em->flag |= 0x40;
             }
         }
@@ -893,7 +893,7 @@ static void em2f_R1_Packman(cEm2f* em)
             w->timer2--;
             em->flag |= 0x100;
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             SndCall(8, 0x19, &em->pos, em->id, 0, em);
         }
         r = MotionMove(em, 0);
@@ -905,7 +905,7 @@ static void em2f_R1_Packman(cEm2f* em)
                 em->r_no_2++;
             }
         } else {
-            if (em->seFlags28B & 1) {
+            if (em->Motion.Seq_old.Free & 1) {
                 if (StaFlagChk(pG, STA_PL_SWIM)) {
                     EmRoutineSet(pPL, r, 0xF, 9, r);
                     pPL->be_flag &= ~2;
@@ -917,7 +917,7 @@ static void em2f_R1_Packman(cEm2f* em)
                 w->timer--;
                 AddWaterPower(&em->pos, 3.0f);
             }
-            if (em->motFrame > 59.7f && em->motFrame < 60.3f) {
+            if (em->Motion.Seq_frame > 59.7f && em->Motion.Seq_frame < 60.3f) {
                 em->flag |= 0x40;
             }
         }
@@ -1041,7 +1041,7 @@ static void em2f_R1_HideMode(cEm2f* em)
             em->flag |= 0x100;
         }
         w->flags |= 0x480;
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             SndCall(8, 0x1B, &em->pos, em->id, 0, em);
         }
         if (MotionMove(em, 0)) {
@@ -1151,10 +1151,10 @@ static void em2f_R1_Critical(cEm2f* em)
             }
             em2fCriCamMove(em);
         }
-        if (em->seFlags28B & 4) {
+        if (em->Motion.Seq_old.Free & 4) {
             pPL->be_flag &= ~2;
         }
-        if (em->seFlags28B & 1) {
+        if (em->Motion.Seq_old.Free & 1) {
             DiedemoExec(2, 0);
             pG->pl_life = 0;
         }
@@ -1746,7 +1746,7 @@ void em2fIslandCrashCk(cEm2f* em)
     }
 }
 
-// While the tentacle motion flag (seFlags28B bit5) and flag bit7 (rising) are set, creates the six
+// While the tentacle motion flag (Motion.Seq_old.Free bit5) and flag bit7 (rising) are set, creates the six
 // tentacle objects (cObj16 type 0xA) on parts 0x1D..0x22 with staggered motions and the tentacle SE
 // every 45 frames; removes them (clearLostWait) otherwise.
 void em2fTentacleMove(cEm2f* em)
@@ -1755,7 +1755,7 @@ void em2fTentacleMove(cEm2f* em)
     u16 step = (*(u16*) ARC(0x31) & 0x3FFF) / 6;
     u32 i;
 
-    if ((em->seFlags28B & 0x20) && (w->flags & 0x80)) {
+    if ((em->Motion.Seq_old.Free & 0x20) && (w->flags & 0x80)) {
         int frame = 0;
 
         for (i = 0; i < 6; i++, frame += step) {

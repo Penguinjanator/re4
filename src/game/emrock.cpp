@@ -190,7 +190,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->Roll_flag = 0;
     w->Gravity = 20.0f;
     w->rollWait = 0;
-    em->pMotion = (void*) 0;
+    em->Motion.pMot = (MotionData*) 0;
     w->plMot[2] = (void*) 0;
     w->plMot[3] = (void*) 0;
     w->plMot[4] = (void*) 0;
@@ -282,7 +282,7 @@ void emRock_R1_Set(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
 
-    if (em->pMotion) {
+    if (em->Motion.pMot) {
         MotionMove(em, 0);
     } else {
         RotMatrix(em->mat, &em->ang);
@@ -386,8 +386,8 @@ void emRock_R1_Parent(cEmRock* em)
         }
         PSMTXCopy(m, em->mat);
     }
-    if (em->pMotion) {
-        em->motFlags2 |= 0x40000000;
+    if (em->Motion.pMot) {
+        em->Motion.Mot_flag |= 0x40000000;
         MotionMove(em, 0);
     } else {
         em->partsMatCalc();
@@ -1050,10 +1050,10 @@ void plemDropEscape(cPlayer* pl)
         pPL->dmg.m_Timer = 0x1E;
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 20.7f && pl->frame < 21.3f) {
+        if (pl->Motion.Seq_frame > 20.7f && pl->Motion.Seq_frame < 21.3f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
         }
-        if (pl->frame > 33.7f && pl->frame < 34.3f) {
+        if (pl->Motion.Seq_frame > 33.7f && pl->Motion.Seq_frame < 34.3f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
@@ -1635,14 +1635,14 @@ void plemRockEscape(cPlayer* pl)
                 mot2 = w->plMot[10];
                 break;
             }
-            ratio = pl->frame / (f32) pl->frameMax;
+            ratio = pl->Motion.Seq_frame / (f32) pl->Motion.Seq_frame_num;
             cnt = ((RockMotData*) mot2)->maxFrame;
             f = (f32) cnt * ratio;
             fr = (u32) f + 1;
             if (fr >= cnt) {
                 fr = 0;
             }
-            MotionSetCore(pl, &pl->Motion, mot, mot2, pl->motHokanCnt, 5, (u16) fr);
+            MotionSetCore(pl, &pl->Motion, mot, mot2, pl->Motion.Hokan_cnt, 5, (u16) fr);
         }
         if (Key.trg & 0x80000) {
             pl->m_Work0 += pl->m_Work4;
@@ -1694,7 +1694,7 @@ void plemRockEscape(cPlayer* pl)
             plemRockEscapeCamMove2(pl, pl->m_Work5);
         }
         pl->dmg.m_Timer = 0x78;
-        if (pl->frame > 11.7f && pl->frame < 12.3f) {
+        if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
             EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }

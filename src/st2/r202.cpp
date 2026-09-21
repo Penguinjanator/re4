@@ -618,7 +618,7 @@ static void r202_operateCrank()
                 break;
             }
             n = *(u16*) m0;
-            rate = pPL->frame / (f32) pPL->frameMax;
+            rate = pPL->Motion.Seq_frame / (f32) pPL->Motion.Seq_frame_num;
             frame = (u32) ((f32) n * rate);
             frame++;
             if (frame >= n) {

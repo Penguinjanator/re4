@@ -422,7 +422,7 @@ void emShield_R0_Move(cEmShield* em)
 // Rno1 == 0: free-standing shield; plays its motion or rebuilds the matrices from pos / ang.
 void emShield_R1_Set(cEmShield* em)
 {
-    if (em->pMotion) {
+    if (em->Motion.pMot) {
         MotionMove(em, 0);
     } else {
         RotMatrix(em->mat, &em->ang);
@@ -549,8 +549,8 @@ void emShield_R1_Parent(cEmShield* em)
         }
         PSMTXCopy(m, em->mat);
     }
-    if (em->pMotion) {
-        em->motFlags2 |= 0x40000000;
+    if (em->Motion.pMot) {
+        em->Motion.Mot_flag |= 0x40000000;
         MotionMove(em, 0);
     } else {
         em->partsMatCalc();
@@ -763,7 +763,7 @@ void cEmShield::setFall(Vec* spd, f32 gravity)
     u32 i;
     register f64 hd asm("fr1"); // COMPILER-DIFF: #8
 
-    pMotion = 0;
+    Motion.pMot = 0;
     // COMPILER-DIFF: #8 -- the original ranks `fmr f29,f1` as if f1 did not die at the copy. A DFmode
     // read of f1 after the copy keeps f1 live past it (regmove's optimize_reg_copy_1 only moves the
     // death when the dying mode matches the copy's SFmode); the "=m" output on a `this` field the

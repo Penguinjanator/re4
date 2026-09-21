@@ -45,7 +45,7 @@ cObjWep::cObjWep()
     wep.disp = 0;
     sub2B4.atari.throughOn();
     LightInfo.init2(1, 1, &p0, &p1, 1);
-    pMotion = 0;
+    Motion.pMot = 0;
     wep.motReset[1] = 0;
     wep.motReset[0] = 0;
     wep.parent = 0;
@@ -91,7 +91,7 @@ void cObjWep::move()
         invisible_factor2 = wep.parent->invisible_factor2;
     }
     ot_type = pPL->ot_type;
-    if (pMotion) {
+    if (Motion.pMot) {
         MotionMove(this, 0);
     } else {
         matUpdate();
@@ -192,7 +192,7 @@ void cObjWep::resetMotion()
     if (wep.m_StopSeId) {
         SndStop(wep.m_StopSeId, 0);
     }
-    motSpeedRate = 1.0f;
+    Motion.Seq_speed = 1.0f;
     wep.mode = 0;
     wep.step = 0;
 }

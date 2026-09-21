@@ -2188,17 +2188,17 @@ static int dbmod_blend()
                 switch (pDbModState.p->blendMode) {
                 case 0:
                     MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->mot[0].flags | 0x200, 0);
-                    em->pEm->motBlend = (MotionWork*) &em->mot[1];
-                    em->pEm->motBlend->Mot_flag &= 0x7FFFFFFF;
+                    em->pEm->Motion.blend = (MotionWork*) &em->mot[1];
+                    em->pEm->Motion.blend->Mot_flag &= 0x7FFFFFFF;
                     break;
                 case 1:
                     MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->mot[0].flags | 0x200, 0);
-                    em->pEm->motBlend = (MotionWork*) &em->mot[1];
-                    em->pEm->motBlend->Mot_flag |= 0x80000000;
+                    em->pEm->Motion.blend = (MotionWork*) &em->mot[1];
+                    em->pEm->Motion.blend->Mot_flag |= 0x80000000;
                     break;
                 default:
                     em->mot[1].blendRate = 0.0f;
-                    em->pEm->motBlend = 0;
+                    em->pEm->Motion.blend = 0;
                     break;
                 }
             }
@@ -2206,8 +2206,8 @@ static int dbmod_blend()
         }
         break;
     }
-    if (em->pEm->motBlend) {
-        em->pEm->motBlend->Brate = pDbModState.p->blendRate;
+    if (em->pEm->Motion.blend) {
+        em->pEm->Motion.blend->Brate = pDbModState.p->blendRate;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- BLEND ----");
     x = 6;
@@ -2233,7 +2233,7 @@ static int dbmod_blend()
             eprintf((x + 10) * 8, row, color, 0, "%.2f", rate);
             break;
         case 1:
-            if (em->pEm->motBlend == 0) {
+            if (em->pEm->Motion.blend == 0) {
                 color = 7;
             }
             eprintf((x + 10) * 8, (x - 1) * 14, color, 0, "%.2f", pDbModState.p->blendRate);

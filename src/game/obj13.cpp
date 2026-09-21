@@ -194,7 +194,7 @@ void objLadder_R1_Set(cObjLadder* obj)
     }
 }
 
-// Rno1 == 1: falling: after downTimer plays the fall motion (crash sound on motEvent bit 0), on
+// Rno1 == 1: falling: after downTimer plays the fall motion (crash sound on Motion.Seq_old.Free bit 0), on
 // its end status 1 and two damage areas (kind 3) along the fallen ladder, then Rno1 = 2.
 void objLadder_R1_Fall(cObjLadder* obj)
 {
@@ -211,8 +211,8 @@ void objLadder_R1_Fall(cObjLadder* obj)
                 w->status = 3;
             }
         }
-        if (obj->pMotion) {
-            if (obj->motEvent & 1) {
+        if (obj->Motion.pMot) {
+            if (obj->Motion.Seq_old.Free & 1) {
                 SndCall(6, 0x3F, &obj->pos, 0, 0, 0);
             }
             if (MotionMove(obj, 0)) {
@@ -260,7 +260,7 @@ void objLadder_R1_Down(cObjLadder* obj)
     }
 }
 
-// Rno1 == 3: being put up: plays the reset motion (sound + breakWindow on motEvent bit 0), then
+// Rno1 == 3: being put up: plays the reset motion (sound + breakWindow on Motion.Seq_old.Free bit 0), then
 // standing (Rno1 = 0).
 void objLadder_R1_Reset(cObjLadder* obj)
 {
@@ -271,8 +271,8 @@ void objLadder_R1_Reset(cObjLadder* obj)
     case 0:
         obj->r_no_2++;
     case 1:
-        if (obj->pMotion) {
-            if (obj->motEvent & 1) {
+        if (obj->Motion.pMot) {
+            if (obj->Motion.Seq_old.Free & 1) {
                 SndCall(6, 0x41, &obj->pos, 0, 0, 0);
                 obj->breakWindow();
             }
@@ -614,10 +614,10 @@ void plobjLadderClimb(cPlayer* pl)
         }
         em->r_no_2++;
     case 1:
-        if (em->frame > 9.7f && em->frame < 10.3f) {
+        if (em->Motion.Seq_frame > 9.7f && em->Motion.Seq_frame < 10.3f) {
             SndCall(6, 0x43, &em->pos, 0, 0, 0);
         }
-        if (em->frame > 17.7f && em->frame < 18.3f) {
+        if (em->Motion.Seq_frame > 17.7f && em->Motion.Seq_frame < 18.3f) {
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
@@ -633,10 +633,10 @@ void plobjLadderClimb(cPlayer* pl)
         MotionSetCore(em, &em->Motion, w->mot[1], 0, 5, 5, 0);
         em->r_no_2++;
     case 3:
-        if (em->frame > 11.7f && em->frame < 12.3f) {
+        if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
             SndCall(6, 0x43, &em->pos, 0, 0, 0);
         }
-        if (em->frame > 21.7f && em->frame < 22.3f) {
+        if (em->Motion.Seq_frame > 21.7f && em->Motion.Seq_frame < 22.3f) {
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
@@ -660,23 +660,23 @@ void plobjLadderClimb(cPlayer* pl)
         em->r_no_2++;
     case 5:
         if (obj->getType() == 1) {
-            if (em->frame > 10.7f && em->frame < 11.3f) {
+            if (em->Motion.Seq_frame > 10.7f && em->Motion.Seq_frame < 11.3f) {
                 SndCall(6, 0x43, &em->pos, 0, 0, 0);
             }
-            if (em->frame > 32.7f && em->frame < 33.3f) {
+            if (em->Motion.Seq_frame > 32.7f && em->Motion.Seq_frame < 33.3f) {
                 SndCall(5, 0xD, &em->getPartsPtr(0x14)->world, em->id, 0, 0);
             }
-            if (em->frame > 35.7f && em->frame < 36.3f) {
+            if (em->Motion.Seq_frame > 35.7f && em->Motion.Seq_frame < 36.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
             }
         } else {
-            if (em->frame > 10.7f && em->frame < 11.3f) {
+            if (em->Motion.Seq_frame > 10.7f && em->Motion.Seq_frame < 11.3f) {
                 SndCall(6, 0x43, &em->pos, 0, 0, 0);
             }
-            if (em->frame > 24.7f && em->frame < 25.3f) {
+            if (em->Motion.Seq_frame > 24.7f && em->Motion.Seq_frame < 25.3f) {
                 SndCall(5, 0xD, &em->getPartsPtr(0x14)->world, em->id, 0, 0);
             }
-            if (em->frame > 34.7f && em->frame < 35.3f) {
+            if (em->Motion.Seq_frame > 34.7f && em->Motion.Seq_frame < 35.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
             }
         }
@@ -808,10 +808,10 @@ void subobjLadderClimb(cEm* pl)
         } else {
             StaFlagOn(pG, STA_SUB_LADDER);
         }
-        if (em->frame > 8.7f && em->frame < 9.3f) {
+        if (em->Motion.Seq_frame > 8.7f && em->Motion.Seq_frame < 9.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
         }
-        if (em->frame > 17.7f && em->frame < 18.3f) {
+        if (em->Motion.Seq_frame > 17.7f && em->Motion.Seq_frame < 18.3f) {
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
@@ -828,10 +828,10 @@ void subobjLadderClimb(cEm* pl)
         em->r_no_2++;
     case 3:
         StaFlagOn(pG, STA_SUB_LADDER);
-        if (em->frame > 11.7f && em->frame < 12.3f) {
+        if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
             SndCall(6, 0x46, &em->pos, 0, 0, 0);
         }
-        if (em->frame > 20.7f && em->frame < 21.3f) {
+        if (em->Motion.Seq_frame > 20.7f && em->Motion.Seq_frame < 21.3f) {
             SndCall(6, 0x45, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
@@ -858,24 +858,24 @@ void subobjLadderClimb(cEm* pl)
             StaFlagOn(pGS, STA_SUB_LADDER);
         }
         if (obj->getType() == 1) {
-            if (em->frame > 11.7f && em->frame < 12.3f) {
+            if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
                 SndCall(6, 0x43, &em->pos, 0, 0, 0);
             }
-            if (em->frame > 22.7f && em->frame < 23.3f) {
+            if (em->Motion.Seq_frame > 22.7f && em->Motion.Seq_frame < 23.3f) {
                 SndCall(5, 0xD, &em->getPartsPtr(0x14)->world, em->id, 0, 0);
             }
-            if (em->frame > 42.7f && em->frame < 43.3f) {
+            if (em->Motion.Seq_frame > 42.7f && em->Motion.Seq_frame < 43.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
                 BitOff16(((cSubChar*) em)->flg, 0x20);
             }
         } else {
-            if (em->frame > 11.7f && em->frame < 12.3f) {
+            if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {
                 SndCall(6, 0x43, &em->pos, 0, 0, 0);
             }
-            if (em->frame > 22.7f && em->frame < 23.3f) {
+            if (em->Motion.Seq_frame > 22.7f && em->Motion.Seq_frame < 23.3f) {
                 SndCall(5, 0xD, &em->getPartsPtr(0x14)->world, em->id, 0, 0);
             }
-            if (em->frame > 35.7f && em->frame < 36.3f) {
+            if (em->Motion.Seq_frame > 35.7f && em->Motion.Seq_frame < 36.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
                 BitOff16(((cSubChar*) em)->flg, 0x20);
             }
@@ -1042,11 +1042,11 @@ void plobjLadderDown(cPlayer* pl)
         em->r_no_2++;
     case 1:
         if (obj->getType() == 1) {
-            if (em->frame > 16.7f && em->frame < 17.3f) {
+            if (em->Motion.Seq_frame > 16.7f && em->Motion.Seq_frame < 17.3f) {
                 SndCall(6, 0x40, &em->pos, 0, 0, 0);
             }
         } else {
-            if (em->frame > 12.7f && em->frame < 13.3f) {
+            if (em->Motion.Seq_frame > 12.7f && em->Motion.Seq_frame < 13.3f) {
                 SndCall(6, 0x44, &em->pos, 0, 0, 0);
             }
         }

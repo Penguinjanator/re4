@@ -65,7 +65,7 @@ cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
         return 0;
     }
 #line 94 "D:/Bio4/Prog/objRobo.cpp"
-    obj->p2A4 = MEM_ALLOC(0x98, 1, 0xD);
+    obj->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xD);
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 10000.0f, 5000.0f };
 
@@ -226,16 +226,16 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0, 4, 0);
         w->step++;
     case 1:
-        if (robo->motEvent & 1) {
+        if (robo->Motion.Seq_old.Free & 1) {
             SndCall(6, 2, &robo->getPartsPtr(RoboPartsNoLHand)->world, 0, 0, 0);
         }
-        if (robo->motEvent & 2) {
+        if (robo->Motion.Seq_old.Free & 2) {
             SndCall(6, 1, &robo->getPartsPtr(RoboPartsNoRHand)->world, 0, 0, 0);
         }
-        if (robo->motEvent & 4) {
+        if (robo->Motion.Seq_old.Free & 4) {
             SndCall(6, 4, &robo->getPartsPtr(RoboPartsNoLHand)->world, 0, 0, 0);
         }
-        if (robo->motEvent & 8) {
+        if (robo->Motion.Seq_old.Free & 8) {
             SndCall(6, 3, &robo->getPartsPtr(RoboPartsNoRHand)->world, 0, 0, 0);
         }
         for (i = 0; i < 2; i++) {
@@ -326,7 +326,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
         }
         break;
     case 2:
-        if (robo->motEvent & 1) {
+        if (robo->Motion.Seq_old.Free & 1) {
             EstSet(robo, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM02, 0, 0);
             w->SndTimer = 0;
         }
@@ -490,19 +490,19 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
     v.y = -PI / 2;
     v.z = 0.0f;
     robo->setAng(&v);
-    if (robo->motEvent & 4) {
+    if (robo->Motion.Seq_old.Free & 4) {
         parts = robo->getPartsPtr(RoboPartsNoRFoot);
         if (parts) {
             SndCall(6, 7, &parts->world, 0, 0, 0);
         }
     }
-    if (robo->motEvent & 8) {
+    if (robo->Motion.Seq_old.Free & 8) {
         parts = robo->getPartsPtr(RoboPartsNoLFoot);
         if (parts) {
             SndCall(6, 7, &parts->world, 0, 0, 0);
         }
     }
-    if (robo->motEvent & 1) {
+    if (robo->Motion.Seq_old.Free & 1) {
         if (hitCk == 1) {
             robo->WalkHitCk(robo);
         }
@@ -512,7 +512,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
             SndCall(6, 8, &parts->world, 0, 0, 0);
         }
     }
-    if (robo->motEvent & 2) {
+    if (robo->Motion.Seq_old.Free & 2) {
         if (hitCk == 1) {
             robo->WalkHitCk(robo);
         }

@@ -182,14 +182,14 @@ static void funcAshley2(cEm* p)
         at->throughOn();
         p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x2D, 0x2D, 1, 0);
         p->r_no_2 = 1;
-        p->motSpeedRate = 0.2f;
+        p->Motion.Seq_speed = 0.2f;
     }
     if (p->motionMove()) {
         cAtariInfo* at;
 
         // Reference store: the `lwz pSUB` (fixed scalar) below depends on an unflagged MEM store but
         // not on an in-struct one, which is what ranks the 1.0 chain above the routine bytes.
-        FSet(p->motSpeedRate, 1.0f);
+        FSet(p->Motion.Seq_speed, 1.0f);
         EmRoutineSet(p, 0, 0, 0, 0);
         at = &pSUB->atari;
         at->throughOff();
@@ -250,7 +250,7 @@ static void r222_dai_go()
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
-        pSUB->motSpeedRate = 1.0f;
+        pSUB->Motion.Seq_speed = 1.0f;
     }
     {
         cModel* m = pPL;

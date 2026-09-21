@@ -625,7 +625,7 @@ void cRoutine::moveThrowItem()
         owner->r_no_1 = 1;
     case 1:
         if (MotionCheckCrossFrame(&owner->Motion, 18.0f)) setItem();
-        if (owner->frame <= 30.0f) {
+        if (owner->Motion.Seq_frame <= 30.0f) {
             owner->ang.y += Muku(&owner->pos, &pPL->pos, owner->ang.y, 0.31415927f);
         }
         if (owner->motionMove()) end();
@@ -1352,7 +1352,7 @@ void cRoutine::shot()
 // Plays the motion key sound (seNo) at its parts.
 void cSubLuis::seqSeCtrl()
 {
-    u8 k = seNo;
+    u8 k = Motion.Seq_old.Se;
     u32 se;
     int parts;
     u16 blk;
@@ -1384,7 +1384,7 @@ void cSubLuis::seqSeCtrl()
         break;
     }
     SndCall(blk, (u16) se, &getPartsPtr(parts)->world, id, 0, 0);
-    seNo = 0;
+    Motion.Seq_old.Se = 0;
 }
 
 // Damage of the frame -> flags bit0 and the routine's work[]: stat 0x0400xxxx (scenario kill) ->

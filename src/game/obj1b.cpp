@@ -179,7 +179,7 @@ void cObjSpear::move()
 // Rno1 == 0: motion and matrices (the spear as held by the thrower).
 void obj1b_R1_Set(cObjSpear* obj)
 {
-    if (obj->pMotion) {
+    if (obj->Motion.pMot) {
         MotionMove(obj, 0);
     } else {
         RotMatrix(obj->mat, &obj->ang);
@@ -300,8 +300,8 @@ void obj1b_R1_Parent(cObjSpear* obj)
         PSMTXCopy(m, obj->mat);
         ScaleMatrix(obj->mat, &obj->scale);
     }
-    if (obj->pMotion) {
-        obj->motFlags2 |= 0x40000000;
+    if (obj->Motion.pMot) {
+        obj->Motion.Mot_flag |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
@@ -664,7 +664,7 @@ void cObjSpear::setFall(u8 type, Vec* dir)
     u32 i;
     f32 ang;
 
-    pMotion = 0;
+    Motion.pMot = 0;
     for (i = 0; i < 3; i++) {
         if (dir) {
             switch (i) {

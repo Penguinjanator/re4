@@ -118,7 +118,7 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
         w->Width = 650.0f;
         em->type = 1;
     }
-    em->pXFlip = emDoor_xflip_tbl;
+    em->Motion.flip = emDoor_xflip_tbl;
     EtcSetAddAmb(em, ETC_AMB_DOOR);
     zero = 0;
     w->Eff_id = 0xFF;
@@ -1564,7 +1564,7 @@ static void emDoor_R1_Open2(cEmDoor* em)
         emDoorDropWeapon(em);
         em->r_no_2++;
     case 1:
-        if (em->frame > 14.7f && em->frame < 15.3f) {
+        if (em->Motion.Seq_frame > 14.7f && em->Motion.Seq_frame < 15.3f) {
             if (w->Se_cancel == 0) {
                 switch (em->type) {
                 case 0:
@@ -3076,14 +3076,14 @@ void plemDoorKick(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1D), 0, 5, 1, frame);
         pl->r_no_2++;
     case 1:
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             door->setShock(1, &pl->pos, 0);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setShock(1, &pl->pos, 1);
             }
             emDoorBellSet(&pl->pos);
         }
-        if (pl->frame > 16.7f && pl->frame < 17.3f) {
+        if (pl->Motion.Seq_frame > 16.7f && pl->Motion.Seq_frame < 17.3f) {
             door->setShock(2, &pl->pos, 0);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
                 w->pDoor->setShock(2, &pl->pos, 1);
@@ -3097,7 +3097,7 @@ void plemDoorKick(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1C), 0, 5, 1, frame);
         pl->r_no_2++;
     case 3:
-        if (pl->frame > 13.7f && pl->frame < 14.3f) {
+        if (pl->Motion.Seq_frame > 13.7f && pl->Motion.Seq_frame < 14.3f) {
             v.x = 0.0f;
             v.y = 0.0f;
             v.z = -500.0f;

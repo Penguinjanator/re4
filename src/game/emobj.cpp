@@ -34,7 +34,7 @@ void cEmObj::EmObjMove()
         MotionMove(this, 0);
     } else {
         partsMatCalc();
-        motState = 0;
+        Motion.Mot_state = 0;
     }
     partsWorldCalc();
     if (w->flags & 2) {

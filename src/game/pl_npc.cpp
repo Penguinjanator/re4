@@ -176,7 +176,7 @@ void cSubChar::init()
     posBustL = getPartsPtr(0x1E)->pos;
     posScarf = getPartsPtr(0x1A)->pos;
 #line 231 "D:/Bio4/Prog/pl_npc.cpp"
-    p2A4 = (EmWork2A4*) MEM_ALLOC(0x98, 1, 13);
+    Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 13);
 }
 
 // Per frame: hp mirrors pG->ashley_life, the player's routine bits are cached (plStat), damage
@@ -409,7 +409,7 @@ void cSubChar::moveFootwork()
         }
         pEm->r_no_2 = 0x1F;
     case 0x15:
-        if (pEm->frame >= (f32) (pEm->frameMax - 1)) {
+        if (pEm->Motion.Seq_frame >= (f32) (pEm->Motion.Seq_frame_num - 1)) {
             pEm->r_no_2 = 1;
         }
         break;
@@ -428,7 +428,7 @@ void cSubChar::moveFootwork()
             r_no_2 = 0x20;
         }
     case 0x1F:
-        if (pEm->frame >= (f32) (pEm->frameMax - 1) || checkBackEm()) {
+        if (pEm->Motion.Seq_frame >= (f32) (pEm->Motion.Seq_frame_num - 1) || checkBackEm()) {
             setFace(4);
             pEm->r_no_2 = 1;
         }
@@ -443,7 +443,7 @@ void cSubChar::moveFootwork()
         }
         break;
     case 0x28:
-        if (pEm->frame >= (f32) (pEm->frameMax - 1)) {
+        if (pEm->Motion.Seq_frame >= (f32) (pEm->Motion.Seq_frame_num - 1)) {
             pEm->r_no_2 = 0;
         }
         break;
@@ -451,7 +451,7 @@ void cSubChar::moveFootwork()
         MOT_SET(this, MOTION(this), SUB_MOT(pEm, 0x43), 0, 7, 1, 0);
         r_no_2 = 0x33;
     case 0x33:
-        if (pEm->frame >= (f32) (pEm->frameMax - 1)) {
+        if (pEm->Motion.Seq_frame >= (f32) (pEm->Motion.Seq_frame_num - 1)) {
             MOT_SET(this, MOTION(this), SUB_MOT(pEm, 0x44), 0, 7, 5, 0);
             r_no_2 = 0x34;
         }
@@ -584,7 +584,7 @@ void cSubChar::moveMove()
             }
         }
         checkAnotherRoute();
-        subMot.blendRate = 0.0f;
+        subMot.Brate = 0.0f;
         m_BackRno = 0;
         m_BackRno2 = 0;
         m_BackTime = 30;
@@ -628,7 +628,7 @@ void cSubChar::moveMove()
         switch (pEm->r_no_3) {
         case 0:
             if (!SUBFLAG(this)->check(4) && (ckPlRun() || dist > 3000.0f)) {
-                m_Frame = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
+                m_Frame = (u8) (pPL->Motion.Seq_frame * 100.0f / (f32) (int) pPL->Motion.Seq_frame_num);
                 m_Hokan = 3;
                 r_no_2 = 2;
                 r_no_3 = 1;
@@ -636,7 +636,7 @@ void cSubChar::moveMove()
             break;
         case 1:
             if (SUBFLAG(this)->check(4) || (!ckPlRun() && dist < 550.0f)) {
-                m_Frame = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
+                m_Frame = (u8) (pPL->Motion.Seq_frame * 100.0f / (f32) (int) pPL->Motion.Seq_frame_num);
                 m_Hokan = 3;
                 r_no_2 = 2;
                 r_no_3 = 0;
@@ -655,7 +655,7 @@ void cSubChar::moveMove()
         if (SUBFLAG(this)->check(3) || m_PlActTime) {
             if (dist <= 400.0f) {
                 r_no_2 = 4;
-                motFlags &= ~1;
+                Motion.Mot_attr &= ~1;
                 m_Work0 = 0;
             }
         } else if (dist <= 400.0f) {
@@ -923,7 +923,7 @@ void cSubChar::moveKagamu()
         fyBak = pEm->pos.y;
         AtariOff(&pEm->atari, 0xFDFF);
     case 3:
-        if (pEm->frame > 7.7f && pEm->frame < 8.3f) {
+        if (pEm->Motion.Seq_frame > 7.7f && pEm->Motion.Seq_frame < 8.3f) {
             status |= 0x20;
         }
         if (pEm->motionMove()) {
@@ -944,7 +944,7 @@ void cSubChar::moveKagamu()
         }
         break;
     case 5:
-        if (pEm->frame > 11.7f && pEm->frame < 12.3f) {
+        if (pEm->Motion.Seq_frame > 11.7f && pEm->Motion.Seq_frame < 12.3f) {
             BitOff16(status, 0x20);
         }
         if (pEm->motionMove()) {
@@ -1190,7 +1190,7 @@ void cSubChar::moveFall()
         r_no_2 = 1;
     case 1:
         motionMove();
-        if (pEm->frame >= 41.0f) {
+        if (pEm->Motion.Seq_frame >= 41.0f) {
             r_no_2 = 4;
         }
         break;
@@ -1281,7 +1281,7 @@ void cSubChar::moveAction()
     case 2:
         StaFlagOn(pG, STA_SUB_LADDER);
         motionMove();
-        if (pEm->frame >= 40.0f && landCheck()) {
+        if (pEm->Motion.Seq_frame >= 40.0f && landCheck()) {
             AtariOn(&atari, 0x300);
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x2D), SUB_MOT(pEm, 0x5A), 0, 0x101, 0);
             motionMove();
@@ -1298,10 +1298,10 @@ void cSubChar::moveAction()
         break;
     case 4:
         StaFlagOn(pG, STA_SUB_LADDER);
-        if (pEm->frame <= 9.0f) {
+        if (pEm->Motion.Seq_frame <= 9.0f) {
             jumpAdjust();
         }
-        if (pEm->frame >= 35.0f && pEm->frame <= 44.0f) {
+        if (pEm->Motion.Seq_frame >= 35.0f && pEm->Motion.Seq_frame <= 44.0f) {
             pos.y += fWork0 * 0.1f;
         }
         if (motionMove()) {
@@ -1637,7 +1637,7 @@ void cSubChar::moveHide()
         if (m_Work1) {
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x45), 0, 7, 5, 0);
             r_no_2 = 0xF;
-            m_Work1 = frameMax - 3;
+            m_Work1 = Motion.Seq_frame_num - 3;
         }
         break;
     case 0xF:
@@ -1646,7 +1646,7 @@ void cSubChar::moveHide()
 
             v.x = 0.0f;
             v.y = 0.0f;
-            v.z = 200.0f / (f32) (frameMax - 3);
+            v.z = 200.0f / (f32) (Motion.Seq_frame_num - 3);
             PSMTXMultVecSR(mat, &v, &v);
             PSVECAdd(&pos, &v, &pos);
             m_Work1--;
@@ -1996,7 +1996,7 @@ void cSubChar::moveDamage()
         SndCall(8, 9, &pEm->pParts->world, id, 0, 0);
         pEm->r_no_1 = 1;
     case 1:
-        if (pEm->frame >= 10.0f && m_Work0 == 11 && landCheck()) {
+        if (pEm->Motion.Seq_frame >= 10.0f && m_Work0 == 11 && landCheck()) {
             AtariOn(&atari, 0x300);
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x6B), 0, 3, 1, 0);
             EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, ESP_CORE_KIND_NONE, pEm, 0);
@@ -2067,7 +2067,7 @@ void cSubChar::moveDie()
 {
     switch (r_no_1) {
     case 0:
-        CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
+        CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
         if (SUBFLAG2(this)->check(5)) {
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x30), 0, 3, 1, 0x32);
         } else {
@@ -2113,7 +2113,7 @@ void cSubChar::moveEvent()
                 MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x71), SUB_MOT(pEm, 0x78), 10, 5, 0);
             }
             r_no_2 = 1;
-            motFlags &= ~1;
+            Motion.Mot_attr &= ~1;
         case 1: {
             Vec out;
 
@@ -2219,7 +2219,7 @@ void cSubChar::neckCtrl()
     if (!(pPL->stat & 2)) {
         on = 0;
     }
-    if (m_NeckTimer == 0 || (blendMot != 0 && blendMot->blendRate != 0.0f) || on) {
+    if (m_NeckTimer == 0 || (Motion.blend != 0 && Motion.blend->Brate != 0.0f) || on) {
         m_NeckVec.y += Muku2(m_NeckVec.y, 0.0f, 0.15707964f);
     } else {
         if (m_NeckTimer > 0) {
@@ -2606,20 +2606,20 @@ int cSubChar::ckPlRun()
     return (plStat & 8) != 0;
 }
 
-// Motion sequence sound (seNo) -> SndCall: footsteps by surface kind (seFlags28B), voices as is.
+// Motion sequence sound (seNo) -> SndCall: footsteps by surface kind (Motion.Seq_old.Free), voices as is.
 void cSubChar::seqSeCtrl()
 {
     int no;
     int parts;
     u16 blk;   // u16: no mask before the u16 SndCall argument
 
-    if (seNo == 0) {
+    if (Motion.Seq_old.Se == 0) {
         return;
     }
-    no = seNo - 1;
+    no = Motion.Seq_old.Se - 1;
     parts = 0;
     blk = 5;
-    switch (seFlags28B & 3) {
+    switch (Motion.Seq_old.Free & 3) {
     case 0:
         switch ((u32) no) {   // unsigned: `cmplwi` range tests, case 0 as `< 1`
         case 0:
@@ -2663,29 +2663,29 @@ void cSubChar::seqSeCtrl()
         break;
     }
     SndCall(blk, no, &getPartsPtr(parts)->world, id, 0, 0);
-    seNo = 0;
+    Motion.Seq_old.Se = 0;
 }
 
 // Blend the look-back motion `mot` in (NULL: off).
 void cSubChar::backCheckSet(void* mot)
 {
     if (mot) {
-        f32 rate = subMot.blendRate;
+        f32 rate = subMot.Brate;
 
         MOT_SET(this, &subMot, mot, 0, 3, 4, 0);
-        subMot.blendRate = rate;
-        blendMot = &subMot;
-        subMot.flags2 |= 0x80000000;
+        subMot.Brate = rate;
+        Motion.blend = &subMot;
+        subMot.Mot_flag |= 0x80000000;
     } else {
-        blendMot = 0;
-        subMot.blendRate = 0.0f;
+        Motion.blend = 0;
+        subMot.Brate = 0.0f;
     }
 }
 
 // Fade the look-back blend in (sub404 == 2) or out (1).
 void cSubChar::backCheckMove()
 {
-    MotionWorkSub* w = pEm->blendMot;
+    MotionWorkSub* w = pEm->Motion.blend;
     const f32 d = 0.14f;
 
     if (w == 0) {
@@ -2695,19 +2695,19 @@ void cSubChar::backCheckMove()
     case 0:
         break;
     case 1:
-        if (w->blendRate > 0.0f) {
-            w->blendRate -= d;
-            if (pEm->blendMot->blendRate < 0.0f) {
-                pEm->blendMot->blendRate = 0.0f;
+        if (w->Brate > 0.0f) {
+            w->Brate -= d;
+            if (pEm->Motion.blend->Brate < 0.0f) {
+                pEm->Motion.blend->Brate = 0.0f;
                 m_BackRno = 0;
             }
         }
         break;
     case 2:
-        if (blendMot->blendRate < 1.0f) {
-            blendMot->blendRate += d;
-            if (blendMot->blendRate > 1.0f) {
-                blendMot->blendRate = 1.0f;
+        if (Motion.blend->Brate < 1.0f) {
+            Motion.blend->Brate += d;
+            if (Motion.blend->Brate > 1.0f) {
+                Motion.blend->Brate = 1.0f;
                 m_BackRno = 0;
             }
         }

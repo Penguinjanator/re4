@@ -156,7 +156,7 @@ int cPlPush::pushTarget()
     PSMTXCopy(t->l_mat, t->mat);
     m_Target->partsWorldCalc();
     if (ret == 1) {
-        m_Target->pMotion = 0;
+        m_Target->Motion.pMot = 0;
     }
     return ret;
 }
@@ -164,7 +164,7 @@ int cPlPush::pushTarget()
 // Stops the object's push motion.
 void cPlPush::stopTarget()
 {
-    m_Target->pMotion = 0;
+    m_Target->Motion.pMot = 0;
 }
 
 // Half width / half depth of the object as seen from the push side and the world yaw of that side
