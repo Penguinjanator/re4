@@ -429,12 +429,9 @@ public:
             Vec efmRotSpd;   // 0x138
         };
     };
-    // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
-    // to parts 1/2 here); the object itself keeps its alpha at 0x154.
-    union {
-        f32 x150;          // 0x150
-        u32 invisible_timer;         // 0x150  (cModel::cModel clears it as a word)
-    };
+    // 0x150..0x15C: on pendulum parts these three words are PenParts::speed (pendulum.h overlays the
+    // parts' cModel from 0x128; obj14 adds the hit impulse there); the object itself keeps its alpha at 0x154.
+    u32 invisible_timer;         // 0x150  (cModel::cModel clears it as a word)
     f32 invisible_factor;             // 0x154  0..1 (obj04: work color a / 255)
     f32 invisible_factor2;              // 0x158
     cModelInfo* pModelInfo;     // 0x15C

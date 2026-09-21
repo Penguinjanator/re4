@@ -71,10 +71,10 @@ struct SaveInfo {
     OSCalendarTime time;  // 0x08
     u32 mode;             // 0x30  1 normal, 2 (x8 & 0x20), 3 (x8 & 0x40)
     u8 pad_34[9];
-    u8 x3D;               // 0x3D  difficulty (from game data 0x33D4)
+    u8 game_mode_disp;    // 0x3D  pG->game_mode at save time (makeSaveData: buf[SAVE_HDR_X3D] = game_mode) (PS2 SAVE_WORK game_mode_disp)
     u8 chapter;           // 0x3E
     u8 pad_3F;
-    u16 x40;              // 0x40
+    u16 save_cnt;         // 0x40  pG->save_cnt (GameSaveBlock + 0xC) (PS2 SAVE_WORK save_cnt)
     u16 count;            // 0x42
     u8 pad_44[4];
     u32 playTime;         // 0x48
@@ -3240,7 +3240,7 @@ skip:
         id->unitPtr(4, type)->be_flag |= 8;
         id->unitPtr(5, type)->be_flag |= 8;
     }
-    putNumber(id, info->x40, 0xA, 3, type);
+    putNumber(id, info->save_cnt, 0xA, 3, type);
     if (broken) {
         id->unitPtr(8, type)->be_flag &= ~8;
         id->unitPtr(9, type)->be_flag &= ~8;
@@ -3295,7 +3295,7 @@ skip:
     id->unitPtr(0x17, type)->be_flag &= ~8;
     id->unitPtr(0x18, type)->be_flag &= ~8;
     if (pSys->language == 0) {
-        switch (info->x3D) {
+        switch (info->game_mode_disp) {
         case 1:
             id->unitPtr(0x22, type)->be_flag |= 8;
             break;
@@ -3308,7 +3308,7 @@ skip:
             break;
         }
     } else if (pSys->language == 1) {
-        switch (info->x3D) {
+        switch (info->game_mode_disp) {
         case 5:
         default:
             id->unitPtr(0x17, type)->be_flag |= 8;
@@ -3318,7 +3318,7 @@ skip:
             break;
         }
     } else {
-        switch (info->x3D) {
+        switch (info->game_mode_disp) {
         case 3:
             id->unitPtr(0x22, type)->be_flag |= 8;
             break;

@@ -4,6 +4,7 @@
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
+#include "pendulum.h"
 #include "emhit.h"
 #include "esp.h"
 #include "global.h"
@@ -251,10 +252,10 @@ void obj14DmCk(cObjBell* obj)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, rate);
     parts = obj->getPartsPtr(1);
-    PSVECAdd((Vec*) &parts->x150, &dir, (Vec*) &parts->x150);
+    PSVECAdd(&((PenParts*) &parts->pFloor_norm)->speed, &dir, &((PenParts*) &parts->pFloor_norm)->speed);
     parts = obj->getPartsPtr(2);
     PSVECScale(&dir, &dir, 0.8f);
-    PSVECAdd((Vec*) &parts->x150, &dir, (Vec*) &parts->x150);
+    PSVECAdd(&((PenParts*) &parts->pFloor_norm)->speed, &dir, &((PenParts*) &parts->pFloor_norm)->speed);
 }
 
 // Switches to the broken routine.

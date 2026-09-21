@@ -183,7 +183,7 @@ struct GlobalWork {
     u8 save_data_start_addr[4];  // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
     s32 point;             // 0x4F84  difficulty point (game GameAddPoint, 0..0x2AF7)
     u8 Game_level;         // 0x4F88  adaptive difficulty rank 1..10 = point / 1000 (em2d/em10 branch on > 1/3/6/== 10)
-    u8 x4F89;
+    u8 game_mode_disp;     // 0x4F89  save header copy of game_mode (card makeSaveData writes it into the header's byte 0x3D) (PS2 SAVE_WORK game_mode_disp)
     u8 chapter;            // 0x4F8A  chapters ended (sce_com SceChapterEnd: SceSys chapter + 1)
     u8 pad_4F8B;
     u16 save_cnt;          // 0x4F8C  times saved (card makeSaveData increments it)
