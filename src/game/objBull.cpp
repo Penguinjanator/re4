@@ -837,7 +837,7 @@ void objBullSetAdjust(cObjBull* obj, cEm* em)
     PSMTXMultVec(inv, &em->pos, &v);
     PSMTXMultVec(parts->mat, &v, &v);
     PSVECSubtract(&v, &em->pos, &d);
-    PSVECAdd(&em->x3A8, &d, &em->x3A8);
+    PSVECAdd(&em->Catch_at_adj, &d, &em->Catch_at_adj);
     em->ang.y += Bull_dir;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     em->setPos(&v);

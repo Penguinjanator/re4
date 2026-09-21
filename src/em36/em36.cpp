@@ -1855,7 +1855,7 @@ static void plem36_CatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2022,7 +2022,7 @@ static void plem36_LongCatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2124,7 +2124,7 @@ static void plem36_SpineCatchHit(cPlayer* pl)
         break;
     }
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2765,7 +2765,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         break;
     }
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

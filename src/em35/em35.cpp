@@ -1663,7 +1663,7 @@ static void em35_R1_BearHug(cEm35* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 
@@ -1742,7 +1742,7 @@ static void plem35_BearHug(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2175,7 +2175,7 @@ static void em35_R1_CriticalHit(cEm35* em)
         MotionMove(em, 0);
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage callback of the critical kill: placed in front of the enemy facing it (collision
@@ -2217,7 +2217,7 @@ static void plem35_CriticalHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2486,7 +2486,7 @@ static void em35_R1_CatchHit(cEm35* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage callback of the catch (dmType 2). Step 0/1: held 1.8 m in front of the enemy in
@@ -2615,7 +2615,7 @@ static void plem35_CatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

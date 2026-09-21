@@ -819,7 +819,7 @@ static void plem38_AtkHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -1443,7 +1443,7 @@ static void plem38_CatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

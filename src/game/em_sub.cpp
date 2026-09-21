@@ -2418,8 +2418,8 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
         em->catchOfs = d;
         break;
     }
-    em->x3A8 = em->pos;
-    pPL->x3A8 = pPL->pos;
+    em->Catch_at_adj = em->pos;
+    pPL->Catch_at_adj = pPL->pos;
     PSet(em->pEmCatch, pPLS);
     PSet(pPL->pEmCatch, em);
     pPL->subArc = em->subArc;
@@ -2477,8 +2477,8 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
         em->catchOfs = d;
         break;
     }
-    em->x3A8 = em->pos;
-    sub->x3A8 = sub->pos;
+    em->Catch_at_adj = em->pos;
+    sub->Catch_at_adj = sub->pos;
     em->pEmCatch = sub;
     sub->pEmCatch = em;
     sub->subArc = em->subArc;
@@ -2498,7 +2498,7 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     f32 tmp;
     int ret;
 
-    PSVECSubtract(&target->pos, &target->x3A8, &d);
+    PSVECSubtract(&target->pos, &target->Catch_at_adj, &d);
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
     PSVECScale(&em->catchOfs, &d, rate2);
@@ -2518,7 +2518,7 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     return ret;
 }
 

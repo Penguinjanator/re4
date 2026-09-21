@@ -724,7 +724,7 @@ static void em25_R1_Bite(cEm25* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage routine of the bite: grabbed at the face (weapon hidden), the struggle, the throw-off
@@ -763,7 +763,7 @@ static void plem25_Bite(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

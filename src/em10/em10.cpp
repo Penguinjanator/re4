@@ -11376,7 +11376,7 @@ static void em10_R1_ClawCriHit(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 0);
 }
 
@@ -11408,7 +11408,7 @@ static void plem10_ClawCriHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -11583,7 +11583,7 @@ static void em10_R1_C_SawHit(cEm10* em)
         MotionMove(em, 0);
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     if (w->flags & 0x800) {
         em10CamMoveCri(em, em->r_no_3, 1);
     }
@@ -11661,7 +11661,7 @@ static void plem10_C_SawHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -11771,7 +11771,7 @@ static void em10_R1_C_SawCriHit(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     if (w->flags & 0x800) {
         if (w->Timer) {
             em10CamMoveCri(em, em->r_no_3, 1);
@@ -11818,7 +11818,7 @@ static void plem10_C_SawCriHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
     if ((s16) pGS->pl_life <= 0) {
         SndStop(pl->m_Work2, 0);
@@ -12112,7 +12112,7 @@ static void em10_R1_NeckHang(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 1);
     if (em->seFlags28B & 0x10) {
         em10SetCrash(em, 800.0f);
@@ -12257,7 +12257,7 @@ static void plem10_NeckHang(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -12318,7 +12318,7 @@ static void em10_R1_NeckHang_Luis(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 1);
     if (em->seFlags28B & 0x10) {
         em10SetCrash(em, 800.0f);
@@ -12371,7 +12371,7 @@ static void subem10_NeckHang_Luis(cSubChar* sub)
         }
         break;
     }
-    s->x3A8 = s->pos;
+    s->Catch_at_adj = s->pos;
     s->subArc = s->subArc2;
 }
 
@@ -12486,7 +12486,7 @@ static void em10_R1_NeckHang_Ashley(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 1);
     if (em->seFlags28B & 0x10) {
         em10SetCrash(em, 800.0f);
@@ -12567,7 +12567,7 @@ static void subem10_NeckHang_Ashley(cSubChar* sub)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -12695,7 +12695,7 @@ static void em10_R1_Backhold(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 1);
     if (em->seFlags28B & 0x10) {
         em10SetCrash(em, 800.0f);
@@ -12744,7 +12744,7 @@ static void plem10_Backhold(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -12883,7 +12883,7 @@ static void em10_R1_Bombhold(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 1);
     if (em->seFlags28B & 0x10) {
         em10SetCrash(em, 800.0f);
@@ -12943,7 +12943,7 @@ static void plem10_Bombhold(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -13263,7 +13263,7 @@ static void em10_R1_TakeAway(cEm10* em)
         em10CamMoveTakeaway(em);
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 0);
 }
 #undef EM10_FALL_WATER_EFFECT
@@ -13471,7 +13471,7 @@ static void subem10_TakeAway(cSubChar* sub)
         }
         break;
     }
-    s->x3A8 = s->pos;
+    s->Catch_at_adj = s->pos;
     if ((s->pEmCatch->be_flag & 0x201) != 1) {
         s->pos.y = SatMgr.getFloor(&s->pos, 0, 600.0f, 100000.0f, 0);
         EndSubDamage();
@@ -14616,7 +14616,7 @@ static void em10_R1_Dm_NeckBreak(cEm10* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
     em10HandSet(em, 0);
     em10SetCrash(em, 1500.0f);
 }
@@ -24638,7 +24638,7 @@ static void plem10NeckBreak(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -24670,8 +24670,8 @@ static void plem10NeckBreakCamMove(cPlayer* pl, int a)
     PSMTXMultVec(pl->mat, &pos, &pos);
     PSMTXMultVec(pl->mat, &rot, &rot);
     PSMTXMultVec(pl->mat, &pos2, &pos2);
-    pl->x3A8.x = rate;
-    pl->x3A8.y = rate2;
+    pl->Catch_at_adj.x = rate;
+    pl->Catch_at_adj.y = rate2;
 }
 
 // Player routine of Wesker's palm strike ("shotei", motion 0x2B4): the hit at frame 13 sweeps the hand

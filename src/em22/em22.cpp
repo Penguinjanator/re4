@@ -1375,7 +1375,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
         MotionMove(em, 0);
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage routine of JumpAtkHit: knocked down with the dog on him (weapon hidden), the
@@ -1445,7 +1445,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

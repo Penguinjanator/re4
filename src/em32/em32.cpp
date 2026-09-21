@@ -1986,7 +1986,7 @@ static void em32_R1_CatchHit(cEm32* em)
         EmCatchMotionMove(em, 1.0f, 1.0f);
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage callback of em32_R1_CatchHit (EmCatchPLSet: the player follows the enemy's
@@ -2034,7 +2034,7 @@ static void plem32_CatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -3012,7 +3012,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage callback of em32_R1_C_AtkHit (EmCatchPLSet). r_no_2 is driven by the enemy: 0/1
@@ -3055,7 +3055,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -3267,7 +3267,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage callback of em32_R1_P_CatchHit (EmCatchPLSet). r_no_2 is driven by the enemy: 0/1
@@ -3340,7 +3340,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 

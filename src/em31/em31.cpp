@@ -1836,7 +1836,7 @@ static void em31_R1_CatchHit(cEm31* em)
         }                                                                                           \
         break;                                                                                      \
     }                                                                                               \
-    pl->x3A8 = pl->pos;                                                                             \
+    pl->Catch_at_adj = pl->pos;                                                                             \
     pl->subArc = pl->subArc2;                                                                      
 
 // Player damage callback of the grab: placed 4.5 m in front of the giant facing it, the carried

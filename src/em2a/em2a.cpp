@@ -430,7 +430,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             em->hp = 0;
             em->r_no_2++;
         } else {
-            em->x3A8 = em->pos;
+            em->Catch_at_adj = em->pos;
         }
         break;
     }
@@ -487,7 +487,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         if (r) {
             em->r_no_2++;
         }
-        em->x3A8 = em->pos;
+        em->Catch_at_adj = em->pos;
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 5, 5, 0);
@@ -501,7 +501,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
             MotionMove(em, 0);
             em->hp = 0;
         } else {
-            em->x3A8 = em->pos;
+            em->Catch_at_adj = em->pos;
         }
         break;
     case 4:
