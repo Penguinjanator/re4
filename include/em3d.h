@@ -32,7 +32,7 @@ struct Em3dWork {
     u32 Se_id;            // 0x2C4 (0x6A4)  voice handle (SndStop before the next one)
     int Se_wait;         // 0x2C8 (0x6A8)  frames the radio message is held
     f32 Search_len;            // 0x2CC (0x6AC)  enemy search range (setTarget)
-    cObj* pMissile[4];    // 0x2D0 (0x6B0)  the rockets hung on parts 0xC..0xF
+    cObjMissile* pMissile[4];   // 0x2D0 (0x6B0)  the rockets hung on parts 0xC..0xF
     u8 pad_2E0;
     u8 gunTimer;          // 0x2E1 (0x6C1)  frames between chain gun shots
 };

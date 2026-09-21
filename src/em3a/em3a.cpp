@@ -369,7 +369,7 @@ static void em3a_R0_Init(cEm3a* em)
         rot.z = 0.0f;
         w->pMissile = SetHeliMissile(ARC(9), ARC(0xA), &pos, &rot, 1);
         if (w->pMissile) {
-            ((cObjMissile*) w->pMissile)->setParent(em, 9, 0);
+            w->pMissile->setParent(em, 9, 0);
         }
         p = em->getPartsPtr(0xA);
         p->scale.x = 0.0f;
@@ -1367,7 +1367,7 @@ void em3aPatrolInit(cEm3a* em)
     if (GRef(pG)->pEmi == 0) {
         return;
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -1386,7 +1386,7 @@ int em3aPatrolUpdate(cEm3a* em)
     EmiData* emi;
     u32 i;
 
-    emi = (EmiData*) pG->pEmi;
+    emi = pG->pEmi;
     if (emi == 0) {
         return 0;
     }
@@ -1406,8 +1406,8 @@ int em3aPatrolUpdate(cEm3a* em)
             return 1;
         }
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pG->pEmi)->entry[i];
+    for (i = 0; i < (pG->pEmi)->n; i++) {
+        EmiEntry* e = &(pG->pEmi)->entry[i];
 
         if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
             w->pRoute = e;
@@ -1577,7 +1577,7 @@ void em3aRocketFire(cEm3a* em)
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    m = (cObjMissile*) SetHeliMissile(ARC(9), ARC(0xA), &pos, &rot, 1);
+    m = SetHeliMissile(ARC(9), ARC(0xA), &pos, &rot, 1);
     if (m) {
         m->setParent(em, 9, 0);
         m->setFire(0);

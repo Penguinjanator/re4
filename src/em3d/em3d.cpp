@@ -339,7 +339,7 @@ static void em3d_R0_Init(cEm3d* em)
         rot.z = 0.0f;
         w->pMissile[i] = SetHeliMissile(ARC(7), ARC(8), &pos, &rot, 0);
         if (w->pMissile[i]) {
-            ((cObjMissile*) w->pMissile[i])->setParent(em, em3d_missile_parts[i], 0);
+            w->pMissile[i]->setParent(em, em3d_missile_parts[i], 0);
         }
     }
     w->Patrol_pos = Em3d_pos_tbl[0];
@@ -902,13 +902,13 @@ void em3dRocketFire(cEm3d* em)
             rot.x = 0.0f;
             rot.y = 0.0f;
             rot.z = 0.0f;
-            m = (cObjMissile*) SetHeliMissile(ARC(7), ARC(8), &pos, &rot, 0);
+            m = SetHeliMissile(ARC(7), ARC(8), &pos, &rot, 0);
             if (m) {
                 m->setParent(em, em3d_missile_parts[no], 0);
                 m->setFire(&target);
             }
         } else {
-            ((cObjMissile*) w->pMissile[no])->setFire(&target);
+            w->pMissile[no]->setFire(&target);
             w->pMissile[no] = 0;
         }
         break;

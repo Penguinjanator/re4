@@ -345,7 +345,7 @@ extern "C" int em10SearchParasite(cEm10* em);
 // Parts (cModel-shaped) fields model.h does not name: the rotation offset Vec at 0x128 and the flag word at 0x1C0.
 #define PARTS_ROT_OFS(p) (*(Vec*) ((u8*) (p) + 0x128))
 #define PARTS_FLAGS(p) (*(u32*) ((u8*) (p) + 0x1C0))
-#define EMI_DATA ((EmiData*) pG->pEmi)
+#define EMI_DATA (pG->pEmi)
 
 // Helpers of this unit used before their definition.
 int em10CrashCk(cEm10* em);
@@ -4509,7 +4509,7 @@ static void em10_R1_R303FireDash(cEm10* em)
             info->color[2] = 0x30;
         }
         if (w->pCap) {
-            ((cObj12*) w->pCap)->setBurn();
+            w->pCap->setBurn();
         }
         w->Timer2 = 10;
         em->r_no_2++;
@@ -5048,8 +5048,8 @@ static void em10_R1_R11DAppear2(cEm10* em)
         v.y = 550.9f;                                                                                  \
         v.z = -1243.91f;                                                                               \
     }                                                                                                  \
-    PSMTXMultVec(((cModel*) w->pDrill)->getPartsPtr(0)->mat, &v, &em->pos);                              \
-    em->ang.y = ((cModel*) w->pDrill)->ang.y;
+    PSMTXMultVec(w->pDrill->getPartsPtr(0)->mat, &v, &em->pos);                                          \
+    em->ang.y = w->pDrill->ang.y;
 
 // R1 == 0x5C: room 212 Ganado riding the drill (pDrill; EM10_DRILL_FOLLOW keeps it on the root
 // part). Idle, then the drive motion (evtMot[0]); when killed plays the die motion evtMot[1] and
@@ -11356,7 +11356,7 @@ static void em10_R1_ClawCriHit(cEm10* em)
     case 0:
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x120), 0, 10, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM10, 0x8C, 0, ESP_CORE_KIND_NONE, em, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem10_ClawCriHit, 241.15f, 0.0f, 975.16f);
+        EmCatchPLSet(em, 0.0f, 2, 241.15f, 0.0f, 975.16f, plem10_ClawCriHit);
         w->Timer = 10;
         if (w->Claw_rno_l != 4) {
             w->Claw_rno_l = 3;
@@ -11483,9 +11483,9 @@ static void em10_R1_C_SawHit(cEm10* em)
     switch (em->r_no_2) {
     case 0:
         if (pG->pl_type != 2) {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_C_SawHit, -15.17f, 0.0f, 853.48f);
+            EmCatchPLSet(em, 0.0f, 2, -15.17f, 0.0f, 853.48f, plem10_C_SawHit);
         } else {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_C_SawHit, 8.56f, 0.0f, 520.49f);
+            EmCatchPLSet(em, 0.0f, 2, 8.56f, 0.0f, 520.49f, plem10_C_SawHit);
         }
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0xFB), 0, 5, 1, 0);
         w->Timer2 = 0;
@@ -11733,9 +11733,9 @@ static void em10_R1_C_SawCriHit(cEm10* em)
     case 0:
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x100), 0, 5, 1, 0);
         if (pG->pl_type != 2) {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_C_SawCriHit, 24.27f, 0.0f, 805.87f);
+            EmCatchPLSet(em, 0.0f, 2, 24.27f, 0.0f, 805.87f, plem10_C_SawCriHit);
         } else {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_C_SawCriHit, 24.27f, 0.0f, 805.87f);
+            EmCatchPLSet(em, 0.0f, 2, 24.27f, 0.0f, 805.87f, plem10_C_SawCriHit);
         }
         w->Timer2 = 0;
         SndStop(w->Seid_csaw, 0);
@@ -11958,9 +11958,9 @@ static void em10_R1_NeckHang(cEm10* em)
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x28F), 0, 5, 1, 0);
         PlSetDamageSe(0);
         if (pG->pl_type != 2) {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_NeckHang, -180.0f, 0.0f, 470.18f);
+            EmCatchPLSet(em, 0.0f, 2, -180.0f, 0.0f, 470.18f, plem10_NeckHang);
         } else {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_NeckHang, -172.81f, 0.0f, 428.66f);
+            EmCatchPLSet(em, 0.0f, 2, -172.81f, 0.0f, 428.66f, plem10_NeckHang);
         }
         em->dmg.set(0, 0);
         w->Timer = 0xF;
@@ -12042,7 +12042,7 @@ static void em10_R1_NeckHang(cEm10* em)
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x292), PL_ARC_PTR(em->subArc, 0x293), 5, 1, 0);
         w->Timer = 0xE;
         if (pG->pl_type == 2) {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem10_NeckHang, -280.09f, 0.0f, 364.05f);
+            EmCatchPLSet(em, 0.0f, 2, -280.09f, 0.0f, 364.05f, plem10_NeckHang);
             pPL->r_no_2 = 4;
         }
         SndStop(w->TmpU32, 0);
@@ -12394,7 +12394,7 @@ static void em10_R1_NeckHang_Ashley(cEm10* em)
         em->scale.z = 1.0f;
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x1A8), 0, 5, 1, 0);
         PlSetFace(1);
-        EmCatchPLSet(em, 0.0f, 2, (int) subem10_NeckHang_Ashley, -150.33f, 0.0f, 415.26f);
+        EmCatchPLSet(em, 0.0f, 2, -150.33f, 0.0f, 415.26f, (void (*)(cPlayer*)) subem10_NeckHang_Ashley);
         em->dmg.set(0, 0);
         w->Timer2 = 0x28;
         w->Timer = 0xF;
@@ -12594,9 +12594,9 @@ static void em10_R1_Backhold(cEm10* em)
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x294), 0, 5, 1, 0);
         PlSetDamageSe(0);
         if (pG->pl_type != 2) {
-            EmCatchPLSet(em, PI, 2, (int) plem10_Backhold, 178.63f, 0.0f, -190.03f);
+            EmCatchPLSet(em, PI, 2, 178.63f, 0.0f, -190.03f, plem10_Backhold);
         } else {
-            EmCatchPLSet(em, PI, 2, (int) plem10_Backhold, 178.53f, 0.0f, -190.03f);
+            EmCatchPLSet(em, PI, 2, 178.53f, 0.0f, -190.03f, plem10_Backhold);
         }
         StaFlagOn(pG, STA_PL_CATCHED);
         em->dmg.set(0, 0);
@@ -12770,9 +12770,9 @@ static void em10_R1_Bombhold(cEm10* em)
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x294), 0, 5, 1, 0);
         PlSetDamageSe(0);
         if (pG->pl_type != 2) {
-            EmCatchPLSet(em, PI, 2, (int) plem10_Bombhold, 178.63f, 0.0f, -190.03f);
+            EmCatchPLSet(em, PI, 2, 178.63f, 0.0f, -190.03f, plem10_Bombhold);
         } else {
-            EmCatchPLSet(em, PI, 2, (int) plem10_Bombhold, 178.53f, 0.0f, -190.03f);
+            EmCatchPLSet(em, PI, 2, 178.53f, 0.0f, -190.03f, plem10_Bombhold);
         }
         StaFlagOn(pG, STA_PL_CATCHED);
         em->dmg.set(0, 0);
@@ -14106,7 +14106,7 @@ static void em10_R1_Dm_Head(cEm10* em)
                     spd.y = 40.0f;
                     spd.z = -50.0f;
                     PSMTXMultVecSR(em->mat, &spd, &spd);
-                    ((cObj12*) w->pCap)->setFall(&spd, 2);
+                    w->pCap->setFall(&spd, 2);
                     w->pCap = 0;
                     w->Cap_type = 0;
                     break;
@@ -14125,7 +14125,7 @@ static void em10_R1_Dm_Head(cEm10* em)
             spd.y = 40.0f;
             spd.z = -50.0f;
             PSMTXMultVecSR(em->mat, &spd, &spd);
-            ((cObj12*) w->pGlasses)->setFall(&spd, 3);
+            w->pGlasses->setFall(&spd, 3);
             w->pGlasses = 0;
         }
         em10SetDmWaterEff(em, 0);
@@ -14575,7 +14575,7 @@ static void em10_R1_Dm_NeckBreak(cEm10* em)
         }
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x2BA), PL_ARC_PTR(em->subArc, 0x2BB), 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM10, 0x90, 0, ESP_CORE_KIND_NONE, em, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem10NeckBreak, -75.21f, 0.0f, 1076.1f);
+        EmCatchPLSet(em, 0.0f, 2, -75.21f, 0.0f, 1076.1f, plem10NeckBreak);
         em10SetDmWaterEff(em, 1);
         SndStop(w->Seid_csaw, 0);
         em->hp = 0;
@@ -15857,7 +15857,7 @@ static void em10_R1_Dm_Frame(cEm10* em)
                 info->color[2] = info->color[1] = info->color[0];
             }
             if (w->pCap) {
-                ((cObj12*) w->pCap)->setBurn();
+                w->pCap->setBurn();
             }
             if (w->pCore) {
                 w->pCore->setBurn();
@@ -16914,7 +16914,7 @@ extern "C" int em10RouteTargetSet(cEm10* em)
 // Random EMI wander point of the room (entries of type 1 sub 3): its index, or -1 when the room has none.
 extern "C" int em10GetWanderRouteEmi(cEm10* em)
 {
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     int cnt;
     int i;
     int r;
@@ -16942,7 +16942,7 @@ extern "C" int em10GetWanderRouteEmi(cEm10* em)
     r = Rnd() % cnt;
     cnt = 0;
     // pG->pRoomEmi re-read here: the loop bound is then a gcse PRE copy (`mr r8, r9`) of the entry test's load.
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + 8 + i * 0x40);
         if (e->type != 1) {
             continue;
@@ -16983,7 +16983,7 @@ u32 em10GetWanderRoute(cEm10* em)
 extern "C" void em10GetWanderRoutePos(cEm10* em, Vec* pos)
 {
     Em10Work* w = EM10_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
 
     if (emi && (int) w->Wander_route >= 0 && (int) w->Wander_route < emi->n) {
         EmiEntry* e = &emi->entry[w->Wander_route];
@@ -17767,7 +17767,7 @@ int em10LostHead(cEm10* em, int a, int b)
             spd.y = 40.0f;
             spd.z = -50.0f;
             PSMTXMultVecSR(em->mat, &spd, &spd);
-            ((cObj12*) w->pCap)->setFall(&spd, 2);
+            w->pCap->setFall(&spd, 2);
             w->pCap = 0;
             w->Cap_type = 0;
             break;
@@ -17785,7 +17785,7 @@ int em10LostHead(cEm10* em, int a, int b)
         spd.y = 40.0f;
         spd.z = -50.0f;
         PSMTXMultVecSR(em->mat, &spd, &spd);
-        ((cObj12*) w->pGlasses)->setFall(&spd, 3);
+        w->pGlasses->setFall(&spd, 3);
         w->pGlasses = 0;
     }
     em->setWeaponFall();
@@ -18180,7 +18180,7 @@ extern "C" void em10WeaponInit(cEm10* em)
     r.z = 0.0f;                                                                                    \
     w->pCap = SetObj12(bin, tpl, &pos, &r);                                                        \
     if (w->pCap) {                                                                                 \
-        ((cObj12*) w->pCap)->setParent(em, 4, 1);                                                  \
+        w->pCap->setParent(em, 4, 1);                                                  \
         w->Cap_type = kind;                                                                            \
     }
 
@@ -18251,7 +18251,7 @@ extern "C" void em10SetAccesory(cEm10* em)
             rot.z = 0.0f;
             w->pGlasses = SetObj12(w->mot[61], w->mot[62], &pos, &rot);
             if (w->pGlasses) {
-                ((cObj12*) w->pGlasses)->setParent(em, 4, 1);
+                w->pGlasses->setParent(em, 4, 1);
             }
         }
         if (w->mot[23] && w->mot[24] && (em->flag & 0x00400000)) {
@@ -25462,7 +25462,7 @@ void cEm10::setDrill(void* m0, void* m1, void* m2, void* m3)
 
     w->evtMot[0] = m0;
     w->evtMot[1] = m1;
-    w->pDrill = (u32) m2;
+    w->pDrill = (cObj*) m2;
     w->TmpU32 = (int) m3;
 }
 
@@ -26219,8 +26219,8 @@ extern "C" void em10SetTakeawayPos(cEm10* em)
     // copy gives `&best` 17 weighted refs (> em's 29/241) and the loop-2 `&c` PRE copy 10, which
     // puts &best above em (r28/r27) and the copy above p (r29/r28).
     if (pG->pEmi) {
-        for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
-            EmiEntry* e = &((EmiData*) pG->pEmi)->entry[i];
+        for (i = 0; i < (pG->pEmi)->n; i++) {
+            EmiEntry* e = &(pG->pEmi)->entry[i];
             if (e->type != 5) {
                 continue;
             }
@@ -26327,8 +26327,8 @@ extern "C" void em10SetTakeawayPosUpdate(cEm10* em)
     if (!pGS->pEmi) {
         return;
     }
-    for (i = 0; i < ((EmiData*) pGS->pEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pGS->pEmi)->entry[i];
+    for (i = 0; i < (pGS->pEmi)->n; i++) {
+        EmiEntry* e = &(pGS->pEmi)->entry[i];
         if (e->type != 5) {
             continue;
         }
@@ -26343,8 +26343,8 @@ extern "C" void em10SetTakeawayPosUpdate(cEm10* em)
         if (!(d < 16000000.0f && dy < 1000.0f)) {
             continue;
         }
-        for (j = 0; j < ((EmiData*) pGS->pEmi)->n; j++) {
-            EmiEntry* e2 = &((EmiData*) pGS->pEmi)->entry[j];
+        for (j = 0; j < (pGS->pEmi)->n; j++) {
+            EmiEntry* e2 = &(pGS->pEmi)->entry[j];
             if (e2->type != 5) {
                 continue;
             }
@@ -26378,7 +26378,7 @@ extern "C" int em10ReturnPosCk(cEm10* em)
     if (em->Character != 1 && em->Character != 3) {
         return 0;
     }
-    emi = (EmiData*) pG->pEmi;
+    emi = pG->pEmi;
     for (i = 0; i < emi->n; i++) {
         f32 dx;
         f32 dy;

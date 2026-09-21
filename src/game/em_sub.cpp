@@ -2375,7 +2375,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
 
 // Start the catch: turn the enemy and the player to face each other (ang offset for the player),
 // place the player at (x, y, z) in front of the enemy and run SetPlDamage(a).
-void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
+void EmCatchPLSet(cEm* em, f32 ang, u32 type, f32 x, f32 y, f32 z, void (*a)(cPlayer*))
 {
     Mtx m;
     Vec p;
@@ -2423,7 +2423,7 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     PSet(em->pEmCatch, pPLS);
     PSet(pPL->pEmCatch, em);
     pPL->subArc = em->subArc;
-    SetPlDamage(em, (void (*)(cPlayer*)) a);
+    SetPlDamage(em, a);
 }
 
 // Never called (dead-stripped by the original linker; only its PI pool entry survives).

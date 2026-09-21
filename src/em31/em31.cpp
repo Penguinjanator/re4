@@ -4849,8 +4849,8 @@ int em31BridgeJumpCk(cEm31* em)
     if (pG->pEmi == 0) {
         return 0;
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pG->pEmi)->entry[i];
+    for (i = 0; i < (pG->pEmi)->n; i++) {
+        EmiEntry* e = &(pG->pEmi)->entry[i];
 
         if (e->type != 0x11) {
             continue;
@@ -4872,8 +4872,8 @@ int em31BridgeJumpCk(cEm31* em)
         if (lp.z < 6000.0f) {
             continue;
         }
-        for (j = 0; j < ((EmiData*) pG->pEmi)->n; j++) {
-            EmiEntry* f = &((EmiData*) pG->pEmi)->entry[j];
+        for (j = 0; j < (pG->pEmi)->n; j++) {
+            EmiEntry* f = &(pG->pEmi)->entry[j];
 
             if (f->type != 0x11) {
                 continue;

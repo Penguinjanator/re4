@@ -35,7 +35,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec
                       int flag, f32 len);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);
 int lockEmCk(cEm* em, Vec* pos);
-cModel* searchLockEm(Vec* pos, cModel* skip, f32 range);
+cEm* searchLockEm(Vec* pos, cEm* skip, f32 range);
 int cnCkSub(Vec* pos, Vec* nrm, f32 len, Vec* outA, Vec* outB);
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type);
 void setWaterShot(Vec* pos);
@@ -606,18 +606,18 @@ void cPlWep::setTrans(int on, int type)
 
 // Aim start: picks the lock-on target nearest the hand (SearchLockEm) as m_pEm and arms 10
 // frames of auto tracking (m_LockTime) when it is in front. Returns the target.
-cModel* cPlWep::lockInit()
+cEm* cPlWep::lockInit()
 {
     cPlayer* pl = pPL;
     cEm* em;
 
-    em = (cEm*) SearchLockEm(&pl->getPartsPtr(3)->world, 0);
+    em = SearchLockEm(&pl->getPartsPtr(3)->world, 0);
     pl->m_pEm = em;
     if (em) {
         Vec v;
         f32 ang;
 
-        PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &((cEm*) pl->m_pEm)->lockOfs, &v);
+        PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &pl->m_pEm->lockOfs, &v);
         ang = GetXZAngleLocal(&pl->pos, &v, pl->ang.y);
         if (ang <= PI && ang >= -PI) {
             m_LockTime = 10;
@@ -759,7 +759,7 @@ cModel* cPlWep::lockNext()
 }
 
 // Best lock-on target from `pos` when auto-aim is enabled (pSys->Config_flg 0x20000000), else 0.
-cModel* SearchLockEm(Vec* pos, cModel* skip)
+cEm* SearchLockEm(Vec* pos, cEm* skip)
 {
     if (CfgFlagChk(pSys, CFG_LOCK_ON)) {
         return searchLockEm(pos, skip, 0.0f);
@@ -768,19 +768,19 @@ cModel* SearchLockEm(Vec* pos, cModel* skip)
 }
 
 // Best target within `range` regardless of the auto-aim option (enemy / scenario use).
-cModel* SearchTargetEm(Vec* pos, cModel* skip, f32 range)
+cEm* SearchTargetEm(Vec* pos, cEm* skip, f32 range)
 {
     return searchLockEm(pos, skip, range);
 }
 
 // Enemy with the lowest rangeDist score that passes lockEmCk, excluding `skip` (which is returned
 // again when nothing else qualifies).
-cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
+cEm* searchLockEm(Vec* pos, cEm* skip_, f32 range_)
 {
     // COMPILER-DIFF: candidate (global-alloc order): skip r30 / range f30 pins; a plain `skip` copy
     // ranks below `i`/`pos` here (ours r28, target r30). `best`/`i` cannot be pinned: a hard-reg
     // `best` stops cse from reusing its zero for the loop entry test (`cmplw best,nArray`).
-    register cModel* skip asm("r30") = skip_;
+    register cEm* skip asm("r30") = skip_;
     register f32 range asm("fr30") = range_;
     cEm* best = 0;
     f32 bestD = 1000000000000.0f;
@@ -803,8 +803,8 @@ cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
         }
     }
     if (best == 0 && skip != 0) {
-        if (lockEmCk((cEm*) skip, pos)) {
-            best = (cEm*) skip;
+        if (lockEmCk(skip, pos)) {
+            best = skip;
         }
     }
     // COMPILER-DIFF: candidate (global-alloc priority): one more ref of `best` (7 -> 8, floor_log2 2 -> 3)
@@ -1133,7 +1133,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
         return;
     }
     hand = &pl->getPartsPtr(10)->world;
-    PSMTXMultVec(pl->m_pEm->getPartsPtr(((cEm*) pl->m_pEm)->lockParts & 7)->mat, &((cEm*) pl->m_pEm)->lockOfs,
+    PSMTXMultVec(pl->m_pEm->getPartsPtr(pl->m_pEm->lockParts & 7)->mat, &pl->m_pEm->lockOfs,
                  &tgt);
     dist = GetDistance3(hand, &tgt);
     if (dist > 400.0f) {
@@ -1221,7 +1221,7 @@ void PlSetLockPitch(cModel* plm)
         if (pl->m_pEm) {
             Vec d;
 
-            PSVECSubtract(&pl->m_pEm->getPartsPtr(((cEm*) pl->m_pEm)->lockParts)->world, &pl->pParts->world,
+            PSVECSubtract(&pl->m_pEm->getPartsPtr(pl->m_pEm->lockParts)->world, &pl->pParts->world,
                           &d);
             p = VecElevation(&d);
         } else {

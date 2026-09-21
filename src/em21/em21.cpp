@@ -1322,7 +1322,7 @@ int em21TrapSearch(cEm21* em)
 int em21GetBarkPos(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     EmiEntry* e;
     f32 best = 0.0f;
     int idx;
@@ -1352,7 +1352,7 @@ int em21GetBarkPos(cEm21* em)
     if (idx == -1) {
         return 0;
     }
-    e = &((EmiData*) pG->pEmi)->entry[idx];
+    e = &(pG->pEmi)->entry[idx];
     w->barkPos = e->pos;
     return 1;
 }

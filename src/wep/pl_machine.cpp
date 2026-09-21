@@ -250,7 +250,7 @@ static void wep11_r3_set00(cPlayer* pl)
     if (pl->m_Work0 == 0) {
         hokan = 3;
     }
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x1B), PL_ARC_PTR(arc, 0x1F), PL_ARC_PTR(arc, 0x21), 0, hokan, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
@@ -309,7 +309,7 @@ static void wep11_r3_fire00(cPlayer* pl)
     cObjWep* obj;
 
     pl->Wep->m_pWep->trigger();
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x1C), PL_ARC_PTR(arc, 0x20), PL_ARC_PTR(arc, 0x22), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMove(pl, 0);

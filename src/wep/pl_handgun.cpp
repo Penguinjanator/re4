@@ -326,7 +326,7 @@ static void wep02_r2_set(cPlayer* pl)
 // pitch m3r[0]) with a 3-frame blend-in, then step 1.
 static void wep02_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWep;
+    PlArc* arc = pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x26), PL_ARC_PTR(arc, 0x27), PL_ARC_PTR(arc, 0x28), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -378,7 +378,7 @@ static void wep02_r3_fire00(cPlayer* pl)
     f32 pitch;
 
     WEP_OBJ(pl)->trigger();
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x29), PL_ARC_PTR(arc, 0x2A), PL_ARC_PTR(arc, 0x2B), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMove(pl, 0);
@@ -539,7 +539,7 @@ static void wep02_r2_reload(cPlayer* pl)
         pl->motionMove();
         break;
     case 2: {
-        PlArc* arc = (PlArc*) pG->pWep;
+        PlArc* arc = pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x26), PL_ARC_PTR(arc, 0x27), PL_ARC_PTR(arc, 0x28), 0, 9, 0, 4, 0);
         pl->m_Work0 = 0;

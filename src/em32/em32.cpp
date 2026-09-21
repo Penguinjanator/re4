@@ -1889,7 +1889,7 @@ static void em32_R1_CatchHit(cEm32* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 0, 1, 0);
         PlSetDamageSe(0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_CatchHit, -244.559998f, 0.0f, -1746.93994f);
+        EmCatchPLSet(em, 3.14159274f, 1, -244.559998f, 0.0f, -1746.93994f, plem32_CatchHit);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         SndStop(w->sndId, 0);
@@ -1941,7 +1941,7 @@ static void em32_R1_CatchHit(cEm32* em)
         break;
     case 2:
         MotionSetCore(em, &em->Motion, ARC(0x2C), ARC(0x2D), 0, 1, 0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_CatchHit, 244.399994f, 0.0f, -1558.33997f);
+        EmCatchPLSet(em, 3.14159274f, 1, 244.399994f, 0.0f, -1558.33997f, plem32_CatchHit);
         pPL->r_no_2 = step;
         w->timer = 15;
         em->r_no_2++;
@@ -1977,7 +1977,7 @@ static void em32_R1_CatchHit(cEm32* em)
         break;
     case 4:
         MotionSetCore(em, &em->Motion, ARC(0x2E), ARC(0x2F), 0, 1, 0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_CatchHit, 0.0f, 0.0f, -1456.30005f);
+        EmCatchPLSet(em, 3.14159274f, 1, 0.0f, 0.0f, -1456.30005f, plem32_CatchHit);
         pPL->r_no_2 = step;
         pG->pl_life = 0;
         em->r_no_2++;
@@ -2938,7 +2938,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x27), ARC(0x28), 0, 1, 0);
         PlSetDamageSe(0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_C_AtkHit, -83.8300018f, 0.0f, -2411.40991f);
+        EmCatchPLSet(em, 3.14159274f, 1, -83.8300018f, 0.0f, -2411.40991f, plem32_C_AtkHit);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         AtariOff(&em->atari, 0xFCFF);
@@ -2989,7 +2989,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
         break;
     case 2:
         MotionSetCore(em, &em->Motion, ARC(0x29), ARC(0x2A), 0, 1, 0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_C_AtkHit, 58.7799988f, 0.0f, -468.209991f);
+        EmCatchPLSet(em, 3.14159274f, 1, 58.7799988f, 0.0f, -468.209991f, plem32_C_AtkHit);
         pPL->r_no_2 = step;
         EM32_EFFECT_DELETE(w->espKind[1], em);
         w->timer = 15;
@@ -3187,7 +3187,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0xA5), ARC(0xA6), 0, 1, 0);
         PlSetDamageSe(0);
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_P_CatchHit, 248.539993f, 0.0f, -3618.96997f);
+        EmCatchPLSet(em, 3.14159274f, 1, 248.539993f, 0.0f, -3618.96997f, plem32_P_CatchHit);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         EstSet(em, -1, 0, 0, EFF_EM32, 0xE, 0, w->espKind[1], em, (void*) step);
@@ -3229,7 +3229,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         if (w->pDivide[1]) {
             w->pDivide[1]->be_flag &= ~2;
         }
-        EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_P_CatchHit, -127.949997f, 0.0f, -2747.37012f);
+        EmCatchPLSet(em, 3.14159274f, 1, -127.949997f, 0.0f, -2747.37012f, plem32_P_CatchHit);
         pPL->r_no_2 = step;
         EM32_EFFECT_DELETE(w->espKind[1], em);
         EstSet(em, -1, 0, 0, EFF_EM32, 0x13, 0, ESP_CORE_KIND_NONE, em, 0);
@@ -3925,7 +3925,7 @@ int em32StepUpCk(cEm32* em)
         return 0;
     }
     ang = GetXZAngle(&em->pos, &pPL->pos);
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
         int sub;
@@ -3975,7 +3975,7 @@ int em32StepUpCk2(cEm32* em)
     if (w->flags & 0x1000) {
         ang = GetXZAngle(&em->pos, &w->stepTarget);
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -4052,7 +4052,7 @@ int em32StepUpCk3(cEm32* em)
         return 0;
     }
     ang = GetXZAngle(&em->pos, &pPL->pos);
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
         int sub;
@@ -4133,7 +4133,7 @@ int em32TunnelAtkCk(cEm32* em)
     if (em32PlInTunnelCk(em) == 0) {
         return 0;
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
         int sub;
@@ -4174,7 +4174,7 @@ int em32TunnelAtkCk(cEm32* em)
 int em32JumpUpCk(cEm32* em)
 {
     Em32Work* w = EM32_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     int i;
 
     if (emi == 0) {
@@ -4202,7 +4202,7 @@ int em32JumpUpCk(cEm32* em)
 int em32JumpDownCk(cEm32* em)
 {
     Em32Work* w = EM32_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     int i;
 
     if (emi == 0) {
@@ -4245,7 +4245,7 @@ void em32GetJumpDownNo(cEm32* em)
         return;
     }
     best = 25000000.0f;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -4281,7 +4281,7 @@ int em32CeilingAtkCk(cEm32* em)
     if (em->hp <= 1) {
         return 0;
     }
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -4529,7 +4529,7 @@ void em32GetStepDownPos(cEm32* em)
     }
     best = 10000000000000000.0f;
     found = 0;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -4569,7 +4569,7 @@ void em32GetStepDownPos(cEm32* em)
         return;
     }
     best = 10000000000000000.0f;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -5065,7 +5065,7 @@ void em32GetGroundPos(cEm32* em)
     pos = em->pos;
     best = 10000000000000000.0f;
     ry = em->ang.y;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 

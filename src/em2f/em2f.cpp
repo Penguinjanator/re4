@@ -1402,7 +1402,7 @@ void em2fWaterEffSet(cEm2f* em)
 int em2fSetNextRoute(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     u32 i;
     int idx;
 
@@ -1437,7 +1437,7 @@ int em2fSetNextRoute(cEm2f* em)
         EmiEntry* e;
 
         IntSet(w->routeIdx, idx);  // reference store: the pG reload waits for it (idx frees r10)
-        e = &((EmiData*) pG->pEmi)->entry[idx];
+        e = &(pG->pEmi)->entry[idx];
         w->nextPos = e->pos;
         return e->sub;
     }
@@ -1630,7 +1630,7 @@ int em2fRisingDragonCk(cEm2f* em)
 void em2fChangeRoute(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     int best;
     int bestPrev;
     f32 bestAng;
@@ -1646,11 +1646,11 @@ void em2fChangeRoute(cEm2f* em)
     best = -1;
     bestPrev = -1;
     bestAng = PI;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+    for (i = 0; i < (pG->pEmi)->n; i++) {
         int j;
         f32 ang;
 
-        e = &((EmiData*) pG->pEmi)->entry[i];
+        e = &(pG->pEmi)->entry[i];
 
         if (e->type != 2) {
             continue;
@@ -1660,13 +1660,13 @@ void em2fChangeRoute(cEm2f* em)
             continue;
         }
         if (i == 0) {
-            j = ((EmiData*) pG->pEmi)->n - 1;
+            j = (pG->pEmi)->n - 1;
         } else {
             j = i - 1;
         }
         prev = 0;
         for (; j > 0; j--) {
-            prev = &((EmiData*) pG->pEmi)->entry[j];
+            prev = &(pG->pEmi)->entry[j];
             if (prev->type == 2) {
                 break;
             }
@@ -1690,8 +1690,8 @@ void em2fChangeRoute(cEm2f* em)
         return;
     }
     IntSet(w->routeIdx, best);  // reference store: the pG reload stays below it
-    e = &((EmiData*) pG->pEmi)->entry[best];
-    prev = &((EmiData*) pG->pEmi)->entry[bestPrev];
+    e = &(pG->pEmi)->entry[best];
+    prev = &(pG->pEmi)->entry[bestPrev];
     w->nextPos = e->pos;
     w->routeType = prev->sub;
     w->nextRouteType = e->sub;

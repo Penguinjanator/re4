@@ -681,7 +681,7 @@ int emBarrelSetRollRoute(cEmBarrel* em)
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
 
         if (((u8*) pG->pEmi)[o] == 6) {
@@ -721,7 +721,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
     spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
     if (spd < 250000.0f) {
         idx = -1;
-        for (i = w->routeIdx + 1; i < *(int*) pG->pEmi; i++) {
+        for (i = w->routeIdx + 1; i < pG->pEmi->n; i++) {
             u32 o = i * 0x40 + 8;
 
             if (((u8*) pG->pEmi)[o] == 6) {

@@ -1682,7 +1682,7 @@ static void em36_R1_CatchHit(cEm36* em)
     switch (step) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x3B), 0, 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_CatchHit, -328.61f, 0.0f, 648.33f);
+        EmCatchPLSet(em, 0.0f, 2, -328.61f, 0.0f, 648.33f, plem36_CatchHit);
         PlGachaInit();
         em36CatchEffectDelete(em, w, 1);
         em36CatchEffectDelete(em, w, 2);
@@ -1729,7 +1729,7 @@ static void em36_R1_CatchHit(cEm36* em)
     }
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x3E), ARC(0x3F), 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_CatchHit, -285.13f, 0.0f, 307.3f);
+        EmCatchPLSet(em, 0.0f, 2, -285.13f, 0.0f, 307.3f, plem36_CatchHit);
         pPL->r_no_2 = step;
         em36CatchEffectDelete(em, w, 1);
         if (!(w->flags2 & 0x10)) {
@@ -1755,7 +1755,7 @@ static void em36_R1_CatchHit(cEm36* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x3C), ARC(0x3D), 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_CatchHit, -285.13f, 0.0f, 307.3f);
+        EmCatchPLSet(em, 0.0f, 2, -285.13f, 0.0f, 307.3f, plem36_CatchHit);
         pPL->r_no_2 = step;
         em36CatchEffectDelete(em, w, 1);
         if (!(w->flags2 & 0x10)) {
@@ -1953,7 +1953,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
     switch (step) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x42), ARC(0x43), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_LongCatchHit, 186.17f, 0.0f, 3266.86f);
+        EmCatchPLSet(em, 0.0f, 2, 186.17f, 0.0f, 3266.86f, plem36_LongCatchHit);
         SndCall(8, 0x24, &pPL->getPartsPtr(3)->world, em->id, 0, pPL);
         PlGachaInit();
         EstSet(em, -1, 0, 0, EFF_EM36, 0x24, 0, ESP_CORE_KIND_NONE, em, (void*) step);
@@ -2042,7 +2042,7 @@ static void em36_R1_SpineCatchHit(cEm36* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x9D), 0, 0, 1, 0);
         }
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_SpineCatchHit, -50.16f, 0.0f, 887.11f);
+        EmCatchPLSet(em, 0.0f, 2, -50.16f, 0.0f, 887.11f, plem36_SpineCatchHit);
         SndCall(8, 0x35, &em->pos, em->id, 0, em);
         VibSetData(VIB_TBL, 0xB, 1);
         w->timer = 10;
@@ -2633,7 +2633,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
     switch (step) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x66), 0, 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_D_CatchHit, -101.71f, 0.0f, 555.67f);
+        EmCatchPLSet(em, 0.0f, 2, -101.71f, 0.0f, 555.67f, plem36_D_CatchHit);
         em36VoiceSet(em, 0xB, 2);
         EstSet(em, -1, 0, 0, EFF_EM36, 0x2B, 1, w->espKind[0], em, (void*) step);
         PlGachaInit();
@@ -2653,7 +2653,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x69), 0, 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_D_CatchHit, -19.96f, 0.0f, 405.95f);
+        EmCatchPLSet(em, 0.0f, 2, -19.96f, 0.0f, 405.95f, plem36_D_CatchHit);
         pPL->r_no_2 = step;
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
@@ -2671,7 +2671,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x67), ARC(0x68), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem36_D_CatchHit, 89.73f, 0.0f, 328.37f);
+        EmCatchPLSet(em, 0.0f, 2, 89.73f, 0.0f, 328.37f, plem36_D_CatchHit);
         pPL->r_no_2 = step;
         PlGachaInit();
         SndStop(w->sndId, 0);

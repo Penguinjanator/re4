@@ -198,7 +198,7 @@ void ReadAreaData()
     PSet(pG->Rtp, GetDataExt(pG->pRoom, "RTP", 0));
     PSet(pG->RoomMes, GetDataExt(pG->pRoom, "MDT", 0));
     PSet(pG->pOsd, GetDataExt(pG->pRoom, "OSD", 0));
-    pG->pEmi = GetDataExt(pG->pRoom, "EMI", 0);
+    pG->pEmi = (EmiData*) GetDataExt(pG->pRoom, "EMI", 0);
 }
 
 // Boot: reads the core archive (file 3) to CORE_DATA_ADDR (pG->pCore) and initialises the
@@ -951,7 +951,7 @@ void ReadWepData(u32 no, u32 type)
 #line 1560 "D:/Bio4/Prog/read.cpp"
         HALT();
     }
-    pG->pWep = (void*) info.addr[0][0];
+    pG->pWep = (PlArc*) info.addr[0][0];
     pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
     size = (u32) pModule - (u32) data;
     bssSize = total - size;
@@ -977,7 +977,7 @@ void ReadWepData(u32 no, u32 type)
     WepReadModule.size = size;
     WepReadModule.pModule = pModule;
     WepReadModule.pArc = data;
-    pG->pWep = data;
+    pG->pWep = (PlArc*) data;
 }
 
 // After a continue: if the weapon changed since the module was loaded, reloads the weapon.

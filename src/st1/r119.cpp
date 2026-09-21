@@ -32,8 +32,10 @@
 // Room 1-19 (D:/Bio4/Prog/r119.cpp): the village square with the giant; the three huts and their
 // roofs the giant breaks, the trees, the thunder lights and the giant / dog / parasite events.
 
+class cEmGolem;
+
 struct R119Work {
-    cEm* golem;         // 0x00  the giant
+    cEmGolem* golem;    // 0x00  the giant
     cEm* dog;           // 0x04  the dog set by the dog event
     u8 pad_8[0x48 - 0x8];
     cSat* sat[3];       // 0x48  hut A / B / C collision
@@ -261,7 +263,7 @@ static void r119_EventGolemAppear()
     EvtMgr.EvtReadAram("event/evd/r119s10.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s20.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s30.evd", 0, 0, 0, 0);
-    r119_work->golem = EmSetFromList2(0x28, 0);
+    r119_work->golem = (cEmGolem*) EmSetFromList2(0x28, 0);
     GamePointBossReset();
     Cckpt.m_LifeMeter.flags = (u32) r119_work->golem;
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);
@@ -304,7 +306,7 @@ static void r119_EventGolemAppear()
             SceAtSetEnable(3, 0);
             SceAtSetEnable(4, 0);
             StaFlagOff(pG, STA_CAMERA_SET_ROOM);
-            ((cEmGolem*) r119_work->golem)->setDie();
+            r119_work->golem->setDie();
             EstSet(r119_work->golem, -1, 0, 0, EFF_ROOM, 0xF, 0, ESP_CORE_KIND_NONE, r119_work->golem, (void*) stat);
             if (r119_work->dog != 0) {
                 EmMgr.destroy(r119_work->dog);
@@ -334,7 +336,7 @@ static void r119_EventGolemAppear()
             } else {
                 SceDebugDisp("PL[NO]");
             }
-            if (!(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+            if (!(r119_work->golem->flag & 0x10) && r119_work->golem->ckBusy() == 0) {
                 SceDebugDisp("EM[OK]");
             } else {
                 SceDebugDisp("EM[NO]");
@@ -348,12 +350,12 @@ static void r119_EventGolemAppear()
                     }
                 }
             }
-            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flag & 0x10) && r119_work->golem->ckBusy() == 0) {
                 RmfFlagOn(pG, RMF_R119_DOG_APPEAR);
                 SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
-        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !RmfFlagChk(pG, RMF_R119_PARASIET)) || DebugTrg(0) != 0) {
+        if ((r119_work->golem->ckEvent() != 0 && !RmfFlagChk(pG, RMF_R119_PARASIET)) || DebugTrg(0) != 0) {
             RmfFlagOn(pG, RMF_R119_PARASIET);
             SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -382,7 +384,7 @@ static void r119_EventDogAppear()
     pos.x = 116292.0f;
     pos.y = 2298.0f;
     pos.z = 4229.0f;
-    ((cEmGolem*) r119_work->golem)->setDogPos(&pos, -0.47f);
+    r119_work->golem->setDogPos(&pos, -0.47f);
     pos.x = 113872.0f;
     pos.y = 2298.0f;
     pos.z = 8485.0f;

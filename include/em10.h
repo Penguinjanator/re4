@@ -36,8 +36,8 @@ struct Em10Work {
     cEmWep* pWep;         // 0x16C (0x54C)  weapon in hand
     cEmWep* pWeapon2;        // 0x170 (0x550)
     cEmShield* pShield;   // 0x174 (0x554)
-    cObj* pCap;           // 0x178 (0x558)
-    cObj* pGlasses;           // 0x17C (0x55C)
+    cObj12* pCap;         // 0x178 (0x558)  (PS2 cObj12* pCap)
+    cObj12* pGlasses;         // 0x17C (0x55C)  (PS2 cObj12* pGlasses)
     cEm* pCart;           // 0x180 (0x560)  lost head enemy  cart object of type 0xB (SetObj12; PS2 cObj12* pCart)
     cModelInfo* pRHand;     // 0x184 (0x564)  hand parts info (setHand(1))
     cModelInfo* pLHand;     // 0x188 (0x568)  hand parts info (setHand(0))
@@ -78,7 +78,7 @@ struct Em10Work {
     class cEmWindow* pWindow;  // 0x558 (0x938)  window the Ganado breaks (em10_R1_WindowAtk)
     cEm* pTruck;          // 0x55C (0x93C)  truck enemy model the Ganado drives (em10SearchTruck)
     class cObjGondola* pGondola;  // 0x560 (0x940)  em10GetGondola (room 10F)
-    u32 pDrill;             // 0x564 (0x944)  r212 drill object (cast to cModel*) (PS2 cObj* pDrill)
+    cObj* pDrill;           // 0x564 (0x944)  r212 drill object (PS2 cObj* pDrill)
     class cObjGatling* pGatling;  // 0x568 (0x948)
     u8 Gatling_mode;       // 0x56C (0x94C)
     u8 pad_56D[3];
@@ -323,7 +323,7 @@ void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int p
 void SetObj08Se(cObj* obj, u16 blk, u16 no);
 void Obj01SetEst(cObj* obj, int eff, int est, u32 action, int eff2, int est2, int f, int g, int h, int i);
 int GetWepDmVal(cEm* em, u32 wep_no, int near);
-void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);
+void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // int a: the vendor's GC signature (EmCatchSubSet__FP3cEmT0Uliffff)
 extern "C" {
 void MotSetObj16(cObj* obj, void* mot, int a, int b);
 int GetEm10EyeEffectEnable();

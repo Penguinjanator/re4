@@ -6240,7 +6240,7 @@ void em2cSetFreeze(cEm2c* em)
 // 1 when an EMI type 0x10 "no wall climbing" point lies within 1500 units.
 int em2cNoWallCk(cEm2c* em)
 {
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     u32 i;
 
     if (emi == 0) {
@@ -6396,13 +6396,13 @@ void em2cGetFallPos(cEm2c* em)
     em->pos.y = 4330.0f;
     em->ang.y = pPLS->ang.y + 3.14159274f;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
-    emi = (EmiData*) pGS->pEmi;
+    emi = pGS->pEmi;
     if (emi == 0) {
         return;
     }
     best = 10000000000.0f;
-    for (i = 0; i < ((EmiData*) pGS->pEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pGS->pEmi)->entry[i];
+    for (i = 0; i < (pGS->pEmi)->n; i++) {
+        EmiEntry* e = &(pGS->pEmi)->entry[i];
 
         if (e->type != 0x12) {
             continue;

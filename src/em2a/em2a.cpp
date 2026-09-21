@@ -399,7 +399,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0xB), ARC(0xD), 5, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         SndCall(1, 0x39, &pPL->pos, 0, 0, pPL);
-        EmCatchPLSet(em, 0.0f, 0, (int) plem2a_Trap1Bite, 34.69f, 0.0f, 250.42f);
+        EmCatchPLSet(em, 0.0f, 0, 34.69f, 0.0f, 250.42f, plem2a_Trap1Bite);
         w->camTimer = 120;
         w->biteTimer = 10;
         VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 7, 1);

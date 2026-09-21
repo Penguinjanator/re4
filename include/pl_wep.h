@@ -125,7 +125,7 @@ public:
     f32 getPitch();
     void move();
     int getMarkerPos(Vec* out);
-    cModel* lockInit();
+    cEm* lockInit();
     void lockMove();
     cModel* lockNext();
     void setTrans(int on, int type);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
@@ -148,8 +148,8 @@ void PlWepLockRand(cModel* pl, int flag, f32* pitch, f32* yaw);
 void PlSetLockPitch(cModel* pl);
 int GetWepSizeGroup(int no);
 int PlCornerCheck();
-cModel* SearchLockEm(Vec* pos, cModel* skip);
-cModel* SearchTargetEm(Vec* pos, cModel* skip, f32 range);
+cEm* SearchLockEm(Vec* pos, cEm* skip);
+cEm* SearchTargetEm(Vec* pos, cEm* skip, f32 range);
 }
 
 extern u8 lockCtr;

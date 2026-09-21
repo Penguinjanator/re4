@@ -117,7 +117,7 @@ public:
     u8 m_CmdTimer;        // 0x4FF  frames until the X button (partner command) is accepted again  (PS2 cPlayer::m_CmdTimer)
     f32 m_Blend;     // 0x500  em2b plBlendMotSet: m_SubMot blend rate source (the strangle button mash 0..255)
     u32 m_SeId;           // 0x504  SndCall handle cPlayer::interrupt stops  (PS2 cPlayer::m_SeId)
-    cModel* m_pEm;      // 0x508  locked-on enemy (pl_wep lock, knife aim)
+    cEm* m_pEm;         // 0x508  locked-on enemy (pl_wep lock, knife aim)  (PS2 cEm* m_pEm)
     cEm* m_pBoat;         // 0x50C  the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
     class cObjSpear* m_pSpear;  // 0x510  the harpoon in hand (pl0f plboatSetSpear / plboatSpearThrow)
     f32 m_BoatPlDir;        // 0x514  pl0f harpoon aim: vertical sight rate (-0.3927 .. 0.3927)

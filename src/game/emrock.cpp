@@ -1319,7 +1319,7 @@ void emRockAtkScrCk(cEmRock* em)
     if (pG->pEmi == 0) {
         return;
     }
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -1380,7 +1380,7 @@ int emRockSetRollRoute(cEmRock* em)
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
 
         if (((u8*) pG->pEmi)[o] == 6) {
@@ -1421,7 +1421,7 @@ int emRockSetRollSpd(cEmRock* em)
     spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
     if (spd < 250000.0f) {
         idx = -1;
-        for (i = w->Rock_route + 1; i < *(int*) pG->pEmi; i++) {
+        for (i = w->Rock_route + 1; i < pG->pEmi->n; i++) {
             u32 o = i * 0x40 + 8;
 
             if (((u8*) pG->pEmi)[o] == 6) {
@@ -1474,7 +1474,7 @@ int emRockRollStartCk(cEmRock* em)
     int i;
     GlobalWork* g;
 
-    emi = (EmiData*) pG->pEmi;
+    emi = pG->pEmi;
     g = pGS;  // the struct-view read is a second pG pseudo (`mr r11,r9`) that the pl_life test reads
     if (emi == 0) {
         return 0;
@@ -1748,7 +1748,7 @@ int plemRockSetEscapeRoute()
     EmiData* emi;
     int i;
 
-    emi = (EmiData*) pG->pEmi;
+    emi = pG->pEmi;
     if (emi == 0) {
         return -1;
     }
@@ -1773,7 +1773,7 @@ int plemRockEscapeCk(cPlayer* pl)
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
 
         if (((u8*) pG->pEmi)[o] == 7) {

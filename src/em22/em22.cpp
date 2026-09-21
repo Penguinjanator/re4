@@ -1292,7 +1292,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem22_JumpAtkHit, -41.59f, 0.0f, 638.16f);
+        EmCatchPLSet(em, 0.0f, 2, -41.59f, 0.0f, 638.16f, plem22_JumpAtkHit);
         PlSetDamageSe(0);
         w->timer = 10;
         w->tilt = 0.0f;
@@ -1529,7 +1529,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
     case 0:
         em22ParaAtkHitPosSet(em);
         MotionSetCore(em, MOTION(em), ARC(0x4F), 0, 3, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem22_JumpAtkHit, -41.59f, 0.0f, 638.16f);
+        EmCatchPLSet(em, 0.0f, 2, -41.59f, 0.0f, 638.16f, plem22_JumpAtkHit);
         SetPlDamage(em, plem22_ParaAtkHit);
         em22ParaSetMotAtkHit(em);
         SndCall(8, 0x2F, &em->pos, em->id, 0, em);

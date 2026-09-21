@@ -498,7 +498,7 @@ static void wep17_r2_set(cPlayer* pl)
 // the burst counter m_Work4, step 1.
 static void wep17_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWep;
+    PlArc* arc = pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x17), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -743,7 +743,7 @@ static void wep17_r2_reload(cPlayer* pl)
 static void wep17_r2_next(cPlayer* pl)
 {
     u8 step = pl->r_no_3;
-    cModel* em = pl->m_pEm;
+    cEm* em = pl->m_pEm;
     f32 ang;
 
     switch (step) {

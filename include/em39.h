@@ -9,6 +9,8 @@
 #include "obj.h"
 #include "embarrel.h"
 
+class cObj12;
+
 // Work of the em39 enemy (em39 module, D:/Bio4/Prog/em39.cpp; cModel::type 0/1 = knife fight,
 // 2 = the second battle), overlaid on cEm from 0x3E0. Field names are the work-relative offsets;
 // the comment gives the cEm offset.
@@ -49,7 +51,7 @@ struct Em39Work {
     cModelInfo* pModKnife;     // 0x66C (0xA4C)
     u8 Hand_type;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
     u8 pad_671[3];
-    cObj* pCap;         // 0x674 (0xA54)  hanging object (SetObj12)  (PS2 pCap, next to Cap_hp)
+    cObj12* pCap;       // 0x674 (0xA54)  hanging object (SetObj12)  (PS2 cObj12* pCap, next to Cap_hp)
     int Cap_hp;             // 0x678 (0xA58)
     u8 pad_67C[2];
     u16 dmgTotal;         // 0x67E (0xA5E)  damage taken

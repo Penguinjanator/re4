@@ -1829,7 +1829,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x3B), ARC(0x3C), 5, 1, 0);
         PlSetDamageSe(0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem2d_JumpAtkHit, -48.1500015f, 0.0f, 921.190002f);
+        EmCatchPLSet(em, 0.0f, 2, -48.1500015f, 0.0f, 921.190002f, plem2d_JumpAtkHit);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         EstSet(em, -1, 0, 0, EFF_EM2D, 1, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
@@ -2131,7 +2131,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x65), 0, 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem2d_JumpKickHit, 0.0f, 0.0f, 1500.0f);
+        EmCatchPLSet(em, 0.0f, 2, 0.0f, 0.0f, 1500.0f, plem2d_JumpKickHit);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         LifeDownSet(pPL, 300, 0);
         em->r_no_3 = (Rnd() & 1) + 4;
@@ -3637,7 +3637,7 @@ static void em2d_R1_A_CatchKick(cEm2d* em)
     case 0:
         em->pos.y = pPL->pos.y;
         MotionSetCore(em, &em->Motion, ARC(0x65), 0, 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem2d_JumpKickHit, 0.0f, 0.0f, 1500.0f);
+        EmCatchPLSet(em, 0.0f, 2, 0.0f, 0.0f, 1500.0f, plem2d_JumpKickHit);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         LifeDownSet(pPL, 300, 0);
         em->r_no_3 = (Rnd() & 1) + 4;
@@ -3677,7 +3677,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         MotionSetCore(em, &em->Motion, ARC(0x3B), ARC(0x3C), 5, 1, 0);
         PlSetDamageSe(0);
         em->pos.y = pPL->pos.y;
-        EmCatchPLSet(em, 0.0f, 2, (int) plem2d_A_CatchHit, -48.1500015f, 0.0f, 921.190002f);
+        EmCatchPLSet(em, 0.0f, 2, -48.1500015f, 0.0f, 921.190002f, plem2d_A_CatchHit);
         pPL->r_no_3 = 1;
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
@@ -6445,7 +6445,7 @@ f32 Em2dGetCeiling(cEm2d* em)
 int em2dReturnPosCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     u32 i;
 
     if (emi == 0) {
@@ -6523,7 +6523,7 @@ void em2dHumSeMove(cEm2d* em)
 // 1 when an EMI type 0x10 "no wall climbing" point lies within 1500 units: the insect stays on the floor.
 int em2dNoWallCk(cEm2d* em)
 {
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     u32 i;
 
     if (emi == 0) {

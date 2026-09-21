@@ -50,7 +50,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld);
 YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);
 void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);
 YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld);
-void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z);
+void EmCatchPLSet(cEm* em, f32 pl_dir, u32 mode, f32 x, f32 y, f32 z, void (*ft)(cPlayer*));
 int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2);
 int EmRackCk(cEm* em, Vec* pos, f32 ang);
 int GetBulletPoint();

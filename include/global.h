@@ -58,7 +58,7 @@ struct PlArc {
 // Model / motion data `no` of the player archive.
 #define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 // Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
+#define WEP_ARC_PTR(no) PL_ARC_PTR(pG->pWep, no)
 // Slot `idx` of player `pl`'s motion table (m_MotTbl) set to entry `no` of the weapon / player archive.
 #define WEP_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], WEP_ARC_PTR(no))
 #define PLA_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], PL_ARC_PTR(pG->pPlayer, no))
@@ -114,6 +114,8 @@ struct EmListData {
     u8 pad_1C[4];
 };
 
+struct EmiData;   // embarrel.h (PS2 EMINFO_DATA)
+
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
@@ -144,7 +146,7 @@ struct GlobalWork {
     f32 NextY;        // 0x38
     void* pStFnt;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
     void* pRoom;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
-    void* pWep;         // 0x44  weapon data (read: ReadWepData)
+    PlArc* pWep;        // 0x44  weapon archive (read: ReadWepData)
     struct ArcFile* pCore;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     void* pOption;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
     struct PlArc* pPlayer;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
@@ -168,7 +170,7 @@ struct GlobalWork {
     void* pCamCore;    // 0x4F24  core camera data ("B40x")
     void* pCamRoom;    // 0x4F28  room camera data ("B40x")
     void* Rtp;        // 0x4F2C  room "RTP" data (read: ReadAreaData)
-    void* pEmi;        // 0x4F30  room "EMI" data
+    EmiData* pEmi;     // 0x4F30  room "EMI" data (PS2 EMINFO_DATA*)
     void* pOsd;        // 0x4F34  room "OSD" data
     s8 AreaNo;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
     u8 pad_4F39[3];

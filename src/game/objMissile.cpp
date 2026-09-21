@@ -43,12 +43,12 @@ void (*ObjMissile_R0_move_tbl[5])(cObjMissile*) = {
 
 // Creates a missile (id 0x38) of `type` (0 helicopter rocket; 1 a shootable missile with a cEmHit
 // hit box that detonates it when shot) at pos/rot.
-cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
+cObjMissile* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
-    cObj* obj;
+    cObjMissile* obj;
     MissileWork* w;
 
-    obj = ObjMgr.create(0x38);
+    obj = (cObjMissile*) ObjMgr.create(0x38);
     if (obj == 0) {
         return 0;
     }

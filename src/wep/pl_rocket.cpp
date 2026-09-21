@@ -268,7 +268,7 @@ static void wep13_r2_set(cPlayer* pl)
 // once); step 1.
 static void wep13_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWep;
+    PlArc* arc = pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0xF), PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x14), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -351,7 +351,7 @@ static void wep13_r3_fire00(cPlayer* pl)
     pl->Wep->m_pWep->trigger();
     m3r[1] = 0.0f;
     m3r[0] = 0.0f;
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x11), PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x15), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMove(pl, 0);

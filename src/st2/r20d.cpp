@@ -1093,13 +1093,13 @@ void cLanternUnit::check()
 cEm* cLanternUnit::getTargetPos(Vec* out)
 {
     Vec p = pPL->pos;
-    cModel* t;
+    cEm* t;
 
     p.y += 1800.0f;
     t = SearchTargetEm(&p, 0, 400000000.0f);
     if (t != 0) {
         *out = t->pos;
-        return (cEm*) t;
+        return t;
     }
     {
         Vec rot = {0.0f, 0.0f, 0.0f};

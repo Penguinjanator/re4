@@ -355,7 +355,7 @@ static void wep14_r3_set00(cPlayer* pl)
         CameraMove();
         pl->stat |= 0x10;
     }
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x17), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
@@ -416,7 +416,7 @@ static void wep14_r3_fire00(cPlayer* pl)
     f32 pitch;
 
     WEP_OBJ(pl)->trigger();
-    arc = (PlArc*) pG->pWep;
+    arc = pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x14), PL_ARC_PTR(arc, 0x18), PL_ARC_PTR(arc, 0x1A), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();

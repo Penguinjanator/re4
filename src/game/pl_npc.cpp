@@ -3250,7 +3250,7 @@ int cSubChar::checkAnotherRoute()
     e = 0;
     id = 0;
     *(u32*) &pAnotherRoute = 0;
-    emi = (EmiData*) pG->pEmi;
+    emi = pG->pEmi;
     if (emi == 0) {
         return 0;
     }
@@ -3258,7 +3258,7 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
 
         e = (EmiEntry*) ((u8*) pG->pEmi + o);
@@ -3284,7 +3284,7 @@ int cSubChar::checkAnotherRoute()
         if (e->pad_3 == 1) {
             int ok = 0;
 
-            for (j = 0; j < *(int*) pG->pEmi; j++) {
+            for (j = 0; j < pG->pEmi->n; j++) {
                 u32 o = j * 0x40 + 8;
                 EmiEntry* f = (EmiEntry*) ((u8*) pG->pEmi + o);
 
@@ -3328,8 +3328,8 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
-        e = &((EmiData*) pG->pEmi)->entry[i];
+    for (i = 0; i < (pG->pEmi)->n; i++) {
+        e = &(pG->pEmi)->entry[i];
         if (e->type != 0xB) {
             continue;
         }
@@ -3353,7 +3353,7 @@ int cSubChar::checkAnotherRoute()
 // walking (sub554 advances to the next step once the current one is reached).
 int cSubChar::moveAnotherRoute()
 {
-    EmiData* emi = (EmiData*) pG->pEmi;
+    EmiData* emi = pG->pEmi;
     EmiEntry* f = 0;
     int bad;
     int next;
@@ -3384,7 +3384,7 @@ int cSubChar::moveAnotherRoute()
         return 0;
     }
     next = -1;
-    for (i = 0; i < *(int*) pG->pEmi; i++) {
+    for (i = 0; i < pG->pEmi->n; i++) {
         u32 o = i * 0x40 + 8;
 
         f = (EmiEntry*) ((u8*) pG->pEmi + o);

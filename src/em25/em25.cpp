@@ -660,7 +660,7 @@ static void em25_R1_Bite(cEm25* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x27), 0, 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM25, 3, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, -150.0f, 0.0f, 628.0f);
+        EmCatchPLSet(em, 0.0f, 2, -150.0f, 0.0f, 628.0f, plem25_Bite);
         PlGachaInit();
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
         w->Timer = 50;
@@ -710,7 +710,7 @@ static void em25_R1_Bite(cEm25* em)
         MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 0, 1, 0);
         SndStop(w->sndId, 0);
         PlSetDamageSe(0xD);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, 24.3600006f, 0.0f, 307.75f);
+        EmCatchPLSet(em, 0.0f, 2, 24.3600006f, 0.0f, 307.75f, plem25_Bite);
         pPL->r_no_2 = fe;
         em->r_no_2++;
     case 3:

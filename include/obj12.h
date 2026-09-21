@@ -14,6 +14,6 @@ public:
     void setBurn();
 };
 
-cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
+cObj12* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 #endif

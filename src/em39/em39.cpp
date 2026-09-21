@@ -714,7 +714,7 @@ static void em39_R0_Init(cEm39* em)
             rot2.z = 0.0f;
             w->pCap = SetObj12(ARC(0x16), ARC(0x19), &pos2, &rot2);
             if (w->pCap) {
-                ((cObj12*) w->pCap)->setParent(em, 4, 1);
+                w->pCap->setParent(em, 4, 1);
             }
         }
         w->pModKnife = ModInfoMgr.create(ARC(9), ARC(0x10));
@@ -3080,7 +3080,7 @@ static void em39_R1_KnifeHit(cEm39* em)
         if (w->pWep) {
             EstSet(w->pWep, -1, 0, 0, EFF_EM39, 0x19, 0, ESP_CORE_KIND_NONE, w->pWep, 0);
         }
-        EmCatchPLSet(em, PI, 2, (int) plem39_KnifeHit, -25.34f, 0.0f, -239.75f);
+        EmCatchPLSet(em, PI, 2, -25.34f, 0.0f, -239.75f, plem39_KnifeHit);
         PlGachaInit();
         w->Act_ck = 0;
         w->TmpU32 = Rnd() & 1;
@@ -3157,7 +3157,7 @@ static void em39_R1_KnifeHit(cEm39* em)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xB0), ARC(0xB1), 3, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM39, 0x1C, 0, ESP_CORE_KIND_NONE, em, 0);
-        EmCatchPLSet(em, PI, 2, (int) plem39_KnifeHit, -82.6f, 0.0f, -230.94f);
+        EmCatchPLSet(em, PI, 2, -82.6f, 0.0f, -230.94f, plem39_KnifeHit);
         pPL->r_no_2 = 4;
         if (w->pWep) {
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
@@ -3293,7 +3293,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xBA), ARC(0xBB), 5, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, -288.71f, 0.0f, 1982.72f);
+        EmCatchPLSet(em, 0.0f, 2, -288.71f, 0.0f, 1982.72f, plem39_Knife4Atk);
         w->Act_ck = 0;
         w->TmpU32 = Rnd() & 1;
         em39WepSet(em, 1);
@@ -3321,7 +3321,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xBC), ARC(0xBD), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, -42.88f, 0.0f, 1328.94f);
+        EmCatchPLSet(em, 0.0f, 2, -42.88f, 0.0f, 1328.94f, plem39_Knife4Atk);
         pPL->r_no_2 = 2;
         w->Act_ck = 0;
         w->TmpU32 = Rnd() & 1;
@@ -3357,7 +3357,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xBE), ARC(0xBF), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, 132.05f, 0.0f, 1047.06f);
+        EmCatchPLSet(em, 0.0f, 2, 132.05f, 0.0f, 1047.06f, plem39_Knife4Atk);
         pPL->r_no_2 = 4;
         w->Act_ck = 0;
         w->TmpU32 = Rnd() & 1;
@@ -3395,7 +3395,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
         break;
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0xC0), ARC(0xC1), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, -3.97f, 0.0f, 1927.6f);
+        EmCatchPLSet(em, 0.0f, 2, -3.97f, 0.0f, 1927.6f, plem39_Knife4Atk);
         pPL->r_no_2 = 6;
         w->Act_ck = 0;
         w->TmpU32 = Rnd() & 1;
@@ -3428,11 +3428,11 @@ static void em39_R1_Knife4Atk(cEm39* em)
     case 8:
         LifeDownSet(pPL, 0x47E, 0);
         if ((s16) pG->pl_life <= 0) {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, 220.72f, 0.0f, 1134.69f);
+            EmCatchPLSet(em, 0.0f, 2, 220.72f, 0.0f, 1134.69f, plem39_Knife4Atk);
             pPL->r_no_2 = 8;
             MotionSetCore(em, MOTION(em), ARC(0xB4), ARC(0xB5), 0, 1, 0);
         } else {
-            EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, -451.47f, 0.0f, 1038.97f);
+            EmCatchPLSet(em, 0.0f, 2, -451.47f, 0.0f, 1038.97f, plem39_Knife4Atk);
             pPL->r_no_2 = 8;
             MotionSetCore(em, MOTION(em), ARC(0xB8), ARC(0xB9), 0, 1, 0);
             EstSet(em, -1, 0, 0, EFF_EM39, 0x27, 0, ESP_CORE_KIND_NONE, em, 0);
@@ -3471,7 +3471,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
         break;
     case 0xA:
         MotionSetCore(em, MOTION(em), ARC(0xB6), ARC(0xB7), 3, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_Knife4Atk, -3.97f, 0.0f, 1927.6f);
+        EmCatchPLSet(em, 0.0f, 2, -3.97f, 0.0f, 1927.6f, plem39_Knife4Atk);
         pPL->r_no_2 = 0xA;
         if (w->pWep) {
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x27), 0, 0, 5, 0);
@@ -5446,7 +5446,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
     switch (st) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xE9), ARC(0xEA), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_LowKickHit, -129.7f, 0.0f, 1405.22f);
+        EmCatchPLSet(em, 0.0f, 2, -129.7f, 0.0f, 1405.22f, plem39_LowKickHit);
         w->Act_ck = st;
         if ((u8) (Rnd() % 10) > 4) {
             em39SetVoice(em, 0x23);
@@ -5510,7 +5510,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xEB), ARC(0xEC), 0, 1, 0);
-        EmCatchPLSet(em, 0.0f, 2, (int) plem39_LowKickHit, -84.43f, 0.0f, 1068.35f);
+        EmCatchPLSet(em, 0.0f, 2, -84.43f, 0.0f, 1068.35f, plem39_LowKickHit);
         pPL->r_no_2 = st;
         EM39_K4_EFF_DELETE(em, w);
         w->Arm_rno = 0xE;
@@ -7096,7 +7096,7 @@ int em39JumpUpCk(cEm39* em)
     return 1;
 }
 
-#define EM39_EMI ((EmiData*) pG->pEmi)
+#define EM39_EMI (pG->pEmi)
 
 // Squared distance from the enemy to an EMI point.
 #define EM39_EMI_DIST2(em, e)                                                                       \

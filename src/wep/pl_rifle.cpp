@@ -407,7 +407,7 @@ static void wepDown(cPlayer* pl)
 
             mot3.set(pl, mot, mot, mot, 0, 5, 0, 4, 0);
         } else if (pl->m_Work0 == 0) {
-            PlArc* arc = (PlArc*) pG->pWep;
+            PlArc* arc = pG->pWep;
 
             mot3.set(pl, PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), PL_ARC_PTR(arc, 0x1A), 0, 0, 0, 4, 0);
         } else {

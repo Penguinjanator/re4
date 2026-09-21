@@ -172,12 +172,12 @@ void cObj12::move()
 }
 
 // Creates the object (back of the pool) at pos/rot with a 500 light volume and no parent.
-cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
+cObj12* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
-    cObj* obj;
+    cObj12* obj;
     Obj12Work* w;
 
-    obj = ObjMgr.createBack(0x12);
+    obj = (cObj12*) ObjMgr.createBack(0x12);
     if (obj) {
         w = &obj->o12;
         if (obj->modelInit(bin, tpl) == 0) {

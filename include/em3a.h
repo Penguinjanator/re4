@@ -16,7 +16,7 @@ public:
     void setFire(Vec* target);
 };
 
-cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type);
+cObjMissile* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type);
 
 // Work of the em3a enemy (em3a module, D:/Bio4/Prog/em3a.cpp; cModel::type 0/1 = helicopter,
 // 2 = the hovering boss variant with the B_ routines), overlaid on cEm from 0x3E0.
@@ -33,7 +33,7 @@ struct Em3aWork {
     u8 pad_240[0x25C - 0x240];
     Vec routePos;         // 0x25C (0x63C)  RouteCkPosToPos / RouteCkToPos result
     u8 pad_268[4];
-    cObj* pMissile;       // 0x26C (0x64C)  missile hung on the helicopter (type 1)
+    cObjMissile* pMissile;   // 0x26C (0x64C)  missile hung on the helicopter (type 1)
     Vec vibAng;           // 0x270 (0x650)  hover vibration phases (em3aVibMove)
     Vec vibSpd;           // 0x27C (0x65C)  their per-frame increments
     Vec spd;              // 0x288 (0x668)  movement speed

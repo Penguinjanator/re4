@@ -2345,7 +2345,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         TransMatrix(m, &pos);
         ScaleMatrix(m, &scale);
         PSMTXMultVec(m, &v, &v);
-        w->pLockL = (cObj12*) SetObj12(bin, tpl, &v, &ang);
+        w->pLockL = SetObj12(bin, tpl, &v, &ang);
         if (w->pLockL) {
             w->pLockL->LightInfo.EnableMask = 0x10;
             w->pLockL->setNoSuspend(1);
@@ -2376,7 +2376,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         r = ang;
         r.y += PI;
         r.y = LIMIT_ANGLE(r.y);
-        w->pLockR = (cObj12*) SetObj12(bin, tpl, &v, &r);
+        w->pLockR = SetObj12(bin, tpl, &v, &r);
         if (w->pLockR) {
             w->pLockR->LightInfo.EnableMask = 4;
             w->pLockR->setNoSuspend(1);
@@ -2424,7 +2424,7 @@ void cEmDoor::setChain(void* bin, void* tpl)
     TransMatrix(m, &pos);
     ScaleMatrix(m, &scale);
     PSMTXMultVec(m, &v, &v);
-    w->pChain = (cObj12*) SetObj12(bin, tpl, &v, &ang);
+    w->pChain = SetObj12(bin, tpl, &v, &ang);
     if (w->pChain == 0) {
         return;
     }

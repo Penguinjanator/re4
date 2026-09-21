@@ -303,7 +303,7 @@ static void wep19_r2_set(cPlayer* pl)
 // set step 0: start the three-way aim idle (0x11 down / 0x14 level / 0x17 up on m3r[0]), step 1.
 static void wep19_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWep;
+    PlArc* arc = pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x11), PL_ARC_PTR(arc, 0x14), PL_ARC_PTR(arc, 0x17), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -407,12 +407,12 @@ static void wep19_r2_fire(cPlayer* pl)
 static void wep19_r3_fire00(cPlayer* pl)
 {
     if (ItemMgr.bulletNum() > 1) {
-        PlArc* arc = (PlArc*) pG->pWep;
+        PlArc* arc = pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x15), PL_ARC_PTR(arc, 0x18), 0, 3, 0, 4, 0);
         pl->m_Work4 = 0;
     } else {
-        PlArc* arc = (PlArc*) pG->pWep;
+        PlArc* arc = pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
         pl->m_Work4 = 1;
