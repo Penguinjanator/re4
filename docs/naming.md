@@ -88,6 +88,14 @@ Where the vendor renamed a type between the ports, the alias table at the top of
 mangled GC symbols (`P10MotionWork` in `sym_map.tsv`) are GC vendor names and keep the GC spelling even
 when the PS2 used another.
 
+The same symbols fix parameter types. A declaration is retyped from the PS2 prototype (a pointer or a
+callback where we had `int`, the PS2 float order) only when the GC linker symbol is unmangled
+(`SceSetItemEvent`, `EmCatchPLSet`, `getRoomEtcDoor`: `extern "C"`, no type information) or when the
+change is in the return type, which GNU v2 mangling does not encode (`SetObj12__FPvT0P3VecT2` returns
+`cObj12*` as on the PS2). A mangled symbol is the GC compiler's record of the parameter list and wins
+over the PS2: `EmCatchSubSet__FP3cEmT0Uliffff` keeps its `int a` callback slot, `set__5cMot3P6cModelPvN22iUciUsUs`
+its `int` motion argument, and the `(int)` casts at those calls stay.
+
 The tool aligns on names first, so a wrong name already in the header can pull a PS2 field onto the
 wrong row. `Em10Work` had that: the `Vec` at 0x4EC, between `Keep_pos` and `Return_ck_pos` exactly as
 the PS2's `Route_target` is, had been named `Goto_pos`, and the real `Goto_pos` (0x5F0, between
