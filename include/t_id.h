@@ -40,11 +40,11 @@ public:
     u8 xFC;              // 0xFC
     u8 no;               // 0xFD  slot inside the parent
     u8 kind;             // 0xFE  1: group
-    u8 xFF;              // 0xFF
+    u8 Id;               // 0xFF  file record Id byte (PS2 ID_DATA_V2 Id)
     u8 texId;            // 0x100 (0xFF = none)
     u8 pad_101[7];
     u8 vtxType;          // 0x108 high nibble: anchor
-    u8 x109;             // 0x109
+    u8 loop_flag;        // 0x109 bit0..3: path0, path1, curve loops (IdRec loop) (PS2 ID_DATA_V2 loop_flag)
     u8 flags10A;         // 0x10A 0x80: no texture size fetch
     u8 rotAxis;          // 0x10B
     u8 dir;              // 0x10C
@@ -132,9 +132,9 @@ struct IdTool {
     s8 lang;            // 0x178
     s8 lang2;           // 0x179  (s8 like lang: toolIdOption's `lang2 != lang` is a QI compare, loads lang2 first)
     s8 type;            // 0x17A  sub screen kind (index of subScreenName)
-    u8 x17B;            // 0x17B
-    u8 x17C;            // 0x17C
-    u8 x17D;            // 0x17D
+    u8 type2;           // 0x17B  type of the loaded .eff (as lang2 is to lang)
+    u8 fileNo;          // 0x17C  <sub screen>%03d.uwf file number
+    u8 reload;          // 0x17D  toolIdFile: bit0 reload the type's .eff, bit1 reload ckpt/share (lang changed)
     s8 prevCur;         // 0x17E
     u8 focusCnt;        // 0x17F
     u8 pad_180[2];

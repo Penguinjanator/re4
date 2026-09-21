@@ -241,7 +241,7 @@ void IDSystem::set(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode)
                     u->unitNo = p1->no;
                     u->levelNo = p1->level;
                     u->parentNo = p1->parentNo;
-                    u->rowNo = p1->x8;
+                    u->rowNo = p1->rowNo;
                     u->type = p1->kind;
                     u->texId = p1->texId;
                     u->vtxType = p1->vtxType;
@@ -349,7 +349,7 @@ void IDSystem::set(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode)
                     u->unitNo = p2->no;
                     u->levelNo = p2->level;
                     u->parentNo = p2->parentNo;
-                    u->rowNo = p2->x8;
+                    u->rowNo = p2->rowNo;
                     u->type = p2->kind;
                     u->texId = p2->texId;
                     u->vtxType = p2->vtxType;

@@ -66,9 +66,9 @@ struct IdData {
     u8 no;           // 0x05
     u8 level;        // 0x06
     u8 parentNo;     // 0x07
-    u8 x8;           // 0x08
+    u8 rowNo;        // 0x08  -> IdUnit::rowNo (PS2 ID_DATA_V2 rowNo)
     u8 kind;         // 0x09
-    u8 pad_A;
+    u8 Id;           // 0x0A  (PS2 ID_DATA_V2 Id; the game does not read it)
     u8 texId;        // 0x0B
     u8 vtxType;      // 0x0C
     u8 loop;         // 0x0D
@@ -99,9 +99,9 @@ struct IdData2 {
     u8 no;           // 0x05
     u8 level;        // 0x06
     u8 parentNo;     // 0x07
-    u8 x8;           // 0x08
+    u8 rowNo;        // 0x08  -> IdUnit::rowNo (PS2 ID_DATA_V2 rowNo)
     u8 kind;         // 0x09
-    u8 pad_A;
+    u8 Id;           // 0x0A  (PS2 ID_DATA_V2 Id; the game does not read it)
     u8 texId;        // 0x0B
     u8 vtxType;      // 0x0C
     u8 loop;         // 0x0D
@@ -130,6 +130,63 @@ struct IdDataHeader {
     char version[5];  // 0x00  "1.00" / "2.00"
     u8 num;           // 0x05
     u8 pad_6[2];
+};
+
+// Id class (PS2 ID_CLASS): the `type` / classNo of IDSystem::set/kill/setCk/dispSw/unitPtr and the IdSet*
+// helpers; IDC_NUM_00..IDC_NUM_61 are the 62 digit classes, IDC_ANY matches every class.
+enum ID_CLASS {
+    IDC_SSCRN_MAIN_MENU = 0,
+    IDC_SSCRN_BACK_GROUND = 1,
+    IDC_SSCRN_PESETA = 2,
+    IDC_SSCRN_CONFIRM = 3,
+    IDC_SSCRN_ETC = 4,
+    IDC_SSCRN_NEAR_0 = 16,
+    IDC_SSCRN_NEAR_1 = 17,
+    IDC_SSCRN_NEAR_2 = 18,
+    IDC_SSCRN_NEAR_3 = 19,
+    IDC_SSCRN_0 = 20,
+    IDC_SSCRN_1 = 21,
+    IDC_SSCRN_2 = 22,
+    IDC_SSCRN_3 = 23,
+    IDC_SSCRN_FAR_0 = 24,
+    IDC_SSCRN_FAR_1 = 25,
+    IDC_SSCRN_FAR_2 = 26,
+    IDC_SSCRN_FAR_3 = 27,
+    IDC_SSCRN_CKPT_0 = 28,
+    IDC_SSCRN_CKPT_1 = 29,
+    IDC_SSCRN_CKPT_2 = 30,
+    IDC_SSCRN_CKPT_3 = 31,
+    IDC_ACT_BUTTON = 32,
+    IDC_LIFE_METER = 33,
+    IDC_GAUGE = 34,
+    IDC_COUNT_DOWN = 35,
+    IDC_BINOCULAR = 36,
+    IDC_SCOPE = 37,
+    IDC_EXAMINE = 38,
+    IDC_DATA = 39,
+    IDC_TITLE = 40,
+    IDC_TITLE_MENU = 41,
+    IDC_OPTION = 42,
+    IDC_OPTION_BG = 43,
+    IDC_EVENT = 44,
+    IDC_DEAD = 45,
+    IDC_CONTINUE = 46,
+    IDC_MSG_WINDOW = 47,
+    IDC_CINESCO = 48,
+    IDC_WIP = 49,
+    IDC_BLLT_ICON = 50,
+    IDC_SUB_MISSION = 51,
+    IDC_LASER_GAUGE = 52,
+    IDC_BATTERY_TARGET = 53,
+    IDC_NUM_00 = 64,
+    IDC_NUM_61 = 125,
+    IDC_PRICE_00 = 128,
+    IDC_PRICE_01 = 129,
+    IDC_PRICE_02 = 130,
+    IDC_PRICE_03 = 131,
+    IDC_PRICE_04 = 132,
+    IDC_TOOL = 254,
+    IDC_ANY = 255
 };
 
 class IDSystem {

@@ -113,12 +113,12 @@ void toolIdInit(IdTool* w)
     bio4_GXSetCopyClear(col, 0xFFFFFF);
     ScreenReSize(0x280, 0x1C0);
     TaskSleep(3);
-    BitOn(pG->Debug_flg[0], 0x10000000);
-    BitOff(pG->Debug_flg[2], 0x40000000);
-    BitOff(pG->Debug_flg[1], 0x80000000);
+    DbgFlagOn(pG, DBG_DBG_CAM);
+    DbgFlagOff(pG, DBG_PROC_BAR);
+    DbgFlagOff(pG, DBG_COCKPIT_TOOL);
     BitOff(pG->System_flg, 0x800);
-    BitOn(pG->Debug_flg[0], 0x8000);
-    pG->Debug_flg[1] |= 0x100000;
+    DbgFlagOn(pG, DBG_CINESCO_OFF);
+    DbgFlagOn(pG, DBG_ID_TOOL);
     toolIdSetCamera(w);
     switch (pSys->language) {
     case 0:
@@ -148,7 +148,7 @@ void toolIdInit(IdTool* w)
     // (r0/r9/r11 are rewritten after the calls); the QI zeros must all precede the SI chain, whose
     // subreg the later QI zero stores would otherwise take (see docs/research/ "t_id pass 6").
     w->type = 0;
-    w->x17B = 0;
+    w->type2 = 0;
     w->pause = 0;
     w->cnt = 0;
     w->menuX = 100;
@@ -176,12 +176,12 @@ static void toolIdQuit(IdTool* w)
     toolIdSys.free();
     ScreenReSize(0x200, 0x1C0);
     IdDebugFreeBuffer();
-    BitOff(pG->Debug_flg[0], 0x80000000);
-    BitOff(pG->Debug_flg[0], 0x10000000);
-    BitOn(pG->Debug_flg[2], 0x40000000);
+    DbgFlagOff(pG, DBG_TEST_MODE);
+    DbgFlagOff(pG, DBG_DBG_CAM);
+    DbgFlagOn(pG, DBG_PROC_BAR);
     BitOn(pG->System_flg, 0x800);
-    BitOff(pG->Debug_flg[0], 0x8000);
-    BitOff(pG->Debug_flg[1], 0x100000);
+    DbgFlagOff(pG, DBG_CINESCO_OFF);
+    DbgFlagOff(pG, DBG_ID_TOOL);
     pG->Camera = w->camSave;
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     ToolWorkPop(0);
@@ -211,7 +211,7 @@ void ToolInterfaceDesign()
         if (pIdTool->pause == 0) {
             toolIdSys.roomInit();
             toolIdDataEncode(pIdBuf0, pIdTool);
-            toolIdSys.set(pIdBuf0, 0xFF, 0xFE, 0xC, 6, 0);
+            toolIdSys.set(pIdBuf0, 0xFF, IDC_TOOL, 0xC, 6, 0);
             toolIdSys.stop();
         } else {
             pIdTool->drawSafe = 0;
@@ -319,7 +319,7 @@ static void toolIdPrev(IdTool* w)
             } else if (w->type != 1 && w->type != 5) {
                 IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
             }
-            w->x17D = 0;
+            w->reload = 0;
             break;
         case 1:
             sprintf(path, "x:\\soft/Room/SubScreen/%s/tool2.eff", langName[w->lang]);
@@ -328,7 +328,7 @@ static void toolIdPrev(IdTool* w)
             } else {
                 IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
             }
-            w->x17D = 0;
+            w->reload = 0;
             break;
         }
         w->mode = 1;
@@ -1221,10 +1221,10 @@ int idEditPos(IdTool* w, int x, int y)
             break;
         case 3:
             if (joy->rep & 0x10001) {
-                d->x109 |= 1;
+                d->loop_flag |= 1;
             }
             if (joy->rep & 0x20002) {
-                d->x109 &= ~1;
+                d->loop_flag &= ~1;
             }
             if (joy->trg & 0x100) {
                 w->editStep--;
@@ -1283,7 +1283,7 @@ int idEditPos(IdTool* w, int x, int y)
                     u32 ofs = j * 4;
 
                     col = 7;
-                    if ((j == 0) == (d->x109 & 1)) {
+                    if ((j == 0) == (d->loop_flag & 1)) {
                         col = 0;
                     }
                     eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32) onOffName));
@@ -1476,10 +1476,10 @@ int idEditSize(IdTool* w, int x, int y)
         }
         case 3:
             if (joy->rep & 0x10001) {
-                d->x109 |= 2;
+                d->loop_flag |= 2;
             }
             if (joy->rep & 0x20002) {
-                d->x109 &= 0xFD;
+                d->loop_flag &= 0xFD;
             }
             break;
         case 4:
@@ -1544,7 +1544,7 @@ int idEditSize(IdTool* w, int x, int y)
                 tbl3 = onOffName2;
                 for (j = 0; j <= 1; j++) {
                     ofs = j * 4;
-                    if ((j != 0) != ((d->x109 >> 1) & 1)) {
+                    if ((j != 0) != ((d->loop_flag >> 1) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
@@ -1853,10 +1853,10 @@ int idEditColor(IdTool* w, int x, int y)
             break;
         case 1:
             if (joy->rep & 0x10001) {
-                d->x109 |= 4;
+                d->loop_flag |= 4;
             }
             if (joy->rep & 0x20002) {
-                d->x109 &= 0xFB;
+                d->loop_flag &= 0xFB;
             }
             if (joy->trg & 0x100) {
                 w->editStep--;
@@ -1883,7 +1883,7 @@ int idEditColor(IdTool* w, int x, int y)
                 for (j = 0; j <= 1; j++) {
                     u32 ofs = j * 4;
 
-                    if ((j != 0) != ((d->x109 >> 2) & 1)) {
+                    if ((j != 0) != ((d->loop_flag >> 2) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
@@ -2049,10 +2049,10 @@ int idEditRot(IdTool* w, int x, int y)
             break;
         case 2:
             if (joy->rep & 0x10001) {
-                d->x109 |= 8;
+                d->loop_flag |= 8;
             }
             if (joy->rep & 0x20002) {
-                d->x109 &= 0xF7;
+                d->loop_flag &= 0xF7;
             }
             if (joy->trg & 0x100) {
                 w->editStep--;
@@ -2090,7 +2090,7 @@ int idEditRot(IdTool* w, int x, int y)
             case 3:
                 for (j = 0, tbl3 = onOffName4; j <= 1; j++) {
                     ofs = j * 4;
-                    if ((j != 0) != ((d->x109 >> 3) & 1)) {
+                    if ((j != 0) != ((d->loop_flag >> 3) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
@@ -2776,7 +2776,7 @@ static void toolIdOption(IdTool* w)
         } else if (joy->trg & 0x100) {
             if (w->lang2 != w->lang) {
                 w->lang2 = w->lang;
-                w->x17D |= 2;
+                w->reload |= 2;
             }
             w->editStep--;
         } else {
@@ -2880,12 +2880,12 @@ static void toolIdFile(IdTool* w)
         }
         w->type = w->type < 0 ? 0x14 : (w->type > 0x14 ? 0 : w->type);
         if (joy->rep & 0x30003) {
-            w->x17C = 0;
+            w->fileNo = 0;
         }
         if (joy->trg & 0x100) {
-            if ((s8) w->x17B != w->type) {
-                w->x17B = w->type;
-                w->x17D |= 1;
+            if ((s8) w->type2 != w->type) {
+                w->type2 = w->type;
+                w->reload |= 1;
             }
             w->editStep++;
         }
@@ -2896,10 +2896,10 @@ static void toolIdFile(IdTool* w)
             break;
         }
         if (joy->rep & 0x10001) {
-            w->x17C--;
+            w->fileNo--;
         }
         if (joy->rep & 0x20002) {
-            w->x17C++;
+            w->fileNo++;
         }
         if (joy->trg & 0x100) {
             w->editStep++;
@@ -2924,7 +2924,7 @@ static void toolIdFile(IdTool* w)
         if (w->grpSw == 1) {
             sprintf(effPath, "x:\\soft/Room/SubScreen/%s/%s.eff", langName[w->lang], subScreenName[w->type]);
             sprintf(path, "x:\\soft/Room/SubScreen/%s/uwf/%s%03d.uwf", langName[w->lang], subScreenName[w->type],
-                    w->x17C);
+                    w->fileNo);
             switch (mode) {
             case 0:
                 file_unlock(path);
@@ -2932,7 +2932,7 @@ static void toolIdFile(IdTool* w)
                 HDWrite(path, pIdBuf0, size);
                 break;
             case 1:
-                if (w->x17D != 0) {
+                if (w->reload != 0) {
                     if (HDRead(effPath, pIdBuf3) > 0x900000) {
                         pLog->err(0, 0, "toolIdFile(): Eff(%s) file is too large.", effPath);
                     } else {
@@ -2973,9 +2973,9 @@ static void toolIdFile(IdTool* w)
                             IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
                             break;
                         }
-                        w->x17D &= ~1;
+                        w->reload &= ~1;
                     }
-                    if (w->x17D & 2) {
+                    if (w->reload & 2) {
                         sprintf(effPath, "x:\\soft/Room/SubScreen/%s/ckpt.eff", langName[w->lang]);
                         if (HDRead(effPath, pIdBuf1) > 0x100000) {
                             pLog->err(0, 0, "toolIdFile(): Eff(%s) file is too large.", effPath);
@@ -3017,7 +3017,7 @@ static void toolIdFile(IdTool* w)
                                     IdTexDataLoad(pIdBuf2, TEX_OWNER_ID_SHARE);
                                     break;
                                 }
-                                w->x17D &= ~2;
+                                w->reload &= ~2;
                             }
                         }
                     }
@@ -3055,7 +3055,7 @@ static void toolIdFile(IdTool* w)
     eprintf(cy << 3, 0x9A, 0, 0, "file: ");
     eprintf(0x148, 0x9A, (w->editStep == 1) ? 4 : 0, 0, "%s", subScreenName[w->type]);
     cy = strlen(subScreenName[w->type]) + 0x29;
-    eprintf(cy << 3, 0x9A, (w->editStep == 2) ? 4 : 0, 0, "%03d", w->x17C);
+    eprintf(cy << 3, 0x9A, (w->editStep == 2) ? 4 : 0, 0, "%03d", w->fileNo);
     cy += 3;
     eprintf(cy << 3, 0x9A, 0, 0, ".uwf");
     col = (w->editStep == 3) ? 4 : 0;
@@ -3083,7 +3083,7 @@ struct IdRec {
     u8 parentNo;    // 0x07
     u8 no;          // 0x08
     u8 kind;        // 0x09
-    u8 xA;          // 0x0A
+    u8 Id;          // 0x0A  (PS2 ID_DATA_V2 Id)
     u8 texId;       // 0x0B
     u8 vtxType;     // 0x0C
     u8 loop;        // 0x0D
@@ -3169,10 +3169,10 @@ int toolIdDataEncode(void* buf, IdTool* w)
             rec->parentNo = d->parentNo;
             rec->no = d->no;
             rec->kind = d->kind;
-            rec->xA = d->xFF;
+            rec->Id = d->Id;
             rec->texId = d->texId;
             rec->vtxType = d->vtxType;
-            rec->loop = d->x109;
+            rec->loop = d->loop_flag;
             rec->scaleType = d->flags10A;
             rec->rotAxis = d->rotAxis;
             rec->dir = d->dir;
@@ -3286,7 +3286,7 @@ struct IdRec1 {
     u8 parentNo;    // 0x07
     u8 no;          // 0x08
     u8 kind;        // 0x09
-    u8 xA;          // 0x0A
+    u8 Id;          // 0x0A  (PS2 ID_DATA_V2 Id)
     u8 texId;       // 0x0B
     u8 vtxType;     // 0x0C
     u8 loop;        // 0x0D
@@ -3358,10 +3358,10 @@ int toolIdDataDecode(void* buf, IdTool* w)
             d->parentNo = r1->parentNo;
             d->no = r1->no;
             d->kind = r1->kind;
-            d->xFF = r1->xA;
+            d->Id = r1->Id;
             d->texId = r1->texId;
             d->vtxType = r1->vtxType;
-            d->x109 = r1->loop;
+            d->loop_flag = r1->loop;
             d->flags10A = r1->scaleType;
             d->rotAxis = r1->rotAxis;
             d->dir = r1->dir;
@@ -3426,10 +3426,10 @@ int toolIdDataDecode(void* buf, IdTool* w)
             d->parentNo = r2->parentNo;
             d->no = r2->no;
             d->kind = r2->kind;
-            d->xFF = r2->xA;
+            d->Id = r2->Id;
             d->texId = r2->texId;
             d->vtxType = r2->vtxType;
-            d->x109 = r2->loop;
+            d->loop_flag = r2->loop;
             d->flags10A = r2->scaleType;
             d->rotAxis = r2->rotAxis;
             d->dir = r2->dir;
