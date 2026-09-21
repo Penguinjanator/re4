@@ -34,9 +34,10 @@ class cSubChar;
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-// Matrix copy written out as loops (motion.cpp / camera.cpp shape; the original never calls
-// PSMTXCopy in this unit).
-#define MTX_COPY(src, dst)               \
+// Matrix copy written out as loops (the original never calls PSMTXCopy in this unit): MTX_COPY
+// (vec.h) as a do/while with `i_ = 2` between the two pointer inits, so the counter `li` is issued
+// between the `d_` and `s_` inits (docs/matching.md, ss_pzzl second pass).
+#define MTX_COPY_DO(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
         int i_ = 2;                      \
@@ -444,7 +445,7 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
     pzlPiece* piece;
     Vec e;
 
-    MTX_COPY(b->m_mat, mat);
+    MTX_COPY_DO(b->m_mat, mat);
     g = pzlGrid::size;
     if (b->cellState((s8) x, (s8) y) & 0x82) {
         return;
@@ -550,7 +551,7 @@ void drawGridLine(SUB_SCREEN* wk)
     u16 ot;
     u16 prio;
 
-    MTX_COPY(wk->puzzlePlayer->m_board->m_mat, mat);
+    MTX_COPY_DO(wk->puzzlePlayer->m_board->m_mat, mat);
     h = wk->puzzlePlayer->m_board->m_size_y;
     w = wk->puzzlePlayer->m_board->m_size_x;
     a.x = 0.0f;
@@ -580,7 +581,7 @@ void drawGridLine(SUB_SCREEN* wk)
         a.y -= g;
         b.y -= g;
     }
-    MTX_COPY(wk->puzzlePlayer->m_space->m_mat, mat);
+    MTX_COPY_DO(wk->puzzlePlayer->m_space->m_mat, mat);
     h = wk->puzzlePlayer->m_space->m_size_y;
     w = wk->puzzlePlayer->m_space->m_size_x;
     a.x = 0.0f;
@@ -1175,7 +1176,7 @@ void caseModelMove(int sw)
         p.y = -0.0f;
         p.z = 0.0f;
         PSMTXMultVec(m->mat, &p, &p);
-        MTX_COPY(m->mat, tmp);
+        MTX_COPY_DO(m->mat, tmp);
         ax.x = m->mat[0][0];
         ax.y = m->mat[1][0];
         ax.z = m->mat[2][0];
@@ -1200,7 +1201,7 @@ void caseModelMove(int sw)
         tmp[0][3] = p.x;
         tmp[1][3] = p.y;
         tmp[2][3] = p.z;
-        MTX_COPY(tmp, b->m_mat);
+        MTX_COPY_DO(tmp, b->m_mat);
     }
     u = IdSub.unitPtr(0, 0x10);
     b = wk->puzzlePlayer->m_space;
@@ -1215,7 +1216,7 @@ void caseModelMove(int sw)
         Vec p;
         Mtx mat2;
 
-        MTX_COPY(wk->puzzlePlayer->m_board->m_mat, mat2);
+        MTX_COPY_DO(wk->puzzlePlayer->m_board->m_mat, mat2);
         p.x = 0.0f;
         p.y = pzlGrid::size + pzlGrid::size;
         p.z = 0.0f;
@@ -1224,11 +1225,11 @@ void caseModelMove(int sw)
         t.y = mat2[1][3];
         t.z = mat2[2][3];
         PSVECAdd(&t, &p, &t);
-        MTX_COPY(mat2, mat);
+        MTX_COPY_DO(mat2, mat);
         mat[0][3] = q.x;
         mat[1][3] = t.y;
         mat[2][3] = t.z;
-        MTX_COPY(mat, b->m_mat);
+        MTX_COPY_DO(mat, b->m_mat);
         puzzlePos2screenPos(&q, &scr2);
         u->scr.y = scr2.y;
     }
