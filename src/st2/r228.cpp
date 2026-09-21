@@ -222,11 +222,11 @@ static void r228_execEvent00()
 
     RsfSet(G_ROOM_ID, 0);
     SceEventStart(0);
-    EvtMgr.EvtReadExec("event/evd/r228s00.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r228s00.evd", 0, EvtReadFlagNone);
     if (!(pG->Room_flg[0] & 0x80000000)) {
-        EvtMgr.EvtReadExec("event/evd/r228s01.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r228s01.evd", 0, EvtReadFlagNone);
         if (!(pG->Room_flg[0] & 0x80000000)) {
-            EvtMgr.EvtReadExec("event/evd/r228s02.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r228s02.evd", 0, EvtReadFlagNone);
         }
     }
     SceEventEnd(0);

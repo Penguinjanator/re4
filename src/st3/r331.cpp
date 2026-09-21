@@ -77,7 +77,7 @@ static void R331ExecEventS00()
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(3, 0);
         SceEventStart(0);
-        EvtMgr.EvtReadExec("event/evd/r331s00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r331s00.evd", 0, EvtReadFlagNone);
         SceEventEnd(0);
         StaFlagOn(pG, STA_SAVEDATA_NO_UPDATE);
         SubCharCtrl(2, 0);
@@ -101,7 +101,7 @@ static void R331ExecEventS10()
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(1);
         SceEventStart(0);
-        EvtMgr.EvtReadExec("event/evd/r331s10.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r331s10.evd", 0, EvtReadFlagNone);
         SceEventEnd(0);
         StaFlagOn(pG, STA_SUB_ASHLEY);
         SndBgmTblSet(0x331, 1);

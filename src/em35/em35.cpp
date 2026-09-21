@@ -716,19 +716,19 @@ static u16 em35_flip1[120] = {
 // Attacks (em35AtkCk): [0] punch, [1] punch (left), [2] stamp, [3] double punch, [4] hook, [5]/[6] second
 // floor punch, [7] critical, [8]/[9] upper body hand, [0xA]/[0xB] upper, [0xC] spear.
 static EmAtkInfo em35_atk_tbl[13] = {
-    { 400.0f, 8, 800, 0, 0xA, 0 },
-    { 400.0f, 8, 800, 0, 0xA, 0 },
-    { 400.0f, 8, 800, 0, 0xA, 0 },
-    { 400.0f, 8, 0, 0, 0xA, 0 },
-    { 500.0f, 8, 0, 0, 0xA, 0 },
-    { 300.0f, 8, 800, 0, 0xA, 0 },
-    { 300.0f, 8, 800, 0, 0xA, 0 },
-    { 500.0f, 8, 9999, 0, 0xA, 0 },
-    { 500.0f, 8, 800, 0, 0xA, 0 },
-    { 500.0f, 8, 800, 0, 0xA, 0 },
-    { 500.0f, 8, 800, 0, 0xA, 0 },
-    { 500.0f, 8, 800, 0, 0xA, 0 },
-    { 700.0f, 8, 800, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 0, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 0, 0, 0xA, 0 },
+    { 300.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 300.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 9999, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 700.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
 };
 
 // Cloth chains (em35ClothSet*): the type 1 tail and the hanging skin of both types.
@@ -901,58 +901,58 @@ static void em35_R0_Init(cEm35* em)
     switch (em->type) {
     case 0:
     default:
-        YarareInit(em, 0.0f, 0.0f, 0.0f, 300.0f, 150.0f, 1, 1);
-        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 0xA, 1);
-        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 3, 1);
-        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 4, 1);
-        YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, 1);
-        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 6, 1);
-        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 300.0f, 300.0f, 7, 1);
-        YarareAdd(em, &w->hit[6], -300.0f, 0.0f, 0.0f, 150.0f, 400.0f, 0x12, 3);
-        YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0x13, 3);
-        YarareAdd(em, &w->hit[8], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x18, 1);
-        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0x19, 3);
-        YarareAdd(em, &w->hit[10], -20.0f, -300.0f, 0.0f, 220.0f, 300.0f, 0x1D, 1);
-        YarareAdd(em, &w->hit[11], -20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x1E, 1);
-        YarareAdd(em, &w->hit[12], 20.0f, -300.0f, 0.0f, 220.0f, 300.0f, 0x21, 1);
-        YarareAdd(em, &w->hit[13], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x22, 1);
-        YarareAdd(em, &w->hit[14], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x4B, 1);
-        YarareAdd(em, &w->hit[15], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x4E, 1);
-        YarareAdd(em, &w->hit[16], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2B, 1);
-        YarareAdd(em, &w->hit[17], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2C, 1);
-        YarareAdd(em, &w->hit[18], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2D, 1);
-        YarareAdd(em, &w->hit[19], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2E, 1);
-        YarareAdd(em, &w->hit[20], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2F, 1);
-        YarareAdd(em, &w->hit[21], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x25, 1);
-        YarareAdd(em, &w->hit[22], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x26, 1);
-        YarareAdd(em, &w->hit[23], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x27, 1);
-        YarareAdd(em, &w->hit[24], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x28, 1);
-        YarareAdd(em, &w->hit[25], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x29, 1);
+        YarareInit(em, 0.0f, 0.0f, 0.0f, 300.0f, 150.0f, 1, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 0xA, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 3, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 4, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 6, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 300.0f, 300.0f, 7, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[6], -300.0f, 0.0f, 0.0f, 150.0f, 400.0f, 0x12, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0x13, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[8], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x18, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0x19, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[10], -20.0f, -300.0f, 0.0f, 220.0f, 300.0f, 0x1D, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[11], -20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x1E, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[12], 20.0f, -300.0f, 0.0f, 220.0f, 300.0f, 0x21, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[13], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0x22, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[14], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x4B, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[15], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x4E, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[16], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2B, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[17], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2C, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[18], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2D, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[19], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2E, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[20], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2F, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[21], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x25, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[22], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x26, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[23], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x27, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[24], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x28, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[25], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x29, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInit(em, 0.0f, 0.0f, 0.0f, 300.0f, 150.0f, 1, 1);
-        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, 1);
-        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x12, 1);
-        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x13, 1);
-        YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x14, 1);
-        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x15, 1);
-        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 300.0f, 300.0f, 2, 1);
-        YarareAdd(em, &w->hit[6], -300.0f, 0.0f, 0.0f, 150.0f, 400.0f, 8, 3);
-        YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 170.0f, 300.0f, 9, 3);
-        YarareAdd(em, &w->hit[8], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0xE, 1);
-        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0xF, 3);
-        YarareAdd(em, &w->hit[10], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x20, 1);
-        YarareAdd(em, &w->hit[11], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x23, 1);
-        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2B, 1);
-        YarareAdd(em, &w->hit[13], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2C, 1);
-        YarareAdd(em, &w->hit[14], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2D, 1);
-        YarareAdd(em, &w->hit[15], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2E, 1);
-        YarareAdd(em, &w->hit[16], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2F, 1);
-        YarareAdd(em, &w->hit[17], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x25, 1);
-        YarareAdd(em, &w->hit[18], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x26, 1);
-        YarareAdd(em, &w->hit[19], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x27, 1);
-        YarareAdd(em, &w->hit[20], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x28, 1);
-        YarareAdd(em, &w->hit[21], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x29, 1);
+        YarareInit(em, 0.0f, 0.0f, 0.0f, 300.0f, 150.0f, 1, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x12, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x13, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x14, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 200.0f, 150.0f, 0x15, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 300.0f, 300.0f, 2, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[6], -300.0f, 0.0f, 0.0f, 150.0f, 400.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 170.0f, 300.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[8], 20.0f, -400.0f, 0.0f, 200.0f, 400.0f, 0xE, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 170.0f, 300.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[10], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x20, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[11], 20.0f, 0.0f, 0.0f, 200.0f, 50.0f, 0x23, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2B, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[13], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2C, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[14], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2D, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[15], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x2E, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[16], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x2F, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[17], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x25, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[18], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x26, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[19], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x27, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[20], 0.0f, 0.0f, 0.0f, 200.0f, 200.0f, 0x28, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[21], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x29, YAT_FLAG_ON);
         break;
     }
     zero = 0;
@@ -3939,7 +3939,7 @@ static inline void em35PlKnock(cEm35* em)
 {
     FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
     pPL->ang.y = LIMIT_ANGLE(pPL->ang.y);
-    PlSetDamage(8, 0, 0);
+    PlSetDamage(PL_DM_AUTO, 0, 0);
 }
 
 // Tests attack `no` of em35_atk_tbl swept from part `parts`' previous to its current position
@@ -4005,7 +4005,7 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
                 if (pPL->pos.y > em->pos.y + 2000.0f) {
                     if (em35PlFallCk(em) == 0) {
                         pPL->ang.y = GetXZAngle(&p->world, &p->world_old);
-                        PlSetDamage(8, 0, 0);
+                        PlSetDamage(PL_DM_AUTO, 0, 0);
                     }
                 }
                 SndCall(8, 0x11, &em->pos, em->id, 0, em);

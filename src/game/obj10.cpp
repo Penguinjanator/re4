@@ -210,7 +210,7 @@ void cWepItem::dmgSet(int kind)
 void cWepItem::hitCkPl()
 {
     if (GetDistance(&pos, &pPL->pos) < 4000000.0f) {
-        PlSetDamage(7, 10000, 0);
+        PlSetDamage(PL_DM_BACK, 10000, 0);
     }
 }
 

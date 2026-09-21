@@ -694,7 +694,7 @@ static void R20bEventS00()
         SceAtSetEnable(2, 0);
         SceDestroyEm(0x22, 0x22);
         SceSleep(1);
-        EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromList(0x11), 0);
+        EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromList(0x11), EvtReadFlagNone);
         SceSetChapterEnd(CHAPTER_3_2, -1);
     }
 }

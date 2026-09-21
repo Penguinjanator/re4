@@ -5,6 +5,19 @@
 
 struct IdUnit;
 
+// Frames of the opening timeline (PS2 TITLE_FRAME): TitleWork::counter at which each logo starts; the
+// TTL_CANCEL_* ints in title.cpp are the earliest frame START may skip to the next one.
+enum TITLE_FRAME {
+    TTL_START_WARNING = 0,
+    TTL_START_CAPCOM = 105,
+    TTL_START_CRI = 230,
+    TTL_START_DOLBY = 330,
+    TTL_START_BIO4 = 585,
+    TTL_START_MENU = 615,
+    TTL_FADE_OUT = 15,
+    TTL_FADE_IN = 15
+};
+
 // Title screen task work (game/title.cpp, mem_calloc'd 0x9C bytes by Title_task).
 struct TitleWork {
     s8 Rno0;          // 0x00  titleFuncTbl index (0 init, 1 wait, 2 nintendo, 3 warning, 4 logo, 5 main, 6 sub/omake, 7 exit)

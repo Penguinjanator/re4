@@ -3387,31 +3387,31 @@ static void em10_R0_Init(cEm10* em)
         }
     }
     if (em->type == 0xA || em->type == 0xD) {
-        YarareInit(em, 0.0f, 300.0f, 50.0f, 150.0f, 110.0f, 3, 5);
+        YarareInit(em, 0.0f, 300.0f, 50.0f, 150.0f, 110.0f, 3, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     } else {
-        YarareInit(em, 0.0f, 0.0f, 0.0f, 160.0f, 110.0f, 5, 1);
+        YarareInit(em, 0.0f, 0.0f, 0.0f, 160.0f, 110.0f, 5, YAT_FLAG_ON);
     }
-    YarareAdd(em, &w->hit[0], 0.0f, -30.0f, 0.0f, 210.0f, 290.0f, 2, 1);
+    YarareAdd(em, &w->hit[0], 0.0f, -30.0f, 0.0f, 210.0f, 290.0f, 2, YAT_FLAG_ON);
     switch (em->type) {
     case 7:
     case 8:
     case 9:
     case 0xB:
     case 0xC:
-        YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 180.0f, 400.0f, 0x14, 1);
-        YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 180.0f, 400.0f, 0x18, 1);
+        YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 180.0f, 400.0f, 0x14, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 180.0f, 400.0f, 0x18, YAT_FLAG_ON);
         break;
     default:
-        YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, 1);
-        YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, 1);
+        YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, YAT_FLAG_ON);
         break;
     }
     if (em->type == 0xA || em->type == 0xD) {
-        YarareAdd(em, &w->hit[3], -300.0f, 0.0f, 0.0f, 100.0f, 250.0f, 9, 3);
-        YarareAdd(em, &w->hit[4], 50.0f, 0.0f, 0.0f, 100.0f, 250.0f, 0xF, 3);
+        YarareAdd(em, &w->hit[3], -300.0f, 0.0f, 0.0f, 100.0f, 250.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[4], 50.0f, 0.0f, 0.0f, 100.0f, 250.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     } else {
-        YarareAdd(em, &w->hit[3], -350.0f, 0.0f, 0.0f, 100.0f, 350.0f, 9, 3);
-        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, 3);
+        YarareAdd(em, &w->hit[3], -350.0f, 0.0f, 0.0f, 100.0f, 350.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     }
     switch (em->type) {
     case 7:
@@ -3419,18 +3419,18 @@ static void em10_R0_Init(cEm10* em)
     case 9:
     case 0xB:
     case 0xC:
-        YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 200.0f, 300.0f, 0x13, 1);
-        YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 200.0f, 300.0f, 0x17, 1);
+        YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 200.0f, 300.0f, 0x13, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 200.0f, 300.0f, 0x17, YAT_FLAG_ON);
         break;
     default:
-        YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
-        YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
+        YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, YAT_FLAG_ON);
         break;
     }
-    YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, 3);
-    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, 3);
+    YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     if (em->type == 0xA || em->type == 0xD) {
-        YarareAdd(em, &w->hit[9], 0.0f, 50.0f, 0.0f, 200.0f, 0.0f, 0x25, 1);
+        YarareAdd(em, &w->hit[9], 0.0f, 50.0f, 0.0f, 200.0f, 0.0f, 0x25, YAT_FLAG_ON);
     } else {
         YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 300.0f, 0.0f, 5, 0);
     }
@@ -4666,25 +4666,25 @@ static void em10_R1_R10FGJump(cEm10* em)
 // Attack parameters by attack number (em10AtkCk / em10BellAtkCk index it; the axe / scythe throws
 // hand entries 5 / 6 to cEmWep::setThrow).
 static EmAtkInfo Em10AtkTbl[19] = {
-    { 250.0f, 8, 380, 0, 10, 0 },
-    { 250.0f, 8, 380, 0, 10, 0 },
-    { 500.0f, 8, 480, 0, 10, 0 },
-    { 350.0f, 8, 480, 0, 10, 0 },
-    { 350.0f, 8, 480, 0, 10, 0 },
-    { 250.0f, 8, 380, 0, 10, 0 },
-    { 750.0f, 8, 700, 0, 10, 0 },
-    { 250.0f, 8, 400, 0, 10, 0 },
-    { 250.0f, 8, 380, 0, 10, 0 },
-    { 250.0f, 8, 700, 0, 10, 0 },
-    { 250.0f, 8, 700, 0, 10, 0 },
-    { 500.0f, 8, 10, 0, 10, 0 },
-    { 500.0f, 8, 9999, 8, 10, 0 },
-    { 400.0f, 8, 640, 0, 10, 0 },
-    { 400.0f, 8, 1400, 0, 10, 0 },
-    { 400.0f, 8, 900, 0, 10, 0 },
-    { 400.0f, 8, 800, 0, 10, 0 },
-    { 400.0f, 8, 0, 0, 10, 0 },
-    { 250.0f, 8, 570, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 380, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 380, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 480, 0, 10, 0 },
+    { 350.0f, PL_DM_AUTO, 480, 0, 10, 0 },
+    { 350.0f, PL_DM_AUTO, 480, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 380, 0, 10, 0 },
+    { 750.0f, PL_DM_AUTO, 700, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 400, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 380, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 700, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 700, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 10, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 9999, 8, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 640, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 1400, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 900, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 0, 0, 10, 0 },
+    { 250.0f, PL_DM_AUTO, 570, 0, 10, 0 },
 };
 
 // R1 == 0x57: room 10F Ganado on the opposite gondola. Faces the player's car and throws its weapon
@@ -23291,7 +23291,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             break;
         case 4:
             pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             break;
         case 0xD:
             if ((s16) pG->pl_life <= 0) {
@@ -23317,7 +23317,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             break;
         case 0xE:
             pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
             if ((s16) pG->pl_life > 0) {
                 EstSet(em, -1, 0, 0, EFF_EM10, 0x79, 0, ESP_CORE_KIND_NONE, em, 0);
@@ -23325,7 +23325,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             break;
         case 0x10:
             pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             break;
         case 9:
         case 0xC:
@@ -23336,7 +23336,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
             break;
         case 0x12:
             pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             break;
         }
         w->Atk_ck = 1;
@@ -23735,7 +23735,7 @@ static void plemDmFrame(cPlayer* pl)
             pl->m_Work0--;
             if (pl->m_Work0 == 0 && (s16) pG->pl_life <= 0) {
                 PlSetDamageSe(0xD);
-                PlSetDamage(6, 0, 0);
+                PlSetDamage(PL_DM_FRONT, 0, 0);
                 break;
             }
         }

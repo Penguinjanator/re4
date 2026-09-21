@@ -779,7 +779,7 @@ static void r117_EventChandelier()
             }
         } else {
             if (cnt == 0x26) {
-                FootSeCall(5, &pPL->pos, 0, 0);
+                FootSeCall(SE_LEON_FALL_BODY, &pPL->pos, 0, 0);
             }
         }
         if (cnt == 0x1E) {

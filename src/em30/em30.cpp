@@ -247,10 +247,10 @@ static void em30_R0_Init(cEm30* em)
     }
     em->atari.init(0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);
     em->litArea.on(1);
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 1, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, 1);
-    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[2], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x18, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 1, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x18, YAT_FLAG_ON);
     em->lockParts = 2;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;

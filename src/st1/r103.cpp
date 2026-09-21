@@ -298,7 +298,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
         const f32 h = 1200.0f;
         const f32 x = 0.0f;
         const f32 z = 50.0f;
-        YarareInitCube(hit, x, x, z, w, h, w, 0, 1);
+        YarareInitCube(hit, x, x, z, w, h, w, 0, YAT_FLAG_ON);
     }
     do {
         if (hit->ckStatus() == 1) {

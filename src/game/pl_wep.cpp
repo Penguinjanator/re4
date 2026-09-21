@@ -373,7 +373,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         }
         if (!(dmg->m_Flag & 1)) {
             dmg->set(0, 10, type, pPos, part->rad, part);
-            if (part->flags & 0x20) {
+            if (part->flags & YAT_FLAG_THROUGH) {
                 dmg->m_Flag |= 0x20;
             }
         }

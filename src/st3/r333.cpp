@@ -229,7 +229,7 @@ void R333EventS00()
             boat = (cPl0e*) r333_work->em.getPtr();
             boat->stopEngine();
             SndRoomStrVolSet(10, 600);
-            EvtMgr.EvtReadExec("event/evd/r333s00.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r333s00.evd", 0, EvtReadFlagNone);
             SndRoomStrVolReset(200);
             boat->set2ndRail();
             SpfFlagOn(pG, SPF_WATER);
@@ -259,7 +259,7 @@ void R333EventS10()
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             ((cPl0e*) r333_work->em.getPtr())->stopEngine();
             SceEventStart(0);
-            EvtMgr.EvtReadExec("event/evd/r333s10.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r333s10.evd", 0, EvtReadFlagNone);
             SceSleep(90);
             SetGameTime();
             SceExec(0x12, (TaskFunc) gameResult, 0, 0, 2, 0);

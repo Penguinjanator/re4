@@ -325,7 +325,7 @@ static void r11e_move_sasaeki1()
         {
             const f32 w = 2000.0f;    // const: pool order w, h before 0.0, uses stay literal (sched ties)
             const f32 h = 800.0f;
-            YarareInitCube(hitA, 0.0f, 0.0f, 0.0f, w, h, w, 0, 1);
+            YarareInitCube(hitA, 0.0f, 0.0f, 0.0f, w, h, w, 0, YAT_FLAG_ON);
         }
         pos.x = -8182.04f;
         pos.y = 0.0f;
@@ -347,7 +347,7 @@ static void r11e_move_sasaeki1()
         {
             const f32 w = 2000.0f;
             const f32 h = 800.0f;
-            YarareInitCube(hitB, 0.0f, 0.0f, 0.0f, w, h, w, 0, 1);
+            YarareInitCube(hitB, 0.0f, 0.0f, 0.0f, w, h, w, 0, YAT_FLAG_ON);
         }
         pos.x = 31737.52f;
         pos.y = 0.0f;

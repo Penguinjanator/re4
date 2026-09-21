@@ -111,35 +111,35 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 1:
     case 5:
     default:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2400.0f, 140.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2400.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 8:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 850.0f, 2600.0f, 140.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 850.0f, 2600.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 9:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 750.0f, 3100.0f, 140.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 750.0f, 3100.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 6:
-        YarareInitCube(em, 0.0f, 260.0f, 0.0f, 490.0f, 1880.0f, 140.0f, 0, 0x41);
-        YarareAddCube(em, &w->hit[0], -490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, 0x41);
-        YarareAddCube(em, &w->hit[1], 490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, 0x41);
-        YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
-        YarareAddCube(em, &w->hit[3], 0.0f, 2040.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 260.0f, 0.0f, 490.0f, 1880.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAddCube(em, &w->hit[0], -490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAddCube(em, &w->hit[1], 490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAddCube(em, &w->hit[3], 0.0f, 2040.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 2:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2700.0f, 120.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2700.0f, 120.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 3:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 4150.0f, 4800.0f, 250.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 4150.0f, 4800.0f, 250.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 4:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 1650.0f, 3150.0f, 250.0f, 0, 0x41);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 1650.0f, 3150.0f, 250.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         em->hp_max = em->hp = 1000;
         break;
     case 0:

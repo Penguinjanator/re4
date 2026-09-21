@@ -74,7 +74,7 @@ static EmRockFunc EmRock_R1_move_tbl[9] = {
 };
 
 // Attack parameters of a falling / thrown rock without its own (setFall / setThrow); range = radius.
-static EmAtkInfo emRockAtk = { 1500.0f, 8, 9999, 0, 10, 0 };
+static EmAtkInfo emRockAtk = { 1500.0f, PL_DM_AUTO, 9999, 0, 10, 0 };
 
 // Event camera of the escape / drop scenes (CamCtrl.x250 points at it while they run).
 static Camera emRockCam = { 0 };
@@ -1088,7 +1088,7 @@ int emRockRollHitCk(cEmRock* em)
     VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xB, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     pG->pl_life = 0;
-    PlSetDamage(8, 0, 0);
+    PlSetDamage(PL_DM_AUTO, 0, 0);
     return 1;
 }
 
@@ -1291,9 +1291,9 @@ void cEmRock::setEffAlways(u8 id, u8 type)
 void cEmRock::setYarareCube(f32 x, f32 y, f32 z, Vec* size)
 {
     if (size) {
-        YarareInitCube(this, size->x, size->y, size->z, x, y, z, 0, 1);
+        YarareInitCube(this, size->x, size->y, size->z, x, y, z, 0, YAT_FLAG_ON);
     } else {
-        YarareInitCube(this, 0.0f, -400.0f, 0.0f, x, y, z, 0, 1);
+        YarareInitCube(this, 0.0f, -400.0f, 0.0f, x, y, z, 0, YAT_FLAG_ON);
     }
     hp = 1;
 }
@@ -2129,7 +2129,7 @@ int emRockAtkCk(cEmRock* em, EmAtkInfo* atk, int type, f32 r)
             SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (type) {
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
             }
             if (w->eff9C[0] != 0xFF && w->eff9C[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->eff9C[0], w->eff9C[1]);

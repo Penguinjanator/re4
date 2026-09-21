@@ -378,9 +378,9 @@ static Em3cFunc Em3c_R3_move_tbl[1] = {
 
 // Attacks (em3cAtkCk): [0] grab, [1] kick, [2] the parasite bite.
 static EmAtkInfo em3c_atk_tbl[3] = {
-    { 400.0f, 8, 0x30C, 0, 0xA, 0 },
-    { 400.0f, 8, 0x17C, 0, 0xA, 0 },
-    { 1000.0f, 8, 0x30C, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 0x30C, 0, 0xA, 0 },
+    { 400.0f, PL_DM_AUTO, 0x17C, 0, 0xA, 0 },
+    { 1000.0f, PL_DM_AUTO, 0x30C, 0, 0xA, 0 },
 };
 
 // Head parts that fall apart (em3cPartsBombSet) and the frames each waits before it starts.
@@ -535,16 +535,16 @@ static void em3c_R0_Init(cEm3c* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->atari.init(0.0f, -900.0f, 0.0f, 550.0f, 450.0f, 450.0f, 1800.0f, 1, 0x2000, 10);
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 200.0f, 250.0f, 2, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 150.0f, 100.0f, 5, 1);
-    YarareAdd(em, &w->hit[1], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, 3);
-    YarareAdd(em, &w->hit[2], -300.0f, 0.0f, 0.0f, 100.0f, 300.0f, 9, 3);
-    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, 3);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 300.0f, 0xF, 3);
-    YarareAdd(em, &w->hit[5], 0.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x13, 1);
-    YarareAdd(em, &w->hit[6], 0.0f, -400.0f, 0.0f, 130.0f, 400.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[7], 0.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x17, 1);
-    YarareAdd(em, &w->hit[8], 0.0f, -400.0f, 0.0f, 130.0f, 400.0f, 0x18, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 200.0f, 250.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 150.0f, 100.0f, 5, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[2], -300.0f, 0.0f, 0.0f, 100.0f, 300.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 300.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[5], 0.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[6], 0.0f, -400.0f, 0.0f, 130.0f, 400.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[7], 0.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x17, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[8], 0.0f, -400.0f, 0.0f, 130.0f, 400.0f, 0x18, YAT_FLAG_ON);
     YarareAdd(em, &w->hit[9], 0.0f, 300.0f, 0.0f, 150.0f, 50.0f, 3, 0);
     YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 300.0f, 0.0f, 3, 0);
     EspDataLoad((u32) ARC(4), EFF_EM3C, 0);

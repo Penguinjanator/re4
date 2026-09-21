@@ -551,16 +551,16 @@ void emTorchYarareInit(cEmTorch* em)
     case 0:
     case 4:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 2:
     case 3:
         break;
     case 5:
-        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y - 100.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y - 100.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     }
 }

@@ -925,7 +925,7 @@ static void R30bEventS00()
         SceAtSetEnable(3, 0);
         SceDestroyEm(0x10, 0x20);
         SceSleep(2);
-        EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromList(0x56), 0);
+        EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromList(0x56), EvtReadFlagNone);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         Vec pos = {-6200.0f, 0.0f, -26100.0f};
         Vec rot;

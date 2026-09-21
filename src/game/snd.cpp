@@ -519,7 +519,7 @@ int footSeCheck(u16* no, Vec* pos)
             if (at == NULL) {
                 goto check;
             }
-            *no += at->se.se_type * 30;
+            *no += at->se.se_type * FOOT_SE_NUM;
         } else if (EspPlWaterCall(*no >> 1, pos) == 1) {
             *no += 30;
         } else {
@@ -528,12 +528,12 @@ int footSeCheck(u16* no, Vec* pos)
                 if (*no <= 3) {
                     EspFootCall(*no >> 1, at->se.eff_type, pos);
                 }
-                *no += at->se.se_type * 30;
+                *no += at->se.se_type * FOOT_SE_NUM;
             } else {
                 if (*no <= 3) {
                     EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->group], pos);
                 }
-                *no += pFlrSys->foot_se[pFlrSys->group] * 30;
+                *no += pFlrSys->foot_se[pFlrSys->group] * FOOT_SE_NUM;
             }
         }
     }

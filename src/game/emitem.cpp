@@ -420,10 +420,10 @@ void emItemYarareInit(cEmItem* em)
     switch (em->type) {
     case 0:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, -(w->size.y * 0.5f), 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, -(w->size.y * 0.5f), 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, -1000.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 1, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, -1000.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 1, YAT_FLAG_ON);
         break;
     }
 }

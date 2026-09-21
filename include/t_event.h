@@ -50,6 +50,31 @@ struct EvtHdrCopy {
     u32 w[16];
 };
 
+// ToolEvt::EtcFlag bit numbers (PS2 TefFlag): FlagOnVar numbers them from bit 31 down, so the mask of flag f is
+// TefBit(f); SubToolIn takes the number.
+enum TefFlag {
+    TefExit = 0,
+    TefStop = 1,
+    TefStopOnReq = 2,
+    TefStopOffReq = 3,
+    TefRev = 4,
+    TefEvtCancel = 5,
+    TefPrevSubMenu = 6,
+    TefCaptureReq = 7,
+    TefCaptureFullSize = 8,
+    TefCaptureRun = 9,
+    TefCaptureEnd = 10,
+    TefDispPrint = 11,
+    TefRemainEnd = 12,
+    TefToolLight = 13,
+    TefToolFog = 14,
+    TefToolFocus = 15,
+    TefToolMess = 16,
+    TefTaskSuspend = 17
+};
+
+#define TefBit(f) (0x80000000 >> (f))
+
 class ToolEvt {
 public:
     s16 r_no_0;             // 0x00  main routine (0 menu, 1 preview, 2 exit)
@@ -62,7 +87,7 @@ public:
     s16 r_no_3_sub;              // 0x0E
     s16 FFTimer;         // 0x10  frames the start button is held before the stop toggles
     s16 StopTimer;        // 0x12  frames before the event starts
-    u32 EtcFlag;            // 0x14
+    u32 EtcFlag;            // 0x14  TefBit(TefFlag) bits
     u32 ListCur;              // 0x18
     u32 ListBase;              // 0x1C
     int CaptureTimer;           // 0x20  capture frame counter

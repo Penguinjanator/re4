@@ -805,7 +805,7 @@ static void R310EventS00()
     if ((int) R310_SAVE_FLAGS >= 0) {
         R310_SAVE_FLAGS |= 0x80000000;
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), 0);
+        EvtMgr.EvtReadExec("event/evd/r310s00.evd", (u8) GetEmIdFromList(0x5A), EvtReadFlagNone);
         cPlayer* pl = pPL;
         p.x = -6877.0f;
         p.y = 0.0f;

@@ -13,10 +13,20 @@
 #include <dolphin/dvd.h>
 #include <dolphin/ar.h>
 
+// DvdHeader::type (PS2 DVD_HEADER_ID): where a part goes; TRANS_NONE skips the entry, TRANS_EOF ends the table.
+enum DVD_HEADER_ID {
+    TRANS_MRAM = 0,
+    TRANS_SND_BLK = 1,
+    TRANS_SND_PCM = 2,
+    TRANS_ARAM = 3,
+    TRANS_NEST = 4,
+    TRANS_NONE = -2,
+    TRANS_EOF = -1
+};
+
 // One entry of the file header read in front of a multi-part file (header_buff, 64 entries).
 struct DvdHeader {
-    u32 type;    // 0x00  0 MRAM, 1 snd ARAM, 2 snd MRAM, 3 MRAM (explicit dest), 4 nested
-                 //       header, -2 skip, -1 end of table
+    u32 type;    // 0x00  DVD_HEADER_ID: MRAM, snd block (ARAM), snd PCM (MRAM), ARAM, nested header, -2 skip, -1 end
     u32 size;    // 0x04
     u32 dest;    // 0x08  explicit destination (0 = next free MRAM/ARAM address)
     u32 ofs;     // 0x0C  offset inside the file
@@ -208,6 +218,17 @@ int DvdRead(int fileNo, void* dst, u32 aram, u32 ofs, u32 length, int mode, cons
 int DvdReadN(const char* name, void* dst, int a, int b, int c, int mode, const char* file, int line);
 void MemorySwap(void* mram, u32 aram, u32 size);
 void DvdReadProc();
+// Disc error message (PS2 DVD_MES_TBL): MesSysMessage / RomFontMessage `msg`, from the DVD state.
+enum DVD_MES_TBL {
+    DVD_MES_NO_DISP = 0,
+    DVD_MES_FATAL_ERROR = 1,
+    DVD_MES_COVER_OPEN = 2,
+    DVD_MES_NO_DISC = 3,
+    DVD_MES_WRONG_DISC = 4,
+    DVD_MES_RETRY_ERROR = 5,
+    DVD_MES_DISC_CHANGE = 6,
+    DVD_MES_MAX = 7
+};
 void MesSysMessage(int msg, int disc);
 void RomFontPrint(int x, int y, const char* str);
 void RomFontMessage(u32 msg, int disc);

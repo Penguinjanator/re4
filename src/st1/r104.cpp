@@ -669,7 +669,7 @@ static void r104_execEvent20()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 22);
-    EvtMgr.EvtReadExec("event/evd/r104s20.evd", 0x13, 0);
+    EvtMgr.EvtReadExec("event/evd/r104s20.evd", 0x13, EvtReadFlagNone);
     FadeSetW(1, 0, 0, 0);
     setEm(0x5E, -1, 0, 1, 1);
     Vec pos;
@@ -693,7 +693,7 @@ static void r104_execEvent10()
 {
     ScfFlagOn(pG, SCF_R104_MEET_MERCHANT);
     RsfSet(G_ROOM_ID, 21);
-    EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
+    EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, EvtReadFlagNone);
 }
 
 // Arrival (s00): the intro event with the doors open-locked, then the enemies and the patrols.
@@ -727,13 +727,13 @@ static void r104_execEvent00()
         if (r104_work->door1 != 0) {
             r104_work->door1->setOpenLock(0);
         }
-        if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
+        if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, EvtReadFlagPlPosNoSet)) {
             SysFlagOn(pG, SYS_SCREEN_STOP);
             if (pG->Room_flg[0] & 0x80000000) {
-                EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
+                EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, EvtReadFlagPlPosNoSet);
             } else {
                 SysFlagOff(pG, SYS_START_EVT_SKIP);
-                EvtMgr.EvtReadExec("event/evd/r104s02.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r104s02.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }

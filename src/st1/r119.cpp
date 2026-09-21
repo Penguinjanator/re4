@@ -259,7 +259,7 @@ static void r119_EventGolemAppear()
 
     RsfSet(G_ROOM_ID, 0);
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
-    EvtMgr.EvtReadExec("event/evd/r119s00.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r119s00.evd", 0, EvtReadFlagNone);
     EvtMgr.EvtReadAram("event/evd/r119s10.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s20.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s30.evd", 0, 0, 0, 0);
@@ -302,7 +302,7 @@ static void r119_EventGolemAppear()
             RsfSet(G_ROOM_ID, 7);
             SndRoomStrStop(3);
             StaFlagOn(pG, STA_CAMERA_SET_ROOM);
-            EvtMgr.EvtReadExec("event/evd/r119s20.evd", 0x2B, 0);
+            EvtMgr.EvtReadExec("event/evd/r119s20.evd", 0x2B, EvtReadFlagNone);
             SceAtSetEnable(3, 0);
             SceAtSetEnable(4, 0);
             StaFlagOff(pG, STA_CAMERA_SET_ROOM);
@@ -367,7 +367,7 @@ static void r119_EventGolemAppear()
 static void r119_EventParasiet()
 {
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
-    EvtMgr.EvtReadExec("event/evd/r119s30.evd", 0x2B, 0xA0);
+    EvtMgr.EvtReadExec("event/evd/r119s30.evd", 0x2B, EvtReadFlagPlPosNoSet | EvtReadFlagSceEventStartTrue);
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);
 }
 
@@ -378,7 +378,7 @@ static void r119_EventDogAppear()
     Vec ang;
 
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
-    EvtMgr.EvtReadExec("event/evd/r119s10.evd", 0x2B, 0);
+    EvtMgr.EvtReadExec("event/evd/r119s10.evd", 0x2B, EvtReadFlagNone);
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);
     PSet(r119_work->dog, EmSetFromList2(0x29, 0));
     pos.x = 116292.0f;

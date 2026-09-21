@@ -118,7 +118,7 @@ static void r326_setCorpseBag()
                                       &hpos, &hrot, 0));
     }
     r326_work->hit->setParent(r326_work->bag, 0, 0);
-    YarareInit(r326_work->hit, 0.0f, 0.0f, 0.0f, 260.0f, 600.0f, 0, 1);
+    YarareInit(r326_work->hit, 0.0f, 0.0f, 0.0f, 260.0f, 600.0f, 0, YAT_FLAG_ON);
     while (1) {
         if (r326_work->hit->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 3);

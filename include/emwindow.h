@@ -23,6 +23,40 @@ struct EmWindowWork {
 
 #define EMWINDOW_WK(em) ((EmWindowWork*) (((cEmObj*) (em))->free))
 
+// Window kind (PS2 WindowType): cModel::type of a cEmWindow, the row of emwindow.cpp WindowData, named after the
+// etc model (ETC_WINDOWxx) that uses it.
+enum WindowType {
+    WindowTypeEt00 = 0,
+    WindowTypeEt07 = 1,
+    WindowTypeEt1d = 2,
+    WindowTypeEt25 = 3,
+    WindowTypeEt29 = 4,
+    WindowTypeEt2c = 5,
+    WindowTypeEt35 = 6,
+    WindowTypeEt36 = 7,
+    WindowTypeEt44 = 8,
+    WindowTypeEt48 = 9,
+    WindowTypeEt4a = 10,
+    WindowTypeEt50 = 11,
+    WindowTypeEt51 = 12,
+    WindowTypeEt52 = 13,
+    WindowTypeEt53 = 14,
+    WindowTypeEt54 = 15,
+    WindowTypeEt55 = 16,
+    WindowTypeEt56 = 17,
+    WindowTypeEt57 = 18,
+    WindowTypeEt58 = 19,
+    WindowTypeEt5a = 20,
+    WindowTypeEt5b = 21,
+    WindowTypeEt5c = 22,
+    WindowTypeEt5d = 23,
+    WindowTypeEt5e = 24,
+    WindowTypeEt5f = 25,
+    WindowTypeEt60 = 26,
+    WindowTypeEt64 = 27,
+    WindowTypeEt65 = 28
+};
+
 // Breakable window / fence enemy (game/emwindow.cpp).
 class cEmWindow : public cEmObj {
 public:

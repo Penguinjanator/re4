@@ -547,8 +547,8 @@ void cDvdQueue::readInit()
     case 3:
         if (chk(0x80000000)) {
             size = 0;
-            for (h = (DvdHeader*) header_buff + 1; h->type != 0xFFFFFFFF; h++) {
-                if (h->type == 0) {
+            for (h = (DvdHeader*) header_buff + 1; h->type != TRANS_EOF; h++) {
+                if (h->type == TRANS_MRAM) {
                     size += ALIGN32(h->size);
                 }
             }
@@ -590,8 +590,8 @@ void cDvdQueue::readInit()
             if (chk(0x10)) {
                 if (chk(0x80000000)) {
                     size = 0;
-                    for (h = (DvdHeader*) header_buff + 1; h->type != 0xFFFFFFFF; h++) {
-                        if (h->type == 0) {
+                    for (h = (DvdHeader*) header_buff + 1; h->type != TRANS_EOF; h++) {
+                        if (h->type == TRANS_MRAM) {
                             size += ALIGN32(h->size);
                         }
                     }
@@ -630,7 +630,7 @@ void cDvdQueue::readMain()
     switch (step) {
     case 0:
         switch ((*ph)->type) {
-        case 0xFFFFFFFF:
+        case TRANS_EOF:
             if (m_NestDepth == 0) {
                 m_Rno0 = 3;
                 m_be_flag |= 0x04000000;
@@ -640,10 +640,10 @@ void cDvdQueue::readMain()
                 ph[-1]++;
             }
             break;
-        case 0xFFFFFFFE:
+        case TRANS_NONE:
             (*ph)++;
             break;
-        case 4:
+        case TRANS_NEST:
             if (m_NestDepth == 1) {
                 OSReport("DVD: \230A\214\213\203t\203@\203C\203\213\202\314\203l\203X\203g\202\315\202\261\202\352\210\310\217\343\202\305\202\253\202\334\202\271\202\361\n");
                 (*ph)++;
@@ -653,12 +653,12 @@ void cDvdQueue::readMain()
                 step = 1;
             }
             break;
-        case 0:
-        case 3:
+        case TRANS_MRAM:
+        case TRANS_ARAM:
             m_LeftSize = (*ph)->size;
             if ((*ph)->dest) {
                 m_TransAddr = (*ph)->dest;
-            } else if ((*ph)->type == 0) {
+            } else if ((*ph)->type == TRANS_MRAM) {
                 m_TransAddr = m_MramAddr;
             } else {
                 m_TransAddr = m_AramAddr;
@@ -666,13 +666,13 @@ void cDvdQueue::readMain()
             addrTbl[m_NestDepth][cnt[m_NestDepth]] = m_TransAddr;
             m_Offset = m_BaseOffset[m_NestDepth] + (*ph)->ofs;
             step++;
-            if ((*ph)->type == 0) {
+            if ((*ph)->type == TRANS_MRAM) {
                 OSReport("DVD: Trans MRAM  addr: %08x size: %08x\n", m_TransAddr, m_LeftSize);
             } else {
                 OSReport("DVD: Trans ARAM  addr: %08x size: %08x\n", m_TransAddr, m_LeftSize);
             }
             break;
-        case 1:
+        case TRANS_SND_BLK:
             t = (*ph)->sndType;
             switch ((*ph)->sndType) {
             case 8:
@@ -711,7 +711,7 @@ void cDvdQueue::readMain()
             step++;
             OSReport("DVD: Trans MRAM Snddata  addr: %08x size: %08x %s\n", m_TransAddr, m_LeftSize, blk_tbl[t]);
             break;
-        case 2:
+        case TRANS_SND_PCM:
             t = (*ph)->sndType;
             switch ((*ph)->sndType) {
             case 8:
@@ -789,7 +789,7 @@ void cDvdQueue::readMain()
             case 0:
             case 3:
                 if ((*ph)->dest == 0) {
-                    if ((*ph)->type == 0) {
+                    if ((*ph)->type == TRANS_MRAM) {
                         m_MramAddr += ALIGN32((*ph)->size);
                     } else {
                         m_AramAddr += ALIGN32((*ph)->size);
@@ -1594,22 +1594,22 @@ int cDvd::ErrCheck(int disc, int flag)
             cont = 0;
             break;
         case DVD_STATE_FATAL_ERROR:
-            msg = 1;
+            msg = DVD_MES_FATAL_ERROR;
             break;
         case DVD_STATE_COVER_OPEN:
-            msg = 2;
+            msg = DVD_MES_COVER_OPEN;
             break;
         case DVD_STATE_NO_DISK:
-            msg = 3;
+            msg = DVD_MES_NO_DISC;
             break;
         case DVD_STATE_WRONG_DISK:
-            msg = 4;
+            msg = DVD_MES_WRONG_DISC;
             break;
         case DVD_STATE_RETRY:
-            msg = 5;
+            msg = DVD_MES_RETRY_ERROR;
             break;
         case DVD_STATE_MOTOR_STOPPED:
-            msg = 6;
+            msg = DVD_MES_DISC_CHANGE;
             break;
         case DVD_STATE_PAUSING:
             break;
@@ -1655,7 +1655,7 @@ int cDvd::ErrCheck(int disc, int flag)
             Render_before();
             PadRead();
             DiscReadInfo();
-            if (msg != 0) {
+            if (msg != DVD_MES_NO_DISP) {
                 if (pG->IsMessageInit == 1) {
                     MesSysMessage(msg, discNo);
                 } else {
@@ -1716,9 +1716,9 @@ void MesSysMessage(int msg, int disc)
     u16 mes_no[12] = {0, 0, 1, 3, 3, 6, 7, 8, 2, 4, 9, 9};
     u16 no = msg;
 
-    if (msg == 3 || msg == 4) {
+    if (msg == DVD_MES_NO_DISC || msg == DVD_MES_WRONG_DISC) {
         msg += disc * 7;
-    } else if (msg == 6) {
+    } else if (msg == DVD_MES_DISC_CHANGE) {
         msg = disc + 6;
     }
     pos += no * 2;
@@ -1753,7 +1753,7 @@ void RomFontPrint(int x, int y, const char* str)
 void RomFontMessage(u32 msg, int disc)
 {
     switch (msg) {
-    case 1:
+    case DVD_MES_FATAL_ERROR:
         switch (pSys->language) {
         case 0:
             RomFontPrint(0x46, 0x78, "\203G\203\211\201[\202\252\224\255\220\266\202\265\202\334\202\265\202\275\201B");
@@ -1798,7 +1798,7 @@ void RomFontMessage(u32 msg, int disc)
             break;
         }
         break;
-    case 2:
+    case DVD_MES_COVER_OPEN:
         switch (pSys->language) {
         case 0:
             RomFontPrint(0x32, 0x8C, "\203f\203B\203X\203N\203J\203o\201[\202\252\212J\202\242\202\304\202\242\202\334\202\267\201B");
@@ -1834,8 +1834,8 @@ void RomFontMessage(u32 msg, int disc)
             break;
         }
         break;
-    case 3:
-    case 4:
+    case DVD_MES_NO_DISC:
+    case DVD_MES_WRONG_DISC:
         switch (pSys->language) {
         case 0:
             if (disc == 0) {
@@ -1888,7 +1888,7 @@ void RomFontMessage(u32 msg, int disc)
             break;
         }
         break;
-    case 5:
+    case DVD_MES_RETRY_ERROR:
         switch (pSys->language) {
         case 0:
             RomFontPrint(0x3C, 0x8C, "\203f\203B\203X\203N\202\360\223\307\202\337\202\334\202\271\202\361\202\305\202\265\202\275\201B");

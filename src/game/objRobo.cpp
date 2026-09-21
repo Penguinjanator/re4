@@ -39,7 +39,7 @@ static f32 posysub = 500.0f;
 
 // Hit box table: model parts and the YarareInit cylinder (x, y, z offset, radius, height).
 struct RoboHitTbl {
-    int parts;
+    int parts;   // RoboPartsNoEnum
     f32 x;
     f32 y;
     f32 z;
@@ -156,15 +156,15 @@ void cObjRobo::R0Init(cObjRobo* robo)
         w->smd[i] = smd;
         if (smd) {
             if (i == 0) {
-                SceAtSetParent(0x26, smd, 0);
+                SceAtSetParent(SCEAT_ITEMPARENT_L, smd, 0);
             } else {
-                SceAtSetParent(0x27, smd, 0);
+                SceAtSetParent(SCEAT_ITEMPARENT_R, smd, 0);
             }
             smd->be_flag &= ~2;
         }
     }
-    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchBack, robo, 1);
-    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchFront, robo, 1);
+    SceAtDataSet_exec(SCEAT_EXEC_BACK, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchBack, robo, 1);
+    SceAtDataSet_exec(SCEAT_EXEC_FRONT, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchFront, robo, 1);
     if (RsfCheck(pG->room_id, 9)) {
         w->step = 0;
         w->r_no_0 = 1;
@@ -174,32 +174,32 @@ void cObjRobo::R0Init(cObjRobo* robo)
     }
     {
     int i;
-    RoboHitTbl tbl[14] = {
-        { 0x00, 0.0f, 0.0f, 0.0f, 2900.0f, 3500.0f },
-        { 0x01, 0.0f, 0.0f, 0.0f, 1300.0f, 0.0f },
-        { 0x02, 0.0f, 1000.0f, 0.0f, 1200.0f, -2500.0f },
-        { 0x03, 0.0f, 0.0f, 0.0f, 1200.0f, -3000.0f },
-        { 0x06, 0.0f, 0.0f, 0.0f, 1300.0f, 0.0f },
-        { 0x07, 0.0f, 1000.0f, 0.0f, 1200.0f, -2500.0f },
-        { 0x08, 0.0f, 0.0f, 0.0f, 1200.0f, -3000.0f },
-        { 0x0B, 0.0f, 0.0f, 0.0f, 1800.0f, 0.0f },
-        { 0x0C, 0.0f, 0.0f, -500.0f, 1300.0f, 3500.0f },
-        { 0x0E, 0.0f, 0.0f, 0.0f, 1800.0f, 0.0f },
-        { 0x0F, 0.0f, 0.0f, -500.0f, 1300.0f, 3500.0f },
-        { 0x13, 0.0f, 2000.0f, -1500.0f, 2000.0f, 0.0f },
-        { 0x15, 0.0f, 100.0f, -300.0f, 1000.0f, 0.0f },
-        { 0x16, 0.0f, 0.0f, 200.0f, 1000.0f, 0.0f },
+    RoboHitTbl tbl[HitNoMax] = {
+        { RoboPartsNoBody, 0.0f, 0.0f, 0.0f, 2900.0f, 3500.0f },
+        { RoboPartsNoRShoulder, 0.0f, 0.0f, 0.0f, 1300.0f, 0.0f },
+        { RoboPartsNoRUArm, 0.0f, 1000.0f, 0.0f, 1200.0f, -2500.0f },
+        { RoboPartsNoRDArm, 0.0f, 0.0f, 0.0f, 1200.0f, -3000.0f },
+        { RoboPartsNoLShoulder, 0.0f, 0.0f, 0.0f, 1300.0f, 0.0f },
+        { RoboPartsNoLUArm, 0.0f, 1000.0f, 0.0f, 1200.0f, -2500.0f },
+        { RoboPartsNoLDArm, 0.0f, 0.0f, 0.0f, 1200.0f, -3000.0f },
+        { RoboPartsNoRULeg, 0.0f, 0.0f, 0.0f, 1800.0f, 0.0f },
+        { RoboPartsNoRDLeg, 0.0f, 0.0f, -500.0f, 1300.0f, 3500.0f },
+        { RoboPartsNoLULeg, 0.0f, 0.0f, 0.0f, 1800.0f, 0.0f },
+        { RoboPartsNoLDLeg, 0.0f, 0.0f, -500.0f, 1300.0f, 3500.0f },
+        { RoboPartsNoMouth, 0.0f, 2000.0f, -1500.0f, 2000.0f, 0.0f },
+        { RoboPartsNoSwitchBL, 0.0f, 100.0f, -300.0f, 1000.0f, 0.0f },
+        { RoboPartsNoSwitchF, 0.0f, 0.0f, 200.0f, 1000.0f, 0.0f },
     };
 
-    for (i = 0; i < 14; i++) {
+    for (i = 0; i < HitNoMax; i++) {
         w->pEmHitTbl[i] = 0;
         hit = SetEmHit((void*) (GRef(pG)->pCore->ofs_20 + (u32) GRef(pG)->pCore), (void*) (GRef(pG)->pCore->ofs_24 + (u32) GRef(pG)->pCore), 0, 0, 1);
         if (hit) {
             hit->setParent(robo, tbl[i].parts, 0);
             if (tbl[i].parts == 0x15 || tbl[i].parts == 0x16) {
-                YarareInit(hit, tbl[i].x, tbl[i].y, tbl[i].z, tbl[i].w, tbl[i].h, 0, 1);
+                YarareInit(hit, tbl[i].x, tbl[i].y, tbl[i].z, tbl[i].w, tbl[i].h, 0, YAT_FLAG_ON);
             } else {
-                YarareInit(hit, tbl[i].x, tbl[i].y, tbl[i].z, tbl[i].w, tbl[i].h, 0, 0x41);
+                YarareInit(hit, tbl[i].x, tbl[i].y, tbl[i].z, tbl[i].w, tbl[i].h, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
             }
             w->pEmHitTbl[i] = hit;
         }
@@ -253,13 +253,13 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
         for (i = 0; i < 2; i++) {
             robo->SatMove(robo, &ft[i], i);
         }
-        if (w->pEmHitTbl[13] && w->pEmHitTbl[13]->ckStatus() == 1 && !(pG->Room_flg[0] & 0x80000000)) {
+        if (w->pEmHitTbl[HitNoSwitchF] && w->pEmHitTbl[HitNoSwitchF]->ckStatus() == 1 && !RmfFlagChk(pG, RMF_BOBO_SWITCH_EXEC_FRONT)) {
             SceExec(0x12, (TaskFunc) TaskSwitchFront, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (w->pEmHitTbl[12] && w->pEmHitTbl[12]->ckStatus() == 1 && !(pG->Room_flg[0] & 0x40000000)) {
+        if (w->pEmHitTbl[HitNoSwitchBR] && w->pEmHitTbl[HitNoSwitchBR]->ckStatus() == 1 && !RmfFlagChk(pG, RMF_BOBO_SWITCH_EXEC_BACK)) {
             SceExec(0x12, (TaskFunc) TaskSwitchBack, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
-        for (i = 0; i < 14; i++) {
+        for (i = 0; i < HitNoMax; i++) {
             hit = w->pEmHitTbl[i];
             if (hit && hit->ckStatus() == 1) {
                 EmDmBloodSet2(hit, 1, 0xF, 0, 0, 2);
@@ -507,7 +507,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
             robo->WalkHitCk(robo);
         }
         EstSet(robo, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        parts = robo->getPartsPtr(0xD);
+        parts = robo->getPartsPtr(RoboPartsNoRFoot);
         if (parts) {
             SndCall(6, 8, &parts->world, 0, 0, 0);
         }
@@ -517,7 +517,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
             robo->WalkHitCk(robo);
         }
         EstSet(robo, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        parts = robo->getPartsPtr(0x10);
+        parts = robo->getPartsPtr(RoboPartsNoLFoot);
         if (parts) {
             SndCall(6, 8, &parts->world, 0, 0, 0);
         }

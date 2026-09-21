@@ -1571,7 +1571,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
             LifeDownSet2(pPLS, 10, 0, 0);
             if (pl->m_Work0 == 0 && (s16) pG->pl_life <= 0) {
                 PlSetDamageSe(0xD);
-                PlSetDamage(6, 0, 0);
+                PlSetDamage(PL_DM_FRONT, 0, 0);
                 break;
             }
         }
@@ -2187,12 +2187,12 @@ void em22YarareInit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
 
-    YarareInit(em, 0.0f, -100.0f, -150.0f, 250.0f, 650.0f, 2, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 150.0f, 100.0f, 6, 5);
-    YarareAdd(em, &w->hit[1], 0.0f, -400.0f, 0.0f, 100.0f, 400.0f, 0xB, 1);
-    YarareAdd(em, &w->hit[2], 0.0f, -400.0f, 0.0f, 100.0f, 400.0f, 0xF, 1);
-    YarareAdd(em, &w->hit[3], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[4], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x18, 1);
+    YarareInit(em, 0.0f, -100.0f, -150.0f, 250.0f, 650.0f, 2, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 150.0f, 100.0f, 6, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], 0.0f, -400.0f, 0.0f, 100.0f, 400.0f, 0xB, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 0.0f, -400.0f, 0.0f, 100.0f, 400.0f, 0xF, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[3], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[4], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x18, YAT_FLAG_ON);
 }
 
 // Blood effect of the hit by weapon kind (EmDmBloodSet2): small for handguns / knife, big for

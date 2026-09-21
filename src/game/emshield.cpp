@@ -66,15 +66,15 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     }
     int no = 0;
     YarareInitCube(em, 0.0f, -50.0f, -100.0f, 200.0f, 100.0f, 300.0f, no, no);
-    YarareAddCube(em, &w->hit[0], 0.0f, 0.0f, -70.0f, 100.0f, 90.0f, 300.0f, 2, 1);
-    YarareAddCube(em, &w->hit[1], 0.0f, 0.0f, 100.0f, 150.0f, 90.0f, 300.0f, 3, 1);
-    YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 100.0f, 90.0f, 300.0f, 4, 1);
-    YarareAddCube(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 100.0f, 90.0f, 300.0f, 5, 1);
-    YarareAddCube(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 200.0f, 6, 1);
-    YarareAddCube(em, &w->hit[5], 0.0f, 0.0f, -75.0f, 100.0f, 90.0f, 300.0f, 7, 1);
-    YarareAddCube(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 8, 1);
-    YarareAddCube(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 9, 1);
-    YarareAddCube(em, &w->hit[8], -50.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 10, 1);
+    YarareAddCube(em, &w->hit[0], 0.0f, 0.0f, -70.0f, 100.0f, 90.0f, 300.0f, 2, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[1], 0.0f, 0.0f, 100.0f, 150.0f, 90.0f, 300.0f, 3, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 100.0f, 90.0f, 300.0f, 4, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 100.0f, 90.0f, 300.0f, 5, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 200.0f, 6, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[5], 0.0f, 0.0f, -75.0f, 100.0f, 90.0f, 300.0f, 7, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 8, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 9, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[8], -50.0f, 0.0f, 0.0f, 150.0f, 90.0f, 250.0f, 10, YAT_FLAG_ON);
     em->atari.init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp_max = em->hp = 1000;
     {

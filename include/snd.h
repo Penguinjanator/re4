@@ -266,6 +266,31 @@ u32 EmSeCall(u16 no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* obj);
 u32 RoomSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
 u32 PlSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
 u32 CoreSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
+// Footstep SE numbers (PS2 ROOM_SE_NO): FootSeCall `no`, offset by FOOT_SE_NUM * the floor's se_type. r117/r204
+// also pass 0xD / 0xE, which the PS2 enum only has as SE_DUMMY8 / SE_DUMMY9.
+enum ROOM_SE_NO {
+    SE_LEON_WALK_L = 0,
+    SE_LEON_WALK_R = 1,
+    SE_LEON_RUN_L = 2,
+    SE_LEON_RUN_R = 3,
+    SE_LEON_FALL_KNEE = 4,
+    SE_LEON_FALL_BODY = 5,
+    SE_DUMMY1 = 6,
+    SE_DUMMY2 = 7,
+    SE_DUMMY3 = 8,
+    SE_DUMMY4 = 9,
+    SE_DUMMY5 = 10,
+    SE_DUMMY6 = 11,
+    SE_DUMMY7 = 12,
+    SE_DUMMY8 = 13,
+    SE_DUMMY9 = 14,
+    SE_DUMMY10 = 15,
+    SE_GANADO_WALK_L = 16,
+    SE_GANADO_WALK_R = 17,
+    SE_GANADO_RUN_L = 18,
+    SE_GANADO_RUN_R = 19,
+    FOOT_SE_NUM = 30
+};
 u32 FootSeCall(u16 no, Vec* pos, u8 vol, u32 flag);
 u32 DoorSeCall(u16 no);
 int SndSetVol(u32 id, int vol, int time);

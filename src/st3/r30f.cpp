@@ -638,7 +638,7 @@ static void track_destroy()
 static void pl_gurd()
 {
     SceSleep(0x50);
-    PlSetDamage(9, 0, 0);
+    PlSetDamage(PL_DM_AUTO_SML, 0, 0);
 }
 
 // The truck (the lift object's motions) drives at the bulldozer; three attacks, the last one
@@ -684,9 +684,9 @@ static void track_move()
     }
     frames = (u32) MotionGetMaxFrame(&r30f_work->lift->Motion);
     r30f_work->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
-    YarareInitCube(r30f_work->hit[0], hit0_x, hit0_y, hit0_z, hit0_w, hit0_h, hit0_d, 0, 1);
+    YarareInitCube(r30f_work->hit[0], hit0_x, hit0_y, hit0_z, hit0_w, hit0_h, hit0_d, 0, YAT_FLAG_ON);
     r30f_work->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
-    YarareInitCube(r30f_work->hit[1], hit1_x, hit1_y, hit1_z, hit1_w, hit1_h, hit1_d, 0, 1);
+    YarareInitCube(r30f_work->hit[1], hit1_x, hit1_y, hit1_z, hit1_w, hit1_h, hit1_d, 0, YAT_FLAG_ON);
     IntSet(r30f_work->truckLife, 0x1F4);
     if (pG->Game_level > 8) {
         r30f_work->truckLife += r30f_work->truckLife;
@@ -808,7 +808,7 @@ static void track_move()
         if ((pG->Room_flg[0] & 0x00800000) && hitT == 0x1E) {
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 2, 6000.0f);
             pG->pl_life = 0;
-            PlSetDamage(7, 0, 0);
+            PlSetDamage(PL_DM_BACK, 0, 0);
             EstSet(0, -1, &pPL->pos, 0, EFF_CORE, 0x27, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
             DiedemoExec(0, 0);
         }

@@ -313,15 +313,15 @@ static void em2f_R0_Init(cEm2f* em)
         em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     AtariInit(&em->atari, 0.0f, 0.0f, 0.0f, 700.0f, 3500.0f, 3500.0f, 2000.0f, 1, 2, 0);   // COMPILER-DIFF: #1
-    YarareInit(em, 0.0f, -200.0f, 0.0f, 1200.0f, 1000.0f, 9, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, -200.0f, 0.0f, 1200.0f, 1400.0f, 2, 5);
+    YarareInit(em, 0.0f, -200.0f, 0.0f, 1200.0f, 1000.0f, 9, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, -200.0f, 0.0f, 1200.0f, 1400.0f, 2, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     zero = 0;
-    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 1400.0f, 1400.0f, 4, 5);
-    YarareAdd(em, &w->hit[2], 0.0f, -200.0f, 0.0f, 1200.0f, 700.0f, 6, 5);
-    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 700.0f, 1400.0f, 0x19, 5);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 900.0f, 1000.0f, 0x1B, 5);
-    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 700.0f, 600.0f, 0x1C, 5);
-    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, -600.0f, 500.0f, 600.0f, 0x1D, 5);
+    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 1400.0f, 1400.0f, 4, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[2], 0.0f, -200.0f, 0.0f, 1200.0f, 700.0f, 6, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 700.0f, 1400.0f, 0x19, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 900.0f, 1000.0f, 0x1B, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 700.0f, 600.0f, 0x1C, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, -600.0f, 500.0f, 600.0f, 0x1D, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     em->hp = 1000;
     em->pXFlip = em2f_flip_tbl;
     em->lockParts = zero;

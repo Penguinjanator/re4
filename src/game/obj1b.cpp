@@ -586,7 +586,7 @@ int obj1bHitCk(cObjSpear* obj)
         part = target.part;
         em = target.em;
         em->dmg.set(0, 10, 0x15, &em->pos_old, part->rad, part);
-        if (part->flags & 0x4000) {
+        if (part->flags & YAT_FLAG_DMPOS) {
             Mtx inv;
             Vec v;
             cModel* parts;

@@ -186,7 +186,7 @@ static void R405ExecEventS00()
         SceEventStart(0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(1);
-        EvtMgr.EvtReadExec("event/evd/r405s00.evd", (u8) GetEmIdFromList(0), 0);
+        EvtMgr.EvtReadExec("event/evd/r405s00.evd", (u8) GetEmIdFromList(0), EvtReadFlagNone);
         SceEventEnd(0);
         SndRoomStrStart(1, 0, 1);
         SndBgmTblSet(0x405, 2);

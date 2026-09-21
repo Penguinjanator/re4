@@ -565,14 +565,14 @@ static void r105_Event()
         RsfSet(G_ROOM_ID, 1);
         pG->Room_flg[0] &= ~0x20000000;
         SndRoomStrStop(0);
-        EvtMgr.EvtReadExec("event/evd/r105s00.evd", 0x15, 0x10);
+        EvtMgr.EvtReadExec("event/evd/r105s00.evd", 0x15, EvtReadFlagFadeOut);
         EvtMgr.EvtReadAram("event/evd/r105s10.evd", 0x15, 0, 0, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(2);
         r105_EmSet();
     } else {
         RsfSet(G_ROOM_ID, 2);
-        EvtMgr.EvtReadExec("event/evd/r105s10.evd", 0x15, 0);
+        EvtMgr.EvtReadExec("event/evd/r105s10.evd", 0x15, EvtReadFlagNone);
         SceAtSetEnable(8, 0);
         getRoomEtcDoor(1, &door, 1);
         if (door) {
@@ -858,7 +858,7 @@ static void r105_checkCloseCover()
         const f32 h = 2000.0f;
         const f32 x = 0.0f;
         const f32 z = 50.0f;
-        YarareInitCube(hit, x, x, z, w, h, w, 0, 1);
+        YarareInitCube(hit, x, x, z, w, h, w, 0, YAT_FLAG_ON);
     }
     do {
         if (hit->ckStatus() == 1) {

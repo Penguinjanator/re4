@@ -129,7 +129,7 @@ void R21aInit()
 
                 if (hit) {
                     hit->setParent(obj, 0, 0);
-                    YarareInit(hit, r->x, r->Y, r->Z, r->w, r->h, 0, 1);
+                    YarareInit(hit, r->x, r->Y, r->Z, r->w, r->h, 0, YAT_FLAG_ON);
                     r21a_work.p->hit[r->slot] = hit;
                 }
             }

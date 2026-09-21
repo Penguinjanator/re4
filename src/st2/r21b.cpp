@@ -97,7 +97,7 @@ void R21bInit()
     }
     r21b_work.p->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
     r21b_work.p->hit[0]->setParent(SmdGetObjPtr(0xC8), 0, 0);
-    YarareInit(r21b_work.p->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
+    YarareInit(r21b_work.p->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SmdGetObjPtr(0xB9)->be_flag &= ~2;
         SceAtSetEnable(2, 0);
@@ -195,7 +195,7 @@ static void r21b_HalfWayGanadoSet()
     }
     r21b_work.p->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
     r21b_work.p->hit[1]->setParent(SmdGetObjPtr(0xC9), 0, 0);
-    YarareInit(r21b_work.p->hit[1], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
+    YarareInit(r21b_work.p->hit[1], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
     while (r21b_work.p->trolley->ckStop() == 1) {
         if (cnt <= 12 && (u32) SceCountEmAlive(0x10, 0x20) <= 5) {
             for (p = tbl; p->slot != -1; p++) {

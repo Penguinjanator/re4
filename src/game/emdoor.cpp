@@ -2350,7 +2350,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
             w->pLockL->LightInfo.EnableMask = 0x10;
             w->pLockL->setNoSuspend(1);
         }
-        YarareAddCube(this, &w->hit[12], -1150.0f, 800.0f, 60.0f, 150.0f, 350.0f, 100.0f, 0, 1);
+        YarareAddCube(this, &w->hit[12], -1150.0f, 800.0f, 60.0f, 150.0f, 350.0f, 100.0f, 0, YAT_FLAG_ON);
         w->Lock_L_hp = (Rnd() & 1) + 3;
         if (strong) {
             w->Lock_L_hp = 0xF;
@@ -2381,7 +2381,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
             w->pLockR->LightInfo.EnableMask = 4;
             w->pLockR->setNoSuspend(1);
         }
-        YarareAddCube(this, &w->hit[11], -1150.0f, 800.0f, -60.0f, 150.0f, 350.0f, 100.0f, 0, 1);
+        YarareAddCube(this, &w->hit[11], -1150.0f, 800.0f, -60.0f, 150.0f, 350.0f, 100.0f, 0, YAT_FLAG_ON);
         w->Lock_R_hp = (Rnd() & 1) + 3;
         if (strong) {
             w->Lock_R_hp = 0xF;
@@ -2432,7 +2432,7 @@ void cEmDoor::setChain(void* bin, void* tpl)
     w->pChain->setNoSuspend(1);
     if (flg) {
         if (!(*flg & 8)) {
-            YarareAddCube(this, &w->hit[13], -650.0f, 1350.0f, 50.0f, 650.0f, 350.0f, 100.0f, 0, 1);
+            YarareAddCube(this, &w->hit[13], -650.0f, 1350.0f, 50.0f, 650.0f, 350.0f, 100.0f, 0, YAT_FLAG_ON);
             w->Chain_hp[0] = 2;
         } else {
             cModel* parts = w->pChain->getPartsPtr(1);
@@ -2442,7 +2442,7 @@ void cEmDoor::setChain(void* bin, void* tpl)
             parts->scale.z = 0.0f;
         }
         if (!(*flg & 0x10)) {
-            YarareAddCube(this, &w->hit[14], -650.0f, 1000.0f, 50.0f, 650.0f, 350.0f, 100.0f, 0, 1);
+            YarareAddCube(this, &w->hit[14], -650.0f, 1000.0f, 50.0f, 650.0f, 350.0f, 100.0f, 0, YAT_FLAG_ON);
             w->Chain_hp[1] = 2;
         } else {
             cModel* parts = w->pChain->getPartsPtr(2);
@@ -2452,7 +2452,7 @@ void cEmDoor::setChain(void* bin, void* tpl)
             parts->scale.z = 0.0f;
         }
         if (!(*flg & 0x20)) {
-            YarareAddCube(this, &w->hit[15], -650.0f, 700.0f, 50.0f, 650.0f, 300.0f, 100.0f, 0, 1);
+            YarareAddCube(this, &w->hit[15], -650.0f, 700.0f, 50.0f, 650.0f, 300.0f, 100.0f, 0, YAT_FLAG_ON);
             w->Chain_hp[2] = 2;
         } else {
             cModel* parts = w->pChain->getPartsPtr(3);

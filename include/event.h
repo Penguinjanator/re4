@@ -354,6 +354,22 @@ struct EvtReadEm {
     u8 pad_2[2];
 };
 
+// EventMgr::EvtReadExec `evtReadFlag` bits (PS2 EvtReadFlag): how the event is read and started.
+enum EvtReadFlag {
+    EvtReadFlagNone = 0,
+    EvtReadFlagNoBgmMute = 1,
+    EvtReadFlagDiedemo = 2,
+    EvtReadFlagFadeIn = 4,
+    EvtReadFlagNotDelData = 8,
+    EvtReadFlagFadeOut = 16,
+    EvtReadFlagPlPosNoSet = 32,
+    EvtReadFlagNoFree = 64,
+    EvtReadFlagSceEventStartTrue = 128,
+    EvtReadFlagSubCharNoCtrl = 256,
+    EvtReadFlagPlCheckEvent = 512,
+    EvtReadFlagMissionFailed = 1024
+};
+
 // Event manager (game/event.cpp `EvtMgr`, 0x180 bytes): a cManager<Event> (game.cpp instantiates
 // roomInit / arrayAlloc / arrayFree / dispWorkNum on it).
 class EventMgr : public cManager<Event> {
@@ -394,7 +410,7 @@ public:
     // name for 's'); returns the stored copy (the rooms hand it to DC.setData).
     char* NameChange(char* name);
     int EvtReadSub(char* name, int aram, int em, int* out, int wait, u32 size);
-    int EvtReadExec(char* name, int em, u32 flags);
+    int EvtReadExec(char* name, int em, u32 flags);   // flags: EvtReadFlag bits
     int EvtFree(char* name);
     void ToolCoreEvdDel();
     // Starts the loaded event data ("even" "t" header); `key` (optional) receives its key.

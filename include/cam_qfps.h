@@ -17,15 +17,40 @@ struct QfpsOfs {
     f32 Fovy;      // 0x28
 };
 
+// Transition camera type (PS2 TRANS_CAM): CameraQuasiFPS::m_trans_type, the row of trans_tbl (checkCameraType
+// picks it from the player type).
+enum TRANS_CAM {
+    TRANS_CAM_LEON = 0,
+    TRANS_CAM_LEON_ASHLEY = 1,
+    TRANS_CAM_ASHLEY = 2,
+    TRANS_CAM_ADA = 3,
+    TRANS_CAM_KLAUSER = 4,
+    TRANS_CAM_WESKER = 5,
+    TRANS_CAM_NUM = 6
+};
+
+// Transition offset table (PS2 TRANS_DATA): the row of g_transOfs; AREA is the room override, BLEND the copy
+// blended from.
+enum TRANS_DATA {
+    TRANS_DATA_LEON = 0,
+    TRANS_DATA_LEON_ASHLEY = 1,
+    TRANS_DATA_ADA = 2,
+    TRANS_DATA_KLAUSER = 3,
+    TRANS_DATA_WESKER = 4,
+    TRANS_DATA_AREA = 5,
+    TRANS_DATA_BLEND = 6,
+    TRANS_DATA_NUM = 7
+};
+
 extern QfpsOfs g_readyOfs[16][2][3];
-extern QfpsOfs g_transOfs[7][2][3];
+extern QfpsOfs g_transOfs[TRANS_DATA_NUM][2][3];
 
 // Over-the-shoulder ("quasi FPS") camera, game/cam_qfps.cpp. 0x214 bytes.
 class CameraQuasiFPS {
 public:
     Camera cam;                   // 0x000 (cam.param at 0xA4 is what CameraControl::Move copies)
     QfpsOfs (*ready_tbl[14])[3];  // 0x0F8  ready table per camera type (checkCameraType 0..0xC), [13] = area copy
-    QfpsOfs (*trans_tbl[6])[3];   // 0x130  transition table per type (0..5)
+    QfpsOfs (*trans_tbl[TRANS_CAM_NUM])[3];   // 0x130  transition table per TRANS_CAM type
     QfpsOfs (*blend_src)[3];      // 0x148  current ready table
     QfpsOfs (*blend_dst)[3];      // 0x14C  current transition table
     QfpsOfs* cur;                 // 0x150  offsets of the current site
@@ -37,7 +62,7 @@ public:
     Vec* m_p_floor_norm;                  // 0x1A4  player floor normal (cModel::pFloorNrm)
     f32 m_zoom_ratio;                     // 0x1A8
     f32 m_walk_ratio;             // 0x1AC  CamSmth.ratio while the player moves
-    u8 m_trans_type;                // 0x1B0
+    u8 m_trans_type;                // 0x1B0  TRANS_CAM
     u8 m_ready_type;                // 0x1B1
     u8 reset;                     // 0x1B2  1 = first frame after init
     u8 pad_1B3[0x1E4 - 0x1B3];

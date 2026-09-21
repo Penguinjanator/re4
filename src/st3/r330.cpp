@@ -156,7 +156,7 @@ void R330EventS00Main()
             }
             CamCtrl.Comeback(0);
             SceSetEventCancel(0, 0, 0, -1, 1);
-            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), 0);
+            EvtMgr.EvtReadExec("event/evd/r330s00.evd", (u8) GetEmIdFromList(0xA0), EvtReadFlagNone);
             SceSetEventCancel(0, 0, 0, -1, 1);
             R330EventS00End();
         }

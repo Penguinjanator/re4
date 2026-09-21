@@ -389,39 +389,39 @@ void gameRoomInit()
         SmdInit(smd, smx, (cSmd*) GetDataExt(pG->pRoom, "SMD", 1));
     }
     ModInfoMgr.roomInit();
-    n = ConsGetRoomValue(7) + SmdGetObjNum();
+    n = ConsGetRoomValue(CONS_R_NMODELINFO) + SmdGetObjNum();
     if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
         n *= 2;
     }
     ModInfoMgr.arrayAlloc(n);
     PartsMgr.roomInit();
-    n = ConsGetRoomValue(6) + SmdGetObjNum();
+    n = ConsGetRoomValue(CONS_R_NPARTS) + SmdGetObjNum();
     if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
         n *= 2;
     }
     PartsMgr.arrayAlloc(n);
     EmMgr.roomInit();
-    n = ConsGetRoomValue(0);
+    n = ConsGetRoomValue(CONS_R_NEM);
     if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
         n *= 2;
     }
     EmMgr.arrayAlloc(n);
     ObjMgr.roomInit();
-    n = ConsGetRoomValue(1) + SmdGetObjNum();
+    n = ConsGetRoomValue(CONS_R_NOBJ) + SmdGetObjNum();
     if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
         n *= 2;
     }
     ObjMgr.arrayAlloc(n);
     EspRoomInit();
-    EspArrayAlloc(ConsGetRoomValue(2));
+    EspArrayAlloc(ConsGetRoomValue(CONS_R_NESP));
     RoomTexRoomInit();
     EspgenRoomInit();
-    EspgenArrayAlloc(ConsGetRoomValue(3));
+    EspgenArrayAlloc(ConsGetRoomValue(CONS_R_NESPGEN));
     CtrlMgr.roomInit();
-    CtrlMgr.arrayAlloc(ConsGetRoomValue(4));
+    CtrlMgr.arrayAlloc(ConsGetRoomValue(CONS_R_NCTRL));
     LightMgr.roomInit((cLit*) (pG->pCore->ofs_2C + (u32) pG->pCore), (cLit*) GetDataExt(pG->pRoom, "LIT", 0),
                       (cLit*) GetDataExt(pG->pRoom, "LIT", 1));
-    LightMgr.arrayAlloc(ConsGetRoomValue(5));
+    LightMgr.arrayAlloc(ConsGetRoomValue(CONS_R_NLIGHT));
     LightMgr.initPath((LightPathHeader*) (pG->pCore->ofs_3C + (u32) pG->pCore));
     ShadowRoomInit();
     DmgMgr.roomInit();
@@ -435,7 +435,7 @@ void gameRoomInit()
     if (SysFlagChk(pG, SYS_DOORDEMO)) {
         pG->nPrim = 0x8000;
     } else {
-        pG->nPrim = ConsGetRoomValue(8);
+        pG->nPrim = ConsGetRoomValue(CONS_R_NPRIM);
     }
     primInit();
     {
@@ -450,11 +450,11 @@ void gameRoomInit()
         rot.y = 0.0f;
         rot.z = 0.0f;
         SatMgr.roomInit();
-        SatMgr.arrayAlloc(ConsGetRoomValue(10));
+        SatMgr.arrayAlloc(ConsGetRoomValue(CONS_R_NSAT));
         SatMgr.create(p, 0, &pos, &rot, 0);
         p = GetDataExt(pG->pRoom, "EAT", 0);
         EatMgr.roomInit();
-        EatMgr.arrayAlloc(ConsGetRoomValue(11));
+        EatMgr.arrayAlloc(ConsGetRoomValue(CONS_R_NEAT));
         EatMgr.create(p, 0, &pos, &rot, 0);
         SatMgr.seCk = 0;
         EatMgr.seCk = 1;

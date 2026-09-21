@@ -24,7 +24,7 @@
 #include "em_sub.h"
 #include "sce_at.h"
 
-// One row of WindowData (0x48 bytes), indexed by cModel::type.
+// One row of WindowData (0x48 bytes), indexed by cModel::type (WindowType).
 struct WindowDataRow {
     int field;        // 0x00  1: scenario field / collision quad on each side
     int hpType;       // 0x04  0: any group-0 weapon breaks it, 1: -500, 2: -250
@@ -138,7 +138,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
         }
     }
     if (m->id == 0) {
-        if ((!(win->ChkStatus() & 1)) && win->type == 1) {
+        if ((!(win->ChkStatus() & 1)) && win->type == WindowTypeEt07) {
             return 0;
         }
     }
@@ -217,8 +217,8 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     }
     EtcSetAddAmb(this, WindowData[type].amb);
     switch (type) {
-    case 0xD:
-    case 0xE:
+    case WindowTypeEt52:
+    case WindowTypeEt53:
         pModelInfo->blend_mode = 2;
         break;
     }
@@ -447,7 +447,7 @@ void cEmWindow::DmCk()
     }
     if (hp <= 0) {
         SetBreakAll(&dmg.m_PosFrom, a, 0);
-    } else if (type == 1) {
+    } else if (type == WindowTypeEt07) {
         if (eff != 0xFF) {
             EmDmBloodSet2(this, eff, 5, 0, 0, 0);
         }
@@ -703,7 +703,7 @@ int cEmWindow::SetShake()
 {
     EmWindowWork* w = EMWINDOW_WK(this);
 
-    if (type == 1) {
+    if (type == WindowTypeEt07) {
         SndCall(6, 0x38, &pos, 0, 0, this);
     } else {
         SndCall(6, 0x3A, &pos, 0, 0, this);
@@ -722,10 +722,10 @@ int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
 {
     if (ChkEtcFlag(3) == 0) {
         switch (type) {
-        case 8:
+        case WindowTypeEt44:
             SndCall(6, 0x38, &pos, 0, 0, this);
             break;
-        case 1:
+        case WindowTypeEt07:
             SndCall(6, 0x39, &pos, 0, 0, this);
             break;
         default:

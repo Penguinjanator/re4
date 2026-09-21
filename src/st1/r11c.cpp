@@ -493,7 +493,7 @@ static void r11c_EventBesiegedStart()
                 SceDestroyEm(0x10, 0x20);
                 SceSleep(2);
                 InitModule(SearchEmModule(0x13));
-                EvtMgr.EvtReadExec("event/evd/r11cs20.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r11cs20.evd", 0, EvtReadFlagDiedemo);
                 SceEventEnd(0);
                 SceExit();
             }

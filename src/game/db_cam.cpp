@@ -1210,7 +1210,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 3; j++) {
                 g_local_ready[i][j] = g_readyOfs[0][i][j];
-                g_local_trans[i][j] = g_transOfs[0][i][j];
+                g_local_trans[i][j] = g_transOfs[TRANS_DATA_LEON][i][j];
             }
         }
         q->setAreaData(g_local_ready, g_local_trans);
@@ -1452,7 +1452,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 for (i = 0; i < 2; i++) {
                     for (j = 0; j < 3; j++) {
                         g_local_ready[i][j] = g_readyOfs[0][i][j];
-                        g_local_trans[i][j] = g_transOfs[0][i][j];
+                        g_local_trans[i][j] = g_transOfs[TRANS_DATA_LEON][i][j];
                     }
                 }
                 ret = 4;

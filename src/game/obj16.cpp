@@ -77,10 +77,10 @@ void (*Obj16_R1_move_tbl[5])(cObj16*) = {
 
 // Attack parameters per obj16AtkCk kind (EmAtkHitCk).
 EmAtkInfo obj16_atk_info[4] = {
-    { 500.0f, 8, 0x320, 0, 0xA, 0 },
-    { 500.0f, 8, 0x320, 0, 0xA, 0 },
-    { 500.0f, 8, 0x1F4, 0, 0xA, 0 },
-    { 800.0f, 8, 0x270F, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 0x320, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 0x320, 0, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 0x1F4, 0, 0xA, 0 },
+    { 800.0f, PL_DM_AUTO, 0x270F, 0, 0xA, 0 },
 };
 
 // Creates the head on parts partsNo of `body` for enemy `target`, scale growing from 0 to Scale,
@@ -1186,7 +1186,7 @@ void obj16PlHeadLost(cObj16* obj)
     u8 region;
 
     pG->pl_life = 0;
-    PlSetDamage(6, 0, 0);
+    PlSetDamage(PL_DM_FRONT, 0, 0);
     region = pSys->eff_country;
     if (region == 0) {
         PlSetDamageSe(0xD);

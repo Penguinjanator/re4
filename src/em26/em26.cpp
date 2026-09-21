@@ -222,7 +222,7 @@ static u16 em26_flip_tbl[32] = {
 };
 
 // Bite attack (em26AtkCk): range, type, damage, ...
-static EmAtkInfo em26_atk_info = { 600.0f, 8, 0x12C, 4, 0xA, 0 };
+static EmAtkInfo em26_atk_info = { 600.0f, PL_DM_AUTO, 0x12C, 4, 0xA, 0 };
 
 // Per-frame update: damage check, clears the per-frame flags, the R0 table (Init / Move / Damage /
 // Die), then the collision and scenario check and the breath SE.
@@ -302,9 +302,9 @@ static void em26_R0_Init(cEm26* em)
     em->setStatus(EM_STATUS_LOCKOFF);
     em->atari.m_flag &= ~0x100;
     em->atari.m_flag |= 0x10;
-    YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, -50.0f, -100.0f, 300.0f, 350.0f, 5, 5);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, -200.0f, 100.0f, 200.0f, 0x18, 5);
+    YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, -50.0f, -100.0f, 300.0f, 350.0f, 5, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, -200.0f, 100.0f, 200.0f, 0x18, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     EspDataLoad((u32) ARC(7), EFF_EM26, 0);
     w->flags = zero;
     w->sndId = zero;

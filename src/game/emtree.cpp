@@ -42,7 +42,7 @@ EmTreeFunc EmTree_R1_move_tbl[7] = {
     emTree_R1_Shot,
 };
 
-EmAtkInfo emTreeAtk = { 200.0f, 8, 400, 0, 10, 0 };
+EmAtkInfo emTreeAtk = { 200.0f, PL_DM_AUTO, 400, 0, 10, 0 };
 
 // Creates a tree enemy (id 0x49, at the back of the pool) from a model / TPL at pos / rot: the
 // trunk El Gigante (r119) tears out and throws. Hit boxes, a solid atari, unlockable, SE / effect
@@ -68,7 +68,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
         EmMgr.destroy(em);
         return 0;
     }
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 250.0f, 10000.0f, 1, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 250.0f, 10000.0f, 1, YAT_FLAG_ON);
     int parts = 0;
     f32 zero = 0.0f;
     f32 h = 5000.0f;
@@ -661,7 +661,7 @@ void emTree_R1_Shot(cEmTree* em)
             EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
         }
         EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
-        if ((part->flags & 0x4000) == 0) {
+        if ((part->flags & YAT_FLAG_DMPOS) == 0) {
             em->setFall();
         } else {
             no = 0;

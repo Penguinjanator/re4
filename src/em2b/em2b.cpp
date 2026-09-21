@@ -318,13 +318,13 @@ static u16 em2b_xflip_tbl[90] = {
 
 // Attack parameters per attack number (em2bAtkCk).
 static EmAtkInfo em2b_atk_info[7] = {
-    { 1000.0f, 8, 800, 0, 10, 0 },
-    { 1100.0f, 8, 800, 0, 10, 0 },
-    { 1500.0f, 8, 800, 0, 10, 0 },
-    { 1500.0f, 8, 800, 0, 10, 0 },
-    { 1000.0f, 8, 400, 0, 10, 0 },
-    { 2000.0f, 8, 800, 0, 10, 0 },
-    { 1000.0f, 8, 800, 0, 10, 0 },
+    { 1000.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 1100.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 1500.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 1500.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 1000.0f, PL_DM_AUTO, 400, 0, 10, 0 },
+    { 2000.0f, PL_DM_AUTO, 800, 0, 10, 0 },
+    { 1000.0f, PL_DM_AUTO, 800, 0, 10, 0 },
 };
 
 Vec em2b_r11e_pos = { -4390.0f, 0.0f, -480.0f };
@@ -921,16 +921,16 @@ static void em2b_R0_Init(cEm2b* em)
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     at->init(0.0f, 0.0f, 0.0f, 1700.0f, 1500.0f, 1500.0f, 3000.0f, 1, 0x2000, 0xA);
     at->setPriority(PRI_LV1);
-    YarareInit(em, 0.0f, -200.0f, 0.0f, 500.0f, 400.0f, 5, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, -100.0f, 0.0f, 900.0f, 1300.0f, 2, 1);
-    YarareAdd(em, &w->hit[1], -80.0f, -1600.0f, 0.0f, 500.0f, 1600.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[2], 80.0f, -1600.0f, 0.0f, 500.0f, 1600.0f, 0x18, 1);
-    YarareAdd(em, &w->hit[3], -1200.0f, 0.0f, 0.0f, 400.0f, 1600.0f, 9, 3);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 400.0f, 1600.0f, 0xF, 3);
-    YarareAdd(em, &w->hit[5], -80.0f, -1200.0f, 0.0f, 550.0f, 1200.0f, 0x13, 1);
-    YarareAdd(em, &w->hit[6], 80.0f, -1200.0f, 0.0f, 550.0f, 1200.0f, 0x17, 1);
-    YarareAdd(em, &w->hit[7], -1200.0f, 0.0f, 0.0f, 480.0f, 1200.0f, 8, 3);
-    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 480.0f, 1200.0f, 0xE, 3);
+    YarareInit(em, 0.0f, -200.0f, 0.0f, 500.0f, 400.0f, 5, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, -100.0f, 0.0f, 900.0f, 1300.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], -80.0f, -1600.0f, 0.0f, 500.0f, 1600.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 80.0f, -1600.0f, 0.0f, 500.0f, 1600.0f, 0x18, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[3], -1200.0f, 0.0f, 0.0f, 400.0f, 1600.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 400.0f, 1600.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[5], -80.0f, -1200.0f, 0.0f, 550.0f, 1200.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[6], 80.0f, -1200.0f, 0.0f, 550.0f, 1200.0f, 0x17, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[7], -1200.0f, 0.0f, 0.0f, 480.0f, 1200.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 480.0f, 1200.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 300.0f, 800.0f, 0x3F, 0);
     zero = 0;
     em->lockParts = zero;
@@ -1913,7 +1913,7 @@ static inline void em2bHandLandingPlCk(cModel* p)
         f32 dy = pPLS->pos.y - p->world.y;
         f32 dz = pPLS->pos.z - p->world.z;
         if (dx * dx + dy * dy + dz * dz < 36000000.0f) {
-            PlSetDamage(9, 0, 0);
+            PlSetDamage(PL_DM_AUTO_SML, 0, 0);
         }
     }
 }

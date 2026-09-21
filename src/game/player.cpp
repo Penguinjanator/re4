@@ -262,11 +262,11 @@ void cPlayer::init1()
     lockOfs.y = 0.0f;
     lockOfs.z = 0.0f;
     lockParts = 2;
-    YarareInit(this, 0.0f, -30.0f, 0.0f, 200.0f, 100.0f, 2, 1);
-    YarareAdd(this, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
-    YarareAdd(this, &m_Yarare[1], 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
-    YarareAdd(this, &m_Yarare[2], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
-    YarareAdd(this, &m_Yarare[3], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
+    YarareInit(this, 0.0f, -30.0f, 0.0f, 200.0f, 100.0f, 2, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[1], 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[2], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[3], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, YAT_FLAG_ON);
     MOTION(this)->flip = pl00_mirror;
     m_BbtnCnt = 0;
     invisible_factor = 1.0f;

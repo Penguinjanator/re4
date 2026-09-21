@@ -3773,7 +3773,7 @@ int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl)
     switch (w->item.id) {
     case 0x58:
     case 0x59:
-        YarareInitCube(em, 0.0f, -85.0f, 0.0f, 85.0f, 170.0f, 300.0f, 0, 1);
+        YarareInitCube(em, 0.0f, -85.0f, 0.0f, 85.0f, 170.0f, 300.0f, 0, YAT_FLAG_ON);
         break;
     }
     em->setNoSuspend(1);

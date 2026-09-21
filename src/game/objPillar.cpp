@@ -67,7 +67,7 @@ void (*ObjPillar_R0_move_tbl[5])(cObjPillar*) = {
     objPillar_R0_Set, objPillar_R0_Break, objPillar_R0_Throw, objPillar_R0_Escape, objPillar_R0_Fall,
 };
 
-EmAtkInfo ObjPillar_atk_info = { 1000.0f, 8, 1000, 0, 10, 0 };
+EmAtkInfo ObjPillar_atk_info = { 1000.0f, PL_DM_AUTO, 1000, 0, 10, 0 };
 
 Camera Cam;   // escape sequence camera
 
@@ -518,7 +518,7 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
     if (hit) {
         if (hit & 1) {
             pPL->ang.y = GetXZAngle(&pPL->pos, &w->St_pos);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             EmPlBloodSet2(obj, pos, 1, 0x29, 0x3D);
             if ((s16) pG->pl_life <= 0) {
                 EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3A, 0, ESP_CORE_KIND_NONE, pPL, 0);

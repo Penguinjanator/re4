@@ -181,7 +181,7 @@ void ToolArrayPush(int flags)
         ObjMgr.arrayPush(500);
     }
     if (!(flags & 8)) {
-        EspArrayPush(ConsGetRoomValue(2));
+        EspArrayPush(ConsGetRoomValue(CONS_R_NESP));
     }
     if (!(flags & 0x10)) {
         EspgenArrayPush(0x80);

@@ -119,7 +119,7 @@ static Em24Func Em24_R1_move_tbl[4] = {
 
 // Jump attack (em24AtkCk): range, type, damage, ...
 static EmAtkInfo em24_atk_tbl[1] = {
-    { 500.0f, 8, 100, 4, 0xA, 0 },
+    { 500.0f, PL_DM_AUTO, 100, 4, 0xA, 0 },
 };
 
 // Per-frame update: damage check, the R0 table (Init / Move / Damage / Die), then the collision and
@@ -216,12 +216,12 @@ static void em24_R0_Init(cEm24* em)
     em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x10;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 1, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 3, 5);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 6, 5);
-    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 8, 5);
-    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xA, 5);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xC, 5);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 3, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 6, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 8, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xA, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xC, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     w->Be_flg = zero;
     w->HoseiCnt = zero;
     w->Water_eff_wait = two;

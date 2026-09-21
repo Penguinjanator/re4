@@ -261,11 +261,11 @@ static u16 em38_flip[120] = {
 
 // Attacks (em38AtkCk): [0] tentacle sweep, [1] tentacle slam, [2] head stamp, [3] head bite, [4] catch.
 static EmAtkInfo em38_atk_tbl[5] = {
-    { 1000.0f, 8, 500, 0, 0xA, 0 },
-    { 1000.0f, 8, 0, 0, 0xA, 0 },
-    { 1000.0f, 8, 500, 0, 0xA, 0 },
-    { 1800.0f, 8, 9999, 0, 0xA, 0 },
-    { 1800.0f, 8, 800, 0, 0xA, 0 },
+    { 1000.0f, PL_DM_AUTO, 500, 0, 0xA, 0 },
+    { 1000.0f, PL_DM_AUTO, 0, 0, 0xA, 0 },
+    { 1000.0f, PL_DM_AUTO, 500, 0, 0xA, 0 },
+    { 1800.0f, PL_DM_AUTO, 9999, 0, 0xA, 0 },
+    { 1800.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
 };
 
 
@@ -2110,33 +2110,33 @@ void em38YarareInitBody(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 1000.0f, 1000.0f, 3, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 1000.0f, 1000.0f, 4, 5);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 1000.0f, 500.0f, 5, 5);
-    YarareAdd(em, &w->hit[2], 0.0f, -800.0f, 1000.0f, 1100.0f, 1000.0f, 5, 5);
-    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x12, 5);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x13, 5);
-    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x14, 5);
-    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x15, 5);
-    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x16, 5);
-    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x17, 5);
-    YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x18, 5);
-    YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x19, 5);
-    YarareAdd(em, &w->hit[11], 0.0f, -100.0f, 0.0f, 650.0f, 900.0f, 0x1A, 5);
-    YarareAddCube(em, &w->hit[12], -500.0f, -200.0f, 0.0f, 500.0f, 200.0f, 500.0f, 6, 1);
-    YarareAddCube(em, &w->hit[13], -500.0f, -200.0f, 400.0f, 500.0f, 200.0f, 1200.0f, 7, 1);
-    YarareAddCube(em, &w->hit[14], -500.0f, -100.0f, 200.0f, 500.0f, 200.0f, 900.0f, 8, 1);
-    YarareAddCube(em, &w->hit[15], -500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 900.0f, 9, 1);
-    YarareAddCube(em, &w->hit[16], -500.0f, -200.0f, 200.0f, 700.0f, 200.0f, 1000.0f, 0xA, 1);
-    YarareAddCube(em, &w->hit[17], -500.0f, -100.0f, 300.0f, 700.0f, 200.0f, 700.0f, 0xB, 1);
-    YarareAddCube(em, &w->hit[18], 500.0f, -200.0f, 0.0f, 500.0f, 200.0f, 700.0f, 0xC, 1);
-    YarareAddCube(em, &w->hit[19], 500.0f, -200.0f, 400.0f, 500.0f, 200.0f, 1200.0f, 0xD, 1);
-    YarareAddCube(em, &w->hit[20], 500.0f, -100.0f, 200.0f, 500.0f, 200.0f, 900.0f, 0xE, 1);
-    YarareAddCube(em, &w->hit[21], 500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 900.0f, 0xF, 1);
-    YarareAddCube(em, &w->hit[22], 500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 1000.0f, 0x10, 1);
-    YarareAddCube(em, &w->hit[23], 500.0f, -100.0f, 0.0f, 700.0f, 200.0f, 700.0f, 0x11, 1);
-    YarareAdd(em, &w->hit[24], 0.0f, 0.0f, 20.0f, 320.0f, 0.0f, 0x3B, 1);
-    YarareAdd(em, &w->hit[25], 300.0f, -100.0f, 600.0f, 450.0f, 900.0f, 0x1B, 5);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 1000.0f, 1000.0f, 3, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 1000.0f, 1000.0f, 4, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 1000.0f, 500.0f, 5, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[2], 0.0f, -800.0f, 1000.0f, 1100.0f, 1000.0f, 5, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x12, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x13, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x14, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x15, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x16, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x17, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x18, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 500.0f, 1000.0f, 0x19, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[11], 0.0f, -100.0f, 0.0f, 650.0f, 900.0f, 0x1A, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAddCube(em, &w->hit[12], -500.0f, -200.0f, 0.0f, 500.0f, 200.0f, 500.0f, 6, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[13], -500.0f, -200.0f, 400.0f, 500.0f, 200.0f, 1200.0f, 7, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[14], -500.0f, -100.0f, 200.0f, 500.0f, 200.0f, 900.0f, 8, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[15], -500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 900.0f, 9, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[16], -500.0f, -200.0f, 200.0f, 700.0f, 200.0f, 1000.0f, 0xA, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[17], -500.0f, -100.0f, 300.0f, 700.0f, 200.0f, 700.0f, 0xB, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[18], 500.0f, -200.0f, 0.0f, 500.0f, 200.0f, 700.0f, 0xC, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[19], 500.0f, -200.0f, 400.0f, 500.0f, 200.0f, 1200.0f, 0xD, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[20], 500.0f, -100.0f, 200.0f, 500.0f, 200.0f, 900.0f, 0xE, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[21], 500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 900.0f, 0xF, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[22], 500.0f, -200.0f, 0.0f, 700.0f, 200.0f, 1000.0f, 0x10, YAT_FLAG_ON);
+    YarareAddCube(em, &w->hit[23], 500.0f, -100.0f, 0.0f, 700.0f, 200.0f, 700.0f, 0x11, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[24], 0.0f, 0.0f, 20.0f, 320.0f, 0.0f, 0x3B, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[25], 300.0f, -100.0f, 600.0f, 450.0f, 900.0f, 0x1B, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
 }
 
 // Hit boxes of a tentacle: the root sphere plus one box per segment.
@@ -2144,23 +2144,23 @@ void em38YarareInitTentacle(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 1000.0f, 2000.0f, 2, 5);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 950.0f, 1900.0f, 3, 5);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 900.0f, 1800.0f, 4, 5);
-    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 860.0f, 1700.0f, 5, 5);
-    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 820.0f, 1600.0f, 6, 5);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 800.0f, 1500.0f, 7, 5);
-    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 760.0f, 1400.0f, 8, 5);
-    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 720.0f, 1300.0f, 9, 5);
-    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 680.0f, 1200.0f, 0xA, 5);
-    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 640.0f, 1100.0f, 0xB, 5);
-    YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 600.0f, 1000.0f, 0xC, 5);
-    YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 560.0f, 900.0f, 0xD, 5);
-    YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 520.0f, 800.0f, 0xE, 5);
-    YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 480.0f, 700.0f, 0xF, 5);
-    YarareAdd(em, &w->hit[13], 0.0f, 0.0f, 0.0f, 440.0f, 600.0f, 0x10, 5);
-    YarareAdd(em, &w->hit[14], 0.0f, 0.0f, 0.0f, 400.0f, 500.0f, 0x11, 5);
-    YarareAdd(em, &w->hit[15], 0.0f, 0.0f, 0.0f, 380.0f, 400.0f, 0x12, 5);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 1000.0f, 2000.0f, 2, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 950.0f, 1900.0f, 3, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 900.0f, 1800.0f, 4, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 860.0f, 1700.0f, 5, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 820.0f, 1600.0f, 6, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 800.0f, 1500.0f, 7, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 760.0f, 1400.0f, 8, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 720.0f, 1300.0f, 9, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 680.0f, 1200.0f, 0xA, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 640.0f, 1100.0f, 0xB, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 600.0f, 1000.0f, 0xC, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 560.0f, 900.0f, 0xD, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 520.0f, 800.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 480.0f, 700.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[13], 0.0f, 0.0f, 0.0f, 440.0f, 600.0f, 0x10, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[14], 0.0f, 0.0f, 0.0f, 400.0f, 500.0f, 0x11, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[15], 0.0f, 0.0f, 0.0f, 380.0f, 400.0f, 0x12, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
 }
 
 // Hit boxes of the upper body: a human-sized root sphere plus the torso / head boxes.
@@ -2168,15 +2168,15 @@ void em38YarareInitUpper(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 2, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 100.0f, 3, 1);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 300.0f, 200.0f, 6, 1);
-    YarareAdd(em, &w->hit[2], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xB, 1);
-    YarareAdd(em, &w->hit[3], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xC, 1);
-    YarareAdd(em, &w->hit[4], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xD, 1);
-    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x11, 3);
-    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 120.0f, 400.0f, 0x12, 3);
-    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 50.0f, 0x14, 3);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 100.0f, 3, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 300.0f, 200.0f, 6, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xB, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[3], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xC, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[4], 0.0f, -300.0f, 0.0f, 150.0f, 300.0f, 0xD, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 200.0f, 400.0f, 0x11, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 120.0f, 400.0f, 0x12, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 50.0f, 0x14, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
 }
 
 // Hit boxes of the lower body: a 4 x 8 x 3 m root cube plus the boxes of the two parasite roots
@@ -2185,9 +2185,9 @@ void em38YarareInitLower(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    YarareInitCube(em, 0.0f, -2000.0f, 0.0f, 2000.0f, 4000.0f, 1500.0f, 3, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, 500.0f, 0.0f, 2800.0f, 0.0f, 0x10, 1);
-    YarareAdd(em, &w->hit[1], 0.0f, 500.0f, 0.0f, 2800.0f, 0.0f, 0x12, 1);
+    YarareInitCube(em, 0.0f, -2000.0f, 0.0f, 2000.0f, 4000.0f, 1500.0f, 3, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, 500.0f, 0.0f, 2800.0f, 0.0f, 0x10, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], 0.0f, 500.0f, 0.0f, 2800.0f, 0.0f, 0x12, YAT_FLAG_ON);
 }
 
 // Damage of the pending hit: the weapon table value (near = within 6 m for the range falloff), 20

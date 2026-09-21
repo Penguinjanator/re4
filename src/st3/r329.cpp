@@ -93,7 +93,7 @@ static void R329EventS00()
         SceEventStart(0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(1);
-        EvtMgr.EvtReadExec("event/evd/r329s00.evd", 3, 0);
+        EvtMgr.EvtReadExec("event/evd/r329s00.evd", 3, EvtReadFlagNone);
         FadeSetW(0x80000002, 30, 0, 0);
         {
             // COMPILER-DIFF: #17 (local-alloc qty order). The three pool constants are block-local

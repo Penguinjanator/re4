@@ -243,14 +243,14 @@ static u16 em2c_xflip_tbl[120] = {
 
 // Attack parameters per attack number (em2cAtkCk).
 static EmAtkInfo em2c_atk_info[8] = {
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
-    { 500.0f, 8, 300, 0, 10, 0 },
-    { 500.0f, 8, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 300, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 650, 0, 10, 0 },
 };
 
 // Module entry (SN loader): registers Em2cInit as the DOL's enemy constructor (EmInitFunc).
@@ -1116,23 +1116,23 @@ static void em2c_R0_Init(cEm2c* em)
     switch (em->type) {
     case 0:
     default:
-        YarareInit(em, 0.0f, -50.0f, 0.0f, 190.0f, 100.0f, 6, 1);
-        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 240.0f, 50.0f, 2, 1);
-        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 240.0f, 200.0f, 3, 1);
-        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 220.0f, 50.0f, 4, 1);
-        YarareAdd(em, &w->hit[3], -400.0f, 0.0f, 0.0f, 140.0f, 400.0f, 8, 3);
-        YarareAdd(em, &w->hit[4], -400.0f, 0.0f, 0.0f, 110.0f, 500.0f, 9, 3);
-        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 140.0f, 400.0f, 0xC, 3);
-        YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 110.0f, 500.0f, 0xD, 3);
-        YarareAdd(em, &w->hit[7], 0.0f, -500.0f, 0.0f, 150.0f, 500.0f, 0x10, 1);
-        YarareAdd(em, &w->hit[8], 0.0f, -600.0f, 0.0f, 120.0f, 600.0f, 0x11, 1);
-        YarareAdd(em, &w->hit[9], 0.0f, -500.0f, 0.0f, 150.0f, 500.0f, 0x14, 1);
-        YarareAdd(em, &w->hit[10], 0.0f, -600.0f, 0.0f, 120.0f, 600.0f, 0x15, 1);
-        YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 190.0f, 50.0f, 0x1E, 1);
-        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 190.0f, 50.0f, 0x1F, 1);
+        YarareInit(em, 0.0f, -50.0f, 0.0f, 190.0f, 100.0f, 6, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 240.0f, 50.0f, 2, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 240.0f, 200.0f, 3, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 220.0f, 50.0f, 4, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[3], -400.0f, 0.0f, 0.0f, 140.0f, 400.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[4], -400.0f, 0.0f, 0.0f, 110.0f, 500.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 140.0f, 400.0f, 0xC, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 110.0f, 500.0f, 0xD, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[7], 0.0f, -500.0f, 0.0f, 150.0f, 500.0f, 0x10, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[8], 0.0f, -600.0f, 0.0f, 120.0f, 600.0f, 0x11, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[9], 0.0f, -500.0f, 0.0f, 150.0f, 500.0f, 0x14, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[10], 0.0f, -600.0f, 0.0f, 120.0f, 600.0f, 0x15, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 190.0f, 50.0f, 0x1E, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 190.0f, 50.0f, 0x1F, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 1, 1);
+        YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 1, YAT_FLAG_ON);
         break;
     }
     zero = 0;
@@ -5024,19 +5024,19 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                     SetPlDamage(em, plem2c_CriticalHit);
                 } else {
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                    PlSetDamage(8, 0, 0);
+                    PlSetDamage(PL_DM_AUTO, 0, 0);
                 }
                 break;
             case 2:
                 EmPlBloodSet2(em, &p->world, 1, 0x24, 0x19);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
                 break;
             case 7:
                 EmPlBloodSet2(em, &p->world, 1, 0x24, 0x1A);
                 if ((s16) pG->pl_life <= 0) {
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                    PlSetDamage(8, 0, 0);
+                    PlSetDamage(PL_DM_AUTO, 0, 0);
                 } else {
                     SetPlDamage(em, plemDmTail);
                 }
@@ -5046,7 +5046,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                 EstSet(pPL, -1, 0, 0, EFF_EM2C, 0x1D, 0, ESP_CORE_KIND_NONE, pPL, 0);
                 if ((s16) pG->pl_life <= 0) {
                     pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                    PlSetDamage(8, 0, 0);
+                    PlSetDamage(PL_DM_AUTO, 0, 0);
                 } else {
                     SetPlDamage(em, plemDmTail);
                 }

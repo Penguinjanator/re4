@@ -253,11 +253,11 @@ void R213SuInit()
                 cEmHit* hit = r213_work.p->hit[0];
 
                 r213_suYarare = (R213SuYarare*) hit->free;
-                YarareInit(hit, 0.0f, -9000.0f, 0.0f, 6000.0f, 15000.0f, 0, 0x81);
-                YarareAdd(hit, &r213_suYarare->box[0], 200.0f, -12000.0f, 600.0f, 5000.0f, 0.0f, 0, 0x81);
-                YarareAdd(hit, &r213_suYarare->box[1], 100.0f, -15000.0f, 800.0f, 3700.0f, 0.0f, 0, 0x81);
-                YarareAdd(hit, &r213_suYarare->box[2], 300.0f, -17500.0f, 500.0f, 2900.0f, 0.0f, 0, 0x81);
-                YarareAdd(hit, &r213_suYarare->box[3], 500.0f, -20000.0f, 300.0f, 1800.0f, 0.0f, 0, 0x81);
+                YarareInit(hit, 0.0f, -9000.0f, 0.0f, 6000.0f, 15000.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
+                YarareAdd(hit, &r213_suYarare->box[0], 200.0f, -12000.0f, 600.0f, 5000.0f, 0.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
+                YarareAdd(hit, &r213_suYarare->box[1], 100.0f, -15000.0f, 800.0f, 3700.0f, 0.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
+                YarareAdd(hit, &r213_suYarare->box[2], 300.0f, -17500.0f, 500.0f, 2900.0f, 0.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
+                YarareAdd(hit, &r213_suYarare->box[3], 500.0f, -20000.0f, 300.0f, 1800.0f, 0.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
                 hit->hp = 6000;
             }
             }
@@ -592,7 +592,7 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
             if (r213_work.p->hit[hitNo]) {
                 cEmHit* hit = r213_work.p->hit[hitNo];
 
-                YarareInit(hit, -300.0f, 0.0f, 0.0f, 500.0f, 0.0f, 0, 1);
+                YarareInit(hit, -300.0f, 0.0f, 0.0f, 500.0f, 0.0f, 0, YAT_FLAG_ON);
                 hit->hp = 1;
             }
         }
@@ -1050,7 +1050,7 @@ static void R213Event()
         ScfFlagOn(pG, SCF_R213_ASHLEY_LOST);
         SubCharCtrl(SCC_KILL, 0);
         StaFlagOff(pG, STA_SUB_ASHLEY);
-        EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, 0);
+        EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, EvtReadFlagNone);
         R213EmSet();
     }
 }

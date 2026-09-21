@@ -85,7 +85,7 @@ cObjMissile* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         w->pHit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, &obj->ang, 1);
         if (w->pHit) {
             w->pHit->hp = 0;
-            YarareInitCube(w->pHit, 0.0f, -300.0f, -300.0f, 300.0f, 600.0f, 600.0f, 1, 5);
+            YarareInitCube(w->pHit, 0.0f, -300.0f, -300.0f, 300.0f, 600.0f, 600.0f, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
             w->pHit->setParent(obj, 0, 0);
         }
     }

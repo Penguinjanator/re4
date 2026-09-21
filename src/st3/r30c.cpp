@@ -192,7 +192,7 @@ static void R30cEventS00()
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
         SndRoomStrStop(1);
-        EvtMgr.EvtReadExec("event/evd/r30cs00.evd", (u8) GetEmIdFromList(0x40), 0x200);
+        EvtMgr.EvtReadExec("event/evd/r30cs00.evd", (u8) GetEmIdFromList(0x40), EvtReadFlagPlCheckEvent);
         {
             // pPL read first (its load precedes the pool loads in the stream): the x store then
             // issues before the dying y store.

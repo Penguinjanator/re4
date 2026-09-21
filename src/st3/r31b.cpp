@@ -447,7 +447,7 @@ static void R31bExecEventS00()
         RsfSet(G_ROOM_ID, 0xC);
         SceAtSetEnable(4, 0);
         SceEventStart(0);
-        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), 0);
+        EvtMgr.EvtReadExec("event/evd/r31bs00.evd", (u8) GetEmIdFromList(0x14), EvtReadFlagNone);
         R31bLight(1);
         {
             Vec pos = {-21730.0f, 0.0f, 3800.0f};
@@ -1887,7 +1887,7 @@ void R31bKoushiSatSub2(int no, u32 lampId, int koushiNo)
     if (obj) {
         r31b_work.p->koushi[koushiNo] = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &obj->pos, &obj->ang, 1);
         if (r31b_work.p->koushi[koushiNo]) {
-            YarareInitCube(r31b_work.p->koushi[koushiNo], 0.0f, -400.0f, -150.0f, 300.0f, 800.0f, 150.0f, 0, 1);
+            YarareInitCube(r31b_work.p->koushi[koushiNo], 0.0f, -400.0f, -150.0f, 300.0f, 800.0f, 150.0f, 0, YAT_FLAG_ON);
         }
     }
 }

@@ -88,10 +88,10 @@ extern "C" void R120Event()
     u32 mask = 0x10;
     if (!(pG->Scenario_flg[1] & mask)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
-        EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, EvtReadFlagNone);
     }
     if (!ScfFlagChk(pG, SCF_R120_EVENT_CANCEL)) {
-        EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, EvtReadFlagNone);
     }
     SceEventEnd(0);
     SysFlagOn(pG, SYS_SCREEN_STOP);

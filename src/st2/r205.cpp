@@ -186,7 +186,7 @@ void R205Init()
             r205_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                          &pos, 0, 1);
             r205_work.p->hit[i]->setParent(r205_work.p->pend[i].obj, 0, 0);
-            YarareInitCube(r205_work.p->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, 1);
+            YarareInitCube(r205_work.p->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, YAT_FLAG_ON);
         }
     }
     SceAtSetDoorFunc(0, (TaskFunc) r205_RoomExitFunc, 0);

@@ -202,7 +202,7 @@ extern "C" void R22A_Event()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(6, 0);
-        EvtMgr.EvtReadExec("event/evd/r22as00.evd", 0, 0x50);
+        EvtMgr.EvtReadExec("event/evd/r22as00.evd", 0, EvtReadFlagFadeOut | EvtReadFlagNoFree);
         SceSleep(1);
         SceEventEnd(0);
         ScfFlagOn(pG, SCF_ST3_IN);

@@ -179,12 +179,12 @@ static void r11f_EventS00()
     SndRoomBgmVolSet(1, 1, 600);
     SceEventStart(0);
     SubCharCtrl(SCC_KILL, 0);
-    EvtMgr.EvtReadExec("event/evd/r11fs00.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r11fs00.evd", 0, EvtReadFlagNone);
     r11f_DoorReplace();
     if (!(pG->Room_flg[0] & 0x80000000)) {
-        EvtMgr.EvtReadExec("event/evd/r11fs01.evd", 0, 2);
+        EvtMgr.EvtReadExec("event/evd/r11fs01.evd", 0, EvtReadFlagDiedemo);
     } else {
-        EvtMgr.EvtReadExec("event/evd/r11fs02.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r11fs02.evd", 0, EvtReadFlagNone);
         if (r11f_work->em0.setEm(0xF8, -1, 1, 1, 1)) {
             Cckpt.m_LifeMeter.flags = (u32) r11f_work->em0.getPtr();
         }
@@ -560,7 +560,7 @@ static void r11f_Eventxxx()
     SceEventStart(0);
     ((cEm2b*) r11f_work->em0.getPtr())->v50();
     SndRoomStrStop(2);
-    EvtMgr.EvtReadExec("event/evd/r11fs10.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r11fs10.evd", 0, EvtReadFlagNone);
     SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, r11f_EventS11, 0, 1);
     SceEventEnd(0);
 }
@@ -572,7 +572,7 @@ static void r11f_EventS11()
 
     SceEventStart(0);
     SceAtDataReset(0x80);
-    EvtMgr.EvtReadExec("event/evd/r11fs11.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r11fs11.evd", 0, EvtReadFlagNone);
     SceEventEnd(0);
     SceAtSetEnable(8, 1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);

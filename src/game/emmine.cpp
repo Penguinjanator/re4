@@ -85,7 +85,7 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     if (w->Lv > 2) {
         em->type = 1;
     }
-    YarareInit(em, 0.0f, 0.0f, -100.0f, 300.0f, 10.0f, 1, 1);
+    YarareInit(em, 0.0f, 0.0f, -100.0f, 300.0f, 10.0f, 1, YAT_FLAG_ON);
     at = &em->atari;
     at->init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp = 1;
@@ -1253,7 +1253,7 @@ int emMineHitCk(cEmMine* em)
         hitEm = list.em;
         part = list.part;
         hitEm->dmg.set(0, 2, type, &em->pos_old, part->rad, part);
-        if (part->flags & 0x4000) {
+        if (part->flags & YAT_FLAG_DMPOS) {
             partsNo = 0;
             if (part->partsNo != 0) {
                 partsNo = part->partsNo - 1;

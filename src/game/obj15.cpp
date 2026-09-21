@@ -30,7 +30,7 @@ void obj15DmCk(cObjGatling* obj);
 }
 
 void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };
-EmAtkInfo Obj15_atk_info_tbl = { 100.0f, 8, 600, 0, 10, 0 };
+EmAtkInfo Obj15_atk_info_tbl = { 100.0f, PL_DM_AUTO, 600, 0, 10, 0 };
 
 // Creates the gatling at pos/rot with its three hit bodies, 40 rounds and no rider.
 cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
@@ -89,17 +89,17 @@ cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[0]) {
             w->hit[0]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[0], 430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
+            YarareInitCube(w->hit[0], 430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, YAT_FLAG_ON);
         }
         w->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[1]) {
             w->hit[1]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[1], -430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
+            YarareInitCube(w->hit[1], -430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, YAT_FLAG_ON);
         }
         w->hit[2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &hpos, &hrot, 1);
         if (w->hit[2]) {
             w->hit[2]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[2], 0.0f, 0.0f, 0.0f, 300.0f, 1600.0f, 300.0f, 1, 1);
+            YarareInitCube(w->hit[2], 0.0f, 0.0f, 0.0f, 300.0f, 1600.0f, 300.0f, 1, YAT_FLAG_ON);
         }
     }
     w->eat = 0;

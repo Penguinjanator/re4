@@ -243,7 +243,7 @@ static void R316EventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), 0);
+        EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromList(0), EvtReadFlagNone);
         SceSetChapterEnd(0xF, -1);
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
         FadeSetW(1, 0, 0, 0);

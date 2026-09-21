@@ -118,13 +118,13 @@ static u16 em25_flip_tbl[80] = {
 
 // Attack parameters per em25AtkCk kind: 0 bite (floor), 1 bite from the host.
 static EmAtkInfo em25_atk_tbl[2] = {
-    { 300.0f, 8, 500, 4, 10, 0 },
-    { 500.0f, 8, 800, 0, 10, 0 },
+    { 300.0f, PL_DM_AUTO, 500, 4, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 10, 0 },
 };
 
 // Poison projectile (SetObj08) attack parameters.
 static EmAtkInfo em25_poison_atk[1] = {
-    { 500.0f, 8, 800, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 800, 0, 10, 0 },
 };
 static int em25_atk_pad = 0;
 
@@ -334,10 +334,10 @@ static void em25_R0_Init(cEm25* em)
     em->lockOfs.y = fzero;
     em->lockOfs.z = fzero;
     em->atari.init(fzero, 500.0f, fzero, 350.0f, 350.0f, 350.0f, 1000.0f, 1, 0x2000, 10);
-    YarareInit(em, fzero, fzero, fzero, 300.0f, 200.0f, 2, 1);
-    YarareAdd(em, &w->hit[0], fzero, fzero, fzero, 100.0f, 100.0f, 0x1D, 1);
-    YarareAdd(em, &w->hit[1], fzero, fzero, fzero, 100.0f, 100.0f, 0x1E, 1);
-    YarareAdd(em, &w->hit[2], fzero, fzero, fzero, 100.0f, 100.0f, 0x1F, 1);
+    YarareInit(em, fzero, fzero, fzero, 300.0f, 200.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], fzero, fzero, fzero, 100.0f, 100.0f, 0x1D, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], fzero, fzero, fzero, 100.0f, 100.0f, 0x1E, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], fzero, fzero, fzero, 100.0f, 100.0f, 0x1F, YAT_FLAG_ON);
     w->Be_flg = zero;
     w->Compress_y = 1.0f;
     w->pEm_oya = (cEm*) zero;

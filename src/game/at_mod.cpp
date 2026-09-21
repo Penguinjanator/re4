@@ -109,7 +109,7 @@ void YarareAddCube(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h,
 
     yarareInit0(box, x, y, z, w, h, no, flags);
     box->depth = extent;
-    box->flags |= 8;
+    box->flags |= YAT_FLAG_CUBE;
     p = &em->hitInfo;
     while (p->next != 0) {
         if (p == box) {

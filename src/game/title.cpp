@@ -187,8 +187,8 @@ void titleWait(TitleWork* w)
             }
             if (pRK->logo_skip_enable != 0) {
                 w->Rno0 = 5;
-                w->counter = 585;
-                titleSet(w, 585);
+                w->counter = TTL_START_BIO4;
+                titleSet(w, TTL_START_BIO4);
                 if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
                     w->saveStep = w->Rno1;
                     w->saveSub = w->Rno2;
@@ -221,8 +221,8 @@ void titleNintendo(TitleWork* w)
         FadeKill(0);
         w->Rno0 = 5;
         w->Rno1 = 0;
-        w->counter = 585;
-        titleSet(w, 585);
+        w->counter = TTL_START_BIO4;
+        titleSet(w, TTL_START_BIO4);
         return;
     }
     switch (w->Rno1) {
@@ -262,7 +262,7 @@ void titleWarning(TitleWork* w)
 
     w->counter++;
     if (PadCheckStatus(&Joy[1]) == 1) {
-        w->counter = 585;
+        w->counter = TTL_START_BIO4;
         w->Rno0 = 5;
         w->Rno1 = 0;
         IdSys.setTime(u, (s16) w->counter);
@@ -270,7 +270,7 @@ void titleWarning(TitleWork* w)
     }
     switch (w->Rno1) {
     case 0:
-        if (w->counter > 105) {
+        if (w->counter > TTL_START_CAPCOM) {
             w->Rno1 = 0;
             w->Rno0 = 4;
         } else if (w->counter > TTL_CANCEL_WARNING) {
@@ -285,7 +285,7 @@ void titleWarning(TitleWork* w)
     case 1:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->counter = 105;
+            w->counter = TTL_START_CAPCOM;
             w->Rno1 = 0;
             w->Rno0 = 4;
             IdSys.setTime(u, (s16) w->counter);
@@ -306,7 +306,7 @@ void titleLogo(TitleWork* w)
     w->counter++;
     switch (w->Rno1) {
     case 0:
-        if (w->counter > 230) {
+        if (w->counter > TTL_START_CRI) {
             w->Rno1 = 2;
         } else if (w->counter > TTL_CANCEL_CAPCOM) {
             if (Key.trg & KEY_START) {
@@ -320,13 +320,13 @@ void titleLogo(TitleWork* w)
     case 1:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->counter = 230;
+            w->counter = TTL_START_CRI;
             w->Rno1 = 2;
             IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 2:
-        if (w->counter > 330) {
+        if (w->counter > TTL_START_DOLBY) {
             w->Rno1 = 4;
         } else if (w->counter > TTL_CANCEL_CRI) {
             if (Key.trg & KEY_START) {
@@ -340,13 +340,13 @@ void titleLogo(TitleWork* w)
     case 3:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->counter = 330;
+            w->counter = TTL_START_DOLBY;
             w->Rno1 = 4;
             IdSys.setTime(u, (s16) w->counter);
         }
         break;
     case 4:
-        if (w->counter > 585) {
+        if (w->counter > TTL_START_BIO4) {
             w->Rno1 = 6;
         } else if (w->counter > TTL_CANCEL_DOLBY) {
             if (Key.trg & KEY_START) {
@@ -360,7 +360,7 @@ void titleLogo(TitleWork* w)
     case 5:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->counter = 585;
+            w->counter = TTL_START_BIO4;
             w->Rno1 = 6;
             IdSys.setTime(u, (s16) w->counter);
         }

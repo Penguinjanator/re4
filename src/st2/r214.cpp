@@ -276,7 +276,7 @@ static void r214_execEvent00()
     RsfSet(G_ROOM_ID, 5);
     OpeSetOpenTerm(0x12, 0.0f, 0.0f, 0.0f, 0.0f);
     SceEventStart(0);
-    EvtMgr.EvtReadExec("event/evd/r214s00.evd", (u8) GetEmIdFromList(0xE4), 0x20);
+    EvtMgr.EvtReadExec("event/evd/r214s00.evd", (u8) GetEmIdFromList(0xE4), EvtReadFlagPlPosNoSet);
     SceEventEnd(0);
 }
 

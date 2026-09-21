@@ -229,7 +229,7 @@ QfpsOfs g_readyOfs[16][2][3] = {
     },
 };
 
-QfpsOfs g_transOfs[7][2][3] = {
+QfpsOfs g_transOfs[TRANS_DATA_NUM][2][3] = {
     {
         {
             {{-500.0f, 885.0f, -1050.0f}, {-240.0f, 1550.0f, -150.0f}, {0.0f, 2585.0f, 1390.0f}, 0.0f, 50.0f},
@@ -512,36 +512,36 @@ void CameraQuasiFPS::setFloorRatio(f32 ratio)
 void CameraQuasiFPS::checkCameraType()
 {
     if (SubCharGetStatus() & 0x20000000) {
-        m_trans_type = 1;
+        m_trans_type = TRANS_CAM_LEON_ASHLEY;
     } else {
         switch (pG->pl_type) {
         case 0:
-            m_trans_type = 0;
+            m_trans_type = TRANS_CAM_LEON;
             break;
         case 1:
-            m_trans_type = 2;
+            m_trans_type = TRANS_CAM_ASHLEY;
             break;
         case 2:
-            m_trans_type = 3;
+            m_trans_type = TRANS_CAM_ADA;
             break;
         case 4:
-            m_trans_type = 4;
+            m_trans_type = TRANS_CAM_KLAUSER;
             break;
         case 5:
-            m_trans_type = 5;
+            m_trans_type = TRANS_CAM_WESKER;
             break;
         default:
-            m_trans_type = 0;
+            m_trans_type = TRANS_CAM_LEON;
             break;
         }
     }
     blend_dst = trans_tbl[m_trans_type];
     if (DbgFlagChk(pGS, DBG_ADJUST_CAM)) {
-        blend_dst = g_transOfs[5];
+        blend_dst = g_transOfs[TRANS_DATA_AREA];
     }
     switch (m_trans_type) {
-    case 0:
-    case 2:
+    case TRANS_CAM_LEON:
+    case TRANS_CAM_ASHLEY:
         switch (PlGetWeaponNo()) {
         default:
             m_ready_type = 0;
@@ -573,10 +573,10 @@ void CameraQuasiFPS::checkCameraType()
             break;
         }
         break;
-    case 1:
+    case TRANS_CAM_LEON_ASHLEY:
         m_ready_type = 4;
         break;
-    case 3:
+    case TRANS_CAM_ADA:
         switch (PlGetWeaponNo()) {
         default:
             m_ready_type = 5;
@@ -599,7 +599,7 @@ void CameraQuasiFPS::checkCameraType()
             break;
         }
         break;
-    case 4:
+    case TRANS_CAM_KLAUSER:
         if (StaFlagChk(pG, STA_KLAUSER_TRANSFORM)) {
             m_ready_type = 0xA;
         } else if (PlGetWeaponNo() != 0x10) {
@@ -608,7 +608,7 @@ void CameraQuasiFPS::checkCameraType()
             m_ready_type = 9;
         }
         break;
-    case 5:
+    case TRANS_CAM_WESKER:
         switch (PlGetWeaponNo()) {
         default:
             m_ready_type = 0xC;
@@ -898,7 +898,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
 }
 
 // Copies the outgoing ready / transition tables into the blend-from slots (g_readyOfs[15],
-// g_transOfs[6]).
+// g_transOfs[TRANS_DATA_BLEND]).
 void CameraQuasiFPS::setBlendData(void* src, void* dst)
 {
     QfpsOfs (*s)[3] = (QfpsOfs (*)[3]) src;
@@ -909,12 +909,12 @@ void CameraQuasiFPS::setBlendData(void* src, void* dst)
     for (i = 0; i < 2; i++) {
         for (j = 0; j < 3; j++) {
             g_readyOfs[15][i][j] = s[i][j];
-            g_transOfs[6][i][j] = d[i][j];
+            g_transOfs[TRANS_DATA_BLEND][i][j] = d[i][j];
         }
     }
 }
 
-// Reads the per-area override tables (g_readyOfs[14], g_transOfs[5]) for the debug camera editor.
+// Reads the per-area override tables (g_readyOfs[14], g_transOfs[TRANS_DATA_AREA]) for the debug camera editor.
 void CameraQuasiFPS::getAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
 {
     int i;
@@ -923,7 +923,7 @@ void CameraQuasiFPS::getAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     for (i = 0; i < 2; i++) {
         for (j = 0; j < 3; j++) {
             ready[i][j] = g_readyOfs[14][i][j];
-            trans[i][j] = g_transOfs[5][i][j];
+            trans[i][j] = g_transOfs[TRANS_DATA_AREA][i][j];
         }
     }
 }
@@ -937,7 +937,7 @@ void CameraQuasiFPS::setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     for (i = 0; i < 2; i++) {
         for (j = 0; j < 3; j++) {
             g_readyOfs[14][i][j] = ready[i][j];
-            g_transOfs[5][i][j] = trans[i][j];
+            g_transOfs[TRANS_DATA_AREA][i][j] = trans[i][j];
         }
     }
 }
@@ -978,7 +978,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
         return;
     }
     OFS_COPY(g_readyOfs[0], g_readyOfs[14]);
-    OFS_COPY(g_transOfs[0], g_transOfs[5]);
+    OFS_COPY(g_transOfs[TRANS_DATA_LEON], g_transOfs[TRANS_DATA_AREA]);
     m_floor_ratio = cut->floor_ratio;
     if (cut->num == 0) {
         return;
@@ -994,7 +994,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                     p->Fovy = cut->fovy[k];
                 }
             } else {
-                p = &g_transOfs[5][i - 2][j];
+                p = &g_transOfs[TRANS_DATA_AREA][i - 2][j];
                 if (!(cut->flags & 0x20)) {
                     p->Campos = cut->pos[k];
                     p->target = cut->at[k];
@@ -1012,7 +1012,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                     p->campos2 = cut->pos[k];
                 }
             } else {
-                p = &g_transOfs[5][i - 2][j];
+                p = &g_transOfs[TRANS_DATA_AREA][i - 2][j];
                 if (!(cut->flags & 0x20)) {
                     p->campos2 = cut->pos[k];
                 }
@@ -1059,7 +1059,7 @@ void CameraQuasiFPS::offsetCorrection()
     for (i = 0; i < 14; i++) {
         offsetArrayCorrection(g_readyOfs[i]);
     }
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < TRANS_DATA_AREA; i++) {
         offsetArrayCorrection(g_transOfs[i]);
     }
 }
@@ -1081,12 +1081,12 @@ void CameraQuasiFPS::bindDefaultCamera()
     ready_tbl[11] = g_readyOfs[11];
     ready_tbl[12] = g_readyOfs[12];
     ready_tbl[13] = g_readyOfs[13];
-    trans_tbl[0] = g_transOfs[0];
-    trans_tbl[1] = g_transOfs[1];
-    trans_tbl[2] = g_transOfs[0];
-    trans_tbl[3] = g_transOfs[0];
-    trans_tbl[4] = g_transOfs[3];
-    trans_tbl[5] = g_transOfs[4];
+    trans_tbl[TRANS_CAM_LEON] = g_transOfs[TRANS_DATA_LEON];
+    trans_tbl[TRANS_CAM_LEON_ASHLEY] = g_transOfs[TRANS_DATA_LEON_ASHLEY];
+    trans_tbl[TRANS_CAM_ASHLEY] = g_transOfs[TRANS_DATA_LEON];
+    trans_tbl[TRANS_CAM_ADA] = g_transOfs[TRANS_DATA_LEON];
+    trans_tbl[TRANS_CAM_KLAUSER] = g_transOfs[TRANS_DATA_KLAUSER];
+    trans_tbl[TRANS_CAM_WESKER] = g_transOfs[TRANS_DATA_WESKER];
 }
 
 // Points the type slots at the area override table (g_readyOfs[14]) for the types the area cut
@@ -1143,24 +1143,24 @@ void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
         }
     }
     if (!(cut->flags & 0x20)) {
-        offsetArrayCorrection(g_transOfs[5]);
+        offsetArrayCorrection(g_transOfs[TRANS_DATA_AREA]);
         if (area->attr2 & 0x5D) {
-            trans_tbl[0] = g_transOfs[5];
-            trans_tbl[2] = g_transOfs[5];
-            trans_tbl[3] = g_transOfs[5];
-            trans_tbl[4] = g_transOfs[5];
-            trans_tbl[5] = g_transOfs[5];
+            trans_tbl[TRANS_CAM_LEON] = g_transOfs[TRANS_DATA_AREA];
+            trans_tbl[TRANS_CAM_ASHLEY] = g_transOfs[TRANS_DATA_AREA];
+            trans_tbl[TRANS_CAM_ADA] = g_transOfs[TRANS_DATA_AREA];
+            trans_tbl[TRANS_CAM_KLAUSER] = g_transOfs[TRANS_DATA_AREA];
+            trans_tbl[TRANS_CAM_WESKER] = g_transOfs[TRANS_DATA_AREA];
         } else {
-            trans_tbl[0] = g_transOfs[0];
-            trans_tbl[2] = g_transOfs[0];
-            trans_tbl[3] = g_transOfs[2];
-            trans_tbl[4] = g_transOfs[3];
-            trans_tbl[5] = g_transOfs[4];
+            trans_tbl[TRANS_CAM_LEON] = g_transOfs[TRANS_DATA_LEON];
+            trans_tbl[TRANS_CAM_ASHLEY] = g_transOfs[TRANS_DATA_LEON];
+            trans_tbl[TRANS_CAM_ADA] = g_transOfs[TRANS_DATA_ADA];
+            trans_tbl[TRANS_CAM_KLAUSER] = g_transOfs[TRANS_DATA_KLAUSER];
+            trans_tbl[TRANS_CAM_WESKER] = g_transOfs[TRANS_DATA_WESKER];
         }
         if (area->attr2 & 2) {
-            trans_tbl[1] = g_transOfs[5];
+            trans_tbl[TRANS_CAM_LEON_ASHLEY] = g_transOfs[TRANS_DATA_AREA];
         } else {
-            trans_tbl[1] = g_transOfs[1];
+            trans_tbl[TRANS_CAM_LEON_ASHLEY] = g_transOfs[TRANS_DATA_LEON_ASHLEY];
         }
     }
 }
@@ -1235,11 +1235,11 @@ void CameraQuasiFPS::move()
         break;
     case 2:
         cur = blend_dst[0];
-        old = g_transOfs[6][0];
+        old = g_transOfs[TRANS_DATA_BLEND][0];
         break;
     case 3:
         cur = blend_dst[2];
-        old = g_transOfs[6][1];
+        old = g_transOfs[TRANS_DATA_BLEND][1];
         break;
     }
     if (!DbgFlagChk(pG, DBG_ADJUST_CAM)) {

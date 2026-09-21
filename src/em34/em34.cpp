@@ -155,7 +155,7 @@ static Em34Func Em34_R3_move_tbl[1] = {
 
 // Bite attack (em34AtkCk): range, type, damage, ...
 static EmAtkInfo em34_atk_tbl[1] = {
-    { 300.0f, 8, 9999, 0, 0xA, 0 },
+    { 300.0f, PL_DM_AUTO, 9999, 0, 0xA, 0 },
 };
 static int em34_atk_pad = 0;
 
@@ -306,11 +306,11 @@ static void em34_R0_Init(cEm34* em)
         break;
     }
     em->litArea.on(1);
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 1, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 400.0f, 200.0f, 1, YAT_FLAG_ON);
     one = 1;
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, 1);
-    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[2], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x18, 1);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 200.0f, 100.0f, 5, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 0.0f, -100.0f, 0.0f, 200.0f, 200.0f, 0x18, YAT_FLAG_ON);
     em->lockParts = 2;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;

@@ -266,12 +266,12 @@ static Em32Func Em32_R3_move_tbl[1] = {
 
 // Attack parameters per em32AtkCk kind.
 static EmAtkInfo em32_atk_tbl[6] = {
-    { 400.0f, 8, 0x44C, 0, 10, 0 },
-    { 400.0f, 8, 0, 4, 10, 0 },
-    { 400.0f, 8, 0x44C, 0, 10, 0 },
-    { 1200.0f, 8, 0, 4, 10, 0 },
-    { 600.0f, 8, 0x44C, 0, 10, 0 },
-    { 600.0f, 8, 0x44C, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 0x44C, 0, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 0, 4, 10, 0 },
+    { 400.0f, PL_DM_AUTO, 0x44C, 0, 10, 0 },
+    { 1200.0f, PL_DM_AUTO, 0, 4, 10, 0 },
+    { 600.0f, PL_DM_AUTO, 0x44C, 0, 10, 0 },
+    { 600.0f, PL_DM_AUTO, 0x44C, 0, 10, 0 },
 };
 
 // Tail cloth chain (em32ClothSet): the parts, their upper / lower neighbours and the swing limits.
@@ -668,32 +668,32 @@ static void em32_R0_Init(cEm32* em)
     SetObaModel((cObj*) em, 0x1C, &v, 700.0f, 900.0f, 0);
     SetObaModel((cObj*) em, 0x1D, &v, 700.0f, 900.0f, 0);
     SetObaModel((cObj*) em, 0x1E, &v, 700.0f, 900.0f, 0);
-    YarareInit(em, fzero, fzero, fzero, 300.0f, 200.0f, 2, 5);
-    YarareAdd(em, &w->hit[0], fzero, fzero, fzero, 250.0f, 200.0f, 3, 5);
-    YarareAdd(em, &w->hit[1], fzero, fzero, fzero, 320.0f, 200.0f, 4, 5);
-    YarareAdd(em, &w->hit[2], fzero, fzero, fzero, 200.0f, 100.0f, 6, 5);
-    YarareAdd(em, &w->hit[3], fzero, fzero, -200.0f, 350.0f, 200.0f, 0x1B, 5);
-    YarareAdd(em, &w->hit[4], fzero, fzero, -200.0f, 350.0f, 200.0f, 0x1C, 5);
-    YarareAdd(em, &w->hit[5], fzero, fzero, -200.0f, 500.0f, 200.0f, 0x1D, 5);
-    YarareAdd(em, &w->hit[6], fzero, fzero, -200.0f, 500.0f, 200.0f, 0x1E, 5);
-    YarareAdd(em, &w->hit[7], fzero, fzero, -200.0f, 400.0f, 200.0f, 0x1F, 5);
-    YarareAdd(em, &w->hit[8], fzero, 50.0f, -150.0f, 350.0f, 150.0f, 0x20, 5);
-    YarareAdd(em, &w->hit[9], -450.0f, fzero, fzero, 130.0f, 450.0f, 9, 3);
-    YarareAdd(em, &w->hit[10], -500.0f, fzero, fzero, 115.0f, 500.0f, 0xA, 3);
-    YarareAdd(em, &w->hit[11], -150.0f, fzero, fzero, 150.0f, 150.0f, 0xC, 3);
-    YarareAdd(em, &w->hit[12], fzero, fzero, fzero, 150.0f, 450.0f, 0x12, 3);
-    YarareAdd(em, &w->hit[13], fzero, fzero, fzero, 150.0f, 300.0f, 0x13, 3);
-    YarareAdd(em, &w->hit[14], fzero, fzero, fzero, 150.0f, 300.0f, 0x14, 3);
-    YarareAdd(em, &w->hit[15], fzero, fzero, fzero, 150.0f, 250.0f, 0x15, 3);
-    YarareAdd(em, &w->hit[16], fzero, fzero, fzero, 130.0f, 250.0f, 0x16, 3);
-    YarareAdd(em, &w->hit[17], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x22, 1);
-    YarareAdd(em, &w->hit[18], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x23, 1);
-    YarareAdd(em, &w->hit[19], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x28, 1);
-    YarareAdd(em, &w->hit[20], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x29, 1);
-    YarareAdd(em, &w->hit[21], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x2E, 1);
-    YarareAdd(em, &w->hit[22], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x2F, 1);
-    YarareAdd(em, &w->hit[23], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x34, 1);
-    YarareAdd(em, &w->hit[24], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x35, 1);
+    YarareInit(em, fzero, fzero, fzero, 300.0f, 200.0f, 2, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[0], fzero, fzero, fzero, 250.0f, 200.0f, 3, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[1], fzero, fzero, fzero, 320.0f, 200.0f, 4, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[2], fzero, fzero, fzero, 200.0f, 100.0f, 6, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[3], fzero, fzero, -200.0f, 350.0f, 200.0f, 0x1B, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[4], fzero, fzero, -200.0f, 350.0f, 200.0f, 0x1C, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[5], fzero, fzero, -200.0f, 500.0f, 200.0f, 0x1D, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[6], fzero, fzero, -200.0f, 500.0f, 200.0f, 0x1E, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[7], fzero, fzero, -200.0f, 400.0f, 200.0f, 0x1F, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[8], fzero, 50.0f, -150.0f, 350.0f, 150.0f, 0x20, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+    YarareAdd(em, &w->hit[9], -450.0f, fzero, fzero, 130.0f, 450.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[10], -500.0f, fzero, fzero, 115.0f, 500.0f, 0xA, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[11], -150.0f, fzero, fzero, 150.0f, 150.0f, 0xC, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[12], fzero, fzero, fzero, 150.0f, 450.0f, 0x12, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[13], fzero, fzero, fzero, 150.0f, 300.0f, 0x13, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[14], fzero, fzero, fzero, 150.0f, 300.0f, 0x14, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[15], fzero, fzero, fzero, 150.0f, 250.0f, 0x15, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[16], fzero, fzero, fzero, 130.0f, 250.0f, 0x16, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[17], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x22, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[18], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x23, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[19], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x28, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[20], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x29, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[21], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x2E, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[22], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x2F, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[23], fzero, -500.0f, fzero, 150.0f, 600.0f, 0x34, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[24], fzero, -800.0f, fzero, 150.0f, 800.0f, 0x35, YAT_FLAG_ON);
     YarareAdd(em, &w->hit[25], fzero, fzero, fzero, 250.0f, 300.0f, 0x56, 0);
     YarareAdd(em, &w->hit[26], fzero, fzero, fzero, 250.0f, 300.0f, 0x57, 0);
     YarareAdd(em, &w->hit[27], fzero, fzero, fzero, 250.0f, 300.0f, 0x58, 0);
@@ -3875,7 +3875,7 @@ int em32AtkCk2(cEm32* em, int no, Vec* pos, Vec* oldPos)
             case 0:
                 SndCall(8, 7, &em->pos, em->id, 0, em);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
                 break;
             case 4:
                 SndCall(8, 0x1B, &em->pos, em->id, 0, em);
@@ -3886,7 +3886,7 @@ int em32AtkCk2(cEm32* em, int no, Vec* pos, Vec* oldPos)
             case 2:
                 SndCall(8, 7, &em->pos, em->id, 0, em);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
                 break;
             }
         }

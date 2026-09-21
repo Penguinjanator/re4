@@ -80,7 +80,7 @@ EmWepFunc EmWep_R1_move_tbl[13] = {
     emWep_R1_GrenadeThrow,
 };
 
-EmAtkInfo emWepAtk = { 200.0f, 8, 400, 0, 10, 0 };
+EmAtkInfo emWepAtk = { 200.0f, PL_DM_AUTO, 400, 0, 10, 0 };
 
 // Cloth chain of the whip-like weapons (setCloth): parts per link and the neighbour tables.
 u8 emWepClothP[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -941,7 +941,7 @@ void emWep_R1_Shot(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
-            if ((part->flags & 0x4000) == 0) {
+            if ((part->flags & YAT_FLAG_DMPOS) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
             }
@@ -985,7 +985,7 @@ void emWep_R1_Shot(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamageSub(part, w->pAtk, &em->pos_old, &em->pos);
-            if ((part->flags & 0x4000) == 0) {
+            if ((part->flags & YAT_FLAG_DMPOS) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
             }
@@ -1460,7 +1460,7 @@ void emWep_R1_FlashThrow(cEmWep* em)
                 dead = 0;
             }
             if (dead == 0) {
-                PlSetDamage(9, 0, 0);
+                PlSetDamage(PL_DM_AUTO_SML, 0, 0);
             }
         }
         em->setLost();
@@ -2410,9 +2410,9 @@ void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
 void cEmWep::setYarare(f32 w, f32 h, Vec* size)
 {
     if (size) {
-        YarareInit(this, size->x, size->y, size->z, w, h, 0, 1);
+        YarareInit(this, size->x, size->y, size->z, w, h, 0, YAT_FLAG_ON);
     } else {
-        YarareInit(this, 0.0f, 0.0f, 0.0f, w, h, 0, 1);
+        YarareInit(this, 0.0f, 0.0f, 0.0f, w, h, 0, YAT_FLAG_ON);
     }
     hp = 1;
 }
@@ -2421,9 +2421,9 @@ void cEmWep::setYarare(f32 w, f32 h, Vec* size)
 void cEmWep::setYarareCube(f32 x, f32 y, f32 z, Vec* size)
 {
     if (size) {
-        YarareInitCube(this, size->x, size->y, size->z, x, y, z, 0, 1);
+        YarareInitCube(this, size->x, size->y, size->z, x, y, z, 0, YAT_FLAG_ON);
     } else {
-        YarareInitCube(this, 0.0f, -400.0f, 0.0f, x, y, z, 0, 1);
+        YarareInitCube(this, 0.0f, -400.0f, 0.0f, x, y, z, 0, YAT_FLAG_ON);
     }
     hp = 1;
 }
@@ -2563,7 +2563,7 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
         }
         part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
-            part->flags |= 0x4000;
+            part->flags |= YAT_FLAG_DMPOS;
             hitEm = e;
             hitPart = part;
             hit = hitPos;
@@ -2631,7 +2631,7 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
         }
         part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
-            part->flags |= 0x4000;
+            part->flags |= YAT_FLAG_DMPOS;
             hitEm = e;
             hitPart = part;
             hit = hitPos;

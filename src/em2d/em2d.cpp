@@ -202,14 +202,14 @@ static u16 em2d_xflip_tbl[120] = {
 
 // Attack parameters per em2dAtkCk kind: 0 bite, 1 wall bite, 2 critical (head).
 static EmAtkInfo em2d_atk_info[3] = {
-    { 500.0f, 8, 500, 0, 10, 0 },
-    { 500.0f, 8, 500, 0, 10, 0 },
-    { 500.0f, 8, 9999, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 500, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 500, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 9999, 0, 10, 0 },
 };
 
 // Poison projectile (SetObj08) attack parameters.
 static EmAtkInfo em2d_poison_atk[1] = {
-    { 500.0f, 8, 500, 0, 10, 0 },
+    { 500.0f, PL_DM_AUTO, 500, 0, 10, 0 },
 };
 
 // TexRender flag written to cModel::x137 every frame (em2dCamouflageMove).
@@ -1036,21 +1036,21 @@ static void em2d_R0_Init(cEm2d* em)
     }
     em->atari.init(0.0f, 0.0f, 0.0f, 700.0f, 550.0f, 550.0f, 1000.0f, 1, 0x2000, 10);
     em->litArea.on(1);
-    YarareInit(em, 0.0f, -50.0f, 0.0f, 210.0f, 100.0f, 6, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 260.0f, 50.0f, 2, 1);
-    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 260.0f, 200.0f, 3, 1);
-    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 240.0f, 50.0f, 4, 1);
-    YarareAdd(em, &w->hit[3], -400.0f, 0.0f, 0.0f, 160.0f, 400.0f, 8, 3);
-    YarareAdd(em, &w->hit[4], -400.0f, 0.0f, 0.0f, 130.0f, 500.0f, 9, 3);
-    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 160.0f, 400.0f, 0xC, 3);
-    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 130.0f, 500.0f, 0xD, 3);
+    YarareInit(em, 0.0f, -50.0f, 0.0f, 210.0f, 100.0f, 6, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 260.0f, 50.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 260.0f, 200.0f, 3, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 240.0f, 50.0f, 4, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[3], -400.0f, 0.0f, 0.0f, 160.0f, 400.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[4], -400.0f, 0.0f, 0.0f, 130.0f, 500.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[5], 0.0f, 0.0f, 0.0f, 160.0f, 400.0f, 0xC, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[6], 0.0f, 0.0f, 0.0f, 130.0f, 500.0f, 0xD, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     one = 1;
-    YarareAdd(em, &w->hit[7], 0.0f, -500.0f, 0.0f, 170.0f, 500.0f, 0x10, 1);
-    YarareAdd(em, &w->hit[8], 0.0f, -600.0f, 0.0f, 140.0f, 600.0f, 0x11, 1);
-    YarareAdd(em, &w->hit[9], 0.0f, -500.0f, 0.0f, 170.0f, 500.0f, 0x14, 1);
-    YarareAdd(em, &w->hit[10], 0.0f, -600.0f, 0.0f, 140.0f, 600.0f, 0x15, 1);
-    YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 210.0f, 50.0f, 0x1E, 1);
-    YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 210.0f, 50.0f, 0x1F, 1);
+    YarareAdd(em, &w->hit[7], 0.0f, -500.0f, 0.0f, 170.0f, 500.0f, 0x10, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[8], 0.0f, -600.0f, 0.0f, 140.0f, 600.0f, 0x11, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[9], 0.0f, -500.0f, 0.0f, 170.0f, 500.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[10], 0.0f, -600.0f, 0.0f, 140.0f, 600.0f, 0x15, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[11], 0.0f, 0.0f, 0.0f, 210.0f, 50.0f, 0x1E, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 210.0f, 50.0f, 0x1F, YAT_FLAG_ON);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -2220,7 +2220,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
         if (t) {
             pl->m_Work0 = t - 1;
         } else {
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
             EstSet(pl, -1, 0, 0, EFF_EM2D, 0x1A, 0, ESP_CORE_KIND_NONE, pl, (void*) t);
         }
         break;

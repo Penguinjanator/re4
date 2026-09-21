@@ -2477,12 +2477,12 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     Event* evt;
     int ret = 1;
 
-    if (flags & 0x200) {
+    if (flags & EvtReadFlagPlCheckEvent) {
         while (SceCheckEventStart() != 1) {
             SceSleep(1);
         }
     }
-    if (flags & 0x80) {
+    if (flags & EvtReadFlagSceEventStartTrue) {
         pLog->mes(0, 0, "EventMgr::EvtReadExec : SceEventStart(true)");
         SceEventStart(1);
     } else {
@@ -2496,27 +2496,27 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     }
     if (EvtReadMram(nm, em, &addr, 0, 0)) {
         if (EvtMgr.SetEvt((void*) addr, (u32*) &evt)) {
-            if (flags & 2) {
+            if (flags & EvtReadFlagDiedemo) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfDiedemo));
             }
-            if (flags & 0x40) {
+            if (flags & EvtReadFlagNoFree) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
             }
-            if (flags & 0x20) {
+            if (flags & EvtReadFlagPlPosNoSet) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfPlPosNoSet));
             }
-            if (flags & 0x10) {
+            if (flags & EvtReadFlagFadeOut) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfFadeOut));
             }
-            if (flags & 0x80) {
+            if (flags & EvtReadFlagSceEventStartTrue) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfSceEventStartTrue));
             }
-            if (flags & 0x100) {
+            if (flags & EvtReadFlagSubCharNoCtrl) {
                 BitOn(evt->StatusFlag, EvtStfBit(EvtStfSubCharNoCtrl));
             }
         }
-        if (flags & 4) {
+        if (flags & EvtReadFlagFadeIn) {
             SceSleep(1);
             FadeSetW(0x80000002, 0x1E, 0, 0);
         }
@@ -2526,10 +2526,10 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
                 SceSleep(1);
             }
         }
-        if (flags & 2) {
+        if (flags & EvtReadFlagDiedemo) {
             return 1;
         }
-        if (flags & 0x40) {
+        if (flags & EvtReadFlagNoFree) {
             return 1;
         }
         EvtFree(nm);

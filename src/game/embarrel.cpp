@@ -103,9 +103,9 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         at->m_flag &= ~0x100;
     }
     if (em->type != 1) {
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, 330.0f, 1250.0f, 330.0f, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, 330.0f, 1250.0f, 330.0f, 0, YAT_FLAG_ON);
     } else {
-        YarareInit((cEmHit*) em, 0.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
+        YarareInit((cEmHit*) em, 0.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     }
     em->hp_max = em->hp = 1000;
     {
@@ -183,7 +183,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
-    YarareInit((cEmHit*) em, -350.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
+    YarareInit((cEmHit*) em, -350.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     em->hp_max = em->hp = 1000;
     {
         static const Vec size = { 4000.0f, 4000.0f, 4000.0f };
@@ -949,7 +949,7 @@ int emBarrelRollHitCk(cEmBarrel* em)
         return 0;
     }
     LifeDownSet(pPL, 600, 0);
-    PlSetDamage(8, 0, 0);
+    PlSetDamage(PL_DM_AUTO, 0, 0);
     VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     QuakeExec(0, 0, 5, 22.0f, 2);
     return 1;

@@ -773,20 +773,20 @@ void em2aYarareInit(cEm2a* em)
     switch (em->type) {
     case 0:
     default:
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 500.0f, 200.0f, 500.0f, 0, 1);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 500.0f, 200.0f, 500.0f, 0, YAT_FLAG_ON);
         break;
     case 1:
     case 2: {
         f32 h;
 
-        YarareInit(em, 0.0f, -150.0f, -100.0f, 130.0f, 300.0f, 1, 1);
-        YarareAdd(em, &w->hit[0], 0.0f, -150.0f, 100.0f, 130.0f, 300.0f, 3, 1);
+        YarareInit(em, 0.0f, -150.0f, -100.0f, 130.0f, 300.0f, 1, YAT_FLAG_ON);
+        YarareAdd(em, &w->hit[0], 0.0f, -150.0f, 100.0f, 130.0f, 300.0f, 3, YAT_FLAG_ON);
         h = fabsf(em->getPartsPtr(1)->pos.z) * 0.4f;
-        YarareAdd(em, &w->hit[1], 0.0f, -30.0f, 0.0f, 130.0f, h, 1, 5);
-        YarareAdd(em, &w->hit[2], 0.0f, -50.0f, h, 130.0f, h, 1, 5);
-        YarareAdd(em, &w->hit[3], 0.0f, -70.0f, h + h, 130.0f, h, 1, 5);
-        YarareAdd(em, &w->hit[4], 0.0f, -50.0f, h * 3.0f, 130.0f, h, 1, 5);
-        YarareAdd(em, &w->hit[5], 0.0f, -30.0f, h * 4.0f, 130.0f, h, 1, 5);
+        YarareAdd(em, &w->hit[1], 0.0f, -30.0f, 0.0f, 130.0f, h, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+        YarareAdd(em, &w->hit[2], 0.0f, -50.0f, h, 130.0f, h, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+        YarareAdd(em, &w->hit[3], 0.0f, -70.0f, h + h, 130.0f, h, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+        YarareAdd(em, &w->hit[4], 0.0f, -50.0f, h * 3.0f, 130.0f, h, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+        YarareAdd(em, &w->hit[5], 0.0f, -30.0f, h * 4.0f, 130.0f, h, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
         break;
     }
     }

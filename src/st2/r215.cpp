@@ -80,9 +80,9 @@ extern "C" void R215_Event()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         pG->Room_flg[0] |= 0x80000000;
-        EvtMgr.EvtReadExec("event/evd/r215s00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r215s00.evd", 0, EvtReadFlagNone);
         if (!(pG->Room_flg[0] & 0x80000000)) {
-            EvtMgr.EvtReadExec("event/evd/r215s01.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r215s01.evd", 0, EvtReadFlagNone);
             {
                 Vec pos = {39050.0f, 3000.0f, 200.0f};
                 Vec ang;
@@ -97,7 +97,7 @@ extern "C" void R215_Event()
                 p->setAng(pa);
             }
         } else {
-            EvtMgr.EvtReadExec("event/evd/r215s02.evd", 0, 2);
+            EvtMgr.EvtReadExec("event/evd/r215s02.evd", 0, EvtReadFlagDiedemo);
             for (;;) {
                 SceSleep(1);
             }

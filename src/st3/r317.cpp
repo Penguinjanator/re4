@@ -216,50 +216,50 @@ void R317EventS00()
         SceEventStart(0);
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             EvtMgr.EvtReadAram("event/evd/r317s08.evd", 0, 0, 0, 0);
-            EvtMgr.EvtReadExec("event/evd/r317s00.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r317s00.evd", 0, EvtReadFlagNone);
             if (pG->Room_flg[0] & 0x80000000) {
                 EvtMgr.EvtFree("event/evd/r317s07.evd");
-                EvtMgr.EvtReadExec("event/evd/r317s08.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r317s08.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }
             }
             EvtMgr.EvtFree("event/evd/r317s08.evd");
             EvtMgr.EvtReadAram("event/evd/r317s10.evd", 0, 0, 0, 0);
-            EvtMgr.EvtReadExec("event/evd/r317s07.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r317s07.evd", 0, EvtReadFlagNone);
             if (pG->Room_flg[0] & 0x40000000) {
                 EvtMgr.EvtFree("event/evd/r317s09.evd");
-                EvtMgr.EvtReadExec("event/evd/r317s10.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r317s10.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }
             }
             EvtMgr.EvtFree("event/evd/r317s10.evd");
             EvtMgr.EvtReadAram("event/evd/r317s12.evd", 0, 0, 0, 0);
-            EvtMgr.EvtReadExec("event/evd/r317s09.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r317s09.evd", 0, EvtReadFlagNone);
             if (pG->Room_flg[0] & 0x20000000) {
                 EvtMgr.EvtFree("event/evd/r317s11.evd");
-                EvtMgr.EvtReadExec("event/evd/r317s12.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r317s12.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }
             }
             EvtMgr.EvtFree("event/evd/r317s12.evd");
             EvtMgr.EvtReadAram("event/evd/r317s02.evd", 0, 0, 0, 0);
-            EvtMgr.EvtReadExec("event/evd/r317s11.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r317s11.evd", 0, EvtReadFlagNone);
             if (pG->Room_flg[0] & 0x10000000) {
                 EvtMgr.EvtFree("event/evd/r317s01.evd");
-                EvtMgr.EvtReadExec("event/evd/r317s02.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r317s02.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }
             }
             EvtMgr.EvtFree("event/evd/r317s02.evd");
             EvtMgr.EvtReadAram("event/evd/r317s04.evd", 0, 0, 0, 0);
-            EvtMgr.EvtReadExec("event/evd/r317s01.evd", 0, 0);
+            EvtMgr.EvtReadExec("event/evd/r317s01.evd", 0, EvtReadFlagNone);
             if (pG->Room_flg[0] & 0x08000000) {
                 EvtMgr.EvtFree("event/evd/r317s03.evd");
-                EvtMgr.EvtReadExec("event/evd/r317s04.evd", 0, 2);
+                EvtMgr.EvtReadExec("event/evd/r317s04.evd", 0, EvtReadFlagDiedemo);
                 for (;;) {
                     SceSleep(1);
                 }
@@ -267,26 +267,26 @@ void R317EventS00()
             EvtMgr.EvtFree("event/evd/r317s04.evd");
         }
         EvtMgr.EvtReadAram("event/evd/r317s14.evd", 0, 0, 0, 0);
-        EvtMgr.EvtReadExec("event/evd/r317s03.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r317s03.evd", 0, EvtReadFlagNone);
         RsfSet(G_ROOM_ID, 2);
         GameSave.save(pSaveData, -1);
         if (pG->Room_flg[0] & 0x04000000) {
             EvtMgr.EvtFree("event/evd/r317s13.evd");
-            EvtMgr.EvtReadExec("event/evd/r317s14.evd", 0, 2);
+            EvtMgr.EvtReadExec("event/evd/r317s14.evd", 0, EvtReadFlagDiedemo);
             for (;;) {
                 SceSleep(1);
             }
         }
         EvtMgr.EvtFree("event/evd/r317s14.evd");
-        EvtMgr.EvtReadExec("event/evd/r317s13.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r317s13.evd", 0, EvtReadFlagNone);
         if (pG->Room_flg[0] & 0x02000000) {
             EvtMgr.EvtFree("event/evd/r317s05.evd");
-            EvtMgr.EvtReadExec("event/evd/r317s06.evd", 0, 2);
+            EvtMgr.EvtReadExec("event/evd/r317s06.evd", 0, EvtReadFlagDiedemo);
             for (;;) {
                 SceSleep(1);
             }
         }
-        EvtMgr.EvtReadExec("event/evd/r317s05.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r317s05.evd", 0, EvtReadFlagNone);
         SceEventEnd(0);
         void* zero = 0;
         pPL->setPos(6970.0f, 3006.0f, -26415.0f);

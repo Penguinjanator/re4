@@ -180,46 +180,46 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         case 2:
         case 4:
         case 6:
-            YarareInitCube(this, 0.0f, 1800.0f, 0.0f, 180.0f, 400.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[0], 0.0f, 1400.0f, 0.0f, 370.0f, 400.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[1], 0.0f, 1000.0f, 0.0f, 350.0f, 500.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[2], 0.0f, 400.0f, 0.0f, 300.0f, 600.0f, depth, 1, 1);
+            YarareInitCube(this, 0.0f, 1800.0f, 0.0f, 180.0f, 400.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[0], 0.0f, 1400.0f, 0.0f, 370.0f, 400.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[1], 0.0f, 1000.0f, 0.0f, 350.0f, 500.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[2], 0.0f, 400.0f, 0.0f, 300.0f, 600.0f, depth, 1, YAT_FLAG_ON);
             if (this->type == 6) {
-                YarareAddCube(this, &EMMARK(this)->hit[3], -650.0f, 1200.0f, 0.0f, 200.0f, 1100.0f, 50.0f, 1, 1);
+                YarareAddCube(this, &EMMARK(this)->hit[3], -650.0f, 1200.0f, 0.0f, 200.0f, 1100.0f, 50.0f, 1, YAT_FLAG_ON);
             }
             break;
         case 3:
-            YarareInit(this, 0.0f, -500.0f, 0.0f, 300.0f, depth, 1, 1);
+            YarareInit(this, 0.0f, -500.0f, 0.0f, 300.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 5:
-            YarareInit(this, 0.0f, 400.0f, 0.0f, 200.0f, 0.0f, 0, 1);
+            YarareInit(this, 0.0f, 400.0f, 0.0f, 200.0f, 0.0f, 0, YAT_FLAG_ON);
             break;
         case 0xA:
-            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
+            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 0xB:
-            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
+            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 0xC:
-            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[0], -2700.0f, 800.0f, -26800.0f, 1700.0f, 4000.0f, depth, 1, 1);
+            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[0], -2700.0f, 800.0f, -26800.0f, 1700.0f, 4000.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 0xD:
-            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[0], 600.0f, 2800.0f, -26800.0f, 500.0f, 1500.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[1], 3900.0f, 2400.0f, -26800.0f, 600.0f, 1200.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[2], 1300.0f, 700.0f, -26800.0f, 500.0f, 1500.0f, depth, 1, 1);
+            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[0], 600.0f, 2800.0f, -26800.0f, 500.0f, 1500.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[1], 3900.0f, 2400.0f, -26800.0f, 600.0f, 1200.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[2], 1300.0f, 700.0f, -26800.0f, 500.0f, 1500.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 0xE:
-            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[0], 400.0f, 2200.0f, -26800.0f, 400.0f, 1500.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[1], -2300.0f, 3600.0f, -26800.0f, 2300.0f, 1800.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[2], -600.0f, 3900.0f, -26800.0f, 700.0f, 1400.0f, depth, 1, 1);
+            YarareInitCube(this, -2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[0], 400.0f, 2200.0f, -26800.0f, 400.0f, 1500.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[1], -2300.0f, 3600.0f, -26800.0f, 2300.0f, 1800.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[2], -600.0f, 3900.0f, -26800.0f, 700.0f, 1400.0f, depth, 1, YAT_FLAG_ON);
             break;
         case 0xF:
-            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[0], 1400.0f, 2200.0f, -26800.0f, 1400.0f, 1600.0f, depth, 1, 1);
-            YarareAddCube(this, &EMMARK(this)->hit[1], 2300.0f, 3600.0f, -26800.0f, 2300.0f, 1800.0f, depth, 1, 1);
+            YarareInitCube(this, 2600.0f, 0.0f, -27000.0f, 2600.0f, 6000.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[0], 1400.0f, 2200.0f, -26800.0f, 1400.0f, 1600.0f, depth, 1, YAT_FLAG_ON);
+            YarareAddCube(this, &EMMARK(this)->hit[1], 2300.0f, 3600.0f, -26800.0f, 2300.0f, 1800.0f, depth, 1, YAT_FLAG_ON);
             break;
         }
     }

@@ -323,7 +323,7 @@ static u16 em29_flip_tbl[22] = {
 
 // Bite attack (em29AtkCk): range, type, damage, ...
 static EmAtkInfo em29_atk_tbl[1] = {
-    { 350.0f, 8, 10, 1, 10, 0 },
+    { 350.0f, PL_DM_AUTO, 10, 1, 10, 0 },
 };
 
 // Per-frame update: damage check, clears the per-frame flags, the route check, the R0 table (Init /
@@ -397,7 +397,7 @@ static void em29_R0_Init(cEm29* em)
     AtariInit(&em->atari, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f, 1, 0x2800, 10);   // COMPILER-DIFF: #1
     em->atari.m_flag &= ~0x200;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
-    YarareInit(em, 0.0f, -30.0f, 0.0f, 100.0f, 60.0f, 5, 1);
+    YarareInit(em, 0.0f, -30.0f, 0.0f, 100.0f, 60.0f, 5, YAT_FLAG_ON);
     EspDataLoad((u32) ARC(6), EFF_EM29, 0);
     w->flags = zero;
     w->atkTimer = 180;
@@ -710,7 +710,7 @@ static void em29_R1_AtkRush(cEm29* em)
                 VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xA, 1);
             }
             if ((s16) pG->pl_life <= 0) {
-                PlSetDamage(0, 0, 0);
+                PlSetDamage(PL_DM_UP_FRONT, 0, 0);
             }
         }
         em->r_no_2++;

@@ -1433,7 +1433,7 @@ static void R332EventS00()
     RsfSet(G_ROOM_ID, 0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), 0);
+    EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromList(0xA9), EvtReadFlagNone);
     GamePointBossReset();
     r332_work->em[0].setEm(0xA8, -1, 1, 1, 1);
     r332_work->em[1].setEm(0xA9, -1, 1, 1, 1);
@@ -1530,7 +1530,7 @@ static void R332EventS10()
     R332BridgeOpened(1, 1);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     if ((pG->Room_flg[0] & 0x02000000) == 0) {
-        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), 0);
+        EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromList(0xA9), EvtReadFlagNone);
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     st3_setCountDownTimer(0x127D);
@@ -1560,7 +1560,7 @@ static void R332EventS10()
 static void R332EventS20()
 {
     RsfSet(G_ROOM_ID, 2);
-    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), 0x200);
+    EvtMgr.EvtReadExec("event/evd/r332s20.evd", (u8) GetEmIdFromList(0xA9), EvtReadFlagPlCheckEvent);
     SceAtSetEnable(0x84, 1);
 }
 

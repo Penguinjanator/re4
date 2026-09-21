@@ -183,7 +183,7 @@ static void em2e_R0_Init(cEm2e* em)
     at->init(0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     AtariOff(at, 0xFDFF);
     em->be_flag &= ~0x10;
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 50.0f, 1, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 50.0f, 1, YAT_FLAG_ON);
     w->flags = zero;
     w->footAng = 0.0f;
     w->nrm.y = 1.0f;

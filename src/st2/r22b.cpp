@@ -44,7 +44,7 @@ extern "C" void R22bEventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r22bs00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r22bs00.evd", 0, EvtReadFlagNone);
         SceSetChapterEnd(CHAPTER_4_1, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
     }

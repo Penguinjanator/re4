@@ -107,7 +107,7 @@ void R20cInit()
     if (obj) {
         r20c_work.p->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
         if (r20c_work.p->hit) {
-            YarareInitCube(r20c_work.p->hit, 0.0f, -100.0f, 0.0f, 100.0f, 200.0f, 100.0f, 0, 1);
+            YarareInitCube(r20c_work.p->hit, 0.0f, -100.0f, 0.0f, 100.0f, 200.0f, 100.0f, 0, YAT_FLAG_ON);
         }
     }
     R20cExecShootInit();
@@ -561,11 +561,11 @@ void R20cExecShootInit()
         if (obj) {
             r20c_work.p->kaigaHit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
             if (r20c_work.p->kaigaHit[0]) {
-                YarareInitCube(r20c_work.p->kaigaHit[0], 0.0f, 0.0f, -300.0f, 150.0f, 450.0f, 200.0f, 0, 1);
+                YarareInitCube(r20c_work.p->kaigaHit[0], 0.0f, 0.0f, -300.0f, 150.0f, 450.0f, 200.0f, 0, YAT_FLAG_ON);
             }
             r20c_work.p->kaigaHit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
             if (r20c_work.p->kaigaHit[1]) {
-                YarareInitCube(r20c_work.p->kaigaHit[1], 0.0f, -850.0f, 0.0f, 50.0f, 1700.0f, 1100.0f, 0, 1);
+                YarareInitCube(r20c_work.p->kaigaHit[1], 0.0f, -850.0f, 0.0f, 50.0f, 1700.0f, 1100.0f, 0, YAT_FLAG_ON);
             }
         }
         obj = SmdGetObjPtr(9);

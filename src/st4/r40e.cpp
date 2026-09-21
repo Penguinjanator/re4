@@ -348,7 +348,7 @@ static void R40EExecEventS00()
                 RsfSet(G_ROOM_ID, 0);
                 SceDestroyEm(GetEmIdFromList(0xDD), -1);
                 SceSleep(1);
-                EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromList(0xDD), 0);
+                EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromList(0xDD), EvtReadFlagNone);
                 FadeSetW(0, 0, 0, 0);
                 SceSleep(1);
                 SceExec(0x12, (TaskFunc) gameResult, 0, 0, SCE_PRIO_DEF_2, 0);

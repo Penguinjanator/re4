@@ -102,7 +102,7 @@ void em_reset();
 // as pool MEMs of the function itself the YarareInitCube constants are `mem/u` and issue before it.
 #define r222_setHit(no, objId)                                                                                  \
     r222_work.p->hit[no] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
-    YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1)
+    YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, YAT_FLAG_ON)
 
 // Room init (the dragon hall): Debug_flg[1] 0x20000, Status_flg[1] bit 0, no water splashes, the moving
 // objects marked script-moved. Per dragon (Room_flg bits 0/1/2 = fallen): fallen -> its collision

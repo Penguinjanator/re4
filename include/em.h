@@ -9,6 +9,19 @@
 
 // The player classes derive from cEm, so the player-only fields the pl_* units touch live in
 // cEm too (they all sit below 0xDE0).
+// YARARE_INFO::flags bits (PS2 YARARE_ATARI_FLAG): the Yarare* `flag` argument.
+enum YARARE_ATARI_FLAG {
+    YAT_FLAG_ON = 1,
+    YAT_FLAG_X_AXIS = 2,
+    YAT_FLAG_Z_AXIS = 4,
+    YAT_FLAG_CUBE = 8,
+    YAT_FLAG_HANDGUN_MUSHI = 16,
+    YAT_FLAG_THROUGH = 32,
+    YAT_FLAG_NO_MARK = 64,
+    YAT_FLAG_NO_SCR_BOMB_CK = 128,
+    YAT_FLAG_DMPOS = 16384
+};
+
 // Hit box ("yarare") / damage part info (cEm+0x33C for the player; GetWepTargetList returns
 // pointers to these per target), 0x34 bytes; extra boxes are chained through `next` (at_mod.cpp
 // YarareAdd / YarareAddCube).
@@ -18,7 +31,7 @@ struct YARARE_INFO {
     f32 width;            // 0x18
     f32 height;           // 0x1C
     f32 depth;            // 0x20  cube depth (YarareInitCube / YarareAddCube set it with flags bit3)
-    u16 flags;            // 0x24  bit3 (0x8): cube, bit5 (0x20): the hit sets cDmgInfo bit5 too (pl_wep PlWepHitCheck2)
+    u16 flags;            // 0x24  YARARE_ATARI_FLAG bits: CUBE, THROUGH (the hit sets cDmgInfo bit5 too, pl_wep PlWepHitCheck2)
     s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
     f32 rad;              // 0x28  squared distance hit point -> line start (em_sub emLineAtCk / emBoxAtCk)
     f32 dist;             // 0x2C  squared distance of the hit from the aim line (em_sub GetWepTargetList sorts on it)

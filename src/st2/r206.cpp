@@ -193,7 +193,7 @@ void R206Main()
 // Luis' death: event r206s00 (slot 0x11), r206s10 pre-loaded, chapter 3-3 ends (SceSetChapterEnd(CHAPTER_3_3)).
 void r206_die_event()
 {
-    EvtMgr.EvtReadExec("event/evd/r206s00.evd", 0x11, 0);
+    EvtMgr.EvtReadExec("event/evd/r206s00.evd", 0x11, EvtReadFlagNone);
     EvtMgr.EvtReadAram("event/evd/r206s10.evd", 0, 0, 0, 0);
     SceSetChapterEnd(CHAPTER_3_3, -1);
 }
@@ -205,7 +205,7 @@ static void r206_gouryuu_event()
     ScfFlagOn(pG, SCF_7f);
     ScfFlagOn(pG, SCF_80);
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r206s20.evd", 0x11, 0);
+    EvtMgr.EvtReadExec("event/evd/r206s20.evd", 0x11, EvtReadFlagNone);
     SceSetChapterEnd(CHAPTER_3_4, -1);
     FadeSetW(1, 0, 0, 0);
     item_chk();
@@ -574,28 +574,28 @@ static void r206_snipe()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         hit0 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos0, &r206_hitRot, 0);
         BitOn(obj0->be_flag, 0x20);
-        YarareInitCube(hit0, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
+        YarareInitCube(hit0, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj0->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         hit1 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos1, &r206_hitRot, 0);
         BitOn(obj1->be_flag, 0x20);
-        YarareInitCube(hit1, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
+        YarareInitCube(hit1, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj1->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         hit2 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos2, &r206_hitRot, 0);
         BitOn(obj2->be_flag, 0x20);
-        YarareInitCube(hit2, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, 1);
+        YarareInitCube(hit2, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj2->be_flag &= ~2;
     }
     subHit0 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &pSUB->pos, &r206_hitRot, 1);
-    YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH, r206_subCubeD, 0, 1);
+    YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH, r206_subCubeD, 0, YAT_FLAG_ON);
     subHit1 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &pSUB->pos, &r206_hitRot, 1);
-    YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H, r206_subCube2D, 0, 1);
+    YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H, r206_subCube2D, 0, YAT_FLAG_ON);
     if (DebugTrg(1) == 0) {
         SceSleep(1);
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
@@ -687,9 +687,9 @@ static void r206_snipe()
                 pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
                 *(u32*) &r206_work.p->maxFrame = (u32) MotionGetMaxFrame(&pSUB->Motion);
                 YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH * 0.85f,
-                               r206_subCubeD, 0, 1);
+                               r206_subCubeD, 0, YAT_FLAG_ON);
                 YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H * 0.7f,
-                               r206_subCube2D, 0, 1);
+                               r206_subCube2D, 0, YAT_FLAG_ON);
             } else if (r206_work.p->frame == r206_work.p->maxFrame) {
                 pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 5, 0);
             }
@@ -713,7 +713,7 @@ static void r206_snipe()
     } while (1);
 snipe_done:
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r206s10.evd", 0x11, 0);
+    EvtMgr.EvtReadExec("event/evd/r206s10.evd", 0x11, EvtReadFlagNone);
     FadeSetW(0x80000002, 0x1E, 0, 0);
     {
         Vec pos = {0.0f, 0.0f, -1740.0f};

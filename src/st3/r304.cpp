@@ -133,7 +133,7 @@ void R304EventS00()
         SeAtSetOnOff(0, 0);
         SndRoomStrStop(1);
         EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x800, ESP_CORE_KIND_NONE, 0, 0);
-        EvtMgr.EvtReadExec("event/evd/r304s00.evd", (u8) GetEmIdFromList(0x28), 0x200);
+        EvtMgr.EvtReadExec("event/evd/r304s00.evd", (u8) GetEmIdFromList(0x28), EvtReadFlagPlCheckEvent);
         FadeSetW(1, 0, 0, 0);
         SubScreenOpen(2, 1);
         SndRoomStrStart(1, 0, 1);

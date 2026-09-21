@@ -906,7 +906,7 @@ static void door5_close()
                 }                                                                                                  \
             } else {                                                                                               \
                 if (frame == 0x26) {                                                                               \
-                    FootSeCall(5, &pPL->pos, 0, 0);                                                                \
+                    FootSeCall(SE_LEON_FALL_BODY, &pPL->pos, 0, 0);                                                                \
                 }                                                                                                  \
             }                                                                                                      \
             if (frame == 0x1E) {                                                                                   \
@@ -970,7 +970,7 @@ static void r204_EventExec()
         RsfSet(G_ROOM_ID, 0);
         ScfFlagOn(pG, SCF_R204_ASHLEY_SPLIT);
         SndRoomStrVolSet(1, 200);
-        EvtMgr.EvtReadExec("event/evd/r204s00.evd", 0x14, 0x10);
+        EvtMgr.EvtReadExec("event/evd/r204s00.evd", 0x14, EvtReadFlagFadeOut);
         SndRoomStrVolReset(500);
         if (pSubEm != 0) {
             EmMgr.destroy(pSubEm);

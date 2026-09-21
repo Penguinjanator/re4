@@ -337,7 +337,7 @@ static void em27_R0_Init(cEm27* em)
     at->init(0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f, 1, 0x2800, 10);
     em->atari.m_flag &= 0xFDFF;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
-    YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);
+    YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
     EspDataLoad((u32) ARC(6), EFF_EM27, 0);
     w->Be_flg = zero;
     w->Dash_wait = Rnd() % 150 + 210;

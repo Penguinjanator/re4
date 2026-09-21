@@ -1494,7 +1494,7 @@ static void r31cEventS00()
     int i;
 
     RsfSet(G_ROOM_ID, 0);
-    EvtMgr.EvtReadExec("event/evd/r31cs00.evd", (u8) GetEmIdFromList(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs00.evd", (u8) GetEmIdFromList(0x19), EvtReadFlagNone);
     SceAtDataSet_exec(0x14, 0x12, 0, (TaskFunc) r31cEventS02, 0, 1);
     EvtMgr.EvtReadAram("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
     SetPosAngY(pPL, 3805.0f, 0.0f, 10095.0f, -2.49f);
@@ -1538,7 +1538,7 @@ static void r31cEventS01()
     }
     SceEventEnd(0);
     BitOff(pG->Room_flg[0], 0x80000000);
-    EvtMgr.EvtReadExec("event/evd/r31cs01.evd", (u8) GetEmIdFromList(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs01.evd", (u8) GetEmIdFromList(0x19), EvtReadFlagNone);
     SndBgmTblSet(0x31C, 0);
     SndRoomStrStart(1, 0, 1);
     r31cEventS01EndProc();
@@ -1576,7 +1576,7 @@ static void r31cEventS02()
     RsfSet(G_ROOM_ID, 2);
     BitOff(pG->Room_flg[0], 0x80000000);
     SndRoomStrStop(1);
-    EvtMgr.EvtReadExec("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), 0);
+    EvtMgr.EvtReadExec("event/evd/r31cs02.evd", (u8) GetEmIdFromList(0x19), EvtReadFlagNone);
     SceEventStart(1);
     if (pG->Room_flg[0] & 0x80000000) {
         ItemMgr.get(0x85, 1);
@@ -1842,17 +1842,17 @@ void cR31CPost::atari_set()
     switch (type) {
     case 1:
         hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
-        YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 1300.0f, 1, 0x41);
-        YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, 0x41);
+        YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 1300.0f, 1, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 0:
         hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
-        YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 2600.0f, 1, 0x41);
-        YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, 0x41);
+        YarareInit(hit, 0.0f, 1200.0f, 0.0f, 600.0f, 2600.0f, 1, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareAdd(hit, &box, 0.0f, 0.0f, 0.0f, 900.0f, 500.0f, 1, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 2:
         hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &zero, 0, 1);
-        YarareInitCube(hit, 0.0f, 0.0f, 0.0f, 2500.0f, 2150.0f, 700.0f, 1, 0x41);
+        YarareInitCube(hit, 0.0f, 0.0f, 0.0f, 2500.0f, 2150.0f, 700.0f, 1, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     }
     hit->setParent(obj, 0, 0);

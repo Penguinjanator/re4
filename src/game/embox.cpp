@@ -583,8 +583,8 @@ void emBoxYarareInit(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
 
-    YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
-    YarareAddCube((cEmHit*) em, &w->hit, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f * 0.5f, w->size.y * 0.8f, w->size.z * 0.5f * 0.8f, 0, 1);
+    YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+    YarareAddCube((cEmHit*) em, &w->hit, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f * 0.5f, w->size.y * 0.8f, w->size.z * 0.5f * 0.8f, 0, YAT_FLAG_ON);
 }
 
 // Sets the break / hit est id; on an already broken box (room re-entry) places the debris est 4

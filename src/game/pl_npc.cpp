@@ -162,10 +162,10 @@ void cSubChar::init()
     pAuxDm = 0;
     pAux = 0;
     AtariOn(&atari, 0x300);
-    YarareInit(this, 0.0f, -30.0f, 0.0f, 140.0f, 100.0f, 2, 1);
-    YarareAdd(this, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 150.0f, 130.0f, 3, 1);
-    YarareAdd(this, &m_Yarare[1], -20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x13, 1);
-    YarareAdd(this, &m_Yarare[2], 20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x17, 1);
+    YarareInit(this, 0.0f, -30.0f, 0.0f, 140.0f, 100.0f, 2, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 150.0f, 130.0f, 3, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[1], -20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(this, &m_Yarare[2], 20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x17, YAT_FLAG_ON);
     if (mot_ck()) {
         MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x12), 0, 0, 5, 0);
     } else {

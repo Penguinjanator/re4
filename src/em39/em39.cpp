@@ -502,20 +502,20 @@ static u16 em39_flip_tbl[120] = {
 };
 
 // Machine gun damage handed to EmAtkSetDamagePL (em39GunHitCk).
-static EmAtkInfo em39_gun_atk_info = { 300.0f, 8, 800, 0, 0xA, 0 };
+static EmAtkInfo em39_gun_atk_info = { 300.0f, PL_DM_AUTO, 800, 0, 0xA, 0 };
 
 // Melee attack table (em39AtkCk / em39AtkCk2 index it by attack number).
 static EmAtkInfo em39_atk_tbl[10] = {
-    { 300.0f, 8, 1500, 0, 0xA, 0 },
-    { 200.0f, 8, 800, 0, 0xA, 0 },
-    { 6000.0f, 8, 1000, 0, 0xA, 0 },
-    { 200.0f, 8, 1000, 0, 0xA, 0 },
-    { 200.0f, 8, 1000, 0, 0xA, 0 },
-    { 200.0f, 8, 1500, 0, 0xA, 0 },
-    { 200.0f, 8, 1500, 0, 0xA, 0 },
-    { 200.0f, 8, 500, 0, 0xA, 0 },
-    { 200.0f, 8, 500, 0, 0xA, 0 },
-    { 200.0f, 8, 500, 0, 0xA, 0 },
+    { 300.0f, PL_DM_AUTO, 1500, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 800, 0, 0xA, 0 },
+    { 6000.0f, PL_DM_AUTO, 1000, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 1000, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 1000, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 1500, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 1500, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 500, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 500, 0, 0xA, 0 },
+    { 200.0f, PL_DM_AUTO, 500, 0, 0xA, 0 },
 };
 
 // Per-frame update from the enemy manager. Order: damage, the tower proximity check, clear the
@@ -808,28 +808,28 @@ static void em39_R0_Init(cEm39* em)
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     em->atari.init(0.0f, 1000.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1000.0f, 1, 0x2000, 10);
     em->litArea.on(1);
-    YarareInit(em, 0.0f, 0.0f, 0.0f, 130.0f, 100.0f, 5, 1);
-    YarareAdd(em, &w->hit[0], 0.0f, -30.0f, 0.0f, 200.0f, 300.0f, 2, 1);
-    YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, 1);
+    YarareInit(em, 0.0f, 0.0f, 0.0f, 130.0f, 100.0f, 5, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[0], 0.0f, -30.0f, 0.0f, 200.0f, 300.0f, 2, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, YAT_FLAG_ON);
     one = 1;
-    YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, 1);
-    YarareAdd(em, &w->hit[3], -300.0f, 0.0f, 0.0f, 100.0f, 400.0f, 9, 3);
-    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 400.0f, 0xF, 3);
-    YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
-    YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
-    YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, 3);
-    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, 3);
+    YarareAdd(em, &w->hit[2], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[3], -300.0f, 0.0f, 0.0f, 100.0f, 400.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 100.0f, 400.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[5], -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[6], 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, YAT_FLAG_ON);
+    YarareAdd(em, &w->hit[7], -300.0f, 0.0f, 0.0f, 120.0f, 300.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(em, &w->hit[8], 0.0f, 0.0f, 0.0f, 120.0f, 300.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     if (em->type == 2) {
-        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x62, 3);
-        YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x63, 3);
-        YarareAddCube(em, &w->hit[11], 200.0f, -50.0f, 0.0f, 450.0f, 70.0f, 100.0f, 0x64, 3);
-        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x65, 3);
-        YarareAddCube(em, &w->hit[13], -120.0f, -30.0f, -50.0f, 250.0f, 60.0f, 100.0f, 0x66, 3);
-        YarareAddCube(em, &w->hit[14], -120.0f, -30.0f, 0.0f, 250.0f, 60.0f, 50.0f, 0x7B, 3);
-        YarareAddCube(em, &w->hit[15], -120.0f, -30.0f, 0.0f, 300.0f, 60.0f, 50.0f, 0x7C, 3);
-        YarareAddCube(em, &w->hit[16], -120.0f, -30.0f, 0.0f, 300.0f, 60.0f, 50.0f, 0x7D, 3);
-        YarareAddCube(em, &w->hit[17], -120.0f, -30.0f, 0.0f, 400.0f, 60.0f, 50.0f, 0x7E, 3);
-        YarareAddCube(em, &w->hit[18], -120.0f, -30.0f, 0.0f, 250.0f, 60.0f, 50.0f, 0x7F, 3);
+        YarareAdd(em, &w->hit[9], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x62, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[10], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x63, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[11], 200.0f, -50.0f, 0.0f, 450.0f, 70.0f, 100.0f, 0x64, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAdd(em, &w->hit[12], 0.0f, 0.0f, 0.0f, 50.0f, 60.0f, 0x65, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[13], -120.0f, -30.0f, -50.0f, 250.0f, 60.0f, 100.0f, 0x66, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[14], -120.0f, -30.0f, 0.0f, 250.0f, 60.0f, 50.0f, 0x7B, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[15], -120.0f, -30.0f, 0.0f, 300.0f, 60.0f, 50.0f, 0x7C, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[16], -120.0f, -30.0f, 0.0f, 300.0f, 60.0f, 50.0f, 0x7D, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[17], -120.0f, -30.0f, 0.0f, 400.0f, 60.0f, 50.0f, 0x7E, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+        YarareAddCube(em, &w->hit[18], -120.0f, -30.0f, 0.0f, 250.0f, 60.0f, 50.0f, 0x7F, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     }
     em->lockParts = 2;
     em->lockOfs.x = 0.0f;
@@ -4734,7 +4734,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0x2F, 0x2C);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
             }
         }
     }
@@ -4875,7 +4875,7 @@ static void em39_R1_br_T_LongAtk(cEm39* em)
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0x2F, 0x2C);
                 pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
             }
         }
     }
@@ -5247,7 +5247,7 @@ static void em39_R1_br_T_Kick(cEm39* em)
         } else {
             LifeDownSet(pPL, 500, 0);
             pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-            PlSetDamage(8, 0, 0);
+            PlSetDamage(PL_DM_AUTO, 0, 0);
         }
     }
 }
@@ -6842,7 +6842,7 @@ int em39AtkCk(cEm39* em, int no, int parts)
 
 #define EM39_ATK_KNOCK(em)                                                                          \
     pPL->ang.y = GetXZAngle(&pPL->pos, &(em)->pos);                                                \
-    PlSetDamage(8, 0, 0);
+    PlSetDamage(PL_DM_AUTO, 0, 0);
 
 // Attack `no` (1-based into em39_atk_tbl) swept from `b` to `a` against the player (hit bit 0) and
 // partner (bit 1), once per attack (Atk_ck). A player hit bleeds with the hit sound and, by attack:

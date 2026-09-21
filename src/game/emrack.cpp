@@ -635,24 +635,24 @@ void emRackYarareInit(cEmRack* em)
     switch (em->type) {
     case 0:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, 1);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[0], 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f, 0, 1);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[1], -600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, 1);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[2], 600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, 1);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[3], 0.0f, 1000.0f, 0.0f, 500.0f, 800.0f, 450.0f, 2, 1);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) em, &w->YarareTbl[0], 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) em, &w->YarareTbl[1], -600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) em, &w->YarareTbl[2], 600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) em, &w->YarareTbl[3], 0.0f, 1000.0f, 0.0f, 500.0f, 800.0f, 450.0f, 2, YAT_FLAG_ON);
         break;
     case 2:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, 0x41);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 3:
     case 5:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, 0x41);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 4:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, 0x41);
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     }
 }

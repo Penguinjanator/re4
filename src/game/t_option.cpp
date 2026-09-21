@@ -648,7 +648,7 @@ void tp_pl_PlKill()
 {
     eprintf(32, 42, 4, 0, "PRESS A TO PLAYER WILL DIE.");
     if (pT->joy[0].rep & JOY_A) {
-        PlSetDamage(0, 9999, 0);
+        PlSetDamage(PL_DM_UP_FRONT, 9999, 0);
     }
     if (pT->joy[0].rep & JOY_B) {
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);

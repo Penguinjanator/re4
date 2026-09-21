@@ -314,7 +314,7 @@ void R300Init()
         EstSet(SmdGetObjPtr(0x37), -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         r300_wk->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
-        YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, 1);
+        YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, YAT_FLAG_ON);
     } else {
         LightMgr.offKind(1);
     }
@@ -725,7 +725,7 @@ static void R300_Event()
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
     SceSleep(1);
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r300s00.evd", 0x1D, 0);
+    EvtMgr.EvtReadExec("event/evd/r300s00.evd", 0x1D, EvtReadFlagNone);
     {
         FadeColorPair col;
 

@@ -53,6 +53,97 @@ enum R226_FLAG {
     RMF_EMSET_01 = 72,
 };
 
+// Area (sce_at) numbers of room 226 (PS2 SCE_AT_NO): SceAtDataSet_exec / SceAtSetEnable `no` in r226 and objRobo.
+enum SCE_AT_NO {
+    SCEAT_EXEC_DOOR_TO_R225 = 0,
+    SCEAT_DOOR_TO_R227 = 1,
+    SCEAT_LADDER_L = 2,
+    SCEAT_EXEC_BACK = 3,
+    SCEAT_EXEC_FRONT = 4,
+    SCEAT_EXEC_ROBO_WALK_PASSAGE_START = 5,
+    SCEAT_SCRAT_DOOR = 6,
+    SCEAT_EXEC_DOOR_OPEN = 7,
+    SCEAT_LADDER_R = 8,
+    SCEAT_FIELD_INFO_L_3F = 9,
+    SCEAT_FIELD_INFO_R_3F = 10,
+    SCEAT_FIELD_INFO_R_2F = 11,
+    SCEAT_FIELD_INFO_L_2F = 12,
+    SCEAT_FIELD_INFO_CL_2F = 13,
+    SCEAT_FIELD_INFO_CR_2F = 14,
+    SCEAT_EXEC_ROBO_WALK_BRIDGE_START = 15,
+    SCEAT_EXEC_ROBO_WALK_BRIDGE_END = 16,
+    SCEAT_SCRAT_PILLAR_DOWN = 17,
+    SCEAT_EXEC_PASSAGE_SWITCH00 = 18,
+    SCEAT_EXEC_PASSAGE_SWITCH01 = 19,
+    SCEAT_SCRAT_PASSAGE00 = 20,
+    SCEAT_SCRAT_PASSAGE01 = 21,
+    SCEAT_SCRAT_BRIDGE_BREAK = 22,
+    SCEAT_EXEC_ROBO_START = 23,
+    SCEAT_EXEC_ROBO_WATCH = 24,
+    SCEAT_FLAG_EMRESTET = 25,
+    SCEAT_FLAG_BRIDGE00 = 26,
+    SCEAT_FLAG_BRIDGE01 = 27,
+    SCEAT_FLAG_BRIDGE02 = 28,
+    SCEAT_FLAG_BRIDGE03 = 29,
+    SCEAT_FLAG_BRIDGE04 = 30,
+    SCEAT_FLAG_BRIDGE05 = 31,
+    SCEAT_FLAG_BRIDGE_AVOID = 32,
+    SCEAT_FLAG_BRIDGE_SAFE = 33,
+    SCEAT_EXEC_TOWER_LOOK = 34,
+    SCEAT_SCRAT_FENCE = 35,
+    SCEAT_EXEC_CONTINUE_POINT = 36,
+    SCEAT_SAVE = 37,
+    SCEAT_ITEMPARENT_L = 38,
+    SCEAT_ITEMPARENT_R = 39
+};
+
+// Model parts of the statue (PS2 RoboPartsNoEnum): getPartsPtr, the hit box table's parts column.
+enum RoboPartsNoEnum {
+    RoboPartsNoBody = 0,
+    RoboPartsNoRShoulder = 1,
+    RoboPartsNoRUArm = 2,
+    RoboPartsNoRDArm = 3,
+    RoboPartsNoRHandSub = 4,
+    RoboPartsNoRHand = 5,
+    RoboPartsNoLShoulder = 6,
+    RoboPartsNoLUArm = 7,
+    RoboPartsNoLDArm = 8,
+    RoboPartsNoLHandSub = 9,
+    RoboPartsNoLHand = 10,
+    RoboPartsNoRULeg = 11,
+    RoboPartsNoRDLeg = 12,
+    RoboPartsNoRFoot = 13,
+    RoboPartsNoLULeg = 14,
+    RoboPartsNoLDLeg = 15,
+    RoboPartsNoLFoot = 16,
+    RoboPartsNoREye = 17,
+    RoboPartsNoLEye = 18,
+    RoboPartsNoMouth = 19,
+    RoboPartsNoSwitchBR = 20,
+    RoboPartsNoSwitchBL = 21,
+    RoboPartsNoSwitchF = 22,
+    RoboPartsNoMax = 23
+};
+
+// Rows of the hit box table / pEmHitTbl (PS2 HitNoEnum).
+enum HitNoEnum {
+    HitNoBody = 0,
+    HitNoRShoulder = 1,
+    HitNoRUArm = 2,
+    HitNoRDArm = 3,
+    HitNoLShoulder = 4,
+    HitNoLUArm = 5,
+    HitNoLDArm = 6,
+    HitNoRULeg = 7,
+    HitNoRDLeg = 8,
+    HitNoLULeg = 9,
+    HitNoLDLeg = 10,
+    HitNoMouth = 11,
+    HitNoSwitchBR = 12,
+    HitNoSwitchF = 13,
+    HitNoMax = 14
+};
+
 // Giant statue (Salazar's robot) of room 4-2: waits on the gondola, walks the passage, waits at
 // the door, then chases the player over the bridge, breaking its pieces one by one.
 class cObjRobo : public cObj {

@@ -401,7 +401,7 @@ static void R11b_Event()
     }
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
     if (!SysFlagChk(pG, SYS_START_EVT_SKIP)) {
-        EvtMgr.EvtReadExec("event/evd/r11bs00.evd", 0, 4);
+        EvtMgr.EvtReadExec("event/evd/r11bs00.evd", 0, EvtReadFlagFadeIn);
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);

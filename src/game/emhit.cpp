@@ -330,7 +330,7 @@ void emHitYarareInit(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
 
-    YarareInitCube(em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
+    YarareInitCube(em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
 }
 
 // 1 during the frame the target was hit (Status).
@@ -374,7 +374,7 @@ void cEmHit::setBeetle(void* mot0, void* mot1, void* mot2)
     w->mot1 = mot1;
     w->mot2 = mot2;
     if (mot0 && mot1 && mot2) {
-        YarareInitCube(this, 0.0f, 0.0f, 0.0f, 50.0f, 100.0f, 100.0f, 1, 1);
+        YarareInitCube(this, 0.0f, 0.0f, 0.0f, 50.0f, 100.0f, 100.0f, 1, YAT_FLAG_ON);
         hp = 1;
         r_no_0 = 1;
         r_no_1 = 3;

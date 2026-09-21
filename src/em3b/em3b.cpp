@@ -439,14 +439,14 @@ static void em3b_R0_Init(cEm3b* em)
     default:
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
-        YarareInitCube(em, 0.0f, -500.0f, 0.0f, 500.0f, 1500.0f, 3305.0f, 1, 1);
-        YarareAddCube(em, &w->hit, 0.0f, 1000.0f, -1500.0f, 850.0f, 1500.0f, 1850.0f, 1, 1);
+        YarareInitCube(em, 0.0f, -500.0f, 0.0f, 500.0f, 1500.0f, 3305.0f, 1, YAT_FLAG_ON);
+        YarareAddCube(em, &w->hit, 0.0f, 1000.0f, -1500.0f, 850.0f, 1500.0f, 1850.0f, 1, YAT_FLAG_ON);
         break;
     case 1:
     case 2:
         at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
-        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 700.0f, 1000.0f, 1300.0f, 1, 1);
+        YarareInitCube(em, 0.0f, 0.0f, 0.0f, 700.0f, 1000.0f, 1300.0f, 1, YAT_FLAG_ON);
         break;
     }
     zero = 0;
@@ -831,7 +831,7 @@ void em3bRunDownCkTruck(cEm3b* em)
                 U16SetI(pG->pl_life, zero);
                 pPL->ang.y += Muku(&pPL->pos, &p->world, pPL->ang.y, PI);
                 pPL->ang.y = LIMIT_ANGLE(em->ang.y);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
                 SndCall(1, 0x4B, &pPL->pos, 0, 0, 0);
                 break;
             }
@@ -899,7 +899,7 @@ void em3bRunDownCkCart(cEm3b* em)
                 LifeDownSet(pPL, 500, 0);
                 pPL->ang.y = em->ang.y + PI;
                 pPL->ang.y = LIMIT_ANGLE(em->ang.y);
-                PlSetDamage(8, 0, 0);
+                PlSetDamage(PL_DM_AUTO, 0, 0);
                 break;
             }
         }

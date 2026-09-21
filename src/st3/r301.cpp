@@ -611,7 +611,7 @@ static void r301_checkRockWall()
         Vec rot = {0.0f, 0.0f, 0.0f};
         cEmHit* em = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, &rot, 1);
 
-        YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 0, 0x41);
+        YarareInit(em, 0.0f, 0.0f, 0.0f, 100.0f, 100.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         SceSleep(1);
         for (;;) {
             if (em->ckStatus() == 1) {

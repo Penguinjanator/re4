@@ -251,7 +251,7 @@ static u16 em3a_flip_tbl[120] = {
 };
 
 // Gun hit damage handed to EmAtkSetDamagePL (em3aGunHitCk): range, type, damage, ...
-static EmAtkInfo em3a_atk_info = { 100.0f, 8, 600, 0, 0xA, 0 };
+static EmAtkInfo em3a_atk_info = { 100.0f, PL_DM_AUTO, 600, 0, 0xA, 0 };
 
 // Per-frame update (emMove): damage, the attack hold-off countdown (90 frames while the player is
 // down), the r_no_0 routine (0xFF after a failed init destroys the work), the rotors, parts
@@ -345,15 +345,15 @@ static void em3a_R0_Init(cEm3a* em)
     case 0:
     case 1:
     default:
-        YarareInit(em, 0.0f, 0.0f, -250.0f, 200.0f, 800.0f, 1, 5);
-        YarareAddCube(em, &w->hit[0], 0.0f, -50.0f, 0.0f, 250.0f, 100.0f, 250.0f, 5, 1);
-        YarareAddCube(em, &w->hit[1], 0.0f, -50.0f, 0.0f, 250.0f, 100.0f, 250.0f, 7, 1);
-        YarareAddCube(em, &w->hit[2], 0.0f, -170.0f, 180.0f, 50.0f, 140.0f, 250.0f, 0xA, 1);
-        YarareAddCube(em, &w->hit[3], 0.0f, -50.0f, 150.0f, 100.0f, 70.0f, 250.0f, 4, 1);
+        YarareInit(em, 0.0f, 0.0f, -250.0f, 200.0f, 800.0f, 1, YAT_FLAG_ON | YAT_FLAG_Z_AXIS);
+        YarareAddCube(em, &w->hit[0], 0.0f, -50.0f, 0.0f, 250.0f, 100.0f, 250.0f, 5, YAT_FLAG_ON);
+        YarareAddCube(em, &w->hit[1], 0.0f, -50.0f, 0.0f, 250.0f, 100.0f, 250.0f, 7, YAT_FLAG_ON);
+        YarareAddCube(em, &w->hit[2], 0.0f, -170.0f, 180.0f, 50.0f, 140.0f, 250.0f, 0xA, YAT_FLAG_ON);
+        YarareAddCube(em, &w->hit[3], 0.0f, -50.0f, 150.0f, 100.0f, 70.0f, 250.0f, 4, YAT_FLAG_ON);
         break;
     case 2:
-        YarareInit(em, 0.0f, 50.0f, 0.0f, 250.0f, 0.0f, 1, 1);
-        YarareAddCube(em, &w->hit[0], 0.0f, -50.0f, 0.0f, 150.0f, 200.0f, 150.0f, 0xB, 1);
+        YarareInit(em, 0.0f, 50.0f, 0.0f, 250.0f, 0.0f, 1, YAT_FLAG_ON);
+        YarareAddCube(em, &w->hit[0], 0.0f, -50.0f, 0.0f, 150.0f, 200.0f, 150.0f, 0xB, YAT_FLAG_ON);
         break;
     }
     if (em->type == 1) {

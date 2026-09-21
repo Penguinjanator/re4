@@ -102,15 +102,15 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (!VALID_PTR(p)) {
         return 0;
     }
-    if (p->flags & 0x4000) {
+    if (p->flags & YAT_FLAG_DMPOS) {
         *pos = p->pos;
         dir->x = 0.0f;
         dir->y = GetXZAngle(pos, &em->dmg.m_PosFrom);
         dir->z = 0.0f;
         return 1;
     }
-    if (p->flags & 6) {
-        type = (p->flags & 2) ? 0 : 2;
+    if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+        type = (p->flags & YAT_FLAG_X_AXIS) ? 0 : 2;
     } else {
         type = 1;
     }
@@ -479,16 +479,16 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
     ret = 0;
     best = 1e16f;
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & 0x10) && HandgunCk(flag)) {
+        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         bottom = p->ofs;
         top = p->ofs;
-        if (p->flags & 6) {
-            if (p->flags & 2) {
+        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flags & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -546,22 +546,22 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
     f32 r;
 
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & 0x10) && HandgunCk(flag)) {
+        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         parts = HitParts(em, p);
-        if (p->flags & 8) {
+        if (p->flags & YAT_FLAG_CUBE) {
             if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
             bottom = p->ofs;
             top = p->ofs;
-            if (p->flags & 6) {
-                if (p->flags & 2) {
+            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flags & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -613,22 +613,22 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
     f32 r;
 
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & 0x10) && HandgunCk(flag)) {
+        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         parts = HitParts(em, p);
-        if (p->flags & 8) {
+        if (p->flags & YAT_FLAG_CUBE) {
             if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
                 continue;
             }
         } else {
             bottom = p->ofs;
             top = p->ofs;
-            if (p->flags & 6) {
-                if (p->flags & 2) {
+            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flags & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -971,16 +971,16 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
     ret = 0;
     bestDot = -PI;
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & 0x10) && HandgunCk(flag)) {
+        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         bottom = p->ofs;
         top = p->ofs;
-        if (p->flags & 6) {
-            if (p->flags & 2) {
+        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flags & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -993,7 +993,7 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
         PSMTXMultVec(parts->mat, &bottom, &bottom);
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
-        if (p->flags & 8) {
+        if (p->flags & YAT_FLAG_CUBE) {
             Vec box[8] = {
                 {-500.0f, -450.0f, 0.0f},   {500.0f, -450.0f, 0.0f},   {-3000.0f, -800.0f, 15000.0f}, {3000.0f, -800.0f, 15000.0f},
                 {-500.0f, 450.0f, 0.0f},    {500.0f, 450.0f, 0.0f},    {-3000.0f, 800.0f, 15000.0f},  {3000.0f, 800.0f, 15000.0f},
@@ -1269,7 +1269,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         if (part == 0) {
             continue;
         }
-        part->flags |= 0x4000;
+        part->flags |= YAT_FLAG_DMPOS;
         if (bestPart != 0 && part->rad > bestPart->rad) {
             continue;
         }
@@ -1278,7 +1278,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         } while (++i < (int) EmMgr.getArrayNum());
     }
     if (bestPart) {
-        if (!(bestPart->flags & 0x20)) {
+        if (!(bestPart->flags & YAT_FLAG_THROUGH)) {
             nrm->x = 0.0f;
             nrm->y = 0.0f;
             nrm->z = 0.0f;
@@ -1357,8 +1357,8 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         if (part == 0) {
             continue;
         }
-        part->flags |= 0x4000;
-        if (part->flags & 0x20) {
+        part->flags |= YAT_FLAG_DMPOS;
+        if (part->flags & YAT_FLAG_THROUGH) {
             if (max <= 0x13) {
                 max++;
             }
@@ -1507,8 +1507,8 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
             continue;
         }
         part->flags &= ~0x4000;
-        if (part->flags & 6) {
-            axis = (part->flags & 2) ? 0 : 2;
+        if (part->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            axis = (part->flags & YAT_FLAG_X_AXIS) ? 0 : 2;
         } else {
             axis = 1;
         }
@@ -1531,7 +1531,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PSMTXMultVec(parts->mat, &bottom, &bottom);
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
-        if (!(part->flags & 0x80)) {
+        if (!(part->flags & YAT_FLAG_NO_SCR_BOMB_CK)) {
             mask = 0;
             if (type != 0x10) {
                 mask = 0x400000;
@@ -1608,14 +1608,14 @@ int PlBombHitCk(Vec* pos, f32 r)
         lim = 2500.0f;
     }
     if (d2 > lim * lim) {
-        PlSetDamage(9, 0, 0);
+        PlSetDamage(PL_DM_AUTO_SML, 0, 0);
         return 1;
     }
     if (EatMgr.hitCheck(pos, &parts->world, 0, 0, 0, 0x400000) != 0) {
         return 0;
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
-    PlSetDamage(8, 0, 0);
+    PlSetDamage(PL_DM_AUTO, 0, 0);
     VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
 }
@@ -1726,7 +1726,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
             *outEm = em;
         }
         ret = 2;
-        if (part->flags & 0x40) {
+        if (part->flags & YAT_FLAG_NO_MARK) {
             ret = 3;
         }
     }
@@ -1758,16 +1758,16 @@ YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
         return 0;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
-        if (p->flags & 8) {
+        if (p->flags & YAT_FLAG_CUBE) {
             continue;
         }
         bottom = p->ofs;
         top = p->ofs;
-        if (p->flags & 6) {
-            if (p->flags & 2) {
+        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flags & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -1839,7 +1839,7 @@ void EmYarareDisp(cEm* em)
     for (p = &em->hitInfo; p != 0; p = p->next) {
         // Every `p->flags` read is spelled out: the later `& 1` / `& 8` reads are fully redundant, so
         // gcse PRE deletes them and inserts the reaching-register copy (`mr r11,r0`) after the first load.
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             continue;
         }
         color = 0x60606060;
@@ -1849,17 +1849,17 @@ void EmYarareDisp(cEm* em)
         if (em->hp <= 0) {
             color = 0;
         }
-        if (!(p->flags & 1)) {
+        if (!(p->flags & YAT_FLAG_ON)) {
             color = 0;
         }
-        if (p->flags & 8) {
+        if (p->flags & YAT_FLAG_CUBE) {
             parts = HitParts(em, p);
             AtCubeDisp(parts->mat, &p->ofs, p->width, p->height, p->depth, color);
         } else {
             bottom = p->ofs;
             top = p->ofs;
-            if (p->flags & 6) {
-                if (p->flags & 2) {
+            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flags & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -2042,29 +2042,29 @@ void PlSetDamage(int type, int dmg, int flag)
         LifeDownSet2(pPLS, dmg, 0, flag);
     }
     if ((s16) pG->pl_life <= 0) {
-        if (type == 8) {
-            type = 7;
+        if (type == PL_DM_AUTO) {
+            type = PL_DM_BACK;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             U16SetI(pG->pl_life, pG->pl_life_max);
-            if (type == 6) {
-                type = 2;
+            if (type == PL_DM_FRONT) {
+                type = PL_DM_MIDDLE_FRONT;
             }
-            if (type == 7) {
-                type = 8;
+            if (type == PL_DM_BACK) {
+                type = PL_DM_AUTO;
             }
         }
     }
     if ((s16) pG->pl_life <= 1 && (DbgFlagChk(pG, DBG_NO_DEATH2))) {
         pG->pl_life = 2;
-        if (type == 6) {
-            type = 2;
+        if (type == PL_DM_FRONT) {
+            type = PL_DM_MIDDLE_FRONT;
         }
-        if (type == 7) {
-            type = 8;
+        if (type == PL_DM_BACK) {
+            type = PL_DM_AUTO;
         }
     }
-    if ((s16) pG->pl_life <= 0 && type != 6 && type != 7) {
+    if ((s16) pG->pl_life <= 0 && type != PL_DM_FRONT && type != PL_DM_BACK) {
         cPlayer* p;
 
         pG->pl_life = 0;
@@ -2230,7 +2230,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
     if (part == 0) {
         return 0;
     }
-    part->flags |= 0x4000;
+    part->flags |= YAT_FLAG_DMPOS;
     return (cEm*) part;
 }
 
@@ -2294,7 +2294,7 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
     if (part == 0) {
         return 0;
     }
-    part->flags |= 0x4000;
+    part->flags |= YAT_FLAG_DMPOS;
     return part;
 }
 

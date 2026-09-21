@@ -362,7 +362,7 @@ ToolEvt::ToolEvt()
     EvtMgr.ToolCoreEvdDel();
     sprintf(path, "%sr%x%02xs??.evd", "x:\\soft\\room\\event\\evd\\", pG->stage_no, pG->room_no);
     if (FileListInit(&DbgFileList, path, "x:\\soft\\room\\event\\evd\\") == 0) {
-        EtcFlag |= 0x80000000;
+        EtcFlag |= TefBit(TefExit);
     }
     DbgFlagOn(pG, DBG_EVENT_TOOL);
     pEvd = Debug_alloc(8000000, 1);
@@ -404,7 +404,7 @@ static void (*runTbl[3])(ToolEvt*) = {ToolEvt::MainMenu, ToolEvt::MainPreview, T
 // One frame: runTbl[r_no_0] (MainMenu / MainPreview / MainExit).
 void ToolEvt::Run()
 {
-    while (!(EtcFlag & 0x80000000)) {
+    while (!(EtcFlag & TefBit(TefExit))) {
         runTbl[r_no_0](this);
         TaskSleep(1);
     }
@@ -480,7 +480,7 @@ void ToolEvt::MainMenu(ToolEvt* t)
     int zero = 0;
 
     eprintf(0x38, 0x30, 5, 0, "MENU");
-    t->EtcFlag &= ~0x40000000;
+    t->EtcFlag &= ~TefBit(TefStop);
     sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolMain, mainMenu, sizeof(mainMenu), t->pJoy0);
     if (sel != -1) {
         t->r_no_0 = sel + 1;
@@ -569,7 +569,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             t->r_no_3 = 0;
             break;
         }
-        t->EtcFlag &= ~0x02000000;
+        t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         t->SubToolFogWkInit(t, ev);
         t->SubToolFocusWkInit(t, ev);
         t->StopTimer = 1;
@@ -591,15 +591,15 @@ void ToolEvt::MainPreview(ToolEvt* t)
             t->r_no_3 = 0;
             break;
         }
-        if (t->EtcFlag & 0x00040000) {
+        if (t->EtcFlag & TefBit(TefToolLight)) {
             t->SubToolLightMove(t);
         } else if (t->SubToolCameraMove(t) != 0) {
             break;
         }
-        if (t->EtcFlag & 0x00020000) {
+        if (t->EtcFlag & TefBit(TefToolFog)) {
             t->SubToolFogMove(t, ev);
         }
-        if (t->EtcFlag & 0x00010000) {
+        if (t->EtcFlag & TefBit(TefToolFocus)) {
             t->SubToolFocusMove(t, ev);
         }
         if (t->pJoy2->trg & 0x400) {
@@ -608,33 +608,33 @@ void ToolEvt::MainPreview(ToolEvt* t)
         if (t->pJoy2->trg & 0x800) {
             pG->debug_mode = 1;
         }
-        if (t->EtcFlag & 0x40000000) {
+        if (t->EtcFlag & TefBit(TefStop)) {
             eprintf(0x1D0, 0x10, 0x16, 0, "STOP");
         }
-        if (t->EtcFlag & 0x02000000) {
+        if (t->EtcFlag & TefBit(TefPrevSubMenu)) {
             subRunTbl[t->r_no_0_sub](t, ev);
             break;
         }
         if (t->pJoy0->trg & 0x200) {
-            t->EtcFlag |= 0x02000000;
+            t->EtcFlag |= TefBit(TefPrevSubMenu);
         }
-        if (t->EtcFlag & 0x01000000) {
+        if (t->EtcFlag & TefBit(TefCaptureReq)) {
             if (++t->CaptureTimer > 1) {
-                t->EtcFlag &= ~0x01000000;
-                t->EtcFlag |= 0x00400000;
-                if (t->EtcFlag & 0x00800000) {
+                t->EtcFlag &= ~TefBit(TefCaptureReq);
+                t->EtcFlag |= TefBit(TefCaptureRun);
+                if (t->EtcFlag & TefBit(TefCaptureFullSize)) {
                     ScreenShotStart("D:/bio4/Room/Sc_shot/r100", 0, 0);
                 } else {
                     ScreenShotStart("D:/bio4/Room/Sc_shot/r100", 0, 1);
                 }
             }
         }
-        if (t->EtcFlag & 0x00400000) {
-            if (t->EtcFlag & 0x00200000) {
+        if (t->EtcFlag & TefBit(TefCaptureRun)) {
+            if (t->EtcFlag & TefBit(TefCaptureEnd)) {
                 if (++t->CaptureTimer > 1) {
-                    t->EtcFlag &= ~0x00200000;
-                    t->EtcFlag |= 0x02000000;
-                    if (t->EtcFlag & 0x00400000) {
+                    t->EtcFlag &= ~TefBit(TefCaptureEnd);
+                    t->EtcFlag |= TefBit(TefPrevSubMenu);
+                    if (t->EtcFlag & TefBit(TefCaptureRun)) {
                         u32* fp = &t->EtcFlag;
 
                         *fp &= ~0x00400000;
@@ -643,9 +643,9 @@ void ToolEvt::MainPreview(ToolEvt* t)
                     }
                 }
             }
-            if ((ev->NowCut >= ev->MaxCut && (t->EtcFlag & 0x00400000)) || (t->pJoy0->trg & 0x200)) {
-                if (!(t->EtcFlag & 0x00200000)) {
-                    t->EtcFlag |= 0x00200000;
+            if ((ev->NowCut >= ev->MaxCut && (t->EtcFlag & TefBit(TefCaptureRun))) || (t->pJoy0->trg & 0x200)) {
+                if (!(t->EtcFlag & TefBit(TefCaptureEnd))) {
+                    t->EtcFlag |= TefBit(TefCaptureEnd);
                     t->CaptureTimer = 0;
                 }
             }
@@ -654,22 +654,22 @@ void ToolEvt::MainPreview(ToolEvt* t)
         if (t->StopTimer != 0) {
             if (--t->StopTimer <= 0) {
                 t->StopTimer = 0;
-                t->EtcFlag |= 0x40000000;
+                t->EtcFlag |= TefBit(TefStop);
                 ev->StatusFlag |= EvtStfBit(EvtStfToolExec);
             }
         }
-        if ((!(t->EtcFlag & 0x40000000) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
-            FlagBit(t->EtcFlag, 0x20000000) || FlagBit(t->EtcFlag, 0x10000000) || (t->pJoy0->trg & 0x100)) {
-            t->EtcFlag ^= 0x40000000;
-            if (t->EtcFlag & 0x20000000) {
-                t->EtcFlag |= 0x40000000;
+        if ((!(t->EtcFlag & TefBit(TefStop)) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
+            FlagBit(t->EtcFlag, TefBit(TefStopOnReq)) || FlagBit(t->EtcFlag, TefBit(TefStopOffReq)) || (t->pJoy0->trg & 0x100)) {
+            t->EtcFlag ^= TefBit(TefStop);
+            if (t->EtcFlag & TefBit(TefStopOnReq)) {
+                t->EtcFlag |= TefBit(TefStop);
             }
-            if (t->EtcFlag & 0x10000000) {
-                t->EtcFlag &= ~0x40000000;
+            if (t->EtcFlag & TefBit(TefStopOffReq)) {
+                t->EtcFlag &= ~TefBit(TefStop);
             }
             t->FFTimer = 0;
-            t->EtcFlag &= ~0x30000000;
-            if (t->EtcFlag & 0x40000000) {
+            t->EtcFlag &= ~(TefBit(TefStopOnReq) | TefBit(TefStopOffReq));
+            if (t->EtcFlag & TefBit(TefStop)) {
                 t->EvtTaskSuspend(0);
                 EventMgr* m = &EvtMgr;
                 u32* pp = &m->NowExeEvtKey;
@@ -678,7 +678,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
                 m->EvtSndStrStop(pp, 0, 0);
             } else {
                 t->EvtTaskSignal(0);
-                if (!FlagBit(t->EtcFlag, 0x00400000) && !FlagBit(t->EtcFlag, 0x01000000)) {
+                if (!FlagBit(t->EtcFlag, TefBit(TefCaptureRun)) && !FlagBit(t->EtcFlag, TefBit(TefCaptureReq))) {
                     if (EvtStatusChk(ev, 0x8000) == 0) {
                         ev->StatusFlag |= EvtStfBit(EvtStfStrTime);
                         EvtDebug.StfStrTimer = 60;
@@ -696,7 +696,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             *sp &= ~0x40000000;
         }
         DbgFlagOff(pG, DBG_NO_EST_CALL);
-        if (t->EtcFlag & 0x40000000) {
+        if (t->EtcFlag & TefBit(TefStop)) {
             t->RunStop(t, ev);
         }
         if (t->EtcFlag & 0x8000) {
@@ -714,13 +714,13 @@ void ToolEvt::MainPreview(ToolEvt* t)
         m->EvtSndStrStop(pp, 1, 1);
         m->EvtSndStrStop(pp, 0, 1);
         SceEventEnd(0);
-        if (!(t->EtcFlag & 0x00080000)) {
+        if (!(t->EtcFlag & TefBit(TefRemainEnd))) {
             t->r_no_0 = 0;
             t->r_no_1 = 0;
             t->r_no_2 = 0;
             t->r_no_3 = 0;
         } else {
-            t->EtcFlag |= 0x80000000;
+            t->EtcFlag |= TefBit(TefExit);
         }
         break;
     }
@@ -737,7 +737,7 @@ void ToolEvt::MainExit(ToolEvt* t)
     eprintf(0x38, 0x30, 5, 0, "EXIT OK?");
     switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu, sizeof(yesNoMenu), t->pJoy0)) {
     case 0:
-        t->EtcFlag |= 0x80000000;
+        t->EtcFlag |= TefBit(TefExit);
     default:
         if (!(t->pJoy0->trg & 0x200)) {
             break;
@@ -781,10 +781,10 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
     eprintf(0x38, 0x30, 5, 0, "PREVIEW MENU");
     switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolSub, subMainMenu, sizeof(subMainMenu), t->pJoy0)) {
     case 0:
-        t->EtcFlag &= ~0x02000000;
+        t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         break;
     case 1:
-        if (!(t->EtcFlag & 0x00040000)) {
+        if (!(t->EtcFlag & TefBit(TefToolLight))) {
             t->SubToolLightInit(t, 1);
         } else {
             t->SubToolLightInit(t, 0);
@@ -792,7 +792,7 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         break;
     case 2:
         ev->EspToolSetDat();
-        t->EtcFlag |= 0x00080000;
+        t->EtcFlag |= TefBit(TefRemainEnd);
         EvtDebug.FlagEtc |= 0x80000000;
         DbMenuSetExecTool("ESP TOOL");
         t->EventDel(ev);
@@ -821,11 +821,11 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         break;
     case 6:
         t->CaptureTimer = 0;
-        t->EtcFlag |= 0x11000000;
-        t->EtcFlag &= ~0x02000000;
-        t->EtcFlag &= ~0x00800000;
+        t->EtcFlag |= TefBit(TefStopOffReq) | TefBit(TefCaptureReq);
+        t->EtcFlag &= ~TefBit(TefPrevSubMenu);
+        t->EtcFlag &= ~TefBit(TefCaptureFullSize);
         if (t->pJoy0->on & 0x10) {
-            t->EtcFlag |= 0x00800000;
+            t->EtcFlag |= TefBit(TefCaptureFullSize);
         } else {
             pG->debug_mode = 0;
         }
@@ -861,14 +861,14 @@ void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
     eprintf(0x38, 0x30, 5, 0, "FOG TOOL MENU");
     switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFog, fogMenu, sizeof(fogMenu), t->pJoy0)) {
     case 0:
-        if (!(t->EtcFlag & 0x00020000)) {
+        if (!(t->EtcFlag & TefBit(TefToolFog))) {
             t->SubToolFogInit(t, 1, ev, 0);
         } else {
             t->SubToolFogInit(t, 0, 0, 0);
         }
         break;
     case 1:
-        if (!(t->EtcFlag & 0x00020000)) {
+        if (!(t->EtcFlag & TefBit(TefToolFog))) {
             t->SubToolFogInit(t, 1, ev, 1);
         } else {
             t->SubToolFogInit(t, 0, 0, 0);
@@ -924,14 +924,14 @@ void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
     eprintf(0x38, 0x30, 5, 0, "FOCUS TOOL MENU");
     switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFocus, focusMenu, sizeof(focusMenu), t->pJoy0)) {
     case 0:
-        if (!(t->EtcFlag & 0x00010000)) {
+        if (!(t->EtcFlag & TefBit(TefToolFocus))) {
             t->SubToolFocusInit(t, 1, ev, 0);
         } else {
             t->SubToolFocusInit(t, 0, 0, 0);
         }
         break;
     case 1:
-        if (!(t->EtcFlag & 0x00010000)) {
+        if (!(t->EtcFlag & TefBit(TefToolFocus))) {
             t->SubToolFocusInit(t, 1, ev, 1);
         } else {
             t->SubToolFocusInit(t, 0, 0, 0);
@@ -1049,7 +1049,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
     }
     if (pJoy0->trg & 0x1000) {
         DebugCameraFlag = 1;
-        EtcFlag |= 0x20000000;
+        EtcFlag |= TefBit(TefStopOnReq);
     }
     return 0;
 }
@@ -1069,7 +1069,7 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
         DbgFlagOff(pG, DBG_BACK_CLIP);
         TaskSleep(1);
     }
-    SubToolIn(t, sw, 13);
+    SubToolIn(t, sw, TefToolLight);
 }
 
 // Runs the embedded light editor; closes it when it quits.
@@ -1128,7 +1128,7 @@ void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
         EvtDebug.FlagEtc &= ~0x10000000;
         TaskSleep(1);
     }
-    SubToolIn(t, sw, 14);
+    SubToolIn(t, sw, TefToolFog);
 }
 
 // Runs the fog curve editor; when it quits, back to the fog menu.
@@ -1188,7 +1188,7 @@ void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
         EvtDebug.FlagEtc &= ~0x08000000;
         TaskSleep(1);
     }
-    SubToolIn(t, sw, 15);
+    SubToolIn(t, sw, TefToolFocus);
 }
 
 // Runs the focus curve editor; when it quits, back to the focus menu.
@@ -1264,7 +1264,7 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         }
         TaskSleep(1);
     }
-    SubToolIn(t, sw, 16);
+    SubToolIn(t, sw, TefToolMess);
 }
 
 // Runs the message list editor; in preview it fires the entries whose cut / frame the event
@@ -1279,7 +1279,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         return;
     }
     MessTool.p->Disp();
-    if (t->EtcFlag & 0x40000000) {
+    if (t->EtcFlag & TefBit(TefStop)) {
         // the message column (cx 3) of the cursor row shows its message
         int cx = MessTool.p->pEdit->GetCx();
         int no = MessTool.p->pEdit->GetCurrentNo();
@@ -1382,12 +1382,12 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
 void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
 {
     if (sw == 1) {
-        t->EtcFlag &= ~0x02000000;
+        t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         FlagOnVar(&t->EtcFlag, (u32) bit);
         t->pJoy0 = &Joy[2];
         t->pJoy2 = &Joy[3];
     } else {
-        t->EtcFlag |= 0x02000000;
+        t->EtcFlag |= TefBit(TefPrevSubMenu);
         FlagOffVar(&t->EtcFlag, (u32) bit);
         t->pJoy0 = &Joy[0];
         t->pJoy2 = &Joy[1];

@@ -237,7 +237,7 @@ static void r30a_execEvent10()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r30as10.evd", 0, 0x100);
+        EvtMgr.EvtReadExec("event/evd/r30as10.evd", 0, EvtReadFlagSubCharNoCtrl);
     }
 }
 
@@ -247,7 +247,7 @@ static void R30aEventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
-        EvtMgr.EvtReadExec("event/evd/r30as00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r30as00.evd", 0, EvtReadFlagNone);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         Vec pos = {12717.0f, 2000.0f, 7351.0f};
         Vec rot = {0.0f, 1.466f, 0.0f};

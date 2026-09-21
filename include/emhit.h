@@ -60,10 +60,25 @@ void EmDmBloodSet2(cEm* em, u32 est_id, u32 type, u32 mode, u16 esp_core_flg, u3
 int VehicleAdjust(Vec* pos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
 }
 
+// Player damage motion kind (PS2 PL_DM_TYPE): EmAtkInfo::type, PlSetDamage `type`. Bit0 back, +2 middle,
+// +4 down (EmAtkSetDamagePL computes it from the hit height); AUTO picks from the hit direction.
+enum PL_DM_TYPE {
+    PL_DM_UP_FRONT = 0,
+    PL_DM_UP_BACK = 1,
+    PL_DM_MIDDLE_FRONT = 2,
+    PL_DM_MIDDLE_BACK = 3,
+    PL_DM_DOWN_FRONT = 4,
+    PL_DM_DOWN_BACK = 5,
+    PL_DM_FRONT = 6,
+    PL_DM_BACK = 7,
+    PL_DM_AUTO = 8,
+    PL_DM_AUTO_SML = 9
+};
+
 // Attack parameters handed to EmAtkSetDamagePL (obj15 Obj15_atk_info_tbl: {100.0, 8, 600, 0, 10, 0}).
 struct EmAtkInfo {
     f32 range;   // 0x00
-    int type;    // 0x04
+    int type;    // 0x04  PL_DM_TYPE (PS2 ATK_INFO.dm_type)
     u16 dmg;     // 0x08
     u16 flag;     // 0x0A  bit2: LifeDownSet2 keep, bit3: pl_life = 0 (PS2 ATK_INFO.flag)
     u16 dm_cnt;     // 0x0C  (PS2 ATK_INFO.dm_cnt)

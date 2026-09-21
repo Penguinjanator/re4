@@ -624,9 +624,9 @@ static void r320_heri_event()
 {
     R320_SAVE_FLAGS |= 0x80000000;
     SceSleep(1);
-    EvtMgr.EvtReadExec("event/evd/r320s00.evd", 0, 0);
+    EvtMgr.EvtReadExec("event/evd/r320s00.evd", 0, EvtReadFlagNone);
     if (RmfFlagChk(pG, RMF_EVENT_CANCEL) == 0) {
-        EvtMgr.EvtReadExec("event/evd/r320s01.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r320s01.evd", 0, EvtReadFlagNone);
     } else {
         SndRoomStrStart(1, 0, 1);
     }

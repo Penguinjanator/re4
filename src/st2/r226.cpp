@@ -194,8 +194,8 @@ void R226Init()
 
         EmReadSearch((u8) id, 0, 0);
     }
-    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) SceElevator, &r226_elvLeave, 1);
-    SceAtSetActColor(0, 1);
+    SceAtDataSet_exec(SCEAT_EXEC_DOOR_TO_R225, SCE_LEVEL10, 0, (TaskFunc) SceElevator, &r226_elvLeave, 1);
+    SceAtSetActColor(SCEAT_EXEC_DOOR_TO_R225, 1);
     if (!(SysFlagChk(pG, SYS_CONTINUE) && RsfCheck(G_ROOM_ID, 17))) {
         if (!SysFlagChk(pG, SYS_LOAD_GAME)) {
             if (pG->room_id_prev == 0x225) {
@@ -221,11 +221,11 @@ void R226Init()
         r226_work.p->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 3);
         SmdSetTrans(0x47, 0);
         if (RsfCheck(G_ROOM_ID, 13) == 0) {
-            SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWalkPassageStart, 0, 1);
-            SceAtDataSet_exec(0x22, SCE_LEVEL10, 0, (TaskFunc) R226EventTowerLookMain, 0, 1);
-            SceAtDataSet_exec(0x24, SCE_LEVEL10, 0, (TaskFunc) R226ContinuePointSet, 0, 1);
-            SceAtSetEnable(0x11, 0);
-            SceAtSetEnable(0x16, 0);
+            SceAtDataSet_exec(SCEAT_EXEC_ROBO_WALK_PASSAGE_START, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWalkPassageStart, 0, 1);
+            SceAtDataSet_exec(SCEAT_EXEC_TOWER_LOOK, SCE_LEVEL10, 0, (TaskFunc) R226EventTowerLookMain, 0, 1);
+            SceAtDataSet_exec(SCEAT_EXEC_CONTINUE_POINT, SCE_LEVEL10, 0, (TaskFunc) R226ContinuePointSet, 0, 1);
+            SceAtSetEnable(SCEAT_SCRAT_PILLAR_DOWN, 0);
+            SceAtSetEnable(SCEAT_SCRAT_BRIDGE_BREAK, 0);
             Vec pos = {1180.0f, 1000.0f, -16560.0f};
             Vec rot = {0.0f, -1.5707964f, 0.0f};
             r226_work.p->robo = SetObjRobo(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
@@ -269,12 +269,12 @@ void R226Init()
         }
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) R226EventPassageSwitchMain, 0, 1);
+        SceAtDataSet_exec(SCEAT_EXEC_PASSAGE_SWITCH00, SCE_LEVEL10, 0, (TaskFunc) R226EventPassageSwitchMain, 0, 1);
         o = SmdGetObjPtr(0x3D);
         if (o) {
             o->setPos(o->pos.x, -1000.0f, o->pos.z);
         }
-        SceAtSetEnable(0x14, 1);
+        SceAtSetEnable(SCEAT_SCRAT_PASSAGE00, 1);
         if (r226_work.p->eat[1]) {
             r226_work.p->eat[1]->m_Flag &= ~4;
         }
@@ -283,18 +283,18 @@ void R226Init()
         if (o) {
             o->setAng(o->ang.x, o->ang.y, 1.5707964f);
         }
-        SceAtSetEnable(0x14, 0);
+        SceAtSetEnable(SCEAT_SCRAT_PASSAGE00, 0);
         if (r226_work.p->eat[1]) {
             r226_work.p->eat[1]->m_Flag |= 4;
         }
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
-        SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) R226EventPassageSwitchMain, (void*) 1, 1);
+        SceAtDataSet_exec(SCEAT_EXEC_PASSAGE_SWITCH01, SCE_LEVEL10, 0, (TaskFunc) R226EventPassageSwitchMain, (void*) 1, 1);
         o = SmdGetObjPtr(0x3E);
         if (o) {
             o->setPos(o->pos.x, -1000.0f, o->pos.z);
         }
-        SceAtSetEnable(0x15, 1);
+        SceAtSetEnable(SCEAT_SCRAT_PASSAGE01, 1);
         if (r226_work.p->eat[2]) {
             r226_work.p->eat[2]->m_Flag &= ~4;
         }
@@ -303,7 +303,7 @@ void R226Init()
         if (o) {
             o->setAng(o->ang.x, o->ang.y, -1.5707964f);
         }
-        SceAtSetEnable(0x15, 0);
+        SceAtSetEnable(SCEAT_SCRAT_PASSAGE01, 0);
         if (r226_work.p->eat[2]) {
             r226_work.p->eat[2]->m_Flag |= 4;
         }
@@ -311,10 +311,10 @@ void R226Init()
         if (o) {
             o->setPos(-1935.0f, o->pos.y, o->pos.z);
         }
-        SceAtSetEnable(0x23, 0);
+        SceAtSetEnable(SCEAT_SCRAT_FENCE, 0);
     }
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(0x17, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboStartMain, 0, 1);
+        SceAtDataSet_exec(SCEAT_EXEC_ROBO_START, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboStartMain, 0, 1);
         o = SmdGetObjPtr(0x3D);
         if (o) {
             o->setPos(o->pos.x, 1000.0f, o->pos.z);
@@ -339,7 +339,7 @@ void R226Init()
         }
     }
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
-        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWatchMain, 0, 1);
+        SceAtDataSet_exec(SCEAT_EXEC_ROBO_WATCH, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWatchMain, 0, 1);
     }
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     r226_work.p->moveTimer = 0;
@@ -401,7 +401,7 @@ static void R226EventRoboWatchMain()
         return;
     }
     RsfSet(G_ROOM_ID, 10);
-    SceAtSetEnable(0x18, 0);
+    SceAtSetEnable(SCEAT_EXEC_ROBO_WATCH, 0);
     SceEventStart(1);
     robo->SetBeginEvent(0);
     r226_work.p->str = SndStrReq(0, 0x16, 0x80000003, 0, 0, 0.0f);
@@ -444,7 +444,7 @@ static void R226EventRoboStartMain()
         return;
     }
     RsfSet(G_ROOM_ID, 9);
-    SceAtSetEnable(0x17, 0);
+    SceAtSetEnable(SCEAT_EXEC_ROBO_START, 0);
     o = SmdGetObjPtr(0x3D);
     if (o) {
         o->setPos(o->pos.x, 1000.0f, o->pos.z);
@@ -721,7 +721,7 @@ static void R226EventPassageSwitchEnd(int side)
         o = SmdGetObjPtr(0x4C);
         if (o) {
             o->setPos(-1935.0f, o->pos.y, o->pos.z);
-            SceAtSetEnable(0x23, 0);
+            SceAtSetEnable(SCEAT_SCRAT_FENCE, 0);
         }
     }
     if (side == 0) {
@@ -780,7 +780,7 @@ static void R226EventRoboWalkPassageStart()
         return;
     }
     RsfSet(G_ROOM_ID, 2);
-    SceAtSetEnable(5, 0);
+    SceAtSetEnable(SCEAT_EXEC_ROBO_WALK_PASSAGE_START, 0);
     SceEventStart(0);
     SceDestroyEm(0x10, 0x20);
     SndRoomStrStop(3);
@@ -839,7 +839,7 @@ static void R226EventRoboWalkPassageGoal()
     robo->SetEndEvent(0);
     rw->r_no_0 = 2;
     rw->step = 0;
-    SceAtSetEnable(0x11, 1);
+    SceAtSetEnable(SCEAT_SCRAT_PILLAR_DOWN, 1);
     SceEventEnd(0);
     SceExit();
 }
@@ -853,7 +853,7 @@ static void R226EventTowerLookMain()
         return;
     }
     RsfSet(G_ROOM_ID, 14);
-    SceAtSetEnable(0x22, 0);
+    SceAtSetEnable(SCEAT_EXEC_TOWER_LOOK, 0);
     getRoomEtcDoor(0xA, &door, 1);
     while (!(door->flag & 0x10000000)) {
         SceSleep(1);
@@ -920,7 +920,7 @@ static void R226EventRoboWalkBridgeStart()
         return;
     }
     RsfSet(G_ROOM_ID, 5);
-    SceAtSetEnable(0xF, 0);
+    SceAtSetEnable(SCEAT_EXEC_ROBO_WALK_BRIDGE_START, 0);
     SceEventStart(0);
     robo->SetBeginEvent(0);
     robo->setPos(-53020.0f, 1200.0f, -16731.0f);
@@ -983,7 +983,7 @@ static void R226ContinuePointSet()
 {
     if (RsfCheck(G_ROOM_ID, 7) && RsfCheck(G_ROOM_ID, 8) && RsfCheck(G_ROOM_ID, 17) == 0) {
         RsfSet(G_ROOM_ID, 17);
-        SceAtSetEnable(0x24, 0);
+        SceAtSetEnable(SCEAT_EXEC_CONTINUE_POINT, 0);
         GameSave.save(pSaveData, -1);
     }
 }
@@ -1295,7 +1295,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             RsfSet(G_ROOM_ID, 13);
             pPL->be_flag |= 0x10;
             pl->r_no_2 = 8;
-            SceAtSetEnable(0x16, 1);
+            SceAtSetEnable(SCEAT_SCRAT_BRIDGE_BREAK, 1);
             if (r226_work.p->eat[3]) {
                 r226_work.p->eat[3]->m_Flag &= ~4;
             }

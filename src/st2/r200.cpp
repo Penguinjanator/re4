@@ -209,7 +209,7 @@ static void r200_execEvent00()
     EmMgr.destroyAll();
     SceSleep(2);
     EmReadInit();
-    EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, 0x50);
+    EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, EvtReadFlagFadeOut | EvtReadFlagNoFree);
     SceEventEnd(0);
     ScfFlagOn(pG, SCF_ST2_IN);
     SceAtInitSaveItem();

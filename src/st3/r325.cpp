@@ -57,7 +57,7 @@ void R325EventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(3, 0);
-        EvtMgr.EvtReadExec("event/evd/r325s00.evd", 0, 0);
+        EvtMgr.EvtReadExec("event/evd/r325s00.evd", 0, EvtReadFlagNone);
     }
 }
 
