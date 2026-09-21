@@ -206,7 +206,7 @@ extern "C" void koyaA_destroy()
     Vec rot = {0.0f, 3.054326f, 0.0f};
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 5, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     koyaA_delete();
 }
 
@@ -217,7 +217,7 @@ extern "C" void koyaB_destroy()
     Vec rot = {0.0f, 3.3684855f, 0.0f};
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 5, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     koyaB_delete();
 }
 
@@ -259,7 +259,7 @@ extern "C" void sakuA_destroy()
     cEm* door;
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 3, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     if (getRoomEtcDoor(0xE, &door, 1)) {
         ((cEmDoor*) door)->setBreak(&r11e_sakuATarget);
     }
@@ -274,7 +274,7 @@ extern "C" void sakuB_destroy()
     cEm* door;
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 3, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     if (getRoomEtcDoor(0xF, &door, 1)) {
         ((cEmDoor*) door)->setBreak(&r11e_sakuBTarget);
     }
@@ -314,7 +314,7 @@ static void r11e_move_sasaeki1()
 
     objA = SmdGetObjPtr(0x23);
     objB = SmdGetObjPtr(0x24);
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x22), 0xC8, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x22), EFF_OBM1F, 0);
     if (EspGetEfmTplAddr(0x20, &tpl) == 0) {
         pLog->err(0, 0, "IWA init: EFM[%02x] TPL not regist.", 0x20);
         return;
@@ -366,13 +366,13 @@ static void r11e_move_sasaeki1()
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 4) == 0 && hitA->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 4);
-            EstSet(0, -1, &r11e_rockAPos, &r11e_rockARot, 1, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &r11e_rockAPos, &r11e_rockARot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             BitOff(objA->be_flag, 2);
             r11e_work->rock[0]->flag |= 1;
         }
         if (RsfCheck(G_ROOM_ID, 5) == 0 && hitB->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 5);
-            EstSet(0, -1, &r11e_rockBPos, &r11e_rockBRot, 1, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &r11e_rockBPos, &r11e_rockBRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             BitOff(objB->be_flag, 2);
             r11e_work->rock[1]->flag |= 1;
         }
@@ -383,9 +383,9 @@ static void r11e_move_sasaeki1()
 // The giant's appearance is over: Leon and Ashley are put back, the second giant is set.
 static void r11e_EmSet_exit()
 {
-    EffectEspDelete(1, 0, r11e_work->em.getPtr(), 0);
-    EffectEspgenDelete(1, 0, r11e_work->em.getPtr());
-    EffectEfmDelete(1, 0, r11e_work->em.getPtr());
+    EffectEspDelete(1, ESP_CORE_KIND_NONE, r11e_work->em.getPtr(), 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_NONE, r11e_work->em.getPtr());
+    EffectEfmDelete(1, ESP_CORE_KIND_NONE, r11e_work->em.getPtr());
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r11e_work->em.setNoSuspend(0);

@@ -277,7 +277,7 @@ static void em18_R0_Init(cEm18* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    EspDataLoad((u32) ARC(4), 0x15, 0);
+    EspDataLoad((u32) ARC(4), EFF_EM18, 0);
     Em18ClothSet(em, &w->Cloth, 0);
     w->Be_flg = 0;
     w->neckAng = 0.0f;

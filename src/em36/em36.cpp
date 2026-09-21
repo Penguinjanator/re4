@@ -207,13 +207,13 @@ static inline void em36AppearEsp(cEm36* em, Em36Work* w)
     default: {
         int zero = 0;
 
-        EstSet(em, -1, 0, 0, 0x2D, 8, 1, w->espKind[1], em, (void*) zero);
-        EstSet(em, -1, 0, 0, 0x2D, 9, 1, w->espKind[2], em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM36, 8, 1, w->espKind[1], em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM36, 9, 1, w->espKind[2], em, (void*) zero);
         break;
     }
     case 2:
     case 3:
-        EstSet(em, -1, 0, 0, 0x2D, 9, 1, w->espKind[2], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 9, 1, w->espKind[2], em, 0);
         break;
     }
 }
@@ -656,7 +656,7 @@ static void em36_R0_Init(cEm36* em)
     em36PartsSet(em, 5, 0);
     em36PartsSet(em, 6, 0);
     em->pXFlip = em36_flip;
-    EspDataLoad((u32) ARC(0x25), 0x2D, 0);
+    EspDataLoad((u32) ARC(0x25), EFF_EM36, 0);
 #line 966 "D:/Bio4/Prog/em36.cpp"
     em->p2A4 = MEM_ALLOC(0x98, 1, 0xD);
     {
@@ -1507,11 +1507,11 @@ static void plem36_Stamp(cPlayer* pl)
     case 0:
         if ((s16) pG->pl_life <= 0) {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x80), 0, 5, 1, 0);
-            EstSet(pl, -1, 0, 0, 0x2D, 0x33, 0, 0, pl, 0);
+            EstSet(pl, -1, 0, 0, EFF_EM36, 0x33, 0, ESP_CORE_KIND_NONE, pl, 0);
             PlSetDamageSe(0xD);
         } else {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7F), 0, 5, 1, 0);
-            EstSet(pl, -1, 0, 0, 0x2D, 0x34, 0, 0, pl, 0);
+            EstSet(pl, -1, 0, 0, EFF_EM36, 0x34, 0, ESP_CORE_KIND_NONE, pl, 0);
             PlSetDamageSe(0);
         }
         PlSetFace(1);
@@ -1559,11 +1559,11 @@ static void subem36_Stamp()
         if ((s16) pG->ashley_life <= 0) {
             MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x8C), 0, 5, 1, 0);
             em36VoiceSet(sub, 0xD, 2);
-            EstSet(sub, -1, 0, 0, 0x2D, 0x42, 0, 0, sub, 0);
+            EstSet(sub, -1, 0, 0, EFF_EM36, 0x42, 0, ESP_CORE_KIND_NONE, sub, 0);
         } else {
             MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x8B), 0, 5, 1, 0);
             em36VoiceSet(sub, 9, 2);
-            EstSet(sub, -1, 0, 0, 0x2D, 0x41, 0, 0, sub, 0);
+            EstSet(sub, -1, 0, 0, EFF_EM36, 0x41, 0, ESP_CORE_KIND_NONE, sub, 0);
         }
         SubCharSetFace(1);
         sub->r_no_2++;
@@ -1687,9 +1687,9 @@ static void em36_R1_CatchHit(cEm36* em)
         em36CatchEffectDelete(em, w, 1);
         em36CatchEffectDelete(em, w, 2);
         if (!(w->flags2 & 0x10)) {
-            EstSet(em, -1, 0, 0, 0x2D, 0xB, 1, w->espKind[1], em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0xB, 1, w->espKind[1], em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x2D, 0x2F, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x2F, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         SndCall(8, 0xE, &em->pos, em->id, 0, em);
         SndStop(w->sndId, 0);
@@ -1737,15 +1737,15 @@ static void em36_R1_CatchHit(cEm36* em)
             case 0:
             case 1:
             default:
-                EstSet(em, -1, 0, 0, 0x2D, 8, 1, w->espKind[1], em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM36, 8, 1, w->espKind[1], em, 0);
                 break;
             case 2:
             case 3:
                 break;
             }
         }
-        EstSet(em, -1, 0, 0, 0x2D, 9, 1, w->espKind[2], em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x2D, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 9, 1, w->espKind[2], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x2D, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
@@ -1763,15 +1763,15 @@ static void em36_R1_CatchHit(cEm36* em)
             case 0:
             case 1:
             default:
-                EstSet(em, -1, 0, 0, 0x2D, 8, 1, w->espKind[1], em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM36, 8, 1, w->espKind[1], em, 0);
                 break;
             case 2:
             case 3:
                 break;
             }
         }
-        EstSet(em, -1, 0, 0, 0x2D, 9, 1, w->espKind[2], em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0xC, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 9, 1, w->espKind[2], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0xC, 0, ESP_CORE_KIND_NONE, em, 0);
         PlGachaInit();
         em->r_no_2++;
     case 5:
@@ -1830,7 +1830,7 @@ static void plem36_CatchHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7A), 0, 5, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
-        EstSet(pl, -1, 0, 0, 0x2D, 0x31, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM36, 0x31, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 3:
         MotionMove(pl, 0);
@@ -1844,7 +1844,7 @@ static void plem36_CatchHit(cPlayer* pl)
     case 4:
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x79), 0, 5, 1, 0);
         VibSetClearType(1);
-        EstSet(pl, -1, 0, 0, 0x2D, 0x30, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM36, 0x30, 0, ESP_CORE_KIND_NONE, pl, 0);
         SndStop(pl->m_Work1, 0);
         SndCall(8, 0x3B, &pPL->getPartsPtr(4)->world, pl->pEmCatch->id, 0, pl);
         pl->r_no_2++;
@@ -1894,7 +1894,7 @@ static void em36_R1_LongCatch(cEm36* em)
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x39), ARC(0x3A), 5, 1, 0);
         w->turnAng = em->ang.y;
-        EstSet(em, -1, 0, 0, 0x2D, 7, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM36, 7, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         w->timer = 20;
         if (pG->Game_level <= 2) {
             w->timer = 5;
@@ -1956,7 +1956,7 @@ static void em36_R1_LongCatchHit(cEm36* em)
         EmCatchPLSet(em, 0.0f, 2, (int) plem36_LongCatchHit, 186.17f, 0.0f, 3266.86f);
         SndCall(8, 0x24, &pPL->getPartsPtr(3)->world, em->id, 0, pPL);
         PlGachaInit();
-        EstSet(em, -1, 0, 0, 0x2D, 0x24, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x24, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         w->timer = 25;
         em->r_no_2++;
     case 1:
@@ -2088,10 +2088,10 @@ static void plem36_SpineCatchHit(cPlayer* pl)
     case 0:
         if ((s16) pG->pl_life <= 0) {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0xA0), 0, 0, 1, 0);
-            EstSet(pl, -1, 0, 0, 0x2D, 0x45, 0, 0, pl, (void*) step);
+            EstSet(pl, -1, 0, 0, EFF_EM36, 0x45, 0, ESP_CORE_KIND_NONE, pl, (void*) step);
         } else {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x9F), 0, 0, 1, 0);
-            EstSet(pl, -1, 0, 0, 0x2D, 0x44, 0, 0, pl, (void*) step);
+            EstSet(pl, -1, 0, 0, EFF_EM36, 0x44, 0, ESP_CORE_KIND_NONE, pl, (void*) step);
         }
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
@@ -2232,13 +2232,13 @@ static void em36_R1_RegeneArm(cEm36* em)
     case 0:
         if ((w->flags2 & 3) == 3) {
             MotionSetCore(em, MOTION(em), ARC(0x54), ARC(0x55), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x11, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x11, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else if (w->flags2 & 2) {
             MotionSetCore(em, MOTION(em), ARC(0x52), ARC(0x53), 5, 0x41, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0xE, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0xE, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x52), ARC(0x53), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0xD, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0xD, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         em->r_no_2++;
     case 1:
@@ -2268,13 +2268,13 @@ static void em36_R1_RegeneArm2(cEm36* em)
     case 0:
         if ((w->flags2 & 3) == 3) {
             MotionSetCore(em, MOTION(em), ARC(0x6E), ARC(0x6F), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x3F, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x3F, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else if (w->flags2 & 2) {
             MotionSetCore(em, MOTION(em), ARC(0x6C), ARC(0x6D), 5, 0x41, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x3D, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x3D, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x6C), ARC(0x6D), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x3E, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x3E, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         em->r_no_2++;
     case 1:
@@ -2305,13 +2305,13 @@ static void em36_R1_RegeneFoot(cEm36* em)
     case 0:
         if ((w->flags2 & 0xC) == 0xC) {
             MotionSetCore(em, MOTION(em), ARC(0x72), ARC(0x73), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x40, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x40, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else if (w->flags2 & 8) {
             MotionSetCore(em, MOTION(em), ARC(0x70), ARC(0x71), 5, 0x41, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x10, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x10, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x70), ARC(0x71), 5, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0xF, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0xF, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         em->r_no_2++;
     case 1:
@@ -2635,7 +2635,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
         MotionSetCore(em, MOTION(em), ARC(0x66), 0, 0, 1, 0);
         EmCatchPLSet(em, 0.0f, 2, (int) plem36_D_CatchHit, -101.71f, 0.0f, 555.67f);
         em36VoiceSet(em, 0xB, 2);
-        EstSet(em, -1, 0, 0, 0x2D, 0x2B, 1, w->espKind[0], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x2B, 1, w->espKind[0], em, (void*) step);
         PlGachaInit();
         em->r_no_2++;
     case 1:
@@ -2658,7 +2658,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
         em36CatchEffectDelete(em, w, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x2E, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x2E, 0, ESP_CORE_KIND_NONE, em, 0);
         w->timer = 10;
         em->r_no_2++;
     case 3:
@@ -2676,7 +2676,7 @@ static void em36_R1_D_CatchHit(cEm36* em)
         PlGachaInit();
         SndStop(w->sndId, 0);
         em36CatchEffectDelete(em, w, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x2C, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x2C, 0, ESP_CORE_KIND_NONE, em, 0);
         w->timer = 10;
         em->r_no_2++;
     case 5: {
@@ -2728,7 +2728,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
     case 2:
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7D), 0, 0, 1, 0);
         pl->m_Work0 = 10;
-        EstSet(pl, -1, 0, 0, 0x2D, 0x43, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM36, 0x43, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 3:
         if (pl->m_Work0) {
@@ -2743,7 +2743,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         break;
     case 4:
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7C), 0, 0, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x2D, 0x32, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM36, 0x32, 0, ESP_CORE_KIND_NONE, pl, 0);
         VibSetClearType(1);
         SndStop(pl->m_Work1, 0);
         SndCall(8, 0x3B, &pPL->getPartsPtr(4)->world, pl->pEmCatch->id, 0, pl);
@@ -3194,7 +3194,7 @@ static inline void em36DieCore(cEm36* em, int mot0, int mot1)
     switch (step) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(mot0), ARC(mot1), 30, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x3C, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x3C, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         em36DmVoice(em);
         w->timer = 1;
         w->timer2 = 0;
@@ -3244,7 +3244,7 @@ static inline void em36DieCore(cEm36* em, int mot0, int mot1)
     case 2:
         w->timer2 = 150;
         w->timer = 0;
-        EstSet(em, -1, 0, 0, 0x2D, 0x47, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x47, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x3F, &em->pos, em->id, 0, em);
         {
             f32 one = 1.0f;
@@ -3532,8 +3532,8 @@ int em36LostParts(cEm36* em)
         }
         w->flags2 |= 0x20;
         em36PartsSet(em, 0, 1);
-        EstSet(em, -1, 0, 0, 0x2D, 1, 0, 0, em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x3B, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 1, 0, ESP_CORE_KIND_NONE, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x3B, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x18, &em->pos, em->id, 0, em);
         w->lostTimer = 0x5B;
         w->atkTimer[0] = 450;
@@ -3550,7 +3550,7 @@ int em36LostParts(cEm36* em)
         w->flags2 |= 0x10;
         em36PartsSet(em, 1, 1);
         em36CatchEffectDelete(em, w, 1);
-        EstSet(em, -1, 0, 0, 0x2D, 0x12, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x12, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x18, &em->pos, em->id, 0, em);
         w->lostTimer = 0x5B;
         w->atkTimer[1] = 450;
@@ -3559,8 +3559,8 @@ int em36LostParts(cEm36* em)
         if (!(w->flags2 & 1)) {
             w->flags2 |= 1;
             em36PartsSet(em, 2, 1);
-            EstSet(em, -1, 0, 0, 0x2D, 0x1B, 0, 0, em, 0);
-            EstSet(em, -1, 0, 0, 0x2D, 0x35, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x1B, 0, ESP_CORE_KIND_NONE, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x35, 0, ESP_CORE_KIND_NONE, em, 0);
             SndCall(8, 0x18, &em->pos, em->id, 0, em);
             w->lostTimer = 0x5B;
             w->atkTimer[2] = 450;
@@ -3573,8 +3573,8 @@ int em36LostParts(cEm36* em)
         }
         w->flags2 |= 2;
         em36PartsSet(em, 3, 1);
-        EstSet(em, -1, 0, 0, 0x2D, 0x1C, 0, 0, em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x36, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x1C, 0, ESP_CORE_KIND_NONE, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x36, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x18, &em->pos, em->id, 0, em);
         w->lostTimer = 0x5B;
         w->atkTimer[3] = 450;
@@ -3585,8 +3585,8 @@ int em36LostParts(cEm36* em)
         }
         w->flags2 |= 4;
         em36PartsSet(em, 4, 1);
-        EstSet(em, -1, 0, 0, 0x2D, 0x1D, 0, 0, em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x37, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x1D, 0, ESP_CORE_KIND_NONE, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x37, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x18, &em->pos, em->id, 0, em);
         w->lostTimer = 0x5B;
         w->atkTimer[4] = 450;
@@ -3597,8 +3597,8 @@ int em36LostParts(cEm36* em)
         }
         w->flags2 |= 8;
         em36PartsSet(em, 5, 1);
-        EstSet(em, -1, 0, 0, 0x2D, 0x1E, 0, 0, em, 0);
-        EstSet(em, -1, 0, 0, 0x2D, 0x38, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x1E, 0, ESP_CORE_KIND_NONE, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM36, 0x38, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0x18, &em->pos, em->id, 0, em);
         w->lostTimer = 0x5B;
         w->atkTimer[5] = 450;
@@ -3636,7 +3636,7 @@ void em36RegeneCk2(cEm36* em)
     }
     if (w->flags2 & 0x10) {
         if (w->atkTimer[1] == 9) {
-            EstSet(em, -1, 0, 0, 0x2D, 0x39, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x39, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (w->atkTimer[1] == 0) {
             w->flags2 &= ~0x10;
@@ -3647,7 +3647,7 @@ void em36RegeneCk2(cEm36* em)
             case 0:
             case 1:
             default:
-                EstSet(em, -1, 0, 0, 0x2D, 8, 1, w->espKind[1], em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM36, 8, 1, w->espKind[1], em, 0);
                 break;
             case 2:
             case 3:
@@ -3663,7 +3663,7 @@ void em36RegeneCk2(cEm36* em)
             p->scale.y = p->scale.y * 0.92f + 0.004f;
         }
         if (w->atkTimer[0] == 9) {
-            EstSet(em, -1, 0, 0, 0x2D, 0x3A, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x3A, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (w->atkTimer[0] == 0) {
             w->flags2 &= ~0x20;
@@ -4252,7 +4252,7 @@ void em36SetHitMark(cEm36* em, int big)
     if (big) {
         kind = 3;
     }
-    seq = EspGetEstAddr(0x2D, kind, 1);
+    seq = EspGetEstAddr(EFF_EM36, kind, 1);
     if (seq) {
         for (i = 0; i < seq->num; i++) {
             EspGenWork* r = &seq->rec[i];
@@ -4264,7 +4264,7 @@ void em36SetHitMark(cEm36* em, int big)
             }
         }
     }
-    EstSet(em, -1, 0, 0, 0x2D, kind, 1, w->espKind[3], em, 0);
+    EstSet(em, -1, 0, 0, EFF_EM36, kind, 1, w->espKind[3], em, 0);
 }
 
 // The doors in front are opened.
@@ -4633,14 +4633,14 @@ void em36RegeneTenMove(cEm36* em)
                 continue;
             }
             if (w->atkTimer[0] <= 300) {
-                EstSet(em, -1, 0, 0, 0x2D, 0x21, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM36, 0x21, 0, ESP_CORE_KIND_NONE, em, 0);
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x23, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x23, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x2A, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x2A, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[0] != 300) {
@@ -4648,7 +4648,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x22, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x22, 0, ESP_CORE_KIND_NONE, em, 0);
             continue;
         case 1:
             if (!(w->flags2 & 0x10)) {
@@ -4657,11 +4657,11 @@ void em36RegeneTenMove(cEm36* em)
             if (w->atkTimer[1] <= 300) {
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x20, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x20, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x29, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x29, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[1] != 300) {
@@ -4669,7 +4669,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x1F, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x1F, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 2:
             if (!(w->flags2 & 1)) {
@@ -4678,11 +4678,11 @@ void em36RegeneTenMove(cEm36* em)
             if (w->atkTimer[2] <= 300) {
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x14, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x14, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x25, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x25, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[2] != 300) {
@@ -4690,7 +4690,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x13, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x13, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 3:
             if (!(w->flags2 & 2)) {
@@ -4699,11 +4699,11 @@ void em36RegeneTenMove(cEm36* em)
             if (w->atkTimer[3] <= 300) {
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x16, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x16, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x26, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x26, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[3] != 300) {
@@ -4711,7 +4711,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x15, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x15, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 4:
             if (!(w->flags2 & 4)) {
@@ -4720,11 +4720,11 @@ void em36RegeneTenMove(cEm36* em)
             if (w->atkTimer[4] <= 300) {
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x18, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x18, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x27, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x27, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[4] != 300) {
@@ -4732,7 +4732,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x17, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x17, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 5:
             if (!(w->flags2 & 8)) {
@@ -4741,11 +4741,11 @@ void em36RegeneTenMove(cEm36* em)
             if (w->atkTimer[5] <= 300) {
                 any = 1;
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x1A, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x1A, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             } else {
                 if ((u8) (w->frameCnt % 3) == 0) {
-                    EstSet(em, -1, 0, 0, 0x2D, 0x28, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, EFF_EM36, 0x28, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             if (w->atkTimer[5] != 300) {
@@ -4753,7 +4753,7 @@ void em36RegeneTenMove(cEm36* em)
             }
             SndCall(8, 0x13, &em->pos, em->id, 0, em);
             w->tenSeTimer = 29;
-            EstSet(em, -1, 0, 0, 0x2D, 0x19, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM36, 0x19, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         default:
             continue;
@@ -4830,7 +4830,7 @@ void em36BloodSet(cEm36* em)
         em36SetHitMark(em, 0);
         if ((Rnd() & 3) == 0) {
             if (EmGetDmPos(em, &pos, &dir)) {
-                EstSet(0, -1, &pos, 0, 0x2D, 6, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_EM36, 6, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         break;

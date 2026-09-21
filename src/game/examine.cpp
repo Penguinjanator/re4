@@ -695,8 +695,8 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
                 return;
             }
         }
-        if (EspGetEstAddr(0xD1, (u8) no, 1)) {
-            EstSet(m_pModel, -1, 0, 0, 0xD1, (u8) no, 0xA001, 0x3B, m_pModel, 0);
+        if (EspGetEstAddr(EFF_ITM, (u8) no, 1)) {
+            EstSet(m_pModel, -1, 0, 0, EFF_ITM, (u8) no, 0xA001, ESP_CORE_KIND_ITEM, m_pModel, 0);
         }
     }
 }
@@ -880,9 +880,9 @@ void ItemExamine::quit()
     int i;
 
     m_pModel->ot_type = m_ot_type_bak;
-    EffectEspDelete(0xA001, 0x3B, m_pModel, 0);
-    EffectEspgenDelete(0xA001, 0x3B, m_pModel);
-    EffectEfmDelete(0xA001, 0x3B, m_pModel);
+    EffectEspDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel, 0);
+    EffectEspgenDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel);
+    EffectEfmDelete(0xA001, ESP_CORE_KIND_ITEM, m_pModel);
     m_pIdSys->kill(0xFF, 0x26);
     m_pIdSys->kill(0xFF, 0x27);
     for (i = 0; i <= 2; i++) {

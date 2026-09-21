@@ -4,6 +4,7 @@
 #include "types.h"
 #include "vec.h"
 #include "model.h"
+#include "esp.h"
 
 // game/est.cpp: effect set table (est) helpers. EstSet itself is declared in esp.h.
 extern "C" {
@@ -11,7 +12,7 @@ void AreaSstSet(int id);
 int GetSstDispFlag(u32 id);
 void SetSstDispFlag(u32 id, int on);
 void SetSstAddAreaFlag(u32 flag);
-void SstSet(u32 owner, int type, int no, int lo, int hi, int move);
+void SstSet(u32 owner, int type, ESP_CORE_KIND kind, int lo, int hi, int move);
 void EffectEspDelete(int a, int b, void* c, cModel* model);
 void EffectEspgenDelete(int Core_flg, int Core_kind, void* c);
 void EffectEfmDelete(int Core_flg, int Core_kind, void* c);

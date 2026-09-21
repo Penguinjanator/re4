@@ -477,7 +477,7 @@ void gameRoomInit()
     SmdSetup(-1);
     ShdInit((ShdHeader*) GetDataExt(pG->pRoom, "SHD", 0));
     if ((p = GetDataExt(pG->pRoom, "EFF", 0)) != 0) {
-        EspDataLoad((u32) p, 1, 0);
+        EspDataLoad((u32) p, EFF_ROOM, 0);
     }
     if ((p = GetDataExt(pG->pRoom, "EAR", 0)) != 0) {
         EffAreaDataLoad((SstArea*) p);
@@ -527,7 +527,7 @@ void gameRoomInit()
         LightMgr.setItemLight();
     }
     DbMenuRoomInit();
-    SstSet(1, 0xFFFF, 1, 0, 0x2F, 1);
+    SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 1);
     cMes.roomInit();
     SndRoomBgmLoad();
     DbWork = new cDbWork;

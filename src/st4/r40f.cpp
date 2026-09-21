@@ -60,10 +60,10 @@ void R40fInit()
     }
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) R40fDoorSwitchMain, 0, 1);
     if (RsfCheck(G_ROOM_ID, 5)) {
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, model);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, 0, model);
         R40fDoorOpened(1);
     } else {
-        EstSet(0, -1, 0, 0, 1, 1, 0x2001, 2, 0, model);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x2001, ESP_CORE_KIND_ROOM00, 0, model);
         R40fDoorOpened(0);
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
@@ -127,10 +127,10 @@ static void R40fDoorEvent00Main()
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
-        EffectEspDelete(0x2001, 2, 0, 0);
-        EffectEspgenDelete(0x2001, 2, 0);
-        EffectEfmDelete(0x2001, 2, 0);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, 0);
+        EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
         SceMesCamSndSet(9, 8, 5, 4);
         SceSetEventCancel(0, 0, 0, -1, 1);
         R40fDoorEvent00End();
@@ -142,10 +142,10 @@ static void R40fDoorEvent00Main()
 static void R40fDoorEvent00End()
 {
     R40fDoorOpened(1);
-    EffectEspDelete(0x2001, 2, 0, 0);
-    EffectEspgenDelete(0x2001, 2, 0);
-    EffectEfmDelete(0x2001, 2, 0);
-    EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
     r40f_work->em.setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -168,10 +168,10 @@ static void R40fDoorSwitchMain()
             SceEventEnd(0);
             SceExit();
         } else {
-            EffectEspDelete(0x2001, 2, 0, 0);
-            EffectEspgenDelete(0x2001, 2, 0);
-            EffectEfmDelete(0x2001, 2, 0);
-            EstSet(0, -1, 0, 0, 1, 1, 0x2001, 2, 0, model);
+            EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x2001, ESP_CORE_KIND_ROOM00, 0, model);
             SndCall(6, 7, 0, 0, 0, 0);
             SceMesCamSndSet(0xA, 8, 6, 4);
             r40f_work->bomb0.destroy();
@@ -245,10 +245,10 @@ static void R40fDoorSwitchEnd()
         r40f_work->em4.setNoSuspend(0);
     }
     R40fDoorOpened(0);
-    EffectEspDelete(0x2001, 2, 0, 0);
-    EffectEspgenDelete(0x2001, 2, 0);
-    EffectEfmDelete(0x2001, 2, 0);
-    EstSet(0, -1, 0, 0, 1, 1, 0x2001, 2, 0, model);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x2001, ESP_CORE_KIND_ROOM00, 0, model);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();

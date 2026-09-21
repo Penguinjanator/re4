@@ -293,7 +293,7 @@ void cEm25::move()
                 w->estTimer--;
             } else {
                 w->estTimer = 2;
-                EstSet(this, -1, 0, 0, 0x1D, 0xB, 0, 0, this, 0);
+                EstSet(this, -1, 0, 0, EFF_EM25, 0xB, 0, ESP_CORE_KIND_NONE, this, 0);
             }
         }
     }
@@ -322,7 +322,7 @@ static void em25_R0_Init(cEm25* em)
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     zero = 0;
     em->pXFlip = em25_flip_tbl;
-    EspDataLoad((u32) ARC(7), 0x1D, 0);
+    EspDataLoad((u32) ARC(7), EFF_EM25, 0);
     {
         static const Vec ofs = {0.0f, 0.0f, 0.0f};
         static const Vec size = {2000.0f, 2000.0f, 2000.0f};
@@ -368,7 +368,7 @@ static void em25_R0_Init(cEm25* em)
         em->r_no_1 = 2;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet(em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM25, 2, 0, w->EffKindId, em, 0);
         em25SetParasite(em);
         break;
     }
@@ -456,7 +456,7 @@ static void em25_R1_Birth(cEm25* em)
         em->clearStatus(EM_STATUS_LOCKOFF);
         w->Compress_y = 1.0f;
         w->Alive_timer = 900;
-        EstSet(em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM25, 2, 0, w->EffKindId, em, 0);
         em25SetParasite(em);
         em->r_no_2++;
     case 1:
@@ -659,7 +659,7 @@ static void em25_R1_Bite(cEm25* em)
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x27), 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0x1D, 3, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM25, 3, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, -150.0f, 0.0f, 628.0f);
         PlGachaInit();
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
@@ -784,7 +784,7 @@ static void em25_R1_P_Appear(cEm25* em)
         MotionSetCore(em, &em->Motion, ARC(0xC), ARC(0xD), 0, 1, 0);
         w->Se_breath_wait = 0;
         em->setStatus(EM_STATUS_ACTIVE);
-        EstSet(em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM25, 2, 0, w->EffKindId, em, (void*) fe);
         w->Atk_enable = 0;
         w->Compress_y = 1.0f;
         em->invisible_factor = 0.0f;
@@ -907,7 +907,7 @@ static void em25_R1_P_Atk(cEm25* em)
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x13), ARC(0x14), 5, 1, 0);
-        EstSet(em, -1, 0, 0, 0x1D, 0xC, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM25, 0xC, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
@@ -1180,7 +1180,7 @@ static void em25_R1_Die_Normal(cEm25* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x20), 0, 5, 1, 0);
         em25ClearParasite(em);
-        EstSet(em, -1, 0, 0, 0x1D, 4, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM25, 4, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         EffectEspDelete(0, w->EffKindId, em, 0);
         EffectEspgenDelete(0, w->EffKindId, em);
         EffectEfmDelete(0, w->EffKindId, em);
@@ -1223,7 +1223,7 @@ static void em25_R1_Die_Big(cEm25* em)
         MotionSetCore(em, &em->Motion, ARC(0x22), ARC(0x23), 5, 1, 0);
         em->clearStatus(EM_STATUS_ACTIVE);
         em25ClearParasite(em);
-        EstSet(em, -1, 0, 0, 0x1D, 4, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM25, 4, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
         EffectEspDelete(0, w->EffKindId, em, 0);
         EffectEspgenDelete(0, w->EffKindId, em);
@@ -1703,7 +1703,7 @@ void em25BloodSet(cEm25* em)
         EmDmBloodSet2(em, 0x1D, 0xD, 0, 0, 0);
         if ((Rnd() & 3) == 0) {
             if (EmGetDmPos(em, &pos, &dir)) {
-                EstSet(0, -1, &pos, 0, 0x1D, 0xE, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_EM25, 0xE, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         break;
@@ -1755,12 +1755,12 @@ void em25PlHeadLost()
 
     if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
-        EstSet(pPL, -1, 0, 0, 0x1D, 0xA, 0, 0, pPL, 0);
+        EstSet(pPL, -1, 0, 0, EFF_EM25, 0xA, 0, ESP_CORE_KIND_NONE, pPL, 0);
         return;
     }
     zero = 0;
     SndCall(1, 0x3E, &pPL->pos, 0, 0, pPL);
-    EstSet(pPL, -1, 0, 0, 0x10, 0x45, 0, 0, pPL, (void*) zero);
+    EstSet(pPL, -1, 0, 0, EFF_EM10, 0x45, 0, ESP_CORE_KIND_NONE, pPL, (void*) zero);
     pPL->setHead(0);
     p = pPL->getPartsPtr(3);
     ofs.x = 0.0f;
@@ -1776,7 +1776,7 @@ void em25PlHeadLost()
         obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, (int) zero, -1);
     }
-    EstSet(obj, -1, 0, 0, 0x10, 0x46, 0, 0, obj, (void*) zero);
+    EstSet(obj, -1, 0, 0, EFF_EM10, 0x46, 0, ESP_CORE_KIND_NONE, obj, (void*) zero);
 }
 
 // Spits the poison projectile (SetObj08 from the head part 0) aimed at the player's or the partner's
@@ -1828,7 +1828,7 @@ void em25SetPoison(cEm25* em)
     rot.x = 0.0f;
     rot.y = ang;
     rot.z = 0.0f;
-    EstSet(0, -1, &p->world, &rot, 0x1D, 6, 0, 0, 0, 0);
+    EstSet(0, -1, &p->world, &rot, EFF_EM25, 6, 0, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // 1 when the attached parasite may attack now (Atk_enable, set by P_Wait after its wait).

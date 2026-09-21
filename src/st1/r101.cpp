@@ -177,7 +177,7 @@ void R101Init()
         rot.z = 0.0f;
         PSet(r101_work->obj00, SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot));
         r101_work->obj00->setNoSuspend(1);
-        EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x801, ESP_CORE_KIND_NONE, 0, 0);
         pos.y += 1500.0f;
         SndCall(6, 0x58, &pos, 0, 0, 0);
     }
@@ -303,7 +303,7 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
     Vec zeroVec = {0.0f, 0.0f, 0.0f};
     obj = SetObj01(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), from, &zeroVec, &dir, spd, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 1, 0x12, 2, 1, 0x11, 0, 0x14, (int) zero, (int) zero);
-    EstSet(obj, -1, 0, 0, 1, 0x10, 0, 0, obj, zero);
+    EstSet(obj, -1, 0, 0, EFF_ROOM, 0x10, 0, ESP_CORE_KIND_NONE, obj, zero);
 }
 
 // Starts the bell event (s30): the fight is over.
@@ -476,7 +476,7 @@ static void r101_Event30()
             asm("" : "=m"(unused));
             pLog->err(0, 0, "r101_Event30 exec error");
         } else {
-            EspDataRelease(0x10, 0, 1);
+            EspDataRelease(EFF_EM10, 0, 1);
             InitModule(m);
             r101_work->evt30->setCommand(CMND_MRAM_LOAD, 0, 1);
             SceExec(0x12, (TaskFunc) r101_Event30_TitleCall, 0, 2, SCE_PRIO_DEF_2, 0);

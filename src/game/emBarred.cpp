@@ -303,7 +303,7 @@ void emBarredDmCk(cEmBarred* em)
         v.x = 0.0f;
         v.z = 0.0f;
         parts = em->getPartsPtr(1);
-        EstSet(0, -1, &em->pos, &v, w->Eff_id, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &v, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
         part->flags &= ~1;
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
@@ -735,7 +735,7 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         default:
             if (w->Eff_id != 0xFF) {
-                EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             }
             break;
         }
@@ -1063,7 +1063,7 @@ void cEmBarred::setBreak(Vec* target)
         v.y = LIMIT_ANGLE(ang);
         v.x = 0.0f;
         v.z = 0.0f;
-        EstSet(0, -1, &pos, &v, w->Eff_id, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &v, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
         atari.throughOn();
         hp = 0;
         r_no_0 = 1;

@@ -227,7 +227,7 @@ void R31bInit()
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) R31bExecSwitchMain, (void*) 0, 1);
         SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) R31bExecSwitchMain, (void*) 1, 1);
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R31bExecDoorMain, (void*) 0, 1);
-        EstSet(0, -1, 0, 0, 1, 6, 1, 4, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM02, 0, 0);
     } else {
         R31bLight(3);
         R31bSmdTransOff(0);
@@ -252,7 +252,7 @@ void R31bInit()
             r31b_work.p->koushi[no]->hp = hp;
         }
         SceAtSetEnable(0x18, 0);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 5, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     } else {
         R31bLight(5);
         R31bSmdTransOff(1);
@@ -286,8 +286,8 @@ void R31bInit()
         for (i = 0; i < 6; i++) {
             R31bKanaamiRoom03Trans(i, 1);
         }
-        EstSet(0, -1, 0, 0, 1, 8, 1, 6, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 9, 1, 7, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_ROOM04, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM05, 0, 0);
     } else {
         R31bSmdTransOff(2);
         R31bLightAllOn();
@@ -361,7 +361,7 @@ void R31bInit()
         SceAtDataSet_exec(0x25, 0x12, 0, (TaskFunc) R31bStartCameraMain, 0, 1);
     }
     r31b_work.p->switchCount = 0;
-    EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0x2001, ESP_CORE_KIND_ROOM01, zero, zero);
     U32Set(r31b_work.p->str, 0);
     Vec pos;
     Vec rot;
@@ -465,7 +465,7 @@ static void R31bExecEventS00()
             // The boss pointer the life meter shows: stored at Cckpt+0.
             *(cEm**) &Cckpt = em;
         }
-        EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
     }
 }
 
@@ -690,7 +690,7 @@ void R31bExecShutterOpenMainSub(int no, int flagNo, u32 objId, int satNo, u32 la
 
             rot.y += 3.1415927f;
             rot.y = LIMIT_ANGLE(rot.y);
-            EstSet(0, -1, &obj->pos, &rot, 1, 2, 1, 2, 0, 0);
+            EstSet(0, -1, &obj->pos, &rot, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         r31b_work.p->snd = 0;
         if (r31b_work.p->koushi[koushiNo]) {
@@ -920,7 +920,7 @@ void R31bExecDoorMainSub(int no, int flagOpen, int flagDoor, int doorFlag, int a
                 if (cut2 != -1) {
                     CamCtrl.CutCall((s8) cut2);
                 }
-                EstSet(0, -1, 0, 0, 1, (u8) est, 0x2001, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, (u8) est, 0x2001, ESP_CORE_KIND_NONE, 0, 0);
                 pPL->beginEvent(0);
                 pPL->setNoSuspend(1);
                 Vec tbl[3] = {{-10850.0f, 0.0f, 1500.0f}, {8150.0f, 0.0f, 1500.0f}, {26650.0f, 0.0f, 1500.0f}};
@@ -1237,7 +1237,7 @@ static void R31bExecEscapeMain()
         pPL->setPos(0.0f, 0.0f, 0.0f);
         pPL->setAng(0.0f, 0.0f, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 0x201, 0);
-        EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, 0, 0);
         SmdSetTrans(0x4D, 0);
         SmdSetTrans(0x95, 0);
         SmdSetTrans(0x98, 0);
@@ -1469,10 +1469,10 @@ static void R31bExecRoom03U3Main()
         r31b_work.p->em.setFlag(1);
         r31b_work.p->em.setNoSuspend(1);
         if (pPL) {
-            EstSet(pPL, -1, 0, 0, 1, 0xB, 0x2001, 8, zero, zero);
+            EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xB, 0x2001, ESP_CORE_KIND_ROOM06, zero, zero);
         }
         if (em) {
-            EstSet(em, -1, 0, 0, 1, 0xC, 0x2001, 8, 0, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0xC, 0x2001, ESP_CORE_KIND_ROOM06, 0, 0);
             zero = em;
         }
         SceSleep(1);
@@ -1508,7 +1508,7 @@ static void R31bExecRoom03U3End()
     cEm32* em;
 
     SndStrReq(r31b_work.p->str, 8, 0, 0);
-    EffectDelete(0x2001, 8);
+    EffectDelete(0x2001, ESP_CORE_KIND_ROOM06);
     obj = SmdGetObjPtr(0xEA);
     if (obj) {
         obj->setPos(obj->pos.x, 4313.0f, obj->pos.z);
@@ -2084,7 +2084,7 @@ void Evt_R31BS00_Func(Event* e)
 {
     switch (e->funcMode) {
     case 0:
-        EffectDelete(0x2001, 3);
+        EffectDelete(0x2001, ESP_CORE_KIND_ROOM01);
         SmdSetTrans(0x82, 0);
         SmdSetTrans(0x6B, 1);
         SmdSetTrans(0xF4, 0);

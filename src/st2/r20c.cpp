@@ -283,7 +283,7 @@ static void R20cExecCageMain()
         SceEventStart(0);
         SceSetEventCancel(1, (TaskFunc) R20cExecCageEnd, 0, -1, 1);
         CamCtrl.CutCall(6);
-        EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         pPL->setPos(&r20c_plPos0);
@@ -547,7 +547,7 @@ void R20cExecShootInit()
         R20cDoorOpenCancel(0);
         R20cKaigaMoved(1);
         SmdSetTrans(9, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, zero, zero);
     } else {
         cEm* barred;
         cObj* obj;
@@ -617,7 +617,7 @@ static void R20cDoorOpenMain()
         SceSetEventCancel(1, (TaskFunc) R20cDoorOpenCancel, 1, -1, 1);
         CamCtrl.CutCall(0xE);
         SmdSetTrans(9, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
         obj = SmdGetObjPtr(9);
         if (obj) {
             SndCall(6, 5, &obj->pos, 0, 0, 0);

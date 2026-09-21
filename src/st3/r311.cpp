@@ -573,7 +573,7 @@ static void r311_throwIronBall()
         switch (r311_work->throwCnt) {
         case 1:
             SceEventStart(1);
-            EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
             CamCtrl.CutCall(4);
             while (CamCtrl.IsMotionEnd() == 0) {
                 if (Key.trg & 0x20000000) {
@@ -588,10 +588,10 @@ static void r311_throwIronBall()
             break;
         case 2:
             SceExec(0x12, (TaskFunc) r311_throwIronBall_HitCk, 0, 2, 2, 0);
-            EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
             break;
         case 3:
-            EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
             for (i = 0; i < 30; i++) {
                 if (Key.trg & 0x20000000) {
                     skip = 1;
@@ -794,7 +794,7 @@ void r311_initIronBall()
         SceAtSetEnable(0, 0);
         r311_work->throwCnt = 0;
         IntSet(r311_work->eff, EspPullCoreKind());
-        EstSet(0, -1, 0, 0, 1, 2, 1, r311_work->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, r311_work->eff, 0, 0);
     } else {
         SceAtSetEnable(2, 0);
     }

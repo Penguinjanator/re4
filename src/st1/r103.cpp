@@ -89,7 +89,7 @@ void R103Init()
                        ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
                        ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27),
                        ROOM_ARC_PTR(pG->pRoom, 0x28));
-        EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     ScfFlagOn(pG, SCF_R103_ENTER);
     SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -104,7 +104,7 @@ void R103Init()
     SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)()) r103_openedShelf, (int) &r103_shelf2, 0);
     if (!ItfFlagChk(pG, ITF_R103_FILE)) {
         U32Set(r103_work->eff, EspPullCoreKind());
-        EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r103_work->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, (u8) r103_work->eff, 0, 0);
         SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);
     }
     SceAtSetActColor(2, 1);
@@ -306,7 +306,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
         }
         SceSleep(1);
     } while (1);
-    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 7, &cover->pos, 0, 0, 0);
     cover->be_flag &= ~2;
     SceAtSetEnable(c->at10, 1);
@@ -327,7 +327,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
         } while (1);
     }
     SndCall(6, 8, &lid->pos, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x11, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 0, ESP_CORE_KIND_NONE, 0, 0);
     ScfFlagOn(pG, SCF_R103_CLOSE_COVER);
     lid->pParts->ang.x -= 0.06981317f;
     SceSleep(1);

@@ -45,7 +45,7 @@ void Wep08_init(cModel* m)
     pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
-    EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x3C, 1);
+    EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP08, 1);
     PlWepMot[0] = WEP_ARC_PTR(0x1A);
     PlWepMot[1] = WEP_ARC_PTR(0x20);
     PlWepMot[2] = WEP_ARC_PTR(0x22);
@@ -95,7 +95,7 @@ void cObjStriker::moveFire()
         SndCall(2, 4, &pos, 0, 0, 0);
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         StaFlagOn(pG, STA_PL_FIRE);
-        EstSet(this, -1, 0, 0, 0x3C, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP08, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         wep.step = 1;
     } else if (MotionCheckCrossFrame(&Motion, 21.0f)) {
         setCartridge();

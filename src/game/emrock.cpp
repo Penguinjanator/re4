@@ -423,7 +423,7 @@ void emRock_R1_Fall(cEmRock* em)
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
         break;
     }
     w->spd.y -= w->Gravity;
@@ -442,7 +442,7 @@ void emRock_R1_Fall(cEmRock* em)
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
         return;
     }
     if (w->pAtk) {
@@ -521,7 +521,7 @@ void emRock_R1_Throw(cEmRock* em)
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
         break;
     }
     w->spd.y -= w->Gravity;
@@ -546,7 +546,7 @@ void emRock_R1_Throw(cEmRock* em)
             em->r_no_1 = 1;
             em->r_no_2 = 0;
             em->r_no_3 = 0;
-            EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
             return;
         }
         if (w->spd.y > 50.0f) {
@@ -558,7 +558,7 @@ void emRock_R1_Throw(cEmRock* em)
 
                 fp = em->pos;
                 fp.y = EatMgr.getFloor(&fp, 0, 600.0f, 100000.0f, 0);
-                EstSet(0, -1, &fp, 0, w->effFall[0], w->effFall[1], 0, 0, 0, 0);
+                EstSet(0, -1, &fp, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
         }
@@ -666,9 +666,9 @@ void emRock_R1_Throw2(cEmRock* em)
         PlWepHitCheck2(0, &p, &p, 0x12, 3, 5000.0f);
         EffectEspgenDelete(0, w->espKind, em);
         if (nrm.y > 0.7f) {
-            EstSet(0, -1, &em->pos, 0, 1, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &em->pos, 0, 1, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x4A, &em->pos, 0, 0, em);
         em->be_flag &= ~2;
@@ -777,7 +777,7 @@ void emRock_R1_Roll(cEmRock* em)
         if (emRockSetRollSpd(em)) {
             SndStop(w->sndId2, 0);
             SndCall(6, 6, &em->pos, 0, 0, em);
-            EstSet(0, -1, &em->pos, 0, 1, 0x1F, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 0x1F, 0, ESP_CORE_KIND_NONE, 0, 0);
             em->be_flag &= ~2;
             em->r_no_0 = 1;
             em->r_no_1 = 1;
@@ -802,7 +802,7 @@ void emRock_R1_Roll(cEmRock* em)
 
                     fp = em->pos;
                     fp.y -= w->Radius;
-                    EstSet(0, -1, &fp, 0, 0xC8, 0, 0, 0, 0, 0);
+                    EstSet(0, -1, &fp, 0, EFF_OBM1F, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                     SndCall(6, 7, &em->pos, 0, 0, em);
                     if (w->First_bound == 0) {
                         w->First_bound = 1;
@@ -872,7 +872,7 @@ void emRock_R1_Drop(cEmRock* em)
         em->r_no_2++;
     case 2:
         MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 1, 4, 0, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 4, 0, w->espKind, em, 0);
         SndCall(6, 8, &em->pos, 0, 0, em);
         w->Timer = 37;
         em->r_no_2++;
@@ -890,7 +890,7 @@ void emRock_R1_Drop(cEmRock* em)
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
                 EffectEspgenDelete(0, w->espKind, em);
-                EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 1, 1, 0, 0, 0, 0);
+                EstSet(0, -1, &em->getPartsPtr(0)->world, 0, EFF_ROOM, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 7, &em->pos, 0, 0, em);
                 break;
             }
@@ -953,7 +953,7 @@ void emRock_R1_Drop2(cEmRock* em)
         break;
     case 4:
         MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
-        EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 4, &em->pos, 0, 0, em);
         w->Timer = 31;
         w->rnd = Rnd() & 1;
@@ -1044,7 +1044,7 @@ void plemDropEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, w->mot4, 0, 3, 1, 0);
-        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pPL->dmg.m_Timer = 0x1E;
@@ -1695,7 +1695,7 @@ void plemRockEscape(cPlayer* pl)
         }
         pl->dmg.m_Timer = 0x78;
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
-            EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
@@ -2380,7 +2380,7 @@ void cEmRock::setBreakR11E()
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    EstSet(0, -1, &getPartsPtr(0)->world, 0, 1, 2, 0, 0, 0, 0);
+    EstSet(0, -1, &getPartsPtr(0)->world, 0, EFF_ROOM, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 7, &pos, 0, 0, this);
     hp = 0;
     be_flag &= ~2;

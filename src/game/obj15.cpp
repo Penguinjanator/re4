@@ -236,7 +236,7 @@ void obj15_R1_Break(cObjGatling* obj)
     u32 i;
 
     if (obj->r_no_2 == 0) {
-        EstSet(0, -1, &obj->pos, &obj->ang, 1, 0xD, 0, 0, 0, 0);
+        EstSet(0, -1, &obj->pos, &obj->ang, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndStop(w->seHandle, 0);
         for (i = 0; i < 3; i++) {
                 if (w->hit[i]) {
@@ -333,7 +333,7 @@ int obj15GunHitck(cObjGatling* obj)
     cModel* parts;
     u32 attr;
 
-    EstSet(obj, -1, 0, 0, 1, 0x1F, 0, 0, obj, 0);
+    EstSet(obj, -1, 0, 0, EFF_ROOM, 0x1F, 0, ESP_CORE_KIND_NONE, obj, 0);
     SndCall(6, 9, &obj->pos, 0, 0, 0);
     ofs.x = 0.0f;
     ofs.y = 0.0f;
@@ -367,7 +367,7 @@ int obj15GunHitck(cObjGatling* obj)
             erot.z = 0.0f;
             PSVECScale(&dir, &sc, 30.0f);
             PSVECAdd(&hit, &sc, &hit);
-            EstSet(0, -1, &hit, &erot, 1, 0x1E, 0, 0, 0, 0);
+            EstSet(0, -1, &hit, &erot, EFF_ROOM, 0x1E, 0, ESP_CORE_KIND_NONE, 0, 0);
             PSVECSubtract(&hit, &ofs, &d);
             EspSetGatling(ofs, d);
             SndCall(6, 0xA, &hit, 0, 0, 0);

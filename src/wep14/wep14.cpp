@@ -65,7 +65,7 @@ void Wep14_init(cModel* m)
     } else {
         pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x6), 0x48, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x6), EFF_WEP14, 1);
         wep14changeRightHand(pl, WEP_ARC_PTR(0x9));
         pl->setLeftHand(4);
         PlWepMot[0] = WEP_ARC_PTR(0x13);

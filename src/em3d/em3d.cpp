@@ -311,7 +311,7 @@ static void em3d_R0_Init(cEm3d* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    EspDataLoad((u32) ARC(4), 0x32, 0);
+    EspDataLoad((u32) ARC(4), EFF_EM3D, 0);
     w->Be_flg = zero;
     w->gunTimer = zero;
     w->vibAng.x = fRand1_1() * PI;
@@ -343,8 +343,8 @@ static void em3d_R0_Init(cEm3d* em)
         }
     }
     w->Patrol_pos = Em3d_pos_tbl[0];
-    EstSet(em, -1, 0, 0, 0x32, 0, 1, 0, em, 0);
-    EstSet(em, -1, 0, 0, 0x32, 3, 1, 0, em, 0);
+    EstSet(em, -1, 0, 0, EFF_EM3D, 0, 1, ESP_CORE_KIND_NONE, em, 0);
+    EstSet(em, -1, 0, 0, EFF_EM3D, 3, 1, ESP_CORE_KIND_NONE, em, 0);
     EmRoutineSet(em, 1, 0, 0, 0);
     SndCall(6, 0, &em->pos, 0, 0, em);
     em3d_R0_Move(em);
@@ -696,7 +696,7 @@ void em3dRoterMove(cEm3d* em)
             rot.z = 0.0f;                                                               \
             PSVECScale(&nrm, &s, 30.0f);                                                \
             PSVECAdd(&hit, &s, &hit);                                                   \
-            EstSet(0, -1, &hit, &rot, 0x32, 6, 0, 0, (void*) (zero), (void*) (zero));             \
+            EstSet(0, -1, &hit, &rot, EFF_EM3D, 6, 0, ESP_CORE_KIND_NONE, (void*) (zero), (void*) (zero));             \
             if (se) {                                                                   \
                 SndCall(6, 0xA, &hit, 0, 0, em);                                        \
             }                                                                           \
@@ -761,8 +761,8 @@ void em3dChainGunMove(cEm3d* em)
         return;
     }
     w->gunTimer = 2;
-    EstSet(em, -1, 0, 0, 0x32, 1, 1, 0, em, (void*) t);
-    EstSet(em, -1, 0, 0, 0x32, 2, 1, 0, em, (void*) t);
+    EstSet(em, -1, 0, 0, EFF_EM3D, 1, 1, ESP_CORE_KIND_NONE, em, (void*) t);
+    EstSet(em, -1, 0, 0, EFF_EM3D, 2, 1, ESP_CORE_KIND_NONE, em, (void*) t);
     SndCall(6, 1, &em->pos, 0, 0, em);
     EM3D_GUN_SHOT(em, 4, 5000.0f, 100000.0f, 1, t);
     EM3D_GUN_SHOT(em, 7, 2000.0f, 300000.0f, 0, t);

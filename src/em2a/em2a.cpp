@@ -312,7 +312,7 @@ static void em2a_R0_Init(cEm2a* em)
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em2aYarareInit(em);
     w->espKind = EspPullCoreKind();
-    EspDataLoad((u32) ARC(0x12), 0x22, 0);
+    EspDataLoad((u32) ARC(0x12), EFF_EM2A, 0);
     w->flags = zero;
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
@@ -341,11 +341,11 @@ static void em2a_R0_Init(cEm2a* em)
         }
         break;
     case 1:
-        EstSet(em, -1, 0, 0, 0x22, 3, 0x800, (u8) w->espKind, em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM2A, 3, 0x800, (u8) w->espKind, em, (void*) zero);
         EmRoutineSet(em, 1, 6, zero, zero);
         break;
     case 2:
-        EstSet(em, -1, 0, 0, 0x22, 5, 0x800, (u8) w->espKind, em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM2A, 5, 0x800, (u8) w->espKind, em, (void*) zero);
         EmRoutineSet(em, 1, 6, zero, zero);
         break;
     }
@@ -444,7 +444,7 @@ static void plem2a_Trap1Bite(cPlayer* pl)
     case 0:
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x10), EM_ARC(pl, 0x11), 5, 1, 0);
         PlSetFace(1);
-        EstSet(pl, -1, 0, 0, 0x22, 1, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2A, 1, 0, ESP_CORE_KIND_NONE, pl, 0);
         LifeDownSet2(pPL, 300, 0, 1);
         pl->dmg.set(0, 0);
         pl->r_no_2++;
@@ -524,7 +524,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1A), 0, 5, 5, 0);
-        EstSet(sub, -1, 0, 0, 0x22, 7, 0, 0, sub, 0);
+        EstSet(sub, -1, 0, 0, EFF_EM2A, 7, 0, ESP_CORE_KIND_NONE, sub, 0);
         LifeDownSet2(pSUB, 300, 0, 1);
         sub->dmg.set(0, 2);
         sub->r_no_2++;
@@ -556,7 +556,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         break;
     case 4:
         MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1C), 0, 5, 1, 0);
-        EstSet(sub, -1, 0, 0, 0x22, 8, 0, 0, sub, 0);
+        EstSet(sub, -1, 0, 0, EFF_EM2A, 8, 0, ESP_CORE_KIND_NONE, sub, 0);
         sub->r_no_2++;
     case 5:
         sub->dmg.m_Timer = 2;
@@ -668,7 +668,7 @@ static void em2a_R1_Trap1Break(cEm2a* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0xC), ARC(0xE), 0, 1, 0);
             SndCall(8, 0, &em->pos, em->id, 0, em);
-            EstSet(em, -1, 0, 0, 0x22, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2A, 2, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         l->set = 2;
         em->clearStatus(EM_STATUS_ACTIVE);
@@ -899,13 +899,13 @@ void em2aTrap2Bomb(cEm2a* em)
         }
     }
     if (water) {
-        EstSet(em, -1, 0, 0, 0x22, 6, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2A, 6, 0, ESP_CORE_KIND_NONE, em, 0);
     } else {
         if (em->type == 1) {
-            EstSet(em, -1, 0, 0, 0x22, 0, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2A, 0, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (em->type == 2) {
-            EstSet(em, -1, 0, 0, 0x22, 4, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2A, 4, 0, ESP_CORE_KIND_NONE, em, 0);
         }
     }
     p = em->getPartsPtr(0);

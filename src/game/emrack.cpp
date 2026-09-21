@@ -266,7 +266,7 @@ void emRackDmCk(cEmRack* em)
                 cModel* p;
 
                 if (w->Eff_id != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, ESP_CORE_KIND_NONE, em, 0);
                 }
                 SndCall(6, 0x36, &em->pos, 0, 0, em);
                 p = em->getPartsPtr(1);
@@ -344,9 +344,9 @@ void emRack_R1_Set(cEmRack* em)
     if (MotionCheckCrossFrame((MotionWork*) &em->Motion, 2.0f)) {
         if (w->Eff_id != 0xFF) {
             if (em->type == 1) {
-                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, ESP_CORE_KIND_NONE, em, 0);
             } else {
-                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, em, 0);
             }
         }
     }
@@ -435,19 +435,19 @@ void emRack_R1_Break(cEmRack* em)
             switch (em->r_no_3) {
             case 0:
             default:
-                EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
@@ -461,25 +461,25 @@ void emRack_R1_Break(cEmRack* em)
             switch (em->r_no_3) {
             case 0:
             default:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 5, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 4, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
                 break;
             case 5:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             }

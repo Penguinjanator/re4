@@ -305,7 +305,7 @@ static void em26_R0_Init(cEm26* em)
     YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, 5);
     YarareAdd(em, &w->hit[0], 0.0f, -50.0f, -100.0f, 300.0f, 350.0f, 5, 5);
     YarareAdd(em, &w->hit[1], 0.0f, 0.0f, -200.0f, 100.0f, 200.0f, 0x18, 5);
-    EspDataLoad((u32) ARC(7), 0x1E, 0);
+    EspDataLoad((u32) ARC(7), EFF_EM26, 0);
     w->flags = zero;
     w->sndId = zero;
     w->breathTimer = Rnd() % 60 + 30;
@@ -371,7 +371,7 @@ static void em26_R1_Wait(cEm26* em)
         w->estTimer--;
     } else {
         w->estTimer = Rnd() % 30 + 90;
-        EstSet(em, -1, 0, 0, 0x1E, 3, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM26, 3, 0, ESP_CORE_KIND_NONE, em, 0);
     }
     if (w->dmgTotal > 500) {
         cModel* p = em->getPartsPtr(4);
@@ -419,7 +419,7 @@ static void em26_R1_Atk(cEm26* em)
         w->estTimer--;
     } else {
         w->estTimer = Rnd() % 20 + 10;
-        EstSet(em, -1, 0, 0, 0x1E, 3, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM26, 3, 0, ESP_CORE_KIND_NONE, em, 0);
     }
 }
 
@@ -529,7 +529,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         em->atari.m_flag &= ~0x200;
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
-        EstSet(em, -1, 0, 0, 0x1E, 2, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM26, 2, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     }
     case 1:
@@ -546,7 +546,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         if (MotionMove(em, 0)) {
             cModel* p = em->getPartsPtr(2);
 
-            EstSet(0, -1, &p->world, &em->ang, 0x1E, 4, 0, 0, 0, 0);
+            EstSet(0, -1, &p->world, &em->ang, EFF_EM26, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
             em->r_no_2++;
         }
         break;

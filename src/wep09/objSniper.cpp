@@ -152,7 +152,7 @@ void cObjSniper::moveReload()
         wep.step = 1;
     }
     if (MotionCheckCrossFrame(&Motion, 10.0f)) {
-        EstSet(this, -1, 0, 0, 0x3D, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP09, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         ItemMgr.reload();
     }
 }

@@ -440,10 +440,10 @@ void em2dDmCk(cEm2d* em)
             EmDmBloodSet2(em, 0x25, 0x28, 0, 0, 0);
         }
         if (EmGetDmPos(em, &pos, &dir)) {
-            EspSeqData* seq = EspGetEstAddr(0x25, 0x24, 1);
+            EspSeqData* seq = EspGetEstAddr(EFF_EM2D, 0x24, 1);
             if (seq) {
                 for (i = 0; i < seq->num; i++) {
-                    if (EspEstSetSelect(0x25, 0x24, i, &esp, 0)) {
+                    if (EspEstSetSelect(EFF_EM2D, 0x24, i, &esp, 0)) {
                         esp->m_Pos = pos;
                         esp->parent = em->getPartsPtr(part->partsNo - 1);
                         PSMTXInverse(((cModel*) esp->parent)->mat, inv);
@@ -472,10 +472,10 @@ void em2dDmCk(cEm2d* em)
             EmDmBloodSet2(em, 0x25, 0x22, 0, 0, 0);
         }
         if (EmGetDmPos(em, &pos, &dir)) {
-            EspSeqData* seq = EspGetEstAddr(0x25, 0x25, 1);
+            EspSeqData* seq = EspGetEstAddr(EFF_EM2D, 0x25, 1);
             if (seq) {
                 for (i = 0; i < seq->num; i++) {
-                    if (EspEstSetSelect(0x25, 0x25, i, &esp2, 0)) {
+                    if (EspEstSetSelect(EFF_EM2D, 0x25, i, &esp2, 0)) {
                         esp2->m_Pos = pos;
                         esp2->parent = em->getPartsPtr(part->partsNo - 1);
                         PSMTXInverse(((cModel*) esp2->parent)->mat, inv);
@@ -848,7 +848,7 @@ void cEm2d::move()
             w->effTimer--;
         } else {
             w->effTimer = Rnd() % 3 + 5;
-            EstSet(this, -1, 0, 0, 0x25, 5, 0, 0, this, (void*) n);
+            EstSet(this, -1, 0, 0, EFF_EM2D, 5, 0, ESP_CORE_KIND_NONE, this, (void*) n);
         }
     }
     em2dEyeMove(this);
@@ -891,9 +891,9 @@ void em2dInitRtnSet(cEm2d* em)
     w->Reset_enable = zero;
     w->homePos = em->pos;
     if (em->type != 4) {
-        EstSet(em, -1, 0, 0, 0x25, 4, 0, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 4, 0, w->espKind, em, 0);
         if (em->type != 4) {
-            EstSet(em, -1, 0, 0, 0x25, 0x10, 0, w->espKind2, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2D, 0x10, 0, w->espKind2, em, 0);
         }
     }
     if (em->type == 4) {
@@ -1055,7 +1055,7 @@ static void em2d_R0_Init(cEm2d* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->lockParts = 0;
-    EspDataLoad((u32) ARC(4), 0x25, 0);
+    EspDataLoad((u32) ARC(4), EFF_EM2D, 0);
     EffEm2d_setTexRender(em);
     w->blendRatio = 0;
     em->pModelInfo->setBlendRatio(0);
@@ -1617,7 +1617,7 @@ static void em2d_R1_AtkPoison(cEm2d* em)
             w->dmgTotal = 0;
         }
         w->poisonWait = Rnd() % 150 + 300;
-        EstSet(em, -1, 0, 0, 0x25, 2, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 2, 0, ESP_CORE_KIND_NONE, em, 0);
         w->sndId = SndCall(8, 0x16, &em->pos, em->id, 0, em);
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
@@ -1635,7 +1635,7 @@ static void em2d_R1_AtkPoison(cEm2d* em)
             break;
         }
         if (em->seFlags28B & 1) {
-            EstSet(em, -1, 0, 0, 0x25, 3, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2D, 3, 0, ESP_CORE_KIND_NONE, em, 0);
             em2dSetPoison(em, 0);
         }
         break;
@@ -1832,7 +1832,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
         EmCatchPLSet(em, 0.0f, 2, (int) plem2d_JumpAtkHit, -48.1500015f, 0.0f, 921.190002f);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
-        EstSet(em, -1, 0, 0, 0x25, 1, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 1, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         w->timer = 10;
         em->r_no_2++;
@@ -1904,7 +1904,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 6:
         MotionSetCore(em, &em->Motion, ARC(0x3D), ARC(0x3E), 5, 0, 0);
         w->timer8 = 45;
-        EstSet(em, -1, 0, 0, 0x25, 6, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 6, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 7:
         em->setStatus(EM_STATUS_IK_OFF);
@@ -1968,7 +1968,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->m_Work0 = 127;
-        EstSet(pl, -1, 0, 0, 0x25, 0x13, 0, 0, pl, (void*) fe);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x13, 0, ESP_CORE_KIND_NONE, pl, (void*) fe);
         pl->r_no_3 = Rnd() & 1;
         pl->m_Work0 = 10;
         pl->r_no_2++;
@@ -2006,7 +2006,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
     case 2:
     case 4:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x63), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x15, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x15, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 3:
     case 5:
@@ -2034,7 +2034,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         break;
     case 6:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x61), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x14, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 7:
         if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
@@ -2059,7 +2059,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         break;
     case 8:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x62), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x16, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x16, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 9:
         if (em2dCamMove((cEm2d*)pl->pEmCatch, pl->r_no_3, 0.3f) == 0) {
@@ -2086,7 +2086,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         break;
     case 10:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x64), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x17, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x17, 0, ESP_CORE_KIND_NONE, pl, 0);
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
     case 11:
@@ -2221,7 +2221,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
             pl->m_Work0 = t - 1;
         } else {
             PlSetDamage(8, 0, 0);
-            EstSet(pl, -1, 0, 0, 0x25, 0x1A, 0, 0, pl, (void*) t);
+            EstSet(pl, -1, 0, 0, EFF_EM2D, 0x1A, 0, ESP_CORE_KIND_NONE, pl, (void*) t);
         }
         break;
     }
@@ -2916,7 +2916,7 @@ static void em2d_R1_W_AtkPoison(cEm2d* em)
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x46), 0, 10, 5, 0);
-        EstSet(em, -1, 0, 0, 0x25, 7, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 7, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         w->sndId = SndCall(8, 0x16, &em->pos, em->id, 0, em);
         w->timer = 30;
         em->r_no_2++;
@@ -2947,7 +2947,7 @@ static void em2d_R1_W_AtkPoison(cEm2d* em)
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
             EmRoutineSet(em, 1, 0x14, 0, 0);
         } else if (em->frame > 22.7000008f && em->frame < 23.2999992f) {
-            EstSet(em, -1, 0, 0, 0x25, 9, 0, 0, em, (void*) end);
+            EstSet(em, -1, 0, 0, EFF_EM2D, 9, 0, ESP_CORE_KIND_NONE, em, (void*) end);
             em2dSetPoison(em, 1);
         }
         break;
@@ -3681,7 +3681,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         pPL->r_no_3 = 1;
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
-        EstSet(em, -1, 0, 0, 0x25, 1, 0, 0, em, (void*) fe);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 1, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
@@ -3737,7 +3737,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     case 6:
         MotionSetCore(em, &em->Motion, ARC(0x3D), ARC(0x3E), 5, 0, 0);
         w->timer8 = 45;
-        EstSet(em, -1, 0, 0, 0x25, 6, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 6, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 7:
         em->setStatus(EM_STATUS_IK_OFF);
@@ -3802,7 +3802,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->m_Work0 = 127;
-        EstSet(pl, -1, 0, 0, 0x25, 0x13, 0, 0, pl, (void*) fe);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x13, 0, ESP_CORE_KIND_NONE, pl, (void*) fe);
         pl->r_no_3 = Rnd() & 1;
         pl->m_Work0 = 10;
         pl->r_no_2++;
@@ -3827,7 +3827,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
     case 2:
     case 4:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x63), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x15, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x15, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 3:
     case 5:
@@ -3842,7 +3842,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         break;
     case 6:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x61), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x14, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 7:
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
@@ -3854,7 +3854,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         break;
     case 8:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x62), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x16, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x16, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2++;
     case 9:
         em2dCatchCamMove((cEm2d*)pl->pEmCatch, pl);
@@ -3868,7 +3868,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         break;
     case 10:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x64), 0, 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x25, 0x17, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM2D, 0x17, 0, ESP_CORE_KIND_NONE, pl, 0);
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
     case 11:
@@ -4095,7 +4095,7 @@ static void em2d_R1_Dm_Blow(cEm2d* em)
             SndCall(8, 0xF, &em->pos, em->id, 0, em);
         }
         if ((w->flags & 0x80000) && (pG->room_id == 0x205 || pG->room_id == 0x21D)) {
-            EstSet(em, -1, 0, 0, 1, 0x16, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x16, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         w->flags |= 0x4000;
         em->r_no_2++;
@@ -4409,9 +4409,9 @@ static void em2d_R1_Die_Lost(cEm2d* em)
         EffectEfmDelete(0, w->espKind, em);
         SndCall(8, 0xE, &em->pos, em->id, 0, em);
         if (ChkWaterEffectEnable(&em->pos)) {
-            EstSet(em, -1, 0, 0, 0x25, 0x21, 0, 0, em, (void*) fe);
+            EstSet(em, -1, 0, 0, EFF_EM2D, 0x21, 0, ESP_CORE_KIND_NONE, em, (void*) fe);
         } else {
-            EstSet(em, -1, 0, 0, 0x25, 0x2A, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM2D, 0x2A, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         w->timer = 30;
         w->timer8 = 150;
@@ -4826,7 +4826,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             break;
         case 2:
             memcpy((u8*) pPL + 0x328, &em->pos, sizeof(Vec));  // byte-pointer destination: pPL is reloaded for EstSet
-            EstSet(pPL, -1, 0, 0, 0x25, 0x26, 0, 0, pPL, 0);
+            EstSet(pPL, -1, 0, 0, EFF_EM2D, 0x26, 0, ESP_CORE_KIND_NONE, pPL, 0);
             pG->pl_life = 0;
             SetPlDamage(em, plem2d_CriticalHit);
             break;
@@ -5573,12 +5573,12 @@ void em2dPlHeadLost()
 
     if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
-        EstSet(pPL, -1, 0, 0, 0x25, 0x2C, 0, 0, pPL, 0);
+        EstSet(pPL, -1, 0, 0, EFF_EM2D, 0x2C, 0, ESP_CORE_KIND_NONE, pPL, 0);
         return;
     }
     zero = 0;
     SndCall(1, 0x3E, &pPL->pos, 0, 0, pPL);
-    EstSet(pPL, -1, 0, 0, 0x25, 0x2D, 0, 0, pPL, (void*) zero);
+    EstSet(pPL, -1, 0, 0, EFF_EM2D, 0x2D, 0, ESP_CORE_KIND_NONE, pPL, (void*) zero);
     pPL->setHead(0);
     p3 = pPL->getPartsPtr(3);
     ofs.x = 0.0f;
@@ -5597,7 +5597,7 @@ void em2dPlHeadLost()
         obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, (int) zero, -1);
     }
-    EstSet(obj, -1, 0, 0, 0x25, 0x2E, 0, 0, obj, (void*) zero);
+    EstSet(obj, -1, 0, 0, EFF_EM2D, 0x2E, 0, ESP_CORE_KIND_NONE, obj, (void*) zero);
 }
 
 // Swaps the player's head for the acid-melted skull (player archive 0x6D / 0x6E) after the face grab kill.
@@ -5838,14 +5838,14 @@ void em2dFootSeMove(cEm2d* em)
     p = em->getPartsPtr(parts);
     p0 = em->getPartsPtr(0);
     if (w->wallNrm.y < -0.899999976f) {
-        EstSet(0, -1, &p->world, 0, 0x25, 8, 0, 0, 0, 0);
+        EstSet(0, -1, &p->world, 0, EFF_EM2D, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (w->wallNrm.y > 0.699999988f && ChkWaterEffectEnable(&p->world)) {
         em->seNo = 0;
         if ((w->flags & 0x80000) && (pG->room_id == 0x205 || pG->room_id == 0x21D)) {
             pos = p->world;
             pos.y = w->waterH;
-            EstSet(0, -1, &pos, 0, 1, 0x14, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, 0, EFF_ROOM, 0x14, 0, ESP_CORE_KIND_NONE, 0, 0);
             switch (no) {
             case 0:
                 SndCall(8, 0x2B, &p0->world, em->id, 0, em);
@@ -5855,7 +5855,7 @@ void em2dFootSeMove(cEm2d* em)
                 break;
             }
         } else {
-            EstSet(0, -1, &p->world, 0, 0x25, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &p->world, 0, EFF_EM2D, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             switch (no) {
             case 0:
                 SndCall(8, 2, &p0->world, em->id, 0, em);
@@ -5881,16 +5881,16 @@ void em2dSetdLandingEff(cEm2d* em)
         p = em->getPartsPtr(0x12);
         pos = p->world;
         pos.y = w->waterH;
-        EstSet(0, -1, &pos, 0, 1, 0x15, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, EFF_ROOM, 0x15, 0, ESP_CORE_KIND_NONE, 0, 0);
         p = em->getPartsPtr(0x16);
         pos = p->world;
         pos.y = w->waterH;
-        EstSet(0, -1, &pos, 0, 1, 0x15, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, EFF_ROOM, 0x15, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else if (ChkWaterEffectEnable(&em->pos)) {
         SndCall(8, 2, &p0->world, 0, 0, em);
         SndCall(8, 4, &em->pos, em->id, 0, em);
-        EstSet(0, -1, &em->getPartsPtr(0x12)->world, 0, 0x25, 0, 0, 0, 0, 0);
-        EstSet(0, -1, &em->getPartsPtr(0x16)->world, 0, 0x25, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0x12)->world, 0, EFF_EM2D, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0x16)->world, 0, EFF_EM2D, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         SndCall(8, 4, &em->pos, em->id, 0, em);
     }
@@ -5909,7 +5909,7 @@ void em2dSetDownEff(cEm2d* em)
         } else {
             SndCall(8, 5, &p0->world, em->id, 0, em);
         }
-        EstSet(0, -1, &em->pos, 0, 0x25, 0xC, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_EM2D, 0xC, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         SndCall(8, 5, &p0->world, em->id, 0, em);
     }
@@ -5928,7 +5928,7 @@ void em2dSetJumpEff(cEm2d* em)
         } else {
             SndCall(8, 7, &p0->world, em->id, 0, em);
         }
-        EstSet(0, -1, &em->pos, 0, 0x25, 0xC, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_EM2D, 0xC, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         SndCall(8, 7, &p0->world, em->id, 0, em);
     }
@@ -6089,19 +6089,19 @@ void em2dEyeMove(cEm2d* em)
     EffectEfmDelete(0, w->espKind2, em);
     switch (w->x535) {
     case 1:
-        EstSet(em, -1, 0, 0, 0x25, 0x12, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 0x12, 0, ESP_CORE_KIND_NONE, em, 0);
         break;
     case 2:
-        EstSet(em, -1, 0, 0, 0x25, 0x11, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 0x11, 0, ESP_CORE_KIND_NONE, em, 0);
         break;
     }
     w->x535 = st;
     switch (st) {
     case 1:
-        EstSet(em, -1, 0, 0, 0x25, 0x10, 0, w->espKind2, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 0x10, 0, w->espKind2, em, 0);
         break;
     case 2:
-        EstSet(em, -1, 0, 0, 0x25, 0xF, 0, w->espKind2, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 0xF, 0, w->espKind2, em, 0);
         break;
     }
 }
@@ -6489,7 +6489,7 @@ void em2dHumSeMove(cEm2d* em)
         return;
     }
     if (!(w->flags & 0x100000)) {
-        EstSet(em, -1, 0, 0, 0x25, 0x27, 0, w->espKind3, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM2D, 0x27, 0, w->espKind3, em, 0);
         w->flags |= 0x100000;
     }
     if (w->x534) {

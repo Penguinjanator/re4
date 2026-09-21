@@ -208,20 +208,20 @@ void EspFootCall(int type, int no, Vec* pos)
         case 0:
             break;
         case 1:
-            EstSet(0, -1, pos, NULL, 0, 4, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 2:
-            EstSet(0, -1, pos, NULL, 0, 0x16, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 0x16, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 3:
-            EstSet(0, -1, pos, NULL, 0, 4, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 4:
             h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;
-            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[4].id, pl->m_pEffRoom[4].type, 0, 0, 0, NULL);
+            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[4].id, pl->m_pEffRoom[4].type, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         default:
             pLog->err(0, 0, "EspFootCall() : FootSeNo[%d] invalid.", no);
@@ -233,20 +233,20 @@ void EspFootCall(int type, int no, Vec* pos)
         case 0:
             break;
         case 1:
-            EstSet(0, -1, pos, NULL, 0, 5, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 2:
-            EstSet(0, -1, pos, NULL, 0, 0x17, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 0x17, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 3:
-            EstSet(0, -1, pos, NULL, 0, 5, 0, 0, 0, NULL);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 4:
             h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;
-            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[5].id, pl->m_pEffRoom[5].type, 0, 0, 0, NULL);
+            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[5].id, pl->m_pEffRoom[5].type, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         default:
             pLog->err(0, 0, "EspFootCall() : FootSeNo[%d] invalid.", no);
@@ -449,7 +449,7 @@ void EffEm2d_setTexRender(cModel* m)
         tbl[0xA] = 6;
         tbl[0xB] = mgr2->texId;
         ISet(mgr2->m_Rep_type, repType);
-        EstSet(0, -1, NULL, NULL, 0x25, 0x1F, pMgr->mask | 0x801, 0, 0, NULL);
+        EstSet(0, -1, NULL, NULL, EFF_EM2D, 0x1F, pMgr->mask | 0x801, ESP_CORE_KIND_NONE, 0, NULL);
     }
     m->pModelInfo->setTexBlendTbl(tbl);
     m->pModelInfo->setBlendRatio(0);
@@ -475,7 +475,7 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     if (DbgFlagChk(pG, DBG_NO_LASER_LINE)) {
         return;
     }
-    if (!EspEstSetSelect(0, 3, 0, &esp, 0)) {
+    if (!EspEstSetSelect(EFF_CORE, 3, 0, &esp, 0)) {
         return;
     }
     e = (cEsp19*) esp;
@@ -500,7 +500,7 @@ void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
 {
     cEsp* esp;
 
-    if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
+    if (EspEstSetSelect(EFF_CORE, 3, 0, &esp, 1)) {
         cEsp19* e = (cEsp19*) esp;
         e->m_Pos = *from;
         e->m_Free.Vec0 = *to;
@@ -509,7 +509,7 @@ void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
         esp->m_Col_b = (f32) b;
         esp->m_Col_a = (f32) a;
     }
-    if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
+    if (EspEstSetSelect(EFF_CORE, 3, 0, &esp, 1)) {
         cEsp19* e = (cEsp19*) esp;
         e->m_Pos = *to;
         e->m_Free.Vec0 = *from;
@@ -526,7 +526,7 @@ void EspSetGatling(Vec pos, Vec dir)
 {
     cEsp* esp;
 
-    if (!EspEstSetSelect(0, 0x52, 0, &esp, 0)) {
+    if (!EspEstSetSelect(EFF_CORE, 0x52, 0, &esp, 0)) {
         return;
     }
     esp->m_Pos = pos;

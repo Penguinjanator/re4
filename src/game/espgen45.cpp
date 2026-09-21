@@ -647,7 +647,7 @@ void Espgen45_TransSub(EspgenWork* w)
                 texId = p->Mask_Tex;
             }
             tw = EspGetTexWk(texId, 1);
-            if (tw == NULL || tw->Owner == 0xD2) {
+            if (tw == NULL || tw->Owner == EFF_NONE) {
                 pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", texId);
             } else {
                 // the same frame slots as the first block's tex/tm: PRE shares their addresses

@@ -79,7 +79,7 @@ void LuisInit(cEm* em)
     luis->equipWeapon();
 }
 
-// Routine handlers by routine number (owner->xFC); 4 (event) calls cSubLuis::evFunc instead.
+// Routine handlers by routine number (owner->r_no_0); 4 (event) calls cSubLuis::evFunc instead.
 void (cRoutine::*cRoutine_move_tbl[18])() = {
     &cRoutine::moveFootwork,
     &cRoutine::moveDamage,
@@ -167,7 +167,7 @@ void cSubLuis::init()
     voiceWait = 0;
     cnt = 0;
     set = 0;
-    EspDataLoad((u32) SUB_ARC(this, 0x34 / 4), 7, 0);
+    EspDataLoad((u32) SUB_ARC(this, 0x34 / 4), EFF_PL04, 0);
     PlClothSetLuis(this, &luisHair);
     YarareInit(EM, 0.0f, -30.0f, 0.0f, 150.0f, 100.0f, 2, 1);
     YarareAdd(EM, &hit[0], 0.0f, 0.0f, 0.0f, 170.0f, 120.0f, 3, 1);
@@ -1345,7 +1345,7 @@ void cRoutine::shot()
     owner->hp = 0;
     PlWepHitCheck2(0, &p, &t, 3, 0, 6000.0f);
     owner->hp = hp;
-    EstSet(owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
+    EstSet(owner->pItem, -1, 0, 0, EFF_PL04, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
     SndCall(8, 0, &owner->pParts->world, owner->id, 0, 0);
 }
 
@@ -1647,7 +1647,7 @@ void cObjLuisItem::init(Vec* p, f32 rotY)
     ang.y = rotY;
     ang.x = 0.0f;
     ang.z = 0.0f;
-    EstSet(this, -1, 0, 0, 0, 0x2D, 0, 0x3C, this, 0);
+    EstSet(this, -1, 0, 0, EFF_CORE, 0x2D, 0, ESP_CORE_KIND_LUIS_ITEM, this, 0);
     PSVECSubtract(&pPL->pos, &pos, &LITEM->spd);
     PSVECScale(&LITEM->spd, &LITEM->spd, 0.07f);
     LITEM->acc.x = 0.0f;
@@ -1681,9 +1681,9 @@ void cObjLuisItem::move()
         }
         LITEM->timer++;
         if (LITEM->timer > 150) {
-            EffectEspDelete(0, 0x3C, this, 0);
-            EffectEspgenDelete(0, 0x3C, this);
-            EffectEfmDelete(0, 0x3C, this);
+            EffectEspDelete(0, ESP_CORE_KIND_LUIS_ITEM, this, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_LUIS_ITEM, this);
+            EffectEfmDelete(0, ESP_CORE_KIND_LUIS_ITEM, this);
             ObjMgr.destroy(this);
         }
         break;
@@ -1707,9 +1707,9 @@ void cObjLuisItem::move()
             item = 4;
             break;
         }
-        EffectEspDelete(0, 0x3C, this, 0);
-        EffectEspgenDelete(0, 0x3C, this);
-        EffectEfmDelete(0, 0x3C, this);
+        EffectEspDelete(0, ESP_CORE_KIND_LUIS_ITEM, this, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_LUIS_ITEM, this);
+        EffectEfmDelete(0, ESP_CORE_KIND_LUIS_ITEM, this);
         SceAtCreateItemAt(&pos, item, 0, -1, -1, 0, -1);
         ObjMgr.destroy(this);
         break;

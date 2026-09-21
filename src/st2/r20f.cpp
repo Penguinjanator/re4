@@ -227,7 +227,7 @@ static void R20fSwitchMain()
         }
         SceSleep(20);
         CamCtrl.CutCall(6);
-        EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         SceSleep(70);
         if (obj0) {
             int i;
@@ -263,9 +263,9 @@ static void R20fSwitchEnd(int evt)
     cObj* obj0 = SmdGetObjPtr(0x18);
     cObj* obj1 = SmdGetObjPtr(0x19);
 
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     if (obj0) {
         Vec pos;
         f32 x = obj0->pos.x;

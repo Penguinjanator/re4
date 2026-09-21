@@ -252,7 +252,7 @@ static void em23_R0_Init(cEm23* em)
     em->atari.init(0.0f, -100.0f, 0.0f, 350.0f, 150.0f, 150.0f, 200.0f, 1, 0x2000, 10);
     em->setStatus(EM_STATUS_LOCKOFF);
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
-    EspDataLoad((u32) ARC(4), 0x1B, 0);
+    EspDataLoad((u32) ARC(4), EFF_EM23, 0);
     em->pXFlip = em23_flip_tbl;
     YarareInit(em, 0.0f, -100.0f, 0.0f, 250.0f, 200.0f, 1, 1);
     if (em->modelInit(ARC(5), ARC(8)) == 0) {

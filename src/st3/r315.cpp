@@ -128,7 +128,7 @@ static void first_in()
         SetSubAux(funcAshley, 0);
     }
     SetPlDamage(0, plemRide);
-    EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
     SndStrReq(1, 0xEA, 0x80000003, 0, 0, 0.0f);
     pPL->setNoSuspend(1);
     if (pSUB) {

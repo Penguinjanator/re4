@@ -183,13 +183,13 @@ void R204Init()
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[7].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet(r204_work.p->head[i], -1, 0, 0, 0, 0x2D, 0x801, r204_work.p->esp[i], 0, 0);
+                        EstSet(r204_work.p->head[i], -1, 0, 0, EFF_CORE, 0x2D, 0x801, r204_work.p->esp[i], 0, 0);
                     } else {
                         r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[i].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet(r204_work.p->head[i], -1, 0, 0, 1, 0x1F, 0x801, r204_work.p->esp[i], 0, 0);
+                        EstSet(r204_work.p->head[i], -1, 0, 0, EFF_ROOM, 0x1F, 0x801, r204_work.p->esp[i], 0, 0);
                     }
                 }
                 if (0x4A + i == 0x51) {
@@ -216,10 +216,10 @@ void R204Init()
         SmdGetObjPtr(0x1C)->be_flag |= 0x20;
         SmdGetObjPtr(0x1C)->ang.y = -2.72f;
         SceAtSetEnable(0xD, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, zero, zero);
         SmdSetTrans(0x3C, 0);
         SmdSetTrans(0x3D, 1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, zero, zero);
     } else {
         SmdSetTrans(0x14, 0);
         SmdSetTrans(0x17, 0);
@@ -234,11 +234,11 @@ void R204Init()
         SceAtSetEnable(0x12, 1);
         SceAtSetEnable(0x13, 1);
         zero = NULL;
-        EstSet(0, -1, 0, 0, 1, 2, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, zero, zero);
         SceAtSetEnable(0xD, 1);
         SmdSetTrans(0x3C, 1);
         SmdSetTrans(0x3D, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, zero, zero);
     }
     if (pG->em_list_no == 3) {
         cEm* em0;
@@ -292,7 +292,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r204_work.p->tex->texId;
         r204_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0, r204_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r204_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

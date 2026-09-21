@@ -470,7 +470,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     if (evtToolOn()) {
         f |= 0x1000;
     }
-    EstSet(m, -1, 0, 0, head, f | 1, 0, m, 0xCF, (void*) zero);
+    EstSet(m, -1, 0, 0, head, f | 1, ESP_CORE_KIND_NONE, m, EFF_DEBUG, (void*) zero);
 }
 
 // Loads the event's camera data for the event-tool preview (EvtDebug camName).
@@ -2322,7 +2322,7 @@ extern "C" int symbol_check(char** pp, const char* sym)
 // Plays core effect `id` at the origin (EstSet without an owner).
 extern "C" void CoreEstSet(u8 id)
 {
-    EstSet(0, -1, 0, 0, 0, id, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_CORE, id, 1, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Blits a texture object to the screen (the texture preview window).

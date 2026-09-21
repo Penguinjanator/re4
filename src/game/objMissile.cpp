@@ -198,7 +198,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet(obj, -1, 0, 0, 0x32, 4, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, EFF_EM3D, 4, 0, ESP_CORE_KIND_NONE, obj, 0);
             break;
         case 1:
             break;
@@ -300,7 +300,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
         switch (obj->type) {
         case 0:
         default:
-            EstSet(obj, -1, 0, 0, 0x32, 5, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, EFF_EM3D, 5, 0, ESP_CORE_KIND_NONE, obj, 0);
             SndCall(6, 2, &obj->pos, 0, 0, obj);
             w->Spd.x = 0.0f;
             w->Spd.y = 0.0f;
@@ -425,12 +425,12 @@ void objMissileBomb(cObjMissile* obj, Vec* pos)
     switch (obj->type) {
     case 0:
     default:
-        EstSet(0, -1, pos, 0, 0x32, 7, 0, 0, 0, 0);
+        EstSet(0, -1, pos, 0, EFF_EM3D, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 3, &obj->pos, 0, 0, obj);
         PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x12, 3, 8000.0f);
         break;
     case 1:
-        EstSet(0, -1, pos, 0, 2, 5, 0, 0, 0, 0);
+        EstSet(0, -1, pos, 0, EFF_EM3A, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
         PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x13, 3, 2000.0f);
         break;
     }

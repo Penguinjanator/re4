@@ -126,7 +126,7 @@ void cObjMine::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
         if (pG->weapon_type == 0) {
-            EstSet(this, -1, 0, 0, 0x48, 0, 0, 0xA, 0, 0);
+            EstSet(this, -1, 0, 0, EFF_WEP14, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         }
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;
@@ -224,7 +224,7 @@ void cObjMine::moveReload()
             break;
         }
         motionSet(m, 0, 0, 1, 0);
-        EstSet(this, -1, 0, 0, 0x48, 1, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP14, 1, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         switch (pG->weapon_lv_reload) {
         default:
             se = 2;

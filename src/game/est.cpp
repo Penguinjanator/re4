@@ -122,7 +122,7 @@ void AreaSstSet(int id)
     }
     for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
-            SstSet(1, (u16) j, j + 0xC, id, id, 0);
+            SstSet(EFF_ROOM, (u16) j, (ESP_CORE_KIND) (ESP_CORE_KIND_ROOM_AREA00 + j), id, id, 0);
         }
     }
 }
@@ -174,7 +174,7 @@ void SetSstAddAreaFlag(u32 flag)
 // whose display flag is on, as a permanent effect (Core_flg 0x4001, kind no, owner 0xD0). move != 0
 // pre-runs the generators 200 frames so steady-state effects (smoke, dust) are already full.
 // Starts every effect of owner `owner` whose room key lies in [lo, hi] and whose type is `type`.
-void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
+void SstSet(u32 owner, int type, ESP_CORE_KIND kind, int lo, int hi, int move)
 {
     cEspSystem* sys = g_pEspSys;
     SstTbl* tbl;
@@ -182,12 +182,12 @@ void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
     u32* ofs;
     u32 i;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         pLog->err(0, 0, "GetSstAddr():Invalid OWNER_ID[%x].", owner);
         return;
     }
     tbl = &sys->sstTbl[owner];
-    if (tbl->owner == 0xD2) {
+    if (tbl->owner == EFF_NONE) {
         return;
     }
     list = tbl->list;
@@ -203,7 +203,7 @@ void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
         }
         ofs = tbl->data->ofs;
         ofs += i;
-        EstSet(NULL, -1, NULL, NULL, (EspSeqData*) ((u8*) tbl->data + *ofs), 0x4001, (u8) no, 0, 0xD0, NULL);
+        EstSet(NULL, -1, NULL, NULL, (EspSeqData*) ((u8*) tbl->data + *ofs), 0x4001, (u8) kind, 0, EFF_SST, NULL);
     }
     if (move) {
         EspGenSetMoveLoop(200);
@@ -303,9 +303,9 @@ void EspDeleteEvent()
 void EspSetWaterBomb(Vec* pos)
 {
     if (pG->room_id == 0x10A || pG->room_id == 0x10B || pG->room_id == 0x11A || pG->room_id == 0x11B) {
-        EstSet(0, -1, pos, NULL, 1, 0x2F, 0, 0, 0, NULL);
+        EstSet(0, -1, pos, NULL, EFF_ROOM, 0x2F, 0, ESP_CORE_KIND_NONE, 0, NULL);
     } else {
-        EstSet(0, -1, pos, NULL, 0, 0x15, 0, 0, 0, NULL);
+        EstSet(0, -1, pos, NULL, EFF_CORE, 0x15, 0, ESP_CORE_KIND_NONE, 0, NULL);
     }
 }
 
@@ -316,9 +316,9 @@ void EspSetWaterHitmark(Vec* pos)
         return;
     }
     if (pG->room_id == 0x10A || pG->room_id == 0x10B || pG->room_id == 0x11A || pG->room_id == 0x11B) {
-        EstSet(0, -1, pos, NULL, 1, 0x20, 0, 0, 0, NULL);
+        EstSet(0, -1, pos, NULL, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, 0, NULL);
     } else {
-        EstSet(0, -1, pos, NULL, 0, 0x14, 0, 0, 0, NULL);
+        EstSet(0, -1, pos, NULL, EFF_CORE, 0x14, 0, ESP_CORE_KIND_NONE, 0, NULL);
     }
 }
 
@@ -379,27 +379,27 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
     switch (type) {
     case 0:
         if (EspChkInPuddle(pos, nrm) == 1) {
-            EstSet(0, -1, pos, NULL, 0, 0x11, 0, 0, (void*) type, (void*) type);
+            EstSet(0, -1, pos, NULL, EFF_CORE, 0x11, 0, ESP_CORE_KIND_NONE, (void*) type, (void*) type);
             SndCall(2, 0xC, pos, 0, 0, NULL);
         } else {
-            EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, (void*) type, (void*) type);
+            EstSet(0, -1, pos, &rot, EFF_CORE, 0x1F, 0, ESP_CORE_KIND_NONE, (void*) type, (void*) type);
             if (DbgFlagChk(pG, DBG_SET_HITMARK_ALL)) {
-                EstSet(0, -1, pos, &rot, 0, 0x87, 0, 0, (void*) type, (void*) type);
+                EstSet(0, -1, pos, &rot, EFF_CORE, 0x87, 0, ESP_CORE_KIND_NONE, (void*) type, (void*) type);
             }
         }
         break;
     case 1:
-        EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, 0, NULL);
-        EstSet(0, -1, pos, &rot, 0, 0x20, 0, 0, 0, NULL);
+        EstSet(0, -1, pos, &rot, EFF_CORE, 0x1F, 0, ESP_CORE_KIND_NONE, 0, NULL);
+        EstSet(0, -1, pos, &rot, EFF_CORE, 0x20, 0, ESP_CORE_KIND_NONE, 0, NULL);
         break;
     case 2:
-        if (info == NULL || eff1 == 0xD2) {
+        if (info == NULL || eff1 == EFF_NONE) {
             pLog->err(0, 0, "NOT REGIST EAT EFF INFO %d", type);
             break;
         }
         info->getWepEff(wep, &eff1, &eff2);
-        if (eff1 != 0xD2 && eff2 != 1) {
-            EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, 0, 0, NULL);
+        if (eff1 != EFF_NONE && eff2 != 1) {
+            EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, ESP_CORE_KIND_NONE, 0, NULL);
         }
         SndCall(2, 0xB, pos, 0, 0, NULL);
         break;
@@ -410,13 +410,13 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
     case 5:
     case 6:
     case 7:
-        if (info == NULL || eff1 == 0xD2) {
+        if (info == NULL || eff1 == EFF_NONE) {
             pLog->err(0, 0, "NOT REGIST EAT EFF INFO %d", type);
             break;
         }
         info->getWepEff(wep, &eff1, &eff2);
-        if (eff1 != 0xD2 && eff2 != 1) {
-            EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, 0, 0, NULL);
+        if (eff1 != EFF_NONE && eff2 != 1) {
+            EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, ESP_CORE_KIND_NONE, 0, NULL);
         }
         if (info != NULL && (info->flag & 1)) {
             SndCall(2, 0xB, pos, 0, 0, NULL);
@@ -432,25 +432,25 @@ void EventCutEstSet(int owner, u32 no)
     u8 id = (no / 10) * 16 + no % 10;
 
     if (EspGetEstAddr(owner, id, 1) != NULL) {
-        EstSet(0, -1, NULL, NULL, owner, id, 0x1001, 0, 0, NULL);
+        EstSet(0, -1, NULL, NULL, owner, id, 0x1001, ESP_CORE_KIND_NONE, 0, NULL);
     }
 }
 
 // Deletes the effects started by the current event cut (Core_flg 0x3001).
 void EventCutEffDelete()
 {
-    EffectEspDelete(0x3001, 0, 0, NULL);
-    EffectEspgenDelete(0x3001, 0, 0);
-    EffectEfmDelete(0x3001, 0, 0);
+    EffectEspDelete(0x3001, ESP_CORE_KIND_NONE, 0, NULL);
+    EffectEspgenDelete(0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(0x3001, ESP_CORE_KIND_NONE, 0);
 }
 
 // Deletes the cut effects and the whole-event effects (Core_flg 0x2001).
 void EventAllEffDelete()
 {
     EventCutEffDelete();
-    EffectEspDelete(0x2001, 0, 0, NULL);
-    EffectEspgenDelete(0x2001, 0, 0);
-    EffectEfmDelete(0x2001, 0, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_NONE, 0, NULL);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_NONE, 0);
 }
 
 // 1 when water effects are on (Status_flg[1] 0x400) and the point is not in a flagged effect area.
@@ -468,12 +468,12 @@ int ChkWaterEffectEnable(Vec* pos)
 // position pointer doubles as the owner key.
 void EstSetEm10WaterFall(Vec* pos)
 {
-    EspSeqData* head = EspGetEstAddr(1, 0x32, 1);
+    EspSeqData* head = EspGetEstAddr(EFF_ROOM, 0x32, 1);
 
     if (head != NULL) {
-        EstSet((cModel*) pos, -1, NULL, NULL, 1, 0x32, 0, 0, pos, NULL);
+        EstSet((cModel*) pos, -1, NULL, NULL, EFF_ROOM, 0x32, 0, ESP_CORE_KIND_NONE, pos, NULL);
     } else {
-        EstSet((cModel*) pos, -1, NULL, NULL, 0x10, 0x8D, 0, 0, pos, NULL);
+        EstSet((cModel*) pos, -1, NULL, NULL, EFF_EM10, 0x8D, 0, ESP_CORE_KIND_NONE, pos, NULL);
     }
 }
 

@@ -261,8 +261,8 @@ void R226Init()
             SmdSetTrans(0x50, 0);
             SmdSetTrans(0x51, 0);
             SmdSetTrans(0x52, 0);
-            EstSet(0, -1, 0, 0, 1, 0x10, 1, 0, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, ESP_CORE_KIND_NONE, 0, 0);
             if (r226_work.p->eat[3]) {
                 r226_work.p->eat[3]->m_Flag &= ~4;
             }
@@ -490,7 +490,7 @@ static void R226EventRoboStartMain()
         SceSleep(1);
     }
     CamCtrl.CutCall(8);
-    EstSet(0, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     r226_work.p->str = SndStrPlayBlock(1, 0x2B, 0.0f);
     SceExec(0x12, (TaskFunc) R226EventRoboStartMainSub, 0x3D, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(30);
@@ -642,7 +642,7 @@ static void R226EventPassageSwitchMain(int side)
         SceSleep(1);
     }
     CamCtrl.CutCall(cutX);
-    EstSet(0, -1, 0, 0, 1, estX, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, estX, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     o = SmdGetObjPtr(objPos);
     if (o) {
         for (int i = 0; i < 60; i++) {
@@ -788,8 +788,8 @@ static void R226EventRoboWalkPassageStart()
     SndRoomStrStart(1, 0, 1);
     SceSleep(2);
     SmdSetTrans(0x35, 0);
-    EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
-    EstSet(robo, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EstSet(robo, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     if (r226_work.p->sat[0]) {
         r226_work.p->sat[0]->m_Flag &= ~4;
     }
@@ -831,7 +831,7 @@ static void R226EventRoboWalkPassageGoal()
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x38), 0, 3, 1, 0);
     while (MotionGetState(pPL) == 0) {
         if (pPL->frame > 11.7f && pPL->frame < 12.3f) {
-            EstSet(0, -1, &pPL->pos, 0, 3, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &pPL->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SceSleep(1);
     }
@@ -864,7 +864,7 @@ static void R226EventTowerLookMain()
     SndBgmTblSet(0x226, 2);
     SndRoomStrStart(1, 0, 1);
     CamCtrl.CutCall(0xF);
-    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x3F, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -896,7 +896,7 @@ static void R226EventRoboWalkDoorDie()
     robo->setPos(&pos);
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6D), 0, 0, 0x201, 0);
     MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6E), 0, 0, 1, 0);
-    EstSet(robo, -1, 0, 0, 1, 0x22, 1, 0, 0, 0);
+    EstSet(robo, -1, 0, 0, EFF_ROOM, 0x22, 1, ESP_CORE_KIND_NONE, 0, 0);
     robo->setAng(0.0f, -1.5707964f, 0.0f);
     pos.x = robo->pos.x - 9062.5f;
     pos.y = robo->pos.y + 0.0f;
@@ -927,10 +927,10 @@ static void R226EventRoboWalkBridgeStart()
     SmdSetTrans(0x1B, 0);
     SmdSetTrans(0x1C, 0);
     MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5D), ROOM_ARC_PTR(pG->pRoom, 0x68), 0, 1, 0);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 2, 0, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     i = 0;
     while (MotionGetState(robo) == 0) {
         if (i++ == 9) {
@@ -951,13 +951,13 @@ static void R226EventRoboWalkBridgeStart()
             SmdSetTrans(smd[i], 0);
         }
     }
-    EstSet(0, -1, 0, 0, 1, 0x10, 1, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x11, 0x2001, 3, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x12, 0x2001, 4, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x13, 0x2001, 5, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x14, 0x2001, 6, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x15, 0x2001, 7, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x16, 0x2001, 8, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, 0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x13, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x15, 0x2001, ESP_CORE_KIND_ROOM05, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 0x2001, ESP_CORE_KIND_ROOM06, 0, 0);
     SceEventEnd(0);
     SceExit();
 }
@@ -1509,7 +1509,7 @@ static void playerPillarDownTask(int smdNo)
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x41), 0, 0, 1, 0);
     }
     o->be_flag |= 0x20;
-    EstSet(0, -1, 0, 0, 1, (u8) hits[k], 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, (u8) hits[k], 1, ESP_CORE_KIND_ROOM00, 0, 0);
     SndCall(6, 0xA, &o->pos, 0, 0, 0);
     while (1) {
         i++;

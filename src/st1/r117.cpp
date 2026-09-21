@@ -161,13 +161,13 @@ void R117Init()
             setEm(0x51, -1, 0, 1, 0);
         }
         SmdGetObjPtr(0x2E)->be_flag &= ~2;
-        EstSet(0, -1, 0, 0, 1, 0x27, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x27, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     }
     if (pG->Part == 1) {
         void* zero = 0;
 
-        EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
-        EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
+        EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, zero, zero);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0x26, 0x800, ESP_CORE_KIND_NONE, zero, zero);
     }
 }
 
@@ -183,7 +183,7 @@ extern "C" void r117_MechanismInit()
         W->cur[1] = 0;
         W->cur[2] = 0;
         r117_MechanismDisarm();
-        EstSet(0, -1, 0, 0, 1, 0x25, 1, 2, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x25, 1, ESP_CORE_KIND_ROOM00, zero, zero);
         for (i = 0; i < 4; i++) {
             if (RsfCheck(G_ROOM_ID, i + 0xF)) {
                 W->tgt[0] = i;
@@ -237,13 +237,13 @@ extern "C" void r117_MechanismInit()
                     W->tgt[2] = i;
                 }
             }
-            EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 1, 1, 2, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
             r117_LightSet(1);
         }
-        EstSet(0, -1, 0, 0, 1, 0x11, 1, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         SceAtSetEnable(5, 0);
     }
     W->light[0] = SmdGetObjPtr(0x32);
@@ -303,17 +303,17 @@ extern "C" void r117_LightSet(int n)
     }
     }
     if (n != 0) {
-        if (EspEstSetSelect(1, type[0], 0, &W->esp[0], 1) == 1) {
+        if (EspEstSetSelect(EFF_ROOM, type[0], 0, &W->esp[0], 1) == 1) {
             W->esp[0]->m_Ang.z = (f32) W->cur[0] * 1.5707964f;
         } else {
             W->esp[0] = 0;
         }
-        if (EspEstSetSelect(1, type[1], 0, &W->esp[1], 1) == 1) {
+        if (EspEstSetSelect(EFF_ROOM, type[1], 0, &W->esp[1], 1) == 1) {
             W->esp[1]->m_Ang.z = (f32) W->cur[1] * 1.5707964f;
         } else {
             W->esp[1] = 0;
         }
-        if (EspEstSetSelect(1, type[2], 0, &W->esp[2], 1) == 1) {
+        if (EspEstSetSelect(EFF_ROOM, type[2], 0, &W->esp[2], 1) == 1) {
             W->esp[2]->m_Ang.z = (f32) W->cur[2] * 1.5707964f;
         } else {
             W->esp[2] = 0;
@@ -423,11 +423,11 @@ static void r117_EventSaddlerAppear()
         MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         W->evd1->setCommand(CMND_DEL_DATA, 0, 0);
     }
-    EffectEspDelete(0x2001, 3, 0, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
     void* zero = 0;
-    EffectEspgenDelete(0x2001, 3, 0);
-    EffectEfmDelete(0x2001, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 0x27, 0x2001, 3, zero, zero);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x27, 0x2001, ESP_CORE_KIND_ROOM01, zero, zero);
     SceEventEnd(0);
     f32 ry = -0.46134f;
     StaFlagOn(pG, STA_SUB_ASHLEY);
@@ -442,8 +442,8 @@ static void r117_EventSaddlerAppear()
     SubCharCtrl(SCC_CHASE, 0);
     SndBgmTblSet(0x117, 1);
     SceSetChapterEnd(CHAPTER_2_1, -1);
-    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, zero, zero);
-    EstSet(pPL, -1, 0, 0, 1, 0x26, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, zero, zero);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 0x26, 0x800, ESP_CORE_KIND_NONE, zero, zero);
 }
 
 static void (*r117_lightMechTbl[2])() = {r117_LightMechanismInit, r117_LightMechanismMove};
@@ -467,10 +467,10 @@ static void r117_LightMechanismInit()
         CamCtrl.CutCall(4);
         SceSleep(30);
         r117_LightSet(1);
-        EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 1, 2, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         RoomSeCall(0xF, 0, 0, 0, 0);
         RsfSet(G_ROOM_ID, 2);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -546,16 +546,16 @@ static void r117_LightMechanismMove()
         while (r117_espEnd(esp) == 0) {
             SceSleep(1);
         }
-        EffectEspDelete(1, 3, 0, 0);
-        EffectEspgenDelete(1, 3, 0);
-        EffectEfmDelete(1, 3, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
         r117_LightSet(4);
-        if (EspEstSetSelect(1, effTbl[W->cur[0]][W->cur[1]][W->cur[2]], 0, &esp2, 1) == 1) {
+        if (EspEstSetSelect(EFF_ROOM, effTbl[W->cur[0]][W->cur[1]][W->cur[2]], 0, &esp2, 1) == 1) {
             esp2->m_Ang.z = angTbl[W->cur[0]] * 1.5707964f;
         }
         if (W->cur[0] == 0 && W->cur[1] == 0 && W->cur[2] == 0) {
             RoomSeCall(4, 0, 0, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 4, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_ROOM00, 0, 0);
             SceSleep(60);
             W->mode++;
         } else {
@@ -563,7 +563,7 @@ static void r117_LightMechanismMove()
             SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
             CamCtrl.CutCall(7);
             r117_LightSet(3);
-            EstSet(0, -1, 0, 0, 1, 0x11, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, ESP_CORE_KIND_ROOM01, 0, 0);
             esp = W->esp[0];
             while (r117_espEnd(esp) == 0) {
                 SceSleep(1);
@@ -583,7 +583,7 @@ static void r117_LightMechanismMove()
         CamCtrl.CutCall(5);
         W->se = RoomSeCall(0xD, 0, 0, 0, 0);
         SceSetEventCancel(1, (TaskFunc) r117_LightMechanismEndProc, 1, -1, 1);
-        EstSet(0, -1, 0, 0, 1, 0x28, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x28, 1, ESP_CORE_KIND_NONE, 0, 0);
         {
             f32 spd = 22.0f;
 
@@ -617,11 +617,11 @@ static void r117_LightMechanismEndProc(int mode)
         SndStop(W->se, 0);
         r117_MechanismDisarm();
         RsfClear(G_ROOM_ID, 2);
-        EffectEspDelete(1, 2, 0, 0);
-        EffectEspgenDelete(1, 2, 0);
-        EffectEfmDelete(1, 2, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
         r117_LightSet(0);
-        EstSet(0, -1, 0, 0, 1, 0x25, 0x801, 2, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x25, 0x801, ESP_CORE_KIND_ROOM00, zero, zero);
     }
     f32 ry = -3.11f;
     cPlayer* pl = pPL;
@@ -823,7 +823,7 @@ static void r117_ThunderMove()
     for (;;) {
         if (cnt == 0) {
             if (EffGetAreaState(2) != 0) {
-                EstSet(0, -1, 0, 0, 1, 0x14, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             {
                 u8 r = Rnd() % 30;

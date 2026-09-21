@@ -176,9 +176,9 @@ void cPl0e::setPos(Vec* p, f32 ang)
     TransMatrix(mat, &pos);
     partsMatCalc();
     partsWorldCalc();
-    EffectEspDelete(0, 0x35, this, 0);
-    EffectEspgenDelete(0, 0x35, this);
-    EffectEfmDelete(0, 0x35, this);
+    EffectEspDelete(0, ESP_CORE_KIND_BOAT, this, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, this);
+    EffectEfmDelete(0, ESP_CORE_KIND_BOAT, this);
 }
 
 // r_no_0 == 0: creation. Loads the ski model (archive 5/6) with a 2 m light area, no IK, no lock-on
@@ -208,7 +208,7 @@ static void pl0e_R0_Init(cPl0e* em)
     em->atari.m_flag &= 0xFCFF;
     em->atari.setPriority(PRI_LV1);
     em->setStatus(EM_STATUS_LOCKOFF);
-    EspDataLoad((u32) ARC(0x4), 0xE, 0);
+    EspDataLoad((u32) ARC(0x4), EFF_PL0E, 0);
     w->flags = zero;
     w->cnt68 = 0x1D;
     w->sink = 96000.0f;
@@ -283,7 +283,7 @@ static void pl0e_R1_Ride(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0xF), 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0xE, 0xA, 1, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_PL0E, 0xA, 1, w->espKind, em, 0);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -435,7 +435,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             SetSubDamage(em, subBoatLanding);
         }
         if (em->be_flag & 2) {
-            EstSet(em, -1, 0, 0, 0xE, 4, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 4, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         SndCall(8, 9, &em->pos, em->id, 0, em);
         VibSetData(VIB_TBL, 7, 1);
@@ -477,9 +477,9 @@ static void pl0e_R1_Crash(cPl0e* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0xD), 0, 3, 1, 0);
         if (w->flags & 2) {
-            EstSet(em, -1, 0, 0, 0xE, 0xB, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 0xB, 0, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0xE, 5, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 5, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         EmRoutineSet(pPL, 0, 0xF, 4, 0);
         if (pSUB) {
@@ -512,7 +512,7 @@ static void pl0e_R1_Sink(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0x12), 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0xE, 0xC, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_PL0E, 0xC, 0, ESP_CORE_KIND_NONE, em, 0);
         w->flags |= 4;
         pGS->pl_life = 0;
         DiedemoExec(0x1E, 0);
@@ -550,7 +550,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         em->ang.y = 0.0f;
         em->ang.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0x13), 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0xE, 0xD, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_PL0E, 0xD, 0, ESP_CORE_KIND_NONE, em, 0);
         pG->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
@@ -1459,17 +1459,17 @@ void pl0ePathMove(cPl0e* em, int jump)
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     if (!(w->flags & 1) && (em->be_flag & 2)) {
         if (w->spd > 100.0f) {
-            EstSet(em, -1, 0, 0, 0xE, 0, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 0, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (w->spd > pl0e_spd_max + 100.0f) {
-            EstSet(em, -1, 0, 0, 0xE, 3, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 3, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (Key.trg & 8) {
-            EstSet(em, -1, 0, 0, 0xE, 1, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 1, 0, ESP_CORE_KIND_NONE, em, 0);
             SndCall(8, 0xC, &em->pos, em->id, 0, em);
         }
         if (Key.trg & 4) {
-            EstSet(em, -1, 0, 0, 0xE, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_PL0E, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             SndCall(8, 0xC, &em->pos, em->id, 0, em);
         }
     }
@@ -1518,7 +1518,7 @@ void cPl0e::set2ndRail()
         SetSubDamage(this, subBoatRun);
     }
     if (w->pWave) {
-        EstSet(w->pWave, -1, 0, 0, 0xE, 9, 1, 0, w->pWave, 0);
+        EstSet(w->pWave, -1, 0, 0, EFF_PL0E, 9, 1, ESP_CORE_KIND_NONE, w->pWave, 0);
     }
 }
 

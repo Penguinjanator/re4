@@ -47,7 +47,7 @@ void Wep04_init(cModel* m)
     } else {
         pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x38, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP04, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x26);
         PlWepMot[1] = WEP_ARC_PTR(0x27);
         PlWepMot[2] = WEP_ARC_PTR(0x28);
@@ -151,7 +151,7 @@ void cObjXd9::moveFire()
         if (pG->weapon_type == 1) {
             type = 1;
         }
-        EstSet(this, -1, 0, 0, 0x38, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP04, type, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;

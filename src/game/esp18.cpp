@@ -343,7 +343,7 @@ void Esp18_Trans(cEsp18* esp)
         {
             int no = esp->m_Tex_id;
             EspTexWk* tw = EspGetTexWk(no, 1);
-            if (tw->Owner == 0xD2) {
+            if (tw->Owner == EFF_NONE) {
                 pLog->err(0, 0, "ESP : TexId[%x] no data", no);
             } else {
                 GXTexObj tex2;

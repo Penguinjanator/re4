@@ -44,7 +44,7 @@ void Wep06_init(cModel* m)
         pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x3A, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP06, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x26);
         PlWepMot[1] = WEP_ARC_PTR(0x27);
         PlWepMot[2] = WEP_ARC_PTR(0x28);
@@ -112,7 +112,7 @@ void cObjGovernment::moveFire()
         StaFlagOn(pG, STA_PL_FIRE);
         MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
-        EstSet(this, -1, 0, 0, 0x3A, 0, 0, 0xA, (void*) zero, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP06, 0, 0, ESP_CORE_KIND_PL_WEP, (void*) zero, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;

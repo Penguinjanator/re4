@@ -123,7 +123,7 @@ void cSubWep::moveWater()
         return;
     }
     if (!(subWep.effNo == 0xD2 && subWep.effPrm == 1)) {
-        EstSet(0, -1, &pos, 0, subWep.effNo, subWep.effPrm, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, subWep.effNo, subWep.effPrm, 0, ESP_CORE_KIND_NONE, 0, 0);
         if (subWep.effNo == 0 && subWep.effPrm == 0x15) {
             Vec a;
             Vec b;
@@ -136,7 +136,7 @@ void cSubWep::moveWater()
             b.y = pos.y + 300.0f;
             b.z = pos.z;
             if (EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0) == 0 || nrm.y > 0.9f) {
-                EstSet(0, -1, &pos, 0, 0, 0x28, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x28, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
     }
@@ -288,18 +288,18 @@ void cSubWep::addSpeed()
         }
         if (type > 2) {
             if (info->eff0[0] != 0xD2) {
-                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             } else if (info->eff0[1] != 1) {
-                EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             AddWaterPower(&pos, 0.5f);
             ObjMgr.destroy(this);
         } else if (type == 0) {
             if (info->eff0[0] != 0xD2) {
-                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             } else if (info->eff0[1] != 1) {
-                EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             AddWaterPower(&pos, 0.5f);
@@ -342,18 +342,18 @@ void cSubWep::addSpeed()
     if (subWep.attr & 1) {
         if (type > 2) {
             if (info->eff0[0] != 0xD2) {
-                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             } else if (info->eff0[1] != 1) {
-                EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             AddWaterPower(&pos, 0.5f);
             ObjMgr.destroy(this);
         } else if (type == 0) {
             if (info->eff0[0] != 0xD2) {
-                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             } else if (info->eff0[1] != 1) {
-                EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             r_no_0 = 1;
@@ -621,12 +621,12 @@ void cObjGrenade::explode()
             b.z = pos.z;
             attr = EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
             if (nrm.y > 0.9f && !(attr & 0x40)) {
-                EstSet(0, -1, &pos, 0, 0, 0x1A, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x1A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             no = 0;
             prm = 0xD;
         }
-        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, no, prm, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(1, 0x14, &pos, 0, 0, 0);
     }
     StaFlagOn(pG, STA_PL_FIRE);
@@ -689,13 +689,13 @@ void cObjGreFire::explode()
             attr = EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
             if (nrm.y > 0.9f && !(attr & 0x40)) {
                 if (pos.y - SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0) < 200.0f) {
-                    EstSet(0, -1, &pos, 0, 0, 0x26, 0, 0, 0, 0);
+                    EstSet(0, -1, &pos, 0, EFF_CORE, 0x26, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             no = 0;
             prm = 0xB;
         }
-        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, no, prm, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(1, 0x22, &pos, 0, 0, 0);
         dmgSet(1);
     }
@@ -737,11 +737,11 @@ void cObjGreLight::explode()
             no = (u8) subWep.effNo;
             prm = subWep.effPrm;
         } else {
-            EstSet(0, -1, 0, 0, 0, 0x3F, 0, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_CORE, 0x3F, 0, ESP_CORE_KIND_NONE, 0, 0);
             no = 0;
             prm = 0xC;
         }
-        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, 0, no, prm, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(1, 0x13, &pos, 0, 0, 0);
     }
     StaFlagOn(pG, STA_PL_FIRE);
@@ -772,9 +772,9 @@ void cObjEgg::explode()
         AddWaterPower(&pos, 1.0f);
     } else {
         if (subWep.flags & 0x10) {
-            EstSet(0, -1, &pos, 0, 0, 0x43, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, 0, EFF_CORE, 0x43, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &pos, 0, 0, 0x42, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, 0, EFF_CORE, 0x42, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(1, 6, &pos, 0, 0, 0);
     }

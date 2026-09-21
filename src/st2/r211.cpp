@@ -176,7 +176,7 @@ void r211_GrateOpen()
     SceEventStart(0);
     CamCtrl.CutCall(4);
     r211_work->se = RoomSeCall(0, &obj->pos, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     pG->Room_flg[0] &= ~0x00200000;
     SceSetEventCancel(1, (TaskFunc) r211_GrateOpenEndProc, 0, 0xA, 1);
     while (obj->pos.y < 4600.0f) {
@@ -201,9 +201,9 @@ static void r211_GrateOpenEndProc()
     BitOff(obj->be_flag, 2);
     if (pG->Room_flg[0] & 0x00200000) {
         RoomSeCall(1, &obj->pos, 0, 0, 0);
-        EffectEspDelete(1, 2, 0, 0);
-        EffectEspgenDelete(1, 2, 0);
-        EffectEfmDelete(1, 2, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     }
     CamCtrl.Comeback(0);
     RsfSet(G_ROOM_ID, 2);

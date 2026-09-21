@@ -223,15 +223,15 @@ void emBarSetBreak(cEmBar* em, u32 type)
         switch (type) {
         case 0:
         default:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 8, &em->pos, 0, 0, em);
             break;
         case 1:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 8, &em->pos, 0, 0, em);
             break;
         case 2:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 7, &em->pos, 0, 0, em);
             break;
         }

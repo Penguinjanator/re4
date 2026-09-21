@@ -76,7 +76,7 @@ void cObjRocket::move()
                 pLog->err(0, 0, "  PLEASE SET EatMgr.registEffInfo()");
                 return;
             }
-            EstSet(0, -1, &pos, 0, info->eff0D[0], (u8) info->eff0D[1], 0, 0, 0, 0);
+            EstSet(0, -1, &pos, 0, info->eff0D[0], (u8) info->eff0D[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             if (info->eff0D[0] == 0 && info->eff0D[1] == 0x15) {
                 Vec a;
                 Vec b;
@@ -90,7 +90,7 @@ void cObjRocket::move()
                 b.y = pos.y + 300.0f;
                 b.z = pos.z;
                 if (EatMgr.hitCheck(&a, &b, &hitW, &nrmW, 0, 0) == 0 || nrmW.y > 0.9f) {
-                    EstSet(0, -1, &hitW, 0, 0, 0x28, 0, 0, 0, 0);
+                    EstSet(0, -1, &hitW, 0, EFF_CORE, 0x28, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             AddWaterPower(&pos, 1.0f);
@@ -106,7 +106,7 @@ void cObjRocket::move()
                 pG->SeInfo.pos = pos;
                 pGS->SeInfo.type = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
-                EstSet(0, -1, &pos, 0, 0, 0x27, 0, 10, 0, 0);
+                EstSet(0, -1, &pos, 0, EFF_CORE, 0x27, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
                 SndCall(1, 0x14, &pos, 0, 0, 0);
                 r_no_0 = 2;
             } else {
@@ -124,7 +124,7 @@ void cObjRocket::move()
                     PSVECAdd(&hit, &sc, &hit);
                     info = EatMgr.getEffInfo(EatGetEffectType(attr));
                     if (info) {
-                        EstSet(0, -1, &hit, 0, info->eff0D[0], (u8) info->eff0D[1], 0, 10, 0, 0);
+                        EstSet(0, -1, &hit, 0, info->eff0D[0], (u8) info->eff0D[1], 0, ESP_CORE_KIND_PL_WEP, 0, 0);
                         if (info->eff0D[0] == 0 && info->eff0D[1] == 0x15) {
                             Vec nrm2;
                             Vec hit2;
@@ -136,12 +136,12 @@ void cObjRocket::move()
                             b.y = pos.y + 300.0f;
                             b.z = pos.z;
                             if (EatMgr.hitCheck(&a, &b, &hit2, &nrm2, 0, 0) == 0 || nrm2.y > 0.9f) {
-                                EstSet(0, -1, &hit2, 0, 0, 0x28, 0, 0, 0, 0);
+                                EstSet(0, -1, &hit2, 0, EFF_CORE, 0x28, 0, ESP_CORE_KIND_NONE, 0, 0);
                             }
                         }
                     } else {
-                        EstSet(0, -1, &hit, 0, 0, 0x27, 0, 10, 0, 0);
-                        EstSet(0, -1, &hit, 0, 0, 0x1A, 0, 0, 0, 0);
+                        EstSet(0, -1, &hit, 0, EFF_CORE, 0x27, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
+                        EstSet(0, -1, &hit, 0, EFF_CORE, 0x1A, 0, ESP_CORE_KIND_NONE, 0, 0);
                     }
                     StaFlagOn(pG, STA_SE_BURST);
                     pG->SeInfo.pos = pos;
@@ -173,7 +173,7 @@ void cObjRocket::fire()
 {
     MotionSetCore(this, &Motion, PL_ARC_PTR(pG->pPlayer, 0x74), 0, 0, 1, 0);
     MotionMove(this, 0);
-    EstSet(this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
+    EstSet(this, -1, 0, 0, EFF_CORE, 0x29, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
     rocket.timer = 300;
     type = 1;
     r_no_0 = 1;
@@ -328,7 +328,7 @@ void cObjLauncher::launch()
     launcher.rocket->fire();
     launcher.flags |= 1;
     launcher.rocket = 0;
-    EstSet(this, -1, 0, 0, 0x47, 0, 0, 10, 0, 0);
+    EstSet(this, -1, 0, 0, EFF_WEP13, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
     SndCall(2, 0, &pos, 0, 0, 0);
     StaFlagOn(pG, STA_PL_FIRE);
 }

@@ -96,7 +96,7 @@ void cCtrl14::move()
     if (w->fireDelay) {
         w->fireDelay--;
         if (w->fireDelay == 0) {
-            EstSet(w->obj[1], -1, NULL, NULL, 1, 2, 1, w->espKind, w->obj[1], NULL);
+            EstSet(w->obj[1], -1, NULL, NULL, EFF_ROOM, 2, 1, w->espKind, w->obj[1], NULL);
             SndCall(6, 2, &w->obj[1]->pos, 0, 0, w->obj[1]);
             w->fireTimer = 60;
         }
@@ -105,7 +105,7 @@ void cCtrl14::move()
         w->fireTimer--;
         if (w->fireTimer == 0) {
             EffectEspgenDelete(0, w->espKind, w->obj[1]);
-            EstSet(w->obj[1], -1, NULL, NULL, 1, 4, 1, 0, w->obj[1], NULL);
+            EstSet(w->obj[1], -1, NULL, NULL, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, w->obj[1], NULL);
         }
     }
     pos = w->obj[1]->getPartsPtr(0)->world;
@@ -329,10 +329,10 @@ void cCtrl14::setFire()
         if (w->fireTimer) {
             w->fireTimer = 0;
             EffectEspgenDelete(0, w->espKind, o);
-            EstSet(w->obj[1], -1, NULL, NULL, 1, 4, 1, 0, w->obj[1], NULL);
+            EstSet(w->obj[1], -1, NULL, NULL, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, w->obj[1], NULL);
         }
         w->fireDelay = 30;
-        EstSet(w->obj[1], -1, NULL, NULL, 1, 3, 1, w->espKind, w->obj[1], NULL);
+        EstSet(w->obj[1], -1, NULL, NULL, EFF_ROOM, 3, 1, w->espKind, w->obj[1], NULL);
         SndCall(6, 1, &w->obj[1]->pos, 0, 0, w->obj[1]);
     }
 }

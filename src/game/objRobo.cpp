@@ -279,7 +279,7 @@ void cObjRobo::R0WalkPassage(cObjRobo* robo)
 
     switch (w->step) {
     case 0:
-        EstSet(robo, -1, 0, 0, 1, 7, 1, 3, 0, 0);
+        EstSet(robo, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
         w->step++;
     case 1:
@@ -327,7 +327,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
         break;
     case 2:
         if (robo->motEvent & 1) {
-            EstSet(robo, -1, 0, 0, 1, 0xC, 1, 4, 0, 0);
+            EstSet(robo, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM02, 0, 0);
             w->SndTimer = 0;
         }
         w->SndTimer++;
@@ -372,7 +372,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
             pv->z = -16560.0f;
             robo->setPos(pv);
         }
-        EstSet(robo, -1, 0, 0, 1, 7, 1, 3, 0, 0);
+        EstSet(robo, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 5, 0);
         for (i = 0; i < 6; i++) {
             w->BridgeTimer[i] = 0;
@@ -396,11 +396,11 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
         }
         if (w->FallTimer == 10) {
             SndCall(6, 0xA, &robo->pos, 0, 0, 0);
-            EffectEspDelete(1, 3, 0, 0);
-            EffectEspgenDelete(1, 3, 0);
-            EffectEfmDelete(1, 3, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
             MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x63), 0, 0xA, 1, 0);
-            EstSet(robo, -1, 0, 0, 1, 0x20, 1, 0, 0, 0);
+            EstSet(robo, -1, 0, 0, EFF_ROOM, 0x20, 1, ESP_CORE_KIND_NONE, 0, 0);
             w->BridgeFallPos = robo->pos.x;
             w->FallSpdY = FRef(RoboFallSpdY);
         }
@@ -423,7 +423,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
                         EffectEspDelete(0x2001, (u8) estNo[i], 0, 0);
                         EffectEspgenDelete(0x2001, (u8) estNo[i], 0);
                         EffectEfmDelete(0x2001, (u8) estNo[i], 0);
-                        EstSet(0, -1, 0, 0, 1, (u8) estNo2[i], 1, 0, 0, 0);
+                        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) estNo2[i], 1, ESP_CORE_KIND_NONE, 0, 0);
                     }
                 }
             }
@@ -506,7 +506,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
         if (hitCk == 1) {
             robo->WalkHitCk(robo);
         }
-        EstSet(robo, -1, 0, 0, 1, 8, 1, 2, 0, 0);
+        EstSet(robo, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         parts = robo->getPartsPtr(0xD);
         if (parts) {
             SndCall(6, 8, &parts->world, 0, 0, 0);
@@ -516,7 +516,7 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
         if (hitCk == 1) {
             robo->WalkHitCk(robo);
         }
-        EstSet(robo, -1, 0, 0, 1, 9, 1, 2, 0, 0);
+        EstSet(robo, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         parts = robo->getPartsPtr(0x10);
         if (parts) {
             SndCall(6, 8, &parts->world, 0, 0, 0);

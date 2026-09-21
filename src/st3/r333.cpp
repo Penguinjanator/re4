@@ -124,7 +124,7 @@ void R333Init()
     }
     zero = 0;
     SysFlagOff(pG, SYS_SCREEN_STOP);
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 2, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM00, (void*) zero, (void*) zero);
     EvtMgr.SetFunc("evt_r333s00_func", (void*) Evt_R333S00_Func);
     EvtMgr.SetFunc("evt_r333s10_func", (void*) Evt_R333S10_Func);
     SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r333_useMes, 0, 1);
@@ -142,7 +142,7 @@ void R333Init()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) exec_no_ret, 0, 1);
     } else {
-        EstSet(0, -1, 0, 0, 1, 1, 1, 5, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_ROOM03, (void*) zero, (void*) zero);
     }
     zero = 0;
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -168,7 +168,7 @@ void R333Init()
     }
     ((cPl0e*) r333_work->em.getPtr())->setRail(ROOM_ARC_PTR(pG->pRoom, 0x1F));
     setTexRender();
-    EstSet(0, -1, 0, 0, 1, 0x10, 0x801, 3, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 0x801, ESP_CORE_KIND_ROOM01, (void*) zero, (void*) zero);
     SpfFlagOn(pG, SPF_WATER);
     DpfFlagOn(pG, DPF_WATER);
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) fall_eff, 0, 1);
@@ -254,9 +254,9 @@ void R333EventS10()
             SceAtSetEnable(2, 0);
             SndRoomStrStop(0);
             SndRoomBgmStop(0, 0);
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             ((cPl0e*) r333_work->em.getPtr())->stopEngine();
             SceEventStart(0);
             EvtMgr.EvtReadExec("event/evd/r333s10.evd", 0, 0);
@@ -333,9 +333,9 @@ extern "C" void Evt_R333S10_Func(Event* e)
             EffectEspgenDelete(0, no, 0);
             EffectEfmDelete(0, no, 0);
         }
-        EffectEspDelete(0x4001, 0, 0, 0);
-        EffectEspgenDelete(0x4001, 0, 0);
-        EffectEfmDelete(0x4001, 0, 0);
+        EffectEspDelete(0x4001, ESP_CORE_KIND_NONE, 0, 0);
+        EffectEspgenDelete(0x4001, ESP_CORE_KIND_NONE, 0);
+        EffectEfmDelete(0x4001, ESP_CORE_KIND_NONE, 0);
         SpfFlagOff(pG, SPF_WATER);
         Filter0bAllocBuf();
         SmdSetTrans(3, 0);
@@ -433,7 +433,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r333_work->tex->texId;
         IntSet(r333_work->tex->m_Rep_type, 1);
-        EstSet(0, -1, 0, 0, 1, 0, r333_work->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r333_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -463,7 +463,7 @@ static void exec_no_ret()
     RsfSet(G_ROOM_ID, 3);
     SceEventStart(1);
     SndStrReq(1, 0x3A, 0x80000003, 0, 0, 0.0f);
-    EstSet(0, -1, 0, 0, 1, 1, 1, 5, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_ROOM03, (void*) zero, (void*) zero);
     CamCtrl.CutCall(0xA);
     SceSetEventCancel(1, (TaskFunc) exec_no_ret_exit, 0, -1, 1);
     while (!CamCtrl.IsMotionEnd()) {
@@ -477,20 +477,20 @@ static void exec_no_ret()
 static void fall_eff()
 {
     SndCall(6, 0, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Area 0x10: a rock-fall effect (kind 0xA) with its SE.
 static void fall_eff2()
 {
     SndCall(6, 0, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Area 6: cave section A collapses (effect 5, SE 4 then 5 after 47 frames).
 static void fall_a()
 {
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 4, 0, 0, 0, 0);
     SceSleep(47);
     SndCall(6, 5, 0, 0, 0, 0);
@@ -499,7 +499,7 @@ static void fall_a()
 // Area 8: cave section B collapses (effect 4).
 static void fall_b()
 {
-    EstSet(0, -1, 0, 0, 1, 4, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 4, 0, 0, 0, 0);
     SceSleep(47);
     SndCall(6, 5, 0, 0, 0, 0);
@@ -508,7 +508,7 @@ static void fall_b()
 // Area 0xA: cave section C collapses (effect 2).
 static void fall_c()
 {
-    EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 4, 0, 0, 0, 0);
     SceSleep(47);
     SndCall(6, 5, 0, 0, 0, 0);
@@ -517,7 +517,7 @@ static void fall_c()
 // Area 0xC: cave section D collapses (effect 3).
 static void fall_d()
 {
-    EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 4, 0, 0, 0, 0);
     SceSleep(47);
     SndCall(6, 5, 0, 0, 0, 0);
@@ -550,9 +550,9 @@ void ride()
 {
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->Room_flg[0] |= 0x80000000;
-    EffectEspDelete(1, 5, 0, 0);
-    EffectEspgenDelete(1, 5, 0);
-    EffectEfmDelete(1, 5, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
     SndStrReq(1, 0x74, 0x80000003, 0, 0, 0.0f);
     ((cPl0e*) r333_work->em.getPtr())->setRide();
     SndStop(r333_work->se, 0);
@@ -729,7 +729,7 @@ static void exec_die()
     SpfFlagOff(pG, SPF_WATER);
     DpfFlagOff(pG, DPF_WATER);
     SmdSetTrans(3, 0);
-    EstSet(0, -1, 0, 0, 1, 0x14, 1, 4, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_ROOM02, (void*) zero, (void*) zero);
     CamCtrl.CutCall(0xD);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
@@ -741,9 +741,9 @@ static void exec_die()
     SpfFlagOn(pG, SPF_WATER);
     DpfFlagOn(pG, DPF_WATER);
     SmdSetTrans(3, 1);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
 }
 
 // The shake task: empty in this build.

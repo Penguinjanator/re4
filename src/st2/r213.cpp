@@ -229,7 +229,7 @@ void R213SuInit()
             tbl[1] = 0;
             tbl[4] = 0xF7;
             tbl[5] = r213_work.p->tex->texId;
-            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
         } else {
             pLog->err(0, 0, "R213Init() : Manager alloc failed!!");
         }
@@ -242,7 +242,7 @@ void R213SuInit()
             obj->Refract_ratio = 0xB4;
             obj->pModelInfo->setSpecular(0xFF, 0xFF, 0xFF);
         }
-        EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         SceExec(0x12, (TaskFunc) R213SuMove, 0, 0, SCE_PRIO_DEF_2, 0);
         {
             cObj* o = SmdGetObjPtr(0x12);
@@ -382,14 +382,14 @@ static void R213EventSuBreakMain()
         SceEventStart(1);
         hit = r213_work.p->hit[0];
         if (hit) {
-            EffectEspDelete(0, 2, hit, 0);
-            EffectEspgenDelete(0, 2, hit);
-            EffectEfmDelete(0, 2, hit);
+            EffectEspDelete(0, ESP_CORE_KIND_ROOM00, hit, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, hit);
+            EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, hit);
         }
-        EffectEspDelete(1, 2, 0, 0);
-        EffectEspgenDelete(1, 2, 0);
-        EffectEfmDelete(1, 2, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 0x2001, 3, 0, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
         SmdSetTrans(0x11, 0);
         SmdSetTrans(0x12, 0);
         SceSetEventCancel(1, (TaskFunc) R213EventSuBreakEnd, 0, -1, 1);
@@ -409,9 +409,9 @@ static void R213EventSuBreakEnd()
 {
     SndStrReq(r213_work.p->str, 8, 0, 0);
     R213SuBreakModel();
-    EffectEspDelete(0x2001, 3, 0, 0);
-    EffectEspgenDelete(0x2001, 3, 0);
-    EffectEfmDelete(0x2001, 3, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -689,7 +689,7 @@ void R213BridgeAngMove(int mode, f32 target)
         } while (r213_work.p->ang < r213_work.p->angCur);
     }
     if (mode == 1) {
-        EstSet(0, -1, 0, 0, 1, 0xD, 1, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 1, ESP_CORE_KIND_ROOM04, 0, 0);
     }
     for (i = 10; i != 0; i--) {
         amp -= dec;
@@ -816,7 +816,7 @@ void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo)
                         dir.x = 0.0f;
                         dir.y = 0.0f;
                         dir.z = 0.0f;
-                        EstSet(0, -1, &pos, &dir, 1, 0xA, 1, 5, 0, 0);
+                        EstSet(0, -1, &pos, &dir, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM03, 0, 0);
                         R213StatusSetChain(2, no, objId, hitNo, flagNo);
                     }
                 }
@@ -910,10 +910,10 @@ static void R213EventSwitchMain()
             {
                 cObj* o40 = SmdGetObjPtr(0x40);
 
-                EstSet(0, -1, &o40->pos, &o40->ang, 1, 0xC, 1, 6, 0, 0);
+                EstSet(0, -1, &o40->pos, &o40->ang, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM04, 0, 0);
             }
             o41 = SmdGetObjPtr(0x41);
-            EstSet(0, -1, &o41->pos, &o41->ang, 1, 0xC, 1, 6, 0, 0);
+            EstSet(0, -1, &o41->pos, &o41->ang, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM04, 0, 0);
             SndCall(6, 8, &o41->pos, 0, 0, 0);
             R213BridgeAngMove(0, r213_work.p->ang + 0.0017453294f);
             while (CamCtrl.IsMotionEnd() == 0) {
@@ -947,9 +947,9 @@ static void R213EventSwitchEnd()
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         R213StatusSetBridge(1);
     }
-    EffectEspDelete(1, 6, 0, 0);
-    EffectEspgenDelete(1, 6, 0);
-    EffectEfmDelete(1, 6, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM04, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -997,7 +997,7 @@ static void R213EventBridgeDownMain()
         if (obj) {
             SndCall(6, 9, &obj->pos, 0, 0, 0);
         }
-        EstSet(0, -1, 0, 0, 1, 0xF, 1, 7, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_ROOM05, 0, 0);
         R213BridgeAngMove(0, 1.5707964f);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -1012,9 +1012,9 @@ static void R213EventBridgeDownMain()
 static void R213EventBridgeDownEnd()
 {
     R213StatusSetBridge(2);
-    EffectEspDelete(1, 7, 0, 0);
-    EffectEspgenDelete(1, 7, 0);
-    EffectEfmDelete(1, 7, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM05, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM05, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM05, 0);
     R213StatusSetChain(3, 0, 0x40, 1, 3);
     R213StatusSetChain(3, 1, 0x41, 2, 4);
     SceEventEnd(0);
@@ -1076,13 +1076,13 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 if (e->GetMod(&mod, "em2d00", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
                 }
-                EffectEspDelete(0x4001, 1, 0, 0);
-                EffectEspgenDelete(0x4001, 1, 0);
-                EffectEfmDelete(0x4001, 1, 0);
+                EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
+                EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
+                EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 if (r213_work.p->tex) {
-                    EffectEspDelete(r213_work.p->tex->mask | 1, 2, 0, 0);
-                    EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
-                    EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
+                    EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 SpfFlagOn(pG, SPF_ESP_AREA);
             }
@@ -1092,18 +1092,18 @@ extern "C" void Evt_R213S00_Func(Event* e)
             int frame = e->NowFrame;
 
             if (frame == 0) {
-                EffectEspDelete(0x4001, 1, 0, 0);
-                EffectEspgenDelete(0x4001, 1, 0);
-                EffectEfmDelete(0x4001, 1, 0);
+                EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
+                EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
+                EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 if (r213_work.p->tex) {
-                    EffectEspDelete(r213_work.p->tex->mask | 1, 2, 0, 0);
-                    EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
-                    EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
+                    EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 StaFlagOff(pG, STA_EVENT);
-                SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
+                SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
                 if (r213_work.p->tex) {
-                    EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
                 }
                 StaFlagOn(pG, STA_EVENT);
                 SpfFlagOff(pG, SPF_ESP_AREA);
@@ -1121,19 +1121,19 @@ extern "C" void Evt_R213S00_Func(Event* e)
     case 2: {
         int frame;
 
-        EffectEspDelete(0x4001, 1, 0, 0);
-        EffectEspgenDelete(0x4001, 1, 0);
-        EffectEfmDelete(0x4001, 1, 0);
+        EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
+        EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
+        EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
         if (r213_work.p->tex) {
-            EffectEspDelete(r213_work.p->tex->mask | 1, 2, 0, 0);
-            EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
-            EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
+            EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
         }
         frame = 0;
         StaFlagOff(pG, STA_EVENT);
-        SstSet(1, 0xFFFF, 1, 0, 0x2F, 0);
+        SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
         if (r213_work.p->tex) {
-            EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, (void*) frame, (void*) frame);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
         }
         StaFlagOn(pG, STA_EVENT);
         SpfFlagOff(pG, SPF_ESP_AREA);

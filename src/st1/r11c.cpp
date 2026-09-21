@@ -139,11 +139,11 @@ void R11cInit()
     W = (R11cWork*) MEM_CALLOC(sizeof(R11cWork), 1, 0xd);
 
     SceExec(0x12, (TaskFunc) r11c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet(pPL, -1, 0, 0, 1, 0, 0x800, 0, 0, 0);
-    EstSet(pPL, -1, 0, 0, 3, 1, 0x800, 0, 0, 0);
-    EstSet(pPL, -1, 0, 0, 0, 0x23, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 0, 0x800, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 1, 0x800, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_CORE, 0x23, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     getRoomEtcLadder(6, (cEm**) &W->ladder[0], 1);
     getRoomEtcLadder(7, (cEm**) &W->ladder[1], 1);
     getRoomEtcLadder(8, (cEm**) &W->ladder[2], 1);
@@ -208,7 +208,7 @@ void R11cInit()
             }
         }
         W->eff = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, 1, 0xB, 1, (u8) W->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, (u8) W->eff, 0, 0);
     } else {
         if (!r11c_emDead(0xC8)) {
             EmSetFromList2(0xC8, 0);
@@ -411,9 +411,9 @@ static void r11c_EventBesiegedStart()
     CamCtrl.AreaOnOff(1, 0, 1);
     SndRoomStrStart(1, 3, 1);
     EvtMgr.EvtReadAram("event/evd/r11cs20.evd", 0, 0, 0, 0);
-    EffectEspDelete(0, 2, 0, 0);
-    EffectEspgenDelete(0, 2, 0);
-    EffectEfmDelete(0, 2, 0);
+    EffectEspDelete(0, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
     setFire();
     if (getRoomEtcWindow(3, &win, 1)) {
         ((cEmWindow*) win)->SetEnableFence(0, 1);
@@ -530,9 +530,9 @@ static void r11c_EventBesiegedStart()
         SceDebugDisp("E[%d]", 40 - kill);
         SceSleep(1);
     }
-    EffectEspDelete(0, 2, 0, 0);
-    EffectEspgenDelete(0, 2, 0);
-    EffectEfmDelete(0, 2, 0);
+    EffectEspDelete(0, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
     deleteFire();
     if (W->ladder[0]) {
         W->ladder[0]->be_flag &= ~2;
@@ -634,7 +634,7 @@ static void r11c_EventBesiegedStart()
         SceAtSetEnable(8, 0);
         SceAtSetEnable(9, 0);
         SmdGetObjPtr(0x3F)->be_flag &= ~2;
-        EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, zero, zero);
     }
     pG->Room_flg[0] &= ~0x40000000;
     SceSetChapterEnd(CHAPTER_2_2, -1);
@@ -660,9 +660,9 @@ static void r11c_ThunderMove()
 
                 st = EffGetAreaState(3);
                 if (st == 0) {
-                    EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
                 } else {
-                    EstSet(0, -1, 0, 0, 1, 0xC, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
                 SceSndCallThunder();
                 {
@@ -734,7 +734,7 @@ extern "C" void r11c_openGate(u32 id)
 
     g->be_flag |= 0x20;
     dst = 3600.0f + g->pos.y;
-    EstSet(0, -1, 0, 0, 1, 6, 1, (u8) W->effGate, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, (u8) W->effGate, 0, 0);
     W->seGate = SndCall(6, 0x57, 0, 0, 0, 0);
     {
         f32 sw[4] = {10.0f, -10.0f, 20.0f, -20.0f};
@@ -1091,7 +1091,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_ROOM00, 0, 0);
     }
     {
         Vec pos = {97770.0f, -598.0f, -49354.0f};
@@ -1105,7 +1105,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_ROOM00, 0, 0);
     }
     {
         Vec pos = {122765.0f, -516.0f, -51246.0f};
@@ -1119,7 +1119,7 @@ extern "C" void setFire()
             return;
         }
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
-        EstSet(o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
+        EstSet(o, -1, 0, 0, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_ROOM00, 0, 0);
     }
 }
 
@@ -1151,10 +1151,10 @@ extern "C" void Evt_R11CS00_Func(Event* e)
             int frame = e->NowFrame;
 
             if (frame == 0) {
-                EffectEspDelete(0x2001, 3, 0, 0);
-                EffectEspgenDelete(0x2001, 3, 0);
-                EffectEfmDelete(0x2001, 3, 0);
-                EstSet(0, -1, 0, 0, 1, 0xD, 0x2001, 3, (void*) frame, (void*) frame);
+                EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+                EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+                EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM01, (void*) frame, (void*) frame);
                 o = SmdGetObjPtr(0x3F);
                 if (o) {
                     e->SetMod("scr0000", o, 5, 0, 2, 0);
@@ -1234,10 +1234,10 @@ extern "C" void Evt_R11CS10_Func(Event* e)
 static inline void r11c_evtEsp(Event* e, u8 no)
 {
     if (e->NowFrame == 0) {
-        EffectEspDelete(W->tex->mask | 0x3001, 0, 0, 0);
-        EffectEspgenDelete(W->tex->mask | 0x3001, 0, 0);
-        EffectEfmDelete(W->tex->mask | 0x3001, 0, 0);
-        EstSet(0, -1, 0, 0, 1, no, W->tex->mask | 0x3001, 0, 0, 0);
+        EffectEspDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+        EffectEspgenDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+        EffectEfmDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, no, W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 

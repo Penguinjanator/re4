@@ -122,8 +122,8 @@ void R10cInit()
 
         PSet(r10c_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
     }
-    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
-    EstSet(pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 3, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceExec(0x12, (TaskFunc) r10c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) moveWheel, 0, 2, SCE_PRIO_DEF_2, 0);
@@ -158,9 +158,9 @@ void R10cInit()
         BitOff(pG->Room_flg[0], 0x04000000);
         RsfSet(G_ROOM_ID, 7);
         SetSstDispFlag(0, 0);
-        EffectEspDelete(0, 0xD, 0, 0);
-        EffectEspgenDelete(0, 0xD, 0);
-        EffectEfmDelete(0, 0xD, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
         SceAtSetEnable(0x11, 0);
         SceAtSetEnable(0x12, 0);
         SmdGetObjPtr(0)->be_flag &= ~2;
@@ -362,9 +362,9 @@ static void r10c_EmEvent_exit()
 {
     EmMgr.destroy(r10c_work.p->em);
     pPL->setNoSuspend(0);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
@@ -400,7 +400,7 @@ static void r10c_EmEvent()
         }
         em->setNoSuspend(1);
         r10c_work.p->em = em;
-        EstSet(em, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x1F, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         BitOn(em->flag, 1);
         MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
@@ -475,7 +475,7 @@ static void r10c_ThunderMove()
     for (;;) {
         if (cnt == 0) {
             if (!StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
-                EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
                 {
                     u8 r = Rnd() % 30;
                     cnt = r * 5 + 90;
@@ -511,7 +511,7 @@ extern "C" void setTexRender()
         tbl[5] = r10c_work.p->tex->texId;
         r10c_work.p->tex->m_Rep_type = 1;
         r10c_work.p->tex->m_H_size = r10c_work.p->tex->m_W_size = 0x40;
-        EstSet(0, -1, 0, 0, 1, 0, r10c_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r10c_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R10cInit() : Manager alloc failed!!");
     }
@@ -576,21 +576,21 @@ static void chkSwitchA_exit()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_EFFAREA_USE_CAM);
-    EffectEspDelete(0x2001, 6, 0, 0);
-    EffectEspgenDelete(0x2001, 6, 0);
-    EffectEfmDelete(0x2001, 6, 0);
-    EffectEspDelete(0x2001, 4, 0, 0);
-    EffectEspgenDelete(0x2001, 4, 0);
-    EffectEfmDelete(0x2001, 4, 0);
-    EffectEspDelete(0x2001, 5, 0, 0);
-    EffectEspgenDelete(0x2001, 5, 0);
-    EffectEfmDelete(0x2001, 5, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
     SetSstDispFlag(9, 1);
     RsfSet(G_ROOM_ID, 7);
     SetSstDispFlag(0, 0);
-    EffectEspDelete(0, 0xD, 0, 0);
-    EffectEspgenDelete(0, 0xD, 0);
-    EffectEfmDelete(0, 0xD, 0);
+    EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
+    EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
     SceAtSetEnable(0x11, 0);
     SceAtSetEnable(0x12, 0);
     SndStop(r10c_work.p->se[0], 0);
@@ -638,7 +638,7 @@ static void chkSwitchA()
         }
         SceSetEventCancel(1, (TaskFunc) chkSwitchA_exit, 0, -1, 1);
         RsfSet(G_ROOM_ID, 5);
-        EstSet(0, -1, 0, 0, 1, 4, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         r10c_work.p->seSwitch = SndCall(6, 0xF, &SmdGetGroupObjPtr(4)->pos, 0, 0, 0);
         CamCtrl.CutCall(0x15);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -654,7 +654,7 @@ static void chkSwitchA()
             SceSleep(1);
         }
         CamCtrl.CutCall(0x18);
-        EstSet(0, -1, 0, 0, 1, 9, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 9, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         SceSleep(80);
         RsfSet(G_ROOM_ID, 7);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -679,10 +679,10 @@ static void chkSwitchA()
         SmdGetObjPtr(0)->be_flag &= ~2;
         SmdGetObjPtr(0xE)->be_flag |= 2;
         SetSstDispFlag(0, 0);
-        EffectEspDelete(0, 0xD, 0, 0);
-        EffectEspgenDelete(0, 0xD, 0);
-        EffectEfmDelete(0, 0xD, 0);
-        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 6, z, z); // COMPILER-DIFF: candidate #17 (both 0, see `z`)
+        EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0x2001, ESP_CORE_KIND_ROOM04, z, z); // COMPILER-DIFF: candidate #17 (both 0, see `z`)
         CamCtrl.CutCall(0x19);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -832,10 +832,10 @@ static void moveWheel()
         }
         if (RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 7) == 0) {
             if (spdA == 0.0f) {
-                EffectEspDelete(0x2001, 4, 0, 0);
-                EffectEspgenDelete(0x2001, 4, 0);
-                EffectEfmDelete(0x2001, 4, 0);
-                EstSet(0, -1, 0, 0, 1, 5, 0x2001, 4, 0, 0);
+                EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
+                EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
+                EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
                 r10c_work.p->seWheelA[0] = SndCall(6, 0x56, &r10c_wheelPosA, 0, 0, 0);
                 r10c_work.p->seWheelA[1] = SndCall(6, 0x59, &r10c_wheelPosA2, 0, 0, 0);
             }
@@ -847,9 +847,9 @@ static void moveWheel()
             spdA *= 0.95f;
             if (spdA != 0.0f && spdA < 0.0001f) {
                 spdA = 0.0f;
-                EffectEspDelete(0x2001, 4, 0, 0);
-                EffectEspgenDelete(0x2001, 4, 0);
-                EffectEfmDelete(0x2001, 4, 0);
+                EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
+                EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
+                EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
                 SndCall(6, 0x5C, &r10c_wheelPosA, 0, 0, 0);
                 SndCall(6, 0x61, &r10c_wheelPosA2, 0, 0, 0);
             }
@@ -861,18 +861,18 @@ static void moveWheel()
             if (RsfCheck(G_ROOM_ID, 7)) {
                 if (spdB != 0.0f) {
                     spdB = 0.0f;
-                    EffectEspDelete(0x2001, 5, 0, 0);
-                    EffectEspgenDelete(0x2001, 5, 0);
-                    EffectEfmDelete(0x2001, 5, 0);
+                    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
+                    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
+                    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                     SndStop(r10c_work.p->seWheelB[0], 0);
                     SndStop(r10c_work.p->seWheelB[1], 0);
                 }
             } else {
                 if (spdB == 0.0f) {
-                    EffectEspDelete(0x2001, 5, 0, 0);
-                    EffectEspgenDelete(0x2001, 5, 0);
-                    EffectEfmDelete(0x2001, 5, 0);
-                    EstSet(0, -1, 0, 0, 1, 6, 0x2001, 5, 0, 0);
+                    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
+                    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
+                    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 6, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
                     r10c_work.p->seWheelB[0] = SndCall(6, 0x56, &r10c_wheelPosB, 0, 0, 0);
                     r10c_work.p->seWheelB[1] = SndCall(6, 0x59, &r10c_wheelPosB, 0, 0, 0);
                 }
@@ -885,9 +885,9 @@ static void moveWheel()
             spdB *= 0.95f;
             if (spdB != 0.0f && spdB < 0.0001f) {
                 spdB = 0.0f;
-                EffectEspDelete(0x2001, 5, 0, 0);
-                EffectEspgenDelete(0x2001, 5, 0);
-                EffectEfmDelete(0x2001, 5, 0);
+                EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
+                EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
+                EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                 SndStop(r10c_work.p->seWheelB[0], 0);
                 SndStop(r10c_work.p->seWheelB[1], 0);
             }
@@ -1111,7 +1111,7 @@ static void SetEmHitAtari()
                 r10c_work.p->hit[0][2]->hp = 0;
                 SmdSetTrans(0x6A, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x61)->pos, 0, 0, 0);
-                EstSet(0, -1, &SmdGetObjPtr(0x61)->pos, 0, 1, 0xA, 0, 0, 0, 0);
+                EstSet(0, -1, &SmdGetObjPtr(0x61)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 14);
             }
@@ -1124,7 +1124,7 @@ static void SetEmHitAtari()
                 r10c_work.p->hit[1][2]->hp = 0;
                 SmdSetTrans(0x6B, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x62)->pos, 0, 0, 0);
-                EstSet(0, -1, &SmdGetObjPtr(0x62)->pos, 0, 1, 0xA, 0, 0, 0, 0);
+                EstSet(0, -1, &SmdGetObjPtr(0x62)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x62), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 15);
             }
@@ -1137,7 +1137,7 @@ static void SetEmHitAtari()
                 r10c_work.p->hit[2][2]->hp = 0;
                 SmdSetTrans(0x6C, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x63)->pos, 0, 0, 0);
-                EstSet(0, -1, &SmdGetObjPtr(0x63)->pos, 0, 1, 0xA, 0, 0, 0, 0);
+                EstSet(0, -1, &SmdGetObjPtr(0x63)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x63), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 16);
             }
@@ -1182,7 +1182,7 @@ static void hako_down(cObj* obj)
 
                     v = obj->pos;
                     v.y = 0.0f;
-                    EstSet(0, -1, &v, 0, 1, 7, 0, 0, 0, 0);
+                    EstSet(0, -1, &v, 0, EFF_ROOM, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             spdX += r10c_crateSpd;
@@ -1253,7 +1253,7 @@ static void r10c_ItemGet()
     {
         f32 spd = 25.0f;
 
-        EstSet(0, -1, 0, 0, 1, 0xC, 1, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         do {
             cObj* obj = SmdGetObjPtr(0x71);

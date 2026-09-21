@@ -1328,7 +1328,7 @@ int Event::ExePacket_Esp(Event* evt)
         rot.z += evt->PModOya->ang.z;
     }
     if (pac->esp.type == 0) {
-        EstSet(m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, EFF_ROOM, pac->esp.parts, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (pac->esp.type == 5) {
         e = evt->effNo;
@@ -1339,7 +1339,7 @@ int Event::ExePacket_Esp(Event* evt)
         EstSet(m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
     }
     if (pac->esp.type == 6) {
-        EstSet(m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
+        EstSet(m, -1, &pos, &rot, EFF_ET00, pac->esp.parts, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     return 1;
 }

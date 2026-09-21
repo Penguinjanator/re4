@@ -169,12 +169,12 @@ void R30dInit()
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R30dDoorCheck, 0, 1);
         SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R30dCoopSwitch, 0, 1);
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) R30dCoopSwitch, 0, 1);
-        EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     } else {
         for (n = 0; n < 4; n++) {
-            EstSet(0, -1, 0, 0, 1, r30d_digit[n], 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, r30d_digit[n], 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
-        EstSet(0, -1, 0, 0, 1, 6, 1, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     }
     {
         Vec pos[2] = {
@@ -530,9 +530,9 @@ static void R30dCoopSwitch()
             }
             r30d_work.p->timer = 0;
             COOP_ACTIVE(c) = 0;
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             break;
         } else if ((SubCharGetStatus() & 0x01000000) == 0) {
             if (r30d_work.p->timer) {
@@ -540,9 +540,9 @@ static void R30dCoopSwitch()
             }
             r30d_work.p->timer = 0;
             COOP_ACTIVE(c) = 0;
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             break;
         } else if (Key.trg & 0x40000000) {
             if (r30d_work.p->timer) {
@@ -550,9 +550,9 @@ static void R30dCoopSwitch()
             }
             r30d_work.p->timer = 0;
             COOP_ACTIVE(c) = 0;
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             break;
         } else {
             switch (COOP_MODE(c)) {
@@ -615,15 +615,15 @@ static void R30dCoopSwitch()
                             SceKill(r30d_work.p->timer);
                         }
                         r30d_work.p->timer = 0;
-                        EffectEspDelete(1, 3, 0, 0);
-                        EffectEspgenDelete(1, 3, 0);
-                        EffectEfmDelete(1, 3, 0);
-                        EstSet(0, -1, 0, 0, 1, 6, 1, 3, 0, 0);
-                        EffectEspDelete(1, 2, 0, 0);
-                        EffectEspgenDelete(1, 2, 0);
-                        EffectEfmDelete(1, 2, 0);
+                        EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+                        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+                        EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
+                        EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+                        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+                        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+                        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
                         for (int k = 0; k < 4; k++) {
-                            EstSet(0, -1, 0, 0, 1, r30d_digit[k], 1, 2, 0, 0);
+                            EstSet(0, -1, 0, 0, EFF_ROOM, r30d_digit[k], 1, ESP_CORE_KIND_ROOM00, 0, 0);
                         }
                         // The final `COOP_ACTIVE(c) = 0` stores the reversed digit-loop counter (`stw r31`): its zero
                         // is a pseudo set here, in the block after the loop exit, and used in the store's block, so
@@ -652,9 +652,9 @@ static void R30dCoopSwitch()
                         r30d_work.p->timer = 0;
                         SceUpCut(4, 6, -1, 0);
                         COOP_ACTIVE(c) = 0;
-                        EffectEspDelete(1, 2, 0, 0);
-                        EffectEspgenDelete(1, 2, 0);
-                        EffectEfmDelete(1, 2, 0);
+                        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+                        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+                        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
                         for (int k = 0; k < 2; k++) {
                             cObj* o = r30d_work.p->obj[k];
                             if (o) {
@@ -693,7 +693,7 @@ static void R30dTimerDisp()
                 break;
             }
             COOP_TIMER(c) = 30;
-            EstSet(0, -1, 0, 0, 1, r30d_digit[COOP_NUM(c)], 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, r30d_digit[COOP_NUM(c)], 1, ESP_CORE_KIND_ROOM00, 0, 0);
             if (COOP_NUM(c) != 0) {
                 SndCall(6, 7, 0, 0, 0, 0);
             } else {

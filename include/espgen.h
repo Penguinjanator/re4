@@ -98,10 +98,10 @@ struct EspEfmWk {
 struct cEspSystem {
     EspTexWk Esp_tex_tbl[0x100];       // 0x0000 by texture id
     EspEfmWk efmWk[0x100];       // 0x5400 by effect model id
-    SstTbl estTbl[0xD3];         // 0x6800 effect set tables by owner id
-    SstTbl sstTbl[0xD3];         // 0x71E4 room effect tables by owner id
-    SstTbl pathTbl[0xD3];        // 0x7BC8 path tables by owner id
-    u8 ownerCnt[0xD3];           // 0x85AC EspDataLoad count per owner
+    SstTbl estTbl[EFF_MAX];         // 0x6800 effect set tables by owner id
+    SstTbl sstTbl[EFF_MAX];         // 0x71E4 room effect tables by owner id
+    SstTbl pathTbl[EFF_MAX];        // 0x7BC8 path tables by owner id
+    u8 ownerCnt[EFF_MAX];           // 0x85AC EspDataLoad count per owner
     u8 pad_867F;
     SstArea* pSstArea;           // 0x8680
     GXTexObj texObj[0x1F4];      // 0x8684 texture object pool
@@ -233,8 +233,8 @@ extern cModel* EspEvModList[0x80];
 // game/espgen10.cpp
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* pSct, int flag);
-void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, void* d, int e);
-int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, void* d, int e, int front);
+void SetEspCore(EspgenWork* w, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner);
+int PullEspEspgen(EspgenWork** out, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int front);
 void Espgen10_Move(EspgenWork* w);
 
 // game/espgen00.cpp

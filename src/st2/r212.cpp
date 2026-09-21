@@ -225,7 +225,7 @@ void r212_TrapInit()
             d->be_flag &= ~0x20;
         }
         SmdGetObjPtr(0x32)->be_flag &= ~2;
-        EstSet(0, -1, 0, 0, 1, 0xC, 0, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     {
         cObj* d = SmdGetObjPtr(0x2C);
@@ -445,7 +445,7 @@ static void r212_RoofMove()
     cnt = 0;
     do {
         if (cnt % 10 == 0) {
-            EstSet(0, -1, 0, 0, 1, 8, 0, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         cnt++;
         o0->pos.y -= spd0;
@@ -506,7 +506,7 @@ static void r212_RoofTrapWatcher()
         r212_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &d, 0, 0);
         r212_work.p->hit[i]->setParent(o, 0, 0);
         YarareInit(r212_work.p->hit[i], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, 1);
-        EstSet(0, -1, 0, 0, 1, (u8) prm[i][0], 0x800, (u8) prm[i][1], 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) prm[i][0], 0x800, (u8) prm[i][1], 0, 0);
     }
     for (;;) {
         for (i = 0; i < 4; i++) {
@@ -515,7 +515,7 @@ static void r212_RoofTrapWatcher()
                 EffectEspDelete(0x800, (u8) prm[i][1], 0, 0);
                 EffectEspgenDelete(0x800, (u8) prm[i][1], 0);
                 EffectEfmDelete(0x800, (u8) prm[i][1], 0);
-                EstSet(0, -1, 0, 0, 1, (u8) prm[i][2], 0, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, (u8) prm[i][2], 0, ESP_CORE_KIND_NONE, 0, 0);
                 RoomSeCall(0x12, 0, 0, 0, 0);
             }
         }
@@ -641,14 +641,14 @@ static void r212_DrillAppearCheck()
     CamCtrl.CutCall(9);
     pG->Room_flg[0] &= ~0x40000000;
     SceSetEventCancel(1, (TaskFunc) r212_DrillAppearCheckEndProc, 0, 1, 1);
-    EstSet(0, -1, 0, 0, 1, 0xD, 0, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     r212_work.p->door[2].setClose();
     while ((st = r212_work.p->door[2].getStatus()) != 0) {
         SceSleep(1);
     }
     SceSleep(30);
     r212_work.p->se = RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
-    EstSet(0, -1, 0, 0, 1, 9, 1, 2, (void*) st, (void*) st);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM00, (void*) st, (void*) st);
     SmdGetObjPtr(0x32)->be_flag &= ~2;
     CamCtrl.CutCall(4);
     SceSleep(10);
@@ -759,7 +759,7 @@ static void r212_DrillMove()
     d1->be_flag |= 0x20;
     d2->be_flag |= 0x20;
     QuakeExec(0, 0, 3000, 10.0f, 2);
-    EstSet(0, -1, 0, 0, 1, 0xA, 0x800, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 0x800, ESP_CORE_KIND_ROOM00, 0, 0);
     while (1) {
         d0->pos.z += 40.0f;
         d1->pos.z += 40.0f;
@@ -794,10 +794,10 @@ static void r212_DrillMove()
         SceSleep(1);
     }
     QuakeKill(0);
-    EffectEspDelete(0x800, 2, 0, 0);
-    EffectEspgenDelete(0x800, 2, 0);
-    EffectEfmDelete(0x800, 2, 0);
-    EstSet(0, -1, 0, 0, 1, 0xB, 0, 0, 0, 0);
+    EffectEspDelete(0x800, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0x800, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0x800, ESP_CORE_KIND_ROOM00, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 0, ESP_CORE_KIND_NONE, 0, 0);
     RoomSeCall(1, &d2->pos, 0, 0, d2);
     for (i = 0; i < 60; i++) {
         w1->rotSpd.z -= 0.00225f;

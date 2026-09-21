@@ -31,7 +31,7 @@ cSubAshley::cSubAshley()
     hp = pGS->ashley_life;
     litArea.on(1);
     pFootShadowTbl = pl_fs_tbl;
-    EspDataLoad((u32) SUB_ARC(this, 0x11), 4, 0);
+    EspDataLoad((u32) SUB_ARC(this, 0x11), EFF_PL01, 0);
     pSUB = this;
 }
 

@@ -644,7 +644,7 @@ static void em32_R0_Init(cEm32* em)
         w->pTexModel = info;
     }
     em->be_flag |= 0x1000000;
-    EspDataLoad((u32) ARC(8), 0x2A, 0);
+    EspDataLoad((u32) ARC(8), EFF_EM32, 0);
     em32PlDivideModelInit(em);
     w->pCatchObj = (cObj*) zero;
     w->pCtrl12 = GetCtrlCtrl12();
@@ -722,7 +722,7 @@ static void em32_R0_Init(cEm32* em)
     w->espKind[0] = EspPullCoreKind();
     w->espKind[1] = EspPullCoreKind();
     w->espKind[2] = EspPullCoreKind();
-    EstSet(em, -1, 0, 0, 0x2A, 4, 0, w->espKind[0], em, (void*) zero);
+    EstSet(em, -1, 0, 0, EFF_EM32, 4, 0, w->espKind[0], em, (void*) zero);
     w->mode = zero;
 #line 1000 "D:/Bio4/Prog/em32.cpp"
     w->pMot = (MotionWorkSub*) MEM_ALLOC(0xD0, 1, 0xD);
@@ -791,9 +791,9 @@ static void em32_R1_Parasite(cEm32* em)
         w->hit[26].flags |= 1;
         w->hit[27].flags |= 1;
         em32TexrenderInit(em);
-        EstSet(em, -1, 0, 0, 0x2A, 5, 0, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 5, 0, w->espKind[1], em, (void*) step);
         EM32_EFFECT_DELETE(w->espKind[0], em);
-        EstSet(em, -1, 0, 0, 0x2A, 6, 0, w->espKind[0], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 6, 0, w->espKind[0], em, (void*) step);
         SndStop(w->sndId, 0);
         w->voiceTimer = 2;
         SndCall(8, 0x17, &em->pos, em->id, 0, em);
@@ -818,7 +818,7 @@ static void em32_R1_LastMode(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x7B), ARC(0x7C), 3, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x22, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x22, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -864,8 +864,8 @@ static void em32_R1_2ndAppear(cEm32* em)
         zero = 0;
         MotionSetCore(em, &em->Motion, ARC(0x53), ARC(0x54), 0, 5, 0);
         em32SetYarareMark(em, 1);
-        EstSet(em, -1, 0, 0, 0x2A, 4, 1, w->espKind[0], em, (void*) zero);
-        EstSet(em, -1, 0, 0, 0x2A, 0xC, 1, w->espKind[0], em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 4, 1, w->espKind[0], em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0xC, 1, w->espKind[0], em, (void*) zero);
         em->be_flag |= 2;
         em->r_no_2++;
     case 3:
@@ -949,7 +949,7 @@ static void em32_R1_4thAppear(cEm32* em)
     case 2:
         MotionSetCore(em, &em->Motion, ARC(0x7A), 0, 0, 1, 0);
         em32SetYarareMark(em, 1);
-        EstSet(em, -1, 0, 0, 0x2A, 4, 1, w->espKind[0], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM32, 4, 1, w->espKind[0], em, 0);
         em->be_flag |= 2;
         em->r_no_2++;
     case 3:
@@ -1465,7 +1465,7 @@ static void em32_R1_AtkWalk(cEm32* em)
         w->blendM3 = ARC(0x6E);
         w->blendM1 = ARC(0x6F);
         w->blendM2 = ARC(0x70);
-        EstSet(em, -1, 0, 0, 0x2A, 0x25, 0, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x25, 0, w->espKind[1], em, (void*) step);
         w->blendC = 1;
         w->blendCnt = 10;
         w->blendVal = 0.0f;
@@ -1495,7 +1495,7 @@ static void em32_R1_AtkWalk(cEm32* em)
         w->blendM1 = ARC(0x51);
         w->blendM2 = ARC(0x52);
         w->blendC = 5;
-        EstSet(em, -1, 0, 0, 0x2A, 0x26, 0, w->espKind[1], em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x26, 0, w->espKind[1], em, (void*) zero);
         w->blendCnt = 10;
         w->blendSeq = zero;
         w->Atk_ck = zero;
@@ -1546,7 +1546,7 @@ static void em32_R1_AtkWalk(cEm32* em)
                     break;
                 }
             }
-            EstSet(em, -1, 0, 0, 0x2A, 0x26, 0, w->espKind[1], em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x26, 0, w->espKind[1], em, 0);
         }
         if (em->motEvent & 1) {
             EM32_TAIL_ATK(em, 4);
@@ -1665,14 +1665,14 @@ static void em32_R1_Threat(cEm32* em)
         case 0:
         default:
             MotionSetCore(em, &em->Motion, ARC(0x4D), ARC(0x4E), hokan, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 9, 0, w->espKind[2], em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 9, 0, w->espKind[2], em, (void*) step);
             break;
         case 1:
             MotionSetCore(em, &em->Motion, ARC(0x3E), 0, hokan, 5, 0);
             break;
         case 2:
             MotionSetCore(em, &em->Motion, ARC(0x83), ARC(0x84), hokan, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x23, 0, w->espKind[2], em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x23, 0, w->espKind[2], em, (void*) step);
             break;
         }
         em->r_no_2++;
@@ -1800,7 +1800,7 @@ static void em32_R1_Atk(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x45), ARC(0x46), 15, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0xB, 0, w->espKind[2], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0xB, 0, w->espKind[2], em, (void*) step);
         w->Atk_ck = step;
         w->timer2 = 30;
         em->r_no_2++;
@@ -1856,7 +1856,7 @@ static void em32_R1_Catch(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x13), ARC(0x14), 15, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x15, 0, w->espKind[2], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x15, 0, w->espKind[2], em, (void*) step);
         w->Atk_ck = step;
         w->timer2 = 30;
         em->r_no_2++;
@@ -1911,7 +1911,7 @@ static void em32_R1_CatchHit(cEm32* em)
             w->timer2--;
         } else {
             w->timer2 = 4;
-            EstSet(em, -1, 0, 0, 0x2A, 7, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM32, 7, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         if (em->frame > 9.69999981f && em->frame < 10.3000002f) {
             w->TmpU32 = SndCall(8, 0xE, &em->pos, em->id, 0, em);
@@ -2010,7 +2010,7 @@ static void plem32_CatchHit(cPlayer* pl)
         goto end;
     case 2:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x8A), 0, 0, 1, 0);
-        EstSet(pl, -1, 0, 0, 0x2A, 0x29, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM32, 0x29, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->m_Work0 = 15;
         pl->r_no_2++;
     case 3:
@@ -2051,7 +2051,7 @@ static void em32_R1_LongAtk(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x47), ARC(0x48), 10, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0xA, 0, w->espKind[2], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0xA, 0, w->espKind[2], em, (void*) step);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
         w->Atk_ck = step;
         IntSet(w->longAtkWait, 600);
@@ -2198,7 +2198,7 @@ static void plemBackjump(cPlayer* pl)
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x94), 0, 3, 1, 0);
-        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, (void*) fe);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, (void*) fe);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(LVADD_ESCAPEATTACK);
@@ -2296,7 +2296,7 @@ static void plemEscape(cPlayer* pl)
     case 1:
         em32EscapeCamMove((cEm32*)pl->pEmCatch);
         if (pl->frame > 11.6999998f && pl->frame < 12.3000002f) {
-            EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (pl->m_Work1) {
@@ -2472,15 +2472,15 @@ static void em32_R1_StepDown(cEm32* em)
         case 0:
         default:
             MotionSetCore(em, &em->Motion, ARC(0x1D), ARC(0x1E), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x18, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x18, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         case 1:
             MotionSetCore(em, &em->Motion, ARC(0x59), ARC(0x5A), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x19, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x19, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         case 2:
             MotionSetCore(em, &em->Motion, ARC(0x59), ARC(0x5A), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x19, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x19, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         }
         em32GetStepDownPos(em);
@@ -2590,7 +2590,7 @@ static void em32_R1_TunnelAtk(cEm32* em)
     case 2:
         zero = 0;
         MotionSetCore(em, &em->Motion, ARC(0x55), ARC(0x56), 10, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x21, 0, 0, em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x21, 0, ESP_CORE_KIND_NONE, em, (void*) zero);
         w->Atk_ck = zero;
         w->timer = 1;
         em->r_no_2++;
@@ -2661,7 +2661,7 @@ static void em32_R1_JumpUp(cEm32* em)
             if (pt->flag == 0) {
                 pt->flag = 1;
                 w->breakNo = w->pPoint->no;
-                EstSet(0, -1, &w->pPoint->pos, 0, 1, 1, 0, 0, 0, 0);
+                EstSet(0, -1, &w->pPoint->pos, 0, EFF_ROOM, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         if (MotionMove(em, 0)) {
@@ -2690,18 +2690,18 @@ static void em32_R1_JumpDown(cEm32* em)
         case 0:
         default:
             MotionSetCore(em, &em->Motion, ARC(0x11), ARC(0x12), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x16, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x16, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         case 1:
             MotionSetCore(em, &em->Motion, ARC(0xA9), ARC(0xAA), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x17, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x17, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         case 2:
             MotionSetCore(em, &em->Motion, ARC(0xA9), ARC(0xAA), 10, 1, 0);
-            EstSet(em, -1, 0, 0, 0x2A, 0x17, 0, 0, em, (void*) step);
+            EstSet(em, -1, 0, 0, EFF_EM32, 0x17, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             break;
         }
-        EstSet(em, -1, 0, 0, 0x2A, 4, 0, w->espKind[0], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM32, 4, 0, w->espKind[0], em, 0);
         if (w->pPoint) {
             PSVECSubtract(&w->pPoint->pos, &em->pos, &w->spd);
         } else {
@@ -2727,7 +2727,7 @@ static void em32_R1_JumpDown(cEm32* em)
             if (pt && pt->flag == 0) {
                 pt->flag = 1;
                 w->breakNo = w->pPoint->no;
-                EstSet(0, -1, &w->pPoint->pos, 0, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &w->pPoint->pos, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         if (MotionMove(em, 0)) {
@@ -2875,7 +2875,7 @@ static void em32_R1_C_Atk(cEm32* em)
         em32Timer2SetW(w, 37, 30, 23, 20);
         em->invisible_factor = 0.0f;
         em->be_flag |= 2;
-        EstSet(em, -1, 0, 0, 0x2A, 0x12, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x12, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         w->TmpU32 = Rnd() & 1;
         if (pGS->Game_level <= 3) {
             w->TmpU32 = step;
@@ -2896,7 +2896,7 @@ static void em32_R1_C_Atk(cEm32* em)
             if (pt->flag == 0) {
                 pt->flag = 1;
                 w->breakNo = w->pPoint->no;
-                EstSet(0, -1, &w->pPoint->pos, 0, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &w->pPoint->pos, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         if (MotionMove(em, 0)) {
@@ -2942,8 +2942,8 @@ static void em32_R1_C_AtkHit(cEm32* em)
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         AtariOff(&em->atari, 0xFCFF);
-        EstSet(em, -1, 0, 0, 0x2A, 0xD, 0, 0, em, (void*) step);
-        EstSet(pPL, -1, 0, 0, 0x2A, 0x14, 0, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0xD, 0, ESP_CORE_KIND_NONE, em, (void*) step);
+        EstSet(pPL, -1, 0, 0, EFF_EM32, 0x14, 0, w->espKind[1], em, (void*) step);
         SndStop(w->sndId, 0);
         w->voiceTimer = 2;
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
@@ -2966,7 +2966,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
                 w->timer2--;
             } else {
                 w->timer2 = 4;
-                EstSet(em, -1, 0, 0, 0x2A, 7, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, EFF_EM32, 7, 0, ESP_CORE_KIND_NONE, em, 0);
             }
         }
         if (em->motEvent & 1) {
@@ -3038,7 +3038,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
         break;
     case 2:
         MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x88), 0, 0, 0x201, 0);
-        EstSet(pl, -1, 0, 0, 0x2A, 0x28, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM32, 0x28, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->m_Work0 = 15;
         pl->r_no_2++;
     case 3:
@@ -3071,7 +3071,7 @@ static void em32_R1_P_Atk(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x71), ARC(0x72), 10, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x1E, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x1E, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         w->Atk_ck = step;
         w->timer = 15;
         em->r_no_2++;
@@ -3190,7 +3190,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_P_CatchHit, 248.539993f, 0.0f, -3618.96997f);
         GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
-        EstSet(em, -1, 0, 0, 0x2A, 0xE, 0, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0xE, 0, w->espKind[1], em, (void*) step);
         SndStop(w->sndId, 0);
         w->voiceTimer = 2;
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
@@ -3232,7 +3232,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_P_CatchHit, -127.949997f, 0.0f, -2747.37012f);
         pPL->r_no_2 = step;
         EM32_EFFECT_DELETE(w->espKind[1], em);
-        EstSet(em, -1, 0, 0, 0x2A, 0x13, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x13, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, 0xF, &em->pos, em->id, 0, em);
         w->timer = 15;
         em->r_no_2++;
@@ -3291,9 +3291,9 @@ static void plem32_P_CatchHit(cPlayer* pl)
         EmCatchMotionMove(pl, 1.0f, 1.0f);
         PlSetFace(1);
         if (pSys->eff_country) {
-            EstSet(pl, -1, 0, 0, 0x2A, 0x2C, 0, w->espKind[1], pl->pEmCatch, (void*) step);
+            EstSet(pl, -1, 0, 0, EFF_EM32, 0x2C, 0, w->espKind[1], pl->pEmCatch, (void*) step);
         } else {
-            EstSet(pl, -1, 0, 0, 0x2A, 0x2D, 0, w->espKind[1], pl->pEmCatch, (void*) step);
+            EstSet(pl, -1, 0, 0, EFF_EM32, 0x2D, 0, w->espKind[1], pl->pEmCatch, (void*) step);
         }
         pl->r_no_2++;
         break;
@@ -3365,7 +3365,7 @@ static void em32_R1_Ground(cEm32* em)
         if (pG->Game_level <= 3) {
             w->timer3 = 25;
         }
-        EstSet(em, -1, 0, 0, 0x2A, 0x1A, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x1A, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -3434,7 +3434,7 @@ static void em32_R1_Ground(cEm32* em)
         }
         zero = 0;
         MotionSetCore(em, &em->Motion, ARC(0x7F), ARC(0x80), 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x1B, 0, 0, em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x1B, 0, ESP_CORE_KIND_NONE, em, (void*) zero);
         w->Atk_ck = zero;
         w->timer = 5;
         em->r_no_2++;
@@ -3455,7 +3455,7 @@ static void em32_R1_Ground(cEm32* em)
         zero = 0;
         em32GetGroundPos(em);
         MotionSetCore(em, &em->Motion, ARC(0x81), ARC(0x82), 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x1C, 0, 0, em, (void*) zero);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x1C, 0, ESP_CORE_KIND_NONE, em, (void*) zero);
         w->Atk_ck = zero;
         w->timer = 30;
         em->r_no_2++;
@@ -3483,7 +3483,7 @@ static void em32_R1_BreakBarred(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x85), ARC(0x86), 10, 1, 0);
-        EstSet(em, -1, 0, 0, 0x2A, 0x24, 0, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x24, 0, w->espKind[1], em, (void*) step);
         w->Atk_ck = step;
         w->timer = 15;
         em->r_no_2++;
@@ -3548,26 +3548,26 @@ static void em32_R1_Dm_Normal(cEm32* em)
             MotionSetCore(em, &em->Motion, ARC(0x25), ARC(0x26), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
             if (em->dmg.m_Wep != 0x17) {
-                EstSet(em, -1, 0, 0, 0x2A, 0x1D, 0, 0, em, (void*) step);
+                EstSet(em, -1, 0, 0, EFF_EM32, 0x1D, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             }
             break;
         case 1:
             MotionSetCore(em, &em->Motion, ARC(0x69), ARC(0x6A), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
             if (em->dmg.m_Wep != 0x17) {
-                EstSet(em, -1, 0, 0, 0x2A, 0x1F, 0, 0, em, (void*) step);
+                EstSet(em, -1, 0, 0, EFF_EM32, 0x1F, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             }
             break;
         case 2:
             MotionSetCore(em, &em->Motion, ARC(0x6B), ARC(0x6C), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
             if (em->dmg.m_Wep != 0x17) {
-                EstSet(em, -1, 0, 0, 0x2A, 0x20, 0, 0, em, (void*) step);
+                EstSet(em, -1, 0, 0, EFF_EM32, 0x20, 0, ESP_CORE_KIND_NONE, em, (void*) step);
             }
             break;
         }
         EM32_EFFECT_DELETE(w->espKind[2], em);
-        EstSet(em, -1, 0, 0, 0x2A, 8, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM32, 8, 0, ESP_CORE_KIND_NONE, em, 0);
         w->x978 = 450;
         em->r_no_2++;
     case 1:
@@ -3624,7 +3624,7 @@ static void em32_R1_Die_Normal(cEm32* em)
         EM32_EFFECT_DELETE(w->espKind[2], em);
         EM32_EFFECT_DELETE(w->espKind[0], em);
         EM32_EFFECT_DELETE(w->espKind[1], em);
-        EstSet(em, -1, 0, 0, 0x2A, 0x27, 1, w->espKind[1], em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x27, 1, w->espKind[1], em, (void*) step);
         em->clearStatus(EM_STATUS_ACTIVE);
         w->scale = 1.0f;
         em->r_no_2++;
@@ -3642,7 +3642,7 @@ static void em32_R1_Die_Normal(cEm32* em)
         w->flags |= 0x20;
         w->scale = 1.0f;
         SndCall(8, 0x38, &em->pos, em->id, 0, em);
-        EstSet(em, -1, 0, 0, 0x2A, 0x2B, 1, w->espKind[1], em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM32, 0x2B, 1, w->espKind[1], em, 0);
         em->r_no_2++;
     case 3:
         if (w->timer) {
@@ -4491,7 +4491,7 @@ void em32TexrenderInit(cEm32* em)
     EffectEspDelete(w->pTex->mask | 0x801, w->espKind[1], em, 0);
     EffectEspgenDelete(w->pTex->mask | 0x801, w->espKind[1], em);
     EffectEfmDelete(w->pTex->mask | 0x801, w->espKind[1], em);
-    EstSet(0, -1, 0, 0, 0x2A, 0, w->pTex->mask | 0x801, w->espKind[1], em, 0);
+    EstSet(0, -1, 0, 0, EFF_EM32, 0, w->pTex->mask | 0x801, w->espKind[1], em, 0);
 }
 
 // The player's position 18 frames ahead (plPos) and the angle / squared distance to it.
@@ -4810,7 +4810,7 @@ void em32PlDivideSet(cEm32* em)
         w->pDivide[0]->pos = pPLS->pos;
         w->pDivide[0]->ang = pPLS->ang;
         MotSetObj00(w->pDivide[0], ARC(0x9C), 1, 0);
-        EstSet(w->pDivide[0], -1, 0, 0, 0x2A, 0x10, 0, 0, w->pDivide[0], 0);
+        EstSet(w->pDivide[0], -1, 0, 0, EFF_EM32, 0x10, 0, ESP_CORE_KIND_NONE, w->pDivide[0], 0);
     }
     if (w->pDivide[1]) {
         ((cObj00*) w->pDivide[1])->setScrAtari(300.0f);
@@ -4818,7 +4818,7 @@ void em32PlDivideSet(cEm32* em)
         w->pDivide[1]->pos = pPLS->pos;
         w->pDivide[1]->ang = pPLS->ang;
         MotSetObj00(w->pDivide[1], ARC(0x9D), 1, 0);
-        EstSet(w->pDivide[0], -1, 0, 0, 0x2A, 0x11, 0, 0, w->pDivide[0], 0);
+        EstSet(w->pDivide[0], -1, 0, 0, EFF_EM32, 0x11, 0, ESP_CORE_KIND_NONE, w->pDivide[0], 0);
     }
     VibSetData(VIB_TBL, 0xB, 1);
 }
@@ -4839,7 +4839,7 @@ void em32PlDivideSet2(cEm32* em)
         w->pDivide[1]->pos = pPLS->pos;
         w->pDivide[1]->ang = pPLS->ang;
         MotSetObj00(w->pDivide[1], ARC(0xA2), 1, 0);
-        EstSet(w->pDivide[1], -1, 0, 0, 0x2A, 0xF, 0, w->espKind[1], em, 0);
+        EstSet(w->pDivide[1], -1, 0, 0, EFF_EM32, 0xF, 0, w->espKind[1], em, 0);
     }
     VibSetData(VIB_TBL, 0xB, 1);
 }

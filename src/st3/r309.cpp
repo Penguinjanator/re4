@@ -148,7 +148,7 @@ static void r309_execEmAppear()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EstSet(0, -1, 0, 0, 1, 0, 1, (u8) r309_work->kind1, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, (u8) r309_work->kind1, 0, 0);
     SndRoomStrStart(1, 0, 1);
     CamCtrl.CutCall(2);
     SceSleep(45);
@@ -182,7 +182,7 @@ static void r309_setEffOnEm(s16 no)
         OyaSetObj00(obj, em.getPtr(), 0x11);
         obj->setNoSuspend(1);
         U32Set(r309_work->kind0, EspPullCoreKind());
-        EstSet(obj, -1, 0, 0, 0, 0x2D, 0xC01, (u8) r309_work->kind0, 0, 0);
+        EstSet(obj, -1, 0, 0, EFF_CORE, 0x2D, 0xC01, (u8) r309_work->kind0, 0, 0);
         while (em.isActive() == 1) {
             SceSleep(1);
         }

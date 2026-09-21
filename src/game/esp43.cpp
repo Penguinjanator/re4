@@ -57,7 +57,7 @@ void cEsp43::move()
         m_Life_time = 0;
     } else {
         if (m_Col_start_cnt == m_Life_time && w->EstNo != 0xff) {
-            EstSet(0, -1, &m_Pos, &m_Ang, 1, w->EstNo, info.Core_flg, info.Core_kind, info.Core_pEm, 0);
+            EstSet(0, -1, &m_Pos, &m_Ang, EFF_ROOM, w->EstNo, info.Core_flg, info.Core_kind, info.Core_pEm, 0);
         }
         if (!CommonMove()) {
             return;

@@ -445,9 +445,9 @@ static void r202_operateCannon()
     CamCtrl.CutCall(5);
     SceSleep(20);
     SceAtSetEnable(0x11, 0);
-    EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, zero, zero);
     SndCall(6, 9, 0, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_NONE, zero, zero);
     SceSleep(35);
     SndCall(6, 0xA, 0, 0, 0, 0);
     SmdGetObjPtr(0x25)->be_flag &= ~2;
@@ -484,7 +484,7 @@ static void r202_operateCannon()
         ReadModule* m = SearchEmModule(0x11);
 
         if (m) {
-            EspDataRelease(0x10, 0, 1);
+            EspDataRelease(EFF_EM10, 0, 1);
             InitModule(m);
         }
     }
@@ -674,7 +674,7 @@ static void r202_operateCrank()
     r202_work.p->crank->endEvent(0);
     SceAtSetEnable(0x15, 0);
     if (r202_work.p->ido1->pos.y == r202_work.p->idoY1) {
-        EstSet(0, -1, 0, 0, 1, 3, 0, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
         RsfSet(G_ROOM_ID, 0);
         SndCall(6, 8, 0, 0, 0, 0);
         SceSleep(30);
@@ -708,7 +708,7 @@ static void r202_waitRockImpact(cEm* rock)
         SceSleep(1);
     }
     r202_changeIdoSmd(1);
-    EstSet(0, -1, 0, 0, 1, 6, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 6, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 0xB, 0, 0, 0, 0);
 }
 
@@ -758,7 +758,7 @@ static void r202_CatapultGo()
     r202_work.p->cat[2].fire = 1;
     pG->Room_flg[0] |= 0x80000000;
     rock = r202_work.p->cat[2].rock;
-    EstSet(rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, rock, zero);
+    EstSet(rock, -1, 0, 0, EFF_ROOM, 0, 1, EMROCK_WK(rock)->espKind, rock, zero);
     SceSleep(60);
     pG->Room_flg[0] |= 0x02000000;
     r202_work.p->em180.setFlag(1);

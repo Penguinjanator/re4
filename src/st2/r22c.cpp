@@ -513,7 +513,7 @@ void R22cMain()
 // Background gag: the birds fly off (effect 3, SE 0xE / 0xF) for 8 seconds.
 static void r22c_BirdsFly()
 {
-    EstSet(0, -1, 0, 0, 1, 3, 0, 0x3F, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_MARK, 0, 0);
     SndCall(6, 0xE, 0, 0, 0, 0);
     SceSleep(480);
     SndCall(6, 0xF, 0, 0, 0, 0);
@@ -522,7 +522,7 @@ static void r22c_BirdsFly()
 // Background gag: the bees (effect 1, SE 0x10 / 0x11) for 20 seconds.
 static void r22c_BeeFly()
 {
-    EstSet(0, -1, 0, 0, 1, 1, 0, 0x3F, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0, ESP_CORE_KIND_MARK, 0, 0);
     SndCall(6, 0x10, 0, 0, 0, 0);
     SceSleep(1200);
     SndCall(6, 0x11, 0, 0, 0, 0);
@@ -534,7 +534,7 @@ static void r22c_FireWorks()
     Vec pos = {1000.0f, 3000.0f, -25200.0f};
 
     ScoreSet(300, &pos);
-    EstSet(0, -1, 0, 0, 1, 5, 0, 0x3F, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_MARK, 0, 0);
     SndCall(6, 0x12, 0, 0, 0, 0);
     SceSleep(1200);
     SndCall(6, 0x13, 0, 0, 0, 0);
@@ -545,7 +545,7 @@ static void r22c_ShootingStar()
 {
     Vec pos;
 
-    EstSet(0, -1, 0, 0, 1, 4, 0, 0x3F, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_MARK, 0, 0);
     SndCall(6, 0x14, 0, 0, 0, 0);
     SceSleep(90);
     SndCall(6, 0x15, 0, 0, 0, 0);
@@ -556,7 +556,7 @@ static void r22c_ShootingStar()
     pos.z = -25337.0f;
     o->setPos(&pos);
     o->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20));
-    EstSet(o, -1, 0, 0, 1, 6, 0, 0, o, 0);
+    EstSet(o, -1, 0, 0, EFF_ROOM, 6, 0, ESP_CORE_KIND_NONE, o, 0);
     SceSleep(10);
     pos.x = -3951.0f;
     pos.y = 3000.0f;
@@ -577,8 +577,8 @@ static void r22c_ShootingStar()
     pos.y = 400.0f;
     pos.z = -17100.0f;
     o->setPos(&pos);
-    EffectEspgenDelete(0, 0x3F, o);
-    EstSet(0, -1, &o->pos, 0, 1, 7, 0, 0, 0, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_MARK, o);
+    EstSet(0, -1, &o->pos, 0, EFF_ROOM, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
     QuakeExec(0, 0, 5, 22.0f, 2);
     SndCall(6, 0x16, 0, 0, 0, 0);
     PlWepHitCheck2(0, &o->pos, &o->pos, 0x13, 0, 6000.0f);
@@ -1297,9 +1297,9 @@ static void shootResult()
             }
             scoreRegist();
             checkBottleCap();
-            EffectEspDelete(0, 0x3F, 0, 0);
-            EffectEspgenDelete(0, 0x3F, 0);
-            EffectEfmDelete(0, 0x3F, 0);
+            EffectEspDelete(0, ESP_CORE_KIND_MARK, 0, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_MARK, 0);
+            EffectEfmDelete(0, ESP_CORE_KIND_MARK, 0);
             KeyStop(0xEFCF0000);
             r22c_work.p->timer = 0;
             r22c_work.p->resultStep = 1;
@@ -1641,7 +1641,7 @@ void R22cHitEffect(int no)
         if (r22c_work.p->effFlags & 0x20) {
             return;
         }
-        EstSet(0, -1, 0, 0, 1, 2, 0, 0x3F, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0, ESP_CORE_KIND_MARK, 0, 0);
         r22c_work.p->effFlags |= 0x20;
         r22c_work.p->effTimer = 0x4B0;
         break;

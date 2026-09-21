@@ -67,18 +67,18 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
 }
 // Fills the controller's EspInfo owner block: Core_flg = a, Call_no = b, Core_kind = c, Core_pEm = d,
 // owner = e (the ids EfmDelete / EspDelete use to find effects by owner).
-void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, void* d, int e)
+void SetEspCore(EspgenWork* w, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner)
 {
-    w->info.Core_flg = a;
-    w->info.Core_kind = c;
-    w->info.Call_no = b;
-    w->info.Core_pEm = d;
-    w->info.owner = e;
+    w->info.Core_flg = Core_flg;
+    w->info.Core_kind = Core_kind;
+    w->info.Call_no = Call_no;
+    w->info.Core_pEm = Core_pEm;
+    w->info.owner = owner;
 }
 
 // Takes a free controller from the pool (front == 1: from the front, drawn first) and stamps the
 // owner info on it. Returns 0 when the pool is empty.
-int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, void* d, int e, int front)
+int PullEspEspgen(EspgenWork** out, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int front)
 {
     int ret;
 
@@ -88,7 +88,7 @@ int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, void* d, int e, int fro
         ret = PullEspgen(out);
     }
     if (ret) {
-        SetEspCore(*out, a, b, c, d, e);
+        SetEspCore(*out, Core_flg, Call_no, Core_kind, Core_pEm, owner);
     }
     return ret;
 }

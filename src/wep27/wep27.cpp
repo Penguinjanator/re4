@@ -34,7 +34,7 @@ void Wep27_init(cModel* m)
         pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x45, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP11, 1);
     }
 }
 
@@ -142,7 +142,7 @@ void cObjMachinegun::moveFire()
             type = 1;
             break;
         }
-        EstSet(this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP11, type, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         wep.step = 1;
     }
     if (MotionGetState(this)) {

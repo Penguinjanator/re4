@@ -475,10 +475,10 @@ void r201_moveAltarObj(int open, int init)
                 r201_attachGem(r201_work.p, r201_work.p->gem[1]);
                 r201_attachGem(r201_work.p, r201_work.p->gem[2]);
                 r201_work.p->altar.setReverse(0);
-                EstSet(0, -1, 0, 0, 1, 8, 1, (u8) r201_work.p->altarEff, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, (u8) r201_work.p->altarEff, 0, 0);
             } else {
                 r201_work.p->altar.setReverse(1);
-                EstSet(0, -1, 0, 0, 1, 9, 1, (u8) r201_work.p->altarEff, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, (u8) r201_work.p->altarEff, 0, 0);
             }
             // ONE loop for both directions: the `SceSleep(1)` block is shared and the `open` compare
             // (kept in r29 by mfcr) is re-tested per iteration after the sleep (`b test; sleep: ..; test:`).
@@ -796,9 +796,9 @@ void r201_setBattleArea(int open, int init)
         }
         SceExec(0x12, (TaskFunc) r201_setBattleArea_sub, open, 0, SCE_PRIO_DEF_2, 0);
         if (open == 1) {
-            EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
         }
         for (;;) {
             if (open == 1) {
@@ -960,7 +960,7 @@ static void r201_appearClawMan()
 
     em.setPtr(0x56, 2, 0);
     em.setFlag(1);
-    EstSet(0, -1, 0, 0, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndRoomStrStart(1, 0, 1);
     SceAtSetEnable(0x29, 1);
     SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r201_closeBattleArea, 0, 1);
@@ -1042,7 +1042,7 @@ void r201_setSwitchEnv(int on)
         RsfSet(G_ROOM_ID, 5);
         ((cEmBarred*) r201_work.p->barred)->setOpen(0);
         EffectEspgenDelete(0, r201_work.p->effKind, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, zero, zero);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(1, 0);
         SceAtSetEnable(3, 0);
@@ -1052,7 +1052,7 @@ void r201_setSwitchEnv(int on)
         zero = 0;
         RsfClear(G_ROOM_ID, 5);
         ((cEmBarred*) r201_work.p->barred)->setClose(0);
-        EstSet(0, -1, 0, 0, 1, 0, 1, r201_work.p->effKind, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, r201_work.p->effKind, zero, zero);
         SceAtSetEnable(3, 1);
         SceAtSetEnable(0x28, 1);
         SceAtSetEnable(5, 1);

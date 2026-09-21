@@ -54,7 +54,7 @@ extern "C" void setTexRender(cModelInfo* info)
         tbl[4] = 0xF7;
         tbl[5] = pl0aTex.p->texId;
         pl0aTex.p->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 3, 0xC, pl0aTex.p->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_PL00, 0xC, pl0aTex.p->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
@@ -69,7 +69,7 @@ extern "C" void setTexRender(cModelInfo* info)
 cPlKlauser::cPlKlauser()
 {
     init0();
-    EspDataLoad((u32) PL_ARC(0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC(0x1A), EFF_PL00, 0);
     setModel();
     weaponRelease();
     weaponLoad(pG->weapon_no, pG->weapon_type);
@@ -465,10 +465,10 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         StaFlagOn(pGS, STA_KLAUSER_TRANSFORM);
         pl->Neck->motL = 0;
         DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
-        EffectEspDelete(0, 0x3F, pl, 0);
-        EffectEspgenDelete(0, 0x3F, pl);
-        EffectEfmDelete(0, 0x3F, pl);
-        EstSet(pl, -1, 0, 0, 3, 0xA, 0, 0x3F, pl, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_MARK, pl);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0xA, 0, ESP_CORE_KIND_MARK, pl, 0);
         SndCall(1, 0x51, &pl->pos, 0, 0, 0);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->Wep->m_pWep->setDisp(1, 0);
@@ -501,7 +501,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->motionSet(PL_ARC(0x8C), 5, 0, 1, 0);
         pl->atari.setPriority(PRI_LV2);
         pl->dmg.set(0, 0x80);
-        EstSet(pl, -1, 0, 0, 3, 0xB, 0, 0x3F, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0xB, 0, ESP_CORE_KIND_MARK, pl, 0);
         SndCall(1, 0x53, &pl->pos, 0, 0, 0);
         pl->r_no_2 = 0x15;
         // fallthrough

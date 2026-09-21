@@ -88,7 +88,7 @@ void Wep17_init(cModel* m)
             WEP_MOT(pl, 0x0F, 0x0C);
             WEP_MOT(pl, 0x10, 0x1C);
         }
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4B, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP17, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x14);
         PlWepMot[1] = WEP_ARC_PTR(0x18);
         PlWepMot[2] = WEP_ARC_PTR(0x1A);
@@ -901,7 +901,7 @@ static void wep17_r2_out(cPlayer* pl)
             StaFlagOn(pG, STA_PL_FIRE);
             SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
-            EstSet(WEP_OBJ(pl), -1, 0, 0, 0x4B, 0, 0, 0xA, (void*) zero, 0);
+            EstSet(WEP_OBJ(pl), -1, 0, 0, EFF_WEP17, 0, 0, ESP_CORE_KIND_PL_WEP, (void*) zero, 0);
             parts = pl->getPartsPtr(0xA);
             p0.x = 234.5f;
             p0.y = -24.0f;

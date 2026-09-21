@@ -498,7 +498,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         break;
     }
     if (w->flags & 4) {
-        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, obj, 0);
+        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, ESP_CORE_KIND_NONE, obj, 0);
     }
     if (w->flags & 8) {
         w->x7B = gen->WorkSp8[2];
@@ -670,7 +670,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     }
     obj->matUpdate();
     if (w->flags & 4) {
-        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, obj, 0);
+        EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, ESP_CORE_KIND_NONE, obj, 0);
     }
     if (gen->WorkSp8[2] != 0) {
         setModTexRender(obj, gen->WorkSp8[2] - 1);

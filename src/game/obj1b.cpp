@@ -319,7 +319,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
                 p.y = 0.0f;
                 p.z = 0.0f;
                 PSMTXMultVec(obj->mat, &p, &p);
-                EstSet(0, -1, &p, 0, 0x27, 0xB, 0, 0, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_EM2F, 0xB, 0, ESP_CORE_KIND_NONE, 0, 0);
             } else {
                 Vec p;
 
@@ -327,7 +327,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
                 p.y = 0.0f;
                 p.z = 0.0f;
                 PSMTXMultVec(obj->mat, &p, &p);
-                EstSet(0, -1, &p, 0, 0x27, 0xB, 0, 0, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_EM2F, 0xB, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
     }
@@ -424,7 +424,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
                     SndCall(w->seBlk, w->seNo, &obj->pos, w->seId, 0, 0);
                 }
                 if (w->estNo != 0xFF && w->estPrm != 0xFF) {
-                    EstSet(obj, -1, 0, 0, w->estNo, w->estPrm, 0, 0, obj, 0);
+                    EstSet(obj, -1, 0, 0, w->estNo, w->estPrm, 0, ESP_CORE_KIND_NONE, obj, 0);
                 }
                 EffectEspDelete(0, w->espId, obj, 0);
                 EffectEspgenDelete(0, w->espId, obj);
@@ -558,7 +558,7 @@ void obj1b_R1_Throw(cObjSpear* obj)
         if (wh < obj->pos_old.y && wh > obj->pos.y) {
             p = obj->pos;
             p.y = wh;
-            EstSet(0, -1, &p, 0, 0xF, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &p, 0, EFF_PL0F, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 0, &p, 0, 0, 0);
         }
     } else {
@@ -625,8 +625,8 @@ int obj1bHitCk(cObjSpear* obj)
             memclr_asm(&opt, sizeof(SpearEstOpt));
             opt.flag = 1;
             opt.spd = d;
-            EstSet(obj, -1, 0, 0, 0x27, 0, 0, 0, obj, &opt);
-            EstSet(obj, -1, 0, 0, 0x27, 5, 0, 0, obj, 0);
+            EstSet(obj, -1, 0, 0, EFF_EM2F, 0, 0, ESP_CORE_KIND_NONE, obj, &opt);
+            EstSet(obj, -1, 0, 0, EFF_EM2F, 5, 0, ESP_CORE_KIND_NONE, obj, 0);
             SndCall(8, 4, &obj->pos_old, em->id, 0, 0);
             w->estTimer = 600;
         }

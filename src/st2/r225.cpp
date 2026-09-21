@@ -360,7 +360,7 @@ void r225_open_door()
         Vec rot = {1.5707964f, 1.5707964f, 0.0f};
         r225_work->door = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x33), ROOM_ARC_PTR(pG->pRoom, 0x34), &pos, &rot, 0x10, 1);
     }
-    EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     SndCall(6, 3, 0, 0, 0, 0);
     SceSleep(30);
     spd = 0.0f;
@@ -379,9 +379,9 @@ void r225_open_door()
     SceSleep(25);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    EffectEspDelete(0, 2, 0, 0);
-    EffectEspgenDelete(0, 2, 0);
-    EffectEfmDelete(0, 2, 0);
+    EffectEspDelete(0, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
     SceAtSetEnable(0xD, 0);
     SceAtSetEnable(0xC, 0);
 }

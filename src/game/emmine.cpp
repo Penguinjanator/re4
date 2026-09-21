@@ -239,7 +239,7 @@ void emMine_R1_Shot(cEmMine* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet(em, -1, 0, 0, 0, 0x38, 0, w->EffKindId, em, 0);
+        EstSet(em, -1, 0, 0, EFF_CORE, 0x38, 0, w->EffKindId, em, 0);
         w->Bomb_wait = 210;
         em->r_no_2++;
     case 1:
@@ -276,7 +276,7 @@ void emMine_R1_Shot(cEmMine* em)
             if (info) {
                 if (info->flag & 1) {
                     if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                     }
                 }
                 w->Bomb_eff = (u8) info->eff6[0];
@@ -305,14 +305,14 @@ void emMine_R1_Shot(cEmMine* em)
                     wi = EatMgr.getEffInfo(EAT_ET_WATER);
                     if (wi) {
                         if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
-                            EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                            EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                         }
                         w->Bomb_eff = (u8) wi->eff6[0];
                         w->Bomb_est = (u8) wi->eff6[1];
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
                         AddWaterPower(&em->pos, 0.5f);
                     } else {
-                        EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                        EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                         w->Bomb_eff = 0;
                         w->Bomb_est = 0x39;
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -359,14 +359,14 @@ void emMine_R1_Shot(cEmMine* em)
             wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
                 if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
-                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
                 w->Bomb_eff = (u8) wi->eff6[0];
                 w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
-                EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -411,7 +411,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet(em, -1, 0, 0, 0, 0x4C, 0, w->EffKindId, em, 0);
+        EstSet(em, -1, 0, 0, EFF_CORE, 0x4C, 0, w->EffKindId, em, 0);
         w->Bomb_wait = 210;
         em->r_no_2++;
     case 1:
@@ -439,7 +439,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
             info = EatMgr.getEffInfo(EatGetEffectType(attr));
             if (info) {
                 if (info->flag & 1) {
-                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
                 w->Bomb_eff = (u8) info->eff6[0];
                 w->Bomb_est = (u8) info->eff6[1];
@@ -469,13 +469,13 @@ void emMine_R1_ShotArrow(cEmMine* em)
                 // in global-alloc, so em keeps r29 and both take r28; one two-set `wi` outranks em).
                 AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
                 if (wi) {
-                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                     w->Bomb_eff = (u8) wi->eff6[0];
                     w->Bomb_est = (u8) wi->eff6[1];
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
                     AddWaterPower(&em->pos, 0.5f);
                 } else {
-                    EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                    EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                     w->Bomb_eff = 0;
                     w->Bomb_est = 0x39;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -514,13 +514,13 @@ void emMine_R1_ShotArrow(cEmMine* em)
             em->pos.y = wh2;
             AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
-                EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->Bomb_eff = (u8) wi->eff6[0];
                 w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
-                EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -715,7 +715,7 @@ void emMine_R1_Set(cEmMine* em)
                 if (w->Timer2 <= 4) {
                     w->Timer2 = 5;
                 }
-                EstSet(em, -1, 0, 0, 0, 0x37, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, EFF_CORE, 0x37, 0, ESP_CORE_KIND_NONE, em, 0);
                 p.x = 0.0f;
                 p.y = 0.0f;
                 p.z = -250.0f;
@@ -811,7 +811,7 @@ void emMine_R1_Parent(cEmMine* em)
                 if (w->Timer2 <= 4) {
                     w->Timer2 = 5;
                 }
-                EstSet(em, -1, 0, 0, 0, 0x37, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, EFF_CORE, 0x37, 0, ESP_CORE_KIND_NONE, em, 0);
                 p.x = 0.0f;
                 p.y = 0.0f;
                 p.z = -250.0f;
@@ -1174,7 +1174,7 @@ void cEmMine::setBomb()
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    EstSet(0, -1, &pos, 0, w->Bomb_eff, w->Bomb_est, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, 0, w->Bomb_eff, w->Bomb_est, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(w->Bomb_seid, w->Bomb_seno, &p, 0, 0, this);
     AddWaterPower(&pos, 1.0f);
     EffectEspDelete(0, w->EffKindId, this, 0);

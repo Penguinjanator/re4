@@ -162,7 +162,7 @@ void R223Init()
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
         SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r223_ItemUse, 0, 1);
         SceExec(0x12, (TaskFunc) r223_ItemUse_exec, 0, 0, SCE_PRIO_DEF_2, 0);
-        EstSet(0, -1, 0, 0, 1, 0x1E, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1E, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     } else {
         SceAtSetEnable(0x11, 0);
         SceAtSetEnable(0x12, 0);
@@ -178,14 +178,14 @@ void R223Init()
         SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
         if (RsfCheck(G_ROOM_ID, 9)) {
             h = 3600.0f;
-            EstSet(0, -1, 0, 0, 1, 0x16, 1, 3, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 0x18, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         } else {
             h = 1200.0f;
             SmdGetObjPtr(0x19)->be_flag |= 0x20;
             SmdGetObjPtr(0x19)->pos.y = 5385.0f;
-            EstSet(0, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 0x19, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         }
         {
             cObj* o12 = SmdGetObjPtr(0xC);
@@ -199,8 +199,8 @@ void R223Init()
             SmdGetObjPtr(0x16)->pos.y -= h;
         }
     } else {
-        EstSet(0, -1, 0, 0, 1, 0x16, 1, 3, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 0x18, 1, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     }
     r223_work.p->em[21].setEm(0xE0, -1, 1, 1, 1);
     r223_work.p->em[22].setEm(0xE1, -1, 1, 1, 1);
@@ -277,9 +277,9 @@ static void reva2_use_after_reva3_exit()
     cObj* o12;
     cObj* o5b;
 
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
     o12 = SmdGetObjPtr(0xC);
     o5b = SmdGetObjPtr(0x5B);
     o12->be_flag |= 0x20;
@@ -330,9 +330,9 @@ static void toroko_go_and_stop_exit()
     SmdGetObjPtr(0x16)->be_flag |= 2;
     r223_work.p->toroko->be_flag &= ~2;
     SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
     SmdGetObjPtr(0x19)->be_flag |= 0x20;
     SmdGetObjPtr(0x19)->pos.y = 5385.0f;
     o12 = SmdGetObjPtr(0xC);
@@ -344,11 +344,11 @@ static void toroko_go_and_stop_exit()
     r223_work.p->toroko->pos.y = -1200.0f;
     r223_work.p->dai->pos.y = 3176.0f;
     SmdGetObjPtr(0x16)->pos.y = 3115.0f;
-    EffectEspDelete(1, 3, 0, 0);
-    EffectEspgenDelete(1, 3, 0);
-    EffectEfmDelete(1, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x19, 1, 3, 0, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     SndStop(r223_work.p->se[0], 0);
     SndStop(r223_work.p->se[1], 0);
     SndStop(r223_work.p->se[2], 0);
@@ -425,12 +425,12 @@ static void reva3_move()
         if (SceMesGetSelection() == 1) {
             RsfSet(G_ROOM_ID, 8);
             reva_common_move(SmdGetObjPtr(0x19), 0, 2, reva3_lo, reva3_hi);
-            EffectEspDelete(1, 3, 0, 0);
-            EffectEspgenDelete(1, 3, 0);
-            EffectEfmDelete(1, 3, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
             r223_work.p->se[0] = SndCall(6, 0, 0, 0, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 0x16, 1, 3, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 0x18, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_ROOM01, 0, 0);
             SceSleep(15);
             toroko_move2();
         }
@@ -448,7 +448,7 @@ void toroko_move1()
     r223_work.p->str = SndStrReq(1, 1, 0x80000003, 0, 0, 0.0f);
     SmdSetTrans(0x16, 0);
     MotionSetCore(r223_work.p->toroko, &r223_work.p->toroko->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
-    EstSet(r223_work.p->toroko, -1, 0, 0, 1, 0x1C, 1, 4, 0, 0);
+    EstSet(r223_work.p->toroko, -1, 0, 0, EFF_ROOM, 0x1C, 1, ESP_CORE_KIND_ROOM02, 0, 0);
     CamCtrl.CutCall(8);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -701,19 +701,19 @@ void dai_down_stop()
             } else {
                 CamCtrl.CutCall(0xF);
                 first = 0;
-                EstSet(0, -1, 0, 0, 1, 0x1B, 1, 4, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x1B, 1, ESP_CORE_KIND_ROOM02, 0, 0);
             }
         } else {
             if (cnt++ == 0x31) {
                 CamCtrl.CutCall(0xB);
                 reva_common_move(SmdGetObjPtr(0x19), 0, 1, dai_lo, dai_hi);
                 SceSleep(15);
-                EffectEspDelete(1, 3, 0, 0);
-                EffectEspgenDelete(1, 3, 0);
-                EffectEfmDelete(1, 3, 0);
+                EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+                EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
                 r223_work.p->se[0] = SndCall(6, 0, 0, 0, 0, 0);
-                EstSet(0, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
-                EstSet(0, -1, 0, 0, 1, 0x19, 1, 3, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM01, 0, 0);
                 SceSleep(35);
                 CamCtrl.CutCall(0xF);
             }
@@ -744,7 +744,7 @@ void dai_down_end()
     SmdGetObjPtr(0xC)->be_flag |= 0x20;
     SmdGetObjPtr(0xD)->be_flag |= 0x20;
     CamCtrl.CutCall(0x10);
-    EstSet(0, -1, 0, 0, 1, 0x1A, 1, 4, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x1A, 1, ESP_CORE_KIND_ROOM02, 0, 0);
     r223_work.p->se[1] = SndCall(6, 5, &r223_work.p->toroko->pos, 0, 0, 0);
     spd = 13.333333f;
     while (o5b->pos.y > -350.0f) {
@@ -809,12 +809,12 @@ static void r223_Bomb()
 
     SceAtSetEnable(0x11, 0);
     SndCall(6, 7, &pos, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x1D, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x1D, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     SceSleep(150);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
-    EstSet(0, -1, 0, 0, 1, 0x1F, 0, 0, 0, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, 0, ESP_CORE_KIND_NONE, 0, 0);
     r223_work.p->dai->be_flag &= ~2;
     SndCall(6, 8, &pos, 0, 0, 0);
     PlWepHitCheck2(0, &pos, &pos, 0x12, 2, 6000.0f);

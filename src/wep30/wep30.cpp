@@ -35,7 +35,7 @@ void Wep30_init(cModel* m)
     } else {
         pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4D, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP19, 1);
     }
 }
 

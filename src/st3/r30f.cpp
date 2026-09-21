@@ -194,11 +194,11 @@ void R30fInit()
         AreaSet(2);
         r30f_work->truckNo = 2;
         SceExec(0x12, (TaskFunc) R30f_ride, 0, 0, 2, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x801, ESP_CORE_KIND_ROOM01, (void*) zero, (void*) zero);
         SceAtSetEnable(0x18, 0);
         SceAtSetEnable(0x19, 0);
     } else {
-        EstSet(0, -1, 0, 0, 1, 0, 0x801, 3, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x801, ESP_CORE_KIND_ROOM01, 0, 0);
     }
     }
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -229,7 +229,7 @@ void R30fInit()
             }
         }
     }
-    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, EFF_ROOM, 0x11, 0x801, ESP_CORE_KIND_NONE, 0, 0);
     if (pG->room_id_prev == 0xFFF && !StaFlagChk(pG, STA_SUB_ASHLEY)) {
         StaFlagOn(pG, STA_SUB_ASHLEY);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
@@ -617,15 +617,15 @@ static void track_destroy()
 {
     SceEventStart(1);
     CamCtrl.CutCall(0x12);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
     r30f_work->lift->setNoSuspend(1);
     r30f_work->bull->setNoSuspend(1);
-    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 0xC, 0x801, ESP_CORE_KIND_NONE, 0, 0);
     SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
     if (pSUB) {
         pSUB->setNoSuspend(0);
@@ -658,12 +658,12 @@ static void track_move()
         SceEventStart(1);
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x41), 0, 0, 0x200, 0);
         r30f_work->lift->setNoSuspend(1);
-        EstSet(r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
+        EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 0x15, 1, ESP_CORE_KIND_ROOM04, 0, 0);
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
-        EffectEspDelete(1, 6, 0, 0);
-        EffectEspgenDelete(1, 6, 0);
-        EffectEfmDelete(1, 6, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM04, 0);
         SceEventEnd(0);
     }
     r30f_work->lift->setNoSuspend(0);
@@ -677,7 +677,7 @@ static void track_move()
     if (r30f_work->truckNo == 2) {
         r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0x200, 0);
     }
-    EstSet(r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
+    EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_ROOM00, 0, 0);
     SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
     if (r30f_work->truckNo != 1) {
         SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
@@ -739,22 +739,22 @@ static void track_move()
         }
         if (life > 0 && r30f_work->truckLife <= 0) {
             if (r30f_work->truckNo == 2) {
-                EstSet(r30f_work->lift, -1, 0, 0, 1, 0x19, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM02, 0, 0);
             } else {
-                EstSet(r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
+                EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM02, 0, 0);
             }
             SndCall(6, 0x13, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         }
         if (t == frames) {
-            EffectEspDelete(0, 2, 0, 0);
-            EffectEspgenDelete(0, 2, 0);
-            EffectEfmDelete(0, 2, 0);
+            EffectEspDelete(0, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
             if (r30f_work->truckLife <= 0) {
                 int no = r30f_work->truckNo;
 
                 if (no == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, (void*) no, (void*) no);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 0, ESP_CORE_KIND_NONE, (void*) no, (void*) no);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3F), 0, 0, 1, 0);
@@ -762,7 +762,7 @@ static void track_move()
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 0, 0x200, 0);
-                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, r30f_work->lift, 0);
+                    EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 0x14, 0, ESP_CORE_KIND_NONE, r30f_work->lift, 0);
                     last_bomb();
                     SceExec(0x12, (TaskFunc) pl_gurd, 0, 0, 2, 0);
                 }
@@ -786,17 +786,17 @@ static void track_move()
                 BitOn(pG->Room_flg[0], 0x00800000);
                 if (r30f_work->truckNo == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 8, 0, 0, (void*) hitT, (void*) hitT);
-                    EstSet(r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 9, 0, ESP_CORE_KIND_NONE, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 1) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, (void*) hitT, (void*) hitT);
-                    EstSet(r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, r30f_work->lift, (void*) hitT);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, (void*) hitT, (void*) hitT);
+                    EstSet(r30f_work->lift, -1, 0, 0, EFF_ROOM, 0xB, 0, ESP_CORE_KIND_NONE, r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 2) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x37), 0, 0, 1, 0);
-                    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, (void*) hitT, (void*) hitT);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 0, ESP_CORE_KIND_NONE, (void*) hitT, (void*) hitT);
                 }
                 SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
             }
@@ -809,7 +809,7 @@ static void track_move()
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 2, 6000.0f);
             pG->pl_life = 0;
             PlSetDamage(7, 0, 0);
-            EstSet(0, -1, &pPL->pos, 0, 0, 0x27, 0, 0xA, 0, 0);
+            EstSet(0, -1, &pPL->pos, 0, EFF_CORE, 0x27, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
             DiedemoExec(0, 0);
         }
         SceSleep(1);
@@ -913,7 +913,7 @@ static void R30f_ride()
         }
         if (r30f_work->bull->r_no_0 == 3 && r30f_work->bull->getMoveFrameToLift() == 0x35) {
             if (r30f_work->shake1 <= 1) {
-                EstSet(0, -1, 0, 0, 1, 3, 0, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
                 if (pSUB) {
                     SndCall(6, 0x21, &pSUB->pos, 0, 0, 0);
                 }
@@ -928,7 +928,7 @@ static void R30f_ride()
         }
         if (r30f_work->bull->r_no_0 == 0xA && r30f_work->bull->getMoveFrameToLift() == 0x35) {
             if (r30f_work->shake2 <= 1) {
-                EstSet(0, -1, 0, 0, 1, 0x12, 0, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, 0, ESP_CORE_KIND_NONE, 0, 0);
                 if (pSUB) {
                     SndCall(6, 0x21, &pSUB->pos, 0, 0, 0);
                 }
@@ -1046,7 +1046,7 @@ static void door1_break()
 
     o = SmdGetObjPtr(0x1B);
     SceSleep(0x32);
-    EstSet(0, -1, 0, 0, 1, 2, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
     o->be_flag |= 0x20;
     o->pos.x = -38892.9f;
     o->pos.y = -31964.8f;
@@ -1078,7 +1078,7 @@ static void door2_break()
 
     o = SmdGetObjPtr(0x1C);
     SceSleep(0x32);
-    EstSet(0, -1, 0, 0, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     o->be_flag |= 0x20;
     o->pos.x = -10455.8f;
     o->pos.y = -38089.5f;
@@ -1113,7 +1113,7 @@ static void door3_break()
     if (pSUB) {
         SndCall(6, 0x20, &pSUB->pos, 0, 0, 0);
     }
-    EstSet(0, -1, 0, 0, 1, 0xF, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 0, ESP_CORE_KIND_NONE, 0, 0);
     SceAtSetEnable(0x1C, 0);
     Vec p = {40378.0f, -3424.0f, -56312.0f};
     PlWepHitCheck2(0, &p, &p, 0x12, 2, 7000.0f);
@@ -1129,7 +1129,7 @@ static void door4_break()
     SceSleep(0xA);
     SndCall(6, 0x16, &pSUB->pos, 0, 0, 0);
     SceSleep(0x28);
-    EstSet(0, -1, 0, 0, 1, 0x13, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
     o->be_flag |= 0x20;
     o->pos.x = 3744.86f;
     o->pos.y = -6478.23f;
@@ -1283,7 +1283,7 @@ void lift_stop_event()
 {
     SceEventStart(1);
     CamCtrl.CutCall(0x10);
-    EstSet(r30f_work->bull, -1, 0, 0, 1, 0x16, 1, 5, 0, 0);
+    EstSet(r30f_work->bull, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     if (pSUB) {
         SndCall(6, 1, &pSUB->pos, 0, 0, 0);
         pSUB->setNoSuspend(1);
@@ -1343,11 +1343,11 @@ static void lift_stop_task()
                 // `eff = 1` before the EstSet: cse canonicalises the stack zeros to the class member with the
                 // latest last mention, which must not be `eff`.
                 eff = 1;
-                EstSet(0, -1, 0, 0, 1, 0xE, 0, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 0x1D, &o->pos, 0, 0, 0);
-                EffectEspDelete(1, 4, 0, 0);
-                EffectEspgenDelete(1, 4, 0);
-                EffectEfmDelete(1, 4, 0);
+                EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+                EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
                 r30f_work->lift->be_flag &= ~2;
             }
             o->pos.y = -36243.0f;
@@ -1474,10 +1474,10 @@ static void lift_start_task()
     reva_common_move(SmdGetObjPtr(0x12), 0.0f, 1.38f);
     SceSleep(3);
     SndCall(6, 0x22, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
-    EffectEspDelete(0x801, 3, 0, 0);
-    EffectEspgenDelete(0x801, 3, 0);
-    EffectEfmDelete(0x801, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 1, 0x801, 3, 0, 0);
+    EffectEspDelete(0x801, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(0x801, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(0x801, ESP_CORE_KIND_ROOM01, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x801, ESP_CORE_KIND_ROOM01, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -1499,10 +1499,10 @@ static void r30f_switch()
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 1) {
         reva_common_move(SmdGetObjPtr(0x12), 1.38f, 0.0f);
-        EffectEspDelete(0x801, 3, 0, 0);
-        EffectEspgenDelete(0x801, 3, 0);
-        EffectEfmDelete(0x801, 3, 0);
-        EstSet(0, -1, 0, 0, 1, 0, 0x801, 3, 0, 0);
+        EffectEspDelete(0x801, ESP_CORE_KIND_ROOM01, 0, 0);
+        EffectEspgenDelete(0x801, ESP_CORE_KIND_ROOM01, 0);
+        EffectEfmDelete(0x801, ESP_CORE_KIND_ROOM01, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x801, ESP_CORE_KIND_ROOM01, 0, 0);
         SndCall(6, 0x22, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
         SceSleep(0xF);
         SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);

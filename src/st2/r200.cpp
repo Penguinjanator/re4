@@ -190,7 +190,7 @@ static void r200_execShowView()
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
         r200_work.p->eff2C = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r200_work.p->eff2C, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r200_work.p->eff2C, 0, 0);
         CamCtrl.CutCall(5);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -299,7 +299,7 @@ static void r200_execTruckEvent_end()
         if ((pG->Room_flg[0] & 0x80000000) == 0) {
             cEm* em = r200_work.p->em0.getPtr();
 
-            EstSet(em, -1, 0, 0, 1, 0x20, 0, 0, r200_work.p->em0.getPtr(), 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
         }
         r200_work.p->em0.setNoSuspend(0);
         r200_work.p->em1.setNoSuspend(0);
@@ -344,14 +344,14 @@ static void r200_execTruckEvent()
     {
         cEm* em = r200_work.p->em0.getPtr();
 
-        EstSet(em, -1, 0, 0, 1, 0x20, 0, 0, r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
     }
-    EstSet(r200_work.p->em0.getPtr(), -1, 0, 0, 1, 1, 1, (u8) r200_work.p->eff0C, 0, 0);
+    EstSet(r200_work.p->em0.getPtr(), -1, 0, 0, EFF_ROOM, 1, 1, (u8) r200_work.p->eff0C, 0, 0);
     SceSleep(70);
     {
         cEm* em = r200_work.p->em0.getPtr();
 
-        EstSet(em, -1, 0, 0, 1, 0x22, 1, 0, r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x22, 1, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

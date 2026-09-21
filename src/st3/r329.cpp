@@ -71,8 +71,8 @@ void R329Init()
         SmdSetTrans(0x2E, 1);
         SmdSetTrans(0x2F, 1);
         SmdSetTrans(0x2B, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 
@@ -308,8 +308,8 @@ extern "C" void Evt_R329S00_Func(Event* e)
         SmdSetTrans(0x2B, 0);
         SmdSetTrans(0x33, 1);
         SmdSetTrans(0x32, 1);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     }
 }

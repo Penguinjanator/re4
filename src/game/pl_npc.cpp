@@ -1972,19 +1972,19 @@ void cSubChar::moveDamage()
             break;
         case 7:
             m = SUB_MOT(pEm, 0x32);
-            EstSet(pEm, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, pEm, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, ESP_CORE_KIND_NONE, pEm, 0);
             break;
         case 8:
             m = SUB_MOT(pEm, 0x32);
-            EstSet(pEm, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, pEm, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, ESP_CORE_KIND_NONE, pEm, 0);
             break;
         case 9:
             m = SUB_MOT(pEm, 0x31);
-            EstSet(pEm, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, pEm, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, ESP_CORE_KIND_NONE, pEm, 0);
             break;
         case 10:
             m = SUB_MOT(pEm, 0x31);
-            EstSet(pEm, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, pEm, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, ESP_CORE_KIND_NONE, pEm, 0);
             break;
         case 11:
             m = SUB_MOT(pEm, 0x6A);
@@ -1999,7 +1999,7 @@ void cSubChar::moveDamage()
         if (pEm->frame >= 10.0f && m_Work0 == 11 && landCheck()) {
             AtariOn(&atari, 0x300);
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x6B), 0, 3, 1, 0);
-            EstSet(pEm, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, 0, pEm, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, ESP_CORE_KIND_NONE, pEm, 0);
             r_no_1 = 10;
             if (DbgFlagChk(pG, DBG_NO_DEATH)) {
                 m_Work0 = 8;
@@ -2072,7 +2072,7 @@ void cSubChar::moveDie()
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x30), 0, 3, 1, 0x32);
         } else {
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x30), 0, 3, 1, 0);
-            EstSet(this, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 4 : 3, 0, 0, this, 0);
+            EstSet(this, -1, 0, 0, EFF_PL01, ChkWaterEffectEnable(&pos) ? 4 : 3, 0, ESP_CORE_KIND_NONE, this, 0);
         }
         SndCall(8, 0xD, &pParts->world, id, 0, 0);
         atari.m_parts_no = 4;
@@ -3552,16 +3552,16 @@ void waterProc(cSubChar* pl)
     }
     hamonTimer++;
     if (hamonTimer % 13 == 0) {
-        EstSet(pl, -1, 0, 0, 1, 0x21, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_ROOM, 0x21, 0, ESP_CORE_KIND_NONE, pl, 0);
     }
     d = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (d > spd1) {
-        EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_ROOM, 0x23, 0, ESP_CORE_KIND_NONE, pl, 0);
         sibukiTimer = 10;
     } else if (d > spd0) {
-        EstSet(pl, -1, 0, 0, 1, 0x22, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_ROOM, 0x22, 0, ESP_CORE_KIND_NONE, pl, 0);
         sibukiTimer = 16;
     }
     m_PosOldWater = pl->pos;

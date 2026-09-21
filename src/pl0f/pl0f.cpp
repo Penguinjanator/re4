@@ -283,9 +283,9 @@ void cPl0f::setPos(Vec* p, f32 ang)
     TransMatrix(mat, &pos);
     partsMatCalc();
     partsWorldCalc();
-    EffectEspDelete(0, 0x35, this, 0);
-    EffectEspgenDelete(0, 0x35, this);
-    EffectEfmDelete(0, 0x35, this);
+    EffectEspDelete(0, ESP_CORE_KIND_BOAT, this, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, this);
+    EffectEfmDelete(0, ESP_CORE_KIND_BOAT, this);
 }
 
 // r_no_0 == 0: creation. Loads the boat model (archive 5/6) with a 2 m light area, no IK / lock-on,
@@ -317,7 +317,7 @@ static void pl0f_R0_Init(cPl0f* em)
     em->atari.m_flag &= 0xFCFF;
     em->atari.setPriority(PRI_LV1);
     em->setStatus(EM_STATUS_LOCKOFF);
-    EspDataLoad((u32) ARC(0x4), 0xF, 0);
+    EspDataLoad((u32) ARC(0x4), EFF_PL0F, 0);
     w->node[0].pos.x = 0.0f;
     w->node[0].pos.y = 0.0f;
     w->node[0].pos.z = 2500.0f;
@@ -2581,9 +2581,9 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->ang.x = 0.0f;
         pl->ang.z = 0.0f;
         pl0fSwimPosSet(pl);
-        EffectEspDelete(0, 0x34, pl, 0);
-        EffectEspgenDelete(0, 0x34, pl);
-        EffectEfmDelete(0, 0x34, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_WATER, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_WATER, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_WATER, pl);
         StaFlagOff(pG, STA_WATER_CAMERA);
         pl->m_Work1 = one;
         pl->m_Work0 = 0;
@@ -2721,9 +2721,9 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->m_Work3--;
         if (pl->m_Work3 == 0) {
             pl00SetSwimCam(pl);
-            EffectEspDelete(0, 0x34, pl, 0);
-            EffectEspgenDelete(0, 0x34, pl);
-            EffectEfmDelete(0, 0x34, pl);
+            EffectEspDelete(0, ESP_CORE_KIND_WATER, pl, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_WATER, pl);
+            EffectEfmDelete(0, ESP_CORE_KIND_WATER, pl);
             StaFlagOff(pG, STA_WATER_CAMERA);
         }
     }
@@ -2961,9 +2961,9 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl->pos.z = pz; \
         pl->ang.y = a; \
         boat->setPos(&pl->pos, a); \
-        EffectEspDelete(0, 0x35, boat, 0); \
-        EffectEspgenDelete(0, 0x35, boat); \
-        EffectEfmDelete(0, 0x35, boat); \
+        EffectEspDelete(0, ESP_CORE_KIND_BOAT, boat, 0); \
+        EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, boat); \
+        EffectEfmDelete(0, ESP_CORE_KIND_BOAT, boat); \
         pl->m_Work0 = 0; \
         pl->r_no_3++; \
     case 3: \
@@ -3241,9 +3241,9 @@ void pl00DropCamMove(cPlayer* pl)
         case 2:
             StaFlagOn(pG, STA_WATER_CAMERA);
             if (h <= at.y) {
-                EffectEspDelete(0, 0x34, pl, 0);
-                EffectEspgenDelete(0, 0x34, pl);
-                EffectEfmDelete(0, 0x34, pl);
+                EffectEspDelete(0, ESP_CORE_KIND_WATER, pl, 0);
+                EffectEspgenDelete(0, ESP_CORE_KIND_WATER, pl);
+                EffectEfmDelete(0, ESP_CORE_KIND_WATER, pl);
                 StaFlagOff(pG, STA_WATER_CAMERA);
                 pl->m_Work3++;
             }
@@ -3575,9 +3575,9 @@ void pl0fSwimPosSet(cPlayer* pl)
     TransMatrix(pl->l_mat, &pl->pos);
     ScaleMatrix(pl->l_mat, &pl->scale);
     PSMTXCopy(pl->l_mat, pl->mat);
-    EffectEspDelete(0, 0x35, boat, 0);
-    EffectEspgenDelete(0, 0x35, boat);
-    EffectEfmDelete(0, 0x35, boat);
+    EffectEspDelete(0, ESP_CORE_KIND_BOAT, boat, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, boat);
+    EffectEfmDelete(0, ESP_CORE_KIND_BOAT, boat);
 }
 
 // Start of the mouth chance: the boat is teleported to the hiding spot (40000, 40000) facing one
@@ -3600,9 +3600,9 @@ void pl0fHidePosSet(cPlayer* pl)
     boat->setPos(&v, ang);
     pl->pos = boat->pos;
     pl->ang.y = boat->ang.y;
-    EffectEspDelete(0, 0x35, boat, 0);
-    EffectEspgenDelete(0, 0x35, boat);
-    EffectEfmDelete(0, 0x35, boat);
+    EffectEspDelete(0, ESP_CORE_KIND_BOAT, boat, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, boat);
+    EffectEfmDelete(0, ESP_CORE_KIND_BOAT, boat);
 }
 
 // Boss death: the boat is teleported to the death-scene spot (24250, 92250) facing 2.85 rad, the
@@ -3619,9 +3619,9 @@ void pl0fBossDiePosSet(cPlayer* pl)
     pl->ang.y = LIMIT_ANGLE(pl->ang.y);
     boat->setPos(&v, pl->ang.y);   // the just-stored member is forwarded: f1 passes straight through
     pl->pos = boat->pos;
-    EffectEspDelete(0, 0x35, boat, 0);
-    EffectEspgenDelete(0, 0x35, boat);
-    EffectEfmDelete(0, 0x35, boat);
+    EffectEspDelete(0, ESP_CORE_KIND_BOAT, boat, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, boat);
+    EffectEfmDelete(0, ESP_CORE_KIND_BOAT, boat);
 }
 
 // The anchor object hung on the boat (room 10B only).
@@ -3675,49 +3675,49 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
     w = PL0F_WK(pl->m_pBoat);
     boss = w->pBoss;
     if (boss == 0) {
-        EffectEspDelete(0, 0x36, pl, 0);
-        EffectEspgenDelete(0, 0x36, pl);
-        EffectEfmDelete(0, 0x36, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         w->anchorEff = 0;
         return;
     }
     // Two separate ifs: each body is the fall-through of its own test, so cse stores the known-zero `andi.`
     // result (r28) and jump2 merges the two identical bodies; an `||` body starts at a label and gets `li r0,0`.
     if (!(boss->flag & 0x20)) {
-        EffectEspDelete(0, 0x36, pl, 0);
-        EffectEspgenDelete(0, 0x36, pl);
-        EffectEfmDelete(0, 0x36, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         w->anchorEff = 0;
         return;
     }
     if (!(boss->flag & 4)) {
-        EffectEspDelete(0, 0x36, pl, 0);
-        EffectEspgenDelete(0, 0x36, pl);
-        EffectEfmDelete(0, 0x36, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         w->anchorEff = 0;
         return;
     }
     ang = Muku(&pl->pos, &boss->pos, pl->ang.y, PI);
     if (fabsf(ang) < PI / 8) {
-        EffectEspDelete(0, 0x36, pl, 0);
-        EffectEspgenDelete(0, 0x36, pl);
-        EffectEfmDelete(0, 0x36, pl);
+        EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+        EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         w->anchorEff = 0;
         return;
     }
     if (ang < 0.0f) {
         if (w->anchorEff != 1) {
-            EffectEspDelete(0, 0x36, pl, 0);
-            EffectEspgenDelete(0, 0x36, pl);
-            EffectEfmDelete(0, 0x36, pl);
+            EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+            EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
             w->anchorEff = 1;
             EstSet(0, -1, 0, 0, 0xF, 0x1F, 0, 0x36, pl, 0);
         }
     } else {
         if (w->anchorEff != 2) {
-            EffectEspDelete(0, 0x36, pl, 0);
-            EffectEspgenDelete(0, 0x36, pl);
-            EffectEfmDelete(0, 0x36, pl);
+            EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
+            EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
+            EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
             w->anchorEff = 2;
             EstSet(0, -1, 0, 0, 0xF, 0x1E, 0, 0x36, pl, 0);
         }
@@ -3920,9 +3920,9 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
         setPos(p, ang);
         FSet(pPL->ang.y, ang);   // scalar-reference store: pPL is reloaded for the pos copy
         pPL->pos = pos;
-        EffectEspDelete(0, 0x35, this, 0);
-        EffectEspgenDelete(0, 0x35, this);
-        EffectEfmDelete(0, 0x35, this);
+        EffectEspDelete(0, ESP_CORE_KIND_BOAT, this, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, this);
+        EffectEfmDelete(0, ESP_CORE_KIND_BOAT, this);
         EmRoutineSet(pPL, 0, 0xF, 2, 0);
         EmRoutineSet(this, 1, 6, 0, 0);
         pl = pPL;

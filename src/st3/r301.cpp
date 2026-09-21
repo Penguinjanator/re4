@@ -172,7 +172,7 @@ static void r301_execContinuePoint()
         SceEventStart(0);
         CamCtrl.CutCall(6);
         r301_work.p->espKind = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r301_work.p->espKind, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r301_work.p->espKind, (void*) zero, (void*) zero);
         SndCall(6, 5, 0, 0, 0, 0);
         SceSleep(15);
         r301_work.p->sndId = SndCall(6, 6, 0, 0, 0, 0);
@@ -632,7 +632,7 @@ static void r301_checkRockWall()
                         obj->be_flag &= ~2;
                     }
                     SndCall(6, 2, &obj->pos, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, 0, 0, 0, (void*) zero, (void*) zero);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
                     SceExit();
                     break;
                 }
@@ -675,7 +675,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r301_work.p->tex->texId;
         r301_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 3, r301_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r301_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }

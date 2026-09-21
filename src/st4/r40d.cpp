@@ -323,12 +323,12 @@ void r40d_setDoorEff(int no, int on)
     EffectEspgenDelete(0, (u8) r40d_work.p->eff[2], 0);
     EffectEfmDelete(0, (u8) r40d_work.p->eff[2], 0);
     if (on == 1) {
-        EstSet(0, -1, 0, 0, 1, a, 1, (u8) eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, a, 1, (u8) eff, 0, 0);
     } else {
         void* zero = 0;
 
-        EstSet(0, -1, 0, 0, 1, b, 1, (u8) eff, zero, zero);
-        EstSet(0, -1, 0, 0, 1, 5, 1, (u8) r40d_work.p->eff[2], zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, b, 1, (u8) eff, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, (u8) r40d_work.p->eff[2], zero, zero);
     }
 }
 

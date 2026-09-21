@@ -204,8 +204,8 @@ static void r11f_EventS00()
         }
         SceEventEnd(0);
         StaFlagOn(pG, STA_LASERSITE_NOADD);
-        EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 4, 0x801, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x801, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0x801, ESP_CORE_KIND_ROOM00, 0, 0);
         SceExec(0x12, r11f_EventS10, 0, 0, SCE_PRIO_DEF_2, 0);
         SeAtSetOnOff(0, 1);
         SeAtSetOnOff(1, 1);
@@ -383,11 +383,11 @@ extern "C" void Evt_R11FS02_Func(Event* e)
             break;
         case 0xB:
             if (e->NowFrame == 0) {
-                EffectEspDelete(0x2001, 3, 0, 0);
-                EffectEspgenDelete(0x2001, 3, 0);
-                EffectEfmDelete(0x2001, 3, 0);
-                EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, 0, 0);
-                EstSet(0, -1, 0, 0, 1, 4, 0x2001, 3, 0, 0);
+                EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+                EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+                EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
             }
             break;
         case 7:
@@ -456,7 +456,7 @@ extern "C" void Evt_R11FS11_Func(Event* e)
         }
         if (e->NowCut == 2) {
             if (e->NowFrame == 0) {
-                EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
         }
         break;
@@ -575,7 +575,7 @@ static void r11f_EventS11()
     EvtMgr.EvtReadExec("event/evd/r11fs11.evd", 0, 0);
     SceEventEnd(0);
     SceAtSetEnable(8, 1);
-    EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
     EspGenSetMoveLoop(200);
     SceAtExecute(0x80);
     {
@@ -605,10 +605,10 @@ static void r11f_EventS11()
     while (EffGetAreaState(0) == 1) {
         SceSleep(1);
     }
-    EffectEspDelete(0x801, 2, 0, 0);
-    EffectEspgenDelete(0x801, 2, 0);
-    EffectEfmDelete(0x801, 2, 0);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
+    EffectEspDelete(0x801, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(0x801, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(0x801, ESP_CORE_KIND_ROOM00, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_NONE, 0, 0);
     StaFlagOff(pG, STA_LASERSITE_NOADD);
     SceExec(0x12, r11f_AshleyRunUp, 0, 0, SCE_PRIO_DEF_2, 0);
 }

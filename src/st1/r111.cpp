@@ -54,9 +54,9 @@ void R111Init()
     {
         void* zero = 0;
 
-        EstSet(pPL, -1, 0, 0, 1, 0, 0x800, 0, zero, zero);
-        EstSet(pPL, -1, 0, 0, 3, 1, 0x800, 0, zero, zero);
-        EstSet(pPL, -1, 0, 0, 0, 0x23, 0x800, 0, zero, zero);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0, 0x800, ESP_CORE_KIND_NONE, zero, zero);
+        EstSet(pPL, -1, 0, 0, EFF_PL00, 1, 0x800, ESP_CORE_KIND_NONE, zero, zero);
+        EstSet(pPL, -1, 0, 0, EFF_CORE, 0x23, 0x800, ESP_CORE_KIND_NONE, zero, zero);
     }
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (getRoomEtcWindow(0, &win, 1)) {
@@ -87,27 +87,27 @@ static void r111_ThunderMove()
     for (;;) {
         if (cnt == 0) {
             if (!StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
-                EstSet(0, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
             } else {
-                EstSet(0, -1, 0, 0, 1, 0x10, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (EffGetAreaState(0)) {
-                EstSet(0, -1, 0, 0, 1, 4, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             if (EffGetAreaState(1)) {
-                EstSet(0, -1, 0, 0, 1, 6, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 6, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             if (EffGetAreaState(2)) {
-                EstSet(0, -1, 0, 0, 1, 8, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             if (EffGetAreaState(3)) {
-                EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             if (EffGetAreaState(4)) {
-                EstSet(0, -1, 0, 0, 1, 0xC, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             if (EffGetAreaState(5)) {
-                EstSet(0, -1, 0, 0, 1, 0xE, 0, 0, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0, ESP_CORE_KIND_NONE, zero, zero);
             }
             {
                 u8 r = Rnd() % 30;

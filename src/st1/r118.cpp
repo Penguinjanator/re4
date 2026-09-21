@@ -69,8 +69,8 @@ void R118Init()
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(0)->LightInfo.EnableMask = zero;
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
-    EstSet(pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 5, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     StaFlagOn(pG, STA_ROOM_RAIN);
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
@@ -97,7 +97,7 @@ void R118Init()
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceExec(0x12, (TaskFunc) r118_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
+        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), EFF_OBM34, 0);
         r118_work->em.setEm(0x78, -1, 0, 1, 1);
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r118_execAshleyVoice, 0, 1);
         SceAtSetEnable(1, 0);
@@ -281,9 +281,9 @@ static void r118_ThunderMove()
                     void* zero;
                     do { } while (0);
                     zero = 0;
-                    EstSet(0, -1, 0, 0, 1, 4, 1, 0, zero, zero);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, zero, zero);
                 } else {
-                    EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
                 if (EffGetAreaState(4) != 0) {
                     u8 r = Rnd() % 30;

@@ -283,7 +283,7 @@ void Em1eSet(cEm10* em)
         w->Ganado = 2;
     }
     Em1eWeaponSet(em);
-    EspDataLoad((u32) ARC(0x278), 0xcd, 0);
+    EspDataLoad((u32) ARC(0x278), EFF_OBM83, 0);
 }
 
 // Weapon model table of the module: mot[41..78] = the bin / tpl pairs em10MakeWeapon uses (hoe, bucket

@@ -158,7 +158,7 @@ void R318Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) R318ExecSitMain, 0, 1);
     }
-    EstSet(0, -1, 0, 0, 1, 8, 0x2001, 5, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0x2001, ESP_CORE_KIND_ROOM03, zero, zero);
     r318_memset(&pos, 0, sizeof(Vec));
     r318_memset(&rot, 0, sizeof(Vec));
     for (i = 0; i < 15; i++) {
@@ -291,7 +291,7 @@ void DrawLaserLine(Vec* a, Vec* b, int r, int g, int b_, int alpha, f32 len)
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        if (EspEstSetSelect(1, 0xA, i, &esp, 1)) {
+        if (EspEstSetSelect(EFF_ROOM, 0xA, i, &esp, 1)) {
             ((R318EspView*) esp)->pos2 = *a;
             esp->m_Pos = *a;
             PSVECSubtract(b, a, &d);
@@ -475,8 +475,8 @@ static void R318ExecSwitchClear()
         for (i = 0; i < 30; i++) {
             SceSleep(1);
         }
-        EffectDelete(0x2001, 5);
-        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 5, 0, 0);
+        EffectDelete(0x2001, ESP_CORE_KIND_ROOM03);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
         SndCall(6, 7, &pPL->pos, 0, 0, 0);
         SndCall(6, 8, 0, 0, 0, 0);
         SceMesSet(1, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
@@ -543,7 +543,7 @@ static void R318ExecSwitchCheck()
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
-        EstSet(pPL, -1, 0, 0, 1, 0xC, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xC, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         MotionMove(pPL, 0);
         for (i = 0; i < 15; i++) {
             laser = r318_work.p->laser[i];
@@ -577,7 +577,7 @@ void R318ExecSwitchCheckEnd()
     FSet(pPL->ang.x, r318_work.p->plRot.x);
     FSet(pPL->ang.y, r318_work.p->plRot.y);
     FSet(pPL->ang.z, r318_work.p->plRot.z);
-    EffectDelete(0x2001, 6);
+    EffectDelete(0x2001, ESP_CORE_KIND_ROOM04);
     {
         Vec v;
 
@@ -620,8 +620,8 @@ static void R318EventLaserStMain()
                 SceSleep(1);
             }
             R318AutoDoorReset(0);
-            EffectDelete(0x2001, 5);
-            EstSet(0, -1, 0, 0, 1, 9, 0x2001, 5, 0, 0);
+            EffectDelete(0x2001, ESP_CORE_KIND_ROOM03);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 9, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
             {
                 void* tbl[3] = {ROOM_ARC_PTR(pG->pRoom, 0x84), ROOM_ARC_PTR(pG->pRoom, 0x85), ROOM_ARC_PTR(pG->pRoom, 0x86)};
 
@@ -660,7 +660,7 @@ static void R226EventLaserStEnd()
 
     SceExec(0x12, (TaskFunc) R318EventLaserMgr, 0, 0, 2, 0);
     R318AutoDoorReset(0);
-    EffectDelete(0x2001, 2);
+    EffectDelete(0x2001, ESP_CORE_KIND_ROOM00);
     if ((pG->Room_flg[0] & 0x20) == 0) {
         void* tbl[3] = {ROOM_ARC_PTR(pG->pRoom, 0x84), ROOM_ARC_PTR(pG->pRoom, 0x85), ROOM_ARC_PTR(pG->pRoom, 0x86)};
 
@@ -668,8 +668,8 @@ static void R226EventLaserStEnd()
         R318LaserEspInit(3, 0, 2);
         SndCall(6, 3, 0, 0, 0, 0);
     }
-    EffectDelete(0x2001, 5);
-    EstSet(0, -1, 0, 0, 1, 9, 0x2001, 5, zero, zero);
+    EffectDelete(0x2001, ESP_CORE_KIND_ROOM03);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 9, 0x2001, ESP_CORE_KIND_ROOM03, zero, zero);
     SceAtSetEnable(0xA, 1);
     SceAtSetEnable(0xB, 1);
     pPL->setNoSuspend(0);
@@ -725,7 +725,7 @@ void R318LaserEspInit(int n, int type, int kind)
                 r318_work.p->laserSnd = SndCall(6, 0xC, &laser->pos, 0, 0, 0);
             }
             zero = 0;
-            EstSet(laser, -1, 0, 0, 1, (u8) type, 1, (u8) kind, zero, zero);
+            EstSet(laser, -1, 0, 0, EFF_ROOM, (u8) type, 1, (u8) kind, zero, zero);
         }
     }
 }
@@ -907,7 +907,7 @@ static void R318EventLaserMove(int no)
                                     SndStop(r318_work.p->laserSnd, 0);
                                     r318_work.p->laserSnd = zero2;
                                 }
-                                EffectDelete(1, 4);
+                                EffectDelete(1, ESP_CORE_KIND_ROOM02);
                                 R318LaserEspInit(num, 0, 2);
                                 SndCall(6, 3, 0, 0, 0, 0);
                                 LaserHit();
@@ -980,8 +980,8 @@ void R318EventLaserEnd(int no)
                 Matrix2AxisAngle(t->mat, &rot[0]);
                 Matrix2AxisAngle(p4->mat, &rot[1]);
                 if (p2->world.x != 0.0f) {
-                    EstSet(0, -1, &t->world, &rot[0], 1, 6, 0x801, 0, zero, zero);
-                    EstSet(0, -1, &p4->world, &rot[1], 1, 7, 0x801, 0, zero, zero);
+                    EstSet(0, -1, &t->world, &rot[0], EFF_ROOM, 6, 0x801, ESP_CORE_KIND_NONE, zero, zero);
+                    EstSet(0, -1, &p4->world, &rot[1], EFF_ROOM, 7, 0x801, ESP_CORE_KIND_NONE, zero, zero);
                 }
                 asm("" : : "r"(laser), "r"(t), "r"(p4));
             }
@@ -1004,7 +1004,7 @@ void R318EventLaserEnd(int no)
         pG->Room_flg[0] |= 0x100;
         break;
     }
-    EffectDelete(1, 2);
+    EffectDelete(1, ESP_CORE_KIND_ROOM00);
     BitOff(pG->Room_flg[0], 0x00020000);
     pG->Room_flg[0] |= 0x00080000;
     if (no == 4) {
@@ -1032,7 +1032,7 @@ static void playerEscape02(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
-        EstSet(pPL, -1, 0, 0, 1, 0xB, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xB, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC3, 0.0f);
         for (i = 0; i < 5; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1048,7 +1048,7 @@ static void playerEscape02(cPlayer* pl)
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(2);
             AtariOnRaw(&pPL->atari, 0x300);
-            EffectDelete(0x2001, 6);
+            EffectDelete(0x2001, ESP_CORE_KIND_ROOM04);
             EndPlDamage();
         }
         break;
@@ -1081,7 +1081,7 @@ static void playerEscape03(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot0, 0, 0, 0x201, 0);
-        EstSet(pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC4, 0.0f);
         for (i = 0; i < 8; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1104,7 +1104,7 @@ static void playerEscape03(cPlayer* pl)
                 SndStop(r318_work.p->laserSnd, 0);
                 r318_work.p->laserSnd = 0;
             }
-            EffectDelete(1, 4);
+            EffectDelete(1, ESP_CORE_KIND_ROOM02);
             R318LaserEspInit(8, 0, 2);
             SndCall(6, 3, 0, 0, 0, 0);
         }
@@ -1134,7 +1134,7 @@ static void playerEscape03(cPlayer* pl)
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         MotionSetCore(pl, &pl->Motion, mot1, 0, 0, 0x201, 0);
-        EstSet(pPL, -1, 0, 0, 1, 0xF, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xF, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC5, 0.0f);
         for (i = 0; i < 8; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1152,7 +1152,7 @@ static void playerEscape03(cPlayer* pl)
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(3);
             AtariOnRaw(&pPL->atari, 0x300);
-            EffectDelete(0x2001, 6);
+            EffectDelete(0x2001, ESP_CORE_KIND_ROOM04);
             EndPlDamage();
         }
         break;
@@ -1182,7 +1182,7 @@ static void playerEscape04(cPlayer* pl)
         FSet(pPL->ang.z, 0.0f);
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
-        EstSet(pPL, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         r318_work.p->str = SndStrPlayBlock(1, 0xC6, 0.0f);
         for (i = 0; i < 15; i++) {
             cObj* laser = r318_work.p->laser[i];
@@ -1198,7 +1198,7 @@ static void playerEscape04(cPlayer* pl)
             pG->Room_flg[0] |= 0x00080000;
             R318EventLaserEnd(4);
             AtariOnRaw(&pPL->atari, 0x300);
-            EffectDelete(0x2001, 6);
+            EffectDelete(0x2001, ESP_CORE_KIND_ROOM04);
             EndPlDamage();
         }
         break;
@@ -1211,7 +1211,7 @@ static void playerDie(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 3, 0x201, 0);
-        EstSet(pl, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+        EstSet(pl, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 5, 0, 0, 0, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xA);

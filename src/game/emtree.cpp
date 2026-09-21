@@ -437,7 +437,7 @@ void emTree_R1_Fall(cEmTree* em)
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, em, 0);
                     em->be_flag &= ~2;
                     em->r_no_0 = 1;
                     em->r_no_1 = 2;

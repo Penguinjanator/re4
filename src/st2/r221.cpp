@@ -142,9 +142,9 @@ void r221_setShutterEff(int on)
     EffectEspgenDelete(0, r221_work.p->eff, 0);
     EffectEfmDelete(0, r221_work.p->eff, 0);
     if (on == 1) {
-        EstSet(0, -1, 0, 0, 1, 0xE, 1, r221_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, r221_work.p->eff, 0, 0);
     } else {
-        EstSet(0, -1, 0, 0, 1, 0xF, 1, r221_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, r221_work.p->eff, 0, 0);
     }
 }
 
@@ -556,31 +556,31 @@ void r221_setElevatorEff(int no)
 {
     switch ((u32) no) {
     case 0:
-        EstSet(0, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 1:
-        EstSet(0, -1, 0, 0, 1, 0x17, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 2:
-        EstSet(0, -1, 0, 0, 1, 0x16, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 3:
-        EstSet(0, -1, 0, 0, 1, 0x15, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x15, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 4:
-        EstSet(0, -1, 0, 0, 1, 0x14, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 5:
-        EstSet(0, -1, 0, 0, 1, 0x13, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x13, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 6:
-        EstSet(0, -1, 0, 0, 1, 0x12, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 7:
-        EstSet(0, -1, 0, 0, 1, 0x11, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 8:
-        EstSet(0, -1, 0, 0, 1, 0x10, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, 0, 0);
         break;
     }
 }
@@ -790,9 +790,9 @@ static void r221_checkBossAppear_end()
         }
     }
     if (em.getPtr()) {
-        EffectEspDelete(1, 2, em.getPtr(), 0);
-        EffectEspgenDelete(1, 2, em.getPtr());
-        EffectEfmDelete(1, 2, em.getPtr());
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, em.getPtr(), 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, em.getPtr());
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, em.getPtr());
     }
     SceAtPtr(1)->actBtnKind = 0x35;
     SceAtPtr(2)->actBtnKind = 0x35;
@@ -831,7 +831,7 @@ static void r221_checkBossAppear()
         SceSetEventCancel(1, (TaskFunc) r221_checkBossAppear_end, 0, 2, 1);
         SceEventStart(1);
         StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
-        EstSet(em1.getPtr(), -1, 0, 0, 0x24, 1, 1, 2, em1.getPtr(), 0);
+        EstSet(em1.getPtr(), -1, 0, 0, EFF_EM2C, 1, 1, ESP_CORE_KIND_ROOM00, em1.getPtr(), 0);
         pG->Room_flg[0] |= 0x01000000;
         CamCtrl.clearAttachCamera();
         em1.setFlag(1);
@@ -1372,19 +1372,19 @@ static void r201_throwBonbe(int no)
         i = 0;
         while (MotionGetState(pPL) != 4) {
             if (i == t1) {
-                EstSet(bonbe, -1, 0, 0, 1, eff3, 1, 0, 0, 0);
+                EstSet(bonbe, -1, 0, 0, EFF_ROOM, eff3, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (t2 != 0 && t2 == i) {
-                EstSet(0, -1, 0, 0, 1, (u8) eff0, 1, (u8) k0, 0, 0);
-                EstSet(0, -1, 0, 0, 1, eff1, 1, (u8) k1, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, (u8) eff0, 1, (u8) k0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, eff1, 1, (u8) k1, 0, 0);
             }
             i++;
             SceSleep(1);
         }
     }
     if (t2 == 0) {
-        EstSet(0, -1, 0, 0, 1, (u8) eff0, 1, (u8) k0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, eff1, 1, (u8) k1, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) eff0, 1, (u8) k0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, eff1, 1, (u8) k1, 0, 0);
     }
     PlSetHand(0, 0);
     pPL->setNoSuspend(0);
@@ -1403,7 +1403,7 @@ static void r201_throwBonbe(int no)
     EffectEspgenDelete(0, (u8) k0, 0);
     EffectEfmDelete(0, (u8) k0, 0);
     EffectEspgenDelete(0, (u8) k1, 0);
-    EstSet(0, -1, 0, 0, 1, (u8) eff2, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, (u8) eff2, 0, ESP_CORE_KIND_NONE, 0, 0);
     SceExec(0x12, (TaskFunc) r221_fadeoutBonbe, (int) bonbe, 0, SCE_PRIO_DEF_2, 0);
 }
 
@@ -1419,7 +1419,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r221_work.p->tex->texId;
         r221_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0x1F, r221_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, r221_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

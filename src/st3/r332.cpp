@@ -259,15 +259,15 @@ void R332Init()
         SndBgmTblSet(0x332, 1);
         SndRoomStrStart(1, 0, 1);
         SndRoomBgmStart(0, 0);
-        EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtSetEnable(0x84, 0);
     }
     R332BridgeOpened(0, 1);
     R332BridgeOpened(1, 1);
-    EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 6, 1, 3, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     Vec zero = {0.0f, 0.0f, 0.0f};
     (void*&) r332_work->sat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[0], &zero, 2);
     (void*&) r332_work->sat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[1], &zero, 4);
@@ -650,7 +650,7 @@ void R332BridgeOpened(int no, int open)
         EffectEspDelete(1, (u8) estNo, 0, 0);
         EffectEspgenDelete(1, (u8) estNo, 0);
         EffectEfmDelete(1, (u8) estNo, 0);
-        EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, estPrm, 1, (u8) estNo, 0, 0);
         SceAtSetEnable(atNo, 1);
         a->setAng(a->ang.x, a->ang.y, -r332_bridgeAng[0]);
         b->setAng(b->ang.x, b->ang.y, r332_bridgeAng[1]);
@@ -673,7 +673,7 @@ void R332BridgeOpened(int no, int open)
         EffectEspDelete(1, (u8) estNo, 0, 0);
         EffectEspgenDelete(1, (u8) estNo, 0);
         EffectEfmDelete(1, (u8) estNo, 0);
-        EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, estPrm, 1, (u8) estNo, 0, 0);
     }
 }
 
@@ -735,7 +735,7 @@ void R332BridgeOpen(int no, int open)
         EffectEspDelete(1, (u8) estNo, 0, 0);
         EffectEspgenDelete(1, (u8) estNo, 0);
         EffectEfmDelete(1, (u8) estNo, 0);
-        EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, estPrm, 1, (u8) estNo, 0, 0);
         SndCall(6, 0, &center, 0, 0, 0);
         SceAtSetEnable(atNo, 1);
         for (int i = 0; i < 10; i++) {
@@ -793,7 +793,7 @@ void R332BridgeOpen(int no, int open)
         EffectEspDelete(1, (u8) estNo, 0, 0);
         EffectEspgenDelete(1, (u8) estNo, 0);
         EffectEfmDelete(1, (u8) estNo, 0);
-        EstSet(0, -1, 0, 0, 1, (u8) estPrm, 1, (u8) estNo, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) estPrm, 1, (u8) estNo, 0, 0);
     }
 }
 
@@ -829,7 +829,7 @@ static void R332BridgeTask(int no)
                 EffectEspDelete(1, (u8) estNo, 0, 0);
                 EffectEspgenDelete(1, (u8) estNo, 0);
                 EffectEfmDelete(1, (u8) estNo, 0);
-                EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, estPrm, 1, (u8) estNo, 0, 0);
             }
             if (FlagChkVar(R332_FLAGS, (u32) flgArea) && r332_work->bridge[no].cnt > 0x77) {
                 IntSet(r332_work->nearBridge, R332ChkNearBridge());
@@ -936,11 +936,11 @@ static void R332RocketShootMain(int type)
 {
     cEm31* em;
 
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
-    EffectEspgenDelete(1, 5, 0);
-    EstSet(0, -1, 0, 0, 1, 0xD, 0x2001, 6, 0, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
     SndRoomStrStop(3);
     SndRoomBgmStop(0, 3);
     SndEventStrStop(0);
@@ -1007,7 +1007,7 @@ static void R332RocketShootMain(int type)
         FSet(pPL->ang.y, 0.0f);
         FSet(pPL->ang.z, 0.0f);
         MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 0x200, 0);
-        EstSet(pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_EM31, 0x2C, 0x2001, ESP_CORE_KIND_ROOM05, 0, 0);
         pPL->Wep->m_pWep->setDisp(0, 1);
         pPL->Wep->m_pWep->setDisp(1, 1);
         pPL->Wep->m_pWep->setDisp(2, 1);
@@ -1046,7 +1046,7 @@ static void R332RocketShootMain(int type)
                 obj->be_flag |= 0x1000;
                 obj->setNoSuspend(1);
                 MotionSetCore(obj, &obj->Motion, ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0, 0x200, 0);
-                EstSet(obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
+                EstSet(obj, -1, 0, 0, EFF_EM31, 0x2B, 0x2001, ESP_CORE_KIND_ROOM05, 0, 0);
             }
         }
         while (MotionGetState(pPL) == 0) {
@@ -1068,9 +1068,9 @@ static void R332RocketShootMain(int type)
             ObjMgr.destroy(obj);
             (void*&) r332_work->rocket = 0;
         }
-        EffectEspDelete(0x2001, 7, 0, 0);
-        EffectEspgenDelete(0x2001, 7, 0);
-        EffectEfmDelete(0x2001, 7, 0);
+        EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM05, 0, 0);
+        EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM05, 0);
+        EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM05, 0);
     }
     SysFlagOff(pG, SYS_SCREEN_STOP);
     pPL->setNoSuspend(1);
@@ -1132,9 +1132,9 @@ static void R332RocketShootEnd(int type)
         }
         pPL->Wep->m_pWep->setNoSuspend(0);
     }
-    EffectEspDelete(0x2001, 7, 0, 0);
-    EffectEspgenDelete(0x2001, 7, 0);
-    EffectEfmDelete(0x2001, 7, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM05, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM05, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM05, 0);
     SceExec(0x12, (TaskFunc) R332EventS10, 0, 0, 2, 0);
     SysFlagOff(pG, SYS_SCREEN_STOP);
     SceEventEnd(0);
@@ -1393,8 +1393,8 @@ static void R332ExecCrane(int no)
                         BitOff(r332_work->chain[no][k]->be_flag, 2);
                     }
                     ModelInfoSetTrans(crane, 1, 0);
-                    EstSet(crane, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
-                    EstSet(0, -1, 0, 0, 1, (u8) estNo, 1, 0, 0, 0);
+                    EstSet(crane, -1, 0, 0, EFF_ROOM, 0xE, 1, ESP_CORE_KIND_NONE, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, (u8) estNo, 1, ESP_CORE_KIND_NONE, 0, 0);
                     SndCall(6, 9, &pPL->pos, 0, 0, 0);
                 }
             }
@@ -1501,10 +1501,10 @@ void R332EventS00End()
         Cckpt.m_LifeMeter.flags = (u32) em;
     }
     SndRoomBgmStart(0, 0);
-    EstSet(pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, 4, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 5, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0xC, 1, 5, 0, 0);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM03, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     SceUpCut(2, 6, 8, 0);
 }
 
@@ -1515,9 +1515,9 @@ static void R332EventS10()
         return;
     }
     RsfSet(G_ROOM_ID, 1);
-    EffectEspDelete(0x2001, 6, 0, 0);
-    EffectEspgenDelete(0x2001, 6, 0);
-    EffectEfmDelete(0x2001, 6, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
     if (r332_work->task[0]) {
         SceKill(r332_work->task[0]);
     }
@@ -1553,7 +1553,7 @@ static void R332EventS10()
     SndRoomBgmStart(1, 0);
     SndBgmTblSet(0x331, 2);
     GameSave.save(pSaveData, -1);
-    EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // The s20 event (the special rocket is thrown to the player).
@@ -1839,9 +1839,9 @@ void Evt_R332S10_Func(Event* e)
                         BitOn(((cModel*) mod)->be_flag, 0x10);
                         if (RsfCheck(G_ROOM_ID, 3)) {
                             R332Em32RocketDie((cObj*) mod);
-                            EstSet(0, -1, 0, 0, 1, 0x10, 0x1001, 0, 0, 0);
+                            EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 0x1001, ESP_CORE_KIND_NONE, 0, 0);
                         } else {
-                            EstSet(0, -1, 0, 0, 1, 0x11, 0x1001, 0, 0, 0);
+                            EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 0x1001, ESP_CORE_KIND_NONE, 0, 0);
                         }
                     }
                 }
@@ -1930,7 +1930,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r332_work->tex->texId;
         IntSet(r332_work->tex->m_Rep_type, 1);
-        EstSet(0, -1, 0, 0, 1, 0, r332_work->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r332_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

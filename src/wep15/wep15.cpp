@@ -42,7 +42,7 @@ void Wep15_init(cModel* m)
     pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
-    EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x49, 1);
+    EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP15, 1);
     PlWepMot[0] = WEP_ARC_PTR(0x29);
     PlWepMot[1] = WEP_ARC_PTR(0x2A);
     PlWepMot[2] = WEP_ARC_PTR(0x2B);
@@ -88,7 +88,7 @@ void cObjMagnum::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         SndCall(2, 4, &pos, 0, 0, 0);
-        EstSet(this, -1, 0, 0, 0x49, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP15, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         wep.step = 1;
     }

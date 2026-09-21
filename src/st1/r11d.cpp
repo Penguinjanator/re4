@@ -93,8 +93,8 @@ void R11dInit()
 #line 52 "D:/Bio4/Prog/r11d.cpp"
     r11d_work = (R11dWork*) MEM_CALLOC(sizeof(R11dWork), 1, 0xd);
 
-    EstSet(pPL, -1, 0, 0, 3, 1, 0x800, 0, zero, zero);
-    EstSet(pPL, -1, 0, 0, 1, 0, 0x800, 0, zero, zero);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 1, 0x800, ESP_CORE_KIND_NONE, zero, zero);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 0, 0x800, ESP_CORE_KIND_NONE, zero, zero);
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
@@ -106,7 +106,7 @@ void R11dInit()
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
     }
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), EFF_OBM34, 0);
     SceAtDataSet_hide(3, r11d_execHide0);
     SceAtDataSet_hide(4, r11d_execHide1);
     SceAtDataSet_hide(5, r11d_execHide2);
@@ -217,7 +217,7 @@ extern "C" void r11d_appearBigSister()
             r11d_work->em0.addModel(r11d_work->mi);
         }
         r11d_work->eff0 = EspPullCoreKind();
-        EstSet(obj, -1, 0, 0, 0, 0x2D, 0x801, r11d_work->eff0, zero, zero);
+        EstSet(obj, -1, 0, 0, EFF_CORE, 0x2D, 0x801, r11d_work->eff0, zero, zero);
         SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
@@ -239,11 +239,11 @@ extern "C" void r11d_appearLittleSister()
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 0, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     }
     // Outside the `if`: the original's `bne` skips only the first EstSet (a source-logic bug had both
     // inside, which also gave the first call's `li`s output dependents and sank its stack stores).
-    EstSet(0, -1, 0, 0, 1, 8, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
 }
 
 // End of the sisters' appearance: set them from flags, drop the flash effect, let them suspend, camera
@@ -310,7 +310,7 @@ static void r11d_execEmAppear()
     r11d_appearBigSister();
     r11d_work->em0.setNoSuspend(1);
     r11d_work->eff1 = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, 1, 9, 1, r11d_work->eff1, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, r11d_work->eff1, 0, 0);
     CamCtrl.CutCall(4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -318,7 +318,7 @@ static void r11d_execEmAppear()
     EffectEspDelete(0, r11d_work->eff1, 0, 0);
     EffectEspgenDelete(0, r11d_work->eff1, 0);
     EffectEfmDelete(0, r11d_work->eff1, 0);
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, r11d_work->eff1, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, r11d_work->eff1, 0, 0);
     CamCtrl.CutCall(5);
     if (r11d_work->em0.isAlive() == 1) {
         while (r11d_work->em0.getPosY() > 300.0f) {
@@ -385,7 +385,7 @@ static void r11d_execShowView()
     SceEventStart(1);
     StaFlagOff(pG, STA_SUSPEND);
     r11d_work->eff2 = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, 1, 3, 1, r11d_work->eff2, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, r11d_work->eff2, zero, zero);
     CamCtrl.CutCall(2);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -531,7 +531,7 @@ static void r11d_ThunderMove()
         }
         if (cnt == 0) {
             if (!StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
-                EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             {
                 u8 r = Rnd() % 30;

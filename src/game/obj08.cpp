@@ -177,7 +177,7 @@ void cObj08::move()
 
     if (w->life == 0) {
         if (w->estNo[1] && w->estPrm[1]) {
-            EstSet(0, -1, &pos, &ang, w->estNo[1], (u8) w->estPrm[1], 0, 0, 0, 0);
+            EstSet(0, -1, &pos, &ang, w->estNo[1], (u8) w->estPrm[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         ObjMgr.destroy(this);
         return;
@@ -241,14 +241,14 @@ int obj08ScrHitCk(cObj08* obj)
                 est.y = obj->ang.y;
                 est.z = 0.0f;
                 hit.y += 10.0f;
-                EstSet(0, -1, &hit, &est, w->estNo[2], (u8) w->estPrm[2], 0, 0, 0, 0);
+                EstSet(0, -1, &hit, &est, w->estNo[2], (u8) w->estPrm[2], 0, ESP_CORE_KIND_NONE, 0, 0);
             }
         } else if (w->estNo[1] && w->estPrm[1]) {
             f32 len = SQRTF(nrm.x * nrm.x + nrm.z * nrm.z);
             est.x = -atan2f(-nrm.y, len);
             est.y = atan2f(-nrm.x, -nrm.z);
             est.z = 0.0f;
-            EstSet(0, -1, &hit, &est, w->estNo[1], (u8) w->estPrm[1], 0, 0, 0, 0);
+            EstSet(0, -1, &hit, &est, w->estNo[1], (u8) w->estPrm[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         ObjMgr.destroy(obj);
         return 1;
@@ -388,7 +388,7 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
     }
     if (w->hit_type) {
-        EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, em, 0);
         return;
     }
     if (part->partsNo != 0) {
@@ -413,5 +413,5 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
     o.y = dy;
     o.z = part->width * 0.5f;
     PSMTXMultVec(m, &o, &o);
-    EstSet(0, -1, &o, &rot, w->estNo[3], (u8) w->estPrm[3], 0, 0, 0, 0);
+    EstSet(0, -1, &o, &rot, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, 0, 0);
 }

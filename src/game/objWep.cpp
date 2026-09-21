@@ -319,7 +319,7 @@ void drawPoint(Vec* p0, Vec* p1)
     if (DbgFlagChk(pG, DBG_NO_LASER_LINE)) {
         return;
     }
-    if (EspEstSetSelect(0, 0x50, 0, &esp, 1) != 1) {
+    if (EspEstSetSelect(EFF_CORE, 0x50, 0, &esp, 1) != 1) {
         return;
     }
     PSVECSubtract(&pG->Camera.param.pos, p1, &d);

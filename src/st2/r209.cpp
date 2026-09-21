@@ -299,7 +299,7 @@ void R209Init()
         r209_work.p->leader.setEm(0x7D, 3, 1, 0, 0);
         r209_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
         OyaSetObj00(r209_work.p->head, r209_work.p->leader.getPtr(), 2);
-        EstSet(r209_work.p->head, -1, 0, 0, 0, 0x2D, 1, 2, 0, 0);
+        EstSet(r209_work.p->head, -1, 0, 0, EFF_CORE, 0x2D, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         r209_work.p->em[4].w.setEm(0x7E, 3, 1, 0, 0);
         r209_work.p->em[5].w.setEm(0x7F, 3, 1, 0, 0);
         r209_work.p->em[6].w.setEm(0x8B, 3, 1, 0, 0);
@@ -450,9 +450,9 @@ void R209Main()
         if (r209_work.p->leader.isActive() == 0) {
             RsfSet(G_ROOM_ID, 3);
             r209_work.p->head->be_flag &= ~2;
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
         } else {
             if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 7) == 0 && (pG->Room_flg[0] & 0x00200000)) {
                 RsfSet(G_ROOM_ID, 7);
@@ -1269,7 +1269,7 @@ static void r209_SwitchAppearCheck()
             RoomSeCall(0x17, 0, 0, 0, 0);
             SceEventStart(1);
             CamCtrl.CutCall(6);
-            EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_ROOM00, 0, 0);
             pG->Room_flg[0] &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_SwitchAppearCheckEnd, 0, 0xB, 1);
             int seId = RoomSeCall(0xD, 0, 0, 0, 0);
@@ -1311,9 +1311,9 @@ static void r209_SwitchAppearCheckEnd()
         if (r209_work.p->seId) {
             SndStop(r209_work.p->seId, 0);
         }
-        EffectEspDelete(1, 2, 0, 0);
-        EffectEspgenDelete(1, 2, 0);
-        EffectEfmDelete(1, 2, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     }
     obj1->pos.y = 11225.0f;
     objB7->pos.y = 8716.0f;
@@ -1353,7 +1353,7 @@ static void r209_BridgeAppearCheck()
             RsfSet(G_ROOM_ID, 8);
             SceAtSetEnable(0x1B, 0);
             SceEventStart(1);
-            EstSet(0, -1, 0, 0, 1, 1, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_ROOM00, 0, 0);
             CamCtrl.CutCall(0xE);
             pG->Room_flg[0] &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_BridgeAppearCheckEnd, 0, 0xB, 1);
@@ -1391,9 +1391,9 @@ static void r209_BridgeAppearCheckEnd()
         if (r209_work.p->seId) {
             SndStop(r209_work.p->seId, 0);
         }
-        EffectEspDelete(1, 2, 0, 0);
-        EffectEspgenDelete(1, 2, 0);
-        EffectEfmDelete(1, 2, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     }
     obj->pos.z = 3322.0f;
     SceSleep(2);

@@ -124,7 +124,7 @@ void cObjMachinegun::moveFire()
             type = 1;
             break;
         }
-        EstSet(this, -1, 0, 0, 0x45, type, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP11, type, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         wep.step = 1;
     }
     if (MotionGetState(this)) {

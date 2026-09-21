@@ -245,7 +245,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
                 StaFlagOn(pG, STA_NO_FENCE);
             }
             if (obj->motFrame > 2300.0f) {
-                EstSet(obj, -1, 0, 0, 1, 0x13, 0, 0, obj, 0);
+                EstSet(obj, -1, 0, 0, EFF_ROOM, 0x13, 0, ESP_CORE_KIND_NONE, obj, 0);
             }
             if (obj->motFrame > 2865.0f) {
                 if (obj->r_no_3) {

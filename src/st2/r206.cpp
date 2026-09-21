@@ -359,10 +359,10 @@ static void Evt_R206S00_Func(Event* e)
                     ((cModel*) mod)->ot_type = 1;
                     TexRenderModSet((cModel*) mod, 0, r206_work.p->texTbl, r206_work.p->tex, 0, 1, 1, 1, 1.0f);
                 }
-                EffectEspDelete(r206_work.p->tex->mask | 0x3001, 2, 0, 0);
-                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, 2, 0);
-                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, 2, 0);
-                EstSet(0, -1, 0, 0, 1, 2, r206_work.p->tex->mask | 0x3001, 2, 0, 0);
+                EffectEspDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
             }
             break;
         default:
@@ -370,9 +370,9 @@ static void Evt_R206S00_Func(Event* e)
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod, 0);
                 }
-                EffectEspDelete(r206_work.p->tex->mask | 0x3001, 2, 0, 0);
-                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, 2, 0);
-                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, 2, 0);
+                EffectEspDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
             }
             break;
         }
@@ -636,7 +636,7 @@ static void r206_snipe()
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             if (hit0->ckStatus() == 1) {
                 RsfSet(G_ROOM_ID, 1);
-                EstSet(0, -1, &r206_hitPos0, &r206_hitRot, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &r206_hitPos0, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj0->be_flag &= ~2;
                 if (r206_work.p->snd != 0) {
                     SndStop(r206_work.p->snd, 0);
@@ -651,7 +651,7 @@ static void r206_snipe()
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             if (hit1->ckStatus() == 1) {
                 RsfSet(G_ROOM_ID, 2);
-                EstSet(0, -1, &r206_hitPos1, &r206_hitRot, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &r206_hitPos1, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj1->be_flag &= ~2;
                 if (r206_work.p->snd != 0) {
                     SndStop(r206_work.p->snd, 0);
@@ -668,7 +668,7 @@ static void r206_snipe()
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             if (hit2->ckStatus() == 1) {
                 RsfSet(G_ROOM_ID, 3);
-                EstSet(0, -1, &r206_hitPos2, &r206_hitRot, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &r206_hitPos2, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj2->be_flag &= ~2;
                 if (r206_work.p->snd != 0) {
                     SndStop(r206_work.p->snd, 0);
@@ -1086,7 +1086,7 @@ void luis_set()
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0xA, 0, 1, 0);
     obj->LightInfo.EnableMask = lit;
     obj->be_flag |= 0x10;
-    EstSet(obj, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+    EstSet(obj, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
     SceAtSetEnable(0xB, 1);
 }
 

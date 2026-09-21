@@ -237,7 +237,7 @@ static void r119_ThunderMove()
     EffSetToolStateCallBack(0, r119_ThunderFlagOn, r119_ThunderFlagOff);
     for (;;) {
         if (cnt == 0) {
-            EstSet(0, -1, 0, 0, 1, 0, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
             {
                 u8 r = Rnd() % 30;
                 cnt = r * 5 + 240;
@@ -304,7 +304,7 @@ static void r119_EventGolemAppear()
             SceAtSetEnable(4, 0);
             StaFlagOff(pG, STA_CAMERA_SET_ROOM);
             ((cEmGolem*) r119_work->golem)->setDie();
-            EstSet(r119_work->golem, -1, 0, 0, 1, 0xF, 0, 0, r119_work->golem, (void*) stat);
+            EstSet(r119_work->golem, -1, 0, 0, EFF_ROOM, 0xF, 0, ESP_CORE_KIND_NONE, r119_work->golem, (void*) stat);
             if (r119_work->dog != 0) {
                 EmMgr.destroy(r119_work->dog);
             }
@@ -433,9 +433,9 @@ extern "C" void koyaA_destroy()
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
     if (RsfCheck(G_ROOM_ID, 4)) {
-        EstSet(0, -1, &pos, &rot, 1, 5, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
-        EstSet(0, -1, &pos, &rot, 1, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     koyaA_delete();
     if (getRoomEtcTorch(0, &torch, 1)) {
@@ -452,9 +452,9 @@ extern "C" void koyaB_destroy()
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
     if (RsfCheck(G_ROOM_ID, 5)) {
-        EstSet(0, -1, &pos, &rot, 1, 5, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
-        EstSet(0, -1, &pos, &rot, 1, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     koyaB_delete();
     if (getRoomEtcTorch(1, &torch, 1)) {
@@ -471,9 +471,9 @@ extern "C" void koyaC_destroy()
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
     if (RsfCheck(G_ROOM_ID, 6)) {
-        EstSet(0, -1, &pos, &rot, 1, 5, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
-        EstSet(0, -1, &pos, &rot, 1, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     koyaC_delete();
     if (getRoomEtcTorch(2, &torch, 1)) {
@@ -488,7 +488,7 @@ extern "C" void YaneA_destroy()
     Vec rot = {0.0f, 3.1415927f, 0.0f};
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     YaneA_delete();
 }
 
@@ -499,7 +499,7 @@ extern "C" void YaneB_destroy()
     Vec rot = {0.0f, 3.1415927f, 0.0f};
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     YaneB_delete();
 }
 
@@ -510,7 +510,7 @@ extern "C" void YaneC_destroy()
     Vec rot = {0.0f, 2.268928f, 0.0f};
 
     SndCall(8, 0x1B, &pos, 0x2B, 0, 0);
-    EstSet(0, -1, &pos, &rot, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     YaneC_delete();
 }
 

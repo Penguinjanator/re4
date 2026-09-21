@@ -242,7 +242,7 @@ static void r21b_SwitchMove(int no)
         pG->Room_flg[0] |= 0x20000000;
         obj = SmdGetObjPtr(0xC9);
     }
-    EstSet(0, -1, &obj->pos, 0, 1, 0x12, 0, 0, 0, 0);
+    EstSet(0, -1, &obj->pos, 0, EFF_ROOM, 0x12, 0, ESP_CORE_KIND_NONE, 0, 0);
     if (obj) {
         obj->be_flag |= 0x20;
         RoomSeCall(4, &obj->pos, 0, 0, 0);

@@ -101,7 +101,7 @@ void cObjRuger::moveFire()
         } else {
             SndCall(2, 0x18, &pParts->world, 0, 0, 0);
         }
-        EstSet(this, -1, 0, 0, 0x36, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP02, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;

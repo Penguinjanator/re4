@@ -457,7 +457,7 @@ extern "C" void r10f_DoorOpen()
     pl->setRightHand((int) ROOM_ARC_PTR(pG->pRoom, 0x22));
     pl->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 5, 0, 1, 0);
     eff = EspPullCoreKind();
-    EstSet(eye, -1, 0, 0, 1, 0, 1, (u8) eff, 0, 0);
+    EstSet(eye, -1, 0, 0, EFF_ROOM, 0, 1, (u8) eff, 0, 0);
     Vec pos = {13293.0f, 4000.0f, 14581.0f};
     Vec ofs = {45.54f, 0.0f, -984.69f};
     f32 ry = 1.5707964f;

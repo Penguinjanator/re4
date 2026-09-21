@@ -158,7 +158,7 @@ extern "C" void r106_setRollingStone()
     rot.x = 0.0f;
     rot.y = 1.813549f;
     rot.z = 0.0f;
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x2E), 0xC8, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x2E), EFF_OBM1F, 0);
     if (EspGetEfmTplAddr(0x20, &tpl) == 0) {
         pLog->err(0, 0, "IWA init: EFM[%02x] TPL not regist.", 0x20);
         return;
@@ -511,9 +511,9 @@ extern "C" void Evt_R106S00_Func(Event* ev)
             break;
         case 0x10:
             if (ev->NowFrame == 0) {
-                EffectEspDelete(0, 0x15, 0, 0);
-                EffectEspgenDelete(0, 0x15, 0);
-                EffectEfmDelete(0, 0x15, 0);
+                EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA09, 0, 0);
+                EffectEspgenDelete(0, ESP_CORE_KIND_ROOM_AREA09, 0);
+                EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA09, 0);
             } else {
                 return;
             }

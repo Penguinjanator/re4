@@ -222,7 +222,7 @@ extern "C" void Evt_R330S00_Func(Event* e)
         SmdSetTrans(0x1C, 0);
         SmdSetTrans(0x1D, 0);
         SmdSetTrans(0x1E, 0);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
         pG->Room_flg[0] &= ~0x80000000;
         SmdSetTrans(0x28, 1);
         SmdSetTrans(0x29, 1);
@@ -379,9 +379,9 @@ extern "C" void Evt_R330S00_Func(Event* e)
         SmdSetTrans(0x1C, 1);
         SmdSetTrans(0x1D, 1);
         SmdSetTrans(0x1E, 1);
-        EffectEspDelete(0x2001, 2, 0, 0);
-        EffectEspgenDelete(0x2001, 2, 0);
-        EffectEfmDelete(0x2001, 2, 0);
+        EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM00, 0);
         w = SmdGetWorkPtr(0x28);
         if ((obj = SmdGetObjPtr(0x28)) != 0 && w != 0) {
             obj->setPos(&w->pos);

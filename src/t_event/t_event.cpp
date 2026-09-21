@@ -352,12 +352,12 @@ ToolEvt::ToolEvt()
     EvtTaskSuspend(0);
     TutilInitDefault();
     if (pG->room_id == 0x10B) {
-        EffectEspDelete(0, 2, 0, 0);
-        EffectEspgenDelete(0, 2, 0);
-        EffectEfmDelete(0, 2, 0);
-        EffectEspDelete(0, 3, 0, 0);
-        EffectEspgenDelete(0, 3, 0);
-        EffectEfmDelete(0, 3, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_ROOM00, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_ROOM00, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_ROOM01, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_ROOM01, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_ROOM01, 0);
     }
     EvtMgr.ToolCoreEvdDel();
     sprintf(path, "%sr%x%02xs??.evd", "x:\\soft\\room\\event\\evd\\", pG->stage_no, pG->room_no);

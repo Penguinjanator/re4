@@ -162,7 +162,7 @@ void cEm24::move()
                             w->Water_eff_wait--;
                         } else {
                             w->Water_eff_wait = 2;
-                            EstSet(this, -1, 0, 0, 0x1C, 4, 0, 0, this, 0);
+                            EstSet(this, -1, 0, 0, EFF_EM24, 4, 0, ESP_CORE_KIND_NONE, this, 0);
                         }
                     }
                 }
@@ -199,7 +199,7 @@ static void em24_R0_Init(cEm24* em)
     em->scale.z = scale;
     zero = 0;
     two = 2;
-    EspDataLoad((u32) ARC(4), 0x1C, 0);
+    EspDataLoad((u32) ARC(4), EFF_EM24, 0);
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 1000.0f };
@@ -284,7 +284,7 @@ static void em24_R1_BoxWait(cEm24* em)
         w->motEnd = 0;
         w->Atk_ck = 0;
         SndCall(8, 4, &em->pos, em->id, 0, em);
-        EstSet(em, -1, 0, 0, 0x1C, 5, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM24, 5, 0, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 3: {
         int two = 2;
@@ -467,7 +467,7 @@ static void em24_R0_Die(cEm24* em)
         }
         if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
-            EstSet(em, -1, 0, 0, 0x1C, 7, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM24, 7, 0, ESP_CORE_KIND_NONE, em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
         }
@@ -487,9 +487,9 @@ static void em24_R0_Die(cEm24* em)
 
         w->Timer = 60;
         if (em->r_no_3) {
-            EstSet(em, -1, 0, 0, 0x1C, 3, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM24, 3, 0, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x1C, 1, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM24, 1, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         pos = em->pos;
         switch (Rnd() & 0xF) {

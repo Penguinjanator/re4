@@ -111,7 +111,7 @@ void cObjMauser::moveFire()
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);
-        EstSet(this, -1, 0, 0, 0x36, 0, 0, 0xA, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP02, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;

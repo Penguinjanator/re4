@@ -182,7 +182,7 @@ void R217Main()
                 v = r217_work.p->hit[i]->ang;
                 v.y += 1.5707964f;
                 SndCall(6, 4, &r217_work.p->hit[i]->pos, 0, 0, 0);
-                EstSet(0, -1, &r217_work.p->hit[i]->pos, &v, 1, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &r217_work.p->hit[i]->pos, &v, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SmdGetObjPtr(0x83 + i)->be_flag &= ~2;
             }
         } else {

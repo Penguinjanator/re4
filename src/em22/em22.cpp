@@ -351,9 +351,9 @@ void cEm22::move()
     }
     if ((w->flags & 0x10) && hp > 0) {
         if (be_flag & 0x800) {
-            EstSet(this, -1, 0, 0, 0x1A, 0x10, 1, 0, this, 0);
+            EstSet(this, -1, 0, 0, EFF_EM22, 0x10, 1, ESP_CORE_KIND_NONE, this, 0);
         } else {
-            EstSet(this, -1, 0, 0, 0x1A, 0x10, 0, 0, this, 0);
+            EstSet(this, -1, 0, 0, EFF_EM22, 0x10, 0, ESP_CORE_KIND_NONE, this, 0);
         }
     }
     em22FootEff(this);
@@ -378,7 +378,7 @@ static void em22_R0_Init(cEm22* em)
     }
     zero = 0;
     mot = MOTION(em);
-    EspDataLoad((u32) ARC(6), 0x1A, 0);
+    EspDataLoad((u32) ARC(6), EFF_EM22, 0);
     em->pXFlip = em22_flip;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -415,9 +415,9 @@ static void em22_R0_Init(cEm22* em)
     }
     w->espKind = EspPullCoreKind();
     if (em->be_flag & 0x800) {
-        EstSet(em, -1, 0, 0, 0x1A, 2, 1, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM22, 2, 1, w->espKind, em, 0);
     } else {
-        EstSet(em, -1, 0, 0, 0x1A, 2, 0, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM22, 2, 0, w->espKind, em, 0);
     }
     em->setStatus(EM_STATUS_ACTIVE);
     switch (em->set) {
@@ -615,9 +615,9 @@ static void em22_R1_R11B_B(cEm22* em)
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x2C), 3, 1, 0);
         if (em->be_flag & 0x800) {
-            EstSet(em, -1, 0, 0, 0x1A, 6, 1, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 6, 1, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x1A, 6, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 6, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         em->r_no_2++;
     case 7:
@@ -1310,7 +1310,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 3, 1, 0);
         w->sndId[0] = SndCall(8, 0x12, &em->pos, em->id, 0, em);
         w->sndId[2] = SndCall(8, 0x21, &pPLS->pos, em->id, 0, em);
-        EstSet(em, -1, 0, 0, 0x1A, 0xD, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM22, 0xD, 0, ESP_CORE_KIND_NONE, em, 0);
         w->timer = 0;
         em->r_no_2++;
     case 3:
@@ -1331,7 +1331,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
             w->timer--;
         } else {
             w->timer = 5;
-            EstSet(em, -1, 0, 0, 0x1A, 7, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 7, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         break;
     case 4:
@@ -1351,7 +1351,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
             SndCall(8, 0x22, &pPL->pos, em->id, 0, em);
         }
         if ((em->motEvent & 2) && ChkWaterEffectEnable(&em->pos)) {
-            EstSet(0, -1, &em->pos, 0, 0x1A, 4, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_EM22, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
@@ -1360,14 +1360,14 @@ static void em22_R1_JumpAtkHit(cEm22* em)
             w->timer--;
         } else {
             w->timer = 5;
-            EstSet(em, -1, 0, 0, 0x1A, 0xA, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 0xA, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         break;
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0x1A), 0, 3, 1, 0);
         SndStop(w->sndId[2], 0);
         SndCall(1, 0xD, &pPL->pos, 0, 0, pPL);
-        EstSet(em, -1, 0, 0, 0x1A, 0xB, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM22, 0xB, 0, ESP_CORE_KIND_NONE, em, 0);
         DiedemoExec(30, 0);
         em->r_no_2++;
     case 7:
@@ -1561,7 +1561,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4D), 0, 3, 1, 0);
         PlSetFace(1);
-        EstSet(pl, -1, 0, 0, 0x1A, 0xC, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_EM22, 0xC, 0, ESP_CORE_KIND_NONE, pl, 0);
         VibSetData(VIB_TBL, 0xE, 1);
         pl->m_Work0 = 45;
         pl->r_no_2++;
@@ -1629,9 +1629,9 @@ static void em22_R1_Parasite(cEm22* em)
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xE), ARC(0x2C), 3, 1, 0);
         if (em->be_flag & 0x800) {
-            EstSet(em, -1, 0, 0, 0x1A, 6, 1, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 6, 1, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x1A, 6, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 6, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         em->r_no_2++;
     case 1:
@@ -1845,7 +1845,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         } else {
             if (em->motEvent & 2) {
                 if (ChkWaterEffectEnable(&em->pos)) {
-                    EstSet(0, -1, &em->pos, 0, 0x1A, 4, 0, 0, 0, 0);
+                    EstSet(0, -1, &em->pos, 0, EFF_EM22, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
                 fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
                 if (em->pos.y < fl) {
@@ -1972,7 +1972,7 @@ static void em22_R1_Die_Lost(cEm22* em)
         EffectEspDelete(0, w->espKind, em, 0);
         EffectEspgenDelete(0, w->espKind, em);
         EffectEfmDelete(0, w->espKind, em);
-        EstSet(em, -1, 0, 0, 0x1A, 5, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM22, 5, 0, ESP_CORE_KIND_NONE, em, 0);
         for (i = 0; i < 5; i++) {
             if (w->pPara[i]) {
                 w->pPara[i]->clearLostWait();
@@ -2720,9 +2720,9 @@ static inline void em22FootSplash(cEm22* em, int no)
     cModel* p = em->getPartsPtr(no);
 
     if (em->be_flag & 0x800) {
-        EstSet(0, -1, &p->world, 0, 0x1A, 3, 1, 0, em, 0);
+        EstSet(0, -1, &p->world, 0, EFF_EM22, 3, 1, ESP_CORE_KIND_NONE, em, 0);
     } else {
-        EstSet(0, -1, &p->world, 0, 0x1A, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &p->world, 0, EFF_EM22, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 
@@ -2789,17 +2789,17 @@ void em22SlaverSet(cEm22* em, int run)
     default:
         w->slaverTimer = 8;
         if (em->be_flag & 0x800) {
-            EstSet(em, -1, 0, 0, 0x1A, 8, 1, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 8, 1, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x1A, 8, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 8, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         break;
     case 1:
         w->slaverTimer = 14;
         if (em->be_flag & 0x800) {
-            EstSet(em, -1, 0, 0, 0x1A, 9, 1, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 9, 1, ESP_CORE_KIND_NONE, em, 0);
         } else {
-            EstSet(em, -1, 0, 0, 0x1A, 9, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_EM22, 9, 0, ESP_CORE_KIND_NONE, em, 0);
         }
         break;
     }

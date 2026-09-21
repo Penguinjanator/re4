@@ -15,7 +15,7 @@
 #include "espgen.h"
 
 // number of live effects per owner id (debug display)
-u16 esp_num_list[0xD3];
+u16 esp_num_list[EFF_MAX];
 EspTransFunc EspTransTbl[0xFF];
 EspCreateFunc EspCreateTbl[0xFF];
 
@@ -229,7 +229,7 @@ int EspMove()
     int color;
     int y;
 
-    for (i = 0; i < 0xD3; i++) {
+    for (i = 0; i < EFF_MAX; i++) {
         esp_num_list[i] = 0;
     }
     pause = 0;
@@ -282,7 +282,7 @@ int EspMove()
         // is emitted by loop.c after the hoisted `lis`/`addi`s (a plain `y = 0x70; y += 0x10`
         // schedules the li before the call).
         y = 0;
-        for (i = 0; i < 0xD3; i++) {
+        for (i = 0; i < EFF_MAX; i++) {
             if (esp_num_list[i] != 0) {
                 eprintf(0x20, 0x70 + y * 0x10, 0, 0xE, "%s:%d", owner_name_tbl[i], esp_num_list[i]);
                 y++;

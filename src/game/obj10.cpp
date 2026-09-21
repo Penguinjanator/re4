@@ -61,11 +61,11 @@ void cWepItem::move00()
             case 1:
                 StaFlagOn(pG, STA_PL_FIRE);
                 if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
-                    EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->est4, 0, 0, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->est4, 0, ESP_CORE_KIND_NONE, 0, 0);
                     AddWaterPower(&pos, 1.0f);
                     SndCall(1, 0x17, &pos, 0, 0, 0);
                 } else {
-                    EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                 }
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
@@ -77,8 +77,8 @@ void cWepItem::move00()
                 return;
             case 2:
                 StaFlagOn(pG, STA_PL_FIRE);
-                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
-                EstSet(0, -1, &pos, 0, w->estNo1, (u8) w->est2, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, &pos, 0, w->estNo1, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(1, 0x15, &pos, 0, 0, 0);
                 SndCall(1, 0x16, &pos, 0, 0, 0);
                 dmgSet(1);
@@ -238,7 +238,7 @@ int obj10AddSpeed(cWepItem* obj)
     if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && !(pG->weapon_no == 0xB || pG->weapon_no == 0xC)) {
         obj->pos.y = wh;
         if (!(w->flag & 8)) {
-            EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, 0, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->flag |= 8;
             AddWaterPower(&obj->pos, 0.5f);
             switch (obj->type) {
@@ -280,8 +280,8 @@ int obj10AddSpeed(cWepItem* obj)
             break;
         case 2:
             obj->dmgSet(1);
-            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
-            EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->est2, 0, 0, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(1, 0x15, &obj->pos, 0, 0, 0);
             SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             obj->r_no_0 = 1;

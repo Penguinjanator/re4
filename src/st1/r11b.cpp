@@ -111,8 +111,8 @@ void R11bInit()
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11b_eff_info);
     SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EvtMgr.SetFunc("evt_r11bs00_func", (void*) Evt_R11BS00_Func);
-    EstSet(pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
-    EstSet(pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, 0, obj);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 2, 0x800, ESP_CORE_KIND_NONE, 0, obj);
     StaFlagOn(pG, STA_ROOM_RAIN);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -263,7 +263,7 @@ static void r11b_ThunderMove()
     EffSetToolStateCallBack(0, r11b_ThunderFlagOn, r11b_ThunderFlagOff);
     for (;;) {
         if (cnt == 0) {
-            EstSet(0, -1, 0, 0, 1, 4, 1, 0, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, 0, 0);
             {
                 u8 r = Rnd() % 30;
                 cnt = r * 5 + 90;
@@ -326,9 +326,9 @@ static void r11b_EmEvent_exit()
     r11b_work.p->em[1] = EmSetFromList2(0x41, 1);
     r11b_work.p->em[7] = EmSetFromList2(0x3E, 1);
     r11b_work.p->em[8] = EmSetFromList2(0x3F, 1);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -359,13 +359,13 @@ static void r11b_EmEvent()
         pPL->setNoSuspend(1);
         pPL->setPos(-60735.0f, 2008.0f, -8455.0f);
         pPL->setAng(0.0f, 2.64f, 0.0f);
-        EstSet(r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[3], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[4], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[5], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
-        EstSet(r11b_work.p->em[6], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
+        EstSet(r11b_work.p->em[0], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[1], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[2], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[3], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[4], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[5], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work.p->em[6], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         SceSetEventCancel(1, (TaskFunc) r11b_EmEvent_exit, 0, -1, 1);
         CamCtrl.CutCall(3);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -470,12 +470,12 @@ static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
 // Drop the event's water effects bound to the two render targets' masks.
 static inline void r11b_evtEffDelete()
 {
-    EffectEspDelete(r11b_work.p->tex[0]->mask | 0x3001, 0, 0, 0);
-    EffectEspgenDelete(r11b_work.p->tex[0]->mask | 0x3001, 0, 0);
-    EffectEfmDelete(r11b_work.p->tex[0]->mask | 0x3001, 0, 0);
-    EffectEspDelete(r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
-    EffectEspgenDelete(r11b_work.p->tex[1]->mask | 0x3001, 0, 0);
-    EffectEfmDelete(r11b_work.p->tex[1]->mask | 0x3001, 0, 0);
+    EffectEspDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+    EffectEspgenDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEspDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+    EffectEspgenDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
 }
 
 // Event r11bs00 callback (two Ganados dump the officer's body in the lake; Del Lago takes them): hides
@@ -509,7 +509,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
                 int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
-                    EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             break;
@@ -518,7 +518,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
                 int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
-                    EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             break;
@@ -527,7 +527,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
                 int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
-                    EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             break;
@@ -536,7 +536,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
                 int skip = EvtSkipCk(e);
 
                 if (skip == 0) {
-                    EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             break;
@@ -550,7 +550,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
                 int skip2 = EvtSkipCk(e);
 
                 if (skip2 == 0) {
-                    EstSet(0, -1, 0, 0, 1, 0xB, 1, 0, 0, 0);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
             break;
@@ -561,22 +561,22 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, 1, 6, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 6, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         case 7:
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 0, 1);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, 1, 7, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 7, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         case 8:
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, 1, 8, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
-                EstSet(0, -1, 0, 0, 1, 9, r11b_work.p->tex[0]->mask | 0x3001, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 8, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 9, r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         default:

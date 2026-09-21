@@ -76,12 +76,12 @@ void R308Init()
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R308SwitchMain, 0, 1);
         SceAtSetEnable(3, 0);
         SceAtSetEnable(2, 1);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, zero, zero);
         r308_work->se = SndCall(6, 2, 0, 0, 0, 0);
     } else {
         SceAtSetEnable(3, 1);
         SceAtSetEnable(2, 0);
-        EstSet(0, -1, 0, 0, 1, 1, 0x2001, 3, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x2001, ESP_CORE_KIND_ROOM01, zero, zero);
     }
     EmReadSearch((u8) GetEmIdFromList(0x58), 0, 0);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -363,7 +363,7 @@ static void R308SwitchMain()
     R308_EFF_DELETE(2);
     R308_EFF_DELETE(3);
     R308_EFF_DELETE(5);
-    EstSet(0, -1, 0, 0, 1, 2, 0x2001, 4, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0x2001, ESP_CORE_KIND_ROOM02, zero, zero);
     CamCtrl.CutCall(2);
     w = cMes.getWork();
     SceMesSet(0, 0x20, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
@@ -371,7 +371,7 @@ static void R308SwitchMain()
         R308_EFF_DELETE(3);
         R308_EFF_DELETE(4);
         R308_EFF_DELETE(5);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM00, zero, zero);
         CamCtrl.Comeback(0);
         SceEventEnd(0);
         SceExit();
@@ -401,7 +401,7 @@ static void R308SwitchMain()
             R308_EFF_DELETE(2);
             R308_EFF_DELETE(3);
             R308_EFF_DELETE(4);
-            EstSet(0, -1, 0, 0, 1, 3, 0x2001, 5, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
             }
@@ -422,7 +422,7 @@ static void R308SwitchEnd()
     R308_EFF_DELETE(2);
     R308_EFF_DELETE(4);
     R308_EFF_DELETE(5);
-    EstSet(0, -1, 0, 0, 1, 1, 0x2001, 3, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
     if (r308_work->se != -1) {
         SndStop(r308_work->se, 0);
         r308_work->se = -1;

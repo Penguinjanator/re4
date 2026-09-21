@@ -179,7 +179,7 @@ static void r216_BattleStart()
     CamCtrl.CutCall(1);
     pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r216_BattleStartEndProc, 0, 2, 1);
-    EstSet(0, -1, NULL, NULL, 1, 6, 1, 5, 0, mdl);
+    EstSet(0, -1, NULL, NULL, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM03, 0, mdl);
     r216_work.p->door.setClose();
     while (r216_work.p->door.getStatus() != 0) {
         SceSleep(1);
@@ -228,9 +228,9 @@ static void r216_BattleStartEndProc()
             e->set = 1;
         }
         r216_work.p->door.setClosed();
-        EffectEspDelete(1, 5, 0, NULL);
-        EffectEspgenDelete(1, 5, 0);
-        EffectEfmDelete(1, 5, 0);
+        EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, NULL);
+        EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+        EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
         SceSleep(1);
     }
     CamCtrl.Comeback(0);

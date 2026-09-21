@@ -59,7 +59,7 @@ void cObjTompson::moveFire()
             mot = WEP_ARC_PTR(0x2A);
         }
         MotionSetCore(this, &this->Motion, mot, 0, 0, 0, 0);
-        EstSet(this, -1, 0, 0, 0x46, 0, 0, 0, this, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP12, 0, 0, ESP_CORE_KIND_NONE, this, 0);
         SndCall(2, 0, &pParts->world, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
         StaFlagOn(pG, STA_PL_FIRE);

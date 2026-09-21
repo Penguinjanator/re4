@@ -850,7 +850,7 @@ extern "C" void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = W->tex->texId;
         W->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0, W->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, W->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
@@ -1117,7 +1117,7 @@ static void brige1_down()
         }
         SmdGetObjPtr(0x21)->ang.x += spd;
     }
-    EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_NONE, 0, 0);
     SmdGetObjPtr(0x21)->ang.x = 2.0943952f;
     W->sat->setCoord(&r208_satPos, &SmdGetObjPtr(0x21)->ang);
     SceAtSetEnable(3, 0);
@@ -1651,9 +1651,9 @@ static void footingA_up_exit()
     SceEventEnd(0);
     SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_zeroVec, &r208_zeroVec, 1);
     EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_zeroVec, &r208_zeroVec, 5);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
 }
 
 // Footing A rises out of the water (camera event).
@@ -1666,7 +1666,7 @@ static void footingA_up()
     RsfSet(G_ROOM_ID, 10);
     SceEventStart(1);
     CamCtrl.CutCall(0xE);
-    EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     SceSetEventCancel(1, (TaskFunc) footingA_up_exit, 0, -1, 1);
     y = 2900.0f;
     while (y < 5400.0f) {
@@ -1695,9 +1695,9 @@ static void footingB_up_exit()
     SceEventEnd(0);
     SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_zeroVec, &r208_zeroVec, 2);
     EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_zeroVec, &r208_zeroVec, 4);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
 }
 
 // Footing B rises out of the water (camera event).
@@ -1709,7 +1709,7 @@ static void footingB_up()
 
     RsfSet(G_ROOM_ID, 11);
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 4, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     CamCtrl.CutCall(0xE);
     SmdGetObjPtr(0x58)->pos.y = 2900.0f;
     SceSetEventCancel(1, (TaskFunc) footingB_up_exit, 0, -1, 1);

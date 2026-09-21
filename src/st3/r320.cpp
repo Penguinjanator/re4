@@ -488,7 +488,7 @@ void R320Init()
         SmdSetTrans(9, 0);
         SmdSetTrans(0x10, 0);
     } else {
-        EstSet(0, -1, 0, 0, 1, 6, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     }
     if (R320_SAVE_FLAGS & 0x04000000) {
         EatMgr.destroy(r320_work->sat[5]);
@@ -512,21 +512,21 @@ void R320Init()
     BitOn(SmdGetObjPtr(0x30)->be_flag, 0x20);
     if ((R320_SAVE_FLAGS & 0x00010000) == 0) {
         SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) switch1_move, 0, 1);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 3, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM01, (void*) zero, (void*) zero);
     } else {
         SmdGetObjPtr(0x2E)->pParts->ang.z = -1.24f;
-        EstSet(0, -1, 0, 0, 1, 8, 1, 3, (void*) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_ROOM01, (void*) zero, (void*) zero);
         gate1_open(1);
     }
     int zero2 = 0;
     if ((R320_SAVE_FLAGS & 0x8000) == 0) {
         SceAtDataSet_exec(0x1C, 0x12, 0, (TaskFunc) switch2_move, 0, 1);
     }
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, 4, (void*) zero2, (void*) zero2);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM02, (void*) zero2, (void*) zero2);
     if ((R320_SAVE_FLAGS & 0x4000) == 0) {
         SceAtDataSet_exec(0x1D, 0x12, 0, (TaskFunc) switch3_move, 0, 1);
     }
-    EstSet(0, -1, 0, 0, 1, 0xC, 1, 5, (void*) zero2, (void*) zero2);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM03, (void*) zero2, (void*) zero2);
     {
         cObj* o = SmdGetObjPtr(0x2B);
 
@@ -540,7 +540,7 @@ void R320Init()
     SceAtDataSet_exec(0x1E, 0x12, 0, (TaskFunc) slide_move, 0, 1);
     if ((R320_SAVE_FLAGS & 0x200) == 0) {
         SceAtDataSet_exec(0x2D, 0x12, 0, (TaskFunc) door_open, 0, 1);
-        EstSet(0, -1, 0, 0, 1, 0x13, 1, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x13, 1, ESP_CORE_KIND_ROOM04, 0, 0);
     } else {
         SceExec(0x12, (TaskFunc) door_opened, 0, 0, 2, 0);
     }
@@ -563,7 +563,7 @@ void R320Init()
         r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
         FSet(r320_work->smd->motSpeedRate, 0.0f);
         r320_work->smd->be_flag |= 0x1000;
-        EstSet(0, -1, 0, 0, 1, 0xE, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         SmdSetTrans(0x22, 0);
         for (i = 0; i < 0x40; i++) {
             if (getRoomEtcDram(i, &dram, 0)) {
@@ -609,7 +609,7 @@ static void r320_heri_event()
     pPL->setPos(27120.0f, 7699.0f, 45134.0f);
     setAngYXZ(pPL, 2.46f, 0.0f, 0.0f);
     CamCtrl.Comeback(0);
-    EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_NONE, 0, 0);
     EmReadSearch(0x1D, 0, 0);
     SmdSetTrans(0x25, 0);
     SmdSetTrans(0x27, 0);
@@ -1557,10 +1557,10 @@ static void switch1_move()
     SceEventStart(1);
     CamCtrl.CutCall(0x12);
     reva_common_move(SmdGetObjPtr(0x2E), -0.59f, -1.24f);
-    EffectEspDelete(1, 3, 0, 0);
-    EffectEspgenDelete(1, 3, 0);
-    EffectEfmDelete(1, 3, 0);
-    EstSet(0, -1, 0, 0, 1, 8, 1, 3, (void*) zero, (void*) zero);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_ROOM01, (void*) zero, (void*) zero);
     SndCall(6, 0x14, 0, 0, 0, 0);
     SceSleep(0xF);
     gate1_open(0);
@@ -1580,10 +1580,10 @@ static void switch2_move()
     SceEventStart(1);
     CamCtrl.CutCall(0x13);
     reva_common_move(SmdGetObjPtr(0x2F), -0.59f, -1.24f);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
-    EstSet(0, -1, 0, 0, 1, 0xA, 1, 4, (void*) zero, (void*) zero);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM02, (void*) zero, (void*) zero);
     SndCall(6, 0x14, 0, 0, 0, 0);
     SceSleep(0xF);
     if (R320_SAVE_FLAGS & 0x4000) {
@@ -1603,10 +1603,10 @@ static void switch3_move()
     SceEventStart(1);
     CamCtrl.CutCall(0x14);
     reva_common_move(SmdGetObjPtr(0x30), -0.59f, -1.24f);
-    EffectEspDelete(1, 5, 0, 0);
-    EffectEspgenDelete(1, 5, 0);
-    EffectEfmDelete(1, 5, 0);
-    EstSet(0, -1, 0, 0, 1, 0xC, 1, 5, (void*) zero, (void*) zero);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM03, (void*) zero, (void*) zero);
     SndCall(6, 0x14, 0, 0, 0, 0);
     SceSleep(0xF);
     if (R320_SAVE_FLAGS & 0x8000) {
@@ -1759,14 +1759,14 @@ static void gate2_close()
     SceExec(0x12, (TaskFunc) reva_b_down, 0, 0, 2, 0);
     SceExec(0x12, (TaskFunc) reva_c_down, 0, 0, 2, 0);
     SceSleep(0xF);
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
-    EffectEspDelete(1, 5, 0, 0);
-    EffectEspgenDelete(1, 5, 0);
-    EffectEfmDelete(1, 5, 0);
-    EstSet(0, -1, 0, 0, 1, 9, 1, 4, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 5, 0, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     SndCall(6, 0x14, 0, 0, 0, 0);
     o = SmdGetObjPtr(0x2B);
     o->be_flag |= 0x20;
@@ -1903,7 +1903,7 @@ static void destroy_0()
         PlWepHitCheck2(0, &r320_posA[0], &r320_posA[0], 0x12, 3, 7000.0f);
         Vec pos = {59934.0f, 11941.0f, 27319.0f};
         Vec rot = {0.0f, -0.4537856f, 0.0f};
-        EstSet(0, -1, &pos, &rot, 1, 3, 1, 0, (void*) zero, (void*) zero);
+        EstSet(0, -1, &pos, &rot, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
         SmdSetTrans(0x1F, 0);
         SceSleep(0x1E);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -1938,10 +1938,10 @@ static void destroy_1()
     CamCtrl.CutCall(0xA);
     Vec pos = {70721.0f, 12357.0f, 27023.0f};
     Vec rot = {0.0f, 4.3633232f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 0, 1, 0, 0, 0);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
     Vec pos2 = {70717.0f, 12400.0f, 27019.0f};
     Vec rot2 = {0.0f, -1.9198622f, 0.0f};
-    EstSet(0, -1, &pos2, &rot2, 1, 2, 1, 0, 0, 0);
+    EstSet(0, -1, &pos2, &rot2, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
     SmdSetTrans(0x15, 0);
     SceSleep(0x1E);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1977,7 +1977,7 @@ static void destroy_2()
     CamCtrl.CutCall(9);
     Vec pos = {59514.0f, 11200.0f, 16319.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 4, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 4, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     SmdSetTrans(0x21, 0);
     SceSleep(0x1E);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -2018,9 +2018,9 @@ static void destroy_3()
     BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x08000000;
     EatMgr.destroy(r320_work->sat[4]);
-    EffectEspDelete(1, 2, 0, 0);
-    EffectEspgenDelete(1, 2, 0);
-    EffectEfmDelete(1, 2, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     PlWepHitCheck2(0, &r320_posA[5], &r320_posA[5], 0x12, 3, 7000.0f);
     PlWepHitCheck2(0, &r320_posA[6], &r320_posA[6], 0x12, 3, 7000.0f);
     SceSleep(0xF);
@@ -2034,7 +2034,7 @@ static void destroy_3()
     CamCtrl.CutCall(0xB);
     Vec pos = {79324.0f, 15600.0f, 4458.0f};
     Vec rot = {0.0f, 0.34906584f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 5, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 5, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     SmdSetTrans(9, 0);
     SmdSetTrans(0x10, 0);
     SceSleep(0x1E);
@@ -2066,7 +2066,7 @@ static void destroy_4()
     CamCtrl.CutCall(0x1A);
     Vec pos = {42666.0f, 9445.0f, -14165.0f};
     Vec rot = {0.0f, -0.41887903f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 0, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     PlWepHitCheck2(0, &pos, &pos, 0x12, 3, 7000.0f);
     SmdSetTrans(0x16, 0);
     SceSleep(0x1E);
@@ -2105,7 +2105,7 @@ static void destroy_5()
     CamCtrl.CutCall(0x18);
     Vec pos = {31723.0f, 10563.0f, 2719.0f};
     Vec rot = {0.0f, -4.2184606f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 0, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     PlWepHitCheck2(0, &pos, &pos, 0x12, 3, 7000.0f);
     SmdSetTrans(0x17, 0);
     SceSleep(0x1E);
@@ -2139,7 +2139,7 @@ static void destroy_6()
     CamCtrl.CutCall(0x19);
     Vec pos = {25412.0f, 13235.0f, -14502.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    EstSet(0, -1, &pos, &rot, 1, 0, 1, 0, (void*) zero, (void*) zero);
+    EstSet(0, -1, &pos, &rot, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     PlWepHitCheck2(0, &pos, &pos, 0x12, 3, 7000.0f);
     SmdSetTrans(0x18, 0);
     SceSleep(0x1E);
@@ -2162,9 +2162,9 @@ static void Evt_R320S00_Func(Event* e)
     case 0:
         SmdSetTrans(0x25, 1);
         SmdSetTrans(0x27, 1);
-        EffectEspDelete(0x2001, 6, 0, 0);
-        EffectEspgenDelete(0x2001, 6, 0);
-        EffectEfmDelete(0x2001, 6, 0);
+        EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
+        EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
+        EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
         break;
     case 1: {
         void* mod;
@@ -2239,7 +2239,7 @@ static void Evt_R320S00_Func(Event* e)
         SmdSetTrans(0x12, 1);
         SmdSetTrans(0x17, 1);
         SmdSetTrans(0x18, 1);
-        EstSet(0, -1, 0, 0, 1, 0xE, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         break;
     }
     case 3:
@@ -2263,9 +2263,9 @@ static void Evt_R320S01_Func(Event* e)
     case 0:
         SmdSetTrans(0x25, 1);
         SmdSetTrans(0x27, 1);
-        EffectEspDelete(0x2001, 6, 0, 0);
-        EffectEspgenDelete(0x2001, 6, 0);
-        EffectEfmDelete(0x2001, 6, 0);
+        EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
+        EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
+        EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM04, 0);
         break;
     case 1: {
         void* mod;
@@ -2409,7 +2409,7 @@ static void Evt_R320S01_Func(Event* e)
         SmdSetTrans(0x12, 1);
         SmdSetTrans(0x17, 1);
         SmdSetTrans(0x18, 1);
-        EstSet(0, -1, 0, 0, 1, 0xE, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         break;
     }
     }
@@ -2465,10 +2465,10 @@ static void door_open()
 
     BitOn(pG->Key_flg[1], 0x00080000);
     R320_SAVE_FLAGS |= 0x200;
-    EffectEspDelete(1, 6, 0, 0);
-    EffectEspgenDelete(1, 6, 0);
-    EffectEfmDelete(1, 6, 0);
-    EstSet(0, -1, 0, 0, 1, 0x14, 1, 6, (void*) zero, (void*) zero);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM04, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_ROOM04, (void*) zero, (void*) zero);
     SndCall(6, 0x14, 0, 0, 0, 0);
     SceAtSetEnable(0x2C, 0);
     SceEventStart(1);
@@ -2495,7 +2495,7 @@ static void door_opened()
     SceAtSetEnable(0x2C, 0);
     SmdGetObjPtr(0x36)->be_flag |= 0x20;
     SmdGetObjPtr(0x36)->pParts->pos.x -= 1140.0f;
-    EstSet(0, -1, 0, 0, 1, 0x14, 1, 6, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_ROOM04, 0, 0);
 }
 
 // The battle stream plays while the player is seen (or until the last yard is reached).

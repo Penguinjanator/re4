@@ -1250,9 +1250,9 @@ void sceAtGetItem(SceAtWork* w_)
     } else {
         LightMgr.update(0, 0);
     }
-    EffectEspDelete(1, 0x3B, model, 0);
-    EffectEspgenDelete(1, 0x3B, model);
-    EffectEfmDelete(1, 0x3B, model);
+    EffectEspDelete(1, ESP_CORE_KIND_ITEM, model, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ITEM, model);
+    EffectEfmDelete(1, ESP_CORE_KIND_ITEM, model);
     if (sub_screen_open != 0) {
         while (SubScreenWk.close_flag == 0) {
             SceSleep(1);
@@ -4269,33 +4269,33 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 1:
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2C, 0xC00, it->effNo, parent, parent);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2F, 0xC00, it->effNo, parent, parent);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x31, 0xC00, it->effNo, parent, parent);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x33, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x46, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 8:
                 q = p;
                 q.y -= 800.0f;
-                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, parent, parent);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &q, 0, EFF_CORE, 0x33, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, parent, parent);
                 break;
             case 9:
-                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, parent, parent);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x4D, 0xC00, it->effNo, parent, parent);
                 break;
             case 6:
                 break;
@@ -4312,33 +4312,33 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             }
             switch (it->effType) {
             case 1:
-                EstSet(m, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
+                EstSet(m, -1, &p, 0, EFF_CORE, 0x2D, 0xC00, it->effNo, 0, 0);
                 break;
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2C, 0xC00, it->effNo, 0, 0);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2F, 0xC00, it->effNo, 0, 0);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x31, 0xC00, it->effNo, 0, 0);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x33, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, 0, 0);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x46, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, 0, 0);
                 break;
             case 8:
                 q = p;
                 q.y -= 800.0f;
-                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &q, 0, EFF_CORE, 0x33, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x21, 0xC00, it->effNo, 0, 0);
                 break;
             case 9:
-                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x4D, 0xC00, it->effNo, 0, 0);
                 break;
             case 6:
                 break;
@@ -4454,7 +4454,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     case 7:
     case 8:
     case 9:
-        EstSet(parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
+        EstSet(parent, -1, &p, 0, EFF_CORE, 0x2D, 0xC00, it->effNo, 0, 0);
         break;
     case 6:
         break;
@@ -4488,23 +4488,23 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2E, 0xC00, it->effNo, m, m);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x30, 0xC00, it->effNo, m, m);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x32, 0xC00, it->effNo, m, m);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, m, m);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x47, 0xC00, it->effNo, m, m);
                 break;
             case 8:
                 p.y -= 800.0f;
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, m, m);
                 break;
             case 1:
             case 6:
@@ -4517,23 +4517,23 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             p.z = m->pos.x + it->ofs.z;
             switch (it->effType) {
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2E, 0xC00, it->effNo, 0, 0);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x30, 0xC00, it->effNo, 0, 0);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x32, 0xC00, it->effNo, 0, 0);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, 0, 0);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x47, 0xC00, it->effNo, 0, 0);
                 break;
             case 8:
                 p.y -= 800.0f;
-                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, 0, 0);
                 break;
             case 1:
             case 6:

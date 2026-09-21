@@ -1463,7 +1463,7 @@ void pl_R1_Fall(cPlayer* pl)
         }
         if (pl->m_Work0 == 0) {
             if (GetWaterHeight(&pl->pos, &water) && water > pl->pos.y) {
-                EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, pl, 0);
                 pl->m_Work0 = 1;
             }
         }
@@ -1474,7 +1474,7 @@ void pl_R1_Fall(cPlayer* pl)
         }
         if (fallCheck(pl)) {
             if (pl->m_Work0 == 0) {
-                EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
             FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 0, 600.0f, 100000.0f, 0));
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2F), PL_ARC_PTR(pG->pPlayer, 0x30), 0, 5, 0);

@@ -390,9 +390,9 @@ void emBoxDmCk(cEmBox* em)
 // Each break kind carries its own EstSet + fallback pair (a macro in the original: the arms are
 // full copies whose tails the compiler cross-jumps).
 #define EMBOX_BREAK_EFF(no, fallback)                                                       \
-    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, no, 1, 0, em, 0);                     \
+    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, no, 1, ESP_CORE_KIND_NONE, em, 0);                     \
     if (w->Break_bin == 0 && w->Break_tpl == 0) {                                            \
-        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, 0, em, 0);           \
+        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, ESP_CORE_KIND_NONE, em, 0);           \
     }
 
 // Breaks the box: hides the model, spawns the break est of Eff_id (kind 0 shot / 1 blast / 2
@@ -436,7 +436,7 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
             }
             break;
         case 4:
-            EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 1, 0, em, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 1, ESP_CORE_KIND_NONE, em, 0);
             break;
         }
     }
@@ -599,9 +599,9 @@ void cEmBox::setEff(u8 eff)
     }
     if (w->Break_bin == 0 && w->Break_tpl == 0 && w->Eff_id != 0xFF && type != 4) {
         if (type != 5) {
-            EstSet(0, -1, &pos, &ang, w->Eff_id, 4, 1, 0, this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 4, 1, ESP_CORE_KIND_NONE, this, 0);
         } else {
-            EstSet(0, -1, &pos, &ang, w->Eff_id, 8, 1, 0, this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 8, 1, ESP_CORE_KIND_NONE, this, 0);
         }
     }
     if (w->Break_bin && w->Break_tpl) {

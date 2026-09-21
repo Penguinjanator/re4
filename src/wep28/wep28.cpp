@@ -44,7 +44,7 @@ void Wep28_init(cModel* m)
     obj->init(pl);
     obj->setDisp(1, 0);
     PSet(pl->Wep->m_pWep->bow.allow, obj);
-    EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x50, 1);
+    EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP28, 1);
 }
 
 // wep.mode == 1 (ready, set by the bow ready00): the bow's draw motion 0x2E and the hand arrow's

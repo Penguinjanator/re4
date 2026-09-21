@@ -470,11 +470,11 @@ void emBarrelSetBreak(cEmBarrel* em, int kind)
         EffectEspgenDelete(0, w->EffKindId, em);
         EffectEfmDelete(0, w->EffKindId, em);
         if (w->rollSe != 0) {
-            EstSet(0, -1, &em->pos, 0, 1, 5, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
             emBarrelSetBomb2(em);
             SndCall(6, 3, &em->pos, 0, 0, em);
         } else {
-            EstSet(0, -1, &em->pos, 0, 1, 6, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_ROOM, 6, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 3, &em->pos, 0, 0, em);
         }
     }
@@ -607,7 +607,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         w->rollSe = 0;
         if ((Rnd() & 3) == 0) {
             w->rollSe = 1;
-            EstSet(em, -1, 0, 0, 1, 4, 0, w->EffKindId, em, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 4, 0, w->EffKindId, em, 0);
         }
         w->Se_wait = 0;
         w->floorOfs = 700.0f;
@@ -640,7 +640,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
 
                 v = em->pos;
                 v.y -= w->floorOfs;
-                EstSet(0, -1, &v, 0, 1, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &v, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(6, 2, &em->pos, 0, 0, em);
             }
         }
@@ -795,7 +795,7 @@ void emBarrelSetBomb(cEmBarrel* em)
         }
         break;
     }
-    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, 0, 0, 0);
+    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
     v = em->pos;
     v.y += 500.0f;
     w->Bomb_wait = 2;

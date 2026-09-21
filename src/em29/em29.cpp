@@ -256,7 +256,7 @@ void em29DmCk(cEm29* em)
     // The do-while doubles zero's ref weight so global alloc places it (r29) before `kind` (r28)
     // and `b3` (r26) -- with plain refs kind ranks above zero and the two swap registers.
     do {
-        EstSet(0, -1, &em->pos, &em->ang, 0x21, 0, 0, 0, (void*) zero, (void*) zero);
+        EstSet(0, -1, &em->pos, &em->ang, EFF_EM29, 0, 0, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
         em->be_flag &= ~2;
         Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 1);
         em29LastCk(em);
@@ -398,7 +398,7 @@ static void em29_R0_Init(cEm29* em)
     em->atari.m_flag &= ~0x200;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, -30.0f, 0.0f, 100.0f, 60.0f, 5, 1);
-    EspDataLoad((u32) ARC(6), 0x21, 0);
+    EspDataLoad((u32) ARC(6), EFF_EM29, 0);
     w->flags = zero;
     w->atkTimer = 180;
     w->escTimer = zero;

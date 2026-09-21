@@ -263,7 +263,7 @@ void emWepDmCk(cEmWep* em)
             SndCall(w->seDamage[0], w->seDamage[1], &em->pos, w->seDamage[2], 0, em);
         }
         if (w->effDamage[0] != 0xFF && w->effDamage[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
@@ -285,7 +285,7 @@ void emWepDmCk(cEmWep* em)
         r.x = 0.0f;
         r.y = GetXZAngle(&em->pos, &pG->Camera.param.pos);
         r.z = 0.0f;
-        EstSet(0, -1, &em->pos, &r, 0x10, 0x42, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &r, EFF_EM10, 0x42, 0, ESP_CORE_KIND_NONE, 0, 0);
         if (w->pEm_old) {
             SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
         }
@@ -301,8 +301,8 @@ void emWepDmCk(cEmWep* em)
     case 0xC:
         StaFlagOn(pG, STA_CRITICAL);
         GameAddPoint(9);
-        EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
-        EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_CORE, 0xD, 0, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x1A, 0, ESP_CORE_KIND_NONE, 0, 0);
         one = 1;
         SndCall(one, 0x14, &em->pos, 0, 0, em);
         StaFlagOn(pG, STA_PL_FIRE);
@@ -317,7 +317,7 @@ void emWepDmCk(cEmWep* em)
     case 0:
     case 2:
         if (w->effDamage[0] != 0xFF && w->effDamage[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         em->r_no_0 = 1;
         em->r_no_1 = 2;
@@ -365,7 +365,7 @@ void cEmWep::move()
             w->effAlwaysTimer--;
             if ((s16) w->effAlwaysTimer == 0) {
                 PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->always2_offset, &v);
-                EstSet(0, -1, &v, 0, w->effAlways[0], w->effAlways[1], 0, 0, 0, 0);
+                EstSet(0, -1, &v, 0, w->effAlways[0], w->effAlways[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->effAlwaysTimer = w->effAlwaysWait;
             }
         }
@@ -617,7 +617,7 @@ void emWep_R1_Fall(cEmWep* em)
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             EffectEspDelete(0, w->espKind, em, 0);
@@ -692,7 +692,7 @@ void emWep_R1_Fall(cEmWep* em)
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -778,7 +778,7 @@ void emWep_R1_Throw(cEmWep* em)
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -841,7 +841,7 @@ void emWep_R1_ThrowScythe(cEmWep* em)
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -1017,7 +1017,7 @@ void emWep_R1_Shot(cEmWep* em)
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -1036,7 +1036,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet(em, -1, 0, 0, 0x2F, 7, 0x800, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM39, 7, 0x800, w->espKind, em, 0);
         w->Timer = 0;
         w->Timer2 = 90;
         w->Timer3 = 3;
@@ -1066,7 +1066,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
         w->Bomb_wait = 63;
         w->Timer2 = 15;
         w->Timer = 0;
-        EstSet(em, -1, 0, 0, 0x2F, 8, 0x800, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_EM39, 8, 0x800, w->espKind, em, 0);
         em->r_no_2++;
     case 3:
         em->partsWorldCalc();
@@ -1151,7 +1151,7 @@ fly:
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -1252,9 +1252,9 @@ void emWepRocketBobm(cEmWep* em)
     r.y = GetXZAngle(&p->world, &cam->param.pos);
     r.z = 0.0f;
     if (len < 16000000.0f) {
-        EstSet(0, -1, &em->pos, &r, 0x10, 0x48, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &r, EFF_EM10, 0x48, 0, ESP_CORE_KIND_NONE, 0, 0);
     } else {
-        EstSet(0, -1, &em->pos, &r, 0x10, 0x41, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &r, EFF_EM10, 0x41, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     em->hp = 0;
     if (w->pEm_old) {
@@ -1280,8 +1280,8 @@ void emWepArrowBomb(cEmWep* em)
     EffectEspDelete(0, w->espKind, em, 0);
     EffectEspgenDelete(0, w->espKind, em);
     EffectEfmDelete(0, w->espKind, em);
-    EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
-    EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
+    EstSet(0, -1, &em->pos, 0, EFF_CORE, 0xD, 0, ESP_CORE_KIND_NONE, 0, 0);
+    EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x1A, 0, ESP_CORE_KIND_NONE, 0, 0);
     em->hp = 0;
     SndCall(8, 0x15, &em->pos, 0x39, 0, em);
     StaFlagOn(pG, STA_PL_FIRE);
@@ -1339,9 +1339,9 @@ void emWep_R1_BombThrow(cEmWep* em)
         r.y = GetXZAngle(&p->world, &cam->param.pos);
         r.z = 0.0f;
         if (dist < 16000000.0f) {
-            EstSet(0, -1, &em->pos, &r, 0x10, 0x48, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &r, EFF_EM10, 0x48, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &em->pos, &r, 0x10, 0x41, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &r, EFF_EM10, 0x41, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         em->hp = 0;
         if (w->pEm_old) {
@@ -1411,7 +1411,7 @@ void emWep_R1_BombThrow(cEmWep* em)
     em->partsWorldCalc();
     if (w->Water_ck == 0 && CheckInWater(em, 0)) {
         if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
         w->Water_ck = 1;
@@ -1451,8 +1451,8 @@ void emWep_R1_FlashThrow(cEmWep* em)
         w->Bomb_wait--;
     }
     if (w->Bomb_wait == 0) {
-        EstSet(0, -1, &em->pos, 0, 0x2F, 5, 0, 0, 0, 0);
-        EstSet(0, -1, 0, 0, 0x2F, 6, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_EM39, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_EM39, 6, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(1, 0x13, &em->pos, 0, 0, 0);
         if ((s16) pG->pl_life > 0) {
             dead = 1;
@@ -1544,8 +1544,8 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
     if (w->Bomb_wait == 0) {
         Vec pos;
 
-        EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
-        EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_CORE, 0xD, 0, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x1A, 0, ESP_CORE_KIND_NONE, 0, 0);
         em->hp = 0;
         SndCall(1, 0x14, &em->pos, 0, 0, em);
         StaFlagOn(pG, STA_PL_FIRE);
@@ -1664,7 +1664,7 @@ static void plemEscape(cPlayer* pl)
         }
         MotionMove(pl, 0);
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
-            EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (pl->m_Work0) {
@@ -1687,7 +1687,7 @@ void plemBackjump(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, w->motBackjump, 0, 3, 1, 5);
-        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
@@ -1730,7 +1730,7 @@ void plemFrontEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, w->motFront, 0, 3, 1, 5);
-        EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
@@ -2476,7 +2476,7 @@ void emWepPlHeadLost()
 
     if (pSys->eff_country == 0) {
         PlSetDamageSe(0xD);
-        EstSet(pPL, -1, 0, 0, 0x10, 0x57, 0, 0, pPL, 0);
+        EstSet(pPL, -1, 0, 0, EFF_EM10, 0x57, 0, ESP_CORE_KIND_NONE, pPL, 0);
         return;
     }
     pPL->setHead(0);
@@ -2494,8 +2494,8 @@ void emWepPlHeadLost()
         obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
-    EstSet(obj, -1, 0, 0, 0x10, 0x46, 0, 0, obj, 0);
-    EstSet(pPL, -1, 0, 0, 0x10, 0x45, 0, 0, pPL, 0);
+    EstSet(obj, -1, 0, 0, EFF_EM10, 0x46, 0, ESP_CORE_KIND_NONE, obj, 0);
+    EstSet(pPL, -1, 0, 0, EFF_EM10, 0x45, 0, ESP_CORE_KIND_NONE, pPL, 0);
     SndCall(1, 0x3E, &pPL->pos, 0, 0, pPL);
 }
 

@@ -476,7 +476,7 @@ static void r310_fallBox1()
         }
     }
     do { } while (0); // ends the cse path: the exit block re-forms high(r310_work) (loop-exit form)
-    EstSet(0, -1, 0, 0, 1, 0, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 0, &r310_work->box1->pos, 0, 0, 0);
     SceAtSetEnable(0, 0);
     SceAtSetEnable(0xC, 0);

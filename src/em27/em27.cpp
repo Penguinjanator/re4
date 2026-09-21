@@ -154,7 +154,7 @@ void em27DmCk(cEm27* em)
             EmDmBloodSet2(em, 0x1F, 6, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x1F, 7, 0, 0, 0);
-            EstSet(em, -1, 0, 0, 0x1F, 8, 0, 0, em, (void*) zero);
+            EstSet(em, -1, 0, 0, EFF_EM27, 8, 0, ESP_CORE_KIND_NONE, em, (void*) zero);
         }
     }
     em->invisible_factor = 1.0f;
@@ -338,7 +338,7 @@ static void em27_R0_Init(cEm27* em)
     em->atari.m_flag &= 0xFDFF;
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);
-    EspDataLoad((u32) ARC(6), 0x1F, 0);
+    EspDataLoad((u32) ARC(6), EFF_EM27, 0);
     w->Be_flg = zero;
     w->Dash_wait = Rnd() % 150 + 210;
     w->Esc_timer = zero;
@@ -499,7 +499,7 @@ static void em27_R1_Bank(cEm27* em)
         w->Spd_t.y = fRand1_1() * 10.0f;
         v = em->pos;
         v.y = w->waterHeight + 300.0f;
-        EstSet(0, -1, &v, &em->ang, 0x1F, 0xF, 0, 0, 0, 0);
+        EstSet(0, -1, &v, &em->ang, EFF_EM27, 0xF, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
     }
@@ -833,7 +833,7 @@ static void em27_R1_Die_Normal(cEm27* em)
             v.x = p->world.x;
             v.y = w->waterHeight + 300.0f;
             v.z = p->world.z;
-            EstSet(0, -1, &v, &em->ang, 0x1F, 5, 0, 0, 0, 0);
+            EstSet(0, -1, &v, &em->ang, EFF_EM27, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->upDown = Rnd() % 60 + 5;
             if (em->r_no_3) {
                 flag = 0x41;
@@ -1007,13 +1007,13 @@ void em27WaterEffSet(cEm27* em)
     p = em->getPartsPtr(0);
     if (p->world.y > h && p->world_old.y < h) {
         AddWaterPower(&em->pos, -0.5f);
-        EstSet(0, -1, &v, &em->ang, 0x1F, 0, 0, 0, 0, 0);
-        EstSet(em, -1, 0, 0, 0x1F, 4, 0, 0, em, 0);
+        EstSet(0, -1, &v, &em->ang, EFF_EM27, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(em, -1, 0, 0, EFF_EM27, 4, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, (Rnd() & 3) | 4, &em->pos, em->id, 0, em);
     }
     if (p->world.y < h && p->world_old.y > h) {
         AddWaterPower(&em->pos, 0.5f);
-        EstSet(0, -1, &v, &em->ang, 0x1F, 1, 0, 0, 0, 0);
+        EstSet(0, -1, &v, &em->ang, EFF_EM27, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(8, (Rnd() & 1) + 7, &em->pos, em->id, 0, em);
     }
 }

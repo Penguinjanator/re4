@@ -79,7 +79,7 @@ void R228Init()
     r228_work.p->eff2 = EspPullCoreKind();
     r228_initEvent00();
     TexRenderInit(&r228_work.p->texEvt, 0xE0, 2);
-    EstSet(0, -1, 0, 0, 1, 3, r228_work.p->texEvt->mask | 0x3001, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, r228_work.p->texEvt->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Per-frame room main: nothing.
@@ -158,7 +158,7 @@ static void r228_checkSalazarBattle()
     em3.setNoSuspend(1);
     cEm* e0 = em0.getPtr();
     cEm* eb = boss.getPtr();
-    EstSet(e0, -1, 0, 0, 0x2E, 0x10, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(e0, -1, 0, 0, EFF_EM38, 0x10, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(9);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -166,7 +166,7 @@ static void r228_checkSalazarBattle()
     EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
     EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(eb, -1, 0, 0, 0x2E, 0x11, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(eb, -1, 0, 0, EFF_EM38, 0x11, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -174,7 +174,7 @@ static void r228_checkSalazarBattle()
     EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
     EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(e0, -1, 0, 0, 0x2E, 0x12, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(e0, -1, 0, 0, EFF_EM38, 0x12, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(0xB);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -182,7 +182,7 @@ static void r228_checkSalazarBattle()
     EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
     EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(0, -1, 0, 0, 0x2E, 0x13, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_EM38, 0x13, 1, (u8) r228_work.p->eff, 0, 0);
     CamCtrl.CutCall(0xC);
     boss.destroy();
     em0.destroy();
@@ -207,7 +207,7 @@ static void r228_checkSalazarBattle()
     EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
     SceAtSetEnable(2, 1);
     SceEventEnd(0);
-    EstSet(0, -1, 0, 0, 1, 4, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     RsfSet(G_ROOM_ID, 1);
     ScfFlagOn(pG, SCF_83);
     SceAtSetEnable(0x8C, 1);
@@ -230,7 +230,7 @@ static void r228_execEvent00()
         }
     }
     SceEventEnd(0);
-    EstSet(0, -1, 0, 0, 1, 2, 0x801, (u8) r228_work.p->eff2, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0x801, (u8) r228_work.p->eff2, zero, zero);
     SceAtSetEnable(8, 1);
     if (r228_work.p->obj76) {
         r228_work.p->obj76->be_flag |= 2;
@@ -326,7 +326,7 @@ static inline void r228_evtEffectSet()
 {
     if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
         EffectDeleteAll();
-        SstSet(1, 0xFFFF, 1, 0, 0x2F, 1);
+        SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 1);
         EspGenSetMoveLoop(200);
         EspGenLoopMove();
     }
@@ -587,7 +587,7 @@ void setTexRender()
         tbl0[4] = 0xF7;
         tbl0[5] = r228_work.p->tex[0]->texId;
         r228_work.p->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0, r228_work.p->tex[0]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r228_work.p->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -597,7 +597,7 @@ void setTexRender()
         tbl1[4] = 0xF7;
         tbl1[5] = r228_work.p->tex[1]->texId;
         r228_work.p->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 1, r228_work.p->tex[1]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r228_work.p->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

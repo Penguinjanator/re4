@@ -315,7 +315,7 @@ static void em34_R0_Init(cEm34* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    EspDataLoad((u32) ARC(0x10), 0x2B, 0);
+    EspDataLoad((u32) ARC(0x10), EFF_EM34, 0);
     w->Neck_dir_y = 0.0f;
     w->Be_flg = 0;
     EmRoutineSet(em, one, 0, 0, 0);

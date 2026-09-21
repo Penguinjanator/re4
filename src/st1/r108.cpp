@@ -330,7 +330,7 @@ extern "C" void r108_switchSymbol(int n)
     }
     FlagXorVar(&pG->Room_flg, (int) r108_symbol[r108_symIdx %= 7].flagNo);
     if (FlagChkVar(&pG->Room_flg, (int) r108_symbol[r108_symIdx].flagNo)) {
-        EstSet(0, -1, 0, 0, 1, r108_symbol[r108_symIdx].no, 1, r108_symbol[r108_symIdx].eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, r108_symbol[r108_symIdx].no, 1, r108_symbol[r108_symIdx].eff, 0, 0);
     } else {
         EffectEspDelete(0, r108_symbol[r108_symIdx].eff, 0, 0);
         EffectEspgenDelete(0, r108_symbol[r108_symIdx].eff, 0);

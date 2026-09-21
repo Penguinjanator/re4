@@ -242,9 +242,9 @@ void emShieldDmCk(cEmShield* em)
         p = parts0->world;
         Matrix2AxisAngle(parts0->mat, &r);
         if (part->partsNo == 5) {
-            EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         if (w->pParent) {
             SndCall(8, 0xAD, &parts0->world, w->pParent->id, 0, em);
@@ -271,7 +271,7 @@ void emShieldDmCk(cEmShield* em)
             parts0 = em->getPartsPtr(0);
             p = parts0->world;
             Matrix2AxisAngle(parts0->mat, &r);
-            EstSet(0, -1, &p, &r, 0x10, 0x62, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x62, 0, ESP_CORE_KIND_NONE, 0, 0);
             if (w->pParent) {
                 SndCall(8, 0xAE, &parts0->world, w->pParent->id, 0, em);
             }
@@ -286,9 +286,9 @@ void emShieldDmCk(cEmShield* em)
         p = parts->world;
         Matrix2AxisAngle(parts->mat, &r);
         if (part->partsNo == 5) {
-            EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         if (w->pParent) {
             SndCall(8, 0xAD, &parts->world, w->pParent->id, 0, em);
@@ -320,7 +320,7 @@ void emShieldDmCk(cEmShield* em)
         parts0 = em->getPartsPtr(0);
         p = parts0->world;
         Matrix2AxisAngle(parts0->mat, &r);
-        EstSet(0, -1, &p, &r, 0x10, 0x62, 0, 0, 0, 0);
+        EstSet(0, -1, &p, &r, EFF_EM10, 0x62, 0, ESP_CORE_KIND_NONE, 0, 0);
         em->hp = 0;
         em->r_no_0 = 1;
         em->r_no_1 = 2;
@@ -340,9 +340,9 @@ void emShieldDmCk(cEmShield* em)
         p = parts2->world;
         Matrix2AxisAngle(parts2->mat, &r);
         if (part->partsNo == 5) {
-            EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         w->hitCnt -= 3;
         if (w->hitCnt > 0) {
@@ -389,7 +389,7 @@ void cEmShield::move()
 
             if (t == 0) {
                 PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->effOfs, &p);
-                EstSet(0, -1, &p, 0, w->effAlways[0], w->effAlways[1], 0, 0, 0, 0);
+                EstSet(0, -1, &p, 0, w->effAlways[0], w->effAlways[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->effTimer = w->effWait;
             }
         }
@@ -658,7 +658,7 @@ void emShield_R1_Fall(cEmShield* em)
                     SndCall(8, 0xAF, &parts0->world, w->pOldParent->id, 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, 0, em, 0);
+                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, em, 0);
                 }
             }
             EffectEspDelete(0, w->estNo, em, 0);
@@ -725,7 +725,7 @@ void emShield_R1_Fall(cEmShield* em)
         parts0 = em->getPartsPtr(0);
         if (CheckInWater(em, 0)) {
             if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-                EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(6, 0x17, &parts0->world, 0, 0, em);
             w->inWater = 1;

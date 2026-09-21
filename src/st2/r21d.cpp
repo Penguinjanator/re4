@@ -465,7 +465,7 @@ void r21d_onSwitch(int no, int init)
         } else {
             r21d_work.p->pSwitch->setEndPos();
         }
-        EstSet(0, -1, 0, 0, 1, (u8) lightA, 1, r21d_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightA, 1, r21d_work.p->eff, 0, 0);
         if (init == 0) {
             while (CamCtrl.IsMotionEnd() == 0) {
                 if (R21D_SKIP) {
@@ -484,7 +484,7 @@ void r21d_onSwitch(int no, int init)
                 SceSleep(1);
             }
         }
-        EstSet(0, -1, 0, 0, 1, (u8) lightB, 1, r21d_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightB, 1, r21d_work.p->eff, 0, 0);
         obj->pModelInfo->flagsDC |= 1;
         obj->pModelInfo->uvScrollU = 0.01677f;
         obj->pModelInfo->uvScrollV = 0.01343f;
@@ -513,7 +513,7 @@ void r21d_onSwitch(int no, int init)
 // The laser beam between the two switches (cuts 0x17 / 0x18).
 void r21d_irradiateLaser()
 {
-    EstSet(0, -1, 0, 0, 1, 0x11, 1, r21d_work.p->eff, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, r21d_work.p->eff, 0, 0);
     CamCtrl.CutCall(0x17);
     while (CamCtrl.IsMotionEnd() == 0) {
         if (R21D_SKIP) {
@@ -678,7 +678,7 @@ void r21d_moveFence()
 {
     u32 i;
 
-    EstSet(0, -1, 0, 0, 1, 8, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 5, 0, 0, 0, 0);
     CamCtrl.CutCall(0x10);
     while (1) {
@@ -918,7 +918,7 @@ void TRAP::move()
             Vec v = {0.0f, -4400.0f, 0.0f};
 
             PSVECAdd(&v, &obj->pos, &v);
-            EstSet(0, -1, &v, 0, 1, 0, 1, 0, 0, 0);
+            EstSet(0, -1, &v, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 3, &obj->pos, 0, 0, 0);
             obj->pos.y = baseY;
             timer = 30;
@@ -1073,7 +1073,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r21d_work.p->tex->texId;
         r21d_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0x12, r21d_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, r21d_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

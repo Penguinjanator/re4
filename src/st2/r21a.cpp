@@ -185,9 +185,9 @@ static void r21a_movedShelf(int no)
 static void r21a_moveShelf(int no)
 {
     if (no == 0x84) {
-        EstSet(0, -1, 0, 0, 1, 0xF, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
-        EstSet(0, -1, 0, 0, 1, 0x11, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (no == 0x84) {
         OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x27, -1, -1);
@@ -328,7 +328,7 @@ static void R21aDoorMain()
         if (obj) {
             const f32 base = -25321.0f;
 
-            EstSet(0, -1, 0, 0, 1, 0x10, 1, 0, zero, zero);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, zero, zero);
             SndCall(6, 9, &obj->pos, 0, 0, 0);
             for (i = 0; i < 60; i++) {
                 f32 y = obj->pos.y;
@@ -371,7 +371,7 @@ static void R21aFallRoofStartMain()
     r21a_work.p->str = 0;
     for (int i = 0; i < 4; i++) {
         if (obj) {
-            EstSet(obj, -1, 0, 0, 1, (u8) r21a_roofTbl[i].est, 1, (u8) r21a_roofTbl[i].eff, 0, 0);
+            EstSet(obj, -1, 0, 0, EFF_ROOM, (u8) r21a_roofTbl[i].est, 1, (u8) r21a_roofTbl[i].eff, 0, 0);
         }
     }
     SceEventStart(0);
@@ -382,7 +382,7 @@ static void R21aFallRoofStartMain()
     r21a_work.p->str = SndStrReq(0, 0x20, 0x80000003, 0, 0, 0.0f);
     SceSetEventCancel(1, (TaskFunc) R21aFallRoofStartEnd, 0, -1, 1);
     CamCtrl.CutCall(4);
-    EstSet(0, -1, 0, 0, 1, 0xC, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_NONE, 0, 0);
     SmdSetTrans(0x41, 1);
     if (obj) {
         SndCall(6, 5, &obj->pos, 0, 0, 0);
@@ -410,7 +410,7 @@ static void R21aFallRoofStartMain()
     CamCtrl.CutCall(6);
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
-        EstSet(0, -1, 0, 0, 1, 0xD, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 1, ESP_CORE_KIND_NONE, 0, 0);
         r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
             obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
@@ -495,7 +495,7 @@ static void R21aFallRoofDie(int no)
             }
             SceSleep(1);
         }
-        EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
+        EstSet(obj, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 1, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
             f32 ax;
@@ -533,18 +533,18 @@ static void R21aFallRoofMove()
     cnt = 0;   // before step/spd: its `li` then sits between the hoisted PI/180 loads (PI/180 f27/f28 tie)
     step = 0;
     spd = 0.0f;
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 6, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM04, 0, 0);
     for (;;) {
         switch (step) {
         case 0:
             cnt++;
             obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.1f, 0.0f);
             if (cnt % 10 == 0) {
-                EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
+                EstSet(obj, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             obj->setPos(obj->pos.x, obj->pos.y + -0.88611114f, obj->pos.z);
             if (obj->pos.y <= 1500.0f) {
-                EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
+                EstSet(obj, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_NONE, 0, 0);
                 spd = 0.0f;
                 cnt = 0;
                 step = 1;
@@ -554,7 +554,7 @@ static void R21aFallRoofMove()
             cnt++;
             obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f * 0.3f, 0.0f);
             if (cnt % 5 == 0) {
-                EstSet(obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
+                EstSet(obj, -1, 0, 0, EFF_ROOM, 8, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (cnt > 30) {
                 obj->setAng(0.0f, 0.0f, 0.0f);
@@ -596,10 +596,10 @@ static void R21aFallRoofMove()
             }
             break;
         case 6:
-            EffectEspDelete(1, 6, 0, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
             spd += 10.0f;
-            EffectEspgenDelete(1, 6, 0);
-            EffectEfmDelete(1, 6, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM04, 0);
             obj->setPos(obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 0.0f) {
                 SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, SCE_PRIO_DEF_2, 0);
@@ -617,16 +617,16 @@ static void R21aFallRoofMove()
                 EffectEspgenDelete(1, (u8) r21a_roofTbl[i].eff, 0);
                 EffectEfmDelete(1, (u8) r21a_roofTbl[i].eff, 0);
                 if (obj) {
-                    EstSet(obj, -1, 0, 0, 1, (u8) r21a_roofTbl[i].est2, 1, 0, 0, 0);
+                    EstSet(obj, -1, 0, 0, EFF_ROOM, (u8) r21a_roofTbl[i].est2, 1, ESP_CORE_KIND_NONE, 0, 0);
                     SndCall(6, 2, &hit->pos, 0, 0, 0);
                 }
             }
         }
         if (FlagChkSign(pG->Room_flg, 1) && FlagChkSign(pG->Room_flg, 2) && FlagChkSign(pG->Room_flg, 3) &&
             FlagChkSign(pG->Room_flg, 4)) {
-            EffectEspDelete(1, 6, 0, 0);
-            EffectEspgenDelete(1, 6, 0);
-            EffectEfmDelete(1, 6, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM04, 0);
             SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
@@ -693,7 +693,7 @@ static void R21aFallRoofEndMain()
     if (obj) {
         const f32 base = -31648.0f;
 
-        EstSet(0, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 0xA, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 60; i++) {
             f32 y = obj->pos.y;

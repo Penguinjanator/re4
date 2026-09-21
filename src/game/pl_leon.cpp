@@ -38,7 +38,7 @@ cPlLeon::cPlLeon()
     init1();
     setMotion();
     arc = pG->pPlayer;
-    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), EFF_PL00, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
 }

@@ -280,7 +280,7 @@ static void r224_em_set()
     r224_work.p->se1 = SndCall(6, 6, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
     SceAtDataReset(0);
     SceAtSetEnable(8, 0);
-    EstSet(0, -1, 0, 0, 1, 0x3E, 1, 3, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x3E, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     {
         f32 spd = 100.0f;
         cObj* obj;
@@ -463,7 +463,7 @@ static void futa_move()
     zero = 0;
     CamCtrl.CutCall(5);
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 0x40, 1, 2, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x40, 1, ESP_CORE_KIND_ROOM00, zero, zero);
     gnd_open();
     SceSleep(60);
     CamCtrl.Comeback(0);
@@ -475,11 +475,11 @@ static void futa_move()
         em1->setNoSuspend(0);
     }
     SceSleep(750);
-    EffectEspgenDelete(0, 2, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, 0);
     SceSleep(15);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSleep(135);
-    EstSet(0, -1, 0, 0, 1, 0x3F, 1, 2, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x3F, 1, ESP_CORE_KIND_ROOM00, zero, zero);
     gnd_close();
     if (RsfCheck(G_ROOM_ID, 0)) {
         pG->Room_flg[0] |= 0x10000000;
@@ -659,7 +659,7 @@ void door_open(int no)
     SceAtSetEnable(8, 0);
     SceEventStart(1);
     CamCtrl.CutCall(6);
-    EstSet(0, -1, 0, 0, 1, 0x3E, 1, 3, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x3E, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     spd = 100.0f;
     for (;;) {
         cObj* obj = SmdGetObjPtr(0x16);

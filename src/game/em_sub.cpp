@@ -231,19 +231,19 @@ void EmDmBloodSet(cEm* em)
     }
     switch (em->dmg.m_Wep) {
     default:
-        EstSet(0, -1, &pos, &dir, 0, 1, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &dir, EFF_CORE, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
         p.x = fRand1_1() * 200.0f + pos.x;
         p.y = fRand0_1() * 200.0f + (pos.y + 200.0f);
         p.z = fRand1_1() * 200.0f + pos.z;
-        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        EstSet(0, -1, &p, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         p.x = fRand1_1() * 250.0f + pos.x;
         p.y = fRand0_1() * 150.0f + (pos.y - 150.0f);
         p.z = fRand1_1() * 150.0f + pos.z;
-        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        EstSet(0, -1, &p, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         p.x = fRand1_1() * 150.0f + pos.x;
         p.y = fRand0_1() * 150.0f + (pos.y - 150.0f);
         p.z = fRand1_1() * 250.0f + pos.z;
-        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        EstSet(0, -1, &p, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         break;
     case 1:
     case 2:
@@ -258,18 +258,18 @@ void EmDmBloodSet(cEm* em)
     case 0x26:
     case 0x27:
     case 0x2B:
-        EstSet(0, -1, &pos, &dir, 0, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &dir, EFF_CORE, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         if (Rnd() & 1) {
             p.x = fRand1_1() * 150.0f + pos.x;
             p.y = fRand1_1() * 150.0f + pos.y;
             p.z = fRand1_1() * 150.0f + pos.z;
-            EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         if (Rnd() & 1) {
             p.x = fRand1_1() * 150.0f + pos.x;
             p.y = fRand1_1() * 150.0f + pos.y;
             p.z = fRand1_1() * 150.0f + pos.z;
-            EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &p, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         break;
     }
@@ -350,13 +350,13 @@ void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     PSMTXMultVec(m, &q, &q);
     if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
-            EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &q, &rot, 0, 1, 0, 0, 0, 0);
-            EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
     } else {
-        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, 0, 0, 0);
+        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 
@@ -371,13 +371,13 @@ void EmPlBloodSet2(cModel* m, Vec* p, u32 type, u8 eff_id, u8 est_id)
     }
     if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
-            EstSet(0, -1, &pos, &dir, 0, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, &dir, EFF_CORE, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &pos, &dir, 0, 1, 0, 0, 0, 0);
-            EstSet(0, -1, &pos, &dir, 0, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, &dir, EFF_CORE, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &pos, &dir, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
     } else {
-        EstSet(0, -1, &pos, &dir, eff_id, est_id, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &dir, eff_id, est_id, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 
@@ -417,13 +417,13 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     PSMTXMultVec(m, &q, &q);
     if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
-            EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
-            EstSet(0, -1, &q, &rot, 0, 1, 0, 0, 0, 0);
-            EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &q, &rot, EFF_CORE, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
     } else {
-        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, 0, 0, 0);
+        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 

@@ -457,7 +457,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     while (!(MotionGetState(pPL) & 4)) {
         if (!(pG->Room_flg[0] & 0x20000000)) {
             if (i == 2) {
-                EstSet(pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, pPL, 0);
+                EstSet(pPL, -1, &pPL->getPartsPtr(2)->world, 0, EFF_ROOM, 0x10, 0, ESP_CORE_KIND_NONE, pPL, 0);
             }
             cam.param.at = parts->world;
             i++;
@@ -470,7 +470,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     }
     RoomSeCall(1, &pPL->getPartsPtr(2)->world, 0, 0, 0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, (u16) mot, 0);
-    EstSet(pPL, -1, 0, 0, 1, 0x11, 0, 0, pPL, 0);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 0x11, 0, ESP_CORE_KIND_NONE, pPL, 0);
     DiedemoExec(0x19, 0);
     CamCtrl.Disable();
     CamCtrl.camera = cam;
@@ -499,12 +499,12 @@ static void r205_DrainEvent()
         SceAtSetEnable(7, 0);
         CamCtrl.CutCall(7);
         SndStrReq(1, 0, 0x80000003, 0, 0, 0.0f);
-        EffectEspDelete(0, 0xE, 0, 0);
-        EffectEspgenDelete(0, 0xE, 0);
-        EffectEfmDelete(0, 0xE, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA02, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_ROOM_AREA02, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA02, 0);
         SetSstDispFlag(0xC, 0);
         SetSstDispFlag(0xD, 1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_ROOM01, zero, zero);
         SceSetEventCancel(1, (TaskFunc) r205_DrainEventEnd, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -521,9 +521,9 @@ static void r205_DrainEvent()
 // 0x11 on, stream volume restored, area 0x15 off, area 0x1B = the 0x58 wave.
 static void r205_DrainEventEnd()
 {
-    EffectEspDelete(1, 3, 0, 0);
-    EffectEspgenDelete(1, 3, 0);
-    EffectEfmDelete(1, 3, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 1);
@@ -571,7 +571,7 @@ static void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r205_work.p->tex->texId;
         r205_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 1, r205_work.p->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r205_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R205Init() : Manager alloc failed!!");
     }
@@ -599,7 +599,7 @@ static void r205_EnemyAppear()
     SpfFlagOff(pG, SPF_PL);
     DpfFlagOff(pG, DPF_PL);
     pPL->setNoSuspend(1);
-    EstSet(0, -1, 0, 0, 1, 6, 1, 3, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM01, zero, zero);
     CamCtrl.CutCall(9);
     SceSetEventCancel(1, (TaskFunc) r205_EnemyAppearEndProc, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -612,9 +612,9 @@ static void r205_EnemyAppear()
 // End of the enemy cutscene: drop the effect, camera back, SceEventEnd, Ganado 0x70 spawns.
 static void r205_EnemyAppearEndProc()
 {
-    EffectEspDelete(1, 3, 0, 0);
-    EffectEspgenDelete(1, 3, 0);
-    EffectEfmDelete(1, 3, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
     pPL->setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

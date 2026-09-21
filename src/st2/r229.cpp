@@ -127,7 +127,7 @@ static void r221_execEmCamera1()
     pPL->setNoSuspend(1);
     CamCtrl.CutCall(6);
     r229_work.p->eff = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, 1, 4, 1, (u8) r229_work.p->eff, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r229_work.p->eff, 0, 0);
     SceSleep(1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -165,7 +165,7 @@ static void setTexRender()
         tbl0[4] = 0xF7;
         tbl0[5] = r229_work.p->tex[0]->texId;
         r229_work.p->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0, r229_work.p->tex[0]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r229_work.p->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -179,7 +179,7 @@ static void setTexRender()
         tbl1[4] = 0xF7;
         tbl1[5] = r229_work.p->tex[1]->texId;
         r229_work.p->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 3, r229_work.p->tex[1]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r229_work.p->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

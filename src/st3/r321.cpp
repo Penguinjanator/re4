@@ -174,7 +174,7 @@ void setTexRender()
         tbl[4] = 0xF7;
         tbl[5] = r321_work->tex->texId;
         IntSet(r321_work->tex->m_Rep_type, 1);
-        EstSet(0, -1, 0, 0, 1, 0, r321_work->tex->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r321_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -197,6 +197,6 @@ void break_heri_set()
     obj->be_flag |= 0x1000;
     obj->motSpeedRate = 0.0f;
     obj->setNoSuspend(1);
-    EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
     EspGenSetMoveLoop(0xC8);
 }

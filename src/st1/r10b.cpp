@@ -193,8 +193,8 @@ void R10bInit()
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
-    EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
-    EstSet(pPL, -1, 0, 0, 1, 5, 1, 3, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, zero, zero);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM01, zero, zero);
     r10b_work->boat = EmSetFromList2(0xA2, 1);
     RoomEfmRegist(SmdGetGroupObjPtr(0x58), 0x60);
     SetSstAddAreaFlag(0x800);
@@ -376,16 +376,16 @@ static void R10b_chkWater()
                 r10b_effDelete(2);
                 r10b_effDelete(3);
                 SceSleep(1);
-                EstSet(0, -1, 0, 0, 1, 5, 1, 3, zero, zero);
-                EstSet(0, -1, 0, 0, 1, 2, 1, 2, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM01, zero, zero);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, zero, zero);
             }
         } else if (pG->Room_flg[2] & 0x80000000) {
             pG->Room_flg[0] |= 0x80000000;
             r10b_effDelete(2);
             r10b_effDelete(3);
             SceSleep(1);
-            EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
-            EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         if (StaFlagChk(pG, STA_PL_BOAT)) {
             if (!(pG->Room_flg[0] & 0x20000000)) {
@@ -395,7 +395,7 @@ static void R10b_chkWater()
         } else if (pG->Room_flg[0] & 0x20000000) {
             pG->Room_flg[0] &= ~0x20000000;
             r10b_effDelete(3);
-            EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         }
         if (StaFlagChk(pG, STA_PL_BOAT)) {
             Estgen45SetTargetCamera(1);
@@ -419,7 +419,7 @@ static void r10b_GakeEvent()
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
-        EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         EmMgr.destroy(r10b_work->boat);
         DmgMgr.beginEvent(0);
         EffectEventDelete();
@@ -439,8 +439,8 @@ static void r10b_GakeEvent()
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
-        EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, ESP_CORE_KIND_ROOM01, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         SysFlagOff(pG, SYS_SCREEN_STOP);
     }
 }
@@ -598,7 +598,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
-            EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         {
             // A user variable: jump.c's thread_jumps never equivalences a REG_USERVAR_P pseudo, so
@@ -689,7 +689,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
-            EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         EvtFlgOnStatus(e, 3);
         e->EvtCancelCut = 9;
@@ -740,7 +740,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
-            EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         break;
     case 1:
@@ -772,7 +772,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
             r10b_effDelete(3);
-            EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         }
         SmdSetTrans(0x59, 0);
         break;

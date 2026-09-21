@@ -226,7 +226,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         MotionSetCore(obj, &obj->Motion, w->motThrow0, 0, 0, 0x8001, 0x1F);
         w->rnd = Rnd() & 1;
         w->Act_ck = 1;
-        EstSet(obj, -1, 0, 0, 0x29, 0x22, 0, 0, obj, (void*) step);
+        EstSet(obj, -1, 0, 0, EFF_EM31, 0x22, 0, ESP_CORE_KIND_NONE, obj, (void*) step);
         w->Seid = step;
         obj->r_no_2++;
     case 1:
@@ -254,7 +254,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         w->rnd = Rnd() & 1;
         w->Act_ck = 0;
         w->Timer = 90;
-        EstSet(obj, -1, 0, 0, 0x29, 0x23, 1, 0x40, obj, 0);
+        EstSet(obj, -1, 0, 0, EFF_EM31, 0x23, 1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
         obj->r_no_2++;
     case 3:
         PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
@@ -271,9 +271,9 @@ void objPillar_R0_Throw(cObjPillar* obj)
         if (w->Timer == 0) {
             obj->invisible_factor -= 0.1f;
             if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, 0x40, obj, 0);
-                EffectEspgenDelete(1, 0x40, obj);
-                EffectEfmDelete(1, 0x40, obj);
+                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
+                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
                 obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
@@ -357,9 +357,9 @@ void objPillar_R0_Escape(cObjPillar* obj)
         obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
-            EffectEspDelete(1, 0x40, obj, 0);
-            EffectEspgenDelete(1, 0x40, obj);
-            EffectEfmDelete(1, 0x40, obj);
+            EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
+            EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
             obj->invisible_factor = 0.0f;
             ObjMgr.destroy(obj);
             return;
@@ -408,9 +408,9 @@ void objPillar_R0_Fall(cObjPillar* obj)
         if (w->Timer == 0) {
             obj->invisible_factor -= 0.1f;
             if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, 0x40, obj, 0);
-                EffectEspgenDelete(1, 0x40, obj);
-                EffectEfmDelete(1, 0x40, obj);
+                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
+                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
                 obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
@@ -521,9 +521,9 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
             PlSetDamage(8, 0, 0);
             EmPlBloodSet2(obj, pos, 1, 0x29, 0x3D);
             if ((s16) pG->pl_life <= 0) {
-                EstSet(pPL, -1, 0, 0, 0x29, 0x3A, 0, 0, pPL, 0);
+                EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3A, 0, ESP_CORE_KIND_NONE, pPL, 0);
             } else {
-                EstSet(pPL, -1, 0, 0, 0x29, 0x3B, 0, 0, pPL, 0);
+                EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3B, 0, ESP_CORE_KIND_NONE, pPL, 0);
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
             SndCall(8, 0x25, &pPL->pos, 0x31, 0, pPL);
@@ -586,7 +586,7 @@ static void plemEscape(cPlayer* pl)
         }
         MotionMove(em, 0);
         if (em->frame > 11.7f && em->frame < 12.3f) {
-            EstSet(0, -1, &em->pos, 0, 3, 0x13, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(5, 5, &em->pos, 0, 0, em);
         }
         if (((cPlayer*) em)->m_Work0) {
@@ -672,7 +672,7 @@ void plemEscape2(cPlayer* pl)
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
         MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 0, 1, 0);
-        EstSet(em, -1, 0, 0, 0x29, 0x39, 0, 0, em, (void*) step);
+        EstSet(em, -1, 0, 0, EFF_EM31, 0x39, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
         em->r_no_2++;

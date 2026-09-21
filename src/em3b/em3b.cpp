@@ -156,7 +156,7 @@ void em3bDmCkTruck(cEm3b* em)
     SndCall(6, 4, pos, 0, 0, em);
     if (em->hp <= 1 && w->dmgWait == 0) {
         w->dmgWait = 150;
-        EstSet(em, -1, 0, 0, 1, 0x23, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x23, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(6, 6, pos, 0, 0, em);
         w->sndId = SndCall(6, 0xC, pos, 0, 0, em);
     }
@@ -180,7 +180,7 @@ void em3bDmCkCart(cEm3b* em)
             if (w->dmgWait == 0) {
                 w->dmgWait = 150;
                 EmRoutineSet(em, 1, 5, 0, 0);
-                EstSet(em, -1, 0, 0, 0xCA, 1, 0, w->espKind, em, 0);
+                EstSet(em, -1, 0, 0, EFF_OBM34, 1, 0, w->espKind, em, 0);
                 w->dmgWait = 150;
                 return;
             }
@@ -241,7 +241,7 @@ void em3bDmCkCart(cEm3b* em)
             if (w->dmgWait == 0) {
                 w->dmgWait = 150;
                 EmRoutineSet(em, 1, 5, 0, 0);
-                EstSet(em, -1, 0, 0, 0xCA, 1, 0, w->espKind, em, 0);
+                EstSet(em, -1, 0, 0, EFF_OBM34, 1, 0, w->espKind, em, 0);
                 w->dmgWait = 150;
             }
             break;
@@ -455,7 +455,7 @@ static void em3b_R0_Init(cEm3b* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->setStatus(EM_STATUS_ACTIVE);
-    EspDataLoad((u32) ARC(6), 0x30, 0);
+    EspDataLoad((u32) ARC(6), EFF_EM3B, 0);
     w->espKind = EspPullCoreKind();
     w->flags = zero;
     w->sndId2 = zero;
@@ -544,7 +544,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(7), 0, 3, 1, 0);
         w->timer = 450;
         w->seTimer = 30;
-        EstSet(em, -1, 0, 0, 1, 0, 1, 0, em, 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, em, 0);
         em->r_no_2++;
     case 3: {
         int end = MotionMove(em, 0);
@@ -590,7 +590,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         }
         f = em->frame;
         if (f > 464.7f && f < 465.3f) {
-            EstSet(em, -1, 0, 0, 1, 0x24, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, em, 0);
             em->flag |= 2;
             em->hp = 0;
             em->clearStatus(EM_STATUS_ACTIVE);
@@ -619,11 +619,11 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
 
         if (dir) {
             MotionSetCore(em, MOTION(em), ARC(9), 0, 3, 1, 0);
-            EstSet(em, -1, 0, 0, 1, 0x26, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x26, 0, ESP_CORE_KIND_NONE, em, 0);
             w->timer = 60;
         } else {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 3, 1, 0);
-            EstSet(em, -1, 0, 0, 1, 0x25, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x25, 0, ESP_CORE_KIND_NONE, em, 0);
             w->timer = 120;
         }
         em->r_no_2++;
@@ -713,7 +713,7 @@ static void em3b_R1_Cart_Run(cEm3b* em)
             EffectEspDelete(0, w->espKind, em, 0);
             EffectEspgenDelete(0, w->espKind, em);
             EffectEfmDelete(0, w->espKind, em);
-            EstSet(em, -1, 0, 0, 0xCA, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, EFF_OBM34, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             w->dmgWait = 150;
             SndStop(w->sndId2, 0);
             SndCall(6, 0xA, &em->pos, 0, 0, em);
@@ -755,7 +755,7 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
 
     switch (em->r_no_2) {
     case 0:
-        EstSet(em, -1, 0, 0, 0xCA, 3, 0, w->espKind, em, 0);
+        EstSet(em, -1, 0, 0, EFF_OBM34, 3, 0, w->espKind, em, 0);
         w->dmgWait = 150;
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 1, 0);
         w->timer = 1;

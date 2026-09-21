@@ -247,7 +247,7 @@ void emTorchDmCk(cEmTorch* em)
     }
     LifeDownSet(em, dmg, 0);
     if (em->type == 5) {
-        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 1, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (em->hp <= 0) {
         switch (em->dmg.m_Wep) {
@@ -301,7 +301,7 @@ void emTorchDmCk(cEmTorch* em)
             SndCall(1, 0x3F, &em->pos, 0, 0, em);
         }
         if (w->Eff_id != 0xFF) {
-            EstSet(em, -1, 0, 0, w->Eff_id, 1, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, em, 0);
         }
     }
 }
@@ -320,16 +320,16 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
         EffectEfmDelete(1, w->EffKindId, em);
         switch (kind) {
         default:
-            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 0:
-            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 1:
-            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         case 2:
-            EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, 0, em, 0);
+            EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, em, 0);
             break;
         }
     }
@@ -516,7 +516,7 @@ void emTorch_R1_Fall(cEmTorch* em)
             EffectEspDelete(1, w->EffKindId, em, 0);
             EffectEspgenDelete(1, w->EffKindId, em);
             EffectEfmDelete(1, w->EffKindId, em);
-            EstSet(0, -1, &em->pos, 0, w->Eff_id, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(6, 0x58, &em->pos, 0, 0, em);
             DmgMgr.set(5, 0x4B, &em->pos, 2500.0f, 1500.0f);
             em->be_flag &= ~2;

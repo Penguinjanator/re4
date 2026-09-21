@@ -154,10 +154,10 @@ cPlAda::cPlAda()
     init1();
     setMotion();
     arc = pG->pPlayer;
-    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), EFF_PL00, 0);
     startUp();
     if (pG->pl_costume == 1) {
-        EstSet(this, -1, 0, 0, 0, 0x59, 0x800, 0, 0, 0);
+        EstSet(this, -1, 0, 0, EFF_CORE, 0x59, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     }
     pFootShadowTbl = pl_fs_tbl;
 }

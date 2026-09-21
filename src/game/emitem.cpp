@@ -175,7 +175,7 @@ void emItemDmCk(cEmItem* em)
                 em->hp = 0;
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
-                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
+                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
                 break;
             }
             return;
@@ -211,7 +211,7 @@ void emItemDmCk(cEmItem* em)
             dir.y = 0.0f;
             dir.z = 0.0f;
         }
-        EstSet(0, -1, &em->getPartsPtr(0)->world, &dir, 0, 0x57, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0)->world, &dir, EFF_CORE, 0x57, 0, ESP_CORE_KIND_NONE, 0, 0);
         em->r_no_0 = 1;
         em->r_no_1 = 3;
         em->r_no_2 = 0;
@@ -223,7 +223,7 @@ void emItemDmCk(cEmItem* em)
         em->hp = 0;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, 0, em, 0);
+        EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
         break;
     }
     if (em->type == 1) {

@@ -866,7 +866,7 @@ static void r105_checkCloseCover()
         }
         SceSleep(1);
     } while (1);
-    EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(6, 0x5D, &cover->pos, 0, 0, 0);
     cover->be_flag &= ~2;
     SceAtSetEnable(0x11, 1);
@@ -887,7 +887,7 @@ static void r105_checkCloseCover()
         } while (1);
     }
     SndCall(6, 0x5E, &lid->pos, 0, 0, 0);
-    EstSet(0, -1, 0, 0, 1, 0x11, 0, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 0, ESP_CORE_KIND_NONE, 0, 0);
     RsfSet(G_ROOM_ID, 4);
     lid->pParts->ang.z -= 0.06981317f;
     SceSleep(1);

@@ -96,14 +96,14 @@ void PlChangeData()
 
     pPL->weaponRelease();
     PlDataRelease();
-    EspDataRelease(3, 1, 1);
+    EspDataRelease(EFF_PL00, 1, 1);
     pPL->push();
     BitOn16(pG->pl_flag, 1);
     ReadPlayerData(pG->pl_type, pG->pl_costume);
     pl = pPL;
     pl->setModel();
     pl->setMotion();
-    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), EFF_PL00, 0);
     pPL->weaponInit();
     pl->be_flag |= 0x20;
     pl->r_no_0 = 0;
@@ -897,17 +897,17 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet(pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, pl, (void*) t);
+            EstSet(pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, ESP_CORE_KIND_NONE, pl, (void*) t);
         }
     }
     dist = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, ESP_CORE_KIND_NONE, pl, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, pl, (void*) sibukiTimer);
+        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, ESP_CORE_KIND_NONE, pl, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {

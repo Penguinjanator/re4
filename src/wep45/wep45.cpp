@@ -40,7 +40,7 @@ void Wep45_init(cModel* m)
     } else {
         pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4D, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP19, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x11);
         PlWepMot[1] = WEP_ARC_PTR(0x14);
         PlWepMot[2] = WEP_ARC_PTR(0x17);

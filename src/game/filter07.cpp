@@ -63,14 +63,14 @@ void Filter07Trans()
             return;
         }
         filter07_noize = 0;
-        EffectEspDelete(0, 0xB, 0, 0);
-        EffectEspgenDelete(0, 0xB, 0);
-        EffectEfmDelete(0, 0xB, 0);
+        EffectEspDelete(0, ESP_CORE_KIND_THERMO, 0, 0);
+        EffectEspgenDelete(0, ESP_CORE_KIND_THERMO, 0);
+        EffectEfmDelete(0, ESP_CORE_KIND_THERMO, 0);
         return;
     }
     if (filter07_noize == 0) {
         filter07_noize = 1;
-        EstSet(0, -1, 0, 0, 0, 0x1E, 0, 0xB, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_CORE, 0x1E, 0, ESP_CORE_KIND_THERMO, 0, 0);
     }
     if (Render_checkBlurPermission()) {
         AddOtDirect(0x12, (void*) 0xCDCDCDCD, Filter07Render, 7, 0x400, 0, 0.0f);

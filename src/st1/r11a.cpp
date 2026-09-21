@@ -31,8 +31,8 @@ void R11aInit()
 #line 46 "D:/Bio4/Prog/r11a.cpp"
     r11a_work = (R11aWork*) MEM_CALLOC(1, 1, 0xd);
 
-    EstSet(pPL, -1, 0, 0, 3, 2, 0, 0, pPL, zero);
-    EstSet(pPL, -1, 0, 0, 1, 0, 0, 0, pPL, zero);
+    EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0, ESP_CORE_KIND_NONE, pPL, zero);
+    EstSet(pPL, -1, 0, 0, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, pPL, zero);
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11a_eff_info);
 }
 

@@ -291,7 +291,7 @@ static void em28_R0_Init(cEm28* em)
     em->atari.init(0.0f, 0.0f, 0.0f, 300.0f, 200.0f, 200.0f, 500.0f, 3, 0x2000, 10);
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -130.0f, 200.0f, 100.0f, 3, 5);
-    EspDataLoad((u32) ARC(0xB), 0x20, 0);
+    EspDataLoad((u32) ARC(0xB), EFF_EM28, 0);
     w->flags = zero;
     w->escapeWait = zero;
     w->pCtrl11 = GetCtrlCtrl11();
@@ -488,7 +488,7 @@ static void em28_R1_Dash(cEm28* em)
         w->targetAng = LIMIT_ANGLE(w->targetAng);
         w->timer = (u8) (Rnd() % 3) + 3;
         w->turnTimer = (u8) (Rnd() % 30) + 30;
-        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 0x20, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, EFF_EM28, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
         em28BellSet(em);
         em->r_no_3 = Rnd() & 1;
@@ -560,7 +560,7 @@ static void em28_R1_Jump(cEm28* em)
         w->spd.x = 0.0f;
         w->spd.y = fRand0_1() * 100.0f + 150.0f;
         w->spd.z = fRand0_1() * 50.0f + 150.0f;
-        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 0x20, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, EFF_EM28, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         em28BellSet(em);
         em->r_no_2++;
     case 3: {

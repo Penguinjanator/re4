@@ -289,7 +289,7 @@ void EspCommonTrans(cEsp* esp)
     if (esp->m_Tool_flg & 0x4000) {
         int no = esp->m_MaskTex_id;
         EspTexWk* tw = EspGetTexWk(no, 1);
-        if (tw->Owner == 0xD2) {
+        if (tw->Owner == EFF_NONE) {
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex;
@@ -599,7 +599,7 @@ void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     if (esp->m_Tool_flg & 0x4000) {
         int no = esp->m_MaskTex_id;
         EspTexWk* tw = EspGetTexWk(no, 1);
-        if (tw->Owner == 0xD2) {
+        if (tw->Owner == EFF_NONE) {
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex2;

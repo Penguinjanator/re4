@@ -94,9 +94,9 @@ void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 // Every s00..s14 handler deletes the same effect on begin.
 static inline void EffectDelete2001()
 {
-    EffectEspDelete(0x2001, 3, 0, 0);
-    EffectEspgenDelete(0x2001, 3, 0);
-    EffectEfmDelete(0x2001, 3, 0);
+    EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
+    EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
+    EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
 }
 
 // The action-button prompt of the knife fight: X or A by the per-event coin flip in flags_174. The
@@ -186,7 +186,7 @@ void R317Init()
             EvtMgr.EvtReadAram("event/evd/r317s03.evd", 0, 0, 0, 0);
         }
     }
-    EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) R317ContinuePointSet, 0, 1);
     }
@@ -303,7 +303,7 @@ void R317EventS00()
         pPL->setWound();
         ScfFlagOn(pG, SCF_R317_KNIFE_BATTLE);
         OpeSetOpenTerm(0x14, 0.0f, 0.0f, 0.0f, 0.0f);
-        EstSet(0, -1, 0, 0, 1, 0, 0x2001, 3, zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x2001, ESP_CORE_KIND_ROOM01, zero, zero);
     }
 }
 

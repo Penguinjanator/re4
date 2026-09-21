@@ -286,7 +286,7 @@ void R31cInit()
         r31c_TowerExplodeModelSet(0, 1);
         r31c_TowerExplodeModelSet(1, 0);
         r31c_work.p->towerEat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero, &zero, 4);
-        EstSet(0, -1, 0, 0, 1, 0x1B, 1, 5, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1B, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     }
     if (getRoomEtcSwitch(0x11, &r31c_work.p->sw[0], 1)) {
         ((cEmSwitch*) r31c_work.p->sw[0])->setLongCk();
@@ -499,7 +499,7 @@ static void r31c_CrestDoorOpen()
     SceAtSetEnable(0, 1);
     SceAtSetEnable(0x10, 0);
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 0x19, 1, 2, 0, model);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM00, 0, model);
     r31c_work.p->door[0].setOpen();
     CamCtrl.CutCall(0x18);
     BitOff(pG->Room_flg[0], 0x80000000);
@@ -519,7 +519,7 @@ static void r31c_CrestDoorOpenEndProc()
 {
     if (pG->Room_flg[0] & 0x80000000) {
         r31c_work.p->door[0].setOpened();
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -875,7 +875,7 @@ static void r31c_GetSnakeCrest()
         }
     }
     CamCtrl.CutCall(0x1B);
-    EstSet(0, -1, 0, 0, 1, 0x15, 1, 2, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x15, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     r31c_work.p->door[7].setOpen();
     while (r31c_work.p->door[7].getStatus() != 1) {
         SceSleep(1);
@@ -897,7 +897,7 @@ static void r31c_GetSnakeCrestEndProc()
         r31c_work.p->door[2].setClosed();
         r31c_work.p->door[3].setOpened();
         r31c_work.p->door[7].setOpened();
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -1002,8 +1002,8 @@ void r31c_TimerDoorCancel()
 {
     cEm39* em;
 
-    EffectDelete(1, 3);
-    EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+    EffectDelete(1, ESP_CORE_KIND_ROOM01);
+    EstSet(r31c_work.p->door8, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_NONE, 0, 0);
     ((cEmDoor*) r31c_work.p->door8)->setNormal();
     SceAtSetEnable(0x11, 0);
     em = (cEm39*) r31c_work.p->krauser.getPtr();
@@ -1090,7 +1090,7 @@ static void r31c_SwitchPushCheck()
         BitOff(pG->Room_flg[0], 0x80000000);
         SceSetEventCancel(1, (TaskFunc) r31c_SwitchPushCheckEndProc, 0, 0, 1);
         CamCtrl.CutCall(0x12);
-        EstSet(0, -1, 0, 0, 1, 0x10, 1, 2, 0, model);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_ROOM00, 0, model);
         r31c_work.p->door[4].setOpen();
         while (r31c_work.p->door[4].getStatus() != 1) {
             SceSleep(1);
@@ -1099,7 +1099,7 @@ static void r31c_SwitchPushCheck()
             SceSleep(1);
         }
         CamCtrl.CutCall(0x1A);
-        EstSet(0, -1, 0, 0, 1, 0x14, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x14, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         r31c_work.p->door[5].setOpen();
         while (r31c_work.p->door[5].getStatus() != 1) {
             SceSleep(1);
@@ -1118,7 +1118,7 @@ static void r31c_SwitchPushCheckEndProc()
     if (pG->Room_flg[0] & 0x80000000) {
         r31c_work.p->door[4].setOpened();
         r31c_work.p->door[5].setOpened();
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -1196,14 +1196,14 @@ static void r31c_LeverOperate(int no)
     SceSetEventCancel(1, (TaskFunc) r31c_LeverOperateEndProc, no, 0, 1);
     if (no == 0) {
         CamCtrl.CutCall(0x13);
-        EstSet(0, -1, 0, 0, 1, 0x11, 1, 0, 0, model);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, ESP_CORE_KIND_NONE, 0, model);
         r31c_work.p->door[1].setOpen();
         while (r31c_work.p->door[1].getStatus() != 1) {
             SceSleep(1);
         }
     } else {
         CamCtrl.CutCall(0x14);
-        EstSet(0, -1, 0, 0, 1, 0x12, 1, 0, 0, model);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, 1, ESP_CORE_KIND_NONE, 0, model);
         r31c_work.p->door[6].setOpen();
         while (r31c_work.p->door[6].getStatus() != 1) {
             SceSleep(1);
@@ -1279,7 +1279,7 @@ static void r31c_TowerEntranceClose()
     BitOff(pG->Room_flg[0], 0x80000000);
     SceSetEventCancel(1, (TaskFunc) r31c_TowerEntranceCloseEndProc, 0, 0, 1);
     CamCtrl.CutCall(0x20);
-    EstSet(0, -1, 0, 0, 1, 0x16, 1, 2, 0, model);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM00, 0, model);
     r31c_work.p->door[8].setClose();
     while (r31c_work.p->door[8].getStatus() != 0) {
         SceSleep(1);
@@ -1296,7 +1296,7 @@ static void r31c_TowerEntranceCloseEndProc()
 {
     if (pG->Room_flg[0] & 0x80000000) {
         r31c_work.p->door[8].setClosed();
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -1316,8 +1316,8 @@ static void r31c_TowerExplode()
     ScfFlagOn(pG, SCF_R31C_TOWER_EXPLODE);
     SceEventStart(0);
     CamCtrl.CutCall(0x22);
-    EffectDelete(1, 5);
-    EstSet(0, -1, 0, 0, 1, 0xB, 1, 2, 0, 0);
+    EffectDelete(1, ESP_CORE_KIND_ROOM03);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     r31c_TowerExplodeModelSet(0, 0);
     r31c_TowerExplodeModelSet(1, 1);
     EatMgr.destroy(r31c_work.p->towerEat);
@@ -1341,7 +1341,7 @@ static void r31c_TowerExplodeEndProc()
     int die = 0;
 
     if (pG->Room_flg[0] & 0x80000000) {
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
         SndStop(r31c_work.p->hSnd, 0);
     }
     if (pSys->eff_country == 0) {
@@ -1374,7 +1374,7 @@ static void r31c_TowerCoverClose()
         SceSleep(1);
     }
     r31c_work.p->door[3].setClose();
-    EstSet(0, -1, 0, 0, 1, 0x13, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x13, 1, ESP_CORE_KIND_NONE, 0, 0);
     while (r31c_work.p->door[3].getStatus() != 0) {
         SceSleep(1);
     }
@@ -1411,7 +1411,7 @@ static void r31c_BombCutSet(cEm39* em)
         SceSleep(1);
     }
     SceEventStart(1);
-    EstSet(0, -1, 0, 0, 1, 0xF, 1, 5, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, ESP_CORE_KIND_ROOM03, 0, 0);
     BitOff(pG->Room_flg[0], 0x80000000);
     SceSetEventCancel(1, (TaskFunc) r31c_BombCutSetEndProc, 0, 0, 1);
     CamCtrl.CutCall(0x1F);
@@ -1591,7 +1591,7 @@ static void r31cEventS02()
             SceSleep(1);
         }
         SceEventStart(1);
-        EstSet(0, -1, 0, 0, 1, 0x1A, 1, 2, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1A, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         CamCtrl.CutCall(0x13);
         r31c_work.p->door[1].setClose();
         BitOff(pG->Room_flg[0], 0x80000000);
@@ -1608,7 +1608,7 @@ static void r31cEventS02()
 static void r31cEventS02EndProc()
 {
     if (pG->Room_flg[0] & 0x80000000) {
-        EffectDelete(1, 2);
+        EffectDelete(1, ESP_CORE_KIND_ROOM00);
         r31c_work.p->door[1].setClosed();
     }
     CamCtrl.Comeback(0);
@@ -1912,25 +1912,25 @@ void cR31CPost::die()
         switch (type) {
         case 1:
             if (dmgType == 4) {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 1, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 1, 1, ESP_CORE_KIND_NONE, 0, 0);
             } else {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 0, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 0, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             YarareInit(hit, 0.0f, 0.0f, 0.0f, 600.0f, 2500.0f, 1, 0);
             break;
         case 0:
             if (dmgType == 4) {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 3, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
             } else {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 2, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             YarareInit(hit, 0.0f, 0.0f, 0.0f, 600.0f, 3800.0f, 1, 0);
             break;
         default:
             if (dmgType == 4) {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 7, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
             } else {
-                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], 1, 6, 1, 0, 0, 0);
+                EstSet(0, -1, &r31c_postPos[no], &r31c_postRot[no], EFF_ROOM, 6, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             YarareInit(hit, 0.0f, 0.0f, 0.0f, 600.0f, 3800.0f, 1, 0);
             break;

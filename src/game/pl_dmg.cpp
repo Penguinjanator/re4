@@ -127,7 +127,7 @@ void damageNormal(cPlayer* pl)
         break;
     case 0xA:
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
-        EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
@@ -143,12 +143,12 @@ void damageNormal(cPlayer* pl)
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
             if (MotionCheckCrossFrame(&pl->Motion, 48.0f) || MotionCheckCrossFrame(&pl->Motion, 54.0f) ||
                 MotionCheckCrossFrame(&pl->Motion, 65.0f)) {
-                EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x23, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
         }
         if (GetWaterHeight(pos, &wh) && pl->pParts->world.y < wh) {
             if (MotionCheckCrossFrame(&pl->Motion, 18.0f)) {
-                EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
         }
         if (pl->motionMove()) {
@@ -196,9 +196,9 @@ void damageBlow(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, mot, mot2, 5, 1, 0);
         n = pl->m_Work0;
         if (n) {
-            EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0xE : 0xD, 0, 0, pl, 0);
+            EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 0xE : 0xD, 0, ESP_CORE_KIND_NONE, pl, 0);
         } else {
-            EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 6 : 5, 0, 0, pl, (void*) n);
+            EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 6 : 5, 0, ESP_CORE_KIND_NONE, pl, (void*) n);
         }
         if (pl->m_Fwork0 != 123.0f) {
             ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
@@ -229,7 +229,7 @@ void damageBlow(cPlayer* pl)
             splash = pl->m_Work2;
             if (splash == 0 && GetWaterHeight(&pl->pParts->world, &wh) && pl->pParts->world.y < wh + 400.0f) {
                 pl->m_Work2 = 1;
-                EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, (void*) splash);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, pl, (void*) splash);
             }
         }
         if (pl->motionMove()) {
@@ -245,7 +245,7 @@ void damageBlow(cPlayer* pl)
         break;
     case 0xA:
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4F), (void*) (pG->pPlayer->ofs[0x50] + (u32) pG->pPlayer), 3, 5, 0);
-        EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, pl, 0);
+        EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, ESP_CORE_KIND_NONE, pl, 0);
         pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
@@ -261,12 +261,12 @@ void damageBlow(cPlayer* pl)
         if (GetWaterHeight(pos, &wh) && wh > pl->pos.y) {
             if (MotionCheckCrossFrame(&pl->Motion, 48.0f) || MotionCheckCrossFrame(&pl->Motion, 54.0f) ||
                 MotionCheckCrossFrame(&pl->Motion, 65.0f)) {
-                EstSet(pl, -1, 0, 0, 1, 0x23, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x23, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
         }
         if (GetWaterHeight(pos, &wh) && pl->pParts->world.y < wh) {
             if (MotionCheckCrossFrame(&pl->Motion, 18.0f)) {
-                EstSet(pl, -1, 0, 0, 1, 0x24, 0, 0, pl, 0);
+                EstSet(pl, -1, 0, 0, EFF_ROOM, 0x24, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
         }
         if (pl->motionMove()) {
@@ -327,7 +327,7 @@ void Pl_R0_Die(cPlayer* pl)
     case 0:
         pl->beginDamage();
         MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x4C), (void*) (pG->pPlayer->ofs[0x4D] + (u32) pG->pPlayer), 5, 1, 0);
-        EstSet(pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 4 : 3, 0, 0, pl, (void*) no);
+        EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 4 : 3, 0, ESP_CORE_KIND_NONE, pl, (void*) no);
         pl->dmg.m_Timer |= 0x80;
         if (pl->Body->pHair) {
             SndCall(1, 0xD, &pl->getPartsPtr(4)->world, 0, 0, 0);

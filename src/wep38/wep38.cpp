@@ -48,7 +48,7 @@ void Wep38_init(cModel* m)
         pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
-        EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x35, 1);
+        EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP01, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x26);
         PlWepMot[1] = WEP_ARC_PTR(0x27);
         PlWepMot[2] = WEP_ARC_PTR(0x28);
@@ -122,10 +122,10 @@ void cObjRuger::moveFire()
         SndCall(2, se, &pParts->world, 0, 0, 0);
         switch (pG->weapon_type) {
         case 0:
-            EstSet(this, -1, 0, 0, 0x35, 0, 0, 0xA, 0, 0);
+            EstSet(this, -1, 0, 0, EFF_WEP01, 0, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
             break;
         case 1:
-            EstSet(this, -1, 0, 0, 0x35, 1, 0, 0xA, 0, 0);
+            EstSet(this, -1, 0, 0, EFF_WEP01, 1, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
             break;
         }
         setCartridge();

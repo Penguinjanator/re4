@@ -101,7 +101,7 @@ void cObjFn57::moveFire()
         if (pG->weapon_type == 0) {
             type = 0;
         }
-        EstSet(this, -1, 0, 0, 0x35, type, 0, 0xA, (void*) zero, 0);
+        EstSet(this, -1, 0, 0, EFF_WEP01, type, 0, ESP_CORE_KIND_PL_WEP, (void*) zero, 0);
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
         wep.step = 1;

@@ -96,56 +96,56 @@ void cPlayer::weaponRelease()
         case 0:
             break;
         case 1:
-            EspDataRelease(0x35, 1, 1);
+            EspDataRelease(EFF_WEP01, 1, 1);
             break;
         case 2:
         case 3:
         case 0x12:
-            EspDataRelease(0x36, 1, 1);
+            EspDataRelease(EFF_WEP02, 1, 1);
             break;
         case 4:
-            EspDataRelease(0x38, 1, 1);
+            EspDataRelease(EFF_WEP04, 1, 1);
             break;
         case 5:
-            EspDataRelease(0x39, 1, 1);
+            EspDataRelease(EFF_WEP05, 1, 1);
             break;
         case 6:
-            EspDataRelease(0x3A, 1, 1);
+            EspDataRelease(EFF_WEP06, 1, 1);
             break;
         case 7:
         case 0x21:
-            EspDataRelease(0x3B, 1, 1);
+            EspDataRelease(EFF_WEP07, 1, 1);
             break;
         case 8:
-            EspDataRelease(0x3C, 1, 1);
+            EspDataRelease(EFF_WEP08, 1, 1);
             break;
         case 9:
-            EspDataRelease(0x3D, 1, 1);
+            EspDataRelease(EFF_WEP09, 1, 1);
             break;
         case 0xA:
-            EspDataRelease(0x44, 1, 1);
+            EspDataRelease(EFF_WEP10, 1, 1);
             break;
         case 0xB:
         case 0x14:
-            EspDataRelease(0x45, 1, 1);
+            EspDataRelease(EFF_WEP11, 1, 1);
             break;
         case 0xC:
-            EspDataRelease(0x46, 1, 1);
+            EspDataRelease(EFF_WEP12, 1, 1);
             break;
         case 0xD:
-            EspDataRelease(0x47, 1, 1);
+            EspDataRelease(EFF_WEP13, 1, 1);
             break;
         case 0xE:
-            EspDataRelease(0x48, 1, 1);
+            EspDataRelease(EFF_WEP14, 1, 1);
             break;
         case 0xF:
-            EspDataRelease(0x49, 1, 1);
+            EspDataRelease(EFF_WEP15, 1, 1);
             break;
         case 0x10:
-            EspDataRelease(0x4A, 1, 1);
+            EspDataRelease(EFF_WEP16, 1, 1);
             break;
         case 0x11:
-            EspDataRelease(0x4B, 1, 1);
+            EspDataRelease(EFF_WEP17, 1, 1);
             break;
         case 0x13:
         case 0x16:
@@ -153,17 +153,17 @@ void cPlayer::weaponRelease()
         case 0x19:
         case 0x1F:
         case 0x20:
-            EspDataRelease(0x4D, 1, 1);
+            EspDataRelease(EFF_WEP19, 1, 1);
             break;
         case 0x1C:
-            EspDataRelease(0x50, 1, 1);
+            EspDataRelease(EFF_WEP28, 1, 1);
             break;
         }
     }
     stat &= ~1;
-    EffectEspDelete(0, 10, this, 0);
-    EffectEspgenDelete(0, 10, this);
-    EffectEfmDelete(0, 10, this);
+    EffectEspDelete(0, ESP_CORE_KIND_PL_WEP, this, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_PL_WEP, this);
+    EffectEfmDelete(0, ESP_CORE_KIND_PL_WEP, this);
 }
 
 // Sets weapon_no / weapon_type and reads the weapon module's data (ReadWepData).

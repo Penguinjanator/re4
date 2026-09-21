@@ -53,7 +53,7 @@ static void r112_ThunderMove()
     for (;;) {
         if (cnt == 0) {
             if (StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
-                EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, 0, 0);
                 SceSndCallThunder();
             }
             {

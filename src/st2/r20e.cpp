@@ -216,7 +216,7 @@ void R20eInit()
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);
     }
     if (pG->pl_type == 1) {
-        EstSet(pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
+        EstSet(pPL, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     r20e_work->effKind = EspPullCoreKind();
 }
@@ -574,7 +574,7 @@ static void r20e_moveCrestDoor(int open, int init)
         } else if (open == 1) {
             u32 i;
 
-            EstSet(0, -1, 0, 0, 1, 0, 1, (u8) r20e_work->effKind, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, (u8) r20e_work->effKind, 0, 0);
             r20e_work->snd = SndCall(6, 0x24, 0, 0, 0, 0);
             for (i = 0; i < 75; i++) {
                 obj->pos.y += 40.0f;
@@ -627,7 +627,7 @@ void r20d_moveArmorStatue(int noAnim)
         if (noAnim != 1) {
             u32 i;
 
-            EstSet(0, -1, 0, 0, 1, 1, 1, (u8) r20e_work->effKind, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 1, 1, (u8) r20e_work->effKind, 0, 0);
             r20e_work->snd = SndCall(6, 7, 0, 0, 0, 0);
             for (i = 0; i < 90; i++) {
                 o23->pParts->ang.y += 0.034906585f;

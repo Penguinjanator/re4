@@ -311,7 +311,7 @@ void R300Init()
         const f32 w = -250.0f;
         const f32 h = 450.0f;
 
-        EstSet(SmdGetObjPtr(0x37), -1, 0, 0, 1, 6, 1, 2, 0, 0);
+        EstSet(SmdGetObjPtr(0x37), -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         r300_wk->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
         YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, 1);
@@ -427,7 +427,7 @@ void R300Init()
         }
     }
     if (RsfCheck(G_ROOM_ID, 7)) {
-        EstSet(0, -1, 0, 0, 1, 9, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     if (SysFlagChk(pG, SYS_CONTINUE) && RsfCheck(G_ROOM_ID, 5) == 0) {
         SndRoomStrStart(1, 0, 1);
@@ -502,10 +502,10 @@ void R300Main()
         if (r300_wk->hit->ckStatus() == 1) {
             r300_wk->hit->hp = 0;
             RsfSet(GS_ROOM_ID, 6);
-            EffectEspDelete(1, 2, 0, 0);
-            EffectEspgenDelete(1, 2, 0);
-            EffectEfmDelete(1, 2, 0);
-            EstSet(0, -1, &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 1, 7, 1, 0, 0, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
+            EstSet(0, -1, &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, 0, 0);
             LightMgr.offKind(1);
         }
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
@@ -659,14 +659,14 @@ void R300Main()
     if (pG->Room_flg[0] & 0x40000000) {
         if (!(pG->Room_flg[0] & 0x04000000)) {
             pG->Room_flg[0] |= 0x04000000;
-            EstSet(0, -1, 0, 0, 1, 0xA, 1, 3, 0, 0);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         }
     } else {
         if (pG->Room_flg[0] & 0x04000000) {
             pG->Room_flg[0] &= ~0x04000000;
-            EffectEspDelete(1, 3, 0, 0);
-            EffectEspgenDelete(1, 3, 0);
-            EffectEfmDelete(1, 3, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
         }
     }
 }
@@ -684,7 +684,7 @@ static void setTexRender()
         tbl0[4] = 0xF7;
         tbl0[5] = r300_wk->tex[0]->texId;
         r300_wk->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, 1, 0, r300_wk->tex[0]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r300_wk->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -703,7 +703,7 @@ static void setTexRender()
             t->m_W_size = 0x20;
             t->m_H_size = 0x20;
         }
-        EstSet(0, -1, 0, 0, 1, 4, r300_wk->tex[1]->mask | 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r300_wk->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -1294,7 +1294,7 @@ static void DoorOpen()
         u32 i;
 
         SceEventStart(1);
-        EstSet(0, -1, 0, 0, 1, 0xB, 1, 4, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xB, 1, ESP_CORE_KIND_ROOM02, 0, 0);
         SceSetEventCancel(1, (TaskFunc) DoorOpen_exit, 0, -1, 1);
         CamCtrl.CutCall(0xE);
         SceSleep(1);
@@ -1324,7 +1324,7 @@ void DrawLaserLine(Vec* from, Vec* to, int r, int g, int b, int a, int type, f32
         *to = hit;
     }
     for (i = 0; i <= 2; i++) {
-        if (EspEstSetSelect(1, 8, i, &esp, 1)) {
+        if (EspEstSetSelect(EFF_ROOM, 8, i, &esp, 1)) {
             ((R300EspView*) esp)->pos2 = *from;
             esp->m_Pos = *from;
             PSVECSubtract(to, from, &d);
@@ -1356,7 +1356,7 @@ static void r300_laser_start_exit()
 // Area 11: the laser is switched on.
 static void r300_laser_start()
 {
-    EstSet(0, -1, 0, 0, 1, 9, 1, 0, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_NONE, 0, 0);
     SceEventStart(1);
     RsfSet(G_ROOM_ID, 7);
     SndCall(6, 0x11, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);

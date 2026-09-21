@@ -330,7 +330,7 @@ void cEmWindow::move()
         r_no_0 = 1;
         if ((!(this->ChkStatus() & 1))) {
             if (WindowData[type].breakEff == 1) {
-                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, this, 0);
+                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, ESP_CORE_KIND_EMWINDOW00, this, 0);
             }
         }
         break;
@@ -536,10 +536,10 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0x19 && pG->room_id == 0x11F) {
-                EstSet(0, -1, 0, 0, 1, 6, 1, 0, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (i == 0) {
-                EstSet(pPL, -1, 0, 0, w->eff, 8, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 8, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -565,7 +565,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet(pPL, -1, 0, 0, w->eff, 2, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 2, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -591,7 +591,7 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
                 pEm->SetBreakAll(&plPos, 1, 1);
             }
             if (i == 0) {
-                EstSet(pPL, -1, 0, 0, w->eff, 4, 1, 0, 0, 0);
+                EstSet(pPL, -1, 0, 0, w->eff, 4, 1, ESP_CORE_KIND_NONE, 0, 0);
             }
             if (i == 3) {
                 SndCall(1, 0x29, &pPL->pos, 0, 0, pPL);
@@ -752,13 +752,13 @@ int cEmWindow::SetBreakModel()
         be_flag &= ~2;
     }
     if (WindowData[type].breakEff2 == 1) {
-        EstSet(0, -1, &pos, &ang, w->eff, 9, 1, 0, 0, 0);
+        EstSet(0, -1, &pos, &ang, w->eff, 9, 1, ESP_CORE_KIND_NONE, 0, 0);
     }
     SetAtariOff();
     SetStatus(1);
-    EffectEspDelete(0, 0x31, this, 0);
-    EffectEspgenDelete(0, 0x31, this);
-    EffectEfmDelete(0, 0x31, this);
+    EffectEspDelete(0, ESP_CORE_KIND_EMWINDOW00, this, 0);
+    EffectEspgenDelete(0, ESP_CORE_KIND_EMWINDOW00, this);
+    EffectEfmDelete(0, ESP_CORE_KIND_EMWINDOW00, this);
     return 1;
 }
 
@@ -822,7 +822,7 @@ int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
     r.x += ang.x;
     r.y += ang.y;
     r.z += ang.z;
-    EstSet(0, -1, &p, &r, eff, (u8) id, 0x801, 0, 0, 0);
+    EstSet(0, -1, &p, &r, eff, (u8) id, 0x801, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Enables / disables weapon damage (etc bit 0 = disabled).

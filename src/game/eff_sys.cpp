@@ -24,7 +24,6 @@
 // data files (textures, effect set tables, room effect tables, paths, effect models) and the
 // small state accessors the game code uses.
 
-#define EFF_OWNER_MAX 0xD3   // owner ids 0..0xD2; 0xD2 = "NONE" marks a free table entry
 #define EFF_TEXOBJ_MAX 0x1F4
 
 // Effect data file (EspDataLoad, version 0xB): byte offsets from the file start.
@@ -101,19 +100,19 @@ void RoomEfmRegist(cModel* m, u8 id);
 void RoomEfmRegist(void* model, void* tpl, u8 id);
 
 #define OWNER_ERR(owner, fmt_s, fmt_x)                                                              \
-    if ((owner) <= 0xD0) {                                                                          \
+    if ((owner) <= EFF_SST) {                                                                          \
         pLog->err(0, 0, fmt_s, owner_name_tbl[owner]);                                              \
     } else {                                                                                        \
         pLog->err(0, 0, fmt_x, owner);                                                              \
     }
 #define OWNER_ERR2(owner, fmt_s, fmt_x, arg)                                                        \
-    if ((owner) <= 0xD0) {                                                                          \
+    if ((owner) <= EFF_SST) {                                                                          \
         pLog->err(0, 0, fmt_s, owner_name_tbl[owner], arg);                                         \
     } else {                                                                                        \
         pLog->err(0, 0, fmt_x, owner, arg);                                                         \
     }
 #define OWNER_WARN2(owner, fmt_s, fmt_x, arg)                                                       \
-    if ((owner) <= 0xD0) {                                                                          \
+    if ((owner) <= EFF_SST) {                                                                          \
         pLog->warn(0, 0, fmt_s, owner_name_tbl[owner], arg);                                        \
     } else {                                                                                        \
         pLog->warn(0, 0, fmt_x, owner, arg);                                                        \
@@ -252,8 +251,8 @@ void EspRoomInit()
 
     EspFreeSizeCheckAll();
     EffCrearRoomSeFunc();
-    if (EFF_OWNER_MAX > 220) {
-        pLog->err(0, 0, "EspRoomInit(): EFF_MAX > 220 [%d]", EFF_OWNER_MAX);
+    if (EFF_MAX > 220) {
+        pLog->err(0, 0, "EspRoomInit(): EFF_MAX > 220 [%d]", EFF_MAX);
     }
 #line 200 "D:/Bio4/Prog/eff_sys.cpp"
     p = (cEspSystem*) MEM_ALLOC(sizeof(cEspSystem), 1, 13);
@@ -270,31 +269,31 @@ void EspRoomInit()
     sys->pEspBuf = NULL;
     tw = sys->Esp_tex_tbl;
     for (i = 0; i < 0x100; i++) {
-        tw->Owner = 0xD2;
+        tw->Owner = EFF_NONE;
         tw++;
     }
     ew = sys->efmWk;
     for (i = 0; i < 0x100; i++) {
-        ew->owner = 0xD2;
+        ew->owner = EFF_NONE;
         ew++;
     }
     et = sys->estTbl;
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
-        et->owner = 0xD2;
+    for (i = 0; i < EFF_MAX; i++) {
+        et->owner = EFF_NONE;
         et++;
     }
     st = sys->sstTbl;
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
-        st->owner = 0xD2;
+    for (i = 0; i < EFF_MAX; i++) {
+        st->owner = EFF_NONE;
         st++;
     }
     pt = sys->pathTbl;
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
-        pt->owner = 0xD2;
+    for (i = 0; i < EFF_MAX; i++) {
+        pt->owner = EFF_NONE;
         pt++;
     }
-    EspDataLoad(pG->pCore->ofs_14 + (u32) pG->pCore, 0, 0);
-    EspDataLoad(pG->pCore->ofs_50 + (u32) pG->pCore, 0xD1, 0);
+    EspDataLoad(pG->pCore->ofs_14 + (u32) pG->pCore, EFF_CORE, 0);
+    EspDataLoad(pG->pCore->ofs_50 + (u32) pG->pCore, EFF_ITM, 0);
     g_nLoop = 200;
     sys->pEspBufSave = NULL;
     m = EspEvModList;
@@ -458,7 +457,7 @@ EspTexWk* EspGetTexWk(int id, int quiet)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         if (quiet == 0) {
             pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         }
@@ -473,7 +472,7 @@ void EspTexSet(int id, int ptn)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         return;
     }
@@ -489,7 +488,7 @@ GXTexObj* EspGetTexObj(int id, int ptn)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
@@ -501,7 +500,7 @@ GXTlutObj* EspGetTlutObj(int id)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
@@ -516,7 +515,7 @@ int EspGetTplAddr(int id, void** out)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         return 0;
     }
     *out = w->pTpl;
@@ -529,7 +528,7 @@ int EspGetTexOwner(int id, u32* out)
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
     *out = w->Owner;
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         return 0;
     }
     return 1;
@@ -541,7 +540,7 @@ int EspGetAnmAddr(int id, EspAnmData** out)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         return 0;
     }
     *out = w->pAnm;
@@ -553,7 +552,7 @@ int EspChkTexId(int id)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->Owner == 0xD2) {
+    if (w->Owner == EFF_NONE) {
         return 0;
     }
     return 1;
@@ -596,7 +595,7 @@ int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
     GXTexObj* obj;
     u32 i;
 
-    if (w->Owner != 0xD2) {
+    if (w->Owner != EFF_NONE) {
         return 0;
     }
     if (anm->Frames != tpl->numDescriptors) {
@@ -638,12 +637,12 @@ int estRegist(void* data, void* list, u32 owner)
     cEspSystem* sys = g_pEspSys;
     SstTbl* t;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         OWNER_ERR(owner, "estRegist():OWNER_ID[%s] Invalid.", "estRegist():OWNER_ID[%x] Invalid.");
         return 0;
     }
     t = &sys->estTbl[owner];
-    if (t->owner != 0xD2) {
+    if (t->owner != EFF_NONE) {
         OWNER_ERR(owner, "estRegist():OWNER_ID[%s] is already used.", "estRegist():OWNER_ID[%x] is already used.");
         return 0;
     }
@@ -665,14 +664,14 @@ EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet)
     int no;
     u32 i;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         if (quiet == 0) {
             OWNER_ERR2(owner, "EST_SET:[%s/0x%02x] OWNER Invalid", "EST_SET:[%x/0x%02x] OWNER Invalid", id);
         }
         return NULL;
     }
     t = &sys->estTbl[owner];
-    if (t->owner == 0xD2) {
+    if (t->owner == EFF_NONE) {
         if (quiet == 0) {
             OWNER_ERR2(owner, "EST_SET:[%s/0x%02x] OWNER not init", "EST_SET:[%x/0x%02x] OWNER not init", id);
         }
@@ -712,12 +711,12 @@ void* EspGetPathAddr(u32 owner, int id)
     int no;
     u32 i;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         OWNER_ERR2(owner, "ESP_PATH : OWNER_ID[%s/0x%02x] Invalid.", "ESP_PATH : OWNER_ID[%x/0x%02x] Invalid.", id);
         return NULL;
     }
     t = &sys->pathTbl[owner];
-    if (t->owner == 0xD2) {
+    if (t->owner == EFF_NONE) {
         OWNER_ERR2(owner, "ESP_PATH : OWNER_ID[%s/0x%02x] Not init.", "ESP_PATH : OWNER_ID[%x/0x%02x] Not init.",
                    id);
         return NULL;
@@ -744,12 +743,12 @@ int sstRegist(void* data, void* list, u32 owner)
     cEspSystem* sys = g_pEspSys;
     SstTbl* t;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         OWNER_ERR(owner, "sstRegist():OWNER_ID[%s] Invalid", "sstRegist():OWNER_ID[%x] Invalid");
         return 0;
     }
     t = &sys->sstTbl[owner];
-    if (t->owner != 0xD2) {
+    if (t->owner != EFF_NONE) {
         OWNER_ERR(owner, "sstRegist():OWNER[%s] is already used.", "sstRegist():OWNER[%x] is already used.");
         return 0;
     }
@@ -765,12 +764,12 @@ int pathRegist(void* data, void* list, u32 owner)
     cEspSystem* sys = g_pEspSys;
     SstTbl* t;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         OWNER_ERR(owner, "pathRegist():OWNER_ID[%s] Invalid", "pathRegist():OWNER_ID[%x] Invalid");
         return 0;
     }
     t = &sys->pathTbl[owner];
-    if (t->owner != 0xD2) {
+    if (t->owner != EFF_NONE) {
         OWNER_ERR(owner, "pathRegist():OWNER[%s] is already used.", "pathRegist():OWNER[%x] is already used.");
         return 0;
     }
@@ -787,14 +786,14 @@ int efmRegist(void* model, void* tpl, void* mot, void* x, u8 id, u32 owner)
     cEspSystem* sys = g_pEspSys;
     EspEfmWk* w;
 
-    if (owner > 0xD2) {
+    if (owner > EFF_NONE) {
         OWNER_ERR(owner, "efmRegist():OWNER_ID[%s] Invalid", "efmRegist():OWNER_ID[%x] Invalid");
         return 0;
     }
     w = &sys->efmWk[id];
-    if (w->owner != 0xD2) {
+    if (w->owner != EFF_NONE) {
         if (DbgFlagChk(pG, DBG_EFF_NUM_DISP)) {
-            if (owner <= 0xD0) {
+            if (owner <= EFF_SST) {
                 pLog->warn(0, 0, "efmRegist(): ID[0x%x]:OWNER[%s] already used[%s].", id, owner_name_tbl[owner],
                            owner_name_tbl[w->owner]);
             } else {
@@ -824,7 +823,7 @@ int espTexRelease(u32 owner)
         if (w->Owner == owner) {
             j = w->pTexObj - sys->texObj;
             start = j;
-            w->Owner = 0xD2;
+            w->Owner = EFF_NONE;
             for (; j < start + w->nTexObj; j++) {
                 sys->SetTexObjFlag(j, 0);
             }
@@ -839,9 +838,9 @@ int estRelease(u32 owner)
     SstTbl* t = g_pEspSys->estTbl;
     int i;
 
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
+    for (i = 0; i < EFF_MAX; i++) {
         if (t->owner == owner) {
-            t->owner = 0xD2;
+            t->owner = EFF_NONE;
         }
         t++;
     }
@@ -854,9 +853,9 @@ int sstRelease(u32 owner)
     SstTbl* t = g_pEspSys->sstTbl;
     int i;
 
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
+    for (i = 0; i < EFF_MAX; i++) {
         if (t->owner == owner) {
-            t->owner = 0xD2;
+            t->owner = EFF_NONE;
         }
         t++;
     }
@@ -869,9 +868,9 @@ int pathRelease(u32 owner)
     SstTbl* t = g_pEspSys->pathTbl;
     int i;
 
-    for (i = 0; i < EFF_OWNER_MAX; i++) {
+    for (i = 0; i < EFF_MAX; i++) {
         if (t->owner == owner) {
-            t->owner = 0xD2;
+            t->owner = EFF_NONE;
         }
         t++;
     }
@@ -886,7 +885,7 @@ int efmRelease(u32 owner)
 
     for (i = 0; i < 0x100; i++) {
         if (w->owner == owner) {
-            w->owner = 0xD2;
+            w->owner = EFF_NONE;
         }
         w++;
     }
@@ -898,7 +897,7 @@ int EspGetEfmAddr(int id, void** model, void** tpl)
 {
     EspEfmWk* w = &g_pEspSys->efmWk[id];
 
-    if (w->owner == 0xD2) {
+    if (w->owner == EFF_NONE) {
         return 0;
     }
     *model = w->model;
@@ -911,7 +910,7 @@ int EspGetEfmTplAddr(int id, void** tpl)
 {
     EspEfmWk* w = &g_pEspSys->efmWk[id];
 
-    if (w->owner == 0xD2) {
+    if (w->owner == EFF_NONE) {
         return 0;
     }
     *tpl = w->tpl;
@@ -926,7 +925,7 @@ int EspGetEfmMotAddr(int id, u32 no, void** out)
     EspEfmMotTbl* mot;
     u32* ofs;
 
-    if (w->owner == 0xD2) {
+    if (w->owner == EFF_NONE) {
         return 0;
     }
     mot = w->mot;
@@ -1086,7 +1085,7 @@ void EffSetAreaState(int no, int on)
         return;
     }
     if (on != 0) {
-        SstSet(1, (u16) no, no + 0xC, 0, 0x2F, 0);
+        SstSet(EFF_ROOM, (u16) no, (ESP_CORE_KIND) (ESP_CORE_KIND_ROOM_AREA00 + no), 0, 0x2F, 0);
     } else {
         u8 kind = no + 0xC;
         EffectEspDelete(0, kind, 0, NULL);

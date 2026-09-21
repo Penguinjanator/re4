@@ -137,7 +137,7 @@ void obj14_R1_Break(cObjBell* obj)
         if (w->pEmHit) {
             w->pEmHit->hp = 0;
         }
-        EstSet(0, -1, &obj->pos, &obj->ang, 1, 7, 0, 0, 0, 0);
+        EstSet(0, -1, &obj->pos, &obj->ang, EFF_ROOM, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
         obj->r_no_2++;
     }
     obj14MatCalc(obj);
