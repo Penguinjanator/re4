@@ -82,6 +82,80 @@ struct EvtHeader {
     u32 binOfs;        // 0x4C  EvtBinEntry[nBin]
 };
 
+// Event::StatusFlag bit numbers (PS2 EvtStatusFlag): FlgOnStatus(no) sets bit 31 - no, so the mask of flag
+// f is EvtStfBit(f).
+enum EvtStatusFlag {
+    EvtStfToolStop = 0,
+    EvtStfToolFrontExec = 1,
+    EvtStfToolExec = 2,
+    EvtStfEvtCancelCut = 3,
+    EvtStfEvtCancelExe = 4,
+    EvtStfEvtCancelOn = 5,
+    EvtStfEvtCancelFalse = 6,
+    EvtStfEvtInit = 7,
+    EvtStfEventEnd = 8,
+    EvtStfEndWaitOrder = 9,
+    EvtStfEndWait = 10,
+    EvtStfEndSleepOrder = 11,
+    EvtStfEndSleep = 12,
+    EvtStfSetEff = 13,
+    EvtStfNoFunc = 14,
+    EvtStfStrTime = 15,
+    EvtStfStartWait = 16,
+    EvtStfEvtCancelSet = 17,
+    EvtStfSetMdt = 18,
+    EvtStfTrial1St = 19,
+    EvtStfPlPosNoSet = 20,
+    EvtStfFadeOut = 21,
+    EvtStfDiedemo = 22,
+    EvtStfDiedemoSet = 23,
+    EvtStfSceEventStartTrue = 24,
+    EvtStfSubCharNoCtrl = 25,
+    EvtStfActMesClear = 26,
+    EvtStfEvtNoCancelSfd = 27,
+    EvtStfMissionFailed = 28
+};
+
+#define EvtStfBit(f) (0x80000000 >> (f))
+
+// Event packet type (PS2 EvpTp): EvtPacket::id, the row of Event::ExePacket packetTbl.
+enum EvpTp {
+    EvpTpBeginEvt = 0,
+    EvpTpSetPl = 1,
+    EvpTpSetEm = 2,
+    EvpTpSetOm = 3,
+    EvpTpSetParts = 4,
+    EvpTpSetList = 5,
+    EvpTpCam = 6,
+    EvpTpCamPos = 7,
+    EvpTpCamDammy = 8,
+    EvpTpPos = 9,
+    EvpTpPosPl = 10,
+    EvpTpMot = 11,
+    EvpTpShp = 12,
+    EvpTpEsp = 13,
+    EvpTpLit = 14,
+    EvpTpStr = 15,
+    EvpTpSe = 16,
+    EvpTpMes = 17,
+    EvpTpFunc = 18,
+    EvpTpParentOn = 19,
+    EvpTpParentOff = 20,
+    EvpTpEndPl = 21,
+    EvpTpEndEm = 22,
+    EvpTpEndOm = 23,
+    EvpTpEndParts = 24,
+    EvpTpEndList = 25,
+    EvpTpEndEvt = 26,
+    EvpTpEndPac = 27,
+    EvpTpSetEff = 28,
+    EvpTpFade = 29,
+    EvpTpFog = 30,
+    EvpTpFocus = 31,
+    EvpTpSetMdt = 32,
+    EvpTpMax = 33
+};
+
 // Event packet stream: a 0x10 header followed by the per-id parameters (`size` bytes in total).
 // The union members below are the shapes the handlers read.
 struct EvtPacket {
