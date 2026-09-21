@@ -56,7 +56,7 @@ struct SndVolWork {
     int tblType;     // 0x20  0 volume, 1 pitch, 2 filter
     int editMode;    // 0x24
     s8 menuCur;      // 0x28
-    s8 x29;          // 0x29  reverb: DPL2/stereo set; combine: column
+    s8 setCur;       // 0x29  selected output set (0 stereo, 1 DPL2): efx / efxCur / CombSel column
     s8 efxCur[2];    // 0x2A  cursor per set
     SndEfxParam efx[2];     // 0x2C
     CombSel sel[32];        // 0x6C
@@ -213,7 +213,7 @@ static void edit_menu()
         case 0:
             work->mode = 3;
             work->step = 0;
-            work->x29 = 1;
+            work->setCur = 1;
             break;
         case 1:
             work->mode = 1;
@@ -1167,13 +1167,13 @@ static void edit_reverb_param()
         work->step = 0;
         work->x6 = 0;
     } else if (Joy[0].trg & 0x60) {
-        work->x29 ^= 1;
+        work->setCur ^= 1;
     } else if (Joy[0].rep & 0x80008) {
-        work->efxCur[work->x29]--;
+        work->efxCur[work->setCur]--;
     } else if (Joy[0].rep & 0x40004) {
-        work->efxCur[work->x29]++;
+        work->efxCur[work->setCur]++;
     } else if (Joy[0].rep & 0x10001) {
-        if (work->x29 == 0) {
+        if (work->setCur == 0) {
             register SndEfxParam* p asm("r10") = &work->efx[0]; // COMPILER-DIFF: pin (global-alloc order: the target allocates work before p: work r11, p r10, Joy r10)
             EFX_PARAM_MOVE(EFX_SW_DPL2, 0, -=)
         } else {
@@ -1181,7 +1181,7 @@ static void edit_reverb_param()
             EFX_PARAM_MOVE(EFX_SW_ST, 1, -=)
         }
     } else if (Joy[0].rep & 0x20002) {
-        if (work->x29 == 0) {
+        if (work->setCur == 0) {
             register SndEfxParam* p asm("r10") = &work->efx[0]; // COMPILER-DIFF: pin
             EFX_PARAM_MOVE(EFX_SW_DPL2, 0, +=)
         } else {
@@ -1189,7 +1189,7 @@ static void edit_reverb_param()
             EFX_PARAM_MOVE(EFX_SW_ST, 1, +=)
         }
     }
-    if (work->x29 == 0) {
+    if (work->setCur == 0) {
         work->efxCur[0] = work->efxCur[0] < 0 ? 0 : work->efxCur[0] > 8 ? 8 : work->efxCur[0];
     } else {
         work->efxCur[1] = work->efxCur[1] < 0 ? 0 : work->efxCur[1] > 9 ? 9 : work->efxCur[1];
@@ -1211,7 +1211,7 @@ static void edit_reverb_param()
     }
 
     // DPL2 panel
-    if (work->x29 == 0) {
+    if (work->setCur == 0) {
         col = cursorCol[pG->Frame_cnt % 15];
         active = 1;
     } else {
@@ -1249,7 +1249,7 @@ static void edit_reverb_param()
     eprintf(0x120, y, active ? (work->efxCur[0] == 8 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[0].Aux_weapon);
 
     // stereo panel
-    if (work->x29 == 1) {
+    if (work->setCur == 1) {
         col = cursorCol[pG->Frame_cnt % 15];
         active = 1;
     } else {
@@ -1258,7 +1258,7 @@ static void edit_reverb_param()
     }
     {
         u32 c;
-        if (work->x29 == 1) {
+        if (work->setCur == 1) {
             c = cursorCol[pG->Frame_cnt % 15];
         } else {
             c = 0xFFFFFFFF;
@@ -1297,7 +1297,7 @@ static void edit_reverb_param()
     y += 0x10;
     eprintf(0x60, y, active ? (work->efxCur[1] == 9 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[1].Aux_weapon);
     y += 0x30;
-    eprintf(0x58, y, 0, 0, "%s", efx_help[work->efxCur[work->x29]][work->x29]);
+    eprintf(0x58, y, 0, 0, "%s", efx_help[work->efxCur[work->setCur]][work->setCur]);
 }
 
 // Draws a SET's table selection (vol / pitch / filter for stereo and DPL2) with the source /
@@ -1338,7 +1338,7 @@ void combine_tbl_disp(CombSel* sel)
             for (j = 0; j < 3; j++) {
                 col[j] = 0xFFFFFFFF;
                 c[j] = 0;
-                if (work->sub == 1 && work->x29 == i && work->efxCur[i] == j) {
+                if (work->sub == 1 && work->setCur == i && work->efxCur[i] == j) {
                     col[j] = cursorCol[pG->Frame_cnt % 15];
                     c[j] = 6;
                 }
@@ -1417,41 +1417,41 @@ static void combine_tbl_edit()
     CombSel* sel = &work->sel[work->cur];
 
     if (Joy[0].trg & 0x20) {
-        work->x29 = 1;
+        work->setCur = 1;
     } else if (Joy[0].trg & 0x40) {
-        work->x29 = 0;
+        work->setCur = 0;
     } else if (Joy[0].trg & 0x80008) {
-        work->efxCur[work->x29]--;
+        work->efxCur[work->setCur]--;
     } else if (Joy[0].trg & 0x40004) {
-        work->efxCur[work->x29]++;
+        work->efxCur[work->setCur]++;
     } else if (Joy[0].rep2 & 0x10001) {
-        switch (work->efxCur[work->x29]) {
+        switch (work->efxCur[work->setCur]) {
         case 0:
-            sel->vol[work->x29]--;
-            sel->vol[work->x29] = sel->vol[work->x29] < -1 ? -1 : sel->vol[work->x29] > 31 ? 31 : sel->vol[work->x29];
+            sel->vol[work->setCur]--;
+            sel->vol[work->setCur] = sel->vol[work->setCur] < -1 ? -1 : sel->vol[work->setCur] > 31 ? 31 : sel->vol[work->setCur];
             break;
         case 1:
-            sel->pitch[work->x29]--;
-            sel->pitch[work->x29] = sel->pitch[work->x29] < -1 ? -1 : sel->pitch[work->x29] > 31 ? 31 : sel->pitch[work->x29];
+            sel->pitch[work->setCur]--;
+            sel->pitch[work->setCur] = sel->pitch[work->setCur] < -1 ? -1 : sel->pitch[work->setCur] > 31 ? 31 : sel->pitch[work->setCur];
             break;
         case 2:
-            sel->filter[work->x29]--;
-            sel->filter[work->x29] = sel->filter[work->x29] < -1 ? -1 : sel->filter[work->x29] > 31 ? 31 : sel->filter[work->x29];
+            sel->filter[work->setCur]--;
+            sel->filter[work->setCur] = sel->filter[work->setCur] < -1 ? -1 : sel->filter[work->setCur] > 31 ? 31 : sel->filter[work->setCur];
             break;
         }
     } else if (Joy[0].rep2 & 0x20002) {
-        switch (work->efxCur[work->x29]) {
+        switch (work->efxCur[work->setCur]) {
         case 0:
-            sel->vol[work->x29]++;
-            sel->vol[work->x29] = sel->vol[work->x29] < -1 ? -1 : sel->vol[work->x29] > 31 ? 31 : sel->vol[work->x29];
+            sel->vol[work->setCur]++;
+            sel->vol[work->setCur] = sel->vol[work->setCur] < -1 ? -1 : sel->vol[work->setCur] > 31 ? 31 : sel->vol[work->setCur];
             break;
         case 1:
-            sel->pitch[work->x29]++;
-            sel->pitch[work->x29] = sel->pitch[work->x29] < -1 ? -1 : sel->pitch[work->x29] > 31 ? 31 : sel->pitch[work->x29];
+            sel->pitch[work->setCur]++;
+            sel->pitch[work->setCur] = sel->pitch[work->setCur] < -1 ? -1 : sel->pitch[work->setCur] > 31 ? 31 : sel->pitch[work->setCur];
             break;
         case 2:
-            sel->filter[work->x29]++;
-            sel->filter[work->x29] = sel->filter[work->x29] < -1 ? -1 : sel->filter[work->x29] > 31 ? 31 : sel->filter[work->x29];
+            sel->filter[work->setCur]++;
+            sel->filter[work->setCur] = sel->filter[work->setCur] < -1 ? -1 : sel->filter[work->setCur] > 31 ? 31 : sel->filter[work->setCur];
             break;
         }
     } else if (Joy[0].trg & 0x100) {
@@ -1464,7 +1464,7 @@ static void combine_tbl_edit()
         work->step = 0;
         work->x6 = 0;
     }
-    work->efxCur[work->x29] = work->efxCur[work->x29] < 0 ? 0 : work->efxCur[work->x29] > 2 ? 2 : work->efxCur[work->x29];
+    work->efxCur[work->setCur] = work->efxCur[work->setCur] < 0 ? 0 : work->efxCur[work->setCur] > 2 ? 2 : work->efxCur[work->setCur];
     eprintf(0x12E, 0x15C, 0, 0, "L,R ... STEREO <-> DPL2");
     eprintf(0x12E, 0x17C, 0, 0, "A ..... SET EDIT DATA");
     eprintf(0x12E, 0x18C, 0, 0, "B ..... CANCEL");
