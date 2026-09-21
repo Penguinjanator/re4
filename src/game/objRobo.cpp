@@ -315,7 +315,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
             EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
-            BitOn(pG->Room_flg[0], 0x10000);
+            RmfFlagOn(pG, RMF_BOBO_DOOR_PUNCH);
             MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5C), ROOM_ARC_PTR(pG->pRoom, 0x65), 0x3C, 4, 0);
             v.x = -55597.8984375f;
             v.y = robo->pos.y;
@@ -546,16 +546,16 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
 
     i = 15;
     parts = robo->getPartsPtr(RoboPartsNoSwitchF);
-    if (pG->Room_flg[0] & 0x80000000) {
+    if (RmfFlagChk(pG, RMF_BOBO_SWITCH_EXEC_FRONT)) {
         return;
     }
-    BitOn(pG->Room_flg[0], 0x80000000);
+    RmfFlagOn(pG, RMF_BOBO_SWITCH_EXEC_FRONT);
     SceAtSetEnable(SCEAT_EXEC_FRONT, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
-    if (!(pG->Room_flg[0] & 0x8000)) {
-        BitOn(pG->Room_flg[0], 0x8000);
+    if (!RmfFlagChk(pG, RMF_BOBO_SWITCH_FRONT)) {
+        RmfFlagOn(pG, RMF_BOBO_SWITCH_FRONT);
         for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
             parts->ang.y = range * (f32) j / max + from;
@@ -564,7 +564,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
         FSet(parts->ang.y, to);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x61), ROOM_ARC_PTR(pG->pRoom, 0x66), 0xF0, 4, 0);
     } else {
-        BitOff(pG->Room_flg[0], 0x8000);
+        RmfFlagOff(pG, RMF_BOBO_SWITCH_FRONT);
         for (j = 0; j < i; j++) {
             max = (f32) i;
             range2 = from - to;
@@ -574,10 +574,10 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
         FSet(parts->ang.y, from);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
-    BitOff(pG->Room_flg[0], 0x4000);
+    RmfFlagOff(pG, RMF_BOBO_SWITCH_BACK);
     robo->getPartsPtr(RoboPartsNoSwitchBL)->ang.x = 0.0f;
     SceSleep(1);
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_BOBO_SWITCH_EXEC_FRONT);
     SceAtSetEnable(SCEAT_EXEC_FRONT, 1);
 }
 
@@ -598,16 +598,16 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
 
     i = 15;
     parts = robo->getPartsPtr(RoboPartsNoSwitchBL);
-    if (pG->Room_flg[0] & 0x40000000) {
+    if (RmfFlagChk(pG, RMF_BOBO_SWITCH_EXEC_BACK)) {
         return;
     }
-    BitOn(pG->Room_flg[0], 0x40000000);
+    RmfFlagOn(pG, RMF_BOBO_SWITCH_EXEC_BACK);
     SceAtSetEnable(SCEAT_EXEC_BACK, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
-    if (!(pG->Room_flg[0] & 0x4000)) {
-        BitOn(pG->Room_flg[0], 0x4000);
+    if (!RmfFlagChk(pG, RMF_BOBO_SWITCH_BACK)) {
+        RmfFlagOn(pG, RMF_BOBO_SWITCH_BACK);
         for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
             parts->ang.x = range * (f32) j / max + from;
@@ -616,7 +616,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
         FSet(parts->ang.x, to);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x45), 0xF0, 4, 0);
     } else {
-        BitOff(pG->Room_flg[0], 0x4000);
+        RmfFlagOff(pG, RMF_BOBO_SWITCH_BACK);
         for (j = 0; j < i; j++) {
             max = (f32) i;
             range2 = from - to;
@@ -626,10 +626,10 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
         FSet(parts->ang.x, from);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
-    BitOff(pG->Room_flg[0], 0x8000);
+    RmfFlagOff(pG, RMF_BOBO_SWITCH_FRONT);
     robo->getPartsPtr(RoboPartsNoSwitchF)->ang.y = 0.0f;
     SceSleep(1);
-    BitOff(pG->Room_flg[0], 0x40000000);
+    RmfFlagOff(pG, RMF_BOBO_SWITCH_EXEC_BACK);
     SceAtSetEnable(SCEAT_EXEC_BACK, 1);
 }
 
@@ -666,7 +666,7 @@ int cObjRobo::WalkHitCk(cObjRobo* robo)
                       (robo->pos.z - pPL->pos.z) * (robo->pos.z - pPL->pos.z)) > RoboHitRadius) {
                 return 0;
             }
-            BitOn(pG->Room_flg[1], 0x80000000);
+            RmfFlagOn(pG, RMF_PLAYER_DIE_PASSAGE_SET);
             return 1;
         }
     }

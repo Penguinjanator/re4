@@ -92,6 +92,34 @@ static f32 hit1_d = 5500.0f;
 static f32 lift_y_rate = 2.01f;
 
 // The room bits live in the second word of the room's save record (RoomData).
+// Room_flg bits of this room, from the PS2 symbols; RmfFlagChk(pG, n). objBull reports the lift through
+// bits 4 and 9.
+enum R30F_FLAG {
+    RMF_DOOR1_BREAK = 0,
+    RMF_DOOR2_BREAK = 1,
+    RMF_DOOR3_BREAK = 2,
+    RMF_DOOR4_BREAK = 3,
+    RMF_LIFT_START = 4,
+    RMF_DBG = 5,
+    RMF_PL_RIDE = 6,
+    RMF_LIFT_EMSET_START = 7,
+    RMF_TRACK_DIE = 8,
+    RMF_LIFT_END = 9,
+    RMF_LIFT_GO = 10,
+    RMF_GATE_OPEN_START = 11,
+    RMF_RIFT_STOP_SND_CALL = 12,
+    RMF_TRACK_ST1 = 13,
+    RMF_TRACK_ST2 = 14,
+    RMF_TRACK_ST3 = 15,
+    RMF_TRACK_ED1 = 16,
+    RMF_TRACK_ED2 = 17,
+    RMF_TRACK_ED3 = 18,
+    RMF_TO334 = 19,
+    RMF_GO_BACK_TRG = 20,
+    RMF_GO_BACK_SET = 21,
+    RMF_FALL = 64,
+};
+
 #define R30F_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
 extern "C" {
@@ -386,10 +414,10 @@ void R30fMain()
             SceExec(0x12, (TaskFunc) lift_stop_task, 0, 0, 2, 0);
             r30f_work->liftFrame++;
         }
-        if (pG->Room_flg[0] & 0x01000000) {
+        if (RmfFlagChk(pG, RMF_LIFT_EMSET_START)) {
             r30f_work->liftFrame++;
         }
-        if (((int) R30F_SAVE_FLAGS < 0 && (pG->Room_flg[2] & 0x80000000)) || DebugTrg(0) != 0) {
+        if (((int) R30F_SAVE_FLAGS < 0 && RmfFlagChk(pG, RMF_FALL)) || DebugTrg(0) != 0) {
             if (r30f_work->liftReset == 0) {
                 r30f_work->liftReset = 0x5A;
                 em_destroy_area(0x15);
@@ -418,7 +446,7 @@ void R30fMain()
             if (r30f_work->liftReset == 0) {
                 SndCall(6, 0xC, 0, 0, 0, 0);
                 SndCall(6, 0xD, 0, 0, 0, 0);
-                pG->Room_flg[0] |= 0x08000000;
+                RmfFlagOn(pG, RMF_LIFT_START);
                 AreaSet(4);
             }
             if (r30f_work->liftReset == 0 || r30f_work->liftReset == 0x1E || r30f_work->liftReset == 0x3C ||
@@ -428,16 +456,16 @@ void R30fMain()
         }
     }
     if (r30f_work->bull->ckLiftWait() != 0) {
-        if (!(pG->Room_flg[0] & 0x00080000)) {
-            pG->Room_flg[0] |= 0x00080000;
+        if (!RmfFlagChk(pG, RMF_RIFT_STOP_SND_CALL)) {
+            RmfFlagOn(pG, RMF_RIFT_STOP_SND_CALL);
             SndCall(6, 0xE, 0, 0, 0, 0);
             SndCall(6, 0xF, 0, 0, 0, 0);
         }
         pl = pPL;
-        if (pG->Room_flg[0] & 0x02000000) {
+        if (RmfFlagChk(pG, RMF_PL_RIDE)) {
             // Two `andis.`: a folded `(f & A) && !(f & B)` would be one masked compare.
-            if (!(pG->Room_flg[0] & 0x00100000) && pl->checkEvent() == 1 && pPL->pos.y > -8800.0f) {
-                pG->Room_flg[0] |= 0x00100000;
+            if (!RmfFlagChk(pG, RMF_GATE_OPEN_START) && pl->checkEvent() == 1 && pPL->pos.y > -8800.0f) {
+                RmfFlagOn(pG, RMF_GATE_OPEN_START);
                 SceExec(0x12, (TaskFunc) gate_open, 0, 0, 2, 0);
                 SceAtSetEnable(6, 0);
                 SceAtSetEnable(0xC, 0);
@@ -446,8 +474,8 @@ void R30fMain()
                 SceAtSetEnable(0x12, 0);
             }
         }
-        if (pG->Room_flg[0] & 0x00200000) {
-            pG->Room_flg[0] |= 0x00400000;
+        if (RmfFlagChk(pG, RMF_LIFT_GO)) {
+            RmfFlagOn(pG, RMF_LIFT_END);
         }
     }
     if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 1) {
@@ -783,7 +811,7 @@ static void track_move()
                     CamCtrl.CutCall(0xA);
                 }
                 hitT = 0;
-                BitOn(pG->Room_flg[0], 0x00800000);
+                RmfFlagOn(pG, RMF_TRACK_DIE);
                 if (r30f_work->truckNo == 0) {
                     r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0, 0, 1, 0);
                     EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0, ESP_CORE_KIND_NONE, (void*) hitT, (void*) hitT);
@@ -805,7 +833,7 @@ static void track_move()
         t++;
         hitT++;
         life = 0;   // the zero register of the pl_life store and the EstSet arguments below
-        if ((pG->Room_flg[0] & 0x00800000) && hitT == 0x1E) {
+        if (RmfFlagChk(pG, RMF_TRACK_DIE) && hitT == 0x1E) {
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 2, 6000.0f);
             pG->pl_life = 0;
             PlSetDamage(PL_DM_BACK, 0, 0);
@@ -822,7 +850,7 @@ static void adjust_func(cObj* obj)
     Vec zero = {0.0f, 0.0f, 0.0f};
 
     adjust_add_set(zero);
-    if (!(pG->Room_flg[0] & 0x00400000)) {
+    if (!RmfFlagChk(pG, RMF_LIFT_END)) {
         SmdGetObjPtr(0x1E)->be_flag |= 0x20;
         PSVECSubtract(&r30f_work->bull->pParts->pos, &r30f_work->bullPos, &r30f_work->liftAdd);
         setLiftMoveAdd(&r30f_work->liftAdd);
@@ -894,7 +922,7 @@ static void R30f_ride()
         CamCtrl.Comeback(0x40);
         SceEventEnd(0);
     }
-    pG->Room_flg[0] |= 0x02000000;
+    RmfFlagOn(pG, RMF_PL_RIDE);
     r30f_work->bull->setRide();
     r30f_work->bull->setSubBullDrive();
     SceAtSetEnable(0x18, 0);
@@ -946,20 +974,20 @@ static void R30f_ride()
         if (r30f_work->bull->r_no_0 == 0xB && r30f_work->bull->getMoveFrameToLift() == 0x140) {
             SceAtExecute(0);
         }
-        if (r30f_work->bull->ckBreak1st() != 0 && !(pG->Room_flg[0] & 0x80000000)) {
-            pG->Room_flg[0] |= 0x80000000;
+        if (r30f_work->bull->ckBreak1st() != 0 && !RmfFlagChk(pG, RMF_DOOR1_BREAK)) {
+            RmfFlagOn(pG, RMF_DOOR1_BREAK);
             SceExec(0x12, (TaskFunc) door1_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak2nd() != 0 && !(pG->Room_flg[0] & 0x40000000)) {
-            pG->Room_flg[0] |= 0x40000000;
+        if (r30f_work->bull->ckBreak2nd() != 0 && !RmfFlagChk(pG, RMF_DOOR2_BREAK)) {
+            RmfFlagOn(pG, RMF_DOOR2_BREAK);
             SceExec(0x12, (TaskFunc) door2_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak3rd() != 0 && !(pG->Room_flg[0] & 0x20000000)) {
-            pG->Room_flg[0] |= 0x20000000;
+        if (r30f_work->bull->ckBreak3rd() != 0 && !RmfFlagChk(pG, RMF_DOOR3_BREAK)) {
+            RmfFlagOn(pG, RMF_DOOR3_BREAK);
             SceExec(0x12, (TaskFunc) door3_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak4th() != 0 && !(pG->Room_flg[0] & 0x10000000)) {
-            pG->Room_flg[0] |= 0x10000000;
+        if (r30f_work->bull->ckBreak4th() != 0 && !RmfFlagChk(pG, RMF_DOOR4_BREAK)) {
+            RmfFlagOn(pG, RMF_DOOR4_BREAK);
             SceExec(0x12, (TaskFunc) door4_break, 0, 0, 2, 0);
         }
         if (r30f_work->bull->ckLift() != 0) {
@@ -1007,7 +1035,7 @@ static void plemRide(cPlayer* p)
             pPL->atari.setPriority(0);
             EndPlDamage();
             p->dmg.set(0, 0x1E);
-            pG->Room_flg[0] |= 0x02000000;
+            RmfFlagOn(pG, RMF_PL_RIDE);
         }
         break;
     }
@@ -1332,7 +1360,7 @@ static void lift_stop_task()
     SceAtSetEnable(0x11, 1);
     SceAtSetEnable(0x12, 1);
     SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) R30f_ride2, 0, 1);
-    while (!(pG->Room_flg[0] & 0x00100000)) {
+    while (!RmfFlagChk(pG, RMF_GATE_OPEN_START)) {
         if (cnt++ == 0x3B) {
             lift_stop_event();
         }
@@ -1356,8 +1384,8 @@ static void lift_stop_task()
         if (r30f_work->bull->r_no_0 == 6 && (u32) r30f_work->bull->getMoveFrameToLift() > 0x226) {
             SceAtSetEnable(6, 0);
             SceAtSetEnable(0xC, 1);
-        } else if (pG->Room_flg[2] & 0x80000000) {
-            pG->Room_flg[0] &= ~0x02000000;
+        } else if (RmfFlagChk(pG, RMF_FALL)) {
+            RmfFlagOff(pG, RMF_PL_RIDE);
             SceAtSetEnable(6, 0);
             SceAtSetEnable(0xC, 1);
         } else {
@@ -1672,7 +1700,7 @@ static void em_set2()
         setem(0x45, 1);
     }
     r30f_work->em[0x32].setGoto(&pPL->pos, 6);
-    pG->Room_flg[0] |= 0x01000000;
+    RmfFlagOn(pG, RMF_LIFT_EMSET_START);
 }
 
 // The exit gate (0x17 / 0x18) slides open.
@@ -1689,7 +1717,7 @@ static void gate_open()
         SmdGetObjPtr(0x18)->pos.z -= 100.0f;
         SceSleep(1);
     }
-    pG->Room_flg[0] |= 0x00200000;
+    RmfFlagOn(pG, RMF_LIFT_GO);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);

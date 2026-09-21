@@ -335,7 +335,7 @@ void R226Init()
         if (RsfCheck(G_ROOM_ID, 13) == 0) {
             SceExec(0x12, (TaskFunc) R226EmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
             SndRoomStrStart(1, 0, 1);
-            pG->Room_flg[1] |= 0x10000000;
+            RmfFlagOn(pG, RMF_BGM_ON);
         }
     }
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -353,7 +353,7 @@ void R226Init()
 // switch events and the statue walk.
 void R226Main()
 {
-    if ((pG->Room_flg[1] & 0x08000000) && RsfCheck(G_ROOM_ID, 14) == 0) {
+    if (RmfFlagChk(pG, RMF_ROBO_DOOR_BREAK) && RsfCheck(G_ROOM_ID, 14) == 0) {
         r226_work.p->moveTimer++;
         eprintf(0x40, 0x10, 0, 0, "MoveTimer:[%d]", r226_work.p->moveTimer / 30);
         if (r226_work.p->moveTimer > 599) {
@@ -374,10 +374,10 @@ void R226Main()
         RsfClear(G_ROOM_ID, 9);
     }
     if (FlagChkSign(pG->Room_flg, 32) && !FlagChkSign(pG->Room_flg, 34)) {
-        pG->Room_flg[1] |= 0x20000000;
+        RmfFlagOn(pG, RMF_PLAYER_DIE_ING);
         playerRunDieSet(0, 0);
     } else if (FlagChkSign(pG->Room_flg, 33) && !FlagChkSign(pG->Room_flg, 34)) {
-        pG->Room_flg[1] |= 0x20000000;
+        RmfFlagOn(pG, RMF_PLAYER_DIE_ING);
         playerRunDieSet(0, 1);
     }
 }
@@ -470,7 +470,7 @@ static void R226EventRoboStartMain()
         SceSleep(1);
     }
     SndRoomStrStart(1, 0, 1);
-    pG->Room_flg[1] |= 0x10000000;
+    RmfFlagOn(pG, RMF_BGM_ON);
     o = SmdGetObjPtr(0x3C);
     if (o) {
         SndCall(6, 0, &o->pos, 0, 0, 0);
@@ -540,9 +540,9 @@ static void R226EventRoboStartEnd()
         SndStrReq(r226_work.p->str, 8, 0, 0);
         r226_work.p->str = 0;
     }
-    if (!(pG->Room_flg[1] & 0x10000000)) {
+    if (!RmfFlagChk(pG, RMF_BGM_ON)) {
         SndRoomStrStart(1, 0, 1);
-        pG->Room_flg[1] |= 0x10000000;
+        RmfFlagOn(pG, RMF_BGM_ON);
     }
     o = SmdGetObjPtr(0x3D);
     if (o) {
@@ -1113,7 +1113,7 @@ static void playerRunMovePassage(cPlayer* pl)
         playerPillarDownCk(robo, 0xD, 0xA, 2, -3000.0f);
         playerPillarDownCk(robo, 0xA, 7, 0, -3000.0f);
         playerPillarDownCk(robo, 0xE, 0xB, 0, -4500.0f);
-        if (!(pG->Room_flg[0] & 0x20000000)) {
+        if (!RmfFlagChk(pG, RMF_PILLAR_ESCAPE_ON)) {
             ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
             ActBtn.set(ACT_SPRINT, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         } else {
@@ -1141,8 +1141,8 @@ static void playerRunMovePassage(cPlayer* pl)
                 break;
             }
             if (hit) {
-                BitOff(pG->Room_flg[0], 0x20000000);
-                BitOn(pG->Room_flg[0], 0x10000000);
+                RmfFlagOff(pG, RMF_PILLAR_ESCAPE_ON);
+                RmfFlagOn(pG, RMF_PILLAR_ESCAPE_ING);
                 pl->r_no_2 = 3;
                 break;
             }
@@ -1158,8 +1158,8 @@ static void playerRunMovePassage(cPlayer* pl)
         playerRunCamMovePassage(pl, 1.0f);
         pl->dmg.m_Timer = 0x78;
         if (MotionMove(pl, 0)) {
-            BitOff(pG->Room_flg[0], 0x10000000);
-            if (pG->Room_flg[0] & 0x08000000) {
+            RmfFlagOff(pG, RMF_PILLAR_ESCAPE_ING);
+            if (RmfFlagChk(pG, RMF_PILLAR_ESCAPE_LAST)) {
                 pl->r_no_2 = 5;
                 SceExec(0x12, (TaskFunc) R226EventRoboWalkPassageGoal, (int) robo, 0, SCE_PRIO_DEF_2, 0);
                 EndPlDamage();
@@ -1203,14 +1203,14 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
         playerRunCamMoveBridge(pl, 1.0f);
-        if (pG->Room_flg[0] & 1) {
-            pG->Room_flg[1] |= 0x40000000;
-        } else if (pG->Room_flg[0] & 2) {
+        if (RmfFlagChk(pG, RMF_BRIDGE_ON_SAFE)) {
+            RmfFlagOn(pG, RMF_PLAYER_DIE_BRIDGE_SET);
+        } else if (RmfFlagChk(pG, RMF_BRIDGE_ON_AVOID)) {
             ActBtn.set(ACT_JUMP_AT, 5, 0, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_SCE, 0);
             if (((Key.trg & 0x400000) && (Key.on & 0x800000)) || ((Key.on & 0x400000) && (Key.trg & 0x800000))) {
                 SndCall(1, 0x43, &pl->pos, 0, 0, 0);
-                BitOff(pG->Room_flg[0], 0x20000000);
-                BitOn(pG->Room_flg[0], 0x10000000);
+                RmfFlagOff(pG, RMF_PILLAR_ESCAPE_ON);
+                RmfFlagOn(pG, RMF_PILLAR_ESCAPE_ING);
                 pl->r_no_2 = 3;
                 break;
             }
@@ -1291,7 +1291,7 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 6:
         pl->dmg.m_Timer = 0x82;
         if (MotionMove(pl, 0)) {
-            BitOff(pG->Room_flg[0], 0x10000000);
+            RmfFlagOff(pG, RMF_PILLAR_ESCAPE_ING);
             RsfSet(G_ROOM_ID, 13);
             pPL->be_flag |= 0x10;
             pl->r_no_2 = 8;
@@ -1407,7 +1407,7 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     Vec at;
 
     cam->param.fovy = r226_fovyBridge;
-    if (g->Room_flg[0] & 0x2000) {
+    if (RmfFlagChk(g, RMF_BRIDGE_ST_00)) {
         r226_work.p->camPos.x += r226_camSpdPos.x;
         r226_work.p->camPos.y += r226_camSpdPos.y;
         r226_work.p->camPos.z += r226_camSpdPos.z;
@@ -1501,7 +1501,7 @@ static void playerPillarDownTask(int smdNo)
     i = 0;
     on = 1;
     if (smdNo == 14) {
-        pG->Room_flg[0] |= 0x08000000;
+        RmfFlagOn(pG, RMF_PILLAR_ESCAPE_LAST);
     }
     if (smdNo >= 8 && smdNo <= 11) {
         MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
@@ -1515,25 +1515,25 @@ static void playerPillarDownTask(int smdNo)
         i++;
         if (i >= frames[k]) {
             SndCall(6, 0xB, &o->pos, 0, 0, 0);
-            BitOff(pG->Room_flg[0], 0x20000000);
+            RmfFlagOff(pG, RMF_PILLAR_ESCAPE_ON);
             o->be_flag &= ~2;
             return;
         }
         if (on == 1 && i >= frames[k] * 90 / 100) {
-            pG->Room_flg[1] |= 0x80000000;
+            RmfFlagOn(pG, RMF_PLAYER_DIE_PASSAGE_SET);
             on = 0;
         }
-        if ((pG->Room_flg[0] & 0x20000000) && on == 1 && i >= frames[k] * 80 / 100) {
+        if (RmfFlagChk(pG, RMF_PILLAR_ESCAPE_ON) && on == 1 && i >= frames[k] * 80 / 100) {
             if (pPL->pos.x > o->pos.x + -3000.0f - (f32) i * r226_pillarSpd) {
-                pG->Room_flg[1] |= 0x80000000;
+                RmfFlagOn(pG, RMF_PLAYER_DIE_PASSAGE_SET);
                 on = 0;
             }
         }
-        if (pG->Room_flg[0] & 0x10000000) {
+        if (RmfFlagChk(pG, RMF_PILLAR_ESCAPE_ING)) {
             on = 0;
         }
         if (on == 1 && pl->pos.x < o->pos.x - 8000.0f) {
-            pG->Room_flg[0] |= 0x20000000;
+            RmfFlagOn(pG, RMF_PILLAR_ESCAPE_ON);
         }
         SceSleep(1);
     }

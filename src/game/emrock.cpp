@@ -42,6 +42,7 @@
 #include "motion.h"
 #include "est.h"
 #include "em_sub.h"
+#include "em2b.h"
 
 // Head of a key-frame motion data block (motion.h MotionData).
 struct RockMotData {
@@ -1337,28 +1338,28 @@ void emRockAtkScrCk(cEmRock* em)
             if (e->state == 0) {
                 switch (e->sub) {
                 case 0:
-                    BitOn(pG->Room_flg[0], 0x80000000);
-                    BitOn(pG->Room_flg[0], 0x10000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_A);
                     break;
                 case 1:
-                    BitOn(pG->Room_flg[0], 0x40000000);
-                    BitOn(pG->Room_flg[0], 0x08000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_B);
                     break;
                 case 2:
-                    BitOn(pG->Room_flg[0], 0x20000000);
-                    BitOn(pG->Room_flg[0], 0x04000000);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
+                    RmfFlagOn(pG, RMF_R119_DESTROY_YANE_C);
                     break;
                 }
             } else {
                 switch (e->sub) {
                 case 0:
-                    pG->Room_flg[0] |= 0x80000000;
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_A);
                     break;
                 case 1:
-                    pG->Room_flg[0] |= 0x40000000;
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_B);
                     break;
                 case 2:
-                    pG->Room_flg[0] |= 0x20000000;
+                    RmfFlagOn(pG, RMF_R119_DESTROY_KOYA_C);
                     break;
                 }
             }
