@@ -461,7 +461,7 @@ int getAreaNo(u32 room)
 // its screen position (SsMapWork cx/cy/sw/sh and the GX viewport in 640x448 field coordinates).
 void mapInitViewport(SUB_SCREEN* wk)
 {
-    IdUnit* u = IdSub.unitPtr(0xFE, 0x10);
+    IdUnit* u = IdSub.unitPtr(0xFE, IDC_SSCRN_NEAR_0);
     f32 sx = fabsf(u->sizeX);
     f32 sy = fabsf(u->size_H);
     Vec p;
@@ -512,9 +512,9 @@ void stageNameDisp(SUB_SCREEN* wk)
 {
     u8 id;
 
-    IdSub.unitPtr(0x31, 0x10)->be_flag &= ~8;
-    IdSub.unitPtr(0x32, 0x10)->be_flag &= ~8;
-    IdSub.unitPtr(0x33, 0x10)->be_flag &= ~8;
+    IdSub.unitPtr(0x31, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
+    IdSub.unitPtr(0x32, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
+    IdSub.unitPtr(0x33, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
     switch ((s8) wk->stage) {
     case 1:
         id = 0x31;
@@ -529,7 +529,7 @@ void stageNameDisp(SUB_SCREEN* wk)
         id = 0x31;
         break;
     }
-    IdSub.unitPtr(id, 0x10)->be_flag |= 8;
+    IdSub.unitPtr(id, IDC_SSCRN_NEAR_0)->be_flag |= 8;
 }
 
 // Places a character mark unit at the map screen position of matrix `m`'s translation, rotated to
@@ -561,15 +561,15 @@ void markPlayerDisp(SUB_SCREEN* wk, int sw)
     IdUnit* u;
 
     if (!sw) {
-        u = IdSub.unitPtr(0, 0x14);
+        u = IdSub.unitPtr(0, IDC_SSCRN_0);
         u->be_flag &= ~8;
-        u = IdSub.unitPtr(1, 0x14);
+        u = IdSub.unitPtr(1, IDC_SSCRN_0);
         u->be_flag &= ~8;
     } else {
-        u = IdSub.unitPtr(0, 0x14);
+        u = IdSub.unitPtr(0, IDC_SSCRN_0);
         markCharDisp(u, wk->pl_mat_map);
         u->be_flag |= 8;
-        u = IdSub.unitPtr(1, 0x14);
+        u = IdSub.unitPtr(1, IDC_SSCRN_0);
         if (pSUB) {
             markCharDisp(u, wk->pMapWk->subMapMat);
             u->be_flag |= 8;
@@ -704,7 +704,7 @@ int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
 // Shows (sw) the goal mark (IdSub 3/0x14) at the projected goal position, or hides it.
 void markGoalDisp(SUB_SCREEN* wk, int sw)
 {
-    IdUnit* u = IdSub.unitPtr(3, 0x14);
+    IdUnit* u = IdSub.unitPtr(3, IDC_SSCRN_0);
     Vec pos;
     Vec scr;
 
@@ -861,7 +861,7 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
         int i;
 
         for (i = 0; i < 7; i++) {
-            u = IdSub.unitPtr(getMerchantMarkNo(i), 0x14);
+            u = IdSub.unitPtr(getMerchantMarkNo(i), IDC_SSCRN_0);
             u->be_flag &= ~8;
         }
     } else {
@@ -870,7 +870,7 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
         int i;
 
         for (i = 0; i < 7; i++) {
-            u = IdSub.unitPtr(getMerchantMarkNo(i), 0x14);
+            u = IdSub.unitPtr(getMerchantMarkNo(i), IDC_SSCRN_0);
             if (markMerchantPosition(wk, i, &pos[i]) && mapPos2screenPos(&pos[i], &scr)) {
                 u->scr = scr;
                 u->be_flag |= 8;
@@ -974,8 +974,8 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
 
     if (!sw) {
         for (int i = 0; i < treasure_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x15);
-            u2 = IdNum.unitPtr(i + 0x10, 0x15);
+            u = IdNum.unitPtr(i, IDC_SSCRN_1);
+            u2 = IdNum.unitPtr(i + 0x10, IDC_SSCRN_1);
             u->be_flag &= ~8;
             u2->be_flag &= ~8;
         }
@@ -984,8 +984,8 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
         Vec scr;
 
         for (int i = 0; i < treasure_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x15);
-            u2 = IdNum.unitPtr(i + 0x10, 0x15);
+            u = IdNum.unitPtr(i, IDC_SSCRN_1);
+            u2 = IdNum.unitPtr(i + 0x10, IDC_SSCRN_1);
             if (i < m->nTreasure) {
                 markTreasurePosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
@@ -1069,10 +1069,10 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
 
     if (!sw) {
         for (int i = 0; i < coin_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x16);
+            u = IdNum.unitPtr(i, IDC_SSCRN_2);
             u->be_flag &= ~8;
         }
-        u = IdSub.unitPtr(0xF, 0x10);
+        u = IdSub.unitPtr(0xF, IDC_SSCRN_NEAR_0);
         u->be_flag &= ~8;
     } else {
         Vec pos;
@@ -1083,7 +1083,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         int j;
 
         for (int i = 0; i < coin_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x16);
+            u = IdNum.unitPtr(i, IDC_SSCRN_2);
             if (i < m->nCoin) {
                 markCoinPosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
@@ -1100,7 +1100,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
                 u->be_flag &= ~8;
             }
         }
-        u = IdSub.unitPtr(0xF, 0x10);
+        u = IdSub.unitPtr(0xF, IDC_SSCRN_NEAR_0);
         if (m->area == 1) {
             u->be_flag |= 8;
         } else {
@@ -1118,7 +1118,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
             v /= 10;
         }
         for (j = 0; j < 2; j++) {
-            u = IdSub.unitPtr(0x12 - j, 0x10);
+            u = IdSub.unitPtr(0x12 - j, IDC_SSCRN_NEAR_0);
             u->be_flag |= 8;
             u->tex_flag |= 2;
             u->texNo = digit[j];
@@ -1129,7 +1129,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
             v /= 10;
         }
         for (j = 0; j < 2; j++) {
-            u = IdSub.unitPtr(0x15 - j, 0x10);
+            u = IdSub.unitPtr(0x15 - j, IDC_SSCRN_NEAR_0);
             u->be_flag |= 8;
             u->tex_flag |= 2;
             u->texNo = digit[j];
@@ -1190,7 +1190,7 @@ void markSaveDisp(SUB_SCREEN* wk, int sw)
 
     if (!sw) {
         for (i = 0; i < save_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x14);
+            u = IdNum.unitPtr(i, IDC_SSCRN_0);
             u->be_flag &= ~8;
         }
     } else {
@@ -1198,7 +1198,7 @@ void markSaveDisp(SUB_SCREEN* wk, int sw)
         Vec scr;
 
         for (i = 0; i < save_mark_num; i++) {
-            u = IdNum.unitPtr(i, 0x14);
+            u = IdNum.unitPtr(i, IDC_SSCRN_0);
             if (i < m->nSave) {
                 markSavePosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
@@ -1959,17 +1959,17 @@ void mapModelInit(SUB_SCREEN* wk)
     SsMapWork* m;
 
     mapTblInit(wk);
-    id[0] = IdSub.unitPtr(0, 0x19);
-    id[1] = IdSub.unitPtr(1, 0x19);
-    id[2] = IdSub.unitPtr(2, 0x19);
-    id[3] = IdSub.unitPtr(3, 0x19);
-    id[4] = IdSub.unitPtr(4, 0x19);
-    id[5] = IdSub.unitPtr(5, 0x19);
-    id[6] = IdSub.unitPtr(6, 0x19);
-    id[7] = IdSub.unitPtr(7, 0x19);
-    id[8] = IdSub.unitPtr(8, 0x19);
-    id[9] = IdSub.unitPtr(9, 0x19);
-    id[10] = IdSub.unitPtr(10, 0x19);
+    id[0] = IdSub.unitPtr(0, IDC_SSCRN_FAR_1);
+    id[1] = IdSub.unitPtr(1, IDC_SSCRN_FAR_1);
+    id[2] = IdSub.unitPtr(2, IDC_SSCRN_FAR_1);
+    id[3] = IdSub.unitPtr(3, IDC_SSCRN_FAR_1);
+    id[4] = IdSub.unitPtr(4, IDC_SSCRN_FAR_1);
+    id[5] = IdSub.unitPtr(5, IDC_SSCRN_FAR_1);
+    id[6] = IdSub.unitPtr(6, IDC_SSCRN_FAR_1);
+    id[7] = IdSub.unitPtr(7, IDC_SSCRN_FAR_1);
+    id[8] = IdSub.unitPtr(8, IDC_SSCRN_FAR_1);
+    id[9] = IdSub.unitPtr(9, IDC_SSCRN_FAR_1);
+    id[10] = IdSub.unitPtr(10, IDC_SSCRN_FAR_1);
     no = 0;
     for (i = 0; i < map_room_num; i++) {
         int n = mapRoomNum(&map_room[i]);
@@ -2125,9 +2125,9 @@ void doorModelDisp(SUB_SCREEN* wk)
     IdUnit* id[3];
     int i;
 
-    id[0] = IdSub.unitPtr(0x10, 0x19);
-    id[1] = IdSub.unitPtr(0x11, 0x19);
-    id[2] = IdSub.unitPtr(0x12, 0x19);
+    id[0] = IdSub.unitPtr(0x10, IDC_SSCRN_FAR_1);
+    id[1] = IdSub.unitPtr(0x11, IDC_SSCRN_FAR_1);
+    id[2] = IdSub.unitPtr(0x12, IDC_SSCRN_FAR_1);
     for (i = 0; i < n; i++, e++) {
         cModel* mdl;
         cModelInfo* info;
@@ -2235,9 +2235,9 @@ f32 zoomOutLimit()
 void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
 {
     *out = map_cam_entire[(s8) wk->stage];
-    IdSub.unitPtr(1, 0x1D)->be_flag |= 8;
-    IdSub.unitPtr(1, 0x1D)->rev_flag &= 0xF0;
-    IdSub.unitPtr(0, 0x1D)->rev_flag |= 0xF;
+    IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->be_flag |= 8;
+    IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
 }
 
 // Closest camera height: 4000 units of half-width at the current fov.
@@ -2279,9 +2279,9 @@ void mapCameraZoomIn(SUB_SCREEN* wk, CameraParam* out)
     out->pos = mid;
     out->at = mid;
     out->pos.y += h;
-    IdSub.unitPtr(1, 0x1D)->rev_flag |= 0xF;
-    IdSub.unitPtr(0, 0x1D)->rev_flag &= 0xF0;
-    IdSub.unitPtr(0, 0x1D)->be_flag |= 8;
+    IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->be_flag |= 8;
 }
 
 // Camera interpolation from `from` to `to` over `max` frames; 1 when done.
@@ -2396,7 +2396,7 @@ void SsMapInit::move(SUB_SCREEN* wk)
             IdSubErase();
             IdNumErase();
             IdFreeBuffer();
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x11, 0xF, 1, 0);
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_NEAR_1, 0xF, 1, 0);
             map_wait[0] = 0;
             state++;
         }
@@ -2408,14 +2408,14 @@ void SsMapInit::move(SUB_SCREEN* wk)
         state++;
         break;
     case 2:
-        IdSys.dispSw(0x21, 0);
+        IdSys.dispSw(IDC_LIFE_METER, 0);
         sscrnDataFilename(wk, "ss_map.dat");
         if (wk->type == 2) {
 #line 3250 "D:/Bio4/Prog/ss_map.cpp"
-            map_read_req = DVD_READ_N(wk->path, wk->pPzzl, 0, 0, 0, 0x11);
+            map_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x11);
         } else {
 #line 3253 "D:/Bio4/Prog/ss_map.cpp"
-            map_read_req = DVD_READ_N(wk->path, wk->pPzzl, 0, 0, 0, 0x10);
+            map_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
         }
         if (map_read_req <= 0) {
             break;
@@ -2437,8 +2437,8 @@ void SsMapInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(map_read_req, &result, &size, 0) != 1) {
             break;
         }
-        wk->pMapCmn = wk->pPzzl;
-        wk->pMapArea = (SsArc*) ((u8*) wk->pPzzl + result);
+        wk->pMapCmn = wk->pSwitchDat;
+        wk->pMapArea = (SsArc*) ((u8*) wk->pSwitchDat + result);
         state++;
     }
     case 4:
@@ -2477,36 +2477,36 @@ void SsMapMain::init(SUB_SCREEN* wk)
     modeSel->connect(1, read);
     cur = focus;
     IdTexDataLoad(SS_ARC_PTR(wk->pMapCmn, 4), TEX_OWNER_ID_SSCRN);
-    if (!IdSub.setCk(0x11)) {
-        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x11, 0xF, 1, 0);
+    if (!IdSub.setCk(IDC_SSCRN_NEAR_1)) {
+        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_NEAR_1, 0xF, 1, 0);
     }
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 5), 0xFF, 0x19, 9, 2, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 0xA), 0xFF, 0x16, 0xC, 6, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 9), 0xFF, 0x15, 0xC, 6, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 8), 0xFF, 0x14, 0xC, 6, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 6), 0xFF, 0x14, 0xC, 5, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 7), 0xFF, 0x10, 0xF, 2, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 0xB), 0xFF, 0x1D, 0x13, 8, 0);
-    IdSub.unitPtr(0x10, 0x10)->rev_flag |= 0xF;
-    IdSub.unitPtr(0x10, 0x10)->be_flag &= ~8;
-    IdSub.unitPtr(0, 0x10)->be_flag &= ~8;
-    IdSub.unitPtr(0, 0x10)->rev_flag |= 0xF;
+    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 5), 0xFF, IDC_SSCRN_FAR_1, 9, 2, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 0xA), 0xFF, IDC_SSCRN_2, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 9), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 8), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 6), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 7), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 0xB), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 8, 0);
+    IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
+    IdSub.unitPtr(0, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
+    IdSub.unitPtr(0, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x13));
 #line 3409 "D:/Bio4/Prog/ss_map.cpp"
     wk->pMapWk = (SsMapWork*) MEM_ALLOC(sizeof(SsMapWork), 1, 0xD);
     mapInitViewport(wk);
     mapCameraInit(wk, &pG->Camera);
-    IdSub.unitPtr(1, 0x1D)->be_flag &= ~8;
-    IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
-    IdSub.unitPtr(2, 0x1D)->be_flag &= ~8;
+    IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
+    IdSub.unitPtr(2, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
     if (!ScfFlagChk(pG, SCF_R104_MEET_MERCHANT)) {
-        IdSub.unitPtr(0x12, 0x1D)->be_flag &= ~8;
+        IdSub.unitPtr(0x12, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
     }
     if (!ItemMgr.search(0xA9)) {
-        IdSub.unitPtr(0x14, 0x1D)->be_flag &= ~8;
+        IdSub.unitPtr(0x14, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
     }
     if (ItemMgr.num(0xB0) == 0 && !ScfFlagChk(pG, SCF_CONTACT_MERCHANT)) {
-        IdSub.unitPtr(0x13, 0x1D)->be_flag &= ~8;
+        IdSub.unitPtr(0x13, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
     }
     sscrnMainMenuInit(wk, 0);
     markGoalDisp(wk, 0);
@@ -2745,25 +2745,25 @@ void SsMapMain::quit(SUB_SCREEN* wk)
 // Starts the map frame's close animation (IdSub 0/0x10) and fades the button hints.
 void sscrn_map_out_init(SUB_SCREEN* wk)
 {
-    IdUnit* u = IdSub.unitPtr(0, 0x10);
+    IdUnit* u = IdSub.unitPtr(0, IDC_SSCRN_NEAR_0);
 
     u->be_flag |= 8;
     u->rev_flag &= 0xF0;
     IdSub.setTime(u, 0);
-    IdSub.unitPtr(3, 0x1D)->rev_flag |= 0xF;
+    IdSub.unitPtr(3, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
 }
 
 // Exit routine (scrn_out_func): at frame 15 of the close animation frees the map models and kills
 // the map id groups; 1 when the animation ended.
 static int sscrn_map_out(SUB_SCREEN* wk)
 {
-    IdUnit* u = IdSub.unitPtr(0, 0x10);
+    IdUnit* u = IdSub.unitPtr(0, IDC_SSCRN_NEAR_0);
 
     if ((s16) u->timer[0] == 0xF) {
         sscrnModelFree(wk);
-        IdSub.unitPtr(1, 0x10)->be_flag &= ~8;
-        IdSub.kill(0xFF, 0x19);
-        IdSub.kill(0xFF, 0x14);
+        IdSub.unitPtr(1, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
+        IdSub.kill(0xFF, IDC_SSCRN_FAR_1);
+        IdSub.kill(0xFF, IDC_SSCRN_0);
         IdNumErase();
     }
     if (u->end & 1) {
@@ -2871,32 +2871,32 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     IdUnit* u;
     IdUnit* u2;
 
-    IdSub.unitPtr(0x10, 0x10)->be_flag |= 8;
-    IdSub.unitPtr(0x10, 0x10)->rev_flag &= 0xF0;
+    IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->be_flag |= 8;
+    IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->rev_flag &= 0xF0;
     m->modeCursor = 0;
-    u = IdSub.unitPtr(0x20, 0x10);
-    u2 = IdSub.unitPtr(0x60, 0x10);
+    u = IdSub.unitPtr(0x20, IDC_SSCRN_NEAR_0);
+    u2 = IdSub.unitPtr(0x60, IDC_SSCRN_NEAR_0);
     u->scr = u2->scr;
     u->timer[3] = 0;
     u->timer[2] = 0;
     u->timer[1] = 0;
     u->timer[0] = 0;
     if (ScfFlagChk(pGS, SCF_R104_MEET_MERCHANT)) {
-        u = IdSub.unitPtr(0x61, 0x10);
+        u = IdSub.unitPtr(0x61, IDC_SSCRN_NEAR_0);
         u->be_flag &= ~8;
     }
     if (ItemMgr.num(0xA9)) {
-        u = IdSub.unitPtr(0x62, 0x10);
+        u = IdSub.unitPtr(0x62, IDC_SSCRN_NEAR_0);
         u->be_flag &= ~8;
     }
     if (ItemMgr.num(0xB0) || (ScfFlagChk(pG, SCF_CONTACT_MERCHANT))) {
-        u = IdSub.unitPtr(0x63, 0x10);
+        u = IdSub.unitPtr(0x63, IDC_SSCRN_NEAR_0);
         u->be_flag &= ~8;
     }
-    IdSub.unitPtr(2, 0x1D)->be_flag |= 8;
-    IdSub.unitPtr(2, 0x1D)->rev_flag &= 0xF0;
-    IdSub.unitPtr(1, 0x1D)->rev_flag |= 0xF;
-    IdSub.unitPtr(0, 0x1D)->rev_flag |= 0xF;
+    IdSub.unitPtr(2, IDC_SSCRN_CKPT_1)->be_flag |= 8;
+    IdSub.unitPtr(2, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
+    IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
     SndCall(0, 9, 0, 0, 0, 0);
 }
 
@@ -2935,15 +2935,15 @@ void MapModeSelect::move(SUB_SCREEN* wk)
     if (Key.trg & 0x40020000) {
         switch (m->modeSel) {
         case 0:
-            IdSub.unitPtr(2, 0x1D)->rev_flag |= 0xF;
-            IdSub.unitPtr(1, 0x1D)->be_flag |= 8;
-            IdSub.unitPtr(1, 0x1D)->rev_flag &= 0xF0;
+            IdSub.unitPtr(2, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
+            IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->be_flag |= 8;
+            IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
             transit(0, wk);
             return;
         case 1:
-            IdSub.unitPtr(2, 0x1D)->rev_flag |= 0xF;
-            IdSub.unitPtr(0, 0x1D)->be_flag |= 8;
-            IdSub.unitPtr(0, 0x1D)->rev_flag &= 0xF0;
+            IdSub.unitPtr(2, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
+            IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->be_flag |= 8;
+            IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
             transit(1, wk);
             return;
         }
@@ -2975,7 +2975,7 @@ void MapModeSelect::move(SUB_SCREEN* wk)
         int old;
 
         for (i = 0; i < 4; i++) {
-            u = IdSub.unitPtr(0x50 + i, 0x10);
+            u = IdSub.unitPtr(0x50 + i, IDC_SSCRN_NEAR_0);
             if (mapModeCheck(wk, i)) {
                 u->be_flag &= ~8;
             } else {
@@ -2993,8 +2993,8 @@ void MapModeSelect::move(SUB_SCREEN* wk)
         if (old != m->modeCursor) {
             IdUnit* u2;
 
-            u = IdSub.unitPtr(0x20, 0x10);
-            u2 = IdSub.unitPtr(0x60 + m->modeCursor, 0x10);
+            u = IdSub.unitPtr(0x20, IDC_SSCRN_NEAR_0);
+            u2 = IdSub.unitPtr(0x60 + m->modeCursor, IDC_SSCRN_NEAR_0);
             u->scr = u2->scr;
             u->timer[3] = 0;
             u->timer[2] = 0;
@@ -3008,6 +3008,6 @@ void MapModeSelect::move(SUB_SCREEN* wk)
 // Hides the mode menu panel.
 void MapModeSelect::quit(SUB_SCREEN* wk)
 {
-    IdSub.unitPtr(0x10, 0x10)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
     SndCall(0, 5, 0, 0, 0, 0);
 }

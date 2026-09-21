@@ -59,12 +59,12 @@ struct SUB_SCREEN {
     u32 pzzlOfs;              // 0x1D4  ss_pzzl.dat offset
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
-    SsArc* pPzzl;             // 0x1E0
-    SsArc* x1E4;              // 0x1E4  puzzle screen data (SubScreenTask: pPzzl)
+    SsArc* pSwitchDat;        // 0x1E0  read buffer of the screen being switched to (item / map / puzzle .dat) (PS2 pSwitchDat)
+    SsArc* pPzzlDat;          // 0x1E4  puzzle screen data (SubScreenTask: = pSwitchDat once read) (PS2 pPzzlDat)
     SsArc* pItem;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
     SsArc* pTerm;             // 0x1EC  ss_term.dat archive (Sscrn ss_term)
     void* pOpData;            // 0x1F0  op/opNN.das (Sscrn ss_term: the message/sequence archive at +0x400)
-    SsArc* pMapCmn;           // 0x1F4  ss_map.dat archive (Sscrn ss_map: common map data, pPzzl while the map is open)
+    SsArc* pMapCmn;           // 0x1F4  ss_map.dat archive (Sscrn ss_map: common map data, pSwitchDat while the map is open)
     SsArc* pMapArea;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)

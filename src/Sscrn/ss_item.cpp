@@ -115,7 +115,7 @@ int item_frame_state[2];
 void itemNameDisp(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
-    IdUnit* u = IdSub.unitPtr(1, 0x1E);
+    IdUnit* u = IdSub.unitPtr(1, IDC_SSCRN_CKPT_2);
     int x;
     int y;
     int del = 0;
@@ -175,7 +175,7 @@ void SsItemInit::move(SUB_SCREEN* wk)
         IdSubErase();
         IdNumErase();
         IdFreeBuffer();
-        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
+        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 2, 0);
         item_wait[0] = st;
         // `state++` written out here too (jump2 cross-jumps it into case 1's tail): at allocation
         // time this block has two pseudos, so the `lis item_wait@ha` gets r11.
@@ -189,11 +189,11 @@ void SsItemInit::move(SUB_SCREEN* wk)
         state++;
         break;
     case 2:
-        IdSys.dispSw(0x21, 1);
-        IdSub.dispSw(2, 1);
+        IdSys.dispSw(IDC_LIFE_METER, 1);
+        IdSub.dispSw(IDC_SSCRN_PESETA, 1);
         sscrnDataFilename(wk, "ss_item.dat");
 #line 202 "D:/Bio4/Prog/ss_item.cpp"
-        item_read_req = DVD_READ_N(wk->path, wk->pPzzl, 0, 0, 0, 0x10);
+        item_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (item_read_req <= 0) {
             break;
         }
@@ -218,7 +218,7 @@ void SsItemInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(item_read_req, &stat, &size, 0) != 1) {
             break;
         }
-        wk->pItem = wk->pPzzl;
+        wk->pItem = wk->pSwitchDat;
         state++;
     }
     case 4:
@@ -250,10 +250,10 @@ void SsItemMain::init(SUB_SCREEN* wk)
     cur = sel;
     itemCameraInit(wk, &pGS->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), TEX_OWNER_ID_SSCRN);
-    if (IdSub.setCk(0x14) == 0) {
-        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
+    if (IdSub.setCk(IDC_SSCRN_0) == 0) {
+        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 2, 0);
     }
-    IdNum.set(SS_ARC_PTR(wk->pItem, 7), 0xFF, 0x15, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pItem, 7), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
     for (int i = 0; i < 32; i++) {
         int no = i + 0x40;
         IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
@@ -262,12 +262,12 @@ void SsItemMain::init(SUB_SCREEN* wk)
     for (int k = 0; k < 2; k++) {
         int type = k * 8 + 0x40;
         for (int n = -3; n <= 4; n++) {
-            IdUnit* parent = IdNum.unitPtr(frameMarkNo(n, k) - 0x30, 0x15);
+            IdUnit* parent = IdNum.unitPtr(frameMarkNo(n, k) - 0x30, IDC_SSCRN_1);
             IdNum.unitParent(parent, IdNum.unitPtr(0, type));
             type++;
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pItem, 6), 0xFF, 0x16, 0xC, 4, 0);
+    IdSub.set(SS_ARC_PTR(wk->pItem, 6), 0xFF, IDC_SSCRN_2, 0xC, 4, 0);
     for (int i = 0; i < 2; i++) {
         IdUnit* tbl[16];
         s8 num;
@@ -277,14 +277,14 @@ void SsItemMain::init(SUB_SCREEN* wk)
             tbl[j]->rev_flag |= 0xF;
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, 0x1E, 0x13, 1, 0);
-    IdSub.unitPtr(0, 0x1E)->be_flag &= ~8;
-    IdSub.unitPtr(0x60, 0x16)->rev_flag |= 0xF;
-    IdSub.unitPtr(0x61, 0x16)->be_flag &= ~8;
-    IdSub.unitPtr(0x62, 0x16)->be_flag &= ~8;
-    IdSub.unitPtr(0x70, 0x16)->rev_flag |= 0xF;
-    IdSub.unitPtr(0x71, 0x16)->be_flag &= ~8;
-    IdSub.unitPtr(0x72, 0x16)->be_flag &= ~8;
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, IDC_SSCRN_CKPT_2, 0x13, 1, 0);
+    IdSub.unitPtr(0, IDC_SSCRN_CKPT_2)->be_flag &= ~8;
+    IdSub.unitPtr(0x60, IDC_SSCRN_2)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x61, IDC_SSCRN_2)->be_flag &= ~8;
+    IdSub.unitPtr(0x62, IDC_SSCRN_2)->be_flag &= ~8;
+    IdSub.unitPtr(0x70, IDC_SSCRN_2)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x71, IDC_SSCRN_2)->be_flag &= ~8;
+    IdSub.unitPtr(0x72, IDC_SSCRN_2)->be_flag &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
     if (wk->menu_old == 2 && wk->type != 0x80) {
         wk->alpha_flag = 0;
@@ -447,11 +447,11 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
 
-    u = IdSub.unitPtr(0, 0x16);
+    u = IdSub.unitPtr(0, IDC_SSCRN_2);
     u->rev_flag |= 1;
-    u = IdSub.unitPtr(5, 0x16);
+    u = IdSub.unitPtr(5, IDC_SSCRN_2);
     u->rev_flag |= 4;
-    u = IdNum.unitPtr(0x40, 0x15);
+    u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
     u->path0 = item_path0[0];
     u->curve[0] = item_curve[0];
     u->path1 = item_path1[0];
@@ -465,7 +465,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
         IdSub.movePos(u);
     }
     u->rev_flag |= 1;
-    u = IdNum.unitPtr(0x50, 0x15);
+    u = IdNum.unitPtr(0x50, IDC_SSCRN_1);
     u->path0 = item_path0[1];
     u->curve[0] = item_curve[1];
     u->path1 = item_path1[1];
@@ -479,7 +479,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
         IdSub.movePos(u);
     }
     u->rev_flag |= 1;
-    u = IdSub.unitPtr(1, 0x1E);
+    u = IdSub.unitPtr(1, IDC_SSCRN_CKPT_2);
     u->rev_flag |= 1;
     if (wk->menu_next == 2) {
         Cckpt.m_LifeMeter.frameOut();
@@ -490,7 +490,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
 // Exit routine (scrn_out_func): 1 once the first frame column's path animation ended (end bit 0).
 static int sscrn_item_out(SUB_SCREEN* wk)
 {
-    IdUnit* u = IdNum.unitPtr(0x40, 0x15);
+    IdUnit* u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
     int ret = 1;
     if ((u->end & 1) == 0) {
         ret = 0;
@@ -616,15 +616,15 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
     itemListMake();
     switch (col) {
     case 0:
-        u = IdNum.unitPtr(0x40, 0x15);
+        u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
         break;
     case 1:
-        u = IdNum.unitPtr(0x50, 0x15);
+        u = IdNum.unitPtr(0x50, IDC_SSCRN_1);
         break;
     }
     no = col * 8 + 0x40;
     for (n = -3; n <= 4; n++) {
-        IdUnit* m = IdNum.unitPtr(frameMarkNo(n, col), 0x15);
+        IdUnit* m = IdNum.unitPtr(frameMarkNo(n, col), IDC_SSCRN_1);
         ItemWork* item = ITEM_PTR(n + iw->idx[col], col);
         int off;
         if (iw->comb[col] != -1 && iw->sel[col] == n + iw->idx[col]) {
@@ -673,10 +673,10 @@ void itemFrameInit(SUB_SCREEN* wk)
     for (i = 0; i < 2; i++) {
         switch (i) {
         case 0:
-            u = IdNum.unitPtr(0x40, 0x15);
+            u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
             break;
         case 1:
-            u = IdNum.unitPtr(0x50, 0x15);
+            u = IdNum.unitPtr(0x50, IDC_SSCRN_1);
             break;
         }
         item_path0[i] = u->path0;
@@ -700,10 +700,10 @@ void itemFrameMove(SUB_SCREEN* wk, int col)
 
     switch (col) {
     case 0:
-        u = IdNum.unitPtr(0x40, 0x15);
+        u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
         break;
     case 1:
-        u = IdNum.unitPtr(0x50, 0x15);
+        u = IdNum.unitPtr(0x50, IDC_SSCRN_1);
         break;
     }
     switch (item_frame_state[col]) {
@@ -715,14 +715,14 @@ void itemFrameMove(SUB_SCREEN* wk, int col)
         u->scr = item_pos[col];
         switch (item_frame_state[col]) {
         case 1:
-            u->path0 = IdNum.unitPtr(6, 0x15)->path0;
-            u->curve[0] = IdNum.unitPtr(6, 0x15)->curve[0];
-            u->path1 = IdNum.unitPtr(6, 0x15)->path1;
+            u->path0 = IdNum.unitPtr(6, IDC_SSCRN_1)->path0;
+            u->curve[0] = IdNum.unitPtr(6, IDC_SSCRN_1)->curve[0];
+            u->path1 = IdNum.unitPtr(6, IDC_SSCRN_1)->path1;
             break;
         case 2:
-            u->path0 = IdNum.unitPtr(7, 0x15)->path0;
-            u->curve[0] = IdNum.unitPtr(7, 0x15)->curve[0];
-            u->path1 = IdNum.unitPtr(7, 0x15)->path1;
+            u->path0 = IdNum.unitPtr(7, IDC_SSCRN_1)->path0;
+            u->curve[0] = IdNum.unitPtr(7, IDC_SSCRN_1)->curve[0];
+            u->path1 = IdNum.unitPtr(7, IDC_SSCRN_1)->path1;
             break;
         }
         FuncPathParametrize(u->path0, u->path1);
@@ -824,7 +824,7 @@ END:
             asm("" : : "r"(pin));
         }
         no = i + 1;
-        IdUnit* u = IdSub.unitPtr(no, 0x16);
+        IdUnit* u = IdSub.unitPtr(no, IDC_SSCRN_2);
         if (i == iw->col) {
             u->be_flag |= 8;
         } else {
@@ -869,7 +869,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
         state = 2;
         SndCall(0, 0xA, 0, 0, 0, 0);
         for (i = 0; i < 2; i++) {
-            IdSub.unitPtr(i + 1, 0x16)->be_flag |= 8;
+            IdSub.unitPtr(i + 1, IDC_SSCRN_2)->be_flag |= 8;
         }
         return;
     }
@@ -890,7 +890,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
         state = 2;
         SndCall(0, 0xA, 0, 0, 0, 0);
         for (i = 0; i < 2; i++) {
-            IdSub.unitPtr(i + 1, 0x16)->be_flag |= 8;
+            IdSub.unitPtr(i + 1, IDC_SSCRN_2)->be_flag |= 8;
         }
     }
 }
@@ -1046,7 +1046,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
         }
         int j;
         for (j = 0; j < 11; j++) {
-            sub[j] = IdSub.unitPtr(base + j, 0x1C);
+            sub[j] = IdSub.unitPtr(base + j, IDC_SSCRN_CKPT_0);
             sub[j]->be_flag |= 8;
             sub[j]->rev_flag &= 0xF0;
         }
@@ -1137,11 +1137,11 @@ void ItemCombine::init(SUB_SCREEN* wk)
         base = 0x70;
         break;
     }
-    IdSub.unitPtr(base, 0x16)->rev_flag &= 0xF0;
-    IdSub.unitPtr(base | 1, 0x16)->be_flag |= 8;
-    IdSub.unitPtr(base | 2, 0x16)->be_flag |= 8;
+    IdSub.unitPtr(base, IDC_SSCRN_2)->rev_flag &= 0xF0;
+    IdSub.unitPtr(base | 1, IDC_SSCRN_2)->be_flag |= 8;
+    IdSub.unitPtr(base | 2, IDC_SSCRN_2)->be_flag |= 8;
     item = ITEM_PTR(iw->sel[col], col);
-    u = IdSub.unitPtr(base | 1, 0x16);
+    u = IdSub.unitPtr(base | 1, IDC_SSCRN_2);
     u->tex_flag |= 2;
     u->texNo = itemTexNo(item->id);
     iw->comb[col] = iw->sel[col];
@@ -1163,9 +1163,9 @@ void ItemCombine::quit(SUB_SCREEN* wk)
         base = 0x70;
         break;
     }
-    IdSub.unitPtr(base, 0x16)->rev_flag |= 0xF;
-    IdSub.unitPtr(base | 1, 0x16)->be_flag &= ~8;
-    IdSub.unitPtr(base | 2, 0x16)->be_flag &= ~8;
+    IdSub.unitPtr(base, IDC_SSCRN_2)->rev_flag |= 0xF;
+    IdSub.unitPtr(base | 1, IDC_SSCRN_2)->be_flag &= ~8;
+    IdSub.unitPtr(base | 2, IDC_SSCRN_2)->be_flag &= ~8;
     iw->comb[col] = -1;
 }
 
@@ -1214,28 +1214,28 @@ void setCommandId(u8 mode, IdUnit** tbl, s8* num)
 {
     switch (mode) {
     case 0:
-        tbl[0] = IdSub.unitPtr(0x20, 0x16);
-        tbl[1] = IdSub.unitPtr(0x21, 0x16);
-        tbl[2] = IdSub.unitPtr(0x22, 0x16);
-        tbl[3] = IdSub.unitPtr(0x29, 0x16);
+        tbl[0] = IdSub.unitPtr(0x20, IDC_SSCRN_2);
+        tbl[1] = IdSub.unitPtr(0x21, IDC_SSCRN_2);
+        tbl[2] = IdSub.unitPtr(0x22, IDC_SSCRN_2);
+        tbl[3] = IdSub.unitPtr(0x29, IDC_SSCRN_2);
         *num = 3;
-        tbl[4] = IdSub.unitPtr(0x23, 0x16);
-        tbl[5] = IdSub.unitPtr(0x26, 0x16);
-        tbl[6] = IdSub.unitPtr(0x24, 0x16);
-        tbl[7] = IdSub.unitPtr(0x27, 0x16);
-        tbl[8] = IdSub.unitPtr(0x25, 0x16);
-        tbl[9] = IdSub.unitPtr(0x28, 0x16);
+        tbl[4] = IdSub.unitPtr(0x23, IDC_SSCRN_2);
+        tbl[5] = IdSub.unitPtr(0x26, IDC_SSCRN_2);
+        tbl[6] = IdSub.unitPtr(0x24, IDC_SSCRN_2);
+        tbl[7] = IdSub.unitPtr(0x27, IDC_SSCRN_2);
+        tbl[8] = IdSub.unitPtr(0x25, IDC_SSCRN_2);
+        tbl[9] = IdSub.unitPtr(0x28, IDC_SSCRN_2);
         break;
     case 1:
-        tbl[0] = IdSub.unitPtr(0x30, 0x16);
-        tbl[1] = IdSub.unitPtr(0x31, 0x16);
-        tbl[2] = IdSub.unitPtr(0x32, 0x16);
-        tbl[3] = IdSub.unitPtr(0x37, 0x16);
+        tbl[0] = IdSub.unitPtr(0x30, IDC_SSCRN_2);
+        tbl[1] = IdSub.unitPtr(0x31, IDC_SSCRN_2);
+        tbl[2] = IdSub.unitPtr(0x32, IDC_SSCRN_2);
+        tbl[3] = IdSub.unitPtr(0x37, IDC_SSCRN_2);
         *num = 2;
-        tbl[4] = IdSub.unitPtr(0x33, 0x16);
-        tbl[5] = IdSub.unitPtr(0x35, 0x16);
-        tbl[6] = IdSub.unitPtr(0x34, 0x16);
-        tbl[7] = IdSub.unitPtr(0x36, 0x16);
+        tbl[4] = IdSub.unitPtr(0x33, IDC_SSCRN_2);
+        tbl[5] = IdSub.unitPtr(0x35, IDC_SSCRN_2);
+        tbl[6] = IdSub.unitPtr(0x34, IDC_SSCRN_2);
+        tbl[7] = IdSub.unitPtr(0x36, IDC_SSCRN_2);
         break;
     }
 }

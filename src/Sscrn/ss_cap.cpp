@@ -52,7 +52,7 @@ void SsCapInit::init(SUB_SCREEN* wk)
 }
 
 // Loads the bottle cap screen: state 0/1 fade out, 2 hide the HUD, read SS/<lang>/ss_cap.dat over the
-// puzzle archive slot (pPzzl) and drop the previous screen's ids/models/lights, 3 wait for the read
+// puzzle archive slot (pSwitchDat) and drop the previous screen's ids/models/lights, 3 wait for the read
 // (the archive becomes pExam), 4 fade in and transit to SsCapMain.
 void SsCapInit::move(SUB_SCREEN* wk)
 {
@@ -66,12 +66,12 @@ void SsCapInit::move(SUB_SCREEN* wk)
         }
         state++;
     case 2:
-        IdSys.dispSw(0x21, 0);
-        IdSub.dispSw(2, 0);
-        IdSub.dispSw(0, 0);
+        IdSys.dispSw(IDC_LIFE_METER, 0);
+        IdSub.dispSw(IDC_SSCRN_PESETA, 0);
+        IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 0);
         sscrnDataFilename(wk, "ss_cap.dat");
 #line 108 "D:/Bio4/Prog/ss_cap.cpp"
-        cap_read_req = DVD_READ_N(wk->path, wk->pPzzl, 0, 0, 0, 0x10);
+        cap_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (cap_read_req <= 0) {
             break;
         }
@@ -89,7 +89,7 @@ void SsCapInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(cap_read_req, &stat, &size, 0) != 1) {
             break;
         }
-        wk->pExam = wk->pPzzl;
+        wk->pExam = wk->pSwitchDat;
         state++;
     }
     case 4:
@@ -109,7 +109,7 @@ void SsCapMain::init(SUB_SCREEN* wk)
     sel->connect(0, exam);
     exam->connect(0, sel);
     IdTexDataLoad(SS_ARC_PTR(wk->pExam, 5), TEX_OWNER_ID_SSCRN);
-    IdSub.set(SS_ARC_PTR(wk->pExam, 6), 0xFF, 0x14, 0xC, 6, 0);
+    IdSub.set(SS_ARC_PTR(wk->pExam, 6), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x14));
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pExam, 4));
     sscrnMainMenuInit(wk, 0);
@@ -186,7 +186,7 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
     if (Fade[0].flags & 1) {
         ret = 0;
     } else {
-        IdSub.dispSw(0, 1);
+        IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 1);
         wk->alpha_flag = 0;
         wk->alpha_cnt = 0;
         Cckpt.m_LifeMeter.fix(0);
@@ -206,7 +206,7 @@ void dispCapList(SUB_SCREEN* wk)
     int i;
 
     for (i = 0; i < 24; i++) {
-        u = IdSub.unitPtr(i + 1, 0x14);
+        u = IdSub.unitPtr(i + 1, IDC_SSCRN_0);
         if (ItemMgr.search(cap_id_tbl[i])) {
             u->be_flag |= 8;
             u->tex_flag |= 2;
@@ -215,8 +215,8 @@ void dispCapList(SUB_SCREEN* wk)
             u->be_flag &= ~8;
         }
     }
-    u = IdSub.unitPtr(0xFE, 0x14);
-    c = IdSub.unitPtr(sel[2] + 1, 0x14);
+    u = IdSub.unitPtr(0xFE, IDC_SSCRN_0);
+    c = IdSub.unitPtr(sel[2] + 1, IDC_SSCRN_0);
     u->scr = c->scr;
 }
 

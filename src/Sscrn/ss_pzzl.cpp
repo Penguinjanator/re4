@@ -204,7 +204,7 @@ int back2PieceSelect(SUB_SCREEN* wk)
         ret = 0;
     } else {
         Cckpt.m_LifeMeter.frameIn();
-        IdSub.unitPtr(0, 2)->rev_flag &= 0xF0;
+        IdSub.unitPtr(0, IDC_SSCRN_PESETA)->rev_flag &= 0xF0;
         tempSpaceDisp(0);
         idMainMenuFade(wk, 1);
         ret = 1;
@@ -227,14 +227,14 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
     pzlPiece* arm;
     int i;
 
-    id[0] = IdSub.unitPtr(0x30, 4);
-    id2[0] = IdSub.unitPtr(0x31, 4);
+    id[0] = IdSub.unitPtr(0x30, IDC_SSCRN_ETC);
+    id2[0] = IdSub.unitPtr(0x31, IDC_SSCRN_ETC);
     id2[0]->be_flag &= ~8;
-    id[1] = IdSub.unitPtr(0x40, 4);
-    id2[1] = IdSub.unitPtr(0x41, 4);
+    id[1] = IdSub.unitPtr(0x40, IDC_SSCRN_ETC);
+    id2[1] = IdSub.unitPtr(0x41, IDC_SSCRN_ETC);
     id2[1]->be_flag &= ~8;
-    id[2] = IdSub.unitPtr(0x50, 4);
-    id2[2] = IdSub.unitPtr(0x51, 4);
+    id[2] = IdSub.unitPtr(0x50, IDC_SSCRN_ETC);
+    id2[2] = IdSub.unitPtr(0x51, IDC_SSCRN_ETC);
     id2[2]->be_flag &= ~8;
     itemInfo(ItemMgr.m_wep_id, &info);
     switch (info.type) {
@@ -303,9 +303,9 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
 // restart the highlight animation after a move; sw 0 hides everything.
 void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
 {
-    IdUnit* u0 = IdSub.unitPtr(0x20, 4);
-    IdUnit* u1 = IdSub.unitPtr(0x21, 4);
-    IdUnit* u2 = IdSub.unitPtr(0x22, 4);
+    IdUnit* u0 = IdSub.unitPtr(0x20, IDC_SSCRN_ETC);
+    IdUnit* u1 = IdSub.unitPtr(0x21, IDC_SSCRN_ETC);
+    IdUnit* u2 = IdSub.unitPtr(0x22, IDC_SSCRN_ETC);
     pzlBoard* b = wk->puzzlePlayer->cur;
     int x = b->m_cur_x;
     int y = b->m_cur_y;
@@ -332,7 +332,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         col = colorRRGGBBAA((u8) u0->col[0], (u8) u0->col[1], (u8) u0->col[2], (u8) u0->col[3]);
         {
             // COMPILER-DIFF: 5 (sched1 tie). Case 1 of the target issues the `col` copy before the
-            // `wk->x2B0` reload, so the load lands in r3 (`mr r30,r3; lwz r3,0x2b0(r31)`); a pseudo
+            // `wk->puzzlePlayer` reload, so the load lands in r3 (`mr r30,r3; lwz r3,0x2b0(r31)`); a pseudo
             // load outranks the copy (load latency 2) and gives case 2's `lwz r0; mr r30,r3; mr r3,r0`
             // in both arms. The r3 pin makes the load's destination the hard register: its
             // anti-dependence on the `col` copy (which reads r3) orders it after the copy.
@@ -751,10 +751,10 @@ void pieceTblInit(SUB_SCREEN* wk)
         }
         // Index-first `lwzx` (offset + arc, not arc->ofs[no]); the tex index goes through a block-local
         // so the +20 is not folded into the load displacement.
-        mp[-1] = (void*) (*(u32*) (mdl * 4 + (u32) wk->x1E4) + (u32) wk->x1E4);
+        mp[-1] = (void*) (*(u32*) (mdl * 4 + (u32) wk->pPzzlDat) + (u32) wk->pPzzlDat);
         {
             u32 tix = (tex * 2 + 5) * 4;
-            mp[0] = (void*) (*(u32*) (tix + (u32) wk->x1E4) + (u32) wk->x1E4);
+            mp[0] = (void*) (*(u32*) (tix + (u32) wk->pPzzlDat) + (u32) wk->pPzzlDat);
         }
         mp += 30;
         ofs += 120;
@@ -1092,16 +1092,16 @@ void pieceModelInit(SUB_SCREEN* wk)
     m = MapMgr.getWork(3);
     switch ((s8) wk->board_size) {
     case 0:
-        m->modelInit(SS_ARC_PTR(wk->x1E4, 0x1A6), SS_ARC_PTR(wk->x1E4, 0x1A5));
+        m->modelInit(SS_ARC_PTR(wk->pPzzlDat, 0x1A6), SS_ARC_PTR(wk->pPzzlDat, 0x1A5));
         break;
     case 1:
-        m->modelInit(SS_ARC_PTR(wk->x1E4, 0x1A7), SS_ARC_PTR(wk->x1E4, 0x1A5));
+        m->modelInit(SS_ARC_PTR(wk->pPzzlDat, 0x1A7), SS_ARC_PTR(wk->pPzzlDat, 0x1A5));
         break;
     case 2:
-        m->modelInit(SS_ARC_PTR(wk->x1E4, 0x1A8), SS_ARC_PTR(wk->x1E4, 0x1A5));
+        m->modelInit(SS_ARC_PTR(wk->pPzzlDat, 0x1A8), SS_ARC_PTR(wk->pPzzlDat, 0x1A5));
         break;
     case 3:
-        m->modelInit(SS_ARC_PTR(wk->x1E4, 0x1A9), SS_ARC_PTR(wk->x1E4, 0x1A5));
+        m->modelInit(SS_ARC_PTR(wk->pPzzlDat, 0x1A9), SS_ARC_PTR(wk->pPzzlDat, 0x1A5));
         break;
     }
     pzzlModelLight(m);
@@ -1143,8 +1143,8 @@ void caseModelMove(int sw)
     Vec ofsA = {-1280.0f, 0.0f, 0.0f};
     Vec ofsB = {1280.0f, 0.0f, 0.0f};
     SUB_SCREEN* wk = &SubScreenWk;
-    IdUnit* u = IdSub.unitPtr(0xFE, 1);
-    IdUnit* u2 = IdSub.unitPtr(0xFD, 1);
+    IdUnit* u = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
+    IdUnit* u2 = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
     cModel* m = MapMgr.getWork(3);
     cModel* parts = m->getPartsPtr(1);
     Vec scr;
@@ -1203,7 +1203,7 @@ void caseModelMove(int sw)
         tmp[2][3] = p.z;
         MTX_COPY_DO(tmp, b->m_mat);
     }
-    u = IdSub.unitPtr(0, 0x10);
+    u = IdSub.unitPtr(0, IDC_SSCRN_NEAR_0);
     b = wk->puzzlePlayer->m_space;
     screenPos2puzzlePos(&u->pos, &q);
     if (sw) {
@@ -1237,7 +1237,7 @@ void caseModelMove(int sw)
 
 // Loads the attache case screen: state 0 run the previous screen's scrn_out_func and drop its ids,
 // 1 one frame wait, 2 show the HUD and read SS/<lang>/ss_pzzl.dat (coming from the map rebuilds
-// the character model and life meter), 3 wait (archive -> x1E4), 4 fade in for SS_OPEN_PZZL (type
+// the character model and life meter), 3 wait (archive -> pPzzlDat), 4 fade in for SS_OPEN_PZZL (type
 // 4, item pick-up) and transit to SsPzzlMain.
 void SsPzzlInit::move(SUB_SCREEN* wk)
 {
@@ -1250,7 +1250,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
             IdSubErase();
             IdNumErase();
             IdFreeBuffer();
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
             pzzl_wait[0] = 0;
             state++;
         }
@@ -1262,11 +1262,11 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         state++;
         break;
     case 2:
-        IdSys.dispSw(0x21, 1);
-        IdSub.dispSw(2, 1);
+        IdSys.dispSw(IDC_LIFE_METER, 1);
+        IdSub.dispSw(IDC_SSCRN_PESETA, 1);
         sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 1682 "D:/Bio4/Prog/ss_pzzl.cpp"
-        pzzl_read_req = DVD_READ_N(wk->path, wk->pPzzl, 0, 0, 0, 0x10);
+        pzzl_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (pzzl_read_req <= 0) {
             break;
         }
@@ -1293,7 +1293,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(pzzl_read_req, &result, &size, 0) != 1) {
             break;
         }
-        wk->x1E4 = wk->pPzzl;
+        wk->pPzzlDat = wk->pSwitchDat;
         state++;
     }
     case 4:
@@ -1308,7 +1308,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
 // Shows (1) or fades out (0) the temporary space board frame (IdSub 0/0x10).
 void tempSpaceDisp(int sw)
 {
-    IdUnit* u = IdSub.unitPtr(0, 0x10);
+    IdUnit* u = IdSub.unitPtr(0, IDC_SSCRN_NEAR_0);
 
     switch (sw) {
     case 1:
@@ -1366,22 +1366,22 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     exam->connect(0, select);
     caseChange->connect(0, select);
     puzzleCameraInit(wk, &pG->Camera);
-    IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
-    if (!IdSub.setCk(0x14)) {
-        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
+    IdTexDataLoad(SS_ARC_PTR(wk->pPzzlDat, 0x1AA), TEX_OWNER_ID_SSCRN);
+    if (!IdSub.setCk(IDC_SSCRN_0)) {
+        IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
     }
-    IdSub.set(SS_ARC_PTR(wk->x1E4, 0x1AB), 0xFF, 0x10, 0xF, 0, 0);
+    IdSub.set(SS_ARC_PTR(wk->pPzzlDat, 0x1AB), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 0, 0);
     tempSpaceDisp(0);
     idMainMenuFade(wk, 1);
     for (i = 0; i < 0x3E; i++) {
         if (i == 0) {
-            IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
+            IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, IDC_NUM_00, 0x13, 8, 0);
         } else {
             IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, 0x1C, 0x13, 2, 0);
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xE), 0xFF, 0x1D, 0x13, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, IDC_SSCRN_CKPT_0, 0x13, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xE), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 2, 0);
     for (lang = 0; lang < 2; lang++) {
         u8 type;
 
@@ -1411,7 +1411,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
             tbl[k]->rev_flag |= 0xF;
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, 0x1E, 0x13, 1, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, IDC_SSCRN_CKPT_2, 0x13, 1, 0);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
     if (wk->menu_old == 2 && wk->type != 4) {
         wk->alpha_flag = 0;
@@ -1480,7 +1480,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     // setPtr(0) / setPtr(2): `stwx r0,r11,rZERO` with the `state = 0` zero pseudo (r30, live across the
     // sscrn_pzzl_in_init call) as the index, then `stw 8(r11)`.
     MesData.setPtr(0, (u8*) SS_ARC_PTR(wk->pCmmn, 5));
-    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->x1E4, 0x1A4));
+    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pPzzlDat, 0x1A4));
     pzzl_dbg.init(wk);
     SndCall(0, 0x1E, 0, 0, 0, 0);
 }
@@ -1500,7 +1500,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     pieceModelDisp(wk);
     pzzlCursorDisp(wk, 1);
     if (cur != exam) {
-        IdUnit* u = IdSub.unitPtr(1, 0x1E);
+        IdUnit* u = IdSub.unitPtr(1, IDC_SSCRN_CKPT_2);
         int id = 0;
         int on = 0;
         int x;
@@ -1689,11 +1689,11 @@ void sscrn_pzzl_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
 
-    u = IdSub.unitPtr(0xFE, 1);
+    u = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
     u->rev_flag |= 0xF;
-    u = IdSub.unitPtr(0xFD, 1);
+    u = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
     u->rev_flag |= 0xF;
-    u = IdSub.unitPtr(1, 0x1E);
+    u = IdSub.unitPtr(1, IDC_SSCRN_CKPT_2);
     u->rev_flag |= 1;
     if (wk->menu_next == 2) {
         Cckpt.m_LifeMeter.frameOut();
@@ -1712,8 +1712,8 @@ static int sscrn_pzzl_out(SUB_SCREEN* wk)
     pzzlClearZ(wk);
     pieceModelDisp(wk);
     pzzlCursorDisp(wk, 1);
-    u = IdSub.unitPtr(0xFE, 1);
-    u2 = IdSub.unitPtr(0xFD, 1);
+    u = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
+    u2 = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
     if ((u->end & 1) && (u2->end & 4)) {
         return 1;
     }
@@ -1725,9 +1725,9 @@ void sscrn_pzzl_in_init(SUB_SCREEN* wk)
 {
     IdUnit* u;
 
-    u = IdSub.unitPtr(0xFE, 1);
+    u = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
     u->rev_flag &= 0xF0;
-    u = IdSub.unitPtr(0xFD, 1);
+    u = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
     u->rev_flag &= 0xF0;
 }
 
@@ -1752,7 +1752,7 @@ void PiecePopDown::move(SUB_SCREEN* wk)
 void PzzlThinking::init(SUB_SCREEN* wk)
 {
     Cckpt.m_LifeMeter.frameOut();
-    IdSub.unitPtr(0, 2)->rev_flag |= 0xF;
+    IdSub.unitPtr(0, IDC_SSCRN_PESETA)->rev_flag |= 0xF;
     tempSpaceDisp(1);
     idMainMenuFade(wk, 0);
 }
@@ -1857,7 +1857,7 @@ int checkMsgWindow(SUB_SCREEN* wk)
 // Kills the message window frame ids (group 3) and message slot 1.
 void closeMsgWindow(SUB_SCREEN* wk)
 {
-    IdSub.kill(0xFF, 3);
+    IdSub.kill(0xFF, IDC_SSCRN_CONFIRM);
     cMes.Delete(1);
 }
 
@@ -1870,7 +1870,7 @@ void openMsgWindow(SUB_SCREEN* wk, int no)
     cMes.Delete(2);
     cMes.setLayout(1, LAYOUT_SUBSCRN);
     cMes.MesSet(no, msg_x, msg_y, 0x11, 1, 0, 3);
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xA), 0xFF, 3, 0x13, 0, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xA), 0xFF, IDC_SSCRN_CONFIRM, 0x13, 0, 0);
 }
 
 // Case cursor. A pending case size change (board_size != board_next) transits to CaseChange
@@ -1886,7 +1886,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
     pzlBoard* space;
 
     // x267 store first, then a block-local `pl` for the three board loads only (r11, dies at
-    // `space`); every later statement re-reads wk->x2B0 (the target reloads it per call). The
+    // `space`); every later statement re-reads wk->puzzlePlayer (the target reloads it per call). The
     // if/else for `other` gives the hoisted else-set `mr r26,r0` copy. `st` (the state load,
     // r27) is the zero register of the r==2 arm's x264/x265 stores (cse's zero class on the path
     // from `beq CASE0`); the r==1 arm's zero is the getPieceNum result `mr. r9,r3` (see `n`).
@@ -1927,7 +1927,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
                     SndCall(0, 0x2A, 0, 0, 0, 0);
                 } else {
                     Cckpt.m_LifeMeter.frameIn();
-                    IdSub.unitPtr(0, 2)->rev_flag &= 0xF0;
+                    IdSub.unitPtr(0, IDC_SSCRN_PESETA)->rev_flag &= 0xF0;
                 }
             } else if (link[3] == 0) {
                 mode = 2;
@@ -2739,8 +2739,8 @@ void PieceCommand::quit(SUB_SCREEN* wk)
 // Case size change: plays the case units' close animation.
 void CaseChange::init(SUB_SCREEN* wk)
 {
-    a = IdSub.unitPtr(0xFE, 1);
-    b = IdSub.unitPtr(0xFD, 1);
+    a = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
+    b = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
     a->rev_flag |= 0xF;
     b->rev_flag |= 0xF;
 }

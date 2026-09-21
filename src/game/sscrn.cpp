@@ -451,7 +451,7 @@ void SubScreenExec()
             if (wk->relAddr >= 0) {
                 wk->relAddr = wk->pPreplfOffs + (u32) wk->pBuf;
                 wk->pCmmn = (SsArc*) (wk->pCommonOffs + (u32) wk->pBuf);
-                wk->pPzzl = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
+                wk->pSwitchDat = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
             }
             wk->p_module = (OSModuleHeader*) wk->relAddr;
             {
@@ -477,33 +477,33 @@ void SubScreenExec()
             } else {
                 IdNum.gameInit(0x1B2);
             }
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 7), 0xFF, 2, 0x13, 7, 0);
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 7), 0xFF, IDC_SSCRN_PESETA, 0x13, 7, 0);
             if (!(wk->type & 0x10)) {
-                IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xB), 0xFF, 0, 0xF, 0, 0);
+                IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xB), 0xFF, IDC_SSCRN_MAIN_MENU, 0xF, 0, 0);
             }
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x11), 0xFF, 4, 0x13, 9, 0);
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 9), 0xFF, 1, 9, 3, 0);
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x11), 0xFF, IDC_SSCRN_ETC, 0x13, 9, 0);
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 9), 0xFF, IDC_SSCRN_BACK_GROUND, 9, 3, 0);
             switch (wk->type) {
             case 2:
-                IdSys.dispSw(0x21, 0);
+                IdSys.dispSw(IDC_LIFE_METER, 0);
             case 4:
             case 0x40:
             case 0x80:
-                IdSys.dispSw(0x21, 1);
-                IdSub.dispSw(0, 0);
+                IdSys.dispSw(IDC_LIFE_METER, 1);
+                IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 0);
                 break;
             case 0x20:
-                IdSub.dispSw(1, 0);
-                IdSub.dispSw(0, 0);
-                IdSub.dispSw(2, 0);
+                IdSub.dispSw(IDC_SSCRN_BACK_GROUND, 0);
+                IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 0);
+                IdSub.dispSw(IDC_SSCRN_PESETA, 0);
                 break;
             case 0x10:
-                IdSub.dispSw(1, 1);
-                IdSub.dispSw(2, 1);
+                IdSub.dispSw(IDC_SSCRN_BACK_GROUND, 1);
+                IdSub.dispSw(IDC_SSCRN_PESETA, 1);
                 break;
             default:
-                IdSys.dispSw(0x21, 1);
-                IdSub.dispSw(0, 1);
+                IdSys.dispSw(IDC_LIFE_METER, 1);
+                IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 1);
                 break;
             }
             Cckpt.m_LifeMeter.fix(0);
@@ -689,7 +689,7 @@ void SubScreenExit()
                     }
                 }
             }
-            IdSys.dispSw(0x21, 1);
+            IdSys.dispSw(IDC_LIFE_METER, 1);
             Cckpt.m_LifeMeter.fix(0);
             if (wk->scope_flag) {
                 CamCtrl.startScope(0, 0);

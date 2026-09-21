@@ -272,7 +272,7 @@ void SubScreenTask()
             cur = mapInit;
             cur->init(wk);
         } else if (wk->type & 4) {
-            wk->x1E4 = wk->pPzzl;
+            wk->pPzzlDat = wk->pSwitchDat;
             cur = pzzlMain;
             cur->init(wk);
         } else if (wk->type & 0x80) {
@@ -282,7 +282,7 @@ void SubScreenTask()
             cur = fileInit;
             cur->init(wk);
         } else {
-            wk->x1E4 = wk->pPzzl;
+            wk->pPzzlDat = wk->pSwitchDat;
             cur = pzzlMain;
             cur->init(wk);
         }
@@ -360,7 +360,7 @@ void SubScreenTask()
         cur = cur->cur;
         SscrnDebugMenu(wk);
         LightMgr.move();
-        if (IdSub.setCk(2)) {
+        if (IdSub.setCk(IDC_SSCRN_PESETA)) {
             int d[8];
             int v = pG->peseta;
             int i;
@@ -370,13 +370,13 @@ void SubScreenTask()
             }
             for (i = 0; i < 8; i++) {
                 IdUnit* u;
-                u = IdSub.unitPtr(i + 1, 2);
+                u = IdSub.unitPtr(i + 1, IDC_SSCRN_PESETA);
                 u->be_flag |= 8;
                 u->tex_flag |= 2;
                 u->texNo = d[i];
             }
             for (i = 7; i > 0 && d[i] == 0; i--) {
-                IdSub.unitPtr(i + 1, 2)->be_flag &= ~8;
+                IdSub.unitPtr(i + 1, IDC_SSCRN_PESETA)->be_flag &= ~8;
             }
         }
         Cckpt.move();
@@ -594,7 +594,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         IdUnit* pos;
         _itemExam.move();
         _itemExam.trans();
-        pos = IdSub.unitPtr(0xFE, 0x27);
+        pos = IdSub.unitPtr(0xFE, IDC_DATA);
         cMes.setLayout(7, LAYOUT_SUBSCRN);
         cMes.MesSet(exam_id, (int) ((pos->scr.x + 320.0f) * 0.8f), (int) ((240.0f - pos->scr.y) * 0.8f), 0x20084, 7, 0, 4);
         if (Key.trg & 0x20000) {
@@ -679,11 +679,11 @@ void idMainMenu(SUB_SCREEN* wk, int sw)
     int i;
 
     for (i = 0; i < 5; i++) {
-        u = IdSub.unitPtr(i, 0);
+        u = IdSub.unitPtr(i, IDC_SSCRN_MAIN_MENU);
         u->be_flag &= ~8;
     }
     if (sw) {
-        u = IdSub.unitPtr(wk->menu_next, 0);
+        u = IdSub.unitPtr(wk->menu_next, IDC_SSCRN_MAIN_MENU);
         u->be_flag |= 8;
         IdSub.setTime(u, 0);
     }
@@ -693,7 +693,7 @@ void idMainMenu(SUB_SCREEN* wk, int sw)
 void idMainMenuFade(SUB_SCREEN* wk, int sw)
 {
     if (wk->type != 0x10) {
-        IdUnit* u = IdSub.unitPtr(7, 0);
+        IdUnit* u = IdSub.unitPtr(7, IDC_SSCRN_MAIN_MENU);
         if (sw) {
             u->rev_flag &= ~0xF;
         } else {
@@ -706,24 +706,24 @@ void idMainMenuFade(SUB_SCREEN* wk, int sw)
 // 0x80..0x84) and releases the sub screen id textures; SsExitInit step 2 and screen switches.
 void IdSubErase()
 {
-    IdSub.kill(0xFF, 0x1C);
-    IdSub.kill(0xFF, 0x1D);
-    IdSub.kill(0xFF, 0x1E);
-    IdSub.kill(0xFF, 0x1F);
-    IdSub.kill(0xFF, 0x14);
-    IdSub.kill(0xFF, 0x15);
-    IdSub.kill(0xFF, 0x16);
-    IdSub.kill(0xFF, 0x10);
-    IdSub.kill(0xFF, 0x11);
-    IdSub.kill(0xFF, 0x12);
-    IdSub.kill(0xFF, 0x18);
-    IdSub.kill(0xFF, 0x19);
-    IdSub.kill(0xFF, 0x1A);
-    IdSub.kill(0xFF, 0x80);
-    IdSub.kill(0xFF, 0x81);
-    IdSub.kill(0xFF, 0x82);
-    IdSub.kill(0xFF, 0x83);
-    IdSub.kill(0xFF, 0x84);
+    IdSub.kill(0xFF, IDC_SSCRN_CKPT_0);
+    IdSub.kill(0xFF, IDC_SSCRN_CKPT_1);
+    IdSub.kill(0xFF, IDC_SSCRN_CKPT_2);
+    IdSub.kill(0xFF, IDC_SSCRN_CKPT_3);
+    IdSub.kill(0xFF, IDC_SSCRN_0);
+    IdSub.kill(0xFF, IDC_SSCRN_1);
+    IdSub.kill(0xFF, IDC_SSCRN_2);
+    IdSub.kill(0xFF, IDC_SSCRN_NEAR_0);
+    IdSub.kill(0xFF, IDC_SSCRN_NEAR_1);
+    IdSub.kill(0xFF, IDC_SSCRN_NEAR_2);
+    IdSub.kill(0xFF, IDC_SSCRN_FAR_0);
+    IdSub.kill(0xFF, IDC_SSCRN_FAR_1);
+    IdSub.kill(0xFF, IDC_SSCRN_FAR_2);
+    IdSub.kill(0xFF, IDC_PRICE_00);
+    IdSub.kill(0xFF, IDC_PRICE_01);
+    IdSub.kill(0xFF, IDC_PRICE_02);
+    IdSub.kill(0xFF, IDC_PRICE_03);
+    IdSub.kill(0xFF, IDC_PRICE_04);
     IdTexRelease(TEX_OWNER_ID_SSCRN);
 }
 
@@ -735,12 +735,12 @@ void IdNumErase()
     for (i = 0; i < 0x3E; i++) {
         IdNum.kill(0xFF, 0x40 + i);
     }
-    IdNum.kill(0xFF, 0x10);
-    IdNum.kill(0xFF, 0x11);
-    IdNum.kill(0xFF, 0x12);
-    IdNum.kill(0xFF, 0x14);
-    IdNum.kill(0xFF, 0x15);
-    IdNum.kill(0xFF, 0x16);
+    IdNum.kill(0xFF, IDC_SSCRN_NEAR_0);
+    IdNum.kill(0xFF, IDC_SSCRN_NEAR_1);
+    IdNum.kill(0xFF, IDC_SSCRN_NEAR_2);
+    IdNum.kill(0xFF, IDC_SSCRN_0);
+    IdNum.kill(0xFF, IDC_SSCRN_1);
+    IdNum.kill(0xFF, IDC_SSCRN_2);
 }
 
 // Clears the Z buffer with a full screen quad at the far plane (the model screens draw over the 2D
@@ -846,8 +846,8 @@ void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit)
 // shadows; flags bit 0 hides the leading zeros.
 void numDisp(int id, int num, Vec* pos, u32 flags)
 {
-    IdUnit* col0 = IdSub.unitPtr(0xFD, 0x14);
-    IdUnit* col1 = IdSub.unitPtr(0xFE, 0x14);
+    IdUnit* col0 = IdSub.unitPtr(0xFD, IDC_SSCRN_0);
+    IdUnit* col1 = IdSub.unitPtr(0xFE, IDC_SSCRN_0);
     IdUnit* u;
     int i;
 
