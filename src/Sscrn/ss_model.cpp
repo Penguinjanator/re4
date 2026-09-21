@@ -1460,7 +1460,7 @@ void wep13Init(int type)
     (void*&) wep->pParts->pParent = m->getPartsPtr(10);
     info = ssModInfoMgr.create(PL_ARC(0x70), PL_ARC(0x71));
     {
-        f32(*mat)[4] = (f32(*)[4]) & info->x5C;
+        f32(*mat)[4] = info->mat;
         RotMatrix(mat, &wep13_rot);
         TransMatrix(mat, &wep13_pos);
     }

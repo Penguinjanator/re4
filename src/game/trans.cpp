@@ -1120,11 +1120,11 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         Mtx nrm;
         Mtx pm;
         if (m->be_flag & 0x4000) {
-            PSMTXConcat(m->mat, (f32(*)[4]) &info->x5C, pm);
+            PSMTXConcat(m->mat, info->mat, pm);
         } else if (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
-            PSMTXConcat(m->getPartsPtr(d->pHead->partsNo)->mat, (f32(*)[4]) &info->x5C, pm);
+            PSMTXConcat(m->getPartsPtr(d->pHead->partsNo)->mat, info->mat, pm);
         } else {
-            PSMTXConcat(m->pParts->mat, (f32(*)[4]) &info->x5C, pm);
+            PSMTXConcat(m->pParts->mat, info->mat, pm);
         }
         mat0 = m->mat;
         PSMTXConcat(viewMat, pm, mv);

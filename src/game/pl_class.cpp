@@ -1123,15 +1123,15 @@ void cPlayer::interrupt()
     }
     face = Body->pFace;
     if (VALID_PTR(face)) {
-        face->x84 = 0.0f;
-        face->x70 = 0.0f;
-        face->x5C = 0.0f;
+        face->mat[2][2] = 0.0f;
+        face->mat[1][1] = 0.0f;
+        face->mat[0][0] = 0.0f;
     }
     if (pG->pl_type == 4 && (StaFlagChk(pG, STA_KLAUSER_TRANSFORM))) {
         StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
         x890 = 0;
-        if (x894 == -1) {
-            x894 = 1;
+        if (krEffWait == -1) {
+            krEffWait = 1;
         }
     }
     if (m_SeId) {

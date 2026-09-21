@@ -166,7 +166,7 @@ public:
     f32 x880;             // 0x880  (Krauser): ctor 1.0
     u8 pad_884[0x890 - 0x884];
     int x890;             // 0x890  (Krauser): cleared by cPlayer::interrupt with pG->flags_5018 bit23
-    int x894;             // 0x894  (Krauser): -1 -> 1 there
+    int krEffWait;        // 0x894  (Krauser): frames until the idle effects (EstSet group 0x3F) respawn; -1 while the arm attack runs (glow off), 0x546 cooldown after it; interrupt turns -1 into 1
     int x898;             // 0x898  (Krauser): tex-render model alpha pulse counter (0..0x1F, transMove)
 
     cPlayer();
@@ -318,7 +318,7 @@ extern void* PlWepMot[3];  // game/player.cpp  weapon motion data
 void PlWepMotSet(int no);
 void DrawGage(int x, int y, int h, int w, int now, int max, int color);
 
-// game/pl_event.cpp: routine 0 (event) and its sub-routines (index cModel::xFD)
+// game/pl_event.cpp: routine 0 (event) and its sub-routines (index cModel::r_no_1)
 void Pl_R0_Event(cPlayer* pl);
 void pl_R1_Event_Normal(cPlayer* pl);
 void pl_R1_Event_ToWalk(cPlayer* pl);
@@ -333,7 +333,7 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
-// Face model info of `pl`: the face blend weights (0x5C/0x70/0x84) reset to `v` (pl_knife, pl_rocket).
+// Face model info of `pl`: the diagonal of its matrix (the face scale) set to `v` (pl_knife, pl_rocket).
 // A plain block: a do/while(0) body's loop notes lengthen the live ranges around it and flip the
 // callee-saved order of pl_rocket down30's pl / joyLKamae result. Needs main_mem.h (VALID_PTR) and
 // pl_body.h at the use site.
@@ -341,9 +341,9 @@ struct PlayerPtr {
     {                                                   \
         cModelInfo* face = (pl)->Body->pFace;          \
         if (VALID_PTR(face)) {                          \
-            face->x84 = v;                              \
-            face->x70 = v;                              \
-            face->x5C = v;                              \
+            face->mat[2][2] = v;                              \
+            face->mat[1][1] = v;                              \
+            face->mat[0][0] = v;                              \
         }                                               \
     }
 

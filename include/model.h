@@ -147,17 +147,7 @@ public:
     cModelInfo* pList;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
     ModelBound bound;    // 0x38
-    union {
-        Mtx mat;         // 0x5C .. 0x8C  (cModelInfo::cModelInfo: identity)
-        struct {
-            f32 x5C;             // 0x5C  (pl_leon setModel: face info zeroes 0x5C/0x70/0x84)
-            u8 pad_60[0x70 - 0x60];
-            f32 x70;             // 0x70
-            u8 pad_74[0x84 - 0x74];
-            f32 x84;             // 0x84
-            u8 pad_88[4];
-        };
-    };
+    Mtx mat;             // 0x5C .. 0x8C  (cModelInfo::cModelInfo: identity; FACE_SET / pl_leon setModel scale the diagonal to 0 / 1)
     union {
         u8 color[4];     // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
         u32 colorWord;   // 0x8C  (cModelInfo::cModelInfo: 0xFFFFFFFF)

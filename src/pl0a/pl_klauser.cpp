@@ -5,7 +5,7 @@
 // cPlKlauser (pl_mod.h) is the cPlayer of pl_type 4 (Krauser in the mercenaries). On top of the
 // Leon-style model set it carries three cModelInfos in krModel[] (em.h): [0] the normal arm, [1]
 // the mutated arm, [2] a tex-rendered glow model; Status_flg[3] bit23 (set by the X-button attack)
-// selects which arm is faded in by transMove every frame (moveMatCalcBefore). x894 counts frames
+// selects which arm is faded in by transMove every frame (moveMatCalcBefore). krEffWait counts frames
 // until the idle effects (EstSet 0x3F group) are spawned again, x890 is cleared by the interrupt.
 // pl_R1_KlauserAttack is the aux routine (r_no_1 == 0xA through pFuncAux) of the mutation attack.
 // Pl0aInit is the module's PlInitFunc; the first object of the module is the reduced pl_shotgun.
@@ -65,7 +65,7 @@ extern "C" void setTexRender(cModelInfo* info)
 
 // Builds Krauser: the cPlayer work init, the player effects (archive 0x1A as group 3), the model
 // set, the equipped weapon module, the routine init, the event motions, startUp; the mutation
-// state starts normal (x880 = 1, x894 = 1: idle effects next frame, Status_flg[3] bit23 off).
+// state starts normal (x880 = 1, krEffWait = 1: idle effects next frame, Status_flg[3] bit23 off).
 cPlKlauser::cPlKlauser()
 {
     init0();
@@ -81,7 +81,7 @@ cPlKlauser::cPlKlauser()
     krX7B8 = 0;
     krX7C0 = 0;
     x890 = 0;
-    x894 = 1;
+    krEffWait = 1;
     StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
     pFootShadowTbl = pl_fs_tbl;
 }
@@ -107,14 +107,14 @@ void cPlKlauser::setMotion()
 }
 
 // Per-frame update: the common cPlayer::move, then the arm's idle effects (EstSet types 0 and
-// 0x15 in group 0x3F on the player) once x894 counts down to 0; the debug combination Joy
+// 0x15 in group 0x3F on the player) once krEffWait counts down to 0; the debug combination Joy
 // 0x640 kills the effects and restarts the count.
 void cPlKlauser::move()
 {
     cPlayer::move();
-    if (x894 > 0) {
-        x894--;
-        if (x894 == 0) {
+    if (krEffWait > 0) {
+        krEffWait--;
+        if (krEffWait == 0) {
             EstSet(this, -1, 0, 0, 3, 0, 0, 0x3F, this, 0);
             EstSet(this, -1, 0, 0, 3, 0x15, 0, 0x3F, this, 0);
         }
@@ -123,7 +123,7 @@ void cPlKlauser::move()
         EffectEspDelete(0, 0x3F, this, 0);
         EffectEspgenDelete(0, 0x3F, this);
         EffectEfmDelete(0, 0x3F, this);
-        x894 = 1;
+        krEffWait = 1;
     }
 }
 
@@ -173,7 +173,7 @@ static inline void alphaFlag(cModelInfo* m)
 
 // Arm cross-fade: while Status_flg[3] bit23 (mutated) the mutated arm krModel[1] fades in
 // (+0x40 per frame) and the normal arm krModel[0] out, else the reverse; be_flag bit3 (draw)
-// follows the alpha. The glow model krModel[2] fades out while x894 != 0 (effects pending /
+// follows the alpha. The glow model krModel[2] fades out while krEffWait != 0 (effects pending /
 // attack cooldown), else fades in and pulses on a 32-frame triangle (x898) between pl0aAlphaBase
 // (80) and 255.
 void cPlKlauser::transMove()
@@ -189,7 +189,7 @@ void cPlKlauser::transMove()
     }
     alphaFlag(krModel[0]);
     alphaFlag(krModel[1]);
-    if (x894 != 0) {
+    if (krEffWait != 0) {
         if (krModel[2]->color[3] > step) {
             krModel[2]->color[3] = krModel[2]->color[3] - step;
         } else {
@@ -225,17 +225,17 @@ void cPlKlauser::transMove()
 }
 
 // X button (cPlayer::actionSelect / PlKnifeMove): with the arm normal and the effects settled
-// (x894 == 0) starts the mutation attack: routine 1 = 0xA (aux) with pFuncAux =
-// pl_R1_KlauserAttack, x894 = -1 (glow off). Returns 1 when the routine was taken.
+// (krEffWait == 0) starts the mutation attack: routine 1 = 0xA (aux) with pFuncAux =
+// pl_R1_KlauserAttack, krEffWait = -1 (glow off). Returns 1 when the routine was taken.
 int cPlKlauser::checkXbutton()
 {
-    if ((Joy[0].trg & 0x400) && !StaFlagChk(pG, STA_KLAUSER_TRANSFORM) && x894 == 0) {
+    if ((Joy[0].trg & 0x400) && !StaFlagChk(pG, STA_KLAUSER_TRANSFORM) && krEffWait == 0) {
         pFuncAux = pl_R1_KlauserAttack;
         r_no_0 = 0;
         r_no_1 = 0xA;
         r_no_2 = 0;
         r_no_3 = 0;
-        x894 = -1;
+        krEffWait = -1;
         return 1;
     }
     return 0;
@@ -290,9 +290,9 @@ void cPlKlauser::setModel()
     Body->pFace = info;
     face = Body->pFace;
     if (VALID_PTR(face)) {
-        face->x84 = 0.0f;
-        face->x70 = 0.0f;
-        face->x5C = 0.0f;
+        face->mat[2][2] = 0.0f;
+        face->mat[1][1] = 0.0f;
+        face->mat[0][0] = 0.0f;
     }
     info = ModInfoMgr.create(PL_ARC(0xF), PL_ARC(0x10));
     if (!VALID_PTR(info)) {
@@ -452,7 +452,7 @@ void cPlKlauser::setHead(void* bin, void* tpl)
 // effects / SEs, the weapon hidden); 0xA/0xB the mutated stance 0x8B (stick turns; A button ->
 // the slash 0x14, X/B -> revert 0x1E); 0x14/0x15 the slash 0x8C: PlWepHitCheck2 as weapon 0x2D
 // over 3 m for the first 15 frames with the player's own damage info armed (dmg.set 0x80) and
-// atari priority raised, the arm reverts at frame 30, then a 0x546-frame cooldown (x894) and
+// atari priority raised, the arm reverts at frame 30, then a 0x546-frame cooldown (krEffWait) and
 // back to footwork; 0x1E/0x1F the revert motion 0x89 (bit23 off, weapon shown) into footwork.
 static void pl_R1_KlauserAttack(cPlayer* pl)
 {
@@ -520,7 +520,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
             EffectEspDelete(0, 0x3F, pl, 0);
             EffectEspgenDelete(0, 0x3F, pl);
             EffectEfmDelete(0, 0x3F, pl);
-            pl->x894 = 0x546;
+            pl->krEffWait = 0x546;
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
             pl->r_no_2 = 0;
@@ -531,7 +531,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->motionSet(PL_ARC(0x89), 5, 0, 1, 0);
         pl->x890 = 0x14;
         StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
-        pl->x894 = 1;
+        pl->krEffWait = 1;
         EffectEspDelete(0, 0x3F, pl, 0);
         EffectEspgenDelete(0, 0x3F, pl);
         EffectEfmDelete(0, 0x3F, pl);

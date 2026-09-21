@@ -103,9 +103,9 @@ void cPlLeon::setModel()
     Body->pFace = info;
     face = Body->pFace;
     if (VALID_PTR(face)) {
-        face->x84 = 0.0f;
-        face->x70 = 0.0f;
-        face->x5C = 0.0f;
+        face->mat[2][2] = 0.0f;
+        face->mat[1][1] = 0.0f;
+        face->mat[0][0] = 0.0f;
     }
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 8), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
