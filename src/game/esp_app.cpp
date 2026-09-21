@@ -485,11 +485,11 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     w->max_laser_dist *= width;
     if (StaFlagChk(pGS, STA_LASERSITE_NOADD)) {
         cEsp* e1 = esp;
-        e1->xA4 = 1;
+        e1->m_Blend_mode = 1;
         asm("" : "=m"(esp) : "r"(e1), "r"(e1)); // COMPILER-DIFF: candidate (local-alloc qty order)
-        esp->xA5 = 4;
-        esp->xA6 = 5;
-        esp->xA7 = 0;
+        esp->m_Src_factor = 4;
+        esp->m_Dst_factor = 5;
+        esp->m_Logic_op = 0;
         esp->m_Col_a *= 0.8f;
     }
 }

@@ -64,7 +64,7 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     f32 d;
     u8 r, g, b, a;
 
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     CameraCurrentProjection();
     GXSetCullMode(0);
     if ((color >> 24) == 0xFE) {

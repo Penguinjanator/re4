@@ -345,10 +345,10 @@ void drawPoint(Vec* p0, Vec* p1)
         // in r9. Pinned, no code emitted.
         register cEsp* e asm("r11");
         e = esp;
-        e->xA4 = 1;
-        esp->xA5 = 4;
-        esp->xA6 = 5;
-        esp->xA7 = 0;
+        e->m_Blend_mode = 1;
+        esp->m_Src_factor = 4;
+        esp->m_Dst_factor = 5;
+        esp->m_Logic_op = 0;
     }
 }
 

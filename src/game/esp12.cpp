@@ -101,7 +101,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     CameraCurrentProjection();
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     // The original holds the `(f32) w->n` conversion's 0x43300000 word in a callee-saved
     // register loaded at the top of this block (three refs, so local-alloc does not move the

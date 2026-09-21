@@ -11,9 +11,9 @@
 #include "esp.h"
 
 struct Esp06Work {
-    u8 PathId;    // 0x00 (gen->xC9)
-    u8 Flg;     // 0x01 bit0: loop, bit1: stop at the end, bit2: stopped, bit7: has matrix (gen->xCA)
-    u16 pathId;   // 0x02 (gen->xC8)
+    u8 PathId;    // 0x00 (gen->Work8[1])
+    u8 Flg;     // 0x01 bit0: loop, bit1: stop at the end, bit2: stopped, bit7: has matrix (gen->Work8[2])
+    u16 pathId;   // 0x02 (gen->Work8[0])
     u16 seg;      // 0x04 current path segment (PathGetPos reads/writes a halfword)
     u8 pad_6[2];
     void* pPath;   // 0x08
@@ -22,8 +22,8 @@ struct Esp06Work {
     Mtx PathMat;      // 0x1C rotation / scale applied to the path
     f32 PathSpeed;      // 0x4C
     f32 PathAccele;      // 0x50
-    u8 StopFrame;  // 0x54 frames to wait at a loop restart (gen->xFC)
-    u8 StopFrameRnd;   // 0x55 random addition to waitBase (gen->xFD)
+    u8 StopFrame;  // 0x54 frames to wait at a loop restart (gen->WorkSp8[0])
+    u8 StopFrameRnd;   // 0x55 random addition to waitBase (gen->WorkSp8[1])
     u8 wait;      // 0x56
 };
 

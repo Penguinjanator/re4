@@ -526,10 +526,10 @@ public:
     f32 m_Col_d_g;       // 0x98
     f32 m_Col_d_b;       // 0x9C
     f32 m_Col_d_a;       // 0xA0
-    u8 xA4;            // 0xA4 GXSetBlendMode type (xA5 src factor, xA6 dst factor, xA7 logic op)
-    u8 xA5;            // 0xA5
-    u8 xA6;            // 0xA6
-    u8 xA7;            // 0xA7
+    u8 m_Blend_mode;   // 0xA4 GXSetBlendMode arguments (esp_sub bl[Blend_type], esp42/esp_app/objWep set them by hand; GC only, no PS2 field)
+    u8 m_Src_factor;   // 0xA5
+    u8 m_Dst_factor;   // 0xA6
+    u8 m_Logic_op;     // 0xA7
     u16 m_Col_max_cnt;           // 0xA8
     u16 m_Col_start_cnt;           // 0xAA
     u16 m_Pos_start_cnt;        // 0xAC frames the speed is applied (0 = always)

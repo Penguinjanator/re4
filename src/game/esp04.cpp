@@ -12,11 +12,11 @@
 
 struct Esp04Work {
     Vec base_pos;      // 0x00 initial position
-    u8 flag;   // 0x0C bit0: repeat horizontally, bit1: repeat vertically (gen->xC8)
-    s8 rand_x;      // 0x0D random jitter in x (gen->xC9)
-    s8 rand_y;      // 0x0E random jitter in y (gen->xCA)
+    u8 flag;   // 0x0C bit0: repeat horizontally, bit1: repeat vertically (gen->Work8[0])
+    s8 rand_x;      // 0x0D random jitter in x (gen->Work8[1])
+    s8 rand_y;      // 0x0E random jitter in y (gen->Work8[2])
     s8 a_rate;   // 0x0F alpha change per frame (gen->prm byte 0xCF)
-    u8 a_wait;  // 0x10 frames before the alpha starts changing (gen->xCB)
+    u8 a_wait;  // 0x10 frames before the alpha starts changing (gen->Work8[3])
 };
 
 // Screen-space tiled texture (rain / dust overlay): a 2D quad grid drawn in an orthographic
@@ -192,7 +192,7 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);

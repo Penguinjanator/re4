@@ -9,13 +9,13 @@
 #include "esp.h"
 
 struct Esp11Work {
-    u8 CutNo;         // 0x00 light type (gen->xC9)
-    u8 LitNo;           // 0x01 light number (gen->xCA)
-    u8 Kind;         // 0x02 0/1: create a light, 2: fixed type 8, 3: no light (gen->xC8)
-    u8 Type;         // 0x03 1: light follows the sprite (gen->xCB)
+    u8 CutNo;         // 0x00 light type (gen->Work8[1])
+    u8 LitNo;           // 0x01 light number (gen->Work8[2])
+    u8 Kind;         // 0x02 0/1: create a light, 2: fixed type 8, 3: no light (gen->Work8[0])
+    u8 Type;         // 0x03 1: light follows the sprite (gen->Work8[3])
     cLight* pLi;  // 0x04
     GXColor Base_col;     // 0x08 base color of the light
-    u8 ToolState;    // 0x0C (gen->xFC)
+    u8 ToolState;    // 0x0C (gen->WorkSp8[0])
 };
 
 // Light source effect: creates a cLight and (mode 1) drives its position and color from the

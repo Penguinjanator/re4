@@ -107,7 +107,7 @@ void EspStrip02_setup(cEsp02* esp)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(0, 1);

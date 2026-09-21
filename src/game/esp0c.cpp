@@ -11,8 +11,8 @@
 #include "esp.h"
 
 struct Esp0cWork {
-    u8 EstNo;      // 0x00 est number (gen->xC8)
-    u8 EstOwner_wt;     // 0x01 (gen->xC9)
+    u8 EstNo;      // 0x00 est number (gen->Work8[0])
+    u8 EstOwner_wt;     // 0x01 (gen->Work8[1])
     u8 EstNo_wt;     // 0x02 est number used when the sprite hit water (gen->prm byte 0xCF)
     u8 estPrm2;    // 0x03 (gen->prm byte 0xD3)
     u32 onWater;   // 0x04 1: the position was raised to the water surface

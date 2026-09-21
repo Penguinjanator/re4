@@ -18,13 +18,13 @@ struct Esp0eWork {
     Vec wld_pos;       // 0x00 world position
     Vec dir_vec;        // 0x0C facing direction (world)
     f32 dir_ang;      // 0x18 half angle of the visible cone (rad)
-    f32 center_dist_ratio;   // 0x1C 1 - gen->xD8 / 100: screen-centre fade factor
-    f32 size_ratio;   // 0x20 gen->xDC / 100: how much the alpha scales the size
-    f32 del_dist;       // 0x24 camera distance where the glow is gone (gen->xE0)
+    f32 center_dist_ratio;   // 0x1C 1 - gen->Vec0.x / 100: screen-centre fade factor
+    f32 size_ratio;   // 0x20 gen->Vec0.y / 100: how much the alpha scales the size
+    f32 del_dist;       // 0x24 camera distance where the glow is gone (gen->Vec0.z)
     Vec scr;        // 0x28 screen position (z: view depth)
     Vec scrOld;     // 0x34 previous screen position
     f32 hideAlpha;  // 0x40 alpha from the Z-buffer visibility test
-    f32 hide_r;      // 0x44 radius of the visibility test (gen->xE4)
+    f32 hide_r;      // 0x44 radius of the visibility test (gen->Vec1.x)
     f32 alpha;      // 0x48 final alpha
     u16 flg;      // 0x4C bit0: direction test, bit1: visibility test
     u16 delay_cnt;    // 0x4E frames the visibility test is forced to 0

@@ -11,7 +11,7 @@
 
 struct Esp03Work {
     s8 maxPoints;         // 0x00 number of trail points (2..6), 10: single camera-facing quad
-    u8 hitWall;   // 0x01 bit0: stop at walls (gen->xC9)
+    u8 hitWall;   // 0x01 bit0: stop at walls (gen->Work8[1])
     u8 pad_2[7];
     u8 idx;       // 0x09 ring buffer index of the next point
     u16 Width;    // 0x0A line width
@@ -111,7 +111,7 @@ extern "C" void Esp03_Trans(cEsp03* esp)
     esp->ChannelSet();
     GXSetTevOp(0, 4);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
     GXSetVtxDesc(0xB, 1);

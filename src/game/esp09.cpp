@@ -16,7 +16,7 @@
 
 struct Esp09Work {
     s8 maxPoints;         // 0x00 number of trail points (2..6)
-    u8 flg;     // 0x01 bit0: screen space, bit1: record a point every other frame (gen->xC9)
+    u8 flg;     // 0x01 bit0: screen space, bit1: record a point every other frame (gen->Work8[1])
     u8 pad_2[10];
     u8 hidden;    // 0x0C set by the Z-buffer test (screen space trail)
     u8 nPos;       // 0x0D ring buffer index of the newest point
@@ -209,7 +209,7 @@ void Esp09_Trans_Setup(cEsp09* esp)
     EspChannelSet09(esp);
     GXSetTevOp(0, 4);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
     GXSetVtxDesc(0xB, 1);

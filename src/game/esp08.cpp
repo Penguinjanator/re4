@@ -507,7 +507,7 @@ void Esp08_Trans(cEsp08* esp)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     {
         GXTexObj tex;
@@ -540,7 +540,7 @@ void Esp08_Trans(cEsp08* esp)
 }
 
 // Heat-shimmer variant: the frame is copied into a texture and warped through an indirect
-// texture (esp->xEC selects the warp mode, type scales the distortion), tiled like Esp08_Trans.
+// texture (esp->m_Shimmer_type selects the warp mode, type scales the distortion), tiled like Esp08_Trans.
 void Esp08_TransShimmer(cEsp08* esp, int type)
 {
     static Mtx Matrix1 = {
@@ -637,7 +637,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;

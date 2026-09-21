@@ -20,7 +20,7 @@
 
 struct Esp18Work {
     Vec base_pos;    // 0x00 initial position
-    f32 blur_rate;   // 0x0C -gen->xD8
+    f32 blur_rate;   // 0x0C -gen->Vec0.x
 };
 
 // Heat shimmer: copies the frame buffer and redraws it through an indirect texture in
@@ -153,7 +153,7 @@ void Esp18_Trans(cEsp18* esp)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
     GXSetVtxDesc(0xA, 1);

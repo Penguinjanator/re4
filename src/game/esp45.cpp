@@ -18,19 +18,19 @@ struct Esp45Work {
     Vec wld_pos;       // 0x00 world position
     f32 pos_x;         // 0x0C screen position x
     f32 pos_y;         // 0x10 screen position y
-    u8 type;        // 0x14 gen->xC8: Filter00 spread type
+    u8 type;        // 0x14 gen->Work8[0]: Filter00 spread type
     u8 alpha;       // 0x15 colour alpha as a byte
-    u8 rate;        // 0x16 gen->xC2
+    u8 rate;        // 0x16 gen->Blend_type
     u8 pad_17;
     f32 power;      // 0x18 scaleSpd: spread power
     f32 sz;         // 0x1C view depth
     Vec scrOld;     // 0x20 previous screen position (z: view depth)
     f32 hide_alpha;  // 0x2C alpha from the Z-buffer visibility test
-    f32 hide_r;      // 0x30 radius of the visibility test (gen->xE4)
+    f32 hide_r;      // 0x30 radius of the visibility test (gen->Vec1.x)
     u8 pad_34[4];
     u16 flg;      // 0x38 bit1: visibility test
     u16 delay_cnt;    // 0x3A
-    f32 del_dist;       // 0x3C camera distance where the glow is gone (gen->xE0)
+    f32 del_dist;       // 0x3C camera distance where the glow is gone (gen->Vec0.z)
 };
 
 // Additive radial blur (Filter00 spread) at the projected position, faded by camera distance and

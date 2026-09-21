@@ -14,8 +14,8 @@
 #define ESP_STRIP_PTS_MAX 16
 
 struct Esp01Work {
-    u16 Wari_num;      // 0x00 number of strip segments (15 - gen->xC8, clamped)
-    u16 interval;  // 0x02 frames between two trail points (gen->xC9)
+    u16 Wari_num;      // 0x00 number of strip segments (15 - gen->Work8[0], clamped)
+    u16 interval;  // 0x02 frames between two trail points (gen->Work8[1])
     u32 x4;        // 0x04
     Vec pos0;      // 0x08 position at the time the sprite left its parent
 };
@@ -107,7 +107,7 @@ void EspStrip01_setup(cEsp01* esp)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(0, 1);

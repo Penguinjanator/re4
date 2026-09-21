@@ -34,7 +34,7 @@ struct Espgen02Work {
     u8 Next_cnt;        // 0x26 frames left until the next emission
     u8 Set_num;            // 0x27 emissions per frame - 1
     u32 Rand_seed;          // 0x28
-    u8 Espgen_flg;          // 0x2C rec->x10B: bit0 spread the angle, bit1 fixed seed
+    u8 Espgen_flg;          // 0x2C rec->Espgen_flg: bit0 spread the angle, bit1 fixed seed
     u8 Flg;         // 0x2D bit0 parts matrix fixed, bit1 head flag, bit2 scale, bit3 pass the position on
     u8 Null_parts_no;          // 0x2E
     u8 R_inter;        // 0x2F random range added to the wait

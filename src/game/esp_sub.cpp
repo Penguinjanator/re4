@@ -107,7 +107,7 @@ void EspCommonTrans(cEsp* esp)
         EspCommonTransNega(esp, 2);
         return;
     }
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     if (OtGetPrevKind() != 8) {
         if (ESP_PARTS_SCREEN(esp)) {
             Mtx44 proj;
@@ -440,7 +440,7 @@ void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
     GXSetVtxDesc(0xA, 1);
@@ -722,7 +722,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -1277,10 +1277,10 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
             return 0;
         }
         e.p->m_Blend_type = rec->Blend_type;
-        e.p->xA4 = bl[rec->Blend_type][0];
-        e.p->xA5 = bl[rec->Blend_type][1];
-        e.p->xA6 = bl[rec->Blend_type][2];
-        e.p->xA7 = bl[rec->Blend_type][3];
+        e.p->m_Blend_mode = bl[rec->Blend_type][0];
+        e.p->m_Src_factor = bl[rec->Blend_type][1];
+        e.p->m_Dst_factor = bl[rec->Blend_type][2];
+        e.p->m_Logic_op = bl[rec->Blend_type][3];
         if (rec->Blend_type == 4) {
             e.p->m_Flg |= 1;
         }

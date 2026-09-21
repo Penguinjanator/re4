@@ -13,14 +13,14 @@
 #include "esp.h"
 
 struct Esp16Work {
-    u32 Num;        // 0x00 number of chain points (gen->xC8 + 2)
+    u32 Num;        // 0x00 number of chain points (gen->Work8[0] + 2)
     cEsp3f* pos;    // 0x04 point positions
     cEsp3f* spd;    // 0x08 point speeds
-    Vec grav;       // 0x0C acceleration added every frame (gen->xE4..)
-    Vec rand_plus;        // 0x18 random jitter amplitude (gen->xF0..)
-    f32 nen;    // 0x24 how much of the constraint correction feeds back into the speed (gen->xE0 / 100)
-    f32 del;       // 0x28 speed damping (gen->xDC / 100)
-    f32 max_len;        // 0x2C segment length (gen->xD8)
+    Vec grav;       // 0x0C acceleration added every frame (gen->Vec1)
+    Vec rand_plus;        // 0x18 random jitter amplitude (gen->Vec2)
+    f32 nen;    // 0x24 how much of the constraint correction feeds back into the speed (gen->Vec0.z / 100)
+    f32 del;       // 0x28 speed damping (gen->Vec0.y / 100)
+    f32 max_len;        // 0x2C segment length (gen->Vec0.x)
     cModel* pParts;  // 0x30 model part the far end is attached to
 };
 
@@ -176,7 +176,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     CameraCurrentProjection();
     EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
-    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
     esp->CommonStateSet();
     // The original sets t through an intermediate the copy never absorbed (`lfs f12, 0.0; fmr
     // f29, f12`) and its block ends right after the zero load: `lbz partsNo`, the 1.0 high, the

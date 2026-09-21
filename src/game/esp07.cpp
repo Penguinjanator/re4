@@ -10,16 +10,16 @@
 #include "esp.h"
 
 struct Esp07Work {
-    Vec RefRate;    // 0x00 x: horizontal damping, y: vertical damping (gen->xD8.. * 0.1)
-    u8 GndEstOwner;      // 0x0C est on floor hit (gen->xC8)
-    u8 GndEstNo;     // 0x0D (gen->xC9)
-    u8 WallEstOwner;     // 0x0E est on wall hit (gen->xCA)
-    u8 WallEstNo;    // 0x0F (gen->xCB)
-    u32 HitType;   // 0x10 0: floor (cached), 1: floor, 2: wall (gen->xFC)
-    u32 EstCall;   // 0x14 0: bounce, 1: est + die, 2: est + bounce, 3: die (gen->xFD)
+    Vec RefRate;    // 0x00 x: horizontal damping, y: vertical damping (gen->Vec0.x.. * 0.1)
+    u8 GndEstOwner;      // 0x0C est on floor hit (gen->Work8[0])
+    u8 GndEstNo;     // 0x0D (gen->Work8[1])
+    u8 WallEstOwner;     // 0x0E est on wall hit (gen->Work8[2])
+    u8 WallEstNo;    // 0x0F (gen->Work8[3])
+    u32 HitType;   // 0x10 0: floor (cached), 1: floor, 2: wall (gen->WorkSp8[0])
+    u32 EstCall;   // 0x14 0: bounce, 1: est + die, 2: est + bounce, 3: die (gen->WorkSp8[1])
     u32 Flg;     // 0x18 bit0: stopped, bit1: floor height cached
     f32 GndHeight;    // 0x1C
-    u8 SeType;     // 0x20 (gen->xFE)
+    u8 SeType;     // 0x20 (gen->WorkSp8[2])
 };
 
 // Bouncing particle: checks the floor (or walls) every frame, bounces / spawns an est / dies.
