@@ -891,7 +891,7 @@ static void R332BossDown()
     StaFlagOff(pG, STA_SUSPEND);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
+        CamCtrl.deleteAttachCamera(em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
         em->setDownBody();
     }
@@ -968,15 +968,15 @@ static void R332RocketShootMain(int type)
     AtariOffRaw(&pPL->atari, 0xFCFF);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
-    CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
+    CamCtrl.deleteAttachCamera(pPL->Motion.pAttachCam, pPL);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
+        CamCtrl.deleteAttachCamera(em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
     }
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) em->Motion.pAttachCam, em);
+        CamCtrl.deleteAttachCamera(em->Motion.pAttachCam, em);
         em->setNoSuspend(1);
     }
     CamCtrl.clearAttachCamera();
@@ -1061,7 +1061,7 @@ static void R332RocketShootMain(int type)
                 SceSleep(1);
             }
             obj->be_flag &= ~2;
-            CamCtrl.deleteAttachCamera((AttachCamera*) obj->Motion.pAttachCam, obj);
+            CamCtrl.deleteAttachCamera(obj->Motion.pAttachCam, obj);
         }
         obj = r332_work->rocket;
         if (obj) {
@@ -1360,7 +1360,7 @@ static void R332ExecCrane(int no)
         if (d < r332_craneRange + reach && em->hp > 0) {
             hitDone = 1;
             em->setCranePos((u8) no);
-            CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
+            CamCtrl.deleteAttachCamera(pPL->Motion.pAttachCam, pPL);
             MotionSetCore(crane, &crane->Motion, mot, 0, 3, 0x201, 0);
             while (MotionGetState(pPL) == 0) {
                 SceSleep(1);
@@ -1402,7 +1402,7 @@ static void R332ExecCrane(int no)
         SceSleep(1);
     }
     if (endDone == 0) {
-        CamCtrl.deleteAttachCamera((AttachCamera*) crane->Motion.pAttachCam, crane);
+        CamCtrl.deleteAttachCamera(crane->Motion.pAttachCam, crane);
         R332ExecCraneEnd(no, atNo);
     }
     if (RsfCheck(G_ROOM_ID, rsfNo) == 0) {

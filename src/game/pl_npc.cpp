@@ -2067,7 +2067,7 @@ void cSubChar::moveDie()
 {
     switch (r_no_1) {
     case 0:
-        CamCtrl.deleteAttachCamera((AttachCamera*) pPL->Motion.pAttachCam, pPL);
+        CamCtrl.deleteAttachCamera(pPL->Motion.pAttachCam, pPL);
         if (SUBFLAG2(this)->check(5)) {
             MOT_SET(pEm, MOTION(pEm), SUB_MOT(pEm, 0x30), 0, 3, 1, 0x32);
         } else {
