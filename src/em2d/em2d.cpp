@@ -408,7 +408,7 @@ void em2dDmCk(cEm2d* em)
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
     }
-    w->x50C = 0;
+    w->wakeWait = 0;
     w->flags |= 0x200;
     near = 0;
     part = em->dmg.m_pDamageYarare;
@@ -879,15 +879,15 @@ void em2dInitRtnSet(cEm2d* em)
     w->wallNrm.z = 0.0f;
     w->humTimer = Rnd() % 90 + 90;
     w->effTimer = 5;
-    w->x4D0 = zero;
+    w->revealTimer = zero;
     w->poisonTimer = zero;
     w->dmgTotal = zero;
     w->atkCnt = zero;
-    w->x50C = zero;
+    w->wakeWait = zero;
     w->sndId = zero;
     w->dmGuard = zero;
     w->catchGuard = zero;
-    w->x534 = zero;
+    w->humSeWait = zero;
     w->Reset_enable = zero;
     w->homePos = em->pos;
     if (em->type != 4) {
@@ -1063,7 +1063,7 @@ static void em2d_R0_Init(cEm2d* em)
     w->espKind = EspPullCoreKind();
     w->espKind2 = EspPullCoreKind();
     w->espKind3 = EspPullCoreKind();
-    w->x535 = one;
+    w->eyeState = one;
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
     if (em->type == 4) {
@@ -1949,7 +1949,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage routine of the face grab: grabbed (weapon hidden), the struggle, the throw-off, the
@@ -2094,7 +2094,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2197,7 +2197,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage routine of the knock-down: the fall motion, then the standard knock-down (PlSetDamage 8).
@@ -2225,7 +2225,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
         }
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -2375,12 +2375,12 @@ static void em2d_R1_WakeupWait(cEm2d* em)
     w->flags |= 0x20000;
     switch (em->r_no_2) {
     case 0:
-        w->x50C = Rnd() % 30 + 30;
+        w->wakeWait = Rnd() % 30 + 30;
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (w->x50C) {
-            w->x50C--;
+        if (w->wakeWait) {
+            w->wakeWait--;
         } else if ((hit = em2dDownJumpCk(em)) == 0) {
             EmRoutineSet(em, 1, 0xF, hit, hit);
         }
@@ -3783,7 +3783,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         }
         break;
     }
-    em->x3A8 = em->pos;
+    em->Catch_at_adj = em->pos;
 }
 
 // Player damage routine of the flying face grab: like plem2d_JumpAtkHit (struggle, throw-off, kick,
@@ -3876,7 +3876,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     }
-    pl->x3A8 = pl->pos;
+    pl->Catch_at_adj = pl->pos;
     pl->subArc = pl->subArc2;
 }
 
@@ -5170,7 +5170,7 @@ void em2dCamouflageMove(cEm2d* em)
     }
     em->Refract_pow = em2d_tex_flag;
     if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
-        w->x4D0 = 0;
+        w->revealTimer = 0;
         em->Refract_ratio = 0xFF;
     }
     if (em->Refract_ratio == 0) {
@@ -5178,13 +5178,13 @@ void em2dCamouflageMove(cEm2d* em)
             w->humTimer--;
         } else {
             w->humTimer = Rnd() % 150 + 150;
-            w->x4D0 = 20;
+            w->revealTimer = 20;
         }
     } else {
-        w->x4D0 = 0;
+        w->revealTimer = 0;
     }
-    if (w->x4D0) {
-        w->x4D0--;
+    if (w->revealTimer) {
+        w->revealTimer--;
         on = 1;
     }
     if (em->Refract_ratio == 0xFF) {
@@ -5197,7 +5197,7 @@ void em2dCamouflageMove(cEm2d* em)
         if (w->blendRatio == 0xFF) {
             // one routine-scope `f` set in both arms: the fade value is a global pseudo (f12) and the
             // two pool constants are local-allocated first (12.8/3.2 f0, 0.9 f13)
-            if (w->x4D0) {
+            if (w->revealTimer) {
                 f = (f32) info->color[3];
                 f = f * 0.899999976f + 12.8000002f;
                 info->color[3] = (u8) f;
@@ -6059,7 +6059,7 @@ int cEm2d::ckFindPL()
     return 0;
 }
 
-// The eye glow: blinks the eye parts by the x535 state machine while alive.
+// The eye glow: blinks the eye parts by the eyeState state machine while alive.
 void em2dEyeMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6081,13 +6081,13 @@ void em2dEyeMove(cEm2d* em)
     if (w->flags & 0x20000) {
         st = 0;
     }
-    if (st == w->x535) {
+    if (st == w->eyeState) {
         return;
     }
     EffectEspDelete(0, w->espKind2, em, 0);
     EffectEspgenDelete(0, w->espKind2, em);
     EffectEfmDelete(0, w->espKind2, em);
-    switch (w->x535) {
+    switch (w->eyeState) {
     case 1:
         EstSet(em, -1, 0, 0, EFF_EM2D, 0x12, 0, ESP_CORE_KIND_NONE, em, 0);
         break;
@@ -6095,7 +6095,7 @@ void em2dEyeMove(cEm2d* em)
         EstSet(em, -1, 0, 0, EFF_EM2D, 0x11, 0, ESP_CORE_KIND_NONE, em, 0);
         break;
     }
-    w->x535 = st;
+    w->eyeState = st;
     switch (st) {
     case 1:
         EstSet(em, -1, 0, 0, EFF_EM2D, 0x10, 0, w->espKind2, em, 0);
@@ -6492,8 +6492,8 @@ void em2dHumSeMove(cEm2d* em)
         EstSet(em, -1, 0, 0, EFF_EM2D, 0x27, 0, w->espKind3, em, 0);
         w->flags |= 0x100000;
     }
-    if (w->x534) {
-        w->x534--;
+    if (w->humSeWait) {
+        w->humSeWait--;
         return;
     }
     cam = &pG->Camera;
@@ -6516,7 +6516,7 @@ void em2dHumSeMove(cEm2d* em)
     if (cnt > 2) {
         return;
     }
-    w->x534 = 29;
+    w->humSeWait = 29;
     SndCall(8, 0x32, &em->pos, em->id, 0, em);
 }
 

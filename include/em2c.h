@@ -65,9 +65,9 @@ struct Em2cWork {
     f32 Compress_y;             // 0x558 (0x938)  em2cScaleCompress: scale.y factor (vendor name as em10/em2b)
     Vec wallNrm;          // 0x55C (0x93C)  normal of the wall / ceiling the enemy stands on ((0, 1, 0) on the floor)
     int lockCnt;          // 0x568 (0x948)
-    int x56C;             // 0x56C (0x94C)
+    int wakeWait;         // 0x56C (0x94C)  em2c_R1_WakeupWait: Rnd % 30 + 30 before em2cDownJumpCk
     int Dash_wait;             // 0x570 (0x950)  150 after Dash / DoorOpenCk; Walk waits for 0 (vendor name as em10)
-    int x574;             // 0x574 (0x954)
+    int doorWait;         // 0x574 (0x954)  em2cDoorOpenCk: Rnd % 15 + 15 after hitting a door
     Vec wallTarget;       // 0x578 (0x958)  wall walk target (em2cGetPlDir at the wall walk start)
     f32 Neck_dir_y;             // 0x584 (0x964)  em2cNeckMove: smoothed head yaw -> addRot.y (vendor name as em39)
     int guardCnt;         // 0x588 (0x968)  damage guard: frames (counts down, minus dmg / 6 per hit)
@@ -91,7 +91,7 @@ struct Em2cWork {
     u16 breathTimer;      // 0x6B4 (0xA94)
     u8 pad_6B6;
     u8 atkHit;            // 0x6B7 (0xA97)  attack already hit this motion
-    u8 x6B8;              // 0x6B8 (0xA98)  player action callback set
+    u8 actDone;           // 0x6B8 (0xA98)  the player action (kick / sit / backjump callback) fired; no ActBtn.set while set
     u8 pad_6B9;
     u8 espKind2;          // 0x6BA (0xA9A)  EspPullCoreKind at creation
     u8 espKind;           // 0x6BB (0xA9B)

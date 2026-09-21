@@ -383,7 +383,7 @@ void em2cDmCk(cEm2c* em)
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
     }
-    w->x56C = 0;
+    w->wakeWait = 0;
     near = 0;
     part = em->dmg.m_pDamageYarare;
     if (part->rad < 36000000.0f) {
@@ -787,7 +787,7 @@ void em2cTailDmCk(cEm2c* em)
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
     }
-    w->x56C = 0;
+    w->wakeWait = 0;
     near = 0;
     if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
@@ -940,8 +940,8 @@ void cEm2c::move()
     if (w->Dash_wait) {
         w->Dash_wait--;
     }
-    if (w->x574) {
-        w->x574--;
+    if (w->doorWait) {
+        w->doorWait--;
     }
     if (w->atkCnt > 450) {
         w->flags |= 0x2000;
@@ -1028,11 +1028,11 @@ void em2cInitRtnSet(cEm2c* em)
     w->Neck_dir_y = 0.0f;
     w->dmgTotal = zero;
     w->atkCnt = zero;
-    w->x56C = zero;
+    w->wakeWait = zero;
     w->dmGuard = zero;
     w->Dash_wait = zero;
     w->effTimer = zero;
-    w->x574 = zero;
+    w->doorWait = zero;
     w->pTail = (cEm*) zero;
     w->x534 = zero;
     w->homePos = em->pos;
@@ -2349,15 +2349,15 @@ static void em2c_R1_WakeupWait(cEm2c* em)
     w->flags |= 0x400;
     switch (em->r_no_2) {
     case 0:
-        w->x56C = Rnd() % 30 + 30;
+        w->wakeWait = Rnd() % 30 + 30;
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
         if ((w->flags & 0x800) && w->guardCnt == 0) {
-            w->x56C = w->guardCnt;
+            w->wakeWait = w->guardCnt;
         }
-        if (w->x56C) {
-            w->x56C--;
+        if (w->wakeWait) {
+            w->wakeWait--;
             break;
         }
         r = em2cDownJumpCk(em);
@@ -2641,7 +2641,7 @@ static void em2c_R1_HideWait(cEm2c* em)
     case 0:
         em->r_no_2++;
         w->mode = 3;
-        w->x6B8 = fe;
+        w->actDone = fe;
         AtariOff(&em->atari, 0xFCFF);
         em->invisible_factor = 1.0f;
         em->be_flag |= 2;
@@ -2695,7 +2695,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
     switch (fe) {
     case 0:
         em->r_no_2++;
-        w->x6B8 = fe;
+        w->actDone = fe;
         w->mode = Rnd() % 3 + 1;
         AtariOff(&em->atari, 0xFCFF);
         w->pTail->flag &= ~4;
@@ -2724,7 +2724,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
             w->mode--;
             w->timer = 30;
             w->timer8 = 15;
-            if (w->x6B8) {
+            if (w->actDone) {
                 GetPlPos(&w->pTail->pos, 0.0f, 0);
             } else {
                 GetPlPos(&w->pTail->pos, 10.0f, 0);
@@ -2734,13 +2734,13 @@ static void em2c_R1_HideAtk(cEm2c* em)
             w->pTail->ang.y = LIMIT_ANGLE(em->ang.y);
             w->pTail->flag |= 1;
             w->pTail->flag &= ~4;
-            w->x6B8 = 0;
+            w->actDone = 0;
         } else {
             em->r_no_2++;
             break;
         }
         if (w->timer < w->timer8) {
-            if (w->x6B8 == 0) {
+            if (w->actDone == 0) {
                 if (em->r_no_3 == 0) {
                     if (w->mode) {
                         ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction2, em, 2, 3, 0, em->r_no_3);
@@ -2757,7 +2757,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         }
         break;
     case 2:
-        if (w->x6B8 == 0) {
+        if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 3.14159274f) + 3.14159274f;
@@ -2774,7 +2774,7 @@ static void em2c_R1_HideAtk(cEm2c* em)
         }
         if (w->timer) {
             w->timer--;
-            if (w->x6B8 == 0 && em->r_no_3 == 0) {
+            if (w->actDone == 0 && em->r_no_3 == 0) {
                 ActBtn.set(0x13, 0xB, (void*) em2cSitAction, em, 2, 4, 0, em->r_no_3);
             }
         }
@@ -3601,7 +3601,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
     switch (fe) {
     case 0:
         em->r_no_2++;
-        w->x6B8 = fe;
+        w->actDone = fe;
         if (em->r_no_3) {
             *(volatile int*) &w->timer = Rnd() % 150 + 100;  // volatile store: the pG load stays below it (a reference store folds the address to em+0x3E4)
             if (pG->Game_level <= 3) {
@@ -3652,10 +3652,10 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         w->timer = 70;
-        w->x6B8 = 0;
+        w->actDone = 0;
         em->r_no_2++;
     case 3:
-        if (w->x6B8 == 0) {
+        if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y += 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
@@ -3672,8 +3672,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
                 em->r_no_2 = 0;
                 break;
             }
-        } else if (w->x6B8 == 0) {
-            ActBtn.set(0x13, 0xB, (void*) em2cSitAction, em, 1, 4, 0, w->x6B8);
+        } else if (w->actDone == 0) {
+            ActBtn.set(0x13, 0xB, (void*) em2cSitAction, em, 1, 4, 0, w->actDone);
         }
         if (w->timer) {
             w->timer--;
@@ -3682,7 +3682,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         }
         break;
     case 4:
-        if (w->x6B8 == 0) {
+        if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
@@ -3701,8 +3701,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
         }
         if (w->timer) {
             w->timer--;
-            if (w->x6B8 == 0) {
-                ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 4, 0, w->x6B8);
+            if (w->actDone == 0) {
+                ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 4, 0, w->actDone);
             }
         }
         if (em->seFlags28B & 1) {
@@ -3713,7 +3713,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         break;
     case 6:
         em->r_no_2++;
-        w->x6B8 = 0;
+        w->actDone = 0;
         w->timer = 120;
     case 7:
         GetPlPos(&em->pos, 10.0f, 0);
@@ -3898,7 +3898,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
     switch (fe) {
     case 0:
         em->r_no_2++;
-        w->x6B8 = fe;
+        w->actDone = fe;
     case 1:
         GetPlPos(&em->pos, 10.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
@@ -3929,12 +3929,12 @@ static void em2c_R1_T_Wait(cEm2c* em)
             SndCall(8, 0x49, &em->pos, em->id, 0, em);
         }
         w->timer = 70;
-        w->x6B8 = 0;
+        w->actDone = 0;
         em->r_no_2++;
     case 3:
         if (em->r_no_3) {
             MotionSetCore(em, &em->Motion, ARC(0x8C), 0, 0, 5, 0);
-            if (w->x6B8 == 0) {
+            if (w->actDone == 0) {
                 GetPlPos(&em->pos, 10.0f, 0);
                 em->pos.y = pPLS->pos.y - 500.0f;
                 em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
@@ -3959,8 +3959,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
                 em->r_no_2 = 0;
                 break;
             }
-        } else if (w->x6B8 == 0) {
-            ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 3, 0, w->x6B8);
+        } else if (w->actDone == 0) {
+            ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 3, 0, w->actDone);
         }
         if (em->r_no_3) {
             int r = em2cFloorTypeCk(em);
@@ -3976,7 +3976,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         }
         break;
     case 4:
-        if (w->x6B8 == 0) {
+        if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y = pPLS->pos.y + 4000.0f;
             em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
@@ -4011,8 +4011,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
         }
         if (w->timer) {
             w->timer--;
-            if (w->x6B8 == 0) {
-                ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 3, 0, w->x6B8);
+            if (w->actDone == 0) {
+                ActBtn.set(0x25, 0xB, (void*) em2cBackjumpAction, em, 1, 3, 0, w->actDone);
             }
         }
         if (em->seFlags28B & 1) {
@@ -4037,7 +4037,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
     switch (fe) {
     case 0:
         em->r_no_2++;
-        w->x6B8 = fe;
+        w->actDone = fe;
     case 1:
         GetPlPos(&em->pos, 3.0f, 0);
         em->pos.y = pPLS->pos.y + 4000.0f;
@@ -4466,7 +4466,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
         EffectEspDelete(0, w->espKind2, em, 0);
         EffectEspgenDelete(0, w->espKind2, em);
         EffectEfmDelete(0, w->espKind2, em);
-        w->x6B8 = fe;
+        w->actDone = fe;
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -4474,7 +4474,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
             break;
         }
         if (em->plDist2 < 2250000.0f) {
-            hit = w->x6B8;
+            hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
                 ActBtn.set(7, 0xB, (void*) em2cKickAction, em, 1, 1, 0, hit);
             }
@@ -4548,7 +4548,7 @@ static void em2cKickAction(cEm2c* em)
             d->set(0, 30);
         }
     }
-    w->x6B8 = 1;
+    w->actDone = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -4665,7 +4665,7 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
             break;
         }
         if (em->plDist2 < 2250000.0f) {
-            hit = w->x6B8;
+            hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
                 ActBtn.set(7, 0xB, (void*) em2cKickAction, em, 1, 1, 0, hit);
             }
@@ -5392,7 +5392,7 @@ void em2cDoorOpenCk(cEm2c* em)
     f32 ang;
     u32 i;
 
-    if (w->x574) {
+    if (w->doorWait) {
         return;
     }
     if (w->stuckCnt > 3) {
@@ -5446,7 +5446,7 @@ void em2cDoorOpenCk(cEm2c* em)
                 if (e->hp <= 0) {
                     e->hp = 1;
                 }
-                w->x574 = Rnd() % 15 + 15;
+                w->doorWait = Rnd() % 15 + 15;
                 w->Dash_wait = 150;
                 if (em->r_no_0 == 1 && em->r_no_1 == 2) {
                     em->r_no_0 = 1;
@@ -5859,7 +5859,7 @@ static void em2cSitAction(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
 
     SetPlDamage(em, plem2cSit);
-    w->x6B8 = 1;
+    w->actDone = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -5888,7 +5888,7 @@ static void em2cEscapeAction(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
 
     SetPlDamage(em, plem2cEscape);
-    w->x6B8 = 1;
+    w->actDone = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -6044,7 +6044,7 @@ static void em2cBackjumpAction(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
 
     SetPlDamage(em, plemBackjump);
-    w->x6B8 = 1;
+    w->actDone = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
@@ -6093,7 +6093,7 @@ static void em2cBackjumpAction2(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
 
     SetPlDamage(em, plemBackjump2);
-    w->x6B8 = 1;
+    w->actDone = 1;
     GameAddPoint(LVADD_CRITICALHIT);
 }
 

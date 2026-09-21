@@ -49,7 +49,7 @@ struct Em2dWork {
     u8 pad_4B4[0xC];
     Vec hoverPhase;       // 0x4C0 (0x8A0)  A_ routines: sine phases of the hover
     int humTimer;         // 0x4CC (0x8AC)  em2dHumSeMove
-    int x4D0;             // 0x4D0 (0x8B0)
+    int revealTimer;      // 0x4D0 (0x8B0)  em2dCamouflageMove: 20 frames the camouflaged body fades in (when humTimer expires)
     int poisonTimer;      // 0x4D4 (0x8B4)  frames the poison weapon damage is suppressed
     int dmGuard;          // 0x4D8 (0x8B8)  DmgMgr hit guard timer
     int catchGuard;       // 0x4DC (0x8BC)  frames the collision stays off after a catch
@@ -62,7 +62,7 @@ struct Em2dWork {
     f32 Compress_y;             // 0x4F8 (0x8D8)  em2dScaleCompress: scale.y factor, fades to 0.1 in Die_Lost (vendor name as em10/em2b)
     Vec wallNrm;          // 0x4FC (0x8DC)  normal of the wall / ceiling the enemy stands on ((0, 1, 0) on the floor)
     int lockCnt;          // 0x508 (0x8E8)  frames the player has been locked on (em2dLockCk)
-    int x50C;             // 0x50C (0x8EC)
+    int wakeWait;         // 0x50C (0x8EC)  em2d_R1_WakeupWait: Rnd % 30 + 30 before em2dDownJumpCk
     u32 sndId;            // 0x510 (0x8F0)  poison SE handle
     f32 waterH;           // 0x514 (0x8F4)  water height (-99999 below the floor when none)
     cCtrl* pCtrl12;       // 0x518 (0x8F8)  GetCtrlCtrl12()
@@ -76,8 +76,8 @@ struct Em2dWork {
     u8 espKind3;          // 0x531 (0x911)
     s8 effTimer;          // 0x532 (0x912)  frames until the next camouflage effect
     u8 pad_533;
-    u8 x534;              // 0x534 (0x914)
-    u8 x535;              // 0x535 (0x915)
+    u8 humSeWait;         // 0x534 (0x914)  em2dHumSeMove: 29 frames between hum SE calls
+    u8 eyeState;          // 0x535 (0x915)  em2dEyeMove: current eye effect state (0 off, 1 alive, 2 flags bit16)
     u8 Reset_enable;              // 0x536 (0x916)  ckReset: 0 blocks the reset; Die_Lost sets 1 (vendor name as em10)
 };
 
