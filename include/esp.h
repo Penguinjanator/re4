@@ -93,20 +93,15 @@ struct EspGenWork {
     u8 Espgen_id;      // 0x109 generator id (0xFF = loop marker) (PS2 Espgen_id)
     u8 Espgen_type;    // 0x10A (PS2 Espgen_type)
     u8 Espgen_flg;     // 0x10B (PS2 Espgen_flg)
-    u8 x10C;           // 0x10C (PS2 signed char Espgen_work8[0])
-    u8 x10D;           // 0x10D (PS2 Espgen_work8[1])
-    s8 x10E;           // 0x10E (PS2 Espgen_work8[2])
-    u8 x10F;           // 0x10F (PS2 Espgen_work8[3])
+    s8 Espgen_work8[4]; // 0x10C (espgen00/02: [0] wait, [1] count, [2] random seed offset) (PS2 signed char Espgen_work8[4])
     s16 Espgen_work16[4]; // 0x110 (PS2 Espgen_work16[4])
     Vec Espgen_vec0;   // 0x118 (espgen02: scale - 1 in 10ths) (PS2 Espgen_vec0)
-    u8 x124;           // 0x124 (PS2 signed char Espgen_work8_2[0])
-    u8 x125;           // 0x125 (PS2 Espgen_work8_2[1])
-    u8 x126;           // 0x126 (PS2 Espgen_work8_2[2])
-    u8 x127;           // 0x127 (PS2 Espgen_work8_2[3])
+    s8 Espgen_work8_2[4]; // 0x124 (espgen00/02: per-frame D of scale, speed, colour, wait) (PS2 signed char Espgen_work8_2[4])
     u8 Espgen_work8_3[4]; // 0x128 ([1]: espgen02 rotation x in 1/256 turns, [2]: rotation y, [3]: path orientation mode bits) (PS2 Espgen_work8_3)
 };
 
-// Effect sequence data block: 0x30 byte header followed by 0x12C byte records.
+// Effect sequence data block: 0x30 byte header followed by 0x12C byte records (PS2 cEspSeqHead:
+// data_num[4], Flg, Null_parts_no, Offset, Ang, Ver_no, Core_flg, SeqTbl[]).
 struct EspSeqData {
     u16 num;           // 0x00 number of records
     u8 pad_2[6];
@@ -115,7 +110,10 @@ struct EspSeqData {
     u8 pad_B;
     Vec pos;           // 0x0C default position (EstSet with pos = NULL)
     Vec rot;           // 0x18 default rotation in degrees (EstSet with rot = NULL)
-    u8 pad_24[0x30 - 0x24];
+    u8 Ver_no;         // 0x24 file version (t_esp writes 0x10) (PS2 Ver_no)
+    u8 pad0;           // 0x25 (PS2 pad0)
+    u16 Core_flg;      // 0x26 (PS2 Core_flg)
+    u32 pad1[2];       // 0x28 (PS2 pad1)
     EspGenWork rec[1]; // 0x30
 };
 

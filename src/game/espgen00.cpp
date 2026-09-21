@@ -256,7 +256,7 @@ void Espgen00_Move(EspgenWork* w)
 }
 
 // Fills the emitter from the controller record: life (Espgen_work16[0]), wait (x10C), num (x10D),
-// the D curves (x124..x127), Espgen_flg, random wait range; head flag bit 0 keeps following the
+// the D curves (Espgen_work8_2), Espgen_flg, random wait range; head flag bit 0 keeps following the
 // parts, `flag` == 1 passes the position on to the children; fixed seed 0x12345678+x10E when Flg
 // bit 1. Copies the optional EspSeqOpt. Always returns 1.
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
@@ -273,12 +273,12 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     p->waitCnt = p->Time_cnt = 0;
     p->life = rec->Espgen_work16[0];
-    p->wait = rec->x10C;
-    p->num = rec->x10D;
-    p->scaleD = rec->x124;
-    p->spdD = rec->x125;
-    p->colD = rec->x126;
-    p->waitD = rec->x127;
+    p->wait = rec->Espgen_work8[0];
+    p->num = rec->Espgen_work8[1];
+    p->scaleD = rec->Espgen_work8_2[0];
+    p->spdD = rec->Espgen_work8_2[1];
+    p->colD = rec->Espgen_work8_2[2];
+    p->waitD = rec->Espgen_work8_2[3];
     p->Flg = rec->Espgen_flg;
     p->waitRnd = rec->Espgen_work8_3[0];
     if (p->waitRnd) {
@@ -294,7 +294,7 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->Offset = *pos;
     p->Ang = *rot;
     if (p->Flg & 2) {
-        p->seed = 0x12345678 + rec->x10E;
+        p->seed = 0x12345678 + rec->Espgen_work8[2];
     } else {
         p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }

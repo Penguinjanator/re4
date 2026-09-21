@@ -343,10 +343,10 @@ extern "C" void DB_GetKeybordData(DB_KEYBORD* k)
     k->stickX = (f32) joy->stickX / 72.0f;
     k->stickY = (f32) joy->stickY / 72.0f;
     if (joy->on & 0x40) {
-        k->xC = (f32) -(int) joy->triggerLeft / 144.0f;
+        k->trigger = (f32) -(int) joy->triggerLeft / 144.0f;
     }
     if (joy->on & 0x20) {
-        k->xC = (f32) (int) (u8) joy->triggerRight / 144.0f;
+        k->trigger = (f32) (int) (u8) joy->triggerRight / 144.0f;
     }
     k->Update();
 }

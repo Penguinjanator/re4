@@ -169,7 +169,7 @@ void DB_KEYBORD::ClearAllKey()
     rep[9] = 0;
     rep[10] = 0;
     rep[11] = 0;
-    xC = stickY = stickX = 0.0f;
+    trigger = stickY = stickX = 0.0f;
 }
 
 // Empty primitive and window tables, no active window.

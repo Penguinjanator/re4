@@ -59,12 +59,12 @@ enum {
     KEY_START = 12,
 };
 
-// The tool's view of one 0x12C sequence record (EspGenWork).
+// The tool's view of one 0x12C sequence record (EspGenWork; PS2 cEspSeqTbl gives the vendor names).
 struct TOOL_SEQ {
     u8 stat;        // 0x00 bit0: selected row of the edit table
     u8 id;          // 0x01
     u8 tex;         // 0x02
-    u8 x3;          // 0x03
+    u8 Type;        // 0x03 (PS2 cEspSeqTbl Type)
     u16 time;       // 0x04
     u8 parent;      // 0x06
     u8 parts;       // 0x07
@@ -72,7 +72,7 @@ struct TOOL_SEQ {
     Vec pos;        // 0x0C
     Vec rpos;       // 0x18
     Vec speed;      // 0x24
-    f32 x30;        // 0x30
+    f32 D_speed;    // 0x30 (PS2 D_speed)
     Vec rspeed;     // 0x34
     Vec accel;      // 0x40
     Vec raccel;     // 0x4C
@@ -93,17 +93,17 @@ struct TOOL_SEQ {
     f32 dg;         // 0xA4
     f32 db;         // 0xA8
     f32 da;         // 0xAC
-    u16 xB0;        // 0xB0
-    u16 xB2;        // 0xB2
-    u16 xB4;        // 0xB4
+    u16 Col_max_cnt;   // 0xB0 (PS2 Col_max_cnt)
+    u16 Col_start_cnt; // 0xB2 (PS2 Col_start_cnt)
+    u16 Pos_start_cnt; // 0xB4 (PS2 Pos_start_cnt)
     u16 strFrm;     // 0xB6
     u16 life;       // 0xB8
-    u16 xBA;        // 0xBA
-    u8 xBC;         // 0xBC
+    u16 Life_time;  // 0xBA (PS2 Life_time)
+    u8 Ptn_no;      // 0xBC (PS2 Ptn_no)
     s8 anmRate;     // 0xBD
-    u16 xBE;        // 0xBE
+    u16 Anm_cnt;    // 0xBE (PS2 Anm_cnt)
     u8 release;     // 0xC0
-    u8 xC1;         // 0xC1
+    u8 Groupe_no;   // 0xC1 (PS2 Groupe_no)
     u8 blend;       // 0xC2
     u8 simType;     // 0xC3
     u8 simPow;      // 0xC4
@@ -123,18 +123,15 @@ struct TOOL_SEQ {
     u8 sp[4];       // 0xFC
     u8 x100[4];     // 0x100
     u8 path[4];     // 0x104
-    u8 type;        // 0x108
+    u8 Kind;        // 0x108 0 = esp, 1 = espgen (PS2 Kind)
     u8 genId;       // 0x109
-    u8 x10A;        // 0x10A
-    u8 x10B;        // 0x10B
-    union {
-        struct { s8 x10C, x10D, x10E, x10F; };  // 0x10C
-        s8 inter[4];
-    };
-    s16 x110[4];    // 0x110
+    u8 Espgen_type; // 0x10A (PS2 Espgen_type)
+    u8 Espgen_flg;  // 0x10B (PS2 Espgen_flg)
+    s8 Espgen_work8[4];   // 0x10C "inter" (PS2 Espgen_work8)
+    s16 Espgen_work16[4]; // 0x110 (PS2 Espgen_work16)
     Vec scale;      // 0x118
-    s8 x124[4];     // 0x124
-    u8 x128[4];     // 0x128
+    s8 Espgen_work8_2[4]; // 0x124 (PS2 Espgen_work8_2)
+    u8 Espgen_work8_3[4]; // 0x128 (PS2 Espgen_work8_3)
 };
 
 namespace t_esp_namespace {
@@ -3088,7 +3085,7 @@ public:
 // and greyed.
 static void IdEspgenIdCallback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1) {
+    if (g_pEditSeq->Kind == 1) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
@@ -3099,7 +3096,7 @@ static void IdEspgenIdCallback(DB_PRIMITIVE* p)
 // ID window: the generator Life field is editable for generator ids 0 / 2 / 0xFF, else locked.
 static void IdEspgenLifeCallback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2 || g_pEditSeq->genId == 0xFF)) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2 || g_pEditSeq->genId == 0xFF)) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3110,7 +3107,7 @@ static void IdEspgenLifeCallback(DB_PRIMITIVE* p)
 // ID window: the interval field is editable for generator ids 0 / 2, else locked.
 static void IdEspgenInterCallback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3121,7 +3118,7 @@ static void IdEspgenInterCallback(DB_PRIMITIVE* p)
 // ID window: the Num field, as the interval.
 static void IdEspgenNumCallback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3132,7 +3129,7 @@ static void IdEspgenNumCallback(DB_PRIMITIVE* p)
 // ID window: the Flg field, as the interval.
 static void IdEspgenFlgCallback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2)) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3144,7 +3141,7 @@ static void IdEspgenFlgCallback(DB_PRIMITIVE* p)
 // non-zero base.
 static void IdEspgenD_Callback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->x110[0] != 0) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->Espgen_work16[0] != 0) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3155,7 +3152,7 @@ static void IdEspgenD_Callback(DB_PRIMITIVE* p)
 // ID window: the Int fields, editable for generator ids 0 / 2 with a non-zero base.
 static void IdEspgenInt_Callback(DB_PRIMITIVE* p)
 {
-    if (g_pEditSeq->type == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->x10C != 0) {
+    if (g_pEditSeq->Kind == 1 && (g_pEditSeq->genId == 0 || g_pEditSeq->genId == 2) && g_pEditSeq->Espgen_work8[0] != 0) {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_NO_FLOAT_MSG);
     } else {
         ((DB_NUMERIC*) p)->SetNumFlg(DB_NUM_FLAG_LOCK | DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3206,7 +3203,7 @@ public:
             DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 0.0f);
             int sx = 0;
-            n = pa_->CreateNumeric2(win_, &g_pEditSeq->type, &g_pEditSeq2->type, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->Kind, &g_pEditSeq2->Kind, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->nameNum = 2;
             n->nameTbl = kindName;
@@ -3239,7 +3236,7 @@ public:
             DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 0.0f);
             int sx = 1;
-            n = pa_->CreateNumeric2(win_, &g_pEditSeq->x110[0], &g_pEditSeq2->x110[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work16[0], &g_pEditSeq2->Espgen_work16[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->SetKeta(4);
             n->SetUpdateCallback(IdEspgenLifeCallback);
         }
@@ -3248,63 +3245,63 @@ public:
             DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 16.0f);
             int sx = 1;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x10C, &g_pEditSeq2->x10C, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInterCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8[0], &g_pEditSeq2->Espgen_work8[0], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInterCallback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(168.0f, 32.0f);
             int sx = 1;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x128[0], &g_pEditSeq2->x128[0], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInt_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8_3[0], &g_pEditSeq2->Espgen_work8_3[0], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInt_Callback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 48.0f);
             int sx = 1;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x10D, &g_pEditSeq2->x10D, &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenNumCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8[1], &g_pEditSeq2->Espgen_work8[1], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenNumCallback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(168.0f, 64.0f);
             int sx = 1;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x10B, &g_pEditSeq2->x10B, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenFlgCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_flg, &g_pEditSeq2->Espgen_flg, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenFlgCallback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 0.0f);
             int sx = 2;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[0], &g_pEditSeq2->x124[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8_2[0], &g_pEditSeq2->Espgen_work8_2[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 16.0f);
             int sx = 2;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[1], &g_pEditSeq2->x124[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8_2[1], &g_pEditSeq2->Espgen_work8_2[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 32.0f);
             int sx = 2;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[2], &g_pEditSeq2->x124[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8_2[2], &g_pEditSeq2->Espgen_work8_2[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 48.0f);
             int sx = 2;
-            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[3], &g_pEditSeq2->x124[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8_2[3], &g_pEditSeq2->Espgen_work8_2[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(228.0f, 64.0f);
             int sx = 2;
-            n = pa_->CreateNumeric2(win_, &g_pEditSeq->x10E, &g_pEditSeq2->x10E, &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->Espgen_work8[2], &g_pEditSeq2->Espgen_work8[2], &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetUpdateCallback(IdEspgenFlgCallback);
             n->SetKeta(2);
         }
@@ -3419,8 +3416,8 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            u8* n1 = &g_pEditSeq->x128[1];
-            u8* n2 = &g_pEditSeq2->x128[1];
+            u8* n1 = &g_pEditSeq->Espgen_work8_3[1];
+            u8* n2 = &g_pEditSeq2->Espgen_work8_3[1];
             DB_POINT pos(284.0f, 0.0f);
             int sx = 2;
             pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3428,8 +3425,8 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            u8* n1 = &g_pEditSeq->x128[2];
-            u8* n2 = &g_pEditSeq2->x128[2];
+            u8* n1 = &g_pEditSeq->Espgen_work8_3[2];
+            u8* n2 = &g_pEditSeq2->Espgen_work8_3[2];
             DB_POINT pos(284.0f, 16.0f);
             int sx = 2;
             pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG);
@@ -3437,10 +3434,10 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            u8* n1 = &g_pEditSeq->x128[3];
+            u8* n1 = &g_pEditSeq->Espgen_work8_3[3];
             DB_POINT pos(284.0f, 32.0f);
             int sx = 2;
-            pa_->CreateNumeric2(win_, n1, &g_pEditSeq2->x128[3], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, n1, &g_pEditSeq2->Espgen_work8_3[3], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         win->active = 0;
     }
@@ -3593,7 +3590,7 @@ static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* 
     (nx)->OnCalcMsgFloat(g_pKey->stickX * (scale));                                   \
     if (IS_SCREEN_PARENT(g_pEditSeq)) (ny)->OnCalcMsgFloat(g_pKey->stickY * -(scale)); \
     else (ny)->OnCalcMsgFloat(g_pKey->stickY * (scale));                              \
-    (nz)->OnCalcMsgFloat(g_pKey->xC * (scale));
+    (nz)->OnCalcMsgFloat(g_pKey->trigger * (scale));
 
 // POSITION "stick" cell: while selected the stick moves pos x/y (A + L / Y / plain scale).
 static void PosStickPosUpdateCallback(DB_PRIMITIVE* p)
@@ -3621,7 +3618,7 @@ static void PosStickPosUpdateCallback(DB_PRIMITIVE* p)
 #define STICK_RPOS(scale)                                       \
     g_pRPosNumX->OnCalcMsgFloat(g_pKey->stickX * (scale));      \
     g_pRPosNumY->OnCalcMsgFloat(g_pKey->stickY * (scale));      \
-    g_pRPosNumZ->OnCalcMsgFloat(g_pKey->xC * (scale));
+    g_pRPosNumZ->OnCalcMsgFloat(g_pKey->trigger * (scale));
 
 // RAND "stick" cell: the stick changes the random position range rpos x/y.
 static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
@@ -3981,8 +3978,8 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            f32* n1 = &g_pEditSeq->x30;
-            f32* n2 = &g_pEditSeq2->x30;
+            f32* n1 = &g_pEditSeq->D_speed;
+            f32* n2 = &g_pEditSeq2->D_speed;
             DB_POINT pos(32.0f, 48.0f);
             int sx = 0;
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 3, 0);
@@ -4278,8 +4275,8 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            u16* n1 = &g_pEditSeq->xB2;
-            u16* n2 = &g_pEditSeq2->xB2;
+            u16* n1 = &g_pEditSeq->Col_start_cnt;
+            u16* n2 = &g_pEditSeq2->Col_start_cnt;
             DB_POINT pos(238.0f, 0.0f);
             int sx = 2;
             pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0)->SetKeta(4);
@@ -4287,8 +4284,8 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            u16* n1 = &g_pEditSeq->xB0;
-            u16* n2 = &g_pEditSeq2->xB0;
+            u16* n1 = &g_pEditSeq->Col_max_cnt;
+            u16* n2 = &g_pEditSeq2->Col_max_cnt;
             DB_POINT pos(238.0f, 16.0f);
             int sx = 2;
             pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0)->SetKeta(4);
@@ -5254,7 +5251,7 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
     u32 i;
     if (seq->stat & 1) {
         if (g_pSeqFlg[no] & 1) {
-            if (g_pEditTbl[no].type == 0) {
+            if (g_pEditTbl[no].Kind == 0) {
                 r = 1.0f;
                 g = 0.8f;
                 b = 0.1f;
@@ -5266,7 +5263,7 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
                 a = r;
             }
         } else {
-            if (g_pEditTbl[no].type == 0) {
+            if (g_pEditTbl[no].Kind == 0) {
                 // copies from g in the order r, a, b: the pool load lands in g's register (f30) and b is the copy
                 g = 1.0f;
                 r = g;
@@ -5298,7 +5295,7 @@ void ClearSeqData(TOOL_SEQ* seq)
     seq->w = 200.0f;
     seq->h = 200.0f;
     seq->dplus = 1.0f;
-    seq->x30 = 1.0f;
+    seq->D_speed = 1.0f;
     seq->anmRate = 0;
     seq->r = 0xFF;
     seq->g = 0xFF;
@@ -5511,17 +5508,17 @@ void PartPasteSeqData(TOOL_SEQ* dst, u32 flags, TOOL_SEQ* src)
         dst->time = src->time;
         dst->id = src->id;
         dst->tex = src->tex;
-        dst->type = src->type;
+        dst->Kind = src->Kind;
         dst->genId = src->genId;
-        dst->x10A = src->x10A;
-        dst->x10B = src->x10B;
+        dst->Espgen_type = src->Espgen_type;
+        dst->Espgen_flg = src->Espgen_flg;
         dst->scale = src->scale;
         for (i = 0; i < 4; i++) {
             dst->path[i] = src->path[i];
-            dst->inter[i] = src->inter[i];
-            dst->x110[i] = src->x110[i];
-            dst->x124[i] = src->x124[i];
-            dst->x128[i] = src->x128[i];
+            dst->Espgen_work8[i] = src->Espgen_work8[i];
+            dst->Espgen_work16[i] = src->Espgen_work16[i];
+            dst->Espgen_work8_2[i] = src->Espgen_work8_2[i];
+            dst->Espgen_work8_3[i] = src->Espgen_work8_3[i];
         }
     }
     if (flags & 0x4) {
@@ -5542,7 +5539,7 @@ void PartPasteSeqData(TOOL_SEQ* dst, u32 flags, TOOL_SEQ* src)
     }
     if (flags & 0x20) {
         dst->speed = src->speed;
-        dst->x30 = src->x30;
+        dst->D_speed = src->D_speed;
         dst->rspeed = src->rspeed;
         dst->accel = src->accel;
         dst->raccel = src->raccel;
@@ -5556,19 +5553,19 @@ void PartPasteSeqData(TOOL_SEQ* dst, u32 flags, TOOL_SEQ* src)
         dst->dg = src->dg;
         dst->db = src->db;
         dst->da = src->da;
-        dst->xB0 = src->xB0;
-        dst->xB2 = src->xB2;
+        dst->Col_max_cnt = src->Col_max_cnt;
+        dst->Col_start_cnt = src->Col_start_cnt;
     }
     if (flags & 0x80) dst->blend = src->blend;
     if (flags & 0x100) dst->flags = src->flags;
     if (flags & 0x200) {
         dst->life = src->life;
-        dst->xBA = src->xBA;
+        dst->Life_time = src->Life_time;
     }
     if (flags & 0x400) dst->release = src->release;
     if (flags & 0x800) {
         dst->anmRate = src->anmRate;
-        dst->xBE = src->xBE;
+        dst->Anm_cnt = src->Anm_cnt;
     }
     if (flags & 0x1000) {
         dst->rot = src->rot;
@@ -5739,7 +5736,7 @@ int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     u16* num = (u16*) head;
     TOOL_SEQ* rec;
     for (i = 0; i < nGroup; i++) num[i] = 0;
-    head->pad_24[0] = 0x10;
+    head->Ver_no = 0x10;
     size = 0x30;
     rec = (TOOL_SEQ*) head->rec; // after the clearing loop and `size`: `li r3,48; addi rec,head,48`
     for (i = 0; i < nGroup; i++) {
@@ -5788,7 +5785,7 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     int no = 0;
     IMM(id)
     IMM(tex)
-    IMM(x3)
+    IMM(Type)
     IMM(time)
     IMM(parent)
     IMM(parts)
@@ -5802,7 +5799,7 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     IMM(speed.x)
     IMM(speed.y)
     IMM(speed.z)
-    IMM(x30)
+    IMM(D_speed)
     IMM(rspeed.x)
     IMM(rspeed.y)
     IMM(rspeed.z)
@@ -5838,17 +5835,17 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     IMM(db)
     IMM(da)
     IMM(blend)
-    IMM(xB0)
-    IMM(xB2)
-    IMM(xB4)
+    IMM(Col_max_cnt)
+    IMM(Col_start_cnt)
+    IMM(Pos_start_cnt)
     IMM(strFrm)
     IMM(life)
-    IMM(xBA)
-    IMM(xBC)
+    IMM(Life_time)
+    IMM(Ptn_no)
     IMM(anmRate)
-    IMM(xBE)
+    IMM(Anm_cnt)
     IMM(release)
-    IMM(xC1)
+    IMM(Groupe_no)
     IMM(simType)
     IMM(simPow)
     IMM(maskTex)
@@ -5874,29 +5871,29 @@ void MakeImmSeq(TOOL_SEQ* tbl, TOOL_SEQ* edit, TOOL_SEQ* imm)
     IMM(sp[1])
     IMM(sp[2])
     IMM(sp[3])
-    IMM(type)
+    IMM(Kind)
     IMM(genId)
-    IMM(x10A)
-    IMM(x10B)
-    IMM(x10C)
-    IMM(x10D)
-    IMM(x10E)
-    IMM(x10F)
-    IMM(x110[0])
-    IMM(x110[1])
-    IMM(x110[2])
-    IMM(x110[3])
+    IMM(Espgen_type)
+    IMM(Espgen_flg)
+    IMM(Espgen_work8[0])
+    IMM(Espgen_work8[1])
+    IMM(Espgen_work8[2])
+    IMM(Espgen_work8[3])
+    IMM(Espgen_work16[0])
+    IMM(Espgen_work16[1])
+    IMM(Espgen_work16[2])
+    IMM(Espgen_work16[3])
     IMM(scale.x)
     IMM(scale.y)
     IMM(scale.z)
-    IMM(x124[0])
-    IMM(x124[1])
-    IMM(x124[2])
-    IMM(x124[3])
-    IMM(x128[0])
-    IMM(x128[1])
-    IMM(x128[2])
-    IMM(x128[3])
+    IMM(Espgen_work8_2[0])
+    IMM(Espgen_work8_2[1])
+    IMM(Espgen_work8_2[2])
+    IMM(Espgen_work8_2[3])
+    IMM(Espgen_work8_3[0])
+    IMM(Espgen_work8_3[1])
+    IMM(Espgen_work8_3[2])
+    IMM(Espgen_work8_3[3])
     IMM(path[0])
     IMM(path[1])
     IMM(path[2])
@@ -5943,7 +5940,7 @@ void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
     int no = 0;
     ADD(id)
     ADD(tex)
-    ADD(x3)
+    ADD(Type)
     ADD(time)
     ADD(parent)
     ADD(parts)
@@ -5957,7 +5954,7 @@ void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
     ADD(speed.x)
     ADD(speed.y)
     ADD(speed.z)
-    ADD_CLAMP(x30, 0.0f, 2.0f)
+    ADD_CLAMP(D_speed, 0.0f, 2.0f)
     ADD(rspeed.x)
     ADD(rspeed.y)
     ADD(rspeed.z)
@@ -5993,17 +5990,17 @@ void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
     ADD_CLAMP(db, 0.0f, 1.0f)
     ADD_CLAMP(da, 0.0f, 1.0f)
     ADD(blend)
-    ADD(xB0)
-    ADD(xB2)
-    ADD(xB4)
+    ADD(Col_max_cnt)
+    ADD(Col_start_cnt)
+    ADD(Pos_start_cnt)
     ADD(strFrm)
     ADD(life)
-    ADD(xBA)
-    ADD(xBC)
+    ADD(Life_time)
+    ADD(Ptn_no)
     ADD(anmRate)
-    ADD(xBE)
+    ADD(Anm_cnt)
     ADD(release)
-    ADD(xC1)
+    ADD(Groupe_no)
     ADD(simType)
     ADD(simPow)
     ADD(maskTex)
@@ -6029,29 +6026,29 @@ void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
     ADD(sp[1])
     ADD(sp[2])
     ADD(sp[3])
-    ADD(type)
+    ADD(Kind)
     ADD(genId)
-    ADD(x10A)
-    ADD(x10B)
-    ADD(x10C)
-    ADD(x10D)
-    ADD(x10E)
-    ADD(x10F)
-    ADD(x110[0])
-    ADD(x110[1])
-    ADD(x110[2])
-    ADD(x110[3])
+    ADD(Espgen_type)
+    ADD(Espgen_flg)
+    ADD(Espgen_work8[0])
+    ADD(Espgen_work8[1])
+    ADD(Espgen_work8[2])
+    ADD(Espgen_work8[3])
+    ADD(Espgen_work16[0])
+    ADD(Espgen_work16[1])
+    ADD(Espgen_work16[2])
+    ADD(Espgen_work16[3])
     ADD(scale.x)
     ADD(scale.y)
     ADD(scale.z)
-    ADD(x124[0])
-    ADD(x124[1])
-    ADD(x124[2])
-    ADD(x124[3])
-    ADD(x128[0])
-    ADD(x128[1])
-    ADD(x128[2])
-    ADD(x128[3])
+    ADD(Espgen_work8_2[0])
+    ADD(Espgen_work8_2[1])
+    ADD(Espgen_work8_2[2])
+    ADD(Espgen_work8_2[3])
+    ADD(Espgen_work8_3[0])
+    ADD(Espgen_work8_3[1])
+    ADD(Espgen_work8_3[2])
+    ADD(Espgen_work8_3[3])
     ADD(path[0])
     ADD(path[1])
     ADD(path[2])
@@ -6246,7 +6243,7 @@ void ToolEspMain()
         EspToolUpdate(g_pKey, g_render);
         DrawPosCursor();
         DB_DrawMod_sk(g_modSk);
-        if (g_pKey->xC > 0.99f && g_pKey->on[KEY_R]) DB_EffDelete();
+        if (g_pKey->trigger > 0.99f && g_pKey->on[KEY_R]) DB_EffDelete();
         {
             DB_ACTIVE_SELECT* sel;
             if (g_pEditSeq->id == 0xE || g_pEditSeq->id == 0x4A || g_pEditSeq->id == 0x45) {

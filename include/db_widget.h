@@ -401,7 +401,7 @@ public:
     u8 chr;             // 0x01  typed character (DB_NUMERIC::OnKeybord)
     f32 stickX;         // 0x04
     f32 stickY;         // 0x08
-    f32 xC;             // 0x0C
+    f32 trigger;        // 0x0C  -L / +R analog trigger as -1..1 (DB_GetKeybordData; the tool's z-axis input)
     int stickUp;        // 0x10
     int stickDown;      // 0x14
     int stickLeft;      // 0x18

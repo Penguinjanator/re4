@@ -430,12 +430,12 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     p->Next_cnt = p->Time_cnt = 0;
     p->life = rec->Espgen_work16[0];
-    p->wait = rec->x10C;
-    p->Set_num = rec->x10D;
-    p->D_size = rec->x124;
-    p->D_speed = rec->x125;
-    p->D_alpha = rec->x126;
-    p->waitD = rec->x127;
+    p->wait = rec->Espgen_work8[0];
+    p->Set_num = rec->Espgen_work8[1];
+    p->D_size = rec->Espgen_work8_2[0];
+    p->D_speed = rec->Espgen_work8_2[1];
+    p->D_alpha = rec->Espgen_work8_2[2];
+    p->waitD = rec->Espgen_work8_2[3];
     p->Espgen_flg = rec->Espgen_flg;
     p->R_inter = rec->Espgen_work8_3[0];
     if (p->R_inter) {
@@ -451,7 +451,7 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->Offset = *pos;
     p->Ang = *rot;
     if (p->Espgen_flg & 2) {
-        p->Rand_seed = 0x12345678 + rec->x10E;
+        p->Rand_seed = 0x12345678 + rec->Espgen_work8[2];
     } else {
         p->Rand_seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
