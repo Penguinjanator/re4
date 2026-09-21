@@ -169,12 +169,12 @@ struct SceAtSysWork {
     u32 execFlg[8];            // 0x30   areas executed this frame
     u32 ot[16];                // 0x50   ordering table, ot[15] is the list head
     u32 stop;                  // 0x90   pG->flags_170 saved by the semi-auto stop (bit31 = pending)
-    u32 x94;                   // 0x94   pG->flags_170 saved by the door / skey tasks
+    u32 m_stop_flag_backup;    // 0x94   pG->Stop_flg saved by the door / skey tasks (PS2 SCE_AT_SYS m_stop_flag_backup)
     u8 hideActive;             // 0x98   a hide area is running
     u8 pad_99[3];
     SceAtReserve reserve[16];  // 0x9C
-    u8 x11C;
-    u8 x11D;
+    u8 m_use_tool_data;        // 0x11C  pAtData was allocated by the tool (t_sce_at) (PS2 m_use_tool_data)
+    u8 m_use_tool_data_i;      // 0x11D  (PS2 m_use_tool_data_i)
     u8 pad_11E[2];
     SceAtCamCtrl* pCamAt;      // 0x120  camera control area in effect
 };
@@ -292,8 +292,8 @@ void SceAtInit(void* atData, void* itemData)
         SceAtSys.reserve[i].saveNo = 0;
     }
     SceAtWorkLoopInit();
-    U8Set(pS->x11C, 0);
-    pS->x11D = 0;
+    U8Set(pS->m_use_tool_data, 0);
+    pS->m_use_tool_data_i = 0;
     if (atData != 0) {
         if (strcmp((char*) atData, "AEV") != 0) {
             pLog->err(0, 0, "THIS DATA IS NOT SCENARIO ATARI DATA");
@@ -779,7 +779,7 @@ void sceInLock(SceAtWork* w)
         break;
     }
     SceAtStopSemiautoCheck();
-    pG->Stop_flg = pS->x94;
+    pG->Stop_flg = pS->m_stop_flag_backup;
     w->flag |= 1;
     TaskExit();
 }
@@ -825,7 +825,7 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
         cMes.MesSet(0x67, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
         return 1;
     }
-    pS->x94 = pG->Stop_flg;
+    pS->m_stop_flag_backup = pG->Stop_flg;
     KeyStop(0xEFCF0000);
     BitSet(pG->Stop_flg, -1);
     lt = w->lockType;
@@ -1820,7 +1820,7 @@ int sceAtFunc_stoop(SceAtWork* w, cModel* m)
 // Type 0xF handler (special key): stops the game and shows the "needs a key" message task.
 int sceAtFunc_skey(SceAtWork* w, cModel* m)
 {
-    pS->x94 = pG->Stop_flg;
+    pS->m_stop_flag_backup = pG->Stop_flg;
     KeyStop(0xEFCF0000);
     pG->Stop_flg = -1;
     TaskExec(1, (TaskFunc) sceAtSkey, (int) w);
@@ -1834,7 +1834,7 @@ static void sceAtSkey(SceAtWork* w)
     while (cMes.mes[0].flags2 & 1) {
         TaskSleep(1);
     }
-    pG->Stop_flg = pS->x94;
+    pG->Stop_flg = pS->m_stop_flag_backup;
     TaskExit();
 }
 

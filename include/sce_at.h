@@ -58,9 +58,9 @@ struct SceAtDoor {
 // Camera control area payload (type 0xC).
 struct SceAtCamCtrl {
     Vec pos;          // 0x00 (0x5C)
-    f32 angle;        // 0x0C (0x68)
-    u8 pad_10;
-    u8 mode;          // 0x11 (0x6D)  0 heading, 1 direction to pos
+    f32 angle;        // 0x0C (0x68)  (PS2 SCE_AT_DATA_CAM_CTRL ang_y)
+    u8 pos_set;       // 0x10 (0x6C)  pos / ranges initialised (t_sce_at) (PS2 pos_set)
+    u8 mode;          // 0x11 (0x6D)  0 heading, 1 direction to pos (PS2 type)
     u8 pad_12[2];
     f32 range;        // 0x14 (0x70)
     f32 range2;       // 0x18 (0x74)  added to range while this area is the current one
@@ -147,6 +147,33 @@ struct SceAtMesData {
     u16 se;           // 0x06  SE + 1
     u8 flag;          // 0x08  bit2: keep the camera cut after the message
     u8 pad_9[3];
+};
+
+// Area type (PS2 SCEAT_ID): SceAtWork::type, the row of sceAtFunc_tbl. SCEAT_ID_ADA_WIRE is PS2-only.
+enum SCEAT_ID {
+    SCEAT_ID_NORMAL = 0,
+    SCEAT_ID_DOOR = 1,
+    SCEAT_ID_EXEC = 2,
+    SCEAT_ID_ITEM = 3,
+    SCEAT_ID_FLG = 4,
+    SCEAT_ID_MES = 5,
+    SCEAT_ID_PLANTER = 6,
+    SCEAT_ID_JUMP = 7,
+    SCEAT_ID_SAVE = 8,
+    SCEAT_ID_SHD_DISP = 9,
+    SCEAT_ID_DAMAGE = 10,
+    SCEAT_ID_SCR_AT = 11,
+    SCEAT_ID_CAM_CTRL = 12,
+    SCEAT_ID_FIELD_INFO = 13,
+    SCEAT_ID_STOOP = 14,
+    SCEAT_ID_SKEY = 15,
+    SCEAT_ID_LADDER = 16,
+    SCEAT_ID_USE = 17,
+    SCEAT_ID_HIDE = 18,
+    SCEAT_ID_POS_JUMP = 19,
+    SCEAT_ID_ITEM_PARENT = 20,
+    SCEAT_ID_ADA_WIRE = 21,
+    SCEAT_ID_MAX = 22
 };
 
 // One area work (0x9C bytes; the AEV/ITA records have the same layout).

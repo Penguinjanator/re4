@@ -87,7 +87,7 @@ struct TSceAtSys {
     u32 pAtWork;           // 0x04
     void* pItemData;       // 0x08
     u8 pad_C[0x11C - 0xC];
-    u8 x11C;               // 0x11C  pAtData was allocated by the tool
+    u8 m_use_tool_data;    // 0x11C  pAtData was allocated by the tool (PS2 SCE_AT_SYS m_use_tool_data)
     u8 pad_11D[7];
 };
 extern TSceAtSys SceAtSys;   // game/sce_at.cpp (static SceAtSysWork there, so not in sce_at.h; the REL link resolves the local symbol)
@@ -360,7 +360,7 @@ void tSceAtInit()
     pW->mesNum = loadMesName(buf, (char*) pW->mesName);
     sprintf(buf, "d:\\bio4/prog/head/cmesmes.h");
     pW->cmesNum = loadMesName(buf, (char*) pW->cmesName);
-    CamDbg.pad_10[0] = CamDbg.m_target_type;
+    CamDbg.m_target_save = CamDbg.m_target_type;
     CamDbg.m_target_type = 4;
 }
 
@@ -405,7 +405,7 @@ static void tSceAtExit()
     case 9:
         file_unlock(pW->pathX);
         Debug_free(pW);
-        CamDbg.m_target_type = CamDbg.pad_10[0];
+        CamDbg.m_target_type = CamDbg.m_target_save;
         DbgFlagOff(pG, DBG_DBG_CAM);
         SetToolLight(-1);
         StaFlagOff(pG, STA_NO_LIGHTMASK);
@@ -1819,12 +1819,12 @@ static void tSceAtDataInput_cam_ctrl_pos_edit()
 
     switch (pW->step2) {
     case 0:
-        if (c->pad_10 == 0) {
+        if (c->pos_set == 0) {
             AreaGetCenterPos(&center, &pCur->area);
             AreaDataInit(&pW->editArea, &center, AREA_TYPE_EYE, 200.0f, 1000.0f);
             c->range = 1000.0f;
             c->range2 = 500.0f;
-            c->pad_10 = 1;
+            c->pos_set = 1;
         } else {
             pW->editArea.u.eye.xz = c->pos.x;
             pW->editArea.u.eye.floor = c->pos.y;
@@ -2534,13 +2534,13 @@ static void tSceAtDataSave()
             ret = HDWrite(pW->path, &pW->file, size);
             break;
         }
-        if (SceAtSys.x11C == 1) Mem_free(SceAtSys.pAtData);
+        if (SceAtSys.m_use_tool_data == 1) Mem_free(SceAtSys.pAtData);
 #line 3043 "D:/Bio4/Prog/t_sce_at.cpp"
         p = (TSceAtFile*) MEM_ALLOC(size, 1, 0xD);
         memcpy(p, &pW->file, size);
         SceAtInit(p, SceAtSys.pItemData);
         SceAtRoomSet();
-        SceAtSys.x11C = 1;
+        SceAtSys.m_use_tool_data = 1;
         pW->timer = 30;
         if (ret != 0) {
             pW->sub = 8;

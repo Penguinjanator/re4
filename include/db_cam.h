@@ -21,7 +21,8 @@ public:
     s8 m_cam_play;           // 0x0D  cut playback state
     s8 m_key_type;       // 0x0E  camera_type_tbl index
     s8 m_target_type;    // 0x0F  0 EM, 1 OBJ, 2 PL, 3 ORG, 4 OFF
-    u8 pad_10[4];
+    s8 m_target_save;    // 0x10  m_target_type saved while a tool forces its own (t_sce_at) (PS2 m_target_save)
+    u8 pad_11[3];
     u32 pad_bits : 26; // 0x14
     u32 info_disp : 1; // 0x14  bit 0x20: print the camera in player space
     u32 pad_bits2 : 2;
