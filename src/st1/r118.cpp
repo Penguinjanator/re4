@@ -77,7 +77,7 @@ void R118Init()
         m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
-    if (!(pG->Key_flg[0] & 0x10000000)) {
+    if (!KyfFlagChk(pG, KYF_R118_TO_R117_DOOR)) {
         SceAtSetEnable(0x80, 0);
         SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r118_checkDoor117, 0, 1);
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -215,7 +215,7 @@ static void r118_checkDoor117KeyUse()
     SceAtSetEnable(0x80, 1);
     SndCall(6, 8, 0, 0, 0, 0);
     SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->Key_flg[0] |= 0x10000000;
+    KyfFlagOn(pG, KYF_R118_TO_R117_DOOR);
     SceAtDataReset(4);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

@@ -19,6 +19,7 @@
 #include "em_set.h"
 #include "emtree.h"
 #include "emtorch.h"
+#include "em2b.h"
 #include "etc_model.h"
 #include "esp.h"
 #include "est.h"
@@ -326,7 +327,7 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if (ScfFlagChk(pG, SCF_R100_DOG_RUN) && !(pG->Room_flg[0] & 0x02000000)) {
+        if (ScfFlagChk(pG, SCF_R100_DOG_RUN) && !RmfFlagChk(pG, RMF_R119_DOG_APPEAR)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");
@@ -348,12 +349,12 @@ static void r119_EventGolemAppear()
                 }
             }
             if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
-                pG->Room_flg[0] |= 0x02000000;
+                RmfFlagOn(pG, RMF_R119_DOG_APPEAR);
                 SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
-        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->Room_flg[0] & 0x01000000)) || DebugTrg(0) != 0) {
-            pG->Room_flg[0] |= 0x01000000;
+        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !RmfFlagChk(pG, RMF_R119_PARASIET)) || DebugTrg(0) != 0) {
+            RmfFlagOn(pG, RMF_R119_PARASIET);
             SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         SceSleep(1);
@@ -398,24 +399,24 @@ static void koya_destroy_check()
     static const Vec r119_up = {0.0f, 1.0f, 3.1415927f};
 
     for (;;) {
-        if ((pG->Room_flg[0] & 0x80000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
+        if (RmfFlagChk(pG, RMF_R119_DESTROY_KOYA_A) && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 1);
             koyaA_destroy();
-        } else if ((pG->Room_flg[0] & 0x10000000) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
+        } else if (RmfFlagChk(pG, RMF_R119_DESTROY_YANE_A) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 4);
             YaneA_destroy();
         }
-        if ((pG->Room_flg[0] & 0x40000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+        if (RmfFlagChk(pG, RMF_R119_DESTROY_KOYA_B) && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 2);
             koyaB_destroy();
-        } else if ((pG->Room_flg[0] & 0x08000000) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+        } else if (RmfFlagChk(pG, RMF_R119_DESTROY_YANE_B) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 5);
             YaneB_destroy();
         }
-        if ((pG->Room_flg[0] & 0x20000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+        if (RmfFlagChk(pG, RMF_R119_DESTROY_KOYA_C) && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 3);
             koyaC_destroy();
-        } else if ((pG->Room_flg[0] & 0x04000000) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
+        } else if (RmfFlagChk(pG, RMF_R119_DESTROY_YANE_C) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 6);
             YaneC_destroy();
         }

@@ -97,7 +97,7 @@ void R203Init()
         SceAtDataSet_exec(0x8A, SCE_LEVEL10, 0, (TaskFunc) r203_GetKeyItem, 0, 1);
         SceExec(0x12, (TaskFunc) r203_GanadoEscape, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if ((pG->Key_flg[0] & 0x00020000) == 0) {
+    if (KyfFlagChk(pG, KYF_R203_TO_R201_DOOR) == 0) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r203_LockDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r209_CheckUseKey, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -141,7 +141,7 @@ static void r209_CheckUseKey()
         SceSleep(1);
     }
     SceAtDataReset(1);
-    pG->Key_flg[0] |= 0x00020000;
+    KyfFlagOn(pG, KYF_R203_TO_R201_DOOR);
     SceUpCut(1, -1, 4, 0);
 }
 

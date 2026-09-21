@@ -215,8 +215,8 @@ void cSubLuis::modelSet()
 // key sounds.
 void cSubLuis::move()
 {
-    U32And(pG->Status_flg[1], ~0x10000);
-    U32And(pG->Status_flg[2], ~0x20000000);
+    StaFlagOff(pG, STA_TAKEAWAY);
+    StaFlagOff(pG, STA_SUB_CATCHED);
     damageCheck();
     analysis.move();
     think();
@@ -952,7 +952,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
 void cAction::moveAttackPl(cAnalysis* an, cRoutine* rt)
 {
     if (rno1 == 0) {
-        pG->Room_flg[0] |= 0x20000000;
+        RmfFlagOn(pG, RMF_LUIS_ANGRY);
         rno1 = 1;
     }
 }

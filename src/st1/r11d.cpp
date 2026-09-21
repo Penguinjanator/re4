@@ -101,7 +101,7 @@ void R11dInit()
     } else {
         SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->Key_flg[0] & 0x00010000)) {
+    if (!KyfFlagChk(pG, KYF_R11D_TO_R10F_DOOR)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11d_checkDoor, 0, 1);
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
@@ -122,7 +122,7 @@ void R11dInit()
     } else {
         r11d_setEmSister();
     }
-    if (!(pG->Key_flg[0] & 0x00100000)) {
+    if (!KyfFlagChk(pG, KYF_R11D_IRON_DOOR)) {
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
             ((cEmDoor*) r11d_work->door)->setKey(0xB);
         }
@@ -163,7 +163,7 @@ static void r11d_checkIronDoorKeyUse()
     while (ItemMgr.check(0x8C) != 1) {
         SceSleep(1);
     }
-    pG->Key_flg[0] |= 0x00100000;
+    KyfFlagOn(pG, KYF_R11D_IRON_DOOR);
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
     GameSave.save(pSaveData, -1);
@@ -475,7 +475,7 @@ static void r11d_checkDoor()
     CamCtrl.CutCall(0xA);
     SceSleep(15);
     SmdSetTrans(0x20, 0);
-    pG->Key_flg[0] |= 0x00010000;
+    KyfFlagOn(pG, KYF_R11D_TO_R10F_DOOR);
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceAtDataReset(1);

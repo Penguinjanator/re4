@@ -86,7 +86,7 @@ void R30cInit()
     if (getRoomEtcDoor(1, &r30c_work.p->door, 1)) {
         ((cEmDoor*) r30c_work.p->door)->setKey(0x13);
     }
-    if (!(pG->Key_flg[0] & 0x1000)) {
+    if (!KyfFlagChk(pG, KYF_R30C_DOOR)) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r30c_checkImprisonDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r30c_checkImprisonDoorKeyUse, 0, 0, 2, 0);
     }
@@ -96,7 +96,7 @@ void R30cInit()
         EvtMgr.EvtReadAram("event/evd/r30cs00.evd", (u8) GetEmIdFromList(0x40), 0, 0, 0);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(5, 0);
-        if (ItemMgr.num(0x83) != 0 || (pG->Key_flg[0] & 0x1000)) {
+        if (ItemMgr.num(0x83) != 0 || KyfFlagChk(pG, KYF_R30C_DOOR)) {
             Vec pos = {0.0f, 0.0f, 0.0f};
             Vec ang;
             cSubChar* sub = pSUB;
@@ -166,7 +166,7 @@ static void r30c_checkImprisonDoorKeyUse()
     while (ItemMgr.check(0x83) != 1) {
         SceSleep(1);
     }
-    pG->Key_flg[0] |= 0x1000;
+    KyfFlagOn(pG, KYF_R30C_DOOR);
     SceAtSetEnable(3, 0);
     SceUpCut(1, -1, 1, 0);
 }

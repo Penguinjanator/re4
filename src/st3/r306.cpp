@@ -74,14 +74,14 @@ void R306Init()
     if (getRoomEtcDoor(0x14, &r306_work->door1, 1) && getRoomEtcDoor(0x15, &r306_work->door2, 1)) {
         ((cEmDoor*) r306_work->door1)->setDoor((cEmDoor*) r306_work->door2);
     }
-    if (!(pG->Key_flg[0] & 0x2000)) {
+    if (!KyfFlagChk(pG, KYF_R306_TO_R308_DOOR)) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r306_checkDoor308, 0, 1);
     } else {
         SceAtSetEnable(6, 0);
     }
     SceExec(0x12, (TaskFunc) r306_checkDoor308KeyUse, 0, 0, 2, 0);
     void* zero = 0;
-    if (!(pG->Key_flg[0] & 0x100)) {
+    if (!KyfFlagChk(pG, KYF_R306_TO_R30B_DOOR)) {
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r306_checkDoor30b, 0, 1);
         SceExec(0x12, (TaskFunc) r306_checkDoor30bKeyUse, 0, 0, 2, 0);
     }
@@ -183,7 +183,7 @@ static void r306_checkDoor308KeyUse()
         if (pG->Room_flg[2] & 0x80000000) {
             SndCall(6, 4, 0, 0, 0, 0);
             SceMesSet(4, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
-            pG->Key_flg[0] |= 0x2000;
+            KyfFlagOn(pG, KYF_R306_TO_R308_DOOR);
             SceAtDataReset(4);
             SceAtSetEnable(6, 0);
         } else {
@@ -211,7 +211,7 @@ static void r306_checkDoor30bKeyUse()
     ItemMgr.dump(0x92);
     SndCall(6, 4, 0, 0, 0, 0);
     SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->Key_flg[0] |= 0x100;
+    KyfFlagOn(pG, KYF_R306_TO_R30B_DOOR);
     SceAtDataReset(5);
 }
 

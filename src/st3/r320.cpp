@@ -99,6 +99,30 @@ static u32 r320_heriTime[9] = {0x168, 0x41A, 0x546, 0x708, 0x960, 0xA8C, 0xC4E, 
 // Lever turn acceleration per frame (reva_common_move).
 static f32 r320_revaAccel = 0.008f;
 
+// Room_flg bits of this room, from the PS2 symbols; RmfFlagChk(pG, n).
+enum R320_FLAG {
+    RMF_TARGET_DESTROY = 0,
+    RMF_TARGET1_START = 1,
+    RMF_EVENT_CANCEL = 2,
+    RMF_TARGET4_START = 3,
+    RMF_TARGET5_START = 4,
+    RMF_TARGET6_START = 5,
+    RMF_GATE2_CLOSE = 35,
+    RMF_GATE2_OPEN = 36,
+    RMF_EVTR320S01_READ = 48,
+    RMF_AREA0 = 64,
+    RMF_AREA1 = 65,
+    RMF_AREA2 = 66,
+    RMF_AREA_DOWN = 67,
+    RMF_AREA3 = 68,
+    RMF_AREA4 = 69,
+    RMF_NO_SHOOT1 = 70,
+    RMF_NO_SHOOT2 = 71,
+    RMF_NO_SHOOT3 = 72,
+    RMF_NO_SHOOT4 = 73,
+    RMF_NO_SHOOT5 = 74,
+};
+
 #define R320_SAVE_FLAGS (*(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4))
 
 
@@ -601,7 +625,7 @@ static void r320_heri_event()
     R320_SAVE_FLAGS |= 0x80000000;
     SceSleep(1);
     EvtMgr.EvtReadExec("event/evd/r320s00.evd", 0, 0);
-    if ((pG->Room_flg[0] & 0x20000000) == 0) {
+    if (RmfFlagChk(pG, RMF_EVENT_CANCEL) == 0) {
         EvtMgr.EvtReadExec("event/evd/r320s01.evd", 0, 0);
     } else {
         SndRoomStrStart(1, 0, 1);
@@ -709,19 +733,19 @@ void R320Main()
                 if (r320_work->heriTimer <= 0x12B || r320_work->emAlive == 0) {
                     cEm3d* em = (cEm3d*) r320_work->heri.getPtr();
 
-                    if (pG->Room_flg[2] & 0x80000000) {
+                    if (RmfFlagChk(pG, RMF_AREA0)) {
                         em->setPatrolPos(&r320_posB[4]);
                     }
-                    if (pG->Room_flg[2] & 0x40000000) {
+                    if (RmfFlagChk(pG, RMF_AREA1)) {
                         em->setPatrolPos(&r320_posB[4]);
                     }
-                    if (pG->Room_flg[2] & 0x20000000) {
+                    if (RmfFlagChk(pG, RMF_AREA2)) {
                         em->setPatrolPos(&r320_posB[5]);
                     }
-                    if (pG->Room_flg[2] & 0x08000000) {
+                    if (RmfFlagChk(pG, RMF_AREA3)) {
                         em->setPatrolPos(&r320_posB[6]);
                     }
-                    if (pG->Room_flg[2] & 0x04000000) {
+                    if (RmfFlagChk(pG, RMF_AREA4)) {
                         if ((R320_SAVE_FLAGS & 0x04000000) == 0) {
                             em->setPatrolPos(&r320_posB[9]);
                         } else if ((R320_SAVE_FLAGS & 0x02000000) == 0) {
@@ -737,35 +761,35 @@ void R320Main()
                     SetHeriTargetEm();
                 }
                 cnt = r320_work->atkCnt;
-            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && (pG->Room_flg[2] & 0x80000000) && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
+            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && RmfFlagChk(pG, RMF_AREA0) && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri0, 0, 0, 2, 0);
                     r320_work->atkCnt = 0;
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x20000000) == 0 && (pG->Room_flg[2] & 0x40000000) && (R320_SAVE_FLAGS & 0x00200000)) {
+            if ((R320_SAVE_FLAGS & 0x20000000) == 0 && RmfFlagChk(pG, RMF_AREA1) && (R320_SAVE_FLAGS & 0x00200000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri1, 0, 0, 2, 0);
                     r320_work->atkCnt = 0;
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x10000000) == 0 && (pG->Room_flg[2] & 0x20000000) && (R320_SAVE_FLAGS & 0x00400000)) {
+            if ((R320_SAVE_FLAGS & 0x10000000) == 0 && RmfFlagChk(pG, RMF_AREA2) && (R320_SAVE_FLAGS & 0x00400000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri2, 0, 0, 2, 0);
                     r320_work->atkCnt = 0;
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x08000000) == 0 && (pG->Room_flg[2] & 0x08000000) && (R320_SAVE_FLAGS & 0x00100000)) {
+            if ((R320_SAVE_FLAGS & 0x08000000) == 0 && RmfFlagChk(pG, RMF_AREA3) && (R320_SAVE_FLAGS & 0x00100000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri3, 0, 0, 2, 0);
                     r320_work->atkCnt = 0;
                 }
             }
-            if ((pG->Room_flg[2] & 0x04000000) && (R320_SAVE_FLAGS & 0x01000000) == 0) {
+            if (RmfFlagChk(pG, RMF_AREA4) && (R320_SAVE_FLAGS & 0x01000000) == 0) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri4, 0, 0, 2, 0);
@@ -805,7 +829,7 @@ void R320Main()
         }
     }
     if (((R320_SAVE_FLAGS & 0x00400000) || (R320_SAVE_FLAGS & 0x00200000)) && (R320_SAVE_FLAGS & 0x20000000) == 0
-        && (pG->Room_flg[0] & 0x40000000) == 0 && (R320_SAVE_FLAGS & 0x08000000) == 0) {
+        && RmfFlagChk(pG, RMF_TARGET1_START) == 0 && (R320_SAVE_FLAGS & 0x08000000) == 0) {
         if (r320_work->chgWaitC > 0) {
             r320_work->chgWaitC = r320_work->chgWaitC - 1;
         } else {
@@ -829,7 +853,7 @@ void R320Main()
         }
     }
     if ((R320_SAVE_FLAGS & 0x00200000) && (R320_SAVE_FLAGS & 0x00100000) == 0) {
-        if (pG->Room_flg[2] & 0x10000000) {
+        if (RmfFlagChk(pG, RMF_AREA_DOWN)) {
             if (r320_work->chgCntD == 0) {
                 r320_work->chgCntD = 1;
                 emset(0xE, 0x46);
@@ -866,7 +890,7 @@ void R320Main()
         Vec pos = {53523.0f, 12868.0f, 7344.0f};
 
         if (r320_work->chgCntF <= 5) {
-            if (pG->Room_flg[2] & 0x08000000) {
+            if (RmfFlagChk(pG, RMF_AREA3)) {
                 if (r320_work->em[0x2D].ckResetEnable()) {
                     if (setChange(0x2D, 0x42, 0x11, 0x4D) || setChange(0x11, 0x4D, 0x11, 0x4D)) {
                         r320_work->em[0x11].setGoto(&pos, 0xC);
@@ -947,7 +971,7 @@ void R320Main()
                 r320_work->gatling[4]->setFire();
             }
         }
-        if (((pG->Room_flg[2] & 0x02000000) && r320_work->em[0x1B].isActive()) || ((pG->Room_flg[2] & 0x01000000) && r320_work->em[0x1B].isActive())) {
+        if ((RmfFlagChk(pG, RMF_NO_SHOOT1) && r320_work->em[0x1B].isActive()) || (RmfFlagChk(pG, RMF_NO_SHOOT2) && r320_work->em[0x1B].isActive())) {
             if (r320_work->gatling[4]) {
                 r320_work->gatling[4]->stopFire();
             }
@@ -963,28 +987,28 @@ void R320Main()
                 }
             }
         }
-        if ((pG->Room_flg[2] & 0x00800000) && r320_work->em[0x1B].isActive()) {
+        if (RmfFlagChk(pG, RMF_NO_SHOOT3) && r320_work->em[0x1B].isActive()) {
             if (r320_work->gatling[4]) {
                 r320_work->gatling[4]->stopFire();
             }
         }
-        if ((pG->Room_flg[2] & 0x00400000) && r320_work->em[0x25].isActive()) {
+        if (RmfFlagChk(pG, RMF_NO_SHOOT4) && r320_work->em[0x25].isActive()) {
             if (r320_work->gatling[3]) {
                 r320_work->gatling[3]->stopFire();
             }
         }
-        if (pG->Room_flg[2] & 0x00200000) {
+        if (RmfFlagChk(pG, RMF_NO_SHOOT5)) {
             if (r320_work->gatling[2]) {
                 r320_work->gatling[2]->stopFire();
             }
         }
-        if ((pG->Room_flg[0] & 0x10000000) == 0 && r320_work->em[0x25].isAlive() && r320_work->em[0x25].isActive() == 0) {
+        if (RmfFlagChk(pG, RMF_TARGET4_START) == 0 && r320_work->em[0x25].isAlive() && r320_work->em[0x25].isActive() == 0) {
             SceAtSetEnable(0x95, 1);
         }
-        if ((pG->Room_flg[0] & 0x08000000) == 0 && r320_work->em[0x1B].isAlive() && r320_work->em[0x1B].isActive() == 0) {
+        if (RmfFlagChk(pG, RMF_TARGET5_START) == 0 && r320_work->em[0x1B].isAlive() && r320_work->em[0x1B].isActive() == 0) {
             SceAtSetEnable(0x94, 1);
         }
-        if ((pG->Room_flg[0] & 0x04000000) == 0 && r320_work->em[0x20].isAlive() && r320_work->em[0x20].isActive() == 0) {
+        if (RmfFlagChk(pG, RMF_TARGET6_START) == 0 && r320_work->em[0x20].isAlive() && r320_work->em[0x20].isActive() == 0) {
             SceAtSetEnable(0x96, 1);
         }
     }
@@ -1669,7 +1693,7 @@ void gate1_open(int no)
 {
     cObj* o;
 
-    BitOn(pG->Key_flg[1], 0x00100000);
+    KyfFlagOn(pG, KYF_ST1_20);
     scr_set();
     o = SmdGetObjPtr(0x2A);
     o->be_flag |= 0x20;
@@ -1720,8 +1744,8 @@ void gate2_open()
 {
     cObj* o;
 
-    BitOn(pG->Key_flg[1], 0x00200000);
-    BitOn(pG->Room_flg[1], 0x08000000);
+    KyfFlagOn(pG, KYF_ST1_19);
+    RmfFlagOn(pG, RMF_GATE2_OPEN);
     SceEventStart(1);
     CamCtrl.CutCall(0x16);
     o = SmdGetObjPtr(0x2B);
@@ -1744,7 +1768,7 @@ static void gate2_close()
 {
     cObj* o;
 
-    BitOn(pG->Room_flg[1], 0x10000000);
+    RmfFlagOn(pG, RMF_GATE2_CLOSE);
     if (r320_work->gatling[2]) {
         r320_work->gatling[2]->be_flag &= ~0x20;
     }
@@ -1815,7 +1839,7 @@ static void attack_heri1()
         if (heri) {
             heri->setTarget(1, 24000.0f);
         }
-        BitOn(pG->Room_flg[0], 0x40000000);
+        RmfFlagOn(pG, RMF_TARGET1_START);
         SceExec(0x12, (TaskFunc) destroy_1, 0, 0, 2, 0);
         addMisileUseNum();
     }
@@ -1893,11 +1917,11 @@ static void destroy_0()
         StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
         SceEventStart(1);
         CamCtrl.CutCall(8);
-        while (!(pG->Room_flg[0] & 0x80000000)) {
+        while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
             SceSleep(1);
         }
         int zero = 0;
-        BitOff(pG->Room_flg[0], 0x80000000);
+        RmfFlagOff(pG, RMF_TARGET_DESTROY);
         R320_SAVE_FLAGS |= 0x40000000;
         EatMgr.destroy(r320_work->sat[10]);
         PlWepHitCheck2(0, &r320_posA[0], &r320_posA[0], 0x12, 3, 7000.0f);
@@ -1922,10 +1946,10 @@ static void destroy_0()
 // Gun tower 1 destroyed: its collision off, explosion effect under a camera cut, blast damage around it, save bit set.
 static void destroy_1()
 {
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x20000000;
     EatMgr.destroy(r320_work->sat[8]);
     SatMgr.destroy(r320_work->sat[1]);
@@ -1961,11 +1985,11 @@ static void destroy_2()
     SceAtWork* at;
     SceAtWork* w;
 
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x10000000;
     EatMgr.destroy(r320_work->sat[9]);
     PlWepHitCheck2(0, &r320_posA[3], &r320_posA[3], 0x12, 3, 7000.0f);
@@ -2011,11 +2035,11 @@ static void destroy_3()
 {
     cEm* door;
 
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x08000000;
     EatMgr.destroy(r320_work->sat[4]);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
@@ -2051,12 +2075,12 @@ static void destroy_3()
 // Target 4 destroyed (as destroy_1).
 static void destroy_4()
 {
-    BitOn(pG->Room_flg[0], 0x10000000);
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    RmfFlagOn(pG, RMF_TARGET4_START);
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x04000000;
     EatMgr.destroy(r320_work->sat[5]);
     SceSleep(0xF);
@@ -2084,7 +2108,7 @@ static void destroy_4()
         pPL->setPos(45469.0f, 9538.0f, -12354.0f);
         CamCtrl.Comeback(0);
     }
-    if (pG->Room_flg[2] & 0x00800000) {
+    if (RmfFlagChk(pG, RMF_NO_SHOOT3)) {
         emset(0xB, 0x5B);
     }
 }
@@ -2092,12 +2116,12 @@ static void destroy_4()
 // Target 5 destroyed (as destroy_1).
 static void destroy_5()
 {
-    BitOn(pG->Room_flg[0], 0x08000000);
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    RmfFlagOn(pG, RMF_TARGET5_START);
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x02000000;
     EatMgr.destroy(r320_work->sat[7]);
     SceSleep(0xF);
@@ -2126,12 +2150,12 @@ static void destroy_5()
 // Target 6 destroyed (as destroy_1); the last one frees the way to the tower.
 static void destroy_6()
 {
-    BitOn(pG->Room_flg[0], 0x04000000);
-    while (!(pG->Room_flg[0] & 0x80000000)) {
+    RmfFlagOn(pG, RMF_TARGET6_START);
+    while (!RmfFlagChk(pG, RMF_TARGET_DESTROY)) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->Room_flg[0], 0x80000000);
+    RmfFlagOff(pG, RMF_TARGET_DESTROY);
     R320_SAVE_FLAGS |= 0x01000000;
     EatMgr.destroy(r320_work->sat[6]);
     SceSleep(0xF);
@@ -2171,7 +2195,7 @@ static void Evt_R320S00_Func(Event* e)
 
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r320s01.evd", 0, 0, 0, 0);
-            BitOn(pG->Room_flg[1], 0x8000);
+            RmfFlagOn(pG, RMF_EVTR320S01_READ);
         }
         if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0x27, 0);
@@ -2243,8 +2267,8 @@ static void Evt_R320S00_Func(Event* e)
         break;
     }
     case 3:
-        BitOn(pG->Room_flg[0], 0x20000000);
-        if (pG->Room_flg[1] & 0x8000) {
+        RmfFlagOn(pG, RMF_EVENT_CANCEL);
+        if (RmfFlagChk(pG, RMF_EVTR320S01_READ)) {
             EvtMgr.EvtFree("event/evd/r320s01.evd");
         }
         break;
@@ -2463,7 +2487,7 @@ static void door_open()
     int zero = 0;
     u32 i;
 
-    BitOn(pG->Key_flg[1], 0x00080000);
+    KyfFlagOn(pG, KYF_ST1_21);
     R320_SAVE_FLAGS |= 0x200;
     EffectEspDelete(1, ESP_CORE_KIND_ROOM04, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM04, 0);

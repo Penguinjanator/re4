@@ -719,7 +719,7 @@ static void r221_checkElevatorArrive()
 // Task: the elevator switch.
 static void r221_operateElevator()
 {
-    if (!(pG->Em_flg[5][4] & 0x00080000) && (pG->Room_flg[0] & 0x00200000)) {
+    if (!FlagChk(pG->Em_flg[5], 140) && (pG->Room_flg[0] & 0x00200000)) {
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
@@ -1122,7 +1122,7 @@ void r221_initInsectboss()
 
             em.setEm(0x8C, -1, 0, 1, 1);
         }
-        if (!(pG->Em_flg[5][4] & 0x00080000)) {
+        if (!FlagChk(pG->Em_flg[5], 140)) {
             SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r221_appearBoss2nd, 0, 1);
         }
     }

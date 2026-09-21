@@ -93,14 +93,14 @@ void R10fInit()
     // the setSubMotion block is r10 too (its qty ahead of the work pointer's; ours reverses the two).
     register GlobalWork* g asm("r10");
     g = pG;
-    if (!(g->Key_flg[0] & 0x00800000)) {
+    if (!KyfFlagChk(g, KYF_R10F_TO_R200_DOOR)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, 0, 1);
         SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->Key_flg[0] & 0x00010000)) {
+    if (!KyfFlagChk(pG, KYF_R11D_TO_R10F_DOOR)) {
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11D, 1);
     }
-    if (!(pG->Key_flg[0] & 0x00080000)) {
+    if (!KyfFlagChk(pG, KYF_R11E_TO_R10F_DOOR)) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11E, 1);
     }
     {
@@ -492,7 +492,7 @@ extern "C" void r10f_DoorOpen()
     pl->setNoSuspend(0);
     eye->be_flag &= ~2;
     SceEventEnd(0);
-    pG->Key_flg[0] |= 0x00800000;
+    KyfFlagOn(pG, KYF_R10F_TO_R200_DOOR);
     SceAtDataReset(2);
 }
 

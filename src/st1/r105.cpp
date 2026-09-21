@@ -138,7 +138,7 @@ void R105Init()
     }
     SceExec(0x12, r105_bgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r105_eff_info);
-    if (!(pG->Key_flg[0] & 0x02000000)) {
+    if (!KyfFlagChk(pG, KYF_R105_TO_R101_DOOR)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, r105_checkDoor, 0, 1);
     } else {
         SmdSetTrans(0x23, 0);
@@ -662,7 +662,7 @@ static void r105_checkDoor()
     SceAtDataReset(1);
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    BitOn(pG->Key_flg[0], 0x02000000);
+    KyfFlagOn(pG, KYF_R105_TO_R101_DOOR);
     ScfFlagOn(pG, SCF_90);
     CamCtrl.Comeback(0);
     CamCtrl.Comeback(0);

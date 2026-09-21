@@ -365,7 +365,7 @@ static void r307_checkPuzzleTerminal()
             void* zero = 0;
 
             RsfSet(G_ROOM_ID, 2);
-            pG->Key_flg[0] |= 2;
+            KyfFlagOn(pG, KYF_ST1_06);
             SceAtSetEnable(5, 0);
             SceAtSetEnable(9, 0);
             SceSleep(10);

@@ -88,8 +88,8 @@ static void R329EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        BitOff(pG->Key_flg[1], 0x04000000);
-        BitOff(pG->Key_flg[1], 0x00040000);
+        KyfFlagOff(pG, KYF_ST1_14);
+        KyfFlagOff(pG, KYF_ST1_22);
         SceEventStart(0);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(1);

@@ -169,7 +169,7 @@ void R201Init()
         }
     }
     r201_work.p->doorY = SmdGetObjPtr(0x53)->pos.y;
-    if (!(pGS->Key_flg[0] & 0x8000)) {
+    if (!KyfFlagChk(pGS, KYF_R201_DOOR)) {
         r201_setBattleArea(0, 1);
         SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r201_checkDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r201_checkDungeonKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -697,7 +697,7 @@ static void r201_checkDungeonKeyUse()
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
-    pG->Key_flg[0] |= 0x8000;
+    KyfFlagOn(pG, KYF_R201_DOOR);
     SceAtSetEnable(0xB, 0);
     SceUpCut(1, -1, 1, 0);
     pPL->setNoSuspend(0);

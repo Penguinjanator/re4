@@ -95,7 +95,7 @@ void R11eInit()
     r11e_work = (R11eWork*) MEM_CALLOC(sizeof(R11eWork), 1, 0xd);
 
     EmReadSearch(0x2B, 0, 0);
-    if (!(pG->Key_flg[0] & 0x00080000)) {
+    if (!KyfFlagChk(pG, KYF_R11E_TO_R10F_DOOR)) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11e_checkDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -506,7 +506,7 @@ static void r11e_checkDoor102KeyUse()
     ItemMgr.dump(0x8B);
     SndCall(6, 5, 0, 0, 0, 0);
     SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-    pG->Key_flg[0] |= 0x00080000;
+    KyfFlagOn(pG, KYF_R11E_TO_R10F_DOOR);
     SceAtDataReset(1);
 }
 
