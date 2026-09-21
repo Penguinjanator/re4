@@ -63,25 +63,25 @@ void cObjMachinegun::init(cModel* parent)
     default:
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x2A));
         wep.pMotEmpty = WEP_ARC_PTR(0x2F);
-        wep.x24 = 0x30;
+        wep.itemId = 0x30;
         setAbility(7.0f, 2.1f, 0.2864f * 0.7f, 0.2864f * 0.7f);
         break;
     case 1:
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x2A));
         wep.pMotEmpty = WEP_ARC_PTR(0x2F);
-        wep.x24 = 0x31;
+        wep.itemId = 0x31;
         setAbility(5.73f * 0.7f, 2.86f * 0.7f, 0.2864f * 0.7f, 0.2864f * 0.7f);
         break;
     case 2:
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x2B));
         wep.pMotEmpty = WEP_ARC_PTR(0x2F);
-        wep.x24 = 0x32;
+        wep.itemId = 0x32;
         setAbility(5.73f * 0.2f, 2.86f * 0.2f, 0.2864f * 0.5f, 0.2864f * 0.5f);
         break;
     case 3:
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x2B));
         wep.pMotEmpty = WEP_ARC_PTR(0x2F);
-        wep.x24 = 0x33;
+        wep.itemId = 0x33;
         setAbility(5.73f * 0.2f, 2.86f * 0.2f, 0.2864f * 0.5f, 0.2864f * 0.5f);
         break;
     }

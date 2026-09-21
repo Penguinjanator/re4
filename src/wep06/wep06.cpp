@@ -59,7 +59,7 @@ void ObjGovernment_init(cObj* obj)
 
 // cObjWep::init override (parent = the player): model 0x6 with idle 0x34 (type 1: model 0x7 with
 // idle 0x39; empty idle 0x3A; weapon list id 0x2A / 0x2B), atari bits 8/9 off, hung on the right
-// hand, light area, wep.x18..x1A = 0x14, default lock spread.
+// hand, light area, wep.shotFrame[0..2] = 0x14, default lock spread.
 void cObjGovernment::init(cModel* parent)
 {
     void* bin;
@@ -68,12 +68,12 @@ void cObjGovernment::init(cModel* parent)
         bin = WEP_ARC_PTR(0x6);
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
         wep.pMotEmpty = WEP_ARC_PTR(0x3A);
-        wep.x24 = 0x2A;
+        wep.itemId = 0x2A;
     } else {
         bin = WEP_ARC_PTR(0x7);
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x39));
         wep.pMotEmpty = WEP_ARC_PTR(0x3A);
-        wep.x24 = 0x2B;
+        wep.itemId = 0x2B;
     }
     if (modelInit(bin, WEP_ARC_PTR(0x5)) == 0) {
         pLog->err(0, 0, "cObjWep::init() failed.");
@@ -89,7 +89,7 @@ void cObjGovernment::init(cModel* parent)
     }
     wep.parent = parent;
     resetMotion();
-    wep.x1A = wep.x19 = wep.x18 = 0x14;
+    wep.shotFrame[2] = wep.shotFrame[1] = wep.shotFrame[0] = 0x14;
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

@@ -29,7 +29,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before Wep38_init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before Wep38_init's string)
 extern const u8 ruger_tbl[3];
 const u8 ruger_tbl[3] = { 0x10, 0xE, 0xC };
 
@@ -80,9 +80,9 @@ void cObjRuger::init(cModel* parent)
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
     wep.pMotEmpty = WEP_ARC_PTR(0x3B);
     resetMotion();
-    wep.x18 = ruger_tbl[0];
-    wep.x19 = ruger_tbl[1];
-    wep.x1A = ruger_tbl[2];
+    wep.shotFrame[0] = ruger_tbl[0];
+    wep.shotFrame[1] = ruger_tbl[1];
+    wep.shotFrame[2] = ruger_tbl[2];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

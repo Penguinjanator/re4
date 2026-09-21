@@ -14,7 +14,7 @@
 #include "snd.h"
 #include "pad.h"
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 hksniper_tbl[3];
 const u8 hksniper_tbl[3] = { 0x14, 0xA, 0 };
 
@@ -43,9 +43,9 @@ void cObjHkSniper::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    wep.x18 = hksniper_tbl[0];
-    wep.x19 = hksniper_tbl[1];
-    wep.x1A = hksniper_tbl[2];
+    wep.shotFrame[0] = hksniper_tbl[0];
+    wep.shotFrame[1] = hksniper_tbl[1];
+    wep.shotFrame[2] = hksniper_tbl[2];
     wep.pMotNormal = WEP_ARC_PTR(0x22);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);

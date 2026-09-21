@@ -55,7 +55,7 @@ void cObjMine::init(cModel* parent)
 {
     cAtariInfo* at;
 
-    U16Set(wep.x24, 0x36);
+    U16Set(wep.itemId, 0x36);
     if (modelInit(WEP_ARC_PTR(0x8), WEP_ARC_PTR(0x7)) == 0) {
         pLog->err(0, 0, "cObjMine::init() failed.");
         return;

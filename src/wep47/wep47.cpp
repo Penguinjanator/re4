@@ -1,7 +1,7 @@
 // wep47 module: Wesker's semi-auto rifle (own copy of the cObjHkSniper class, object id 0x30;
 // routines wep/pl_rifle.cpp).
 //
-// Wesker's cObjHkSniper: the wep10 object without the wep.x18..x1A table, hanging on the player's
+// Wesker's cObjHkSniper: the wep10 object without the wep.shotFrame[0..2] table, hanging on the player's
 // right hand (parts 10), driven by wep.mode / wep.step from the rifle routines (mode 2 fire: SEs
 // and vibration only, mode 4 reload by tune level, ItemMgr.reload at frame 34; both ended by the
 // player routine). Wep47_init is the WeaponInitFunc, PlRifleMove the WeaponMoveFunc.

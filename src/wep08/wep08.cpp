@@ -58,7 +58,7 @@ void ObjStriker_init(cObj* obj)
 }
 
 // cObjWep::init override (parent = the player): model 0x5 / texture 0x6, atari bits 8/9 off,
-// hung on the right hand, light area, weapon list id 0x2D, idle motion 0x31, wep.x18..x1A = 0x2E,
+// hung on the right hand, light area, weapon list id 0x2D, idle motion 0x31, wep.shotFrame[0..2] = 0x2E,
 // default lock spread.
 void cObjStriker::init(cModel* parent)
 {
@@ -75,12 +75,12 @@ void cObjStriker::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    U16Set(wep.x24, 0x2D);
+    U16Set(wep.itemId, 0x2D);
     wep.pMotNormal = WEP_ARC_PTR(0x31);
     resetMotion();
-    wep.x18 = 0x2E;
-    wep.x19 = 0x2E;
-    wep.x1A = 0x2E;
+    wep.shotFrame[0] = 0x2E;
+    wep.shotFrame[1] = 0x2E;
+    wep.shotFrame[2] = 0x2E;
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

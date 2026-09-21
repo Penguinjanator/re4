@@ -209,7 +209,7 @@ void cObjLauncher::init(cModel* parent)
 {
     cModelInfo* info;
 
-    wep.x24 = 0x35;
+    wep.itemId = 0x35;
     info = (cModelInfo*) modelInit(PL_ARC_PTR(pG->pPlayer, 0x76), PL_ARC_PTR(pG->pPlayer, 0x75));
     if (info == 0) {
         pLog->err(0, 0, "cObjLauncher::init() modelInit() failed.");

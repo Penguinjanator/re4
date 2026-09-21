@@ -26,7 +26,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 vp70_tbl[3];
 const u8 vp70_tbl[3] = { 0xE, 0xC, 0xA };
 
@@ -56,13 +56,13 @@ void cObjVp70::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    wep.x24 = 3;
+    wep.itemId = 3;
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
     wep.pMotEmpty = WEP_ARC_PTR(0x38);
     resetMotion();
-    wep.x18 = vp70_tbl[0];
-    wep.x19 = vp70_tbl[1];
-    wep.x1A = vp70_tbl[2];
+    wep.shotFrame[0] = vp70_tbl[0];
+    wep.shotFrame[1] = vp70_tbl[1];
+    wep.shotFrame[2] = vp70_tbl[2];
     setAbility(1.146f, 0.57199997f, 0.1432f, 0.1432f);
 }
 

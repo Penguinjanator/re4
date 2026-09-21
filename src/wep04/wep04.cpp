@@ -30,7 +30,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1B of the object (an extern-linkage const: emitted here, before Wep04_init's strings)
+// wep.shotFrame of the object (an extern-linkage const: emitted here, before Wep04_init's strings)
 extern const u8 xd9_tbl[4];
 const u8 xd9_tbl[4] = { 0xE, 0xC, 0x8, 0x8 };
 
@@ -82,10 +82,10 @@ void cObjXd9::init(cModel* parent)
 
     if (pG->weapon_type != 1) {
         bin = WEP_ARC_PTR(0x6);
-        wep.x24 = 0x27;
+        wep.itemId = 0x27;
     } else {
         bin = WEP_ARC_PTR(0x7);
-        wep.x24 = 0x28;
+        wep.itemId = 0x28;
     }
     if (modelInit(bin, WEP_ARC_PTR(0x5)) == 0) {
         pLog->err(0, 0, "cObjWep::init() failed.");
@@ -103,10 +103,10 @@ void cObjXd9::init(cModel* parent)
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
     wep.pMotEmpty = WEP_ARC_PTR(0x39);
     resetMotion();
-    wep.x18 = xd9_tbl[0];
-    wep.x19 = xd9_tbl[1];
-    wep.x1A = xd9_tbl[2];
-    wep.x1B = xd9_tbl[3];
+    wep.shotFrame[0] = xd9_tbl[0];
+    wep.shotFrame[1] = xd9_tbl[1];
+    wep.shotFrame[2] = xd9_tbl[2];
+    wep.shotFrame[3] = xd9_tbl[3];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

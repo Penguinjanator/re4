@@ -55,7 +55,7 @@ void ObjMagnum_init(cObj* obj)
 }
 
 // cObjWep::init override (parent = the player): model 0x6 / texture 0x5, atari bits 8/9 off,
-// hung on the right hand, light area, idle motion 0x34, wep.x18..x1A = 0x20, default lock spread.
+// hung on the right hand, light area, idle motion 0x34, wep.shotFrame[0..2] = 0x20, default lock spread.
 void cObjMagnum::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -73,9 +73,9 @@ void cObjMagnum::init(cModel* parent)
     PSet(wep.parent, parent);
     wep.pMotNormal = WEP_ARC_PTR(0x34);
     resetMotion();
-    wep.x18 = 0x20;
-    wep.x19 = 0x20;
-    wep.x1A = 0x20;
+    wep.shotFrame[0] = 0x20;
+    wep.shotFrame[1] = 0x20;
+    wep.shotFrame[2] = 0x20;
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

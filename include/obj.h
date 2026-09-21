@@ -485,13 +485,10 @@ struct ObjWepWork {
     f32 lockRandYaw;      // 0x0C (0x334)
     f32 lockRandPitchStep;  // 0x10 (0x338)
     f32 lockRandYawStep;  // 0x14 (0x33C)
-    u8 x18;               // 0x18 (0x340)  handgun modules (wep02 objMauser/objRuger init): three bytes from a const table
-    u8 x19;               // 0x19 (0x341)
-    u8 x1A;               // 0x1A (0x342)
-    u8 x1B;               // 0x1B (0x343)  (wep04 objXd9: 4th table byte)
+    u8 shotFrame[4];      // 0x18 (0x340)  fire motion shot frames, from each weapon's const table (ruger_tbl, xd9_tbl, ...) (PS2 shotFrame[4])
     u8 pad_1C[4];
     cModel* parent;       // 0x20 (0x348)  model the weapon hangs on (parentSet)
-    u16 x24;              // 0x24 (0x34C)  (cObjLauncher::init: 0x35)
+    u16 itemId;           // 0x24 (0x34C)  weapon item id (cObjLauncher::init: 0x35) (PS2 ITEM_ID itemId)
     u8 mode;              // 0x26 (0x34E)  0 stay, 1 ready, 2 fire, 3 down, 4 reload, 5 drop (move dispatch)
     u8 step;              // 0x27 (0x34F)  step inside the mode
     u8 disp;              // 0x28 (0x350)  bit0 draw the laser this frame, bit1 drawn last frame, bits 2-4 setDisp types 0/1/2

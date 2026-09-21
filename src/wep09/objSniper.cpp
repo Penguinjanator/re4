@@ -25,7 +25,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 sniper_tbl[3];
 const u8 sniper_tbl[3] = { 0x14, 0, 0 };
 
@@ -40,7 +40,7 @@ void ObjSniper_init(cObj* obj)
 // right hand, light area, idle motion 0x23, the sniper_tbl bytes, default lock spread.
 void cObjSniper::init(cModel* parent)
 {
-    U16Set(wep.x24, 0x2E);
+    U16Set(wep.itemId, 0x2E);
     if (modelInit(WEP_ARC_PTR(0xA), WEP_ARC_PTR(0x9)) == 0) {
         pLog->err(0, 0, "cObjSniper::init() failed.");
         ObjMgr.destroy(this);
@@ -57,9 +57,9 @@ void cObjSniper::init(cModel* parent)
     PSet(wep.parent, parent);
     wep.pMotNormal = WEP_ARC_PTR(0x23);
     resetMotion();
-    wep.x18 = sniper_tbl[0];
-    wep.x19 = sniper_tbl[1];
-    wep.x1A = sniper_tbl[2];
+    wep.shotFrame[0] = sniper_tbl[0];
+    wep.shotFrame[1] = sniper_tbl[1];
+    wep.shotFrame[2] = sniper_tbl[2];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

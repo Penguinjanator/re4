@@ -26,7 +26,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 fn57_tbl[3];
 const u8 fn57_tbl[3] = { 0xE, 0xC, 0xA };
 
@@ -37,7 +37,7 @@ void ObjFn57_init(cObj* obj)
 }
 
 // cObjWep::init override (Wep01_init, parent = the player): model 0x6 / 0x7 by weapon_type
-// (weapon list id wep.x24 0x21 / 0x22), a 100-unit box atari with bits 8/9 off, hung on the right
+// (weapon list id wep.itemId 0x21 / 0x22), a 100-unit box atari with bits 8/9 off, hung on the right
 // hand, light area, idle motions 0x34 (normal) / 0x39 (empty), the fn57_tbl bytes, default lock spread.
 void cObjFn57::init(cModel* parent)
 {
@@ -45,11 +45,11 @@ void cObjFn57::init(cModel* parent)
 
     switch (pG->weapon_type) {
     case 0:
-        U16Set(wep.x24, 0x21);
+        U16Set(wep.itemId, 0x21);
         bin = WEP_ARC_PTR(0x6);
         break;
     case 1:
-        U16Set(wep.x24, 0x22);
+        U16Set(wep.itemId, 0x22);
         bin = WEP_ARC_PTR(0x7);
         break;
     }
@@ -70,9 +70,9 @@ void cObjFn57::init(cModel* parent)
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
     wep.pMotEmpty = WEP_ARC_PTR(0x39);
     resetMotion();
-    wep.x18 = fn57_tbl[0];
-    wep.x19 = fn57_tbl[1];
-    wep.x1A = fn57_tbl[2];
+    wep.shotFrame[0] = fn57_tbl[0];
+    wep.shotFrame[1] = fn57_tbl[1];
+    wep.shotFrame[2] = fn57_tbl[2];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

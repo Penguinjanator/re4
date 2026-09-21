@@ -20,7 +20,7 @@ public:
     virtual void setMotion(cPlayer* pl);
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 civilian_tbl[3];
 const u8 civilian_tbl[3] = { 0x14, 0x14, 0x14 };
 
@@ -49,12 +49,12 @@ void cObjCivilian::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    U16Set(wep.x24, 0x29);
+    U16Set(wep.itemId, 0x29);
     wep.pMotNormal = WEP_ARC_PTR(0x34);
     resetMotion();
-    wep.x18 = civilian_tbl[0];
-    wep.x19 = civilian_tbl[1];
-    wep.x1A = civilian_tbl[2];
+    wep.shotFrame[0] = civilian_tbl[0];
+    wep.shotFrame[1] = civilian_tbl[1];
+    wep.shotFrame[2] = civilian_tbl[2];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 

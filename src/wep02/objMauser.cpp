@@ -33,7 +33,7 @@ public:
 static f32 reloadFrame;
 static f32 pinFrame;
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 mauser_tbl[3];
 const u8 mauser_tbl[3] = { 0xE, 0xC, 0xA };
 
@@ -52,11 +52,11 @@ void cObjMauser::init(cModel* parent)
 
     if (pG->weapon_type != 2) {
         bin = WEP_ARC_PTR(0x6);
-        wep.x24 = 0x25;
+        wep.itemId = 0x25;
         setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
     } else {
         bin = WEP_ARC_PTR(0x7);
-        wep.x24 = 0x26;
+        wep.itemId = 0x26;
         setAbility(1.146f, 0.57199997f, 0.1432f, 0.1432f);
     }
     if (modelInit(bin, WEP_ARC_PTR(0x5)) == 0) {
@@ -73,9 +73,9 @@ void cObjMauser::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    wep.x18 = mauser_tbl[0];
-    wep.x19 = mauser_tbl[1];
-    wep.x1A = mauser_tbl[2];
+    wep.shotFrame[0] = mauser_tbl[0];
+    wep.shotFrame[1] = mauser_tbl[1];
+    wep.shotFrame[2] = mauser_tbl[2];
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
     wep.pMotEmpty = WEP_ARC_PTR(0x38);
     resetMotion();

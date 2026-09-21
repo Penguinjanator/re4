@@ -7,7 +7,7 @@
 // (wep/pl_handgun.cpp): mode 2 -> moveFire (slide motion, SEs, flash, cartridge), mode 4 ->
 // moveReload (reload motion by tune level, ItemMgr.reload at its frame). weapon_type 1 is the
 // upgraded (exclusive) model 0x7 with the silenced-style SE. setMotion installs the Punisher
-// footwork motions into the player's table; ruger_tbl fills wep.x18..x1A.
+// footwork motions into the player's table; ruger_tbl fills wep.shotFrame[0..2].
 
 #include "wep_mod.h"
 #include "item.h"
@@ -28,7 +28,7 @@ public:
     void setCartridge();
 };
 
-// wep.x18..x1A of the object (an extern-linkage const: emitted here, before init's string)
+// wep.shotFrame[0..2] of the object (an extern-linkage const: emitted here, before init's string)
 extern const u8 ruger_tbl[3];
 const u8 ruger_tbl[3] = { 0x10, 0xE, 0xC };
 
@@ -41,7 +41,7 @@ void ObjRuger_init(cObj* obj)
 #endif
 
 // cObjWep::init override (cPlayer::weaponInit, parent = the player): model 0x6 (type 1: 0x7,
-// weapon list id wep.x24 0x23 / 0x24), a 100-unit box atari with bits 8/9 off, hung on the
+// weapon list id wep.itemId 0x23 / 0x24), a 100-unit box atari with bits 8/9 off, hung on the
 // player's right hand, light area, idle motions 0x36 (normal) / 0x3B (empty), the three
 // ruger_tbl bytes and the default lock random spread.
 void cObjRuger::init(cModel* parent)
@@ -50,10 +50,10 @@ void cObjRuger::init(cModel* parent)
 
     if (pG->weapon_type != 1) {
         bin = WEP_ARC_PTR(0x6);
-        wep.x24 = 0x23;
+        wep.itemId = 0x23;
     } else {
         bin = WEP_ARC_PTR(0x7);
-        wep.x24 = 0x24;
+        wep.itemId = 0x24;
     }
     if (modelInit(bin, WEP_ARC_PTR(0x5)) == 0) {
         pLog->err(0, 0, "cObjWep::init() failed.");
@@ -72,9 +72,9 @@ void cObjRuger::init(cModel* parent)
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
     wep.pMotEmpty = WEP_ARC_PTR(0x3B);
     resetMotion();
-    wep.x18 = ruger_tbl[0];
-    wep.x19 = ruger_tbl[1];
-    wep.x1A = ruger_tbl[2];
+    wep.shotFrame[0] = ruger_tbl[0];
+    wep.shotFrame[1] = ruger_tbl[1];
+    wep.shotFrame[2] = ruger_tbl[2];
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
