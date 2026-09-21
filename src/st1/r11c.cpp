@@ -811,7 +811,7 @@ static void r11c_moveGear(int dir)
     g0->pParts->ang.z += d;
     g1->pParts->ang.y += d;
     SceSleep(1);
-    EstSet(0, -1, 0, 0, 1, 5, 1, (u8) W->effGear, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, (u8) W->effGear, 0, 0);
     while (!(pG->Room_flg[2] & 0x80000000)) {
         f32 a;
 

@@ -1690,7 +1690,7 @@ static void gate_open()
         SceSleep(1);
     }
     pG->Room_flg[0] |= 0x00200000;
-    EffectEspDelete(1, 5, 0, 0);
-    EffectEspgenDelete(1, 5, 0);
-    EffectEfmDelete(1, 5, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
 }

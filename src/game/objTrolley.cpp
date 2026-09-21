@@ -473,10 +473,10 @@ void plobjTrolleyEscape(cPlayer* pl)
             EndPlDamage();
         } else {
             if (em->frame == 140.0f) {
-                FootSeCall(1, &em->pos, 0, 0);
+                FootSeCall(SE_LEON_WALK_R, &em->pos, 0, 0);
             }
             if (em->frame == 173.0f) {
-                FootSeCall(0, &em->pos, 0, 0);
+                FootSeCall(SE_LEON_WALK_L, &em->pos, 0, 0);
             }
         }
         break;

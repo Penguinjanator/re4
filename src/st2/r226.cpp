@@ -1206,7 +1206,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         if (pG->Room_flg[0] & 1) {
             pG->Room_flg[1] |= 0x40000000;
         } else if (pG->Room_flg[0] & 2) {
-            ActBtn.set(0xC, 5, 0, 0, 0x42, 3, 1, 0);
+            ActBtn.set(ACT_JUMP_AT, 5, 0, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_SCE, 0);
             if (((Key.trg & 0x400000) && (Key.on & 0x800000)) || ((Key.on & 0x400000) && (Key.trg & 0x800000))) {
                 SndCall(1, 0x43, &pl->pos, 0, 0, 0);
                 BitOff(pG->Room_flg[0], 0x20000000);

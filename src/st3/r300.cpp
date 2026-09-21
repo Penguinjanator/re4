@@ -1263,9 +1263,9 @@ static void r300_mirb_exec()
 static void DoorOpen_exit()
 {
     pG->Key_flg[0] |= 0x80;
-    EffectEspDelete(1, 4, 0, 0);
-    EffectEspgenDelete(1, 4, 0);
-    EffectEfmDelete(1, 4, 0);
+    EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
+    EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
+    EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
     SmdGetObjPtr(0x42)->be_flag |= 0x20;
     SmdGetObjPtr(0x42)->pos.y = -8825.0f;
     RsfSet(GS_ROOM_ID, 5);

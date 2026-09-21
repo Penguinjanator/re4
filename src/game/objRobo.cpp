@@ -227,16 +227,16 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
         w->step++;
     case 1:
         if (robo->motEvent & 1) {
-            SndCall(6, 2, &robo->getPartsPtr(10)->world, 0, 0, 0);
+            SndCall(6, 2, &robo->getPartsPtr(RoboPartsNoLHand)->world, 0, 0, 0);
         }
         if (robo->motEvent & 2) {
-            SndCall(6, 1, &robo->getPartsPtr(5)->world, 0, 0, 0);
+            SndCall(6, 1, &robo->getPartsPtr(RoboPartsNoRHand)->world, 0, 0, 0);
         }
         if (robo->motEvent & 4) {
-            SndCall(6, 4, &robo->getPartsPtr(10)->world, 0, 0, 0);
+            SndCall(6, 4, &robo->getPartsPtr(RoboPartsNoLHand)->world, 0, 0, 0);
         }
         if (robo->motEvent & 8) {
-            SndCall(6, 3, &robo->getPartsPtr(5)->world, 0, 0, 0);
+            SndCall(6, 3, &robo->getPartsPtr(RoboPartsNoRHand)->world, 0, 0, 0);
         }
         for (i = 0; i < 2; i++) {
             parts = robo->getPartsPtr(i == 0 ? 10 : 5);
@@ -312,9 +312,9 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
         if (robo->pos.x <= -55597.8984375f) {
             int t = 0;
 
-            EffectEspDelete(1, 3, 0, 0);
-            EffectEspgenDelete(1, 3, 0);
-            EffectEfmDelete(1, 3, 0);
+            EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
+            EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
             BitOn(pG->Room_flg[0], 0x10000);
             MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x5C), ROOM_ARC_PTR(pG->pRoom, 0x65), 0x3C, 4, 0);
             v.x = -55597.8984375f;
@@ -491,13 +491,13 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
     v.z = 0.0f;
     robo->setAng(&v);
     if (robo->motEvent & 4) {
-        parts = robo->getPartsPtr(0xD);
+        parts = robo->getPartsPtr(RoboPartsNoRFoot);
         if (parts) {
             SndCall(6, 7, &parts->world, 0, 0, 0);
         }
     }
     if (robo->motEvent & 8) {
-        parts = robo->getPartsPtr(0x10);
+        parts = robo->getPartsPtr(RoboPartsNoLFoot);
         if (parts) {
             SndCall(6, 7, &parts->world, 0, 0, 0);
         }
@@ -545,12 +545,12 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     f32 range2;
 
     i = 15;
-    parts = robo->getPartsPtr(0x16);
+    parts = robo->getPartsPtr(RoboPartsNoSwitchF);
     if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
     BitOn(pG->Room_flg[0], 0x80000000);
-    SceAtSetEnable(4, 0);
+    SceAtSetEnable(SCEAT_EXEC_FRONT, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
@@ -575,10 +575,10 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->Room_flg[0], 0x4000);
-    robo->getPartsPtr(0x15)->ang.x = 0.0f;
+    robo->getPartsPtr(RoboPartsNoSwitchBL)->ang.x = 0.0f;
     SceSleep(1);
     BitOff(pG->Room_flg[0], 0x80000000);
-    SceAtSetEnable(4, 1);
+    SceAtSetEnable(SCEAT_EXEC_FRONT, 1);
 }
 
 // Scenario task (back hand switch / area 3): the same for the left hand parts (0x15) with motion
@@ -597,12 +597,12 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
     f32 range2;
 
     i = 15;
-    parts = robo->getPartsPtr(0x15);
+    parts = robo->getPartsPtr(RoboPartsNoSwitchBL);
     if (pG->Room_flg[0] & 0x40000000) {
         return;
     }
     BitOn(pG->Room_flg[0], 0x40000000);
-    SceAtSetEnable(3, 0);
+    SceAtSetEnable(SCEAT_EXEC_BACK, 0);
     if (parts) {
         SndCall(6, 5, &parts->pos, 0, 0, 0);
     }
@@ -627,10 +627,10 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->Room_flg[0], 0x8000);
-    robo->getPartsPtr(0x16)->ang.y = 0.0f;
+    robo->getPartsPtr(RoboPartsNoSwitchF)->ang.y = 0.0f;
     SceSleep(1);
     BitOff(pG->Room_flg[0], 0x40000000);
-    SceAtSetEnable(3, 1);
+    SceAtSetEnable(SCEAT_EXEC_BACK, 1);
 }
 
 // (Unused) v * 100 + 10 degrees to radians.

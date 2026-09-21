@@ -254,7 +254,7 @@ static void em23_R0_Init(cEm23* em)
     em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     EspDataLoad((u32) ARC(4), EFF_EM23, 0);
     em->pXFlip = em23_flip_tbl;
-    YarareInit(em, 0.0f, -100.0f, 0.0f, 250.0f, 200.0f, 1, 1);
+    YarareInit(em, 0.0f, -100.0f, 0.0f, 250.0f, 200.0f, 1, YAT_FLAG_ON);
     if (em->modelInit(ARC(5), ARC(8)) == 0) {
         pLog->err(0, 0, "em23() ModelInit failed.");
         em->r_no_0 = 0xFF;

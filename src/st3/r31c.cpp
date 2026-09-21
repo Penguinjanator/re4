@@ -383,10 +383,10 @@ void R31cInit()
     if (r31c_work.p->door8 && RsfCheck(G_ROOM_ID, 0xF) == 0) {
         r31c_work.p->door8->setCloseLock();
         SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r31c_Krauser1stBattle, 0, 1);
-        EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x17, 1, 3, 0, 0);
+        EstSet(r31c_work.p->door8, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         BitOff(pG->Key_flg[1], 0x00020000);
     } else {
-        EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+        EstSet(r31c_work.p->door8, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_NONE, 0, 0);
         BitOn(pG->Key_flg[1], 0x00020000);
     }
     SceExec(0x12, (TaskFunc) r31c_SeekerFirstSet, 0, 0, 2, 0);
@@ -946,8 +946,8 @@ static void r31c_TimerDoorCountDown()
     SceEventStart(1);
     CamCtrl.CutCall(0x11);
     SceSleep(10);
-    EffectDelete(1, 3);
-    EstSet(r31c_work.p->door8, -1, 0, 0, 1, 0x18, 1, 0, 0, 0);
+    EffectDelete(1, ESP_CORE_KIND_ROOM01);
+    EstSet(r31c_work.p->door8, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_NONE, 0, 0);
     BitOn(pG->Key_flg[1], 0x00020000);
     RoomSeCall(0x12, 0, 0, 0, 0);
     SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
