@@ -78,7 +78,7 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     Scale = d;
     divH = nx_;
     divV = ny_;
-    x70 = flag_;
+    isWave = flag_;
     RotMatrix(mat, &ang);
     TransMatrix(mat, &pos_);
     rowSize = ny_ * sizeof(Vec);
@@ -128,7 +128,7 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     colG = 0xFF;
     colB = 0xFF;
     colA = 0xFF;
-    x74 = 0;
+    blendMode = 0;
 }
 
 // Moves the cloth's hanging matrix.
@@ -277,7 +277,7 @@ void Cloth::move()
     int j;
 
     for (i = 0; i < divV; i++) {
-        if (x70 == 0) {
+        if (isWave == 0) {
             if (i == 0) {
                 continue;
             }
@@ -392,7 +392,7 @@ void clothTrans(Cloth* pCL)
     }
     GXLoadTexMtxImm(texMtx, 0x1E, 1);
     GXSetTexCoordGen2(0, 1, 4, 0x1E, 0, 0x7D);
-    if (pCL->x74 == 0) {
+    if (pCL->blendMode == 0) {
         GXSetBlendMode(1, 4, 5, 0);
     } else {
         GXSetBlendMode(1, 1, 1, 0);

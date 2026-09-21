@@ -34,8 +34,8 @@ public:
         };
     };
     void* m_pMem;         // 0x6C
-    int x70;           // 0x70
-    int x74;           // 0x74
+    int isWave;        // 0x70  Set's last argument: 1 pins the top four rows, 0 only the first (PS2 BOOL isWave)
+    int blendMode;     // 0x74  1: additive (cloth draw GXSetBlendMode; esp4e sets it from Blend_type) (PS2 blendMode)
 
     void Set(Vec ang, Vec pos, u8 nx, u8 ny, f32 w, GXTexObj* tex, f32 h, void* p, f32 d, GXTlutObj* tlut,
              int flag);

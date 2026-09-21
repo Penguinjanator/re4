@@ -20,7 +20,7 @@ struct Esp4cWork {
     f32 damp;     // 0x0C
     Vec ang;      // 0x10
     u8 flag;      // 0x1C
-    u8 x1D;       // 0x1D
+    u8 MaskTex_id; // 0x1D  gen->MaskTex_id (unused after set-up)
 };
 
 // Weather (est generator 45) controller: pushes its color/size into the generator every frame.
@@ -115,7 +115,7 @@ int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
     PSVECScale(&w->ang, &w->ang, 3.14 / 180);
     if (gen->Tool_flg & 0x4000) {
         w->flag |= 2;
-        w->x1D = gen->MaskTex_id;
+        w->MaskTex_id = gen->MaskTex_id;
         w->flag |= 1;
     }
     move();

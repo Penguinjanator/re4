@@ -207,7 +207,7 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
         wk->pCl->Set(m_Ang, m_Pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
     }
     if (gen->Blend_type) {
-        wk->pCl->x74 = 1;
+        wk->pCl->blendMode = 1;
     }
     wk->time_plus = gen->Work8[0];
     wk->pow = gen->Work8[1];
