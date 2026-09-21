@@ -20,6 +20,7 @@
 #include "emwindow.h"
 #include "em_set.h"
 #include "em_wrap.h"
+#include "pl14.h"
 #include "etc_model.h"
 #include "read.h"
 #include "dvd.h"
@@ -296,7 +297,7 @@ static void r11c_EventBesiegedStart()
     int err;
 
     ScfFlagOn(pG, SCF_R11C_BESIEGED_EVENT);
-    BitOn(pG->Room_flg[0], 0x40000000);
+    RmfFlagOn(pG, RMF_BESIEGEDING);
     EffectEspDelete(0, (u8) W->eff, 0, 0);
     EffectEspgenDelete(0, (u8) W->eff, 0);
     EffectEfmDelete(0, (u8) W->eff, 0);
@@ -486,7 +487,7 @@ static void r11c_EventBesiegedStart()
     t = 0;
     while (1) {
         for (i = 0; i < n; i++) {
-            if (pG->Room_flg[0] & 0x20000000) {
+            if (RmfFlagChk(pG, RMF_LUIS_ANGRY)) {
                 SceEventStart(0);
                 SndRoomStrStop(3);
                 SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -636,7 +637,7 @@ static void r11c_EventBesiegedStart()
         SmdGetObjPtr(0x3F)->be_flag &= ~2;
         EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, zero, zero);
     }
-    pG->Room_flg[0] &= ~0x40000000;
+    RmfFlagOff(pG, RMF_BESIEGEDING);
     SceSetChapterEnd(CHAPTER_2_2, -1);
 }
 
@@ -752,7 +753,7 @@ extern "C" void r11c_openGate(u32 id)
     EffectEspDelete(0, (u8) W->effGate, 0, 0);
     EffectEspgenDelete(0, (u8) W->effGate, 0);
     EffectEfmDelete(0, (u8) W->effGate, 0);
-    pG->Room_flg[2] |= 0x80000000;
+    RmfFlagOn(pG, RMF_GATE_OPEN);
     SceSleep(10);
 }
 
@@ -812,7 +813,7 @@ static void r11c_moveGear(int dir)
     g1->pParts->ang.y += d;
     SceSleep(1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, (u8) W->effGear, 0, 0);
-    while (!(pG->Room_flg[2] & 0x80000000)) {
+    while (!RmfFlagChk(pG, RMF_GATE_OPEN)) {
         f32 a;
 
         t += acc;
@@ -829,7 +830,7 @@ static void r11c_moveGear(int dir)
     EffectEspgenDelete(0, (u8) W->effGear, 0);
     EffectEfmDelete(0, (u8) W->effGear, 0);
     SceSleep(10);
-    pG->Room_flg[2] &= 0x7FFFFFFF;
+    RmfFlagOff(pG, RMF_GATE_OPEN);
     W->gear = 0;
 }
 
@@ -849,7 +850,7 @@ static void r11c_moveChain(int dir)
     c = SmdGetObjPtr(id);
     spd = 0.0f;
     c->be_flag |= 0x20;
-    while (!(pGS->Room_flg[2] & 0x80000000)) {
+    while (!RmfFlagChk(pGS, RMF_GATE_OPEN)) {
         spd += acc;
         if (spd > max) {
             spd = max;
@@ -924,7 +925,7 @@ static void r11c_selectRoute_end(int sel)
     cObj* g1 = SmdGetObjPtr(0x34);
     cObj* lv = SmdGetObjPtr(0x35);
 
-    if (pG->Room_flg[0] & 0x10000000) {
+    if (RmfFlagChk(pG, RMF_ROUTE_EVT_CANCEL)) {
         if (lv) {
             lv->pParts->ang.z = 0.0f;
         }
@@ -949,12 +950,12 @@ static void r11c_selectRoute_end(int sel)
         EffectEspDelete(0, (u8) W->effGate, 0, 0);
         EffectEspgenDelete(0, (u8) W->effGate, 0);
         EffectEfmDelete(0, (u8) W->effGate, 0);
-        pG->Room_flg[2] &= 0x7FFFFFFF;
+        RmfFlagOff(pG, RMF_GATE_OPEN);
     }
     W->seGear = 0;
     W->seGate = 0;
     if (sel < 0) {
-        if (pG->Room_flg[0] & 0x10000000) {
+        if (RmfFlagChk(pG, RMF_ROUTE_EVT_CANCEL)) {
             if (g0) {
                 g0->pos.y = W->gateY[0] + 3600.0f;
             }
@@ -969,7 +970,7 @@ static void r11c_selectRoute_end(int sel)
         SceAtSetEnable(0xA, 0);
         SceAtSetEnable(0xB, 0);
     } else {
-        if (pG->Room_flg[0] & 0x10000000) {
+        if (RmfFlagChk(pG, RMF_ROUTE_EVT_CANCEL)) {
             if (g0) {
                 g0->pos.y = W->gateY[0];
             }
@@ -996,7 +997,7 @@ static void r11c_selectRoute()
     W->chain = 0;
     W->seGate = 0;
     W->seGear = 0;
-    pGS->Room_flg[2] &= 0x7FFFFFFF;
+    RmfFlagOff(pGS, RMF_GATE_OPEN);
     SceEventStart(0);
     CamCtrl.CutCall(3);
     SceMesSet(0, 0x220, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);

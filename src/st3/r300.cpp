@@ -295,8 +295,8 @@ void R300Init()
     }
     EvtMgr.SetFunc("evt_r300s00_func", (void*) Evt_R300S00_Func);
     EvtMgr.SetFunc("evt_r300s99_func", (void*) Evt_R300S00_Func);
-    BitOn(pG->Key_flg[1], 0x800000);
-    BitOn(pG->Key_flg[1], 0x8000);
+    KyfFlagOn(pG, KYF_ST1_17);
+    KyfFlagOn(pG, KYF_ST1_25);
     setTexRender();
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     {
@@ -1262,7 +1262,7 @@ static void r300_mirb_exec()
 // gate 0x42 snapped down to y -8825, Room_flg bit 5, the mirror / laser / gate areas off, camera back.
 static void DoorOpen_exit()
 {
-    pG->Key_flg[0] |= 0x80;
+    KyfFlagOn(pG, KYF_ST1_00);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
