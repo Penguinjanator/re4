@@ -54,6 +54,7 @@ void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out);
 }
 // game/camera.cpp (C++ linkage): loads the current projection matrix into GX
 void CameraCurrentProjection();
+extern int ProjType;   // current projection type (db_cam.cpp toggles it)
 // game/cam_sys.cpp, C++ linkage (`CameraTargetDistance__FP6Cameraf` in Bio4.sym, marked local there;
 // the t_camera REL imports it, so cam_sys.cpp defines it non-static)
 void CameraTargetDistance(Camera* cam, f32 dist);

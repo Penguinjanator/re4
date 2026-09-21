@@ -21,8 +21,8 @@
 #include "ref_access.h"
 #include <stdlib.h>
 #include "player.h"
+#include "em_dm_val.h"
 
-extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
 
 // One weapon (22 bytes): item id, bullet attribute, weapon number/type, bullet item id, magazine size per
 // exclusive tune level (1..7).
@@ -1134,7 +1134,6 @@ int cItemMgr::setUp(int no)
     }
     return ret;
 }
-
 
 
 // Game start: clears the inventory and gives the start set (set_game for Leon, set_ada / set_char for

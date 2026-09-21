@@ -49,7 +49,6 @@ static R200WorkPtr r200_work;
 // game/EtcModel.cpp (Bio4.sym marks it local; the room imports it)
 extern "C" int setRoomEtcBreakDisp(int no, int on, int flag);
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
-extern LevelEntry level_r200[];
 
 void r200_openBox_main(int id, int mode);
 static void r200_openedBox(int id);

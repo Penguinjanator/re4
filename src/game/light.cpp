@@ -20,13 +20,13 @@
 #include "math_sub.h"
 #include "cam_ctrl.h"
 #include "pendulum.h"
+#include "trans.h"
 
 // game/trans.cpp texture LOD / TEV scale settings
-extern u8 gxCsScale[];
+// trans.cpp; uninitialised there, so not in trans.h (a header extern reorders trans.cpp's .bss / .sbss)
 extern u8 min_lod;
 extern u8 max_lod;
 extern f32 lod_bias;
-extern u32 aniso;
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
 #define IN_RANGE(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)

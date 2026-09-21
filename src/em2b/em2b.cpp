@@ -49,7 +49,6 @@
 #include "obj20.h"
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
-extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
 
 // The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
 // merged into .bss by the REL link.

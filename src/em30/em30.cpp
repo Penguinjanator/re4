@@ -37,8 +37,6 @@
 #include <dolphin/os.h>
 #include "em_mod.h"
 
-extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
-
 
 typedef void (*Em30Func)(cEm30*);
 
@@ -50,7 +48,6 @@ static void em30_R0_Damage(cEm30* em);
 static void em30_R1_Dm_Normal(cEm30* em);
 static void em30_R0_Die(cEm30* em);
 static void em30_R1_Die_Normal(cEm30* em);
-
 
 
 // REL entry: registers the enemy constructor.

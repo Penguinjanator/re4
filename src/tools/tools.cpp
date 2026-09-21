@@ -1,5 +1,6 @@
 #include "types.h"
 #include <dolphin/os.h>
+#include "db_menu.h"
 
 // Debug tool module entry (D:/Bio4/Prog/tools.cpp; the same object ends every t_* / Tools REL): the SN REL
 // entry points _prolog (ctors, then ToolsTask), _epilog (dtors) and _unresolved (HALT), and ToolsTask,
@@ -18,7 +19,6 @@
 extern void (*_ctors[])(void);
 extern void (*_dtors[])(void);
 
-extern int DebugMenuSelected;
 
 void ToolOption();
 void ToolMotSeq();

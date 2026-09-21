@@ -9,9 +9,9 @@
 #include "global.h"
 #include "db_log.h"
 #include "rnd.h"
+#include "db_menu.h"
 
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
-extern int DebugMenuSelected;                            // game/db_menu.cpp
 
 // Room start: takes the room's ESE emitter list (version 0x100) into Snd.se_at / se_at_list.
 void SeAtInit()

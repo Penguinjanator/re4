@@ -50,10 +50,6 @@
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
 
 
-extern StockEntry stock_r11c[];               // game/merchant.cpp
-extern StockEntry stock_r11c_after_event[];
-extern LevelEntry level_null[];
-
 struct R11cWork {
     ReadModule* mod3;        // 0x00  enemy module 3 (Luis; the s00 event data is swapped into its archive)
     ReadModule* mod4;        // 0x04  enemy module 4 (Ashley; the s10 event data)

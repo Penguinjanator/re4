@@ -5,7 +5,7 @@
 #include "scheduler.h"
 #include "t_util.h"
 
-extern int ScreenShotTriggerType;
+extern int ScreenShotTriggerType;   // game/main_sub.cpp; uninitialised there, so not in main_sub.h (a header extern reorders its .sbss)
 
 // Debug screenshot settings task: the A-button trigger mode (held / press / press-to-press) and
 // whether the debug display is kept in shots; B leaves.

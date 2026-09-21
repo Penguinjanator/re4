@@ -18,7 +18,6 @@
         *(volatile u32*) 0x11111111 = 0;                          \
     }
 
-extern RoomTblEntry St3_data_tbl[52];
 
 // _ctors/_dtors: the linker script's labels on the .ctors/.dtors lists (null terminated)
 extern void (*_ctors[])(void);

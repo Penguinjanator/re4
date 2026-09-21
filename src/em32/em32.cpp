@@ -53,7 +53,7 @@
 asm(".comm common_em32,52,4");
 
 int GetWepDmVal(cEm* em, u32 wep_no, int near);   // em10.h (not included: it pulls emwep.h's global plemBackjump)
-extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow.cpp
+extern FootShadowTbl Em32_fs_tbl;     // game/foot_shadow_tbl.cpp (static there, so not in foot_shadow.h; the REL link resolves the local symbol)
 
 static void em32_R0_Init(cEm32* em);
 static void em32_R0_Move(cEm32* em);

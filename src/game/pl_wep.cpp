@@ -30,7 +30,7 @@ struct WepTarget {
 };
 
 extern "C" {
-u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
+u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp (defined with another parameter list; this unit's prototype stays)
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag, f32 len);
 f32 rangeDist(Vec* pos, cEm* em, f32 range);

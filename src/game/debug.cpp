@@ -25,11 +25,10 @@
 #include <stdlib.h>
 #include <dolphin/os.h>
 #include "gx_sub.h"
+#include "player.h"
 
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
 
-extern u8 PlMode;       // game/player.cpp
-extern u8 PlFormMode;   // game/player.cpp
 
 #define HALT(cond)                                                           \
     if (cond) {                                                              \

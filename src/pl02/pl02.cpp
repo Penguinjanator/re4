@@ -18,10 +18,6 @@
 #include "ref_access.h"
 #include <dolphin/os.h>
 
-extern f32 adaHairMax[14];   // game/pl_cloth.cpp
-extern f32 adaHairWindS[14];
-extern f32 adaHairWindR[14];
-extern CLOTH_AT_SET adaHairAt[6];
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 

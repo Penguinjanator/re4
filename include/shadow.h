@@ -97,4 +97,10 @@ void TransLightTexture(GXTexObj* tex, GXTlutObj* tlut, s16 x, s16 y, s16 z, s16 
 ShadowMng* GetCastShadowMngPtr(cModel* m);
 }
 
+// game/shadow.cpp: self shadow switches and the shadow texture matrix constants (trans.cpp SelfShadowSetup).
+extern int isSelfUse;
+extern int g_SelfShdNum;
+extern f32 shd_ofs;
+extern f32 shd_tex_scale_x;
+
 #endif

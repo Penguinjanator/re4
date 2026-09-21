@@ -26,7 +26,8 @@ struct SEckView {
     int v;
 };
 
-// game/game.cpp collision profiling counters (debug page 0x14)
+// game/game.cpp collision profiling counters (debug page 0x14); uninitialised there, so not in game.h (a header
+// extern reorders game.cpp's .bss)
 extern u32 g_at2_total;
 extern u32 g_at2_cnt[];
 extern u32 g_at2_cyc[];

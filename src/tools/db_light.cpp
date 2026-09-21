@@ -27,6 +27,7 @@
 #include "player.h"
 #include <stdio.h>
 #include <string.h>
+#include "db_menu.h"
 
 // The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
 // skeleton defines it as `common_<mod>`, see em10.cpp / st_room.h): once db_light is compiled in a module
@@ -160,7 +161,6 @@ struct cLightToolPtr {
 };
 
 int tcCurrentCameraNo();
-extern int DebugMenuSelected;
 
 // Debug heap pointers are checked for the MEM1 range before use.
 #define PTR_OK(p) (!((u32)(p) < 0x80000000 || (u32)(p) > 0x82FFFFFF))

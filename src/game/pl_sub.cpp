@@ -23,8 +23,6 @@
 #include "read.h"
 
 
-extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
-
 // Stores through references: scalar MEMs, so pG is reloaded after each of them (the original
 // reloads pG after every store to a GlobalWork field in this unit).
 

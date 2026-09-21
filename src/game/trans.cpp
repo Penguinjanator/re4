@@ -39,10 +39,6 @@
 
 #line 1 "D:/Bio4/Prog/trans.cpp"
 
-extern int isSelfUse;     // game/shadow.cpp
-extern int g_SelfShdNum;  // game/shadow.cpp
-extern f32 shd_ofs;       // game/shadow.cpp
-extern f32 shd_tex_scale_x;
 
 extern "C" {
 // esp.cpp / espgen.cpp. esp.h (and espgen.h, which includes it) is not included: it declares Specular as a

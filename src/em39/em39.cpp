@@ -61,8 +61,6 @@
 // object, merged into .bss by the REL link.
 asm(".comm common_em39,52,4");
 
-extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
-
 
 static void em39_R0_Init(cEm39* em);
 static void em39_R0_Move(cEm39* em);

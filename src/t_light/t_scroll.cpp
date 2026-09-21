@@ -30,6 +30,7 @@ struct ScrIdRefEnt {
     u8 type;
     const char* name;
 };
+// game/scroll.cpp (static there, so not in scroll.h; the REL link resolves the local symbols)
 extern ScrIdRefEnt ScrIdRefTbl[16];
 extern const u8 ScrObjIdNum;
 

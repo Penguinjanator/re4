@@ -90,7 +90,7 @@ struct TSceAtSys {
     u8 x11C;               // 0x11C  pAtData was allocated by the tool
     u8 pad_11D[7];
 };
-extern TSceAtSys SceAtSys;
+extern TSceAtSys SceAtSys;   // game/sce_at.cpp (static SceAtSysWork there, so not in sce_at.h; the REL link resolves the local symbol)
 
 struct TSceAtWork {
     u8 mode;            // 0x00  routine index

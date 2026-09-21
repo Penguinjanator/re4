@@ -25,7 +25,7 @@
 #include "player.h"
 #include "pl_npc.h"
 
-// game/trans.cpp
+// game/trans.cpp; uninitialised there, so not in trans.h (a header extern reorders trans.cpp's .bss)
 extern GXTexObj IndTex[2];
 
 static int SHADOW_NUM_MAX = 0;

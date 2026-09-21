@@ -28,11 +28,6 @@
 #include "filter.h"
 
 
-extern u8 use_filter0a;
-extern u8 filter0a_mask_flag;
-extern u8 filter0a_mask_id;
-extern u8 filter0a_mask_alpha;
-
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \

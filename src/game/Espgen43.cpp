@@ -38,7 +38,7 @@ struct Espgen43Work {
 };
 
 extern "C" {
-// game/trans_lit.cpp
+// game/trans_lit.cpp defines it with Vec* pos; this unit was built with the by-value prototype, so trans_lit.h is not included.
 void commonClothLightSet(cLight** list, int n, Vec pos, f32 radius);
 // game/espgen.cpp
 int EspgenApplyFunc(void (*func)(EspgenWork* w));

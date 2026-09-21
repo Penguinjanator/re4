@@ -1,4 +1,5 @@
 #include "types.h"
+#include "pl_debug.h"
 class cObjWep;
 #include "main_mem.h"
 #include "st_room.h"
@@ -130,8 +131,6 @@ struct R22cWorkPtr {
 };
 
 static R22cWorkPtr r22c_work;
-
-extern u8 PlCapNum[25];   // game/pl_debug.cpp
 
 
 static s32 r22c_d0[] = {0, 0, 0, 200, -22000, 0, 2, 240, 1};

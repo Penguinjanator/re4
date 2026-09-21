@@ -50,7 +50,6 @@
 // object, appended to .bss by snmakerel.
 asm(".comm common_pl0e,52,4");
 
-extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 
 #line 1 "D:/Bio4/Prog/pl0e.cpp"
 

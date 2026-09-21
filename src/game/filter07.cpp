@@ -20,7 +20,7 @@
 // Thermal vision filter: the frame buffer's green channel is copied to a half-size I8 texture,
 // blurred with pixel offsets, and drawn back through the ThermoTlut palette.
 
-extern GXTlutObj ThermoTlut;
+extern GXTlutObj ThermoTlut;   // game/trans.cpp; uninitialised there, so not in trans.h (a header extern reorders trans.cpp's .bss)
 
 extern "C" {
 void Filter07Render();

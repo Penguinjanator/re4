@@ -78,7 +78,6 @@
 asm(".comm common_" EM10_STR(REL_MODULE) ",52,4");
 
 
-
 // Routine dispatch tables (.data).
 static void em10_R0_Init(cEm10* em);
 static void em10_R0_Move(cEm10* em);
@@ -468,7 +467,6 @@ extern "C" void em10SetAtkWait(cEm10* em, int set);
 extern "C" void em10CamMoveAshley(cEm10* em, u32 no);
 extern "C" void em10SetTakeawayPos(cEm10* em);
 extern "C" int em10JumpDownCk2(cEm10* em);
-extern FootShadowTbl Em10_fs_tbl;
 extern "C" void em10BellAtkCk(cEm10* em, Vec* pos, u32 no);
 extern "C" int em10ShotGatlingCk(cEm10* em);
 extern "C" int em10GoSubStayCk(cEm10* em);
@@ -851,9 +849,6 @@ void cEm10::setNoSuspend(int on)
         }
     }
 }
-
-
-
 
 
 // Per-frame damage check, first thing in cEm10::move (r_no_0 != 0). Damage volumes (DmgMgr kind

@@ -34,7 +34,6 @@
 // object, merged into .bss by the REL link.
 asm(".comm common_em18,52,4");
 
-extern FootShadowTbl Em10_fs_tbl;     // game/foot_shadow_tbl.cpp
 
 typedef void (*Em18Func)(cEm18*);
 

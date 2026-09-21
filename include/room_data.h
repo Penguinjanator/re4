@@ -79,4 +79,10 @@ public:
 
 extern cRoomData RoomData;
 
+// game/roomdata.cpp: the per-stage room tables the stage modules' Init fills (StN_data_tbl[no].init = ...).
+extern RoomTblEntry St1_data_tbl[33];
+extern RoomTblEntry St2_data_tbl[46];
+extern RoomTblEntry St3_data_tbl[52];
+extern RoomTblEntry St4_data_tbl[18];
+
 #endif

@@ -18,6 +18,7 @@
 #include "model.h"
 #include "sscrn.h"
 #include "ss_main.h"
+#include "ss_pzzl.h"
 
 // Attache case editor (ss_pzzl's SsPzzlMain owns one).
 class ssDbgPzzl {
@@ -34,8 +35,6 @@ public:
 };
 
 // ss_pzzl.cpp debug offsets edited by the "Case Rot" row
-extern int pzzlDbgNo;
-extern f32 pzzlDbgPos;
 
 static int dbg_cursor = 0;
 static u8 dbg_blink = 0;

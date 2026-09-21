@@ -63,7 +63,10 @@ void ClearZbuf();
 }
 
 extern GXTexObj g_Get_tex_obj;   // EFB copy the refraction shader samples (esp_sub/id_sys/esp18 reuse it)
+extern u8 gxCsScale[];           // colour scale of the TEV stages (light.cpp writes the cut's tev_scale into it); [4]: the complete type ahead of trans.cpp's definition changes its code
+extern u32 aniso;                // anisotropy setting of the room textures (light.cpp)
 // trans.cpp also owns specular_mat, Specular[9] (esp.h declares it as a scalar), GlobalIlmTex[5],
-// IndTex[2] and ThermoTlut; declare them extern locally where needed.
+// IndTex[2], ThermoTlut, min_lod, max_lod and lod_bias (uninitialised: a header extern would reorder
+// trans.cpp's .bss / .sbss); declare them extern locally where needed.
 
 #endif

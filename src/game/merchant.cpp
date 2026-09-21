@@ -200,7 +200,6 @@ LevelEntry level_r31d[] = {
 };
 
 // declared before its definition so that its size is unknown at the uses (full address, not @sda21)
-extern LevelEntry level_null[];
 LevelEntry level_null[] = {
     {0xFFFF},
 };

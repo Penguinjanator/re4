@@ -336,6 +336,10 @@ struct PlayerPtr {
 // game/player.cpp
 extern Vec PlFancePos;    // point behind the fence / window the player climbs to (pl_class windowCheck)
 extern int PlFanceFlag;   // 1 while a fence / window action runs
+extern u8 PlMode;         // debug: player mode override (debug.cpp resets it)
+extern u8 PlFormMode;
+extern void (*Pl_func_tbl[7])(cPlayer*);   // routine 0 dispatch table (pl_sub.cpp re-enters it)
+extern void (*BoatMoveFunc)(cPlayer*);     // pl_R1_Boat calls it; the boat module (pl0e / pl0f) registers it
 // game/pl_class.cpp
 extern int PlKeyReloadType;   // reload key layout (cPlayer::keyReload)
 extern int PlReloadDirect;

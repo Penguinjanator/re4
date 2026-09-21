@@ -156,6 +156,11 @@ extern StockEntry stock_2st_first[];
 extern MerchantInfo merchant_info_A;
 extern LevelPrice level_price[];
 extern PriceEntry g_item_price_tbl[];
+// Per-room stock / level tables the room scripts add (r11c, r200).
+extern StockEntry stock_r11c[];
+extern StockEntry stock_r11c_after_event[];
+extern LevelEntry level_r200[];
+extern LevelEntry level_null[];
 
 extern "C" {
 void merchant_stage1_full();

@@ -9,6 +9,7 @@
 #include "dvd.h"
 #include "t_util.h"
 #include "snd_test.h"
+#include "db_menu.h"
 
 // Movie / sound test REL entry (t_movie: this object carries the module's _prolog/_epilog/_unresolved,
 // the movie player test and the sound test's task loop). No __FILE__ string: the real name is unknown.
@@ -23,14 +24,13 @@
 #include <stdio.h>
 #include <string.h>
 
-// newlib ctype.h
+// newlib ctype.h (game/ctype_.c; include/libc/ctype.h does not declare it)
 extern "C" const char _ctype_[];
 #define _L 02
 #define islower(c) ((_ctype_ + 1)[(int) (c)] & _L)
 
 extern void (*_ctors[])(void);
 extern void (*_dtors[])(void);
-extern int DebugMenuSelected;
 
 void ToolSndVolEdit();
 void ToolSeAt();

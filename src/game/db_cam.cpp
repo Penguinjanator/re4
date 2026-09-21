@@ -27,7 +27,6 @@
 #include "dbmodule.h"
 #include "view.h"
 
-extern int ProjType;
 
 // Orthographic zoom: the top/left extents move together (plain block: a do-while's loop notes
 // flip the f0/f13 allocation of the two chains).

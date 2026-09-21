@@ -74,4 +74,10 @@ void Filter0bCapture();
 void Filter0bSetAlpha(u8 alpha);
 }
 
+// filter0a.cpp: the mask filter switch and its parameters (cam_extra.cpp sets them per camera cut).
+extern u8 use_filter0a;
+extern u8 filter0a_mask_flag;
+extern u8 filter0a_mask_id;
+extern u8 filter0a_mask_alpha;
+
 #endif

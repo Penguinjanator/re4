@@ -81,4 +81,7 @@ void gameDiedemo(DiedemoWork* w);
 }
 void GameStopModeEnd();
 
+// game.cpp also owns the collision profile counters g_at2_cnt[20], g_at2_cyc[20], g_at2_total,
+// g_at2_total_cyc (uninitialised: a header extern reorders game.cpp's .bss); atari.cpp declares them locally.
+
 #endif

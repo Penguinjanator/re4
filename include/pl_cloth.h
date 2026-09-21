@@ -82,4 +82,10 @@ void PlClothSetAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair, i
 void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair);
 cObjChain* AdaRibbonSet(cModel* pl, PlCloth* ribbon, void* bin, void* tpl);
 
+// game/pl_cloth.cpp: Ada's hair chain parameters (pl02 builds its costume-2 hair from them).
+extern f32 adaHairMax[14];
+extern f32 adaHairWindS[14];
+extern f32 adaHairWindR[14];
+extern CLOTH_AT_SET adaHairAt[6];
+
 #endif

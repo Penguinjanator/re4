@@ -40,7 +40,7 @@ struct EmInitFuncPtr {
 #define EM_INIT_FUNC (((EmInitFuncPtr*) &EmInitFunc)->p)
 
 
-// game/game.cpp
+// game/game.cpp: GAME_WORK Game seen through this unit's own view struct (not global.h's declaration)
 struct GameWork {
     u8 pad_0[0x18];
     void* pWepBuf;   // 0x18  weapon data buffer (Klauser)

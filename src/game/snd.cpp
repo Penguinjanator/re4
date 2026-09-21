@@ -38,10 +38,8 @@
 #include "area.h"
 #include "esp.h"
 
-extern "C" void ADXT_SetOutputMono(int sw);
+extern "C" void ADXT_SetOutputMono(int sw);   // lib/adx_tlk.c (the CRI headers are not in include/)
 void* GetDataExt(void* arc, const char* tag, int no);
-
-
 
 
 #define SND_FILE "D:/Bio4/Prog/snd.cpp"

@@ -50,7 +50,6 @@
 #include <dolphin/os.h>
 #include "pl_mod.h"
 
-extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
 
 // The module's 0x30-byte COMMON block: uninitialised template statics of the original object,
 // appended to .bss by snmakerel.

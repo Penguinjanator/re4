@@ -61,7 +61,6 @@
 #include "hermite.h"
 #include "math_sub.h"
 #include "eprintf.h"
-#include "foot_shadow.h"
 #include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
@@ -69,11 +68,11 @@
 #include "shape.h"
 #include "filter.h"
 
-extern "C" {
-// game/foot_shadow_tbl.cpp (incomplete types: full address, not @sda21)
+// game/foot_shadow_tbl.cpp. Not through foot_shadow.h: with the complete FootShadowTbl type GCC addresses the
+// 8-byte objects @sda21; the incomplete u8[] keeps the full lis/addi address the original has.
 extern u8 Em10_fs_tbl[];
 extern u8 Em2c_fs_tbl[];
-}
+
 
 // Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
