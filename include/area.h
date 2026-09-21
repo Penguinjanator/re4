@@ -28,12 +28,7 @@ struct AreaCylinder {
     f32 radius;         // 0x08  radius
     f32 x;         // 0x0C
     f32 z;         // 0x10
-    f32 x14;
-    f32 x18;
-    f32 x1C;
-    f32 x20;
-    f32 x24;
-    f32 x28;
+    f32 pad[6];    // 0x14  zeroed by AreaDataInit (PS2 AREA_CYLINDER pad[6])
 };
 
 struct AreaEyeTrigger {
@@ -44,10 +39,9 @@ struct AreaEyeTrigger {
     f32 z;         // 0x10
     f32 ang_x;     // 0x14  view direction (rotation about X)
     f32 ang_y;     // 0x18  view direction (rotation about Y)
-    f32 x1C;
+    f32 pad00;     // 0x1C  zeroed by AreaDataInit (PS2 AREA_EYE_TRIGGER pad00)
     f32 open;      // 0x20  opening angle in radians (0 = all round)
-    f32 x24;
-    f32 x28;
+    f32 pad[2];    // 0x24  zeroed by AreaDataInit (PS2 AREA_EYE_TRIGGER pad[2])
 };
 
 union AreaBody {

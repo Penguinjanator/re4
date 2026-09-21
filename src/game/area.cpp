@@ -230,12 +230,12 @@ void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height)
         a->floor = pos->y;
         a->height = height;
         a->radius = size * 0.5f;
-        a->x14 = 0.0f;
-        a->x18 = 0.0f;
-        a->x1C = 0.0f;
-        a->x20 = 0.0f;
-        a->x24 = 0.0f;
-        a->x28 = 0.0f;
+        a->pad[0] = 0.0f;
+        a->pad[1] = 0.0f;
+        a->pad[2] = 0.0f;
+        a->pad[3] = 0.0f;
+        a->pad[4] = 0.0f;
+        a->pad[5] = 0.0f;
         break;
     }
     case AREA_TYPE_EYE: {
@@ -248,9 +248,9 @@ void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height)
         a->open = 0.0f;
         a->ang_x = 0.0f;
         a->ang_y = 0.0f;
-        a->x1C = 0.0f;
-        a->x24 = 0.0f;
-        a->x28 = 0.0f;
+        a->pad00 = 0.0f;
+        a->pad[0] = 0.0f;
+        a->pad[1] = 0.0f;
         break;
     }
     default:
