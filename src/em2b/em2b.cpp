@@ -170,7 +170,7 @@ static inline void em2bVariantEst(cEm2b* em, Em2bWork* w, int a0, int a1, int b0
 // End of an attack routine: the friend (dog) fight sets the guard, a hit goes into the threat.
 static inline void em2bAtkEndSet(cEm2b* em, Em2bWork* w)
 {
-    // COMPILER-DIFF: #13 -- the original never allocates the single-use `w->x63C` load (a REG_EQUIV
+    // COMPILER-DIFF: #13 -- the original never allocates the single-use `w->Dog_wait` load (a REG_EQUIV
     // mem pseudo): reload materialises it in r11, so the global `flags`/`atkHit` pseudos take r0/r9;
     // ours local-allocates the load to r0 first.
     register int x63c asm("r11");

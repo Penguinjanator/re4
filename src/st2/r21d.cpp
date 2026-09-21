@@ -49,8 +49,8 @@ public:
     int atNo;        // 0x18  hit area number
     int hitAtNo;     // 0x1C  area checked for the player
     int wait;        // 0x20  frames before the first rise
-    int x24;         // 0x24  1: hold at the bottom
-    int x28;         // 0x28  extra frames at the top
+    int holdFlag;    // 0x24  1: hold at the bottom (step 4 never restarts)
+    int topWait;     // 0x28  extra frames at the top (timer = topWait + 12)
     int stopFlag;    // 0x2C  1: hold at the top
 
     void stop(int v);
@@ -893,7 +893,7 @@ void TRAP::move()
             obj->pos.y = baseY + height;
             spd = 0.0f;
             step = 2;
-            timer = x28 + 12;
+            timer = topWait + 12;
         }
         break;
     case 2:
@@ -926,7 +926,7 @@ void TRAP::move()
         }
         break;
     case 4:
-        if (x24 == 1) {
+        if (holdFlag == 1) {
             break;
         }
         timer--;
@@ -969,8 +969,8 @@ static void r21d_moveDeathTrap()
         t->hitAtNo = d->hitAtNo;
         t->wait = d->wait;
         t->atOn = 1;
-        t->x24 = 0;
-        t->x28 = 0;
+        t->holdFlag = 0;
+        t->topWait = 0;
         t->stopFlag = 0;
         t->step = 0;
         t->x1 = 0;
