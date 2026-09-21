@@ -345,7 +345,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
 
     obj->be_flag |= 0x4000;
     w->core = *info;
-    w->x79 = gen->Parts_no;
+    w->Parts_no = gen->Parts_no;
     w->flags = gen->Tool_flg;
     obj->pos = gen->Pos;
     obj->pos.x += gen->R_pos.x * fRandSeed1_1(seed);
@@ -440,7 +440,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     if (w->flags & 0x200000) {
         obj->z_mode = 1;
     }
-    switch (w->x79) {
+    switch (w->Parts_no) {
     case 0xFF:
         w->parentWorld = pEffParentWorld;
         Efm04RotMatrix(obj, m);
@@ -461,13 +461,13 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         break;
     default:
         if (parent == 0) {
-            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] but Not on parts.", w->x79);
+            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] but Not on parts.", w->Parts_no);
             ObjMgr.destroy(obj);
             return 0;
         }
-        if (w->x79 < parent->nParts) {
+        if (w->Parts_no < parent->nParts) {
             if (w->flags & 0x20) {
-                parts = parent->getPartsPtr(w->x79);
+                parts = parent->getPartsPtr(w->Parts_no);
                 PSMTXIdentity(mtx);
                 RotMatrix(mtx, &parent->ang);
                 PSMTXMultVecSR(mtx, &obj->pos, &v);
@@ -479,19 +479,19 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
             } else {
                 // parent/parentSerial stored through a word pointer: the store `(mem link)` has a
                 // register address, so cse1 (following the `beq` into this arm) treats it as
-                // aliasing `w->x79` and the getPartsPtr argument is reloaded (`lbz r4,0x79(w)`);
+                // aliasing `w->Parts_no` and the getPartsPtr argument is reloaded (`lbz r4,0x79(w)`);
                 // combine folds the address back into `stw 0x6C(w)`. A plain member store never
                 // conflicts (same base, disjoint offsets) and the arm reuses the switch register.
                 u32* link = (u32*) &w->parent;
                 link[0] = (u32) parent;
                 link[1] = parent->serial;
-                w->parentWorld = parent->getPartsPtr(w->x79);
+                w->parentWorld = parent->getPartsPtr(w->Parts_no);
                 if (ofs) {
                     PSVECAdd(&obj->pos, ofs, &obj->pos);
                 }
             }
         } else {
-            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] is invalid(MAX:%d).", w->x79, parent->nParts);
+            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] is invalid(MAX:%d).", w->Parts_no, parent->nParts);
             ObjMgr.destroy(obj);
             return 0;
         }
@@ -501,8 +501,8 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         EstSet(obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, ESP_CORE_KIND_NONE, obj, 0);
     }
     if (w->flags & 8) {
-        w->x7B = gen->WorkSp8[2];
-        if (EspGetEfmMotAddr(gen->Tex_id, w->x7B, &mot)) {
+        w->Motion_no = gen->WorkSp8[2];
+        if (EspGetEfmMotAddr(gen->Tex_id, w->Motion_no, &mot)) {
             switch (gen->WorkSp8[3]) {
             case 0:
                 MotionSetCore(obj, &obj->Motion, mot, 0, 0, 0, 0);
@@ -515,7 +515,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
                 break;
             }
         } else {
-            pLog->err(0, 0, "ESP_EFM04 : MotionNo[%d] is invalid.", w->x7B);
+            pLog->err(0, 0, "ESP_EFM04 : MotionNo[%d] is invalid.", w->Motion_no);
             w->flags |= 8;
         }
     }
@@ -590,7 +590,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     }
     w->fadeStart = gen->Col_max_cnt;
     w->fadeLen = gen->Col_start_cnt;
-    w->x54 = gen->Pos_start_cnt;
+    w->Pos_start_cnt = gen->Pos_start_cnt;
     w->scaleStart = gen->Size_start_cnt;
     w->life = gen->Life_max;
     w->frame = gen->Life_time;
@@ -705,9 +705,9 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->spd.y += gen->R_speed.y * fRandSeed1_1(seed);
     w->spd.z += gen->R_speed.z * fRandSeed1_1(seed);
     PSMTXIdentity(w->mat);
-    w->x74.x = 0.0f;
-    w->x74.y = 0.0f;
-    w->x74.z = 0.0f;
+    w->w.x = 0.0f;
+    w->w.y = 0.0f;
+    w->w.z = 0.0f;
     w->rotSpd = gen->Ang_plus;
     w->rotSpd.x += gen->R_ang_plus.x * fRandSeed1_1(seed);
     w->rotSpd.y += gen->R_ang_plus.y * fRandSeed1_1(seed);
@@ -758,7 +758,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w = &obj->efm04;
         w->core.flg = 1;
         obj->be_flag |= 0x4000;
-        w->x79 = 0;
+        w->Parts_no = 0;
         w->flags = 0;
         obj->pos = *pos;
         w->spdDamp = 0.0f;

@@ -79,7 +79,7 @@ void dwdt(Vec* w, Vec* t, Vec* moment, Vec* out)
 }
 
 // Integrates linear velocity (force/mass) and angular velocity (second-order Runge-Kutta on dwdt,
-// capped at 16 rad/s) over dt, converts the angular velocity to world space (x74) and clears the
+// capped at 16 rad/s) over dt, converts the angular velocity to world space (w) and clears the
 // accumulators.
 // Integrate the linear and angular velocities over `dt` and clear the accumulators.
 static void CalcVel(cObj* obj, f32 dt)
@@ -108,7 +108,7 @@ static void CalcVel(cObj* obj, f32 dt)
         VECNormalize(&w->rotSpd, &w->rotSpd);
         PSVECScale(&w->rotSpd, &w->rotSpd, 16.0f);
     }
-    PSMTXMultVec(w->mat, &w->rotSpd, &w->x74);
+    PSMTXMultVec(w->mat, &w->rotSpd, &w->w);
     w->force.x = w->force.y = w->force.z = 0.0f;
     w->torque.x = w->torque.y = w->torque.z = 0.0f;
 }
@@ -128,7 +128,7 @@ void Calc(cObj* obj, f32 dt)
     CalcVel(obj, dt);
     PSVECScale(&w->spd, &v, dt);
     PSVECAdd(&w->basePos, &v, &w->basePos);
-    PSVECScale(&w->x74, &av, dt);
+    PSVECScale(&w->w, &av, dt);
     skew[0][0] = 0.0f;
     skew[0][1] = -av.z;
     skew[0][2] = av.y;
@@ -364,7 +364,7 @@ static void Obj09HitCheck(cObj* obj)
             AddForce(pObj_ck, &wp, &tmp);
             PSVECScale(&tmp, &tmp, -1.0f);
             AddForce(obj, &wp, &tmp);
-            PSVECCrossProduct(&w1->x74, &lp, &vel);
+            PSVECCrossProduct(&w1->w, &lp, &vel);
             PSVECAdd(&w1->spd, &vel, &vel);
             dot = PSVECDotProduct(&nrm, &vel);
             PSVECScale(&nrm, &vn, dot);
@@ -516,7 +516,7 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     }
     PSVECScale(nrm, &d, len * (sprg * w->mass));
     AddForce(obj, hit, &d);
-    PSVECCrossProduct(&w->x74, lp, &t);
+    PSVECCrossProduct(&w->w, lp, &t);
     PSVECAdd(&w->spd, &t, &t);
     dot = PSVECDotProduct(nrm, &t);
     PSVECScale(nrm, &v, dot);

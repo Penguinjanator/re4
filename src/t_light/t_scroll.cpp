@@ -1104,7 +1104,7 @@ void edit_flag_core(cObj* obj)
         obj->be_flag ^= 0x8000;
         break;
     case 5:
-        obj->x3D0 ^= 1;
+        obj->attr ^= 1;
         break;
     }
 }
@@ -1848,7 +1848,7 @@ static void printEditTable()
             col = 0x14;
         } else {
             col = 0;
-            if (obj->x3D0 & 4) {
+            if (obj->attr & 4) {
                 col = 5;
             }
         }

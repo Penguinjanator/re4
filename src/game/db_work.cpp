@@ -130,7 +130,7 @@ void cDbWork::dispObj()
         y = 20;
         if (obj->id == 2) {
             int id;
-            eprintf(32, 280, 0, 0, "ATTR     %02X", obj->x3D0);
+            eprintf(32, 280, 0, 0, "ATTR     %02X", obj->attr);
             y++;
             id = SmdGetWorkId(obj);
             if (id >= 0) {

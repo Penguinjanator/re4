@@ -78,9 +78,9 @@ struct Efm04Work {
     u32 parentSerial;     // 0x70
     cCoord* parentWorld;  // 0x74  pEffParentWorld when detached
     u8 rotFrame;          // 0x78  frame to re-orient along the parent (0xFF = never)
-    u8 x79;
+    u8 Parts_no;          // 0x79  parts of the parent the model follows (PS2 OBJ04_FREE Parts_no)
     u8 stopped;           // 0x7A  bit0: came to rest
-    u8 x7B;
+    u8 Motion_no;         // 0x7B  EspGetEfmMotAddr motion (EspGenWork WorkSp8[2]) (PS2 OBJ04_FREE Motion_no)
     u32 flags;            // 0x7C  bit0: floor collision, bit1: scenario collision, bit3: MotionMove
     f32 groundOfs;        // 0x80
     union {
@@ -125,7 +125,7 @@ struct Efm05Work {
     f32 aMul;             // 0x4C
     u16 fadeStart;        // 0x50
     u16 fadeLen;          // 0x52
-    u16 x54;              // 0x54
+    u16 Pos_start_cnt;    // 0x54  (PS2 OBJ05_FREE Pos_start_cnt)
     u16 scaleStart;       // 0x56
     u16 life;             // 0x58  0 = forever
     u16 frame;            // 0x5A
@@ -167,11 +167,11 @@ struct Efm09Work {
     Vec basePos;          // 0x2C  EspGenWork x0C + random (y + 0.0001)
     Mtx mat;              // 0x38  identity at set up
     Vec spd;              // 0x68  EspGenWork x24 + random, * mass * 100 (obj09: velocity)
-    Vec x74;              // 0x74  0 at set up (obj09: world angular velocity, mat * rotSpd)
+    Vec w;                // 0x74  0 at set up (obj09: world angular velocity, mat * rotSpd) (PS2 OBJ09_FREE w)
     Vec size;             // 0x80  EspGenWork xD8..xE0 * 100 + 250
     Vec force;            // 0x8C  force accumulated by AddForce, cleared every CalcVel
     Vec torque;           // 0x98  torque accumulated by AddForce
-    Vec rotSpd;           // 0xA4  EspGenWork x70 + random (overlaps cObj x3D0 / callBack): local angular velocity
+    Vec rotSpd;           // 0xA4  EspGenWork x70 + random (overlaps cObj attr / callBack): local angular velocity
 };
 
 // Obstacle model work (game/obj20.cpp `SetObaModel`).
@@ -278,6 +278,36 @@ struct Obj12Work {
     u8 fall_em_id;              // 0x6A
     u8 fall_se_ck;          // 0x6B
     u8 fall_type;              // 0x6C  rope offsets table index (setFall)
+};
+
+// Event object model type (PS2 OBJ18_TYPE): SetObj18 `type` / Obj18Work::type, from the model name prefix
+// (event.cpp ExePacket_SetOm OmTbl).
+enum OBJ18_TYPE {
+    OBJ18_TYPE_OBMXX = 0,
+    OBJ18_TYPE_LEON = 1,
+    OBJ18_TYPE_ASHLEY = 2,
+    OBJ18_TYPE_ADA = 3,
+    OBJ18_TYPE_LUIS = 4,
+    OBJ18_TYPE_PLXX = 5,
+    OBJ18_TYPE_GANADO = 6,
+    OBJ18_TYPE_TRADER = 7,
+    OBJ18_TYPE_MAYOR1 = 8,
+    OBJ18_TYPE_NO2 = 9,
+    OBJ18_TYPE_SADDLER = 10,
+    OBJ18_TYPE_ELGIGANTE = 11,
+    OBJ18_TYPE_EMXX = 12,
+    OBJ18_TYPE_EVXX = 13,
+    OBJ18_TYPE_ETXX = 14,
+    OBJ18_TYPE_SCRXX = 15,
+    OBJ18_TYPE_WEPXX = 16,
+    OBJ18_TYPE_EFFECT = 17,
+    OBJ18_TYPE_MAYOR2 = 18,
+    OBJ18_TYPE_INSECTBOSS0 = 19,
+    OBJ18_TYPE_INSECTBOSS1 = 20,
+    OBJ18_TYPE_INSECTBOSS0S = 21,
+    OBJ18_TYPE_INSECTBOSS1S = 22,
+    OBJ18_TYPE_ADA_SKIRT = 23,
+    OBJ18_TYPE_NO3 = 24
 };
 
 // Event costume / cloth model work (game/obj18.cpp): a model that follows a parts of its parent
@@ -681,13 +711,13 @@ class cObj : public cModel {
 public:
     u8 pad_320[4];        // 0x320
     s32 blk;              // 0x324  scroll block the object belongs to (-2 free, -1 SetObjSmd)
-    // 0x328: per-object work area (Efm09Work runs to the end of the object: x3D0 / callBack are
+    // 0x328: per-object work area (Efm09Work runs to the end of the object: attr / callBack are
     // inside the union so that they keep their offsets)
     union {
         u8 work[0x3D8 - 0x328];  // 0x328 per-object work area
         struct {
             u8 pad_work[0x3D0 - 0x328];
-            u8 x3D0;              // 0x3D0
+            u8 attr;              // 0x3D0  SMD object attribute byte (db_work "ATTR"): bit0 lit by attribute-4 lights, bit2 group
             u8 pad_3D1[3];
             void (*callBack)(cObj*);  // 0x3D4
         };

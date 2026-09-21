@@ -42,7 +42,7 @@ public:
 // New scroll object: no callback.
 cObjScr::cObjScr()
 {
-    x3D0 = 0;
+    attr = 0;
     callBack = 0;
 }
 

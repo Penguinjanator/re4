@@ -19,7 +19,7 @@ struct SmdWork {
         u32 flags;   // 0x44  bit4: bin/tpl come from the common SMD, bit6: motion too
         struct {
             u8 pad_44[3];
-            u8 x47;  // 0x47  low byte of flags -> cObj::x3D0
+            u8 attr;  // 0x47  low byte of flags -> cObj::attr
         } b;
     };
 };
