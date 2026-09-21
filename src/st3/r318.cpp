@@ -103,16 +103,6 @@ extern "C" void* r318_memset(void*, ...) asm("memset");
 // cObjScr (game/obj02.cpp) is not in a header: the callback setter of a scripted map object.
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
 
-
-
-// Drop effect (owner a, kind b) in all three effect systems.
-static inline void EffectDelete(int a, int b)
-{
-    EffectEspDelete(a, b, 0, 0);
-    EffectEspgenDelete(a, b, 0);
-    EffectEfmDelete(a, b, 0);
-}
-
 // The laser hit: rumble, quake and the death routine.
 static inline void LaserHit();
 

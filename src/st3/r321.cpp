@@ -22,6 +22,7 @@
 #include "TexRender.h"
 #include "db_log.h"
 
+// local copy: a header definition changes other units' allocation (its 0.0f pool labels, see model.h)
 static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
 
 // Room 3-21 (D:/Bio4/Prog/r321.cpp): the yard where the support helicopter is shot down (event

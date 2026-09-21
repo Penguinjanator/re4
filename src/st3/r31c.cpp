@@ -46,6 +46,7 @@
 #include "room_data.h"
 #include "eprintf.h"
 
+// local copy: a header definition changes other units' allocation (its 0.0f pool labels, see model.h)
 static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
 
 // Room 3-1c (D:/Bio4/Prog/r31c.cpp): the ruins with the three crest doors, Krauser's two
@@ -180,14 +181,6 @@ static inline void SetPosAngY(cModel* m, f32 x, f32 y, f32 z, f32 ry)
 
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-
-// Drop effect (owner a, kind b) in all three effect systems.
-static inline void EffectDelete(int a, int b)
-{
-    EffectEspDelete(a, b, 0, 0);
-    EffectEspgenDelete(a, b, 0);
-    EffectEfmDelete(a, b, 0);
-}
 
 static void r31c_CrestUseCheck();
 void r31c_SetCrest(u32 no);
@@ -2436,6 +2429,7 @@ int cR31CCountDown::isTimeOut()
 
 // The count-down state test: the module build had it inline in the header after the class (a
 // linkonce copy follows the room's code; the DOL's is game/mercenaries.cpp's).
+// local copy: a header definition changes this unit's allocation (declaration order)
 inline int CountDown::checkState(u32 bit)
 {
     return (m_state & bit) ? 1 : 0;

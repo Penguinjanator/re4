@@ -30,4 +30,12 @@ int ChkWaterEffectEnable(Vec* pos);
 void EstSetEm10WaterFall(Vec* pos);
 }
 
+// Drop effect (owner a, kind b) in all three effect systems (r318, r31b, r31c).
+static inline void EffectDelete(int a, int b)
+{
+    EffectEspDelete(a, b, 0, 0);
+    EffectEspgenDelete(a, b, 0);
+    EffectEfmDelete(a, b, 0);
+}
+
 #endif

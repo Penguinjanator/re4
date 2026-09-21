@@ -19,6 +19,7 @@
 #include "room_data.h"
 #include "snd.h"
 
+// local copy: a header definition changes other units' allocation (its 0.0f pool labels, see model.h)
 static inline void SetAngY(cModel* m, f32 y) { Vec v; v.x = 0.0f; v.y = y; v.z = 0.0f; m->setAng(&v); }
 
 // Room 3-15 (D:/Bio4/Prog/r315.cpp): the first-entry cut with Leon and Ashley, the duralumin

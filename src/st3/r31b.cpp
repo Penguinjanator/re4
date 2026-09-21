@@ -73,18 +73,6 @@ cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 // libcall for an explicit call (r213).
 extern "C" void* r31b_memset(void*, ...) asm("memset");
 
-
-
-
-
-// Drop effect (owner a, kind b) in all three effect systems.
-static inline void EffectDelete(int a, int b)
-{
-    EffectEspDelete(a, b, 0, 0);
-    EffectEspgenDelete(a, b, 0);
-    EffectEfmDelete(a, b, 0);
-}
-
 // The player after the fall; the room's scroll objects ([no] = the cage room, the count in
 // r31b_objNum); the lattice (kanaami) objects, 25 per room; the room-3 lattice pair lists; the
 // gondola positions ([0] = start, [1] = stop, per direction: one 2x2 array, `r31b_gondolaPos[1]` is
@@ -2123,6 +2111,7 @@ void Evt_R31BS00_Func(Event* e)
 
 // The count-down state test: the module build had it inline in the header after the class (a
 // linkonce copy follows the room's code; the DOL's is game/mercenaries.cpp's).
+// local copy: a header definition changes this unit's allocation (declaration order)
 inline int CountDown::checkState(u32 bit)
 {
     return (m_state & bit) ? 1 : 0;

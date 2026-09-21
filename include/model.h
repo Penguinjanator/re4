@@ -569,8 +569,9 @@ public:
 // setAng(v) through a free function (r20e / r210 / r213 build the yaw Vec by hand around it).
 static inline void SetAngV(cModel* m, Vec* v) { m->setAng(v); }
 // There is no yaw-only setAng(f32) member (PS2 has one): its 0.0f literals take constant-pool labels in every
-// unit that parses it, which moves the pool order of units that do not use it. The rooms that need it keep a
-// per-file SetAngY.
+// unit that parses it, which moves the pool order of units that do not use it (a header-level `static inline
+// SetAngY` does the same: game/model, exception, t_bugcheck, r205, db_light, db_mod swap two `lis` of pool
+// labels). The rooms that need it keep a per-file SetAngY (r315, r31c, r321).
 
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);
