@@ -192,8 +192,6 @@ static Vec em36_weak_rot[5] = {
     { 0.0f, 0.0f, 0.0f },
 };
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
@@ -1498,8 +1496,6 @@ static void em36_R1_SpineAtk(cEm36* em)
     }
 }
 
-#define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
-
 // Player damage callback of the arm swing / spine (em36AtkCk): the knock-down motion (the death
 // variant at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
 static void plem36_Stamp(cPlayer* pl)
@@ -1510,11 +1506,11 @@ static void plem36_Stamp(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x80), 0, 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x80), 0, 5, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2D, 0x33, 0, 0, pl, 0);
             PlSetDamageSe(0xD);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x7F), 0, 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7F), 0, 5, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2D, 0x34, 0, 0, pl, 0);
             PlSetDamageSe(0);
         }
@@ -1561,11 +1557,11 @@ static void subem36_Stamp()
     case 0:
         LifeDownSet(sub, 780, 0);
         if ((s16) pG->ashley_life <= 0) {
-            MotionSetCore(sub, MOTION(sub), SUB_ARC(0x8C), 0, 5, 1, 0);
+            MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x8C), 0, 5, 1, 0);
             em36VoiceSet(sub, 0xD, 2);
             EstSet(sub, -1, 0, 0, 0x2D, 0x42, 0, 0, sub, 0);
         } else {
-            MotionSetCore(sub, MOTION(sub), SUB_ARC(0x8B), 0, 5, 1, 0);
+            MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x8B), 0, 5, 1, 0);
             em36VoiceSet(sub, 9, 2);
             EstSet(sub, -1, 0, 0, 0x2D, 0x41, 0, 0, sub, 0);
         }
@@ -1802,7 +1798,7 @@ static void plem36_CatchHit(cPlayer* pl)
     step = pl->r_no_2;
     switch (step) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x78), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x78), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         pl->m_Work0 = 10;
@@ -1831,7 +1827,7 @@ static void plem36_CatchHit(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7A), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7A), 0, 5, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
         EstSet(pl, -1, 0, 0, 0x2D, 0x31, 0, 0, pl, 0);
@@ -1846,7 +1842,7 @@ static void plem36_CatchHit(cPlayer* pl)
         }
         break;
     case 4:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x79), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x79), 0, 5, 1, 0);
         VibSetClearType(1);
         EstSet(pl, -1, 0, 0, 0x2D, 0x30, 0, 0, pl, 0);
         SndStop(pl->m_Work1, 0);
@@ -1997,7 +1993,7 @@ static void plem36_LongCatchHit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7E), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7E), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         pl->r_no_2++;
@@ -2011,13 +2007,13 @@ static void plem36_LongCatchHit(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7A), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7A), 0, 5, 1, 0);
         pl->r_no_2++;
     case 3:
         MotionMove(pl, 0);
         break;
     case 4:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x79), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x79), 0, 5, 1, 0);
         pl->r_no_2++;
     case 5:
         if (MotionMove(pl, 0)) {
@@ -2091,10 +2087,10 @@ static void plem36_SpineCatchHit(cPlayer* pl)
     switch (step) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0xA0), 0, 0, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0xA0), 0, 0, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2D, 0x45, 0, 0, pl, (void*) step);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x9F), 0, 0, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x9F), 0, 0, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2D, 0x44, 0, 0, pl, (void*) step);
         }
         PlSetFace(1);
@@ -2712,7 +2708,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7B), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7B), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         VibSetData(VIB_TBL, 0xF, 1);
@@ -2730,7 +2726,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7D), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7D), 0, 0, 1, 0);
         pl->m_Work0 = 10;
         EstSet(pl, -1, 0, 0, 0x2D, 0x43, 0, 0, pl, 0);
         pl->r_no_2++;
@@ -2746,7 +2742,7 @@ static void plem36_D_CatchHit(cPlayer* pl)
         }
         break;
     case 4:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x7C), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x7C), 0, 0, 1, 0);
         EstSet(pl, -1, 0, 0, 0x2D, 0x32, 0, 0, pl, 0);
         VibSetClearType(1);
         SndStop(pl->m_Work1, 0);

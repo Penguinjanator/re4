@@ -70,9 +70,6 @@ static void em3c_R1_Dm_Head(cEm3c* em);
 static void em3c_R0_Die(cEm3c* em);
 static void em3c_R1_Die_Normal(cEm3c* em);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-#define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
-
 
 
 // REL entry: hands the module's constructor to the enemy manager (EmInitFunc) so an enemy set
@@ -805,9 +802,9 @@ static void plemSurprised(cPlayer* pl)
         pl->ang.y = GetXZAngle(&pl->pos, &pl->pEmCatch->pos);
         pl->atari.throughOn();
         if (pGS->pl_type == 1) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x64), 0, 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x64), 0, 3, 1, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x63), 0, 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x63), 0, 3, 1, 0);
         }
         pl->m_Work0 = 5;
         pl->r_no_2++;
@@ -858,11 +855,11 @@ static void plemEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (pG->pl_type == 1) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x65), 0, 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x65), 0, 3, 1, 0);
             EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
             SndCall(1, 5, &pl->pos, pl->id, 0, pl);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x60), 0, 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x60), 0, 3, 1, 0);
             EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
             SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
             SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -921,7 +918,7 @@ static void subemSurprised()
         sub->ang.y = GetXZAngle(&sub->pos, &sub->pEmCatch->pos);
         sub->ang.y += -0.17453292f;
         sub->ang.y = LIMIT_ANGLE(sub->ang.y);
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x64), 0, 3, 0x101, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x64), 0, 3, 0x101, 0);
         sub->atari.throughOn();
         sub->m_Work0 = 50;
         sub->r_no_2++;
@@ -936,7 +933,7 @@ static void subemSurprised()
         break;
     case 2:
         sub->atari.throughOff();
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x65), 0, 3, 0x101, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x65), 0, 3, 0x101, 0);
         EstSet(sub, -1, 0, 0, 3, 0x14, 0, 0, sub, 0);
         SndCall(8, 4, &sub->pos, sub->id, 0, sub);
         sub->r_no_2++;
@@ -962,7 +959,7 @@ static void subemSit()
     switch (sub->r_no_2) {
     case 0:
         sub->atari.throughOff();
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x43), 0, 3, 1, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x43), 0, 3, 1, 0);
         SndCall(8, 4, &sub->pos, sub->id, 0, sub);
         sub->r_no_2++;
     case 1:
@@ -971,7 +968,7 @@ static void subemSit()
         }
         break;
     case 2:
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x44), 0, 3, 1, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x44), 0, 3, 1, 0);
         sub->r_no_2++;
     case 3:
         if (MotionMove(sub, 0) && sub->r_no_3 == 0) {
@@ -979,7 +976,7 @@ static void subemSit()
         }
         break;
     case 4:
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x45), 0, 3, 1, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x45), 0, 3, 1, 0);
         sub->r_no_2++;
     case 5:
         if (MotionMove(sub, 0)) {
@@ -1391,7 +1388,7 @@ static void plemDmMStar(cPlayer* pl)
         if (pl->r_no_3) {
             flag = 0x41;
         }
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x61), PL_ARC(0x62), 3, flag, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x61), EM_ARC(pl, 0x62), 3, flag, 0);
         PlSetFace(1);
         PlSetDamageSe(0);
         pl->r_no_2++;

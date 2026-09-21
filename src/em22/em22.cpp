@@ -81,8 +81,6 @@ static void em22_R1_Dm_Blow(cEm22* em);
 static void em22_R0_Die(cEm22* em);
 static void em22_R1_Die_Lost(cEm22* em);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 
 
 
@@ -1391,7 +1389,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x35), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x35), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         pl->Wep->setTrans(0, 0);
@@ -1416,7 +1414,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x36), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x36), 0, 3, 1, 0);
         pl->r_no_2++;
     }
     case 3:
@@ -1424,7 +1422,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         pl->r_no_2 = pPL->pEmCatch->r_no_2;
         break;
     case 4:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x37), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x37), 0, 3, 1, 0);
         pl->m_Work0 = 45;
         VibSetClearType(1);
         pl->r_no_2++;
@@ -1441,7 +1439,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         }
         break;
     case 6:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x38), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x38), 0, 3, 1, 0);
         pl->r_no_2++;
     case 7:
         MotionMove(pl, 0);
@@ -1561,7 +1559,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
     case 0:
         pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, PI);
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x4D), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4D), 0, 3, 1, 0);
         PlSetFace(1);
         EstSet(pl, -1, 0, 0, 0x1A, 0xC, 0, 0, pl, 0);
         VibSetData(VIB_TBL, 0xE, 1);

@@ -19,12 +19,6 @@
 #include "read.h"
 
 
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
-
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 
 // Builds the Ashley player (pl_type 1 / the "Ashley chapter"): common init, model set, bust rest

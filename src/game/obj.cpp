@@ -18,12 +18,6 @@
 // frame (move / objMove). The per-id classes live in the obj* units; only their constructors are
 // needed here.
 
-#define HALT()                                                    \
-    do {                                                          \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
-
 extern "C" {
 void objMove(cObj* p);
 }

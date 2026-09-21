@@ -55,12 +55,14 @@ void __builtin_delete(void* p);
 }
 
 
-#define HALT()                                                    \
-    do {                                                          \
+// HALT() (db_log.h) with the __FILE__ string materialised first: the string lands in .rodata before
+// "HALT %s(%d)\n" here, the other way round in every other unit.
+#define HALT_FILE_FIRST()                                         \
+    {                                                             \
         const char* file_ = __FILE__;                             \
         OSReport("HALT %s(%d)\n", file_, __LINE__);               \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -469,7 +471,7 @@ void SceInitItemEvent()
     for (i = 0; i < 16; i++) {
         *p++ = 0;
     }
-    // Strings of a debug prompt the original kept around (dead code); its HALT() emits the
+    // Strings of a debug prompt the original kept around (dead code); its HALT emits the
     // "D:/Bio4/Prog/sce_com.cpp" string before "HALT %s(%d)\n" (the flag_rsf.h checks below reuse
     // both, with the fmt high first).
     if (0) {
@@ -479,7 +481,7 @@ void SceInitItemEvent()
         pLog->err(0, 0, "              >YES  NO");
         pLog->err(0, 0, "               YES >NO");
 #line 444 "D:/Bio4/Prog/sce_com.cpp"
-        HALT();
+        HALT_FILE_FIRST();
     }
 }
 

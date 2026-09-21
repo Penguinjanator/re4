@@ -53,8 +53,6 @@ static void em29_R1_Die_Reset(cEm29* em);
 static void em29_R1_Die_FadeOut(cEm29* em);
 static void plem29_BatRush(cPlayer* pl);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the `lis pLog@ha`
 // is not hoisted out of the scan loop (em27.cpp).
 #define VECNormalizeP(src, dst)                                                         \
@@ -1313,7 +1311,7 @@ static void plem29_BatRush(cPlayer* pl)
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x18), 0, 3, 5, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x18), 0, 3, 5, 0);
         PlSetDamageSe(0);
         pl->r_no_2++;
     case 1:

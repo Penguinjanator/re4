@@ -6,18 +6,12 @@
 #include "atari.h"
 #include "global.h"
 #include <dolphin/os.h>
+#include "db_log.h"
 
 // Stage 4 room module entry (D:/Bio4/Prog/st4.cpp, the last object of st4_0): registers the room
 // Init/Main pairs of every stage-4 room in the DOL's St4_data_tbl, then the SN REL entry points (like
 // st2.cpp). Unlike st1.cpp/st2.cpp it includes map_obj.h/light.h/widget.h/atari.h (their strings and the
 // cManager<cLight> template block follow the code) and carries an unused static helper.
-
-
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 
 // _ctors/_dtors: the linker script's labels on the .ctors/.dtors lists (null terminated)

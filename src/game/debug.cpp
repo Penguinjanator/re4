@@ -30,7 +30,8 @@
 void DbMenuExitAfterCheck();                        // game/db_menu.cpp
 
 
-#define HALT(cond)                                                           \
+// HALT() (db_log.h) behind a condition.
+#define HALT_IF(cond)                                                        \
     if (cond) {                                                              \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);                        \
         *(volatile u32*) 0x11111111 = 0;                                     \
@@ -54,9 +55,12 @@ int proc_tick_idx;
 int proc_tick_idx_bak;
 int g_proc_cnt;
 
+// Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the address splits
+// into `lis 0x8000` + displacement. Replaces the SDK macro of the same name (dvd.cpp / main_sub.cpp
+// too; each unit's override has to follow its own <dolphin/os.h>, so it is not in a header).
 #undef OS_BUS_CLOCK
-#define OS_BUS_CLOCK (((OSClock*) 0x80000000)->busClock)
-struct OSClock {
+#define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
+struct OSLowMem {
     u8 pad_0[0xF8];
     u32 busClock;   // 0xF8
 };
@@ -77,7 +81,7 @@ void DebugControl()
     if (DbgFlagChk(pG, DBG_PAD_INFO) && pG->debug_mode) {
         debugPadInfoDisp();
     }
-    HALT(Joy[2].on == 0x1600);
+    HALT_IF(Joy[2].on == 0x1600);
     DbMenuExitAfterCheck();
 }
 
@@ -125,7 +129,7 @@ void processBarDisp()
     int vcnt = GetSystemVcnt();
     u32 frameTick = OS_BUS_CLOCK / 240 * vcnt;
     f32 total;
-    OSClock* clk;
+    OSLowMem* clk;
     DbgTile* t = tile;
     s16 x0;
     s16 x1;
@@ -146,7 +150,7 @@ void processBarDisp()
     // stands in for it (its read below folds back to `li 0`, no code).
     s16 zz = 0;
     // clk's `lis 0x8000` (a block-0 filler at sched1) follows the zero's `li` in the target: LUID order.
-    clk = (OSClock*) 0x80000000;
+    clk = (OSLowMem*) 0x80000000;
     t->code = 4;
     t->x0 = 6;
     t->y0 = 30;

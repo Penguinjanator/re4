@@ -22,11 +22,6 @@
 
 // Not the do { } while (0) form of the other units: the OSReport stays in the caller's block and
 // the preceding pLog->err argument loads are scheduled against it (setData).
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 // The debug bar primitive is 0x20 bytes here (tile[2] is 0x40).
 struct DcTile {

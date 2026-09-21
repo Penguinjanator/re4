@@ -20,11 +20,6 @@
 
 // Plain block, not do/while(0): the do-while's deleted back-jump lets cse rewrite the HALT store's
 // zero as `info` (one more ref), which makes `info` outrank `data` in global allocation order.
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 

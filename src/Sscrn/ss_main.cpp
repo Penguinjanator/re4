@@ -46,12 +46,6 @@ extern "C" inline void LightSetModel2(cModel* m)
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
-
 // _ctors/_dtors: the linker script's labels on the .ctors/.dtors lists (null terminated)
 extern void (*_ctors[])(void);
 extern void (*_dtors[])(void);

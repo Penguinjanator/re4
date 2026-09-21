@@ -1,5 +1,6 @@
 #include "types.h"
 #include <dolphin/os.h>
+#include "db_log.h"
 #include "db_menu.h"
 
 // Debug tool module entry (D:/Bio4/Prog/tools.cpp; the same object ends every t_* / Tools REL): the SN REL
@@ -8,12 +9,6 @@
 // DOL or in other tool modules). The game headers are included after the functions: their inline strings
 // follow the entry points' strings in the original .rodata.
 
-
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 // _ctors/_dtors: the linker script's labels on the .ctors/.dtors lists (null terminated)
 extern void (*_ctors[])(void);

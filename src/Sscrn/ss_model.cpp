@@ -58,7 +58,6 @@ void wep47Init(int no);
 }
 
 // The player archive (pG->pPlArc) and the weapon data (SUB_SCREEN::x210): both are offset tables.
-#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 #define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->pWepDat, no)
 
 // Sub screen weapon data file for weapon number `no` of the current character (pG->pl_type: 0 Leon,

@@ -46,6 +46,8 @@ struct ArcFile {
     u32 ofs_98;   // 0x98  bullet icon id data (cockpit, type 0x32)
     u32 ofs_9C;   // 0x9C  sub-mission widget id data (stage)
 };
+// Sub-file `field` (an ofs_NN member) of the current archive.
+#define ARC_PTR(field) ((void*) (pG->pCore->field + (u32) pG->pCore))
 
 // Player archive at pG->pPlArc: a table of byte offsets to the player's sub-files (models, textures,
 // motions, faces...). The pl_* units index it directly; the pointer is `ofs + (u32) arc`.
@@ -53,6 +55,8 @@ struct PlArc {
     u32 ofs[0x100];   // pl_knife indexes up to 0x87
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
+// Model / motion data `no` of the player archive.
+#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 // Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
 #define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 // Slot `idx` of player `pl`'s motion table (m_MotTbl) set to entry `no` of the weapon / player archive.

@@ -1,16 +1,10 @@
 #include "types.h"
 #include "room_data.h"
 #include <dolphin/os.h>
+#include "db_log.h"
 
 // Stage 1 room module entry (D:/Bio4/Prog/st1.cpp; the same object ends every st1_* REL): registers the room
 // Init/Main pairs of every stage-1 room in the DOL's St1_data_tbl, then the SN REL entry points (like st2.cpp).
-
-
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
 
 
 // _ctors/_dtors: the linker script's labels on the .ctors/.dtors lists (null terminated)

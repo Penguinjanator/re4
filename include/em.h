@@ -213,7 +213,10 @@ public:
     int adjustRange(u8 dir);
 };
 
-// Motion / model data `no` of the enemy module's own archive; the enemy is the local `em`.
+// Motion / model data `no` of the archive of work `w` (cEm::subArc: an enemy's own archive, a
+// partner's, or the one a player damage routine animates from).
+#define EM_ARC(w, no) PL_ARC_PTR((w)->subArc, no)
+// The same for the enemy module's own archive; the enemy is the local `em`.
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 extern "C" {

@@ -19,9 +19,8 @@ extern void (*PlInitFunc)(cEm* em);   // game/em.cpp (the player modules' entry,
 extern u8 pl_fs_tbl[];                // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 // Motion / model data `no` of the partner's archive (cSubChar::subArc, read through pEm).
+// PL_ARC(no) (the player archive) is in global.h, EM_ARC(w, no) (a work's own subArc) in em.h.
 #define SUB_ARC(pl, no) PL_ARC_PTR((pl)->pEm->subArc, no)
-// Model data `no` of the player archive.
-#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 
 // pl11 (pl15): Ashley in the knight armour, a cSubChar with its own model set (no cPlayer).
 class cSubAshley : public cSubChar {

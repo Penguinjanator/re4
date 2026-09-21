@@ -87,8 +87,6 @@ static void plemBackjump(cPlayer* pl);
 static void em38SitAction(cEm38* em);
 static void plemSit(cPlayer* pl);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 
 // The shell motion work as the MotionWork the motion library takes.
 #define SHELL_MOT(w) ((MotionWork*) &(w)->shellMot)
@@ -812,7 +810,7 @@ static void plem38_AtkHit(cPlayer* pl)
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         pl->ang.y = pl->pEmCatch->ang.y + PI;
         pl->ang.y = LIMIT_ANGLE(pl->ang.y);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x46), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x46), 0, 0, 1, 0);
         pG->pl_life = 0;
         PlSetFace(1);
         pl->r_no_2++;
@@ -1397,7 +1395,7 @@ static void plem38_CatchHit(cPlayer* pl)
             PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
             pl->ang.y = pl->pEmCatch->ang.y + PI;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 0x41, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x47), 0, 0, 0x41, 0);
         } else {
             Vec v;
 
@@ -1407,7 +1405,7 @@ static void plem38_CatchHit(cPlayer* pl)
             PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
             pl->ang.y = pl->pEmCatch->ang.y + PI;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x47), 0, 0, 1, 0);
         }
         EstSet(pl, -1, 0, 0, 0x2E, 0xE, 0, 0, pl, 0);
         PlSetFace(1);
@@ -1426,7 +1424,7 @@ static void plem38_CatchHit(cPlayer* pl)
         break;
     case 2:
         pl->atari.m_flag |= 0x300;
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x4C), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4C), 0, 0, 1, 0);
         SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
         EstSet(pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, pl, 0);
@@ -2272,11 +2270,11 @@ static void plemDmStamp(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x49), 0, 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x49), 0, 5, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2E, 0xD, 0, 0, pl, 0);
             PlSetDamageSe(0xD);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x48), 0, 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x48), 0, 5, 1, 0);
             EstSet(pl, -1, 0, 0, 0x2E, 0xC, 0, 0, pl, 0);
             PlSetDamageSe(0);
         }
@@ -2386,9 +2384,9 @@ static void plemEscape(cPlayer* pl)
             side = 0;
         }
         if (side) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), PL_ARC(0x4B), 5, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4A), EM_ARC(pl, 0x4B), 5, 1, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), PL_ARC(0x4B), 5, 0x41, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4A), EM_ARC(pl, 0x4B), 5, 0x41, 0);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
@@ -2482,7 +2480,7 @@ static void plemBackjump(cPlayer* pl)
     pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x4E), 0, 5, 1, 5);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4E), 0, 5, 1, 5);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -2538,7 +2536,7 @@ static void plemSit(cPlayer* pl)
     pl->dmg.set(0, 30);
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x4F), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4F), 0, 5, 1, 0);
         GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:

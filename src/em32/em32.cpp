@@ -115,8 +115,6 @@ static void plemBackjump(cPlayer* pl);
 static void plemEscape(cPlayer* pl);
 }
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
@@ -2001,7 +1999,7 @@ static void plem32_CatchHit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x89), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x89), 0, 0, 1, 0);
         PlSetFace(1);
         pl->r_no_2++;
     case 1:
@@ -2011,7 +2009,7 @@ static void plem32_CatchHit(cPlayer* pl)
         }
         goto end;
     case 2:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x8A), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x8A), 0, 0, 1, 0);
         EstSet(pl, -1, 0, 0, 0x2A, 0x29, 0, 0, pl, 0);
         pl->m_Work0 = 15;
         pl->r_no_2++;
@@ -2027,7 +2025,7 @@ static void plem32_CatchHit(cPlayer* pl)
         }
         break;
     case 4:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x8B), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x8B), 0, 0, 1, 0);
         pl->r_no_2++;
     case 5:
         EmCatchMotionMove(pl, 1.0f, 1.0f);
@@ -2145,15 +2143,15 @@ static void plemSit(cPlayer* pl)
         ang = fabsf(Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 3.14159274f));
         if (pl->r_no_3) {
             if (ang < 1.57079637f) {
-                MotionSetCore(pl, &pl->Motion, PL_ARC(0x8F), 0, 3, 1, 0);
+                MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x8F), 0, 3, 1, 0);
             } else {
-                MotionSetCore(pl, &pl->Motion, PL_ARC(0x8E), 0, 3, 1, 0);
+                MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x8E), 0, 3, 1, 0);
             }
         } else {
             if (ang < 1.57079637f) {
-                MotionSetCore(pl, &pl->Motion, PL_ARC(0x90), 0, 3, 1, 0);
+                MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x90), 0, 3, 1, 0);
             } else {
-                MotionSetCore(pl, &pl->Motion, PL_ARC(0x91), 0, 3, 1, 0);
+                MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x91), 0, 3, 1, 0);
             }
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
@@ -2199,7 +2197,7 @@ static void plemBackjump(cPlayer* pl)
             pl->ang.y = ry + 3.14159274f;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x94), 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x94), 0, 3, 1, 0);
         EstSet(pl, -1, 0, 0, 3, 0x14, 0, 0, pl, (void*) fe);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -2285,9 +2283,9 @@ static void plemEscape(cPlayer* pl)
             side = 0;
         }
         if (side) {
-            MotionSetCore(pl, &pl->Motion, PL_ARC(0x92), PL_ARC(0x93), 3, 1, 0);
+            MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x92), EM_ARC(pl, 0x93), 3, 1, 0);
         } else {
-            MotionSetCore(pl, &pl->Motion, PL_ARC(0x92), PL_ARC(0x93), 3, 0x41, 0);
+            MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x92), EM_ARC(pl, 0x93), 3, 0x41, 0);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
@@ -3028,7 +3026,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x87), 0, 0, 0x201, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x87), 0, 0, 0x201, 0);
         AtariOff(&pl->atari, 0xFCFF);
         PlSetFace(1);
         pl->r_no_2++;
@@ -3039,7 +3037,7 @@ static void plem32_C_AtkHit(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x88), 0, 0, 0x201, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x88), 0, 0, 0x201, 0);
         EstSet(pl, -1, 0, 0, 0x2A, 0x28, 0, 0, pl, 0);
         pl->m_Work0 = 15;
         pl->r_no_2++;
@@ -3289,7 +3287,7 @@ static void plem32_P_CatchHit(cPlayer* pl)
     step = pl->r_no_2;
     switch (step) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x9F), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x9F), 0, 0, 1, 0);
         EmCatchMotionMove(pl, 1.0f, 1.0f);
         PlSetFace(1);
         if (pSys->eff_country) {
@@ -3312,12 +3310,12 @@ static void plem32_P_CatchHit(cPlayer* pl)
         break;
     case 2:
         pl->be_flag |= 2;
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0xA0), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0xA0), 0, 0, 1, 0);
         pl->Wep->setTrans(0, 0);
         obj = ObjMgr.create(0xB);
         w->pCatchObj = obj;
         if (obj) {
-            obj->modelInit(PL_ARC(0xAC), PL_ARC(0xAB));
+            obj->modelInit(EM_ARC(pl, 0xAC), EM_ARC(pl, 0xAB));
             w->pCatchObj->atari.m_flag &= 0xFCFF;
             w->pCatchObj->pParts->pParent = pPLS->getPartsPtr(0xA);
             w->pCatchObj->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
@@ -4853,7 +4851,7 @@ static void plemDivide(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x9E), 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x9E), 0, 3, 1, 0);
         AtariOff(&pl->atari, 0xFCFF);
         pl->r_no_2++;
     case 1:

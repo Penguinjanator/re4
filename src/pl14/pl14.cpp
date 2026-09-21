@@ -45,7 +45,6 @@
 
 #line 1 "D:/Bio4/Prog/pl14.cpp"
 
-#define SUBARC(no) PL_ARC_PTR(pEm->subArc, no)
 #define OARC(no) PL_ARC_PTR(owner->subArc, no)
 #define EM ((cEm*) this)
 #define OEM ((cEm*) owner)
@@ -168,7 +167,7 @@ void cSubLuis::init()
     voiceWait = 0;
     cnt = 0;
     set = 0;
-    EspDataLoad((u32) SUBARC(0x34 / 4), 7, 0);
+    EspDataLoad((u32) SUB_ARC(this, 0x34 / 4), 7, 0);
     PlClothSetLuis(this, &luisHair);
     YarareInit(EM, 0.0f, -30.0f, 0.0f, 150.0f, 100.0f, 2, 1);
     YarareAdd(EM, &hit[0], 0.0f, 0.0f, 0.0f, 170.0f, 120.0f, 3, 1);
@@ -181,7 +180,7 @@ void cSubLuis::init()
     YarareAdd(EM, &hit[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, 3);
     YarareAdd(EM, &hit[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, 3);
     YarareAdd(EM, &hit[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, 3);
-    MotionSetCore(pEm, &pEm->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
+    MotionSetCore(pEm, &pEm->Motion, SUB_ARC(this, 0x40 / 4), 0, 0, 5, 0);
     motionMove();
     getRoomEtcRack(0, &rack[0], 1);
     getRoomEtcRack(1, &rack[1], 1);
@@ -194,19 +193,19 @@ void cSubLuis::modelSet()
 {
     cModelInfo* info;
 
-    if (!modelInit(SUBARC(0x10 / 4), SUBARC(0x14 / 4))) {
+    if (!modelInit(SUB_ARC(this, 0x10 / 4), SUB_ARC(this, 0x14 / 4))) {
         pLog->err(0, 0, "cSubLuis::init() failed.");
     }
-    info = ModInfoMgr.create(SUBARC(0x18 / 4), SUBARC(0x1C / 4));
+    info = ModInfoMgr.create(SUB_ARC(this, 0x18 / 4), SUB_ARC(this, 0x1C / 4));
     if (info) addModel(info);
-    pFace = ModInfoMgr.create(SUBARC(0x20 / 4), SUBARC(0x1C / 4));
+    pFace = ModInfoMgr.create(SUB_ARC(this, 0x20 / 4), SUB_ARC(this, 0x1C / 4));
     if (pFace) addModel(pFace);
     if (0) pLog->err(0, 0, "setFace() FAILED. %d", 0);
-    info = ModInfoMgr.create(SUBARC(0x24 / 4), SUBARC(0x14 / 4));
+    info = ModInfoMgr.create(SUB_ARC(this, 0x24 / 4), SUB_ARC(this, 0x14 / 4));
     if (info) addModel(info);
-    info = ModInfoMgr.create(SUBARC(0x28 / 4), SUBARC(0x14 / 4));
+    info = ModInfoMgr.create(SUB_ARC(this, 0x28 / 4), SUB_ARC(this, 0x14 / 4));
     if (info) addModel(info);
-    info = ModInfoMgr.create(SUBARC(0x2C / 4), SUBARC(0x14 / 4));
+    info = ModInfoMgr.create(SUB_ARC(this, 0x2C / 4), SUB_ARC(this, 0x14 / 4));
     if (info) addModel(info);
 }
 
@@ -1456,7 +1455,7 @@ void cSubLuis::equipWeapon()
         pLog->err(0, 0, "Luis.equipWeapon() CREATE FAILED");
     } else {
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
-        pItem->modelInit(SUBARC(0x38 / 4), SUBARC(0x3C / 4));
+        pItem->modelInit(SUB_ARC(this, 0x38 / 4), SUB_ARC(this, 0x3C / 4));
         pItem->atari.m_flag &= 0xFCFF;
         pItem->pParts->pParent = getPartsPtr(10);
         pItem->LightInfo.init2(1, 1, LuisLightZero(), &p1, 1);

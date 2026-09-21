@@ -16,12 +16,7 @@
 #include <stdio.h>
 #include <dolphin/os.h>
 #include "main.h"
-
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
+#include "db_log.h"
 
 
 // Current text environment

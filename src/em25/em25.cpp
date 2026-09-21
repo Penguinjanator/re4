@@ -128,8 +128,6 @@ static EmAtkInfo em25_poison_atk[1] = {
 };
 static int em25_atk_pad = 0;
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 
 
 
@@ -740,7 +738,7 @@ static void plem25_Bite(cPlayer* pl)
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x2F), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x2F), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->m_Work0 = 10;
@@ -758,7 +756,7 @@ static void plem25_Bite(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x30), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x30), 0, 0, 1, 0);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->r_no_2++;
     case 3:

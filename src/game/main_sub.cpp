@@ -47,14 +47,10 @@ struct OSLowMem {
 #define OSTicksToMicroseconds(ticks) (((ticks) * 8) / (OS_TIMER_CLOCK / 125000))
 #define VIPadFrameBufferWidth(width) ((u16) (((u16) (width) + 15) & ~15))
 
-// A plain block, not do/while(0): the loop notes of a do/while are a scheduling barrier, and the
-// original issues `li r4,0` of the preceding pLog->err before the string address (anti-dependence
-// on HALT's own `lis r4`), which needs one scheduling region (DLL_Link/DLL_Unlink, read.cpp too).
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
+// HALT() (db_log.h) is a plain block, not do/while(0): the loop notes of a do/while are a scheduling
+// barrier, and the original issues `li r4,0` of the preceding pLog->err before the string address
+// (anti-dependence on HALT's own `lis r4`), which needs one scheduling region (DLL_Link/DLL_Unlink,
+// read.cpp too).
 
 #line 30 "D:/Bio4/Prog/main_sub.cpp"
 

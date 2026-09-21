@@ -13,12 +13,6 @@
 #include <string.h>
 #include <dolphin/os.h>
 
-#define HALT()                                                    \
-    {                                                             \
-        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
-        *(volatile u32*) 0x11111111 = 0;                          \
-    }
-
 // Debug break with the source location.
 #line 20 "D:/Bio4/Prog/db_log.cpp"
 static inline void logHalt()

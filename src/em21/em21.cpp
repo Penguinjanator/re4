@@ -49,8 +49,6 @@ static void em21_R1_VsElgigante(cEm21* em);
 static void em21TrapCancelAction(cEm21* em);
 static void plemTrapCancel(cPlayer* pl);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 
 
 
@@ -949,7 +947,7 @@ static void plemTrapCancel(cPlayer* pl)
         v.z = -989.88f;
         pl->ang.y = em->ang.y;
         PSMTXMultVec(em->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x1B), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x1B), 0, 0, 1, 0);
         pl->r_no_2++;
     case 1:
         pl->dmg.m_Timer = 2;

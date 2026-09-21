@@ -70,4 +70,15 @@ void LogInit();
 // Debug break with source location (used by the header-inline range checks).
 extern void dbgAssert(const char* file, int line);
 
+extern "C" void OSReport(const char* fmt, ...);
+
+// Report the source location and stop (a write to an unmapped address). A plain block, not
+// do/while(0): the loop notes of a do/while are a scheduling barrier (main_sub.cpp). The units keep
+// the original line numbers at the use sites with #line.
+#define HALT()                                                    \
+    {                                                             \
+        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
+        *(volatile u32*) 0x11111111 = 0;                          \
+    }
+
 #endif

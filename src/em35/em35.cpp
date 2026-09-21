@@ -109,8 +109,6 @@ static void em35_R0_Die(cEm35* em);
 static void em35_R1_Die_Normal(cEm35* em);
 static void em35_R1_Die_Pose(cEm35* em);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
@@ -1693,7 +1691,7 @@ static void plem35_BearHug(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x93), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x93), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
         pl->dmg.set(0, 0);
@@ -1729,7 +1727,7 @@ static void plem35_BearHug(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x94), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x94), 0, 0, 1, 0);
         SndStop(pl->m_Work0, 0);
         SndCall(1, 0x3D, &pPL->pos, pPL->id, 0, pPL);
         pl->r_no_2++;
@@ -1766,7 +1764,7 @@ static void plem35Sit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x9A), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x9A), 0, 3, 1, 0);
         pl->dmg.set(0, 30);
         GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
@@ -1892,7 +1890,7 @@ static void plem35DmFall2F(cPlayer* pl)
     pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x92), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x92), 0, 3, 1, 0);
         pl->atari.throughOn();
         if ((s16) pGS->pl_life > 0) {
             PlSetDamageSe(0);
@@ -2057,7 +2055,7 @@ static void plem35DmHook(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x91), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x91), 0, 3, 1, 0);
         pl->dmg.m_Timer = 30;
         PlSetDamageSe(0);
         PlSetFace(1);
@@ -2203,7 +2201,7 @@ static void plem35_CriticalHit(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x90), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x90), 0, 0, 1, 0);
         PlSetFace(1);
         pl->m_Work0 = 100;
         EstSet(pl, -1, 0, 0, 0x2C, 0x10, 0, 0, pl, 0);
@@ -2241,9 +2239,9 @@ static void plem35DashEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, PI) < 0.0f) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x98), PL_ARC(0x99), 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x98), EM_ARC(pl, 0x99), 3, 1, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x98), PL_ARC(0x99), 3, 0x41, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x98), EM_ARC(pl, 0x99), 3, 0x41, 0);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
@@ -2321,7 +2319,7 @@ static void plem35DmStamp(cPlayer* pl)
     pl->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x97), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x97), 0, 3, 1, 0);
         PlSetFace(1);
         pl->atari.m_flag &= ~0x200;
         if ((s16) pGS->pl_life > 0) {
@@ -2518,7 +2516,7 @@ static void plem35_CatchHit(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x8C), 0, 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x8C), 0, 5, 1, 0);
         PlSetFace(1);
         at->set(10, 480.00003f, 400.0f);
         EstSet(pl, -1, 0, 0, 0x2C, 0xE, 0, 0, pl, 0);
@@ -2545,7 +2543,7 @@ static void plem35_CatchHit(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x8F), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x8F), 0, 0, 1, 0);
         SndCall(1, 0x3D, &pPL->pos, pPL->id, 0, pPL);
         pl->r_no_2++;
     }
@@ -2571,7 +2569,7 @@ static void plem35_CatchHit(cPlayer* pl)
         pl->ang.y = y + PI;
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x8E), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x8E), 0, 0, 1, 0);
         EstSet(pl, -1, 0, 0, 0x2C, 0xF, 0, 0, pl, 0);
         pl->r_no_2++;
     }
@@ -2599,7 +2597,7 @@ static void plem35_CatchHit(cPlayer* pl)
         break;
     case 6:
         pl->atari.m_flag |= 0x300;
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x8A), 0, 0, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x8A), 0, 0, 1, 0);
         SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
         pl->r_no_2++;

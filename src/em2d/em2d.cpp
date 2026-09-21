@@ -215,8 +215,6 @@ static EmAtkInfo em2d_poison_atk[1] = {
 // TexRender flag written to cModel::x137 every frame (em2dCamouflageMove).
 static u8 em2d_tex_flag = 0xF;
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 
 
 // Scalar reference stores: pG / the player pointer are reloaded after them (st_room.h).
@@ -1966,7 +1964,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
     fe = pl->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x5F), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x5F), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->m_Work0 = 127;
@@ -2007,7 +2005,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         break;
     case 2:
     case 4:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x63), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x63), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x15, 0, 0, pl, 0);
         pl->r_no_2++;
     case 3:
@@ -2035,7 +2033,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         }
         break;
     case 6:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x61), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x61), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x14, 0, 0, pl, 0);
         pl->r_no_2++;
     case 7:
@@ -2060,7 +2058,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 8:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x62), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x62), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x16, 0, 0, pl, 0);
         pl->r_no_2++;
     case 9:
@@ -2087,7 +2085,7 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         }
         break;
     case 10:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x64), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x64), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x17, 0, 0, pl, 0);
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
@@ -2212,7 +2210,7 @@ static void plem2d_JumpKickHit(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x66), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x66), 0, 5, 1, 0);
         PlSetFace(1);
         pl->m_Work0 = 7;
         pl->r_no_2++;
@@ -2336,7 +2334,7 @@ static void plem2dKick(cPlayer* pl)
     StaFlagOn(pG, STA_PL_EM_ACTION);
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x60), 0, 6, 1, 5);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x60), 0, 6, 1, 5);
         GameAddPoint(LVADD_CRITICALHIT);
         pl->m_Work0 = 27;
         pl->m_Work1 = 7;
@@ -3800,7 +3798,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
     fe = pl->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x5F), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x5F), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->m_Work0 = 127;
@@ -3828,7 +3826,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         break;
     case 2:
     case 4:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x63), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x63), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x15, 0, 0, pl, 0);
         pl->r_no_2++;
     case 3:
@@ -3843,7 +3841,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         }
         break;
     case 6:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x61), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x61), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x14, 0, 0, pl, 0);
         pl->r_no_2++;
     case 7:
@@ -3855,7 +3853,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         pl->r_no_2 = pl->pEmCatch->r_no_2;
         break;
     case 8:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x62), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x62), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x16, 0, 0, pl, 0);
         pl->r_no_2++;
     case 9:
@@ -3869,7 +3867,7 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         }
         break;
     case 10:
-        MotionSetCore(pl, &pl->Motion, PL_ARC(0x64), 0, 5, 1, 0);
+        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x64), 0, 5, 1, 0);
         EstSet(pl, -1, 0, 0, 0x25, 0x17, 0, 0, pl, 0);
         em2dPlHeadMelt(pl);
         pl->r_no_2++;
@@ -5606,7 +5604,7 @@ void em2dPlHeadLost()
 void em2dPlHeadMelt(cPlayer* pl)
 {
     if (pSys->eff_country) {
-        pPL->setHead(PL_ARC(0x6D), PL_ARC(0x6E));
+        pPL->setHead(EM_ARC(pl, 0x6D), EM_ARC(pl, 0x6E));
     }
 }
 

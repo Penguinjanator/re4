@@ -62,9 +62,6 @@ static void em2a_R1_Trap1R100(cEm2a* em);
 static void em2a_R1_Trap2Set(cEm2a* em);
 static void em2a_R1_Trap2Bomb(cEm2a* em);
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-#define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
-
 
 
 
@@ -445,7 +442,7 @@ static void plem2a_Trap1Bite(cPlayer* pl)
     pl->subArc = pPL->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x10), PL_ARC(0x11), 5, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x10), EM_ARC(pl, 0x11), 5, 1, 0);
         PlSetFace(1);
         EstSet(pl, -1, 0, 0, 0x22, 1, 0, 0, pl, 0);
         LifeDownSet2(pPL, 300, 0, 1);
@@ -526,7 +523,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     StaFlagOn(pGS, STA_SUB_CATCHED);
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1A), 0, 5, 5, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1A), 0, 5, 5, 0);
         EstSet(sub, -1, 0, 0, 0x22, 7, 0, 0, sub, 0);
         LifeDownSet2(pSUB, 300, 0, 1);
         sub->dmg.set(0, 2);
@@ -541,7 +538,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         }
         break;
     case 2:
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1B), 0, 5, 5, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1B), 0, 5, 5, 0);
         sub->m_Work0 = 0;
         sub->r_no_2++;
     case 3:
@@ -558,7 +555,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         }
         break;
     case 4:
-        MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1C), 0, 5, 1, 0);
+        MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1C), 0, 5, 1, 0);
         EstSet(sub, -1, 0, 0, 0x22, 8, 0, 0, sub, 0);
         sub->r_no_2++;
     case 5:
@@ -608,7 +605,7 @@ static void plemResuceAshley(cPlayer* pl)
         v.y = 0.0f;
         v.z = -685.31f;
         PSMTXMultVec(m, &v, &pl->pos);
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x1D), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x1D), 0, 3, 1, 0);
         pl->r_no_2++;
     case 1:
         if (MotionMove(pl, 0)) {

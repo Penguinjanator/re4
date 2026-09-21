@@ -4092,8 +4092,6 @@ static void em39_R1_AppearMG2(cEm39* em)
     em39HandSet(em, 2);
 }
 
-#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
-
 // Throw the grenade in hand towards the player (AppearGR / AppearGR2 hit frame).
 #define EM39_GRENADE_THROW(em, w, spd)                                                              \
     (w)->pBomb->setGrenadeThrow(&(spd), 60, ARC(0x10B), ARC(0x10C), ARC(0x10D), ARC(0x111));   \

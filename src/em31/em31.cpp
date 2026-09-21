@@ -241,8 +241,6 @@ static f32 em31ClothMax3[18] = {
     0.3f, 0.6f, 0.9f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, 0.3f, 0.6f, 0.9f, 1.0f, 1.0f,
 };
 
-#define PL_ARC(no) PL_ARC_PTR(pl->subArc, no)
-
 #define VIB_TBL ((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore))
 
 
@@ -1525,9 +1523,9 @@ static void plemEscape(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         if (pl->r_no_3) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x6D), PL_ARC(0x6E), 3, 0x41, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x6D), EM_ARC(pl, 0x6E), 3, 0x41, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC(0x6D), PL_ARC(0x6E), 3, 1, 0);
+            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x6D), EM_ARC(pl, 0x6E), 3, 1, 0);
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1826,7 +1824,7 @@ static void em31_R1_CatchHit(cEm31* em)
         }                                                                                           \
         break;                                                                                      \
     case 2:                                                                                         \
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x73), 0, 5, 1, 0);                                    \
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x73), 0, 5, 1, 0);                                    \
         EstSet(pl, -1, 0, 0, 0x29, 0x38, 0, 0, pl, 0);                                  \
         pl->r_no_2++;                                                                                  \
     case 3:                                                                                         \
@@ -3007,7 +3005,7 @@ static void plem31_Climb(cPlayer* pl)
         pl->pos.z = -7000.0f;
         PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
         pl->ang.y = pl->pEmCatch->ang.y;
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x82), 0, 0, 0x201, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x82), 0, 0, 0x201, 0);
         EstSet(pl, -1, 0, 0, 0x29, 0x34, 0, 0, pl, 0);
         pl->atari.throughOn();
         pl->r_no_2++;
@@ -3026,10 +3024,10 @@ static void plem31_Climb(cPlayer* pl)
         pl->pos.z = 0.0f;
         PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
         pl->ang.y = pl->pEmCatch->ang.y;
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x83), 0, 0, 0x201, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x83), 0, 0, 0x201, 0);
         em31CatchObj.p = ObjMgr.create(0xB);
         if (em31CatchObj.p) {
-            em31CatchObj.p->modelInit(PL_ARC(0x86), PL_ARC(0x85));
+            em31CatchObj.p->modelInit(EM_ARC(pl, 0x86), EM_ARC(pl, 0x85));
             em31CatchObj.p->atari.m_flag &= 0xFCFF;
             em31CatchObj.p->pParts->pParent = pPLS->getPartsPtr(0xA);
             em31CatchObj.p->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
@@ -3067,7 +3065,7 @@ static void plem31_Climb(cPlayer* pl)
         pl->pos.z = 4500.0f;
         PSMTXMultVec(pl->pEmCatch->mat, &pl->pos, &pl->pos);
         pl->ang.y = pl->pEmCatch->ang.y;
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x84), 0, 0, 0x201, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x84), 0, 0, 0x201, 0);
         EstSet(pl, -1, 0, 0, 0x29, 0x33, 0, 0, pl, 0);
         pl->r_no_2++;
     case 5:
@@ -3500,7 +3498,7 @@ static void plem31_dm_Stamp(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), PL_ARC(0x6B), 0, 3, 1, 0);
+        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x6B), 0, 3, 1, 0);
         PlSetFace(1);
         pl->atari.clrFlag200();
         if ((s16) pGS->pl_life > 0) {

@@ -13,9 +13,6 @@
 #include "db_log.h"
 #include "esp.h"
 
-#undef ARC
-#define ARC(no) SUB_ARC(this, no)
-
 // EmInitFunc of the module: placement-constructs the partner in the cEm work, builds her models,
 // runs the cSubChar init and clears Status_flg[1] bit17.
 static void Pl11Init(cEm* em)
@@ -34,7 +31,7 @@ cSubAshley::cSubAshley()
     hp = pGS->ashley_life;
     litArea.on(1);
     pFootShadowTbl = pl_fs_tbl;
-    EspDataLoad((u32) ARC(0x11), 4, 0);
+    EspDataLoad((u32) SUB_ARC(this, 0x11), 4, 0);
     pSUB = this;
 }
 
@@ -45,23 +42,23 @@ void cSubAshley::modelSet()
 {
     cModelInfo* info;
 
-    if (modelInit(ARC(4), ARC(5)) == 0) {
+    if (modelInit(SUB_ARC(this, 4), SUB_ARC(this, 5)) == 0) {
         pLog->err(0, 0, "cSubChar::modelSet() failed.");
     }
-    info = ModInfoMgr.create(ARC(7), ARC(0xB));
+    info = ModInfoMgr.create(SUB_ARC(this, 7), SUB_ARC(this, 0xB));
     m_pFace = info;
     if (info) {
         addModel(info);
     }
-    info = ModInfoMgr.create(ARC(6), ARC(8));
+    info = ModInfoMgr.create(SUB_ARC(this, 6), SUB_ARC(this, 8));
     if (info) {
         addModel(info);
     }
-    info = ModInfoMgr.create(ARC(9), ARC(5));
+    info = ModInfoMgr.create(SUB_ARC(this, 9), SUB_ARC(this, 5));
     if (info) {
         addModel(info);
     }
-    info = ModInfoMgr.create(ARC(0xA), ARC(5));
+    info = ModInfoMgr.create(SUB_ARC(this, 0xA), SUB_ARC(this, 5));
     if (info) {
         addModel(info);
     }
@@ -82,19 +79,19 @@ void cSubAshley::setFace(int no)
     case 0:
         break;
     case 1:
-        data = ARC(0x6C);
+        data = SUB_ARC(this, 0x6C);
         type = 2;
         break;
     case 2:
-        data = ARC(0x6D);
+        data = SUB_ARC(this, 0x6D);
         type = 2;
         break;
     case 3:
-        data = ARC(0x6C);
+        data = SUB_ARC(this, 0x6C);
         type = 6;
         break;
     case 4:
-        data = ARC(0x6D);
+        data = SUB_ARC(this, 0x6D);
         type = 6;
         break;
     }
@@ -119,16 +116,16 @@ void cSubAshley::setHand(int no)
     switch ((u32) no) {
     case 0:
     default:
-        data = ARC(0xC);
+        data = SUB_ARC(this, 0xC);
         break;
     case 1:
-        data = ARC(0xD);
+        data = SUB_ARC(this, 0xD);
         break;
     case 3:
-        data = ARC(0xE);
+        data = SUB_ARC(this, 0xE);
         break;
     }
-    m_pModRHand = ModInfoMgr.create(data, ARC(5));
+    m_pModRHand = ModInfoMgr.create(data, SUB_ARC(this, 5));
     if (m_pModRHand) {
         addModel(m_pModRHand);
     }
@@ -139,16 +136,16 @@ void cSubAshley::setHand(int no)
     switch ((u32) no) {
     case 0:
     default:
-        data = ARC(0xF);
+        data = SUB_ARC(this, 0xF);
         break;
     case 1:
-        data = ARC(0x10);
+        data = SUB_ARC(this, 0x10);
         break;
     case 3:
-        data = ARC(0xF);
+        data = SUB_ARC(this, 0xF);
         break;
     }
-    info = ModInfoMgr.create(data, ARC(5));
+    info = ModInfoMgr.create(data, SUB_ARC(this, 5));
     m_pModLHand = info;
     if (info) {
         addModel(info);
