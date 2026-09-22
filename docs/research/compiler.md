@@ -1531,3 +1531,127 @@ constants (a `.rodata` pool forms at >= 3 poolable objects of <= 8 bytes, litera
 defined), while the vendor's build addressed them `lis; lfd sym@l`. Escaping the pool needs a 16-byte
 table, and MWCC never folds a non-zero offset into an `@l` relocation (`addi r6,r6,tbl@l; lfd 8(r6)`,
 +4 bytes). This is the "MWCC compiler-build differences" item M2 of docs/matching.md; the asm stays.
+
+### Whole-tree hypothesis runs after the mem-flags patch (2026-09-22): no second rule found
+
+
+Goal: find the NEXT single compiler change (after `shipped-build-mem-flags.patch`) that explains a
+whole cluster of `// COMPILER-DIFF` tags. Method as prescribed: copy `tools/sn-gcc/src`, edit, build
+into `/tmp/treerun/cc-<name>/` (`mk.sh`), compile EVERY prodg unit of build.ninja with it and bytecmp
+against the split objects (`tools/research/kit/tree.py`, same logic as `tools/research/kit/variant.sh --no-diff`, but
+compiling from a `git archive HEAD` snapshot of src/+include/ in `/tmp/treerun/snap` because four other
+agents were editing the live tree during the runs; 820 units, ~13 s per whole-tree run). A regression
+is a function that bytecmp reports identical with the installed compiler and not with the variant.
+
+Result in one line: **no candidate reached 0 regressions while changing any output; nothing is
+proposed, no patch written.** The negative table below is the deliverable, plus a few facts that
+narrow the search (the shipped compiler is at the 2.95.2 level in cse/loop/reload/function/toplev
+exactly like the v1.79 drop; BRANCH_COST 0 and PROMOTE_FUNCTION_ARGS/RETURN/PROTOTYPES defaults are
+the shipped ones; combine's reg_nonzero_bits summary is in use).
+
+## 1. Clusters (tag LINES in src/**/*.cpp + include/*.h, live tree at ~16:30; /tmp/treerun/clusters.tsv)
+
+| lines | mechanism | what the target does |
+|---|---|---|
+| 106 | reg-equiv-const (#13) | a single-set constant pseudo is rematerialised by reload (`li`/`lis`/`lfs` at the use, r0/spill reg, never a callee-saved reg); store issue order follows |
+| 76 | cse-path (#12, candidate #12 forms) | a block (loop-exit AROUND target, fall-through arm, else-if chain) is entered with an empty cse table: fresh `lis`/`li 0`/pool load where ours reuses a register |
+| 67 | global-alloc-order (#17 + "tie"/"pin" global.c texts) | callee-saved register names permuted: global.c pass-0 `regs_used_so_far` / priority / live length |
+| 31 | other (misc one-off levers: anchors, frame slots, first-tile canon, jump2-only arm) | — |
+| 22 | jump2-crossjump (#6) | RTL-at-jump2-entry source levers (resolved as stock) |
+| 22 | gcse-frame-high-PRE (#3) | no hoisted `&local` / `high(sym)` pseudo, fresh `addi`/`lis` per use |
+| 19 | gcse-table/numbering | PRE pseudo numbering / expression-table size decides a register tie |
+| 19 | loop-insn-count | loop.c move_movables hoist decided by the loop's real insn count |
+| 17 + 12 | sched-tie / sched1-tie-hoist (#5) | haifa tie-breaks, region split, slot fillers (resolved as stock) |
+| 16 + 4 | narrow-extend (#2) / narrow-truncate (#4) | `clrlwi`/`extsh` kept or dropped at a conversion, call or return |
+| 13 | local-alloc-qty-order | block-local scratch registers permuted |
+| 13 | argmove-order (#1) | FP arg moves interleaved with trailing int constants |
+| 9 | prologue-copy-death (#8) | closed (different-mode read lever) |
+| 6/5/4/4/4/3/... | register-pin, loop-exit-form (#7), aggregate-view (#18), loop-entry-rotation (#9), combine, ... | |
+
+(The count moved 505 -> 479 during the session: another agent is deleting tags concurrently.)
+
+## 2. Hypotheses tested whole-tree (base = installed compiler on the HEAD snapshot; 817 units compile at HEAD, 3 are mid-edit in HEAD itself: em2b, emshield, emwep)
+
+Regressions = functions identical with base that stop being identical; "0/0" = no output changed at
+all (the change is a no-op on this tree). Every variant: 0 fixes (every function in the snapshot
+already matches, so a correct rule can only show through the tagged plain forms, step 3b -- which was
+not reached because no rule passed 3a).
+
+| # | change (one edit, vendor-plausible) | targets cluster | regressions (units) |
+|---|---|---|---|
+| A1 | `#define PROMOTE_PROTOTYPES` (rs6000.h) | #2/#4 | 599 (141). Kills the earlier tagaudit-2 lead (5 of 63 game units) whole-tree: callee entries get `clrlwi rX,r3,16` (ss_item itemTexNo) the target does not have |
+| A2 | `PROMOTE_FUNCTION_RETURN` undefined | #4 (masked u8 return, unextended narrow return) | 15 (5) + 3 ICEs (`emit_move_insn` mode mismatch in ss_main, snd_sub3, snd_test). Untagged functions regress (mes QueSet, emwindow move `(s8) Rnd()%3` extsb) -> not the shipped rule |
+| A3 | `SUBREG_PROMOTED_VAR_P` never set (expr.c 5901/6019/6042, calls.c 2481: narrow locals, parms and return values read with an explicit extension, stored with a plain subreg move) | #2 (r221 eff0, em36 kind, db_light col, t_se_at col5, t_flr_at, cam_ctrl st) | 2852 (348) |
+| A4 | same, VAR_DECLs only (PARM_DECL keeps the promoted mark) | #2 locals | 735 (193): e.g. emBar emBarDmCk `u8 wep = lbz; wep == 0x14` gets a `clrlwi` the target lacks |
+| A5 | combine: `nonzero_sign_valid = 0` (no reg_nonzero_bits / sign-bit summary) | #2 (multi-set constant pseudos keep their mask) | 392 (109): the summary is what strips `(zero_extend:SI (reg:QI))` of gcse-created QImode load pseudos (em10SetDmVal `em->type == 6`), which the target strips too |
+| B1 | cse.c 2.95.2->2.95.3 delta (no dead-code deletion after a jump cse made unconditional; `emit_barrier_after`) | #12 | 2 (2): r307_checkPiece, R318LaserCallBackFunc (register/order shuffles) |
+| B2 | toplev.c 2.95.3 order `cse1; jump; delete_trivially_dead_insns` | #12/#13 | 6 (3) |
+| B3 | function.c + emit-rtl.c + toplev.c + rtl.h 2.95.3 delta (temp-slot level fix, unshare_all_rtl_again) | frame slots (#11) | 6 (3) (= B2's 6; the function.c part is a no-op) |
+| B4 | loop.c (+ rtlanal.c insns_safe_to_move_p, unroll.c) 2.95.3 delta | loop-insn-count | 2 (1): ss_shop dispLvUpItemList hoists `lis IdSub@ha` out of a loop the target keeps inside |
+| B5 | reload1.c + reload.c (+ reload.h) 2.95.3 delta (free_for_value_p, regno_clobbered_p mode, reload_reg_unavailable) | #13 spill-register / inheritance shapes | 9 (3): ik InverseKinematics 40w, math_sub de_Boor_Cox, t_event x7 |
+| B6 | alias.c stmt.c fold-const.c optabs.c expmed.c tree.c final.c varasm.c 2.95.3 deltas | misc | 5 (5) |
+| B7 | flow.c 2.95.3 delta | — | 0/0 no-op |
+| B8 | expr.c 2.95.3 delta (multiword-move CLOBBER, complex modes) | — | 0/0 no-op |
+| B9 | rs6000.c(+h) 2.95.3 delta (new predicates, unused without the md) | — | 0/0 no-op |
+| C1 | `BRANCH_COST` 1 / 2 / 3 (SN's v1.79 value is 0, an SN change) | setcc/short-circuit forms | 1406 / 4509 / 5050 -> the shipped build has SN's 0 |
+| D1 | cse AROUND path refused when the skipped block contains a JUMP_INSN | #12 form (a) | 300 (57) |
+| D2 | ... contains a CALL_INSN | #12 (a) | 1260 (238) |
+| D3 | ... when the backward scan stopped at a LOOP_END/SETJMP note (the poll-loop exit) | #12 (a) | 30 (13): the untagged room poll loops (r20d/r20e/r221/r227/r307/r308/r317 `fn_*` 24w each) need the AROUND path, so the original's cse has it too |
+| E | flags on the installed compiler: -fno-cse-follow-jumps 5620; -fno-cse-skip-blocks 4649; -fno-force-mem 4689; -fno-sched-spec 226; -fno-schedule-insns2 14080; -fno-expensive-optimizations 3647; -fstrict-aliasing 4773; -fno-regmove 5 (3); -fno-optimize-register-move 5; -fno-caller-saves 8 (2); -fno-function-cse, -fno-peephole, -fno-sched-spec-load, -fno-defer-pop, -fno-delayed-branch, -fno-inline-functions, -fno-strict-aliasing: 0/0 (no effect on this tree; strict aliasing is OFF at -O2 in 2.95) | | |
+
+Facts established on the way (usable by the next hunter):
+* SN v1.79 is 2.95.2 in every optimiser file, not only cse.c/reload1.c as documented: `level.py`
+  shows reload1.c/reload.c/cse.c/combine.c/expr.c/function.c/calls.c/loop.c/flow.c/rs6000.md all at
+  the 2.95.2 hunk level. Every 2.95.2->2.95.3 delta that changes output regresses matched, untagged
+  functions (B1-B6), so the shipped build did NOT sync to 2.95.3 either: whatever the vendor changed
+  is not "later GCC".
+* The callee-side narrow-parameter re-extensions attributed to #2 are source-shape artefacts, not a
+  compiler rule: over ~200 C++ functions with a narrow register parameter (`narrowparm.py`, mangled
+  names Uc/Sc/c/s/Us) the target re-extends in exactly 4 (pl_class cMot3::set `b`, item cItemMgr::num
+  `t`, id_tex IdTexSet `no`, emobj setYarare) and trusts the promotion everywhere else, including
+  `id` in the same IdTexSet call and `a` in cMot3::set0 (identical type, conversion and use shape).
+  No promotion rule distinguishes them; an int-typed inline/macro intermediary in the original
+  source does (the item.cpp itemUse form already documents this).
+* Combine's reg_nonzero_bits summary IS in the shipped compiler (A5): it strips the extension of a
+  cross-block QImode load pseudo (`em->type == 6` after gcse PRE of the `(mem:QI)`), which the
+  target strips too. The #2 multi-set-constant masks (r221, em36, db_light, t_se_at, t_flr_at)
+  therefore need an RTL where the conversion is explicit AND the pseudo's summary does not fit --
+  not reachable by any of A3/A4/A5 alone (A3+A5 would be 2852 + 392).
+* PROMOTE_MODE / PROMOTE_FUNCTION_ARGS / PROMOTE_FUNCTION_RETURN / no PROMOTE_PROTOTYPES: all as in
+  the drop (A1-A4).
+* regmove and caller-save almost never decide bytes here (5 and 8 functions whole-tree).
+
+## 3. Proposed patch
+
+None. The bar was 0 regressions on the tree; the closest were B1 (2), B4 (2), -fno-regmove (5), B6
+(5), B2 (6), A2 (15 + ICEs), D3 (30), and each regresses functions with no tag, i.e. functions the
+shipped compiler compiles exactly like ours. Step 3b (plain forms at the tagged sites) was therefore
+not run for any of them.
+
+## 4. What to try next
+
+1. #13 mechanism-first, the way the mem-flags patch was found (gdb on cc1plus at a single shape):
+   em21DmCk block 8 vs block 11 -- two byte-identical 2-ref QImode constant pseudos in the same
+   function, one allocated like ours, one not. Dump `-dl` with LADBG and diff the qty records of the
+   two (birth/death suids, `qty_size`, `qty_scratch_rtx`, `combine_regs` ties) rather than testing
+   global rules; the deciding field is whatever differs between those two records.
+2. #12: the D3 result shows the AROUND path itself is stock. The residue is which TABLE the AROUND
+   block inherits: check `invalidate_skipped_block` (does the original also invalidate everything a
+   CALL in the skipped block could clobber -- `invalidate_memory` vs `invalidate_for_call`, which
+   drops every call-clobbered hard reg AND every pseudo equivalence through memory?). A variant that
+   calls `invalidate_for_call ()` from invalidate_skipped_block when the skipped block has a
+   CALL_INSN is a one-liner and was not tried here.
+3. rs6000.md 2.95.3 delta on top of SN's md (32 hunks at the 2.95.2 level; SN's own fpmem unspec
+   fix must be kept). Risky to apply mechanically; needs a hand merge. The md is the one file the
+   docs already know the shipped build changed after v1.79.
+4. #17: `regs_used_so_far` in global.c is seeded from `regs_ever_live`; compare the target's prologue
+   save mask with ours for a #17-pinned function (event GetMod): if the target saves one more
+   callee-saved register than its code uses, the "used so far" set came from a register that a later
+   pass (reload inheritance, caller-save) freed -- a mechanism to test with `-fno-caller-saves`-like
+   probes on the pinned functions only.
+
+## Files
+* `tools/research/kit/tree.py` (whole-tree run of a candidate cc1plus from a `git archive` snapshot, `--cc`, `--flags`,
+  `--units`) and `tools/research/kit/tree_summ.py` (regressions vs the base run) are in the tree. The
+  per-variant edits, binaries and result tables of this session were scratch under /tmp and are not kept;
+  the table above is the record.

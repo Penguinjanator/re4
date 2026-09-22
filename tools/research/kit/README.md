@@ -86,3 +86,16 @@ GDBG=1 <sngdbg dir>/cc1plus -O2 -mfast-cast -quiet OUT/foo.i -o /dev/null 2>&1 |
 `variant.py` (all logic; `variant.sh` and `rtl.sh` exec it), this README.
 
 - `KIT_NLINES=N` (env): row limit of the objdiff side-by-side (default 400).
+
+## tree.py — whole-tree run of a candidate compiler
+```sh
+python3 tools/research/kit/tree.py <name> [--snap DIR] [--units FILE] [--flags "..."] [--cc NAME]
+python3 tools/research/kit/tree_summ.py <name> <base>
+```
+Compiles every ProDG unit of build.ninja with `/tmp/treerun/cc-<name>/{cc1plus,cc1}` from a snapshot of
+`src/` + `include/` (`git archive HEAD src include | tar -x -C /tmp/treerun/snap`, so concurrent edits in
+the live tree cannot perturb a run), bytecmps each against the split object and writes
+`/tmp/treerun/run-<name>/<unit>.txt`; `tree_summ.py` lists the functions that were identical in the base
+run and are not in the variant (the regressions). ~13 s for 820 units on 32 cores. A candidate compiler
+rule is admissible only at 0 regressions with the tree's sources; docs/research/compiler.md ("Whole-tree
+hypothesis runs after the mem-flags patch") is the table of what has been excluded so far.
