@@ -103,7 +103,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00013020	0x228	em39/em39.cpp	global	em39JumpUpCk2__FP5cEm39	em39JumpUpCk2
 .text	0x00013248	0x18C	em39/em39.cpp	global	em39JumpUpCk3__FP5cEm39	em39JumpUpCk3
 .text	0x000133D4	0x160	em39/em39.cpp	global	em39BloodSet__FP5cEm39	em39BloodSet
-.text	0x00013534	0x100	em39/em39.cpp	global	em39BlendMotSet__FP5cEm39PvN21iiiUs	em39BlendMotSet
+.text	0x00013534	0x100	em39/em39.cpp	global	em39BlendMotSet__FP5cEm39PvN51Us	em39BlendMotSet
 .text	0x00013634	0x4DC	em39/em39.cpp	global	em39AppearCk__FP5cEm39	em39AppearCk
 .text	0x00013B10	0xE8	em39/em39.cpp	global	em39ExitCk__FP5cEm39	em39ExitCk
 .text	0x00013BF8	0x190	em39/em39.cpp	global	em39AreaMoveCk__FP5cEm39	em39AreaMoveCk

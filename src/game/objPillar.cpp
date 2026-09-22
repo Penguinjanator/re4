@@ -37,8 +37,8 @@ public:
 
     void setMotion(void* mot);
     int ckSet();
-    void setBreak(Vec* pos, void* mot, int a);
-    void setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, int a);
+    void setBreak(Vec* pos, void* mot, void* pl_seq);
+    void setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, void* pl_seq);
     void setFall(void* mot0, void* mot1);
 };
 
@@ -443,7 +443,7 @@ int cObjPillar::ckSet()
 
 // Topples the pillar away from `pos` (towards the player when he is in front) with the player's
 // escape motion mot/a; collision off.
-void cObjPillar::setBreak(Vec* pos, void* mot, int a)
+void cObjPillar::setBreak(Vec* pos, void* mot, void* pl_seq)
 {
     PillarWork* w = &pillar;
 
@@ -453,7 +453,7 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
         ang.y = GetXZAngle(&this->pos, &pPL->pos);
     }
     w->Mot_pl_escape = mot;
-    w->Seq_pl_escape = a;
+    w->Seq_pl_escape = pl_seq;
     w->Break_pos = *pos;
     sub2B4.atari.throughOn();
     r_no_0 = 1;
@@ -464,7 +464,7 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
 
 // The boss throws the pillar: lift/throw motions, the pillar's escape motion and the player's
 // escape motion; aimed at the player when within 30 degrees.
-void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, int a)
+void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, void* pl_seq)
 {
     PillarWork* w = &pillar;
 
@@ -476,7 +476,7 @@ void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, 
     w->Mot_throw = mot1;
     w->Mot_escape = motEscape;
     w->Mot_pl_escape = plMot;
-    w->Seq_pl_escape = a;
+    w->Seq_pl_escape = pl_seq;
     sub2B4.atari.throughOn();
     r_no_0 = 2;
     r_no_1 = 0;
@@ -568,9 +568,9 @@ static void plemEscape(cPlayer* pEm)
         ang = 0.0f;
         ang = Muku(&em->pos, &w->Break_pos, em->ang.y, PI);
         if (ang < 0.0f) {
-            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 3, 0x41, 0);
+            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, w->Seq_pl_escape, 3, 0x41, 0);
         } else {
-            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 3, 1, 0);
+            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, w->Seq_pl_escape, 3, 1, 0);
         }
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
@@ -671,7 +671,7 @@ void plemEscape2(cPlayer* pEm)
     switch (step) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
-        MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_pl_escape, w->Seq_pl_escape, 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM31, 0x39, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);

@@ -60,8 +60,8 @@ public:
     MotionWorkSub work;  // 0x18  the blended motion (em.h)
 
     cMot3();
-    // set(model, motion0, motion1, motion2, MotionSetCore 4th arg, u8 mode, int, u16, u16)
-    void set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16 d, u16 e);
+    // set(model, motion0, motion1, motion2, MotionSetCore seq, u8 mode, int, u16, u16); the PS2 set(pEm, mot0, mot1, mot2, seq, hokan, mode, attr, frame) orders / types the tail differently
+    void set(cModel* m, void* m0, void* m1, void* m2, void* seq, u8 b, int c, u16 d, u16 e);
     void set0(void* m, u8 a, int b);
     void move(f32 rate);
 };

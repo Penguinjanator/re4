@@ -321,9 +321,9 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
 void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad);
 void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int prm2, int no3, int prm3, u8 flag);
 void SetObj08Se(cObj* obj, u16 blk, u16 no);
-void Obj01SetEst(cObj* obj, int eff, int est, u32 action, int eff2, int est2, int f, int g, int h, int i);
+void Obj01SetEst(cObj* pObj, u32 eff, u32 est, u32 action, u32 eff2, u32 est2, u32 eff3, u32 est3, u32 eff4, u32 est4);
 int GetWepDmVal(cEm* pEm, u32 wep_no, int near);
-void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // int a: the vendor's GC signature (EmCatchSubSet__FP3cEmT0Uliffff)
+void EmCatchSubSet(cEm* pEm, cEm* pSub, f32 pl_dir, u32 mode, f32 x, f32 y, f32 z, void (*ft)(cSubChar*));   // em_sub.cpp; PS2 order (the ang / mode swap is not visible in the bytes)
 extern "C" {
 void MotSetObj16(cObj* obj, void* mot, int a, int b);
 int GetEm10EyeEffectEnable();

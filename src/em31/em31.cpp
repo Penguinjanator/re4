@@ -56,8 +56,8 @@ public:
     virtual void move();
 
     int ckSet();
-    void setBreak(Vec* pos, void* mot, int a);
-    void setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, int a);
+    void setBreak(Vec* pos, void* mot, void* pl_seq);
+    void setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, void* pl_seq);
     void setFall(void* mot0, void* mot1);
 };
 cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot);
@@ -4373,7 +4373,7 @@ void em31PillarAtkCk(cEm31* em, Vec* pos)
             if ((pos->x - o->pos.x) * (pos->x - o->pos.x) + (pos->z - o->pos.z) * (pos->z - o->pos.z) <
                 1000000.0f) {
                 if (w->pBody) {
-                    ((cObjPillar*) o)->setBreak(&w->pBody->pos, ARC(0x6D), (int) ARC(0x6E));
+                    ((cObjPillar*) o)->setBreak(&w->pBody->pos, ARC(0x6D), ARC(0x6E));
                     SndCall(8, 0x2B, pos, em->id, 0, 0);
                 }
             }

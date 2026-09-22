@@ -392,21 +392,21 @@ cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
 
 // Sets the detonation type (eff_action) and its four est (owner, id) pairs: burst, secondary,
 // water splash on landing, water explosion.
-void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3)
+void Obj01SetEst(cObj* pObj, u32 eff, u32 est, u32 action, u32 eff2, u32 est2, u32 eff3, u32 est3, u32 eff4, u32 est4)
 {
     Obj01Work* w;
 
-    if (obj == 0) {
+    if (pObj == 0) {
         return;
     }
-    w = &obj->o1;
-    w->eff = no0;
-    w->est = prm0;
-    w->eff2 = no1;
-    w->est2 = prm1;
-    w->est3 = prm2;
-    w->eff3 = no2;
-    w->eff4 = no3;
-    w->est4 = prm3;
-    w->eff_action = type;
+    w = &pObj->o1;
+    w->eff = eff;
+    w->est = est;
+    w->eff2 = eff2;
+    w->est2 = est2;
+    w->est3 = est3;
+    w->eff3 = eff3;
+    w->eff4 = eff4;
+    w->est4 = est4;
+    w->eff_action = action;
 }

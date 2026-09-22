@@ -471,7 +471,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 5, 5, 0);
         SubCharSetFace(1);
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        EmCatchSubSet(em, pSUB, 0, (int) subem2a_Trap1Bite, PI / 2.0f, 409.6f, 0.0f, -12.87f);
+        EmCatchSubSet(em, pSUB, PI / 2.0f, 0, 409.6f, 0.0f, -12.87f, subem2a_Trap1Bite);
         w->camTimer = 120;
         w->biteTimer = 10;
         em->hp = 0;

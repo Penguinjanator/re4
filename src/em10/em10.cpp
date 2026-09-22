@@ -12275,7 +12275,7 @@ static void em10_R1_NeckHang_Luis(cEm10* em)
         em->scale.y = 1.0f;
         em->scale.z = 1.0f;
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x28F), 0, 5, 1, 0);
-        EmCatchSubSet(em, pSUB, 2, (int) subem10_NeckHang_Luis, 0.0f, -180.0f, 0.0f, 470.18f);
+        EmCatchSubSet(em, pSUB, 0.0f, 2, -180.0f, 0.0f, 470.18f, subem10_NeckHang_Luis);
         em->dmg.set(0, 0);
         w->Timer = 0xF;
         w->Timer2 = 0x28;
@@ -13035,7 +13035,7 @@ static void em10_R1_TakeAway(cEm10* em)
         em->scale.y = 1.0f;
         em->scale.z = 1.0f;
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x29F), 0, 5, 1, 0);
-        EmCatchSubSet(em, pSUB, 2, (int) subem10_TakeAway, 0.0f, -194.22f, 0.0f, 582.05f);
+        EmCatchSubSet(em, pSUB, 0.0f, 2, -194.22f, 0.0f, 582.05f, subem10_TakeAway);
         em->dmg.set(0, 0);
         em->flag &= ~0x400;
         w->Timer2 = 0x28;
@@ -22428,7 +22428,7 @@ void em10SetParasite(cEm10* em)
         w->pCore->setDieEff();
         w->pCore->setMotData(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10);
         EstSet(w->pCore, -1, 0, 0, EFF_EM10, 0xE, 0, w->EffKindIdCore, w->pCore, 0);
-        w->pCore->setPlDmgMot(PL_ARC_PTR(em->subArc, 0x17A), (int) PL_ARC_PTR(em->subArc, 0x17B));
+        w->pCore->setPlDmgMot(PL_ARC_PTR(em->subArc, 0x17A), PL_ARC_PTR(em->subArc, 0x17B));
     }
     if (heads) {
         pos.x = 0.0f;

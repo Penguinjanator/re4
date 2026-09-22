@@ -96,7 +96,7 @@ void ScenarioTaskAllOff()
     ClearOTagR(SceSys.SceTaskOt, 16);
     memclr_asm(SceSys.prim, sizeof(SceSys.prim));
     for (i = 5; i <= 17; i++) {
-        SceKill((int) i);
+        SceKill(i);
     }
 }
 
@@ -332,10 +332,10 @@ void SceExit()
 }
 
 // Kills scenario slot `prio`.
-void SceKill(int prio)
+void SceKill(u32 level)
 {
-    SceTaskDelete(&Task[prio]);
-    TaskKill(prio);
+    SceTaskDelete(&Task[level]);
+    TaskKill(level);
 }
 
 // Kills the task of a ScePrim.

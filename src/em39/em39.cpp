@@ -4542,7 +4542,7 @@ static void em39_R1_AppearBow(cEm39* em)
             ang = -255.0f;
         }
         w->Blend = w->Blend * 0.8f + ang * 0.2f;
-        em39BlendMotSet(em, w->Mot_M, w->Mot_L, w->Mot_R, (int) w->Seq_M, 0, 0, 1);
+        em39BlendMotSet(em, w->Mot_M, w->Mot_L, w->Mot_R, w->Seq_M, 0, 0, 1);
         if ((s16) pG->pl_life <= 0) {
             w->TmpU32 = 0;
         }
@@ -7277,27 +7277,28 @@ void em39BloodSet(cEm39* em)
 }
 
 // Two-motion blend: m0 as the main motion, m1 / m2 by the sign of Blend as the blended one.
-void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
+void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, void* seq0, void* seq1, void* seq2, u16 attr)
 {
     Em39Work* w = EM39_WK(em);
     MotionWorkSub* bm;
     void* m;
-    int seq;
-    int ai, dd;
-    asm("" : "=r"(ai) : "0"((int) a)); // COMPILER-DIFF: #2 (u16 argument masked at the calls)
-    asm("" : "=r"(dd) : "0"((int) d)); // COMPILER-DIFF: #2
+    void* seq;
+    void* ai;
+    int dd;
+    asm("" : "=r"(ai) : "0"(seq0)); // COMPILER-DIFF: #2 (u16 argument masked at the calls)
+    asm("" : "=r"(dd) : "0"((int) attr)); // COMPILER-DIFF: #2
     f32 rate = fabsf(w->Blend);
 
-    MotionSetCore(em, MOTION(em), m0, (void*) ai, (u8) w->Hokan, (u16) dd, (u16) w->Frame);
+    MotionSetCore(em, MOTION(em), m0, ai, (u8) w->Hokan, (u16) dd, (u16) w->Frame);
     if (w->Blend < 0.0f) {
         m = m1;
-        seq = b;
+        seq = seq1;
     } else {
         m = m2;
-        seq = c;
+        seq = seq2;
     }
     bm = &w->Sub_mot;
-    MotionSetCore(em, bm, m, (void*) seq, (u8) w->Hokan, (u16) dd, (u16) w->Frame);
+    MotionSetCore(em, bm, m, seq, (u8) w->Hokan, (u16) dd, (u16) w->Frame);
     em->Motion.blend = bm;
     bm->Brate = rate * 0.00390625f;
     if (w->Hokan) {

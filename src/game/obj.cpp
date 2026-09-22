@@ -185,7 +185,7 @@ void cObjMgr::log(const char* pStr, ...)
 
 // Unit construction: placement-news the per-id class (0 cObj00 ... 0x3F) into the work.
 #line 130 "D:/Bio4/Prog/obj.cpp"
-int cObjMgr::construct(cObj* pObj, int id)
+int cObjMgr::construct(cObj* pObj, ID id)
 {
     switch (id) {
     case ID_NORMAL:
@@ -313,7 +313,7 @@ int cObjMgr::construct(cObj* pObj, int id)
 // cManager entry point: forwards to the int version.
 int cObjMgr::construct(cObj* pObj, u32 id)
 {
-    return construct(pObj, (int) id);
+    return construct(pObj, (ID) id);
 }
 
 // Per-frame: die check, then objMove on every alive object.

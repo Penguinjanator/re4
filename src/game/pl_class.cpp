@@ -1725,7 +1725,7 @@ cMot3::cMot3()
 
 // Attaches the blend to model `m`: m0 becomes its own motion (MotionSetCore frame a, hokan b,
 // flags d / e), m1 the first blended motion (rate < 0), m2 the second (rate > 0); c = m_Mode.
-void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16 d, u16 e)
+void cMot3::set(cModel* m, void* m0, void* m1, void* m2, void* seq, u8 b, int c, u16 d, u16 e)
 {
     // COMPILER-DIFF: 2 (narrow-argument extension at entry). The original zero-extends the u8
     // parameter into a callee-saved register (`clrlwi r28, r9, 24`) before both int uses; ours
@@ -1742,7 +1742,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     mot1 = m1;
     mot2 = m2;
     m_Mode = c;
-    MotionSetCore(m, MOTION(m), m0, (void*) a, mode, d, e);
+    MotionSetCore(m, MOTION(m), m0, seq, mode, d, e);
     set0(m1, e, mode);
     ((cEm*) m)->Motion.blend->Brate = 0.0f;
 }

@@ -122,7 +122,7 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag);
 int scenarioCheckEventCancel();
 }
 
-void SceKill(int prio);
+void SceKill(u32 level);
 void SceKill(ScePrim* p);
 void SceKill(TASK* t);
 void SceKill(void (*func)(int));

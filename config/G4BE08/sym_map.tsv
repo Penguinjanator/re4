@@ -560,7 +560,7 @@ address	size	section	unit	scope	name	demangled
 0x8002AE8C	0xC	.text	game/obj13.cpp	global	setLadderInfo__10cObjLadderiUc	cObjLadder::setLadderInfo
 0x8002AE98	0x20	.text	game/obj13.cpp	global	setStand__10cObjLadder	cObjLadder::setStand
 0x8002AEB8	0x98	.text	game/obj13.cpp	global	setDowned__10cObjLadder	cObjLadder::setDowned
-0x8002AF50	0xA0	.text	game/obj13.cpp	global	setDown__10cObjLadderPvi	cObjLadder::setDown
+0x8002AF50	0xA0	.text	game/obj13.cpp	global	setDown__10cObjLadderPvT1	cObjLadder::setDown
 0x8002AFF0	0x154	.text	game/obj13.cpp	global	setDown2__10cObjLadder	cObjLadder::setDown2
 0x8002B144	0x28	.text	game/obj13.cpp	global	ckReset__10cObjLadder	cObjLadder::ckReset
 0x8002B16C	0xA4	.text	game/obj13.cpp	global	setReset__10cObjLadderi	cObjLadder::setReset
@@ -639,7 +639,7 @@ address	size	section	unit	scope	name	demangled
 0x80031170	0x18	.text	game/obj16.cpp	global	clearLostWait__6cObj16	cObj16::clearLostWait
 0x80031188	0x14	.text	game/obj16.cpp	global	setLostWait__6cObj16i	cObj16::setLostWait
 0x8003119C	0x1A4	.text	game/obj16.cpp	global	setMotData__6cObj16PvN10_1	cObj16::setMotData
-0x80031340	0x10	.text	game/obj16.cpp	global	setPlDmgMot__6cObj16Pvi	cObj16::setPlDmgMot
+0x80031340	0x10	.text	game/obj16.cpp	global	setPlDmgMot__6cObj16PvT1	cObj16::setPlDmgMot
 0x80031350	0x24	.text	game/obj16.cpp	global	setAtk__6cObj16Uc	cObj16::setAtk
 0x80031374	0x24	.text	game/obj16.cpp	global	setCritical__6cObj16	cObj16::setCritical
 0x80031398	0x20	.text	game/obj16.cpp	global	setDamage__6cObj16	cObj16::setDamage
@@ -792,8 +792,8 @@ address	size	section	unit	scope	name	demangled
 0x8003BC5C	0x248	.text	game/objPillar.cpp	global	objPillar_R0_Fall	objPillar_R0_Fall
 0x8003BEA4	0x8	.text	game/objPillar.cpp	global	setMotion__10cObjPillarPv	cObjPillar::setMotion
 0x8003BEAC	0x18	.text	game/objPillar.cpp	global	ckSet__10cObjPillar	cObjPillar::ckSet
-0x8003BEC4	0xE4	.text	game/objPillar.cpp	global	setBreak__10cObjPillarP3VecPvi	cObjPillar::setBreak
-0x8003BFA8	0xD0	.text	game/objPillar.cpp	global	setThrow__10cObjPillarPvN31i	cObjPillar::setThrow
+0x8003BEC4	0xE4	.text	game/objPillar.cpp	global	setBreak__10cObjPillarP3VecPvT2	cObjPillar::setBreak
+0x8003BFA8	0xD0	.text	game/objPillar.cpp	global	setThrow__10cObjPillarPvN41	cObjPillar::setThrow
 0x8003C078	0x98	.text	game/objPillar.cpp	global	setFall__10cObjPillarPvT1	cObjPillar::setFall
 0x8003C110	0x1E0	.text	game/objPillar.cpp	global	objPillarAtkCk	objPillarAtkCk
 0x8003C2F0	0x4C	.text	game/objPillar.cpp	global	EscapeAction	EscapeAction
@@ -3681,7 +3681,7 @@ address	size	section	unit	scope	name	demangled
 0x800F54E4	0x48	.text	game/em_sub.cpp	global	EmAtkSetDamageSub	EmAtkSetDamageSub
 0x800F552C	0x108	.text	game/em_sub.cpp	global	EmAtkHitSubCk2	EmAtkHitSubCk2
 0x800F5634	0x2B0	.text	game/em_sub.cpp	global	EmCatchPLSet	EmCatchPLSet
-0x800F58E4	0x284	.text	game/em_sub.cpp	local	EmCatchSubSet__FP3cEmT0Uliffff	EmCatchSubSet
+0x800F58E4	0x284	.text	game/em_sub.cpp	local	EmCatchSubSet__FP3cEmT0fUlfffPFP8cSubChar_v	EmCatchSubSet
 0x800F5B68	0x150	.text	game/em_sub.cpp	global	EmCatchMotionMove	EmCatchMotionMove
 0x800F5CB8	0x458	.text	game/em_sub.cpp	global	EmRackCk	EmRackCk
 0x800F6110	0xBC	.text	game/em_sub.cpp	global	GetBulletPoint	GetBulletPoint
@@ -5109,7 +5109,7 @@ address	size	section	unit	scope	name	demangled
 0x801602A0	0xD8	.text	game/motion.cpp	global	Fcc_next_axis_addr	Fcc_next_axis_addr
 0x80160378	0x5C	.text	game/obj.cpp	global	__7cObjMgr	cObjMgr::cObjMgr
 0x801603D4	0xA4	.text	game/obj.cpp	global	log__7cObjMgrPCce	cObjMgr::log
-0x80160478	0x4F8	.text	game/obj.cpp	global	construct__7cObjMgrP4cObji	cObjMgr::construct
+0x80160478	0x4F8	.text	game/obj.cpp	global	construct__7cObjMgrP4cObjQ27cObjMgr2ID	cObjMgr::construct
 0x80160970	0x20	.text	game/obj.cpp	global	construct__7cObjMgrP4cObjUl	cObjMgr::construct
 0x80160990	0x58	.text	game/obj.cpp	global	move__7cObjMgr	cObjMgr::move
 0x801609E8	0xBC	.text	game/obj.cpp	global	objMove	objMove
@@ -5141,7 +5141,7 @@ address	size	section	unit	scope	name	demangled
 0x801627E0	0xEC	.text	game/obj01.cpp	global	dmgSet__6cObj01i	cObj01::dmgSet
 0x801628CC	0x43C	.text	game/obj01.cpp	global	obj01AddSpeed	obj01AddSpeed
 0x80162D08	0x27C	.text	game/obj01.cpp	global	SetObj01__FPvT0P3VecN22ffii	SetObj01
-0x80162F84	0x40	.text	game/obj01.cpp	global	Obj01SetEst__FP4cObjiiUliiiiii	Obj01SetEst
+0x80162F84	0x40	.text	game/obj01.cpp	global	Obj01SetEst__FP4cObjUlUlUlUlUlUlUlUlUl	Obj01SetEst
 0x80162FC4	0x20	.text	game/obj01.cpp	global	_._6cObj01	cObj01::~cObj01
 0x80162FE4	0x4C	.text	game/obj02.cpp	global	__7cObjScr	cObjScr::cObjScr
 0x80163030	0x100	.text	game/obj02.cpp	global	move__7cObjScr	cObjScr::move
@@ -5312,7 +5312,7 @@ address	size	section	unit	scope	name	demangled
 0x80175914	0x14	.text	game/pl_class.cpp	global	__8cPlWaist	cPlWaist::cPlWaist
 0x80175928	0x24	.text	game/pl_class.cpp	global	set__8cPlWaistff	cPlWaist::set
 0x8017594C	0x1C	.text	game/pl_class.cpp	global	__5cMot3	cMot3::cMot3
-0x80175968	0xA0	.text	game/pl_class.cpp	global	set__5cMot3P6cModelPvN22iUciUsUs	cMot3::set
+0x80175968	0xA0	.text	game/pl_class.cpp	global	set__5cMot3P6cModelPvN32UciUsUs	cMot3::set
 0x80175A08	0x74	.text	game/pl_class.cpp	global	set0__5cMot3PvUci	cMot3::set0
 0x80175A7C	0x120	.text	game/pl_class.cpp	global	move__5cMot3f	cMot3::move
 0x80175B9C	0x20	.text	game/pl_class.cpp	global	_._7cPlayer	cPlayer::~cPlayer
@@ -5729,7 +5729,7 @@ address	size	section	unit	scope	name	demangled
 0x8018F430	0x1E8	.text	game/sce_sys.cpp	global	SceExec	SceExec
 0x8018F618	0x44	.text	game/sce_sys.cpp	global	SceSleep	SceSleep
 0x8018F65C	0x3C	.text	game/sce_sys.cpp	global	SceExit	SceExit
-0x8018F698	0x44	.text	game/sce_sys.cpp	global	SceKill__Fi	SceKill
+0x8018F698	0x44	.text	game/sce_sys.cpp	global	SceKill__FUl	SceKill
 0x8018F6DC	0x38	.text	game/sce_sys.cpp	global	SceKill__FP7ScePrim	SceKill
 0x8018F714	0x34	.text	game/sce_sys.cpp	global	SceKill__FP4TASK	SceKill
 0x8018F748	0x5C	.text	game/sce_sys.cpp	global	SceKill__FPFi_v	SceKill

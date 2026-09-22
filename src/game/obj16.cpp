@@ -39,7 +39,7 @@ public:
     void setLostWait(int n);
     void setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, void* m6, void* m7, void* m8,
                     void* m9, void* m10);
-    void setPlDmgMot(void* mot, int a);
+    void setPlDmgMot(void* mot, void* seq);
     void setAtk(u8 flag);
     void setCritical();
     void setDamage();
@@ -979,12 +979,12 @@ void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* 
 }
 
 // Player damage motion (and sequence) played on a bite hit (plemDmMStar).
-void cObj16::setPlDmgMot(void* mot, int a)
+void cObj16::setPlDmgMot(void* mot, void* seq)
 {
     Obj16Work* w = &o16;
 
     w->Mot_pl_dm = mot;
-    w->Seq_pl_dm = a;
+    w->Seq_pl_dm = seq;
 }
 
 // Starts the bite attack routine (flag -> r_no_3: force the second bite motion).

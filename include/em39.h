@@ -152,7 +152,7 @@ int em39JumpUpCk(cEm39* em);
 int em39JumpUpCk2(cEm39* em);
 int em39JumpUpCk3(cEm39* em);
 void em39BloodSet(cEm39* em);
-void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d);
+void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, void* seq0, void* seq1, void* seq2, u16 attr);
 int em39AppearCk(cEm39* em);
 int em39ExitCk(cEm39* em);
 int em39AreaMoveCk(cEm39* em);

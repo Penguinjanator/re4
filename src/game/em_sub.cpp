@@ -2426,7 +2426,7 @@ static void EmSubDead1(f32* p)
 }
 
 // EmCatchPLSet for the partner `sub`, in the enemy's frame.
-static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
+static void EmCatchSubSet(cEm* em, cEm* sub, f32 ang, u32 type, f32 x, f32 y, f32 z, void (*ft)(cSubChar*))
 {
     Mtx m;
     Vec p;
@@ -2475,7 +2475,7 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     em->pEmCatch = sub;
     sub->pEmCatch = em;
     sub->subArc = em->subArc;
-    SetSubDamage(em, (void (*)()) a);
+    SetSubDamage(em, (void (*)()) ft);
 }
 
 // Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by

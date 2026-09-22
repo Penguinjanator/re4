@@ -15,7 +15,7 @@ public:
     void setMotData(void* a, void* b, void* c, void* d, void* e, void* f, void* g, void* h, void* i, void* j, void* k);
     void setLostWait(int a);
     void setBurn();
-    void setPlDmgMot(void* m, int a);
+    void setPlDmgMot(void* mot, void* seq);
     void setDieEff();
     void setCritical();
     int ckAtkHit();

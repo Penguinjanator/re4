@@ -447,7 +447,7 @@ static void wep13_r3_down00(cPlayer* pl)
         void* mot0 = pl->m_MotTbl[0x55];
         void* mot1 = pl->m_MotTbl[0x56];
 
-        mot3.set(pl, mot0, mot0, mot0, (int) mot1, hokan, 0, 4, 0);
+        mot3.set(pl, mot0, mot0, mot0, mot1, hokan, 0, 4, 0);
         mot3.move(m3r[0]);
         // The dead loop's NOTE_INSN_LOOP_END ends cse's extended block, so the QImode store
         // below gets its own `li r0,3` instead of a subreg of `hokan` (which would keep the

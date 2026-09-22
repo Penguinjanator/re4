@@ -142,7 +142,7 @@ static void wep02_r3_ready00(cPlayer* pl)
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     mot0 = WEP_ARC_PTR(0x22);
     mot1 = WEP_ARC_PTR(0x23);
-    mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0);
+    mot3.set(pl, mot0, mot0, mot0, mot1, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->r_no_3 = 1;
 }

@@ -438,7 +438,7 @@ struct PillarWork {
     void* Mot_fall;       // 0x1C  setFall: fall, land
     void* Mot_landing;       // 0x20
     void* Mot_pl_escape;          // 0x24  player escape motion (plemEscape MotionSetCore)
-    int Seq_pl_escape;           // 0x28  its 4th argument
+    void* Seq_pl_escape;         // 0x28  its 4th argument (PS2 u32 Seq_pl_escape)
     Vec St_pos;          // 0x2C  position at R0_Set (attack line end, plemEscape2 heading)
     Vec Break_pos;           // 0x38  setBreak position (plemEscape heading)
     Vec Spd;              // 0x44  throw / fall speed
@@ -647,7 +647,7 @@ struct Obj16Work {
     f32 Neck_dir;          // 0x34  neck yaw toward the player (smoothed)
     void* mot[11];        // 0x38  setMotData: 0-2 idle, 3-6 bite, 7-9 (unused), 10 ...
     void* Mot_pl_dm;          // 0x64  setPlDmgMot: player damage motion (plemDmMStar)
-    int Seq_pl_dm;           // 0x68  its MotionSetCore 4th argument
+    void* Seq_pl_dm;         // 0x68  its MotionSetCore 4th argument (PS2 u32 Seq_pl_dm)
     int x6C;              // 0x6C
     s16 At_hit_wait;          // 0x70  frames the kind 2 attack is disabled after a hit (90)
     u8 Eff_wait3;               // 0x72
@@ -803,7 +803,7 @@ public:
     virtual void log(const char* fmt, ...);
     virtual void destroy(cObj* pEm);
     virtual int construct(cObj* pSat, u32 room_no);   // calls the int overload (obj.cpp)
-    int construct(cObj* pSat, int room_no);           // placement-new of the per-id class, or ObjInitFunc[id]
+    int construct(cObj* pSat, ID id);                 // placement-new of the per-id class, or ObjInitFunc[id]
     void move();                              // dieCheck, then objMove on every live object
 };
 

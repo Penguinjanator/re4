@@ -157,7 +157,7 @@ static void knife_r3_ready00(cPlayer* pl)
         mot0 = PL_ARC_PTR(pG->pPlayer, 0x23);
         mot1 = PL_ARC_PTR(pG->pPlayer, 0x24);
     }
-    mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0);
+    mot3.set(pl, mot0, mot0, mot0, mot1, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
     lockCtr = 0;

@@ -40,10 +40,10 @@ public:
     void setLadderInfo(int num, u8 type);
     void setStand();
     void setDowned();
-    void setDown(void* mot, int a);
+    void setDown(void* mot, void* seq);
     void setDown2();
     int ckReset();
-    void setReset(int type);
+    void setReset(int mode);
     void setTransOld();
     void getTransOld();
     void setOff();
@@ -372,7 +372,7 @@ void cObjLadder::setDowned()
 }
 
 // Starts the kick-down fall with motion `mot` after 17 frames.
-void cObjLadder::setDown(void* mot, int a)
+void cObjLadder::setDown(void* mot, void* seq)
 {
     LadderWork* w = &ladder;
 
@@ -382,7 +382,7 @@ void cObjLadder::setDown(void* mot, int a)
     if (w->pair) {
         w->pair->sub2B4.atari.clrFlag200();
     }
-    MotionSetCore(this, &Motion, mot, (void*) a, 0, 1, 0);
+    MotionSetCore(this, &Motion, mot, seq, 0, 1, 0);
     r_no_0 = 1;
     r_no_1 = 1;
     r_no_2 = 0;
@@ -1033,10 +1033,10 @@ void plobjLadderDown(cPlayer* pEm)
         em->ang.y = obj->ang.y;
         if (obj->getType() == 1) {
             MotionSetCore(em, &em->Motion, w->mot[5], 0, 5, 1, 0);
-            obj->setDown(w->mot[7], (int) w->mot[12]);
+            obj->setDown(w->mot[7], w->mot[12]);
         } else {
             MotionSetCore(em, &em->Motion, w->mot[9], 0, 5, 1, 0);
-            obj->setDown(w->mot[10], (int) w->mot[14]);
+            obj->setDown(w->mot[10], w->mot[14]);
         }
         em->atari.throughOn();
         em->r_no_2++;
