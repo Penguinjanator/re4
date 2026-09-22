@@ -1,9 +1,8 @@
 shipped-build-mem-flags.patch -- reconstruction of one behaviour of the compiler build Capcom shipped
 RE4 with, which differs from SN's v1.79 source drop (2003-06): a MEM never carries MEM_SCALAR_P.
-Applied by build.sh after linux-host.patch.  It replaces two earlier, narrower patches
-(shipped-build-temp-flags.patch: assign_temp and five assign_parms sites in function.c; and
-shipped-build-global-flags.patch: C++ globals in varasm.c) and additionally covers every other
-place that marks a non-aggregate MEM, for example the frame slot of a variable whose address is
+Applied by build.sh after linux-host.patch.  It replaces the earlier, narrower
+shipped-build-temp-flags.patch (assign_temp and five assign_parms sites in function.c) and
+additionally covers every other place that marks a non-aggregate MEM, for example the frame slot of a variable whose address is
 taken (put_reg_into_stack, put_addressof_into_stack).
 
 What it changes: `MEM_SET_IN_STRUCT_P (mem, aggregate)` in rtl.h sets MEM_SCALAR_P on a MEM whose

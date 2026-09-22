@@ -55,7 +55,7 @@ every lever with `tools/research/kit/variant.sh`; read the mechanism's numbers w
 | invariant `lis`/`li`/pool load hoisted to the preheader in ours, in the body in the target (or the reverse); second loop pass hoists an inner-loop pseudo | loop.c move_movables: hoist iff `thr*savings*lifetime >= insn_count` (x2 once moved), `thr = (1|2)*(1+n_non_fixed_regs)` minus 3 per moved movable (`GDBG=1` prints `LOOPDBG [thr sav life ic]`) | change the loop's REAL insn count: a dead test / dead statement in the body, a value computed before the loop notes; `do { } while (0)` around the nest (loop.c never hoists out of it, loop depth reweights refs) | two codeless `asm("" : : "r"(i))` at the body top; `int dead = 0;` | "Dead-test lever sweep", "Tool RELs, db_mod pass 4", "Stage rooms, st2_1 pass 10" |
 | two loop-hoisted highs / pool constants with swapped callee-saved registers at equal global priority | gcse PRE pseudo numbering = hash-bucket order `(7933 + h(label)) % table_size`, `h = h*129 + c` (bucket.py model); allocated in pseudo order on a priority tie | shift the `.LC` numbering: dead `f32 lcN = N.5f;` pool constants earlier in the TU (deleted at cse1, never emitted); 5-6 dead sets change the table size | tag `candidate (gcse PRE pseudo numbering)` on the dead labels; table SIZE (`(n/2)\|1`, n = insns at gcse entry): a LOOP_END-blinded dead test `{ int z = 0; do { } while (0); if (z > 128) { z = z*77+1; .. } }` = +3 + 2 per arm statement, 0 code, 0 sched1 insns (cse2 folds it), tag `candidate (gcse table size)`; one extra insn in a shared inline header shifts every includer's S (t_esp_area pass 3) | "Stage rooms, st2_1 pass 10", "Matching rules of thumb" (gcse PRE pseudo numbering wrap) |
 | fresh `lis sym@ha` where the target reuses a register (or the reverse); a copy reaching a join block | cse: the class head constant (cost 0) beats the pseudo (cost 1), a CODE_LABEL ends the ebb, conditional jumps do not; the AROUND path carries the table into the join | break/extend the ebb: `do { } while (0)`, a dead test whose then-arm ends in a jump, a dead store in the arm (cse2 make_regs_eqv order), the load written twice vs cached | `asm("" : "+r"(x))` launder as the LAST set of the ebb (cprop then has no available set), a pinned variable with a dead `x = 0` before each arm's constant, tag #12 | "COMPILER-DIFF #12 sweep", "Known compiler-build differences" (cse cost side), "db_light, second pass" |
-| target reloads `pG`/a work pointer after a store, ours hoists the load above it (or ours reloads where the target does not) | alias.c `true_dependence`: a store through a `MEM_SCALAR_P`/`MEM_IN_STRUCT_P` MEM is disjoint from fixed scalars; a reference/`void*&`/one-member-struct store is not | reference views `BitOn(u32&)`, `ISet(g, g+1)`, `FSet/FSetP`, `PSet(void*&)`, `RefU16(x)`; `WorkPtr.p->field` (one-member struct global, `R10cWorkPtr`); struct-member pointer globals; `(int) pG->flags >= 0` | — (all forms are C) | "Matching rules of thumb" (BitOn/ISet), "Room idioms" (R10fWorkPtr, PSet), "Compiler" (temp-flags patch) |
+| target reloads `pG`/a work pointer after a store, ours hoists the load above it (or ours reloads where the target does not) | alias.c `fixed_scalar_and_varying_struct_p`: with stock 2.95 a scalar MEM is disjoint from every `p->field` store; the shipped compiler never marks a MEM scalar (`shipped-build-mem-flags.patch`) | plain `pG->x = v` (the reference views `U32Set/ISet/FSet/PSet` and the one-member `XxxWorkPtr` structs were only needed before the patch; do not reintroduce them) | — | "Compiler" (mem-flags patch) |
 | `mr r3,rX; mr r4,rY` argument copies deleted in ours (r3 already equal) | reload1.c reload_cse_regs: the register table is forgotten only at a CODE_LABEL, a CALL or a volatile ASM_OPERANDS | find the label: a loop/goto form between the definition and the call | `asm volatile("" : : : "memory")` two-way barrier (a bare `asm volatile("")` is an ASM_INPUT and does not count), tag `candidate (reload_cse register table)` | "DOL sweep 21b" (RouteCkPosToPosDis) |
 | same block, two independent insns in the other order (sched1 tie); a store group issued before/after a call | haifa rank_for_schedule: priority = critical path, ties by dependents then LUID (stream order); an output-less asm is volatile = full barrier; a `"=m"` output = one true dependence | statement order (LUID), declaration order of the locals, the chain's innermost assignment (dying-first store), post-increment inside the argument list, `#line` to equalise ASM_OPERANDS hashes | `asm("" : "=m"(anchor) : "r"(x))` codeless anchor (one dependence, no code); never an output-less asm unless a barrier is meant; tag #5 (sched1 tie) | "Tool RELs, t_esp pass 12" (DB_STRING ctor), "COMPILER-DIFF #8 closed", "Tool RELs, db_mod pass 5" (dbmod_p_info) |
 | callee-saved register names permuted (`r31` vs `r30`, `r28` vs `r27`) for values that live across calls | global.c: order = `floor(log2 refs)*refs/len*size`, ties by allocno; find_reg pass 0 uses only `regs_used_so_far` minus `regs_someone_prefers`, pass 1 hands out virgin regs in r31,r30,.. order; REG_EQUIV doubles len; local-alloc never gives r31 (`GDBG=1` prints `GORDER .. used conf smpref -> rN`) | change refs/len: an extra use (post-loop use of a giv/biv, a dead test), a second assignment (kills REG_EQUIV), loop depth (`do {} while (0)`), make a block-local value global (a use in another block) or the reverse | `register T x asm("rN")` pin (never r31 for a local-alloc qty), tag #17; when the lengths cannot be re-tied, a codeless `asm("" : "=m"(m) : "r"(p))` in a block with a free sched2 slot = refs 3 -> 4 = the log2 step (pri 29 -> 77; t_esp_area pass 3) | "Tool RELs, db_mod pass 5" (allocation facts 1-5), "Stage rooms, st2_1 pass 10" (initPuzzle), "DOL puzzle final closer" |
@@ -177,32 +177,38 @@ Draw_line3d_local_222, Esp11_SetParam, EspStrip_draw_poly, Light02/05/06_Move we
 diff is therefore never "compiler version": keep looking for a source form. The DOL has no compiler
 string; its GCCI is "Ver.1.09 Build Oct 8 2004".
 
-**Installed compiler patch (2026-09-11): `tools/sn-gcc/patches/shipped-build-temp-flags.patch`**, applied by
-build.sh after linux-host.patch (also applied to the live untracked `tools/sn-gcc/src/gcc/function.c`). Six
-one-line edits in gcc/function.c: `assign_temp` (line ~1172) and the five `assign_parms` parameter-slot
-sites (~4546/4688/4745/4802/5062) set `MEM_IN_STRUCT_P` only for aggregate types and no longer set
-`MEM_SCALAR_P` on non-aggregate stack temps / parm slots, so alias.c `fixed_scalar_and_varying_struct_p`
-no longer exempts a compiler temp's reload from struct stores through a varying pointer. Evidence (whole-tree
-harness, deleted; `h.py build NCCDIR LABEL` = every prodg_cc unit of build.ninja with the given
-cc1plus/cc1, `h.py cmp base new` = masked per-function compare against the split objects): 763 units,
-19119 functions identical before, **0 regressions and 0 changed objects** with the tree's sources; esp0a with
-its four polymorphic copies written plainly (`*base = *esp; *e.p = *base; *base = *this; *p = *base;`) 6/6
-and esp0e with `*p = *esp` 8/8 identical (4/6 and 7/8 with the unpatched compiler) -- both units are now pure
-C. Widening to `put_reg_into_stack` (1740) regresses item `combine`, so the edit stops at assign_temp +
-assign_parms. The tag hunt's "+7 newly identical" (objRobo x3, sce_com SceChapterEnd, t_se_at x3) did NOT
-reproduce with the same edit against the committed sources (HEAD objRobo stays 16/19 with either compiler;
-39 saved objRobo variants all byte-identical between the two compilers): those were concurrent source edits
-to the tree between that run's base and variant builds. sha1 of the installed binaries: cc1plus
-95ebed456cf1153736a3b03a4c05db9051c7dd8b -> 457337da552aa68676ea47f7d5c171d2e57038c8, cc1
-65dae09ba6f31d245d6e4b45714ce5da34d3d419 -> f1cd07489d77fb41b3722f80c961d0cf756800be (tools/sn-gcc/cc1plus,
-cc1 and build/compilers/ProDG/3.9.3-v1.79/ are the same files; `make -C tools/sn-gcc all` rebuilds them from
-the patched src/, `./build.sh` from the drop applies both patches). The ninja prodg_cc rule depends on the two
-binaries, so a compiler swap rebuilds all 763 units by itself; 111 files OK after the swap. What the patch
-does NOT change (representatives tested by removing the workaround with the new compiler, all still needed):
-snd SndCall `RefU16(blk)/(no)` (60 words without; address-taken register parms go through put_reg_into_stack,
-not assign_parms), objRobo `GRef(pG)`/`FRef` (global scalar MEMs from make_decl_rtl), esp_app EffAreaUpdate
-`"=m"(*(u32*) &pos)` filler (user local, expand_decl), trans SelfShadowSetup `ISet` reference stores, shadow
-`FRef` unit-static reads. Only the "polymorphic copy vptr temp" family was an assign_temp effect.
+**Installed compiler patch: `tools/sn-gcc/patches/shipped-build-mem-flags.patch`** (2026-09-22, replacing the
+2026-09-11 `shipped-build-temp-flags.patch`), applied by build.sh after linux-host.patch. One rule in gcc/rtl.h:
+`MEM_SET_IN_STRUCT_P (mem, aggregate)` no longer sets `MEM_SCALAR_P` on a non-aggregate MEM, so alias.c
+`fixed_scalar_and_varying_struct_p` never declares a scalar load (a global pointer such as `pG`/`pPL`/a module
+work pointer, a compiler temp, a parameter slot, the frame slot of an address-taken local) disjoint from a
+member store through a varying pointer. The scheduler no longer hoists such a load above a `p->field` store
+and cse no longer keeps its value across one. gcc/varasm.c keeps the stock flag on non-aggregate globals when
+the front end is C (newlib's printf reads `_impure_ptr` once and reuses it after stores through the FILE).
+
+The earlier patch edited six sites in function.c (`assign_temp` and the five `assign_parms` parameter-slot
+sites) and covered only compiler temps and parameter slots: the polymorphic `*p = *q` copies of esp0a/esp0e.
+Everything else the shipped compiler reloads had to be written in source as a reference view (`U32Set(g, v)`,
+`ISet`, `FSet`, `PSet(void*&)`, `RefU16(x)`: ~1200 helper calls in include/ref_access.h) or as a one-member
+struct wrapper (`GlobalWorkPtr`/`pGS`, `R10cWorkPtr.p->field`: 106 structs), because a store through a
+reference or through a struct member is not a scalar to alias.c. With the rtl.h rule those forms compile to
+the same bytes as the plain assignment and were removed (PR #10). Whole-tree evidence: with the tree's sources
+the rtl.h rule differs from the function.c patch in exactly two units, game/printf (the C exception above)
+and game/item (`cItemMgr::combine`, which matches once `a->id = newId` precedes `a->num = 1`).
+
+What the PS2 debug symbols say: `GLOBAL_WK *pG`, `cEm *pPL`, `cLog *pLog` are plain pointers, and the GC binary
+reloads them after member stores at hundreds of unrelated sites; SndCall's address-taken `blk`/`no` are
+reloaded from their frame slots after each store through pSnd (the PS2 source takes their address too). The
+rule explains those three symptom classes at once. No public SN build (3.5, 3.5b140, 3.7, 3.8.1, 3.9.3)
+shows it; the shipped compiler is a later 2.95-family build than the v1.79 source drop (its rs6000.md already
+carries a fix no public exe has), so a vendor change is plausible but unproven. The ninja prodg_cc rule
+depends on the two compiler binaries, so a compiler swap rebuilds every ProDG unit by itself. After editing
+tools/sn-gcc/src, run `./build.sh clean` before `./build.sh`: rtl.h is a header the Makefile does not track.
+
+Still written in source with this compiler (representatives; each is a real codegen lever, not aliasing):
+`BitOn/BitOff` and their 16-bit forms, ~a dozen per-file setters where a constant must sit in its own
+register, Espgen42's `*(f32*) &pw = 0.8f` (a plain store schedules differently), and the register pins /
+COMPILER-DIFF tags listed in the lever catalogue.
 
 
 ### Known compiler-build differences (v1.79 source vs the original build)

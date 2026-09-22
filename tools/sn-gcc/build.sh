@@ -17,7 +17,7 @@
 #     then patches/shipped-build-mem-flags.patch (rtl.h, varasm.c: no MEM gets MEM_SCALAR_P, so a
 #     load of a global pointer, a temp or an address-taken slot is ordered against member stores;
 #     C globals keep the stock flag for the vendor libc units -- the shipped build's behaviour, see
-#     the patch header for the evidence; replaces the temp-flags and global-flags patches, 2026-09-22).
+#     the patch header for the evidence; replaces the 2026-09-11 temp-flags patch, 2026-09-22).
 #   * The gen* tools are built and run against config/rs6000/rs6000.md (the pregenerated
 #     cp/parse.c and c-parse.c are used as-is, bison is never run).
 #   * Compiler defines follow SN's vsgcc.dsp/dolphin.bat: -DIN_GCC -DHAIFA -DCROSS_COMPILE
