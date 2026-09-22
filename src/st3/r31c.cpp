@@ -139,9 +139,6 @@ struct R31cWork {
 static int r31c_mesNo;          // .bss 0x1C  the s01 event's action button message (Rnd)
 static R31cWork* r31c_work;   // .bss 0x20
 
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
-// libcall for an explicit call (r213).
-extern "C" void* r31c_memset(void*, ...) asm("memset");
 
 
 
@@ -240,7 +237,6 @@ void R31cInit()
 {
     Vec zero = {0, 0, 0};
     Vec pos;
-    Vec rot;
     void* bin;
     void* tpl;
     u32 i;
@@ -307,7 +303,7 @@ void R31cInit()
         EvtMgr.EvtReadAram("event/evd/r31cs01.evd", (u8) GetEmIdFromList(0x19), 0, 0, 0);
         SndRoomStrStart(1, 0, 1);
     }
-    r31c_memset(&rot, 0, sizeof(Vec));
+    Vec rot = {0.0f, 0.0f, 0.0f};
     if (ItemGetBinTplAddr(0x85, &bin, &tpl) == 1) {
         pos.x = -14604.0f;
         pos.y = 1249.0f;
@@ -1621,7 +1617,7 @@ static void r31cEventS02EndProc()
 // the end sets Room_flg[0] bit 31.
 static void Evt_R31CS00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SceAtItemModelPtr(0x80)->setNoSuspend(1);
         SceAtItemModelPtr(0x81)->setNoSuspend(1);
@@ -1652,7 +1648,7 @@ static int r31c_evtS01Flag = 0;
 static void Evt_R31CS01_Func(Event* e)
 {
     void* mod;
-    int mode = e->funcMode;
+    int mode = e->FuncType;
     int cut;
 
     // `mode` keeps the switch value live into case 1 (the `1` stores reuse it). `cut` is set before
@@ -1734,7 +1730,7 @@ static void Evt_R31CS01_Func(Event* e)
 static void Evt_R31CS02_Func(Event* e)
 {
     // The empty arms keep their own compare-tree nodes: two of them return, one breaks.
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         return;
     case 1:
@@ -2366,7 +2362,7 @@ void cR31CDoor::setClosed()
 
 void cR31CCountDown::countStart()
 {
-    Cckpt.countDown.m_state |= TIMER_STA_ALIVE;
+    Cckpt.m_CountDown.m_state |= TIMER_STA_ALIVE;
     Cckpt.getCountDown()->initTime(3, 0, 0);
     Cckpt.getCountDown()->warnTime(0, 0, 0);
     setDisp(1);
@@ -2377,7 +2373,7 @@ void cR31CCountDown::countStart()
 // Stop the cockpit count-down (state bit 0 off, the display slides out); state 0.
 void cR31CCountDown::countEnd()
 {
-    Cckpt.countDown.m_state &= ~1;
+    Cckpt.m_CountDown.m_state &= ~1;
     Cckpt.getCountDown()->frameOut();
     setDisp(0);
     state = 0;
@@ -2388,10 +2384,10 @@ void cR31CCountDown::countEnd()
 void cR31CCountDown::setPause(int on)
 {
     if (on == 1) {
-        Cckpt.countDown.m_state |= TIMER_STA_PAUSE;
+        Cckpt.m_CountDown.m_state |= TIMER_STA_PAUSE;
         state = 2;
     } else {
-        Cckpt.countDown.m_state &= ~8;
+        Cckpt.m_CountDown.m_state &= ~8;
         state = 1;
     }
 }

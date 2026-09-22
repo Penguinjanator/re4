@@ -21,9 +21,22 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 - the cDbgEditWindow ctor's r28/r29 tie closed by one codeless RA-time anchor after strlen (dbg_tool.h); the &path1/&path2 PRE pair re-tied by a fourth codeless ref in ToolEspArea; t_event's SubToolMessInit keeps its PRE numbering through a dead-test table-size lever. t_esp_area 38/38, t_lightarea 38/38 (its 4 words were the linkonce vtable relocs).
 
+## `em2b/em2b.cpp`
+
+- em2bBlendMotSet `ai`/`dd` #2 u16-mask launders and the case-3 `asm("" : "+r"(zero))` #12 launder removed 2026-09-22: plain form identical with the mem-flags compiler
+
+## `em2c/em2c.cpp`
+
+- em2cBlendMotSet `aa`/`dd` #2 launders and the three `do { } while (0)` pads before `case 0:` removed 2026-09-22: plain form identical with the mem-flags compiler
+
+## `em32/em32.cpp`
+
+- `EM32_W_SET` scalar-store macro (5 uses) and em32BlendMotSet `m3i`/`dd` #2 launders removed 2026-09-22: plain `w->field = v` / `m3`, `d` identical with the mem-flags compiler; `EM32_W_FRESH` stays
+
 ## `game/Espgen42.cpp`
 
 - 16/16: Espgen42_Move00 9 -> 0. Loop B's bump index with the i term first (`jx * ((mx + 1) >> 3)`, jx/mx function-level: the nx chain sits in the Z block after the i-division branch as in the target), a tagged `register int jq asm("r0")` (the r0 occupant that keeps t_i off r0 -> r9) and three tagged codeless `asm("" : "=m"(v.x/y/z) : "r"(jx))` sched1 slot fillers (priority 90 through the `lfsx nrm[k].x` alias dependence, ready at t2: they hold the t2/t3 issue slots, delay the byte's load to t4 and the fast-cast loadaddr past the `mullw`, and push `xoris j` behind the first index add). Remaining tags in Move00: loop-A dead test (loop.c insn_count), loop-B asm pair (move_movables), the jq pin, the three fillers
+- loop-B `asm("" : : "r"(i))` (the +1 loop.c insn_count input asm) removed 2026-09-22: plain form identical with the mem-flags compiler; the `"=r"(dead)` set stays
 
 ## `game/Espgen43.cpp`
 
@@ -76,6 +89,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/db_cam.cpp`
 
 - 13/13: debugCamera::menu 2 -> 0. The campos copy as three named words (union word view, `*(u32*)((u32)d0 + k)` stores = memcpy's flagless MEMs) plus two tagged codeless anchors: `asm("" : "=&r"(t) : "r"(wy), "f"(0.0f))` after the copy gives the y load its 14th sched2 dependent (the sched2 y/z tie is priority 29/29, LUID z-first from the reg-weight sched1 order; dependents break it before LUID), the `"f"` input makes it ready at t14 behind the roll constant's `lfs` so no local-alloc life moves, `=&r` stops the wy/t tie; `asm("" : "=m"(ProjType) : "r"(t))` after FSet keeps it alive to sched2 (placed there: a slot between the up stores and the FSet pG reload breaks the fake-death overlap that gives the up `addi` r11)
+- `asm("" : "=m"(ProjType) : "r"(t))` after the up copy removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/db_menu.cpp`
 
@@ -113,6 +127,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/em_sub.cpp`
 
 - 51/51, pure C: EmCatchMotionMove (one `tmp` for the rot.y load and the turn step: two deaths -> global.c f13, no local-alloc ties into ry / rate); RandomItemCk (RandomHandgunAmmo writes the caller's num through a `u32&` -> one global pseudo whose preference is the first-dice chain's r29; `*= 5` as a separate statement)
+- `s16 hm` + `asm("" : "=m"(q) : "r"(hm))` #8 keep-alive removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/embarrel.cpp`
 
@@ -141,6 +156,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/emshield.cpp`
 
 - setFall: DFmode `register f64 asm("fr1")` read in a "=m" asm keeps f1 live past the parameter copy (#8: the copy ranks as weight +1)
+- setFall `f64 hd` + `asm("" : "=m"(hp) : "f"(hd))` #8 keep-alive removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/emswitch.cpp`
 
@@ -149,6 +165,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/emwep.cpp`
 
 - setCloth: statement order num, zeros, tables, owner, x38, floats (x48 before x50), `x54 = 0` LAST (the base register's death rides the zero store, so no float store is weight -1 and the 0.0 pseudo dies late enough for 0.6 to outrank it in local-alloc); emWepEscapeCamMove: the fovy store through `*(f32*)(u8*)&` (no MEM_IN_STRUCT_P: may alias the `pPL` load, whose chain then ranks `mr r29,r3; addi r31` above the pool `lis`es); zero code
+- setThrow `f64 hd` + `asm("" : "=m"(hp) : "f"(hd))` #8 keep-alive removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/eprintf.cpp`
 
@@ -404,6 +421,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/pl_wep.cpp`
 
 - 29/29: PlWepHitCheck2 180 -> 0, pure C: `case 7:` stacked on `default:` (block LCM inserts the second switch's compare at the end of the left-root block) and the 4/8/0xC body placed after 5/6 (leaf layout = source order)
+- `asm("" : "=m"(repCtr))` (alias candidate in the yaw stick step) removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/puzzle.cpp`
 
@@ -432,6 +450,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 ## `game/sce_at.cpp`
 
 - sceAtGetItem 77 -> 0: `register u32 money asm("r29")` in case 8 (COMPILER-DIFF: 13, the it/ItemMgr-high/money rotation settles to r31/r30/r29), `int sel;` without initializer (cancel's zero is then the newest for `swep_flag = 0`, cancel lives from the top and ranks below sel: r29/r25), `put = 1` after `ItemMgr.use(&tmp)` (same as NoModel)
+- sceAtGetItem `SceAtWork* w = w_` parameter copy and the `asm("" : "=m"(*(int*) &it->id) : "m"(swep_flag))` sched2 anchor removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `game/sce_com.cpp`
 
@@ -799,9 +818,18 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 - Init: codeless asm issue-slot filler between the two flags_51BC RMWs (COMPILER-DIFF candidate)
 
+## `st1_3/r10f.cpp`
+
+- R10fInit `GlobalWork* g = pG` value-carrying temp (candidate #17) removed 2026-09-22: plain `pG` identical with the mem-flags compiler; the setSubMotion `g2` r10 pin stays
+
+## `st2_0/r202.cpp`
+
+- R202Init `GlobalWork* g = pG` value-carrying temp (candidate #17) removed 2026-09-22: `RsfCheck(G_ROOM_ID, 1)` identical with the mem-flags compiler
+
 ## `st2_2/r213.cpp`
 
 - Init: hard-register `&rot` memset argument + volatile asm behind the second memset (COMPILER-DIFF 3)
+- Init `register Vec* a3 asm("r3")` + varargs `r213_memset` + `asm volatile("")` removed 2026-09-22: `Vec rot = {0,0,0}` and `&rot` at the creates are identical with the mem-flags compiler
 
 ## `st2_3/r221.cpp`
 
@@ -835,9 +863,14 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 - disp_sequencer: `int y0 = 0x54` single-set REG_EQUIV constant ahead of `ch = 0` (one more preheader filler in LUID order), `y = y0 + 0x54` after the D diamond; pure C
 
+## `t_movie/t_se_at.cpp`
+
+- the seAtSaveList memory anchor (second of three) removed 2026-09-22: plain form identical with the mem-flags compiler; the other two anchors stay
+
 ## `t_movie/t_snd_vol.cpp`
 
 - edit_reverb_param: p pin at the four helper call sites + efx_param_move as a macro (inlining drops RTX_UNCHANGING_P on pool loads)
+- `asm("" : "+r"(col))` launder in the LOCAL/SERVER row removed 2026-09-22: plain form identical with the mem-flags compiler
 
 ## `wep16/pl_knife.cpp` (also `wep26`)
 

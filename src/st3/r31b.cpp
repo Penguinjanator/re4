@@ -65,9 +65,6 @@ static R31bWork* r31b_work;
 // Global in the original (.sym scope:global): the REL relocation carries the symbol, the ADDR16 field is 0.
 cModel* r31b_plParts;   // .bss 0x18  player parts 10 (R31bMain)
 
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
-// libcall for an explicit call (r213).
-extern "C" void* r31b_memset(void*, ...) asm("memset");
 
 // The player after the fall; the room's scroll objects ([no] = the cage room, the count in
 // r31b_objNum); the lattice (kanaami) objects, 25 per room; the room-3 lattice pair lists; the
@@ -178,10 +175,7 @@ void R31bInit()
     Espgen42SetNoWater(1);
     R31bLightAllOn();
     // Frame order pos0, rot0, pos, rot (0x10..0x40): the Vecs are declared here, after the calls.
-    // pos0 is cleared by an explicit memset (its address stays a fresh `addi` per create), rot0 by
-    // the `= {0,0,0}` libcall (its address pseudo is what the four creates pass in r7).
-    Vec pos0;
-    r31b_memset(&pos0, 0, sizeof(Vec));
+    Vec pos0 = {0, 0, 0};
     Vec rot0 = {0, 0, 0};
 
     for (i = 0; i < 17; i++) {
@@ -804,7 +798,7 @@ void R31bExecDeathTimerMainSub(int no, int light, int frames)
 
     pG->Room_flg[0] |= 0x40000000;
     cd->frameIn();
-    Cckpt.countDown.m_state |= TIMER_STA_ALIVE;
+    Cckpt.m_CountDown.m_state |= TIMER_STA_ALIVE;
     cd->initTime(0, 30, 0);
     cd->warnTime(0, 10, 0);
     frame = 0;
@@ -813,7 +807,7 @@ void R31bExecDeathTimerMainSub(int no, int light, int frames)
         int over;
 
         if ((pG->Room_flg[0] & 0x40000000) == 0) {
-            Cckpt.countDown.m_state &= ~1;
+            Cckpt.m_CountDown.m_state &= ~1;
             Cckpt.getCountDown()->frameOut();
             Cckpt.getCountDown()->frameOut();
             return;
@@ -2081,7 +2075,7 @@ void R31bKanaamiRoom03Trans(int no, int on)
 // swapped; pl0010 (Leon) ot_type 2 and evma300's light mask on cut 0.
 void Evt_R31BS00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete(0x2001, ESP_CORE_KIND_ROOM01);
         SmdSetTrans(0x82, 0);

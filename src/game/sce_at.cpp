@@ -760,14 +760,14 @@ void sceInLock(SceAtWork* w)
     case 1:
         SndCall(6, (s8) w->doorSe, &pPL->pos, 0, 0, 0);
         SceMesSet(0xA, 0x11, 1, 0x64, MES_Y(cMes.getWork()));
-        while (cMes.mes[0].flags2 & 1) {
+        while (cMes.m_Msg[0].m_state & 1) {
             TaskSleep(1);
         }
         break;
     case 2:
         SndCall(6, (s8) w->doorSe, &pPL->pos, 0, 0, 0);
         SceMesSet(0xB, 0x11, 1, 0x64, MES_Y(cMes.getWork()));
-        while (cMes.mes[0].flags2 & 1) {
+        while (cMes.m_Msg[0].m_state & 1) {
             TaskSleep(1);
         }
         FlagOn(doorUnlock(), w->lockFlag);
@@ -848,7 +848,7 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->Stage_next = w->dstStage;
     pG->Room_next = w->dstRoom;
     pG->Part_next = w->dstPart;
-    pG->door_no = w->doorNo;
+    pG->door_se = w->doorNo;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
     pG->Rno2 = 0;
@@ -986,7 +986,7 @@ void releaseModel(SceAtWork* w, int keep)
 {
     if ((w->item.flag & 2) && w->item.pModel != 0) {
         cObj* obj = (cObj*) w->item.pModel;
-        void* bin = obj->pModelInfo->pData;
+        void* bin = obj->pModelInfo->model_addr;
         void* tpl = obj->pModelInfo->tpl_addr;
 
         ObjMgr.destroy(obj);
@@ -1025,10 +1025,8 @@ void releaseModel(SceAtWork* w, int keep)
 // messages, treasure, key items...), shows the "got X" message with the item zoom (itemExam; B
 // cancels), opens the sub screen when the case is full, then marks the item taken, disables the
 // area, frees the model / allocation and ends the cut.
-void sceAtGetItem(SceAtWork* w_)
+void sceAtGetItem(SceAtWork* w)
 {
-    // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): the parameter is copied into a local.
-    SceAtWork* w = w_;
     static int disp_flag_bak;
     static int sub_screen_open;
     static int swep_flag;
@@ -1070,10 +1068,10 @@ void sceAtGetItem(SceAtWork* w_)
             break;
         }
         cMes.MesSet(0x15, 0x64, y, 0x11, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         itemInfo(it->id, &info);
         if (info.type == 7) {
-            cMes.mes[0].waitCnt = 0x1E;
+            cMes.m_Msg[0].m_bttn_wait = 0x1E;
         }
         mes = 0;
         break;
@@ -1084,14 +1082,14 @@ void sceAtGetItem(SceAtWork* w_)
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
-            cMes.mes[0].setNumber(ItemMgr.m_bonus_time, 0);
+            cMes.m_Msg[0].setNumber(ItemMgr.m_bonus_time, 0);
             cMes.MesSet(0x94, 0x64, y, 0x10000011, 0, 0, 4);
         } else if (it->id == 0x75) {
-            cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
+            cMes.m_Msg[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
             if ((s32) money < (s32) pG->peseta) {
-                cMes.mes[0].setNumber(pG->peseta - money, 0);
+                cMes.m_Msg[0].setNumber(pG->peseta - money, 0);
             }
             cMes.MesSet(0x14, 0x64, y, 0x10000011, 0, 0, 4);
         }
@@ -1108,23 +1106,23 @@ void sceAtGetItem(SceAtWork* w_)
     case 9:
         mes = 1;
         cMes.MesSet(0x11, 0x64, y, 0x111, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         break;
     case 2:
         cMes.MesSet(0x13, 0x64, y, 0x211, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         if (it->num != 0) {
-            cMes.mes[0].setNumber(it->num, 0);
+            cMes.m_Msg[0].setNumber(it->num, 0);
         } else {
             itemInfo(it->id, &info);
-            cMes.mes[0].setNumber(info.defNum, 0);
+            cMes.m_Msg[0].setNumber(info.defNum, 0);
         }
         mes = 1;
         break;
     case 0xE:
         cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
         mes = 1;
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         break;
     case 6:
         switch (it->id) {
@@ -1149,7 +1147,7 @@ void sceAtGetItem(SceAtWork* w_)
             cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
             break;
         }
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         mes = 1;
         break;
     case 0xA:
@@ -1232,7 +1230,7 @@ void sceAtGetItem(SceAtWork* w_)
             }
         }
     } else {
-        while (cMes.mes[0].flags2 & 1) {
+        while (cMes.m_Msg[0].m_state & 1) {
             itemExam.move();
             itemExam.trans();
             SceSleep(1);
@@ -1312,9 +1310,6 @@ void sceAtGetItem_NoModel(SceAtWork* w)
     pPL->setNoSuspend(1);
     DpfFlagOff(pG, DPF_PL);
     swep_flag = 0;
-    // COMPILER-DIFF: 12 (sched2 rank in block 0): the `it->id` load after the swep_flag store ranks
-    // `li r31,0` (cancel) above `addi r29,&w->item` in the prologue.
-    asm("" : "=m"(*(int*) &it->id) : "m"(swep_flag));
     itemInfo(it->id, &info);
     switch (info.type) {
     case 0:
@@ -1334,10 +1329,10 @@ void sceAtGetItem_NoModel(SceAtWork* w)
             break;
         }
         cMes.MesSet(0x15, 0x64, y, 0x11, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         itemInfo(it->id, &info);
         if (info.type == 7) {
-            cMes.mes[0].waitCnt = 0x1E;
+            cMes.m_Msg[0].m_bttn_wait = 0x1E;
         }
         mes = 0;
         break;
@@ -1346,14 +1341,14 @@ void sceAtGetItem_NoModel(SceAtWork* w)
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
-            cMes.mes[0].setNumber(ItemMgr.m_bonus_time, 0);
+            cMes.m_Msg[0].setNumber(ItemMgr.m_bonus_time, 0);
             cMes.MesSet(0x94, 0x64, y, 0x10000011, 0, 0, 4);
         } else if (it->id == 0x75) {
-            cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
+            cMes.m_Msg[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
             if ((s32) money < (s32) pG->peseta) {
-                cMes.mes[0].setNumber(pG->peseta - money, 0);
+                cMes.m_Msg[0].setNumber(pG->peseta - money, 0);
             }
             cMes.MesSet(0x14, 0x64, y, 0x10000011, 0, 0, 4);
         }
@@ -1370,23 +1365,23 @@ void sceAtGetItem_NoModel(SceAtWork* w)
     case 9:
         mes = 1;
         cMes.MesSet(0x11, 0x64, y, 0x111, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         break;
     case 2:
         cMes.MesSet(0x13, 0x64, y, 0x211, 0, 0, 4);
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         if (it->num != 0) {
-            cMes.mes[0].setNumber(it->num, 0);
+            cMes.m_Msg[0].setNumber(it->num, 0);
         } else {
             itemInfo(it->id, &info);
-            cMes.mes[0].setNumber(info.defNum, 0);
+            cMes.m_Msg[0].setNumber(info.defNum, 0);
         }
         mes = 1;
         break;
     case 0xE:
         cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
         mes = 1;
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         break;
     case 6:
         switch (it->id) {
@@ -1411,7 +1406,7 @@ void sceAtGetItem_NoModel(SceAtWork* w)
             cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
             break;
         }
-        cMes.mes[0].m_item_no = it->id;
+        cMes.m_Msg[0].m_item_no = it->id;
         mes = 1;
         break;
     case 0xA:
@@ -1473,7 +1468,7 @@ void sceAtGetItem_NoModel(SceAtWork* w)
             }
         }
     } else {
-        while (cMes.mes[0].flags2 & 1) {
+        while (cMes.m_Msg[0].m_state & 1) {
             SceSleep(1);
         }
     }
@@ -1826,7 +1821,7 @@ int sceAtFunc_skey(SceAtWork* w, cModel* m)
 static void sceAtSkey(SceAtWork* w)
 {
     cMes.MesSet(0xC, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
-    while (cMes.mes[0].flags2 & 1) {
+    while (cMes.m_Msg[0].m_state & 1) {
         TaskSleep(1);
     }
     pG->Stop_flg = pS->m_stop_flag_backup;
@@ -2153,7 +2148,7 @@ void SceAtRoomSet()
             }
             sceAtSetItem(w);
         }
-        if (pG->language == 0) {
+        if (pG->game_country == 0) {
             if (w->langDisable & 2) {
                 SceAtSetEnable(w->no, 0);
             }
@@ -2899,7 +2894,7 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
     out->u.eye.z = it->pos.z;
     out->u.eye.ang_x = it->rot.x;
     out->u.eye.ang_y = it->rot.y;
-    out->u.eye.open = it->rot.z;
+    out->u.eye.open_ang = it->rot.z;
 }
 
 // Per frame: for each enabled item area — a shoot-down item (flag2 bit4) that was hit plays its

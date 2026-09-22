@@ -200,7 +200,7 @@ int CameraControl::IsChangeCamera()
 // flag, re-enables the area check and drops the motion-camera flag.
 void CameraControl::Comeback(int)
 {
-    data = (CameraDataHeader*) pG->pCamRoom;
+    pCamData = (CameraDataHeader*) pG->pCamRoom;
     m_state_flag &= ~4;
     m_system_flag = (m_system_flag & ~8) | 0x10;
     if (m_system_flag & 0x20) {
@@ -232,7 +232,7 @@ void CameraControl::AreaCheckOnOff(int mode)
 // Number of camera areas in the room data.
 u8 CameraControl::AreaNum()
 {
-    return data->numArea;
+    return pCamData->numArea;
 }
 
 // Area number of the active camera (-1 none).
@@ -250,12 +250,12 @@ int CameraControl::CurrentCameraNo()
 // The cut record with camera_no `no` (the last record when not found).
 CameraCut* CameraControl::DataSearch(int no)
 {
-    CameraAreaRec* rec = (CameraAreaRec*) (data + 1);
-    CameraAreaInfo* area = (CameraAreaInfo*) (rec + data->numArea);
-    CameraCut* cut = (CameraCut*) (area + data->numArea);
+    CameraAreaRec* rec = (CameraAreaRec*) (pCamData + 1);
+    CameraAreaInfo* area = (CameraAreaInfo*) (rec + pCamData->numArea);
+    CameraCut* cut = (CameraCut*) (area + pCamData->numArea);
     int i = 0;
 
-    while (i < data->numCut && no != cut->camera_no) {
+    while (i < pCamData->numCut && no != cut->camera_no) {
         i++;
         cut++;
     }
@@ -266,13 +266,13 @@ CameraCut* CameraControl::DataSearch(int no)
 // data has none (a hard cut).
 CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_to, int cam_to)
 {
-    CameraAreaRec* rec = (CameraAreaRec*) (data + 1);
-    CameraAreaInfo* area = (CameraAreaInfo*) (rec + data->numArea);
-    CameraCut* cut = (CameraCut*) (area + data->numArea);
-    CameraLerp* lerp = (CameraLerp*) (cut + data->numCut);
+    CameraAreaRec* rec = (CameraAreaRec*) (pCamData + 1);
+    CameraAreaInfo* area = (CameraAreaInfo*) (rec + pCamData->numArea);
+    CameraCut* cut = (CameraCut*) (area + pCamData->numArea);
+    CameraLerp* lerp = (CameraLerp*) (cut + pCamData->numCut);
     int i;
 
-    for (i = 0; i < data->numLerp; i++, lerp++) {
+    for (i = 0; i < pCamData->numLerp; i++, lerp++) {
         if (area_from == lerp->area_from && cam_from == lerp->cam_from && area_to == lerp->area_to &&
             cam_to == lerp->cam_to) {
             return lerp;
@@ -344,7 +344,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 void CameraControl::RoomDataRead(CameraDataHeader* room)
 {
     pG->pCamRoom = calcAddr(room);
-    data = (CameraDataHeader*) pG->pCamRoom;
+    pCamData = (CameraDataHeader*) pG->pCamRoom;
 }
 
 // Installs the core (shared) camera data.
@@ -488,7 +488,7 @@ void CameraSetCutData(Camera* cam, CameraCut* cut)
 // Script: enables / disables the camera area (area_no, camera_no) for the area check.
 void CameraControl::AreaOnOff(int area_no, int camera_no, int on)
 {
-    CameraDataHeader* d = data;
+    CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
@@ -503,7 +503,7 @@ void CameraControl::AreaOnOff(int area_no, int camera_no, int on)
 // Script: ORs `attr` bits into the area's attribute (0x20 normal, 1 / 2 calm / battle...).
 void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
 {
-    CameraDataHeader* d = data;
+    CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
@@ -518,7 +518,7 @@ void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
 // Script: clears `attr` bits of the area's attribute.
 void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
 {
-    CameraDataHeader* d = data;
+    CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
@@ -534,7 +534,7 @@ void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
 // Comeback.
 void CameraControl::CutCall(int no)
 {
-    CameraDataHeader* d = data;
+    CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     int found = 0;
     s8 i;
@@ -547,7 +547,7 @@ void CameraControl::CutCall(int no)
     }
     if (found) {
         clearAttachCamera();
-        interp.frame = 0;
+        m_Inter.frame = 0;
         switchCamera(rec);
         m_system_flag |= 8;
         m_state_flag |= 4;
@@ -573,16 +573,16 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     if (areaNo != -1) {
         lerp = LerpDataSearch(areaNo, areaSuffix, area->area_no, area->camera_no);
         if (lerp && lerp->enable == 1) {
-            interp.set(lerp->frame, &cur);
+            m_Inter.set(lerp->frame, &cur);
         }
     } else {
-        interp.frame = 0;
+        m_Inter.frame = 0;
     }
 
     if (m_system_flag & 2) {
         if (!(rec->area->attr & 8)) {
             CameraAreaRec* r;
-            d = data;
+            d = pCamData;
             for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
                     r->area->enable = 0;
@@ -598,7 +598,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
             a->enable = 0;
         } else if (a->attr & 8) {
             CameraAreaRec* r;
-            d = data;
+            d = pCamData;
             for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
                     r->area->enable = 0;
@@ -653,11 +653,11 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         if (size > CAMERA_MOTION_BUFFER_SIZE) {
             pLog->err(0, 0, "CameraControl::HermiteExport() = 0x%04x > 0x%04x", size, CAMERA_MOTION_BUFFER_SIZE);
         }
-        if (extra) {
-            delete extra;
+        if (m_pProc) {
+            delete m_pProc;
         }
-        extra = new (m_Free) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
-        ((CameraMotion*) extra)->base_mat = NULL;
+        m_pProc = new (m_Free) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
+        ((CameraMotion*) m_pProc)->m_p_base_mat = NULL;
         r0 = 5;
         break;
     case 7:
@@ -665,10 +665,10 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         if (size > CAMERA_MOTION_BUFFER_SIZE) {
             pLog->err(0, 0, "CameraControl::HermiteExport() = 0x%04x > 0x%04x", size, CAMERA_MOTION_BUFFER_SIZE);
         }
-        if (extra) {
-            delete extra;
+        if (m_pProc) {
+            delete m_pProc;
         }
-        extra = new (m_Free) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
+        m_pProc = new (m_Free) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
         r0 = 9;
         break;
     case 8: {
@@ -681,7 +681,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         }
         q->setAreaData(area_rec->cut);
         q->bindAreaCamera(area_rec);
-        if (prev_state == 10 && !(m_system_flag & 0x10)) {
+        if (r0_old == 10 && !(m_system_flag & 0x10)) {
             m_QuasiFPS.setBlendCount(10);
         } else {
             m_QuasiFPS.init();
@@ -883,7 +883,7 @@ void CameraControl::areaHitCheck()
     if (DbgFlagChk(pG, DBG_CAM_AREA_OFF)) {
         return;
     }
-    d = data;
+    d = pCamData;
     if (d == NULL) {
         cameraNo = -1;
         areaNo = -1;
@@ -924,7 +924,7 @@ void CameraControl::areaHitCheck()
         case 0:
             break;
         case 1:
-            if (pG->language == 0) {
+            if (pG->game_country == 0) {
                 attr = 4;
             }
             break;
@@ -1010,7 +1010,7 @@ void CameraControl::areaHitCheck()
         LightMgr.update(0, -1);
     } else if (old_area != -1) {
         CameraQuasiFPS* q = &m_QuasiFPS;
-        if (prev_state == 0xA) {
+        if (r0_old == 0xA) {
             if (q->blend_src && q->blend_dst) {
                 q->setBlendData(q->blend_src, q->blend_dst);
             }
@@ -1029,11 +1029,11 @@ void CameraControl::roomInit()
     s8 ver;
 
     StaFlagOn(pG, STA_CAMERA);
-    if (data == NULL) {
+    if (pCamData == NULL) {
         be_flag = 0;
     } else {
         m_system_flag = 0x10;
-        ver = cameraDataVersion((char*) data);
+        ver = cameraDataVersion((char*) pCamData);
         switch (ver) {
         case 2:
             OSReport("CameraControl::roomInit(): Ver.02");
@@ -1089,8 +1089,8 @@ void CameraControl::roomInit()
         m_system_flag |= 8;
     }
     m_pExtraCamera = 0;
-    extra = NULL;
-    interp.frame = 0;
+    m_pProc = NULL;
+    m_Inter.frame = 0;
     Check();
     Move();
     CameraMove();
@@ -1117,7 +1117,7 @@ void CameraControl::Check()
         return;
     }
     m_state_flag &= ~2;
-    prev_state = r0;
+    r0_old = r0;
     if (!(m_system_flag & 8)) {
         areaHitCheck();
     }
@@ -1140,16 +1140,16 @@ void CameraControl::Check()
     PSVECSubtract(&pPL->getPartsPtr(1)->world, &pPL->pos, &d);
     if (r0 != 0xB) {
         if (d.y <= 500.0f) {
-            interp.set(3, &camera.param);
+            m_Inter.set(3, &camera.param);
             r0 = 0xB;
-            if (extra) {
-                delete extra;
+            if (m_pProc) {
+                delete m_pProc;
             }
-            extra = new (m_Free) CameraLookAt(&camera);
+            m_pProc = new (m_Free) CameraLookAt(&camera);
         }
     } else {
         if (d.y > 500.0f) {
-            interp.set(30, &camera.param);
+            m_Inter.set(30, &camera.param);
             m_system_flag = 0x10;
         }
     }
@@ -1195,11 +1195,11 @@ void CameraControl::Move()
         break;
     case 5:
         CamSmth.m_ratio = 0.0f;
-        extra->move();
-        cur = extra->param;
-        if (((CameraMotion*) extra)->end == 1) {
-            if (extra) {
-                delete extra;
+        m_pProc->move();
+        cur = m_pProc->param;
+        if (((CameraMotion*) m_pProc)->m_state == 1) {
+            if (m_pProc) {
+                delete m_pProc;
             }
             r0 = 0;
         }
@@ -1222,24 +1222,24 @@ void CameraControl::Move()
         break;
     case 0xC:
         CamSmth.m_ratio = 0.0f;
-        extra->move();
-        cur = extra->param;
+        m_pProc->move();
+        cur = m_pProc->param;
         break;
     case 0x10:
     case 0x11:
         CamSmth.m_ratio = 0.0f;
-        extra->move();
-        cur = extra->param;
+        m_pProc->move();
+        cur = m_pProc->param;
         break;
     case 0xB:
     case 0xF:
-        extra->move();
-        cur = extra->param;
+        m_pProc->move();
+        cur = m_pProc->param;
         break;
     case 0xD:
         CamSmth.m_ratio = 0.0f;
-        extra->move();
-        cur = extra->param;
+        m_pProc->move();
+        cur = m_pProc->param;
         break;
     default:
         r0_Debug();
@@ -1255,11 +1255,11 @@ void CameraControl::Move()
             }
         }
     }
-    interp.move(&cur);
-    if (interp.frame != 0) {
+    m_Inter.move(&cur);
+    if (m_Inter.frame != 0) {
         CamSmth.m_flag &= ~1;
     }
-    CamSmth.move(&interp.param);
+    CamSmth.move(&m_Inter.param);
     camera.param = *CamSmth.getParam();
     CameraSetOrientationRoll(&camera);
     if (!DbgFlagChk(pG, DBG_DBG_CAM) && (m_state_flag & 4)) {
@@ -1943,9 +1943,8 @@ void CameraControl::r0_Free()
             PSMTXMultVec(m, &this->target_ofs, &this->target_ofs);
         }
         {
-            int st = r2;
+            int st = r2;  // COMPILER-DIFF 2: the int copy + (u8) re-extend the loaded byte as the original does
 
-            asm("" : "+r"(st));  // COMPILER-DIFF 2: the original zero-extends the loaded byte again
             switch ((u8) st) {
             case 0:
                 if ((joy->trg & 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
@@ -2015,15 +2014,15 @@ void CameraControl::resetCameraAngle()
 {
     CameraQuasiFPS* q = &CamCtrl.m_QuasiFPS;
 
-    q->angle_y = 0.0f;
-    q->angle_x = 0.0f;
+    q->m_depression_ratio = 0.0f;
+    q->m_direction_ratio = 0.0f;
 }
 
 // Shoulder camera: returns and clears the yaw look angle (the player turns by it).
 f32 CameraControl::getCameraDirection()
 {
-    f32 dir = CamCtrl.m_QuasiFPS.angle_x;
-    CamCtrl.m_QuasiFPS.angle_x = 0.0f;
+    f32 dir = CamCtrl.m_QuasiFPS.m_direction_ratio;
+    CamCtrl.m_QuasiFPS.m_direction_ratio = 0.0f;
     return dir;
 }
 
@@ -2234,10 +2233,10 @@ void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
 {
     switch (sel) {
     case 0:
-        data = (CameraDataHeader*) pG->pCamCore;
+        pCamData = (CameraDataHeader*) pG->pCamCore;
         break;
     case 1:
-        data = (CameraDataHeader*) pG->pCamRoom;
+        pCamData = (CameraDataHeader*) pG->pCamRoom;
         break;
     }
     if (pos) {
@@ -2255,7 +2254,7 @@ void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
 // Enters the push-object camera (r0 0xF, CameraPushObject extra).
 void CameraControl::startPushObject()
 {
-    extra = new (m_Free) CameraPushObject();
+    m_pProc = new (m_Free) CameraPushObject();
     r0 = 0xF;
     AreaCheckOnOff(0);
 }
@@ -2263,8 +2262,8 @@ void CameraControl::startPushObject()
 // Leaves the push-object camera and returns to the area cameras.
 void CameraControl::endPushObject()
 {
-    if (extra) {
-        delete extra;
+    if (m_pProc) {
+        delete m_pProc;
     }
     Comeback(0);
 }
@@ -2280,7 +2279,7 @@ void CameraControl::StartLookDownEm(void* em)
     p[1] = pPL->getPartsPtr(0x21);
     PSVECAdd(&p[0]->world, &p[1]->world, &c);
     PSVECScale(&c, &c, 0.5f);
-    extra = new (m_Free) CameraLookDownEm(em, &c);
+    m_pProc = new (m_Free) CameraLookDownEm(em, &c);
     r0 = 0xD;
     AreaCheckOnOff(0);
     StaFlagOff(pG, STA_SSCRN_ENABLE);
@@ -2289,8 +2288,8 @@ void CameraControl::StartLookDownEm(void* em)
 // Leaves the look-down camera, HUD back on.
 void CameraControl::EndLookDownEm()
 {
-    if (extra) {
-        delete extra;
+    if (m_pProc) {
+        delete m_pProc;
     }
     Comeback(0);
     StaFlagOn(pG, STA_SSCRN_ENABLE);
@@ -2302,7 +2301,7 @@ void CameraControl::startScope(Vec* pos, Vec* at)
     if (!StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         StaFlagOn(pG, STA_SCOPE_CAMERA);
         StaFlagOn(pG, STA_LOOK_THROUGH);
-        extra = new (m_Free) CameraScope(pos, at);
+        m_pProc = new (m_Free) CameraScope(pos, at);
         r0 = 0x10;
         DpfFlagOn(pG, DPF_PL);
         AreaCheckOnOff(0);
@@ -2316,8 +2315,8 @@ void CameraControl::endScope()
         StaFlagOff(pG, STA_SCOPE_CAMERA);
         StaFlagOff(pG, STA_LOOK_THROUGH);
         DpfFlagOff(pG, DPF_PL);
-        if (extra) {
-            delete extra;
+        if (m_pProc) {
+            delete m_pProc;
         }
         Comeback(0);
     }
@@ -2327,7 +2326,7 @@ void CameraControl::endScope()
 void CameraControl::getTrajectory(Vec* pos, Vec* at)
 {
     if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
-        cCamera* c = extra;
+        cCamera* c = m_pProc;
         *pos = c->param.pos;
         *at = c->param.at;
     }
@@ -2336,21 +2335,21 @@ void CameraControl::getTrajectory(Vec* pos, Vec* at)
 // Saves the scope zoom / pitch and reticle timers before the scope is closed.
 void CameraControl::saveScopeParam()
 {
-    ((CameraScope*) extra)->getParam(&m_scope_zoom, &m_scope_ang_x);
-    ((CameraScope*) extra)->m_id.save(0);
+    ((CameraScope*) m_pProc)->getParam(&m_scope_zoom, &m_scope_ang_x);
+    ((CameraScope*) m_pProc)->m_id.save(0);
 }
 
 // Restores them when the scope is re-opened.
 void CameraControl::loadScopeParam()
 {
-    ((CameraScope*) extra)->setParam(m_scope_zoom, m_scope_ang_x);
-    ((CameraScope*) extra)->m_id.load(0);
+    ((CameraScope*) m_pProc)->setParam(m_scope_zoom, m_scope_ang_x);
+    ((CameraScope*) m_pProc)->m_id.load(0);
 }
 
 // Limits the binocular view angles.
 void CameraControl::SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
-    ((CameraBinocular*) extra)->setRange(x_low, x_up, y_low, y_up);
+    ((CameraBinocular*) m_pProc)->setRange(x_low, x_up, y_low, y_up);
 }
 
 // Enters the binocular camera (r0 0xC; Status_flg[0] 0x400 binocular, 0x8000 first person) with
@@ -2359,7 +2358,7 @@ void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 {
     StaFlagOn(pG, STA_BINOCULAR);
     StaFlagOn(pG, STA_LOOK_THROUGH);
-    extra = new (m_Free) CameraBinocular(pos, at, id_a, id_b);
+    m_pProc = new (m_Free) CameraBinocular(pos, at, id_a, id_b);
     r0 = 0xC;
     DpfFlagOn(pG, DPF_PL);
     AreaCheckOnOff(0);
@@ -2371,8 +2370,8 @@ void CameraControl::LowerBinocular()
     StaFlagOff(pG, STA_BINOCULAR);
     StaFlagOff(pG, STA_LOOK_THROUGH);
     DpfFlagOff(pG, DPF_PL);
-    if (extra) {
-        delete extra;
+    if (m_pProc) {
+        delete m_pProc;
     }
     Comeback(0);
 }
@@ -2380,8 +2379,8 @@ void CameraControl::LowerBinocular()
 // The binocular HUD data pointers.
 void CameraControl::GetBinocularIDAddr(void** eff_addr, void** uwf_addr)
 {
-    *eff_addr = ((CameraBinocular*) extra)->id_a;
-    *uwf_addr = ((CameraBinocular*) extra)->id_b;
+    *eff_addr = ((CameraBinocular*) m_pProc)->id_a;
+    *uwf_addr = ((CameraBinocular*) m_pProc)->id_b;
 }
 
 // Plays a camera motion file (cutscene camera, r0 5) interpolating from the current camera over
@@ -2390,10 +2389,10 @@ void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 {
     m_system_flag |= 0x28;
     StaFlagOn(pG, STA_CUT_CHANGE);
-    extra = new (m_Free) CameraMotion(motion, 0, 0, speed);
-    ((CameraMotion*) extra)->base_mat = NULL;
+    m_pProc = new (m_Free) CameraMotion(motion, 0, 0, speed);
+    ((CameraMotion*) m_pProc)->m_p_base_mat = NULL;
     r0 = 5;
-    interp.set(frame, &pG->Camera.param);
+    m_Inter.set(frame, &pG->Camera.param);
 }
 
 // 1 while a camera motion is playing (m_system_flag 0x20).
@@ -2411,19 +2410,19 @@ int CameraControl::IsMotionEnd()
     if (r0 != 5) {
         return 1;
     }
-    return ((CameraMotion*) extra)->end == 1;
+    return ((CameraMotion*) m_pProc)->m_state == 1;
 }
 
 // Places the camera motion in the world through `mat` (event position).
 void CameraControl::setMotionBaseMatPtr(Mtx* mat)
 {
-    ((CameraMotion*) extra)->base_mat = mat;
+    ((CameraMotion*) m_pProc)->m_p_base_mat = mat;
 }
 
 // The playing camera motion's work (frame / state).
 void* CameraControl::getMotionInfoPtr()
 {
-    return &((CameraMotion*) extra)->m_info;
+    return &((CameraMotion*) m_pProc)->m_info;
 }
 
 // Forgets all registered attach cameras (motion-driven cameras of models).
@@ -2554,21 +2553,21 @@ void CameraControl::checkAttachCamera()
         ac = getAttachCamera(model);
         if (m_p_attach_model_old != model) {
             m_system_flag |= 8;
-            interp.set(ac->frame, &pG->Camera.param);
+            m_Inter.set(ac->frame, &pG->Camera.param);
             r0 = 0x11;
-            if (extra) {
-                delete extra;
+            if (m_pProc) {
+                delete m_pProc;
             }
-            extra = new (m_Free) CameraAttachedToMotion(model);
-            extra->param.pos = pG->Camera.param.pos;
-            extra->param.at = pG->Camera.param.at;
-            extra->param.roll = pG->Camera.param.roll;
-            extra->param.fovy = pG->Camera.param.fovy;
+            m_pProc = new (m_Free) CameraAttachedToMotion(model);
+            m_pProc->param.pos = pG->Camera.param.pos;
+            m_pProc->param.at = pG->Camera.param.at;
+            m_pProc->param.roll = pG->Camera.param.roll;
+            m_pProc->param.fovy = pG->Camera.param.fovy;
         }
         inter_frame = ac->frame;
     } else if (m_p_attach_model_old) {
         m_system_flag = 0x10;
-        interp.set(inter_frame, &pG->Camera.param);
+        m_Inter.set(inter_frame, &pG->Camera.param);
     }
     m_p_attach_model_old = model;
 }

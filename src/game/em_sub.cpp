@@ -67,8 +67,8 @@ static inline int PlLifeOver(int lim)
 // The parts a hit box belongs to (partsNo is 1-based, 0 = the model itself).
 static inline cModel* HitParts(cEm* em, YARARE_INFO* p)
 {
-    if (p->partsNo != 0) {
-        return em->getPartsPtr(p->partsNo - 1);
+    if (p->parts_no != 0) {
+        return em->getPartsPtr(p->parts_no - 1);
     }
     return em;
 }
@@ -101,21 +101,21 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (!VALID_PTR(p)) {
         return 0;
     }
-    if (p->flags & YAT_FLAG_DMPOS) {
-        *pos = p->pos;
+    if (p->flag & YAT_FLAG_DMPOS) {
+        *pos = p->cross;
         dir->x = 0.0f;
         dir->y = GetXZAngle(pos, &em->dmg.m_PosFrom);
         dir->z = 0.0f;
         return 1;
     }
-    if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-        type = (p->flags & YAT_FLAG_X_AXIS) ? 0 : 2;
+    if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+        type = (p->flag & YAT_FLAG_X_AXIS) ? 0 : 2;
     } else {
         type = 1;
     }
     parts = HitParts(em, p);
-    bottom = p->ofs;
-    top = p->ofs;
+    bottom = p->offset;
+    top = p->offset;
     switch (type) {
     case 0:
         top.x += p->height;
@@ -134,7 +134,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     PSVECScale(&c, &c, 0.5f);
     s.x = 0.0f;
     s.y = 0.0f;
-    s.z = p->width;
+    s.z = p->radius;
     PSMTXMultVecSR(parts->mat, &s, &s);
     mag = PSVECMag(&s);
     PSMTXCopy(parts->mat, m);
@@ -333,7 +333,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     }
     s.x = 0.0f;
     s.y = 0.0f;
-    s.z = hit->width;
+    s.z = hit->radius;
     PSMTXMultVecSR(parts->mat, &s, &s);
     mag = PSVECMag(&s);
     rot.x = 0.0f;
@@ -397,7 +397,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     }
     hit = &sub->hitInfo;
     parts = sub->getPartsPtr(0);
-    PSMTXMultVec(parts->mat, &hit->ofs, &p);
+    PSMTXMultVec(parts->mat, &hit->offset, &p);
     h = pos->y - p.y;
     if (h > hit->height * 0.7f) {
         h = hit->height * 0.7f;
@@ -412,7 +412,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     TransMatrix(m, &p);
     q.x = 0.0f;
     q.y = h;
-    q.z = hit->width * 0.5f;
+    q.z = hit->radius * 0.5f;
     PSMTXMultVec(m, &q, &q);
     if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
@@ -477,17 +477,17 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
     }
     ret = 0;
     best = 1e16f;
-    for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & YAT_FLAG_ON)) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
-        bottom = p->ofs;
-        top = p->ofs;
-        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-            if (p->flags & YAT_FLAG_X_AXIS) {
+        bottom = p->offset;
+        top = p->offset;
+        if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flag & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -501,7 +501,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
         up.y = up.x = 0.0f;
-        up.z = p->width;
+        up.z = p->radius;
         PSMTXMultVecSR(parts->mat, &up, &up);
         r = PSVECMag(&up);
         if (AtBoxCapsuleCk3(box, &top, &bottom, r) == 0) {
@@ -520,8 +520,8 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
             continue;
         }
         PSVECSubtract(&center, pos, &up);
-        p->rad = up.x * up.x + up.y * up.y + up.z * up.z;
-        p->dist = d2;
+        p->len = up.x * up.x + up.y * up.y + up.z * up.z;
+        p->c_dis = d2;
         best = d2;
         ret = p;
     }
@@ -544,23 +544,23 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
     f32 d2;
     f32 r;
 
-    for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & YAT_FLAG_ON)) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         parts = HitParts(em, p);
-        if (p->flags & YAT_FLAG_CUBE) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
+        if (p->flag & YAT_FLAG_CUBE) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->offset, &hit, p->radius, p->height, p->extent) == 0) {
                 continue;
             }
         } else {
-            bottom = p->ofs;
-            top = p->ofs;
-            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-                if (p->flags & YAT_FLAG_X_AXIS) {
+            bottom = p->offset;
+            top = p->offset;
+            if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flag & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -574,7 +574,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
             PSVECScale(&center, &center, 0.5f);
             s.x = 0.0f;
             s.y = 0.0f;
-            s.z = p->width;
+            s.z = p->radius;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
             if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
@@ -587,9 +587,9 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
             continue;
         }
         PSVECSubtract(&hit, pPos, &s);
-        p->rad = s.x * s.x + s.y * s.y + s.z * s.z;
-        p->dist = d2;
-        p->pos = hit;
+        p->len = s.x * s.x + s.y * s.y + s.z * s.z;
+        p->c_dis = d2;
+        p->cross = hit;
         best = d2;
         ret = p;
     }
@@ -611,23 +611,23 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
     f32 d2;
     f32 r;
 
-    for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & YAT_FLAG_ON)) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
         parts = HitParts(em, p);
-        if (p->flags & YAT_FLAG_CUBE) {
-            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->ofs, &hit, p->width, p->height, p->depth) == 0) {
+        if (p->flag & YAT_FLAG_CUBE) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->offset, &hit, p->radius, p->height, p->extent) == 0) {
                 continue;
             }
         } else {
-            bottom = p->ofs;
-            top = p->ofs;
-            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-                if (p->flags & YAT_FLAG_X_AXIS) {
+            bottom = p->offset;
+            top = p->offset;
+            if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flag & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -641,7 +641,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
             PSVECScale(&center, &center, 0.5f);
             s.x = 0.0f;
             s.y = 0.0f;
-            s.z = p->width;
+            s.z = p->radius;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
             if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, &hit, r) == 0) {
@@ -969,17 +969,17 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
     bestRad = 1e16f;
     ret = 0;
     bestDot = -PI;
-    for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & YAT_FLAG_ON)) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flags & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
-        bottom = p->ofs;
-        top = p->ofs;
-        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-            if (p->flags & YAT_FLAG_X_AXIS) {
+        bottom = p->offset;
+        top = p->offset;
+        if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flag & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -992,36 +992,36 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
         PSMTXMultVec(parts->mat, &bottom, &bottom);
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
-        if (p->flags & YAT_FLAG_CUBE) {
+        if (p->flag & YAT_FLAG_CUBE) {
             Vec box[8] = {
                 {-500.0f, -450.0f, 0.0f},   {500.0f, -450.0f, 0.0f},   {-3000.0f, -800.0f, 15000.0f}, {3000.0f, -800.0f, 15000.0f},
                 {-500.0f, 450.0f, 0.0f},    {500.0f, 450.0f, 0.0f},    {-3000.0f, 800.0f, 15000.0f},  {3000.0f, 800.0f, 15000.0f},
             };
 
-            box[0].x = -p->width;
+            box[0].x = -p->radius;
             box[0].y = 0.0f;
-            box[0].z = -p->depth;
-            box[1].x = p->width;
+            box[0].z = -p->extent;
+            box[1].x = p->radius;
             box[1].y = 0.0f;
-            box[1].z = -p->depth;
-            box[2].x = -p->width;
+            box[1].z = -p->extent;
+            box[2].x = -p->radius;
             box[2].y = 0.0f;
-            box[2].z = p->depth;
-            box[3].x = p->width;
+            box[2].z = p->extent;
+            box[3].x = p->radius;
             box[3].y = 0.0f;
-            box[3].z = p->depth;
-            box[4].x = -p->width;
+            box[3].z = p->extent;
+            box[4].x = -p->radius;
             box[4].y = p->height;
-            box[4].z = -p->depth;
-            box[5].x = p->width;
+            box[4].z = -p->extent;
+            box[5].x = p->radius;
             box[5].y = p->height;
-            box[5].z = -p->depth;
-            box[6].x = -p->width;
+            box[5].z = -p->extent;
+            box[6].x = -p->radius;
             box[6].y = p->height;
-            box[6].z = p->depth;
-            box[7].x = p->width;
+            box[6].z = p->extent;
+            box[7].x = p->radius;
             box[7].y = p->height;
-            box[7].z = p->depth;
+            box[7].z = p->extent;
             PSMTXMultVec(parts->mat, &box[0], &box[0]);
             PSMTXMultVec(parts->mat, &box[1], &box[1]);
             PSMTXMultVec(parts->mat, &box[2], &box[2]);
@@ -1036,7 +1036,7 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
         } else {
             s.x = 0.0f;
             s.y = 0.0f;
-            s.z = p->width;
+            s.z = p->radius;
             PSMTXMultVecSR(parts->mat, &s, &s);
             rr = PSVECMag(&s);
             if (AtSphereCapsuleCk(pos, r, &top, &bottom, rr) == 0) {
@@ -1045,11 +1045,11 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
         }
         PSVECSubtract(&center, pos, &s);
         if (r != r2) {
-            if (fabsf(s.y) > r2 + p->width) {
+            if (fabsf(s.y) > r2 + p->radius) {
                 continue;
             }
         }
-        p->rad = s.x * s.x + s.y * s.y + s.z * s.z;
+        p->len = s.x * s.x + s.y * s.y + s.z * s.z;
         if (dist > 0.0f) {
 #line 1781
             VECNormalize(&s, &s);
@@ -1058,20 +1058,20 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
                 if (dp < 0.6f) {
                     continue;
                 }
-                if (p->rad >= bestRad) {
+                if (p->len >= bestRad) {
                     continue;
                 }
             }
             bestDot = dp;
-            bestRad = p->rad;
+            bestRad = p->len;
             ret = p;
         } else {
-            p->rad = (pos->x - center.x) * (pos->x - center.x) + (pos->y - center.y) * (pos->y - center.y) +
+            p->len = (pos->x - center.x) * (pos->x - center.x) + (pos->y - center.y) * (pos->y - center.y) +
                      (pos->z - center.z) * (pos->z - center.z);
-            if (p->rad >= bestRad) {
+            if (p->len >= bestRad) {
                 continue;
             }
-            bestRad = p->rad;
+            bestRad = p->len;
             ret = p;
         }
     }
@@ -1117,7 +1117,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         if (part == 0) {
             continue;
         }
-        part->flags &= ~0x4000;
+        part->flag &= ~0x4000;
         if (cnt < max) {
             WEP_LIST(cnt)->part = part;
             WEP_LIST(cnt)->em = em;
@@ -1125,23 +1125,23 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
             continue;
         }
         worst = 0;
-        wr = WEP_LIST(0)->part->rad;
+        wr = WEP_LIST(0)->part->len;
         for (j = 1; j < max; j++) {
             q = WEP_LIST(j)->part;
-            if (q->dist <= 250000.0f) {
-                if (WEP_LIST(worst)->part->dist > 250000.0f) {
+            if (q->c_dis <= 250000.0f) {
+                if (WEP_LIST(worst)->part->c_dis > 250000.0f) {
                     continue;
                 }
-                if (q->rad < wr) {
+                if (q->len < wr) {
                     continue;
                 }
-                wr = q->rad;
+                wr = q->len;
                 worst = j;
             } else {
-                if (WEP_LIST(worst)->part->dist <= 250000.0f && WEP_LIST(worst)->part->dist > q->dist) {
+                if (WEP_LIST(worst)->part->c_dis <= 250000.0f && WEP_LIST(worst)->part->c_dis > q->c_dis) {
                     continue;
                 }
-                wr = q->rad;
+                wr = q->len;
                 worst = j;
             }
         }
@@ -1150,18 +1150,18 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         // copy from the first `slwi` survives as `mr r10,r0` (the first `slwi` is block-local and
         // local-alloc gives it r0, which the `stwx` index cannot use).
         wp = WEP_LIST(worst);
-        if (wp->part->dist <= 250000.0f) {
-            if (part->dist > 250000.0f) {
+        if (wp->part->c_dis <= 250000.0f) {
+            if (part->c_dis > 250000.0f) {
                 continue;
             }
-            if (wp->part->rad < part->rad) {
+            if (wp->part->len < part->len) {
                 continue;
             }
             wp->part = part;
             WEP_LIST(worst)->em = em;
         } else {
-            if (part->dist <= 250000.0f) {
-                if (wp->part->dist < part->dist) {
+            if (part->c_dis <= 250000.0f) {
+                if (wp->part->c_dis < part->c_dis) {
                     continue;
                 }
             }
@@ -1268,8 +1268,8 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         if (part == 0) {
             continue;
         }
-        part->flags |= YAT_FLAG_DMPOS;
-        if (bestPart != 0 && part->rad > bestPart->rad) {
+        part->flag |= YAT_FLAG_DMPOS;
+        if (bestPart != 0 && part->len > bestPart->len) {
             continue;
         }
         bestPart = part;
@@ -1277,11 +1277,11 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         } while (++i < (int) EmMgr.getArrayNum());
     }
     if (bestPart) {
-        if (!(bestPart->flags & YAT_FLAG_THROUGH)) {
+        if (!(bestPart->flag & YAT_FLAG_THROUGH)) {
             nrm->x = 0.0f;
             nrm->y = 0.0f;
             nrm->z = 0.0f;
-            dist = bestPart->rad;
+            dist = bestPart->len;
         } else {
             if (max <= 0x13) {
                 max++;
@@ -1356,8 +1356,8 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         if (part == 0) {
             continue;
         }
-        part->flags |= YAT_FLAG_DMPOS;
-        if (part->flags & YAT_FLAG_THROUGH) {
+        part->flag |= YAT_FLAG_DMPOS;
+        if (part->flag & YAT_FLAG_THROUGH) {
             if (max <= 0x13) {
                 max++;
             }
@@ -1370,11 +1370,11 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
         worst = 0;
         for (j = 1; j < (int) max; j++) {
-            if (list[worst].part->rad <= list[j].part->rad) {
+            if (list[worst].part->len <= list[j].part->len) {
                 worst = j;
             }
         }
-        if (list[worst].part->rad > part->rad) {
+        if (list[worst].part->len > part->len) {
             list[worst].part = part;
             list[worst].em = em;
         }
@@ -1382,7 +1382,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     }
     for (i = 0; i < (int) cnt - 1; i++) {
         for (j = i + 1; j < (int) cnt; j++) {
-            if (list[i].part->rad > list[j].part->rad) {
+            if (list[i].part->len > list[j].part->len) {
                 em = list[i].em;
                 part2 = list[i].part;
                 list[i].part = list[j].part;
@@ -1505,15 +1505,15 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         if (part == 0) {
             continue;
         }
-        part->flags &= ~0x4000;
-        if (part->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-            axis = (part->flags & YAT_FLAG_X_AXIS) ? 0 : 2;
+        part->flag &= ~0x4000;
+        if (part->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            axis = (part->flag & YAT_FLAG_X_AXIS) ? 0 : 2;
         } else {
             axis = 1;
         }
         parts = HitParts(em, part);
-        bottom = part->ofs;
-        top = part->ofs;
+        bottom = part->offset;
+        top = part->offset;
         switch (axis) {
         case 0:
             top.x += part->height;
@@ -1530,7 +1530,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PSMTXMultVec(parts->mat, &bottom, &bottom);
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
-        if (!(part->flags & YAT_FLAG_NO_SCR_BOMB_CK)) {
+        if (!(part->flag & YAT_FLAG_NO_SCR_BOMB_CK)) {
             mask = 0;
             if (type != 0x10) {
                 mask = 0x400000;
@@ -1552,11 +1552,11 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         }
         worst = 0;
         for (j = 1; j < max; j++) {
-            if (list[worst].part->rad <= list[j].part->rad) {
+            if (list[worst].part->len <= list[j].part->len) {
                 worst = j;
             }
         }
-        if (list[worst].part->rad > part->rad) {
+        if (list[worst].part->len > part->len) {
             list[worst].part = part;
             list[worst].em = em;
         }
@@ -1564,7 +1564,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     }
     for (i = 0; i < cnt - 1; i++) {
         for (j = i + 1; j < cnt; j++) {
-            if (list[i].part->rad > list[j].part->rad) {
+            if (list[i].part->len > list[j].part->len) {
                 em = list[i].em;
                 part2 = list[i].part;
                 list[i].part = list[j].part;
@@ -1725,7 +1725,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
             *outEm = em;
         }
         ret = 2;
-        if (part->flags & YAT_FLAG_NO_MARK) {
+        if (part->flag & YAT_FLAG_NO_MARK) {
             ret = 3;
         }
     }
@@ -1746,27 +1746,21 @@ YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
     f32 rr;
     f32 len;  // the axis length, then the step (one variable: it lives across the VECNormalize call)
     u32 n;
-    s16 hm;
 
-    // COMPILER-DIFF: #8 -- the original ranks `mr r26,r5` (out) after `fmr f28,f1`, i.e. as if r5
-    // did not die at the copy; the HImode read of r5 keeps it live past the copy (docs/matching.md #8).
-    // The dummy memory output is a stack local: naming `em->hitInfo.flags` here gave `em` one more
-    // reference than `pos`, which swaps their r23/r24 global-alloc order.
-    asm("" : "=m"(q) : "r"(hm));
     if (em->hp <= 0) {
         return 0;
     }
-    for (p = &em->hitInfo; p != 0; p = p->next) {
-        if (!(p->flags & YAT_FLAG_ON)) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if (p->flags & YAT_FLAG_CUBE) {
+        if (p->flag & YAT_FLAG_CUBE) {
             continue;
         }
-        bottom = p->ofs;
-        top = p->ofs;
-        if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-            if (p->flags & YAT_FLAG_X_AXIS) {
+        bottom = p->offset;
+        top = p->offset;
+        if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+            if (p->flag & YAT_FLAG_X_AXIS) {
                 top.x += p->height;
             } else {
                 top.z += p->height;
@@ -1779,7 +1773,7 @@ YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
         PSMTXMultVec(parts->mat, &top, &top);
         s.x = 0.0f;
         s.y = 0.0f;
-        s.z = p->width;
+        s.z = p->radius;
         PSMTXMultVecSR(parts->mat, &s, &s);
         rr = PSVECMag(&s);
         if (SphereHitCk(pos, &top, r, rr)) {
@@ -1835,10 +1829,10 @@ void EmYarareDisp(cEm* em)
     if (!DbgFlagChk(pG, DBG_YARARE_DISP)) {
         return;
     }
-    for (p = &em->hitInfo; p != 0; p = p->next) {
+    for (p = &em->hitInfo; p != 0; p = p->pList) {
         // Every `p->flags` read is spelled out: the later `& 1` / `& 8` reads are fully redundant, so
         // gcse PRE deletes them and inserts the reaching-register copy (`mr r11,r0`) after the first load.
-        if (!(p->flags & YAT_FLAG_ON)) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
         color = 0x60606060;
@@ -1848,17 +1842,17 @@ void EmYarareDisp(cEm* em)
         if (em->hp <= 0) {
             color = 0;
         }
-        if (!(p->flags & YAT_FLAG_ON)) {
+        if (!(p->flag & YAT_FLAG_ON)) {
             color = 0;
         }
-        if (p->flags & YAT_FLAG_CUBE) {
+        if (p->flag & YAT_FLAG_CUBE) {
             parts = HitParts(em, p);
-            AtCubeDisp(parts->mat, &p->ofs, p->width, p->height, p->depth, color);
+            AtCubeDisp(parts->mat, &p->offset, p->radius, p->height, p->extent, color);
         } else {
-            bottom = p->ofs;
-            top = p->ofs;
-            if (p->flags & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
-                if (p->flags & YAT_FLAG_X_AXIS) {
+            bottom = p->offset;
+            top = p->offset;
+            if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
+                if (p->flag & YAT_FLAG_X_AXIS) {
                     top.x += p->height;
                 } else {
                     top.z += p->height;
@@ -1871,7 +1865,7 @@ void EmYarareDisp(cEm* em)
             PSMTXMultVec(parts->mat, &top, &top);
             s.x = 0.0f;
             s.y = 0.0f;
-            s.z = p->width;
+            s.z = p->radius;
             PSMTXMultVecSR(parts->mat, &s, &s);
             AtCapsuleDisp(&top, &bottom, PSVECMag(&s), color);
         }
@@ -2111,7 +2105,7 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* pPos, Vec* pPosOld, int noSub)
     }
     part = EmAtkHitSubCk2(info, pPos, pPosOld);
     if (part) {
-        pSUB->dmg.set(0, 10, 0x18, pPosOld, part->rad, part);
+        pSUB->dmg.set(0, 10, 0x18, pPosOld, part->len, part);
         ret |= 2;
     }
     return ret;
@@ -2145,7 +2139,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (part == 0) {
         return 0;
     }
-    part->flags &= 0xBFFF;
+    part->flag &= 0xBFFF;
     pPL->dmg.m_pDamageYarare = part;
     if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
@@ -2229,7 +2223,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
     if (part == 0) {
         return 0;
     }
-    part->flags |= YAT_FLAG_DMPOS;
+    part->flag |= YAT_FLAG_DMPOS;
     return (cEm*) part;
 }
 
@@ -2293,7 +2287,7 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
     if (part == 0) {
         return 0;
     }
-    part->flags |= YAT_FLAG_DMPOS;
+    part->flag |= YAT_FLAG_DMPOS;
     return part;
 }
 
@@ -2338,7 +2332,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 {
     if (pSUB) {
-        pSUB->dmg.set(0, 10, 0x18, pPos, part->rad, part);
+        pSUB->dmg.set(0, 10, 0x18, pPos, part->len, part);
     }
 }
 
@@ -2368,7 +2362,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (part == 0) {
         return 0;
     }
-    part->flags &= ~0x4000;
+    part->flag &= ~0x4000;
     return part;
 }
 

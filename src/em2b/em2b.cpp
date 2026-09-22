@@ -507,7 +507,7 @@ void em2bDmCk(cEm2b* em)
     }
     part = em->dmg.m_pDamageYarare;
     near = 0;
-    if (part->rad < 64000000.0f) {
+    if (part->len < 64000000.0f) {
         near = 1;
     }
     dmg = em2bSetDmVal(em);
@@ -528,7 +528,7 @@ void em2bDmCk(cEm2b* em)
     case 0x26:
     case 0x28:
     case 0x2B:
-        if (part->partsNo == 0x3F) {
+        if (part->parts_no == 0x3F) {
             EmDmBloodSet2(em, w->Eff, 0x25, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, w->Eff, 0, 0, 0, 0);
@@ -539,7 +539,7 @@ void em2bDmCk(cEm2b* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        if (part->partsNo == 0x3F) {
+        if (part->parts_no == 0x3F) {
             EmDmBloodSet2(em, w->Eff, 0x25, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, w->Eff, 1, 0, 0, 0);
@@ -548,7 +548,7 @@ void em2bDmCk(cEm2b* em)
     case 7:
     case 8:
     case 0x21:
-        if (part->partsNo == 0x3F) {
+        if (part->parts_no == 0x3F) {
             if (near) {
                 EmDmBloodSet2(em, w->Eff, 0x26, 0, 0, 0);
             } else {
@@ -570,7 +570,7 @@ void em2bDmCk(cEm2b* em)
     case 0x2C:
     case 0x2D:
     default:
-        if (part->partsNo == 0x3F) {
+        if (part->parts_no == 0x3F) {
             EmDmBloodSet2(em, w->Eff, 0x26, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, w->Eff, 2, 0, 0, 0);
@@ -581,7 +581,7 @@ void em2bDmCk(cEm2b* em)
     case 0x2A:
         break;
     case 0xD:
-        if (part->partsNo == 0x3F) {
+        if (part->parts_no == 0x3F) {
             EmDmBloodSet2(em, w->Eff, 0x26, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, w->Eff, 2, 0, 0, 0);
@@ -590,13 +590,13 @@ void em2bDmCk(cEm2b* em)
         em->hp = 0;
         break;
     }
-    if (part->partsNo == 0x3F) {
+    if (part->parts_no == 0x3F) {
         SndCall(8, 0x2F, &em->pos, em->id, 0, em);
         SndCall(8, 0x2D, &em->pos, em->id, 0, em);
     } else {
         SndCall(8, 8, &em->pos, em->id, 0, em);
     }
-    if (part->partsNo == 0x3F) {
+    if (part->parts_no == 0x3F) {
         if (em->dmg.m_Wep != 0x17 && em->dmg.m_Wep != 0x2A) {
             em->hp -= dmg * 2;
         }
@@ -824,9 +824,9 @@ void cEm2b::move()
         flag |= 0x10;
     }
     if (w->pParasite && hp > 0) {
-        w->hit[9].flags |= 1;
+        w->hit[9].flag |= 1;
     } else {
-        w->hit[9].flags &= ~1;
+        w->hit[9].flag &= ~1;
     }
     if (w->pTreeBrk) {
         if (w->No_go_sub_timer) {
@@ -913,7 +913,7 @@ static void em2b_R0_Init(cEm2b* em)
     w->pCtrlGroup = GetCtrlCtrl12();
     at = &em->atari;
     em2bTexrenderInit(em);
-    em->pFootShadowTbl = &Em2b_fs_tbl;
+    em->pFsdTbl = &Em2b_fs_tbl;
     em->Motion.flip = em2b_xflip_tbl;
     ((cParts*) em->getPartsPtr(0x12))->motParts.flags |= 0x1000;
     ((cParts*) em->getPartsPtr(0x16))->motParts.flags |= 0x1000;
@@ -1101,7 +1101,7 @@ static void em2b_R1_R11E_Appear(cEm2b* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x59), 0, 0, 1, 0);
-        EstSet(em, -1, 0, 0, w->espKind2, 0x1C, 1, ESP_CORE_KIND_NONE, em, (void*) step);
+        EstSet(em, -1, 0, 0, w->Eff, 0x1C, 1, ESP_CORE_KIND_NONE, em, (void*) step);
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
@@ -1235,9 +1235,7 @@ static void em2b_R1_Walk(cEm2b* em)
             }
             break;
         case 3:
-            // COMPILER-DIFF: #12 (cse re-walk): the variant-1 body's zeros are a fresh `li`, the variant-0 body's are `zero`
-            asm("" : "+r"(zero));
-            switch (w->variant) {
+            switch (w->Ft_axis) {
             case 0:
             default:
                 w->blendM0 = ARC(0x32);
@@ -3057,7 +3055,7 @@ static inline void em2bParasiteSet(cEm2b* em, Em2bWork* w, int hokan)
     w->pParasite = (cObj16*) SetObj16(ARC(0xD6), ARC(0xD7), em, em, 0x3E, 8, 0, 0);
     if (w->pParasite) {
         MotSetObj16(w->pParasite, ARC(0xDA), 0, hokan);
-        EstSet(w->pParasite, -1, 0, 0, w->espKind2, 0x1E, 0, w->espKind, w->pParasite, 0);
+        EstSet(w->pParasite, -1, 0, 0, w->Eff, 0x1E, 0, w->espKind, w->pParasite, 0);
     }
 }
 
@@ -3099,7 +3097,7 @@ static void em2b_R1_Dm_Face(cEm2b* em)
             } else {
                 MotSetObj16(w->pParasite, ARC(0xDA), 0, 0);
             }
-            EstSet(w->pParasite, -1, 0, 0, w->espKind2, 0x1E, 0, w->espKind, w->pParasite, 0);
+            EstSet(w->pParasite, -1, 0, 0, w->Eff, 0x1E, 0, w->espKind, w->pParasite, 0);
         }
         em2bSetTentacle(em, 1);
         w->Be_flg |= 0x1000;
@@ -3677,10 +3675,10 @@ void em2bParasiteAtkCamMove(cEm2b* em)
     at.y += p->world.y - pPL->pos.y;
     w->Cam.param.pos = pos;
     w->Cam.param.at = at;
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -4075,9 +4073,9 @@ void em2bNeckMove(cEm2b* em)
     }
     p = (cParts*) em->getPartsPtr(3);
     p->motParts.flags |= 0x40000000;
-    p->addRot.x = 0.0f;
-    p->addRot.y = w->Neck_dir_y;
-    p->addRot.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = w->Neck_dir_y;
+    p->inv_offset.z = 0.0f;
 }
 
 // Two-motion blend: m0 on the main motion work, m1 (Blend < 0) or m2 on the blend work with the
@@ -4086,14 +4084,11 @@ void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int 
 {
     Em2bWork* w = EM2B_WK(em);
     MotionWork* bm;
-    int ai, dd;
-    asm("" : "=r"(ai) : "0"((int) a)); // COMPILER-DIFF: #2 (u16 argument masked at the calls)
-    asm("" : "=r"(dd) : "0"((int) d)); // COMPILER-DIFF: #2
     f32 val = fabsf(w->Blend);
     void* m;
     int arg;
 
-    MotionSetCore(em, &em->Motion, m0, (void*) ai, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, &em->Motion, m0, (void*) a, (u8) w->Hokan, (u16) d, (u16) w->Frame);
     if (w->Blend < 0.0f) {
         m = m1;
         arg = b;
@@ -4102,7 +4097,7 @@ void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int 
         arg = c;
     }
     bm = EM2B_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, (void*) arg, (u8) w->Hokan, (u16) d, (u16) w->Frame);
     em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->Hokan) {
@@ -4419,10 +4414,10 @@ void em2bEscapeCamMove(cEm2b* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->Cam.param.at, &d, &w->Cam.param.pos);
     }
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5340,10 +5335,10 @@ void em2bBlowCamMove(cEm2b* em, f32 rate)
     w->Cam.param.pos = g->Camera.param.pos;
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, rate);
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -5364,10 +5359,10 @@ void em2bStampCamMove(cEm2b* em)
     PosToPos(&g->Camera.param.pos, &v, &w->Cam.param.pos, 0.100000001f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, 0.300000012f);
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -6139,14 +6134,14 @@ int em2bSetDmVal(cEm2b* em)
     int near = 0;
     int dmg;
 
-    if (part->rad < 64000000.0f) {
+    if (part->len < 64000000.0f) {
         near = 1;
     }
     dmg = 10;
     if (em->dmg.m_Wep <= 0x2D) {
         dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
-    if (part->partsNo == 5) {
+    if (part->parts_no == 5) {
         dmg += dmg / 2;
     }
     switch (em->type) {
@@ -6398,7 +6393,7 @@ void em2bTexrenderInit(cEm2b* em)
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = w->pMgr->texId;
+    tbl[5] = w->pMgr->m_Tex_no;
     w->pMgr->m_Rep_type = 1;
     w->pMgr->m_H_size = w->pMgr->m_W_size = 0x40;
 }

@@ -573,7 +573,7 @@ void emWep_R1_Fall(cEmWep* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        n->spd.y -= w->grav;
+        n->spd.y -= w->Gravity;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->reflect = 0;
     }
@@ -636,7 +636,7 @@ void emWep_R1_Fall(cEmWep* em)
                 n->spd.z *= fRand0_1() * 0.2f + 0.4f;
                 break;
             }
-            if (n->spd.y <= w->grav) {
+            if (n->spd.y <= w->Gravity) {
                 if (n->spd.y > 0.0f) {
                     n->spd.y = 0.0f;
                 }
@@ -727,7 +727,7 @@ void emWep_R1_Throw(cEmWep* em)
         }
         break;
     }
-    w->spd.y -= w->grav;
+    w->spd.y -= w->Gravity;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
     if (EatMgr.hitCheck(&em->pos_old, &em->pos, 0, 0, 0, 0)) {
         em->setFall(0, 0, 20.0f);
@@ -941,16 +941,16 @@ void emWep_R1_Shot(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
-            if ((part->flags & YAT_FLAG_DMPOS) == 0) {
+            if ((part->flag & YAT_FLAG_DMPOS) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
             }
             no = 0;
-            if (part->partsNo != 0) {
-                no = part->partsNo - 1;
+            if (part->parts_no != 0) {
+                no = part->parts_no - 1;
             }
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
-            PSMTXMultVec(inv, &part->pos, &em->pos);
+            PSMTXMultVec(inv, &part->cross, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
@@ -985,16 +985,16 @@ void emWep_R1_Shot(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamageSub(part, w->pAtk, &em->pos_old, &em->pos);
-            if ((part->flags & YAT_FLAG_DMPOS) == 0) {
+            if ((part->flag & YAT_FLAG_DMPOS) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
             }
             no = 0;
-            if (part->partsNo != 0) {
-                no = part->partsNo - 1;
+            if (part->parts_no != 0) {
+                no = part->parts_no - 1;
             }
             PSMTXInverse(pSUB->getPartsPtr(no)->mat, inv);
-            PSMTXMultVec(inv, &part->pos, &em->pos);
+            PSMTXMultVec(inv, &part->cross, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
@@ -1792,10 +1792,10 @@ void emWepEscapeCamMove(cEmWep* em)
     len = (w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x)
         + (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y)
         + (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z);
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = SQRTF(len);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = SQRTF(len);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -1873,7 +1873,7 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
     w->pEm_oya = 0;
     w->pEm_old = 0;
     hp = 0;
-    w->grav = grav;
+    w->Gravity = grav;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
@@ -1890,12 +1890,7 @@ void cEmWep::setThrow(Vec* spd, EmAtkInfo* atk, f32 grav)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
-    f64 hd; // COMPILER-DIFF: #8
 
-    // COMPILER-DIFF: #8 -- the original ranks `fmr f30,f1` (grav) after `mr r26,r5; addi w`, i.e. as
-    // if f1 did not die at the copy; the DFmode read of f1 keeps it live past the copy (see
-    // emshield setFall / docs/matching.md #8).
-    asm("" : "=m"(hp) : "f"(hd));
     if (spd) {
         v = *spd;
     } else {
@@ -1911,7 +1906,7 @@ void cEmWep::setThrow(Vec* spd, EmAtkInfo* atk, f32 grav)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    w->grav = grav;
+    w->Gravity = grav;
     ang.x = 0.0f;
     ang.y = atan2f(v.x, v.z);
     ang.z = 0.0f;
@@ -2274,11 +2269,11 @@ void cEmWep::setGrenadeThrow(Vec* spd, int fuse, void* motEscape, void* motEscap
     w->pEm_oya = 0;
     hp = 1;
     setYarareCube(400.0f, 800.0f, 400.0f, 0);
-    w->motFront = motFront;
+    w->Mot_escape3 = motFront;
     w->Bomb_wait = fuse;
     w->Mot_escape = motEscape;
-    w->motEscape2 = motEscape2;
-    w->motBackjump = motBackjump;
+    w->Seq_escape = motEscape2;
+    w->Mot_escape2 = motBackjump;
     w->pAtk = 0;
     r_no_0 = 1;
     r_no_1 = 0xC;
@@ -2563,14 +2558,14 @@ int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
         }
         part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
-            part->flags |= YAT_FLAG_DMPOS;
+            part->flag |= YAT_FLAG_DMPOS;
             hitEm = e;
             hitPart = part;
             hit = hitPos;
         }
     }
     if (hitEm) {
-        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->rad, hitPart);
+        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->len, hitPart);
     }
     return hitEm != 0;
 }
@@ -2631,14 +2626,14 @@ int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
         }
         part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
-            part->flags |= YAT_FLAG_DMPOS;
+            part->flag |= YAT_FLAG_DMPOS;
             hitEm = e;
             hitPart = part;
             hit = hitPos;
         }
     }
     if (hitEm) {
-        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->rad, hitPart);
+        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->len, hitPart);
     }
     return hitEm != 0;
 }

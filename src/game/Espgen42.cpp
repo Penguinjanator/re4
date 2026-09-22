@@ -545,9 +545,9 @@ void Espgen42_Move00(EspgenWork* w)
             u32 k4 = k * 4;
             *(f32*) ((u8*) p->hB + k4) -= wt_pow;
         }
-        f32 damp = p->damp;
+        f32 damp = p->Prm_a;
         f32 cdamp = 2.0f - damp * 4.0f;
-        f32 spread = p->spread;
+        f32 spread = p->Prm_dmp;
         f32* cur;
         f32* next;
         if (pG->Frame_cnt & 1) {
@@ -627,14 +627,12 @@ void Espgen42_Move00(EspgenWork* w)
         // COMPILER-DIFF: loop.c move_movables. The target hoists one more invariant out of the inner loop before the
         // 4.0 pool pair (threshold 71 - 3 per moved insn), so 4.0 stays for the outer pass (f20, outer preheader) and
         // 0.0018 moves in the inner pass 2 (f25). A codeless asm set of `i` used after the inner loop is that extra
-        // moved insn (no register: it takes the free r19); the input-only asm is +1 loop.c insn_count (175 -> 177;
-        // 44*4 = 176 must be below it). Both emit nothing. The real construct is unknown.
+        // moved insn (no register: it takes the free r19). It emits nothing. The real construct is unknown.
         int dead;
         for (i = 1; i < p->ny; i++) {
             k = i * (p->nx + 1);
             for (j = 1; j < p->nx; j++) {
                 asm("" : "=r"(dead) : "r"(i));
-                asm("" : : "r"(i));
                 j7 = j & 7;
                 nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + (((i) & 3) << 3) + j7;   // NOISE_INDEX with the shared j7
                 nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
@@ -937,8 +935,8 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     f32 fy;
 
     w->id = 0x42;
-    p->damp = 0.05f;
-    p->spread = 0.95f;
+    p->Prm_a = 0.05f;
+    p->Prm_dmp = 0.95f;
     p->nx = nx;
     p->ny = ny;
     p->size = size;
@@ -1209,14 +1207,14 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->amb.a = rec->Col_d_a * 255.0f;
         p->mode = rec->Work8[0];
         if (p->mode == 2) {
-            p->damp = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
-            if (p->damp > 0.5f) {
-                p->damp = 0.5f;
+            p->Prm_a = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
+            if (p->Prm_a > 0.5f) {
+                p->Prm_a = 0.5f;
             }
-            if (p->damp < 0.0f) {
-                p->damp = 0.0f;
+            if (p->Prm_a < 0.0f) {
+                p->Prm_a = 0.0f;
             }
-            p->spread = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
+            p->Prm_dmp = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
         }
         p->texId = rec->Tex_id;
         p->indS = rec->prm.h.xCE;

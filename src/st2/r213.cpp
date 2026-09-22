@@ -109,44 +109,26 @@ static void R213Event();
 extern "C" void Evt_R213S00_Func(Event* e);
 
 #define R213_EM_ARC(no) ((void*) (pG->pCore->ofs_##no + (u32) pG->pCore))
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec rot = {0,0,0}`
-// libcall for an explicit call (see R213Init).
-extern "C" void* r213_memset(void*, ...) asm("memset");
 
-// The collision pieces are set up in R213Init itself: `pos` at the frame base is the frame pointer
-// (fresh `addi r6,r1,8` per create call). The original's `&rot` is the memset argument pseudo P
-// (`addi r3,r1,24`, computed after the pos memset) copied into the create calls' register between
-// the argument move and the call (`li r4,0; mr r31,r3`), and `&door0` (the PRE copy `addi r26,r1,40`)
-// sits after the rot memset; our gcse/sched1 hoist both above the preceding call (COMPILER-DIFF 3 (c)).
-// Spelled out: the hard-register `a3` is the argument (its set depends on the pos memset's r3
-// clobber), `pr = a3` is the copy, and the codeless volatile asm keeps the `&door0` insertion at the
-// block end behind the second memset.
+// The collision pieces are set up in R213Init itself.
 void R213Init()
 {
 #line 67 "D:/Bio4/Prog/r213.cpp"
     r213_work = (R213Work*) MEM_CALLOC(sizeof(R213Work), 1, 0xd);
     Vec pos = {0.0f, 0.0f, 0.0f};
-    Vec rot;
-    Vec* pr;
+    Vec rot = {0.0f, 0.0f, 0.0f};
     cEmDoor* door0;
     cEmDoor* door1;
     u32 i;
 
-    {
-        register Vec* a3 asm("r3"); // COMPILER-DIFF: 3
-        a3 = &rot;
-        pr = a3;
-        r213_memset(a3, 0, sizeof(Vec));
-    }
-    asm volatile(""); // COMPILER-DIFF: 3
     for (i = 0; i < 3; i++) {
         r213_work->sat[i] = 0;
         r213_work->eat[i] = 0;
     }
-    r213_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1);
-    r213_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1);
-    r213_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2);
-    r213_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3);
+    r213_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+    r213_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
+    r213_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
+    r213_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
     r213_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {
@@ -224,8 +206,8 @@ void R213SuInit()
             tbl[0] = 1;
             tbl[1] = 0;
             tbl[4] = 0xF7;
-            tbl[5] = r213_work->tex->texId;
-            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            tbl[5] = r213_work->tex->m_Tex_no;
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0, 0);
         } else {
             pLog->err(0, 0, "R213Init() : Manager alloc failed!!");
         }
@@ -1058,7 +1040,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
 {
     f32 clip = 200.0f;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:
@@ -1076,9 +1058,9 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 if (r213_work->tex) {
-                    EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-                    EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-                    EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEspDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 SpfFlagOn(pG, SPF_ESP_AREA);
             }
@@ -1092,14 +1074,14 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 if (r213_work->tex) {
-                    EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-                    EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-                    EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEspDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 StaFlagOff(pG, STA_EVENT);
                 SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
                 if (r213_work->tex) {
-                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
                 }
                 StaFlagOn(pG, STA_EVENT);
                 SpfFlagOff(pG, SPF_ESP_AREA);
@@ -1121,15 +1103,15 @@ extern "C" void Evt_R213S00_Func(Event* e)
         EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
         EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
         if (r213_work->tex) {
-            EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-            EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-            EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEspDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, 0);
         }
         frame = 0;
         StaFlagOff(pG, STA_EVENT);
         SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
         if (r213_work->tex) {
-            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->m_Core_flg | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
         }
         StaFlagOn(pG, STA_EVENT);
         SpfFlagOff(pG, SPF_ESP_AREA);

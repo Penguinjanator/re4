@@ -386,7 +386,7 @@ void em2cDmCk(cEm2c* em)
     w->wakeWait = 0;
     near = 0;
     part = em->dmg.m_pDamageYarare;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     dmAng = fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f));
@@ -404,7 +404,7 @@ void em2cDmCk(cEm2c* em)
     case 0x2C:
         if (!(w->flags & 0x800) && w->routeAngAbs < 0.52359879f && (w->flags & 0x40000) && Rnd() % 100 > 49) {
             em->dmg.m_Timer = 0xA;
-            py = part->pos.y;  // loaded once (both arms read it)
+            py = part->cross.y;  // loaded once (both arms read it)
             // one if/else (two RS blocks, fresh zeros): the four-arm nest cross-jumps the stores first and
             // leaves the li blocks unmerged
             if (em->pos.y > 1700.0f ? py > 1.0f : py > 0.0f) {
@@ -789,7 +789,7 @@ void em2cTailDmCk(cEm2c* em)
     }
     w->wakeWait = 0;
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, 3.14159274f));
@@ -1262,7 +1262,6 @@ static void em2c_R1_Walk(cEm2c* em)
     w->flags |= 0x100;
     w->flags |= 0x40000;
     switch (em->r_no_2) {
-        do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
         if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 0xB;
@@ -1448,7 +1447,6 @@ static void em2c_R1_Dash(cEm2c* em)
 
     w->flags |= 0x180;
     switch (em->r_no_2) {
-        do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
         if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 8;
@@ -3068,7 +3066,6 @@ static void em2c_R1_F_Walk(cEm2c* em)
 
     w->flags |= 0x100;
     switch (em->r_no_2) {
-        do { } while (0);  // dead loop before the label: the arm does not know xFE == 0 (fresh `li 0` for the zero stores)
     case 0:
         if (em->Motion.Mot_attr & 0x40) {
             w->blendSeq = 0xB;
@@ -4937,7 +4934,7 @@ int em2cSetDmVal(cEm2c* em)
     int near = 0;
     int dmg;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     dmg = 100;
@@ -5778,9 +5775,9 @@ void em2cNeckMove(cEm2c* em)
     }
     p = (cParts*) em->getPartsPtr(3);
     p->motParts.flags |= 0x40000000;
-    p->addRot.x = 0.0f;
-    p->addRot.y = w->Neck_dir_y;
-    p->addRot.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = w->Neck_dir_y;
+    p->inv_offset.z = 0.0f;
 }
 
 // Player hit by a side attack: knocked to the side the attack came from.
@@ -6030,10 +6027,10 @@ void em2cEscapeCamMove(cEm2c* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -6142,15 +6139,11 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
 {
     Em2cWork* w = EM2C_WK(em);
     MotionWork* bm;
-    int dd;
-    int aa;
-    asm("" : "=r"(aa) : "0"(a));            // COMPILER-DIFF: #2 (order only: gives a's copy the same chain length as d's so `mr r0,r7` keeps its place)
-    asm("" : "=r"(dd) : "0"((int) d));     // COMPILER-DIFF: #2: the original masks the u16 `d` at each MotionSetCore call (`clrlwi r8,r25,16`)
     f32 val = fabsf(w->blendVal);
     void* m;
     int arg;
 
-    MotionSetCore(em, &em->Motion, m0, (void*) aa, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, &em->Motion, m0, (void*) a, (u8) w->blendCnt, (u16) d, (u16) w->blendSeq);
     if (w->blendVal > 0.0f) {
         m = m1;
         arg = b;
@@ -6159,7 +6152,7 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
         arg = c;
     }
     bm = EM2C_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) d, (u16) w->blendSeq);
     em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->blendCnt) {
@@ -6213,11 +6206,11 @@ void em2cTexrenderInit(cEm2c* em)
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = w->pTex->texId;
+    tbl[5] = w->pTex->m_Tex_no;
     w->pTex->m_Rep_type = 1;
     w->pTex->m_H_size = w->pTex->m_W_size = 0x40;
     zero = 0;
-    EstSet(0, -1, 0, 0, EFF_EM2C, 0, w->pTex->mask | 0x801, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
+    EstSet(0, -1, 0, 0, EFF_EM2C, 0, w->pTex->m_Core_flg | 0x801, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
 }
 
 // Freezes the boss (liquid nitrogen): flag 0x800, ice guard guardCnt 900, the room's frozen flag

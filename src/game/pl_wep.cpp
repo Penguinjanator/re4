@@ -55,7 +55,7 @@ static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; 
 cPlWep::cPlWep()
 {
     m_pWep = 0;
-    pObj2 = 0;
+    m_pWepHand = 0;
     m_EmRankPtr = 0;
 }
 
@@ -85,9 +85,9 @@ void cPlayer::weaponRelease()
         ObjMgr.destroyNow((cObj*) Wep->m_pWep);
         Wep->m_pWep = 0;
     }
-    if (Wep->pObj2) {
-        ObjMgr.destroyNow((cObj*) Wep->pObj2);
-        Wep->pObj2 = 0;
+    if (Wep->m_pWepHand) {
+        ObjMgr.destroyNow((cObj*) Wep->m_pWepHand);
+        Wep->m_pWepHand = 0;
     }
     endCamera();
     if ((stat & 1) == 0) {
@@ -371,8 +371,8 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
             break;
         }
         if (!(dmg->m_Flag & 1)) {
-            dmg->set(0, 10, type, pPos, part->rad, part);
-            if (part->flags & YAT_FLAG_THROUGH) {
+            dmg->set(0, 10, type, pPos, part->len, part);
+            if (part->flag & YAT_FLAG_THROUGH) {
                 dmg->m_Flag |= 0x20;
             }
         }
@@ -516,7 +516,7 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
         }
         YARARE_INFO* part = list[i].part;
         if (!(dmg->m_Flag & 1)) {
-            dmg->set(0, 10, type, pos, part->rad, part);
+            dmg->set(0, 10, type, pos, part->len, part);
         }
     }
     return n;
@@ -598,8 +598,8 @@ void cPlWep::setTrans(int on, int type)
         }
         break;
     }
-    if (pObj2) {
-        pObj2->setDisp(2, on);
+    if (m_pWepHand) {
+        m_pWepHand->setDisp(2, on);
     }
 }
 
@@ -1023,9 +1023,6 @@ void PlWepLockCtrl(cModel* plm)
         }
         pl->m_Fwork0 += d;
         if (pl->m_Fwork0 > lim) {
-            // COMPILER-DIFF: candidate (alias): the target reloads repCtr in the shared `rot.y -=`
-            // else-arm below (`lfs f12,repCtr`), ours kept the value loaded for the yaw stick step.
-            asm("" : "=m"(repCtr));
             pl->m_Fwork0 = lim;
             if (Joy[0].on & 1) {
                 pl->ang.y += 0.039269908f;

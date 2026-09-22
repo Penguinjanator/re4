@@ -74,13 +74,13 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             if (m_menu_sw == 0) {
                 m_timer = 5;
                 m_menu_sw = 1;
-                save_mode = pG->debug_mode;
+                m_printNo_bak = pG->debug_mode;
                 pG->debug_mode = 1;
                 m_cam_play = 0;
                 adjust_qFPS(NULL, 0, 0, 1, NULL);
             } else {
                 m_menu_sw = 0;
-                pG->debug_mode = save_mode;
+                pG->debug_mode = m_printNo_bak;
             }
         }
     }
@@ -250,7 +250,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     if (m_cam_mode == 5) {
         (this->*camera_type_tbl[1])(cam, joy);
     } else {
-        cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
+        cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
         (this->*camera_type_tbl[m_key_type])(cam, joy);
     }
     if (DbgFlagChk(pG, DBG_DBG_CAM) && info_disp) {
@@ -272,7 +272,7 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
     f32 spd = 100.0f;
-    f32 d = cam->dist / 1000.0f;
+    f32 d = cam->Distance / 1000.0f;
 
     if (joy->on & (JOY_R | JOY_L)) {
         f32 t;
@@ -287,7 +287,7 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
         t *= m_move_gain;
         switch (ProjType) {
         case 1: {
-            f32 dist = cam->dist + t;
+            f32 dist = cam->Distance + t;
             if (dist < 100.0f) {
                 mv.z = 0.0f;
             }
@@ -368,7 +368,7 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
     f32 dist_min = 1500.0f;
-    f32 d = cam->dist / 1000.0f;
+    f32 d = cam->Distance / 1000.0f;
 
     if (joy->on & (JOY_R | JOY_L)) {
         f32 t;
@@ -383,7 +383,7 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
         t *= m_move_gain;
         switch (ProjType) {
         case 1: {
-            f32 dist = cam->dist + t;
+            f32 dist = cam->Distance + t;
             if (dist < 1500.0f) {
                 if (!(joy->on & JOY_A)) {
                     mv.z = dist - 1500.0f;
@@ -460,7 +460,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     if (ret == -1) {
         m_menu_sw = 0;
         m_timer = 5;
-        pG->debug_mode = save_mode;
+        pG->debug_mode = m_printNo_bak;
     }
     // The split `lbz r0,24(r31); clrlwi r11,r0,24` head and the `beq` landing on the tail's `stw`
     // are gcse PRE of the cam_mode byte into `old_cam_mode = cam_mode` below; it needs the empty
@@ -525,12 +525,10 @@ void debugCamera::menu(Camera* cam, JOY* joy)
                 memcpy(d1, &target, sizeof(Vec));
             }
             {
-                u8* d2 = (u8*) &pG->Camera.up;
+                u8* d2 = (u8*) &pG->Camera.Up;
                 memcpy(d2, &up, sizeof(Vec));
             }
             pG->Camera.param.roll = 0.0f;
-            // COMPILER-DIFF: candidate (sched2 tie, second half; see the campos copy above).
-            asm("" : "=m"(ProjType) : "r"(t));
             CameraSetOrientationUp(&pG->Camera);
             DbgFlagOn(pG, DBG_DBG_CAM);
         }
@@ -604,7 +602,7 @@ int debugCamera::menuCamera(JOY* joy)
             break;
         case 3: {
             int max = -1;
-            CameraDataHeader* data = CamCtrl.data;
+            CameraDataHeader* data = CamCtrl.pCamData;
             CameraAreaRec* rec = (CameraAreaRec*) (data + 1);
             CameraAreaInfo* area = (CameraAreaInfo*) (rec + data->numArea);
             CameraCut* cut = (CameraCut*) (area + data->numArea);
@@ -626,7 +624,7 @@ int debugCamera::menuCamera(JOY* joy)
             if (joy->trg & JOY_A) {
                 if (CamCtrl.DataSearch(m_cam_no)->type == 6) {
                     CamCtrl.CutCall(m_cam_no);
-                    pG->debug_mode = save_mode;
+                    pG->debug_mode = m_printNo_bak;
                     m_cam_play++;
                 }
             }
@@ -933,7 +931,7 @@ int debugCamera::menuAdjust(JOY* joy)
         pG->Camera = CamCtrl.camera;
     }
     old_ret = ret;
-    cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
+    cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
     switch (ret) {
     case -1:
         return -1;
@@ -1361,13 +1359,13 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             switch (site_UMD) {
             case 0:
-                q->angle_y = 1.0f;
+                q->m_depression_ratio = 1.0f;
                 break;
             case 1:
-                q->angle_y = 0.0f;
+                q->m_depression_ratio = 0.0f;
                 break;
             case 2:
-                q->angle_y = -1.0f;
+                q->m_depression_ratio = -1.0f;
                 break;
             }
             if (site_NF == 0) {
@@ -1400,11 +1398,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             menu_level = 1;
         } else if (joy->trg & JOY_A) {
             PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->Campos);
-            PSMTXMultVec(inv, &g->Camera.param.at, &QOFS(p_offset)->target);
+            PSMTXMultVec(inv, &g->Camera.param.at, &QOFS(p_offset)->Target);
             if (symmetry_flag) {
                 memcpy(p_counter, p_offset, sizeof(QfpsOfs));
                 QOFS(p_counter)->Campos.x = -QOFS(p_counter)->Campos.x;
-                QOFS(p_counter)->target.x = -QOFS(p_counter)->target.x;
+                QOFS(p_counter)->Target.x = -QOFS(p_counter)->Target.x;
             }
             q->setAreaData(g_local_ready, g_local_trans);
             PSMTXMultVec(pPL->mat, &QOFS(p_offset)->campos2, &CamCtrl.camera.param.pos);

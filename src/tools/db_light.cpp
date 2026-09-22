@@ -66,12 +66,12 @@ public:
     u16 nCut;             // 0x00
     u8 version;           // 0x02
     u8 nMaxLight;         // 0x03
-    cLightEnv* cut[256];  // 0x04
+    cLightEnv* pLh[256];  // 0x04
 
     cDbLit();
     u32 size();
     cLightEnv* getCut(u16 no);
-    int isCut(u16 no) { return cut[no] != NULL; }
+    int isCut(u16 no) { return pLh[no] != NULL; }
     int fileLoad(const char* path);
     int init(cLit* lit);
     void preEventSave();
@@ -82,8 +82,8 @@ public:
 // Light path table being edited: one Debug_alloc'd copy per path, plus the path under edit.
 class cLitPathTool {
 public:
-    cLightPathData* path[256];  // 0x000
-    u8 edit[0x258];             // 0x400
+    cLightPathData* Ofs[256];  // 0x000
+    u8 Work[0x258];             // 0x400
 
     cLitPathTool();
     ~cLitPathTool();
@@ -115,10 +115,10 @@ public:
     u8 EditCutNo;          // 0x15  cut the game camera selects
     u8 CutNum;            // 0x16
     u8 pad_17;
-    int mode;              // 0x18  0 room local, 1 room server, 2 event, 3 core, 4 tool, 5 item
-    u8 ret;                // 0x1C  move() result: 1 = running, 2 = player mode, 0 = quit
+    int DataType;              // 0x18  0 room local, 1 room server, 2 event, 3 core, 4 tool, 5 item
+    u8 be_flag;                // 0x1C  move() result: 1 = running, 2 = player mode, 0 = quit
     u8 Mode;              // 0x1D  0 init, 1 camera mode, 2 player mode, 10 mode select
-    u8 color;              // 0x1E
+    u8 PageNo;              // 0x1E  debug print page (pG->debug_mode) the eprintf calls draw on (PS2 PageNo; was `color`)
     u8 PrintNoBak;           // 0x1F
     cVarLoop<u8> modeSel;  // 0x20
     u8 cursor;             // 0x28
@@ -127,18 +127,18 @@ public:
     u8 table_height;               // 0x2B  light table rows per page
     u8 LitAnaIdx;             // 0x2C
     u8 pad_2D[3];
-    int col;               // 0x30  light table column
+    int cx;               // 0x30  light table column
     int cy;               // 0x34  light table row
     int table_y;               // 0x38  first light / cut shown
-    u8* anaTbl;            // 0x3C  lightAnalysis: 4 bytes per scroll object
+    u8* LitAnaWork;            // 0x3C  lightAnalysis: 4 bytes per scroll object
     cLight LitTmp;          // 0x40  copy buffer
     cLightEnv* CutTmp;   // 0x194
     JOY Pad1;               // 0x198
-    JOY joy1;              // 0x400
-    f32 logX;              // 0x668
+    JOY Pad2;              // 0x400
+    f32 logx;              // 0x668
     f32 logy;              // 0x66C
     cDbLit Lit;            // 0x670
-    cLitPathTool litPath;  // 0xA74
+    cLitPathTool PathTool;  // 0xA74
 
     cLightTool();
     ~cLightTool();
@@ -369,18 +369,18 @@ int SetToolLight(int no)
 cLightTool::cLightTool() : modeSel(0, 2, 0)
 {
     pTool = this;
-    ret = 1;
+    be_flag = 1;
     table_height = 7;
-    mode = 1;
+    DataType = 1;
     rno0 = rno1 = rno2 = rno3 = rno4 = rno5 = rno6 = rno7 = sno0 = sno1 = sno2 = sno3 = pno0 = pno1 = pno2 = pno3 = 0;
     cursor = 0;
     cursorCtr = 0;
     curSub = 0;
     Mode = 0;
     cy = 0;
-    col = 0;
+    cx = 0;
     table_y = 0;
-    color = pG->debug_mode;
+    PageNo = pG->debug_mode;
     PrintNoBak = pG->debug_mode;
     pLightEnv = LightMgr.getEnvPtr();
     nLightWork = LightMgr.getArrayNum();
@@ -391,13 +391,13 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     CutTmp = NULL;
     initLightWork(&LitTmp);
     pTool->Flag |= 0x20;
-    anaTbl = (u8*) Debug_alloc(ObjMgr.getArrayNum() * 4, 1);
-    if (!VALID_PTR(anaTbl)) {
+    LitAnaWork = (u8*) Debug_alloc(ObjMgr.getArrayNum() * 4, 1);
+    if (!VALID_PTR(LitAnaWork)) {
         TOOL_ERR("cLightTool() MEMORY ERROR");
     }
     Flag |= 4;
     LitAnaIdx = 0;
-    logX = 24.0f;
+    logx = 24.0f;
     logy = 140.0f;
 }
 
@@ -417,40 +417,40 @@ int cLightTool::move()
     static void (*routine_tbl[])() = {menu, edit, path, load, save, option, quit};
     int i;
 
-    eprintf(0x18, 0xE, 0, color, "LIGHT TOOL");
-    switch (mode) {
+    eprintf(0x18, 0xE, 0, PageNo, "LIGHT TOOL");
+    switch (DataType) {
     case 0:
     case 1:
-        eprintf(0x1B0, 0xE, 0, color, "CUT%02d/%02d", cutNo, CutNum);
+        eprintf(0x1B0, 0xE, 0, PageNo, "CUT%02d/%02d", cutNo, CutNum);
         break;
     case 4:
-        eprintf(0x1B8, 0xE, 0, color, "TOOL %02d", cutNo);
+        eprintf(0x1B8, 0xE, 0, PageNo, "TOOL %02d", cutNo);
         break;
     case 2:
-        eprintf(0x1A8, 0xE, 0, color, "ROOM%02d/%02d", cutNo, CutNum);
+        eprintf(0x1A8, 0xE, 0, PageNo, "ROOM%02d/%02d", cutNo, CutNum);
         break;
     case 3:
-        eprintf(0x1B8, 0xE, 0, color, "CORE %02d", cutNo);
+        eprintf(0x1B8, 0xE, 0, PageNo, "CORE %02d", cutNo);
         break;
     }
     switch (Mode) {
     case 0:
         Pad1 = Joy[0];
-        joy1 = Joy[1];
-        ret = 1;
+        Pad2 = Joy[1];
+        be_flag = 1;
         break;
     case 1:
-        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, color, "CAMERA MODE");
+        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, PageNo, "CAMERA MODE");
         Joy[1] = Joy[0];
         Joy[1].trg &= ~JOY_START;
         memclr_asm(&Pad1, sizeof(JOY));
-        ret = 1;
+        be_flag = 1;
         break;
     case 2:
         EditCutNo = cutNo = getCutNo();
-        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, color, "PLAYER MODE");
-        joy1 = Joy[1];
-        ret = 2;
+        eprintf(0xD8, 0, (pG->Frame_cnt & 0x10) ? 0 : 0x14, PageNo, "PLAYER MODE");
+        Pad2 = Joy[1];
+        be_flag = 2;
         break;
     case 10:
         eprintf(0xD8, 0x38, 4, 0, "MODE SELECT");
@@ -476,13 +476,13 @@ int cLightTool::move()
             switch (st) {
             case 0:
                 DbgFlagOn(pG, DBG_DBG_CAM);
-                color = st;
+                PageNo = st;
                 break;
             case 1:
-                color = st;
+                PageNo = st;
                 break;
             case 2:
-                color = 1;
+                PageNo = 1;
                 updateLit();
                 DbgFlagOff(pG, DBG_DBG_CAM);
                 break;
@@ -530,16 +530,16 @@ int cLightTool::move()
             }
         }
     }
-    logX += (f32) Joy[0].substickX * 0.1f;
+    logx += (f32) Joy[0].substickX * 0.1f;
     logy -= (f32) Joy[0].substickY * 0.1f;
     {
-        int x = (int) logX;
+        int x = (int) logx;
         int y = (int) logy;
         cLog* l = pLog.p;
         l->m_Bx = x;
         l->m_By = y;
     }
-    return ret;
+    return be_flag;
 }
 
 // Flag bit test.
@@ -552,13 +552,13 @@ u32 cLightTool::dblCk(u32 bit)
 // (edit any cut), else only while the game camera is in the edited cut.
 int cLightTool::editEnable()
 {
-    if (mode == 3) {
+    if (DataType == 3) {
         return 1;
     }
-    if (mode == 2) {
+    if (DataType == 2) {
         return 1;
     }
-    if (mode == 4) {
+    if (DataType == 4) {
         return 1;
     }
     if (dblCk(8)) {
@@ -600,10 +600,10 @@ static void menu()
     int i;
     const char** name;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "MENU");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "MENU");
     name = menu_name;
     for (i = 0; i < 6; i++) {
-        eprintf(0x20, 0x38 + i * 14, 0, pTool->color, *name++);
+        eprintf(0x20, 0x38 + i * 14, 0, pTool->PageNo, *name++);
     }
     pTool->printCursor(3, pTool->cursor + 4);
     if (pTool->Pad1.rep & (JOY_UP | JOY_SUP)) {
@@ -643,10 +643,10 @@ static void edit_menu()
     u32 i;
     const char** name;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "EDIT WORK");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "EDIT WORK");
     name = edit_name;
     for (i = 0; i < sizeof(edit_name) / sizeof(char*); i++) {
-        eprintf(0x20, 0x38 + i * 14, 0, pTool->color, *name++);
+        eprintf(0x20, 0x38 + i * 14, 0, pTool->PageNo, *name++);
     }
     pTool->printCursor(3, pTool->cursor + 4);
     if (pTool->Pad1.rep & (JOY_UP | JOY_SUP)) {
@@ -680,11 +680,11 @@ static void edit_cutsel()
     // pinned, laundered r0 temp into an `int` line (the copy is opaque to loop.c, so `line * 14` stays a mulli)
     int line;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
-    eprintf(0x20, 0x46, 4, pTool->color, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "CUT TABLE");
+    eprintf(0x20, 0x46, 4, pTool->PageNo, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
     for (i = 0; i < 20; i++) {
         env = pTool->Lit.getCut(pTool->table_y + i);
-        eprintf(0x20, 0x54 + i * 14, pTool->table_y + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->table_y + i);
+        eprintf(0x20, 0x54 + i * 14, pTool->table_y + i == pTool->cutNo ? 0 : 0x14, pTool->PageNo, "%03d", pTool->table_y + i);
         {
             register int t asm("r0"); // COMPILER-DIFF: 4 (unmasked narrow store, see `line`)
             t = i + 6;
@@ -692,7 +692,7 @@ static void edit_cutsel()
             line = t;
         }
         if (VALID_PTR(env)) {
-            eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
+            eprintf(0x40, 0x54 + i * 14, 0, pTool->PageNo, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
                     env->FocusZ / 10, env->blur_rate);
             drawColorTile(0x58, 0x57 + i * 14, 0x18, 8, *(u32*) &env->AmbientScr);
             drawColorTile(0x78, 0x57 + i * 14, 0x20, 8, *(u32*) &env->Fog.Color);
@@ -700,11 +700,11 @@ static void edit_cutsel()
             if (env->tuneOn & 1) {
                 drawColorTile(0x140, 0x57 + i * 14, 0x20, 8, *(u32*) &env->Tune[0]);
             } else {
-                eprintf(0x140, 0x54 + i * 14, 0, pTool->color, "OFF");
+                eprintf(0x140, 0x54 + i * 14, 0, pTool->PageNo, "OFF");
             }
-            eprintf(0x168, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[0] & 3]);
-            eprintf(0x170, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[1] & 3]);
-            eprintf(0x178, line * 14, 0, pTool->color, "%s", cut_onoff[env->tev_scale[2] & 3]);
+            eprintf(0x168, line * 14, 0, pTool->PageNo, "%s", cut_onoff[env->tev_scale[0] & 3]);
+            eprintf(0x170, line * 14, 0, pTool->PageNo, "%s", cut_onoff[env->tev_scale[1] & 3]);
+            eprintf(0x178, line * 14, 0, pTool->PageNo, "%s", cut_onoff[env->tev_scale[2] & 3]);
         }
     }
     cutsel_tbl[pTool->rno2]();
@@ -721,11 +721,11 @@ static void edit_cutsel_main()
         LitSaveWork(&pTool->Lit, pTool->cutNo);
         pTool->table_y = 0;
         pTool->cursor = pTool->cutNo;
-        pTool->col = pTool->cy = 0;
+        pTool->cx = pTool->cy = 0;
         pTool->rno3 = 1;
     }
     base = pTool->table_y - 6;
-    pTool->printCursor(cutsel_col[pTool->col], pTool->cursor - base);
+    pTool->printCursor(cutsel_col[pTool->cx], pTool->cursor - base);
     if ((pTool->Pad1.rep & JOY_UP) || (pTool->Pad1.on & JOY_SUP)) {
         if (pTool->cursor != 0) {
             pTool->cursor--;
@@ -767,12 +767,12 @@ static void edit_cutsel_main()
     }
     // the stick bits are the other way round from joy.h's names here
     if ((pTool->Pad1.rep & JOY_RIGHT) || (pTool->Pad1.on & 0x20000)) {
-        pTool->col = (pTool->col + 10) % 9;
+        pTool->cx = (pTool->cx + 10) % 9;
     }
     if ((pTool->Pad1.rep & JOY_LEFT) || (pTool->Pad1.on & 0x10000)) {
-        pTool->col = (pTool->col + 8) % 9;
+        pTool->cx = (pTool->cx + 8) % 9;
     }
-    if ((pTool->Pad1.rep & JOY_A) && pTool->col == 0) {
+    if ((pTool->Pad1.rep & JOY_A) && pTool->cx == 0) {
         if (pTool->editEnable()) {
             LitSaveWork(&pTool->Lit, pTool->cutNo);
         }
@@ -807,10 +807,10 @@ static void edit_cutsel_sub()
     const char** name;
     int no;
 
-    eprintf(0x150, 0x62, 4, pTool->color, "SUB MENU");
+    eprintf(0x150, 0x62, 4, pTool->PageNo, "SUB MENU");
     name = cutsel_sub_name;
     for (i = 0; i < 6; i++) {
-        eprintf(0x150, 0x70 + i * 14, 0, pTool->color, *name++);
+        eprintf(0x150, 0x70 + i * 14, 0, pTool->PageNo, *name++);
     }
     pTool->printCursor(0x29, pTool->curSub + 8);
     if ((pTool->Pad1.rep & JOY_A) || (pTool->Pad1.trg & JOY_Y)) {
@@ -820,14 +820,14 @@ static void edit_cutsel_sub()
             if (pTool->Lit.getCut(pTool->cursor) != NULL) {
                 lightCopyCut(pTool->cursor);
                 Debug_free(pTool->Lit.getCut(pTool->cursor));
-                pTool->Lit.cut[pTool->cursor] = 0;
+                pTool->Lit.pLh[pTool->cursor] = 0;
             }
             break;
         case 1:
             lightCopyCut(pTool->cursor);
             break;
         case 2:
-            switch (pTool->col) {
+            switch (pTool->cx) {
             case 0:
                 lightPasteCut(pTool->cursor);
                 break;
@@ -908,7 +908,7 @@ int lightPasteCut(int no)
     if (pTool->Lit.isCut(no)) {
         Debug_free(pTool->Lit.getCut(no));
     }
-    pTool->Lit.cut[(u16) no] = copyCut(pTool->CutTmp);
+    pTool->Lit.pLh[(u16) no] = copyCut(pTool->CutTmp);
     return 1;
 }
 
@@ -1006,7 +1006,7 @@ int lightPasteCutAll(int no)
             }
             Debug_free(pTool->Lit.getCut(i));
         }
-        pTool->Lit.cut[(u16) i] = copyCut(pTool->Lit.getCut(no));
+        pTool->Lit.pLh[(u16) i] = copyCut(pTool->Lit.getCut(no));
     }
     return 1;
 }
@@ -1023,7 +1023,7 @@ int lightPasteCutAll2(int no)
         if (pTool->Lit.isCut(i)) {
             Debug_free(pTool->Lit.getCut(i));
         }
-        pTool->Lit.cut[(u16) i] = copyCut(pTool->Lit.getCut(no));
+        pTool->Lit.pLh[(u16) i] = copyCut(pTool->Lit.getCut(no));
     }
     return 1;
 }
@@ -1062,11 +1062,11 @@ static void edit_light_select()
     u32 i;
     cLight* cur;
 
-    pTool->printCursor(light_col[pTool->col], pTool->cy + 0x18);
+    pTool->printCursor(light_col[pTool->cx], pTool->cy + 0x18);
     if (pTool->Pad1.rep & 0x20002) {
-        pTool->col = (pTool->col + 13) % 12;
+        pTool->cx = (pTool->cx + 13) % 12;
     } else if (pTool->Pad1.rep & 0x10001) {
-        pTool->col = (pTool->col + 11) % 12;
+        pTool->cx = (pTool->cx + 11) % 12;
     }
     if ((pTool->Pad1.rep & JOY_UP) || (pTool->Pad1.on & JOY_SUP)) {
         if (pTool->cy == 0) {
@@ -1091,10 +1091,10 @@ static void edit_light_select()
     }
     cur = curLight();
     if (!(cur->be_flag & 1)) {
-        pTool->col = 0;
+        pTool->cx = 0;
     }
     if (pTool->Pad1.rep & JOY_A) {
-        pTool->rno2 = pTool->col + 1;
+        pTool->rno2 = pTool->cx + 1;
         pTool->rno3 = pTool->rno4 = pTool->rno5 = pTool->rno6 = pTool->rno7 = 0;
     } else if (pTool->Pad1.trg & JOY_Y) {
         pTool->clearSubMenu();
@@ -1139,20 +1139,20 @@ static void edit_light_select_sub()
     } else {
         first = 0;
     }
-    eprintf(0x140, 0x46, 4, pTool->color, "SUB MENU");
+    eprintf(0x140, 0x46, 4, pTool->PageNo, "SUB MENU");
     i = 0;
     y = 0x54;
     for (; i < 5; i++) {
         int idx = i;
-        if (pTool->col != 0) {
+        if (pTool->cx != 0) {
             idx = i + 5;
         }
-        eprintf(0x140, y, 0, pTool->color, light_sub_name[idx]);
+        eprintf(0x140, y, 0, pTool->PageNo, light_sub_name[idx]);
         y += 14;
     }
-    eprintf(0x168, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->color, "%02d", pTool->cutNo);
+    eprintf(0x168, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->PageNo, "%02d", pTool->cutNo);
     if (pTool->cutNo != pTool->sno1) {
-        eprintf(0x180, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->color, "--> %02d", pTool->sno1);
+        eprintf(0x180, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->PageNo, "--> %02d", pTool->sno1);
     }
     pTool->printCursor(0x27, pTool->curSub + 6);
     if (pTool->Pad1.rep & JOY_UP) {
@@ -1171,7 +1171,7 @@ static void edit_light_select_sub()
             lightCopyWork(&pTool->LitTmp, cur);
             break;
         case 2:
-            switch (pTool->col) {
+            switch (pTool->cx) {
             case 0:
                 if (pTool->LitTmp.be_flag & 1) {
                     lightInsertWork(pTool->table_y + pTool->cy);
@@ -1391,10 +1391,10 @@ static void edit_light_id()
     } else {
         first = 0;
     }
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->Type, light_id_name[cur->Type]);
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->Type, light_id_name[cur->Type]);
     if (cur->Type != pTool->rno7) {
-        eprintf(0xC0, 0x9A, 6, pTool->color, "-> %d %s", pTool->rno7, light_id_name[pTool->rno7]);
+        eprintf(0xC0, 0x9A, 6, pTool->PageNo, "-> %d %s", pTool->rno7, light_id_name[pTool->rno7]);
     }
     light_id_tbl[cur->Type]();
     if (pTool->Pad1.rep & JOY_B) {
@@ -1470,7 +1470,7 @@ static void edit_light_id_flick()
         w->range = 0;
     }
     pTool->printCursor(7, pTool->rno3 + 11);
-    eprintf(0x40, 0xA8, 0, pTool->color, "COLOR FLICK RANGE %d", w->range);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "COLOR FLICK RANGE %d", w->range);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
@@ -1509,9 +1509,9 @@ static void edit_light_id_wave()
     if (pTool->Pad1.rep & JOY_DOWN) {
         pTool->rno3 = (pTool->rno3 + 5) % 4;
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "CENTER %3.3f", w->base);
-    eprintf(0x40, 0xB6, 0, pTool->color, "RANGE  %3.3f", w->amp);
-    eprintf(0x40, 0xC4, 0, pTool->color, "SPEED   %3.3f", w->freq);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "CENTER %3.3f", w->base);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "RANGE  %3.3f", w->amp);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "SPEED   %3.3f", w->freq);
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -1563,10 +1563,10 @@ static void edit_light_id_round()
     if (pTool->Pad1.rep & JOY_DOWN) {
         pTool->rno3 = (pTool->rno3 + 5) % 4;
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "ROT X %3.3f", w->rot[0]);
-    eprintf(0x40, 0xB6, 0, pTool->color, "ROT Y %3.3f", w->rot[1]);
-    eprintf(0x40, 0xC4, 0, pTool->color, "ROT Z %3.3f", w->rot[2]);
-    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0.0");
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "ROT X %3.3f", w->rot[0]);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "ROT Y %3.3f", w->rot[1]);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "ROT Z %3.3f", w->rot[2]);
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "PUSH [Y] TO SET 0.0");
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -1653,32 +1653,30 @@ static void edit_light_id_shadow()
     if (w->kind - 1 <= 3u) {
         col = 0;
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "KIND   : %s", shadow_kind_name[w->kind]);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "KIND   : %s", shadow_kind_name[w->kind]);
     if (w->kind == 5) {
-        eprintf(0x40, 0xB6, 0x14, pTool->color, "USE_TEX: ");
-        eprintf(0x40, 0xC4, 0x14, pTool->color, "INV_TEX:");
-        eprintf(0x40, 0xC4, col, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
-        eprintf(0x40, 0xD2, 0, pTool->color, "GND_DIST:");
-        eprintf(0x40, 0xD2, 0, pTool->color, "          %2d", w->gndDist);
+        eprintf(0x40, 0xB6, 0x14, pTool->PageNo, "USE_TEX: ");
+        eprintf(0x40, 0xC4, 0x14, pTool->PageNo, "INV_TEX:");
+        eprintf(0x40, 0xC4, col, pTool->PageNo, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
+        eprintf(0x40, 0xD2, 0, pTool->PageNo, "GND_DIST:");
+        eprintf(0x40, 0xD2, 0, pTool->PageNo, "          %2d", w->gndDist);
     } else {
         // COMPILER-DIFF: #2 -- the original zero-extends the u8 `col` once before this arm's two
-        // uses (`clrlwi r30,r30,24`); ours knows the promoted value fits. The launder + (u8) casts
-        // reproduce the mask and the register assignment; `volatile` keeps the mask before the first call
-        // (the plain asm let sched1 issue it one call later, the flrAtDataLoad rule).
+        // uses (`clrlwi r30,r30,24`); ours knows the promoted value fits. The int copy + (u8) casts
+        // reproduce the mask and the register assignment.
         int c = col;
-        asm volatile("" : "+r"(c));
-        eprintf(0x40, 0xB6, 0, pTool->color, "USE_TEX: ");
-        eprintf(0x40, 0xC4, 0, pTool->color, "INV_TEX:");
-        eprintf(0x40, 0xC4, (u8) c, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
-        eprintf(0x40, 0xD2, 0, pTool->color, "TEX_NO :");
-        eprintf(0x40, 0xD2, (u8) c, pTool->color, "         %2x", (u8) w->gndDist);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "USE_TEX: ");
+        eprintf(0x40, 0xC4, 0, pTool->PageNo, "INV_TEX:");
+        eprintf(0x40, 0xC4, (u8) c, pTool->PageNo, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
+        eprintf(0x40, 0xD2, 0, pTool->PageNo, "TEX_NO :");
+        eprintf(0x40, 0xD2, (u8) c, pTool->PageNo, "         %2x", (u8) w->gndDist);
     }
     if (w->kind - 1 <= 3u) {
-        eprintf(0x40, 0xB6, 0x17, pTool->color, "         ON");
+        eprintf(0x40, 0xB6, 0x17, pTool->PageNo, "         ON");
     } else {
-        eprintf(0x40, 0xB6, 0, pTool->color, "         %s", shadow_onoff[w->flags & 1]);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "         %s", shadow_onoff[w->flags & 1]);
     }
-    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0");
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "PUSH [Y] TO SET 0");
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -1703,9 +1701,9 @@ static void edit_light_id_path()
             cur->Rno0 = 0;
         }
         if (pTool->Pad1.rep & JOY_A) {
-            cLightPathData* p = pTool->litPath.path[w->pathNo];
+            cLightPathData* p = pTool->PathTool.Ofs[w->pathNo];
             if (VALID_PTR(p)) {
-                memcpy(pTool->litPath.edit, p, p->getSize());
+                memcpy(pTool->PathTool.Work, p, p->getSize());
                 pTool->pno0 = pTool->pno1 = pTool->pno2 = pTool->pno3 = 0;
                 pTool->rno3 = 100;
             }
@@ -1736,17 +1734,17 @@ static void edit_light_id_path()
             pTool->rno3 = (pTool->rno3 + 5) % 4;
         }
         pTool->printCursor(7, pTool->rno3 + 11);
-        eprintf(0x40, 0xA8, 0, pTool->color, "PATH No:%d", w->pathNo);
-        eprintf(0x40, 0xB6, 0, pTool->color, "LOOP    %s", (w->flag & 1) ? "OFF" : "ON");
-        eprintf(0x40, 0xC4, 0, pTool->color, "INVERSE %s", (w->flag & 2) ? "ON" : "OFF");
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "PATH No:%d", w->pathNo);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "LOOP    %s", (w->flag & 1) ? "OFF" : "ON");
+        eprintf(0x40, 0xC4, 0, pTool->PageNo, "INVERSE %s", (w->flag & 2) ? "ON" : "OFF");
         drawLightInfo(cur, 0xFFFFFFFF);
         if (VALID_PTR(w->pStart)) {
             drawPath(0xC8, 0x64, w->pStart, w->flag, 0xFFFFFFFF);
         } else {
-            eprintf(0xC8, 0xA8, 0, pTool->color, "NO DATA");
+            eprintf(0xC8, 0xA8, 0, pTool->PageNo, "NO DATA");
         }
     } else {
-        eprintf(0x40, 0xA8, 0, pTool->color, "EDIT PATH No:%d", w->pathNo);
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "EDIT PATH No:%d", w->pathNo);
         pathEdit(0x20, 0xC4, w->pathNo, w->flag, 0);
     }
 }
@@ -1796,9 +1794,9 @@ static void edit_light_id_fade()
         pTool->rno3 = (pTool->rno3 + 5) % 4;
     }
     pTool->printCursor(7, pTool->rno3 + 11);
-    eprintf(0x40, 0xA8, 0, pTool->color, "START %f", w->start);
-    eprintf(0x40, 0xB6, 0, pTool->color, "SPEED %f", w->speed);
-    eprintf(0x40, 0xC4, 0, pTool->color, "PLAY");
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "START %f", w->start);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "SPEED %f", w->speed);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "PLAY");
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
@@ -1849,10 +1847,10 @@ static void edit_light_id_shine()
     if (pTool->Pad1.rep & JOY_DOWN) {
         pTool->rno3 = (pTool->rno3 + 5) % 4;
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "SPEED X %3.3f", w->speed[0]);
-    eprintf(0x40, 0xB6, 0, pTool->color, "SPEED Y %3.3f", w->speed[1]);
-    eprintf(0x40, 0xC4, 0, pTool->color, "SPEED Z %3.3f", w->speed[2]);
-    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0.0");
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "SPEED X %3.3f", w->speed[0]);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "SPEED Y %3.3f", w->speed[1]);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "SPEED Z %3.3f", w->speed[2]);
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "PUSH [Y] TO SET 0.0");
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -1866,16 +1864,16 @@ static void edit_light_eid()
     cLight* cur = curLight();
 
     pTool->printCursor(0x14, pTool->rno3 + 11);
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "ENABLE MASK");
-    eprintf(0xA8, 0x9A, !(cur->xF & 1) ? 0x14 : 0, pTool->color, "PLAYER");
-    eprintf(0xA8, 0xA8, (cur->xF & 2) ? 0 : 0x14, pTool->color, "ENEMY");
-    eprintf(0xA8, 0xB6, (cur->xF & 4) ? 0 : 0x14, pTool->color, "OBJ");
-    eprintf(0xA8, 0xC4, (cur->xF & 8) ? 0 : 0x14, pTool->color, "EFFECT");
-    eprintf(0xA8, 0xD2, (cur->xF & 0x10) ? 0 : 0x14, pTool->color, "SCROLL");
-    eprintf(0xA8, 0xE0, (cur->xF & 0x20) ? 0 : 0x14, pTool->color, "ITEM");
-    eprintf(0xA8, 0xEE, (cur->xF & 0x40) ? 0 : 0x14, pTool->color, "SUBCHAR");
-    eprintf(0xA8, 0xFC, (cur->xF & 0x80) ? 0 : 0x14, pTool->color, "THERMO");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "ENABLE MASK");
+    eprintf(0xA8, 0x9A, !(cur->xF & 1) ? 0x14 : 0, pTool->PageNo, "PLAYER");
+    eprintf(0xA8, 0xA8, (cur->xF & 2) ? 0 : 0x14, pTool->PageNo, "ENEMY");
+    eprintf(0xA8, 0xB6, (cur->xF & 4) ? 0 : 0x14, pTool->PageNo, "OBJ");
+    eprintf(0xA8, 0xC4, (cur->xF & 8) ? 0 : 0x14, pTool->PageNo, "EFFECT");
+    eprintf(0xA8, 0xD2, (cur->xF & 0x10) ? 0 : 0x14, pTool->PageNo, "SCROLL");
+    eprintf(0xA8, 0xE0, (cur->xF & 0x20) ? 0 : 0x14, pTool->PageNo, "ITEM");
+    eprintf(0xA8, 0xEE, (cur->xF & 0x40) ? 0 : 0x14, pTool->PageNo, "SUBCHAR");
+    eprintf(0xA8, 0xFC, (cur->xF & 0x80) ? 0 : 0x14, pTool->PageNo, "THERMO");
     if (pTool->Pad1.rep & JOY_UP) {
         pTool->rno3 = (pTool->rno3 + 7) % 8;
     } else if (pTool->Pad1.rep & JOY_DOWN) {
@@ -1913,7 +1911,7 @@ static void edit_light_eid()
         pTool->rno2 = 0;
     }
     if (cur->xD == 7) {
-        eprintf(0xE0, 0xC4, 0x16, pTool->color, "<- NOT SUPPORT");
+        eprintf(0xE0, 0xC4, 0x16, pTool->PageNo, "<- NOT SUPPORT");
         cur->xF &= ~8;
     }
 }
@@ -1997,52 +1995,52 @@ static void edit_light_parent()
         break;
     }
     cur->calcParent();
-    eprintf(0x40, 0x8C, 4, pTool->color, "PARENT");
-    eprintf(0x40, 0x9A, 0, pTool->color, "TYPE  %s", parent_name[cur->ParentType]);
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "PARENT");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "TYPE  %s", parent_name[cur->ParentType]);
     if (cur->ParentType != pTool->rno4) {
-        eprintf(0xB8, 0x9A, 0, pTool->color, "-> %s", parent_name[pTool->rno4]);
+        eprintf(0xB8, 0x9A, 0, pTool->PageNo, "-> %s", parent_name[pTool->rno4]);
     }
     switch (cur->ParentType) {
     case 0:
         num = 1;
         break;
     case 1:
-        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %02X - %s", cur->parent.no, cEmMgr::idName[cur->parent.no]);
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "ID    %02X - %s", cur->parent.no, cEmMgr::idName[cur->parent.no]);
         num = 3;
-        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "PARTS %d", cur->parent.partsNo);
         break;
     case 2:
-        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %d", cur->parent.no);
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "ID    %d", cur->parent.no);
         num = 3;
-        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "PARTS %d", cur->parent.partsNo);
         break;
     case 3:
         if (getRoomEtcOnLight(cur->ParentNo, &etc, 0)) {
-            eprintf(0x40, 0xA8, 0, pTool->color, "No    %d", cur->parent.no);
+            eprintf(0x40, 0xA8, 0, pTool->PageNo, "No    %d", cur->parent.no);
         } else {
-            eprintf(0x40, 0xA8, 0x14, pTool->color, "No    %d", cur->parent.no);
+            eprintf(0x40, 0xA8, 0x14, pTool->PageNo, "No    %d", cur->parent.no);
         }
         num = 2;
         break;
     case 4:
-        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %d", cur->parent.no);
-        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "ID    %d", cur->parent.no);
+        eprintf(0x40, 0xB6, 0, pTool->PageNo, "PARTS %d", cur->parent.partsNo);
         obj = ObjMgr.fastAt(cur->parent.no);
         if (obj) {
             switch (obj->id) {
             case 2:
-                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x : SCR MODEL", 2);
+                eprintf(0x40, 0xD2, 0, pTool->PageNo, "OBJID %02x : SCR MODEL", 2);
                 break;
             case 0x18: {
                 Obj18Work* w;
-                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x : EVENT MODEL", 0x18);
+                eprintf(0x40, 0xD2, 0, pTool->PageNo, "OBJID %02x : EVENT MODEL", 0x18);
                 w = (Obj18Work*) obj->work;
-                eprintf(0x40, 0xE0, 0, pTool->color, "NAME %s", ((Obj18Work*) obj->work)->NameMod);
-                eprintf(0x40, 0xEE, 0, pTool->color, "TYPE %2d", w->obj18_type);
+                eprintf(0x40, 0xE0, 0, pTool->PageNo, "NAME %s", ((Obj18Work*) obj->work)->NameMod);
+                eprintf(0x40, 0xEE, 0, pTool->PageNo, "TYPE %2d", w->obj18_type);
                 break;
             }
             default:
-                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x", obj->id);
+                eprintf(0x40, 0xD2, 0, pTool->PageNo, "OBJID %02x", obj->id);
                 break;
             }
         }
@@ -2102,8 +2100,8 @@ static void edit_light_pos()
     f32 step = (pTool->Pad1.on & JOY_A) ? 7.0f : 1.0f;
     Vec* pos = &cur->Pos;
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "%6.0f %6.0f %6.0f", cur->Pos.x, cur->Pos.y, cur->Pos.z);
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "%6.0f %6.0f %6.0f", cur->Pos.x, cur->Pos.y, cur->Pos.z);
     Vec v = {0.0f, 0.0f, 0.0f};
     v.x += (f32) pTool->Pad1.stickX * step;
     v.y += (f32) pTool->Pad1.stickY * step;
@@ -2174,17 +2172,17 @@ static void edit_light_radius()
     if (pTool->Pad1.rep & JOY_DOWN) {
         pTool->rno3 = 2;
     }
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
     if (cur->Radius != 0.0f) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS     %6.0f", cur->Radius);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "RADIUS     %6.0f", cur->Radius);
     } else {
-        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS INFINITY");
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "RADIUS INFINITY");
     }
     if ((f32) (int) cur->HitRadius != 0.0f) {
-        eprintf(0x40, 0xA8, 0, pTool->color, "HIT RADIUS %6d", cur->HitRadius);
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "HIT RADIUS %6d", cur->HitRadius);
     } else {
-        eprintf(0x40, 0xA8, 0, pTool->color, "HIT RADIUS");
-        eprintf(0x98, 0xA8, 0x14, pTool->color, "NO HIT ADJUST");
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "HIT RADIUS");
+        eprintf(0x98, 0xA8, 0x14, pTool->PageNo, "NO HIT ADJUST");
     }
     if (pTool->Pad1.rep & JOY_B) {
         pTool->rno2 = 0;
@@ -2196,7 +2194,7 @@ static void edit_light_color()
 {
     cLight* cur = curLight();
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
     if (editColor(8, 11, &cur->Col) == 0) {
         pTool->rno2 = 0;
     }
@@ -2208,12 +2206,12 @@ static void edit_light_intensity()
     cLight* cur = curLight();
     f32 step = (Joy[0].on & JOY_A) ? 10.0f : 1.0f;
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
     if (cur->xD == 7) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "NOT USED");
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "NOT USED");
         cur->Intensity = 1.0f;
     } else {
-        eprintf(0x40, 0x9A, 0, pTool->color, "INTENSITY %3.3f", cur->Intensity);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "INTENSITY %3.3f", cur->Intensity);
     }
     cur->Intensity += (f32) pTool->Pad1.stickX * step / 1000.0f;
     cur->Intensity += (f32) pTool->Pad1.stickY * step / 1000.0f;
@@ -2247,7 +2245,7 @@ static void edit_light_type()
         edit_light_type_shadow();
         return;
     }
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
     light_type_tbl[cur->xD]();
     if (pTool->Pad1.rep & JOY_B) {
         pTool->rno2 = 0;
@@ -2263,7 +2261,7 @@ void edit_light_type_shadow()
         edit_light_type_shadow_fit, edit_light_type_shadow_parallel, edit_light_type_shadow_fix,
     };
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "SHADOW PROPATY");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "SHADOW PROPATY");
     shadow_type_tbl[cur->xD]();
     if (pTool->Pad1.rep & JOY_B) {
         pTool->rno2 = 0;
@@ -2293,7 +2291,7 @@ int shadow_select_type()
     if (pTool->Pad1.rep & JOY_A) {
         cur->xD = pTool->rno5;
     }
-    eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", pTool->rno5, shadow_type_name[pTool->rno5]);
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", pTool->rno5, shadow_type_name[pTool->rno5]);
     return 1;
 }
 
@@ -2417,30 +2415,26 @@ static void edit_light_type_shadow_fit()
         }
     }
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "LIT_POS SET ");
-    // COMPILER-DIFF: 2 (the original zero-extends the u8 `col` once at the join for both uses; the
-    // launder sits in the arms so that gcse sees the extension's operand unmodified in the join block)
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "LIT_POS SET ");
     if (w->flags & 2) {
-        eprintf(0x40, 0xA8, 0, pTool->color, "                ON");
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "                ON");
         c = 0;
-        asm("" : "+r"(c));
     } else {
-        eprintf(0x40, 0xA8, 0, pTool->color, "                OFF");
+        eprintf(0x40, 0xA8, 0, pTool->PageNo, "                OFF");
         c = 0x14;
-        asm("" : "+r"(c));
     }
-    eprintf(0x40, 0xB6, (u8) c, pTool->color, "LIGHT_POS %6f %6f %6f", w->lightPos.x, w->lightPos.y, w->lightPos.z);
-    eprintf(0x40, 0xC4, 0, pTool->color, "SELF_SHD %s", self_shd_name[w->selfShd]);
-    eprintf(0x40, 0xD2, 0, pTool->color, "SOFT_SHD %s", soft_shd_name[w->softShd]);
+    eprintf(0x40, 0xB6, (u8) c, pTool->PageNo, "LIGHT_POS %6f %6f %6f", w->lightPos.x, w->lightPos.y, w->lightPos.z);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "SELF_SHD %s", self_shd_name[w->selfShd]);
+    eprintf(0x40, 0xD2, 0, pTool->PageNo, "SOFT_SHD %s", soft_shd_name[w->softShd]);
     if (w->multiShd == 0) {
-        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD OFF");
+        eprintf(0x40, 0xE0, 0, pTool->PageNo, "MULTI_SHD OFF");
     } else {
-        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD ON");
+        eprintf(0x40, 0xE0, 0, pTool->PageNo, "MULTI_SHD ON");
     }
-    eprintf(0x40, 0xEE, 0, pTool->color, "RANGE     %d", w->range);
-    eprintf(0x40, 0xFC, (u8) c, pTool->color, " [Y_BUTTON] Position Reset");
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "RANGE     %d", w->range);
+    eprintf(0x40, 0xFC, (u8) c, pTool->PageNo, " [Y_BUTTON] Position Reset");
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -2503,18 +2497,18 @@ static void edit_light_type_shadow_parallel()
         }
     }
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "ROT_X : %d", w->rotX);
-    eprintf(0x40, 0xB6, 0, pTool->color, "ROT_Y : %d", w->rotY);
-    eprintf(0x40, 0xC4, 0, pTool->color, "SELF_SHD  %s", self_shd_name[w->selfShd]);
-    eprintf(0x40, 0xD2, 0, pTool->color, "SOFT_SHD  %s", soft_shd_name[w->softShd]);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "ROT_X : %d", w->rotX);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "ROT_Y : %d", w->rotY);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "SELF_SHD  %s", self_shd_name[w->selfShd]);
+    eprintf(0x40, 0xD2, 0, pTool->PageNo, "SOFT_SHD  %s", soft_shd_name[w->softShd]);
     if (w->multiShd == 0) {
-        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD OFF");
+        eprintf(0x40, 0xE0, 0, pTool->PageNo, "MULTI_SHD OFF");
     } else {
-        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD ON");
+        eprintf(0x40, 0xE0, 0, pTool->PageNo, "MULTI_SHD ON");
     }
-    eprintf(0x40, 0xEE, 0, pTool->color, "RANGE     %d", w->range);
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "RANGE     %d", w->range);
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -2557,11 +2551,11 @@ static void edit_light_type_shadow_fix()
         }
     }
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "ROT_X : %d", w->rotX);
-    eprintf(0x40, 0xB6, 0, pTool->color, "ROT_Y : %d", w->rotY);
-    eprintf(0x40, 0xC4, 0, pTool->color, "RANGE : %d", w->texNo);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "ROT_X : %d", w->rotX);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "ROT_Y : %d", w->rotY);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "RANGE : %d", w->texNo);
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -2571,8 +2565,8 @@ static void edit_light_kind()
 {
     cLight* cur = curLight();
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "KIND  %02x", cur->Kind);
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "KIND  %02x", cur->Kind);
     if (pTool->Pad1.rep & JOY_RIGHT) {
         cur->Kind++;
     }
@@ -2596,12 +2590,12 @@ static void edit_light_attr()
     cLight* cur = curLight();
 
     pTool->printCursor(0x14, pTool->rno3 + 11);
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "ATTRIBUTE");
-    eprintf(0xA8, 0x9A, !(cur->Attribute & 1) ? 0x14 : 0, pTool->color, "NO TUNE");
-    eprintf(0xA8, 0xA8, (cur->Attribute & 2) ? 0 : 0x14, pTool->color, "ELEC LIGHT");
-    eprintf(0xA8, 0xB6, (cur->Attribute & 4) ? 0 : 0x14, pTool->color, "TAIMATU");
-    eprintf(0xA8, 0xC4, (cur->Attribute & 8) ? 0 : 0x14, pTool->color, "--------");
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "ATTRIBUTE");
+    eprintf(0xA8, 0x9A, !(cur->Attribute & 1) ? 0x14 : 0, pTool->PageNo, "NO TUNE");
+    eprintf(0xA8, 0xA8, (cur->Attribute & 2) ? 0 : 0x14, pTool->PageNo, "ELEC LIGHT");
+    eprintf(0xA8, 0xB6, (cur->Attribute & 4) ? 0 : 0x14, pTool->PageNo, "TAIMATU");
+    eprintf(0xA8, 0xC4, (cur->Attribute & 8) ? 0 : 0x14, pTool->PageNo, "--------");
     if (pTool->Pad1.rep & JOY_UP) {
         pTool->rno3 = (pTool->rno3 + 3) % 4;
     } else if (pTool->Pad1.rep & JOY_DOWN) {
@@ -2633,8 +2627,8 @@ static void edit_light_priority()
 {
     cLight* cur = curLight();
 
-    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    eprintf(0x40, 0x9A, 0, pTool->color, "PRIORITY %d", cur->Priority);
+    eprintf(0x40, 0x8C, 4, pTool->PageNo, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->PageNo, "PRIORITY %d", cur->Priority);
     if (pTool->Pad1.rep & (JOY_UP | JOY_RIGHT)) {
         cur->Priority = (cur->Priority + 8) % 7;
     } else if (pTool->Pad1.rep & (JOY_DOWN | JOY_LEFT)) {
@@ -2680,7 +2674,7 @@ int select_type()
         col = 6;
         ret = 0;
     }
-    eprintf(0x40, 0x9A, col, pTool->color, "%2d %s", pTool->rno5, light_type_name[pTool->rno5]);
+    eprintf(0x40, 0x9A, col, pTool->PageNo, "%2d %s", pTool->rno5, light_type_name[pTool->rno5]);
     return ret;
 }
 
@@ -2719,9 +2713,9 @@ static void edit_light_type_constant()
         }
     }
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, light_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "INTENSITY %3.3f", cur->Intensity);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "INTENSITY %3.3f", cur->Intensity);
     pTool->printCursor(7, pTool->rno3 + 11);
 }
 
@@ -2754,9 +2748,9 @@ static void edit_light_type_constant()
         }                                                                                       \
     }                                                                                           \
     if (pTool->rno3 != 0) {                                                                     \
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);      \
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, light_type_name[cur->xD]);      \
     }                                                                                           \
-    eprintf(0x40, 0xA8, 0, pTool->color, "SMOOTH EDGE %6f", sp->Normal.x);                      \
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "SMOOTH EDGE %6f", sp->Normal.x);                      \
     pTool->printCursor(7, pTool->rno3 + 11);                                                    \
     drawLightInfo(cur, 0xFFFFFFFF);
 
@@ -2858,11 +2852,11 @@ static void edit_light_type_spotlight()
         Draw_corn3(&pos, &dir, sp->A0, 0xFFFFFFFF);
     }
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, light_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "DIRECTION");
-    eprintf(0x40, 0xB6, 0, pTool->color, "SPOT LIGHT RANGE %3.2f", sp->A0);
-    eprintf(0x40, 0xC4, 0, pTool->color, "SMOOTH EDGE %6f", sp->A1);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "DIRECTION");
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "SPOT LIGHT RANGE %3.2f", sp->A0);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "SMOOTH EDGE %6f", sp->A1);
     pTool->printCursor(7, pTool->rno3 + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -2961,16 +2955,16 @@ static void edit_light_type_direct()
     }
     pTool->printCursor(7, pTool->rno3 + 11);
     if (pTool->rno3 != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, light_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "A0 %5.4f", sp->A0);
-    eprintf(0x40, 0xB6, 0, pTool->color, "A1 %5.4f", sp->A1);
-    eprintf(0x40, 0xC4, 0, pTool->color, "A2 %5.4f", sp->A2);
-    eprintf(0x40, 0xD2, 0, pTool->color, "K0 %5.4f", sp->K0);
-    eprintf(0x40, 0xE0, 0, pTool->color, "K1 %5.4f", sp->K1);
-    eprintf(0x40, 0xEE, 0, pTool->color, "K2 %5.4f", sp->K2);
-    eprintf(0x40, 0xFC, 0, pTool->color, "NORMAL");
-    eprintf(0x40, 0x118, 0, pTool->color, "GEAR %d", gear + 1);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "A0 %5.4f", sp->A0);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "A1 %5.4f", sp->A1);
+    eprintf(0x40, 0xC4, 0, pTool->PageNo, "A2 %5.4f", sp->A2);
+    eprintf(0x40, 0xD2, 0, pTool->PageNo, "K0 %5.4f", sp->K0);
+    eprintf(0x40, 0xE0, 0, pTool->PageNo, "K1 %5.4f", sp->K1);
+    eprintf(0x40, 0xEE, 0, pTool->PageNo, "K2 %5.4f", sp->K2);
+    eprintf(0x40, 0xFC, 0, pTool->PageNo, "NORMAL");
+    eprintf(0x40, 0x118, 0, pTool->PageNo, "GEAR %d", gear + 1);
     draw_light_graph(cur);
 }
 
@@ -3065,7 +3059,7 @@ void draw_light_graph(cLight* l)
         lcol = 0xFF000080;
     }
     Draw_line(&a, &b, lcol);
-    eprintf((int) x0 + 0x78, (int) y0 + 8, 0, pTool->color, "%3.6f", func_attn(l, x));
+    eprintf((int) x0 + 0x78, (int) y0 + 8, 0, pTool->PageNo, "%3.6f", func_attn(l, x));
     for (x = 1000.0f; x < l->Radius || l->Radius == 0.0f; x += 1000.0f) {
         a.x = x0 + x / scale;
         a.y = y0;
@@ -3075,7 +3069,7 @@ void draw_light_graph(cLight* l)
         b.z = 0.0f;
         Draw_line(&a, &b, 0x80808080);
     }
-    eprintf((int) x0, (int) y0 + 8, 0, pTool->color, "%1.6f", func_attn(l, 1.0f));
+    eprintf((int) x0, (int) y0 + 8, 0, pTool->PageNo, "%1.6f", func_attn(l, 1.0f));
     v = func_attn(l, w0 * scale);
     {
         // COMPILER-DIFF: 2 + #17: the original's colour lives in r5 (a copy preference ours never gets)
@@ -3085,7 +3079,7 @@ void draw_light_graph(cLight* l)
         if (v > 0.04f) {
             col5 = 6;
         }
-        eprintf((int) x0 + 0xE6, (int) y0 + 8, (u8) col5, pTool->color, "%3.6f", func_attn(l, w0 * scale));
+        eprintf((int) x0 + 0xE6, (int) y0 + 8, (u8) col5, pTool->PageNo, "%3.6f", func_attn(l, w0 * scale));
     }
 }
 // Parallel light: the direction is edited as two angles (static `ang`: x = pitch, y = yaw, z unused),
@@ -3176,12 +3170,12 @@ static void edit_light_type_parallel()
     }
     pTool->printCursor(7, pTool->cursor + 11);
     if (pTool->cursor != 0) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+        eprintf(0x40, 0x9A, 0, pTool->PageNo, "%2d %s", cur->xD, light_type_name[cur->xD]);
     }
-    eprintf(0x40, 0xA8, 0, pTool->color, "DIR Y:%3.0f", ang.y * 180.0f / 3.1415927f);
-    eprintf(0x40, 0xB6, 0, pTool->color, "DIR X:%3.0f", ang.x * 180.0f / 3.1415927f);
-    eprintf(0x40, 0xC4, (sp->flags & 1) ? 0 : 0x14, pTool->color, "LOCAL DIR");
-    eprintf(0x40, 0xD2, 0, pTool->color, "SMOOTH EDGE %6f", sp->A1);
+    eprintf(0x40, 0xA8, 0, pTool->PageNo, "DIR Y:%3.0f", ang.y * 180.0f / 3.1415927f);
+    eprintf(0x40, 0xB6, 0, pTool->PageNo, "DIR X:%3.0f", ang.x * 180.0f / 3.1415927f);
+    eprintf(0x40, 0xC4, (sp->flags & 1) ? 0 : 0x14, pTool->PageNo, "LOCAL DIR");
+    eprintf(0x40, 0xD2, 0, pTool->PageNo, "SMOOTH EDGE %6f", sp->A1);
 }
 // Unused sub menu slot (rno2 21).
 static void edit_light_prop_sub() {}
@@ -3192,7 +3186,7 @@ static void edit_ambient()
     cLightEnv* env = LightMgr.getEnvPtr();
     int ret = 0;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "AMBIENT");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "AMBIENT");
     switch (pTool->rno4) {
     case 0:
         pTool->rno4 = 1;
@@ -3231,9 +3225,9 @@ static void edit_ambient()
         }
         break;
     case 3:
-        eprintf(0x140, 0x46, 4, pTool->color, "SUB MENU");
-        eprintf(0x140, 0x54, 0, pTool->color, "COPY");
-        eprintf(0x140, 0x62, 0, pTool->color, "PASTE");
+        eprintf(0x140, 0x46, 4, pTool->PageNo, "SUB MENU");
+        eprintf(0x140, 0x54, 0, pTool->PageNo, "COPY");
+        eprintf(0x140, 0x62, 0, pTool->PageNo, "PASTE");
         pTool->printCursor(0x27, pTool->rno6 + 6);
         if (pTool->Pad1.rep & JOY_UP) {
             pTool->rno6 = (pTool->rno6 + 1) % 2;
@@ -3277,11 +3271,11 @@ static void edit_ambient()
         }
         break;
     }
-    eprintf(0x20, 0x38, 0, pTool->color, "SCROLL");
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "SCROLL");
     drawColorTile(0x60, 0x38, 0x30, 0xD, *(u32*) &env->AmbientScr);
-    eprintf(0x20, 0x46, 0, pTool->color, "EM+OBJ");
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "EM+OBJ");
     drawColorTile(0x60, 0x46, 0x30, 0xD, *(u32*) &env->AmbientEm);
-    eprintf(0x20, 0x54, 0, pTool->color, "EFFECT");
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "EFFECT");
     drawColorTile(0x60, 0x54, 0x30, 0xD, *(u32*) &env->AmbientEsp);
     pTool->printCursor(3, pTool->rno5 + 4);
 }
@@ -3290,7 +3284,7 @@ static void edit_fog()
 {
     cLightEnv* env = LightMgr.getEnvPtr();
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "FOG");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "FOG");
     edit_fog_common(&env->Fog);
 }
 
@@ -3299,7 +3293,7 @@ static void edit_mirror_fog()
 {
     cLightEnv* env = LightMgr.getEnvPtr();
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "MIRROR FOG");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "MIRROR FOG");
     edit_fog_common(&env->MirrorFog);
 }
 
@@ -3373,11 +3367,11 @@ void edit_fog_common(LightFog* fog)
         }
         break;
     }
-    eprintf(0x20, 0x38, 0, pTool->color, "TYPE     %s", strFogType(fog->Type));
-    eprintf(0x20, 0x46, 0, pTool->color, "START    %6.0f", fog->Start);
-    eprintf(0x20, 0x54, 0, pTool->color, "END      %6.0f", fog->End);
-    eprintf(0x20, 0x62, 0, pTool->color, "COLOR");
-    eprintf(0x20, 0x70, 0, pTool->color, "FAR PLAY %1.2f", env->far_play_ratio);
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "TYPE     %s", strFogType(fog->Type));
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "START    %6.0f", fog->Start);
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "END      %6.0f", fog->End);
+    eprintf(0x20, 0x62, 0, pTool->PageNo, "COLOR");
+    eprintf(0x20, 0x70, 0, pTool->PageNo, "FAR PLAY %1.2f", env->far_play_ratio);
     drawColorTile(0x50, 0x62, 0x30, 0xE, *(u32*) &fog->Color);
     LightMgr.setFog();
 }
@@ -3428,10 +3422,10 @@ static void edit_focus()
         }
         break;
     }
-    eprintf(0x20, 0x2A, 4, pTool->color, "FOCUS");
-    eprintf(0x20, 0x38, 0, pTool->color, "DIST %7d", env->FocusZ);
-    eprintf(0x20, 0x46, 0, pTool->color, "LEVEL %d", env->FocusLevel);
-    eprintf(0x20, 0x54, 0, pTool->color, "MODE  %s", focus_mode_name[env->FocusMode]);
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "FOCUS");
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "DIST %7d", env->FocusZ);
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "LEVEL %d", env->FocusLevel);
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "MODE  %s", focus_mode_name[env->FocusMode]);
 }
 // Contrast tone curve of the blur filter: axes, the (in, out) knee and the end segments.
 void draw_tone_curve()
@@ -3490,7 +3484,7 @@ static void edit_blur()
     const char* type_name[] = {"NORMAL", "SPREAD", "ADD", "SUBTRACT"};
     f32 f;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "BLUR");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "BLUR");
     if (pTool->cursor <= 2) {
         pTool->printCursor(3, pTool->cursor + 4);
     } else {
@@ -3598,21 +3592,21 @@ static void edit_blur()
     if (env->blur_type > 2) {
         env->blur_type = 0;
     }
-    eprintf(0x20, 0x38, 0, pTool->color, "TYPE   %s", type_name[env->blur_type]);
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "TYPE   %s", type_name[env->blur_type]);
     if (env->blur_rate == 0) {
-        eprintf(0x20, 0x46, 0, pTool->color, "RATE   OFF");
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "RATE   OFF");
     } else {
-        eprintf(0x20, 0x46, 0, pTool->color, "RATE   %d", env->blur_rate);
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "RATE   %d", env->blur_rate);
     }
-    eprintf(0x20, 0x54, 0, pTool->color, "POW    %d", env->blur_power);
-    eprintf(0x20, 0x70, 4, pTool->color, "CONTRAST");
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "POW    %d", env->blur_power);
+    eprintf(0x20, 0x70, 4, pTool->PageNo, "CONTRAST");
     if ((u8) env->contrast[0] == 0) {
-        eprintf(0x20, 0x7E, 0, pTool->color, "LEVEL  OFF");
+        eprintf(0x20, 0x7E, 0, pTool->PageNo, "LEVEL  OFF");
     } else {
-        eprintf(0x20, 0x7E, 0, pTool->color, "LEVEL  %d", (u8) env->contrast[0]);
+        eprintf(0x20, 0x7E, 0, pTool->PageNo, "LEVEL  %d", (u8) env->contrast[0]);
     }
-    eprintf(0x20, 0x8C, 0, pTool->color, "POW    %d", (u8) env->contrast[1]);
-    eprintf(0x20, 0x9A, 0, pTool->color, "BIAS   %d", (u8) env->contrast[2]);
+    eprintf(0x20, 0x8C, 0, pTool->PageNo, "POW    %d", (u8) env->contrast[1]);
+    eprintf(0x20, 0x9A, 0, pTool->PageNo, "BIAS   %d", (u8) env->contrast[2]);
     if (pTool->Pad1.rep & JOY_B) {
         pTool->rno1 = 0;
     }
@@ -3625,7 +3619,7 @@ static void edit_mipmap()
     cLightEnv* env = LightMgr.getEnvPtr();
     f32 step = (pTool->Pad1.on & JOY_A) ? 0.01f : 0.001f;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "MIPMAP");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "MIPMAP");
     switch (pTool->rno2) {
     case 0:
         pTool->cursor = 0;
@@ -3690,10 +3684,10 @@ static void edit_mipmap()
         }
         break;
     }
-    eprintf(0x20, 0x38, 0, pTool->color, "MIN LOD %d", env->min_lod);
-    eprintf(0x20, 0x46, 0, pTool->color, "MAX LOD %d", env->max_lod);
-    eprintf(0x20, 0x54, 0, pTool->color, "LODBIAS %3.2f", env->lod_bias);
-    eprintf(0x20, 0x62, 0, pTool->color, "ANISO   %s", aniso_name[env->aniso]);
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "MIN LOD %d", env->min_lod);
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "MAX LOD %d", env->max_lod);
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "LODBIAS %3.2f", env->lod_bias);
+    eprintf(0x20, 0x62, 0, pTool->PageNo, "ANISO   %s", aniso_name[env->aniso]);
     LightMgr.setMipmap(env);
 }
 // Lit tune: the room / core switch, the three tune colours and the manager's colour blend rate.
@@ -3777,14 +3771,14 @@ static void edit_tune()
         }
         break;
     }
-    eprintf(0x20, 0x2A, 4, pTool->color, "LIT TUNE");
-    eprintf(0x20, 0x38, !(env->tuneOn & 1) ? 0x14 : 0, pTool->color, "ROOM");
-    eprintf(0x40, 0x38, 0, pTool->color, "/");
-    eprintf(0x48, 0x38, (env->tuneOn & 1) ? 0x14 : 0, pTool->color, "CORE");
-    eprintf(0x78, 0x38, 0, pTool->color, "%3.0f%%", LightMgr.m_ColBrendRate * 100.0f);
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "LIT TUNE");
+    eprintf(0x20, 0x38, !(env->tuneOn & 1) ? 0x14 : 0, pTool->PageNo, "ROOM");
+    eprintf(0x40, 0x38, 0, pTool->PageNo, "/");
+    eprintf(0x48, 0x38, (env->tuneOn & 1) ? 0x14 : 0, pTool->PageNo, "CORE");
+    eprintf(0x78, 0x38, 0, pTool->PageNo, "%3.0f%%", LightMgr.m_ColBrendRate * 100.0f);
     name = tune_name;
     for (i = 0; i < 4; i++) {
-        eprintf(0x20, 0x38 + i * 0xE, 0, pTool->color, *name++);
+        eprintf(0x20, 0x38 + i * 0xE, 0, pTool->PageNo, *name++);
     }
     if (env->tuneOn & 1) {
         drawColorTile(0x60, 0x49, 0x38, 8, *(u32*) &env->Tune[0]);
@@ -3840,9 +3834,9 @@ static void edit_scale()
         }
         break;
     }
-    eprintf(0x20, 0x2A, 4, pTool->color, "LIT TUNE");
-    eprintf(0x20, 0x38, 0, pTool->color, "MODEL  TEV SCALE %s", scale_name[env->tev_scale[0]]);
-    eprintf(0x20, 0x46, 0, pTool->color, "PLAYER TEV SCALE %s", scale_name[env->tev_scale[1]]);
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "LIT TUNE");
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "MODEL  TEV SCALE %s", scale_name[env->tev_scale[0]]);
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "PLAYER TEV SCALE %s", scale_name[env->tev_scale[1]]);
     LightMgr.setEnv(env, -1);
 }
 // Fog interpolation frames.
@@ -3879,8 +3873,8 @@ static void edit_param()
         }
         break;
     }
-    eprintf(0x20, 0x2A, 4, pTool->color, "PARAMETER");
-    eprintf(0x20, 0x38, 0, pTool->color, "HOKAN %d", env->Hokan);
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "PARAMETER");
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "HOKAN %d", env->Hokan);
 }
 // Cloth wind of the cut: direction (set from the stick through the camera), power, frequency.
 // Draws the wind as an arrow at the camera target.
@@ -3973,15 +3967,15 @@ static void edit_wind()
     PSVECAdd(&c, &a, &c);
     Draw_line3d(&a, &c, 0xFFFFFFFF, 0);
     Draw_line3d(&b, &c, 0xFFFFFFFF, 0);
-    eprintf(0x20, 0x2A, 4, pTool->color, "WIND (CLOTH)");
-    eprintf(0x20, 0x38, 0, pTool->color, "DIRECTION %2.2f", (f32) env->wind.direction * 3.14159265f / 127.0f);
-    eprintf(0x20, 0x46, 0, pTool->color, "POWER     %3.2f", (f32) env->wind.power * 0.01f * 20.0f);
-    eprintf(0x20, 0x54, 0, pTool->color, "FREQUENCY %3.2f", (f32) env->wind.frequency * 0.01f * 1.0471976f);
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "WIND (CLOTH)");
+    eprintf(0x20, 0x38, 0, pTool->PageNo, "DIRECTION %2.2f", (f32) env->wind.direction * 3.14159265f / 127.0f);
+    eprintf(0x20, 0x46, 0, pTool->PageNo, "POWER     %3.2f", (f32) env->wind.power * 0.01f * 20.0f);
+    eprintf(0x20, 0x54, 0, pTool->PageNo, "FREQUENCY %3.2f", (f32) env->wind.frequency * 0.01f * 1.0471976f);
 }
 // Light path table editor: select a path, then edit it.
 static void path()
 {
-    eprintf(0x20, 0x2A, 4, pTool->color, "PATH EDIT");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "PATH EDIT");
     switch (pTool->rno1) {
     case 0:
         pTool->pno0 = pTool->pno1 = pTool->pno2 = pTool->pno3 = 0;
@@ -3997,7 +3991,7 @@ static void path()
         }
         break;
     case 2:
-        eprintf(0x20, 0x38, 0, pTool->color, "PATH %d", pTool->rno7);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "PATH %d", pTool->rno7);
         pTool->rno6 = pathEdit(0x20, 0x70, pTool->rno7, 0, 0);
         if (pTool->Pad1.rep & JOY_B) {
             pTool->pno0 = pTool->pno2 = pTool->pno3 = 0;
@@ -4043,19 +4037,19 @@ static void load()
     EvtDebugNames* ev;
     u32* key;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "LOAD");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "LOAD");
     switch (pTool->rno1) {
     case 0:
         pTool->clearWork();
         pTool->rno1 = 1;
         pTool->cursor = (DbgFlagChk(pG, DBG_EVENT_TOOL)) ? 2 : 1;
     case 1:
-        eprintf(0x20, 0x38, 0, pTool->color, "ROOM LOCAL");
-        eprintf(0x20, 0x46, 0, pTool->color, "ROOM SERVER");
-        eprintf(0x20, 0x54, 0, pTool->color, "EVENT");
-        eprintf(0x20, 0x62, 0, pTool->color, "TOOL");
-        eprintf(0x20, 0x70, 0, pTool->color, "CORE");
-        eprintf(0x20, 0x7E, 0, pTool->color, "ITEM");
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "ROOM LOCAL");
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "ROOM SERVER");
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "EVENT");
+        eprintf(0x20, 0x62, 0, pTool->PageNo, "TOOL");
+        eprintf(0x20, 0x70, 0, pTool->PageNo, "CORE");
+        eprintf(0x20, 0x7E, 0, pTool->PageNo, "ITEM");
         pTool->printCursor(3, pTool->cursor + 4);
         if (pTool->Pad1.rep & JOY_UP) {
             pTool->cursor = (pTool->cursor + 5) % 6;
@@ -4110,11 +4104,11 @@ static void load()
     case 2:
         sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
                 pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (Joy[0].on & JOY_Y) {
-            eprintf(0x50, 0x70, 0x16, pTool->color, "OLD VERSION");
+            eprintf(0x50, 0x70, 0x16, pTool->PageNo, "OLD VERSION");
         }
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 3;
@@ -4129,7 +4123,7 @@ static void load()
         if (pTool->Lit.fileLoad(path)) {
             pTool->cutNo = pTool->EditCutNo;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->DataType = (pTool->cursor != 1) ? 1 : 2;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4140,11 +4134,11 @@ static void load()
     case 4:
         sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
                 pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (Joy[0].on & JOY_Y) {
-            eprintf(0x50, 0x70, 0x16, pTool->color, "OLD VERSION");
+            eprintf(0x50, 0x70, 0x16, pTool->PageNo, "OLD VERSION");
         }
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 5;
@@ -4160,7 +4154,7 @@ static void load()
             file_lock(path);
             pTool->cutNo = pTool->EditCutNo;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->DataType = (pTool->cursor != 1) ? 1 : 2;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4170,8 +4164,8 @@ static void load()
         break;
     case 6:
         sprintf(path, path_tool, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 7;
@@ -4185,7 +4179,7 @@ static void load()
         if (pTool->Lit.fileLoad(path)) {
             pTool->cutNo = 0;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = 4;
+            pTool->DataType = 4;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4195,8 +4189,8 @@ static void load()
         break;
     case 8:
         sprintf(path, path_core, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 9;
@@ -4211,7 +4205,7 @@ static void load()
             file_lock(path);
             pTool->cutNo = 0;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = 3;
+            pTool->DataType = 3;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4220,8 +4214,8 @@ static void load()
         }
         break;
     case 10:
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE OPEN ERROR");
-        eprintf(0x20, 0x46, 0, pTool->color, "PUSH BUTTON TO CONTINUE");
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE OPEN ERROR");
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "PUSH BUTTON TO CONTINUE");
         if (pTool->Pad1.rep & (JOY_A | JOY_B)) {
             pTool->rno1 = 0;
         }
@@ -4232,8 +4226,8 @@ static void load()
         } else {
             sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
         }
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%03d", pTool->cursor);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%03d", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 13;
@@ -4252,7 +4246,7 @@ static void load()
             file_lock(path);
             pTool->cutNo = pTool->EditCutNo = 0;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->DataType = (pTool->cursor != 1) ? 1 : 2;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4262,8 +4256,8 @@ static void load()
         break;
     case 0x10:
         sprintf(path, path_item, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         FILE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 0x11;
@@ -4277,7 +4271,7 @@ static void load()
         if (pTool->Lit.fileLoad(path)) {
             pTool->cutNo = 0;
             LitLoadWork(&pTool->Lit, pTool->cutNo);
-            pTool->mode = 4;
+            pTool->DataType = 4;
             pTool->rno0 = 0;
             pTool->rno1 = 0;
             pTool->clearWork();
@@ -4308,11 +4302,11 @@ static void save()
     EvtDebugNames* ev;
     u32* key;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "SAVE");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "SAVE");
     switch (pTool->rno1) {
     case 0:
         pTool->clearWork();
-        switch (pTool->mode) {
+        switch (pTool->DataType) {
         default:
             pTool->cursor = (DbgFlagChk(pG, DBG_EVENT_TOOL)) ? 2 : 1;
             break;
@@ -4325,13 +4319,13 @@ static void save()
         }
         pTool->rno1 = 1;
     case 1:
-        eprintf(0x20, 0x38, 0, pTool->color, "ROOM LOCAL");
-        eprintf(0x20, 0x46, 0, pTool->color, "ROOM SERVER");
-        eprintf(0x20, 0x54, 0, pTool->color, "EVENT");
-        eprintf(0x20, 0x62, 0, pTool->color, "TOOL");
-        eprintf(0x20, 0x70, 0, pTool->color, "CORE");
-        eprintf(0x20, 0x7E, 0, pTool->color, "PATH");
-        eprintf(0x20, 0x8C, 0, pTool->color, "ITEM");
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "ROOM LOCAL");
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "ROOM SERVER");
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "EVENT");
+        eprintf(0x20, 0x62, 0, pTool->PageNo, "TOOL");
+        eprintf(0x20, 0x70, 0, pTool->PageNo, "CORE");
+        eprintf(0x20, 0x7E, 0, pTool->PageNo, "PATH");
+        eprintf(0x20, 0x8C, 0, pTool->PageNo, "ITEM");
         pTool->printCursor(3, pTool->cursor + 4);
         if (pTool->Pad1.rep & JOY_UP) {
             pTool->cursor = (pTool->cursor + 6) % 7;
@@ -4342,11 +4336,11 @@ static void save()
             switch (pTool->cursor) {
             case 0:
                 pTool->rno1 = 2;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             case 1:
                 pTool->rno1 = 4;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             case 2:
                 pTool->rno1 = 14;
@@ -4366,19 +4360,19 @@ static void save()
                 break;
             case 3:
                 pTool->rno1 = 6;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             case 4:
                 pTool->rno1 = 8;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             case 5:
                 pTool->rno1 = 12;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             case 6:
                 pTool->rno1 = 0x10;
-                pTool->cursor = pTool->mode == 2;
+                pTool->cursor = pTool->DataType == 2;
                 break;
             }
         }
@@ -4390,8 +4384,8 @@ static void save()
     case 2:
         sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
                 pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 3;
@@ -4417,8 +4411,8 @@ static void save()
     case 4:
         sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
                 pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 5;
@@ -4444,8 +4438,8 @@ static void save()
         break;
     case 6:
         sprintf(path, path_tool, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 7;
@@ -4469,8 +4463,8 @@ static void save()
         break;
     case 8:
         sprintf(path, path_core, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 9;
@@ -4494,15 +4488,15 @@ static void save()
         }
         break;
     case 10:
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE OPEN ERROR");
-        eprintf(0x20, 0x46, 0, pTool->color, "PUSH BUTTON TO CONTINUE");
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE OPEN ERROR");
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "PUSH BUTTON TO CONTINUE");
         if (pTool->Pad1.rep & (JOY_A | JOY_B)) {
             pTool->rno1 = 0;
         }
         break;
     case 12:
         sprintf(path, path_litpath);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 13;
         } else if (pTool->Pad1.rep & JOY_B) {
@@ -4526,8 +4520,8 @@ static void save()
         } else {
             sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
         }
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%03d", pTool->cursor);
-        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%03d", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 15;
@@ -4557,8 +4551,8 @@ static void save()
         break;
     case 0x10:
         sprintf(path, path_item, pTool->cursor);
-        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
-        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "%s", path);
         SAVE_NO_SELECT();
         if (pTool->Pad1.rep & JOY_A) {
             pTool->rno1 = 0x11;
@@ -4593,7 +4587,7 @@ static void option()
     u32 i;
     int c;
 
-    eprintf(0x20, 0x2A, 4, pTool->color, "OPTION");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "OPTION");
     switch (pTool->rno1) {
     case 0:
         switch (pTool->rno2) {
@@ -4631,9 +4625,9 @@ static void option()
                 LightMgr.setElecPower2(pTool->rno3, 1);
             }
             if (pTool->Pad1.trg & JOY_Y) {
-                p = pTool->litPath.path[pTool->rno3];
+                p = pTool->PathTool.Ofs[pTool->rno3];
                 if (p != NULL) {
-                    memcpy(pTool->litPath.edit, p, p->getSize());
+                    memcpy(pTool->PathTool.Work, p, p->getSize());
                     pTool->pno0 = pTool->pno1 = pTool->pno2 = pTool->pno3 = 0;
                     pTool->rno1 = 1;
                 }
@@ -4642,7 +4636,7 @@ static void option()
             if (VALID_PTR(q)) {
                 drawPath(0x32, 0xFA, q, 0, 0xFFFFFFFF);
             } else {
-                eprintf(0x32, 0xFA, 0, pTool->color, "NO DATA");
+                eprintf(0x32, 0xFA, 0, pTool->PageNo, "NO DATA");
             }
             break;
         case 4:
@@ -4692,33 +4686,33 @@ static void option()
         if (pTool->Pad1.rep & JOY_DOWN) {
             pTool->rno2 = (pTool->rno2 + 9) % 8;
         }
-        eprintf(0x20, 0x38, 0, pTool->color, "OBJ MOVE      %s", onoff[(pTool->Flag & 1) ? 1 : 0]);
-        eprintf(0x20, 0x46, 0, pTool->color, "CUT SELECT    %s", onoff[(pTool->Flag & 8) ? 1 : 0]);
-        eprintf(0x20, 0x54, 0, pTool->color, "ELEC POWER    %1.2f", LightMgr.ElecPower);
-        eprintf(0x20, 0x62, 0, pTool->color, "ELEC PATH     %d", pTool->rno3);
-        eprintf(0x20, 0x70, 0, pTool->color, "ANALYZE       %s", onoff[(pTool->Flag & 4) >> 2]);
-        eprintf(0x20, 0x7E, 0, pTool->color, "KIND ON/OFF");
+        eprintf(0x20, 0x38, 0, pTool->PageNo, "OBJ MOVE      %s", onoff[(pTool->Flag & 1) ? 1 : 0]);
+        eprintf(0x20, 0x46, 0, pTool->PageNo, "CUT SELECT    %s", onoff[(pTool->Flag & 8) ? 1 : 0]);
+        eprintf(0x20, 0x54, 0, pTool->PageNo, "ELEC POWER    %1.2f", LightMgr.ElecPower);
+        eprintf(0x20, 0x62, 0, pTool->PageNo, "ELEC PATH     %d", pTool->rno3);
+        eprintf(0x20, 0x70, 0, pTool->PageNo, "ANALYZE       %s", onoff[(pTool->Flag & 4) >> 2]);
+        eprintf(0x20, 0x7E, 0, pTool->PageNo, "KIND ON/OFF");
         switch (pPL->LightInfo.EnableMask) {
         case 1:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      PLAYER");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      PLAYER");
             break;
         case 2:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      ENEMY");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      ENEMY");
             break;
         case 4:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      OBJ");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      OBJ");
             break;
         case 8:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      EFFECT");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      EFFECT");
             break;
         case 0x10:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      SCROLL");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      SCROLL");
             break;
         case 0x40:
-            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      SUBCHAR");
+            eprintf(0x20, 0x8C, 0, pTool->PageNo, "PL EMASK      SUBCHAR");
             break;
         }
-        eprintf(0x20, 0x9A, 0, pTool->color, "BB DISP       %s", onoff[(pTool->Flag & 0x10) ? 1 : 0]);
+        eprintf(0x20, 0x9A, 0, pTool->PageNo, "BB DISP       %s", onoff[(pTool->Flag & 0x10) ? 1 : 0]);
         pTool->printCursor(3, pTool->rno2 + 4);
         if (pTool->Pad1.rep & JOY_B) {
             pTool->rno0 = 0;
@@ -4731,9 +4725,9 @@ static void option()
         }
         break;
     case 2:
-        eprintf(0x40, 0x8C, 4, pTool->color, "KIND");
+        eprintf(0x40, 0x8C, 4, pTool->PageNo, "KIND");
         for (i = 0; i < 32; i++) {
-            eprintf(0x40 + i * 8, 0x9A, LightMgr.checkKind(i) ? 0 : 0x14, pTool->color, "%d", i % 10);
+            eprintf(0x40 + i * 8, 0x9A, LightMgr.checkKind(i) ? 0 : 0x14, pTool->PageNo, "%d", i % 10);
         }
         if (pTool->Pad1.rep & JOY_RIGHT) {
             pTool->rno2++;
@@ -4752,20 +4746,20 @@ static void option()
             pTool->rno1 = 0;
         }
         c = (pG->Frame_cnt % 30 > 14) ? 0x14 : 0;
-        eprintf((pTool->rno2 + 8) << 3, 0xA8, c, pTool->color, "^");
+        eprintf((pTool->rno2 + 8) << 3, 0xA8, c, pTool->PageNo, "^");
         break;
     }
 }
 // Quit confirmation: YES leaves the tool (restoring the debug page colour), NO goes back to the menu.
 static void quit()
 {
-    eprintf(0x20, 0x2A, 4, pTool->color, "QUIT ?");
+    eprintf(0x20, 0x2A, 4, pTool->PageNo, "QUIT ?");
     if (pTool->rno1 == 0) {
         pTool->cursor = 1;
         pTool->rno1 = 1;
     }
-    eprintf(0x30, 0x46, pTool->cursor == 0 ? 0 : 0x14, pTool->color, "YES");
-    eprintf(0x30, 0x54, pTool->cursor == 1 ? 0 : 0x14, pTool->color, "NO");
+    eprintf(0x30, 0x46, pTool->cursor == 0 ? 0 : 0x14, pTool->PageNo, "YES");
+    eprintf(0x30, 0x54, pTool->cursor == 1 ? 0 : 0x14, pTool->PageNo, "NO");
     if (pTool->Pad1.rep & JOY_UP) {
         pTool->cursor = 0;
     } else if (pTool->Pad1.rep & JOY_DOWN) {
@@ -4773,7 +4767,7 @@ static void quit()
     }
     if (pTool->Pad1.rep & JOY_A) {
         if (pTool->cursor == 0) {
-            pTool->ret = 0;
+            pTool->be_flag = 0;
             pG->debug_mode = pTool->PrintNoBak;
             pLog->modeReset();
             pTool->updateLit();
@@ -4805,23 +4799,23 @@ static const char* table_head[] = {
     {                                                                                               \
         GXColor col;                                                                                \
                                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 2) ? "E" : "-");                        \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s", (l->xF & 2) ? "E" : "-");                        \
         x++;                                                                                        \
-        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 4) ? "O" : "-");                        \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s", (l->xF & 4) ? "O" : "-");                        \
         x++;                                                                                        \
-        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 8) ? "E" : "-");                        \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s", (l->xF & 8) ? "E" : "-");                        \
         x++;                                                                                        \
-        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 0x10) ? "S" : "-");                     \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s", (l->xF & 0x10) ? "S" : "-");                     \
         x += 2;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%s", parent_short[l->ParentType]);                    \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s", parent_short[l->ParentType]);                    \
         x += 3;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%4.0f %3.0f %4.0f", l->Pos.x / 1000.0f,               \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%4.0f %3.0f %4.0f", l->Pos.x / 1000.0f,               \
                 l->Pos.y / 1000.0f, l->Pos.z / 1000.0f);                                            \
         x += 14;                                                                                    \
         if (l->Radius != 0.0f) {                                                                       \
-            eprintf(x * 8, (Y), c, pTool->color, "%3d", (int) (l->Radius / 1000.0f));                  \
+            eprintf(x * 8, (Y), c, pTool->PageNo, "%3d", (int) (l->Radius / 1000.0f));                  \
         } else {                                                                                    \
-            eprintf(x * 8, (Y), c, pTool->color, "INF");                                            \
+            eprintf(x * 8, (Y), c, pTool->PageNo, "INF");                                            \
         }                                                                                           \
         x += 4;                                                                                     \
         if (l->Type == 4) {                                                                         \
@@ -4835,33 +4829,33 @@ static const char* table_head[] = {
            offset 0 with `col` in the next slot (the editColor form) */                             \
         DrawTileV(x * 8 + 1, (Y) + 1, 0x16, 0xC, col);                                              \
         x += 4;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%1.1f", l->Intensity);                                    \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%1.1f", l->Intensity);                                    \
         x += 4;                                                                                     \
         if (l->Type != 4) {                                                                         \
             if (l->xD <= 7) {                                                                       \
-                eprintf(x * 8, (Y), c, pTool->color, "%s", light_type_short[l->xD]);               \
+                eprintf(x * 8, (Y), c, pTool->PageNo, "%s", light_type_short[l->xD]);               \
             } else {                                                                                \
-                eprintf(x * 8, (Y), c, pTool->color, "ERR!");                                       \
+                eprintf(x * 8, (Y), c, pTool->PageNo, "ERR!");                                       \
             }                                                                                       \
         } else {                                                                                    \
             if (l->xD <= 2) {                                                                       \
-                eprintf(x * 8, (Y), c, pTool->color, "%s", shadow_type_short[l->xD]);              \
+                eprintf(x * 8, (Y), c, pTool->PageNo, "%s", shadow_type_short[l->xD]);              \
             } else {                                                                                \
-                eprintf(x * 8, (Y), c, pTool->color, "ERR!");                                       \
+                eprintf(x * 8, (Y), c, pTool->PageNo, "ERR!");                                       \
             }                                                                                       \
         }                                                                                           \
         x += 5;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%s %02x", (l->Kind & 0x80) ? "E" : " ", l->Kind);     \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%s %02x", (l->Kind & 0x80) ? "E" : " ", l->Kind);     \
         x += 5;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%02X", l->Attribute);                                      \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%02X", l->Attribute);                                      \
         x += 5;                                                                                     \
-        eprintf(x * 8, (Y), c, pTool->color, "%d", l->Priority);                                         \
+        eprintf(x * 8, (Y), c, pTool->PageNo, "%d", l->Priority);                                         \
     }
 
 // The light table: one row per light of the current cut.
 void printEditTable()
 {
-    int page = pTool->col > 11;
+    int page = pTool->cx > 11;
     int i;
     int y;
     int no;
@@ -4869,7 +4863,7 @@ void printEditTable()
     u8 c;
     cLight* l;
 
-    eprintf(0x20, 0x142, 4, pTool->color, table_head[page]);
+    eprintf(0x20, 0x142, 4, pTool->PageNo, table_head[page]);
     for (i = 0, no = pTool->table_y; i < pTool->table_height; i++, no++) {
         l = LightMgr.at(no);
         x = 4;
@@ -4882,14 +4876,14 @@ void printEditTable()
         } else {
             c = 0x16;
         }
-        eprintf(x * 8, 0x150 + i * 14, c, pTool->color, "%02d", no);
+        eprintf(x * 8, 0x150 + i * 14, c, pTool->PageNo, "%02d", no);
         // The row's `y`: a SECOND giv of the same value, spelled so that cse cannot fold it into the
         // `0x150 + i * 14` pseudo above (loop.c combines the two givs: `mr r26,r23` for the "P" column's
         // expression, `mr r29,r23` for this variable).
         y = (i + 24) * 14;
         if (l->be_flag & 1) {
             if (page == 0) {
-                eprintf(7 * 8, 0x150 + i * 14, c, pTool->color, "%02d", l->Type);
+                eprintf(7 * 8, 0x150 + i * 14, c, pTool->PageNo, "%02d", l->Type);
                 // COMPILER-DIFF: candidate #12 (gcse cprop): the target keeps `li r30,10` and `li r3,80`
                 // as pseudos of the pre-diamond block (`x + 1` and the "P" call's r3 not folded); ours
                 // const-propagates both into the "P" join block unless the two constants are laundered
@@ -4900,13 +4894,13 @@ void printEditTable()
                     int t80 = x * 8;
                     asm("" : "+r"(t80));
                     asm("" : "+r"(x));
-                    eprintf(t80, 0x150 + i * 14, c, pTool->color, "%s", (l->xF & 1) ? "P" : "-");
+                    eprintf(t80, 0x150 + i * 14, c, pTool->PageNo, "%s", (l->xF & 1) ? "P" : "-");
                 }
                 x++;
                 PRINT_EDIT_TAIL(l, y, c);
             }
         } else {
-            eprintf(0x38, 0x150 + i * 14, 0x14, pTool->color, "EMPTY WORK");
+            eprintf(0x38, 0x150 + i * 14, 0x14, pTool->PageNo, "EMPTY WORK");
         }
     }
 }
@@ -4915,7 +4909,7 @@ void printEditTable()
 void cLightTool::printCursor(int x, int y)
 {
     if (!(cursorCtr & 8)) {
-        eprintf(x * 8, y * 14, 0, pTool->color, ">");
+        eprintf(x * 8, y * 14, 0, pTool->PageNo, ">");
     }
 }
 
@@ -4965,7 +4959,7 @@ void cLightTool::clearWork()
 {
     cursor = 0;
     cy = 0;
-    col = 0;
+    cx = 0;
 }
 
 // Resets the sub menu cursors.
@@ -4996,7 +4990,7 @@ cDbLit::cDbLit()
     version = 0;
     nMaxLight = 0;
     for (i = 0; i < 256; i++) {
-        cut[i] = NULL;
+        pLh[i] = NULL;
     }
 }
 
@@ -5008,14 +5002,14 @@ u32 cDbLit::size()
     u32 size;
 
     for (i = 0; i < 256; i++) {
-        if (cut[i]) {
+        if (pLh[i]) {
             nCut = i + 1;
         }
     }
     size = nCut * 4 + 4;
     for (i = 0; i < nCut; i++) {
-        if (cut[i]) {
-            size += cut[i]->getSize();
+        if (pLh[i]) {
+            size += pLh[i]->getSize();
         }
     }
     return size;
@@ -5024,7 +5018,7 @@ u32 cDbLit::size()
 // Cut `no` (NULL when absent).
 cLightEnv* cDbLit::getCut(u16 no)
 {
-    return cut[no];
+    return pLh[no];
 }
 
 // Loads cut `no` of the file into the LightMgr: env + light works; an absent cut clears the env
@@ -5053,7 +5047,7 @@ int LitSaveWork(cDbLit* lit, int no)
     }
     n = LightMgr.countScr();
     pLightEnv->nLight = n;
-    lit->cut[(u16) no] = (cLightEnv*) Debug_alloc(n * sizeof(cLightWork) + sizeof(cLightEnv), 1);
+    lit->pLh[(u16) no] = (cLightEnv*) Debug_alloc(n * sizeof(cLightWork) + sizeof(cLightEnv), 1);
     *lit->getCut(no) = *pLightEnv;
     LightMgr.saveLit(lit->getCut(no)->getLightWork(0));
     return 1;
@@ -5086,10 +5080,10 @@ int cDbLit::init(cLit* lit)
         return 0;
     }
     for (i = 0; i < 256; i++) {
-        if (cut[i]) {
-            Debug_free(cut[i]);
+        if (pLh[i]) {
+            Debug_free(pLh[i]);
         }
-        cut[i] = NULL;
+        pLh[i] = NULL;
     }
     *(u32*) this = *(u32*) lit;
     tbl = (u32*) (lit + 1);
@@ -5100,9 +5094,9 @@ int cDbLit::init(cLit* lit)
             u32 size = src->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
             cLightEnv* dst = (cLightEnv*) Debug_alloc(size, 1);
             memcpy(dst, src, size);
-            cut[i] = dst;
+            pLh[i] = dst;
         } else {
-            cut[i] = (cLightEnv*) ofs;
+            pLh[i] = (cLightEnv*) ofs;
         }
     }
     version = 0x2C;
@@ -5115,9 +5109,9 @@ void cDbLit::preEventSave()
     u32 i;
 
     for (i = 1; i < 256; i++) {
-        if (cut[i]) {
-            Debug_free(cut[i]);
-            cut[i] = NULL;
+        if (pLh[i]) {
+            Debug_free(pLh[i]);
+            pLh[i] = NULL;
         }
     }
 }
@@ -5164,10 +5158,10 @@ u32 cDbLit::createLit(cLit* dst)
     version = 0x2C;
     nMaxLight = nCut = 0;
     for (i = 0; i < 256; i++) {
-        if (cut[i]) {
+        if (pLh[i]) {
             nCut = i + 1;
-            if (cut[i]->nLight > nMaxLight) {
-                nMaxLight = cut[i]->nLight;
+            if (pLh[i]->nLight > nMaxLight) {
+                nMaxLight = pLh[i]->nLight;
             }
         }
     }
@@ -5175,7 +5169,7 @@ u32 cDbLit::createLit(cLit* dst)
     tbl = (u32*) (dst + 1);
     ofs = nCut * 4 + 4;
     for (i = 0; i < nCut; i++) {
-        c = cut[i];
+        c = pLh[i];
         if (c) {
             tbl[i] = ofs;
             ofs += sizeof(cLightEnv) + c->nLight * sizeof(cLightWork);
@@ -5187,7 +5181,7 @@ u32 cDbLit::createLit(cLit* dst)
     size = nCut * 4 + 4;
     // the same `c` as the table loop: the memcpy argument ties it to r4 in both loops
     for (i = 0; i < nCut; i++) {
-        c = cut[i];
+        c = pLh[i];
         if (c) {
             n = c->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
             memcpy(dst, c, n);
@@ -5229,7 +5223,7 @@ int editColor(int x, int y, GXColor* col)
     step = (pTool->Pad1.on & JOY_A) ? 1.5f : 0.1f;
     link = pTool->Pad1.on & JOY_Y;
     pTool->printCursor(x - 1, y + pTool->cursor);
-    eprintf(x << 3, y * 14, 0, pTool->color, "R %3d", col->r);
+    eprintf(x << 3, y * 14, 0, pTool->PageNo, "R %3d", col->r);
     // the original copies the deferred .rodata template into a register once (`lwz r24`) and stores
     // that word into the swatch argument's copy temp before each DrawTile (a `{0,0,0,0}` initializer
     // folds to `li 0`); the by-value DrawTileV view gives the one reused 4-byte temp at frame offset 0
@@ -5241,21 +5235,21 @@ int editColor(int x, int y, GXColor* col)
     DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
     DrawTileV(((x + 6) << 3), y * 14 + 4, col->r >> 1, 6, c);
     y++;
-    eprintf(x << 3, y * 14, 0, pTool->color, "G %3d", col->g);
+    eprintf(x << 3, y * 14, 0, pTool->PageNo, "G %3d", col->g);
     c.r = 0;
     c.g = 0xFF;
     c.b = 0;
     DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
     DrawTileV(((x + 6) << 3), y * 14 + 4, col->g >> 1, 6, c);
     y++;
-    eprintf(x << 3, y * 14, 0, pTool->color, "B %3d", col->b);
+    eprintf(x << 3, y * 14, 0, pTool->PageNo, "B %3d", col->b);
     c.r = 0;
     c.g = 0;
     c.b = 0xFF;
     DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
     DrawTileV(((x + 6) << 3), y * 14 + 4, col->b >> 1, 6, c);
     y++;
-    eprintf(x << 3, y * 14, 0, pTool->color, "A %1.1f", (f32) col->a * 0.0078125f);
+    eprintf(x << 3, y * 14, 0, pTool->PageNo, "A %1.1f", (f32) col->a * 0.0078125f);
     c.r = 200;
     c.g = 200;
     c.b = 200;
@@ -5264,11 +5258,11 @@ int editColor(int x, int y, GXColor* col)
     y += 2;
     DrawTileV(((x + 8) << 3), y * 14, 0x2A, 0x2A, *col);
     if (link) {
-        eprintf(x << 3, y * 14, 0, pTool->color, "LINK");
+        eprintf(x << 3, y * 14, 0, pTool->PageNo, "LINK");
     }
     y++;
     if (pTool->Pad1.on & JOY_A) {
-        eprintf(x << 3, y * 14, 0, pTool->color, "TURBO");
+        eprintf(x << 3, y * 14, 0, pTool->PageNo, "TURBO");
     }
     if (link) {
         if (pTool->Pad1.rep & JOY_RIGHT) {
@@ -5591,28 +5585,28 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
     cLightPathData* p;
     cLightPathData* np;
 
-    eprintf(x + 0x88, y - 0xE, 0, pTool->color, "SELECT A PATH NO: %d", pTool->pno1);
+    eprintf(x + 0x88, y - 0xE, 0, pTool->PageNo, "SELECT A PATH NO: %d", pTool->pno1);
     switch (pTool->pno0) {
     case 0:
         if (pTool->Pad1.rep & JOY_RIGHT) {
             pTool->pno1++;
-            memset_asm(pTool->litPath.edit, 0xFF, sizeof(pTool->litPath.edit));
-            p = pTool->litPath.path[pTool->pno1];
+            memset_asm(pTool->PathTool.Work, 0xFF, sizeof(pTool->PathTool.Work));
+            p = pTool->PathTool.Ofs[pTool->pno1];
             if (p != NULL) {
-                memcpy(pTool->litPath.edit, p, p->getSize());
+                memcpy(pTool->PathTool.Work, p, p->getSize());
             }
-            pTool->col = 0;
+            pTool->cx = 0;
         }
         if (pTool->Pad1.rep & JOY_LEFT) {
             pTool->pno1--;
-            memset_asm(pTool->litPath.edit, 0xFF, sizeof(pTool->litPath.edit));
-            p = pTool->litPath.path[pTool->pno1];
+            memset_asm(pTool->PathTool.Work, 0xFF, sizeof(pTool->PathTool.Work));
+            p = pTool->PathTool.Ofs[pTool->pno1];
             if (p != NULL) {
-                memcpy(pTool->litPath.edit, p, p->getSize());
+                memcpy(pTool->PathTool.Work, p, p->getSize());
             }
-            pTool->col = 0;
+            pTool->cx = 0;
         }
-        if ((pTool->Pad1.rep & JOY_A) && pTool->litPath.path[pTool->pno1] == NULL) {
+        if ((pTool->Pad1.rep & JOY_A) && pTool->PathTool.Ofs[pTool->pno1] == NULL) {
             pTool->Pad1.rep &= ~JOY_A;
             pTool->pno2 = 0;
             pTool->pno0 = 1;
@@ -5623,10 +5617,10 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
         }
         break;
     case 1:
-        if (pTool->litPath.path[pTool->pno1] != NULL) {
-            eprintf(0xA0, 0x54, 0, pTool->color, "DELETE?");
-            eprintf(0xB0, 0x62, pTool->pno2 == 0 ? 0x14 : 0, pTool->color, "YES");
-            eprintf(0xB0, 0x70, pTool->pno2 != 0 ? 0x14 : 0, pTool->color, "NO");
+        if (pTool->PathTool.Ofs[pTool->pno1] != NULL) {
+            eprintf(0xA0, 0x54, 0, pTool->PageNo, "DELETE?");
+            eprintf(0xB0, 0x62, pTool->pno2 == 0 ? 0x14 : 0, pTool->PageNo, "YES");
+            eprintf(0xB0, 0x70, pTool->pno2 != 0 ? 0x14 : 0, pTool->PageNo, "NO");
             if (pTool->Pad1.rep & JOY_UP) {
                 pTool->pno2 = 1;
             } else if (pTool->Pad1.rep & JOY_DOWN) {
@@ -5634,16 +5628,16 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
             }
             if (pTool->Pad1.rep & JOY_A) {
                 if (pTool->pno2 == 1) {
-                    Debug_free(pTool->litPath.path[pTool->pno1]);
-                    pTool->litPath.path[pTool->pno1] = NULL;
-                    pTool->litPath.createPath(pLitPath);
+                    Debug_free(pTool->PathTool.Ofs[pTool->pno1]);
+                    pTool->PathTool.Ofs[pTool->pno1] = NULL;
+                    pTool->PathTool.createPath(pLitPath);
                 }
                 pTool->pno0 = 0;
             }
         } else {
-            eprintf(0xA0, 0x54, 0, pTool->color, "CREATE?");
-            eprintf(0xB0, 0x62, pTool->pno2 == 0 ? 0x14 : 0, pTool->color, "YES");
-            eprintf(0xB0, 0x70, pTool->pno2 != 0 ? 0x14 : 0, pTool->color, "NO");
+            eprintf(0xA0, 0x54, 0, pTool->PageNo, "CREATE?");
+            eprintf(0xB0, 0x62, pTool->pno2 == 0 ? 0x14 : 0, pTool->PageNo, "YES");
+            eprintf(0xB0, 0x70, pTool->pno2 != 0 ? 0x14 : 0, pTool->PageNo, "NO");
             if (pTool->Pad1.rep & JOY_UP) {
                 pTool->pno2 = 1;
             } else if (pTool->Pad1.rep & JOY_DOWN) {
@@ -5652,11 +5646,11 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
             if (pTool->Pad1.rep & JOY_A) {
                 if (pTool->pno2 == 1) {
                     np = (cLightPathData*) Debug_alloc(2, 1);
-                    pTool->litPath.path[pTool->pno1] = np;
+                    pTool->PathTool.Ofs[pTool->pno1] = np;
                     np->data[0] = 200;
                     np->data[1] = 0xFF;
-                    pTool->litPath.edit[0] = 200;
-                    pTool->litPath.edit[1] = 0xFF;
+                    pTool->PathTool.Work[0] = 200;
+                    pTool->PathTool.Work[1] = 0xFF;
                 }
                 pTool->pno0 = 0;
             }
@@ -5666,12 +5660,12 @@ int pathSelect(int x, int y, u8 no, u8 flag, int mode)
         }
         break;
     }
-    if (VALID_PTR(pTool->litPath.path[pTool->pno1])) {
-        drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, 0xFFFFFFFF);
-        eprintf(x + 0x140, y + 0x68, 0, pTool->color, "%2.2fsec",
-                (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
+    if (VALID_PTR(pTool->PathTool.Ofs[pTool->pno1])) {
+        drawPath(x, y, (cLightPathData*) pTool->PathTool.Work, 0, 0xFFFFFFFF);
+        eprintf(x + 0x140, y + 0x68, 0, pTool->PageNo, "%2.2fsec",
+                (f32) (((cLightPathData*) pTool->PathTool.Work)->getSize() - 1) / 30.0f);
     } else {
-        eprintf(x + 0x20, y + 0x2A, 0, pTool->color, "NO DATA");
+        eprintf(x + 0x20, y + 0x2A, 0, pTool->PageNo, "NO DATA");
     }
     return pTool->pno1;
 }
@@ -5684,21 +5678,21 @@ int pathEdit(int x, int y, u8 no, u8 flag, int mode)
     u32 size;
 
     if (pTool->pno0 == 0) {
-        val = (f32) pTool->litPath.edit[0];
+        val = (f32) pTool->PathTool.Work[0];
         pTool->pno0 = 1;
     }
     if (pTool->Pad1.rep & 0x20002) {
         pTool->pno1++;
-        if (pTool->litPath.edit[pTool->pno1] == 0xFF) {
-            pTool->litPath.edit[pTool->pno1] = (pTool->pno1 != 0) ? pTool->litPath.edit[pTool->pno1 - 1] : 0;
-            pTool->litPath.edit[pTool->pno1 + 1] = 0xFF;
+        if (pTool->PathTool.Work[pTool->pno1] == 0xFF) {
+            pTool->PathTool.Work[pTool->pno1] = (pTool->pno1 != 0) ? pTool->PathTool.Work[pTool->pno1 - 1] : 0;
+            pTool->PathTool.Work[pTool->pno1 + 1] = 0xFF;
         }
-        val = (f32) pTool->litPath.edit[pTool->pno1];
+        val = (f32) pTool->PathTool.Work[pTool->pno1];
     }
     if (pTool->Pad1.rep & 0x10001) {
         if (pTool->pno1 != 0) {
             pTool->pno1--;
-            val = (f32) pTool->litPath.edit[pTool->pno1];
+            val = (f32) pTool->PathTool.Work[pTool->pno1];
         }
     }
     if (pTool->Pad1.rep & JOY_UP) {
@@ -5713,23 +5707,23 @@ int pathEdit(int x, int y, u8 no, u8 flag, int mode)
     } else if (val >= 200.0f) {
         val = 200.0f;
     }
-    pTool->litPath.edit[pTool->pno1] = (u8) val;
-    if (pTool->litPath.path[no] != NULL) {
-        Debug_free(pTool->litPath.path[no]);
-        size = ((cLightPathData*) pTool->litPath.edit)->getSize();
-        pTool->litPath.path[no] = (cLightPathData*) Debug_alloc(size, 1);
-        memcpy(pTool->litPath.path[no], pTool->litPath.edit, size);
+    pTool->PathTool.Work[pTool->pno1] = (u8) val;
+    if (pTool->PathTool.Ofs[no] != NULL) {
+        Debug_free(pTool->PathTool.Ofs[no]);
+        size = ((cLightPathData*) pTool->PathTool.Work)->getSize();
+        pTool->PathTool.Ofs[no] = (cLightPathData*) Debug_alloc(size, 1);
+        memcpy(pTool->PathTool.Ofs[no], pTool->PathTool.Work, size);
     }
-    pTool->litPath.createPath(pLitPath);
+    pTool->PathTool.createPath(pLitPath);
     if (pTool->Pad1.trg & JOY_Y) {
-        pTool->litPath.edit[pTool->pno1 + 1] = 0xFF;
+        pTool->PathTool.Work[pTool->pno1 + 1] = 0xFF;
     }
-    if (VALID_PTR(pTool->litPath.path[no])) {
-        drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, pTool->pno1);
-        eprintf(x + 0x120, y + 0x68, 0, pTool->color, "%3d%% %2.2f/%2.2f", (pTool->litPath.edit[pTool->pno1] + 1) >> 1,
-                (f32) pTool->pno1 / 30.0f, (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
+    if (VALID_PTR(pTool->PathTool.Ofs[no])) {
+        drawPath(x, y, (cLightPathData*) pTool->PathTool.Work, 0, pTool->pno1);
+        eprintf(x + 0x120, y + 0x68, 0, pTool->PageNo, "%3d%% %2.2f/%2.2f", (pTool->PathTool.Work[pTool->pno1] + 1) >> 1,
+                (f32) pTool->pno1 / 30.0f, (f32) (((cLightPathData*) pTool->PathTool.Work)->getSize() - 1) / 30.0f);
     } else {
-        eprintf(x + 0x20, y + 0x2A, 0, pTool->color, "NO DATA");
+        eprintf(x + 0x20, y + 0x2A, 0, pTool->PageNo, "NO DATA");
     }
     return pTool->pno1;
 }
@@ -5787,11 +5781,11 @@ int cLightTool::lightAnalysis()
     u32 i;
     u32 n;
 
-    if (!VALID_PTR(anaTbl)) {
+    if (!VALID_PTR(LitAnaWork)) {
         return 0;
     }
     n = ObjMgr.getArrayNum();
-    memclr_asm(anaTbl, n * 4);
+    memclr_asm(LitAnaWork, n * 4);
     LitAnaIdx = 0;
     for (i = 0; i < n; i++) {
         if (ObjMgr.fastAt(i)->isAlive()) {
@@ -5799,13 +5793,13 @@ int cLightTool::lightAnalysis()
             if (obj->kindid == 2) {
                 if (obj->LightInfo.getLightNum() > 4) {
                     int id = SmdGetWorkId(obj);
-                    u8* p = (u8*) (LitAnaIdx * 4 + (u32) anaTbl);
+                    u8* p = (u8*) (LitAnaIdx * 4 + (u32) LitAnaWork);
                     if (id != -1) {
                         p[3] = id;
                     } else {
                         p[3] = 0xFF;
                     }
-                    anaTbl[LitAnaIdx * 4] = obj->LightInfo.getLightNum();
+                    LitAnaWork[LitAnaIdx * 4] = obj->LightInfo.getLightNum();
                     LitAnaIdx++;
                 }
             }
@@ -5817,10 +5811,10 @@ int cLightTool::lightAnalysis()
         eprintf(0x1E0, 0x1C, pln > 3 ? 0x16 : 0, 0, "%2d", pln);
     }
     for (i = 0; i < LitAnaIdx; i++) {
-        if (anaTbl[i * 4 + 3] == 0xFF) {
-            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "-- %2d", anaTbl[i * 4]);
+        if (LitAnaWork[i * 4 + 3] == 0xFF) {
+            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "-- %2d", LitAnaWork[i * 4]);
         } else {
-            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "%2d %2d", anaTbl[i * 4 + 3], anaTbl[i * 4]);
+            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "%2d %2d", LitAnaWork[i * 4 + 3], LitAnaWork[i * 4]);
         }
     }
     return 1;
@@ -5830,8 +5824,8 @@ int cLightTool::lightAnalysis()
 // and loads path 0 into the edit buffer.
 cLitPathTool::cLitPathTool()
 {
-    memclr_asm(path, sizeof(path));
-    memclr_asm(edit, sizeof(edit));
+    memclr_asm(Ofs, sizeof(Ofs));
+    memclr_asm(Work, sizeof(Work));
     if (!(LightMgr.dbFlag & 2)) {
         cLightPathHeader* hdr;
         u32 size;
@@ -5855,8 +5849,8 @@ cLitPathTool::cLitPathTool()
         p = (cLightPathHeader*) LightMgr.getPathHeader();
     }
     expand(pLitPath);
-    if (VALID_PTR(path[0])) {
-        memcpy(edit, path[0], path[0]->getSize());
+    if (VALID_PTR(Ofs[0])) {
+        memcpy(Work, Ofs[0], Ofs[0]->getSize());
     }
 }
 
@@ -5873,17 +5867,17 @@ int cLitPathTool::expand(cLightPathHeader* hdr)
     if (!VALID_PTR(hdr)) {
         return 0;
     }
-    memclr_asm(path, sizeof(path));
-    for (i = 0; i < hdr->num; i++) {
+    memclr_asm(Ofs, sizeof(Ofs));
+    for (i = 0; i < hdr->nPath; i++) {
         u32 ofs = ((u32*) (hdr + 1))[i];
         if (ofs) {
             cLightPathData* src = hdr->getPathData(i);
             u32 size = src->getSize();
             cLightPathData* dst = (cLightPathData*) Debug_alloc(size, 1);
-            path[i] = dst;
+            Ofs[i] = dst;
             memcpy(dst, src, size);
         } else {
-            path[i] = (cLightPathData*) ofs;
+            Ofs[i] = (cLightPathData*) ofs;
         }
     }
     return 1;
@@ -5906,14 +5900,14 @@ int cLitPathTool::createPath(cLightPathHeader* dst)
 
     h->pad_1[0] = h->pad_1[1] = h->pad_1[2] = h->num = 0;
     for (i = 0; i < 256; i++) {
-        if (path[i]) {
+        if (Ofs[i]) {
             h->num = i + 1;
         }
     }
     p = (u8*) &h->ofs[h->num];
     for (i = 0; i < h->num; i++) {
-        if (path[i]) {
-            u8* s = path[i]->data;
+        if (Ofs[i]) {
+            u8* s = Ofs[i]->data;
             ((u32*) dst)[i + 1] = (u32) p - (u32) dst;
             *p = *s;
             while (*s != 0xFF) {
@@ -5923,7 +5917,7 @@ int cLitPathTool::createPath(cLightPathHeader* dst)
             }
             p++;
         } else {
-            ((u32*) dst)[i + 1] = (u32) path[i];
+            ((u32*) dst)[i + 1] = (u32) Ofs[i];
         }
     }
     return 1;

@@ -63,9 +63,6 @@ struct R30bWork {
 
 static R30bWork* r30b_work;
 
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the rotation
-// clears; the crane work is cleared through the prototyped memset (no crclr).
-extern "C" void* r30b_memset(void*, ...) asm("memset");
 
 
 static f32 r30b_cableOfs = 6000.0f;
@@ -139,9 +136,8 @@ void R30bInit()
     }
     {
         Vec pos = {-14000.0f, 3000.0f, -5000.0f};
-        Vec rot;
+        Vec rot = {0.0f, 0.0f, 0.0f};
 
-        r30b_memset(&rot, 0, sizeof(Vec));
         r30b_work->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         {
             cObj* crane = r30b_work->crane;
@@ -155,13 +151,6 @@ void R30bInit()
 
                     if (cable) {
                         MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
-                        // COMPILER-DIFF: candidate (sched1 priority) -- the target issues the `be_flag` store before the
-                        // pool word0 load of `sca`; with the plain stores the be_flag store's only dependents are the three
-                        // sca stack stores (output dep, prio 5) and the pool load (prio 6 = word0 stack store + load
-                        // latency) wins the lsu slot. Two VOLATILE stores conflict unconditionally (alias.c
-                        // write_dependence_p: MEM_VOLATILE_P on both), so the be_flag store gains the pos.y store as a
-                        // dependent (prio 6, tie broken by register weight in the store's favour). The loads stay
-                        // plain (a volatile pos.y load would have to wait for the be_flag store).
                         cable->pos.y += r30b_cableOfs;
                         cable->be_flag |= 0x1010;
                         Vec sca = {0.3f, 0.3f, 0.3f};
@@ -920,8 +909,7 @@ static void R30bEventS00()
         EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromList(0x56), EvtReadFlagNone);
         SysFlagOn(pG, SYS_SCREEN_STOP);
         Vec pos = {-6200.0f, 0.0f, -26100.0f};
-        Vec rot;
-        r30b_memset(&rot, 0, sizeof(Vec));
+        Vec rot = {0.0f, 0.0f, 0.0f};
         SceAtExecRoomJump(0x310, &pos, &rot, 0);
     }
 }
@@ -929,7 +917,7 @@ static void R30bEventS00()
 // Event r30bs00: the fade at cut 5.
 void Evt_R30BS00_Func(Event* e)
 {
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
             break;

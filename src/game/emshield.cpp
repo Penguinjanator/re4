@@ -1,8 +1,7 @@
 // game/emshield.cpp: shield enemy (cEmShield): a wooden shield carried by an enemy that loses its
 // planks when shot and falls to the ground as a three-node rope.
 //
-// Byte-identical. setFall carries a COMPILER-DIFF #8 keep-alive (the `fmr f29, gravity` prologue copy
-// ranks last in the original: the incoming f1 did not die at the copy there, docs/matching.md #8).
+// Byte-identical.
 
 #include "atari.h"
 #include "map_obj.h"
@@ -226,7 +225,7 @@ void emShieldDmCk(cEmShield* em)
     case 0x26:
     case 0x27:
     case 0x2B:
-        if (part->partsNo == 0) {
+        if (part->parts_no == 0) {
             goto blood;
         }
         w->Parts_hp--;
@@ -238,10 +237,10 @@ void emShieldDmCk(cEmShield* em)
         if (w->Break_num > 3) {
             goto breakAll;
         }
-        parts0 = em->getPartsPtr(part->partsNo - 1);
+        parts0 = em->getPartsPtr(part->parts_no - 1);
         p = parts0->world;
         Matrix2AxisAngle(parts0->mat, &r);
-        if (part->partsNo == 5) {
+        if (part->parts_no == 5) {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -252,7 +251,7 @@ void emShieldDmCk(cEmShield* em)
         parts0->scale.x = 0.0f;
         parts0->scale.y = 0.0f;
         parts0->scale.z = 0.0f;
-        part->flags &= ~1;
+        part->flag &= ~1;
         break;
     case 5:
     case 6:
@@ -261,7 +260,7 @@ void emShieldDmCk(cEmShield* em)
     case 0xF:
     case 0x28:
     case 0x2C:
-        if (part->partsNo == 0) {
+        if (part->parts_no == 0) {
             goto blood;
         }
         w->Break_num++;
@@ -282,10 +281,10 @@ void emShieldDmCk(cEmShield* em)
             em->r_no_3 = 0;
             break;
         }
-        parts = em->getPartsPtr(part->partsNo - 1);
+        parts = em->getPartsPtr(part->parts_no - 1);
         p = parts->world;
         Matrix2AxisAngle(parts->mat, &r);
-        if (part->partsNo == 5) {
+        if (part->parts_no == 5) {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -296,7 +295,7 @@ void emShieldDmCk(cEmShield* em)
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;
-        part->flags &= ~1;
+        part->flag &= ~1;
         break;
     blood:
         EmDmBloodSet2(em, 0x10, 0x60, 0, 0, 0);
@@ -304,10 +303,10 @@ void emShieldDmCk(cEmShield* em)
     case 7:
     case 8:
     case 0x21:
-        if (part->rad > 64000000.0f) {
+        if (part->len > 64000000.0f) {
             break;
         }
-        if (w->Break_num <= 3 && !(part->rad < 12250000.0f)) {
+        if (w->Break_num <= 3 && !(part->len < 12250000.0f)) {
             goto plank;
         }
     case 0xD:
@@ -333,13 +332,13 @@ void emShieldDmCk(cEmShield* em)
         }
         break;
     plank:
-        if (part->partsNo == 0) {
+        if (part->parts_no == 0) {
             break;
         }
-        parts2 = em->getPartsPtr(part->partsNo - 1);
+        parts2 = em->getPartsPtr(part->parts_no - 1);
         p = parts2->world;
         Matrix2AxisAngle(parts2->mat, &r);
-        if (part->partsNo == 5) {
+        if (part->parts_no == 5) {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x63, 0, ESP_CORE_KIND_NONE, 0, 0);
         } else {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -352,7 +351,7 @@ void emShieldDmCk(cEmShield* em)
         parts2->scale.x = 0.0f;
         parts2->scale.y = 0.0f;
         parts2->scale.z = 0.0f;
-        part->flags &= ~1;
+        part->flag &= ~1;
         w->Parts_hp = (Rnd() % 3) + 2;
         if (w->pParent) {
             SndCall(8, 0xAD, &em->getPartsPtr(0)->world, w->pParent->id, 0, em);
@@ -388,7 +387,7 @@ void cEmShield::move()
             s16 t = --w->always2_timer;
 
             if (t == 0) {
-                PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->effOfs, &p);
+                PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->always2_offset, &p);
                 EstSet(0, -1, &p, 0, w->effAlways[0], w->effAlways[1], 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->always2_timer = w->always2_wait;
             }
@@ -511,7 +510,7 @@ void emShield_R1_Parent(cEmShield* em)
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
         if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -739,7 +738,7 @@ void cEmShield::setParent(cModel* parent, int partsNo, int flag)
     EmShieldWork* w = EMSHIELD_WK(this);
 
     w->pParent = parent;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     if (flag) {
         w->Be_flg |= 1;
     } else {
@@ -761,14 +760,8 @@ void cEmShield::setFall(Vec* spd, f32 gravity)
     Mtx m;
     Vec v;
     u32 i;
-    f64 hd; // COMPILER-DIFF: #8
 
     Motion.pMot = 0;
-    // COMPILER-DIFF: #8 -- the original ranks `fmr f29,f1` as if f1 did not die at the copy. A DFmode
-    // read of f1 after the copy keeps f1 live past it (regmove's optimize_reg_copy_1 only moves the
-    // death when the dying mode matches the copy's SFmode); the "=m" output on a `this` field the
-    // block does not touch keeps the codeless asm dependence-free.
-    asm("" : "=m"(hp) : "f"(hd));
     for (i = 0; i < 3; i++) {
         if (spd) {
             f32 ang;

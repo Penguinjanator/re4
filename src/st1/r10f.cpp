@@ -83,12 +83,7 @@ void R10fInit()
 #line 57 "D:/Bio4/Prog/r10f.cpp"
     r10f_work = (R10fWork*) MEM_CALLOC(sizeof(R10fWork), 1, 0xd);
 
-    // COMPILER-DIFF: candidate #17 (value-carrying pins): the pG temp of the first test is r10 in the
-    // original (local-alloc adjacency with the work high's r9 under its sched1 order) and the pG temp of
-    // the setSubMotion block is r10 too (its qty ahead of the work pointer's; ours reverses the two).
-    GlobalWork *g;
-    g = pG;
-    if (!KyfFlagChk(g, KYF_R10F_TO_R200_DOOR)) {
+    if (!KyfFlagChk(pG, KYF_R10F_TO_R200_DOOR)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, 0, 1);
         SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -115,7 +110,9 @@ void R10fInit()
             if (r10f_work->gondola[i] != 0) {
                 r10f_work->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
                 if (m != 0) {
-                    register GlobalWork* g2 asm("r10");    // COMPILER-DIFF: candidate #17 (see above)
+                    // COMPILER-DIFF: candidate #17 (value-carrying pin): the pG temp of the setSubMotion block is
+                    // r10 in the original (its qty ahead of the work pointer's; ours reverses the two).
+                    register GlobalWork* g2 asm("r10");
                     g2 = pG;
                     r10f_work->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoom, 0x30), ROOM_ARC_PTR(g2->pRoom, 0x31));
                 }

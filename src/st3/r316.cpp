@@ -40,9 +40,6 @@ struct R316ItemView {
 
 static R316Work* r316_work;
 
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
-// libcall for an explicit call (r213).
-extern "C" void* r316_memset(void*, ...) asm("memset");
 
 void r316_openShelf_main(int no, int mode);
 static void r316_openedShelf(int no);
@@ -263,11 +260,9 @@ static void R316EventSXX()
         SceEventEnd(0);
         ScfFlagOn(pG, SCF_R316_TO_R30A_CUTBACK_EVENT);
         {
-            Vec pos;
-            Vec rot;
+            Vec pos = {0.0f, 0.0f, 0.0f};
+            Vec rot = {0.0f, 0.0f, 0.0f};
 
-            r316_memset(&pos, 0, sizeof(Vec));
-            r316_memset(&rot, 0, sizeof(Vec));
             SceAtExecRoomJump(0x30A, &pos, &rot, 0);
         }
         SysFlagOn(pG, SYS_SCREEN_STOP);
@@ -288,7 +283,7 @@ static void R316EventSXX()
 // event models' flags per cut; the end restores the room.
 void Evt_R316S00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1: {

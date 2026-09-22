@@ -336,9 +336,9 @@ ToolEvt::ToolEvt()
     ListCur = 0;
     ListBase = 0;
     CaptureTimer = 0;
-    pEvd = 0;
-    pLightTool = 0;
-    pJoy0 = 0;
+    PFil = 0;
+    pTl = 0;
+    pJoy1 = 0;
     pJoy2 = 0;
     x10C0[0] = 0;
     x10C0[1] = 0;
@@ -365,33 +365,33 @@ ToolEvt::ToolEvt()
         EtcFlag |= TefBit(TefExit);
     }
     DbgFlagOn(pG, DBG_EVENT_TOOL);
-    pEvd = Debug_alloc(8000000, 1);
-    memclr_asm(pEvd, 4);
-    pSctrl = (DbSctrlWork*) Debug_alloc(1000000, 1);
-    memclr_asm(pSctrl, 1000000);
+    PFil = Debug_alloc(8000000, 1);
+    memclr_asm(PFil, 4);
+    PDatDbSctrl = (DbSctrlWork*) Debug_alloc(1000000, 1);
+    memclr_asm(PDatDbSctrl, 1000000);
     PMesDat = (EventMessageData*) Debug_alloc(1000000, 1);
     memclr_asm(PMesDat, 1000000);
     CursolMain = 0;
-    pJoy0 = &Joy[0];
+    pJoy1 = &Joy[0];
     pJoy2 = &Joy[1];
     CursolSub = 0;
     CursolFog = 0;
     CursolFocus = 0;
-    Cckpt.countDown.m_state &= ~1;
+    Cckpt.m_CountDown.m_state &= ~1;
     {
-        CountDown* cd = &Cckpt.countDown;
+        CountDown* cd = &Cckpt.m_CountDown;
         cd->frameOut();
         cd->frameOut();
     }
     LightMgr.roomLitSet(0);
     LightMgr.update(0, -1);
-    pLightTool = new cLightTool;
+    pTl = new cLightTool;
 }
 
 // Frees the buffers and restores the flags.
 ToolEvt::~ToolEvt()
 {
-    delete pLightTool;
+    delete pTl;
     DbgFlagOff(pG, DBG_EVENT_TOOL);
     pPL->endEvent(0);
     EvtTaskSignal(0);
@@ -430,10 +430,10 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
 
     ev->StatusFlag |= EvtStfBit(EvtStfToolStop);
     EvtTaskSuspend(0);
-    if ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xC00)) {
+    if ((t->pJoy1->on & 0x30000) || (t->pJoy1->trg & 0xC00)) {
         int flg;
 
-        if (!(t->pJoy0->on & 0x10)) {
+        if (!(t->pJoy1->on & 0x10)) {
             // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the original stores a fresh `li r0,0`; a
             // literal 0 here is related by cse (record_jump_equiv on the not-taken `bne`) to the `andi.`
             // result and that register is stored instead (t_mv mvInit). `(t & 8) >> 4` is a zero cse cannot
@@ -445,19 +445,19 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
             t->FFTimer = 10;
             flg = 1;
         }
-        if (flg == 0 && !(t->pJoy0->trg & 0xC00)) {
+        if (flg == 0 && !(t->pJoy1->trg & 0xC00)) {
             return;
         }
         FadeKill(0);
         EvtTaskSignal(0);
         ev->DebugDisp();
-        if (t->pJoy0->trg & 0x400) {
+        if (t->pJoy1->trg & 0x400) {
             MessDeleteAll();
             ev->RunTool(2, 0);
-        } else if (t->pJoy0->trg & 0x800) {
+        } else if (t->pJoy1->trg & 0x800) {
             MessDeleteAll();
             ev->RunTool(1, 0);
-        } else if (t->pJoy0->on & 0x10000) {
+        } else if (t->pJoy1->on & 0x10000) {
             DbgFlagOn(pG, DBG_NO_EST_CALL);
             ev->RunTool(0, 2);
         } else if (ev->Run() == 0) {
@@ -481,7 +481,7 @@ void ToolEvt::MainMenu(ToolEvt* t)
 
     eprintf(0x38, 0x30, 5, 0, "MENU");
     t->EtcFlag &= ~TefBit(TefStop);
-    sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolMain, mainMenu, sizeof(mainMenu), t->pJoy0);
+    sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolMain, mainMenu, sizeof(mainMenu), t->pJoy1);
     if (sel != -1) {
         t->r_no_0 = sel + 1;
         t->r_no_1 = zero;
@@ -510,11 +510,11 @@ void ToolEvt::MainPreview(ToolEvt* t)
     switch (t->r_no_1) {
     case 0:
         strcpy(t->ToolFileName, DbgFileList.disp(0x40, 0x30, 0x14));
-        if (t->pJoy0->trg & 0x100) {
+        if (t->pJoy1->trg & 0x100) {
             strcpy(EVTDBG->name, t->ToolFileName);
             t->r_no_1++;
         }
-        if (t->pJoy0->trg & 0x200) {
+        if (t->pJoy1->trg & 0x200) {
             t->r_no_0 = 0;
             t->r_no_1 = 0;
             t->r_no_2 = 0;
@@ -527,19 +527,19 @@ void ToolEvt::MainPreview(ToolEvt* t)
         sscanf(t->ToolFileName, "%c%c%c%c%c%c%c.evd", &t->roomNo[0], &t->roomNo[1], &t->roomNo[2], &t->roomNo[3], &t->eventNo[0],
                &t->eventNo[1], &t->eventNo[2]);
         eprintf(0x38, 0x30, 5, 0, "DATA LOAD OK?");
-        switch (ToolMenuDisp(0x40, 0x40, 1, previewMenu, sizeof(previewMenu), t->pJoy0)) {
+        switch (ToolMenuDisp(0x40, 0x40, 1, previewMenu, sizeof(previewMenu), t->pJoy1)) {
         case 0:
             sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->ToolFileName));
-            HDRead(path, t->pEvd);
+            HDRead(path, t->PFil);
             t->r_no_1++;
             break;
         case 2:
             sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->ToolFileName));
-            HDRead(path, t->pEvd);
+            HDRead(path, t->PFil);
             t->r_no_1++;
             break;
         default:
-            if (!(t->pJoy0->trg & 0x200)) {
+            if (!(t->pJoy1->trg & 0x200)) {
                 break;
             }
         case 1:
@@ -555,13 +555,13 @@ void ToolEvt::MainPreview(ToolEvt* t)
 
         t->EvtTaskSignal(0);
         SceEventStart(0);
-        EvtHdrCopy* h = (EvtHdrCopy*) t->pEvd;
+        EvtHdrCopy* h = (EvtHdrCopy*) t->PFil;
 
         t->hdr = *h;
         EvtDebugView* d = EVTDBG;
 
         d->hdr = *h;
-        if (EvtMgr.SetEvt(t->pEvd, (u32*) &ev) == 0) {
+        if (EvtMgr.SetEvt(t->PFil, (u32*) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
             t->r_no_0 = 1;
             t->r_no_1 = 4;
@@ -615,7 +615,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             subRunTbl[t->r_no_0_sub](t, ev);
             break;
         }
-        if (t->pJoy0->trg & 0x200) {
+        if (t->pJoy1->trg & 0x200) {
             t->EtcFlag |= TefBit(TefPrevSubMenu);
         }
         if (t->EtcFlag & TefBit(TefCaptureReq)) {
@@ -643,7 +643,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
                     }
                 }
             }
-            if ((ev->NowCut >= ev->MaxCut && (t->EtcFlag & TefBit(TefCaptureRun))) || (t->pJoy0->trg & 0x200)) {
+            if ((ev->NowCut >= ev->MaxCut && (t->EtcFlag & TefBit(TefCaptureRun))) || (t->pJoy1->trg & 0x200)) {
                 if (!(t->EtcFlag & TefBit(TefCaptureEnd))) {
                     t->EtcFlag |= TefBit(TefCaptureEnd);
                     t->CaptureTimer = 0;
@@ -658,8 +658,8 @@ void ToolEvt::MainPreview(ToolEvt* t)
                 ev->StatusFlag |= EvtStfBit(EvtStfToolExec);
             }
         }
-        if ((!(t->EtcFlag & TefBit(TefStop)) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
-            FlagBit(t->EtcFlag, TefBit(TefStopOnReq)) || FlagBit(t->EtcFlag, TefBit(TefStopOffReq)) || (t->pJoy0->trg & 0x100)) {
+        if ((!(t->EtcFlag & TefBit(TefStop)) && ((t->pJoy1->on & 0x30000) || (t->pJoy1->trg & 0xE00))) ||
+            FlagBit(t->EtcFlag, TefBit(TefStopOnReq)) || FlagBit(t->EtcFlag, TefBit(TefStopOffReq)) || (t->pJoy1->trg & 0x100)) {
             t->EtcFlag ^= TefBit(TefStop);
             if (t->EtcFlag & TefBit(TefStopOnReq)) {
                 t->EtcFlag |= TefBit(TefStop);
@@ -735,11 +735,11 @@ static TOOL_MENU yesNoMenu[2] = {
 void ToolEvt::MainExit(ToolEvt* t)
 {
     eprintf(0x38, 0x30, 5, 0, "EXIT OK?");
-    switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu, sizeof(yesNoMenu), t->pJoy0)) {
+    switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu, sizeof(yesNoMenu), t->pJoy1)) {
     case 0:
         t->EtcFlag |= TefBit(TefExit);
     default:
-        if (!(t->pJoy0->trg & 0x200)) {
+        if (!(t->pJoy1->trg & 0x200)) {
             break;
         }
     case 1:
@@ -779,7 +779,7 @@ static TOOL_MENU subMainMenu[8] = {
 void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
 {
     eprintf(0x38, 0x30, 5, 0, "PREVIEW MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolSub, subMainMenu, sizeof(subMainMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolSub, subMainMenu, sizeof(subMainMenu), t->pJoy1)) {
     case 0:
         t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         break;
@@ -824,7 +824,7 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         t->EtcFlag |= TefBit(TefStopOffReq) | TefBit(TefCaptureReq);
         t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         t->EtcFlag &= ~TefBit(TefCaptureFullSize);
-        if (t->pJoy0->on & 0x10) {
+        if (t->pJoy1->on & 0x10) {
             t->EtcFlag |= TefBit(TefCaptureFullSize);
         } else {
             pG->debug_mode = 0;
@@ -857,9 +857,9 @@ void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
     strcpy(dir, "x:/soft/room/event");
     sprintf(path, "%s/%s/%s/etc/%s_%03d.fog", dir, t->roomNo, t->eventNo, t->eventNo, ev->NowCut);
     sprintf(name, "[%s_%03d.fog]", t->eventNo, ev->NowCut);
-    ev->FogMove(ev, &t->fog);
+    ev->FogMove(ev, &t->DatFogWk);
     eprintf(0x38, 0x30, 5, 0, "FOG TOOL MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFog, fogMenu, sizeof(fogMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFog, fogMenu, sizeof(fogMenu), t->pJoy1)) {
     case 0:
         if (!(t->EtcFlag & TefBit(TefToolFog))) {
             t->SubToolFogInit(t, 1, ev, 0);
@@ -876,18 +876,18 @@ void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
         break;
     case 2:
         if (t->SubMenuSelectYesNo(t, "INIT", "")) {
-            memset(&t->fog, 0, sizeof(EvtFogData));
+            memset(&t->DatFogWk, 0, sizeof(EvtFogData));
         }
         t->SubToolFogWkInit(t, ev);
         break;
     case 3:
         if (t->SubMenuSelectYesNo(t, "LOAD", name)) {
-            HDRead(path, &t->fog);
+            HDRead(path, &t->DatFogWk);
         }
         break;
     case 4:
         if (t->SubMenuSelectYesNo(t, "SAVE", name)) {
-            HDWrite(path, &t->fog, sizeof(EvtFogData));
+            HDWrite(path, &t->DatFogWk, sizeof(EvtFogData));
         }
         break;
     case 5:
@@ -920,9 +920,9 @@ void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
     strcpy(dir, "x:/soft/room/event");
     sprintf(path, "%s/%s/%s/etc/%s_%03d.fcs", dir, t->roomNo, t->eventNo, t->eventNo, ev->NowCut);
     sprintf(name, "[%s_%03d.fcs]", t->eventNo, ev->NowCut);
-    ev->FocusMove(ev, &t->focus);
+    ev->FocusMove(ev, &t->DatFocusWk);
     eprintf(0x38, 0x30, 5, 0, "FOCUS TOOL MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFocus, focusMenu, sizeof(focusMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFocus, focusMenu, sizeof(focusMenu), t->pJoy1)) {
     case 0:
         if (!(t->EtcFlag & TefBit(TefToolFocus))) {
             t->SubToolFocusInit(t, 1, ev, 0);
@@ -938,25 +938,25 @@ void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
         }
         break;
     case 2:
-        t->SubMenuEditFocusLevel(t, ev, "NEAR", &t->focus.nearLevel);
+        t->SubMenuEditFocusLevel(t, ev, "NEAR", &t->DatFocusWk.nearLevel);
         break;
     case 3:
-        t->SubMenuEditFocusLevel(t, ev, "FAR ", &t->focus.farLevel);
+        t->SubMenuEditFocusLevel(t, ev, "FAR ", &t->DatFocusWk.farLevel);
         break;
     case 4:
         if (t->SubMenuSelectYesNo(t, "INIT", "")) {
-            memset(&t->focus, 0, sizeof(EvtFocusData));
+            memset(&t->DatFocusWk, 0, sizeof(EvtFocusData));
         }
         t->SubToolFocusWkInit(t, ev);
         break;
     case 5:
         if (t->SubMenuSelectYesNo(t, "LOAD", name)) {
-            HDRead(path, &t->focus);
+            HDRead(path, &t->DatFocusWk);
         }
         break;
     case 6:
         if (t->SubMenuSelectYesNo(t, "SAVE", name)) {
-            HDWrite(path, &t->focus, sizeof(EvtFocusData));
+            HDWrite(path, &t->DatFocusWk, sizeof(EvtFocusData));
         }
         break;
     case 7:
@@ -978,7 +978,7 @@ int ToolEvt::SubMenuSelectYesNo(ToolEvt* t, const char* s1, const char* s2)
     TaskSleep(1);
     for (;;) {
         eprintf(0x38, 0x30, 5, 0, "%s %s OK?", s1, s2);
-        switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu2, sizeof(yesNoMenu2), t->pJoy0)) {
+        switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu2, sizeof(yesNoMenu2), t->pJoy1)) {
         case 0:
             return 1;
         case 1:
@@ -1012,10 +1012,10 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
         if (*level > 10.0f) {
             *level = 10.0f;
         }
-        if (FlagBit(t->pJoy0->trg, 0x100) || FlagBit(t->pJoy0->trg, 0x200)) {
+        if (FlagBit(t->pJoy1->trg, 0x100) || FlagBit(t->pJoy1->trg, 0x200)) {
             break;
         }
-        ev->FocusMove(ev, &t->focus);
+        ev->FocusMove(ev, &t->DatFocusWk);
         TaskSleep(1);
     }
     return 0;
@@ -1026,7 +1026,7 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
 int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
 {
     if (DebugCameraFlag != 0) {
-        if (pJoy0->trg & 0x1000) {
+        if (pJoy1->trg & 0x1000) {
             DebugCameraFlag = 0;
             if (!DbgFlagChk(pG, DBG_DBG_CAM)) {
                 SpfFlagOff(pG, SPF_CAMERA);
@@ -1036,7 +1036,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
             if (DebugCameraTimer++ & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");
             }
-            if (pJoy0->trg & 0x200) {
+            if (pJoy1->trg & 0x200) {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) |= 8;
                 SpfFlagOff(pG, SPF_CAMERA);
             } else {
@@ -1047,7 +1047,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
         }
         return 1;
     }
-    if (pJoy0->trg & 0x1000) {
+    if (pJoy1->trg & 0x1000) {
         DebugCameraFlag = 1;
         EtcFlag |= TefBit(TefStopOnReq);
     }
@@ -1075,7 +1075,7 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
 // Runs the embedded light editor; closes it when it quits.
 void ToolEvt::SubToolLightMove(ToolEvt* /*t*/)
 {
-    cLightTool* lt = pLightTool;
+    cLightTool* lt = pTl;
 
     if ((u32) lt >= 0x80000000 && (u32) lt <= 0x82FFFFFF) {
         if (lt->move() == 0) {
@@ -1088,24 +1088,24 @@ void ToolEvt::SubToolLightMove(ToolEvt* /*t*/)
 // Default fog curves: start / end constant at the current LightMgr fog over the event length.
 int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
 {
-    t->fog.start.num = 2;
-    t->fog.start.key[0].t = 0.0f;
-    t->fog.start.key[0].v = LightMgr.getFogStart();
-    t->fog.start.key[0].out = 0.0f;
-    t->fog.start.key[0].in = 0.0f;
-    t->fog.start.key[1].t = (f32) ev->MaxFrame;
-    t->fog.start.key[1].v = LightMgr.getFogStart();
-    t->fog.start.key[1].out = 0.0f;
-    t->fog.start.key[1].in = 0.0f;
-    t->fog.end.num = 2;
-    t->fog.end.key[0].t = 0.0f;
-    t->fog.end.key[0].v = LightMgr.getFogEnd();
-    t->fog.end.key[0].out = 0.0f;
-    t->fog.end.key[0].in = 0.0f;
-    t->fog.end.key[1].t = (f32) ev->MaxFrame;
-    t->fog.end.key[1].v = LightMgr.getFogEnd();
-    t->fog.end.key[1].out = 0.0f;
-    t->fog.end.key[1].in = 0.0f;
+    t->DatFogWk.start.num = 2;
+    t->DatFogWk.start.key[0].t = 0.0f;
+    t->DatFogWk.start.key[0].v = LightMgr.getFogStart();
+    t->DatFogWk.start.key[0].out = 0.0f;
+    t->DatFogWk.start.key[0].in = 0.0f;
+    t->DatFogWk.start.key[1].t = (f32) ev->MaxFrame;
+    t->DatFogWk.start.key[1].v = LightMgr.getFogStart();
+    t->DatFogWk.start.key[1].out = 0.0f;
+    t->DatFogWk.start.key[1].in = 0.0f;
+    t->DatFogWk.end.num = 2;
+    t->DatFogWk.end.key[0].t = 0.0f;
+    t->DatFogWk.end.key[0].v = LightMgr.getFogEnd();
+    t->DatFogWk.end.key[0].out = 0.0f;
+    t->DatFogWk.end.key[0].in = 0.0f;
+    t->DatFogWk.end.key[1].t = (f32) ev->MaxFrame;
+    t->DatFogWk.end.key[1].v = LightMgr.getFogEnd();
+    t->DatFogWk.end.key[1].out = 0.0f;
+    t->DatFogWk.end.key[1].in = 0.0f;
     return 1;
 }
 
@@ -1119,9 +1119,9 @@ void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
             return;
         }
         if (which == 0) {
-            t->SctrlToolInit(t, (Hermite1*) &t->fog.start, (f32) ev->MaxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->DatFogWk.start, (f32) ev->MaxFrame, 100000.0f);
         } else {
-            t->SctrlToolInit(t, (Hermite1*) &t->fog.end, (f32) ev->MaxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->DatFogWk.end, (f32) ev->MaxFrame, 100000.0f);
         }
         t->CurveNo = which;
     } else {
@@ -1134,7 +1134,7 @@ void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
 // Runs the fog curve editor; when it quits, back to the fog menu.
 void ToolEvt::SubToolFogMove(ToolEvt* t, Event* ev)
 {
-    if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
+    if (DbSctrl(t->PDatDbSctrl, 0x20, 0x20) == 0) {
         SubToolFogInit(t, 0, 0, 0);
     }
     if (t->CurveNo == 0) {
@@ -1142,32 +1142,32 @@ void ToolEvt::SubToolFogMove(ToolEvt* t, Event* ev)
     } else {
         eprintf(0x38, 0x30, 0x16, 0, "FOG END");
     }
-    ev->FogMove(ev, &t->fog);
+    ev->FogMove(ev, &t->DatFogWk);
 }
 
 // Default focus curves: near 0 / far 10000 constant over the event length.
 void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
 {
-    t->focus.near_.num = 2;
-    t->focus.near_.key[0].t = 0.0f;
-    t->focus.near_.key[0].v = 0.0f;
-    t->focus.near_.key[0].out = 0.0f;
-    t->focus.near_.key[0].in = 0.0f;
-    t->focus.near_.key[1].t = (f32) ev->MaxFrame;
-    t->focus.near_.key[1].v = 0.0f;
-    t->focus.near_.key[1].out = 0.0f;
-    t->focus.near_.key[1].in = 0.0f;
-    t->focus.far_.num = 2;
-    t->focus.far_.key[0].t = 0.0f;
-    t->focus.far_.key[0].v = 10000.0f;
-    t->focus.far_.key[0].out = 0.0f;
-    t->focus.far_.key[0].in = 0.0f;
-    t->focus.far_.key[1].t = (f32) ev->MaxFrame;
-    t->focus.far_.key[1].v = 10000.0f;
-    t->focus.far_.key[1].out = 0.0f;
-    t->focus.far_.key[1].in = 0.0f;
-    t->focus.nearLevel = 5.0f;
-    t->focus.farLevel = 5.0f;
+    t->DatFocusWk.near_.num = 2;
+    t->DatFocusWk.near_.key[0].t = 0.0f;
+    t->DatFocusWk.near_.key[0].v = 0.0f;
+    t->DatFocusWk.near_.key[0].out = 0.0f;
+    t->DatFocusWk.near_.key[0].in = 0.0f;
+    t->DatFocusWk.near_.key[1].t = (f32) ev->MaxFrame;
+    t->DatFocusWk.near_.key[1].v = 0.0f;
+    t->DatFocusWk.near_.key[1].out = 0.0f;
+    t->DatFocusWk.near_.key[1].in = 0.0f;
+    t->DatFocusWk.far_.num = 2;
+    t->DatFocusWk.far_.key[0].t = 0.0f;
+    t->DatFocusWk.far_.key[0].v = 10000.0f;
+    t->DatFocusWk.far_.key[0].out = 0.0f;
+    t->DatFocusWk.far_.key[0].in = 0.0f;
+    t->DatFocusWk.far_.key[1].t = (f32) ev->MaxFrame;
+    t->DatFocusWk.far_.key[1].v = 10000.0f;
+    t->DatFocusWk.far_.key[1].out = 0.0f;
+    t->DatFocusWk.far_.key[1].in = 0.0f;
+    t->DatFocusWk.nearLevel = 5.0f;
+    t->DatFocusWk.farLevel = 5.0f;
 }
 
 // Opens the S-curve editor on the focus near (which 0) / far (1) curve, or closes it.
@@ -1179,9 +1179,9 @@ void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
             return;
         }
         if (which == 0) {
-            t->SctrlToolInit(t, (Hermite1*) &t->focus.near_, (f32) ev->MaxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->DatFocusWk.near_, (f32) ev->MaxFrame, 10000.0f);
         } else {
-            t->SctrlToolInit(t, (Hermite1*) &t->focus.far_, (f32) ev->MaxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->DatFocusWk.far_, (f32) ev->MaxFrame, 10000.0f);
         }
         t->CurveNo = which;
     } else {
@@ -1194,7 +1194,7 @@ void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
 // Runs the focus curve editor; when it quits, back to the focus menu.
 void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
 {
-    if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
+    if (DbSctrl(t->PDatDbSctrl, 0x20, 0x20) == 0) {
         SubToolFocusInit(t, 0, 0, 0);
     }
     if (t->CurveNo == 0) {
@@ -1202,7 +1202,7 @@ void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
     } else {
         eprintf(0x38, 0x30, 0x16, 0, "FOCUS FAR");
     }
-    ev->FocusMove(ev, &t->focus);
+    ev->FocusMove(ev, &t->DatFocusWk);
 }
 
 // Opens (sw 1) the message list editor: a cDbgToolMain over EventMessageData::elem (columns CutNo /
@@ -1218,9 +1218,6 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         EvtDebug.FlagEtc |= 0x04000000;
         MessDeleteAll();
         sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->roomNo, t->eventNo);
-        // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 35 dead pseudos before the inlined
-        // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
-        int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12, dead13, dead14, dead15, dead16, dead17, dead18, dead19, dead20, dead21, dead22, dead23, dead24, dead25, dead26, dead27, dead28, dead29, dead30, dead31, dead32, dead33, dead34;
         // COMPILER-DIFF: candidate (gcse table size): the edit-window ctor anchor (dbg_tool.h) is one
         // more insn at gcse entry (1219 -> 1220), which turns the expression hash table from 609 to
         // 611 buckets and wraps `t->room`/`t->no` (raw hashes 17713/17729 -> buckets 605/10) and the
@@ -1384,12 +1381,12 @@ void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
     if (sw == 1) {
         t->EtcFlag &= ~TefBit(TefPrevSubMenu);
         FlagOnVar(&t->EtcFlag, (u32) bit);
-        t->pJoy0 = &Joy[2];
+        t->pJoy1 = &Joy[2];
         t->pJoy2 = &Joy[3];
     } else {
         t->EtcFlag |= TefBit(TefPrevSubMenu);
         FlagOffVar(&t->EtcFlag, (u32) bit);
-        t->pJoy0 = &Joy[0];
+        t->pJoy1 = &Joy[0];
         t->pJoy2 = &Joy[1];
     }
 }
@@ -1398,19 +1395,19 @@ void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
 // grid lock 1), cursor on the first key.
 void ToolEvt::SctrlToolInit(ToolEvt* t, Hermite1* curve, f32 xMax, f32 yMax)
 {
-    memset(t->pSctrl, 0, sizeof(DbSctrlWork));
-    t->pSctrl->curve = curve;
-    SctrlSetAxisLabel(t->pSctrl, "Frame", "Param");
-    t->pSctrl->gridX = xMax;
-    t->pSctrl->gridY = yMax;
-    t->pSctrl->grid.x = 1.0f;
-    t->pSctrl->grid.y = 1.0f;
-    t->pSctrl->flags = 1;
-    SctrlInitAxisRange(t->pSctrl, xMax * 1.2f, xMax * -0.2f, yMax * 1.2f, yMax * -0.2f);
-    if (t->pSctrl->curve->num <= 1) {
-        SctrlInitCursor(t->pSctrl, 0.0f, 0.0f);
+    memset(t->PDatDbSctrl, 0, sizeof(DbSctrlWork));
+    t->PDatDbSctrl->curve = curve;
+    SctrlSetAxisLabel(t->PDatDbSctrl, "Frame", "Param");
+    t->PDatDbSctrl->gridX = xMax;
+    t->PDatDbSctrl->gridY = yMax;
+    t->PDatDbSctrl->grid.x = 1.0f;
+    t->PDatDbSctrl->grid.y = 1.0f;
+    t->PDatDbSctrl->flags = 1;
+    SctrlInitAxisRange(t->PDatDbSctrl, xMax * 1.2f, xMax * -0.2f, yMax * 1.2f, yMax * -0.2f);
+    if (t->PDatDbSctrl->curve->num <= 1) {
+        SctrlInitCursor(t->PDatDbSctrl, 0.0f, 0.0f);
     } else {
-        SctrlInitCursor(t->pSctrl, t->pSctrl->curve->key[0].t, t->pSctrl->curve->key[0].v);
+        SctrlInitCursor(t->PDatDbSctrl, t->PDatDbSctrl->curve->key[0].t, t->PDatDbSctrl->curve->key[0].v);
     }
 }
 

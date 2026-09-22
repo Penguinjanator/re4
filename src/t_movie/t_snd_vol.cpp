@@ -1913,8 +1913,6 @@ static void file_load()
             col = work->loadCur == 0 ? 6 : 0;
         } else {
             col = 0;
-            // COMPILER-DIFF: launder (combine drops the (u8) clrlwi because every set of col is a constant)
-            asm("" : "+r"(col));
         }
         eprintf(0x40, 0x80, (u8) col, 0, "%s", work->dest == 0 ? "LOCAL" : "SERVER");
     }

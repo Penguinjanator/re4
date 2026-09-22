@@ -122,26 +122,19 @@ static void plemEscape(cPlayer* pl);
 // `em`-based addresses; the original keeps them `w`-based there. The launder hides the equivalence.
 #define EM32_W_FRESH(w) asm("" : "+r"(w))
 
-// Non-struct store through the work pointer with the offset inside the MEM (`*(T*) ((u8*) w + ofs)`):
-// cse gets no address pseudo to associate with `em + K` (the #12 fold above), so the store stays
-// w-based, and as a scalar mem it keeps the following pG load below it. Unlike the launder it does not
-// re-set `w`, so alias analysis keeps w's base value (an argument): the frame stores of a later call in
-// the function can still pass a w-based store (C_Atk).
-#define EM32_W_SET(w, T, field, v) (*(T*) ((u8*) (w) + (u32) &((Em32Work*) 0)->field) = (v))
-
 static inline void em32Timer2SetW(Em32Work* w, int a, int b, int c, int e)
 {
     if (pG->Game_level <= 3) {
-        EM32_W_SET(w, int, timer2, a);
+        w->timer2 = a;
     }
     if (pG->Game_level <= 1) {
-        EM32_W_SET(w, int, timer2, b);
+        w->timer2 = b;
     }
     if (pG->Game_level > 6) {
-        EM32_W_SET(w, int, timer2, c);
+        w->timer2 = c;
     }
     if (pG->Game_level > 9) {
-        EM32_W_SET(w, int, timer2, e);
+        w->timer2 = e;
     }
 }
 
@@ -368,7 +361,7 @@ void em32DmCk(cEm32* em)
     em->dmg.m_Flag = zero;
     near = 0;
     w->flags |= 0x200;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     wep = em->dmg.m_Wep;
@@ -647,7 +640,7 @@ static void em32_R0_Init(cEm32* em)
     em32PlDivideModelInit(em);
     w->pCatchObj = (cObj*) zero;
     w->pCtrl12 = GetCtrlCtrl12();
-    em->pFootShadowTbl = &Em32_fs_tbl;
+    em->pFsdTbl = &Em32_fs_tbl;
     em32ClothSet(em);
     ((cParts*) em->getPartsPtr(0x21))->motParts.flags |= 0x1000;
     ((cParts*) em->getPartsPtr(0x27))->motParts.flags |= 0x1000;
@@ -786,9 +779,9 @@ static void em32_R1_Parasite(cEm32* em)
     switch (step) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x43), ARC(0x44), 3, 1, 0);
-        w->hit[25].flags |= 1;
-        w->hit[26].flags |= 1;
-        w->hit[27].flags |= 1;
+        w->hit[25].flag |= 1;
+        w->hit[26].flag |= 1;
+        w->hit[27].flag |= 1;
         em32TexrenderInit(em);
         EstSet(em, -1, 0, 0, EFF_EM32, 5, 0, w->espKind[1], em, (void*) step);
         EM32_EFFECT_DELETE(w->espKind[0], em);
@@ -2348,10 +2341,10 @@ void em32EscapeCamMove(cEm32* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -2870,10 +2863,10 @@ static void em32_R1_C_Atk(cEm32* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x15), ARC(0x16), 3, 1, 0);
         PSVECSubtract(&w->pPoint->pos, &em->pos, &w->spd);
-        EM32_W_SET(w, int, timer2, 25);   // COMPILER-DIFF #12 (scalar w-based stores, see EM32_W_SET)
-        EM32_W_SET(w, f32, spd.y, 0.0f);
-        EM32_W_SET(w, u8, Atk_ck, step);
-        EM32_W_SET(w, int, timer, step);
+        w->timer2 = 25;
+        w->spd.y = 0.0f;
+        w->Atk_ck = step;
+        w->timer = step;
         em32Timer2SetW(w, 37, 30, 23, 20);
         em->invisible_factor = 0.0f;
         em->be_flag |= 2;
@@ -3750,9 +3743,9 @@ void em32NeckMove(cEm32* em)
     }
     p = (cParts*) em->getPartsPtr(3);
     p->motParts.flags |= 0x40000000;
-    p->addRot.x = 0.0f;
-    p->addRot.y = w->neckAng;
-    p->addRot.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = w->neckAng;
+    p->inv_offset.z = 0.0f;
 }
 
 // Sets up the last form's tail as a 12-node pendulum cloth chain (three bundles, gravity 40, no
@@ -3818,19 +3811,11 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
 {
     Em32Work* w = EM32_WK(em);
     MotionWork* bm;
-    int m3i, dd;
-    // COMPILER-DIFF: #2 -- the original zero-extends the u16 parameter at both MotionSetCore calls
-    // (`clrlwi r8, r25, 16`); ours drops the mask (combine's setup_incoming_promotions knows r10's
-    // upper bits). The tied-operand launder (em2c BlendMotSet) makes an opaque 3-ref copy, declared
-    // before the fabsf barrier; the same launder on m3 (whose prologue copy the target issues before
-    // d's) restores the copies' priority tie.
-    asm("" : "=r"(m3i) : "0"((int) m3)); // COMPILER-DIFF: #2
-    asm("" : "=r"(dd) : "0"((int) d));   // COMPILER-DIFF: #2
     f32 val = fabsf(w->blendVal);
     void* m;
     int arg;
 
-    MotionSetCore(em, &em->Motion, m0, (void*) m3i, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, &em->Motion, m0, (void*) m3, (u8) w->blendCnt, (u16) d, (u16) w->blendSeq);
     if (w->blendVal > 0.0f) {
         m = m1;
         arg = a;
@@ -3839,7 +3824,7 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
         arg = b;
     }
     bm = EM32_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, (void*) arg, (u8) w->blendCnt, (u16) d, (u16) w->blendSeq);
     em->Motion.blend = bm;
     bm->Brate = val * 0.00390625f;
     if (w->blendCnt) {
@@ -4507,13 +4492,13 @@ void em32TexrenderInit(cEm32* em)
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = w->pTex->texId;
+    tbl[5] = w->pTex->m_Tex_no;
     w->pTex->m_Rep_type = 1;
     w->pTex->m_H_size = w->pTex->m_W_size = 0x40;
-    EffectEspDelete(w->pTex->mask | 0x801, w->espKind[1], em, 0);
-    EffectEspgenDelete(w->pTex->mask | 0x801, w->espKind[1], em);
-    EffectEfmDelete(w->pTex->mask | 0x801, w->espKind[1], em);
-    EstSet(0, -1, 0, 0, EFF_EM32, 0, w->pTex->mask | 0x801, w->espKind[1], em, 0);
+    EffectEspDelete(w->pTex->m_Core_flg | 0x801, w->espKind[1], em, 0);
+    EffectEspgenDelete(w->pTex->m_Core_flg | 0x801, w->espKind[1], em);
+    EffectEfmDelete(w->pTex->m_Core_flg | 0x801, w->espKind[1], em);
+    EstSet(0, -1, 0, 0, EFF_EM32, 0, w->pTex->m_Core_flg | 0x801, w->espKind[1], em, 0);
 }
 
 // The player's position 18 frames ahead (plPos) and the angle / squared distance to it.
@@ -4623,7 +4608,7 @@ int em32SetDmVal(cEm32* em)
     int near = 0;
     int dmg;
 
-    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 16000000.0f) {
         near = 1;
     }
     dmg = 20;
@@ -4699,7 +4684,7 @@ void em32BloodSet(cEm32* em)
 {
     int near = 0;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     switch (em->dmg.m_Wep) {
@@ -4922,16 +4907,16 @@ void em32SetYarareMark(cEm32* em, int on)
     int i;
 
     if (on) {
-        w->hit[27].flags |= 1;
-        em->hitInfo.flags &= ~0x40;
+        w->hit[27].flag |= 1;
+        em->hitInfo.flag &= ~0x40;
         for (i = 0; i < 30; i++) {
-            w->hit[i].flags &= ~0x40;
+            w->hit[i].flag &= ~0x40;
         }
     } else {
-        w->hit[27].flags |= 1;
-        em->hitInfo.flags |= 0x40;
+        w->hit[27].flag |= 1;
+        em->hitInfo.flag |= 0x40;
         for (i = 0; i < 30; i++) {
-            w->hit[i].flags |= 0x40;
+            w->hit[i].flag |= 0x40;
         }
     }
 }

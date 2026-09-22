@@ -92,9 +92,6 @@ static R318Work* r318_work;
 static SceElevatorData r318_elvArrive = {0, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 2, 0, 2, 0, 1, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 0x31A};
 static SceElevatorData r318_elvLeave = {1, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 2, 0, 0, 0, 1, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 0x31A};
 
-// COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the `Vec = {0,0,0}`
-// libcall for an explicit call (r213).
-extern "C" void* r318_memset(void*, ...) asm("memset");
 // cObjScr (game/obj02.cpp) is not in a header: the callback setter of a scripted map object.
 void cObjScrSetCallBack(cObj* o, void (*func)(cObj*)) asm("SetCallBack__7cObjScrPFP4cObj_v");
 
@@ -130,8 +127,6 @@ static void playerDie(cPlayer* pl);
 void R318Init()
 {
     void* zero = 0;
-    Vec pos;
-    Vec rot;
     int i;
 
 #line 86 "D:/Bio4/Prog/r318.cpp"
@@ -155,8 +150,8 @@ void R318Init()
         SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) R318ExecSitMain, 0, 1);
     }
     EstSet(0, -1, 0, 0, EFF_ROOM, 8, 0x2001, ESP_CORE_KIND_ROOM03, zero, zero);
-    r318_memset(&pos, 0, sizeof(Vec));
-    r318_memset(&rot, 0, sizeof(Vec));
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
     for (i = 0; i < 15; i++) {
         r318_work->laser[i] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
         if (r318_work->laser[i]) {
@@ -323,11 +318,9 @@ static void R318AutoDoorMgr(int no)
 void R318AutoDoorInit(int no, u32 id1, u32 id0)
 {
     R318Door* d = &r318_work->door[no];
-    Vec pos;
-    Vec rot;
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
 
-    r318_memset(&pos, 0, sizeof(Vec));
-    r318_memset(&rot, 0, sizeof(Vec));
     d->obj0 = SmdGetObjPtr(id0);
     d->obj1 = SmdGetObjPtr(id1);
     if (d->obj0 && d->obj1) {

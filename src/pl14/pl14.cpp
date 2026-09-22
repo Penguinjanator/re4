@@ -49,8 +49,6 @@
 #define EM ((cEm*) this)
 #define OEM ((cEm*) owner)
 #define LITEM ((LuisItemWork*) work)
-static inline void U32And(u32& d, u32 m) { d &= m; }
-// Reference store: a MEM with neither the struct nor the scalar flag keeps a following member load below it.
 
 static inline void RoutineSet(cSubLuis* o, int r0)
 {
@@ -117,7 +115,7 @@ cSubLuis::cSubLuis()
     analysis.flags = 0;
     analysis.init(this);
     flags = 0;
-    pFootShadowTbl = pl_fs_tbl;
+    pFsdTbl = pl_fs_tbl;
     pEm = this;
     pSUB = (cSubChar*) this;
     luisEye.r[0] = luisEye.r[1] = 0.0f;   // chain: r[1] first in RTL, the 0.0 dies at r[0] (issued first)
@@ -164,27 +162,27 @@ void cSubLuis::init()
     m_PlAtack = 5;
     be_flag |= 0x2000000;
     m_LeonHp = pG->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
-    voiceWait = 0;
-    cnt = 0;
+    m_okTime = 0;
+    thankCtr = 0;
     set = 0;
     EspDataLoad((u32) SUB_ARC(this, 0x34 / 4), EFF_PL04, 0);
     PlClothSetLuis(this, &luisHair);
     YarareInit(EM, 0.0f, -30.0f, 0.0f, 150.0f, 100.0f, 2, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[0], 0.0f, 0.0f, 0.0f, 170.0f, 120.0f, 3, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[1], -20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x13, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[2], 20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x17, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[3], 0.0f, 0.0f, 20.0f, 140.0f, 65.0f, 5, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[4], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[5], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, YAT_FLAG_ON);
-    YarareAdd(EM, &hit[6], -350.0f, 0.0f, 0.0f, 100.0f, 350.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
-    YarareAdd(EM, &hit[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
-    YarareAdd(EM, &hit[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
-    YarareAdd(EM, &hit[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(EM, &m_Yarare[0], 0.0f, 0.0f, 0.0f, 170.0f, 120.0f, 3, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[1], -20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x13, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[2], 20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x17, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[3], 0.0f, 0.0f, 20.0f, 140.0f, 65.0f, 5, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[4], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[5], 20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x18, YAT_FLAG_ON);
+    YarareAdd(EM, &m_Yarare[6], -350.0f, 0.0f, 0.0f, 100.0f, 350.0f, 9, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(EM, &m_Yarare[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(EM, &m_Yarare[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
+    YarareAdd(EM, &m_Yarare[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, YAT_FLAG_ON | YAT_FLAG_X_AXIS);
     MotionSetCore(pEm, &pEm->Motion, SUB_ARC(this, 0x40 / 4), 0, 0, 5, 0);
     motionMove();
-    getRoomEtcRack(0, &rack[0], 1);
-    getRoomEtcRack(1, &rack[1], 1);
-    getRoomEtcRack(2, &rack[2], 1);
+    getRoomEtcRack(0, &pRackWk[0], 1);
+    getRoomEtcRack(1, &pRackWk[1], 1);
+    getRoomEtcRack(2, &pRackWk[2], 1);
 }
 
 // Builds the model set from the partner archive: the body (0x10/0x14) as the base model, the hair
@@ -252,8 +250,8 @@ void cSubLuis::think()
 
     {
         cAction* a = &action;
-        if (a->mode == 5) return;
-        if (a->mode == 6) return;
+        if (a->type == 5) return;
+        if (a->type == 6) return;
     }
 
     if (Chk8(flags, 1)) {
@@ -277,7 +275,7 @@ void cSubLuis::think()
             action.set(0xC);
         } else if (set == 1 && !(action.flags & 2)) {
             action.set(0xB);
-        } else if (analysis.pTarget) {
+        } else if (analysis.pEmNear) {
             if (Chk8(analysis.flags, 8) && !stairCheck(pPL) && !stairCheck(this) && sameFloorCheck(this, pPL) &&
                 (s16) pG->pl_life > 0) {
                 action.set(7);
@@ -291,19 +289,19 @@ void cSubLuis::think()
     }
 
     if ((s16) pG->pl_life != m_LeonHp && (s16) pG->pl_life > 0 && sameFloorCheck(this, pPL)) {
-        if (voiceWait == 0) {
+        if (m_okTime == 0) {
             m_LeonHp = pG->pl_life;
             routine.voice.set(0x5A, 0x10, 60);
-            voiceWait = 0x5A;
+            m_okTime = 0x5A;
         }
     }
-    if (voiceWait) voiceWait--;
+    if (m_okTime) m_okTime--;
 
-    if (cnt == 1) {
+    if (thankCtr == 1) {
         if (Rnd() & 0x30) routine.voice.set(0x5B, 7, 60);
         else routine.voice.set(0x5C, 8, 60);
     }
-    if (cnt) cnt--;
+    if (thankCtr) thankCtr--;
 }
 
 // The first rack is alive, pushed past z -49000 and Luis is within 3 m of the rack spot: sets
@@ -317,8 +315,8 @@ int cSubLuis::rackCheck()
     const f32 dist = 9000000.0f;
     const f32 zlim = -49000.0f;
 
-    if (rack[0]->hp <= 0) return 0;
-    if (rack[0]->pos.z < zlim) return 0;
+    if (pRackWk[0]->hp <= 0) return 0;
+    if (pRackWk[0]->pos.z < zlim) return 0;
     if (GetDistance(&pos, (Vec*) &rackPos) > dist) return 0;
     analysis.flags |= (u8) 0x80;
     return 1;
@@ -332,9 +330,9 @@ void cRoutine::init(cSubLuis* o)
     o->r_no_2 = 0;
     o->r_no_1 = 0;
     o->r_no_0 = 0;
-    saved[2] = 0xFF;
-    saved[1] = 0xFF;
-    saved[0] = 0xFF;
+    intStack[2] = 0xFF;
+    intStack[1] = 0xFF;
+    intStack[0] = 0xFF;
     shotCnt = 0;
     set(0);
 }
@@ -384,7 +382,7 @@ void cRoutine::moveDamage()
         }
         MotionSetCore(owner, &owner->Motion, mot, 0, 3, 1, 0);
         SndCall(8, 9, &owner->pParts->world, owner->id, 0, 0);
-        owner->cnt = 0;
+        owner->thankCtr = 0;
     case 1:
         if (MotionCheckCrossFrame(&owner->Motion, 20.0f) && work[1] && sameFloorCheck(owner, pPL)) {
             switch (work[1]) {
@@ -456,14 +454,14 @@ void cRoutine::moveWalk()
 {
     Vec out;
 
-    RouteCkToPos(OEM, &target, &out, 0, 0);
+    RouteCkToPos(OEM, &pos, &out, 0, 0);
     if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x58 / 4), 5, 0, 5, 0);
         owner->r_no_1 = 1;
     }
     owner->ang.y += Muku(&owner->pos, &out, owner->ang.y, 0.20943952f);
     owner->motionMove();
-    if (GetDistance(&owner->pos, &target) < dist * dist) end();
+    if (GetDistance(&owner->pos, &pos) < dist * dist) end();
 }
 
 // Routine 6: run (motion 0x68) along the route network towards `target`; ends within `dist` of it
@@ -473,14 +471,14 @@ void cRoutine::moveRun()
     Vec out;
     int r;
 
-    r = RouteCkToPos(OEM, &target, &out, 0, 0);
+    r = RouteCkToPos(OEM, &pos, &out, 0, 0);
     if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x68 / 4), 5, 0, 5, 0);
         owner->r_no_1 = 1;
     }
     owner->ang.y += Muku(&owner->pos, &out, owner->ang.y, 0.20943952f);
     owner->motionMove();
-    if (GetDistance(&owner->pos, &target) < dist * dist && r == 1) end();
+    if (GetDistance(&owner->pos, &pos) < dist * dist && r == 1) end();
 }
 
 // Routine 9: draw the gun (motion 0x78) while turning to pTarget (0.449 rad per frame); at the
@@ -564,8 +562,8 @@ void cRoutine::moveWepFire()
     case 2:
         if (!isTarget(owner, pTarget)) {
             if (pTarget && pTarget->hp <= 0) {
-                cnt++;
-                switch (cnt) {
+                m_ShootDown++;
+                switch (m_ShootDown) {
                 case 10: voice.set(0x62, 0xE, 60); break;
                 case 30: voice.set(0x63, 0xF, 60); break;
                 }
@@ -780,17 +778,17 @@ int cRoutine::set(int no)
     case 0x10: p = 1; r = 0x10; break;
     }
 
-    if (p > prio) {
-        saved[prio] = owner->r_no_0;
-        prio = p;
+    if (p > intLevel) {
+        intStack[intLevel] = owner->r_no_0;
+        intLevel = p;
         owner->r_no_0 = r;
         RoutineStepClear(owner);
-        flags &= ~1;
+        flag &= ~1;
         ret = 1;
-    } else if (p == prio) {
+    } else if (p == intLevel) {
         owner->r_no_0 = r;
         RoutineStepClear(owner);
-        flags &= ~1;
+        flag &= ~1;
         ret = 1;
     } else {
         ret = 0;
@@ -801,15 +799,15 @@ int cRoutine::set(int no)
 // Marks the running routine finished (priority back to 0, flags bit0); the action machine polls eor().
 void cRoutine::end()
 {
-    prio = 0;
-    flags |= 1;
+    intLevel = 0;
+    flag |= 1;
 }
 
 // "End of routine": 1 once the running routine called end().
 int cRoutine::eor()
 {
     int r = 0;
-    if (flags & 1) r = 1;
+    if (flag & 1) r = 1;
     return r;
 }
 
@@ -820,15 +818,15 @@ void cAction::init(cSubLuis* o)
     rno2 = 0;
     rno1 = 0;
     owner = o;
-    req = 2;
-    mode = 2;
+    rno0 = 2;
+    type = 2;
 }
 
 // Runs the step machine of the requested mode: 0 wait (routine 0 once), 5 damage (routine 1,
 // back to chase when it ends), 6 die (nothing), the others in their move* functions.
 void cAction::move(cAnalysis* an, cRoutine* rt)
 {
-    switch (req) {
+    switch (rno0) {
     case 0:
         if (rno1 == 0) {
             rt->set(0);
@@ -844,7 +842,7 @@ void cAction::move(cAnalysis* an, cRoutine* rt)
             rt->set(1);
             rno1 = 1;
         } else if (rt->eor()) {
-            mode = 2;
+            type = 2;
             set(0);
         }
         break;
@@ -866,9 +864,9 @@ void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
     case 0:
-        if (an->pTarget) {
+        if (an->pEmNear) {
             rt->set(9);
-            rt->pTarget = an->pTarget;
+            rt->pTarget = an->pEmNear;
             rno1 = 1;
         } else {
             rt->set(0);
@@ -884,26 +882,26 @@ void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
         break;
     case 3:
         if (--timer == -1) {
-            if (an->pTarget) {
+            if (an->pEmNear) {
                 rt->set(0xB);
-                rt->pTarget = an->pTarget;
+                rt->pTarget = an->pEmNear;
                 rno1 = 4;
             } else {
-                rt->pTarget = an->pTarget;
+                rt->pTarget = an->pEmNear;
             }
         }
         break;
     case 4:
         if (rt->eor()) {
-            if (an->pTarget) {
-                if (an->pTarget != rt->pTarget && an->pEmNearDist < 2000.0f) rt->pTarget = an->pTarget;
+            if (an->pEmNear) {
+                if (an->pEmNear != rt->pTarget && an->pEmNearDist < 2000.0f) rt->pTarget = an->pEmNear;
                 if (!(rt->pTarget && (rt->pTarget->be_flag & 0x201) == 1 && rt->pTarget->hp > 0)) {
-                    rt->pTarget = an->pTarget;
+                    rt->pTarget = an->pEmNear;
                 }
                 rno1 = 3;
                 timer = (u8) (Rnd() % 30);
             } else {
-                rt->pTarget = an->pTarget;
+                rt->pTarget = an->pEmNear;
                 rt->set(0xC);
                 rno1 = 5;
             }
@@ -926,7 +924,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
     switch (rno1) {
     case 0:
         if (rt->set(6)) {
-            rt->target = stairPos;
+            rt->pos = stairPos;
             rt->dist = 1000.0f;
             if (!(an->flags & 0x20)) {
                 an->flags |= 0x20;
@@ -937,7 +935,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
         break;
     case 1:
         if (rt->eor()) {
-            rt->target = upPos;
+            rt->pos = upPos;
             rno1 = 2;
         }
         break;
@@ -963,7 +961,7 @@ void cAction::moveGiveItem(cAnalysis* an, cRoutine* rt)
     switch (rno1) {
     case 0:
         rt->set(0xD);
-        rt->target = pPL->pos;
+        rt->pos = pPL->pos;
         rt->dist = 4000.0f;
         rno1 = 1;
         break;
@@ -1070,7 +1068,7 @@ void cAction::moveEscRack(cAnalysis* an, cRoutine* rt)
     switch (rno1) {
     case 0:
         if (rt->set(6)) {
-            rt->target = escPos;
+            rt->pos = escPos;
             rt->dist = 500.0f;
             rno1 = 1;
         }
@@ -1120,7 +1118,7 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
         break;
     case 0x16:
         rt->set(5);
-        rt->target = pPL->pos;
+        rt->pos = pPL->pos;
         rt->dist = 1500.0f;
         rno1 = 0x17;
         break;
@@ -1130,7 +1128,7 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
         break;
     case 0x1E:
         rt->set(6);
-        rt->target = pPL->pos;
+        rt->pos = pPL->pos;
         rt->dist = 1500.0f;
         rno1 = 0x1F;
     case 0x1F:
@@ -1149,16 +1147,16 @@ void cAction::set(int m)
 
     if (m == 6) {
         ok = 1;
-    } else if (mode != 5) {
-        if ((mode == 8 && m != 8) || (mode == 9 && m != 9)) {
+    } else if (type != 5) {
+        if ((type == 8 && m != 8) || (type == 9 && m != 9)) {
             if (m == 0xA || m == 5 || rno1 == 2) ok = 1;
-        } else if (m != mode) {
+        } else if (m != type) {
             ok = 1;
         }
     }
     if (ok) {
-        mode = m;
-        req = m;
+        type = m;
+        rno0 = m;
         rno3 = 0;
         rno2 = 0;
         rno1 = 0;
@@ -1189,8 +1187,8 @@ void cAnalysis::init(cSubLuis* o)
     // the byte RMW of flags comes last in source.
     owner = o;
     pEmNearDist = 0.0f;
-    pTarget = 0;
-    idx = 0;
+    pEmNear = 0;
+    iem = 0;
     time = 0;
     plDist = 1000000.0f;
     flags &= ~8;
@@ -1225,29 +1223,29 @@ void cAnalysis::move()
 
     time++;
     // Round-robin scan from the entry after idx, until a target is found or it wraps around.
-    i = idx;
+    i = iem;
     while (!isTarget(owner, em = EmMgr.fastAt((i = (i + 1) % EmMgr.getArrayNum())))) {
-        if (i == idx) {
+        if (i == iem) {
             found = 0;
             goto scanned;
         }
     }
-    idx = i;
+    iem = i;
     // COMPILER-DIFF: register tie (global-alloc priority): the loop notes count em's refs double, so em
     // (r30) is allocated before `this` (r29) like the original.
     do { found = em; } while (0);
 scanned:
 
-    if (pTarget && !isTarget(owner, pTarget)) pTarget = 0;
+    if (pEmNear && !isTarget(owner, pEmNear)) pEmNear = 0;
     if (found && isTarget(owner, found)) {
         d = GetDistance(owner->pos, found->pos);
-        if (pTarget) {
-            if (d < GetDistance(owner->pos, pTarget->pos)) {
-                pTarget = found;
+        if (pEmNear) {
+            if (d < GetDistance(owner->pos, pEmNear->pos)) {
+                pEmNear = found;
                 pEmNearDist = d;
             }
         } else {
-            pTarget = found;
+            pEmNear = found;
             pEmNearDist = d;
         }
     }
@@ -1258,35 +1256,35 @@ scanned:
 
     switch ((u32) greThrowCheck()) {   // unsigned range tests (cmplwi), the EQ tests stay cmpwi
     case 0x13:
-        if (greCnt & 0x80) {
-            greCnt = 0;
+        if (grenadeTimer & 0x80) {
+            grenadeTimer = 0;
         } else {
-            greCnt++;
-            if (greCnt > 30) flags |= 0x10;
+            grenadeTimer++;
+            if (grenadeTimer > 30) flags |= 0x10;
         }
         break;
     case 0x16:
     case 0x17:
-        if (greCnt & 0x80) {
-            greCnt = 0;
+        if (grenadeTimer & 0x80) {
+            grenadeTimer = 0;
         } else {
-            greCnt++;
-            if (greCnt > 5) flags |= 0x10;
+            grenadeTimer++;
+            if (grenadeTimer > 5) flags |= 0x10;
         }
         break;
     case 0xD:
-        if (greCnt & 0x80) {
-            greCnt = 0;
+        if (grenadeTimer & 0x80) {
+            grenadeTimer = 0;
         } else {
-            greCnt++;
-            if (greCnt > 1) flags |= 0x10;
+            grenadeTimer++;
+            if (grenadeTimer > 1) flags |= 0x10;
         }
         break;
     default:
-        if (greCnt < -5) {
+        if (grenadeTimer < -5) {
             if (flags & 0x10) flags &= ~0x10;
         } else {
-            greCnt--;
+            grenadeTimer--;
         }
         break;
     }
@@ -1467,7 +1465,7 @@ void cSubLuis::equipWeapon()
 // frames when the attacker is still marked, back to action mode 0 and the routine ended.
 void cSubLuis::endDamage()
 {
-    if ((flags & 0x40) && pEmCatch && ((cEm*) pEmCatch)->dmg.m_Timer) cnt = 30;
+    if ((flags & 0x40) && pEmCatch && ((cEm*) pEmCatch)->dmg.m_Timer) thankCtr = 30;
     flags &= ~0x40;
     action.set(0);
     routine.end();
@@ -1569,14 +1567,14 @@ void cSubLuis::neckMove()
     }
     p = pEm->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.y = neckY;
+    ((cParts*) p)->inv_offset.y = neckY;
 }
 
 // No line playing.
 cVoice::cVoice()
 {
     on = 0;
-    timer = 0;
+    time = 0;
     seId = 0xF0F0F0F0;
 }
 
@@ -1588,9 +1586,9 @@ void cVoice::set(int mesNo, u16 seNo, int time)
     int i;
 
     if (seId != 0xF0F0F0F0) SndStop(seId, 0);
-    if (timer <= 1) {
+    if (this->time <= 1) {
         MessageControl* mes = &cMes;
-        timer = 0;
+        this->time = 0;
         on = 0;
         for (i = 0; i < 16; i++) mes->Delete(i);
     }
@@ -1598,7 +1596,7 @@ void cVoice::set(int mesNo, u16 seNo, int time)
         seId = SndCall(8, seNo, &pSUB->pParts->world, pSUB->id, 0, 0);
         cMes.MesSet(mesNo, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x1000051, 0, 0, 4);   // fold swaps the two subtrahends
     }
-    timer = time;
+    this->time = time;
     on = 1;
 }
 
@@ -1608,7 +1606,7 @@ void cVoice::move()
     int i;
 
     if (on == 1) {
-        if (timer-- < 0) {
+        if (time-- < 0) {
             MessageControl* mes = &cMes;
             on = 0;
             for (i = 0; i < 16; i++) mes->Delete(i);

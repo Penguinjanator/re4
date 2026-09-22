@@ -166,18 +166,17 @@ void seAtInit()
     CameraSetOrientationRoll(cam);
     CameraCamposDistance(cam, 2500.0f);
     {
-        SeAtHead* head = Snd.se_at;
-        SeAt* list = Snd.se_at_list;
-        Snd.se_at_list = NULL;
-        Snd.se_at = NULL;
+        SeAtHead* head = Snd.pSeAtHeader;
+        SeAt* list = Snd.pSeAtData;
+        Snd.pSeAtData = NULL;
+        Snd.pSeAtHeader = NULL;
         // the original's `lwz pW` waits for the four stores (ours floats it to the block top:
         // alias.c separates the symbol bases); codeless memory-input anchors give the load that
-        // dependence, one per store so the two save highs keep equal live lengths (r10/r8)
+        // dependence
         seAtSaveHead = head;
         asm("" : "=m"(seAtWk) : "m"(seAtSaveHead)); // COMPILER-DIFF: #13 (memory anchor)
         seAtSaveList = list;
-        asm("" : "=m"(seAtWk) : "m"(seAtSaveList)); // COMPILER-DIFF: #13 (memory anchor)
-        asm("" : "=m"(seAtWk) : "m"(Snd.se_at), "m"(Snd.se_at_list)); // COMPILER-DIFF: #13 (memory anchor)
+        asm("" : "=m"(seAtWk) : "m"(Snd.pSeAtHeader), "m"(Snd.pSeAtData)); // COMPILER-DIFF: #13 (memory anchor)
     }
     pW->camPos = g->Camera.param.pos;
     pW->camAt = g->Camera.param.at;
@@ -194,8 +193,8 @@ static void seAtExit()
     pG->Stop_flg = pW->saveStop;
     DbgFlagOff(pG, DBG_DBG_CAM);
     SetToolLight(-1);
-    Snd.se_at = seAtSaveHead;
-    Snd.se_at_list = seAtSaveList;
+    Snd.pSeAtHeader = seAtSaveHead;
+    Snd.pSeAtData = seAtSaveList;
     TutilQuitDefault();
     TaskExit();
 }
@@ -258,7 +257,7 @@ static void seAtAreaEdit()
     if (pCur->flags & 1) {
         f32 dist;
         Camera* cam = &pG->Camera;
-        dist = cam->dist;
+        dist = cam->Distance;
         cam->param.at = pCur->pos;
         CameraSetOrientationRoll(cam);
         CameraCamposDistance(cam, dist);
@@ -379,7 +378,7 @@ static void seAtAreaEdit_AreaMove()
     dir.y = g->Camera.mat[1][2];
     dir.z = g->Camera.mat[2][2];
     if (joy->on & (JOY_R | JOY_L)) {
-        f32 dist = cam->dist;
+        f32 dist = cam->Distance;
         if (joy->on & JOY_R) {
             dist -= joy->triggerRight * 3.0f;
         } else {
@@ -1007,8 +1006,8 @@ static void preview_init()
     pW->fileHead.magic[3] = 0;
     pW->fileHead.version = 0x100;
     pW->fileHead.num = n;
-    Snd.se_at = &pW->fileHead;
-    Snd.se_at_list = (SeAt*) pW->file;
+    Snd.pSeAtHeader = &pW->fileHead;
+    Snd.pSeAtData = (SeAt*) pW->file;
     pW->sub++;
 }
 
@@ -1036,7 +1035,7 @@ static void preview_exit()
     pG->Disp_flg |= 0x40000000;
     pG->Disp_flg |= 0x80000000;
     DbgFlagOn(pG, DBG_DBG_CAM);
-    Snd.se_at = NULL;
-    Snd.se_at_list = NULL;
+    Snd.pSeAtHeader = NULL;
+    Snd.pSeAtData = NULL;
     pW->mode = 0;
 }
