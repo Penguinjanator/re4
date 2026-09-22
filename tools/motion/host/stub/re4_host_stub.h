@@ -75,7 +75,7 @@ extern "C" f32 re4_acosf(f32 x);
 #define C_VECCrossProduct PSVECCrossProduct
 #define VECNormalize PSVECNormalize
 #define ASSERTMSGLINE(line, cond, msg) ((void) 0)
-#define PTR_OK(p) ((p) != 0)   // model.cpp: "a relocated pointer into main memory"
+#define VALID_PTR(p) ((p) != 0)   // model.cpp: "a relocated pointer into main memory" (main_mem.h)
 #define ASSERTMSG1(cond, msg, a) ((void) 0)
 #define ASSERTMSG2(cond, msg, a, b) ((void) 0)
 
@@ -103,7 +103,7 @@ struct AttachCamera {
     u16 hist[5][3];
 };
 
-struct MotionWork {
+struct MotionWorkSub {
     MotionData* pMot;
     u32* pHermite_data;   // u32 key pointers: the motion image lives in the low 4 GB (MAP_32BIT)
     u16 Key_hist[2][2][3];
@@ -141,7 +141,10 @@ struct MotionWork {
     u8 pad_C6[2];
     f32 Brate;
     AttachCamera* pAttachCam;
-    MotionWork* blend;
+};
+
+struct MotionWork : public MotionWorkSub {
+    MotionWorkSub* blend;
     u16* flip;
     u16* blendTbl;
 };
@@ -243,6 +246,7 @@ struct Global {
     f32 Speed;          // motion frame step per game frame (MotionSequenceCtrl: Seq_speed * Speed)
 };
 extern Global* pG;
+extern const Vec vecZero;   // main.h / main.cpp
 // include/global.h flag accessors (the host keeps every flag clear): bit `no` of a u32 flag array,
 // MSB first, as the game's FlagChk macro.
 enum { DBG_TEST_MODE = 0, DBG_ERROR_CK = 105, SYS_INVISIBLE = 8 };
@@ -295,7 +299,7 @@ void PSMTXMultVec(const Mtx m, const Vec* src, Vec* dst);
 void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
 void C_QUATMtx(Quaternion* q, const Mtx m);
 void C_QUATSlerp(const Quaternion* p, const Quaternion* q, Quaternion* r, f32 t);
-void IKInit(cModel* m, MotionWork* w);
+void IKInit(cModel* m, MotionWorkSub* w);
 void InverseKinematics(cModel* m, int flag);
 void ikCalc(cModel* root, cModel* joint, cModel* eff);
 void cModel_matBlend(cModel* m, f32 rate);
@@ -307,17 +311,17 @@ void MotionPause(cModel* m);
 void MotionClear(cModel* m, int flag);
 struct Camera;   // cam_ctrl.h; MotionMove / MotionMoveCore take a Camera* the host passes as NULL
 u32 MotionMove(cModel* m, Camera* pCamera);
-u16 MotionMoveSub(cModel* m, MotionWork* w);
-void MotionMoveCore(cModel* m, MotionWork* w, Camera* pCamera);
-void MotionHokan(cModel* m, MotionWork* w);
-void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot);
-void MotionAddSpeed(cModel* m, MotionWork* w, Vec* pos, Vec* rot);
+u16 MotionMoveSub(cModel* m, MotionWorkSub* w);
+void MotionMoveCore(cModel* m, MotionWorkSub* w, Camera* pCamera);
+void MotionHokan(cModel* m, MotionWorkSub* w);
+void MotionGetSpeed(cModel* m, MotionWorkSub* w, int flag, Vec* pos, Vec* rot);
+void MotionAddSpeed(cModel* m, MotionWorkSub* w, Vec* pos, Vec* rot);
 void MotionGetPosition(cModel* m, Vec* pos, Vec* rot);
-u16 MotionSequenceCtrl(MotionWork* w);
+u16 MotionSequenceCtrl(MotionWorkSub* w);
 u16 FcvGetMaxFrame(u16* data);
-f32 MotionGetMaxFrame(MotionWork* w);
-f32 MotionGetCurrentFrame(MotionWork* w);
-int MotionCheckCrossFrame(MotionWork* w, f32 frame);
+f32 MotionGetMaxFrame(MotionWorkSub* w);
+f32 MotionGetCurrentFrame(MotionWorkSub* w);
+int MotionCheckCrossFrame(MotionWorkSub* w, f32 frame);
 int MotionGetState(cModel* m);
 void eprintf(int x, int y, int a, int b, const char* fmt, ...);
 }
