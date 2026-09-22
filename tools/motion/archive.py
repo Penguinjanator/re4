@@ -32,6 +32,13 @@ Zero-padded variants: the event bins and the ETM files pad motions and sequences
 A source is a container file or a disc image (.iso/.gcm): the disc's files are extracted with dtk
 vfs into a cache directory that mirrors the disc tree; archives are parsed on first use (a room
 decompresses in ~2 s).
+
+The PS2 disc (ISO9660, system id PLAYSTATION) keeps its files in DATA/BIO4DAT.AFS ("AFS\\0", u32
+count, {u32 ofs, size}[count], then the name table: {char name[0x20]; u16 date[6]; u32 size}). The
+`.dat` files there are bare bodies, little-endian, rooms uncompressed; the FCV / SEQ / ETM layouts
+are the GameCube's byte-swapped; EFF, SMD, the models and the textures have other layouts (not
+read). The game addresses them by AFS index (EMD_READ_SET::Dat) and names repeat across the
+language sets, so a PS2 archive is named `NNNN_name.dat` after its index.
 """
 import os
 import struct
@@ -69,6 +76,7 @@ class Entry:
     data: bytes
     label: str = None  # named entry: the event bin / ETM file name
     sub: str = None    # nested entry: 'ETM/pl00017.fcv', 'EFF/efm124/mot0', 'SMD/mot0'
+    endian: str = '>'  # '<' for the PS2 disc's archives
 
     @property
     def arc_no(self):
@@ -131,13 +139,14 @@ def load_das(path):
     return drs.Drs(rebuilt), info
 
 
-def parse_body(body):
+def parse_body(body, endian='>'):
     """[(tag, bytes)] of a bare container body (u32 count, 0, 0, 0; u32 ofs[count]; char tag[count][4]):
-    the ss/*.dat files, and the same layout the ハカセ body uses (drs.Drs checks it there)."""
-    count, a, b, c = struct.unpack('>4I', body[:16])
+    the ss/*.dat files, the PS2 disc's .dat files (little-endian), and the same layout the ハカセ
+    body uses (drs.Drs checks it there)."""
+    count, a, b, c = struct.unpack(endian + '4I', body[:16])
     if (a, b, c) != (0, 0, 0) or not 1 <= count <= 0x1000:
         raise ValueError(f'not a container body: count {count:#x}, header words {a:#x} {b:#x} {c:#x}')
-    ofs = struct.unpack(f'>{count}I', body[16:16 + 4 * count])
+    ofs = struct.unpack(f'{endian}{count}I', body[16:16 + 4 * count])
     tags = [body[16 + 4 * count + 4 * i:][:4] for i in range(count)]
     hdr_end = 16 + 8 * count
     if ofs[0] != drs.align(hdr_end) or body[hdr_end:ofs[0]] != b'\0' * (ofs[0] - hdr_end):
@@ -151,8 +160,8 @@ def parse_body(body):
     return out
 
 
-def is_body(d):
-    return len(d) >= 0x20 and d[4:16] == b'\0' * 12 and 1 <= struct.unpack('>I', d[:4])[0] <= 0x1000
+def is_body(d, endian='>'):
+    return len(d) >= 0x20 and d[4:16] == b'\0' * 12 and 1 <= struct.unpack(endian + 'I', d[:4])[0] <= 0x1000
 
 
 def is_hakase(d):
@@ -179,14 +188,14 @@ def parse_event(d):
     return out
 
 
-def parse_etm(d):
+def parse_etm(d, endian='>'):
     """[(name, bytes)] of a room ETM entry (EtcArc): u32 num at 0, files from 0x20, each
     {u32 size (of the record); pad; char name[0x20] at 0x20; data at 0x40}."""
-    num, = struct.unpack('>I', d[:4])
+    num, = struct.unpack(endian + 'I', d[:4])
     p = 0x20
     out = []
     for _ in range(num):
-        size, = struct.unpack('>I', d[p:p + 4])
+        size, = struct.unpack(endian + 'I', d[p:p + 4])
         name = d[p + 0x20:p + 0x40].split(b'\0')[0].decode('ascii')
         if size < 0x40 or p + size > len(d) or size % drs.ALIGN:
             raise ValueError(f'ETM file {name}: record size {size:#x} at {p:#x} of {len(d):#x}')
@@ -257,12 +266,13 @@ def kind_of(path):
 
 
 class Archive:
-    def __init__(self, path):
+    def __init__(self, path, endian='>'):
         self.path = path
         self.name = os.path.basename(path)
         self.stem, self.ext = os.path.splitext(self.name)
         self.ext = self.ext.lower()
         self.kind = kind_of(path)
+        self.endian = endian
         self._drs = None
         self._entries = None
         self.das = None     # DasInfo for a .das
@@ -284,7 +294,7 @@ class Archive:
         if self.kind == 'hakase':
             self._entries = [(drs.tag_name(t), d, None) for t, d in self.drs.entries]
         elif self.kind == 'body':
-            self._entries = [(t, d, None) for t, d in parse_body(open(self.path, 'rb').read())]
+            self._entries = [(t, d, None) for t, d in parse_body(open(self.path, 'rb').read(), self.endian)]
         elif self.kind == 'evd':
             self._entries = [(ext_tag(n), d, n) for n, d in parse_event(open(self.path, 'rb').read())]
         elif self.kind == 'fcv':
@@ -298,19 +308,19 @@ class Archive:
 
     def entry(self, i):
         t, d, label = self._load()[i]
-        return Entry(self.name, i, t, d, label)
+        return Entry(self.name, i, t, d, label, endian=self.endian)
 
     def find(self, label):
         """The named entry (event bin / raw file name, or its basename); None when absent."""
         for i, (t, d, l) in enumerate(self._load()):
             if l is not None and (l.strip() == label or os.path.basename(l.strip()) == label):
-                return Entry(self.name, i, t, d, l)
+                return Entry(self.name, i, t, d, l, endian=self.endian)
         return None
 
     def entries(self, tag=None, deep=False):
         """The entries, with the ETM / EFF / SMD nested ones after their parent when `deep`."""
         for i, (t, d, label) in enumerate(self._load()):
-            e = Entry(self.name, i, t, d, label)
+            e = Entry(self.name, i, t, d, label, endian=self.endian)
             if tag is None or t == tag:
                 yield e
             if deep:
@@ -322,18 +332,95 @@ class Archive:
 def nested(e):
     """The entries a container entry holds: ETM files, EFF effect-model motions, SMD motions."""
     if e.tag == 'ETM':
-        for name, d in parse_etm(e.data):
-            yield Entry(e.archive, e.index, ext_tag(name), d, name, f'ETM/{name}')
-    elif e.tag == 'EFF':
+        for name, d in parse_etm(e.data, e.endian):
+            yield Entry(e.archive, e.index, ext_tag(name), d, name, f'ETM/{name}', e.endian)
+    elif e.tag == 'EFF' and e.endian == '>':
         for efm_id, k, d in eff_motions(e.data):
             yield Entry(e.archive, e.index, 'FCV', d, None, f'EFF/efm{efm_id}/mot{k}')
-    elif e.tag == 'SMD':
+    elif e.tag == 'SMD' and e.endian == '>':
         for k, d in enumerate(smd_motions(e.data)):
             yield Entry(e.archive, e.index, 'FCV', d, None, f'SMD/mot{k}')
 
 
 def is_disc(path):
     return os.path.splitext(path)[1].lower() in ('.iso', '.gcm')
+
+
+ISO_SECTOR = 0x800
+PS2_AFS = 'DATA/BIO4DAT.AFS'
+
+
+def is_ps2_disc(path):
+    """An ISO9660 image whose primary volume descriptor names the PLAYSTATION system."""
+    with open(path, 'rb') as f:
+        f.seek(16 * ISO_SECTOR)
+        pvd = f.read(0x28)
+    return pvd[1:6] == b'CD001' and pvd[8:0x28].rstrip() == b'PLAYSTATION'
+
+
+def iso_find(f, path):
+    """(byte offset, size) of a file of an ISO9660 image, by its '/'-separated path."""
+    f.seek(16 * ISO_SECTOR)
+    root = f.read(ISO_SECTOR)[156:156 + 34]
+    lba, size = struct.unpack_from('<I', root, 2)[0], struct.unpack_from('<I', root, 10)[0]
+    for part in path.split('/'):
+        f.seek(lba * ISO_SECTOR)
+        data = f.read(size)
+        o = 0
+        found = None
+        while o < len(data):
+            n = data[o]
+            if n == 0:
+                o = (o // ISO_SECTOR + 1) * ISO_SECTOR
+                continue
+            rec = data[o:o + n]
+            if rec[33:33 + rec[32]].decode('ascii').split(';')[0].upper() == part.upper():
+                found = struct.unpack_from('<I', rec, 2)[0], struct.unpack_from('<I', rec, 10)[0]
+                break
+            o += n
+        if found is None:
+            raise ValueError(f'{path}: {part} not on the disc')
+        lba, size = found
+    return lba * ISO_SECTOR, size
+
+
+def afs_files(f, base):
+    """[(index, name, byte offset, size)] of an AFS archive at `base`."""
+    f.seek(base)
+    magic, count = struct.unpack('<4sI', f.read(8))
+    if magic != b'AFS\0':
+        raise ValueError(f'AFS magic {magic!r}')
+    tab = struct.unpack(f'<{2 * count}I', f.read(8 * count))
+    names_ofs, names_size = struct.unpack('<2I', f.read(8))
+    if names_size != 0x30 * count:
+        raise ValueError(f'AFS name table {names_size:#x} bytes for {count} files')
+    f.seek(base + names_ofs)
+    names = f.read(names_size)
+    return [(i, names[0x30 * i:0x30 * i + 0x20].split(b'\0')[0].decode('ascii'), base + tab[2 * i], tab[2 * i + 1])
+            for i in range(count)]
+
+
+def ps2_archives(disc, cache_dir):
+    """Extracts the PS2 disc's archive bodies (the non-empty .dat files of BIO4DAT.AFS) once into
+    cache_dir/<disc stem>/BIO4DAT/NNNN_name.dat and returns their paths in AFS order."""
+    root = os.path.join(cache_dir, os.path.splitext(os.path.basename(disc))[0], 'BIO4DAT')
+    os.makedirs(root, exist_ok=True)
+    paths = []
+    with open(disc, 'rb') as f:
+        base, _ = iso_find(f, PS2_AFS)
+        for i, name, ofs, size in afs_files(f, base):
+            if not name.lower().endswith('.dat') or size == 0:
+                continue
+            dst = os.path.join(root, f'{i:04d}_{name}')
+            if not os.path.exists(dst):
+                f.seek(ofs)
+                d = f.read(size)
+                if not is_body(d, '<'):
+                    continue
+                with open(dst, 'wb') as out:
+                    out.write(d)
+            paths.append(dst)
+    return paths
 
 
 def _vfs_ls(disc, sub):
@@ -381,6 +468,8 @@ def disc_archives(disc, cache_dir):
 
 def open_source(path, cache_dir='/tmp/mot/disc'):
     """[Archive] for a container file or every archive of a disc image (parsed lazily)."""
+    if is_disc(path) and is_ps2_disc(path):
+        return [Archive(p, '<') for p in ps2_archives(path, cache_dir)]
     if is_disc(path):
         return [Archive(p) for p in disc_archives(path, cache_dir)]
     return [Archive(path)]

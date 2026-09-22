@@ -1,6 +1,7 @@
 """MotionData ("FCV" archive entries) and sequence tables ("SEQ"): parse and byte-exact serialise.
 
-Layout (big-endian, from game/motion.cpp MotionSetCore / HermiteInterpolation / Fcc_get_data_*):
+Layout (big-endian on the GameCube, the same layout little-endian on the PS2 disc; from
+game/motion.cpp MotionSetCore / HermiteInterpolation / Fcc_get_data_*):
 
   u16 maxFrame            last motion frame (the game plays frames 0..maxFrame, maxFrame+1 frames);
                           bits 14-15 are flags (MotionSetCore and cam_motion mask them: `& 0x3FFF`),
@@ -156,13 +157,13 @@ def _fill_of(tail):
     return None
 
 
-def parse(d: bytes) -> Motion:
-    raw_max_frame, n = struct.unpack('>HB', d[:3])
+def parse(d: bytes, endian='>') -> Motion:
+    raw_max_frame, n = struct.unpack(endian + 'HB', d[:3])
     max_frame, frame_flags = raw_max_frame & 0x3FFF, raw_max_frame >> 14
     if n == 0:
         # No joints: header, pad byte, size word (0x20), padding. One archive variant has a zero
         # size word followed by zero bytes up to 16 (`zero_size`).
-        size, = struct.unpack('>I', d[4:8])
+        size, = struct.unpack(endian + 'I', d[4:8])
         if d[3] != 0 or len(d) != ALIGN:
             raise ValueError('empty motion: bad pad byte or size')
         if size == 0 and d[8:16] == b'\0' * 8 and d[16:] == bytes([FILL]) * 16:
@@ -171,19 +172,19 @@ def parse(d: bytes) -> Motion:
         if fill is None:
             raise ValueError('empty motion: unexpected bytes after the header')
         return Motion(max_frame, [], [], fill=fill, size_word=None if size == ALIGN else size, frame_flags=frame_flags)
-    infos = struct.unpack(f'>{n}H', d[3:3 + 2 * n])
+    infos = struct.unpack(f'{endian}{n}H', d[3:3 + 2 * n])
     parts_no = d[3 + 2 * n:3 + 3 * n]
     o = (3 + 3 * n + 3) & ~3
-    size, = struct.unpack('>I', d[o:o + 4])
+    size, = struct.unpack(endian + 'I', d[o:o + 4])
     o += 4
-    key_ofs = struct.unpack(f'>{n}I', d[o:o + 4 * n])
+    key_ofs = struct.unpack(f'{endian}{n}I', d[o:o + 4 * n])
     o += 4 * n
     joints = []
     ends = []
     for i in range(n):
         info = infos[i]
         j = Joint(info & 0xFF, (info >> 8) & 0xF, info >> 12, parts_no[i])
-        st = fcc_struct(j.fcc_type)
+        st = fcc_struct(j.fcc_type, endian)
         ks = st.size
         p = key_ofs[i]
         if p + 6 > len(d):
@@ -191,10 +192,10 @@ def parse(d: bytes) -> Motion:
         for _ in range(3):
             if p + 2 > len(d) - ALIGN + 1 and d[p:p + 2] == bytes([FILL]) * 2:
                 raise ValueError(f'joint {i} (kind {info:#06x}, parts {parts_no[i]}) key block at {key_ofs[i]:#x} lies in the 0xCD padding')
-            k, = struct.unpack('>H', d[p:p + 2])
+            k, = struct.unpack(endian + 'H', d[p:p + 2])
             if p + 2 + 2 * k + ks * k > len(d):
                 raise ValueError(f'joint {i} (kind {info:#06x}, parts {parts_no[i]}) axis with {k} keys at {p:#x} runs past the end')
-            frames = list(struct.unpack(f'>{k}H', d[p + 2:p + 2 + 2 * k]))
+            frames = list(struct.unpack(f'{endian}{k}H', d[p + 2:p + 2 + 2 * k]))
             p += 2 + 2 * k
             keys = [st.unpack_from(d, p + ks * m) for m in range(k)]
             p += ks * k
@@ -279,11 +280,11 @@ class Sequence:
     fill: int = FILL      # padding byte: 0xCD (archives) or 0x00 (ETM .seq files)
 
 
-def parse_seq(d: bytes) -> Sequence:
-    count, flags, pad = struct.unpack('>HBB', d[:4])
+def parse_seq(d: bytes, endian='>') -> Sequence:
+    count, flags, pad = struct.unpack(endian + 'HBB', d[:4])
     if pad != 0:
         raise ValueError('sequence pad byte not zero')
-    keys = [SeqKey(*struct.unpack('>HBB', d[4 + 4 * i:8 + 4 * i])) for i in range(count)]
+    keys = [SeqKey(*struct.unpack(endian + 'HBB', d[4 + 4 * i:8 + 4 * i])) for i in range(count)]
     p = 4 + 4 * count
     tail = len(d) - p
     fill = _fill_of(d[p:]) if 0 <= tail < ALIGN else None
@@ -292,10 +293,10 @@ def parse_seq(d: bytes) -> Sequence:
     return Sequence(flags, keys, fill)
 
 
-def serialise_seq(s: Sequence) -> bytes:
-    out = bytearray(struct.pack('>HBB', len(s.keys), s.flags, 0))
+def serialise_seq(s: Sequence, endian='>') -> bytes:
+    out = bytearray(struct.pack(endian + 'HBB', len(s.keys), s.flags, 0))
     for k in s.keys:
-        out += struct.pack('>HBB', k.frame, k.se, k.free)
+        out += struct.pack(endian + 'HBB', k.frame, k.se, k.free)
     total = (len(out) + ALIGN - 1) & ~(ALIGN - 1)
     out += bytes([s.fill]) * (total - len(out))
     return bytes(out)

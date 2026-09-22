@@ -8,7 +8,7 @@ animations on the model's parts hierarchy, with the character's skinned, texture
 model .bin / .tpl entries.
 
 usage: motion_export.py list <archive|disc>... [--character leon | --all-sources]
-       motion_export.py export <archive|disc> --motion N|name [--archive plNN.drs|rNNN.das|rNNNsMM.evd] [--character leon | --model <bin|[stem:]index>]
+       motion_export.py export <archive|disc>... --motion N|name [--archive plNN.drs|rNNN.das|rNNNsMM.evd] [--character leon | --model <bin|[stem:]index>]
                                [--tpl N] [--body-only] [--mesh [stem:]BIN[:[stem:]TPL] ...] [--no-mesh]
                                -o out.gltf [--bvh out.bvh] [--no-ik] [--no-root] [--fps 30] [--scale 0.001]
                                [--blender-check [render_dir] [--strip]] [--render-nice DIR]
@@ -34,6 +34,9 @@ other motion Leon can play (the player archive, the enemy / vehicle archives, th
 the rooms, the ETM ladder files, the events, the sub screen) and the game function that plays each
 (tools/motion/refs.py, generated from src/ by gen_refs.py); `list --all-sources` is the inventory
 per file and tag; `export --archive em10.drs --motion 665 --character leon` plays one on Leon's body.
+The PS2 disc is a source of motions (archive.py: BIO4DAT.AFS, archives named NNNN_name.dat after
+their AFS index); its models are not read, so a PS2 motion plays on a GameCube body: `export
+disc1.iso ps2.iso --archive 0672_ema0.dat --motion 665 --character ada` (Ada's standing kick there).
 `verify` decompresses every .das, checks every container (nested ones included), re-serialises
 every motion, sequence table and model and counts byte-identical round-trips, decodes every
 texture (re-encoding the lossless formats), then compares the helper's poses with a Dolphin memory
@@ -41,6 +44,7 @@ dump when given one (see tools/motion/README.md).
 """
 import argparse
 import os
+import re
 import struct
 import sys
 
@@ -51,7 +55,22 @@ from motion import archive, fcv, modelbin, meshbin, gxtex, evalhost, gltf, bvh, 
 def load_motion(entry):
     if entry.tag != 'FCV':
         sys.exit(f'{entry.name}: tag {entry.tag!r}, not a motion (FCV)')
-    return fcv.parse(entry.data)
+    return fcv.parse(entry.data, entry.endian)
+
+
+def motion_on_model(entry, motion, model):
+    """The motion as it plays on `model`. A PS2 motion on a GameCube body loses the joints of the
+    parts the body does not have (the PS2 Ada skeleton's parts 90-97)."""
+    if entry.endian == '>':
+        return motion
+    keep = [i for i, j in enumerate(motion.joints) if j.parts_no < model.n_parts]
+    if len(keep) == len(motion.joints):
+        return motion
+    print(f'  {entry.name}: PS2 joints of parts {sorted(j.parts_no for j in motion.joints if j.parts_no >= model.n_parts)} '
+          f'dropped (the GameCube body has {model.n_parts} parts)')
+    new = {old: k for k, old in enumerate(keep)}
+    return fcv.Motion(motion.max_frame, [motion.joints[i] for i in keep], [new[i] for i in motion.layout if i in new],
+                      fill=motion.fill, frame_flags=motion.frame_flags)
 
 
 def table_body(stem):
@@ -79,6 +98,8 @@ def load_model(ref, arc, src):
             e = src.entry(character.parse_ref(ref, arc.stem))
         except MeshSourceError as ex:
             sys.exit(f'--model {ref}: {ex}')
+    if e.endian == '<':
+        sys.exit(f'{e.name}: PS2 models are not read; give a GameCube disc for the body (--character NAME)')
     if e.tag != 'BIN':
         sys.exit(f'{e.name}: tag {e.tag!r}, not a model (BIN)')
     m = modelbin.parse(e.data)
@@ -91,6 +112,8 @@ class MeshSourceError(Exception):
 
 
 def mesh_source(bin_entry, tpl_entry, role=None):
+    if bin_entry.endian == '<' or tpl_entry.endian == '<':
+        raise MeshSourceError(f'{bin_entry.name}: PS2 models and textures are not read')
     if bin_entry.tag != 'BIN':
         raise MeshSourceError(f'{bin_entry.name}: tag {bin_entry.tag!r}, not a model (BIN)' + (' (empty entry)' if not bin_entry.data else ''))
     if tpl_entry.tag != 'TPL':
@@ -272,9 +295,11 @@ def list_melee(src, stem):
 
 
 def describe_entry(e):
+    if e.endian == '<' and e.tag in ('BIN', 'TPL'):
+        return f'{e.tag}  PS2 format, not read ({len(e.data):#x} bytes)'
     if e.tag == 'FCV':
         try:
-            m = fcv.parse(e.data)
+            m = fcv.parse(e.data, e.endian)
             kinds = sorted(set(j.target() or ('root_pos' if j.is_root_pos() else 'root_rot') for j in m.joints))
             ik = sum(1 for j in m.joints if j.kind & 0x30)
             notes = ''
@@ -290,7 +315,7 @@ def describe_entry(e):
             return f'FCV  MALFORMED: {ex}'
     if e.tag == 'SEQ':
         try:
-            s = fcv.parse_seq(e.data)
+            s = fcv.parse_seq(e.data, e.endian)
             return (f'SEQ  {len(s.keys)} keys, flags {s.flags:#x}, frames {s.keys[0].frame_f:g}..{s.keys[-1].frame_f:g}'
                     if s.keys else 'SEQ  empty')
         except Exception as ex:
@@ -315,7 +340,7 @@ def describe_entry(e):
 def motion_round_trips(arc, e):
     """parse + serialise gives the entry's bytes back (ValueError when it does not parse). The raw
     ss/<lang>/*.fcv files end at the last key without the padding their size word counts."""
-    out = fcv.serialise(fcv.parse(e.data))
+    out = fcv.serialise(fcv.parse(e.data, e.endian), e.endian)
     if out == e.data:
         return True
     return arc.kind == 'fcv' and out.startswith(e.data) and len(out) - len(e.data) < fcv.ALIGN
@@ -348,7 +373,6 @@ def refs_lines(calls, indent='        '):
 
 def list_character(src, stem):
     """Every motion the player can play, per archive, with the game function that plays it."""
-    import re
     arc = src.get(stem)
     if arc is None:
         sys.exit(f'{stem}: not in the source')
@@ -489,7 +513,7 @@ def export_one(arc, entry, model, model_name, meshes, out, args):
         sys.exit(f'{entry.name}: a camera motion (CameraControl::MotionSet), not a skeletal one')
     if entry.is_face:
         sys.exit(f'{entry.name}: face shape data (ShapeSet), not a skeletal motion')
-    motion = load_motion(entry)
+    motion = motion_on_model(entry, load_motion(entry), model)
     poses = play(model, motion, args)
     name = entry_file_stem(arc, entry)
     if meshes and meshes[0].label.rsplit('_', 1)[0] != arc.stem:   # a melee motion on another archive's body
@@ -573,11 +597,11 @@ def cmd_export(args):
             if e.is_camera or e.is_face:
                 continue
             try:
-                m = fcv.parse(e.data)
+                m = fcv.parse(e.data, e.endian)
             except ValueError as ex:
                 print(f'{e.name}: skipped, malformed motion ({ex})')
                 continue
-            if any(j.target() is not None and j.parts_no >= model.n_parts for j in m.joints):
+            if e.endian == '>' and any(j.target() is not None and j.parts_no >= model.n_parts for j in m.joints):
                 print(f'{e.name}: skipped, targets parts beyond the model ({model.n_parts})')
                 continue
             out = os.path.join(args.output, entry_file_stem(arc, e) + '.gltf')
@@ -598,6 +622,7 @@ def cmd_verify(args):
     tpl_total = tex_total = tex_lossless = tex_ok = 0
     das_total = das_yz2 = das_ok = 0
     das_entries = 0
+    ps2_models = 0
     kinds = collections.Counter()
     nested = collections.Counter()
     failures = []
@@ -641,7 +666,9 @@ def cmd_verify(args):
         for e in entries:
             if e.sub:
                 nested[e.sub.split('/')[0]] += 1
-            if e.tag == 'BIN':
+            if e.endian == '<' and e.tag in ('BIN', 'TPL'):
+                ps2_models += 1
+            elif e.tag == 'BIN':
                 bin_total += 1
                 try:
                     m = meshbin.parse(e.data)
@@ -680,11 +707,11 @@ def cmd_verify(args):
                 except ValueError as ex:
                     failures.append(f'{e.name}: {ex}')
             elif e.tag == 'SEQ':
-                if arc.stem.startswith('op') and arc.kind == 'hakase':
+                if re.fullmatch(r'(\d{4}_)?op\d\d', arc.stem):
                     continue       # op/opNN.das "SEQ": the codec conversation blocks (ss_term.cpp term_ope_tbl), not MotionSeqKey tables
                 seq_total += 1
                 try:
-                    if fcv.serialise_seq(fcv.parse_seq(e.data)) == e.data:
+                    if fcv.serialise_seq(fcv.parse_seq(e.data, e.endian), e.endian) == e.data:
                         seq_ok += 1
                     else:
                         failures.append(f'{e.name}: sequence re-serialisation differs')
@@ -714,6 +741,8 @@ def cmd_verify(args):
     print(f'  {bin_total} models, {bin_ok} byte-identical round-trips ({shaped} with a shape table, {shape_keys} shape keys); '
           f'{tpl_total} texture palettes, {tex_total} textures decoded, '
           f'{tex_lossless} lossless (I4 / IA8), {tex_ok} byte-identical re-encodings')
+    if ps2_models:
+        print(f'  {ps2_models} PS2 model / texture entries (another format, not read)')
     print(f'  character table: {tab_ok} of {tab_total} attachments load from this source')
     for f in failures:
         print(f'  FAIL {f}')
@@ -743,8 +772,9 @@ def main():
     p.add_argument('--all-sources', action='store_true', help='the inventory: per file, per tag, counts (nested ETM / EFF / SMD entries included)')
     p.set_defaults(func=cmd_list)
     p = sub.add_parser('export')
-    p.add_argument('source')
-    p.add_argument('--archive', help='archive name when the source is a disc (plNN.drs, em10.drs, rNNN.das, rNNNsMM.evd, ss_oc101.dat)')
+    p.add_argument('source', nargs='+', help='archive file(s) or disc image(s): a GameCube disc for the body of a PS2 motion')
+    p.add_argument('--archive', help='archive name when the source is a disc (plNN.drs, em10.drs, rNNN.das, rNNNsMM.evd, ss_oc101.dat, '
+                                     'the PS2 disc\'s NNNN_name.dat)')
     p.add_argument('--motion', help='entry index N, or the name of an event bin / ETM file (em1000_s00_000.fcv, pl00017.fcv)')
     p.add_argument('--all', action='store_true')
     p.add_argument('--model', help='model .bin file or [stem:]index (default: the character table\'s body of the '
