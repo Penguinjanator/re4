@@ -111,6 +111,16 @@ the PS2's `Route_target` is, had been named `Goto_pos`, and the real `Goto_pos` 
 `Target_pos` and `Scale` as on the PS2) was a placeholder. When the row order around a field disagrees
 with the tool's name match, the row order wins (2026-09-21: `Route_target` / `Target_pos` / `Goto_pos`).
 
+The 2026-09-22 audit of the names that were already in the headers against the PS2 dump renamed
+some 500 fields of the paired structs to the vendor spelling and found 15 mislabels (a GC name that
+contradicted the PS2 field at the same place, with the use sites agreeing with the PS2: `cPlNeck`
+`motL`/`motR` swapped, `LevelPrice` `mag`/`speed` shifted by one, `GlobalWork` `sub_pos` = `pl_pos`,
+`Espgen42Work` `damp`/`spread` = `Prm_a`/`Prm_dmp`, ...). Two rules from it: a GC debug string that
+prints the field beats the PS2 name (`db_work.cpp` prints `"pCldShMd"`, so `cModel::pCldShMd` keeps
+that spelling over the PS2 `pChildShadowModel`; `"L PL"` confirmed `cEm::l_pl`); and the `Em10Work`
+timer block (`Esc_timer` .. `Claw_hp`, 0x644-0x686) is repacked relative to `FREE_EM10` (0x3a8-0x3ca),
+so those names rest on the local runs of neighbours and the use sites, not on the whole-struct row order.
+
 Enums (`EM_STATUS`, `DATA_COMMAND`, `SCE_LEVEL`, `ESP_OWNER`, `DMG_TYPE`, `ACTION_TYPE`, ...) are
 imported from the same dump as declared there: the PS2 enumerator names and values, in the PS2 order,
 in the header of the GC unit that owns the type (`ps2_types.h` is the reference; `rg 'enum NAME'
